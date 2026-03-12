@@ -23,12 +23,72 @@ class HilbertCurve:
 
     def generate_lut(self):
         """Generate lookup table for Hilbert curve."""
-        # For now, use simple row-major order
-        # TODO: Implement actual Hilbert curve
+        # Use a different approach: build Hilbert curve by iterating over grid points
+        # and determining their position in the Hilbert curve traversal
+        size = self.grid_size
         lut = []
-        for y in range(self.grid_size):
-            for x in range(self.grid_size):
-                lut.append((x, y))
+        
+        def hilbert_position(x, y, axis, level):
+            """Calculate which position in Hilbert curve a point maps to."""
+            half = size // 2
+            
+            if level == 0:
+                return (x, y)
+            
+            if axis == 0:  # Horizontal
+                # Quadrants: top-right, top-left, bottom-left, bottom-right
+                if x >= half and y >= half:
+                    # Top-right
+                    return (x - half, y - half, 0, level - 1)[0]
+                elif x < half and y >= half:
+                    # Top-left
+                    return (x, y - half, 0, level - 1)[0]
+                elif x >= half and y < half:
+                    # Bottom-right
+                    return (x - half, y, 0, level - 1)[0]
+                else:
+                    # Bottom-left
+                    return (x, y, 0, level - 1)[0]
+            else:  # Vertical
+                # Quadrants: top-right, top-left, bottom-left, bottom-right
+                if x >= half and y >= half:
+                    # Top-right
+                    return (x - half, y - half, 0, level - 1)[0]
+                elif x < half and y >= half:
+                    # Top-left
+                    return (x, y - half, 0, level - 1)[0]
+                elif x >= half and y < half:
+                    # Bottom-right
+                    return (x - half, y, 0, level - 1)[0]
+                else:
+                    # Bottom-left
+                    return (x, y, 0, level - 1)[0]
+        
+        # Generate Hilbert curve by traversing quadrants
+        def generate_quadrant(axis, level, x0, y0, order_left):
+            """Generate curve for a quadrant."""
+            if level == 0:
+                return [(x0, y0)]
+            
+            half = size // 2
+            points = []
+            
+            if axis == 0:  # Horizontal
+                # Visit quadrants: top-right -> top-left -> bottom-left -> bottom-right
+                points.extend(generate_quadrant(1, level - 1, x0 + half, y0, order_left))  # Top-right
+                points.extend(generate_quadrant(1, level - 1, x0, y0, order_left))  # Top-left
+                points.extend(generate_quadrant(0, level - 1, x0 + half, y0, order_left - 1))  # Bottom-left
+                points.extend(generate_quadrant(0, level - 1, x0, y0, order_left - 1))  # Bottom-right
+            else:  # Vertical
+                # Visit quadrants: top-right -> top-left -> bottom-left -> bottom-right
+                points.extend(generate_quadrant(0, level - 1, x0 + half, y0, order_left))  # Top-right
+                points.extend(generate_quadrant(0, level - 1, x0, y0, order_left))  # Top-left
+                points.extend(generate_quadrant(1, level - 1, x0 + half, y0, order_left - 1))  # Bottom-left
+                points.extend(generate_quadrant(1, level - 1, x0, y0, order_left - 1))  # Bottom-right
+            
+            return points
+        
+        lut = generate_quadrant(0, self.order, 0, 0, self.order)
         return lut
 
 
@@ -118,6 +178,9 @@ def encode_to_pixelrts(
             data_bytes = zlib.compress(data_bytes)
         except Exception as e:
             raise RuntimeError(f"Compression failed: {e}")
+    else:
+        # Store original size metadata
+        metadata["original_size"] = len(data_bytes)
 
     # Calculate required image size
     data_size = len(data_bytes)
@@ -147,6 +210,7 @@ def encode_to_pixelrts(
         "compression_type": compression_type if compress else None,
         "original_size": len(data_bytes) if not compress else None,
         "hilbert_order": hilbert.order,
+        "zone": zone,
     }
 
     # Encode metadata as JSON in first pixels

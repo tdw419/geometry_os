@@ -48,6 +48,10 @@ pub struct Renderer<'a> {
     memory_artifact_pipeline: Option<wgpu::RenderPipeline>,
     memory_artifact_bind_group: Option<wgpu::BindGroup>,
     memory_artifact_uniform_buffer: Option<wgpu::Buffer>,
+    // Performance Tracking
+    frame_count: u32,
+    last_fps_log: std::time::Instant,
+
     // Hot Reloading
     memory_artifact_bind_group_layout: Option<wgpu::BindGroupLayout>,
     pub memory_artifact_shader_path: std::path::PathBuf, // exposed for debug if needed
@@ -767,6 +771,8 @@ impl<'a> Renderer<'a> {
             decoration_buffer,
             grid_bind_group_layout,
             grid_pipeline_layout,
+            frame_count: 0,
+            last_fps_log: std::time::Instant::now(),
             memory_artifact_pipeline: Some(memory_artifact_pipeline),
             memory_artifact_bind_group: Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("Memory Artifact Bind Group"),
@@ -1831,6 +1837,15 @@ impl<'a> Renderer<'a> {
 
     pub fn render(&mut self, camera: &Camera, window_manager: &crate::window::WindowManager, thought_renderer: Option<&ThoughtRenderer>, vm_texture_manager: Option<&crate::vm_texture_manager::VmTextureManager>, memory_texture_manager: Option<&crate::memory_texture_manager::MemoryTextureManager>, cartridge_texture_manager: Option<&crate::cartridge_texture_manager::CartridgeTextureManager>, memory_artifact_manager: Option<&crate::memory_artifacts::MemoryArtifactManager>, graph_renderer: Option<&std::sync::Arc<crate::graph_renderer::GraphRenderer>>, inspector_ui: Option<&std::sync::Arc<crate::inspector_ui::InspectorUI>>, agent_manager: Option<&crate::cognitive::agents::CityAgentManager>, visual_ast: Option<&crate::visual_ast::VisualAST>, inspector_visible: bool, screenshot_request: Option<(i32, i32, u32, u32)>) -> Result<Option<(Vec<u8>, u32, u32)>, wgpu::SurfaceError> {
         self.check_hot_reload();
+        // Performance Logging
+        self.frame_count += 1;
+        if self.last_fps_log.elapsed().as_secs_f32() >= 1.0 {
+            let fps = self.frame_count as f32 / self.last_fps_log.elapsed().as_secs_f32();
+            log::info!("Perf: {:.1} FPS", fps);
+            self.frame_count = 0;
+            self.last_fps_log = std::time::Instant::now();
+        }
+
         let output = self.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 

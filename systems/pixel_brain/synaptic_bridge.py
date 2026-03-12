@@ -67,7 +67,8 @@ except ImportError:
     GlyphStratumExecutor = None
     logging.warning("glyph_stratum not available - running in degraded mode")
 
-from systems.neural_city.districts.syntactic_district import SyntacticDistrict
+# Lazy import to avoid circular dependency
+SyntacticDistrict = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SynapticBridge")
@@ -484,6 +485,17 @@ class SynapticBridge:
         # Phase 41: Ouroboros Repair Engine
         self.repair_engine = OuroborosRepairEngine(atlas_path)
 
+        # Phase 42: Neural City Colonization (lazy init to avoid circular import)
+        self._syntactic_district = None
+
+    @property
+    def syntactic_district(self):
+        """Lazily initialize SyntacticDistrict to avoid circular imports."""
+        if self._syntactic_district is None:
+            from systems.neural_city.districts.syntactic_district import SyntacticDistrict
+            self._syntactic_district = SyntacticDistrict(self.repair_engine)
+        return self._syntactic_district
+
     async def handle_client(self, websocket):
         """Handle a client connection."""
         self.clients.add(websocket)
@@ -662,6 +674,25 @@ class SynapticBridge:
 
                         logger.info(f"ATLAS_STATUS: loaded={success}, path={atlas_path}")
 
+                    # =================================================================
+                    # Phase 42: Neural City Colonization
+                    # =================================================================
+                    elif msg_type == "COLONIZE":
+                        """Deploy the Syntactic District to the atlas."""
+                        district_name = data.get("district", "Syntactic")
+                        logger.info(f"COLONIZE requested for district: {district_name}")
+
+                        if district_name == "Syntactic":
+                            result = self.syntactic_district.colonize_all()
+                        else:
+                            result = {"success": False, "error": "Unknown district type"}
+
+                        await websocket.send(json.dumps({
+                            "type": "COLONIZE_RESULT",
+                            **result
+                        }))
+
+                        logger.info(f"COLONIZE_RESULT: {result.get('success', False)}")
                     else:
                         await websocket.send(json.dumps({
                             "type": "ERROR",

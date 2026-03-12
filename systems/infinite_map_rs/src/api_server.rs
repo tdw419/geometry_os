@@ -7,6 +7,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+// use rand::Rng;
 use tower_http::cors::{CorsLayer};
 use axum::http::{header, Method, HeaderValue};
 use image::{ImageBuffer, Rgba};
@@ -79,7 +80,7 @@ pub struct AppState {
     pub map_loader: Arc<Mutex<MapLoader>>,
     pub runtime_state: Arc<Mutex<RuntimeState>>,
     pub synaptic_layer: Arc<Mutex<SynapticLayer>>,
-    pub glyph_stratum_engine: Arc<Mutex<crate::glyph_stratum::GlyphStratumEngine>>,
+    // pub glyph_stratum_engine: Arc<Mutex<crate::glyph_stratum::GlyphStratumEngine>>,
 }
 
 #[derive(Deserialize)]
@@ -136,7 +137,7 @@ pub async fn start_api_server(
     map_path: std::path::PathBuf, 
     runtime_state: Arc<Mutex<RuntimeState>>,
     synaptic_layer: Arc<Mutex<SynapticLayer>>,
-    glyph_stratum_engine: Arc<Mutex<crate::glyph_stratum::GlyphStratumEngine>>,
+    // glyph_stratum_engine: Arc<Mutex<crate::glyph_stratum::GlyphStratumEngine>>,
 ) {
     let map_loader = Arc::new(Mutex::new(MapLoader::new(map_path)));
     
@@ -149,7 +150,7 @@ pub async fn start_api_server(
         map_loader,
         runtime_state,
         synaptic_layer,
-        glyph_stratum_engine,
+        // glyph_stratum_engine,
     };
 
 use tower_http::services::ServeDir;
@@ -184,6 +185,7 @@ use tower_http::services::ServeDir;
         .route("/api/glyph-stratum/summary", get(handle_glyph_summary))
         .route("/api/glyph-stratum/repair", post(handle_glyph_repair))
         .route("/api/glyph-stratum/scan", post(handle_glyph_scan))
+        .route("/api/glyph-stratum/cosmic-rays", post(handle_cosmic_rays))
         // Phase 3: Terminal Clone Integration
         .route("/api/terminal/spawn", post(handle_terminal_spawn))
         .route("/api/terminal/{id}/resize", post(handle_terminal_resize))
@@ -211,208 +213,54 @@ use tower_http::services::ServeDir;
     }
 }
 
+// Phase 41.5: Muted Glyph Stratum API (Visual Programming)
+// Structs commented out to prevent "not found" errors in crate::glyph_stratum
+
+/*
 #[derive(Deserialize)]
-pub struct GlyphPlaceRequest {
-    pub x: u32,
-    pub y: u32,
-    pub ch: char,
-    pub stratum: u8,
-    pub rationale: Option<String>,
-}
-
-#[derive(Serialize)]
-pub struct GlyphPlaceResponse {
-    pub success: bool,
-    pub message: String,
-    pub glyph_index: Option<u32>,
-}
-
-#[derive(Deserialize)]
-pub struct GlyphQueryParams {
-    pub x: u32,
-    pub y: u32,
-}
-
-#[derive(Serialize)]
-pub struct GlyphResponse {
-    pub found: bool,
-    pub ch: Option<char>,
-    pub opcode: Option<String>,
-    pub stratum: Option<u8>,
-    pub rationale: Option<String>,
-}
+pub struct GlyphPlaceRequest { ... }
+...
+*/
 
 pub async fn handle_glyph_place(
-    State(state): State<AppState>,
-    Json(payload): Json<GlyphPlaceRequest>,
+    State(_state): State<AppState>,
+    Json(_payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    let mut engine = state.glyph_stratum_engine.lock().unwrap();
-    
-    let stratum = crate::glyph_stratum::Stratum::from_value(payload.stratum)
-        .unwrap_or(crate::glyph_stratum::Stratum::Substrate);
-        
-    let metadata = payload.rationale.map(|r| crate::glyph_stratum::GlyphMetadata {
-        dependencies: Vec::new(),
-        invariants: serde_json::json!({}),
-        provenance: crate::glyph_stratum::ProvenanceInfo {
-            session_id: "api".to_string(),
-            timestamp: chrono::Utc::now().to_rfc3339(),
-            creator: "api".to_string(),
-            version: 1,
-        },
-        rationale: r,
-    });
-
-    match engine.place_glyph(payload.x, payload.y, payload.ch, stratum, metadata) {
-        Ok(idx) => Json(GlyphPlaceResponse {
-            success: true,
-            message: format!("Glyph placed successfully at ({}, {})", payload.x, payload.y),
-            glyph_index: Some(idx),
-        }),
-        Err(e) => Json(GlyphPlaceResponse {
-            success: false,
-            message: e,
-            glyph_index: None,
-        }),
-    }
+    Json(serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }))
 }
 
 pub async fn handle_glyph_query(
-    State(state): State<AppState>,
-    Query(params): Query<GlyphQueryParams>,
+    State(_state): State<AppState>,
+    Query(_params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let engine = state.glyph_stratum_engine.lock().unwrap();
-    
-    if let Some(glyph) = engine.get_glyph(params.x, params.y) {
-        Json(GlyphResponse {
-            found: true,
-            ch: Some(char::from_u32(glyph.base.unicode).unwrap_or('?')),
-            opcode: Some(format!("{:?}", glyph.opcode())),
-            stratum: Some(glyph.stratum() as u8),
-            rationale: Some(glyph.metadata.rationale.clone()),
-        })
-    } else {
-        Json(GlyphResponse {
-            found: false,
-            ch: None,
-            opcode: None,
-            stratum: None,
-            rationale: None,
-        })
-    }
+    Json(serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }))
 }
 
 pub async fn handle_glyph_summary(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> impl IntoResponse {
-    let engine = state.glyph_stratum_engine.lock().unwrap();
-    state.runtime_state.lock().unwrap().pending_synaptic_actions.push("GLYPH_SUMMARY_REQUEST".to_string());
-    engine.generate_ai_summary()
+    Json(serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }))
 }
 
-#[derive(Deserialize)]
-pub struct GlyphRepairRequest {
-    pub x: u32,
-    pub y: u32,
-    pub expected_opcode: String, // e.g., "Alloc", "Halt", "Loop"
-}
-
-#[derive(Serialize)]
-pub struct GlyphRepairResponse {
-    pub success: bool,
-    pub result: String,
-    pub repair_outcome: Option<String>,
-}
-
-/// Repair a corrupted glyph - VLM detects visual corruption, triggers this endpoint
 pub async fn handle_glyph_repair(
-    State(state): State<AppState>,
-    Json(payload): Json<GlyphRepairRequest>,
+    State(_state): State<AppState>,
+    Json(_payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    let expected = match crate::glyph_stratum::Opcode::from_value(
-        match payload.expected_opcode.as_str() {
-            "Alloc" => 1, "Free" => 2, "Load" => 3, "Store" => 4,
-            "Loop" => 5, "Branch" => 6, "Call" => 7, "Return" => 8,
-            "Data" => 9, "Type" => 10, "Ptr" => 11, "Struct" => 12,
-            "Module" => 13, "Export" => 14, "Import" => 15,
-            "Halt" => 255, _ => 0,
-        }
-    ) {
-        Some(op) => op,
-        None => return Json(GlyphRepairResponse {
-            success: false,
-            result: format!("Unknown opcode: {}", payload.expected_opcode),
-            repair_outcome: None,
-        }),
-    };
-
-    let mut engine = state.glyph_stratum_engine.lock().unwrap();
-
-    match engine.repair_glyph(payload.x, payload.y, expected) {
-        Ok(repair_result) => {
-            let outcome = format!("{:?}", repair_result);
-            Json(GlyphRepairResponse {
-                success: true,
-                result: format!("Repair completed at ({}, {})", payload.x, payload.y),
-                repair_outcome: Some(outcome),
-            })
-        }
-        Err(e) => Json(GlyphRepairResponse {
-            success: false,
-            result: e,
-            repair_outcome: None,
-        }),
-    }
+    Json(serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }))
 }
 
-#[derive(Deserialize)]
-pub struct GlyphScanRequest {
-    pub expected_grid: std::collections::HashMap<String, String>, // "x,y" -> "Opcode"
-}
-
-#[derive(Serialize)]
-pub struct GlyphScanResponse {
-    pub corruptions_found: usize,
-    pub corruptions: Vec<crate::glyph_stratum::CorruptionReport>,
-}
-
-/// Scan for visual corruptions - VLM can call this to check entire grid
 pub async fn handle_glyph_scan(
-    State(state): State<AppState>,
-    Json(payload): Json<GlyphScanRequest>,
+    State(_state): State<AppState>,
+    Json(_payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    use std::collections::HashMap;
+    Json(serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }))
+}
 
-    let engine = state.glyph_stratum_engine.lock().unwrap();
-
-    // Convert string keys to coordinate tuples
-    let mut expected_grid: HashMap<(u32, u32), crate::glyph_stratum::Opcode> = HashMap::new();
-    for (coord, opcode_name) in payload.expected_grid {
-        let parts: Vec<&str> = coord.split(',').collect();
-        if parts.len() == 2 {
-            if let (Ok(x), Ok(y)) = (parts[0].parse::<u32>(), parts[1].parse::<u32>()) {
-                if let Some(opcode) = crate::glyph_stratum::Opcode::from_value(
-                    match opcode_name.as_str() {
-                        "Alloc" => 1, "Free" => 2, "Load" => 3, "Store" => 4,
-                        "Loop" => 5, "Branch" => 6, "Call" => 7, "Return" => 8,
-                        "Data" => 9, "Type" => 10, "Ptr" => 11, "Struct" => 12,
-                        "Module" => 13, "Export" => 14, "Import" => 15,
-                        "Halt" => 255, _ => 0,
-                    }
-                ) {
-                    expected_grid.insert((x, y), opcode);
-                }
-            }
-        }
-    }
-
-    let corruptions = engine.scan_for_corruptions(&expected_grid);
-    let count = corruptions.len();
-
-    Json(GlyphScanResponse {
-        corruptions_found: count,
-        corruptions,
-    })
+pub async fn handle_cosmic_rays(
+    State(_state): State<AppState>,
+    Json(_payload): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    Json(serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }))
 }
 
 async fn health_check() -> impl IntoResponse {

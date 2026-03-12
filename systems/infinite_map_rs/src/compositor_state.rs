@@ -32,7 +32,8 @@ pub struct GeometryClientData {
 impl smithay::reexports::wayland_server::backend::ClientData for GeometryClientData {}
 
 pub struct GeometryCompositorState {
-pub display_handle: DisplayHandle,
+    pub display_handle: DisplayHandle,
+    pub app: Option<Box<crate::app::InfiniteMapApp<'static>>>,
 
 pub compositor_state: CompositorState,
 pub seat_state: SeatState<GeometryCompositorState>,
@@ -82,6 +83,7 @@ pub fn new(display_handle: DisplayHandle) -> Self {
     
     GeometryCompositorState {
         display_handle,
+        app: None,
         compositor_state,
         seat_state,
         xdg_shell_state,

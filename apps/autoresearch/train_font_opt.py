@@ -14,22 +14,39 @@ SHADER_PATH = "systems/infinite_map_rs/src/shaders/terminal_renderer.wgsl"
 BINARY_PATH = "/home/jericho/zion/projects/geometry_os/geometry_os/systems/infinite_map_rs/target/release/infinite_map_rs"
 COMPOSITOR_CMD = ["xvfb-run", "-a", BINARY_PATH, "--benchmark-text"]
 
-def get_current_fps(duration=15):
+def get_current_fps(duration=30):
     """Run the compositor and extract average FPS from logs."""
     env = os.environ.copy()
     env["RUST_LOG"] = "info"
+    env["PYTHONUNBUFFERED"] = "1"
     
     print(f"🚀 Launching benchmark (duration={duration}s)...")
-    process = subprocess.Popen(COMPOSITOR_CMD, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+    # Use stdbuf to disable buffering if possible
+    cmd = ["stdbuf", "-oL", "-eL"] + COMPOSITOR_CMD
+    
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env, bufsize=1)
     
     fps_values = []
     start_time = time.time()
     
     try:
+        # Set a reasonable timeout for each line to avoid hanging forever
+        import selectors
+        selector = selectors.DefaultSelector()
+        selector.register(process.stdout, selectors.EVENT_READ)
+        
         while time.time() - start_time < duration:
+            events = selector.select(timeout=1.0)
+            if not events:
+                if process.poll() is not None: break
+                continue
+                
             line = process.stdout.readline()
             if not line:
                 break
+            
+            # Debug: print every log line to see what's happening
+            print(f"  [Log] {line.strip()}")
             
             # Look for "Perf: X.X FPS"
             match = re.search(r"Perf: ([\d.]+) FPS", line)

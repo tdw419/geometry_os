@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS - Ouroboros Renderer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #050505;
+            color: #00ffcc;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            overflow: hidden;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        .controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 100;
+        }
+        button {
+            background: #1a1a2e;
+            border: 1px solid #00ffcc;
+            color: #00ffcc;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #2a2a3e;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            font-size: 12px;
+            max-width: 400px;
+        }
+        .info h3 {
+            color: #00ffcc;
+            margin-bottom: 10px;
+        }
+        .info p {
+            color: #888;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        .status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="controls">
+        <button id="btn-init">Initialize</button>
+        <button id="btn-run" disabled>Run Ouroboros</button>
+        <button id="btn-step" disabled>Step</button>
+        <button id="btn-reset" disabled>Reset</button>
+    </div>
+
+    <div class="status" id="status">Ready - Click Initialize to start</div>
+
+    <div class="info">
+        <h3>Ouroboros Renderer</h3>
+        <p>The first program that draws itself into existence.</p>
+        <p>This demo runs a glyph microcode program that uses the DRAW opcode to render other glyphs onto the screen.</p>
+        <p><strong>Philosophy:</strong> Rendering IS Execution. The screen IS the program.</p>
+        <p><strong>Instructions:</strong></p>
+        <ul style="margin-left: 15px; color: #666;">
+            <li>Click Initialize to set up WebGPU</li>
+            <li>Click Run to execute the Ouroboros program</li>
+            <li>Watch glyphs draw themselves</li>
+        </ul>
+    </div>
+
+    <script src="https://pixijs.download/v8.0.0/pixi.min.js"></script>
+    <script type="module">
+        import { OuroborosRunner } from './OuroborosRunner.js';
+
+        let app;
+        let runner;
+
+        async function initPixi() {
+            app = new PIXI.Application();
+            await app.init({
+                background: '#050505',
+                resizeTo: window,
+                antialias: true
+            });
+            document.getElementById('canvas-container').appendChild(app.canvas);
+            console.log('[Demo] PixiJS initialized');
+        }
+
+        async function initRunner() {
+            updateStatus('Initializing WebGPU...');
+
+            try {
+                runner = new OuroborosRunner(app);
+                await runner.initialize();
+
+                document.getElementById('btn-run').disabled = false;
+                document.getElementById('btn-step').disabled = false;
+                document.getElementById('btn-reset').disabled = false;
+
+                updateStatus('WebGPU ready - Click Run Ouroboros');
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`);
+                console.error(error);
+            }
+        }
+
+        async function runOuroboros() {
+            updateStatus('Running Ouroboros Renderer...');
+            await runner.run();
+            updateStatus(`Complete - ${runner.pipeline.state.cycles} cycles executed`);
+        }
+
+        function step() {
+            runner.step();
+        }
+
+        function reset() {
+            if (runner) {
+                runner.pipeline.state = { pc: 0, sp: 0, flags: 0, halted: 0, cycles: 0 };
+                runner.pipeline.updateState();
+                updateStatus('Reset - Ready to run');
+            }
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        // Setup
+        document.getElementById('btn-init').addEventListener('click', async () => {
+            await initRunner();
+        });
+
+        document.getElementById('btn-run').addEventListener('click', runOuroboros);
+        document.getElementById('btn-step').addEventListener('click', step);
+        document.getElementById('btn-reset').addEventListener('click', reset);
+
+        // Initialize PixiJS on load
+        window.addEventListener('DOMContentLoaded', initPixi);
+    </script>
+</body>
+</html>

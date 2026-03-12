@@ -118,8 +118,26 @@ impl WinitBackend {
         state.init_xwayland(&loop_handle);
 
         // Run the loop
-        calloop.run(None, &mut state, |_| {
-            // Idle callback, no-op
+        let timeout = if std::env::args().any(|arg| arg == "--benchmark-text") {
+            Some(std::time::Duration::from_millis(1))
+        } else {
+            None
+        };
+
+        let mut frame_count = 0u32;
+        let mut last_fps_log = std::time::Instant::now();
+
+        calloop.run(timeout, &mut state, |_| {
+            // Idle callback
+            if std::env::args().any(|arg| arg == "--benchmark-text") {
+                frame_count += 1;
+                if last_fps_log.elapsed().as_secs_f32() >= 1.0 {
+                    let fps = frame_count as f32 / last_fps_log.elapsed().as_secs_f32();
+                    eprintln!("Perf: {:.1} FPS", fps);
+                    frame_count = 0;
+                    last_fps_log = std::time::Instant::now();
+                }
+            }
         }).expect("Error running loop");
     }
 }

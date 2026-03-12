@@ -49,7 +49,20 @@
         <div id="sector-embed" class="stratum-indicator">INPUT: [DATA] (·)</div>
         <hr style="border: 0; border-top: 1px solid #00d4ff; margin: 10px 0;">
         <div style="font-size: 10px;">ZOOM: <span id="zoom-val">1.0</span>x</div>
+        <div style="font-size: 10px;">FPS: <span id="fps-val">--</span></div>
         <div style="font-size: 10px;">ENTROPY JITTER: <span id="jitter-val">ACTIVE</span></div>
+        <hr style="border: 0; border-top: 1px solid #00d4ff; margin: 10px 0;">
+        <div style="font-size: 10px; color: #ff00ff;">PHASE 41: OUROBOROS REPAIR</div>
+        <div style="font-size: 10px; margin-top: 5px;">
+            <button id="scan-btn" style="background: #1a1a2e; color: #00d4ff; border: 1px solid #00d4ff; padding: 3px 8px; cursor: pointer; font-size: 9px;">🔍 SCAN</button>
+            <button id="heal-btn" style="background: #1a1a2e; color: #ff00ff; border: 1px solid #ff00ff; padding: 3px 8px; cursor: pointer; font-size: 9px;">🩹 HEAL</button>
+            <button id="repair-btn" style="background: #1a1a2e; color: #00ff00; border: 1px solid #00ff00; padding: 3px 8px; cursor: pointer; font-size: 9px;">🔄 REPAIR ALL</button>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #00d4ff; margin: 10px 0;">
+        <div style="font-size: 10px; color: #00ffcc;">PHASE 42: COLONIZATION</div>
+        <div style="font-size: 10px; margin-top: 5px;">
+            <button id="colonize-btn" style="background: #1a1a2e; color: #00ffcc; border: 1px solid #00ffcc; padding: 3px 8px; cursor: pointer; font-size: 9px;">🏗️ COLONIZE SYNTACTIC</button>
+        </div>
         <hr style="border: 0; border-top: 1px solid #00d4ff; margin: 10px 0;">
         <div id="query-panel" style="display:none;">
             <div style="font-size: 10px; color: #fff;">PROBE RESULT: <span id="query-sector"></span></div>
@@ -60,6 +73,7 @@
     <script src="LegibleBrainFilter.js"></script>
     <script src="LegibleBrainRenderer.js"></script>
     <script src="SynapticClient.js"></script>
+    <script src="MutationClient.js"></script>
     <script>
         async function start() {
             const app = new PIXI.Application();
@@ -110,6 +124,7 @@
 
             // 2.5 Initialize Synaptic Client (Python Bridge)
             const synapticClient = new SynapticClient({ url: 'ws://localhost:8765' });
+            const mutationClient = new MutationClient({ url: 'ws://localhost:8765' });
 
             // Try to connect, fall back to simulation if unavailable
             synapticClient.connect().then(() => {
@@ -118,6 +133,14 @@
             }).catch((e) => {
                 console.warn('Synaptic Bridge unavailable, using simulation:', e.message);
                 document.getElementById('jitter-val').innerText = 'SIMULATION';
+            });
+
+            // Connect mutation client for Phase 41
+            mutationClient.connect().then(() => {
+                console.log('🔧 MutationClient connected - Ouroboros Repair enabled');
+                renderer.setMutationClient(mutationClient);
+            }).catch((e) => {
+                console.warn('MutationClient unavailable:', e.message);
             });
 
             // Handle execution results from the bridge
@@ -145,6 +168,11 @@
                     Status: ${result.success ? '✅ VALIDATED' : '❌ FAILED'}
                 `;
                 panel.appendChild(outputDiv);
+            });
+
+            // Handle repair results
+            mutationClient.on('write_result', (result) => {
+                console.log('🩹 Repair result:', result);
             });
 
             // 3. Handle Synaptic Query Results
@@ -236,9 +264,21 @@
             });
 
             // 5. Update Loop
+            let frameCount = 0;
+            let lastFpsUpdate = 0;
             app.ticker.add((ticker) => {
                 const time = ticker.lastTime / 1000;
                 renderer.filter.update(time, zoom, cameraPos);
+                
+                // Update FPS
+                frameCount++;
+                if (time - lastFpsUpdate > 1.0) {
+                    const fps = frameCount / (time - lastFpsUpdate);
+                    document.getElementById('fps-val').innerText = fps.toFixed(1);
+                    window.__GEOMETRY_OS_FPS = fps; // Set for benchmark_runner.py
+                    frameCount = 0;
+                    lastFpsUpdate = time;
+                }
                 
                 const centerX = (cameraPos[0] + window.innerWidth/2 / zoom) / (atlasSize);
                 const currentSector = Math.floor(clamp(centerX, 0.0, 0.99) * 5);
@@ -255,8 +295,86 @@
                 return Math.max(min, Math.min(max, val));
             }
 
-            console.log("🚀 Legible Brain Demo Active");
-        }
+            // Phase 41: Ouroboros Repair Controls
+            document.getElementById('scan-btn').addEventListener('click', async () => {
+                console.log('🔍 Scanning for fractures...');
+                const fractures = await renderer.scanForFractures(0.6);
+                console.log(`Found ${fractures.length} fractures:`, fractures);
+
+                // Display in query panel
+                const panel = document.getElementById('query-panel');
+                panel.style.display = 'block';
+                document.getElementById('query-sector').innerText = 'FRACTURE SCAN';
+                document.getElementById('query-dag').innerText = JSON.stringify(fractures, null, 2);
+
+                // Add summary
+                const existing = panel.querySelector('.scan-result');
+                if (existing) existing.remove();
+
+                const summary = document.createElement('div');
+                summary.className = 'scan-result';
+                summary.style.color = '#ff00ff';
+                summary.style.fontSize = '10px';
+                summary.style.marginTop = '5px';
+                summary.innerHTML = `FRACTURES DETECTED: ${fractures.length}<br>Threshold: 0.6`;
+                panel.appendChild(summary);
+            });
+
+            document.getElementById('heal-btn').addEventListener('click', async () => {
+                console.log('🩹 Initiating Ouroboros Repair...');
+                const fractures = await renderer.scanForFractures(0.6);
+
+                if (fractures.length === 0) {
+                    console.log('No fractures to heal');
+                    return;
+                }
+
+                // Heal the most critical fracture
+                const critical = fractures.sort((a, b) => b.entropy - a.entropy)[0];
+                console.log('Healing critical fracture:', critical);
+
+                const result = await renderer.heal(
+                    { x: critical.x, y: critical.y },
+                    { r: critical.activation, g: critical.entropy, b: critical.sector / 5 }
+                );
+
+                console.log('Heal result:', result);
+            });
+
+            document.getElementById('repair-btn').addEventListener('click', async () => {
+                console.log('🔄 Running full repair cycle...');
+                const result = await renderer.runRepairCycle(0.6);
+
+                const panel = document.getElementById('query-panel');
+                panel.style.display = 'block';
+                document.getElementById('query-sector').innerText = 'REPAIR CYCLE';
+                document.getElementById('query-dag').innerText = JSON.stringify(result, null, 2);
+            });
+
+            // Phase 42: Colonization Controls
+            document.getElementById('colonize-btn').addEventListener('click', async () => {
+                console.log('🏗️ Deploying Syntactic District...');
+                const result = await renderer.deployDistrict("Syntactic");
+
+                const panel = document.getElementById('query-panel');
+                panel.style.display = 'block';
+                document.getElementById('query-sector').innerText = 'NEURAL COLONIZATION';
+                document.getElementById('query-dag').innerText = JSON.stringify(result, null, 2);
+
+                // Add summary
+                const existing = panel.querySelector('.scan-result');
+                if (existing) existing.remove();
+
+                const summary = document.createElement('div');
+                summary.className = 'scan-result';
+                summary.style.color = '#00ffcc';
+                summary.style.fontSize = '10px';
+                summary.style.marginTop = '5px';
+                summary.innerHTML = `DISTRICT: ${result.district || 'Syntactic'}<br>ZONES SEEDED: ${result.zones_seeded || 4}<br>PIXELS WRITTEN: ${result.total_pixels_modified || 0}`;
+                panel.appendChild(summary);
+            });
+
+            console.log("🚀 Legible Brain Demo Active");        }
 
         start();
     </script>

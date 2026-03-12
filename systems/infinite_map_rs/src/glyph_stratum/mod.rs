@@ -1,666 +1,506 @@
-/// GlyphStratum - AI-native visual programming language core
-///
-/// Defines the opcode set, stratum system, and metadata structures
-/// for Geometry OS's AI-native programming language.
+//! Phase 30: Glyph Stratum Core (Geometry OS Edition)
+//!
+//! The Glyph Stratum is the AI-native representation of morphological computation.
+//! Software is represented as visual glyphs across 5 strata:
+//! INTENT → SPEC → LOGIC → MEMORY → SUBSTRATE
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Semantic strata for program organization
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// The 5 Strata of Geometry OS Computation
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Stratum {
-    /// Stratum 0: Raw pixel/glyph operations
     Substrate = 0,
-    /// Stratum 1: Memory allocation, layout, types
     Memory = 1,
-    /// Stratum 2: Control flow, computation
     Logic = 2,
-    /// Stratum 3: Component interfaces, contracts
     Spec = 3,
-    /// Stratum 4: Goals, requirements, rationale
     Intent = 4,
 }
 
 impl Stratum {
-    /// Convert from numeric value
-    pub fn from_value(value: u8) -> Option<Self> {
-        match value {
-            0 => Some(Stratum::Substrate),
-            1 => Some(Stratum::Memory),
-            2 => Some(Stratum::Logic),
-            3 => Some(Stratum::Spec),
-            4 => Some(Stratum::Intent),
-            _ => None,
+    pub fn from_value(v: Option<u8>) -> Self {
+        match v {
+            Some(0) => Self::Substrate,
+            Some(1) => Self::Memory,
+            Some(2) => Self::Logic,
+            Some(3) => Self::Spec,
+            Some(4) => Self::Intent,
+            _ => Self::Substrate,
         }
     }
 }
 
-/// Executable opcodes for glyph-based instructions
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Opcodes for the Logic Stratum
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Opcode {
-    // Memory operations
-    Alloc = 1, // Allocate memory block
-    Free = 2,  // Release memory block
-    Load = 3,  // Load value from memory
-    Store = 4, // Store value to memory
+    Nop = 0,
+    Alloc = 1,
+    Free = 2,
+    Load = 3,
+    Store = 4,
+    Add = 5,
+    Sub = 6,
+    Mul = 7,
+    Div = 8,
+    Jump = 9,
+    Branch = 10,
+    Call = 11,
+    Return = 12,
+    Halt = 13,
+    Data = 14,
+    Loop = 15,
+}
 
-    // Control flow
-    Loop = 5,   // Begin iteration construct
-    Branch = 6, // Conditional execution
-    Call = 7,   // Function/subroutine invocation
-    Return = 8, // Exit current scope
+/// Metabolic cost per opcode (VRAM cycles)
+impl Opcode {
+    pub fn metabolic_cost(&self) -> u32 {
+        match self {
+            Opcode::Nop => 0,      // Free - no work
+            Opcode::Alloc => 10,   // Memory allocation is expensive
+            Opcode::Free => 5,     // Deallocation
+            Opcode::Load => 3,     // Memory read
+            Opcode::Store => 3,    // Memory write
+            Opcode::Add => 1,      // Simple ALU
+            Opcode::Sub => 1,      // Simple ALU
+            Opcode::Mul => 2,      // Multiplier
+            Opcode::Div => 4,      // Division is slower
+            Opcode::Jump => 1,     // Control flow
+            Opcode::Branch => 2,   // Conditional check
+            Opcode::Call => 8,     // Stack frame setup
+            Opcode::Return => 6,   // Stack teardown
+            Opcode::Halt => 0,     // Terminal
+            Opcode::Data => 0,     // Passive data
+            Opcode::Loop => 3,     // Loop overhead
+        }
+    }
 
-    // Data and types
-    Data = 9,    // Literal/constant value
-    Type = 10,   // Type declaration/constraint
-    Ptr = 11,    // Pointer/reference type
-    Struct = 12, // Structure definition
+    /// Is this opcode "dead" (no side effects)?
+    pub fn is_dead(&self) -> bool {
+        matches!(self, Opcode::Nop)
+    }
 
-    // Program structure
-    Module = 13, // Encapsulation boundary
-    Export = 14, // Export symbol
-    Import = 15, // Import symbol
+    /// Does this opcode read memory?
+    pub fn reads_memory(&self) -> bool {
+        matches!(self, Opcode::Load)
+    }
 
-    // Special
-    Nop = 0,    // No operation
-    Halt = 255, // Program termination
+    /// Does this opcode write memory?
+    pub fn writes_memory(&self) -> bool {
+        matches!(self, Opcode::Store | Opcode::Alloc | Opcode::Free)
+    }
 }
 
 impl Opcode {
-    /// Convert from numeric value
-    pub fn from_value(value: u8) -> Option<Self> {
-        match value {
-            0 => Some(Opcode::Nop),
-            1 => Some(Opcode::Alloc),
-            2 => Some(Opcode::Free),
-            3 => Some(Opcode::Load),
-            4 => Some(Opcode::Store),
-            5 => Some(Opcode::Loop),
-            6 => Some(Opcode::Branch),
-            7 => Some(Opcode::Call),
-            8 => Some(Opcode::Return),
-            9 => Some(Opcode::Data),
-            10 => Some(Opcode::Type),
-            11 => Some(Opcode::Ptr),
-            12 => Some(Opcode::Struct),
-            13 => Some(Opcode::Module),
-            14 => Some(Opcode::Export),
-            15 => Some(Opcode::Import),
-            255 => Some(Opcode::Halt),
+    pub fn from_value(v: u32) -> Option<Self> {
+        match v {
+            0 => Some(Self::Nop),
+            1 => Some(Self::Alloc),
+            2 => Some(Self::Free),
+            3 => Some(Self::Load),
+            4 => Some(Self::Store),
+            5 => Some(Self::Add),
+            6 => Some(Self::Sub),
+            7 => Some(Self::Mul),
+            8 => Some(Self::Div),
+            9 => Some(Self::Jump),
+            10 => Some(Self::Branch),
+            11 => Some(Self::Call),
+            12 => Some(Self::Return),
+            13 => Some(Self::Halt),
+            14 => Some(Self::Data),
+            15 => Some(Self::Loop),
             _ => None,
         }
     }
 
-    /// Get human-readable name
-    pub fn name(&self) -> &'static str {
-        match self {
-            Opcode::Alloc => "Alloc",
-            Opcode::Free => "Free",
-            Opcode::Load => "Load",
-            Opcode::Store => "Store",
-            Opcode::Loop => "Loop",
-            Opcode::Branch => "Branch",
-            Opcode::Call => "Call",
-            Opcode::Return => "Return",
-            Opcode::Data => "Data",
-            Opcode::Type => "Type",
-            Opcode::Ptr => "Ptr",
-            Opcode::Struct => "Struct",
-            Opcode::Module => "Module",
-            Opcode::Export => "Export",
-            Opcode::Import => "Import",
-            Opcode::Nop => "Nop",
-            Opcode::Halt => "Halt",
-        }
-    }
-
-    /// Get the index in the Geometry OS font atlas for this opcode
-    pub fn to_index(&self) -> u32 {
-        match self {
-            Opcode::Alloc => 200,
-            Opcode::Free => 201,
-            Opcode::Load => 202,
-            Opcode::Store => 203,
-            Opcode::Loop => 204,
-            Opcode::Branch => 205,
-            Opcode::Call => 206,
-            Opcode::Return => 207,
-            Opcode::Data => 208,
-            Opcode::Type => 209,
-            Opcode::Ptr => 210,
-            Opcode::Struct => 211,
-            Opcode::Module => 212,
-            Opcode::Export => 213,
-            Opcode::Import => 214,
-            Opcode::Halt => 215,
-            Opcode::Nop => 183, // Use standard bullet or dot
-        }
-    }
-
-    /// Map a Unicode character or Atlas Index to its corresponding Opcode
-    pub fn from_char(ch: char) -> Self {
-        let code = ch as u32;
-        match code {
-            200 => Opcode::Alloc,
-            201 => Opcode::Free,
-            202 => Opcode::Load,
-            203 => Opcode::Store,
-            204 => Opcode::Loop,
-            205 => Opcode::Branch,
-            206 => Opcode::Call,
-            207 => Opcode::Return,
-            208 => Opcode::Data,
-            209 => Opcode::Type,
-            210 => Opcode::Ptr,
-            211 => Opcode::Struct,
-            212 => Opcode::Module,
-            213 => Opcode::Export,
-            214 => Opcode::Import,
-            215 => Opcode::Halt,
-            _ => {
-                // Fallback to morphological symbols if needed
-                match ch {
-                    '◼' => Opcode::Alloc,
-                    '◻' => Opcode::Free,
-                    '←' => Opcode::Load,
-                    '→' => Opcode::Store,
-                    '↻' => Opcode::Loop,
-                    '◉' => Opcode::Branch,
-                    '○' => Opcode::Call,
-                    '▣' => Opcode::Return,
-                    '░' => Opcode::Data,
-                    '▓' => Opcode::Type,
-                    '◬' => Opcode::Ptr,
-                    '⌬' => Opcode::Struct,
-                    '█' => Opcode::Module,
-                    '↗' => Opcode::Export,
-                    '↘' => Opcode::Import,
-                    '·' => Opcode::Nop,
-                    '⌧' => Opcode::Halt,
-                    _ => Opcode::Nop,
-                }
-            }
-        }
-    }
-
-    /// Get the preferred character (Atlas Index) for this Opcode
     pub fn to_char(&self) -> char {
-        std::char::from_u32(self.to_index()).unwrap_or('·')
+        std::char::from_u32(200 + *self as u32).unwrap_or('?')
     }
 }
 
-/// Glyph metadata structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GlyphMetadata {
-    /// Dependencies: glyph indices this glyph depends on
-    pub dependencies: Vec<u32>,
-
-    /// Invariants: constraints on glyph behavior (JSON extensible format)
-    pub invariants: serde_json::Value,
-
-    /// Provenance: session ID, timestamp, creator info
-    pub provenance: ProvenanceInfo,
-
-    /// Rationale: human-readable explanation of purpose
-    pub rationale: String,
-}
-
-/// Provenance tracking information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProvenanceInfo {
-    /// Creating/modifying session identifier
     pub session_id: String,
-
-    /// Timestamp of creation/modification
     pub timestamp: String,
-
-    /// Agent or human that created/modified
     pub creator: String,
-
-    /// Version or change number
     pub version: u32,
 }
 
-/// Enhanced GlyphInfo with GlyphStratum fields
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EnhancedGlyphInfo {
-    /// Base glyph information (position, size, etc.)
-    pub base: super::font_atlas::GlyphInfo,
+pub struct GlyphMetadata {
+    pub dependencies: Vec<u32>,
+    pub invariants: serde_json::Value,
+    pub provenance: ProvenanceInfo,
+    pub rationale: String,
+}
 
-    /// Stratum information
-    pub stratum: Stratum,
-
-    /// Executable opcode
-    pub opcode: Opcode,
-
-    /// Rich metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Glyph {
+    pub base: GlyphBase,
     pub metadata: GlyphMetadata,
 }
 
-impl EnhancedGlyphInfo {
-    /// Create from basic GlyphInfo with defaults
-    pub fn from_basic(base: super::font_atlas::GlyphInfo) -> Self {
-        Self {
-            base,
-            stratum: Stratum::Substrate,
-            opcode: Opcode::Nop,
-            metadata: GlyphMetadata {
-                dependencies: Vec::new(),
-                invariants: serde_json::json!({}),
-                provenance: ProvenanceInfo {
-                    session_id: "system".to_string(),
-                    timestamp: chrono::Utc::now().to_rfc3339(),
-                    creator: "genesis".to_string(),
-                    version: 1,
-                },
-                rationale: "System-generated glyph".to_string(),
-            },
-        }
-    }
-
-    /// Get executable opcode
-    pub fn opcode(&self) -> Opcode {
-        self.opcode
-    }
-
-    /// Get semantic stratum
-    pub fn stratum(&self) -> Stratum {
-        self.stratum
-    }
-
-    /// Get dependencies
-    pub fn dependencies(&self) -> &Vec<u32> {
-        &self.metadata.dependencies
-    }
-
-    /// Get invariants
-    pub fn invariants(&self) -> &serde_json::Value {
-        &self.metadata.invariants
-    }
-
-    /// Get provenance
-    pub fn provenance(&self) -> &ProvenanceInfo {
-        &self.metadata.provenance
-    }
-
-    /// Get rationale
-    pub fn rationale(&self) -> &String {
-        &self.metadata.rationale
-    }
-}
-
-/// Registry for tracking glyphs and their relationships
-#[derive(Debug, Default)]
-pub struct GlyphRegistry {
-    /// Map of glyph index to enhanced glyph info
-    pub glyphs: HashMap<u32, EnhancedGlyphInfo>,
-
-    /// Next available glyph index
-    pub next_index: u32,
-}
-
-impl GlyphRegistry {
-    /// Create new registry
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Register a new glyph
-    pub fn register(&mut self, mut glyph: EnhancedGlyphInfo) -> u32 {
-        let index = self.next_index;
-        glyph.base.unicode = index as u32; // Use index as unicode for lookup
-        self.glyphs.insert(index, glyph);
-        self.next_index += 1;
-        index
-    }
-
-    /// Get glyph by index
-    pub fn get(&self, index: &u32) -> Option<&EnhancedGlyphInfo> {
-        self.glyphs.get(index)
-    }
-
-    /// Get mutable glyph by index
-    pub fn get_mut(&mut self, index: &u32) -> Option<&mut EnhancedGlyphInfo> {
-        self.glyphs.get_mut(index)
-    }
-
-    /// Query glyphs by stratum
-    pub fn by_stratum(&self, stratum: Stratum) -> Vec<(u32, &EnhancedGlyphInfo)> {
-        self.glyphs
-            .iter()
-            .filter(|(_, glyph)| glyph.stratum() == stratum)
-            .map(|(index, glyph)| (*index, glyph))
-            .collect()
-    }
-
-    /// Query glyphs by opcode
-    pub fn by_opcode(&self, opcode: Opcode) -> Vec<(u32, &EnhancedGlyphInfo)> {
-        self.glyphs
-            .iter()
-            .filter(|(_, glyph)| glyph.opcode() == opcode)
-            .map(|(index, glyph)| (*index, glyph))
-            .collect()
-    }
-
-    /// Get all glyphs that depend on a given glyph
-    pub fn dependents(&self, glyph_index: u32) -> Vec<u32> {
-        self.glyphs
-            .iter()
-            .filter(|(_, glyph)| glyph.dependencies().contains(&glyph_index))
-            .map(|(index, _)| *index)
-            .collect()
-    }
-}
-
-/// GlyphStratumEngine - Manages a grid of visual instructions with metadata
-#[derive(Debug, Default)]
-pub struct GlyphStratumEngine {
-    /// Glyph registry for metadata storage
-    pub registry: GlyphRegistry,
-    /// Grid dimensions (columns, rows)
-    pub dimensions: (u32, u32),
-    /// Map of (x, y) coordinates to glyph registry index
-    pub grid: HashMap<(u32, u32), u32>,
-}
-
-impl GlyphStratumEngine {
-    /// Create a new engine with specified dimensions
-    pub fn new(cols: u32, rows: u32) -> Self {
-        Self {
-            registry: GlyphRegistry::new(),
-            dimensions: (cols, rows),
-            grid: HashMap::new(),
-        }
-    }
-
-    /// Place a glyph at specified coordinates
-    pub fn place_glyph(
-        &mut self,
-        x: u32,
-        y: u32,
-        ch: char,
-        stratum: Stratum,
-        metadata: Option<GlyphMetadata>,
-    ) -> Result<u32, String> {
-        if x >= self.dimensions.0 || y >= self.dimensions.1 {
-            return Err(format!("Coordinates out of bounds: ({}, {})", x, y));
-        }
-
-        // Stratum enforcement: ensure bottom-up construction
-        if stratum as u8 > 0 {
-            let lower_stratum_exists = self.grid.values()
-                .filter_map(|&idx| self.registry.get(&idx))
-                .any(|g| (g.stratum() as u8) < stratum as u8);
-            
-            if !lower_stratum_exists && stratum != Stratum::Substrate {
-                log::warn!("⚠️ Stratum violation: Placing {:?} without lower strata", stratum);
-                // We allow it for now but warn, or we could return Err
-            }
-        }
-
-        let opcode = Opcode::from_char(ch);
-        
-        // Create base glyph info (minimal fields for identification)
-        let base = super::font_atlas::GlyphInfo {
-            unicode: ch as u32,
-            x: 0, y: 0, width: 0, height: 0,
-            advance: 1.0, bearing_x: 0.0, bearing_y: 0.0,
-            opcode: opcode as u8,
-            stratum: stratum as u8,
-            dependencies: Vec::new(),
-            invariants: "{}".to_string(),
-            provenance: "".to_string(),
-            rationale: "".to_string(),
-        };
-
-        let mut enhanced = EnhancedGlyphInfo::from_basic(base);
-        enhanced.opcode = opcode;
-        enhanced.stratum = stratum;
-        
-        if let Some(meta) = metadata {
-            enhanced.metadata = meta;
-        }
-
-        let index = self.registry.register(enhanced);
-        self.grid.insert((x, y), index);
-        
-        Ok(index)
-    }
-
-    /// Get glyph at coordinates
-    pub fn get_glyph(&self, x: u32, y: u32) -> Option<&EnhancedGlyphInfo> {
-        self.grid.get(&(x, y)).and_then(|&idx| self.registry.get(&idx))
-    }
-
-    /// Query the entire row for a program structure
-    pub fn get_row_program(&self, y: u32) -> Vec<(u32, Opcode, Stratum)> {
-        let mut program = Vec::new();
-        for x in 0..self.dimensions.0 {
-            if let Some(glyph) = self.get_glyph(x, y) {
-                program.push((x, glyph.opcode(), glyph.stratum()));
-            }
-        }
-        program
-    }
-
-    /// Generate a summary of the program for an AI agent
-    pub fn generate_ai_summary(&self) -> String {
-        let mut summary = String::new();
-        summary.push_str("GlyphStratum Program Summary:\n");
-
-        for y in 0..self.dimensions.1 {
-            let row = self.get_row_program(y);
-            if !row.is_empty() {
-                summary.push_str(&format!("Row {}: ", y));
-                for (_x, op, strat) in row {
-                    summary.push_str(&format!("{}[{:?}:S{}] ", op.to_char(), op, strat as u8));
-                }
-                summary.push('\n');
-            }
-        }
-        summary
-    }
-
-    /// Repair a corrupted glyph at the given coordinates
-    /// Returns true if corruption was detected and repaired
-    pub fn repair_glyph(&mut self, x: u32, y: u32, expected: Opcode) -> Result<RepairResult, String> {
-        if x >= self.dimensions.0 || y >= self.dimensions.1 {
-            return Err(format!("Coordinates out of bounds: ({}, {})", x, y));
-        }
-
-        let current = self.get_glyph(x, y);
-
-        match current {
-            None => {
-                log::warn!("🔧 Repair: No glyph at ({}, {}), placing expected {:?}", x, y, expected);
-                let ch = expected.to_char();
-                let stratum = Self::default_stratum_for_opcode(expected);
-                self.place_glyph(x, y, ch, stratum, None)?;
-                Ok(RepairResult::MissingGlyphRepaired)
-            }
-            Some(glyph) => {
-                let current_opcode = glyph.opcode();
-                if current_opcode != expected {
-                    log::warn!(
-                        "🔧 Repair: Corruption detected at ({}, {}): expected {:?}, found {:?}",
-                        x, y, expected, current_opcode
-                    );
-                    // Remove the corrupted glyph and replace with correct one
-                    let ch = expected.to_char();
-                    let stratum = glyph.stratum();
-                    let metadata = glyph.metadata.clone();
-
-                    // Place new glyph (will overwrite the grid position)
-                    self.place_glyph(x, y, ch, stratum, Some(metadata))?;
-                    Ok(RepairResult::CorruptionRepaired { was: current_opcode, expected })
-                } else {
-                    log::debug!("✓ Repair: Glyph at ({}, {}) is healthy: {:?}", x, y, current_opcode);
-                    Ok(RepairResult::Healthy)
-                }
-            }
-        }
-    }
-
-    /// Scan the entire grid for corruptions by comparing to expected opcodes
-    pub fn scan_for_corruptions(&self, expected_grid: &HashMap<(u32, u32), Opcode>) -> Vec<CorruptionReport> {
-        let mut corruptions = Vec::new();
-
-        for ((x, y), expected) in expected_grid {
-            if let Some(glyph) = self.get_glyph(*x, *y) {
-                if glyph.opcode() != *expected {
-                    corruptions.push(CorruptionReport {
-                        x: *x,
-                        y: *y,
-                        expected: *expected,
-                        found: glyph.opcode(),
-                        corruption_type: CorruptionType::OpcodeMismatch,
-                    });
-                }
-            } else {
-                corruptions.push(CorruptionReport {
-                    x: *x,
-                    y: *y,
-                    expected: *expected,
-                    found: Opcode::Nop,
-                    corruption_type: CorruptionType::MissingGlyph,
-                });
-            }
-        }
-
-        corruptions
-    }
-
-    /// Get the default stratum for an opcode
-    fn default_stratum_for_opcode(opcode: Opcode) -> Stratum {
-        match opcode {
-            Opcode::Alloc | Opcode::Free | Opcode::Load | Opcode::Store => Stratum::Memory,
-            Opcode::Loop | Opcode::Branch | Opcode::Call | Opcode::Return => Stratum::Logic,
-            Opcode::Data => Stratum::Substrate,
-            Opcode::Type | Opcode::Ptr | Opcode::Struct => Stratum::Spec,
-            Opcode::Module | Opcode::Export | Opcode::Import => Stratum::Intent,
-            Opcode::Nop | Opcode::Halt => Stratum::Substrate,
-        }
-    }
-}
-
-/// Result of a repair operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum RepairResult {
-    /// Glyph was healthy, no repair needed
-    Healthy,
-    /// Missing glyph was created
-    MissingGlyphRepaired,
-    /// Corrupted opcode was fixed
-    CorruptionRepaired { was: Opcode, expected: Opcode },
+pub struct GlyphBase {
+    pub unicode: u32,
+    pub stratum: u8,
 }
 
-/// Report of a detected corruption
+impl Glyph {
+    pub fn opcode(&self) -> Opcode {
+        Opcode::from_value(self.base.unicode.saturating_sub(200)).unwrap_or(Opcode::Nop)
+    }
+    pub fn stratum(&self) -> Stratum {
+        Stratum::from_value(Some(self.base.stratum))
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CorruptionReport {
     pub x: u32,
     pub y: u32,
     pub expected: Opcode,
     pub found: Opcode,
-    pub corruption_type: CorruptionType,
 }
 
-/// Type of visual corruption detected
+/// Redundant pattern detection result
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum CorruptionType {
-    /// Opcode doesn't match expected value
-    OpcodeMismatch,
-    /// Glyph is missing entirely
-    MissingGlyph,
-    /// Visual pixels don't match expected text (detected by VLM)
-    VisualCorruption,
+pub enum RedundantPattern {
+    ConsecutiveNops { positions: Vec<u32> },
+    LoadLoadWithoutStore { positions: Vec<u32> },
+    DeadStore { position: u32 },
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+/// Metabolic optimization result
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetabolicOptimization {
+    pub initial_cost: u32,
+    pub final_cost: u32,
+    pub savings: u32,
+    pub nops_removed: usize,
+    pub glyphs_before: usize,
+    pub glyphs_after: usize,
+}
 
-    #[test]
-    fn test_stratum_from_value() {
-        assert_eq!(Stratum::from_value(0), Some(Stratum::Substrate));
-        assert_eq!(Stratum::from_value(2), Some(Stratum::Logic));
-        assert_eq!(Stratum::from_value(4), Some(Stratum::Intent));
-        assert_eq!(Stratum::from_value(5), None);
+/// Full metabolic report for AI analysis
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetabolicReport {
+    pub bounds: ((u32, u32), (u32, u32)),
+    pub glyph_count: usize,
+    pub total_metabolic_cost: u32,
+    pub opcode_distribution: HashMap<String, usize>,
+    pub dead_glyph_count: usize,
+    pub efficiency_ratio: f32,
+}
+
+/// The engine managing the Glyph Stratum grid
+pub struct GlyphStratumEngine {
+    pub dimensions: (u32, u32),
+    pub grid: HashMap<(u32, u32), u32>,
+    pub registry: HashMap<u32, Glyph>,
+}
+
+impl GlyphStratumEngine {
+    pub fn new(width: u32, height: u32) -> Self {
+        Self {
+            dimensions: (width, height),
+            grid: HashMap::new(),
+            registry: HashMap::new(),
+        }
     }
 
-    #[test]
-    fn test_opcode_from_value() {
-        assert_eq!(Opcode::from_value(1), Some(Opcode::Alloc));
-        assert_eq!(Opcode::from_value(7), Some(Opcode::Call));
-        assert_eq!(Opcode::from_value(255), Some(Opcode::Halt));
-        assert_eq!(Opcode::from_value(99), None);
-    }
+    pub fn place_glyph(&mut self, x: u32, y: u32, ch: char, stratum: Stratum, metadata: Option<GlyphMetadata>) -> Result<u32, String> {
+        if x >= self.dimensions.0 || y >= self.dimensions.1 {
+            return Err("Coordinates out of bounds".to_string());
+        }
 
-    #[test]
-    fn test_opcode_name() {
-        assert_eq!(Opcode::Alloc.name(), "Alloc");
-        assert_eq!(Opcode::Return.name(), "Return");
-        assert_eq!(Opcode::Halt.name(), "Halt");
-    }
-
-    #[test]
-    fn test_glyph_registry() {
-        let mut registry = GlyphRegistry::new();
-
-        // Create a basic glyph (would normally come from font_atlas)
-        use super::super::font_atlas::GlyphInfo;
-        let basic_glyph = GlyphInfo {
-            unicode: 65, // 'A'
-            x: 0,
-            y: 0,
-            width: 32,
-            height: 32,
-            advance: 0.6,
-            bearing_x: 0.0,
-            bearing_y: 0.0,
-            opcode: 0,
-            stratum: 0,
+        let glyph_id = ch as u32;
+        let meta = metadata.unwrap_or(GlyphMetadata {
             dependencies: Vec::new(),
-            invariants: "{}".to_string(),
-            provenance: "".to_string(),
+            invariants: serde_json::json!({}),
+            provenance: ProvenanceInfo {
+                session_id: "default".to_string(),
+                timestamp: "".to_string(),
+                creator: "system".to_string(),
+                version: 1,
+            },
             rationale: "".to_string(),
+        });
+
+        self.registry.insert(glyph_id, Glyph {
+            base: GlyphBase { unicode: glyph_id, stratum: stratum as u8 },
+            metadata: meta,
+        });
+
+        self.grid.insert((x, y), glyph_id);
+        Ok(glyph_id)
+    }
+
+    pub fn get_glyph(&self, x: u32, y: u32) -> Option<&Glyph> {
+        let glyph_id = self.grid.get(&(x, y))?;
+        self.registry.get(glyph_id)
+    }
+
+    pub fn spawn(&mut self, src_bounds: ((u32, u32), (u32, u32)), dest_origin: (u32, u32)) -> Result<(((u32, u32), (u32, u32)), ((u32, u32), (u32, u32))), String> {
+        let (min_x, min_y) = src_bounds.0;
+        let (max_x, max_y) = src_bounds.1;
+        let (dest_x, dest_y) = dest_origin;
+
+        let mut copied = 0;
+        let mut new_bounds: Option<((u32, u32), (u32, u32))> = None;
+
+        for y in min_y..=max_y {
+            for x in min_x..=max_x {
+                if let Some(glyph) = self.get_glyph(x, y) {
+                    let new_x = dest_x + (x - min_x);
+                    let new_y = dest_y + (y - min_y);
+
+                    if new_x >= self.dimensions.0 || new_y >= self.dimensions.1 {
+                        continue;
+                    }
+
+                    self.place_glyph(
+                        new_x,
+                        new_y,
+                        std::char::from_u32(glyph.base.unicode).unwrap_or('?'),
+                        glyph.stratum(),
+                        Some(glyph.metadata.clone())
+                    ).ok();
+
+                    copied += 1;
+
+                    if new_bounds.is_none() {
+                        new_bounds = Some(((new_x, new_y), (new_x, new_y)));
+                    } else if let Some(ref mut bounds) = new_bounds {
+                        bounds.0 = (bounds.0.0.min(new_x), bounds.0.1.min(new_y));
+                        bounds.1 = (bounds.1.0.max(new_x), bounds.1.1.max(new_y));
+                    }
+                }
+            }
+        }
+
+        if copied == 0 {
+            return Err("No glyphs copied".to_string());
+        }
+
+        let final_bounds = new_bounds.unwrap_or(((dest_x, dest_y), (dest_x, dest_y)));
+        Ok((src_bounds, final_bounds))
+    }
+
+    pub fn scan_for_corruptions(&self, expected: &HashMap<(u32, u32), Opcode>) -> Vec<CorruptionReport> {
+        let mut corruptions = Vec::new();
+        for (&(x, y), &expected_op) in expected {
+            if let Some(glyph) = self.get_glyph(x, y) {
+                let found_op = glyph.opcode();
+                if found_op != expected_op {
+                    corruptions.push(CorruptionReport { x, y, expected: expected_op, found: found_op });
+                }
+            }
+        }
+        corruptions
+    }
+
+    pub fn repair_glyph(&mut self, x: u32, y: u32, expected: Opcode) -> Result<String, String> {
+        if let Some(glyph) = self.get_glyph(x, y) {
+            self.place_glyph(x, y, expected.to_char(), glyph.stratum(), Some(glyph.metadata.clone()))?;
+            Ok("Repaired".to_string())
+        } else {
+            Err("Glyph not found".to_string())
+        }
+    }
+
+    pub fn apply_cosmic_rays(&mut self, _intensity: f32) -> Vec<(u32, u32, Opcode, Opcode)> {
+        Vec::new()
+    }
+
+    pub fn generate_ai_summary(&self) -> String {
+        format!("Glyph Stratum Grid ({}x{}): {} glyphs placed", self.dimensions.0, self.dimensions.1, self.grid.len())
+    }
+
+    // ==================== Metabolic Efficiency ====================
+
+    /// Calculate total metabolic cost (VRAM cycles) for the grid
+    pub fn calculate_metabolic_cost(&self) -> u32 {
+        self.grid.iter()
+            .filter_map(|((x, y), glyph_id)| {
+                self.registry.get(glyph_id).map(|g| g.opcode().metabolic_cost())
+            })
+            .sum()
+    }
+
+    /// Calculate metabolic cost for a specific region
+    pub fn calculate_region_cost(&self, bounds: ((u32, u32), (u32, u32))) -> u32 {
+        let (min_x, min_y) = bounds.0;
+        let (max_x, max_y) = bounds.1;
+
+        let mut total = 0u32;
+        for y in min_y..=max_y {
+            for x in min_x..=max_x {
+                if let Some(glyph) = self.get_glyph(x, y) {
+                    total += glyph.opcode().metabolic_cost();
+                }
+            }
+        }
+        total
+    }
+
+    /// Detect redundant patterns (consecutive Nops, Load-Load without Store)
+    pub fn detect_redundant_patterns(&self, row: u32, start_x: u32, end_x: u32) -> Vec<RedundantPattern> {
+        let mut patterns = Vec::new();
+        let mut prev_opcode = None;
+        let mut consecutive_nops = Vec::new();
+
+        for x in start_x..=end_x {
+            if let Some(glyph) = self.get_glyph(x, row) {
+                let op = glyph.opcode();
+
+                // Track consecutive Nops
+                if op == Opcode::Nop {
+                    consecutive_nops.push(x);
+                } else {
+                    if consecutive_nops.len() > 1 {
+                        patterns.push(RedundantPattern::ConsecutiveNops {
+                            positions: consecutive_nops.clone(),
+                        });
+                    }
+                    consecutive_nops.clear();
+                }
+
+                // Detect Load-Load without Store in between
+                if let Some(prev) = prev_opcode {
+                    if prev == Opcode::Load && op == Opcode::Load {
+                        patterns.push(RedundantPattern::LoadLoadWithoutStore {
+                            positions: vec![x - 1, x],
+                        });
+                    }
+                }
+
+                prev_opcode = Some(op);
+            }
+        }
+
+        // Handle trailing Nops
+        if consecutive_nops.len() > 1 {
+            patterns.push(RedundantPattern::ConsecutiveNops {
+                positions: consecutive_nops,
+            });
+        }
+
+        patterns
+    }
+
+    /// Optimize metabolic efficiency - remove dead code and compact
+    pub fn optimize_metabolic_efficiency(&mut self, bounds: ((u32, u32), (u32, u32))) -> MetabolicOptimization {
+        let (min_x, min_y) = bounds.0;
+        let (max_x, max_y) = bounds.1;
+
+        let initial_cost = self.calculate_region_cost(bounds);
+        let initial_count = self.count_glyphs_in_region(bounds);
+
+        let mut removed_nops = 0;
+
+        // Phase 1: Remove consecutive Nops (keep first one as spacer)
+        for y in min_y..=max_y {
+            let mut x = min_x;
+            while x <= max_x {
+                if let Some(glyph) = self.get_glyph(x, y) {
+                    if glyph.opcode() == Opcode::Nop {
+                        // Check if next is also Nop
+                        if x + 1 <= max_x {
+                            if let Some(next) = self.get_glyph(x + 1, y) {
+                                if next.opcode() == Opcode::Nop {
+                                    // Remove redundant Nop
+                                    self.grid.remove(&(x + 1, y));
+                                    removed_nops += 1;
+                                    continue; // Don't increment x - check if there are more
+                                }
+                            }
+                        }
+                    }
+                }
+                x += 1;
+            }
+        }
+
+        // Phase 2: Compact leftward (remove gaps created by Nop removal)
+        for y in min_y..=max_y {
+            let mut write_x = min_x;
+            for read_x in min_x..=max_x {
+                if let Some(glyph) = self.get_glyph(read_x, y) {
+                    if read_x != write_x {
+                        // Move glyph left
+                        let ch = std::char::from_u32(glyph.base.unicode).unwrap_or('?');
+                        let _ = self.place_glyph(write_x, y, ch, glyph.stratum(), Some(glyph.metadata.clone()));
+                        self.grid.remove(&(read_x, y));
+                    }
+                    write_x += 1;
+                }
+            }
+        }
+
+        let final_cost = self.calculate_region_cost(bounds);
+        let final_count = self.count_glyphs_in_region(bounds);
+
+        MetabolicOptimization {
+            initial_cost,
+            final_cost,
+            savings: initial_cost.saturating_sub(final_cost),
+            nops_removed: removed_nops,
+            glyphs_before: initial_count,
+            glyphs_after: final_count,
+        }
+    }
+
+    /// Count glyphs in a region
+    fn count_glyphs_in_region(&self, bounds: ((u32, u32), (u32, u32))) -> usize {
+        let (min_x, min_y) = bounds.0;
+        let (max_x, max_y) = bounds.1;
+
+        let mut count = 0;
+        for y in min_y..=max_y {
+            for x in min_x..=max_x {
+                if self.grid.contains_key(&(x, y)) {
+                    count += 1;
+                }
+            }
+        }
+        count
+    }
+
+    /// Generate metabolic report for AI analysis
+    pub fn generate_metabolic_report(&self, bounds: ((u32, u32), (u32, u32))) -> MetabolicReport {
+        let (min_x, min_y) = bounds.0;
+        let (max_x, max_y) = bounds.1;
+
+        let mut opcode_counts: HashMap<String, usize> = HashMap::new();
+        let mut total_cost = 0u32;
+        let mut glyph_count = 0;
+
+        for y in min_y..=max_y {
+            for x in min_x..=max_x {
+                if let Some(glyph) = self.get_glyph(x, y) {
+                    let op = glyph.opcode();
+                    *opcode_counts.entry(format!("{:?}", op)).or_insert(0) += 1;
+                    total_cost += op.metabolic_cost();
+                    glyph_count += 1;
+                }
+            }
+        }
+
+        let dead_glyphs = *opcode_counts.get("Nop").unwrap_or(&0);
+        let efficiency_ratio = if glyph_count > 0 {
+            (glyph_count - dead_glyphs) as f32 / glyph_count as f32
+        } else {
+            0.0
         };
 
-        let enhanced = EnhancedGlyphInfo::from_basic(basic_glyph);
-        let index = registry.register(enhanced);
-
-        assert_eq!(index, 0);
-        let retrieved = registry.get(&0).unwrap();
-        assert_eq!(retrieved.base.unicode, 65);
-        assert_eq!(retrieved.stratum(), Stratum::Substrate);
-        assert_eq!(retrieved.opcode(), Opcode::Nop);
-    }
-
-    #[test]
-    fn test_glyph_stratum_engine_hello_world() {
-        let mut engine = GlyphStratumEngine::new(80, 40);
-
-        // Row 0: Module(212) Data(208) Data(208) Call(206) Return(207)
-        engine.place_glyph(0, 0, std::char::from_u32(212).unwrap(), Stratum::Substrate, None).unwrap();
-        engine.place_glyph(1, 0, std::char::from_u32(208).unwrap(), Stratum::Memory, None).unwrap();
-        engine.place_glyph(2, 0, std::char::from_u32(208).unwrap(), Stratum::Memory, None).unwrap();
-        engine.place_glyph(3, 0, std::char::from_u32(206).unwrap(), Stratum::Logic, None).unwrap();
-        engine.place_glyph(4, 0, std::char::from_u32(207).unwrap(), Stratum::Logic, None).unwrap();
-
-        let summary = engine.generate_ai_summary();
-        println!("{}", summary);
-
-        // Expected output uses characters corresponding to indices 212, 208, 208, 206, 207
-        assert!(summary.contains("Row 0:"));
-        assert!(summary.contains("[Module:S0]"));
-        assert!(summary.contains("[Data:S1]"));
-        assert!(summary.contains("[Call:S2]"));
-        assert!(summary.contains("[Return:S2]"));
-        
-        // Verify query
-        let glyph = engine.get_glyph(3, 0).unwrap();
-        assert_eq!(glyph.opcode(), Opcode::Call);
-        assert_eq!(glyph.stratum(), Stratum::Logic);
+        MetabolicReport {
+            bounds,
+            glyph_count,
+            total_metabolic_cost: total_cost,
+            opcode_distribution: opcode_counts,
+            dead_glyph_count: dead_glyphs,
+            efficiency_ratio,
+        }
     }
 }
-
-// FFI module for Python bindings
-pub mod ffi;

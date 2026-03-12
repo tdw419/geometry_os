@@ -1,0 +1,47 @@
+{
+  "name": "multiply_microcode_bootstrap",
+  "glyphs": {
+    "0": {
+      "opcode": 206,
+      "stratum": 2,
+      "p1": 7.0,
+      "p2": 0.0,
+      "target": 0,
+      "rationale": "Load 7 into memory[0]",
+      "dependencies": []
+    },
+    "1": {
+      "opcode": 206,
+      "stratum": 2,
+      "p1": 6.0,
+      "p2": 0.0,
+      "target": 1,
+      "rationale": "Load 6 into memory[1]",
+      "dependencies": [
+        "0"
+      ]
+    },
+    "2": {
+      "opcode": 202,
+      "stratum": 2,
+      "p1": 7.0,
+      "p2": 6.0,
+      "target": 2,
+      "rationale": "Multiply 7 * 6",
+      "dependencies": [
+        "1"
+      ]
+    },
+    "3": {
+      "opcode": 212,
+      "stratum": 2,
+      "p1": 0.0,
+      "p2": 0.0,
+      "target": 0,
+      "rationale": "Halt execution",
+      "dependencies": [
+        "2"
+      ]
+    }
+  }
+}

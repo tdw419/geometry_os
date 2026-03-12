@@ -5,6 +5,7 @@
 
 pub mod wgsl_compiler;
 pub mod geometric_vm;
+pub mod glyph_vm;
 
 pub use wgsl_compiler::WGSLCompiler;
 pub use geometric_vm::{GeometricVM, GeometricState};

@@ -220,7 +220,7 @@ class LegibleBrainRenderer {
         const sector = sectorNames[sectorId];
 
         const activation = sampledData.r;
-        const entropy = sampledData.g;
+        const entropy = sampledData.g;;
 
         // Create fracture object
         const fracture = {
@@ -271,6 +271,25 @@ class LegibleBrainRenderer {
             return result;
         } catch (err) {
             console.error('Repair cycle failed:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    /**
+     * Phase 42: Deploy a functional district
+     */
+    async deployDistrict(districtName = "Syntactic") {
+        if (!this.mutationClient) {
+            console.warn('MutationClient not connected');
+            return { success: false, error: 'Not connected' };
+        }
+
+        try {
+            const result = await this.mutationClient.colonize(districtName);
+            console.log(`🏗️ District Deployed: ${districtName}`, result);
+            return result;
+        } catch (err) {
+            console.error('District deployment failed:', err);
             return { success: false, error: err.message };
         }
     }

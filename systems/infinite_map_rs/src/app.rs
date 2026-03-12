@@ -2601,7 +2601,7 @@ impl<'a> InfiniteMapApp<'a> {
                 entry.id, entry.generation, entry.spawn_x, entry.spawn_y);
 
             // Phase 35.9.1: Try to load the .rts.png texture
-            let texture_loaded = if let Some(manager) = &self.cartridge_texture_manager {
+            let texture_loaded = if let Some(ref mut manager) = self.cartridge_texture_manager {
                 // Attempt to load the texture
                 let result = manager.load_cartridge(&entry.id, &entry.path);
 
@@ -2729,7 +2729,10 @@ impl<'a> InfiniteMapApp<'a> {
                     data: vec![0xAF; 32], // Placeholder boot marker
                     fitness: entry.fitness,
                     generation: entry.generation,
-                    position: (entry.spawn_x, entry.spawn_y),
+                    position: (entry.spawn_x as i32, entry.spawn_y as i32),
+                    map_position: (entry.spawn_x as i32, entry.spawn_y as i32),
+                    pixels: vec![0; 4096], // 32x32 RGBA placeholder
+                    species: "cartridge_boot".to_string(),
                     metadata: serde_json::json!({
                         "action": "CARTRIDGE_BOOT",
                         "cartridge_id": entry.id,
@@ -3541,10 +3544,9 @@ impl<'a> InfiniteMapApp<'a> {
                     geo_vm.upload_program(&pixels);
                     
                     let (rows, cols) = emulator.get_size();
-                    let (cursor_row, cursor_col) = emulator.get_cursor();
-                    
-                    let ram_view = geo_vm.ram_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                    let (cursor_row, cursor_col) = emulator.get_cursor_position();
 
+                    let ram_view = geo_vm.ram_texture.create_view(&wgpu::TextureViewDescriptor::default());
                     self.renderer.render_terminal_tile(
                         window_id,
                         rows as u32,
@@ -6080,49 +6082,48 @@ impl<'a> InfiniteMapApp<'a> {
                            );
 
                             // Check for Evolution Zone interaction (Click to Boot)
-                            if let Some(target_window) = self.window_manager.find_window_at_position(world_pos.x, world_pos.y) {
-                                if target_window.window_type == crate::window::WindowType::EvolutionZone {
-                                    // Phase 35.9.3: Check if this is a cartridge tile
-                                    if target_window.has_cartridge_texture {
-                                        if let Some(cartridge_id) = &target_window.cartridge_texture_id {
-                                            log::info!("🧬 Clicked cartridge tile: {} at ({}, {})",
-                                                cartridge_id, world_pos.x, world_pos.y);
+                            let boot_target = if let Some(target_window) = self.window_manager.find_window_at_position(world_pos.x, world_pos.y) {
+                                if target_window.window_type == crate::window::WindowType::EvolutionZone && target_window.has_cartridge_texture {
+                                    target_window.cartridge_texture_id.as_ref().map(|id| (id.clone(), target_window.id))
+                                } else { None }
+                            } else { None };
 
-                                            // Boot the cartridge
-                                            match self.boot_cartridge(cartridge_id, target_window.id) {
-                                                Ok(()) => {
-                                                    log::info!("✅ Cartridge boot initiated: {}", cartridge_id);
-                                                }
-                                                Err(e) => {
-                                                    log::error!("❌ Failed to boot cartridge {}: {}", cartridge_id, e);
-                                                }
-                                            }
-                                            return; // Consume the click
-                                        }
-                                    } else {
-                                        // Legacy behavior: generic EvolutionZone click
-                                        log::info!("🧬 Clicked Evolution Zone! Initiating Autonomous Execution...");
-
-                                        // Trigger evolution boot
-                                        if let Some(em_arc) = &self.evolution_manager {
-                                            if let Ok(mut em) = em_arc.lock() {
-                                                // Send a test genome or trigger daemon action
-                                                let genome = crate::evolution_protocol::EvolvedGenomeData {
-                                                    id: format!("genome-boot-{}", self.frame_count),
-                                                    data: vec![0xCA, 0xFE, 0xBA, 0xBE], // Minimal executable
-                                                    generation: 1,
-                                                    fitness: 0.99,
-                                                    metadata: serde_json::json!({
-                                                        "action": "BOOT_DAEMON",
-                                                        "spawn_x": world_pos.x,
-                                                        "spawn_y": world_pos.y
-                                                    }),
-                                                };
-                                                em.write_evolved_genome(genome);
-                                            }
-                                        }
-                                        return;
+                            if let Some((cartridge_id, window_id)) = boot_target {
+                                log::info!("🧬 Clicked cartridge tile: {} at ({}, {})", cartridge_id, world_pos.x, world_pos.y);
+                                // Boot the cartridge
+                                match self.boot_cartridge(&cartridge_id, window_id) {
+                                    Ok(()) => {
+                                        log::info!("✅ Cartridge boot initiated: {}", cartridge_id);
                                     }
+                                    Err(e) => {
+                                        log::error!("❌ Failed to boot cartridge {}: {}", cartridge_id, e);
+                                    }
+                                }
+                                return; // Consume the click
+                            } else if let Some(target_window) = self.window_manager.find_window_at_position(world_pos.x, world_pos.y) {
+                                if target_window.window_type == crate::window::WindowType::EvolutionZone {
+                                    // Legacy behavior: generic EvolutionZone click
+                                    log::info!("🧬 Clicked Evolution Zone! Initiating Autonomous Execution...");
+
+                                    // Trigger evolution boot
+                                    if let Some(em_arc) = &self.evolution_manager {
+                                        if let Ok(mut em) = em_arc.lock() {
+                                            // Send a test genome or trigger daemon action
+                                            let genome = crate::evolution_protocol::EvolvedGenomeData {
+                                                id: format!("genome-boot-{}", self.frame_count),
+                                                data: vec![0xCA, 0xFE, 0xBA, 0xBE], // Minimal executable
+                                                generation: 1,
+                                                fitness: 0.99,
+                                                metadata: serde_json::json!({
+                                                    "action": "BOOT_DAEMON",
+                                                    "spawn_x": world_pos.x,
+                                                    "spawn_y": world_pos.y
+                                                }),
+                                            };
+                                            em.write_evolved_genome(genome);
+                                        }
+                                    }
+                                    return;
                                 }
                             }
 
@@ -6348,7 +6349,7 @@ impl<'a> InfiniteMapApp<'a> {
                              self.input_manager.set_focus(state, None, None);
                          }
                      }
-                 }
+                }
                 
                 if let Some(button) = event.button() {
                     self.input_manager.handle_pointer_button(state, button, event.state(), serial, time);

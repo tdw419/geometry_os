@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Neural City - Live Visualization</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #050510; color: #00ffcc; font-family: monospace; overflow: hidden; }
+        #stats { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 15px; border: 1px solid #00ffcc; font-size: 11px; z-index: 100; }
+        #legend { position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 15px; border: 1px solid #00ffcc; font-size: 10px; }
+        .guild-attention { color: #0096ff; }
+        .guild-memory { color: #00ff96; }
+        .guild-logic { color: #ffc800; }
+        .guild-substrate { color: #969696; }
+        .guild-intent { color: #ff6464; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <div id="stats">
+        <div>NEURAL CITY <span id="phase">v4.4</span></div>
+        <div style="margin-top:8px;">
+            <div>Population: <span id="pop">0</span></div>
+            <div>Active: <span id="active">0</span></div>
+            <div>Energy: <span id="energy">0</span></div>
+            <div>Tick: <span id="tick">0</span></div>
+            <div style="margin-top:8px; color:#ff00ff;">
+                Births: <span id="births">0</span> | Deaths: <span id="deaths">0</span>
+            </div>
+        </div>
+    </div>
+    <div id="legend">
+        <div class="guild-attention">● Attention Guild</div>
+        <div class="guild-memory">● Memory Guild</div>
+        <div class="guild-logic">● Logic Guild</div>
+        <div class="guild-substrate">● Substrate Guild</div>
+        <div class="guild-intent">● Intent Guild</div>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Resize
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        
+        // Guild colors
+        const guildColors = {
+            'attention': '#0096ff',
+            'memory': '#00ff96',
+            'logic': '#ffc800',
+            'substrate': '#969696',
+            'intent': '#ff6464',
+            'unknown': '#646464'
+        };
+        
+        // State
+        let citizens = new Map();
+        let ws = null;
+        let connected = false;
+        let tick = 0;
+        let totalBirths = 0;
+        let totalDeaths = 0;
+        
+        // Connect to bridge
+        function connect() {
+            ws = new WebSocket('ws://localhost:8765');
+            
+            ws.onopen = () => {
+                connected = true;
+                console.log('🏙️ Connected to Neural City');
+                // Subscribe to city updates
+                ws.send(JSON.stringify({type: 'CITY_SUBSCRIBE'}));
+            };
+            
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                handleMessage(msg);
+            };
+            
+            ws.onclose = () => {
+                connected = false;
+                setTimeout(connect, 2000);
+            };
+        }
+        
+        function handleMessage(msg) {
+            if (msg.type === 'CITY_UPDATE') {
+                // Update citizens
+                if (msg.citizens) {
+                    citizens.clear();
+                    for (const c of msg.citizens) {
+                        citizens.set(c.id, c);
+                    }
+                }
+                // Update stats
+                if (msg.stats) {
+                    document.getElementById('pop').textContent = msg.stats.population || 0;
+                    document.getElementById('active').textContent = msg.stats.active_citizens || 0;
+                    document.getElementById('energy').textContent = (msg.stats.total_energy || 0).toFixed(1);
+                }
+                if (msg.tick) {
+                    document.getElementById('tick').textContent = msg.tick;
+                }
+            }
+            else if (msg.type === 'CITIZEN_SPAWNED') {
+                citizens.set(msg.citizen.id, msg.citizen);
+                totalBirths++;
+                document.getElementById('births').textContent = totalBirths;
+            }
+            else if (msg.type === 'CITIZEN_DIED') {
+                citizens.delete(msg.citizen_id);
+                totalDeaths++;
+                document.getElementById('deaths').textContent = totalDeaths;
+            }
+        }
+        
+        // Request tick
+        function requestTick() {
+            if (connected) {
+                ws.send(JSON.stringify({type: 'CITY_TICK'}));
+            }
+            tick++;
+        }
+        
+        // Render
+        function render() {
+            ctx.fillStyle = '#050510';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Scale factor (1024 atlas -> screen)
+            const scale = Math.min(canvas.width, canvas.height) / 1024;
+            const offsetX = (canvas.width - 1024 * scale) / 2;
+            const offsetY = (canvas.height - 1024 * scale) / 2;
+            
+            // Draw grid
+            ctx.strokeStyle = '#0a0a20';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 1024; i += 64) {
+                ctx.beginPath();
+                ctx.moveTo(offsetX + i * scale, offsetY);
+                ctx.lineTo(offsetX + i * scale, offsetY + 1024 * scale);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(offsetX, offsetY + i * scale);
+                ctx.lineTo(offsetX + 1024 * scale, offsetY + i * scale);
+                ctx.stroke();
+            }
+            
+            // Draw citizens
+            for (const [id, citizen] of citizens) {
+                const x = offsetX + citizen.x * scale;
+                const y = offsetY + citizen.y * scale;
+                const radius = Math.max(3, citizen.territory_radius * scale * 0.5);
+                
+                const color = guildColors[citizen.guild] || guildColors['unknown'];
+                
+                // Territory circle
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = color + '20';
+                ctx.fill();
+                ctx.strokeStyle = color + '80';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Citizen core
+                ctx.beginPath();
+                ctx.arc(x, y, Math.max(2, radius * 0.3), 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                
+                // Energy ring
+                if (citizen.energy > 0.1) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius * 1.2, 0, Math.PI * 2 * citizen.energy);
+                    ctx.strokeStyle = '#ffffff40';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                
+                // State indicator
+                if (citizen.state === 'trading') {
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius * 1.5, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#ff00ff40';
+                    ctx.stroke();
+                } else if (citizen.state === 'reproducing') {
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius * 1.5, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#00ff0040';
+                    ctx.stroke();
+                }
+            }
+            
+            // Draw connections between neighbors
+            ctx.strokeStyle = '#ffffff10';
+            ctx.lineWidth = 0.5;
+            for (const [id, citizen] of citizens) {
+                if (!citizen.neighbors) continue;
+                const x1 = offsetX + citizen.x * scale;
+                const y1 = offsetY + citizen.y * scale;
+                for (const neighborId of citizen.neighbors) {
+                    const neighbor = citizens.get(neighborId);
+                    if (neighbor) {
+                        const x2 = offsetX + neighbor.x * scale;
+                        const y2 = offsetY + neighbor.y * scale;
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+        
+        // Animation loop
+        let lastTick = 0;
+        function animate(time) {
+            if (time - lastTick > 1000) { // 1 tick per second
+                requestTick();
+                lastTick = time;
+            }
+            render();
+            requestAnimationFrame(animate);
+        }
+        
+        // Start
+        connect();
+        requestAnimationFrame(animate);
+        
+        // Simulation mode if bridge unavailable
+        setTimeout(() => {
+            if (!connected) {
+                console.log('Running in simulation mode');
+                // Generate synthetic citizens
+                for (let i = 0; i < 50; i++) {
+                    const guilds = ['attention', 'memory', 'logic', 'substrate', 'intent'];
+                    citizens.set('sim_' + i, {
+                        id: 'sim_' + i,
+                        x: Math.random() * 1024,
+                        y: Math.random() * 1024,
+                        guild: guilds[Math.floor(Math.random() * guilds.length)],
+                        energy: 0.3 + Math.random() * 0.7,
+                        territory_radius: 10 + Math.random() * 20,
+                        state: 'active'
+                    });
+                }
+                document.getElementById('pop').textContent = citizens.size;
+                document.getElementById('active').textContent = citizens.size;
+                document.getElementById('energy').textContent = '25.0';
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

@@ -284,6 +284,14 @@ class MutationClient {
     }
 
     /**
+     * Phase 42: Neural City Colonization
+     * Deploy a functional district to the atlas
+     */
+    async colonize(district = "Syntactic") {
+        return this.sendRequest('COLONIZE', { district: district }, 'COLONIZE_RESULT');
+    }
+
+    /**
      * Event emitter methods
      */
     on(event, handler) {

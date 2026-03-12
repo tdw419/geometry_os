@@ -26,6 +26,7 @@ Geometry OS has evolved from a pure Rust/Wayland approach to a hybrid Python/Rus
 | **Feedback** | ✅ Active | 15+ | System feedback loops |
 | **Cognitive** | ✅ Active | 10+ | Cognitive routing |
 | **Vision** | ✅ Active | 15+ | Vision model integration |
+| **Glyph Language** | ✅ Active | 10+ | Ouroboros microcode, Hilbert atlas |
 
 ### 2. Rust Components
 
@@ -84,6 +85,7 @@ Geometry OS has evolved from a pure Rust/Wayland approach to a hybrid Python/Rus
 - 🚧 3D Hilbert mapping (hypervisor)
 
 ### Recently Completed
+- ✅ Glyph Language: Hilbert-ordered atlas, minimal WGSL bootloader, and Ouroboros Renderer.
 - ✅ PixelBrain inference optimization (removed artificial delays, batch generation)
 
 ### Future

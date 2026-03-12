@@ -735,8 +735,10 @@
         const zoom = d3.zoom().scaleExtent([0.1, 4]).on("zoom", e => g.attr("transform", e.transform));
         svg.call(zoom);
 
-        // Arrow marker
-        svg.append("defs").append("marker")
+        // Arrow marker and SDF filter
+        const defs = svg.append("defs");
+        
+        defs.append("marker")
             .attr("id", "arrow")
             .attr("viewBox", "0 -5 10 10")
             .attr("refX", 20)
@@ -747,6 +749,16 @@
             .append("path")
             .attr("d", "M0,-5L10,0L0,5")
             .attr("fill", "#30363d");
+
+        // SDF rendering filter to make text crisp
+        const sdfFilter = defs.append("filter")
+            .attr("id", "sdf-filter");
+        
+        sdfFilter.append("feComponentTransfer")
+            .append("feFuncA")
+            .attr("type", "linear")
+            .attr("slope", "20")
+            .attr("intercept", "-9.5");
 
         // Load font atlas and positions for GEOS font rendering
         const fontAtlas = new Image();
@@ -770,14 +782,17 @@
                 const arrayBuffer = await response.arrayBuffer();
                 const bytes = new Uint8Array(arrayBuffer);
                 
+                // Calculate dimensions assuming square 4-channel image
+                const size = Math.sqrt(bytes.length / 4);
+                
                 // Create a canvas to hold our RGBA data
                 const canvas = document.createElement("canvas");
-                canvas.width = 512;
-                canvas.height = 512;
+                canvas.width = size;
+                canvas.height = size;
                 const ctx = canvas.getContext("2d");
                 
                 // Create ImageData from our raw bytes
-                const imageData = ctx.createImageData(512, 512);
+                const imageData = ctx.createImageData(size, size);
                 imageData.data.set(bytes);
                 
                 // Put the image data on the canvas
@@ -796,7 +811,11 @@
             try {
                 const response = await fetch("opcode_positions.json");
                 const data = await response.json();
-                Object.assign(fontPositions, data);
+                if (data.glyphs) {
+                    Object.assign(fontPositions, data.glyphs);
+                } else {
+                    Object.assign(fontPositions, data);
+                }
                 positionsReady = true;
                 if (atlasReady) {
                     // Both resources loaded, re-render if needed
@@ -998,7 +1017,8 @@
                 .attr("y", d => -fontPositions[d.opcode][3] / 2)
                 .attr("width", d => fontPositions[d.opcode][2])
                 .attr("height", d => fontPositions[d.opcode][3])
-                .attr("preserveAspectRatio", "none");
+                .attr("preserveAspectRatio", "none")
+                .attr("filter", "url(#sdf-filter)");
 
             // Fallback to text rendering if atlas is not available for this opcode
             node.filter(d => !(atlasReady && positionsReady && fontPositions[d.opcode]))
