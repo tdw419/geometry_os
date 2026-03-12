@@ -39,6 +39,21 @@ def main():
     p_inspect.add_argument("address", help="Hilbert address (e.g., 0x8000)")
     p_inspect.add_argument("--format", choices=["rts", "raw"], default="rts")
 
+    # geos test
+    p_test = subparsers.add_parser("test", help="Test execution and repair", add_help=False)
+    p_test.add_argument("test_args", nargs=argparse.REMAINDER, help="Test command arguments")
+
+    # geos check
+    p_check = subparsers.add_parser("check", help="Code quality checks", add_help=False)
+    p_check.add_argument("check_args", nargs=argparse.REMAINDER, help="Check command arguments")
+
+    # geos daemon
+    p_daemon = subparsers.add_parser("daemon", help="Manage daemon lifecycle (start/stop/status/logs)", add_help=False)
+    p_daemon.add_argument("daemon_args", nargs=argparse.REMAINDER, help="Daemon command arguments")
+
+    # geos repl
+    subparsers.add_parser("repl", help="Interactive DevOps shell")
+
     args = parser.parse_args()
 
     if args.command is None:
@@ -58,6 +73,24 @@ def main():
     elif args.command == "inspect":
         from geos.commands.inspect import run
         return run(args)
+    elif args.command == "test":
+        from geos.commands.test import create_parser, run as test_run
+        test_parser = create_parser()
+        test_args = test_parser.parse_args(args.test_args)
+        return test_run(test_args)
+    elif args.command == "check":
+        from geos.commands.check import create_parser, run as check_run
+        check_parser = create_parser()
+        check_args = check_parser.parse_args(args.check_args)
+        return check_run(check_args)
+    elif args.command == "daemon":
+        from geos.commands.daemon import create_parser, run as daemon_run
+        daemon_parser = create_parser()
+        daemon_args = daemon_parser.parse_args(args.daemon_args)
+        return daemon_run(daemon_args)
+    elif args.command == "repl":
+        from geos.commands.repl import run as repl_run
+        return repl_run(args)
 
     return 0
 
