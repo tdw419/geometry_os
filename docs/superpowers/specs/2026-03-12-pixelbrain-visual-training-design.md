@@ -65,9 +65,29 @@ Instead of predicting raw RGB values (16M colors), PixelBrain predicts **Atlas I
 | Index Range | Purpose | Example |
 |-------------|---------|---------|
 | 32-126 | Standard ASCII (Prompt vocabulary) | `A`, `L`, `L`, `O`, `C` |
-| 200-215 | GlyphStratum Opcodes (Logic vocabulary) | Alloc=200, Store=201, Free=202 |
+| 200-214 | GlyphStratum Opcodes (Logic vocabulary) | See opcode table below |
 | 256-511 | Raw Byte Literals 0-255 (Operand vocabulary) | Size 16 → Index 272 |
 | 512+ | Custom morphological symbols/Intent glyphs | Stratum 4 metadata |
+
+**GlyphStratum Opcode Mapping** (from `systems/infinite_map_rs/src/glyph_stratum/mod.rs`):
+
+| Opcode | Value | Atlas Index (200 + value) |
+|--------|-------|---------------------------|
+| Nop | 0 | 200 |
+| Alloc | 1 | 201 |
+| Free | 2 | 202 |
+| Load | 3 | 203 |
+| Store | 4 | 204 |
+| Add | 5 | 205 |
+| Sub | 6 | 206 |
+| Mul | 7 | 207 |
+| Div | 8 | 208 |
+| Jump | 9 | 209 |
+| Branch | 10 | 210 |
+| Call | 11 | 211 |
+| Return | 12 | 212 |
+| **Halt** | 13 | **213** |
+| Data | 14 | 214 |
 
 **Benefits**:
 - Efficient vocabulary (1024 tokens vs 16M RGB)
@@ -155,7 +175,7 @@ TASK_GRAMMAR = {
 │  │    2. Submit to infinite_map_rs execution engine        │   │
 │  │    3. Run for N cycles (N = task complexity)            │   │
 │  │    4. Compare final state vs ground truth               │   │
-│  │    5. HALT-CHECK: Must include Opcode 215 (Halt)        │   │
+│  │    5. HALT-CHECK: Must include Opcode 213 (Halt)        │   │
 │  │  Pass: State matches expected output (pixel-exact)      │   │
 │  │  Score: 0.0 - 0.5 (no HALT) or 0.0 - 1.0 (with HALT)    │   │
 │  └─────────────────────────────────────────────────────────┘   │
@@ -207,10 +227,20 @@ TASK_GRAMMAR = {
 ### Evaluation Loop Implementation
 
 ```python
+# Atlas token constants (from glyph_stratum/mod.rs)
+OPCODE_BASE = 200  # Unicode offset for GlyphStratum opcodes
+OPCODE_NOP = 200    # Nop = 200 + 0
+OPCODE_ALLOC = 201  # Alloc = 200 + 1
+OPCODE_FREE = 202   # Free = 200 + 2
+OPCODE_LOAD = 203   # Load = 200 + 3
+OPCODE_STORE = 204  # Store = 200 + 4
+OPCODE_HALT = 213   # Halt = 200 + 13
+OPCODE_DATA = 214   # Data = 200 + 14
+
 def evaluate_generation(task: Task, generated: AtlasSequence) -> EvalResult:
     # Metric 1: Execute
     codels = decode_to_codels(generated.Q2)
-    has_halt = contains_opcode(codels, OPCODE_HALT)  # Opcode 215
+    has_halt = contains_opcode(codels, OPCODE_HALT)  # Opcode 213
     execution_result = infinite_map_rs.execute(codels)
     execute_score = compare_states(execution_result, task.ground_truth)
     if not has_halt:
@@ -241,6 +271,88 @@ def evaluate_generation(task: Task, generated: AtlasSequence) -> EvalResult:
         )
 
     return EvalResult(execute_score, explain_score, heal_score, final)
+```
+
+### Hilbert Encoder Implementation
+
+The `HilbertEncoder` will use the existing Rust implementation via FFI:
+
+**Reference**: `systems/infinite_map_rs/src/cognitive/hilbert_pathfinder.rs`
+
+```python
+# Python wrapper for Rust Hilbert implementation
+# File: systems/pixel_brain/hilbert_encoder.py
+
+class HilbertEncoder:
+    """
+    Encodes 2D coordinates to 1D Hilbert indices.
+
+    Uses the same algorithm as infinite_map_rs for consistency.
+    Grid size: 256x256 (Order 16 Hilbert curve)
+    """
+
+    def __init__(self, grid_size: int = 256):
+        self.grid_size = grid_size
+        # FFI to Rust implementation for performance
+        # Fallback to pure Python if Rust not available
+
+    def xy_to_hilbert(self, x: int, y: int) -> int:
+        """Convert (x, y) to Hilbert index."""
+        pass
+
+    def hilbert_to_xy(self, index: int) -> tuple[int, int]:
+        """Convert Hilbert index to (x, y)."""
+        pass
+
+    def encode_quadrant(self, texture: np.ndarray, quadrant: int) -> list[int]:
+        """
+        Encode a 128x128 quadrant to Hilbert-ordered indices.
+
+        Note: Hilbert curves do NOT map directly to Cartesian quadrants.
+        This method visits all pixels within the quadrant region in Hilbert order.
+        """
+        pass
+```
+
+### PixelSurgeon Interface
+
+**File**: `systems/pixel_brain/pixel_surgeon.py`
+
+```python
+class PixelSurgeon:
+    """
+    Safely modifies RTS.PNG brain atlas files for weight injection.
+
+    The Knowledge Sector is a reserved region of the brain atlas where
+    successful program patterns are stored for future inference.
+    """
+
+    # Reserved sector offsets within 1024x1024 atlas
+    KNOWLEDGE_SECTOR_OFFSET = (768, 768)  # Bottom-right 256x256 region
+    KNOWLEDGE_SECTOR_SIZE = 256
+
+    def inject_knowledge(
+        self,
+        atlas_path: str,
+        knowledge_sector: tuple[int, int],
+        data: list[int]
+    ) -> bool:
+        """
+        Inject validated program patterns into the brain atlas.
+
+        Args:
+            atlas_path: Path to RTS.PNG brain atlas
+            knowledge_sector: (x, y) offset for knowledge region
+            data: Atlas indices to inject
+
+        Returns:
+            True if injection successful, False otherwise
+        """
+        pass
+
+    def validate_injection(self, atlas_path: str) -> bool:
+        """Verify atlas integrity after injection."""
+        pass
 ```
 
 ---
@@ -311,6 +423,44 @@ A single-metric approach fails:
 
 ## Integration Points
 
+### Constant Definitions
+
+```python
+# systems/pixel_brain/constants.py
+
+# Atlas token indices
+OPCODE_BASE = 200  # Unicode offset for GlyphStratum opcodes
+OPCODE_NOP = 200   # Nop = 200 + 0
+OPCODE_ALLOC = 201  # Alloc = 200 + 1
+OPCODE_FREE = 202   # Free = 200 + 2
+OPCODE_LOAD = 203   # Load = 200 + 3
+OPCODE_STORE = 204  # Store = 200 + 4
+OPCODE_ADD = 205    # Add = 200 + 5
+OPCODE_SUB = 206    # Sub = 200 + 6
+OPCODE_MUL = 207    # Mul = 200 + 7
+OPCODE_DIV = 208    # Div = 200 + 8
+OPCODE_JUMP = 209   # Jump = 200 + 9
+OPCODE_BRANCH = 210 # Branch = 200 + 10
+OPCODE_CALL = 211   # Call = 200 + 11
+OPCODE_RETURN = 212 # Return = 200 + 12
+OPCODE_HALT = 213   # Halt = 200 + 13
+OPCODE_DATA = 214   # Data = 200 + 14
+
+# Token vocabulary boundaries
+ASCII_START = 32
+ASCII_END = 126
+OPCODE_START = 200
+OPCODE_END = 214
+BYTE_LITERAL_START = 256
+BYTE_LITERAL_END = 511
+INTENT_GLYPH_START = 512
+
+# Training texture dimensions
+TEXTURE_SIZE = 256
+QUADRANT_SIZE = 128
+QUADRANT_PIXELS = 16384  # 128 * 128
+```
+
 ### Existing Systems
 
 | System | Integration |
@@ -318,6 +468,8 @@ A single-metric approach fails:
 | `PixelBrainPipeline` | Training mode, next-codel prediction |
 | `infinite_map_rs` | Execution validation (Metric 1) |
 | `EvolutionDaemonV8` | Health monitoring, weight injection (Metric 3) |
+
+**Note**: The current evolution daemon is at `systems/evolution_daemon/evolution_daemon.py` (v11+). The V8 reference refers to the interface version used for training integration.
 | `StructuralHealthMonitor` | Fracture detection |
 | `GlyphStratum` | Opcode definitions (200-215) |
 | `font_renderer.py` | GEOS font rendering for prompts |
@@ -331,6 +483,16 @@ A single-metric approach fails:
 | `AtlasTokenizer` | RGB ↔ Index conversion |
 | `EvaluationHarness` | Three-metric scoring |
 | `PixelSurgeon` | Weight injection for accepted mutations |
+
+**HilbertEncoder Implementation Strategy**:
+
+Two options exist:
+1. **Python wrapper around Rust**: Use existing `HilbertPathfinder` in `systems/infinite_map_rs/src/cognitive/hilbert_pathfinder.rs` via FFI
+2. **Pure Python**: Implement matching algorithm in `geos/backends/hilbert.py`
+
+**Recommendation**: Start with pure Python implementation for Phase 1 (faster iteration), migrate to Rust FFI in Phase 2 for production performance.
+
+**Important**: Hilbert curves do NOT map directly to Cartesian quadrants. The quadrant-based layout (Q0-Q3) refers to visual regions, but Hilbert traversal zig-zags within each region. The training data generator must pre-compute the Hilbert-to-quadrant mapping.
 
 ---
 
