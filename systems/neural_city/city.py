@@ -10,6 +10,7 @@ Phase 42 of Geometry OS.
 import json
 import time
 import logging
+import random
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Any
 from dataclasses import dataclass
@@ -31,7 +32,9 @@ class CityStats:
     guild_distribution: Dict[str, int] = None
     territory_coverage: float = 0.0
     trade_volume: float = 0.0
-    
+    total_died: int = 0
+    total_born: int = 0
+
     def __post_init__(self):
         if self.guild_distribution is None:
             self.guild_distribution = {}
@@ -466,23 +469,24 @@ class NeuralCity:
     def _process_evolution(self) -> Dict:
         """
         Phase 44: Natural selection.
-        
+
         Citizens below energy threshold die.
         Citizens above reproduction threshold spawn offspring.
         """
         deaths = []
         births = []
-        
+
         citizens = list(self.spawner.citizens.values())
-        
+
         # Process deaths
         for citizen in citizens:
             if citizen.state == CitizenState.DEAD or citizen.energy < 0.01:
                 self.territory_mapper.remove_territory(citizen.id)
-                del self.spawner.citizens[citizen.id]
+                if citizen.id in self.spawner.citizens:
+                    del self.spawner.citizens[citizen.id]
                 deaths.append(citizen.id)
-                self.stats['total_died'] = self.stats.get('total_died', 0) + 1
-        
+                self.stats.total_died += 1
+
         # Process reproduction
         for citizen in list(self.spawner.citizens.values()):
             if citizen.can_reproduce():
@@ -493,7 +497,7 @@ class NeuralCity:
                         if citizen.distance_to(other) < 64:
                             partner = other
                             break
-                
+
                 child = citizen.reproduce(partner)
                 if child:
                     self.spawner.citizens[child.id] = child
@@ -501,6 +505,6 @@ class NeuralCity:
                         child.id, child.x, child.y, child.territory_radius
                     )
                     births.append(child.id)
-                    self.stats['total_born'] = self.stats.get('total_born', 0) + 1
-        
+                    self.stats.total_born += 1
+
         return {'deaths': deaths, 'births': births}

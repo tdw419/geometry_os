@@ -21,8 +21,10 @@ class BrainNode:
     host: str
     port: int
     atlas_size: tuple  # (width, height)
-    citizen_count: int =0
-    total_energy: float =    last_heartbeat: float =    neighbors: Set[str] = field(default_factory=set)
+    citizen_count: int = 0
+    total_energy: float = 0.0
+    last_heartbeat: float = 0.0
+    neighbors: Set[str] = field(default_factory=set)
 
 
 @dataclass
@@ -33,7 +35,7 @@ class TradeRoute:
     bandwidth: float  # Energy transfer rate
     latency_ms: float
     established_time: float
-    total_traded: float =    0.0
+    total_traded: float = 0.0
 
 
 class InterBrainNetwork:
@@ -41,7 +43,7 @@ class InterBrainNetwork:
     Network of multiple PixelBrain instances.
 
     Citizens can migrate between brains based on:
-    energy gradients
+    - energy gradients
     - resource availability
     - social connections
     """
@@ -64,13 +66,19 @@ class InterBrainNetwork:
             id=brain_id,
             host=host,
             port=port,
-            atlas_size=atlas_size
+            atlas_size=atlas_size,
+            last_heartbeat=time.time()
         )
         self.brains[brain_id] = brain
         self.stats['total_brains'] = len(self.brains)
 
-        # Discover neighbors
-        asyncio.create_task(self._discover_neighbors(brain_id))
+        # Discover neighbors (async, non-blocking)
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(self._discover_neighbors(brain_id))
+        except RuntimeError:
+            pass
 
         return brain
 
@@ -86,7 +94,7 @@ class InterBrainNetwork:
 
             # Check connectivity (simulated)
             # In production, would ping via WebSocket
-            latency = abs(hash(brain_id + other_id) % 50 + 10  # Simulated
+            latency = abs(hash(brain_id + other_id) % 50 + 10)  # Simulated
 
             if latency < 100:  # 100ms threshold
                 brain.neighbors.add(other_id)
@@ -99,14 +107,14 @@ class InterBrainNetwork:
 
         # Check if already exists
         for route in self.routes:
-            if (route.source_brain == source and route.target_brain == target):
+            if route.source_brain == source and route.target_brain == target:
                 return route
 
         route = TradeRoute(
             source_brain=source,
             target_brain=target,
             bandwidth=bandwidth,
-            latency_ms=abs(hash(source + target) % 50 + 10,
+            latency_ms=abs(hash(source + target) % 50 + 10),
             established_time=time.time()
         )
         self.routes.append(route)
@@ -159,7 +167,7 @@ class InterBrainNetwork:
         # Find or establish route
         route = None
         for r in self.routes:
-            if (r.source_brain == from_brain and r.target_brain == to_brain:
+            if r.source_brain == from_brain and r.target_brain == to_brain:
                 route = r
                 break
 
