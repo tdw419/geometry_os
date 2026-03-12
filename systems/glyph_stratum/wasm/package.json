@@ -1,41 +1,35 @@
 {
   "name": "glyph-stratum-runtime",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "AI-native visual programming language runtime with 5-layer stratum architecture",
-  "main": "glyph_runtime_f_fallback.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "glyph_runtime_f_fallback.js",
-    "test_js_runtime.js",
-    "benchmark.js",
-    "README.md",
-    "TUTORIAL.md",
-    "CHANGE.log",
-    "LICENSE"
-  ],
-  "scripts": {
-    "test": "node test_js_runtime.js",
-    "benchmark": "node benchmark.js"
-  },
-  "keywords": [
-    "visual-programming",
-    "ai-native",
-    "dataflow",
-    "graph-execution",
-    "stratum",
-    "glyph"
-  ],
-  "author": "Geometry OS",
-  "license": "MIT",
+  "main": "./index.js",
+  "types": "./index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/geometry-os/glyph-stratum"
+    "url": "git+https://github.com/geometry-os/glyph-stratum.git"
   },
   "bugs": {
     "url": "https://github.com/geometry-os/glyph-stratum/issues"
   },
-  "engines": {
-    "node": ">=16.0.0"
-  },
-  "devDependencies": {}
+  "homepage": "https://github.com/geometry-os/glyph-stratum#readme",
+  "license": "MIT",
+  "keywords": [
+    "glyph",
+    "stratum",
+    "visual-programming",
+    "ai-native",
+    "runtime",
+    "wasm",
+    "webassembly"
+  ],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "glyph_runtime_f_fallback.js",
+    "glyph_errors.js",
+    "visualize.js"
+  ],
+  "scripts": {
+    "test": "node test_js_runtime.js && node test_errors.js && node test_integration.js"
+  }
 }

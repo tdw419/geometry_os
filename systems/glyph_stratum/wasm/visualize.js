@@ -282,9 +282,9 @@ function printVisualization(program) {
 
 module.exports = {
     renderASCII,
-    renderSVG
+    renderSVG,
     renderMermaid,
-    renderDOT
+    renderDOT,
     renderToFile,
     printVisualization,
     STRATUM_COLORS

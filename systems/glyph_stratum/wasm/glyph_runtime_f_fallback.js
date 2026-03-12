@@ -12,6 +12,8 @@ class JsRuntime {
             'NOP', 'DATA', 'LOAD', 'STORE', 'ALLOC', 'FREE', 'CALL', 'BRANCH', 'LOOP', 'RETURN', 'EXPORT', 'MODULE', 'HALT',
             // MATH opcodes
             'MATH', 'ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'NEG', 'ABS',
+            // BITWISE opcodes
+            'BITAND', 'BITOR', 'BITXOR', 'BITNOT', 'SHIFTL', 'SHIFTR',
             // CONTROL FLOW opcodes
             'IF', 'IFTRUE', 'IFFALSE',
             // COMPARE opcodes
@@ -686,6 +688,96 @@ class JsRuntime {
                         if (arrVal && idxVal && valVal && arrVal.type === 'array' && idxVal.type === 'int') {
                             arrVal.value[idxVal.value] = valVal.value
                             glyph.valueIdx = arrGlyph.valueIdx
+                            glyph.hasResult = true
+                        }
+                    }
+                }
+                break
+
+            // BITWISE opcodes
+            case 'bitand':
+                if (glyph.dependencies.length >= 2) {
+                    const aGlyph = this.glyphs[glyph.dependencies[0]]
+                    const bGlyph = this.glyphs[glyph.dependencies[1]]
+                    if (aGlyph && bGlyph && aGlyph.hasResult && bGlyph.hasResult) {
+                        const aVal = this.values[aGlyph.valueIdx]
+                        const bVal = this.values[bGlyph.valueIdx]
+                        if (aVal && bVal && aVal.type === 'int' && bVal.type === 'int') {
+                            const result = this.makeValue(aVal.value & bVal.value)
+                            glyph.valueIdx = result.valueIdx
+                            glyph.hasResult = true
+                        }
+                    }
+                }
+                break
+            case 'bitor':
+                if (glyph.dependencies.length >= 2) {
+                    const aGlyph = this.glyphs[glyph.dependencies[0]]
+                    const bGlyph = this.glyphs[glyph.dependencies[1]]
+                    if (aGlyph && bGlyph && aGlyph.hasResult && bGlyph.hasResult) {
+                        const aVal = this.values[aGlyph.valueIdx]
+                        const bVal = this.values[bGlyph.valueIdx]
+                        if (aVal && bVal && aVal.type === 'int' && bVal.type === 'int') {
+                            const result = this.makeValue(aVal.value | bVal.value)
+                            glyph.valueIdx = result.valueIdx
+                            glyph.hasResult = true
+                        }
+                    }
+                }
+                break
+            case 'bitxor':
+                if (glyph.dependencies.length >= 2) {
+                    const aGlyph = this.glyphs[glyph.dependencies[0]]
+                    const bGlyph = this.glyphs[glyph.dependencies[1]]
+                    if (aGlyph && bGlyph && aGlyph.hasResult && bGlyph.hasResult) {
+                        const aVal = this.values[aGlyph.valueIdx]
+                        const bVal = this.values[bGlyph.valueIdx]
+                        if (aVal && bVal && aVal.type === 'int' && bVal.type === 'int') {
+                            const result = this.makeValue(aVal.value ^ bVal.value)
+                            glyph.valueIdx = result.valueIdx
+                            glyph.hasResult = true
+                        }
+                    }
+                }
+                break
+            case 'bitnot':
+                if (glyph.dependencies.length >= 1) {
+                    const aGlyph = this.glyphs[glyph.dependencies[0]]
+                    if (aGlyph && aGlyph.hasResult) {
+                        const aVal = this.values[aGlyph.valueIdx]
+                        if (aVal && aVal.type === 'int') {
+                            const result = this.makeValue(~aVal.value)
+                            glyph.valueIdx = result.valueIdx
+                            glyph.hasResult = true
+                        }
+                    }
+                }
+                break
+            case 'shiftl':
+                if (glyph.dependencies.length >= 2) {
+                    const aGlyph = this.glyphs[glyph.dependencies[0]]
+                    const bGlyph = this.glyphs[glyph.dependencies[1]]
+                    if (aGlyph && bGlyph && aGlyph.hasResult && bGlyph.hasResult) {
+                        const aVal = this.values[aGlyph.valueIdx]
+                        const bVal = this.values[bGlyph.valueIdx]
+                        if (aVal && bVal && aVal.type === 'int' && bVal.type === 'int') {
+                            const result = this.makeValue(aVal.value << bVal.value)
+                            glyph.valueIdx = result.valueIdx
+                            glyph.hasResult = true
+                        }
+                    }
+                }
+                break
+            case 'shiftr':
+                if (glyph.dependencies.length >= 2) {
+                    const aGlyph = this.glyphs[glyph.dependencies[0]]
+                    const bGlyph = this.glyphs[glyph.dependencies[1]]
+                    if (aGlyph && bGlyph && aGlyph.hasResult && bGlyph.hasResult) {
+                        const aVal = this.values[aGlyph.valueIdx]
+                        const bVal = this.values[bGlyph.valueIdx]
+                        if (aVal && bVal && aVal.type === 'int' && bVal.type === 'int') {
+                            const result = this.makeValue(aVal.value >>> bVal.value)
+                            glyph.valueIdx = result.valueIdx
                             glyph.hasResult = true
                         }
                     }
