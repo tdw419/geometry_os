@@ -11,33 +11,33 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.blender.core.scene import create_scene, open_scene, save_scene, get_scene_info, list_profiles
-from cli_anything.blender.core.objects import (
+from blender.core.scene import create_scene, open_scene, save_scene, get_scene_info, list_profiles
+from blender.core.objects import (
     add_object, remove_object, duplicate_object, transform_object,
     set_object_property, get_object, list_objects, MESH_PRIMITIVES,
 )
-from cli_anything.blender.core.materials import (
+from blender.core.materials import (
     create_material, assign_material, set_material_property,
     list_materials, get_material, MATERIAL_PROPS,
 )
-from cli_anything.blender.core.modifiers import (
+from blender.core.modifiers import (
     list_available, get_modifier_info, validate_params, add_modifier,
     remove_modifier, set_modifier_param, list_modifiers, MODIFIER_REGISTRY,
 )
-from cli_anything.blender.core.lighting import (
+from blender.core.lighting import (
     add_camera, set_camera, set_active_camera, list_cameras, get_camera,
     add_light, set_light, list_lights, get_light,
     CAMERA_TYPES, LIGHT_TYPES,
 )
-from cli_anything.blender.core.animation import (
+from blender.core.animation import (
     add_keyframe, remove_keyframe, set_frame_range, set_fps,
     set_current_frame, list_keyframes, ANIMATABLE_PROPERTIES,
 )
-from cli_anything.blender.core.render import (
+from blender.core.render import (
     set_render_settings, get_render_settings, list_render_presets,
     render_scene, RENDER_PRESETS, VALID_ENGINES,
 )
-from cli_anything.blender.core.session import Session
+from blender.core.session import Session
 
 
 # ── Scene Tests ─────────────────────────────────────────────────

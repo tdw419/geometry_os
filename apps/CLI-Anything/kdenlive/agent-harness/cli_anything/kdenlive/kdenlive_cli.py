@@ -23,16 +23,16 @@ from typing import Optional
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cli_anything.kdenlive.core.session import Session
-from cli_anything.kdenlive.core import project as proj_mod
-from cli_anything.kdenlive.core import bin as bin_mod
-from cli_anything.kdenlive.core import timeline as tl_mod
-from cli_anything.kdenlive.core import filters as filt_mod
-from cli_anything.kdenlive.core import transitions as trans_mod
-from cli_anything.kdenlive.core import guides as guide_mod
-from cli_anything.kdenlive.core import export as export_mod
-from cli_anything.kdenlive.utils.mlt_xml import seconds_to_timecode, timecode_to_seconds
-from cli_anything.kdenlive.utils.repl_skin import ReplSkin
+from .kdenlive.core.session import Session
+from .kdenlive.core import project as proj_mod
+from .kdenlive.core import bin as bin_mod
+from .kdenlive.core import timeline as tl_mod
+from .kdenlive.core import filters as filt_mod
+from .kdenlive.core import transitions as trans_mod
+from .kdenlive.core import guides as guide_mod
+from .kdenlive.core import export as export_mod
+from .kdenlive.utils.mlt_xml import seconds_to_timecode, timecode_to_seconds
+from .kdenlive.utils.repl_skin import ReplSkin
 
 # Global session state
 _session: Optional[Session] = None

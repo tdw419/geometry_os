@@ -2,7 +2,7 @@
 
 import copy
 from typing import Dict, Any, List, Optional
-from cli_anything.obs_studio.utils.obs_utils import unique_name, get_item
+from .obs_studio.utils.obs_utils import unique_name, get_item
 
 
 TRANSITION_TYPES = {

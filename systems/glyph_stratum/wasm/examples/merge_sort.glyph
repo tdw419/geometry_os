@@ -1,0 +1,200 @@
+{
+  "name": "merge_sort",
+  "description": "Merge sort algorithm - divides array into halves, sorts each, then merges",
+  "glyphs": {
+    "1": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": [38, 27, 43, 3, 9, 82, 10] }
+    },
+    "2": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [1],
+      "invariants": { "name": "arr" }
+    },
+    "3": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "arr" }
+    },
+    "4": {
+      "stratum": "LOGIC",
+      "opcode": "ARRAYLEN",
+      "dependencies": [3]
+    },
+    "5": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [4],
+      "invariants": { "name": "n" }
+    },
+    "6": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "7": {
+      "stratum": "LOGIC",
+      "opcode": "GT",
+      "dependencies": [4, 6]
+    },
+    "8": {
+      "stratum": "LOGIC",
+      "opcode": "IFTRUE",
+      "dependencies": [7]
+    },
+    "9": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "n" }
+    },
+    "10": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 2 }
+    },
+    "11": {
+      "stratum": "LOGIC",
+      "opcode": "DIV",
+      "dependencies": [9, 10]
+    },
+    "12": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [11],
+      "invariants": { "name": "mid" }
+    },
+    "13": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 0 }
+    },
+    "14": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [13],
+      "invariants": { "name": "left_start" }
+    },
+    "15": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "mid" }
+    },
+    "16": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "17": {
+      "stratum": "LOGIC",
+      "opcode": "SUB",
+      "dependencies": [15, 16]
+    },
+    "18": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [17],
+      "invariants": { "name": "left_end" }
+    },
+    "19": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "mid" }
+    },
+    "20": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [19],
+      "invariants": { "name": "right_start" }
+    },
+    "21": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "n" }
+    },
+    "22": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "23": {
+      "stratum": "LOGIC",
+      "opcode": "SUB",
+      "dependencies": [21, 22]
+    },
+    "24": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [23],
+      "invariants": { "name": "right_end" }
+    },
+    "25": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "arr" }
+    },
+    "26": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "left_start" }
+    },
+    "27": {
+      "stratum": "LOGIC",
+      "opcode": "GET",
+      "dependencies": [25, 26]
+    },
+    "28": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [27],
+      "invariants": { "name": "left_val" }
+    },
+    "29": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "arr" }
+    },
+    "30": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "right_start" }
+    },
+    "31": {
+      "stratum": "LOGIC",
+      "opcode": "GET",
+      "dependencies": [29, 30]
+    },
+    "32": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [31],
+      "invariants": { "name": "right_val" }
+    },
+    "33": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "left_val" }
+    },
+    "34": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "right_val" }
+    },
+    "35": {
+      "stratum": "LOGIC",
+      "opcode": "LE",
+      "dependencies": [33, 34]
+    },
+    "36": {
+      "stratum": "LOGIC",
+      "opcode": "IFTRUE",
+      "dependencies": [35]
+    },
+    "37": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "result" }
+    }
+  }
+}

@@ -1,0 +1,333 @@
+{
+  "glyphs": {
+    "1": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": [64, 32, 30, 27, 15, 8, 3, 1] }
+    },
+    "2": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [1],
+      "invariants": { "name": "arr" }
+    },
+    "3": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "arr" }
+    },
+    "4": {
+      "stratum": "LOGIC",
+      "opcode": "ARRAYLEN",
+      "dependencies": [3]
+    },
+    "5": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [4],
+      "invariants": { "name": "len" }
+    },
+    "6": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 0 }
+    },
+    "7": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [6],
+      "invariants": { "name": "i" }
+    },
+    "8": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "i" }
+    },
+    "9": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "len" }
+    },
+    "10": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "11": {
+      "stratum": "LOGIC",
+      "opcode": "SUB",
+      "dependencies": [9, 10]
+    },
+    "12": {
+      "stratum": "LOGIC",
+      "opcode": "LT",
+      "dependencies": [8, 11]
+    },
+    "13": {
+      "stratum": "LOGIC",
+      "opcode": "IFTRUE",
+      "dependencies": [12]
+    },
+    "14": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 0 }
+    },
+    "15": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [14],
+      "invariants": { "name": "j" }
+    },
+    "16": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "j" }
+    },
+    "17": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "len" }
+    },
+    "18": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "i" }
+    },
+    "19": {
+      "stratum": "LOGIC",
+      "opcode": "SUB",
+      "dependencies": [17, 18]
+    },
+    "20": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "21": {
+      "stratum": "LOGIC",
+      "opcode": "SUB",
+      "dependencies": [19, 20]
+    },
+    "22": {
+      "stratum": "LOGIC",
+      "opcode": "LT",
+      "dependencies": [16, 21]
+    },
+    "23": {
+      "stratum": "LOGIC",
+      "opcode": "IFTRUE",
+      "dependencies": [22]
+    },
+    "24": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "arr" }
+    },
+    "25": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "j" }
+    },
+    "26": {
+      "stratum": "LOGIC",
+      "opcode": "GET",
+      "dependencies": [24, 25]
+    },
+    "27": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "arr" }
+    },
+    "28": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "j" }
+    },
+    "29": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "30": {
+      "stratum": "LOGIC",
+      "opcode": "ADD",
+      "dependencies": [28, 29]
+    },
+    "31": {
+      "stratum": "LOGIC",
+      "opcode": "GET",
+      "dependencies": [27, 30]
+    },
+    "32": {
+      "stratum": "LOGIC",
+      "opcode": "GT",
+      "dependencies": [26, 31]
+    },
+    "33": {
+      "stratum": "LOGIC",
+      "opcode": "IFTRUE",
+      "dependencies": [32]
+    },
+    "34": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "arr" }
+    },
+    "35": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "j" }
+    },
+    "36": {
+      "stratum": "LOGIC",
+      "opcode": "GET",
+      "dependencies": [34, 35]
+    },
+    "37": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [36],
+      "invariants": { "name": "temp" }
+    },
+    "38": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "arr" }
+    },
+    "39": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "j" }
+    },
+    "40": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "arr" }
+    },
+    "41": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "j" }
+    },
+    "42": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "43": {
+      "stratum": "LOGIC",
+      "opcode": "ADD",
+      "dependencies": [41, 42]
+    },
+    "44": {
+      "stratum": "LOGIC",
+      "opcode": "GET",
+      "dependencies": [40, 43]
+    },
+    "45": {
+      "stratum": "LOGIC",
+      "opcode": "SET",
+      "dependencies": [38, 39, 44]
+    },
+    "46": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [45],
+      "invariants": { "name": "arr" }
+    },
+    "47": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "arr" }
+    },
+    "48": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "j" }
+    },
+    "49": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "50": {
+      "stratum": "LOGIC",
+      "opcode": "ADD",
+      "dependencies": [48, 49]
+    },
+    "51": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "temp" }
+    },
+    "52": {
+      "stratum": "LOGIC",
+      "opcode": "SET",
+      "dependencies": [47, 50, 51]
+    },
+    "53": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [52],
+      "invariants": { "name": "arr" }
+    },
+    "54": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "j" }
+    },
+    "55": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "56": {
+      "stratum": "LOGIC",
+      "opcode": "ADD",
+      "dependencies": [54, 55]
+    },
+    "57": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [56],
+      "invariants": { "name": "j" }
+    },
+    "58": {
+      "stratum": "LOGIC",
+      "opcode": "LOOP",
+      "dependencies": [57, 22]
+    },
+    "59": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "i" }
+    },
+    "60": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "61": {
+      "stratum": "LOGIC",
+      "opcode": "ADD",
+      "dependencies": [59, 60]
+    },
+    "62": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [61],
+      "invariants": { "name": "i" }
+    },
+    "63": {
+      "stratum": "LOGIC",
+      "opcode": "LOOP",
+      "dependencies": [62, 12]
+    },
+    "64": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "arr" }
+    }
+  }
+}

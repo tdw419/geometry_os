@@ -596,6 +596,16 @@ impl TextEngine {
         }
     }
 
+    /// Sync entire CPU state (buffer + stats) to GPU
+    pub fn sync_gpu(&mut self, queue: &wgpu::Queue) {
+        // 1. Upload Text Content
+        queue.write_buffer(&self.text_buffer, 0, bytemuck::cast_slice(&self.cpu_buffer));
+
+        // 2. Upload Stats
+        self.local_stats.dirty = 1;
+        queue.write_buffer(&self.stats_buffer, 0, bytemuck::cast_slice(&[self.local_stats]));
+    }
+
     /// Phase 39: Hot-swap the fragment shader with new WGSL source
     pub fn recompile_pipeline(&mut self, device: &wgpu::Device, format: wgpu::TextureFormat, source: &str) -> Result<(), String> {
         log::info!("⚡ Phase 39: Recompiling TextEngine pipeline...");

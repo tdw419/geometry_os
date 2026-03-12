@@ -15,17 +15,17 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.shotcut.core.session import Session
-from cli_anything.shotcut.core import project as proj_mod
-from cli_anything.shotcut.core import timeline as tl_mod
-from cli_anything.shotcut.core import filters as filt_mod
-from cli_anything.shotcut.core import media as media_mod
-from cli_anything.shotcut.core import export as export_mod
-from cli_anything.shotcut.utils.time import (
+from shotcut.core.session import Session
+from shotcut.core import project as proj_mod
+from shotcut.core import timeline as tl_mod
+from shotcut.core import filters as filt_mod
+from shotcut.core import media as media_mod
+from shotcut.core import export as export_mod
+from shotcut.utils.time import (
     timecode_to_frames, frames_to_timecode, parse_time_input,
     frames_to_seconds, seconds_to_frames, format_duration,
 )
-from cli_anything.shotcut.utils.mlt_xml import (
+from shotcut.utils.mlt_xml import (
     mlt_to_string, parse_mlt, write_mlt, get_property, set_property,
     get_main_tractor, get_tractor_tracks, get_all_producers, get_all_filters,
     get_playlist_entries, find_element_by_id, create_producer, add_filter_to_element,
@@ -1282,13 +1282,13 @@ class TestMeltBackend:
     """Tests that verify melt is installed and accessible."""
 
     def test_melt_is_installed(self):
-        from cli_anything.shotcut.utils.melt_backend import find_melt
+        from shotcut.utils.melt_backend import find_melt
         path = find_melt()
         assert os.path.exists(path)
         print(f"\n  melt binary: {path}")
 
     def test_melt_version(self):
-        from cli_anything.shotcut.utils.melt_backend import get_melt_version
+        from shotcut.utils.melt_backend import get_melt_version
         version = get_melt_version()
         assert version  # Non-empty
         print(f"\n  melt version: {version}")
@@ -1299,7 +1299,7 @@ class TestMeltRenderE2E:
 
     def test_render_color_bars_mp4(self):
         """Render a simple color bars video to MP4."""
-        from cli_anything.shotcut.utils.melt_backend import render_color_bars
+        from shotcut.utils.melt_backend import render_color_bars
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             output = os.path.join(tmp_dir, "test.mp4")
@@ -1312,7 +1312,7 @@ class TestMeltRenderE2E:
 
     def test_render_mlt_xml_file(self):
         """Generate an MLT XML and render it with melt."""
-        from cli_anything.shotcut.utils.melt_backend import find_melt
+        from shotcut.utils.melt_backend import find_melt
 
         melt = find_melt()
 

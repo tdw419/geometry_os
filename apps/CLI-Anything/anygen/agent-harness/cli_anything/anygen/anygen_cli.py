@@ -19,10 +19,10 @@ from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cli_anything.anygen.core.session import Session
-from cli_anything.anygen.core import task as task_mod
-from cli_anything.anygen.core import export as export_mod
-from cli_anything.anygen.utils.anygen_backend import (
+from .anygen.core.session import Session
+from .anygen.core import task as task_mod
+from .anygen.core import export as export_mod
+from .anygen.utils.anygen_backend import (
     get_api_key,
     load_config,
     save_config,
@@ -402,7 +402,7 @@ def config_delete(key):
 @config.command("path")
 def config_path():
     """Show the config file path."""
-    from cli_anything.anygen.utils.anygen_backend import CONFIG_FILE
+    from .anygen.utils.anygen_backend import CONFIG_FILE
     output({"path": str(CONFIG_FILE)}, f"Config file: {CONFIG_FILE}")
 
 
@@ -463,7 +463,7 @@ def repl():
     global _repl_mode
     _repl_mode = True
 
-    from cli_anything.anygen.utils.repl_skin import ReplSkin
+    from .anygen.utils.repl_skin import ReplSkin
 
     skin = ReplSkin("anygen", version="1.0.0")
     skin.print_banner()

@@ -9,19 +9,19 @@ import pytest
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.shotcut.core.session import Session
-from cli_anything.shotcut.core import project as proj_mod
-from cli_anything.shotcut.core import timeline as tl_mod
-from cli_anything.shotcut.core import filters as filt_mod
-from cli_anything.shotcut.core import media as media_mod
-from cli_anything.shotcut.core import export as export_mod
-from cli_anything.shotcut.core import transitions as trans_mod
-from cli_anything.shotcut.core import compositing as comp_mod
-from cli_anything.shotcut.utils.time import (
+from shotcut.core.session import Session
+from shotcut.core import project as proj_mod
+from shotcut.core import timeline as tl_mod
+from shotcut.core import filters as filt_mod
+from shotcut.core import media as media_mod
+from shotcut.core import export as export_mod
+from shotcut.core import transitions as trans_mod
+from shotcut.core import compositing as comp_mod
+from shotcut.utils.time import (
     timecode_to_frames, frames_to_timecode, parse_time_input,
     frames_to_seconds, seconds_to_frames,
 )
-from cli_anything.shotcut.utils.mlt_xml import (
+from shotcut.utils.mlt_xml import (
     create_blank_project, mlt_to_string, parse_mlt, write_mlt,
     get_property, set_property, get_main_tractor, get_tractor_tracks,
     get_all_producers, get_playlist_entries, find_element_by_id,
@@ -193,7 +193,7 @@ class TestSession:
         # Make a change
         s.checkpoint()
         tractor = s.get_main_tractor()
-        from cli_anything.shotcut.utils.mlt_xml import add_track_to_tractor
+        from shotcut.utils.mlt_xml import add_track_to_tractor
         add_track_to_tractor(s.root, tractor, "video")
 
         assert s.is_modified
@@ -787,7 +787,7 @@ class TestIntegration:
             proj_mod.open_project(s2, project_file)
 
             # Find the clip and check its filter
-            from cli_anything.shotcut.utils.mlt_xml import get_all_producers, get_property
+            from shotcut.utils.mlt_xml import get_all_producers, get_property
             producers = get_all_producers(s2.root)
             found_filter = False
             for prod in producers:

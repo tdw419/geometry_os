@@ -1,7 +1,7 @@
 """Kdenlive CLI - Export module: JSON to MLT/Kdenlive XML generation."""
 
 from typing import Dict, Any, List, Optional
-from cli_anything.kdenlive.utils.mlt_xml import (
+from .kdenlive.utils.mlt_xml import (
     xml_escape,
     seconds_to_frames,
     build_mlt_xml,

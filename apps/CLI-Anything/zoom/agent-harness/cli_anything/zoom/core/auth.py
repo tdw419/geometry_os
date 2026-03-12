@@ -13,7 +13,7 @@ import http.server
 import threading
 from urllib.parse import urlparse, parse_qs
 
-from cli_anything.zoom.utils.zoom_backend import (
+from .zoom.utils.zoom_backend import (
     load_config, save_config, load_tokens, save_tokens,
     get_authorize_url, exchange_code, get_current_user,
     CONFIG_DIR,

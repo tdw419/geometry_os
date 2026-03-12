@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Execution Trace Viewer</title>
+    <style>
+        body { font-family: monospace; }
+        .container { max-width: 1200px; margin: 20px; }
+        h1 { font-size: 18px; color: #333; }
+        .trace-container { display: flex; flex-direction: column; }
+        .trace-step {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #ccc;
+            margin: 4px;
+            background: #f9f9f9;
+        }
+        .glyph-id { font-weight: bold; width: 40px; }
+        .stratum { font-size: 11px; color: #666; width: 60px; }
+        .opcode { font-size: 11px; color: #888; width: 60px; }
+        .rationale { flex: 1; font-size: 11px; color: #444; }
+        .status { font-size: 10px; padding: 2px 8px; border-radius: 4px; }
+        .status.completed { background-color: #4CAF50; color: white; }
+        .status.failed { background-color: #ff6b6b; }
+        .status.active { background-color: #fff3cd; }
+    </style>
+</head>
+<body>
+    <h1>Execution Trace</h1>
+    <div id="trace" class="trace-container"></div>
+    <script>
+        // Simple addition:5 + 3
+        const result = executor.run();
+        document.getElementById('trace').innerHTML = `
+            <div class="trace-step completed">
+                <span class="glyph-id">0</span>
+                <span class="stratum">INTENT</span>
+                <span class="opcode">MODULE</span>
+                <span class="rationale">Add two numbers</span>
+                <span class="status">completed</span>
+            </div>
+            <div class="trace-step completed">
+                <span class="glyph-id">1</span>
+                <span class="stratum">SPEC</span>
+                <span class="opcode">CALL</span>
+                <span class="rationale">add(a, b) -> result</span>
+                <span class="status">completed</span>
+            </div>
+            <div class="trace-step completed">
+                <span class="glyph-id">2</span>
+                <span class="stratum">LOGIC</span>
+                <span class="opcode">CALL</span>
+                <span class="rationale">+</span>
+                <span class="status">completed</span>
+            </div>
+            <div class="trace-step completed">
+                <span class="glyph-id">3</span>
+                <span class="stratum">MEMORY</span>
+                <span class="opcode">DATA</span>
+                <span class="rationale">First operand a</span>
+                <span class="status">completed</span>
+            </div>
+            <div class="trace-step completed">
+                <span class="glyph-id">4</span>
+                <span class="stratum">MEMORY</span>
+                <span class="opcode">DATA</span>
+                <span class="rationale">Second operand b</span>
+                <span class="status">completed</span>
+            </div>
+            <h2>Final Result: 8</h2>
+            <p>Result: {result.result}</p>
+            <p>Status: {JSON.stringify(result.status, null, 2)}</p>
+        `;
+    </script>
+</body>
+</html>

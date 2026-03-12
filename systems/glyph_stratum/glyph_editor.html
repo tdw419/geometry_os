@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlyphStratum Editor</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', monospace;
+            background: #0d1117;
+            color: #c9d1d9;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 380px;
+            background: #161b22;
+            border-right: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .sidebar-header h1 {
+            font-size: 18px;
+            color: #58a6ff;
+        }
+
+        .sidebar-header .subtitle {
+            font-size: 11px;
+            color: #8b949e;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            padding: 15px 20px;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .toolbar h3 {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: inherit;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+
+        .btn:hover { background: #30363d; }
+        .btn.primary { background: #238636; border-color: #238636; }
+        .btn.primary:hover { background: #2ea043; }
+        .btn.danger { background: #da3633; border-color: #da3633; }
+        .btn.danger:hover { background: #f85149; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn.secondary { background: #30363d; border-color: #484f58; }
+        .btn.secondary:hover { background: #484f58; }
+
+        /* Glyph palette */
+        .palette {
+            padding: 15px 20px;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .palette h3 {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 10px;
+        }
+
+.palette-grid {
+             display: grid;
+             grid-template-columns: repeat(3, 1fr);
+             gap: 6px;
+         }
+
+        .palette-item {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+            font-size: 10px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .palette-item:hover {
+            background: #30363d;
+            border-color: #58a6ff;
+        }
+
+        .palette-item .stratum {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .palette-item.INTENT .stratum { color: #ffd700; }
+        .palette-item.SPEC .stratum { color: #58a6ff; }
+        .palette-item.LOGIC .stratum { color: #7ee787; }
+        .palette-item.MEMORY .stratum { color: #a371f7; }
+        .palette-item.SUBSTRATE .stratum { color: #6e7681; }
+
+        /* Glyph list */
+        .glyph-list {
+            flex: 1;
+            padding: 15px 20px;
+            overflow-y: auto;
+        }
+
+        .glyph-list h3 {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .glyph-item {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .glyph-item:hover { background: #30363d; }
+        .glyph-item.selected {
+            border-color: #58a6ff;
+            background: #1f3a5f;
+        }
+
+        .glyph-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .glyph-item-id {
+            font-weight: bold;
+            color: #58a6ff;
+        }
+
+        .glyph-item-stratum {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .glyph-item-stratum.INTENT { background: #ffd700; color: #000; }
+        .glyph-item-stratum.SPEC { background: #58a6ff; color: #fff; }
+        .glyph-item-stratum.LOGIC { background: #7ee787; color: #000; }
+        .glyph-item-stratum.MEMORY { background: #a371f7; color: #fff; }
+        .glyph-item-stratum.SUBSTRATE { background: #6e7681; color: #fff; }
+
+        .glyph-item-opcode {
+            font-size: 11px;
+            color: #8b949e;
+        }
+
+        .glyph-item-rationale {
+            font-size: 10px;
+            color: #6e7681;
+            margin-top: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Properties panel */
+        .properties {
+            padding: 15px 20px;
+            border-top: 1px solid #30363d;
+            background: #0d1117;
+        }
+
+        .properties h3 {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 10px;
+        }
+
+        .property-field {
+            margin-bottom: 12px;
+        }
+
+        .property-field label {
+            display: block;
+            font-size: 10px;
+            color: #8b949e;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .property-field input,
+        .property-field select,
+        .property-field textarea {
+            width: 100%;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #c9d1d9;
+            font-family: inherit;
+            font-size: 11px;
+            padding: 6px 8px;
+        }
+
+        .property-field input:focus,
+        .property-field select:focus,
+        .property-field textarea:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        .property-field textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+
+        /* Graph area */
+        .graph-area {
+            flex: 1;
+            position: relative;
+        }
+
+        #graph {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        /* Node styling */
+        .node {
+            cursor: move;
+        }
+
+        .node circle {
+            stroke-width: 2px;
+            transition: all 0.2s;
+        }
+
+        .node:hover circle {
+            filter: brightness(1.2);
+        }
+
+        .node.selected circle {
+            stroke: #fff;
+            stroke-width: 3px;
+        }
+
+        .node text {
+            font-size: 11px;
+            font-family: 'SF Mono', monospace;
+            fill: #c9d1d9;
+            pointer-events: none;
+        }
+
+        /* Link styling */
+        .link {
+            fill: none;
+            stroke: #30363d;
+            stroke-width: 1.5px;
+            opacity: 0.6;
+        }
+
+        .link.highlighted {
+            stroke: #58a6ff;
+            stroke-width: 2px;
+            opacity: 1;
+        }
+
+        /* Status bar */
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #161b22;
+            border-top: 1px solid #30363d;
+            padding: 8px 15px;
+            font-size: 11px;
+            color: #8b949e;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h2 {
+            font-size: 16px;
+            color: #58a6ff;
+            margin-bottom: 15px;
+        }
+
+        .modal-content textarea {
+            width: 100%;
+            height: 200px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #c9d1d9;
+            font-family: 'SF Mono', monospace;
+            font-size: 11px;
+            padding: 10px;
+            resize: vertical;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: flex-end;
+        }
+
+        /* Stratum colors */
+        .stratum-INTENT { fill: #ffd700; stroke: #ffd700; }
+        .stratum-SPEC { fill: #58a6ff; stroke: #58a6ff; }
+        .stratum-LOGIC { fill: #7ee787; stroke: #7ee787; }
+        .stratum-MEMORY { fill: #a371f7; stroke: #a371f7; }
+        .stratum-SUBSTRATE { fill: #6e7681; stroke: #6e7681; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>GlyphStratum Editor</h1>
+                <div class="subtitle">Visual Program Builder</div>
+            </div>
+
+            <div class="toolbar">
+                <h3>Actions</h3>
+                <button class="btn primary" onclick="newProgram()">New</button>
+                <button class="btn secondary" id="btn-undo" onclick="undo()" disabled title="Undo (Ctrl+Z)">↶ Undo</button>
+                <button class="btn secondary" id="btn-redo" onclick="redo()" disabled title="Redo (Ctrl+Y)">↷ Redo</button>
+                <button class="btn" onclick="autoLayout()" title="Auto-arrange nodes">⚙ Layout</button>
+                <button class="btn" onclick="showImportModal()">Import</button>
+                <button class="btn" onclick="showExportModal()">Export</button>
+                <button class="btn" onclick="validateProgram()">Validate</button>
+                <button class="btn danger" onclick="deleteSelected()">Delete</button>
+            </div>
+
+            <div class="palette">
+                <h3>Add Glyph (click to add)</h3>
+                <div class="palette-grid">
+<div class="palette-item SUBSTRATE" onclick="addGlyph('SUBSTRATE', 'DATA')">
+                         <div class="stratum">SUBSTRATE</div>
+                         <div>DATA</div>
+                     </div>
+                     <div class="palette-item MEMORY" onclick="addGlyph('MEMORY', 'LOAD')">
+                         <div class="stratum">MEMORY</div>
+                         <div>LOAD</div>
+                     </div>
+                     <div class="palette-item MEMORY" onclick="addGlyph('MEMORY', 'STORE')">
+                         <div class="stratum">MEMORY</div>
+                         <div>STORE</div>
+                     </div>
+                     <div class="palette-item MEMORY" onclick="addGlyph('MEMORY', 'ALLOC')">
+                         <div class="stratum">MEMORY</div>
+                         <div>ALLOC</div>
+                     </div>
+                     <div class="palette-item MEMORY" onclick="addGlyph('MEMORY', 'FREE')">
+                         <div class="stratum">MEMORY</div>
+                         <div>FREE</div>
+                     </div>
+                     <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'CALL')">
+                         <div class="stratum">LOGIC</div>
+                         <div>CALL</div>
+                     </div>
+                     <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'BRANCH')">
+                         <div class="stratum">LOGIC</div>
+                         <div>BRANCH</div>
+                     </div>
+                     <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'LOOP')">
+                         <div class="stratum">LOGIC</div>
+                         <div>LOOP</div>
+                     </div>
+                     <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'RETURN')">
+                         <div class="stratum">LOGIC</div>
+                         <div>RETURN</div>
+                     </div>
+                     <div class="palette-item SPEC" onclick="addGlyph('SPEC', 'EXPORT')">
+                         <div class="stratum">SPEC</div>
+                         <div>EXPORT</div>
+                     </div>
+                     <div class="palette-item SPEC" onclick="addGlyph('SPEC', 'TYPE')">
+                         <div class="stratum">SPEC</div>
+                         <div>TYPE</div>
+                     </div>
+                     <div class="palette-item INTENT" onclick="addGlyph('INTENT', 'MODULE')">
+                         <div class="stratum">INTENT</div>
+                         <div>MODULE</div>
+                     </div>
+                     <div class="palette-item" onclick="addGlyph('INTENT', 'NOP')">
+                         <div class="stratum" style="color:#ffd700">INTENT</div>
+                         <div>NOP</div>
+                     </div>
+                     <div class="palette-item" onclick="addGlyph('INTENT', 'HALT')">
+                         <div class="stratum" style="color:#ffd700">INTENT</div>
+                         <div>HALT</div>
+                     </div>
+                </div>
+                <h3 style="margin-top: 15px;">Layout Algorithm</h3>
+                <select id="layout-type" style="width: 100%; padding: 6px; background: #21262d; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; font-size: 11px;">
+                    <option value="layered">Layered (by stratum)</option>
+                    <option value="tree">Tree (by dependency)</option>
+                    <option value="force">Force-directed</option>
+                    <option value="radial">Radial</option>
+                </select>
+            </div>
+
+            <div class="glyph-list">
+                <h3>
+                    <span>Glyphs</span>
+                    <span id="glyph-count">0</span>
+                </h3>
+                <div id="glyph-items"></div>
+            </div>
+
+            <div class="properties" id="properties-panel" style="display: none;">
+                <h3>Properties</h3>
+                <div class="property-field">
+                    <label>ID</label>
+                    <input type="text" id="prop-id" readonly>
+                </div>
+                <div class="property-field">
+                    <label>Stratum</label>
+                    <select id="prop-stratum" onchange="updateSelectedGlyph()">
+                        <option value="SUBSTRATE">SUBSTRATE (0)</option>
+                        <option value="MEMORY">MEMORY (1)</option>
+                        <option value="LOGIC">LOGIC (2)</option>
+                        <option value="SPEC">SPEC (3)</option>
+                        <option value="INTENT">INTENT (4)</option>
+                    </select>
+                </div>
+                <div class="property-field">
+                    <label>Opcode</label>
+                    <select id="prop-opcode" onchange="updateSelectedGlyph()">
+                        <option value="DATA">DATA</option>
+                        <option value="LOAD">LOAD</option>
+                        <option value="STORE">STORE</option>
+                        <option value="ALLOC">ALLOC</option>
+                        <option value="CALL">CALL</option>
+                        <option value="BRANCH">BRANCH</option>
+                        <option value="LOOP">LOOP</option>
+                        <option value="RETURN">RETURN</option>
+                        <option value="EXPORT">EXPORT</option>
+                        <option value="MODULE">MODULE</option>
+                    </select>
+                </div>
+                <div class="property-field">
+                    <label>Rationale</label>
+                    <textarea id="prop-rationale" onchange="updateSelectedGlyph()"></textarea>
+                </div>
+                <div class="property-field">
+                    <label>Dependencies (comma-separated IDs)</label>
+                    <input type="text" id="prop-deps" placeholder="0, 1, 2" onchange="updateSelectedGlyph()">
+                </div>
+            </div>
+        </div>
+
+        <div class="graph-area">
+            <svg id="graph"></svg>
+            <div class="status-bar">
+                <span id="status-message">Ready</span>
+                <span id="status-coherence">Coherence: --</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import/Export Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Import JSON</h2>
+            <textarea id="modal-textarea" placeholder="Paste JSON here..."></textarea>
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeModal()">Cancel</button>
+                <button class="btn primary" id="modal-action" onclick="importJSON()">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let glyphs = {};
+        let nextId = 0;
+        let selectedId = null;
+        let draggingNode = null;
+
+        // Undo/Redo history
+        let history = [];
+        let historyIndex = -1;
+        const MAX_HISTORY = 100;
+
+        const stratumColors = {
+            INTENT: "#ffd700",
+            SPEC: "#58a6ff",
+            LOGIC: "#7ee787",
+            MEMORY: "#a371f7",
+            SUBSTRATE: "#6e7681"
+        };
+
+        const stratumOrder = {SUBSTRATE: 0, MEMORY: 1, LOGIC: 2, SPEC: 3, INTENT: 4};
+
+        // History management
+        function saveState(action = "") {
+            // Remove any future states if we're in the middle of history
+            if (historyIndex < history.length - 1) {
+                history = history.slice(0, historyIndex + 1);
+            }
+
+            // Deep clone current state
+            const state = {
+                glyphs: JSON.parse(JSON.stringify(glyphs)),
+                nextId: nextId,
+                selectedId: selectedId,
+                action: action,
+                timestamp: Date.now()
+            };
+
+            history.push(state);
+
+            // Limit history size
+            if (history.length > MAX_HISTORY) {
+                history.shift();
+            } else {
+                historyIndex++;
+            }
+
+            updateHistoryButtons();
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                restoreState(history[historyIndex]);
+                updateStatus(`Undo: ${history[historyIndex + 1].action || "action"}`);
+            }
+        }
+
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                restoreState(history[historyIndex]);
+                updateStatus(`Redo: ${history[historyIndex].action || "action"}`);
+            }
+        }
+
+        function restoreState(state) {
+            glyphs = JSON.parse(JSON.stringify(state.glyphs));
+            nextId = state.nextId;
+            selectedId = state.selectedId;
+            render();
+            updateHistoryButtons();
+        }
+
+        function updateHistoryButtons() {
+            document.getElementById("btn-undo").disabled = historyIndex <= 0;
+            document.getElementById("btn-redo").disabled = historyIndex >= history.length - 1;
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener("keydown", (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === "z" && !e.shiftKey) {
+                    e.preventDefault();
+                    undo();
+                } else if ((e.key === "y") || (e.key === "z" && e.shiftKey)) {
+                    e.preventDefault();
+                    redo();
+                }
+            }
+        });
+
+        // Initialize SVG
+        const svg = d3.select("#graph");
+        const width = svg.node().getBoundingClientRect().width;
+        const height = svg.node().getBoundingClientRect().height;
+        const g = svg.append("g");
+
+        // Zoom
+        const zoom = d3.zoom().scaleExtent([0.1, 4]).on("zoom", e => g.attr("transform", e.transform));
+        svg.call(zoom);
+
+        // Arrow marker
+        svg.append("defs").append("marker")
+            .attr("id", "arrow")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 20)
+            .attr("refY", 0)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-5L10,0L0,5")
+            .attr("fill", "#30363d");
+
+        // Load font atlas and positions for GEOS font rendering
+        const fontAtlas = new Image();
+        const fontPositions = {};
+        let atlasReady = false;
+        let positionsReady = false;
+
+        fontAtlas.onload = () => {
+            atlasReady = true;
+            if (positionsReady) {
+                // Both resources loaded, re-render if needed
+                if (Object.keys(glyphs).length > 0) render();
+            }
+        };
+
+        // Load the raw atlas data and convert to a usable image
+        // Since we can't directly load .raw as an image, we'll create a canvas and put the data there
+        const loadFontAtlas = async () => {
+            try {
+                const response = await fetch("opcode_atlas.raw");
+                const arrayBuffer = await response.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+                
+                // Create a canvas to hold our RGBA data
+                const canvas = document.createElement("canvas");
+                canvas.width = 512;
+                canvas.height = 512;
+                const ctx = canvas.getContext("2d");
+                
+                // Create ImageData from our raw bytes
+                const imageData = ctx.createImageData(512, 512);
+                imageData.data.set(bytes);
+                
+                // Put the image data on the canvas
+                ctx.putImageData(imageData, 0, 0);
+                
+                // Convert to data URL for use as image src
+                fontAtlas.src = canvas.toDataURL("image/png");
+            } catch (err) {
+                console.error("Failed to load font atlas:", err);
+                // Fallback to text rendering will be used
+            }
+        };
+
+        // Load font positions
+        const loadFontPositions = async () => {
+            try {
+                const response = await fetch("opcode_positions.json");
+                const data = await response.json();
+                Object.assign(fontPositions, data);
+                positionsReady = true;
+                if (atlasReady) {
+                    // Both resources loaded, re-render if needed
+                    if (Object.keys(glyphs).length > 0) render();
+                }
+            } catch (err) {
+                console.error("Failed to load font positions:", err);
+                // Fallback to text rendering will be used
+            }
+        };
+
+        // Start loading resources
+        loadFontAtlas();
+        loadFontPositions();
+
+        // Click on canvas to deselect
+        svg.on("click", (event) => {
+            if (event.target === svg.node() || event.target === g.node()) {
+                selectGlyph(null);
+            }
+        });
+
+        // Double-click on canvas to add glyph
+        svg.on("dblclick", (event) => {
+            if (event.target === svg.node() || event.target === g.node()) {
+                const [x, y] = d3.pointer(event);
+                const transform = d3.zoomTransform(svg.node());
+                const canvasX = (x - transform.x) / transform.k;
+                const canvasY = (y - transform.y) / transform.k;
+                addGlyphAt('LOGIC', 'CALL', canvasX, canvasY);
+            }
+        });
+
+        function addGlyph(stratum, opcode) {
+            // Add at center with slight offset based on stratum
+            const transform = d3.zoomTransform(svg.node());
+            const x = width / 2 + (Math.random() - 0.5) * 100;
+            const y = 100 + stratumOrder[stratum] * 100;
+            addGlyphAt(stratum, opcode, x, y);
+        }
+
+        function addGlyphAt(stratum, opcode, x, y) {
+            saveState(`Add glyph`);
+            const id = nextId++;
+            glyphs[id] = {
+                id,
+                stratum,
+                opcode,
+                rationale: `${opcode.toLowerCase()} operation`,
+                dependencies: [],
+                x,
+                y
+            };
+            selectGlyph(id);
+            render();
+            updateStatus(`Added glyph #${id}`);
+        }
+
+        function deleteSelected() {
+            if (selectedId === null) return;
+            saveState(`Delete glyph #${selectedId}`);
+
+            // Remove from dependencies of other glyphs
+            for (const glyph of Object.values(glyphs)) {
+                glyph.dependencies = glyph.dependencies.filter(d => d !== selectedId);
+            }
+
+            delete glyphs[selectedId];
+            selectGlyph(null);
+            render();
+            updateStatus("Glyph deleted");
+        }
+
+        function selectGlyph(id) {
+            selectedId = id;
+
+            // Update UI
+            document.querySelectorAll(".glyph-item").forEach(el => {
+                el.classList.toggle("selected", parseInt(el.dataset.id) === id);
+            });
+
+            g.selectAll(".node").classed("selected", d => d.id === id);
+
+            // Update properties panel
+            const panel = document.getElementById("properties-panel");
+            if (id !== null && glyphs[id]) {
+                panel.style.display = "block";
+                const g = glyphs[id];
+                document.getElementById("prop-id").value = id;
+                document.getElementById("prop-stratum").value = g.stratum;
+                document.getElementById("prop-opcode").value = g.opcode;
+                document.getElementById("prop-rationale").value = g.rationale;
+                document.getElementById("prop-deps").value = g.dependencies.join(", ");
+            } else {
+                panel.style.display = "none";
+            }
+        }
+
+        function updateSelectedGlyph() {
+            if (selectedId === null) return;
+            saveState(`Edit glyph #${selectedId}`);
+
+            const glyph = glyphs[selectedId];
+            glyph.stratum = document.getElementById("prop-stratum").value;
+            glyph.opcode = document.getElementById("prop-opcode").value;
+            glyph.rationale = document.getElementById("prop-rationale").value;
+
+            const depsStr = document.getElementById("prop-deps").value;
+            glyph.dependencies = depsStr.split(",")
+                .map(s => parseInt(s.trim()))
+                .filter(n => !isNaN(n) && n in glyphs && n !== selectedId);
+
+            render();
+        }
+
+        function render() {
+            g.selectAll("*").remove();
+
+            const nodes = Object.values(glyphs);
+            const links = [];
+
+            // Build links
+            for (const glyph of nodes) {
+                for (const depId of glyph.dependencies) {
+                    if (glyphs[depId]) {
+                        links.push({source: depId, target: glyph.id});
+                    }
+                }
+            }
+
+            // Draw links
+            g.append("g")
+                .selectAll("path")
+                .data(links)
+                .enter().append("path")
+                .attr("class", "link")
+                .attr("d", d => `M${glyphs[d.source].x},${glyphs[d.source].y}L${glyphs[d.target].x},${glyphs[d.target].y}`)
+                .attr("marker-end", "url(#arrow)");
+
+            // Draw nodes
+            const node = g.append("g")
+                .selectAll("g")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", d => `node ${d.id === selectedId ? 'selected' : ''}`)
+                .attr("transform", d => `translate(${d.x},${d.y})`)
+                .on("click", (event, d) => {
+                    event.stopPropagation();
+                    selectGlyph(d.id);
+                })
+                .call(d3.drag()
+                    .on("start", (event, d) => {
+                        draggingNode = d;
+                    })
+                    .on("drag", (event, d) => {
+                        d.x = event.x;
+                        d.y = event.y;
+                        d3.select(event.sourceEvent.target.parentNode)
+                            .attr("transform", `translate(${d.x},${d.y})`);
+                        // Update links
+                        g.selectAll(".link")
+                            .attr("d", l => {
+                                const s = glyphs[l.source];
+                                const t = glyphs[l.target];
+                                return `M${s.x},${s.y}L${t.x},${t.y}`;
+                            });
+                    })
+                    .on("end", (event, d) => {
+                        if (draggingNode) {
+                            saveState(`Move glyph #${d.id}`);
+                            draggingNode = null;
+                        }
+                    })
+                );
+
+            // Right-click to add dependency
+            node.on("contextmenu", (event, d) => {
+                event.preventDefault();
+                if (selectedId !== null && selectedId !== d.id) {
+                    // Add selected as dependency of this node
+                    if (!glyphs[d.id].dependencies.includes(selectedId)) {
+                        saveState(`Add dependency`);
+                        glyphs[d.id].dependencies.push(selectedId);
+                        render();
+                        updateStatus(`Added dependency: #${selectedId} → #${d.id}`);
+                    }
+                }
+            });
+
+            node.append("circle")
+                .attr("r", 25)
+                .attr("class", d => `stratum-${d.stratum}`);
+
+            // Render opcode using GEOS font atlas if available, otherwise fallback to text
+            if (atlasReady && positionsReady && fontPositions[d.opcode]) {
+                const [x, y, width, height] = fontPositions[d.opcode];
+                // Calculate position to center the text in the node
+                const textureX = d.x - 12; // Adjust to center in 25px radius circle (approx)
+                const textureY = d.y - 12;
+                
+                node.append("image")
+                    .attr("xlink:href", fontAtlas.src)
+                    .attr("x", textureX)
+                    .attr("y", textureY)
+                    .attr("width", width)
+                    .attr("height", height)
+                    .attr("preserveAspectRatio", "none");
+            } else {
+                // Fallback to text rendering
+                node.append("text")
+                    .attr("dy", 4)
+                    .attr("text-anchor", "middle")
+                    .text(d => d.opcode);
+            }
+
+            // Update glyph list
+            updateGlyphList();
+        }
+
+        function updateGlyphList() {
+            const container = document.getElementById("glyph-items");
+            container.innerHTML = "";
+
+            const sortedGlyphs = Object.values(glyphs).sort((a, b) => {
+                const stratumDiff = stratumOrder[a.stratum] - stratumOrder[b.stratum];
+                return stratumDiff !== 0 ? stratumDiff : a.id - b.id;
+            });
+
+            for (const g of sortedGlyphs) {
+                const item = document.createElement("div");
+                item.className = `glyph-item ${g.id === selectedId ? 'selected' : ''}`;
+                item.dataset.id = g.id;
+                item.onclick = () => selectGlyph(g.id);
+                item.innerHTML = `
+                    <div class="glyph-item-header">
+                        <span class="glyph-item-id">#${g.id}</span>
+                        <span class="glyph-item-stratum ${g.stratum}">${g.stratum}</span>
+                    </div>
+                    <div class="glyph-item-opcode">${g.opcode}</div>
+                    <div class="glyph-item-rationale">${g.rationale}</div>
+                `;
+                container.appendChild(item);
+            }
+
+            document.getElementById("glyph-count").textContent = sortedGlyphs.length;
+        }
+
+        function updateStatus(message) {
+            document.getElementById("status-message").textContent = message;
+
+            // Calculate coherence
+            let valid = 0, total = 0;
+            for (const g of Object.values(glyphs)) {
+                for (const depId of g.dependencies) {
+                    total++;
+                    if (glyphs[depId] && stratumOrder[glyphs[depId].stratum] <= stratumOrder[g.stratum]) {
+                        valid++;
+                    }
+                }
+            }
+            const coherence = total > 0 ? Math.round(valid / total * 100) : 100;
+            document.getElementById("status-coherence").textContent = `Coherence: ${coherence}%`;
+        }
+
+        function validateProgram() {
+            const errors = [];
+
+            // Check coherence
+            for (const g of Object.values(glyphs)) {
+                for (const depId of g.dependencies) {
+                    if (!glyphs[depId]) {
+                        errors.push(`Glyph #${g.id} depends on missing glyph #${depId}`);
+                    } else if (stratumOrder[glyphs[depId].stratum] > stratumOrder[g.stratum]) {
+                        errors.push(`Glyph #${g.id} (${g.stratum}) depends on higher stratum #${depId} (${glyphs[depId].stratum})`);
+                    }
+                }
+            }
+
+            // Check for INTENT glyph
+            const hasIntent = Object.values(glyphs).some(g => g.stratum === 'INTENT');
+            if (!hasIntent && Object.keys(glyphs).length > 0) {
+                errors.push("No INTENT glyph found - add a MODULE glyph");
+            }
+
+            if (errors.length === 0) {
+                updateStatus("✓ Program is valid!");
+            } else {
+                alert("Validation errors:\n\n" + errors.join("\n"));
+            }
+        }
+
+        function newProgram() {
+            if (Object.keys(glyphs).length > 0) {
+                if (!confirm("Clear current program?")) return;
+            }
+            glyphs = {};
+            nextId = 0;
+            selectedId = null;
+            history = [];
+            historyIndex = -1;
+            saveState("New program");
+            render();
+            updateStatus("New program created");
+        }
+
+        function showImportModal() {
+            document.getElementById("modal-title").textContent = "Import JSON";
+            document.getElementById("modal-textarea").value = "";
+            document.getElementById("modal-action").textContent = "Import";
+            document.getElementById("modal-action").onclick = importJSON;
+            document.getElementById("modal").classList.add("visible");
+        }
+
+        function showExportModal() {
+            const json = exportToJSON();
+            document.getElementById("modal-title").textContent = "Export JSON";
+            document.getElementById("modal-textarea").value = json;
+            document.getElementById("modal-action").textContent = "Copy";
+            document.getElementById("modal-action").onclick = () => {
+                navigator.clipboard.writeText(json);
+                updateStatus("Copied to clipboard");
+            };
+            document.getElementById("modal").classList.add("visible");
+        }
+
+        function closeModal() {
+            document.getElementById("modal").classList.remove("visible");
+        }
+
+        function importJSON() {
+            try {
+                const text = document.getElementById("modal-textarea").value;
+                const data = JSON.parse(text);
+
+                glyphs = {};
+                nextId = 0;
+                selectedId = null;
+
+                const glyphData = data.glyphs || data;
+
+                for (const [idxStr, g] of Object.entries(glyphData)) {
+                    const id = parseInt(idxStr);
+                    glyphs[id] = {
+                        id,
+                        stratum: g.stratum || "SUBSTRATE",
+                        opcode: g.opcode || "DATA",
+                        rationale: g.rationale || "",
+                        dependencies: (g.dependencies || []).map(d => parseInt(d)),
+                        x: g.x || 100 + (id % 5) * 100,
+                        y: g.y || 100 + Math.floor(id / 5) * 100
+                    };
+                    nextId = Math.max(nextId, id + 1);
+                }
+
+                // Reset history and save initial state
+                history = [];
+                historyIndex = -1;
+                saveState("Import");
+
+                closeModal();
+                render();
+                updateStatus(`Imported ${Object.keys(glyphs).length} glyphs`);
+            } catch (e) {
+                alert("Invalid JSON: " + e.message);
+            }
+        }
+
+        function exportToJSON() {
+            const glyphData = {};
+            for (const [id, g] of Object.entries(glyphs)) {
+                glyphData[id] = {
+                    stratum: g.stratum,
+                    opcode: g.opcode,
+                    rationale: g.rationale,
+                    dependencies: g.dependencies,
+                    invariants: {}
+                };
+            }
+            return JSON.stringify({name: "program", glyphs: glyphData}, null, 2);
+        }
+
+        // Auto-layout algorithms
+        function autoLayout() {
+            if (Object.keys(glyphs).length === 0) return;
+
+            saveState("Auto layout");
+
+            const layoutType = document.getElementById("layout-type")?.value || "layered";
+            const nodeWidth = 60;
+            const nodeHeight = 60;
+            const horizontalGap = 80;
+            const verticalGap = 60;
+            const startX = 100;
+            const startY = 80;
+
+            if (layoutType === "layered") {
+                layoutLayered(startX, startY, horizontalGap, verticalGap);
+            } else if (layoutType === "force") {
+                layoutForceDirected();
+            } else if (layoutType === "radial") {
+                layoutRadial(startX + 300, startY + 200);
+            } else if (layoutType === "tree") {
+                layoutTree(startX, startY, nodeWidth, horizontalGap, verticalGap);
+            }
+
+            render();
+            updateStatus("Layout applied");
+        }
+
+        function layoutLayered(startX, startY, hGap, vGap) {
+            // Group glyphs by stratum
+            const strataGroups = {};
+            const strataOrder = ["SUBSTRATE", "MEMORY", "LOGIC", "SPEC", "INTENT"];
+
+            for (const stratum of strataOrder) {
+                strataGroups[stratum] = [];
+            }
+
+            for (const [id, glyph] of Object.entries(glyphs)) {
+                strataGroups[glyph.stratum].push(parseInt(id));
+            }
+
+            // Sort each group by dependencies (topological sort within stratum)
+            for (const stratum of strataOrder) {
+                strataGroups[stratum] = topologicalSort(strataGroups[stratum]);
+            }
+
+            // Position glyphs
+            let x = startX;
+            for (let s = 0; s < strataOrder.length; s++) {
+                const stratum = strataOrder[s];
+                const ids = strataGroups[stratum];
+                let y = startY;
+
+                for (const id of ids) {
+                    if (glyphs[id]) {
+                        glyphs[id].x = x;
+                        glyphs[id].y = y;
+                        y += vGap;
+                    }
+                }
+
+                if (ids.length > 0) {
+                    x += hGap + Math.max(0, (ids.length - 1) * 20);
+                }
+            }
+        }
+
+        function layoutTree(startX, startY, nodeWidth, hGap, vGap) {
+            // Find roots (glyphs with no dependencies)
+            const roots = [];
+            for (const [id, glyph] of Object.entries(glyphs)) {
+                if (!glyph.dependencies || glyph.dependencies.length === 0) {
+                    roots.push(parseInt(id));
+                }
+            }
+
+            // BFS to assign levels
+            const levels = {};
+            const visited = new Set();
+            const queue = [...roots];
+
+            for (const root of roots) {
+                levels[root] = 0;
+            }
+
+            while (queue.length > 0) {
+                const current = queue.shift();
+                if (visited.has(current)) continue;
+                visited.add(current);
+
+                // Find glyphs that depend on current
+                for (const [id, glyph] of Object.entries(glyphs)) {
+                    const gid = parseInt(id);
+                    if (glyph.dependencies && glyph.dependencies.includes(current)) {
+                        if (!levels[gid]) {
+                            levels[gid] = levels[current] + 1;
+                        }
+                        queue.push(gid);
+                    }
+                }
+            }
+
+            // Group by level
+            const levelGroups = {};
+            for (const [id, level] of Object.entries(levels)) {
+                if (!levelGroups[level]) levelGroups[level] = [];
+                levelGroups[level].push(parseInt(id));
+            }
+
+            // Position
+            const maxLevel = Math.max(...Object.keys(levelGroups).map(Number));
+            for (let level = 0; level <= maxLevel; level++) {
+                const ids = levelGroups[level] || [];
+                const y = startY + level * vGap;
+                const totalWidth = ids.length * nodeWidth + (ids.length - 1) * hGap;
+                let x = startX + Math.max(0, (800 - totalWidth) / 2);
+
+                for (const id of ids) {
+                    if (glyphs[id]) {
+                        glyphs[id].x = x;
+                        glyphs[id].y = y;
+                        x += nodeWidth + hGap;
+                    }
+                }
+            }
+        }
+
+        function layoutRadial(centerX, centerY) {
+            const ids = Object.keys(glyphs).map(Number);
+            const count = ids.length;
+            const radius = Math.max(100, count * 15);
+
+            for (let i = 0; i < ids.length; i++) {
+                const angle = (2 * Math.PI * i) / count - Math.PI / 2;
+                const id = ids[i];
+                if (glyphs[id]) {
+                    glyphs[id].x = centerX + radius * Math.cos(angle);
+                    glyphs[id].y = centerY + radius * Math.sin(angle);
+                }
+            }
+        }
+
+        function layoutForceDirected() {
+            // Simple force-directed layout simulation
+            const iterations = 50;
+            const k = 100; // Spring constant
+            const repulsion = 5000;
+            const damping = 0.9;
+
+            // Initialize random positions if not set
+            for (const [id, glyph] of Object.entries(glyphs)) {
+                if (!glyph.x) glyph.x = Math.random() * 400 + 100;
+                if (!glyph.y) glyph.y = Math.random() * 300 + 100;
+            }
+
+            const ids = Object.keys(glyphs).map(Number);
+
+            for (let iter = 0; iter < iterations; iter++) {
+                const forces = {};
+                for (const id of ids) {
+                    forces[id] = { fx: 0, fy: 0 };
+                }
+
+                // Repulsion between all nodes
+                for (let i = 0; i < ids.length; i++) {
+                    for (let j = i + 1; j < ids.length; j++) {
+                        const a = glyphs[ids[i]];
+                        const b = glyphs[ids[j]];
+                        const dx = a.x - b.x;
+                        const dy = a.y - b.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                        const force = repulsion / (dist * dist);
+
+                        forces[ids[i]].fx += (dx / dist) * force;
+                        forces[ids[i]].fy += (dy / dist) * force;
+                        forces[ids[j]].fx -= (dx / dist) * force;
+                        forces[ids[j]].fy -= (dy / dist) * force;
+                    }
+                }
+
+                // Attraction along edges
+                for (const [id, glyph] of Object.entries(glyphs)) {
+                    const gid = parseInt(id);
+                    for (const dep of glyph.dependencies || []) {
+                        if (glyphs[dep]) {
+                            const a = glyphs[gid];
+                            const b = glyphs[dep];
+                            const dx = a.x - b.x;
+                            const dy = a.y - b.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                            const force = (dist - k) * 0.1;
+
+                            forces[gid].fx -= (dx / dist) * force;
+                            forces[gid].fy -= (dy / dist) * force;
+                            forces[dep].fx += (dx / dist) * force;
+                            forces[dep].fy += (dy / dist) * force;
+                        }
+                    }
+                }
+
+                // Apply forces
+                for (const id of ids) {
+                    const g = glyphs[id];
+                    g.x += forces[id].fx * 0.1;
+                    g.y += forces[id].fy * 0.1;
+
+                    // Keep in bounds
+                    g.x = Math.max(50, Math.min(900, g.x));
+                    g.y = Math.max(50, Math.min(500, g.y));
+                }
+            }
+        }
+
+        function topologicalSort(ids) {
+            const result = [];
+            const visited = new Set();
+            const temp = new Set();
+
+            function visit(id) {
+                if (temp.has(id)) return; // Cycle
+                if (visited.has(id)) return;
+
+                temp.add(id);
+
+                const glyph = glyphs[id];
+                if (glyph && glyph.dependencies) {
+                    for (const dep of glyph.dependencies) {
+                        if (ids.includes(dep)) {
+                            visit(dep);
+                        }
+                    }
+                }
+
+                temp.delete(id);
+                visited.add(id);
+                result.push(id);
+            }
+
+            for (const id of ids) {
+                visit(id);
+            }
+
+            return result;
+        }
+
+        // Initialize
+        render();
+        saveState("Initial state");
+        updateStatus("Ready - double-click to add glyphs, right-click to add dependencies. Ctrl+Z/Y for undo/redo.");
+    </script>
+</body>
+</html>

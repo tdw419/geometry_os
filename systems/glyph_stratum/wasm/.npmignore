@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+out/
+dist/
+
+# Test files
+test/
+*.test.js
+
+coverage/
+
+# IDE files
+.idea/
+*.swp
+.vscode-test/
+
+# OS files
+.DS_Store
+Thumbs.db
+

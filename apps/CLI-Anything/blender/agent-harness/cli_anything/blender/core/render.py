@@ -256,5 +256,5 @@ def generate_bpy_script(
     Returns:
         The bpy script as a string
     """
-    from cli_anything.blender.utils.bpy_gen import generate_full_script
+    from .blender.utils.bpy_gen import generate_full_script
     return generate_full_script(project, output_path, frame=frame, animation=animation)

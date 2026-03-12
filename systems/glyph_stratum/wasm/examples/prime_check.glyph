@@ -1,0 +1,152 @@
+{
+  "name": "prime_check",
+  "description": "Check if a number is prime",
+  "glyphs": {
+    "1": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 17 }
+    },
+    "2": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [1],
+      "invariants": { "name": "n" }
+    },
+    "3": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": true }
+    },
+    "4": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [3],
+      "invariants": { "name": "is_prime" }
+    },
+    "5": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 2 }
+    },
+    "6": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [5],
+      "invariants": { "name": "i" }
+    },
+    "7": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "n" }
+    },
+    "8": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 2 }
+    },
+    "9": {
+      "stratum": "LOGIC",
+      "opcode": "DIV",
+      "dependencies": [7, 8]
+    },
+    "10": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [9],
+      "invariants": { "name": "sqrt_n" }
+    },
+    "11": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "i" }
+    },
+    "12": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "sqrt_n" }
+    },
+    "13": {
+      "stratum": "LOGIC",
+      "opcode": "LE",
+      "dependencies": [11, 12]
+    },
+    "14": {
+      "stratum": "LOGIC",
+      "opcode": "IFTRUE",
+      "dependencies": [13]
+    },
+    "15": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "n" }
+    },
+    "16": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "i" }
+    },
+    "17": {
+      "stratum": "LOGIC",
+      "opcode": "MOD",
+      "dependencies": [15, 16]
+    },
+    "18": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 0 }
+    },
+    "19": {
+      "stratum": "LOGIC",
+      "opcode": "EQ",
+      "dependencies": [17, 18]
+    },
+    "20": {
+      "stratum": "LOGIC",
+      "opcode": "IFTRUE",
+      "dependencies": [19]
+    },
+    "21": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": false }
+    },
+    "22": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [21],
+      "invariants": { "name": "is_prime" }
+    },
+    "23": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "i" }
+    },
+    "24": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "25": {
+      "stratum": "LOGIC",
+      "opcode": "ADD",
+      "dependencies": [23, 24]
+    },
+    "26": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [25],
+      "invariants": { "name": "i" }
+    },
+    "27": {
+      "stratum": "LOGIC",
+      "opcode": "LOOP",
+      "dependencies": [26, 13]
+    },
+    "28": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "is_prime" }
+    }
+  }
+}

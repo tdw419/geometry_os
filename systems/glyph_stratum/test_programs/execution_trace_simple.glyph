@@ -1,0 +1,42 @@
+{
+  "name": "execution_trace_simple",
+  "description": "Simple program to test execution trace",
+  "goal": "Add two numbers and return the result",
+  "glyphs": {
+    "0": {
+      "stratum": "INTENT",
+      "opcode": "MODULE",
+      "rationale": "Add two numbers and return result",
+      "dependencies": [1, 2, 3, 4],
+      "invariants": {}
+    },
+    "1": {
+      "stratum": "SPEC",
+      "opcode": "CALL",
+      "rationale": "add(a, b) -> result",
+      "dependencies": [2],
+      "invariants": {"input": "int", "output": "int"}
+    },
+    "2": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "+",
+      "dependencies": [3, 4],
+      "invariants": {}
+    },
+    "3": {
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "rationale": "First operand a",
+      "dependencies": [],
+      "invariants": {"value": 5}
+    },
+    "4": {
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "rationale": "Second operand b",
+      "dependencies": [],
+      "invariants": {"value": 3}
+    }
+  }
+}

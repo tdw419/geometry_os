@@ -11,20 +11,20 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.obs_studio.core.project import create_project, save_project, open_project, get_project_info
-from cli_anything.obs_studio.core.scenes import add_scene, remove_scene, duplicate_scene, set_active_scene, list_scenes
-from cli_anything.obs_studio.core.sources import (
+from obs_studio.core.project import create_project, save_project, open_project, get_project_info
+from obs_studio.core.scenes import add_scene, remove_scene, duplicate_scene, set_active_scene, list_scenes
+from obs_studio.core.sources import (
     add_source, remove_source, duplicate_source, set_source_property,
     transform_source, list_sources, SOURCE_TYPES,
 )
-from cli_anything.obs_studio.core.filters import add_filter, remove_filter, set_filter_param, list_filters, FILTER_TYPES
-from cli_anything.obs_studio.core.audio import (
+from obs_studio.core.filters import add_filter, remove_filter, set_filter_param, list_filters, FILTER_TYPES
+from obs_studio.core.audio import (
     add_audio_source, set_volume, mute, unmute, set_monitor,
     set_balance, list_audio,
 )
-from cli_anything.obs_studio.core.transitions import add_transition, set_duration, set_active_transition, list_transitions
-from cli_anything.obs_studio.core.output import set_streaming, set_recording, set_output_settings, get_output_info
-from cli_anything.obs_studio.core.session import Session
+from obs_studio.core.transitions import add_transition, set_duration, set_active_transition, list_transitions
+from obs_studio.core.output import set_streaming, set_recording, set_output_settings, get_output_info
+from obs_studio.core.session import Session
 
 
 class TestStreamSetupWorkflow:

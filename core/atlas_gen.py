@@ -101,6 +101,27 @@ def register_glyphs():
     add_glyph('⏸', 177, r=200, g=200, b=255, is_instruction=True, sym_type=SYM_ROT_90)       # Pause = YIELD
     add_glyph('◇', 178, r=255, g=255, b=255, is_instruction=True, sym_type=SYM_ROT_90)       # Diamond = CONSTANT
 
+    # ========================================
+    # GlyphStratum Literal Opcodes (200-215)
+    # Actual names rendered as glyphs
+    # ========================================
+    add_glyph('Alloc', 200, r=200, g=100, b=100, is_instruction=True, sym_type=SYM_GRID)
+    add_glyph('Free',  201, r=100, g=200, b=100, is_instruction=True, sym_type=SYM_GRID)
+    add_glyph('Load',  202, r=100, g=100, b=200, is_instruction=True, sym_type=SYM_ASYMMETRIC)
+    add_glyph('Store', 203, r=200, g=200, b=100, is_instruction=True, sym_type=SYM_ASYMMETRIC)
+    add_glyph('Loop',  204, r=200, g=100, b=200, is_instruction=True, sym_type=SYM_ROT_90)
+    add_glyph('Branch',205, r=100, g=200, b=200, is_instruction=True, sym_type=SYM_INV_POINT)
+    add_glyph('Call',  206, r=255, g=128, b=0,   is_instruction=True, sym_type=SYM_ROT_90)
+    add_glyph('Ret',   207, r=255, g=0,   b=128, is_instruction=True, sym_type=SYM_GRID)
+    add_glyph('Data',  208, r=128, g=128, b=128, is_instruction=True, sym_type=SYM_NONE)
+    add_glyph('Type',  209, r=150, g=150, b=150, is_instruction=True, sym_type=SYM_NONE)
+    add_glyph('Ptr',   210, r=100, g=100, b=100, is_instruction=True, sym_type=SYM_NONE)
+    add_glyph('Struct',211, r=200, g=200, b=200, is_instruction=True, sym_type=SYM_GRID)
+    add_glyph('Mod',   212, r=255, g=255, b=255, is_instruction=True, sym_type=SYM_GRID)
+    add_glyph('Exp',   213, r=0,   g=255, b=0,   is_instruction=True, sym_type=SYM_ASYMMETRIC)
+    add_glyph('Imp',   214, r=0,   g=0,   b=255, is_instruction=True, sym_type=SYM_ASYMMETRIC)
+    add_glyph('Halt',  215, r=255, g=0,   b=0,   is_instruction=True, sym_type=SYM_GRID)
+
     # Comparison Operations
     add_glyph('≟', 179, r=255, g=200, b=100, is_instruction=True, sym_type=SYM_INV_POINT)    # Question = CMP_EQ
     add_glyph('≠', 180, r=255, g=100, b=100, is_instruction=True, sym_type=SYM_ROT_90)       # Not-Equal = CMP_NE

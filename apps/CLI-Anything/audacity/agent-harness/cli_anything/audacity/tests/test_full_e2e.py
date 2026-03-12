@@ -21,16 +21,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 import numpy as np
 
-from cli_anything.audacity.core.project import create_project, save_project, open_project, get_project_info
-from cli_anything.audacity.core.tracks import add_track, list_tracks, set_track_property
-from cli_anything.audacity.core.clips import add_clip, list_clips, split_clip, move_clip, trim_clip
-from cli_anything.audacity.core.effects import add_effect, list_effects
-from cli_anything.audacity.core.labels import add_label, list_labels
-from cli_anything.audacity.core.selection import set_selection, select_all, get_selection
-from cli_anything.audacity.core.media import probe_audio, check_media, get_duration
-from cli_anything.audacity.core.export import render_mix, EXPORT_PRESETS
-from cli_anything.audacity.core.session import Session
-from cli_anything.audacity.utils.audio_utils import (
+from audacity.core.project import create_project, save_project, open_project, get_project_info
+from audacity.core.tracks import add_track, list_tracks, set_track_property
+from audacity.core.clips import add_clip, list_clips, split_clip, move_clip, trim_clip
+from audacity.core.effects import add_effect, list_effects
+from audacity.core.labels import add_label, list_labels
+from audacity.core.selection import set_selection, select_all, get_selection
+from audacity.core.media import probe_audio, check_media, get_duration
+from audacity.core.export import render_mix, EXPORT_PRESETS
+from audacity.core.session import Session
+from audacity.utils.audio_utils import (
     generate_sine_wave, generate_silence, write_wav, read_wav,
     get_rms, get_peak, db_from_linear, apply_gain, apply_normalize,
     apply_fade_in, apply_fade_out, apply_reverse, apply_echo,
@@ -714,13 +714,13 @@ class TestSoXBackend:
     """Tests that verify SoX is installed and accessible."""
 
     def test_sox_is_installed(self):
-        from cli_anything.audacity.utils.sox_backend import find_sox
+        from audacity.utils.sox_backend import find_sox
         path = find_sox()
         assert os.path.exists(path)
         print(f"\n  SoX binary: {path}")
 
     def test_sox_version(self):
-        from cli_anything.audacity.utils.sox_backend import get_version
+        from audacity.utils.sox_backend import get_version
         version = get_version()
         assert version  # non-empty
         print(f"\n  SoX version: {version}")
@@ -731,7 +731,7 @@ class TestSoXAudioE2E:
 
     def test_generate_sine_tone_wav(self):
         """Generate a sine tone WAV using SoX."""
-        from cli_anything.audacity.utils.sox_backend import generate_tone
+        from audacity.utils.sox_backend import generate_tone
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             output = os.path.join(tmp_dir, "tone.wav")
@@ -744,7 +744,7 @@ class TestSoXAudioE2E:
 
     def test_apply_reverb_effect(self):
         """Generate tone then apply reverb effect using SoX."""
-        from cli_anything.audacity.utils.sox_backend import generate_tone, apply_effect
+        from audacity.utils.sox_backend import generate_tone, apply_effect
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Generate source tone
@@ -761,7 +761,7 @@ class TestSoXAudioE2E:
 
     def test_apply_fade_effect(self):
         """Apply fade in/out using SoX."""
-        from cli_anything.audacity.utils.sox_backend import generate_tone, apply_effect
+        from audacity.utils.sox_backend import generate_tone, apply_effect
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             src = os.path.join(tmp_dir, "source.wav")
@@ -776,7 +776,7 @@ class TestSoXAudioE2E:
 
     def test_generate_different_frequencies(self):
         """Generate tones at different frequencies."""
-        from cli_anything.audacity.utils.sox_backend import generate_tone
+        from audacity.utils.sox_backend import generate_tone
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             for freq in [220, 440, 880]:
@@ -788,7 +788,7 @@ class TestSoXAudioE2E:
 
     def test_convert_sample_rate(self):
         """Convert sample rate using SoX."""
-        from cli_anything.audacity.utils.sox_backend import generate_tone, convert_format
+        from audacity.utils.sox_backend import generate_tone, convert_format
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             src = os.path.join(tmp_dir, "source_44100.wav")

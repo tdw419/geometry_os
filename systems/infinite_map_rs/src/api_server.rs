@@ -79,6 +79,7 @@ pub struct AppState {
     pub map_loader: Arc<Mutex<MapLoader>>,
     pub runtime_state: Arc<Mutex<RuntimeState>>,
     pub synaptic_layer: Arc<Mutex<SynapticLayer>>,
+    pub glyph_stratum_engine: Arc<Mutex<crate::glyph_stratum::GlyphStratumEngine>>,
 }
 
 #[derive(Deserialize)]
@@ -134,7 +135,8 @@ pub async fn start_api_server(
     port: u16, 
     map_path: std::path::PathBuf, 
     runtime_state: Arc<Mutex<RuntimeState>>,
-    synaptic_layer: Arc<Mutex<SynapticLayer>>
+    synaptic_layer: Arc<Mutex<SynapticLayer>>,
+    glyph_stratum_engine: Arc<Mutex<crate::glyph_stratum::GlyphStratumEngine>>,
 ) {
     let map_loader = Arc::new(Mutex::new(MapLoader::new(map_path)));
     
@@ -147,6 +149,7 @@ pub async fn start_api_server(
         map_loader,
         runtime_state,
         synaptic_layer,
+        glyph_stratum_engine,
     };
 
 use tower_http::services::ServeDir;
@@ -175,6 +178,10 @@ use tower_http::services::ServeDir;
         .route("/api/synapse/register", post(handle_synapse_register))
         .route("/api/synapse/signal", post(handle_synapse_signal))
         .route("/api/evolution/genome", post(handle_evolution_genome))
+        // Phase 41.5: Glyph Stratum API (Visual Programming)
+        .route("/api/glyph-stratum/place", post(handle_glyph_place))
+        .route("/api/glyph-stratum/query", get(handle_glyph_query))
+        .route("/api/glyph-stratum/summary", get(handle_glyph_summary))
         // Phase 3: Terminal Clone Integration
         .route("/api/terminal/spawn", post(handle_terminal_spawn))
         .route("/api/terminal/{id}/resize", post(handle_terminal_resize))
@@ -200,6 +207,105 @@ use tower_http::services::ServeDir;
     if let Err(e) = axum::serve(listener, app).await {
         log::error!("Server error: {}", e);
     }
+}
+
+#[derive(Deserialize)]
+pub struct GlyphPlaceRequest {
+    pub x: u32,
+    pub y: u32,
+    pub ch: char,
+    pub stratum: u8,
+    pub rationale: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct GlyphPlaceResponse {
+    pub success: bool,
+    pub message: String,
+    pub glyph_index: Option<u32>,
+}
+
+#[derive(Deserialize)]
+pub struct GlyphQueryParams {
+    pub x: u32,
+    pub y: u32,
+}
+
+#[derive(Serialize)]
+pub struct GlyphResponse {
+    pub found: bool,
+    pub ch: Option<char>,
+    pub opcode: Option<String>,
+    pub stratum: Option<u8>,
+    pub rationale: Option<String>,
+}
+
+pub async fn handle_glyph_place(
+    State(state): State<AppState>,
+    Json(payload): Json<GlyphPlaceRequest>,
+) -> impl IntoResponse {
+    let mut engine = state.glyph_stratum_engine.lock().unwrap();
+    
+    let stratum = crate::glyph_stratum::Stratum::from_value(payload.stratum)
+        .unwrap_or(crate::glyph_stratum::Stratum::Substrate);
+        
+    let metadata = payload.rationale.map(|r| crate::glyph_stratum::GlyphMetadata {
+        dependencies: Vec::new(),
+        invariants: serde_json::json!({}),
+        provenance: crate::glyph_stratum::ProvenanceInfo {
+            session_id: "api".to_string(),
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            creator: "api".to_string(),
+            version: 1,
+        },
+        rationale: r,
+    });
+
+    match engine.place_glyph(payload.x, payload.y, payload.ch, stratum, metadata) {
+        Ok(idx) => Json(GlyphPlaceResponse {
+            success: true,
+            message: format!("Glyph placed successfully at ({}, {})", payload.x, payload.y),
+            glyph_index: Some(idx),
+        }),
+        Err(e) => Json(GlyphPlaceResponse {
+            success: false,
+            message: e,
+            glyph_index: None,
+        }),
+    }
+}
+
+pub async fn handle_glyph_query(
+    State(state): State<AppState>,
+    Query(params): Query<GlyphQueryParams>,
+) -> impl IntoResponse {
+    let engine = state.glyph_stratum_engine.lock().unwrap();
+    
+    if let Some(glyph) = engine.get_glyph(params.x, params.y) {
+        Json(GlyphResponse {
+            found: true,
+            ch: Some(char::from_u32(glyph.base.unicode).unwrap_or('?')),
+            opcode: Some(format!("{:?}", glyph.opcode())),
+            stratum: Some(glyph.stratum() as u8),
+            rationale: Some(glyph.metadata.rationale.clone()),
+        })
+    } else {
+        Json(GlyphResponse {
+            found: false,
+            ch: None,
+            opcode: None,
+            stratum: None,
+            rationale: None,
+        })
+    }
+}
+
+pub async fn handle_glyph_summary(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let engine = state.glyph_stratum_engine.lock().unwrap();
+    state.runtime_state.lock().unwrap().pending_synaptic_actions.push("GLYPH_SUMMARY_REQUEST".to_string());
+    engine.generate_ai_summary()
 }
 
 async fn health_check() -> impl IntoResponse {

@@ -11,33 +11,33 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.kdenlive.core.project import (
+from kdenlive.core.project import (
     create_project, open_project, save_project, get_project_info,
     list_profiles, PROFILES, PROJECT_VERSION,
 )
-from cli_anything.kdenlive.core.bin import (
+from kdenlive.core.bin import (
     import_clip, remove_clip, list_clips, get_clip, CLIP_TYPES,
 )
-from cli_anything.kdenlive.core.timeline import (
+from kdenlive.core.timeline import (
     add_track, remove_track, add_clip_to_track, remove_clip_from_track,
     trim_clip, split_clip, move_clip, list_tracks, TRACK_TYPES,
 )
-from cli_anything.kdenlive.core.filters import (
+from kdenlive.core.filters import (
     FILTER_REGISTRY, add_filter, remove_filter, set_filter_param,
     list_filters, list_available,
 )
-from cli_anything.kdenlive.core.transitions import (
+from kdenlive.core.transitions import (
     add_transition, remove_transition, set_transition, list_transitions,
     TRANSITION_TYPES,
 )
-from cli_anything.kdenlive.core.guides import (
+from kdenlive.core.guides import (
     add_guide, remove_guide, list_guides, GUIDE_TYPES,
 )
-from cli_anything.kdenlive.core.export import (
+from kdenlive.core.export import (
     generate_kdenlive_xml, list_render_presets, RENDER_PRESETS,
 )
-from cli_anything.kdenlive.core.session import Session
-from cli_anything.kdenlive.utils.mlt_xml import (
+from kdenlive.core.session import Session
+from kdenlive.utils.mlt_xml import (
     seconds_to_timecode, timecode_to_seconds, seconds_to_frames,
     frames_to_seconds, xml_escape,
 )

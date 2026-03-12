@@ -7,7 +7,7 @@ Zoom distinguishes between:
 This module handles both.
 """
 
-from cli_anything.zoom.utils.zoom_backend import api_get, api_post, api_patch
+from .zoom.utils.zoom_backend import api_get, api_post, api_patch
 
 
 def add_registrant(

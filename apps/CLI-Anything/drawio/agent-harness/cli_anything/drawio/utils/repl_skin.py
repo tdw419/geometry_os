@@ -4,7 +4,7 @@ Copy this file into your CLI package at:
     cli_anything/<software>/utils/repl_skin.py
 
 Usage:
-    from cli_anything.<software>.utils.repl_skin import ReplSkin
+    from .<software>.utils.repl_skin import ReplSkin
 
     skin = ReplSkin("shotcut", version="1.0.0")
     skin.print_banner()

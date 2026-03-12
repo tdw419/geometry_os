@@ -15,29 +15,29 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.inkscape.utils.svg_utils import (
+from inkscape.utils.svg_utils import (
     SVG_NS, INKSCAPE_NS, SODIPODI_NS, reset_id_counter,
     parse_style, serialize_svg,
 )
-from cli_anything.inkscape.core.document import (
+from inkscape.core.document import (
     create_document, save_document, open_document, save_svg,
     get_document_info, project_to_svg,
 )
-from cli_anything.inkscape.core.shapes import (
+from inkscape.core.shapes import (
     add_rect, add_circle, add_ellipse, add_line, add_polygon,
     add_path, add_star, remove_object, duplicate_object, list_objects,
 )
-from cli_anything.inkscape.core.text import add_text, set_text_property, list_text_objects
-from cli_anything.inkscape.core.styles import set_fill, set_stroke, set_opacity, set_style, get_object_style
-from cli_anything.inkscape.core.transforms import translate, rotate, scale, get_transform, clear_transform
-from cli_anything.inkscape.core.layers import add_layer, remove_layer, move_to_layer, list_layers, get_layer
-from cli_anything.inkscape.core.paths import (
+from inkscape.core.text import add_text, set_text_property, list_text_objects
+from inkscape.core.styles import set_fill, set_stroke, set_opacity, set_style, get_object_style
+from inkscape.core.transforms import translate, rotate, scale, get_transform, clear_transform
+from inkscape.core.layers import add_layer, remove_layer, move_to_layer, list_layers, get_layer
+from inkscape.core.paths import (
     path_union, path_intersection, path_difference,
     convert_to_path,
 )
-from cli_anything.inkscape.core.gradients import add_linear_gradient, add_radial_gradient, apply_gradient
-from cli_anything.inkscape.core.export import render_to_png, export_svg, list_presets
-from cli_anything.inkscape.core.session import Session
+from inkscape.core.gradients import add_linear_gradient, add_radial_gradient, apply_gradient
+from inkscape.core.export import render_to_png, export_svg, list_presets
+from inkscape.core.session import Session
 
 
 @pytest.fixture(autouse=True)
@@ -800,13 +800,13 @@ class TestInkscapeBackend:
     """Tests that verify Inkscape is installed and accessible."""
 
     def test_inkscape_is_installed(self):
-        from cli_anything.inkscape.utils.inkscape_backend import find_inkscape
+        from inkscape.utils.inkscape_backend import find_inkscape
         path = find_inkscape()
         assert os.path.exists(path)
         print(f"\n  Inkscape binary: {path}")
 
     def test_inkscape_version(self):
-        from cli_anything.inkscape.utils.inkscape_backend import get_version
+        from inkscape.utils.inkscape_backend import get_version
         version = get_version()
         assert "Inkscape" in version
         print(f"\n  Inkscape version: {version}")
@@ -817,7 +817,7 @@ class TestInkscapeExportE2E:
 
     def test_svg_to_png(self):
         """Export SVG to PNG using Inkscape."""
-        from cli_anything.inkscape.utils.inkscape_backend import export_svg_to_png
+        from inkscape.utils.inkscape_backend import export_svg_to_png
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Create a simple SVG
@@ -841,7 +841,7 @@ class TestInkscapeExportE2E:
 
     def test_svg_to_pdf(self):
         """Export SVG to PDF using Inkscape."""
-        from cli_anything.inkscape.utils.inkscape_backend import export_svg_to_pdf
+        from inkscape.utils.inkscape_backend import export_svg_to_pdf
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             svg_content = '''<?xml version="1.0" encoding="UTF-8"?>
@@ -866,7 +866,7 @@ class TestInkscapeExportE2E:
 
     def test_svg_to_png_with_dimensions(self):
         """Export SVG to PNG with specific dimensions."""
-        from cli_anything.inkscape.utils.inkscape_backend import export_svg_to_png
+        from inkscape.utils.inkscape_backend import export_svg_to_png
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             svg_content = '''<?xml version="1.0"?>

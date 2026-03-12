@@ -1032,6 +1032,134 @@
       "is_instruction": true,
       "symmetry": 1
     },
+    "200": {
+      "char": "Alloc",
+      "r": 200,
+      "g": 100,
+      "b": 100,
+      "is_instruction": true,
+      "symmetry": 3
+    },
+    "201": {
+      "char": "Free",
+      "r": 100,
+      "g": 200,
+      "b": 100,
+      "is_instruction": true,
+      "symmetry": 3
+    },
+    "202": {
+      "char": "Load",
+      "r": 100,
+      "g": 100,
+      "b": 200,
+      "is_instruction": true,
+      "symmetry": 2
+    },
+    "203": {
+      "char": "Store",
+      "r": 200,
+      "g": 200,
+      "b": 100,
+      "is_instruction": true,
+      "symmetry": 2
+    },
+    "204": {
+      "char": "Loop",
+      "r": 200,
+      "g": 100,
+      "b": 200,
+      "is_instruction": true,
+      "symmetry": 1
+    },
+    "205": {
+      "char": "Branch",
+      "r": 100,
+      "g": 200,
+      "b": 200,
+      "is_instruction": true,
+      "symmetry": 4
+    },
+    "206": {
+      "char": "Call",
+      "r": 255,
+      "g": 128,
+      "b": 0,
+      "is_instruction": true,
+      "symmetry": 1
+    },
+    "207": {
+      "char": "Ret",
+      "r": 255,
+      "g": 0,
+      "b": 128,
+      "is_instruction": true,
+      "symmetry": 3
+    },
+    "208": {
+      "char": "Data",
+      "r": 128,
+      "g": 128,
+      "b": 128,
+      "is_instruction": true,
+      "symmetry": 0
+    },
+    "209": {
+      "char": "Type",
+      "r": 150,
+      "g": 150,
+      "b": 150,
+      "is_instruction": true,
+      "symmetry": 0
+    },
+    "210": {
+      "char": "Ptr",
+      "r": 100,
+      "g": 100,
+      "b": 100,
+      "is_instruction": true,
+      "symmetry": 0
+    },
+    "211": {
+      "char": "Struct",
+      "r": 200,
+      "g": 200,
+      "b": 200,
+      "is_instruction": true,
+      "symmetry": 3
+    },
+    "212": {
+      "char": "Mod",
+      "r": 255,
+      "g": 255,
+      "b": 255,
+      "is_instruction": true,
+      "symmetry": 3
+    },
+    "213": {
+      "char": "Exp",
+      "r": 0,
+      "g": 255,
+      "b": 0,
+      "is_instruction": true,
+      "symmetry": 2
+    },
+    "214": {
+      "char": "Imp",
+      "r": 0,
+      "g": 0,
+      "b": 255,
+      "is_instruction": true,
+      "symmetry": 2
+    },
+    "215": {
+      "char": "Halt",
+      "r": 255,
+      "g": 0,
+      "b": 0,
+      "is_instruction": true,
+      "symmetry": 3
+    },
     "179": {
       "char": "\u225f",
       "r": 255,

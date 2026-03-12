@@ -26,7 +26,17 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Tuple
+
+# Font rendering for visual output
+try:
+    from systems.fonts.font_renderer import FontRenderer, find_system_font
+
+    FONT_RENDERING_AVAILABLE = True
+except ImportError:
+    FONT_RENDERING_AVAILABLE = False
+    FontRenderer = None
+    find_system_font = None
 
 from systems.infinite_map.gravity_engine import GravityEngine
 from systems.infinite_map.tectonic_updater import TectonicUpdater
@@ -47,6 +57,7 @@ try:
     from systems.evolution_daemon.brain_mutations import evaluate_brain_fitness
     from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import BrainEvolutionHook
     from systems.sisyphus.critic import SisyphusCritic
+
     BRAIN_EVOLUTION_AVAILABLE = True
 except ImportError:
     BRAIN_EVOLUTION_AVAILABLE = False
@@ -54,8 +65,8 @@ except ImportError:
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
-    format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    format="[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("SisyphusV4")
 
@@ -70,8 +81,9 @@ class CheckpointManager:
     - Validates integrity on restore
     """
 
-    def __init__(self, checkpoint_path: str = ".loop/checkpoint.json",
-                 log_path: str = ".loop/evolution.log"):
+    def __init__(
+        self, checkpoint_path: str = ".loop/checkpoint.json", log_path: str = ".loop/evolution.log"
+    ):
         self.checkpoint_path = Path(checkpoint_path)
         self.log_path = Path(log_path)
 
@@ -90,7 +102,7 @@ class CheckpointManager:
         # Ensure directory exists
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(self.log_path, 'a') as f:
+        with open(self.log_path, "a") as f:
             f.write(log_entry)
 
     def save_checkpoint(self, state: dict[str, Any]) -> bool:
@@ -114,11 +126,12 @@ class CheckpointManager:
         self.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            with open(self.checkpoint_path, 'w') as f:
+            with open(self.checkpoint_path, "w") as f:
                 json.dump(state, f, indent=2)
 
-            self._log_event(f"Checkpoint saved: task_id={state.get('task_id')}, "
-                          f"checksum={state['checksum']}")
+            self._log_event(
+                f"Checkpoint saved: task_id={state.get('task_id')}, checksum={state['checksum']}"
+            )
             return True
         except Exception as e:
             self._log_event(f"ERROR: Failed to save checkpoint: {e}")
@@ -146,13 +159,17 @@ class CheckpointManager:
 
             expected_checksum = self._compute_checksum(data)
             if data["checksum"] != expected_checksum:
-                self._log_event(f"ERROR: Checksum mismatch (expected {expected_checksum}, "
-                              f"got {data['checksum']}), discarding")
+                self._log_event(
+                    f"ERROR: Checksum mismatch (expected {expected_checksum}, "
+                    f"got {data['checksum']}), discarding"
+                )
                 self.checkpoint_path.unlink()
                 return None
 
-            self._log_event(f"Checkpoint restored: task_id={data.get('task_id')}, "
-                          f"timestamp={data.get('timestamp')}")
+            self._log_event(
+                f"Checkpoint restored: task_id={data.get('task_id')}, "
+                f"timestamp={data.get('timestamp')}"
+            )
             return data
 
         except json.JSONDecodeError as e:
@@ -197,7 +214,7 @@ class GitCommitHook:
         # Ensure directory exists
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(self.log_path, 'a') as f:
+        with open(self.log_path, "a") as f:
             f.write(log_entry)
 
     def detect_merge_conflicts(self) -> list[str]:
@@ -213,7 +230,7 @@ class GitCommitHook:
                 cwd=self.repo_path,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
 
             # UU = unmerged, both modified (conflict)
@@ -254,7 +271,7 @@ class GitCommitHook:
                     ["git", "checkout", "--ours", path],
                     cwd=self.repo_path,
                     capture_output=True,
-                    text=True
+                    text=True,
                 )
 
                 if result.returncode == 0:
@@ -272,19 +289,12 @@ class GitCommitHook:
         if resolved:
             try:
                 subprocess.run(
-                    ["git", "add"] + resolved,
-                    cwd=self.repo_path,
-                    check=True,
-                    capture_output=True
+                    ["git", "add"] + resolved, cwd=self.repo_path, check=True, capture_output=True
                 )
             except subprocess.CalledProcessError as e:
                 self._log_event(f"Failed to stage resolved files: {e}", level="ERROR")
 
-        return {
-            "success": len(failed) == 0,
-            "resolved_paths": resolved,
-            "failed_paths": failed
-        }
+        return {"success": len(failed) == 0, "resolved_paths": resolved, "failed_paths": failed}
 
     def commit_session_dna(self, force_resolve: bool = False) -> dict[str, Any]:
         """
@@ -306,30 +316,33 @@ class GitCommitHook:
                     conflict_list += f" (and {len(conflicts) - 5} more)"
 
                 if force_resolve:
-                    self._log_event(f"Merge conflicts detected: {conflict_list}. Force-resolving...", level="WARNING")
+                    self._log_event(
+                        f"Merge conflicts detected: {conflict_list}. Force-resolving...",
+                        level="WARNING",
+                    )
                     resolve_result = self.force_resolve_conflicts(conflicts)
                     if not resolve_result["success"]:
                         return {
                             "success": False,
                             "commit_sha": None,
                             "error": "force_resolve_failed",
-                            "failed_paths": resolve_result["failed_paths"]
+                            "failed_paths": resolve_result["failed_paths"],
                         }
                 else:
-                    self._log_event(f"Merge conflicts detected: {conflict_list}. Skipping commit.", level="WARNING")
+                    self._log_event(
+                        f"Merge conflicts detected: {conflict_list}. Skipping commit.",
+                        level="WARNING",
+                    )
                     return {
                         "success": False,
                         "commit_sha": None,
                         "error": "merge_conflict",
-                        "conflicted_files": conflicts
+                        "conflicted_files": conflicts,
                     }
 
             # Stage .loop/ directory
             subprocess.run(
-                ["git", "add", ".loop/"],
-                cwd=self.repo_path,
-                check=True,
-                capture_output=True
+                ["git", "add", ".loop/"], cwd=self.repo_path, check=True, capture_output=True
             )
 
             # Create commit message with timestamp
@@ -341,7 +354,7 @@ class GitCommitHook:
                 ["git", "commit", "-m", commit_msg],
                 cwd=self.repo_path,
                 capture_output=True,
-                text=True
+                text=True,
             )
 
             if result.returncode == 0:
@@ -351,47 +364,28 @@ class GitCommitHook:
                     cwd=self.repo_path,
                     check=True,
                     capture_output=True,
-                    text=True
+                    text=True,
                 )
                 commit_sha = sha_result.stdout.strip()
 
                 self._log_event(f"Commit created: {commit_sha}")
-                return {
-                    "success": True,
-                    "commit_sha": commit_sha,
-                    "nothing_to_commit": False
-                }
+                return {"success": True, "commit_sha": commit_sha, "nothing_to_commit": False}
             elif "nothing to commit" in result.stdout or "nothing to commit" in result.stderr:
                 # No changes to commit - this is fine
                 self._log_event("No changes to commit")
-                return {
-                    "success": True,
-                    "commit_sha": None,
-                    "nothing_to_commit": True
-                }
+                return {"success": True, "commit_sha": None, "nothing_to_commit": True}
             else:
                 # Some other error
                 self._log_event(f"Git commit failed: {result.stderr}", level="ERROR")
-                return {
-                    "success": False,
-                    "commit_sha": None,
-                    "error": result.stderr
-                }
+                return {"success": False, "commit_sha": None, "error": result.stderr}
 
         except subprocess.CalledProcessError as e:
             self._log_event(f"Git command failed: {e}", level="ERROR")
-            return {
-                "success": False,
-                "commit_sha": None,
-                "error": str(e)
-            }
+            return {"success": False, "commit_sha": None, "error": str(e)}
         except Exception as e:
             self._log_event(f"Unexpected error: {e}", level="ERROR")
-            return {
-                "success": False,
-                "commit_sha": None,
-                "error": str(e)
-            }
+            return {"success": False, "commit_sha": None, "error": str(e)}
+
 
 class TaskState(Enum):
     PENDING = " "
@@ -399,9 +393,11 @@ class TaskState(Enum):
     COMPLETE = "x"
     FAILED = "!"
 
+
 @dataclass
 class Task:
     """Represents a task from the state file."""
+
     number: int
     name: str
     description: str
@@ -414,6 +410,7 @@ class Task:
         if self.verification:
             return f"{self.description} - **Verification**: {self.verification}"
         return self.description
+
 
 class SisyphusDaemon:
     def __init__(
@@ -429,7 +426,7 @@ class SisyphusDaemon:
         enable_brain_evolution=False,
         performance_monitor: PerformanceMonitor | None = None,
         verbose=False,
-        budget: int | None = None
+        budget: int | None = None,
     ):
         self.state_file = Path(state_file)
         self.intent_file = Path(intent_file)
@@ -455,7 +452,9 @@ class SisyphusDaemon:
         if not session_dir:
             home = Path.home()
             # This is specific to our project structure
-            self.session_dir = home / ".pi/agent/sessions/--home-jericho-zion-projects-geometry_os-geometry-os--"
+            self.session_dir = (
+                home / ".pi/agent/sessions/--home-jericho-zion-projects-geometry_os-geometry-os--"
+            )
         else:
             self.session_dir = Path(session_dir)
 
@@ -479,9 +478,7 @@ class SisyphusDaemon:
 
         # Unified Glass Box Bridge for multi-stream output
         self.unified_bridge = UnifiedGlassBridge(
-            enable_socket=enable_heartbeat,
-            enable_shm=True,
-            enable_http=True
+            enable_socket=enable_heartbeat, enable_shm=True, enable_http=True
         )
 
         # Phase 5: Mind's Eye & Tectonic
@@ -495,7 +492,24 @@ class SisyphusDaemon:
 
         # Shared visual bridge for real-time desktop feedback
         from systems.visual_shell.api.visual_bridge import multi_vm_streamer
+
         self.visual_bridge = multi_vm_streamer
+
+        # Font rendering for visual task status
+        self.font_renderer = None
+        if FONT_RENDERING_AVAILABLE:
+            try:
+                self.font_renderer = FontRenderer()
+                # Try to load a monospace font
+                font_path = find_system_font("monospace")
+                if font_path:
+                    self.font_renderer.load(font_path, size=14)
+                    logger.info(f"Loaded font for visual task status: {font_path}")
+                else:
+                    logger.warning("No monospace font found for visual task status")
+            except Exception as e:
+                logger.warning(f"Failed to initialize font renderer: {e}")
+                self.font_renderer = None
 
         if enable_tectonic:
             # Use project_dir as watch path
@@ -503,7 +517,7 @@ class SisyphusDaemon:
                 self.gravity_engine,
                 watch_path=str(self.project_dir),
                 decay_interval=10.0,
-                visual_bridge=self.visual_bridge
+                visual_bridge=self.visual_bridge,
             )
 
         # Self-rewriting components
@@ -533,7 +547,9 @@ class SisyphusDaemon:
         self.speculative_optimizer = SpeculativeOptimizer()
         self._curiosity_enabled = True
 
-    def _save_task_checkpoint(self, task_id: int, task_name: str, extra_state: dict[str, Any] = None):
+    def _save_task_checkpoint(
+        self, task_id: int, task_name: str, extra_state: dict[str, Any] = None
+    ):
         """Save current task state to checkpoint."""
         state = {
             "task_id": task_id,
@@ -554,8 +570,10 @@ class SisyphusDaemon:
 
         checkpoint = self.checkpoint_manager.load_checkpoint()
         if checkpoint:
-            self.log(f"Found checkpoint from task {checkpoint.get('task_id')}: "
-                    f"{checkpoint.get('task_name')}")
+            self.log(
+                f"Found checkpoint from task {checkpoint.get('task_id')}: "
+                f"{checkpoint.get('task_name')}"
+            )
             return checkpoint
         return None
 
@@ -567,13 +585,13 @@ class SisyphusDaemon:
         # Add colors based on message content
         color_code = ""
         if "Task" in msg and ("complete" in msg or "✓" in msg):
-            color_code = "\033[92m" # Green
+            color_code = "\033[92m"  # Green
         elif "Task" in msg and ("failed" in msg or "✗" in msg):
-            color_code = "\033[91m" # Red
+            color_code = "\033[91m"  # Red
         elif "Task" in msg:
-            color_code = "\033[96m" # Cyan
+            color_code = "\033[96m"  # Cyan
         elif "[Curiosity]" in msg or "[Cognitive Audit]" in msg:
-            color_code = "\033[93m" # Yellow
+            color_code = "\033[93m"  # Yellow
 
         reset_code = "\033[0m" if color_code else ""
         logger.info(f"{color_code}{msg}{reset_code}")
@@ -604,9 +622,12 @@ class SisyphusDaemon:
                     verif = parts[1].strip()
 
                 state = TaskState.PENDING
-                if state_char == "→": state = TaskState.IN_PROGRESS
-                elif state_char == "x": state = TaskState.COMPLETE
-                elif state_char == "!": state = TaskState.FAILED
+                if state_char == "→":
+                    state = TaskState.IN_PROGRESS
+                elif state_char == "x":
+                    state = TaskState.COMPLETE
+                elif state_char == "!":
+                    state = TaskState.FAILED
 
                 tasks.append(Task(num, name, desc, verif, i, state))
         return tasks
@@ -624,7 +645,7 @@ class SisyphusDaemon:
             new_line = re.sub(r"^- \[[ →x!]\]", f"- [{state.value}]", line)
             lines[task.line_number] = new_line
 
-        with open(self.state_file, 'w') as f:
+        with open(self.state_file, "w") as f:
             f.writelines(lines)
 
         task.state = state
@@ -649,7 +670,9 @@ class SisyphusDaemon:
             result = subprocess.run(
                 ["git", "status", "--porcelain"],
                 cwd=self.project_dir,
-                capture_output=True, text=True, timeout=10
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             uncommitted = [line for line in result.stdout.strip().split("\n") if line]
 
@@ -660,13 +683,19 @@ class SisyphusDaemon:
                 staged = [l for l in uncommitted if l.startswith("A ") or l.startswith("M  ")]
 
                 if len(untracked) > 3:
-                    tasks.append(f"Commit Untracked Files: {len(untracked)} untracked files in project root. Review and commit relevant files, add others to .gitignore.")
+                    tasks.append(
+                        f"Commit Untracked Files: {len(untracked)} untracked files in project root. Review and commit relevant files, add others to .gitignore."
+                    )
                 elif untracked:
                     sample = untracked[0].split()[-1] if untracked else ""
-                    tasks.append(f"Commit New File: {sample} is untracked. Add to version control if relevant.")
+                    tasks.append(
+                        f"Commit New File: {sample} is untracked. Add to version control if relevant."
+                    )
 
                 if len(modified) > 5:
-                    tasks.append(f"Batch Commit Modified Files: {len(modified)} modified files need commits. Group by feature and commit with descriptive messages.")
+                    tasks.append(
+                        f"Batch Commit Modified Files: {len(modified)} modified files need commits. Group by feature and commit with descriptive messages."
+                    )
                 elif modified:
                     sample = modified[0].split()[-1] if modified else ""
                     tasks.append(f"Commit Changes: {sample} has uncommitted modifications.")
@@ -678,28 +707,45 @@ class SisyphusDaemon:
             result = subprocess.run(
                 ["python3", "-m", "pytest", "tests/", "--collect-only", "-q"],
                 cwd=self.project_dir,
-                capture_output=True, text=True, timeout=30
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
             if "ERROR" in result.stdout or result.returncode != 0:
                 error_count = result.stdout.count("ERROR")
                 if error_count > 0:
-                    tasks.append(f"Fix Test Collection Errors: {error_count} test files have collection errors. Add missing imports or skip conditions.")
+                    tasks.append(
+                        f"Fix Test Collection Errors: {error_count} test files have collection errors. Add missing imports or skip conditions."
+                    )
         except Exception:
             pass  # pytest might not be available
 
         # 3. Scan for TODO/FIXME comments
         try:
             result = subprocess.run(
-                ["grep", "-r", "-n", "-E", "(TODO|FIXME|XXX|HACK):", "systems/", "geoasm-cli/", "--include=*.py"],
+                [
+                    "grep",
+                    "-r",
+                    "-n",
+                    "-E",
+                    "(TODO|FIXME|XXX|HACK):",
+                    "systems/",
+                    "geoasm-cli/",
+                    "--include=*.py",
+                ],
                 cwd=self.project_dir,
-                capture_output=True, text=True, timeout=15
+                capture_output=True,
+                text=True,
+                timeout=15,
             )
             todos = [line for line in result.stdout.strip().split("\n") if line][:5]
 
             if todos:
                 sample = todos[0]
                 file_match = sample.split(":")[0] if ":" in sample else "source"
-                tasks.append(f"Address TODO Comment: Found in {file_match}. Review and implement or document.")
+                tasks.append(
+                    f"Address TODO Comment: Found in {file_match}. Review and implement or document."
+                )
         except Exception:
             pass
 
@@ -710,7 +756,9 @@ class SisyphusDaemon:
                 result = subprocess.run(
                     ["coverage", "report", "--include=systems/*", "--skip-covered"],
                     cwd=self.project_dir,
-                    capture_output=True, text=True, timeout=30
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
                 )
                 low_coverage = []
                 for line in result.stdout.strip().split("\n"):
@@ -725,7 +773,9 @@ class SisyphusDaemon:
                                 pass
 
                 if low_coverage:
-                    tasks.append(f"Improve Coverage: {low_coverage[0]} has <50% coverage. Add tests for uncovered branches.")
+                    tasks.append(
+                        f"Improve Coverage: {low_coverage[0]} has <50% coverage. Add tests for uncovered branches."
+                    )
             except Exception:
                 pass
 
@@ -736,22 +786,31 @@ class SisyphusDaemon:
 
         # Check exponential backoff - if we've failed recently, wait
         if self._generation_failures > 0:
-            backoff = min(2 ** self._generation_failures, self._max_backoff_seconds)
+            backoff = min(2**self._generation_failures, self._max_backoff_seconds)
             time_since_failure = time.time() - self._last_generation_failure
             if time_since_failure < backoff:
                 wait_remaining = int(backoff - time_since_failure)
-                self.log(f"[Backoff] Waiting {wait_remaining}s before retry (failures: {self._generation_failures})")
+                self.log(
+                    f"[Backoff] Waiting {wait_remaining}s before retry (failures: {self._generation_failures})"
+                )
                 time.sleep(wait_remaining)
 
         # 1. Collect heuristic tasks from codebase scan
         heuristic_tasks = self._generate_heuristic_tasks()
-        heuristic_task_text = "\n".join(f"- {t}" for t in heuristic_tasks) if heuristic_tasks else "No critical heuristics detected."
+        heuristic_task_text = (
+            "\n".join(f"- {t}" for t in heuristic_tasks)
+            if heuristic_tasks
+            else "No critical heuristics detected."
+        )
 
         # 2. Collect autonomous goals from entropy/brain analysis
         autonomous_goals = self.generate_autonomous_goals()
         autonomous_task_text = ""
         if autonomous_goals:
-            autonomous_task_text = "\n".join(f"- [ ] **{g.get('goal_type', 'Goal')}**: {g.get('rationale', 'No rationale')} (ID: {g.get('goal_id')}) - **Verification**: Check fitness/performance metrics" for g in autonomous_goals)
+            autonomous_task_text = "\n".join(
+                f"- [ ] **{g.get('goal_type', 'Goal')}**: {g.get('rationale', 'No rationale')} (ID: {g.get('goal_id')}) - **Verification**: Check fitness/performance metrics"
+                for g in autonomous_goals
+            )
         else:
             autonomous_task_text = "No autonomous goals generated."
 
@@ -773,7 +832,9 @@ class SisyphusDaemon:
                 try:
                     dna_output = subprocess.check_output(
                         ["python3", str(extractor_script), str(self.session_dir)],
-                        stderr=subprocess.STDOUT, text=True, timeout=30
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        timeout=30,
                     )
                 except Exception as e:
                     self.log(f"DNA extraction failed: {e}")
@@ -804,6 +865,7 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
 
             # Use CognitiveRouter directly (escalates to LM Studio)
             import asyncio
+
             try:
                 loop = asyncio.get_event_loop()
             except RuntimeError:
@@ -812,7 +874,9 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
 
             # High complexity for task generation
             self.log(f"Requesting new tasks from Cognitive Tech Lead (Last task: #{last_num})...")
-            response = loop.run_until_complete(self.router.generate(prompt, complexity=0.8, max_tokens=1000))
+            response = loop.run_until_complete(
+                self.router.generate(prompt, complexity=0.8, max_tokens=1000)
+            )
 
             # Check for error response from router
             if response.startswith("[Error:"):
@@ -820,7 +884,7 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                 raise Exception(response)
 
             gen_log = self.log_dir / f"generate_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-            with open(gen_log, 'w') as f:
+            with open(gen_log, "w") as f:
                 f.write(response)
 
             if response.strip():
@@ -830,13 +894,15 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                         new_tasks.append(line)
 
                 if new_tasks:
-                    with open(self.state_file, 'a') as f:
+                    with open(self.state_file, "a") as f:
                         f.write("\n" + "\n".join(new_tasks) + "\n")
                     self.log(f"✓ {len(new_tasks)} new tasks added to state file.")
                     # Reset failure counter on success
                     self._generation_failures = 0
                 else:
-                    self.log("WARNING: Tech Lead generated no tasks in the correct format. Using fallback.")
+                    self.log(
+                        "WARNING: Tech Lead generated no tasks in the correct format. Using fallback."
+                    )
                     self._use_heuristic_fallback(heuristic_tasks, autonomous_goals, last_num)
 
         except Exception as e:
@@ -847,7 +913,9 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
             # Use heuristic fallback
             self._use_heuristic_fallback(heuristic_tasks, autonomous_goals, last_num)
 
-    def _use_heuristic_fallback(self, heuristic_tasks: list[str], autonomous_goals: list[dict], last_num: int) -> None:
+    def _use_heuristic_fallback(
+        self, heuristic_tasks: list[str], autonomous_goals: list[dict], last_num: int
+    ) -> None:
         """
         Fallback task generation when cognitive engines are unavailable.
 
@@ -859,14 +927,16 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
         # Convert heuristic tasks to state file format
         task_num = last_num + 1
         for ht in heuristic_tasks[:5]:  # Max 5 heuristic tasks
-            task_line = f"- [ ] {task_num}. **Heuristic Task**: {ht} - **Verification**: Run relevant tests"
+            task_line = (
+                f"- [ ] {task_num}. **Heuristic Task**: {ht} - **Verification**: Run relevant tests"
+            )
             new_tasks.append(task_line)
             task_num += 1
 
         # Convert autonomous goals to state file format
         for goal in autonomous_goals[:5]:  # Max 5 autonomous goals
-            goal_type = goal.get('goal_type', 'Goal')
-            rationale = goal.get('rationale', 'No rationale')
+            goal_type = goal.get("goal_type", "Goal")
+            rationale = goal.get("rationale", "No rationale")
             task_line = f"- [ ] {task_num}. **{goal_type}**: {rationale} - **Verification**: Check fitness/performance metrics"
             new_tasks.append(task_line)
             task_num += 1
@@ -877,7 +947,7 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
             new_tasks.append(task_line)
 
         if new_tasks:
-            with open(self.state_file, 'a') as f:
+            with open(self.state_file, "a") as f:
                 f.write("\n" + "\n".join(new_tasks) + "\n")
             self.log(f"✓ {len(new_tasks)} fallback tasks added to state file.")
             # Reset failure counter since we successfully added tasks
@@ -892,16 +962,43 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
         self.mark_task_state(task, TaskState.IN_PROGRESS)
 
         # Stream thought to Glass Box via unified bridge
-        self.unified_bridge.stream_thought("TASK_START", {
-            "task_id": task.number,
-            "task_name": task.name,
-            "description": task.description[:100] if task.description else ""
-        })
+        self.unified_bridge.stream_thought(
+            "TASK_START",
+            {
+                "task_id": task.number,
+                "task_name": task.name,
+                "description": task.description[:100] if task.description else "",
+            },
+        )
+
+        # Render task start status visually if font renderer is available
+        if self.font_renderer and self.font_renderer.is_loaded:
+            try:
+                status_text = f"[RUN] #{task.number} {task.name[:30]}"
+                pixels, width, height = self.font_renderer.render_text(status_text)
+                # Send to visual shell via unified bridge as a visual thought
+                self.unified_bridge.stream_thought(
+                    "FONT_RENDER",
+                    {
+                        "task_id": task.number,
+                        "status": "running",
+                        "text": status_text,
+                        "width": width,
+                        "height": height,
+                        "format": "rgba8",
+                        # Note: In a real implementation, we'd send the pixel data
+                        # For now, we're signaling that rendering occurred
+                    },
+                )
+            except Exception as e:
+                logger.debug(f"Font rendering failed for task start: {e}")
 
         # Save checkpoint at task start
         self._save_task_checkpoint(task.number, task.name)
 
-        task_log = self.log_dir / f"task_{task.number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+        task_log = (
+            self.log_dir / f"task_{task.number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+        )
 
         start_time = time.time()
         try:
@@ -915,7 +1012,7 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1,
-                universal_newlines=True
+                universal_newlines=True,
             )
 
             # Non-blocking read with proper heartbeat timing
@@ -928,7 +1025,7 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                 last_line = ""
                 heartbeat_interval = 30  # seconds
 
-                with open(task_log, 'w') as f:
+                with open(task_log, "w") as f:
                     while True:
                         # Check if process has ended
                         if process.poll() is not None:
@@ -964,16 +1061,23 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                             # No output available - check heartbeat
                             if now - last_heartbeat > heartbeat_interval:
                                 elapsed = int(now - start_time)
-                                self.log(f"  [Task {task.number}] Still working... ({elapsed}s elapsed)")
+                                self.log(
+                                    f"  [Task {task.number}] Still working... ({elapsed}s elapsed)"
+                                )
                                 last_heartbeat = now
 
                                 # Stream heartbeat to bridge
-                                self.unified_bridge.stream_thought("TASK_PROGRESS", {
-                                    "task_id": task.number,
-                                    "status": "thinking",
-                                    "elapsed_seconds": elapsed,
-                                    "last_line": last_line[:100] if last_line else "(waiting for output)"
-                                })
+                                self.unified_bridge.stream_thought(
+                                    "TASK_PROGRESS",
+                                    {
+                                        "task_id": task.number,
+                                        "status": "thinking",
+                                        "elapsed_seconds": elapsed,
+                                        "last_line": last_line[:100]
+                                        if last_line
+                                        else "(waiting for output)",
+                                    },
+                                )
 
             read_lines_with_heartbeat()
 
@@ -994,10 +1098,31 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                 self.log(f"✓ Task {task.number} complete ({duration:.1f}s)")
 
                 # Stream success thought via unified bridge
-                self.unified_bridge.stream_thought("TASK_COMPLETE", {
-                    "task_id": task.number,
-                    "duration": duration
-                })
+                self.unified_bridge.stream_thought(
+                    "TASK_COMPLETE", {"task_id": task.number, "duration": duration}
+                )
+
+                # Render task completion status visually if font renderer is available
+                if self.font_renderer and self.font_renderer.is_loaded:
+                    try:
+                        status_text = f"[DONE] #{task.number} {task.name[:30]}"
+                        pixels, width, height = self.font_renderer.render_text(status_text)
+                        # Send to visual shell via unified bridge as a visual thought
+                        self.unified_bridge.stream_thought(
+                            "FONT_RENDER",
+                            {
+                                "task_id": task.number,
+                                "status": "complete",
+                                "text": status_text,
+                                "width": width,
+                                "height": height,
+                                "format": "rgba8",
+                                # Note: In a real implementation, we'd send the pixel data
+                                # For now, we're signaling that rendering occurred
+                            },
+                        )
+                    except Exception as e:
+                        logger.debug(f"Font rendering failed for task completion: {e}")
 
                 # Clear checkpoint on successful completion
                 self.checkpoint_manager.clear_checkpoint()
@@ -1008,11 +1133,14 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                 self.log(f"✗ Task {task.number} failed ({duration:.1f}s) - see {task_log}")
 
                 # Stream failure thought via unified bridge
-                self.unified_bridge.stream_thought("TASK_FAILURE", {
-                    "task_id": task.number,
-                    "error": "Subprocess exit non-zero",
-                    "log_file": str(task_log)
-                })
+                self.unified_bridge.stream_thought(
+                    "TASK_FAILURE",
+                    {
+                        "task_id": task.number,
+                        "error": "Subprocess exit non-zero",
+                        "log_file": str(task_log),
+                    },
+                )
 
         except Exception as e:
             self.log(f"Error running task {task.number}: {e}")
@@ -1046,10 +1174,7 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
         if not self.enable_self_rewriting:
             return []
 
-        return self.performance_monitor.detect_hot_spots(
-            threshold_calls=500,
-            threshold_time_ms=1.0
-        )
+        return self.performance_monitor.detect_hot_spots(threshold_calls=500, threshold_time_ms=1.0)
 
     def propose_kernel_rewrite(self) -> Task | None:
         """Create a task proposal for kernel optimization."""
@@ -1067,10 +1192,10 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
             number=0,  # Will be assigned
             name=f"Optimize {top_hot_spot.function_name}",
             description=f"Hot-spot detected: {top_hot_spot.call_count} calls, "
-                       f"{top_hot_spot.avg_time_ms:.2f}ms avg. "
-                       f"Location: {top_hot_spot.source_file}:{top_hot_spot.source_line}",
+            f"{top_hot_spot.avg_time_ms:.2f}ms avg. "
+            f"Location: {top_hot_spot.source_file}:{top_hot_spot.source_line}",
             verification=f"Profile {top_hot_spot.function_name} after optimization - "
-                       f"should show < {top_hot_spot.avg_time_ms * 0.5:.2f}ms avg"
+            f"should show < {top_hot_spot.avg_time_ms * 0.5:.2f}ms avg",
         )
 
         return task
@@ -1122,10 +1247,12 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                 # (Assuming a simplified 'generate' on brain_hook for now)
                 sample_prompt = "Once upon a time in Geometry OS"
                 from systems.visual_shell.api.pixel_brain_service import get_pixel_brain_service
+
                 brain = get_pixel_brain_service()
 
                 # Perform a quick inference run
                 import asyncio
+
                 # Check if we're in an async loop or need a runner
                 try:
                     loop = asyncio.get_event_loop()
@@ -1134,25 +1261,31 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                     asyncio.set_event_loop(loop)
 
                 # Sample the current brain
-                sample_result = loop.run_until_complete(brain.generate(sample_prompt, max_tokens=20))
-                sample_output = sample_result.get('text', '')
+                sample_result = loop.run_until_complete(
+                    brain.generate(sample_prompt, max_tokens=20)
+                )
+                sample_output = sample_result.get("text", "")
 
                 # 2. Grade the output via SisyphusCritic (Escalates to LM Studio)
-                grade = loop.run_until_complete(self.critic.grade_mutation(sample_prompt, sample_output))
-                fitness = grade.get('score', 0.5)
+                grade = loop.run_until_complete(
+                    self.critic.grade_mutation(sample_prompt, sample_output)
+                )
+                fitness = grade.get("score", 0.5)
 
                 # 3. Monitor performance hotspots (WGPU latency)
-                latency = sample_result.get('latency_ms', 150.0)
+                latency = sample_result.get("latency_ms", 150.0)
 
                 # 4. Synthesize cognitive goals
                 brain_goals = self.goal_synthesizer.synthesize_from_brain_metrics(
                     fitness_score=fitness,
                     latency_ms=latency,
-                    hot_sectors=["attention_layer_0"] # Default sector
+                    hot_sectors=["attention_layer_0"],  # Default sector
                 )
                 all_goals.extend(brain_goals)
 
-                logger.info(f"[Cognitive Audit] Fitness: {fitness:.2f} (Critic: {grade.get('decision')})")
+                logger.info(
+                    f"[Cognitive Audit] Fitness: {fitness:.2f} (Critic: {grade.get('decision')})"
+                )
 
             except Exception as e:
                 logger.error(f"Failed to generate cognitive goals: {e}")
@@ -1193,7 +1326,7 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                 "spots_found": 0,
                 "cold_spots": 0,
                 "hot_spots": 0,
-                "top_goals": []
+                "top_goals": [],
             }
 
         spots = self.entropy_mapper.map_entropy()
@@ -1206,10 +1339,12 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
             "spots_found": len(spots),
             "cold_spots": len([s for s in spots if s.entropy_type == "cold"]),
             "hot_spots": len([s for s in spots if s.entropy_type == "hot"]),
-            "top_goals": [g.to_task_dict() for g in goals[:5]]
+            "top_goals": [g.to_task_dict() for g in goals[:5]],
         }
 
-        self.log(f"[Curiosity] System Health (PAS): {health:.2f} | Goals: {len(goals)} | Entropy Spots: {len(spots)}")
+        self.log(
+            f"[Curiosity] System Health (PAS): {health:.2f} | Goals: {len(goals)} | Entropy Spots: {len(spots)}"
+        )
         for goal in goals[:3]:
             self.log(f"  - Generated Goal: {goal.goal_type} (Priority: {goal.priority:.2f})")
 
@@ -1239,18 +1374,20 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                             y=ripple.get("y", 0),
                             z=ripple.get("z", 0),
                             force=ripple.get("force", 0),
-                            radius=ripple.get("radius", 0)
+                            radius=ripple.get("radius", 0),
                         )
 
                 # Periodic telemetry broadcast (every 5 cycles)
                 if int(time.time()) % 5 == 0:
-                    self.unified_bridge.stream_telemetry({
-                        "orb_count": len(self.gravity_engine.orbs),
-                        "ripple_count": len(ripples),
-                        "gravity_health": 1.0
-                    })
+                    self.unified_bridge.stream_telemetry(
+                        {
+                            "orb_count": len(self.gravity_engine.orbs),
+                            "ripple_count": len(ripples),
+                            "gravity_health": 1.0,
+                        }
+                    )
 
-                time.sleep(1.0) # 1Hz simulation update (can be faster if needed)
+                time.sleep(1.0)  # 1Hz simulation update (can be faster if needed)
             except Exception as e:
                 logger.error(f"Gravity loop error: {e}")
                 time.sleep(5)
@@ -1310,7 +1447,9 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                 if not pending_tasks:
                     # Safety check: if we've failed too many times, pause longer
                     if self._generation_failures >= 5:
-                        self.log(f"⚠️  Generation has failed {self._generation_failures} times. Pausing for 60s...")
+                        self.log(
+                            f"⚠️  Generation has failed {self._generation_failures} times. Pausing for 60s..."
+                        )
                         time.sleep(60)
                         # Don't immediately retry - let the backoff logic work
 
@@ -1321,8 +1460,14 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                         self.log(f"All {len(tasks)} tasks complete. Triggering generation...")
                         self.generate_tasks()
                     else:
-                        non_complete = [t.number for t in tasks if t.state not in [TaskState.COMPLETE, TaskState.FAILED]]
-                        self.log(f"No pending tasks, but {len(non_complete)} tasks are in indeterminate states: {non_complete}. Waiting...")
+                        non_complete = [
+                            t.number
+                            for t in tasks
+                            if t.state not in [TaskState.COMPLETE, TaskState.FAILED]
+                        ]
+                        self.log(
+                            f"No pending tasks, but {len(non_complete)} tasks are in indeterminate states: {non_complete}. Waiting..."
+                        )
                         time.sleep(self.poll_interval)
                     continue
 
@@ -1342,19 +1487,27 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
             self.unified_bridge.disconnect()
             self.log("Unified Glass Box Bridge disconnected")
 
+
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="Sisyphus v4 Daemon")
     parser.add_argument("--budget", type=int, help="Time budget in seconds (Ralph Wiggum Mode)")
-    parser.add_argument("--intent", type=str, default=".geometry/intent/sisyphus.md", help="Intent file path")
+    parser.add_argument(
+        "--intent", type=str, default=".geometry/intent/sisyphus.md", help="Intent file path"
+    )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
-    parser.add_argument("--enable-brain-evolution", action="store_true", help="Enable brain evolution with Cognitive Tech Lead")
+    parser.add_argument(
+        "--enable-brain-evolution",
+        action="store_true",
+        help="Enable brain evolution with Cognitive Tech Lead",
+    )
     args = parser.parse_args()
 
     daemon = SisyphusDaemon(
         budget=args.budget,
         intent_file=args.intent,
         verbose=args.verbose,
-        enable_brain_evolution=args.enable_brain_evolution
+        enable_brain_evolution=args.enable_brain_evolution,
     )
     daemon.run()

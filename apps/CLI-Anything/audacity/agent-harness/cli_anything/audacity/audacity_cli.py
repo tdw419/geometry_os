@@ -25,15 +25,15 @@ from typing import Optional
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cli_anything.audacity.core.session import Session
-from cli_anything.audacity.core import project as proj_mod
-from cli_anything.audacity.core import tracks as track_mod
-from cli_anything.audacity.core import clips as clip_mod
-from cli_anything.audacity.core import effects as fx_mod
-from cli_anything.audacity.core import labels as label_mod
-from cli_anything.audacity.core import selection as sel_mod
-from cli_anything.audacity.core import media as media_mod
-from cli_anything.audacity.core import export as export_mod
+from .audacity.core.session import Session
+from .audacity.core import project as proj_mod
+from .audacity.core import tracks as track_mod
+from .audacity.core import clips as clip_mod
+from .audacity.core import effects as fx_mod
+from .audacity.core import labels as label_mod
+from .audacity.core import selection as sel_mod
+from .audacity.core import media as media_mod
+from .audacity.core import export as export_mod
 
 # Global session state
 _session: Optional[Session] = None
@@ -682,7 +682,7 @@ def repl(project_path):
     global _repl_mode
     _repl_mode = True
 
-    from cli_anything.audacity.utils.repl_skin import ReplSkin
+    from .audacity.utils.repl_skin import ReplSkin
     skin = ReplSkin("audacity", version="1.0.0")
 
     if project_path:

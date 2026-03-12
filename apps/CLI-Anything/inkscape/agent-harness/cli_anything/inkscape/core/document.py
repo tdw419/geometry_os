@@ -10,7 +10,7 @@ import os
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 
-from cli_anything.inkscape.utils.svg_utils import (
+from .inkscape.utils.svg_utils import (
     create_svg_element, serialize_svg, write_svg_file, parse_svg_file,
     SVG_NS, INKSCAPE_NS, SODIPODI_NS, find_all_shapes, _ns,
 )

@@ -23,14 +23,14 @@ from typing import Optional
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cli_anything.obs_studio.core.session import Session
-from cli_anything.obs_studio.core import project as proj_mod
-from cli_anything.obs_studio.core import scenes as scene_mod
-from cli_anything.obs_studio.core import sources as src_mod
-from cli_anything.obs_studio.core import filters as filt_mod
-from cli_anything.obs_studio.core import audio as audio_mod
-from cli_anything.obs_studio.core import transitions as trans_mod
-from cli_anything.obs_studio.core import output as out_mod
+from .obs_studio.core.session import Session
+from .obs_studio.core import project as proj_mod
+from .obs_studio.core import scenes as scene_mod
+from .obs_studio.core import sources as src_mod
+from .obs_studio.core import filters as filt_mod
+from .obs_studio.core import audio as audio_mod
+from .obs_studio.core import transitions as trans_mod
+from .obs_studio.core import output as out_mod
 
 # Global session state
 _session: Optional[Session] = None
@@ -757,7 +757,7 @@ def session_history():
 @handle_error
 def repl(project_path):
     """Start interactive REPL session."""
-    from cli_anything.obs_studio.utils.repl_skin import ReplSkin
+    from .obs_studio.utils.repl_skin import ReplSkin
 
     global _repl_mode
     _repl_mode = True

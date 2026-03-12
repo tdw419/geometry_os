@@ -11,48 +11,48 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.inkscape.utils.svg_utils import (
+from inkscape.utils.svg_utils import (
     parse_style, serialize_style, validate_color, generate_id,
     reset_id_counter, create_svg_element, serialize_svg,
     find_defs, find_element_by_id, remove_element_by_id,
     SVG_NS, INKSCAPE_NS,
 )
-from cli_anything.inkscape.core.document import (
+from inkscape.core.document import (
     create_document, open_document, save_document, get_document_info,
     set_canvas_size, set_units, list_profiles, PROFILES, VALID_UNITS,
     project_to_svg, save_svg,
 )
-from cli_anything.inkscape.core.shapes import (
+from inkscape.core.shapes import (
     add_rect, add_circle, add_ellipse, add_line, add_polygon,
     add_path, add_star, remove_object, duplicate_object,
     list_objects, get_object, SHAPE_TYPES,
 )
-from cli_anything.inkscape.core.text import (
+from inkscape.core.text import (
     add_text, set_text_property, list_text_objects, TEXT_PROPERTIES,
 )
-from cli_anything.inkscape.core.styles import (
+from inkscape.core.styles import (
     set_fill, set_stroke, set_opacity, set_style,
     list_style_properties, get_object_style, STYLE_PROPERTIES,
 )
-from cli_anything.inkscape.core.transforms import (
+from inkscape.core.transforms import (
     translate, rotate, scale, skew_x, skew_y,
     get_transform, set_transform, clear_transform,
     parse_transform_string, serialize_transform_string,
 )
-from cli_anything.inkscape.core.layers import (
+from inkscape.core.layers import (
     add_layer, remove_layer, move_to_layer, set_layer_property,
     list_layers, reorder_layers, get_layer,
 )
-from cli_anything.inkscape.core.paths import (
+from inkscape.core.paths import (
     path_union, path_intersection, path_difference, path_exclusion,
     convert_to_path, list_path_operations, PATH_OPERATIONS, CONVERTIBLE_TYPES,
 )
-from cli_anything.inkscape.core.gradients import (
+from inkscape.core.gradients import (
     add_linear_gradient, add_radial_gradient, apply_gradient,
     list_gradients, get_gradient, remove_gradient,
 )
-from cli_anything.inkscape.core.export import EXPORT_PRESETS, list_presets
-from cli_anything.inkscape.core.session import Session
+from inkscape.core.export import EXPORT_PRESETS, list_presets
+from inkscape.core.session import Session
 
 
 @pytest.fixture(autouse=True)

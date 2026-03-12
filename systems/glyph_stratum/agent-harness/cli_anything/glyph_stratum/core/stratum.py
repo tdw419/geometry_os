@@ -139,8 +139,17 @@ class ProvenanceInfo:
 
 @dataclass
 class GlyphMetadata:
-    """Glyph metadata structure."""
+    """Glyph metadata structure.
+
+    Dependencies vs Runtime References:
+    - dependencies: Construction-time deps (must be DAG) - what must exist to BUILD this glyph
+    - runtime_refs: Execution-time calls (can be cyclic) - what gets CALLED when running
+
+    Example: parse_object() depends on parse_value() at runtime for nested objects,
+    but they're built independently. So parse_value is a runtime_ref, not a dependency.
+    """
     dependencies: List[int] = field(default_factory=list)
+    runtime_refs: List[int] = field(default_factory=list)  # Can be cyclic (for recursion)
     invariants: dict = field(default_factory=dict)
     provenance: ProvenanceInfo = field(default_factory=ProvenanceInfo)
     rationale: str = ""
@@ -148,6 +157,7 @@ class GlyphMetadata:
     def to_dict(self) -> dict:
         return {
             "dependencies": self.dependencies,
+            "runtime_refs": self.runtime_refs,
             "invariants": self.invariants,
             "provenance": self.provenance.to_dict(),
             "rationale": self.rationale,
@@ -157,6 +167,7 @@ class GlyphMetadata:
     def from_dict(cls, data: dict) -> "GlyphMetadata":
         return cls(
             dependencies=data.get("dependencies", []),
+            runtime_refs=data.get("runtime_refs", []),
             invariants=data.get("invariants", {}),
             provenance=ProvenanceInfo.from_dict(data.get("provenance", {})),
             rationale=data.get("rationale", ""),
@@ -207,9 +218,10 @@ class GlyphInfo:
         if "metadata" in data:
             metadata = GlyphMetadata.from_dict(data["metadata"])
         else:
-            # Flat format: dependencies/invariants/rationale at top level
+            # Flat format: dependencies/invariants/rationale/runtime_refs at top level
             metadata = GlyphMetadata(
                 dependencies=data.get("dependencies", []),
+                runtime_refs=data.get("runtime_refs", []),
                 invariants=data.get("invariants", {}),
                 rationale=data.get("rationale", ""),
                 provenance=ProvenanceInfo()

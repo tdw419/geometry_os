@@ -15,7 +15,7 @@ import time
 import pytest
 from click.testing import CliRunner
 
-from cli_anything.zoom.zoom_cli import cli
+from zoom.zoom_cli import cli
 
 
 # Skip all E2E tests unless explicitly enabled

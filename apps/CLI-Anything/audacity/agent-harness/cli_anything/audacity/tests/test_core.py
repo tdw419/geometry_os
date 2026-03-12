@@ -12,25 +12,25 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.audacity.core.project import (
+from audacity.core.project import (
     create_project, open_project, save_project, get_project_info, set_settings,
 )
-from cli_anything.audacity.core.tracks import (
+from audacity.core.tracks import (
     add_track, remove_track, get_track, set_track_property, list_tracks,
 )
-from cli_anything.audacity.core.clips import (
+from audacity.core.clips import (
     add_clip, remove_clip, trim_clip, split_clip, move_clip, list_clips,
 )
-from cli_anything.audacity.core.effects import (
+from audacity.core.effects import (
     EFFECT_REGISTRY, list_available, get_effect_info, validate_params,
     add_effect, remove_effect, set_effect_param, list_effects,
 )
-from cli_anything.audacity.core.labels import add_label, remove_label, list_labels
-from cli_anything.audacity.core.selection import set_selection, select_all, select_none, get_selection
-from cli_anything.audacity.core.session import Session
-from cli_anything.audacity.core.media import probe_audio, check_media, get_duration
-from cli_anything.audacity.core.export import list_presets, get_preset_info, EXPORT_PRESETS
-from cli_anything.audacity.utils.audio_utils import (
+from audacity.core.labels import add_label, remove_label, list_labels
+from audacity.core.selection import set_selection, select_all, select_none, get_selection
+from audacity.core.session import Session
+from audacity.core.media import probe_audio, check_media, get_duration
+from audacity.core.export import list_presets, get_preset_info, EXPORT_PRESETS
+from audacity.utils.audio_utils import (
     generate_sine_wave, generate_silence, mix_audio, apply_gain,
     apply_fade_in, apply_fade_out, apply_reverse, apply_echo,
     apply_low_pass, apply_high_pass, apply_normalize, apply_change_speed,

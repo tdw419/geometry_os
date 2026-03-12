@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlyphStratum WebAssembly Runtime Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+ font-family: 'SF Mono', 'Monaco', monospace; background: #0d1117; color: #c9d1d9; padding: 20px; }
+        h1 { color: #58a6ff; margin-bottom: 20px; }
+        h2 { color: #8b949e; font-size: 14px; margin: 20px 0 10px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 15px; }
+        .btn { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; margin: 5px; }
+        .btn:hover { background: #30363d; }
+        .btn.primary { background: #238636; border-color: #238636; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        textarea { width: 100%; height: 200px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; font-family: inherit; font-size: 11px; padding: 10px; resize: vertical; }
+        .output { background: #0d1117; border: 1px solid #30363d; border-radius: 4px; padding: 10px; font-size: 11px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+        .status { padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .status.success { background: #23863620; border: 1px solid #238636; }
+        .status.error { background: #f8514920; border: 1px solid #f85149; }
+        .status.info { background: #58a6ff20; border: 1px solid #58a6ff; }
+        .glyph-item { background: #21262d; border: 1px solid #30363d; border-radius: 4px; padding: 8px; margin: 5px 0; font-size: 11px; }
+        .glyph-item.executed { border-color: #7ee787; }
+        .stratum-badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-right: 5px; }
+        .stratum-SUBSTRATE { background: #6e7681; }
+        .stratum-MEMORY { background: #a371f7; color: #fff; }
+        .stratum-LOGIC { background: #7ee787; color: #000; }
+        .stratum-SPEC { background: #58a6ff; color: #fff; }
+        .stratum-INTENT { background: #ffd700; color: #000; }
+        .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0; }
+        .metric { background: #21262d; border-radius: 4px; padding: 10px; text-align: center; }
+        .metric .value { font-size: 24px; font-weight: bold; color: #58a6ff; }
+        .metric .label { font-size: 10px; color: #8b949e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ GlyphStratum WebAssembly Runtime</h1>
+
+        <div id="status" class="status info">
+Loading runtime...</div>
+
+        <div class="metrics">
+            <div class="metric">
+                <div class="value" id="metric-glyphs">0</div>
+                <div class="label">Glyphs</div>
+            </div>
+            <div class="metric">
+                <div class="value" id="metric-executed">0</div>
+                <div class="label">Executed</div>
+            </div>
+            <div class="metric">
+                <div class="value" id="metric-time">0</div>
+                <div class="label">Time (ms)</div>
+            </div>
+            <div class="metric">
+                <div class="value" id="metric-result">-</</div>
+                <div class="label">Result</div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="panel">
+                <h2>Program Input</h2>
+                <textarea id="program-input">{
+  "name": "add_demo",
+  "glyphs": {
+    "0": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "5", "dependencies": [], "invariants": {"value": 5}},
+    "1": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "3", "dependencies": [], "invariants": {"value": 3}},
+    "2": {"stratum": "MEMORY", "opcode": "LOAD", "rationale": "load a", "dependencies": [0]},
+    "3": {"stratum": "MEMORY", "opcode": "LOAD", "rationale": "load b", "dependencies": [1]},
+    "4": {"stratum": "LOGIC", "opcode": "CALL", "rationale": "a + b", "dependencies": [2, 3]},
+    "5": {"stratum": "SPEC", "opcode": "EXPORT", "rationale": "add interface", "dependencies": [4]},
+    "6": {"stratum": "INTENT", "opcode": "MODULE", "rationale": "add two numbers", "dependencies": [5]}
+  }
+}</textarea>
+                <div style="margin-top: 10px;">
+                    <button class="btn" onclick="loadSample('add')">Sample: Add</button>
+                    <button class="btn" onclick="loadSample('multiply')">Sample: Multiply</button>
+                    <button class="btn" onclick="loadSample('factorial')">Sample: Factorial</button>
+                    <button class="btn" onclick="loadSample('math_ops')">Sample: Math</button>
+                    <button class="btn" onclick="loadSample('compare_ops')">Sample: Compare</button>
+                    <button class="btn" onclick="loadSample('string_ops')">Sample: String</button>
+                    <button class="btn" onclick="loadSample('array_ops')">Sample: Array</button>
+                </div>
+                <div style="margin-top: 10px;">
+                    <button class="btn primary" id="btn-execute" onclick="executeProgram()" disabled>▶ Execute</button>
+                    <button class="btn" onclick="clearProgram()">Clear</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Execution Trace</h2>
+                <div id="trace-output" class="output">
+                    <p style="color: #8b949e;">Load a program and click Execute</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top: 20px;">
+            <h2>Execution Log</h2>
+            <div id="log-output" class="output">
+                <p style="color: #8b949e;">Execution logs will appear here</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="wasm/glyph_runtime.js"></script>
+    <script>
+        const runtime = new WasmRuntime();
+        let programLoaded = false;
+
+        const samples = {
+            add: {
+                name: "add_demo",
+                glyphs: {
+                    "0": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "5", "dependencies": [], "invariants": {"value": 5}},
+                    "1": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "3", "dependencies": [], "invariants": {"value": 3}},
+                    "2": {"stratum": "MEMORY", "opcode": "LOAD", "rationale": "load a", "dependencies": [0]},
+                    "3": {"stratum": "MEMORY", "opcode": "LOAD", "rationale": "load b", "dependencies": [1]},
+                    "4": {"stratum": "LOGIC", "opcode": "CALL", "rationale": "a + b", "dependencies": [2, 3]},
+                    "5": {"stratum": "SPEC", "opcode": "EXPORT", "rationale": "add interface", "dependencies": [4]},
+                    "6": {"stratum": "INTENT", "opcode": "MODULE", "rationale": "add two numbers", "dependencies": [5]}
+                }
+            },
+            multiply: {
+                name: "multiply_demo",
+                glyphs: {
+                    "0": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "7", "dependencies": [], "invariants": {"value": 7}},
+                    "1": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "6", "dependencies": [], "invariants": {"value": 6}},
+                    "2": {"stratum": "MEMORY", "opcode": "LOAD", "rationale": "load a", "dependencies": [0]},
+                    "3": {"stratum": "MEMORY", "opcode": "LOAD", "rationale": "load b", "dependencies": [1]},
+                    "4": {"stratum": "LOGIC", "opcode": "CALL", "rationale": "a * b", "dependencies": [2, 3]},
+                    "5": {"stratum": "SPEC", "opcode": "EXPORT", "rationale": "multiply interface", "dependencies": [4]},
+                    "6": {"stratum": "INTENT", "opcode": "MODULE", "rationale": "multiply two numbers", "dependencies": [5]}
+                }
+            },
+            factorial: {
+                name: "factorial_demo",
+                glyphs: {
+                    "0": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "5", "dependencies": [], "invariants": {"value": 5}},
+                    "1": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "1", "dependencies": [], "invariants": {"value": 1}},
+                    "2": {"stratum": "MEMORY", "opcode": "LOAD", "rationale": "load n", "dependencies": [0]},
+                    "3": {"stratum": "MEMORY", "opcode": "LOAD", "rationale": "load 1", "dependencies": [1]},
+                    "4": {"stratum": "LOGIC", "opcode": "BRANCH", "rationale": "n <= 1?", "dependencies": [2, 3]},
+                    "5": {"stratum": "LOGIC", "opcode": "RETURN", "rationale": "return 1", "dependencies": [3, 4]},
+                    "6": {"stratum": "SPEC", "opcode": "EXPORT", "rationale": "factorial interface", "dependencies": [5]},
+                    "7": {"stratum": "INTENT", "opcode": "MODULE", "rationale": "factorial", "dependencies": [6]}
+                }
+            },
+            math_ops: {
+                name: "math_demo",
+                glyphs: {
+                    "0": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "10", "dependencies": [], "invariants": {"value": 10}},
+                    "1": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "3", "dependencies": [], "invariants": {"value": 3}},
+                    "2": {"stratum": "LOGIC", "opcode": "add", "rationale": "10 + 3", "dependencies": [0, 1]},
+                    "3": {"stratum": "LOGIC", "opcode": "sub", "rationale": "10 - 3", "dependencies": [0, 1]},
+                    "4": {"stratum": "LOGIC", "opcode": "mul", "rationale": "10 * 3", "dependencies": [0, 1]},
+                    "5": {"stratum": "LOGIC", "opcode": "div", "rationale": "10 / 3", "dependencies": [0, 1]},
+                    "6": {"stratum": "LOGIC", "opcode": "mod", "rationale": "10 % 3", "dependencies": [0, 1]},
+                    "7": {"stratum": "LOGIC", "opcode": "neg", "rationale": "-10", "dependencies": [0]},
+                    "8": {"stratum": "LOGIC", "opcode": "abs", "rationale": "|10|", "dependencies": [0]},
+                    "9": {"stratum": "SPEC", "opcode": "EXPORT", "rationale": "math interface", "dependencies": [2, 3, 4, 5, 6, 7, 8]},
+                    "10": {"stratum": "INTENT", "opcode": "MODULE", "rationale": "math operations", "dependencies": [9]}
+                }
+            },
+            compare_ops: {
+                name: "compare_demo",
+                glyphs: {
+                    "0": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "5", "dependencies": [], "invariants": {"value": 5}},
+                    "1": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "10", "dependencies": [], "invariants": {"value": 10}},
+                    "2": {"stratum": "LOGIC", "opcode": "eq", "rationale": "5 == 10", "dependencies": [0, 1]},
+                    "3": {"stratum": "LOGIC", "opcode": "ne", "rationale": "5 != 10", "dependencies": [0, 1]},
+                    "4": {"stratum": "LOGIC", "opcode": "lt", "rationale": "5 < 10", "dependencies": [0, 1]},
+                    "5": {"stratum": "LOGIC", "opcode": "le", "rationale": "5 <= 10", "dependencies": [0, 1]},
+                    "6": {"stratum": "LOGIC", "opcode": "gt", "rationale": "5 > 10", "dependencies": [0, 1]},
+                    "7": {"stratum": "LOGIC", "opcode": "ge", "rationale": "5 >= 10", "dependencies": [0, 1]},
+                    "8": {"stratum": "SPEC", "opcode": "EXPORT", "rationale": "compare interface", "dependencies": [2, 3, 4, 5, 6, 7]},
+                    "9": {"stratum": "INTENT", "opcode": "MODULE", "rationale": "compare operations", "dependencies": [8]}
+                }
+            },
+            string_ops: {
+                name: "string_demo",
+                glyphs: {
+                    "0": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "Hello", "dependencies": [], "invariants": {"value": "Hello"}},
+                    "1": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "World", "dependencies": [], "invariants": {"value": "World"}},
+                    "2": {"stratum": "LOGIC", "opcode": "concat", "rationale": "Hello + World", "dependencies": [0, 1]},
+                    "3": {"stratum": "LOGIC", "opcode": "len", "rationale": "len(Hello)", "dependencies": [0]},
+                    "4": {"stratum": "SPEC", "opcode": "EXPORT", "rationale": "string interface", "dependencies": [2, 3]},
+                    "5": {"stratum": "INTENT", "opcode": "MODULE", "rationale": "string operations", "dependencies": [4]}
+                }
+            },
+            array_ops: {
+                name: "array_demo",
+                glyphs: {
+                    "0": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "[]", "dependencies": [], "invariants": {"value": []}},
+                    "1": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "1", "dependencies": [], "invariants": {"value": 1}},
+                    "2": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "2", "dependencies": [], "invariants": {"value": 2}},
+                    "3": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "3", "dependencies": [], "invariants": {"value": 3}},
+                    "4": {"stratum": "LOGIC", "opcode": "push", "rationale": "push 1", "dependencies": [0, 1]},
+                    "5": {"stratum": "LOGIC", "opcode": "push", "rationale": "push 2", "dependencies": [4, 2]},
+                    "6": {"stratum": "LOGIC", "opcode": "push", "rationale": "push 3", "dependencies": [5, 3]},
+                    "7": {"stratum": "LOGIC", "opcode": "arraylen", "rationale": "length", "dependencies": [6]},
+                    "8": {"stratum": "SUBSTRATE", "opcode": "DATA", "rationale": "0", "dependencies": [], "invariants": {"value": 0}},
+                    "9": {"stratum": "LOGIC", "opcode": "get", "rationale": "get[0]", "dependencies": [6, 8]},
+                    "10": {"stratum": "LOGIC", "opcode": "pop", "rationale": "pop", "dependencies": [6]},
+                    "11": {"stratum": "SPEC", "opcode": "EXPORT", "rationale": "array interface", "dependencies": [7, 9, 10]},
+                    "12": {"stratum": "INTENT", "opcode": "MODULE", "rationale": "array operations", "dependencies": [11]}
+                }
+            }
+        };
+
+        async function init() {
+            const status = document.getElementById('status');
+            const btn = document.getElementById('btn-execute');
+
+            try {
+                const loaded = await runtime.load('wasm/glyph_runtime.wasm');
+                if (loaded) {
+                    status.className = 'status success';
+                    status.textContent = '✓ WebAssembly runtime loaded and ready!';
+                    btn.disabled = false;
+                programLoaded = true;
+                } else {
+                    status.className = 'status info';
+                    status.textContent = '✓ Pure JS mode ready (WASM not compiled)';
+                    btn.disabled = false;
+                    programLoaded = true;
+                }
+            } catch (error) {
+                status.className = 'status error';
+                status.textContent = `✗ Error: ${error.message}`;
+            }
+        }
+
+        function loadSample(name) {
+            if (samples[name]) {
+                document.getElementById('program-input').value = JSON.stringify(samples[name], null, 2);
+            }
+        }
+
+        function executeProgram() {
+            const logOutput = document.getElementById('log-output');
+            const traceOutput = document.getElementById('trace-output')
+            logOutput.innerHTML = '';
+
+            function log(msg) {
+                const p = document.createElement('p');
+                p.textContent = msg;
+                logOutput.appendChild(p);
+            }
+
+            try {
+                const programJson = JSON.parse(document.getElementById('program-input').value);
+                log(`Loaded program: ${programJson.name || 'unnamed'}`);
+                log(`Glyphs: ${Object.keys(programJson.glyphs || {}).length}`);
+
+                // Execute with timing
+                const startTime = performance.now()
+                const result = runtime.executeWithTrace(programJson)
+                const endTime = performance.now()
+
+                // Update metrics
+                document.getElementById('metric-glyphs').textContent = result.glyphCount;
+                document.getElementById('metric-executed').textContent = result.trace.filter(t => t.executed).length
+                document.getElementById('metric-time').textContent = (endTime - startTime).toFixed(1)
+                document.getElementById('metric-result').textContent = result.result.resultGlyph || '-';
+
+                // Display trace
+                traceOutput.innerHTML = '';
+                for (const item of result.trace) {
+                    const div = document.createElement('div');
+                    div.className = `glyph-item ${item.executed ? 'executed' : ''}`;
+                    div.innerHTML = `
+                        <span class="stratum-badge stratum-${item.stratum}">${item.stratum}</span>
+                        <span style="color: #58a6ff">#${item.glyphId}</span>
+                        <span style="color: #8b949e">${item.opcode}</span>
+                        <span style="float: right; color: ${item.executed ? '#7ee787' : '#f85149'}">${item.executed ? '✓' : '✗'}</span>
+                    `;
+                    traceOutput.appendChild(div);
+                }
+
+                log(`Execution completed in ${(endTime - startTime).toFixed(1)}ms`);
+                log(`Result glyph: #${result.result.resultGlyph}`);
+
+                if (result.result.error) {
+                    log(`Error code: ${result.result.error}`);
+                }
+
+            } catch (error) {
+                log(`Error: ${error.message}`)
+            }
+        }
+
+        function clearProgram() {
+            runtime.clear();
+            document.getElementById('trace-output').innerHTML = '<p style="color: #8b949e;">Cleared</p>';
+            document.getElementById('log-output').innerHTML = '<p style="color: #8b949e;">Cleared</p>';
+            document.getElementById('metric-glyphs').textContent = '0';
+            document.getElementById('metric-executed').textContent = '01';
+            document.getElementById('metric-time').textContent = '01';
+            document.getElementById('metric-result').textContent = '-';
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

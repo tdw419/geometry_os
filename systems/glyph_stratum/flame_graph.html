@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlyphStratum Flame Graph</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', monospace;
+            background: #0d1117;
+            color: #c9d1d9;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            padding: 15px 20px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            color: #58a6ff;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: inherit;
+        }
+
+        .btn:hover { background: #30363d; }
+        .btn.primary { background: #238636; border-color: #238636; }
+
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #161b22;
+            border-right: 1px solid #30363d;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .sidebar h3 {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 10px;
+        }
+
+        .load-section {
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            display: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .stat-box .value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #58a6ff;
+        }
+
+        .stat-box .label {
+            font-size: 10px;
+            color: #8b949e;
+            margin-top: 4px;
+        }
+
+        .glyph-list {
+            margin-top: 15px;
+        }
+
+        .glyph-item {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .glyph-item:hover { background: #30363d; }
+        .glyph-item.selected { border-color: #58a6ff; }
+
+        .glyph-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .glyph-item-id { font-weight: bold; color: #58a6ff; }
+        .glyph-item-time { color: #7ee787; font-size: 11px; }
+
+        .flame-container {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        #flame-svg {
+            width: 100%;
+            min-height: 400px;
+        }
+
+        .flame-bar {
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .flame-bar:hover {
+            opacity: 0.8;
+        }
+
+        .flame-label {
+            font-size: 10px;
+            font-family: 'SF Mono', monospace;
+            fill: #fff;
+            pointer-events: none;
+        }
+
+        .stratum-INTENT { fill: #ffd700; }
+        .stratum-SPEC { fill: #58a6ff; }
+        .stratum-LOGIC { fill: #7ee787; }
+        .stratum-MEMORY { fill: #a371f7; }
+        .stratum-SUBSTRATE { fill: #6e7681; }
+
+        .tooltip {
+            position: fixed;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 11px;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            max-width: 300px;
+        }
+
+        .tooltip .title {
+            font-weight: bold;
+            color: #58a6ff;
+            margin-bottom: 5px;
+        }
+
+        .tooltip .detail {
+            color: #8b949e;
+            margin: 2px 0;
+        }
+
+        .tooltip .time {
+            color: #7ee787;
+            margin-top: 5px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            padding: 10px;
+            background: #161b22;
+            border-top: 1px solid #30363d;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #8b949e;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 GlyphStratum Flame Graph</h1>
+            <div class="controls">
+                <button class="btn" onclick="loadSample()">Load Sample</button>
+                <button class="btn" onclick="zoomIn()">Zoom In</button>
+                <button class="btn" onclick="zoomOut()">Zoom Out</button>
+                <button class="btn" onclick="resetView()">Reset</button>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="sidebar">
+                <div class="load-section">
+                    <h3>Load Profile Data</h3>
+                    <div class="file-input-wrapper">
+                        <button class="btn primary" onclick="document.getElementById('file-input').click()">
+                            Import JSON
+                        </button>
+                        <input type="file" id="file-input" accept=".json" onchange="loadFile(event)">
+                    </div>
+                </div>
+
+                <div class="stats-grid" id="stats-grid" style="display: none;">
+                    <div class="stat-box">
+                        <div class="value" id="stat-total">0</div>
+                        <div class="label">Total (ms)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="stat-glyphs">0</div>
+                        <div class="label">Glyphs</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="stat-avg">0</div>
+                        <div class="label">Avg (ms)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="stat-coherence">0%</div>
+                        <div class="label">Coherence</div>
+                    </div>
+                </div>
+
+                <div class="glyph-list" id="glyph-list"></div>
+            </div>
+
+            <div class="flame-container" id="flame-container">
+                <div class="empty-state" id="empty-state">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    <div>Load a profile to view flame graph</div>
+                    <div style="font-size: 11px; margin-top: 5px;">Click "Load Sample" or import a JSON file</div>
+                </div>
+                <svg id="flame-svg" style="display: none;"></svg>
+            </div>
+        </div>
+
+        <div class="legend" id="legend" style="display: none;">
+            <div class="legend-item">
+                <div class="legend-color stratum-INTENT"></div>
+                <span>INTENT</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color stratum-SPEC"></div>
+                <span>SPEC</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color stratum-LOGIC"></div>
+                <span>LOGIC</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color stratum-MEMORY"></div>
+                <span>MEMORY</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color stratum-SUBSTRATE"></div>
+                <span>SUBSTRATE</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip">
+        <div class="title" id="tooltip-title"></div>
+        <div class="detail" id="tooltip-stratum"></div>
+        <div class="detail" id="tooltip-opcode"></div>
+        <div class="time" id="tooltip-time"></div>
+    </div>
+
+    <script>
+        // State
+        let profileData = null;
+        let glyphs = {};
+        let totalTime = 0;
+        let zoomLevel = 1;
+        let selectedGlyph = null;
+
+        const STRATUM_ORDER = { SUBSTRATE: 0, MEMORY: 1, LOGIC: 2, SPEC: 3, INTENT: 4 };
+        const STRATUM_COLORS = {
+            INTENT: '#ffd700',
+            SPEC: '#58a6ff',
+            LOGIC: '#7ee787',
+            MEMORY: '#a371f7',
+            SUBSTRATE: '#6e7681'
+        };
+
+        // Sample profile data
+        const sampleProfile = {
+            program_name: "sample_add",
+            total_glyphs: 7,
+            total_time_ms: 5.23,
+            avg_time_per_glyph_ms: 0.75,
+            coherence: 100,
+            profiles: [
+                { glyph_id: 0, stratum: "SUBSTRATE", opcode: "DATA", rationale: "operand a", execution_time_ms: 0.05, is_bottleneck: false },
+                { glyph_id: 1, stratum: "SUBSTRATE", opcode: "DATA", rationale: "operand b", execution_time_ms: 0.04, is_bottleneck: false },
+                { glyph_id: 2, stratum: "MEMORY", opcode: "LOAD", rationale: "load a", execution_time_ms: 0.12, is_bottleneck: false },
+                { glyph_id: 3, stratum: "MEMORY", opcode: "LOAD", rationale: "load b", execution_time_ms: 0.11, is_bottleneck: false },
+                { glyph_id: 4, stratum: "LOGIC", opcode: "CALL", rationale: "a + b", execution_time_ms: 2.50, is_bottleneck: true },
+                { glyph_id: 5, stratum: "SPEC", opcode: "EXPORT", rationale: "add interface", execution_time_ms: 0.08, is_bottleneck: false },
+                { glyph_id: 6, stratum: "INTENT", opcode: "MODULE", rationale: "add two numbers", execution_time_ms: 0.02, is_bottleneck: false }
+            ],
+            hot_path: [0, 2, 4, 5, 6],
+            bottlenecks: [4],
+            strata_breakdown: { SUBSTRATE: 0.09, MEMORY: 0.23, LOGIC: 2.50, SPEC: 0.08, INTENT: 0.02 }
+        };
+
+        function loadSample() {
+            processProfile(sampleProfile);
+        }
+
+        function loadFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    processProfile(data);
+                } catch (err) {
+                    alert('Invalid JSON file: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function processProfile(data) {
+            profileData = data;
+            glyphs = {};
+
+            // Build glyph map
+            for (const profile of data.profiles || []) {
+                glyphs[profile.glyph_id] = profile;
+            }
+
+            totalTime = data.total_time_ms || 0;
+
+            // Update stats
+            document.getElementById('stats-grid').style.display = 'grid';
+            document.getElementById('stat-total').textContent = totalTime.toFixed(2);
+            document.getElementById('stat-glyphs').textContent = data.total_glyphs || 0;
+            document.getElementById('stat-avg').textContent = (data.avg_time_per_glyph_ms || 0).toFixed(2);
+            document.getElementById('stat-coherence').textContent = (data.coherence || 0) + '%';
+
+            // Render glyph list
+            renderGlyphList();
+
+            // Render flame graph
+            renderFlameGraph();
+
+            // Show elements
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('flame-svg').style.display = 'block';
+            document.getElementById('legend').style.display = 'flex';
+        }
+
+        function renderGlyphList() {
+            const container = document.getElementById('glyph-list');
+            container.innerHTML = '<h3>Glyphs by Time</h3>';
+
+            const sorted = Object.values(glyphs).sort((a, b) => b.execution_time_ms - a.execution_time_ms);
+
+            for (const glyph of sorted) {
+                const item = document.createElement('div');
+                item.className = 'glyph-item' + (glyph.is_bottleneck ? ' selected' : '');
+                item.onclick = () => highlightGlyph(glyph.glyph_id);
+
+                const pct = (glyph.execution_time_ms / totalTime * 100).toFixed(1);
+                item.innerHTML = `
+                    <div class="glyph-item-header">
+                        <span class="glyph-item-id">#${glyph.glyph_id} ${glyph.stratum}</span>
+                        <span class="glyph-item-time">${glyph.execution_time_ms.toFixed(2)}ms (${pct}%)</span>
+                    </div>
+                    <div style="font-size: 10px; color: #8b949e; margin-top: 4px;">
+                        ${glyph.opcode} - ${glyph.rationale.substring(0, 25)}
+                    </div>
+                `;
+                container.appendChild(item);
+            }
+        }
+
+        function renderFlameGraph() {
+            const svg = document.getElementById('flame-svg');
+            svg.innerHTML = '';
+
+            const width = svg.clientWidth || 800;
+            const padding = { top: 20, right: 20, bottom: 30, left: 60 };
+            const barHeight = 25;
+            const barGap = 2;
+
+            // Group glyphs by stratum (depth)
+            const strataGroups = {};
+            for (const [id, glyph] of Object.entries(glyphs)) {
+                const stratum = glyph.stratum;
+                if (!strataGroups[stratum]) {
+                    strataGroups[stratum] = [];
+                }
+                strataGroups[stratum].push(glyph);
+            }
+
+            // Order strata
+            const strataOrder = ['SUBSTRATE', 'MEMORY', 'LOGIC', 'SPEC', 'INTENT'];
+            const maxTime = totalTime;
+
+            let yOffset = padding.top;
+
+            // Create main group
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.setAttribute('transform', `scale(${zoomLevel})`);
+            svg.appendChild(g);
+
+            // Draw each stratum row
+            for (const stratum of strataOrder) {
+                const glyphsInStratum = strataGroups[stratum] || [];
+                if (glyphsInStratum.length === 0) continue;
+
+                // Sort by ID for consistent layout
+                glyphsInStratum.sort((a, b) => a.glyph_id - b.glyph_id);
+
+                // Calculate bar widths (proportional to time)
+                let xOffset = padding.left;
+
+                // Stratum label
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', padding.left - 10);
+                label.setAttribute('y', yOffset + barHeight / 2 + 4);
+                label.setAttribute('text-anchor', 'end');
+                label.setAttribute('fill', '#8b949e');
+                label.setAttribute('font-size', '10');
+                label.textContent = stratum;
+                g.appendChild(label);
+
+                // Draw bars for each glyph
+                for (const glyph of glyphsInStratum) {
+                    const barWidth = Math.max((glyph.execution_time_ms / maxTime) * (width - padding.left - padding.right - 80), 20);
+                    const color = STRATUM_COLORS[stratum] || '#6e7681';
+
+                    // Bar
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', xOffset);
+                    rect.setAttribute('y', yOffset);
+                    rect.setAttribute('width', barWidth);
+                    rect.setAttribute('height', barHeight);
+                    rect.setAttribute('class', `flame-bar stratum-${stratum}`);
+                    rect.setAttribute('fill', color);
+                    if (glyph.is_bottleneck) {
+                        rect.setAttribute('stroke', '#f85149');
+                        rect.setAttribute('stroke-width', '2');
+                    }
+                    rect.dataset.id = glyph.glyph_id;
+                    rect.dataset.stratum = glyph.stratum;
+                    rect.dataset.opcode = glyph.opcode;
+                    rect.dataset.rationale = glyph.rationale;
+                    rect.dataset.time = glyph.execution_time_ms;
+
+                    rect.addEventListener('mouseenter', showTooltip);
+                    rect.addEventListener('mouseleave', hideTooltip);
+                    rect.addEventListener('click', () => highlightGlyph(glyph.glyph_id));
+
+                    g.appendChild(rect);
+
+                    // Label (if bar is wide enough)
+                    if (barWidth > 40) {
+                        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        text.setAttribute('x', xOffset + 5);
+                        text.setAttribute('y', yOffset + barHeight / 2 + 4);
+                        text.setAttribute('class', 'flame-label');
+                        text.textContent = `#${glyph.glyph_id} ${glyph.opcode}`;
+                        g.appendChild(text);
+                    }
+
+                    xOffset += barWidth + barGap;
+                }
+
+                yOffset += barHeight + 15;
+            }
+
+            // Update SVG height
+            svg.setAttribute('height', yOffset * zoomLevel + 20);
+        }
+
+        function showTooltip(event) {
+            const tooltip = document.getElementById('tooltip');
+            const rect = event.target;
+
+            const pct = (parseFloat(rect.dataset.time) / totalTime * 100).toFixed(1);
+
+            document.getElementById('tooltip-title').textContent = `Glyph #${rect.dataset.id}`;
+            document.getElementById('tooltip-stratum').textContent = `Stratum: ${rect.dataset.stratum}`;
+            document.getElementById('tooltip-opcode').textContent = `Opcode: ${rect.dataset.opcode}`;
+            document.getElementById('tooltip-time').textContent = `${parseFloat(rect.dataset.time).toFixed(3)}ms (${pct}%)`;
+
+            tooltip.style.left = (event.pageX + 10) + 'px';
+            tooltip.style.top = (event.pageY + 10) + 'px';
+            tooltip.style.display = 'block';
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+
+        function highlightGlyph(id) {
+            selectedGlyph = id;
+
+            // Highlight in flame graph
+            document.querySelectorAll('.flame-bar').forEach(bar => {
+                if (parseInt(bar.dataset.id) === id) {
+                    bar.setAttribute('stroke', '#fff');
+                    bar.setAttribute('stroke-width', '3');
+                } else {
+                    bar.removeAttribute('stroke');
+                }
+            });
+
+            // Highlight in list
+            document.querySelectorAll('.glyph-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+
+            // Show info
+            const glyph = glyphs[id];
+            if (glyph) {
+                updateStatus(`Selected #${id}: ${glyph.opcode} - ${glyph.execution_time_ms.toFixed(2)}ms`);
+            }
+        }
+
+        function zoomIn() {
+            zoomLevel = Math.min(zoomLevel * 1.2, 3);
+            renderFlameGraph();
+        }
+
+        function zoomOut() {
+            zoomLevel = Math.max(zoomLevel / 1.2, 0.5);
+            renderFlameGraph();
+        }
+
+        function resetView() {
+            zoomLevel = 1;
+            selectedGlyph = null;
+            renderFlameGraph();
+        }
+
+        function updateStatus(msg) {
+            console.log(msg);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Auto-load sample if no data
+            setTimeout(() => {
+                if (!profileData) {
+                    // Uncomment to auto-load: loadSample();
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

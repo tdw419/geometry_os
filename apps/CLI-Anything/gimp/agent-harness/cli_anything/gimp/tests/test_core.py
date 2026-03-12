@@ -11,19 +11,19 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.gimp.core.project import create_project, open_project, save_project, get_project_info, list_profiles
-from cli_anything.gimp.core.layers import (
+from gimp.core.project import create_project, open_project, save_project, get_project_info, list_profiles
+from gimp.core.layers import (
     add_layer, add_from_file, remove_layer, duplicate_layer, move_layer,
     set_layer_property, get_layer, list_layers, BLEND_MODES,
 )
-from cli_anything.gimp.core.filters import (
+from gimp.core.filters import (
     list_available, get_filter_info, validate_params, add_filter,
     remove_filter, set_filter_param, list_filters, FILTER_REGISTRY,
 )
-from cli_anything.gimp.core.canvas import (
+from gimp.core.canvas import (
     resize_canvas, scale_canvas, crop_canvas, set_mode, set_dpi, get_canvas_info,
 )
-from cli_anything.gimp.core.session import Session
+from gimp.core.session import Session
 
 
 # ── Project Tests ────────────────────────────────────────────────

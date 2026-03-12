@@ -1,0 +1,161 @@
+{
+  "name": "glyph-stratum",
+  "displayName": "GlyphStratum",
+  "description": "AI-native visual programming language with 5-layer stratum architecture",
+  "version": "0.2.0",
+  "publisher": "geometry-os",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/geometry-os/glyph-stratum"
+  },
+  "bugs": {
+    "url": "https://github.com/geometry-os/glyph-stratum/issues"
+  },
+  "homepage": "https://github.com/geometry-os/glyph-stratum#readme",
+  "keywords": [
+    "visual programming",
+    "ai-native",
+    "glyph",
+    "stratum",
+    "dataflow",
+    "graph"
+  ],
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Visualization",
+    "Other"
+  ],
+  "icon": "images/icon.png",
+  "activationEvents": [
+    "onLanguage:glyph",
+    "onCommand:glyph.preview",
+    "onCommand:glyph.execute"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "glyph",
+        "aliases": ["GlyphStratum", "glyph"],
+        "extensions": [".glyph", ".glyph.json"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "glyph",
+        "scopeName": "source.glyph",
+        "path": "./syntaxes/glyph.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "glyph",
+        "path": "./snippets.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "glyph.preview",
+        "title": "GlyphStratum: Open Preview",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "glyph.execute",
+        "title": "GlyphStratum: Execute Program",
+        "icon": "$(play)"
+      },
+      {
+        "command": "glyph.newFile",
+        "title": "GlyphStratum: New Glyph File",
+        "icon": "$(file)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "glyph.preview",
+          "when": "editorLangId == glyph",
+          "group": "navigation"
+        },
+        {
+          "command": "glyph.execute",
+          "when": "editorLangId == glyph",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "glyph.preview",
+          "when": "editorLangId == glyph",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "glyph.preview",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g",
+        "when": "editorLangId == glyph"
+      },
+      {
+        "command": "glyph.execute",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorLangId == glyph"
+      }
+    ],
+    "configuration": {
+      "title": "GlyphStratum",
+      "properties": {
+        "glyphStratum.autoPreview": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically open preview when editing .glyph files"
+        },
+        "glyphStratum.highlightExecution": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight execution path in preview"
+        },
+        "glyphStratum.stratumColors": {
+          "type": "object",
+          "default": {
+            "SUBSTRATE": "#2196F3",
+            "MEMORY": "#4CAF50",
+            "LOGIC": "#FF9800",
+            "SPEC": "#9C27B0",
+            "INTENT": "#F44336"
+          },
+          "description": "Colors for each stratum layer"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "test": "node ../wasm/test_js_runtime.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+    "glyph-runtime": "file:../wasm"
+  }
+}

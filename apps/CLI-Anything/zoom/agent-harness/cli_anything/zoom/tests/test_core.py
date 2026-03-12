@@ -16,7 +16,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 
-from cli_anything.zoom.zoom_cli import cli
+from zoom.zoom_cli import cli
 
 
 # ── Fixtures ────────────────────────────────────────────────────
@@ -424,7 +424,7 @@ class TestBackend:
 
     def test_config_save_load(self, mock_config):
         """Config should round-trip through save/load."""
-        from cli_anything.zoom.utils.zoom_backend import save_config, load_config
+        from zoom.utils.zoom_backend import save_config, load_config
 
         save_config({"client_id": "abc", "client_secret": "xyz"})
         loaded = load_config()
@@ -433,7 +433,7 @@ class TestBackend:
 
     def test_token_save_load(self, mock_config):
         """Tokens should round-trip with saved_at timestamp."""
-        from cli_anything.zoom.utils.zoom_backend import save_tokens, load_tokens
+        from zoom.utils.zoom_backend import save_tokens, load_tokens
 
         save_tokens({"access_token": "at_test", "refresh_token": "rt_test"})
         loaded = load_tokens()
@@ -442,7 +442,7 @@ class TestBackend:
 
     def test_authorize_url(self):
         """get_authorize_url should build valid URL."""
-        from cli_anything.zoom.utils.zoom_backend import get_authorize_url
+        from zoom.utils.zoom_backend import get_authorize_url
 
         url = get_authorize_url("my_client_id", "http://localhost:4199/callback")
         assert "zoom.us/oauth/authorize" in url
@@ -451,12 +451,12 @@ class TestBackend:
 
     def test_load_empty_config(self, mock_config):
         """load_config should return empty dict when no config file."""
-        from cli_anything.zoom.utils.zoom_backend import load_config
+        from zoom.utils.zoom_backend import load_config
         result = load_config()
         assert result == {}
 
     def test_load_empty_tokens(self, mock_config):
         """load_tokens should return empty dict when no token file."""
-        from cli_anything.zoom.utils.zoom_backend import load_tokens
+        from zoom.utils.zoom_backend import load_tokens
         result = load_tokens()
         assert result == {}

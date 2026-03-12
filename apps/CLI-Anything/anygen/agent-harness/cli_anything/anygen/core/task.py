@@ -8,7 +8,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from cli_anything.anygen.utils.anygen_backend import (
+from .anygen.utils.anygen_backend import (
     DOWNLOADABLE_OPERATIONS,
     VALID_OPERATIONS,
     create_task as _api_create,

@@ -13,7 +13,7 @@ import math
 import struct
 from typing import Dict, Any, Optional, List, Tuple
 
-from cli_anything.audacity.utils.audio_utils import (
+from .audacity.utils.audio_utils import (
     generate_sine_wave,
     generate_silence,
     mix_audio,

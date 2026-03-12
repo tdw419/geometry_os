@@ -203,6 +203,30 @@ class GlyphStratumExecutor:
                 results.append(result)
         return results
 
+    def _resolve_all_refs(self, glyph: GlyphInfo) -> List[Any]:
+        """Execute both dependencies and runtime_refs, returning results.
+
+        Use this for CALL operations that may invoke recursive functions.
+        Dependencies are resolved first, then runtime_refs.
+        """
+        results = []
+
+        # First resolve construction dependencies
+        for dep_idx in glyph.metadata.dependencies:
+            dep = self.registry.get(dep_idx)
+            if dep:
+                result = self.execute_glyph(dep)
+                results.append(result)
+
+        # Then resolve runtime references (may be recursive)
+        for ref_idx in glyph.metadata.runtime_refs:
+            ref = self.registry.get(ref_idx)
+            if ref:
+                result = self.execute_glyph(ref)
+                results.append(result)
+
+        return results
+
     def _execute_loop(self, glyph: GlyphInfo, args: List[Any]) -> Any:
         """Execute a loop: dependencies are [init, condition, body]."""
         deps = glyph.metadata.dependencies
@@ -259,7 +283,15 @@ class GlyphStratumExecutor:
         return None
 
     def _execute_call(self, glyph: GlyphInfo, args: List[Any]) -> Any:
-        """Execute a function call."""
+        """Execute a function call.
+
+        If no args provided, resolves both dependencies AND runtime_refs.
+        Runtime refs allow recursive calls (e.g., parse_value calling parse_object).
+        """
+        # If no explicit args, resolve all refs (deps + runtime)
+        if not args:
+            args = self._resolve_all_refs(glyph)
+
         # Rationale contains function name or expression
         fn_name = glyph.metadata.rationale.strip()
 

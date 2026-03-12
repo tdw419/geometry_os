@@ -12,18 +12,18 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.kdenlive.core.project import create_project, save_project, open_project, get_project_info
-from cli_anything.kdenlive.core.bin import import_clip, list_clips
-from cli_anything.kdenlive.core.timeline import (
+from kdenlive.core.project import create_project, save_project, open_project, get_project_info
+from kdenlive.core.bin import import_clip, list_clips
+from kdenlive.core.timeline import (
     add_track, add_clip_to_track, remove_clip_from_track,
     trim_clip, split_clip, move_clip, list_tracks,
 )
-from cli_anything.kdenlive.core.filters import add_filter, list_filters, FILTER_REGISTRY
-from cli_anything.kdenlive.core.transitions import add_transition, list_transitions
-from cli_anything.kdenlive.core.guides import add_guide, list_guides
-from cli_anything.kdenlive.core.export import generate_kdenlive_xml, list_render_presets, RENDER_PRESETS
-from cli_anything.kdenlive.core.session import Session
-from cli_anything.kdenlive.utils.mlt_xml import (
+from kdenlive.core.filters import add_filter, list_filters, FILTER_REGISTRY
+from kdenlive.core.transitions import add_transition, list_transitions
+from kdenlive.core.guides import add_guide, list_guides
+from kdenlive.core.export import generate_kdenlive_xml, list_render_presets, RENDER_PRESETS
+from kdenlive.core.session import Session
+from kdenlive.utils.mlt_xml import (
     seconds_to_timecode, timecode_to_seconds, seconds_to_frames,
     xml_escape, build_mlt_xml,
 )
@@ -399,7 +399,7 @@ class TestWorkflowE2E:
         assert "prores" in names
 
     def test_all_profiles_produce_valid_xml(self):
-        from cli_anything.kdenlive.core.project import PROFILES
+        from kdenlive.core.project import PROFILES
         for name in PROFILES:
             proj = create_project(profile=name)
             xml = generate_kdenlive_xml(proj)
@@ -563,13 +563,13 @@ class TestMeltBackend:
     """Tests that verify melt is installed and accessible."""
 
     def test_melt_is_installed(self):
-        from cli_anything.kdenlive.utils.melt_backend import find_melt
+        from kdenlive.utils.melt_backend import find_melt
         path = find_melt()
         assert os.path.exists(path)
         print(f"\n  melt binary: {path}")
 
     def test_melt_version(self):
-        from cli_anything.kdenlive.utils.melt_backend import get_melt_version
+        from kdenlive.utils.melt_backend import get_melt_version
         version = get_melt_version()
         assert version
         print(f"\n  melt version: {version}")
@@ -580,7 +580,7 @@ class TestMeltRenderE2E:
 
     def test_render_color_bars_mp4(self):
         """Render a color bars test video."""
-        from cli_anything.kdenlive.utils.melt_backend import render_color_bars
+        from kdenlive.utils.melt_backend import render_color_bars
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             output = os.path.join(tmp_dir, "test.mp4")
@@ -592,7 +592,7 @@ class TestMeltRenderE2E:
 
     def test_render_generated_mlt_xml(self):
         """Generate Kdenlive MLT XML from project and render it."""
-        from cli_anything.kdenlive.utils.melt_backend import find_melt
+        from kdenlive.utils.melt_backend import find_melt
 
         melt = find_melt()
 

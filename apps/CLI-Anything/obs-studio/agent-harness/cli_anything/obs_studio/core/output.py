@@ -1,7 +1,7 @@
 """OBS Studio CLI - Output/streaming/recording configuration."""
 
 from typing import Dict, Any, List, Optional
-from cli_anything.obs_studio.utils.obs_utils import validate_range
+from .obs_studio.utils.obs_utils import validate_range
 
 
 ENCODING_PRESETS = {

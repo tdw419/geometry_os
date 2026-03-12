@@ -21,22 +21,22 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.libreoffice.core.document import create_document, save_document, open_document, get_document_info
-from cli_anything.libreoffice.core.writer import (
+from libreoffice.core.document import create_document, save_document, open_document, get_document_info
+from libreoffice.core.writer import (
     add_paragraph, add_heading, add_list, add_table, add_page_break,
     list_content, remove_content,
 )
-from cli_anything.libreoffice.core.calc import add_sheet, set_cell, get_cell, list_sheets, remove_sheet
-from cli_anything.libreoffice.core.impress import (
+from libreoffice.core.calc import add_sheet, set_cell, get_cell, list_sheets, remove_sheet
+from libreoffice.core.impress import (
     add_slide, remove_slide, set_slide_content, add_slide_element, list_slides,
 )
-from cli_anything.libreoffice.core.styles import create_style, apply_style, list_styles
-from cli_anything.libreoffice.core.export import (
+from libreoffice.core.styles import create_style, apply_style, list_styles
+from libreoffice.core.export import (
     export, to_odt, to_ods, to_odp, to_html, to_text, list_presets,
 )
-from cli_anything.libreoffice.core.session import Session
-from cli_anything.libreoffice.utils.odf_utils import validate_odf, parse_odf, ODF_MIMETYPES
-from cli_anything.libreoffice.utils.lo_backend import find_libreoffice, get_version, convert_odf_to
+from libreoffice.core.session import Session
+from libreoffice.utils.odf_utils import validate_odf, parse_odf, ODF_MIMETYPES
+from libreoffice.utils.lo_backend import find_libreoffice, get_version, convert_odf_to
 
 
 @pytest.fixture

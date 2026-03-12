@@ -2,7 +2,7 @@
 
 import copy
 from typing import Dict, Any, List, Optional
-from cli_anything.obs_studio.utils.obs_utils import generate_id, unique_name, get_item, validate_range
+from .obs_studio.utils.obs_utils import generate_id, unique_name, get_item, validate_range
 
 
 SOURCE_TYPES = {

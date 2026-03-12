@@ -6,7 +6,7 @@ on SVG objects.
 
 from typing import Dict, Any, List, Optional
 
-from cli_anything.inkscape.utils.svg_utils import parse_style, serialize_style, validate_color
+from .inkscape.utils.svg_utils import parse_style, serialize_style, validate_color
 
 
 # Style properties that can be set

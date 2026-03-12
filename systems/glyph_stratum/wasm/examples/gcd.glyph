@@ -1,0 +1,101 @@
+{
+  "name": "gcd",
+  "description": "Greatest Common Divisor using Euclidean algorithm",
+  "glyphs": {
+    "1": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 48 }
+    },
+    "2": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [1],
+      "invariants": { "name": "a" }
+    },
+    "3": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 18 }
+    },
+    "4": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [3],
+      "invariants": { "name": "b" }
+    },
+    "5": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "b" }
+    },
+    "6": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 0 }
+    },
+    "7": {
+      "stratum": "LOGIC",
+      "opcode": "NE",
+      "dependencies": [5, 6]
+    },
+    "8": {
+      "stratum": "LOGIC",
+      "opcode": "IFTRUE",
+      "dependencies": [7]
+    },
+    "9": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "a" }
+    },
+    "10": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "b" }
+    },
+    "11": {
+      "stratum": "LOGIC",
+      "opcode": "MOD",
+      "dependencies": [9, 10]
+    },
+    "12": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [11],
+      "invariants": { "name": "temp" }
+    },
+    "13": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "b" }
+    },
+    "14": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [13],
+      "invariants": { "name": "a" }
+    },
+    "15": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "temp" }
+    },
+    "16": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [15],
+      "invariants": { "name": "b" }
+    },
+    "17": {
+      "stratum": "LOGIC",
+      "opcode": "LOOP",
+      "dependencies": [16, 7]
+    },
+    "18": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "a" }
+    }
+  }
+}

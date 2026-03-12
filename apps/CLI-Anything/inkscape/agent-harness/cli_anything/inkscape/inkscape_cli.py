@@ -23,16 +23,16 @@ from typing import Optional
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cli_anything.inkscape.core.session import Session
-from cli_anything.inkscape.core import document as doc_mod
-from cli_anything.inkscape.core import shapes as shape_mod
-from cli_anything.inkscape.core import text as text_mod
-from cli_anything.inkscape.core import styles as style_mod
-from cli_anything.inkscape.core import transforms as xform_mod
-from cli_anything.inkscape.core import layers as layer_mod
-from cli_anything.inkscape.core import paths as path_mod
-from cli_anything.inkscape.core import gradients as grad_mod
-from cli_anything.inkscape.core import export as export_mod
+from .inkscape.core.session import Session
+from .inkscape.core import document as doc_mod
+from .inkscape.core import shapes as shape_mod
+from .inkscape.core import text as text_mod
+from .inkscape.core import styles as style_mod
+from .inkscape.core import transforms as xform_mod
+from .inkscape.core import layers as layer_mod
+from .inkscape.core import paths as path_mod
+from .inkscape.core import gradients as grad_mod
+from .inkscape.core import export as export_mod
 
 # Global session state
 _session: Optional[Session] = None
@@ -967,7 +967,7 @@ def session_history():
 @handle_error
 def repl(project_path):
     """Start interactive REPL session."""
-    from cli_anything.inkscape.utils.repl_skin import ReplSkin
+    from .inkscape.utils.repl_skin import ReplSkin
 
     global _repl_mode
     _repl_mode = True

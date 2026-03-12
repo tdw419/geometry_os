@@ -1,0 +1,108 @@
+{
+  "glyphs": {
+    "1": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": "Hello" }
+    },
+    "2": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": ", " }
+    },
+    "3": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": "World" }
+    },
+    "4": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": "!" }
+    },
+    "5": {
+      "stratum": "LOGIC",
+      "opcode": "CONCAT",
+      "dependencies": [1, 2]
+    },
+    "6": {
+      "stratum": "LOGIC",
+      "opcode": "CONCAT",
+      "dependencies": [5, 3]
+    },
+    "7": {
+      "stratum": "LOGIC",
+      "opcode": "CONCAT",
+      "dependencies": [6, 4]
+    },
+    "8": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [7],
+      "invariants": { "name": "greeting" }
+    },
+    "9": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "greeting" }
+    },
+    "10": {
+      "stratum": "LOGIC",
+      "opcode": "LEN",
+      "dependencies": [9]
+    },
+    "11": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [10],
+      "invariants": { "name": "length" }
+    },
+    "12": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "greeting" }
+    },
+    "13": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 0 }
+    },
+    "14": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 5 }
+    },
+    "15": {
+      "stratum": "LOGIC",
+      "opcode": "SUBSTR",
+      "dependencies": [12, 13, 14]
+    },
+    "16": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [15],
+      "invariants": { "name": "first_word" }
+    },
+    "17": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "greeting" }
+    },
+    "18": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "greeting" }
+    },
+    "19": {
+      "stratum": "LOGIC",
+      "opcode": "CONCAT",
+      "dependencies": [17, 18]
+    },
+    "20": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [19],
+      "invariants": { "name": "repeated" }
+    }
+  }
+}

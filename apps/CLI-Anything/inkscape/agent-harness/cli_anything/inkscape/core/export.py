@@ -9,8 +9,8 @@ import os
 import shutil
 from typing import Dict, Any, List, Optional
 
-from cli_anything.inkscape.core.document import project_to_svg, save_svg
-from cli_anything.inkscape.utils.svg_utils import serialize_svg
+from .inkscape.core.document import project_to_svg, save_svg
+from .inkscape.utils.svg_utils import serialize_svg
 
 # Export presets
 EXPORT_PRESETS = {
@@ -210,7 +210,7 @@ def _parse_color(color_str: str) -> Optional[str]:
 
 def _get_style_val(obj: Dict[str, Any], key: str, default: str = "") -> str:
     """Get a style value from an object's style string."""
-    from cli_anything.inkscape.utils.svg_utils import parse_style
+    from .inkscape.utils.svg_utils import parse_style
     style = parse_style(obj.get("style", ""))
     return style.get(key, default)
 

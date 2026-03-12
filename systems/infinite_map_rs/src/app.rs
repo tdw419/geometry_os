@@ -530,6 +530,22 @@ impl<'a> InfiniteMapApp<'a> {
         // Phase 37.3: Enable Cortex Layer
         app.renderer.enable_cortex();
 
+        // Phase 101: Benchmark Mode
+        if std::env::args().any(|arg| arg == "--benchmark-text") {
+            log::info!("🚀 ENTERING BENCHMARK MODE (Text Engine)...");
+            if let Some(ref mut text_engine) = app.renderer.text_engine {
+                let mut rng = 42u32; // Deterministic seed
+                for i in 0..(80 * 40) {
+                    rng = rng.wrapping_mul(1103515245).wrapping_add(12345);
+                    let char_code = 33 + (rng % 94); // ASCII 33-126
+                    text_engine.cpu_buffer[i as usize] = char_code;
+                }
+                text_engine.local_stats.length = 80 * 40;
+                text_engine.local_stats.dirty = 1;
+                text_engine.sync_gpu(&app.renderer.get_queue());
+            }
+        }
+
         app
     }
 

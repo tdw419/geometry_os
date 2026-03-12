@@ -24,13 +24,13 @@ from typing import Optional
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cli_anything.gimp.core.session import Session
-from cli_anything.gimp.core import project as proj_mod
-from cli_anything.gimp.core import layers as layer_mod
-from cli_anything.gimp.core import filters as filt_mod
-from cli_anything.gimp.core import canvas as canvas_mod
-from cli_anything.gimp.core import media as media_mod
-from cli_anything.gimp.core import export as export_mod
+from .gimp.core.session import Session
+from .gimp.core import project as proj_mod
+from .gimp.core import layers as layer_mod
+from .gimp.core import filters as filt_mod
+from .gimp.core import canvas as canvas_mod
+from .gimp.core import media as media_mod
+from .gimp.core import export as export_mod
 
 # Global session state
 _session: Optional[Session] = None
@@ -710,7 +710,7 @@ def draw_rect(layer_index, x1, y1, x2, y2, fill, outline, line_width):
 @handle_error
 def repl(project_path):
     """Start interactive REPL session."""
-    from cli_anything.gimp.utils.repl_skin import ReplSkin
+    from .gimp.utils.repl_skin import ReplSkin
 
     global _repl_mode
     _repl_mode = True

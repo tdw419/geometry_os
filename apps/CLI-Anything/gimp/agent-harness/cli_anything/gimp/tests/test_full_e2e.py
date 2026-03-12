@@ -15,13 +15,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from PIL import Image, ImageDraw
 import numpy as np
 
-from cli_anything.gimp.core.project import create_project, save_project, open_project, get_project_info
-from cli_anything.gimp.core.layers import add_layer, add_from_file, list_layers, remove_layer
-from cli_anything.gimp.core.filters import add_filter, list_filters
-from cli_anything.gimp.core.canvas import resize_canvas, scale_canvas, crop_canvas, set_mode
-from cli_anything.gimp.core.media import probe_image, check_media
-from cli_anything.gimp.core.export import render
-from cli_anything.gimp.core.session import Session
+from gimp.core.project import create_project, save_project, open_project, get_project_info
+from gimp.core.layers import add_layer, add_from_file, list_layers, remove_layer
+from gimp.core.filters import add_filter, list_filters
+from gimp.core.canvas import resize_canvas, scale_canvas, crop_canvas, set_mode
+from gimp.core.media import probe_image, check_media
+from gimp.core.export import render
+from gimp.core.session import Session
 
 
 @pytest.fixture
@@ -537,13 +537,13 @@ class TestGIMPBackend:
     """Tests that verify GIMP is installed and accessible."""
 
     def test_gimp_is_installed(self):
-        from cli_anything.gimp.utils.gimp_backend import find_gimp
+        from gimp.utils.gimp_backend import find_gimp
         path = find_gimp()
         assert os.path.exists(path)
         print(f"\n  GIMP binary: {path}")
 
     def test_gimp_version(self):
-        from cli_anything.gimp.utils.gimp_backend import get_version
+        from gimp.utils.gimp_backend import get_version
         version = get_version()
         assert "image manipulation" in version.lower() or "gimp" in version.lower()
         print(f"\n  GIMP version: {version}")
@@ -554,7 +554,7 @@ class TestGIMPRenderE2E:
 
     def test_create_and_export_png(self):
         """Create a blank image in GIMP and export as PNG."""
-        from cli_anything.gimp.utils.gimp_backend import create_and_export
+        from gimp.utils.gimp_backend import create_and_export
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             output = os.path.join(tmp_dir, "test.png")
@@ -567,7 +567,7 @@ class TestGIMPRenderE2E:
 
     def test_create_and_export_jpeg(self):
         """Create a blank image in GIMP and export as JPEG."""
-        from cli_anything.gimp.utils.gimp_backend import create_and_export
+        from gimp.utils.gimp_backend import create_and_export
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             output = os.path.join(tmp_dir, "test.jpg")

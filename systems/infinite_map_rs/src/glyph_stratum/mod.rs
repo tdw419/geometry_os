@@ -112,6 +112,80 @@ impl Opcode {
             Opcode::Halt => "Halt",
         }
     }
+
+    /// Get the index in the Geometry OS font atlas for this opcode
+    pub fn to_index(&self) -> u32 {
+        match self {
+            Opcode::Alloc => 200,
+            Opcode::Free => 201,
+            Opcode::Load => 202,
+            Opcode::Store => 203,
+            Opcode::Loop => 204,
+            Opcode::Branch => 205,
+            Opcode::Call => 206,
+            Opcode::Return => 207,
+            Opcode::Data => 208,
+            Opcode::Type => 209,
+            Opcode::Ptr => 210,
+            Opcode::Struct => 211,
+            Opcode::Module => 212,
+            Opcode::Export => 213,
+            Opcode::Import => 214,
+            Opcode::Halt => 215,
+            Opcode::Nop => 183, // Use standard bullet or dot
+        }
+    }
+
+    /// Map a Unicode character or Atlas Index to its corresponding Opcode
+    pub fn from_char(ch: char) -> Self {
+        let code = ch as u32;
+        match code {
+            200 => Opcode::Alloc,
+            201 => Opcode::Free,
+            202 => Opcode::Load,
+            203 => Opcode::Store,
+            204 => Opcode::Loop,
+            205 => Opcode::Branch,
+            206 => Opcode::Call,
+            207 => Opcode::Return,
+            208 => Opcode::Data,
+            209 => Opcode::Type,
+            210 => Opcode::Ptr,
+            211 => Opcode::Struct,
+            212 => Opcode::Module,
+            213 => Opcode::Export,
+            214 => Opcode::Import,
+            215 => Opcode::Halt,
+            _ => {
+                // Fallback to morphological symbols if needed
+                match ch {
+                    '◼' => Opcode::Alloc,
+                    '◻' => Opcode::Free,
+                    '←' => Opcode::Load,
+                    '→' => Opcode::Store,
+                    '↻' => Opcode::Loop,
+                    '◉' => Opcode::Branch,
+                    '○' => Opcode::Call,
+                    '▣' => Opcode::Return,
+                    '░' => Opcode::Data,
+                    '▓' => Opcode::Type,
+                    '◬' => Opcode::Ptr,
+                    '⌬' => Opcode::Struct,
+                    '█' => Opcode::Module,
+                    '↗' => Opcode::Export,
+                    '↘' => Opcode::Import,
+                    '·' => Opcode::Nop,
+                    '⌧' => Opcode::Halt,
+                    _ => Opcode::Nop,
+                }
+            }
+        }
+    }
+
+    /// Get the preferred character (Atlas Index) for this Opcode
+    pub fn to_char(&self) -> char {
+        std::char::from_u32(self.to_index()).unwrap_or('·')
+    }
 }
 
 /// Glyph metadata structure
@@ -277,6 +351,116 @@ impl GlyphRegistry {
     }
 }
 
+/// GlyphStratumEngine - Manages a grid of visual instructions with metadata
+#[derive(Debug, Default)]
+pub struct GlyphStratumEngine {
+    /// Glyph registry for metadata storage
+    pub registry: GlyphRegistry,
+    /// Grid dimensions (columns, rows)
+    pub dimensions: (u32, u32),
+    /// Map of (x, y) coordinates to glyph registry index
+    pub grid: HashMap<(u32, u32), u32>,
+}
+
+impl GlyphStratumEngine {
+    /// Create a new engine with specified dimensions
+    pub fn new(cols: u32, rows: u32) -> Self {
+        Self {
+            registry: GlyphRegistry::new(),
+            dimensions: (cols, rows),
+            grid: HashMap::new(),
+        }
+    }
+
+    /// Place a glyph at specified coordinates
+    pub fn place_glyph(
+        &mut self,
+        x: u32,
+        y: u32,
+        ch: char,
+        stratum: Stratum,
+        metadata: Option<GlyphMetadata>,
+    ) -> Result<u32, String> {
+        if x >= self.dimensions.0 || y >= self.dimensions.1 {
+            return Err(format!("Coordinates out of bounds: ({}, {})", x, y));
+        }
+
+        // Stratum enforcement: ensure bottom-up construction
+        if stratum as u8 > 0 {
+            let lower_stratum_exists = self.grid.values()
+                .filter_map(|&idx| self.registry.get(&idx))
+                .any(|g| (g.stratum() as u8) < stratum as u8);
+            
+            if !lower_stratum_exists && stratum != Stratum::Substrate {
+                log::warn!("⚠️ Stratum violation: Placing {:?} without lower strata", stratum);
+                // We allow it for now but warn, or we could return Err
+            }
+        }
+
+        let opcode = Opcode::from_char(ch);
+        
+        // Create base glyph info (minimal fields for identification)
+        let base = super::font_atlas::GlyphInfo {
+            unicode: ch as u32,
+            x: 0, y: 0, width: 0, height: 0,
+            advance: 1.0, bearing_x: 0.0, bearing_y: 0.0,
+            opcode: opcode as u8,
+            stratum: stratum as u8,
+            dependencies: Vec::new(),
+            invariants: "{}".to_string(),
+            provenance: "".to_string(),
+            rationale: "".to_string(),
+        };
+
+        let mut enhanced = EnhancedGlyphInfo::from_basic(base);
+        enhanced.opcode = opcode;
+        enhanced.stratum = stratum;
+        
+        if let Some(meta) = metadata {
+            enhanced.metadata = meta;
+        }
+
+        let index = self.registry.register(enhanced);
+        self.grid.insert((x, y), index);
+        
+        Ok(index)
+    }
+
+    /// Get glyph at coordinates
+    pub fn get_glyph(&self, x: u32, y: u32) -> Option<&EnhancedGlyphInfo> {
+        self.grid.get(&(x, y)).and_then(|&idx| self.registry.get(&idx))
+    }
+
+    /// Query the entire row for a program structure
+    pub fn get_row_program(&self, y: u32) -> Vec<(u32, Opcode, Stratum)> {
+        let mut program = Vec::new();
+        for x in 0..self.dimensions.0 {
+            if let Some(glyph) = self.get_glyph(x, y) {
+                program.push((x, glyph.opcode(), glyph.stratum()));
+            }
+        }
+        program
+    }
+
+    /// Generate a summary of the program for an AI agent
+    pub fn generate_ai_summary(&self) -> String {
+        let mut summary = String::new();
+        summary.push_str("GlyphStratum Program Summary:\n");
+        
+        for y in 0..self.dimensions.1 {
+            let row = self.get_row_program(y);
+            if !row.is_empty() {
+                summary.push_str(&format!("Row {}: ", y));
+                for (_x, op, strat) in row {
+                    summary.push_str(&format!("{}[{:?}:S{}] ", op.to_char(), op, strat as u8));
+                }
+                summary.push('\n');
+            }
+        }
+        summary
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -335,6 +519,33 @@ mod tests {
         assert_eq!(retrieved.base.unicode, 65);
         assert_eq!(retrieved.stratum(), Stratum::Substrate);
         assert_eq!(retrieved.opcode(), Opcode::Nop);
+    }
+
+    #[test]
+    fn test_glyph_stratum_engine_hello_world() {
+        let mut engine = GlyphStratumEngine::new(80, 40);
+
+        // Row 0: Module(212) Data(208) Data(208) Call(206) Return(207)
+        engine.place_glyph(0, 0, std::char::from_u32(212).unwrap(), Stratum::Substrate, None).unwrap();
+        engine.place_glyph(1, 0, std::char::from_u32(208).unwrap(), Stratum::Memory, None).unwrap();
+        engine.place_glyph(2, 0, std::char::from_u32(208).unwrap(), Stratum::Memory, None).unwrap();
+        engine.place_glyph(3, 0, std::char::from_u32(206).unwrap(), Stratum::Logic, None).unwrap();
+        engine.place_glyph(4, 0, std::char::from_u32(207).unwrap(), Stratum::Logic, None).unwrap();
+
+        let summary = engine.generate_ai_summary();
+        println!("{}", summary);
+
+        // Expected output uses characters corresponding to indices 212, 208, 208, 206, 207
+        assert!(summary.contains("Row 0:"));
+        assert!(summary.contains("[Module:S0]"));
+        assert!(summary.contains("[Data:S1]"));
+        assert!(summary.contains("[Call:S2]"));
+        assert!(summary.contains("[Return:S2]"));
+        
+        // Verify query
+        let glyph = engine.get_glyph(3, 0).unwrap();
+        assert_eq!(glyph.opcode(), Opcode::Call);
+        assert_eq!(glyph.stratum(), Stratum::Logic);
     }
 }
 

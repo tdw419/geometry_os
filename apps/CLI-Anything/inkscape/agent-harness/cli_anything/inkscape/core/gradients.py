@@ -6,7 +6,7 @@ and listing gradients.
 
 from typing import Dict, Any, List, Optional
 
-from cli_anything.inkscape.utils.svg_utils import generate_id, parse_style, serialize_style
+from .inkscape.utils.svg_utils import generate_id, parse_style, serialize_style
 
 
 def add_linear_gradient(

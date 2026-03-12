@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-03-12T01:59:00.698265",
+  "program": "json_parser_v2",
+  "glyphs": 59,
+  "dependencies": 82,
+  "runtime_refs": 5,
+  "construction_cycle": false,
+  "coherence": 0.8902439024390244,
+  "strata": {
+    "INTENT": 5,
+    "SPEC": 9,
+    "LOGIC": 29,
+    "MEMORY": 16,
+    "SUBSTRATE": 0
+  }
+}

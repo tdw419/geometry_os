@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Test the GlyphStratum AI Agent Harness."""
 import pytest
-from agent import GlyphStratumAgent
+from agent_harness.agent import GlyphStratumAgent
 
 
 class TestAgentBasics:

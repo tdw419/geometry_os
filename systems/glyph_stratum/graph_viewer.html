@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlyphStratum Dependency Graph Viewer</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+            background: #0d1117;
+            color: #c9d1d9;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: #161b22;
+            border-right: 1px solid #30363d;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar h1 {
+            font-size: 16px;
+            color: #58a6ff;
+            margin-bottom: 8px;
+        }
+
+        .sidebar .subtitle {
+            font-size: 11px;
+            color: #8b949e;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #58a6ff;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #8b949e;
+            text-transform: uppercase;
+        }
+
+        .legend {
+            margin-bottom: 20px;
+        }
+
+        .legend h3 {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .stratum-INTENT { background: #ffd700; }
+        .stratum-SPEC { background: #58a6ff; }
+        .stratum-LOGIC { background: #7ee787; }
+        .stratum-MEMORY { background: #a371f7; }
+        .stratum-SUBSTRATE { background: #6e7681; }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        .controls h3 {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+
+        .btn:hover {
+            background: #30363d;
+            border-color: #8b949e;
+        }
+
+        .btn.active {
+            background: #238636;
+            border-color: #238636;
+        }
+
+        /* Node details panel */
+        .node-details {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 20px;
+        }
+
+        .node-details h3 {
+            font-size: 14px;
+            color: #58a6ff;
+            margin-bottom: 10px;
+        }
+
+        .node-details .field {
+            margin-bottom: 8px;
+        }
+
+        .node-details .label {
+            font-size: 10px;
+            color: #8b949e;
+            text-transform: uppercase;
+        }
+
+        .node-details .value {
+            font-size: 12px;
+            color: #c9d1d9;
+        }
+
+        /* Graph area */
+        .graph-area {
+            flex: 1;
+            position: relative;
+        }
+
+        #graph {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Node styling */
+        .node {
+            cursor: pointer;
+        }
+
+        .node circle {
+            stroke-width: 2px;
+            transition: all 0.2s;
+        }
+
+        .node:hover circle {
+            stroke-width: 3px;
+            filter: brightness(1.2);
+        }
+
+        .node.selected circle {
+            stroke: #fff;
+            stroke-width: 3px;
+        }
+
+        .node text {
+            font-size: 11px;
+            font-family: 'SF Mono', monospace;
+            fill: #c9d1d9;
+            pointer-events: none;
+        }
+
+        /* Link styling */
+        .link {
+            fill: none;
+            stroke: #30363d;
+            stroke-width: 1.5px;
+            opacity: 0.6;
+        }
+
+        .link.highlighted {
+            stroke: #58a6ff;
+            stroke-width: 2px;
+            opacity: 1;
+        }
+
+        .link.runtime-ref {
+            stroke: #f85149;
+            stroke-dasharray: 5, 5;
+        }
+
+        /* Arrow markers */
+        .arrow {
+            fill: #30363d;
+        }
+
+        .arrow.highlighted {
+            fill: #58a6ff;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 11px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            max-width: 250px;
+            z-index: 100;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        /* Load sample button */
+        .load-section {
+            margin-bottom: 20px;
+        }
+
+        .load-section h3 {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-family: 'SF Mono', monospace;
+            font-size: 10px;
+            padding: 8px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>GlyphStratum</h1>
+            <div class="subtitle">Dependency Graph Viewer</div>
+
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="glyph-count">0</div>
+                    <div class="stat-label">Glyphs</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="link-count">0</div>
+                    <div class="stat-label">Links</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="coherence">--</div>
+                    <div class="stat-label">Coherence</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="cycles">--</div>
+                    <div class="stat-label">Cycles</div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <h3>Strata</h3>
+                <div class="legend-item">
+                    <div class="legend-color stratum-INTENT"></div>
+                    <span>INTENT (4) - Goals</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color stratum-SPEC"></div>
+                    <span>SPEC (3) - Interfaces</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color stratum-LOGIC"></div>
+                    <span>LOGIC (2) - Control Flow</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color stratum-MEMORY"></div>
+                    <span>MEMORY (1) - Data Storage</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color stratum-SUBSTRATE"></div>
+                    <span>SUBSTRATE (0) - Primitives</span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <h3>Layout</h3>
+                <button class="btn active" onclick="setLayout('dagre')">Dagre</button>
+                <button class="btn" onclick="setLayout('force')">Force</button>
+                <button class="btn" onclick="setLayout('radial')">Radial</button>
+            </div>
+
+            <div class="controls">
+                <h3>View</h3>
+                <button class="btn" onclick="toggleRuntimeRefs()">Show Runtime Refs</button>
+                <button class="btn" onclick="resetZoom()">Reset Zoom</button>
+                <button class="btn" onclick="exportSVG()">Export SVG</button>
+            </div>
+
+            <div class="load-section">
+                <h3>Load Program</h3>
+                <textarea id="json-input" placeholder="Paste glyph JSON here..."></textarea>
+                <button class="btn" onclick="loadFromTextarea()" style="margin-top: 8px; width: 100%;">Load JSON</button>
+                <button class="btn" onclick="loadSample()" style="margin-top: 4px; width: 100%;">Load Sample</button>
+            </div>
+
+            <div class="controls" style="margin-bottom: 20px;">
+                <h3>Search & Filter</h3>
+                <input type="text" id="search-input" placeholder="Search glyphs..." style="width: 100%; padding: 8px; margin-bottom: 8px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; font-family: inherit;">
+            </div>
+
+            <div class="filter-row" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
+                <span style="font-size: 11px; color: #8b949e;">Strata:</span>
+                <div style="display: flex; gap: 6px;">
+                    <label><input type="checkbox" class="stratum-filter" data-stratum="INTENT" onchange="applyFilters()">> INTENT</label>
+                    <label><input type="checkbox" class="stratum-filter" data-stratum="SPEC" checked onchange="applyFilters()">> SPEC</label>
+                    <label><input type="checkbox" class="stratum-filter" data-stratum="LOGIC" checked onchange="applyFilters()">> LOGIC</label>
+                    <label><input type="checkbox" class="stratum-filter" data-stratum="MEMORY" checked onchange="applyFilters()">> MEMORY</label>
+                    <label><input type="checkbox" class="stratum-filter" data-stratum="SUBSTRATE" checked onchange="applyFilters()">> SUBSTRATE</label>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <span style="font-size: 11px; color: #8b949e;">Opcodes:</span>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <label><input type="checkbox" class="opcode-filter" data-opcode="DATA" onchange="applyFilters()">> DATA</label>
+                        <label><input type="checkbox" class="opcode-filter" data-opcode="LOAD" checked onchange="applyFilters()">> LOAD</label>
+                        <label><input type="checkbox" class="opcode-filter" data-opcode="STORE" checked onchange="applyFilters()">> STORE</label>
+                        <label><input type="checkbox" class="opcode-filter" data-opcode="CALL" checked onchange="applyFilters()">> CALL</label>
+                        <label><input type="checkbox" class="opcode-filter" data-opcode="BRANCH" checked onchange="applyFilters()">> BRANCH</label>
+                        <label><input type="checkbox" class="opcode-filter" data-opcode="LOOP" checked onchange="applyFilters()">> LOOP</label>
+                        <label><input type="checkbox" class="opcode-filter" data-opcode="RETURN" checked onchange="applyFilters()">> RETURN</label>
+                        <label><input type="checkbox" class="opcode-filter" data-opcode="EXPORT" checked onchange="applyFilters()">> EXPORT</label>
+                        <label><input type="checkbox" class="opcode-filter" data-opcode="MODULE" checked onchange="applyFilters()">> MODULE</label>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="clearFilters()" style="width: 100%;">Clear All Filters</button>
+            </div>
+
+            <div class="node-details" id="node-details" style="display: none;">
+                <h3 id="node-title">Glyph Details</h3>
+                <div class="field">
+                    <div class="label">Index</div>
+                    <div class="value" id="detail-index">-</div>
+                </div>
+                <div class="field">
+                    <div class="label">Stratum</div>
+                    <div class="value" id="detail-stratum">-</div>
+                </div>
+                <div class="field">
+                    <div class="label">Opcode</div>
+                    <div class="value" id="detail-opcode">-</div>
+                </div>
+                <div class="field">
+                    <div class="label">Rationale</div>
+                    <div class="value" id="detail-rationale">-</div>
+                </div>
+                <div class="field">
+                    <div class="label">Dependencies</div>
+                    <div class="value" id="detail-deps">-</div>
+                </div>
+                <div class="field">
+                    <div class="label">Runtime Refs</div>
+                    <div class="value" id="detail-runtime">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="graph-area">
+            <svg id="graph"></svg>
+            <div class="tooltip" id="tooltip"></div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data - add two numbers
+        const sampleData = {
+            name: "add_two_numbers",
+            glyphs: {
+                "0": {stratum: "SUBSTRATE", opcode: "DATA", rationale: "value 5", dependencies: [], invariants: {value: 5}},
+                "1": {stratum: "SUBSTRATE", opcode: "DATA", rationale: "value 3", dependencies: [], invariants: {value: 3}},
+                "2": {stratum: "MEMORY", opcode: "LOAD", rationale: "load operand a", dependencies: [0], invariants: {}},
+                "3": {stratum: "MEMORY", opcode: "LOAD", rationale: "load operand b", dependencies: [1], invariants: {}},
+                "4": {stratum: "LOGIC", opcode: "CALL", rationale: "+", dependencies: [2, 3], invariants: {}},
+                "5": {stratum: "SPEC", opcode: "EXPORT", rationale: "add(a,b) interface", dependencies: [4], invariants: {}},
+                "6": {stratum: "INTENT", opcode: "MODULE", rationale: "add two numbers", dependencies: [5], invariants: {}}
+            }
+        };
+
+        // Color map
+        const stratumColors = {
+            INTENT: "#ffd700",
+            SPEC: "#58a6ff",
+            LOGIC: "#7ee787",
+            MEMORY: "#a371f7",
+            SUBSTRATE: "#6e7681"
+        };
+
+        // State
+        let currentData = null;
+        let showRuntimeRefs = false;
+        let currentLayout = 'dagre';
+        let selectedNode = null;
+        let simulation = null;
+
+        // Initialize
+        const svg = d3.select("#graph");
+        const width = svg.node().getBoundingClientRect().width;
+        const height = svg.node().getBoundingClientRect().height;
+
+        // Add arrow marker
+        svg.append("defs").append("marker")
+            .attr("id", "arrow")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 20)
+            .attr("refY", 0)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-5L10,0L0,5")
+            .attr("class", "arrow");
+
+        // Zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 4])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        const g = svg.append("g");
+
+        // Load sample on start
+        loadSample();
+
+        function loadSample() {
+            currentData = sampleData;
+            render();
+        }
+
+        function loadFromTextarea() {
+            const input = document.getElementById("json-input").value;
+            try {
+                currentData = JSON.parse(input);
+                render();
+            } catch (e) {
+                alert("Invalid JSON: " + e.message);
+            }
+        }
+
+        function render() {
+            if (!currentData) return;
+
+            // Clear previous
+            g.selectAll("*").remove();
+
+            // Build nodes and links
+            const nodes = [];
+            const links = [];
+            const glyphs = currentData.glyphs || {};
+
+            for (const [idx, glyph] of Object.entries(glyphs)) {
+                nodes.push({
+                    id: parseInt(idx),
+                    stratum: glyph.stratum,
+                    opcode: glyph.opcode,
+                    rationale: glyph.rationale || "",
+                    dependencies: glyph.dependencies || [],
+                    runtime_refs: glyph.runtime_refs || [],
+                    invariants: glyph.invariants || {}
+                });
+
+                // Construction dependencies
+                for (const dep of (glyph.dependencies || [])) {
+                    links.push({
+                        source: dep,
+                        target: parseInt(idx),
+                        type: "construction"
+                    });
+                }
+
+                // Runtime refs
+                if (showRuntimeRefs) {
+                    for (const ref of (glyph.runtime_refs || [])) {
+                        links.push({
+                            source: ref,
+                            target: parseInt(idx),
+                            type: "runtime"
+                        });
+                    }
+                }
+            }
+
+            // Update stats
+            document.getElementById("glyph-count").textContent = nodes.length;
+            document.getElementById("link-count").textContent = links.length;
+
+            // Check coherence
+            let validDeps = 0;
+            let totalDeps = 0;
+            const stratumOrder = {SUBSTRATE: 0, MEMORY: 1, LOGIC: 2, SPEC: 3, INTENT: 4};
+
+            for (const node of nodes) {
+                for (const dep of node.dependencies) {
+                    totalDeps++;
+                    const depNode = nodes.find(n => n.id === dep);
+                    if (depNode && stratumOrder[depNode.stratum] <= stratumOrder[node.stratum]) {
+                        validDeps++;
+                    }
+                }
+            }
+            const coherence = totalDeps > 0 ? Math.round(validDeps / totalDeps * 100) : 100;
+            document.getElementById("coherence").textContent = coherence + "%";
+
+            // Check cycles (simple DFS)
+            const cycles = detectCycles(nodes, links);
+            document.getElementById("cycles").textContent = cycles.length > 0 ? cycles.length : "0";
+
+            // Apply layout
+            if (currentLayout === 'dagre') {
+                applyDagreLayout(nodes, links);
+            } else if (currentLayout === 'force') {
+                applyForceLayout(nodes, links);
+            } else {
+                applyRadialLayout(nodes, links);
+            }
+
+            // Draw links
+            const link = g.append("g")
+                .selectAll("path")
+                .data(links)
+                .enter().append("path")
+                .attr("class", d => "link" + (d.type === "runtime" ? " runtime-ref" : ""))
+                .attr("d", d => {
+                    const source = nodes.find(n => n.id === d.source);
+                    const target = nodes.find(n => n.id === d.target);
+                    return `M${source.x},${source.y}L${target.x},${target.y}`;
+                })
+                .attr("marker-end", "url(#arrow)");
+
+            // Draw nodes
+            const node = g.append("g")
+                .selectAll("g")
+                .data(nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.x},${d.y})`)
+                .on("click", (event, d) => selectNode(d))
+                .on("mouseover", showTooltip)
+                .on("mouseout", hideTooltip);
+
+            node.append("circle")
+                .attr("r", 20)
+                .attr("fill", d => stratumColors[d.stratum])
+                .attr("stroke", d => stratumColors[d.stratum]);
+
+            node.append("text")
+                .attr("dy", 4)
+                .attr("text-anchor", "middle")
+                .text(d => d.id);
+
+            // Fit to screen
+            fitToScreen(nodes);
+        }
+
+        function applyDagreLayout(nodes, links) {
+            // Simple topological layout by stratum
+            const stratumOrder = {SUBSTRATE: 0, MEMORY: 1, LOGIC: 2, SPEC: 3, INTENT: 4};
+            const byStratum = {};
+            for (const node of nodes) {
+                const level = stratumOrder[node.stratum];
+                if (!byStratum[level]) byStratum[level] = [];
+                byStratum[level].push(node);
+            }
+
+            const levelHeight = 100;
+            const nodeWidth = 80;
+            const centerX = width / 2;
+            const startY = 100;
+
+            for (const [level, levelNodes] of Object.entries(byStratum)) {
+                const totalWidth = levelNodes.length * nodeWidth;
+                const startX = centerX - totalWidth / 2;
+                levelNodes.forEach((node, i) => {
+                    node.x = startX + i * nodeWidth + nodeWidth / 2;
+                    node.y = startY + parseInt(level) * levelHeight;
+                });
+            }
+        }
+
+        function applyForceLayout(nodes, links) {
+            // Simple force simulation
+            nodes.forEach((node, i) => {
+                node.x = width / 2 + (Math.random() - 0.5) * 200;
+                node.y = height / 2 + (Math.random() - 0.5) * 200;
+            });
+
+            if (simulation) simulation.stop();
+            simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+                .force("charge", d3.forceManyBody().strength(-300))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .on("tick", () => {
+                    g.selectAll(".link").attr("d", d => {
+                        return `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`;
+                    });
+                    g.selectAll(".node").attr("transform", d => `translate(${d.x},${d.y})`);
+                });
+        }
+
+        function applyRadialLayout(nodes, links) {
+            const stratumOrder = {SUBSTRATE: 0, MEMORY: 1, LOGIC: 2, SPEC: 3, INTENT: 4};
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const maxRadius = Math.min(width, height) / 2 - 50;
+
+            for (const node of nodes) {
+                const level = stratumOrder[node.stratum];
+                const radius = (level / 4) * maxRadius;
+                const sameLevel = nodes.filter(n => stratumOrder[n.stratum] === level);
+                const idx = sameLevel.indexOf(node);
+                const angle = (2 * Math.PI / sameLevel.length) * idx - Math.PI / 2;
+                node.x = centerX + radius * Math.cos(angle);
+                node.y = centerY + radius * Math.sin(angle);
+            }
+        }
+
+        function detectCycles(nodes, links) {
+            // Simple cycle detection using DFS
+            const cycles = [];
+            const visited = new Set();
+            const path = [];
+
+            function dfs(nodeId) {
+                if (path.includes(nodeId)) {
+                    const cycleStart = path.indexOf(nodeId);
+                    cycles.push(path.slice(cycleStart).concat([nodeId]));
+                    return;
+                }
+                if (visited.has(nodeId)) return;
+                visited.add(nodeId);
+                path.push(nodeId);
+
+                for (const link of links) {
+                    if (link.source === nodeId || link.source?.id === nodeId) {
+                        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                        dfs(targetId);
+                    }
+                }
+
+                path.pop();
+            }
+
+            for (const node of nodes) {
+                dfs(node.id);
+            }
+
+            return cycles;
+        }
+
+        function selectNode(d) {
+            selectedNode = d;
+            document.querySelectorAll(".node").forEach(n => n.classList.remove("selected"));
+            d3.select(event.currentTarget).classed("selected", true);
+
+            // Show details
+            const details = document.getElementById("node-details");
+            details.style.display = "block";
+            document.getElementById("node-title").textContent = `Glyph #${d.id}`;
+            document.getElementById("detail-index").textContent = d.id;
+            document.getElementById("detail-stratum").textContent = d.stratum;
+            document.getElementById("detail-opcode").textContent = d.opcode;
+            document.getElementById("detail-rationale").textContent = d.rationale || "-";
+            document.getElementById("detail-deps").textContent = d.dependencies.length > 0 ? d.dependencies.join(", ") : "none";
+            document.getElementById("detail-runtime").textContent = d.runtime_refs.length > 0 ? d.runtime_refs.join(", ") : "none";
+
+            // Highlight connected links
+            g.selectAll(".link")
+                .classed("highlighted", link => {
+                    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                    return sourceId === d.id || targetId === d.id;
+                });
+        }
+
+        function showTooltip(event, d) {
+            const tooltip = document.getElementById("tooltip");
+            tooltip.innerHTML = `<strong>#${d.id}</strong> ${d.stratum}<br>${d.opcode}<br><em>${d.rationale}</em>`;
+            tooltip.style.left = (event.pageX + 10) + "px";
+            tooltip.style.top = (event.pageY - 10) + "px";
+            tooltip.classList.add("visible");
+        }
+
+        function hideTooltip() {
+            document.getElementById("tooltip").classList.remove("visible");
+        }
+
+        function setLayout(type) {
+            currentLayout = type;
+            document.querySelectorAll(".controls .btn").forEach(b => b.classList.remove("active"));
+            event.target.classList.add("active");
+            render();
+        }
+
+        function toggleRuntimeRefs() {
+            showRuntimeRefs = !showRuntimeRefs;
+            event.target.classList.toggle("active");
+            render();
+        }
+
+        function resetZoom() {
+            svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+        }
+
+        function fitToScreen(nodes) {
+            if (nodes.length === 0) return;
+
+            const xs = nodes.map(n => n.x);
+            const ys = nodes.map(n => n.y);
+            const minX = Math.min(...xs) - 50;
+            const maxX = Math.max(...xs) + 50;
+            const minY = Math.min(...ys) - 50;
+            const maxY = Math.max(...ys) + 50;
+
+            const dx = maxX - minX;
+            const dy = maxY - minY;
+            const scale = Math.min(width / dx, height / dy, 1.5);
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+
+            svg.transition().duration(500).call(
+                zoom.transform,
+                d3.zoomIdentity
+                    .translate(width / 2, height / 2)
+                    .scale(scale)
+                    .translate(-centerX, -centerY)
+            );
+        }
+
+        function exportSVG() {
+            const svgData = svg.node().outerHTML;
+            const blob = new Blob([svgData], {type: "image/svg+xml"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "glyph-graph.svg";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Search functionality
+        document.getElementById("search-input").addEventListener("input", applyFilters);
+        document.getElementById("search-input").addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                e.target.value = "";
+                applyFilters();
+            }
+        });
+
+        function applyFilters() {
+            if (!currentData) return;
+
+            const searchText = document.getElementById("search-input").value.toLowerCase();
+            const selectedStrata = Array.from(document.querySelectorAll(".stratum-filter:checked")).map(cb => cb.dataset.stratum);
+            const selectedOpcodes = Array.from(document.querySelectorAll(".opcode-filter:checked")).map(cb => cb.dataset.opcode);
+
+            // Update node visibility
+            g.selectAll(".node")
+                .style("opacity", d => {
+                    const matchesSearch = !searchText ||
+                        d.id.toString().includes(searchText) ||
+                        d.stratum.toLowerCase().includes(searchText) ||
+                        d.opcode.toLowerCase().includes(searchText) ||
+                        (d.rationale || "").toLowerCase().includes(searchText);
+
+                    const matchesStratum = selectedStrata.length === 0 || selectedStrata.includes(d.stratum);
+                    const matchesOpcode = selectedOpcodes.length === 0 || selectedOpcodes.includes(d.opcode);
+
+                    return (matchesSearch && matchesStratum && matchesOpcode) ? 1 : 0.15;
+                })
+                .classed("filtered-out", d => {
+                    const matchesSearch = !searchText ||
+                        d.id.toString().includes(searchText) ||
+                        d.stratum.toLowerCase().includes(searchText) ||
+                        d.opcode.toLowerCase().includes(searchText) ||
+                        (d.rationale || "").toLowerCase().includes(searchText);
+
+                    const matchesStratum = selectedStrata.length === 0 || selectedStrata.includes(d.stratum);
+                    const matchesOpcode = selectedOpcodes.length === 0 || selectedOpcodes.includes(d.opcode);
+
+                    return !(matchesSearch && matchesStratum && matchesOpcode);
+                });
+
+            // Update link visibility
+            g.selectAll(".link")
+                .style("opacity", d => {
+                    const sourceVisible = !g.select(`.node[data-id="${d.source.id || d.source}"]`).classed("filtered-out");
+                    const targetVisible = !g.select(`.node[data-id="${d.target.id || d.target}"]`).classed("filtered-out");
+                    return (sourceVisible && targetVisible) ? 0.6 : 0.1;
+                });
+
+            // Update count
+            const visibleCount = g.selectAll(".node:not(.filtered-out)").size();
+            document.getElementById("glyph-count").textContent = visibleCount;
+        }
+
+        function clearFilters() {
+            document.getElementById("search-input").value = "";
+            document.querySelectorAll(".stratum-filter").forEach(cb => cb.checked = true);
+            document.querySelectorAll(".opcode-filter").forEach(cb => cb.checked = true);
+            applyFilters();
+        }
+
+        // Sample program selector
+        function loadSampleProgram(name) {
+            fetch('sample_programs_loader.json')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.samples[name]) {
+                        currentData = data.samples[name];
+                        render();
+                    }
+                })
+                .catch(e => console.error("Could not load sample:", e));
+        }
+
+        // Add sample selector to UI
+        const sampleSelector = document.createElement("select");
+        sampleSelector.className = "btn";
+        sampleSelector.style.width = "100%";
+        sampleSelector.style.marginTop = "8px";
+        sampleSelector.innerHTML = `
+            <option value="">-- Load Sample Program --</option>
+            <option value="add_two_numbers">Add Two Numbers (Easy)</option>
+            <option value="is_even">Is Even (Easy)</option>
+            <option value="sum_array">Sum Array (Easy)</option>
+            <option value="factorial">Factorial (Medium)</option>
+            <option value="fibonacci">Fibonacci (Medium)</option>
+            <option value="calculator">Calculator (Medium)</option>
+            <option value="json_parser">JSON Parser (Hard)</option>
+        `;
+        sampleSelector.addEventListener("change", (e) => {
+            if (e.target.value) {
+                loadSampleProgram(e.target.value);
+            }
+        });
+        document.querySelector(".load-section").appendChild(sampleSelector);
+
+        // Add data-id attribute to nodes for filtering
+        const originalRender = render;
+        render = function() {
+            originalRender();
+            setTimeout(() => {
+                g.selectAll(".node")
+                    .attr("data-id", d => d.id);
+            }, 100);
+        };
+    </script>
+</body>
+</html>

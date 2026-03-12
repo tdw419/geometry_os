@@ -3,13 +3,9 @@
 Test script for GlyphStratum AI-native language implementation
 """
 
+import json
 import sys
 import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
-
-import json
-from systems.infinite_map_rs.src.glyph_stratum.mod import *
 
 
 def test_stratum_enum():

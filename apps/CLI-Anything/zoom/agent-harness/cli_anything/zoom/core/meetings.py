@@ -8,7 +8,7 @@ Covers:
 """
 
 from typing import Any
-from cli_anything.zoom.utils.zoom_backend import api_get, api_post, api_patch, api_delete
+from .zoom.utils.zoom_backend import api_get, api_post, api_patch, api_delete
 
 
 def create_meeting(

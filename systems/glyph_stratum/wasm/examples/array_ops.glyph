@@ -1,0 +1,182 @@
+{
+  "glyphs": {
+    "1": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": [] }
+    },
+    "2": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [1],
+      "invariants": { "name": "numbers" }
+    },
+    "3": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "4": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 2 }
+    },
+    "5": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 3 }
+    },
+    "6": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 4 }
+    },
+    "7": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 5 }
+    },
+    "8": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "numbers" }
+    },
+    "9": {
+      "stratum": "LOGIC",
+      "opcode": "PUSH",
+      "dependencies": [8, 3]
+    },
+    "10": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [9],
+      "invariants": { "name": "numbers" }
+    },
+    "11": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "numbers" }
+    },
+    "12": {
+      "stratum": "LOGIC",
+      "opcode": "PUSH",
+      "dependencies": [11, 4]
+    },
+    "13": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [12],
+      "invariants": { "name": "numbers" }
+    },
+    "14": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "numbers" }
+    },
+    "15": {
+      "stratum": "LOGIC",
+      "opcode": "PUSH",
+      "dependencies": [14, 5]
+    },
+    "16": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [15],
+      "invariants": { "name": "numbers" }
+    },
+    "17": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "numbers" }
+    },
+    "18": {
+      "stratum": "LOGIC",
+      "opcode": "ARRAYLEN",
+      "dependencies": [17]
+    },
+    "19": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [18],
+      "invariants": { "name": "count" }
+    },
+    "20": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "numbers" }
+    },
+    "21": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 0 }
+    },
+    "22": {
+      "stratum": "LOGIC",
+      "opcode": "GET",
+      "dependencies": [20, 21]
+    },
+    "23": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [22],
+      "invariants": { "name": "first" }
+    },
+    "24": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "numbers" }
+    },
+    "25": {
+      "stratum": "LOGIC",
+      "opcode": "POP",
+      "dependencies": [24]
+    },
+    "26": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [25],
+      "invariants": { "name": "last" }
+    },
+    "27": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "numbers" }
+    },
+    "28": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "29": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 100 }
+    },
+    "30": {
+      "stratum": "LOGIC",
+      "opcode": "SET",
+      "dependencies": [27, 28, 29]
+    },
+    "31": {
+      "stratum": "MEMORY",
+      "opcode": "STORE",
+      "dependencies": [30],
+      "invariants": { "name": "numbers" }
+    },
+    "32": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "invariants": { "name": "numbers" }
+    },
+    "33": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "invariants": { "value": 1 }
+    },
+    "34": {
+      "stratum": "LOGIC",
+      "opcode": "GET",
+      "dependencies": [32, 33]
+    }
+  }
+}

@@ -23,14 +23,14 @@ from typing import Optional
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cli_anything.blender.core.session import Session
-from cli_anything.blender.core import scene as scene_mod
-from cli_anything.blender.core import objects as obj_mod
-from cli_anything.blender.core import materials as mat_mod
-from cli_anything.blender.core import modifiers as mod_mod
-from cli_anything.blender.core import lighting as light_mod
-from cli_anything.blender.core import animation as anim_mod
-from cli_anything.blender.core import render as render_mod
+from .blender.core.session import Session
+from .blender.core import scene as scene_mod
+from .blender.core import objects as obj_mod
+from .blender.core import materials as mat_mod
+from .blender.core import modifiers as mod_mod
+from .blender.core import lighting as light_mod
+from .blender.core import animation as anim_mod
+from .blender.core import render as render_mod
 
 # Global session state
 _session: Optional[Session] = None
@@ -843,7 +843,7 @@ def session_history():
 @handle_error
 def repl(project_path):
     """Start interactive REPL session."""
-    from cli_anything.blender.utils.repl_skin import ReplSkin
+    from .blender.utils.repl_skin import ReplSkin
 
     global _repl_mode
     _repl_mode = True

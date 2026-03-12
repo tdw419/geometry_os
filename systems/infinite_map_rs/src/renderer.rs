@@ -52,6 +52,8 @@ pub struct Renderer<'a> {
     memory_artifact_bind_group_layout: Option<wgpu::BindGroupLayout>,
     pub memory_artifact_shader_path: std::path::PathBuf, // exposed for debug if needed
     memory_artifact_mtime: Option<std::time::SystemTime>,
+    pub font_shader_path: std::path::PathBuf,
+    pub font_shader_mtime: Option<std::time::SystemTime>,
     last_hot_reload_check: std::time::Instant,
 
     // Bootable Cartridge (Ground Truth Substrate)
@@ -91,6 +93,9 @@ pub struct Renderer<'a> {
     
     // Phase 41: Visual AST Rendering
     pub visual_ast_renderer: Option<crate::visual_ast_renderer::VisualASTRenderer>,
+
+    // Phase 41.5: Glyph Stratum Engine (Visual Programming)
+    pub glyph_stratum_engine: Option<crate::glyph_stratum::GlyphStratumEngine>,
 
     // Phase 37.3: Cognitive Cartography
     pub cortex_renderer: Option<crate::cortex::CortexRenderer>,
@@ -777,6 +782,8 @@ impl<'a> Renderer<'a> {
             memory_artifact_bind_group_layout: Some(memory_artifact_bind_group_layout),
             memory_artifact_shader_path: std::path::PathBuf::from("systems/infinite_map_rs/src/shaders/morph_transition.wgsl"),
             memory_artifact_mtime: std::fs::metadata("systems/infinite_map_rs/src/shaders/morph_transition.wgsl").ok().and_then(|m| m.modified().ok()),
+            font_shader_path: std::path::PathBuf::from("systems/infinite_map_rs/src/shaders/msdf_font.wgsl"),
+            font_shader_mtime: std::fs::metadata("systems/infinite_map_rs/src/shaders/msdf_font.wgsl").ok().and_then(|m| m.modified().ok()),
             last_hot_reload_check: std::time::Instant::now(),
 
             // Bootable Cartridge (Ground Truth Substrate)
@@ -811,6 +818,7 @@ impl<'a> Renderer<'a> {
             agent_renderer,
             text_engine: None,
             visual_ast_renderer: Some(visual_ast_renderer),
+            glyph_stratum_engine: None,
             cortex_renderer: None,
             terminal_renderer,
 
@@ -964,6 +972,12 @@ impl<'a> Renderer<'a> {
         cortex.add_layer(&self.device, "attention_net", [0.0, 1.0, 0.0, 0.5]);
 
         self.cortex_renderer = Some(cortex);
+    }
+
+    // Phase 41.5: Enable GlyphStratum (Visual Programming)
+    pub fn enable_glyph_stratum(&mut self) {
+        eprintln!("debug: Enabling GlyphStratum Engine...");
+        self.glyph_stratum_engine = Some(crate::glyph_stratum::GlyphStratumEngine::new(80, 40));
     }
 
     // Phase 42: Set compilation status for visual feedback
@@ -1656,99 +1670,123 @@ impl<'a> Renderer<'a> {
         }
         self.last_hot_reload_check = std::time::Instant::now();
 
-        if !self.memory_artifact_shader_path.exists() {
-            return;
+        // Memory Artifact Shader Hot Reload
+        if self.memory_artifact_shader_path.exists() {
+            let current_mtime = std::fs::metadata(&self.memory_artifact_shader_path)
+                .ok()
+                .and_then(|m| m.modified().ok());
+
+            if current_mtime > self.memory_artifact_mtime {
+                eprintln!("debug: Hot Reload detected for {:?}", self.memory_artifact_shader_path);
+                
+                let source_str = match crate::foundry::optical_loader::OpticalLoader::load_text_source(&self.memory_artifact_shader_path) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        eprintln!("error: Hot Reload Failed to load brick: {}", e);
+                        return; 
+                    }
+                };
+
+                let shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some("Memory Artifact Shader (Hot Reloaded)"),
+                    source: wgpu::ShaderSource::Wgsl(source_str.into()),
+                });
+
+                if let Some(layout) = &self.memory_artifact_bind_group_layout {
+                    let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                        label: Some("Memory Artifact Pipeline Layout (Hot Reloaded)"),
+                        bind_group_layouts: &[layout],
+                        push_constant_ranges: &[],
+                    });
+
+                    let pipeline = self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                        label: Some("Memory Artifact Render Pipeline"),
+                        layout: Some(&pipeline_layout),
+                        vertex: wgpu::VertexState {
+                            module: &shader,
+                            entry_point: "vs_main",
+                            buffers: &[wgpu::VertexBufferLayout {
+                                array_stride: std::mem::size_of::<crate::memory_artifacts::MemoryVertex>() as wgpu::BufferAddress,
+                                step_mode: wgpu::VertexStepMode::Vertex,
+                                attributes: &[
+                                    wgpu::VertexAttribute {
+                                        offset: 0,
+                                        shader_location: 0,
+                                        format: wgpu::VertexFormat::Float32x3,
+                                    },
+                                    wgpu::VertexAttribute {
+                                        offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                                        shader_location: 1,
+                                        format: wgpu::VertexFormat::Float32x4,
+                                    },
+                                    wgpu::VertexAttribute {
+                                        offset: std::mem::size_of::<[f32; 7]>() as wgpu::BufferAddress,
+                                        shader_location: 2,
+                                        format: wgpu::VertexFormat::Float32x2,
+                                    },
+                                    wgpu::VertexAttribute {
+                                        offset: std::mem::size_of::<[f32; 9]>() as wgpu::BufferAddress,
+                                        shader_location: 3,
+                                        format: wgpu::VertexFormat::Float32,
+                                    },
+                                ],
+                            }],
+                        },
+                        fragment: Some(wgpu::FragmentState {
+                            module: &shader,
+                            entry_point: "fs_main",
+                            targets: &[Some(wgpu::ColorTargetState {
+                                format: self.config.format,
+                                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                                write_mask: wgpu::ColorWrites::ALL,
+                            })],
+                        }),
+                        primitive: wgpu::PrimitiveState {
+                            topology: wgpu::PrimitiveTopology::TriangleList,
+                            strip_index_format: None,
+                            front_face: wgpu::FrontFace::Ccw,
+                            cull_mode: Some(wgpu::Face::Back),
+                            polygon_mode: wgpu::PolygonMode::Fill,
+                            unclipped_depth: false,
+                            conservative: false,
+                        },
+                        depth_stencil: None,
+                        multisample: wgpu::MultisampleState::default(),
+                        multiview: None,
+                    });
+
+                    self.memory_artifact_pipeline = Some(pipeline);
+                    self.memory_artifact_mtime = current_mtime;
+                    eprintln!("✅ Memory Artifact Shader Hot-Reloaded successfully");
+                }
+            }
         }
 
-        let current_mtime = std::fs::metadata(&self.memory_artifact_shader_path)
-            .ok()
-            .and_then(|m| m.modified().ok());
+        // Font Shader Hot Reload
+        if self.font_shader_path.exists() {
+            let current_font_mtime = std::fs::metadata(&self.font_shader_path)
+                .ok()
+                .and_then(|m| m.modified().ok());
 
-        if current_mtime > self.memory_artifact_mtime {
-            eprintln!("debug: Hot Reload detected for {:?}", self.memory_artifact_shader_path);
-            
-            // Reload Source
-            let source_str = match crate::foundry::optical_loader::OpticalLoader::load_text_source(&self.memory_artifact_shader_path) {
-                Ok(s) => s,
-                Err(e) => {
-                    eprintln!("error: Hot Reload Failed to load brick: {}", e);
-                    return; 
+            if current_font_mtime > self.font_shader_mtime {
+                eprintln!("debug: Hot Reload detected for Font Shader: {:?}", self.font_shader_path);
+                
+                let source_str = match crate::foundry::optical_loader::OpticalLoader::load_text_source(&self.font_shader_path) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        eprintln!("error: Font Hot Reload Failed to load: {}", e);
+                        return;
+                    }
+                };
+
+                if let Some(ref mut text_engine) = self.text_engine {
+                    if let Err(e) = text_engine.recompile_pipeline(&self.device, self.config.format, &source_str) {
+                        eprintln!("error: Font Hot Reload Recompilation Failed: {}", e);
+                    } else {
+                        eprintln!("✅ Font Shader Hot-Reloaded successfully");
+                        self.font_shader_mtime = current_font_mtime;
+                    }
                 }
-            };
-
-            // Compile Shader
-            let shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("Memory Artifact Shader (Hot Reloaded)"),
-                source: wgpu::ShaderSource::Wgsl(source_str.into()),
-            });
-
-            // Recreate Pipeline
-            if let Some(layout) = &self.memory_artifact_bind_group_layout {
-                 let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: Some("Memory Artifact Pipeline Layout (Hot Reloaded)"),
-                    bind_group_layouts: &[layout],
-                    push_constant_ranges: &[],
-                });
-
-                let pipeline = self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                    label: Some("Memory Artifact Render Pipeline"),
-                    layout: Some(&pipeline_layout),
-                    vertex: wgpu::VertexState {
-                        module: &shader,
-                        entry_point: "vs_main",
-                        buffers: &[wgpu::VertexBufferLayout {
-                            array_stride: std::mem::size_of::<crate::memory_artifacts::MemoryVertex>() as wgpu::BufferAddress,
-                            step_mode: wgpu::VertexStepMode::Vertex,
-                            attributes: &[
-                                wgpu::VertexAttribute {
-                                    offset: 0,
-                                    shader_location: 0,
-                                    format: wgpu::VertexFormat::Float32x3,
-                                },
-                                wgpu::VertexAttribute {
-                                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
-                                    shader_location: 1,
-                                    format: wgpu::VertexFormat::Float32x4,
-                                },
-                                wgpu::VertexAttribute {
-                                    offset: std::mem::size_of::<[f32; 7]>() as wgpu::BufferAddress,
-                                    shader_location: 2,
-                                    format: wgpu::VertexFormat::Float32x2,
-                                },
-                                wgpu::VertexAttribute {
-                                    offset: std::mem::size_of::<[f32; 9]>() as wgpu::BufferAddress,
-                                    shader_location: 3,
-                                    format: wgpu::VertexFormat::Float32,
-                                },
-                            ],
-                        }],
-                    },
-                    fragment: Some(wgpu::FragmentState {
-                        module: &shader,
-                        entry_point: "fs_main",
-                        targets: &[Some(wgpu::ColorTargetState {
-                            format: self.config.format,
-                            blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                            write_mask: wgpu::ColorWrites::ALL,
-                        })],
-                    }),
-                    primitive: wgpu::PrimitiveState {
-                        topology: wgpu::PrimitiveTopology::TriangleList,
-                        strip_index_format: None,
-                        front_face: wgpu::FrontFace::Ccw,
-                        cull_mode: Some(wgpu::Face::Back),
-                        polygon_mode: wgpu::PolygonMode::Fill,
-                        unclipped_depth: false,
-                        conservative: false,
-                    },
-                    depth_stencil: None,
-                    multisample: wgpu::MultisampleState::default(),
-                    multiview: None,
-                });
-
-                self.memory_artifact_pipeline = Some(pipeline);
-                self.memory_artifact_mtime = current_mtime;
-                eprintln!("debug: Hot Reload SUCCESS!");
             }
         }
     }

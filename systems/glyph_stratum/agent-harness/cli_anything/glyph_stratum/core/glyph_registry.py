@@ -104,24 +104,96 @@ class GlyphRegistry:
         return []
 
     def dependency_graph(self) -> Dict[int, List[int]]:
-        """Get full dependency graph as adjacency list."""
+        """Get construction dependency graph as adjacency list (excludes runtime refs)."""
         return {
             idx: glyph.metadata.dependencies.copy()
             for idx, glyph in self.glyphs.items()
         }
 
+    def runtime_ref_graph(self) -> Dict[int, List[int]]:
+        """Get runtime reference graph as adjacency list (can contain cycles for recursion)."""
+        return {
+            idx: glyph.metadata.runtime_refs.copy()
+            for idx, glyph in self.glyphs.items()
+        }
+
+    def full_reference_graph(self) -> Dict[int, List[int]]:
+        """Get combined graph of all references (deps + runtime_refs)."""
+        return {
+            idx: glyph.metadata.dependencies + glyph.metadata.runtime_refs
+            for idx, glyph in self.glyphs.items()
+        }
+
+    def find_cycle(self, use_runtime_refs: bool = False) -> Optional[List[int]]:
+        """Find a cycle in the dependency graph.
+
+        Args:
+            use_runtime_refs: If True, check full graph including runtime refs.
+                            If False (default), only check construction dependencies.
+
+        Returns the cycle path if found, None otherwise.
+        """
+        def find_cycle_recursive(idx: int, path: List[int], visited: set) -> Optional[List[int]]:
+            if idx in path:
+                cycle_start = path.index(idx)
+                return path[cycle_start:] + [idx]
+            if idx in visited:
+                return None
+            visited.add(idx)
+            path.append(idx)
+            glyph = self.glyphs.get(idx)
+            if glyph:
+                # Choose which edges to follow based on parameter
+                edges = glyph.metadata.dependencies if not use_runtime_refs else (
+                    glyph.metadata.dependencies + glyph.metadata.runtime_refs
+                )
+                for dep_idx in edges:
+                    result = find_cycle_recursive(dep_idx, path, visited)
+                    if result:
+                        return result
+            path.pop()
+            return None
+
+        visited: set = set()
+        for idx in self.glyphs:
+            if idx not in visited:
+                cycle = find_cycle_recursive(idx, [], visited)
+                if cycle:
+                    return cycle
+        return None
+
+    def has_cycle(self, use_runtime_refs: bool = False) -> bool:
+        """Check if the dependency graph has any cycles."""
+        return self.find_cycle(use_runtime_refs) is not None
+
+    def find_runtime_cycle(self) -> Optional[List[int]]:
+        """Find cycles in the full reference graph (including runtime refs).
+
+        Runtime cycles are expected for recursive patterns like parsers.
+        """
+        return self.find_cycle(use_runtime_refs=True)
+
     def validate_stratum_order(self) -> List[str]:
-        """Validate that lower strata exist before higher strata depend on them."""
+        """Validate strata ordering.
+
+        In GlyphStratum, higher strata (INTENT, SPEC) define goals/interfaces,
+        and lower strata (LOGIC, MEMORY, SUBSTRATE) implement them.
+        A glyph SHOULD depend on glyphs at the same or higher stratum.
+        A violation is when a glyph depends on a LOWER stratum (bottom-up leak).
+        """
         errors = []
         for idx, glyph in self.glyphs.items():
             for dep_idx in glyph.metadata.dependencies:
                 dep = self.glyphs.get(dep_idx)
-                if dep and dep.stratum > glyph.stratum:
-                    errors.append(
-                        f"Glyph {idx} (stratum {glyph.stratum.name}) "
-                        f"depends on glyph {dep_idx} (stratum {dep.stratum.name}) "
-                        f"- violates stratum ordering"
-                    )
+                if dep and dep.stratum < glyph.stratum:
+                    # Only flag as error if the gap is too large (>2 levels)
+                    gap = glyph.stratum - dep.stratum
+                    if gap > 2:
+                        errors.append(
+                            f"Glyph {idx} (stratum {glyph.stratum.name}) "
+                            f"depends on glyph {dep_idx} (stratum {dep.stratum.name}) "
+                            f"- {gap}-level stratum gap may indicate missing abstraction"
+                        )
         return errors
 
     def to_dict(self) -> dict:
@@ -142,8 +214,15 @@ class GlyphRegistry:
         registry.session_id = data.get("session_id", "session-001")
 
         for idx_str, glyph_data in data.get("glyphs", {}).items():
+            idx = int(idx_str)
+            # Inject index from dict key if not present in glyph_data
+            if "index" not in glyph_data:
+                glyph_data = dict(glyph_data)  # Copy to avoid mutating original
+                glyph_data["index"] = idx
             glyph = GlyphInfo.from_dict(glyph_data)
             registry.glyphs[glyph.index] = glyph
+            # Update next_index to be at least max+1
+            registry.next_index = max(registry.next_index, idx + 1)
 
         return registry
 

@@ -11,27 +11,27 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.libreoffice.core.document import (
+from libreoffice.core.document import (
     create_document, open_document, save_document,
     get_document_info, list_profiles, PROFILES,
 )
-from cli_anything.libreoffice.core.writer import (
+from libreoffice.core.writer import (
     add_paragraph, add_heading, add_list, add_table, add_page_break,
     remove_content, list_content, get_content, set_content_text,
 )
-from cli_anything.libreoffice.core.calc import (
+from libreoffice.core.calc import (
     add_sheet, remove_sheet, rename_sheet, set_cell, get_cell,
     clear_cell, list_sheets, get_sheet_data,
 )
-from cli_anything.libreoffice.core.impress import (
+from libreoffice.core.impress import (
     add_slide, remove_slide, set_slide_content, add_slide_element,
     remove_slide_element, move_slide, duplicate_slide, list_slides, get_slide,
 )
-from cli_anything.libreoffice.core.styles import (
+from libreoffice.core.styles import (
     create_style, modify_style, remove_style, list_styles,
     get_style, apply_style,
 )
-from cli_anything.libreoffice.core.session import Session
+from libreoffice.core.session import Session
 
 
 # ── Document Tests ───────────────────────────────────────────────

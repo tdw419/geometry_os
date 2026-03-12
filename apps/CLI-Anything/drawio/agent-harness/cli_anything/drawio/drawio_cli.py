@@ -23,12 +23,12 @@ from typing import Optional
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cli_anything.drawio.core.session import Session
-from cli_anything.drawio.core import project as proj_mod
-from cli_anything.drawio.core import shapes as shapes_mod
-from cli_anything.drawio.core import connectors as conn_mod
-from cli_anything.drawio.core import pages as pages_mod
-from cli_anything.drawio.core import export as export_mod
+from .drawio.core.session import Session
+from .drawio.core import project as proj_mod
+from .drawio.core import shapes as shapes_mod
+from .drawio.core import connectors as conn_mod
+from .drawio.core import pages as pages_mod
+from .drawio.core import export as export_mod
 
 # Global session state (persists across commands in REPL mode)
 _session: Optional[Session] = None
@@ -225,7 +225,7 @@ def project_xml():
     session = get_session()
     if not session.is_open:
         raise RuntimeError("No project is open")
-    from cli_anything.drawio.utils.drawio_xml import xml_to_string
+    from .drawio.utils.drawio_xml import xml_to_string
     click.echo(xml_to_string(session.root))
 
 
@@ -613,7 +613,7 @@ def repl(project_path):
     if project_path:
         s.open_project(project_path)
 
-    from cli_anything.drawio.utils.repl_skin import ReplSkin
+    from .drawio.utils.repl_skin import ReplSkin
     skin = ReplSkin("drawio", version="1.0.0")
     skin.print_banner()
 
@@ -711,7 +711,7 @@ def _run_repl(s: Session, skin):
                 if not s.is_open:
                     skin.error("No project is open")
                     continue
-                from cli_anything.drawio.utils.drawio_xml import xml_to_string
+                from .drawio.utils.drawio_xml import xml_to_string
                 click.echo(xml_to_string(s.root))
             elif cmd == "add":
                 shape_type = args[0] if args else "rectangle"
@@ -722,7 +722,7 @@ def _run_repl(s: Session, skin):
                 if not args:
                     skin.error("Usage: remove <id>")
                     continue
-                from cli_anything.drawio.utils import drawio_xml
+                from .drawio.utils import drawio_xml
                 cell = drawio_xml.find_cell_by_id(s.root, args[0])
                 if cell is None:
                     skin.error(f"Cell not found: {args[0]}")

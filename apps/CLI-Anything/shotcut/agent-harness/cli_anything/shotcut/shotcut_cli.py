@@ -23,14 +23,14 @@ from typing import Optional
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cli_anything.shotcut.core.session import Session
-from cli_anything.shotcut.core import project as proj_mod
-from cli_anything.shotcut.core import timeline as tl_mod
-from cli_anything.shotcut.core import filters as filt_mod
-from cli_anything.shotcut.core import media as media_mod
-from cli_anything.shotcut.core import export as export_mod
-from cli_anything.shotcut.core import transitions as trans_mod
-from cli_anything.shotcut.core import compositing as comp_mod
+from .shotcut.core.session import Session
+from .shotcut.core import project as proj_mod
+from .shotcut.core import timeline as tl_mod
+from .shotcut.core import filters as filt_mod
+from .shotcut.core import media as media_mod
+from .shotcut.core import export as export_mod
+from .shotcut.core import transitions as trans_mod
+from .shotcut.core import compositing as comp_mod
 
 # Global session state (persists across commands in REPL mode)
 _session: Optional[Session] = None
@@ -241,7 +241,7 @@ def project_xml():
     session = get_session()
     if not session.is_open:
         raise RuntimeError("No project is open")
-    from cli_anything.shotcut.utils.mlt_xml import mlt_to_string
+    from .shotcut.utils.mlt_xml import mlt_to_string
     click.echo(mlt_to_string(session.root))
 
 
@@ -886,7 +886,7 @@ def repl(project_path):
     if project_path:
         s.open_project(project_path)
 
-    from cli_anything.shotcut.utils.repl_skin import ReplSkin
+    from .shotcut.utils.repl_skin import ReplSkin
     skin = ReplSkin("shotcut", version="1.0.0")
     skin.print_banner()
 
@@ -1001,7 +1001,7 @@ def _run_repl(s: Session, skin):
                 if not s.is_open:
                     click.echo("No project is open")
                     continue
-                from cli_anything.shotcut.utils.mlt_xml import mlt_to_string
+                from .shotcut.utils.mlt_xml import mlt_to_string
                 click.echo(mlt_to_string(s.root))
 
             elif cmd == "tracks":

@@ -14,15 +14,15 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from cli_anything.blender.core.scene import create_scene, save_scene, open_scene, get_scene_info
-from cli_anything.blender.core.objects import add_object, remove_object, duplicate_object, transform_object, list_objects
-from cli_anything.blender.core.materials import create_material, assign_material, set_material_property, list_materials
-from cli_anything.blender.core.modifiers import add_modifier, list_modifiers
-from cli_anything.blender.core.lighting import add_camera, add_light, set_camera, set_light, list_cameras, list_lights
-from cli_anything.blender.core.animation import add_keyframe, set_frame_range, set_fps, list_keyframes
-from cli_anything.blender.core.render import set_render_settings, render_scene, generate_bpy_script, get_render_settings
-from cli_anything.blender.core.session import Session
-from cli_anything.blender.utils.bpy_gen import generate_full_script
+from blender.core.scene import create_scene, save_scene, open_scene, get_scene_info
+from blender.core.objects import add_object, remove_object, duplicate_object, transform_object, list_objects
+from blender.core.materials import create_material, assign_material, set_material_property, list_materials
+from blender.core.modifiers import add_modifier, list_modifiers
+from blender.core.lighting import add_camera, add_light, set_camera, set_light, list_cameras, list_lights
+from blender.core.animation import add_keyframe, set_frame_range, set_fps, list_keyframes
+from blender.core.render import set_render_settings, render_scene, generate_bpy_script, get_render_settings
+from blender.core.session import Session
+from blender.utils.bpy_gen import generate_full_script
 
 
 @pytest.fixture
@@ -715,13 +715,13 @@ class TestBlenderBackend:
     """Tests that verify Blender is installed and accessible."""
 
     def test_blender_is_installed(self):
-        from cli_anything.blender.utils.blender_backend import find_blender
+        from blender.utils.blender_backend import find_blender
         path = find_blender()
         assert os.path.exists(path)
         print(f"\n  Blender binary: {path}")
 
     def test_blender_version(self):
-        from cli_anything.blender.utils.blender_backend import get_version
+        from blender.utils.blender_backend import get_version
         version = get_version()
         assert "Blender" in version
         print(f"\n  Blender version: {version}")
@@ -732,7 +732,7 @@ class TestBlenderRenderE2E:
 
     def test_render_simple_cube(self, tmp_dir):
         """Render a simple cube scene with Blender."""
-        from cli_anything.blender.utils.blender_backend import render_scene_headless
+        from blender.utils.blender_backend import render_scene_headless
 
         proj = create_scene(name="simple_cube", engine="WORKBENCH", samples=1)
         set_render_settings(proj, resolution_x=320, resolution_y=240,
@@ -755,7 +755,7 @@ class TestBlenderRenderE2E:
 
     def test_render_sphere_with_material(self, tmp_dir):
         """Render a sphere with material."""
-        from cli_anything.blender.utils.blender_backend import render_scene_headless
+        from blender.utils.blender_backend import render_scene_headless
 
         proj = create_scene(name="material_sphere", engine="WORKBENCH", samples=1)
         set_render_settings(proj, resolution_x=320, resolution_y=240, engine="WORKBENCH", samples=1)
@@ -780,7 +780,7 @@ class TestBlenderRenderE2E:
 
     def test_render_complex_scene(self, tmp_dir):
         """Render a complex scene with multiple objects, materials, lights."""
-        from cli_anything.blender.utils.blender_backend import render_scene_headless
+        from blender.utils.blender_backend import render_scene_headless
 
         proj = create_scene(name="complex", engine="WORKBENCH", samples=1)
         set_render_settings(proj, resolution_x=320, resolution_y=240, engine="WORKBENCH", samples=1)
@@ -817,7 +817,7 @@ class TestBlenderRenderE2E:
 
     def test_render_with_modifiers(self, tmp_dir):
         """Render an object with subdivision surface modifier."""
-        from cli_anything.blender.utils.blender_backend import render_scene_headless
+        from blender.utils.blender_backend import render_scene_headless
 
         proj = create_scene(name="modifiers", engine="WORKBENCH", samples=1)
         set_render_settings(proj, resolution_x=320, resolution_y=240, engine="WORKBENCH", samples=1)
@@ -842,7 +842,7 @@ class TestBlenderRenderE2E:
 
     def test_render_jpeg_format(self, tmp_dir):
         """Render to JPEG format."""
-        from cli_anything.blender.utils.blender_backend import render_scene_headless
+        from blender.utils.blender_backend import render_scene_headless
 
         proj = create_scene(name="jpeg_test", engine="WORKBENCH", samples=1)
         set_render_settings(proj, resolution_x=320, resolution_y=240,
@@ -868,7 +868,7 @@ class TestBlenderRenderScriptE2E:
 
     def test_run_minimal_bpy_script(self, tmp_dir):
         """Run a minimal bpy script through Blender."""
-        from cli_anything.blender.utils.blender_backend import render_script
+        from blender.utils.blender_backend import render_script
 
         script_path = os.path.join(tmp_dir, "test_script.py")
         output_path = os.path.join(tmp_dir, "minimal.png")

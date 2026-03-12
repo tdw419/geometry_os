@@ -1,0 +1,632 @@
+{
+  "name": "json_parser",
+  "description": "Parse JSON string into nested data structure - built by LLM using GlyphStratum",
+  "goal": "Parse JSON text into a tree of values (objects, arrays, strings, numbers, booleans, null)",
+  "glyphs": {
+    "0": {
+      "stratum": "INTENT",
+      "opcode": "MODULE",
+      "rationale": "JSON Parser: Parse JSON text into native data structures",
+      "dependencies": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "invariants": {}
+    },
+    "1": {
+      "stratum": "INTENT",
+      "opcode": "MODULE",
+      "rationale": "Requirement: Handle all JSON types (object, array, string, number, bool, null)",
+      "dependencies": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "invariants": {}
+    },
+    "2": {
+      "stratum": "INTENT",
+      "opcode": "MODULE",
+      "rationale": "Requirement: Report parse errors with position",
+      "dependencies": [
+        11
+      ],
+      "invariants": {}
+    },
+    "3": {
+      "stratum": "INTENT",
+      "opcode": "MODULE",
+      "rationale": "Requirement: Handle nested structures to arbitrary depth",
+      "dependencies": [
+        12
+      ],
+      "invariants": {
+        "max_depth": 1000
+      }
+    },
+    "4": {
+      "stratum": "INTENT",
+      "opcode": "MODULE",
+      "rationale": "Requirement: Support Unicode strings with escape sequences",
+      "dependencies": [
+        13
+      ],
+      "invariants": {}
+    },
+    "5": {
+      "stratum": "SPEC",
+      "opcode": "CALL",
+      "rationale": "parse_object() -> dict",
+      "dependencies": [
+        14,
+        15,
+        16
+      ],
+      "invariants": {
+        "input": "text stream",
+        "output": "dict"
+      }
+    },
+    "6": {
+      "stratum": "SPEC",
+      "opcode": "CALL",
+      "rationale": "parse_array() -> list",
+      "dependencies": [
+        14,
+        17
+      ],
+      "invariants": {
+        "input": "text stream",
+        "output": "list"
+      }
+    },
+    "7": {
+      "stratum": "SPEC",
+      "opcode": "CALL",
+      "rationale": "parse_string() -> str",
+      "dependencies": [
+        14,
+        18
+      ],
+      "invariants": {
+        "input": "text stream",
+        "output": "string"
+      }
+    },
+    "8": {
+      "stratum": "SPEC",
+      "opcode": "CALL",
+      "rationale": "parse_number() -> int|float",
+      "dependencies": [
+        14,
+        19
+      ],
+      "invariants": {
+        "input": "text stream",
+        "output": "number"
+      }
+    },
+    "9": {
+      "stratum": "SPEC",
+      "opcode": "CALL",
+      "rationale": "parse_keyword() -> bool|null",
+      "dependencies": [
+        14,
+        20
+      ],
+      "invariants": {
+        "input": "text stream",
+        "output": "bool or null"
+      }
+    },
+    "10": {
+      "stratum": "SPEC",
+      "opcode": "CALL",
+      "rationale": "parse_value() -> any",
+      "dependencies": [
+        7,
+        8,
+        9,
+        21
+      ],
+      "invariants": {
+        "input": "text stream",
+        "output": "any JSON value"
+      },
+      "runtime_refs": [
+        5,
+        6
+      ]
+    },
+    "11": {
+      "stratum": "SPEC",
+      "opcode": "TYPE",
+      "rationale": "ParseError: position, message, context",
+      "dependencies": [
+        22,
+        23,
+        24
+      ],
+      "invariants": {
+        "fields": [
+          "position",
+          "message",
+          "context"
+        ]
+      }
+    },
+    "12": {
+      "stratum": "SPEC",
+      "opcode": "CALL",
+      "rationale": "recursion_guard(depth, max_depth)",
+      "dependencies": [
+        25,
+        26
+      ],
+      "invariants": {
+        "max_depth": 1000
+      }
+    },
+    "13": {
+      "stratum": "SPEC",
+      "opcode": "CALL",
+      "rationale": "decode_unicode_escape(codepoint) -> char",
+      "dependencies": [
+        27
+      ],
+      "invariants": {}
+    },
+    "14": {
+      "stratum": "LOGIC",
+      "opcode": "LOOP",
+      "rationale": "skip_whitespace() - consume whitespace characters",
+      "dependencies": [
+        28,
+        29,
+        30
+      ],
+      "invariants": {}
+    },
+    "15": {
+      "stratum": "LOGIC",
+      "opcode": "BRANCH",
+      "rationale": "if char == '{' parse object members",
+      "dependencies": [
+        31,
+        32,
+        33
+      ],
+      "invariants": {}
+    },
+    "16": {
+      "stratum": "LOGIC",
+      "opcode": "LOOP",
+      "rationale": "for each key:value pair separated by comma",
+      "dependencies": [
+        34,
+        35,
+        36,
+        37
+      ],
+      "invariants": {}
+    },
+    "17": {
+      "stratum": "LOGIC",
+      "opcode": "LOOP",
+      "rationale": "for each array element separated by comma",
+      "dependencies": [
+        38,
+        39,
+        40
+      ],
+      "invariants": {}
+    },
+    "18": {
+      "stratum": "LOGIC",
+      "opcode": "LOOP",
+      "rationale": "consume chars until closing quote, handle escapes",
+      "dependencies": [
+        41,
+        42,
+        43,
+        44
+      ],
+      "invariants": {}
+    },
+    "19": {
+      "stratum": "LOGIC",
+      "opcode": "LOOP",
+      "rationale": "parse digits, optional decimal, optional exponent",
+      "dependencies": [
+        45,
+        46,
+        47,
+        48
+      ],
+      "invariants": {}
+    },
+    "20": {
+      "stratum": "LOGIC",
+      "opcode": "BRANCH",
+      "rationale": "match 'true', 'false', or 'null'",
+      "dependencies": [
+        49,
+        50,
+        51,
+        52
+      ],
+      "invariants": {}
+    },
+    "21": {
+      "stratum": "LOGIC",
+      "opcode": "BRANCH",
+      "rationale": "dispatch to appropriate parser based on first char",
+      "dependencies": [
+        53,
+        54,
+        55,
+        56,
+        57,
+        58
+      ],
+      "invariants": {}
+    },
+    "22": {
+      "stratum": "MEMORY",
+      "opcode": "ALLOC",
+      "rationale": "Error position in input",
+      "dependencies": [],
+      "invariants": {
+        "type": "int"
+      }
+    },
+    "23": {
+      "stratum": "MEMORY",
+      "opcode": "ALLOC",
+      "rationale": "Error message string",
+      "dependencies": [],
+      "invariants": {
+        "type": "string"
+      }
+    },
+    "24": {
+      "stratum": "MEMORY",
+      "opcode": "ALLOC",
+      "rationale": "Context snippet around error",
+      "dependencies": [],
+      "invariants": {
+        "type": "string"
+      }
+    },
+    "25": {
+      "stratum": "MEMORY",
+      "opcode": "ALLOC",
+      "rationale": "Current recursion depth counter",
+      "dependencies": [],
+      "invariants": {
+        "type": "int",
+        "initial": 0
+      }
+    },
+    "26": {
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "rationale": "Maximum allowed recursion depth",
+      "dependencies": [],
+      "invariants": {
+        "type": "int",
+        "value": 1000
+      }
+    },
+    "27": {
+      "stratum": "MEMORY",
+      "opcode": "ALLOC",
+      "rationale": "Unicode codepoint buffer",
+      "dependencies": [],
+      "invariants": {
+        "type": "int"
+      }
+    },
+    "28": {
+      "stratum": "MEMORY",
+      "opcode": "ALLOC",
+      "rationale": "Input text stream cursor position",
+      "dependencies": [],
+      "invariants": {
+        "type": "int",
+        "initial": 0
+      }
+    },
+    "29": {
+      "stratum": "MEMORY",
+      "opcode": "ALLOC",
+      "rationale": "Current character being examined",
+      "dependencies": [],
+      "invariants": {
+        "type": "char"
+      }
+    },
+    "30": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "is_whitespace(char) -> bool",
+      "dependencies": [
+        29
+      ],
+      "invariants": {}
+    },
+    "31": {
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "rationale": "Object start character: '{'",
+      "dependencies": [],
+      "invariants": {
+        "value": "{"
+      }
+    },
+    "32": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "parse_object_members() - handle key:value pairs",
+      "dependencies": [
+        16
+      ],
+      "invariants": {},
+      "runtime_refs": [
+        10
+      ]
+    },
+    "33": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "raise ParseError if malformed",
+      "dependencies": [
+        11
+      ],
+      "invariants": {}
+    },
+    "34": {
+      "stratum": "MEMORY",
+      "opcode": "ALLOC",
+      "rationale": "Result dictionary being built",
+      "dependencies": [],
+      "invariants": {
+        "type": "dict"
+      }
+    },
+    "35": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "parse_string() for key",
+      "dependencies": [
+        7
+      ],
+      "invariants": {}
+    },
+    "36": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "expect ':' separator",
+      "dependencies": [],
+      "invariants": {}
+    },
+    "37": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "parse_value() for value",
+      "dependencies": [],
+      "invariants": {},
+      "runtime_refs": [
+        10
+      ]
+    },
+    "38": {
+      "stratum": "MEMORY",
+      "opcode": "ALLOC",
+      "rationale": "Result list being built",
+      "dependencies": [],
+      "invariants": {
+        "type": "list"
+      }
+    },
+    "39": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "parse_value() for each element",
+      "dependencies": [],
+      "invariants": {},
+      "runtime_refs": [
+        10
+      ]
+    },
+    "40": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "expect ',' or ']' after each element",
+      "dependencies": [],
+      "invariants": {}
+    },
+    "41": {
+      "stratum": "MEMORY",
+      "opcode": "ALLOC",
+      "rationale": "String buffer for building result",
+      "dependencies": [],
+      "invariants": {
+        "type": "string"
+      }
+    },
+    "42": {
+      "stratum": "LOGIC",
+      "opcode": "BRANCH",
+      "rationale": "if char == '\\' handle escape sequence",
+      "dependencies": [
+        43,
+        44
+      ],
+      "invariants": {}
+    },
+    "43": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "decode_escape() -> char",
+      "dependencies": [
+        13
+      ],
+      "invariants": {}
+    },
+    "44": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "append char to buffer",
+      "dependencies": [
+        41
+      ],
+      "invariants": {}
+    },
+    "45": {
+      "stratum": "MEMORY",
+      "opcode": "ALLOC",
+      "rationale": "Number accumulator",
+      "dependencies": [],
+      "invariants": {
+        "type": "number"
+      }
+    },
+    "46": {
+      "stratum": "LOGIC",
+      "opcode": "BRANCH",
+      "rationale": "if char == '-' set negative flag",
+      "dependencies": [],
+      "invariants": {}
+    },
+    "47": {
+      "stratum": "LOGIC",
+      "opcode": "BRANCH",
+      "rationale": "if char == '.' parse fractional part",
+      "dependencies": [],
+      "invariants": {}
+    },
+    "48": {
+      "stratum": "LOGIC",
+      "opcode": "BRANCH",
+      "rationale": "if char in 'eE' parse exponent",
+      "dependencies": [],
+      "invariants": {}
+    },
+    "49": {
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "rationale": "Keyword: 'true'",
+      "dependencies": [],
+      "invariants": {
+        "value": "true",
+        "result": true
+      }
+    },
+    "50": {
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "rationale": "Keyword: 'false'",
+      "dependencies": [],
+      "invariants": {
+        "value": "false",
+        "result": false
+      }
+    },
+    "51": {
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "rationale": "Keyword: 'null'",
+      "dependencies": [],
+      "invariants": {
+        "value": "null",
+        "result": null
+      }
+    },
+    "52": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "match_keyword(expected) -> bool",
+      "dependencies": [
+        49,
+        50,
+        51
+      ],
+      "invariants": {}
+    },
+    "53": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "if '{' -> parse_object()",
+      "dependencies": [
+        5
+      ],
+      "invariants": {}
+    },
+    "54": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "if '[' -> parse_array()",
+      "dependencies": [
+        6
+      ],
+      "invariants": {}
+    },
+    "55": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "if '\"' -> parse_string()",
+      "dependencies": [
+        7
+      ],
+      "invariants": {}
+    },
+    "56": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "if digit or '-' -> parse_number()",
+      "dependencies": [
+        8
+      ],
+      "invariants": {}
+    },
+    "57": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "if 'tfn' -> parse_keyword()",
+      "dependencies": [
+        9
+      ],
+      "invariants": {}
+    },
+    "58": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "else -> raise ParseError unexpected character",
+      "dependencies": [
+        11
+      ],
+      "invariants": {}
+    }
+  },
+  "metadata": {
+    "author": "LLM (Claude)",
+    "created": "2024-03-12",
+    "purpose": "Test GlyphStratum hypothesis: does structured visual programming help AI stay coherent?",
+    "strata_distribution": {
+      "INTENT": 5,
+      "SPEC": 10,
+      "LOGIC": 16,
+      "MEMORY": 20,
+      "SUBSTRATE": 0
+    },
+    "total_glyphs": 51,
+    "max_depth": 5,
+    "dependency_graph_depth": 4
+  }
+}

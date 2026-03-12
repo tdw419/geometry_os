@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legible Brain - Geometry OS Phase 40</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050505;
+            color: #00d4ff;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(5, 5, 5, 0.8);
+            padding: 20px;
+            border: 1px solid #00d4ff;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .stratum-indicator {
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        .active { color: #fff; text-shadow: 0 0 10px #00d4ff; }
+        canvas { display: block; }
+    </style>
+    <!-- Load PIXI.js v8 -->
+    <script src="https://pixijs.download/v8.1.0/pixi.min.js"></script>
+</head>
+<body>
+    <div id="ui-overlay">
+        <div>Legible Brain v1.0</div>
+        <div style="font-size: 10px; opacity: 0.6;">Morphological Substrate Exploration</div>
+        <hr style="border: 0; border-top: 1px solid #00d4ff; margin: 10px 0;">
+        <div id="stratum-4" class="stratum-indicator">STRATUM 4: INTENT (◈)</div>
+        <div id="stratum-3" class="stratum-indicator">STRATUM 3: SPEC (⌬)</div>
+        <div id="stratum-2" class="stratum-indicator">STRATUM 2: LOGIC (λ)</div>
+        <div id="stratum-1" class="stratum-indicator">STRATUM 1: MEMORY ([])</div>
+        <div id="stratum-0" class="stratum-indicator">STRATUM 0: SUBSTRATE (·)</div>
+        <hr style="border: 0; border-top: 1px solid #00d4ff; margin: 10px 0;">
+        <div style="font-size: 10px;">ZOOM: <span id="zoom-val">1.0</span>x</div>
+        <div style="font-size: 10px;">ENTROPY JITTER: <span id="jitter-val">ACTIVE</span></div>
+    </div>
+
+    <script src="LegibleBrainFilter.js"></script>
+    <script src="LegibleBrainRenderer.js"></script>
+    <script>
+        async function start() {
+            const app = new PIXI.Application();
+            await app.init({ 
+                width: window.innerWidth, 
+                height: window.innerHeight,
+                backgroundColor: 0x050505,
+                preference: 'webgpu'
+            });
+            document.body.appendChild(app.canvas);
+
+            // 1. Create Synthetic Brain Atlas (for the demo)
+            // In production, this is the actual model weights texture
+            const atlasSize = 1024;
+            const canvas = document.createElement('canvas');
+            canvas.width = atlasSize;
+            canvas.height = atlasSize;
+            const ctx = canvas.getContext('2d');
+            
+            // Generate some "neural clusters"
+            const imageData = ctx.createImageData(atlasSize, atlasSize);
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                const x = (i/4) % atlasSize;
+                const y = Math.floor((i/4) / atlasSize);
+                
+                // R: Activation (Noise with some high-density blobs)
+                const distToCenter = Math.sqrt((x-512)**2 + (y-512)**2);
+                const noise = Math.random();
+                const activation = Math.max(0, 1.0 - distToCenter/600) * noise;
+                
+                imageData.data[i] = activation * 255;     // Activation (Stratum)
+                imageData.data[i+1] = (Math.sin(x/10) * Math.cos(y/10) * 0.5 + 0.5) * 255; // Entropy (Jitter)
+                imageData.data[i+2] = (x / atlasSize) * 255; // Cluster ID
+                imageData.data[i+3] = 255;                // Confidence
+            }
+            ctx.putImageData(imageData, 0, 0);
+            const brainAtlas = PIXI.Texture.from(canvas);
+
+            // 2. Initialize Legible Brain Renderer
+            // We use a fallback font atlas if the main one isn't available
+            const renderer = new LegibleBrainRenderer(app, {
+                brainAtlasPath: brainAtlas,
+                fontAtlasPath: 'https://webgpu.github.io/webgpu-samples/assets/img/font.png' // Fallback for demo
+            });
+
+            const brainContainer = await renderer.initialize();
+            app.stage.addChild(brainContainer);
+
+            // 3. Interaction State
+            let zoom = 1.0;
+            let cameraPos = [0, 0];
+            let isPanning = false;
+            let lastMouse = { x: 0, y: 0 };
+
+            window.addEventListener('wheel', (e) => {
+                const zoomSpeed = 0.1;
+                if (e.deltaY < 0) zoom *= (1 + zoomSpeed);
+                else zoom *= (1 - zoomSpeed);
+                zoom = Math.max(0.1, Math.min(20, zoom));
+                document.getElementById('zoom-val').innerText = zoom.toFixed(1);
+            });
+
+            window.addEventListener('mousedown', (e) => {
+                isPanning = true;
+                lastMouse = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mouseup', () => isPanning = false);
+            window.addEventListener('mousemove', (e) => {
+                if (isPanning) {
+                    const dx = e.clientX - lastMouse.x;
+                    const dy = e.clientY - lastMouse.y;
+                    cameraPos[0] -= dx / zoom;
+                    cameraPos[1] -= dy / zoom;
+                    lastMouse = { x: e.clientX, y: e.clientY };
+                }
+            });
+
+            // 4. Update Loop
+            app.ticker.add((ticker) => {
+                const time = ticker.lastTime / 1000;
+                renderer.filter.update(time, zoom, cameraPos);
+                
+                // Update UI based on "center" activation
+                // (Simulated for the demo)
+                const currentStratum = Math.floor((Math.sin(time) * 0.5 + 0.5) * 5);
+                for(let i=0; i<5; i++) {
+                    const el = document.getElementById(`stratum-${i}`);
+                    if (i === currentStratum) el.classList.add('active');
+                    else el.classList.remove('active');
+                }
+            });
+
+            console.log("🚀 Legible Brain Demo Active");
+        }
+
+        start();
+    </script>
+</body>
+</html>

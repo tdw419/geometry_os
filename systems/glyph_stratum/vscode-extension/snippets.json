@@ -1,0 +1,106 @@
+{
+  "Glyph Data": {
+    "prefix": "gdata",
+    "body": [
+      "\"${1:id}\": {",
+      "  \"stratum\": \"SUBSTRATE\",",
+      "  \"opcode\": \"DATA\",",
+      "  \"invariants\": {",
+      "    \"value\": ${2:0}",
+      "  }",
+      "}"
+    ],
+    "description": "Create a DATA glyph holding a value"
+  },
+  "Glyph Math Add": {
+    "prefix": "gadd",
+    "body": [
+      "\"${1:id}\": {",
+      "  \"stratum\": \"LOGIC\",",
+      "  \"opcode\": \"ADD\",",
+      "  \"dependencies\": [${2:1}, ${3:2}]",
+      "}"
+    ],
+    "description": "Create an ADD glyph that adds two values"
+  },
+  "Glyph Math Sub": {
+    "prefix": "gsub",
+    "body": [
+      "\"${1:id}\": {",
+      "  \"stratum\": \"LOGIC\",",
+      "  \"opcode\": \"SUB\",",
+      "  \"dependencies\": [${2:1}, ${3:2}]",
+      "}"
+    ],
+    "description": "Create a SUB glyph that subtracts two values"
+  },
+  "Glyph Compare Equal": {
+    "prefix": "geq",
+    "body": [
+      "\"${1:id}\": {",
+      "  \"stratum\": \"LOGIC\",",
+      "  \"opcode\": \"EQ\",",
+      "  \"dependencies\": [${2:1}, ${3:2}]",
+      "}"
+    ],
+    "description": "Create an EQ glyph that compares equality"
+  },
+  "Glyph Branch": {
+    "prefix": "gbranch",
+    "body": [
+      "\"${1:id}\": {",
+      "  \"stratum\": \"LOGIC\",",
+      "  \"opcode\": \"BRANCH\",",
+      "  \"dependencies\": [${2:condition}, ${3:trueBranch}, ${4:falseBranch}]",
+      "}"
+    ],
+    "description": "Create a BRANCH glyph for conditional execution"
+  },
+  "Glyph Program Template": {
+    "prefix": "gprogram",
+    "body": [
+      "{",
+      "  \"glyphs\": {",
+      "    \"1\": {",
+      "      \"stratum\": \"SUBSTRATE\",",
+      "      \"opcode\": \"DATA\",",
+      "      \"invariants\": { \"value\": ${1:10} }",
+      "    },",
+      "    \"2\": {",
+      "      \"stratum\": \"SUBSTRATE\",",
+      "      \"opcode\": \"DATA\",",
+      "      \"invariants\": { \"value\": ${2:20} }",
+      "    },",
+      "    \"3\": {",
+      "      \"stratum\": \"LOGIC\",",
+      "      \"opcode\": \"ADD\",",
+      "      \"dependencies\": [1, 2]",
+      "    }",
+      "  }",
+      "}"
+    ],
+    "description": "Create a complete glyph program template"
+  },
+  "Glyph String Concat": {
+    "prefix": "gconcat",
+    "body": [
+      "\"${1:id}\": {",
+      "  \"stratum\": \"LOGIC\",",
+      "  \"opcode\": \"CONCAT\",",
+      "  \"dependencies\": [${2:1}, ${3:2}]",
+      "}"
+    ],
+    "description": "Create a CONCAT glyph for string concatenation"
+  },
+  "Glyph Array Push": {
+    "prefix": "gpush",
+    "body": [
+      "\"${1:id}\": {",
+      "  \"stratum\": \"LOGIC\",",
+      "  \"opcode\": \"PUSH\",",
+      "  \"dependencies\": [${2:array}, ${3:value}]",
+      "}"
+    ],
+    "description": "Create a PUSH glyph to add to an array"
+  }
+}

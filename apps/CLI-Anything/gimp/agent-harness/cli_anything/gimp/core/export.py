@@ -233,7 +233,7 @@ def _apply_filters(img: Image.Image, filters: list) -> Image.Image:
 
 def _apply_single_filter(img: Image.Image, name: str, params: Dict) -> Image.Image:
     """Apply a single filter to an image."""
-    from cli_anything.gimp.core.filters import FILTER_REGISTRY
+    from .gimp.core.filters import FILTER_REGISTRY
 
     if name not in FILTER_REGISTRY:
         return img  # Skip unknown filters

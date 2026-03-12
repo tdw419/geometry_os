@@ -23,13 +23,13 @@ from typing import Optional
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cli_anything.libreoffice.core.session import Session
-from cli_anything.libreoffice.core import document as doc_mod
-from cli_anything.libreoffice.core import writer as writer_mod
-from cli_anything.libreoffice.core import calc as calc_mod
-from cli_anything.libreoffice.core import impress as impress_mod
-from cli_anything.libreoffice.core import styles as styles_mod
-from cli_anything.libreoffice.core import export as export_mod
+from .libreoffice.core.session import Session
+from .libreoffice.core import document as doc_mod
+from .libreoffice.core import writer as writer_mod
+from .libreoffice.core import calc as calc_mod
+from .libreoffice.core import impress as impress_mod
+from .libreoffice.core import styles as styles_mod
+from .libreoffice.core import export as export_mod
 
 # Global session state
 _session: Optional[Session] = None
@@ -654,7 +654,7 @@ def session_history():
 @handle_error
 def repl(project_path):
     """Start interactive REPL session."""
-    from cli_anything.libreoffice.utils.repl_skin import ReplSkin
+    from .libreoffice.utils.repl_skin import ReplSkin
 
     global _repl_mode
     _repl_mode = True

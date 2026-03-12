@@ -247,6 +247,77 @@ pub extern "C" fn glyph_stratum_to_json(registry: *const c_void) -> *mut c_char 
     CString::new(json).unwrap().into_raw()
 }
 
+/// Map a Unicode character to its corresponding Opcode
+#[no_mangle]
+pub extern "C" fn glyph_stratum_opcode_from_char(ch: u32) -> u8 {
+    let c = char::from_u32(ch).unwrap_or(' ');
+    super::Opcode::from_char(c) as u8
+}
+
+/// Get the preferred Unicode character for an Opcode
+#[no_mangle]
+pub extern "C" fn glyph_stratum_char_from_opcode(opcode: u8) -> u32 {
+    let op = unsafe { std::mem::transmute::<u8, super::Opcode>(opcode) };
+    op.to_char() as u32
+}
+
+/// Create a new GlyphStratumEngine
+#[no_mangle]
+pub extern "C" fn glyph_stratum_engine_new(cols: u32, rows: u32) -> *mut super::GlyphStratumEngine {
+    Box::into_raw(Box::new(super::GlyphStratumEngine::new(cols, rows)))
+}
+
+/// Free a GlyphStratumEngine
+#[no_mangle]
+pub extern "C" fn glyph_stratum_engine_free(engine: *mut super::GlyphStratumEngine) {
+    if !engine.is_null() {
+        unsafe {
+            let _ = Box::from_raw(engine);
+        }
+    }
+}
+
+/// Place a glyph in the engine
+#[no_mangle]
+pub extern "C" fn glyph_stratum_engine_place(
+    engine: *mut super::GlyphStratumEngine,
+    x: u32,
+    y: u32,
+    ch: u32,
+    stratum: u8,
+) -> i32 {
+    let engine = unsafe {
+        match engine.as_mut() {
+            Some(e) => e,
+            None => return -1,
+        }
+    };
+
+    let c = char::from_u32(ch).unwrap_or(' ');
+    let s = super::Stratum::from_value(stratum).unwrap_or(super::Stratum::Substrate);
+
+    match engine.place_glyph(x, y, c, s, None) {
+        Ok(idx) => idx as i32,
+        Err(_) => -2,
+    }
+}
+
+/// Generate an AI summary for the engine
+#[no_mangle]
+pub extern "C" fn glyph_stratum_engine_generate_summary(
+    engine: *mut super::GlyphStratumEngine,
+) -> *mut c_char {
+    let engine = unsafe {
+        match engine.as_ref() {
+            Some(e) => e,
+            None => return std::ptr::null_mut(),
+        }
+    };
+
+    let summary = engine.generate_ai_summary();
+    CString::new(summary).unwrap().into_raw()
+}
+
 /// Free a string allocated by the library
 #[no_mangle]
 pub extern "C" fn glyph_stratum_free_string(s: *mut c_char) {

@@ -5,7 +5,7 @@ Handles adding text elements and modifying text properties.
 
 from typing import Dict, Any, List, Optional
 
-from cli_anything.inkscape.utils.svg_utils import generate_id, parse_style, serialize_style
+from .inkscape.utils.svg_utils import generate_id, parse_style, serialize_style
 
 
 # Font properties that can be set
