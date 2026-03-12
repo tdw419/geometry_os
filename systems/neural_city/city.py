@@ -20,6 +20,7 @@ from .spawner import CitizenSpawner
 from .territory import TerritoryMapper, Territory
 from .citizen_writer import CitizenWriter
 from .dream_engine import DreamEngine, DreamState
+from .language_evolution import LanguageEvolution
 
 logger = logging.getLogger("NeuralCity")
 
@@ -73,6 +74,7 @@ class NeuralCity:
         self.territory_mapper = TerritoryMapper(width, height)
         self.writer = None  # CitizenWriter (set via set_substrate_writer)
         self.dream_engine = None  # DreamEngine (Phase 48)
+        self.language = None  # LanguageEvolution (Phase 49)
 
         # City state
         self.tick_count = 0
@@ -177,6 +179,10 @@ class NeuralCity:
         # Phase 48: Process dreaming
         dreams = self._process_dreaming()
         events['dreams'] = dreams
+
+        # Phase 49: Process language evolution
+        language = self._process_language()
+        events['language'] = language
 
         # Update neighbors
         self._update_neighbors()
@@ -648,3 +654,23 @@ class NeuralCity:
                     })
 
         return self.dream_engine.tick()
+
+    def set_language_evolution(self) -> bool:
+        """
+        Phase 49: Initialize the language evolution system.
+
+        Citizens develop shared symbols and communication.
+        """
+        self.language = LanguageEvolution(self)
+        return True
+
+    def _process_language(self) -> Dict:
+        """
+        Phase 49: Process language evolution.
+
+        Citizens communicate and develop shared symbols.
+        """
+        if not self.language:
+            return {'communications': 0, 'new_symbols': 0}
+
+        return self.language.tick()
