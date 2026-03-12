@@ -21,6 +21,7 @@ from .territory import TerritoryMapper, Territory
 from .citizen_writer import CitizenWriter
 from .dream_engine import DreamEngine, DreamState
 from .language_evolution import LanguageEvolution
+from .consciousness import ConsciousnessEngine, ConsciousnessLevel
 
 logger = logging.getLogger("NeuralCity")
 
@@ -75,6 +76,7 @@ class NeuralCity:
         self.writer = None  # CitizenWriter (set via set_substrate_writer)
         self.dream_engine = None  # DreamEngine (Phase 48)
         self.language = None  # LanguageEvolution (Phase 49)
+        self.consciousness = None  # ConsciousnessEngine (Phase 50)
 
         # City state
         self.tick_count = 0
@@ -183,6 +185,10 @@ class NeuralCity:
         # Phase 49: Process language evolution
         language = self._process_language()
         events['language'] = language
+
+        # Phase 50: Process consciousness
+        consciousness = self._process_consciousness()
+        events['consciousness'] = consciousness
 
         # Update neighbors
         self._update_neighbors()
@@ -674,3 +680,23 @@ class NeuralCity:
             return {'communications': 0, 'new_symbols': 0}
 
         return self.language.tick()
+
+    def set_consciousness(self) -> bool:
+        """
+        Phase 50: Initialize the consciousness engine.
+
+        Citizens develop self-awareness and meta-cognition.
+        """
+        self.consciousness = ConsciousnessEngine(self)
+        return True
+
+    def _process_consciousness(self) -> Dict:
+        """
+        Phase 50: Process consciousness.
+
+        Citizens think, introspect, and develop self-awareness.
+        """
+        if not self.consciousness:
+            return {'thoughts': 0, 'avg_level': 0.0, 'phi': 0.0}
+
+        return self.consciousness.tick()
