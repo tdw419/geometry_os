@@ -1126,6 +1126,18 @@ fn hilbert_d2xy(d: u32, n: u32) -> vec2<u32> {
             "total_mb": total_bytes / (1024 * 1024)
         }
 
+    def clear_kv_cache(self):
+        """Clear the KV-cache for a fresh generation."""
+        # Clear CPU KV-cache
+        self._cpu_kv_cache = {}
+
+        # Clear GPU KV-cache buffer if available
+        if self._wgpu_initialized and "kv_cache" in self.buffers:
+            # Zero out the buffer
+            zero_data = np.zeros(self.buffers["kv_cache"].size // 4, dtype=np.float32)
+            self.device.queue.write_buffer(self.buffers["kv_cache"], 0, zero_data.tobytes())
+            logger.debug("KV-cache cleared")
+
     def generate(self, prompt_tokens: list[int], max_tokens: int = 32) -> list[int]:
         """Generate tokens autoregressively."""
         # 1. Ingest Prompt (Warm up KV-cache)
