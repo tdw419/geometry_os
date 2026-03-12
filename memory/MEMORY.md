@@ -2,85 +2,44 @@
 
 > **Index only.** See linked files for details.
 
+## Live Truth
+
+**See:** `ACTUAL_STATUS.md` - Current runtime state, daemon status, active work
+
 ## Active Systems
 
 | System | Status | Tests | Details |
 |--------|--------|-------|---------|
 | [Neural Event Bus](neb.md) | ✅ Complete | 13 | Pub/sub coordination with semantic matching |
 | [Swarm Guilds](swarm-guilds.md) | ✅ Complete | 60 | Engineer, Reviewer, Architect agents |
+| [Agency Agents](agency-integration.md) | ✅ Complete | 5 | Mutation Governor, Spatial Architect, Neural Designer, Evolution Orchestrator, Curiosity Engine |
 | [Senses](senses.md) | ✅ Complete | 28 | FilesystemSense, WebSense |
-| [Memory & Growth](memory-growth.md) | ✅ Complete | 44 | EpisodicMemory, RecursiveGrowth |
-| [Evolution Daemon](evolution.md) | ✅ Complete | 196 | Self-improvement with gravity |
-| [Visual Shell](visual-shell.md) | Active | 40+ | PixiJS / Native infinite desktop |
-| [Sisyphus Brain Agent](sisyphus-brain.md) | ✅ Complete | 25+ | Self-evolving PixelBrain via cognitive curiosity |
-| [Ouroboros](ouroboros.md) | ✅ Complete | 69+ | Fracture detection, reflex responses |
-| [LM Studio Agent](sisyphus-brain.md#lm-studio-tech-lead) | ✅ Complete | - | Tech Lead pattern for deep reasoning |
-| [Feedback System](../systems/feedback/) | ✅ Complete | 15+ | Analyzer, Collector, Metrics |
+    [Memory & Growth](memory-growth.md) | ✅ Complete | 44 | EpisodicMemory, RecursiveGrowth |
+    [Evolution Daemon](evolution.md) | ✅ Complete | 196 | Self-improvement with gravity |
+    [Visual Shell](visual-shell.md) | Active | - | PixiJS infinite desktop |
+    [Sisyphus Brain Agent](sisyphus-brain.md) | ✅ Complete | - | Self-evolving PixelBrain via cognitive curiosity |
+    [LM Studio Agent](sisyphus-brain.md#lm-studio-tech-lead) | Tech Lead pattern for deep reasoning |
+    [GlyphStratum](glyph-stratum.md) | ✅ Complete | - | AI-native visual programming language |
 
 ## Quick Stats
 
-- **Total Tests**: 11,000+
-- **Total Systems**: 34
-- **Python Files**: 3,843
-- **Rust Files**: 807
-- **Evolution Cycles**: 40+ (continuous)
+- **Total Swarm Tests:** 180+
+- **Total Evolution Tests:** 196
+- **GlyphStratum glyphs:** 63 (database engine)
 
 ## Key Paths
 
 ```
-systems/
-├── evolution_daemon/   # Self-improvement, brain mutations
-├── visual_shell/       # PixiJS desktop, PixelBrain inference
-├── pixel_compiler/     # Binary to RTS conversion
-├── pixel_llm/          # LM Studio integration
-├── pixel_brain/        # Live LLM inference
-├── sisyphus/           # Sisyphus daemon, goal synthesis
-├── swarm/              # NEB, Guilds, Senses, Memory
-├── tectonic/           # Spatial negotiation
-├── foundry/            # Self-modification
-├── memory_drift/       # Gravitational KV-cache
-├── infinite_map/       # Quadtree, gravity engine
-├── network_boot/       # Distributed boot, migration
-├── kernel/             # Multi-kernel orchestration
-├── intelligence/       # Goal inference
-├── vision/             # Vision model integration
-├── feedback/           # System feedback loops
-├── cognitive/          # Cognitive routing
-├── memory/             # Vector memory daemon
-├── infinite_map_rs/    # Rust compositor (WIP)
-└── ...
-
-.geometry/              # Runtime state
-specs/                  # Feature specs
-openspec/               # OpenSpec specifications
-tests/                  # Test suite
-apps/                   # Applications (agency-agents, webmcp, etc.)
-```
-
-## Architecture Layers
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    APPLICATIONS                              │
-│   agency-agents | autoresearch | webmcp | openspec          │
-├─────────────────────────────────────────────────────────────┤
-│                    COGNITIVE SYSTEMS                         │
-│   Mesh Events | Intent Prediction | Self-Reflection         │
-├─────────────────────────────────────────────────────────────┤
-│                    VISUAL SHELL                              │
-│   GNB | Evolution Engine | Predictive Glow | Governance     │
-├─────────────────────────────────────────────────────────────┤
-│                    CORE SYSTEMS                              │
-│   Evolution Daemon | Sisyphus | Swarm | Tectonic            │
-├─────────────────────────────────────────────────────────────┤
-│                    INFRASTRUCTURE                            │
-│   Pixel Compiler | Pixel LLM | Memory Drift | Network Boot  │
-└─────────────────────────────────────────────────────────────┘
+systems/swarm/              # NEB, Guilds, Senses, Memory
+systems/visual_shell/       # PixiJS desktop, PixelBrain inference
+systems/evolution_daemon/   # Self-improvement, brain mutations
+systems/sisyphus/           # Sisyphus daemon, goal synthesis, curiosity engine
+systems/glyph_stratum/   # AI-native language, rust FFI, experiments
 ```
 
 ## Philosophy
 
-See: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
+See: `docs/ASCII_exposed_computing_manifesto.md`
 
 - **State as Text** - All system state is human-readable ASCII
 - **Transition as Edit** - State changes are text edits
@@ -91,6 +50,15 @@ See: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
 
 > Geometry OS is an **autonomous entity that lives on screen**.
 > The screen IS the hard drive. It's not a tool to use. It's a system to nurture.
+
+## GlyphStratum
+
+An **AI-native programming language** designed for AI cognition.
+- **5 strata** (Intent → Spec → Logic → Memory → Substrate)
+- **Explicit dependencies** tracked and queryable
+- **Self-reflection** built-in (`glyphctl query`, `glyphctl render`)
+- **Forces bottom-up design** (stratum validation)
+- **Experiment results** show promise for coherence maintenance
 
 ## Historical Topics
 
@@ -104,20 +72,7 @@ See older memory files for historical context:
 - `pixelrts_v2.md` - Pixel RTS format
 - `pattern_detection.md` - Edge detection benchmarks
 
-## Documentation Index
-
-| Document | Path | Description |
-|----------|------|-------------|
-| README | `/README.md` | Project overview and quick start |
-| Agents Guide | `/AGENTS.md` | Agent guidance for code work |
-| Contributing | `/CONTRIBUTING.md` | Coding standards |
-| Skills | `/SKILLS.md` | AI skills index |
-| Cognitive Systems | `/docs/COGNITIVE_SYSTEMS.md` | Cognitive architecture |
-| Sisyphus v4 | `/docs/SISYPHUS_V4_DAEMON.md` | Daemon documentation |
-| PixelBrain | `/docs/PIXEL_BRAIN_ARCHITECTURE.md` | Brain architecture |
-| Unified Architecture | `/docs/UNIFIED_NEURAL_GEOMETRIC_ARCHITECTURE.md` | Full architecture |
-
 ---
 
 *Last updated: 2026-03-11*
-*Live status: ACTUAL_STATUS.md*
+*Live status: ACTUAL_STATUS.md
