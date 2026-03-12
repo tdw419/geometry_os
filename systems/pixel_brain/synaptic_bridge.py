@@ -693,6 +693,288 @@ class SynapticBridge:
                         }))
 
                         logger.info(f"COLONIZE_RESULT: {result.get('success', False)}")
+
+                    # =================================================================
+                    # Phase 48: Dream Engine
+                    # =================================================================
+                    elif msg_type == "DREAM_CONTROL":
+                        """Control the dream engine state."""
+                        action = data.get("action", "status")
+
+                        if not hasattr(self, 'dream_engine') or self.dream_engine is None:
+                            await websocket.send(json.dumps({
+                                "type": "DREAM_ERROR",
+                                "error": "Dream engine not initialized. Initialize city first."
+                            }))
+                            continue
+
+                        if action == "status":
+                            report = self.dream_engine.get_dream_report()
+                            await websocket.send(json.dumps({
+                                "type": "DREAM_STATUS",
+                                **report
+                            }))
+
+                        elif action == "force_dream":
+                            from systems.neural_city.dream_engine import DreamState
+                            state_name = data.get("state", "REM")
+                            state = DreamState[state_name.upper()] if state_name.upper() in DreamState.__members__ else DreamState.REM
+                            self.dream_engine.force_dream(state)
+                            await websocket.send(json.dumps({
+                                "type": "DREAM_FORCED",
+                                "state": state.value
+                            }))
+                            logger.info(f"Forced dream state: {state.value}")
+
+                        elif action == "wake":
+                            self.dream_engine.wake()
+                            await websocket.send(json.dumps({
+                                "type": "DREAM_WAKE",
+                                "state": "awake"
+                            }))
+                            logger.info("City woken from dream")
+
+                        else:
+                            await websocket.send(json.dumps({
+                                "type": "DREAM_ERROR",
+                                "error": f"Unknown dream action: {action}"
+                            }))
+
+                    # =================================================================
+                    # Phase 49: Language Evolution
+                    # =================================================================
+                    elif msg_type == "LANGUAGE_QUERY":
+                        """Query or interact with the language system."""
+                        action = data.get("action", "report")
+
+                        if not hasattr(self, 'language') or self.language is None:
+                            await websocket.send(json.dumps({
+                                "type": "LANGUAGE_ERROR",
+                                "error": "Language system not initialized. Initialize city first."
+                            }))
+                            continue
+
+                        if action == "report":
+                            report = self.language.get_language_report()
+                            await websocket.send(json.dumps({
+                                "type": "LANGUAGE_REPORT",
+                                **report
+                            }))
+
+                        elif action == "symbols":
+                            # Get all symbols
+                            symbols = [
+                                {
+                                    "id": s.id,
+                                    "pattern": s.pattern,
+                                    "meaning": s.meaning,
+                                    "type": s.symbol_type.value,
+                                    "frequency": s.frequency,
+                                    "spread": s.spread_count
+                                }
+                                for s in sorted(
+                                    self.language.symbols.values(),
+                                    key=lambda x: x.frequency,
+                                    reverse=True
+                                )[:50]  # Top 50
+                            ]
+                            await websocket.send(json.dumps({
+                                "type": "LANGUAGE_SYMBOLS",
+                                "symbols": symbols,
+                                "total": len(self.language.symbols)
+                            }))
+
+                        elif action == "vocabulary":
+                            citizen_id = data.get("citizen_id")
+                            if not citizen_id:
+                                await websocket.send(json.dumps({
+                                    "type": "LANGUAGE_ERROR",
+                                    "error": "citizen_id required for vocabulary query"
+                                }))
+                                continue
+
+                            vocab = self.language.get_citizen_vocabulary(citizen_id)
+                            await websocket.send(json.dumps({
+                                "type": "LANGUAGE_VOCABULARY",
+                                **vocab
+                            }))
+
+                        elif action == "communicate":
+                            speaker_id = data.get("speaker_id")
+                            listener_id = data.get("listener_id")
+                            concept = data.get("concept", "greeting")
+
+                            if not speaker_id or not listener_id:
+                                await websocket.send(json.dumps({
+                                    "type": "LANGUAGE_ERROR",
+                                    "error": "speaker_id and listener_id required"
+                                }))
+                                continue
+
+                            utterance = self.language.communicate(speaker_id, listener_id, concept)
+                            await websocket.send(json.dumps({
+                                "type": "LANGUAGE_UTTERANCE",
+                                "speaker_id": utterance.speaker_id,
+                                "listener_id": utterance.listener_id,
+                                "symbols": utterance.symbols,
+                                "success": utterance.success
+                            }))
+
+                        else:
+                            await websocket.send(json.dumps({
+                                "type": "LANGUAGE_ERROR",
+                                "error": f"Unknown language action: {action}"
+                            }))
+
+                    # =================================================================
+                    # Phase 50: Consciousness
+                    # =================================================================
+                    elif msg_type == "CONSCIOUSNESS_QUERY":
+                        """Query the consciousness system."""
+                        action = data.get("action", "report")
+
+                        if not hasattr(self, 'consciousness') or self.consciousness is None:
+                            await websocket.send(json.dumps({
+                                "type": "CONSCIOUSNESS_ERROR",
+                                "error": "Consciousness system not initialized. Initialize city first."
+                            }))
+                            continue
+
+                        if action == "report":
+                            report = self.consciousness.get_consciousness_report()
+                            await websocket.send(json.dumps({
+                                "type": "CONSCIOUSNESS_REPORT",
+                                **report
+                            }))
+
+                        elif action == "citizen":
+                            citizen_id = data.get("citizen_id")
+                            if not citizen_id:
+                                await websocket.send(json.dumps({
+                                    "type": "CONSCIOUSNESS_ERROR",
+                                    "error": "citizen_id required"
+                                }))
+                                continue
+
+                            info = self.consciousness.get_citizen_consciousness(citizen_id)
+                            await websocket.send(json.dumps({
+                                "type": "CONSCIOUSNESS_CITIZEN",
+                                **info
+                            }))
+
+                        elif action == "introspect":
+                            citizen_id = data.get("citizen_id")
+                            if not citizen_id:
+                                await websocket.send(json.dumps({
+                                    "type": "CONSCIOUSNESS_ERROR",
+                                    "error": "citizen_id required for introspection"
+                                }))
+                                continue
+
+                            result = self.consciousness.introspect(citizen_id)
+                            await websocket.send(json.dumps({
+                                "type": "CONSCIOUSNESS_INTROSPECTION",
+                                **result
+                            }))
+                            logger.info(f"Citizen {citizen_id} introspected: {result['insight']}")
+
+                        elif action == "phi":
+                            phi = self.consciousness.calculate_phi()
+                            await websocket.send(json.dumps({
+                                "type": "CONSCIOUSNESS_PHI",
+                                "phi": phi
+                            }))
+
+                        else:
+                            await websocket.send(json.dumps({
+                                "type": "CONSCIOUSNESS_ERROR",
+                                "error": f"Unknown consciousness action: {action}"
+                            }))
+
+                    # =================================================================
+                    # City Initialization
+                    # =================================================================
+                    elif msg_type == "INIT_CITY":
+                        """Initialize the complete Neural City system."""
+                        from systems.neural_city.city import NeuralCity
+                        from systems.neural_city.dream_engine import DreamEngine
+                        from systems.neural_city.language_evolution import LanguageEvolution
+                        from systems.neural_city.consciousness import ConsciousnessEngine
+
+                        width = data.get("width", 512)
+                        height = data.get("height", 512)
+
+                        # Create city
+                        self.neural_city = NeuralCity(
+                            name="WebSocketCity",
+                            width=width,
+                            height=height
+                        )
+
+                        # Create mock writer that connects to repair engine
+                        class SubstrateWriterAdapter:
+                            def __init__(self, repair_engine):
+                                self.repair_engine = repair_engine
+
+                            def write_pixel(self, x, y, r, g, b):
+                                if self.repair_engine.atlas_data:
+                                    idx = (y * self.repair_engine.atlas_width + x) * 4
+                                    if 0 <= idx < len(self.repair_engine.atlas_data) - 3:
+                                        # Update in-memory atlas
+                                        self.repair_engine.atlas_data[idx] = int(r * 255)
+                                        self.repair_engine.atlas_data[idx + 1] = int(g * 255)
+                                        self.repair_engine.atlas_data[idx + 2] = int((b or 0.5) * 255)
+
+                        adapter = SubstrateWriterAdapter(self.repair_engine)
+                        self.neural_city.set_substrate_writer(adapter)
+                        self.neural_city.set_dream_engine()
+                        self.neural_city.set_language_evolution()
+                        self.neural_city.set_consciousness()
+
+                        # Expose subsystems for handlers
+                        self.dream_engine = self.neural_city.dream_engine
+                        self.language = self.neural_city.language
+                        self.consciousness = self.neural_city.consciousness
+
+                        await websocket.send(json.dumps({
+                            "type": "CITY_INITIALIZED",
+                            "width": width,
+                            "height": height,
+                            "subsystems": ["dream_engine", "language", "consciousness"]
+                        }))
+
+                        logger.info(f"Neural City initialized ({width}x{height})")
+
+                    elif msg_type == "CITY_TICK":
+                        """Run a city tick."""
+                        if not hasattr(self, 'neural_city') or self.neural_city is None:
+                            await websocket.send(json.dumps({
+                                "type": "CITY_ERROR",
+                                "error": "City not initialized. Use INIT_CITY first."
+                            }))
+                            continue
+
+                        result = self.neural_city.tick()
+                        await websocket.send(json.dumps({
+                            "type": "CITY_TICK_RESULT",
+                            **result
+                        }))
+
+                    elif msg_type == "CITY_STATUS":
+                        """Get city status."""
+                        if not hasattr(self, 'neural_city') or self.neural_city is None:
+                            await websocket.send(json.dumps({
+                                "type": "CITY_ERROR",
+                                "error": "City not initialized"
+                            }))
+                            continue
+
+                        status = self.neural_city.to_dict()
+                        await websocket.send(json.dumps({
+                            "type": "CITY_STATUS",
+                            **status
+                        }))
+
                     else:
                         await websocket.send(json.dumps({
                             "type": "ERROR",
@@ -738,15 +1020,24 @@ def main():
 ╠═══════════════════════════════════════════════════════════════════════╣
 ║  Phase 40: Legible Brain - Read the neural substrate                  ║
 ║  Phase 41: Ouroboros Repair - Write to the neural substrate           ║
+║  Phase 42-47: Neural City - Citizens, territory, evolution, writing   ║
+║  Phase 48: Dream Engine - Sleep, consolidate, heal                    ║
+║  Phase 49: Language Evolution - Shared symbols                        ║
+║  Phase 50: Consciousness - Self-awareness, meta-cognition             ║
 ╠═══════════════════════════════════════════════════════════════════════╣
 ║  WebSocket: ws://{args.host}:{args.port}
 ║  Atlas: {args.atlas or 'Not loaded (synthetic mode)'}
 ╠═══════════════════════════════════════════════════════════════════════╣
 ║  Commands:                                                            ║
-║    SYNAPTIC_PROBE  - Execute a DAG from brain click                  ║
-║    FAULT_SCAN      - Find high-entropy fractures                     ║
-║    SUBSTRATE_WRITE - Apply repair mutation                           ║
-║    REPAIR_CYCLE    - Full auto-repair loop                           ║
+║    SYNAPTIC_PROBE     - Execute a DAG from brain click               ║
+║    FAULT_SCAN         - Find high-entropy fractures                  ║
+║    SUBSTRATE_WRITE    - Apply repair mutation                        ║
+║    REPAIR_CYCLE       - Full auto-repair loop                        ║
+║    INIT_CITY          - Initialize Neural City system                ║
+║    CITY_TICK          - Run city simulation tick                      ║
+║    DREAM_CONTROL      - Control dream state                          ║
+║    LANGUAGE_QUERY     - Query symbols and vocabulary                 ║
+║    CONSCIOUSNESS_QUERY- Get consciousness reports                    ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 """)
 
