@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+"""Direct runner for session-rotator CLI without pip install."""
+
+import sys
+import os
+
+# Add the cli_anything package to path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, script_dir)
+
+from cli_anything.session_rotator.session_rotator_cli import cli
+
+if __name__ == "__main__":
+    cli(obj={})
