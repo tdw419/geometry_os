@@ -140,3 +140,9 @@ genesis_pilot_report.json
 
 # Test cartridge metadata
 test_cartridge.meta.json
+
+# Electron build artifacts
+systems/visual_shell/electron/dist/
+
+# Git rewrite history
+.git-rewrite/

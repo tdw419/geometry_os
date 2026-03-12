@@ -15,14 +15,15 @@ use infinite_map_rs::gpu::glyph_vm::{GlyphVM, Glyph};
 async fn main() {
     env_logger::init();
     let event_loop = EventLoop::new().unwrap();
-    let window = WindowBuilder::new()
+    let window = Arc::new(WindowBuilder::new()
         .with_title("Geometry OS - Native Glyph Window Demo")
         .with_inner_size(winit::dpi::LogicalSize::new(1024.0, 768.0))
         .build(&event_loop)
-        .unwrap();
+        .unwrap());
 
     let instance = wgpu::Instance::default();
-    let surface = instance.create_surface(&window).unwrap();
+    let window_for_surface = window.clone();
+    let surface = instance.create_surface(window_for_surface.as_ref()).unwrap();
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
             compatible_surface: Some(&surface),

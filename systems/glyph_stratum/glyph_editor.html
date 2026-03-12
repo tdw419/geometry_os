@@ -811,7 +811,9 @@
             try {
                 const response = await fetch("opcode_positions.json");
                 const data = await response.json();
-                if (data.glyphs) {
+                if (data.opcode_map) {
+                    Object.assign(fontPositions, data.opcode_map);
+                } else if (data.glyphs && !Array.isArray(data.glyphs)) {
                     Object.assign(fontPositions, data.glyphs);
                 } else {
                     Object.assign(fontPositions, data);

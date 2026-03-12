@@ -325,9 +325,42 @@ impl TextEngine {
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
         });
 
-        // Phase 37: Generate and upload glyph metrics
-        let font_metrics = generate_fallback_metrics();
-        log::info!("✅ Phase 37: Generated {} glyph metrics", font_metrics.glyphs.len());
+        // Phase 37: Load high-performance SDF font if available
+        let font_metrics_path = std::path::Path::new("systems/glyph_stratum/opcode_positions.json");
+        let font_atlas_path = std::path::Path::new("systems/glyph_stratum/opcode_atlas.raw");
+        
+        let (font_metrics, atlas_data, atlas_width, atlas_height) = if font_metrics_path.exists() && font_atlas_path.exists() {
+            log::info!("⚡ Phase 37: Loading Hilbert SDF font from systems/glyph_stratum/...");
+            match load_font_metrics(font_metrics_path) {
+                Ok(metrics) => {
+                    match std::fs::read(font_atlas_path) {
+                        Ok(data) => {
+                            let width = metrics.metadata.atlas_size.0;
+                            let height = metrics.metadata.atlas_size.1;
+                            log::info!("✅ Loaded SDF atlas ({}x{}) with {} glyphs", width, height, metrics.glyphs.len());
+                            (metrics, data, width, height)
+                        }
+                        Err(e) => {
+                            log::error!("❌ Failed to read font atlas data: {:?}", e);
+                            let fm = generate_fallback_metrics();
+                            let fa = generate_fallback_atlas();
+                            (fm, fa.data, fa.width, fa.height)
+                        }
+                    }
+                }
+                Err(e) => {
+                    log::error!("❌ Failed to load font metrics: {:?}", e);
+                    let fm = generate_fallback_metrics();
+                    let fa = generate_fallback_atlas();
+                    (fm, fa.data, fa.width, fa.height)
+                }
+            }
+        } else {
+            log::info!("ℹ️ Falling back to default bitmap font");
+            let fm = generate_fallback_metrics();
+            let fa = generate_fallback_atlas();
+            (fm, fa.data, fa.width, fa.height)
+        };
 
         let glyph_metrics_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Glyph Metrics Buffer"),
@@ -442,18 +475,12 @@ impl TextEngine {
             mapped_at_creation: false,
         });
 
-        // Initialize CPU buffer
-        let cpu_buffer = vec![0u32; (1024 * 1024 / 4) as usize];
-
-        // Phase 33: Generate and populate font atlas
-        log::info!("Phase 33: Generating font atlas...");
-        let font_atlas = generate_fallback_atlas();
-        
+        // Phase 33: Upload font atlas to GPU
         let font_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("MSDF Font Atlas"),
             size: wgpu::Extent3d {
-                width: font_atlas.width,
-                height: font_atlas.height,
+                width: atlas_width,
+                height: atlas_height,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -471,20 +498,20 @@ impl TextEngine {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            &font_atlas.data,
+            &atlas_data,
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some(font_atlas.width * 4),
-                rows_per_image: Some(font_atlas.height),
+                bytes_per_row: Some(atlas_width * 4),
+                rows_per_image: Some(atlas_height),
             },
             wgpu::Extent3d {
-                width: font_atlas.width,
-                height: font_atlas.height,
+                width: atlas_width,
+                height: atlas_height,
                 depth_or_array_layers: 1,
             },
         );
         
-        log::info!("✅ Phase 33: Font atlas uploaded - {} glyphs", font_atlas.glyphs.len());
+        log::info!("✅ Font atlas uploaded to GPU ({}x{})", atlas_width, atlas_height);
         
         let font_view = font_texture.create_view(&wgpu::TextureViewDescriptor::default());
         let font_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -560,10 +587,6 @@ impl TextEngine {
             ],
         });
 
-        // Phase 40: Initialize Hex Tensor Editor
-        let hex_editor = Some(HexTensorEditor::new(device));
-        log::info!("⚡ Phase 40: Hex Tensor Editor initialized");
-
         Self {
             pipeline,
             compute_pipeline,
@@ -591,7 +614,7 @@ impl TextEngine {
             font_metadata: font_metrics.metadata,
             render_pipeline_layout: pipeline_layout,
             current_file: None,
-            hex_editor: Some(crate::hex_tensor_editor::HexTensorEditor::new(device)),
+            hex_editor: Some(HexTensorEditor::new(device)),
             visual_ast: None,
         }
     }

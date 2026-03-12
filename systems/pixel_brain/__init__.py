@@ -1,30 +1,31 @@
+# systems/pixel_brain/__init__.py
+"""PixelBrain Visual Training Harness.
+
+This module provides components for training PixelBrain as a native
+Geometry OS intelligence using visual-first training via Hilbert Curve encoding.
+
+Vocabulary:
+- 0-31: Reserved (control codes)
+- 32-126: ASCII printable (Prompt vocabulary)
+- 200-214: GlyphStratum Opcodes (Logic vocabulary)
+- 256-511: Byte literals 0-255 (Operand vocabulary)
+- 512-1023: Intent glyphs (Stratum 4 metadata)
 """
-PixelBrain - Live LLM inference bridge for tectonic agents.
 
-This module provides real-time LLM-backed decision making for tectonic
-negotiation, connecting agents to LM Studio for intelligent bidding,
-counter-bid decisions, and district management.
+__version__ = "0.1.0"
 
-Key Components:
-- PixelBrainBridge: Main bridge connecting tectonic agents to LM Studio
-- AsyncInferenceClient: Async client with rate limiting and caching
-- Prompt templates for tectonic decisions
-"""
-
-from systems.pixel_brain.async_inference import AsyncInferenceClient
-from systems.pixel_brain.inference_bridge import PixelBrainBridge
-from systems.pixel_brain.prompts import (
-    CLAIM_ANALYSIS_PROMPT,
-    COUNTER_BID_PROMPT,
-    DISTRICT_NAMING_PROMPT,
-    DISTRICT_PURPOSE_PROMPT,
+# Import key components for convenience
+from systems.pixel_brain.constants import (
+    OPCODE_BASE,
+    OPCODE_NOP,
+    OPCODE_ALLOC,
+    OPCODE_HALT,
+    VOCAB_SIZE,
+    TEXTURE_SIZE,
 )
-
-__all__ = [
-    "PixelBrainBridge",
-    "AsyncInferenceClient",
-    "CLAIM_ANALYSIS_PROMPT",
-    "COUNTER_BID_PROMPT",
-    "DISTRICT_PURPOSE_PROMPT",
-    "DISTRICT_NAMING_PROMPT",
-]
+from systems.pixel_brain.hilbert_encoder import HilbertEncoder
+from systems.pixel_brain.atlas_tokenizer import AtlasTokenizer
+from systems.pixel_brain.synthetic_dataset_generator import (
+    SyntheticDatasetGenerator,
+    generate_allocation_seed_dataset,
+)

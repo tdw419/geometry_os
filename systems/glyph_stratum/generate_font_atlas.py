@@ -140,14 +140,30 @@ def generate_opcode_atlas():
     atlas_data = bytearray(atlas_width * atlas_height * 4)  # RGBA
     atlas_data[:] = b"\x00" * len(atlas_data)  # Transparent black
 
-    positions = {}  # opcode -> (x, y, width, height)
+    # Initialize a list of 256 glyphs (filled with defaults)
+    glyphs_list = []
+    for i in range(256):
+        glyphs_list.append({
+            "char_code": i,
+            "uv_min_x": 0.0,
+            "uv_min_y": 0.0,
+            "uv_max_x": 0.0,
+            "uv_max_y": 0.0,
+            "width": 0.0,
+            "height": 0.0,
+            "bearing_x": 0.0,
+            "bearing_y": 0.0,
+            "advance": 0.0
+        })
 
+    positions = {}  # For JS editor: opcode -> (x, y, width, height)
+    
     # Spread for SDF
     SDF_SPREAD = 8.0
 
     for opcode_name, opcode_id in opcode_definitions:
-        if opcode_id >= n*n:
-            print(f"Warning: opcode_id {opcode_id} out of bounds for {n}x{n} grid.")
+        if opcode_id >= 256:
+            print(f"Warning: opcode_id {opcode_id} out of bounds.")
             continue
             
         # Calculate cell coordinates using Hilbert curve
@@ -185,7 +201,6 @@ def generate_opcode_atlas():
             continue
 
         # Copy SDF glyph to atlas
-        # For compatibility with msdf shader, copy SDF to R, G, B channels
         for row in range(height):
             for col in range(width):
                 sdf_val = sdf[row, col]
@@ -196,28 +211,50 @@ def generate_opcode_atlas():
                     atlas_data[dst_idx] = sdf_val      # R
                     atlas_data[dst_idx + 1] = sdf_val  # G
                     atlas_data[dst_idx + 2] = sdf_val  # B
-                    atlas_data[dst_idx + 3] = sdf_val  # A
+                    atlas_data[dst_idx + 3] = 255      # A (fully opaque for SDF sampling)
 
-        positions[opcode_name] = (base_x + off_x, base_y + off_y, width, height)
-        print(f"Rendered SDF '{opcode_name}' (ID {opcode_id}) at cell ({cell_x}, {cell_y}) -> ({base_x + off_x}, {base_y + off_y})")
+        # Update lists and dicts
+        x, y = base_x + off_x, base_y + off_y
+        
+        # For Rust compositor
+        glyphs_list[opcode_id] = {
+            "char_code": opcode_id,
+            "uv_min_x": float(x) / atlas_width,
+            "uv_min_y": float(y) / atlas_height,
+            "uv_max_x": float(x + width) / atlas_width,
+            "uv_max_y": float(y + height) / atlas_height,
+            "width": float(width),
+            "height": float(height),
+            "bearing_x": 0.0,
+            "bearing_y": float(height) * 0.75, # Estimated baseline
+            "advance": float(width) + 4.0
+        }
+        
+        # For JS editor
+        positions[opcode_name] = [x, y, width, height]
+        
+        print(f"Rendered SDF '{opcode_name}' (ID {opcode_id}) at cell ({cell_x}, {cell_y}) -> ({x}, {y})")
 
     # Save atlas as raw RGBA data
     atlas_path = os.path.join(os.path.dirname(__file__), "opcode_atlas.raw")
     with open(atlas_path, "wb") as f:
         f.write(atlas_data)
 
-    # Save positions as JSON
-    # Include metadata about atlas dimensions
+    # Save positions as JSON in FontData format
     positions_meta = {
         "metadata": {
-            "width": atlas_width,
-            "height": atlas_height,
-            "cell_size": cell_size,
-            "sdf_spread": SDF_SPREAD,
-            "hilbert": True,
-            "sdf": True
+            "version": 1,
+            "font_name": "GEOS SDF Font",
+            "font_size": 24,
+            "atlas_size": [atlas_width, atlas_height],
+            "glyph_count": 256,
+            "ascent": 18.0,
+            "descent": -6.0,
+            "line_gap": 4.0,
+            "sdf_spread": SDF_SPREAD
         },
-        "glyphs": positions
+        "glyphs": glyphs_list,
+        "opcode_map": positions  # JS editor fallback
     }
     
     positions_path = os.path.join(os.path.dirname(__file__), "opcode_positions.json")
