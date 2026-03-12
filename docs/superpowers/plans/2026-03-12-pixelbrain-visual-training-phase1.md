@@ -132,9 +132,32 @@ Expected: FAIL with "ModuleNotFoundError: No module named 'systems.pixel_brain'"
 
 This module provides components for training PixelBrain as a native
 Geometry OS intelligence using visual-first training via Hilbert Curve encoding.
+
+Vocabulary:
+- 0-31: Reserved (control codes)
+- 32-126: ASCII printable (Prompt vocabulary)
+- 200-214: GlyphStratum Opcodes (Logic vocabulary)
+- 256-511: Byte literals 0-255 (Operand vocabulary)
+- 512-1023: Intent glyphs (Stratum 4 metadata)
 """
 
 __version__ = "0.1.0"
+
+# Import key components for convenience
+from systems.pixel_brain.constants import (
+    OPCODE_BASE,
+    OPCODE_NOP,
+    OPCODE_ALLOC,
+    OPCODE_HALT,
+    VOCAB_SIZE,
+    TEXTURE_SIZE,
+)
+from systems.pixel_brain.hilbert_encoder import HilbertEncoder
+from systems.pixel_brain.atlas_tokenizer import AtlasTokenizer
+from systems.pixel_brain.synthetic_dataset_generator import (
+    SyntheticDatasetGenerator,
+    generate_allocation_seed_dataset,
+)
 ```
 
 - [ ] **Step 4: Write constants module**
@@ -703,8 +726,8 @@ class TestRGBIndexConversion:
         """Index 0 should map to RGB (0, 0, 0)."""
         assert index_to_rgb(0) == (0, 0, 0)
 
-    def test_roundtrip_preserves_rgb(self):
-        """Converting RGB→index→RGB should return original."""
+    def test_roundtrip_preserves_rgb_with_tolerance(self):
+        """Converting RGB→index→RGB should return approximately original."""
         test_colors = [
             (0, 0, 0),
             (255, 0, 0),
@@ -716,7 +739,10 @@ class TestRGBIndexConversion:
         for r, g, b in test_colors:
             index = rgb_to_index(r, g, b)
             decoded_r, decoded_g, decoded_b = index_to_rgb(index)
-            assert (decoded_r, decoded_g, decoded_b) == (r, g, b), f"Failed for ({r}, {g}, {b})"
+            # Allow quantization tolerance (we quantize to fewer bits)
+            assert abs(decoded_r - r) < 64, f"R mismatch for ({r}, {g}, {b}): got {decoded_r}"
+            assert abs(decoded_g - g) < 16, f"G mismatch for ({r}, {g}, {b}): got {decoded_g}"
+            assert abs(decoded_b - b) < 16, f"B mismatch for ({r}, {g}, {b}): got {decoded_b}"
 
     def test_index_range(self):
         """Index should be in range 0-1023."""
