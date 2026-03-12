@@ -215,9 +215,50 @@ impl NeuralCityWasm {
             self.spatial_index.insert(id, citizen.x, citizen.y);
         }
 
-        // Process citizens
-        let ids: Vec<u32> = self.citizens.keys().copied().collect();
+        // Phase 1: Collect all pending trades (read-only)
+        let pending_trades: Vec<(u32, u32, f32)> = {
+            let mut trades_to_execute = Vec::new();
+            for (&id, citizen) in &self.citizens {
+                if citizen.state == 1 && citizen.energy > 0.3 {
+                    let neighbors = self.spatial_index.query_nearby(citizen.x, citizen.y, 64.0);
+                    for &neighbor_id in &neighbors {
+                        if neighbor_id != id {
+                            if let Some(neighbor) = self.citizens.get(&neighbor_id) {
+                                if neighbor.guild != citizen.guild {
+                                    let diff = citizen.energy - neighbor.energy;
+                                    if diff.abs() > 0.1 {
+                                        trades_to_execute.push((id, neighbor_id, diff.abs() * 0.1));
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            trades_to_execute
+        };
 
+        // Phase 2: Execute trades (mutable)
+        for (citizen_id, neighbor_id, amount) in pending_trades {
+            if let (Some(citizen), Some(neighbor)) =
+                (self.citizens.get(&citizen_id), self.citizens.get(&neighbor_id))
+            {
+                let diff = citizen.energy - neighbor.energy;
+                if diff > 0.0 {
+                    if let Some(c) = self.citizens.get_mut(&citizen_id) {
+                        c.energy -= amount;
+                    }
+                    if let Some(n) = self.citizens.get_mut(&neighbor_id) {
+                        n.energy += amount * 0.9;
+                    }
+                    trades += 1;
+                }
+            }
+        }
+
+        // Phase 3: Movement and energy decay
+        let ids: Vec<u32> = self.citizens.keys().copied().collect();
         for id in ids {
             if let Some(citizen) = self.citizens.get_mut(&id) {
                 // Movement
@@ -229,31 +270,6 @@ impl NeuralCityWasm {
                     citizen.y = (citizen.y + dy).max(0.0).min(self.height as f32 - 1.0);
 
                     movements += 1;
-                }
-
-                // Trading (simplified)
-                if citizen.state == 1 && citizen.energy > 0.3 {
-                    let neighbors = self.spatial_index.query_nearby(citizen.x, citizen.y, 64.0);
-
-                    for &neighbor_id in &neighbors {
-                        if neighbor_id != id {
-                            if let Some(neighbor) = self.citizens.get_mut(&neighbor_id) {
-                                if neighbor.guild != citizen.guild {
-                                    // Execute trade
-                                    let diff = citizen.energy - neighbor.energy;
-                                    if diff.abs() > 0.1 {
-                                        let amount = diff.abs() * 0.1;
-                                        if diff > 0.0 {
-                                            citizen.energy -= amount;
-                                            neighbor.energy += amount * 0.9;
-                                        }
-                                        trades += 1;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
 
                 // Energy decay
@@ -284,7 +300,7 @@ impl NeuralCityWasm {
             .map(|(&id, _)| id)
             .collect();
 
-        for id in reproducers.iter().take(10) {  // Limit births per tick
+        for _ in reproducers.iter().take(10) {  // Limit births per tick
             births += 1;
             // Would add new citizen here
         }
