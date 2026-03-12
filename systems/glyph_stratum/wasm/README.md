@@ -55,6 +55,17 @@ SUBSTRATE (0) ← Data
 | `NEG` | 1 | Negation (-a) |
 | `ABS` | 1 | Absolute value (\|a\|) |
 
+### Bitwise Opcodes
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| `BITAND` | 2 | Bitwise AND (a & b) |
+| `BITOR` | 2 | Bitwise OR (a \| b) |
+| `BITXOR` | 2 | Bitwise XOR (a ^ b) |
+| `BITNOT` | 1 | Bitwise NOT (~a) |
+| `SHIFTL` | 2 | Left shift (a << b) |
+| `SHIFTR` | 2 | Unsigned right shift (a >>> b) |
+
 ### Comparison Opcodes
 
 | Opcode | Args | Description |

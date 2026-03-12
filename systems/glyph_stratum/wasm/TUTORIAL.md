@@ -149,6 +149,24 @@ This checks if 10 > 5. Result: `true`
 
 Available comparisons: EQ, NE, LT, LE, GT, GE
 
+### Bitwise Operations
+
+GlyphStratum supports bitwise operations on integers:
+
+```json
+{
+  "glyphs": {
+    "1": { "stratum": "SUBSTRATE", "opcode": "DATA", "invariants": { "value": 12 } },
+    "2": { "stratum": "SUBSTRATE", "opcode": "DATA", "invariants": { "value": 10 } },
+    "3": { "stratum": "LOGIC", "opcode": "BITAND", "dependencies": [1, 2] }
+  }
+}
+```
+
+Result: 8 (12 & 10 in binary: 1100 & 1010 = 1000)
+
+Available bitwise opcodes: BITAND, BITOR, BITXOR, BITNOT, SHIFTL, SHIFTR
+
 ### Branching
 
 BRANCH selects between two values based on a condition:
