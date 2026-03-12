@@ -1,5 +1,3 @@
-use crate::camera::Camera;
-use crate::renderer::Renderer;
 use std::collections::VecDeque;
 use std::time::{SystemTime, UNIX_EPOCH};
 

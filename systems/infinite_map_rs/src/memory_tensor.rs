@@ -22,12 +22,10 @@ use wgpu::{self, Device, Queue, Buffer, Texture, TextureView, ComputePipeline, B
 use bytemuck::{Pod, Zeroable};
 use std::mem;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::Path;
 use base64::prelude::*;
 use flate2::read::ZlibDecoder;
-use flate2::write::ZlibEncoder;
-use flate2::Compression;
 use std::collections::HashMap;
 
 // Phase 42: Hybrid DNA Support

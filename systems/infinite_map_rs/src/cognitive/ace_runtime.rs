@@ -1,9 +1,7 @@
 use anyhow::{Result, anyhow};
-use image::{DynamicImage, GenericImageView, GenericImage};
+use image::DynamicImage;
 use std::path::Path;
 use wasmtime::*;
-use std::sync::{Arc, Mutex};
-use crate::cognitive::entity_manager::EntityState;
 use crate::cognitive::binary_extractor::ACEBinaryExtractor;
 
 pub struct ACERuntime {

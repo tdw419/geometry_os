@@ -1,4 +1,4 @@
-use shared_memory::{Shmem, ShmemConf, ShmemError};
+use shared_memory::{Shmem, ShmemConf};
 use serde::{Serialize, Deserialize};
 use std::sync::atomic::{AtomicU64, Ordering};
 use log::{info, error};

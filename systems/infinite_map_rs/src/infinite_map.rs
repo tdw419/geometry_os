@@ -7,10 +7,9 @@
 //! - Brightness = vitality/fitness
 //! - Color = species type
 
-use crate::tile::{Tile, TileId, FitnessScore};
+use crate::tile::{Tile, TileId};
 use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
 
 /// The Infinite Map ecosystem
 #[derive(Debug)]

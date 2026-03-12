@@ -23,6 +23,8 @@ import pytest
 
 from systems.pixel_brain.async_inference import (
     AsyncInferenceClient,
+    FrameCache,
+    PerformanceMetrics,
     RateLimiter,
     ResponseCache,
 )
@@ -677,6 +679,244 @@ class TestPrompts:
         assert "infrastructure (2 agents)" in result
         assert "power (3 agents)" in result
         assert "networking (1 agents)" in result
+
+
+class TestFrameCache:
+    """Tests for frame-based caching."""
+
+    @pytest.mark.asyncio
+    async def test_frame_cache_stores_and_retrieves(self):
+        """Frame cache should store and retrieve results."""
+        cache = FrameCache(max_size=10)
+
+        frame_data = b"test_frame_bytes"
+        result = {"action": "move", "confidence": 0.9}
+
+        # Store
+        await cache.put(frame_data, result)
+
+        # Retrieve
+        cached = await cache.get(frame_data)
+        assert cached == result
+
+    @pytest.mark.asyncio
+    async def test_frame_cache_handles_string_frames(self):
+        """Frame cache should handle string frames."""
+        cache = FrameCache(max_size=10)
+
+        frame_data = "frame_as_string"
+        result = {"action": "click"}
+
+        await cache.put(frame_data, result)
+        cached = await cache.get(frame_data)
+        assert cached == result
+
+    @pytest.mark.asyncio
+    async def test_frame_cache_tracks_hit_rate(self):
+        """Frame cache should track hit rate statistics."""
+        cache = FrameCache(max_size=10)
+
+        # Miss first
+        result = await cache.get(b"frame1")
+        assert result is None
+
+        stats = cache.get_stats()
+        assert stats["misses"] == 1
+        assert stats["hits"] == 0
+
+        # Store and hit
+        await cache.put(b"frame1", {"data": 1})
+        result = await cache.get(b"frame1")
+        assert result is not None
+
+        stats = cache.get_stats()
+        assert stats["hits"] == 1
+        assert stats["hit_rate"] == 0.5  # 1 hit, 1 miss
+
+    @pytest.mark.asyncio
+    async def test_frame_cache_evicts_at_capacity(self):
+        """Frame cache should evict oldest entries at capacity."""
+        cache = FrameCache(max_size=3)
+
+        # Fill cache
+        for i in range(3):
+            await cache.put(f"frame{i}".encode(), {"id": i})
+
+        # Add one more - should evict oldest
+        await cache.put(b"frame_new", {"id": "new"})
+
+        # Oldest should be evicted
+        result = await cache.get(b"frame0")
+        assert result is None
+
+        # Newest should be present
+        result = await cache.get(b"frame_new")
+        assert result is not None
+
+
+class TestPerformanceMetrics:
+    """Tests for performance metrics tracking."""
+
+    def test_record_latency(self):
+        """Should record latency measurements."""
+        metrics = PerformanceMetrics(log_interval=100)
+
+        metrics.record_latency(10.5)
+        metrics.record_latency(20.0)
+        metrics.record_latency(15.0)
+
+        stats = metrics.get_stats()
+        assert stats["latency_avg_ms"] > 0
+        assert stats["latency_p50_ms"] > 0
+
+    def test_record_frame_triggers_log_at_interval(self, caplog):
+        """Should log metrics at configured interval."""
+        import logging
+        caplog.set_level(logging.INFO, logger="pixel_brain.async_inference")
+
+        metrics = PerformanceMetrics(log_interval=10)
+        metrics.record_latency(10.0)
+
+        # Record 10 frames - should trigger log
+        for _ in range(10):
+            metrics.record_frame(100)
+
+        # Check that log was emitted
+        assert any("Performance Metrics" in record.message for record in caplog.records)
+
+    def test_get_stats_returns_complete_data(self):
+        """Should return complete statistics."""
+        metrics = PerformanceMetrics(log_interval=100)
+
+        metrics.record_latency(10.0)
+        metrics.record_frame(1000)
+
+        stats = metrics.get_stats()
+
+        assert "total_frames" in stats
+        assert "latency_avg_ms" in stats
+        assert "latency_p50_ms" in stats
+        assert "latency_p95_ms" in stats
+        assert "latency_p99_ms" in stats
+        assert "overall_throughput_fps" in stats
+        assert stats["total_frames"] == 1
+
+    def test_reset_clears_all_metrics(self):
+        """Reset should clear all tracked metrics."""
+        metrics = PerformanceMetrics(log_interval=100)
+
+        metrics.record_latency(10.0)
+        metrics.record_frame(1000)
+        metrics.reset()
+
+        stats = metrics.get_stats()
+        assert stats["total_frames"] == 0
+        assert stats["latency_avg_ms"] == 0.0
+
+
+class TestFrameBatchInference:
+    """Tests for frame batch inference with caching."""
+
+    @pytest.mark.asyncio
+    async def test_frame_batch_inference_basic(self):
+        """Frame batch inference should process frames."""
+        client = AsyncInferenceClient(base_url="http://localhost:1234/v1")
+
+        mock_response = {
+            "choices": [{"message": {"content": '{"action": "move"}'}}]
+        }
+
+        frames = [b"frame1", b"frame2", b"frame3"]
+
+        def build_prompt(frame):
+            return [{"role": "user", "content": f"Analyze: {frame}"}]
+
+        with patch.object(
+            client,
+            "_make_request_with_retry",
+            new_callable=AsyncMock,
+            return_value=mock_response
+        ):
+            results = await client.frame_batch_inference(
+                frames=frames,
+                build_prompt=build_prompt,
+                batch_size=2,
+            )
+
+            assert len(results) == 3
+            assert all(r is not None for r in results)
+
+        await client.close()
+
+    @pytest.mark.asyncio
+    async def test_frame_batch_inference_uses_cache(self):
+        """Frame batch inference should use frame cache for duplicates."""
+        client = AsyncInferenceClient(base_url="http://localhost:1234/v1")
+
+        mock_response = {
+            "choices": [{"message": {"content": '{"action": "move"}'}}]
+        }
+
+        # Same frame twice
+        frames = [b"same_frame", b"same_frame"]
+
+        def build_prompt(frame):
+            return [{"role": "user", "content": "Analyze"}]
+
+        call_count = 0
+
+        async def mock_request(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            return mock_response
+
+        with patch.object(
+            client,
+            "_make_request_with_retry",
+            side_effect=mock_request
+        ):
+            results = await client.frame_batch_inference(
+                frames=frames,
+                build_prompt=build_prompt,
+            )
+
+            assert len(results) == 2
+            # Should only call once due to caching
+            assert call_count == 1
+
+        await client.close()
+
+    @pytest.mark.asyncio
+    async def test_frame_batch_inference_updates_stats(self):
+        """Frame batch inference should update performance stats."""
+        client = AsyncInferenceClient(base_url="http://localhost:1234/v1")
+
+        mock_response = {
+            "choices": [{"message": {"content": '{"action": "test"}'}}]
+        }
+
+        frames = [b"frame1", b"frame2"]
+
+        def build_prompt(frame):
+            return [{"role": "user", "content": "Analyze"}]
+
+        with patch.object(
+            client,
+            "_make_request_with_retry",
+            new_callable=AsyncMock,
+            return_value=mock_response
+        ):
+            await client.frame_batch_inference(
+                frames=frames,
+                build_prompt=build_prompt,
+            )
+
+            stats = client.get_stats()
+            assert "frame_cache_stats" in stats
+            assert "performance_metrics" in stats
+            assert stats["performance_metrics"]["total_frames"] == 2
+
+        await client.close()
 
 
 class TestIntegration:

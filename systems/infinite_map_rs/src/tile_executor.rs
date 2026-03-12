@@ -1,4 +1,3 @@
-use image::GenericImageView;
 use std::process::Command;
 use std::path::Path;
 use serde_json::Value;

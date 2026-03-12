@@ -39,7 +39,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // Phase 40.5 Task 2: ModuleManager for dynamic .so loading
@@ -385,7 +384,6 @@ impl VatRegistry {
     /// Persist a Vat to disk
     fn persist_vat(&self, vat_id: &VatId) -> Result<(), VatError> {
         use std::fs;
-        use std::io::Write;
 
         let buffer = self.vats.get(vat_id)
             .ok_or(VatError::NotFound)?;

@@ -1129,20 +1129,8 @@ impl<'a> Renderer<'a> {
             ],
         });
 
-        let terrain_bind_group_1 = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Terrain Bind Group 1"),
-            layout: &terrain_bind_group_layout_1,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&cognitive_texture_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&cognitive_sampler),
-                },
-            ],
-        });
+
+
 
         // Create terrain pipeline
         let terrain_pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

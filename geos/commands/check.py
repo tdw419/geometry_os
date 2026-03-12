@@ -3,7 +3,6 @@
 import argparse
 import subprocess
 import sys
-from typing import Any
 
 from geos.utils.json_output import format_json_output
 

@@ -1,6 +1,5 @@
 use wgpu::util::DeviceExt;
-use std::sync::Arc;
-use crate::visual_ast::{VisualAST, VisualNode};
+use crate::visual_ast::VisualAST;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]

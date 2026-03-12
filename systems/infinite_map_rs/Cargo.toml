@@ -3,6 +3,9 @@ name = "infinite_map_rs"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib", "rlib"]  # cdylib for FFI, rlib for Rust
+
 [dependencies]
 png = "0.17"
 winit = "0.29"
@@ -183,7 +186,6 @@ features = [
     "backend_udev",
     "backend_session",
     "desktop",
-    "xwayland",
 ]
 
 [dependencies.visual_shell]

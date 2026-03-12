@@ -1,4 +1,3 @@
-use std::path::Path;
 use image::{ImageBuffer, Rgba};
 use std::time::{SystemTime, UNIX_EPOCH};
 

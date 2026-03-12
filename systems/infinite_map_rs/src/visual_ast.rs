@@ -15,7 +15,6 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::Arc;
 use parking_lot::Mutex;
 
@@ -205,7 +204,7 @@ impl VisualAST {
         &mut self,
         tile: crate::source_importer::CrystallizedSourceTile
     ) -> Result<(), ParseError> {
-        use syn::{parse_file, Item};
+        use syn::parse_file;
         
         let syntax = parse_file(&tile.content)
             .map_err(|e| ParseError::SynError(tile.id.clone(), e.to_string()))?;

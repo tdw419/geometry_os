@@ -11,10 +11,9 @@
 //! - **District-Aware Routing**: Optimizes paths based on district boundaries
 //! - **Obstacle Avoidance**: Routes around buildings or blocked areas
 
-use crate::cognitive::agents::{AgentGoal, CityAgent, GoalType};
-use crate::source_city::{SourceCityLoader, SourceTile};
-use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
-use std::path::PathBuf;
+use crate::cognitive::agents::CityAgent;
+use crate::source_city::SourceCityLoader;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 /// A waypoint in 2D world space
 #[derive(Debug, Clone, Copy, PartialEq)]

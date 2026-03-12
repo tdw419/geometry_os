@@ -19,7 +19,6 @@
 //! - Pattern detection for structure visualization
 
 use wgpu::{self, Device, Queue, Buffer, Texture, TextureView, ComputePipeline, BindGroup, BindGroupLayout};
-use bytemuck::{Pod, Zeroable};
 use std::mem;
 use std::fs;
 use std::path::{Path, PathBuf};

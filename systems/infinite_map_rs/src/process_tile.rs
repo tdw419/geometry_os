@@ -6,7 +6,7 @@
 
 use std::collections::HashMap;
 use std::fs;
-use std::io::{self, BufRead, BufReader};
+use std::io;
 use std::path::Path;
 use std::time::{Duration, Instant};
 

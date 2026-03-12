@@ -11,7 +11,7 @@
 //! to fold them into 2D textures with Hilbert curve locality preservation.
 
 use crate::evolution_protocol::{
-    NeuralStateData, SelfState, TheoryOfMindState, CognitiveState, AudioFeatures, InputState
+    NeuralStateData, SelfState, TheoryOfMindState
 };
 use crate::memory_tensor::{MemoryTensorFolder, MemoryTensorConfig, NeuralParams, ColorMode, pack_neural_state_to_tensor};
 use wgpu::{self, Device, Queue, Texture, TextureView, TextureFormat, Extent3d};
@@ -465,6 +465,7 @@ impl NeuralStateTexture {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::evolution_protocol::{CognitiveState, AudioFeatures, InputState};
 
     #[test]
     fn test_neural_state_texture_creation() {

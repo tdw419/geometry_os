@@ -7,7 +7,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::{CorsLayer};
 use axum::http::{header, Method, HeaderValue};
 use image::{ImageBuffer, Rgba};
 use std::io::Cursor;

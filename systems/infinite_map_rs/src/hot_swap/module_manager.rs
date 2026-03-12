@@ -24,7 +24,7 @@ use libloading::{Library, Symbol};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Errors that can occur during module operations
 #[derive(Debug, Clone)]

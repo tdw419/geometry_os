@@ -1,9 +1,8 @@
-use notify::{Watcher, RecursiveMode, RecommendedWatcher, Event, Config};
+use notify::{Watcher, RecursiveMode, RecommendedWatcher, Event};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use crossbeam_channel::{unbounded, Receiver, Sender};
-use image::GenericImageView;
+use crossbeam_channel::unbounded;
 
 pub struct AntigravityWatcher {
     #[allow(dead_code)]

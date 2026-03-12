@@ -4,7 +4,7 @@
 //! for storing and retrieving semantic memories with PostgreSQL + pgvector.
 
 use serde::{Deserialize, Serialize};
-use std::io::{Read, Write};
+use std::io::Write;
 use std::os::unix::net::UnixStream;
 
 /// Message types for vector memory communication

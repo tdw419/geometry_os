@@ -20,7 +20,7 @@
 //! ```
 
 use anyhow::{Context, Result};
-use image::{DynamicImage, ImageBuffer, Rgba};
+use image::{DynamicImage};
 use std::path::Path;
 
 /// ACE Binary Extractor

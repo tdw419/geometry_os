@@ -8,10 +8,7 @@
 // - Phase 3: In-process Ruffle integration
 // ============================================
 
-use std::sync::{Arc, Mutex};
 use std::path::Path;
-use std::process::Command;
-use wgpu::util::DeviceExt;
 
 /// Flash movie rendered as a texture on the infinite map
 ///

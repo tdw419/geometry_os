@@ -1,4 +1,3 @@
-use smithay::backend::renderer::utils::on_commit_buffer_handler;
 use smithay::{
     wayland::{
         compositor::{CompositorHandler, CompositorState},
@@ -9,7 +8,7 @@ use smithay::{
     },
     reexports::wayland_server::{
         protocol::{wl_surface::WlSurface, wl_seat::WlSeat, wl_buffer::WlBuffer},
-        Client, DisplayHandle,
+        DisplayHandle,
     },
     input::{SeatHandler, SeatState},
     utils::{Serial},
@@ -18,8 +17,8 @@ use smithay::{
     delegate_xdg_shell,
     delegate_output,
     delegate_shm,
-    xwayland::{XWayland, XWaylandEvent},
-    reexports::calloop::{LoopHandle, Interest, Mode, PostAction},
+    xwayland::XWayland,
+    reexports::calloop::LoopHandle,
 };
 
 use smithay::backend::input::InputEvent;

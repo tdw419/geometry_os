@@ -2,12 +2,11 @@
 // Evolution Protocol for Memory Graph Inspector
 // Bidirectional async socket communication with evolution daemon
 
-use crate::memory_graph::{MemoryGraph, MemoryNode, MemoryEdge};
+use crate::memory_graph::MemoryGraph;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::path::Path;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{UnixListener, UnixStream};
+use tokio::net::UnixStream;
 use tokio::sync::mpsc;
 use tokio::time::{sleep, Duration};
 use std::sync::Arc;

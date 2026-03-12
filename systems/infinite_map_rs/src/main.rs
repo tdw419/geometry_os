@@ -1,8 +1,6 @@
 use anyhow::Result;
 
 use smithay::reexports::wayland_server::Display;
-use smithay::backend::winit::WinitGraphicsBackend;
-use smithay::backend::renderer::gles::GlesRenderer;
 
 use infinite_map_rs::backend::winit::WinitBackend;
 use infinite_map_rs::compositor_state::GeometryCompositorState;

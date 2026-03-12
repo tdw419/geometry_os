@@ -1,5 +1,4 @@
 use wgpu::util::DeviceExt;
-use std::sync::Arc;
 use bytemuck::{Pod, Zeroable};
 use crate::font_atlas::generate_fallback_atlas;
 use crate::hex_tensor_editor::{HexTensorEditor, EditorMode, HexNavDirection};

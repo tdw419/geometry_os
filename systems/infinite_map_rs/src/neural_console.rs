@@ -1,4 +1,4 @@
-use crate::terminal_emulator::{TerminalEmulator, CellAttributes, TerminalColor};
+use crate::terminal_emulator::TerminalEmulator;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConsoleAction {

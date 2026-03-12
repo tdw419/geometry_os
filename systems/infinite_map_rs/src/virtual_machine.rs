@@ -23,7 +23,6 @@ use std::io::{Write, Read};
 // Phase 47: Task 2 - Shared Memory Framebuffer
 use memmap2::{MmapMut, MmapOptions};
 use std::ffi::CString;
-use std::os::unix::ffi::OsStrExt;
 
 #[cfg(feature = "hypervisor")]
 use kvm_ioctls::{Kvm, VmFd, VcpuFd, VcpuExit};
@@ -921,9 +920,6 @@ impl VirtQueue {
         }
     }
 }
-
-use std::fs::File;
-use std::path::Path;
 
 /// Virtual Machine Configuration
 #[derive(Debug, Clone)]

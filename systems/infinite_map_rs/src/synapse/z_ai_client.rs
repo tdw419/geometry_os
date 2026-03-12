@@ -4,7 +4,7 @@
 //! following the Anthropic-compatible protocol used in `zai_bridge.py`.
 
 use serde::{Deserialize, Serialize};
-use crate::cognitive::agents::{AgentRole, AgentGoal};
+use crate::cognitive::agents::AgentRole;
 use anyhow::Result;
 
 #[derive(Clone, Debug)]

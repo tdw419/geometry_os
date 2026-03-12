@@ -6,7 +6,6 @@
 
 use std::sync::Arc;
 use std::collections::HashMap;
-use wgpu::util::DeviceExt;
 
 /// A handle to a JIT-compiled shader module and its pipeline
 pub struct JitArtifact {

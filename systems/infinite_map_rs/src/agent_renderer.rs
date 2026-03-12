@@ -1,5 +1,5 @@
 use wgpu::util::DeviceExt;
-use std::sync::Arc;
+
 use crate::cognitive::agents::{CityAgentManager, AgentRole, AgentState};
 
 #[repr(C)]

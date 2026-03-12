@@ -6,7 +6,7 @@
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
 use glam::Mat4;
-use crate::memory_graph::{MemoryGraph, MemoryNode, NodeType};
+use crate::memory_graph::{MemoryGraph, NodeType};
 
 /// Instance data for node rendering
 #[repr(C)]

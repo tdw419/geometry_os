@@ -1,6 +1,6 @@
 use wasmtime::*;
 use crate::cognitive::ace_runtime::ACEState;
-use image::{DynamicImage, GenericImageView, GenericImage};
+use image::{GenericImageView, GenericImage};
 use std::os::unix::net::UnixStream;
 use std::io::Write;
 
