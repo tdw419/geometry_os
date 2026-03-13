@@ -13,6 +13,7 @@
 #include <linux/uaccess.h>
 
 #include "geometry_os.h"
+#include "gpu.h"
 #include "uapi/geometry_os.h"
 
 MODULE_LICENSE("GPL");
@@ -72,15 +73,30 @@ static struct miscdevice geos_misc = {
     .mode = 0666,
 };
 
+/* Global GPU state */
+static struct geos_gpu geos_gpu;
+
+struct geos_gpu *geos_gpu_global;
+
 static int __init geometry_os_init(void)
 {
     int ret;
 
     pr_info("geometry_os: module loading\n");
 
+    /* Initialize GPU */
+    ret = geos_gpu_init(&geos_gpu);
+    if (ret) {
+        pr_warn("geometry_os: GPU init failed, running in stub mode\n");
+        /* Continue anyway for testing */
+    }
+    geos_gpu_global = &geos_gpu;
+
+    /* Register misc device */
     ret = misc_register(&geos_misc);
     if (ret) {
         pr_err("geometry_os: failed to register misc device\n");
+        geos_gpu_fini(&geos_gpu);
         return ret;
     }
 
@@ -91,6 +107,7 @@ static int __init geometry_os_init(void)
 static void __exit geometry_os_exit(void)
 {
     misc_deregister(&geos_misc);
+    geos_gpu_fini(&geos_gpu);
     pr_info("geometry_os: module unloading\n");
 }
 

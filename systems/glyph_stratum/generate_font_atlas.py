@@ -25,6 +25,14 @@ try:
 except ImportError:
     HAS_SCIPY = False
 
+try:
+    from systems.vcc.contract import generate_contract, VCCContract
+    from systems.vcc.validator import validate_all_layers
+    from pathlib import Path
+    HAS_VCC = True
+except ImportError:
+    HAS_VCC = False
+
 def compute_sdf(img_alpha, spread=8.0):
     """
     Compute Signed Distance Field for a single grayscale/alpha image.
@@ -290,17 +298,26 @@ def generate_opcode_atlas():
     print(f"  - WebP: {webp_path if 'webp_path' in locals() else 'skipped'}")
 
     # Generate Visual Consistency Contract (VCC)
-    try:
-        from systems.vcc.contract import VCCContract
-        vcc = VCCContract()
-        vcc_output = os.path.join(os.path.dirname(__file__), "..", "vcc", "vcc_contract.json")
-        vcc.generate_from_atlas(atlas_path, positions_path, (atlas_width, atlas_height))
-        vcc.save(vcc_output)
-        print(f"  - VCC Contract: {vcc_output}")
-    except ImportError:
+    if HAS_VCC:
+        print("\n📋 Generating Visual Consistency Contract...")
+
+        # Build opcode mappings dict
+        opcode_mappings = {name: id for name, id in opcode_definitions}
+
+        contract = generate_contract(
+            atlas_path=atlas_path,
+            positions_path=positions_path,
+            opcode_mappings=opcode_mappings
+        )
+
+        # Save contract
+        vcc_path = os.path.join(os.path.dirname(__file__), "..", "vcc", "vcc_contract.json")
+        VCCContract(contract).to_json(Path(vcc_path))
+        print(f"  - VCC Contract: {vcc_path}")
+        print(f"    Atlas hash: {contract['atlas_hash']['sha256'][:16]}...")
+        print(f"    Glyph count: {contract['glyph_count']}")
+    else:
         print("Warning: VCC module not found, skipping contract generation.")
-    except Exception as e:
-        print(f"Warning: Failed to generate VCC contract: {e}")
 
 if __name__ == "__main__":
     generate_opcode_atlas()
