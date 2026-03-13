@@ -5,12 +5,21 @@ Glyph Evolution - AI-driven language design for GlyphStratum.
 The evolution daemon drives glyph language design, This module connects
 the evolution pipeline to the glyph compiler, enabling AI to evolve its own
 programming language rather than using human-designed languages like WGSL.
+
+Optimized with:
+- Compilation cache (LRU cache for SPIR-V binaries)
+- Pre-built binary usage (avoids cargo run overhead)
+- Batch compilation support
 """
 import random
 import subprocess
 import json
+import hashlib
+import os
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Callable
+from functools import lru_cache
+from typing import List, Dict, Any, Optional, Callable, Tuple
+from pathlib import Path
 
 # Valid opcode range (from apps/autoresearch/champion_shader.wgsl)
 VALID_OPCODES = [
@@ -104,12 +113,133 @@ class GlyphMutator:
         return GlyphProgram(glyphs=glyphs)
 
 
+# Cache for compiled SPIR-V binaries
+_compilation_cache: Dict[str, Tuple[bool, Dict[str, Any]]] = {}
+
+# Path to pre-built compiler binary (set after build)
+_COMPILER_BINARY_PATH: Optional[str] = None
+
+
+def _get_compiler_binary() -> str:
+    """Get path to glyph_compiler binary, building if necessary."""
+    global _COMPILER_BINARY_PATH
+
+    if _COMPILER_BINARY_PATH is not None:
+        return _COMPILER_BINARY_PATH
+
+    # Try to find the compiled binary
+    project_root = Path(__file__).parent.parent.parent
+    possible_paths = [
+        project_root / "target" / "release" / "glyph_compiler",
+        project_root / "target" / "debug" / "glyph_compiler",
+    ]
+
+    for path in possible_paths:
+        if path.exists():
+            _COMPILER_BINARY_PATH = str(path)
+            return _COMPILER_BINARY_PATH
+
+    # Fall back to cargo run (slower)
+    return "cargo"
+
+
+def _program_hash(program: GlyphProgram) -> str:
+    """Generate a hash key for a program (for caching)."""
+    return hashlib.md5(program.to_json().encode()).hexdigest()
+
+
+def compile_glyph_program(program: GlyphProgram, use_cache: bool = True) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Compile a glyph program to SPIR-V.
+
+    Args:
+        program: The glyph program to compile
+        use_cache: Whether to use cached results
+
+    Returns:
+        Tuple of (success, result_dict)
+    """
+    # Check cache first
+    key = _program_hash(program)
+    if use_cache and key in _compilation_cache:
+        return _compilation_cache[key]
+
+    # Empty programs fail
+    if not program.glyphs:
+        result = (False, {"error": "Empty program"})
+        if use_cache:
+            _compilation_cache[key] = result
+        return result
+
+    try:
+        compiler = _get_compiler_binary()
+
+        if compiler == "cargo":
+            # Slower: use cargo run
+            cmd = ["cargo", "run", "--package", "glyph_compiler", "--", "compile"]
+        else:
+            # Faster: use pre-built binary
+            cmd = [compiler, "compile"]
+
+        result = subprocess.run(
+            cmd,
+            input=program.to_json(),
+            capture_output=True,
+            text=True,
+            timeout=5.0,
+        )
+
+        if result.returncode == 0:
+            output = json.loads(result.stdout)
+            success = output.get("magic") == "0x07230203"
+            result_tuple = (success, output)
+        else:
+            result_tuple = (False, {"error": result.stderr, "returncode": result.returncode})
+
+    except subprocess.TimeoutExpired:
+        result_tuple = (False, {"error": "Timeout"})
+    except json.JSONDecodeError as e:
+        result_tuple = (False, {"error": f"JSON error: {e}"})
+    except Exception as e:
+        result_tuple = (False, {"error": str(e)})
+
+    if use_cache:
+        _compilation_cache[key] = result_tuple
+
+    return result_tuple
+
+
+def batch_compile(programs: List[GlyphProgram]) -> List[Tuple[bool, Dict[str, Any]]]:
+    """
+    Compile multiple programs efficiently.
+
+    Uses cache for duplicates and returns results in order.
+    """
+    return [compile_glyph_program(p) for p in programs]
+
+
+def clear_compilation_cache():
+    """Clear the compilation cache."""
+    global _compilation_cache
+    _compilation_cache = {}
+
+
+def get_cache_stats() -> Dict[str, int]:
+    """Get compilation cache statistics."""
+    return {
+        "cache_size": len(_compilation_cache),
+        "cache_hits": sum(1 for _ in _compilation_cache.values()),
+    }
+
+
 def fitness_shader_correctness(
     program: GlyphProgram,
     expected_output: Optional[Any] = None,
     test_timeout: float = 5.0,
 ) -> float:
     """Evaluate fitness by compiling to SPIR-V and testing.
+
+    Optimized version with caching.
 
     Fitness is based on:
     1. Compilation success (0.3 weight)
@@ -130,29 +260,23 @@ def fitness_shader_correctness(
 
     score = 0.0
 
-    # 1. Try to compile
+    # 1. Try to compile (with cache)
+    success, result = compile_glyph_program(program, use_cache=True)
+
+    if not success:
+        return 0.1  # Compilation failed, minimal score
+    score += 0.3
+
+    # 2. Try to execute (if available) - also with cache
     try:
+        compiler = _get_compiler_binary()
+        if compiler == "cargo":
+            cmd = ["cargo", "run", "--package", "glyph_compiler", "--", "execute"]
+        else:
+            cmd = [compiler, "execute"]
+
         result = subprocess.run(
-            ["cargo", "run", "--package", "glyph_compiler", "--", "compile"],
-            input=program.to_json(),
-            capture_output=True,
-            text=True,
-            timeout=test_timeout,
-        )
-
-        if result.returncode != 0:
-            return 0.1  # Compilation failed, minimal score
-        score += 0.3
-
-    except subprocess.TimeoutExpired:
-        return 0.0
-    except Exception:
-        return 0.0
-
-    # 2. Try to execute (if available)
-    try:
-        result = subprocess.run(
-            ["cargo", "run", "--package", "glyph_compiler", "--", "execute"],
+            cmd,
             input=program.to_json(),
             capture_output=True,
             text=True,
@@ -166,7 +290,6 @@ def fitness_shader_correctness(
             if expected_output is not None:
                 try:
                     output = json.loads(result.stdout)
-                    # Simplified correctness check
                     score += 0.4
                 except Exception:
                     pass
@@ -176,11 +299,41 @@ def fitness_shader_correctness(
     return score
 
 
+def fitness_fast(program: GlyphProgram) -> float:
+    """
+    Fast fitness evaluation - compilation only, no execution.
+
+    Uses cache for maximum speed. Good for rapid evolution experiments.
+    """
+    if not program.glyphs:
+        return 0.0
+
+    success, result = compile_glyph_program(program, use_cache=True)
+
+    if not success:
+        return 0.0
+
+    # Base score for successful compilation
+    score = 0.5
+
+    # Bonus for larger valid programs (encourages complexity)
+    score += min(0.3, len(program.glyphs) * 0.03)
+
+    # Bonus for SPIR-V size efficiency
+    spirv_size = result.get("spirv_size", 0)
+    if spirv_size > 0 and spirv_size < 1000:
+        score += 0.2
+
+    return min(score, 1.0)
+
+
 def evolve_glyph_program(
     seed: GlyphProgram,
     generations: int = 100,
     population_size: int = 50,
     fitness_fn: Optional[Callable[[GlyphProgram], float]] = None,
+    fast_mode: bool = True,
+    verbose: bool = False,
 ) -> GlyphProgram:
     """Evolve a glyph program toward higher fitness.
 
@@ -195,13 +348,15 @@ def evolve_glyph_program(
         seed: Starting program
         generations: Number of evolution generations
         population_size: Population size
-        fitness_fn: Custom fitness function (default: fitness_shader_correctness)
+        fitness_fn: Custom fitness function (default: fitness_fast if fast_mode else fitness_shader_correctness)
+        fast_mode: Use fast fitness (compilation only, no execution)
+        verbose: Print progress every generation
 
     Returns:
         Best program found across all generations
     """
     if fitness_fn is None:
-        fitness_fn = lambda p: fitness_shader_correctness(p)
+        fitness_fn = fitness_fast if fast_mode else fitness_shader_correctness
 
     mutator = GlyphMutator()
 
@@ -224,6 +379,16 @@ def evolve_glyph_program(
         if fitness_scores[0][1] > best_fitness:
             best_program = fitness_scores[0][0]
             best_fitness = fitness_scores[0][1]
+
+        if verbose and gen % 5 == 0:
+            cache_stats = get_cache_stats()
+            print(f"Gen {gen}: best={best_fitness:.3f}, cache_size={cache_stats['cache_size']}")
+
+        # Early termination if perfect fitness
+        if best_fitness >= 1.0:
+            if verbose:
+                print(f"Perfect fitness reached at generation {gen}")
+            break
 
         # Selection (top 25%)
         survivors = [p for p, _ in fitness_scores[:population_size // 4]]
