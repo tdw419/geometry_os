@@ -5,6 +5,7 @@
 
 use std::sync::Arc;
 use wgpu::TextureView;
+use wgpu::util::DeviceExt;
 
 /// Error types for glyph execution
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
@@ -186,16 +187,107 @@ impl DrmGlyphExecutor {
     /// Execute the loaded glyph program
     pub fn execute(
         &self,
-        _inputs: &[f32],
-        _output_size: (u32, u32),
+        inputs: &[f32],
+        output_size: (u32, u32),
     ) -> Result<Arc<TextureView>, GlyphError> {
-        // Check if pipeline is loaded
-        if self.pipeline.is_none() {
-            return Err(GlyphError::NoPipeline);
+        let loaded = self.pipeline.as_ref().ok_or(GlyphError::NoPipeline)?;
+
+        // Create input buffer (storage buffer)
+        let input_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Glyph Input Buffer"),
+            size: if inputs.is_empty() {
+                16 // Minimum buffer size
+            } else {
+                (inputs.len() * std::mem::size_of::<f32>()) as u64
+            },
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        if !inputs.is_empty() {
+            self.queue
+                .write_buffer(&input_buffer, 0, bytemuck::cast_slice(inputs));
         }
 
-        // TODO: Implement execution in Task 1.2
-        Err(GlyphError::Execution("Not implemented".to_string()))
+        // Create output texture (Rgba8Unorm, storage binding)
+        let output_texture = self.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Glyph Output Texture"),
+            size: wgpu::Extent3d {
+                width: output_size.0,
+                height: output_size.1,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+        let output_view = output_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        // Create uniform buffer with GlyphUniforms
+        let uniforms = GlyphUniforms {
+            width: output_size.0,
+            height: output_size.1,
+            time: 0.0,
+            _padding: 0.0,
+        };
+        let uniform_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Glyph Uniform Buffer"),
+                contents: bytemuck::cast_slice(&[uniforms]),
+                usage: wgpu::BufferUsages::UNIFORM,
+            });
+
+        // Create bind group with all 3 resources
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Glyph Bind Group"),
+            layout: &loaded.bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: input_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&output_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: uniform_buffer.as_entire_binding(),
+                },
+            ],
+        });
+
+        // Create command encoder
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Glyph Compute Encoder"),
+            });
+
+        // Begin compute pass, set pipeline, set bind group, dispatch
+        {
+            let mut compute_pass =
+                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                    label: Some("Glyph Compute Pass"),
+                    timestamp_writes: None,
+                });
+            compute_pass.set_pipeline(&loaded.pipeline);
+            compute_pass.set_bind_group(0, &bind_group, &[]);
+            compute_pass.dispatch_workgroups(
+                (output_size.0 + 7) / 8,
+                (output_size.1 + 7) / 8,
+                1,
+            );
+        }
+
+        // Submit to queue and wait
+        self.queue.submit(std::iter::once(encoder.finish()));
+        self.device.poll(wgpu::Maintain::Wait);
+
+        Ok(Arc::new(output_view))
     }
 
     /// Check if a pipeline is loaded
@@ -308,11 +400,40 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
             let spirv = minimal_spirv_compute();
             if executor.load_spirv(&spirv).is_ok() {
-                // After loading, execute should not return NoPipeline
-                // It will return Execution("Not implemented") since Task 1.2 isn't done
+                // After loading and implementing execute, it should succeed
                 let result = executor.execute(&[], (64, 64));
                 assert!(!matches!(result, Err(GlyphError::NoPipeline)));
-                assert!(matches!(result, Err(GlyphError::Execution(_))));
+                // Now that execute is implemented, it should return Ok
+                assert!(result.is_ok(), "execute should succeed: {:?}", result);
+            }
+        }
+        // Skip if no GPU available
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_valid_pipeline() {
+        let result = create_test_device().await;
+        if let Some((device, queue)) = result {
+            let mut executor = DrmGlyphExecutor::new(device, queue);
+
+            // Load minimal SPIR-V
+            let spirv = minimal_spirv_compute();
+            if executor.load_spirv(&spirv).is_ok() {
+                // Execute with inputs and size
+                let inputs = [1.0, 2.0, 3.0, 4.0];
+                let exec_result = executor.execute(&inputs, (64, 64));
+
+                // Should return Ok (not error) after implementation
+                assert!(
+                    exec_result.is_ok(),
+                    "execute should succeed with valid pipeline: {:?}",
+                    exec_result
+                );
+
+                // Verify we got a texture view back
+                let view = exec_result.unwrap();
+                // TextureView doesn't expose size directly, but we can verify it exists
+                let _ = &*view;
             }
         }
         // Skip if no GPU available
