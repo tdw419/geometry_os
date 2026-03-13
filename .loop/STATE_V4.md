@@ -341,7 +341,7 @@
 - [!] 229. **cognitive_restoration**: Critical brain fitness collapse (Fitness: 0.20). Emergency weight sector restoration required. - **Verification**: Check fitness/performance metrics
 
 - [!] 230. **Heuristic Task**: Commit Untracked Files: 8 untracked files in project root. Review and commit relevant files, add others to .gitignore. - **Verification**: Run relevant tests
-- [ ] 231. **Heuristic Task**: Commit Changes: systems/glyph_stratum/opcode_atlas.raw has uncommitted modifications. - **Verification**: Run relevant tests
-- [ ] 232. **Heuristic Task**: Address TODO Comment: Found in systems/pixel_compiler/pixel_rts_encoder.py. Review and implement or document. - **Verification**: Run relevant tests
-- [ ] 233. **Heuristic Task**: Improve Coverage: TOTAL has <50% coverage. Add tests for uncovered branches. - **Verification**: Run relevant tests
+- [!] 231. **Heuristic Task**: Commit Changes: systems/glyph_stratum/opcode_atlas.raw has uncommitted modifications. - **Verification**: Run relevant tests
+- [!] 232. **Heuristic Task**: Address TODO Comment: Found in systems/pixel_compiler/pixel_rts_encoder.py. Review and implement or document. - **Verification**: Run relevant tests
+- [→] 233. **Heuristic Task**: Improve Coverage: TOTAL has <50% coverage. Add tests for uncovered branches. - **Verification**: Run relevant tests
 - [ ] 234. **cognitive_restoration**: Critical brain fitness collapse (Fitness: 0.20). Emergency weight sector restoration required. - **Verification**: Check fitness/performance metrics

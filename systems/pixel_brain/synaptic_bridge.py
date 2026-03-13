@@ -488,6 +488,9 @@ class SynapticBridge:
         # Phase 42: Neural City Colonization (lazy init to avoid circular import)
         self._syntactic_district = None
 
+        # Phase 43: Linux Kernel District (lazy init)
+        self._linux_kernel_district = None
+
     @property
     def syntactic_district(self):
         """Lazily initialize SyntacticDistrict to avoid circular imports."""
@@ -495,6 +498,14 @@ class SynapticBridge:
             from systems.neural_city.districts.syntactic_district import SyntacticDistrict
             self._syntactic_district = SyntacticDistrict(self.repair_engine)
         return self._syntactic_district
+
+    @property
+    def linux_kernel_district(self):
+        """Lazily initialize LinuxKernelDistrict."""
+        if self._linux_kernel_district is None:
+            from systems.neural_city.districts.linux_kernel_district import LinuxKernelDistrict
+            self._linux_kernel_district = LinuxKernelDistrict(self.repair_engine)
+        return self._linux_kernel_district
 
     async def handle_client(self, websocket):
         """Handle a client connection."""

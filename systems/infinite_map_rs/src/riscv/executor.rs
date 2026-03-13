@@ -134,6 +134,7 @@ impl RiscvExecutor {
                 &self.device,
                 &self.queue,
                 &memory_ref.stats_buffer,
+                &memory_ref.console_buffer,
                 &mut self.uart_head,
                 &mut batch_uart,
             );
@@ -156,6 +157,7 @@ impl RiscvExecutor {
                 &self.device,
                 &self.queue,
                 &memory_ref.stats_buffer,
+                &memory_ref.console_buffer,
                 &mut self.uart_head,
                 &mut batch_uart,
             );
@@ -315,54 +317,83 @@ impl RiscvExecutor {
         Ok(exit_code)
     }
 
-    /// Collect UART output from the stats buffer (static version to avoid borrow conflicts)
+    /// Collect UART output from the console buffer (static version to avoid borrow conflicts)
     pub fn collect_uart_output_static(
         device: &Device,
         queue: &Queue,
         stats_buffer: &Buffer,
+        console_buffer: &Buffer,
         uart_head: &mut u32,
         output: &mut String,
     ) {
-        // The stats buffer contains UART output FIFO
-        // stats[0] is the tail pointer (total characters written)
-        // stats[1..64] is the circular buffer
-        let staging = device.create_buffer(&BufferDescriptor {
+        // RiscvStats struct layout:
+        // [0] cycles_executed, [1] instructions_executed, [2] current_pc, [3] status,
+        // [4] syscall_num, [5] syscall_arg0, [6] syscall_arg1, [7] syscall_arg2,
+        // [8] console_pos (write count)
+        //
+        // console_buffer (binding 5) contains the actual character data
+
+        // Read stats buffer to get console_pos
+        let stats_staging = device.create_buffer(&BufferDescriptor {
             label: None,
-            size: 256 * 4,
+            size: 64, // Just need first 16 u32s
+            usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // Read console buffer for character data
+        let console_staging = device.create_buffer(&BufferDescriptor {
+            label: None,
+            size: 1024, // 256 u32s = 1024 chars max
             usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
         let mut encoder = device.create_command_encoder(&Default::default());
-        encoder.copy_buffer_to_buffer(stats_buffer, 0, &staging, 0, 256 * 4);
+        encoder.copy_buffer_to_buffer(stats_buffer, 0, &stats_staging, 0, 64);
+        encoder.copy_buffer_to_buffer(console_buffer, 0, &console_staging, 0, 1024);
         queue.submit(Some(encoder.finish()));
 
-        let slice = staging.slice(..);
-        slice.map_async(MapMode::Read, |_| {});
+        // Map stats
+        let stats_slice = stats_staging.slice(..);
+        stats_slice.map_async(MapMode::Read, |_| {});
+
+        // Map console
+        let console_slice = console_staging.slice(..);
+        console_slice.map_async(MapMode::Read, |_| {});
+
         device.poll(MaintainBase::Wait);
 
         {
-            let data = slice.get_mapped_range();
-            let stats: &[u32] = bytemuck::cast_slice(&data);
+            let stats_data = stats_slice.get_mapped_range();
+            let stats: &[u32] = bytemuck::cast_slice(&stats_data);
 
-            let gpu_write_count = stats[0];
+            // console_pos is at offset 8 in RiscvStats
+            let gpu_write_count = stats[8];
+
+            let console_data = console_slice.get_mapped_range();
+            let console: &[u32] = bytemuck::cast_slice(&console_data);
 
             // Read all characters from uart_head to gpu_write_count
-            // Characters are stored in stats[1] to stats[10]
+            // Characters are stored as u32s in console_buffer
             while *uart_head < gpu_write_count {
-                let char_code = stats[(*uart_head + 1) as usize] as u8;
+                let word_idx = (*uart_head / 4) as usize;
+                let byte_idx = (*uart_head % 4) as usize;
+                let char_code = ((console[word_idx] >> (byte_idx * 8)) & 0xFF) as u8;
+
                 if char_code != 0 {
-                    // Check if it's not a null character (padding)
                     let c = char_code as char;
-                    if c.is_ascii_graphic() || c == '\n' || c == '\r' || c == ' ' {
+                    if c.is_ascii_graphic() || c == '\n' || c == '\r' || c == ' ' || c == '\t' {
                         output.push(c);
                     }
                 }
                 *uart_head += 1;
             }
-            drop(data);
+            drop(console_data);
+            drop(stats_data);
         }
-        staging.unmap();
+        stats_staging.unmap();
+        console_staging.unmap();
     }
 }
 

@@ -1,0 +1,58 @@
+timestamp	score_gips	fps	description
+Thu Mar 12 21:14:17 2026	0	0	ERROR: Benchmark Crashed: WGPU: request_adapter() is deprecated, use request_adapter_sync() instead.
+Unable to find extension: VK_EXT_physical_device_drm
+Detected skylake derivative running on mesa i915. Clears to srgb textures will use manual shader clears.
+WGPU: request_device() is deprecated, use request_device_sync() instead.
+WGPU: on_submitted_work_done() is deprecated, use on_submitted_work_done_sync() instead.
+Traceback (most recent call last):
+  File "/home/jericho/zion/projects/geometry_os/geometry_os/systems/glyph_stratum/benchmark_gpu_native.py", line 156, in <module>
+    run_benchmark(num_glyphs=args.num_glyphs, iterations=args.iterations, mode=args.mode)
+  File "/home/jericho/zion/projects/geometry_os/geometry_os/systems/glyph_stratum/benchmark_gpu_native.py", line 125, in run_benchmark
+    memory_out = device.queue.read_buffer(memory_buffer).cast("I")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jericho/.local/lib/python3.12/site-packages/wgpu/backends/wgpu_native/_api.py", line 3931, in read_buffer
+    command_buffer = encoder.finish()
+                     ^^^^^^^^^^^^^^^^
+  File "/home/jericho/.local/lib/python3.12/site-packages/wgpu/backends/wgpu_native/_api.py", line 3577, in finish
+    id = libf.wgpuCommandEncoderFinish(self._internal, struct)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jericho/.local/lib/python3.12/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/home/jericho/.local/lib/python3.12/site-packages/wgpu/backends/wgpu_native/_api.py", line 3577, in finish
+    id = libf.wgpuCommandEncoderFinish(self._internal, struct)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuCommandEncoderFinish
+    Usage flags BufferUsages(STORAGE) of Buffer with '' label do not contain required usage flags BufferUsages(COPY_SRC)
+
+Thu Mar 12 21:14:37 2026	0	0	ERROR: Swarm Correctness Failed: Only 1/10000 agents succeeded.
+Thu Mar 12 21:23:15 2026	0	0	ERROR: Benchmark Crashed: WGPU: request_adapter() is deprecated, use request_adapter_sync() instead.
+Unable to find extension: VK_EXT_physical_device_drm
+Detected skylake derivative running on mesa i915. Clears to srgb textures will use manual shader clears.
+WGPU: request_device() is deprecated, use request_device_sync() instead.
+Traceback (most recent call last):
+  File "/home/jericho/zion/projects/geometry_os/geometry_os/systems/glyph_stratum/benchmark_gpu_native.py", line 156, in <module>
+    run_benchmark(num_glyphs=args.num_glyphs, iterations=args.iterations, mode=args.mode)
+  File "/home/jericho/zion/projects/geometry_os/geometry_os/systems/glyph_stratum/benchmark_gpu_native.py", line 87, in run_benchmark
+    bind_group = device.create_bind_group(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jericho/.local/lib/python3.12/site-packages/wgpu/backends/wgpu_native/_api.py", line 1750, in create_bind_group
+    id = libf.wgpuDeviceCreateBindGroup(self._internal, struct)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jericho/.local/lib/python3.12/site-packages/wgpu/backends/wgpu_native/_helpers.py", line 373, in proxy_func
+    raise wgpu_error
+  File "/home/jericho/.local/lib/python3.12/site-packages/wgpu/backends/wgpu_native/_api.py", line 1750, in create_bind_group
+    id = libf.wgpuDeviceCreateBindGroup(self._internal, struct)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+wgpu._classes.GPUValidationError: Validation Error
+
+Caused by:
+  In wgpuDeviceCreateBindGroup
+    Number of bindings in bind group descriptor (3) does not match the number of bindings defined in the bind group layout (2)
+
+Thu Mar 12 21:23:24 2026	243267949	1216.3	Baseline Swarm Check
+Thu Mar 12 21:37:10 2026	306153809	1530.8	Baseline Swarm Check
+Thu Mar 12 21:37:23 2026	306723891	1533.6	Baseline Swarm Check
+Thu Mar 12 21:37:32 2026	289915829	1449.6	Baseline Swarm Check

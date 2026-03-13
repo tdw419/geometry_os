@@ -89,7 +89,7 @@ class LegibleBrainRenderer {
         const y = event.global.y / this.app.screen.height;
         const sectorId = Math.floor(x * 5);
         
-        const sectorNames = ["EMBEDDING", "ATTENTION", "FEED_FORWARD", "LAYER_NORM", "HEAD"];
+        const sectorNames = ["EMBEDDING", "ATTENTION", "KERNEL_SCHEDULER", "KERNEL_MEM", "USERSPACE"];
         const sector = sectorNames[sectorId];
         
         // Use provided sampled data (R=activation, G=entropy, B=sector) 
@@ -98,7 +98,7 @@ class LegibleBrainRenderer {
         const g = sampledData ? sampledData.g : 0.2;
         const b = sampledData ? sampledData.b : x;
 
-        console.log(`🔍 Probing Synaptic Territory: ${sector} (A:${r.toFixed(2)}, E:${g.toFixed(2)})`);
+        console.log(`🔍 Probing Cognitive Territory: ${sector} (A:${r.toFixed(2)}, E:${g.toFixed(2)})`);
         
         // Generate a UNIQUE GlyphStratum DAG based on the actual weights (Live Topology)
         const dag = this.reconstructLogic(sector, r, g, b);
@@ -145,19 +145,19 @@ class LegibleBrainRenderer {
 
         if (sector === "ATTENTION") primaryOp = "CALL";
         else if (sector === "EMBEDDING") primaryOp = "DATA";
-        else if (sector === "FEED_FORWARD") primaryOp = "LOAD";
-        else if (sector === "LAYER_NORM") primaryOp = "TYPE";
-        else if (sector === "HEAD") primaryOp = "EXPORT";
+        else if (sector === "KERNEL_SCHEDULER") primaryOp = "LOOP";
+        else if (sector === "KERNEL_MEM") primaryOp = "ALLOC";
+        else if (sector === "USERSPACE") primaryOp = "EXPORT";
 
         dag.glyphs[0] = { 
             index: 0,
             opcode: primaryOp, 
             stratum: activation > 0.8 ? "Intent" : (activation > 0.5 ? "Logic" : "Memory"),
             metadata: {
-                rationale: `${sector} Unit Execution (Energy: ${activation.toFixed(4)})`,
-                dependencies: [1], // Depends on Node 1 (Data)
+                rationale: `${sector} Execution (State: ${activation > 0.5 ? 'RUNNING' : 'WAITING'})`,
+                dependencies: [1], 
                 invariants: { weight: activation },
-                provenance: "PixelBrain_Probe"
+                provenance: "RISCV_Kernel_Hook"
             }
         };
 

@@ -16,12 +16,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from kernels import get_kernel
-cap = torch.cuda.get_device_capability()
-# varunneal's FA3 is Hopper only, use kernels-community on non-Hopper GPUs
-repo = "varunneal/flash-attention-3" if cap == (9, 0) else "kernels-community/flash-attn3"
-fa3 = get_kernel(repo).flash_attn_interface
-
 from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb
 
 # ---------------------------------------------------------------------------
@@ -30,13 +24,14 @@ from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evalua
 
 @dataclass
 class GPTConfig:
-    sequence_len: int = 2048
-    vocab_size: int = 32768
-    n_layer: int = 12
-    n_head: int = 6
-    n_kv_head: int = 6
-    n_embd: int = 768
-    window_pattern: str = "SSSL"
+    sequence_len: int = 1024  # Reduced from 2048
+    vocab_size: int = 8192
+    n_layer: int = 4          # Reduced from 8
+    n_head: int = 4
+    n_kv_head: int = 4
+    n_embd: int = 256         # Reduced from 512
+    window_pattern: str = "L"  # Simplified pattern for stability
+
 
 
 def norm(x):
@@ -89,8 +84,13 @@ class CausalSelfAttention(nn.Module):
         q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
         q, k = norm(q), norm(k)
 
-        y = fa3.flash_attn_func(q, k, v, causal=True, window_size=window_size)
-        y = y.contiguous().view(B, T, -1)
+        # High-performance native fallback for RTX 5090
+        q_std = q.transpose(1, 2)
+        k_std = k.transpose(1, 2)
+        v_std = v.transpose(1, 2)
+        y = F.scaled_dot_product_attention(q_std, k_std, v_std, is_causal=True)
+        y = y.transpose(1, 2).contiguous().view(B, T, -1)
+
         y = self.c_proj(y)
         return y
 
@@ -447,7 +447,7 @@ FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
 
 # Model size
 DEPTH = 8               # number of transformer layers
-DEVICE_BATCH_SIZE = 128  # per-device batch size (reduce if OOM)
+DEVICE_BATCH_SIZE = 32  # per-device batch size (reduce if OOM)
 
 # ---------------------------------------------------------------------------
 # Setup: tokenizer, model, optimizer, dataloader

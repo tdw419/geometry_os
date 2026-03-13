@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS - Swarm Viewer</title>
+    <style>
+        body { margin: 0; background: #0a0a0a; color: #00ff00; font-family: 'Courier New', Courier, monospace; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        canvas { border: 2px solid #333; image-rendering: pixelated; width: 600px; height: 600px; box-shadow: 0 0 30px rgba(0, 255, 0, 0.1); }
+        .hud { position: absolute; top: 20px; left: 20px; background: rgba(0, 0, 0, 0.8); padding: 15px; border: 1px solid #00ff00; border-radius: 5px; pointer-events: none; }
+        .stats { color: #0088ff; font-size: 14px; margin-top: 5px; }
+        h1 { font-size: 18px; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+    <div class="hud">
+        <h1>Swarm Substrate v1.0</h1>
+        <div class="stats" id="stats">Agents: 10,000 | Status: Booting...</div>
+        <div class="stats" id="fps">FPS: 0.0 | GIPS: 0.0</div>
+    </div>
+    <canvas id="swarmCanvas"></canvas>
+
+    <script type="module">
+        const SHADER_URL = '../visual_shell/web/shaders/glyph_microcode.wgsl';
+        const canvas = document.getElementById('swarmCanvas');
+        canvas.width = 100;
+        canvas.height = 100;
+
+        async function init() {
+            if (!navigator.gpu) {
+                document.getElementById('stats').innerText = "WebGPU not supported!";
+                return;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            const device = await adapter.requestDevice();
+            const context = canvas.getContext('webgpu');
+
+            const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+            context.configure({ device, format: presentationFormat, alphaMode: 'premultiplied' });
+
+            // Load Shader
+            const shaderRes = await fetch(SHADER_URL);
+            const shaderCode = await shaderRes.text();
+            const shaderModule = device.createShaderModule({ code: shaderCode });
+
+            // 1. Create Program Texture (Source)
+            // PC 0: DATA(9, r1, color: Neon Green)
+            // PC 1: DATA(9, r2, coord: calculated in shader)
+            // PC 2: DRAW(215, r1, r2)
+            // PC 3: HALT(255)
+            const side = 32;
+            const textureData = new Uint8Array(side * side * 4);
+            // Instruction 0: DATA(9, r1, 0x00FF00FF)
+            textureData[0] = 9; textureData[1] = 0; textureData[2] = 1; textureData[3] = 255; // Note: simplified for demo
+            // Instruction 1: DRAW(215, r1, r2)
+            textureData[4] = 215; textureData[5] = 0; textureData[6] = 1; textureData[7] = 2;
+            // Instruction 2: HALT(255)
+            textureData[8] = 255;
+
+            const programTexture = device.createTexture({
+                size: [side, side],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+            });
+            device.queue.writeTexture({ texture: programTexture }, textureData, { bytesPerRow: side * 4 }, [side, side]);
+
+            // 2. State & Memory Buffers
+            const stateBuffer = device.createBuffer({
+                size: 36 * 4,
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
+            });
+            const memoryBuffer = device.createBuffer({
+                size: 16384 * 4,
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+            });
+
+            // 3. Output Texture (Visual Map)
+            const outputTexture = device.createTexture({
+                size: [100, 100],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC
+            });
+
+            // 4. DNA Buffer (Genetic Parameters)
+            const dnaBuffer = device.createBuffer({
+                size: 10000 * 16, // 10,000 * 4x u32
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            });
+
+            async function loadDNA() {
+                try {
+                    const res = await fetch('../../apps/autoresearch/swarm_dna.bin');
+                    const buffer = await res.arrayBuffer();
+                    device.queue.writeBuffer(dnaBuffer, 0, buffer);
+                    console.log('✓ DNA Mutated');
+                } catch(e) { console.log('DNA file not found, using default'); }
+            }
+            await loadDNA();
+            setInterval(loadDNA, 2000); // Check for mutations every 2s
+
+            // 5. Pipelines
+            const computePipeline = device.createComputePipeline({
+                layout: 'auto',
+                compute: { module: shaderModule, entryPoint: 'main' }
+            });
+
+            // Create a simple render pipeline to show the storage texture on screen
+            const renderPipeline = device.createRenderPipeline({
+                layout: 'auto',
+                vertex: {
+                    module: device.createShaderModule({
+                        code: `
+                            @vertex fn main(@builtin(vertex_index) idx: u32) -> @builtin(position) vec4<f32> {
+                                var pos = array<vec2<f32>, 4>(
+                                    vec2(-1.0,  1.0), vec2(1.0,  1.0),
+                                    vec2(-1.0, -1.0), vec2(1.0, -1.0)
+                                );
+                                return vec4<f32>(pos[idx], 0.0, 1.0);
+                            }
+                        `
+                    }),
+                    entryPoint: 'main'
+                },
+                fragment: {
+                    module: device.createShaderModule({
+                        code: `
+                            @group(0) @binding(0) var t: texture_2d<f32>;
+                            @group(0) @binding(1) var s: sampler;
+                            @fragment fn main(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
+                                return textureLoad(t, vec2<i32>(i32(pos.x), i32(pos.y)), 0);
+                            }
+                        `
+                    }),
+                    entryPoint: 'main',
+                    targets: [{ format: presentationFormat }]
+                },
+                primitive: { topology: 'triangle-strip' }
+            });
+
+            const bindGroup = device.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: programTexture.createView() },
+                    { binding: 1, resource: { buffer: stateBuffer } },
+                    { binding: 2, resource: { buffer: memoryBuffer } },
+                    { binding: 3, resource: outputTexture.createView() },
+                    { binding: 4, resource: { buffer: dnaBuffer } }
+                ]
+            });
+
+            const renderBindGroup = device.createBindGroup({
+                layout: renderPipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: outputTexture.createView() },
+                    { binding: 1, resource: device.createSampler() }
+                ]
+            });
+
+            let frameCount = 0;
+            let lastTime = performance.now();
+            let startTime = performance.now();
+
+            function frame() {
+                const now = performance.now();
+                frameCount++;
+                
+                // Update Time Uniform (in stateBuffer slot 3)
+                const timeData = new Float32Array([(now - startTime) / 1000]);
+                device.queue.writeBuffer(stateBuffer, 12, timeData);
+                if (now - lastTime > 1000) {
+                    const fps = frameCount / ((now - lastTime) / 1000);
+                    document.getElementById('fps').innerText = `FPS: ${fps.toFixed(1)} | GIPS: ${(fps * 10000 * 20 / 1e9).toFixed(3)}B`;
+                    frameCount = 0;
+                    lastTime = now;
+                }
+
+                const commandEncoder = device.createCommandEncoder();
+                
+                // Pass 1: Compute Swarm
+                const computePass = commandEncoder.beginComputePass();
+                computePass.setPipeline(computePipeline);
+                computePass.setBindGroup(0, bindGroup);
+                computePass.dispatchWorkgroups(10000 / 128 + 1);
+                computePass.end();
+
+                // Pass 2: Render to Canvas
+                const renderPass = commandEncoder.beginRenderPass({
+                    colorAttachments: [{
+                        view: context.getCurrentTexture().createView(),
+                        clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                        loadOp: 'clear',
+                        storeOp: 'store'
+                    }]
+                });
+                renderPass.setPipeline(renderPipeline);
+                renderPass.setBindGroup(0, renderBindGroup);
+                renderPass.draw(4);
+                renderPass.end();
+
+                device.queue.submit([commandEncoder.finish()]);
+                requestAnimationFrame(frame);
+            }
+
+            document.getElementById('stats').innerText = "Agents: 10,000 | Status: ACTIVE";
+            requestAnimationFrame(frame);
+        }
+
+        init();
+    </script>
+</body>
+</html>

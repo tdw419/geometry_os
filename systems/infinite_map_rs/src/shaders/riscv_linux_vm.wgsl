@@ -1296,8 +1296,29 @@ fn execute_instruction(decoded: DecodedInstruction) -> u32 {
                     switch decoded.funct12 {
                         case F12_ECALL: {
                             // ECALL - raise exception based on current privilege
-                            var cause: u32;
-                            switch state.privilege {
+                            var cause: u32 = 0u;
+
+                            // SBI Emulation (Phase 44)
+                            // a7 (reg 17) = Extension ID
+                            // a0 (reg 10) = Argument 0 / Char
+                            let a7 = registers[17];
+                            let a0 = registers[10];
+
+                            if (a7 == 0x01u) { // SBI_CONSOLE_PUTCHAR
+                                // Route to UART buffer in stats
+                                let write_count = atomicAdd(&stats[0], 1u);
+                                if (write_count < 60u) {
+                                    atomicStore(&stats[write_count + 1u], a0 & 0xFFu);
+                                }
+                                // Return success (a0 = 0)
+                                registers[10] = 0u;
+                                // Skip to next instruction
+                                atomicStore(&pc, atomicLoad(&pc) + 4u);
+                                return;
+                            }
+
+                            switch (state.privilege) {
+
                                 case PRIV_U: { cause = CAUSE_ECALL_U; }
                                 case PRIV_S: { cause = CAUSE_ECALL_S; }
                                 case PRIV_M: { cause = CAUSE_ECALL_M; }

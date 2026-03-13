@@ -1326,7 +1326,8 @@ mod tests {
 
     #[test]
     fn test_riscv_uniforms_size() {
-        assert_eq!(std::mem::size_of::<RiscvUniforms>(), 32);
+        // 11 u32 fields = 44 bytes (with vm_id added in Phase 43)
+        assert_eq!(std::mem::size_of::<RiscvUniforms>(), 44);
     }
 
     #[test]

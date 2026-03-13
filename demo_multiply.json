@@ -1,0 +1,76 @@
+{
+  "name": "multiply",
+  "glyphs": {
+    "0": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "rationale": "First operand",
+      "dependencies": [],
+      "runtime_refs": [],
+      "invariants": {
+        "value": 7
+      }
+    },
+    "1": {
+      "stratum": "SUBSTRATE",
+      "opcode": "DATA",
+      "rationale": "Second operand",
+      "dependencies": [],
+      "runtime_refs": [],
+      "invariants": {
+        "value": 6
+      }
+    },
+    "2": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "rationale": "Load operand a",
+      "dependencies": [
+        0
+      ],
+      "runtime_refs": [],
+      "invariants": {}
+    },
+    "3": {
+      "stratum": "MEMORY",
+      "opcode": "LOAD",
+      "rationale": "Load operand b",
+      "dependencies": [
+        1
+      ],
+      "runtime_refs": [],
+      "invariants": {}
+    },
+    "4": {
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "rationale": "a * b",
+      "dependencies": [
+        2,
+        3
+      ],
+      "runtime_refs": [],
+      "invariants": {}
+    },
+    "5": {
+      "stratum": "SPEC",
+      "opcode": "EXPORT",
+      "rationale": "multiply(a, b) interface",
+      "dependencies": [
+        4
+      ],
+      "runtime_refs": [],
+      "invariants": {}
+    },
+    "6": {
+      "stratum": "INTENT",
+      "opcode": "MODULE",
+      "rationale": "Multiply two numbers",
+      "dependencies": [
+        5
+      ],
+      "runtime_refs": [],
+      "invariants": {}
+    }
+  }
+}

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ubuntu 24.04 RISC-V Kernel - Spatial Optimization View</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0f;
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 20px;
+            border-bottom: 1px solid #00ff88;
+        }
+        h1 {
+            font-size: 1.5rem;
+            color: #00ff88;
+            margin-bottom: 8px;
+        }
+        .stats {
+            display: flex;
+            gap: 30px;
+            font-size: 0.9rem;
+        }
+        .stat {
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-value {
+            font-size: 1.2rem;
+            color: #00ffcc;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.75rem;
+        }
+        main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #0f0f14;
+        }
+        #kernel-canvas {
+            cursor: crosshair;
+        }
+        #zoom-info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        aside {
+            width: 280px;
+            background: #111118;
+            border-left: 1px solid #333;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .legend-section {
+            margin-bottom: 24px;
+        }
+        .legend-section h3 {
+            color: #888;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .legend-item:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        .legend-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+        }
+        .legend-info {
+            flex: 1;
+        }
+        .legend-name {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .legend-desc {
+            font-size: 0.7rem;
+            color: #666;
+        }
+        .silos {
+            margin-top: 20px;
+        }
+        .silo-bar {
+            height: 30px;
+            display: flex;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .silo-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            border: 1px solid #00ff88;
+            padding: 12px;
+            border-radius: 6px;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            max-width: 300px;
+        }
+        .tooltip h4 {
+            color: #00ff88;
+            margin-bottom: 6px;
+        }
+        .instruction-list {
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Ubuntu 24.04 RISC-V Kernel - Crystallized Brick</h1>
+        <div class="stats">
+            <div class="stat">
+                <span class="stat-value">4096×4096</span>
+                <span class="stat-label">Texture Size</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value">9,631,744</span>
+                <span class="stat-label">Instructions</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value">0.001985</span>
+                <span class="stat-label">Spatial Locality Score</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value">+589%</span>
+                <span class="stat-label">Optimization</span>
+            </div>
+        </div>
+    </header>
+    <main>
+        <div id="canvas-container">
+            <canvas id="kernel-canvas"></canvas>
+            <div id="zoom-info">Scroll to zoom | Drag to pan | Hover for opcode info</div>
+            <div class="tooltip" id="tooltip"></div>
+        </div>
+        <aside>
+            <div class="legend-section">
+                <h3>Functional Silos</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff4444;"></div>
+                    <div class="legend-info">
+                        <div class="legend-name">ALU Zone</div>
+                        <div class="legend-desc">Arithmetic/Logic (0x33)</div>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #44ff44;"></div>
+                    <div class="legend-info">
+                        <div class="legend-name">Memory Zone</div>
+                        <div class="legend-desc">Load/Store (0x03, 0x23)</div>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4444ff;"></div>
+                    <div class="legend-info">
+                        <div class="legend-name">Control Zone</div>
+                        <div class="legend-desc">Branch/Jump (0x6F, 0x67, 0x63)</div>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #888888;"></div>
+                    <div class="legend-info">
+                        <div class="legend-name">Data Zone</div>
+                        <div class="legend-desc">Immediate/Data (0x13, etc.)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend-section">
+                <h3>Spatial Layout</h3>
+                <div class="silos">
+                    <div class="silo-bar">
+                        <div class="silo-segment" style="flex: 35; background: #ff4444;">ALU 35%</div>
+                        <div class="silo-segment" style="flex: 25; background: #44ff44;">MEM 25%</div>
+                        <div class="silo-segment" style="flex: 20; background: #4444ff;">CTRL 20%</div>
+                        <div class="silo-segment" style="flex: 20; background: #888888;">DATA 20%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend-section">
+                <h3>Optimizations Applied</h3>
+                <ul style="font-size: 0.8rem; line-height: 1.6; padding-left: 16px; color: #aaa;">
+                    <li>Hilbert Curve Mapping</li>
+                    <li>Functional Unit Siloing</li>
+                    <li>Register-Aware Sorting</li>
+                    <li>Warp Alignment (32 threads)</li>
+                </ul>
+            </div>
+
+            <div class="legend-section">
+                <h3>Execution Model</h3>
+                <div style="font-size: 0.75rem; color: #888; line-height: 1.6;">
+                    <p><strong>Layer 1:</strong> RISC-V VM in WGSL compute shader</p>
+                    <p><strong>Layer 2:</strong> PixelRTS visual containers</p>
+                    <p><strong>Layer 3:</strong> Native glyph-atomic execution</p>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('kernel-canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+        const tooltip = document.getElementById('tooltip');
+
+        let scale = 1;
+        let offsetX = 0, offsetY = 0;
+        let isDragging = false;
+        let lastX, lastY;
+
+        const img = new Image();
+        img.src = 'ubuntu_vmlinux.optimized.v6.rts.png';
+
+        img.onload = () => {
+            resizeCanvas();
+            render();
+        };
+
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            render();
+        }
+
+        function render() {
+            ctx.fillStyle = '#0f0f14';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(scale, scale);
+            ctx.drawImage(img, 0, 0);
+            ctx.restore();
+
+            // Draw zone labels at appropriate zoom levels
+            if (scale > 0.5) {
+                drawZoneLabels();
+            }
+        }
+
+        function drawZoneLabels() {
+            ctx.save();
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(scale, scale);
+
+            ctx.font = 'bold 48px JetBrains Mono';
+            ctx.textAlign = 'center';
+            ctx.globalAlpha = 0.3;
+
+            // Zone labels based on Hilbert mapping
+            ctx.fillStyle = '#ff4444';
+            ctx.fillText('ALU ZONE', 2048, 512);
+            ctx.fillStyle = '#44ff44';
+            ctx.fillText('MEM ZONE', 2048, 1536);
+            ctx.fillStyle = '#4444ff';
+            ctx.fillText('CTRL ZONE', 2048, 2560);
+            ctx.fillStyle = '#888888';
+            ctx.fillText('DATA ZONE', 2048, 3584);
+
+            ctx.restore();
+        }
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const mouseX = e.offsetX;
+            const mouseY = e.offsetY;
+
+            const newScale = Math.max(0.1, Math.min(50, scale * zoomFactor));
+            offsetX = mouseX - (mouseX - offsetX) * (newScale / scale);
+            offsetY = mouseY - (mouseY - offsetY) * (newScale / scale);
+            scale = newScale;
+
+            render();
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastX = e.offsetX;
+            lastY = e.offsetY;
+            canvas.style.cursor = 'grabbing';
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                offsetX += e.offsetX - lastX;
+                offsetY += e.offsetY - lastY;
+                lastX = e.offsetX;
+                lastY = e.offsetY;
+                render();
+            }
+
+            // Show pixel info on hover
+            const imgX = Math.floor((e.offsetX - offsetX) / scale);
+            const imgY = Math.floor((e.offsetY - offsetY) / scale);
+
+            if (imgX >= 0 && imgX < 4096 && imgY >= 0 && imgY < 4096 && scale > 1) {
+                showTooltip(e.clientX, e.clientY, imgX, imgY);
+            } else {
+                tooltip.style.display = 'none';
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+            canvas.style.cursor = 'crosshair';
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+            tooltip.style.display = 'none';
+        });
+
+        function showTooltip(x, y, imgX, imgY) {
+            // Calculate Hilbert distance to determine zone
+            const d = imgY * 4096 + imgX; // Simplified - actual would use inverse Hilbert
+
+            let zone, color;
+            if (d < 3400000) {
+                zone = 'ALU Zone';
+                color = '#ff4444';
+            } else if (d < 5800000) {
+                zone = 'Memory Zone';
+                color = '#44ff44';
+            } else if (d < 7700000) {
+                zone = 'Control Zone';
+                color = '#4444ff';
+            } else {
+                zone = 'Data Zone';
+                color = '#888888';
+            }
+
+            tooltip.innerHTML = `
+                <h4>${zone}</h4>
+                <div class="instruction-list">
+                    <p>Position: (${imgX}, ${imgY})</p>
+                    <p>Pixel Index: ${d.toLocaleString()}</p>
+                    <p>Click to inspect opcode details</p>
+                </div>
+            `;
+            tooltip.style.display = 'block';
+            tooltip.style.left = (x + 15) + 'px';
+            tooltip.style.top = (y + 15) + 'px';
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+</html>

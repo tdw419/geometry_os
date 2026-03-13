@@ -129,6 +129,7 @@ pub struct VMMemoryLayout {
     pub pc_buffer: Buffer,
     pub state_buffer: Buffer,
     pub csrs_buffer: Buffer,
+    pub console_buffer: Buffer,     // console output buffer (256 u32s = 1024 chars)
     pub mmio_buffer: Buffer,
     pub stats_buffer: Buffer,
     pub config_buffer: Buffer,
@@ -336,6 +337,23 @@ impl VMMemoryLayout {
         }
         stats_buffer.unmap();
 
+        // Create console buffer (256 x u32 = 1024 chars)
+        let console_buffer = device.create_buffer(&BufferDescriptor {
+            label: Some("RISC-V Console"),
+            size: 256 * 4,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: true,
+        });
+        {
+            let mut view = console_buffer.slice(..).get_mapped_range_mut();
+            // Initialize to all zeros
+            view.copy_from_slice(&vec![0u8; 256 * 4]);
+            drop(view);
+        }
+        console_buffer.unmap();
+
         // Create config buffer
         let config = Config {
             texture_width: program.metadata.grid_size,
@@ -386,7 +404,7 @@ impl VMMemoryLayout {
                 },
                 BindGroupEntry {
                     binding: 5,
-                    resource: csrs_buffer.as_entire_binding(),
+                    resource: console_buffer.as_entire_binding(),
                 },
                 BindGroupEntry {
                     binding: 6,
@@ -410,6 +428,7 @@ impl VMMemoryLayout {
             pc_buffer,
             state_buffer,
             csrs_buffer,
+            console_buffer,
             mmio_buffer,
             stats_buffer,
             config_buffer,
@@ -448,7 +467,7 @@ mod tests {
     #[test]
     fn test_memory_buffer_sizes() {
         // Verify buffer sizes
-        assert_eq!(RAM_SIZE, 256 * 1024 * 1024);
+        assert_eq!(RAM_SIZE, 128 * 1024 * 1024); // WebGPU limit is 128MB
         assert_eq!(REGISTER_COUNT, 32);
 
         // Registers: 32 x 4 bytes = 128 bytes

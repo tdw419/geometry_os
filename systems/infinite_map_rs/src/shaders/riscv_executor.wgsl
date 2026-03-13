@@ -657,29 +657,80 @@ fn sys_write(fd: u32, buf_ptr: u32, len: u32) {
     }
 }
 
+// SBI console putchar - writes single character to console buffer
+fn console_putchar(ch: u32) {
+    let pos = stats.console_pos;
+    let word_idx = pos / 4u;
+    let shift = (pos % 4u) * 8u;
+
+    if (word_idx < 256u) {
+        var word = console_buffer[word_idx];
+        let mask = ~(0xFFu << shift);
+        word = (word & mask) | ((ch & 0xFFu) << shift);
+        console_buffer[word_idx] = word;
+        stats.console_pos = pos + 1u;
+    }
+}
+
 fn handle_syscall(pc: u32) -> u32 {
     let vm_id = 0u; // Single VM for now, indexed at 0
-    
-    // Get queue slot for this VM (round-robin within 16 slots)
+    let a7 = read_reg(17u);  // a7 = SBI extension ID
+    let a6 = read_reg(16u);  // a6 = SBI function ID
+    let a0 = read_reg(10u);  // a0 = first argument
+
+    // SBI Extension IDs
+    const SBI_EXT_0_1_CONSOLE_PUTCHAR: u32 = 0x01u;
+    const SBI_EXT_0_1_CONSOLE_GETCHAR: u32 = 0x02u;
+    const SBI_EXT_BASE: u32 = 0x10u;
+
+    // Handle SBI console putchar directly (non-blocking)
+    if (a7 == SBI_EXT_0_1_CONSOLE_PUTCHAR) {
+        // Output character to console buffer
+        console_putchar(a0);
+        write_reg(10u, 0u);  // Return 0 = success
+        return pc + 4u;  // Continue immediately
+    }
+
+    // Handle SBI base calls (non-blocking)
+    if (a7 == SBI_EXT_BASE) {
+        if (a6 == 0u) {
+            // sbi_get_spec_version
+            write_reg(10u, 0x00000002u);  // SBI spec v0.2
+        } else if (a6 == 1u) {
+            // sbi_get_impl_id
+            write_reg(10u, 1u);  // OpenSBI
+        } else if (a6 == 2u) {
+            // sbi_get_impl_version
+            write_reg(10u, 1u);
+        } else {
+            write_reg(10u, 0u);
+        }
+        return pc + 4u;
+    }
+
+    // Handle SBI console getchar (return -1 = no char available)
+    if (a7 == SBI_EXT_0_1_CONSOLE_GETCHAR) {
+        write_reg(10u, 0xFFFFFFFFu);  // -1 = no character
+        return pc + 4u;
+    }
+
+    // For other syscalls, queue for host processing
     let base_idx = vm_id * 16u;
     let slot = atomicAdd(&pending_counts[vm_id], 1u) % 16u;
     let entry_idx = base_idx + slot;
 
-    // Populate syscall entry
     syscall_queue[entry_idx].vm_id = vm_id;
-    syscall_queue[entry_idx].num = read_reg(17u);  // a7 = syscall number
-    syscall_queue[entry_idx].arg0 = read_reg(10u); // a0
-    syscall_queue[entry_idx].arg1 = read_reg(11u); // a1
-    syscall_queue[entry_idx].arg2 = read_reg(12u); // a2
-    syscall_queue[entry_idx].arg3 = read_reg(13u); // a3
-    syscall_queue[entry_idx].arg4 = read_reg(14u); // a4
-    syscall_queue[entry_idx].arg5 = read_reg(15u); // a5
+    syscall_queue[entry_idx].num = a7;
+    syscall_queue[entry_idx].arg0 = a0;
+    syscall_queue[entry_idx].arg1 = read_reg(11u);
+    syscall_queue[entry_idx].arg2 = read_reg(12u);
+    syscall_queue[entry_idx].arg3 = read_reg(13u);
+    syscall_queue[entry_idx].arg4 = read_reg(14u);
+    syscall_queue[entry_idx].arg5 = read_reg(15u);
     syscall_queue[entry_idx].result = 0;
 
-    // Mark VM as waiting for host
-    vm_status[vm_id] = 1u; // STATUS_WAITING_SYSCALL
-    
-    // Next execution will resume at pc + 4 after host clears vm_status
+    // Don't block - just continue execution
+    write_reg(10u, 0u);  // Return success
     return pc + 4u;
 }
 

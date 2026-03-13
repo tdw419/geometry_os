@@ -29,6 +29,16 @@ from systems.spatial_coordinator.types import (
     InterruptType,
     SyscallID,
 )
+from systems.spatial_coordinator.glyph_vm import GlyphVM, assemble
+from systems.spatial_coordinator.opcodes import (
+    Opcode,
+    CompareFlags,
+    R0, R1, R2, R3,
+    R_REGION_ORIGIN,
+    R_INT_PAYLOAD,
+    R_INT_TYPE,
+    R_INT_SOURCE,
+)
 
 __all__ = [
     # Allocator
@@ -55,4 +65,14 @@ __all__ = [
     "ErrorCode",
     "InterruptType",
     "SyscallID",
+    # Glyph VM
+    "GlyphVM",
+    "assemble",
+    "Opcode",
+    "CompareFlags",
+    "R0", "R1", "R2", "R3",
+    "R_REGION_ORIGIN",
+    "R_INT_PAYLOAD",
+    "R_INT_TYPE",
+    "R_INT_SOURCE",
 ]

@@ -1,0 +1,10 @@
+{
+  "opensbi_base": "0x80000000",
+  "kernel_base": "0x80200000",
+  "opensbi_hilbert_start": 0,
+  "opensbi_hilbert_end": 67360,
+  "kernel_hilbert_start": 67360,
+  "grid_size": 8192,
+  "total_instructions": 9718816,
+  "sbi_console_enabled": true
+}
