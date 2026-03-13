@@ -13,6 +13,7 @@ mod tests {
     // Opcodes (must match glyph_microcode.wgsl)
     const OP_LD: u32 = 204;
     const OP_MOV: u32 = 206;
+    const OP_JMP: u32 = 208;
     const OP_ADD_MEM: u32 = 216;
     const OP_JZ: u32 = 209;
     const OP_DRAW: u32 = 215;
@@ -250,6 +251,98 @@ mod tests {
         // Window SHOULD have moved by delta
         assert_eq!(final_win_x, 150.0, "Window X should increase by 50 (100 + 50)");
         assert_eq!(final_win_y, 125.0, "Window Y should increase by 25 (100 + 25)");
+    }
+
+    /// Multi-window manager program (simplified for testing)
+    fn create_window_manager_program() -> Vec<Glyph> {
+        vec![
+            // 0: Clear FOCUSED_ID
+            Glyph { opcode: OP_LD, stratum: 2, p1: 0.0, p2: 0.0, dst: 5 },
+            // 1: Hit-test Win0 (Table at 30)
+            Glyph { opcode: OP_INT_DISPATCH, stratum: 2, p1: 30.0, p2: 1.0, dst: 12 },
+            // 2: JZ instruction 6 (Skip Win0 update)
+            Glyph { opcode: OP_JZ, stratum: 2, p1: 6.0, p2: 0.0, dst: 12 },
+            // 3: Update Win0
+            Glyph { opcode: OP_ADD_MEM, stratum: 2, p1: 3.0, p2: 0.0, dst: 30 },
+            Glyph { opcode: OP_ADD_MEM, stratum: 2, p1: 4.0, p2: 0.0, dst: 31 },
+            // 5: JMP to DRAW (instruction 11) - Win0 captured focus
+            Glyph { opcode: OP_JMP, stratum: 2, p1: 11.0, p2: 0.0, dst: 0 },
+            // 6: Hit-test Win1 (Table at 40)
+            Glyph { opcode: OP_INT_DISPATCH, stratum: 2, p1: 40.0, p2: 1.0, dst: 12 },
+            // 7: JZ instruction 11
+            Glyph { opcode: OP_JZ, stratum: 2, p1: 11.0, p2: 0.0, dst: 12 },
+            // 8: Update Win1
+            Glyph { opcode: OP_ADD_MEM, stratum: 2, p1: 3.0, p2: 0.0, dst: 40 },
+            Glyph { opcode: OP_ADD_MEM, stratum: 2, p1: 4.0, p2: 0.0, dst: 41 },
+            // 10: (JMP next window if we had more)
+            // 11: DRAW Win0
+            Glyph { opcode: OP_DRAW, stratum: 2, p1: 65.0, p2: 0.0, dst: 30 },
+            // 12: DRAW Win1
+            Glyph { opcode: OP_DRAW, stratum: 2, p1: 66.0, p2: 0.0, dst: 40 },
+            // 13: Halt
+            Glyph { opcode: OP_HALT, stratum: 2, p1: 0.0, p2: 0.0, dst: 0 },
+        ]
+    }
+
+    #[tokio::test]
+    async fn test_native_z_order_top_window_wins() {
+        let (device, queue) = setup_gpu().await;
+        let atlas_view = create_test_atlas_texture(&device);
+        let screen_view = create_screen_texture(&device);
+
+        let vm = GlyphVM::new(
+            device.clone(),
+            queue.clone(),
+            atlas_view,
+            screen_view,
+            32,
+            1024,
+            256,
+        );
+
+        let program = create_window_manager_program();
+        vm.upload_program(&program);
+
+        // Setup memory: 2 overlapping windows
+        // Win0: 100,100 (300x200) - TOP
+        // Win1: 150,150 (300x200) - BOTTOM
+        let mut memory = vec![0.0; 1024];
+        
+        // Mouse clicked at 200,200 (INSIDE BOTH)
+        memory[MOUSE_X] = 200.0;
+        memory[MOUSE_Y] = 200.0;
+        memory[MOUSE_BTN] = 1.0;
+        memory[MOUSE_DX] = 10.0;
+        memory[MOUSE_DY] = 10.0;
+
+        // Window 0 (X, Y, W, H, ID)
+        memory[30] = 100.0;
+        memory[31] = 100.0;
+        memory[32] = 300.0;
+        memory[33] = 200.0;
+        memory[34] = 1.0;
+
+        // Window 1
+        memory[40] = 150.0;
+        memory[41] = 150.0;
+        memory[42] = 300.0;
+        memory[43] = 200.0;
+        memory[44] = 2.0;
+
+        vm.upload_memory(&memory);
+
+        // Execute
+        vm.reset_state();
+        run_until_halt(&vm, &device, 50);
+
+        // Read back memory
+        let memory = read_memory(&vm, &device);
+        
+        // Only Window 0 should have moved (it is first in scan order)
+        assert_eq!(memory[30], 110.0, "Window 0 should have moved by delta");
+        assert_eq!(memory[40], 150.0, "Window 1 should NOT have moved (blocked by Z-order)");
+        
+        println!("✅ Z-Order Test Passed: Top window captured interaction, bottom window blocked.");
     }
 
     fn read_memory(vm: &GlyphVM, device: &Device) -> Vec<f32> {

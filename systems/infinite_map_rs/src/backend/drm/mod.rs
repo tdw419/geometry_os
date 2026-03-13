@@ -11,6 +11,8 @@ pub mod amdgpu;
 pub mod intel;
 pub mod vcc_compute;
 pub mod glyph_executor;
+pub mod glyph_vm_executor;
+pub mod visual_interaction_bus;
 
 pub use device::DrmDevice;
 pub use scanout::KmsScanout;
@@ -20,3 +22,5 @@ pub use amdgpu::command_buffer::AmdgpuCommandBuffer;
 pub use intel::IntelCommandBuffer;
 pub use vcc_compute::{VccCompute, HardwareVCC, HardwareVCCResult, BufferInitExt, BufferInitDescriptor};
 pub use glyph_executor::{DrmGlyphExecutor, GlyphError, GlyphOutput, AttestedExecutionResult, compute_output_hash};
+pub use glyph_vm_executor::{GlyphVmExecutor, GlyphVmState};
+pub use visual_interaction_bus::{VisualInteractionBus, InputState, InputReceiver};
