@@ -46,6 +46,7 @@ build/
 *.so
 *.img
 *.cpio
+*.ext4
 *.pid
 .loop/checkpoint.json
 
