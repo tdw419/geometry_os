@@ -963,8 +963,6 @@ Replace the `createGlyphDesktop` function at the end of `GlyphWindowRenderer.js`
 ```javascript
 import { SpatialCoordinatorClient } from './SpatialCoordinatorClient.js';  // ADD at top of file
 
-// ... existing code ...
-
 export async function createGlyphDesktop(containerId, bridgeUrl = 'ws://localhost:8770') {
     // Import PixiJS
     const PIXI = await import('https://cdn.skypack.dev/pixi.js@7');
