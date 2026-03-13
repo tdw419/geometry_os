@@ -386,57 +386,6 @@ class RegionAllocator:
 
         self._free_regions = free_regions
 
-    def pack_free_regions(self) -> None:
-        """Pack adjacent free regions together.
-
-        This is a lighter-weight operation than full compaction.
-        Called after freeing to merge adjacent free regions.
-        """
-        if len(self._free_regions) <= 1:
-            return
-
-        # Sort free regions by position
-        self._free_regions.sort(key=lambda r: (r.y, r.x))
-
-        # Try to merge adjacent regions
-        merged = []
-        current = self._free_regions[0]
-
-        for next_region in self._free_regions[1:]:
-            # Check if regions are horizontally adjacent
-            if (
-                current.y == next_region.y
-                and current.x + current.width == next_region.x
-                and current.height == next_region.height
-            ):
-                # Merge horizontally
-                current = FreeRegion(
-                    x=current.x,
-                    y=current.y,
-                    width=current.width + next_region.width,
-                    height=current.height,
-                )
-            # Check if regions are vertically adjacent
-            elif (
-                current.x == next_region.x
-                and current.y + current.height == next_region.y
-                and current.width == next_region.width
-            ):
-                # Merge vertically
-                current = FreeRegion(
-                    x=current.x,
-                    y=current.y,
-                    width=current.width,
-                    height=current.height + next_region.height,
-                )
-            else:
-                # Cannot merge - save current and move to next
-                merged.append(current)
-                current = next_region
-
-        merged.append(current)
-        self._free_regions = merged
-
     def stats(self) -> dict:
         """Get allocator statistics.
 

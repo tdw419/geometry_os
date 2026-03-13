@@ -85,6 +85,7 @@ class SyscallHandler:
         self.queue: List[SyscallRequest] = []
         self.focus_stack: List[int] = []
         self.focused_app_id: Optional[int] = None
+        self.allocated_regions: dict[int, tuple[int, int, int, int]] = {}
 
     @property
     def queue_depth(self) -> int:
