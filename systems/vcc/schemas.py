@@ -5,7 +5,7 @@ JSON Schema definitions for Visual Consistency Contract.
 The VCC ensures glyphs are identical across:
 - Foundry (Python/FreeType)
 - Shell (TypeScript/PixiJS/WebGPU)
-- Kernel (Rust/WGPU/DRM)
+- Kernel (Rust/WGPU)
 """
 
 VCC_CONTRACT_SCHEMA = {
@@ -53,25 +53,34 @@ VCC_CONTRACT_SCHEMA = {
             "properties": {
                 "foundry": {
                     "type": "object",
-                    "required": ["renderer_path", "metrics_hash"]
+                    "required": ["glyph_metrics_schema", "source_file"],
+                    "properties": {
+                        "glyph_metrics_schema": {"type": "string"},
+                        "source_file": {"type": "string"}
+                    }
                 },
                 "shell": {
                     "type": "object",
-                    "required": ["pixi_version", "webgpu_enabled"]
+                    "required": ["atlas_path", "positions_path"],
+                    "properties": {
+                        "atlas_path": {"type": "string"},
+                        "positions_path": {"type": "string"}
+                    }
                 },
                 "kernel": {
                     "type": "object",
-                    "required": ["rust_version", "wgpu_backend", "drm_enabled"]
+                    "required": ["glyph_metrics_struct", "shader_file"],
+                    "properties": {
+                        "glyph_metrics_struct": {"type": "string"},
+                        "shader_file": {"type": "string"}
+                    }
                 }
             }
         },
         "signatures": {
             "type": "object",
-            "description": "Cryptographic signatures for hardware attestation",
-            "properties": {
-                "hardware_vcc_sig": {"type": "string"},
-                "scanout_attestation_sig": {"type": "string"}
-            }
+            "description": "Layer signatures (verified at runtime)",
+            "additionalProperties": {"type": "string"}
         }
     }
 }
@@ -79,19 +88,18 @@ VCC_CONTRACT_SCHEMA = {
 GLYPH_METRICS_SCHEMA = {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
-    "additionalProperties": {
-        "type": "object",
-        "required": ["uv", "width", "height", "advance"],
-        "properties": {
-            "uv": {
-                "type": "array",
-                "items": {"type": "number"},
-                "minItems": 2,
-                "maxItems": 2
-            },
-            "width": {"type": "integer"},
-            "height": {"type": "integer"},
-            "advance": {"type": "integer"}
-        }
+    "required": ["char_code", "uv_min_x", "uv_min_y", "uv_max_x", "uv_max_y",
+                 "width", "height", "bearing_x", "bearing_y", "advance"],
+    "properties": {
+        "char_code": {"type": "integer"},
+        "uv_min_x": {"type": "number"},
+        "uv_min_y": {"type": "number"},
+        "uv_max_x": {"type": "number"},
+        "uv_max_y": {"type": "number"},
+        "width": {"type": "number"},
+        "height": {"type": "number"},
+        "bearing_x": {"type": "number"},
+        "bearing_y": {"type": "number"},
+        "advance": {"type": "number"}
     }
 }
