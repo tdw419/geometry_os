@@ -7,6 +7,10 @@ extern void serial_puts(const char *s);
 
 /* Initialize ring buffer */
 void geos_ring_init(struct RingBuffer *ring, uint32_t *buffer, uint32_t size) {
+    if (!ring || !buffer || size == 0) {
+        return;  /* Invalid parameters */
+    }
+
     ring->base = buffer;
     ring->size = size;
     ring->head = 0;
@@ -21,6 +25,19 @@ void geos_ring_init(struct RingBuffer *ring, uint32_t *buffer, uint32_t size) {
 /* Submit batch buffer via ring */
 int geos_ring_submit_batch(struct GeosGpu *gpu, struct RingBuffer *ring,
                            void *batch, uint32_t batch_size) {
+    if (!gpu || !ring || !ring->base || !batch || batch_size == 0) {
+        return -1;  /* Invalid parameters */
+    }
+
+    /* Check if batch fits in ring */
+    uint32_t available = (ring->head > ring->tail)
+        ? (ring->head - ring->tail)
+        : (ring->size - ring->tail + ring->head);
+
+    if (batch_size > available) {
+        return -1;  /* Not enough space */
+    }
+
     /* Copy batch to ring buffer */
     uint32_t offset = ring->tail;
     uint32_t *src = (uint32_t *)batch;
@@ -29,8 +46,9 @@ int geos_ring_submit_batch(struct GeosGpu *gpu, struct RingBuffer *ring,
     for (uint32_t i = 0; i < batch_size / 4; i++) {
         uint32_t idx = (offset / 4 + i) % (ring->size / 4);
         dst[idx] = src[i];
-        offset = (offset + 4) % ring->size;
     }
+
+    offset = (offset + batch_size) % ring->size;
 
     /* Update tail pointer */
     ring->tail = offset;
@@ -41,6 +59,10 @@ int geos_ring_submit_batch(struct GeosGpu *gpu, struct RingBuffer *ring,
 
 /* Wait for ring to be idle */
 void geos_ring_wait_idle(struct GeosGpu *gpu, struct RingBuffer *ring) {
+    if (!gpu || !ring) {
+        return;  /* Invalid parameters */
+    }
+
     /* Wait for head == tail */
     while (geos_gpu_read32(gpu, RCS_RING_HEAD) != ring->tail) {
         /* Delay */

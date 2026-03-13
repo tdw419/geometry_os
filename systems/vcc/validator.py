@@ -12,6 +12,10 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 
+# Compute project root relative to this file
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+
+
 class ValidationError(Exception):
     """Raised when VCC validation fails."""
     pass
@@ -191,7 +195,8 @@ def validate_kernel_layer(
 
 def validate_kernel_layer_hardware(
     dmabuf_path: Optional[str] = None,
-    expected_hash: Optional[str] = None
+    expected_hash: Optional[str] = None,
+    verifier_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Validate Kernel layer using hardware attestation.
@@ -200,6 +205,8 @@ def validate_kernel_layer_hardware(
     Args:
         dmabuf_path: Path to DMA-BUF device (e.g., /dev/dri/card0)
         expected_hash: Expected SHA-256 hash from contract
+        verifier_path: Path to hardware verifier binary. If None, uses
+                       PROJECT_ROOT/target/release/vcc_hardware_verify
 
     Returns:
         Hardware attestation result
@@ -209,9 +216,21 @@ def validate_kernel_layer_hardware(
         FileNotFoundError: If hardware verifier binary not found
         subprocess.SubprocessError: If subprocess execution fails
     """
+    # Determine verifier path
+    if verifier_path is None:
+        verifier_path = str(PROJECT_ROOT / "target/release/vcc_hardware_verify")
+    else:
+        verifier_path = str(Path(verifier_path).expanduser().resolve())
+
+    # Check if verifier binary exists
+    if not Path(verifier_path).exists():
+        raise FileNotFoundError(
+            f"Hardware verifier binary not found: {verifier_path}"
+        )
+
     # Call Rust hardware verifier
     result = subprocess.run(
-        ["./target/release/vcc_hardware_verify",
+        [verifier_path,
          "--dmabuf", dmabuf_path or "/dev/dri/card0",
          "--expected-hash", expected_hash or ""],
         capture_output=True,
