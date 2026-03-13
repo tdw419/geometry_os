@@ -23,7 +23,7 @@ Events (keyboard, mouse) are injected as spatial glyphs that propagate until cau
 
 ### Interrupt Glyph Format
 
-4-byte packet encoded as spatial data:
+5-byte packet encoded as spatial data:
 
 | Offset | Field     | Size | Description                    |
 |--------|-----------|------|--------------------------------|
@@ -31,6 +31,8 @@ Events (keyboard, mouse) are injected as spatial glyphs that propagate until cau
 | 1      | payload   | u8   | Keycode or button ID           |
 | 2-3    | timestamp | u16  | Frame counter                  |
 | 4      | source    | u8   | Device seat (multi-seat)       |
+
+> **Note:** This packet is stored at the interrupt's spatial coordinate. The glyph itself uses the existing `OP_INT` opcode (0x10) with the packet data in neighboring cells.
 
 ### Injection Points
 
@@ -46,6 +48,21 @@ Events (keyboard, mouse) are injected as spatial glyphs that propagate until cau
 2. On each GPU tick, INT spreads to 4-connected neighbors
 3. When INT reaches a glyph with `@INT_HANDLER` annotation, propagation stops
 4. Handler reads payload, executes, returns control
+
+**Propagation Limits:**
+- **Max TTL:** 64 GPU ticks (prevents infinite loops)
+- **No handler found:** INT expires after TTL, discarded silently
+- **Performance optimization:** For apps with registered handler tables, Coordinator may use direct coordinate lookup instead of wavefront propagation
+
+### Register Conventions
+
+| Name | Alias | Purpose |
+|------|-------|---------|
+| R0-R3 | registers[0-3] | Syscall arguments/return |
+| R_REGION_ORIGIN | registers[28] | App's allocated origin (x<<16 | y) |
+| INT_PAYLOAD | registers[29] | Current interrupt payload |
+| INT_TYPE | registers[30] | Current interrupt type |
+| INT_SOURCE | registers[31] | Current interrupt source |
 
 ### Handler Declaration
 
@@ -67,11 +84,16 @@ Events (keyboard, mouse) are injected as spatial glyphs that propagate until cau
   RET
 ```
 
+> **Assembler Directives:** `@COORD(x, y)` and `@INT_HANDLER(type)` are assembler directives that:
+> 1. Place the following code at the specified coordinate within the app's grid
+> 2. Register the coordinate in the handler table with the specified type
+> These are not runtime opcodes — they are resolved at assembly time.
+
 ---
 
 ## 2. Application Header
 
-Every glyph program declares spatial requirements in the first 16 bytes.
+Every glyph program declares spatial requirements in the first 16 bytes. **Code execution begins at byte 16** — the header is never executed.
 
 ### Header Structure
 
@@ -81,9 +103,11 @@ Every glyph program declares spatial requirements in the first 16 bytes.
 | 4-5    | 2    | WIDTH           | Grid columns         |
 | 6-7    | 2    | HEIGHT          | Grid rows            |
 | 8-9    | 2    | MEM_SIZE        | Local memory slots   |
-| 10-11  | 2    | ENTRY_POINT     | Start coord (x,y)    |
-| 12-13  | 2    | HANDLER_TABLE   | Offset to handlers   |
+| 10-11  | 2    | ENTRY_POINT     | Start coord (x,y) relative to app origin |
+| 12-13  | 2    | HANDLER_TABLE   | Offset to handlers (relative to app origin) |
 | 14-15  | 2    | FLAGS           | Capabilities         |
+
+> **Important:** The header occupies bytes 0-15. `ENTRY_POINT` is a coordinate within the app's grid where execution begins *after* the header. For example, `ENTRY_POINT = (0, 0)` means execution starts at byte 16 (the first cell after the header).
 
 ### Capability Flags
 
@@ -116,11 +140,46 @@ Every glyph program declares spatial requirements in the first 16 bytes.
 4. Register entry point and handler table
 5. Return allocated origin in `R_REGION_ORIGIN`
 
+### Region Allocation Algorithm
+
+The Coordinator uses a **first-fit allocator** with compaction:
+
+```
+ALLOCATE(width, height):
+  1. Scan free list for first region >= (width * height)
+  2. If found:
+     - Split region if larger than needed
+     - Mark as allocated
+     - Return origin
+  3. If not found:
+     - Trigger compaction (move apps to eliminate gaps)
+     - Retry allocation
+  4. If still fails:
+     - Return ALLOCATION_FAILED
+     - App load rejected
+
+COMPACTION:
+  1. Sort apps by origin coordinate
+  2. Slide each app to eliminate gaps
+  3. Update all registered origins
+  4. Rebuild free list
+```
+
+**Free List Entry Format (per free region):**
+| Offset | Size | Field    |
+|--------|------|----------|
+| 0-1    | 2    | origin_x |
+| 2-3    | 2    | origin_y |
+| 4-5    | 2    | width    |
+| 6-7    | 2    | height   |
+
 ---
 
 ## 3. Syscall Interface
 
 The `SYNC` opcode (0xFE) signals the Coordinator with requests.
+
+> **Opcode Note:** `SYNC (0xFE = 254)` is intentionally adjacent to `HALT (0xFF = 255)`. Both are coordination opcodes that exit normal execution flow.
 
 ### Syntax
 
@@ -144,6 +203,26 @@ SYNC R0, R1, R2
 | 0x06 | GET_TIME       | —          | —          | frame_count   | Current frame            |
 | 0x07 | REQUEST_FOCUS  | —          | —          | success       | Grab keyboard focus      |
 | 0x08 | YIELD_FOCUS    | —          | —          | success       | Release focus            |
+
+### Focus Arbitration Model
+
+**Keyboard focus is exclusive:** Only one app receives keyboard events at a time.
+
+| Scenario | Resolution |
+|----------|------------|
+| Multiple apps request focus same frame | Lowest app_id wins |
+| App with focus calls YIELD_FOCUS | Focus returns to previous holder or none |
+| App with focus closes | Focus returns to previous holder or none |
+| User clicks on unfocused app | Coordinator implicitly grants focus |
+
+**Mouse focus is implicit:** The app under the cursor receives mouse events based on its `WANTS_MOUSE` flag.
+
+### Syscall Queue & Serialization
+
+- **Queue depth:** 16 pending syscalls per frame
+- **Overflow:** If queue full, oldest syscall is dropped, error logged
+- **Processing order:** FIFO within frame
+- **Concurrent SPAWN:** Serialized; child gets next available app_id
 
 ### Error Codes
 
