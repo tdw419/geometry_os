@@ -205,6 +205,49 @@ class TestInterruptPacketUnpack:
         assert packet.timestamp == 0xFFFF
 
 
+class TestInterruptPacketPackValidation:
+    """Tests for InterruptPacket.pack() validation."""
+
+    def test_pack_raises_on_timestamp_overflow(self):
+        """Pack should raise ValueError when timestamp > 0xFFFF."""
+        packet = InterruptPacket(
+            type=InterruptType.KEYBOARD,
+            payload=0x00,
+            timestamp=0x10000,  # 65536 - exceeds u16
+            source=0,
+            x=0,
+            y=0,
+        )
+        with pytest.raises(ValueError, match="timestamp"):
+            packet.pack()
+
+    def test_pack_raises_on_payload_overflow(self):
+        """Pack should raise ValueError when payload > 0xFF."""
+        packet = InterruptPacket(
+            type=InterruptType.KEYBOARD,
+            payload=0x100,  # 256 - exceeds u8
+            timestamp=0,
+            source=0,
+            x=0,
+            y=0,
+        )
+        with pytest.raises(ValueError, match="payload"):
+            packet.pack()
+
+    def test_pack_raises_on_source_overflow(self):
+        """Pack should raise ValueError when source > 0xFF."""
+        packet = InterruptPacket(
+            type=InterruptType.KEYBOARD,
+            payload=0x00,
+            timestamp=0,
+            source=0x100,  # 256 - exceeds u8
+            x=0,
+            y=0,
+        )
+        with pytest.raises(ValueError, match="source"):
+            packet.pack()
+
+
 class TestInterruptPacketRoundTrip:
     """Tests for pack/unpack round-trip integrity."""
 
