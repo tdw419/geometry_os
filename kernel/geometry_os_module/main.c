@@ -11,6 +11,7 @@
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
+#include <linux/slab.h>
 
 #include "geometry_os.h"
 #include "gpu.h"
@@ -20,6 +21,56 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Geometry OS");
 MODULE_DESCRIPTION("Glyph execution kernel module");
 MODULE_VERSION("0.1");
+
+/* SPIR-V storage (simplified - single program) */
+#define MAX_SPIRV_SIZE (64 * 1024)  /* 64KB max */
+
+static void *spirv_buffer;
+static size_t spirv_size;
+
+static long geos_ioctl_load_spirv(unsigned long arg)
+{
+    struct geos_spirv_load load;
+    void __user *uptr;
+    u32 magic;
+
+    if (copy_from_user(&load, (void __user *)arg, sizeof(load)))
+        return -EFAULT;
+
+    if (load.spirv_size > MAX_SPIRV_SIZE)
+        return -EFBIG;
+
+    if (load.spirv_size < 20)  /* Minimum SPIR-V header size */
+        return -EINVAL;
+
+    uptr = (void __user *)load.spirv_ptr;
+    if (!uptr)
+        return -EINVAL;
+
+    /* Allocate buffer if needed */
+    if (!spirv_buffer) {
+        spirv_buffer = kmalloc(MAX_SPIRV_SIZE, GFP_KERNEL);
+        if (!spirv_buffer)
+            return -ENOMEM;
+    }
+
+    /* Copy SPIR-V from userspace */
+    if (copy_from_user(spirv_buffer, uptr, load.spirv_size)) {
+        return -EFAULT;
+    }
+
+    /* Validate SPIR-V magic number */
+    magic = *(u32 *)spirv_buffer;
+    if (magic != 0x07230203) {
+        pr_warn("geometry_os: Invalid SPIR-V magic: 0x%08x\n", magic);
+        return -EINVAL;
+    }
+
+    spirv_size = load.spirv_size;
+    pr_info("geometry_os: Loaded %zu byte SPIR-V binary\n", spirv_size);
+
+    return 0;
+}
 
 /* File operations */
 static int geos_open(struct inode *inode, struct file *file)
@@ -38,8 +89,7 @@ static long geos_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     switch (cmd) {
     case GEOS_IOCTL_LOAD_SPIRV:
-        pr_info("geometry_os: LOAD_SPIRV ioctl\n");
-        return -ENOSYS;  /* Not implemented yet */
+        return geos_ioctl_load_spirv(arg);
 
     case GEOS_IOCTL_EXECUTE:
         pr_info("geometry_os: EXECUTE ioctl\n");
@@ -108,6 +158,8 @@ static void __exit geometry_os_exit(void)
 {
     misc_deregister(&geos_misc);
     geos_gpu_fini(&geos_gpu);
+    kfree(spirv_buffer);
+    spirv_buffer = NULL;
     pr_info("geometry_os: module unloading\n");
 }
 
