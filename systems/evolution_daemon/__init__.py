@@ -15,6 +15,13 @@ from .hooks import (
     PipelineStatus,
     get_evolution_broadcaster,
 )
+from .glyph_evolution import (
+    GlyphProgram,
+    GlyphMutator,
+    fitness_shader_correctness,
+    evolve_glyph_program,
+    VALID_OPCODES,
+)
 
 __all__ = [
     "EvolutionHook",
@@ -25,4 +32,10 @@ __all__ = [
     "PipelineStage",
     "PipelineStatus",
     "get_evolution_broadcaster",
+    # Glyph evolution
+    "GlyphProgram",
+    "GlyphMutator",
+    "fitness_shader_correctness",
+    "evolve_glyph_program",
+    "VALID_OPCODES",
 ]
