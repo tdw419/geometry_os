@@ -27,6 +27,7 @@ use crate::camera::Camera;
 use crate::rts_texture::RTSTexture;
 use crate::surface_manager::SurfaceManager;
 use crate::backend::cortex::CortexPipeline;
+use crate::backend::drm::glyph_executor::DrmGlyphExecutor;
 use wgpu::util::DeviceExt;
 
 /// GBM buffer with associated framebuffer
@@ -110,6 +111,8 @@ pub struct DrmRenderer {
     last_frame_time: Option<std::time::Instant>,
     /// Cortex Pipeline (The Holographic Brain)
     cortex: CortexPipeline,
+    /// Glyph program executor for running compiled shaders
+    glyph_executor: Option<DrmGlyphExecutor>,
 }
 
 #[repr(C)]
@@ -541,6 +544,12 @@ impl DrmRenderer {
             output_size,
         );
 
+        // Initialize glyph executor
+        let glyph_executor = Some(DrmGlyphExecutor::new(
+            Arc::clone(&device),
+            Arc::clone(&queue),
+        ));
+
         log::info!("DRM renderer created successfully with Phase 9 optimizations");
 
         Ok(DrmRenderer {
@@ -571,6 +580,7 @@ impl DrmRenderer {
             vsync_enabled: true,
             last_frame_time: None,
             cortex,
+            glyph_executor,
         })
     }
 
@@ -616,6 +626,11 @@ impl DrmRenderer {
     /// Get performance metrics
     pub fn get_metrics(&self) -> &PerformanceMetrics {
         &self.metrics
+    }
+
+    /// Get mutable reference to glyph executor
+    pub fn get_glyph_executor(&mut self) -> Option<&mut DrmGlyphExecutor> {
+        self.glyph_executor.as_mut()
     }
 
     /// Enable or disable VSync
