@@ -18,8 +18,12 @@ from .hooks import (
 from .glyph_evolution import (
     GlyphProgram,
     GlyphMutator,
+    fitness_fast,
     fitness_shader_correctness,
     evolve_glyph_program,
+    compile_glyph_program,
+    clear_compilation_cache,
+    get_cache_stats,
     VALID_OPCODES,
 )
 
@@ -35,7 +39,11 @@ __all__ = [
     # Glyph evolution
     "GlyphProgram",
     "GlyphMutator",
+    "fitness_fast",
     "fitness_shader_correctness",
     "evolve_glyph_program",
+    "compile_glyph_program",
+    "clear_compilation_cache",
+    "get_cache_stats",
     "VALID_OPCODES",
 ]
