@@ -36,9 +36,10 @@ impl GlyphPipeline {
                 .context("Failed to create descriptor set layout")?
         };
 
-        // Create pipeline layout
+        // Create pipeline layout - bind array to avoid lifetime issues
+        let set_layouts = [descriptor_set_layout];
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::default()
-            .set_layouts(&[descriptor_set_layout]);
+            .set_layouts(&set_layouts);
 
         let pipeline_layout = unsafe {
             device.device
@@ -66,10 +67,16 @@ impl GlyphPipeline {
             .stage(shader_stage)
             .layout(pipeline_layout);
 
-        let pipeline = unsafe {
+        let pipeline_result = unsafe {
             device.device
                 .create_compute_pipelines(vk::PipelineCache::null(), &[pipeline_create_info], None)
-                .context("Failed to create compute pipeline")?[0]
+        };
+
+        let pipeline = match pipeline_result {
+            Ok(pipelines) => pipelines[0],
+            Err((_, e)) => {
+                anyhow::bail!("Failed to create compute pipeline: {:?}", e);
+            }
         };
 
         // Cleanup shader module (not needed after pipeline creation)

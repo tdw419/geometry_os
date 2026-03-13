@@ -1298,3 +1298,25 @@ git commit -m "docs: add glyph compiler README"
 **Test Status:**
 - 10 glyph_evolution tests: PASSING
 - 4 integration tests: PASSING
+
+---
+
+## ✅ Phase 2 Progress: DRM/KMS Direct Execution
+
+**Goal:** Execute SPIR-V directly via DRM, no Vulkan/WebGPU.
+
+**Key Tasks:**
+- [x] Enable DRM backend module in `infinite_map_rs`
+- [x] Create DRM device abstraction
+- [x] Create KMS scanout stub
+- [x] Create glyph compute executor stub
+- [ ] Wire DRM executor to glyph_compiler output
+- [ ] Test glyph→DRM pipeline
+
+**Files Created:**
+- `systems/infinite_map_rs/src/backend/drm/device.rs`
+- `systems/infinite_map_rs/src/backend/drm/scanout.rs`
+- `systems/infinite_map_rs/src/backend/drm/compute.rs`
+
+**Test Status:**
+- `infinite_map_rs` builds: PASSING

@@ -27,13 +27,16 @@ impl VulkanDevice {
             Entry::load()?
         };
 
-        // Create instance
+        // Create instance - bind CStrings to avoid lifetime issues
+        let app_name = CString::new("Geometry OS").unwrap();
+        let engine_name = CString::new("Glyph Engine").unwrap();
+
         let app_info = vk::ApplicationInfo::default()
-            .application_name(&CString::new("Geometry OS").unwrap())
-            .application_version(vk::make_api_version(0, 1, 0))
-            .engine_name(&CString::new("Glyph Engine").unwrap())
-            .engine_version(vk::make_api_version(0, 1, 0))
-            .api_version(vk::make_api_version(1, 3, 0));
+            .application_name(&app_name)
+            .application_version(vk::make_api_version(0, 1, 0, 0))
+            .engine_name(&engine_name)
+            .engine_version(vk::make_api_version(0, 1, 0, 0))
+            .api_version(vk::make_api_version(0, 1, 3, 0));
 
         let create_info = vk::InstanceCreateInfo::default()
             .application_info(&app_info);
