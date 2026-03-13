@@ -628,9 +628,14 @@ impl DrmRenderer {
         &self.metrics
     }
 
-    /// Get mutable reference to glyph executor
+    /// Get mutable reference to glyph executor for running glyph programs
     pub fn get_glyph_executor(&mut self) -> Option<&mut DrmGlyphExecutor> {
         self.glyph_executor.as_mut()
+    }
+
+    /// Get reference to glyph executor for checking state
+    pub fn glyph_executor(&self) -> Option<&DrmGlyphExecutor> {
+        self.glyph_executor.as_ref()
     }
 
     /// Enable or disable VSync
