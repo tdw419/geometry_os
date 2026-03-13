@@ -202,7 +202,18 @@ export class WindowManager {
 }
 ```
 
-- [ ] **Step 2: Commit WindowManager.js**
+- [ ] **Step 2: Verify WindowManager works**
+
+```bash
+node -e "
+import('./systems/visual_shell/web/WindowManager.js')
+  .then(m => { const wm = new m.WindowManager(); console.log('OK:', wm.addWindow(1, 32, 16)); })
+  .catch(e => console.error('FAIL:', e));
+"
+```
+Expected: `OK: { x: 100, y: 100, z: 1, width: 32, height: 16, focused: true }`
+
+- [ ] **Step 3: Commit WindowManager.js**
 
 ```bash
 git add systems/visual_shell/web/WindowManager.js
@@ -220,9 +231,11 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 **Files:**
 - Modify: `systems/visual_shell/web/GlyphWindowRenderer.js`
 
-- [ ] **Step 1: Add WindowManager parameter and close button**
+**NOTE:** Steps must be done IN ORDER - constructor must be modified before `_createWindow` since `_createWindow` uses `this.windowManager`.
 
-Replace the `_createWindow` method with this version that includes a close button:
+- [ ] **Step 1: Modify constructor to accept WindowManager parameter**
+
+Replace the constructor (lines 13-34) with this complete version:
 
 ```javascript
 _createWindow(app) {
@@ -947,14 +960,20 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Update createGlyphDesktop to use WindowManager and CommandPalette**
 
+**NOTE:** This step uses `SpatialCoordinatorClient` which already exists at `systems/visual_shell/web/SpatialCoordinatorClient.js`. Ensure that file is available.
+
 Replace the `createGlyphDesktop` function at the end of `GlyphWindowRenderer.js`:
 
 ```javascript
+import { SpatialCoordinatorClient } from './SpatialCoordinatorClient.js';  // ADD at top of file
+
+// ... existing code ...
+
 export async function createGlyphDesktop(containerId, bridgeUrl = 'ws://localhost:8770') {
     // Import PixiJS
     const PIXI = await import('https://cdn.skypack.dev/pixi.js@7');
 
-    // Import components
+    // Import components (created in previous tasks)
     const { WindowManager } = await import('./WindowManager.js');
     const { CommandPalette } = await import('./CommandPalette.js');
 
