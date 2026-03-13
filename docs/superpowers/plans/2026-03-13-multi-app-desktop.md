@@ -231,33 +231,84 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 **Files:**
 - Modify: `systems/visual_shell/web/GlyphWindowRenderer.js`
 
-**NOTE:** Steps must be done IN ORDER - constructor must be modified before `_createWindow` since `_createWindow` uses `this.windowManager`.
+**CRITICAL:** Do steps in order! Step 1 defines `this.windowManager` which Step 2 uses.
 
 - [ ] **Step 1: Modify constructor to accept WindowManager parameter**
 
-Replace the constructor (lines 13-34) with this complete version:
+Replace the constructor (lines 13-34) with:
+
+```javascript
+constructor(client, container, options = {}, windowManager = null) {
+    this.client = client;
+    this.container = container;
+    this.windowManager = windowManager;  // NEW: Optional WindowManager
+
+    this.options = {
+        borderWidth: 2,
+        focusedBorderColor: 0x00FF00,
+        unfocusedBorderColor: 0x444444,
+        backgroundColor: 0x0a0a0f,
+        titleBarHeight: 24,
+        glyphWidth: 10,
+        glyphHeight: 16,
+        fontFamily: 'Courier New, monospace',
+        fontSize: 12,
+        textColor: 0x00ff88,
+        ...options
+    };
+
+    this.windows = new Map();
+    this.focusedAppId = null;
+
+    this._setupEventHandlers();
+    this._setupWindowManagerListeners();  // NEW
+}
+
+// NEW: Listen to WindowManager events
+_setupWindowManagerListeners() {
+    if (!this.windowManager) return;
+
+    this.windowManager.on('window_moved', ({ appId, x, y }) => {
+        const win = this.windows.get(appId);
+        if (win) {
+            win.container.x = x;
+            win.container.y = y;
+        }
+    });
+
+    this.windowManager.on('window_focused', ({ appId }) => {
+        this._updateAllBorders();
+    });
+
+    this.windowManager.on('window_removed', ({ appId }) => {
+        // Use existing _destroyWindow method (line 183)
+        this._destroyWindow(appId);
+    });
+}
+```
+
+- [ ] **Step 2: Replace _createWindow method with close button support**
+
+Replace the `_createWindow` method (lines 63-170) with:
 
 ```javascript
 _createWindow(app) {
     const { appId, x, y, width, height, flags, name } = app;
-    const {
-        borderWidth,
-        titleBarHeight,
-        backgroundColor,
-        glyphWidth,
-        glyphHeight,
-    } = this.options;
+    const { titleBarHeight, backgroundColor, glyphWidth, glyphHeight } = this.options;
 
     // Get position from WindowManager if available
-    let windowState = { x, y };
+    let windowX = x;
+    let windowY = y;
     if (this.windowManager) {
-        windowState = this.windowManager.getWindow(appId) || { x, y };
+        const wmState = this.windowManager.addWindow(appId, width, height);
+        windowX = wmState.x;
+        windowY = wmState.y;
     }
 
-    // Create container for the window
+    // Create container
     const windowContainer = new PIXI.Container();
-    windowContainer.x = windowState.x;
-    windowContainer.y = windowState.y;
+    windowContainer.x = windowX;
+    windowContainer.y = windowY;
 
     // Background
     const bg = new PIXI.Graphics();
@@ -295,20 +346,12 @@ _createWindow(app) {
     closeBtn.y = (titleBarHeight - closeBtn.height) / 2;
     closeBtn.eventMode = 'static';
     closeBtn.cursor = 'pointer';
-
-    closeBtn.on('pointerover', () => {
-        closeBtn.style.fill = 0xff0000;
-    });
-    closeBtn.on('pointerout', () => {
-        closeBtn.style.fill = 0xff4444;
-    });
-    closeBtn.on('pointerdown', (e) => {
-        e.stopPropagation();
-        this._closeWindow(appId);
-    });
+    closeBtn.on('pointerover', () => { closeBtn.style.fill = 0xff0000; });
+    closeBtn.on('pointerout', () => { closeBtn.style.fill = 0xff4444; });
+    closeBtn.on('pointerdown', (e) => { e.stopPropagation(); this._closeWindow(appId); });
     windowContainer.addChild(closeBtn);
 
-    // Capability indicators (moved left to make room for close button)
+    // Capability indicators
     const wantsKeyboard = flags & 0x01;
     const wantsMouse = flags & 0x02;
     const caps = [];
@@ -320,7 +363,7 @@ _createWindow(app) {
             fontSize: 10,
             fill: 0x88ff88,
         });
-        capsText.x = width * glyphWidth - capsText.width - 40; // Moved left
+        capsText.x = width * glyphWidth - capsText.width - 40;
         capsText.y = (titleBarHeight - capsText.height) / 2;
         windowContainer.addChild(capsText);
     }
@@ -328,7 +371,6 @@ _createWindow(app) {
     // Glyph display area
     const glyphArea = new PIXI.Container();
     glyphArea.y = titleBarHeight;
-
     const glyphText = new PIXI.Text('', {
         fontFamily: this.options.fontFamily,
         fontSize: this.options.fontSize,
@@ -356,14 +398,20 @@ _createWindow(app) {
         }
     });
 
-    // Interactive - window click for focus
+    // Interactive - window click
     windowContainer.eventMode = 'static';
     windowContainer.on('pointerdown', (e) => {
-        const localX = Math.floor((e.global.x - windowState.x) / glyphWidth);
-        const localY = Math.floor((e.global.y - windowState.y - titleBarHeight) / glyphHeight);
-
-        if (localY >= 0 && localY < height && wantsMouse) {
-            this.client.sendMouseButton(0, localX, localY);
+        if (this.windowManager) {
+            this.windowManager.focusWindow(appId);
+        } else {
+            this._focusWindow(appId);
+        }
+        if (wantsMouse) {
+            const localX = Math.floor((e.global.x - windowX) / glyphWidth);
+            const localY = Math.floor((e.global.y - windowY - titleBarHeight) / glyphHeight);
+            if (localY >= 0 && localY < height && localX >= 0 && localX < width) {
+                this.client.sendMouseButton(0, localX, localY);
+            }
         }
     });
 
@@ -381,32 +429,53 @@ _createWindow(app) {
 }
 ```
 
-- [ ] **Step 2: Modify constructor to accept WindowManager**
+- [ ] **Step 3: Add helper methods after _drawBorder**
 
-Replace the constructor (lines 13-34) with this complete version:
+Add these methods after `_drawBorder` (around line 264):
 
 ```javascript
-constructor(client, container, options = {}, windowManager = null) {
-    this.client = client;
-    this.container = container;
-    this.windowManager = windowManager;  // NEW: Optional WindowManager
+// NEW: Close window handler
+_closeWindow(appId) {
+    if (this.windowManager) {
+        this.windowManager.removeWindow(appId);
+    }
+    this.client.unloadApp(appId);
+}
 
-    this.options = {
-        borderWidth: 2,
-        focusedBorderColor: 0x00FF00,
-        unfocusedBorderColor: 0x444444,
-        backgroundColor: 0x0a0a0f,
-        titleBarHeight: 24,
-        glyphWidth: 10,
-        glyphHeight: 16,
-        fontFamily: 'Courier New, monospace',
-        fontSize: 12,
-        textColor: 0x00ff88,
-        ...options
-    };
+// NEW: Update all window borders based on focus
+_updateAllBorders() {
+    for (const [appId, win] of this.windows) {
+        const isFocused = this.windowManager?.getWindow(appId)?.focused ?? (this.focusedAppId === appId);
+        this._updateBorder(appId, isFocused);
+    }
+}
+```
 
-    this.windows = new Map();
-    this.focusedAppId = null;
+- [ ] **Step 4: Update handleKeyboard to use WindowManager**
+
+Replace `handleKeyboard` (lines 269-284) with:
+
+```javascript
+handleKeyboard(event) {
+    // Let command palette handle backtick
+    if (event.keyCode === 192) {  // Backtick
+        return;
+    }
+
+    // Use WindowManager focus if available
+    const focusedId = this.windowManager?.getFocusedApp() ?? this.focusedAppId;
+    if (focusedId === null) return;
+
+    const win = this.windows.get(focusedId);
+    if (!win) return;
+
+    if (!(win.app.flags & 0x01)) return;
+
+    this.client.sendKeyboardEvent(event.keyCode, 0, 0);
+}
+```
+
+- [ ] **Step 5: Commit GlyphWindowRenderer changes**
 
     this._setupEventHandlers();
     this._setupWindowManagerListeners();  // NEW
