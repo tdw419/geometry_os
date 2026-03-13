@@ -630,10 +630,46 @@ void kernel_main(void *mboot_info) {
     serial_puts("  - Direct framebuffer rendering supported\n\n");
     serial_puts("[INFO] Keyboard active - press keys to echo\n\n");
 
-    // Main loop - handle keyboard input
-    int x = 100, y = 100;  // Text cursor position
+    // Animation state
+    int ball_x = fb.width / 2;
+    int ball_y = fb.height / 2;
+    int ball_dx = 3;
+    int ball_dy = 2;
+    int frame = 0;
+
+    // Main loop - animate and handle keyboard input
+    int text_x = 100, text_y = 100;  // Text cursor position
     while (1) {
-        __asm__ volatile ("hlt");
+        // Animate bouncing ball
+        // Clear old position
+        fb_fill_rect(&fb, ball_x - 15, ball_y - 15, 30, 30, 0x00000000);
+
+        // Update position
+        ball_x += ball_dx;
+        ball_y += ball_dy;
+
+        // Bounce off edges
+        if (ball_x <= 15 || ball_x >= fb.width - 15) {
+            ball_dx = -ball_dx;
+            ball_x = ball_x <= 15 ? 15 : fb.width - 15;
+        }
+        if (ball_y <= 15 || ball_y >= fb.height - 15) {
+            ball_dy = -ball_dy;
+            ball_y = ball_y <= 15 ? 15 : fb.height - 15;
+        }
+
+        // Draw ball with color based on frame
+        u32 ball_color = 0xFF000000 |
+            ((frame & 0xFF) << 16) |
+            (((frame + 85) & 0xFF) << 8) |
+            ((frame + 170) & 0xFF);
+        fb_fill_rect(&fb, ball_x - 10, ball_y - 10, 20, 20, ball_color);
+
+        // Increment frame counter
+        frame++;
+
+        // Small delay for animation
+        for (volatile int i = 0; i < 500000; i++);
 
         // Check for keyboard input
         if (keyboard_has_key()) {
@@ -648,20 +684,20 @@ void kernel_main(void *mboot_info) {
                 // Draw character on screen
                 if (c >= 32 && c < 127) {
                     // Simple character rendering (just a dot for now)
-                    fb_fill_rect(&fb, x, y, 8, 16, 0xFFFFFFFF);
-                    x += 10;
-                    if (x > fb.width - 20) {
-                        x = 100;
-                        y += 20;
+                    fb_fill_rect(&fb, text_x, text_y, 8, 16, 0xFFFFFFFF);
+                    text_x += 10;
+                    if (text_x > fb.width - 20) {
+                        text_x = 100;
+                        text_y += 20;
                     }
                 } else if (c == '\n' || c == '\r') {
-                    x = 100;
-                    y += 20;
+                    text_x = 100;
+                    text_y += 20;
                 } else if (c == '\b' || c == 127) {
                     // Backspace
-                    x -= 10;
-                    if (x < 100) x = 100;
-                    fb_fill_rect(&fb, x, y, 8, 16, 0x00000000);
+                    text_x -= 10;
+                    if (text_x < 100) text_x = 100;
+                    fb_fill_rect(&fb, text_x, text_y, 8, 16, 0x00000000);
                 }
             }
         }
