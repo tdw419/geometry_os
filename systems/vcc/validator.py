@@ -7,6 +7,7 @@ using consistent glyph definitions.
 
 import json
 import re
+import subprocess
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
@@ -188,9 +189,53 @@ def validate_kernel_layer(
     }
 
 
+def validate_kernel_layer_hardware(
+    dmabuf_path: Optional[str] = None,
+    expected_hash: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Validate Kernel layer using hardware attestation.
+    This is the authoritative validation - GPU is the source of truth.
+
+    Args:
+        dmabuf_path: Path to DMA-BUF device (e.g., /dev/dri/card0)
+        expected_hash: Expected SHA-256 hash from contract
+
+    Returns:
+        Hardware attestation result
+
+    Raises:
+        ValidationError: If hardware verification fails
+        FileNotFoundError: If hardware verifier binary not found
+        subprocess.SubprocessError: If subprocess execution fails
+    """
+    # Call Rust hardware verifier
+    result = subprocess.run(
+        ["./target/release/vcc_hardware_verify",
+         "--dmabuf", dmabuf_path or "/dev/dri/card0",
+         "--expected-hash", expected_hash or ""],
+        capture_output=True,
+        text=True
+    )
+
+    if result.returncode != 0:
+        raise ValidationError(f"Hardware verification failed: {result.stderr}")
+
+    hw_result = json.loads(result.stdout)
+
+    return {
+        "valid": hw_result.get("matches", False),
+        "computed_hash": hw_result.get("computed_hash"),
+        "expected_hash": hw_result.get("expected_hash"),
+        "gpu_device": hw_result.get("gpu_device"),
+        "attestation_type": "hardware"
+    }
+
+
 def validate_all_layers(
     contract_path: str,
-    project_root: str
+    project_root: str,
+    prefer_hardware: bool = True
 ) -> Dict[str, Any]:
     """
     Validate all layers against a VCC contract.
@@ -198,6 +243,7 @@ def validate_all_layers(
     Args:
         contract_path: Path to vcc_contract.json
         project_root: Project root directory
+        prefer_hardware: If True, try hardware attestation for kernel first
 
     Returns:
         Combined validation results
@@ -230,13 +276,34 @@ def validate_all_layers(
     except ValidationError as e:
         results["shell"] = {"valid": False, "error": str(e)}
 
-    try:
-        results["kernel"] = validate_kernel_layer(
-            rust_file=str(root / "systems/infinite_map_rs/src/text_engine.rs"),
-            wgsl_file=str(root / "systems/infinite_map_rs/src/shaders/msdf_font.wgsl")
-        )
-    except ValidationError as e:
-        results["kernel"] = {"valid": False, "error": str(e)}
+    # For kernel, try hardware first if preferred
+    if prefer_hardware:
+        try:
+            results["kernel"] = validate_kernel_layer_hardware(
+                dmabuf_path="/dev/dri/card0",
+                expected_hash=contract.data.get("atlas_hash")
+            )
+            results["kernel"]["hardware_verified"] = True
+        except (ValidationError, FileNotFoundError, subprocess.SubprocessError, json.JSONDecodeError) as e:
+            # Fall back to software validation
+            try:
+                results["kernel"] = validate_kernel_layer(
+                    rust_file=str(root / "systems/infinite_map_rs/src/text_engine.rs"),
+                    wgsl_file=str(root / "systems/infinite_map_rs/src/shaders/msdf_font.wgsl")
+                )
+                results["kernel"]["hardware_verified"] = False
+                results["kernel"]["fallback_reason"] = str(e)
+            except ValidationError as e2:
+                results["kernel"] = {"valid": False, "error": str(e2)}
+    else:
+        try:
+            results["kernel"] = validate_kernel_layer(
+                rust_file=str(root / "systems/infinite_map_rs/src/text_engine.rs"),
+                wgsl_file=str(root / "systems/infinite_map_rs/src/shaders/msdf_font.wgsl")
+            )
+            results["kernel"]["hardware_verified"] = False
+        except ValidationError as e:
+            results["kernel"] = {"valid": False, "error": str(e)}
 
     # Overall status
     results["all_valid"] = all(
