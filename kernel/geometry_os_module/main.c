@@ -12,6 +12,7 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 #include <linux/slab.h>
+#include <linux/mutex.h>
 
 #include "geometry_os.h"
 #include "gpu.h"
@@ -25,6 +26,7 @@ MODULE_VERSION("0.1");
 /* SPIR-V storage (simplified - single program) */
 #define MAX_SPIRV_SIZE (64 * 1024)  /* 64KB max */
 
+static DEFINE_MUTEX(geos_spirv_mutex);
 static void *spirv_buffer;
 static size_t spirv_size;
 
@@ -33,43 +35,62 @@ static long geos_ioctl_load_spirv(unsigned long arg)
     struct geos_spirv_load load;
     void __user *uptr;
     u32 magic;
+    int ret = 0;
 
-    if (copy_from_user(&load, (void __user *)arg, sizeof(load)))
-        return -EFAULT;
+    mutex_lock(&geos_spirv_mutex);
 
-    if (load.spirv_size > MAX_SPIRV_SIZE)
-        return -EFBIG;
+    if (copy_from_user(&load, (void __user *)arg, sizeof(load))) {
+        ret = -EFAULT;
+        goto out;
+    }
 
-    if (load.spirv_size < 20)  /* Minimum SPIR-V header size */
-        return -EINVAL;
+    if (load.spirv_size > MAX_SPIRV_SIZE) {
+        ret = -EFBIG;
+        goto out;
+    }
+
+    if (load.spirv_size < 20) {  /* Minimum SPIR-V header size */
+        ret = -EINVAL;
+        goto out;
+    }
 
     uptr = (void __user *)load.spirv_ptr;
-    if (!uptr)
-        return -EINVAL;
+    if (!uptr) {
+        ret = -EINVAL;
+        goto out;
+    }
 
     /* Allocate buffer if needed */
     if (!spirv_buffer) {
         spirv_buffer = kmalloc(MAX_SPIRV_SIZE, GFP_KERNEL);
-        if (!spirv_buffer)
-            return -ENOMEM;
+        if (!spirv_buffer) {
+            ret = -ENOMEM;
+            goto out;
+        }
     }
 
     /* Copy SPIR-V from userspace */
     if (copy_from_user(spirv_buffer, uptr, load.spirv_size)) {
-        return -EFAULT;
+        spirv_size = 0;  /* Reset on error */
+        ret = -EFAULT;
+        goto out;
     }
 
     /* Validate SPIR-V magic number */
     magic = *(u32 *)spirv_buffer;
     if (magic != 0x07230203) {
         pr_warn("geometry_os: Invalid SPIR-V magic: 0x%08x\n", magic);
-        return -EINVAL;
+        spirv_size = 0;  /* Reset on error */
+        ret = -EINVAL;
+        goto out;
     }
 
     spirv_size = load.spirv_size;
     pr_info("geometry_os: Loaded %zu byte SPIR-V binary\n", spirv_size);
 
-    return 0;
+out:
+    mutex_unlock(&geos_spirv_mutex);
+    return ret;
 }
 
 /* File operations */
