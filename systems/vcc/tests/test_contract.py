@@ -18,6 +18,11 @@ class TestVCCContract:
         with pytest.raises(ValueError, match="atlas_path"):
             generate_contract(atlas_path=None, positions_path="test.json")
 
+    def test_contract_creation_requires_positions_path(self):
+        """Contract should require positions path."""
+        with pytest.raises(ValueError, match="positions_path"):
+            generate_contract(atlas_path="test.raw", positions_path=None)
+
     def test_contract_includes_atlas_hash(self):
         """Contract should include SHA-256 hash of atlas."""
         with tempfile.NamedTemporaryFile(suffix=".raw", delete=False) as atlas:

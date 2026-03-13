@@ -121,29 +121,23 @@ class VCCContract:
             self.glyph_count = len(positions_data)
             self.opcode_mappings = {name: i for i, name in enumerate(positions_data.keys())}
 
-        # 3. Add default layer config
+        # 3. Add default layer config matching VCC_CONTRACT_SCHEMA
         self.layers = {
             "foundry": {
-                "renderer_path": "systems/fonts/font_renderer.py",
-                "metrics_hash": self._compute_metrics_hash(positions_json_path)
+                "glyph_metrics_schema": "systems.vcc.schemas.GLYPH_METRICS_SCHEMA",
+                "source_file": "systems/fonts/font_renderer.py"
             },
             "shell": {
-                "pixi_version": "v8",
-                "webgpu_enabled": True
+                "atlas_path": "systems/glyph_stratum/opcode_atlas.webp",
+                "positions_path": "systems/glyph_stratum/opcode_positions.json"
             },
             "kernel": {
-                "rust_version": "1.75+",
-                "wgpu_backend": "vulkan",
-                "drm_enabled": True
+                "glyph_metrics_struct": "text_engine.rs::GlyphMetrics",
+                "shader_file": "systems/infinite_map_rs/src/shaders/msdf_font.wgsl"
             }
         }
 
         return self
-
-    def _compute_metrics_hash(self, path: str) -> str:
-        """Compute SHA-256 of the metrics JSON to ensure semantic consistency."""
-        with open(path, 'rb') as f:
-            return compute_atlas_sha256(f.read())
 
     def save(self, output_path: str):
         """Save the contract as a JSON file."""
@@ -196,6 +190,8 @@ def generate_contract(
     """
     if atlas_path is None:
         raise ValueError("atlas_path is required")
+    if positions_path is None:
+        raise ValueError("positions_path is required")
 
     atlas_path = Path(atlas_path)
     positions_path = Path(positions_path)
