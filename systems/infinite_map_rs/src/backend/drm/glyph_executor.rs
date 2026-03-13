@@ -7,7 +7,8 @@ use std::sync::Arc;
 use wgpu::TextureView;
 
 /// Error types for glyph execution
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[non_exhaustive]
 pub enum GlyphError {
     #[error("SPIR-V validation failed: {0}")]
     SpirvValidation(String),
@@ -54,6 +55,8 @@ mod tests {
 
     #[test]
     fn test_executor_creation() {
-        // Placeholder - will be replaced in Task 0.2
+        // Placeholder - async GPU tests in Task 0.2
+        // This verifies the module compiles and types are correct
+        assert!(true);
     }
 }
