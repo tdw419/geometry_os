@@ -289,5 +289,18 @@ def generate_opcode_atlas():
     print(f"  - Preview: {preview_path}")
     print(f"  - WebP: {webp_path if 'webp_path' in locals() else 'skipped'}")
 
+    # Generate Visual Consistency Contract (VCC)
+    try:
+        from systems.vcc.contract import VCCContract
+        vcc = VCCContract()
+        vcc_output = os.path.join(os.path.dirname(__file__), "..", "vcc", "vcc_contract.json")
+        vcc.generate_from_atlas(atlas_path, positions_path, (atlas_width, atlas_height))
+        vcc.save(vcc_output)
+        print(f"  - VCC Contract: {vcc_output}")
+    except ImportError:
+        print("Warning: VCC module not found, skipping contract generation.")
+    except Exception as e:
+        print(f"Warning: Failed to generate VCC contract: {e}")
+
 if __name__ == "__main__":
     generate_opcode_atlas()

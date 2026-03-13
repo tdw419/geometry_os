@@ -66,7 +66,7 @@ TRACKS = [
 
 def parse_benchmark_output(output: str) -> dict:
     """Parse benchmark output to extract metrics."""
-    result = {"gips": 0, "fps": 0, "status": "fail", "allocator_fitness": 0}
+    result = {"gips": 0, "fps": 0, "status": "fail", "allocator_fitness": 0, "spawn_depth": 0}
     for line in output.split("\n"):
         if "GIPS:" in line:
             try:
@@ -85,6 +85,11 @@ def parse_benchmark_output(output: str) -> dict:
                 result["allocator_fitness"] = float(score_str) / 100.0
             except:
                 pass
+        if "Generations Reached:" in line:
+            try:
+                result["spawn_depth"] = int(line.split(":")[1].strip())
+            except:
+                pass
         if "PASS" in line or "✅" in line:
             result["status"] = "pass"
     return result
@@ -96,6 +101,14 @@ def run_benchmark(track_name="") -> dict:
         if "CORE" in track_name:
             result = subprocess.run(
                 ["python3", str(ROOT / "apps/autoresearch/run_allocator_research.py")],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=str(ROOT)
+            )
+        elif "BODY" in track_name:
+            result = subprocess.run(
+                ["python3", str(ROOT / "systems/glyph_stratum/test_recursive_spawn.py")],
                 capture_output=True,
                 text=True,
                 timeout=60,

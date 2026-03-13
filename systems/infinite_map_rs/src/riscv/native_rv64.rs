@@ -163,9 +163,8 @@ impl NativeRv64Executor {
         // Read GLSL source
         let glsl_source = include_str!("../shaders/riscv64_vm.glsl");
 
-        // Compile to SPIR-V using glslang or shaderc
-        // For now, we'll use pre-compiled SPIR-V
-        let spirv_binary = compile_glsl_to_spirv(glsl_source, shaderc::ShaderKind::Compute)?;
+        // Compile to SPIR-V using naga
+        let spirv_binary = compile_glsl_to_spirv(glsl_source, ())?;
 
         // Upload shader to GPU
         self.shader_module = Some(self.device.create_shader(&spirv_binary)?);
@@ -227,20 +226,37 @@ impl NativeRv64Executor {
     }
 }
 
-/// Compile GLSL to SPIR-V
-fn compile_glsl_to_spirv(source: &str, kind: shaderc::ShaderKind) -> Result<Vec<u32>> {
-    let mut compiler = shaderc::Compiler::new()?;
-    let options = shaderc::CompileOptions::new()?;
+/// Compile GLSL to SPIR-V using naga
+fn compile_glsl_to_spirv(source: &str, _kind: ()) -> Result<Vec<u32>> {
+    use naga::front::glsl;
+    use naga::back::spv;
 
-    let artifact = compiler.compile_into_spirv(
-        source,
-        kind,
-        "riscv64_vm.comp",
-        "main",
-        Some(&options),
-    )?;
+    let mut parser = glsl::Frontend::default();
+    let options = glsl::Options {
+        stage: naga::ShaderStage::Compute,
+        defines: std::collections::HashMap::new(),
+    };
+    
+    let module = parser.parse(&options, source)
+        .map_err(|e| anyhow::anyhow!("GLSL Parse Error: {:?}", e))?;
 
-    Ok(artifact.as_binary().to_vec())
+    let mut validator = naga::valid::Validator::new(
+        naga::valid::ValidationFlags::all(),
+        naga::valid::Capabilities::all(),
+    );
+    let info = validator.validate(&module)
+        .map_err(|e| anyhow::anyhow!("Validation Error: {:?}", e))?;
+
+    let spv_options = spv::Options {
+        lang_version: (1, 3),
+        flags: spv::WriterFlags::empty(),
+        ..Default::default()
+    };
+    
+    let spirv = spv::write_vec(&module, &info, &spv_options, None)
+        .map_err(|e| anyhow::anyhow!("SPIR-V Write Error: {:?}", e))?;
+
+    Ok(spirv)
 }
 
 #[cfg(test)]

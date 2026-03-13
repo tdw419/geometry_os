@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "generated_at": "2026-03-13T14:39:51.254982Z",
+  "atlas_hash": {
+    "sha256": "e650d7aaba3482cefd9b88b3cd4cbabe9d75743ca97331e1252474a64689a999",
+    "size_bytes": 16777216,
+    "dimensions": [
+      2048,
+      2048
+    ]
+  },
+  "glyph_count": 9,
+  "opcode_mappings": {
+    "version": 0,
+    "font_name": 1,
+    "font_size": 2,
+    "atlas_size": 3,
+    "glyph_count": 4,
+    "ascent": 5,
+    "descent": 6,
+    "line_gap": 7,
+    "sdf_spread": 8
+  },
+  "layers": {
+    "foundry": {
+      "renderer_path": "systems/fonts/font_renderer.py",
+      "metrics_hash": "94ed16321c673e638f900b5700e43715e33847c3138a66818629ec2083aec7a7"
+    },
+    "shell": {
+      "pixi_version": "v8",
+      "webgpu_enabled": true
+    },
+    "kernel": {
+      "rust_version": "1.75+",
+      "wgpu_backend": "vulkan",
+      "drm_enabled": true
+    }
+  },
+  "signatures": {}
+}

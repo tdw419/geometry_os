@@ -90,7 +90,7 @@ tempfile = "3.24.0"
 # Updated to 42.0.1 for latest fixes
 wasmtime = "42.0"
 anyhow = "1.0"
-naga = { version = "0.19", features = ["wgsl-in", "spv-out"] }
+naga = { version = "0.19", features = ["wgsl-in", "spv-out", "glsl-in"] }
 
 # Phase 40.5: Stateful Hot Swapping - Dynamic module loading
 libloading = "0.8"
