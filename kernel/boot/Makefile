@@ -31,8 +31,8 @@ TARGET = bootx64.efi
 OBJECTS = main.o
 
 # Kernel files
-KERNEL_SRCS = kernel.c memory.c interrupt.c glyph_exec.c pci.c gpu.c ring.c glyph_compiler.c
-KERNEL_OBJS = start.o kernel.o memory.o interrupt.o glyph_exec.o pci.o gpu.o ring.o glyph_compiler.o
+KERNEL_SRCS = kernel.c memory.c interrupt.c glyph_exec.c pci.c gpu.c ring.c glyph_compiler.c window_manager.c
+KERNEL_OBJS = start.o kernel.o memory.o interrupt.o glyph_exec.o pci.o gpu.o ring.o glyph_compiler.o window_manager.o
 
 # Build rules
 all: $(TARGET)
@@ -89,6 +89,11 @@ ring.o: ring.c
 	      -c $< -o $@
 
 glyph_compiler.o: glyph_compiler.c
+	$(CC) -ffreestanding -fno-stack-protector -fno-pic \
+	      -mno-red-zone -mcmodel=kernel -mno-mmx -mno-sse \
+	      -c $< -o $@
+
+window_manager.o: window_manager.c
 	$(CC) -ffreestanding -fno-stack-protector -fno-pic \
 	      -mno-red-zone -mcmodel=kernel -mno-mmx -mno-sse \
 	      -c $< -o $@
