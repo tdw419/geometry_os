@@ -506,7 +506,8 @@ class TestInterruptPropagation:
         """Should get 4-connected neighbors for propagation."""
         from systems.spatial_coordinator.interrupt import get_neighbors
 
-        neighbors = get_neighbors(10, 10, 5, 5)  # x=10, y=10, in 5x5 grid
+        # x=5, y=5 in a 10x10 grid - all 4 neighbors should be valid
+        neighbors = get_neighbors(5, 5, 10, 10)
 
         assert len(neighbors) == 4
         assert (4, 5) in neighbors   # left
@@ -518,7 +519,8 @@ class TestInterruptPropagation:
         """Should not propagate outside grid bounds."""
         from systems.spatial_coordinator.interrupt import get_neighbors
 
-        neighbors = get_neighbors(0, 0, 10, 10)  # corner
+        # Top-left corner (0,0) in a 10x10 grid
+        neighbors = get_neighbors(0, 0, 10, 10)
 
         assert len(neighbors) == 2  # only right and down
         assert (-1, 0) not in neighbors
@@ -545,17 +547,25 @@ from typing import List, Tuple
 MAX_PROPAGATION_TTL = 64
 
 
-def get_neighbors(x: int, y: int, width: int, height: int) -> List[Tuple[int, int]]:
-    """Get 4-connected neighbors within grid bounds."""
+def get_neighbors(x: int, y: int, grid_width: int, grid_height: int) -> List[Tuple[int, int]]:
+    """Get 4-connected neighbors within grid bounds.
+
+    Args:
+        x, y: Current coordinates
+        grid_width, grid_height: Grid dimensions
+
+    Returns:
+        List of (x, y) tuples for valid neighbors
+    """
     neighbors = []
 
     if x > 0:
         neighbors.append((x - 1, y))  # left
-    if x < width - 1:
+    if x < grid_width - 1:
         neighbors.append((x + 1, y))  # right
     if y > 0:
         neighbors.append((x, y - 1))  # up
-    if y < height - 1:
+    if y < grid_height - 1:
         neighbors.append((x, y + 1))  # down
 
     return neighbors
@@ -1291,10 +1301,10 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 ```wgsl
 // systems/spatial_coordinator/wgsl/coordinator.wgsl
 // Main Spatial Program Coordinator Compute Shader
-
-#include "interrupt_injector.wgsl"
-#include "app_loader.wgsl"
-#include "syscall_handler.wgsl"
+//
+// NOTE: WGSL does not support #include. At build time, this file is
+// concatenated with: interrupt_injector.wgsl, app_loader.wgsl, syscall_handler.wgsl
+// See: build_shaders.py
 
 struct CoordinatorUniforms {
     map_width: u32,
@@ -1331,17 +1341,17 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         return;
     }
 
-    // Phase 1: Inject pending interrupts
+    // Phase 1: Inject pending interrupts (from interrupt_injector.wgsl)
     inject_interrupts(gid);
 
-    // Phase 2: Propagate interrupts spatially
+    // Phase 2: Propagate interrupts spatially (from interrupt_injector.wgsl)
     propagate_interrupts(gid);
 
     // Phase 3: Execute glyph at this cell
     let glyph = infinite_map[cell_idx];
 
     if (glyph == OP_SYNC) {
-        // Queue syscall for host processing
+        // Queue syscall for host processing (from syscall_handler.wgsl)
         queue_syscall(cell_idx);
     } else if (glyph == OP_HALT) {
         // App halted - no further execution
@@ -1369,6 +1379,155 @@ fn execute_glyph_microcode(cell_idx: u32, opcode: u32) {
 ```bash
 git add systems/spatial_coordinator/wgsl/
 git commit -m "feat(spatial_coordinator): add main coordinator.wgsl
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 10a: App Loader WGSL
+
+**Files:**
+- Create: `systems/spatial_coordinator/wgsl/app_loader.wgsl`
+
+- [ ] **Step 1: Write the app loader shader**
+
+```wgsl
+// systems/spatial_coordinator/wgsl/app_loader.wgsl
+// Application header parsing and region loading
+
+struct AppHeader {
+    magic: vec4<u32>,      // "GEOS" as 4 bytes
+    width: u32,
+    height: u32,
+    mem_size: u32,
+    entry_x: u32,
+    entry_y: u32,
+    handler_offset: u32,
+    flags: u32,
+}
+
+fn parse_header(data: ptr<function, array<u32, 4>>) -> AppHeader {
+    var header: AppHeader;
+    header.magic = (*data);
+    // Extract width/height from packed u32s
+    header.width = (*data)[1] & 0xFFFFu;
+    header.height = (*data)[1] >> 16u;
+    header.mem_size = (*data)[2] & 0xFFFFu;
+    header.entry_x = (*data)[2] >> 16u & 0xFFu;
+    header.entry_y = (*data)[2] >> 24u & 0xFFu;
+    header.handler_offset = (*data)[3] & 0xFFFFu;
+    header.flags = (*data)[3] >> 16u;
+    return header;
+}
+
+fn has_capability(flags: u32, bit: u32) -> bool {
+    return (flags & (1u << bit)) != 0u;
+}
+
+fn load_app_to_region(
+    app_data: ptr<storage, array<u32>>,
+    origin_x: u32,
+    origin_y: u32,
+    width: u32,
+    height: u32,
+    map_width: u32
+) {
+    // Copy app glyphs to allocated region
+    for (var y = 0u; y < height; y++) {
+        for (var x = 0u; x < width; x++) {
+            let src_idx = y * width + x;
+            let dst_idx = (origin_y + y) * map_width + (origin_x + x);
+            infinite_map[dst_idx] = (*app_data)[src_idx];
+        }
+    }
+}
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add systems/spatial_coordinator/wgsl/app_loader.wgsl
+git commit -m "feat(spatial_coordinator): add app_loader.wgsl
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 10b: Syscall Handler WGSL
+
+**Files:**
+- Create: `systems/spatial_coordinator/wgsl/syscall_handler.wgsl`
+
+- [ ] **Step 1: Write the syscall handler shader**
+
+```wgsl
+// systems/spatial_coordinator/wgsl/syscall_handler.wgsl
+// Syscall queue and processing for SYNC opcode
+
+const SYS_RESIZE: u32 = 1u;
+const SYS_CLOSE: u32 = 2u;
+const SYS_SPAWN: u32 = 3u;
+const SYS_GET_TIME: u32 = 6u;
+const SYS_REQUEST_FOCUS: u32 = 7u;
+const SYS_YIELD_FOCUS: u32 = 8u;
+
+const MAX_QUEUE_DEPTH: u32 = 16u;
+
+struct SyscallRequest {
+    app_id: u32,
+    syscall_id: u32,
+    arg1: u32,
+    arg2: u32,
+    return_value: atomic<u32>,
+}
+
+var<private> syscall_count: u32 = 0u;
+
+fn queue_syscall(cell_idx: u32, app_id: u32, syscall_id: u32, arg1: u32, arg2: u32) -> bool {
+    // Check queue capacity
+    if (syscall_count >= MAX_QUEUE_DEPTH) {
+        // Drop oldest (simplified - real impl would use ring buffer)
+        return false;
+    }
+
+    let idx = syscall_count;
+    syscall_queue[idx].app_id = app_id;
+    syscall_queue[idx].syscall_id = syscall_id;
+    syscall_queue[idx].arg1 = arg1;
+    syscall_queue[idx].arg2 = arg2;
+    syscall_count++;
+    return true;
+}
+
+fn process_syscall(idx: u32) -> u32 {
+    let req = syscall_queue[idx];
+
+    switch req.syscall_id {
+        case SYS_GET_TIME: {
+            return uniforms.frame_count;
+        }
+        case SYS_RESIZE: {
+            // Mark for host processing - actual resize done on CPU
+            return 1u;  // Success (pending)
+        }
+        case SYS_REQUEST_FOCUS: {
+            // Focus arbitration - lowest app_id wins
+            return 1u;
+        }
+        default: {
+            return 0u;  // Unknown syscall
+        }
+    }
+}
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add systems/spatial_coordinator/wgsl/syscall_handler.wgsl
+git commit -m "feat(spatial_coordinator): add syscall_handler.wgsl
 
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 ```
@@ -1480,7 +1639,19 @@ class TestCoordinatorIntegration:
         from systems.spatial_coordinator.types import InterruptType
 
         coordinator = Coordinator(map_width=1024, map_height=1024)
-        coordinator.load_app(b'GEOS' + b'\x10\x00' * 6 + b'\x01\x00')  # minimal app
+
+        # Properly constructed 16-byte header:
+        # GEOS + width(16) + height(16) + mem(64) + entry(0,0) + handlers(0) + flags(0x01)
+        header = (
+            b'GEOS'           # Magic (4 bytes)
+            b'\x10\x00'       # Width: 16 (2 bytes, little-endian)
+            b'\x10\x00'       # Height: 16 (2 bytes)
+            b'\x40\x00'       # Mem size: 64 (2 bytes)
+            b'\x00\x00'       # Entry point: (0, 0) (2 bytes, packed as x|y<<8)
+            b'\x00\x00'       # Handler table offset: 0 (2 bytes)
+            b'\x01\x00'       # Flags: WANTS_KEYBOARD (2 bytes)
+        )
+        coordinator.load_app(header + b'\x00' * 240)  # 16x16 = 256 cells, header is 16
 
         packet = InterruptPacket(
             type=InterruptType.KEYBOARD,
@@ -1514,6 +1685,61 @@ class TestCoordinatorIntegration:
 
         # GET_TIME should have been processed
         assert coordinator.syscall_handler.queue_depth == 0
+
+    def test_multiple_apps_coexist_no_conflicts(self):
+        """Should load 3 apps with no spatial conflicts."""
+        from systems.spatial_coordinator.coordinator import Coordinator
+
+        coordinator = Coordinator(map_width=1024, map_height=1024)
+
+        # Create 3 different apps
+        def make_app(width: int, height: int, flags: int) -> bytes:
+            header = (
+                b'GEOS'
+                + width.to_bytes(2, 'little')
+                + height.to_bytes(2, 'little')
+                + b'\x40\x00'  # mem
+                + b'\x00\x00'  # entry
+                + b'\x00\x00'  # handlers
+                + flags.to_bytes(2, 'little')
+            )
+            return header + b'\x00' * (width * height)
+
+        app1 = make_app(64, 32, 0x01)  # keyboard only
+        app2 = make_app(128, 64, 0x02)  # mouse only
+        app3 = make_app(32, 32, 0x03)  # both
+
+        id1 = coordinator.load_app(app1)
+        id2 = coordinator.load_app(app2)
+        id3 = coordinator.load_app(app3)
+
+        assert all([id1 is not None, id2 is not None, id3 is not None])
+        assert len(set([id1, id2, id3])) == 3  # All different IDs
+
+    def test_focus_arbitration_lowest_id_wins(self):
+        """When multiple apps request focus, lowest ID wins."""
+        from systems.spatial_coordinator.coordinator import Coordinator
+        from systems.spatial_coordinator.syscall import SyscallRequest
+        from systems.spatial_coordinator.types import SyscallID
+
+        coordinator = Coordinator(map_width=1024, map_height=1024)
+
+        # Simulate two apps requesting focus same frame
+        coordinator.syscall_handler.queue(SyscallRequest(
+            app_id=5, syscall_id=SyscallID.REQUEST_FOCUS, arg1=0, arg2=0
+        ))
+        coordinator.syscall_handler.queue(SyscallRequest(
+            app_id=2, syscall_id=SyscallID.REQUEST_FOCUS, arg1=0, arg2=0
+        ))
+        coordinator.syscall_handler.queue(SyscallRequest(
+            app_id=8, syscall_id=SyscallID.REQUEST_FOCUS, arg1=0, arg2=0
+        ))
+
+        coordinator.process_syscalls()
+
+        # Lowest ID (2) should have focus
+        focused = coordinator.syscall_handler.focused_app_id
+        assert focused == 2
 ```
 
 - [ ] **Step 2: Write Coordinator class**
