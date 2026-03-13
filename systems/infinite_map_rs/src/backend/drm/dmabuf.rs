@@ -4,9 +4,11 @@
 //! Zero-copy GPU→Display via DMA-BUF sharing.
 
 use anyhow::{Context, Result, anyhow};
-use std::os::unix::io::{RawFd, OwnedFd, AsRawFd};
+use std::os::unix::io::{RawFd, OwnedFd, AsRawFd, FromRawFd};
 use std::fs::File;
 use super::vcc_compute::VccCompute;
+use memmap2::Mmap;
+use sha2::{Sha256, Digest};
 
 /// DMA-BUF handle for zero-copy buffer sharing.
 pub struct DmaBuf {
@@ -120,6 +122,72 @@ impl DmaBuf {
     pub fn stride(&self) -> u32 {
         self.stride
     }
+
+    /// Map the DMA-BUF for read-only access.
+    ///
+    /// Returns a read-only memory mapping of the buffer contents.
+    /// This is used for VCC hash verification without modifying the buffer.
+    pub fn map_read(&self) -> Result<DmaBufMapping> {
+        // Create a read-only memory mapping of the DMA-BUF fd
+        let file = unsafe { File::from_raw_fd(self.fd.as_raw_fd()) };
+        let mmap = unsafe { Mmap::map(&file)? };
+        // Don't close the fd - it's owned by self.fd
+        std::mem::forget(file);
+
+        Ok(DmaBufMapping {
+            mmap,
+            size: self.size,
+        })
+    }
+
+    /// Verify the DMA-BUF contents against VCC contract.
+    ///
+    /// This reads directly from GPU memory - no CPU copy.
+    /// Returns true if the hash matches the expected value.
+    pub fn verify_vcc(&self, expected_hash: [u8; 32]) -> Result<bool> {
+        let mapping = self.map_read()?;
+
+        // Compute hash directly from mapped GPU memory
+        let mut hasher = Sha256::new();
+        hasher.update(mapping.as_slice());
+        let computed = hasher.finalize();
+
+        // Compare with expected
+        Ok(computed.as_slice() == expected_hash.as_slice())
+    }
+
+    /// Get the DMA-BUF's current hash without verification.
+    ///
+    /// Computes SHA256 hash of the buffer contents.
+    pub fn compute_hash(&self) -> Result<[u8; 32]> {
+        let mapping = self.map_read()?;
+
+        let mut hasher = Sha256::new();
+        hasher.update(mapping.as_slice());
+
+        let result: [u8; 32] = hasher.finalize().into();
+        Ok(result)
+    }
+}
+
+/// Read-only mapping of a DMA-BUF.
+///
+/// This provides safe access to the buffer contents for verification.
+pub struct DmaBufMapping {
+    mmap: Mmap,
+    size: usize,
+}
+
+impl DmaBufMapping {
+    /// Get the mapped contents as a byte slice.
+    pub fn as_slice(&self) -> &[u8] {
+        &self.mmap[..self.size]
+    }
+
+    /// Get the size of the mapping.
+    pub fn size(&self) -> usize {
+        self.size
+    }
 }
 
 /// Zero-copy pipeline from GPU compute to display.
@@ -230,5 +298,53 @@ mod tests {
 
         let result = pipeline.execute_and_display(&buf);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_compute_hash() {
+        let buf = DmaBuf::export_from_gpu(
+            -1,
+            0,
+            8,
+            8,
+            8 * 4, // Small buffer for testing
+            0x34325241,
+        ).unwrap();
+
+        // Should be able to compute hash
+        let hash = buf.compute_hash();
+        assert!(hash.is_ok());
+
+        let hash1 = hash.unwrap();
+
+        // Same buffer should produce same hash
+        let hash2 = buf.compute_hash().unwrap();
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_verify_vcc() {
+        let buf = DmaBuf::export_from_gpu(
+            -1,
+            0,
+            8,
+            8,
+            8 * 4,
+            0x34325241,
+        ).unwrap();
+
+        // Get the actual hash
+        let actual_hash = buf.compute_hash().unwrap();
+
+        // Verify with correct hash should succeed
+        let result = buf.verify_vcc(actual_hash);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+
+        // Verify with wrong hash should fail
+        let wrong_hash = [0u8; 32];
+        let result = buf.verify_vcc(wrong_hash);
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
     }
 }
