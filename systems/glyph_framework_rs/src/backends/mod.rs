@@ -12,6 +12,9 @@ pub trait ExecutionBackend {
     
     /// Write a specific value to an application's spatial memory.
     fn set_state(&mut self, app_id: AppId, addr: u64, value: f32) -> Result<(), String>;
+
+    /// Read a specific value from an application's spatial memory.
+    fn get_state(&mut self, app_id: AppId, addr: u64) -> Result<f32, String>;
     
     /// Drop an intent glyph into the application's message bus/interrupt queue.
     fn send_intent(&mut self, app_id: AppId, intent: Intent) -> Result<(), String>;
@@ -21,4 +24,7 @@ pub trait ExecutionBackend {
     
     /// Advance the execution state (tick the VM/compute shader).
     fn step(&mut self) -> Result<(), String>;
+
+    /// Read the application's execution context (for debugging).
+    fn get_context(&mut self, app_id: AppId) -> Result<[u32; 10], String>;
 }

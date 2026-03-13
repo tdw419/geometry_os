@@ -1,35 +1,35 @@
-//! AMD GPU Device - Direct AMDGPU access via DRM.
+//! Intel GPU Device - Direct i915 access via DRM.
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use std::fs::File;
 use std::os::unix::io::{AsRawFd, RawFd};
 
 /// Buffer handle type
 pub type BufferHandle = u32;
 
-/// AMD GPU device for direct command submission.
-pub struct AmdGpuDevice {
+/// Intel GPU device for direct command submission.
+pub struct IntelGpuDevice {
     device_file: File,
     device_path: String,
     /// GPU ID for command submission
     gpu_id: u32,
     /// Next buffer handle
     next_buffer_handle: u32,
-    /// Allocated buffers (handle -> (gpu_addr, size))
+    /// Allocated buffers (handle -> (gtt_offset, size))
     buffers: std::collections::HashMap<BufferHandle, (u64, u64)>,
 }
 
-impl AmdGpuDevice {
-    /// Open an AMD GPU device.
+impl IntelGpuDevice {
+    /// Open an Intel GPU device.
     pub fn open(path: &str) -> Result<Self> {
         let device_file = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
             .open(path)
-            .context("Failed to open AMDGPU device")?;
+            .context("Failed to open Intel GPU device")?;
 
         let fd = device_file.as_raw_fd();
-        log::info!("Opened AMDGPU device: {} (fd={})", path, fd);
+        log::info!("Opened Intel GPU device: {} (fd={})", path, fd);
 
         Ok(Self {
             device_file,
@@ -40,19 +40,19 @@ impl AmdGpuDevice {
         })
     }
 
-    /// Open the first AMD GPU (render node).
+    /// Open the first Intel GPU (render node).
     pub fn open_first() -> Result<Self> {
-        // Try common AMD render nodes
+        // Try common Intel render nodes
         for i in 0..16 {
             let path = format!("/dev/dri/renderD{}", 128 + i);
             if std::path::Path::new(&path).exists() {
                 if let Ok(device) = Self::open(&path) {
-                    // Verify it's AMD by checking device info
+                    // Verify it's Intel by checking PCI ID
                     return Ok(device);
                 }
             }
         }
-        anyhow::bail!("No AMD GPU render node found")
+        anyhow::bail!("No Intel GPU render node found")
     }
 
     /// Get the file descriptor for DRM ioctls.
@@ -60,63 +60,61 @@ impl AmdGpuDevice {
         self.device_file.as_raw_fd()
     }
 
-    /// Allocate a GPU buffer.
-    pub fn alloc_buffer(&mut self, size: u64, _vram: bool) -> Result<BufferHandle> {
+    /// Allocate a GTT buffer (GTT = Graphics Translation Table).
+    pub fn alloc_gtt(&mut self, size: u64) -> Result<BufferHandle> {
         let handle = self.next_buffer_handle;
         self.next_buffer_handle += 1;
 
-        // Simulated GPU address (would come from amdgpu_bo_alloc)
-        let gpu_addr = 0x100000000u64 + (handle as u64 * 0x10000000u64);
-        self.buffers.insert(handle, (gpu_addr, size));
+        // Simulated GTT offset (would come from i915_gem_create)
+        let gtt_offset = 0x100000000u64 + (handle as u64 * 0x10000000u64);
+        self.buffers.insert(handle, (gtt_offset, size));
 
-        log::info!("Allocated buffer {} of size {} at {:#x}", handle, size, gpu_addr);
+        log::info!("Allocated GTT buffer {} of size {} at {:#x}", handle, size, gtt_offset);
         Ok(handle)
     }
 
-    /// Get the GPU virtual address of a buffer.
-    pub fn get_buffer_address(&self, handle: BufferHandle) -> Result<u64> {
+    /// Get the GTT offset of a buffer.
+    pub fn get_buffer_offset(&self, handle: BufferHandle) -> Result<u64> {
         self.buffers
             .get(&handle)
-            .map(|(addr, _)| *addr)
+            .map(|(offset, _)| *offset)
             .context("Invalid buffer handle")
     }
 
-    /// Write data to a GPU buffer.
+    /// Write data to a GTT buffer.
     pub fn write_buffer(&self, handle: BufferHandle, offset: u64, data: &[u8]) -> Result<()> {
-        let (gpu_addr, size) = self.buffers.get(&handle).context("Invalid buffer handle")?;
+        let (gtt_offset, size) = self.buffers.get(&handle).context("Invalid buffer handle")?;
 
         if offset + data.len() as u64 > *size {
             anyhow::bail!("Buffer write out of bounds");
         }
 
-        // In a real implementation, this would use amdgpu_bo_cpu_map
-        // or DMA transfer via DRM_IOCTL_AMDGPU_CS
+        // In a real implementation, this would use pwrite or mmap
         log::info!(
-            "Writing {} bytes to buffer {} at offset {} (GPU addr {:#x})",
+            "Writing {} bytes to GTT buffer {} at offset {} (GTT offset {:#x})",
             data.len(),
             handle,
             offset,
-            gpu_addr
+            gtt_offset
         );
 
         Ok(())
     }
 
-    /// Read data from a GPU buffer.
+    /// Read data from a GTT buffer.
     pub fn read_buffer(&self, handle: BufferHandle, offset: u64, data: &mut [u8]) -> Result<()> {
-        let (gpu_addr, size) = self.buffers.get(&handle).context("Invalid buffer handle")?;
+        let (gtt_offset, size) = self.buffers.get(&handle).context("Invalid buffer handle")?;
 
         if offset + data.len() as u64 > *size {
             anyhow::bail!("Buffer read out of bounds");
         }
 
-        // In a real implementation, this would use amdgpu_bo_cpu_map
         log::info!(
-            "Reading {} bytes from buffer {} at offset {} (GPU addr {:#x})",
+            "Reading {} bytes from GTT buffer {} at offset {} (GTT offset {:#x})",
             data.len(),
             handle,
             offset,
-            gpu_addr
+            gtt_offset
         );
 
         Ok(())
@@ -127,7 +125,7 @@ impl AmdGpuDevice {
         let handle = self.next_buffer_handle;
         self.next_buffer_handle += 1;
 
-        log::info!("Created shader {} ({} SPIR-V words)", handle, spirv.len());
+        log::info!("Created Intel compute shader {} ({} SPIR-V words)", handle, spirv.len());
         Ok(handle)
     }
 
@@ -141,25 +139,29 @@ impl AmdGpuDevice {
         z: u32,
     ) -> Result<()> {
         log::info!(
-            "Dispatching shader {} with {} byte push constants, workgroups ({}, {}, {})",
+            "Dispatching Intel shader {} with {} byte push constants, workgroups ({}, {}, {})",
             shader,
             push_constants.len(),
             x, y, z
         );
 
         // In a real implementation, this would:
-        // 1. Build PM4 command buffer with SET_SH_REG for shader
-        // 2. Set up descriptor sets for buffers
-        // 3. DISPATCH_DIRECT
-        // 4. Submit via DRM_IOCTL_AMDGPU_CS
+        // 1. Build batch buffer with MEDIA_VFE_STATE, CURBE_LOAD, MEDIA_STATE
+        // 2. Submit via DRM_IOCTL_I915_GEM_EXECBUFFER2
 
         Ok(())
     }
 
-    /// Submit a command buffer to the GPU.
-    pub fn submit_commands(&self, _commands: &[u8]) -> Result<()> {
-        // Placeholder - would use DRM_IOCTL_AMDGPU_CS
-        log::info!("Submitting {} bytes to AMDGPU", _commands.len());
+    /// Submit a batch buffer to the GPU.
+    pub fn submit_batch(&self, _commands: &[u8]) -> Result<()> {
+        // Placeholder - would use DRM_IOCTL_I915_GEM_EXECBUFFER2
+        log::info!("Submitting {} bytes to Intel GPU", _commands.len());
         Ok(())
+    }
+}
+
+impl Drop for IntelGpuDevice {
+    fn drop(&mut self) {
+        log::info!("Closing Intel GPU device: {}", self.device_path);
     }
 }

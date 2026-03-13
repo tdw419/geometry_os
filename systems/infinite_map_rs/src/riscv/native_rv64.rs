@@ -103,7 +103,7 @@ pub struct NativeRv64Executor {
 impl NativeRv64Executor {
     /// Create a new native RV64 executor
     pub fn new() -> Result<Self> {
-        let device = crate::backend::drm::amdgpu::device::AmdGpuDevice::open()?;
+        let device = crate::backend::drm::amdgpu::device::AmdGpuDevice::open_first()?;
 
         Ok(Self {
             device,
@@ -193,9 +193,15 @@ impl NativeRv64Executor {
         };
 
         // Dispatch compute shader
+        let push_bytes = unsafe {
+            std::slice::from_raw_parts(
+                &push_constants as *const Rv64PushConstants as *const u8,
+                std::mem::size_of::<Rv64PushConstants>(),
+            )
+        };
         self.device.dispatch_compute(
             self.shader_module.unwrap(),
-            &push_constants,
+            push_bytes,
             1, 1, 1,  // Single workgroup for now
         )?;
 
@@ -234,7 +240,7 @@ fn compile_glsl_to_spirv(source: &str, _kind: ()) -> Result<Vec<u32>> {
     let mut parser = glsl::Frontend::default();
     let options = glsl::Options {
         stage: naga::ShaderStage::Compute,
-        defines: std::collections::HashMap::new(),
+        defines: naga::FastHashMap::default(),
     };
     
     let module = parser.parse(&options, source)

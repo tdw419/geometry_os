@@ -108,6 +108,37 @@ builder.substrate("A", 5).substrate("B", 10)
 ### Step 3: Spatial JIT / Execution
 The system "reads" the visual layout and executes the data flow based on **Hilbert curve spatial locality**. This ensures that "hot" glyphs are spatially adjacent, maximizing cache hits in the 2D execution loop.
 
+## Visual Consistency Contract (VCC)
+
+The VCC ensures glyphs are identical across all three execution layers:
+
+| Layer | Technology | File | Validation |
+|-------|------------|------|------------|
+| **Foundry** | Python/FreeType | `systems/fonts/font_renderer.py` | GlyphMetrics JSON |
+| **Shell** | TypeScript/PixiJS | `systems/visual_shell/` | Atlas WebP hash |
+| **Kernel** | Rust/WGPU/DRM | `systems/infinite_map_rs/` | Hardware Hash (VRAM) |
+
+### VCC Commands
+
+```bash
+# Generate contract (automatic during atlas generation)
+python3 systems/glyph_stratum/generate_font_atlas.py
+
+# Validate all layers (including Hardware Attestation)
+python3 -m systems.vcc.cli validate
+
+# Check contract status
+python3 -m systems.vcc.cli status
+```
+
+### Hardware Attestation (Bare Metal)
+
+For Phase 43+, Geometry OS supports **Hardware-Enforced VCC**. The GPU computes a cryptographic hash of the atlas directly from VRAM, bypassing CPU tampering.
+
+- **Storage**: DMA-BUF zero-copy verification.
+- **Display**: Scanout buffer attestation.
+- **Compute**: `vcc_hash.wgsl` shader.
+
 ## Troubleshooting
 
 ### "Invalid Opcode Visual"

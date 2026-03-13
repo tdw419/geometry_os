@@ -221,7 +221,7 @@ def apply_random_optimization(track_name="") -> str:
 
     return f"Applied optimization: {opt}"
 
-def update_dashboard(current_track, start_time, total_experiments, best_gips, best_fitness, last_result):
+def update_dashboard(current_track, start_time, total_experiments, best_gips, best_fitness, best_spawn, last_result):
     """Generate a Markdown dashboard for the user to monitor."""
     now = datetime.now()
     elapsed = now - start_time
@@ -243,7 +243,8 @@ def update_dashboard(current_track, start_time, total_experiments, best_gips, be
 - **Total Experiments**: {total_experiments}
 - **Best GIPS Reached**: {best_gips:,}
 - **Best Allocator Fitness**: {best_fitness:.2%}
-- **Last Result**: GIPS={last_result.get('gips', 0):,.0f}, Fitness={last_result.get('allocator_fitness', 0):.2%}, Status={last_result.get('status', 'unknown')}
+- **Best Recursive Spawn Depth**: {best_spawn} generations
+- **Last Result**: GIPS={last_result.get('gips', 0):,.0f}, Fitness={last_result.get('allocator_fitness', 0):.2%}, Spawn={last_result.get('spawn_depth', 0)}, Status={last_result.get('status', 'unknown')}
 
 ## 🏆 Champion Shader
 The current best shader is saved at: `apps/autoresearch/champion_shader.wgsl`
@@ -269,6 +270,7 @@ def run_evolution_cycle():
     total_experiments = 0
     best_gips = 0
     best_fitness = 0.8366  # Initial baseline
+    best_spawn = 0
     last_result = {}
 
     # Initialize TSV
@@ -317,7 +319,12 @@ def run_evolution_cycle():
 
                 # 3. Record result
                 timestamp = datetime.now().isoformat()
-                metric_value = result['allocator_fitness'] if "CORE" in track['name'] else result['gips']
+                if "CORE" in track['name']:
+                    metric_value = result['allocator_fitness']
+                elif "BODY" in track['name']:
+                    metric_value = result['spawn_depth']
+                else:
+                    metric_value = result['gips']
                 
                 with open(RESULTS_TSV, "a") as f:
                     f.write(f"{timestamp}\t{track['name'][:20]}\t{track['target_metric']}\t{metric_value}\t{opt_desc[:30]}\t{result['status']}\n")
@@ -332,15 +339,21 @@ def run_evolution_cycle():
                     best_fitness = result["allocator_fitness"]
                     print(f"🏆 NEW ALLOCATOR CHAMPION! Fitness={best_fitness:.2%}")
 
+                if result.get("spawn_depth", 0) > best_spawn:
+                    best_spawn = result["spawn_depth"]
+                    print(f"🏆 NEW SPAWN DEPTH CHAMPION! Depth={best_spawn}")
+
                 if "CORE" in track['name']:
                     print(f"Fitness={result['allocator_fitness']:.2%} ({result['status']})")
+                elif "BODY" in track['name']:
+                    print(f"Depth={result['spawn_depth']} ({result['status']})")
                 else:
                     print(f"GIPS={result.get('gips', 0):,.0f} ({result['status']})")
 
                 last_result = result
 
                 # 5. Update dashboard
-                update_dashboard(track, start_time, total_experiments, best_gips, best_fitness, last_result)
+                update_dashboard(track, start_time, total_experiments, best_gips, best_fitness, best_spawn, last_result)
 
                 # 6. Brief pause between experiments
                 time.sleep(30)  # 30 seconds between experiments
@@ -353,7 +366,7 @@ def run_evolution_cycle():
         print(f"\n🏁 Evolution Cycle Finished at {datetime.now()}")
         print(f"   Total Experiments: {total_experiments}")
         print(f"   Best GIPS: {best_gips:,.0f}")
-        update_dashboard(TRACKS[-1], start_time, total_experiments, best_gips, best_fitness, last_result)
+        update_dashboard(TRACKS[-1], start_time, total_experiments, best_gips, best_fitness, best_spawn, last_result)
 
 if __name__ == "__main__":
     run_evolution_cycle()

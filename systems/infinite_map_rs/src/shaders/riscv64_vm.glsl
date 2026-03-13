@@ -116,10 +116,10 @@ const uint VPN_MASK    = 0x1FFu;
 const uint SATP_MODE_SV39 = 8u;
 
 // Physical memory map
-const uint64_t RAM_BASE   = 0x80000000ul;
-const uint64_t UART_BASE  = 0x10000000ul;
-const uint64_t CLINT_BASE = 0x02000000ul;
-const uint64_t PLIC_BASE  = 0x0C000000ul;
+const uint64_t RAM_BASE   = uint64_t(0x80000000u);
+const uint64_t UART_BASE  = uint64_t(0x10000000u);
+const uint64_t CLINT_BASE = uint64_t(0x02000000u);
+const uint64_t PLIC_BASE  = uint64_t(0x0C000000u);
 
 // ============================================================================
 // STORAGE BUFFERS
@@ -159,47 +159,47 @@ uint8_t read_u8(uint64_t addr) {
 
 uint16_t read_u16(uint64_t addr) {
     return uint(read_u8(addr)) |
-           (uint(read_u8(addr + 1ul)) << 8u);
+           (uint(read_u8(addr + uint64_t(1u))) << 8u);
 }
 
 uint32_t read_u32(uint64_t addr) {
     return uint(read_u8(addr)) |
-           (uint(read_u8(addr + 1ul)) << 8u) |
-           (uint(read_u8(addr + 2ul)) << 16u) |
-           (uint(read_u8(addr + 3ul)) << 24u);
+           (uint(read_u8(addr + uint64_t(1u))) << 8u) |
+           (uint(read_u8(addr + uint64_t(2u))) << 16u) |
+           (uint(read_u8(addr + uint64_t(3u))) << 24u);
 }
 
 uint64_t read_u64(uint64_t addr) {
     return uint64_t(read_u32(addr)) |
-           (uint64_t(read_u32(addr + 4ul)) << 32ul);
+           (uint64_t(read_u32(addr + uint64_t(4u))) << 32ul);
 }
 
 void write_u8(uint64_t addr, uint8_t val) {
     if (addr >= RAM_BASE && addr < RAM_BASE + pc.ram_size) {
         pc.ram.data[addr - RAM_BASE] = val;
-    } else if (addr >= UART_BASE && addr < UART_BASE + 8ul) {
+    } else if (addr >= UART_BASE && addr < UART_BASE + uint64_t(8u)) {
         // UART THR - output to console
         uint64_t pos = pc.console.write_count;
         pc.console.chars[pos] = val;
-        pc.console.write_count = pos + 1ul;
+        pc.console.write_count = pos + uint64_t(1u);
     }
 }
 
 void write_u16(uint64_t addr, uint16_t val) {
     write_u8(addr, uint8_t(val & 0xFFu));
-    write_u8(addr + 1ul, uint8_t((val >> 8u) & 0xFFu));
+    write_u8(addr + uint64_t(1u), uint8_t((val >> 8u) & 0xFFu));
 }
 
 void write_u32(uint64_t addr, uint32_t val) {
     write_u8(addr, uint8_t(val & 0xFFu));
-    write_u8(addr + 1ul, uint8_t((val >> 8u) & 0xFFu));
-    write_u8(addr + 2ul, uint8_t((val >> 16u) & 0xFFu));
-    write_u8(addr + 3ul, uint8_t((val >> 24u) & 0xFFu));
+    write_u8(addr + uint64_t(1u), uint8_t((val >> 8u) & 0xFFu));
+    write_u8(addr + uint64_t(2u), uint8_t((val >> 16u) & 0xFFu));
+    write_u8(addr + uint64_t(3u), uint8_t((val >> 24u) & 0xFFu));
 }
 
 void write_u64(uint64_t addr, uint64_t val) {
-    write_u32(addr, uint32_t(val & 0xFFFFFFFFul));
-    write_u32(addr + 4ul, uint32_t((val >> 32ul) & 0xFFFFFFFFul));
+    write_u32(addr, uint32_t(val & uint64_t(0xFFFFFFFFu)));
+    write_u32(addr + uint64_t(4u), uint32_t((val >> uint64_t(32u)) & uint64_t(0xFFFFFFFFu)));
 }
 
 // ============================================================================
@@ -209,7 +209,7 @@ void write_u64(uint64_t addr, uint64_t val) {
 int64_t sign_extend_12(uint32_t val) {
     // Sign extend 12-bit immediate
     if ((val & 0x800u) != 0u) {
-        return int64_t(val | 0xFFFFFFFFFFFFF000ul);
+        return int64_t(val | uint64_t(0xFFFFFFFFFFFFF000u));
     }
     return int64_t(val);
 }
@@ -217,15 +217,15 @@ int64_t sign_extend_12(uint32_t val) {
 int64_t sign_extend_20(uint32_t val) {
     // Sign extend 20-bit immediate
     if ((val & 0x80000u) != 0u) {
-        return int64_t(val | 0xFFFFFFFFFFF00000ul);
+        return int64_t(val | uint64_t(0xFFFFFFFFFFF00000u));
     }
     return int64_t(val);
 }
 
 int64_t sign_extend_32(uint64_t val) {
     // Sign extend 32-bit to 64-bit
-    if ((val & 0x80000000ul) != 0ul) {
-        return int64_t(val | 0xFFFFFFFF00000000ul);
+    if ((val & uint64_t(0x80000000u)) != uint64_t(0u)) {
+        return int64_t(val | uint64_t(0xFFFFFFFF00000000u));
     }
     return int64_t(val);
 }
@@ -298,28 +298,28 @@ uint64_t execute_instruction(RiscvState s, uint64_t pc) {
 
     // Register 0 is always 0
     if (d.rd == 0u && d.opcode != OP_BRANCH && d.opcode != OP_STORE && d.opcode != OP_SYSTEM) {
-        return pc + 4ul;
+        return pc + uint64_t(4u);
     }
 
     switch (d.opcode) {
         case OP_LUI: {
             s.x[d.rd] = uint64_t(d.imm_u);
-            return pc + 4ul;
+            return pc + uint64_t(4u);
         }
 
         case OP_AUIPC: {
             s.x[d.rd] = uint64_t(int64_t(pc) + d.imm_u);
-            return pc + 4ul;
+            return pc + uint64_t(4u);
         }
 
         case OP_JAL: {
-            s.x[d.rd] = pc + 4ul;
+            s.x[d.rd] = pc + uint64_t(4u);
             return uint64_t(int64_t(pc) + d.imm_j);
         }
 
         case OP_JALR: {
             uint64_t target = uint64_t(int64_t(s.x[d.rs1]) + d.imm_i) & ~1ul;
-            s.x[d.rd] = pc + 4ul;
+            s.x[d.rd] = pc + uint64_t(4u);
             return target;
         }
 
@@ -337,7 +337,7 @@ uint64_t execute_instruction(RiscvState s, uint64_t pc) {
                 case F3_BGEU: taken = (rs1_val >= rs2_val); break;
             }
 
-            return taken ? uint64_t(int64_t(pc) + d.imm_b) : pc + 4ul;
+            return taken ? uint64_t(int64_t(pc) + d.imm_b) : pc + uint64_t(4u);
         }
 
         case OP_LOAD: {
@@ -352,7 +352,7 @@ uint64_t execute_instruction(RiscvState s, uint64_t pc) {
                 case F3_LBU: s.x[d.rd] = uint64_t(read_u8(addr)); break;
                 case F3_LHU: s.x[d.rd] = uint64_t(read_u16(addr)); break;
             }
-            return pc + 4ul;
+            return pc + uint64_t(4u);
         }
 
         case OP_STORE: {
@@ -365,7 +365,7 @@ uint64_t execute_instruction(RiscvState s, uint64_t pc) {
                 case F3_SW: write_u32(addr, uint32_t(val)); break;
                 case F3_SD: write_u64(addr, val); break;
             }
-            return pc + 4ul;
+            return pc + uint64_t(4u);
         }
 
         case OP_IMM: {
@@ -391,7 +391,7 @@ uint64_t execute_instruction(RiscvState s, uint64_t pc) {
                     break;
             }
             s.x[d.rd] = result;
-            return pc + 4ul;
+            return pc + uint64_t(4u);
         }
 
         case OP_OP: {
@@ -422,7 +422,7 @@ uint64_t execute_instruction(RiscvState s, uint64_t pc) {
                 case F3_AND:  result = rs1_val & rs2_val; break;
             }
             s.x[d.rd] = result;
-            return pc + 4ul;
+            return pc + uint64_t(4u);
         }
 
         case OP_IMM_32: {
@@ -442,7 +442,7 @@ uint64_t execute_instruction(RiscvState s, uint64_t pc) {
                     break;
             }
             s.x[d.rd] = uint64_t(sign_extend_32(uint64_t(result)));
-            return pc + 4ul;
+            return pc + uint64_t(4u);
         }
 
         case OP_OP_32: {
@@ -469,7 +469,7 @@ uint64_t execute_instruction(RiscvState s, uint64_t pc) {
                     break;
             }
             s.x[d.rd] = uint64_t(sign_extend_32(uint64_t(result)));
-            return pc + 4ul;
+            return pc + uint64_t(4u);
         }
 
         case OP_SYSTEM: {
@@ -482,12 +482,12 @@ uint64_t execute_instruction(RiscvState s, uint64_t pc) {
                     return pc;
                 }
             }
-            return pc + 4ul;
+            return pc + uint64_t(4u);
         }
 
         default:
             // Unknown opcode - skip
-            return pc + 4ul;
+            return pc + uint64_t(4u);
     }
 }
 
@@ -500,7 +500,7 @@ void main() {
     uint64_t gid = uint64_t(gl_WorkGroupID.x);
     uint64_t tid = gid * 64ul + lid;
 
-    if (tid != 0ul) return;  // Single-threaded execution for now
+    if (tid != uint64_t(0u)) return;  // Single-threaded execution for now
 
     RiscvState s = pc.state.state;
     uint32_t cycles = 0u;
