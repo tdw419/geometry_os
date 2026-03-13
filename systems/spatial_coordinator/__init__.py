@@ -18,6 +18,11 @@ from systems.spatial_coordinator.interrupt import (
     get_neighbors,
     propagate_interrupt,
 )
+from systems.spatial_coordinator.syscall import (
+    SyscallHandler,
+    SyscallRequest,
+)
+from systems.spatial_coordinator.coordinator import Coordinator
 from systems.spatial_coordinator.types import (
     CapabilityFlags,
     ErrorCode,
@@ -40,6 +45,11 @@ __all__ = [
     "InterruptPacket",
     "get_neighbors",
     "propagate_interrupt",
+    # Syscall
+    "SyscallHandler",
+    "SyscallRequest",
+    # Coordinator
+    "Coordinator",
     # Types
     "CapabilityFlags",
     "ErrorCode",
