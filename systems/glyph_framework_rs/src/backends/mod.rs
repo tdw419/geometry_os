@@ -1,5 +1,11 @@
 pub mod wgpu_backend;
+pub mod drm_backend;
+pub mod window_manager_bytecode;
+
 pub use wgpu_backend::WgpuBackend;
+#[cfg(feature = "drm")]
+pub use drm_backend::DrmBackend;
+pub use window_manager_bytecode::WindowManagerBytecode;
 
 use crate::types::{AppId, AppLayout, GlyphId, Intent};
 
@@ -15,6 +21,9 @@ pub trait ExecutionBackend {
 
     /// Read a specific value from an application's spatial memory.
     fn get_state(&mut self, app_id: AppId, addr: u64) -> Result<f32, String>;
+
+    /// Read a range of values from an application's spatial memory.
+    fn get_state_range(&mut self, app_id: AppId, addr: u64, count: u64) -> Result<Vec<f32>, String>;
     
     /// Drop an intent glyph into the application's message bus/interrupt queue.
     fn send_intent(&mut self, app_id: AppId, intent: Intent) -> Result<(), String>;
@@ -24,6 +33,9 @@ pub trait ExecutionBackend {
     
     /// Advance the execution state (tick the VM/compute shader).
     fn step(&mut self) -> Result<(), String>;
+
+    /// Load a SPIR-V binary into an application (for AOT backends).
+    fn load_spirv(&mut self, app_id: AppId, spirv: &[u32]) -> Result<(), String>;
 
     /// Read the application's execution context (for debugging).
     fn get_context(&mut self, app_id: AppId) -> Result<[u32; 10], String>;

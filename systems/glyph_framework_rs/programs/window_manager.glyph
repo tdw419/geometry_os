@@ -1,0 +1,70 @@
+{
+  "name": "window_manager",
+  "description": "The Master glyph app that coordinates all other glyph apps",
+  "version": "1.0.0",
+  "glyphs": [
+    {
+      "opcode": 1,
+      "mnemonic": "INIT",
+      "description": "Initialize layout registry"
+      "p1": 0,
+      "p2": 0,
+      "dst": 0
+    },
+    {
+      "opcode": 2,
+      "mnemonic": "READ_INTENT",
+      "description": "Read intent from queue",
+      "p1": 0,
+      "p2": 0,
+      "dst": 1
+    },
+    {
+      "opcode": 3,
+      "mnemonic": "PROCESS_CLICK",
+      "description": "Process mouse click intent",
+      "p1": 1,
+      "p2": 0,
+      "dst": 2
+    },
+    {
+      "opcode": 4,
+      "mnemonic": "HIT_TEST",
+      "description": "Check if click hits any app",
+      "p1": 0,
+      "p2": 0,
+      "dst": 3
+    },
+    {
+      "opcode": 5,
+      "mnemonic": "SET_FOCUS",
+      "description": "Set focused app ID",
+      "p1": 3,
+      "p2": 0,
+      "dst": 4
+    },
+    {
+      "opcode": 6,
+      "mnemonic": "UPDATE_REGISTRY",
+      "description": "Update layout registry after spawn",
+      "p1": 0,
+      "p2": 0,
+      "dst": 5
+    },
+    {
+      "opcode": 7,
+      "mnemonic": "HALT",
+      "description": "Stop and wait for next intent",
+      "p1": 0,
+      "p2": 0,
+      "dst": 0
+    }
+  ],
+  "memory": {
+    "layout_registry_base": 20,
+    "intent_queue_base": 100,
+    "focused_app_offset": 8,
+    "app_count_offset": 4,
+    "magic_offset": 0
+  }
+}
