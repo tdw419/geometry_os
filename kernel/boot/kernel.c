@@ -10,11 +10,19 @@
 #include "pci.h"
 #include "gpu.h"
 #include "ring.h"
+#include "glyph_compiler.h"
+#include "window_manager.h"
 
 // External functions from interrupt.c
 extern void idt_init(void);
 extern int keyboard_read(void);
 extern int keyboard_has_key(void);
+
+// ============================================================================
+// Test program
+// ============================================================================
+
+
 
 // ============================================================================
 // Types and Constants
@@ -615,6 +623,22 @@ void kernel_main(void *mboot_info) {
     // BCS status
     // u32 bcs_color = gpu.has_bcs ? 0xFF00FF00 : 0xFFFF0000;
     // fb_fill_rect(&fb, 40, fb.height - 50, 20, 20, bcs_color);
+
+    // Initialize window manager
+    serial_puts("[INFO] Initializing window manager...\n");
+    window_manager_init();
+    serial_puts("[OK] Window manager initialized\n");
+
+    // Register test windows
+    window_register(1, 100, 100, 200, 200, 1);
+    window_register(2, 150, 150, 200, 200, 2);
+    window_register(3, 200, 200, 200, 200, 3);
+    serial_puts("[OK] Registered 3 test windows\n");
+
+    // Test Z-order focus
+    serial_puts("[INFO] Testing Z-order focus logic...\n");
+    window_process_click(250, 250);  // Click in overlap region
+    serial_puts("[OK] Focus test complete\n");
 
     // Initialize interrupts and keyboard
     serial_puts("[INFO] Initializing interrupts...\n");
