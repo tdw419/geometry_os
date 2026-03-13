@@ -2,7 +2,7 @@
 
 use anyhow::{Context, Result};
 use std::fs::File;
-use std::os::unix::io::AsRawFd;
+use std::os::unix::io::{AsRawFd, RawFd};
 
 /// DRM device for direct GPU access.
 pub struct DrmDevice {
@@ -29,13 +29,20 @@ impl DrmDevice {
         Self::open("/dev/dri/card0")
     }
 
-    /// Get the file descriptor.
-    pub fn fd(&self) -> i32 {
+    /// Get the raw file descriptor.
+    pub fn fd(&self) -> RawFd {
         self.device_file.as_raw_fd()
     }
 
     /// Get reference to the device file.
     pub fn file(&self) -> &File {
         &self.device_file
+    }
+
+    /// Check if this device supports KMS (Kernel Mode Setting).
+    pub fn supports_kms(&self) -> bool {
+        // In a full implementation, this would query DRM capabilities
+        // For now, assume KMS support
+        true
     }
 }
