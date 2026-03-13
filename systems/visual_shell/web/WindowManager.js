@@ -1,77 +1,169 @@
 /**
  * WindowManager.js
- * Manages all desktop windows in the Geometry OS environment.
+ *
+ * Manages window state: positions, z-order, focus, and drag operations.
+ * Emits events for renderer to consume.
  */
 
-class WindowManager {
-    constructor(container) {
-        this.container = container;
-        this.windows = [];
+export class WindowManager {
+    constructor() {
+        this.windows = new Map();  // appId -> { x, y, z, width, height, focused }
+        this.dragState = null;     // { appId, offsetX, offsetY } | null
+        this.topZ = 0;
+        this._cascadeOffset = 0;   // For new window positioning
+        this._listeners = new Map(); // event -> [callback, ...]
     }
 
-    createWindow(title, x, y, width, height) {
-        const window = new DesktopWindow(title, x, y, width, height);
+    // === Event System ===
 
-        // Listen for close event
-        window.on('closed', () => {
-            this.destroyWindow(window);
-        });
-
-        // Bring to front when clicked
-        window.on('pointerdown', () => {
-            this.bringToFront(window);
-        });
-
-        this.windows.push(window);
-        this.container.addChild(window);
-        this.bringToFront(window);
-        return window;
+    on(event, callback) {
+        if (!this._listeners.has(event)) {
+            this._listeners.set(event, []);
+        }
+        this._listeners.get(event).push(callback);
     }
 
-    destroyWindow(window) {
-        const index = this.windows.indexOf(window);
-        if (index > -1) {
-            this.windows.splice(index, 1);
-            if (window.parent === this.container) {
-                this.container.removeChild(window);
+    off(event, callback) {
+        const callbacks = this._listeners.get(event);
+        if (callbacks) {
+            const idx = callbacks.indexOf(callback);
+            if (idx >= 0) callbacks.splice(idx, 1);
+        }
+    }
+
+    emit(event, data) {
+        const callbacks = this._listeners.get(event);
+        if (callbacks) {
+            callbacks.forEach(cb => cb(data));
+        }
+    }
+
+    // === Window Management ===
+
+    addWindow(appId, width, height) {
+        // Cascade position: each new window offset by 30px
+        const x = 100 + this._cascadeOffset;
+        const y = 100 + this._cascadeOffset;
+        this._cascadeOffset = (this._cascadeOffset + 30) % 150;
+
+        this.topZ += 1;
+
+        const windowState = {
+            x,
+            y,
+            z: this.topZ,
+            width,
+            height,
+            focused: this.windows.size === 0, // First window focused
+        };
+
+        this.windows.set(appId, windowState);
+
+        // If this is the first window, focus it
+        if (windowState.focused) {
+            this.emit('window_focused', { appId });
+        }
+
+        this.emit('window_added', { appId, ...windowState });
+        return windowState;
+    }
+
+    removeWindow(appId) {
+        const win = this.windows.get(appId);
+        if (!win) return false;
+
+        this.windows.delete(appId);
+        this.emit('window_removed', { appId });
+
+        // If removed window was focused, focus another
+        if (win.focused && this.windows.size > 0) {
+            const nextAppId = this.windows.keys().next().value;
+            this.focusWindow(nextAppId);
+        }
+
+        return true;
+    }
+
+    focusWindow(appId) {
+        const win = this.windows.get(appId);
+        if (!win) return;
+
+        // Unfocus current focused window
+        for (const [id, w] of this.windows) {
+            if (w.focused && id !== appId) {
+                w.focused = false;
             }
         }
+
+        // Focus new window and bring to front
+        win.focused = true;
+        this.topZ += 1;
+        win.z = this.topZ;
+
+        this.emit('window_focused', { appId });
     }
 
-    bringToFront(window) {
-        if (window.parent === this.container) {
-            this.container.removeChild(window);
-            this.container.addChild(window);
+    getWindow(appId) {
+        return this.windows.get(appId);
+    }
+
+    getFocusedApp() {
+        for (const [appId, win] of this.windows) {
+            if (win.focused) return appId;
         }
+        return null;
     }
 
-    createNotification(message, color = 0xFFFFFF, duration = 3000) {
-        const notificationWindow = this.createWindow("Notification", 0, 0, 300, 50);
-        notificationWindow.titleBar.visible = false; // No title bar for notifications
-        notificationWindow.background.tint = color; // Use color as background tint
-        notificationWindow.alpha = 0.9;
+    // === Drag Operations ===
 
-        const text = new PIXI.Text(message, {
-            fontFamily: 'Courier New',
-            fontSize: 12,
-            fill: 0x000000, // Black text for contrast
-            wordWrap: true,
-            wordWrapWidth: 280,
+    startDrag(appId, mouseX, mouseY) {
+        const win = this.windows.get(appId);
+        if (!win) return;
+
+        this.dragState = {
+            appId,
+            offsetX: mouseX - win.x,
+            offsetY: mouseY - win.y,
+        };
+
+        // Focus on drag start
+        this.focusWindow(appId);
+    }
+
+    updateDrag(mouseX, mouseY) {
+        if (!this.dragState) return;
+
+        const win = this.windows.get(this.dragState.appId);
+        if (!win) return;
+
+        let newX = mouseX - this.dragState.offsetX;
+        let newY = mouseY - this.dragState.offsetY;
+
+        // Clamp to stay partially visible (at least 50px on screen)
+        const screenW = globalThis.innerWidth || 800;
+        const screenH = globalThis.innerHeight || 600;
+        newX = Math.max(-win.width * 10 + 50, Math.min(newX, screenW - 50));
+        newY = Math.max(0, Math.min(newY, screenH - 50));
+
+        win.x = newX;
+        win.y = newY;
+
+        this.emit('window_moved', {
+            appId: this.dragState.appId,
+            x: newX,
+            y: newY,
         });
-        text.anchor.set(0.5);
-        text.x = notificationWindow.width / 2;
-        text.y = notificationWindow.height / 2;
-        notificationWindow.setContent(text);
+    }
 
-        // Position at top center, for now
-        notificationWindow.x = (this.container.parent.renderer.width / 2) - (notificationWindow.width / 2);
-        notificationWindow.y = 10;
+    endDrag() {
+        this.dragState = null;
+    }
 
-        // Auto-dismiss
-        setTimeout(() => {
-            this.destroyWindow(notificationWindow);
-        }, duration);
+    isDragging() {
+        return this.dragState !== null;
+    }
 
-        return notificationWindow;
+    getDragAppId() {
+        return this.dragState?.appId ?? null;
     }
 }
