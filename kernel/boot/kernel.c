@@ -381,30 +381,25 @@ static void ring_submit_batch(struct IntelGpu *gpu, u32 ring_head_reg, u32 ring_
 // Test: GPU Batch Execution
 // ============================================================================
 
-static void test_gpu_batch(struct IntelGpu *gpu, struct Framebuffer *fb) {
-    // Build batch buffer for color fill
+static void test_gpu_batch(struct GeosGpu *gpu, struct Framebuffer *fb) {
+    /* Build batch buffer for color fill */
     static u32 batch_commands[256];
     struct BatchBuffer batch;
     batch_init(&batch, batch_commands, 256);
 
-    // Add commands
+    /* Add commands */
     batch_add_mi_flush(&batch);
 
-    // Fill a rectangle with green
+    /* Fill a rectangle with green */
     u64 fb_addr = (u64)fb->base;
     batch_add_xy_color_blt(&batch, fb->pitch, fb_addr + 100 * fb->pitch + 100 * 4,
-                           200, 200, 0xFF00FF00);  // Green
+                           200, 200, 0xFF00FF00);  /* Green */
 
     batch_add_end(&batch);
 
-    // In a real implementation, we would:
-    // 1. Allocate GEM buffer for batch
-    // 2. Copy batch commands to GEM buffer
-    // 3. Submit via ring or execbuf ioctl
-
-    // For now, we just verify the batch was built correctly
+    /* Verify batch was built correctly */
     if ((batch.commands[0] >> 23) == 0x04) {
-        // MI_FLUSH found - draw success indicator
+        /* MI_FLUSH found - draw success indicator */
         fb_fill_rect(fb, fb->width - 100, 0, 100, 100, 0xFF00FF00);
     }
 }

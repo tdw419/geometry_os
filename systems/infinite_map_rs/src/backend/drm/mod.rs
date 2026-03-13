@@ -19,4 +19,4 @@ pub use dmabuf::{DmaBuf, ZeroCopyPipeline};
 pub use amdgpu::command_buffer::AmdgpuCommandBuffer;
 pub use intel::IntelCommandBuffer;
 pub use vcc_compute::{VccCompute, HardwareVCC, HardwareVCCResult, BufferInitExt, BufferInitDescriptor};
-pub use glyph_executor::{DrmGlyphExecutor, GlyphError, GlyphOutput};
+pub use glyph_executor::{DrmGlyphExecutor, GlyphError, GlyphOutput, AttestedExecutionResult, compute_output_hash};
