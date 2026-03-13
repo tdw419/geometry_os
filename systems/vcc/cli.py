@@ -41,7 +41,7 @@ def main():
             print(f"==================================================")
             print(f"Version:      {contract.version}")
             print(f"Generated:    {contract.generated_at}")
-            print(f"Atlas Hash:   {contract.atlas_hash['sha256']}")
+            print(f"Atlas Hash:   {contract.atlas_hash}")
             print(f"Glyphs:       {contract.glyph_count}")
             print(f"Foundry:      {contract.layers['foundry']['renderer_path']}")
             print(f"Shell:        {contract.layers['shell']['pixi_version']} (WebGPU={contract.layers['shell']['webgpu_enabled']})")

@@ -88,7 +88,7 @@ def validate_all_layers(
         try:
             results["kernel"] = validate_kernel_layer_hardware(
                 dmabuf_path="/dev/dri/card0",
-                expected_hash=contract.atlas_hash["sha256"]
+                expected_hash=contract.atlas_hash
             )
             results["kernel"]["hardware_verified"] = True
         except Exception as e:
@@ -105,10 +105,10 @@ def validate_all_layers(
 
     # Overall result
     all_valid = all(res["valid"] for res in results.values())
-    
+
     return {
         "valid": all_valid,
         "layers": results,
         "contract_version": contract.version,
-        "atlas_hash": contract.atlas_hash["sha256"]
+        "atlas_hash": contract.atlas_hash
     }

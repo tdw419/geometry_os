@@ -31,8 +31,8 @@ struct geos_execute {
 struct geos_uniforms {
     __u32 width;
     __u32 height;
-    __float time;
-    __float padding;
+    __u32 time;        /* IEEE 754 single-precision float */
+    __u32 reserved;
 };
 
 #endif /* _UAPI_GEOMETRY_OS_H */

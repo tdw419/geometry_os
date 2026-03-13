@@ -50,20 +50,28 @@ class VCCContract:
         self._version = value
 
     @property
-    def atlas_hash_value(self) -> str:
+    def atlas_hash(self) -> str:
         """Get the SHA-256 hash from the atlas_hash field."""
         if self.data is not None:
             return self.data["atlas_hash"]["sha256"]
-        if isinstance(self.atlas_hash, dict):
-            return self.atlas_hash.get("sha256", "")
+        if isinstance(self._atlas_hash, dict):
+            return self._atlas_hash.get("sha256", "")
         return ""
 
+    @atlas_hash.setter
+    def atlas_hash(self, value):
+        self._atlas_hash = value
+
     @property
-    def glyph_count_value(self) -> int:
+    def glyph_count(self) -> int:
         """Get the glyph count."""
         if self.data is not None:
             return self.data["glyph_count"]
-        return self.glyph_count
+        return self._glyph_count
+
+    @glyph_count.setter
+    def glyph_count(self, value: int):
+        self._glyph_count = value
 
     def to_json(self, path: Path) -> None:
         """Write contract to JSON file."""
@@ -142,8 +150,8 @@ class VCCContract:
         contract_data = {
             "version": self.version,
             "generated_at": self.generated_at,
-            "atlas_hash": self.atlas_hash,
-            "glyph_count": self.glyph_count,
+            "atlas_hash": self._atlas_hash,
+            "glyph_count": self._glyph_count,
             "opcode_mappings": self.opcode_mappings,
             "layers": self.layers,
             "signatures": self.signatures
