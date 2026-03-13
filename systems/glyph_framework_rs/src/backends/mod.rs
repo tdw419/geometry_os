@@ -6,6 +6,7 @@ pub use wgpu_backend::WgpuBackend;
 #[cfg(feature = "drm")]
 pub use drm_backend::DrmBackend;
 pub use window_manager_bytecode::WindowManagerBytecode;
+pub use window_manager_bytecode::{SPAWN_APP, FOCUS_CHANGE, CLOSE_APP, KEY_PRESS};
 
 use crate::types::{AppId, AppLayout, GlyphId, Intent};
 
