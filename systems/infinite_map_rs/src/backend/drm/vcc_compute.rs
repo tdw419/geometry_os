@@ -85,10 +85,8 @@ impl VccCompute {
     /// This compiles the VCC hashing WGSL to SPIR-V and executes it
     /// directly via the DRM compute pipeline.
     pub fn compute_atlas_hash(&mut self, atlas_pixels: &[f32]) -> Result<[u32; 8]> {
-        // 1. Load WGSL shader
-        let shader_path = "systems/infinite_map_rs/src/backend/drm/shaders/vcc_hash.wgsl";
-        let wgsl_source = std::fs::read_to_string(shader_path)
-            .context(format!("Failed to read VCC shader at {}", shader_path))?;
+        // 1. Load WGSL shader using include_str for compile-time embedding
+        let wgsl_source = include_str!("shaders/vcc_hash.wgsl");
 
         // 2. Compile WGSL to SPIR-V using Naga
         let module = wgsl::parse_str(&wgsl_source)
@@ -256,9 +254,14 @@ impl HardwareVCC {
     }
 
     /// Get the name of the GPU device.
+    ///
+    /// Note: wgpu does not expose adapter info directly on the Device.
+    /// Returns a placeholder. For actual device info, capture it during
+    /// adapter selection and store it separately.
     pub fn device_name(&self) -> String {
-        self.device.features().iter().count(); // Just to use device
-        "WebGPU Device".to_string()
+        // Placeholder - wgpu Device doesn't expose adapter info
+        // To get actual device name, store adapter info during HardwareVCC::new()
+        "WebGPU Device (adapter info not captured)".to_string()
     }
 
     /// Verify atlas texture against contract hash on GPU.

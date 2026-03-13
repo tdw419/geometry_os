@@ -1,5 +1,5 @@
 /// VCC Hardware Attestation Shader
-/// Computes SHA-256 hash of atlas directly on GPU.
+/// Computes a 64-bit hash using FNV-1a + MurmurHash3 finalization on GPU.
 /// This is the "source of truth" - CPU is untrusted.
 ///
 /// The GPU computes the hash directly from VRAM, bypassing
@@ -81,43 +81,12 @@ fn compute_vcc_hash(@builtin(global_invocation_id) global_id: vec3<u32>) {
     output.matches_contract = select(0u, 1u, low_matches && high_matches);
 }
 
-// Alternative entry point for parallel reduction hashing
-// This version distributes work across multiple workgroups for large atlases
-@compute @workgroup_size(256)
-fn compute_vcc_hash_parallel(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let total_pixels = input.atlas_width * input.atlas_height;
-    let total_u32 = total_pixels * 4u;
-
-    // Each thread processes a chunk and accumulates to shared memory
-    // For now, delegate to single-threaded version for correctness
-    if (global_id.x == 0u && global_id.y == 0u && global_id.z == 0u) {
-        // Split data into two halves and hash separately
-        let half_len = total_u32 / 2u;
-
-        // Hash first half for low bits
-        var hash_low: u32 = FNV_OFFSET;
-        for (var i: u32 = 0u; i < half_len; i = i + 1u) {
-            hash_low = hash_low ^ atlas_data[i];
-            hash_low = hash_low * FNV_PRIME;
-        }
-        hash_low = murmur3_fmix64(hash_low);
-
-        // Hash second half for high bits
-        var hash_high: u32 = FNV_OFFSET;
-        for (var i: u32 = half_len; i < total_u32; i = i + 1u) {
-            hash_high = hash_high ^ atlas_data[i];
-            hash_high = hash_high * FNV_PRIME;
-        }
-        hash_high = murmur3_fmix64(hash_high);
-
-        // Mix together for better avalanche
-        hash_low = hash_low ^ (hash_high * 0x9e3779b9u);
-        hash_high = hash_high ^ (hash_low * 0x9e3779b9u);
-
-        output.computed_hash_low = hash_low;
-        output.computed_hash_high = hash_high;
-        output.matches_contract = select(0u, 1u,
-            hash_low == input.contract_hash_low &&
-            hash_high == input.contract_hash_high);
-    }
-}
+// NOTE: A truly parallel reduction hash would require:
+// 1. Workgroup-shared memory for partial hashes
+// 2. Multiple dispatch workgroups
+// 3. A second pass to combine workgroup results
+// 4. Workgroup sync barriers (workgroupBarrier())
+//
+// The current single-threaded approach is correct and sufficient for
+// attestation purposes. Parallel reduction could be added later if
+// performance becomes a bottleneck for very large atlases.
