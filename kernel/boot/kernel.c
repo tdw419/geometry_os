@@ -11,6 +11,11 @@
 #include "gpu.h"
 #include "ring.h"
 
+// External functions from interrupt.c
+extern void idt_init(void);
+extern int keyboard_read(void);
+extern int keyboard_has_key(void);
+
 // ============================================================================
 // Types and Constants
 // ============================================================================
@@ -611,16 +616,54 @@ void kernel_main(void *mboot_info) {
     // u32 bcs_color = gpu.has_bcs ? 0xFF00FF00 : 0xFFFF0000;
     // fb_fill_rect(&fb, 40, fb.height - 50, 20, 20, bcs_color);
 
-    serial_puts("[INFO] Entering main loop...\n");
+    // Initialize interrupts and keyboard
+    serial_puts("[INFO] Initializing interrupts...\n");
+    idt_init();
+    serial_puts("[OK] IDT initialized, keyboard ready\n");
+
+    serial_puts("[INFO] Entering main loop (press keys to echo)...\n");
     serial_puts("[OK] Kernel initialized successfully!\n\n");
     serial_puts("[INFO] Glyph-to-Metal pipeline ready for bare metal execution.\n");
     serial_puts("[INFO] On real hardware with Intel GPU:\n");
     serial_puts("  - GPU batch commands will execute on RCS/BCS rings\n");
     serial_puts("  - Glyph programs compile to MI commands\n");
     serial_puts("  - Direct framebuffer rendering supported\n\n");
+    serial_puts("[INFO] Keyboard active - press keys to echo\n\n");
 
-    // Main loop - halt (in bare metal, would animate)
+    // Main loop - handle keyboard input
+    int x = 100, y = 100;  // Text cursor position
     while (1) {
         __asm__ volatile ("hlt");
+
+        // Check for keyboard input
+        if (keyboard_has_key()) {
+            int key = keyboard_read();
+            if (key > 0) {
+                char c = (char)key;
+                // Echo to serial
+                serial_puts("Key: ");
+                serial_putc(c);
+                serial_puts("\n");
+
+                // Draw character on screen
+                if (c >= 32 && c < 127) {
+                    // Simple character rendering (just a dot for now)
+                    fb_fill_rect(&fb, x, y, 8, 16, 0xFFFFFFFF);
+                    x += 10;
+                    if (x > fb.width - 20) {
+                        x = 100;
+                        y += 20;
+                    }
+                } else if (c == '\n' || c == '\r') {
+                    x = 100;
+                    y += 20;
+                } else if (c == '\b' || c == 127) {
+                    // Backspace
+                    x -= 10;
+                    if (x < 100) x = 100;
+                    fb_fill_rect(&fb, x, y, 8, 16, 0x00000000);
+                }
+            }
+        }
     }
 }
