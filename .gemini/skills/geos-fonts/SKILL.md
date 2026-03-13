@@ -1,6 +1,6 @@
 ---
 name: geos-fonts
-description: Use when the user asks to "render text", "use fonts", "add a label", "display text", "generate font atlas", "GlyphStratum opcodes", "spatial programs", "geos-font", "font is a program", "executable glyphs", "spatial JIT", "RISC-V to glyph", or mentions typography/labels in Geometry OS context.
+description: Use when the user asks to "render text", "use fonts", "add a label", "display text", "generate font atlas", "GlyphStratum opcodes", "spatial programs", "geos-font", "font is a program", "executable glyphs", "spatial JIT", "RISC-V to glyph", "bare metal", "DMA-BUF", "hardware VCC", "scanout attestation", "DrmGlyphExecutor", "native glyphs", "self-hosting glyphs", "meta-glyph", or mentions typography/labels in Geometry OS context.
 category: Architecture/UI
 ---
 
@@ -133,11 +133,91 @@ python3 -m systems.vcc.cli status
 
 ### Hardware Attestation (Bare Metal)
 
-For Phase 43+, Geometry OS supports **Hardware-Enforced VCC**. The GPU computes a cryptographic hash of the atlas directly from VRAM, bypassing CPU tampering.
+Geometry OS supports **Hardware-Enforced VCC** where the GPU is the source of truth, bypassing CPU tampering entirely.
 
-- **Storage**: DMA-BUF zero-copy verification.
-- **Display**: Scanout buffer attestation.
-- **Compute**: `vcc_hash.wgsl` shader.
+**Components:**
+| Component | Path | Purpose |
+|-----------|------|---------|
+| `HardwareVCC` | `systems/infinite_map_rs/src/backend/drm/vcc_compute.rs` | GPU-side atlas hashing |
+| `vcc_hash.wgsl` | `systems/infinite_map_rs/src/backend/drm/shaders/vcc_hash.wgsl` | FNV-1a + MurmurHash3 compute shader |
+| `DmaBuf` | `systems/infinite_map_rs/src/backend/drm/dmabuf.rs` | Zero-copy VRAM access with `verify_vcc()` |
+| `Scanout` | `systems/infinite_map_rs/src/backend/drm/scanout.rs` | Display attestation with `attest_display()` |
+| `DrmGlyphExecutor` | `systems/infinite_map_rs/src/backend/drm/glyph_executor.rs` | Atomic verify-and-execute |
+
+**Atomic Verify-and-Execute:**
+```rust
+// The GPU verifies the visual substrate BEFORE executing any glyph program
+let result = executor.execute_attested(
+    &atlas_buffer,
+    width, height,
+    contract_hash,
+    inputs,
+    output_size,
+)?;
+
+if !result.executed {
+    // VERIFICATION FAILED - Execution was BLOCKED
+    // The atlas hash didn't match the VCC contract
+}
+```
+
+**CLI Integration:**
+```bash
+# Hardware validation (prefers GPU attestation, falls back to software)
+python3 -m systems.vcc.cli validate --prefer-hardware
+
+# Software-only validation
+python3 -m systems.vcc.cli validate --no-hardware
+```
+
+## Bare Metal Glyph Execution
+
+### Native Glyph Windowing
+
+Windows in Geometry OS are **Autonomous Spatial Programs** - not pixel buffers:
+
+| Traditional | Geometry OS |
+|-------------|-------------|
+| Window = RGBA pixel buffer | Window = Grid of executable glyphs |
+| Compositor = CPU buffer blender | Compositor = Spatial instruction dispatcher (GPU) |
+| Interaction = Event loop in app code | Interaction = Opcode branching (JZ, JMP) in glyph programs |
+
+**Key Files:**
+- `docs/superpowers/specs/2026-03-12-native-glyph-windowing-design.md` - Full design
+- `systems/infinite_map_rs/src/backend/drm/shaders/glyph_microcode.wgsl` - WGSL bootloader
+
+**New Opcodes for Windowing (216-218):**
+| Opcode | Name | Purpose |
+|--------|------|---------|
+| 216u | `ADD_MEM` | Memory-to-memory addition (drag delta) |
+| 217u | `SUB_MEM` | Memory-to-memory subtraction |
+| 218u | `INT_DISPATCH` | Hit-test mouse against region table |
+
+### Self-Hosting Vision (Future)
+
+The ultimate goal: **The VCC system itself runs as glyphs verifying glyphs.**
+
+```
+Phase 1: EXTERNAL (Python/Rust) - Current
+├── VCC written in traditional languages
+├── Validates glyph programs
+└── Generates contracts
+
+Phase 2: TRANSITIONAL
+├── VCC glyph program validates other glyphs
+├── Bootstrapped from external seed
+└── System becomes partially self-hosting
+
+Phase 3: NATIVE
+├── All verification runs as spatial glyphs
+├── "The screen verifies itself"
+└── External code only for debugging
+```
+
+**The Meta-Glyph Problem:** How does the VCC glyph verify itself?
+- Fixed-point: Known hash baked into GPU substrate
+- Hierarchical: Hardware ROM validates first-layer VCC
+- Quorum: Multiple VCC programs cross-validate
 
 ## Troubleshooting
 
