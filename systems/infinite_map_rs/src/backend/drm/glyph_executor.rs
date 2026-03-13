@@ -53,10 +53,36 @@ impl DrmGlyphExecutor {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_executor_creation() {
-        // Placeholder - async GPU tests in Task 0.2
-        // This verifies the module compiles and types are correct
-        assert!(true);
+    /// Create a test wgpu device for unit tests
+    async fn create_test_device() -> Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::all(),
+            ..Default::default()
+        });
+
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::default(),
+                compatible_surface: None,
+                force_fallback_adapter: false,
+            })
+            .await?;
+
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor::default(), None)
+            .await
+            .ok()?;
+
+        Some((Arc::new(device), Arc::new(queue)))
+    }
+
+    #[tokio::test]
+    async fn test_executor_creation() {
+        let result = create_test_device().await;
+        if let Some((device, queue)) = result {
+            let mut executor = DrmGlyphExecutor::new(device, queue);
+            assert!(executor.load_spirv(&[]).is_ok());
+        }
+        // Skip if no GPU available
     }
 }

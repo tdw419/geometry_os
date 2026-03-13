@@ -124,6 +124,7 @@ ash = { version = "0.38.0", features = ["loaded"] }
 # Phase 0.5: Performance Baseline - Benchmark infrastructure
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 [[bench]]
 name = "compositor_benchmark"
