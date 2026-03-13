@@ -17,7 +17,8 @@ fn main() -> anyhow::Result<()> {
     let wgsl_source = fs::read_to_string(input_path)?;
     
     // Parse WGSL
-    let module = wgsl::parse(&wgsl_source)
+    let mut frontend = wgsl::Frontend::new();
+    let module = frontend.parse(&wgsl_source)
         .map_err(|e| anyhow::anyhow!("WGSL Parse Error: {:?}", e))?;
 
     // Validate module

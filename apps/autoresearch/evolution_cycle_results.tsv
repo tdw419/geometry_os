@@ -1,2 +1,8 @@
 timestamp	track	metric	value	optimization	status
 2026-03-13T09:33:34.901237	THE ENGINE (GIPS Opt	GIPS	3877321.0	Applied optimization: branch_r	pass
+2026-03-13T09:34:04.941838	THE ENGINE (GIPS Opt	GIPS	3890488.0	Applied optimization: loop_unr	pass
+2026-03-13T09:34:34.983153	THE ENGINE (GIPS Opt	GIPS	3905051.0	Applied optimization: branch_r	pass
+2026-03-13T09:35:05.023335	THE ENGINE (GIPS Opt	GIPS	3936786.0	Applied optimization: lcg_twea	pass
+2026-03-13T09:35:35.065695	THE ENGINE (GIPS Opt	GIPS	3810063.0	No optimization applied (basel	pass
+2026-03-13T09:36:05.106269	THE ENGINE (GIPS Opt	GIPS	3935304.0	No optimization applied (basel	pass
+2026-03-13T09:36:35.147637	THE ENGINE (GIPS Opt	GIPS	3954177.0	Applied optimization: lcg_twea	pass

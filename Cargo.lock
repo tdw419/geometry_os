@@ -2784,6 +2784,13 @@ dependencies = [
 [[package]]
 name = "glyph_framework_rs"
 version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "env_logger",
+ "log",
+ "pollster",
+ "wgpu 0.19.4",
+]
 
 [[package]]
 name = "gpu-alloc"

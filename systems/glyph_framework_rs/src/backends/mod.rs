@@ -1,3 +1,6 @@
+pub mod wgpu_backend;
+pub use wgpu_backend::WgpuBackend;
+
 use crate::types::{AppId, AppLayout, GlyphId, Intent};
 
 pub trait ExecutionBackend {

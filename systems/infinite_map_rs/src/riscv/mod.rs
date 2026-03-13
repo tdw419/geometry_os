@@ -6,6 +6,7 @@
 pub mod executor;
 pub mod hooks;
 pub mod memory;
+pub mod native_rv64;
 pub mod pipeline;
 pub mod program;
 
@@ -14,5 +15,6 @@ pub use hooks::{AsciiSceneHook, HeatHook, RiscvHook, RiscvHookBroadcaster, WebSo
 pub use memory::{
     CSRBank, Config, ExecutionState, MMIOState, VMMemoryLayout, RAM_SIZE, REGISTER_COUNT,
 };
+pub use native_rv64::{NativeRv64Executor, Riscv64State, Rv64PushConstants};
 pub use pipeline::RiscvPipeline;
 pub use program::{ProgramMetadata, RiscvProgram};
