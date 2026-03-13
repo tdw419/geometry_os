@@ -368,47 +368,78 @@ _createWindow(app) {
 }
 ```
 
-- [ ] **Step 2: Add close window method and modify constructor**
+- [ ] **Step 2: Modify constructor to accept WindowManager**
 
-Add these changes to the class:
+Replace the constructor (lines 13-34) with this complete version:
 
 ```javascript
-// Add to constructor after this.options = {...}
 constructor(client, container, options = {}, windowManager = null) {
     this.client = client;
     this.container = container;
-    this.windowManager = windowManager;  // NEW
-    // ... rest of constructor
+    this.windowManager = windowManager;  // NEW: Optional WindowManager
 
-    // NEW: Listen to WindowManager events
-    if (this.windowManager) {
-        this.windowManager.on('window_moved', ({ appId, x, y }) => {
-            const win = this.windows.get(appId);
-            if (win) {
-                win.container.x = x;
-                win.container.y = y;
-            }
-        });
+    this.options = {
+        borderWidth: 2,
+        focusedBorderColor: 0x00FF00,
+        unfocusedBorderColor: 0x444444,
+        backgroundColor: 0x0a0a0f,
+        titleBarHeight: 24,
+        glyphWidth: 10,
+        glyphHeight: 16,
+        fontFamily: 'Courier New, monospace',
+        fontSize: 12,
+        textColor: 0x00ff88,
+        ...options
+    };
 
-        this.windowManager.on('window_focused', ({ appId }) => {
-            this._updateAllBorders();
-        });
+    this.windows = new Map();
+    this.focusedAppId = null;
 
-        this.windowManager.on('window_removed', ({ appId }) => {
-            this._destroyWindow(appId);
-        });
-    }
+    this._setupEventHandlers();
+    this._setupWindowManagerListeners();  // NEW
 }
 
+// NEW: Listen to WindowManager events
+_setupWindowManagerListeners() {
+    if (!this.windowManager) return;
+
+    this.windowManager.on('window_moved', ({ appId, x, y }) => {
+        const win = this.windows.get(appId);
+        if (win) {
+            win.container.x = x;
+            win.container.y = y;
+        }
+    });
+
+    this.windowManager.on('window_focused', ({ appId }) => {
+        this._updateAllBorders();
+    });
+
+    this.windowManager.on('window_removed', ({ appId }) => {
+        // Use existing _destroyWindow method (defined at line 183)
+        this._destroyWindow(appId);
+    });
+}
+```
+
+- [ ] **Step 3: Add helper methods after _drawBorder**
+
+Add these methods after `_drawBorder` (around line 264):
+
+```javascript
 // NEW: Close window handler
 _closeWindow(appId) {
-    this.client.send({ type: 'unload_app', data: { app_id: appId } });
+    if (this.windowManager) {
+        this.windowManager.removeWindow(appId);
+    }
+    // Use existing client method
+    this.client.unloadApp(appId);
 }
 
 // NEW: Update all window borders based on focus
 _updateAllBorders() {
     for (const [appId, win] of this.windows) {
-        const isFocused = this.windowManager?.getWindow(appId)?.focused ?? false;
+        const isFocused = this.windowManager?.getWindow(appId)?.focused ?? (this.focusedAppId === appId);
         this._updateBorder(appId, isFocused);
     }
 }
@@ -780,7 +811,7 @@ Add these methods to the `GlyphVMBridge` class:
 
 ```python
 async def _handle_load_app_by_name(self, data: dict):
-    """Load an app by name using AppLoader."""
+    """Load an app by name using AppLoader for discovery, but load into bridge's VM."""
     if self.vm is None:
         return
 
@@ -789,17 +820,16 @@ async def _handle_load_app_by_name(self, data: dict):
         logger.error("load_app_by_name requires 'name' field")
         return
 
-    # Initialize app loader if needed
+    # Use AppLoader only for app discovery (not for VM execution)
     if self._app_loader is None and HAS_APP_LOADER:
         self._app_loader = AppLoader()
-        # Initialize VM in the loader
-        self._app_loader.vm = self.vm
+        # Note: We DON'T use AppLoader's VM - we use self.vm directly
 
     if self._app_loader is None:
         logger.error("AppLoader not available")
         return
 
-    # Check if app exists
+    # Check if app exists in discovered apps
     if app_name not in self._app_loader._app_info:
         logger.error(f"Unknown app: {app_name}")
         await self.broadcast({
@@ -808,13 +838,21 @@ async def _handle_load_app_by_name(self, data: dict):
         })
         return
 
-    # Load the app
-    app_id = self._app_loader.load_app(app_name)
+    # Get the app binary from AppLoader's discovery
+    app_info = self._app_loader._app_info[app_name]
+    app_binary = app_info.get('binary')
+
+    if app_binary is None:
+        logger.error(f"App '{app_name}' has no binary")
+        return
+
+    # Load into OUR VM (not AppLoader's VM)
+    app_id = self.vm.load_app(app_binary)
     if app_id is None:
         logger.error(f"Failed to load app: {app_name}")
         return
 
-    # Get app info
+    # Get app info from our VM
     app = self.vm._apps[app_id]
     ctx = app['context']
 
@@ -822,11 +860,7 @@ async def _handle_load_app_by_name(self, data: dict):
     glyph_count = ctx.width * ctx.height
     self._glyph_buffers[app_id] = [32] * glyph_count
 
-    # Get glyphs from loader if available
-    if app_id in self._app_loader._glyph_buffers:
-        self._glyph_buffers[app_id] = self._app_loader._glyph_buffers[app_id]
-
-    # Broadcast app loaded
+    # Broadcast app loaded with name
     await self.broadcast({
         "type": "app_loaded",
         "data": {
@@ -847,10 +881,10 @@ async def _handle_load_app_by_name(self, data: dict):
 
 async def _handle_list_apps(self):
     """Send list of available apps."""
+    # Initialize AppLoader for discovery only if needed
     if self._app_loader is None and HAS_APP_LOADER:
         self._app_loader = AppLoader()
-        if self.vm:
-            self._app_loader.vm = self.vm
+        # Note: AppLoader discovers apps in __init__, no VM needed
 
     apps = []
     if self._app_loader:
