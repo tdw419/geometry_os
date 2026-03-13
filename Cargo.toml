@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "systems/glyph_allocator",
-    "systems/glyph_compiler",
+    "systems/glyph_compiler", "systems/glyph_framework_rs",
     "systems/hypervisor",
     "systems/infinite_map_rs",
     "systems/neural_city/wasm",

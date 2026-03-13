@@ -2782,6 +2782,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "glyph_framework_rs"
+version = "0.1.0"
+
+[[package]]
 name = "gpu-alloc"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3393,6 +3397,7 @@ dependencies = [
  "log",
  "md5",
  "memmap2",
+ "naga 0.19.2",
  "ndarray",
  "nix 0.29.0",
  "notify",

@@ -42,15 +42,22 @@ TRACKS = [
         "objective": "Perfect 50/50 split on 1M coin flips with 0.999+ entropy."
     },
     {
-        "name": "THE BODY (Morphological Growth)",
+        "name": "THE CORE (Allocator & VRAM Fitness)",
         "duration_hours": 6,
+        "program": "apps/autoresearch/program_linux_opt.md",  # Using linux_opt as a proxy for substrate/core
+        "target_metric": "Allocator Fitness",
+        "objective": "Maximize VRAM allocation efficiency (Target: 95%+ Fitness)."
+    },
+    {
+        "name": "THE BODY (Morphological Growth)",
+        "duration_hours": 3,
         "program": "apps/autoresearch/program_spatial_spawn.md",
         "target_metric": "Spawn Success Rate",
         "objective": "Enable recursive self-replication using SPATIAL_SPAWN."
     },
     {
         "name": "THE OUROBOROS (Full System Resilience)",
-        "duration_hours": 6,
+        "duration_hours": 3,
         "program": "apps/autoresearch/program_ouroboros.md",
         "target_metric": "Aggregate Score",
         "objective": "Simultaneous optimization of Speed, Entropy, and Growth."
@@ -59,7 +66,7 @@ TRACKS = [
 
 def parse_benchmark_output(output: str) -> dict:
     """Parse benchmark output to extract metrics."""
-    result = {"gips": 0, "fps": 0, "status": "fail"}
+    result = {"gips": 0, "fps": 0, "status": "fail", "allocator_fitness": 0}
     for line in output.split("\n"):
         if "GIPS:" in line:
             try:
@@ -71,28 +78,93 @@ def parse_benchmark_output(output: str) -> dict:
                 result["fps"] = float(line.split(":")[1].strip())
             except:
                 pass
-        if "PASS" in line:
+        if "Fitness Score:" in line:
+            try:
+                # Extract percentage and convert to decimal
+                score_str = line.split(":")[1].strip().replace("%", "")
+                result["allocator_fitness"] = float(score_str) / 100.0
+            except:
+                pass
+        if "PASS" in line or "✅" in line:
             result["status"] = "pass"
     return result
 
-def run_benchmark() -> dict:
+def run_benchmark(track_name="") -> dict:
     """Run the glyph benchmark and return results."""
     try:
-        result = subprocess.run(
-            ["python3", str(BENCHMARK_SCRIPT)],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            cwd=str(ROOT)
-        )
+        # If we're on the CORE track, run the allocator research runner
+        if "CORE" in track_name:
+            result = subprocess.run(
+                ["python3", str(ROOT / "apps/autoresearch/run_allocator_research.py")],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=str(ROOT)
+            )
+        else:
+            result = subprocess.run(
+                ["python3", str(BENCHMARK_SCRIPT)],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=str(ROOT)
+            )
         return parse_benchmark_output(result.stdout + result.stderr)
     except subprocess.TimeoutExpired:
         return {"gips": 0, "fps": 0, "status": "timeout"}
     except Exception as e:
         return {"gips": 0, "fps": 0, "status": f"error: {str(e)}"}
 
-def apply_random_optimization() -> str:
-    """Apply a random optimization to the shader. Returns description."""
+def apply_random_optimization(track_name="") -> str:
+    """Apply a random optimization to the shader or allocator. Returns description."""
+    
+    if "CORE" in track_name:
+        # Real optimization for the allocator
+        alloc_path = ROOT / "systems" / "glyph_allocator" / "src" / "glyph_allocator.rs"
+        if not alloc_path.exists():
+            return "Allocator source not found"
+            
+        with open(alloc_path, "r") as f:
+            code = f.read()
+            
+        opt = random.choice(["best_fit", "alignment_tweak"])
+        
+        if opt == "best_fit":
+            # Replace First-Fit with Best-Fit
+            first_fit = """        if let Some(pos) = self
+            .free_list
+            .iter()
+            .position(|&(_, free_size)| free_size >= aligned_size)"""
+            
+            best_fit = """        if let Some(pos) = self
+            .free_list
+            .iter()
+            .enumerate()
+            .filter(|&(_, &(_, free_size))| free_size >= aligned_size)
+            .min_by_key(|&(_, &(_, free_size))| free_size)
+            .map(|(pos, _)| pos)"""
+            
+            if first_fit in code:
+                code = code.replace(first_fit, best_fit)
+                description = "Applied Best-Fit allocation strategy"
+            else:
+                description = "Best-Fit already applied or location not found"
+                
+        elif opt == "alignment_tweak":
+            # Tweak alignment to 128 instead of 256 for small blocks
+            old_align = "let aligned_size = ((size_in_bytes + 255) / 256) * 256;"
+            new_align = "let aligned_size = ((size_in_bytes + 127) / 128) * 128;"
+            if old_align in code:
+                code = code.replace(old_align, new_align)
+                description = "Tweaked alignment to 128-byte boundaries"
+            else:
+                description = "Alignment tweak already applied or location not found"
+
+        with open(alloc_path, "w") as f:
+            f.write(code)
+            
+        return description
+
     optimizations = [
         "noop",  # Control - no change
         "lcg_tweak",
@@ -136,7 +208,7 @@ def apply_random_optimization() -> str:
 
     return f"Applied optimization: {opt}"
 
-def update_dashboard(current_track, start_time, total_experiments, best_gips, last_result):
+def update_dashboard(current_track, start_time, total_experiments, best_gips, best_fitness, last_result):
     """Generate a Markdown dashboard for the user to monitor."""
     now = datetime.now()
     elapsed = now - start_time
@@ -157,7 +229,8 @@ def update_dashboard(current_track, start_time, total_experiments, best_gips, la
 ## 📊 Performance Metrics
 - **Total Experiments**: {total_experiments}
 - **Best GIPS Reached**: {best_gips:,}
-- **Last Result**: GIPS={last_result.get('gips', 0):,.0f}, Status={last_result.get('status', 'unknown')}
+- **Best Allocator Fitness**: {best_fitness:.2%}
+- **Last Result**: GIPS={last_result.get('gips', 0):,.0f}, Fitness={last_result.get('allocator_fitness', 0):.2%}, Status={last_result.get('status', 'unknown')}
 
 ## 🏆 Champion Shader
 The current best shader is saved at: `apps/autoresearch/champion_shader.wgsl`
@@ -182,6 +255,7 @@ def run_evolution_cycle():
     start_time = datetime.now()
     total_experiments = 0
     best_gips = 0
+    best_fitness = 0.8366  # Initial baseline
     last_result = {}
 
     # Initialize TSV
@@ -222,29 +296,38 @@ def run_evolution_cycle():
                 total_experiments += 1
 
                 # 1. Apply an optimization
-                opt_desc = apply_random_optimization()
+                opt_desc = apply_random_optimization(track['name'])
 
                 # 2. Run benchmark
                 print(f"  [#{experiment_count:03}] Running benchmark...", end=" ", flush=True)
-                result = run_benchmark()
+                result = run_benchmark(track['name'])
 
                 # 3. Record result
                 timestamp = datetime.now().isoformat()
+                metric_value = result['allocator_fitness'] if "CORE" in track['name'] else result['gips']
+                
                 with open(RESULTS_TSV, "a") as f:
-                    f.write(f"{timestamp}\t{track['name'][:20]}\t{track['target_metric']}\t{result['gips']}\t{opt_desc[:30]}\t{result['status']}\n")
+                    f.write(f"{timestamp}\t{track['name'][:20]}\t{track['target_metric']}\t{metric_value}\t{opt_desc[:30]}\t{result['status']}\n")
 
-                # 4. Check for new champion
-                if result["gips"] > best_gips and result["status"] == "pass":
+                # 4. Check for new champions
+                if result.get("gips", 0) > best_gips and result["status"] == "pass":
                     best_gips = result["gips"]
                     shutil.copy(SHADER_PATH, CHAMPION_PATH)
-                    print(f"🏆 NEW CHAMPION! GIPS={best_gips:,.0f}")
+                    print(f"🏆 NEW SHADER CHAMPION! GIPS={best_gips:,.0f}")
+                
+                if result.get("allocator_fitness", 0) > best_fitness:
+                    best_fitness = result["allocator_fitness"]
+                    print(f"🏆 NEW ALLOCATOR CHAMPION! Fitness={best_fitness:.2%}")
+
+                if "CORE" in track['name']:
+                    print(f"Fitness={result['allocator_fitness']:.2%} ({result['status']})")
                 else:
-                    print(f"GIPS={result['gips']:,.0f} ({result['status']})")
+                    print(f"GIPS={result.get('gips', 0):,.0f} ({result['status']})")
 
                 last_result = result
 
                 # 5. Update dashboard
-                update_dashboard(track, start_time, total_experiments, best_gips, last_result)
+                update_dashboard(track, start_time, total_experiments, best_gips, best_fitness, last_result)
 
                 # 6. Brief pause between experiments
                 time.sleep(30)  # 30 seconds between experiments
@@ -257,7 +340,7 @@ def run_evolution_cycle():
         print(f"\n🏁 Evolution Cycle Finished at {datetime.now()}")
         print(f"   Total Experiments: {total_experiments}")
         print(f"   Best GIPS: {best_gips:,.0f}")
-        update_dashboard(TRACKS[-1], start_time, total_experiments, best_gips, last_result)
+        update_dashboard(TRACKS[-1], start_time, total_experiments, best_gips, best_fitness, last_result)
 
 if __name__ == "__main__":
     run_evolution_cycle()

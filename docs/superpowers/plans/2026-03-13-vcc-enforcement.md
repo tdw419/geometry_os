@@ -2,11 +2,17 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Create automated verification that glyph rendering is semantically and visually identical across Foundry, Shell, and Kernel layers.
+**Goal:** Create **hardware-enforced** verification that glyph rendering is semantically and visually identical across Foundry, Shell, and Kernel layers - with GPU-side attestation.
 
-**Architecture:** A VCC verification script that runs at atlas generation time, producing a signed contract file. Each layer validates against this contract at initialization. Includes schema validation, visual hash comparison, and semantic opcode consistency checks.
+**Architecture:** Two-tier verification:
+1. **Software VCC** (Python) - Contract generation, schema validation, initial checks
+2. **Hardware VCC** (Rust/DRM/AMDGPU) - GPU-side hashing, DMA-BUF verification, scanout attestation
 
-**Tech Stack:** Python (verification), JSON Schema (contract), SHA-256 (hashing), pytest (testing)
+The GPU itself validates the contract. The CPU is untrusted.
+
+**Tech Stack:** Python (contract generation), Rust/DRM (hardware attestation), WGSL (GPU hashing), SHA-256, pytest
+
+**Paradigm:** "The Screen is the CPU" - Trust the GPU, not the CPU.
 
 ---
 
