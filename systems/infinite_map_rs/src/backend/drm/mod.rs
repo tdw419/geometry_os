@@ -10,6 +10,7 @@ pub mod dmabuf;
 pub mod amdgpu;
 pub mod intel;
 pub mod vcc_compute;
+pub mod glyph_executor;
 
 pub use device::DrmDevice;
 pub use scanout::KmsScanout;
@@ -18,3 +19,4 @@ pub use dmabuf::{DmaBuf, ZeroCopyPipeline};
 pub use amdgpu::command_buffer::AmdgpuCommandBuffer;
 pub use intel::IntelCommandBuffer;
 pub use vcc_compute::VccCompute;
+pub use glyph_executor::{DrmGlyphExecutor, GlyphError};
