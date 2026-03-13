@@ -30,13 +30,18 @@ from systems.spatial_coordinator.types import InterruptType
 class InterruptPacket:
     """A spatial interrupt packet that propagates through the glyph grid.
 
+    Wire Format (5 bytes): type, payload, timestamp (u16 LE), source.
+    The x, y coordinates are NOT part of the wire format - they are runtime-only
+    fields used for spatial routing and injection positioning. When unpacking,
+    x and y default to 0; the coordinator sets them during spatial placement.
+
     Attributes:
         type: Interrupt type (KEYBOARD=0x01, MOUSE=0x02)
         payload: Keycode or button ID
         timestamp: Frame counter when interrupt was created
         source: Device seat ID for multi-seat support
-        x: X coordinate in the infinite map
-        y: Y coordinate in the infinite map
+        x: X coordinate in the infinite map (runtime-only, not in packed format)
+        y: Y coordinate in the infinite map (runtime-only, not in packed format)
         ttl: Time-to-live in GPU ticks (default 64)
     """
 

@@ -66,3 +66,8 @@ class ErrorCode(IntEnum):
 OP_INT = 0x10  # Interrupt opcode (16)
 OP_SYNC = 0xFE  # Sync/syscall opcode (254)
 OP_HALT = 0xFF  # Halt opcode (255)
+
+# Register indices for interrupt handling (per spec section "Register Conventions")
+INT_PAYLOAD_REG = 29  # registers[29] = interrupt payload
+INT_TYPE_REG = 30  # registers[30] = interrupt type
+INT_SOURCE_REG = 31  # registers[31] = interrupt source

@@ -13,6 +13,9 @@ from systems.spatial_coordinator.types import (
     OP_INT,
     OP_SYNC,
     OP_HALT,
+    INT_PAYLOAD_REG,
+    INT_TYPE_REG,
+    INT_SOURCE_REG,
 )
 
 
@@ -163,3 +166,24 @@ class TestOpcodeConstants:
         assert 0 <= OP_INT <= 0xFF
         assert 0 <= OP_SYNC <= 0xFF
         assert 0 <= OP_HALT <= 0xFF
+
+
+class TestRegisterConstants:
+    """Tests for interrupt register index constants."""
+
+    def test_int_payload_reg_is_29(self):
+        """INT_PAYLOAD register index is 29."""
+        assert INT_PAYLOAD_REG == 29
+
+    def test_int_type_reg_is_30(self):
+        """INT_TYPE register index is 30."""
+        assert INT_TYPE_REG == 30
+
+    def test_int_source_reg_is_31(self):
+        """INT_SOURCE register index is 31."""
+        assert INT_SOURCE_REG == 31
+
+    def test_registers_are_contiguous(self):
+        """Interrupt registers are contiguous (29, 30, 31)."""
+        assert INT_TYPE_REG == INT_PAYLOAD_REG + 1
+        assert INT_SOURCE_REG == INT_TYPE_REG + 1
