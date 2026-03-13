@@ -1,0 +1,168 @@
+{
+  "name": "NativeWindowDrag",
+  "version": 1,
+  "description": "Autonomous spatial program: Window drag without CPU involvement",
+  "paradigm": "The screen is the CPU - this program runs entirely on GPU",
+
+  "memory_map": {
+    "0": "MOUSE_X",
+    "1": "MOUSE_Y",
+    "2": "MOUSE_BTN",
+    "3": "MOUSE_DX",
+    "4": "MOUSE_DY",
+    "10": "WIN_X",
+    "11": "WIN_Y",
+    "12": "WIN_W",
+    "13": "WIN_H",
+    "14": "WIN_HIT",
+    "20": "HIT_X",
+    "21": "HIT_Y",
+    "22": "HIT_W",
+    "23": "HIT_H",
+    "24": "HIT_ID",
+    "30": "TEMP_0",
+    "31": "TEMP_1"
+  },
+
+  "glyphs": {
+    "0": {
+      "stratum": "INTENT",
+      "opcode": "MODULE",
+      "p1": 0.0,
+      "p2": 0.0,
+      "target": 0,
+      "metadata": {
+        "purpose": "Native window drag handler",
+        "deps": [1, 2, 3, 4, 5, 6, 7, 8]
+      }
+    },
+
+    "1": {
+      "stratum": "LOGIC",
+      "opcode": "LD",
+      "p1": 0.0,
+      "p2": 0.0,
+      "target": 14,
+      "metadata": {
+        "rationale": "Clear hit flag at start of frame (load immediate 0)"
+      }
+    },
+
+    "2": {
+      "stratum": "LOGIC",
+      "opcode": "MOV",
+      "p1": 10.0,
+      "p2": 0.0,
+      "target": 20,
+      "metadata": {
+        "rationale": "Copy WIN_X to HIT_X (load from memory[10])"
+      }
+    },
+
+    "3": {
+      "stratum": "LOGIC",
+      "opcode": "MOV",
+      "p1": 11.0,
+      "p2": 0.0,
+      "target": 21,
+      "metadata": {
+        "rationale": "Copy WIN_Y to HIT_Y (load from memory[11])"
+      }
+    },
+
+    "4": {
+      "stratum": "LOGIC",
+      "opcode": "LD",
+      "p1": 300.0,
+      "p2": 0.0,
+      "target": 22,
+      "metadata": {
+        "rationale": "Set HIT_W to 300 (window width)"
+      }
+    },
+
+    "5": {
+      "stratum": "LOGIC",
+      "opcode": "LD",
+      "p1": 200.0,
+      "p2": 0.0,
+      "target": 23,
+      "metadata": {
+        "rationale": "Set HIT_H to 200 (window height)"
+      }
+    },
+
+    "6": {
+      "stratum": "LOGIC",
+      "opcode": "INT_DISPATCH",
+      "p1": 20.0,
+      "p2": 1.0,
+      "target": 14,
+      "metadata": {
+        "rationale": "Hit-test mouse against window region, result in WIN_HIT"
+      }
+    },
+
+    "7": {
+      "stratum": "LOGIC",
+      "opcode": "JZ",
+      "p1": 10.0,
+      "p2": 0.0,
+      "target": 14,
+      "metadata": {
+        "rationale": "If no hit (WIN_HIT == 0), jump to DRAW (instruction 10)"
+      }
+    },
+
+    "8": {
+      "stratum": "LOGIC",
+      "opcode": "ADD_MEM",
+      "p1": 3.0,
+      "p2": 0.0,
+      "target": 10,
+      "metadata": {
+        "rationale": "WIN_X += MOUSE_DX (drag X)"
+      }
+    },
+
+    "9": {
+      "stratum": "LOGIC",
+      "opcode": "ADD_MEM",
+      "p1": 4.0,
+      "p2": 0.0,
+      "target": 11,
+      "metadata": {
+        "rationale": "WIN_Y += MOUSE_DY (drag Y)"
+      }
+    },
+
+    "10": {
+      "stratum": "LOGIC",
+      "opcode": "DRAW",
+      "p1": 65.0,
+      "p2": 0.0,
+      "target": 10,
+      "metadata": {
+        "rationale": "Draw glyph 'A' at window position (WIN_X, WIN_Y)"
+      }
+    },
+
+    "11": {
+      "stratum": "LOGIC",
+      "opcode": "HALT",
+      "p1": 0.0,
+      "p2": 0.0,
+      "target": 0,
+      "metadata": {
+        "rationale": "End of frame - CPU will present scanout"
+      }
+    }
+  },
+
+  "attestation": {
+    "requires_vcc": true,
+    "substrate": "atlas_buffer",
+    "contract_hash": "to_be_computed",
+    "on_mismatch": "BLOCK_EXECUTION"
+  }
+}
