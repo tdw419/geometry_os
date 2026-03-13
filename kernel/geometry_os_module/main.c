@@ -13,6 +13,7 @@
 #include <linux/uaccess.h>
 
 #include "geometry_os.h"
+#include "uapi/geometry_os.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Geometry OS");
@@ -32,10 +33,35 @@ static int geos_release(struct inode *inode, struct file *file)
     return 0;
 }
 
+static long geos_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+    switch (cmd) {
+    case GEOS_IOCTL_LOAD_SPIRV:
+        pr_info("geometry_os: LOAD_SPIRV ioctl\n");
+        return -ENOSYS;  /* Not implemented yet */
+
+    case GEOS_IOCTL_EXECUTE:
+        pr_info("geometry_os: EXECUTE ioctl\n");
+        return -ENOSYS;
+
+    case GEOS_IOCTL_GET_OUTPUT:
+        pr_info("geometry_os: GET_OUTPUT ioctl\n");
+        return -ENOSYS;
+
+    case GEOS_IOCTL_SET_UNIFORMS:
+        pr_info("geometry_os: SET_UNIFORMS ioctl\n");
+        return -ENOSYS;
+
+    default:
+        return -ENOTTY;
+    }
+}
+
 static const struct file_operations geos_fops = {
     .owner = THIS_MODULE,
     .open = geos_open,
     .release = geos_release,
+    .unlocked_ioctl = geos_ioctl,
 };
 
 /* Misc device definition */
