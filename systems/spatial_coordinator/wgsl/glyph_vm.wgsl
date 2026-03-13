@@ -138,6 +138,12 @@ struct SyscallRequest {
 // Frame counter
 @group(0) @binding(6) var<uniform> frame_count: u32;
 
+// Display buffer (1920x1080 packed RGBA)
+@group(0) @binding(7) var<storage, read_write> display_buffer: array<u32, 2073600>;
+
+// Font Atlas (256x256 monochrome glyphs, packed into u32 bits)
+@group(0) @binding(8) var<storage, read> font_atlas: array<u32, 2048>; // 256*256 / 32 = 2048
+
 // ============================================
 // UTILITY FUNCTIONS
 // ============================================
@@ -236,7 +242,7 @@ fn enqueue_syscall(app_id: u32, syscall_id: u32, arg1: u32, arg2: u32) {
 // ============================================
 
 /// Execute one instruction, return next PC (0 = sequential)
-fn execute_instruction(app_id: u32, opcode: u32, rd: u32, rs1: u32, rs2: u32) -> u32 {
+fn execute_instruction(app_id: u32, opcode: u32, rd: u32, rs1: u32, rs2: u32, current_pc: u32) -> u32 {
     let ctx = app_contexts[app_id];
 
     // Control flow
@@ -246,23 +252,23 @@ fn execute_instruction(app_id: u32, opcode: u32, rd: u32, rs1: u32, rs2: u32) ->
 
     if (opcode == OP_HALT) {
         app_contexts[app_id].halted = 1u;
-        return ctx.pc;
+        return current_pc;
     }
 
     if (opcode == OP_JMP) {
-        return read_reg(app_id, rs1);
+        return rs2;
     }
 
     if (opcode == OP_JEQ) {
         if (zero_flag(app_id)) {
-            return read_reg(app_id, rs1);
+            return rs2;
         }
         return 0u;
     }
 
     if (opcode == OP_JNE) {
         if (!zero_flag(app_id)) {
-            return read_reg(app_id, rs1);
+            return rs2;
         }
         return 0u;
     }
@@ -323,13 +329,13 @@ fn execute_instruction(app_id: u32, opcode: u32, rd: u32, rs1: u32, rs2: u32) ->
     }
 
     if (opcode == OP_LD) {
-        let addr = read_reg(app_id, rs1);
+        let addr = read_reg(app_id, rs1) + rs2;
         write_reg(app_id, rd, read_mem(app_id, addr));
         return 0u;
     }
 
     if (opcode == OP_ST) {
-        let addr = read_reg(app_id, rs1);
+        let addr = read_reg(app_id, rs1) + rs2;
         write_mem(app_id, addr, read_reg(app_id, rd));
         return 0u;
     }
@@ -444,8 +450,31 @@ fn execute_instruction(app_id: u32, opcode: u32, rd: u32, rs1: u32, rs2: u32) ->
     }
 
     if (opcode == OP_DRAW) {
-        // Draw operation - would update display buffer
-        // For now, just consume the instruction
+        let glyph_id = read_reg(app_id, rd);
+        let x = read_reg(app_id, rs1) + ctx.origin_x;
+        let y = read_reg(app_id, rs2) + ctx.origin_y;
+        
+        // Simple 8x8 character blit
+        let atlas_x = (glyph_id % 32u) * 8u;
+        let atlas_y = (glyph_id / 32u) * 8u;
+        
+        for (var row = 0u; row < 8u; row++) {
+            for (var col = 0u; col < 8u; col++) {
+                let ax = atlas_x + col;
+                let ay = atlas_y + row;
+                let bit_idx = ay * 256u + ax;
+                let word_idx = bit_idx / 32u;
+                let bit = (font_atlas[word_idx] >> (bit_idx % 32u)) & 1u;
+                
+                if (bit == 1u) {
+                    let px = x + col;
+                    let py = y + row;
+                    if (px < 1920u && py < 1080u) {
+                        display_buffer[py * 1920u + px] = 0xFFFFFFFFu; // White
+                    }
+                }
+            }
+        }
         return 0u;
     }
 
@@ -484,7 +513,7 @@ fn execute_app(@builtin(workgroup_id) wid: vec3<u32>) {
         app_contexts[app_id].pc = pc;
 
         // Execute
-        let next_pc = execute_instruction(app_id, opcode, rd, rs1, rs2);
+        let next_pc = execute_instruction(app_id, opcode, rd, rs1, rs2, pc);
 
         // Update PC
         if (next_pc != 0u) {
@@ -523,7 +552,7 @@ fn execute_all_apps(@builtin(global_invocation_id) gid: vec3<u32>) {
 
     while (steps < MAX_STEPS && app_contexts[app_id].halted == 0u) {
         let inst = fetch_instruction(app_id, pc);
-        let next_pc = execute_instruction(app_id, inst.x, inst.y, inst.z, inst.w);
+        let next_pc = execute_instruction(app_id, inst.x, inst.y, inst.z, inst.w, pc);
 
         if (next_pc != 0u) {
             pc = next_pc;

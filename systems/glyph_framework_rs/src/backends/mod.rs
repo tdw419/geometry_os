@@ -38,6 +38,12 @@ pub trait ExecutionBackend {
     /// Load a SPIR-V binary into an application (for AOT backends).
     fn load_spirv(&mut self, app_id: AppId, spirv: &[u32]) -> Result<(), String>;
 
+    /// Load the font atlas data into the backend.
+    fn load_font_atlas(&mut self, atlas_data: &[u8]) -> Result<(), String>;
+
     /// Read the application's execution context (for debugging).
     fn get_context(&mut self, app_id: AppId) -> Result<[u32; 10], String>;
+
+    /// Read a pixel from the global display buffer.
+    fn get_display_pixel(&mut self, x: u32, y: u32) -> Result<u32, String>;
 }
