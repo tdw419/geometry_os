@@ -8,5 +8,5 @@ pub mod command_buffer;
 pub mod shader;
 
 pub use device::AmdGpuDevice;
-pub use command_buffer::CommandBuffer;
+pub use command_buffer::AmdgpuCommandBuffer;
 pub use shader::ComputeShader;

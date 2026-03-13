@@ -2532,3 +2532,39 @@ timestamp	track	metric	value	optimization	status
 2026-03-13T09:14:26.516135	THE MIND (Entropy & 	Entropy Score	3824844.0	No optimization applied (basel	pass
 2026-03-13T09:14:56.549117	THE MIND (Entropy & 	Entropy Score	3864521.0	No optimization applied (basel	pass
 2026-03-13T09:14:56.554323	THE MIND (Entropy & 	Entropy Score	3272787.0	Applied optimization: loop_unr	pass
+2026-03-13T09:15:26.589178	THE MIND (Entropy & 	Entropy Score	3381022.0	No optimization applied (basel	pass
+2026-03-13T09:15:26.592349	THE MIND (Entropy & 	Entropy Score	3913457.0	Applied optimization: branch_r	pass
+2026-03-13T09:15:56.628872	THE MIND (Entropy & 	Entropy Score	3862730.0	Applied optimization: lcg_twea	pass
+2026-03-13T09:15:56.634400	THE MIND (Entropy & 	Entropy Score	3871210.0	No optimization applied (basel	pass
+2026-03-13T09:16:26.668402	THE MIND (Entropy & 	Entropy Score	3856218.0	No optimization applied (basel	pass
+2026-03-13T09:16:26.675093	THE MIND (Entropy & 	Entropy Score	3797022.0	No optimization applied (basel	pass
+2026-03-13T09:16:56.708313	THE MIND (Entropy & 	Entropy Score	3893388.0	Applied optimization: branch_r	pass
+2026-03-13T09:16:56.714228	THE MIND (Entropy & 	Entropy Score	3844971.0	Applied optimization: lcg_twea	pass
+2026-03-13T09:17:26.747900	THE MIND (Entropy & 	Entropy Score	3735325.0	Applied optimization: lcg_twea	pass
+2026-03-13T09:17:26.754905	THE MIND (Entropy & 	Entropy Score	3848141.0	Applied optimization: branch_r	pass
+2026-03-13T09:17:56.787359	THE MIND (Entropy & 	Entropy Score	3942862.0	Applied optimization: branch_r	pass
+2026-03-13T09:17:56.794311	THE MIND (Entropy & 	Entropy Score	3828128.0	No optimization applied (basel	pass
+2026-03-13T09:18:26.827495	THE MIND (Entropy & 	Entropy Score	3574292.0	Applied optimization: branch_r	pass
+2026-03-13T09:18:26.833120	THE MIND (Entropy & 	Entropy Score	3814776.0	No optimization applied (basel	pass
+2026-03-13T09:18:56.867009	THE MIND (Entropy & 	Entropy Score	2293954.0	Applied optimization: loop_unr	pass
+2026-03-13T09:18:56.873403	THE MIND (Entropy & 	Entropy Score	3884961.0	Applied optimization: branch_r	pass
+2026-03-13T09:19:26.907304	THE MIND (Entropy & 	Entropy Score	3891526.0	Applied optimization: branch_r	pass
+2026-03-13T09:19:26.913314	THE MIND (Entropy & 	Entropy Score	3685588.0	Applied optimization: branch_r	pass
+2026-03-13T09:19:56.947474	THE MIND (Entropy & 	Entropy Score	3889105.0	Applied optimization: branch_r	pass
+2026-03-13T09:19:56.951367	THE MIND (Entropy & 	Entropy Score	3875433.0	Applied optimization: lcg_twea	pass
+2026-03-13T09:20:26.987625	THE MIND (Entropy & 	Entropy Score	3912144.0	Applied optimization: loop_unr	pass
+2026-03-13T09:20:26.993628	THE MIND (Entropy & 	Entropy Score	3733493.0	Applied optimization: loop_unr	pass
+2026-03-13T09:20:57.027442	THE MIND (Entropy & 	Entropy Score	3806582.0	No optimization applied (basel	pass
+2026-03-13T09:20:57.033815	THE MIND (Entropy & 	Entropy Score	3780392.0	Applied optimization: loop_unr	pass
+2026-03-13T09:21:27.068345	THE MIND (Entropy & 	Entropy Score	3974360.0	Applied optimization: branch_r	pass
+2026-03-13T09:21:27.072626	THE MIND (Entropy & 	Entropy Score	3728422.0	Applied optimization: branch_r	pass
+2026-03-13T09:21:57.108583	THE MIND (Entropy & 	Entropy Score	3876420.0	Applied optimization: loop_unr	pass
+2026-03-13T09:21:57.114353	THE MIND (Entropy & 	Entropy Score	3845837.0	Applied optimization: branch_r	pass
+2026-03-13T09:22:27.148316	THE MIND (Entropy & 	Entropy Score	3667725.0	Applied optimization: branch_r	pass
+2026-03-13T09:22:27.154593	THE MIND (Entropy & 	Entropy Score	3883107.0	Applied optimization: lcg_twea	pass
+2026-03-13T09:22:57.188487	THE MIND (Entropy & 	Entropy Score	3756796.0	Applied optimization: branch_r	pass
+2026-03-13T09:22:57.193489	THE MIND (Entropy & 	Entropy Score	3870675.0	No optimization applied (basel	pass
+2026-03-13T09:23:27.229055	THE MIND (Entropy & 	Entropy Score	3935282.0	Applied optimization: loop_unr	pass
+2026-03-13T09:23:27.236476	THE MIND (Entropy & 	Entropy Score	3711244.0	Applied optimization: loop_unr	pass
+2026-03-13T09:23:57.269570	THE MIND (Entropy & 	Entropy Score	3893626.0	Applied optimization: lcg_twea	pass
+2026-03-13T09:23:57.276389	THE MIND (Entropy & 	Entropy Score	3919307.0	Applied optimization: branch_r	pass

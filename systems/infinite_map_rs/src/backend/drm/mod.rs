@@ -6,7 +6,11 @@
 pub mod device;
 pub mod scanout;
 pub mod compute;
+pub mod dmabuf;
+pub mod amdgpu;
 
 pub use device::DrmDevice;
 pub use scanout::KmsScanout;
 pub use compute::GlyphCompute;
+pub use dmabuf::{DmaBuf, ZeroCopyPipeline};
+pub use amdgpu::command_buffer::AmdgpuCommandBuffer;
