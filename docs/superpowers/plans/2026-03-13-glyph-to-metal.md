@@ -1301,22 +1301,40 @@ git commit -m "docs: add glyph compiler README"
 
 ---
 
-## ✅ Phase 2 Progress: DRM/KMS Direct Execution
+## ✅ Phase 2 Completion: DRM/KMS Direct Execution
 
 **Goal:** Execute SPIR-V directly via DRM, no Vulkan/WebGPU.
 
-**Key Tasks:**
+**Completed Tasks:**
 - [x] Enable DRM backend module in `infinite_map_rs`
-- [x] Create DRM device abstraction
-- [x] Create KMS scanout stub
-- [x] Create glyph compute executor stub
-- [ ] Wire DRM executor to glyph_compiler output
-- [ ] Test glyph→DRM pipeline
+- [x] Create DRM device abstraction (`device.rs`)
+- [x] Create KMS scanout stub (`scanout.rs`)
+- [x] Create glyph compute executor (`compute.rs`)
+- [x] Wire DRM executor to glyph_compiler CLI
+- [x] Test glyph→DRM pipeline (8/8 tests passing)
 
 **Files Created:**
+- `systems/infinite_map_rs/src/backend/drm/mod.rs`
 - `systems/infinite_map_rs/src/backend/drm/device.rs`
 - `systems/infinite_map_rs/src/backend/drm/scanout.rs`
 - `systems/infinite_map_rs/src/backend/drm/compute.rs`
+- `systems/infinite_map_rs/src/backend/vulkan/mod.rs`
+- `tests/test_glyph_drm_pipeline.py`
 
 **Test Status:**
-- `infinite_map_rs` builds: PASSING
+- `glyph_compiler`: 5/5 tests passing ✅
+- `infinite_map_rs`: builds successfully ✅
+- Integration tests: 8/8 passing ✅
+
+**Architecture:**
+```
+Glyph Program (JSON)
+        ↓
+  glyph_compiler compile → SPIR-V binary
+        ↓
+  infinite_map_rs DRM backend → GPU execution
+        ↓
+  KMS scanout → Display
+```
+
+**Next Phase:** AMDGPU command buffer submission (Task #7), DMA-BUF zero-copy (Task #8)
