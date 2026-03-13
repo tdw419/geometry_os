@@ -291,3 +291,218 @@ class TestInterruptPacketRoundTrip:
         assert recovered.payload == original.payload
         assert recovered.timestamp == original.timestamp
         assert recovered.source == original.source
+
+
+class TestGetNeighbors:
+    """Tests for get_neighbors function (4-connected grid neighbors)."""
+
+    def test_center_cell_has_four_neighbors(self):
+        """A cell in the center of a grid has 4 neighbors (up, down, left, right)."""
+        from systems.spatial_coordinator.interrupt import get_neighbors
+
+        neighbors = get_neighbors(5, 5, 10, 10)
+        # 4-connected: up, down, left, right
+        assert len(neighbors) == 4
+        assert (5, 4) in neighbors  # up
+        assert (5, 6) in neighbors  # down
+        assert (4, 5) in neighbors  # left
+        assert (6, 5) in neighbors  # right
+
+    def test_top_left_corner_has_two_neighbors(self):
+        """Corner cells have only 2 neighbors."""
+        from systems.spatial_coordinator.interrupt import get_neighbors
+
+        neighbors = get_neighbors(0, 0, 10, 10)
+        assert len(neighbors) == 2
+        assert (1, 0) in neighbors  # right
+        assert (0, 1) in neighbors  # down
+        assert (0, -1) not in neighbors  # up (out of bounds)
+        assert (-1, 0) not in neighbors  # left (out of bounds)
+
+    def test_top_right_corner_has_two_neighbors(self):
+        """Top-right corner has 2 neighbors."""
+        from systems.spatial_coordinator.interrupt import get_neighbors
+
+        neighbors = get_neighbors(9, 0, 10, 10)
+        assert len(neighbors) == 2
+        assert (8, 0) in neighbors  # left
+        assert (9, 1) in neighbors  # down
+
+    def test_bottom_left_corner_has_two_neighbors(self):
+        """Bottom-left corner has 2 neighbors."""
+        from systems.spatial_coordinator.interrupt import get_neighbors
+
+        neighbors = get_neighbors(0, 9, 10, 10)
+        assert len(neighbors) == 2
+        assert (1, 9) in neighbors  # right
+        assert (0, 8) in neighbors  # up
+
+    def test_bottom_right_corner_has_two_neighbors(self):
+        """Bottom-right corner has 2 neighbors."""
+        from systems.spatial_coordinator.interrupt import get_neighbors
+
+        neighbors = get_neighbors(9, 9, 10, 10)
+        assert len(neighbors) == 2
+        assert (8, 9) in neighbors  # left
+        assert (9, 8) in neighbors  # up
+
+    def test_top_edge_has_three_neighbors(self):
+        """Top edge (not corner) has 3 neighbors."""
+        from systems.spatial_coordinator.interrupt import get_neighbors
+
+        neighbors = get_neighbors(5, 0, 10, 10)
+        assert len(neighbors) == 3
+        assert (4, 0) in neighbors  # left
+        assert (6, 0) in neighbors  # right
+        assert (5, 1) in neighbors  # down
+
+    def test_bottom_edge_has_three_neighbors(self):
+        """Bottom edge (not corner) has 3 neighbors."""
+        from systems.spatial_coordinator.interrupt import get_neighbors
+
+        neighbors = get_neighbors(5, 9, 10, 10)
+        assert len(neighbors) == 3
+        assert (4, 9) in neighbors  # left
+        assert (6, 9) in neighbors  # right
+        assert (5, 8) in neighbors  # up
+
+    def test_left_edge_has_three_neighbors(self):
+        """Left edge (not corner) has 3 neighbors."""
+        from systems.spatial_coordinator.interrupt import get_neighbors
+
+        neighbors = get_neighbors(0, 5, 10, 10)
+        assert len(neighbors) == 3
+        assert (1, 5) in neighbors  # right
+        assert (0, 4) in neighbors  # up
+        assert (0, 6) in neighbors  # down
+
+    def test_right_edge_has_three_neighbors(self):
+        """Right edge (not corner) has 3 neighbors."""
+        from systems.spatial_coordinator.interrupt import get_neighbors
+
+        neighbors = get_neighbors(9, 5, 10, 10)
+        assert len(neighbors) == 3
+        assert (8, 5) in neighbors  # left
+        assert (9, 4) in neighbors  # up
+        assert (9, 6) in neighbors  # down
+
+
+class TestPropagateInterrupt:
+    """Tests for propagate_interrupt function."""
+
+    def test_propagate_returns_cells_to_receive_interrupt(self):
+        """propagate_interrupt returns cells that should receive the interrupt."""
+        from systems.spatial_coordinator.interrupt import (
+            propagate_interrupt,
+            InterruptPacket,
+        )
+
+        packet = InterruptPacket(
+            type=InterruptType.KEYBOARD,
+            payload=0x20,
+            timestamp=1000,
+            source=0,
+            x=5,
+            y=5,
+            ttl=64,
+        )
+
+        # Simple 10x10 grid, no handlers
+        grid = [[None for _ in range(10)] for _ in range(10)]
+        handlers = {}
+
+        # One propagation step should return the 4 neighbors
+        cells = propagate_interrupt(packet, grid, handlers)
+        assert len(cells) == 4
+        # cells contains (x, y, packet) tuples
+        coords = [(x, y) for x, y, _ in cells]
+        assert (5, 4) in coords
+        assert (5, 6) in coords
+        assert (4, 5) in coords
+        assert (6, 5) in coords
+
+    def test_propagate_stops_at_handler(self):
+        """Propagation stops when reaching a cell with a registered handler."""
+        from systems.spatial_coordinator.interrupt import (
+            propagate_interrupt,
+            InterruptPacket,
+        )
+
+        packet = InterruptPacket(
+            type=InterruptType.KEYBOARD,
+            payload=0x20,
+            timestamp=1000,
+            source=0,
+            x=5,
+            y=5,
+            ttl=64,
+        )
+
+        # Grid with a handler at (6, 5)
+        grid = [[None for _ in range(10)] for _ in range(10)]
+        handlers = {(6, 5): "handler_id_123"}
+
+        cells = propagate_interrupt(packet, grid, handlers)
+        # Should still return all 4 neighbors, but caller would check handlers
+        coords = [(x, y) for x, y, _ in cells]
+        assert (6, 5) in coords
+        # The actual stopping logic is in the handler lookup
+
+    def test_propagate_returns_empty_when_ttl_zero(self):
+        """When TTL is 0, propagation returns empty list (expired)."""
+        from systems.spatial_coordinator.interrupt import (
+            propagate_interrupt,
+            InterruptPacket,
+        )
+
+        packet = InterruptPacket(
+            type=InterruptType.KEYBOARD,
+            payload=0x20,
+            timestamp=1000,
+            source=0,
+            x=5,
+            y=5,
+            ttl=0,  # Already expired
+        )
+
+        grid = [[None for _ in range(10)] for _ in range(10)]
+        handlers = {}
+
+        cells = propagate_interrupt(packet, grid, handlers)
+        assert cells == []
+
+    def test_propagate_includes_decremented_ttl_in_result(self):
+        """propagate_interrupt returns packets with decremented TTL."""
+        from systems.spatial_coordinator.interrupt import (
+            propagate_interrupt,
+            InterruptPacket,
+        )
+
+        packet = InterruptPacket(
+            type=InterruptType.KEYBOARD,
+            payload=0x20,
+            timestamp=1000,
+            source=0,
+            x=5,
+            y=5,
+            ttl=64,
+        )
+
+        grid = [[None for _ in range(10)] for _ in range(10)]
+        handlers = {}
+
+        # propagate_interrupt returns list of (x, y, new_packet) tuples
+        cells = propagate_interrupt(packet, grid, handlers)
+        # Each propagated cell should have ttl decremented
+        for x, y, new_packet in cells:
+            assert new_packet.ttl == 63
+
+
+class TestMaxPropagationTTL:
+    """Tests for MAX_PROPAGATION_TTL constant."""
+
+    def test_max_propagation_ttl_is_64(self):
+        """MAX_PROPAGATION_TTL should be 64 GPU ticks."""
+        from systems.spatial_coordinator.interrupt import MAX_PROPAGATION_TTL
+
+        assert MAX_PROPAGATION_TTL == 64

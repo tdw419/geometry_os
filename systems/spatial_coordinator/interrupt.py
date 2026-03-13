@@ -20,10 +20,75 @@ Propagation Limits:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import ClassVar
+from dataclasses import dataclass, replace
+from typing import ClassVar, Dict, List, Tuple
 
 from systems.spatial_coordinator.types import InterruptType
+
+# Constants
+MAX_PROPAGATION_TTL = 64  # Max GPU ticks for interrupt propagation
+
+
+def get_neighbors(x: int, y: int, grid_width: int, grid_height: int) -> List[Tuple[int, int]]:
+    """Get 4-connected neighbors of a cell within grid bounds.
+
+    Args:
+        x: X coordinate of the cell
+        y: Y coordinate of the cell
+        grid_width: Width of the grid
+        grid_height: Height of the grid
+
+    Returns:
+        List of (x, y) tuples for valid neighbors (up, down, left, right).
+        Only returns coordinates within bounds (0 <= x < width, 0 <= y < height).
+    """
+    neighbors = []
+    # 4-connected: up, down, left, right
+    directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+
+    for dx, dy in directions:
+        nx, ny = x + dx, y + dy
+        if 0 <= nx < grid_width and 0 <= ny < grid_height:
+            neighbors.append((nx, ny))
+
+    return neighbors
+
+
+def propagate_interrupt(
+    packet: InterruptPacket,
+    grid: List[List],
+    handlers: Dict[Tuple[int, int], str],
+) -> List[Tuple[int, int, InterruptPacket]]:
+    """Propagate an interrupt to neighboring cells.
+
+    This is a simplified Python implementation for testing. In the actual
+    GPU shader, this would spread one cell per GPU tick.
+
+    Args:
+        packet: The interrupt packet to propagate
+        grid: 2D grid (used for bounds checking)
+        handlers: Dict mapping (x, y) to handler IDs for cells with @INT_HANDLER
+
+    Returns:
+        List of (x, y, new_packet) tuples for cells that should receive
+        the interrupt. Each new_packet has TTL decremented by 1.
+        Returns empty list if TTL is 0 (expired).
+    """
+    if packet.ttl <= 0:
+        return []
+
+    grid_height = len(grid)
+    grid_width = len(grid[0]) if grid_height > 0 else 0
+
+    neighbors = get_neighbors(packet.x, packet.y, grid_width, grid_height)
+
+    # Create new packets with decremented TTL
+    result = []
+    for nx, ny in neighbors:
+        new_packet = replace(packet, x=nx, y=ny, ttl=packet.ttl - 1)
+        result.append((nx, ny, new_packet))
+
+    return result
 
 
 @dataclass(frozen=True)
