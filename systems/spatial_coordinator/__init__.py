@@ -1,6 +1,12 @@
 # Spatial Program Coordinator
 # Geometry OS windowing system for GPU-native glyph applications
 
+from systems.spatial_coordinator.allocator import (
+    AllocationFailedError,
+    AllocatedRegion,
+    FreeRegion,
+    RegionAllocator,
+)
 from systems.spatial_coordinator.header import (
     HEADER_SIZE,
     InvalidHeaderError,
@@ -20,6 +26,11 @@ from systems.spatial_coordinator.types import (
 )
 
 __all__ = [
+    # Allocator
+    "AllocationFailedError",
+    "AllocatedRegion",
+    "FreeRegion",
+    "RegionAllocator",
     # Header
     "HEADER_SIZE",
     "InvalidHeaderError",
