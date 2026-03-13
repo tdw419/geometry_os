@@ -9,6 +9,8 @@
  *   const renderer = new GlyphWindowRenderer(client, pixiContainer);
  */
 
+import { SpatialCoordinatorClient } from './SpatialCoordinatorClient.js';
+
 export class GlyphWindowRenderer {
     constructor(client, container, options = {}, windowManager = null) {
         this.client = client;
@@ -367,6 +369,10 @@ export async function createGlyphDesktop(containerId, bridgeUrl = 'ws://localhos
     // Import PixiJS
     const PIXI = await import('https://cdn.skypack.dev/pixi.js@7');
 
+    // Import components
+    const { WindowManager } = await import('./WindowManager.js');
+    const { CommandPalette } = await import('./CommandPalette.js');
+
     // Create PixiJS application
     const app = new PIXI.Application({
         width: window.innerWidth,
@@ -380,15 +386,50 @@ export async function createGlyphDesktop(containerId, bridgeUrl = 'ws://localhos
         container.appendChild(app.view);
     }
 
-    // Create client and renderer
+    // Create client
     const client = new SpatialCoordinatorClient(bridgeUrl);
-    const renderer = new GlyphWindowRenderer(client, app.stage);
+
+    // Create WindowManager
+    const windowManager = new WindowManager();
+
+    // Create renderer with WindowManager
+    const renderer = new GlyphWindowRenderer(client, app.stage, {}, windowManager);
+
+    // Create CommandPalette
+    const commandPalette = new CommandPalette(client);
+    commandPalette.addToContainer(app.stage);
+
+    // Handle app list from server
+    client.on('app_list', (data) => {
+        commandPalette.setApps(data.apps);
+    });
+
+    // Handle window dragging
+    app.stage.eventMode = 'static';
+    app.stage.hitArea = app.screen;
+
+    app.stage.on('pointermove', (e) => {
+        if (windowManager.isDragging()) {
+            windowManager.updateDrag(e.global.x, e.global.y);
+        }
+    });
+
+    app.stage.on('pointerup', () => {
+        windowManager.endDrag();
+    });
+
+    app.stage.on('pointerupoutside', () => {
+        windowManager.endDrag();
+    });
 
     // Connect
     client.connect();
 
-    // Handle keyboard
+    // Handle keyboard (skip if command palette is visible)
     window.addEventListener('keydown', (e) => {
+        if (commandPalette.visible && e.keyCode !== 27 && e.keyCode !== 192) {
+            return; // Let command palette handle it
+        }
         renderer.handleKeyboard(e);
     });
 
@@ -397,5 +438,5 @@ export async function createGlyphDesktop(containerId, bridgeUrl = 'ws://localhos
         app.renderer.resize(window.innerWidth, window.innerHeight);
     });
 
-    return { app, client, renderer };
+    return { app, client, renderer, windowManager, commandPalette };
 }
