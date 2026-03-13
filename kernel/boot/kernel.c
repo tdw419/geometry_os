@@ -405,10 +405,60 @@ static void test_gpu_batch(struct GeosGpu *gpu, struct Framebuffer *fb) {
 }
 
 // ============================================================================
+// Multiboot2 Parsing
+// ============================================================================
+
+struct multiboot2_tag {
+    u32 type;
+    u32 size;
+};
+
+struct multiboot2_framebuffer_tag {
+    u32 type;
+    u32 size;
+    u64 framebuffer_addr;
+    u32 framebuffer_pitch;
+    u32 framebuffer_width;
+    u32 framebuffer_height;
+    u8  framebuffer_bpp;
+    u8  framebuffer_type;
+    u16 reserved;
+};
+
+#define MULTIBOOT2_TAG_FRAMEBUFFER  8
+#define MULTIBOOT2_TAG_END          0
+
+static int parse_multiboot2_fb(void *mboot_info, u64 *fb_addr, u32 *fb_width,
+                                u32 *fb_height, u32 *fb_pitch, u32 *fb_bpp) {
+    if (!mboot_info) return -1;
+
+    // Skip total_size (4 bytes) and reserved (4 bytes)
+    struct multiboot2_tag *tag = (struct multiboot2_tag *)((u8 *)mboot_info + 8);
+
+    while (tag->type != MULTIBOOT2_TAG_END) {
+        if (tag->type == MULTIBOOT2_TAG_FRAMEBUFFER) {
+            struct multiboot2_framebuffer_tag *fbtag =
+                (struct multiboot2_framebuffer_tag *)tag;
+            *fb_addr = fbtag->framebuffer_addr;
+            *fb_width = fbtag->framebuffer_width;
+            *fb_height = fbtag->framebuffer_height;
+            *fb_pitch = fbtag->framebuffer_pitch;
+            *fb_bpp = fbtag->framebuffer_bpp;
+            return 0;
+        }
+        // Move to next tag (aligned to 8 bytes)
+        u32 size = tag->size;
+        size = (size + 7) & ~7;  // Align up
+        tag = (struct multiboot2_tag *)((u8 *)tag + size);
+    }
+    return -1;  // No framebuffer tag found
+}
+
+// ============================================================================
 // Main Kernel Entry
 // ============================================================================
 
-void kernel_main(void *fb_base, u32 fb_width, u32 fb_height, u32 fb_pitch, u32 fb_bpp) {
+void kernel_main(void *mboot_info) {
     // Initialize serial port for debug output
     serial_init();
     serial_puts("\n\n========================================\n");
@@ -416,9 +466,26 @@ void kernel_main(void *fb_base, u32 fb_width, u32 fb_height, u32 fb_pitch, u32 f
     serial_puts("  Glyph-to-Metal Pipeline\n");
     serial_puts("========================================\n\n");
 
+    // Parse multiboot2 info for framebuffer
+    u64 fb_addr;
+    u32 fb_width, fb_height, fb_pitch, fb_bpp;
+
+    serial_puts("[INFO] Parsing multiboot2 info...\n");
+    if (parse_multiboot2_fb(mboot_info, &fb_addr, &fb_width, &fb_height,
+                            &fb_pitch, &fb_bpp) == 0) {
+        serial_puts("[OK] Framebuffer tag found\n");
+    } else {
+        serial_puts("[WARN] No framebuffer tag, using defaults\n");
+        fb_addr = 0xE0000000;
+        fb_width = 1024;
+        fb_height = 768;
+        fb_pitch = 4096;
+        fb_bpp = 32;
+    }
+
     serial_puts("[INFO] Initializing framebuffer...\n");
     serial_puts("  Base: ");
-    serial_print_hex((u32)fb_base);
+    serial_print_hex((u32)fb_addr);
     serial_puts("\n  Size: ");
     serial_print_hex(fb_width);
     serial_puts(" x ");
@@ -431,7 +498,7 @@ void kernel_main(void *fb_base, u32 fb_width, u32 fb_height, u32 fb_pitch, u32 f
 
     // Set up framebuffer
     struct Framebuffer fb = {
-        .base = (u32 *)fb_base,
+        .base = (u32 *)(u64)fb_addr,
         .width = fb_width,
         .height = fb_height,
         .pitch = fb_pitch,
@@ -487,7 +554,7 @@ void kernel_main(void *fb_base, u32 fb_width, u32 fb_height, u32 fb_pitch, u32 f
     serial_print_hex(fb.pitch);
     serial_puts("\n");
 
-    // Test VGA text mode first (always works in QEMU)
+    // Test VGA text mode first (always works)
     serial_puts("[DEBUG] Testing VGA text mode at 0xB8000...\n");
     volatile u16 *vga = (volatile u16 *)0xB8000;
     vga[0] = 0x0F47;  // 'G' in white on black
@@ -495,28 +562,38 @@ void kernel_main(void *fb_base, u32 fb_width, u32 fb_height, u32 fb_pitch, u32 f
     vga[2] = 0x0F53;  // 'S'
     serial_puts("[DEBUG] VGA text write OK!\n");
 
-    // Try writing just one pixel
-    // NOTE: Skipping in QEMU - 0xE0000000 is not the real framebuffer address
-    // On real hardware with Intel GPU, this would work via proper PCI BAR mapping
-    serial_puts("[DEBUG] Skipping pixel test (QEMU LFB not at 0xE0000000)\n");
-    // fb_put_pixel(&fb, 0, 0, 0xFFFF0000);  // Red
-    // serial_puts("[DEBUG] Pixel write returned!\n");
+    // Test framebuffer graphics (now works with correct multiboot2 address)
+    serial_puts("[DEBUG] Testing framebuffer graphics...\n");
+    fb_put_pixel(&fb, 0, 0, 0xFFFF0000);  // Red pixel at (0,0)
+    serial_puts("[DEBUG] Pixel write OK!\n");
 
     // Small delay
     for (volatile int i = 0; i < 1000000; i++);
 
-    // Write a few more pixels (skipped in QEMU)
-    // for (int i = 0; i < 100; i++) {
-    //     fb_put_pixel(&fb, i, 0, 0xFF00FF00);  // Green line
-    // }
-    serial_puts("[DEBUG] Green line skipped (QEMU)\n");
+    // Draw green line
+    for (int i = 0; i < 100; i++) {
+        fb_put_pixel(&fb, i, 10, 0xFF00FF00);  // Green line
+    }
+    serial_puts("[DEBUG] Green line drawn!\n");
+
+    // Draw red line
+    for (int i = 0; i < 100; i++) {
+        fb_put_pixel(&fb, i, 20, 0xFFFF0000);  // Red line
+    }
+    serial_puts("[DEBUG] Red line drawn!\n");
+
+    // Draw blue line
+    for (int i = 0; i < 100; i++) {
+        fb_put_pixel(&fb, i, 30, 0xFF0000FF);  // Blue line
+    }
+    serial_puts("[DEBUG] Blue line drawn!\n");
 
     // Done
     serial_puts("[OK] Framebuffer test complete!\n");
 
-    // Draw "G" glyph in center (skipped in QEMU)
-    serial_puts("[INFO] Drawing Geometry glyph... (skipped in QEMU)\n");
-    // fb_draw_char_g(&fb, fb.width / 2, fb.height / 2, 80, 0xFFFFFFFF);
+    // Draw "G" glyph in center
+    serial_puts("[INFO] Drawing Geometry glyph...\n");
+    fb_draw_char_g(&fb, fb.width / 2, fb.height / 2, 80, 0xFFFFFFFF);
 
     serial_puts("[INFO] Testing GPU batch execution...\n");
     // Test GPU batch execution
@@ -524,8 +601,8 @@ void kernel_main(void *fb_base, u32 fb_width, u32 fb_height, u32 fb_pitch, u32 f
         test_gpu_batch(&gpu, &fb);
     }
 
-    serial_puts("[INFO] Drawing status indicators... (skipped in QEMU)\n");
-    // Draw status indicators (skipped in QEMU - framebuffer not mapped)
+    serial_puts("[INFO] Drawing status indicators...\n");
+    // Draw status indicators
     // RCS status
     // u32 rcs_color = gpu.has_rcs ? 0xFF00FF00 : 0xFFFF0000;
     // fb_fill_rect(&fb, 10, fb.height - 50, 20, 20, rcs_color);

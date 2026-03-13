@@ -111,17 +111,30 @@ _start:
     mov dword [0x3010], 0x400083
     mov dword [0x3018], 0x600083
 
-    ; Map framebuffer at 0xE0000000 (3.5GB mark)
+    ; Map framebuffer at 0xE0000000 (3.5GB mark) - for real Intel GPU
     ; 0xE0000000 >> 30 = 0x38 = 56, so PDPT[56]
     ; PDPT[56] -> PD_fb at 0x4000
     mov dword [0x2000 + 56 * 8], 0x4003
     ; PD_fb[0-3] -> 2MB pages starting at 0xE0000000
-    ; Page at 0xE0000000: flags=0x83 (present, writable, huge, cache disabled)
-    ; Physical address = 0xE0000000, shifted right 21 bits = 0x700
     mov dword [0x4000], 0xE0000083      ; 0xE0000000 - 0xE1FFFFFF
     mov dword [0x4008], 0xE2000083      ; 0xE2000000 - 0xE3FFFFFF
     mov dword [0x4010], 0xE4000083      ; 0xE4000000 - 0xE5FFFFFF
     mov dword [0x4018], 0xE6000083      ; 0xE6000000 - 0xE7FFFFFF
+
+    ; Map QEMU framebuffer region at 0xFD000000 (high 32-bit address space)
+    ; 0xFD000000 >> 30 = 3, so PDPT[3] (0xC0000000-0xFFFFFFFF)
+    ; Use PD at 0x5000 for this region
+    mov dword [0x2000 + 3 * 8], 0x5003   ; PDPT[3] -> PD_qemu at 0x5000
+    ; Map 0xFC000000-0xFFFFFFFF region
+    ; Within PDPT[3], index = (addr - 0xC0000000) >> 21
+    ; 0xFC000000: (0xFC000000 - 0xC0000000) >> 21 = 0x1E0 = 480
+    ; 0xFE000000: (0xFE000000 - 0xC0000000) >> 21 = 0x1F0 = 496
+    ; Map a range covering typical QEMU framebuffer addresses
+    mov dword [0x5000 + 480 * 8], 0xFC000083  ; 0xFC000000 - 0xFDFFFFFF
+    mov dword [0x5000 + 481 * 8], 0xFE000083  ; 0xFE000000 - 0xFFFFFFFF
+    mov dword [0x5000 + 482 * 8], 0x00000083  ; 0x00000000 - 0x001FFFFF (wrap for safety)
+    ; Also map 0xFD000000 specifically (index 488)
+    mov dword [0x5000 + 488 * 8], 0xFD000083  ; 0xFD000000 - 0xFEFFFFFF
 
     ; Enable PAE
     mov eax, cr4
@@ -225,13 +238,9 @@ long_mode:
     test rax, rax
     jnz .wait2_loop
 
-    ; Framebuffer params (hardcoded for QEMU stdvga)
-    ; Use explicit 64-bit address to avoid sign extension
-    mov rdi, qword 0x00000000E0000000
-    mov rsi, 1024
-    mov rdx, 768
-    mov rcx, 4096
-    mov r8, 32
+    ; Pass multiboot2 info pointer to kernel_main
+    ; kernel_main will parse it to get real framebuffer address
+    mov rdi, [mboot_info]    ; mboot_info pointer
 
     call kernel_main
 
