@@ -724,6 +724,46 @@ git commit -m "feat(glyph_compiler): integrate wgpu execution"
 
 ---
 
+### Task 1.5: Scaffold CLI-Anything Agent-Native Harness
+
+**Goal:** Create a standardized agent interface (REPL + JSON) following the CLI-Anything methodology.
+
+**Files:**
+- Create: `systems/glyph_compiler/agent-harness/GEOS.md`
+- Create: `systems/glyph_compiler/agent-harness/setup.py`
+- Create: `systems/glyph_compiler/agent-harness/cli_anything/geos/geos_cli.py`
+- Create: `systems/glyph_compiler/agent-harness/cli_anything/geos/utils/repl_skin.py`
+
+- [ ] **Step 1: Write GEOS.md SOP**
+
+Document the "Intent → Glyph" mapping principles and the stateful REPL workflow.
+
+- [ ] **Step 2: Create setup.py (Namespace Package)**
+
+Configure `cli-anything-geos` as a PEP 420 namespace package.
+
+- [ ] **Step 3: Implement Python Wrapper CLI**
+
+Create a Click-based CLI in `geos_cli.py` that wraps the `glyph_compiler` Rust binary and adds:
+- `--json` output for all commands
+- Stateful session management (`session.json`)
+- Interactive REPL with `ReplSkin`
+
+- [ ] **Step 4: Verify Installation**
+
+Run: `pip install -e systems/glyph_compiler/agent-harness`
+Run: `cli-anything-geos --help`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add systems/glyph_compiler/agent-harness/
+git commit -m "feat(geos): scaffold agent-native CLI harness"
+```
+
+---
+
 ## Chunk 2: Evolution-Driven Language Design
 
 ### Task 2.1: Connect Glyph Compiler to Evolution Daemon
@@ -1230,5 +1270,31 @@ git commit -m "docs: add glyph compiler README"
 
 *Plan created: 2026-03-13*
 *Plan revised: 2026-03-13 (fixed opcode source, crate names, file structure)*
-*Phase 1 estimated: 2-3 weeks*
+*Phase 1 completed: 2026-03-13* ✅
+*Phase 1 duration: ~1 day*
 *Full roadmap: 6-12 months*
+
+---
+
+## ✅ Phase 1 Completion Summary
+
+**Completed Tasks:**
+- [x] Chunk 0: Project Setup (glyph_compiler package scaffolded)
+- [x] Chunk 1: SPIR-V Compiler Core (mapping, binary builder, CLI, executor)
+- [x] Chunk 2: Evolution Integration (glyph_evolution.py)
+- [x] Chunk 3: Integration Tests (4 tests passing)
+- [x] Chunk 4: Documentation (README, OPCODES.md)
+
+**Key Commits:**
+- feat: scaffold glyph_compiler package
+- feat(glyph_compiler): add opcode to SPIR-V mapping
+- feat(glyph_compiler): build SPIR-V binary from glyph program
+- feat(glyph_compiler): add CLI entry point
+- feat(glyph_compiler): integrate wgpu executor
+- feat(evolution): connect glyph compiler to evolution daemon
+- test: add end-to-end glyph→SPIR-V pipeline tests
+- docs(glyph_compiler): add README
+
+**Test Status:**
+- 10 glyph_evolution tests: PASSING
+- 4 integration tests: PASSING
