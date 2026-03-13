@@ -30,6 +30,9 @@ static DEFINE_MUTEX(geos_spirv_mutex);
 static void *spirv_buffer;
 static size_t spirv_size;
 
+/* Uniforms storage */
+static struct geos_uniforms geos_uniforms;
+
 static long geos_ioctl_load_spirv(unsigned long arg)
 {
     struct geos_spirv_load load;
@@ -93,6 +96,24 @@ out:
     return ret;
 }
 
+static long geos_ioctl_set_uniforms(unsigned long arg)
+{
+    if (copy_from_user(&geos_uniforms, (void __user *)arg, sizeof(geos_uniforms)))
+        return -EFAULT;
+
+    pr_debug("geometry_os: Uniforms set: %ux%u time=%u\n",
+             geos_uniforms.width, geos_uniforms.height, geos_uniforms.time);
+
+    return 0;
+}
+
+static long geos_ioctl_get_output(unsigned long arg)
+{
+    /* Stub: return -ENOSYS until DMA-BUF is implemented */
+    pr_info("geometry_os: GET_OUTPUT called (not implemented)\n");
+    return -ENOSYS;
+}
+
 /* File operations */
 static int geos_open(struct inode *inode, struct file *file)
 {
@@ -116,13 +137,11 @@ static long geos_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         pr_info("geometry_os: EXECUTE ioctl\n");
         return -ENOSYS;
 
-    case GEOS_IOCTL_GET_OUTPUT:
-        pr_info("geometry_os: GET_OUTPUT ioctl\n");
-        return -ENOSYS;
-
     case GEOS_IOCTL_SET_UNIFORMS:
-        pr_info("geometry_os: SET_UNIFORMS ioctl\n");
-        return -ENOSYS;
+        return geos_ioctl_set_uniforms(arg);
+
+    case GEOS_IOCTL_GET_OUTPUT:
+        return geos_ioctl_get_output(arg);
 
     default:
         return -ENOTTY;
