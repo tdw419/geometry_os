@@ -25,5 +25,6 @@ log = "0.4"
 default = ["wgpu"]
 wgpu = ["dep:wgpu"]
 vulkan = ["dep:ash"]
+drm = []
 
 [dev-dependencies]

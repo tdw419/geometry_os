@@ -19,7 +19,7 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() < 2 {
-        eprintln!("Usage: glyph_compiler <compile|execute>");
+        eprintln!("Usage: glyph_compiler <compile|execute> [--drm]");
         std::process::exit(1);
     }
 
@@ -71,29 +71,77 @@ fn compile_command() {
 }
 
 fn execute_command() {
-    // Execute glyph program via Vulkan or DRM
-    #[cfg(feature = "vulkan")]
-    {
-        use glyph_compiler::VulkanExecutor;
+    let args: Vec<String> = std::env::args().collect();
+    let use_drm = args.contains(&"--drm".to_string());
 
-        match VulkanExecutor::new() {
-            Ok(executor) => {
-                eprintln!("[INFO] Vulkan executor initialized");
-                // Would execute SPIR-V here
-                eprintln!("[INFO] Execution ready (Vulkan backend)");
-                return;
-            }
-            Err(e) => {
-                eprintln!("[WARN] Vulkan not available: {}", e);
+    // Read JSON from stdin
+    let mut input = String::new();
+    io::stdin()
+        .read_to_string(&mut input)
+        .expect("Failed to read stdin");
+
+    let json: JsonProgram = match serde_json::from_str(&input) {
+        Ok(j) => j,
+        Err(e) => {
+            eprintln!("JSON parse error: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    // Convert to GlyphProgram
+    let program = GlyphProgram {
+        glyphs: json
+            .glyphs
+            .into_iter()
+            .map(|g| Glyph {
+                opcode: g.opcode,
+                p1: g.p1,
+                p2: g.p2,
+                dst: g.dst,
+            })
+            .collect(),
+    };
+
+    // Compile to SPIR-V
+    let mut builder = BinaryBuilder::new();
+    let spirv = builder.compile(&program);
+
+    if use_drm {
+        #[cfg(feature = "drm")]
+        {
+            match execute_via_drm(&spirv) {
+                Ok(output) => println!("{}", serde_json::to_string(&output).unwrap()),
+                Err(e) => {
+                    eprintln!("DRM execution error: {}", e);
+                    std::process::exit(1);
+                }
             }
         }
+        #[cfg(not(feature = "drm"))]
+        {
+            eprintln!("DRM support not compiled in. Rebuild with --features drm");
+            std::process::exit(1);
+        }
+    } else {
+        // Standard output
+        let output = serde_json::json!({
+            "spirv_size": spirv.len() * 4,
+            "word_count": spirv.len(),
+            "magic": format!("0x{:08x}", spirv[0]),
+        });
+        println!("{}", serde_json::to_string(&output).unwrap());
     }
+}
 
-    #[cfg(feature = "wgpu")]
-    {
-        eprintln!("[INFO] wgpu executor available - use 'compile' to generate SPIR-V");
-    }
-
-    eprintln!("No GPU backend available. Enable 'vulkan' or 'wgpu' feature.");
-    std::process::exit(1);
+#[cfg(feature = "drm")]
+fn execute_via_drm(spirv: &[u32]) -> Result<serde_json::Value, String> {
+    // For now, just return SPIR-V info with drm flag set
+    // Full DRM execution would require async runtime
+    Ok(serde_json::json!({
+        "spirv_size": spirv.len() * 4,
+        "word_count": spirv.len(),
+        "magic": format!("0x{:08x}", spirv[0]),
+        "drm": true,
+        "status": "compiled_for_drm",
+    }))
 }
