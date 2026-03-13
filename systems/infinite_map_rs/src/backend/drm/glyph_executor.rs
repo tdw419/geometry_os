@@ -4,8 +4,27 @@
 //! via the DRM/KMS backend.
 
 use std::sync::Arc;
-use wgpu::TextureView;
 use wgpu::util::DeviceExt;
+
+/// Output from glyph execution
+///
+/// Holds both the texture and view to prevent use-after-free.
+/// The texture must remain alive as long as the view exists.
+pub struct GlyphOutput {
+    /// The texture containing the output
+    pub texture: Arc<wgpu::Texture>,
+    /// A view into the output texture
+    pub view: Arc<wgpu::TextureView>,
+}
+
+impl std::fmt::Debug for GlyphOutput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("GlyphOutput")
+            .field("texture", &"Arc<Texture>")
+            .field("view", &"Arc<TextureView>")
+            .finish()
+    }
+}
 
 /// Error types for glyph execution
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
@@ -189,7 +208,7 @@ impl DrmGlyphExecutor {
         &self,
         inputs: &[f32],
         output_size: (u32, u32),
-    ) -> Result<Arc<TextureView>, GlyphError> {
+    ) -> Result<GlyphOutput, GlyphError> {
         let loaded = self.pipeline.as_ref().ok_or(GlyphError::NoPipeline)?;
 
         // Create input buffer (storage buffer)
@@ -209,7 +228,8 @@ impl DrmGlyphExecutor {
         }
 
         // Create output texture (Rgba8Unorm, storage binding)
-        let output_texture = self.device.create_texture(&wgpu::TextureDescriptor {
+        // Wrap in Arc immediately to keep texture alive alongside view
+        let output_texture = Arc::new(self.device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Glyph Output Texture"),
             size: wgpu::Extent3d {
                 width: output_size.0,
@@ -222,8 +242,8 @@ impl DrmGlyphExecutor {
             format: wgpu::TextureFormat::Rgba8Unorm,
             usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
-        });
-        let output_view = output_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        }));
+        let output_view = Arc::new(output_texture.create_view(&wgpu::TextureViewDescriptor::default()));
 
         // Create uniform buffer with GlyphUniforms
         let uniforms = GlyphUniforms {
@@ -287,7 +307,10 @@ impl DrmGlyphExecutor {
         self.queue.submit(std::iter::once(encoder.finish()));
         self.device.poll(wgpu::Maintain::Wait);
 
-        Ok(Arc::new(output_view))
+        Ok(GlyphOutput {
+            texture: output_texture,
+            view: output_view,
+        })
     }
 
     /// Check if a pipeline is loaded
@@ -430,10 +453,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                     exec_result
                 );
 
-                // Verify we got a texture view back
-                let view = exec_result.unwrap();
-                // TextureView doesn't expose size directly, but we can verify it exists
-                let _ = &*view;
+                // Verify we got a GlyphOutput back with both texture and view
+                let output = exec_result.unwrap();
+                // TextureView doesn't expose size directly, but we can verify both exist
+                let _ = &*output.texture;
+                let _ = &*output.view;
             }
         }
         // Skip if no GPU available
