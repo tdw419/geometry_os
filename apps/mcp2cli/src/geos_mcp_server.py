@@ -145,6 +145,7 @@ async def list_tools():
                 "properties": {
                     "input": {"type": "string", "description": "Path to .glyph source file"},
                     "output": {"type": "string", "description": "Path to output .rts.png texture"},
+                    "dense": {"type": "boolean", "description": "Enable dense packing (no NOP gaps)", "default": False},
                 },
                 "required": ["input", "output"],
             },
@@ -277,14 +278,18 @@ async def tool_crystallize(args: dict) -> list[TextContent]:
     """Compile .glyph to .rts.png."""
     input_path = Path(args["input"])
     output_path = Path(args["output"])
-    grid_size = args.get("grid_size", 4096)
+    dense = args.get("dense", False)
 
     if not input_path.exists():
         return [TextContent(type="text", text=f"Error: Input file not found: {input_path}")]
 
     # Run the Python compiler
+    cmd = [sys.executable, str(GLYPH_COMPILER), str(input_path), str(output_path)]
+    if dense:
+        cmd.append("--dense")
+
     result = subprocess.run(
-        [sys.executable, str(GLYPH_COMPILER), str(input_path), str(output_path)],
+        cmd,
         capture_output=True,
         text=True,
         cwd=str(GEOS_ROOT)
@@ -303,7 +308,7 @@ async def tool_crystallize(args: dict) -> list[TextContent]:
             "input": str(input_path),
             "output": str(output_path),
             "output_size_bytes": output_size,
-            "grid_size": grid_size,
+            "dense": dense,
             "compiler_output": result.stdout.strip()
         }, indent=2)
     )]

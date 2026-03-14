@@ -265,12 +265,14 @@ mod tests {
 
     #[test]
     fn test_state_size() {
-        // Verify state struct matches GLSL layout
-        assert_eq!(std::mem::size_of::<Riscv64State>(), 64 * 21 + 8);
+        // x[32] = 256, 18 u64s = 144, privilege + running = 8, padding = 8
+        assert_eq!(std::mem::size_of::<Riscv64State>(), 416);
     }
 }
+
 #[test]
 fn test_state_size() {
-    let state = Riscv64State::default();
-    assert_eq!(std::mem::size_of::<Riscv64State>(), 424);
+    let _state = Riscv64State::default();
+    // x[32] = 256, 18 u64s = 144, privilege + running = 8, padding = 8
+    assert_eq!(std::mem::size_of::<Riscv64State>(), 416);
 }

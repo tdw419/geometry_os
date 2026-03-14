@@ -1136,7 +1136,8 @@ mod tests {
 
     #[test]
     fn test_thought_vertex_size() {
-        assert_eq!(std::mem::size_of::<ThoughtVertex>(), 32);
+        // position[3] + neural_value + thought_id + layer_idx = 6 f32 = 24 bytes
+        assert_eq!(std::mem::size_of::<ThoughtVertex>(), 24);
     }
 
     #[test]

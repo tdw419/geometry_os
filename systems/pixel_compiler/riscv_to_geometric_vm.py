@@ -45,11 +45,12 @@ class HilbertCurve:
         return x, y
 
 class RISCVToGeometricJIT:
-    def __init__(self, input_path, output_path, warp_size=32, zone_order=[0,1,2,3]):
+    def __init__(self, input_path, output_path, warp_size=32, zone_order=[0,1,2,3], dense=False):
         self.input_path = input_path
         self.output_path = output_path
         self.warp_size = int(warp_size)
         self.zone_order = zone_order
+        self.dense = dense
         self.data = None
         self.grid_size = 0
         self.order = 0
@@ -85,29 +86,30 @@ class RISCVToGeometricJIT:
             logical_idx = i // 4
             silos[zone_idx].append(logical_idx)
 
-        # Calculate Physical Offsets using Hierarchical Strategy
+        # Calculate Physical Offsets
         WARP_SIZE = self.warp_size
         current_phys = 0
         
-        # Block size for macro-siloing (e.g., 4096 instructions per quadrant)
-        BLOCK_SIZE = 4096
-        
-        silo_ptrs = [0] * len(silos)
-        
-        while any(silo_ptrs[j] < len(silos[j]) for j in range(len(silos))):
-            # Process one macro-block at a time to maintain Hilbert quadrant locality
+        if self.dense:
+            # Flatten all silos into a single stream, preserving zone order
             for zone_idx in self.zone_order:
-                # Take a 'Block' worth of instructions, but interleave warps within it
-                for _ in range(BLOCK_SIZE // WARP_SIZE):
-                    for __ in range(WARP_SIZE):
-                        if silo_ptrs[zone_idx] < len(silos[zone_idx]):
-                            logical_idx = silos[zone_idx][silo_ptrs[zone_idx]]
-                            logical_to_physical[logical_idx] = current_phys
-                            current_phys += 1
-                            silo_ptrs[zone_idx] += 1
-                    
-                    if current_phys % WARP_SIZE != 0:
-                        current_phys += (WARP_SIZE - (current_phys % WARP_SIZE))
+                for logical_idx in silos[zone_idx]:
+                    logical_to_physical[logical_idx] = current_phys
+                    current_phys += 1
+        else:
+            # Hierarchical Strategy (Original)
+            BLOCK_SIZE = 4096
+            silo_ptrs = [0] * len(silos)
+            while any(silo_ptrs[j] < len(silos[j]) for j in range(len(silos))):
+                for zone_idx in self.zone_order:
+                    for _ in range(BLOCK_SIZE // WARP_SIZE):
+                        for __ in range(WARP_SIZE):
+                            if silo_ptrs[zone_idx] < len(silos[zone_idx]):
+                                logical_to_physical[silos[zone_idx][silo_ptrs[zone_idx]]] = current_phys
+                                current_phys += 1
+                                silo_ptrs[zone_idx] += 1
+                        if current_phys % WARP_SIZE != 0:
+                            current_phys += (WARP_SIZE - (current_phys % WARP_SIZE))
 
         print("  Pass 2: Semantic Translation & Static Relinking...")
         for i in range(0, len(self.data), 4):
@@ -157,10 +159,16 @@ if __name__ == "__main__":
     import sys
     warp = 32
     order = [0,1,2,3]
+    dense = False
+    
+    if "--dense" in sys.argv:
+        dense = True
+        sys.argv.remove("--dense")
+        
     if len(sys.argv) > 3:
         warp = int(sys.argv[3])
     if len(sys.argv) > 4:
         order = [int(x) for x in sys.argv[4].split(",")]
         
-    jit = RISCVToGeometricJIT(sys.argv[1], sys.argv[2], warp_size=warp, zone_order=order)
+    jit = RISCVToGeometricJIT(sys.argv[1], sys.argv[2], warp_size=warp, zone_order=order, dense=dense)
     jit.run()

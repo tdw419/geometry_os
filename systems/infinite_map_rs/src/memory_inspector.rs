@@ -478,7 +478,9 @@ pub fn format_hex_dump(data: &[u8], base_addr: usize) -> String {
 /// # Returns
 /// Result containing parsed bytes, or error if invalid
 pub fn parse_hex_string(hex_str: &str) -> Result<Vec<u8>, String> {
-    let hex_str = hex_str.trim();
+    // Remove all whitespace (spaces, newlines, etc.)
+    let hex_str: String = hex_str.chars().filter(|c| !c.is_whitespace()).collect();
+
     if hex_str.len() % 2 != 0 {
         return Err("Hex string must have even length".to_string());
     }
