@@ -7,6 +7,8 @@
 //! - GPU framebuffer access
 //! - KMS/DRM scanout pipeline
 
+pub mod framebuffer;
 pub mod screen;
 
+pub use framebuffer::{FramebufferFormat, GpuFramebuffer};
 pub use screen::ScreenDimensionsConfig;
