@@ -38,6 +38,7 @@ pub mod api_server;
 pub mod app;
 pub mod audio_manager;
 pub mod backend;
+pub mod bare_metal;
 pub mod bootable_cartridge;
 pub mod bridge;
 pub mod broadcast;
