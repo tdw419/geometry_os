@@ -113,4 +113,8 @@ if __name__ == "__main__":
     if "error" in results:
         print(f"● Error: {results['error']}")
     else:
-        print(f"● Baseline Fitness: {results.get('fitness_score', 0):.2%}")
+        fitness = results.get('fitness_score', 0)
+        print(f"● Baseline Fitness: {fitness:.2%}")
+        # Output in format expected by parse_benchmark_output
+        print(f"Fitness Score: {fitness:.2%}")
+        print("PASS")

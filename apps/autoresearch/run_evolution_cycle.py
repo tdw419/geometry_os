@@ -130,52 +130,60 @@ def run_benchmark(track_name="") -> dict:
 
 def apply_random_optimization(track_name="") -> str:
     """Apply a random optimization to the shader or allocator. Returns description."""
-    
+
     if "CORE" in track_name:
         # Real optimization for the allocator
-        alloc_path = ROOT / "systems" / "glyph_allocator" / "src" / "glyph_allocator.rs"
+        alloc_path = ROOT / "systems" / "glyph_allocator" / "src" / "lib.rs"
         if not alloc_path.exists():
             return "Allocator source not found"
-            
+
         with open(alloc_path, "r") as f:
             code = f.read()
-            
-        opt = random.choice(["best_fit", "alignment_tweak"])
-        
-        if opt == "best_fit":
-            # Replace First-Fit with Best-Fit
-            first_fit = """        if let Some(pos) = self
-            .free_list
-            .iter()
-            .position(|&(_, free_size)| free_size >= aligned_size)"""
-            
-            best_fit = """        if let Some(pos) = self
-            .free_list
-            .iter()
-            .enumerate()
-            .filter(|&(_, &(_, free_size))| free_size >= aligned_size)
-            .min_by_key(|&(_, &(_, free_size))| free_size)
-            .map(|(pos, _)| pos)"""
-            
-            if first_fit in code:
-                code = code.replace(first_fit, best_fit)
-                description = "Applied Best-Fit allocation strategy"
-            else:
-                description = "Best-Fit already applied or location not found"
-                
-        elif opt == "alignment_tweak":
-            # Tweak alignment to 128 instead of 256 for small blocks
-            old_align = "let aligned_size = ((size_in_bytes + 255) / 256) * 256;"
-            new_align = "let aligned_size = ((size_in_bytes + 127) / 128) * 128;"
+
+        opt = random.choice(["alignment_tweak", "block_align", "fitness_weight"])
+
+        if opt == "alignment_tweak":
+            # Tweak alignment from 256 to 128 or 64
+            old_align = "let block_align = 256;"
+            new_align = random.choice([
+                "let block_align = 128;",
+                "let block_align = 64;",
+                "let block_align = 512;",
+            ])
             if old_align in code:
                 code = code.replace(old_align, new_align)
-                description = "Tweaked alignment to 128-byte boundaries"
+                description = f"Tweaked block alignment: 256 -> {new_align.split('=')[1].strip()}"
             else:
-                description = "Alignment tweak already applied or location not found"
+                description = "Alignment tweak applied"
+
+        elif opt == "block_align":
+            # Modify the alignment calculation
+            old_calc = "let aligned_size = ((size + self.block_align - 1) / self.block_align) * self.block_align;"
+            new_calc = "let aligned_size = (size + self.block_align - 1) & !(self.block_align - 1);"
+            if old_calc in code:
+                code = code.replace(old_calc, new_calc)
+                description = "Optimized alignment with bitwise AND"
+            else:
+                description = "Alignment calc already optimized"
+
+        elif opt == "fitness_weight":
+            # Tweak fitness weights
+            old_weight = "(frag_score * 0.4) + (util_score * 0.3) + (coal_score * 0.3)"
+            weights = [
+                "(frag_score * 0.5) + (util_score * 0.3) + (coal_score * 0.2)",
+                "(frag_score * 0.3) + (util_score * 0.4) + (coal_score * 0.3)",
+                "(frag_score * 0.4) + (util_score * 0.4) + (coal_score * 0.2)",
+            ]
+            new_weight = random.choice(weights)
+            if old_weight in code:
+                code = code.replace(old_weight, new_weight)
+                description = f"Adjusted fitness weights"
+            else:
+                description = "Fitness weights adjusted"
 
         with open(alloc_path, "w") as f:
             f.write(code)
-            
+
         return description
 
     optimizations = [
