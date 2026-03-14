@@ -23,22 +23,54 @@ except ImportError:
 
 # Opcode map (from glyph_to_rts.rs)
 OPCODES = {
-    "NOP": 0, "ALLOC": 1, "FREE": 2, "LOAD": 3, "STORE": 4,
-    "ADD": 5, "SUB": 6, "MUL": 7, "DIV": 8, "JMP": 9, "JZ": 10,
-    "CALL": 11, "RET": 12, "HALT": 13, "DATA": 14, "LOOP": 15,
+    "NOP": 0,
+    "ALLOC": 1,
+    "FREE": 2,
+    "LOAD": 3,
+    "STORE": 4,
+    "ADD": 5,
+    "SUB": 6,
+    "MUL": 7,
+    "DIV": 8,
+    "JMP": 9,
+    "JZ": 10,
+    "CALL": 11,
+    "RET": 12,
+    "HALT": 13,
+    "DATA": 14,
+    "LOOP": 15,
     # Extended (200+)
-    "ADD_M": 200, "SUB_M": 201, "MUL_M": 202, "DIV_M": 203,
-    "LDI": 204, "ST": 205, "MOV": 206, "CLR": 207,
-    "JMP": 209, "JLT": 214, "JGT": 215, "ADD_MEM": 216, "SUB_MEM": 217,
-    "DRAW": 215, "BRANCH": 220, "CONFIDENCE": 221, "ALTERNATE_PATH": 222,
-    "ATTENTION_FOCUS": 223, "GLYPH_MUTATE": 224, "SPATIAL_SPAWN": 225,
-    "CAMERA": 230, "HILBERT_D2XY": 231, "TILE_LOAD": 233, "TILE_EVICT": 234,
-    "ZOOM": 235, "PAN": 236, "CMP": 214,
+    "ADD_M": 200,
+    "SUB_M": 201,
+    "MUL_M": 202,
+    "DIV_M": 203,
+    "LDI": 204,
+    "ST": 205,
+    "MOV": 206,
+    "CLR": 207,
+    "JMP": 209,
+    "JLT": 214,
+    "JGT": 215,
+    "ADD_MEM": 216,
+    "SUB_MEM": 217,
+    "DRAW": 215,
+    "BRANCH": 220,
+    "CONFIDENCE": 221,
+    "ALTERNATE_PATH": 222,
+    "ATTENTION_FOCUS": 223,
+    "GLYPH_MUTATE": 224,
+    "SPATIAL_SPAWN": 225,
+    "CAMERA": 230,
+    "HILBERT_D2XY": 231,
+    "TILE_LOAD": 233,
+    "TILE_EVICT": 234,
+    "ZOOM": 235,
+    "PAN": 236,
+    "CMP": 214,
 }
 
-STRATUM_MAP = {
-    "SUBSTRATE": 0, "MEMORY": 1, "LOGIC": 2, "SPEC": 3, "INTENT": 4
-}
+STRATUM_MAP = {"SUBSTRATE": 0, "MEMORY": 1, "LOGIC": 2, "SPEC": 3, "INTENT": 4}
+
 
 def hilbert_d2xy(n, d):
     """Convert Hilbert index to (x, y) coordinates."""
@@ -59,6 +91,7 @@ def hilbert_d2xy(n, d):
         s *= 2
     return x, y
 
+
 def parse_glyph(source):
     """Parse .glyph source into instructions."""
     labels = {}
@@ -67,14 +100,14 @@ def parse_glyph(source):
     current_addr = 0
 
     # Pass 1: Collect labels and constants
-    for line in source.split('\n'):
-        line = line.strip()
+    for line in source.split("\n"):
+        line = line.strip().replace(",", " ")
         if not line or line.startswith("//") or line.startswith(";"):
             continue
         if line.startswith(".equ"):
             parts = line.split()
             if len(parts) >= 3:
-                name = parts[1].rstrip(',')
+                name = parts[1].rstrip(",")
                 try:
                     val = int(parts[2], 0)
                 except:
@@ -102,7 +135,7 @@ def parse_glyph(source):
 
     # Pass 2: Generate instructions
     current_addr = 0
-    for line in source.split('\n'):
+    for line in source.split("\n"):
         line = line.strip()
         if not line or line.startswith("//") or line.startswith(";") or line.startswith("."):
             continue
@@ -110,7 +143,7 @@ def parse_glyph(source):
             continue
 
         # Parse instruction
-        parts = line.replace(',', ' ').split()
+        parts = line.replace(",", " ").split()
         if not parts:
             continue
 
@@ -168,9 +201,8 @@ def parse_glyph(source):
         instructions.append((opcode, stratum, p1, p2))
         current_addr += 1
 
-    return instructions, labels
+    return instructions, labels, constants
 
- constants
 
 def compile_glyph_file(input_path, output_path):
     """Compile a .glyph file to .rts.png."""
@@ -182,7 +214,7 @@ def compile_glyph_file(input_path, output_path):
     width = height = 4096
 
     # Create image
-    img = Image.new('RGBA', (width, height), color=0)
+    img = Image.new("RGBA", (width, height), color=0)
     pixels = np.array(img)
 
     # Write instructions using Hilbert curve addressing
@@ -195,6 +227,7 @@ def compile_glyph_file(input_path, output_path):
     img = Image.fromarray(pixels.astype(np.uint8))
     img.save(output_path)
     print(f"Compiled {len(instructions)} instructions to {output_path}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:

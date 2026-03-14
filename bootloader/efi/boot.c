@@ -33,11 +33,104 @@ struct geometry_os_boot_info {
 	UINT32 gpu_vendor_id;
 	UINT32 gpu_device_id;
 	UINT32 num_compute_units;
-	UINT8  reserved[52];
+	UINT64 init_glyph_base;		/* Address of loaded window_manager.rts.png */
+	UINT64 init_glyph_size;		/* Size of loaded glyph program */
+	UINT8  reserved[36];
 };
 
 static EFI_HANDLE ImageHandle;
 static EFI_SYSTEM_TABLE *SystemTable;
+
+/* Load the initial glyph program (window_manager.rts.png) */
+static EFI_STATUS load_init_glyph(EFI_HANDLE Image, void **GlyphBase, UINT64 *GlyphSize)
+{
+	EFI_STATUS Status;
+	EFI_LOADED_IMAGE_PROTOCOL *LoadedImage;
+	EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *FileSystem;
+	EFI_FILE_PROTOCOL *Root, *GlyphFile;
+	UINTN FileSize;
+	void *Buffer;
+
+	/* Get boot device */
+	Status = gBS->HandleProtocol(
+		Image,
+		&gEfiLoadedImageProtocolGuid,
+		(void **)&LoadedImage
+	);
+
+	if (EFI_ERROR(Status)) {
+		return Status;
+	}
+
+	/* Open filesystem */
+	Status = gBS->HandleProtocol(
+		LoadedImage->DeviceHandle,
+		&gEfiSimpleFileSystemProtocolGuid,
+		(void **)&FileSystem
+	);
+
+	if (EFI_ERROR(Status)) {
+		return Status;
+	}
+
+	Status = FileSystem->OpenVolume(FileSystem, &Root);
+	if (EFI_ERROR(Status)) {
+		return Status;
+	}
+
+	/* Open glyph file */
+	Status = Root->Open(
+		Root,
+		&GlyphFile,
+		L"\\window_manager.rts.png",
+		EFI_FILE_MODE_READ,
+		0
+	);
+
+	if (EFI_ERROR(Status)) {
+		Print(L"window_manager.rts.png not found - optional component\r\n");
+		*GlyphBase = 0;
+		*GlyphSize = 0;
+		return EFI_SUCCESS;
+	}
+
+	/* Get file size */
+	UINT64 FileInfoSize = 0;
+	EFI_FILE_INFO *FileInfo = NULL;
+
+	Status = GlyphFile->GetInfo(GlyphFile, &gEfiFileInfoGuid, &FileInfoSize, NULL);
+	if (Status == EFI_BUFFER_TOO_SMALL) {
+		gBS->AllocatePool(EfiBootServicesData, FileInfoSize, (void **)&FileInfo);
+		GlyphFile->GetInfo(GlyphFile, &gEfiFileInfoGuid, &FileInfoSize, FileInfo);
+	}
+
+	FileSize = FileInfo->FileSize;
+	gBS->FreePool(FileInfo);
+
+	/* Allocate memory for glyph program */
+	Status = gBS->AllocatePool(EfiLoaderData, FileSize, &Buffer);
+	if (EFI_ERROR(Status)) {
+		Print(L"Failed to allocate memory for glyph program\r\n");
+		return Status;
+	}
+
+	/* Read file */
+	Status = GlyphFile->Read(GlyphFile, &FileSize, Buffer);
+	if (EFI_ERROR(Status)) {
+		Print(L"Failed to read glyph file\r\n");
+		return Status;
+	}
+
+	*GlyphBase = Buffer;
+	*GlyphSize = FileSize;
+
+	Print(L"Initial glyph loaded: %lu bytes at 0x%lx\r\n", FileSize, (UINT64)Buffer);
+
+	GlyphFile->Close(GlyphFile);
+	Root->Close(Root);
+
+	return EFI_SUCCESS;
+}
 
 /* Find AMD GPU on PCI bus */
 static EFI_STATUS find_gpu(EFI_PCI_IO_PROTOCOL **PciIo, UINT64 *MmioBase)
@@ -371,13 +464,20 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE Handle, EFI_SYSTEM_TABLE *SysTable)
 	}
 	KernelEntryFunc = (kernel_entry_t)KernelEntry;
 
-	/* Step 5: Prepare boot info */
+	/* Step 5: Load initial glyph program (optional) */
+	void *InitGlyphBase;
+	UINT64 InitGlyphSize;
+	Status = load_init_glyph(Handle, &InitGlyphBase, &InitGlyphSize);
+
+	/* Step 6: Prepare boot info */
 	Print(L"[5/5] Preparing boot information...\r\n");
 	BootInfo.magic = 0x47454F535F52ULL; /* "GEOSR" */
 	BootInfo.gpu_mmio_base = GpuMmioBase;
 	BootInfo.gpu_mmio_size = 0x1000000;
 	BootInfo.glyph_memory_base = (UINT64)GlyphMemory;
 	BootInfo.glyph_memory_size = 256 * 1024 * 1024;
+	BootInfo.init_glyph_base = (UINT64)InitGlyphBase;
+	BootInfo.init_glyph_size = InitGlyphSize;
 
 	Print(L"\r\n");
 	Print(L"Boot configuration:\r\n");
@@ -385,6 +485,10 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE Handle, EFI_SYSTEM_TABLE *SysTable)
 	Print(L"  Glyph memory: 0x%lx (%d MB)\r\n",
 		BootInfo.glyph_memory_base,
 		256);
+	if (BootInfo.init_glyph_size > 0) {
+		Print(L"  Init Glyph: 0x%lx (%lu bytes)\r\n", 
+			BootInfo.init_glyph_base, BootInfo.init_glyph_size);
+	}
 	Print(L"\r\n");
 	Print(L"Starting Geometry OS...\r\n\r\n");
 

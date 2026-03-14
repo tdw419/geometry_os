@@ -72,6 +72,10 @@ build_efi() {
     fi
 
     log_info "Built: ${BUILD_DIR}/${EFI_FILE} ($(stat -c%s "${BUILD_DIR}/${EFI_FILE}") bytes)"
+
+    log_info "Building Geometry OS kernel..."
+    cd "${WORKSPACE_DIR}/kernel/geos"
+    make
 }
 
 # Create FAT32 boot image with EFI file
@@ -117,9 +121,15 @@ create_boot_image() {
     # Copy EFI file as BOOTX64.EFI
     mcopy -i "${partition_file}" "${BUILD_DIR}/${EFI_FILE}" ::/EFI/BOOT/BOOTX64.EFI
 
+    # Copy Kernel file
+    mcopy -i "${partition_file}" "${WORKSPACE_DIR}/kernel/geos/geometry_os.kernel" ::/geometry_os.kernel
+
+    # Copy Window Manager Glyph
+    mcopy -i "${partition_file}" "${WORKSPACE_DIR}/systems/glyph_stratum/programs/window_manager.rts.png" ::/window_manager.rts.png
+
     # Verify
     log_info "Partition contents:"
-    mdir -i "${partition_file}" ::/EFI/BOOT
+    mdir -i "${partition_file}" ::/
 
     # Write partition to disk image at correct offset
     dd if="${partition_file}" of="${BOOT_IMAGE}" bs=512 seek=2048 conv=notrunc 2>/dev/null

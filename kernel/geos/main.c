@@ -22,11 +22,23 @@ struct boot_info {
     unsigned int gpu_vendor_id;
     unsigned int gpu_device_id;
     unsigned int num_compute_units;
-    unsigned char reserved[52];
+    unsigned long init_glyph_base;
+    unsigned long init_glyph_size;
+    unsigned char reserved[36];
 };
 
 /* UART for debug output */
 #define UART_BASE 0x3F8
+
+/* Simple memcpy */
+static void *memcpy(void *dest, const void *src, unsigned long n)
+{
+    unsigned char *d = dest;
+    const unsigned char *s = src;
+    while (n--)
+        *d++ = *s++;
+    return dest;
+}
 
 /* GPU context */
 static struct {
@@ -221,6 +233,16 @@ void kernel_main(struct boot_info *info)
         while (1) {
             __asm__ volatile ("hlt");
         }
+    }
+
+    /* Load initial glyph program into glyph memory */
+    if (info->init_glyph_size > 0 && info->init_glyph_base != 0) {
+        uart_puts("[Kernel] Loading init glyph (");
+        uart_puthex(info->init_glyph_size);
+        uart_puts(" bytes) into glyph memory...\n");
+        
+        memcpy((void *)gpu.glyph_memory, (void *)info->init_glyph_base, info->init_glyph_size);
+        uart_puts("[Kernel] Init glyph loaded\n");
     }
 
     /* Run glyph compute test */
