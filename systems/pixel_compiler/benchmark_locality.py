@@ -39,7 +39,7 @@ def calculate_sls(image_path):
     # High clumping = High SLS
     opcodes = pixels[:,:,0]
     score = 0.0
-    for op in [0x33, 0x13, 0x6F]: # Key RISC-V Opcode families
+    for op in [0x08, 0x03, 0x06]: # LDI, LOAD, JMP
         mask = (opcodes == op)
         if np.any(mask):
             coords = np.argwhere(mask)

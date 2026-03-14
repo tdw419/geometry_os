@@ -45,9 +45,11 @@ class HilbertCurve:
         return x, y
 
 class RISCVToGeometricJIT:
-    def __init__(self, input_path, output_path):
+    def __init__(self, input_path, output_path, warp_size=32, zone_order=[0,1,2,3]):
         self.input_path = input_path
         self.output_path = output_path
+        self.warp_size = int(warp_size)
+        self.zone_order = zone_order
         self.data = None
         self.grid_size = 0
         self.order = 0
@@ -83,15 +85,26 @@ class RISCVToGeometricJIT:
             logical_idx = i // 4
             silos[zone_idx].append(logical_idx)
 
-        # Calculate Physical Offsets
-        WARP_SIZE = 32
+        # Calculate Physical Offsets using Warp-Interleaved Strategy
+        WARP_SIZE = self.warp_size
         current_phys = 0
-        for zone_idx, silo in enumerate(silos):
-            if current_phys % WARP_SIZE != 0:
-                current_phys += (WARP_SIZE - (current_phys % WARP_SIZE))
-            for logical_idx in silo:
-                logical_to_physical[logical_idx] = current_phys
-                current_phys += 1
+        
+        # Warp-interleave silos: clumping instructions for SIMT while keeping zones close
+        silo_ptrs = [0] * len(silos)
+        
+        while any(silo_ptrs[j] < len(silos[j]) for j in range(len(silos))):
+            for zone_idx in self.zone_order:
+                # Take a 'Warp' worth of instructions from the current silo
+                for _ in range(WARP_SIZE):
+                    if silo_ptrs[zone_idx] < len(silos[zone_idx]):
+                        logical_idx = silos[zone_idx][silo_ptrs[zone_idx]]
+                        logical_to_physical[logical_idx] = current_phys
+                        current_phys += 1
+                        silo_ptrs[zone_idx] += 1
+                
+                # Align the next zone to the next warp boundary to avoid thread divergence
+                if current_phys % WARP_SIZE != 0:
+                    current_phys += (WARP_SIZE - (current_phys % WARP_SIZE))
 
         print("  Pass 2: Semantic Translation & Static Relinking...")
         for i in range(0, len(self.data), 4):
@@ -138,5 +151,13 @@ class RISCVToGeometricJIT:
         print(f"✅ Executable Spatial Linux: {self.output_path}")
 
 if __name__ == "__main__":
-    jit = RISCVToGeometricJIT(sys.argv[1], sys.argv[2])
+    import sys
+    warp = 32
+    order = [0,1,2,3]
+    if len(sys.argv) > 3:
+        warp = int(sys.argv[3])
+    if len(sys.argv) > 4:
+        order = [int(x) for x in sys.argv[4].split(",")]
+        
+    jit = RISCVToGeometricJIT(sys.argv[1], sys.argv[2], warp_size=warp, zone_order=order)
     jit.run()
