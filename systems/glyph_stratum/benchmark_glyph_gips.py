@@ -49,8 +49,8 @@ def run_stress_benchmark():
     except Exception as e:
         return {"gips": 0, "status": "FAIL", "error": f"Shader: {e}"}
 
-    # Create buffer with 1M elements
-    num_elements = 1_000_000
+    # Create buffer with 500K elements (matching shader config)
+    num_elements = 500_000
     initial_data = np.arange(num_elements, dtype=np.uint32)
     buffer = device.create_buffer(
         size=num_elements * 4,
@@ -74,18 +74,18 @@ def run_stress_benchmark():
         ],
     )
 
-    # Warmup
+    # Warmup - 500K threads / 512 wg_size = 977 workgroups
     encoder = device.create_command_encoder()
     pass_enc = encoder.begin_compute_pass()
     pass_enc.set_pipeline(pipeline)
     pass_enc.set_bind_group(0, bind_group)
-    pass_enc.dispatch_workgroups(3907)  # ceil(1M / 256)
+    pass_enc.dispatch_workgroups(977)  # ceil(500K / 512)
     pass_enc.end()
     device.queue.submit([encoder.finish()])
 
     # Benchmark - run 10 iterations
     num_iterations = 10
-    ops_per_thread = 10000  # Increased for better GPU utilization
+    ops_per_thread = 20000  # Match shader config
     total_ops = num_elements * ops_per_thread * num_iterations
 
     start_time = time.time()
