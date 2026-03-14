@@ -25,13 +25,17 @@ class CompileResult:
 
 def find_compiler() -> Optional[Path]:
     """Find the glyph_compiler binary."""
+    # Path from compiler_bridge.py to project root:
+    # compiler_bridge.py -> evolution_daemon/ -> systems/ -> geometry_os/
+    project_root = Path(__file__).parent.parent.parent
+
     # Check for debug build
-    debug_path = Path(__file__).parent.parent.parent.parent / "target" / "debug" / "glyph_compiler"
+    debug_path = project_root / "target" / "debug" / "glyph_compiler"
     if debug_path.exists():
         return debug_path
 
     # Check for release build
-    release_path = Path(__file__).parent.parent.parent.parent / "target" / "release" / "glyph_compiler"
+    release_path = project_root / "target" / "release" / "glyph_compiler"
     if release_path.exists():
         return release_path
 
