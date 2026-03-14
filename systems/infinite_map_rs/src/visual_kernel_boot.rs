@@ -160,13 +160,8 @@ fn create_unified_ram_texture(
 
     texture
 }
-use crate::glyph_stratum::hilbert::d2xy;
-
 /// Default grid size for unified RAM texture (4096x4096 = 16M Hilbert addresses)
 const UNIFIED_GRID_SIZE: u32 = 4096;
-
-/// Hilbert offset where Ubuntu kernel is loaded (0x8000 = 32768)
-const UBUNTU_KERNEL_OFFSET: u32 = 0x8000;
 
 /// Boot configuration for the Visual Kernel
 pub struct VisualKernelConfig {

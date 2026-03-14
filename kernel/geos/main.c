@@ -24,7 +24,9 @@ struct boot_info {
     unsigned int num_compute_units;
     unsigned long init_glyph_base;
     unsigned long init_glyph_size;
-    unsigned char reserved[36];
+    unsigned long microcode_base;
+    unsigned long microcode_size;
+    unsigned char reserved[20];
 };
 
 /* UART for debug output */
@@ -245,8 +247,25 @@ void kernel_main(struct boot_info *info)
         uart_puts("[Kernel] Init glyph loaded\n");
     }
 
+    /* Submit glyph microcode to GPU */
+    if (info->microcode_size > 0 && info->microcode_base != 0) {
+        uart_puts("[Kernel] Submitting glyph microcode (");
+        uart_puthex(info->microcode_size);
+        uart_puts(" bytes)...\n");
+        
+        amdgpu_submit_shader((void *)info->microcode_base, info->microcode_size);
+        uart_puts("[Kernel] Microcode submitted\n");
+    }
+
     /* Run glyph compute test */
     glyph_compute_test();
+
+    /* Dispatch real Glyph VM execution on GPU */
+    if (info->microcode_size > 0) {
+        uart_puts("[Kernel] Dispatching Glyph VM on GPU...\n");
+        amdgpu_dispatch(1, 1, 1);
+        uart_puts("[Kernel] Dispatch complete\n");
+    }
 
     /* Initialize window renderer */
     WindowRenderer wren;

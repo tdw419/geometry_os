@@ -76,6 +76,10 @@ build_efi() {
     log_info "Building Geometry OS kernel..."
     cd "${WORKSPACE_DIR}/kernel/geos"
     make
+
+    log_info "Compiling Glyph Microcode to SPIR-V..."
+    cd "${WORKSPACE_DIR}/systems/infinite_map_rs"
+    cargo run --release --bin wgsl_to_spirv -- shaders/glyph_microcode.wgsl /tmp/glyph_microcode.spv
 }
 
 # Create FAT32 boot image with EFI file
@@ -126,6 +130,21 @@ create_boot_image() {
 
     # Copy Window Manager Glyph
     mcopy -i "${partition_file}" "${WORKSPACE_DIR}/systems/glyph_stratum/programs/window_manager.rts.png" ::/window_manager.rts.png
+
+    # Copy Glyph Microcode
+    mcopy -i "${partition_file}" "/tmp/glyph_microcode.spv" ::/glyph_microcode.spv
+
+    # Create startup.nsh
+    echo "@echo -off" > "/tmp/startup.nsh"
+    echo "for %i in 0 1 2 3 4 5 6 7 8 9 A B C D E F" >> "/tmp/startup.nsh"
+    echo "  if exist %i:\EFI\BOOT\BOOTX64.EFI then" >> "/tmp/startup.nsh"
+    echo "    %i:" >> "/tmp/startup.nsh"
+    echo "    \EFI\BOOT\BOOTX64.EFI" >> "/tmp/startup.nsh"
+    echo "    goto DONE" >> "/tmp/startup.nsh"
+    echo "  endif" >> "/tmp/startup.nsh"
+    echo "endfor" >> "/tmp/startup.nsh"
+    echo ":DONE" >> "/tmp/startup.nsh"
+    mcopy -i "${partition_file}" "/tmp/startup.nsh" ::/startup.nsh
 
     # Verify
     log_info "Partition contents:"
@@ -179,7 +198,9 @@ run_qemu() {
         -drive if=pflash,format=raw,readonly=on,file="${ovmf_path}" \
         -drive format=raw,file="${BOOT_IMAGE}",if=ide \
         -net none \
-        -serial stdio \
+        -serial file:/tmp/serial.log \
+        -display none \
+        -vga none \
         ${debug_flag}
 }
 

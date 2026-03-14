@@ -53,8 +53,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         case 215u: { // DRAW (Spatial Blit)
             let src_cell = hilbert_xy(u32(glyph.p1));
             let dst_pos = vec2<u32>(u32(glyph.p2), glyph.dst);
-            @unroll
-                for (var row = 0u; row < 64u; row++) {
+            for (var row = 0u; row < 64u; row++) {
                 for (var col = 0u; col < 64u; col++) {
                     let texel = textureLoad(atlas, src_cell * 64u + vec2<u32>(col, row), 0);
                     textureStore(screen, dst_pos + vec2<u32>(col, row), texel);
