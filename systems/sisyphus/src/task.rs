@@ -1,8 +1,9 @@
+use serde::{Deserialize, Serialize};
 use std::fmt;
-use tracing::{debug, info};
+use tracing::{info};
 
 /// Priority levels for tasks
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum TaskPriority {
     /// Low priority tasks - done when convenient
     Low,
@@ -15,7 +16,7 @@ pub enum TaskPriority {
 }
 
 /// Status of a task throughout its lifecycle
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TaskStatus {
     /// Task has not been started yet
     Pending,
@@ -33,7 +34,7 @@ pub enum TaskStatus {
 ///
 /// This is the core data structure that flows through the OMO-style
 /// orchestration system, being processed by specialized subagents.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
     /// Unique identifier for the task
     pub id: u32,
@@ -154,7 +155,6 @@ impl fmt::Display for Task {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Duration;
 
     #[test]
     fn test_task_creation() {

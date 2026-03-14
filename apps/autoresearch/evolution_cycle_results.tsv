@@ -499,3 +499,41 @@ timestamp	track	metric	value	optimization	status
 2026-03-14T08:09:04.294250	THE ENGINE (GIPS Opt	GIPS	4237.0844	Applied optimization: cleanup	pass
 2026-03-14T08:09:10.341618	THE ENGINE (GIPS Opt	GIPS	4799.8535	Applied optimization: loop_unr	pass
 2026-03-14T08:09:16.310418	THE ENGINE (GIPS Opt	GIPS	4534.35	Applied optimization: remove_m	pass
+2026-03-14T08:09:22.324983	THE ENGINE (GIPS Opt	GIPS	4529.8447	Applied optimization: loop_unr	pass
+2026-03-14T08:09:28.315550	THE ENGINE (GIPS Opt	GIPS	4276.5128	Applied optimization: simple_h	pass
+2026-03-14T08:09:34.282337	THE ENGINE (GIPS Opt	GIPS	4559.6043	Applied optimization: memory_p	pass
+2026-03-14T08:09:40.259832	THE ENGINE (GIPS Opt	GIPS	4813.9012	Applied optimization: remove_m	pass
+2026-03-14T08:09:46.267710	THE ENGINE (GIPS Opt	GIPS	4882.3017	Applied optimization: loop_unr	pass
+2026-03-14T08:09:52.254796	THE ENGINE (GIPS Opt	GIPS	4493.6725	Applied optimization: more_thr	pass
+2026-03-14T08:09:58.244538	THE ENGINE (GIPS Opt	GIPS	4177.5243	Applied optimization: branch_r	pass
+2026-03-14T08:10:04.254667	THE ENGINE (GIPS Opt	GIPS	4453.2296	Applied optimization: increase	pass
+2026-03-14T08:10:10.275987	THE ENGINE (GIPS Opt	GIPS	4767.627	Applied optimization: workgrou	pass
+2026-03-14T09:05:12.119604	THE ENGINE (GIPS Opt	GIPS	4109.0816	Applied optimization: lcg_twea	pass
+2026-03-14T09:05:18.159070	THE ENGINE (GIPS Opt	GIPS	3993.7258	Applied optimization: reduce_i	pass
+2026-03-14T09:05:24.228765	THE ENGINE (GIPS Opt	GIPS	4416.7616	Applied optimization: unroll_c	pass
+2026-03-14T09:05:30.250183	THE ENGINE (GIPS Opt	GIPS	4354.2803	Applied optimization: branch_r	pass
+2026-03-14T09:05:36.279175	THE ENGINE (GIPS Opt	GIPS	4162.1445	Applied optimization: vectoriz	pass
+2026-03-14T09:05:42.323026	THE ENGINE (GIPS Opt	GIPS	3978.7864	Applied optimization: increase	pass
+2026-03-14T09:05:48.337099	THE ENGINE (GIPS Opt	GIPS	3833.8108	Applied optimization: reduce_i	pass
+2026-03-14T09:05:54.377614	THE ENGINE (GIPS Opt	GIPS	4083.0279	Applied optimization: unroll_c	pass
+2026-03-14T09:06:00.385077	THE ENGINE (GIPS Opt	GIPS	4453.3872	Applied optimization: dual_acc	pass
+2026-03-14T09:06:06.409336	THE ENGINE (GIPS Opt	GIPS	3939.559	Applied optimization: memory_p	pass
+2026-03-14T09:06:12.402714	THE ENGINE (GIPS Opt	GIPS	4193.7448	Applied optimization: unroll_c	pass
+2026-03-14T09:06:18.418773	THE ENGINE (GIPS Opt	GIPS	4364.6414	Applied optimization: workgrou	pass
+2026-03-14T09:06:24.438426	THE ENGINE (GIPS Opt	GIPS	3976.033	Applied optimization: lcg_twea	pass
+2026-03-14T09:06:30.421804	THE ENGINE (GIPS Opt	GIPS	4501.8397	Applied optimization: cleanup	pass
+2026-03-14T09:06:36.384344	THE ENGINE (GIPS Opt	GIPS	1489.6661	No optimization applied (basel	pass
+2026-03-14T09:06:42.436370	THE ENGINE (GIPS Opt	GIPS	1564.6068	Applied optimization: lcg_twea	pass
+2026-03-14T09:06:48.399315	THE ENGINE (GIPS Opt	GIPS	1588.8117	Applied optimization: branch_r	pass
+2026-03-14T09:06:54.346578	THE ENGINE (GIPS Opt	GIPS	1577.577	No optimization applied (basel	pass
+2026-03-14T09:07:00.406147	THE ENGINE (GIPS Opt	GIPS	3608.4225	Applied optimization: cleanup	pass
+2026-03-14T09:07:06.379578	THE ENGINE (GIPS Opt	GIPS	5226.4168	Applied optimization: remove_m	pass
+2026-03-14T09:07:12.347072	THE ENGINE (GIPS Opt	GIPS	5149.829	Applied optimization: branch_r	pass
+2026-03-14T09:07:18.314669	THE ENGINE (GIPS Opt	GIPS	5380.5549	Applied optimization: dual_acc	pass
+2026-03-14T09:07:24.380903	THE ENGINE (GIPS Opt	GIPS	4141.7316	Applied optimization: remove_m	pass
+2026-03-14T09:07:30.406955	THE ENGINE (GIPS Opt	GIPS	3781.3321	Applied optimization: increase	pass
+2026-03-14T09:07:36.446611	THE ENGINE (GIPS Opt	GIPS	3876.5198	Applied optimization: branch_r	pass
+2026-03-14T09:07:42.471951	THE ENGINE (GIPS Opt	GIPS	3922.2319	Applied optimization: unroll_c	pass
+2026-03-14T09:07:48.475858	THE ENGINE (GIPS Opt	GIPS	4122.5983	Applied optimization: unroll_c	pass
+2026-03-14T09:07:54.540956	THE ENGINE (GIPS Opt	GIPS	3434.3696	Applied optimization: loop_unr	pass
+2026-03-14T09:08:00.605908	THE ENGINE (GIPS Opt	GIPS	4476.6938	No optimization applied (basel	pass

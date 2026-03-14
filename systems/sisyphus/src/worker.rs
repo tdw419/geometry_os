@@ -3,9 +3,8 @@
 //! Manages a collection of subagents that can execute tasks in parallel.
 
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::Mutex;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 use crate::orchestrator::TaskOrchestrator;
 use crate::subagent::{Subagent, SubagentFactory, SubagentType};
@@ -17,7 +16,7 @@ use crate::task::{Task, TaskPriority, TaskStatus};
 /// different tasks simultaneously for improved efficiency.
 pub struct WorkerPool {
     /// Collection of available subagents
-    agents: Vec<Box<dyn Subagent>>,
+    agents: Vec<Arc<dyn Subagent>>,
     /// Maximum number of concurrent tasks
     max_concurrency: usize,
     /// Current number of active workers
@@ -28,7 +27,10 @@ impl WorkerPool {
     /// Create a new worker pool with default subagents
     pub fn new() -> Self {
         info!("Initializing Worker Pool with standard subagents");
-        let agents = SubagentFactory::create_all();
+        let agents = SubagentFactory::create_all()
+            .into_iter()
+            .map(|a| Arc::from(a))
+            .collect();
 
         WorkerPool {
             agents,
@@ -38,7 +40,7 @@ impl WorkerPool {
     }
 
     /// Create a worker pool with custom settings
-    pub fn new_with_settings(agents: Vec<Box<dyn Subagent>>, max_concurrency: usize) -> Self {
+    pub fn new_with_settings(agents: Vec<Arc<dyn Subagent>>, max_concurrency: usize) -> Self {
         WorkerPool {
             agents,
             max_concurrency,
@@ -49,7 +51,7 @@ impl WorkerPool {
     /// Execute a collection of tasks using the worker pool
     pub async fn execute_tasks(
         &self,
-        orchestrator: &mut TaskOrchestrator,
+        orchestrator: Arc<Mutex<TaskOrchestrator>>,
         tasks: Vec<Task>,
     ) -> Result<Vec<TaskResult>, Box<dyn std::error::Error + Send + Sync>> {
         if tasks.is_empty() {
@@ -69,8 +71,7 @@ impl WorkerPool {
             let mut batch_futures = Vec::new();
 
             for task_handle in batch {
-                let orchestrator_ref = orchestrator as *mut TaskOrchestrator;
-                let agents_ref = self.agents.clone();
+                let orchestrator_clone = orchestrator.clone();
                 let active_workers_ref = self.active_workers.clone();
                 let task_handle_clone = task_handle.clone();
 
@@ -82,8 +83,7 @@ impl WorkerPool {
                     }
 
                     let result = Self::execute_single_task(
-                        unsafe { &mut *orchestrator_ref },
-                        &agents_ref,
+                        orchestrator_clone,
                         task_handle_clone
                     ).await;
 
@@ -113,8 +113,7 @@ impl WorkerPool {
 
     /// Execute a single task
     async fn execute_single_task(
-        orchestrator: &mut TaskOrchestrator,
-        _agents: &[Box<dyn Subagent>],
+        orchestrator: Arc<Mutex<TaskOrchestrator>>,
         task_handle: Arc<Mutex<Task>>,
     ) -> TaskResult {
         let start_time = std::time::Instant::now();
@@ -146,12 +145,14 @@ impl WorkerPool {
 
         if success {
             task_lock.complete(true);
-            if let Err(e) = orchestrator.complete_task(task_id, true).await {
+            let orch = orchestrator.lock().await;
+            if let Err(e) = orch.complete_task(task_id, true).await {
                 error!("Failed to mark task {} as complete: {}", task_id, e);
             }
         } else {
             task_lock.fail();
-            if let Err(e) = orchestrator
+            let orch = orchestrator.lock().await;
+            if let Err(e) = orch
                 .update_task_status(task_id, TaskStatus::Failed)
                 .await
             {

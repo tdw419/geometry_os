@@ -38,8 +38,24 @@ except ImportError:
     FontRenderer = None
     find_system_font = None
 
-from systems.infinite_map.gravity_engine import GravityEngine
-from systems.infinite_map.tectonic_updater import TectonicUpdater
+# Setup logging early
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("SisyphusV4")
+
+# Infinite Map Integration (optional/resilient)
+try:
+    from systems.infinite_map.gravity_engine import GravityEngine
+    from systems.infinite_map.tectonic_updater import TectonicUpdater
+    INFINITE_MAP_AVAILABLE = True
+except ImportError:
+    logger.warning("Infinite Map modules (gravity_engine, tectonic_updater) not found. Some features will be disabled.")
+    GravityEngine = None
+    TectonicUpdater = None
+    INFINITE_MAP_AVAILABLE = False
 from systems.sisyphus.compositor_bridge import CompositorBridge
 from systems.sisyphus.entropy_mapper import EntropyMapper
 from systems.sisyphus.goal_synthesizer import GoalSynthesizer
@@ -61,14 +77,6 @@ try:
     BRAIN_EVOLUTION_AVAILABLE = True
 except ImportError:
     BRAIN_EVOLUTION_AVAILABLE = False
-
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger("SisyphusV4")
 
 
 class CheckpointManager:

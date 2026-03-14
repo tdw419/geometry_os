@@ -1,186 +1,199 @@
 #!/usr/bin/env python3
 """
-Sisyphus Daemon CLI - Main entry point
+Sisyphus Daemon CLI - Functional Implementation
 
 Usage:
-    g-sisyphus status              # Show sisyphus daemon status
-    g-sisyphus cycles              # List improvement cycles
+    g-sisyphus status              # Show sisyphus daemon and agent status
+    g-sisyphus tasks               # List current tasks from Rust orchestrator
     g-sisyphus trigger             # Trigger an improvement cycle
-    g-sisyphus optimize            # Run optimization pass
-    g-sisyphus metrics             # Show performance metrics
-    g-sisyphus goals               # List current improvement goals
-    g-sisyphus set-goal            # Set a new improvement goal
+    g-sisyphus start               # Start both Python daemon and Rust agent
+    g-sisyphus stop                # Stop both Python daemon and Rust agent
 """
 
 import json
+import os
+import signal
+import subprocess
 import sys
+import time
 from pathlib import Path
 
 import click
 
-# Add Geometry OS to path for imports
-GEO_OS_ROOT = Path(__file__).parent.parent.parent.parent.parent
-if str(GEO_OS_ROOT) not in sys.path:
-    sys.path.insert(0, str(GEO_OS_ROOT))
+# Find Geometry OS Root by looking for .git or Cargo.toml
+def find_project_root():
+    curr = Path(__file__).resolve().parent
+    for _ in range(10):
+        if (curr / ".git").exists() or (curr / "Cargo.toml").exists():
+            return curr
+        curr = curr.parent
+    return Path(__file__).resolve().parent.parent.parent.parent.parent.parent.parent
 
-# TODO: Import actual sisyphus daemon modules when available
-# For now, we'll simulate the functionality
+GEO_OS_ROOT = find_project_root()
+LOOP_DIR = GEO_OS_ROOT / ".loop"
+PYTHON_DAEMON = GEO_OS_ROOT / "systems/sisyphus/daemon.py"
+RUST_AGENT_DIR = GEO_OS_ROOT / "systems/sisyphus"
 
+# State Files
+CHECKPOINT_FILE = LOOP_DIR / "checkpoint.json"
+TASKS_FILE = LOOP_DIR / "sisyphus_tasks.json"
+DAEMON_PID_FILE = LOOP_DIR / "sisyphus_daemon.pid"
+AGENT_PID_FILE = LOOP_DIR / "sisyphus_agent.pid"
 
 @click.group()
-@click.version_option(version="1.0.0")
+@click.version_option(version="1.1.0")
 @click.option("--json", "output_json", is_flag=True, help="Output in JSON format for AI agents")
 @click.pass_context
 def cli(ctx, output_json):
-    """Geometry OS Sisyphus Daemon CLI - Self-improvement and optimization control"""
+    """Geometry OS Sisyphus Orchestration CLI"""
     ctx.ensure_object(dict)
     ctx.obj["output_json"] = output_json
-
+    
+    # Ensure loop dir exists
+    LOOP_DIR.mkdir(exist_ok=True)
 
 def output_result(data):
     """Output data in JSON or plain text format"""
     if click.get_current_context().obj["output_json"]:
         click.echo(json.dumps(data, indent=2))
     else:
-        # For plain text, we'll format nicely
         if isinstance(data, dict):
             for key, value in data.items():
-                click.echo(f"{key}: {value}")
+                if isinstance(value, dict):
+                    click.echo(f"\n[{key.upper()}]")
+                    for k, v in value.items():
+                        click.echo(f"  {k}: {v}")
+                elif isinstance(value, list):
+                    click.echo(f"\n[{key.upper()}]")
+                    for item in value:
+                        click.echo(f"  - {item}")
+                else:
+                    click.echo(f"{key}: {value}")
         else:
             click.echo(data)
 
+def is_process_running(pid_file):
+    if not pid_file.exists():
+        return False
+    try:
+        pid = int(pid_file.read_text().strip())
+        os.kill(pid, 0)
+        return pid
+    except (ProcessLookupError, ValueError, PermissionError):
+        return False
 
 @cli.command()
 def status():
-    """Show sisyphus daemon status"""
-    # TODO: Replace with actual sisyphus daemon status check
+    """Show sisyphus daemon and agent status"""
+    daemon_pid = is_process_running(DAEMON_PID_FILE)
+    agent_pid = is_process_running(AGENT_PID_FILE)
+    
     status_data = {
-        "sisyphus_daemon": {
-            "status": "running",
-            "version": "1.0.0",
-            "uptime": "3d 12h",
-            "current_phase": "optimization",
-            "cycles_completed": 87,
-            "improvements_applied": 234,
-            "performance_gain": "23%",
-            "memory_efficiency": "15%",
-            "last_cycle": "2026-03-11T09:15:00Z",
-            "next_cycle": "2026-03-11T15:15:00Z",
+        "daemon": {
+            "status": "running" if daemon_pid else "stopped",
+            "pid": daemon_pid or "N/A",
+            "checkpoint": "found" if CHECKPOINT_FILE.exists() else "not found",
+        },
+        "agent": {
+            "status": "running" if agent_pid else "stopped",
+            "pid": agent_pid or "N/A",
+            "tasks_file": "found" if TASKS_FILE.exists() else "not found",
         }
     }
+    
+    # Load additional info if available
+    if CHECKPOINT_FILE.exists():
+        try:
+            with open(CHECKPOINT_FILE) as f:
+                cp = json.load(f)
+                status_data["daemon"]["last_update"] = cp.get("timestamp", "unknown")
+                status_data["daemon"]["phase"] = cp.get("phase", "unknown")
+        except: pass
+        
+    if TASKS_FILE.exists():
+        try:
+            with open(TASKS_FILE) as f:
+                tasks = json.load(f)
+                status_data["agent"]["total_tasks"] = len(tasks)
+                status_data["agent"]["completed"] = sum(1 for t in tasks.values() if t.get("status") == "Completed")
+        except: pass
+        
     output_result(status_data)
 
+@cli.command()
+def tasks():
+    """List current tasks from Rust orchestrator"""
+    if not TASKS_FILE.exists():
+        output_result({"error": "No tasks file found. Is the agent running?"})
+        return
+        
+    try:
+        with open(TASKS_FILE) as f:
+            tasks_data = json.load(f)
+            
+        formatted_tasks = []
+        for tid, task in tasks_data.items():
+            status = task.get("status", "Unknown")
+            priority = task.get("priority", "Unknown")
+            name = task.get("name", "Unknown")
+            formatted_tasks.append(f"[{tid}] ({priority}) {status}: {name}")
+            
+        output_result({"tasks": formatted_tasks})
+    except Exception as e:
+        output_result({"error": f"Failed to read tasks: {str(e)}"})
 
 @cli.command()
-def cycles():
-    """List improvement cycles"""
-    # TODO: Replace with actual cycle data
-    cycles_data = {
-        "sisyphus_daemon": {
-            "recent_cycles": [
-                {
-                    "id": "cycle_085",
-                    "timestamp": "2026-03-11T09:15:00Z",
-                    "duration": "4m 22s",
-                    "phase": "optimization",
-                    "improvements": [
-                        {"type": "cache_optimization", "gain": "8%"},
-                        {"type": "memory_layout", "gain": "5%"},
-                    ],
-                    "status": "completed",
-                },
-                {
-                    "id": "cycle_084",
-                    "timestamp": "2026-03-11T03:15:00Z",
-                    "duration": "3m 45s",
-                    "phase": "analysis",
-                    "improvements": [{"type": "algorithm_refinement", "gain": "12%"}],
-                    "status": "completed",
-                },
-            ],
-            "total_cycles": 87,
-            "success_rate": 0.96,
-        }
-    }
-    output_result(cycles_data)
+def start():
+    """Start both Python daemon and Rust agent"""
+    # Environment with PYTHONPATH set to project root
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(GEO_OS_ROOT)
+    
+    if is_process_running(DAEMON_PID_FILE):
+        click.echo("Daemon already running.")
+    else:
+        click.echo("Starting Sisyphus Python Daemon...")
+        # Open log file in append mode
+        log_f = open(LOOP_DIR / "daemon.log", "a")
+        p = subprocess.Popen([sys.executable, str(PYTHON_DAEMON)], 
+                             cwd=str(GEO_OS_ROOT),
+                             stdout=log_f,
+                             stderr=log_f,
+                             env=env,
+                             start_new_session=True)
+        DAEMON_PID_FILE.write_text(str(p.pid))
+        click.echo(f"Daemon started with PID {p.pid} (detached)")
 
-
-@cli.command()
-def trigger():
-    """Trigger an improvement cycle"""
-    # TODO: Replace with actual cycle trigger
-    result = {
-        "sisyphus_daemon": {
-            "action": "trigger_cycle",
-            "status": "triggered",
-            "cycle_id": f"cycle_{int(__import__('time').time())}",
-            "estimated_duration": "5m",
-            "phase": "analysis",
-            "message": "Improvement cycle triggered successfully",
-        }
-    }
-    output_result(result)
-
+    if is_process_running(AGENT_PID_FILE):
+        click.echo("Agent already running.")
+    else:
+        click.echo("Starting Sisyphus Rust Agent...")
+        # Open log file in append mode
+        log_f = open(LOOP_DIR / "agent.log", "a")
+        p = subprocess.Popen(["cargo", "run", "--manifest-path", str(RUST_AGENT_DIR / "Cargo.toml")], 
+                             cwd=str(GEO_OS_ROOT),
+                             stdout=log_f,
+                             stderr=log_f,
+                             env=env,
+                             start_new_session=True)
+        AGENT_PID_FILE.write_text(str(p.pid))
+        click.echo(f"Agent started with PID {p.pid} (detached)")
 
 @cli.command()
-def set_goal(description, target, priority):
-    """Set a new improvement goal"""
-    # TODO: Replace with actual goal setting
-    result = {
-        "sisyphus_daemon": {
-            "action": "set_goal",
-            "status": "created",
-            "goal": {
-                "id": f"goal_{int(__import__('time').time())}",
-                "description": description,
-                "target": target,
-                "current": "0%",
-                "status": "pending",
-                "priority": priority,
-            },
-            "message": f"Improvement goal '{description}' set successfully",
-        }
-    }
-    output_result(result)
-
-
-@cli.command()
-def orchestrate():
-    """Start the Sisyphus orchestration agent (Rust-based)"""
-    import subprocess
-    import os
-
-    # Path to the Rust binary (assuming it's built and available)
-    # In practice, this would be installed or built as part of the package
-    sisyphus_bin = os.path.join(
-        os.path.dirname(__file__),
-        "../../../..",
-        "systems",
-        "sisyphus",
-        "target",
-        "debug",
-        "sisyphus-agent",
-    )
-
-    # For now, we'll simulate since we haven't built it yet
-    # In a real implementation, we'd execute: subprocess.run([sisyphus_bin])
-    result = {
-        "sisyphus_daemon": {
-            "action": "start_orchestration",
-            "status": "started",
-            "message": "Sisyphus Orchestration Agent started (simulated - build the Rust binary to run for real)",
-            "agent_type": "Rust-based persistent orchestration agent",
-            "features": [
-                "Persistent orchestration loop",
-                "Multi-agent leadership (Oracle, Librarian, Explore, Hephaestus)",
-                "Parallel task execution",
-                "Self-correction and verification",
-                "Codebase-aware task generation",
-            ],
-        }
-    }
-    output_result(result)
-
+def stop():
+    """Stop both Python daemon and Rust agent"""
+    for name, pid_file in [("Daemon", DAEMON_PID_FILE), ("Agent", AGENT_PID_FILE)]:
+        pid = is_process_running(pid_file)
+        if pid:
+            click.echo(f"Stopping {name} (PID {pid})...")
+            try:
+                os.kill(pid, signal.SIGTERM)
+                pid_file.unlink()
+                click.echo(f"{name} stopped.")
+            except Exception as e:
+                click.echo(f"Failed to stop {name}: {e}")
+        else:
+            click.echo(f"{name} is not running.")
 
 if __name__ == "__main__":
     cli()

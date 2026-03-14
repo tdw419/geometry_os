@@ -4,7 +4,6 @@ use tokio::sync::Mutex;
 use tracing::{error, info, warn};
 
 use crate::orchestrator::TaskOrchestrator;
-use crate::subagent::SubagentType;
 use crate::worker::WorkerPool;
 
 /// Main Sisyphus Agent - The persistent orchestration agent for Geometry OS
@@ -76,36 +75,43 @@ impl SisyphusAgent {
     /// 4. Execute tasks in parallel
     /// 5. Verify completion and loop back if not 100% done
     async fn process_cycle(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // Lock the orchestrator for this cycle
-        let mut orchestrator = self.orchestrator.lock().await;
+        // Lock the orchestrator for this cycle to check tasks and generate new ones
+        let (unfinished_tasks, new_tasks) = {
+            let mut orchestrator = self.orchestrator.lock().await;
 
-        // 1. Check for existing unfinished tasks (persistence mechanism)
-        let unfinished_tasks = orchestrator.get_unfinished_tasks().await?;
+            // 1. Check for existing unfinished tasks (persistence mechanism)
+            let unfinished = orchestrator.get_unfinished_tasks().await?;
+
+            // 2. Generate new tasks from system analysis
+            let new = orchestrator.generate_improvement_tasks()?;
+
+            (unfinished, new)
+        };
+
         if !unfinished_tasks.is_empty() {
             info!(
                 "Found {} unfinished tasks from previous cycles",
                 unfinished_tasks.len()
             );
-            // These will be retried in this cycle
         }
 
-        // 2. Generate new tasks from system analysis
-        // In a full implementation, this would analyze the codebase for:
-        // - Performance bottlenecks
-        // - Code quality issues
-        // - Missing features
-        // - Test failures
-        // For now, we'll simulate this with placeholder logic
-        let new_tasks = orchestrator.generate_improvement_tasks()?;
         if !new_tasks.is_empty() {
             info!("Generated {} new improvement tasks", new_tasks.len());
+        }
+
+        // Combine tasks to execute
+        let mut tasks_to_execute = unfinished_tasks;
+        tasks_to_execute.extend(new_tasks);
+
+        if tasks_to_execute.is_empty() {
+            return Ok(());
         }
 
         // 3. Dispatch tasks to specialized subagents
         // This implements the multi-agent leadership pattern
         let task_results = self
             .worker_pool
-            .execute_tasks(&mut *orchestrator, new_tasks)
+            .execute_tasks(self.orchestrator.clone(), tasks_to_execute)
             .await?;
 
         // 4. Verify task completion (self-correction mechanism)
