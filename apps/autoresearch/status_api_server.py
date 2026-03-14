@@ -102,6 +102,20 @@ class StatusHandler(SimpleHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps(status).encode())
+        elif self.path == '/api/evolution.tsv':
+            # Serve the evolution TSV data
+            path = ROOT / "apps" / "autoresearch" / "evolution_cycle_results.tsv"
+            try:
+                with open(path) as f:
+                    data = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/tab-separated-values')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(data.encode())
+            except FileNotFoundError:
+                self.send_response(404)
+                self.end_headers()
         else:
             super().do_GET()
 
