@@ -1,20 +1,17 @@
-timestamp	commit_hash	fitness_score	description
-2026-03-13 06:50:00	baseline	0.8366	Initial simple first-fit allocator with coalescingFri Mar 13 09:30:00 2026	0.8366	Baseline Check
-Fri Mar 13 09:30:08 2026	0.8366	Baseline Check
-Fri Mar 13 09:30:11 2026	0.8366	Baseline Check
-Fri Mar 13 09:30:25 2026	0.8366	Baseline Check
-Fri Mar 13 09:30:27 2026	0.8366	Baseline Check
-Sat Mar 14 02:48:06 2026	0.5146999999999999	Baseline Check
-Sat Mar 14 02:50:53 2026	0.5146999999999999	Baseline Check
-Sat Mar 14 02:51:17 2026	0.5146999999999999	Baseline Check
-Sat Mar 14 02:51:26 2026	0.5146999999999999	Baseline Check
-Sat Mar 14 02:52:45 2026	0.5146999999999999	Baseline Check
-Sat Mar 14 02:52:55 2026	0.5146999999999999	Baseline Check
-Sat Mar 14 02:53:16 2026	0.5146999999999999	Baseline Check
-Sat Mar 14 02:53:26 2026	0.5146999999999999	Baseline Check
-Sat Mar 14 02:54:00 2026	0.5146999999999999	Baseline Check
-Sat Mar 14 03:00:31 2026	0.5411	Baseline Check
-Sat Mar 14 03:00:32 2026	0.5411	Baseline Check
-Sat Mar 14 03:00:33 2026	0.5411	Baseline Check
-Sat Mar 14 03:00:34 2026	0.541	Baseline Check
-Sat Mar 14 03:00:35 2026	0.541	Baseline Check
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/jericho/zion/projects/geometry_os/geometry_os/kernel/boot/Cargo.toml
+workspace: /home/jericho/zion/projects/geometry_os/geometry_os/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/jericho/zion/projects/geometry_os/geometry_os/systems/glyph_boot/Cargo.toml
+workspace: /home/jericho/zion/projects/geometry_os/geometry_os/Cargo.toml
+warning: virtual workspace defaulting to `resolver = "1"` despite one or more workspace members being on edition 2024 which implies `resolver = "3"`
+note: to keep the current resolver, specify `workspace.resolver = "1"` in the workspace root's manifest
+note: to use the edition 2024 resolver, specify `workspace.resolver = "3"` in the workspace root's manifest
+note: for more details see https://doc.rust-lang.org/cargo/reference/resolver.html#resolver-versions
+    Finished `release` profile [optimized] target(s) in 0.13s
+     Running `/home/jericho/zion/projects/geometry_os/geometry_os/target/release/glyph_allocator`
+Fitness Score: 97.13%
+Fragmentation: 0.00%
+Utilization: 99.22%
+Blocks: 65 (1 free)
+Operations: 64 alloc, 0 free (64 successful, 0 failed)
