@@ -1,105 +1,164 @@
 #!/usr/bin/env python3
 """
-Glyph VM FPS Benchmark for Evolution Cycle
-Measures GIPS (Giga-Instructions Per Second) and FPS
+Glyph VM FPS Benchmark - Intel i915 Compatible
+Uses storage buffers instead of read_write textures.
 """
 
-import subprocess
 import sys
-import re
+import time
+import numpy as np
 from pathlib import Path
 
-# Find workspace root by looking for Cargo.toml with [workspace]
-def find_workspace_root():
-    """Find the workspace root by searching upward for workspace marker."""
-    current = Path(__file__).resolve().parent
-    while current != current.parent:
-        cargo_toml = current / "Cargo.toml"
-        if cargo_toml.exists():
-            content = cargo_toml.read_text()
-            if "[workspace]" in content:
-                return current
-        current = current.parent
-    # Fallback to geometry_os path
-    return Path("/home/jericho/zion/projects/geometry_os/geometry_os")
+ROOT = Path(__file__).resolve().parent.parent.parent
 
-ROOT = find_workspace_root()
+def run_pure_glyph_benchmark():
+    try:
+        import wgpu
+    except ImportError:
+        return {"gips": 0, "fps": 0, "status": "FAIL", "error": "wgpu not installed"}
 
-def run_glyph_vm_test():
-    """Run the native window test and extract performance metrics."""
-    # Try multiple possible locations
-    candidates = [
-        ROOT / "systems" / "infinite_map_rs",  # Note: finite not infinite
-        Path("/home/jericho/zion/projects/geometry_os/geometry_os/systems/infinite_map_rs"),
+    # Initialize GPU
+    try:
+        adapter = wgpu.gpu.request_adapter_sync(power_preference="high-performance")
+        device = adapter.request_device_sync()
+    except Exception as e:
+        return {"gips": 0, "fps": 0, "status": "FAIL", "error": str(e)}
+
+    # Load shader
+    shader_path = ROOT / "systems" / "glyph_stratum" / "glyph_benchmark_shader.wgsl"
+    if not shader_path.exists():
+        return {"gips": 0, "fps": 0, "status": "FAIL", "error": f"Shader not found: {shader_path}"}
+
+    with open(shader_path, "r") as f:
+        shader_code = f.read()
+
+    try:
+        shader_module = device.create_shader_module(code=shader_code)
+    except Exception as e:
+        return {"gips": 0, "fps": 0, "status": "FAIL", "error": f"Shader compile: {e}"}
+
+    # Create program buffer (factorial program)
+    OP_DATA, OP_MUL, OP_SUB, OP_BNZ, OP_HALT = 14, 7, 6, 209, 255
+
+    # Each instruction is 4 u32s: [opcode, p1, p2, p3]
+    instructions = [
+        [OP_DATA, 1, 5, 0],   # r1 = 5
+        [OP_DATA, 2, 1, 0],   # r2 = 1
+        [OP_DATA, 3, 1, 0],   # r3 = 1
+        [OP_MUL, 1, 2, 2],    # r2 = r1 * r2 (p3=dest, p1=src1, p2=src2) -> r2=5*1=5
+        [OP_SUB, 1, 3, 1],    # r1 = r1 - r3 (p3=dest, p1=src1, p2=src2) -> r1=5-1=4
+        [OP_BNZ, 1, 3, 0],    # if r1 != 0: goto 3
+        [OP_HALT, 0, 0, 0],   # halt
     ]
 
-    infinite_map_rs = None
-    for path in candidates:
-        if path.exists():
-            infinite_map_rs = path
-            break
+    # Flatten to u32 array
+    program_data = []
+    for inst in instructions:
+        program_data.extend(inst)
 
-    if infinite_map_rs is None:
-        raise FileNotFoundError(f"Could not find infinite_map_rs. Tried: {[str(c) for c in candidates]}")
+    # Pad to 1024 u32s
+    while len(program_data) < 1024:
+        program_data.append(0)
 
-    result = subprocess.run(
-        ["cargo", "test", "--test", "native_window_test", "--", "--nocapture"],
-        cwd=str(infinite_map_rs),
-        capture_output=True,
-        text=True,
-        timeout=120
+    program_buffer = device.create_buffer(
+        size=len(program_data) * 4,
+        usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_DST,
+    )
+    device.queue.write_buffer(program_buffer, 0, np.array(program_data, dtype=np.uint32).tobytes())
+
+    # Create state buffer (GlyphState: regs[32] + pc + halted + stratum + cycles)
+    state_size = (32 + 4) * 4
+    state_buffer = device.create_buffer(
+        size=state_size,
+        usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_SRC | wgpu.BufferUsage.COPY_DST,
     )
 
-    output = result.stdout + result.stderr
+    # Create output buffer
+    output_buffer = device.create_buffer(
+        size=16,  # 4 u32s
+        usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_SRC,
+    )
 
-    # Extract test results
-    tests_passed = len(re.findall(r'test .* \.\.\. ok', output))
-    tests_failed = len(re.findall(r'test .* \.\.\. FAILED', output))
+    # Create pipeline
+    try:
+        compute_pipeline = device.create_compute_pipeline(
+            layout="auto",
+            compute={"module": shader_module, "entry_point": "main"},
+        )
+    except Exception as e:
+        return {"gips": 0, "fps": 0, "status": "FAIL", "error": f"Pipeline: {e}"}
 
-    # Simulated GIPS based on test complexity
-    # Each test runs ~20 glyph instructions across GPU workgroups
-    # At 60 FPS with 16x16 workgroups, we get ~1M glyph ops/frame
-    base_gips = 4.5  # Baseline GIPS for simple window tests
+    # Create bind group
+    bind_group = device.create_bind_group(
+        layout=compute_pipeline.get_bind_group_layout(0),
+        entries=[
+            {"binding": 0, "resource": {"buffer": program_buffer, "offset": 0, "size": program_buffer.size}},
+            {"binding": 1, "resource": {"buffer": state_buffer, "offset": 0, "size": state_buffer.size}},
+            {"binding": 2, "resource": {"buffer": output_buffer, "offset": 0, "size": output_buffer.size}},
+        ],
+    )
 
-    if tests_passed >= 3:
-        gips = base_gips * (1 + tests_passed * 0.1)
-        status = "PASS"
-    else:
-        gips = 0
-        status = "FAIL"
+    # Benchmark
+    num_frames = 100
+    instructions_per_frame = len(instructions) * 256
+
+    start_time = time.time()
+
+    for _ in range(num_frames):
+        encoder = device.create_command_encoder()
+        pass_enc = encoder.begin_compute_pass()
+        pass_enc.set_pipeline(compute_pipeline)
+        pass_enc.set_bind_group(0, bind_group)
+        pass_enc.dispatch_workgroups(256)
+        pass_enc.end()
+        device.queue.submit([encoder.finish()])
+
+    elapsed = time.time() - start_time
+
+    total_instructions = instructions_per_frame * num_frames
+    gips = (total_instructions / elapsed) / 1_000_000_000 if elapsed > 0 else 0
+    fps = num_frames / elapsed if elapsed > 0 else 0
+
+    # Verify
+    output_data = np.frombuffer(device.queue.read_buffer(output_buffer), dtype=np.uint32)
+    r2 = int(output_data[0])
+    halted = int(output_data[1])
+    correct = r2 == 120 and halted == 1
 
     return {
         "gips": gips,
-        "fps": 60 if tests_passed >= 3 else 0,
-        "status": status,
-        "tests_passed": tests_passed,
-        "tests_failed": tests_failed
+        "fps": fps,
+        "status": "PASS" if correct and gips > 0 else "FAIL",
+        "tests_passed": 1 if correct else 0,
+        "tests_failed": 0 if correct else 1,
+        "result": r2,
+        "expected": 120,
+        "halted": halted,
     }
 
 def main():
     print("=" * 60)
-    print(" GLYPH VM BENCHMARK")
+    print(" GLYPH VM BENCHMARK (Intel i915 Compatible)")
     print("=" * 60)
 
-    try:
-        result = run_glyph_vm_test()
+    result = run_pure_glyph_benchmark()
 
-        print(f"\nGIPS: {result['gips']:.2f}")
-        print(f"FPS: {result['fps']}")
-        print(f"Tests: {result['tests_passed']} passed, {result['tests_failed']} failed")
-        print(f"Status: {result['status']}")
-        print("=" * 60)
+    print(f"\nGIPS: {result['gips']:.4f}")
+    print(f"FPS: {result['fps']:.1f}")
+    print(f"Tests: {result.get('tests_passed', 0)} passed, {result.get('tests_failed', 0)} failed")
+    if 'result' in result:
+        print(f"Result: r2={result['result']} (expected: {result['expected']}), halted={result['halted']}")
+    if 'error' in result:
+        print(f"Error: {result['error']}")
+    print(f"Status: {result['status']}")
+    print("=" * 60)
 
-        if result['status'] == "PASS":
-            print("✅ PASS")
-        else:
-            print("❌ FAIL")
-
-    except Exception as e:
-        print(f"GIPS: 0")
-        print(f"FPS: 0")
-        print(f"Error: {e}")
+    if result['status'] == "PASS":
+        print("✅ PASS")
+        sys.exit(0)
+    else:
         print("❌ FAIL")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
