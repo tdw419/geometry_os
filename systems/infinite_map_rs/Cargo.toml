@@ -1,0 +1,206 @@
+[package]
+name = "infinite_map_rs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]  # cdylib for FFI, rlib for Rust
+
+[dependencies]
+png = "0.17"
+winit = "0.29"
+wgpu = "0.19"
+pollster = "0.3"
+bytemuck = { version = "1.25", features = ["derive"] }
+image = "0.25"
+env_logger = "0.11"
+log = "0.4"
+# Flash/Stage 1: Ruffle integration (desktop app style)
+# Note: Ruffle uses a workspace - we include key components
+ruffle_core = { git = "https://github.com/ruffle-rs/ruffle", branch = "master", features = ["audio", "default_compatibility_rules"], package = "ruffle_core", optional = true }
+ruffle_render_wgpu = { git = "https://github.com/ruffle-rs/ruffle", branch = "master", package = "ruffle_render_wgpu", optional = true }
+glam = "0.30" # Mathematics (vectors, matrices) for camera
+tokio = { version = "1.50", features = ["full"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+
+# Phase 33: MSDF Font Atlas Generation
+fontdue = "0.9"
+
+reqwest = { version = "0.12", features = ["json"] }
+libc = "0.2"
+rustix = { version = "0.38", features = ["fs"] }
+drm-fourcc = "2.2.0"
+nix = { version = "0.29", features = ["ioctl", "fs", "process"] }
+memmap2 = "0.9"
+procfs = "0.16"
+parking_lot = "0.12"
+rand = { version = "0.8", features = ["small_rng"] }
+uuid = { version = "1.17", features = ["v4", "serde"] }
+
+# Phase 33.2: Zero-Copy Pipeline (dmabuf + EGL)
+khronos-egl = "6.0"
+drm = "0.12"
+
+# Phase 33.3: Compressed Sensing
+ndarray = "0.15"
+
+# Phase 28: Sensory Calibration (Optional - requires ALSA dev headers on Linux)
+cpal = { version = "0.15", optional = true } # Audio input/output
+rustfft = { version = "6.2", optional = true } # FFT for audio analysis
+
+# Phase 29: System Integration (Embedded Python Runtime)
+# SECURITY: Updated from 0.20 to 0.24 to fix RUSTSEC-2025-0020 (buffer overflow)
+# Updated to 0.28 for latest fixes
+pyo3 = { version = "0.28", features = ["auto-initialize", "macros"], optional = true } # Python runtime
+
+# Phase 30: Hypervisor Integration (KVM Virtualization)
+kvm-ioctls = { version = "0.24", optional = true } # Safe wrappers over KVM ioctls
+kvm-bindings = { version = "0.14", optional = true } # Rust FFI bindings to KVM
+virtio-queue = { version = "0.17", optional = true } # VirtIO queue implementation
+virtio-bindings = { version = "0.2", optional = true } # Rust FFI bindings to virtio
+
+# Phase 30.7: Terminal Emulation (VT100/ANSI Support)
+vte = { version = "0.13", optional = true } # VT100/ANSI escape sequence parser
+
+# Phase 31.3: Rust Clipboard Manager & RTS Integration
+copypasta = "0.10" # Cross-platform clipboard access
+fast_hilbert = "1.0" # Hilbert curve mapping for .rts generation
+ctrlc = "3.4" # Signal handling (SIGINT)
+md5 = "0.7" # Checksum for clipboard metadata
+chrono = "0.4" # Timestamp generation
+thiserror = "2.0.17"
+notify = "8.2.0"
+crossbeam-channel = "0.5.15"
+base64 = "0.22" # Phase 32.5: Tile execution payload decoding
+shared_memory = "0.12"
+bincode = { version = "2.0.0-rc.3", features = ["serde"] }
+
+flate2 = "1.1.8"
+crc32fast = "1.4"
+tempfile = "3.24.0"
+
+# Phase 46: ACE-RTS Cognitive System (WASM Runtime)
+# SECURITY: Updated from 28.0 to 24.0.6+ to fix multiple vulnerabilities:
+# - RUSTSEC-2025-0118: Unsound API access to shared linear memory
+# - RUSTSEC-2026-0020: Guest-controlled resource exhaustion
+# - RUSTSEC-2025-0046: Host panic with fd_renumber
+# - RUSTSEC-2026-0021: Panic adding excessive fields
+# Updated to 42.0.1 for latest fixes
+wasmtime = "42.0"
+anyhow = "1.0"
+naga = { version = "0.19", features = ["wgsl-in", "wgsl-out", "spv-out", "spv-in", "glsl-in"] }
+
+# Phase 40.5: Stateful Hot Swapping - Dynamic module loading
+libloading = "0.8"
+
+# Phase 40: Source Crystallization - Mode B Self-Hosting
+blake3 = "1.5"
+toml = "0.8"
+walkdir = "2.4"
+
+# Phase 41: Internal Parser (Visual AST)
+syn = { version = "2.0", features = ["full", "extra-traits", "visit"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+# Phase 46: Cognitive Agents - Autonomous Source City inhabitants (Z.ai Integration)
+zai-rs = "0.1" # Zhipu AI / Z.ai SDK
+
+# PixelCPU: GPU-based virtual machine
+flume = "0.11"
+regex = "1.11"
+byteorder = "1.5"
+
+
+# Phase 43: Visual Shell Integration - WebSocket server for camera sync
+tokio-tungstenite = "0.26"
+futures-util = "0.3"
+futures-intrusive = "0.5"
+axum = "0.8.8"
+tower-http = { version = "0.6.8", features = ["cors", "fs"] }
+ash = { version = "0.38.0", features = ["loaded"] }
+
+# Phase 0.5: Performance Baseline - Benchmark infrastructure
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+[[bench]]
+name = "compositor_benchmark"
+harness = false
+
+[[bench]]
+name = "multi_workgroup_benchmark"
+harness = false
+
+[[bench]]
+name = "fp_operations_benchmark"
+harness = false
+
+[[bench]]
+name = "memory_operations_benchmark"
+harness = false
+
+[[bench]]
+name = "branch_instructions_benchmark"
+harness = false
+
+[[bench]]
+name = "syscall_benchmark"
+harness = false
+
+[[bench]]
+name = "hilbert_benchmark"
+harness = false
+
+[[bench]]
+name = "riscv_executor_benchmark"
+harness = false
+
+[[bench]]
+name = "damage_tracker_benchmark"
+harness = false
+
+[[bench]]
+name = "hilbert_writer_benchmark"
+harness = false
+
+[[bench]]
+name = "evolution_protocol_benchmark"
+harness = false
+
+[[bin]]
+name = "infinite_map_rs"
+path = "src/main.rs"
+
+[[bin]]
+name = "run_riscv"
+path = "src/bin/run_riscv.rs"
+
+[[bin]]
+name = "glyph_vm_boot"
+path = "src/bin/glyph_vm_boot.rs"
+
+[[bin]]
+name = "bare_metal_swarm"
+path = "src/bin/bare_metal_swarm.rs"
+
+[features]
+default = []
+audio = ["cpal", "rustfft"]
+python = ["pyo3"]
+hypervisor = ["kvm-ioctls", "kvm-bindings", "virtio-queue", "virtio-bindings", "vte"]
+
+[dependencies.smithay]
+git = "https://github.com/Smithay/smithay"
+features = [
+    "backend_winit",
+    "backend_drm",
+    "backend_gbm",
+    "backend_udev",
+    "backend_session",
+    "desktop",
+]
+

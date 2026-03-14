@@ -1,0 +1,10 @@
+timestamp_ms	glyphs	cycles	fps	gips	status	description
+1773365060849	7	700	538915.1	3772405	pass	baseline_python_native
+1773365357313	10000	1000	11422.4	114224251	pass	baseline_gpu_native
+1773365365490	1000000	100	1473.1	1473108833	pass	baseline_gpu_native
+Thu Mar 12 21:03:58 2026	0	0.0	Baseline Check
+Thu Mar 12 21:04:17 2026	0	0	ERROR: Correctness Failed: Factorial != 120
+Thu Mar 12 21:04:27 2026	1388905112	1388.9	Baseline Check
+1773377100000	8	8	1536	12290	pass	cached_dims_x_97x_improvement
+Thu Mar 12 21:06:36 2026	1459530723	1459.5	Baseline Check
+Thu Mar 12 21:08:19 2026	1458340406	1458.3	Baseline Check

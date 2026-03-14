@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "systems/infinite_map_rs",
+    "systems/glyph_compiler",
+]

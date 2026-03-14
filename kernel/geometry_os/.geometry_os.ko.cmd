@@ -1,0 +1,1 @@
+savedcmd_geometry_os.ko := ld -r -m elf_x86_64 -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T /usr/src/linux-headers-6.17.0-1011-oem/scripts/module.lds -o geometry_os.ko geometry_os.o geometry_os.mod.o .module-common.o
