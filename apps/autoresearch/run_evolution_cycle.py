@@ -237,8 +237,9 @@ def apply_random_optimization(track_name="") -> str:
         "unroll_count",      # Different unroll factors
         "dual_accum",        # Two accumulators for ILP
         "memory_prefetch",   # Prefetch next values
-        "shared_mem",        # NEW: Use workgroup shared memory
-        "increase_ops",      # NEW: Increase ops per thread to 50K or 100K
+        "shared_mem",        # Use workgroup shared memory
+        "increase_ops",      # Increase ops per thread to 50K or 100K
+        "more_threads",      # NEW: Increase thread count to 1M
     ]
 
     opt = random.choice(optimizations)
@@ -431,6 +432,18 @@ def apply_random_optimization(track_name="") -> str:
         elif "i < 2000u" in code:
             new_ops = random.choice([4000, 5000, 10000])
             code = code.replace("i < 2000u", f"i < {new_ops}u")
+
+    elif opt == "more_threads":
+        # Increase thread count for better GPU utilization
+        if "500000u" in code:
+            new_threads = random.choice([750000, 1000000, 2000000])
+            code = code.replace("500000u", f"{new_threads}u")
+            code = code.replace("499999u", f"{new_threads - 1}u")
+            # Also update buffer size hint
+            if "idx >= 500000u" in code:
+                code = code.replace("idx >= 500000u", f"idx >= {new_threads}u")
+            if "base_idx + 3u >= 500000u" in code:
+                code = code.replace("base_idx + 3u >= 500000u", f"base_idx + 3u >= {new_threads}u")
 
     with open(SHADER_PATH, "w") as f:
         f.write(code)

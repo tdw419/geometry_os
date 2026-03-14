@@ -6,22 +6,22 @@
 
 var<workgroup> shared_data: array<u32, 512>;
 
-    @compute @workgroup_size(256)
+    @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let idx = global_id.x;
-    if (idx >= 500000u) { return; }
+    if (idx >= 1000000u) { return; }
 
     // Each thread does 20000 arithmetic operations for optimal GPU utilization
     // Vectorized: process 4 elements at once
         let base_idx = idx * 4u;
-        if (base_idx + 3u >= 500000u) { return; }
+        if (base_idx + 3u >= 1000000u) { return; }
         var acc0 = data[base_idx];
         var acc1 = data[base_idx + 1u];
         var acc2 = data[base_idx + 2u];
         var acc3 = data[base_idx + 3u];
 
     // Core computation loop - evolution can modify constants and structure
-    for (var i = 0u; i < 20000u; i++) {
+    for (var i = 0u; i < 30000u; i++) {
         // LCG step with XOR mixing
         acc0 = (acc0 * 214013u + 2531011u) % 2147483648u;
             acc0 = (acc0 ^ (acc0 >> 16u)) * 2654435761u;

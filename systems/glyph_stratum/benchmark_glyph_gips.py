@@ -53,8 +53,21 @@ def run_stress_benchmark():
     except Exception as e:
         return {"gips": 0, "status": "FAIL", "error": f"Shader: {e}"}
 
-    # Create buffer with 500K elements (matching shader config)
-    num_elements = 500_000
+    # Parse thread count from shader (look for "idx >= XXXXXu" pattern)
+    import re
+    num_elements = 500_000  # Default
+    thread_match = re.search(r'idx >= (\d+)u', shader_code)
+    if thread_match:
+        num_elements = int(thread_match.group(1))
+
+    # Also check for vectorization (idx * 4 means effective threads are 4x less)
+    vectorization = 1
+    if "idx * 4u" in shader_code:
+        vectorization = 4
+        effective_threads = num_elements // vectorization
+    else:
+        effective_threads = num_elements
+
     initial_data = np.arange(num_elements, dtype=np.uint32)
     buffer = device.create_buffer(
         size=num_elements * 4,
@@ -82,7 +95,6 @@ def run_stress_benchmark():
     # Parse workgroup_size from shader or use default 512
     wg_size = 512
     if "@workgroup_size(" in shader_code:
-        import re
         match = re.search(r'@workgroup_size\((\d+)', shader_code)
         if match:
             wg_size = int(match.group(1))
@@ -94,7 +106,8 @@ def run_stress_benchmark():
         if match:
             loop_iters = int(match.group(1))
             # Count operations per loop iteration (2 ops: LCG + XOR mix)
-            ops_per_iteration = 2
+            # If vectorized (4 accumulators), multiply by 4
+            ops_per_iteration = 2 * vectorization
             ops_per_thread = loop_iters * ops_per_iteration
 
     num_workgroups = (num_elements + wg_size - 1) // wg_size
@@ -110,8 +123,7 @@ def run_stress_benchmark():
 
     # Benchmark - run iterations separately to measure actual GPU work
     num_iterations = 10
-    ops_per_thread = 20000  # Match shader config
-    total_ops = num_elements * ops_per_thread * num_iterations
+    total_ops = effective_threads * ops_per_thread * num_iterations
 
     start_time = time.time()
 
@@ -137,7 +149,7 @@ def run_stress_benchmark():
         "gips": gips,
         "ops_per_iteration": total_ops,
         "elapsed": elapsed,
-        "threads": num_elements,
+        "threads": effective_threads,
         "status": "PASS" if gips > 0 and changed else "FAIL",
     }
 
