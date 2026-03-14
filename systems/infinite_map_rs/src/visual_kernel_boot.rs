@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::path::Path;
 
 use crate::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
+use crate::glyph_stratum::glyph_compiler::{compile_glyph_file, create_glyph_texture};
 
 /// Boot configuration for the Visual Kernel
 pub struct VisualKernelConfig {
@@ -26,7 +27,7 @@ pub struct VisualKernelConfig {
 impl Default for VisualKernelConfig {
     fn default() -> Self {
         Self {
-            window_manager_path: "systems/glyph_stratum/programs/window_manager.rts.png".to_string(),
+            window_manager_path: "systems/glyph_stratum/programs/window_manager.glyph".to_string(),
             ubuntu_kernel_path: Some("systems/ubuntu_riscv/ubuntu_native.rts.png".to_string()),
             screen_width: 1920,
             screen_height: 1080,
@@ -51,6 +52,12 @@ pub struct VisualKernel {
     /// GPU scheduler managing all VMs
     scheduler: GlyphVmScheduler,
 
+    /// GPU device for texture creation
+    device: Arc<wgpu::Device>,
+
+    /// GPU queue for texture upload
+    queue: Arc<wgpu::Queue>,
+
     /// Window table (CPU-side mirror for hit testing)
     windows: Vec<WindowEntry>,
 
@@ -68,10 +75,12 @@ impl VisualKernel {
         queue: Arc<wgpu::Queue>,
         config: VisualKernelConfig,
     ) -> Self {
-        let scheduler = GlyphVmScheduler::new(device, queue);
+        let scheduler = GlyphVmScheduler::new(Arc::clone(&device), Arc::clone(&queue));
 
         Self {
             scheduler,
+            device,
+            queue,
             windows: Vec::new(),
             config,
             booted: false,
@@ -91,23 +100,52 @@ impl VisualKernel {
         log::info!("        GEOMETRY OS - Visual Kernel Boot Sequence");
         log::info!("═══════════════════════════════════════════════════════════");
 
-        // Step 1: Initialize the Window Manager as VM #0
-        log::info!("[BOOT] Loading Window Manager as VM #0...");
+        // Step 1: Compile and load the Window Manager glyph
+        log::info!("[BOOT] Loading Window Manager from: {}", self.config.window_manager_path);
 
-        // TODO: Load and parse the Glyph-Native Infinite Map
-        // For now, use a default config until glyph_stratum is properly integrated
+        let wm_path = Path::new(&self.config.window_manager_path);
+        if !wm_path.exists() {
+            return Err(format!("Window Manager glyph not found: {}", self.config.window_manager_path));
+        }
+
+        // Compile the .glyph file to GPU texture
+        log::info!("[BOOT] Compiling Window Manager glyph...");
+        let compiled = crate::glyph_stratum::glyph_compiler::compile_glyph_file(
+            &self.config.window_manager_path
+        ).map_err(|e| format!("Failed to compile window_manager.glyph: {}", e))?;
+
+        log::info!("[BOOT] ✓ Compiled {} instructions", compiled.instruction_count);
+
+        // Create GPU texture from compiled program
+        let ram_texture = crate::glyph_stratum::glyph_compiler::create_glyph_texture(
+            &self.device,
+            &self.queue,
+            &compiled,
+            Some("Visual Kernel RAM Texture"),
+        );
+
+        log::info!("[BOOT] ✓ Created RAM texture ({}x{})",
+            ram_texture.width(), ram_texture.height());
+
+        // Set RAM texture on scheduler
+        self.scheduler.set_ram_texture(&ram_texture);
+
+        // Step 2: Initialize the Window Manager as VM #0
+        log::info!("[BOOT] Spawning Window Manager as VM #0...");
+
         let wm_config = VmConfig {
-            entry_point: 0x0000,
+            entry_point: compiled.entry_point,
             parent_id: 0xFF,
             base_addr: 0,
-            bound_addr: 0,
+            bound_addr: 0, // Unrestricted for VM #0
             initial_regs: [0; 32],
         };
 
         self.scheduler.spawn_vm(0, &wm_config)?;
-        log::info!("[BOOT] ✓ Window Manager (VM #0) initialized at entry 0x0000");
+        log::info!("[BOOT] ✓ Window Manager (VM #0) spawned at entry 0x{:04X}",
+            wm_config.entry_point);
 
-        // Step 2: Initialize the Window Table
+        // Step 3: Initialize the Window Table
         log::info!("[BOOT] Initializing Window Table...");
 
         // Register root window (the Window Manager itself)
@@ -124,7 +162,7 @@ impl VisualKernel {
         log::info!("[BOOT] ✓ Root window registered ({}x{})",
             self.config.screen_width, self.config.screen_height);
 
-        // Step 3: Pre-load Ubuntu kernel into RAM texture
+        // Step 4: Pre-load Ubuntu kernel into RAM texture
         if let Some(ubuntu_path) = &self.config.ubuntu_kernel_path {
             log::info!("[BOOT] Pre-loading Ubuntu kernel from: {}", ubuntu_path);
 
@@ -135,7 +173,7 @@ impl VisualKernel {
             }
         }
 
-        // Step 4: Ready
+        // Step 5: Ready
         self.booted = true;
 
         log::info!("");
@@ -242,5 +280,78 @@ mod tests {
         };
         assert_eq!(config.entry_point, 0);
         assert_eq!(config.parent_id, 0xFF);
+    }
+
+    #[test]
+    fn test_glyph_compiler_window_manager_path() {
+        // Verify the default config points to a valid .glyph file
+        let config = VisualKernelConfig::default();
+        assert!(
+            config.window_manager_path.ends_with(".glyph"),
+            "Window manager should use .glyph extension"
+        );
+
+        // Verify the file exists
+        let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+        let workspace_root = std::path::Path::new(&manifest_dir)
+            .parent().unwrap()
+            .parent().unwrap();
+        let glyph_path = workspace_root.join(&config.window_manager_path);
+
+        assert!(
+            glyph_path.exists(),
+            "window_manager.glyph should exist at {:?}",
+            glyph_path
+        );
+    }
+
+    #[test]
+    fn test_window_entry_creation() {
+        let entry = WindowEntry {
+            id: 0,
+            x: 0.0,
+            y: 0.0,
+            width: 1920.0,
+            height: 1080.0,
+            vm_id: 0,
+            focused: true,
+        };
+
+        assert_eq!(entry.id, 0);
+        assert_eq!(entry.width, 1920.0);
+        assert!(entry.focused);
+    }
+
+    #[test]
+    fn test_window_registration() {
+        // Create a minimal visual kernel struct for testing registration
+        let mut windows: Vec<WindowEntry> = Vec::new();
+
+        // Register root window
+        windows.push(WindowEntry {
+            id: 0,
+            x: 0.0,
+            y: 0.0,
+            width: 1920.0,
+            height: 1080.0,
+            vm_id: 0,
+            focused: true,
+        });
+
+        // Register child window (simulating SPATIAL_SPAWN)
+        let child_id = windows.len() as u32;
+        windows.push(WindowEntry {
+            id: child_id,
+            x: 100.0,
+            y: 100.0,
+            width: 800.0,
+            height: 600.0,
+            vm_id: 1,
+            focused: false,
+        });
+
+        assert_eq!(windows.len(), 2);
+        assert_eq!(windows[1].vm_id, 1);
+        assert_eq!(windows[1].x, 100.0);
     }
 }

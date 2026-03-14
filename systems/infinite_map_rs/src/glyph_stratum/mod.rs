@@ -5,6 +5,12 @@
 //! INTENT → SPEC → LOGIC → MEMORY → SUBSTRATE
 
 pub mod glyph_to_rts;
+pub mod glyph_parser;
+pub mod glyph_compiler;
+
+// Re-export key types
+pub use glyph_parser::{parse_glyph_program, VmConfig};
+pub use glyph_compiler::{compile_glyph_source, compile_glyph_file, create_glyph_texture, CompiledGlyph, hilbert_d2xy};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -57,22 +63,22 @@ pub enum Opcode {
 impl Opcode {
     pub fn metabolic_cost(&self) -> u32 {
         match self {
-            Opcode::Nop => 0,      // Free - no work
-            Opcode::Alloc => 10,   // Memory allocation is expensive
-            Opcode::Free => 5,     // Deallocation
-            Opcode::Load => 3,     // Memory read
-            Opcode::Store => 3,    // Memory write
-            Opcode::Add => 1,      // Simple ALU
-            Opcode::Sub => 1,      // Simple ALU
-            Opcode::Mul => 2,      // Multiplier
-            Opcode::Div => 4,      // Division is slower
-            Opcode::Jump => 1,     // Control flow
-            Opcode::Branch => 2,   // Conditional check
-            Opcode::Call => 8,     // Stack frame setup
-            Opcode::Return => 6,   // Stack teardown
-            Opcode::Halt => 0,     // Terminal
-            Opcode::Data => 0,     // Passive data
-            Opcode::Loop => 3,     // Loop overhead
+            Opcode::Nop => 0,    // Free - no work
+            Opcode::Alloc => 10, // Memory allocation is expensive
+            Opcode::Free => 5,   // Deallocation
+            Opcode::Load => 3,   // Memory read
+            Opcode::Store => 3,  // Memory write
+            Opcode::Add => 1,    // Simple ALU
+            Opcode::Sub => 1,    // Simple ALU
+            Opcode::Mul => 2,    // Multiplier
+            Opcode::Div => 4,    // Division is slower
+            Opcode::Jump => 1,   // Control flow
+            Opcode::Branch => 2, // Conditional check
+            Opcode::Call => 8,   // Stack frame setup
+            Opcode::Return => 6, // Stack teardown
+            Opcode::Halt => 0,   // Terminal
+            Opcode::Data => 0,   // Passive data
+            Opcode::Loop => 3,   // Loop overhead
         }
     }
 
@@ -211,7 +217,14 @@ impl GlyphStratumEngine {
         }
     }
 
-    pub fn place_glyph(&mut self, x: u32, y: u32, ch: char, stratum: Stratum, metadata: Option<GlyphMetadata>) -> Result<u32, String> {
+    pub fn place_glyph(
+        &mut self,
+        x: u32,
+        y: u32,
+        ch: char,
+        stratum: Stratum,
+        metadata: Option<GlyphMetadata>,
+    ) -> Result<u32, String> {
         if x >= self.dimensions.0 || y >= self.dimensions.1 {
             return Err("Coordinates out of bounds".to_string());
         }
@@ -229,10 +242,16 @@ impl GlyphStratumEngine {
             rationale: "".to_string(),
         });
 
-        self.registry.insert(glyph_id, Glyph {
-            base: GlyphBase { unicode: glyph_id, stratum: stratum as u8 },
-            metadata: meta,
-        });
+        self.registry.insert(
+            glyph_id,
+            Glyph {
+                base: GlyphBase {
+                    unicode: glyph_id,
+                    stratum: stratum as u8,
+                },
+                metadata: meta,
+            },
+        );
 
         self.grid.insert((x, y), glyph_id);
         Ok(glyph_id)
@@ -243,7 +262,11 @@ impl GlyphStratumEngine {
         self.registry.get(glyph_id)
     }
 
-    pub fn spawn(&mut self, src_bounds: ((u32, u32), (u32, u32)), dest_origin: (u32, u32)) -> Result<(((u32, u32), (u32, u32)), ((u32, u32), (u32, u32))), String> {
+    pub fn spawn(
+        &mut self,
+        src_bounds: ((u32, u32), (u32, u32)),
+        dest_origin: (u32, u32),
+    ) -> Result<(((u32, u32), (u32, u32)), ((u32, u32), (u32, u32))), String> {
         let (min_x, min_y) = src_bounds.0;
         let (max_x, max_y) = src_bounds.1;
         let (dest_x, dest_y) = dest_origin;
@@ -266,16 +289,17 @@ impl GlyphStratumEngine {
                         new_y,
                         std::char::from_u32(glyph.base.unicode).unwrap_or('?'),
                         glyph.stratum(),
-                        Some(glyph.metadata.clone())
-                    ).ok();
+                        Some(glyph.metadata.clone()),
+                    )
+                    .ok();
 
                     copied += 1;
 
                     if new_bounds.is_none() {
                         new_bounds = Some(((new_x, new_y), (new_x, new_y)));
                     } else if let Some(ref mut bounds) = new_bounds {
-                        bounds.0 = (bounds.0.0.min(new_x), bounds.0.1.min(new_y));
-                        bounds.1 = (bounds.1.0.max(new_x), bounds.1.1.max(new_y));
+                        bounds.0 = (bounds.0 .0.min(new_x), bounds.0 .1.min(new_y));
+                        bounds.1 = (bounds.1 .0.max(new_x), bounds.1 .1.max(new_y));
                     }
                 }
             }
@@ -289,13 +313,21 @@ impl GlyphStratumEngine {
         Ok((src_bounds, final_bounds))
     }
 
-    pub fn scan_for_corruptions(&self, expected: &HashMap<(u32, u32), Opcode>) -> Vec<CorruptionReport> {
+    pub fn scan_for_corruptions(
+        &self,
+        expected: &HashMap<(u32, u32), Opcode>,
+    ) -> Vec<CorruptionReport> {
         let mut corruptions = Vec::new();
         for (&(x, y), &expected_op) in expected {
             if let Some(glyph) = self.get_glyph(x, y) {
                 let found_op = glyph.opcode();
                 if found_op != expected_op {
-                    corruptions.push(CorruptionReport { x, y, expected: expected_op, found: found_op });
+                    corruptions.push(CorruptionReport {
+                        x,
+                        y,
+                        expected: expected_op,
+                        found: found_op,
+                    });
                 }
             }
         }
@@ -304,7 +336,13 @@ impl GlyphStratumEngine {
 
     pub fn repair_glyph(&mut self, x: u32, y: u32, expected: Opcode) -> Result<String, String> {
         if let Some(glyph) = self.get_glyph(x, y) {
-            self.place_glyph(x, y, expected.to_char(), glyph.stratum(), Some(glyph.metadata.clone()))?;
+            self.place_glyph(
+                x,
+                y,
+                expected.to_char(),
+                glyph.stratum(),
+                Some(glyph.metadata.clone()),
+            )?;
             Ok("Repaired".to_string())
         } else {
             Err("Glyph not found".to_string())
@@ -316,16 +354,24 @@ impl GlyphStratumEngine {
     }
 
     pub fn generate_ai_summary(&self) -> String {
-        format!("Glyph Stratum Grid ({}x{}): {} glyphs placed", self.dimensions.0, self.dimensions.1, self.grid.len())
+        format!(
+            "Glyph Stratum Grid ({}x{}): {} glyphs placed",
+            self.dimensions.0,
+            self.dimensions.1,
+            self.grid.len()
+        )
     }
 
     // ==================== Metabolic Efficiency ====================
 
     /// Calculate total metabolic cost (VRAM cycles) for the grid
     pub fn calculate_metabolic_cost(&self) -> u32 {
-        self.grid.iter()
+        self.grid
+            .iter()
             .filter_map(|((x, y), glyph_id)| {
-                self.registry.get(glyph_id).map(|g| g.opcode().metabolic_cost())
+                self.registry
+                    .get(glyph_id)
+                    .map(|g| g.opcode().metabolic_cost())
             })
             .sum()
     }
@@ -347,7 +393,12 @@ impl GlyphStratumEngine {
     }
 
     /// Detect redundant patterns (consecutive Nops, Load-Load without Store)
-    pub fn detect_redundant_patterns(&self, row: u32, start_x: u32, end_x: u32) -> Vec<RedundantPattern> {
+    pub fn detect_redundant_patterns(
+        &self,
+        row: u32,
+        start_x: u32,
+        end_x: u32,
+    ) -> Vec<RedundantPattern> {
         let mut patterns = Vec::new();
         let mut prev_opcode = None;
         let mut consecutive_nops = Vec::new();
@@ -392,7 +443,10 @@ impl GlyphStratumEngine {
     }
 
     /// Optimize metabolic efficiency - remove dead code and compact
-    pub fn optimize_metabolic_efficiency(&mut self, bounds: ((u32, u32), (u32, u32))) -> MetabolicOptimization {
+    pub fn optimize_metabolic_efficiency(
+        &mut self,
+        bounds: ((u32, u32), (u32, u32)),
+    ) -> MetabolicOptimization {
         let (min_x, min_y) = bounds.0;
         let (max_x, max_y) = bounds.1;
 
@@ -432,7 +486,13 @@ impl GlyphStratumEngine {
                     if read_x != write_x {
                         // Move glyph left
                         let ch = std::char::from_u32(glyph.base.unicode).unwrap_or('?');
-                        let _ = self.place_glyph(write_x, y, ch, glyph.stratum(), Some(glyph.metadata.clone()));
+                        let _ = self.place_glyph(
+                            write_x,
+                            y,
+                            ch,
+                            glyph.stratum(),
+                            Some(glyph.metadata.clone()),
+                        );
                         self.grid.remove(&(read_x, y));
                     }
                     write_x += 1;

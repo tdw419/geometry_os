@@ -182,7 +182,9 @@ impl GlyphVmScheduler {
         let vm_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph VM States Buffer"),
             size: vm_buffer_size,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
 
@@ -191,7 +193,9 @@ impl GlyphVmScheduler {
         let scheduler_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph VM Scheduler State Buffer"),
             size: scheduler_buffer_size,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
 
@@ -230,6 +234,7 @@ impl GlyphVmScheduler {
         self.ram_view = Some(texture.create_view(&wgpu::TextureViewDescriptor::default()));
     }
 
+
     /// Initialize a VM slot with configuration
     pub fn spawn_vm(&self, vm_id: u32, config: &VmConfig) -> Result<(), String> {
         if vm_id as usize >= MAX_VMS {
@@ -248,16 +253,16 @@ impl GlyphVmScheduler {
 
         // Fields
         vm_data.push(config.entry_point); // pc
-        vm_data.push(0);                   // halted
-        vm_data.push(2);                   // stratum (LOGIC)
-        vm_data.push(0);                   // cycles
-        vm_data.push(0);                   // stack_ptr
-        vm_data.push(vm_id);               // vm_id
-        vm_data.push(vm_state::RUNNING);   // state
-        vm_data.push(config.parent_id);    // parent_id
-        vm_data.push(config.entry_point);  // entry_point
-        vm_data.push(config.base_addr);    // base_addr
-        vm_data.push(config.bound_addr);   // bound_addr
+        vm_data.push(0); // halted
+        vm_data.push(2); // stratum (LOGIC)
+        vm_data.push(0); // cycles
+        vm_data.push(0); // stack_ptr
+        vm_data.push(vm_id); // vm_id
+        vm_data.push(vm_state::RUNNING); // state
+        vm_data.push(config.parent_id); // parent_id
+        vm_data.push(config.entry_point); // entry_point
+        vm_data.push(config.base_addr); // base_addr
+        vm_data.push(config.bound_addr); // bound_addr
 
         // Stack (64 zeros)
         vm_data.extend_from_slice(&[0u32; 64]);
@@ -265,12 +270,17 @@ impl GlyphVmScheduler {
         // Calculate offset in buffer
         let offset = (vm_id as u64) * 432;
 
-        self.queue.write_buffer(&self.vm_buffer, offset, bytemuck::cast_slice(&vm_data));
+        self.queue
+            .write_buffer(&self.vm_buffer, offset, bytemuck::cast_slice(&vm_data));
 
         // Update scheduler active count (atomic increment would be better but requires shader)
         // For now, we track on CPU side
 
-        log::info!("Spawned VM {} at entry point 0x{:X}", vm_id, config.entry_point);
+        log::info!(
+            "Spawned VM {} at entry point 0x{:X}",
+            vm_id,
+            config.entry_point
+        );
         Ok(())
     }
 
@@ -283,7 +293,11 @@ impl GlyphVmScheduler {
         // Write state = HALTED at offset + 40 (after regs[32] + pc + halted + stratum + cycles + stack_ptr + vm_id)
         let state_offset = (vm_id as u64) * 432 + 40;
         let halted_data: [u32; 2] = [vm_state::HALTED, 1]; // state, halted
-        self.queue.write_buffer(&self.vm_buffer, state_offset, bytemuck::cast_slice(&halted_data));
+        self.queue.write_buffer(
+            &self.vm_buffer,
+            state_offset,
+            bytemuck::cast_slice(&halted_data),
+        );
 
         log::info!("Halted VM {}", vm_id);
         Ok(())
@@ -296,7 +310,7 @@ impl GlyphVmScheduler {
             None => {
                 log::warn!("No RAM texture set for Glyph VM Scheduler");
                 return;
-            }
+            },
         };
 
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -322,9 +336,11 @@ impl GlyphVmScheduler {
             ],
         });
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Glyph VM Scheduler Encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Glyph VM Scheduler Encoder"),
+            });
 
         {
             let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -341,9 +357,11 @@ impl GlyphVmScheduler {
 
     /// Read VM statistics from GPU
     pub fn read_stats(&self) -> Vec<VmStats> {
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Glyph VM Stats Read Encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Glyph VM Stats Read Encoder"),
+            });
 
         // Copy VM buffer to readback buffer
         encoder.copy_buffer_to_buffer(&self.vm_buffer, 0, &self.stats_buffer, 0, 3456);
@@ -359,11 +377,16 @@ impl GlyphVmScheduler {
     pub fn reset_all(&self) {
         // Zero out VM buffer
         let zeros = vec![0u32; 8 * 108];
-        self.queue.write_buffer(&self.vm_buffer, 0, bytemuck::cast_slice(&zeros));
+        self.queue
+            .write_buffer(&self.vm_buffer, 0, bytemuck::cast_slice(&zeros));
 
         // Reset scheduler state
         let scheduler_init: [u32; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
-        self.queue.write_buffer(&self.scheduler_buffer, 0, bytemuck::cast_slice(&scheduler_init));
+        self.queue.write_buffer(
+            &self.scheduler_buffer,
+            0,
+            bytemuck::cast_slice(&scheduler_init),
+        );
 
         log::info!("Reset all Glyph VMs");
     }
@@ -391,5 +414,63 @@ mod tests {
         assert_eq!(vm_state::RUNNING, 1);
         assert_eq!(vm_state::HALTED, 2);
         assert_eq!(vm_state::WAITING, 3);
+    }
+
+    #[test]
+    fn test_spatial_mmu_vm_config() {
+        // VM #0 (root) should have unrestricted access
+        let root_config = VmConfig {
+            entry_point: 0x0000,
+            parent_id: 0xFF,
+            base_addr: 0,
+            bound_addr: 0, // 0 = unrestricted
+            initial_regs: [0; 32],
+        };
+        assert_eq!(root_config.bound_addr, 0, "Root VM should have unrestricted memory");
+
+        // Child VMs should have bounded memory regions
+        let child_config = VmConfig {
+            entry_point: 0x8000,
+            parent_id: 0,
+            base_addr: 0x1000,  // Start of child's region
+            bound_addr: 0x1FFF, // End of child's region
+            initial_regs: [0; 32],
+        };
+        assert!(child_config.base_addr < child_config.bound_addr,
+            "Child VM should have valid memory bounds");
+        assert!(child_config.bound_addr > 0, "Child VM should have restricted memory");
+    }
+
+    #[test]
+    fn test_vm_config_memory_region_size() {
+        // Test that we can calculate memory region sizes
+        let base = 0x1000u32;
+        let bound = 0x1FFFu32;
+        let size = bound - base + 1;
+        assert_eq!(size, 0x1000, "Memory region should be 4KB");
+    }
+
+    #[test]
+    fn test_vm_isolation_multiple_vms() {
+        // Test that multiple VMs can be configured with isolated memory
+        let configs: Vec<VmConfig> = (0..4).map(|i| VmConfig {
+            entry_point: i * 0x1000,
+            parent_id: if i == 0 { 0xFF } else { 0 },
+            base_addr: if i == 0 { 0 } else { i * 0x1000 },
+            bound_addr: if i == 0 { 0 } else { (i + 1) * 0x1000 - 1 },
+            initial_regs: [0; 32],
+        }).collect();
+
+        // Verify VM #0 has unrestricted access
+        assert_eq!(configs[0].bound_addr, 0);
+
+        // Verify child VMs have non-overlapping regions
+        for i in 1..4 {
+            assert!(configs[i].bound_addr > 0, "Child VM {} should have bounded memory", i);
+            if i > 1 {
+                assert!(configs[i].base_addr > configs[i-1].bound_addr,
+                    "VM {} region should not overlap with VM {}", i, i-1);
+            }
+        }
     }
 }
