@@ -97,3 +97,48 @@ impl GpuFramebuffer {
         &mut self.buffer
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_framebuffer_creation() {
+        let config = ScreenDimensionsConfig::new(800, 600);
+        let fb = GpuFramebuffer::new(&config);
+        assert_eq!(fb.width(), 800);
+        assert_eq!(fb.height(), 600);
+        assert_eq!(fb.buffer_len(), 800 * 600);
+    }
+
+    #[test]
+    fn test_put_and_get_pixel() {
+        let config = ScreenDimensionsConfig::new(100, 100);
+        let mut fb = GpuFramebuffer::new(&config);
+
+        fb.put_pixel(50, 50, 0xFF0000);
+        assert_eq!(fb.get_pixel(50, 50), 0xFF0000);
+    }
+
+    #[test]
+    fn test_out_of_bounds_pixel() {
+        let config = ScreenDimensionsConfig::new(100, 100);
+        let mut fb = GpuFramebuffer::new(&config);
+
+        fb.put_pixel(200, 200, 0xFF0000); // Should be ignored
+        assert_eq!(fb.get_pixel(200, 200), 0); // Should return 0
+    }
+
+    #[test]
+    fn test_clear() {
+        let config = ScreenDimensionsConfig::new(10, 10);
+        let mut fb = GpuFramebuffer::new(&config);
+
+        fb.clear(0x123456);
+        for y in 0..10 {
+            for x in 0..10 {
+                assert_eq!(fb.get_pixel(x, y), 0x123456);
+            }
+        }
+    }
+}

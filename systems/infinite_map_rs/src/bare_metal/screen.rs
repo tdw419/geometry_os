@@ -28,3 +28,22 @@ impl ScreenDimensionsConfig {
         Self { width, height }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_dimensions() {
+        let config = ScreenDimensionsConfig::default();
+        assert_eq!(config.width, 1920);
+        assert_eq!(config.height, 1080);
+    }
+
+    #[test]
+    fn test_custom_dimensions() {
+        let config = ScreenDimensionsConfig::new(800, 600);
+        assert_eq!(config.width, 800);
+        assert_eq!(config.height, 600);
+    }
+}
