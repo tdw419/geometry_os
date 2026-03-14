@@ -98,16 +98,13 @@ def run_stress_benchmark():
         pass_enc.end()
         device.queue.submit([encoder.finish()])
 
-    # Wait for completion
-    device.queue.submit([])
+    # Read buffer blocks until GPU completes - this is the real sync point
+    result_data = np.frombuffer(device.queue.read_buffer(buffer), dtype=np.uint32)
     elapsed = time.time() - start_time
+    changed = not np.array_equal(result_data, initial_data)
 
     # Calculate GIPS
     gips = (total_ops / elapsed) / 1_000_000_000 if elapsed > 0 else 0
-
-    # Verify output changed
-    result_data = np.frombuffer(device.queue.read_buffer(buffer), dtype=np.uint32)
-    changed = not np.array_equal(result_data, initial_data)
 
     return {
         "gips": gips,
