@@ -37,7 +37,7 @@ impl GlyphPool {
     /// Create a new glyph pool with GPU-aligned blocks
     pub fn new(size_mb: u64) -> Self {
         let total_size = size_mb * 1024 * 1024;
-        let block_align = 256; // GPU cache line size
+        let block_align = 128; // GPU cache line size
 
         let layout = Layout::from_size_align(total_size as usize, 256)
             .expect("Invalid layout");
@@ -64,7 +64,7 @@ impl GlyphPool {
     /// Allocate memory for a glyph
     pub fn allocate(&mut self, glyph_id: u32, size: u64) -> Option<u64> {
         // Align size to block boundary
-        let aligned_size = ((size + self.block_align - 1) / self.block_align) * self.block_align;
+        let aligned_size = (size + self.block_align - 1) & !(self.block_align - 1);
 
         // Find best-fit free block
         let mut best_idx = None;
@@ -196,7 +196,7 @@ impl GlyphPool {
         };
 
         // Weighted fitness
-        (frag_score * 0.4) + (util_score * 0.3) + (coal_score * 0.3)
+        (frag_score * 0.5) + (util_score * 0.3) + (coal_score * 0.2)
     }
 
     /// Get statistics
