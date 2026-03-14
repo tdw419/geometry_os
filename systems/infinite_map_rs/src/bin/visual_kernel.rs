@@ -14,8 +14,8 @@ fn main() {
 
     // Parse arguments
     let args: Vec<String> = std::env::args().collect();
-    let ubuntu_path = args.iter()
-        .position(|a| a == "--ubuntu")
+    let rts_path = args.iter()
+        .position(|a| a == "--rts" || a == "--ubuntu")
         .and_then(|i| args.get(i + 1).map(|s| s.clone()));
 
     println!();
@@ -67,7 +67,8 @@ fn main() {
 
     // Create Visual Kernel config
     let mut config = infinite_map_rs::visual_kernel_boot::VisualKernelConfig::default();
-    if let Some(path) = ubuntu_path {
+    if let Some(path) = rts_path {
+        config.window_manager_path = path.clone();
         config.ubuntu_kernel_path = Some(path);
     }
 

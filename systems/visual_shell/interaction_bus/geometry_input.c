@@ -10,6 +10,8 @@
 #include <linux/input.h>
 #include <linux/slab.h>
 #include <linux/dma-buf.h>
+#include <linux/ktime.h>
+#include <linux/uaccess.h>
 
 #define EVENT_QUEUE_SIZE 1024
 
@@ -133,17 +135,34 @@ static struct input_handler geos_input_handler = {
 
 static int __init geos_input_init(void)
 {
+    int ret;
     geos_state = kzalloc(sizeof(struct geometry_input_state), GFP_KERNEL);
     if (!geos_state) return -ENOMEM;
 
-    // TODO: In a real system, we would import a DMA-BUF here
-    // state->dmabuf = dma_buf_get(fd);
-    // state->vram_ptr = dma_buf_vmap(state->dmabuf);
-    
-    // For now, allocate system memory to simulate the queue
-    geos_state->vram_ptr = kzalloc(sizeof(struct event_queue_header) + 
-                                  sizeof(struct input_event_geos) * EVENT_QUEUE_SIZE, GFP_KERNEL);
-    
+    // Import DMA-BUF exported by geometry_os (userspace or kernel)
+    // For now, we assume the DMA-BUF FD is passed via module parameter input_queue_dmabuf_fd
+    if (input_queue_dmabuf_fd < 0) {
+        pr_err("geometry_input: No DMA-BUF FD provided\n");
+        kfree(geos_state);
+        return -EINVAL;
+    }
+
+    geos_state->dmabuf = dma_buf_get(input_queue_dmabuf_fd);
+    if (IS_ERR(geos_state->dmabuf)) {
+        pr_err("geometry_input: Failed to get DMA-BUF\n");
+        kfree(geos_state);
+        return PTR_ERR(geos_state->dmabuf);
+    }
+
+    // Map DMA-BUF into kernel virtual address space
+    geos_state->vram_ptr = dma_buf_vmap(geos_state->dmabuf);
+    if (IS_ERR(geos_state->vram_ptr)) {
+        pr_err("geometry_input: Failed to vmap DMA-BUF\n");
+        dma_buf_put(geos_state->dmabuf);
+        kfree(geos_state);
+        return PTR_ERR(geos_state->vram_ptr);
+    }
+
     geos_state->header = (struct event_queue_header *)geos_state->vram_ptr;
     geos_state->queue = (struct input_event_geos *)(geos_state->vram_ptr + sizeof(struct event_queue_header));
     geos_state->header->capacity = EVENT_QUEUE_SIZE;

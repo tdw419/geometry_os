@@ -14,6 +14,17 @@ const STACK_SIZE: u32 = 64u;        // Stack entries per VM
 const REG_COUNT: u32 = 32u;         // General purpose registers
 const GRID_SIZE: u32 = 4096u;       // .rts.png dimension
 
+// Event queue constants (must match input_types.rs and event_queue.wgsl)
+const EVENT_QUEUE_SIZE: u32 = 1024u;
+const EVENT_NONE: u32         = 0u;
+const EVENT_MOUSE_MOVE: u32   = 1u;
+const EVENT_MOUSE_DOWN: u32   = 2u;
+const EVENT_MOUSE_UP: u32     = 3u;
+const EVENT_KEY_DOWN: u32     = 4u;
+const EVENT_KEY_UP: u32       = 5u;
+const EVENT_WINDOW_FOCUS: u32 = 6u;
+const EVENT_WINDOW_DRAG: u32  = 7u;
+
 // Opcodes (0-15) - Logic Stratum
 const OP_NOP: u32    = 0u;
 const OP_ALLOC: u32  = 1u;
@@ -36,6 +47,7 @@ const OP_LOOP: u32   = 15u;
 const OP_SPATIAL_SPAWN: u32 = 225u;
 const OP_GLYPH_MUTATE: u32  = 226u;
 const OP_YIELD: u32         = 227u;  // Yield CPU to scheduler
+const OP_GET_INPUT: u32     = 228u;  // Get next input event from VRAM queue
 
 // Spatial / Infinite Map Opcodes (230-237)
 const OP_CAMERA: u32        = 230u;  // Render viewport from Hilbert space
@@ -58,6 +70,49 @@ const VM_STATE_INACTIVE: u32 = 0u;
 const VM_STATE_RUNNING: u32  = 1u;
 const VM_STATE_HALTED: u32   = 2u;
 const VM_STATE_WAITING: u32  = 3u;  // Waiting for event/message
+
+// ============================================================================
+// DATA STRUCTURES
+// ============================================================================
+
+/// Single VM instance state
+struct VmState {
+    regs: array<u32, 32>,      // General purpose registers
+    pc: u32,                    // Program counter (Hilbert index)
+    halted: u32,                // Halt flag
+    stratum: u32,               // Current stratum
+    cycles: u32,                // Total cycles executed
+    stack_ptr: u32,             // Stack pointer
+    vm_id: u32,                 // VM slot ID (0-7)
+    state: u32,                 // VM_STATE_* constant
+    parent_id: u32,             // Parent VM that spawned this (0xFF = none)
+    entry_point: u32,           // Initial PC for restart
+    base_addr: u32,             // Spatial MMU: Start Hilbert index
+    bound_addr: u32,            // Spatial MMU: End Hilbert index (0 = unrestricted)
+    stack: array<u32, 64>,      // Call stack
+}
+
+/// Input event (must match InputEvent in input_types.rs)
+struct InputEvent {
+    timestamp_ns_low: u32,
+    timestamp_ns_high: u32,
+    event_type: u32,
+    device_id: u32,
+    x: f32,
+    y: f32,
+    dx: f32,
+    dy: f32,
+    code: u32,
+    modifiers: u32,
+};
+
+/// Event queue header
+struct EventQueueHeader {
+    head: u32,
+    tail: u32,
+    capacity: u32,
+    _padding: u32,
+};
 
 // ============================================================================
 // DATA STRUCTURES
@@ -120,6 +175,8 @@ struct MessageQueue {
 @group(0) @binding(1) var<storage, read_write> vms: array<VmState, 8>;
 @group(0) @binding(2) var<storage, read_write> scheduler: SchedulerState;
 @group(0) @binding(3) var<storage, read_write> messages: MessageQueue;
+@group(0) @binding(4) var<storage, read> event_header: EventQueueHeader;
+@group(0) @binding(5) var<storage, read> event_queue: array<InputEvent, EVENT_QUEUE_SIZE>;
 
 // ============================================================================
 // HILBERT CURVE (d to xy)
@@ -174,6 +231,13 @@ fn xy2d(n: u32, xy_in: vec2<u32>) -> u32 {
         s /= 2u;
     }
     return d;
+}
+
+/// Convert f32 to u32 bit pattern
+fn f32_as_u32(val: f32) -> u32 {
+    // Bitwise reinterpretation of f32 as u32
+    // Using the standard IEEE 754 representation
+    return bits(val);
 }
 
 // ============================================================================
@@ -245,6 +309,11 @@ fn execute_instruction(vm_idx: u32) {
             vm.regs[p2] = val.r;
             vm.pc = vm.pc + 1u;
         }
+            let addr_coords = d2xy(GRID_SIZE, addr);
+            let val = textureLoad(ram, vec2<i32>(i32(addr_coords.x), i32(addr_coords.y)));
+            vm.regs[p2] = val.r;
+            vm.pc = vm.pc + 1u;
+        }
         case OP_STORE: {
             let addr = vm.regs[p1];
             if (!check_spatial_bounds(vm_idx, addr)) {
@@ -252,6 +321,11 @@ fn execute_instruction(vm_idx: u32) {
                 vm.halted = 4u; // VM_FAULT_SPATIAL_VIOLATION
                 return;
             }
+            let addr_coords = d2xy(GRID_SIZE, addr);
+            textureStore(ram, vec2<i32>(i32(addr_coords.x), i32(addr_coords.y)),
+                        vec4<u32>(vm.regs[p2], STRATUM_MEMORY, 0u, 255u));
+            vm.pc = vm.pc + 1u;
+        }
             let addr_coords = d2xy(GRID_SIZE, addr);
             textureStore(ram, vec2<i32>(i32(addr_coords.x), i32(addr_coords.y)),
                         vec4<u32>(vm.regs[p2], STRATUM_MEMORY, 0u, 255u));
@@ -295,6 +369,44 @@ fn execute_instruction(vm_idx: u32) {
             // VM stays runnable but gives up this frame
             vm.pc = vm.pc + 1u;
             return; // Early exit triggers scheduler to pick next VM
+        }
+        case OP_GET_INPUT: {
+            // Get next input event from VRAM queue
+            // regs[p1] = event_type output (0 = no event)
+            // regs[p2] = x output
+            // regs[p3] = y output
+            // regs[p4] = code output
+            // regs[p5] = modifiers output
+            
+            // Check if there are pending events
+            if (event_header.head != event_header.tail) {
+                // Get the event at the tail position
+                let event = event_queue[event_header.tail];
+                
+                // Output the event data to registers
+                vm.regs[p1] = event.event_type;
+                vm.regs[p2] = f32_as_u32(event.x);  // Convert f32 to u32 bit pattern
+                vm.regs[p3] = f32_as_u32(event.y);  // Convert f32 to u32 bit pattern
+                vm.regs[p4] = event.code;
+                vm.regs[p5] = event.modifiers;
+                
+                // Advance the tail pointer (consume the event)
+                // Note: In a real implementation with multiple VMs, we'd need atomic operations
+                // For now, we'll have VM 0 handle input consumption to avoid race conditions
+                if (vm.vm_id == 0u) {
+                    let new_tail = (event_header.tail + 1u) % event_header.capacity;
+                    event_header.tail = new_tail;
+                }
+            } else {
+                // No events pending
+                vm.regs[p1] = EVENT_NONE;
+                vm.regs[p2] = 0u;
+                vm.regs[p3] = 0u;
+                vm.regs[p4] = 0u;
+                vm.regs[p5] = 0u;
+            }
+            
+            vm.pc = vm.pc + 1u;
         }
         case OP_SPATIAL_SPAWN: {
             // Spawn a new VM in a free slot

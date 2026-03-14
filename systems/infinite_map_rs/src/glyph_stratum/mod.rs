@@ -4,6 +4,8 @@
 //! Software is represented as visual glyphs across 5 strata:
 //! INTENT → SPEC → LOGIC → MEMORY → SUBSTRATE
 
+pub mod glyph_to_rts;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

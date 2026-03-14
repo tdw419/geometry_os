@@ -187,6 +187,10 @@ path = "src/bin/glyph_vm_boot.rs"
 name = "bare_metal_swarm"
 path = "src/bin/bare_metal_swarm.rs"
 
+[[bin]]
+name = "glyph_infinite_map"
+path = "src/bin/glyph_infinite_map.rs"
+
 [features]
 default = []
 audio = ["cpal", "rustfft"]
