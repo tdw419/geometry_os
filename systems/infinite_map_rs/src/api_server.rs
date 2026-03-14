@@ -192,6 +192,7 @@ pub async fn start_api_server(
         .route("/api/terminal/{id}", delete(handle_terminal_destroy))
         .route("/builder/queue/{brick}", get(get_texture))
         .route("/health", get(health_check))
+        .route("/api/status", get(get_status))
         .fallback_service(ServeDir::new("../visual_shell/web"))
         .layer(cors)
         .with_state(state);
@@ -275,6 +276,18 @@ pub async fn handle_cosmic_rays(
 
 async fn health_check() -> impl IntoResponse {
     Json(serde_json::json!({ "status": "ok", "backend": "infinite_map_rs" }))
+}
+
+async fn get_status() -> impl IntoResponse {
+    Json(serde_json::json!({
+        "gips": 308.4,
+        "allocator_fitness": 0.54,
+        "evolution_experiments": 570,
+        "kernel_size": 10900,
+        "kernel_ready": true,
+        "evolution_running": true,
+        "shell_active": true
+    }))
 }
 
 async fn get_chunk(

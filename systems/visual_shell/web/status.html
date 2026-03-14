@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Geometry OS - System Status</title>
+    <link rel="stylesheet" href="status.css">
+</head>
+<body>
+    <header class="header">
+        <h1>GEOMETRY OS</h1>
+        <div class="subtitle">Autonomous Entity Status</div>
+        <div id="last-update" class="update-time">--</div>
+    </header>
+
+    <main class="dashboard">
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">GIPS</div>
+                <div class="metric-value" id="gips-value">--</div>
+                <div class="metric-unit">Billion Instructions/Second</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="gips-progress"></div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">ALLOCATOR FITNESS</div>
+                <div class="metric-value" id="fitness-value">--</div>
+                <div class="metric-unit">%</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="fitness-progress"></div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">EVOLUTION EXPERIMENTS</div>
+                <div class="metric-value" id="experiments-value">--</div>
+                <div class="metric-unit">total</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">KERNEL SIZE</div>
+                <div class="metric-value" id="kernel-value">--</div>
+                <div class="metric-unit">KB</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">TARGET</div>
+                <div class="metric-value">10,div>
+                <div class="metric-unit">M GIPS</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="target-progress" style="width: 0%"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="status-section">
+            <h2>System Components</h2>
+            <div id="components-grid">
+                <div class="component-card">
+                    <div class="component-name">Evolution Daemon</div>
+                    <div class="component-status" id="evolution-status">--</div>
+                </div>
+                <div class="component-card">
+                    <div class="component-name">Bare Metal Kernel</div>
+                    <div class="component-status" id="kernel-status">--</div>
+                </div>
+                <div class="component-card">
+                    <div class="component-name">Visual Shell</div>
+                    <div class="component-status" id="shell-status">--</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="status.js"></script>
+</body>
+</html>
