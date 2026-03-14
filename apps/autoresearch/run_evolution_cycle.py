@@ -232,11 +232,13 @@ def apply_random_optimization(track_name="") -> str:
         "lcg_tweak",
         "loop_unroll_hint",
         "branch_reorder",
-        "vectorize_ops",     # NEW: Use vec4 for parallel ops
-        "workgroup_tweak",   # NEW: Try different workgroup sizes
-        "unroll_count",      # NEW: Different unroll factors
-        "dual_accum",        # NEW: Two accumulators for ILP
-        "memory_prefetch",   # NEW: Prefetch next values
+        "vectorize_ops",     # Use vec4 for parallel ops
+        "workgroup_tweak",   # Try different workgroup sizes
+        "unroll_count",      # Different unroll factors
+        "dual_accum",        # Two accumulators for ILP
+        "memory_prefetch",   # Prefetch next values
+        "shared_mem",        # NEW: Use workgroup shared memory
+        "increase_ops",      # NEW: Increase ops per thread to 50K or 100K
     ]
 
     opt = random.choice(optimizations)
@@ -377,6 +379,58 @@ def apply_random_optimization(track_name="") -> str:
     elif opt == "branch_reorder":
         # Reorder switch cases by moving common opcodes first
         pass  # Just a placeholder - real impl would reorder
+
+    elif opt == "shared_mem":
+        # Use workgroup shared memory for faster access
+        if "var<workgroup>" not in code and "@compute" in code:
+            # Add shared memory declaration and usage
+            old_main = "@compute @workgroup_size"
+            new_main = """var<workgroup> shared_data: array<u32, 512>;
+
+    @compute @workgroup_size"""
+            code = code.replace(old_main, new_main)
+
+            # Add shared memory usage in main
+            if "var acc = data[idx]" in code:
+                code = code.replace(
+                    "var acc = data[idx];",
+                    """// Load to shared memory first
+        let local_idx = local_invocation_id.x;
+        if (idx < 500000u) {
+            shared_data[local_idx] = data[idx];
+        }
+        workgroupBarrier();
+        var acc = shared_data[local_idx];"""
+                )
+                code = code.replace(
+                    "data[idx] = acc;",
+                    """shared_data[local_idx] = acc;
+        workgroupBarrier();
+        if (idx < 500000u) {
+            data[idx] = shared_data[local_idx];
+        }"""
+                )
+                # Add local_invocation_id parameter
+                code = code.replace(
+                    "fn main(@builtin(global_invocation_id) global_id: vec3<u32>)",
+                    """fn main(
+        @builtin(global_invocation_id) global_id: vec3<u32>,
+        @builtin(local_invocation_id) local_invocation_id: vec3<u32>
+    )"""
+                )
+
+    elif opt == "increase_ops":
+        # Increase operations per thread for better GPU utilization
+        if "i < 20000u" in code:
+            new_ops = random.choice([30000, 40000, 50000, 100000])
+            code = code.replace("i < 20000u", f"i < {new_ops}u")
+        elif "i < 5000u" in code:
+            # If already unrolled to 5000, increase iterations
+            new_ops = random.choice([10000, 20000])
+            code = code.replace("i < 5000u", f"i < {new_ops}u")
+        elif "i < 2000u" in code:
+            new_ops = random.choice([4000, 5000, 10000])
+            code = code.replace("i < 2000u", f"i < {new_ops}u")
 
     with open(SHADER_PATH, "w") as f:
         f.write(code)

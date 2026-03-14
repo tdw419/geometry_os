@@ -87,6 +87,16 @@ def run_stress_benchmark():
         if match:
             wg_size = int(match.group(1))
 
+    # Parse loop iterations from shader to calculate actual ops
+    ops_per_thread = 20000  # Default
+    if "for (var i = 0u; i <" in shader_code:
+        match = re.search(r'for \(var i = 0u; i < (\d+)u', shader_code)
+        if match:
+            loop_iters = int(match.group(1))
+            # Count operations per loop iteration (2 ops: LCG + XOR mix)
+            ops_per_iteration = 2
+            ops_per_thread = loop_iters * ops_per_iteration
+
     num_workgroups = (num_elements + wg_size - 1) // wg_size
 
     # Warmup
