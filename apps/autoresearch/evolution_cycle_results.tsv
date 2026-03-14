@@ -907,3 +907,20 @@ timestamp	track	metric	value	optimization	status
 2026-03-14T11:23:17.153140	THE ENGINE (GIPS Opt	GIPS	4953.2686	Applied optimization: memory_p	pass
 2026-03-14T11:23:23.112239	THE ENGINE (GIPS Opt	GIPS	4857.1467	Applied optimization: unroll_c	pass
 2026-03-14T11:23:29.074642	THE ENGINE (GIPS Opt	GIPS	5567.5924	Applied optimization: workgrou	pass
+2026-03-14T11:23:35.043638	THE ENGINE (GIPS Opt	GIPS	5652.3961	Applied optimization: more_thr	pass
+2026-03-14T11:23:40.993209	THE ENGINE (GIPS Opt	GIPS	4517.0592	Applied optimization: shared_m	pass
+2026-03-14T11:23:46.910996	THE ENGINE (GIPS Opt	GIPS	5730.726	Applied optimization: dual_acc	pass
+2026-03-14T11:23:52.850542	THE ENGINE (GIPS Opt	GIPS	5690.4904	Applied optimization: cleanup	pass
+2026-03-14T11:23:58.856000	THE ENGINE (GIPS Opt	GIPS	4788.0456	No optimization applied (basel	pass
+2026-03-14T11:24:04.848854	THE ENGINE (GIPS Opt	GIPS	4775.0178	Applied optimization: loop_unr	pass
+2026-03-14T11:24:10.822324	THE ENGINE (GIPS Opt	GIPS	5603.0137	Applied optimization: reduce_i	pass
+2026-03-14T11:24:16.772934	THE ENGINE (GIPS Opt	GIPS	4602.0452	Applied optimization: loop_unr	pass
+2026-03-14T11:24:22.744264	THE ENGINE (GIPS Opt	GIPS	5568.3316	Applied optimization: memory_p	pass
+2026-03-14T11:24:28.697680	THE ENGINE (GIPS Opt	GIPS	4654.0677	Applied optimization: shared_m	pass
+2026-03-14T11:24:34.658642	THE ENGINE (GIPS Opt	GIPS	4594.3074	Applied optimization: workgrou	pass
+2026-03-14T11:24:40.664117	THE ENGINE (GIPS Opt	GIPS	4249.8603	No optimization applied (basel	pass
+2026-03-14T11:24:46.639172	THE ENGINE (GIPS Opt	GIPS	4901.8921	Applied optimization: remove_m	pass
+2026-03-14T11:24:52.633865	THE ENGINE (GIPS Opt	GIPS	5097.4745	Applied optimization: vectoriz	pass
+2026-03-14T11:24:58.605477	THE ENGINE (GIPS Opt	GIPS	5559.5668	Applied optimization: dual_acc	pass
+2026-03-14T11:25:04.568997	THE ENGINE (GIPS Opt	GIPS	4576.761	Applied optimization: lcg_twea	pass
+2026-03-14T11:25:10.602328	THE ENGINE (GIPS Opt	GIPS	4530.1464	Applied optimization: more_thr	pass
