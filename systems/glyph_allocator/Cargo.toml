@@ -1,0 +1,9 @@
+[package]
+name = "glyph_allocator"
+version = "0.1.0"
+edition = "2021"
+description = "GPU-native glyph memory allocator with fitness optimization"
+
+[dependencies]
+
+[dev-dependencies]

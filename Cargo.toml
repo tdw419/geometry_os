@@ -6,4 +6,5 @@ members = [
     "kernel/boot",
     "systems/glyph_boot",
     "systems/sisyphus",
+    "systems/glyph_allocator",
 ]
