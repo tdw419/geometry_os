@@ -2,7 +2,7 @@
 //!
 //! Converts SPIR-V to Intel GPU native format for direct execution.
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 
 /// Intel compute shader loaded from SPIR-V.
 pub struct ComputeShader {
@@ -84,10 +84,7 @@ impl ComputeShader {
         // 3. Set up CURBE (constant URB entry)
         // 4. Generate binding table
 
-        log::debug!(
-            "Generated {} batch commands for shader",
-            commands.len()
-        );
+        log::debug!("Generated {} batch commands for shader", commands.len());
 
         Ok(commands)
     }

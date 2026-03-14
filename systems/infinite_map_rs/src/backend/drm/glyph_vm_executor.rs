@@ -98,7 +98,9 @@ impl GlyphVmExecutor {
         let state_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Glyph VM State Buffer"),
             contents: bytemuck::cast_slice(&[state]),
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST,
         });
 
         Ok(Self {
@@ -128,9 +130,11 @@ impl GlyphVmExecutor {
         });
 
         for _ in 0..cycles {
-            let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Glyph VM Step"),
-            });
+            let mut encoder = self
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Glyph VM Step"),
+                });
             {
                 let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                     label: Some("Glyph VM Pass"),
@@ -151,8 +155,16 @@ impl GlyphVmExecutor {
             mapped_at_creation: false,
         });
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-        encoder.copy_buffer_to_buffer(&self.state_buffer, 0, &staging_buffer, 0, staging_buffer.size());
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+        encoder.copy_buffer_to_buffer(
+            &self.state_buffer,
+            0,
+            &staging_buffer,
+            0,
+            staging_buffer.size(),
+        );
         self.queue.submit(std::iter::once(encoder.finish()));
 
         let slice = staging_buffer.slice(..);

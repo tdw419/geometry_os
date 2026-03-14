@@ -17,10 +17,10 @@ pub type TileId = String;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FitnessScore {
     pub boot_time_ms: f64,
-    pub stability_score: f64, // 0.0 to 1.0
+    pub stability_score: f64,   // 0.0 to 1.0
     pub performance_score: f64, // 0.0 to 1.0
-    pub user_utility: f64, // 0.0 to 1.0
-    pub overall: f64, // Computed fitness
+    pub user_utility: f64,      // 0.0 to 1.0
+    pub overall: f64,           // Computed fitness
 }
 
 impl Default for FitnessScore {
@@ -46,12 +46,10 @@ impl FitnessScore {
             1.0
         };
 
-        self.overall = (
-            boot_fitness * 0.2 +
-            self.stability_score * 0.3 +
-            self.performance_score * 0.3 +
-            self.user_utility * 0.2
-        );
+        self.overall = (boot_fitness * 0.2
+            + self.stability_score * 0.3
+            + self.performance_score * 0.3
+            + self.user_utility * 0.2);
     }
 }
 
@@ -104,7 +102,10 @@ pub enum RuntimeState {
     /// Starting up
     Booting { start_time: f64 },
     /// Fully operational
-    Running { pid: Option<u32>, vm_id: Option<String> },
+    Running {
+        pid: Option<u32>,
+        vm_id: Option<String>,
+    },
     /// Crashed or failed
     Failed { error: String, timestamp: f64 },
 }

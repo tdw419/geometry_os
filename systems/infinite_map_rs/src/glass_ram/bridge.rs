@@ -1,8 +1,8 @@
+use log::{error, info};
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use tokio::net::UnixListener;
 use tokio::sync::mpsc;
-use std::path::Path;
-use log::{info, error};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum VisualCommand {
@@ -76,21 +76,21 @@ impl BridgeServer {
                     tokio::spawn(async move {
                         handle_connection(stream, tx).await;
                     });
-                }
+                },
                 Err(e) => {
                     error!("Bridge accept error: {}", e);
-                }
+                },
             }
         }
     }
 }
 
 async fn handle_connection(mut stream: tokio::net::UnixStream, tx: mpsc::Sender<VisualCommand>) {
-    use tokio::io::{BufReader, AsyncBufReadExt};
-    
+    use tokio::io::{AsyncBufReadExt, BufReader};
+
     let mut reader = BufReader::new(stream);
     let mut line = String::new();
-    
+
     loop {
         line.clear();
         match reader.read_line(&mut line).await {
@@ -103,7 +103,7 @@ async fn handle_connection(mut stream: tokio::net::UnixStream, tx: mpsc::Sender<
                 } else {
                     error!("Failed to parse command: {}", line.trim());
                 }
-            }
+            },
             Err(_) => return,
         }
     }

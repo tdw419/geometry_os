@@ -33,10 +33,10 @@
 //! agent_mgr.spawn_agent(AgentRole::Scout, 1000);
 //! ```
 
+pub mod ace_runtime;
 pub mod binary_extractor;
 pub mod entity_manager;
 pub mod entity_type;
-pub mod ace_runtime;
 pub mod host_functions;
 pub mod texture_updater;
 
@@ -45,16 +45,18 @@ pub mod agents;
 pub mod hilbert_pathfinder;
 
 // Re-export common types
-pub use entity_type::{EntityType, RTSMetadata};
-pub use entity_manager::{CognitiveEntityManager, ACEEntity, EntityState};
-pub use host_functions::register_host_functions;
-pub use binary_extractor::ACEBinaryExtractor;
 pub use ace_runtime::{ACERuntime, ACEState};
+pub use binary_extractor::ACEBinaryExtractor;
+pub use entity_manager::{ACEEntity, CognitiveEntityManager, EntityState};
+pub use entity_type::{EntityType, RTSMetadata};
+pub use host_functions::register_host_functions;
 pub use texture_updater::TextureUpdater;
 
 // Phase 46 exports
-pub use agents::{CityAgent, CityAgentManager, AgentRole, AgentState, AgentGoal, GoalType};
-pub use hilbert_pathfinder::{HilbertPathfinder, HilbertPath, Waypoint, PathStrategy, assign_navigation_goal};
+pub use agents::{AgentGoal, AgentRole, AgentState, CityAgent, CityAgentManager, GoalType};
+pub use hilbert_pathfinder::{
+    assign_navigation_goal, HilbertPath, HilbertPathfinder, PathStrategy, Waypoint,
+};
 
 use anyhow::Result;
 

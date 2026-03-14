@@ -2,7 +2,7 @@
 //!
 //! Constructs command buffers for AMD GPU execution via DRM-AMDGPU.
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use std::os::unix::io::RawFd;
 
 /// AMDGPU command buffer header (PM4 format).
@@ -149,8 +149,7 @@ mod tests {
     #[test]
     fn test_command_buffer_creation() {
         let mut cb = AmdgpuCommandBuffer::new();
-        cb.begin_compute()
-            .dispatch(64, 1, 1);
+        cb.begin_compute().dispatch(64, 1, 1);
 
         let buffer = cb.build().unwrap();
         assert!(!buffer.is_empty());
@@ -159,8 +158,7 @@ mod tests {
     #[test]
     fn test_dispatch_encoding() {
         let mut cb = AmdgpuCommandBuffer::new();
-        cb.begin_compute()
-            .dispatch(256, 256, 1);
+        cb.begin_compute().dispatch(256, 256, 1);
 
         let buffer = cb.build().unwrap();
         // begin_compute (3 dwords) + dispatch (3 dwords) = 6 dwords

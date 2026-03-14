@@ -8,8 +8,8 @@
 //! - Color = species type
 
 use crate::tile::{Tile, TileId};
-use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 /// The Infinite Map ecosystem
 #[derive(Debug)]
@@ -36,7 +36,7 @@ impl InfiniteMap {
             species_populations: HashMap::new(),
             phylogeny: HashMap::new(),
             selection_pressure: 0.1, // Default 10% pressure
-            evolution_rate: 0.05, // Default 5% mutation rate
+            evolution_rate: 0.05,    // Default 5% mutation rate
         }
     }
 
@@ -58,13 +58,15 @@ impl InfiniteMap {
 
         // Add to phylogeny if it has parents
         for parent_id in &tile.genotype.parents {
-            self.phylogeny.entry(parent_id.clone())
+            self.phylogeny
+                .entry(parent_id.clone())
                 .or_insert_with(Vec::new)
                 .push(id.clone());
         }
 
         // Add to species population
-        self.species_populations.entry(species)
+        self.species_populations
+            .entry(species)
             .or_insert_with(HashSet::new)
             .insert(id.clone());
 
@@ -103,7 +105,8 @@ impl InfiniteMap {
 
     /// Get tile by position
     pub fn get_tile_at(&self, position: (i32, i32)) -> Option<&Tile> {
-        self.position_index.get(&position)
+        self.position_index
+            .get(&position)
             .and_then(|id| self.tiles.get(id))
     }
 
@@ -119,9 +122,11 @@ impl InfiniteMap {
 
     /// Get tiles by species
     pub fn get_species_tiles(&self, species: &str) -> Vec<&Tile> {
-        self.species_populations.get(species)
+        self.species_populations
+            .get(species)
             .map(|population| {
-                population.iter()
+                population
+                    .iter()
                     .filter_map(|id| self.tiles.get(id))
                     .collect()
             })
@@ -130,9 +135,11 @@ impl InfiniteMap {
 
     /// Get phylogenetic children of a tile
     pub fn get_children(&self, tile_id: &TileId) -> Vec<&Tile> {
-        self.phylogeny.get(tile_id)
+        self.phylogeny
+            .get(tile_id)
             .map(|children| {
-                children.iter()
+                children
+                    .iter()
                     .filter_map(|id| self.tiles.get(id))
                     .collect()
             })
@@ -211,7 +218,8 @@ impl InfiniteMap {
             self.evolution_rate * 0.5 // Conservative when doing well
         } else {
             self.evolution_rate * 2.0 // Exploratory when struggling
-        }.min(1.0);
+        }
+        .min(1.0);
 
         if rand::random::<f64>() < adaptive_rate {
             // Choose mutation strategy based on fitness landscape
@@ -232,7 +240,8 @@ impl InfiniteMap {
 
         // Example: Add new features or restructure code
         for (key, value) in &mut tile.genotype.kernel_params {
-            if rand::random::<f64>() < 0.2 { // 20% chance per param
+            if rand::random::<f64>() < 0.2 {
+                // 20% chance per param
                 // Try parameter variations
                 *value = self.generate_parameter_variant(value);
             }
@@ -245,7 +254,8 @@ impl InfiniteMap {
         // Focus on fine-tuning existing good configurations
 
         for (key, value) in &mut tile.genotype.kernel_params {
-            if rand::random::<f64>() < 0.05 { // 5% chance per param
+            if rand::random::<f64>() < 0.05 {
+                // 5% chance per param
                 // Minor adjustments only
                 *value = self.generate_minor_variant(value);
             }
@@ -292,8 +302,12 @@ impl InfiniteMap {
                 }
             }
             radius += 1;
-            if radius > 100 { // Prevent infinite loop
-                return (x + rand::random::<i32>() % 20 - 10, y + rand::random::<i32>() % 20 - 10);
+            if radius > 100 {
+                // Prevent infinite loop
+                return (
+                    x + rand::random::<i32>() % 20 - 10,
+                    y + rand::random::<i32>() % 20 - 10,
+                );
             }
         }
     }
@@ -348,10 +362,22 @@ pub struct MapStatistics {
 
 /// Gardening actions for user interaction
 pub enum GardeningAction {
-    Plant { species: String, position: (i32, i32) },
-    Prune { tile_id: TileId },
-    Water { tile_id: TileId, amount: f64 }, // Boost vitality
-    Graft { source_id: TileId, target_id: TileId, feature: String },
+    Plant {
+        species: String,
+        position: (i32, i32),
+    },
+    Prune {
+        tile_id: TileId,
+    },
+    Water {
+        tile_id: TileId,
+        amount: f64,
+    }, // Boost vitality
+    Graft {
+        source_id: TileId,
+        target_id: TileId,
+        feature: String,
+    },
 }
 
 impl InfiniteMap {
@@ -362,30 +388,46 @@ impl InfiniteMap {
                 let tile_id = format!("planted_{}_{}", position.0, position.1);
                 let mut tile = Tile::new(tile_id, position, species);
                 // Initialize with basic genotype
-                tile.genotype.source_code.insert("init.sh".to_string(), "#!/bin/bash\necho 'Hello World'".to_string());
+                tile.genotype.source_code.insert(
+                    "init.sh".to_string(),
+                    "#!/bin/bash\necho 'Hello World'".to_string(),
+                );
                 self.add_tile(tile);
-            }
+            },
             GardeningAction::Prune { tile_id } => {
                 self.remove_tile(&tile_id);
-            }
+            },
             GardeningAction::Water { tile_id, amount } => {
                 if let Some(tile) = self.tiles.get_mut(&tile_id) {
                     tile.vitality = (tile.vitality + amount).min(1.0);
                     tile.record_interaction("watering", serde_json::json!({ "amount": amount }));
                 }
-            }
-            GardeningAction::Graft { source_id, target_id, feature } => {
+            },
+            GardeningAction::Graft {
+                source_id,
+                target_id,
+                feature,
+            } => {
                 // First get the source code and clone it
-                if let Some(source_code) = self.tiles.get(&source_id)
+                if let Some(source_code) = self
+                    .tiles
+                    .get(&source_id)
                     .and_then(|s| s.genotype.source_code.get(&feature))
-                    .cloned() {
+                    .cloned()
+                {
                     // Then get mutable target
                     if let Some(target) = self.tiles.get_mut(&target_id) {
-                        target.genotype.source_code.insert(feature.clone(), source_code);
-                        target.log("info", &format!("Grafted feature '{}' from {}", feature, source_id));
+                        target
+                            .genotype
+                            .source_code
+                            .insert(feature.clone(), source_code);
+                        target.log(
+                            "info",
+                            &format!("Grafted feature '{}' from {}", feature, source_id),
+                        );
                     }
                 }
-            }
+            },
         }
     }
 }

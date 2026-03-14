@@ -4,30 +4,32 @@
 // Phase 9: High-Performance Optimization
 // ============================================
 
-use std::sync::Arc;
 use smithay::{
     backend::{
         allocator::{
-            gbm::{GbmDevice as SmithayGbmDevice, GbmAllocator, GbmBufferFlags, GbmBuffer},
-// use smithay::backend::allocator::Format as AllocatorFormat;
+            gbm::{GbmAllocator, GbmBuffer, GbmBufferFlags, GbmDevice as SmithayGbmDevice},
+            // use smithay::backend::allocator::Format as AllocatorFormat;
             Allocator,
             Fourcc,
         },
         drm::{DrmDevice as SmithayDrmDevice, DrmDeviceFd},
     },
-    reexports::{
-        drm::{
-            control::{Mode as DrmMode, crtc::Handle as CrtcHandle, connector::Handle as ConnectorHandle, Device as DrmDeviceTrait, framebuffer::Handle as FbHandle, PageFlipFlags},
-// use smithay::reexports::drm::buffer::DrmFourcc;
+    reexports::drm::{
+        control::{
+            connector::Handle as ConnectorHandle, crtc::Handle as CrtcHandle,
+            framebuffer::Handle as FbHandle, Device as DrmDeviceTrait, Mode as DrmMode,
+            PageFlipFlags,
         },
+        // use smithay::reexports::drm::buffer::DrmFourcc;
     },
 };
+use std::sync::Arc;
 
+use crate::backend::cortex::CortexPipeline;
+use crate::backend::drm::glyph_executor::DrmGlyphExecutor;
 use crate::camera::Camera;
 use crate::rts_texture::RTSTexture;
 use crate::surface_manager::SurfaceManager;
-use crate::backend::cortex::CortexPipeline;
-use crate::backend::drm::glyph_executor::DrmGlyphExecutor;
 use wgpu::util::DeviceExt;
 
 /// GBM buffer with associated framebuffer
@@ -36,7 +38,7 @@ struct GbmFramebuffer {
     fb_handle: FbHandle,
 }
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Performance metrics for monitoring render performance
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -50,7 +52,7 @@ pub struct PerformanceMetrics {
 }
 
 /// DRM-specific renderer using GBM/EGL for hardware acceleration
-/// 
+///
 /// Phase 9 Optimizations:
 /// - Triple buffering with GBM buffer pool
 /// - Page flipping for tear-free rendering
@@ -136,7 +138,11 @@ impl DrmRenderer {
         output_size: (u32, u32),
         rts_texture: Option<RTSTexture>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        log::info!("Creating DRM renderer with Phase 9 optimizations: {}x{}", output_size.0, output_size.1);
+        log::info!(
+            "Creating DRM renderer with Phase 9 optimizations: {}x{}",
+            output_size.0,
+            output_size.1
+        );
 
         // Create GBM allocator with default flags
         let default_flags = GbmBufferFlags::RENDERING | GbmBufferFlags::SCANOUT;
@@ -198,104 +204,105 @@ impl DrmRenderer {
         });
 
         // Setup RTS texture
-        let (rts_texture, rts_texture_view, rts_texture_sampler) = if let Some(rts_tex) = rts_texture {
-            let texture_size = wgpu::Extent3d {
-                width: rts_tex.width,
-                height: rts_tex.height,
-                depth_or_array_layers: 1,
+        let (rts_texture, rts_texture_view, rts_texture_sampler) =
+            if let Some(rts_tex) = rts_texture {
+                let texture_size = wgpu::Extent3d {
+                    width: rts_tex.width,
+                    height: rts_tex.height,
+                    depth_or_array_layers: 1,
+                };
+
+                let texture = device.create_texture(&wgpu::TextureDescriptor {
+                    label: Some("RTS Texture"),
+                    size: texture_size,
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                    usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                    view_formats: &[],
+                });
+
+                let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+                let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+                    address_mode_u: wgpu::AddressMode::ClampToEdge,
+                    address_mode_v: wgpu::AddressMode::ClampToEdge,
+                    address_mode_w: wgpu::AddressMode::ClampToEdge,
+                    mag_filter: wgpu::FilterMode::Linear,
+                    min_filter: wgpu::FilterMode::Linear,
+                    mipmap_filter: wgpu::FilterMode::Linear,
+                    ..Default::default()
+                });
+
+                // Upload texture data
+                queue.write_texture(
+                    wgpu::ImageCopyTexture {
+                        texture: &texture,
+                        mip_level: 0,
+                        origin: wgpu::Origin3d::ZERO,
+                        aspect: wgpu::TextureAspect::All,
+                    },
+                    &rts_tex.as_rgba_bytes(),
+                    wgpu::ImageDataLayout {
+                        offset: 0,
+                        bytes_per_row: Some(4 * rts_tex.width),
+                        rows_per_image: Some(rts_tex.height),
+                    },
+                    texture_size,
+                );
+
+                (Some(texture), Some(texture_view), sampler)
+            } else {
+                // Default test pattern
+                let default_tex = RTSTexture::create_test_pattern(1024, 1024);
+                let texture_size = wgpu::Extent3d {
+                    width: default_tex.width,
+                    height: default_tex.height,
+                    depth_or_array_layers: 1,
+                };
+
+                let texture = device.create_texture(&wgpu::TextureDescriptor {
+                    label: Some("Default RTS Texture"),
+                    size: texture_size,
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                    usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                    view_formats: &[],
+                });
+
+                let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+                let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+                    address_mode_u: wgpu::AddressMode::ClampToEdge,
+                    address_mode_v: wgpu::AddressMode::ClampToEdge,
+                    address_mode_w: wgpu::AddressMode::ClampToEdge,
+                    mag_filter: wgpu::FilterMode::Linear,
+                    min_filter: wgpu::FilterMode::Linear,
+                    mipmap_filter: wgpu::FilterMode::Linear,
+                    ..Default::default()
+                });
+
+                queue.write_texture(
+                    wgpu::ImageCopyTexture {
+                        texture: &texture,
+                        mip_level: 0,
+                        origin: wgpu::Origin3d::ZERO,
+                        aspect: wgpu::TextureAspect::All,
+                    },
+                    &default_tex.as_rgba_bytes(),
+                    wgpu::ImageDataLayout {
+                        offset: 0,
+                        bytes_per_row: Some(4 * default_tex.width),
+                        rows_per_image: Some(default_tex.height),
+                    },
+                    texture_size,
+                );
+
+                (Some(texture), Some(texture_view), sampler)
             };
-
-            let texture = device.create_texture(&wgpu::TextureDescriptor {
-                label: Some("RTS Texture"),
-                size: texture_size,
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-                view_formats: &[],
-            });
-
-            let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-            let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-                address_mode_u: wgpu::AddressMode::ClampToEdge,
-                address_mode_v: wgpu::AddressMode::ClampToEdge,
-                address_mode_w: wgpu::AddressMode::ClampToEdge,
-                mag_filter: wgpu::FilterMode::Linear,
-                min_filter: wgpu::FilterMode::Linear,
-                mipmap_filter: wgpu::FilterMode::Linear,
-                ..Default::default()
-            });
-
-            // Upload texture data
-            queue.write_texture(
-                wgpu::ImageCopyTexture {
-                    texture: &texture,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d::ZERO,
-                    aspect: wgpu::TextureAspect::All,
-                },
-                &rts_tex.as_rgba_bytes(),
-                wgpu::ImageDataLayout {
-                    offset: 0,
-                    bytes_per_row: Some(4 * rts_tex.width),
-                    rows_per_image: Some(rts_tex.height),
-                },
-                texture_size,
-            );
-
-            (Some(texture), Some(texture_view), sampler)
-        } else {
-            // Default test pattern
-            let default_tex = RTSTexture::create_test_pattern(1024, 1024);
-            let texture_size = wgpu::Extent3d {
-                width: default_tex.width,
-                height: default_tex.height,
-                depth_or_array_layers: 1,
-            };
-
-            let texture = device.create_texture(&wgpu::TextureDescriptor {
-                label: Some("Default RTS Texture"),
-                size: texture_size,
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-                view_formats: &[],
-            });
-
-            let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-            let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-                address_mode_u: wgpu::AddressMode::ClampToEdge,
-                address_mode_v: wgpu::AddressMode::ClampToEdge,
-                address_mode_w: wgpu::AddressMode::ClampToEdge,
-                mag_filter: wgpu::FilterMode::Linear,
-                min_filter: wgpu::FilterMode::Linear,
-                mipmap_filter: wgpu::FilterMode::Linear,
-                ..Default::default()
-            });
-
-            queue.write_texture(
-                wgpu::ImageCopyTexture {
-                    texture: &texture,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d::ZERO,
-                    aspect: wgpu::TextureAspect::All,
-                },
-                &default_tex.as_rgba_bytes(),
-                wgpu::ImageDataLayout {
-                    offset: 0,
-                    bytes_per_row: Some(4 * default_tex.width),
-                    rows_per_image: Some(default_tex.height),
-                },
-                texture_size,
-            );
-
-            (Some(texture), Some(texture_view), sampler)
-        };
 
         // Create bind group layout
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -341,7 +348,7 @@ impl DrmRenderer {
                 wgpu::BindGroupEntry {
                     binding: 1,
                     resource: wgpu::BindingResource::TextureView(
-                        rts_texture_view.as_ref().unwrap()
+                        rts_texture_view.as_ref().unwrap(),
                     ),
                 },
                 wgpu::BindGroupEntry {
@@ -389,27 +396,29 @@ impl DrmRenderer {
         });
 
         // Surface pipeline setup
-        let surface_bind_group_layout = Arc::new(device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Surface Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+        let surface_bind_group_layout = Arc::new(device.create_bind_group_layout(
+            &wgpu::BindGroupLayoutDescriptor {
+                label: Some("Surface Bind Group Layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        }));
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            },
+        ));
 
         let shared_sampler = Arc::new(device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
@@ -425,7 +434,7 @@ impl DrmRenderer {
             device.clone(),
             queue.clone(),
             surface_bind_group_layout.clone(),
-            shared_sampler
+            shared_sampler,
         );
 
         let surface_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -433,11 +442,12 @@ impl DrmRenderer {
             source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/surface.wgsl").into()),
         });
 
-        let surface_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Surface Pipeline Layout"),
-            bind_group_layouts: &[&surface_bind_group_layout],
-            push_constant_ranges: &[],
-        });
+        let surface_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Surface Pipeline Layout"),
+                bind_group_layouts: &[&surface_bind_group_layout],
+                push_constant_ranges: &[],
+            });
 
         let surface_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Surface Render Pipeline"),
@@ -478,10 +488,10 @@ impl DrmRenderer {
             mapped_at_creation: false,
         });
 
-        let decoration_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Decoration Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
+        let decoration_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Decoration Bind Group Layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
@@ -490,26 +500,24 @@ impl DrmRenderer {
                         min_binding_size: None,
                     },
                     count: None,
-                },
-            ],
-        });
+                }],
+            });
 
         let decoration_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Decoration Bind Group"),
             layout: &decoration_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: decoration_buffer.as_entire_binding(),
-                }
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: decoration_buffer.as_entire_binding(),
+            }],
         });
 
-        let decoration_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Decoration Pipeline Layout"),
-            bind_group_layouts: &[&decoration_bind_group_layout],
-            push_constant_ranges: &[],
-        });
+        let decoration_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Decoration Pipeline Layout"),
+                bind_group_layouts: &[&decoration_bind_group_layout],
+                push_constant_ranges: &[],
+            });
 
         let decoration_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Decoration Render Pipeline"),
@@ -538,11 +546,7 @@ impl DrmRenderer {
         });
 
         // Initialize Cortex Pipeline
-        let cortex = CortexPipeline::new(
-            device.clone(),
-            queue.clone(),
-            output_size,
-        );
+        let cortex = CortexPipeline::new(device.clone(), queue.clone(), output_size);
 
         // Initialize glyph executor
         let glyph_executor = Some(DrmGlyphExecutor::new(
@@ -595,7 +599,12 @@ impl DrmRenderer {
         self.connector_handle = Some(connector_handle);
         self.output_mode = Some(mode.clone());
         self.output_size = (mode.size().0 as u32, mode.size().1 as u32);
-        log::info!("Output configured: {}x{} @ {}Hz", self.output_size.0, self.output_size.1, mode.vrefresh());
+        log::info!(
+            "Output configured: {}x{} @ {}Hz",
+            self.output_size.0,
+            self.output_size.1,
+            mode.vrefresh()
+        );
     }
 
     /// Get device reference
@@ -662,20 +671,19 @@ impl DrmRenderer {
             )?;
 
             let fb_handle = self.drm_device.add_framebuffer(
-                &buffer,
-                24, // depth
+                &buffer, 24, // depth
                 32, // bpp
             )?;
 
             log::debug!("Created GBM buffer {} with framebuffer {:?}", i, fb_handle);
 
-            self.buffer_pool.push(GbmFramebuffer {
-                buffer,
-                fb_handle,
-            });
+            self.buffer_pool.push(GbmFramebuffer { buffer, fb_handle });
         }
 
-        log::info!("GBM buffer pool initialized with {} buffers", self.buffer_pool.len());
+        log::info!(
+            "GBM buffer pool initialized with {} buffers",
+            self.buffer_pool.len()
+        );
         Ok(())
     }
 
@@ -712,12 +720,15 @@ impl DrmRenderer {
 
         let render_view = render_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render Encoder"),
+            });
 
         // Update uniforms
-        let rts_size = if let (Some(tex), Some(_view)) = (&self.rts_texture, &self.rts_texture_view) {
+        let rts_size = if let (Some(tex), Some(_view)) = (&self.rts_texture, &self.rts_texture_view)
+        {
             [tex.width() as f32, tex.height() as f32]
         } else {
             [1024.0, 1024.0]
@@ -734,18 +745,15 @@ impl DrmRenderer {
             _padding2: [0.0; 2],
         };
 
-        self.queue.write_buffer(
-            &self.uniform_buffer,
-            0,
-            bytemuck::cast_slice(&[uniforms]),
-        );
+        self.queue
+            .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
         struct WindowDrawCall<'a> {
             surface_bind_group: Option<&'a wgpu::BindGroup>,
             content_rect: [f32; 4],
             frame_rect: [f32; 4],
             frame_color: [f32; 4],
-            _marker: std::marker::PhantomData<&'a ()>
+            _marker: std::marker::PhantomData<&'a ()>,
         }
 
         let mut draw_calls = Vec::new();
@@ -765,15 +773,19 @@ impl DrmRenderer {
             let frame_world_h = window_h + title_height + 2.0 * border;
 
             let frame_screen_pos = camera.world_to_screen(
-                frame_world_x, frame_world_y,
-                self.output_size.0 as f32, self.output_size.1 as f32
+                frame_world_x,
+                frame_world_y,
+                self.output_size.0 as f32,
+                self.output_size.1 as f32,
             );
             let frame_screen_w = frame_world_w * camera.zoom;
             let frame_screen_h = frame_world_h * camera.zoom;
 
             let content_screen_pos = camera.world_to_screen(
-                window_x, window_y,
-                self.output_size.0 as f32, self.output_size.1 as f32
+                window_x,
+                window_y,
+                self.output_size.0 as f32,
+                self.output_size.1 as f32,
             );
             let content_screen_w = window_w * camera.zoom;
             let content_screen_h = window_h * camera.zoom;
@@ -789,10 +801,20 @@ impl DrmRenderer {
 
             draw_calls.push(WindowDrawCall {
                 surface_bind_group,
-                content_rect: [content_screen_pos.x, content_screen_pos.y, content_screen_w, content_screen_h],
-                frame_rect: [frame_screen_pos.x, frame_screen_pos.y, frame_screen_w, frame_screen_h],
+                content_rect: [
+                    content_screen_pos.x,
+                    content_screen_pos.y,
+                    content_screen_w,
+                    content_screen_h,
+                ],
+                frame_rect: [
+                    frame_screen_pos.x,
+                    frame_screen_pos.y,
+                    frame_screen_w,
+                    frame_screen_h,
+                ],
                 frame_color: [color.0, color.1, color.2, 1.0],
-                _marker: std::marker::PhantomData
+                _marker: std::marker::PhantomData,
             });
         }
 
@@ -804,8 +826,8 @@ impl DrmRenderer {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.05,  // Visible dark teal - confirms render pipeline
-                            g: 0.10,  // works (not black, matches Geometry OS theme)
+                            r: 0.05, // Visible dark teal - confirms render pipeline
+                            g: 0.10, // works (not black, matches Geometry OS theme)
                             b: 0.12,
                             a: 1.0,
                         }),
@@ -825,17 +847,35 @@ impl DrmRenderer {
             // Draw windows
             for call in &draw_calls {
                 // Draw decoration frame
-                self.queue.write_buffer(&self.decoration_buffer, 0, bytemuck::cast_slice(&[call.frame_color]));
+                self.queue.write_buffer(
+                    &self.decoration_buffer,
+                    0,
+                    bytemuck::cast_slice(&[call.frame_color]),
+                );
                 render_pass.set_pipeline(&self.decoration_pipeline);
                 render_pass.set_bind_group(0, &self.decoration_bind_group, &[]);
-                render_pass.set_viewport(call.frame_rect[0], call.frame_rect[1], call.frame_rect[2], call.frame_rect[3], 0.0, 1.0);
+                render_pass.set_viewport(
+                    call.frame_rect[0],
+                    call.frame_rect[1],
+                    call.frame_rect[2],
+                    call.frame_rect[3],
+                    0.0,
+                    1.0,
+                );
                 render_pass.draw(0..6, 0..1);
 
                 // Draw surface content
                 if let Some(bg) = call.surface_bind_group {
                     render_pass.set_pipeline(&self.surface_pipeline);
                     render_pass.set_bind_group(0, bg, &[]);
-                    render_pass.set_viewport(call.content_rect[0], call.content_rect[1], call.content_rect[2], call.content_rect[3], 0.0, 1.0);
+                    render_pass.set_viewport(
+                        call.content_rect[0],
+                        call.content_rect[1],
+                        call.content_rect[2],
+                        call.content_rect[3],
+                        0.0,
+                        1.0,
+                    );
                     render_pass.draw(0..6, 0..1);
                 }
             }
@@ -853,8 +893,9 @@ impl DrmRenderer {
         let frame_time = frame_start.elapsed().as_secs_f64() * 1000.0; // Convert to ms
         self.metrics.frame_count += 1;
         self.metrics.total_render_time_ms += frame_time;
-        self.metrics.avg_render_time_ms = self.metrics.total_render_time_ms / self.metrics.frame_count as f64;
-        
+        self.metrics.avg_render_time_ms =
+            self.metrics.total_render_time_ms / self.metrics.frame_count as f64;
+
         if self.metrics.frame_count == 1 {
             self.metrics.min_render_time_ms = frame_time;
             self.metrics.max_render_time_ms = frame_time;
@@ -865,7 +906,8 @@ impl DrmRenderer {
 
         // Log performance every 60 frames
         if self.metrics.frame_count % 60 == 0 {
-            log::info!("Performance: {:.2}ms avg (min: {:.2}ms, max: {:.2}ms), FPS: {:.1}",
+            log::info!(
+                "Performance: {:.2}ms avg (min: {:.2}ms, max: {:.2}ms), FPS: {:.1}",
                 self.metrics.avg_render_time_ms,
                 self.metrics.min_render_time_ms,
                 self.metrics.max_render_time_ms,
@@ -897,11 +939,11 @@ impl DrmRenderer {
         // Get next buffer from pool (triple buffering)
         let next_idx = (self.current_buffer + 1) % self.buffer_pool.len();
         let current_fb = &self.buffer_pool[next_idx];
-        
+
         // For Phase 9, we use a simplified copy approach
         // In a full production implementation, we would use DMA-BUF import/export
         // to avoid CPU copies entirely. For now, we copy to the GBM buffer.
-        
+
         let buffer_size = (self.output_size.0 * self.output_size.1 * 4) as usize;
         let mut pixel_data = vec![0u8; buffer_size];
 
@@ -933,9 +975,11 @@ impl DrmRenderer {
             depth_or_array_layers: 1,
         };
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Copy Encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Copy Encoder"),
+            });
 
         encoder.copy_texture_to_buffer(texture_copy_view, buffer_copy_view.clone(), texture_extent);
         self.queue.submit(std::iter::once(encoder.finish()));

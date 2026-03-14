@@ -329,7 +329,7 @@ impl TectonicSimulator {
             None => true,
             Some(last) => {
                 last.elapsed() >= Duration::from_secs(self.config.aggregation_window_secs)
-            }
+            },
         }
     }
 
@@ -357,8 +357,8 @@ pub struct TectonicState {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::bonds::BondType;
+    use super::*;
 
     #[test]
     fn test_pulse_recording() {

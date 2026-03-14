@@ -2,7 +2,7 @@
 //!
 //! This module maps a Linux directory tree to a 2D Hilbert texture,
 //! allowing spatial navigation of the filesystem.
-//! 
+//!
 //! Locality-preserving property of Hilbert curve ensures that files
 //! in the same directory stay close to each other in 2D space.
 
@@ -36,23 +36,23 @@ impl FileNode {
             "rs" | "c" | "cpp" | "h" | "wgsl" | "py" | "js" | "ts" => {
                 // Code is Cyan
                 [0.0, 0.7, 1.0, 1.0]
-            }
+            },
             "rts" | "png" | "jpg" | "bmp" | "bin" => {
                 // Substrate/Data is Purple
                 [0.7, 0.3, 1.0, 1.0]
-            }
+            },
             "txt" | "md" | "json" | "yaml" | "toml" => {
                 // Documents are White/Gray
                 [0.9, 0.9, 0.9, 1.0]
-            }
+            },
             "sh" | "exe" | "so" | "a" | "o" => {
                 // Executables are Red/Orange
                 [1.0, 0.4, 0.0, 1.0]
-            }
+            },
             _ => {
                 // Unknown is Blue-Ish Gray
                 [0.4, 0.5, 0.6, 1.0]
-            }
+            },
         }
     }
 }
@@ -93,7 +93,10 @@ impl FilesystemHilbertManager {
         }
 
         self.nodes = new_nodes;
-        self.path_to_index = self.nodes.iter().enumerate()
+        self.path_to_index = self
+            .nodes
+            .iter()
+            .enumerate()
             .map(|(i, n)| (n.path.clone(), i))
             .collect();
 
@@ -103,8 +106,12 @@ impl FilesystemHilbertManager {
         self.order = (side as f32).log2().ceil() as u32;
         self.grid_size = 2u32.pow(self.order);
 
-        log::info!("🗄️  Filesystem Hilbert: Scanned {} nodes. Grid size: {}x{}", 
-            self.nodes.len(), self.grid_size, self.grid_size);
+        log::info!(
+            "🗄️  Filesystem Hilbert: Scanned {} nodes. Grid size: {}x{}",
+            self.nodes.len(),
+            self.grid_size,
+            self.grid_size
+        );
 
         Ok(())
     }
@@ -117,7 +124,7 @@ impl FilesystemHilbertManager {
         for node in &self.nodes {
             let (x, y) = self.d2xy(node.hilbert_index);
             let idx = ((y * size + x) * 4) as usize;
-            
+
             let color = node.semantic_color();
             buffer[idx] = (color[0] * 255.0) as u8;
             buffer[idx + 1] = (color[1] * 255.0) as u8;
@@ -137,11 +144,14 @@ impl FilesystemHilbertManager {
             for entry in fs::read_dir(path)? {
                 let entry = entry?;
                 let entry_path = entry.path();
-                
+
                 // Skip hidden files or heavy directories like .git
                 if let Some(name) = entry_path.file_name() {
                     let name_str = name.to_string_lossy();
-                    if name_str.starts_with('.') || name_str == "target" || name_str == "node_modules" {
+                    if name_str.starts_with('.')
+                        || name_str == "target"
+                        || name_str == "node_modules"
+                    {
                         continue;
                     }
                 }
@@ -158,7 +168,8 @@ impl FilesystemHilbertManager {
 
     fn create_node(&self, path: &Path) -> std::io::Result<FileNode> {
         let metadata = fs::metadata(path)?;
-        let extension = path.extension()
+        let extension = path
+            .extension()
             .and_then(|e| e.to_str())
             .unwrap_or("")
             .to_string();
@@ -206,11 +217,11 @@ impl FilesystemHilbertManager {
     pub fn get_position(&self, path: &Path) -> Option<(f32, f32)> {
         let index = self.path_to_index.get(path)?;
         let (hx, hy) = self.d2xy(*index as u64);
-        
+
         // Scale and offset from center
         Some((
             (hx as f32 - self.grid_size as f32 / 2.0) * 128.0,
-            (hy as f32 - self.grid_size as f32 / 2.0) * 128.0
+            (hy as f32 - self.grid_size as f32 / 2.0) * 128.0,
         ))
     }
 
@@ -218,7 +229,7 @@ impl FilesystemHilbertManager {
     pub fn find_node_at(&self, world_x: f32, world_y: f32) -> Option<&FileNode> {
         let hx = (world_x / 128.0 + self.grid_size as f32 / 2.0).round() as u32;
         let hy = (world_y / 128.0 + self.grid_size as f32 / 2.0).round() as u32;
-        
+
         if hx >= self.grid_size || hy >= self.grid_size {
             return None;
         }

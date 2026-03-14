@@ -3,12 +3,12 @@
 //! This module implements direct command buffer submission to AMD GPUs
 //! via the amdgpu DRM driver, bypassing Vulkan for Phase 2.
 
-pub mod device;
 pub mod command_buffer;
-pub mod shader;
+pub mod device;
 pub mod mmio;
+pub mod shader;
 
-pub use device::AmdGpuDevice;
 pub use command_buffer::AmdgpuCommandBuffer;
-pub use shader::ComputeShader;
+pub use device::AmdGpuDevice;
 pub use mmio::AmdGpuDevice as AmdGpuMmioDevice;
+pub use shader::ComputeShader;

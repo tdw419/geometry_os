@@ -3,9 +3,9 @@
 //! This module provides a native Rust client for the Z.ai (Zhipu AI) API,
 //! following the Anthropic-compatible protocol used in `zai_bridge.py`.
 
-use serde::{Deserialize, Serialize};
 use crate::cognitive::agents::AgentRole;
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub struct ZAiClient {
@@ -51,12 +51,7 @@ impl ZAiClient {
     }
 
     /// Generate a thought or code modification for an agent
-    pub async fn ask_agent(
-        &self, 
-        role: AgentRole, 
-        context: &str, 
-        goal: &str
-    ) -> Result<String> {
+    pub async fn ask_agent(&self, role: AgentRole, context: &str, goal: &str) -> Result<String> {
         let system_prompt = match role {
             AgentRole::Scout => "You are a Code Scout. Analyze the given code for errors, rot, and complexity. Return a brief health report.",
             AgentRole::Engineer => "You are a Software Engineer. Given the code and a goal, return the REFACTORED code only.",
@@ -65,18 +60,18 @@ impl ZAiClient {
 
         let request = ChatRequest {
             model: self.model.clone(),
-            messages: vec![
-                Message {
-                    role: "user".to_string(),
-                    content: format!("Context:\n{}\n\nGoal: {}", context, goal),
-                }
-            ],
+            messages: vec![Message {
+                role: "user".to_string(),
+                content: format!("Context:\n{}\n\nGoal: {}", context, goal),
+            }],
             max_tokens: 4096,
             temperature: 0.3, // Lower temp for code tasks
             system: Some(system_prompt.to_string()),
         };
 
-        let response = self.client.post(&self.endpoint)
+        let response = self
+            .client
+            .post(&self.endpoint)
             .header("x-api-key", &self.api_key)
             .header("anthropic-version", "2023-06-01")
             .header("content-type", "application/json")
@@ -90,20 +85,20 @@ impl ZAiClient {
         }
 
         let chat_response: ChatResponse = response.json().await?;
-        
+
         if let Some(content) = chat_response.content.first() {
             Ok(content.text.clone())
         } else {
             Err(anyhow::anyhow!("Empty response from Z.ai"))
         }
     }
-    
+
     /// Analyze code health (Visual AST enrichment)
     pub async fn analyze_syntax_health(&self, code: &str) -> Result<(f32, Vec<String>)> {
         let prompt = "Analyze this Rust code for 'health'. Return a JSON: {\"score\": 0.0-1.0, \"issues\": [\"list\"]}.";
-        
+
         // ... Implementation would parse JSON response
         // For now, return stub
-        Ok((0.9, vec!["Looks good".to_string()])) 
+        Ok((0.9, vec!["Looks good".to_string()]))
     }
 }

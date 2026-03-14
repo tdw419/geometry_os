@@ -45,7 +45,9 @@ impl FlashTexture {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::RENDER_ATTACHMENT,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::RENDER_ATTACHMENT,
             label: Some("flash_texture"),
             view_formats: &[],
         });
@@ -99,7 +101,10 @@ impl FlashTexture {
         self.swf_path = Some(path.display().to_string());
         self.is_loaded = true;
 
-        log::info!("FlashTexture: Loaded SWF: {} (Phase 1: Path validated)", path.display());
+        log::info!(
+            "FlashTexture: Loaded SWF: {} (Phase 1: Path validated)",
+            path.display()
+        );
 
         Ok(())
     }

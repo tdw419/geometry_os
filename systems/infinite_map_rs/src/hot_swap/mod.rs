@@ -44,9 +44,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 // Phase 40.5 Task 2: ModuleManager for dynamic .so loading
 pub mod module_manager;
 pub use module_manager::{
-    ModuleManager, LoadedModule, ModuleMetadata, ModuleStatus,
-    ModuleError, ModuleInitFn, ModuleSuspendFn, ModuleUpdateFn,
-    DummyModuleBuilder,
+    DummyModuleBuilder, LoadedModule, ModuleError, ModuleInitFn, ModuleManager, ModuleMetadata,
+    ModuleStatus, ModuleSuspendFn, ModuleUpdateFn,
 };
 
 /// Unique identifier for a Vat (capability-based naming)
@@ -160,7 +159,11 @@ impl VatBuffer {
         let data_size = data.len() as u32;
         let mut header = VatHeader::new(vat_id, data_size);
         header.calculate_checksum(&data);
-        Self { header, data, read_pos: 0 }
+        Self {
+            header,
+            data,
+            read_pos: 0,
+        }
     }
 
     /// Reset the read cursor to the beginning
@@ -385,8 +388,7 @@ impl VatRegistry {
     fn persist_vat(&self, vat_id: &VatId) -> Result<(), VatError> {
         use std::fs;
 
-        let buffer = self.vats.get(vat_id)
-            .ok_or(VatError::NotFound)?;
+        let buffer = self.vats.get(vat_id).ok_or(VatError::NotFound)?;
 
         // Create storage directory if it doesn't exist
         fs::create_dir_all(&self.storage_path)
@@ -397,8 +399,7 @@ impl VatRegistry {
         let json = serde_json::to_string_pretty(buffer)
             .map_err(|e| VatError::SerializationFailed(e.to_string()))?;
 
-        fs::write(file_path, json)
-            .map_err(|e| VatError::SerializationFailed(e.to_string()))?;
+        fs::write(file_path, json).map_err(|e| VatError::SerializationFailed(e.to_string()))?;
 
         Ok(())
     }

@@ -1,11 +1,11 @@
 // systems/infinite_map_rs/src/backend/vulkan/device.rs
 //! Vulkan device initialization for direct GPU access.
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use ash::vk;
+use ash::Device;
 use ash::Entry;
 use ash::Instance;
-use ash::Device;
 use std::ffi::CString;
 
 /// Vulkan device wrapper for direct GPU access.
@@ -23,9 +23,7 @@ impl VulkanDevice {
     /// Create a new Vulkan device.
     pub fn new() -> Result<Self> {
         // Initialize entry points
-        let entry = unsafe {
-            Entry::load()?
-        };
+        let entry = unsafe { Entry::load()? };
 
         // Create instance - bind CStrings to avoid lifetime issues
         let app_name = CString::new("Geometry OS").unwrap();
@@ -38,17 +36,18 @@ impl VulkanDevice {
             .engine_version(vk::make_api_version(0, 1, 0, 0))
             .api_version(vk::make_api_version(0, 1, 3, 0));
 
-        let create_info = vk::InstanceCreateInfo::default()
-            .application_info(&app_info);
+        let create_info = vk::InstanceCreateInfo::default().application_info(&app_info);
 
         let instance = unsafe {
-            entry.create_instance(&create_info, None)
+            entry
+                .create_instance(&create_info, None)
                 .context("Failed to create Vulkan instance")?
         };
 
         // Find physical device with compute support
         let physical_devices = unsafe {
-            instance.enumerate_physical_devices()
+            instance
+                .enumerate_physical_devices()
                 .context("Failed to enumerate physical devices")?
         };
 
@@ -58,28 +57,25 @@ impl VulkanDevice {
 
         // Create logical device
         let queue_priorities = [1.0f32];
-        let queue_create_infos = [
-            vk::DeviceQueueCreateInfo::default()
-                .queue_family_index(queue_family_index)
-                .queue_priorities(&queue_priorities),
-        ];
+        let queue_create_infos = [vk::DeviceQueueCreateInfo::default()
+            .queue_family_index(queue_family_index)
+            .queue_priorities(&queue_priorities)];
 
-        let device_features = vk::PhysicalDeviceFeatures::default()
-            .shader_storage_image_write_without_format(true);
+        let device_features =
+            vk::PhysicalDeviceFeatures::default().shader_storage_image_write_without_format(true);
 
         let device_create_info = vk::DeviceCreateInfo::default()
             .queue_create_infos(&queue_create_infos)
             .enabled_features(&device_features);
 
         let device = unsafe {
-            instance.create_device(physical_device, &device_create_info, None)
+            instance
+                .create_device(physical_device, &device_create_info, None)
                 .context("Failed to create Vulkan device")?
         };
 
         // Get queue
-        let queue = unsafe {
-            device.get_device_queue(queue_family_index, 0)
-        };
+        let queue = unsafe { device.get_device_queue(queue_family_index, 0) };
 
         Ok(Self {
             entry,
@@ -100,14 +96,12 @@ impl VulkanDevice {
         for &device in physical_devices {
             let properties = unsafe { instance.get_physical_device_properties(device) };
             let device_name = unsafe {
-                std::ffi::CStr::from_ptr(properties.device_name.as_ptr())
-                    .to_string_lossy()
+                std::ffi::CStr::from_ptr(properties.device_name.as_ptr()).to_string_lossy()
             };
 
             // Check for compute support
-            let queue_families = unsafe {
-                instance.get_physical_device_queue_family_properties(device)
-            };
+            let queue_families =
+                unsafe { instance.get_physical_device_queue_family_properties(device) };
 
             for (index, family) in queue_families.iter().enumerate() {
                 if family.queue_flags.contains(vk::QueueFlags::COMPUTE) {
@@ -122,7 +116,8 @@ impl VulkanDevice {
     /// Get device memory properties.
     pub fn memory_properties(&self) -> vk::PhysicalDeviceMemoryProperties {
         unsafe {
-            self.instance.get_physical_device_memory_properties(self.physical_device)
+            self.instance
+                .get_physical_device_memory_properties(self.physical_device)
         }
     }
 
@@ -135,9 +130,7 @@ impl VulkanDevice {
         let mem_props = self.memory_properties();
 
         for (i, mem_type) in mem_props.memory_types.iter().enumerate() {
-            if (type_filter & (1 << i)) != 0
-                && mem_type.property_flags.contains(properties)
-            {
+            if (type_filter & (1 << i)) != 0 && mem_type.property_flags.contains(properties) {
                 return Ok(i as u32);
             }
         }

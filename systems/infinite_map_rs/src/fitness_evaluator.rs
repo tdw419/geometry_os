@@ -6,9 +6,9 @@
 //! - Resource efficiency (CPU, memory, energy)
 //! - User interaction and utility metrics
 
-use crate::tile::{Tile, FitnessScore};
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::tile::{FitnessScore, Tile};
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Fitness evaluation context
 pub struct FitnessEvaluator {
@@ -60,7 +60,9 @@ impl FitnessEvaluator {
         let tile_id = tile.id.clone();
 
         // Get recent performance samples
-        let samples = self.performance_history.get(&tile_id)
+        let samples = self
+            .performance_history
+            .get(&tile_id)
             .cloned()
             .unwrap_or_default();
 
@@ -94,9 +96,7 @@ impl FitnessEvaluator {
         }
 
         // Boot time: average of recent boot times
-        let boot_times: Vec<f64> = samples.iter()
-            .filter_map(|s| s.boot_time)
-            .collect();
+        let boot_times: Vec<f64> = samples.iter().filter_map(|s| s.boot_time).collect();
         let avg_boot_time = if boot_times.is_empty() {
             0.0
         } else {
@@ -108,7 +108,8 @@ impl FitnessEvaluator {
 
         // Performance: average CPU and memory efficiency
         let avg_cpu = samples.iter().map(|s| s.cpu_usage).sum::<f64>() / samples.len() as f64;
-        let avg_memory = samples.iter().map(|s| s.memory_usage).sum::<u64>() as f64 / samples.len() as f64;
+        let avg_memory =
+            samples.iter().map(|s| s.memory_usage).sum::<u64>() as f64 / samples.len() as f64;
         let performance = self.calculate_performance_score(avg_cpu, avg_memory);
 
         // User utility: based on interaction history and satisfaction
@@ -170,9 +171,8 @@ impl FitnessEvaluator {
         let recency_score = (recent_interactions as f64 / 10.0).min(1.0); // Max at 10 interactions
 
         // Diversity of interaction types
-        let unique_types: std::collections::HashSet<_> = interactions.iter()
-            .map(|i| &i.event_type)
-            .collect();
+        let unique_types: std::collections::HashSet<_> =
+            interactions.iter().map(|i| &i.event_type).collect();
         let diversity_score = (unique_types.len() as f64 / 5.0).min(1.0); // Max at 5 types
 
         (recency_score + diversity_score) / 2.0
@@ -185,16 +185,15 @@ impl FitnessEvaluator {
         }
 
         let mean = data.iter().sum::<f64>() / data.len() as f64;
-        let variance = data.iter()
-            .map(|x| (x - mean).powi(2))
-            .sum::<f64>() / data.len() as f64;
+        let variance = data.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / data.len() as f64;
 
         variance
     }
 
     /// Get performance history for a tile
     pub fn get_history(&self, tile_id: &str) -> Vec<PerformanceSample> {
-        self.performance_history.get(tile_id)
+        self.performance_history
+            .get(tile_id)
             .cloned()
             .unwrap_or_default()
     }
@@ -209,7 +208,8 @@ impl FitnessEvaluator {
         }
 
         // Remove empty histories
-        self.performance_history.retain(|_, samples| !samples.is_empty());
+        self.performance_history
+            .retain(|_, samples| !samples.is_empty());
     }
 
     /// Set user preference weights

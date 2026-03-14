@@ -1,6 +1,6 @@
 //! Intel GPU Device - Direct i915 access via DRM.
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use std::fs::File;
 use std::os::unix::io::{AsRawFd, RawFd};
 
@@ -69,7 +69,12 @@ impl IntelGpuDevice {
         let gtt_offset = 0x100000000u64 + (handle as u64 * 0x10000000u64);
         self.buffers.insert(handle, (gtt_offset, size));
 
-        log::info!("Allocated GTT buffer {} of size {} at {:#x}", handle, size, gtt_offset);
+        log::info!(
+            "Allocated GTT buffer {} of size {} at {:#x}",
+            handle,
+            size,
+            gtt_offset
+        );
         Ok(handle)
     }
 
@@ -125,7 +130,11 @@ impl IntelGpuDevice {
         let handle = self.next_buffer_handle;
         self.next_buffer_handle += 1;
 
-        log::info!("Created Intel compute shader {} ({} SPIR-V words)", handle, spirv.len());
+        log::info!(
+            "Created Intel compute shader {} ({} SPIR-V words)",
+            handle,
+            spirv.len()
+        );
         Ok(handle)
     }
 
@@ -142,7 +151,9 @@ impl IntelGpuDevice {
             "Dispatching Intel shader {} with {} byte push constants, workgroups ({}, {}, {})",
             shader,
             push_constants.len(),
-            x, y, z
+            x,
+            y,
+            z
         );
 
         // In a real implementation, this would:

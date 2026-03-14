@@ -35,7 +35,7 @@ impl Default for GlassRamConfig {
 }
 
 /// Integrated Glass RAM system
-/// 
+///
 /// Combines fault event polling with compressed sensing reconstruction
 /// to provide real-time memory density visualization.
 pub struct GlassRamIntegration {
@@ -54,10 +54,8 @@ impl GlassRamIntegration {
 
     /// Create a new Glass RAM integration with custom configuration
     pub fn with_config(config: GlassRamConfig) -> Self {
-        let reconstructor = CompressedSensingReconstructor::new(
-            config.hilbert_order,
-            config.sparsity_threshold,
-        );
+        let reconstructor =
+            CompressedSensingReconstructor::new(config.hilbert_order, config.sparsity_threshold);
         let hilbert = Hilbert3D::new(config.hilbert_order);
 
         Self {
@@ -70,7 +68,7 @@ impl GlassRamIntegration {
     }
 
     /// Process a single fault event
-    /// 
+    ///
     /// Events are buffered and processed in batches for efficiency.
     pub fn process_fault(&mut self, event: FaultEvent) {
         self.fault_buffer.push(event);
@@ -108,8 +106,11 @@ impl GlassRamIntegration {
         // Log reconstruction accuracy
         if self.frame_count % 100 == 0 {
             let accuracy = self.reconstructor.accuracy();
-            log::debug!("Frame {}: Reconstruction accuracy: {:.2}%", 
-                self.frame_count, accuracy * 100.0);
+            log::debug!(
+                "Frame {}: Reconstruction accuracy: {:.2}%",
+                self.frame_count,
+                accuracy * 100.0
+            );
         }
     }
 
@@ -202,19 +203,27 @@ impl std::fmt::Display for GlassRamStats {
         write!(f, "GlassRamStats {{\n")?;
         write!(f, "  frame_count: {},\n", self.frame_count)?;
         write!(f, "  buffered_faults: {},\n", self.buffered_faults)?;
-        write!(f, "  non_zero_cells: {} / {} ({:.2}%),\n", 
-            self.non_zero_cells, self.total_cells,
-            (self.non_zero_cells as f32 / self.total_cells as f32) * 100.0)?;
+        write!(
+            f,
+            "  non_zero_cells: {} / {} ({:.2}%),\n",
+            self.non_zero_cells,
+            self.total_cells,
+            (self.non_zero_cells as f32 / self.total_cells as f32) * 100.0
+        )?;
         write!(f, "  max_density: {:.2},\n", self.max_density)?;
         write!(f, "  total_density: {:.2},\n", self.total_density)?;
         write!(f, "  accuracy: {:.2}%,\n", self.accuracy * 100.0)?;
-        write!(f, "  resolution: {}x{},\n", self.resolution, self.resolution)?;
+        write!(
+            f,
+            "  resolution: {}x{},\n",
+            self.resolution, self.resolution
+        )?;
         write!(f, "}}")
     }
 }
 
 /// Thread-safe wrapper for Glass RAM integration
-/// 
+///
 /// Allows concurrent access to the integration state from multiple threads.
 pub struct SharedGlassRamIntegration {
     inner: Arc<RwLock<GlassRamIntegration>>,

@@ -6,8 +6,8 @@
 use anyhow::Result;
 use std::sync::Arc;
 
-use crate::backend::drm::glyph_executor::{DrmGlyphExecutor, GlyphError};
 use crate::backend::drm::glyph_executor::GlyphOutput;
+use crate::backend::drm::glyph_executor::{DrmGlyphExecutor, GlyphError};
 
 /// Ubuntu kernel input format
 pub struct UbuntuKernelInput {
@@ -72,18 +72,21 @@ impl UbuntuRv64Bridge {
 
     /// Execute the loaded kernel for a specified number of cycles
     pub fn execute(&mut self, max_cycles: u32) -> Result<Rv64Result> {
-        let kernel = self.kernel.as_ref()
+        let kernel = self
+            .kernel
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("No kernel loaded"))?;
 
         // Load the RV64 shader
-        self.executor.load_spirv(&self.spirv)
+        self.executor
+            .load_spirv(&self.spirv)
             .map_err(|e| anyhow::anyhow!("Failed to load RV64 shader: {:?}", e))?;
 
         // Execute with kernel pixels as input (pass raw bytes)
-        let (output, memory_readback) = self.executor.execute(
-            &kernel.pixels,
-            (kernel.width, kernel.height),
-        ).map_err(|e| anyhow::anyhow!("Execution failed: {:?}", e))?;
+        let (output, memory_readback) = self
+            .executor
+            .execute(&kernel.pixels, (kernel.width, kernel.height))
+            .map_err(|e| anyhow::anyhow!("Execution failed: {:?}", e))?;
 
         // Extract console output from the memory readback
         // In this architecture, the UART buffer is part of the memory region
@@ -106,8 +109,8 @@ impl UbuntuRv64Bridge {
 
     /// Compile the simplified RV64 shader to SPIR-V
     fn compile_rv64_shader() -> Vec<u32> {
-        use naga::front::glsl;
         use naga::back::spv;
+        use naga::front::glsl;
 
         let source = include_str!("../shaders/riscv64_simple.glsl");
 
@@ -117,14 +120,16 @@ impl UbuntuRv64Bridge {
             defines: naga::FastHashMap::default(),
         };
 
-        let module = parser.parse(&options, source)
+        let module = parser
+            .parse(&options, source)
             .expect("Failed to parse simplified RV64 GLSL");
 
         let mut validator = naga::valid::Validator::new(
             naga::valid::ValidationFlags::all(),
             naga::valid::Capabilities::all(),
         );
-        let info = validator.validate(&module)
+        let info = validator
+            .validate(&module)
             .expect("Failed to validate simplified RV64 shader");
 
         let spv_options = spv::Options {
@@ -133,8 +138,7 @@ impl UbuntuRv64Bridge {
             ..Default::default()
         };
 
-        spv::write_vec(&module, &info, &spv_options, None)
-            .expect("Failed to write SPIR-V")
+        spv::write_vec(&module, &info, &spv_options, None).expect("Failed to write SPIR-V")
     }
 }
 

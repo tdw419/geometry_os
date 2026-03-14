@@ -4,7 +4,7 @@
 //! with realistic physics, creating a sense of presence and weight as users
 //! navigate through the neural landscape.
 
-use glam::{Vec2, Vec3, Mat4};
+use glam::{Mat4, Vec2, Vec3};
 use std::time::Instant;
 
 /// Configuration for momentum camera behavior
@@ -183,7 +183,10 @@ impl MomentumCamera {
     /// Apply input and update physics
     pub fn apply_input(&mut self, input: &CameraInput) {
         let now = Instant::now();
-        let dt = now.duration_since(self.physics.last_update).as_secs_f32().min(0.1);
+        let dt = now
+            .duration_since(self.physics.last_update)
+            .as_secs_f32()
+            .min(0.1);
         self.physics.last_update = now;
 
         // Apply acceleration from input
@@ -191,11 +194,11 @@ impl MomentumCamera {
             // Movement acceleration
             let forward = self.forward();
             let right = self.right();
-            
+
             let movement_accel = forward * input.movement.z * self.config.acceleration
                 + right * input.movement.x * self.config.acceleration
                 + self.up * input.movement.y * self.config.acceleration;
-            
+
             self.physics.velocity += movement_accel * dt;
 
             // Rotation acceleration
@@ -217,12 +220,14 @@ impl MomentumCamera {
 
         let ang_mag = self.physics.angular_velocity.length();
         if ang_mag > self.config.max_angular_velocity {
-            self.physics.angular_velocity = self.physics.angular_velocity.normalize() 
-                * self.config.max_angular_velocity;
+            self.physics.angular_velocity =
+                self.physics.angular_velocity.normalize() * self.config.max_angular_velocity;
         }
 
-        self.physics.zoom_velocity = self.physics.zoom_velocity
-            .clamp(-self.config.max_zoom_velocity, self.config.max_zoom_velocity);
+        self.physics.zoom_velocity = self.physics.zoom_velocity.clamp(
+            -self.config.max_zoom_velocity,
+            self.config.max_zoom_velocity,
+        );
 
         // Apply damping
         self.physics.velocity *= self.config.damping;
@@ -259,13 +264,15 @@ impl MomentumCamera {
         // Apply angular velocity (orbit around target)
         self.yaw += self.physics.angular_velocity.x * dt;
         self.pitch += self.physics.angular_velocity.y * dt;
-        
+
         // Clamp pitch to prevent flipping
         self.pitch = self.pitch.clamp(-1.5, 1.5);
 
         // Apply zoom velocity
         self.distance += self.physics.zoom_velocity * dt;
-        self.distance = self.distance.clamp(self.config.min_distance, self.config.max_distance);
+        self.distance = self
+            .distance
+            .clamp(self.config.min_distance, self.config.max_distance);
 
         // Update position based on yaw, pitch, and distance
         self.update_orbital_position();
@@ -276,7 +283,7 @@ impl MomentumCamera {
         let x = self.distance * self.yaw.cos() * self.pitch.cos();
         let y = self.distance * self.pitch.sin();
         let z = self.distance * self.yaw.sin() * self.pitch.cos();
-        
+
         self.position = self.target + Vec3::new(x, y, z);
     }
 
@@ -337,7 +344,7 @@ impl MomentumCamera {
 
     /// Check if camera is moving
     pub fn is_moving(&self) -> bool {
-        self.physics.velocity.length() > 0.1 
+        self.physics.velocity.length() > 0.1
             || self.physics.angular_velocity.length() > 0.01
             || self.physics.zoom_velocity.abs() > 0.1
     }
@@ -417,12 +424,12 @@ mod tests {
 
         let initial_z = camera.position.z;
         camera.apply_input(&input);
-        
+
         // After multiple updates, camera should have moved
         for _ in 0..10 {
             camera.apply_input(&input);
         }
-        
+
         // Position should have changed (moved forward = negative Z)
         assert!(camera.position.z < initial_z || camera.physics.velocity.length() > 0.0);
     }
@@ -449,7 +456,7 @@ mod tests {
         let new_target = Vec3::new(10.0, 0.0, 10.0);
 
         camera.look_at(new_target, true);
-        
+
         // Target should have moved toward new_target but not reached it instantly
         assert_ne!(camera.target, new_target);
         assert_ne!(camera.target, original_target);
@@ -471,7 +478,7 @@ mod tests {
     fn test_trail() {
         let mut camera = MomentumCamera::default();
         camera.max_trail_length = 5;
-        
+
         let input = CameraInput {
             movement: Vec3::new(1.0, 0.0, 0.0),
             is_active: true,

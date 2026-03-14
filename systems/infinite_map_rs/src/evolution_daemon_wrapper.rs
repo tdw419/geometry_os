@@ -13,10 +13,7 @@ use pyo3::prelude::*;
 #[cfg(feature = "python")]
 use pyo3::types::PyDict;
 
-
-use crate::evolution_protocol::{
-    EvolutionMetrics, NeuralStateData, CognitiveState
-};
+use crate::evolution_protocol::{CognitiveState, EvolutionMetrics, NeuralStateData};
 use crate::python_runtime::EmbeddedPythonContext;
 
 /// Evolution Daemon State
@@ -96,15 +93,18 @@ impl PyEvolutionDaemon {
             // Import and instantiate the daemon
             let daemon_instance = Python::with_gil(|py| -> Result<Py<PyAny>, String> {
                 // Import evolution_daemon_v8
-                let daemon_module = py.import("evolution_daemon_v8")
+                let daemon_module = py
+                    .import("evolution_daemon_v8")
                     .map_err(|e| format!("Failed to import evolution_daemon_v8: {}", e))?;
 
                 // Get the EvolutionDaemonV8 class
-                let daemon_class = daemon_module.getattr("EvolutionDaemonV8")
+                let daemon_class = daemon_module
+                    .getattr("EvolutionDaemonV8")
                     .map_err(|e| format!("Failed to get EvolutionDaemonV8 class: {}", e))?;
 
                 // Create an instance
-                let instance = daemon_class.call0()
+                let instance = daemon_class
+                    .call0()
                     .map_err(|e| format!("Failed to create EvolutionDaemonV8 instance: {}", e))?;
 
                 Ok(instance.into())
@@ -190,7 +190,8 @@ impl PyEvolutionDaemon {
             Python::with_gil(|py| {
                 let daemon = daemon_instance.as_ref(py);
 
-                daemon.call_method0("initiate_neural_evolution")
+                daemon
+                    .call_method0("initiate_neural_evolution")
                     .map_err(|e| format!("Failed to trigger evolution: {}", e))?;
 
                 // Update state
@@ -205,7 +206,10 @@ impl PyEvolutionDaemon {
         {
             let mut state = self.state.lock().unwrap();
             state.evolution_count += 1;
-            log::info!("Evolution triggered (stub mode - count: {})", state.evolution_count);
+            log::info!(
+                "Evolution triggered (stub mode - count: {})",
+                state.evolution_count
+            );
             Ok(())
         }
     }
@@ -222,29 +226,34 @@ impl PyEvolutionDaemon {
                 let daemon = daemon_instance.as_ref(py);
 
                 // Get the intent_bus
-                let intent_bus = daemon.getattr("intent_bus")
+                let intent_bus = daemon
+                    .getattr("intent_bus")
                     .map_err(|e| format!("Failed to get intent_bus: {}", e))?;
 
                 // Create intent dict
                 let intent_dict = PyDict::new(py);
                 // let intent_dict_as_any: &PyAny = intent_dict.as_ref(); // Unused
-                intent_dict.set_item("action", intent.action.clone())
+                intent_dict
+                    .set_item("action", intent.action.clone())
                     .map_err(|e| format!("Failed to set action: {}", e))?;
 
                 if let Some(desc) = &intent.description {
-                    intent_dict.set_item("description", desc)
+                    intent_dict
+                        .set_item("description", desc)
                         .map_err(|e| format!("Failed to set description: {}", e))?;
                 }
 
                 if let Some(payload) = &intent.payload {
                     let payload_str = serde_json::to_string(payload)
                         .map_err(|e| format!("Failed to serialize payload: {}", e))?;
-                    intent_dict.set_item("payload", payload_str)
+                    intent_dict
+                        .set_item("payload", payload_str)
                         .map_err(|e| format!("Failed to set payload: {}", e))?;
                 }
 
                 // Emit the intent
-                intent_bus.call_method1("emit_resonance", (intent_dict,))
+                intent_bus
+                    .call_method1("emit_resonance", (intent_dict,))
                     .map_err(|e| format!("Failed to emit intent: {}", e))?;
 
                 Ok(())
@@ -269,7 +278,8 @@ impl PyEvolutionDaemon {
             Python::with_gil(|py| {
                 let daemon = daemon_instance.as_ref(py);
 
-                daemon.call_method0("_perform_health_check")
+                daemon
+                    .call_method0("_perform_health_check")
                     .map_err(|e| format!("Failed to perform health check: {}", e))?;
 
                 // Update state
@@ -299,7 +309,8 @@ impl PyEvolutionDaemon {
             Python::with_gil(|py| {
                 let daemon = daemon_instance.as_ref(py);
 
-                daemon.call_method0("_perform_self_reflection")
+                daemon
+                    .call_method0("_perform_self_reflection")
                     .map_err(|e| format!("Failed to trigger reflection: {}", e))?;
 
                 Ok(())
@@ -323,15 +334,18 @@ impl PyEvolutionDaemon {
                 let daemon = daemon_instance.as_ref(py);
 
                 // Read state from Python daemon
-                let evolution_count: u32 = daemon.getattr("evolution_count")
+                let evolution_count: u32 = daemon
+                    .getattr("evolution_count")
                     .and_then(|v| v.extract())
                     .unwrap_or(0);
 
-                let pressure_score: f64 = daemon.getattr("pressure_score")
+                let pressure_score: f64 = daemon
+                    .getattr("pressure_score")
                     .and_then(|v| v.extract())
                     .unwrap_or(0.0);
 
-                let visual_cortex = daemon.getattr("visual_cortex")
+                let visual_cortex = daemon
+                    .getattr("visual_cortex")
                     .and_then(|v| v.getattr("enabled"))
                     .and_then(|v| v.extract())
                     .unwrap_or(false);
@@ -361,41 +375,48 @@ impl PyEvolutionDaemon {
                 let daemon = daemon_instance.as_ref(py);
 
                 // Extract metrics from daemon attributes
-                let generation: u64 = daemon.getattr("evolution_count")
-                    .and_then(|v| v.extract())
-                    .unwrap_or(0);
-                
-                let pressure_score: f64 = daemon.getattr("pressure_score")
-                    .and_then(|v| v.extract())
-                    .unwrap_or(0.0);
-
-                let compilation_success_rate: f64 = daemon.getattr("compilation_success_rate")
-                    .and_then(|v| v.extract())
-                    .unwrap_or(0.0);
-
-                let avg_compilation_time: f64 = daemon.getattr("avg_compilation_time")
-                    .and_then(|v| v.extract())
-                    .unwrap_or(0.0);
-
-                let visual_renders: u64 = daemon.getattr("visual_renders")
+                let generation: u64 = daemon
+                    .getattr("evolution_count")
                     .and_then(|v| v.extract())
                     .unwrap_or(0);
 
-                let components_built: u64 = daemon.getattr("components_built")
+                let pressure_score: f64 = daemon
+                    .getattr("pressure_score")
+                    .and_then(|v| v.extract())
+                    .unwrap_or(0.0);
+
+                let compilation_success_rate: f64 = daemon
+                    .getattr("compilation_success_rate")
+                    .and_then(|v| v.extract())
+                    .unwrap_or(0.0);
+
+                let avg_compilation_time: f64 = daemon
+                    .getattr("avg_compilation_time")
+                    .and_then(|v| v.extract())
+                    .unwrap_or(0.0);
+
+                let visual_renders: u64 = daemon
+                    .getattr("visual_renders")
                     .and_then(|v| v.extract())
                     .unwrap_or(0);
 
-                let health_status: String = daemon.getattr("health_status")
+                let components_built: u64 = daemon
+                    .getattr("components_built")
+                    .and_then(|v| v.extract())
+                    .unwrap_or(0);
+
+                let health_status: String = daemon
+                    .getattr("health_status")
                     .and_then(|v| v.extract())
                     .unwrap_or_else(|_| "unknown".to_string());
 
                 Ok(EvolutionMetrics {
                     generation,
-                    fitness: 0.5,           // Default fitness
-                    mutation_rate: 0.1,     // Default mutation rate
-                    population_size: 100,   // Default population
-                    best_fitness: 0.5,      // Default best fitness
-                    stagnation: 0,          // No stagnation
+                    fitness: 0.5,         // Default fitness
+                    mutation_rate: 0.1,   // Default mutation rate
+                    population_size: 100, // Default population
+                    best_fitness: 0.5,    // Default best fitness
+                    stagnation: 0,        // No stagnation
                     pressure_score: pressure_score as f32,
                     compilation_success_rate: compilation_success_rate as f32,
                     avg_compilation_time: avg_compilation_time as f32,
@@ -424,29 +445,36 @@ impl PyEvolutionDaemon {
 
             Python::with_gil(|py| {
                 let daemon = daemon_instance.as_ref(py);
-                
+
                 // Try to get neural_cortex which holds the state
-                let neural_cortex = daemon.getattr("neural_cortex").map_err(|_| "No neural cortex")?;
-                
-                let confidence: f32 = neural_cortex.getattr("confidence")
+                let neural_cortex = daemon
+                    .getattr("neural_cortex")
+                    .map_err(|_| "No neural cortex")?;
+
+                let confidence: f32 = neural_cortex
+                    .getattr("confidence")
                     .and_then(|v| v.extract())
                     .unwrap_or(0.5);
-                    
+
                 // For vectors, we might need more complex extraction
                 // Assuming lists in Python
-                let layer_activations: Vec<f32> = neural_cortex.getattr("layer_activations")
+                let layer_activations: Vec<f32> = neural_cortex
+                    .getattr("layer_activations")
                     .and_then(|v| v.extract())
                     .unwrap_or_default();
 
-                let attention_weights: Vec<f32> = neural_cortex.getattr("attention_weights")
+                let attention_weights: Vec<f32> = neural_cortex
+                    .getattr("attention_weights")
                     .and_then(|v| v.extract())
                     .unwrap_or_default();
-                    
-                let memory_patterns: Vec<f32> = neural_cortex.getattr("memory_patterns")
+
+                let memory_patterns: Vec<f32> = neural_cortex
+                    .getattr("memory_patterns")
                     .and_then(|v| v.extract())
                     .unwrap_or_default();
-                    
-                let thought_vector: Vec<f32> = neural_cortex.getattr("thought_vector")
+
+                let thought_vector: Vec<f32> = neural_cortex
+                    .getattr("thought_vector")
                     .and_then(|v| v.extract())
                     .unwrap_or_default();
 
@@ -562,8 +590,7 @@ mod tests {
 
     #[test]
     fn test_intent_message_creation() {
-        let intent = IntentMessage::new("TEST_ACTION")
-            .with_description("Test description");
+        let intent = IntentMessage::new("TEST_ACTION").with_description("Test description");
 
         assert_eq!(intent.action, "TEST_ACTION");
         assert_eq!(intent.description, Some("Test description".to_string()));

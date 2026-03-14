@@ -91,6 +91,12 @@ pub struct GlyphVmScheduler {
     /// Message queue buffer
     message_buffer: wgpu::Buffer,
 
+    /// Event queue header buffer
+    event_header_buffer: wgpu::Buffer,
+
+    /// Event queue buffer
+    event_queue_buffer: wgpu::Buffer,
+
     /// Readback buffer for stats
     stats_buffer: wgpu::Buffer,
 
@@ -112,6 +118,8 @@ impl GlyphVmScheduler {
         // 1: VM states array (storage, read_write)
         // 2: Scheduler state (storage, read_write)
         // 3: Message queue (storage, read_write)
+        // 4: Event queue header (storage, read_only)
+        // 5: Event queue (storage, read_only)
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Glyph VM Scheduler Bind Group Layout"),
             entries: &[
@@ -154,6 +162,28 @@ impl GlyphVmScheduler {
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // Binding 4: Event Queue Header
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // Binding 5: Event Queue
+                wgpu::BindGroupLayoutEntry {
+                    binding: 5,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
                         has_dynamic_offset: false,
                         min_binding_size: None,
                     },
@@ -208,6 +238,24 @@ impl GlyphVmScheduler {
             mapped_at_creation: false,
         });
 
+        // Create event queue header buffer
+        // EventQueueHeader: head (u32), tail (u32), padding [2 u32s] = 16 bytes
+        let event_header_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Glyph VM Event Header Buffer"),
+            size: 16,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // Create event queue buffer
+        // 1024 InputEvents * 32 bytes each = 32768 bytes
+        let event_queue_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Glyph VM Event Queue Buffer"),
+            size: 1024 * 32,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
         // Create readback buffer for stats
         let stats_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph VM Stats Readback Buffer"),
@@ -224,6 +272,8 @@ impl GlyphVmScheduler {
             vm_buffer,
             scheduler_buffer,
             message_buffer,
+            event_header_buffer,
+            event_queue_buffer,
             stats_buffer,
             ram_view: None,
         }
@@ -332,6 +382,14 @@ impl GlyphVmScheduler {
                 wgpu::BindGroupEntry {
                     binding: 3,
                     resource: self.message_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: self.event_header_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: self.event_queue_buffer.as_entire_binding(),
                 },
             ],
         });

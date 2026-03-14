@@ -27,32 +27,33 @@ impl GlyphPipeline {
                 .stage_flags(vk::ShaderStageFlags::COMPUTE),
         ];
 
-        let layout_create_info = vk::DescriptorSetLayoutCreateInfo::default()
-            .bindings(&bindings);
+        let layout_create_info = vk::DescriptorSetLayoutCreateInfo::default().bindings(&bindings);
 
         let descriptor_set_layout = unsafe {
-            device.device
+            device
+                .device
                 .create_descriptor_set_layout(&layout_create_info, None)
                 .context("Failed to create descriptor set layout")?
         };
 
         // Create pipeline layout - bind array to avoid lifetime issues
         let set_layouts = [descriptor_set_layout];
-        let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::default()
-            .set_layouts(&set_layouts);
+        let pipeline_layout_create_info =
+            vk::PipelineLayoutCreateInfo::default().set_layouts(&set_layouts);
 
         let pipeline_layout = unsafe {
-            device.device
+            device
+                .device
                 .create_pipeline_layout(&pipeline_layout_create_info, None)
                 .context("Failed to create pipeline layout")?
         };
 
         // Create shader module from SPIR-V
-        let shader_create_info = vk::ShaderModuleCreateInfo::default()
-            .code(spirv_bytes);
+        let shader_create_info = vk::ShaderModuleCreateInfo::default().code(spirv_bytes);
 
         let shader_module = unsafe {
-            device.device
+            device
+                .device
                 .create_shader_module(&shader_create_info, None)
                 .context("Failed to create shader module")?
         };
@@ -68,15 +69,18 @@ impl GlyphPipeline {
             .layout(pipeline_layout);
 
         let pipeline_result = unsafe {
-            device.device
-                .create_compute_pipelines(vk::PipelineCache::null(), &[pipeline_create_info], None)
+            device.device.create_compute_pipelines(
+                vk::PipelineCache::null(),
+                &[pipeline_create_info],
+                None,
+            )
         };
 
         let pipeline = match pipeline_result {
             Ok(pipelines) => pipelines[0],
             Err((_, e)) => {
                 anyhow::bail!("Failed to create compute pipeline: {:?}", e);
-            }
+            },
         };
 
         // Cleanup shader module (not needed after pipeline creation)
@@ -107,8 +111,8 @@ impl GlyphPipeline {
             0x00000000, // Generator
             0x00000003, // Bound
             0x00000000, // Schema
-            // Entry point and type info would go here
-            // This is a placeholder - real SPIR-V would be 100+ words
+                        // Entry point and type info would go here
+                        // This is a placeholder - real SPIR-V would be 100+ words
         ]
     }
 }

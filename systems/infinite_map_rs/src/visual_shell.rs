@@ -26,13 +26,13 @@ impl DaemonId {
 /// Frequency band for audio/visual processing
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FrequencyBand {
-    UltraLow,   // < 1 Hz (background)
-    Low,        // 1-8 Hz (subconscious)
-    Mid,        // 8-30 Hz (conscious)
-    High,       // 31-100 Hz (intensive)
-    Alpha,      // 8-13 Hz (relaxation)
-    Beta,       // 14-30 Hz (focus)
-    Gamma,      // 31-100 Hz (intensive)
+    UltraLow,    // < 1 Hz (background)
+    Low,         // 1-8 Hz (subconscious)
+    Mid,         // 8-30 Hz (conscious)
+    High,        // 31-100 Hz (intensive)
+    Alpha,       // 8-13 Hz (relaxation)
+    Beta,        // 14-30 Hz (focus)
+    Gamma,       // 31-100 Hz (intensive)
     Custom(f32), // Custom frequency
 }
 
@@ -65,11 +65,27 @@ pub trait VisualShellIntegration: Send + Sync {
     fn initialize(&mut self) -> Result<(), Box<dyn std::error::Error>>;
     fn send_thought(&self, thought: &[u8]) -> Result<(), Box<dyn std::error::Error>>;
     fn receive_feedback(&mut self) -> Result<Vec<u8>, Box<dyn std::error::Error>>;
-    fn get_daemon_status(&self, daemon_id: DaemonId) -> Result<DaemonState, Box<dyn std::error::Error>>;
-    fn register_daemon(&mut self, id: DaemonId, band: FrequencyBand, amplitude: f32) -> Result<(), Box<dyn std::error::Error>>;
+    fn get_daemon_status(
+        &self,
+        daemon_id: DaemonId,
+    ) -> Result<DaemonState, Box<dyn std::error::Error>>;
+    fn register_daemon(
+        &mut self,
+        id: DaemonId,
+        band: FrequencyBand,
+        amplitude: f32,
+    ) -> Result<(), Box<dyn std::error::Error>>;
     fn unregister_daemon(&mut self, id: DaemonId) -> Result<(), Box<dyn std::error::Error>>;
-    fn update_daemon_data(&mut self, id: DaemonId, data: Vec<f32>) -> Result<(), Box<dyn std::error::Error>>;
-    fn set_daemon_amplitude(&mut self, id: DaemonId, amplitude: f32) -> Result<(), Box<dyn std::error::Error>>;
+    fn update_daemon_data(
+        &mut self,
+        id: DaemonId,
+        data: Vec<f32>,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+    fn set_daemon_amplitude(
+        &mut self,
+        id: DaemonId,
+        amplitude: f32,
+    ) -> Result<(), Box<dyn std::error::Error>>;
 }
 
 /// Concrete visual shell implementation
@@ -85,13 +101,17 @@ impl VisualShell {
     }
 
     /// Initialize GPU resources
-    pub fn init_gpu(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn init_gpu(
+        &mut self,
+        _device: &wgpu::Device,
+        _queue: &wgpu::Queue,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         Ok(())
     }
 
     /// Get texture view for background
     pub fn texture_view(&self) -> Option<std::sync::Arc<wgpu::TextureView>> {
-        None  // Stub doesn't create textures
+        None // Stub doesn't create textures
     }
 }
 
@@ -100,15 +120,27 @@ impl VisualShell {
         self.daemons.len()
     }
 
-    pub fn tick_mixer(&mut self, _delta: std::time::Duration) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn tick_mixer(
+        &mut self,
+        _delta: std::time::Duration,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         Ok(())
     }
 
-    pub fn update_from_spectral_field(&mut self, _factor: f32) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn update_from_spectral_field(
+        &mut self,
+        _factor: f32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         Ok(())
     }
 
-    pub fn update_from_neural(&mut self, _activations: &[f32], _attention_weights: &[f32], _memory_patterns: &[f32], _confidence: f32) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn update_from_neural(
+        &mut self,
+        _activations: &[f32],
+        _attention_weights: &[f32],
+        _memory_patterns: &[f32],
+        _confidence: f32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         Ok(())
     }
 
@@ -130,19 +162,31 @@ impl VisualShellIntegration for VisualShell {
         Ok(vec![])
     }
 
-    fn get_daemon_status(&self, daemon_id: DaemonId) -> Result<DaemonState, Box<dyn std::error::Error>> {
-        self.daemons.get(&daemon_id)
+    fn get_daemon_status(
+        &self,
+        daemon_id: DaemonId,
+    ) -> Result<DaemonState, Box<dyn std::error::Error>> {
+        self.daemons
+            .get(&daemon_id)
             .cloned()
             .ok_or_else(|| format!("Daemon {} not found", daemon_id.0).into())
     }
 
-    fn register_daemon(&mut self, id: DaemonId, band: FrequencyBand, _amplitude: f32) -> Result<(), Box<dyn std::error::Error>> {
-        self.daemons.insert(id, DaemonState {
+    fn register_daemon(
+        &mut self,
+        id: DaemonId,
+        band: FrequencyBand,
+        _amplitude: f32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.daemons.insert(
             id,
-            band,
-            active: true,
-            last_activity: std::time::Instant::now(),
-        });
+            DaemonState {
+                id,
+                band,
+                active: true,
+                last_activity: std::time::Instant::now(),
+            },
+        );
         Ok(())
     }
 
@@ -151,14 +195,22 @@ impl VisualShellIntegration for VisualShell {
         Ok(())
     }
 
-    fn update_daemon_data(&mut self, id: DaemonId, _data: Vec<f32>) -> Result<(), Box<dyn std::error::Error>> {
+    fn update_daemon_data(
+        &mut self,
+        id: DaemonId,
+        _data: Vec<f32>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(state) = self.daemons.get_mut(&id) {
             state.last_activity = std::time::Instant::now();
         }
         Ok(())
     }
 
-    fn set_daemon_amplitude(&mut self, id: DaemonId, _amplitude: f32) -> Result<(), Box<dyn std::error::Error>> {
+    fn set_daemon_amplitude(
+        &mut self,
+        id: DaemonId,
+        _amplitude: f32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(state) = self.daemons.get_mut(&id) {
             state.last_activity = std::time::Instant::now();
         }

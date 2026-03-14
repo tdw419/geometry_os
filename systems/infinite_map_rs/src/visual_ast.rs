@@ -13,10 +13,10 @@
 //! - Health API for agents to detect errors
 //! - Token-level precision for refactoring
 
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::Mutex;
 
 /// Spatial coordinate key for HashMap (integers work as hash keys)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -66,7 +66,7 @@ impl VisualAST {
 
     /// Parse crystallized source tiles into Visual AST
     pub fn from_tiles(
-        tiles: Vec<crate::source_importer::CrystallizedSourceTile>
+        tiles: Vec<crate::source_importer::CrystallizedSourceTile>,
     ) -> Result<Self, ParseError> {
         let mut ast = Self::new();
 
@@ -87,22 +87,25 @@ impl VisualAST {
                         if let Err(e) = ast.parse_rust_tile(tile) {
                             log::warn!("Failed to parse {}: {}", module_path, e);
                         }
-                    }
+                    },
                     "wgsl" => {
                         if let Err(e) = ast.parse_wgsl_tile(tile) {
                             log::warn!("Failed to parse WGSL {}: {}", module_path, e);
                         }
-                    }
+                    },
                     _ => {
                         // For non-code files, create a simple text node
                         ast.create_text_node(tile);
-                    }
+                    },
                 }
             }
         }
 
-        log::info!("🌳 Visual AST: {} nodes across {} files",
-            ast.nodes.len(), ast.roots.len());
+        log::info!(
+            "🌳 Visual AST: {} nodes across {} files",
+            ast.nodes.len(),
+            ast.roots.len()
+        );
 
         Ok(ast)
     }
@@ -118,7 +121,8 @@ impl VisualAST {
         // Step 1: Use SourceImporter to import all source files
         let mut importer = crate::source_importer::SourceImporter::new(project_root.to_path_buf());
         let origin_i32 = (origin.0 as i32, origin.1 as i32);
-        let project = importer.import_crate(origin_i32)
+        let project = importer
+            .import_crate(origin_i32)
             .map_err(|e| ParseError::IoError(format!("Failed to import crate: {}", e)))?;
 
         log::info!("📦 Imported {} source tiles", project.tiles.len());
@@ -129,24 +133,29 @@ impl VisualAST {
         // Step 3: Apply spatial layout based on directory structure
         ast.apply_directory_layout(project_root, origin)?;
 
-        log::info!("✅ Visual AST created: {} nodes, {} modules",
-            ast.nodes.len(), ast.roots.len());
+        log::info!(
+            "✅ Visual AST created: {} nodes, {} modules",
+            ast.nodes.len(),
+            ast.roots.len()
+        );
 
         Ok(ast)
     }
 
     /// Apply spatial layout based on directory structure
-    fn apply_directory_layout(&mut self, project_root: &std::path::Path, origin: (f32, f32)) -> Result<(), ParseError> {
+    fn apply_directory_layout(
+        &mut self,
+        project_root: &std::path::Path,
+        origin: (f32, f32),
+    ) -> Result<(), ParseError> {
         use std::collections::HashMap;
 
         // Collect node IDs and metadata first (avoid borrow issues)
-        let node_info: Vec<(String, String, String)> = self.nodes.values()
+        let node_info: Vec<(String, String, String)> = self
+            .nodes
+            .values()
             .map(|node| {
-                let district = node.name
-                    .split("::")
-                    .last()
-                    .unwrap_or("")
-                    .to_string();
+                let district = node.name.split("::").last().unwrap_or("").to_string();
                 (node.id.clone(), node.tile_id.clone(), district)
             })
             .collect();
@@ -202,16 +211,16 @@ impl VisualAST {
     /// Parse a single Rust source tile
     fn parse_rust_tile(
         &mut self,
-        tile: crate::source_importer::CrystallizedSourceTile
+        tile: crate::source_importer::CrystallizedSourceTile,
     ) -> Result<(), ParseError> {
         use syn::parse_file;
-        
+
         let syntax = parse_file(&tile.content)
             .map_err(|e| ParseError::SynError(tile.id.clone(), e.to_string()))?;
 
         let module_path = tile.metadata.module_path.clone();
         let mut node_positions = Vec::new();
-        
+
         // Process top-level items
         for item in syntax.items {
             let pos = self.process_item(&item, &tile, 0)?;
@@ -236,7 +245,7 @@ impl VisualAST {
     ) -> Result<GridCoord, ParseError> {
         let base_x = tile.x;
         let base_y = tile.y;
-        
+
         // Calculate position within the tile based on depth
         let spacing = 150.0; // Spacing between nested nodes
         let x = base_x + (depth as f32 * spacing);
@@ -254,54 +263,64 @@ impl VisualAST {
                         return_type: format!("{:?}", sig.output),
                         asyncness: func.sig.asyncness.is_some(),
                         unsafety: func.sig.unsafety.is_some(),
-                    }
+                    },
                 )
-            }
+            },
             syn::Item::Struct(s) => {
                 let name = format!("struct {}", s.ident);
                 (
                     name,
                     VisualNodeType::Struct {
                         name: s.ident.to_string(),
-                        fields: s.fields.iter().map(|f| match &f.ident {
-                            Some(ident) => ident.to_string(),
-                            None => "_".to_string(),
-                        }).collect(),
-                        field_types: s.fields.iter().map(|f| {
-                            match &f.ty {
-                                syn::Type::Path(p) => p.path.segments.last()
+                        fields: s
+                            .fields
+                            .iter()
+                            .map(|f| match &f.ident {
+                                Some(ident) => ident.to_string(),
+                                None => "_".to_string(),
+                            })
+                            .collect(),
+                        field_types: s
+                            .fields
+                            .iter()
+                            .map(|f| match &f.ty {
+                                syn::Type::Path(p) => p
+                                    .path
+                                    .segments
+                                    .last()
                                     .map(|s| s.ident.to_string())
                                     .unwrap_or_else(|| "?".to_string()),
                                 _ => "?".to_string(),
-                            }
-                        }).collect(),
-                    }
+                            })
+                            .collect(),
+                    },
                 )
-            }
+            },
             syn::Item::Enum(e) => {
                 let name = format!("enum {}", e.ident);
                 (
                     name,
                     VisualNodeType::Enum {
                         name: e.ident.to_string(),
-                        variants: e.variants.iter()
-                            .map(|v| v.ident.to_string())
-                            .collect(),
-                    }
+                        variants: e.variants.iter().map(|v| v.ident.to_string()).collect(),
+                    },
                 )
-            }
+            },
             syn::Item::Mod(m) => {
                 let name = format!("mod {}", m.ident);
                 (
                     name,
                     VisualNodeType::Module {
                         name: m.ident.to_string(),
-                    }
+                    },
                 )
-            }
+            },
             syn::Item::Impl(i) => {
                 let type_name = match &*i.self_ty {
-                    syn::Type::Path(p) => p.path.segments.last()
+                    syn::Type::Path(p) => p
+                        .path
+                        .segments
+                        .last()
                         .map(|s| s.ident.to_string())
                         .unwrap_or_else(|| "Self".to_string()),
                     _ => "Self".to_string(),
@@ -311,43 +330,48 @@ impl VisualAST {
                     name,
                     VisualNodeType::Impl {
                         trait_name: i.trait_.as_ref().map(|(_, t, _)| {
-                            t.segments.last()
+                            t.segments
+                                .last()
                                 .map(|s| s.ident.to_string())
                                 .unwrap_or_else(|| "?".to_string())
                         }),
                         type_name,
-                    }
+                    },
                 )
-            }
+            },
             syn::Item::Trait(t) => {
                 let name = format!("trait {}", t.ident);
                 (
                     name,
                     VisualNodeType::Trait {
                         name: t.ident.to_string(),
-                        methods: t.items.iter().filter_map(|item| {
-                            if let syn::TraitItem::Fn(m) = item {
-                                Some(m.sig.ident.to_string())
-                            } else {
-                                None
-                            }
-                        }).collect(),
-                    }
+                        methods: t
+                            .items
+                            .iter()
+                            .filter_map(|item| {
+                                if let syn::TraitItem::Fn(m) = item {
+                                    Some(m.sig.ident.to_string())
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect(),
+                    },
                 )
-            }
+            },
             syn::Item::Use(u) => {
-                let name = format!("use {}", match &u.tree {
-                    syn::UseTree::Path(p) => p.ident.to_string(),
-                    syn::UseTree::Name(n) => n.ident.to_string(),
-                    syn::UseTree::Glob(_) => "*".to_string(),
-                    syn::UseTree::Rename(_) => "as _".to_string(),
-                    syn::UseTree::Group(_) => "{...}".to_string(),
-                });
-                (
-                    name,
-                    VisualNodeType::UseStatement
-                )
-            }
+                let name = format!(
+                    "use {}",
+                    match &u.tree {
+                        syn::UseTree::Path(p) => p.ident.to_string(),
+                        syn::UseTree::Name(n) => n.ident.to_string(),
+                        syn::UseTree::Glob(_) => "*".to_string(),
+                        syn::UseTree::Rename(_) => "as _".to_string(),
+                        syn::UseTree::Group(_) => "{...}".to_string(),
+                    }
+                );
+                (name, VisualNodeType::UseStatement)
+            },
             syn::Item::Type(t) => {
                 let name = format!("type {}", t.ident);
                 (
@@ -355,9 +379,9 @@ impl VisualAST {
                     VisualNodeType::TypeAlias {
                         name: t.ident.to_string(),
                         target: format!("{:?}", t.ty),
-                    }
+                    },
                 )
-            }
+            },
             syn::Item::Const(c) => {
                 let name = format!("const {}", c.ident);
                 (
@@ -365,9 +389,9 @@ impl VisualAST {
                     VisualNodeType::Constant {
                         name: c.ident.to_string(),
                         type_str: format!("{:?}", c.ty),
-                    }
+                    },
                 )
-            }
+            },
             syn::Item::Static(s) => {
                 let name = format!("static {}", s.ident);
                 let is_mutable = matches!(s.mutability, syn::StaticMutability::Mut(_));
@@ -377,13 +401,10 @@ impl VisualAST {
                         name: s.ident.to_string(),
                         type_str: format!("{:?}", s.ty),
                         mutability: is_mutable,
-                    }
+                    },
                 )
-            }
-            _ => (
-                format!("{:?}", item),
-                VisualNodeType::Unknown
-            )
+            },
+            _ => (format!("{:?}", item), VisualNodeType::Unknown),
         };
 
         // Simplified span for now
@@ -417,7 +438,7 @@ impl VisualAST {
     /// Parse WGSL shader tile (simplified - WGSL doesn't have syn support yet)
     fn parse_wgsl_tile(
         &mut self,
-        tile: crate::source_importer::CrystallizedSourceTile
+        tile: crate::source_importer::CrystallizedSourceTile,
     ) -> Result<(), ParseError> {
         // Simple heuristic parsing for WGSL
         let module_path = tile.metadata.module_path.clone();
@@ -431,7 +452,7 @@ impl VisualAST {
                 let y = base_y + 100.0 + (line_idx as f32 * 30.0);
                 let pos = (base_x, y);
                 let grid_coord: GridCoord = pos.into();
-                
+
                 let node = VisualNode {
                     id: format!("wgsl_fn_{}_{}", tile.id, line_idx),
                     name: line.trim().to_string(),
@@ -450,7 +471,7 @@ impl VisualAST {
                     style: NodeStyle::wgsl_function(),
                     tokens: Vec::new(),
                 };
-                
+
                 self.nodes.insert(grid_coord, node);
                 node_positions.push(grid_coord);
             }
@@ -466,13 +487,10 @@ impl VisualAST {
     }
 
     /// Create a simple text node for non-code files
-    fn create_text_node(
-        &mut self,
-        tile: crate::source_importer::CrystallizedSourceTile
-    ) {
+    fn create_text_node(&mut self, tile: crate::source_importer::CrystallizedSourceTile) {
         let pos = (tile.x, tile.y + 100.0);
         let grid_coord: GridCoord = pos.into();
-        
+
         let node = VisualNode {
             id: format!("text_{}", tile.id),
             name: tile.metadata.module_path.clone(),
@@ -497,7 +515,7 @@ impl VisualAST {
             .entry(tile.metadata.module_path.clone())
             .or_insert_with(Vec::new)
             .push(grid_coord);
-        
+
         self.source_tiles
             .entry(tile.metadata.module_path.clone())
             .or_insert_with(Vec::new)
@@ -507,7 +525,7 @@ impl VisualAST {
     /// Get syntax health at spatial coordinates (API for Scout agents)
     pub fn get_syntax_health(&self, x: f32, y: f32) -> SyntaxHealth {
         let grid_coord: GridCoord = (x, y).into();
-        
+
         // Check cache first
         {
             let cache = self.health_cache.lock();
@@ -537,7 +555,7 @@ impl VisualAST {
 
         // Cache result
         self.health_cache.lock().insert(grid_coord, health.clone());
-        
+
         health
     }
 
@@ -549,7 +567,8 @@ impl VisualAST {
 
     /// Get all nodes in a tile
     pub fn nodes_in_tile(&self, tile_id: &str) -> Vec<&VisualNode> {
-        self.nodes.values()
+        self.nodes
+            .values()
             .filter(|n| n.tile_id == tile_id)
             .collect()
     }
@@ -557,7 +576,10 @@ impl VisualAST {
     /// Get root nodes for a module
     pub fn roots_for_module(&self, module_path: &str) -> Option<Vec<&VisualNode>> {
         self.roots.get(module_path).map(|positions| {
-            positions.iter().filter_map(|pos| self.nodes.get(pos)).collect()
+            positions
+                .iter()
+                .filter_map(|pos| self.nodes.get(pos))
+                .collect()
         })
     }
 
@@ -1015,12 +1037,11 @@ impl SyntaxTokenizer {
                 }
                 let word: String = chars[start..i].iter().collect();
                 let kind = match word.as_str() {
-                    "fn" | "let" | "mut" | "const" | "static" | "pub" | "struct" | "enum" |
-                    "impl" | "trait" | "type" | "use" | "mod" | "where" | "for" | "while" |
-                    "loop" | "match" | "if" | "else" | "return" | "break" | "continue" |
-                    "move" | "ref" | "unsafe" | "async" | "await" | "crate" | "super" |
-                    "Self" | "self" | "true" | "false"
-                        => TokenKind::Keyword,
+                    "fn" | "let" | "mut" | "const" | "static" | "pub" | "struct" | "enum"
+                    | "impl" | "trait" | "type" | "use" | "mod" | "where" | "for" | "while"
+                    | "loop" | "match" | "if" | "else" | "return" | "break" | "continue"
+                    | "move" | "ref" | "unsafe" | "async" | "await" | "crate" | "super"
+                    | "Self" | "self" | "true" | "false" => TokenKind::Keyword,
                     _ => TokenKind::Identifier,
                 };
                 tokens.push(SyntaxToken {
@@ -1094,7 +1115,7 @@ mod tests {
         "#;
 
         let tokens = SyntaxTokenizer::tokenize_rust(source);
-        
+
         assert!(tokens.iter().any(|t| t.kind == TokenKind::Keyword));
         assert!(tokens.iter().any(|t| t.kind == TokenKind::Number));
         assert!(tokens.iter().any(|t| t.kind == TokenKind::String));
@@ -1104,10 +1125,10 @@ mod tests {
     fn test_node_styles() {
         let fn_style = NodeStyle::function();
         assert_eq!(fn_style.border_color.0, 0.86); // Rust orange
-        
+
         let struct_style = NodeStyle::r#struct();
         assert_eq!(struct_style.border_color.1, 0.80); // Green
-        
+
         let error_style = NodeStyle::error();
         assert_eq!(error_style.glow_color, Some((1.0, 0.2, 0.2)));
     }

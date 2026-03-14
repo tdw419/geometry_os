@@ -63,7 +63,7 @@ pub struct VmState {
     pub vm: Option<Arc<Mutex<VirtualMachine>>>,
     #[cfg(feature = "hypervisor")]
     pub vm_window_id: Option<usize>,
-    
+
     // Phase 34.4: Pixel CPU Execution
     pub riscv_executor: Option<Arc<Mutex<crate::riscv_executor::RiscvExecutor>>>,
 }
@@ -106,14 +106,14 @@ pub struct InputState {
     pub last_mouse_pos: Option<(f32, f32)>,
     pub dragging_window: Option<usize>,
     pub is_selecting_text: bool,
-    
+
     // Phase 48: Mouse Text Selection State
     pub text_selection_drag_start: Option<u32>,
     pub text_selection_last_update: Option<u32>,
     pub last_click_time: Option<Instant>,
     pub last_click_pos: Option<(f32, f32)>,
     pub click_count: u32,
-    
+
     // Phase 40.2: Source City Interaction
     pub dragging_source_tile: Option<String>,
     pub source_tile_drag_start: Option<(f32, f32)>,
@@ -196,7 +196,7 @@ pub enum CompilationStatus {
 pub struct CognitiveState {
     // Phase 46.5: Stabilization & Validation
     pub recent_agent_actions: HashMap<String, (u32, f64)>,
-    
+
     // Phase 100: Visual Cortex (AI Retina)
     pub visual_cortex: VisualCortex,
 }
@@ -215,10 +215,10 @@ impl CognitiveState {
 /// Groups process, terminal, and filesystem tile state.
 pub struct TileState {
     pub pid_to_window: HashMap<u32, usize>,
-    
+
     #[cfg(feature = "hypervisor")]
     pub terminal_clone_manager: Option<crate::terminal_clone::TerminalCloneManager>,
-    
+
     // Shader Execution Zone
     pub compositor: Option<Compositor>,
 }
@@ -241,12 +241,12 @@ pub struct PerformanceState {
     // Phase 33: Performance Metrics
     pub last_fps_log: Instant,
     pub frame_count: u32,
-    
+
     // Phase 44: JIT Profiler
     pub profiler_enabled: bool,
     pub profiler_interval: Duration,
     pub profiler_last_poll: Instant,
-    
+
     // Phase 48: GPU Capabilities
     pub gpu_caps: GpuCapabilities,
 }
@@ -273,7 +273,7 @@ impl Default for PerformanceState {
 /// Groups map loading, auto-save, and artifact tracking state.
 pub struct MapState {
     pub spawned_map_artifacts: HashSet<(i32, i32)>,
-    
+
     // Phase Mode B.2: Spatial Auto-Save System
     pub current_tile_x: Option<i32>,
     pub current_tile_y: Option<i32>,

@@ -129,7 +129,7 @@ pub struct VMMemoryLayout {
     pub pc_buffer: Buffer,
     pub state_buffer: Buffer,
     pub csrs_buffer: Buffer,
-    pub console_buffer: Buffer,     // console output buffer (256 u32s = 1024 chars)
+    pub console_buffer: Buffer, // console output buffer (256 u32s = 1024 chars)
     pub mmio_buffer: Buffer,
     pub stats_buffer: Buffer,
     pub config_buffer: Buffer,

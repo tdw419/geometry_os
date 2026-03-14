@@ -2,7 +2,7 @@
 //!
 //! Direct register access for GPU control.
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use std::fs::OpenOptions;
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::ptr;
@@ -81,9 +81,7 @@ impl MmioRegion {
         if self.base.is_null() {
             return 0;
         }
-        unsafe {
-            volatile_load(self.base.add(offset / 4))
-        }
+        unsafe { volatile_load(self.base.add(offset / 4)) }
     }
 
     /// Write 32-bit register.
@@ -193,8 +191,8 @@ pub struct PciDevice {
 /// Find GPU PCI device.
 pub fn find_gpu() -> Result<PciDevice> {
     // Read /sys/bus/pci/devices for GPU
-    let devices = std::fs::read_dir("/sys/bus/pci/devices")
-        .context("Failed to read PCI devices")?;
+    let devices =
+        std::fs::read_dir("/sys/bus/pci/devices").context("Failed to read PCI devices")?;
 
     for entry in devices {
         let path = entry?.path();
@@ -206,14 +204,12 @@ pub fn find_gpu() -> Result<PciDevice> {
             std::fs::read_to_string(&class_path),
         ) {
             // Check if display device (class 0x03xxxx)
-            let class_val = u32::from_str_radix(class.trim().trim_start_matches("0x"), 16)
-                .unwrap_or(0);
+            let class_val =
+                u32::from_str_radix(class.trim().trim_start_matches("0x"), 16).unwrap_or(0);
 
             if (class_val >> 16) == 0x03 {
-                let vendor_val = u16::from_str_radix(
-                    vendor.trim().trim_start_matches("0x"),
-                    16
-                ).unwrap_or(0);
+                let vendor_val =
+                    u16::from_str_radix(vendor.trim().trim_start_matches("0x"), 16).unwrap_or(0);
 
                 // AMD = 0x1002, Intel = 0x8086, NVIDIA = 0x10DE
                 if vendor_val == 0x1002 || vendor_val == 0x8086 || vendor_val == 0x10DE {
@@ -224,13 +220,15 @@ pub fn find_gpu() -> Result<PciDevice> {
                     let (bus, slot, func) = if parts.len() >= 3 {
                         // Format: 0000:00:02.0 (domain:bus:slot.function)
                         let slot_func = parts[2].split('.').collect::<Vec<&str>>();
-                        let slot = slot_func.get(0).and_then(|s| u8::from_str_radix(s, 16).ok()).unwrap_or(0);
-                        let func = slot_func.get(1).and_then(|s| u8::from_str_radix(s, 16).ok()).unwrap_or(0);
-                        (
-                            u8::from_str_radix(parts[1], 16).unwrap_or(0),
-                            slot,
-                            func,
-                        )
+                        let slot = slot_func
+                            .get(0)
+                            .and_then(|s| u8::from_str_radix(s, 16).ok())
+                            .unwrap_or(0);
+                        let func = slot_func
+                            .get(1)
+                            .and_then(|s| u8::from_str_radix(s, 16).ok())
+                            .unwrap_or(0);
+                        (u8::from_str_radix(parts[1], 16).unwrap_or(0), slot, func)
                     } else {
                         (0, 0, 0)
                     };
@@ -244,14 +242,18 @@ pub fn find_gpu() -> Result<PciDevice> {
                     };
 
                     // Read BAR0 address from resource
-                    let resource = std::fs::read_to_string(path.join("resource"))
-                        .unwrap_or_default();
-                    let bar0_addr = resource.lines().next()
+                    let resource =
+                        std::fs::read_to_string(path.join("resource")).unwrap_or_default();
+                    let bar0_addr = resource
+                        .lines()
+                        .next()
                         .and_then(|line| {
                             let parts: Vec<&str> = line.split_whitespace().collect();
                             if parts.len() >= 2 {
-                                Some(u64::from_str_radix(parts[0].trim_start_matches("0x"), 16)
-                                    .unwrap_or(0))
+                                Some(
+                                    u64::from_str_radix(parts[0].trim_start_matches("0x"), 16)
+                                        .unwrap_or(0),
+                                )
                             } else {
                                 None
                             }
@@ -265,8 +267,9 @@ pub fn find_gpu() -> Result<PciDevice> {
                                 .unwrap_or_default()
                                 .trim()
                                 .trim_start_matches("0x"),
-                            16
-                        ).unwrap_or(0),
+                            16,
+                        )
+                        .unwrap_or(0),
                         bus,
                         slot,
                         function: func,

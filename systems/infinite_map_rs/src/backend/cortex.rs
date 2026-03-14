@@ -1,27 +1,27 @@
 #![allow(dead_code, unused_imports, unused_variables)]
-use wgpu;
 use std::sync::Arc;
+use wgpu;
 // use crate::neural_state_texture::NeuralStateTexture; // Assuming we reuse some of these concepts
 
 /// The "Holographic Brain" pipeline.
-/// 
+///
 /// This struct manages the resident VRAM textures for the LLM and executes
 /// the compute shaders that perform perception, cognition, and action planning.
 pub struct CortexPipeline {
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
-    
+
     // Core Textures (The "Brain" in VRAM)
     weights_texture: wgpu::Texture,
     kv_cache_texture: wgpu::Texture,
     intent_texture: wgpu::Texture,
     embedding_texture: wgpu::Texture, // Intermediate layer
-    
+
     // Compute Pipelines
     visual_encoder_pipeline: wgpu::ComputePipeline,
     transformer_block_pipeline: wgpu::ComputePipeline,
     intent_analysis_pipeline: wgpu::ComputePipeline,
-    
+
     // Bind Groups & Resources
     uniform_buffer: wgpu::Buffer,
     bind_group_layout: wgpu::BindGroupLayout,
@@ -43,7 +43,11 @@ struct CortexUniforms {
 }
 
 impl CortexPipeline {
-    pub fn new(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>, screen_size: (u32, u32)) -> Self {
+    pub fn new(
+        device: Arc<wgpu::Device>,
+        queue: Arc<wgpu::Queue>,
+        screen_size: (u32, u32),
+    ) -> Self {
         // 1. Initialize VRAM Textures (Hilbert Mapped Weights)
         // Ideally these are loaded from disk, for now we allocate them empty/random
         let weights_texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -60,7 +64,7 @@ impl CortexPipeline {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
-        
+
         let kv_cache_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Cortex_KV_Cache"),
             size: wgpu::Extent3d {
@@ -75,7 +79,7 @@ impl CortexPipeline {
             usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         });
-        
+
         // The "Intent" heatmap - lower res than screen usually
         let intent_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Cortex_Intent_Map"),
@@ -91,7 +95,7 @@ impl CortexPipeline {
             usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         });
-        
+
         let embedding_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Cortex_Embeddings"),
             size: wgpu::Extent3d {
@@ -106,7 +110,7 @@ impl CortexPipeline {
             usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         });
-        
+
         // 2. Load Shaders (Placeholder for now)
         // In valid implementation, these load from src/shaders/
         // 2. Load Shaders
@@ -119,15 +123,16 @@ impl CortexPipeline {
             label: Some("Cortex Compute Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/cortex_compute.wgsl").into()),
         });
-        
+
         // Create Dummy Pipelines for structure
-        let visual_encoder_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("Visual Encoder Pipeline"),
-            layout: None, // Auto-layout
-            module: &shader_module_encoder,
-            entry_point: "main_compute_encoder", // Needs to exist in shader
-        });
-        
+        let visual_encoder_pipeline =
+            device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: Some("Visual Encoder Pipeline"),
+                layout: None, // Auto-layout
+                module: &shader_module_encoder,
+                entry_point: "main_compute_encoder", // Needs to exist in shader
+            });
+
         // Clone for scaffold
         // Create Bind Group Layout
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -207,19 +212,21 @@ impl CortexPipeline {
             push_constant_ranges: &[],
         });
 
-        let transformer_block_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("Transformer Block Pipeline"),
-            layout: Some(&pipeline_layout),
-            module: &shader_module_compute,
-            entry_point: "main_transformer_block",
-        });
+        let transformer_block_pipeline =
+            device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: Some("Transformer Block Pipeline"),
+                layout: Some(&pipeline_layout),
+                module: &shader_module_compute,
+                entry_point: "main_transformer_block",
+            });
 
-        let intent_analysis_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("Intent Analysis Pipeline"),
-            layout: None,
-            module: &shader_module_compute,
-            entry_point: "main_intent_analysis",
-        });
+        let intent_analysis_pipeline =
+            device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: Some("Intent Analysis Pipeline"),
+                layout: None,
+                module: &shader_module_compute,
+                entry_point: "main_intent_analysis",
+            });
 
         // Create Bind Group
         // For simplicity, we create Views here.
@@ -271,13 +278,17 @@ impl CortexPipeline {
             start_time: std::time::Instant::now(),
         }
     }
-    
+
     /// The core loop: Perception -> Cognition -> Action
     /// Runs every frame, synchronized with VBlank
-    pub fn run_inference(&self, encoder: &mut wgpu::CommandEncoder, _screen_texture: &wgpu::TextureView) {
+    pub fn run_inference(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        _screen_texture: &wgpu::TextureView,
+    ) {
         // Phase 1: Visual Encoding (Perception)
         // Skip for now or assume done.
-        
+
         // Phase 2: Transformer Blocks (Cognition)
         // Update Uniforms
         let time = self.start_time.elapsed().as_secs_f32();
@@ -291,7 +302,8 @@ impl CortexPipeline {
             model_dim: 512,
             _padding: 0,
         };
-        self.queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
+        self.queue
+            .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
         {
             let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -300,7 +312,7 @@ impl CortexPipeline {
             });
             cpass.set_pipeline(&self.transformer_block_pipeline);
             cpass.set_bind_group(0, &self.main_bind_group, &[]);
-            
+
             // Dispatch over intent map size (which is smaller than screen)
             // Intent texture is screen/4.
             // Workgroup is 16x16.
@@ -308,7 +320,7 @@ impl CortexPipeline {
             let dispatch_y = (1080 / 4) / 16;
             cpass.dispatch_workgroups(dispatch_x, dispatch_y, 1);
         }
-        
+
         // Phase 3: Intent Analysis (Action)
         // Takes final embeddings, writes to intent_texture
         {
@@ -320,7 +332,7 @@ impl CortexPipeline {
             // Dispatch over intent map size
         }
     }
-    
+
     pub fn get_intent_texture(&self) -> &wgpu::Texture {
         &self.intent_texture
     }

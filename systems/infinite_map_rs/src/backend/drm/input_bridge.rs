@@ -21,11 +21,11 @@
 //! In production, this is replaced by a kernel module that writes
 //! directly to the DMA-BUF backing the interaction bus memory.
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
-use std::collections::HashMap;
 
 use super::visual_interaction_bus::InputState;
 
@@ -118,7 +118,7 @@ impl EvdevInputBridge {
     /// Open a specific input device
     pub fn open_device(&mut self, path: &PathBuf) -> std::io::Result<()> {
         let file = File::open(path)?;
-        
+
         // Set non-blocking mode
         let fd = file.as_raw_fd();
         let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
@@ -146,15 +146,15 @@ impl EvdevInputBridge {
                     Ok(()) => {
                         let ev = unsafe { std::ptr::read(buffer.as_ptr() as *const EvdevEvent) };
                         raw_events.push(ev);
-                    }
+                    },
                     Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                         // No more events from this device
                         break;
-                    }
+                    },
                     Err(e) => {
                         log::warn!("Error reading from device: {}", e);
                         break;
-                    }
+                    },
                 }
             }
         }
@@ -171,9 +171,9 @@ impl EvdevInputBridge {
 
     /// Process a raw evdev event into an InputEvent
     fn process_evdev_event(&mut self, ev: &EvdevEvent) -> Option<InputEvent> {
-        const EV_ABS: u16 = 0x03;   // Absolute coordinates
-        const EV_REL: u16 = 0x02;   // Relative movement
-        const EV_KEY: u16 = 0x01;   // Key/button events
+        const EV_ABS: u16 = 0x03; // Absolute coordinates
+        const EV_REL: u16 = 0x02; // Relative movement
+        const EV_KEY: u16 = 0x01; // Key/button events
         const ABS_X: u16 = 0x00;
         const ABS_Y: u16 = 0x01;
         const REL_X: u16 = 0x00;
@@ -184,32 +184,42 @@ impl EvdevInputBridge {
         const BTN_MIDDLE: u16 = 0x112;
 
         match ev.event_type {
-            EV_ABS => {
-                match ev.code {
-                    ABS_X => {
-                        self.mouse_x = self.normalize_x(ev.value);
-                        Some(InputEvent::MouseMove { x: self.mouse_x, y: self.mouse_y })
-                    }
-                    ABS_Y => {
-                        self.mouse_y = self.normalize_y(ev.value);
-                        Some(InputEvent::MouseMove { x: self.mouse_x, y: self.mouse_y })
-                    }
-                    _ => None
-                }
-            }
-            EV_REL => {
-                match ev.code {
-                    REL_X => {
-                        self.mouse_x = (self.mouse_x + ev.value as f32).clamp(0.0, self.screen_width as f32);
-                        Some(InputEvent::MouseMove { x: self.mouse_x, y: self.mouse_y })
-                    }
-                    REL_Y => {
-                        self.mouse_y = (self.mouse_y + ev.value as f32).clamp(0.0, self.screen_height as f32);
-                        Some(InputEvent::MouseMove { x: self.mouse_x, y: self.mouse_y })
-                    }
-                    _ => None
-                }
-            }
+            EV_ABS => match ev.code {
+                ABS_X => {
+                    self.mouse_x = self.normalize_x(ev.value);
+                    Some(InputEvent::MouseMove {
+                        x: self.mouse_x,
+                        y: self.mouse_y,
+                    })
+                },
+                ABS_Y => {
+                    self.mouse_y = self.normalize_y(ev.value);
+                    Some(InputEvent::MouseMove {
+                        x: self.mouse_x,
+                        y: self.mouse_y,
+                    })
+                },
+                _ => None,
+            },
+            EV_REL => match ev.code {
+                REL_X => {
+                    self.mouse_x =
+                        (self.mouse_x + ev.value as f32).clamp(0.0, self.screen_width as f32);
+                    Some(InputEvent::MouseMove {
+                        x: self.mouse_x,
+                        y: self.mouse_y,
+                    })
+                },
+                REL_Y => {
+                    self.mouse_y =
+                        (self.mouse_y + ev.value as f32).clamp(0.0, self.screen_height as f32);
+                    Some(InputEvent::MouseMove {
+                        x: self.mouse_x,
+                        y: self.mouse_y,
+                    })
+                },
+                _ => None,
+            },
             EV_KEY => {
                 // Mouse buttons
                 if ev.code >= BTN_MOUSE && ev.code <= BTN_MIDDLE {
@@ -230,8 +240,8 @@ impl EvdevInputBridge {
                         pressed: ev.value > 0,
                     })
                 }
-            }
-            _ => None
+            },
+            _ => None,
         }
     }
 
@@ -330,7 +340,7 @@ mod tests {
     #[test]
     fn test_simulated_input_bridge() {
         let mut bridge = SimulatedInputBridge::new();
-        
+
         bridge.mouse_move(100.0, 200.0);
         let state = bridge.get_input_state();
         assert_eq!(state.mouse_x, 100.0);
@@ -356,7 +366,7 @@ mod tests {
     #[test]
     fn test_normalize_coordinates() {
         let bridge = EvdevInputBridge::new(1920, 1080);
-        
+
         // Full range normalization
         assert!((bridge.normalize_x(0) - 0.0).abs() < 1.0);
         assert!((bridge.normalize_x(65535) - 1920.0).abs() < 1.0);

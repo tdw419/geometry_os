@@ -123,102 +123,6 @@ def trigger():
 
 
 @cli.command()
-def optimize():
-    """Run optimization pass"""
-    # TODO: Replace with actual optimization
-    result = {
-        "sisyphus_daemon": {
-            "action": "optimize",
-            "status": "completed",
-            "optimizations_applied": [
-                {
-                    "type": "shader_compilation",
-                    "description": "Optimized SPIR-V compilation pipeline",
-                    "performance_gain": "18%",
-                },
-                {
-                    "type": "memory_allocation",
-                    "description": "Improved GPU memory allocator",
-                    "memory_saved": "22MB",
-                },
-            ],
-            "total_performance_gain": "23%",
-            "message": "Optimization pass completed successfully",
-        }
-    }
-    output_result(result)
-
-
-@cli.command()
-def metrics():
-    """Show performance metrics"""
-    # TODO: Replace with actual metrics
-    metrics_data = {
-        "sisyphus_daemon": {
-            "performance_metrics": {
-                "cpu_efficiency": {"baseline": 1.0, "current": 1.23, "improvement": "23%"},
-                "memory_efficiency": {"baseline": 1.0, "current": 1.15, "improvement": "15%"},
-                "gpu_utilization": {"baseline": 0.65, "current": 0.78, "improvement": "20%"},
-                "frame_latency": {"baseline": "16.67ms", "current": "13.5ms", "improvement": "19%"},
-                "power_consumption": {"baseline": "45W", "current": "38W", "improvement": "16%"},
-            }
-        }
-    }
-    output_result(metrics_data)
-
-
-@cli.command()
-def goals():
-    """List current improvement goals"""
-    # TODO: Replace with actual goals
-    goals_data = {
-        "sisyphus_daemon": {
-            "current_goals": [
-                {
-                    "id": "goal_001",
-                    "description": "Reduce shader compilation latency by 30%",
-                    "target": "30%",
-                    "current": "18%",
-                    "status": "in_progress",
-                    "priority": "high",
-                },
-                {
-                    "id": "goal_002",
-                    "description": "Achieve 95% cache hit rate for texture sampling",
-                    "target": "95%",
-                    "current": "87%",
-                    "status": "in_progress",
-                    "priority": "medium",
-                },
-                {
-                    "id": "goal_003",
-                    "description": "Reduce memory fragmentation by 50%",
-                    "target": "50%",
-                    "current": "22%",
-                    "status": "in_progress",
-                    "priority": "medium",
-                },
-            ],
-            "completed_goals": 12,
-            "active_goals": 3,
-        }
-    }
-    output_result(goals_data)
-
-
-@cli.command()
-@click.option(
-    "--description", prompt="Goal description", help="Description of the improvement goal"
-)
-@click.option(
-    "--target", prompt="Target improvement (e.g. 25%)", help="Target improvement percentage"
-)
-@click.option(
-    "--priority",
-    type=click.Choice(["low", "medium", "high", "critical"]),
-    default="medium",
-    help="Priority level",
-)
 def set_goal(description, target, priority):
     """Set a new improvement goal"""
     # TODO: Replace with actual goal setting
@@ -235,6 +139,44 @@ def set_goal(description, target, priority):
                 "priority": priority,
             },
             "message": f"Improvement goal '{description}' set successfully",
+        }
+    }
+    output_result(result)
+
+
+@cli.command()
+def orchestrate():
+    """Start the Sisyphus orchestration agent (Rust-based)"""
+    import subprocess
+    import os
+
+    # Path to the Rust binary (assuming it's built and available)
+    # In practice, this would be installed or built as part of the package
+    sisyphus_bin = os.path.join(
+        os.path.dirname(__file__),
+        "../../../..",
+        "systems",
+        "sisyphus",
+        "target",
+        "debug",
+        "sisyphus-agent",
+    )
+
+    # For now, we'll simulate since we haven't built it yet
+    # In a real implementation, we'd execute: subprocess.run([sisyphus_bin])
+    result = {
+        "sisyphus_daemon": {
+            "action": "start_orchestration",
+            "status": "started",
+            "message": "Sisyphus Orchestration Agent started (simulated - build the Rust binary to run for real)",
+            "agent_type": "Rust-based persistent orchestration agent",
+            "features": [
+                "Persistent orchestration loop",
+                "Multi-agent leadership (Oracle, Librarian, Explore, Hephaestus)",
+                "Parallel task execution",
+                "Self-correction and verification",
+                "Codebase-aware task generation",
+            ],
         }
     }
     output_result(result)

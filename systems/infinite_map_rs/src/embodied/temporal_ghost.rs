@@ -177,13 +177,13 @@ impl TemporalGhostSystem {
         snapshot.id = self.next_id;
         self.next_id += 1;
         snapshot.timestamp = Instant::now();
-        
+
         // Add to history
         if self.snapshots.len() >= self.config.max_snapshots {
             self.snapshots.pop_front();
         }
         self.snapshots.push_back(snapshot.clone());
-        
+
         self.last_snapshot = Instant::now();
         self.total_captured += 1;
     }
@@ -230,17 +230,18 @@ impl TemporalGhostSystem {
     /// Rebuild ghost frames from snapshots
     fn rebuild_ghost_frames(&mut self) {
         self.ghost_frames.clear();
-        
+
         let snapshots: Vec<_> = self.snapshots.iter().collect();
         let count = snapshots.len();
-        
+
         for (i, snapshot) in snapshots.iter().enumerate() {
             // Calculate alpha based on position in history
             let recency = (count - i) as f32 / count.max(1) as f32;
-            let alpha = self.config.base_alpha 
-                * recency.powf(1.0 / self.config.alpha_decay)
-                .max(self.config.min_alpha);
-            
+            let alpha = self.config.base_alpha
+                * recency
+                    .powf(1.0 / self.config.alpha_decay)
+                    .max(self.config.min_alpha);
+
             // Skip if alpha is too low
             if alpha < self.config.min_alpha {
                 continue;
@@ -256,7 +257,7 @@ impl TemporalGhostSystem {
             } else {
                 (false, 0.0)
             };
-            
+
             // Create ghost frame
             let frame = GhostFrame {
                 snapshot_id: snapshot.id,
@@ -267,7 +268,7 @@ impl TemporalGhostSystem {
                 pulsing,
                 pulse_phase,
             };
-            
+
             self.ghost_frames.push(frame);
         }
     }
@@ -280,18 +281,18 @@ impl TemporalGhostSystem {
     /// Get interpolated position for a node across all ghosts
     pub fn get_node_trail(&self, node_id: &str) -> Vec<Vec3> {
         let mut trail = Vec::new();
-        
+
         for frame in &self.ghost_frames {
             if let Some((_, pos)) = frame.positions.iter().find(|(id, _)| id == node_id) {
                 trail.push(*pos);
             }
         }
-        
+
         // Limit trail length
         if trail.len() > self.config.trail_length {
             trail.drain(0..trail.len() - self.config.trail_length);
         }
-        
+
         trail
     }
 
@@ -335,31 +336,34 @@ impl TemporalGhostSystem {
     /// Calculate average confidence over time
     pub fn get_average_confidence(&self, duration: Duration) -> f32 {
         let cutoff = Instant::now() - duration;
-        let relevant: Vec<_> = self.snapshots
+        let relevant: Vec<_> = self
+            .snapshots
             .iter()
             .filter(|s| s.timestamp >= cutoff)
             .collect();
-        
+
         if relevant.is_empty() {
             return 0.0;
         }
-        
+
         relevant.iter().map(|s| s.confidence).sum::<f32>() / relevant.len() as f32
     }
 
     /// Calculate confidence trend (positive = improving, negative = declining)
     pub fn get_confidence_trend(&self) -> f32 {
         let snapshots: Vec<_> = self.snapshots.iter().collect();
-        
+
         if snapshots.len() < 2 {
             return 0.0;
         }
-        
+
         // Compare first half to second half
         let mid = snapshots.len() / 2;
-        let first_half_avg: f32 = snapshots[..mid].iter().map(|s| s.confidence).sum::<f32>() / mid.max(1) as f32;
-        let second_half_avg: f32 = snapshots[mid..].iter().map(|s| s.confidence).sum::<f32>() / (snapshots.len() - mid).max(1) as f32;
-        
+        let first_half_avg: f32 =
+            snapshots[..mid].iter().map(|s| s.confidence).sum::<f32>() / mid.max(1) as f32;
+        let second_half_avg: f32 = snapshots[mid..].iter().map(|s| s.confidence).sum::<f32>()
+            / (snapshots.len() - mid).max(1) as f32;
+
         second_half_avg - first_half_avg
     }
 
@@ -367,19 +371,19 @@ impl TemporalGhostSystem {
     pub fn find_significant_events(&self, threshold: f32) -> Vec<u64> {
         let mut event_ids = Vec::new();
         let snapshots: Vec<_> = self.snapshots.iter().collect();
-        
+
         for i in 1..snapshots.len() {
             let prev = &snapshots[i - 1];
             let curr = &snapshots[i];
-            
+
             let confidence_delta = (curr.confidence - prev.confidence).abs();
             let entropy_delta = (curr.entropy - prev.entropy).abs();
-            
+
             if confidence_delta > threshold || entropy_delta > threshold {
                 event_ids.push(curr.id);
             }
         }
-        
+
         event_ids
     }
 }
@@ -426,7 +430,7 @@ impl GhostVisualizer {
     /// Calculate difference between two snapshots
     pub fn calculate_diff(&self, a: &NeuralSnapshot, b: &NeuralSnapshot) -> Vec<(String, f32)> {
         let mut diffs = Vec::new();
-        
+
         for (id, act_a) in &a.node_activations {
             if let Some((_, act_b)) = b.node_activations.iter().find(|(id_b, _)| id_b == id) {
                 let diff = (act_a - act_b).abs();
@@ -435,17 +439,22 @@ impl GhostVisualizer {
                 }
             }
         }
-        
+
         diffs
     }
 
     /// Get visual data for a ghost frame in difference mode
-    pub fn get_diff_visual(&self, ghost: &GhostFrame, current: &NeuralSnapshot) -> Vec<(String, Vec3, Vec4)> {
+    pub fn get_diff_visual(
+        &self,
+        ghost: &GhostFrame,
+        current: &NeuralSnapshot,
+    ) -> Vec<(String, Vec3, Vec4)> {
         let mut visuals = Vec::new();
-        
+
         for (id, pos) in &ghost.positions {
             // Get current activation
-            if let Some((_, curr_act)) = current.node_activations.iter().find(|(cid, _)| cid == id) {
+            if let Some((_, curr_act)) = current.node_activations.iter().find(|(cid, _)| cid == id)
+            {
                 // Get ghost color (alpha stores activation)
                 if let Some((_, ghost_color)) = ghost.colors.iter().find(|(cid, _)| cid == id) {
                     // Use difference color if significant change
@@ -458,7 +467,7 @@ impl GhostVisualizer {
                 }
             }
         }
-        
+
         visuals
     }
 }
@@ -471,7 +480,7 @@ mod tests {
     fn test_snapshot_creation() {
         let mut snapshot = NeuralSnapshot::new(0);
         snapshot.add_node("node_1".to_string(), Vec3::ZERO, 0.5, Vec4::ONE);
-        
+
         assert_eq!(snapshot.node_count(), 1);
         assert_eq!(snapshot.id, 0);
     }
@@ -482,7 +491,7 @@ mod tests {
             max_snapshots: 5,
             ..Default::default()
         });
-        
+
         // Capture some snapshots
         for i in 0..10 {
             let mut snapshot = NeuralSnapshot::new(i);
@@ -494,7 +503,7 @@ mod tests {
             );
             system.capture(&mut snapshot);
         }
-        
+
         // Should only keep max_snapshots
         assert_eq!(system.snapshot_count(), 5);
     }
@@ -508,16 +517,16 @@ mod tests {
             min_alpha: 0.05,
             ..Default::default()
         });
-        
+
         // Capture 3 snapshots
         for i in 0..3 {
             let mut snapshot = NeuralSnapshot::new(i);
             snapshot.add_node(format!("node_{}", i), Vec3::ZERO, 0.5, Vec4::ONE);
             system.capture(&mut snapshot);
         }
-        
+
         system.update();
-        
+
         // Should have 3 ghost frames with decreasing alpha
         let frames = system.get_ghost_frames();
         assert_eq!(frames.len(), 3);
@@ -537,7 +546,7 @@ mod tests {
             show_trails: true,
             ..Default::default()
         });
-        
+
         // Capture snapshots with moving node
         for i in 0..5 {
             let mut snapshot = NeuralSnapshot::new(i);
@@ -549,9 +558,9 @@ mod tests {
             );
             system.capture(&mut snapshot);
         }
-        
+
         system.update();
-        
+
         let trail = system.get_node_trail("node_1");
         assert!(trail.len() <= 3); // Limited by trail_length
     }
@@ -559,14 +568,14 @@ mod tests {
     #[test]
     fn test_confidence_trend() {
         let mut system = TemporalGhostSystem::default();
-        
+
         // Capture snapshots with improving confidence
         for i in 0..5 {
             let mut snapshot = NeuralSnapshot::new(i);
             snapshot.confidence = 0.2 + (i as f32 * 0.15); // 0.2 -> 0.8
             system.capture(&mut snapshot);
         }
-        
+
         let trend = system.get_confidence_trend();
         assert!(trend > 0.0); // Positive trend
     }
@@ -574,16 +583,16 @@ mod tests {
     #[test]
     fn test_significant_events() {
         let mut system = TemporalGhostSystem::default();
-        
+
         // Capture snapshots with one significant change
         let mut snapshot = NeuralSnapshot::new(0);
         snapshot.confidence = 0.5;
         system.capture(&mut snapshot);
-        
+
         let mut snapshot = NeuralSnapshot::new(1);
         snapshot.confidence = 0.8; // Big jump
         system.capture(&mut snapshot);
-        
+
         let event_ids = system.find_significant_events(0.2);
         assert!(!event_ids.is_empty());
     }
@@ -591,13 +600,13 @@ mod tests {
     #[test]
     fn test_ghost_visualizer_diff() {
         let visualizer = GhostVisualizer::new();
-        
+
         let mut a = NeuralSnapshot::new(0);
         a.add_node("node_1".to_string(), Vec3::ZERO, 0.5, Vec4::ONE);
-        
+
         let mut b = NeuralSnapshot::new(1);
         b.add_node("node_1".to_string(), Vec3::ZERO, 0.9, Vec4::ONE); // Different activation
-        
+
         let diffs = visualizer.calculate_diff(&a, &b);
         assert!(!diffs.is_empty());
     }

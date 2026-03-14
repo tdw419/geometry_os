@@ -12,8 +12,13 @@
 #include <linux/dma-buf.h>
 #include <linux/ktime.h>
 #include <linux/uaccess.h>
+#include <linux/types.h>
+#include <linux/printk.h>
 
 #define EVENT_QUEUE_SIZE 1024
+static int input_queue_dmabuf_fd = -1;  // Module parameter for DMA-BUF FD
+module_param(input_queue_dmabuf_fd, int, 0444);
+MODULE_PARM_DESC(input_queue_dmabuf_fd, "FD of DMA-BUF containing input event queue");
 
 struct input_event_geos {
     uint64_t timestamp_ns;
@@ -166,6 +171,10 @@ static int __init geos_input_init(void)
     geos_state->header = (struct event_queue_header *)geos_state->vram_ptr;
     geos_state->queue = (struct input_event_geos *)(geos_state->vram_ptr + sizeof(struct event_queue_header));
     geos_state->header->capacity = EVENT_QUEUE_SIZE;
+
+    // Initialize queue to empty state
+    geos_state->header->head = 0;
+    geos_state->header->tail = 0;
 
     return input_register_handler(&geos_input_handler);
 }

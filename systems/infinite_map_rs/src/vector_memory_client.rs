@@ -107,11 +107,11 @@ impl VectorMemoryClient {
                 self.stream = Some(stream);
                 self.connected = true;
                 Ok(())
-            }
+            },
             Err(e) => {
                 self.connected = false;
                 Err(Box::new(e))
-            }
+            },
         }
     }
 
@@ -120,7 +120,10 @@ impl VectorMemoryClient {
         self.connected = false;
     }
 
-    pub fn send_message(&self, message: VectorMemoryMessage) -> Result<VectorMemoryResponse, Box<dyn std::error::Error>> {
+    pub fn send_message(
+        &self,
+        message: VectorMemoryMessage,
+    ) -> Result<VectorMemoryResponse, Box<dyn std::error::Error>> {
         if !self.connected || self.stream.is_none() {
             return Err("Not connected".into());
         }
@@ -129,7 +132,17 @@ impl VectorMemoryClient {
 
         // Convert message to JSON
         let message_json = match message {
-            VectorMemoryMessage::StoreThought { token_id, token, embedding, hilbert_x, hilbert_y, layer, activation, session_id, timestamp } => {
+            VectorMemoryMessage::StoreThought {
+                token_id,
+                token,
+                embedding,
+                hilbert_x,
+                hilbert_y,
+                layer,
+                activation,
+                session_id,
+                timestamp,
+            } => {
                 serde_json::json!({
                     "message_type": "StoreThought",
                     "payload": {
@@ -144,8 +157,13 @@ impl VectorMemoryClient {
                         "timestamp": timestamp
                     }
                 })
-            }
-            VectorMemoryMessage::RecallMemories { query_vector, limit, threshold, exclude_session } => {
+            },
+            VectorMemoryMessage::RecallMemories {
+                query_vector,
+                limit,
+                threshold,
+                exclude_session,
+            } => {
                 let mut payload = serde_json::json!({
                     "query_vector": query_vector,
                     "limit": limit,
@@ -158,8 +176,13 @@ impl VectorMemoryClient {
                     "message_type": "RecallMemories",
                     "payload": payload
                 })
-            }
-            VectorMemoryMessage::GetMemoryBeam { query_vector, current_x, current_y, limit } => {
+            },
+            VectorMemoryMessage::GetMemoryBeam {
+                query_vector,
+                current_x,
+                current_y,
+                limit,
+            } => {
                 serde_json::json!({
                     "message_type": "GetMemoryBeam",
                     "payload": {
@@ -169,12 +192,12 @@ impl VectorMemoryClient {
                         "limit": limit
                     }
                 })
-            }
+            },
             VectorMemoryMessage::GetStats => {
                 serde_json::json!({
                     "message_type": "GetStats"
                 })
-            }
+            },
         };
 
         // Send JSON message
@@ -196,20 +219,21 @@ impl VectorMemoryClient {
             Some("StoreThoughtResponse") => {
                 let success = response_json["success"].as_bool().unwrap_or(false);
                 Ok(VectorMemoryResponse::StoreThoughtResponse { success })
-            }
+            },
             Some("RecallMemoriesResponse") => {
-                let memories: Vec<MemoryPixel> = serde_json::from_value(response_json["memories"].clone())?;
+                let memories: Vec<MemoryPixel> =
+                    serde_json::from_value(response_json["memories"].clone())?;
                 Ok(VectorMemoryResponse::RecallMemoriesResponse { memories })
-            }
+            },
             Some("GetMemoryBeamResponse") => {
                 let beam: Vec<MemoryPixel> = serde_json::from_value(response_json["beam"].clone())?;
                 Ok(VectorMemoryResponse::GetMemoryBeamResponse { beam })
-            }
+            },
             Some("GetStatsResponse") => {
                 let stats: MemoryStats = serde_json::from_value(response_json["stats"].clone())?;
                 Ok(VectorMemoryResponse::GetStatsResponse { stats })
-            }
-            _ => Err("Unknown response type".into())
+            },
+            _ => Err("Unknown response type".into()),
         }
     }
 
@@ -229,12 +253,18 @@ impl VectorMemoryClient {
 
         match self.send_message(message)? {
             VectorMemoryResponse::StoreThoughtResponse { success } => Ok(success),
-            _ => Err("Unexpected response type".into())
+            _ => Err("Unexpected response type".into()),
         }
     }
 
     /// Recall semantic memories
-    pub fn recall_memories(&self, query_vector: Vec<f32>, limit: usize, threshold: f32, exclude_session: Option<String>) -> Result<Vec<MemoryPixel>, Box<dyn std::error::Error>> {
+    pub fn recall_memories(
+        &self,
+        query_vector: Vec<f32>,
+        limit: usize,
+        threshold: f32,
+        exclude_session: Option<String>,
+    ) -> Result<Vec<MemoryPixel>, Box<dyn std::error::Error>> {
         let message = VectorMemoryMessage::RecallMemories {
             query_vector,
             limit,
@@ -244,12 +274,18 @@ impl VectorMemoryClient {
 
         match self.send_message(message)? {
             VectorMemoryResponse::RecallMemoriesResponse { memories } => Ok(memories),
-            _ => Err("Unexpected response type".into())
+            _ => Err("Unexpected response type".into()),
         }
     }
 
     /// Get memory beam for visualization
-    pub fn get_memory_beam(&self, query_vector: Vec<f32>, current_x: f32, current_y: f32, limit: usize) -> Result<Vec<MemoryPixel>, Box<dyn std::error::Error>> {
+    pub fn get_memory_beam(
+        &self,
+        query_vector: Vec<f32>,
+        current_x: f32,
+        current_y: f32,
+        limit: usize,
+    ) -> Result<Vec<MemoryPixel>, Box<dyn std::error::Error>> {
         let message = VectorMemoryMessage::GetMemoryBeam {
             query_vector,
             current_x,
@@ -259,7 +295,7 @@ impl VectorMemoryClient {
 
         match self.send_message(message)? {
             VectorMemoryResponse::GetMemoryBeamResponse { beam } => Ok(beam),
-            _ => Err("Unexpected response type".into())
+            _ => Err("Unexpected response type".into()),
         }
     }
 
@@ -269,7 +305,7 @@ impl VectorMemoryClient {
 
         match self.send_message(message)? {
             VectorMemoryResponse::GetStatsResponse { stats } => Ok(stats),
-            _ => Err("Unexpected response type".into())
+            _ => Err("Unexpected response type".into()),
         }
     }
 }

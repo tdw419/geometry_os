@@ -12,12 +12,12 @@
 //!
 //! If verification fails, execution is BLOCKED.
 
+use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
-use sha2::{Sha256, Digest};
 
-use super::vcc_compute::{HardwareVCC, HardwareVCCResult};
 use super::scanout::ScanoutAttestation;
+use super::vcc_compute::{HardwareVCC, HardwareVCCResult};
 
 /// Output from glyph execution
 ///
@@ -140,9 +140,7 @@ impl DrmGlyphExecutor {
                             binding: 0,
                             visibility: wgpu::ShaderStages::COMPUTE,
                             ty: wgpu::BindingType::Buffer {
-                                ty: wgpu::BufferBindingType::Storage {
-                                    read_only: false,
-                                },
+                                ty: wgpu::BufferBindingType::Storage { read_only: false },
                                 has_dynamic_offset: false,
                                 min_binding_size: None,
                             },
@@ -167,9 +165,10 @@ impl DrmGlyphExecutor {
                                 ty: wgpu::BufferBindingType::Uniform,
                                 has_dynamic_offset: false,
                                 min_binding_size: Some(
-                                    std::num::NonZeroU64::new(std::mem::size_of::<GlyphUniforms>()
-                                        as u64)
-                                        .unwrap(),
+                                    std::num::NonZeroU64::new(
+                                        std::mem::size_of::<GlyphUniforms>() as u64
+                                    )
+                                    .unwrap(),
                                 ),
                             },
                             count: None,
@@ -276,7 +275,8 @@ impl DrmGlyphExecutor {
             usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         }));
-        let output_view = Arc::new(output_texture.create_view(&wgpu::TextureViewDescriptor::default()));
+        let output_view =
+            Arc::new(output_texture.create_view(&wgpu::TextureViewDescriptor::default()));
 
         // Create uniform buffer with GlyphUniforms
         let uniforms = GlyphUniforms {
@@ -322,18 +322,13 @@ impl DrmGlyphExecutor {
 
         // Begin compute pass, set pipeline, set bind group, dispatch
         {
-            let mut compute_pass =
-                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                    label: Some("Glyph Compute Pass"),
-                    timestamp_writes: None,
-                });
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("Glyph Compute Pass"),
+                timestamp_writes: None,
+            });
             compute_pass.set_pipeline(&loaded.pipeline);
             compute_pass.set_bind_group(0, &bind_group, &[]);
-            compute_pass.dispatch_workgroups(
-                (output_size.0 + 7) / 8,
-                (output_size.1 + 7) / 8,
-                1,
-            );
+            compute_pass.dispatch_workgroups((output_size.0 + 7) / 8, (output_size.1 + 7) / 8, 1);
         }
 
         // Create staging buffer for readback

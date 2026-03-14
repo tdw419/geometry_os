@@ -312,7 +312,13 @@ mod tests {
             for y in 0..16 {
                 let addr = mapper.pixel_to_address(x, y, base_addr, page_size);
                 let (x2, y2) = mapper.address_to_pixel(addr, base_addr, page_size);
-                assert_eq!((x, y), (x2, y2), "Pixel conversion failed for ({}, {})", x, y);
+                assert_eq!(
+                    (x, y),
+                    (x2, y2),
+                    "Pixel conversion failed for ({}, {})",
+                    x,
+                    y
+                );
             }
         }
     }

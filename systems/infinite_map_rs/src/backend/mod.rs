@@ -1,8 +1,8 @@
-pub mod winit;
+pub mod cortex;
 pub mod drm;
 pub mod drm_renderer;
-pub mod vulkan;
-pub mod cortex;
+pub mod glyph_pipeline;
 pub mod kernel;
 pub mod mmio;
-pub mod glyph_pipeline;
+pub mod vulkan;
+pub mod winit;

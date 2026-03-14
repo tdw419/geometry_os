@@ -70,7 +70,10 @@ impl SourceCityLoader {
     /// Load the source city JSON from source_loader.py
     pub fn load(&mut self) -> Result<(), String> {
         if !self.manifest_path.exists() {
-            return Err(format!("Source city JSON not found: {:?}", self.manifest_path));
+            return Err(format!(
+                "Source city JSON not found: {:?}",
+                self.manifest_path
+            ));
         }
 
         let content = fs::read_to_string(&self.manifest_path)
@@ -82,7 +85,10 @@ impl SourceCityLoader {
         log::info!("🏛️  Source City Loaded:");
         log::info!("    Source: {}", self.layout.as_ref().unwrap().source_path);
         log::info!("    Tiles: {}", self.layout.as_ref().unwrap().tile_count);
-        log::info!("    Districts: {}", self.layout.as_ref().unwrap().districts.len());
+        log::info!(
+            "    Districts: {}",
+            self.layout.as_ref().unwrap().districts.len()
+        );
 
         // Print district summary
         for (name, info) in self.layout.as_ref().unwrap().districts.iter() {
@@ -122,7 +128,9 @@ impl SourceCityLoader {
             None => return Vec::new(),
         };
 
-        layout.tiles.iter()
+        layout
+            .tiles
+            .iter()
             .filter(|t| t.district == district)
             .collect()
     }
@@ -168,13 +176,15 @@ impl SourceCityLoader {
             let ry = cur_y & mask;
 
             // Rotate/flip quadrant
-            d += s * s * match (rx, ry) {
-                (0, 0) => 0,
-                (1, 0) => 1,
-                (1, 1) => 2,
-                (0, 1) => 3,
-                _ => 0,
-            };
+            d += s
+                * s
+                * match (rx, ry) {
+                    (0, 0) => 0,
+                    (1, 0) => 1,
+                    (1, 1) => 2,
+                    (0, 1) => 3,
+                    _ => 0,
+                };
 
             cur_x = if ry == 0 {
                 if rx == 1 {

@@ -17,13 +17,17 @@
 //! This provides "Trusted Spatial Execution" where the GPU is the
 //! source of truth for visual consistency.
 
-use anyhow::{Context, Result, anyhow};
-use naga::{back::spv, front::wgsl, valid::{Capabilities, ValidationFlags, Validator}};
+use anyhow::{anyhow, Context, Result};
+use bytemuck::{Pod, Zeroable};
+use naga::{
+    back::spv,
+    front::wgsl,
+    valid::{Capabilities, ValidationFlags, Validator},
+};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
 use wgpu::*;
-use bytemuck::{Pod, Zeroable};
 
 use super::compute::GlyphCompute;
 use super::device::DrmDevice;
@@ -89,11 +93,11 @@ impl VccCompute {
         let wgsl_source = include_str!("shaders/vcc_hash.wgsl");
 
         // 2. Compile WGSL to SPIR-V using Naga
-        let module = wgsl::parse_str(&wgsl_source)
-            .context("Failed to parse WGSL VCC shader")?;
+        let module = wgsl::parse_str(&wgsl_source).context("Failed to parse WGSL VCC shader")?;
 
         let mut validator = Validator::new(ValidationFlags::all(), Capabilities::all());
-        let info = validator.validate(&module)
+        let info = validator
+            .validate(&module)
             .context("Failed to validate WGSL module")?;
 
         let options = spv::Options::default();
@@ -103,7 +107,9 @@ impl VccCompute {
         // 3. Execute on GPU
         // The atlas_pixels should be vec4<f32>, so we expect 4 floats per pixel.
         let output_size = 8; // [u32; 8]
-        let result_f32 = self.compute.execute_spirv(&spirv_binary, atlas_pixels, output_size)?;
+        let result_f32 = self
+            .compute
+            .execute_spirv(&spirv_binary, atlas_pixels, output_size)?;
 
         // 4. Convert back to u32 hash
         let mut hash = [0u32; 8];
@@ -117,7 +123,11 @@ impl VccCompute {
     }
 
     /// Verify an atlas against a known VCC contract hash.
-    pub fn verify_contract(&mut self, atlas_pixels: &[f32], contract_hash: &[u32; 8]) -> Result<bool> {
+    pub fn verify_contract(
+        &mut self,
+        atlas_pixels: &[f32],
+        contract_hash: &[u32; 8],
+    ) -> Result<bool> {
         let hw_hash = self.compute_atlas_hash(atlas_pixels)?;
 
         let matches = hw_hash == *contract_hash;
@@ -169,11 +179,14 @@ impl HardwareVCC {
             .ok_or_else(|| anyhow!("No suitable GPU adapter found for VCC"))?;
 
         let (device, queue) = adapter
-            .request_device(&DeviceDescriptor {
-                label: Some("VCC Hardware Attestation Device"),
-                required_features: Features::empty(),
-                required_limits: Limits::default(),
-            }, None)
+            .request_device(
+                &DeviceDescriptor {
+                    label: Some("VCC Hardware Attestation Device"),
+                    required_features: Features::empty(),
+                    required_limits: Limits::default(),
+                },
+                None,
+            )
             .await
             .map_err(|e| anyhow!("Failed to get GPU device: {}", e))?;
 
@@ -288,9 +301,7 @@ impl HardwareVCC {
         // Convert u8 pixel data to u32 for shader
         let atlas_u32: Vec<u32> = atlas_data
             .chunks_exact(4)
-            .map(|chunk| {
-                u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]])
-            })
+            .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
             .collect();
 
         // Create input uniform buffer
@@ -351,9 +362,11 @@ impl HardwareVCC {
         });
 
         // Create command encoder and dispatch compute
-        let mut encoder = self.device.create_command_encoder(&CommandEncoderDescriptor {
-            label: Some("VCC Compute Encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&CommandEncoderDescriptor {
+                label: Some("VCC Compute Encoder"),
+            });
 
         {
             let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor {
@@ -394,7 +407,10 @@ impl HardwareVCC {
         staging_buffer.unmap();
 
         // Format result
-        let computed_hash = format!("{:08x}{:08x}", output.computed_hash_high, output.computed_hash_low);
+        let computed_hash = format!(
+            "{:08x}{:08x}",
+            output.computed_hash_high, output.computed_hash_low
+        );
         let expected_hash_str = format!("{:08x}{:08x}", expected_hash.1, expected_hash.0);
         let matches = output.matches_contract != 0;
 
@@ -474,9 +490,11 @@ impl HardwareVCC {
             ],
         });
 
-        let mut encoder = self.device.create_command_encoder(&CommandEncoderDescriptor {
-            label: Some("VCC Compute Encoder (Buffer)"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&CommandEncoderDescriptor {
+                label: Some("VCC Compute Encoder (Buffer)"),
+            });
 
         {
             let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor {
@@ -513,7 +531,10 @@ impl HardwareVCC {
         drop(data);
         staging_buffer.unmap();
 
-        let computed_hash = format!("{:08x}{:08x}", output.computed_hash_high, output.computed_hash_low);
+        let computed_hash = format!(
+            "{:08x}{:08x}",
+            output.computed_hash_high, output.computed_hash_low
+        );
         let expected_hash_str = format!("{:08x}{:08x}", expected_hash.1, expected_hash.0);
         let matches = output.matches_contract != 0;
 
@@ -551,7 +572,8 @@ impl BufferInitExt for Device {
             usage: desc.usage,
             mapped_at_creation: true,
         });
-        buffer.slice(..).get_mapped_range_mut()[..desc.contents.len()].copy_from_slice(desc.contents);
+        buffer.slice(..).get_mapped_range_mut()[..desc.contents.len()]
+            .copy_from_slice(desc.contents);
         buffer.unmap();
         buffer
     }

@@ -19,4 +19,4 @@ pub use memory::{
 pub use native_rv64::{NativeRv64Executor, Riscv64State, Rv64PushConstants};
 pub use pipeline::RiscvPipeline;
 pub use program::{ProgramMetadata, RiscvProgram};
-pub use ubuntu_bridge::{UbuntuKernelInput, UbuntuRv64Bridge, Rv64Result};
+pub use ubuntu_bridge::{Rv64Result, UbuntuKernelInput, UbuntuRv64Bridge};

@@ -22,12 +22,15 @@ pub struct CognitiveTerritory {
 impl CognitiveTerritory {
     pub fn new() -> Self {
         let start = SystemTime::now();
-        let timestamp = start.duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs();
+        let timestamp = start
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_secs();
 
         Self {
             center_x: 8192.0, // "Antigravity Prime" coordinates
             center_y: 8192.0,
-            radius: 1024.0,   // Initial domain size
+            radius: 1024.0, // Initial domain size
             active_thoughts: VecDeque::new(),
             sentiment_color: (0.0, 1.0, 0.98), // Initial Cyan (Antigravity Signature)
             creation_time: timestamp,
@@ -36,8 +39,11 @@ impl CognitiveTerritory {
 
     pub fn update(&mut self) {
         // Decay old particles
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
-        
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
         // Remove thoughts older than 10 seconds
         while let Some(thought) = self.active_thoughts.front() {
             if now - thought.timestamp > 10 {
@@ -49,13 +55,16 @@ impl CognitiveTerritory {
     }
 
     pub fn add_thought(&mut self, token: String, intensity: f32) {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
-        
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
         // Arrange particles in a spiral around the center (The Spire)
         let count = self.active_thoughts.len() as f32;
         let angle = count * 0.5; // Spiral factor
         let dist = 50.0 + (count * 2.0); // Expand outwards
-        
+
         self.active_thoughts.push_back(ThoughtParticle {
             x: self.center_x + angle.cos() * dist,
             y: self.center_y + angle.sin() * dist,

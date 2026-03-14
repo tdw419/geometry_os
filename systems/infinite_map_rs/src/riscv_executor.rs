@@ -278,7 +278,7 @@ impl RiscvExecutor {
             I64Strategy::Native => {
                 info!("Using native i64 support for RISC-V executor");
                 include_str!("shaders/riscv_executor.wgsl").to_string()
-            }
+            },
             I64Strategy::Emulate => {
                 info!("Using i64 emulation for RISC-V executor");
                 let mut shader = generate_i64_emulation_wgsl();
@@ -286,7 +286,7 @@ impl RiscvExecutor {
                 let original = include_str!("shaders/riscv_executor.wgsl");
                 shader.push_str(&Self::transform_i64_to_emulated(original));
                 shader
-            }
+            },
         };
 
         let _shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -1177,15 +1177,15 @@ impl RiscvExecutor {
                                 "sys_write(fd={}, ptr=0x{:x}, len={})",
                                 entry.arg0, entry.arg1, entry.arg2
                             );
-                        }
+                        },
                         93 => {
                             // sys_exit
                             info!("VM {} exited with code {}", entry.vm_id, entry.arg0);
                             // We'll set status to halted in a separate step
-                        }
+                        },
                         _ => {
                             info!("Unhandled syscall: {}", entry.num);
-                        }
+                        },
                     }
                 }
 

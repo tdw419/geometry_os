@@ -134,25 +134,25 @@ impl GeometricTerminalBuffer {
                 b'\n' => {
                     self.cursor_x = 0;
                     self.advance_row();
-                }
+                },
                 b'\r' => {
                     self.cursor_x = 0;
-                }
+                },
                 b'\t' => {
                     self.cursor_x = (self.cursor_x + 8) & !7;
                     if self.cursor_x >= self.cols {
                         self.cursor_x = 0;
                         self.advance_row();
                     }
-                }
+                },
                 0x1b => {
                     // ESC - would need ANSI parser for full support
                     // For now, just skip
-                }
+                },
                 c if c >= 32 => {
                     self.putc(c);
-                }
-                _ => {} // Ignore other control characters
+                },
+                _ => {}, // Ignore other control characters
             }
         }
     }

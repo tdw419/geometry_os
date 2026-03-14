@@ -149,12 +149,16 @@ impl HilbertPathfinder {
                         .filter(|t| &t.district == district_name)
                         .collect();
 
-                    if let Some((min, max)) = tiles.iter().map(|t| {
-                        // Convert tile position to Hilbert coordinate
-                        let x = ((t.x + 1.0) * self.grid_size as f32 / 2.0) as u32;
-                        let y = ((t.y + 1.0) * self.grid_size as f32 / 2.0) as u32;
-                        self.xy_to_hilbert(x, y)
-                    }).minmax() {
+                    if let Some((min, max)) = tiles
+                        .iter()
+                        .map(|t| {
+                            // Convert tile position to Hilbert coordinate
+                            let x = ((t.x + 1.0) * self.grid_size as f32 / 2.0) as u32;
+                            let y = ((t.y + 1.0) * self.grid_size as f32 / 2.0) as u32;
+                            self.xy_to_hilbert(x, y)
+                        })
+                        .minmax()
+                    {
                         self.district_bounds
                             .insert(district_name.clone(), (min, max));
                     }
@@ -177,7 +181,7 @@ impl HilbertPathfinder {
             PathStrategy::Shortest => self.find_shortest_path(start, end),
             PathStrategy::AvoidDistricts { ref excluded } => {
                 self.find_path_avoiding(start, end, excluded)
-            }
+            },
             PathStrategy::PreferComplexity => self.find_path_preferring_complexity(start, end),
             PathStrategy::PreferRecent => self.find_path_preferring_recent(start, end),
         };
@@ -205,7 +209,11 @@ impl HilbertPathfinder {
             start,
         ));
 
-        let distance = if end > start { end - start } else { start - end };
+        let distance = if end > start {
+            end - start
+        } else {
+            start - end
+        };
         let direction = if end > start { 1i32 } else { -1i32 };
 
         let mut current = start;
@@ -330,12 +338,7 @@ impl HilbertPathfinder {
     }
 
     /// Reconstruct path from A* came_from map
-    fn reconstruct_path(
-        &self,
-        start: u32,
-        end: u32,
-        came_from: &HashMap<u32, u32>,
-    ) -> HilbertPath {
+    fn reconstruct_path(&self, start: u32, end: u32, came_from: &HashMap<u32, u32>) -> HilbertPath {
         let mut path = HilbertPath::new(start, end);
         let mut current = end;
         let mut waypoints = Vec::new();
@@ -356,7 +359,11 @@ impl HilbertPathfinder {
 
         // Add start
         let (x, y) = self.hilbert_to_xy(start);
-        waypoints.push(Waypoint::new(self.normalize_x(x), self.normalize_y(y), start));
+        waypoints.push(Waypoint::new(
+            self.normalize_x(x),
+            self.normalize_y(y),
+            start,
+        ));
 
         // Reverse to get start -> end order
         waypoints.reverse();
@@ -378,11 +385,7 @@ impl HilbertPathfinder {
             let nx = x as i32 + dx;
             let ny = y as i32 + dy;
 
-            if nx >= 0
-                && ny >= 0
-                && nx < self.grid_size as i32
-                && ny < self.grid_size as i32
-            {
+            if nx >= 0 && ny >= 0 && nx < self.grid_size as i32 && ny < self.grid_size as i32 {
                 let nh = self.xy_to_hilbert(nx as u32, ny as u32);
                 if nh < self.max_hilbert {
                     neighbors.push(nh);
@@ -442,13 +445,15 @@ impl HilbertPathfinder {
             let ry = cur_y & mask;
 
             // Rotate/flip quadrant
-            d += s * s * match (rx, ry) {
-                (0, 0) => 0,
-                (1, 0) => 1,
-                (1, 1) => 2,
-                (0, 1) => 3,
-                _ => 0,
-            };
+            d += s
+                * s
+                * match (rx, ry) {
+                    (0, 0) => 0,
+                    (1, 0) => 1,
+                    (1, 1) => 2,
+                    (0, 1) => 3,
+                    _ => 0,
+                };
 
             cur_x = if ry == 0 {
                 if rx == 1 {
@@ -608,12 +613,12 @@ mod tests {
         // (0, 0) should map to Hilbert 0
         let h0 = pathfinder.xy_to_hilbert(0, 0);
         assert_eq!(h0, 0);
-        
+
         // Hilbert 0 should map to (0, 0)
         let (x0, y0) = pathfinder.hilbert_to_xy(0);
         assert_eq!(x0, 0);
         assert_eq!(y0, 0);
-        
+
         // Test that pathfinding uses the conversions correctly
         // by verifying a path can be created
         let mut pathfinder = HilbertPathfinder::new(256);

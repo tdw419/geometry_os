@@ -2,8 +2,8 @@
 //!
 //! Real register-level control of Intel GPUs.
 
-use anyhow::{Context, Result, anyhow};
 use crate::backend::mmio::{MmioRegion, PciDevice};
+use anyhow::{anyhow, Context, Result};
 
 /// Intel GPU register offsets (Gen9/Gen11/Xe)
 pub mod regs {
@@ -76,8 +76,7 @@ pub struct IntelGpuMmioDevice {
 impl IntelGpuMmioDevice {
     /// Open Intel GPU device.
     pub fn open() -> Result<Self> {
-        let pci = crate::backend::mmio::find_gpu()
-            .context("Failed to find GPU")?;
+        let pci = crate::backend::mmio::find_gpu().context("Failed to find GPU")?;
 
         if pci.vendor_id != 0x8086 {
             return Err(anyhow!("Not an Intel GPU (vendor={:#x})", pci.vendor_id));
@@ -123,7 +122,8 @@ impl IntelGpuMmioDevice {
         self.write_reg(regs::FORCEWAKE_MT, 0x00010001);
 
         // Wait for acknowledgment
-        self.mmio.wait_set(regs::FORCEWAKE_MT_ACK, 0x00010001, 1000)?;
+        self.mmio
+            .wait_set(regs::FORCEWAKE_MT_ACK, 0x00010001, 1000)?;
 
         Ok(())
     }
@@ -131,7 +131,8 @@ impl IntelGpuMmioDevice {
     /// Release forcewake.
     pub fn forcewake_release(&self) -> Result<()> {
         self.write_reg(regs::FORCEWAKE_MT, 0x00010000);
-        self.mmio.wait_clear(regs::FORCEWAKE_MT_ACK, 0x00010001, 1000)?;
+        self.mmio
+            .wait_clear(regs::FORCEWAKE_MT_ACK, 0x00010001, 1000)?;
         Ok(())
     }
 
@@ -177,7 +178,11 @@ impl IntelGpuMmioDevice {
 
         self.forcewake_release()?;
 
-        log::info!("Ring initialized: base={:#x}, size={}", ring_base, ring_size);
+        log::info!(
+            "Ring initialized: base={:#x}, size={}",
+            ring_base,
+            ring_size
+        );
         Ok(())
     }
 

@@ -1,5 +1,5 @@
-use wgpu::util::DeviceExt;
 use crate::visual_ast::VisualAST;
+use wgpu::util::DeviceExt;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -39,29 +39,25 @@ impl VisualASTRenderer {
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Visual AST BGL"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
                 },
-            ],
+                count: None,
+            }],
         });
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Visual AST Bind Group"),
             layout: &bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: uniform_buffer.as_entire_binding(),
-                },
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            }],
         });
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -79,19 +75,19 @@ impl VisualASTRenderer {
                 buffers: &[
                     // Vertex Buffer
                     wgpu::VertexBufferLayout {
-                        array_stride: std::mem::size_of::<VisualNodeVertex>() as wgpu::BufferAddress,
+                        array_stride: std::mem::size_of::<VisualNodeVertex>()
+                            as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &[
-                            wgpu::VertexAttribute {
-                                offset: 0,
-                                shader_location: 0, // position
-                                format: wgpu::VertexFormat::Float32x2,
-                            },
-                        ],
+                        attributes: &[wgpu::VertexAttribute {
+                            offset: 0,
+                            shader_location: 0, // position
+                            format: wgpu::VertexFormat::Float32x2,
+                        }],
                     },
                     // Instance Buffer
                     wgpu::VertexBufferLayout {
-                        array_stride: std::mem::size_of::<VisualNodeInstance>() as wgpu::BufferAddress,
+                        array_stride: std::mem::size_of::<VisualNodeInstance>()
+                            as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Instance,
                         attributes: &[
                             wgpu::VertexAttribute {
@@ -143,12 +139,24 @@ impl VisualASTRenderer {
 
         // 0.5 centered quad
         let vertices = [
-            VisualNodeVertex { position: [-0.5, -0.5] },
-            VisualNodeVertex { position: [0.5, -0.5] },
-            VisualNodeVertex { position: [-0.5, 0.5] },
-            VisualNodeVertex { position: [-0.5, 0.5] },
-            VisualNodeVertex { position: [0.5, -0.5] },
-            VisualNodeVertex { position: [0.5, 0.5] },
+            VisualNodeVertex {
+                position: [-0.5, -0.5],
+            },
+            VisualNodeVertex {
+                position: [0.5, -0.5],
+            },
+            VisualNodeVertex {
+                position: [-0.5, 0.5],
+            },
+            VisualNodeVertex {
+                position: [-0.5, 0.5],
+            },
+            VisualNodeVertex {
+                position: [0.5, -0.5],
+            },
+            VisualNodeVertex {
+                position: [0.5, 0.5],
+            },
         ];
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -182,7 +190,7 @@ impl VisualASTRenderer {
         // TODO: Optimization - View culling or spatial query
         for node in ast.nodes.values() {
             instances.push(VisualNodeInstance {
-                world_pos: [node.x + node.width/2.0, node.y + node.height/2.0], // Center align for shader
+                world_pos: [node.x + node.width / 2.0, node.y + node.height / 2.0], // Center align for shader
                 size: [node.width, node.height],
                 color: [
                     node.style.background_color.0,
@@ -196,9 +204,13 @@ impl VisualASTRenderer {
                     node.style.border_color.2,
                     node.style.border_color.3,
                 ],
-                glow: if node.health.score < 1.0 { 1.0 } else { node.style.glow_intensity },
+                glow: if node.health.score < 1.0 {
+                    1.0
+                } else {
+                    node.style.glow_intensity
+                },
             });
-            
+
             // Limit for safety
             if instances.len() >= self.max_instances {
                 break;
@@ -207,17 +219,15 @@ impl VisualASTRenderer {
 
         self.instance_count = instances.len() as u32;
         if self.instance_count > 0 {
-            queue.write_buffer(
-                &self.instance_buffer, 
-                0, 
-                bytemuck::cast_slice(&instances)
-            );
+            queue.write_buffer(&self.instance_buffer, 0, bytemuck::cast_slice(&instances));
         }
     }
 
     pub fn render<'rp>(&'rp self, render_pass: &mut wgpu::RenderPass<'rp>) {
-        if self.instance_count == 0 { return; }
-        
+        if self.instance_count == 0 {
+            return;
+        }
+
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));

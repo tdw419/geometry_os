@@ -79,12 +79,7 @@ impl KmsScanout {
     }
 
     /// Scan out a DMA-BUF to the display.
-    pub fn scanout_dmabuf(
-        &mut self,
-        _dmabuf_fd: i32,
-        width: u32,
-        height: u32,
-    ) -> Result<()> {
+    pub fn scanout_dmabuf(&mut self, _dmabuf_fd: i32, width: u32, height: u32) -> Result<()> {
         self.width = width;
         self.height = height;
 
@@ -107,25 +102,29 @@ impl KmsScanout {
 
     /// Attest the current scanout buffer against a VCC contract.
     ///
-    /// This ensures that the pixels being sent to the monitor are 
+    /// This ensures that the pixels being sent to the monitor are
     /// mathematically identical to the signed visual contract.
     pub fn attest_scanout(&self, contract_hash: &[u32; 8]) -> Result<bool> {
-        log::info!("Attesting KMS scanout (width={}, height={})", self.width, self.height);
-        
+        log::info!(
+            "Attesting KMS scanout (width={}, height={})",
+            self.width,
+            self.height
+        );
+
         // 1. Capture a CRC or hash of the current scanout buffer from the CRTC.
         // In a real implementation, we would use DRM_IOCTL_MODE_GET_FB
         // or a hardware CRC feature (like amdgpu_dm_crtc_get_crc).
-        
+
         // 2. We simulate the hardware CRC match for Phase 2.
         let hw_crc_hash = [0u32; 8]; // Example hash from scanout hardware
-        
+
         let matches = hw_crc_hash == *contract_hash;
         if !matches {
             log::error!("VCC Scanout Attestation FAILED! Screen state does not match contract.");
         } else {
             log::info!("✅ VCC Scanout Attestation PASSED");
         }
-        
+
         Ok(matches)
     }
 
@@ -174,9 +173,7 @@ impl Scanout {
     ///
     /// Returns the DMA-BUF that's currently being displayed on the monitor.
     pub fn get_front_buffer(&self) -> Result<&DmaBuf, DrmError> {
-        self.front_buffer
-            .as_ref()
-            .ok_or(DrmError::NoFrontBuffer)
+        self.front_buffer.as_ref().ok_or(DrmError::NoFrontBuffer)
     }
 
     /// Set the front buffer for scanout.
@@ -246,7 +243,9 @@ impl Scanout {
         contract_hash: [u8; 32],
     ) -> Result<bool, DrmError> {
         // First verify the buffer matches the contract
-        let verified = buffer.verify_vcc(contract_hash).map_err(DrmError::HashError)?;
+        let verified = buffer
+            .verify_vcc(contract_hash)
+            .map_err(DrmError::HashError)?;
 
         if verified {
             log::info!("VCC verification passed, committing buffer to scanout");

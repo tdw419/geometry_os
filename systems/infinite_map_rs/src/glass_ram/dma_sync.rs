@@ -3,10 +3,10 @@
 // DMA Buffer Synchronization
 // Implements CPU access synchronization via DMA_BUF_IOCTL_SYNC
 
-use std::os::unix::io::RawFd;
+use nix::ioctl_write_ptr;
 use std::error::Error;
 use std::fmt;
-use nix::ioctl_write_ptr;
+use std::os::unix::io::RawFd;
 
 // -----------------------------------------------------------------------------
 // Constants & Types (linux/dma-buf.h)
@@ -69,16 +69,20 @@ impl DmaFence {
     /// Must be called before reading/writing the mapped memory.
     pub fn start_cpu_access(&self, read: bool, write: bool) -> Result<()> {
         let mut flags = DMA_BUF_SYNC_START;
-        if read { flags |= DMA_BUF_SYNC_READ; }
-        if write { flags |= DMA_BUF_SYNC_WRITE; }
+        if read {
+            flags |= DMA_BUF_SYNC_READ;
+        }
+        if write {
+            flags |= DMA_BUF_SYNC_WRITE;
+        }
 
         let sync_args = DmaBufSync { flags };
-        
+
         unsafe {
             dma_buf_ioctl_sync(self.fd, &sync_args)
                 .map_err(|e| Box::new(DmaSyncError::SyncFailed(e)) as Box<dyn Error>)?;
         }
-        
+
         Ok(())
     }
 
@@ -86,16 +90,20 @@ impl DmaFence {
     /// Must be called after finishing CPU operations.
     pub fn end_cpu_access(&self, read: bool, write: bool) -> Result<()> {
         let mut flags = DMA_BUF_SYNC_END;
-        if read { flags |= DMA_BUF_SYNC_READ; }
-        if write { flags |= DMA_BUF_SYNC_WRITE; }
+        if read {
+            flags |= DMA_BUF_SYNC_READ;
+        }
+        if write {
+            flags |= DMA_BUF_SYNC_WRITE;
+        }
 
         let sync_args = DmaBufSync { flags };
-        
+
         unsafe {
             dma_buf_ioctl_sync(self.fd, &sync_args)
                 .map_err(|e| Box::new(DmaSyncError::SyncFailed(e)) as Box<dyn Error>)?;
         }
-        
+
         Ok(())
     }
 
@@ -104,7 +112,7 @@ impl DmaFence {
         // Equivalent to starting CPU access (waits for GPU)
         self.start_cpu_access(true, true)
     }
-    
+
     // Legacy/Stub methods to match previous interface if needed mostly unused now
     // or we can adapt the caller.
 }

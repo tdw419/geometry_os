@@ -111,7 +111,7 @@ impl BootableCartridge {
     /// Load a bootable cartridge from a PNG file
     pub fn load_cartridge(&mut self, path: &str) -> Result<(), String> {
         let cartridge_path = Path::new(path);
-        
+
         if !cartridge_path.exists() {
             return Err(format!("Cartridge file not found: {}", path));
         }
@@ -119,7 +119,7 @@ impl BootableCartridge {
         // Load PNG image
         let image = image::open(cartridge_path)
             .map_err(|e| format!("Failed to load cartridge image: {}", e))?;
-        
+
         let rgba = image.to_rgba8();
         let dimensions = (rgba.width(), rgba.height());
 
@@ -137,7 +137,9 @@ impl BootableCartridge {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::COPY_SRC,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
         });
 
@@ -188,7 +190,8 @@ impl BootableCartridge {
 
     /// Update cartridge state
     pub fn update_state(&mut self, confidence: f32, fatigue: f32, alignment: f32) {
-        self.state.update_from_neural_state(confidence, fatigue, alignment);
+        self.state
+            .update_from_neural_state(confidence, fatigue, alignment);
     }
 
     /// Check if cartridge is mounted
@@ -243,7 +246,7 @@ impl BootableCartridge {
         }
 
         if let Some(texture) = &self.texture {
-             self.queue.write_texture(
+            self.queue.write_texture(
                 wgpu::ImageCopyTexture {
                     texture,
                     mip_level: 0,
@@ -263,9 +266,7 @@ impl BootableCartridge {
 }
 
 /// Create bind group layout for bootable cartridge
-pub fn create_cartridge_bind_group_layout(
-    device: &wgpu::Device,
-) -> wgpu::BindGroupLayout {
+pub fn create_cartridge_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("Bootable Cartridge Bind Group Layout"),
         entries: &[
@@ -357,7 +358,9 @@ pub fn create_cartridge_bind_group(
             wgpu::BindGroupEntry {
                 binding: 1,
                 resource: wgpu::BindingResource::TextureView(
-                    cartridge.get_texture_view().expect("Cartridge texture view not available")
+                    cartridge
+                        .get_texture_view()
+                        .expect("Cartridge texture view not available"),
                 ),
             },
             wgpu::BindGroupEntry {

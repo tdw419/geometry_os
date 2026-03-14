@@ -1,11 +1,10 @@
-/// Daemon Bridge - Communication with the Cognitive Daemon (LLM)
-/// 
-/// Handles HTTP communication with LM Studio for intent interpretation
-
-use serde::{Serialize, Deserialize};
 use super::intent::Intent;
 use super::morphology::MorphologyCommand;
 use super::MemoryAnalysisRequest;
+/// Daemon Bridge - Communication with the Cognitive Daemon (LLM)
+///
+/// Handles HTTP communication with LM Studio for intent interpretation
+use serde::{Deserialize, Serialize};
 
 /// Bridge to the Cognitive Daemon (LM Studio)
 /// Bridge to the Cognitive Daemon (LM Studio)
@@ -13,10 +12,10 @@ use super::MemoryAnalysisRequest;
 pub struct CognitiveDaemonBridge {
     /// LM Studio API URL
     api_url: String,
-    
+
     /// HTTP client
     client: reqwest::Client,
-    
+
     /// System prompt for the LLM
     system_prompt: String,
 }
@@ -84,11 +83,14 @@ Be precise, creative, and maintain geometric integrity."#;
             system_prompt: system_prompt.to_string(),
         }
     }
-    
+
     /// Interpret a user intent into morphology commands
-    pub async fn interpret_intent(&self, intent: &Intent) -> Result<Vec<MorphologyCommand>, String> {
+    pub async fn interpret_intent(
+        &self,
+        intent: &Intent,
+    ) -> Result<Vec<MorphologyCommand>, String> {
         log::info!("🧠 Daemon: Interpreting intent: {}", intent.text);
-        
+
         // Build request
         let request = LMStudioRequest {
             model: "local-model".to_string(), // LM Studio uses this
@@ -105,24 +107,25 @@ Be precise, creative, and maintain geometric integrity."#;
             temperature: 0.7,
             max_tokens: 500,
         };
-        
+
         // Send to LM Studio
-        let response = self.client
+        let response = self
+            .client
             .post(&format!("{}/v1/chat/completions", self.api_url))
             .json(&request)
             .send()
             .await
             .map_err(|e| format!("Failed to connect to LM Studio: {}", e))?;
-        
+
         if !response.status().is_success() {
             return Err(format!("LM Studio returned error: {}", response.status()));
         }
-        
+
         let lm_response: LMStudioResponse = response
             .json()
             .await
             .map_err(|e| format!("Failed to parse LM Studio response: {}", e))?;
-        
+
         // Extract response text
         let response_text = lm_response
             .choices
@@ -131,15 +134,15 @@ Be precise, creative, and maintain geometric integrity."#;
             .message
             .content
             .clone();
-        
+
         log::info!("🧠 Daemon response: {}", response_text);
-        
+
         // Parse JSON response
         let parsed = self.parse_daemon_response(&response_text)?;
-        
+
         Ok(parsed)
     }
-    
+
     /// Parse the daemon's JSON response into commands
     fn parse_daemon_response(&self, response: &str) -> Result<Vec<MorphologyCommand>, String> {
         // Try to extract JSON from markdown code blocks if present
@@ -151,32 +154,26 @@ Be precise, creative, and maintain geometric integrity."#;
                 .unwrap_or(response)
                 .trim()
         } else if response.contains("```") {
-            response
-                .split("```")
-                .nth(1)
-                .unwrap_or(response)
-                .trim()
+            response.split("```").nth(1).unwrap_or(response).trim()
         } else {
             response.trim()
         };
-        
+
         // Parse JSON
-        let value: serde_json::Value = serde_json::from_str(json_str)
-            .map_err(|e| format!("Failed to parse JSON: {}", e))?;
-        
+        let value: serde_json::Value =
+            serde_json::from_str(json_str).map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
         let commands_array = value["commands"]
             .as_array()
             .ok_or("No 'commands' array in response")?;
-        
+
         let mut commands = Vec::new();
-        
+
         for cmd in commands_array {
-            let cmd_type = cmd["type"]
-                .as_str()
-                .ok_or("Command missing 'type' field")?;
-            
+            let cmd_type = cmd["type"].as_str().ok_or("Command missing 'type' field")?;
+
             let params = &cmd["params"];
-            
+
             let morphology_cmd = match cmd_type {
                 "Navigate" => MorphologyCommand::Navigate {
                     x: params["x"].as_f64().unwrap_or(0.0) as f32,
@@ -193,33 +190,31 @@ Be precise, creative, and maintain geometric integrity."#;
                     x: params["x"].as_f64().unwrap_or(0.0) as f32,
                     y: params["y"].as_f64().unwrap_or(0.0) as f32,
                     z: params["z"].as_f64().unwrap_or(0.0) as f32,
-                    description: params["description"]
-                        .as_str()
-                        .unwrap_or("")
-                        .to_string(),
+                    description: params["description"].as_str().unwrap_or("").to_string(),
                 },
                 _ => {
                     log::warn!("Unknown command type: {}", cmd_type);
                     continue;
-                }
+                },
             };
-            
+
             commands.push(morphology_cmd);
         }
-        
+
         Ok(commands)
     }
-    
+
     /// Test connection to LM Studio
     pub async fn test_connection(&self) -> Result<(), String> {
         log::info!("🧠 Testing connection to LM Studio at {}", self.api_url);
-        
-        let response = self.client
+
+        let response = self
+            .client
             .get(&format!("{}/v1/models", self.api_url))
             .send()
             .await
             .map_err(|e| format!("Connection failed: {}", e))?;
-        
+
         if response.status().is_success() {
             log::info!("✅ LM Studio connection successful");
             Ok(())
@@ -274,7 +269,8 @@ Provide a concise, technical explanation."#,
             max_tokens: 300,
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(&format!("{}/v1/chat/completions", self.api_url))
             .json(&request)
             .send()

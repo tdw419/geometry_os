@@ -5,14 +5,14 @@
 use crate::memory_graph::MemoryGraph;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use std::io::Write;
+use std::os::unix::net::UnixStream as StdUnixStream;
+use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixStream;
 use tokio::sync::mpsc;
-use tokio::time::{sleep, Duration};
-use std::sync::Arc;
 use tokio::sync::Mutex;
-use std::io::Write;
-use std::os::unix::net::UnixStream as StdUnixStream;
+use tokio::time::{sleep, Duration};
 
 /// Protocol message types for memory graph communication
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -312,11 +312,11 @@ impl EvolutionClient {
                 self.stream = Some(stream);
                 self.connected = true;
                 Ok(())
-            }
+            },
             Err(e) => {
                 self.connected = false;
                 Err(Box::new(e))
-            }
+            },
         }
     }
 
@@ -339,7 +339,8 @@ impl EvolutionClient {
     }
 
     pub fn send_message(&self, message: ProtocolMessage) -> std::io::Result<()> {
-        self.send(message).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e)))
+        self.send(message)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e)))
     }
 
     pub fn request_metrics(&self) -> Result<ProtocolMessage, Box<dyn std::error::Error>> {
@@ -555,7 +556,13 @@ impl MemoryGraphProtocol {
         let message_tx_clone = protocol.message_tx.clone();
 
         tokio::spawn(async move {
-            Self::reconnection_loop(reconnect_rx, stream_clone, &socket_path_clone, message_tx_clone).await;
+            Self::reconnection_loop(
+                reconnect_rx,
+                stream_clone,
+                &socket_path_clone,
+                message_tx_clone,
+            )
+            .await;
         });
 
         protocol
@@ -630,10 +637,10 @@ impl MemoryGraphProtocol {
                             Self::reader_task(stream_clone, message_tx_clone).await;
                         });
                         break;
-                    }
+                    },
                     Err(_) => {
                         sleep(Duration::from_millis(100)).await;
-                    }
+                    },
                 }
             }
         }
@@ -650,12 +657,12 @@ impl MemoryGraphProtocol {
                 match Self::read_message(stream).await {
                     Ok(message) => {
                         let _ = message_tx.send(message);
-                    }
+                    },
                     Err(_) => {
                         // Connection lost, clear stream
                         *stream_guard = None;
                         break;
-                    }
+                    },
                 }
             } else {
                 break;

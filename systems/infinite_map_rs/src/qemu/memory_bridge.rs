@@ -3,10 +3,10 @@
 // QEMU Shared Memory Bridge
 // Phase 36.1: Zero-copy access to guest RAM via /dev/shm
 
+use memmap2::Mmap;
 use std::fs::File;
 use std::io;
 use std::path::Path;
-use memmap2::Mmap;
 
 use thiserror::Error;
 
@@ -38,11 +38,9 @@ impl SharedMemoryBridge {
             return Err(BridgeError::FileNotFound(path));
         }
 
-        let file = File::open(path_ref).map_err(|e| {
-            match e.kind() {
-                io::ErrorKind::PermissionDenied => BridgeError::PermissionDenied,
-                _ => BridgeError::MmapFailed(e),
-            }
+        let file = File::open(path_ref).map_err(|e| match e.kind() {
+            io::ErrorKind::PermissionDenied => BridgeError::PermissionDenied,
+            _ => BridgeError::MmapFailed(e),
         })?;
 
         let mmap = unsafe { Mmap::map(&file).map_err(BridgeError::MmapFailed)? };

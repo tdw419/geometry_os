@@ -2,51 +2,44 @@
 use std::sync::Arc;
 
 use smithay::{
-    backend::input::{
-        Axis, ButtonState, KeyboardKeyEvent, MouseButton, AxisSource, InputBackend,
-    },
-    reexports::wayland_server::{
-        protocol::{
-            wl_surface::WlSurface,
-        },
-        Resource,
-    },
+    backend::input::{Axis, AxisSource, ButtonState, InputBackend, KeyboardKeyEvent, MouseButton},
     input::{
-        Seat,
-        pointer::{MotionEvent, ButtonEvent, AxisFrame},
         keyboard::FilterResult,
+        pointer::{AxisFrame, ButtonEvent, MotionEvent},
+        Seat,
     },
+    reexports::wayland_server::{protocol::wl_surface::WlSurface, Resource},
     utils::Serial,
 };
 
 use crate::camera::Camera;
-use crate::window::WindowManager;
 use crate::compositor_state::GeometryCompositorState;
+use crate::window::WindowManager;
 
 /// Manages input devices and forwards events to Wayland clients
 pub struct InputManager {
     /// Smithay seat
     seat: Seat<GeometryCompositorState>,
-    
+
     /// Current focused surface
     focused_surface: Option<WlSurface>,
-    
+
     /// Current focused window (for tracking)
     focused_window_id: Option<usize>,
 
     /// Phase 41: Possessed window ID (Game Mode Interaction)
     possessed_window_id: Option<usize>,
-    
+
     /// Phase 30.6: VM console input buffer (Vec<u8> for keyboard input)
     vm_console_input: Option<Arc<std::sync::Mutex<Vec<u8>>>>,
-    
+
     /// Last known pointer position (screen coordinates)
     pointer_pos: Option<(f32, f32)>,
-    
+
     /// Pointer button state
     #[allow(dead_code)]
     pointer_buttons: u32,
-    
+
     /// Phase 31: Clipboard manager for copy/paste operations
     clipboard_manager: Option<crate::clipboard_manager::SharedClipboardManager>,
 
@@ -126,33 +119,45 @@ impl InputManager {
     pub fn get_possessed_window_id(&self) -> Option<usize> {
         self.possessed_window_id
     }
-    
+
     /// Phase 31: Set clipboard manager
-    pub fn set_clipboard_manager(&mut self, clipboard_manager: crate::clipboard_manager::SharedClipboardManager) {
+    pub fn set_clipboard_manager(
+        &mut self,
+        clipboard_manager: crate::clipboard_manager::SharedClipboardManager,
+    ) {
         self.clipboard_manager = Some(clipboard_manager);
         log::info!("✅ Clipboard manager set in InputManager");
     }
-    
-    pub fn set_focus(&mut self, state: &mut GeometryCompositorState, surface: Option<WlSurface>, window_id: Option<usize>) {
+
+    pub fn set_focus(
+        &mut self,
+        state: &mut GeometryCompositorState,
+        surface: Option<WlSurface>,
+        window_id: Option<usize>,
+    ) {
         if self.focused_surface.as_ref().map(|s| s.id()) == surface.as_ref().map(|s| s.id()) {
             return;
         }
 
         // Remove focus from old surface
         if let Some(_old_surface) = &self.focused_surface {
-             self.seat.get_keyboard().map(|k| k.set_focus(state, None, Serial::from(0)));
+            self.seat
+                .get_keyboard()
+                .map(|k| k.set_focus(state, None, Serial::from(0)));
         }
-        
+
         // Set new focus
         self.focused_surface = surface.clone();
         self.focused_window_id = window_id;
-        
+
         // Add focus to new surface
         if let Some(new_surface) = &self.focused_surface {
-            self.seat.get_keyboard().map(|k| k.set_focus(state, Some(new_surface.clone()), Serial::from(0)));
+            self.seat
+                .get_keyboard()
+                .map(|k| k.set_focus(state, Some(new_surface.clone()), Serial::from(0)));
         }
     }
-    
+
     pub fn handle_keyboard_event<B: InputBackend, E: KeyboardKeyEvent<B>>(
         &mut self,
         state: &mut GeometryCompositorState,
@@ -239,7 +244,11 @@ impl InputManager {
                 if let Some(crystallized_input) = &self.crystallized_input {
                     let mut buffer = crystallized_input.lock().unwrap();
                     buffer.push(byte);
-                    log::debug!("💎 Keyboard routed to Crystallized: {} (0x{:02x})", byte as char, byte);
+                    log::debug!(
+                        "💎 Keyboard routed to Crystallized: {} (0x{:02x})",
+                        byte as char,
+                        byte
+                    );
                 }
             }
         }
@@ -248,32 +257,29 @@ impl InputManager {
         if self.possessed_window_id.is_some() {
             // Check for Escape to release possession (handled in App, but we need to ensure we don't consume it if needed)
             // Actually, app.rs handles the toggle. We just need to route data if possessed.
-            
+
             // Allow App to handle the toggle key (usually Escape or special key)
             // But here we capture everything else.
-            
+
             // Route to console
             self.route_keyboard_to_console(key.raw(), key_state.into());
-            
+
             // Do NOT forward to Wayland client if possessed
             return;
         }
 
         if let Some(keyboard) = self.seat.get_keyboard() {
-             
-             keyboard.input(
-                 state, 
-                 key, 
-                 key_state.into(), 
-                 serial.into(), 
-                 time, 
-                 |_, _, _| {
-                     FilterResult::<()>::Forward
-                 }
-             );
+            keyboard.input(
+                state,
+                key,
+                key_state.into(),
+                serial.into(),
+                time,
+                |_, _, _| FilterResult::<()>::Forward,
+            );
         }
     }
-    
+
     pub fn handle_pointer_motion(
         &mut self,
         state: &mut GeometryCompositorState,
@@ -285,38 +291,41 @@ impl InputManager {
         serial: u32,
     ) {
         self.pointer_pos = Some((screen_x, screen_y));
-        
+
         let screen_width = window_manager.screen_width();
         let screen_height = window_manager.screen_height();
-        
+
         let world_pos = camera.screen_to_world(screen_x, screen_y, screen_width, screen_height);
         let world_x = world_pos.x;
         let world_y = world_pos.y;
-        
+
         let target = window_manager.find_window_at_position(world_x, world_y);
-        
+
         if let Some(window) = target {
-             if let Some(surface) = &window.surface {
-                 let surface_x = world_x - window.x;
-                 let surface_y = world_y - window.y;
-                 
-                 let pointer = self.seat.get_pointer().unwrap();
-                 
-                 let event = MotionEvent {
-                     location: (surface_x as f64, surface_y as f64).into(),
-                     serial: Serial::from(serial),
-                     time,
-                 };
-                 
-                 pointer.motion(
-                      state, 
-                      Some((surface.as_ref().clone(), (surface_x as f64, surface_y as f64).into())), 
-                      &event,
-                  );
-             }
+            if let Some(surface) = &window.surface {
+                let surface_x = world_x - window.x;
+                let surface_y = world_y - window.y;
+
+                let pointer = self.seat.get_pointer().unwrap();
+
+                let event = MotionEvent {
+                    location: (surface_x as f64, surface_y as f64).into(),
+                    serial: Serial::from(serial),
+                    time,
+                };
+
+                pointer.motion(
+                    state,
+                    Some((
+                        surface.as_ref().clone(),
+                        (surface_x as f64, surface_y as f64).into(),
+                    )),
+                    &event,
+                );
+            }
         }
     }
-    
+
     pub fn handle_pointer_button(
         &mut self,
         state: &mut GeometryCompositorState,
@@ -332,22 +341,19 @@ impl InputManager {
             MouseButton::Middle => 274,
             _ => 272, // Fallback
         };
-        
+
         let event = ButtonEvent {
             serial: Serial::from(serial),
             time,
-            button: code, 
+            button: code,
             state: button_state.into(),
         };
 
         if let Some(pointer) = self.seat.get_pointer() {
-            pointer.button(
-                state,
-                &event,
-            );
+            pointer.button(state, &event);
         }
     }
-    
+
     pub fn handle_pointer_axis(
         &mut self,
         state: &mut GeometryCompositorState,
@@ -356,13 +362,10 @@ impl InputManager {
         time: u32,
     ) {
         if let Some(pointer) = self.seat.get_pointer() {
-             let mut frame = AxisFrame::new(time).source(AxisSource::Wheel);
-             frame = frame.value(axis, amount);
-             
-             pointer.axis(
-                state,
-                frame,
-             );
+            let mut frame = AxisFrame::new(time).source(AxisSource::Wheel);
+            frame = frame.value(axis, amount);
+
+            pointer.axis(state, frame);
         }
     }
 
@@ -391,17 +394,16 @@ impl InputManager {
             // Note: These are Linux key codes, not ASCII
             30 => Some(b'a'),
             48 => Some(b'b'),
-            46 => Some(b'c'), // Added 'c' (missing in original?) - wait, 46 is 'c' or ctrl+c? 
+            46 => Some(b'c'), // Added 'c' (missing in original?) - wait, 46 is 'c' or ctrl+c?
             // Original code had 46 as Ctrl+C/Copy so it returned None there.
             // If modifier is not checked here, 46 is 'c'.
             // The caller handles Ctrl state usually?
             // route_keyboard_to_console checks Ctrl for shortcuts separately in app.rs
             // But here raw 46 is 'c'.
-            // Let's stick to strict map. 
+            // Let's stick to strict map.
             // If I map 46->'c', then if Ctrl is held, it might be Ctrl+C.
             // But this function maps keycode to ascii char associated with the key.
             // 'c' is 46.
-            
             32 => Some(b'd'),
             18 => Some(b'e'),
             33 => Some(b'f'),
@@ -422,7 +424,6 @@ impl InputManager {
             22 => Some(b'u'),
             // 'v' missing? 47 is 'v'.
             // 47 => Some(b'v'), // same check as 'c'
-            
             17 => Some(b'w'),
             45 => Some(b'x'),
             21 => Some(b'y'),
@@ -526,7 +527,8 @@ impl InputManager {
     /// Phase 38: Check for execution shortcuts (Ctrl+Enter)
     pub fn check_execution_shortcuts(&self, key_code: u32) -> Option<u8> {
         // Ctrl+Enter = Execute current buffer/selection
-        if self.is_ctrl_pressed() && key_code == 28 { // Enter key
+        if self.is_ctrl_pressed() && key_code == 28 {
+            // Enter key
             return Some(147); // Execute command
         }
         None
@@ -536,14 +538,19 @@ impl InputManager {
     pub fn check_crystallize_shortcuts(&self, key_code: u32) -> Option<u8> {
         // F5 = Crystallize (Convert text to RTS PNG)
         // F5 key code is 63 in Linux input event codes
-        if key_code == 63 { // F5 key
+        if key_code == 63 {
+            // F5 key
             return Some(148); // Crystallize command
         }
         None
     }
 
     /// Phase 30.6: Route keyboard input to VM console (when VM window focused)
-    pub fn route_keyboard_to_console(&mut self, key_code: u32, key_state: smithay::backend::input::KeyState) {
+    pub fn route_keyboard_to_console(
+        &mut self,
+        key_code: u32,
+        key_state: smithay::backend::input::KeyState,
+    ) {
         // Only process key press events
         if key_state != smithay::backend::input::KeyState::Pressed {
             return;
@@ -557,26 +564,30 @@ impl InputManager {
             // But if I just press 'c', I want 'c'.
             // The safest is to map them in 'map_scancode_to_ascii' but include an argument for modifiers?
             // Or just check here.
-            
+
             let input_byte = if key_code == 46 || key_code == 47 {
                 // If we want to allow typing 'c' and 'v', we should allow them.
-                // Ctrl+C/V handling is upstream in app.rs. 
+                // Ctrl+C/V handling is upstream in app.rs.
                 // If it wasn't intercepted there, it falls through here.
                 // So here it means just 'c' or 'v'.
                 match key_code {
                     46 => Some(b'c'),
                     47 => Some(b'v'),
-                    _ => None
+                    _ => None,
                 }
             } else {
                 self.map_scancode_to_ascii(key_code)
             };
-            
+
             // Write to VM console input buffer
             if let Some(byte) = input_byte {
                 let mut buffer = vm_console_input.lock().unwrap();
                 buffer.push(byte);
-                log::debug!("📝 Keyboard routed to VM console: {} (0x{:02x})", byte as char, byte);
+                log::debug!(
+                    "📝 Keyboard routed to VM console: {} (0x{:02x})",
+                    byte as char,
+                    byte
+                );
             }
         }
     }
@@ -598,7 +609,10 @@ impl InputManager {
                 return None;
             }
             let data: Vec<u8> = buffer.drain(..).collect();
-            log::debug!("📤 Retrieved {} bytes from console input buffer", data.len());
+            log::debug!(
+                "📤 Retrieved {} bytes from console input buffer",
+                data.len()
+            );
             Some(data)
         } else {
             None
@@ -621,7 +635,7 @@ impl InputManager {
             false
         }
     }
-    
+
     /// Phase 31: Check if Ctrl key is pressed
     pub fn is_ctrl_pressed(&self) -> bool {
         if let Some(keyboard) = self.seat.get_keyboard() {
@@ -630,7 +644,7 @@ impl InputManager {
             false
         }
     }
-    
+
     /// Phase 31: Handle clipboard copy operation (Ctrl+C)
     pub fn handle_clipboard_copy(&mut self) {
         if let Some(_clipboard_manager) = &self.clipboard_manager {
@@ -640,7 +654,7 @@ impl InputManager {
             log::debug!("📋 Clipboard copy requested");
         }
     }
-    
+
     /// Phase 31: Handle clipboard paste operation (Ctrl+V)
     /// Returns the text to paste, or None if clipboard is empty
     pub fn handle_clipboard_paste(&mut self) -> Option<String> {
@@ -654,7 +668,7 @@ impl InputManager {
         }
         None
     }
-    
+
     /// Phase 31: Paste text to VM console input buffer
     pub fn paste_to_console(&mut self, text: &str) {
         if let Some(vm_console_input) = &self.vm_console_input {
@@ -761,27 +775,27 @@ impl InputManager {
         if self.is_ctrl_pressed() && self.is_shift_pressed() && key_code == 35 {
             return Some(149); // Enter Hex Mode with alpine.rts
         }
-        
+
         // Ctrl+F (Key code 33) = Toggle Search
         if self.is_ctrl_pressed() && key_code == 33 {
             return Some(150);
         }
-        
+
         // Ctrl+G (Key code 34) = Find Next
         if self.is_ctrl_pressed() && !self.is_shift_pressed() && key_code == 34 {
             return Some(151);
         }
-        
+
         // Ctrl+Shift+G (Key code 34) = Find Prev
         if self.is_ctrl_pressed() && self.is_shift_pressed() && key_code == 34 {
             return Some(152);
         }
-        
+
         // Ctrl+Shift+A (Key code 30) = Neural Consult
         if self.is_ctrl_pressed() && self.is_shift_pressed() && key_code == 30 {
             return Some(153);
         }
-        
+
         None
     }
 

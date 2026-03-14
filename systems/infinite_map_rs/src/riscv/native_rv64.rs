@@ -129,11 +129,8 @@ impl NativeRv64Executor {
         self.ram_buffer = Some(self.device.alloc_buffer(ram_size, true)?);
 
         // Upload program to VRAM
-        self.device.write_buffer(
-            self.ram_buffer.unwrap(),
-            0,
-            rgba.as_raw(),
-        )?;
+        self.device
+            .write_buffer(self.ram_buffer.unwrap(), 0, rgba.as_raw())?;
 
         // Allocate state buffer
         let state_size = std::mem::size_of::<Riscv64State>() as u64;
@@ -141,16 +138,13 @@ impl NativeRv64Executor {
 
         // Initialize state
         self.state = Riscv64State::new(0x80000000); // Entry at RAM base
-        self.device.write_buffer(
-            self.state_buffer.unwrap(),
-            0,
-            unsafe {
+        self.device
+            .write_buffer(self.state_buffer.unwrap(), 0, unsafe {
                 std::slice::from_raw_parts(
                     &self.state as *const Riscv64State as *const u8,
                     std::mem::size_of::<Riscv64State>(),
                 )
-            },
-        )?;
+            })?;
 
         // Allocate console buffer (4KB)
         self.console_buffer = Some(self.device.alloc_buffer(4096, false)?);
@@ -181,7 +175,9 @@ impl NativeRv64Executor {
         // Get buffer addresses for push constants
         let ram_addr = self.device.get_buffer_address(self.ram_buffer.unwrap())?;
         let state_addr = self.device.get_buffer_address(self.state_buffer.unwrap())?;
-        let console_addr = self.device.get_buffer_address(self.console_buffer.unwrap())?;
+        let console_addr = self
+            .device
+            .get_buffer_address(self.console_buffer.unwrap())?;
 
         let push_constants = Rv64PushConstants {
             ram_addr,
@@ -202,20 +198,19 @@ impl NativeRv64Executor {
         self.device.dispatch_compute(
             self.shader_module.unwrap(),
             push_bytes,
-            1, 1, 1,  // Single workgroup for now
+            1,
+            1,
+            1, // Single workgroup for now
         )?;
 
         // Read back state
-        self.device.read_buffer(
-            self.state_buffer.unwrap(),
-            0,
-            unsafe {
+        self.device
+            .read_buffer(self.state_buffer.unwrap(), 0, unsafe {
                 std::slice::from_raw_parts_mut(
                     &mut self.state as *mut Riscv64State as *mut u8,
                     std::mem::size_of::<Riscv64State>(),
                 )
-            },
-        )?;
+            })?;
 
         Ok(self.state)
     }
@@ -223,34 +218,33 @@ impl NativeRv64Executor {
     /// Read console output
     pub fn read_console(&self) -> Result<Vec<u8>> {
         let mut buffer = vec![0u8; 4096];
-        self.device.read_buffer(
-            self.console_buffer.unwrap(),
-            0,
-            &mut buffer,
-        )?;
+        self.device
+            .read_buffer(self.console_buffer.unwrap(), 0, &mut buffer)?;
         Ok(buffer)
     }
 }
 
 /// Compile GLSL to SPIR-V using naga
 fn compile_glsl_to_spirv(source: &str, _kind: ()) -> Result<Vec<u32>> {
-    use naga::front::glsl;
     use naga::back::spv;
+    use naga::front::glsl;
 
     let mut parser = glsl::Frontend::default();
     let options = glsl::Options {
         stage: naga::ShaderStage::Compute,
         defines: naga::FastHashMap::default(),
     };
-    
-    let module = parser.parse(&options, source)
+
+    let module = parser
+        .parse(&options, source)
         .map_err(|e| anyhow::anyhow!("GLSL Parse Error: {:?}", e))?;
 
     let mut validator = naga::valid::Validator::new(
         naga::valid::ValidationFlags::all(),
         naga::valid::Capabilities::all(),
     );
-    let info = validator.validate(&module)
+    let info = validator
+        .validate(&module)
         .map_err(|e| anyhow::anyhow!("Validation Error: {:?}", e))?;
 
     let spv_options = spv::Options {
@@ -258,7 +252,7 @@ fn compile_glsl_to_spirv(source: &str, _kind: ()) -> Result<Vec<u32>> {
         flags: spv::WriterFlags::empty(),
         ..Default::default()
     };
-    
+
     let spirv = spv::write_vec(&module, &info, &spv_options, None)
         .map_err(|e| anyhow::anyhow!("SPIR-V Write Error: {:?}", e))?;
 
@@ -275,8 +269,8 @@ mod tests {
         assert_eq!(std::mem::size_of::<Riscv64State>(), 64 * 21 + 8);
     }
 }
-    #[test]
-    fn test_state_size() {
-        let state = Riscv64State::default();
-        assert_eq!(std::mem::size_of::<Riscv64State>(), 424);
-    }
+#[test]
+fn test_state_size() {
+    let state = Riscv64State::default();
+    assert_eq!(std::mem::size_of::<Riscv64State>(), 424);
+}

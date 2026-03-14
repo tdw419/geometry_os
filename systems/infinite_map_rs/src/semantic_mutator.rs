@@ -4,7 +4,7 @@
 //! Instead of random bit flips, this performs semantic code transformations
 //! that maintain functionality while exploring optimization opportunities.
 
-use crate::tile::{Tile, Genotype};
+use crate::tile::{Genotype, Tile};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -86,7 +86,8 @@ Provide an optimized version that:
 4. Maintains the same functionality
 
 Return only the optimized code, no explanations.
-"#.to_string(),
+"#
+                .to_string(),
                 target_files: vec!["*.rs".to_string()],
                 success_rate: 0.7,
             },
@@ -110,7 +111,8 @@ Make these improvements:
 4. Handle edge cases better
 
 Return only the improved code.
-"#.to_string(),
+"#
+                .to_string(),
                 target_files: vec!["*.rs".to_string()],
                 success_rate: 0.8,
             },
@@ -134,7 +136,8 @@ Optimize for:
 4. Algorithm improvements
 
 Return only the optimized code.
-"#.to_string(),
+"#
+                .to_string(),
                 target_files: vec!["*.rs".to_string()],
                 success_rate: 0.6,
             },
@@ -154,22 +157,31 @@ Requested feature: {feature_request}
 
 Add the feature while maintaining compatibility and following Rust best practices.
 Return only the enhanced code.
-"#.to_string(),
+"#
+                .to_string(),
                 target_files: vec!["*.rs".to_string()],
                 success_rate: 0.5,
             },
         ];
 
         for template in templates {
-            self.mutation_templates.insert(template.name.clone(), template);
+            self.mutation_templates
+                .insert(template.name.clone(), template);
         }
     }
 
     /// Perform semantic mutation on a tile
-    pub async fn mutate_tile(&mut self, tile: &mut Tile, mutation_type: &str) -> Result<bool, String> {
+    pub async fn mutate_tile(
+        &mut self,
+        tile: &mut Tile,
+        mutation_type: &str,
+    ) -> Result<bool, String> {
         // Select target file from genotype
         let target_file = self.select_target_file(&tile.genotype)?;
-        let current_code = tile.genotype.source_code.get(&target_file)
+        let current_code = tile
+            .genotype
+            .source_code
+            .get(&target_file)
             .ok_or_else(|| format!("Target file {} not found in genotype", target_file))?;
 
         // Prepare mutation request
@@ -186,13 +198,18 @@ Return only the enhanced code.
 
         if response.success && self.validate_mutation(&response.mutated_code) {
             // Apply the mutation
-            tile.genotype.source_code.insert(target_file, response.mutated_code);
+            tile.genotype
+                .source_code
+                .insert(target_file, response.mutated_code);
             tile.genotype.generation += 1;
 
             // Update stats
             self.update_stats(mutation_type, true, 0.1); // Assume 10% improvement
 
-            tile.log("info", &format!("Applied {} mutation via LLM", mutation_type));
+            tile.log(
+                "info",
+                &format!("Applied {} mutation via LLM", mutation_type),
+            );
             Ok(true)
         } else {
             self.update_stats(mutation_type, false, 0.0);
@@ -204,7 +221,9 @@ Return only the enhanced code.
     /// Select appropriate target file for mutation
     fn select_target_file(&self, genotype: &Genotype) -> Result<String, String> {
         // Simple selection: pick the largest file
-        genotype.source_code.iter()
+        genotype
+            .source_code
+            .iter()
             .max_by_key(|(_, code)| code.len())
             .map(|(filename, _)| filename.clone())
             .ok_or_else(|| "No source files in genotype".to_string())
@@ -214,12 +233,21 @@ Return only the enhanced code.
     fn build_context(&self, tile: &Tile) -> HashMap<String, String> {
         let mut context = HashMap::new();
         context.insert("species".to_string(), tile.species.clone());
-        context.insert("generation".to_string(), tile.genotype.generation.to_string());
-        context.insert("fitness".to_string(), format!("{:.2}", tile.fitness.overall));
+        context.insert(
+            "generation".to_string(),
+            tile.genotype.generation.to_string(),
+        );
+        context.insert(
+            "fitness".to_string(),
+            format!("{:.2}", tile.fitness.overall),
+        );
         context.insert("vitality".to_string(), format!("{:.2}", tile.vitality));
 
         // Add recent logs
-        let recent_logs: Vec<String> = tile.epigenetics.logs.iter()
+        let recent_logs: Vec<String> = tile
+            .epigenetics
+            .logs
+            .iter()
             .rev()
             .take(5)
             .map(|log| format!("[{}] {}", log.level, log.message))
@@ -230,11 +258,16 @@ Return only the enhanced code.
     }
 
     /// Call LLM for mutation (mock implementation)
-    async fn call_llm_mutation(&self, request: &MutationRequest) -> Result<MutationResponse, String> {
+    async fn call_llm_mutation(
+        &self,
+        request: &MutationRequest,
+    ) -> Result<MutationResponse, String> {
         // In a real implementation, this would make HTTP request to LLM API
         // For now, return a mock response
 
-        let template = self.mutation_templates.get(&request.mutation_type)
+        let template = self
+            .mutation_templates
+            .get(&request.mutation_type)
             .ok_or_else(|| format!("Unknown mutation type: {}", request.mutation_type))?;
 
         // Simulate LLM response
@@ -249,12 +282,21 @@ Return only the enhanced code.
     }
 
     /// Simulate LLM response (placeholder)
-    fn simulate_llm_response(&self, request: &MutationRequest, template: &MutationTemplate) -> String {
+    fn simulate_llm_response(
+        &self,
+        request: &MutationRequest,
+        template: &MutationTemplate,
+    ) -> String {
         // Simple simulation: add a comment indicating the mutation
-        format!("// LLM Mutation: {}\n// Original fitness: {}\n{}",
-                request.mutation_type,
-                request.context.get("fitness").unwrap_or(&"unknown".to_string()),
-                request.current_code)
+        format!(
+            "// LLM Mutation: {}\n// Original fitness: {}\n{}",
+            request.mutation_type,
+            request
+                .context
+                .get("fitness")
+                .unwrap_or(&"unknown".to_string()),
+            request.current_code
+        )
     }
 
     /// Validate that mutated code compiles and is semantically sound
@@ -320,7 +362,9 @@ Return only the enhanced code.
 
     /// Update mutation statistics
     fn update_stats(&mut self, mutation_type: &str, success: bool, improvement: f64) {
-        let stats = self.mutation_stats.entry(mutation_type.to_string())
+        let stats = self
+            .mutation_stats
+            .entry(mutation_type.to_string())
             .or_insert(MutationStats {
                 attempts: 0,
                 successes: 0,
@@ -330,7 +374,9 @@ Return only the enhanced code.
         stats.attempts += 1;
         if success {
             stats.successes += 1;
-            stats.avg_improvement = (stats.avg_improvement * (stats.successes - 1) as f64 + improvement) / stats.successes as f64;
+            stats.avg_improvement = (stats.avg_improvement * (stats.successes - 1) as f64
+                + improvement)
+                / stats.successes as f64;
         }
     }
 

@@ -1,8 +1,7 @@
 /// Morphology - Geometric transformation commands
-/// 
+///
 /// Defines the command language for manipulating the visual substrate
-
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Commands that modify the geometric substrate
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15,7 +14,7 @@ pub enum MorphologyCommand {
         /// Animation duration in seconds
         duration: f32,
     },
-    
+
     /// Adjust aesthetic parameters
     AdjustAesthetics {
         /// Chaos factor (0.0-1.0)
@@ -25,7 +24,7 @@ pub enum MorphologyCommand {
         /// Saturation multiplier (0.0-2.0)
         saturation: Option<f32>,
     },
-    
+
     /// Create a new brick at location
     CreateBrick {
         x: f32,
@@ -34,7 +33,7 @@ pub enum MorphologyCommand {
         /// Description for AI generation
         description: String,
     },
-    
+
     /// Highlight specific regions
     Highlight {
         /// Center coordinates
@@ -46,7 +45,7 @@ pub enum MorphologyCommand {
         /// Duration in seconds (None = permanent)
         duration: Option<f32>,
     },
-    
+
     /// Adjust camera parameters
     CameraControl {
         /// Field of view in degrees
@@ -56,7 +55,7 @@ pub enum MorphologyCommand {
         /// Camera distance from target
         distance: Option<f32>,
     },
-    
+
     /// Spawn a visual effect
     SpawnEffect {
         /// Effect type
@@ -66,7 +65,7 @@ pub enum MorphologyCommand {
         /// Scale multiplier
         scale: f32,
     },
-    
+
     /// Query information about a region
     Query {
         /// Query type
@@ -106,7 +105,7 @@ pub enum QueryType {
 pub struct MorphologyExecutor {
     /// Command history
     history: Vec<MorphologyCommand>,
-    
+
     /// Maximum history size
     max_history: usize,
 }
@@ -119,69 +118,97 @@ impl MorphologyExecutor {
             max_history: 100,
         }
     }
-    
+
     /// Execute a morphology command
     pub async fn execute(&mut self, command: MorphologyCommand) -> Result<(), String> {
         log::info!("🔮 Morphology: Executing {:?}", command);
-        
+
         // Add to history
         self.history.push(command.clone());
         if self.history.len() > self.max_history {
             self.history.remove(0);
         }
-        
+
         // Execute based on command type
         match command {
             MorphologyCommand::Navigate { x, y, z, duration } => {
                 self.execute_navigate(x, y, z, duration).await
-            }
-            MorphologyCommand::AdjustAesthetics { chaos, temperature, saturation } => {
-                self.execute_aesthetics(chaos, temperature, saturation).await
-            }
-            MorphologyCommand::CreateBrick { x, y, z, description } => {
-                self.execute_create_brick(x, y, z, description).await
-            }
-            MorphologyCommand::Highlight { center, radius, color, duration } => {
-                self.execute_highlight(center, radius, color, duration).await
-            }
-            MorphologyCommand::CameraControl { fov, target, distance } => {
-                self.execute_camera_control(fov, target, distance).await
-            }
-            MorphologyCommand::SpawnEffect { effect, position, scale } => {
-                self.execute_spawn_effect(effect, position, scale).await
-            }
+            },
+            MorphologyCommand::AdjustAesthetics {
+                chaos,
+                temperature,
+                saturation,
+            } => {
+                self.execute_aesthetics(chaos, temperature, saturation)
+                    .await
+            },
+            MorphologyCommand::CreateBrick {
+                x,
+                y,
+                z,
+                description,
+            } => self.execute_create_brick(x, y, z, description).await,
+            MorphologyCommand::Highlight {
+                center,
+                radius,
+                color,
+                duration,
+            } => {
+                self.execute_highlight(center, radius, color, duration)
+                    .await
+            },
+            MorphologyCommand::CameraControl {
+                fov,
+                target,
+                distance,
+            } => self.execute_camera_control(fov, target, distance).await,
+            MorphologyCommand::SpawnEffect {
+                effect,
+                position,
+                scale,
+            } => self.execute_spawn_effect(effect, position, scale).await,
             MorphologyCommand::Query { query_type, target } => {
                 self.execute_query(query_type, target).await
-            }
+            },
         }
     }
-    
+
     // Individual execution methods (stubs for now)
-    
+
     async fn execute_navigate(&self, x: f32, y: f32, z: f32, duration: f32) -> Result<(), String> {
         log::info!("📍 Navigate to ({}, {}, {}) over {}s", x, y, z, duration);
         // TODO: Send to camera controller
         Ok(())
     }
-    
+
     async fn execute_aesthetics(
         &self,
         chaos: Option<f32>,
         temperature: Option<f32>,
         saturation: Option<f32>,
     ) -> Result<(), String> {
-        log::info!("🎨 Adjust aesthetics: chaos={:?}, temp={:?}, sat={:?}", 
-                   chaos, temperature, saturation);
+        log::info!(
+            "🎨 Adjust aesthetics: chaos={:?}, temp={:?}, sat={:?}",
+            chaos,
+            temperature,
+            saturation
+        );
         // TODO: Send to renderer
         Ok(())
     }
-    
-    async fn execute_create_brick(&self, x: f32, y: f32, z: f32, description: String) -> Result<(), String> {
+
+    async fn execute_create_brick(
+        &self,
+        x: f32,
+        y: f32,
+        z: f32,
+        description: String,
+    ) -> Result<(), String> {
         log::info!("🧱 Create brick at ({}, {}, {}): {}", x, y, z, description);
         // TODO: Send to brick generator
         Ok(())
     }
-    
+
     async fn execute_highlight(
         &self,
         center: (f32, f32, f32),
@@ -189,23 +216,32 @@ impl MorphologyExecutor {
         color: [f32; 4],
         duration: Option<f32>,
     ) -> Result<(), String> {
-        log::info!("✨ Highlight at {:?}, radius={}, duration={:?}", center, radius, duration);
+        log::info!(
+            "✨ Highlight at {:?}, radius={}, duration={:?}",
+            center,
+            radius,
+            duration
+        );
         // TODO: Send to effect system
         Ok(())
     }
-    
+
     async fn execute_camera_control(
         &self,
         fov: Option<f32>,
         target: Option<(f32, f32, f32)>,
         distance: Option<f32>,
     ) -> Result<(), String> {
-        log::info!("📷 Camera control: fov={:?}, target={:?}, distance={:?}", 
-                   fov, target, distance);
+        log::info!(
+            "📷 Camera control: fov={:?}, target={:?}, distance={:?}",
+            fov,
+            target,
+            distance
+        );
         // TODO: Send to camera controller
         Ok(())
     }
-    
+
     async fn execute_spawn_effect(
         &self,
         effect: EffectType,
@@ -216,7 +252,7 @@ impl MorphologyExecutor {
         // TODO: Send to effect system
         Ok(())
     }
-    
+
     async fn execute_query(
         &self,
         query_type: QueryType,
@@ -226,7 +262,7 @@ impl MorphologyExecutor {
         // TODO: Query system state
         Ok(())
     }
-    
+
     /// Get command history
     pub fn get_history(&self) -> &[MorphologyCommand] {
         &self.history

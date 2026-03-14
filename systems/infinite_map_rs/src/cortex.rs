@@ -48,7 +48,7 @@ impl CortexBridge {
             Err(e) => {
                 eprintln!("Cortex: Failed to open SHM {}: {}", path, e);
                 return None;
-            }
+            },
         };
 
         let mmap = unsafe {
@@ -57,7 +57,7 @@ impl CortexBridge {
                 Err(e) => {
                     eprintln!("Cortex: Failed to mmap {}: {}", path, e);
                     return None;
-                }
+                },
             }
         };
 

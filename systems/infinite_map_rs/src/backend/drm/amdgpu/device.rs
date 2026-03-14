@@ -69,7 +69,12 @@ impl AmdGpuDevice {
         let gpu_addr = 0x100000000u64 + (handle as u64 * 0x10000000u64);
         self.buffers.insert(handle, (gpu_addr, size));
 
-        log::info!("Allocated buffer {} of size {} at {:#x}", handle, size, gpu_addr);
+        log::info!(
+            "Allocated buffer {} of size {} at {:#x}",
+            handle,
+            size,
+            gpu_addr
+        );
         Ok(handle)
     }
 
@@ -144,7 +149,9 @@ impl AmdGpuDevice {
             "Dispatching shader {} with {} byte push constants, workgroups ({}, {}, {})",
             shader,
             push_constants.len(),
-            x, y, z
+            x,
+            y,
+            z
         );
 
         // In a real implementation, this would:

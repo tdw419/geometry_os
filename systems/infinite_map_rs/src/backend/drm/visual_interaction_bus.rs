@@ -187,10 +187,12 @@ impl VisualInteractionBus {
     ///
     /// Use this to bind the Visual Interaction Bus to a compute pipeline.
     pub fn as_bind_group_entry(&self, binding: u32) -> Option<wgpu::BindGroupEntry> {
-        self.input_buffer.as_ref().map(|buffer| wgpu::BindGroupEntry {
-            binding,
-            resource: buffer.as_entire_binding(),
-        })
+        self.input_buffer
+            .as_ref()
+            .map(|buffer| wgpu::BindGroupEntry {
+                binding,
+                resource: buffer.as_entire_binding(),
+            })
     }
 }
 

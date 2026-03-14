@@ -1,8 +1,8 @@
+use crate::cognitive::entity_type::EntityType;
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use parking_lot::RwLock;
-use crate::cognitive::entity_type::EntityType;
 
 /// Manages the lifecycle of cognitive entities
 pub struct CognitiveEntityManager {
@@ -19,10 +19,10 @@ pub struct ACEEntity {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EntityState {
-    Dormant,      // Loaded but not running
-    Booting,      // Initializing
-    Active,       // Running and thinking
-    Suspended,    // Paused
+    Dormant,       // Loaded but not running
+    Booting,       // Initializing
+    Active,        // Running and thinking
+    Suspended,     // Paused
     Error(String), // Failed state
 }
 
@@ -35,12 +35,15 @@ impl CognitiveEntityManager {
 
     pub fn register_entity(&self, id: String, texture_path: PathBuf, entity_type: EntityType) {
         let mut entities = self.entities.write();
-        entities.insert(id.clone(), ACEEntity {
-            id,
-            texture_path,
-            state: EntityState::Dormant,
-            entity_type,
-        });
+        entities.insert(
+            id.clone(),
+            ACEEntity {
+                id,
+                texture_path,
+                state: EntityState::Dormant,
+                entity_type,
+            },
+        );
     }
 
     pub fn set_state(&self, id: &str, state: EntityState) {

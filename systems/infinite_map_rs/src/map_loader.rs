@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 use std::time::SystemTime;
-use std::fs;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BrickEntry {
@@ -32,8 +32,9 @@ impl MapLoader {
 
         let metadata = fs::metadata(&self.manifest_path)
             .map_err(|e| format!("Failed to read metadata: {}", e))?;
-        
-        let modified = metadata.modified()
+
+        let modified = metadata
+            .modified()
             .map_err(|e| format!("Failed to get modification time: {}", e))?;
 
         if self.last_modified.is_none() || Some(modified) != self.last_modified {
@@ -49,7 +50,7 @@ impl MapLoader {
     fn load_manifest(&mut self) -> Result<(), String> {
         let content = fs::read_to_string(&self.manifest_path)
             .map_err(|e| format!("Failed to read manifest: {}", e))?;
-        
+
         if content.trim().is_empty() {
             return Ok(());
         }
@@ -58,10 +59,10 @@ impl MapLoader {
         let raw_entries: HashMap<String, BrickEntry> = match serde_json::from_str(&content) {
             Ok(entries) => entries,
             Err(e) => {
-                // If parsing fails (e.g. valid JSON but empty or schema mismatch), log warn and return 
+                // If parsing fails (e.g. valid JSON but empty or schema mismatch), log warn and return
                 log::warn!("MapLoader: JSON parse error: {}", e);
                 return Err(e.to_string());
-            }
+            },
         };
 
         // Convert to (i32, i32) keys
@@ -69,13 +70,19 @@ impl MapLoader {
         for (key, entry) in raw_entries {
             let coords: Vec<&str> = key.split(',').collect();
             if coords.len() == 2 {
-                if let (Ok(x), Ok(y)) = (coords[0].trim().parse::<i32>(), coords[1].trim().parse::<i32>()) {
+                if let (Ok(x), Ok(y)) = (
+                    coords[0].trim().parse::<i32>(),
+                    coords[1].trim().parse::<i32>(),
+                ) {
                     self.entries.insert((x, y), entry);
                 }
             }
         }
-        
-        log::info!("🗺️  MapLoader: Loaded {} tiles from manifest", self.entries.len());
+
+        log::info!(
+            "🗺️  MapLoader: Loaded {} tiles from manifest",
+            self.entries.len()
+        );
         Ok(())
     }
 }

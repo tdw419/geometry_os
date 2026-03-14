@@ -1,19 +1,19 @@
 use axum::{
     extract::{Path, Query, State},
     response::{IntoResponse, Response},
-    routing::{get, post, delete},
+    routing::{delete, get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 // use rand::Rng;
-use tower_http::cors::{CorsLayer};
-use axum::http::{header, Method, HeaderValue};
-use image::{ImageBuffer, Rgba};
-use std::io::Cursor;
 use crate::map_loader::MapLoader;
 use crate::synapse::{Synapse, SynapticLayer};
+use axum::http::{header, HeaderValue, Method};
+use image::{ImageBuffer, Rgba};
+use std::io::Cursor;
+use tower_http::cors::CorsLayer;
 
 /// Terminal spawn request (Phase 3: Terminal Clone Integration)
 #[derive(Clone, Debug, Default)]
@@ -133,14 +133,14 @@ pub struct TransmuteResponse {
 // ... (Structs ChunkQuery, TileData, ChunkResponse, ChunkMetadata remain same)
 
 pub async fn start_api_server(
-    port: u16, 
-    map_path: std::path::PathBuf, 
+    port: u16,
+    map_path: std::path::PathBuf,
     runtime_state: Arc<Mutex<RuntimeState>>,
     synaptic_layer: Arc<Mutex<SynapticLayer>>,
     // glyph_stratum_engine: Arc<Mutex<crate::glyph_stratum::GlyphStratumEngine>>,
 ) {
     let map_loader = Arc::new(Mutex::new(MapLoader::new(map_path)));
-    
+
     // Initial load
     if let Ok(mut loader) = map_loader.lock() {
         let _ = loader.check_updates();
@@ -153,7 +153,7 @@ pub async fn start_api_server(
         // glyph_stratum_engine,
     };
 
-use tower_http::services::ServeDir;
+    use tower_http::services::ServeDir;
 
     // SECURITY: Configure restrictive CORS instead of permissive
     // In production, replace "localhost" origins with actual allowed origins
@@ -163,7 +163,7 @@ use tower_http::services::ServeDir;
         "http://127.0.0.1:3000".parse::<HeaderValue>().unwrap(),
         "http://127.0.0.1:8080".parse::<HeaderValue>().unwrap(),
     ];
-    
+
     let cors = CorsLayer::new()
         .allow_origin(allowed_origins)
         .allow_methods([Method::GET, Method::POST, Method::DELETE, Method::OPTIONS])
@@ -205,9 +205,9 @@ use tower_http::services::ServeDir;
         Err(e) => {
             log::error!("Failed to bind to {}: {}", addr, e);
             return;
-        }
+        },
     };
-    
+
     if let Err(e) = axum::serve(listener, app).await {
         log::error!("Server error: {}", e);
     }
@@ -226,41 +226,51 @@ pub async fn handle_glyph_place(
     State(_state): State<AppState>,
     Json(_payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    Json(serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }))
+    Json(
+        serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }),
+    )
 }
 
 pub async fn handle_glyph_query(
     State(_state): State<AppState>,
     Query(_params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    Json(serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }))
+    Json(
+        serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }),
+    )
 }
 
-pub async fn handle_glyph_summary(
-    State(_state): State<AppState>,
-) -> impl IntoResponse {
-    Json(serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }))
+pub async fn handle_glyph_summary(State(_state): State<AppState>) -> impl IntoResponse {
+    Json(
+        serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }),
+    )
 }
 
 pub async fn handle_glyph_repair(
     State(_state): State<AppState>,
     Json(_payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    Json(serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }))
+    Json(
+        serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }),
+    )
 }
 
 pub async fn handle_glyph_scan(
     State(_state): State<AppState>,
     Json(_payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    Json(serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }))
+    Json(
+        serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }),
+    )
 }
 
 pub async fn handle_cosmic_rays(
     State(_state): State<AppState>,
     Json(_payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    Json(serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }))
+    Json(
+        serde_json::json!({ "success": false, "message": "GlyphStratum unimplemented for benchmark" }),
+    )
 }
 
 async fn health_check() -> impl IntoResponse {
@@ -276,7 +286,7 @@ async fn get_chunk(
     let size = params.size.unwrap_or(16);
 
     let mut tiles = HashMap::new();
-    
+
     // Lock map loader to get data
     {
         let mut loader = state.map_loader.lock().unwrap();
@@ -287,7 +297,7 @@ async fn get_chunk(
         // Iterate tiles in this chunk
         // MapLoader stores (x,y) -> BrickEntry
         // We need to find tiles in range [chunk_x*size .. (chunk_x+1)*size]
-        
+
         let min_x = chunk_x * size;
         let min_y = chunk_y * size;
         let max_x = min_x + size;
@@ -301,26 +311,29 @@ async fn get_chunk(
             for y in min_y..max_y {
                 if let Some(entry) = loader.entries.get(&(x, y)) {
                     let key = format!("{},{}", x, y);
-                    tiles.insert(key, TileData {
-                        x,
-                        y,
-                        brick: entry.brick.clone(),
-                        timestamp: entry.timestamp as u64,
-                    });
+                    tiles.insert(
+                        key,
+                        TileData {
+                            x,
+                            y,
+                            brick: entry.brick.clone(),
+                            timestamp: entry.timestamp as u64,
+                        },
+                    );
                 }
             }
         }
     }
-    
+
     // If we are at Antigravity Prime (819200, 819200) area (approx 8192, 8192 in chunk coords if grid=100?)
     // Wait, coordinate systems:
     // User JS: initialX: 819200, initialY: 819200.
     // Chunk size 16. Grid size 100.
     // If x=819200 is PIXELS, and grid is 100, then TILE coord is 8192.
-    // Chunk coord is 8192 / 16 = 512. 
+    // Chunk coord is 8192 / 16 = 512.
     // Wait, 8192 * 100 = 819200.
     // So TILE x=8192. Chunk x=512.
-    
+
     // Add procedural tiles for Antigravity Prime if empty?
     if tiles.is_empty() {
         // Optional: procedural fallback like mock_server
@@ -332,7 +345,10 @@ async fn get_chunk(
         chunkY: chunk_y,
         tiles,
         metadata: ChunkMetadata {
-            generated_at: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs(),
+            generated_at: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
             version: "1.0-rust".to_string(),
         },
     };
@@ -355,7 +371,7 @@ pub struct PointOfInterest {
 
 async fn scan_world(State(state): State<AppState>) -> impl IntoResponse {
     let mut poi = Vec::new();
-    
+
     // Get focused ID
     let focused_id = if let Ok(rs) = state.runtime_state.lock() {
         rs.focused_id.clone()
@@ -373,12 +389,12 @@ async fn scan_world(State(state): State<AppState>) -> impl IntoResponse {
             });
         }
     }
-    
+
     // Always add the Alpine VM location if running (Hack for now, usually it's a window)
     // In a real system, we'd query window manager too.
-    poi.push(PointOfInterest { 
-        x: 1200, 
-        y: 0, 
+    poi.push(PointOfInterest {
+        x: 1200,
+        y: 0,
         brick: "Alpine_VM".to_string(),
         is_focused: focused_id.as_deref() == Some("Alpine_VM"),
     });
@@ -392,27 +408,27 @@ async fn get_texture(Path(brick): Path<String>) -> Response {
 
     // Color logic
     let color = match brick.as_str() {
-        "system_core" => Rgba([0, 255, 255, 255]),      // Cyan
-        "data_block" => Rgba([0, 0, 255, 255]),         // Blue
-        "neural_link" => Rgba([255, 0, 255, 255]),      // Magenta
-        "memory_cell" => Rgba([255, 255, 0, 255]),       // Yellow
-        "processing_unit" => Rgba([255, 0, 0, 255]),     // Red
-        "storage_sector" => Rgba([0, 255, 0, 255]),      // Green
-        "network_node" => Rgba([128, 0, 128, 255]),     // Purple
-        "security_layer" => Rgba([255, 128, 0, 255]),     // Orange
-        _ => Rgba([128, 128, 128, 255]),                // Gray
+        "system_core" => Rgba([0, 255, 255, 255]),    // Cyan
+        "data_block" => Rgba([0, 0, 255, 255]),       // Blue
+        "neural_link" => Rgba([255, 0, 255, 255]),    // Magenta
+        "memory_cell" => Rgba([255, 255, 0, 255]),    // Yellow
+        "processing_unit" => Rgba([255, 0, 0, 255]),  // Red
+        "storage_sector" => Rgba([0, 255, 0, 255]),   // Green
+        "network_node" => Rgba([128, 0, 128, 255]),   // Purple
+        "security_layer" => Rgba([255, 128, 0, 255]), // Orange
+        _ => Rgba([128, 128, 128, 255]),              // Gray
     };
 
     // Draw simple pattern
     for (x, y, pixel) in img.enumerate_pixels_mut() {
         // Border
-        if x < 2 || x >= size-2 || y < 2 || y >= size-2 {
+        if x < 2 || x >= size - 2 || y < 2 || y >= size - 2 {
             *pixel = color;
         } else if x > 20 && x < 80 && y > 20 && y < 80 {
-             // Inner square with alpha
-             let mut c = color.clone();
-             c.0[3] = 100;
-             *pixel = c;
+            // Inner square with alpha
+            let mut c = color.clone();
+            c.0[3] = 100;
+            *pixel = c;
         } else {
             *pixel = Rgba([17, 17, 17, 255]); // Background
         }
@@ -427,15 +443,15 @@ async fn get_texture(Path(brick): Path<String>) -> Response {
         for (x, y, pixel) in img.enumerate_pixels_mut() {
             let dx = x as i32 - cx;
             let dy = y as i32 - cy;
-            if (dx*dx + dy*dy) < r*r {
-                 *pixel = color;
+            if (dx * dx + dy * dy) < r * r {
+                *pixel = color;
             }
         }
     }
 
     let mut buffer = Cursor::new(Vec::new());
     img.write_to(&mut buffer, image::ImageFormat::Png).unwrap();
-    
+
     let body = axum::body::Body::from(buffer.into_inner());
 
     Response::builder()
@@ -474,7 +490,7 @@ async fn capture_frame(
     let mut attempts = 0;
     loop {
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-        
+
         let should_break = {
             let rs = state.runtime_state.lock().unwrap();
             rs.screenshot_data.is_some()
@@ -506,7 +522,7 @@ async fn capture_frame(
     // However, wgpu often pads rows to 256 bytes.
     // The Renderer implementation needs to handle unpadding.
     // Assuming 'data' is tightly packed RGBA here.
-    
+
     let mut buffer = Cursor::new(Vec::new());
     if let Err(e) = image::write_buffer_with_format(
         &mut buffer,
@@ -516,7 +532,7 @@ async fn capture_frame(
         image::ColorType::Rgba8,
         image::ImageFormat::Png,
     ) {
-         return Response::builder()
+        return Response::builder()
             .status(500)
             .body(axum::body::Body::from(format!("Encoding error: {}", e)))
             .unwrap();
@@ -539,19 +555,21 @@ async fn handle_transmute(
         "python" => "py",
         "javascript" | "js" => "js",
         "c" => "c",
-        _ => return Json(TransmuteResponse {
-            success: false,
-            message: "Unsupported language".to_string(),
-            artifact_path: None,
-            x: None,
-            y: None,
-        }),
+        _ => {
+            return Json(TransmuteResponse {
+                success: false,
+                message: "Unsupported language".to_string(),
+                artifact_path: None,
+                x: None,
+                y: None,
+            })
+        },
     };
 
     let filename = format!("temp_transmute.{}", ext);
     // Path relative to project root
     let filepath_rel = std::path::Path::new("systems/transmutation").join(&filename);
-    
+
     // We are running in systems/infinite_map_rs, need to go up to project root
     // But fs::write uses CWD. app is likely run from systems/infinite_map_rs
     let root_path = std::path::Path::new("../..");
@@ -579,48 +597,51 @@ async fn handle_transmute(
     let start_time = std::time::Instant::now();
     let output = std::process::Command::new("python3")
         .args(&[
-            "-m", "systems.transmutation.transmute",
+            "-m",
+            "systems.transmutation.transmute",
             filepath_rel.to_str().unwrap(),
             "--assemble",
-            "--link"
+            "--link",
         ])
-        .current_dir(root_path) 
+        .current_dir(root_path)
         .output();
-        
+
     let _duration = start_time.elapsed();
 
     match output {
         Ok(out) => {
             if out.status.success() {
                 // Check if artifact exists
-                 if artifact_path.exists() {
-                                         let abs_path = std::fs::canonicalize(&artifact_path).unwrap_or(artifact_path.clone());
-                                         let abs_path_str = abs_path.to_string_lossy().to_string();
-                     
-                                         let x = payload.cursor_x.unwrap_or(0); // Default X
-                                         let y = payload.cursor_y.unwrap_or(0); // Default Y
-                                          
-                                         // Set pending load along with coordinates
-                                         if let Ok(mut rs) = state.runtime_state.lock() {
-                                             rs.pending_load = Some(format!("{};{},{}", abs_path_str.clone(), x, y));
-                                         }
-                                          
-                                         Json(TransmuteResponse {
-                                             success: true,
-                                             message: "Transmutation successful. Artifact loaded.".to_string(),
-                                             artifact_path: Some(abs_path_str),
-                                             x: Some(x),
-                                             y: Some(y),
-                                         })
-                                     } else {
-                                         Json(TransmuteResponse {
-                                             success: false,
-                                             message: "Pipeline finished but artifact not found.".to_string(),
-                                             artifact_path: None,
-                                             x: None,
-                                             y: None,
-                                         })
-                                     }            } else {
+                if artifact_path.exists() {
+                    let abs_path =
+                        std::fs::canonicalize(&artifact_path).unwrap_or(artifact_path.clone());
+                    let abs_path_str = abs_path.to_string_lossy().to_string();
+
+                    let x = payload.cursor_x.unwrap_or(0); // Default X
+                    let y = payload.cursor_y.unwrap_or(0); // Default Y
+
+                    // Set pending load along with coordinates
+                    if let Ok(mut rs) = state.runtime_state.lock() {
+                        rs.pending_load = Some(format!("{};{},{}", abs_path_str.clone(), x, y));
+                    }
+
+                    Json(TransmuteResponse {
+                        success: true,
+                        message: "Transmutation successful. Artifact loaded.".to_string(),
+                        artifact_path: Some(abs_path_str),
+                        x: Some(x),
+                        y: Some(y),
+                    })
+                } else {
+                    Json(TransmuteResponse {
+                        success: false,
+                        message: "Pipeline finished but artifact not found.".to_string(),
+                        artifact_path: None,
+                        x: None,
+                        y: None,
+                    })
+                }
+            } else {
                 let stderr = String::from_utf8_lossy(&out.stderr);
                 Json(TransmuteResponse {
                     success: false,
@@ -630,16 +651,14 @@ async fn handle_transmute(
                     y: None,
                 })
             }
-        }
-        Err(e) => {
-            Json(TransmuteResponse {
-                success: false,
-                message: format!("Failed to execute transmutation pipeline: {}", e),
-                artifact_path: None,
-                x: None,
-                y: None,
-            })
-        }
+        },
+        Err(e) => Json(TransmuteResponse {
+            success: false,
+            message: format!("Failed to execute transmutation pipeline: {}", e),
+            artifact_path: None,
+            x: None,
+            y: None,
+        }),
     }
 }
 
@@ -657,207 +676,218 @@ pub struct LoadFileResponse {
 }
 
 // SECURITY: Allowed base directories for file loading
-const ALLOWED_BASE_DIRS: &[&str] = &[
-    "/home",
-    "/tmp",
-    "/var/tmp",
-    "/opt/geometry_os",
-];
+const ALLOWED_BASE_DIRS: &[&str] = &["/home", "/tmp", "/var/tmp", "/opt/geometry_os"];
 
 /// SECURITY: Validate that a path is within allowed directories
 fn is_path_allowed(path: &std::path::Path) -> bool {
     let path_str = path.to_string_lossy();
-    
+
     // Check for path traversal attempts
     if path_str.contains("..") {
         return false;
     }
-    
+
     // Check for allowed base directories
     for allowed_dir in ALLOWED_BASE_DIRS {
         if path_str.starts_with(allowed_dir) {
             return true;
         }
     }
-    
+
     false
 }
 
 async fn handle_load_file(
-            State(state): State<AppState>,
-            Json(payload): Json<LoadFileRequest>,
-        ) -> impl IntoResponse {
-            // SECURITY: Sanitize input - remove null bytes and control characters
-            let sanitized_path: String = payload.file_path
-                .chars()
-                .filter(|c| !c.is_control() || *c == '/')
-                .collect();
-            
-            let file_path = std::path::Path::new(&sanitized_path);
-            
-            // SECURITY: Validate path is within allowed directories
-            if !is_path_allowed(file_path) {
-                log::warn!("Rejected file path outside allowed directories: {:?}", sanitized_path);
-                return Json(LoadFileResponse {
-                    success: false,
-                    message: "File path must be within allowed directories".to_string(),
-                    loaded_path: None,
-                });
-            }
-            
-            // Validate file exists and has correct extension
-            if !file_path.exists() {
-                return Json(LoadFileResponse {
-                    success: false,
-                    message: "File not found".to_string(),
-                    loaded_path: None,
-                });
-            }
-            
-            let path_str = sanitized_path.to_lowercase();
-            if !path_str.ends_with(".rts.png") && !path_str.ends_with(".rts") {
-                return Json(LoadFileResponse {
-                    success: false,
-                    message: "File must be .rts.png or .rts format".to_string(),
-                    loaded_path: None,
-                });
-            }
-            
-            // SECURITY: Validate file size (max 100MB)
-            if let Ok(metadata) = std::fs::metadata(file_path) {
-                const MAX_FILE_SIZE: u64 = 100 * 1024 * 1024; // 100MB
-                if metadata.len() > MAX_FILE_SIZE {
-                    return Json(LoadFileResponse {
-                        success: false,
-                        message: "File exceeds maximum allowed size".to_string(),
-                        loaded_path: None,
-                    });
-                }
-            }
-            
-            // Canonicalize path
-            let abs_path = match std::fs::canonicalize(file_path) {
-                Ok(p) => p,
-                Err(_) => {
-                    return Json(LoadFileResponse {
-                        success: false,
-                        message: "Failed to resolve path".to_string(),
-                        loaded_path: None,
-                    });
-                }
-            };
-            
-            // SECURITY: Double-check canonicalized path is still allowed
-            if !is_path_allowed(&abs_path) {
-                log::warn!("Canonicalized path escaped allowed directories: {:?}", abs_path);
-                return Json(LoadFileResponse {
-                    success: false,
-                    message: "Invalid file path".to_string(),
-                    loaded_path: None,
-                });
-            }
-            
-            let abs_path_str = abs_path.to_string_lossy().to_string();
-            
-            // Set pending load in runtime state
-            if let Ok(mut rs) = state.runtime_state.lock() {
-                rs.pending_load = Some(abs_path_str.clone());
-            }
-            
-            log::info!("File queued for loading: {}", abs_path_str);
-            Json(LoadFileResponse {
-                success: true,
-                message: "File queued for execution".to_string(),
-                loaded_path: Some(abs_path_str),
-            })
+    State(state): State<AppState>,
+    Json(payload): Json<LoadFileRequest>,
+) -> impl IntoResponse {
+    // SECURITY: Sanitize input - remove null bytes and control characters
+    let sanitized_path: String = payload
+        .file_path
+        .chars()
+        .filter(|c| !c.is_control() || *c == '/')
+        .collect();
+
+    let file_path = std::path::Path::new(&sanitized_path);
+
+    // SECURITY: Validate path is within allowed directories
+    if !is_path_allowed(file_path) {
+        log::warn!(
+            "Rejected file path outside allowed directories: {:?}",
+            sanitized_path
+        );
+        return Json(LoadFileResponse {
+            success: false,
+            message: "File path must be within allowed directories".to_string(),
+            loaded_path: None,
+        });
+    }
+
+    // Validate file exists and has correct extension
+    if !file_path.exists() {
+        return Json(LoadFileResponse {
+            success: false,
+            message: "File not found".to_string(),
+            loaded_path: None,
+        });
+    }
+
+    let path_str = sanitized_path.to_lowercase();
+    if !path_str.ends_with(".rts.png") && !path_str.ends_with(".rts") {
+        return Json(LoadFileResponse {
+            success: false,
+            message: "File must be .rts.png or .rts format".to_string(),
+            loaded_path: None,
+        });
+    }
+
+    // SECURITY: Validate file size (max 100MB)
+    if let Ok(metadata) = std::fs::metadata(file_path) {
+        const MAX_FILE_SIZE: u64 = 100 * 1024 * 1024; // 100MB
+        if metadata.len() > MAX_FILE_SIZE {
+            return Json(LoadFileResponse {
+                success: false,
+                message: "File exceeds maximum allowed size".to_string(),
+                loaded_path: None,
+            });
         }
-        
-        // Phase 34.4: EvolutionDaemon Self-Writing
-        #[derive(Deserialize)]
-        pub struct SelfWriteRequest {
-            intent: String,
-            language: Option<String>, // "python", "javascript", "c", "rust"
-            context: Option<HashMap<String, String>>,
-        }
-        
-        #[derive(Serialize)]
-        pub struct SelfWriteResponse {
-            success: bool,
-            message: String,
-            generated_code: Option<String>,
-            artifact_path: Option<String>,
-        }
-        
-        async fn handle_self_write(
-            State(state): State<AppState>,
-            Json(payload): Json<SelfWriteRequest>,
-        ) -> impl IntoResponse {
-            let language = payload.language.unwrap_or_else(|| "python".to_string());
-            
-            // Validate language
-            let valid_languages = vec!["python", "javascript", "js", "c", "rust"];
-            if !valid_languages.contains(&language.as_str()) {
-                return Json(SelfWriteResponse {
-                    success: false,
-                    message: format!("Unsupported language: {}. Use: {:?}", language, valid_languages),
-                    generated_code: None,
-                    artifact_path: None,
-                });
-            }
-            
-            // SECURITY: Sanitize intent string to prevent code injection
-            // Remove any characters that could be used for injection
-            let sanitized_intent: String = payload.intent
+    }
+
+    // Canonicalize path
+    let abs_path = match std::fs::canonicalize(file_path) {
+        Ok(p) => p,
+        Err(_) => {
+            return Json(LoadFileResponse {
+                success: false,
+                message: "Failed to resolve path".to_string(),
+                loaded_path: None,
+            });
+        },
+    };
+
+    // SECURITY: Double-check canonicalized path is still allowed
+    if !is_path_allowed(&abs_path) {
+        log::warn!(
+            "Canonicalized path escaped allowed directories: {:?}",
+            abs_path
+        );
+        return Json(LoadFileResponse {
+            success: false,
+            message: "Invalid file path".to_string(),
+            loaded_path: None,
+        });
+    }
+
+    let abs_path_str = abs_path.to_string_lossy().to_string();
+
+    // Set pending load in runtime state
+    if let Ok(mut rs) = state.runtime_state.lock() {
+        rs.pending_load = Some(abs_path_str.clone());
+    }
+
+    log::info!("File queued for loading: {}", abs_path_str);
+    Json(LoadFileResponse {
+        success: true,
+        message: "File queued for execution".to_string(),
+        loaded_path: Some(abs_path_str),
+    })
+}
+
+// Phase 34.4: EvolutionDaemon Self-Writing
+#[derive(Deserialize)]
+pub struct SelfWriteRequest {
+    intent: String,
+    language: Option<String>, // "python", "javascript", "c", "rust"
+    context: Option<HashMap<String, String>>,
+}
+
+#[derive(Serialize)]
+pub struct SelfWriteResponse {
+    success: bool,
+    message: String,
+    generated_code: Option<String>,
+    artifact_path: Option<String>,
+}
+
+async fn handle_self_write(
+    State(state): State<AppState>,
+    Json(payload): Json<SelfWriteRequest>,
+) -> impl IntoResponse {
+    let language = payload.language.unwrap_or_else(|| "python".to_string());
+
+    // Validate language
+    let valid_languages = vec!["python", "javascript", "js", "c", "rust"];
+    if !valid_languages.contains(&language.as_str()) {
+        return Json(SelfWriteResponse {
+            success: false,
+            message: format!(
+                "Unsupported language: {}. Use: {:?}",
+                language, valid_languages
+            ),
+            generated_code: None,
+            artifact_path: None,
+        });
+    }
+
+    // SECURITY: Sanitize intent string to prevent code injection
+    // Remove any characters that could be used for injection
+    let sanitized_intent: String = payload.intent
                 .chars()
                 .filter(|c| c.is_alphanumeric() || *c == ' ' || *c == '-' || *c == '_')
                 .take(500)  // Limit length to prevent DoS
                 .collect();
-            
-            // Validate intent is not empty after sanitization
-            if sanitized_intent.is_empty() {
-                return Json(SelfWriteResponse {
-                    success: false,
-                    message: "Invalid intent: must contain alphanumeric characters".to_string(),
-                    generated_code: None,
-                    artifact_path: None,
-                });
-            }
-            
-            // Trigger EvolutionDaemon self-writing via Python script
-            let root_path = std::path::Path::new("../..");
-            let timestamp = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
-            
-            let output_filename = format!("evolution_gen_{}.py", timestamp);
-            let output_path = root_path.join("systems").join("transmutation").join(&output_filename);
-            
-            // SECURITY: Write intent to a temp file instead of passing via command line
-            // This prevents command injection vulnerabilities
-            let intent_file_path = root_path.join("systems").join("transmutation").join(format!("intent_{}.json", timestamp));
-            let intent_json = serde_json::json!({
-                "action": "GENERATE_CODE",
-                "description": sanitized_intent,
-                "language": language,
-                "autonomous": true
-            });
-            
-            if let Err(e) = std::fs::write(&intent_file_path, intent_json.to_string()) {
-                return Json(SelfWriteResponse {
-                    success: false,
-                    message: format!("Failed to write intent file: {}", e),
-                    generated_code: None,
-                    artifact_path: None,
-                });
-            }
-            
-            // Run evolution daemon code generation using the intent file
-            let output = std::process::Command::new("python3")
-                .args(&[
-                    "-c",
-                    &format!(
-                        r#"
+
+    // Validate intent is not empty after sanitization
+    if sanitized_intent.is_empty() {
+        return Json(SelfWriteResponse {
+            success: false,
+            message: "Invalid intent: must contain alphanumeric characters".to_string(),
+            generated_code: None,
+            artifact_path: None,
+        });
+    }
+
+    // Trigger EvolutionDaemon self-writing via Python script
+    let root_path = std::path::Path::new("../..");
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    let output_filename = format!("evolution_gen_{}.py", timestamp);
+    let output_path = root_path
+        .join("systems")
+        .join("transmutation")
+        .join(&output_filename);
+
+    // SECURITY: Write intent to a temp file instead of passing via command line
+    // This prevents command injection vulnerabilities
+    let intent_file_path = root_path
+        .join("systems")
+        .join("transmutation")
+        .join(format!("intent_{}.json", timestamp));
+    let intent_json = serde_json::json!({
+        "action": "GENERATE_CODE",
+        "description": sanitized_intent,
+        "language": language,
+        "autonomous": true
+    });
+
+    if let Err(e) = std::fs::write(&intent_file_path, intent_json.to_string()) {
+        return Json(SelfWriteResponse {
+            success: false,
+            message: format!("Failed to write intent file: {}", e),
+            generated_code: None,
+            artifact_path: None,
+        });
+    }
+
+    // Run evolution daemon code generation using the intent file
+    let output = std::process::Command::new("python3")
+        .args(&[
+            "-c",
+            &format!(
+                r#"
 import sys
 import json
 sys.path.insert(0, '.')
@@ -903,90 +933,92 @@ print(code)
 import os
 os.remove(intent_file)
                         "#,
-                        intent_file_path.to_string_lossy().replace('\\', "\\\\").replace('\'', "\\'")
-                    ),
-                ])
-                .current_dir(root_path)
-                .output();
-            
-            match output {
-                Ok(out) => {
-                    if out.status.success() {
-                        let generated_code = String::from_utf8_lossy(&out.stdout).to_string();
-                        
-                        // Write generated code to file
-                        if let Err(e) = std::fs::write(&output_path, &generated_code) {
-                            return Json(SelfWriteResponse {
-                                success: false,
-                                message: format!("Failed to write generated code: {}", e),
-                                generated_code: Some(generated_code),
-                                artifact_path: None,
-                            });
-                        }
-                        
-                        // Optionally transmute if not Python
-                        let artifact_path = if language != "python" {
-                            let rts_path = output_path.with_extension("rts.png");
-                            let _ = std::fs::remove_file(&rts_path);
-                            
-                            let transmute_output = std::process::Command::new("python3")
-                                .args(&[
-                                    "-m", "systems.transmutation.transmute",
-                                    &format!("systems/transmutation/{}", output_filename),
-                                    "--assemble",
-                                    "--link"
-                                ])
-                                .current_dir(root_path)
-                                .output();
-                            
-                            if let Ok(t_out) = transmute_output {
-                                if t_out.status.success() && rts_path.exists() {
-                                    let abs_rts = std::fs::canonicalize(&rts_path)
-                                        .unwrap_or(rts_path.clone())
-                                        .to_string_lossy()
-                                        .to_string();
-                                    
-                                    // Set pending load
-                                    if let Ok(mut rs) = state.runtime_state.lock() {
-                                        rs.pending_load = Some(abs_rts.clone());
-                                    }
-                                    
-                                    Some(abs_rts)
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            }
-                        } else {
-                            Some(output_path.to_string_lossy().to_string())
-                        };
-                        
-                        Json(SelfWriteResponse {
-                            success: true,
-                            message: "EvolutionDaemon self-writing complete".to_string(),
-                            generated_code: Some(generated_code),
-                            artifact_path,
-                        })
-                    } else {
-                        let stderr = String::from_utf8_lossy(&out.stderr);
-                        Json(SelfWriteResponse {
-                            success: false,
-                            message: format!("Self-writing failed: {}", stderr),
-                            generated_code: None,
-                            artifact_path: None,
-                        })
-                    }
-                }
-                Err(e) => {
-                    Json(SelfWriteResponse {
+                intent_file_path
+                    .to_string_lossy()
+                    .replace('\\', "\\\\")
+                    .replace('\'', "\\'")
+            ),
+        ])
+        .current_dir(root_path)
+        .output();
+
+    match output {
+        Ok(out) => {
+            if out.status.success() {
+                let generated_code = String::from_utf8_lossy(&out.stdout).to_string();
+
+                // Write generated code to file
+                if let Err(e) = std::fs::write(&output_path, &generated_code) {
+                    return Json(SelfWriteResponse {
                         success: false,
-                        message: format!("Failed to execute EvolutionDaemon: {}", e),
-                        generated_code: None,
+                        message: format!("Failed to write generated code: {}", e),
+                        generated_code: Some(generated_code),
                         artifact_path: None,
-                    })
+                    });
                 }
+
+                // Optionally transmute if not Python
+                let artifact_path = if language != "python" {
+                    let rts_path = output_path.with_extension("rts.png");
+                    let _ = std::fs::remove_file(&rts_path);
+
+                    let transmute_output = std::process::Command::new("python3")
+                        .args(&[
+                            "-m",
+                            "systems.transmutation.transmute",
+                            &format!("systems/transmutation/{}", output_filename),
+                            "--assemble",
+                            "--link",
+                        ])
+                        .current_dir(root_path)
+                        .output();
+
+                    if let Ok(t_out) = transmute_output {
+                        if t_out.status.success() && rts_path.exists() {
+                            let abs_rts = std::fs::canonicalize(&rts_path)
+                                .unwrap_or(rts_path.clone())
+                                .to_string_lossy()
+                                .to_string();
+
+                            // Set pending load
+                            if let Ok(mut rs) = state.runtime_state.lock() {
+                                rs.pending_load = Some(abs_rts.clone());
+                            }
+
+                            Some(abs_rts)
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    Some(output_path.to_string_lossy().to_string())
+                };
+
+                Json(SelfWriteResponse {
+                    success: true,
+                    message: "EvolutionDaemon self-writing complete".to_string(),
+                    generated_code: Some(generated_code),
+                    artifact_path,
+                })
+            } else {
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                Json(SelfWriteResponse {
+                    success: false,
+                    message: format!("Self-writing failed: {}", stderr),
+                    generated_code: None,
+                    artifact_path: None,
+                })
             }
+        },
+        Err(e) => Json(SelfWriteResponse {
+            success: false,
+            message: format!("Failed to execute EvolutionDaemon: {}", e),
+            generated_code: None,
+            artifact_path: None,
+        }),
+    }
 }
 
 // Phase 35: Synaptic Bridge Handlers
@@ -1009,7 +1041,7 @@ async fn handle_synapse_register(
     Json(payload): Json<SynapseRegisterRequest>,
 ) -> impl IntoResponse {
     let synapse = Synapse::new(payload.id.clone(), payload.vector, payload.action);
-    
+
     if let Ok(mut layer) = state.synaptic_layer.lock() {
         layer.register_synapse(synapse);
         Json(SynapseRegisterResponse {
@@ -1044,7 +1076,7 @@ async fn handle_synapse_signal(
 
     if let Ok(mut layer) = state.synaptic_layer.lock() {
         let activated = layer.check_resonance(&payload.vector);
-        
+
         // Lock runtime state to queue actions
         if let Ok(mut rs) = state.runtime_state.lock() {
             for (synapse, score) in &activated {
@@ -1052,7 +1084,8 @@ async fn handle_synapse_signal(
                 triggered_actions.push(action);
                 scores.insert(synapse.id.clone(), *score);
             }
-            rs.pending_synaptic_actions.extend(triggered_actions.clone());
+            rs.pending_synaptic_actions
+                .extend(triggered_actions.clone());
         }
     }
 
@@ -1074,16 +1107,16 @@ async fn handle_evolution_genome(
     Json(payload): Json<EvolutionGenomeRequest>,
 ) -> impl IntoResponse {
     if payload.pixels.len() != 4096 {
-         return Json(serde_json::json!({ 
-             "success": false, 
-             "message": format!("Invalid pixel data length: {}. Expected 4096 (32x32x4).", payload.pixels.len()) 
-         }));
+        return Json(serde_json::json!({
+            "success": false,
+            "message": format!("Invalid pixel data length: {}. Expected 4096 (32x32x4).", payload.pixels.len())
+        }));
     }
 
     let genome = crate::evolution_terrain_bridge::EvolutionGenome::from_pixels(
         payload.pixels,
         payload.generation,
-        payload.fitness
+        payload.fitness,
     );
 
     if let Ok(mut rs) = state.runtime_state.lock() {
@@ -1134,20 +1167,27 @@ async fn handle_terminal_spawn(
 ) -> impl IntoResponse {
     // SECURITY: Validate shell is in allowed list
     if !ALLOWED_SHELLS.contains(&payload.shell.as_str()) {
-        log::warn!("Rejected terminal spawn with disallowed shell: {}", payload.shell);
+        log::warn!(
+            "Rejected terminal spawn with disallowed shell: {}",
+            payload.shell
+        );
         return Json(TerminalSpawnResponse {
             success: false,
             message: "Shell not allowed. Use /bin/bash, /bin/sh, or /bin/zsh".to_string(),
             tile_id: payload.tile_id,
         });
     }
-    
+
     // SECURITY: Validate terminal dimensions
     let rows = payload.rows.min(MAX_TERMINAL_ROWS).max(1);
     let cols = payload.cols.min(MAX_TERMINAL_COLS).max(1);
-    
-    log::info!("Terminal spawn queued: tile_id={}, shell={}", payload.tile_id, payload.shell);
-    
+
+    log::info!(
+        "Terminal spawn queued: tile_id={}, shell={}",
+        payload.tile_id,
+        payload.shell
+    );
+
     let request = TerminalSpawnRequest {
         tile_id: payload.tile_id,
         rows,

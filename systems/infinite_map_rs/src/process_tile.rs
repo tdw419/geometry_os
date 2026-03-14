@@ -55,21 +55,36 @@ impl ProcessInfo {
     /// Get semantic color based on process type
     pub fn semantic_color(&self) -> [f32; 4] {
         let name_lower = self.name.to_lowercase();
-        
+
         // Color categories based on process type
-        if name_lower.contains("rust") || name_lower.contains("cargo") || name_lower.contains("code") {
+        if name_lower.contains("rust")
+            || name_lower.contains("cargo")
+            || name_lower.contains("code")
+        {
             // Development tools - Cyan
             [0.0, 0.8, 1.0, 1.0]
-        } else if name_lower.contains("python") || name_lower.contains("node") || name_lower.contains("ruby") {
+        } else if name_lower.contains("python")
+            || name_lower.contains("node")
+            || name_lower.contains("ruby")
+        {
             // Script runtimes - Yellow
             [1.0, 0.9, 0.2, 1.0]
-        } else if name_lower.contains("gpu") || name_lower.contains("wayland") || name_lower.contains("x11") {
+        } else if name_lower.contains("gpu")
+            || name_lower.contains("wayland")
+            || name_lower.contains("x11")
+        {
             // Graphics/Display - Purple
             [0.7, 0.3, 1.0, 1.0]
-        } else if name_lower.contains("kernel") || name_lower.contains("kthreadd") || name_lower.contains("systemd") {
+        } else if name_lower.contains("kernel")
+            || name_lower.contains("kthreadd")
+            || name_lower.contains("systemd")
+        {
             // System/Kernel - Green
             [0.2, 0.9, 0.4, 1.0]
-        } else if name_lower.contains("bash") || name_lower.contains("zsh") || name_lower.contains("fish") {
+        } else if name_lower.contains("bash")
+            || name_lower.contains("zsh")
+            || name_lower.contains("fish")
+        {
             // Shell - Orange
             [1.0, 0.5, 0.1, 1.0]
         } else {
@@ -107,7 +122,7 @@ impl ProcessTileManager {
     /// Create a new ProcessTileManager
     pub fn new() -> Self {
         let total_memory_kb = Self::read_total_memory().unwrap_or(0);
-        
+
         Self {
             processes: HashMap::new(),
             prev_cpu_times: HashMap::new(),
@@ -156,7 +171,7 @@ impl ProcessTileManager {
             for entry in entries.flatten() {
                 let file_name = entry.file_name();
                 let name_str = file_name.to_string_lossy();
-                
+
                 // Check if directory name is a number (PID)
                 if let Ok(pid) = name_str.parse::<u32>() {
                     if let Ok(mut process) = self.read_process_info(pid) {
@@ -165,14 +180,16 @@ impl ProcessTileManager {
                         if let Some(&(prev_utime, prev_stime)) = self.prev_cpu_times.get(&pid) {
                             let prev_cpu = prev_utime + prev_stime;
                             if cpu_delta > 0 {
-                                process.cpu_percent = 
-                                    ((current_cpu.saturating_sub(prev_cpu)) as f32 / cpu_delta as f32) * 100.0;
+                                process.cpu_percent = ((current_cpu.saturating_sub(prev_cpu))
+                                    as f32
+                                    / cpu_delta as f32)
+                                    * 100.0;
                             }
                         }
 
                         // Calculate memory percentage
                         if self.total_memory_kb > 0 {
-                            process.memory_percent = 
+                            process.memory_percent =
                                 (process.memory_kb as f32 / self.total_memory_kb as f32) * 100.0;
                         }
 
@@ -187,24 +204,27 @@ impl ProcessTileManager {
         for process in new_processes.values() {
             let pid = process.pid;
             let ppid = process.ppid;
-            
+
             if !self.tile_positions.contains_key(&pid) {
                 // Ensure parent has a cluster center
                 if !self.cluster_centers.contains_key(&ppid) {
                     let center = self.generate_random_cluster_center();
                     self.cluster_centers.insert(ppid, center);
                 }
-                
+
                 let position = self.calculate_tile_position(pid, ppid);
                 self.tile_positions.insert(pid, position);
             }
         }
 
         // Remove positions and cluster centers for dead processes
-        self.tile_positions.retain(|pid, _| new_processes.contains_key(pid));
+        self.tile_positions
+            .retain(|pid, _| new_processes.contains_key(pid));
         // Only keep cluster centers that have children or are themselves active processes
-        let active_parents: std::collections::HashSet<u32> = new_processes.values().map(|p| p.ppid).collect();
-        self.cluster_centers.retain(|ppid, _| active_parents.contains(ppid) || new_processes.contains_key(ppid));
+        let active_parents: std::collections::HashSet<u32> =
+            new_processes.values().map(|p| p.ppid).collect();
+        self.cluster_centers
+            .retain(|ppid, _| active_parents.contains(ppid) || new_processes.contains_key(ppid));
 
         self.processes = new_processes;
         self.prev_cpu_times = new_cpu_times;
@@ -235,28 +255,18 @@ impl ProcessTileManager {
         let stat_parts: Vec<&str> = stat_content.split_whitespace().collect();
 
         // Parse stat fields (see `man proc` for field indices)
-        let state = stat_parts.get(2)
+        let state = stat_parts
+            .get(2)
             .and_then(|s| s.chars().next())
             .unwrap_or('?');
-        let ppid = stat_parts.get(3)
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0);
-        let utime = stat_parts.get(13)
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0);
-        let stime = stat_parts.get(14)
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0);
-        let num_threads = stat_parts.get(19)
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(1);
-        let starttime = stat_parts.get(21)
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0);
+        let ppid = stat_parts.get(3).and_then(|s| s.parse().ok()).unwrap_or(0);
+        let utime = stat_parts.get(13).and_then(|s| s.parse().ok()).unwrap_or(0);
+        let stime = stat_parts.get(14).and_then(|s| s.parse().ok()).unwrap_or(0);
+        let num_threads = stat_parts.get(19).and_then(|s| s.parse().ok()).unwrap_or(1);
+        let starttime = stat_parts.get(21).and_then(|s| s.parse().ok()).unwrap_or(0);
 
         // Read /proc/[pid]/statm for memory
-        let statm_content = fs::read_to_string(pid_path.join("statm"))
-            .unwrap_or_default();
+        let statm_content = fs::read_to_string(pid_path.join("statm")).unwrap_or_default();
         let statm_parts: Vec<&str> = statm_content.split_whitespace().collect();
         let memory_pages: u64 = statm_parts.get(1) // RSS
             .and_then(|s| s.parse().ok())
@@ -283,7 +293,7 @@ impl ProcessTileManager {
     fn read_total_cpu_time(&self) -> io::Result<u64> {
         let stat_path = self.proc_path().join("stat");
         let content = fs::read_to_string(stat_path)?;
-        
+
         if let Some(cpu_line) = content.lines().next() {
             let parts: Vec<&str> = cpu_line.split_whitespace().collect();
             // Sum all CPU time fields (user, nice, system, idle, iowait, irq, softirq)
@@ -301,7 +311,7 @@ impl ProcessTileManager {
     /// Read total memory from /proc/meminfo
     fn read_total_memory() -> io::Result<u64> {
         let content = fs::read_to_string("/proc/meminfo")?;
-        
+
         for line in content.lines() {
             if line.starts_with("MemTotal:") {
                 let parts: Vec<&str> = line.split_whitespace().collect();
@@ -318,17 +328,21 @@ impl ProcessTileManager {
 
     /// Calculate tile position for a process (clustered by PPID)
     fn calculate_tile_position(&self, pid: u32, ppid: u32) -> (f32, f32) {
-        let center = self.cluster_centers.get(&ppid).copied().unwrap_or((0.0, 0.0));
-        
+        let center = self
+            .cluster_centers
+            .get(&ppid)
+            .copied()
+            .unwrap_or((0.0, 0.0));
+
         // Offset children from parent center using a smaller spiral
         let golden_angle = std::f32::consts::PI * (3.0 - 5.0_f32.sqrt());
         let index = pid as f32; // Use PID as stable seed for offset
         let radius = 100.0 + (index % 10.0) * 20.0;
         let theta = index * golden_angle;
-        
+
         let x = center.0 + radius * theta.cos();
         let y = center.1 + radius * theta.sin();
-        
+
         (x, y)
     }
 
@@ -337,7 +351,7 @@ impl ProcessTileManager {
         let index = self.cluster_centers.len() as f32;
         let radius = 500.0 * (index + 1.0).sqrt();
         let theta = index * 2.4; // Fixed step angle
-        
+
         (radius * theta.cos(), radius * theta.sin())
     }
 
@@ -359,7 +373,11 @@ impl ProcessTileManager {
     /// Get processes sorted by CPU usage
     pub fn top_by_cpu(&self, limit: usize) -> Vec<&ProcessInfo> {
         let mut sorted: Vec<_> = self.processes.values().collect();
-        sorted.sort_by(|a, b| b.cpu_percent.partial_cmp(&a.cpu_percent).unwrap_or(std::cmp::Ordering::Equal));
+        sorted.sort_by(|a, b| {
+            b.cpu_percent
+                .partial_cmp(&a.cpu_percent)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         sorted.into_iter().take(limit).collect()
     }
 
@@ -372,7 +390,8 @@ impl ProcessTileManager {
 
     /// Get rendering data for all process tiles
     pub fn get_render_data(&self) -> Vec<ProcessTileRenderData> {
-        self.processes.values()
+        self.processes
+            .values()
             .filter_map(|process| {
                 let position = self.tile_positions.get(&process.pid)?;
                 Some(ProcessTileRenderData {
@@ -418,21 +437,24 @@ mod tests {
     #[test]
     fn test_process_tile_manager() {
         let mut manager = ProcessTileManager::new();
-        
+
         // This test only works on Linux
         if cfg!(target_os = "linux") {
             manager.refresh().expect("Failed to refresh process list");
-            
+
             // Should have at least the current process
             assert!(manager.count() > 0, "Should have at least one process");
-            
+
             // Get render data
             let render_data = manager.get_render_data();
             assert!(!render_data.is_empty(), "Should have render data");
-            
+
             // Check that our process is in the list
             let our_pid = std::process::id();
-            assert!(manager.processes().contains_key(&our_pid), "Should contain our process");
+            assert!(
+                manager.processes().contains_key(&our_pid),
+                "Should contain our process"
+            );
         }
     }
 

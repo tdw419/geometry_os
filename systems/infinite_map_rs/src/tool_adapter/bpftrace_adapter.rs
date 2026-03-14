@@ -8,8 +8,8 @@
 // - Network activity
 // - Context switches
 
+use super::{check_binary_available, run_command, ToolAdapter, ToolMetrics};
 use std::time::Duration;
-use super::{ToolAdapter, ToolMetrics, check_binary_available, run_command};
 
 /// BpftraceAdapter for kernel-level metrics
 ///
@@ -33,7 +33,7 @@ impl BpftraceAdapter {
     /// Automatically detects if bpftrace is available.
     pub fn new() -> Self {
         let available = check_binary_available("bpftrace");
-        
+
         if available {
             log::info!("🔧 BpftraceAdapter: bpftrace is available for kernel tracing");
         } else {
@@ -61,21 +61,25 @@ impl BpftraceAdapter {
         }
 
         // Create a temporary script file
-        use std::io::Write;
         use std::fs::File;
-        
+        use std::io::Write;
+
         let temp_file = "/tmp/bpftrace_diag.bt";
-        let mut file = File::create(temp_file)
-            .map_err(|e| format!("Failed to create temp file: {}", e))?;
-        
-        writeln!(file, "{}", script)
-            .map_err(|e| format!("Failed to write script: {}", e))?;
-        
+        let mut file =
+            File::create(temp_file).map_err(|e| format!("Failed to create temp file: {}", e))?;
+
+        writeln!(file, "{}", script).map_err(|e| format!("Failed to write script: {}", e))?;
+
         // Run bpftrace
-        let output = run_command("bpftrace", &[
-            "-f", "json",
-            "-e", &format!("interval:ms:{} {{ exit(); }} {}", duration_ms, script),
-        ]);
+        let output = run_command(
+            "bpftrace",
+            &[
+                "-f",
+                "json",
+                "-e",
+                &format!("interval:ms:{} {{ exit(); }} {}", duration_ms, script),
+            ],
+        );
 
         // Clean up temp file
         let _ = std::fs::remove_file(temp_file);
@@ -98,9 +102,10 @@ impl BpftraceAdapter {
                 // Context switches (proxy for syscalls)
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 if parts.len() >= 2 {
-                    let ctxt: u64 = parts[1].parse()
+                    let ctxt: u64 = parts[1]
+                        .parse()
                         .map_err(|e| format!("Failed to parse ctxt: {}", e))?;
-                    
+
                     // Convert to rate (approximate)
                     return Ok(ctxt as f64);
                 }
@@ -124,15 +129,20 @@ impl BpftraceAdapter {
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 if parts.len() >= 6 {
                     // Parse CPU times: user, nice, system, idle, iowait
-                    let user: f64 = parts[1].parse()
+                    let user: f64 = parts[1]
+                        .parse()
                         .map_err(|e| format!("Failed to parse user: {}", e))?;
-                    let nice: f64 = parts[2].parse()
+                    let nice: f64 = parts[2]
+                        .parse()
                         .map_err(|e| format!("Failed to parse nice: {}", e))?;
-                    let system: f64 = parts[3].parse()
+                    let system: f64 = parts[3]
+                        .parse()
                         .map_err(|e| format!("Failed to parse system: {}", e))?;
-                    let idle: f64 = parts[4].parse()
+                    let idle: f64 = parts[4]
+                        .parse()
                         .map_err(|e| format!("Failed to parse idle: {}", e))?;
-                    let iowait: f64 = parts[5].parse()
+                    let iowait: f64 = parts[5]
+                        .parse()
                         .map_err(|e| format!("Failed to parse iowait: {}", e))?;
 
                     let total = user + nice + system + idle + iowait;
@@ -157,7 +167,8 @@ impl BpftraceAdapter {
 
         let mut total_bytes = 0u64;
 
-        for line in net.lines().skip(2) { // Skip header lines
+        for line in net.lines().skip(2) {
+            // Skip header lines
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 10 {
                 // RX bytes is at index 1, TX bytes at index 9
@@ -260,15 +271,15 @@ mod tests {
     #[test]
     fn test_calculate_health_score() {
         let adapter = BpftraceAdapter::new();
-        
+
         // Low I/O wait (healthy)
         let score1 = adapter.calculate_health_score(10000.0, 2.0);
         assert!(score1 > 0.9);
-        
+
         // High I/O wait (unhealthy)
         let score2 = adapter.calculate_health_score(10000.0, 25.0);
         assert!(score2 < 0.1);
-        
+
         // Medium I/O wait
         let score3 = adapter.calculate_health_score(10000.0, 12.5);
         assert!(score3 > 0.3 && score3 < 0.7);

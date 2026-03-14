@@ -2,7 +2,7 @@
 //!
 //! Constructs batch buffers for Intel GPU execution via i915 DRM.
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use std::os::unix::io::RawFd;
 
 /// Intel GPU batch buffer commands (GEN commands).
@@ -115,11 +115,14 @@ impl IntelCommandBuffer {
     /// Dispatch compute workgroups (MEDIA_STATE).
     pub fn dispatch(&mut self, x: u32, y: u32, z: u32) -> &mut Self {
         // MEDIA_STATE command for compute dispatch
-        self.emit(0x71000002, &[
-            x | (y << 16),
-            z,
-            0, // Reserved
-        ]);
+        self.emit(
+            0x71000002,
+            &[
+                x | (y << 16),
+                z,
+                0, // Reserved
+            ],
+        );
         self
     }
 
@@ -136,10 +139,7 @@ impl IntelCommandBuffer {
             return Ok(Vec::new());
         }
 
-        log::info!(
-            "Built Intel batch buffer: {} dwords",
-            self.commands.len()
-        );
+        log::info!("Built Intel batch buffer: {} dwords", self.commands.len());
 
         Ok(self.commands)
     }
@@ -194,9 +194,7 @@ mod tests {
     #[test]
     fn test_dispatch_encoding() {
         let mut cb = IntelCommandBuffer::new();
-        cb.begin_batch()
-            .dispatch(256, 256, 1)
-            .end_batch();
+        cb.begin_batch().dispatch(256, 256, 1).end_batch();
 
         let buffer = cb.build().unwrap();
         assert!(buffer.len() > 4);

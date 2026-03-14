@@ -35,7 +35,7 @@ impl ManifestWriter {
     /// * `path` - Path to the manifest.json file (default: systems/builder/map/manifest.json)
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, std::io::Error> {
         let path = path.as_ref().to_path_buf();
-        
+
         // Load existing manifest if it exists
         let tiles = if path.exists() {
             let content = fs::read_to_string(&path)?;
@@ -69,10 +69,13 @@ impl ManifestWriter {
             .as_secs_f64();
 
         let mut tiles = self.tiles.lock().unwrap();
-        tiles.insert(key.clone(), TileEntry {
-            brick: brick_name,
-            timestamp,
-        });
+        tiles.insert(
+            key.clone(),
+            TileEntry {
+                brick: brick_name,
+                timestamp,
+            },
+        );
 
         // Write to disk
         if let Err(e) = self.write_manifest(&tiles) {
@@ -86,7 +89,7 @@ impl ManifestWriter {
     pub fn remove_tile(&self, x: i32, y: i32) {
         let key = format!("{},{}", x, y);
         let mut tiles = self.tiles.lock().unwrap();
-        
+
         if tiles.remove(&key).is_some() {
             if let Err(e) = self.write_manifest(&tiles) {
                 eprintln!("Failed to write manifest: {}", e);
@@ -134,16 +137,16 @@ mod tests {
     fn test_manifest_writer() {
         let dir = tempdir().unwrap();
         let manifest_path = dir.path().join("test_manifest.json");
-        
+
         let writer = ManifestWriter::new(&manifest_path).unwrap();
-        
+
         // Add a tile
         writer.update_tile(0, 0, "test_brick.rts.png".to_string());
-        
+
         // Verify it was written
         let content = fs::read_to_string(&manifest_path).unwrap();
         let manifest: HashMap<String, TileEntry> = serde_json::from_str(&content).unwrap();
-        
+
         assert!(manifest.contains_key("0,0"));
         assert_eq!(manifest["0,0"].brick, "test_brick.rts.png");
     }

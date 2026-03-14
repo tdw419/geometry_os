@@ -3,8 +3,7 @@
 // Heuristic Analysis for Memory Regions
 // Pre-processes raw memory to provide context for the LLM
 
-
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Result of a heuristic analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,11 +16,11 @@ pub struct MemoryHeuristics {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MemoryType {
-    Code,       // High entropy (not max), specific patterns
-    Text,       // Low entropy, many strings
-    Zero,       // Zero entropy
-    Data,       // Moderate entropy
-    Encrypted,  // Max entropy ~8.0
+    Code,      // High entropy (not max), specific patterns
+    Text,      // Low entropy, many strings
+    Zero,      // Zero entropy
+    Data,      // Moderate entropy
+    Encrypted, // Max entropy ~8.0
     Unknown,
 }
 
@@ -77,18 +76,34 @@ pub fn detect_magic_numbers(data: &[u8]) -> Option<String> {
     }
 
     // Common Signatures
-    if data.starts_with(b"\x7FELF") { return Some("ELF Binary".to_string()); }
-    if data.starts_with(b"MZ") { return Some("PE Executable".to_string()); }
-    if data.starts_with(b"\xCA\xFE\xBA\xBE") { return Some("Java Class / Mach-O".to_string()); }
-    if data.starts_with(b"\x89PNG") { return Some("PNG Image".to_string()); }
-    if data.starts_with(b"\xFF\xD8\xFF") { return Some("JPEG Image".to_string()); }
-    if data.starts_with(b"GIF8") { return Some("GIF Image".to_string()); }
-    if data.starts_with(b"%PDF") { return Some("PDF Document".to_string()); }
-    if data.starts_with(b"PK\x03\x04") { return Some("ZIP Archive".to_string()); }
-    
+    if data.starts_with(b"\x7FELF") {
+        return Some("ELF Binary".to_string());
+    }
+    if data.starts_with(b"MZ") {
+        return Some("PE Executable".to_string());
+    }
+    if data.starts_with(b"\xCA\xFE\xBA\xBE") {
+        return Some("Java Class / Mach-O".to_string());
+    }
+    if data.starts_with(b"\x89PNG") {
+        return Some("PNG Image".to_string());
+    }
+    if data.starts_with(b"\xFF\xD8\xFF") {
+        return Some("JPEG Image".to_string());
+    }
+    if data.starts_with(b"GIF8") {
+        return Some("GIF Image".to_string());
+    }
+    if data.starts_with(b"%PDF") {
+        return Some("PDF Document".to_string());
+    }
+    if data.starts_with(b"PK\x03\x04") {
+        return Some("ZIP Archive".to_string());
+    }
+
     // RISC-V Instructions (Common preamble: ADDI sp, sp, -X)
     // difficult to detect without disassembly, skipping for now
-    
+
     None
 }
 
@@ -97,7 +112,7 @@ pub fn analyze_buffer(data: &[u8]) -> MemoryHeuristics {
     let entropy = calculate_entropy(data);
     let strings = extract_strings(data);
     let magic = detect_magic_numbers(data);
-    
+
     let likely_type = if entropy == 0.0 {
         MemoryType::Zero
     } else if entropy > 7.5 {

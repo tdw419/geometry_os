@@ -3,10 +3,10 @@
 //! Detects system failures and applies automated fixes to maintain ecosystem health.
 //! Implements the "immune response" aspect of the evolutionary paradigm.
 
-use crate::tile::{Tile, RuntimeState};
 use crate::infinite_map::InfiniteMap;
-use std::collections::HashMap;
+use crate::tile::{RuntimeState, Tile};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Immune system for detecting and repairing system failures
 pub struct ImmuneSystem {
@@ -33,7 +33,9 @@ pub enum RepairStrategy {
     /// Roll back to parent genotype
     Rollback,
     /// Apply specific code patch
-    Patch { code_changes: HashMap<String, String> },
+    Patch {
+        code_changes: HashMap<String, String>,
+    },
     /// Isolate the tile
     Quarantine,
     /// Replace with healthy clone
@@ -100,7 +102,8 @@ impl ImmuneSystem {
         ];
 
         for pattern in patterns {
-            self.failure_patterns.insert(pattern.error_signature.clone(), pattern);
+            self.failure_patterns
+                .insert(pattern.error_signature.clone(), pattern);
         }
     }
 
@@ -136,7 +139,7 @@ impl ImmuneSystem {
             RepairStrategy::Quarantine => self.quarantine_tile(tile_id, map),
             RepairStrategy::CloneReplace { source_tile_id } => {
                 self.clone_replace_tile(tile_id, source_tile_id, map)
-            }
+            },
         };
 
         // Record repair event
@@ -152,7 +155,9 @@ impl ImmuneSystem {
         if let Some(pattern) = self.failure_patterns.get_mut(error) {
             pattern.detection_count += 1;
             // Simple success rate update
-            pattern.success_rate = (pattern.success_rate * (pattern.detection_count - 1) as f64 + success as i32 as f64) / pattern.detection_count as f64;
+            pattern.success_rate = (pattern.success_rate * (pattern.detection_count - 1) as f64
+                + success as i32 as f64)
+                / pattern.detection_count as f64;
         }
     }
 
@@ -246,12 +251,16 @@ impl ImmuneSystem {
     fn clone_replace_tile(&self, tile_id: &str, source_id: &str, map: &mut InfiniteMap) -> bool {
         if let Some(source) = map.get_tile(&source_id.to_string()) {
             // Create clone at same position
-            let position = map.get_tile(&tile_id.to_string())
+            let position = map
+                .get_tile(&tile_id.to_string())
                 .map(|t| t.position)
                 .unwrap_or((0, 0));
 
             let mut clone = source.reproduce(format!("{}_clone", tile_id), position);
-            clone.log("info", &format!("Cloned from {} to replace {}", source_id, tile_id));
+            clone.log(
+                "info",
+                &format!("Cloned from {} to replace {}", source_id, tile_id),
+            );
 
             map.add_tile(clone);
             true

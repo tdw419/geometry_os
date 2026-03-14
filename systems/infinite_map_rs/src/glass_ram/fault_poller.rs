@@ -3,7 +3,7 @@
 // Async event loop for userfaultfd fault handling
 // Provides non-blocking fault event polling with tokio integration
 
-use crate::glass_ram::uffd_wrapper::{UserfaultFd, PageFaultEvent};
+use crate::glass_ram::uffd_wrapper::{PageFaultEvent, UserfaultFd};
 use std::os::fd::{AsRawFd, FromRawFd};
 use tokio::sync::mpsc;
 
@@ -60,7 +60,10 @@ impl FaultPoller {
                     log::error!("Failed to send fault event: {}", e);
                     // Send error via channel closing is not an IO error, but we need to return
                     // map SendError to something generic or just break
-                    return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Channel closed")));
+                    return Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        "Channel closed",
+                    )));
                 }
             }
 
@@ -70,7 +73,9 @@ impl FaultPoller {
     }
 
     /// Read event from userfaultfd asynchronously
-    async fn read_event_async(&mut self) -> Result<Option<FaultEvent>, Box<dyn std::error::Error + Send + Sync>> {
+    async fn read_event_async(
+        &mut self,
+    ) -> Result<Option<FaultEvent>, Box<dyn std::error::Error + Send + Sync>> {
         // Use tokio's task::spawn_blocking for blocking read
         let uffd_fd = self.uffd.as_raw_fd();
 
@@ -78,9 +83,7 @@ impl FaultPoller {
             // SAFETY: We're using the file descriptor in a blocking context
             // This is safe as long as the UserfaultFd remains valid
             // We'll create a temporary File wrapper for reading
-            let mut file = unsafe {
-                std::fs::File::from_raw_fd(uffd_fd)
-            };
+            let mut file = unsafe { std::fs::File::from_raw_fd(uffd_fd) };
 
             // Read from file descriptor
             use std::io::Read;
@@ -92,30 +95,36 @@ impl FaultPoller {
                     if n != mem::size_of::<crate::glass_ram::uffd_wrapper::UffdMsg>() {
                         // Prevent file from being closed
                         std::mem::forget(file);
-                        return Err(Box::<dyn std::error::Error + Send + Sync>::from(std::io::Error::new(
-                            std::io::ErrorKind::UnexpectedEof,
-                            "Incomplete UFFD message"
-                        )));
+                        return Err(Box::<dyn std::error::Error + Send + Sync>::from(
+                            std::io::Error::new(
+                                std::io::ErrorKind::UnexpectedEof,
+                                "Incomplete UFFD message",
+                            ),
+                        ));
                     }
 
                     // Prevent file from being closed
                     std::mem::forget(file);
 
-                    let msg: crate::glass_ram::uffd_wrapper::UffdMsg = unsafe {
-                        mem::transmute(buf)
-                    };
+                    let msg: crate::glass_ram::uffd_wrapper::UffdMsg =
+                        unsafe { mem::transmute(buf) };
 
                     // Parse the message
                     let uffd_event = unsafe {
                         match msg.event {
-                            0x12 => { // UFFD_EVENT_PAGEFAULT
-                                crate::glass_ram::uffd_wrapper::UffdEventType::PageFault(PageFaultEvent {
-                                    address: msg.arg.pagefault.address,
-                                    flags: msg.arg.pagefault.flags,
-                                    thread_id: Some(msg.arg.pagefault.feat.ptid),
-                                })
+                            0x12 => {
+                                // UFFD_EVENT_PAGEFAULT
+                                crate::glass_ram::uffd_wrapper::UffdEventType::PageFault(
+                                    PageFaultEvent {
+                                        address: msg.arg.pagefault.address,
+                                        flags: msg.arg.pagefault.flags,
+                                        thread_id: Some(msg.arg.pagefault.feat.ptid),
+                                    },
+                                )
                             },
-                            0x13 => crate::glass_ram::uffd_wrapper::UffdEventType::Fork { ufd: msg.arg.fork.ufd },
+                            0x13 => crate::glass_ram::uffd_wrapper::UffdEventType::Fork {
+                                ufd: msg.arg.fork.ufd,
+                            },
                             0x14 => crate::glass_ram::uffd_wrapper::UffdEventType::Remap {
                                 old: msg.arg.remap.old,
                                 new: msg.arg.remap.new,
@@ -135,45 +144,59 @@ impl FaultPoller {
 
                     // Convert to FaultEvent
                     let fault_event = match uffd_event {
-                        crate::glass_ram::uffd_wrapper::UffdEventType::PageFault(pf) => FaultEvent::PageFault {
-                            address: pf.address,
-                            flags: pf.flags,
-                            thread_id: pf.thread_id,
+                        crate::glass_ram::uffd_wrapper::UffdEventType::PageFault(pf) => {
+                            FaultEvent::PageFault {
+                                address: pf.address,
+                                flags: pf.flags,
+                                thread_id: pf.thread_id,
+                            }
                         },
-                        crate::glass_ram::uffd_wrapper::UffdEventType::Fork { ufd } => FaultEvent::Fork {
-                            parent_pid: std::process::id(),
-                            child_pid: ufd,
+                        crate::glass_ram::uffd_wrapper::UffdEventType::Fork { ufd } => {
+                            FaultEvent::Fork {
+                                parent_pid: std::process::id(),
+                                child_pid: ufd,
+                            }
                         },
-                        crate::glass_ram::uffd_wrapper::UffdEventType::Remap { old, new, len } => FaultEvent::Remap {
-                            old_address: old,
-                            new_address: new,
-                            length: len,
+                        crate::glass_ram::uffd_wrapper::UffdEventType::Remap { old, new, len } => {
+                            FaultEvent::Remap {
+                                old_address: old,
+                                new_address: new,
+                                length: len,
+                            }
                         },
-                        crate::glass_ram::uffd_wrapper::UffdEventType::Remove { start, end } => FaultEvent::Remove {
-                            address: start,
-                            length: end - start,
+                        crate::glass_ram::uffd_wrapper::UffdEventType::Remove { start, end } => {
+                            FaultEvent::Remove {
+                                address: start,
+                                length: end - start,
+                            }
                         },
-                        crate::glass_ram::uffd_wrapper::UffdEventType::Unmap { start, end } => FaultEvent::Unmap {
-                            address: start,
-                            length: end - start,
+                        crate::glass_ram::uffd_wrapper::UffdEventType::Unmap { start, end } => {
+                            FaultEvent::Unmap {
+                                address: start,
+                                length: end - start,
+                            }
                         },
-                        crate::glass_ram::uffd_wrapper::UffdEventType::Unknown(e) => FaultEvent::Unknown(e),
+                        crate::glass_ram::uffd_wrapper::UffdEventType::Unknown(e) => {
+                            FaultEvent::Unknown(e)
+                        },
                     };
 
                     Ok(Some(fault_event))
-                }
+                },
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     // Prevent file from being closed
                     std::mem::forget(file);
                     Ok(None)
-                }
+                },
                 Err(e) => {
                     // Prevent file from being closed
                     std::mem::forget(file);
                     Err(Box::<dyn std::error::Error + Send + Sync>::from(e))
-                }
+                },
             }
-        }).await.map_err(|e| Box::<dyn std::error::Error + Send + Sync>::from(e))?
+        })
+        .await
+        .map_err(|e| Box::<dyn std::error::Error + Send + Sync>::from(e))?
     }
 }
 
@@ -187,9 +210,10 @@ mod tests {
     async fn test_fault_poller_creation() {
         let (event_tx, mut event_rx) = mpsc::unbounded_channel();
         let uffd = UserfaultFd::new(
-            crate::glass_ram::uffd_wrapper::UffdFlags::CLOEXEC |
-            crate::glass_ram::uffd_wrapper::UffdFlags::NONBLOCK
-        ).expect("Failed to create userfaultfd");
+            crate::glass_ram::uffd_wrapper::UffdFlags::CLOEXEC
+                | crate::glass_ram::uffd_wrapper::UffdFlags::NONBLOCK,
+        )
+        .expect("Failed to create userfaultfd");
 
         let poller = FaultPoller::new(uffd, event_tx);
         // assert_eq!(poller.event_tx.capacity(), None); // Unbounded channel does not expose capacity method

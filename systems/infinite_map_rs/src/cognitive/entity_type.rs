@@ -27,10 +27,10 @@ pub fn detect_entity_type(metadata: &RTSMetadata) -> EntityType {
             return EntityType::CognitiveEntity;
         }
     }
-    
+
     if metadata.executable.unwrap_or(false) {
         return EntityType::Executable;
     }
-    
+
     EntityType::Static
 }

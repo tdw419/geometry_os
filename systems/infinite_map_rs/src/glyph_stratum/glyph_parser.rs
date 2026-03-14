@@ -57,7 +57,9 @@ pub fn parse_glyph_program(source: &str) -> Result<(Vec<u32>, VmConfig), String>
 
     // First pass: Collect labels and .equ constants
     for line in source.lines() {
-        let trimmed = line.split(';').next().unwrap_or("").trim();
+        // Strip both // and ; style comments
+        let without_slash_comment = line.split("//").next().unwrap_or("");
+        let trimmed = without_slash_comment.split(';').next().unwrap_or("").trim();
         if trimmed.is_empty() {
             continue;
         }
@@ -80,7 +82,9 @@ pub fn parse_glyph_program(source: &str) -> Result<(Vec<u32>, VmConfig), String>
 
     // Second pass: Assemble the program
     for line in source.lines() {
-        let trimmed = line.split(';').next().unwrap_or("").trim();
+        // Strip both // and ; style comments
+        let without_slash_comment = line.split("//").next().unwrap_or("");
+        let trimmed = without_slash_comment.split(';').next().unwrap_or("").trim();
         if trimmed.is_empty() || trimmed.starts_with(':') || trimmed.starts_with(".equ") {
             continue;
         }
@@ -109,8 +113,11 @@ pub fn parse_glyph_program(source: &str) -> Result<(Vec<u32>, VmConfig), String>
             "JGT" => (OP_BRANCH, resolve_operand(parts[1], &equs, &labels), 3, 2), // Simplified Branch if Greater Than
             _ => (OP_NOP, 0, 0, 0),
         };
-        
-        program.push(opcode + 200); // Normalize to Unicode range
+
+        // Only add 200 for opcodes < 200 (core opcodes)
+        // AI-native opcodes (225-236) are already in the correct range
+        let normalized_opcode = if opcode < 200 { opcode + 200 } else { opcode };
+        program.push(normalized_opcode);
         program.push(stratum);
         program.push(p1);
         program.push(p2);

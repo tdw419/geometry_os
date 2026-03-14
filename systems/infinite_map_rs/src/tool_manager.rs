@@ -3,10 +3,10 @@
 // Manages multiple tool adapters and coordinates polling
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::tool_adapter::{ToolAdapter, ToolMetrics};
 
@@ -14,19 +14,19 @@ use crate::tool_adapter::{ToolAdapter, ToolMetrics};
 pub struct ToolManager {
     /// Registered adapters
     adapters: Vec<Arc<dyn ToolAdapter + Send + Sync>>,
-    
+
     /// Latest metrics from each adapter (indexed by adapter name)
     metrics: Arc<RwLock<HashMap<String, ToolMetrics>>>,
-    
+
     /// Aggregated health score (0.0 - 1.0) stored as bits for synchronous access
     aggregated_health: Arc<AtomicU32>,
-    
+
     /// Whether polling is active
     polling_active: Arc<RwLock<bool>>,
-    
+
     /// Latest status summary for synchronous access
     status_summary: Arc<parking_lot::RwLock<String>>,
-    
+
     /// Tokio runtime handle for background polling
     runtime_handle: Option<tokio::runtime::Handle>,
 }
@@ -47,12 +47,15 @@ impl ToolManager {
 
     pub fn register_adapter(&mut self, adapter: Arc<dyn ToolAdapter + Send + Sync>) {
         let name = adapter.name();
-        
+
         if adapter.is_available() {
             log::info!("🔧 ToolManager: Registered adapter '{}'", name);
             self.adapters.push(adapter);
         } else {
-            log::warn!("🔧 ToolManager: Adapter '{}' is not available, skipping", name);
+            log::warn!(
+                "🔧 ToolManager: Adapter '{}' is not available, skipping",
+                name
+            );
         }
     }
 
@@ -65,8 +68,10 @@ impl ToolManager {
         self.runtime_handle = Some(runtime_handle.clone());
         *self.polling_active.write().await = true;
 
-        log::info!("🔧 ToolManager: Starting background polling loops for {} adapters", 
-                   self.adapters.len());
+        log::info!(
+            "🔧 ToolManager: Starting background polling loops for {} adapters",
+            self.adapters.len()
+        );
 
         // Snapshot adapter info for the loop
         let adapters_to_poll = self.adapters.clone();
@@ -77,7 +82,7 @@ impl ToolManager {
 
         runtime_handle.spawn(async move {
             log::info!("🔧 ToolManager: Main polling controller started");
-            
+
             while *active_flag.read().await {
                 let mut total_weight = 0.0;
                 let mut weighted_sum = 0.0;
@@ -90,17 +95,17 @@ impl ToolManager {
                             let weight = adapter.weight();
                             weighted_sum += metrics.health_score * weight;
                             total_weight += weight;
-                            
+
                             new_summary.push_str(&format!("{}: {}\n", name, metrics.status));
-                            
+
                             // Update internal store
                             let mut map = metrics_store.write().await;
                             map.insert(name, metrics);
-                        }
+                        },
                         Err(e) => {
                             log::error!("🔧 ToolManager: Error polling '{}': {}", name, e);
                             new_summary.push_str(&format!("{}: ERROR\n", name));
-                        }
+                        },
                     }
                 }
 
@@ -108,7 +113,7 @@ impl ToolManager {
                     let health = weighted_sum / total_weight;
                     agg_health.store(health.to_bits(), Ordering::Relaxed);
                 }
-                
+
                 {
                     let mut sum_guard = status_sum.write();
                     *sum_guard = new_summary;

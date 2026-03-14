@@ -94,23 +94,23 @@ impl Compositor {
                 // Handle PixelRTS v2 file
                 log::info!("Detected PixelRTS v2 file: {}", file_path);
                 self.handle_pixelrts_v2_drop(file_path, data, drop_position)
-            }
+            },
             Some("wgsl") => {
                 // Handle WGSL .rts.png file
                 log::info!("Detected WGSL .rts.png file: {}", file_path);
                 self.handle_wgsl_drop(file_path, data, drop_position)
-            }
+            },
             None => {
                 log::debug!(
                     "File '{}' is not a recognized .rts.png type, ignoring",
                     file_path
                 );
                 Ok(())
-            }
+            },
             _ => {
                 log::debug!("File '{}' has unknown type, ignoring", file_path);
                 Ok(())
-            }
+            },
         }
     }
 
@@ -129,7 +129,7 @@ impl Compositor {
             None => {
                 log::debug!("File '{}' is not a WGSL .rts.png, ignoring", file_path);
                 return Ok(());
-            }
+            },
         };
 
         // Get the shader name from the file path

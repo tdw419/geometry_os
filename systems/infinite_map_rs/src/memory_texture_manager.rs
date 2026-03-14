@@ -10,8 +10,8 @@
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
-use wgpu::{self, Device, Queue, Texture, TextureView, BindGroup, Sampler};
 use std::time::{Duration, Instant};
+use wgpu::{self, BindGroup, Device, Queue, Sampler, Texture, TextureView};
 
 use crate::memory_tensor::{V2Brick, V2BrickHeader};
 use crate::memory_texture::MemoryRegion;
@@ -188,11 +188,13 @@ impl MemoryTextureManager {
         let w = brick.header.texture_width;
         let h = brick.header.texture_height;
         let entropy = brick.header.entropy;
-        log::info!("🧠 Loaded V2 brick: {} ({}x{}, entropy: {:.2})",
-                  path.display(),
-                  w,
-                  h,
-                  entropy);
+        log::info!(
+            "🧠 Loaded V2 brick: {} ({}x{}, entropy: {:.2})",
+            path.display(),
+            w,
+            h,
+            entropy
+        );
 
         Ok(source_code)
     }
@@ -269,10 +271,13 @@ impl MemoryTextureManager {
 
     /// Get total VRAM usage of all managed textures in bytes
     pub fn get_total_vram_usage(&self) -> u64 {
-        self.textures.values().map(|t| {
-            let size = t.texture.size();
-            (size.width * size.height * size.depth_or_array_layers * 4) as u64
-        }).sum()
+        self.textures
+            .values()
+            .map(|t| {
+                let size = t.texture.size();
+                (size.width * size.height * size.depth_or_array_layers * 4) as u64
+            })
+            .sum()
     }
 
     /// Get statistics about loaded textures
@@ -329,8 +334,7 @@ impl MemoryTextureManager {
             .map_err(|e| format!("Failed to read directory {}: {}", dir_path.display(), e))?;
 
         for entry in entries {
-            let entry = entry
-                .map_err(|e| format!("Failed to read entry: {}", e))?;
+            let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
             let path = entry.path();
 
             if path.extension().and_then(|s| s.to_str()) == Some("brick") {
@@ -419,8 +423,13 @@ impl MemoryTextureManager {
 
         self.textures.insert(name.clone(), memory_texture);
 
-        log::info!("🧠 Created live memory texture: {} ({}x{}, region: {})",
-                  name, width, height, region.name);
+        log::info!(
+            "🧠 Created live memory texture: {} ({}x{}, region: {})",
+            name,
+            width,
+            height,
+            region.name
+        );
 
         Ok(name)
     }
@@ -448,7 +457,12 @@ impl MemoryTextureManager {
     }
 
     /// Create a texture for QEMU VM visualization
-    pub fn create_qemu_texture(&mut self, name: &str, width: u32, height: u32) -> Result<(), String> {
+    pub fn create_qemu_texture(
+        &mut self,
+        name: &str,
+        width: u32,
+        height: u32,
+    ) -> Result<(), String> {
         if self.textures.contains_key(name) {
             return Err(format!("Texture '{}' already exists", name));
         }
@@ -489,20 +503,20 @@ impl MemoryTextureManager {
         log::info!("Generating Hilbert LUT for {}x{} texture...", width, height);
         let mut hilbert_lut = Vec::with_capacity((width * height) as usize);
         let n = width.max(height); // Assume power of 2
-        
+
         // Use fast_hilbert to generate mapping
         // We map linear address 'i' to (x, y), then back to texture linear index (y * width + x)
         // This effectively "scatters" the linear RAM into a Hilbert 2D arrangement
         for i in 0..(width * height) {
-             let point: (u32, u32) = fast_hilbert::h2xy(i.into());
-             let x = point.0 as u32;
-             let y = point.1 as u32;
-             
-             if x < width && y < height {
-                 hilbert_lut.push((y * width + x) as usize);
-             } else {
-                 hilbert_lut.push(0); // Safetly fallback
-             }
+            let point: (u32, u32) = fast_hilbert::h2xy(i.into());
+            let x = point.0 as u32;
+            let y = point.1 as u32;
+
+            if x < width && y < height {
+                hilbert_lut.push((y * width + x) as usize);
+            } else {
+                hilbert_lut.push(0); // Safetly fallback
+            }
         }
 
         let memory_texture = MemoryTexture {
@@ -512,15 +526,20 @@ impl MemoryTextureManager {
             bind_group,
             window_id: None,
             last_updated: Instant::now(),
-            is_live: true, 
+            is_live: true,
             memory_region: None,
-            live_update_interval: Duration::from_millis(16), 
+            live_update_interval: Duration::from_millis(16),
             last_live_update: Instant::now(),
             hilbert_lut: Some(hilbert_lut),
         };
 
         self.textures.insert(name.to_string(), memory_texture);
-        log::info!("✅ Created QEMU texture: {} ({}x{}) with Hilbert Mapping", name, width, height);
+        log::info!(
+            "✅ Created QEMU texture: {} ({}x{}) with Hilbert Mapping",
+            name,
+            width,
+            height
+        );
 
         Ok(())
     }
@@ -539,10 +558,10 @@ impl MemoryTextureManager {
             let width = size.width as usize;
             let height = size.height as usize;
             let total_pixels = width * height;
-            
+
             let mut data = vec![0u8; total_pixels * 4];
             let len = mem_slice.len().min(total_pixels);
-            
+
             // Apply Hilbert Mapping if LUT is present, otherwise Linear
             if let Some(ref lut) = texture.hilbert_lut {
                 for i in 0..len {
@@ -552,10 +571,10 @@ impl MemoryTextureManager {
                         let tex_idx = lut[i];
                         let pixel_offset = tex_idx * 4;
                         // Grayscale mapping
-                        data[pixel_offset] = val;     // R
-                        data[pixel_offset+1] = val;   // G
-                        data[pixel_offset+2] = val;   // B
-                        data[pixel_offset+3] = 255;   // A
+                        data[pixel_offset] = val; // R
+                        data[pixel_offset + 1] = val; // G
+                        data[pixel_offset + 2] = val; // B
+                        data[pixel_offset + 3] = 255; // A
                     }
                 }
             } else {
@@ -564,14 +583,14 @@ impl MemoryTextureManager {
                     let val = mem_slice[i];
                     let idx = i * 4;
                     data[idx] = val;
-                    data[idx+1] = val;
-                    data[idx+2] = val;
-                    data[idx+3] = 255;
+                    data[idx + 1] = val;
+                    data[idx + 2] = val;
+                    data[idx + 3] = 255;
                 }
             }
-            
+
             // Write to texture
-             self.queue.write_texture(
+            self.queue.write_texture(
                 wgpu::ImageCopyTexture {
                     texture: &texture.texture,
                     mip_level: 0,
@@ -586,13 +605,18 @@ impl MemoryTextureManager {
                 },
                 texture.texture.size(),
             );
-            
+
             texture.last_live_update = now;
         }
     }
 
     /// Internal method to update a live texture
-    fn update_live_texture_internal(queue: &Queue, _name: &str, region: &MemoryRegion, texture: &wgpu::Texture) {
+    fn update_live_texture_internal(
+        queue: &Queue,
+        _name: &str,
+        region: &MemoryRegion,
+        texture: &wgpu::Texture,
+    ) {
         let region_size = region.end_addr - region.start_addr;
         let page_size = 4096;
         let num_pages = region_size / page_size;

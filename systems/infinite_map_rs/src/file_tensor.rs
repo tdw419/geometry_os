@@ -18,11 +18,13 @@
 //! - File type detection (text, binary, compressed, image)
 //! - Pattern detection for structure visualization
 
-use wgpu::{self, Device, Queue, Buffer, Texture, TextureView, ComputePipeline, BindGroup, BindGroupLayout};
-use std::mem;
 use std::fs;
+use std::mem;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
+use wgpu::{
+    self, BindGroup, BindGroupLayout, Buffer, ComputePipeline, Device, Queue, Texture, TextureView,
+};
 
 // ============================================
 // FILE TYPE DETECTION
@@ -52,42 +54,43 @@ impl FileType {
         if path.is_dir() {
             return FileType::Directory;
         }
-        
+
         // Check file extension
-        let ext = path.extension()
+        let ext = path
+            .extension()
             .and_then(|e| e.to_str())
             .map(|e| e.to_lowercase());
-        
+
         match ext.as_deref() {
-            Some("txt") | Some("md") | Some("rs") | Some("py") | Some("js") | 
-            Some("json") | Some("yaml") | Some("yml") | Some("toml") |
-            Some("html") | Some("css") | Some("xml") => FileType::Text,
-            Some("zip") | Some("gz") | Some("bz2") | Some("xz") | 
-            Some("7z") | Some("rar") | Some("tar") => FileType::Compressed,
-            Some("png") | Some("jpg") | Some("jpeg") | Some("gif") | 
-            Some("bmp") | Some("webp") | Some("svg") => FileType::Image,
-            Some("exe") | Some("dll") | Some("so") | Some("dylib") |
-            Some("bin") | Some("o") | Some("a") => FileType::Binary,
+            Some("txt") | Some("md") | Some("rs") | Some("py") | Some("js") | Some("json")
+            | Some("yaml") | Some("yml") | Some("toml") | Some("html") | Some("css")
+            | Some("xml") => FileType::Text,
+            Some("zip") | Some("gz") | Some("bz2") | Some("xz") | Some("7z") | Some("rar")
+            | Some("tar") => FileType::Compressed,
+            Some("png") | Some("jpg") | Some("jpeg") | Some("gif") | Some("bmp") | Some("webp")
+            | Some("svg") => FileType::Image,
+            Some("exe") | Some("dll") | Some("so") | Some("dylib") | Some("bin") | Some("o")
+            | Some("a") => FileType::Binary,
             _ => {
                 // Fallback: analyze content
                 Self::detect_from_content(content)
-            }
+            },
         }
     }
-    
+
     /// Detect file type from content analysis
     fn detect_from_content(content: &[u8]) -> Self {
         if content.is_empty() {
             return FileType::Unknown;
         }
-        
+
         // Sample first 1024 bytes
         let sample_size = content.len().min(1024);
         let sample = &content[..sample_size];
-        
+
         let mut ascii_count = 0;
         let mut zero_count = 0;
-        
+
         for &byte in sample {
             if byte >= 32 && byte <= 126 || byte == b'\n' || byte == b'\r' || byte == b'\t' {
                 ascii_count += 1;
@@ -96,10 +99,10 @@ impl FileType {
                 zero_count += 1;
             }
         }
-        
+
         let ascii_ratio = ascii_count as f32 / sample_size as f32;
         let zero_ratio = zero_count as f32 / sample_size as f32;
-        
+
         if ascii_ratio > 0.8 {
             FileType::Text
         } else if zero_ratio > 0.3 {
@@ -108,7 +111,7 @@ impl FileType {
             FileType::Binary
         }
     }
-    
+
     /// Convert to u32 for shader
     pub fn as_u32(&self) -> u32 {
         match self {
@@ -120,15 +123,15 @@ impl FileType {
             FileType::Directory => 5,
         }
     }
-    
+
     /// Get color hint for this file type
     pub fn color_hint(&self) -> (f32, f32, f32) {
         match self {
-            FileType::Text => (0.2, 0.8, 0.3),      // Greenish
-            FileType::Binary => (0.9, 0.3, 0.3),    // Reddish
-            FileType::Compressed => (0.3, 0.5, 0.9),  // Bluish
-            FileType::Image => (0.9, 0.7, 0.2),     // Yellowish
-            FileType::Directory => (0.9, 0.9, 0.2),   // Yellow
+            FileType::Text => (0.2, 0.8, 0.3),       // Greenish
+            FileType::Binary => (0.9, 0.3, 0.3),     // Reddish
+            FileType::Compressed => (0.3, 0.5, 0.9), // Bluish
+            FileType::Image => (0.9, 0.7, 0.2),      // Yellowish
+            FileType::Directory => (0.9, 0.9, 0.2),  // Yellow
             FileType::Unknown => (0.5, 0.5, 0.5),    // Gray
         }
     }
@@ -160,7 +163,7 @@ impl Default for FileTensorConfig {
         Self {
             width: 512,
             height: 512,
-            hilbert_order: 9,  // 2^9 = 512
+            hilbert_order: 9, // 2^9 = 512
             color_mode: FileColorMode::MultiChannel,
             brightness: 1.0,
             contrast: 1.0,
@@ -236,11 +239,10 @@ impl FileMetadata {
     pub fn from_path(path: &Path) -> Result<Self, String> {
         let metadata = fs::metadata(path)
             .map_err(|e| format!("Failed to read metadata for {}: {}", path.display(), e))?;
-        
+
         let size = metadata.len();
-        let last_modified = metadata.modified()
-            .unwrap_or(SystemTime::UNIX_EPOCH);
-        
+        let last_modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+
         let file_type = if path.is_dir() {
             FileType::Directory
         } else {
@@ -252,7 +254,7 @@ impl FileMetadata {
             };
             FileType::detect(path, &content)
         };
-        
+
         let params = if path.is_file() && size > 0 && size < 10 * 1024 * 1024 {
             // Calculate params for files < 10MB
             let content = fs::read(path)
@@ -261,7 +263,7 @@ impl FileMetadata {
         } else {
             FileParams::default()
         };
-        
+
         Ok(Self {
             path: path.to_path_buf(),
             size,
@@ -278,18 +280,18 @@ impl FileParams {
         if content.is_empty() {
             return Self::default();
         }
-        
+
         // Sample first 4096 bytes for analysis
         let sample_size = content.len().min(4096);
         let sample = &content[..sample_size];
-        
+
         let mut ascii_count = 0u32;
         let mut zero_count = 0u32;
         let mut freq = [0u32; 256];
-        
+
         for &byte in sample {
             freq[byte as usize] += 1;
-            
+
             if byte >= 32 && byte <= 126 || byte == b'\n' || byte == b'\r' || byte == b'\t' {
                 ascii_count += 1;
             }
@@ -297,10 +299,10 @@ impl FileParams {
                 zero_count += 1;
             }
         }
-        
+
         let ascii_ratio = ascii_count as f32 / sample_size as f32;
         let zero_ratio = zero_count as f32 / sample_size as f32;
-        
+
         // Calculate Shannon entropy
         let mut entropy = 0.0f32;
         for &count in &freq {
@@ -309,22 +311,24 @@ impl FileParams {
                 entropy -= p * p.log2();
             }
         }
-        
+
         // Detect pattern repetition (simple 4-byte pattern check)
         let mut pattern_score = 0.0f32;
         if sample_size >= 16 {
             let pattern = u32::from_le_bytes([sample[0], sample[1], sample[2], sample[3]]);
             let mut repeats = 0u32;
-            
+
             for i in (0..sample_size - 4).step_by(4) {
-                if u32::from_le_bytes([sample[i], sample[i+1], sample[i+2], sample[i+3]]) == pattern {
+                if u32::from_le_bytes([sample[i], sample[i + 1], sample[i + 2], sample[i + 3]])
+                    == pattern
+                {
                     repeats += 1;
                 }
             }
-            
+
             pattern_score = (repeats as f32) / (sample_size as f32 / 4.0);
         }
-        
+
         Self {
             entropy,
             ascii_ratio,
@@ -345,22 +349,22 @@ pub struct FileTensorFolder {
     output_buffer: Buffer,
     output_texture: Texture,
     output_texture_view: TextureView,
-    
+
     // Compute Pipeline
     compute_pipeline: ComputePipeline,
     bind_group_layout: BindGroupLayout,
     bind_group: BindGroup,
-    
+
     // Uniform buffers
     config_buffer: Buffer,
     file_params_buffer: Buffer,
-    
+
     // Configuration
     config: FileTensorConfig,
-    
+
     // File metadata
     metadata: FileMetadata,
-    
+
     // State
     last_dispatch: std::time::Instant,
     dispatch_count: u64,
@@ -368,14 +372,18 @@ pub struct FileTensorFolder {
 
 impl FileTensorFolder {
     /// Create a new file tensor folder
-    pub fn new(device: &Device, config: FileTensorConfig, metadata: FileMetadata) -> Result<Self, String> {
+    pub fn new(
+        device: &Device,
+        config: FileTensorConfig,
+        metadata: FileMetadata,
+    ) -> Result<Self, String> {
         // Validate configuration
         if !config.width.is_power_of_two() || !config.height.is_power_of_two() {
             return Err("Width and height must be powers of 2 for Hilbert curve".to_string());
         }
-        
+
         let texture_size = (config.width * config.height) as usize;
-        
+
         // Create input buffer (storage buffer for raw file bytes)
         // We use u32 to pack 4 bytes per element for efficiency
         let input_buffer = device.create_buffer(&wgpu::BufferDescriptor {
@@ -384,15 +392,17 @@ impl FileTensorFolder {
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        
+
         // Create output buffer (for compute shader output)
         let output_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("File Tensor Output Buffer"),
             size: (texture_size * mem::size_of::<[f32; 4]>()) as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        
+
         // Create output texture (for rendering)
         let output_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("File Tensor Output Texture"),
@@ -405,18 +415,21 @@ impl FileTensorFolder {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba32Float,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::STORAGE_BINDING,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::STORAGE_BINDING,
             view_formats: &[],
         });
-        
-        let output_texture_view = output_texture.create_view(&wgpu::TextureViewDescriptor::default());
-        
+
+        let output_texture_view =
+            output_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
         // Load compute shader
         let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("File Fold Compute Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shaders/file_fold.wgsl").into()),
         });
-        
+
         // Create bind group layout
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("File Tensor Bind Group Layout"),
@@ -467,7 +480,7 @@ impl FileTensorFolder {
                 },
             ],
         });
-        
+
         // Create uniform buffers
         let config_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("File Fold Config Buffer"),
@@ -475,26 +488,28 @@ impl FileTensorFolder {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        
+
         let file_params_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("File Params Buffer"),
             size: mem::size_of::<FileParamsUniform>() as u64,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        
+
         // Create compute pipeline
         let compute_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some("File Tensor Compute Pipeline"),
-            layout: Some(&device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("File Tensor Pipeline Layout"),
-                bind_group_layouts: &[&bind_group_layout],
-                push_constant_ranges: &[],
-            })),
+            layout: Some(
+                &device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: Some("File Tensor Pipeline Layout"),
+                    bind_group_layouts: &[&bind_group_layout],
+                    push_constant_ranges: &[],
+                }),
+            ),
             module: &shader_module,
             entry_point: "main",
         });
-        
+
         // Create bind group
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("File Tensor Bind Group"),
@@ -518,7 +533,7 @@ impl FileTensorFolder {
                 },
             ],
         });
-        
+
         Ok(Self {
             input_buffer,
             output_buffer,
@@ -535,14 +550,19 @@ impl FileTensorFolder {
             dispatch_count: 0,
         })
     }
-    
+
     /// Upload file bytes to GPU and dispatch compute shader
-    /// 
+    ///
     /// This is the core "dumb pipe" operation:
     /// 1. Copy raw bytes to GPU buffer
     /// 2. Dispatch compute shader (O(1) operation)
     /// 3. GPU folds file into texture in parallel
-    pub fn fold_file(&mut self, device: &Device, queue: &Queue, file_bytes: &[u8]) -> Result<(), String> {
+    pub fn fold_file(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        file_bytes: &[u8],
+    ) -> Result<(), String> {
         // Pack bytes into u32 for efficiency (4 bytes per u32)
         let packed_data: Vec<u32> = file_bytes
             .chunks(4)
@@ -552,34 +572,34 @@ impl FileTensorFolder {
                 u32::from_le_bytes(bytes)
             })
             .collect();
-        
+
         // Upload to GPU (single memory copy)
         queue.write_buffer(&self.input_buffer, 0, bytemuck::cast_slice(&packed_data));
-        
+
         // Update uniform buffers
         self.update_uniforms(queue);
-        
+
         // Dispatch compute shader
         // Workgroup size is 16x16, so we need ceil(width/16) x ceil(height/16) workgroups
         let workgroups_x = (self.config.width + 15) / 16;
         let workgroups_y = (self.config.height + 15) / 16;
-        
+
         // Create command encoder
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("File Tensor Encoder"),
         });
-        
+
         {
             let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 label: Some("File Tensor Compute Pass"),
                 timestamp_writes: None,
             });
-            
+
             compute_pass.set_pipeline(&self.compute_pipeline);
             compute_pass.set_bind_group(0, &self.bind_group, &[]);
             compute_pass.dispatch_workgroups(workgroups_x, workgroups_y, 1);
         }
-        
+
         // Copy output buffer to texture for rendering
         encoder.copy_buffer_to_texture(
             wgpu::ImageCopyBuffer {
@@ -602,40 +622,40 @@ impl FileTensorFolder {
                 depth_or_array_layers: 1,
             },
         );
-        
+
         queue.submit(Some(encoder.finish()));
-        
+
         self.last_dispatch = std::time::Instant::now();
         self.dispatch_count += 1;
-        
+
         Ok(())
     }
-    
+
     /// Update configuration
     pub fn set_config(&mut self, config: FileTensorConfig) {
         self.config = config;
     }
-    
+
     /// Get output texture view for rendering
     pub fn texture_view(&self) -> &TextureView {
         &self.output_texture_view
     }
-    
+
     /// Get output texture
     pub fn texture(&self) -> &Texture {
         &self.output_texture
     }
-    
+
     /// Get texture dimensions
     pub fn size(&self) -> (u32, u32) {
         (self.config.width, self.config.height)
     }
-    
+
     /// Get file metadata
     pub fn metadata(&self) -> &FileMetadata {
         &self.metadata
     }
-    
+
     /// Get dispatch statistics
     pub fn dispatch_stats(&self) -> DispatchStats {
         DispatchStats {
@@ -644,7 +664,7 @@ impl FileTensorFolder {
             average_dispatch_time: std::time::Duration::from_millis(0), // TODO: Track actual timing
         }
     }
-    
+
     /// Update uniform buffers with current configuration
     fn update_uniforms(&self, queue: &Queue) {
         let config_uniform = FileFoldConfigUniform {
@@ -657,16 +677,20 @@ impl FileTensorFolder {
             brightness: self.config.brightness,
             contrast: self.config.contrast,
         };
-        
+
         let params_uniform = FileParamsUniform {
             entropy: self.metadata.params.entropy,
             ascii_ratio: self.metadata.params.ascii_ratio,
             zero_ratio: self.metadata.params.zero_ratio,
             pattern_score: self.metadata.params.pattern_score,
         };
-        
+
         queue.write_buffer(&self.config_buffer, 0, bytemuck::bytes_of(&config_uniform));
-        queue.write_buffer(&self.file_params_buffer, 0, bytemuck::bytes_of(&params_uniform));
+        queue.write_buffer(
+            &self.file_params_buffer,
+            0,
+            bytemuck::bytes_of(&params_uniform),
+        );
     }
 }
 
@@ -713,39 +737,47 @@ pub struct DispatchStats {
 
 /// Read file bytes
 pub fn read_file_bytes(path: &Path) -> Result<Vec<u8>, String> {
-    fs::read(path)
-        .map_err(|e| format!("Failed to read file {}: {}", path.display(), e))
+    fs::read(path).map_err(|e| format!("Failed to read file {}: {}", path.display(), e))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_file_type_detection() {
         // Text file
         let text_content = b"Hello, World!\nThis is a text file.\n";
-        assert_eq!(FileType::detect(Path::new("test.txt"), text_content), FileType::Text);
-        
+        assert_eq!(
+            FileType::detect(Path::new("test.txt"), text_content),
+            FileType::Text
+        );
+
         // Binary file
         let binary_content = vec![0x7f, b'E', b'L', b'F', 0x02, 0x01, 0x01, 0x00];
-        assert_eq!(FileType::detect(Path::new("test.bin"), &binary_content), FileType::Binary);
-        
+        assert_eq!(
+            FileType::detect(Path::new("test.bin"), &binary_content),
+            FileType::Binary
+        );
+
         // Compressed file (lots of zeros)
         let compressed_content = vec![0u8; 1024];
-        assert_eq!(FileType::detect(Path::new("test.gz"), &compressed_content), FileType::Compressed);
+        assert_eq!(
+            FileType::detect(Path::new("test.gz"), &compressed_content),
+            FileType::Compressed
+        );
     }
-    
+
     #[test]
     fn test_file_params_calculation() {
         let content = b"AAAA\nBBBB\nCCCC\nDDDD\n";
         let params = FileParams::calculate(content);
-        
+
         assert!(params.ascii_ratio > 0.8); // Mostly ASCII
-        assert!(params.zero_ratio < 0.1);   // Few zeros
-        assert!(params.entropy > 0.0);     // Some entropy
+        assert!(params.zero_ratio < 0.1); // Few zeros
+        assert!(params.entropy > 0.0); // Some entropy
     }
-    
+
     #[test]
     fn test_default_config() {
         let config = FileTensorConfig::default();
@@ -755,7 +787,7 @@ mod tests {
         assert!(config.width.is_power_of_two());
         assert!(config.height.is_power_of_two());
     }
-    
+
     #[test]
     fn test_file_color_mode_conversion() {
         assert_eq!(FileColorMode::Heatmap.as_u32(), 0);
@@ -763,7 +795,7 @@ mod tests {
         assert_eq!(FileColorMode::Structure.as_u32(), 2);
         assert_eq!(FileColorMode::MultiChannel.as_u32(), 3);
     }
-    
+
     #[test]
     fn test_file_type_as_u32() {
         assert_eq!(FileType::Unknown.as_u32(), 0);

@@ -2,8 +2,8 @@
 // Phase 31: Host Clipboard Manager
 // Handles interactions with the host OS clipboard using copypasta
 
-use std::sync::{Arc, Mutex};
 use copypasta::{ClipboardContext, ClipboardProvider};
+use std::sync::{Arc, Mutex};
 
 /// Shared Clipboard Manager
 /// Can be safely shared between threads (e.g. InputManager and App)
@@ -26,7 +26,7 @@ impl SharedClipboardManager {
             Err(e) => {
                 log::error!("Failed to initialize clipboard context: {}", e);
                 None
-            }
+            },
         };
 
         Self {
@@ -43,7 +43,7 @@ impl SharedClipboardManager {
                 Err(e) => {
                     log::debug!("Failed to get clipboard contents: {}", e);
                     None
-                }
+                },
             }
         } else {
             None

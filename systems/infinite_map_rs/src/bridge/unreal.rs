@@ -1,7 +1,7 @@
+use log::{error, info};
+use serde::{Deserialize, Serialize};
 use shared_memory::{Shmem, ShmemConf};
-use serde::{Serialize, Deserialize};
 use std::sync::atomic::{AtomicU64, Ordering};
-use log::{info, error};
 
 /// The name of the Shared Memory region used for the bridge.
 const SHM_ID: &str = "geometry_os_unreal_bridge_01";
@@ -38,33 +38,31 @@ pub struct UnrealBridge {
 impl UnrealBridge {
     pub fn new() -> Option<Self> {
         info!("Initializing Unreal Engine Bridge...");
-        
+
         // Attempt to clean up stale shm if it exists (Linux specific hack, or just ignore)
-        
+
         let shmem = match ShmemConf::new().os_id(SHM_ID).open() {
             Ok(m) => {
                 info!("Opened existing shared memory region: {}", SHM_ID);
                 m
             },
-            Err(_) => {
-                match ShmemConf::new().size(SHM_SIZE).os_id(SHM_ID).create() {
-                    Ok(m) => {
-                        info!("Created new shared memory region: {}", SHM_ID);
-                        m
-                    },
-                    Err(e) => {
-                        error!("Failed to initialize SHM: {}", e);
-                        return None;
-                    }
-                }
-            }
+            Err(_) => match ShmemConf::new().size(SHM_SIZE).os_id(SHM_ID).create() {
+                Ok(m) => {
+                    info!("Created new shared memory region: {}", SHM_ID);
+                    m
+                },
+                Err(e) => {
+                    error!("Failed to initialize SHM: {}", e);
+                    return None;
+                },
+            },
         };
-        
+
         let bridge = UnrealBridge {
             shmem,
             is_connected: true,
         };
-        
+
         bridge.init_header();
         Some(bridge)
     }
@@ -82,7 +80,9 @@ impl UnrealBridge {
 
     /// broadcast a terrain update to the ether.
     pub fn broadcast_update(&mut self, chunk_id: u64, lod: u8, payload: &[u8]) {
-        if !self.is_connected { return; }
+        if !self.is_connected {
+            return;
+        }
 
         let packet = TectonicUpdatePacket {
             timestamp: chrono::Utc::now().timestamp_millis() as u64,
@@ -97,26 +97,28 @@ impl UnrealBridge {
 
         let _header_size = std::mem::size_of::<BridgeHeader>();
         let offset = 4096; // Safe alignment start
-        
+
         unsafe {
             let ptr = self.shmem.as_ptr();
             let data_ptr = ptr.add(offset);
-            
+
             // Serialize packet header
-            let encoded_packet = bincode::serde::encode_to_vec(&packet, bincode::config::standard()).unwrap_or_default();
+            let encoded_packet =
+                bincode::serde::encode_to_vec(&packet, bincode::config::standard())
+                    .unwrap_or_default();
             std::ptr::copy_nonoverlapping(encoded_packet.as_ptr(), data_ptr, encoded_packet.len());
-            
+
             // Serialize payload immediately after
             let payload_ptr = data_ptr.add(encoded_packet.len());
-            
+
             // Boundary check
             if offset + encoded_packet.len() + payload.len() > SHM_SIZE {
                 error!("Packet too large for SHM buffer!");
                 return;
             }
-            
+
             std::ptr::copy_nonoverlapping(payload.as_ptr(), payload_ptr, payload.len());
-            
+
             // Update Write Cursor (Mock logic for now - simply toggling to signal update)
             let header = &mut *(ptr as *mut BridgeHeader);
             header.write_cursor.fetch_add(1, Ordering::SeqCst);

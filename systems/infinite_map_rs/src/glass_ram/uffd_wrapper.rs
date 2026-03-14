@@ -1,8 +1,8 @@
 use libc;
 use nix::errno::Errno;
+use std::io::Read;
 use std::mem;
 use std::os::fd::{AsRawFd, FromRawFd, RawFd};
-use std::io::Read;
 
 // -----------------------------------------------------------------------------
 // Constants & Types from linux/userfaultfd.h
@@ -60,7 +60,7 @@ impl UffdIoctlMode {
     pub fn bits(&self) -> u64 {
         self.0
     }
-    
+
     pub fn empty() -> Self {
         Self(0)
     }
@@ -157,7 +157,7 @@ pub union UffdMsgArg {
 pub struct UffdMsgPagefault {
     pub address: u64,
     pub flags: u32,
-    pub feat: UffdMsgPagefaultUnion, 
+    pub feat: UffdMsgPagefaultUnion,
 }
 
 #[repr(C)]
@@ -262,7 +262,7 @@ impl UserfaultFd {
         let fd_flags = flags.bits();
         // syscall usage
         let fd = unsafe { libc::syscall(libc::SYS_userfaultfd, fd_flags) };
-        
+
         if fd < 0 {
             return Err(Errno::last());
         }
@@ -295,17 +295,17 @@ impl UserfaultFd {
         unsafe {
             uffdio_register(self.file.as_raw_fd(), &mut reg_struct)?;
         }
-        
+
         Ok(())
     }
 
     pub fn write_protect(&self, start: u64, len: u64, enable: bool) -> Result<(), nix::Error> {
-        let mode = if enable { 
-            UffdIoctlMode::WRITEPROTECT_MODE_WP 
-        } else { 
-            UffdIoctlMode::empty() 
+        let mode = if enable {
+            UffdIoctlMode::WRITEPROTECT_MODE_WP
+        } else {
+            UffdIoctlMode::empty()
         };
-        
+
         // Note: write protect uses UffdioWriteProtect struct not Register
         let mut wp_struct = UffdioWriteProtect {
             range: UffdioRange { start, len },
@@ -322,41 +322,44 @@ impl UserfaultFd {
     pub fn read_event(&mut self) -> Result<Option<UffdEventType>, nix::Error> {
         let mut buf = [0u8; mem::size_of::<UffdMsg>()];
         match self.file.read(&mut buf) {
-             // ... existing match arms ...
+            // ... existing match arms ...
             Ok(n) => {
                 if n != mem::size_of::<UffdMsg>() {
-                     return Err(Errno::EIO);
+                    return Err(Errno::EIO);
                 }
                 let msg: UffdMsg = unsafe { mem::transmute(buf) };
-                
+
                 let event = unsafe {
                     match msg.event {
-                        0x12 => { // UFFD_EVENT_PAGEFAULT
+                        0x12 => {
+                            // UFFD_EVENT_PAGEFAULT
                             UffdEventType::PageFault(PageFaultEvent {
                                 address: msg.arg.pagefault.address,
                                 flags: msg.arg.pagefault.flags,
                                 thread_id: Some(msg.arg.pagefault.feat.ptid),
                             })
                         },
-                        0x13 => UffdEventType::Fork { ufd: msg.arg.fork.ufd },
-                        0x14 => UffdEventType::Remap { 
-                            old: msg.arg.remap.old, 
-                            new: msg.arg.remap.new, 
-                            len: msg.arg.remap.len 
+                        0x13 => UffdEventType::Fork {
+                            ufd: msg.arg.fork.ufd,
                         },
-                        0x15 => UffdEventType::Remove { 
-                            start: msg.arg.remove.start, 
-                            end: msg.arg.remove.end 
+                        0x14 => UffdEventType::Remap {
+                            old: msg.arg.remap.old,
+                            new: msg.arg.remap.new,
+                            len: msg.arg.remap.len,
+                        },
+                        0x15 => UffdEventType::Remove {
+                            start: msg.arg.remove.start,
+                            end: msg.arg.remove.end,
                         },
                         0x16 => UffdEventType::Unmap {
-                             start: msg.arg.remove.start, // Reuse remove struct
-                             end: msg.arg.remove.end 
+                            start: msg.arg.remove.start, // Reuse remove struct
+                            end: msg.arg.remove.end,
                         },
                         e => UffdEventType::Unknown(e),
                     }
                 };
                 Ok(Some(event))
-            }
+            },
             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(None),
             Err(e) => {
                 if let Some(errno) = e.raw_os_error() {
@@ -364,7 +367,7 @@ impl UserfaultFd {
                 } else {
                     Err(Errno::EIO)
                 }
-            }
+            },
         }
     }
 

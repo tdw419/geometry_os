@@ -6,8 +6,8 @@
 // This module implements raycasting for 3D memory artifacts,
 // allowing users to click on memory blocks to inspect memory regions.
 
-use crate::memory_artifacts::MemoryArtifact;
 use crate::camera::Camera;
+use crate::memory_artifacts::MemoryArtifact;
 
 /// Ray intersection result
 #[derive(Debug, Clone, Copy)]
@@ -159,8 +159,8 @@ impl MemoryRaycaster {
                 } else {
                     closest = Some(intersection);
                 }
+            }
         }
-    }
 
         closest
     }
@@ -217,10 +217,14 @@ impl MemoryRaycaster {
     ) -> (Option<usize>, Option<usize>) {
         let (ray_origin, ray_dir) = self.cast_ray(screen_x, screen_y);
 
-        if let Some(intersection) = Self::find_closest_intersection(ray_origin, ray_dir, artifacts) {
+        if let Some(intersection) = Self::find_closest_intersection(ray_origin, ray_dir, artifacts)
+        {
             if let Some(uv) = intersection.uv {
                 // Find the artifact
-                if let Some(artifact) = artifacts.iter().find(|a| a.id == intersection.artifact_id.unwrap()) {
+                if let Some(artifact) = artifacts
+                    .iter()
+                    .find(|a| a.id == intersection.artifact_id.unwrap())
+                {
                     let (start_addr, end_addr) = artifact.address_range;
                     let range_size = (end_addr - start_addr) as f32;
                     let addr_offset = (uv[0] * uv[1]) * range_size;

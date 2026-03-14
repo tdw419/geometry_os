@@ -1,8 +1,8 @@
 // systems/infinite_map_rs/src/terminal_tile.rs
 // Phase 30.7: Terminal Tile Rendering - GPU accelerated text buffers
 
-use std::time::Instant;
 use crate::terminal_emulator::TerminalEmulator;
+use std::time::Instant;
 
 pub struct TerminalTile {
     pub id: usize,
@@ -51,7 +51,7 @@ impl TerminalTile {
         let char_w = 8;
         let char_h = 16;
         let size_chars = (self.width_chars, self.height_chars);
-        
+
         // Clear background (Dark Blue-ish Black)
         for i in 0..self.texture_data.len() / 4 {
             self.texture_data[i * 4] = 10;
@@ -69,7 +69,7 @@ impl TerminalTile {
                         Some(e) => e,
                         None => &self.emulator,
                     };
-                    
+
                     let cell = match emu.get_buffer().get_cell(y as usize, x as usize) {
                         Some(c) => c,
                         None => continue,
@@ -87,7 +87,7 @@ impl TerminalTile {
                         (y * char_h) as u32,
                         char_w as u32,
                         char_h as u32,
-                        [bg[0], bg[1], bg[2]]
+                        [bg[0], bg[1], bg[2]],
                     );
                 }
 
@@ -101,7 +101,7 @@ impl TerminalTile {
                     c,
                     (x * char_w) as u32,
                     (y * char_h) as u32,
-                    [fg[0], fg[1], fg[2]]
+                    [fg[0], fg[1], fg[2]],
                 );
             }
         }
@@ -112,7 +112,7 @@ impl TerminalTile {
 
     fn draw_rect_internal(&mut self, x: u32, y: u32, w: u32, h: u32, color: [u8; 3]) {
         let tex_w = self.texture_width;
-        
+
         for dy in 0..h {
             for dx in 0..w {
                 let px = x + dx;

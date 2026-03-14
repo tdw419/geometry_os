@@ -4,8 +4,8 @@
 //! and the live wgpu runtime. It handles shader module creation,
 //! pipeline caching, and hot-swapping.
 
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// A handle to a JIT-compiled shader module and its pipeline
 pub struct JitArtifact {
@@ -18,7 +18,7 @@ pub struct JitArtifact {
 pub struct JitBridge {
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
-    
+
     /// Map of Tile ID (or pos) to compiled artifact
     artifacts: HashMap<String, JitArtifact>,
 }
@@ -43,53 +43,61 @@ impl JitBridge {
 
         // Create shader module from SPIR-V words
         // Safety: We trust our internal GPU-compiler (or we should add a validator)
-        let module = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some(&format!("JIT Module: {}", id)),
-            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Owned("".to_string())), // SpirV not supported in this wgpu version
-        });
+        let module = self
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some(&format!("JIT Module: {}", id)),
+                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Owned("".to_string())), // SpirV not supported in this wgpu version
+            });
 
         // Create bind group layout (Standard Geometric Layout for Tiles)
-        let bind_group_layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some(&format!("JIT Layout: {}", id)),
-            entries: &[
-                // Input Tile/Substrate (Read)
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                // Output Tile/Substrate (Write)
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-            ],
-        });
+        let bind_group_layout =
+            self.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some(&format!("JIT Layout: {}", id)),
+                    entries: &[
+                        // Input Tile/Substrate (Read)
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: true },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        // Output Tile/Substrate (Write)
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                    ],
+                });
 
-        let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some(&format!("JIT Pipeline Layout: {}", id)),
-            bind_group_layouts: &[&bind_group_layout],
-            push_constant_ranges: &[],
-        });
+        let pipeline_layout = self
+            .device
+            .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some(&format!("JIT Pipeline Layout: {}", id)),
+                bind_group_layouts: &[&bind_group_layout],
+                push_constant_ranges: &[],
+            });
 
         // Create compute pipeline
-        let pipeline = self.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some(&format!("JIT Pipeline: {}", id)),
-            layout: Some(&pipeline_layout),
-            module: &module,
-            entry_point: "main",
-        });
+        let pipeline = self
+            .device
+            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: Some(&format!("JIT Pipeline: {}", id)),
+                layout: Some(&pipeline_layout),
+                module: &module,
+                entry_point: "main",
+            });
 
         let artifact = JitArtifact {
             module,
@@ -112,7 +120,10 @@ impl JitBridge {
         output_buffer: &wgpu::Buffer,
         workgroups: (u32, u32, u32),
     ) -> Result<(), String> {
-        let artifact = self.artifacts.get(id).ok_or_else(|| format!("Artifact '{}' not found", id))?;
+        let artifact = self
+            .artifacts
+            .get(id)
+            .ok_or_else(|| format!("Artifact '{}' not found", id))?;
 
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some(&format!("JIT Bind Group: {}", id)),

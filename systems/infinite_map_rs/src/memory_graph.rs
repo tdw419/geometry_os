@@ -6,9 +6,9 @@
 // including nodes, edges, and graph metadata with serialization support for protocol
 // communication.
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 
 /// Type of neural memory node
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

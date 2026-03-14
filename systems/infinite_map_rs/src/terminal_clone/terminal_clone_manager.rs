@@ -62,13 +62,13 @@ impl TerminalCloneManager {
                 match clone.pty.read(&mut buffer) {
                     Ok(n) if n > 0 => {
                         clone.emulator.feed(&buffer[..n]);
-                    }
+                    },
                     Ok(_) => break, // EOF or no data
                     Err(e) if e.kind() == io::ErrorKind::WouldBlock => break,
                     Err(e) => {
                         error!("❌ Error reading from PTY {}: {}", clone.id, e);
                         break;
-                    }
+                    },
                 }
             }
         }

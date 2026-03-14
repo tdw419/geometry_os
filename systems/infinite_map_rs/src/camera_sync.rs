@@ -4,12 +4,12 @@
 //! (position, zoom) to connected PixiJS visual shells, enabling synchronized
 //! camera movement between the Rust compositor and web clients.
 
+use futures_util::sink::SinkExt;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
-use tokio_tungstenite::tungstenite::protocol::Message;
-use futures_util::sink::SinkExt; // For send() method on WebSocket
+use tokio_tungstenite::tungstenite::protocol::Message; // For send() method on WebSocket
 
 /// Camera state update message
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -112,8 +112,8 @@ impl CameraSyncServer {
     /// This spawns a background task that handles incoming connections
     /// and broadcasts camera updates to all connected clients.
     pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
-        use tokio::net::TcpListener;
         use futures_util::stream::StreamExt;
+        use tokio::net::TcpListener;
 
         let listener = TcpListener::bind(&self.addr).await?;
         println!("🔌 Camera Sync WebSocket server listening on {}", self.addr);
@@ -126,11 +126,10 @@ impl CameraSyncServer {
                 interval.tick().await;
                 let mut clients = clients_heartbeat.write().await;
                 let now = std::time::Instant::now();
-                
+
                 // Remove inactive clients (no heartbeat for 60 seconds)
-                clients.retain(|_, client| {
-                    now.duration_since(client.last_heartbeat).as_secs() < 60
-                });
+                clients
+                    .retain(|_, client| now.duration_since(client.last_heartbeat).as_secs() < 60);
             }
         });
 
@@ -151,7 +150,7 @@ impl CameraSyncServer {
                     Err(e) => {
                         eprintln!("Failed to accept WebSocket connection: {}", e);
                         return;
-                    }
+                    },
                 };
 
                 let (mut ws_sender, mut ws_receiver) = ws_stream.split();
@@ -159,10 +158,13 @@ impl CameraSyncServer {
                 // Register client
                 {
                     let mut clients_guard = clients.write().await;
-                    clients_guard.insert(client_id.clone(), ConnectedClient {
-                        id: client_id.clone(),
-                        last_heartbeat: std::time::Instant::now(),
-                    });
+                    clients_guard.insert(
+                        client_id.clone(),
+                        ConnectedClient {
+                            id: client_id.clone(),
+                            last_heartbeat: std::time::Instant::now(),
+                        },
+                    );
                 }
                 println!("🔗 Client connected: {}", client_id);
 
@@ -230,16 +232,16 @@ impl CameraSyncServer {
                                     }
                                 }
                             }
-                        }
+                        },
                         Ok(Message::Close(_)) => {
                             println!("🔌 Client disconnected: {}", client_id);
                             break;
-                        }
+                        },
                         Err(e) => {
                             eprintln!("WebSocket error for {}: {}", client_id, e);
                             break;
-                        }
-                        _ => {}
+                        },
+                        _ => {},
                     }
                 }
 
@@ -255,7 +257,15 @@ impl CameraSyncServer {
     }
 
     /// Broadcast a camera update to all connected clients
-    pub fn broadcast_camera(&self, x: f32, y: f32, zoom: f32, target_x: f32, target_y: f32, target_zoom: f32) {
+    pub fn broadcast_camera(
+        &self,
+        x: f32,
+        y: f32,
+        zoom: f32,
+        target_x: f32,
+        target_y: f32,
+        target_zoom: f32,
+    ) {
         let update = CameraUpdate {
             x,
             y,

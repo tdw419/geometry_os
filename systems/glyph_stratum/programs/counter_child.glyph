@@ -1,0 +1,76 @@
+// ============================================================================
+// COUNTER CHILD - Simple Child VM Demo
+// ============================================================================
+//
+// A minimal glyph program that can be spawned as a child VM via SPATIAL_SPAWN.
+// Demonstrates:
+// - Running in a bounded memory region (base_addr to bound_addr)
+// - Yielding to the scheduler cooperatively
+// - Simple counting loop with memory access
+//
+// This program would be loaded at a child VM's base_addr (e.g., 0x1000)
+// and can only access memory within its region.
+//
+// Entry: 0x0000 (relative to base_addr)
+// Stratum: LOGIC (2)
+// ============================================================================
+
+// Register conventions:
+// r0  = Always 0 (zero register)
+// r1  = Counter value
+// r2  = Max count
+// r3  = Temp / scratch
+// r4  = Memory address (relative)
+// r28 = Frame counter
+
+// ============================================================================
+// ENTRY POINT
+// ============================================================================
+:entry
+    // Initialize counter
+    MOV r1, 0
+
+    // Set max count (counts 0 to 9)
+    MOV r2, 10
+
+    // Initialize frame counter
+    MOV r28, 0
+
+    // Jump to main loop
+    JMP main_loop
+
+// ============================================================================
+// MAIN LOOP - Count and Yield
+// ============================================================================
+:main_loop
+    // Increment frame counter
+    ADD r28, r28, 1
+
+    // Increment counter
+    ADD r1, r1, 1
+
+    // Store counter to local memory
+    // Address 0x00F0 is within our bounded region
+    MOV r4, 0x00F0
+    STORE r4, r1
+
+    // Check if we've reached max
+    CMP r1, r2
+    JLT continue_counting
+
+    // Reset counter
+    MOV r1, 0
+
+:continue_counting
+    // Yield to scheduler (let other VMs run)
+    // This is cooperative multitasking
+    YIELD
+
+    // Loop forever
+    JMP main_loop
+
+// ============================================================================
+// HALT (never reached - child VMs run until parent terminates them)
+// ============================================================================
+:halt
+    HALT

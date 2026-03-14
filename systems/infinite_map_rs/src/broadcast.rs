@@ -284,16 +284,16 @@ impl NeuralBroadcast {
                     Ok(_) => {
                         // Update activity on successful send
                         client.update_activity().await;
-                    }
+                    },
                     Err(mpsc::error::TrySendError::Full(_)) => {
                         // Queue full - backpressure
                         let mut metrics = self.metrics.lock().await;
                         metrics.backpressure_drops += 1;
-                    }
+                    },
                     Err(mpsc::error::TrySendError::Closed(_)) => {
                         // Channel closed - mark for removal
                         stale_clients.push(id.clone());
-                    }
+                    },
                 }
             }
         }
@@ -547,7 +547,10 @@ mod tests {
 
         // Only client-1 should receive
         let msg1 = rx1.recv().await.unwrap();
-        assert_eq!(msg1, Message::Text(r#"{"to":"client-1"}"#.to_string().into()));
+        assert_eq!(
+            msg1,
+            Message::Text(r#"{"to":"client-1"}"#.to_string().into())
+        );
 
         assert!(rx2.try_recv().is_err());
     }

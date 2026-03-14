@@ -3,13 +3,13 @@
 // Interactive controls and UI components for neural memory graph visualization
 // ============================================
 
+use crate::evolution_protocol::{MemoryGraphProtocol, Message};
+use crate::graph_renderer::GraphRenderer;
+use crate::memory_graph::{MemoryGraph, MemoryNode};
+use glam::{Mat4, Vec2, Vec3};
+use smithay::backend::input::ButtonState;
 use std::collections::HashSet;
 use std::sync::Arc;
-use glam::{Vec2, Vec3, Mat4};
-use smithay::backend::input::ButtonState;
-use crate::memory_graph::{MemoryGraph, MemoryNode};
-use crate::graph_renderer::GraphRenderer;
-use crate::evolution_protocol::{MemoryGraphProtocol, Message};
 
 /// Camera controller for graph navigation
 #[derive(Debug, Clone)]
@@ -199,11 +199,11 @@ impl GraphControls {
                     self.pan_controller.is_panning = true;
                     self.pan_controller.last_mouse_pos = Some(mouse_pos);
                 }
-            }
+            },
             ButtonState::Released => {
                 self.pan_controller.is_panning = false;
                 self.pan_controller.last_mouse_pos = None;
-            }
+            },
         }
 
         if self.pan_controller.is_panning {
@@ -226,15 +226,16 @@ impl GraphControls {
         for (id, node) in &graph.nodes {
             let node_pos = Vec3::from(node.position);
             let distance = (node_pos - world_pos).length();
-            if distance < 1.0 { // Selection threshold
+            if distance < 1.0 {
+                // Selection threshold
                 match closest_node {
                     Some((_, _, min_dist)) if distance < min_dist => {
                         closest_node = Some((id, node, distance));
-                    }
+                    },
                     None => {
                         closest_node = Some((id, node, distance));
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
@@ -243,14 +244,14 @@ impl GraphControls {
             match self.selection_manager.selection_mode {
                 SelectionMode::Single => {
                     self.selection_manager.select_node(node_id.clone());
-                }
+                },
                 SelectionMode::Multi => {
                     self.selection_manager.toggle_node(node_id.clone());
-                }
+                },
                 SelectionMode::Rectangle => {
                     // Rectangle selection not implemented yet
                     self.selection_manager.select_node(node_id.clone());
-                }
+                },
             }
         } else {
             self.selection_manager.clear_selection();
@@ -320,7 +321,9 @@ impl NodeInfoPanel {
                     position: node.position,
                     activation: node.activation,
                     connection_count: node.connections.len(),
-                    metadata: node.metadata.iter()
+                    metadata: node
+                        .metadata
+                        .iter()
                         .map(|(k, v)| (k.clone(), format!("{:?}", v)))
                         .collect(),
                 });
@@ -354,14 +357,19 @@ impl GraphStatsPanel {
         }
     }
 
-    pub fn update_stats(&mut self, graph: &MemoryGraph, selected_nodes: &HashSet<String>, fps: f32) {
+    pub fn update_stats(
+        &mut self,
+        graph: &MemoryGraph,
+        selected_nodes: &HashSet<String>,
+        fps: f32,
+    ) {
         self.total_nodes = graph.nodes.len();
         self.total_edges = graph.edges.len();
         self.selected_nodes = selected_nodes.len();
         self.fps = fps;
         // Memory usage calculation would be more complex in real implementation
-        self.memory_usage = graph.nodes.len() * std::mem::size_of::<MemoryNode>() +
-                           graph.edges.len() * std::mem::size_of::<crate::memory_graph::MemoryEdge>();
+        self.memory_usage = graph.nodes.len() * std::mem::size_of::<MemoryNode>()
+            + graph.edges.len() * std::mem::size_of::<crate::memory_graph::MemoryEdge>();
     }
 }
 
@@ -401,8 +409,12 @@ impl SearchPanel {
         for (id, node) in &graph.nodes {
             let matches = match self.search_by {
                 SearchBy::ID => id.to_lowercase().contains(&query_lower),
-                SearchBy::Type => format!("{:?}", node.node_type).to_lowercase().contains(&query_lower),
-                SearchBy::Metadata => node.metadata.values()
+                SearchBy::Type => format!("{:?}", node.node_type)
+                    .to_lowercase()
+                    .contains(&query_lower),
+                SearchBy::Metadata => node
+                    .metadata
+                    .values()
                     .any(|v| format!("{:?}", v).to_lowercase().contains(&query_lower)),
             };
 
@@ -465,7 +477,8 @@ impl InspectorUI {
     /// Update UI state based on current graph and selection
     pub fn update(&mut self, graph: &MemoryGraph, selected_nodes: &HashSet<String>, fps: f32) {
         self.node_info_panel.update_info(graph, selected_nodes);
-        self.graph_stats_panel.update_stats(graph, selected_nodes, fps);
+        self.graph_stats_panel
+            .update_stats(graph, selected_nodes, fps);
         self.search_panel.update_search(graph);
     }
 
@@ -479,9 +492,9 @@ impl InspectorUI {
             // Toggle panels
             105 => self.node_info_panel.visible = !self.node_info_panel.visible, // 'i'
             115 => self.graph_stats_panel.visible = !self.graph_stats_panel.visible, // 's'
-            47 => self.search_panel.visible = !self.search_panel.visible, // '/'
-            99 => self.control_panel.visible = !self.control_panel.visible, // 'c'
-            _ => {}
+            47 => self.search_panel.visible = !self.search_panel.visible,        // '/'
+            99 => self.control_panel.visible = !self.control_panel.visible,      // 'c'
+            _ => {},
         }
     }
 
@@ -510,16 +523,20 @@ impl InspectorUI {
         }
 
         if self.graph_stats_panel.visible {
-            log::debug!("Graph Stats: {} nodes, {} edges, {} FPS",
-                       self.graph_stats_panel.total_nodes,
-                       self.graph_stats_panel.total_edges,
-                       self.graph_stats_panel.fps);
+            log::debug!(
+                "Graph Stats: {} nodes, {} edges, {} FPS",
+                self.graph_stats_panel.total_nodes,
+                self.graph_stats_panel.total_edges,
+                self.graph_stats_panel.fps
+            );
         }
 
         if self.search_panel.visible && !self.search_panel.query.is_empty() {
-            log::debug!("Search: '{}' found {} nodes",
-                       self.search_panel.query,
-                       self.search_panel.filtered_nodes.len());
+            log::debug!(
+                "Search: '{}' found {} nodes",
+                self.search_panel.query,
+                self.search_panel.filtered_nodes.len()
+            );
         }
     }
 }
@@ -544,14 +561,14 @@ impl MemoryGraphInspector {
     pub fn handle_input_scroll(&mut self, delta: f64) {
         self.controls.handle_zoom(delta as f32 * 0.001);
     }
-    
+
     /// Handle mouse click for node selection
     pub fn handle_input_click(&mut self, mouse_pos: Vec2) {
         if let Some(graph) = &self.current_graph {
             self.controls.handle_selection(mouse_pos, graph);
         }
     }
-    
+
     /// Handle keyboard input
     pub fn handle_input_key(&mut self, key_code: u32, pressed: bool) {
         if pressed {

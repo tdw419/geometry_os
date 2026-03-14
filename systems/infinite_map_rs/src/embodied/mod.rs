@@ -29,13 +29,13 @@
 //!
 //! // Create pulse manager for visual feedback
 //! let mut pulse_manager = PulseManager::new();
-//! 
+//!
 //! // Create emotional color system
 //! let mut color_system = EmotionalColorSystem::new();
-//! 
+//!
 //! // Create temporal ghost system
 //! let mut ghost_system = TemporalGhostSystem::new(TemporalGhostConfig::default());
-//! 
+//!
 //! // Create gesture recognizer
 //! let mut gesture_recognizer = GestureRecognizer::new(GestureConfig::default());
 //!
@@ -60,36 +60,33 @@
 //! }
 //! ```
 
+pub mod emotional_colors;
+pub mod gesture_recognition;
 pub mod momentum_camera;
 pub mod neural_pulse;
-pub mod emotional_colors;
 pub mod temporal_ghost;
-pub mod gesture_recognition;
 
 // Re-export main types
-pub use momentum_camera::{
-    MomentumCamera, MomentumCameraConfig, CameraPhysics, CameraInput,
-};
 pub use momentum_camera::easing;
+pub use momentum_camera::{CameraInput, CameraPhysics, MomentumCamera, MomentumCameraConfig};
 
 pub use neural_pulse::{
-    PulseManager, Pulse, PulseConfig, PulseType, PulseId, PulseRenderData,
-    NeuralTopology, NeuralConnection,
+    NeuralConnection, NeuralTopology, Pulse, PulseConfig, PulseId, PulseManager, PulseRenderData,
+    PulseType,
 };
 
 pub use emotional_colors::{
-    EmotionalState, EmotionalPalette, EmotionalColorSystem, NeuralMetrics,
-    DynamicDesignTokens,
+    DynamicDesignTokens, EmotionalColorSystem, EmotionalPalette, EmotionalState, NeuralMetrics,
 };
 
 pub use temporal_ghost::{
-    TemporalGhostSystem, TemporalGhostConfig, NeuralSnapshot, GhostFrame,
-    GhostVisualizer, GhostComparisonMode,
+    GhostComparisonMode, GhostFrame, GhostVisualizer, NeuralSnapshot, TemporalGhostConfig,
+    TemporalGhostSystem,
 };
 
 pub use gesture_recognition::{
-    GestureRecognizer, GestureConfig, GestureType, RecognizedGesture,
-    ActiveGesture, GestureBounds, GestureVisualizer,
+    ActiveGesture, GestureBounds, GestureConfig, GestureRecognizer, GestureType, GestureVisualizer,
+    RecognizedGesture,
 };
 
 /// Integration layer that combines all embodied cognition components
@@ -252,17 +249,17 @@ mod tests {
     fn test_embodied_layer_update() {
         let mut layer = EmbodiedCognitionLayer::new();
         layer.update(0.016); // 60 FPS frame
-        // Should not panic
+                             // Should not panic
     }
 
     #[test]
     fn test_embodied_layer_disabled() {
         let mut layer = EmbodiedCognitionLayer::new();
         layer.set_enabled(false);
-        
+
         let input = CameraInput::default();
         layer.apply_camera_input(&input);
-        
+
         // Camera should not move when disabled
         // (The camera's internal velocity would remain zero)
     }

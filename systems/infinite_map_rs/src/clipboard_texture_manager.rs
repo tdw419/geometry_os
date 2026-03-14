@@ -4,15 +4,13 @@
 //! Manages clipboard.rts texture rendering on the infinite map.
 //! The clipboard becomes a visible "data-noise" artifact with cyberpunk aesthetic.
 
+use std::fs;
 use std::path::Path;
 use wgpu::{
-    Device, Queue, Sampler, BindGroup, BindGroupLayout,
-    Texture, TextureView,
-    TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-    Extent3d, TextureViewDescriptor, SamplerDescriptor, BindGroupDescriptor, BindGroupEntry,
-    Buffer, BufferDescriptor, BufferUsages,
+    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, Buffer, BufferDescriptor,
+    BufferUsages, Device, Extent3d, Queue, Sampler, SamplerDescriptor, Texture, TextureDescriptor,
+    TextureDimension, TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
 };
-use std::fs;
 
 /// Clipboard texture manager
 pub struct ClipboardTextureManager {
@@ -208,7 +206,11 @@ impl ClipboardTextureManager {
         self.texture_view = Some(texture_view);
         self.bind_group = Some(bind_group);
 
-        log::info!("✅ Clipboard texture loaded: {}x{}", dimensions.0, dimensions.1);
+        log::info!(
+            "✅ Clipboard texture loaded: {}x{}",
+            dimensions.0,
+            dimensions.1
+        );
 
         Ok(())
     }

@@ -108,13 +108,26 @@ def compile_glyph_program(program: GlyphProgram, timeout: float = 30.0) -> tuple
         (success, result_dict)
     """
     try:
-        result = subprocess.run(
-            ["cargo", "run", "--package", "glyph_compiler", "--", "compile"],
-            input=program.to_json(),
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
+        # Use the debug binary directly (faster than cargo run)
+        compiler_path = ROOT / "target" / "debug" / "glyph_compiler"
+        if not compiler_path.exists():
+            # Fall back to cargo run
+            result = subprocess.run(
+                ["cargo", "run", "--package", "glyph_compiler", "--", "compile"],
+                input=program.to_json(),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                cwd=str(ROOT),
+            )
+        else:
+            result = subprocess.run(
+                [str(compiler_path), "compile"],
+                input=program.to_json(),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
 
         if result.returncode != 0:
             return False, {"error": result.stderr}

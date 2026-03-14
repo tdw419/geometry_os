@@ -17,13 +17,13 @@
 //! - Glyph programs execute on GPU with no CPU round-trips
 //! - Output goes directly to display via DMA-BUF
 
-use std::sync::Arc;
 use anyhow::Result;
+use std::sync::Arc;
 
-use super::visual_interaction_bus::{VisualInteractionBus, InputState};
-use super::input_bridge::{EvdevInputBridge, InputEvent, SimulatedInputBridge};
-use super::glyph_vm_executor::{GlyphVmExecutor, GlyphVmState};
 use super::dmabuf::DmaBuf;
+use super::glyph_vm_executor::{GlyphVmExecutor, GlyphVmState};
+use super::input_bridge::{EvdevInputBridge, InputEvent, SimulatedInputBridge};
+use super::visual_interaction_bus::{InputState, VisualInteractionBus};
 
 /// Configuration for the integrated executor
 #[derive(Debug, Clone)]
@@ -140,22 +140,26 @@ impl IntegratedGlyphExecutor {
                 for event in events {
                     match event {
                         InputEvent::MouseMove { x, y } => {
-                            self.interaction_bus.update_mouse(x, y, 
-                                if bridge.button_state() > 0 { 1.0 } else { 0.0 }
+                            self.interaction_bus.update_mouse(
+                                x,
+                                y,
+                                if bridge.button_state() > 0 { 1.0 } else { 0.0 },
                             );
-                        }
+                        },
                         InputEvent::MouseButton { button: _, pressed } => {
                             let (x, y) = bridge.mouse_position();
-                            self.interaction_bus.update_mouse(x, y, if pressed { 1.0 } else { 0.0 });
-                        }
-                        _ => {}
+                            self.interaction_bus.update_mouse(
+                                x,
+                                y,
+                                if pressed { 1.0 } else { 0.0 },
+                            );
+                        },
+                        _ => {},
                     }
                 }
                 bridge.get_input_state()
-            }
-            InputBridgeType::Simulated(bridge) => {
-                bridge.get_input_state()
-            }
+            },
+            InputBridgeType::Simulated(bridge) => bridge.get_input_state(),
         }
     }
 
@@ -175,7 +179,11 @@ impl IntegratedGlyphExecutor {
     /// 2. Upload input state to GPU
     /// 3. Execute glyph VM
     /// 4. Return VM state
-    pub fn execute_frame(&mut self, ram_view: &wgpu::TextureView, cycles: u32) -> Result<GlyphVmState> {
+    pub fn execute_frame(
+        &mut self,
+        ram_view: &wgpu::TextureView,
+        cycles: u32,
+    ) -> Result<GlyphVmState> {
         // Step 1: Poll input
         let _input_state = self.poll_input();
 
@@ -185,7 +193,7 @@ impl IntegratedGlyphExecutor {
         // Step 3: Execute VM
         if let Some(ref executor) = self.vm_executor {
             let state = executor.step(ram_view, cycles)?;
-            
+
             self.state.total_cycles += cycles as u64;
             self.state.total_frames += 1;
             self.state.halted = state.halted != 0;

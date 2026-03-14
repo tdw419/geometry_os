@@ -231,9 +231,9 @@ impl TectonicAsciiRenderer {
 
 #[cfg(test)]
 mod tests {
+    use super::super::bonds::{BondGraphStats, CognitiveBond};
+    use super::super::simulator::{LayoutDelta, TileMovement};
     use super::*;
-    use super::super::bonds::{CognitiveBond, BondGraphStats};
-    use super::super::simulator::{TileMovement, LayoutDelta};
 
     #[test]
     fn test_ascii_render() {

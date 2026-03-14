@@ -3,11 +3,11 @@
 //! A fully GPU-native terminal tile that uses PixelRTS v3 for both
 //! logic execution and rendering.
 
+use crate::gpu::geometric_vm::GeometricVM;
+use crate::terminal_clone::geometric_bridge::GeometricTerminalBuffer;
+use crate::terminal_clone::terminal_renderer::TerminalRenderer;
 use std::sync::Arc;
 use wgpu;
-use crate::gpu::geometric_vm::GeometricVM;
-use crate::terminal_clone::terminal_renderer::TerminalRenderer;
-use crate::terminal_clone::geometric_bridge::GeometricTerminalBuffer;
 
 pub struct GeometricTerminalTile {
     pub id: usize,
@@ -22,7 +22,13 @@ pub struct GeometricTerminalTile {
 }
 
 impl GeometricTerminalTile {
-    pub fn new(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>, id: usize, cols: u32, rows: u32) -> Self {
+    pub fn new(
+        device: Arc<wgpu::Device>,
+        queue: Arc<wgpu::Queue>,
+        id: usize,
+        cols: u32,
+        rows: u32,
+    ) -> Self {
         let grid_size = 256; // RAM size for GeometricVM
         let vm = GeometricVM::new(Arc::clone(&device), Arc::clone(&queue), grid_size);
         let renderer = TerminalRenderer::new(&device);
@@ -45,7 +51,9 @@ impl GeometricTerminalTile {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8Unorm,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::COPY_SRC,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::STORAGE_BINDING
+                | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
         };
         let output_texture = device.create_texture(&texture_desc);
@@ -83,8 +91,11 @@ impl GeometricTerminalTile {
         self.vm.step(encoder, 100);
 
         // 2. Render State to Glyphs
-        let ram_view = self.vm.ram_texture.create_view(&wgpu::TextureViewDescriptor::default());
-        
+        let ram_view = self
+            .vm
+            .ram_texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
         self.renderer.render(
             device,
             encoder,

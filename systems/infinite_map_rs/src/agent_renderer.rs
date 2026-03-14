@@ -1,6 +1,6 @@
 use wgpu::util::DeviceExt;
 
-use crate::cognitive::agents::{CityAgentManager, AgentRole, AgentState};
+use crate::cognitive::agents::{AgentRole, AgentState, CityAgentManager};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -38,29 +38,25 @@ impl AgentRenderer {
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Agent Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
                 },
-            ],
+                count: None,
+            }],
         });
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Agent Bind Group"),
             layout: &bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: uniform_buffer.as_entire_binding(),
-                },
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            }],
         });
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -79,13 +75,11 @@ impl AgentRenderer {
                     wgpu::VertexBufferLayout {
                         array_stride: std::mem::size_of::<AgentVertex>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &[
-                            wgpu::VertexAttribute {
-                                offset: 0,
-                                shader_location: 0,
-                                format: wgpu::VertexFormat::Float32x2,
-                            },
-                        ],
+                        attributes: &[wgpu::VertexAttribute {
+                            offset: 0,
+                            shader_location: 0,
+                            format: wgpu::VertexFormat::Float32x2,
+                        }],
                     },
                     wgpu::VertexBufferLayout {
                         array_stride: std::mem::size_of::<AgentInstance>() as wgpu::BufferAddress,
@@ -135,12 +129,24 @@ impl AgentRenderer {
 
         // Quad vertices: two triangles forming a square
         let vertices = [
-            AgentVertex { position: [-1.0, -1.0] },
-            AgentVertex { position: [1.0, -1.0] },
-            AgentVertex { position: [-1.0, 1.0] },
-            AgentVertex { position: [-1.0, 1.0] },
-            AgentVertex { position: [1.0, -1.0] },
-            AgentVertex { position: [1.0, 1.0] },
+            AgentVertex {
+                position: [-1.0, -1.0],
+            },
+            AgentVertex {
+                position: [1.0, -1.0],
+            },
+            AgentVertex {
+                position: [-1.0, 1.0],
+            },
+            AgentVertex {
+                position: [-1.0, 1.0],
+            },
+            AgentVertex {
+                position: [1.0, -1.0],
+            },
+            AgentVertex {
+                position: [1.0, 1.0],
+            },
         ];
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -168,28 +174,32 @@ impl AgentRenderer {
 
     pub fn update_instances(&mut self, queue: &wgpu::Queue, manager: &CityAgentManager) {
         let agents = manager.list_agents();
-        let instances: Vec<AgentInstance> = agents.iter().take(self.max_agents).map(|a| {
-            let role_val = match a.role {
-                AgentRole::Scout => 0.0,
-                AgentRole::Engineer => 1.0,
-                AgentRole::Archivist => 2.0,
-            };
-            
-            let state_val = match a.state {
-                AgentState::Idle => 0.0,
-                AgentState::Navigating => 0.5,
-                AgentState::Analyzing => 0.8,
-                AgentState::Working => 1.0,
-                _ => 0.0,
-            };
+        let instances: Vec<AgentInstance> = agents
+            .iter()
+            .take(self.max_agents)
+            .map(|a| {
+                let role_val = match a.role {
+                    AgentRole::Scout => 0.0,
+                    AgentRole::Engineer => 1.0,
+                    AgentRole::Archivist => 2.0,
+                };
 
-            AgentInstance {
-                world_pos: [a.world_pos.0, a.world_pos.1],
-                color: a.color,
-                role: role_val,
-                state: state_val,
-            }
-        }).collect();
+                let state_val = match a.state {
+                    AgentState::Idle => 0.0,
+                    AgentState::Navigating => 0.5,
+                    AgentState::Analyzing => 0.8,
+                    AgentState::Working => 1.0,
+                    _ => 0.0,
+                };
+
+                AgentInstance {
+                    world_pos: [a.world_pos.0, a.world_pos.1],
+                    color: a.color,
+                    role: role_val,
+                    state: state_val,
+                }
+            })
+            .collect();
 
         if !instances.is_empty() {
             queue.write_buffer(&self.instance_buffer, 0, bytemuck::cast_slice(&instances));
@@ -197,8 +207,10 @@ impl AgentRenderer {
     }
 
     pub fn render<'rp>(&'rp self, render_pass: &mut wgpu::RenderPass<'rp>, num_instances: u32) {
-        if num_instances == 0 { return; }
-        
+        if num_instances == 0 {
+            return;
+        }
+
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));

@@ -4,7 +4,7 @@
 //! ensuring that pixels that are spatially close on the screen are also close
 //! in memory. This improves cache locality for both CPU and GPU operations.
 
-use crate::hilbert::{HilbertCurve};
+use crate::hilbert::HilbertCurve;
 
 /// Represents the native pixel buffer (VRAM) for glyph rendering.
 /// Uses Hilbert curve indexing for 95% spatial locality preservation.
@@ -69,7 +69,7 @@ impl GlyphSubstrate {
     pub fn fill_rect(&mut self, x: u32, y: u32, w: u32, h: u32, color: u32) {
         let x_end = (x + w).min(self.curve.n);
         let y_end = (y + h).min(self.curve.n);
-        
+
         for py in y..y_end {
             for px in x..x_end {
                 let d = self.curve.xy2d(px, py) as usize;
@@ -132,7 +132,7 @@ mod tests {
     fn test_substrate_fill_rect() {
         let mut substrate = GlyphSubstrate::new(4);
         substrate.fill_rect(2, 2, 4, 4, 0x00FF00FF);
-        
+
         assert_eq!(substrate.get_pixel(2, 2), 0x00FF00FF);
         assert_eq!(substrate.get_pixel(3, 3), 0x00FF00FF);
         assert_eq!(substrate.get_pixel(5, 5), 0x00FF00FF);

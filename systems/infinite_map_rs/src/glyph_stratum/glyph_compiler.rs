@@ -85,7 +85,7 @@ pub fn create_glyph_texture(
         sample_count: 1,
         dimension: TextureDimension::D2,
         format: TextureFormat::Rgba8Uint,
-        usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
+        usage: TextureUsages::TEXTURE_BINDING | TextureUsages::STORAGE_BINDING | TextureUsages::COPY_DST,
         view_formats: &[],
     });
 
@@ -247,5 +247,33 @@ mod tests {
         let compiled = compile_glyph_source(source).unwrap();
         assert!(compiled.instruction_count >= 3);
         assert_eq!(compiled.entry_point, 0);
+    }
+
+    #[test]
+    fn test_compile_counter_child() {
+        // Test compiling the counter_child.glyph file
+        let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+        let workspace_root = std::path::Path::new(&manifest_dir)
+            .parent().unwrap()
+            .parent().unwrap();
+        let glyph_path = workspace_root.join("systems/glyph_stratum/programs/counter_child.glyph");
+        let path_str = glyph_path.to_str().expect("Invalid path");
+        let result = compile_glyph_file(path_str);
+        assert!(result.is_ok(), "Failed to compile counter_child.glyph: {:?}", result.err());
+
+        let compiled = result.unwrap();
+        // Counter child has entry, main_loop, continue_counting, halt sections
+        // Should be at least 10 instructions
+        assert!(compiled.instruction_count >= 10,
+            "Expected at least 10 instructions, got {}", compiled.instruction_count);
+
+        // Entry point should be 0 (entry label is first)
+        assert_eq!(compiled.entry_point, 0);
+
+        // Verify it contains YIELD instruction (opcode 227)
+        let has_yield = compiled.texture_data.chunks(4).any(|chunk| {
+            chunk[0] == 27 // YIELD = 227 - 200 = 27 in normalized form
+        });
+        assert!(has_yield, "Counter child should contain YIELD instruction for cooperative multitasking");
     }
 }

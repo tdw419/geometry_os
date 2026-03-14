@@ -22,7 +22,10 @@ impl Error for DmaBufError {}
 pub struct DmaBufExporter;
 
 impl DmaBufExporter {
-    pub fn new(_device: std::sync::Arc<wgpu::Device>, _queue: std::sync::Arc<wgpu::Queue>) -> Result<Self, Box<dyn Error>> {
+    pub fn new(
+        _device: std::sync::Arc<wgpu::Device>,
+        _queue: std::sync::Arc<wgpu::Queue>,
+    ) -> Result<Self, Box<dyn Error>> {
         Ok(DmaBufExporter)
     }
 
@@ -30,7 +33,12 @@ impl DmaBufExporter {
         Ok(-1)
     }
 
-    pub fn create_shared_buffer(&self, _width: u32, _height: u32, _format: wgpu::TextureFormat) -> Result<(i32, wgpu::Texture), Box<dyn Error>> {
+    pub fn create_shared_buffer(
+        &self,
+        _width: u32,
+        _height: u32,
+        _format: wgpu::TextureFormat,
+    ) -> Result<(i32, wgpu::Texture), Box<dyn Error>> {
         // Stub implementation
         Err("Stub: Cannot create texture".into())
     }

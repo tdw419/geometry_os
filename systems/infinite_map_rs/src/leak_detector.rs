@@ -6,9 +6,9 @@
 // This module tracks heap allocations over time, detects growing patterns,
 // and provides visual feedback for potential memory leaks.
 
+use crate::memory_texture::MemoryRegion;
 use std::collections::{HashMap, VecDeque};
 use std::time::{Duration, Instant};
-use crate::memory_texture::MemoryRegion;
 
 /// Heap snapshot for leak detection
 #[derive(Debug, Clone)]
@@ -66,7 +66,7 @@ impl Default for LeakDetectorConfig {
     fn default() -> Self {
         Self {
             max_history: 100,
-            growth_threshold: 0.1, // 10% growth rate
+            growth_threshold: 0.1,                   // 10% growth rate
             leak_threshold: Duration::from_secs(30), // 30 seconds
             health_decay_rate: 0.01,
         }
@@ -179,7 +179,11 @@ impl LeakDetector {
     ///
     /// # Returns
     /// Vector of persistent memory regions
-    fn find_persistent_regions(&self, prev: &HeapSnapshot, current: &HeapSnapshot) -> Vec<MemoryRegion> {
+    fn find_persistent_regions(
+        &self,
+        prev: &HeapSnapshot,
+        current: &HeapSnapshot,
+    ) -> Vec<MemoryRegion> {
         let mut persistent = Vec::new();
 
         // Compare allocation patterns
@@ -361,15 +365,24 @@ impl LeakDetector {
         if let Some(latest) = self.get_latest_snapshot() {
             stats.push_str(&format!("Allocated pages: {}\n", latest.allocated_pages));
             stats.push_str(&format!("Free pages: {}\n", latest.free_pages));
-            stats.push_str(&format!("Allocation ratio: {:.2}%\n", latest.allocation_ratio() * 100.0));
+            stats.push_str(&format!(
+                "Allocation ratio: {:.2}%\n",
+                latest.allocation_ratio() * 100.0
+            ));
             stats.push_str(&format!("Health score: {:.2}\n", latest.health_score));
 
             if let Some(growth) = self.get_growth_rate(10) {
-                stats.push_str(&format!("Growth rate (10 snapshots): {:.2}%\n", growth * 100.0));
+                stats.push_str(&format!(
+                    "Growth rate (10 snapshots): {:.2}%\n",
+                    growth * 100.0
+                ));
             }
 
             let (trend, confidence) = self.get_allocation_trend();
-            stats.push_str(&format!("Allocation trend: {:.2} (confidence: {:.2})\n", trend, confidence));
+            stats.push_str(&format!(
+                "Allocation trend: {:.2} (confidence: {:.2})\n",
+                trend, confidence
+            ));
 
             let leaks = self.get_leak_regions();
             stats.push_str(&format!("Detected leaks: {}\n", leaks.len()));
@@ -397,7 +410,7 @@ mod tests {
 
         let growth = detector.calculate_growth_rate(
             detector.get_history().front().unwrap(),
-            detector.get_history().back().unwrap()
+            detector.get_history().back().unwrap(),
         );
         assert!((growth - 0.1).abs() < 0.01);
     }
@@ -433,7 +446,11 @@ mod tests {
         for i in 0..10 {
             let allocated = 1000 + i * 100;
             let free = 10000 - allocated;
-            detector.add_snapshot(HeapSnapshot::new(allocated as u32, free as u32, HashMap::new()));
+            detector.add_snapshot(HeapSnapshot::new(
+                allocated as u32,
+                free as u32,
+                HashMap::new(),
+            ));
         }
 
         let (trend, confidence) = detector.get_allocation_trend();
@@ -453,7 +470,11 @@ mod tests {
             detector.add_snapshot(HeapSnapshot::new(1000, 9000, HashMap::new()));
         }
 
-        assert_eq!(detector.get_history().len(), 5, "History should be limited to max_history");
+        assert_eq!(
+            detector.get_history().len(),
+            5,
+            "History should be limited to max_history"
+        );
     }
 
     #[test]

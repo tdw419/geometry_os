@@ -4,9 +4,9 @@
 //! of the Glyph-to-Metal pipeline.
 
 mod device;
-mod pipeline;
 mod executor;
+mod pipeline;
 
 pub use device::VulkanDevice;
-pub use pipeline::GlyphPipeline;
 pub use executor::GlyphExecutor;
+pub use pipeline::GlyphPipeline;

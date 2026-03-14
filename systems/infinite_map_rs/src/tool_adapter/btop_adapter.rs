@@ -5,8 +5,8 @@
 // This adapter polls btop for CPU, memory, and system load metrics
 // and computes a health score based on resource utilization.
 
+use super::{check_binary_available, ToolAdapter, ToolMetrics};
 use std::time::Duration;
-use super::{ToolAdapter, ToolMetrics, check_binary_available};
 
 /// BtopAdapter for system metrics collection
 ///
@@ -61,7 +61,7 @@ impl BtopAdapter {
     /// Automatically detects if btop is available, falls back to htop.
     pub fn new() -> Self {
         let use_btop = check_binary_available("btop");
-        
+
         log::info!(
             "🔧 BtopAdapter: Using {} for system metrics",
             if use_btop { "btop" } else { "htop" }
@@ -92,8 +92,7 @@ impl BtopAdapter {
             .map_err(|e| format!("Failed to read /proc/stat: {}", e))?;
 
         // Parse first line (aggregate CPU)
-        let line = stat.lines().next()
-            .ok_or("No data in /proc/stat")?;
+        let line = stat.lines().next().ok_or("No data in /proc/stat")?;
 
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() < 8 {
@@ -101,13 +100,17 @@ impl BtopAdapter {
         }
 
         // Calculate CPU usage from user, nice, system, idle times
-        let user: f64 = parts[1].parse()
+        let user: f64 = parts[1]
+            .parse()
             .map_err(|e| format!("Failed to parse user time: {}", e))?;
-        let nice: f64 = parts[2].parse()
+        let nice: f64 = parts[2]
+            .parse()
             .map_err(|e| format!("Failed to parse nice time: {}", e))?;
-        let system: f64 = parts[3].parse()
+        let system: f64 = parts[3]
+            .parse()
             .map_err(|e| format!("Failed to parse system time: {}", e))?;
-        let idle: f64 = parts[4].parse()
+        let idle: f64 = parts[4]
+            .parse()
             .map_err(|e| format!("Failed to parse idle time: {}", e))?;
 
         let total = user + nice + system + idle;
@@ -137,14 +140,12 @@ impl BtopAdapter {
             if parts.len() >= 2 {
                 match parts[0] {
                     "MemTotal:" => {
-                        mem_total = parts[1].parse()
-                            .unwrap_or(0);
-                    }
+                        mem_total = parts[1].parse().unwrap_or(0);
+                    },
                     "MemAvailable:" => {
-                        mem_available = parts[1].parse()
-                            .unwrap_or(0);
-                    }
-                    _ => {}
+                        mem_available = parts[1].parse().unwrap_or(0);
+                    },
+                    _ => {},
                 }
             }
         }
@@ -176,7 +177,8 @@ impl BtopAdapter {
             return Err("No data in /proc/loadavg".to_string());
         }
 
-        parts[0].parse()
+        parts[0]
+            .parse()
             .map_err(|e| format!("Failed to parse load average: {}", e))
     }
 
@@ -185,11 +187,10 @@ impl BtopAdapter {
         use std::fs;
 
         match fs::read_to_string("/proc/cpuinfo") {
-            Ok(cpuinfo) => {
-                cpuinfo.lines()
-                    .filter(|line| line.starts_with("processor"))
-                    .count()
-            }
+            Ok(cpuinfo) => cpuinfo
+                .lines()
+                .filter(|line| line.starts_with("processor"))
+                .count(),
             Err(_) => 1, // Fallback to single core
         }
     }
@@ -203,13 +204,13 @@ impl BtopAdapter {
             self.thresholds.cpu_warning,
             self.thresholds.cpu_critical,
         );
-        
+
         let memory_score = self.calculate_metric_score(
             memory,
             self.thresholds.memory_warning,
             self.thresholds.memory_critical,
         );
-        
+
         let cpu_cores = self.get_cpu_cores() as f32;
         let load_per_core = load / cpu_cores;
         let load_score = self.calculate_metric_score(
@@ -254,10 +255,7 @@ impl ToolAdapter for BtopAdapter {
 
         let health_score = self.calculate_health_score(cpu, memory, load);
 
-        let status = format!(
-            "CPU: {:.1}% | MEM: {:.1}% | LOAD: {:.2}",
-            cpu, memory, load
-        );
+        let status = format!("CPU: {:.1}% | MEM: {:.1}% | LOAD: {:.2}", cpu, memory, load);
 
         let raw_data = format!(
             "cpu_utilization={:.2},memory_usage={:.2},load_average={:.2}",
@@ -294,19 +292,19 @@ mod tests {
     #[test]
     fn test_calculate_metric_score() {
         let adapter = BtopAdapter::new();
-        
+
         // Below warning
         assert_eq!(adapter.calculate_metric_score(50.0, 70.0, 90.0), 1.0);
-        
+
         // At warning
         assert_eq!(adapter.calculate_metric_score(70.0, 70.0, 90.0), 1.0);
-        
+
         // At critical
         assert_eq!(adapter.calculate_metric_score(90.0, 70.0, 90.0), 0.0);
-        
+
         // Above critical
         assert_eq!(adapter.calculate_metric_score(95.0, 70.0, 90.0), 0.0);
-        
+
         // Midpoint
         let mid = adapter.calculate_metric_score(80.0, 70.0, 90.0);
         assert!(mid > 0.0 && mid < 1.0);

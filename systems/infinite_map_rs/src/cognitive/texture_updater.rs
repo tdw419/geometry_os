@@ -1,5 +1,5 @@
-use wgpu;
 use std::sync::Arc;
+use wgpu;
 
 pub struct TextureUpdater {
     device: Arc<wgpu::Device>,
@@ -11,7 +11,15 @@ impl TextureUpdater {
         Self { device, queue }
     }
 
-    pub fn update_chunk(&self, texture: &wgpu::Texture, data: &[u8], x: u32, y: u32, width: u32, height: u32) {
+    pub fn update_chunk(
+        &self,
+        texture: &wgpu::Texture,
+        data: &[u8],
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+    ) {
         self.queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture,

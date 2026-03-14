@@ -25,24 +25,24 @@ impl GlyphExecutor {
             .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
 
         let command_pool = unsafe {
-            device.device
+            device
+                .device
                 .create_command_pool(&pool_create_info, None)
                 .context("Failed to create command pool")?
         };
 
         // Create descriptor pool
-        let pool_sizes = [
-            vk::DescriptorPoolSize::default()
-                .ty(vk::DescriptorType::STORAGE_BUFFER)
-                .descriptor_count(100),
-        ];
+        let pool_sizes = [vk::DescriptorPoolSize::default()
+            .ty(vk::DescriptorType::STORAGE_BUFFER)
+            .descriptor_count(100)];
 
         let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo::default()
             .pool_sizes(&pool_sizes)
             .max_sets(10);
 
         let descriptor_pool = unsafe {
-            device.device
+            device
+                .device
                 .create_descriptor_pool(&descriptor_pool_create_info, None)
                 .context("Failed to create descriptor pool")?
         };
@@ -72,7 +72,8 @@ impl GlyphExecutor {
             .command_buffer_count(1);
 
         let command_buffers = unsafe {
-            self.device.device
+            self.device
+                .device
                 .allocate_command_buffers(&alloc_info)
                 .context("Failed to allocate command buffers")?
         };
@@ -94,22 +95,22 @@ impl GlyphExecutor {
 
             // Dispatch compute
             let workgroups = (output_size + 63) / 64;
-            self.device.device.cmd_dispatch(
-                command_buffers[0],
-                workgroups as u32,
-                1,
-                1,
-            );
+            self.device
+                .device
+                .cmd_dispatch(command_buffers[0], workgroups as u32, 1, 1);
 
             self.device.device.end_command_buffer(command_buffers[0])?;
         }
 
         // Submit and wait
-        let submit_info = vk::SubmitInfo::default()
-            .command_buffers(&command_buffers);
+        let submit_info = vk::SubmitInfo::default().command_buffers(&command_buffers);
 
         unsafe {
-            self.device.device.queue_submit(self.device.queue, &[submit_info], vk::Fence::null())?;
+            self.device.device.queue_submit(
+                self.device.queue,
+                &[submit_info],
+                vk::Fence::null(),
+            )?;
             self.device.device.queue_wait_idle(self.device.queue)?;
         }
 
@@ -125,7 +126,8 @@ impl GlyphExecutor {
             .sharing_mode(vk::SharingMode::EXCLUSIVE);
 
         unsafe {
-            self.device.device
+            self.device
+                .device
                 .create_buffer(&buffer_create_info, None)
                 .context("Failed to create buffer")
         }
@@ -140,8 +142,12 @@ impl GlyphExecutor {
 impl Drop for GlyphExecutor {
     fn drop(&mut self) {
         unsafe {
-            self.device.device.destroy_descriptor_pool(self.descriptor_pool, None);
-            self.device.device.destroy_command_pool(self.command_pool, None);
+            self.device
+                .device
+                .destroy_descriptor_pool(self.descriptor_pool, None);
+            self.device
+                .device
+                .destroy_command_pool(self.command_pool, None);
         }
     }
 }

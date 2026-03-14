@@ -351,8 +351,7 @@ impl PersonaInjector {
     pub fn add_tile(&mut self, tile: AgencyTile) -> bool {
         // Check for overlaps
         for existing in &self.tiles {
-            let overlaps = tile.bounds.0 < existing.bounds.1
-                && tile.bounds.1 > existing.bounds.0;
+            let overlaps = tile.bounds.0 < existing.bounds.1 && tile.bounds.1 > existing.bounds.0;
             if overlaps {
                 return false;
             }
@@ -471,11 +470,11 @@ mod tests {
 
         // Simulate moving through multiple sectors
         let positions = vec![
-            500_000,    // default
-            1_500_000,  // security-engineer
-            2_500_000,  // rapid-prototyper
-            3_500_000,  // reality-checker
-            4_500_000,  // backend-architect
+            500_000,   // default
+            1_500_000, // security-engineer
+            2_500_000, // rapid-prototyper
+            3_500_000, // reality-checker
+            4_500_000, // backend-architect
         ];
 
         for pos in positions {
@@ -496,10 +495,7 @@ mod tests {
     fn test_get_persona_at() {
         let injector = PersonaInjector::new();
 
-        assert_eq!(
-            injector.get_persona_at(0).unwrap().persona_id,
-            "default"
-        );
+        assert_eq!(injector.get_persona_at(0).unwrap().persona_id, "default");
         assert_eq!(
             injector.get_persona_at(1_500_000).unwrap().persona_id,
             "security-engineer"

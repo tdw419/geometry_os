@@ -3,9 +3,9 @@
 //! Manages the execution of geometric programs on the GPU via
 //! geometric_programming.wgsl.
 
+use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;
 use wgpu;
-use bytemuck::{Pod, Zeroable};
 
 /// Geometric VM State (matches WGSL struct)
 #[repr(C)]
@@ -60,7 +60,10 @@ impl GeometricVM {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8Uint,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::COPY_SRC,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::STORAGE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
         };
         let ram_texture = device.create_texture(&texture_desc);
@@ -70,12 +73,15 @@ impl GeometricVM {
         let state_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Geometric State Buffer"),
             size: std::mem::size_of::<GeometricState>() as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
         // 3. Load Shader
-        let shader = device.create_shader_module(wgpu::include_wgsl!("../shaders/geometric_programming.wgsl"));
+        let shader = device
+            .create_shader_module(wgpu::include_wgsl!("../shaders/geometric_programming.wgsl"));
 
         // 4. Create Pipeline
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -198,6 +204,7 @@ impl GeometricVM {
     /// Reset the VM state
     pub fn reset_state(&self) {
         let state = GeometricState::default();
-        self.queue.write_buffer(&self.state_buffer, 0, bytemuck::bytes_of(&state));
+        self.queue
+            .write_buffer(&self.state_buffer, 0, bytemuck::bytes_of(&state));
     }
 }

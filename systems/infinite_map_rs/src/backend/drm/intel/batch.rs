@@ -2,7 +2,7 @@
 //!
 //! Real batch buffer submission to Intel GPU via MMIO.
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use std::fs::File;
 use std::os::unix::io::{AsRawFd, FromRawFd, OwnedFd};
 use std::ptr;
@@ -65,9 +65,9 @@ pub mod mi {
     pub fn store_dword(addr: u64, value: u32) -> Vec<u32> {
         vec![
             0x22 << 23 | (4 - 2),               // MI_STORE_DATA_IMM, length 4
-            (addr & 0xFFFFFFFF) as u32,          // Address low
-            ((addr >> 32) & 0xFFFFFFFF) as u32,  // Address high
-            value,                               // Value to store
+            (addr & 0xFFFFFFFF) as u32,         // Address low
+            ((addr >> 32) & 0xFFFFFFFF) as u32, // Address high
+            value,                              // Value to store
         ]
     }
 
@@ -95,7 +95,13 @@ pub mod mi {
 /// 2D commands (BLT engine)
 pub mod xy {
     /// XY_COLOR_BLT - Solid fill
-    pub fn color_blt(dst_pitch: u32, dst_offset: u64, width: u32, height: u32, color: u32) -> Vec<u32> {
+    pub fn color_blt(
+        dst_pitch: u32,
+        dst_offset: u64,
+        width: u32,
+        height: u32,
+        color: u32,
+    ) -> Vec<u32> {
         vec![
             0x78000000 | (6 - 2), // XY_COLOR_BLT
             dst_pitch << 16 | 4,  // Pitch (4 bytes per pixel)
@@ -140,13 +146,22 @@ impl BatchBuffer {
 
     /// Add store dword command.
     pub fn store_dword(&mut self, addr: u64, value: u32) -> &mut Self {
-        self.commands.extend_from_slice(&mi::store_dword(addr, value));
+        self.commands
+            .extend_from_slice(&mi::store_dword(addr, value));
         self
     }
 
     /// Add color fill (BLT).
-    pub fn fill_rect(&mut self, dst: u64, pitch: u32, width: u32, height: u32, color: u32) -> &mut Self {
-        self.commands.extend_from_slice(&xy::color_blt(pitch, dst, width, height, color));
+    pub fn fill_rect(
+        &mut self,
+        dst: u64,
+        pitch: u32,
+        width: u32,
+        height: u32,
+        color: u32,
+    ) -> &mut Self {
+        self.commands
+            .extend_from_slice(&xy::color_blt(pitch, dst, width, height, color));
         self
     }
 
@@ -242,12 +257,8 @@ impl GpuBuffer {
 
     /// Write dwords to buffer.
     pub fn write_dwords(&mut self, offset: usize, dwords: &[u32]) -> Result<()> {
-        let bytes = unsafe {
-            std::slice::from_raw_parts(
-                dwords.as_ptr() as *const u8,
-                dwords.len() * 4,
-            )
-        };
+        let bytes =
+            unsafe { std::slice::from_raw_parts(dwords.as_ptr() as *const u8, dwords.len() * 4) };
         self.write(offset * 4, bytes)
     }
 
@@ -323,9 +334,7 @@ mod tests {
     #[test]
     fn test_batch_buffer_builder() {
         let mut bb = BatchBuffer::new();
-        bb.flush()
-            .store_dword(0x100000000, 0xDEADBEEF)
-            .end();
+        bb.flush().store_dword(0x100000000, 0xDEADBEEF).end();
 
         let buffer = bb.build();
         assert!(buffer.len() > 0);
@@ -335,8 +344,7 @@ mod tests {
     #[test]
     fn test_color_fill() {
         let mut bb = BatchBuffer::new();
-        bb.fill_rect(0x100000000, 1920, 800, 600, 0xFF00FF00)
-            .end();
+        bb.fill_rect(0x100000000, 1920, 800, 600, 0xFF00FF00).end();
 
         let buffer = bb.build();
         assert!(buffer.len() > 0);

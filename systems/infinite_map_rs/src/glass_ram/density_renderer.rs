@@ -3,9 +3,9 @@
 // Phase 33.4: Density Map Renderer
 // Renders the compressed sensing density map as a heat map visualization
 
-use wgpu::util::DeviceExt;
 use ndarray::Array2;
 use std::sync::Arc;
+use wgpu::util::DeviceExt;
 
 /// Configuration for density map rendering
 #[derive(Debug, Clone)]
@@ -104,7 +104,7 @@ impl DensityPalette {
 }
 
 /// Density map renderer
-/// 
+///
 /// Converts the 2D density array to a texture for GPU rendering
 pub struct DensityRenderer {
     config: DensityRendererConfig,
@@ -152,7 +152,9 @@ impl DensityRenderer {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::RENDER_ATTACHMENT,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         });
 
@@ -354,11 +356,8 @@ impl DensityRenderer {
             _padding: [0.0; 2],
         };
 
-        self.queue.write_buffer(
-            &self.uniform_buffer,
-            0,
-            bytemuck::cast_slice(&[uniforms]),
-        );
+        self.queue
+            .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
     }
 
     /// Get the bind group for rendering

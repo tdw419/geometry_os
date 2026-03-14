@@ -1,4 +1,3 @@
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -19,6 +18,9 @@ mod tests {
                 "zoom": 1.5
             }
         });
-        assert_eq!(cmd_args.to_string(), r#"{"arguments":{"zoom":1.5},"execute":"camera"}"#);
+        assert_eq!(
+            cmd_args.to_string(),
+            r#"{"arguments":{"zoom":1.5},"execute":"camera"}"#
+        );
     }
 }

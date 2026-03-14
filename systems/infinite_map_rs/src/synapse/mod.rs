@@ -3,25 +3,25 @@
 // The Synapse Module - Semantic routing logic for Geometry OS
 // Connects human intent (LLM) to the geometric substrate.
 
-pub mod intent;
-pub mod morphology;
 pub mod daemon_bridge;
-pub mod synaptic_daemon_bridge;
-pub mod vram_monitor;
 pub mod entropy_monitor;
 pub mod heuristics;
+pub mod intent;
+pub mod morphology;
+pub mod synaptic_daemon_bridge;
 pub mod vector_bridge;
+pub mod vram_monitor;
 pub mod z_ai_client;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+pub use daemon_bridge::CognitiveDaemonBridge;
+pub use heuristics::{MemoryHeuristics, MemoryType};
 pub use intent::{Intent, IntentOverlay};
 pub use morphology::{MorphologyCommand, MorphologyExecutor};
-pub use daemon_bridge::CognitiveDaemonBridge;
 pub use synaptic_daemon_bridge::SynapticDaemonBridge;
-pub use heuristics::{MemoryHeuristics, MemoryType};
 pub use vector_bridge::{Synapse, SynapticLayer};
 
 /// Request for semantic memory analysis
@@ -32,7 +32,6 @@ pub struct MemoryAnalysisRequest {
     pub hex_dump: String,
     pub heuristics: MemoryHeuristics,
 }
-
 
 /// Commands sent from the Synaptic Bridge to the substrate (legacy)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,18 +67,18 @@ impl SynapticBridge {
 }
 
 /// The Synaptic Map - LLM-Powered Semantic Navigation Layer
-/// 
+///
 /// Coordinates natural language intent with geometric transformations
 pub struct SynapticMap {
     /// Bridge to the Cognitive Daemon (LLM)
     daemon: Arc<RwLock<CognitiveDaemonBridge>>,
-    
+
     /// Intent overlay for capturing user input
     overlay: Arc<RwLock<IntentOverlay>>,
-    
+
     /// Executor for morphology commands
     executor: Arc<RwLock<MorphologyExecutor>>,
-    
+
     /// Active intent being processed
     active_intent: Arc<RwLock<Option<Intent>>>,
 }
@@ -94,20 +93,20 @@ impl SynapticMap {
             active_intent: Arc::new(RwLock::new(None)),
         }
     }
-    
+
     /// Process a natural language intent
     pub async fn process_intent(&self, text: String) -> Result<Vec<MorphologyCommand>, String> {
         // Create intent
         let intent = Intent::new(text);
         *self.active_intent.write().await = Some(intent.clone());
-        
+
         // Send to daemon for interpretation
         let daemon = self.daemon.read().await;
         let commands = daemon.interpret_intent(&intent).await?;
-        
+
         Ok(commands)
     }
-    
+
     /// Execute morphology commands on the visual substrate
     pub async fn execute_commands(&self, commands: Vec<MorphologyCommand>) -> Result<(), String> {
         let mut executor = self.executor.write().await;
@@ -116,12 +115,12 @@ impl SynapticMap {
         }
         Ok(())
     }
-    
+
     /// Get the current overlay state for rendering
     pub async fn get_overlay_state(&self) -> IntentOverlay {
         self.overlay.read().await.clone()
     }
-    
+
     /// Update overlay with user input
     pub async fn update_overlay(&self, text: String) {
         let mut overlay = self.overlay.write().await;

@@ -4,20 +4,23 @@
 //! This module manages the connection to the evolution daemon, handles
 //! neural state updates, and provides evolution metrics visualization.
 
-use crate::evolution_protocol::{
-    EvolutionClient, EvolutionMetrics, NeuralStateData, NeuralStateUpdate, MessageType, SelfState, TheoryOfMindState, CognitiveState,
-    DaemonSyncPacket, TokenVisualizationData, EvolvedGenomeData,
-};
-use crate::neural_state_texture::{NeuralStateTexture, NeuralVisualizationMode, NeuralRendererConfig};
 use crate::evolution_daemon_wrapper::PyEvolutionDaemon;
+use crate::evolution_protocol::{
+    CognitiveState, DaemonSyncPacket, EvolutionClient, EvolutionMetrics, EvolvedGenomeData,
+    MessageType, NeuralStateData, NeuralStateUpdate, SelfState, TheoryOfMindState,
+    TokenVisualizationData,
+};
+use crate::neural_state_texture::{
+    NeuralRendererConfig, NeuralStateTexture, NeuralVisualizationMode,
+};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use std::collections::HashMap;
 use wgpu::{self, Device, Queue};
 
 // Phase 40.3: Neural Link
-use crate::synapse::z_ai_client::ZAiClient;
 use crate::cognitive::agents::AgentRole;
+use crate::synapse::z_ai_client::ZAiClient;
 
 // Phase 35.9: Cartridge tracking
 use crate::cartridge_registry::{CartridgeEntry, CartridgeRegistry};
@@ -111,7 +114,7 @@ impl EvolutionManager {
     pub fn initialize(&mut self, device: &Device, width: u32, height: u32) {
         // Create neural state texture
         self.neural_texture = Some(NeuralStateTexture::new(device, width, height));
-        
+
         // Try to connect to daemon
         self.connect();
     }
@@ -123,11 +126,11 @@ impl EvolutionManager {
             Ok(()) => {
                 self.connected = true;
                 eprintln!("✅ Connected to evolution daemon");
-            }
+            },
             Err(e) => {
                 self.connected = false;
                 eprintln!("⚠️  Failed to connect to evolution daemon: {}", e);
-            }
+            },
         }
     }
 
@@ -139,7 +142,7 @@ impl EvolutionManager {
     /// Update evolution state (call this periodically)
     pub fn update(&mut self, device: &Device, queue: &Queue) {
         let now = Instant::now();
-        
+
         // Only update at specified interval
         if now.duration_since(self.last_update) < self.update_interval {
             return;
@@ -152,25 +155,26 @@ impl EvolutionManager {
 
         // Try to fetch metrics
         self.fetch_metrics();
-        
+
         // Try to fetch neural state
         self.fetch_neural_state();
-        
 
         // Try to fetch theory of mind state
         self.fetch_theory_of_mind();
-        
+
         // Try to fetch cognitive state (Phase 27)
         self.fetch_cognitive_state();
-        
+
         // Update texture if we have neural data
-        if let (Some(composite_state), Some(ref mut texture)) = (&self.composite_state, &mut self.neural_texture) {
+        if let (Some(composite_state), Some(ref mut texture)) =
+            (&self.composite_state, &mut self.neural_texture)
+        {
             texture.update_from_neural_state(
                 device,
                 queue,
                 composite_state,
                 self.self_state.as_ref(),
-                self.theory_of_mind.as_ref()
+                self.theory_of_mind.as_ref(),
             );
         }
     }
@@ -191,7 +195,7 @@ impl EvolutionManager {
         if !self.connected {
             return;
         }
-        
+
         let msg_result = {
             let mut client = self.client.lock().unwrap();
             client.request_metrics()
@@ -205,18 +209,19 @@ impl EvolutionManager {
                         log::debug!("📊 Evolution metrics updated (socket)");
                     }
                 }
-            }
+            },
             Err(e) => {
                 log::warn!("⚠️  Failed to fetch metrics: {}", e);
                 self.connected = false;
-            }
+            },
         }
     }
 
     /// Update neural state from a daemon update
     fn update_neural_state(&mut self, update: NeuralStateUpdate) {
         // Update the daemon's private state
-        self.daemon_states.insert(update.daemon_id, (update.data, update.strength));
+        self.daemon_states
+            .insert(update.daemon_id, (update.data, update.strength));
         // Recompute the composite state
         self.compute_composite_state();
     }
@@ -291,7 +296,11 @@ impl EvolutionManager {
         composite.arousal = arousal;
 
         // For non-numeric fields, take from the strongest daemon
-        let strongest_daemon = self.daemon_states.values().max_by(|a, b| a.1.partial_cmp(&b.1).unwrap()).unwrap();
+        let strongest_daemon = self
+            .daemon_states
+            .values()
+            .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+            .unwrap();
         composite.thought_stream = strongest_daemon.0.thought_stream.clone();
         composite.active_regions = strongest_daemon.0.active_regions.clone();
         composite.self_state = strongest_daemon.0.self_state.clone();
@@ -335,10 +344,14 @@ impl EvolutionManager {
         match msg_result {
             Ok(msg) => {
                 if msg.message_type == MessageType::NeuralStateUpdate {
-                    if let Ok(update) = serde_json::from_value::<NeuralStateUpdate>(msg.payload.clone()) {
+                    if let Ok(update) =
+                        serde_json::from_value::<NeuralStateUpdate>(msg.payload.clone())
+                    {
                         self.update_neural_state(update);
                         log::debug!("🧠 Neural state updated (socket)");
-                    } else if let Ok(neural_state) = serde_json::from_value::<NeuralStateData>(msg.payload) {
+                    } else if let Ok(neural_state) =
+                        serde_json::from_value::<NeuralStateData>(msg.payload)
+                    {
                         // Fallback for old format
                         let update = NeuralStateUpdate {
                             daemon_id: "legacy_daemon".to_string(),
@@ -349,11 +362,11 @@ impl EvolutionManager {
                         log::debug!("🧠 Neural state updated (legacy socket)");
                     }
                 }
-            }
+            },
             Err(e) => {
                 log::warn!("⚠️  Failed to fetch neural state: {}", e);
                 self.connected = false;
-            }
+            },
         }
     }
 
@@ -375,10 +388,10 @@ impl EvolutionManager {
                         self.self_state = Some(state);
                     }
                 }
-            }
+            },
             Err(e) => {
                 log::warn!("⚠️  Failed to fetch self state: {}", e);
-            }
+            },
         }
     }
 
@@ -400,13 +413,12 @@ impl EvolutionManager {
                         self.theory_of_mind = Some(state);
                     }
                 }
-            }
+            },
             Err(e) => {
                 log::warn!("⚠️  Failed to fetch theory of mind state: {}", e);
-            }
+            },
         }
     }
-
 
     /// Fetch harmonic daemon synchronization update (Phase 2)
     pub fn fetch_daemon_sync(&mut self) -> Option<DaemonSyncPacket> {
@@ -426,10 +438,10 @@ impl EvolutionManager {
                         return Some(packet);
                     }
                 }
-            }
+            },
             Err(e) => {
                 log::warn!("⚠️  Failed to fetch daemon sync: {}", e);
-            }
+            },
         }
         None
     }
@@ -462,10 +474,10 @@ impl EvolutionManager {
                         self.cognitive_state = Some(state);
                     }
                 }
-            }
+            },
             Err(e) => {
                 log::warn!("⚠️  Failed to fetch cognitive state: {}", e);
-            }
+            },
         }
     }
 
@@ -478,7 +490,7 @@ impl EvolutionManager {
     pub fn get_neural_state(&self) -> Option<&NeuralStateData> {
         self.composite_state.as_ref()
     }
-    
+
     /// Get current cognitive state (Phase 27)
     pub fn get_cognitive_state(&self) -> Option<&CognitiveState> {
         self.cognitive_state.as_ref()
@@ -633,7 +645,7 @@ impl EvolutionManager {
                 generation: {}, \
                 fitness: {:.2}, \
                 data_len: {} \
-            }};", 
+            }};",
             genome.id.replace("-", "_"),
             genome.id,
             genome.generation,
@@ -650,11 +662,11 @@ impl EvolutionManager {
 
         // Convert the genome to a protocol message
         let payload = serde_json::to_value(&genome).unwrap_or(serde_json::Value::Null);
-        
+
         let message = crate::evolution_protocol::ProtocolMessage::new(
             MessageType::WriteEvolvedGenome,
             0,
-            payload
+            payload,
         );
 
         let mut client = self.client.lock().unwrap();
@@ -662,7 +674,11 @@ impl EvolutionManager {
             log::warn!("⚠️  Failed to write evolved genome: {}", e);
             self.connected = false;
         } else {
-            log::info!("🧬 Wrote evolved genome {} (Gen {}) to daemon", genome.id, genome.generation);
+            log::info!(
+                "🧬 Wrote evolved genome {} (Gen {}) to daemon",
+                genome.id,
+                genome.generation
+            );
         }
     }
 
@@ -672,11 +688,11 @@ impl EvolutionManager {
         self.composite_state = None;
         self.daemon_states.clear();
         self.connected = false;
-        
+
         // Attempt reconnection
         self.disconnect();
         self.connect();
-        
+
         log::info!("🔄 Evolution Manager reset");
     }
 
@@ -686,11 +702,18 @@ impl EvolutionManager {
     }
 
     /// Phase 40.3: Neural Link - Direct Z.ai Query
-    pub async fn ask_agent(&self, role: AgentRole, context: &str, goal: &str) -> anyhow::Result<String> {
+    pub async fn ask_agent(
+        &self,
+        role: AgentRole,
+        context: &str,
+        goal: &str,
+    ) -> anyhow::Result<String> {
         if let Some(client) = &self.zai_client {
             client.ask_agent(role, context, goal).await
         } else {
-            Err(anyhow::anyhow!("Z.ai Client not initialized (Missing ZAI_API_KEY)"))
+            Err(anyhow::anyhow!(
+                "Z.ai Client not initialized (Missing ZAI_API_KEY)"
+            ))
         }
     }
 
@@ -720,8 +743,12 @@ impl EvolutionManager {
         self.last_sib_check = now;
 
         // Read shared intent bus file
-        let Ok(data) = std::fs::read_to_string(&self.sib_path) else { return };
-        let Ok(json_data) = serde_json::from_str::<serde_json::Value>(&data) else { return };
+        let Ok(data) = std::fs::read_to_string(&self.sib_path) else {
+            return;
+        };
+        let Ok(json_data) = serde_json::from_str::<serde_json::Value>(&data) else {
+            return;
+        };
 
         let registry = json_data.get("registry").and_then(|v| v.as_object());
         let Some(registry_obj) = registry else { return };
@@ -739,25 +766,33 @@ impl EvolutionManager {
             }
 
             let implicit = intent.get("implicit").and_then(|v| v.as_object());
-            let Some(implicit_obj) = implicit else { continue };
+            let Some(implicit_obj) = implicit else {
+                continue;
+            };
 
             // Extract cartridge data
-            let cartridge_id = implicit_obj.get("cartridge_id")
+            let cartridge_id = implicit_obj
+                .get("cartridge_id")
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
-            let cartridge_path = implicit_obj.get("cartridge_path")
+            let cartridge_path = implicit_obj
+                .get("cartridge_path")
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
-            let spawn_x = implicit_obj.get("spawn_x")
+            let spawn_x = implicit_obj
+                .get("spawn_x")
                 .and_then(|v| v.as_f64())
                 .unwrap_or(0.0) as f32;
-            let spawn_y = implicit_obj.get("spawn_y")
+            let spawn_y = implicit_obj
+                .get("spawn_y")
                 .and_then(|v| v.as_f64())
                 .unwrap_or(0.0) as f32;
-            let generation = implicit_obj.get("generation")
+            let generation = implicit_obj
+                .get("generation")
                 .and_then(|v| v.as_u64())
                 .unwrap_or(0);
-            let fitness = implicit_obj.get("fitness")
+            let fitness = implicit_obj
+                .get("fitness")
                 .and_then(|v| v.as_f64())
                 .unwrap_or(0.0) as f32;
 
@@ -783,12 +818,13 @@ impl EvolutionManager {
 
             self.cartridge_registry.add_entry(entry);
 
-            eprintln!("🎮 Cartridge registered: {} at ({}, {})", cartridge_id, spawn_x, spawn_y);
+            eprintln!(
+                "🎮 Cartridge registered: {} at ({}, {})",
+                cartridge_id, spawn_x, spawn_y
+            );
         }
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -805,7 +841,7 @@ mod tests {
     #[test]
     fn test_metrics_display() {
         let mut manager = EvolutionManager::new("/tmp/test_socket".to_string());
-        
+
         let metrics = EvolutionMetrics {
             generation: 100,
             fitness: 0.8,
@@ -821,10 +857,10 @@ mod tests {
             health_status: "good".to_string(),
             timestamp: 1234567890.0,
         };
-        
+
         manager.metrics = Some(metrics);
         let display = manager.get_metrics_display();
-        
+
         assert!(display.contains("Generation: 100"));
         assert!(display.contains("Pressure: 5.50"));
     }
@@ -832,23 +868,29 @@ mod tests {
     #[test]
     fn test_visualization_mode() {
         let mut manager = EvolutionManager::new("/tmp/test_socket".to_string());
-        
-        assert_eq!(manager.get_visualization_mode(), NeuralVisualizationMode::MultiChannel);
-        
+
+        assert_eq!(
+            manager.get_visualization_mode(),
+            NeuralVisualizationMode::MultiChannel
+        );
+
         manager.set_visualization_mode(NeuralVisualizationMode::Heatmap);
-        assert_eq!(manager.get_visualization_mode(), NeuralVisualizationMode::Heatmap);
+        assert_eq!(
+            manager.get_visualization_mode(),
+            NeuralVisualizationMode::Heatmap
+        );
     }
 
     #[test]
     fn test_brightness_contrast_clamping() {
         let mut manager = EvolutionManager::new("/tmp/test_socket".to_string());
-        
+
         manager.set_brightness(3.0);
         assert_eq!(manager.get_config().brightness, 2.0);
-        
+
         manager.set_brightness(-1.0);
         assert_eq!(manager.get_config().brightness, 0.0);
-        
+
         manager.set_contrast(3.0);
         assert_eq!(manager.get_config().contrast, 2.0);
     }

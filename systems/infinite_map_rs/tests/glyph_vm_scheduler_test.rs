@@ -26,7 +26,6 @@ mod tests {
                 label: Some("Glyph VM Scheduler Test Device"),
                 required_features: wgpu::Features::empty(),
                 required_limits: wgpu::Limits::default(),
-                memory_hints: Default::default(),
             },
             None,
         )).ok()?;
@@ -90,6 +89,8 @@ mod tests {
         let config = VmConfig {
             entry_point: 0x1000,
             parent_id: 0xFF,
+            base_addr: 0,
+            bound_addr: 0,
             initial_regs: [0; 32],
         };
 
@@ -140,7 +141,7 @@ mod tests {
 
         use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
 
-        let scheduler = GlyphVmScheduler::new(device.clone(), queue.clone());
+        let mut scheduler = GlyphVmScheduler::new(device.clone(), queue.clone());
 
         // Create RAM texture (4096x4096 rgba8uint)
         let ram_texture = device.create_texture(&wgpu::TextureDescriptor {

@@ -6,10 +6,10 @@ use std::collections::HashMap;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Synapse {
     pub id: String,
-    pub source_vector: Vec<f32>,      // 1024-dim embedding
+    pub source_vector: Vec<f32>, // 1024-dim embedding
     pub target_window_id: Option<String>,
-    pub action_target: String,        // e.g. "sys_reboot", "launch:app_id"
-    pub activation_threshold: f32,    // 0.0 to 1.0
+    pub action_target: String,     // e.g. "sys_reboot", "launch:app_id"
+    pub activation_threshold: f32, // 0.0 to 1.0
     pub last_fired: u64,
 }
 
@@ -56,37 +56,36 @@ impl SynapticLayer {
                 activated.push((synapse, score));
             }
         }
-        
+
         // Sort by resonance strength
         activated.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         // Record activations for visualization
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_millis() as u64;
-            
+
         for (synapse, score) in &activated {
             self.active_resonances.push((
-                synapse.id.clone(), 
-                synapse.action_target.clone(), 
-                *score, 
-                now
+                synapse.id.clone(),
+                synapse.action_target.clone(),
+                *score,
+                now,
             ));
         }
-        
+
         activated
     }
-    
+
     pub fn prune_resonances(&mut self, max_age_ms: u64) {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_millis() as u64;
-            
-        self.active_resonances.retain(|(_, _, _, timestamp)| {
-            now - timestamp < max_age_ms
-        });
+
+        self.active_resonances
+            .retain(|(_, _, _, timestamp)| now - timestamp < max_age_ms);
     }
 
     /// Direct signal of intent (bypasses resonance check)

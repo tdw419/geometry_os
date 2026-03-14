@@ -8,9 +8,9 @@
 // - Data regions as platforms
 // - Stack as vertical structures
 
-use wgpu::{self, Device, Queue, Buffer, VertexBufferLayout};
 use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;
+use wgpu::{self, Buffer, Device, Queue, VertexBufferLayout};
 
 /// Memory artifact type
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -102,40 +102,76 @@ impl MemoryArtifact {
     /// Set morph factor and regenerate vertices
     pub fn set_morph_factor(&mut self, factor: f32) {
         self.morph_factor = factor;
-        self.vertices = Self::generate_vertices(
-            self.artifact_type,
-            self.dimensions,
-            self.entropy,
-            factor
-        );
+        self.vertices =
+            Self::generate_vertices(self.artifact_type, self.dimensions, self.entropy, factor);
     }
 
     /// Generate vertices for artifact type
-    fn generate_vertices(artifact_type: MemoryArtifactType, dimensions: [f32; 3], entropy: f32, morph_factor: f32) -> Vec<MemoryVertex> {
+    fn generate_vertices(
+        artifact_type: MemoryArtifactType,
+        dimensions: [f32; 3],
+        entropy: f32,
+        morph_factor: f32,
+    ) -> Vec<MemoryVertex> {
         let [width, height, depth] = dimensions;
 
         match artifact_type {
             MemoryArtifactType::Heap => {
                 // Translucent block with gradient
-                Self::generate_block_vertices(width, height, depth, [0.2, 0.8, 0.2, 0.6], entropy, morph_factor)
-            }
+                Self::generate_block_vertices(
+                    width,
+                    height,
+                    depth,
+                    [0.2, 0.8, 0.2, 0.6],
+                    entropy,
+                    morph_factor,
+                )
+            },
             MemoryArtifactType::Stack => {
                 // Vertical tower
-                Self::generate_tower_vertices(width, height, depth, [0.8, 0.2, 0.8, 0.7], entropy, morph_factor)
-            }
+                Self::generate_tower_vertices(
+                    width,
+                    height,
+                    depth,
+                    [0.8, 0.2, 0.8, 0.7],
+                    entropy,
+                    morph_factor,
+                )
+            },
             MemoryArtifactType::Code => {
                 // Crystalline pillar
-                Self::generate_pillar_vertices(width, height, depth, [0.2, 0.8, 1.0, 0.8], entropy, morph_factor)
-            }
+                Self::generate_pillar_vertices(
+                    width,
+                    height,
+                    depth,
+                    [0.2, 0.8, 1.0, 0.8],
+                    entropy,
+                    morph_factor,
+                )
+            },
             MemoryArtifactType::Data => {
                 // Platform
-                Self::generate_platform_vertices(width, height, depth, [0.8, 0.8, 0.2, 0.7], entropy, morph_factor)
-            }
+                Self::generate_platform_vertices(
+                    width,
+                    height,
+                    depth,
+                    [0.8, 0.8, 0.2, 0.7],
+                    entropy,
+                    morph_factor,
+                )
+            },
         }
     }
 
     /// Generate block vertices (heap)
-    fn generate_block_vertices(width: f32, height: f32, depth: f32, base_color: [f32; 4], entropy: f32, morph_factor: f32) -> Vec<MemoryVertex> {
+    fn generate_block_vertices(
+        width: f32,
+        height: f32,
+        depth: f32,
+        base_color: [f32; 4],
+        entropy: f32,
+        morph_factor: f32,
+    ) -> Vec<MemoryVertex> {
         let hw = width / 2.0;
         let hh = height / 2.0;
         let hd = depth / 2.0;
@@ -146,46 +182,253 @@ impl MemoryArtifact {
         let mut vertices = Vec::new();
 
         // Front face
-        vertices.push(MemoryVertex::new([-hw, -hh, hd],  [base_color[0], base_color[1], base_color[2], alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh, hd],  [base_color[0], base_color[1], base_color[2], alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, hd],  [base_color[0], base_color[1], base_color[2], alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh, hd],  [base_color[0], base_color[1], base_color[2], alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Back face
-        vertices.push(MemoryVertex::new([ hw, -hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, -hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Top face
-        vertices.push(MemoryVertex::new([-hw,  hh, -hd], [base_color[0] * 1.2, base_color[1] * 1.2, base_color[2] * 1.2, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, -hd], [base_color[0] * 1.2, base_color[1] * 1.2, base_color[2] * 1.2, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh,  hd], [base_color[0] * 1.2, base_color[1] * 1.2, base_color[2] * 1.2, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh,  hd], [base_color[0] * 1.2, base_color[1] * 1.2, base_color[2] * 1.2, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, -hd],
+            [
+                base_color[0] * 1.2,
+                base_color[1] * 1.2,
+                base_color[2] * 1.2,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, -hd],
+            [
+                base_color[0] * 1.2,
+                base_color[1] * 1.2,
+                base_color[2] * 1.2,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [
+                base_color[0] * 1.2,
+                base_color[1] * 1.2,
+                base_color[2] * 1.2,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, hd],
+            [
+                base_color[0] * 1.2,
+                base_color[1] * 1.2,
+                base_color[2] * 1.2,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Bottom face
-        vertices.push(MemoryVertex::new([-hw, -hh, -hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh, -hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh,  hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, -hh,  hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, -hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, -hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Left face
-        vertices.push(MemoryVertex::new([-hw, -hh, -hd], [base_color[0] * 0.8, base_color[1] * 0.8, base_color[2] * 0.8, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, -hh,  hd], [base_color[0] * 0.8, base_color[1] * 0.8, base_color[2] * 0.8, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh,  hd], [base_color[0] * 0.8, base_color[1] * 0.8, base_color[2] * 0.8, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh, -hd], [base_color[0] * 0.8, base_color[1] * 0.8, base_color[2] * 0.8, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, -hd],
+            [
+                base_color[0] * 0.8,
+                base_color[1] * 0.8,
+                base_color[2] * 0.8,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, hd],
+            [
+                base_color[0] * 0.8,
+                base_color[1] * 0.8,
+                base_color[2] * 0.8,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, hd],
+            [
+                base_color[0] * 0.8,
+                base_color[1] * 0.8,
+                base_color[2] * 0.8,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, -hd],
+            [
+                base_color[0] * 0.8,
+                base_color[1] * 0.8,
+                base_color[2] * 0.8,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Right face
-        vertices.push(MemoryVertex::new([ hw, -hh,  hd], [base_color[0] * 0.8, base_color[1] * 0.8, base_color[2] * 0.8, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh, -hd], [base_color[0] * 0.8, base_color[1] * 0.8, base_color[2] * 0.8, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, -hd], [base_color[0] * 0.8, base_color[1] * 0.8, base_color[2] * 0.8, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh,  hd], [base_color[0] * 0.8, base_color[1] * 0.8, base_color[2] * 0.8, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, hd],
+            [
+                base_color[0] * 0.8,
+                base_color[1] * 0.8,
+                base_color[2] * 0.8,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, -hd],
+            [
+                base_color[0] * 0.8,
+                base_color[1] * 0.8,
+                base_color[2] * 0.8,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, -hd],
+            [
+                base_color[0] * 0.8,
+                base_color[1] * 0.8,
+                base_color[2] * 0.8,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [
+                base_color[0] * 0.8,
+                base_color[1] * 0.8,
+                base_color[2] * 0.8,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         vertices
     }
 
     /// Generate tower vertices (stack)
-    fn generate_tower_vertices(width: f32, height: f32, depth: f32, base_color: [f32; 4], entropy: f32, morph_factor: f32) -> Vec<MemoryVertex> {
+    fn generate_tower_vertices(
+        width: f32,
+        height: f32,
+        depth: f32,
+        base_color: [f32; 4],
+        entropy: f32,
+        morph_factor: f32,
+    ) -> Vec<MemoryVertex> {
         let hw = width / 2.0;
         let hh = height / 2.0;
         let hd = depth / 2.0;
@@ -196,46 +439,253 @@ impl MemoryArtifact {
 
         // Stack is a tall, narrow structure
         // Front face
-        vertices.push(MemoryVertex::new([-hw, -hh, hd],  [base_color[0], base_color[1], base_color[2], alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh, hd],  [base_color[0], base_color[1], base_color[2], alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, hd],  [base_color[0], base_color[1], base_color[2], alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh, hd],  [base_color[0], base_color[1], base_color[2], alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Back face
-        vertices.push(MemoryVertex::new([ hw, -hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, -hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Top face (with glow effect)
-        vertices.push(MemoryVertex::new([-hw,  hh, -hd], [base_color[0] * 1.5, base_color[1] * 1.5, base_color[2] * 1.5, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, -hd], [base_color[0] * 1.5, base_color[1] * 1.5, base_color[2] * 1.5, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh,  hd], [base_color[0] * 1.5, base_color[1] * 1.5, base_color[2] * 1.5, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh,  hd], [base_color[0] * 1.5, base_color[1] * 1.5, base_color[2] * 1.5, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, -hd],
+            [
+                base_color[0] * 1.5,
+                base_color[1] * 1.5,
+                base_color[2] * 1.5,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, -hd],
+            [
+                base_color[0] * 1.5,
+                base_color[1] * 1.5,
+                base_color[2] * 1.5,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [
+                base_color[0] * 1.5,
+                base_color[1] * 1.5,
+                base_color[2] * 1.5,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, hd],
+            [
+                base_color[0] * 1.5,
+                base_color[1] * 1.5,
+                base_color[2] * 1.5,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Bottom face
-        vertices.push(MemoryVertex::new([-hw, -hh, -hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh, -hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh,  hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, -hh,  hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, -hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, -hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Left face
-        vertices.push(MemoryVertex::new([-hw, -hh, -hd], [base_color[0] * 0.9, base_color[1] * 0.9, base_color[2] * 0.9, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, -hh,  hd], [base_color[0] * 0.9, base_color[1] * 0.9, base_color[2] * 0.9, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh,  hd], [base_color[0] * 0.9, base_color[1] * 0.9, base_color[2] * 0.9, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh, -hd], [base_color[0] * 0.9, base_color[1] * 0.9, base_color[2] * 0.9, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, -hd],
+            [
+                base_color[0] * 0.9,
+                base_color[1] * 0.9,
+                base_color[2] * 0.9,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, hd],
+            [
+                base_color[0] * 0.9,
+                base_color[1] * 0.9,
+                base_color[2] * 0.9,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, hd],
+            [
+                base_color[0] * 0.9,
+                base_color[1] * 0.9,
+                base_color[2] * 0.9,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, -hd],
+            [
+                base_color[0] * 0.9,
+                base_color[1] * 0.9,
+                base_color[2] * 0.9,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Right face
-        vertices.push(MemoryVertex::new([ hw, -hh,  hd], [base_color[0] * 0.9, base_color[1] * 0.9, base_color[2] * 0.9, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh, -hd], [base_color[0] * 0.9, base_color[1] * 0.9, base_color[2] * 0.9, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, -hd], [base_color[0] * 0.9, base_color[1] * 0.9, base_color[2] * 0.9, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh,  hd], [base_color[0] * 0.9, base_color[1] * 0.9, base_color[2] * 0.9, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, hd],
+            [
+                base_color[0] * 0.9,
+                base_color[1] * 0.9,
+                base_color[2] * 0.9,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, -hd],
+            [
+                base_color[0] * 0.9,
+                base_color[1] * 0.9,
+                base_color[2] * 0.9,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, -hd],
+            [
+                base_color[0] * 0.9,
+                base_color[1] * 0.9,
+                base_color[2] * 0.9,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [
+                base_color[0] * 0.9,
+                base_color[1] * 0.9,
+                base_color[2] * 0.9,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         vertices
     }
 
     /// Generate pillar vertices (code)
-    fn generate_pillar_vertices(width: f32, height: f32, depth: f32, base_color: [f32; 4], entropy: f32, morph_factor: f32) -> Vec<MemoryVertex> {
+    fn generate_pillar_vertices(
+        width: f32,
+        height: f32,
+        depth: f32,
+        base_color: [f32; 4],
+        entropy: f32,
+        morph_factor: f32,
+    ) -> Vec<MemoryVertex> {
         let hw = width / 2.0;
         let hh = height / 2.0;
         let hd = depth / 2.0;
@@ -246,46 +696,253 @@ impl MemoryArtifact {
 
         // Code is a crystalline pillar
         // Front face
-        vertices.push(MemoryVertex::new([-hw, -hh, hd],  [base_color[0], base_color[1], base_color[2], alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh, hd],  [base_color[0], base_color[1], base_color[2], alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, hd],  [base_color[0], base_color[1], base_color[2], alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh, hd],  [base_color[0], base_color[1], base_color[2], alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Back face
-        vertices.push(MemoryVertex::new([ hw, -hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, -hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Top face (crystalline)
-        vertices.push(MemoryVertex::new([-hw,  hh, -hd], [base_color[0] * 2.0, base_color[1] * 2.0, base_color[2] * 2.0, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, -hd], [base_color[0] * 2.0, base_color[1] * 2.0, base_color[2] * 2.0, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh,  hd], [base_color[0] * 2.0, base_color[1] * 2.0, base_color[2] * 2.0, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh,  hd], [base_color[0] * 2.0, base_color[1] * 2.0, base_color[2] * 2.0, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, -hd],
+            [
+                base_color[0] * 2.0,
+                base_color[1] * 2.0,
+                base_color[2] * 2.0,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, -hd],
+            [
+                base_color[0] * 2.0,
+                base_color[1] * 2.0,
+                base_color[2] * 2.0,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [
+                base_color[0] * 2.0,
+                base_color[1] * 2.0,
+                base_color[2] * 2.0,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, hd],
+            [
+                base_color[0] * 2.0,
+                base_color[1] * 2.0,
+                base_color[2] * 2.0,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Bottom face
-        vertices.push(MemoryVertex::new([-hw, -hh, -hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh, -hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh,  hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, -hh,  hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, -hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, -hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Left face
-        vertices.push(MemoryVertex::new([-hw, -hh, -hd], [base_color[0] * 0.85, base_color[1] * 0.85, base_color[2] * 0.85, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, -hh,  hd], [base_color[0] * 0.85, base_color[1] * 0.85, base_color[2] * 0.85, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh,  hd], [base_color[0] * 0.85, base_color[1] * 0.85, base_color[2] * 0.85, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh, -hd], [base_color[0] * 0.85, base_color[1] * 0.85, base_color[2] * 0.85, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, -hd],
+            [
+                base_color[0] * 0.85,
+                base_color[1] * 0.85,
+                base_color[2] * 0.85,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, hd],
+            [
+                base_color[0] * 0.85,
+                base_color[1] * 0.85,
+                base_color[2] * 0.85,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, hd],
+            [
+                base_color[0] * 0.85,
+                base_color[1] * 0.85,
+                base_color[2] * 0.85,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, -hd],
+            [
+                base_color[0] * 0.85,
+                base_color[1] * 0.85,
+                base_color[2] * 0.85,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Right face
-        vertices.push(MemoryVertex::new([ hw, -hh,  hd], [base_color[0] * 0.85, base_color[1] * 0.85, base_color[2] * 0.85, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh, -hd], [base_color[0] * 0.85, base_color[1] * 0.85, base_color[2] * 0.85, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, -hd], [base_color[0] * 0.85, base_color[1] * 0.85, base_color[2] * 0.85, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh,  hd], [base_color[0] * 0.85, base_color[1] * 0.85, base_color[2] * 0.85, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, hd],
+            [
+                base_color[0] * 0.85,
+                base_color[1] * 0.85,
+                base_color[2] * 0.85,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, -hd],
+            [
+                base_color[0] * 0.85,
+                base_color[1] * 0.85,
+                base_color[2] * 0.85,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, -hd],
+            [
+                base_color[0] * 0.85,
+                base_color[1] * 0.85,
+                base_color[2] * 0.85,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [
+                base_color[0] * 0.85,
+                base_color[1] * 0.85,
+                base_color[2] * 0.85,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         vertices
     }
 
     /// Generate platform vertices (data)
-    fn generate_platform_vertices(width: f32, height: f32, depth: f32, base_color: [f32; 4], entropy: f32, morph_factor: f32) -> Vec<MemoryVertex> {
+    fn generate_platform_vertices(
+        width: f32,
+        height: f32,
+        depth: f32,
+        base_color: [f32; 4],
+        entropy: f32,
+        morph_factor: f32,
+    ) -> Vec<MemoryVertex> {
         let hw = width / 2.0;
         let hh = height / 2.0;
         let hd = depth / 2.0;
@@ -296,40 +953,220 @@ impl MemoryArtifact {
 
         // Data is a platform
         // Top face
-        vertices.push(MemoryVertex::new([-hw, hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, hh,  hd], [base_color[0], base_color[1], base_color[2], alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, hh,  hd], [base_color[0], base_color[1], base_color[2], alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Bottom face
-        vertices.push(MemoryVertex::new([-hw, -hh, -hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh, -hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh,  hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, -hh,  hd], [base_color[0] * 0.5, base_color[1] * 0.5, base_color[2] * 0.5, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, -hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, -hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, hd],
+            [
+                base_color[0] * 0.5,
+                base_color[1] * 0.5,
+                base_color[2] * 0.5,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Left face
-        vertices.push(MemoryVertex::new([-hw, -hh, -hd], [base_color[0] * 0.7, base_color[1] * 0.7, base_color[2] * 0.7, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, -hh,  hd], [base_color[0] * 0.7, base_color[1] * 0.7, base_color[2] * 0.7, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh,  hd], [base_color[0] * 0.7, base_color[1] * 0.7, base_color[2] * 0.7, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh, -hd], [base_color[0] * 0.7, base_color[1] * 0.7, base_color[2] * 0.7, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, -hd],
+            [
+                base_color[0] * 0.7,
+                base_color[1] * 0.7,
+                base_color[2] * 0.7,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, hd],
+            [
+                base_color[0] * 0.7,
+                base_color[1] * 0.7,
+                base_color[2] * 0.7,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, hd],
+            [
+                base_color[0] * 0.7,
+                base_color[1] * 0.7,
+                base_color[2] * 0.7,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, -hd],
+            [
+                base_color[0] * 0.7,
+                base_color[1] * 0.7,
+                base_color[2] * 0.7,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Right face
-        vertices.push(MemoryVertex::new([ hw, -hh,  hd], [base_color[0] * 0.7, base_color[1] * 0.7, base_color[2] * 0.7, alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh, -hd], [base_color[0] * 0.7, base_color[1] * 0.7, base_color[2] * 0.7, alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh,  hd], [base_color[0] * 0.7, base_color[1] * 0.7, base_color[2] * 0.7, alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh,  hd], [base_color[0] * 0.7, base_color[1] * 0.7, base_color[2] * 0.7, alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, hd],
+            [
+                base_color[0] * 0.7,
+                base_color[1] * 0.7,
+                base_color[2] * 0.7,
+                alpha,
+            ],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, -hd],
+            [
+                base_color[0] * 0.7,
+                base_color[1] * 0.7,
+                base_color[2] * 0.7,
+                alpha,
+            ],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [
+                base_color[0] * 0.7,
+                base_color[1] * 0.7,
+                base_color[2] * 0.7,
+                alpha,
+            ],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [
+                base_color[0] * 0.7,
+                base_color[1] * 0.7,
+                base_color[2] * 0.7,
+                alpha,
+            ],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Front face
-        vertices.push(MemoryVertex::new([-hw, -hh, hd], [base_color[0], base_color[1], base_color[2], alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw, -hh, hd], [base_color[0], base_color[1], base_color[2], alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, hd], [base_color[0], base_color[1], base_color[2], alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh, hd], [base_color[0], base_color[1], base_color[2], alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         // Back face
-        vertices.push(MemoryVertex::new([ hw, -hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [0.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw, -hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [1.0, 0.0], morph_factor));
-        vertices.push(MemoryVertex::new([-hw,  hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [1.0, 1.0], morph_factor));
-        vertices.push(MemoryVertex::new([ hw,  hh, -hd], [base_color[0], base_color[1], base_color[2], alpha], [0.0, 1.0], morph_factor));
+        vertices.push(MemoryVertex::new(
+            [hw, -hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, -hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 0.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [-hw, hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [1.0, 1.0],
+            morph_factor,
+        ));
+        vertices.push(MemoryVertex::new(
+            [hw, hh, -hd],
+            [base_color[0], base_color[1], base_color[2], alpha],
+            [0.0, 1.0],
+            morph_factor,
+        ));
 
         vertices
     }
@@ -419,7 +1256,11 @@ impl MemoryArtifactManager {
     }
 
     /// Create artifacts from V2 brick
-    pub fn create_from_brick(&mut self, brick: &crate::memory_tensor::V2Brick, position: [f32; 3]) -> usize {
+    pub fn create_from_brick(
+        &mut self,
+        brick: &crate::memory_tensor::V2Brick,
+        position: [f32; 3],
+    ) -> usize {
         let id = self.artifacts.len();
         let dimensions = [
             brick.header.texture_width as f32,
@@ -458,7 +1299,12 @@ impl MemoryArtifactManager {
                 pos[0] += artifact.position[0];
                 pos[1] += artifact.position[1];
                 pos[2] += artifact.position[2];
-                all_vertices.push(MemoryVertex::new(pos, vertex.color, vertex.uv, vertex.morph_factor));
+                all_vertices.push(MemoryVertex::new(
+                    pos,
+                    vertex.color,
+                    vertex.uv,
+                    vertex.morph_factor,
+                ));
             }
 
             for index in &artifact.indices {
@@ -476,11 +1322,8 @@ impl MemoryArtifactManager {
             mapped_at_creation: false,
         });
 
-        self.queue.write_buffer(
-            &vertex_buffer,
-            0,
-            bytemuck::cast_slice(&all_vertices),
-        );
+        self.queue
+            .write_buffer(&vertex_buffer, 0, bytemuck::cast_slice(&all_vertices));
 
         // Create index buffer
         let index_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -490,11 +1333,8 @@ impl MemoryArtifactManager {
             mapped_at_creation: false,
         });
 
-        self.queue.write_buffer(
-            &index_buffer,
-            0,
-            bytemuck::cast_slice(&all_indices),
-        );
+        self.queue
+            .write_buffer(&index_buffer, 0, bytemuck::cast_slice(&all_indices));
 
         self.vertex_buffer = Some(vertex_buffer);
         self.index_buffer = Some(index_buffer);

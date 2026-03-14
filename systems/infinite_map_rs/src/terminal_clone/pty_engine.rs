@@ -145,7 +145,7 @@ mod tests {
                     if output_str.contains("hello_geometry") {
                         return;
                     }
-                }
+                },
                 _ => thread::sleep(Duration::from_millis(10)),
             }
         }

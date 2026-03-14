@@ -84,10 +84,7 @@ pub trait ToolAdapter: Send + Sync {
 pub fn check_binary_available(binary_name: &str) -> bool {
     use std::process::Command;
 
-    match Command::new(binary_name)
-        .arg("--version")
-        .output()
-    {
+    match Command::new(binary_name).arg("--version").output() {
         Ok(output) => output.status.success(),
         Err(_) => false,
     }
@@ -105,10 +102,7 @@ pub fn check_binary_available(binary_name: &str) -> bool {
 pub fn run_command(command: &str, args: &[&str]) -> Result<String, String> {
     use std::process::Command;
 
-    match Command::new(command)
-        .args(args)
-        .output()
-    {
+    match Command::new(command).args(args).output() {
         Ok(output) => {
             if output.status.success() {
                 Ok(String::from_utf8_lossy(&output.stdout).to_string())
@@ -118,7 +112,7 @@ pub fn run_command(command: &str, args: &[&str]) -> Result<String, String> {
                     output.status.code().unwrap_or(-1)
                 ))
             }
-        }
+        },
         Err(e) => Err(format!("Failed to execute command: {}", e)),
     }
 }
@@ -131,7 +125,7 @@ mod tests {
     fn test_check_binary_available() {
         // Test with a binary that should exist (bash is more reliably in PATH)
         assert!(check_binary_available("bash"));
-        
+
         // Test with a binary that likely doesn't exist
         assert!(!check_binary_available("nonexistent_binary_12345"));
     }
@@ -146,9 +140,9 @@ mod tests {
 }
 
 // Re-export adapters
-pub mod btop_adapter;
 pub mod bpftrace_adapter;
+pub mod btop_adapter;
 
 // Re-export for convenience
-pub use btop_adapter::BtopAdapter;
 pub use bpftrace_adapter::BpftraceAdapter;
+pub use btop_adapter::BtopAdapter;

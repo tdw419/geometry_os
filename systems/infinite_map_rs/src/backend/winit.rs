@@ -1,11 +1,11 @@
 use smithay::{
     backend::{
-        winit::{self, WinitEventLoop, WinitGraphicsBackend},
         renderer::gles::GlesRenderer,
+        winit::{self, WinitEventLoop, WinitGraphicsBackend},
     },
     reexports::calloop::EventLoop,
 };
-use std::os::unix::io::{AsRawFd, AsFd, BorrowedFd, RawFd};
+use std::os::unix::io::{AsFd, AsRawFd, BorrowedFd, RawFd};
 // use std::path::Path;
 
 struct RawFdWrapper(RawFd);
@@ -26,49 +26,59 @@ pub struct WinitBackend {
 impl WinitBackend {
     pub fn new() -> Self {
         let (backend, event_loop) = winit::init().expect("Failed to create Winit backend");
-        
+
         WinitBackend {
             backend: Some(backend),
             event_loop: Some(event_loop),
         }
     }
-    
-    pub fn run<F>(&mut self, mut display: Display<GeometryCompositorState>, mut state: GeometryCompositorState, mut callback: F)
-    where
-        F: FnMut(&mut GeometryCompositorState, &mut WinitGraphicsBackend<GlesRenderer>, winit::WinitEvent) + 'static,
+
+    pub fn run<F>(
+        &mut self,
+        mut display: Display<GeometryCompositorState>,
+        mut state: GeometryCompositorState,
+        mut callback: F,
+    ) where
+        F: FnMut(
+                &mut GeometryCompositorState,
+                &mut WinitGraphicsBackend<GlesRenderer>,
+                winit::WinitEvent,
+            ) + 'static,
     {
-        let mut calloop = EventLoop::<GeometryCompositorState>::try_new().expect("Failed to create calloop");
+        let mut calloop =
+            EventLoop::<GeometryCompositorState>::try_new().expect("Failed to create calloop");
         let loop_handle = calloop.handle();
-        
+
         let winit_loop = self.event_loop.take().expect("Event loop already consumed");
         let mut backend = self.backend.take().expect("Backend already consumed");
 
-        
         // Wayland Socket - try multiple names to avoid conflicts
         let mut socket = None;
         let mut first_error = None;
-        
+
         // Try geometry-0 first
         match smithay::reexports::wayland_server::ListeningSocket::bind("geometry-0") {
             Ok(s) => {
                 socket = Some(s);
-            }
+            },
             Err(e) => {
                 first_error = Some(e);
                 // Try geometry-1, geometry-2, etc.
                 for i in 1..10 {
                     let name = format!("geometry-{}", i);
-                    if let Ok(s) = smithay::reexports::wayland_server::ListeningSocket::bind(&name) {
+                    if let Ok(s) = smithay::reexports::wayland_server::ListeningSocket::bind(&name)
+                    {
                         eprintln!("Bound to Wayland socket: {}", name);
                         socket = Some(s);
                         break;
                     }
                 }
-            }
+            },
         }
-        
-        let socket = socket.expect("Failed to bind Wayland socket after trying geometry-0 through geometry-9");
-        
+
+        let socket = socket
+            .expect("Failed to bind Wayland socket after trying geometry-0 through geometry-9");
+
         loop_handle.insert_source(
             smithay::reexports::calloop::generic::Generic::new(
                 socket, 
@@ -96,24 +106,30 @@ impl WinitBackend {
         let wrapper = RawFdWrapper(raw_fd);
 
         let display_source = smithay::reexports::calloop::generic::Generic::new(
-             wrapper,
-             smithay::reexports::calloop::Interest::READ, 
-             smithay::reexports::calloop::Mode::Level
+            wrapper,
+            smithay::reexports::calloop::Interest::READ,
+            smithay::reexports::calloop::Mode::Level,
         );
 
-        loop_handle.insert_source(
-             display_source,
-             move |_, _, state: &mut GeometryCompositorState| {
-                 display.dispatch_clients(state).expect("Failed to dispatch clients");
-                 Ok(smithay::reexports::calloop::PostAction::Continue)
-             }
-        ).expect("Failed to insert display source");
+        loop_handle
+            .insert_source(
+                display_source,
+                move |_, _, state: &mut GeometryCompositorState| {
+                    display
+                        .dispatch_clients(state)
+                        .expect("Failed to dispatch clients");
+                    Ok(smithay::reexports::calloop::PostAction::Continue)
+                },
+            )
+            .expect("Failed to insert display source");
 
         // Insert Winit source
-        loop_handle.insert_source(winit_loop, move |event, _, state| {
-            callback(state, &mut backend, event);
-        }).expect("Failed to insert winit source");
-        
+        loop_handle
+            .insert_source(winit_loop, move |event, _, state| {
+                callback(state, &mut backend, event);
+            })
+            .expect("Failed to insert winit source");
+
         // Initialize XWayland
         state.init_xwayland(&loop_handle);
 
@@ -127,17 +143,19 @@ impl WinitBackend {
         let mut frame_count = 0u32;
         let mut last_fps_log = std::time::Instant::now();
 
-        calloop.run(timeout, &mut state, |_| {
-            // Idle callback
-            if std::env::args().any(|arg| arg == "--benchmark-text") {
-                frame_count += 1;
-                if last_fps_log.elapsed().as_secs_f32() >= 1.0 {
-                    let fps = frame_count as f32 / last_fps_log.elapsed().as_secs_f32();
-                    eprintln!("Perf: {:.1} FPS", fps);
-                    frame_count = 0;
-                    last_fps_log = std::time::Instant::now();
+        calloop
+            .run(timeout, &mut state, |_| {
+                // Idle callback
+                if std::env::args().any(|arg| arg == "--benchmark-text") {
+                    frame_count += 1;
+                    if last_fps_log.elapsed().as_secs_f32() >= 1.0 {
+                        let fps = frame_count as f32 / last_fps_log.elapsed().as_secs_f32();
+                        eprintln!("Perf: {:.1} FPS", fps);
+                        frame_count = 0;
+                        last_fps_log = std::time::Instant::now();
+                    }
                 }
-            }
-        }).expect("Error running loop");
+            })
+            .expect("Error running loop");
     }
 }

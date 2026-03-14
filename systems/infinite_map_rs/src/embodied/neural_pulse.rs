@@ -87,7 +87,7 @@ impl Pulse {
         let ring_phases = (0..config.ring_count)
             .map(|i| i as f32 * config.ring_spacing)
             .collect();
-        
+
         Self {
             id,
             source_node,
@@ -106,10 +106,10 @@ impl Pulse {
     pub fn update(&mut self, dt: f32) {
         // Expand radius
         self.radius += self.config.expansion_speed * dt;
-        
+
         // Decay intensity
         self.intensity -= self.config.decay_rate * dt;
-        
+
         // Update ring phases
         for phase in &mut self.ring_phases {
             *phase = (*phase + dt * 2.0).min(1.0);
@@ -123,7 +123,7 @@ impl Pulse {
                 to_trigger.push(node_id.clone());
             }
         }
-        
+
         // Remove triggered propagations
         for node_id in to_trigger {
             self.pending_propagations.remove(&node_id);
@@ -148,10 +148,8 @@ impl Pulse {
     /// Queue propagation to a connected node
     pub fn queue_propagation(&mut self, node_id: String) {
         if !self.pending_propagations.contains_key(&node_id) {
-            self.pending_propagations.insert(
-                node_id,
-                self.config.propagation_delay,
-            );
+            self.pending_propagations
+                .insert(node_id, self.config.propagation_delay);
         }
     }
 
@@ -203,84 +201,105 @@ impl PulseManager {
     /// Create a new pulse manager
     pub fn new() -> Self {
         let mut config_by_type = HashMap::new();
-        
+
         // Selection pulse - bright, fast
-        config_by_type.insert(PulseType::Selection, PulseConfig {
-            color: Vec4::new(1.0, 0.3, 0.5, 1.0), // Pink
-            expansion_speed: 8.0,
-            decay_rate: 1.2,
-            ring_count: 2,
-            ..Default::default()
-        });
-        
+        config_by_type.insert(
+            PulseType::Selection,
+            PulseConfig {
+                color: Vec4::new(1.0, 0.3, 0.5, 1.0), // Pink
+                expansion_speed: 8.0,
+                decay_rate: 1.2,
+                ring_count: 2,
+                ..Default::default()
+            },
+        );
+
         // Activation pulse - intense, propagates
-        config_by_type.insert(PulseType::Activation, PulseConfig {
-            color: Vec4::new(1.0, 0.8, 0.0, 1.0), // Gold
-            initial_intensity: 1.5,
-            expansion_speed: 10.0,
-            decay_rate: 0.5,
-            propagate: true,
-            propagation_factor: 0.8,
-            ring_count: 5,
-            ..Default::default()
-        });
-        
+        config_by_type.insert(
+            PulseType::Activation,
+            PulseConfig {
+                color: Vec4::new(1.0, 0.8, 0.0, 1.0), // Gold
+                initial_intensity: 1.5,
+                expansion_speed: 10.0,
+                decay_rate: 0.5,
+                propagate: true,
+                propagation_factor: 0.8,
+                ring_count: 5,
+                ..Default::default()
+            },
+        );
+
         // Hover pulse - subtle, slow
-        config_by_type.insert(PulseType::Hover, PulseConfig {
-            color: Vec4::new(0.5, 0.8, 1.0, 0.5), // Light blue
-            initial_intensity: 0.4,
-            expansion_speed: 2.0,
-            decay_rate: 0.3,
-            ring_count: 1,
-            propagate: false,
-            ..Default::default()
-        });
-        
+        config_by_type.insert(
+            PulseType::Hover,
+            PulseConfig {
+                color: Vec4::new(0.5, 0.8, 1.0, 0.5), // Light blue
+                initial_intensity: 0.4,
+                expansion_speed: 2.0,
+                decay_rate: 0.3,
+                ring_count: 1,
+                propagate: false,
+                ..Default::default()
+            },
+        );
+
         // Error pulse - red, urgent
-        config_by_type.insert(PulseType::Error, PulseConfig {
-            color: Vec4::new(1.0, 0.0, 0.0, 1.0), // Red
-            initial_intensity: 1.5,
-            expansion_speed: 15.0,
-            decay_rate: 0.4,
-            ring_count: 4,
-            propagate: true,
-            propagation_factor: 0.5,
-            ..Default::default()
-        });
-        
+        config_by_type.insert(
+            PulseType::Error,
+            PulseConfig {
+                color: Vec4::new(1.0, 0.0, 0.0, 1.0), // Red
+                initial_intensity: 1.5,
+                expansion_speed: 15.0,
+                decay_rate: 0.4,
+                ring_count: 4,
+                propagate: true,
+                propagation_factor: 0.5,
+                ..Default::default()
+            },
+        );
+
         // Connection pulse - travels between nodes
-        config_by_type.insert(PulseType::Connection, PulseConfig {
-            color: Vec4::new(0.3, 1.0, 0.5, 1.0), // Green
-            initial_radius: 0.2,
-            max_radius: 3.0,
-            expansion_speed: 3.0,
-            decay_rate: 0.6,
-            ring_count: 1,
-            propagate: false,
-            ..Default::default()
-        });
-        
+        config_by_type.insert(
+            PulseType::Connection,
+            PulseConfig {
+                color: Vec4::new(0.3, 1.0, 0.5, 1.0), // Green
+                initial_radius: 0.2,
+                max_radius: 3.0,
+                expansion_speed: 3.0,
+                decay_rate: 0.6,
+                ring_count: 1,
+                propagate: false,
+                ..Default::default()
+            },
+        );
+
         // Exploration pulse - purple, wandering
-        config_by_type.insert(PulseType::Exploration, PulseConfig {
-            color: Vec4::new(0.6, 0.3, 1.0, 0.8), // Purple
-            expansion_speed: 4.0,
-            decay_rate: 0.3,
-            ring_count: 3,
-            propagate: true,
-            propagation_factor: 0.4,
-            ..Default::default()
-        });
-        
+        config_by_type.insert(
+            PulseType::Exploration,
+            PulseConfig {
+                color: Vec4::new(0.6, 0.3, 1.0, 0.8), // Purple
+                expansion_speed: 4.0,
+                decay_rate: 0.3,
+                ring_count: 3,
+                propagate: true,
+                propagation_factor: 0.4,
+                ..Default::default()
+            },
+        );
+
         // Success pulse - green, satisfying
-        config_by_type.insert(PulseType::Success, PulseConfig {
-            color: Vec4::new(0.0, 1.0, 0.5, 1.0), // Green
-            initial_intensity: 1.2,
-            expansion_speed: 6.0,
-            decay_rate: 0.5,
-            ring_count: 3,
-            propagate: false,
-            ..Default::default()
-        });
+        config_by_type.insert(
+            PulseType::Success,
+            PulseConfig {
+                color: Vec4::new(0.0, 1.0, 0.5, 1.0), // Green
+                initial_intensity: 1.2,
+                expansion_speed: 6.0,
+                decay_rate: 0.5,
+                ring_count: 3,
+                propagate: false,
+                ..Default::default()
+            },
+        );
 
         Self {
             pulses: HashMap::new(),
@@ -297,15 +316,22 @@ impl PulseManager {
     }
 
     /// Emit a pulse with custom configuration
-    pub fn emit_with_config(&mut self, node_id: &str, position: Vec3, config: PulseConfig) -> PulseId {
+    pub fn emit_with_config(
+        &mut self,
+        node_id: &str,
+        position: Vec3,
+        config: PulseConfig,
+    ) -> PulseId {
         // Clean up finished pulses if at max
         if self.pulses.len() >= self.max_pulses {
             self.cleanup_finished();
         }
-        
+
         // Still at max? Remove oldest
         if self.pulses.len() >= self.max_pulses {
-            if let Some(oldest_id) = self.pulses.values()
+            if let Some(oldest_id) = self
+                .pulses
+                .values()
                 .min_by_key(|p| p.created_at)
                 .map(|p| p.id)
             {
@@ -315,16 +341,18 @@ impl PulseManager {
 
         let id = self.next_id;
         self.next_id += 1;
-        
+
         let pulse = Pulse::new(id, node_id.to_string(), position, config);
         self.pulses.insert(id, pulse);
-        
+
         id
     }
 
     /// Get configuration for a pulse type
     pub fn get_config(&self, pulse_type: PulseType) -> &PulseConfig {
-        self.config_by_type.get(&pulse_type).unwrap_or(&self.default_config)
+        self.config_by_type
+            .get(&pulse_type)
+            .unwrap_or(&self.default_config)
     }
 
     /// Update all pulses
@@ -332,19 +360,20 @@ impl PulseManager {
         for pulse in self.pulses.values_mut() {
             pulse.update(dt);
         }
-        
+
         // Remove finished pulses
         self.cleanup_finished();
     }
 
     /// Remove finished pulses
     fn cleanup_finished(&mut self) {
-        let finished_ids: Vec<PulseId> = self.pulses
+        let finished_ids: Vec<PulseId> = self
+            .pulses
             .iter()
             .filter(|(_, p)| p.finished)
             .map(|(id, _)| *id)
             .collect();
-        
+
         for id in finished_ids {
             self.pulses.remove(&id);
         }
@@ -406,7 +435,7 @@ impl From<&Pulse> for PulseRenderData {
         for (i, phase) in pulse.ring_phases.iter().take(4).enumerate() {
             ring_phases[i] = *phase;
         }
-        
+
         Self {
             position: pulse.position.to_array(),
             radius: pulse.radius,
@@ -451,7 +480,7 @@ impl NeuralTopology {
             target: target.clone(),
             strength,
         };
-        
+
         self.connections
             .entry(source)
             .or_insert_with(Vec::new)
@@ -476,12 +505,12 @@ impl NeuralTopology {
     /// Propagate pulses through the network
     pub fn propagate_pulses(&self, pulse_manager: &mut PulseManager) {
         let mut new_pulses: Vec<(String, Vec3, PulseConfig)> = Vec::new();
-        
+
         for pulse in pulse_manager.get_pulses() {
             if !pulse.config.propagate {
                 continue;
             }
-            
+
             // Get connections from pulse source
             if let Some(connections) = self.get_connections(&pulse.source_node) {
                 for conn in connections {
@@ -491,10 +520,10 @@ impl NeuralTopology {
                         if let Some(&position) = self.node_positions.get(&conn.target) {
                             // Create propagated pulse config
                             let mut propagated_config = pulse.config.clone();
-                            propagated_config.initial_intensity *= 
+                            propagated_config.initial_intensity *=
                                 conn.strength * pulse.config.propagation_factor;
                             propagated_config.propagate = false; // Don't propagate further
-                            
+
                             let target: String = conn.target.clone();
                             new_pulses.push((target, position, propagated_config));
                         }
@@ -502,7 +531,7 @@ impl NeuralTopology {
                 }
             }
         }
-        
+
         // Emit new pulses
         for (node_id, position, config) in new_pulses {
             pulse_manager.emit_with_config(&node_id, position, config);
@@ -516,13 +545,8 @@ mod tests {
 
     #[test]
     fn test_pulse_creation() {
-        let pulse = Pulse::new(
-            0,
-            "node_1".to_string(),
-            Vec3::ZERO,
-            PulseConfig::default(),
-        );
-        
+        let pulse = Pulse::new(0, "node_1".to_string(), Vec3::ZERO, PulseConfig::default());
+
         assert_eq!(pulse.id, 0);
         assert_eq!(pulse.radius, PulseConfig::default().initial_radius);
         assert!(!pulse.finished);
@@ -530,15 +554,10 @@ mod tests {
 
     #[test]
     fn test_pulse_update() {
-        let mut pulse = Pulse::new(
-            0,
-            "node_1".to_string(),
-            Vec3::ZERO,
-            PulseConfig::default(),
-        );
-        
+        let mut pulse = Pulse::new(0, "node_1".to_string(), Vec3::ZERO, PulseConfig::default());
+
         pulse.update(0.1);
-        
+
         assert!(pulse.radius > PulseConfig::default().initial_radius);
         assert!(pulse.intensity < PulseConfig::default().initial_intensity);
     }
@@ -554,18 +573,18 @@ mod tests {
                 ..Default::default()
             },
         );
-        
+
         pulse.update(0.5); // Should decay to 0
-        
+
         assert!(pulse.finished);
     }
 
     #[test]
     fn test_pulse_manager() {
         let mut manager = PulseManager::new();
-        
+
         let id = manager.emit("node_1", Vec3::ZERO, PulseType::Selection);
-        
+
         assert!(manager.get_pulse(id).is_some());
         assert_eq!(manager.count(), 1);
     }
@@ -574,11 +593,11 @@ mod tests {
     fn test_pulse_manager_cleanup() {
         let mut manager = PulseManager::new();
         manager.max_pulses = 2;
-        
+
         manager.emit("node_1", Vec3::ZERO, PulseType::Selection);
         manager.emit("node_2", Vec3::ZERO, PulseType::Selection);
         manager.emit("node_3", Vec3::ZERO, PulseType::Selection);
-        
+
         // Should not exceed max
         assert!(manager.count() <= manager.max_pulses);
     }
@@ -586,10 +605,10 @@ mod tests {
     #[test]
     fn test_pulse_types() {
         let manager = PulseManager::new();
-        
+
         let selection_config = manager.get_config(PulseType::Selection);
         assert_eq!(selection_config.color, Vec4::new(1.0, 0.3, 0.5, 1.0));
-        
+
         let error_config = manager.get_config(PulseType::Error);
         assert_eq!(error_config.color, Vec4::new(1.0, 0.0, 0.0, 1.0));
     }
@@ -602,9 +621,9 @@ mod tests {
             Vec3::new(1.0, 2.0, 3.0),
             PulseConfig::default(),
         );
-        
+
         let render_data = PulseRenderData::from(&pulse);
-        
+
         assert_eq!(render_data.position, [1.0, 2.0, 3.0]);
         assert_eq!(render_data.radius, pulse.radius);
     }
@@ -612,15 +631,15 @@ mod tests {
     #[test]
     fn test_neural_topology() {
         let mut topology = NeuralTopology::new();
-        
+
         topology.add_connection("node_1".to_string(), "node_2".to_string(), 0.8);
         topology.set_node_position("node_1".to_string(), Vec3::ZERO);
         topology.set_node_position("node_2".to_string(), Vec3::new(5.0, 0.0, 0.0));
-        
+
         let connections = topology.get_connections("node_1").unwrap();
         assert_eq!(connections.len(), 1);
         assert_eq!(connections[0].target, "node_2");
-        
+
         let pos = topology.get_position("node_2").unwrap();
         assert_eq!(pos, Vec3::new(5.0, 0.0, 0.0));
     }

@@ -90,9 +90,16 @@ impl Camera {
 
     /// Zoom towards a screen point
     #[allow(dead_code)]
-    pub fn zoom_towards(&mut self, screen_x: f32, screen_y: f32, factor: f32,
-                        screen_width: f32, screen_height: f32,
-                        min_zoom: f32, max_zoom: f32) {
+    pub fn zoom_towards(
+        &mut self,
+        screen_x: f32,
+        screen_y: f32,
+        factor: f32,
+        screen_width: f32,
+        screen_height: f32,
+        min_zoom: f32,
+        max_zoom: f32,
+    ) {
         // 1. Get world position of cursor before zoom
         let mouse_world = self.screen_to_world(screen_x, screen_y, screen_width, screen_height);
 
@@ -116,11 +123,11 @@ impl Camera {
         // For 2D rendering, we use a simple transformation
         let _aspect_ratio = 1.0; // Will be set by renderer
         let scale = self.zoom;
-        
+
         // Translation matrix (camera position)
         let tx = -self.x * scale;
         let ty = -self.y * scale;
-        
+
         // Combined matrix: scale * translation
         [
             [scale, 0.0, 0.0, 0.0],

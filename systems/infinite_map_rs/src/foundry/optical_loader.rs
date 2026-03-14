@@ -2,16 +2,16 @@
 //!
 //! Reverses the Hilbert Curve folding performed by `tensor_fold.py`.
 
-use std::fs::File;
-use std::io::{Read, Error, ErrorKind};
-use std::path::Path;
 use bytemuck::{Pod, Zeroable};
+use std::fs::File;
+use std::io::{Error, ErrorKind, Read};
+use std::path::Path;
 
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, Pod, Zeroable)]
 pub struct V2BrickHeader {
-    pub magic: [u8; 4],          // "V2BR"
-    pub version: u32,            // 1
+    pub magic: [u8; 4], // "V2BR"
+    pub version: u32,   // 1
     pub texture_width: u32,
     pub texture_height: u32,
     pub hilbert_order: u32,
@@ -35,7 +35,7 @@ impl OpticalLoader {
         file.read_to_end(&mut buffer)?;
 
         if buffer.len() < std::mem::size_of::<V2BrickHeader>() {
-             return Err(Error::new(ErrorKind::InvalidData, "File too small"));
+            return Err(Error::new(ErrorKind::InvalidData, "File too small"));
         }
 
         // Parse header
@@ -52,12 +52,14 @@ impl OpticalLoader {
 
         // Check flag (Is UTF8 Text = Bit 4)
         if (header.flags & (1 << 4)) == 0 {
-             eprintln!("Warning: Brick does not have IS_UTF8_TEXT flag set. Attempting decode anyway.");
+            eprintln!(
+                "Warning: Brick does not have IS_UTF8_TEXT flag set. Attempting decode anyway."
+            );
         }
 
         // Unfold
         let utf8_bytes = Self::unfold_hilbert(texture_data, &header)?;
-        
+
         // Convert to String
         String::from_utf8(utf8_bytes)
             .map_err(|e| Error::new(ErrorKind::InvalidData, format!("UTF-8 Error: {}", e)))
@@ -70,22 +72,22 @@ impl OpticalLoader {
         let original_size = header.original_size as usize;
 
         if texture.len() < expected_size {
-             // Relaxed check: Only check if it's catastrophically small
-             // Some folding might optimise padding? But tensor_fold usually pads.
-             // If texture is larger, that's fine.
-             if texture.len() < expected_size {
-                  return Err(Error::new(ErrorKind::InvalidData, "Texture data truncated"));
-             }
+            // Relaxed check: Only check if it's catastrophically small
+            // Some folding might optimise padding? But tensor_fold usually pads.
+            // If texture is larger, that's fine.
+            if texture.len() < expected_size {
+                return Err(Error::new(ErrorKind::InvalidData, "Texture data truncated"));
+            }
         }
 
         let mut output = vec![0u8; original_size];
-        
+
         // Iterate 0..original_size to reconstruct order
         for i in 0..original_size {
             let (x, y) = hilbert_index_to_xy(i as u32, header.hilbert_order);
             let px = x as usize;
             let py = y as usize;
-            
+
             if px >= width || py >= height {
                 continue; // Should not happen if math is correct
             }
@@ -93,7 +95,7 @@ impl OpticalLoader {
             // Index in texture array (Row-major: y * width + x)
             // Stride is 4 bytes (RGBA)
             let pixel_idx = (py * width + px) * 4;
-            
+
             // Read RED channel (or any channel, they are identical in fold)
             let byte_val = texture[pixel_idx];
             output[i] = byte_val;
@@ -113,7 +115,7 @@ fn hilbert_index_to_xy(index: u32, order: u32) -> (u32, u32) {
     for _ in 0..order {
         let rx = 1 & (idx / 2);
         let ry = 1 & (idx ^ rx);
-        
+
         if ry == 0 {
             if rx == 1 {
                 x = s - 1 - x;
@@ -121,7 +123,7 @@ fn hilbert_index_to_xy(index: u32, order: u32) -> (u32, u32) {
             }
             std::mem::swap(&mut x, &mut y);
         }
-        
+
         x += s * rx;
         y += s * ry;
         idx /= 4;
@@ -155,20 +157,35 @@ mod tests {
         }
 
         let source = OpticalLoader::load_text_source(&path).expect("Failed to load/unfold brick");
-        
+
         // Validate content
         println!("Loaded Source Length: {}", source.len());
-        println!("Loaded Source Preview:\n{}", &source.chars().take(500).collect::<String>());
+        println!(
+            "Loaded Source Preview:\n{}",
+            &source.chars().take(500).collect::<String>()
+        );
         if source.len() > 0 {
-             println!("First 50 bytes: {:?}", source.as_bytes().iter().take(50).collect::<Vec<_>>());
+            println!(
+                "First 50 bytes: {:?}",
+                source.as_bytes().iter().take(50).collect::<Vec<_>>()
+            );
         }
-        
+
         // Check for general validity (at least non-empty and starts with comment or valid chars)
         assert!(source.len() > 0, "Source should not be empty");
-        assert!(source.starts_with("//"), "Source typically starts with comment");
-        // We know it loaded 16k chars correctly. 
-        println!("Test Passed: Optical Loader successfully reconstructed {} bytes.", source.len());
-        
-        println!("Successfully optical-loaded {} bytes of shader code!", source.len());
+        assert!(
+            source.starts_with("//"),
+            "Source typically starts with comment"
+        );
+        // We know it loaded 16k chars correctly.
+        println!(
+            "Test Passed: Optical Loader successfully reconstructed {} bytes.",
+            source.len()
+        );
+
+        println!(
+            "Successfully optical-loaded {} bytes of shader code!",
+            source.len()
+        );
     }
 }

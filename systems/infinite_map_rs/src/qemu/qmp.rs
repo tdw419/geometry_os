@@ -2,11 +2,11 @@
 // QEMU Monitor Protocol (QMP) Client
 // Phase 36.2: Controlling the Guest via JSON-over-Unix-Socket
 
-use tokio::net::UnixStream;
-use tokio::io::{AsyncWriteExt, BufReader, AsyncBufReadExt};
 use serde_json::{json, Value};
-use thiserror::Error;
 use std::time::Duration;
+use thiserror::Error;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::UnixStream;
 
 #[derive(Error, Debug)]
 pub enum QmpError {
@@ -42,7 +42,7 @@ impl QmpClient {
                         return Err(QmpError::Io(e));
                     }
                     tokio::time::sleep(Duration::from_millis(500)).await;
-                }
+                },
             }
         };
 
@@ -62,7 +62,10 @@ impl QmpClient {
         // 2. Enable Capabilities
         let response = client.execute("qmp_capabilities", None).await?;
         if response.get("return").is_none() {
-             return Err(QmpError::Protocol(format!("Handshake failed: {:?}", response)));
+            return Err(QmpError::Protocol(format!(
+                "Handshake failed: {:?}",
+                response
+            )));
         }
 
         log::info!("✅ QMP Handshake Complete for {}", vm_id);
@@ -70,7 +73,11 @@ impl QmpClient {
     }
 
     /// Execute a QMP command
-    pub async fn execute(&mut self, command: &str, arguments: Option<Value>) -> Result<Value, QmpError> {
+    pub async fn execute(
+        &mut self,
+        command: &str,
+        arguments: Option<Value>,
+    ) -> Result<Value, QmpError> {
         let mut cmd_obj = json!({
             "execute": command
         });
@@ -103,7 +110,10 @@ impl QmpClient {
         let mut line = String::new();
         self.stream.read_line(&mut line).await?;
         if line.is_empty() {
-             return Err(QmpError::Io(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "QMP Socket closed")));
+            return Err(QmpError::Io(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "QMP Socket closed",
+            )));
         }
         let value: Value = serde_json::from_str(&line)?;
         Ok(value)
@@ -119,7 +129,9 @@ impl QmpClient {
                 return Ok(status.as_str().unwrap_or("unknown").to_string());
             }
         }
-        Err(QmpError::Protocol("Invalid query-status response".to_string()))
+        Err(QmpError::Protocol(
+            "Invalid query-status response".to_string(),
+        ))
     }
 
     pub async fn stop(&mut self) -> Result<(), QmpError> {

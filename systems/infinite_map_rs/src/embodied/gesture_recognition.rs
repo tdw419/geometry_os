@@ -316,16 +316,16 @@ impl GestureRecognizer {
     pub fn finish_gesture(&mut self) -> Option<RecognizedGesture> {
         self.active_gesture.finish();
         let gesture = self.recognize();
-        
+
         if let Some(ref recognized) = gesture {
             self.last_recognized = Some(recognized.clone());
-            
+
             if self.history.len() >= self.max_history {
                 self.history.remove(0);
             }
             self.history.push(recognized.clone());
         }
-        
+
         self.active_gesture.clear();
         gesture
     }
@@ -338,7 +338,7 @@ impl GestureRecognizer {
     /// Attempt to recognize the current gesture
     fn recognize(&self) -> Option<RecognizedGesture> {
         let points = &self.active_gesture.points;
-        
+
         // Check minimum requirements
         if points.len() < self.config.min_points {
             return None;
@@ -364,14 +364,14 @@ impl GestureRecognizer {
         for gesture_type in &self.config.enabled_gestures {
             if let Some(template) = self.templates.get(gesture_type) {
                 let score = self.match_gesture(&normalized, template);
-                
+
                 if score >= self.config.confidence_threshold {
                     match best_match {
                         None => best_match = Some((*gesture_type, score)),
                         Some((_, best_score)) if score > best_score => {
                             best_match = Some((*gesture_type, score));
-                        }
-                        _ => {}
+                        },
+                        _ => {},
                     }
                 }
             }
@@ -410,10 +410,7 @@ impl GestureRecognizer {
         let size = bounds.size().max(0.001);
         let center = bounds.center();
 
-        points
-            .iter()
-            .map(|p| (*p - center) / size)
-            .collect()
+        points.iter().map(|p| (*p - center) / size).collect()
     }
 
     /// Match gesture against template using simple distance metric
@@ -613,7 +610,7 @@ impl GestureVisualizer {
                         })
                         .collect(),
                 )
-            }
+            },
             GestureType::Rectangle => {
                 let b = gesture.bounds;
                 Some(vec![
@@ -623,7 +620,7 @@ impl GestureVisualizer {
                     Vec2::new(b.min.x, b.max.y),
                     b.min,
                 ])
-            }
+            },
             _ => None,
         }
     }
@@ -638,7 +635,7 @@ mod tests {
         let mut gesture = ActiveGesture::new();
         gesture.add_point(Vec2::ZERO);
         gesture.add_point(Vec2::new(10.0, 0.0));
-        
+
         assert_eq!(gesture.points.len(), 2);
         assert!(gesture.bounds().is_some());
     }
@@ -646,7 +643,7 @@ mod tests {
     #[test]
     fn test_gesture_bounds() {
         let bounds = GestureBounds::new(Vec2::new(0.0, 0.0), Vec2::new(100.0, 50.0));
-        
+
         assert_eq!(bounds.width(), 100.0);
         assert_eq!(bounds.height(), 50.0);
         assert_eq!(bounds.center(), Vec2::new(50.0, 25.0));
@@ -663,7 +660,7 @@ mod tests {
 
         // Draw a circle
         recognizer.start_gesture(Vec2::new(50.0, 50.0));
-        
+
         for i in 0..20 {
             let angle = i as f32 / 20.0 * std::f32::consts::TAU;
             let point = Vec2::new(50.0 + angle.cos() * 40.0, 50.0 + angle.sin() * 40.0);
@@ -671,7 +668,7 @@ mod tests {
         }
 
         let result = recognizer.finish_gesture();
-        
+
         // May or may not recognize depending on matching quality
         // Just verify the process completes without error
         assert!(result.is_some() || result.is_none());
@@ -681,7 +678,7 @@ mod tests {
     fn test_swipe_recognition() {
         let mut recognizer = GestureRecognizer::new(GestureConfig {
             min_points: 3,
-            sample_rate: 1,  // Keep all points for test
+            sample_rate: 1, // Keep all points for test
             confidence_threshold: 0.5,
             enabled_gestures: vec![GestureType::Swipe],
             ..Default::default()
@@ -695,7 +692,7 @@ mod tests {
         recognizer.add_point(Vec2::new(200.0, 50.0));
 
         let result = recognizer.finish_gesture();
-        
+
         assert!(result.is_some());
         let gesture = result.unwrap();
         assert_eq!(gesture.gesture_type, GestureType::Swipe);
@@ -724,13 +721,9 @@ mod tests {
     #[test]
     fn test_resample_points() {
         let recognizer = GestureRecognizer::default();
-        
-        let points = vec![
-            Vec2::ZERO,
-            Vec2::new(10.0, 0.0),
-            Vec2::new(20.0, 0.0),
-        ];
-        
+
+        let points = vec![Vec2::ZERO, Vec2::new(10.0, 0.0), Vec2::new(20.0, 0.0)];
+
         let resampled = recognizer.resample_points(&points, 5);
         assert_eq!(resampled.len(), 5);
     }
@@ -738,15 +731,12 @@ mod tests {
     #[test]
     fn test_normalize_points() {
         let recognizer = GestureRecognizer::default();
-        
-        let points = vec![
-            Vec2::new(0.0, 0.0),
-            Vec2::new(100.0, 50.0),
-        ];
-        
+
+        let points = vec![Vec2::new(0.0, 0.0), Vec2::new(100.0, 50.0)];
+
         let bounds = GestureBounds::new(Vec2::ZERO, Vec2::new(100.0, 50.0));
         let normalized = recognizer.normalize_points(&points, &bounds);
-        
+
         // Check that points are normalized
         for p in &normalized {
             assert!(p.x >= -0.5 && p.x <= 0.5);
@@ -774,15 +764,15 @@ mod tests {
     #[test]
     fn test_custom_template() {
         let mut recognizer = GestureRecognizer::default();
-        
+
         let custom_template = vec![
             Vec2::new(0.0, 0.0),
             Vec2::new(0.5, 0.5),
             Vec2::new(1.0, 0.0),
         ];
-        
+
         recognizer.add_custom_template(GestureType::Custom(1), custom_template);
-        
+
         // Template should be stored
         assert!(recognizer.templates.contains_key(&GestureType::Custom(1)));
     }

@@ -3,9 +3,9 @@
 //! Manages the execution of glyph-atomic programs (font-as-bytecode)
 //! on the GPU via glyph_microcode.wgsl.
 
+use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;
 use wgpu;
-use bytemuck::{Pod, Zeroable};
 
 /// Glyph Instruction (matches WGSL struct)
 #[repr(C)]
@@ -75,14 +75,18 @@ impl GlyphVM {
         let state_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph State Buffer"),
             size: std::mem::size_of::<GlyphVMState>() as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
         let memory_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph Memory Buffer"),
             size: (memory_size * 4) as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
@@ -94,13 +98,15 @@ impl GlyphVM {
         });
 
         // 2. Load Shader
-        let shader = device.create_shader_module(wgpu::include_wgsl!("shaders/glyph_microcode.wgsl"));
+        let shader =
+            device.create_shader_module(wgpu::include_wgsl!("shaders/glyph_microcode.wgsl"));
 
         // 3. Create Pipeline
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Glyph VM Layout"),
             entries: &[
-                wgpu::BindGroupLayoutEntry { // program
+                wgpu::BindGroupLayoutEntry {
+                    // program
                     binding: 0,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
@@ -110,7 +116,8 @@ impl GlyphVM {
                     },
                     count: None,
                 },
-                wgpu::BindGroupLayoutEntry { // state
+                wgpu::BindGroupLayoutEntry {
+                    // state
                     binding: 1,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
@@ -120,7 +127,8 @@ impl GlyphVM {
                     },
                     count: None,
                 },
-                wgpu::BindGroupLayoutEntry { // memory
+                wgpu::BindGroupLayoutEntry {
+                    // memory
                     binding: 2,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
@@ -130,7 +138,8 @@ impl GlyphVM {
                     },
                     count: None,
                 },
-                wgpu::BindGroupLayoutEntry { // stack
+                wgpu::BindGroupLayoutEntry {
+                    // stack
                     binding: 3,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
@@ -140,7 +149,8 @@ impl GlyphVM {
                     },
                     count: None,
                 },
-                wgpu::BindGroupLayoutEntry { // atlas
+                wgpu::BindGroupLayoutEntry {
+                    // atlas
                     binding: 4,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Texture {
@@ -150,7 +160,8 @@ impl GlyphVM {
                     },
                     count: None,
                 },
-                wgpu::BindGroupLayoutEntry { // screen
+                wgpu::BindGroupLayoutEntry {
+                    // screen
                     binding: 5,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::StorageTexture {
@@ -181,12 +192,30 @@ impl GlyphVM {
             label: Some("Glyph VM Bind Group"),
             layout: &bind_group_layout,
             entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: program_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 1, resource: state_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 2, resource: memory_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 3, resource: stack_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::TextureView(&atlas_view) },
-                wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::TextureView(&screen_view) },
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: program_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: state_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: memory_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: stack_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: wgpu::BindingResource::TextureView(&atlas_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: wgpu::BindingResource::TextureView(&screen_view),
+                },
             ],
         });
 
@@ -217,25 +246,33 @@ impl GlyphVM {
 
     /// Upload program to GPU
     pub fn upload_program(&self, instructions: &[Glyph]) {
-        self.queue.write_buffer(&self.program_buffer, 0, bytemuck::cast_slice(instructions));
+        self.queue
+            .write_buffer(&self.program_buffer, 0, bytemuck::cast_slice(instructions));
     }
 
     /// Upload memory to GPU
     pub fn upload_memory(&self, memory: &[f32]) {
-        self.queue.write_buffer(&self.memory_buffer, 0, bytemuck::cast_slice(memory));
+        self.queue
+            .write_buffer(&self.memory_buffer, 0, bytemuck::cast_slice(memory));
     }
 
     /// Reset the VM state
     pub fn reset_state(&self) {
         let state = GlyphVMState::default();
-        self.queue.write_buffer(&self.state_buffer, 0, bytemuck::bytes_of(&state));
+        self.queue
+            .write_buffer(&self.state_buffer, 0, bytemuck::bytes_of(&state));
     }
 
     /// Attest the VM substrate using Hardware VCC
-    pub async fn attest(&self, atlas_data: &[u8], contract_hash: (u32, u32)) -> Result<crate::backend::drm::vcc_compute::HardwareVCCResult, String> {
-        let vcc = crate::backend::drm::vcc_compute::HardwareVCC::new().await
+    pub async fn attest(
+        &self,
+        atlas_data: &[u8],
+        contract_hash: (u32, u32),
+    ) -> Result<crate::backend::drm::vcc_compute::HardwareVCCResult, String> {
+        let vcc = crate::backend::drm::vcc_compute::HardwareVCC::new()
+            .await
             .map_err(|e| format!("Failed to init VCC: {}", e))?;
-        
+
         let (width, height) = (2048, 2048); // Standard atlas size
         vcc.verify_atlas(atlas_data, width, height, contract_hash)
             .map_err(|e| format!("VCC verification failed: {}", e))

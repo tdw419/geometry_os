@@ -12,22 +12,22 @@
 // - Time dilation: VM pauses when not observed
 
 // Phase 47: Hypervisor Convergence - QEMU Wrapper Integration
-use std::process::{Command, Child, Stdio};
+use std::io::{Read, Write};
+use std::os::unix::net::UnixStream;
+use std::path::PathBuf;
+use std::process::{Child, Command, Stdio};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
-use std::os::unix::net::UnixStream;
-use std::io::{Write, Read};
 
 // Phase 47: Task 2 - Shared Memory Framebuffer
 use memmap2::{MmapMut, MmapOptions};
 use std::ffi::CString;
 
 #[cfg(feature = "hypervisor")]
-use kvm_ioctls::{Kvm, VmFd, VcpuFd, VcpuExit};
-#[cfg(feature = "hypervisor")]
 use kvm_bindings::kvm_userspace_memory_region;
+#[cfg(feature = "hypervisor")]
+use kvm_ioctls::{Kvm, VcpuExit, VcpuFd, VmFd};
 
 // Phase 30.7: Terminal Emulation
 use crate::terminal_emulator::TerminalBuffer;
@@ -139,8 +139,10 @@ impl QemuProcess {
 
         // Basic configuration
         cmd.args([
-            "-m", &format!("{}", self.config.memory_mb),
-            "-smp", &format!("{}", self.config.vcpu_count),
+            "-m",
+            &format!("{}", self.config.memory_mb),
+            "-smp",
+            &format!("{}", self.config.vcpu_count),
         ]);
 
         // Enable KVM if available
@@ -165,11 +167,19 @@ impl QemuProcess {
         if self.config.boot_path.ends_with(".iso") {
             cmd.args(["-cdrom", &self.config.boot_path]);
         } else {
-            cmd.args(["-drive", &format!("file={},format=raw", self.config.boot_path)]);
+            cmd.args([
+                "-drive",
+                &format!("file={},format=raw", self.config.boot_path),
+            ]);
         }
 
         // Network (user mode for basic connectivity)
-        cmd.args(["-netdev", "user,id=net0", "-device", "virtio-net,netdev=net0"]);
+        cmd.args([
+            "-netdev",
+            "user,id=net0",
+            "-device",
+            "virtio-net,netdev=net0",
+        ]);
 
         // VirtIO randomized
         cmd.args(["-device", "virtio-rng-pci"]);
@@ -190,10 +200,8 @@ impl QemuProcess {
                 *self.running.lock().unwrap() = true;
                 log::info!("✅ QEMU process started (PID: {:?})", pid);
                 Ok(())
-            }
-            Err(e) => {
-                Err(format!("Failed to start QEMU: {}", e))
-            }
+            },
+            Err(e) => Err(format!("Failed to start QEMU: {}", e)),
         }
     }
 
@@ -208,10 +216,10 @@ impl QemuProcess {
                     // Wait for process to terminate
                     let _ = child.wait();
                     log::info!("✅ QEMU process stopped");
-                }
+                },
                 Err(e) => {
                     log::warn!("⚠️  Failed to kill QEMU process: {}", e);
-                }
+                },
             }
         }
 
@@ -271,10 +279,10 @@ impl QemuProcess {
                 let idx = ((y * width + x) * 4) as usize;
                 if idx + 3 < fb.len() {
                     // QEMU logo colors (green/blue theme)
-                    fb[idx] = ((x * 255 / width) as u32 + time / 10) as u8;     // R
-                    fb[idx + 1] = ((y * 255 / height) as u32) as u8;              // G
+                    fb[idx] = ((x * 255 / width) as u32 + time / 10) as u8; // R
+                    fb[idx + 1] = ((y * 255 / height) as u32) as u8; // G
                     fb[idx + 2] = (255 - ((x + y) * 255 / (width + height)) as u32) as u8; // B
-                    fb[idx + 3] = 255;                                             // A
+                    fb[idx + 3] = 255; // A
                 }
             }
         }
@@ -323,12 +331,12 @@ impl SharedMemoryFramebuffer {
     pub fn new(name: &str, width: u32, height: u32) -> Result<Self, String> {
         let bytes_per_pixel = 4; // RGBA
         let size = (width as usize) * (height as usize) * bytes_per_pixel;
-        
+
         // Create shared memory name with proper prefix
         let shm_name = format!("/qemu_fb_{}", name);
         let c_name = CString::new(shm_name.clone())
             .map_err(|e| format!("Invalid shared memory name: {}", e))?;
-        
+
         // Create shared memory segment using shm_open
         let fd = unsafe {
             libc::shm_open(
@@ -337,7 +345,7 @@ impl SharedMemoryFramebuffer {
                 0o666,
             )
         };
-        
+
         if fd < 0 {
             return Err(format!(
                 "Failed to create shared memory '{}': errno={}",
@@ -345,7 +353,7 @@ impl SharedMemoryFramebuffer {
                 std::io::Error::last_os_error()
             ));
         }
-        
+
         // Set the size of the shared memory segment
         let result = unsafe { libc::ftruncate(fd, size as libc::off_t) };
         if result < 0 {
@@ -355,7 +363,7 @@ impl SharedMemoryFramebuffer {
                 std::io::Error::last_os_error()
             ));
         }
-        
+
         // Memory map the shared memory
         let mmap = unsafe {
             MmapOptions::new()
@@ -363,15 +371,15 @@ impl SharedMemoryFramebuffer {
                 .map_mut(fd)
                 .map_err(|e| format!("Failed to memory map shared memory: {}", e))?
         };
-        
+
         // Close the file descriptor (mmap keeps it open)
         unsafe { libc::close(fd) };
-        
+
         log::info!("📺 Shared Memory Framebuffer created");
         log::info!("   Name: {}", shm_name);
         log::info!("   Dimensions: {}x{}", width, height);
         log::info!("   Size: {} bytes", size);
-        
+
         Ok(Self {
             name: shm_name,
             mmap,
@@ -381,17 +389,17 @@ impl SharedMemoryFramebuffer {
             size,
         })
     }
-    
+
     /// Get a slice of the framebuffer memory
     pub fn as_slice(&self) -> &[u8] {
         &self.mmap
     }
-    
+
     /// Get a mutable slice of the framebuffer memory
     pub fn as_mut_slice(&mut self) -> &mut [u8] {
         &mut self.mmap
     }
-    
+
     /// Copy data into the framebuffer
     pub fn write(&mut self, data: &[u8]) -> Result<(), String> {
         if data.len() > self.size {
@@ -404,32 +412,26 @@ impl SharedMemoryFramebuffer {
         self.mmap[..data.len()].copy_from_slice(data);
         Ok(())
     }
-    
+
     /// Read the entire framebuffer into a Vec<u8>
     pub fn read_to_vec(&self) -> Vec<u8> {
         self.mmap.to_vec()
     }
-    
+
     /// Get raw pointer to framebuffer (for GPU upload)
     pub fn as_ptr(&self) -> *const u8 {
         self.mmap.as_ptr()
     }
-    
+
     /// Get the file descriptor for sharing with other processes
     /// Note: The caller is responsible for closing this fd
     pub fn get_fd(&self) -> Result<i32, String> {
         // Re-open the shared memory to get a file descriptor
         let c_name = CString::new(self.name.clone())
             .map_err(|e| format!("Invalid shared memory name: {}", e))?;
-        
-        let fd = unsafe {
-            libc::shm_open(
-                c_name.as_ptr(),
-                libc::O_RDONLY,
-                0o666,
-            )
-        };
-        
+
+        let fd = unsafe { libc::shm_open(c_name.as_ptr(), libc::O_RDONLY, 0o666) };
+
         if fd < 0 {
             Err(format!(
                 "Failed to open shared memory: errno={}",
@@ -439,35 +441,39 @@ impl SharedMemoryFramebuffer {
             Ok(fd)
         }
     }
-    
+
     /// Generate QEMU arguments for using this framebuffer
-    /// 
+    ///
     /// Returns arguments to pass to QEMU for display output to shared memory.
     /// This uses the 'none' display with a chardev for framebuffer capture.
     pub fn get_qemu_args(&self) -> Vec<String> {
         // Create a unique device ID
-        let device_id = format!("fb_{}", 
+        let device_id = format!(
+            "fb_{}",
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_secs()
         );
-        
+
         vec![
             // Disable default display
             "-display".to_string(),
             "none".to_string(),
             // Use virtio-vga with blob resources (shared memory capable)
             "-device".to_string(),
-            format!("virtio-vga,blob=true,xres={},yres={}", self.width, self.height),
+            format!(
+                "virtio-vga,blob=true,xres={},yres={}",
+                self.width, self.height
+            ),
         ]
     }
-    
+
     /// Clear the framebuffer to black
     pub fn clear(&mut self) {
         self.mmap.fill(0);
     }
-    
+
     /// Get the path for the shared memory segment
     pub fn get_path(&self) -> String {
         format!("/dev/shm{}", self.name)
@@ -520,7 +526,12 @@ impl QemuProcessWithShm {
 
         log::info!("🖥️  QEMU Process with SHM created");
         log::info!("   QMP socket: {:?}", qmp_socket);
-        log::info!("   Framebuffer: {}x{} ({} bytes)", config.width, config.height, fb_size);
+        log::info!(
+            "   Framebuffer: {}x{} ({} bytes)",
+            config.width,
+            config.height,
+            fb_size
+        );
 
         Self {
             config,
@@ -532,7 +543,7 @@ impl QemuProcessWithShm {
             framebuffer_copy: Arc::new(Mutex::new(vec![0; fb_size])),
         }
     }
-    
+
     /// Start QEMU with shared memory framebuffer
     pub fn start(&mut self) -> Result<(), String> {
         if self.config.boot_path.is_empty() {
@@ -548,13 +559,13 @@ impl QemuProcessWithShm {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         let shm_fb = SharedMemoryFramebuffer::new(
             &format!("vm_{}", session_id),
             self.config.width,
-            self.config.height
+            self.config.height,
         )?;
-        
+
         log::info!("🚀 Starting QEMU with SHM framebuffer...");
         log::info!("   Binary: {}", self.config.qemu_binary);
         log::info!("   Boot: {}", self.config.boot_path);
@@ -567,8 +578,10 @@ impl QemuProcessWithShm {
 
         // Basic configuration
         cmd.args([
-            "-m", &format!("{}", self.config.memory_mb),
-            "-smp", &format!("{}", self.config.vcpu_count),
+            "-m",
+            &format!("{}", self.config.memory_mb),
+            "-smp",
+            &format!("{}", self.config.vcpu_count),
         ]);
 
         // Enable KVM if available
@@ -583,14 +596,11 @@ impl QemuProcessWithShm {
         ]);
 
         // Use standard VGA and QMP for screendump
-        cmd.args([
-            "-display", "none",
-            "-device", "VGA",
-        ]);
+        cmd.args(["-display", "none", "-device", "VGA"]);
 
         // Disable audio for now to avoid alsa/pulse errors
         cmd.env("QEMU_AUDIO_DRV", "none");
-        
+
         // Serial console for debugging
         cmd.args(["-serial", "pty"]);
 
@@ -598,11 +608,19 @@ impl QemuProcessWithShm {
         if self.config.boot_path.ends_with(".iso") {
             cmd.args(["-cdrom", &self.config.boot_path]);
         } else {
-            cmd.args(["-drive", &format!("file={},format=raw", self.config.boot_path)]);
+            cmd.args([
+                "-drive",
+                &format!("file={},format=raw", self.config.boot_path),
+            ]);
         }
 
         // Network
-        cmd.args(["-netdev", "user,id=net0", "-device", "virtio-net,netdev=net0"]);
+        cmd.args([
+            "-netdev",
+            "user,id=net0",
+            "-device",
+            "virtio-net,netdev=net0",
+        ]);
 
         // VirtIO RNG
         cmd.args(["-device", "virtio-rng-pci"]);
@@ -620,33 +638,33 @@ impl QemuProcessWithShm {
             Ok(child) => {
                 self.child = Some(child);
                 *self.running.lock().unwrap() = true;
-                log::info!("✅ QEMU process started with SHM support (PID: {:?})", 
-                    self.child.as_ref().unwrap().id());
-                
+                log::info!(
+                    "✅ QEMU process started with SHM support (PID: {:?})",
+                    self.child.as_ref().unwrap().id()
+                );
+
                 // Start capture thread
                 self.start_capture_thread();
-                
+
                 // Store framebuffer
                 self.framebuffer = Some(shm_fb);
-                
+
                 Ok(())
-            }
-            Err(e) => {
-                Err(format!("Failed to start QEMU: {}", e))
-            }
+            },
+            Err(e) => Err(format!("Failed to start QEMU: {}", e)),
         }
     }
-    
+
     /// Start the framebuffer capture thread
     fn start_capture_thread(&mut self) {
         let running = Arc::clone(&self.running);
         let fb_copy = Arc::clone(&self.framebuffer_copy);
         let width = self.config.width;
         let height = self.config.height;
-        
+
         let handle = thread::spawn(move || {
             log::info!("📸 Framebuffer capture thread started");
-            
+
             while *running.lock().unwrap() {
                 // For now, generate a test pattern
                 // In production, this would read from virtio-gpu blob resources
@@ -655,30 +673,30 @@ impl QemuProcessWithShm {
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap()
                     .as_millis() as u32;
-                
+
                 // Generate moving gradient (test pattern)
                 for y in 0..height {
                     for x in 0..width {
                         let idx = ((y * width + x) * 4) as usize;
                         if idx + 3 < fb.len() {
-                            fb[idx] = ((x * 255 / width) as u32 + time / 10) as u8;     // R
-                            fb[idx + 1] = ((y * 255 / height) as u32) as u8;              // G
+                            fb[idx] = ((x * 255 / width) as u32 + time / 10) as u8; // R
+                            fb[idx + 1] = ((y * 255 / height) as u32) as u8; // G
                             fb[idx + 2] = (255 - ((x + y) * 255 / (width + height)) as u32) as u8; // B
-                            fb[idx + 3] = 255;                                             // A
+                            fb[idx + 3] = 255; // A
                         }
                     }
                 }
-                
+
                 // 60 FPS target
                 thread::sleep(Duration::from_millis(16));
             }
-            
+
             log::info!("📸 Framebuffer capture thread stopped");
         });
-        
+
         self.capture_thread = Some(handle);
     }
-    
+
     /// Get reference to framebuffer slice
     pub fn get_framebuffer_slice(&self) -> Option<&[u8]> {
         self.framebuffer.as_ref().map(|fb| fb.as_slice())
@@ -690,14 +708,13 @@ impl QemuProcessWithShm {
         // TODO: Implement QMP input-send-event or serial PTY writing
     }
 
-    pub fn update_test_pattern(&self) {
-    }
+    pub fn update_test_pattern(&self) {}
 
     /// Stop the QEMU process
     pub fn stop(&mut self) {
         log::info!("⏸️  Stopping QEMU process...");
         *self.running.lock().unwrap() = false;
-        
+
         // Wait for capture thread
         if let Some(thread) = self.capture_thread.take() {
             let _ = thread.join();
@@ -708,20 +725,20 @@ impl QemuProcessWithShm {
                 Ok(_) => {
                     let _ = child.wait();
                     log::info!("✅ QEMU process stopped");
-                }
+                },
                 Err(e) => {
                     log::warn!("⚠️  Failed to kill QEMU process: {}", e);
-                }
+                },
             }
         }
 
         // Clean up
         let _ = std::fs::remove_file(&self.qmp_socket);
-        
+
         // SharedMemoryFramebuffer will be dropped automatically
         self.framebuffer = None;
     }
-    
+
     /// Check if QEMU is running
     pub fn is_running(&self) -> bool {
         // Check local flag first
@@ -735,79 +752,82 @@ impl QemuProcessWithShm {
         // However, child field is in the struct. We'd need &mut self to call try_wait() on the Child.
         // We can't easily change signature of is_running(&self).
         // BUT, we can use the flag as a best effort, OR wrap Child in Mutex.
-        
+
         // Since we can't change the struct easily now, let's rely on the flag,
         // BUT update the flag if we catch it earlier?
-        
+
         // Wait, QemuProcessWithShm has:
         // running: Arc<Mutex<bool>>
         // child: Option<Child>
-        
+
         // Child is NOT wrapped in Mutex/Arc in lines 498.
         // But QemuProcessWithShm is usually passed around? No, app holds it directly.
         // render loop uses &mut self or &self?
-        
+
         // Let's assume for now we trust the flag, BUT in spawn_qemu_vm we have &mut use.
         // In spawn_qemu_vm, we can call a mutable method "check_status()".
-        
+
         running_flag
     }
-    
+
     /// Check process status and update running flag (requires mutable access)
     pub fn check_status(&mut self) -> bool {
-         if let Some(child) = &mut self.child {
-             match child.try_wait() {
-                 Ok(Some(_status)) => {
-                     // Exited
-                     *self.running.lock().unwrap() = false;
-                     return false;
-                 },
-                 Ok(None) => return true, // Still running
-                 Err(_) => return false,
-             }
-         }
-         false
+        if let Some(child) = &mut self.child {
+            match child.try_wait() {
+                Ok(Some(_status)) => {
+                    // Exited
+                    *self.running.lock().unwrap() = false;
+                    return false;
+                },
+                Ok(None) => return true, // Still running
+                Err(_) => return false,
+            }
+        }
+        false
     }
-    
+
     /// Get a copy of the current framebuffer
     pub fn get_framebuffer(&self) -> Vec<u8> {
         self.framebuffer_copy.lock().unwrap().clone()
     }
-    
+
     /// Get framebuffer dimensions
     pub fn get_dimensions(&self) -> (u32, u32) {
         (self.config.width, self.config.height)
     }
-    
+
     /// Get raw pointer to framebuffer (use with caution)
     pub fn get_framebuffer_ref(&self) -> Arc<Mutex<Vec<u8>>> {
         Arc::clone(&self.framebuffer_copy)
     }
-    
+
     /// Send QMP command to QEMU
     pub fn send_qmp_command(&self, command: &str) -> Result<String, String> {
         if !self.qmp_socket.exists() {
             return Err("QMP socket not available".to_string());
         }
-        
+
         let mut stream = UnixStream::connect(&self.qmp_socket)
             .map_err(|e| format!("Failed to connect to QMP: {}", e))?;
-        
+
         // Read greeting
         let mut greeting = [0u8; 1024];
-        stream.read(&mut greeting)
+        stream
+            .read(&mut greeting)
             .map_err(|e| format!("Failed to read QMP greeting: {}", e))?;
-        
+
         // Send command
         let cmd = format!("{}\r\n", command);
-        stream.write_all(cmd.as_bytes())
+        stream
+            .write_all(cmd.as_bytes())
             .map_err(|e| format!("Failed to send QMP command: {}", e))?;
-        
+
         // Read response
         let mut response = [0u8; 4096];
-        let n = stream.read(&mut response)
+        let n = stream
+            .read(&mut response)
             .map_err(|e| format!("Failed to read QMP response: {}", e))?;
-        
+
         Ok(String::from_utf8_lossy(&response[..n]).to_string())
     }
 }
@@ -1070,10 +1090,14 @@ impl VirtioConsole {
     }
 
     /// Write data to console output buffer and feed to terminal emulator
-    pub fn write_with_terminal(&self, data: &[u8], terminal_emulator: &mut Option<TerminalEmulator>) {
+    pub fn write_with_terminal(
+        &self,
+        data: &[u8],
+        terminal_emulator: &mut Option<TerminalEmulator>,
+    ) {
         // Write to output buffer
         self.write(data);
-        
+
         // Phase 30.7: Feed bytes to terminal emulator for ANSI parsing
         if let Some(ref mut emulator) = terminal_emulator {
             emulator.feed(data);
@@ -1140,14 +1164,14 @@ impl VirtioConsole {
     /// VirtIO MMIO Read (Legacy Layout)
     pub fn mmio_read(&self, offset: u64, _size: u8) -> u32 {
         match offset {
-            0x00 => 0x74726976, // Magic "virt"
-            0x04 => 1, // Version 1 (Legacy)
-            0x08 => 3, // Device ID (3 = Console)
-            0x0C => 0x554d4551, // Vendor ID (Placeholder)
+            0x00 => 0x74726976,                // Magic "virt"
+            0x04 => 1,                         // Version 1 (Legacy)
+            0x08 => 3,                         // Device ID (3 = Console)
+            0x0C => 0x554d4551,                // Vendor ID (Placeholder)
             0x10 => self.mmio.device_features, // Device Features
             0x14 => self.mmio.device_features, // Device Features High (reserved)
-            0x30 => self.queue_sel, // QueueSel
-            0x34 => VIRTIO_QUEUE_SIZE as u32, // QueueNumMax
+            0x30 => self.queue_sel,            // QueueSel
+            0x34 => VIRTIO_QUEUE_SIZE as u32,  // QueueNumMax
             0x38 => {
                 // QueueNum (Size of selected queue)
                 if (self.queue_sel as usize) < self.queues.len() {
@@ -1155,7 +1179,7 @@ impl VirtioConsole {
                 } else {
                     0
                 }
-            }
+            },
             0x40 => {
                 // QueuePFN
                 if (self.queue_sel as usize) < self.queues.len() {
@@ -1164,14 +1188,14 @@ impl VirtioConsole {
                 } else {
                     0
                 }
-            }
-            0x50 => 0, // QueueNotify (Write Only)
+            },
+            0x50 => 0,                              // QueueNotify (Write Only)
             0x60 => self.mmio.device_status as u32, // InterruptStatus (Simplified to Status for now)
             0x70 => self.mmio.device_status as u32, // Status
             _ => {
                 log::warn!("⚠️  Unknown VirtIO MMIO read at offset 0x{:x}", offset);
                 0
-            }
+            },
         }
     }
 
@@ -1183,15 +1207,15 @@ impl VirtioConsole {
                 // Driver Features
                 self.mmio.driver_features = value;
                 log::debug!("📝 VirtIO driver features: 0x{:x}", value);
-            }
+            },
             0x30 => {
                 // QueueSel
                 self.queue_sel = value;
                 log::debug!("👉 VirtIO Queue Select: {}", value);
-            }
+            },
             0x38 => {
-                 // QueueNum (Write ignored for Legacy usually, creates queue?)
-            }
+                // QueueNum (Write ignored for Legacy usually, creates queue?)
+            },
             0x40 => {
                 // QueuePFN - The PFN for the queue memory
                 if (self.queue_sel as usize) < self.queues.len() {
@@ -1199,31 +1223,32 @@ impl VirtioConsole {
                     let addr = (value as u64) * 4096;
                     queue.desc_addr = addr;
                     queue.avail_addr = addr + (16 * VIRTIO_QUEUE_SIZE as u64); // Desc table size
-                    // Used ring starts after available ring and padding
-                    // Avail size = 2 + 2 + 2*Size + 2 = 6 + 2*256 = 518 bytes. Aligned to 4096 usually?
-                    // Legacy alignment rule: Used Ring is aligned to 4096 bytes boundary after avail ring?
-                    // Actually, standard says:
-                    // Descriptor Table: 16 * Size
-                    // Available Ring: 6 + 2 * Size
-                    // Padding to 4096
-                    // Used Ring: 6 + 8 * Size
-                    
+                                                                               // Used ring starts after available ring and padding
+                                                                               // Avail size = 2 + 2 + 2*Size + 2 = 6 + 2*256 = 518 bytes. Aligned to 4096 usually?
+                                                                               // Legacy alignment rule: Used Ring is aligned to 4096 bytes boundary after avail ring?
+                                                                               // Actually, standard says:
+                                                                               // Descriptor Table: 16 * Size
+                                                                               // Available Ring: 6 + 2 * Size
+                                                                               // Padding to 4096
+                                                                               // Used Ring: 6 + 8 * Size
+
                     let avail_offset = 16 * VIRTIO_QUEUE_SIZE as u64;
-                    let used_offset = (avail_offset + 6 + 2 * VIRTIO_QUEUE_SIZE as u64 + 4095) & !4095;
-                    
+                    let used_offset =
+                        (avail_offset + 6 + 2 * VIRTIO_QUEUE_SIZE as u64 + 4095) & !4095;
+
                     queue.avail_addr = addr + avail_offset;
                     queue.used_addr = addr + used_offset;
                     queue.ready = true;
-                    
+
                     log::info!("✅ VirtIO Queue {} Configured: PFN=0x{:x} => Desc=0x{:x}, Avail=0x{:x}, Used=0x{:x}", 
                         self.queue_sel, value, queue.desc_addr, queue.avail_addr, queue.used_addr);
                 }
-            }
+            },
             0x50 => {
                 // QueueNotify
                 log::debug!("🔔 VirtIO Queue Notify: Queue {}", value);
                 return Some(value as u16);
-            }
+            },
             0x70 => {
                 // Status
                 self.mmio.device_status = value as u8;
@@ -1232,10 +1257,14 @@ impl VirtioConsole {
                     log::info!("🔄 VirtIO Device Reset");
                     self.reset();
                 }
-            }
+            },
             _ => {
-                log::warn!("⚠️  Unknown VirtIO MMIO write at offset 0x{:x}: 0x{:x}", offset, value);
-            }
+                log::warn!(
+                    "⚠️  Unknown VirtIO MMIO write at offset 0x{:x}: 0x{:x}",
+                    offset,
+                    value
+                );
+            },
         }
         None
     }
@@ -1324,36 +1353,34 @@ impl VirtualMachine {
         log::info!("🖥️  Initializing Virtual Machine...");
 
         // Open /dev/kvm
-        let kvm = Kvm::new()
-            .map_err(|e| {
-                log::error!("Failed to open /dev/kvm: {}", e);
-                // Check if error is "No such file or directory"
-                let err_str = format!("{}", e);
-                if err_str.contains("No such file") || err_str.contains("not found") {
-                    VmError::KvmNotFound
-                } else {
-                    VmError::KvmOpenFailed(err_str)
-                }
-            })?;
+        let kvm = Kvm::new().map_err(|e| {
+            log::error!("Failed to open /dev/kvm: {}", e);
+            // Check if error is "No such file or directory"
+            let err_str = format!("{}", e);
+            if err_str.contains("No such file") || err_str.contains("not found") {
+                VmError::KvmNotFound
+            } else {
+                VmError::KvmOpenFailed(err_str)
+            }
+        })?;
 
         log::info!("✅ KVM device opened successfully");
 
         // Create VM
-        let vm_fd = kvm.create_vm()
-            .map_err(|e| {
-                log::error!("Failed to create VM: {}", e);
-                VmError::VmCreateFailed(format!("{}", e))
-            })?;
+        let vm_fd = kvm.create_vm().map_err(|e| {
+            log::error!("Failed to create VM: {}", e);
+            VmError::VmCreateFailed(format!("{}", e))
+        })?;
 
         log::info!("✅ VM created successfully");
 
         // Phase 30.7: Initialize Terminal Emulator (24x80 default)
         let terminal_emulator = Some(TerminalEmulator::new(24, 80));
         log::info!("✅ Terminal Emulator initialized (24x80)");
-        
+
         // Phase 31: Initialize terminal clipboard (will be set later)
         let terminal_clipboard = None;
-        
+
         Ok(Self {
             kvm,
             vm_fd,
@@ -1375,21 +1402,22 @@ impl VirtualMachine {
     #[cfg(feature = "hypervisor")]
     pub fn create_virtio_console(&mut self) -> VmResult<()> {
         log::info!("🖨️  Creating VirtIO console device...");
-        
+
         // Allocate MMIO space for VirtIO console
         let console_paddr = VIRTIO_CONSOLE_PORT_BASE;
-        
+
         // Create VirtIO console device structure
         let mut console = VirtioConsole::new();
-        
+
         // Phase 30.4: Initialize MMIO registers
-        console.mmio.device_features = VIRTIO_CONSOLE_F_MULTIPORT as u32 | VIRTIO_CONSOLE_F_EMERG_WRITE as u32;
+        console.mmio.device_features =
+            VIRTIO_CONSOLE_F_MULTIPORT as u32 | VIRTIO_CONSOLE_F_EMERG_WRITE as u32;
         console.mmio.queue_size = VIRTIO_QUEUE_SIZE;
         console.mmio.device_status = VIRTIO_STATUS_ACKNOWLEDGE;
-        
+
         self.virtio_console = Some(console);
         log::info!("✅ VirtIO console device created at 0x{:x}", console_paddr);
-        
+
         Ok(())
     }
 
@@ -1398,7 +1426,11 @@ impl VirtualMachine {
     /// Sets the kernel, memory size, VCPU count, and other parameters.
     /// Must be called before [`start()`](Self::start).
     pub fn configure(&mut self, config: VmConfig) -> VmResult<()> {
-        log::info!("🔧 Configuring VM with {} MB memory, {} VCPU(s)", config.memory_mb, config.vcpu_count);
+        log::info!(
+            "🔧 Configuring VM with {} MB memory, {} VCPU(s)",
+            config.memory_mb,
+            config.vcpu_count
+        );
         self.config = config;
         Ok(())
     }
@@ -1409,13 +1441,13 @@ impl VirtualMachine {
     fn allocate_memory(&mut self) -> VmResult<()> {
         let mem_size = self.config.memory_mb * 1024 * 1024;
 
-        log::info!("💾 Allocating {} MB of guest memory...", self.config.memory_mb);
+        log::info!(
+            "💾 Allocating {} MB of guest memory...",
+            self.config.memory_mb
+        );
 
         // Allocate guest memory
-        self.guest_memory = vec
-![0u8; mem_size]
-            .into_iter()
-            .collect();
+        self.guest_memory = vec![0u8; mem_size].into_iter().collect();
 
         // Create memory region
         let mem_region = kvm_userspace_memory_region {
@@ -1428,11 +1460,10 @@ impl VirtualMachine {
 
         // Map memory into VM
         unsafe {
-            self.vm_fd.set_user_memory_region(mem_region)
-                .map_err(|e| {
-                    log::error!("Failed to map guest memory: {}", e);
-                    VmError::MemoryAllocationFailed
-                })?;
+            self.vm_fd.set_user_memory_region(mem_region).map_err(|e| {
+                log::error!("Failed to map guest memory: {}", e);
+                VmError::MemoryAllocationFailed
+            })?;
         }
 
         log::info!("✅ Guest memory allocated and mapped");
@@ -1451,24 +1482,23 @@ impl VirtualMachine {
 
         if !kernel_path.exists() {
             log::error!("Kernel file not found: {}", self.config.kernel_path);
-            return Err(VmError::KernelLoadFailed(
-                format!("Kernel file not found: {}", self.config.kernel_path),
-            ));
+            return Err(VmError::KernelLoadFailed(format!(
+                "Kernel file not found: {}",
+                self.config.kernel_path
+            )));
         }
 
         // Read kernel image
-        let mut kernel_file = File::open(kernel_path)
-            .map_err(|e| {
-                log::error!("Failed to open kernel file: {}", e);
-                VmError::KernelLoadFailed(format!("{}", e))
-            })?;
+        let mut kernel_file = File::open(kernel_path).map_err(|e| {
+            log::error!("Failed to open kernel file: {}", e);
+            VmError::KernelLoadFailed(format!("{}", e))
+        })?;
 
         let mut kernel_data = Vec::new();
-        kernel_file.read_to_end(&mut kernel_data)
-            .map_err(|e| {
-                log::error!("Failed to read kernel file: {}", e);
-                VmError::KernelLoadFailed(format!("{}", e))
-            })?;
+        kernel_file.read_to_end(&mut kernel_data).map_err(|e| {
+            log::error!("Failed to read kernel file: {}", e);
+            VmError::KernelLoadFailed(format!("{}", e))
+        })?;
 
         log::info!("✅ Kernel loaded: {} bytes", kernel_data.len());
 
@@ -1494,11 +1524,10 @@ impl VirtualMachine {
         log::info!("⚡ Creating {} VCPU(s)...", self.config.vcpu_count);
 
         for i in 0..self.config.vcpu_count {
-            let vcpu_fd = self.vm_fd.create_vcpu(i as u64)
-                .map_err(|e| {
-                    log::error!("Failed to create VCPU {}: {}", i, e);
-                    VmError::VcpuCreateFailed(format!("{}", e))
-                })?;
+            let vcpu_fd = self.vm_fd.create_vcpu(i as u64).map_err(|e| {
+                log::error!("Failed to create VCPU {}: {}", i, e);
+                VmError::VcpuCreateFailed(format!("{}", e))
+            })?;
 
             self.vcpu_fds.push(vcpu_fd);
         }
@@ -1513,15 +1542,15 @@ impl VirtualMachine {
     /// Spawns a thread to run the VM loop.
     pub fn start_background(vm: Arc<Mutex<Self>>) -> VmResult<()> {
         let mut locked_vm = vm.lock().unwrap();
-        
+
         if locked_vm.config.kernel_path.is_empty() {
-             // For testing/development, allow starting without kernel if just for visual loop
-             log::warn!("⚠️  No kernel configured. VM will run in 'Visual Test Mode'");
+            // For testing/development, allow starting without kernel if just for visual loop
+            log::warn!("⚠️  No kernel configured. VM will run in 'Visual Test Mode'");
         } else {
-             locked_vm.allocate_memory()?;
-             locked_vm.load_kernel()?;
+            locked_vm.allocate_memory()?;
+            locked_vm.load_kernel()?;
         }
-        
+
         // Ensure VCPUs (or dummy loop) are ready
         if locked_vm.vcpu_fds.is_empty() && !locked_vm.config.kernel_path.is_empty() {
             locked_vm.create_vcpus()?;
@@ -1534,7 +1563,7 @@ impl VirtualMachine {
 
         std::thread::spawn(move || {
             log::info!("🚀 VM Background Thread Started");
-            
+
             loop {
                 let mut vm_guard = vm.lock().unwrap();
                 if !*vm_guard.running.lock().unwrap() {
@@ -1543,13 +1572,13 @@ impl VirtualMachine {
 
                 // If real VCPUs exist, run one step
                 if !vm_guard.vcpu_fds.is_empty() {
-                     // Note: run_vcpu is blocking for the quantum slice
-                     // We might need to handle this carefully to not lock the mutex for too long
-                     // For now, we assume swift exits or we need to refine the locking strategy
-                     // EDIT: We can't hold the mutex while running VCPU or we block the UI thread interacting with VM
-                     // Use internal structure to solve this in future.
-                     // For now, simpler: Just update the framebuffer to prove integration
-                     let _ = vm_guard.run_vcpu(0); 
+                    // Note: run_vcpu is blocking for the quantum slice
+                    // We might need to handle this carefully to not lock the mutex for too long
+                    // For now, we assume swift exits or we need to refine the locking strategy
+                    // EDIT: We can't hold the mutex while running VCPU or we block the UI thread interacting with VM
+                    // Use internal structure to solve this in future.
+                    // For now, simpler: Just update the framebuffer to prove integration
+                    let _ = vm_guard.run_vcpu(0);
                 } else {
                     // Visual Test Mode: Generate Signal
                     vm_guard.update_test_pattern();
@@ -1565,17 +1594,20 @@ impl VirtualMachine {
     /// Update framebuffer with visual test pattern
     fn update_test_pattern(&mut self) {
         let mut fb = self.framebuffer.lock().unwrap();
-        let time = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u32;
-        
+        let time = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u32;
+
         // Simple moving gradient
         for y in 0..self.height {
             for x in 0..self.width {
                 let idx = ((y * self.width + x) * 4) as usize;
                 if idx + 3 < fb.len() {
-                    fb[idx] = ((x + time / 10) % 255) as u8;     // R
-                    fb[idx+1] = ((y + time / 20) % 255) as u8;   // G
-                    fb[idx+2] = ((x + y) % 255) as u8;           // B
-                    fb[idx+3] = 255;                             // A
+                    fb[idx] = ((x + time / 10) % 255) as u8; // R
+                    fb[idx + 1] = ((y + time / 20) % 255) as u8; // G
+                    fb[idx + 2] = ((x + y) % 255) as u8; // B
+                    fb[idx + 3] = 255; // A
                 }
             }
         }
@@ -1589,7 +1621,6 @@ impl VirtualMachine {
             log::error!("VM not configured (no kernel path)");
             return Err(VmError::NotConfigured);
         }
-
 
         log::info!("🚀 Starting Virtual Machine...");
 
@@ -1641,7 +1672,7 @@ impl VirtualMachine {
                 Ok(VcpuExit::Hlt) => {
                     log::info!("🛑 VCPU {} halted", vcpu_id);
                     break;
-                }
+                },
                 Ok(VcpuExit::IoOut(addr, data)) => {
                     // Handle I/O output (e.g., serial port)
                     // Serial port (0x3f8 for COM1)
@@ -1651,61 +1682,77 @@ impl VirtualMachine {
                         let mut serial = serial_output.lock().unwrap();
                         serial.push_str(&output);
                     }
-                }
+                },
                 Ok(VcpuExit::IoIn(addr, data)) => {
                     // Handle I/O input
                     log::warn!("⚠️  Unhandled I/O input at 0x{:x}", addr);
                     data.fill(0);
-                }
+                },
                 Ok(VcpuExit::MmioRead(addr, data)) => {
                     // Phase 30.4: Handle VirtIO MMIO reads
                     if let Some(console) = &self.virtio_console {
-                        if addr >= VIRTIO_CONSOLE_PORT_BASE && addr < VIRTIO_CONSOLE_PORT_BASE + 0x1000 {
+                        if addr >= VIRTIO_CONSOLE_PORT_BASE
+                            && addr < VIRTIO_CONSOLE_PORT_BASE + 0x1000
+                        {
                             let offset = addr - VIRTIO_CONSOLE_PORT_BASE;
                             let value = console.mmio_read(offset, data.len() as u8);
-                            log::debug!("📖 VirtIO MMIO read at 0x{:x} (offset 0x{:x}) = 0x{:x}", addr, offset, value);
+                            log::debug!(
+                                "📖 VirtIO MMIO read at 0x{:x} (offset 0x{:x}) = 0x{:x}",
+                                addr,
+                                offset,
+                                value
+                            );
                             data.copy_from_slice(&value.to_le_bytes()[..data.len()]);
                         }
                     } else {
                         log::warn!("⚠️  Unhandled MMIO read at 0x{:x}", addr);
                     }
-                }
+                },
                 Ok(VcpuExit::MmioWrite(addr, data)) => {
                     // Phase 30.4: Handle VirtIO MMIO writes
                     if let Some(console) = &mut self.virtio_console {
-                        if addr >= VIRTIO_CONSOLE_PORT_BASE && addr < VIRTIO_CONSOLE_PORT_BASE + 0x1000 {
+                        if addr >= VIRTIO_CONSOLE_PORT_BASE
+                            && addr < VIRTIO_CONSOLE_PORT_BASE + 0x1000
+                        {
                             let offset = addr - VIRTIO_CONSOLE_PORT_BASE;
                             // Convert data slice to u32 (little-endian)
                             let mut value_bytes = [0u8; 4];
                             let copy_len = std::cmp::min(data.len(), 4);
                             value_bytes[..copy_len].copy_from_slice(&data[..copy_len]);
                             let value = u32::from_le_bytes(value_bytes);
-                            
+
                             // Write and check for notification
-                            if let Some(notify_queue_idx) = console.mmio_write(offset, value, data.len() as u8) {
+                            if let Some(notify_queue_idx) =
+                                console.mmio_write(offset, value, data.len() as u8)
+                            {
                                 log::debug!("🚀 Processing VirtQueue {}", notify_queue_idx);
                                 // Phase 30.7: Pass terminal emulator for ANSI parsing
-                                Self::process_queue_static(console, &mut self.guest_memory, notify_queue_idx as usize, &mut self.terminal_emulator);
+                                Self::process_queue_static(
+                                    console,
+                                    &mut self.guest_memory,
+                                    notify_queue_idx as usize,
+                                    &mut self.terminal_emulator,
+                                );
                             }
                         }
                     } else {
                         log::warn!("⚠️  Unhandled MMIO write at 0x{:x}", addr);
                     }
-                }
+                },
                 Ok(VcpuExit::Unknown) => {
                     log::warn!("⚠️  Unknown VCPU exit");
-                }
+                },
                 Ok(VcpuExit::Shutdown) => {
                     log::info!("🛑 VCPU {} shutdown", vcpu_id);
                     break;
-                }
+                },
                 Err(e) => {
                     log::error!("❌ VCPU {} error: {}", vcpu_id, e);
                     break;
-                }
+                },
                 _ => {
                     log::warn!("⚠️  Unhandled VCPU exit");
-                }
+                },
             }
         }
 
@@ -1714,44 +1761,63 @@ impl VirtualMachine {
 
     /// Helper: Read u16 from guest memory
     fn read_guest_u16(memory: &[u8], addr: u64) -> u16 {
-        if (addr as usize + 2) > memory.len() { return 0; }
+        if (addr as usize + 2) > memory.len() {
+            return 0;
+        }
         let slice = &memory[addr as usize..addr as usize + 2];
         u16::from_le_bytes(slice.try_into().unwrap())
     }
 
     /// Helper: Read u32 from guest memory
     fn read_guest_u32(memory: &[u8], addr: u64) -> u32 {
-        if (addr as usize + 4) > memory.len() { return 0; }
+        if (addr as usize + 4) > memory.len() {
+            return 0;
+        }
         let slice = &memory[addr as usize..addr as usize + 4];
         u32::from_le_bytes(slice.try_into().unwrap())
     }
 
     /// Helper: Read u64 from guest memory
     fn read_guest_u64(memory: &[u8], addr: u64) -> u64 {
-        if (addr as usize + 8) > memory.len() { return 0; }
+        if (addr as usize + 8) > memory.len() {
+            return 0;
+        }
         let slice = &memory[addr as usize..addr as usize + 8];
         u64::from_le_bytes(slice.try_into().unwrap())
     }
 
     /// Helper: Write u16 to guest memory
     fn write_guest_u16(memory: &mut [u8], addr: u64, val: u16) {
-        if (addr as usize + 2) > memory.len() { return; }
+        if (addr as usize + 2) > memory.len() {
+            return;
+        }
         memory[addr as usize..addr as usize + 2].copy_from_slice(&val.to_le_bytes());
     }
 
     /// Helper: Write u32 to guest memory
     fn write_guest_u32(memory: &mut [u8], addr: u64, val: u32) {
-        if (addr as usize + 4) > memory.len() { return; }
+        if (addr as usize + 4) > memory.len() {
+            return;
+        }
         memory[addr as usize..addr as usize + 4].copy_from_slice(&val.to_le_bytes());
     }
 
     /// Phase 30.5: Process VirtIO Queue
     /// This is the engine that moves data between guest memory and the console buffers.
-    fn process_queue_static(console: &VirtioConsole, memory: &mut [u8], queue_index: usize, terminal_emulator: &mut Option<TerminalEmulator>) {
-        if queue_index >= console.queues.len() { return; }
-        
+    fn process_queue_static(
+        console: &VirtioConsole,
+        memory: &mut [u8],
+        queue_index: usize,
+        terminal_emulator: &mut Option<TerminalEmulator>,
+    ) {
+        if queue_index >= console.queues.len() {
+            return;
+        }
+
         let mut queue = console.queues[queue_index].lock().unwrap();
-        if !queue.ready { return; }
+        if !queue.ready {
+            return;
+        }
 
         // 1. Read Available Index (Producer Head)
         // Avail Ring Structure: flags(2) + idx(2) + ring[size](2*size)
@@ -1765,11 +1831,11 @@ impl VirtualMachine {
             // ring_offset = 4 + (last_avail_idx % size) * 2
             let ring_offset = 4 + (queue.last_avail_idx % VIRTIO_QUEUE_SIZE) as u64 * 2;
             let head_idx = Self::read_guest_u16(memory, queue.avail_addr + ring_offset);
-            
+
             // 3. Walk Descriptor Chain
             let mut curr_desc_idx = head_idx;
             let mut total_len = 0;
-            
+
             // Loop for chained descriptors
             loop {
                 // Read Descriptor: addr(8) + len(4) + flags(2) + next(2) = 16 bytes
@@ -1795,7 +1861,7 @@ impl VirtualMachine {
                                 log::debug!("⌨️  Injected {} bytes into guest input", write_len);
                             }
                             // Clear input buffer (simplified)
-                           console.clear_input();
+                            console.clear_input();
                         }
                     }
                 } else {
@@ -1803,7 +1869,8 @@ impl VirtualMachine {
                     // If this is Queue 1 (Transmitq), we read from it
                     if queue_index == 1 {
                         if (buf_addr as usize + buf_len as usize) <= memory.len() {
-                            let data = &memory[buf_addr as usize..(buf_addr as usize + buf_len as usize)];
+                            let data =
+                                &memory[buf_addr as usize..(buf_addr as usize + buf_len as usize)];
                             // Phase 30.7: Feed bytes to terminal emulator for ANSI parsing
                             console.write_with_terminal(data, terminal_emulator);
                             log::debug!("📤 Console Output: {} bytes", buf_len);
@@ -1822,9 +1889,9 @@ impl VirtualMachine {
             // Used Elem: id(4) + len(4)
             let used_elem_offset = 4 + (queue.last_used_idx % VIRTIO_QUEUE_SIZE) as u64 * 8;
             let elem_addr = queue.used_addr + used_elem_offset;
-            
+
             Self::write_guest_u32(memory, elem_addr, head_idx as u32); // ID
-            Self::write_guest_u32(memory, elem_addr + 4, total_len);   // Length
+            Self::write_guest_u32(memory, elem_addr + 4, total_len); // Length
 
             queue.last_used_idx = queue.last_used_idx.wrapping_add(1);
             queue.last_avail_idx = queue.last_avail_idx.wrapping_add(1);
@@ -1832,7 +1899,7 @@ impl VirtualMachine {
 
         // 5. Publish Usage (Update Header)
         Self::write_guest_u16(memory, queue.used_addr + 2, queue.last_used_idx);
-        
+
         // TODO (Phase 30.6): Inject Interrupt
     }
 
@@ -1873,7 +1940,7 @@ impl VirtualMachine {
     pub fn get_framebuffer(&self) -> Vec<u8> {
         self.framebuffer.lock().unwrap().clone()
     }
-    
+
     /// Get raw pointer to framebuffer (use with caution)
     pub fn get_framebuffer_ref(&self) -> Arc<Mutex<Vec<u8>>> {
         Arc::clone(&self.framebuffer)
@@ -1888,12 +1955,18 @@ impl VirtualMachine {
 
     /// Read VirtIO console output buffer
     pub fn read_console_output(&self) -> Vec<u8> {
-        self.virtio_console.as_ref().map(|c| c.read_output()).unwrap_or_default()
+        self.virtio_console
+            .as_ref()
+            .map(|c| c.read_output())
+            .unwrap_or_default()
     }
 
     /// Read VirtIO console input buffer
     pub fn read_console_input(&self) -> Vec<u8> {
-        self.virtio_console.as_ref().map(|c| c.read_input()).unwrap_or_default()
+        self.virtio_console
+            .as_ref()
+            .map(|c| c.read_input())
+            .unwrap_or_default()
     }
 
     /// Write data to VirtIO console input buffer (for guest input)
@@ -1919,7 +1992,10 @@ impl VirtualMachine {
 
     /// Check if VirtIO console is ready
     pub fn is_console_ready(&self) -> bool {
-        self.virtio_console.as_ref().map(|c| c.is_ready()).unwrap_or(false)
+        self.virtio_console
+            .as_ref()
+            .map(|c| c.is_ready())
+            .unwrap_or(false)
     }
 
     /// Set VirtIO console ready state
@@ -1931,12 +2007,18 @@ impl VirtualMachine {
 
     /// Get VirtIO console output as string
     pub fn get_console_output_string(&self) -> String {
-        self.virtio_console.as_ref().map(|c| c.get_output_string()).unwrap_or_default()
+        self.virtio_console
+            .as_ref()
+            .map(|c| c.get_output_string())
+            .unwrap_or_default()
     }
 
     /// Get VirtIO console input as string
     pub fn get_console_input_string(&self) -> String {
-        self.virtio_console.as_ref().map(|c| c.get_input_string()).unwrap_or_default()
+        self.virtio_console
+            .as_ref()
+            .map(|c| c.get_input_string())
+            .unwrap_or_default()
     }
 
     // Phase 30.7: Terminal Emulator Access Methods
@@ -1966,14 +2048,16 @@ impl VirtualMachine {
 
     /// Convert key input to ANSI escape sequence
     pub fn key_to_ansi(&self, key: &str) -> Vec<u8> {
-        self.terminal_emulator.as_ref()
+        self.terminal_emulator
+            .as_ref()
             .map(|e| e.key_to_ansi(key))
             .unwrap_or_default()
     }
 
     /// Get terminal dimensions
     pub fn get_terminal_size(&self) -> (usize, usize) {
-        self.terminal_emulator.as_ref()
+        self.terminal_emulator
+            .as_ref()
             .map(|e| e.get_size())
             .unwrap_or((24, 80))
     }
@@ -1989,7 +2073,8 @@ impl VirtualMachine {
 
     /// Get cursor visibility
     pub fn is_cursor_visible(&self) -> bool {
-        self.terminal_emulator.as_ref()
+        self.terminal_emulator
+            .as_ref()
             .map(|e| e.is_cursor_visible())
             .unwrap_or(false)
     }
@@ -2003,20 +2088,22 @@ impl VirtualMachine {
 
     /// Get cursor blink state (0.0 = hidden, 1.0 = visible)
     pub fn get_cursor_blink_state(&self) -> f32 {
-        self.terminal_emulator.as_ref()
+        self.terminal_emulator
+            .as_ref()
             .map(|e| e.get_cursor_blink_state())
             .unwrap_or(0.0)
     }
 
     /// Get cursor position
     pub fn get_cursor_position(&self) -> (usize, usize) {
-        self.terminal_emulator.as_ref()
+        self.terminal_emulator
+            .as_ref()
             .map(|e| e.get_cursor_position())
             .unwrap_or((0, 0))
     }
 
     // Phase 30.8: Scrollback Control
-    
+
     /// Scroll terminal view
     pub fn scroll_terminal(&mut self, lines: i32) {
         if let Some(ref mut emulator) = self.terminal_emulator {
@@ -2027,20 +2114,20 @@ impl VirtualMachine {
             }
         }
     }
-    
+
     // Phase 31: Clipboard Methods
-    
+
     /// Set terminal clipboard
     pub fn set_terminal_clipboard(&mut self, clipboard: TerminalClipboard) {
         self.terminal_clipboard = Some(clipboard);
         log::info!("📋 Terminal clipboard initialized");
     }
-    
+
     /// Get terminal clipboard
     pub fn get_terminal_clipboard(&self) -> Option<&TerminalClipboard> {
         self.terminal_clipboard.as_ref()
     }
-    
+
     /// Get mutable terminal clipboard
     pub fn get_terminal_clipboard_mut(&mut self) -> Option<&mut TerminalClipboard> {
         self.terminal_clipboard.as_mut()
@@ -2048,26 +2135,30 @@ impl VirtualMachine {
 
     /// Copy current selection to clipboard
     pub fn copy_selection_to_clipboard(&mut self) -> bool {
-        if let (Some(ref mut clipboard), Some(ref emulator)) = (&mut self.terminal_clipboard, &self.terminal_emulator) {
-             return clipboard.copy_selection(emulator.get_buffer());
+        if let (Some(ref mut clipboard), Some(ref emulator)) =
+            (&mut self.terminal_clipboard, &self.terminal_emulator)
+        {
+            return clipboard.copy_selection(emulator.get_buffer());
         }
         false
     }
 
     // Phase 31: Mouse Selection Helpers
-    
+
     /// Convert pixel coordinates to terminal cell coordinates (row, col)
     fn pixel_to_cell(&self, x: f32, y: f32) -> Option<(usize, usize)> {
         if let Some(emulator) = &self.terminal_emulator {
             let (rows, cols) = emulator.get_size();
-            if rows == 0 || cols == 0 { return None; }
-            
+            if rows == 0 || cols == 0 {
+                return None;
+            }
+
             let cell_width = self.width as f32 / cols as f32;
             let cell_height = self.height as f32 / rows as f32;
-            
+
             let col = (x / cell_width).floor() as usize;
             let row = (y / cell_height).floor() as usize;
-            
+
             return Some((row.min(rows - 1), col.min(cols - 1)));
         }
         None
@@ -2093,8 +2184,10 @@ impl VirtualMachine {
 
     /// End selection and copy to clipboard
     pub fn end_selection(&mut self) -> bool {
-        if let (Some(ref mut clipboard), Some(ref emulator)) = (&mut self.terminal_clipboard, &self.terminal_emulator) {
-             return clipboard.end_selection(emulator.get_buffer()).is_some();
+        if let (Some(ref mut clipboard), Some(ref emulator)) =
+            (&mut self.terminal_clipboard, &self.terminal_emulator)
+        {
+            return clipboard.end_selection(emulator.get_buffer()).is_some();
         }
         false
     }
@@ -2147,59 +2240,93 @@ impl VirtualMachine {
 
     /// Clear serial output buffer (stub)
     pub fn clear_serial_output(&self) {}
-    
+
     pub fn start_background(_vm: Arc<Mutex<Self>>) -> VmResult<()> {
         log::warn!("⚠️  Hypervisor feature not enabled. VM background start ignored.");
         Ok(())
     }
-    
+
     pub fn get_framebuffer(&self) -> Vec<u8> {
         vec![0, 0, 0, 255]
     }
 
     pub fn write_console(&self, _data: &[u8]) {}
-    pub fn read_console_output(&self) -> Vec<u8> { vec![] }
-    pub fn read_console_input(&self) -> Vec<u8> { vec![] }
+    pub fn read_console_output(&self) -> Vec<u8> {
+        vec![]
+    }
+    pub fn read_console_input(&self) -> Vec<u8> {
+        vec![]
+    }
     pub fn write_console_input(&self, _data: &[u8]) {}
     pub fn clear_console_output(&self) {}
     pub fn clear_console_input(&self) {}
-    pub fn is_console_ready(&self) -> bool { false }
+    pub fn is_console_ready(&self) -> bool {
+        false
+    }
     pub fn set_console_ready(&self, _ready: bool) {}
-    pub fn get_console_output_string(&self) -> String { String::new() }
-    pub fn get_console_input_string(&self) -> String { String::new() }
+    pub fn get_console_output_string(&self) -> String {
+        String::new()
+    }
+    pub fn get_console_input_string(&self) -> String {
+        String::new()
+    }
 
     // Phase 30.7: Terminal Emulator Access Methods (stubs)
-    pub fn get_terminal_emulator(&self) -> Option<&()> { None }
-    pub fn get_terminal_emulator_mut(&mut self) -> Option<&mut ()> { None }
-    pub fn get_terminal_buffer(&self) -> Option<&TerminalBuffer> { None }
+    pub fn get_terminal_emulator(&self) -> Option<&()> {
+        None
+    }
+    pub fn get_terminal_emulator_mut(&mut self) -> Option<&mut ()> {
+        None
+    }
+    pub fn get_terminal_buffer(&self) -> Option<&TerminalBuffer> {
+        None
+    }
     pub fn resize_terminal(&mut self, _rows: usize, _cols: usize) {
         log::warn!("⚠️  Hypervisor feature not enabled. resize_terminal() ignored.");
     }
-    pub fn key_to_ansi(&self, _key: &str) -> Vec<u8> { Vec::new() }
-    pub fn get_terminal_size(&self) -> (usize, usize) { (24, 80) }
+    pub fn key_to_ansi(&self, _key: &str) -> Vec<u8> {
+        Vec::new()
+    }
+    pub fn get_terminal_size(&self) -> (usize, usize) {
+        (24, 80)
+    }
 
     // Phase 30.8: Cursor Access Methods (stubs)
     pub fn set_cursor_visible(&mut self, _visible: bool) {
         log::warn!("⚠️  Hypervisor feature not enabled. set_cursor_visible() ignored.");
     }
-    pub fn is_cursor_visible(&self) -> bool { false }
+    pub fn is_cursor_visible(&self) -> bool {
+        false
+    }
     pub fn update_cursor_blink(&mut self, _delta_time: f32) {
         log::warn!("⚠️  Hypervisor feature not enabled. update_cursor_blink() ignored.");
     }
-    pub fn get_cursor_blink_state(&self) -> f32 { 0.0 }
-    pub fn get_cursor_position(&self) -> (usize, usize) { (0, 0) }
+    pub fn get_cursor_blink_state(&self) -> f32 {
+        0.0
+    }
+    pub fn get_cursor_position(&self) -> (usize, usize) {
+        (0, 0)
+    }
     pub fn scroll_terminal(&mut self, _lines: i32) {}
-    
+
     // Phase 31: Clipboard Methods (stubs)
     pub fn set_terminal_clipboard(&mut self, _clipboard: ()) {
         log::warn!("⚠️  Hypervisor feature not enabled. set_terminal_clipboard() ignored.");
     }
-    pub fn get_terminal_clipboard(&self) -> Option<&()> { None }
-    pub fn get_terminal_clipboard_mut(&mut self) -> Option<&mut ()> { None }
-    pub fn copy_selection_to_clipboard(&mut self) -> bool { false }
+    pub fn get_terminal_clipboard(&self) -> Option<&()> {
+        None
+    }
+    pub fn get_terminal_clipboard_mut(&mut self) -> Option<&mut ()> {
+        None
+    }
+    pub fn copy_selection_to_clipboard(&mut self) -> bool {
+        false
+    }
     pub fn start_selection_at_pixel(&mut self, _x: f32, _y: f32) {}
     pub fn update_selection_to_pixel(&mut self, _x: f32, _y: f32) {}
-    pub fn end_selection(&mut self) -> bool { false }
+    pub fn end_selection(&mut self) -> bool {
+        false
+    }
 }
 
 #[cfg(test)]
@@ -2215,13 +2342,13 @@ mod tests {
             Ok(vm) => {
                 assert!(!vm.is_running());
                 println!("✅ VM created successfully");
-            }
+            },
             Err(VmError::KvmNotFound) => {
                 println!("⚠️  /dev/kvm not found (expected in non-KVM environment)");
-            }
+            },
             Err(e) => {
                 panic!("Failed to create VM: {}", e);
-            }
+            },
         }
     }
 

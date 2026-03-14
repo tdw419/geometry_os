@@ -14,7 +14,7 @@
 //! Agents exist at Hilbert coordinates (1D) but render in 2D spatial positions.
 //! They maintain goals, memory (via Vat), and communicate via Synaptic Layer.
 
-use crate::hot_swap::{VatId, VatState, VatBuffer};
+use crate::hot_swap::{VatBuffer, VatId, VatState};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
@@ -24,21 +24,21 @@ use uuid::Uuid;
 /// Agent role classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AgentRole {
-    Scout,      // Detects code rot, architectural issues
-    Engineer,   // Triggers Foundry, performs refactors
-    Archivist,  // Manages Vat persistence
+    Scout,     // Detects code rot, architectural issues
+    Engineer,  // Triggers Foundry, performs refactors
+    Archivist, // Manages Vat persistence
 }
 
 /// Agent state machine
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AgentState {
-    Idle,                   // No active task
-    Navigating,             // Moving to target
-    Analyzing,              // Examining a building
-    Working,                // Performing task (e.g., Foundry trigger)
-    Waiting,                // Awaiting response
-    Completed(String),      // Task done, with result
-    Error(String),          // Failed state
+    Idle,              // No active task
+    Navigating,        // Moving to target
+    Analyzing,         // Examining a building
+    Working,           // Performing task (e.g., Foundry trigger)
+    Waiting,           // Awaiting response
+    Completed(String), // Task done, with result
+    Error(String),     // Failed state
 }
 
 /// Requests from agents to the system
@@ -217,7 +217,8 @@ impl CityAgent {
 
     /// Convert Hilbert coordinate to world position
     fn hilbert_to_world(hilbert: u32, grid_size: u32) -> (f32, f32) {
-        let loader = crate::source_city::SourceCityLoader::new(std::path::PathBuf::from("/dev/null"));
+        let loader =
+            crate::source_city::SourceCityLoader::new(std::path::PathBuf::from("/dev/null"));
         let (x, y) = loader.hilbert_d2xy(grid_size, hilbert);
         let gx = grid_size as f32;
         (
@@ -228,7 +229,8 @@ impl CityAgent {
 
     /// Convert world position to Hilbert coordinate
     fn world_to_hilbert(pos: (f32, f32), grid_size: u32) -> u32 {
-        let loader = crate::source_city::SourceCityLoader::new(std::path::PathBuf::from("/dev/null"));
+        let loader =
+            crate::source_city::SourceCityLoader::new(std::path::PathBuf::from("/dev/null"));
         let gx = grid_size as f32;
         let x = ((pos.0 * (gx / 2.0)) + gx / 2.0) as i32;
         let y = ((pos.1 * (gx / 2.0)) + gx / 2.0) as i32;
@@ -260,10 +262,9 @@ impl CityAgent {
 
     /// Recall recent observations at current location
     pub fn recall_nearby(&self, radius: u32) -> Vec<&AgentMemory> {
-        self.memory.iter()
-            .filter(|m| {
-                ((m.location as i32 - self.hilbert_pos as i32).abs() as u32) < radius
-            })
+        self.memory
+            .iter()
+            .filter(|m| ((m.location as i32 - self.hilbert_pos as i32).abs() as u32) < radius)
             .collect()
     }
 
@@ -278,10 +279,12 @@ impl CityAgent {
                 use rand::Rng;
                 let mut rng = rand::thread_rng();
                 let target = rng.gen_range(0..grid_size * grid_size);
-                
+
                 self.add_goal(AgentGoal {
                     id: Uuid::new_v4().to_string(),
-                    goal_type: GoalType::Navigate { destination: "Wandering".to_string() },
+                    goal_type: GoalType::Navigate {
+                        destination: "Wandering".to_string(),
+                    },
                     target_path: None,
                     target_hilbert: Some(target),
                     priority: 10,
@@ -317,9 +320,9 @@ impl CityAgent {
             if let Some(goal) = self.goals.front().cloned() {
                 match goal.goal_type {
                     GoalType::Rebuild { path } => {
-                        requests.push_back(AgentRequest::Rebuild { 
-                            path, 
-                            agent_id: self.id.clone() 
+                        requests.push_back(AgentRequest::Rebuild {
+                            path,
+                            agent_id: self.id.clone(),
                         });
                         self.complete_goal("Rebuild triggered".to_string());
                     },
@@ -333,7 +336,7 @@ impl CityAgent {
                     },
                     _ => {
                         self.complete_goal("Task finished".to_string());
-                    }
+                    },
                 }
             }
         }
@@ -402,7 +405,10 @@ impl VatState for CityAgent {
         Ok(())
     }
 
-    fn deserialize_from_vat(&mut self, vat: &mut VatBuffer) -> Result<(), crate::hot_swap::VatError> {
+    fn deserialize_from_vat(
+        &mut self,
+        vat: &mut VatBuffer,
+    ) -> Result<(), crate::hot_swap::VatError> {
         self.id = vat.read_string()?;
         self.name = vat.read_string()?;
 
@@ -428,16 +434,32 @@ impl VatState for CityAgent {
             let created_at = vat.read_f32()? as f64;
             let target_hilbert_raw = vat.read_u32()?;
             let has_target = vat.read_u8()? == 1;
-            
-            let target_hilbert = if has_target { Some(target_hilbert_raw) } else { None };
-            
+
+            let target_hilbert = if has_target {
+                Some(target_hilbert_raw)
+            } else {
+                None
+            };
+
             let goal_type = match type_id {
-                0 => GoalType::Navigate { destination: "Restored".to_string() },
-                1 => GoalType::Analyze { path: PathBuf::new() },
-                2 => GoalType::Rebuild { path: PathBuf::new() },
-                3 => GoalType::Archive { vat_id: VatId::new("restored") },
-                4 => GoalType::ScoutDistrict { district: "restored".to_string() },
-                _ => GoalType::Navigate { destination: "Unknown".to_string() },
+                0 => GoalType::Navigate {
+                    destination: "Restored".to_string(),
+                },
+                1 => GoalType::Analyze {
+                    path: PathBuf::new(),
+                },
+                2 => GoalType::Rebuild {
+                    path: PathBuf::new(),
+                },
+                3 => GoalType::Archive {
+                    vat_id: VatId::new("restored"),
+                },
+                4 => GoalType::ScoutDistrict {
+                    district: "restored".to_string(),
+                },
+                _ => GoalType::Navigate {
+                    destination: "Unknown".to_string(),
+                },
             };
 
             self.goals.push_back(AgentGoal {
@@ -493,7 +515,10 @@ impl CityAgentManager {
         }
     }
 
-    pub fn set_vat_registry(&mut self, registry: std::sync::Arc<std::sync::Mutex<crate::hot_swap::VatRegistry>>) {
+    pub fn set_vat_registry(
+        &mut self,
+        registry: std::sync::Arc<std::sync::Mutex<crate::hot_swap::VatRegistry>>,
+    ) {
         self.vat_registry = Some(registry);
     }
 
@@ -535,7 +560,7 @@ impl CityAgentManager {
             let prev_goals = agent.goals.len();
             agent.update_position(dt, self.grid_size);
             agent.tick(&mut self.requests, self.grid_size);
-            
+
             if prev_goals > agent.goals.len() {
                 completed_this_tick += 1;
             }
@@ -547,18 +572,20 @@ impl CityAgentManager {
         // Persist state and report telemetry periodically (~5 seconds)
         let now = CityAgent::now();
         if now - self.last_telemetry_report > 5.0 {
-            log::info!("📊 Agent Telemetry: {} agents, {} tasks completed total", 
-                self.agents.len(), self.total_tasks_completed);
+            log::info!(
+                "📊 Agent Telemetry: {} agents, {} tasks completed total",
+                self.agents.len(),
+                self.total_tasks_completed
+            );
             self.last_telemetry_report = now;
         }
     }
 
     /// Find agents near a position
     pub fn agents_near(&self, hilbert_pos: u32, radius: u32) -> Vec<&CityAgent> {
-        self.agents.values()
-            .filter(|a| {
-                ((a.hilbert_pos as i32 - hilbert_pos as i32).abs() as u32) < radius
-            })
+        self.agents
+            .values()
+            .filter(|a| ((a.hilbert_pos as i32 - hilbert_pos as i32).abs() as u32) < radius)
             .collect()
     }
 
@@ -566,7 +593,9 @@ impl CityAgentManager {
     pub fn assign_goal(&mut self, role: AgentRole, goal: AgentGoal) -> Option<String> {
         let goal_loc = goal.target_hilbert;
 
-        let nearest = self.agents.values_mut()
+        let nearest = self
+            .agents
+            .values_mut()
             .filter(|a| a.role == role && a.state == AgentState::Idle)
             .min_by_key(|a| {
                 // Find goal location if specified
@@ -611,7 +640,9 @@ mod tests {
         let mut agent = CityAgent::new(AgentRole::Engineer, 0);
         let goal = AgentGoal {
             id: "test_goal".to_string(),
-            goal_type: GoalType::Navigate { destination: "systems/".to_string() },
+            goal_type: GoalType::Navigate {
+                destination: "systems/".to_string(),
+            },
             target_path: None,
             target_hilbert: Some(1000),
             priority: 100,

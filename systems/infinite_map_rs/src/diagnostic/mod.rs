@@ -1,5 +1,5 @@
-use std::time::{Instant, Duration};
 use crate::cortex::Neuromodulator;
+use std::time::{Duration, Instant};
 
 /// Metabolic State - The biochemical state of the cognitive system
 #[derive(Debug, Clone, Copy)]
@@ -90,7 +90,11 @@ impl DiagnosticOverlay {
         Self {
             enabled: true,
             expanded: false,
-            current_pas: PasScore { p: 1.0, a: 1.0, s: 1.0 },
+            current_pas: PasScore {
+                p: 1.0,
+                a: 1.0,
+                s: 1.0,
+            },
             last_update: Instant::now(),
             frame_times: Vec::with_capacity(60),
             vram_usage_bytes: 0,
@@ -105,9 +109,10 @@ impl DiagnosticOverlay {
             self.frame_times.remove(0);
         }
 
-        let avg_frame_time = self.frame_times.iter().sum::<Duration>().as_secs_f32() / self.frame_times.len() as f32;
+        let avg_frame_time =
+            self.frame_times.iter().sum::<Duration>().as_secs_f32() / self.frame_times.len() as f32;
         let target_frame_time = 1.0 / 60.0;
-        
+
         if avg_frame_time <= target_frame_time {
             self.current_pas.p = 1.0;
         } else {
@@ -117,7 +122,9 @@ impl DiagnosticOverlay {
 
     pub fn update_system_health(&mut self, vram_usage: u64) {
         self.vram_usage_bytes = vram_usage;
-        self.current_pas.s = (1.0 - (vram_usage as f32 / self.vram_limit_bytes as f32)).max(0.0).min(1.0);
+        self.current_pas.s = (1.0 - (vram_usage as f32 / self.vram_limit_bytes as f32))
+            .max(0.0)
+            .min(1.0);
     }
 
     pub fn set_aesthetic_entropy(&mut self, entropy: f32) {

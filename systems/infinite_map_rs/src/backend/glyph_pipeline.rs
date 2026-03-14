@@ -3,7 +3,7 @@
 //! Complete compilation pipeline from Geometry OS glyph programs
 //! to Intel GPU batch buffers.
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 
 /// Glyph opcodes (200-227)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,7 +89,12 @@ pub struct GlyphInst {
 impl GlyphInst {
     /// Create new glyph instruction
     pub fn new(opcode: GlyphOpcode, dst: u8, src1: u8, src2: u8) -> Self {
-        Self { opcode, dst, src1, src2 }
+        Self {
+            opcode,
+            dst,
+            src1,
+            src2,
+        }
     }
 
     /// Create from raw 32-bit word
@@ -109,10 +114,10 @@ impl GlyphInst {
 
     /// Convert to raw 32-bit word
     pub fn to_word(&self) -> u32 {
-        ((self.opcode as u8 as u32) << 24) |
-        ((self.dst as u32) << 16) |
-        ((self.src1 as u32) << 8) |
-        (self.src2 as u32)
+        ((self.opcode as u8 as u32) << 24)
+            | ((self.dst as u32) << 16)
+            | ((self.src1 as u32) << 8)
+            | (self.src2 as u32)
     }
 }
 
@@ -125,7 +130,9 @@ pub struct GlyphProgram {
 impl GlyphProgram {
     /// Create empty program
     pub fn new() -> Self {
-        Self { instructions: Vec::new() }
+        Self {
+            instructions: Vec::new(),
+        }
     }
 
     /// Add instruction
@@ -212,24 +219,24 @@ impl GlyphToSpirv {
     /// Compile glyph program to SPIR-V
     pub fn compile(&mut self, program: &GlyphProgram) -> Result<Vec<u32>> {
         // SPIR-V header
-        self.word(0x07230203);  // Magic
-        self.word(0x00010000);  // Version 1.0
-        self.word(0x00100000);  // Generator ID
-        self.word(0);           // Bound (placeholder)
-        self.word(0);           // Schema
+        self.word(0x07230203); // Magic
+        self.word(0x00010000); // Version 1.0
+        self.word(0x00100000); // Generator ID
+        self.word(0); // Bound (placeholder)
+        self.word(0); // Schema
 
         // Types
         let type_void = self.next_id;
         self.next_id += 1;
-        self.inst(19, &[type_void]);  // OpTypeVoid
+        self.inst(19, &[type_void]); // OpTypeVoid
 
         let type_int = self.next_id;
         self.next_id += 1;
-        self.inst(21, &[type_int, 32, 1]);  // OpTypeInt 32 signed
+        self.inst(21, &[type_int, 32, 1]); // OpTypeInt 32 signed
 
         let type_float = self.next_id;
         self.next_id += 1;
-        self.inst(22, &[type_float, 32]);  // OpTypeFloat 32
+        self.inst(22, &[type_float, 32]); // OpTypeFloat 32
 
         // Compile each instruction
         for inst in program.instructions() {
@@ -238,23 +245,38 @@ impl GlyphToSpirv {
 
             match inst.opcode {
                 GlyphOpcode::Add => {
-                    self.inst(128, &[type_int, result_id, inst.src1 as u32, inst.src2 as u32]);
-                }
+                    self.inst(
+                        128,
+                        &[type_int, result_id, inst.src1 as u32, inst.src2 as u32],
+                    );
+                },
                 GlyphOpcode::Sub => {
-                    self.inst(129, &[type_int, result_id, inst.src1 as u32, inst.src2 as u32]);
-                }
+                    self.inst(
+                        129,
+                        &[type_int, result_id, inst.src1 as u32, inst.src2 as u32],
+                    );
+                },
                 GlyphOpcode::Mul => {
-                    self.inst(132, &[type_int, result_id, inst.src1 as u32, inst.src2 as u32]);
-                }
+                    self.inst(
+                        132,
+                        &[type_int, result_id, inst.src1 as u32, inst.src2 as u32],
+                    );
+                },
                 GlyphOpcode::Fadd => {
-                    self.inst(129, &[type_float, result_id, inst.src1 as u32, inst.src2 as u32]);
-                }
+                    self.inst(
+                        129,
+                        &[type_float, result_id, inst.src1 as u32, inst.src2 as u32],
+                    );
+                },
                 GlyphOpcode::Fmul => {
-                    self.inst(133, &[type_float, result_id, inst.src1 as u32, inst.src2 as u32]);
-                }
+                    self.inst(
+                        133,
+                        &[type_float, result_id, inst.src1 as u32, inst.src2 as u32],
+                    );
+                },
                 _ => {
-                    self.inst(0, &[]);  // OpNop
-                }
+                    self.inst(0, &[]); // OpNop
+                },
             }
         }
 
@@ -309,16 +331,14 @@ mod tests {
 
         let words = prog.to_words();
         assert_eq!(words.len(), 7);
-        assert_eq!((words[0] >> 24) & 0xFF, 207);  // LoadImm
-        assert_eq!((words[2] >> 24) & 0xFF, 201);  // Add
+        assert_eq!((words[0] >> 24) & 0xFF, 207); // LoadImm
+        assert_eq!((words[2] >> 24) & 0xFF, 201); // Add
     }
 
     #[test]
     fn test_spirv_compilation() {
         let mut prog = GlyphProgram::new();
-        prog.load_imm(0, 100)
-            .add_i32(1, 0, 0)
-            .nop();
+        prog.load_imm(0, 100).add_i32(1, 0, 0).nop();
 
         let mut compiler = GlyphToSpirv::new();
         let spirv = compiler.compile(&prog).unwrap();

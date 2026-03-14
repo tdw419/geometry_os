@@ -132,37 +132,32 @@ pub struct LoadedModule {
 impl LoadedModule {
     /// Load a module from a path
     pub fn load(path: &Path) -> Result<Self, ModuleError> {
-        let canonical_path = path.canonicalize().map_err(|_e| {
-            ModuleError::InvalidPath
-        })?;
-        
+        let canonical_path = path.canonicalize().map_err(|_e| ModuleError::InvalidPath)?;
+
         let vat_id = VatId::from_path(canonical_path.to_str().unwrap_or("unknown"));
         let metadata = ModuleMetadata::new(canonical_path.clone(), vat_id);
 
         // SAFETY: Loading dynamic libraries is inherently unsafe
         let library = unsafe {
-            Library::new(&canonical_path).map_err(|e| {
-                ModuleError::LoadFailed(e.to_string())
-            })?
+            Library::new(&canonical_path).map_err(|e| ModuleError::LoadFailed(e.to_string()))?
         };
 
         // Extract required symbols
         let init_fn: Symbol<ModuleInitFn> = unsafe {
-            library.get(b"module_init").map_err(|_| {
-                ModuleError::SymbolNotFound("module_init".to_string())
-            })?
+            library
+                .get(b"module_init")
+                .map_err(|_| ModuleError::SymbolNotFound("module_init".to_string()))?
         };
 
         let suspend_fn: Symbol<ModuleSuspendFn> = unsafe {
-            library.get(b"module_suspend").map_err(|_| {
-                ModuleError::SymbolNotFound("module_suspend".to_string())
-            })?
+            library
+                .get(b"module_suspend")
+                .map_err(|_| ModuleError::SymbolNotFound("module_suspend".to_string()))?
         };
 
         // Update function is optional
-        let update_fn: Option<Symbol<ModuleUpdateFn>> = unsafe {
-            library.get(b"module_update").ok()
-        };
+        let update_fn: Option<Symbol<ModuleUpdateFn>> =
+            unsafe { library.get(b"module_update").ok() };
 
         // Convert to 'static lifetime (we manage the library lifetime separately)
         let init_fn = unsafe { std::mem::transmute(init_fn) };
@@ -182,13 +177,9 @@ impl LoadedModule {
     pub fn init(&mut self, state: Option<&VatBuffer>) -> Result<(), ModuleError> {
         let result = if let Some(buffer) = state {
             let data = &buffer.data;
-            unsafe {
-                (self.init_fn)(data.as_ptr() as *mut u8, data.len())
-            }
+            unsafe { (self.init_fn)(data.as_ptr() as *mut u8, data.len()) }
         } else {
-            unsafe {
-                (self.init_fn)(std::ptr::null_mut(), 0)
-            }
+            unsafe { (self.init_fn)(std::ptr::null_mut(), 0) }
         };
 
         if result == 0 {
@@ -206,10 +197,8 @@ impl LoadedModule {
 
         // Allocate a buffer for the module to write state into
         let mut buffer = vec![0u8; 65536]; // 64KB max state size
-        
-        let result = unsafe {
-            (self.suspend_fn)(buffer.as_mut_ptr(), buffer.len())
-        };
+
+        let result = unsafe { (self.suspend_fn)(buffer.as_mut_ptr(), buffer.len()) };
 
         if result < 0 {
             return Err(ModuleError::SuspendFailed(format!("Exit code: {}", result)));
@@ -229,7 +218,7 @@ impl LoadedModule {
     pub fn update(&mut self) -> Result<(), ModuleError> {
         if let Some(ref update_fn) = self.update_fn {
             let result = unsafe { (update_fn)() };
-            
+
             if result != 0 {
                 return Err(ModuleError::UpdateFailed(format!("Exit code: {}", result)));
             }
@@ -240,7 +229,7 @@ impl LoadedModule {
                 .unwrap_or_default()
                 .as_secs_f64();
         }
-        
+
         Ok(())
     }
 }
@@ -287,7 +276,7 @@ impl ModuleManager {
     /// Load a module from a path
     pub fn load_module(&mut self, path: &Path) -> Result<VatId, ModuleError> {
         let canonical = path.canonicalize().map_err(|_| ModuleError::InvalidPath)?;
-        
+
         // Check if already loaded
         if self.path_map.contains_key(&canonical) {
             return Err(ModuleError::AlreadyLoaded);
@@ -300,24 +289,28 @@ impl ModuleManager {
         let vat_id = module.metadata.vat_id.clone();
 
         // Try to restore state from vat registry
-        let state = self.vat_registry.lock()
+        let state = self
+            .vat_registry
+            .lock()
             .ok()
             .and_then(|reg| reg.get_vat(&vat_id).cloned());
 
         // Initialize the module
         module.init(state.as_ref())?;
 
-        log::info!("✅ Module loaded: {} (vat_id: {})", 
-            canonical.display(), 
+        log::info!(
+            "✅ Module loaded: {} (vat_id: {})",
+            canonical.display(),
             vat_id.as_str()
         );
 
         // Store the module
         self.path_map.insert(canonical.clone(), vat_id.clone());
-        self.file_mtimes.insert(canonical.clone(), 
+        self.file_mtimes.insert(
+            canonical.clone(),
             std::fs::metadata(&canonical)
                 .and_then(|m| m.modified())
-                .unwrap_or_else(|_| SystemTime::now())
+                .unwrap_or_else(|_| SystemTime::now()),
         );
         self.modules.insert(vat_id.clone(), module);
 
@@ -331,7 +324,7 @@ impl ModuleManager {
             if path.exists() {
                 return self.load_module(&path);
             }
-            
+
             // Also try without lib prefix
             let path = search_path.join(format!("{}.so", name));
             if path.exists() {
@@ -344,8 +337,7 @@ impl ModuleManager {
 
     /// Unload a module by VatId
     pub fn unload_module(&mut self, vat_id: &VatId) -> Result<(), ModuleError> {
-        let mut module = self.modules.remove(vat_id)
-            .ok_or(ModuleError::NotFound)?;
+        let mut module = self.modules.remove(vat_id).ok_or(ModuleError::NotFound)?;
 
         log::info!("🔧 Suspending module: {}", vat_id.as_str());
 
@@ -357,10 +349,10 @@ impl ModuleManager {
                         log::warn!("Failed to persist vat: {:?}", e);
                     }
                 }
-            }
+            },
             Err(e) => {
                 log::warn!("Failed to suspend module: {}", e);
-            }
+            },
         }
 
         // Remove from path map
@@ -373,23 +365,26 @@ impl ModuleManager {
     /// Hot-swap a module (reload without losing state)
     pub fn hot_swap(&mut self, path: &Path) -> Result<VatId, ModuleError> {
         let canonical = path.canonicalize().map_err(|_| ModuleError::InvalidPath)?;
-        
+
         // Check if already loaded
         if let Some(old_vat_id) = self.path_map.get(&canonical).cloned() {
             log::info!("🔄 Hot-swapping module: {}", canonical.display());
 
             // Suspend old module and extract state
-            let mut old_module = self.modules.remove(&old_vat_id)
+            let mut old_module = self
+                .modules
+                .remove(&old_vat_id)
                 .ok_or(ModuleError::NotFound)?;
-            
+
             old_module.metadata.status = ModuleStatus::Swapping;
-            
+
             let state = old_module.suspend()?;
-            
+
             // Store state in registry
             {
-                let mut registry = self.vat_registry.lock()
-                    .map_err(|_| ModuleError::VatError(VatError::SerializationFailed("Lock failed".to_string())))?;
+                let mut registry = self.vat_registry.lock().map_err(|_| {
+                    ModuleError::VatError(VatError::SerializationFailed("Lock failed".to_string()))
+                })?;
                 registry.register_vat(state.clone())?;
             }
 
@@ -404,7 +399,8 @@ impl ModuleManager {
             self.path_map.insert(canonical, new_vat_id.clone());
             self.modules.insert(new_vat_id.clone(), new_module);
 
-            log::info!("✅ Module hot-swapped: {} -> {}", 
+            log::info!(
+                "✅ Module hot-swapped: {} -> {}",
                 old_vat_id.as_str(),
                 new_vat_id.as_str()
             );
@@ -437,22 +433,22 @@ impl ModuleManager {
 
         // Collect paths to check first (avoid borrow issues)
         let paths_to_check: Vec<PathBuf> = self.path_map.keys().cloned().collect();
-        
+
         for path in paths_to_check {
             if let Ok(metadata) = std::fs::metadata(&path) {
                 if let Ok(mtime) = metadata.modified() {
                     if let Some(old_mtime) = self.file_mtimes.get(&path) {
                         if mtime > *old_mtime {
                             log::info!("📝 Detected change in: {}", path.display());
-                            
+
                             // Trigger hot-swap
                             match self.hot_swap(&path) {
                                 Ok(new_vat_id) => {
                                     reloaded.push((path.clone(), new_vat_id));
-                                }
+                                },
                                 Err(e) => {
                                     log::error!("Hot-swap failed for {}: {}", path.display(), e);
-                                }
+                                },
                             }
                         }
                     }
@@ -476,14 +472,13 @@ impl ModuleManager {
 
     /// List all loaded modules
     pub fn list_modules(&self) -> Vec<&ModuleMetadata> {
-        self.modules.values()
-            .map(|m| &m.metadata)
-            .collect()
+        self.modules.values().map(|m| &m.metadata).collect()
     }
 
     /// Get module by path
     pub fn get_module_by_path(&self, path: &Path) -> Option<&LoadedModule> {
-        self.path_map.get(path)
+        self.path_map
+            .get(path)
             .and_then(|vat_id| self.modules.get(vat_id))
     }
 
@@ -515,7 +510,8 @@ pub struct DummyModuleBuilder;
 impl DummyModuleBuilder {
     /// Create a C source file for a test module
     pub fn generate_c_source(_name: &str, counter_init: u32) -> String {
-        format!(r#"
+        format!(
+            r#"
 #include <stdint.h>
 #include <string.h>
 
@@ -543,7 +539,9 @@ int module_update() {{
     counter++;
     return 0;
 }}
-"#, counter_init)
+"#,
+            counter_init
+        )
     }
 }
 
@@ -554,17 +552,16 @@ mod tests {
 
     #[test]
     fn test_module_manager_creation() {
-        let registry = Arc::new(Mutex::new(VatRegistry::new(PathBuf::from("/tmp/test_vats"))));
+        let registry = Arc::new(Mutex::new(VatRegistry::new(PathBuf::from(
+            "/tmp/test_vats",
+        ))));
         let manager = ModuleManager::new(registry);
         assert_eq!(manager.module_count(), 0);
     }
 
     #[test]
     fn test_module_metadata() {
-        let meta = ModuleMetadata::new(
-            PathBuf::from("/test/module.so"),
-            VatId::new("test")
-        );
+        let meta = ModuleMetadata::new(PathBuf::from("/test/module.so"), VatId::new("test"));
         assert_eq!(meta.status, ModuleStatus::Loading);
         assert_eq!(meta.version, 1);
     }

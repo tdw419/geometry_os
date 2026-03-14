@@ -5,10 +5,10 @@
 // This module provides interactive memory inspection capabilities, allowing users
 // to click on memory textures, view hex dumps, and explore memory regions.
 
-use std::collections::HashMap;
-use std::cell::RefCell;
-use crate::memory_texture::{MemoryRegion, MemoryTextureMapper};
 use crate::hilbert_memory::HilbertMemoryMapper;
+use crate::memory_texture::{MemoryRegion, MemoryTextureMapper};
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 /// Inspection mode for memory visualization
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -218,11 +218,13 @@ impl MemoryInspector {
                 "heap" => {
                     if let Some(ref region) = mapper.heap_region {
                         let region = region.clone();
-                        self.region_cache.borrow_mut().insert(name.to_string(), region.clone());
+                        self.region_cache
+                            .borrow_mut()
+                            .insert(name.to_string(), region.clone());
                         return Some(region);
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -355,7 +357,9 @@ impl MemoryInspector {
     ///
     /// # Returns
     /// Tuple of (heap_id, stack_id, code_id, data_id)
-    pub fn get_artifact_ids(&self) -> (
+    pub fn get_artifact_ids(
+        &self,
+    ) -> (
         Option<&String>,
         Option<&String>,
         Option<&String>,
@@ -482,8 +486,8 @@ pub fn parse_hex_string(hex_str: &str) -> Result<Vec<u8>, String> {
     let mut bytes = Vec::new();
     for i in (0..hex_str.len()).step_by(2) {
         let byte_str = &hex_str[i..i + 2];
-        let byte = u8::from_str_radix(byte_str, 16)
-            .map_err(|e| format!("Invalid hex byte: {}", e))?;
+        let byte =
+            u8::from_str_radix(byte_str, 16).map_err(|e| format!("Invalid hex byte: {}", e))?;
         bytes.push(byte);
     }
 

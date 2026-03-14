@@ -8,3 +8,11 @@ Thu Mar 12 21:04:27 2026	1388905112	1388.9	Baseline Check
 1773377100000	8	8	1536	12290	pass	cached_dims_x_97x_improvement
 Thu Mar 12 21:06:36 2026	1459530723	1459.5	Baseline Check
 Thu Mar 12 21:08:19 2026	1458340406	1458.3	Baseline Check
+Fri Mar 13 22:05:50 2026	0	0	ERROR: Benchmark Crashed: python3: can't open file '/home/jericho/zion/projects/geometry_os/geometry_os/systems/glyph_stratum/benchmark_gpu_native.py': [Errno 2] No such file or directory
+
+Fri Mar 13 22:06:37 2026	0	0	ERROR: Benchmark Crashed: python3: can't open file '/home/jericho/zion/projects/geometry_os/geometry_os/systems/glyph_stratum/benchmark_gpu_native.py': [Errno 2] No such file or directory
+
+Fri Mar 13 22:11:56 2026	0.0034	1871.7	PASS	Baseline Check
+Fri Mar 13 22:12:52 2026	0.0032	1806.1	PASS	Baseline Check
+Fri Mar 13 22:16:54 2026	0.0034	1882.4	PASS	Baseline Check
+Fri Mar 13 22:18:03 2026	20.2300	2022.7	FAIL	Baseline Check

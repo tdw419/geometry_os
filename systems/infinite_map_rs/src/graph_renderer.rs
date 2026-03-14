@@ -3,10 +3,10 @@
 // WGPU-based graph visualization for neural memory graphs
 // ============================================
 
+use crate::memory_graph::{MemoryGraph, NodeType};
+use glam::Mat4;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
-use glam::Mat4;
-use crate::memory_graph::{MemoryGraph, NodeType};
 
 /// Instance data for node rendering
 #[repr(C)]
@@ -80,38 +80,43 @@ pub struct GraphRenderer {
 
 impl GraphRenderer {
     /// Create a new graph renderer
-    pub fn new(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>, surface_format: wgpu::TextureFormat) -> Self {
+    pub fn new(
+        device: Arc<wgpu::Device>,
+        queue: Arc<wgpu::Queue>,
+        surface_format: wgpu::TextureFormat,
+    ) -> Self {
         // Create bind group layouts
-        let node_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Node Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+        let node_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Node Bind Group Layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-            ],
-        });
+                ],
+            });
 
-        let edge_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Edge Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
+        let edge_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Edge Bind Group Layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
@@ -120,9 +125,8 @@ impl GraphRenderer {
                         min_binding_size: None,
                     },
                     count: None,
-                },
-            ],
-        });
+                }],
+            });
 
         // Create uniform buffers
         let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -164,12 +168,10 @@ impl GraphRenderer {
         let edge_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Edge Bind Group"),
             layout: &edge_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: camera_buffer.as_entire_binding(),
-                },
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: camera_buffer.as_entire_binding(),
+            }],
         });
 
         // Create shaders
@@ -201,13 +203,11 @@ impl GraphRenderer {
                     wgpu::VertexBufferLayout {
                         array_stride: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
                         step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &[
-                            wgpu::VertexAttribute {
-                                offset: 0,
-                                shader_location: 0,
-                                format: wgpu::VertexFormat::Float32x2,
-                            },
-                        ],
+                        attributes: &[wgpu::VertexAttribute {
+                            offset: 0,
+                            shader_location: 0,
+                            format: wgpu::VertexFormat::Float32x2,
+                        }],
                     },
                     // Instance buffer
                     wgpu::VertexBufferLayout {
@@ -396,7 +396,8 @@ impl GraphRenderer {
         // Resize buffer if needed
         let required_size = self.node_instances.len() * std::mem::size_of::<NodeInstance>();
         if required_size > self.max_nodes * std::mem::size_of::<NodeInstance>() {
-            self.max_nodes = (required_size / std::mem::size_of::<NodeInstance>()).next_power_of_two();
+            self.max_nodes =
+                (required_size / std::mem::size_of::<NodeInstance>()).next_power_of_two();
             self.node_instance_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Node Instance Buffer (Resized)"),
                 size: (self.max_nodes * std::mem::size_of::<NodeInstance>()) as u64,
@@ -419,10 +420,9 @@ impl GraphRenderer {
         self.edge_indices.clear();
 
         for edge in &graph.edges {
-            if let (Some(from_node), Some(to_node)) = (
-                graph.nodes.get(&edge.from),
-                graph.nodes.get(&edge.to),
-            ) {
+            if let (Some(from_node), Some(to_node)) =
+                (graph.nodes.get(&edge.from), graph.nodes.get(&edge.to))
+            {
                 let from_pos = from_node.position;
                 let to_pos = to_node.position;
 
@@ -481,11 +481,11 @@ impl GraphRenderer {
     /// Convert node type to color
     fn node_type_to_color(&self, node_type: &NodeType) -> [f32; 3] {
         match node_type {
-            NodeType::Neuron => [0.2, 0.8, 0.2],    // Green
-            NodeType::Synapse => [0.8, 0.2, 0.8],   // Magenta
-            NodeType::Memory => [0.2, 0.2, 0.8],    // Blue
-            NodeType::Input => [0.8, 0.8, 0.2],     // Yellow
-            NodeType::Output => [0.8, 0.2, 0.2],    // Red
+            NodeType::Neuron => [0.2, 0.8, 0.2],  // Green
+            NodeType::Synapse => [0.8, 0.2, 0.8], // Magenta
+            NodeType::Memory => [0.2, 0.2, 0.8],  // Blue
+            NodeType::Input => [0.8, 0.8, 0.2],   // Yellow
+            NodeType::Output => [0.8, 0.2, 0.2],  // Red
         }
     }
 
@@ -497,11 +497,8 @@ impl GraphRenderer {
             zoom,
         };
 
-        self.queue.write_buffer(
-            &self.camera_buffer,
-            0,
-            bytemuck::cast_slice(&[uniform]),
-        );
+        self.queue
+            .write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[uniform]));
     }
 
     /// Set selected node for highlighting
@@ -523,11 +520,8 @@ impl GraphRenderer {
             _padding: 0.0,
         };
 
-        self.queue.write_buffer(
-            &self.selection_buffer,
-            0,
-            bytemuck::cast_slice(&[uniform]),
-        );
+        self.queue
+            .write_buffer(&self.selection_buffer, 0, bytemuck::cast_slice(&[uniform]));
     }
 
     /// Render the graph to the given render pass

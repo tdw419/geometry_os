@@ -24,28 +24,28 @@ use serde::{Deserialize, Serialize};
 pub struct AlpineVmConfig {
     /// Path to Alpine visual PNG
     pub alpine_png: PathBuf,
-    
+
     /// VNC port for QEMU
     pub vnc_port: u16,
-    
+
     /// QEMU monitor port
     pub monitor_port: u16,
-    
+
     /// Framebuffer socket path
     pub framebuffer_socket: PathBuf,
 
     /// QMP socket path
     pub qmp_socket: PathBuf,
-    
+
     /// VM memory in MB
     pub memory_mb: u32,
-    
+
     /// Number of CPU cores
     pub cpu_cores: u32,
-    
+
     /// Window ID for rendering on infinite map
     pub window_id: Option<usize>,
-    
+
     /// Tile position on infinite map (x, y)
     pub tile_position: Option<(f64, f64)>,
 }
@@ -71,13 +71,13 @@ impl Default for AlpineVmConfig {
 pub enum AlpineVmState {
     /// VM not started
     Stopped,
-    
+
     /// VM is booting
     Booting,
-    
+
     /// VM is running
     Running,
-    
+
     /// VM encounterd an error
     Error(String),
 }
@@ -96,25 +96,25 @@ pub enum BootSource {
 pub struct AlpineVmManager {
     /// VM configuration
     config: AlpineVmConfig,
-    
+
     /// Current VM state
     state: Arc<Mutex<AlpineVmState>>,
-    
+
     /// QEMU process handle
     qemu_process: Arc<Mutex<Option<Child>>>,
-    
+
     /// VNC capture process handle
     vnc_capture_process: Arc<Mutex<Option<Child>>>,
-    
+
     /// Latest framebuffer data
     framebuffer: Arc<Mutex<Option<Vec<u8>>>>,
-    
+
     /// Framebuffer dimensions
     framebuffer_size: Arc<Mutex<(u32, u32)>>,
-    
+
     /// Last framebuffer update time
     last_update: Arc<Mutex<Option<Instant>>>,
-    
+
     /// Temporary directory for extraction
     temp_dir: Arc<Mutex<Option<PathBuf>>>,
 
@@ -137,7 +137,7 @@ impl AlpineVmManager {
             qmp_client: Arc::new(tokio::sync::Mutex::new(None)),
         }
     }
-    
+
     /// Boot Alpine Linux VM
     pub fn boot(&mut self) -> Result<(), String> {
         // Check if already running
@@ -147,28 +147,28 @@ impl AlpineVmManager {
                 return Err("VM is already running or booting".to_string());
             }
         }
-        
+
         // Set state to booting
         *self.state.lock().unwrap() = AlpineVmState::Booting;
-        
+
         // Create temporary directory
-        let temp_dir = tempfile::tempdir()
-            .map_err(|e| format!("Failed to create temp dir: {}", e))?;
+        let temp_dir =
+            tempfile::tempdir().map_err(|e| format!("Failed to create temp dir: {}", e))?;
         let temp_path = temp_dir.path().to_path_buf();
         *self.temp_dir.lock().unwrap() = Some(temp_path.clone());
-        
+
         // Extract Alpine from PNG
         self.extract_alpine(&temp_path)?;
-        
+
         // Start QEMU
         self.start_qemu(&temp_path, BootSource::ExtractedDir(temp_path.clone()))?;
-        
+
         // Start VNC capture
         self.start_vnc_capture()?;
-        
+
         // Set state to running
         *self.state.lock().unwrap() = AlpineVmState::Running;
-        
+
         // Connect QMP
         self.connect_qmp()?;
 
@@ -179,7 +179,7 @@ impl AlpineVmManager {
     /// Connect to QMP Socket
     fn connect_qmp(&self) -> Result<(), String> {
         let qmp_client = self.qmp_client.clone();
-        
+
         // Spawn connection task to avoid blocking main thread
         // Note: In a real app we might want to await this, but here we just start the connection loop
         tokio::spawn(async move {
@@ -191,11 +191,11 @@ impl AlpineVmManager {
                         log::info!("✅ Alpine QMP Connected!");
                         *qmp_client.lock().await = Some(client);
                         break;
-                    }
+                    },
                     Err(e) => {
                         log::debug!("QMP Connect retry: {}", e);
                         tokio::time::sleep(Duration::from_millis(500)).await;
-                    }
+                    },
                 }
             }
         });
@@ -208,22 +208,22 @@ impl AlpineVmManager {
     pub fn inject_key_event(&self, key_code: &str, down: bool) {
         let qmp_client = self.qmp_client.clone();
         let key = key_code.to_string();
-        
+
         tokio::spawn(async move {
             let mut guard = qmp_client.lock().await;
             if let Some(client) = guard.as_mut() {
                 // Construct input-send-event command
                 // QMP 2.x+ uses 'input-send-event' with InputEvent union
                 // But simpler 'send-key' command still works and is easier for simple keys
-                
+
                 // Using send-key for simplicity: { "execute": "send-key", "arguments": { "keys": [ { "type": "qcode", "data": "ret" } ] } }
                 // But send-key presses AND releases.
                 // We want explicit down/up if possible?
-                // 'send-key' has 'hold-time'. 
-                
+                // 'send-key' has 'hold-time'.
+
                 // If we want detailed events, we use input-send-event.
                 // input-send-event arguments: device (opt), head (opt), events: [ { type: "key", data: { key: "...", down: true } } ]
-                
+
                 let event = serde_json::json!({
                     "type": "key",
                     "data": {
@@ -231,31 +231,38 @@ impl AlpineVmManager {
                         "down": down
                     }
                 });
-                
+
                 let args = serde_json::json!({
                     "events": [ event ]
                 });
-                
+
                 if let Err(e) = client.execute("input-send-event", Some(args)).await {
                     log::warn!("Failed to inject key {}: {}", key, e);
                 }
             }
         });
     }
-    
+
     /// Extract Alpine Linux from visual PNG
     fn extract_alpine(&self, temp_dir: &Path) -> Result<(), String> {
-        log::info!("Extracting Alpine from visual PNG: {:?}", self.config.alpine_png);
-        
+        log::info!(
+            "Extracting Alpine from visual PNG: {:?}",
+            self.config.alpine_png
+        );
+
         if !self.config.alpine_png.exists() {
-            return Err(format!("Alpine PNG not found: {:?}", self.config.alpine_png));
+            return Err(format!(
+                "Alpine PNG not found: {:?}",
+                self.config.alpine_png
+            ));
         }
-        
+
         // Use Python extractor
         let output = Command::new("python3")
             .env("PYTHONPATH", "../..")
             .arg("-c")
-            .arg(format!(r#"
+            .arg(format!(
+                r#"
 import sys
 sys.path.insert(0, '../..')
 from pixelrts_extractor import PixelRTSExtractor
@@ -273,15 +280,18 @@ for name, data in binaries.items():
     with open(name, 'wb') as f:
         f.write(data)
     print(f"Extracted: {{name}} ({{len(data)}} bytes)")
-"#, self.config.alpine_png.display(), temp_dir.display()))
+"#,
+                self.config.alpine_png.display(),
+                temp_dir.display()
+            ))
             .output()
             .map_err(|e| format!("Failed to run extractor: {}", e))?;
-        
+
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("Extraction failed: {}", stderr));
         }
-        
+
         log::info!("Alpine extracted to: {:?}", temp_dir);
         Ok(())
     }
@@ -295,12 +305,12 @@ for name, data in binaries.items():
                 return Err("VM is already running or booting".to_string());
             }
         }
-        
+
         *self.state.lock().unwrap() = AlpineVmState::Booting;
-        
+
         // Setup temp dir for sockets/pidfile even if we don't extract
-        let temp_dir = tempfile::tempdir()
-            .map_err(|e| format!("Failed to create temp dir: {}", e))?;
+        let temp_dir =
+            tempfile::tempdir().map_err(|e| format!("Failed to create temp dir: {}", e))?;
         let temp_path = temp_dir.path().to_path_buf();
         *self.temp_dir.lock().unwrap() = Some(temp_path.clone());
 
@@ -309,51 +319,58 @@ for name, data in binaries.items():
         } else {
             BootSource::Kernel(path)
         };
-        
+
         // Start QEMU with the file
         self.start_qemu(&temp_path, source)?;
-        
+
         // Start VNC capture
         self.start_vnc_capture()?;
-        
+
         *self.state.lock().unwrap() = AlpineVmState::Running;
-        
+
         log::info!("VM booted from file successfully");
         Ok(())
     }
-    
+
     /// Start QEMU with VNC output
     fn start_qemu(&self, temp_dir: &Path, source: BootSource) -> Result<(), String> {
         log::info!("Starting QEMU with VNC on port {}", self.config.vnc_port);
-        
+
         // Kill any existing QEMU on this port
         let _ = Command::new("fuser")
             .arg("-k")
             .arg(format!("{}/tcp", self.config.vnc_port))
             .output();
-        
+
         // Base Command
         let mut cmd = Command::new("qemu-system-x86_64");
-        
+
         // Configure Boot Source
         match source {
             BootSource::ExtractedDir(dir) => {
                 let kernel_path = dir.join("kernel");
                 let initrd_path = dir.join("initrd");
                 if !kernel_path.exists() || !initrd_path.exists() {
-                     return Err("Kernel or initrd not found".to_string());
+                    return Err("Kernel or initrd not found".to_string());
                 }
-                cmd.arg("-kernel").arg(kernel_path)
-                   .arg("-initrd").arg(initrd_path)
-                   .arg("-append").arg("console=tty0 console=ttyS0 modules=loop,squashfs,sd-mod,usb-storage quiet");
+                cmd.arg("-kernel")
+                    .arg(kernel_path)
+                    .arg("-initrd")
+                    .arg(initrd_path)
+                    .arg("-append")
+                    .arg(
+                        "console=tty0 console=ttyS0 modules=loop,squashfs,sd-mod,usb-storage quiet",
+                    );
             },
             BootSource::Iso(path) => {
                 cmd.arg("-cdrom").arg(path);
             },
             BootSource::Kernel(path) => {
-                cmd.arg("-kernel").arg(path)
-                   .arg("-append").arg("console=tty0 console=ttyS0 earlyprintk=serial");
-            }
+                cmd.arg("-kernel")
+                    .arg(path)
+                    .arg("-append")
+                    .arg("console=tty0 console=ttyS0 earlyprintk=serial");
+            },
         }
 
         // Common Configuration
@@ -381,9 +398,10 @@ for name, data in binaries.items():
             .arg(temp_dir.join("qemu.pid"))
             .arg("-daemonize");
 
-        let mut child = cmd.spawn()
+        let mut child = cmd
+            .spawn()
             .map_err(|e| format!("Failed to start QEMU: {}", e))?;
-        
+
         // Wait and check
         thread::sleep(Duration::from_secs(3));
         match child.try_wait() {
@@ -391,17 +409,17 @@ for name, data in binaries.items():
             Ok(None) => {}, // Running
             Err(e) => return Err(format!("Status check failed: {}", e)),
         }
-        
+
         *self.qemu_process.lock().unwrap() = Some(child);
-        
+
         log::info!("QEMU started successfully");
         Ok(())
     }
-    
+
     /// Start VNC framebuffer capture
     fn start_vnc_capture(&self) -> Result<(), String> {
         log::info!("Starting VNC framebuffer capture");
-        
+
         // Create VNC capture script
         let capture_script = r#"
 #!/usr/bin/env python3
@@ -492,19 +510,22 @@ def capture_framebuffer():
 if __name__ == "__main__":
     capture_framebuffer()
 "#;
-        
+
         let temp_dir = self.temp_dir.lock().unwrap().as_ref().unwrap().clone();
         let script_path = temp_dir.join("vnc_capture.py");
-        
+
         fs::write(&script_path, capture_script)
             .map_err(|e| format!("Failed to write capture script: {}", e))?;
-        
+
         // Set environment variables
         let mut envs = std::env::vars().collect::<HashMap<_, _>>();
         envs.insert("VNC_HOST".to_string(), "localhost".to_string());
         envs.insert("VNC_PORT".to_string(), self.config.vnc_port.to_string());
-        envs.insert("FRAMEBUFFER_SOCKET".to_string(), self.config.framebuffer_socket.display().to_string());
-        
+        envs.insert(
+            "FRAMEBUFFER_SOCKET".to_string(),
+            self.config.framebuffer_socket.display().to_string(),
+        );
+
         // Start VNC capture
         let mut child = Command::new("python3")
             .arg(&script_path)
@@ -513,58 +534,60 @@ if __name__ == "__main__":
             .stderr(fs::File::create(temp_dir.join("vnc_capture.err")).unwrap())
             .spawn()
             .map_err(|e| format!("Failed to start VNC capture: {}", e))?;
-        
+
         // Wait for socket to be created
         thread::sleep(Duration::from_secs(2));
-        
+
         *self.vnc_capture_process.lock().unwrap() = Some(child);
-        
+
         log::info!("VNC capture started");
         Ok(())
     }
-    
+
     /// Capture latest framebuffer from socket
     pub fn capture_framebuffer(&self) -> Result<(Vec<u8>, u32, u32), String> {
         let socket_path = &self.config.framebuffer_socket;
-        
+
         if !socket_path.exists() {
             return Err("Framebuffer socket does not exist".to_string());
         }
-        
+
         let mut stream = UnixStream::connect(socket_path)
             .map_err(|e| format!("Failed to connect to framebuffer socket: {}", e))?;
-        
+
         // Read header (width, height)
         let mut header = [0u8; 8];
-        stream.read_exact(&mut header)
+        stream
+            .read_exact(&mut header)
             .map_err(|e| format!("Failed to read framebuffer header: {}", e))?;
-        
+
         let (width, height) = (
             u32::from_le_bytes([header[0], header[1], header[2], header[3]]),
             u32::from_le_bytes([header[4], header[5], header[6], header[7]]),
         );
-        
+
         // Read PNG data
         let mut buffer = Vec::new();
-        stream.read_to_end(&mut buffer)
+        stream
+            .read_to_end(&mut buffer)
             .map_err(|e| format!("Failed to read framebuffer data: {}", e))?;
-        
+
         // Update framebuffer cache
         *self.framebuffer.lock().unwrap() = Some(buffer.clone());
         *self.framebuffer_size.lock().unwrap() = (width, height);
         *self.last_update.lock().unwrap() = Some(Instant::now());
-        
+
         Ok((buffer, width, height))
     }
-    
+
     /// Get cached framebuffer data
     pub fn get_framebuffer(&self) -> Option<(Vec<u8>, u32, u32)> {
         let fb = self.framebuffer.lock().unwrap();
         let size = self.framebuffer_size.lock().unwrap();
-        
+
         fb.as_ref().map(|data| (data.clone(), size.0, size.1))
     }
-    
+
     /// Check if framebuffer has been updated recently
     pub fn is_framebuffer_fresh(&self, max_age: Duration) -> bool {
         let last_update = self.last_update.lock().unwrap();
@@ -573,62 +596,62 @@ if __name__ == "__main__":
             None => false,
         }
     }
-    
+
     /// Stop the VM
     pub fn stop(&mut self) -> Result<(), String> {
         log::info!("Stopping Alpine VM");
-        
+
         // Stop VNC capture
         if let Some(mut child) = self.vnc_capture_process.lock().unwrap().take() {
             let _ = child.kill();
             let _ = child.wait();
         }
-        
+
         // Stop QEMU
         if let Some(mut child) = self.qemu_process.lock().unwrap().take() {
             let _ = child.kill();
             let _ = child.wait();
         }
-        
+
         // Clean up socket
         let _ = std::fs::remove_file(&self.config.framebuffer_socket);
-        
+
         // Clean up temp dir
         if let Some(temp_dir) = self.temp_dir.lock().unwrap().take() {
             let _ = fs::remove_dir_all(temp_dir);
         }
-        
+
         *self.state.lock().unwrap() = AlpineVmState::Stopped;
-        
+
         log::info!("Alpine VM stopped");
         Ok(())
     }
-    
+
     /// Get current VM state
     pub fn state(&self) -> AlpineVmState {
         self.state.lock().unwrap().clone()
     }
-    
+
     /// Check if VM is running
     pub fn is_running(&self) -> bool {
         self.state() == AlpineVmState::Running
     }
-    
+
     /// Get window ID
     pub fn window_id(&self) -> Option<usize> {
         self.config.window_id
     }
-    
+
     /// Set window ID
     pub fn set_window_id(&mut self, window_id: usize) {
         self.config.window_id = Some(window_id);
     }
-    
+
     /// Get tile position
     pub fn tile_position(&self) -> Option<(f64, f64)> {
         self.config.tile_position
     }
-    
+
     /// Set tile position
     pub fn set_tile_position(&mut self, x: f64, y: f64) {
         self.config.tile_position = Some((x, y));
@@ -638,7 +661,7 @@ if __name__ == "__main__":
     pub fn type_text(&self, text: &str) {
         let text = text.to_string();
         let qmp_client = self.qmp_client.clone();
-        
+
         // Spawn a single task for the entire string to ensure sequential delivery
         tokio::spawn(async move {
             let mut guard = qmp_client.lock().await;
@@ -647,17 +670,17 @@ if __name__ == "__main__":
                     if let Some((qcode, shift)) = Self::char_to_qcode(c) {
                         // 1. Shift Down
                         if shift {
-                             let event = serde_json::json!({
+                            let event = serde_json::json!({
                                 "type": "key",
                                 "data": { "key": { "type": "qcode", "data": "shift" }, "down": true }
                             });
                             let args = serde_json::json!({ "events": [ event ] });
                             let _ = client.execute("input-send-event", Some(args)).await;
                         }
-                        
+
                         // 2. Key Press (Down)
                         {
-                             let event = serde_json::json!({
+                            let event = serde_json::json!({
                                 "type": "key",
                                 "data": { "key": { "type": "qcode", "data": qcode }, "down": true }
                             });
@@ -667,17 +690,17 @@ if __name__ == "__main__":
 
                         // 3. Key Press (Up)
                         {
-                             let event = serde_json::json!({
+                            let event = serde_json::json!({
                                 "type": "key",
                                 "data": { "key": { "type": "qcode", "data": qcode }, "down": false }
                             });
                             let args = serde_json::json!({ "events": [ event ] });
                             let _ = client.execute("input-send-event", Some(args)).await;
                         }
-                        
+
                         // 4. Shift Up
                         if shift {
-                             let event = serde_json::json!({
+                            let event = serde_json::json!({
                                 "type": "key",
                                 "data": { "key": { "type": "qcode", "data": "shift" }, "down": false }
                             });
@@ -692,7 +715,7 @@ if __name__ == "__main__":
             }
         });
     }
-    
+
     /// Internal wrapper for inject_key_event to match naming
     fn send_key_event(&self, key: &str, down: bool) {
         self.inject_key_event(key, down);
@@ -701,60 +724,107 @@ if __name__ == "__main__":
     /// Map char to (qcode, shift_pressed)
     pub fn char_to_qcode(c: char) -> Option<(&'static str, bool)> {
         match c {
-            'a' => Some(("a", false)), 'A' => Some(("a", true)),
-            'b' => Some(("b", false)), 'B' => Some(("b", true)),
-            'c' => Some(("c", false)), 'C' => Some(("c", true)),
-            'd' => Some(("d", false)), 'D' => Some(("d", true)),
-            'e' => Some(("e", false)), 'E' => Some(("e", true)),
-            'f' => Some(("f", false)), 'F' => Some(("f", true)),
-            'g' => Some(("g", false)), 'G' => Some(("g", true)),
-            'h' => Some(("h", false)), 'H' => Some(("h", true)),
-            'i' => Some(("i", false)), 'I' => Some(("i", true)),
-            'j' => Some(("j", false)), 'J' => Some(("j", true)),
-            'k' => Some(("k", false)), 'K' => Some(("k", true)),
-            'l' => Some(("l", false)), 'L' => Some(("l", true)),
-            'm' => Some(("m", false)), 'M' => Some(("m", true)),
-            'n' => Some(("n", false)), 'N' => Some(("n", true)),
-            'o' => Some(("o", false)), 'O' => Some(("o", true)),
-            'p' => Some(("p", false)), 'P' => Some(("p", true)),
-            'q' => Some(("q", false)), 'Q' => Some(("q", true)),
-            'r' => Some(("r", false)), 'R' => Some(("r", true)),
-            's' => Some(("s", false)), 'S' => Some(("s", true)),
-            't' => Some(("t", false)), 'T' => Some(("t", true)),
-            'u' => Some(("u", false)), 'U' => Some(("u", true)),
-            'v' => Some(("v", false)), 'V' => Some(("v", true)),
-            'w' => Some(("w", false)), 'W' => Some(("w", true)),
-            'x' => Some(("x", false)), 'X' => Some(("x", true)),
-            'y' => Some(("y", false)), 'Y' => Some(("y", true)),
-            'z' => Some(("z", false)), 'Z' => Some(("z", true)),
-            
-            '0' => Some(("0", false)), ')' => Some(("0", true)),
-            '1' => Some(("1", false)), '!' => Some(("1", true)),
-            '2' => Some(("2", false)), '@' => Some(("2", true)),
-            '3' => Some(("3", false)), '#' => Some(("3", true)),
-            '4' => Some(("4", false)), '$' => Some(("4", true)),
-            '5' => Some(("5", false)), '%' => Some(("5", true)),
-            '6' => Some(("6", false)), '^' => Some(("6", true)),
-            '7' => Some(("7", false)), '&' => Some(("7", true)),
-            '8' => Some(("8", false)), '*' => Some(("8", true)),
-            '9' => Some(("9", false)), '(' => Some(("9", true)),
-            
-            '-' => Some(("minus", false)), '_' => Some(("minus", true)),
-            '=' => Some(("equal", false)), '+' => Some(("equal", true)),
-            '[' => Some(("bracket_left", false)), '{' => Some(("bracket_left", true)),
-            ']' => Some(("bracket_right", false)), '}' => Some(("bracket_right", true)),
-            ';' => Some(("semicolon", false)), ':' => Some(("semicolon", true)),
-            '\'' => Some(("apostrophe", false)), '"' => Some(("apostrophe", true)),
-            '`' => Some(("grave_accent", false)), '~' => Some(("grave_accent", true)),
-            '\\' => Some(("backslash", false)), '|' => Some(("backslash", true)),
-            ',' => Some(("comma", false)), '<' => Some(("comma", true)),
-            '.' => Some(("dot", false)), '>' => Some(("dot", true)),
-            '/' => Some(("slash", false)), '?' => Some(("slash", true)),
-            
+            'a' => Some(("a", false)),
+            'A' => Some(("a", true)),
+            'b' => Some(("b", false)),
+            'B' => Some(("b", true)),
+            'c' => Some(("c", false)),
+            'C' => Some(("c", true)),
+            'd' => Some(("d", false)),
+            'D' => Some(("d", true)),
+            'e' => Some(("e", false)),
+            'E' => Some(("e", true)),
+            'f' => Some(("f", false)),
+            'F' => Some(("f", true)),
+            'g' => Some(("g", false)),
+            'G' => Some(("g", true)),
+            'h' => Some(("h", false)),
+            'H' => Some(("h", true)),
+            'i' => Some(("i", false)),
+            'I' => Some(("i", true)),
+            'j' => Some(("j", false)),
+            'J' => Some(("j", true)),
+            'k' => Some(("k", false)),
+            'K' => Some(("k", true)),
+            'l' => Some(("l", false)),
+            'L' => Some(("l", true)),
+            'm' => Some(("m", false)),
+            'M' => Some(("m", true)),
+            'n' => Some(("n", false)),
+            'N' => Some(("n", true)),
+            'o' => Some(("o", false)),
+            'O' => Some(("o", true)),
+            'p' => Some(("p", false)),
+            'P' => Some(("p", true)),
+            'q' => Some(("q", false)),
+            'Q' => Some(("q", true)),
+            'r' => Some(("r", false)),
+            'R' => Some(("r", true)),
+            's' => Some(("s", false)),
+            'S' => Some(("s", true)),
+            't' => Some(("t", false)),
+            'T' => Some(("t", true)),
+            'u' => Some(("u", false)),
+            'U' => Some(("u", true)),
+            'v' => Some(("v", false)),
+            'V' => Some(("v", true)),
+            'w' => Some(("w", false)),
+            'W' => Some(("w", true)),
+            'x' => Some(("x", false)),
+            'X' => Some(("x", true)),
+            'y' => Some(("y", false)),
+            'Y' => Some(("y", true)),
+            'z' => Some(("z", false)),
+            'Z' => Some(("z", true)),
+
+            '0' => Some(("0", false)),
+            ')' => Some(("0", true)),
+            '1' => Some(("1", false)),
+            '!' => Some(("1", true)),
+            '2' => Some(("2", false)),
+            '@' => Some(("2", true)),
+            '3' => Some(("3", false)),
+            '#' => Some(("3", true)),
+            '4' => Some(("4", false)),
+            '$' => Some(("4", true)),
+            '5' => Some(("5", false)),
+            '%' => Some(("5", true)),
+            '6' => Some(("6", false)),
+            '^' => Some(("6", true)),
+            '7' => Some(("7", false)),
+            '&' => Some(("7", true)),
+            '8' => Some(("8", false)),
+            '*' => Some(("8", true)),
+            '9' => Some(("9", false)),
+            '(' => Some(("9", true)),
+
+            '-' => Some(("minus", false)),
+            '_' => Some(("minus", true)),
+            '=' => Some(("equal", false)),
+            '+' => Some(("equal", true)),
+            '[' => Some(("bracket_left", false)),
+            '{' => Some(("bracket_left", true)),
+            ']' => Some(("bracket_right", false)),
+            '}' => Some(("bracket_right", true)),
+            ';' => Some(("semicolon", false)),
+            ':' => Some(("semicolon", true)),
+            '\'' => Some(("apostrophe", false)),
+            '"' => Some(("apostrophe", true)),
+            '`' => Some(("grave_accent", false)),
+            '~' => Some(("grave_accent", true)),
+            '\\' => Some(("backslash", false)),
+            '|' => Some(("backslash", true)),
+            ',' => Some(("comma", false)),
+            '<' => Some(("comma", true)),
+            '.' => Some(("dot", false)),
+            '>' => Some(("dot", true)),
+            '/' => Some(("slash", false)),
+            '?' => Some(("slash", true)),
+
             ' ' => Some(("spc", false)),
             '\n' => Some(("ret", false)),
             '\t' => Some(("tab", false)),
-            
+
             _ => None,
         }
     }
@@ -832,7 +902,7 @@ impl Drop for AlpineVmManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_default_config() {
         let config = AlpineVmConfig::default();
@@ -841,12 +911,12 @@ mod tests {
         assert_eq!(config.memory_mb, 512);
         assert_eq!(config.cpu_cores, 1);
     }
-    
+
     #[test]
     fn test_vm_state_transitions() {
         let config = AlpineVmConfig::default();
         let manager = AlpineVmManager::new(config);
-        
+
         assert_eq!(manager.state(), AlpineVmState::Stopped);
         assert!(!manager.is_running());
     }

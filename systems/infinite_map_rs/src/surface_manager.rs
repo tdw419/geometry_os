@@ -20,7 +20,7 @@ pub struct SurfaceManager {
 
     /// Layout for surface bind groups
     bind_group_layout: Arc<wgpu::BindGroupLayout>,
-    
+
     /// Sampler for surface textures
     sampler: Arc<wgpu::Sampler>,
 }
@@ -50,10 +50,10 @@ pub struct SurfaceTexture {
 
 impl SurfaceManager {
     pub fn new(
-        device: Arc<Device>, 
-        queue: Arc<Queue>, 
+        device: Arc<Device>,
+        queue: Arc<Queue>,
         bind_group_layout: Arc<wgpu::BindGroupLayout>,
-        sampler: Arc<wgpu::Sampler>
+        sampler: Arc<wgpu::Sampler>,
     ) -> Self {
         SurfaceManager {
             textures: HashMap::new(),
@@ -131,11 +131,11 @@ impl SurfaceManager {
             };
 
             self.textures.insert(surface.clone(), surface_texture);
-            
+
             // For new textures, we must upload the full frame regardless of damage
             if let Some(surface_texture) = self.textures.get_mut(surface) {
-                 let bytes_per_row = width * 4;
-                 self.queue.write_texture(
+                let bytes_per_row = width * 4;
+                self.queue.write_texture(
                     ImageCopyTexture {
                         texture: &surface_texture.texture,
                         mip_level: 0,
@@ -168,21 +168,24 @@ impl SurfaceManager {
                     // If damage is provided but empty, we do nothing.
                 } else {
                     for rect in damage_rects {
-                         // Robust clipping
-                         let x = rect.loc.x.max(0) as u32;
-                         let y = rect.loc.y.max(0) as u32;
-                         
-                         // Determine copy width/height
-                         // Must not exceed texture bounds
-                         let w = (rect.size.w as u32).min(width.saturating_sub(x));
-                         let h = (rect.size.h as u32).min(height.saturating_sub(y));
+                        // Robust clipping
+                        let x = rect.loc.x.max(0) as u32;
+                        let y = rect.loc.y.max(0) as u32;
 
-                         if w == 0 || h == 0 { continue; }
+                        // Determine copy width/height
+                        // Must not exceed texture bounds
+                        let w = (rect.size.w as u32).min(width.saturating_sub(x));
+                        let h = (rect.size.h as u32).min(height.saturating_sub(y));
 
-                         // Calculate offset into the source buffer
-                         let offset = (y as u64 * bytes_per_row as u64) + (x as u64 * bytes_per_pixel as u64);
+                        if w == 0 || h == 0 {
+                            continue;
+                        }
 
-                         self.queue.write_texture(
+                        // Calculate offset into the source buffer
+                        let offset =
+                            (y as u64 * bytes_per_row as u64) + (x as u64 * bytes_per_pixel as u64);
+
+                        self.queue.write_texture(
                             ImageCopyTexture {
                                 texture: &surface_texture.texture,
                                 mip_level: 0,
@@ -195,7 +198,11 @@ impl SurfaceManager {
                                 bytes_per_row: Some(bytes_per_row),
                                 rows_per_image: Some(height),
                             },
-                            Extent3d { width: w, height: h, depth_or_array_layers: 1 },
+                            Extent3d {
+                                width: w,
+                                height: h,
+                                depth_or_array_layers: 1,
+                            },
                         );
                     }
                 }
@@ -258,7 +265,7 @@ pub fn wayland_format_to_wgpu(format: u32) -> Option<TextureFormat> {
         _ => {
             log::warn!("Unknown or unsupported Wayland format: {}", format);
             None
-        }
+        },
     }
 }
 
@@ -276,7 +283,7 @@ pub fn convert_shm_to_rgba(
             // BGRA is generally supported by WGPU/hardware directly, so we might just pass it.
             // But if the source is truly just bytes, it matches.
             buffer_data.to_vec()
-        }
+        },
         TextureFormat::Rgba8UnormSrgb => {
             // Convert BGRA to RGBA if source was BGRA (Wayland default) but we want RGBA
             // This assumes the input `buffer_data` is BGRA (common in Wayland SHM)
@@ -286,10 +293,10 @@ pub fn convert_shm_to_rgba(
                 rgba_data.extend_from_slice(&[chunk[2], chunk[1], chunk[0], chunk[3]]);
             }
             rgba_data
-        }
+        },
         _ => {
             // For now, just copy as-is
             buffer_data.to_vec()
-        }
+        },
     }
 }

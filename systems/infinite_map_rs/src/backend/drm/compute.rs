@@ -3,7 +3,7 @@
 //! This module executes compiled glyph SPIR-V directly via DRM,
 //! bypassing Vulkan/WebGPU for Phase 2 of the Glyph-to-Metal pipeline.
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use std::os::unix::io::AsRawFd;
 
 use super::device::DrmDevice;

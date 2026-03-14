@@ -91,7 +91,7 @@ impl TerminalColor {
                 } else {
                     [128, 128, 128, 255]
                 }
-            }
+            },
         }
     }
 
@@ -773,7 +773,7 @@ impl TerminalEmulator {
             _ => {
                 // Regular character
                 key.as_bytes().to_vec()
-            }
+            },
         }
     }
 
@@ -857,13 +857,13 @@ impl Perform for TerminalEmulator {
             0x08 => {
                 // Backspace (move cursor back)
                 buffer.move_cursor_relative(0, -1);
-            }
+            },
             0x09 => {
                 // Tab (move cursor to next tab stop, simplified to 8 spaces)
                 let (row, col) = buffer.get_cursor();
                 let next_tab = ((col / 8) + 1) * 8;
                 buffer.move_cursor(row, next_tab);
-            }
+            },
             0x0A => {
                 // Line feed (move cursor down, possibly scroll)
                 let (row, col) = buffer.get_cursor();
@@ -873,16 +873,16 @@ impl Perform for TerminalEmulator {
                 } else {
                     buffer.move_cursor(row + 1, col);
                 }
-            }
+            },
             0x0D => {
                 // Carriage return (move cursor to start of line)
                 let (row, _) = buffer.get_cursor();
                 buffer.move_cursor(row, 0);
-            }
+            },
             _ => {
                 // Other control characters
                 log::debug!("⚠️  Unhandled control byte: 0x{:02x}", byte);
-            }
+            },
         }
     }
 
@@ -941,31 +941,31 @@ impl Perform for TerminalEmulator {
                 let row = params.first().copied().unwrap_or(1).max(1) as usize - 1;
                 let col = params.get(1).copied().unwrap_or(1).max(1) as usize - 1;
                 buffer.move_cursor(row, col);
-            }
+            },
 
             // Cursor Up
             'A' => {
                 let count = params.first().copied().unwrap_or(1).max(1) as i32;
                 buffer.move_cursor_relative(-count, 0);
-            }
+            },
 
             // Cursor Down
             'B' => {
                 let count = params.first().copied().unwrap_or(1).max(1) as i32;
                 buffer.move_cursor_relative(count, 0);
-            }
+            },
 
             // Cursor Forward
             'C' => {
                 let count = params.first().copied().unwrap_or(1).max(1) as i32;
                 buffer.move_cursor_relative(0, count);
-            }
+            },
 
             // Cursor Back
             'D' => {
                 let count = params.first().copied().unwrap_or(1).max(1) as i32;
                 buffer.move_cursor_relative(0, -count);
-            }
+            },
 
             // Cursor Next Line
             'E' => {
@@ -973,7 +973,7 @@ impl Perform for TerminalEmulator {
                 let (_, _col) = buffer.get_cursor();
                 buffer.move_cursor_relative(count, 0);
                 buffer.move_cursor(buffer.get_cursor().0, 0);
-            }
+            },
 
             // Cursor Previous Line
             'F' => {
@@ -981,14 +981,14 @@ impl Perform for TerminalEmulator {
                 let (_, _col) = buffer.get_cursor();
                 buffer.move_cursor_relative(-count, 0);
                 buffer.move_cursor(buffer.get_cursor().0, 0);
-            }
+            },
 
             // Cursor Horizontal Absolute
             'G' => {
                 let col = params.first().copied().unwrap_or(1).max(1) as usize - 1;
                 let (row, _) = buffer.get_cursor();
                 buffer.move_cursor(row, col);
-            }
+            },
 
             // Erase Display
             'J' => {
@@ -1000,10 +1000,10 @@ impl Perform for TerminalEmulator {
                     3 => {
                         // Clear entire display and scrollback (not implemented)
                         buffer.clear_screen();
-                    }
+                    },
                     _ => log::warn!("⚠️  Unknown erase display mode: {}", mode),
                 }
-            }
+            },
 
             // Erase in Line
             'K' => {
@@ -1014,7 +1014,7 @@ impl Perform for TerminalEmulator {
                     2 => buffer.clear_line(),
                     _ => log::warn!("⚠️  Unknown erase line mode: {}", mode),
                 }
-            }
+            },
 
             // Select Graphic Rendition
             'm' => {
@@ -1037,7 +1037,7 @@ impl Perform for TerminalEmulator {
                             22 => {
                                 self.current_attrs.bold = false;
                                 self.current_attrs.dim = false;
-                            }
+                            },
                             23 => self.current_attrs.italic = false,
                             24 => self.current_attrs.underline = false,
                             25 => self.current_attrs.blink = false,
@@ -1056,7 +1056,7 @@ impl Perform for TerminalEmulator {
                                     37 => TerminalColor::White,
                                     _ => TerminalColor::White,
                                 };
-                            }
+                            },
                             38 => {
                                 // Extended foreground color
                                 if let Some(&mode) = params.get(1) {
@@ -1076,7 +1076,7 @@ impl Perform for TerminalEmulator {
                                         }
                                     }
                                 }
-                            }
+                            },
                             39 => self.current_attrs.fg = TerminalColor::White,
                             40..=47 => {
                                 self.current_attrs.bg = match param {
@@ -1090,7 +1090,7 @@ impl Perform for TerminalEmulator {
                                     47 => TerminalColor::White,
                                     _ => TerminalColor::Black,
                                 };
-                            }
+                            },
                             48 => {
                                 // Extended background color
                                 if let Some(&mode) = params.get(1) {
@@ -1110,7 +1110,7 @@ impl Perform for TerminalEmulator {
                                         }
                                     }
                                 }
-                            }
+                            },
                             49 => self.current_attrs.bg = TerminalColor::Black,
                             90..=97 => {
                                 self.current_attrs.fg = match param {
@@ -1124,7 +1124,7 @@ impl Perform for TerminalEmulator {
                                     97 => TerminalColor::BrightWhite,
                                     _ => TerminalColor::White,
                                 };
-                            }
+                            },
                             100..=107 => {
                                 self.current_attrs.bg = match param {
                                     100 => TerminalColor::BrightBlack,
@@ -1137,12 +1137,12 @@ impl Perform for TerminalEmulator {
                                     107 => TerminalColor::BrightWhite,
                                     _ => TerminalColor::Black,
                                 };
-                            }
+                            },
                             _ => log::debug!("⚠️  Unknown SGR parameter: {}", param),
                         }
                     }
                 }
-            }
+            },
 
             // Device Status Report
             'n' => {
@@ -1151,13 +1151,13 @@ impl Perform for TerminalEmulator {
                     // Report cursor position (not implemented - would need to send response back to guest)
                     log::debug!("📍 Cursor position report requested");
                 }
-            }
+            },
 
             // Save Cursor
             's' => {
                 self.saved_cursor = Some(buffer.get_cursor());
                 self.saved_attrs = Some(self.current_attrs);
-            }
+            },
 
             // Restore Cursor
             'u' => {
@@ -1168,11 +1168,11 @@ impl Perform for TerminalEmulator {
                 if let Some(attrs) = self.saved_attrs {
                     self.current_attrs = attrs;
                 }
-            }
+            },
 
             _ => {
                 log::debug!("⚠️  Unhandled CSI sequence: params={:?}, c={}", params, c);
-            }
+            },
         }
     }
 
@@ -1189,7 +1189,7 @@ impl Perform for TerminalEmulator {
             b'7' => {
                 self.saved_cursor = Some(buffer.get_cursor());
                 self.saved_attrs = Some(self.current_attrs);
-            }
+            },
 
             // Restore cursor (alternative to CSI u)
             b'8' => {
@@ -1200,7 +1200,7 @@ impl Perform for TerminalEmulator {
                 if let Some(attrs) = self.saved_attrs {
                     self.current_attrs = attrs;
                 }
-            }
+            },
 
             // Next line
             b'D' => {
@@ -1211,7 +1211,7 @@ impl Perform for TerminalEmulator {
                 } else {
                     buffer.move_cursor(row + 1, 0);
                 }
-            }
+            },
 
             // Index
             b'E' => {
@@ -1222,7 +1222,7 @@ impl Perform for TerminalEmulator {
                 } else {
                     buffer.move_cursor(row + 1, 0);
                 }
-            }
+            },
 
             // Reverse Index
             b'M' => {
@@ -1233,13 +1233,13 @@ impl Perform for TerminalEmulator {
                 } else {
                     buffer.move_cursor(row - 1, col);
                 }
-            }
+            },
 
             // Reset terminal
             b'c' => {
                 buffer.clear_screen();
                 self.current_attrs = CellAttributes::default();
-            }
+            },
 
             _ => {
                 log::debug!(
@@ -1248,7 +1248,7 @@ impl Perform for TerminalEmulator {
                     ignore,
                     byte
                 );
-            }
+            },
         }
     }
 }

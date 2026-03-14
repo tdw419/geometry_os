@@ -4,4 +4,6 @@ members = [
     "systems/glyph_compiler",
     "systems/glyph_framework_rs",
     "kernel/boot",
+    "systems/glyph_boot",
+    "systems/sisyphus",
 ]

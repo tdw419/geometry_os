@@ -2,8 +2,8 @@
 //!
 //! Real register-level control of AMD GPUs.
 
-use anyhow::{Context, Result, anyhow};
 use crate::backend::mmio::{MmioRegion, PciDevice};
+use anyhow::{anyhow, Context, Result};
 
 /// AMD GPU register offsets (GC 10.x / RDNA)
 pub mod regs {
@@ -109,8 +109,7 @@ pub struct AmdGpuDevice {
 impl AmdGpuDevice {
     /// Open AMD GPU device.
     pub fn open() -> Result<Self> {
-        let pci = crate::backend::mmio::find_gpu()
-            .context("Failed to find GPU")?;
+        let pci = crate::backend::mmio::find_gpu().context("Failed to find GPU")?;
 
         if pci.vendor_id != 0x1002 {
             return Err(anyhow!("Not an AMD GPU (vendor={:#x})", pci.vendor_id));
@@ -175,7 +174,8 @@ impl AmdGpuDevice {
     /// Wait for GPU to be idle.
     pub fn wait_idle(&self) -> Result<()> {
         // Check GRBM_STATUS for activity
-        self.mmio.wait_clear(regs::GRBM_STATUS, 0x80000000, 1_000_000)?;
+        self.mmio
+            .wait_clear(regs::GRBM_STATUS, 0x80000000, 1_000_000)?;
         Ok(())
     }
 
@@ -218,7 +218,8 @@ impl AmdGpuDevice {
     /// Wait for dispatch completion.
     pub fn wait_completion(&mut self) -> Result<()> {
         // Wait for ring to be idle
-        self.mmio.wait_clear(regs::GRBM_STATUS, 0x80000000, 10_000_000)?;
+        self.mmio
+            .wait_clear(regs::GRBM_STATUS, 0x80000000, 10_000_000)?;
 
         // Update read pointer
         self.rptr = self.read_reg(regs::CP_RB0_RPTR);

@@ -10,12 +10,12 @@
 //! The GPU approach treats memory as raw tensors and uses compute shaders
 //! to fold them into 2D textures with Hilbert curve locality preservation.
 
-use crate::evolution_protocol::{
-    NeuralStateData, SelfState, TheoryOfMindState
+use crate::evolution_protocol::{NeuralStateData, SelfState, TheoryOfMindState};
+use crate::memory_tensor::{
+    pack_neural_state_to_tensor, ColorMode, MemoryTensorConfig, MemoryTensorFolder, NeuralParams,
 };
-use crate::memory_tensor::{MemoryTensorFolder, MemoryTensorConfig, NeuralParams, ColorMode, pack_neural_state_to_tensor};
-use wgpu::{self, Device, Queue, Texture, TextureView, TextureFormat, Extent3d};
 use std::time::Instant;
+use wgpu::{self, Device, Extent3d, Queue, Texture, TextureFormat, TextureView};
 
 /// Neural state texture for rendering neural network state
 ///
@@ -26,7 +26,7 @@ use std::time::Instant;
 pub struct NeuralStateTexture {
     // GPU-based tensor folder (NEW: Tensor-Compute architecture)
     tensor_folder: Option<MemoryTensorFolder>,
-    
+
     // Fallback CPU-based texture (for compatibility)
     texture: Texture,
     view: TextureView,
@@ -34,14 +34,14 @@ pub struct NeuralStateTexture {
     height: u32,
     last_update: Instant,
     data_version: u64,
-    
+
     // Configuration
-    use_gpu_compute: bool,  // true = GPU compute shader, false = CPU fallback
+    use_gpu_compute: bool, // true = GPU compute shader, false = CPU fallback
 }
 
 impl NeuralStateTexture {
     /// Create a new neural state texture with GPU compute shader support
-    /// 
+    ///
     /// Architecture: Tensor-Compute (GPU-based)
     /// - Initializes MemoryTensorFolder for parallel GPU processing
     /// - Falls back to CPU if GPU compute fails
@@ -81,7 +81,7 @@ impl NeuralStateTexture {
             use_gpu_compute,
         }
     }
-    
+
     /// Initialize the GPU tensor folder
     fn init_tensor_folder(device: &Device, width: u32, height: u32) -> Option<MemoryTensorFolder> {
         // Validate dimensions (must be power of 2 for Hilbert curve)
@@ -89,10 +89,10 @@ impl NeuralStateTexture {
             eprintln!("Warning: Texture dimensions must be powers of 2 for GPU compute. Falling back to CPU.");
             return None;
         }
-        
+
         // Calculate Hilbert order (log2 of dimension)
         let hilbert_order = (width as f32).log2() as u32;
-        
+
         let config = MemoryTensorConfig {
             width,
             height,
@@ -102,21 +102,24 @@ impl NeuralStateTexture {
             brightness: 1.0,
             contrast: 1.0,
         };
-        
+
         match MemoryTensorFolder::new(device, config) {
             Ok(folder) => {
                 println!("✓ Tensor-Compute architecture initialized: {}x{} texture with Hilbert order {}", width, height, hilbert_order);
                 Some(folder)
-            }
+            },
             Err(e) => {
-                eprintln!("Warning: Failed to initialize GPU compute shader: {}. Falling back to CPU.", e);
+                eprintln!(
+                    "Warning: Failed to initialize GPU compute shader: {}. Falling back to CPU.",
+                    e
+                );
                 None
-            }
+            },
         }
     }
 
     /// Update texture with neural state data
-    /// 
+    ///
     /// Architecture: Tensor-Compute (GPU-based)
     /// - OLD: CPU loop O(N) - Iterate through each pixel
     /// - NEW: GPU compute O(1) - Single dispatch, parallel folding
@@ -130,22 +133,31 @@ impl NeuralStateTexture {
     ) {
         // Try GPU compute shader first (Tensor-Compute architecture)
         if let Some(ref mut tensor_folder) = self.tensor_folder {
-            if Self::update_with_gpu_compute(tensor_folder, device, queue, neural_state, self_state, theory_of_mind).is_ok() {
+            if Self::update_with_gpu_compute(
+                tensor_folder,
+                device,
+                queue,
+                neural_state,
+                self_state,
+                theory_of_mind,
+            )
+            .is_ok()
+            {
                 self.last_update = Instant::now();
                 self.data_version += 1;
                 return;
             }
         }
-        
+
         // Fallback to CPU-based texture generation
         self.update_with_cpu(queue, neural_state, self_state, theory_of_mind);
-        
+
         self.last_update = Instant::now();
         self.data_version += 1;
     }
-    
+
     /// Update texture using GPU compute shader (Tensor-Compute architecture)
-    /// 
+    ///
     /// This is the "dumb pipe" operation:
     /// 1. Pack neural state into raw tensor bytes
     /// 2. Upload to GPU buffer (single memcpy)
@@ -159,36 +171,43 @@ impl NeuralStateTexture {
         self_state: Option<&SelfState>,
         theory_of_mind: Option<&TheoryOfMindState>,
     ) -> Result<(), String> {
-        
         // Update neural parameters from evolution protocol
         let neural_params = NeuralParams {
-            confidence: self_state.map(|s| s.confidence).unwrap_or(neural_state.confidence),
+            confidence: self_state
+                .map(|s| s.confidence)
+                .unwrap_or(neural_state.confidence),
             focus_depth: self_state.map(|s| s.focus_depth).unwrap_or(0.0),
-            user_attention: theory_of_mind.map(|t| t.user_intent.attention_focus).unwrap_or(0.5),
+            user_attention: theory_of_mind
+                .map(|t| t.user_intent.attention_focus)
+                .unwrap_or(0.5),
             alignment: theory_of_mind.map(|t| t.alignment).unwrap_or(0.5),
-            mind_reading: theory_of_mind.map(|t| t.mind_reading_confidence).unwrap_or(0.5),
-            misalignment: theory_of_mind.map(|t| if t.misalignment_detected { 1.0 } else { 0.0 }).unwrap_or(0.0),
+            mind_reading: theory_of_mind
+                .map(|t| t.mind_reading_confidence)
+                .unwrap_or(0.5),
+            misalignment: theory_of_mind
+                .map(|t| if t.misalignment_detected { 1.0 } else { 0.0 })
+                .unwrap_or(0.0),
         };
-        
+
         tensor_folder.set_neural_params(neural_params);
-        
+
         // Pack neural state into tensor bytes (the "raw data block")
         let tensor_data = pack_neural_state_to_tensor(
             &neural_state.layer_activations,
             &neural_state.attention_weights,
             &neural_state.memory_patterns,
         );
-        
+
         // Dispatch compute shader (O(1) operation)
         // GPU will fold this tensor into texture in parallel
         tensor_folder.fold_memory(device, queue, &tensor_data)?;
-        
+
         // Update texture view to point to GPU-computed texture
         // self.view = tensor_folder.texture_view().clone();
-        
+
         Ok(())
     }
-    
+
     /// Update texture using CPU (fallback for compatibility)
     fn update_with_cpu(
         &mut self,
@@ -222,7 +241,7 @@ impl NeuralStateTexture {
     }
 
     /// Get the texture view for rendering
-    /// 
+    ///
     /// Returns the GPU-computed texture view if available,
     /// otherwise returns the CPU fallback texture view.
     pub fn view(&self) -> &TextureView {
@@ -241,12 +260,12 @@ impl NeuralStateTexture {
             &self.texture
         }
     }
-    
+
     /// Check if GPU compute is being used
     pub fn is_using_gpu_compute(&self) -> bool {
         self.use_gpu_compute && self.tensor_folder.is_some()
     }
-    
+
     /// Get the architecture mode being used
     pub fn architecture_mode(&self) -> &str {
         if self.is_using_gpu_compute() {
@@ -287,17 +306,27 @@ impl NeuralStateTexture {
         let activations = &neural_state.layer_activations;
         let attention = &neural_state.attention_weights;
         let memory = &neural_state.memory_patterns;
-        
+
         // Extract consciousness metrics (Phase 23)
-        let confidence = self_state.map(|s| s.confidence).unwrap_or(neural_state.confidence);
+        let confidence = self_state
+            .map(|s| s.confidence)
+            .unwrap_or(neural_state.confidence);
         let focus = self_state.map(|s| s.focus_depth).unwrap_or(0.0);
-        
+
         // Extract Theory of Mind metrics (Phase 24)
-        let _user_intent_conf = theory_of_mind.map(|t| t.user_intent.intent_confidence).unwrap_or(0.5);
-        let user_attention = theory_of_mind.map(|t| t.user_intent.attention_focus).unwrap_or(0.5);
+        let _user_intent_conf = theory_of_mind
+            .map(|t| t.user_intent.intent_confidence)
+            .unwrap_or(0.5);
+        let user_attention = theory_of_mind
+            .map(|t| t.user_intent.attention_focus)
+            .unwrap_or(0.5);
         let alignment = theory_of_mind.map(|t| t.alignment).unwrap_or(0.5);
-        let mind_reading = theory_of_mind.map(|t| t.mind_reading_confidence).unwrap_or(0.5);
-        let misalignment = theory_of_mind.map(|t| if t.misalignment_detected { 1.0 } else { 0.0 }).unwrap_or(0.0);
+        let mind_reading = theory_of_mind
+            .map(|t| t.mind_reading_confidence)
+            .unwrap_or(0.5);
+        let misalignment = theory_of_mind
+            .map(|t| if t.misalignment_detected { 1.0 } else { 0.0 })
+            .unwrap_or(0.0);
 
         for i in 0..grid_size {
             // Sample from different neural components
@@ -383,7 +412,7 @@ impl NeuralStateTexture {
 
         for i in 0..data.len() {
             let value = data[i].clamp(0.0, 1.0);
-            
+
             // Color gradient: blue -> cyan -> green -> yellow -> red
             let color = if value < 0.25 {
                 // Blue to cyan
@@ -410,16 +439,12 @@ impl NeuralStateTexture {
     }
 
     /// Create attention flow visualization
-    pub fn create_attention_flow(
-        attention: &[f32],
-        width: u32,
-        height: u32,
-    ) -> Vec<[f32; 4]> {
+    pub fn create_attention_flow(attention: &[f32], width: u32, height: u32) -> Vec<[f32; 4]> {
         let mut flow = Vec::with_capacity((width * height) as usize);
 
         for i in 0..attention.len() {
             let value = attention[i].clamp(0.0, 1.0);
-            
+
             // Flow visualization: intensity-based with direction hints
             let intensity = value * 2.0; // Amplify for visibility
             let color = [
@@ -436,16 +461,12 @@ impl NeuralStateTexture {
     }
 
     /// Create memory pattern visualization
-    pub fn create_memory_pattern(
-        memory: &[f32],
-        width: u32,
-        height: u32,
-    ) -> Vec<[f32; 4]> {
+    pub fn create_memory_pattern(memory: &[f32], width: u32, height: u32) -> Vec<[f32; 4]> {
         let mut pattern = Vec::with_capacity((width * height) as usize);
 
         for i in 0..memory.len() {
             let value = memory[i].clamp(-1.0, 1.0);
-            
+
             // Memory pattern: positive = warm colors, negative = cool colors
             let (r, g, b) = if value >= 0.0 {
                 // Positive: orange/yellow
@@ -465,7 +486,7 @@ impl NeuralStateTexture {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::evolution_protocol::{CognitiveState, AudioFeatures, InputState};
+    use crate::evolution_protocol::{AudioFeatures, CognitiveState, InputState};
 
     #[test]
     fn test_neural_state_texture_creation() {
@@ -502,7 +523,7 @@ mod tests {
         let heatmap = NeuralStateTexture::create_heatmap(&data, 5, 1);
 
         assert_eq!(heatmap.len(), 5);
-        
+
         // Check gradient progression
         assert!(heatmap[0][2] > 0.9); // Blue
         assert!(heatmap[2][1] > 0.9); // Green

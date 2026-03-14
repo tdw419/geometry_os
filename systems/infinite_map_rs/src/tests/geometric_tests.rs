@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::rendering::geometric_interpreter::{
-        GeometricEngine, GeometricInstruction,
-    };
+    use crate::rendering::geometric_interpreter::{GeometricEngine, GeometricInstruction};
 
     #[test]
     fn test_geometric_add() {

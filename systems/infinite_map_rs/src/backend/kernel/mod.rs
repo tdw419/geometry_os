@@ -3,7 +3,7 @@
 //! This module provides userspace interface to the Geometry OS kernel module
 //! for Phase 3 of the Glyph-to-Metal pipeline.
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use std::fs::{File, OpenOptions};
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::ptr;
@@ -166,12 +166,19 @@ impl KernelInterface {
             reserved: [0; 8],
         };
 
-        let cmd = ior(GEOMETRY_OS_IOC_MAGIC, IOC_INFO, std::mem::size_of::<GpuInfo>());
+        let cmd = ior(
+            GEOMETRY_OS_IOC_MAGIC,
+            IOC_INFO,
+            std::mem::size_of::<GpuInfo>(),
+        );
 
         unsafe {
             let ret = libc::ioctl(self.fd(), cmd as _, &mut info as *mut _);
             if ret < 0 {
-                return Err(anyhow!("ioctl(INFO) failed: {}", std::io::Error::last_os_error()));
+                return Err(anyhow!(
+                    "ioctl(INFO) failed: {}",
+                    std::io::Error::last_os_error()
+                ));
             }
         }
 
@@ -195,19 +202,28 @@ impl KernelInterface {
             reserved: [0; 5],
         };
 
-        let cmd = iow(GEOMETRY_OS_IOC_MAGIC, IOC_SUBMIT, std::mem::size_of::<GlyphSubmit>());
+        let cmd = iow(
+            GEOMETRY_OS_IOC_MAGIC,
+            IOC_SUBMIT,
+            std::mem::size_of::<GlyphSubmit>(),
+        );
 
         unsafe {
             let ret = libc::ioctl(self.fd(), cmd as _, &submit as *const _);
             if ret < 0 {
-                return Err(anyhow!("ioctl(SUBMIT) failed: {}", std::io::Error::last_os_error()));
+                return Err(anyhow!(
+                    "ioctl(SUBMIT) failed: {}",
+                    std::io::Error::last_os_error()
+                ));
             }
         }
 
         log::info!(
             "Submitted SPIR-V: {} words, dispatch {}x{}x{}",
             spirv.len(),
-            x, y, z
+            x,
+            y,
+            z
         );
 
         Ok(())
@@ -220,7 +236,10 @@ impl KernelInterface {
         unsafe {
             let ret = libc::ioctl(self.fd(), cmd as _);
             if ret < 0 {
-                return Err(anyhow!("ioctl(EXEC) failed: {}", std::io::Error::last_os_error()));
+                return Err(anyhow!(
+                    "ioctl(EXEC) failed: {}",
+                    std::io::Error::last_os_error()
+                ));
             }
         }
 
@@ -238,16 +257,27 @@ impl KernelInterface {
             reserved: [0; 8],
         };
 
-        let cmd = ior(GEOMETRY_OS_IOC_MAGIC, IOC_WAIT, std::mem::size_of::<GlyphResult>());
+        let cmd = ior(
+            GEOMETRY_OS_IOC_MAGIC,
+            IOC_WAIT,
+            std::mem::size_of::<GlyphResult>(),
+        );
 
         unsafe {
             let ret = libc::ioctl(self.fd(), cmd as _, &mut result as *mut _);
             if ret < 0 {
-                return Err(anyhow!("ioctl(WAIT) failed: {}", std::io::Error::last_os_error()));
+                return Err(anyhow!(
+                    "ioctl(WAIT) failed: {}",
+                    std::io::Error::last_os_error()
+                ));
             }
         }
 
-        log::info!("Execution complete: status={}, cycles={}", result.status, result.cycles);
+        log::info!(
+            "Execution complete: status={}, cycles={}",
+            result.status,
+            result.cycles
+        );
 
         Ok(result)
     }
@@ -264,12 +294,19 @@ impl KernelInterface {
             reserved: [0; 4],
         };
 
-        let cmd = ior(GEOMETRY_OS_IOC_MAGIC, IOC_DMABUF, std::mem::size_of::<DmabufExport>());
+        let cmd = ior(
+            GEOMETRY_OS_IOC_MAGIC,
+            IOC_DMABUF,
+            std::mem::size_of::<DmabufExport>(),
+        );
 
         unsafe {
             let ret = libc::ioctl(self.fd(), cmd as _, &mut export as *mut _);
             if ret < 0 {
-                return Err(anyhow!("ioctl(DMABUF) failed: {}", std::io::Error::last_os_error()));
+                return Err(anyhow!(
+                    "ioctl(DMABUF) failed: {}",
+                    std::io::Error::last_os_error()
+                ));
             }
         }
 
@@ -282,12 +319,19 @@ impl KernelInterface {
 
     /// Pin the interaction bus in VRAM at a specific address.
     pub fn pin_bus(&self, gpu_addr: u64) -> Result<()> {
-        let cmd = iow(GEOMETRY_OS_IOC_MAGIC, IOC_PIN_BUS, std::mem::size_of::<u64>());
+        let cmd = iow(
+            GEOMETRY_OS_IOC_MAGIC,
+            IOC_PIN_BUS,
+            std::mem::size_of::<u64>(),
+        );
 
         unsafe {
             let ret = libc::ioctl(self.fd(), cmd as _, &gpu_addr as *const _);
             if ret < 0 {
-                return Err(anyhow!("ioctl(PIN_BUS) failed: {}", std::io::Error::last_os_error()));
+                return Err(anyhow!(
+                    "ioctl(PIN_BUS) failed: {}",
+                    std::io::Error::last_os_error()
+                ));
             }
         }
 
@@ -297,12 +341,19 @@ impl KernelInterface {
 
     /// Update mouse state via direct kernel path.
     pub fn update_mouse(&self, event: &MouseEvent) -> Result<()> {
-        let cmd = iow(GEOMETRY_OS_IOC_MAGIC, IOC_UPDATE_MOUSE, std::mem::size_of::<MouseEvent>());
+        let cmd = iow(
+            GEOMETRY_OS_IOC_MAGIC,
+            IOC_UPDATE_MOUSE,
+            std::mem::size_of::<MouseEvent>(),
+        );
 
         unsafe {
             let ret = libc::ioctl(self.fd(), cmd as _, event as *const _);
             if ret < 0 {
-                return Err(anyhow!("ioctl(UPDATE_MOUSE) failed: {}", std::io::Error::last_os_error()));
+                return Err(anyhow!(
+                    "ioctl(UPDATE_MOUSE) failed: {}",
+                    std::io::Error::last_os_error()
+                ));
             }
         }
 
@@ -317,12 +368,19 @@ impl KernelInterface {
             reserved: [0; 7],
         };
 
-        let cmd = iowr(GEOMETRY_OS_IOC_MAGIC, IOC_ATTEST, std::mem::size_of::<VccAttest>());
+        let cmd = iowr(
+            GEOMETRY_OS_IOC_MAGIC,
+            IOC_ATTEST,
+            std::mem::size_of::<VccAttest>(),
+        );
 
         unsafe {
             let ret = libc::ioctl(self.fd(), cmd as _, &mut attest as *mut _);
             if ret < 0 {
-                return Err(anyhow!("ioctl(ATTEST) failed: {}", std::io::Error::last_os_error()));
+                return Err(anyhow!(
+                    "ioctl(ATTEST) failed: {}",
+                    std::io::Error::last_os_error()
+                ));
             }
         }
 
@@ -355,12 +413,32 @@ mod tests {
     #[test]
     fn test_ioctl_numbers() {
         // Verify ioctl numbers are computed correctly
-        let submit = iow(GEOMETRY_OS_IOC_MAGIC, IOC_SUBMIT, std::mem::size_of::<GlyphSubmit>());
+        let submit = iow(
+            GEOMETRY_OS_IOC_MAGIC,
+            IOC_SUBMIT,
+            std::mem::size_of::<GlyphSubmit>(),
+        );
         let exec = io(GEOMETRY_OS_IOC_MAGIC, IOC_EXEC);
-        let wait = ior(GEOMETRY_OS_IOC_MAGIC, IOC_WAIT, std::mem::size_of::<GlyphResult>());
-        let pin = iow(GEOMETRY_OS_IOC_MAGIC, IOC_PIN_BUS, std::mem::size_of::<u64>());
-        let update = iow(GEOMETRY_OS_IOC_MAGIC, IOC_UPDATE_MOUSE, std::mem::size_of::<MouseEvent>());
-        let attest = iowr(GEOMETRY_OS_IOC_MAGIC, IOC_ATTEST, std::mem::size_of::<VccAttest>());
+        let wait = ior(
+            GEOMETRY_OS_IOC_MAGIC,
+            IOC_WAIT,
+            std::mem::size_of::<GlyphResult>(),
+        );
+        let pin = iow(
+            GEOMETRY_OS_IOC_MAGIC,
+            IOC_PIN_BUS,
+            std::mem::size_of::<u64>(),
+        );
+        let update = iow(
+            GEOMETRY_OS_IOC_MAGIC,
+            IOC_UPDATE_MOUSE,
+            std::mem::size_of::<MouseEvent>(),
+        );
+        let attest = iowr(
+            GEOMETRY_OS_IOC_MAGIC,
+            IOC_ATTEST,
+            std::mem::size_of::<VccAttest>(),
+        );
 
         assert!(submit > 0);
         assert!(exec > 0);

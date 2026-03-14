@@ -6,11 +6,11 @@ use crate::neural_terrain::NeuralTerrain;
 
 #[derive(Debug, Clone, Copy)]
 pub struct RaycastResult {
-    pub uv: (f32, f32),           // UV coordinate on terrain
-    pub memory_address: u64,         // Memory address via Hilbert mapping
-    pub confidence: f32,             // Confidence level at this point
-    pub alignment: f32,              // Alignment level at this point
-    pub fatigue: f32,               // Fatigue level at this point
+    pub uv: (f32, f32),      // UV coordinate on terrain
+    pub memory_address: u64, // Memory address via Hilbert mapping
+    pub confidence: f32,     // Confidence level at this point
+    pub alignment: f32,      // Alignment level at this point
+    pub fatigue: f32,        // Fatigue level at this point
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -29,7 +29,7 @@ impl TerrainRaycaster {
     }
 
     /// Cast ray from camera through mouse position to intersect with terrain plane
-    /// 
+    ///
     /// Algorithm:
     /// 1. Unproject mouse screen coordinates to world space
     /// 2. Cast ray from camera through mouse position
@@ -53,17 +53,29 @@ impl TerrainRaycaster {
         // Step 2: Unproject to world space
         // Inverse view-projection matrix
         let inv_view_proj = invert_matrix_4x4(view_proj);
-        
+
         // Ray origin (camera position)
         self.ray_origin = *view_pos;
-        
+
         // Ray direction (through mouse position in world space)
         // For isometric view, we cast ray in XY plane
         let ray_clip = [
-            inv_view_proj[0][0] * ndc_x + inv_view_proj[0][1] * ndc_y + inv_view_proj[0][2] * 0.0 + inv_view_proj[0][3] * 1.0,
-            inv_view_proj[1][0] * ndc_x + inv_view_proj[1][1] * ndc_y + inv_view_proj[1][2] * 0.0 + inv_view_proj[1][3] * 1.0,
-            inv_view_proj[2][0] * ndc_x + inv_view_proj[2][1] * ndc_y + inv_view_proj[2][2] * 0.0 + inv_view_proj[2][3] * 1.0,
-            inv_view_proj[3][0] * ndc_x + inv_view_proj[3][1] * ndc_y + inv_view_proj[3][2] * 0.0 + inv_view_proj[3][3] * 1.0,
+            inv_view_proj[0][0] * ndc_x
+                + inv_view_proj[0][1] * ndc_y
+                + inv_view_proj[0][2] * 0.0
+                + inv_view_proj[0][3] * 1.0,
+            inv_view_proj[1][0] * ndc_x
+                + inv_view_proj[1][1] * ndc_y
+                + inv_view_proj[1][2] * 0.0
+                + inv_view_proj[1][3] * 1.0,
+            inv_view_proj[2][0] * ndc_x
+                + inv_view_proj[2][1] * ndc_y
+                + inv_view_proj[2][2] * 0.0
+                + inv_view_proj[2][3] * 1.0,
+            inv_view_proj[3][0] * ndc_x
+                + inv_view_proj[3][1] * ndc_y
+                + inv_view_proj[3][2] * 0.0
+                + inv_view_proj[3][3] * 1.0,
         ];
 
         self.ray_direction = normalize_vec3([
@@ -77,14 +89,14 @@ impl TerrainRaycaster {
         // We need to find where ray intersects y = f(x, z)
         // For simplicity, we'll use an iterative approach:
         // March along ray until we find a point on terrain
-        
+
         let mut t = 0.0;
         let max_t = 2000.0; // Max distance
         let step_size = 1.0; // Step size for marching
-        
+
         let mut best_uv = (0.5, 0.5);
         let mut best_t = f32::MAX;
-        
+
         // Ray march to find intersection with terrain
         while t < max_t {
             // Current point along ray
@@ -93,52 +105,56 @@ impl TerrainRaycaster {
                 self.ray_origin[1] + self.ray_direction[1] * t,
                 self.ray_origin[2] + self.ray_direction[2] * t,
             ];
-            
+
             // Check if point is within terrain bounds
             // Terrain is centered at (0, 0, 0) with size 1000x1000
             let half_size = 500.0;
-            if point[0] < -half_size || point[0] > half_size ||
-               point[2] < -half_size || point[2] > half_size {
+            if point[0] < -half_size
+                || point[0] > half_size
+                || point[2] < -half_size
+                || point[2] > half_size
+            {
                 t += step_size;
                 continue;
             }
-            
+
             // Convert world position to UV coordinate
             // Terrain UV: (0, 0) to (1, 1)
             let uv = (
                 (point[0] + half_size) / 1000.0,
                 (point[2] + half_size) / 1000.0,
             );
-            
+
             // Clamp UV to [0, 1] range
-            let uv_clamped = (
-                uv.0.max(0.0).min(1.0),
-                uv.1.max(0.0).min(1.0),
-            );
-            
+            let uv_clamped = (uv.0.max(0.0).min(1.0), uv.1.max(0.0).min(1.0));
+
             // Calculate distance to camera
             let dist = distance_vec3(point, self.ray_origin);
-            
+
             // Update best intersection
-            if dist < best_t && uv_clamped.0 >= 0.0 && uv_clamped.0 <= 1.0 &&
-               uv_clamped.1 >= 0.0 && uv_clamped.1 <= 1.0 {
+            if dist < best_t
+                && uv_clamped.0 >= 0.0
+                && uv_clamped.0 <= 1.0
+                && uv_clamped.1 >= 0.0
+                && uv_clamped.1 <= 1.0
+            {
                 best_t = dist;
                 best_uv = uv_clamped;
             }
-            
+
             t += step_size;
         }
-        
+
         // Step 4: Get memory address from UV coordinate
         let memory_address = terrain.uv_to_memory_address(best_uv);
-        
+
         // Step 5: Sample cognitive state texture at this UV
         // For now, we'll return placeholder values
         // In production, this would sample the actual texture
         let confidence = 0.5; // Placeholder: would sample texture at UV
-        let alignment = 0.5;  // Placeholder: would sample texture at UV
-        let fatigue = 0.5;   // Placeholder: would sample texture at UV
-        
+        let alignment = 0.5; // Placeholder: would sample texture at UV
+        let fatigue = 0.5; // Placeholder: would sample texture at UV
+
         Some(RaycastResult {
             uv: best_uv,
             memory_address,
@@ -153,7 +169,7 @@ impl TerrainRaycaster {
 pub fn invert_matrix_4x4(m: &[[f32; 4]; 4]) -> [[f32; 4]; 4] {
     // Simple matrix inversion (for 4x4 matrices)
     // For production, use proper linear algebra library (nalgebra, cgmath, etc.)
-    
+
     // Placeholder for proper 4x4 inversion
     // The previous implementation was incomplete and caused compilation errors
     let mut inv = [[0.0; 4]; 4];
@@ -183,14 +199,14 @@ fn distance_vec3(a: [f32; 3], b: [f32; 3]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_raycaster_creation() {
         let raycaster = TerrainRaycaster::new();
         assert_eq!(raycaster.ray_origin, [0.0; 3]);
         assert_eq!(raycaster.ray_direction, [0.0; 3]);
     }
-    
+
     #[test]
     fn test_matrix_inversion() {
         let identity = [
@@ -199,9 +215,9 @@ mod tests {
             [0.0, 0.0, 1.0, 0.0],
             [0.0, 0.0, 0.0, 1.0],
         ];
-        
+
         let inv = invert_matrix_4x4(&identity);
-        
+
         // Identity inverse should be identity
         for i in 0..4 {
             for j in 0..4 {

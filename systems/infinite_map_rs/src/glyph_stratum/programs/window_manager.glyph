@@ -1,0 +1,231 @@
+// ============================================================================
+// Visual Kernel - The Root Glyph (Window Manager)
+// ============================================================================
+//
+// This is the first program loaded by the Glyph VM Scheduler.
+// It serves as the "init" of Geometry OS, responsible for:
+// - Managing the Window Table
+// - Receiving events from the Visual Interaction Bus
+// - SPATIAL_SPAWNing child windows (apps, Ubuntu, etc.)
+//
+// Entry Point: 0x0000 (Hilbert origin)
+// ============================================================================
+
+// Memory Layout (Hilbert indices):
+// 0x0000 - 0x00FF: Window Manager code
+// 0x0100 - 0x01FF: Window Table (8 windows * 8 u32 each)
+// 0x0200 - 0x02FF: Event Queue Interface
+// 0x1000 - 0x1FFF: Child program regions
+// 0x8000 - 0xFFFF: Ubuntu kernel (transpiled)
+
+// Register Conventions:
+// r0  = Always 0
+// r1  = Event queue tail pointer
+// r2  = Current window ID
+// r3  = Scratch / Temp
+// r4  = Mouse X
+// r5  = Mouse Y
+// r6  = Mouse buttons
+// r7  = Hit window ID
+// r8  = Child VM ID
+// r9  = Spawn entry point
+// r10 = Window table base
+
+// ============================================================================
+// BOOT SEQUENCE
+// ============================================================================
+
+:boot
+    // Initialize window table base
+    MOV r10, 0x0100
+
+    // Initialize event queue
+    MOV r1, 0
+
+    // Initialize first window (ourselves - the root)
+    MOV r3, 0           // window_id = 0
+    STORE r10 + 0, r3   // window[0].id = 0
+    MOV r3, 0
+    STORE r10 + 1, r3   // window[0].x = 0
+    STORE r10 + 2, r3   // window[0].y = 0
+    MOV r3, 1920
+    STORE r10 + 3, r3   // window[0].width = 1920
+    MOV r3, 1080
+    STORE r10 + 4, r3   // window[0].height = 1080
+    MOV r3, 1
+    STORE r10 + 5, r3   // window[0].focused = 1
+    MOV r3, 0xFF
+    STORE r10 + 6, r3   // window[0].z_order = 255 (top)
+    STORE r10 + 7, r3   // window[0].vm_id = 0xFF (self)
+
+    // SPATIAL_SPAWN the Ubuntu kernel as window #1
+    JMP spawn_ubuntu
+
+// ============================================================================
+// EVENT LOOP
+// ============================================================================
+
+:event_loop
+    // Check for events from Visual Interaction Bus
+    // Events are written to 0x0200 + offset by the kernel module
+
+    LOAD r3, 0x0200     // Load event type
+    CMP r3, 0
+    JE event_loop       // No event, keep polling
+
+    // Event type 1 = Mouse move
+    CMP r3, 1
+    JNE check_click
+
+    LOAD r4, 0x0204     // Mouse X
+    LOAD r5, 0x0208     // Mouse Y
+    JMP hit_test
+
+:check_click
+    // Event type 2 = Mouse click
+    CMP r3, 2
+    JNE check_release
+
+    LOAD r4, 0x0204     // Mouse X
+    LOAD r5, 0x0208     // Mouse Y
+    MOV r6, 1           // Button down
+    JMP hit_test
+
+:check_release
+    // Event type 3 = Mouse release
+    CMP r3, 3
+    JNE clear_event
+
+    MOV r6, 0           // Button up
+    JMP clear_event
+
+:hit_test
+    // Hit test against all windows
+    MOV r2, 0           // window index
+    MOV r7, 0           // hit window ID
+
+:hit_test_loop
+    // Calculate window base address
+    MOV r3, r10
+    ADD r3, r2
+    MUL r3, 8           // Each window is 8 u32s
+
+    // Load window bounds
+    LOAD r3, r3 + 1     // win.x
+    // ... (hit test logic)
+
+    // Check if mouse is in this window
+    // if (x >= win.x && x <= win.x + win.w && y >= win.y && y <= win.y + win.h)
+
+    // For now, simplified: just check first 4 windows
+    ADD r2, 1
+    CMP r2, 4
+    JLT hit_test_loop
+
+    // Update focus if we found a hit
+    CMP r7, 0
+    JE clear_event
+
+    // Store focus to window table
+    // (would update window[r7].focused = 1)
+
+:clear_event
+    // Clear the event
+    MOV r3, 0
+    STORE 0x0200, r3
+
+    // Yield to scheduler (let other VMs run)
+    YIELD
+
+    JMP event_loop
+
+// ============================================================================
+// SPATIAL_SPAWN UBUNTU
+// ============================================================================
+
+:spawn_ubuntu
+    // Set up spawn parameters
+    MOV r9, 0x8000      // Ubuntu kernel entry point (Hilbert index)
+    MOV r1, r9          // Entry point in r1 (as per SPATIAL_SPAWN convention)
+    MOV r2, 1           // Fresh state flag (don't copy our registers)
+
+    // SPATIAL_SPAWN opcode (225)
+    // Creates new VM at entry point, returns child ID in r1
+    // Opcode: 225, p1=r1 (entry), p2=r2 (flags)
+    // In glyph encoding: RGBA = (225+200, 2, r1_idx, r2_idx)
+    //                  = (425, 2, 1, 2) -> wraps to (169, 2, 1, 2)
+
+    // Manual encoding: We write directly to the program texture
+    // This is what the compiler would produce
+    .glyph 225, 2, 1, 2   // SPATIAL_SPAWN r1, r2
+
+    // r1 now contains child VM ID (or 0xFFFFFFFF on error)
+    CMP r1, 0xFFFFFFFF
+    JE spawn_failed
+
+    // Register Ubuntu as window #1
+    MOV r8, r1          // Save child VM ID
+    MOV r3, 1           // window_id = 1
+    STORE r10 + 8, r3   // window[1].id = 1
+
+    MOV r3, 100
+    STORE r10 + 9, r3   // window[1].x = 100
+    STORE r10 + 10, r3  // window[1].y = 100
+
+    MOV r3, 800
+    STORE r10 + 11, r3  // window[1].width = 800
+    MOV r3, 600
+    STORE r10 + 12, r3  // window[1].height = 600
+
+    MOV r3, 0
+    STORE r10 + 13, r3  // window[1].focused = 0
+
+    MOV r3, 200
+    STORE r10 + 14, r3  // window[1].z_order = 200
+
+    STORE r10 + 15, r8  // window[1].vm_id = child VM ID
+
+    // Success - jump to event loop
+    JMP event_loop
+
+:spawn_failed
+    // No free VM slots - Ubuntu can't boot
+    // We'll just run as a single-VM system
+    JMP event_loop
+
+// ============================================================================
+// INTERRUPT INJECTION
+// ============================================================================
+
+// When an event is destined for a child window, we inject it into
+// that VM's input registers via memory-mapped I/O.
+
+:inject_event
+    // r7 = target window ID
+    // r4 = mouse X
+    // r5 = mouse Y
+    // r6 = buttons
+
+    // Calculate target VM's input region
+    // Each VM has an input region at 0x10000 + (vm_id * 0x100)
+    MOV r3, 0x10000
+    ADD r3, r7
+    MUL r3, 0x100
+
+    // Write event to child's input region
+    STORE r3 + 0, r4    // child.mouse_x
+    STORE r3 + 4, r5    // child.mouse_y
+    STORE r3 + 8, r6    // child.mouse_btn
+
+    // Signal event pending (write 1 to event flag)
+    MOV r3, 1
+    STORE r3 + 12, r3   // child.event_pending = 1
+
+    RET
+
+// ============================================================================
+// HALT (never reached - event loop is infinite)
+// ============================================================================
+
+:halt
+    HALT

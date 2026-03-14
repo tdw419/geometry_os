@@ -11,9 +11,9 @@ use std::sync::Arc;
 #[allow(dead_code)]
 pub enum WindowType {
     Default,
-    Focus,    // Cyan - Logic/Code
-    Creative, // Purple - Dream/Art
-    System,   // Green - Stable/Core
+    Focus,         // Cyan - Logic/Code
+    Creative,      // Purple - Dream/Art
+    System,        // Green - Stable/Core
     EvolutionZone, // Gold - Autonomous Execution
 }
 
@@ -142,7 +142,7 @@ impl Window {
         let visual_w = self.width + 2.0 * border;
         let visual_h = self.height + title_h + 2.0 * border;
 
-        world_x >= visual_x 
+        world_x >= visual_x
             && world_x <= visual_x + visual_w
             && world_y >= visual_y
             && world_y <= visual_y + visual_h
@@ -155,18 +155,18 @@ impl Window {
         }
         let header_height = self.decorations.title_bar_height;
         let border = self.decorations.border_width;
-        
+
         // Header visual area (excluding borders for simple logic, or including?)
         // Let's match the renderer: Header is above content.
         // It spans the width of the content (plus borders maybe?)
         // Renderer draws frame rect which includes everything.
         // Let's define interaction header as strictly the bar above content.
-        
+
         let header_y_start = self.y - header_height;
         let header_y_end = self.y;
-        
+
         // Allow clicking slightly outside width due to borders
-        let width_padding = border; 
+        let width_padding = border;
 
         world_x >= self.x - width_padding
             && world_x <= self.x + self.width + width_padding
@@ -300,7 +300,8 @@ impl WindowManager {
     /// Remove window by Wayland surface
     #[allow(dead_code)]
     pub fn remove_window_by_surface(&mut self, surface: &WlSurface) {
-        if let Some(pos) = self.windows
+        if let Some(pos) = self
+            .windows
             .iter()
             .position(|w| w.surface.as_ref().map(|s| s.as_ref()) == Some(surface))
         {
@@ -456,7 +457,7 @@ impl WindowManager {
         }
         None
     }
-    
+
     /// Find window at world position (mutable)
     #[allow(dead_code)]
     pub fn find_window_at_position_mut(&mut self, x: f32, y: f32) -> Option<&mut Window> {
@@ -468,19 +469,19 @@ impl WindowManager {
         }
         None
     }
-    
+
     /// Get screen width
     pub fn screen_width(&self) -> f32 {
         // This should be passed in or stored. For now returning default or from config if available.
         // Assuming typical HD for now, but ideally we get this from backend.
-        1280.0 
+        1280.0
     }
-    
+
     /// Get screen height
     pub fn screen_height(&self) -> f32 {
-        720.0 
+        720.0
     }
-    
+
     /// Bring window to front
     pub fn bring_to_front(&mut self, window_id: usize) {
         if let Some(pos) = self.windows.iter().position(|w| w.id == window_id) {

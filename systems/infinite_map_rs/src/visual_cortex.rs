@@ -25,18 +25,18 @@ impl VisualCortex {
     }
 
     pub fn save_retina(
-        &mut self, 
-        data: Vec<u8>, 
-        width: u32, 
+        &mut self,
+        data: Vec<u8>,
+        width: u32,
         height: u32,
         neuro: Option<crate::cortex::Neuromodulator>,
-        focus: Option<(f32, f32, f32)> // x, y, zoom
+        focus: Option<(f32, f32, f32)>, // x, y, zoom
     ) -> Result<(), Box<dyn std::error::Error>> {
         let img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_raw(width, height, data)
             .ok_or("Failed to create image buffer from raw data")?;
-        
+
         img.save(&self.output_path)?;
-        
+
         self.last_capture = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -44,13 +44,13 @@ impl VisualCortex {
 
         // Also save metadata sidecar for the AI to read
         let meta_path = format!("{}.meta.json", self.output_path);
-        
+
         let (dop, ach, urg) = if let Some(n) = neuro {
             (n.dopamine, n.acetylcholine, n.urgency)
         } else {
             (0.5, 0.5, 0.0)
         };
-        
+
         let (fx, fy, fz) = focus.unwrap_or((0.0, 0.0, 1.0));
 
         let meta = serde_json::json!({
@@ -80,7 +80,7 @@ impl VisualCortex {
         width: u32,
         height: u32,
         tile_id: Option<usize>,
-        source: Option<String>
+        source: Option<String>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let name = if let Some(id) = tile_id {
             format!("eye_artifact_{}.png", id)
@@ -91,15 +91,15 @@ impl VisualCortex {
         };
 
         let path = std::path::Path::new("systems/visual_shell/artifacts").join(name);
-        
+
         // Ensure directory exists
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
 
-        let img: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_raw(width, height, data)
-            .ok_or("Failed to create image buffer")?;
-        
+        let img: ImageBuffer<Rgba<u8>, Vec<u8>> =
+            ImageBuffer::from_raw(width, height, data).ok_or("Failed to create image buffer")?;
+
         img.save(path)?;
         Ok(())
     }

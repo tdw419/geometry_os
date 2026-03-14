@@ -1,7 +1,7 @@
-use std::path::{Path, PathBuf};
-use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 use bytemuck::{Pod, Zeroable};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 // Phase 40.3: Neural Link - Import Evolution Manager for AI consultation
@@ -20,8 +20,8 @@ pub struct HexEditorUniforms {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EditorMode {
-    Document, // Standard Unicode Text
-    Tensor,   // Binary Hex Editor
+    Document,    // Standard Unicode Text
+    Tensor,      // Binary Hex Editor
     SearchInput, // Entering hex pattern to search
 }
 
@@ -62,7 +62,7 @@ impl HexEditHistory {
     pub fn push_edit(&mut self, cmd: HexEditCommand) {
         // Clear redo stack on new edit
         self.redo_stack.clear();
-        
+
         // Maintain max depth
         if self.undo_stack.len() >= self.max_depth {
             self.undo_stack.remove(0);
@@ -109,7 +109,7 @@ pub struct SubstrateInfo {
 }
 
 pub struct HexTensorEditor {
-    pub substrate_buffer: wgpu::Buffer, // Holds raw binary data
+    pub substrate_buffer: wgpu::Buffer,  // Holds raw binary data
     pub annotation_buffer: wgpu::Buffer, // Phase 40.3: Holds metadata/colors per byte
     pub uniform_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
@@ -153,14 +153,16 @@ pub struct NeuralAnnotation {
 impl HexTensorEditor {
     pub fn new(device: &wgpu::Device) -> Self {
         log::info!("Initializing Hex Tensor Editor...");
-        
+
         let substrate_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Hex Tensor Substrate"),
-            size: 4 * 1024 * 1024, 
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            size: 4 * 1024 * 1024,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
-        
+
         // Phase 40.3: Annotation Buffer
         let annotation_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Hex Annotation Map"),
@@ -184,11 +186,56 @@ impl HexTensorEditor {
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Hex Tensor Bind Layout"),
             entries: &[
-                wgpu::BindGroupLayoutEntry { binding: 0, visibility: wgpu::ShaderStages::COMPUTE, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Uniform, has_dynamic_offset: false, min_binding_size: None }, count: None },
-                wgpu::BindGroupLayoutEntry { binding: 1, visibility: wgpu::ShaderStages::COMPUTE, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Storage { read_only: true }, has_dynamic_offset: false, min_binding_size: None }, count: None },
-                wgpu::BindGroupLayoutEntry { binding: 2, visibility: wgpu::ShaderStages::COMPUTE, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Storage { read_only: false }, has_dynamic_offset: false, min_binding_size: None }, count: None },
-                wgpu::BindGroupLayoutEntry { binding: 3, visibility: wgpu::ShaderStages::COMPUTE, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Storage { read_only: false }, has_dynamic_offset: false, min_binding_size: None }, count: None },
-                wgpu::BindGroupLayoutEntry { binding: 4, visibility: wgpu::ShaderStages::COMPUTE, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Storage { read_only: true }, has_dynamic_offset: false, min_binding_size: None }, count: None }, // Annotation Map
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }, // Annotation Map
             ],
         });
 
@@ -216,11 +263,26 @@ impl HexTensorEditor {
             label: Some("Placeholder Hex BindGroup"),
             layout: &bind_group_layout,
             entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: uniform_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 1, resource: substrate_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 2, resource: dummy_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 3, resource: dummy_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 4, resource: annotation_buffer.as_entire_binding() },
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: substrate_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: dummy_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: dummy_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: annotation_buffer.as_entire_binding(),
+                },
             ],
         });
 
@@ -239,7 +301,10 @@ impl HexTensorEditor {
             data_cache: Vec::new(),
             meta_cache: Vec::new(),
             dirty: false,
-            substrate_info: SubstrateInfo { size: 0, entropy: 0.0 },
+            substrate_info: SubstrateInfo {
+                size: 0,
+                entropy: 0.0,
+            },
             edit_history: HexEditHistory::new(1000), // 1000 edit history depth
             search_query: Vec::new(),
             search_results: Vec::new(),
@@ -249,26 +314,38 @@ impl HexTensorEditor {
         }
     }
 
-    pub fn load_substrate(&mut self, queue: &wgpu::Queue, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn load_substrate(
+        &mut self,
+        queue: &wgpu::Queue,
+        path: &Path,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let data = std::fs::read(path)?;
         self.data_cache = data;
         // Pad to 4 bytes
         while self.data_cache.len() % 4 != 0 {
             self.data_cache.push(0);
         }
-        
+
         // Initialize meta cache
         self.meta_cache = vec![0u32; self.data_cache.len()];
-        
-        queue.write_buffer(&self.substrate_buffer, 0, bytemuck::cast_slice(&self.data_cache));
+
+        queue.write_buffer(
+            &self.substrate_buffer,
+            0,
+            bytemuck::cast_slice(&self.data_cache),
+        );
         self.current_path = Some(path.to_path_buf());
         self.cursor_byte_pos = 0;
         self.cursor_nibble = 0;
         self.mode = EditorMode::Tensor;
         self.dirty = true;
         self.substrate_info.size = self.data_cache.len();
-        
-        log::info!("⚡ Hex Tensor Editor: Loaded {} bytes from {:?}", self.data_cache.len(), path);
+
+        log::info!(
+            "⚡ Hex Tensor Editor: Loaded {} bytes from {:?}",
+            self.data_cache.len(),
+            path
+        );
         Ok(())
     }
 
@@ -302,7 +379,7 @@ impl HexTensorEditor {
         };
 
         self.data_cache[self.cursor_byte_pos as usize] = new_byte;
-        
+
         // Phase 40.1: Record edit in history (only when full byte is complete)
         if self.cursor_nibble == 1 {
             self.edit_history.push_edit(HexEditCommand {
@@ -311,7 +388,7 @@ impl HexTensorEditor {
                 new_value: new_byte,
             });
         }
-        
+
         // Auto-advance
         if self.cursor_nibble == 0 {
             self.cursor_nibble = 1;
@@ -321,7 +398,7 @@ impl HexTensorEditor {
                 self.cursor_byte_pos += 1;
             }
         }
-        
+
         self.dirty = true;
         true
     }
@@ -329,7 +406,7 @@ impl HexTensorEditor {
     pub fn navigate_hex(&mut self, queue: &wgpu::Queue, direction: HexNavDirection) {
         let max_pos = self.data_cache.len() as i32 - 1;
         let mut pos = self.cursor_byte_pos as i32;
-        
+
         match direction {
             HexNavDirection::Up => pos -= self.bytes_per_row as i32,
             HexNavDirection::Down => pos += self.bytes_per_row as i32,
@@ -338,7 +415,7 @@ impl HexTensorEditor {
             HexNavDirection::Home => pos = 0,
             HexNavDirection::End => pos = max_pos,
         }
-        
+
         self.cursor_byte_pos = pos.clamp(0, max_pos) as u32;
         self.dirty = true;
     }
@@ -353,23 +430,23 @@ impl HexTensorEditor {
         let target = path.or(self.current_path.as_deref());
         if let Some(p) = target {
             let path_str = p.to_string_lossy();
-            
+
             // Check if this is a .rts.png file (self-hosting substrate format)
             if path_str.ends_with(".rts.png") || path_str.ends_with(".png") {
                 // Save as PNG format using V2Brick
                 use crate::memory_tensor::V2Brick;
-                
+
                 // Calculate dimensions for the PNG (square, power of 2)
                 let data_len = self.data_cache.len();
                 let pixels_needed = (data_len + 3) / 4; // 4 bytes per RGBA pixel
                 let grid_size = ((pixels_needed as f64).sqrt().ceil() as u32)
                     .next_power_of_two()
                     .max(64); // Minimum 64x64
-                
+
                 // Create texture data (RGBA)
                 let total_pixels = (grid_size * grid_size) as usize;
                 let mut texture_data = vec![0u8; total_pixels * 4];
-                
+
                 // Copy data into texture (simple linear mapping for now)
                 // In the full Hilbert curve implementation, we'd map 1D -> 2D via Hilbert curve
                 for (i, byte) in self.data_cache.iter().enumerate() {
@@ -380,7 +457,7 @@ impl HexTensorEditor {
                         texture_data[i * 4 + 3] = 255;
                     }
                 }
-                
+
                 // Create V2Brick with the data
                 let brick = V2Brick {
                     header: crate::memory_tensor::V2BrickHeader::new(
@@ -396,10 +473,15 @@ impl HexTensorEditor {
                     texture_data,
                     source_code: None, // Could embed source code here as Hybrid DNA
                 };
-                
+
                 // Save as PNG
                 brick.save_to_png(p)?;
-                log::info!("💾 Saved substrate to {:?} (PNG format, {}x{})", p, grid_size, grid_size);
+                log::info!(
+                    "💾 Saved substrate to {:?} (PNG format, {}x{})",
+                    p,
+                    grid_size,
+                    grid_size
+                );
             } else {
                 // Save as raw binary
                 std::fs::write(p, &self.data_cache)?;
@@ -420,7 +502,11 @@ impl HexTensorEditor {
             self.cursor_byte_pos = cmd.offset as u32;
             self.cursor_nibble = 0;
             self.dirty = true;
-            log::info!("↩️ Undo: restored byte at 0x{:04X} to 0x{:02X}", cmd.offset, cmd.old_value);
+            log::info!(
+                "↩️ Undo: restored byte at 0x{:04X} to 0x{:02X}",
+                cmd.offset,
+                cmd.old_value
+            );
             true
         } else {
             false
@@ -435,7 +521,11 @@ impl HexTensorEditor {
             self.cursor_byte_pos = cmd.offset as u32;
             self.cursor_nibble = 1; // After completing a byte
             self.dirty = true;
-            log::info!("↪️ Redo: reapplied byte at 0x{:04X} to 0x{:02X}", cmd.offset, cmd.new_value);
+            log::info!(
+                "↪️ Redo: reapplied byte at 0x{:04X} to 0x{:02X}",
+                cmd.offset,
+                cmd.new_value
+            );
             true
         } else {
             false
@@ -457,32 +547,42 @@ impl HexTensorEditor {
 
     pub fn sync_gpu(&mut self, queue: &wgpu::Queue) {
         if self.dirty {
-            // Optimization: Only upload if data actually changed, not just cursor. 
+            // Optimization: Only upload if data actually changed, not just cursor.
             // Since we don't track what changed, assume data changed if dirty.
             // But if only cursor moved, we should iterate.
             // For now, full upload is safe but slow.
-            queue.write_buffer(&self.substrate_buffer, 0, bytemuck::cast_slice(&self.data_cache));
-            
+            queue.write_buffer(
+                &self.substrate_buffer,
+                0,
+                bytemuck::cast_slice(&self.data_cache),
+            );
+
             // Phase 40.3: Update Meta Cache from Neural Link
             if !self.neural_analysis_cache.is_empty() {
                 // Clear meta
-                for x in self.meta_cache.iter_mut() { *x = 0; }
-                
+                for x in self.meta_cache.iter_mut() {
+                    *x = 0;
+                }
+
                 // Populate from annotations
                 for (_, annotation) in &self.neural_analysis_cache {
                     let end = (annotation.offset + annotation.length).min(self.meta_cache.len());
                     for i in annotation.offset..end {
                         // Tag 1: Neural Insight (Gold color in shader)
-                        self.meta_cache[i] = 1; 
+                        self.meta_cache[i] = 1;
                     }
                     // Tag suggested patch vs valid code?
                     if annotation.suggested_patch.is_some() {
-                         for i in annotation.offset..end {
+                        for i in annotation.offset..end {
                             self.meta_cache[i] = 2; // Patch Pending (Red/Warning)
                         }
                     }
                 }
-                queue.write_buffer(&self.annotation_buffer, 0, bytemuck::cast_slice(&self.meta_cache));
+                queue.write_buffer(
+                    &self.annotation_buffer,
+                    0,
+                    bytemuck::cast_slice(&self.meta_cache),
+                );
             }
 
             let uniforms = HexEditorUniforms {
@@ -494,20 +594,70 @@ impl HexTensorEditor {
                 padding: [0; 3],
             };
             queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
-            
+
             self.dirty = false;
         }
     }
 
-    pub fn rebuild_bind_group(&mut self, device: &wgpu::Device, text_buffer: &wgpu::Buffer, dummy_color_buffer: &wgpu::Buffer) {
+    pub fn rebuild_bind_group(
+        &mut self,
+        device: &wgpu::Device,
+        text_buffer: &wgpu::Buffer,
+        dummy_color_buffer: &wgpu::Buffer,
+    ) {
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Hex Tensor Bind Layout"),
             entries: &[
-                wgpu::BindGroupLayoutEntry { binding: 0, visibility: wgpu::ShaderStages::COMPUTE, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Uniform, has_dynamic_offset: false, min_binding_size: None }, count: None },
-                wgpu::BindGroupLayoutEntry { binding: 1, visibility: wgpu::ShaderStages::COMPUTE, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Storage { read_only: true }, has_dynamic_offset: false, min_binding_size: None }, count: None },
-                wgpu::BindGroupLayoutEntry { binding: 2, visibility: wgpu::ShaderStages::COMPUTE, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Storage { read_only: false }, has_dynamic_offset: false, min_binding_size: None }, count: None },
-                wgpu::BindGroupLayoutEntry { binding: 3, visibility: wgpu::ShaderStages::COMPUTE, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Storage { read_only: false }, has_dynamic_offset: false, min_binding_size: None }, count: None },
-                wgpu::BindGroupLayoutEntry { binding: 4, visibility: wgpu::ShaderStages::COMPUTE, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Storage { read_only: true }, has_dynamic_offset: false, min_binding_size: None }, count: None },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
         });
 
@@ -515,26 +665,41 @@ impl HexTensorEditor {
             label: Some("Active Hex BindGroup"),
             layout: &layout,
             entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: self.uniform_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 1, resource: self.substrate_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 2, resource: text_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 3, resource: dummy_color_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 4, resource: self.annotation_buffer.as_entire_binding() },
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: self.substrate_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: text_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: dummy_color_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: self.annotation_buffer.as_entire_binding(),
+                },
             ],
         });
     }
 
     pub fn dispatch(&self, encoder: &mut wgpu::CommandEncoder) {
         // if self.mode != EditorMode::Tensor { return; } // Checked by caller
-        
+
         let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
             label: Some("Hex Expansion Pass"),
             timestamp_writes: None,
         });
-        
+
         cpass.set_pipeline(&self.pipeline);
         cpass.set_bind_group(0, &self.bind_group, &[]);
-        cpass.dispatch_workgroups(40, 1, 1); 
+        cpass.dispatch_workgroups(40, 1, 1);
     }
 
     // Phase 40.2: Search Implementation
@@ -568,7 +733,7 @@ impl HexTensorEditor {
 
         // If query is empty or last byte is full, start new byte
         if self.search_query.is_empty() {
-             self.search_query.push(nibble << 4); // High nibble
+            self.search_query.push(nibble << 4); // High nibble
         } else {
             let last_idx = self.search_query.len() - 1;
             // Check if we are filling the low nibble of the last byte
@@ -587,13 +752,13 @@ impl HexTensorEditor {
             // We'll interpret the search_query vector as being "in progress".
             // If we assume the user types correctly, we can just push.
             // Note: `handle_search_input` is called per char.
-            
-            // Hack for now: We won't support editing the search query backspace yet. 
+
+            // Hack for now: We won't support editing the search query backspace yet.
             // Just appending.
             // We'll use a heuristic: if we just started, we are at nibble 0.
             // We need to track `cursor_nibble` equivalent for search.
             // Let's use `self.cursor_nibble` for search query construction too since it's unused in SearchInput mode!
-            
+
             if self.cursor_nibble == 0 {
                 self.search_query.push(nibble << 4);
                 self.cursor_nibble = 1;
@@ -603,7 +768,7 @@ impl HexTensorEditor {
                 self.cursor_nibble = 0;
             }
         }
-        
+
         log::info!("🔍 Query: {:02X?}", self.search_query);
         true
     }
@@ -614,40 +779,45 @@ impl HexTensorEditor {
         }
 
         self.search_results.clear();
-        
+
         // Simple naive search
         // Optimization for large files: Boyer-Moore or KMP, but for 11MB naive is probably fine for <100ms
         let needle = &self.search_query;
         let haystack = &self.data_cache;
-        
+
         for i in 0..=haystack.len().saturating_sub(needle.len()) {
-            if &haystack[i..i+needle.len()] == needle.as_slice() {
+            if &haystack[i..i + needle.len()] == needle.as_slice() {
                 self.search_results.push(i);
             }
         }
 
         log::info!("🔍 Found {} matches", self.search_results.len());
-        
+
         if !self.search_results.is_empty() {
             self.current_search_match_index = 0;
             self.jump_to_match(0);
             self.mode = EditorMode::Tensor; // Exit search mode on success
             return true;
         }
-        
+
         false
     }
-    
+
     pub fn find_next(&mut self) {
-        if self.search_results.is_empty() { return; }
-        
-        self.current_search_match_index = (self.current_search_match_index + 1) % self.search_results.len();
+        if self.search_results.is_empty() {
+            return;
+        }
+
+        self.current_search_match_index =
+            (self.current_search_match_index + 1) % self.search_results.len();
         self.jump_to_match(self.current_search_match_index);
     }
-    
+
     pub fn find_prev(&mut self) {
-        if self.search_results.is_empty() { return; }
-        
+        if self.search_results.is_empty() {
+            return;
+        }
+
         if self.current_search_match_index == 0 {
             self.current_search_match_index = self.search_results.len() - 1;
         } else {
@@ -655,13 +825,18 @@ impl HexTensorEditor {
         }
         self.jump_to_match(self.current_search_match_index);
     }
-    
+
     fn jump_to_match(&mut self, index: usize) {
         if index < self.search_results.len() {
             self.cursor_byte_pos = self.search_results[index] as u32;
             self.cursor_nibble = 0;
             self.dirty = true;
-            log::info!("🔍 Jumped to match {}/{} at 0x{:04X}", index + 1, self.search_results.len(), self.cursor_byte_pos);
+            log::info!(
+                "🔍 Jumped to match {}/{} at 0x{:04X}",
+                index + 1,
+                self.search_results.len(),
+                self.cursor_byte_pos
+            );
         }
     }
 
@@ -737,7 +912,10 @@ impl HexTensorEditor {
         if let Some(manager_arc) = &self.evolution_manager {
             let context = self.get_context_hex_dump(256);
 
-            log::info!("🧠 Neural Consult: Requesting analysis for 256 bytes at 0x{:04X}", self.cursor_byte_pos);
+            log::info!(
+                "🧠 Neural Consult: Requesting analysis for 256 bytes at 0x{:04X}",
+                self.cursor_byte_pos
+            );
 
             // Build analysis prompt
             let prompt = format!(
@@ -790,7 +968,9 @@ impl HexTensorEditor {
             }
             let dist = (*key as isize - offset as isize).abs();
             if dist <= 16 {
-                if nearest.is_none() || dist < (*nearest.unwrap().0 as isize - offset as isize).abs() {
+                if nearest.is_none()
+                    || dist < (*nearest.unwrap().0 as isize - offset as isize).abs()
+                {
                     nearest = Some((key, ann));
                 }
             }
@@ -826,9 +1006,19 @@ impl HexTensorEditor {
     // ============================================================
 
     /// Apply a suggested patch from neural analysis
-    pub fn apply_neural_patch(&mut self, queue: &wgpu::Queue, offset: usize, patch: &[u8]) -> Result<(), String> {
+    pub fn apply_neural_patch(
+        &mut self,
+        queue: &wgpu::Queue,
+        offset: usize,
+        patch: &[u8],
+    ) -> Result<(), String> {
         if offset + patch.len() > self.data_cache.len() {
-            return Err(format!("Patch exceeds file bounds: 0x{:04X} + {} > {}", offset, patch.len(), self.data_cache.len()));
+            return Err(format!(
+                "Patch exceeds file bounds: 0x{:04X} + {} > {}",
+                offset,
+                patch.len(),
+                self.data_cache.len()
+            ));
         }
 
         for (i, byte) in patch.iter().enumerate() {
@@ -844,7 +1034,11 @@ impl HexTensorEditor {
         }
 
         self.dirty = true;
-        log::info!("🔧 Applied neural patch at 0x{:04X}: {} bytes modified", offset, patch.len());
+        log::info!(
+            "🔧 Applied neural patch at 0x{:04X}: {} bytes modified",
+            offset,
+            patch.len()
+        );
         Ok(())
     }
 
@@ -858,4 +1052,3 @@ impl HexTensorEditor {
         &self.data_cache[cursor..cursor + expected.len()] == expected
     }
 }
-

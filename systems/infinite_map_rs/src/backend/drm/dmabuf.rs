@@ -3,12 +3,12 @@
 //! Exports GPU compute output as DMA-BUF for direct KMS scanout.
 //! Zero-copy GPU→Display via DMA-BUF sharing.
 
-use anyhow::{Context, Result, anyhow};
-use std::os::unix::io::{RawFd, OwnedFd, AsRawFd, FromRawFd};
-use std::fs::File;
 use super::vcc_compute::VccCompute;
+use anyhow::{anyhow, Context, Result};
 use memmap2::Mmap;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
+use std::fs::File;
+use std::os::unix::io::{AsRawFd, FromRawFd, OwnedFd, RawFd};
 
 /// DMA-BUF handle for zero-copy buffer sharing.
 pub struct DmaBuf {
@@ -44,7 +44,10 @@ impl DmaBuf {
 
         log::info!(
             "Exporting DMA-BUF: {}x{}, stride={}, format={}",
-            width, height, stride, format
+            width,
+            height,
+            stride,
+            format
         );
 
         // Placeholder: create a memfd as stand-in
@@ -108,13 +111,16 @@ impl DmaBuf {
     /// This performs a zero-copy verification by hashing the buffer
     /// directly on the GPU, ensuring that no CPU-side tampering occurred.
     pub fn verify_vcc_integrity(&self, vcc: &mut VccCompute) -> Result<bool> {
-        log::info!("Verifying VCC integrity for DMA-BUF fd={}", self.fd.as_raw_fd());
-        
-        // In a full implementation, we would map the DMA-BUF into the 
+        log::info!(
+            "Verifying VCC integrity for DMA-BUF fd={}",
+            self.fd.as_raw_fd()
+        );
+
+        // In a full implementation, we would map the DMA-BUF into the
         // compute device's address space and run the hash shader.
         let mock_pixels = vec![0.0f32; (self.width * self.height * 4) as usize];
         let contract_hash = [0u32; 8]; // Example hash
-        
+
         vcc.verify_contract(&mock_pixels, &contract_hash)
     }
 
@@ -215,10 +221,7 @@ impl ZeroCopyPipeline {
     /// 3. DMA-BUF imported as KMS framebuffer
     /// 4. Page flip to new framebuffer
     /// 5. Old framebuffer released
-    pub fn execute_and_display(
-        &mut self,
-        compute_output: &DmaBuf,
-    ) -> Result<()> {
+    pub fn execute_and_display(&mut self, compute_output: &DmaBuf) -> Result<()> {
         log::info!("Zero-copy: GPU → Display");
 
         // Import compute output as KMS framebuffer
@@ -251,16 +254,14 @@ impl Drop for ZeroCopyPipeline {
 
 // Helper: create a memfd as DMA-BUF stand-in
 fn create_memfd(size: usize) -> Result<OwnedFd> {
-    use std::ffi::CStr;
     use nix::sys::memfd::{memfd_create, MemFdCreateFlag};
+    use std::ffi::CStr;
 
     let name = CStr::from_bytes_with_nul(b"gpu_compute_buffer\0").unwrap();
-    let fd = memfd_create(name, MemFdCreateFlag::MFD_CLOEXEC)
-        .context("Failed to create memfd")?;
+    let fd = memfd_create(name, MemFdCreateFlag::MFD_CLOEXEC).context("Failed to create memfd")?;
 
     // Set size
-    nix::unistd::ftruncate(&fd, size as i64)
-        .context("Failed to set memfd size")?;
+    nix::unistd::ftruncate(&fd, size as i64).context("Failed to set memfd size")?;
 
     Ok(fd)
 }
@@ -273,10 +274,10 @@ mod tests {
     fn test_dmabuf_creation() {
         let buf = DmaBuf::export_from_gpu(
             -1, // mock fd
-            0,   // handle
+            0,  // handle
             1920,
             1080,
-            1920 * 4, // BGRA32
+            1920 * 4,   // BGRA32
             0x34325241, // DRM_FORMAT_ARGB8888
         );
 
@@ -287,14 +288,7 @@ mod tests {
     fn test_zero_copy_pipeline() {
         let mut pipeline = ZeroCopyPipeline::new(-1);
 
-        let buf = DmaBuf::export_from_gpu(
-            -1,
-            0,
-            800,
-            600,
-            800 * 4,
-            0x34325241,
-        ).unwrap();
+        let buf = DmaBuf::export_from_gpu(-1, 0, 800, 600, 800 * 4, 0x34325241).unwrap();
 
         let result = pipeline.execute_and_display(&buf);
         assert!(result.is_ok());
@@ -309,7 +303,8 @@ mod tests {
             8,
             8 * 4, // Small buffer for testing
             0x34325241,
-        ).unwrap();
+        )
+        .unwrap();
 
         // Should be able to compute hash
         let hash = buf.compute_hash();
@@ -324,14 +319,7 @@ mod tests {
 
     #[test]
     fn test_verify_vcc() {
-        let buf = DmaBuf::export_from_gpu(
-            -1,
-            0,
-            8,
-            8,
-            8 * 4,
-            0x34325241,
-        ).unwrap();
+        let buf = DmaBuf::export_from_gpu(-1, 0, 8, 8, 8 * 4, 0x34325241).unwrap();
 
         // Get the actual hash
         let actual_hash = buf.compute_hash().unwrap();

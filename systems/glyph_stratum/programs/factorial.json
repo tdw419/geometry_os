@@ -1,0 +1,141 @@
+{
+  "name": "factorial",
+  "description": "Computes factorial(3) = 6",
+  "version": "1.0.0",
+  "glyphs": [
+    {
+      "opcode": 14,
+      "mnemonic": "OP_DATA",
+      "description": "Load immediate value into register",
+      "p1": 0,
+      "p2": 1,
+      "dst": 0
+    },
+    {
+      "opcode": 4,
+      "mnemonic": "OP_STORE",
+      "description": "Store register to memory",
+      "p1": 0,
+      "p2": 0,
+      "dst": 0
+    },
+    {
+      "opcode": 14,
+      "mnemonic": "OP_DATA",
+      "description": "Load immediate value into register",
+      "p1": 0,
+      "p2": 3,
+      "dst": 0
+    },
+    {
+      "opcode": 4,
+      "mnemonic": "OP_STORE",
+      "description": "Store register to memory",
+      "p1": 0,
+      "p2": 1,
+      "dst": 0
+    },
+    {
+      "opcode": 3,
+      "mnemonic": "OP_LOAD",
+      "description": "Load from memory to register",
+      "p1": 0,
+      "p2": 0,
+      "dst": 1
+    },
+    {
+      "opcode": 3,
+      "mnemonic": "OP_LOAD",
+      "description": "Load from memory to register",
+      "p1": 1,
+      "p2": 0,
+      "dst": 2
+    },
+    {
+      "opcode": 3,
+      "mnemonic": "OP_LOAD",
+      "description": "Load from memory to register",
+      "p1": 0,
+      "p2": 0,
+      "dst": 3
+    },
+    {
+      "opcode": 14,
+      "mnemonic": "OP_DATA",
+      "description": "Load immediate value into register",
+      "p1": 0,
+      "p2": 0,
+      "dst": 0
+    },
+    {
+      "opcode": 6,
+      "mnemonic": "OP_SUB",
+      "description": "Subtract registers",
+      "p1": 0,
+      "p2": 0,
+      "dst": 3
+    },
+    {
+      "opcode": 10,
+      "mnemonic": "OP_BRANCH",
+      "description": "Branch if register is zero",
+      "p1": 2,
+      "p2": 8,
+      "dst": 0
+    },
+    {
+      "opcode": 7,
+      "mnemonic": "OP_MUL",
+      "description": "Multiply registers",
+      "p1": 1,
+      "p2": 2,
+      "dst": 0
+    },
+    {
+      "opcode": 14,
+      "mnemonic": "OP_DATA",
+      "description": "Load immediate value into register",
+      "p1": 0,
+      "p2": 0,
+      "dst": 1
+    },
+    {
+      "opcode": 6,
+      "mnemonic": "OP_SUB",
+      "description": "Subtract registers",
+      "p1": 2,
+      "p2": 3,
+      "dst": 2
+    },
+    {
+      "opcode": 9,
+      "mnemonic": "OP_JMP",
+      "description": "Jump to instruction",
+      "p1": 0,
+      "p2": 0,
+      "dst": 0
+    },
+    {
+      "opcode": 4,
+      "mnemonic": "OP_STORE",
+      "description": "Store register to memory",
+      "p1": 1,
+      "p2": 2,
+      "dst": 0
+    },
+    {
+      "opcode": 13,
+      "mnemonic": "OP_HALT",
+      "description": "Halt execution",
+      "p1": 0,
+      "p2": 0,
+      "dst": 0
+    }
+  ],
+  "memory": {
+    "const_one_addr": 0,
+    "init_counter_addr": 1,
+    "result_addr": 2,
+    "counter_addr": 3
+  }
+}
