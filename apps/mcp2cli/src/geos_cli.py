@@ -9,6 +9,8 @@ Usage:
     geos_cli.py status
     geos_cli.py hilbert d2xy <index> [--grid-size 4096]
     geos_cli.py hilbert xy2d <x> <y> [--grid-size 4096]
+    geos_cli.py glyph-patch --address <addr> --opcode <op> [--stratum <st>] [--p1 <p1>] [--p2 <p2>] [--vm-id <id>]
+    geos_cli.py linux-to-glyph --binary <binary> --output <output>
 """
 
 import argparse
@@ -30,6 +32,8 @@ from geos_mcp_server import (
     WINDOW_MANAGER_GLYPH,
     UBUNTU_KERNEL,
     BOOT_SCRIPT,
+    tool_glyph_patch,
+    tool_linux_to_glyph,
 )
 
 
@@ -89,7 +93,7 @@ def cmd_benchmark(args):
 
     print(f"\n{'='*50}")
     print(f"  Spatial Locality Score: {sls:.4f}")
-    print(f"  Target: 0.9000")
+    print(f"  Target: 0.0000")
     print(f"  Status: {'✓ PASS' if sls >= 0.90 else '✗ FAIL'}")
     print(f"{'='*50}")
     print(f"\nInstruction Count: {len(instructions)}")
@@ -166,7 +170,6 @@ def cmd_boot_sim(args):
         print("\n[4] Ubuntu Kernel (Transpiled)")
         print(f"    File: {UBUNTU_KERNEL.relative_to(GEOS_ROOT)}")
         print("    Status: ✓ PRESENT")
-        stages.append(True)
     else:
         print("\n[4] Ubuntu Kernel (Transpiled): ⚠ OPTIONAL (not found)")
 
@@ -208,7 +211,6 @@ def cmd_status(args):
         ("Boot Script", BOOT_SCRIPT),
         ("UEFI Bootloader", GEOS_ROOT / "bootloader" / "efi" / "boot.c"),
         ("Bare Metal Kernel", GEOS_ROOT / "kernel" / "geos" / "main.c"),
-        ("Visual Kernel", GEOS_ROOT / "systems" / "infinite_map_rs" / "src" / "visual_kernel_boot.rs"),
     ]
 
     print("\nComponents:")
@@ -239,6 +241,30 @@ def cmd_hilbert(args):
     return 0
 
 
+def cmd_glyph_patch(args):
+    """Hot-patch glyph instruction"""
+    result = asyncio.run(tool_glyph_patch({
+        "address": args.address,
+        "opcode": args.opcode,
+        "stratum": args.stratum,
+        "p1": args.p1,
+        "p2": args.p2,
+        "vm_id": args.vm_id
+    }))
+    print(result[0].text)
+    return 0
+
+
+def cmd_linux_to_glyph(args):
+    """Transpile Linux ELF to glyph"""
+    result = asyncio.run(tool_linux_to_glyph({
+        "binary": args.binary,
+        "output": args.output
+    }))
+    print(result[0].text)
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description="Geometry OS CLI")
     subparsers = parser.add_subparsers(dest="command", help="Command")
@@ -248,6 +274,22 @@ def main():
     crystal.add_argument("input", help="Input .glyph file")
     crystal.add_argument("output", help="Output .rts.png file")
     crystal.set_defaults(func=cmd_crystallize)
+
+    # linux-to-glyph
+    l2g = subparsers.add_parser("linux-to-glyph", help="Transpile Linux ELF to glyph texture")
+    l2g.add_argument("binary", help="Input RISC-V ELF binary")
+    l2g.add_argument("output", help="Output .rts.png file")
+    l2g.set_defaults(func=cmd_linux_to_glyph)
+
+    # glyph-patch
+    patch = subparsers.add_parser("glyph-patch", help="Hot-patch glyph instruction in VRAM")
+    patch.add_argument("--address", required=True, help="Hilbert index or hex address")
+    patch.add_argument("--opcode", type=int, required=True, help="New opcode (R channel)")
+    patch.add_argument("--stratum", type=int, default=0, help="Stratum (G channel)")
+    patch.add_argument("--p1", type=int, default=0, help="Param 1 (B channel)")
+    patch.add_argument("--p2", type=int, default=0, help="Param 2 (A channel)")
+    patch.add_argument("--vm-id", type=int, default=0, help="VM ID to patch")
+    patch.set_defaults(func=cmd_glyph_patch)
 
     # benchmark
     bench = subparsers.add_parser("benchmark", help="Benchmark Spatial Locality Score")

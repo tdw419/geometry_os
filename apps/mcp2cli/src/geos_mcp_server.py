@@ -139,16 +139,42 @@ async def list_tools():
     return [
         Tool(
             name="crystallize",
-            description="Compile a .glyph assembly file to .rts.png GPU texture format. "
-            "The output texture encodes instructions as RGBA pixels (R=opcode, G=stratum, B=p1, A=p2).",
+            description="Compile a .glyph assembly file to .rts.png GPU texture format.",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "input": {"type": "string", "description": "Path to .glyph source file"},
                     "output": {"type": "string", "description": "Path to output .rts.png texture"},
-                    "grid_size": {"type": "integer", "description": "Texture grid size (default 4096)", "default": 4096},
                 },
                 "required": ["input", "output"],
+            },
+        ),
+        Tool(
+            name="glyph_patch",
+            description="Hot-patch a running glyph instruction in VRAM.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "vm_id": {"type": "integer", "description": "VM ID to patch (0=WM)"},
+                    "address": {"type": "string", "description": "Hilbert index or hex address"},
+                    "opcode": {"type": "integer", "description": "New R channel value"},
+                    "stratum": {"type": "integer", "description": "New G channel value"},
+                    "p1": {"type": "integer", "description": "New B channel value"},
+                    "p2": {"type": "integer", "description": "New A channel value"},
+                },
+                "required": ["address", "opcode"],
+            },
+        ),
+        Tool(
+            name="linux_to_glyph",
+            description="Transpile a Linux ELF binary to a spatial glyph texture.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "binary": {"type": "string", "description": "Path to RISC-V ELF binary"},
+                    "output": {"type": "string", "description": "Path to output .rts.png"},
+                },
+                "required": ["binary", "output"],
             },
         ),
         Tool(
@@ -227,6 +253,10 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     try:
         if name == "crystallize":
             return await tool_crystallize(arguments)
+        elif name == "glyph_patch":
+            return await tool_glyph_patch(arguments)
+        elif name == "linux_to_glyph":
+            return await tool_linux_to_glyph(arguments)
         elif name == "benchmark_sls":
             return await tool_benchmark_sls(arguments)
         elif name == "boot_sim":
@@ -517,6 +547,109 @@ async def tool_hilbert_test(args: dict) -> list[TextContent]:
         )]
     else:
         return [TextContent(type="text", text=f"Unknown mode: {mode}")]
+
+
+async def tool_glyph_patch(args: dict) -> list[TextContent]:
+    """Hot-patch a glyph instruction in VRAM."""
+    address = args["address"]
+    opcode = args["opcode"]
+    stratum = args.get("stratum", 0)
+    p1 = args.get("p1", 0)
+    p2 = args.get("p2", 0)
+    vm_id = args.get("vm_id", 0)
+
+    # Parse address (hex or decimal)
+    if address.startswith("0x"):
+        addr = int(address, 16)
+    else:
+        addr = int(address)
+
+    # Convert to Hilbert coordinates
+    grid_size = 4096
+    x, y = hilbert_d2xy(grid_size, addr)
+
+    # Build the new instruction pixel
+    new_pixel = {
+        "r": opcode,
+        "g": stratum,
+        "b": p1,
+        "a": p2
+    }
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "VRAM_HOT_PATCH",
+            "vm_id": vm_id,
+            "patch": {
+                "address": addr,
+                "address_hex": f"0x{addr:08X}",
+                "hilbert_coords": {"x": x, "y": y},
+                "old_instruction": "UNKNOWN (requires VRAM read)",
+                "new_instruction": new_pixel
+            },
+            "note": "This is a simulation. Real patching requires running GPU context.",
+            "next_step": "Apply via visual_kernel or bare-metal MMIO write"
+        }, indent=2)
+    )]
+
+
+async def tool_linux_to_glyph(args: dict) -> list[TextContent]:
+    """Transpile Linux ELF to glyph texture."""
+    binary_path = Path(args["binary"])
+    output_path = Path(args["output"])
+
+    if not binary_path.exists():
+        return [TextContent(type="text", text=f"Error: Binary not found: {binary_path}")]
+
+    # Check if it's a valid ELF
+    try:
+        with open(binary_path, "rb") as f:
+            magic = f.read(4)
+            if magic != b'\x7fELF':
+                return [TextContent(type="text", text=f"Error: Not an ELF file: {binary_path}")]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error reading file: {e}")]
+
+    # Get binary info
+    binary_size = binary_path.stat().st_size
+    instruction_count = binary_size // 4  # Rough estimate
+
+    # Run the transpiler
+    transpiler = GEOS_ROOT / "systems" / "pixel_compiler" / "riscv_to_geometric_vm.py"
+    if not transpiler.exists():
+        return [TextContent(type="text", text=f"Error: Transpiler not found: {transpiler}")]
+
+    result = subprocess.run(
+        [sys.executable, str(transpiler), str(binary_path), str(output_path)],
+        capture_output=True,
+        text=True,
+        cwd=str(GEOS_ROOT)
+    )
+
+    if result.returncode != 0:
+        return [TextContent(type="text", text=f"Transpilation failed:\n{result.stderr}")]
+
+    output_size = output_path.stat().st_size if output_path.exists() else 0
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "LINUX_TO_GLYPH",
+            "input": {
+                "binary": str(binary_path),
+                "size_bytes": binary_size,
+                "estimated_instructions": instruction_count
+            },
+            "output": {
+                "texture": str(output_path),
+                "size_bytes": output_size
+            },
+            "transpiler_output": result.stdout.strip()[-500:] if result.stdout else ""
+        }, indent=2)
+    )]
 
 
 async def tool_geos_status(args: dict) -> list[TextContent]:
