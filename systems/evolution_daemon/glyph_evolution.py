@@ -6,7 +6,7 @@ that compile to SPIR-V and execute on GPU.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Callable
+from typing import List, Dict, Any, Callable
 import random
 import json
 
@@ -64,9 +64,11 @@ class GlyphMutator:
             return program.copy()
 
         glyphs = []
-        for g in program.glyphs:
-            # Deletion
-            if random.random() < self.deletion_rate and len(glyphs) > 1:
+        for i, g in enumerate(program.glyphs):
+            # Deletion - preserve at least one glyph from original
+            remaining_in_original = len(program.glyphs) - i - 1
+            if (random.random() < self.deletion_rate and
+                len(glyphs) + remaining_in_original >= 1):
                 continue
 
             new_g = g.copy()
@@ -161,10 +163,11 @@ def evolve_glyph_program(
     best_fitness = 0.0
 
     for gen in range(generations):
-        # Evaluate fitness (placeholder - actual evaluation needs compiler)
+        # TODO(Task 2.2): Replace placeholder with actual compiler evaluation
+        # via compiler_bridge.compile_glyph_program()
         fitness_scores = []
         for program in population:
-            # Use placeholder result for now
+            # Placeholder result - real fitness requires compiler integration
             result = {"spirv_size": 100, "magic": "0x07230203"}
             fitness = fitness_fn(program, result)
             fitness_scores.append((program, fitness))
