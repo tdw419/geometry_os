@@ -276,7 +276,7 @@ class GlyphVMBridge:
             return
 
         # Check if app exists in discovery
-        if app_name not in self._app_loader.app_info:
+        if app_name not in self._app_loader._app_info:
             logger.error(f"Unknown app: {app_name}")
             await self.broadcast({
                 "type": "error",
@@ -285,7 +285,7 @@ class GlyphVMBridge:
             return
 
         # Get the app binary from AppLoader discovery
-        app_info = self._app_loader.app_info[app_name]
+        app_info = self._app_loader._app_info[app_name]
         app_binary = app_info.get('binary')
 
         if app_binary is None:
