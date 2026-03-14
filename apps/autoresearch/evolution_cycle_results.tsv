@@ -1069,3 +1069,51 @@ timestamp	track	metric	value	optimization	status
 2026-03-14T02:53:32.733597	THE ENGINE (GIPS Opt	GIPS	0.0035	No optimization applied (basel	pass
 2026-03-14T02:54:04.398960	THE ENGINE (GIPS Opt	GIPS	0.0038	Applied optimization: loop_unr	pass
 2026-03-14T02:54:04.455513	THE ENGINE (GIPS Opt	GIPS	0.0037	No optimization applied (basel	pass
+2026-03-14T02:54:36.145748	THE ENGINE (GIPS Opt	GIPS	0.0039	Applied optimization: loop_unr	pass
+2026-03-14T02:54:36.204912	THE ENGINE (GIPS Opt	GIPS	0.0038	No optimization applied (basel	pass
+2026-03-14T02:55:07.981497	THE ENGINE (GIPS Opt	GIPS	0.0031	No optimization applied (basel	pass
+2026-03-14T02:55:08.105706	THE ENGINE (GIPS Opt	GIPS	0.0038	Applied optimization: loop_unr	pass
+2026-03-14T02:55:39.769571	THE ENGINE (GIPS Opt	GIPS	0.0037	Applied optimization: loop_unr	pass
+2026-03-14T02:55:39.830888	THE ENGINE (GIPS Opt	GIPS	0.0034	Applied optimization: lcg_twea	pass
+2026-03-14T02:56:11.529531	THE ENGINE (GIPS Opt	GIPS	0.0038	Applied optimization: branch_r	pass
+2026-03-14T02:56:11.586939	THE ENGINE (GIPS Opt	GIPS	0.0037	No optimization applied (basel	pass
+2026-03-14T02:56:43.339632	THE ENGINE (GIPS Opt	GIPS	0.0035	Applied optimization: branch_r	pass
+2026-03-14T02:56:43.347491	THE ENGINE (GIPS Opt	GIPS	0.0035	Applied optimization: branch_r	pass
+2026-03-14T02:57:15.156793	THE ENGINE (GIPS Opt	GIPS	0.0037	Applied optimization: branch_r	pass
+2026-03-14T02:57:15.164532	THE ENGINE (GIPS Opt	GIPS	0.0038	Applied optimization: lcg_twea	pass
+2026-03-14T02:57:46.909357	THE ENGINE (GIPS Opt	GIPS	0.0038	Applied optimization: branch_r	pass
+2026-03-14T02:57:46.967095	THE ENGINE (GIPS Opt	GIPS	0.0034	Applied optimization: branch_r	pass
+2026-03-14T02:58:18.701127	THE ENGINE (GIPS Opt	GIPS	0.0038	Applied optimization: branch_r	pass
+2026-03-14T02:58:18.756875	THE ENGINE (GIPS Opt	GIPS	0.0036	Applied optimization: lcg_twea	pass
+2026-03-14T02:58:50.460298	THE ENGINE (GIPS Opt	GIPS	0.0036	Applied optimization: lcg_twea	pass
+2026-03-14T02:58:50.518399	THE ENGINE (GIPS Opt	GIPS	0.0036	Applied optimization: loop_unr	pass
+2026-03-14T02:59:22.287494	THE ENGINE (GIPS Opt	GIPS	0.0032	Applied optimization: lcg_twea	pass
+2026-03-14T02:59:22.294160	THE ENGINE (GIPS Opt	GIPS	0.0038	No optimization applied (basel	pass
+2026-03-14T02:59:54.072320	THE ENGINE (GIPS Opt	GIPS	0.0038	No optimization applied (basel	pass
+2026-03-14T02:59:54.079236	THE ENGINE (GIPS Opt	GIPS	0.0038	Applied optimization: lcg_twea	pass
+2026-03-14T03:00:25.812450	THE ENGINE (GIPS Opt	GIPS	0.0038	Applied optimization: loop_unr	pass
+2026-03-14T03:00:25.868155	THE ENGINE (GIPS Opt	GIPS	0.0035	Applied optimization: branch_r	pass
+2026-03-14T03:00:57.629188	THE ENGINE (GIPS Opt	GIPS	0.0038	Applied optimization: loop_unr	pass
+2026-03-14T03:00:57.693466	THE ENGINE (GIPS Opt	GIPS	0.0036	Applied optimization: lcg_twea	pass
+2026-03-14T03:01:29.458836	THE ENGINE (GIPS Opt	GIPS	0.0035	No optimization applied (basel	pass
+2026-03-14T03:01:29.463729	THE ENGINE (GIPS Opt	GIPS	0.0035	No optimization applied (basel	pass
+2026-03-14T03:02:01.375638	THE ENGINE (GIPS Opt	GIPS	0.0038	No optimization applied (basel	pass
+2026-03-14T03:02:01.382958	THE ENGINE (GIPS Opt	GIPS	0.0033	No optimization applied (basel	pass
+2026-03-14T03:02:33.160165	THE ENGINE (GIPS Opt	GIPS	0.0039	No optimization applied (basel	pass
+2026-03-14T03:02:33.167425	THE ENGINE (GIPS Opt	GIPS	0.0038	Applied optimization: loop_unr	pass
+2026-03-14T03:03:04.889240	THE ENGINE (GIPS Opt	GIPS	0.0037	Applied optimization: loop_unr	pass
+2026-03-14T03:03:04.944254	THE ENGINE (GIPS Opt	GIPS	0.0038	No optimization applied (basel	pass
+2026-03-14T03:03:36.646408	THE ENGINE (GIPS Opt	GIPS	0.0035	No optimization applied (basel	pass
+2026-03-14T03:03:36.808610	THE ENGINE (GIPS Opt	GIPS	0.0036	Applied optimization: branch_r	pass
+2026-03-14T03:04:08.485306	THE ENGINE (GIPS Opt	GIPS	0.0036	Applied optimization: lcg_twea	pass
+2026-03-14T03:04:08.493184	THE ENGINE (GIPS Opt	GIPS	0.0034	Applied optimization: branch_r	pass
+2026-03-14T03:04:40.241723	THE ENGINE (GIPS Opt	GIPS	0.0037	Applied optimization: lcg_twea	pass
+2026-03-14T03:04:40.297443	THE ENGINE (GIPS Opt	GIPS	0.0038	Applied optimization: lcg_twea	pass
+2026-03-14T03:05:12.014138	THE ENGINE (GIPS Opt	GIPS	0.0038	No optimization applied (basel	pass
+2026-03-14T03:05:12.069330	THE ENGINE (GIPS Opt	GIPS	0.0035	Applied optimization: loop_unr	pass
+2026-03-14T03:05:43.821497	THE ENGINE (GIPS Opt	GIPS	0.0037	Applied optimization: lcg_twea	pass
+2026-03-14T03:05:43.829826	THE ENGINE (GIPS Opt	GIPS	0.0038	Applied optimization: lcg_twea	pass
+2026-03-14T03:06:15.565943	THE ENGINE (GIPS Opt	GIPS	0.0031	No optimization applied (basel	pass
+2026-03-14T03:06:15.621985	THE ENGINE (GIPS Opt	GIPS	0.0036	Applied optimization: loop_unr	pass
+2026-03-14T03:06:47.412543	THE ENGINE (GIPS Opt	GIPS	0.0035	Applied optimization: branch_r	pass
+2026-03-14T03:06:47.419673	THE ENGINE (GIPS Opt	GIPS	0.0038	No optimization applied (basel	pass
