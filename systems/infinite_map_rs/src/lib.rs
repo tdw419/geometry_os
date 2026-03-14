@@ -22,20 +22,19 @@
 #![allow(clippy::doc_lazy_continuation)]
 
 // Refactored app state sub-structs for improved maintainability
+pub mod glyph_stratum;
 pub mod app_state;
 pub use app_state::{
     BridgeState, CognitiveState, CompilationStatus, CompilerState, InputState, MapState,
     MemoryVisualizationState, PerformanceState, TileState, VmState, WindowState,
 };
-
-// Core Modules
 pub mod agency_tile;
 pub mod agent_renderer;
 pub mod alpine_vm;
 pub mod alpine_vm_extension;
 pub mod antigravity_watcher;
 pub mod api_server;
-pub mod glyph_stratum;
+
 pub mod app;
 pub mod audio_manager;
 pub mod backend;

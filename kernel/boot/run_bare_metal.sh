@@ -19,7 +19,6 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 BUILD_DIR="${WORKSPACE_DIR}/target/x86_64-unknown-uefi/debug"
-IMAGE_DIR="${SCRIPT_DIR}/boot_image"
 BOOT_IMAGE="${SCRIPT_DIR}/geometry_os_boot.img"
 EFI_FILE="geometry_os_bootloader.efi"
 
@@ -77,30 +76,58 @@ build_efi() {
 
 # Create FAT32 boot image with EFI file
 create_boot_image() {
-    log_info "Creating FAT32 boot image..."
+    log_info "Creating GPT-formatted boot image..."
 
-    # Create 16MB image
-    dd if=/dev/zero of="${BOOT_IMAGE}" bs=1M count=16 2>/dev/null
+    # Remove old image if exists
+    rm -f "${BOOT_IMAGE}"
 
-    # Format as FAT32
-    mkfs.fat -F 32 "${BOOT_IMAGE}" 2>/dev/null || {
-        log_error "Failed to format boot image"
-        exit 1
-    }
+    # Create 64MB image (larger for GPT + FAT32)
+    dd if=/dev/zero of="${BOOT_IMAGE}" bs=1M count=64 2>/dev/null
 
-    # Create directory structure
-    mkdir -p "${IMAGE_DIR}/EFI/BOOT"
+    # Create GPT partition table and EFI System Partition
+    # Using sgdisk for GPT manipulation
+    sgdisk -Z "${BOOT_IMAGE}" 2>/dev/null  # Clear any existing partition table
+    sgdisk -o "${BOOT_IMAGE}" 2>/dev/null  # Create new GPT
 
-    # Copy EFI file
-    cp "${BUILD_DIR}/${EFI_FILE}" "${IMAGE_DIR}/EFI/BOOT/BOOTX64.EFI"
+    # Create EFI System Partition (type EF00)
+    sgdisk -n 1:2048:+0 -t 1:EF00 -c 1:"EFI System" "${BOOT_IMAGE}" 2>/dev/null
 
-    # Copy files to image using mtools
-    mcopy -i "${BOOT_IMAGE}" -s "${IMAGE_DIR}/EFI" ::/EFI
+    # Set partition as bootable
+    sgdisk -A 1:set:2 "${BOOT_IMAGE}" 2>/dev/null
+
+    # Print partition info
+    sgdisk -p "${BOOT_IMAGE}" 2>/dev/null
+
+    # Calculate partition offset (sector 2048 = 1MB offset)
+    local partition_offset=$((2048 * 512))
+
+    # Format the partition as FAT32 (access via offset)
+    # Create temporary file for the partition
+    local partition_file="${SCRIPT_DIR}/efi_partition.fat"
+    rm -f "${partition_file}"
+
+    # Create 32MB FAT32 filesystem for the partition
+    dd if=/dev/zero of="${partition_file}" bs=1M count=32 2>/dev/null
+    mkfs.fat -F 32 "${partition_file}" 2>/dev/null
+
+    # Create EFI directory structure
+    mmd -i "${partition_file}" ::/EFI
+    mmd -i "${partition_file}" ::/EFI/BOOT
+
+    # Copy EFI file as BOOTX64.EFI
+    mcopy -i "${partition_file}" "${BUILD_DIR}/${EFI_FILE}" ::/EFI/BOOT/BOOTX64.EFI
+
+    # Verify
+    log_info "Partition contents:"
+    mdir -i "${partition_file}" ::/EFI/BOOT
+
+    # Write partition to disk image at correct offset
+    dd if="${partition_file}" of="${BOOT_IMAGE}" bs=512 seek=2048 conv=notrunc 2>/dev/null
 
     # Cleanup
-    rm -rf "${IMAGE_DIR}"
+    rm -f "${partition_file}"
 
-    log_info "Created boot image: ${BOOT_IMAGE}"
+    log_info "Created GPT boot image: ${BOOT_IMAGE}"
 }
 
 # Find OVMF firmware
@@ -134,12 +161,13 @@ run_qemu() {
     log_info "Press Ctrl+A then X to exit QEMU"
     echo ""
 
+    # Use IDE interface for better UEFI compatibility
     qemu-system-x86_64 \
-        -machine q35,accel=tcg \
+        -machine q35 \
         -cpu qemu64 \
         -m 512M \
         -drive if=pflash,format=raw,readonly=on,file="${ovmf_path}" \
-        -drive format=raw,file="${BOOT_IMAGE}" \
+        -drive format=raw,file="${BOOT_IMAGE}",if=ide \
         -net none \
         -serial stdio \
         ${debug_flag}

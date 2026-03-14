@@ -319,7 +319,7 @@ impl VisualFeedbackEncoder {
             return Ok(());
         }
         
-        let mut client = self.client.lock().unwrap();
+        let client = self.client.lock().unwrap();
         
         // Create message payload
         let payload = serde_json::json!({
