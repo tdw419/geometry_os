@@ -525,9 +525,10 @@ mod tests {
         assert!(system.is_transitioning());
         assert_eq!(system.transition_progress, 0.0);
         
-        // Update multiple times
+        // Update multiple times (with sleep to allow dt to accumulate)
         for _ in 0..100 {
             system.update();
+            std::thread::sleep(std::time::Duration::from_millis(20));
         }
         
         // Should complete transition

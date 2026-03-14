@@ -97,6 +97,8 @@ impl VisualKernel {
         let wm_config = VmConfig {
             entry_point: 0x0000, // Hilbert origin
             parent_id: 0xFF,     // No parent - this is root
+            base_addr: 0,        // Unrestricted
+            bound_addr: 0,       // Unrestricted
             initial_regs: [0; 32],
         };
 
@@ -232,6 +234,8 @@ mod tests {
         let config = VmConfig {
             entry_point: 0x0000,
             parent_id: 0xFF,
+            base_addr: 0,
+            bound_addr: 0,
             initial_regs: [0; 32],
         };
         assert_eq!(config.entry_point, 0);

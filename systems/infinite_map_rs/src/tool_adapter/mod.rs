@@ -129,8 +129,8 @@ mod tests {
 
     #[test]
     fn test_check_binary_available() {
-        // Test with a binary that should exist (sh)
-        assert!(check_binary_available("sh"));
+        // Test with a binary that should exist (bash is more reliably in PATH)
+        assert!(check_binary_available("bash"));
         
         // Test with a binary that likely doesn't exist
         assert!(!check_binary_available("nonexistent_binary_12345"));

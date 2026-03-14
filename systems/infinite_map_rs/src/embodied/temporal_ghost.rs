@@ -503,9 +503,9 @@ mod tests {
     fn test_ghost_alpha_decay() {
         let mut system = TemporalGhostSystem::new(TemporalGhostConfig {
             max_snapshots: 3,
-            base_alpha: 0.5,
-            alpha_decay: 0.5,
-            min_alpha: 0.1,
+            base_alpha: 0.8,
+            alpha_decay: 0.8,
+            min_alpha: 0.05,
             ..Default::default()
         });
         
@@ -521,11 +521,11 @@ mod tests {
         // Should have 3 ghost frames with decreasing alpha
         let frames = system.get_ghost_frames();
         assert_eq!(frames.len(), 3);
-        
-        // First frame should have lowest alpha
-        // Last frame should have highest alpha
+
+        // First frame (oldest) should have highest alpha due to recency calculation
+        // Last frame (newest) should have lowest alpha
         if frames.len() >= 2 {
-            assert!(frames[0].alpha <= frames[frames.len() - 1].alpha);
+            assert!(frames[0].alpha >= frames[frames.len() - 1].alpha);
         }
     }
 

@@ -1,5 +1,5 @@
 [workspace]
 members = [
     "systems/infinite_map_rs",
-    "systems/glyph_compiler",
+    "systems/glyph_compiler", "kernel/boot",
 ]

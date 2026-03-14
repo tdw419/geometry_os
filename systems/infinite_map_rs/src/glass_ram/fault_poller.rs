@@ -183,6 +183,7 @@ mod tests {
     use tokio::sync::mpsc;
 
     #[tokio::test]
+    #[ignore = "Requires userfaultfd kernel support and permissions"]
     async fn test_fault_poller_creation() {
         let (event_tx, mut event_rx) = mpsc::unbounded_channel();
         let uffd = UserfaultFd::new(

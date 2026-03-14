@@ -681,6 +681,7 @@ mod tests {
     fn test_swipe_recognition() {
         let mut recognizer = GestureRecognizer::new(GestureConfig {
             min_points: 3,
+            sample_rate: 1,  // Keep all points for test
             confidence_threshold: 0.5,
             enabled_gestures: vec![GestureType::Swipe],
             ..Default::default()

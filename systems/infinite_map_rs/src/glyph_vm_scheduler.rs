@@ -30,6 +30,10 @@ pub struct VmConfig {
     pub entry_point: u32,
     /// Parent VM ID (0xFF = no parent)
     pub parent_id: u32,
+    /// Spatial MMU: Start Hilbert index
+    pub base_addr: u32,
+    /// Spatial MMU: End Hilbert index (0 = unrestricted)
+    pub bound_addr: u32,
     /// Initial register values (32 registers)
     pub initial_regs: [u32; 32],
 }
@@ -39,6 +43,8 @@ impl Default for VmConfig {
         Self {
             entry_point: 0,
             parent_id: 0xFF,
+            base_addr: 0,
+            bound_addr: 0,
             initial_regs: [0; 32],
         }
     }
@@ -250,8 +256,8 @@ impl GlyphVmScheduler {
         vm_data.push(vm_state::RUNNING);   // state
         vm_data.push(config.parent_id);    // parent_id
         vm_data.push(config.entry_point);  // entry_point
-        vm_data.push(0);                   // padding[0]
-        vm_data.push(0);                   // padding[1]
+        vm_data.push(config.base_addr);    // base_addr
+        vm_data.push(config.bound_addr);   // bound_addr
 
         // Stack (64 zeros)
         vm_data.extend_from_slice(&[0u32; 64]);
