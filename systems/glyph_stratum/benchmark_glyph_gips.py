@@ -25,18 +25,18 @@ def run_stress_benchmark():
         return {"gips": 0, "status": "FAIL", "error": str(e)}
 
     # Create a simple compute shader that does arithmetic
-    # Using 10000 ops/thread for better GPU utilization (amortizes dispatch overhead)
+    # Optimized configuration: wg_size=512, threads=500K, ops=20K for max throughput
     shader_code = """
     @group(0) @binding(0) var<storage, read_write> data: array<u32>;
 
-    @compute @workgroup_size(256)
+    @compute @workgroup_size(512)
     fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let idx = global_id.x;
-        if (idx >= 1000000u) { return; }
+        if (idx >= 500000u) { return; }
 
-        // Each thread does 10000 arithmetic operations for better throughput
+        // Each thread does 20000 arithmetic operations for optimal GPU utilization
         var acc = data[idx];
-        for (var i = 0u; i < 10000u; i++) {
+        for (var i = 0u; i < 20000u; i++) {
             acc = (acc * 1103515245u + 12345u) % 2147483648u;
             acc = (acc ^ (acc >> 16u)) * 2654435761u;
         }
