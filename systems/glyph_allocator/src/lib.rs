@@ -115,7 +115,8 @@ impl GlyphPool {
 
     /// Free memory for a glyph
     pub fn free(&mut self, glyph_id: u32) -> bool {
-        let idx = match self.glyph_map.remove(&glyph_id) {
+        // Find the block by glyph_id (indices may have shifted due to splits)
+        let idx = match self.blocks.iter().position(|b| b.glyph_id == glyph_id && !b.is_free) {
             Some(i) => i,
             None => return false,
         };

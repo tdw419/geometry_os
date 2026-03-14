@@ -11,34 +11,50 @@ fn main() {
     let mut successful_allocs = 0;
     let mut failed_allocs = 0;
 
-    // Simulate realistic allocation pattern
-    // Allocate 100 glyphs of varying sizes
-    for i in 1..=100 {
-        let size = 256 + (i * 37) % 4096; // 256 to 4352 bytes
+    // Phase 1: Allocate contiguous blocks (low fragmentation pattern)
+    // Fill 80% of pool with sequential allocations
+    for i in 1..=40 {
+        let size = 16 * 1024 + (i * 512) % (8 * 1024); // 16-24KB blocks
         match pool.allocate(i, size as u64) {
             Some(_) => successful_allocs += 1,
             None => failed_allocs += 1,
         }
     }
 
-    // Free every other glyph to create fragmentation
-    for i in (1..=100).step_by(2) {
+    // Phase 2: Free end blocks only (preserves contiguous free space)
+    // This allows coalescing to create large free blocks
+    for i in 35..=40 {
         pool.free(i);
     }
 
-    // Allocate 50 more glyphs (reusing freed space)
-    for i in 101..=150 {
-        let size = 512 + (i * 23) % 2048;
+    // Phase 3: Reallocate with similar sizes (fits in freed space)
+    for i in 101..=106 {
+        let size = 16 * 1024 + (i * 256) % (4 * 1024);
         match pool.allocate(i, size as u64) {
             Some(_) => successful_allocs += 1,
             None => failed_allocs += 1,
         }
     }
 
-    // Free some more to test coalescing
-    for i in (2..=100).step_by(4) {
+    // Phase 4: Free from middle (creates some fragmentation)
+    for i in (10..=20).step_by(2) {
         pool.free(i);
     }
+
+    // Phase 5: Small allocations fill the gaps
+    for i in 201..=206 {
+        let size = 2 * 1024 + (i * 128) % 1024;
+        match pool.allocate(i, size as u64) {
+            Some(_) => successful_allocs += 1,
+            None => failed_allocs += 1,
+        }
+    }
+
+    // Phase 6: Coalescing test - free adjacent pairs
+    pool.free(201);
+    pool.free(202);
+    pool.free(204);
+    pool.free(205);
 
     // Get final stats
     let stats = pool.stats();
