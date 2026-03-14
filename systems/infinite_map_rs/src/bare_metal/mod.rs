@@ -11,7 +11,9 @@
 pub mod framebuffer;
 pub mod screen;
 pub mod spirv_compiler;
+pub mod window_renderer;
 
 pub use framebuffer::{FramebufferFormat, GpuFramebuffer};
 pub use screen::ScreenDimensionsConfig;
 pub use spirv_compiler::SpirvCompiler;
+pub use window_renderer::{WindowInstance, WindowRenderer, WindowState};
