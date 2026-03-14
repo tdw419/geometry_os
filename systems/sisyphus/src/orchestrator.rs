@@ -64,7 +64,7 @@ impl TaskOrchestrator {
     /// - Identify technical debt
     /// For now, we'll return placeholder tasks that demonstrate the concept
     pub fn generate_improvement_tasks(
-        &self,
+        &mut self,
     ) -> Result<Vec<Task>, Box<dyn std::error::Error + Send + Sync>> {
         info!("Generating improvement tasks from system analysis");
 
@@ -103,7 +103,7 @@ impl TaskOrchestrator {
 
     /// Add a task to the orchestrator
     pub async fn add_task(
-        &self,
+        &mut self,
         mut task: Task,
     ) -> Result<u32, Box<dyn std::error::Error + Send + Sync>> {
         // Assign ID if not already set

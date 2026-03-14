@@ -14,6 +14,7 @@ use infinite_map_rs::backend::drm::{
     VisualInteractionBus, InputState,
     GlyphVmExecutor, GlyphVmState,
 };
+use infinite_map_rs::glyph_stratum::glyph_compiler::compile_glyph_source;
 
 /// Camera state (shared with glyph VM via registers 20-22)
 #[repr(C)]
@@ -99,12 +100,31 @@ impl GlyphInfiniteMap {
     /// Load the infinite_map.glyph program into RAM texture
     fn load_program(&self, path: &str) -> Result<()> {
         let glyph_source = fs::read_to_string(path)?;
-        
+
         // Parse glyph program and encode into texture
-        // For now, we'll load a simple test program
         let program_data = self.compile_glyph(&glyph_source);
-        
-        // Upload to RAM texture at Hilbert position 0
+
+        // Calculate texture dimensions needed
+        let pixel_count = program_data.len() / 4;
+        let texture_size = (pixel_count as f64).sqrt().ceil() as u32;
+        let texture_dim = texture_size.next_power_of_two().max(64);
+
+        // Pad program data to match the texture dimensions
+        let row_bytes = texture_dim * 4;
+        let total_bytes = (texture_dim * texture_dim) as usize * 4;
+        let mut padded_data = vec![0u8; total_bytes];
+
+        // Copy program data row by row
+        for (i, chunk) in program_data.chunks(4).enumerate() {
+            let x = i as u32 % texture_dim;
+            let y = i as u32 / texture_dim;
+            let offset = (y * row_bytes + x * 4) as usize;
+            if offset + 4 <= padded_data.len() {
+                padded_data[offset..offset + 4].copy_from_slice(chunk);
+            }
+        }
+
+        // Upload to RAM texture
         self.queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture: &self.ram_texture,
@@ -112,63 +132,63 @@ impl GlyphInfiniteMap {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            &program_data,
+            &padded_data,
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some(4096 * 4),
-                rows_per_image: Some(4096),
+                bytes_per_row: Some(row_bytes),
+                rows_per_image: Some(texture_dim),
             },
-            wgpu::Extent3d { width: 4096, height: 4096, depth_or_array_layers: 1 },
+            wgpu::Extent3d { width: texture_dim, height: texture_dim, depth_or_array_layers: 1 },
         );
 
-        log::info!("Loaded glyph program: {} bytes", program_data.len());
+        log::info!("Loaded glyph program: {} bytes into {}x{} texture",
+            program_data.len(), texture_dim, texture_dim);
         Ok(())
     }
 
-    /// Compile glyph source to binary (simplified)
+    /// Compile glyph source to binary using proper GlyphStratum compiler
     fn compile_glyph(&self, source: &str) -> Vec<u8> {
+        match compile_glyph_source(source) {
+            Ok(compiled) => {
+                log::info!(
+                    "Compiled {} instructions, entry point at Hilbert {}",
+                    compiled.instruction_count,
+                    compiled.entry_point
+                );
+                compiled.texture_data
+            }
+            Err(e) => {
+                log::error!("Glyph compilation failed: {}", e);
+                log::info!("Falling back to simple demo program");
+                self.compile_simple_demo()
+            }
+        }
+    }
+
+    /// Simple demo program as fallback
+    fn compile_simple_demo(&self) -> Vec<u8> {
         let mut program = Vec::new();
-        
-        // Simple assembler for demo
-        // Format: OPCODE(1) STRATUM(1) P1(4) P2(4) DST(4) = 14 bytes per instruction
-        
-        for line in source.lines() {
-            let line = line.trim();
-            if line.is_empty() || line.starts_with('#') || line.starts_with("//") {
-                continue;
-            }
 
-            // Parse instruction
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.is_empty() {
-                continue;
-            }
+        // Simple program: count and halt
+        // NOP (0), ADD (5), HALT (13)
+        let instructions: [(u8, u8, u8, u8); 10] = [
+            (0, 2, 0, 0),    // NOP
+            (5, 2, 0, 1),    // ADD r1 = r0 + r1 (counter)
+            (5, 2, 1, 1),    // ADD r1 = r1 + 1
+            (5, 2, 1, 1),    // ADD r1 = r1 + 1
+            (5, 2, 1, 1),    // ADD r1 = r1 + 1
+            (5, 2, 1, 1),    // ADD r1 = r1 + 1
+            (5, 2, 1, 1),    // ADD r1 = r1 + 1
+            (5, 2, 1, 1),    // ADD r1 = r1 + 1
+            (5, 2, 1, 1),    // ADD r1 = r1 + 1
+            (13, 2, 0, 0),   // HALT
+        ];
 
-            let opcode = match parts[0].to_uppercase().as_str() {
-                "NOP" => 0u8,
-                "LOAD" => 3u8,
-                "STORE" => 4u8,
-                "ADD" => 5u8,
-                "SUB" => 6u8,
-                "MUL" => 7u8,
-                "JMP" => 9u8,
-                "BRANCH" => 10u8,
-                "CALL" => 11u8,
-                "RETURN" => 12u8,
-                "HALT" => 13u8,
-                "CAMERA" => 230u8,
-                "HILBERT_D2XY" => 231u8,
-                "HILBERT_XY2D" => 232u8,
-                "ZOOM" => 235u8,
-                "PAN" => 236u8,
-                _ => continue,
-            };
-
+        for (opcode, stratum, p1, p2) in instructions {
             program.push(opcode);
-            program.push(0); // stratum
-            program.extend_from_slice(&0u32.to_le_bytes()); // p1
-            program.extend_from_slice(&0u32.to_le_bytes()); // p2
-            program.extend_from_slice(&0u32.to_le_bytes()); // dst
+            program.push(stratum);
+            program.push(p1);
+            program.push(p2);
         }
 
         // Pad to texture size
@@ -270,12 +290,25 @@ async fn main() -> Result<()> {
     // Create bootloader
     let mut map = GlyphInfiniteMap::new().await?;
 
-    // Load glyph program
-    let glyph_path = "systems/glyph_stratum/programs/infinite_map.glyph";
-    if std::path::Path::new(glyph_path).exists() {
-        map.load_program(glyph_path)?;
-    } else {
-        log::warn!("Glyph program not found: {}", glyph_path);
+    // Load glyph program - try multiple paths
+    let glyph_paths = [
+        "systems/glyph_stratum/programs/infinite_map.glyph",  // From project root
+        "../../systems/glyph_stratum/programs/infinite_map.glyph",  // From systems/infinite_map_rs
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../glyph_stratum/programs/infinite_map.glyph"),  // Absolute
+    ];
+
+    let mut loaded = false;
+    for glyph_path in &glyph_paths {
+        if std::path::Path::new(glyph_path).exists() {
+            log::info!("Loading glyph program: {}", glyph_path);
+            map.load_program(glyph_path)?;
+            loaded = true;
+            break;
+        }
+    }
+
+    if !loaded {
+        log::warn!("Glyph program not found in any location");
         log::info!("Running with minimal demo program");
     }
 

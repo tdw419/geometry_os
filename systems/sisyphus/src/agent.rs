@@ -80,7 +80,7 @@ impl SisyphusAgent {
         let mut orchestrator = self.orchestrator.lock().await;
 
         // 1. Check for existing unfinished tasks (persistence mechanism)
-        let unfinished_tasks = orchestrator.get_unfinished_tasks()?;
+        let unfinished_tasks = orchestrator.get_unfinished_tasks().await?;
         if !unfinished_tasks.is_empty() {
             info!(
                 "Found {} unfinished tasks from previous cycles",
