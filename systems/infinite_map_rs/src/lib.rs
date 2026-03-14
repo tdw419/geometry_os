@@ -2,6 +2,7 @@
 //!
 //! This library provides the core rendering and computation functionality
 //! for the Geometry OS infinite map system.
+//!
 
 // Clippy configuration for stylistic lints that don't affect correctness
 #![allow(clippy::derivable_impls)]
@@ -22,8 +23,8 @@
 #![allow(clippy::doc_lazy_continuation)]
 
 // Refactored app state sub-structs for improved maintainability
-pub mod glyph_stratum;
 pub mod app_state;
+pub mod glyph_stratum;
 pub use app_state::{
     BridgeState, CognitiveState, CompilationStatus, CompilerState, InputState, MapState,
     MemoryVisualizationState, PerformanceState, TileState, VmState, WindowState,
@@ -34,7 +35,6 @@ pub mod alpine_vm;
 pub mod alpine_vm_extension;
 pub mod antigravity_watcher;
 pub mod api_server;
-
 pub mod app;
 pub mod audio_manager;
 pub mod backend;
@@ -62,8 +62,8 @@ pub mod evolution_daemon_wrapper;
 pub mod evolution_manager;
 pub mod evolution_protocol;
 pub mod evolution_terrain_bridge;
-pub mod filesystem_hilbert;
 pub mod file_tensor;
+pub mod filesystem_hilbert;
 pub mod fitness_evaluator;
 pub mod flash_texture;
 pub mod font_atlas;
@@ -74,6 +74,7 @@ pub mod glass_ram;
 pub mod glyph_atlas;
 pub mod glyph_substrate;
 pub mod glyph_vm_scheduler;
+pub mod glyph_window_renderer;
 pub mod gpu;
 pub mod gpu_capabilities;
 pub mod graph_renderer;
@@ -107,8 +108,6 @@ pub mod neural_terrain;
 pub mod process_tile;
 pub mod python_runtime;
 pub mod qemu;
-pub mod renderer;
-pub mod rendering;
 pub mod riscv;
 pub mod riscv_executor;
 pub mod riscv_linux_vm;
@@ -140,14 +139,14 @@ pub mod visual_ast_renderer;
 pub mod visual_cortex;
 pub mod visual_feedback;
 pub mod visual_kernel_boot;
-pub mod vm_texture_manager;
 pub mod visual_shell;
 pub mod window;
+pub mod renderer;
+pub mod rendering;
+pub mod vm_texture_manager;
 
 // Phase 51: Agency Tile - Spatial Persona Binding
-pub use agency_tile::{
-    AgencyDivision, AgencyTile, Color, PersonaInjector, PersonaShiftEvent,
-};
+pub use agency_tile::{AgencyDivision, AgencyTile, Color, PersonaInjector, PersonaShiftEvent};
 
 // Phase 30.8: Damage tracking for partial terminal updates
 pub use damage_tracker::{DamageTracker, DirtyRect};
@@ -175,11 +174,9 @@ pub use compositor::Compositor;
 // Embodied Cognition Navigation - Immersive UX
 pub mod embodied;
 pub use embodied::{
-    EmbodiedCognitionLayer, MomentumCamera, MomentumCameraConfig, CameraInput,
-    PulseManager, Pulse, PulseType, PulseId,
-    EmotionalColorSystem, EmotionalState, NeuralMetrics,
-    TemporalGhostSystem, NeuralSnapshot, GhostFrame,
-    GestureRecognizer, GestureType, RecognizedGesture,
+    CameraInput, EmbodiedCognitionLayer, EmotionalColorSystem, EmotionalState, GestureRecognizer,
+    GestureType, GhostFrame, MomentumCamera, MomentumCameraConfig, NeuralMetrics, NeuralSnapshot,
+    Pulse, PulseId, PulseManager, PulseType, RecognizedGesture, TemporalGhostSystem,
 };
 
 // RISC-V VM exports
@@ -187,3 +184,6 @@ pub use riscv_executor::{
     LinuxBundleHeader, ProfilerEntry, ProfilerStats, RiscvExecutor, RiscvStats, RiscvUniforms,
     SyscallEntry,
 };
+
+// Wave-Logic Unit (WLU) - Analog Computing Prototype
+pub mod wave_logic_unit;

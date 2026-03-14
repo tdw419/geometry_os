@@ -202,6 +202,53 @@ impl VisualKernel {
         self.scheduler.execute_frame();
     }
 
+    /// Spawn a child VM from a .glyph file
+    ///
+    /// This is the CPU-side SPATIAL_SPAWN mechanism.
+    /// Loads and compiles a .glyph program, then spawns it as a new VM.
+    pub fn spawn_child_vm(&mut self, vm_id: u32, glyph_path: &str, window_x: f32, window_y: f32, window_w: f32, window_h: f32) -> Result<(), String> {
+        if !self.booted {
+            return Err("Visual Kernel not booted".to_string());
+        }
+
+        if vm_id == 0 {
+            return Err("VM ID 0 is reserved for Window Manager".to_string());
+        }
+
+        if vm_id >= 8 {
+            return Err(format!("VM ID {} exceeds maximum (7)", vm_id));
+        }
+
+        log::info!("[SPAWN] Loading child VM #{} from: {}", vm_id, glyph_path);
+
+        // Compile the glyph file
+        let compiled = crate::glyph_stratum::glyph_compiler::compile_glyph_file(glyph_path)
+            .map_err(|e| format!("Failed to compile {}: {}", glyph_path, e))?;
+
+        log::info!("[SPAWN] ✓ Compiled {} instructions", compiled.instruction_count);
+
+        // Create VM config with spatial MMU bounds
+        let vm_config = crate::glyph_vm_scheduler::VmConfig {
+            entry_point: compiled.entry_point,
+            parent_id: 0, // Parent is Window Manager
+            base_addr: vm_id * 0x1000,  // Each VM gets 4KB region
+            bound_addr: (vm_id + 1) * 0x1000 - 1,  // Upper bound
+            initial_regs: [0; 32],
+        };
+
+        // Spawn the VM
+        self.scheduler.spawn_vm(vm_id, &vm_config)?;
+
+        // Register window for this VM
+        self.register_window(window_x, window_y, window_w, window_h, vm_id);
+
+        log::info!("[SPAWN] ✓ Child VM #{} spawned at entry 0x{:04X}, memory 0x{:04X}-0x{:04X}",
+            vm_id, vm_config.entry_point, vm_config.base_addr, vm_config.bound_addr);
+        log::info!("[SPAWN]   Window: ({}, {}) {}x{}", window_x, window_y, window_w, window_h);
+
+        Ok(())
+    }
+
     /// Register a new window (called by Window Manager via SPATIAL_SPAWN)
     pub fn register_window(&mut self, x: f32, y: f32, width: f32, height: f32, vm_id: u32) -> u32 {
         let id = self.windows.len() as u32;
@@ -232,6 +279,11 @@ impl VisualKernel {
         }
 
         stats
+    }
+
+    /// Get window table for rendering
+    pub fn get_windows(&self) -> &[WindowEntry] {
+        &self.windows
     }
 
     /// Check if the kernel is booted
