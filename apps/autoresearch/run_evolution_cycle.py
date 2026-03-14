@@ -23,7 +23,7 @@ SHADER_PATH = ROOT / "systems" / "infinite_map_rs" / "shaders" / "glyph_microcod
 CHAMPION_PATH = ROOT / "apps" / "autoresearch" / "champion_shader.wgsl"
 DASHBOARD_PATH = ROOT / "apps" / "autoresearch" / "evolution_dashboard.md"
 RESULTS_TSV = ROOT / "apps" / "autoresearch" / "evolution_cycle_results.tsv"
-BENCHMARK_SCRIPT = ROOT / "systems" / "glyph_stratum" / "benchmark_glyph_fps.py"
+BENCHMARK_SCRIPT = ROOT / "systems" / "glyph_stratum" / "benchmark_glyph_gips.py"
 
 # Evolution Tracks
 TRACKS = [
