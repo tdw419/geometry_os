@@ -18,11 +18,11 @@ ASFLAGS = -ffreestanding -fno-pic -m64
 LDFLAGS = -nostdlib -z max-page-size=0x1000 -T link.ld
 
 # Source files
-C_SRCS = main.c amdgpu.c spirv_submit.c
+C_SRCS = main.c amdgpu.c spirv_submit.c window_renderer.c
 ASM_SRCS = entry.S
 
 # Object files
-OBJS = entry.o main.o amdgpu.o spirv_submit.o
+OBJS = entry.o main.o amdgpu.o spirv_submit.o window_renderer.o
 
 # Output
 KERNEL = geometry_os.kernel
@@ -43,6 +43,9 @@ amdgpu.o: amdgpu.c gpu.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 spirv_submit.o: spirv_submit.c gpu.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+window_renderer.o: window_renderer.c window_renderer.h gpu.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 entry.o: entry.S

@@ -8,6 +8,7 @@
  */
 
 #include "gpu.h"
+#include "window_renderer.h"
 
 /* Boot info from UEFI */
 struct boot_info {
@@ -225,8 +226,30 @@ void kernel_main(struct boot_info *info)
     /* Run glyph compute test */
     glyph_compute_test();
 
-    /* Render to display */
-    render_test_pattern();
+    /* Initialize window renderer */
+    WindowRenderer wren;
+    window_renderer_init(&wren, framebuffer, fb_width, fb_height);
+
+    /* Add sample VM windows with different states */
+    WindowInstance win0 = { .id = 0, .vm_id = 100, .x = 50, .y = 50, .width = 300, .height = 200, .border_color = COLOR_RUNNING, .state = WINDOW_STATE_RUNNING };
+    window_renderer_add(&wren, &win0);
+
+    WindowInstance win1 = { .id = 1, .vm_id = 101, .x = 400, .y = 50, .width = 300, .height = 200, .border_color = COLOR_WAITING, .state = WINDOW_STATE_WAITING };
+    window_renderer_add(&wren, &win1);
+
+    WindowInstance win2 = { .id = 2, .vm_id = 102, .x = 750, .y = 50, .width = 300, .height = 200, .border_color = COLOR_HALTED, .state = WINDOW_STATE_HALTED };
+    window_renderer_add(&wren, &win2);
+
+    WindowInstance win3 = { .id = 3, .vm_id = 103, .x = 225, .y = 300, .width = 500, .height = 250, .border_color = COLOR_RUNNING, .state = WINDOW_STATE_RUNNING };
+    window_renderer_add(&wren, &win3);
+
+    uart_puts("[Window] Added 4 VM windows\n");
+
+    /* Render windows to framebuffer */
+    window_renderer_render(&wren);
+    uart_puts("[Window] Rendered\n");
+
+    uart_puts("[Display] Rendered 4 VM windows\n");
 
     uart_puts("\n[Kernel] Initialization complete\n");
     uart_puts("[Kernel] Geometry OS running - glyphs executing\n");
