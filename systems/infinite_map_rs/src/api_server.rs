@@ -279,15 +279,90 @@ async fn health_check() -> impl IntoResponse {
 }
 
 async fn get_status() -> impl IntoResponse {
+    let experiments = count_evolution_experiments();
+    let (best_gips, last_gips) = get_best_gips();
+    let allocator_fitness = get_allocator_fitness();
+    let evolution_running = is_evolution_running();
+    let kernel_size = get_kernel_size();
+
     Json(serde_json::json!({
-        "gips": 308.4,
-        "allocator_fitness": 0.54,
-        "evolution_experiments": 570,
-        "kernel_size": 10900,
-        "kernel_ready": true,
-        "evolution_running": true,
-        "shell_active": true
+        "gips": best_gips,
+        "allocator_fitness": allocator_fitness,
+        "evolution_experiments": experiments,
+        "kernel_size": kernel_size,
+        "kernel_ready": kernel_size > 0,
+        "evolution_running": evolution_running,
+        "shell_active": true,
+        "last_gips": last_gips
     }))
+}
+
+fn count_evolution_experiments() -> i64 {
+    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::new("/"));
+    let path = cwd.join("apps/autoresearch/evolution_cycle_results.tsv");
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        content.lines().count() as i64
+    } else {
+        1
+    }
+}
+
+fn get_best_gips() -> (f64, f64) {
+    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::new("/"));
+    let path = cwd.join("apps/autoresearch/evolution_cycle_results.tsv");
+    let mut best = 0.0;
+    let mut last = 1.0;
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        for line in content.lines() {
+            if line.contains("THE ENGINE") {
+                let parts: Vec<&str> = line.split('\t');
+                if parts.len() > 3 {
+                    if let Ok(gips) = parts[3].parse::<f64>() {
+                        last = gips;
+                        if gips > best {
+                            best = gips;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    (best, last)
+}
+
+fn get_allocator_fitness() -> f64 {
+    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::new("/"));
+    let path = cwd.join("apps/autoresearch/results_fitness.tsv");
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        for line in content.lines().rev() {
+            if line.contains("Fitness Score:") {
+                let parts: Vec<&str> = line.split('\t');
+                if let Some(last) = parts.last() {
+                    let fitness_str = last.trim();
+                    if fitness_str.ends_with('%') {
+                        if let Ok(fitness) = fitness_str.trim_end_matches('%').parse::<f64>() {
+                            return fitness / 1.0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    1.0
+}
+
+fn is_evolution_running() -> bool {
+    std::process::Command::new("pgrep")
+        .args(["-f", "run_evolution"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+fn get_kernel_size() -> u64 {
+    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::new("/"));
+    let path = cwd.join("kernel/geos/geometry_os.kernel");
+    std::fs::metadata(&path).map(|m| m.len()).unwrap_or(1)
 }
 
 async fn get_chunk(
