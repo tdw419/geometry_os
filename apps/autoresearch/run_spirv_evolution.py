@@ -13,7 +13,6 @@ The results are logged to apps/autoresearch/spirv_results.tsv
 
 import argparse
 import json
-import subprocess
 import time
 import hashlib
 from datetime import datetime
@@ -26,55 +25,14 @@ import random
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-# Try to import the glyph_evolution module
-try:
-    from systems.evolution_daemon.glyph_evolution import (
-        GlyphProgram,
-        GlyphMutator,
-        fitness_shader_correctness,
-        evolve_glyph_program,
-        VALID_OPCODES,
-    )
-    HAS_GLYPH_EVOLUTION = True
-except ImportError:
-    HAS_GLYPH_EVOLUTION = False
-    print("Warning: systems.evolution_daemon.glyph_evolution not found, using local implementation")
-    VALID_OPCODES = [
-        200, 201, 202, 203,  # Arithmetic
-        204, 205, 206, 207,  # Memory
-        208, 209, 210, 211,  # Control
-        212, 215,            # System
-        216, 217, 218,       # Extended
-        220, 221, 222, 223, 224, 225, 227,  # AI-specific
-        230, 231, 232, 233, 234, 235, 236,  # Infinite Map
-    ]
-
-    @dataclass
-    class GlyphProgram:
-        glyphs: List[Dict[str, Any]] = field(default_factory=list)
-        def to_json(self) -> str:
-            return json.dumps({"glyphs": self.glyphs})
-
-    class GlyphMutator:
-        def __init__(self, mutation_rate=0.1, opcode_mutation_rate=0.3, param_mutation_rate=0.3):
-            self.mutation_rate = mutation_rate
-            self.opcode_mutation_rate = opcode_mutation_rate
-            self.param_mutation_rate = param_mutation_rate
-
-        def mutate(self, program: GlyphProgram) -> GlyphProgram:
-            if random.random() > self.mutation_rate:
-                return GlyphProgram(glyphs=program.glyphs.copy())
-            glyphs = []
-            for g in program.glyphs:
-                new_g = g.copy()
-                if random.random() < self.opcode_mutation_rate:
-                    new_g["opcode"] = random.choice(VALID_OPCODES)
-                if random.random() < self.param_mutation_rate:
-                    new_g["p1"] = random.uniform(-10.0, 10.0)
-                if random.random() < self.param_mutation_rate:
-                    new_g["p2"] = random.uniform(-10.0, 10.0)
-                glyphs.append(new_g)
-            return GlyphProgram(glyphs=glyphs)
+# Import from evolution daemon module
+from systems.evolution_daemon import (
+    GlyphProgram,
+    GlyphMutator,
+    fitness_shader_correctness,
+    compile_glyph_program as bridge_compile,
+    CompileResult,
+)
 
 
 # Constants
@@ -102,45 +60,19 @@ def hash_program(program: GlyphProgram) -> str:
 
 def compile_glyph_program(program: GlyphProgram, timeout: float = 30.0) -> tuple[bool, dict]:
     """
-    Compile a glyph program to SPIR-V.
+    Compile a glyph program to SPIR-V using the compiler bridge.
 
     Returns:
         (success, result_dict)
     """
-    try:
-        # Use the debug binary directly (faster than cargo run)
-        compiler_path = ROOT / "target" / "debug" / "glyph_compiler"
-        if not compiler_path.exists():
-            # Fall back to cargo run
-            result = subprocess.run(
-                ["cargo", "run", "--package", "glyph_compiler", "--", "compile"],
-                input=program.to_json(),
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                cwd=str(ROOT),
-            )
-        else:
-            result = subprocess.run(
-                [str(compiler_path), "compile"],
-                input=program.to_json(),
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-
-        if result.returncode != 0:
-            return False, {"error": result.stderr}
-
-        output = json.loads(result.stdout)
-        return True, output
-
-    except subprocess.TimeoutExpired:
-        return False, {"error": "timeout"}
-    except json.JSONDecodeError as e:
-        return False, {"error": f"json error: {e}"}
-    except Exception as e:
-        return False, {"error": str(e)}
+    result = bridge_compile(program, timeout=timeout)
+    result_dict = {
+        "spirv_size": result.spirv_size,
+        "word_count": result.word_count,
+        "magic": result.magic,
+        "error": result.error,
+    }
+    return result.success, result_dict
 
 
 def calculate_fitness(program: GlyphProgram, compile_result: dict) -> float:
