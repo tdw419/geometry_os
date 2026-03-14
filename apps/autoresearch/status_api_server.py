@@ -38,9 +38,9 @@ def get_allocator_fitness():
     path = ROOT / "apps" / "autoresearch" / "results_fitness.tsv"
     try:
         with open(path) as f:
-            for line in reversed(list(f)):
-                if "Fitness Score:" in line or "%" in line:
-                    # Extract percentage
+            for line in f:
+                if "Fitness Score:" in line:
+                    # Extract percentage from "Fitness Score: XX.XX%"
                     match = re.search(r'(\d+\.?\d*)%', line)
                     if match:
                         return float(match.group(1)) / 100.0
