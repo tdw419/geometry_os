@@ -239,7 +239,9 @@ def apply_random_optimization(track_name="") -> str:
         "memory_prefetch",   # Prefetch next values
         "shared_mem",        # Use workgroup shared memory
         "increase_ops",      # Increase ops per thread to 50K or 100K
-        "more_threads",      # NEW: Increase thread count to 1M
+        "more_threads",      # Increase thread count to 1M
+        "remove_modulo",     # NEW: Remove expensive modulo operation
+        "simple_hash",       # NEW: Use simpler hash function
     ]
 
     opt = random.choice(optimizations)
@@ -444,6 +446,33 @@ def apply_random_optimization(track_name="") -> str:
                 code = code.replace("idx >= 500000u", f"idx >= {new_threads}u")
             if "base_idx + 3u >= 500000u" in code:
                 code = code.replace("base_idx + 3u >= 500000u", f"base_idx + 3u >= {new_threads}u")
+
+    elif opt == "remove_modulo":
+        # Remove expensive modulo operation - use XOR rotation instead
+        if "% 2147483648u" in code:
+            # Replace modulo with bitwise AND (faster on GPU)
+            code = code.replace("% 2147483648u", "& 0x7FFFFFFFu")
+            # Also try removing the modulo entirely and rely on natural overflow
+            if random.random() > 0.5:
+                code = code.replace("& 0x7FFFFFFFu", "")  # Remove entirely
+
+    elif opt == "simple_hash":
+        # Replace complex hash with simpler faster operations
+        if "(acc ^ (acc >> 16u)) * 2654435761u" in code:
+            simpler_ops = [
+                "(acc ^ (acc >> 16u)) * 0x45d9f3bu",  # Different constant
+                "(acc * 0x45d9f3bu) ^ (acc >> 16u)",  # Reordered
+                "acc * 0x45d9f3bu",  # Simpler - just multiply
+                "(acc ^ acc >> 17u) * 0xed5ad4bbu",  # Different shift
+            ]
+            new_op = random.choice(simpler_ops)
+            code = code.replace("(acc ^ (acc >> 16u)) * 2654435761u", new_op)
+            # Also update for acc0-3 variants
+            for i in range(4):
+                code = code.replace(
+                    f"(acc{i} ^ (acc{i} >> 16u)) * 2654435761u",
+                    new_op.replace("acc", f"acc{i}")
+                )
 
     with open(SHADER_PATH, "w") as f:
         f.write(code)
