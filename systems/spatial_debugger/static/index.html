@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spatial Debugger - Geometry OS</title>
+    <script src="https://pixijs.download/v7.34.1/pixi.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+        #sidebar {
+            width: 300px;
+            background: #111;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        #viewer {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a1a;
+        }
+        #stats {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        .stat-value {
+            color: #0f0;
+            font-weight: bold;
+        }
+        input, button {
+            background: #222;
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 8px;
+            margin: 5px 0;
+            font-family: inherit;
+        }
+        button:hover {
+            background: #030;
+        }
+        #hilbert-grid {
+            position: absolute;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="sidebar">
+            <h2>Spatial Debugger</h2>
+            <input type="file" id="texture-input" accept=".rts.png">
+            <button onclick="loadTexture()">Load</button>
+
+            <hr>
+
+            <h3>Stats</h3>
+            <div>SLS: <span id="sls-value" class="stat-value">--</span></div>
+            <div>Instructions: <span id="inst-count" class="stat-value">--</span></div>
+            <div>Density: <span id="density-value" class="stat-value">--</span></div>
+
+            <hr>
+
+            <h3>Selected Pixel</h3>
+            <div>X: <span id="pixel-x">--</span></div>
+            <div>Y: <span id="pixel-y">--</span></div>
+            <div>Opcode: <span id="pixel-opcode"> class="stat-value">--</span></div>
+
+            <hr>
+
+            <h3>Hot Patch</h3>
+            <input type="text" id="patch-address" placeholder="0x100">
+            <select id="patch-opcode">
+                <option value="0">NOP (0x00)</option>
+                <option value="1">MOV (0x01)</option>
+                <option value="8">LDI (0x08)</option>
+                <option value="51">HALT (0x07)</option>
+            </select>
+            <button onclick="applyPatch()">Apply Patch</button>
+        </div>
+
+        <div id="viewer">
+            <canvas id="canvas"></canvas>
+            <div id="hilbert-grid"></div>
+        </div>
+    </div>
+
+    <div id="stats">
+        <span id="status-text">Ready</span>
+    </div>
+
+    <script>
+        // PixiJS Application
+        const app = new PIXI.Application({
+            view: 'viewer',
+            width: 800,
+            height: 600,
+            backgroundColor: 0x1a11a
+        });
+        const { loader } = PIXI.Loader;
+        document.getElementById('viewer').appendChild(app.view);
+
+        let sprite = null;
+        let gridGraphics = null;
+
+        async function loadTexture() {
+            const input = document.getElementById('texture-input');
+            const file = input.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('texture', file);
+
+            const response = await fetch('/texture/load', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            // Update stats
+            document.getElementById('sls-value').textContent = data.sls_score.toFixed(4);
+            document.getElementById('inst-count').textContent = data.instruction_count;
+            document.getElementById('density-value').textContent = (data.density.toFixed(4) + '%');
+
+            document.getElementById('status-text').textContent =
+                `Loaded: ${data.shape[0]}x${data.shape[1]} texture, SLS: ${data.sls_score.toFixed(4)}`;
+
+            // Load as texture
+            const textureUrl = URL.createObjectURL.createObject(data.preview);
+            sprite = PIXI.Sprite.from(textureUrl);
+            sprite.width = 512;
+            sprite.height = 512;
+            app.stage.addChild(sprite);
+
+            // Enable interactivity
+            sprite.interactive = true;
+            sprite.on('pointerdown', onPixelClick);
+        }
+
+        function onPixelClick(event) {
+            const localPos = event.data.getLocalPosition();
+            const pixelX = Math.floor(localPos.x / sprite.scale.x);
+            const pixelY = Math.floor(localPos.y / sprite.scale.y);
+
+            // Fetch pixel info
+            const response = await fetch(`/texture/${currentTextureId}/pixel/${pixelX}/${pixelY}`);
+            const data = await response.json();
+
+            document.getElementById('pixel-x').textContent = data.x;
+            document.getElementById('pixel-y').textContent = data.y;
+            document.getElementById('pixel-opcode').textContent = `${data.opcode_name} (0x${data.r.toString(16).pad(2)})`;
+        }
+
+        function applyPatch() {
+            const address = document.getElementById('patch-address').value;
+            const opcode = parseInt(document.getElementById('patch-opcode').value);
+
+            const response = await fetch('/patch', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    texture_id: currentTextureId,
+                    address: address,
+                    opcode: opcode
+                })
+            });
+            const data = await response.json();
+
+            document.getElementById('status-text').textContent =
+                `Patch applied: ${data.patch.new_opcode} at ${data.patch.address}`;
+
+            // Reload texture
+            loadTexture();
+        }
+
+        // Initialize with BusyBox
+        loadTextureWithPath('/tmp/busybox.rts.png');
+    </script>
+</body>
+</html>
