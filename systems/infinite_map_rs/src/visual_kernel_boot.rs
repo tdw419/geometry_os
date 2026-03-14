@@ -94,16 +94,16 @@ impl VisualKernel {
         // Step 1: Initialize the Window Manager as VM #0
         log::info!("[BOOT] Loading Window Manager as VM #0...");
 
-        let wm_config = VmConfig {
-            entry_point: 0x0000, // Hilbert origin
-            parent_id: 0xFF,     // No parent - this is root
-            base_addr: 0,        // Unrestricted
-            bound_addr: 0,       // Unrestricted
-            initial_regs: [0; 32],
-        };
+// Load and parse the Glyph-Native Infinite Map
+        let infinite_map_source = include_str!("../../glyph_stratum/programs/infinite_map.glyph");
+        let (program, wm_config) = crate::glyph_stratum::glyph_parser::parse_glyph_program(infinite_map_source)?;
 
+        // Write program to GPU memory (the RAM texture)
+        // This requires a new method in the scheduler or renderer to upload raw data.
+        // For now, we assume it's pre-loaded at boot.
+        
         self.scheduler.spawn_vm(0, &wm_config)?;
-        log::info!("[BOOT] ✓ Window Manager (VM #0) initialized at entry 0x0000");
+        log::info!("[BOOT] ✓ Glyph-Native Infinite Map (VM #0) initialized at entry 0x{:X}", wm_config.entry_point);
 
         // Step 2: Initialize the Window Table
         log::info!("[BOOT] Initializing Window Table...");

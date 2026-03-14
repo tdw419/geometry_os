@@ -275,3 +275,8 @@ mod tests {
         assert_eq!(std::mem::size_of::<Riscv64State>(), 64 * 21 + 8);
     }
 }
+    #[test]
+    fn test_state_size() {
+        let state = Riscv64State::default();
+        assert_eq!(std::mem::size_of::<Riscv64State>(), 424);
+    }

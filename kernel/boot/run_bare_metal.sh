@@ -17,7 +17,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_DIR="${SCRIPT_DIR}/target/x86_64-unknown-uefi/debug"
+WORKSPACE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+BUILD_DIR="${WORKSPACE_DIR}/target/x86_64-unknown-uefi/debug"
 IMAGE_DIR="${SCRIPT_DIR}/boot_image"
 BOOT_IMAGE="${SCRIPT_DIR}/geometry_os_boot.img"
 EFI_FILE="geometry_os_bootloader.efi"
@@ -44,10 +45,8 @@ check_dependencies() {
         missing+=("mtools")
     fi
 
-    # Check for OVMF
-    if [[ ! -f "/usr/share/OVMF/OVMF_CODE.fd" && ! -f "${SCRIPT_DIR}/OVMF.fd" ]]; then
-        missing+=("ovmf (OVMF_CODE.fd or OVMF.fd)")
-    fi
+    # Note: OVMF check is done in find_ovmf() - we don't check here
+    # to allow different installation locations
 
     if [ ${#missing[@]} -ne 0 ]; then
         log_error "Missing dependencies:"
@@ -65,15 +64,15 @@ check_dependencies() {
 # Build the UEFI bootloader
 build_efi() {
     log_info "Building UEFI bootloader..."
-    cd "${SCRIPT_DIR}"
-    cargo build --target x86_64-unknown-uefi
+    cd "${WORKSPACE_DIR}"
+    cargo build -p geometry_os_bootloader --target x86_64-unknown-uefi
 
     if [[ ! -f "${BUILD_DIR}/${EFI_FILE}" ]]; then
-        log_error "Build failed - EFI file not found"
+        log_error "Build failed - EFI file not found at ${BUILD_DIR}/${EFI_FILE}"
         exit 1
     fi
 
-    log_info "Built: ${BUILD_DIR}/${EFI_FILE}"
+    log_info "Built: ${BUILD_DIR}/${EFI_FILE} ($(stat -c%s "${BUILD_DIR}/${EFI_FILE}") bytes)"
 }
 
 # Create FAT32 boot image with EFI file
@@ -108,6 +107,8 @@ create_boot_image() {
 find_ovmf() {
     if [[ -f "${SCRIPT_DIR}/OVMF.fd" ]]; then
         echo "${SCRIPT_DIR}/OVMF.fd"
+    elif [[ -f "/usr/share/OVMF/OVMF_CODE_4M.fd" ]]; then
+        echo "/usr/share/OVMF/OVMF_CODE_4M.fd"
     elif [[ -f "/usr/share/OVMF/OVMF_CODE.fd" ]]; then
         echo "/usr/share/OVMF/OVMF_CODE.fd"
     elif [[ -f "/usr/share/OVMF/x64/OVMF_CODE.fd" ]]; then

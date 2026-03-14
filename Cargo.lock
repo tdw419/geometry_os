@@ -2770,6 +2770,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "glyph_framework_rs"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "clap",
+ "env_logger",
+ "glyph_compiler",
+ "infinite_map_rs",
+ "log",
+ "pollster",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "wgpu 0.19.4",
+]
+
+[[package]]
 name = "gpu-alloc"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

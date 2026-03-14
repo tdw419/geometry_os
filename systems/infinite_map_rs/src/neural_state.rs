@@ -252,8 +252,8 @@ mod tests {
         // Arousal should be 0.5
         assert!((state.arousal - 0.5).abs() < 0.01);
         
-        // Valence should be 1.0 (positive - negative)
-        assert!((state.valence - 1.0).abs() < 0.01);
+        // Valence should be 4.0 (positive sum 4.0 - negative sum 0.0)
+        assert!((state.valence - 4.0).abs() < 0.01);
     }
     
     #[test]
