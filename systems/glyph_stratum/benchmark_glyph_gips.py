@@ -60,9 +60,12 @@ def run_stress_benchmark():
     if thread_match:
         num_elements = int(thread_match.group(1))
 
-    # Also check for vectorization (idx * 4 means effective threads are 4x less)
+    # Also check for vectorization (idx * N means effective threads are Nx less)
     vectorization = 1
-    if "idx * 4u" in shader_code:
+    if "idx * 8u" in shader_code:
+        vectorization = 8
+        effective_threads = num_elements // vectorization
+    elif "idx * 4u" in shader_code:
         vectorization = 4
         effective_threads = num_elements // vectorization
     else:
