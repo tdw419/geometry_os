@@ -545,6 +545,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requires wgpu Device/Queue resources - run with --ignored flag in environment with GPU"]
     fn test_rle_encoding() {
         let data = vec![1u8, 1, 1, 2, 2, 3, 3, 3, 3];
         let encoder = VisualFeedbackEncoder {
