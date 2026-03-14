@@ -298,7 +298,7 @@ async fn get_status() -> impl IntoResponse {
 }
 
 fn count_evolution_experiments() -> i64 {
-    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::new("/"));
+    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("/"));
     let path = cwd.join("apps/autoresearch/evolution_cycle_results.tsv");
     if let Ok(content) = std::fs::read_to_string(&path) {
         content.lines().count() as i64
@@ -308,14 +308,14 @@ fn count_evolution_experiments() -> i64 {
 }
 
 fn get_best_gips() -> (f64, f64) {
-    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::new("/"));
+    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("/"));
     let path = cwd.join("apps/autoresearch/evolution_cycle_results.tsv");
     let mut best = 0.0;
     let mut last = 1.0;
     if let Ok(content) = std::fs::read_to_string(&path) {
         for line in content.lines() {
             if line.contains("THE ENGINE") {
-                let parts: Vec<&str> = line.split('\t');
+                let parts: Vec<&str> = line.split('\t').collect();
                 if parts.len() > 3 {
                     if let Ok(gips) = parts[3].parse::<f64>() {
                         last = gips;
@@ -331,12 +331,12 @@ fn get_best_gips() -> (f64, f64) {
 }
 
 fn get_allocator_fitness() -> f64 {
-    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::new("/"));
+    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("/"));
     let path = cwd.join("apps/autoresearch/results_fitness.tsv");
     if let Ok(content) = std::fs::read_to_string(&path) {
         for line in content.lines().rev() {
             if line.contains("Fitness Score:") {
-                let parts: Vec<&str> = line.split('\t');
+                let parts: Vec<&str> = line.split('\t').collect();
                 if let Some(last) = parts.last() {
                     let fitness_str = last.trim();
                     if fitness_str.ends_with('%') {
@@ -360,7 +360,7 @@ fn is_evolution_running() -> bool {
 }
 
 fn get_kernel_size() -> u64 {
-    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::new("/"));
+    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("/"));
     let path = cwd.join("kernel/geos/geometry_os.kernel");
     std::fs::metadata(&path).map(|m| m.len()).unwrap_or(1)
 }

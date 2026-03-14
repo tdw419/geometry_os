@@ -98,9 +98,10 @@ def run_pure_glyph_benchmark():
         ],
     )
 
-    # Benchmark
-    num_frames = 100
-    instructions_per_frame = len(instructions) * 256
+    # Benchmark - scaled up for higher throughput
+    num_frames = 1000
+    num_vms = 65535  # Max workgroups
+    instructions_per_vm = len(instructions)
 
     start_time = time.time()
 
@@ -109,13 +110,15 @@ def run_pure_glyph_benchmark():
         pass_enc = encoder.begin_compute_pass()
         pass_enc.set_pipeline(compute_pipeline)
         pass_enc.set_bind_group(0, bind_group)
-        pass_enc.dispatch_workgroups(256)
+        pass_enc.dispatch_workgroups(num_vms)
         pass_enc.end()
         device.queue.submit([encoder.finish()])
 
+    # Read to force sync
+    _ = device.queue.read_buffer(output_buffer)
     elapsed = time.time() - start_time
 
-    total_instructions = instructions_per_frame * num_frames
+    total_instructions = instructions_per_vm * num_vms * num_frames
     gips = (total_instructions / elapsed) / 1_000_000_000 if elapsed > 0 else 0
     fps = num_frames / elapsed if elapsed > 0 else 0
 
