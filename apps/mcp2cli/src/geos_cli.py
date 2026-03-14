@@ -43,6 +43,7 @@ def cmd_crystallize(args):
 
     input_path = Path(args.input)
     output_path = Path(args.output)
+    dense = args.dense
 
     if not input_path.exists():
         print(f"Error: Input file not found: {input_path}")
@@ -50,8 +51,12 @@ def cmd_crystallize(args):
 
     print(f"Crystallizing {input_path}...")
 
+    cmd = [sys.executable, str(GLYPH_COMPILER), str(input_path), str(output_path)]
+    if dense:
+        cmd.append("--dense")
+
     result = subprocess.run(
-        [sys.executable, str(GLYPH_COMPILER), str(input_path), str(output_path)],
+        cmd,
         capture_output=True,
         text=True,
         cwd=str(GEOS_ROOT)
@@ -259,7 +264,8 @@ def cmd_linux_to_glyph(args):
     """Transpile Linux ELF to glyph"""
     result = asyncio.run(tool_linux_to_glyph({
         "binary": args.binary,
-        "output": args.output
+        "output": args.output,
+        "dense": args.dense
     }))
     print(result[0].text)
     return 0
@@ -273,12 +279,14 @@ def main():
     crystal = subparsers.add_parser("crystallize", help="Compile .glyph to .rts.png")
     crystal.add_argument("input", help="Input .glyph file")
     crystal.add_argument("output", help="Output .rts.png file")
+    crystal.add_argument("--dense", action="store_true", help="Enable dense packing")
     crystal.set_defaults(func=cmd_crystallize)
 
     # linux-to-glyph
     l2g = subparsers.add_parser("linux-to-glyph", help="Transpile Linux ELF to glyph texture")
     l2g.add_argument("binary", help="Input RISC-V ELF binary")
     l2g.add_argument("output", help="Output .rts.png file")
+    l2g.add_argument("--dense", action="store_true", help="Enable dense packing")
     l2g.set_defaults(func=cmd_linux_to_glyph)
 
     # glyph-patch

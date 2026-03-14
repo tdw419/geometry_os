@@ -124,12 +124,25 @@ def calculate_sls(instructions: list[tuple[int, int, int, int]], grid_size: int 
 
 
 def parse_glyph_file(path: str) -> list[tuple[int, int, int, int]]:
-    """Parse a .glyph file into instruction tuples."""
-    # Import the compiler's parser
+    """Parse a .glyph file or .rts.png into instruction tuples."""
+    path_obj = Path(path)
+    
+    if path_obj.suffix == ".png":
+        # Read from texture
+        from PIL import Image
+        import numpy as np
+        img = Image.open(path).convert('RGBA')
+        pixels = np.array(img)
+        # Flatten and filter out NOPs (where opcode=0)
+        flat = pixels.reshape(-1, 4)
+        instructions = [tuple(p) for p in flat if p[0] != 0]
+        return instructions
+
+    # Import the compiler's parser for .glyph files
     sys.path.insert(0, str(GEOS_ROOT / "systems" / "glyph_stratum" / "programs"))
     from compile_glyph import parse_glyph
 
-    source = Path(path).read_text()
+    source = path_obj.read_text()
     instructions, labels, constants = parse_glyph(source)
     return instructions
 
@@ -604,6 +617,7 @@ async def tool_linux_to_glyph(args: dict) -> list[TextContent]:
     """Transpile Linux ELF to glyph texture."""
     binary_path = Path(args["binary"])
     output_path = Path(args["output"])
+    dense = args.get("dense", False)
 
     if not binary_path.exists():
         return [TextContent(type="text", text=f"Error: Binary not found: {binary_path}")]
@@ -626,8 +640,12 @@ async def tool_linux_to_glyph(args: dict) -> list[TextContent]:
     if not transpiler.exists():
         return [TextContent(type="text", text=f"Error: Transpiler not found: {transpiler}")]
 
+    cmd = [sys.executable, str(transpiler), str(binary_path), str(output_path)]
+    if dense:
+        cmd.append("--dense")
+
     result = subprocess.run(
-        [sys.executable, str(transpiler), str(binary_path), str(output_path)],
+        cmd,
         capture_output=True,
         text=True,
         cwd=str(GEOS_ROOT)
