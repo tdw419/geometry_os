@@ -25,6 +25,7 @@ def run_stress_benchmark():
         return {"gips": 0, "status": "FAIL", "error": str(e)}
 
     # Create a simple compute shader that does arithmetic
+    # Using 10000 ops/thread for better GPU utilization (amortizes dispatch overhead)
     shader_code = """
     @group(0) @binding(0) var<storage, read_write> data: array<u32>;
 
@@ -33,9 +34,9 @@ def run_stress_benchmark():
         let idx = global_id.x;
         if (idx >= 1000000u) { return; }
 
-        // Each thread does 1000 arithmetic operations
+        // Each thread does 10000 arithmetic operations for better throughput
         var acc = data[idx];
-        for (var i = 0u; i < 1000u; i++) {
+        for (var i = 0u; i < 10000u; i++) {
             acc = (acc * 1103515245u + 12345u) % 2147483648u;
             acc = (acc ^ (acc >> 16u)) * 2654435761u;
         }
@@ -84,7 +85,7 @@ def run_stress_benchmark():
 
     # Benchmark - run 10 iterations
     num_iterations = 10
-    ops_per_thread = 1000
+    ops_per_thread = 10000  # Increased for better GPU utilization
     total_ops = num_elements * ops_per_thread * num_iterations
 
     start_time = time.time()
