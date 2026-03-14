@@ -19,7 +19,8 @@ from datetime import datetime, timedelta
 
 # Paths
 ROOT = Path(__file__).parent.parent.parent.absolute()
-SHADER_PATH = ROOT / "systems" / "infinite_map_rs" / "shaders" / "glyph_microcode.wgsl"
+SHADER_PATH = ROOT / "systems" / "glyph_stratum" / "benchmark_shader.wgsl"
+VM_SHADER_PATH = ROOT / "systems" / "infinite_map_rs" / "shaders" / "glyph_microcode.wgsl"
 CHAMPION_PATH = ROOT / "apps" / "autoresearch" / "champion_shader.wgsl"
 DASHBOARD_PATH = ROOT / "apps" / "autoresearch" / "evolution_dashboard.md"
 RESULTS_TSV = ROOT / "apps" / "autoresearch" / "evolution_cycle_results.tsv"
@@ -122,11 +123,51 @@ def run_benchmark(track_name="") -> dict:
                 timeout=60,
                 cwd=str(ROOT)
             )
-        return parse_benchmark_output(result.stdout + result.stderr)
+        parsed = parse_benchmark_output(result.stdout + result.stderr)
+
+        # If benchmark failed, restore working shader
+        if parsed.get("status") != "pass" and SHADER_PATH.exists():
+            restore_working_shader()
+
+        return parsed
     except subprocess.TimeoutExpired:
+        if SHADER_PATH.exists():
+            restore_working_shader()
         return {"gips": 0, "fps": 0, "status": "timeout"}
     except Exception as e:
+        if SHADER_PATH.exists():
+            restore_working_shader()
         return {"gips": 0, "fps": 0, "status": f"error: {str(e)}"}
+
+def restore_working_shader():
+    """Restore shader to a known working state."""
+    working_shader = """// Evolvable GIPS Benchmark Shader
+// This file is modified by the evolution cycle to optimize throughput
+// Target: 10,000 GIPS
+
+@group(0) @binding(0) var<storage, read_write> data: array<u32>;
+
+@compute @workgroup_size(512)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    let idx = global_id.x;
+    if (idx >= 500000u) { return; }
+
+    // Each thread does 20000 arithmetic operations for optimal GPU utilization
+    var acc = data[idx];
+
+    // Core computation loop - evolution can modify constants and structure
+    for (var i = 0u; i < 20000u; i++) {
+        // LCG step with XOR mixing
+        acc = (acc * 1103515245u + 12345u) % 2147483648u;
+        acc = (acc ^ (acc >> 16u)) * 2654435761u;
+    }
+
+    data[idx] = acc;
+}
+"""
+    with open(SHADER_PATH, "w") as f:
+        f.write(working_shader)
+    print("  ⚠️ Restored working shader after failure")
 
 def apply_random_optimization(track_name="") -> str:
     """Apply a random optimization to the shader or allocator. Returns description."""
@@ -191,6 +232,11 @@ def apply_random_optimization(track_name="") -> str:
         "lcg_tweak",
         "loop_unroll_hint",
         "branch_reorder",
+        "vectorize_ops",     # NEW: Use vec4 for parallel ops
+        "workgroup_tweak",   # NEW: Try different workgroup sizes
+        "unroll_count",      # NEW: Different unroll factors
+        "dual_accum",        # NEW: Two accumulators for ILP
+        "memory_prefetch",   # NEW: Prefetch next values
     ]
 
     opt = random.choice(optimizations)
@@ -206,18 +252,126 @@ def apply_random_optimization(track_name="") -> str:
 
     if opt == "lcg_tweak":
         # Try different LCG constants
-        new_mult = random.choice([1103515245, 1664525, 214013])
-        new_inc = random.choice([12345, 1013904223, 2531011])
+        new_mult = random.choice([1103515245, 1664525, 214013, 134775813])
+        new_inc = random.choice([12345, 1013904223, 2531011, 1])
         code = code.replace("1103515245u", f"{new_mult}u")
         code = code.replace("12345u", f"{new_inc}u")
 
     elif opt == "loop_unroll_hint":
-        # Add unroll hints to loops (if any)
-        if "for (var" in code and "unroll" not in code:
+        # Manually unroll a few iterations for better ILP
+        if "// unrolled" not in code and "for (var i = 0u; i < 20000u; i++)" in code:
+            # Replace loop with partially unrolled version
+            old_loop = """for (var i = 0u; i < 20000u; i++) {
+        // LCG step with XOR mixing
+        acc = (acc * 1103515245u + 12345u) % 2147483648u;
+        acc = (acc ^ (acc >> 16u)) * 2654435761u;
+    }"""
+            new_loop = """// unrolled: 4x loop body for ILP
+    for (var i = 0u; i < 5000u; i++) {
+        acc = (acc * 1103515245u + 12345u) % 2147483648u;
+        acc = (acc ^ (acc >> 16u)) * 2654435761u;
+        acc = (acc * 1103515245u + 12345u) % 2147483648u;
+        acc = (acc ^ (acc >> 16u)) * 2654435761u;
+        acc = (acc * 1103515245u + 12345u) % 2147483648u;
+        acc = (acc ^ (acc >> 16u)) * 2654435761u;
+        acc = (acc * 1103515245u + 12345u) % 2147483648u;
+        acc = (acc ^ (acc >> 16u)) * 2654435761u;
+    }"""
+            code = code.replace(old_loop, new_loop)
+
+    elif opt == "vectorize_ops":
+        # Try to vectorize operations for better GPU utilization
+        if "acc0" not in code and "var acc = data[idx]" in code:
+            # Replace scalar ops with 4 parallel accumulators
             code = code.replace(
-                "for (var",
-                "@unroll\n                for (var",
-                1
+                "var acc = data[idx];",
+                """// Vectorized: process 4 elements at once
+        let base_idx = idx * 4u;
+        if (base_idx + 3u >= 500000u) { return; }
+        var acc0 = data[base_idx];
+        var acc1 = data[base_idx + 1u];
+        var acc2 = data[base_idx + 2u];
+        var acc3 = data[base_idx + 3u];"""
+            )
+            # Replace single loop body with 4 parallel bodies
+            code = code.replace(
+                "acc = (acc * 1103515245u + 12345u) % 2147483648u;\n        acc = (acc ^ (acc >> 16u)) * 2654435761u;",
+                """acc0 = (acc0 * 1103515245u + 12345u) % 2147483648u;
+            acc0 = (acc0 ^ (acc0 >> 16u)) * 2654435761u;
+            acc1 = (acc1 * 1103515245u + 12345u) % 2147483648u;
+            acc1 = (acc1 ^ (acc1 >> 16u)) * 2654435761u;
+            acc2 = (acc2 * 1103515245u + 12345u) % 2147483648u;
+            acc2 = (acc2 ^ (acc2 >> 16u)) * 2654435761u;
+            acc3 = (acc3 * 1103515245u + 12345u) % 2147483648u;
+            acc3 = (acc3 ^ (acc3 >> 16u)) * 2654435761u;"""
+            )
+            code = code.replace(
+                "data[idx] = acc;",
+                """data[base_idx] = acc0;
+        data[base_idx + 1u] = acc1;
+        data[base_idx + 2u] = acc2;
+        data[base_idx + 3u] = acc3;"""
+            )
+
+    elif opt == "workgroup_tweak":
+        # Try different workgroup sizes
+        wg_sizes = [64, 128, 256, 512, 1024]
+        new_wg = random.choice(wg_sizes)
+        import re
+        code = re.sub(r'@workgroup_size\(\d+\)', f'@workgroup_size({new_wg})', code)
+
+    elif opt == "unroll_count":
+        # Manually unroll with different factors
+        if "// unrolled" not in code and "for (var i = 0u; i < 20000u; i++)" in code:
+            unroll_factors = [2, 4, 5, 8, 10]
+            factor = random.choice(unroll_factors)
+            new_iters = 20000 // factor
+
+            # Build unrolled loop body
+            body_lines = []
+            for _ in range(factor):
+                body_lines.append("acc = (acc * 1103515245u + 12345u) % 2147483648u;")
+                body_lines.append("acc = (acc ^ (acc >> 16u)) * 2654435761u;")
+
+            old_loop = """for (var i = 0u; i < 20000u; i++) {
+        // LCG step with XOR mixing
+        acc = (acc * 1103515245u + 12345u) % 2147483648u;
+        acc = (acc ^ (acc >> 16u)) * 2654435761u;
+    }"""
+            new_loop = f"""// unrolled: {factor}x loop body
+    for (var i = 0u; i < {new_iters}u; i++) {{
+        {chr(10).join('        ' + l for l in body_lines)}
+    }}"""
+            code = code.replace(old_loop, new_loop)
+
+    elif opt == "dual_accum":
+        # Use two accumulators for instruction-level parallelism
+        if "acc2" not in code and "var acc = data[idx]" in code:
+            code = code.replace(
+                "var acc = data[idx];",
+                """var acc = data[idx];
+        var acc2 = data[idx] ^ 0xDEADBEEFu;  // Second accumulator for ILP"""
+            )
+            # Add second accumulator ops in loop
+            code = code.replace(
+                "acc = (acc ^ (acc >> 16u)) * 2654435761u;",
+                """acc = (acc ^ (acc >> 16u)) * 2654435761u;
+            acc2 = (acc2 * 1103515245u + 12345u) % 2147483648u;
+            acc2 = (acc2 ^ (acc2 >> 16u)) * 2654435761u;"""
+            )
+            code = code.replace(
+                "data[idx] = acc;",
+                "data[idx] = acc ^ acc2;"
+            )
+
+    elif opt == "memory_prefetch":
+        # Prefetch memory access
+        if "prefetch" not in code:
+            code = code.replace(
+                "var acc = data[idx];",
+                """let next_idx = idx + 1u;
+        var acc = data[idx];
+        let prefetch = data[min(next_idx, 499999u)];  // Prefetch next"""
             )
 
     elif opt == "branch_reorder":
@@ -364,7 +518,7 @@ def run_evolution_cycle():
                 update_dashboard(track, start_time, total_experiments, best_gips, best_fitness, best_spawn, last_result)
 
                 # 6. Brief pause between experiments
-                time.sleep(30)  # 30 seconds between experiments
+                time.sleep(5)  # 5 seconds between experiments for faster evolution
 
             print(f"\n✅ Track {track['name']} Complete. Experiments: {experiment_count}")
 

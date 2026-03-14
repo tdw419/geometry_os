@@ -24,17 +24,21 @@ def run_stress_benchmark():
     except Exception as e:
         return {"gips": 0, "status": "FAIL", "error": str(e)}
 
-    # Create a simple compute shader that does arithmetic
-    # Optimized configuration: wg_size=512, threads=500K, ops=20K for max throughput
-    shader_code = """
+    # Load shader from evolvable file (allows evolution to optimize it)
+    shader_path = ROOT / "systems" / "glyph_stratum" / "benchmark_shader.wgsl"
+
+    try:
+        with open(shader_path) as f:
+            shader_code = f.read()
+    except FileNotFoundError:
+        # Fallback to hardcoded if file missing
+        shader_code = """
     @group(0) @binding(0) var<storage, read_write> data: array<u32>;
 
     @compute @workgroup_size(512)
     fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let idx = global_id.x;
         if (idx >= 500000u) { return; }
-
-        // Each thread does 20000 arithmetic operations for optimal GPU utilization
         var acc = data[idx];
         for (var i = 0u; i < 20000u; i++) {
             acc = (acc * 1103515245u + 12345u) % 2147483648u;
@@ -74,28 +78,40 @@ def run_stress_benchmark():
         ],
     )
 
-    # Warmup - 500K threads / 512 wg_size = 977 workgroups
+    # Calculate workgroups based on shader workgroup size
+    # Parse workgroup_size from shader or use default 512
+    wg_size = 512
+    if "@workgroup_size(" in shader_code:
+        import re
+        match = re.search(r'@workgroup_size\((\d+)', shader_code)
+        if match:
+            wg_size = int(match.group(1))
+
+    num_workgroups = (num_elements + wg_size - 1) // wg_size
+
+    # Warmup
     encoder = device.create_command_encoder()
     pass_enc = encoder.begin_compute_pass()
     pass_enc.set_pipeline(pipeline)
     pass_enc.set_bind_group(0, bind_group)
-    pass_enc.dispatch_workgroups(977)  # ceil(500K / 512)
+    pass_enc.dispatch_workgroups(num_workgroups)
     pass_enc.end()
     device.queue.submit([encoder.finish()])
 
-    # Benchmark - run 10 iterations
+    # Benchmark - run iterations separately to measure actual GPU work
     num_iterations = 10
     ops_per_thread = 20000  # Match shader config
     total_ops = num_elements * ops_per_thread * num_iterations
 
     start_time = time.time()
 
-    for _ in range(num_iterations):
+    # Run iterations - separate submissions to ensure all work is done
+    for i in range(num_iterations):
         encoder = device.create_command_encoder()
         pass_enc = encoder.begin_compute_pass()
         pass_enc.set_pipeline(pipeline)
         pass_enc.set_bind_group(0, bind_group)
-        pass_enc.dispatch_workgroups(3907)
+        pass_enc.dispatch_workgroups(num_workgroups)
         pass_enc.end()
         device.queue.submit([encoder.finish()])
 
