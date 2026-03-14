@@ -85,26 +85,29 @@ class RISCVToGeometricJIT:
             logical_idx = i // 4
             silos[zone_idx].append(logical_idx)
 
-        # Calculate Physical Offsets using Warp-Interleaved Strategy
+        # Calculate Physical Offsets using Hierarchical Strategy
         WARP_SIZE = self.warp_size
         current_phys = 0
         
-        # Warp-interleave silos: clumping instructions for SIMT while keeping zones close
+        # Block size for macro-siloing (e.g., 4096 instructions per quadrant)
+        BLOCK_SIZE = 4096
+        
         silo_ptrs = [0] * len(silos)
         
         while any(silo_ptrs[j] < len(silos[j]) for j in range(len(silos))):
+            # Process one macro-block at a time to maintain Hilbert quadrant locality
             for zone_idx in self.zone_order:
-                # Take a 'Warp' worth of instructions from the current silo
-                for _ in range(WARP_SIZE):
-                    if silo_ptrs[zone_idx] < len(silos[zone_idx]):
-                        logical_idx = silos[zone_idx][silo_ptrs[zone_idx]]
-                        logical_to_physical[logical_idx] = current_phys
-                        current_phys += 1
-                        silo_ptrs[zone_idx] += 1
-                
-                # Align the next zone to the next warp boundary to avoid thread divergence
-                if current_phys % WARP_SIZE != 0:
-                    current_phys += (WARP_SIZE - (current_phys % WARP_SIZE))
+                # Take a 'Block' worth of instructions, but interleave warps within it
+                for _ in range(BLOCK_SIZE // WARP_SIZE):
+                    for __ in range(WARP_SIZE):
+                        if silo_ptrs[zone_idx] < len(silos[zone_idx]):
+                            logical_idx = silos[zone_idx][silo_ptrs[zone_idx]]
+                            logical_to_physical[logical_idx] = current_phys
+                            current_phys += 1
+                            silo_ptrs[zone_idx] += 1
+                    
+                    if current_phys % WARP_SIZE != 0:
+                        current_phys += (WARP_SIZE - (current_phys % WARP_SIZE))
 
         print("  Pass 2: Semantic Translation & Static Relinking...")
         for i in range(0, len(self.data), 4):
