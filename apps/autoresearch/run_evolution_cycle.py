@@ -240,8 +240,10 @@ def apply_random_optimization(track_name="") -> str:
         "shared_mem",        # Use workgroup shared memory
         "increase_ops",      # Increase ops per thread to 50K or 100K
         "more_threads",      # Increase thread count to 1M
-        "remove_modulo",     # NEW: Remove expensive modulo operation
-        "simple_hash",       # NEW: Use simpler hash function
+        "remove_modulo",     # Remove expensive modulo operation
+        "simple_hash",       # Use simpler hash function
+        "cleanup",           # NEW: Remove unused declarations
+        "reduce_iters",      # NEW: Try fewer iterations for better cache
     ]
 
     opt = random.choice(optimizations)
@@ -473,6 +475,21 @@ def apply_random_optimization(track_name="") -> str:
                     f"(acc{i} ^ (acc{i} >> 16u)) * 2654435761u",
                     new_op.replace("acc", f"acc{i}")
                 )
+
+    elif opt == "cleanup":
+        # Remove unused shared memory declaration (wastes resources)
+        if "var<workgroup> shared_data" in code and "shared_data[" not in code:
+            code = code.replace("var<workgroup> shared_data: array<u32, 512>;\n\n", "")
+            code = code.replace("var<workgroup> shared_data: array<u32, 512>;\n    ", "")
+
+    elif opt == "reduce_iters":
+        # Try fewer iterations for better cache behavior
+        if "i < 30000u" in code:
+            new_iters = random.choice([20000, 15000, 10000, 5000])
+            code = code.replace("i < 30000u", f"i < {new_iters}u")
+        elif "i < 20000u" in code:
+            new_iters = random.choice([15000, 10000, 5000])
+            code = code.replace("i < 20000u", f"i < {new_iters}u")
 
     with open(SHADER_PATH, "w") as f:
         f.write(code)
