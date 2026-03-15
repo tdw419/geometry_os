@@ -1,0 +1,57 @@
+// ============================================================================
+// Geometry OS - Meta-Circular Scheduler (VM 0)
+// ============================================================================
+//
+// This glyph runs as VM 0 and schedules VMs 1-255 in round-robin fashion.
+// Uses trap interface for VM spawn/kill operations.
+
+.equ TRAP_BASE,    0xFF000000
+.equ TRAP_OP,      0xFF000000
+.equ TRAP_ARG0,    0xFF000004
+.equ TRAP_ARG1,    0xFF000008
+.equ TRAP_RESULT,  0xFF000010
+.equ TRAP_STATUS,  0xFF000014
+
+.equ VM_TABLE,     0xFE000000    // VM state table region
+.equ MAX_VMS,      255
+.equ CYCLES_PER_VM, 64
+
+// VM state offsets (relative to VM base)
+.equ VM_STATE,     0
+.equ VM_PC,        4
+.equ VM_ACTIVE,    1
+
+:main
+    // Mark self as running (VM 0)
+    LDI r1, 0xFF000100
+    LDI r2, 1           // RUNNING
+    STORE r1, r2
+
+    // Initialize frame counter
+    LDI r20, 0          // r20 = frame count
+
+:scheduler_loop
+    ADDI r20, r20, 1    // frame++
+
+    // Round-robin through VMs 1-255
+    LDI r21, 1          // r21 = current VM ID
+
+:vm_loop
+    // Check if VM r21 is active
+    // For now, just yield to let shim handle scheduling
+    // Real implementation would check VM_TABLE[r21].active
+
+    // Increment VM ID
+    ADDI r21, r21, 1
+    LDI r22, MAX_VMS
+    SUB r21, r22
+    JNZ vm_loop         // Loop until r21 > MAX_VMS
+
+    // Frame sync - write heartbeat
+    LDI r1, 0xFF000200
+    STORE r1, r20
+
+    // Yield to shim for trap processing
+    // (shim will handle actual VM execution)
+
+    JMP scheduler_loop
