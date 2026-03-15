@@ -80,8 +80,8 @@ impl HilbertMemoryMapper {
     fn rot(&self, n: u32, x: &mut u32, y: &mut u32, rx: u32, ry: u32) {
         if ry == 0 {
             if rx == 1 {
-                *x = n - 1 - *x;
-                *y = n - 1 - *y;
+                *x = (n - 1).wrapping_sub(*x);
+                *y = (n - 1).wrapping_sub(*y);
             }
 
             // Swap x and y
@@ -106,21 +106,19 @@ impl HilbertMemoryMapper {
     /// ```
     pub fn xy_to_hilbert_index(&self, x: u32, y: u32) -> u32 {
         let mut d = 0u32;
-        let mut s = 1u32;
-        let mut rx = 0u32;
-        let mut ry = 0u32;
+        let mut s = self.size / 2;  // Start from n/2 like canonical implementation
         let mut xx = x;
         let mut yy = y;
 
-        for _i in 0..self.order {
-            rx = 1u32 & (xx / s);
-            ry = 1u32 & (yy / s);
+        while s > 0 {
+            let rx = (xx & s) > 0;
+            let ry = (yy & s) > 0;
 
-            d += s * s * ((3u32 * rx) ^ ry);
+            d += s * s * ((3u32 * rx as u32) ^ ry as u32);
 
-            self.rot(s, &mut xx, &mut yy, rx, ry);
+            self.rot(s, &mut xx, &mut yy, rx as u32, ry as u32);
 
-            s *= 2;
+            s /= 2;
         }
 
         d

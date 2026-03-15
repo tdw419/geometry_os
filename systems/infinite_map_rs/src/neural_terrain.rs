@@ -176,8 +176,8 @@ fn hilbert_xy2d(n: u32, mut x: u32, mut y: u32) -> u64 {
         // Rotate
         if ry == 0 {
             if rx == 1 {
-                x = s - 1 - x;
-                y = s - 1 - y;
+                x = (s - 1).wrapping_sub(x);
+                y = (s - 1).wrapping_sub(y);
             }
             std::mem::swap(&mut x, &mut y);
         }

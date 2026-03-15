@@ -106,16 +106,21 @@ impl MemoryRaycaster {
 
         // Calculate intersection with Z plane (front face)
         // Ray: P = O + t * D
-        // Plane: Z = max_z (front face of artifact)
-        // Intersection when: O_z + t * D_z = max_z
-        // t = (max_z - O_z) / D_z
+        // Plane: Z = min_z (front face of artifact - smaller Z is closer to camera looking at -Z)
+        // Intersection when: O_z + t * D_z = min_z
+        // t = (min_z - O_z) / D_z
 
-        let t = (max_z - ray_origin[2]) / ray_dir[2];
+        let t = (min_z - ray_origin[2]) / ray_dir[2];
+
+        // Reject intersections behind the ray origin
+        if t < 0.0 {
+            return None;
+        }
 
         // Calculate intersection point
         let ix = ray_origin[0] + t * ray_dir[0];
         let iy = ray_origin[1] + t * ray_dir[1];
-        let iz = max_z;
+        let iz = min_z;
 
         // Check if intersection is within X-Y bounds
         if ix >= min_x && ix <= max_x && iy >= min_y && iy <= max_y {

@@ -160,7 +160,7 @@ impl MemoryInspector {
         self.selection_end = Some(uv);
     }
 
-    /// End selection
+    /// End selection (finalize without clearing)
     pub fn end_selection(&mut self) {
         if let (Some(start), Some(end)) = (self.selection_start, self.selection_end) {
             // Calculate selected address range
@@ -192,9 +192,7 @@ impl MemoryInspector {
                 }
             }
         }
-
-        self.selection_start = None;
-        self.selection_end = None;
+        // Note: Don't clear selection here - that's what clear_selection() is for
     }
 
     /// Get memory region info by name

@@ -136,6 +136,7 @@ impl SourceCityLoader {
     }
 
     /// Convert Hilbert curve distance to 2D coordinates
+    /// Uses the canonical algorithm from hilbert/mod.rs
     pub fn hilbert_d2xy(&self, n: u32, d: u32) -> (i32, i32) {
         let mut x = 0i32;
         let mut y = 0i32;
@@ -148,8 +149,8 @@ impl SourceCityLoader {
 
             if ry == 0 {
                 if rx == 1 {
-                    x = n as i32 - 1 - x;
-                    y = n as i32 - 1 - y;
+                    x = s as i32 - 1 - x;  // Fixed: use s, not n
+                    y = s as i32 - 1 - y;  // Fixed: use s, not n
                 }
                 std::mem::swap(&mut x, &mut y);
             }
@@ -215,13 +216,18 @@ mod tests {
     fn test_hilbert_coordinate() {
         let loader = SourceCityLoader::new(PathBuf::from("/tmp/test.json"));
 
+        // Test vectors match canonical hilbert/mod.rs implementation:
+        // d=0 → (0,0), d=1 → (1,0), d=2 → (1,1), d=3 → (0,1)
         let coord = loader.hilbert_d2xy(256, 0);
         assert_eq!(coord, (0, 0));
 
         let coord = loader.hilbert_d2xy(256, 1);
-        assert_eq!(coord, (0, 1));
+        assert_eq!(coord, (1, 0));
 
         let coord = loader.hilbert_d2xy(256, 2);
         assert_eq!(coord, (1, 1));
+
+        let coord = loader.hilbert_d2xy(256, 3);
+        assert_eq!(coord, (0, 1));
     }
 }
