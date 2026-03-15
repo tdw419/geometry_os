@@ -1,0 +1,629 @@
+// ============================================================================
+// Geometry OS - Brain Bridge Glyph
+// ============================================================================
+//
+// Glyph-native bridge between substrate memory and LM Studio brain.
+// Reads brain state, writes intents, polls for responses.
+//
+// Memory Layout:
+//   0x0300-0x031F: INTENT_REGION (write brain commands here)
+//   0x0320-0x033F: RESPONSE_REGION (brain writes responses here)
+//   0x0340: ENTROPY_LOW (low 32 bits of entropy accumulator)
+//   0x0341: ENTROPY_HIGH (high 32 bits)
+//   0x0342: CYCLE_COUNT (execution cycles)
+//   0x0343: MUTATION_COUNT (self-modifications applied)
+//   0x0344: GOAL_REGISTER (current cognitive goal)
+//   0x0350-0x03FF: SENSOR_DATA (weight stats, patterns)
+//   0x0400-0x04FF: PERCEPTION_BUFFER (processed sensor data)
+//   0x0500-0x0FFF: HTTP_REQUEST buffer (to LM Studio)
+//   0x1000-0x1FFF: HTTP_RESPONSE buffer (from LM Studio)
+//   0x2000: CTRL_SEMAPHORE (1 = request pending)
+//   0x2004: RESPONSE_READY (1 = response available)
+//   0x2008: REQUEST_LENGTH (bytes in request buffer)
+//
+// Trap Interface:
+//   0xFF000000: TRAP_OP
+//   0xFF000004: TRAP_ARG0
+//   0xFF000008: TRAP_ARG1
+//   0xFF000010: TRAP_RESULT
+//   0xFF000014: TRAP_STATUS
+//
+// ============================================================================
+
+// ============================================================================
+// EQUATES
+// ============================================================================
+
+// Brain State Region
+.equ INTENT_REGION,    0x0300
+.equ RESPONSE_REGION,  0x0320
+.equ ENTROPY_LOW,      0x0340
+.equ ENTROPY_HIGH,     0x0341
+.equ CYCLE_COUNT,      0x0342
+.equ MUTATION_COUNT,   0x0343
+.equ GOAL_REGISTER,    0x0344
+.equ SENSOR_DATA,      0x0350
+.equ PERCEPTION_BUF,   0x0400
+
+// Brain Bridge Region (LM Studio communication)
+.equ HTTP_REQUEST,     0x0500
+.equ HTTP_RESPONSE,    0x1000
+.equ CTRL_SEMAPHORE,   0x2000
+.equ RESPONSE_READY,   0x2004
+.equ REQUEST_LENGTH,   0x2008
+
+// Trap Interface
+.equ TRAP_BASE,        0xFF000000
+.equ TRAP_OP,          0xFF000000
+.equ TRAP_ARG0,        0xFF000004
+.equ TRAP_ARG1,        0xFF000008
+.equ TRAP_RESULT,      0xFF000010
+.equ TRAP_STATUS,      0xFF000014
+
+// Trap Opcodes
+.equ OP_PEEK,          5
+.equ OP_POKE,          6
+
+// Trap Status
+.equ STATUS_IDLE,      0
+.equ STATUS_PENDING,   1
+.equ STATUS_COMPLETE,  2
+
+// Goals
+.equ GOAL_IMPROVE,     1
+.equ GOAL_EXPLORE,     2
+.equ GOAL_STABILIZE,   3
+
+// ============================================================================
+// REGISTER USAGE
+// ============================================================================
+//
+// r0:  Loop counter / temp
+// r1:  Address pointer
+// r2:  Value buffer
+// r3:  Entropy accumulator
+// r4:  Mutation count
+// r5:  Goal register
+// r6:  Jump target
+// r7:  Condition / comparison
+// r8:  Request length counter
+// r9:  Temp for string packing
+// r10: Result from traps
+// r11: Cycle counter
+// r12: Reserved
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+:main
+    // Initialize brain state
+    LDI r11, 0           // Cycle counter = 0
+    LDI r4, 0            // Mutation count = 0
+    LDI r5, GOAL_IMPROVE // Initial goal = IMPROVE
+    LDI r3, 0            // Entropy = 0
+
+    // Write initial state to substrate
+    LDI r1, CYCLE_COUNT
+    STORE r1, r11
+    LDI r1, MUTATION_COUNT
+    STORE r1, r4
+    LDI r1, GOAL_REGISTER
+    STORE r1, r5
+    LDI r1, ENTROPY_LOW
+    STORE r1, r3
+    LDI r1, ENTROPY_HIGH
+    STORE r1, r3
+
+// ============================================================================
+// MAIN COGNITIVE LOOP
+// ============================================================================
+
+:cognitive_loop
+    // Increment cycle counter
+    LDI r1, 1
+    ADD r11, r1          // r11 += 1
+    LDI r1, CYCLE_COUNT
+    STORE r1, r11
+
+    // -----------------------------------------------------------------------
+    // PHASE 1: SENSE - Read entropy from substrate
+    // -----------------------------------------------------------------------
+    JSR :sense_entropy
+
+    // -----------------------------------------------------------------------
+    // PHASE 2: PERCEIVE - Process sensor data
+    // -----------------------------------------------------------------------
+    JSR :perceive_state
+
+    // -----------------------------------------------------------------------
+    // PHASE 3: THINK - Build request and query LM Studio
+    // -----------------------------------------------------------------------
+    JSR :build_request
+    JSR :query_brain
+
+    // -----------------------------------------------------------------------
+    // PHASE 4: ACT - Process response and apply changes
+    // -----------------------------------------------------------------------
+    JSR :process_response
+
+    // -----------------------------------------------------------------------
+    // PHASE 5: WRITE INTENT - Update brain intent region
+    // -----------------------------------------------------------------------
+    JSR :write_intent
+
+    // Loop forever
+    JMP :cognitive_loop
+
+// ============================================================================
+// SENSE ENTROPY - Sample substrate memory and compute entropy
+// ============================================================================
+
+:sense_entropy
+    // Save return address (using r6 as link register)
+    LDI r6, :sense_return
+
+    // Read entropy from substrate region 0x0300-0x0F00
+    // We'll sample 16 addresses spread across the region
+    LDI r3, 0            // Reset entropy accumulator
+
+    // Sample address 0x0300
+    LDI r1, 0x0300
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Sample address 0x0400
+    LDI r1, 0x0400
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Sample address 0x0500
+    LDI r1, 0x0500
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Sample address 0x0600
+    LDI r1, 0x0600
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Sample address 0x0700
+    LDI r1, 0x0700
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Sample address 0x0800
+    LDI r1, 0x0800
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Sample address 0x0900
+    LDI r1, 0x0900
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Sample address 0x0A00
+    LDI r1, 0x0A00
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Sample address 0x0B00
+    LDI r1, 0x0B00
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Sample address 0x0C00
+    LDI r1, 0x0C00
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Sample address 0x0D00
+    LDI r1, 0x0D00
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Sample address 0x0E00
+    LDI r1, 0x0E00
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Sample address 0x0F00
+    LDI r1, 0x0F00
+    LOAD r2, r1
+    XOR r3, r2
+
+    // Store computed entropy
+    LDI r1, ENTROPY_LOW
+    STORE r1, r3
+
+    // Also write to perception buffer
+    LDI r1, PERCEPTION_BUF
+    STORE r1, r3
+
+:sense_return
+    JMP r6               // Return to caller
+
+// ============================================================================
+// PERCEIVE STATE - Process sensor data into perception buffer
+// ============================================================================
+
+:perceive_state
+    LDI r6, :perceive_return
+
+    // Copy current state to perception buffer for LM Studio
+    // Perception format: [entropy, cycles, mutations, goal]
+
+    LDI r1, ENTROPY_LOW
+    LOAD r2, r1
+    LDI r1, PERCEPTION_BUF
+    STORE r1, r2         // perception[0] = entropy
+
+    LDI r1, CYCLE_COUNT
+    LOAD r2, r1
+    LDI r1, PERCEPTION_BUF
+    ADD r1, 1
+    STORE r1, r2         // perception[1] = cycles
+
+    LDI r1, MUTATION_COUNT
+    LOAD r2, r1
+    LDI r1, PERCEPTION_BUF
+    ADD r1, 2
+    STORE r1, r2         // perception[2] = mutations
+
+    LDI r1, GOAL_REGISTER
+    LOAD r2, r1
+    LDI r1, PERCEPTION_BUF
+    ADD r1, 3
+    STORE r1, r2         // perception[3] = goal
+
+:perceive_return
+    JMP r6
+
+// ============================================================================
+// BUILD REQUEST - Construct HTTP request for LM Studio
+// ============================================================================
+
+:build_request
+    LDI r6, :build_return
+
+    // Build a simple text prompt for LM Studio
+    // Format: "analyze entropy:NNNN cycles:NNNN goal:N"
+    // The Rust BrainBridge wraps this in chat format
+
+    LDI r1, HTTP_REQUEST
+    LDI r8, 0            // Length counter
+
+    // Write "analyze "
+    LDI r2, 0x6C61736E   // "nal" (part of analyze, reversed for little endian)
+    STORE r1, r2
+    ADD r1, 1
+    ADD r8, 4
+
+    LDI r2, 0x657A7973   // "zyse" (part of analyze)
+    STORE r1, r2
+    ADD r1, 1
+    ADD r8, 4
+
+    LDI r2, 0x00002065   // "e \0\0"
+    STORE r1, r2
+    ADD r1, 1
+    ADD r8, 4
+
+    // Write "entropy:"
+    LDI r2, 0x74726F70   // "prot" (entropy reversed)
+    STORE r1, r2
+    ADD r1, 1
+    ADD r8, 4
+
+    LDI r2, 0x00003A79   // "y:\0\0"
+    STORE r1, r2
+    ADD r1, 1
+    ADD r8, 4
+
+    // Write entropy value (hex representation - simplified as raw value)
+    LDI r2, ENTROPY_LOW
+    LOAD r2, r1
+    ADD r1, 1
+    ADD r8, 4
+
+    // Write " cycles:"
+    LDI r2, 0x6C696373   // "scil" (cycles)
+    STORE r1, r2
+    ADD r1, 1
+    ADD r8, 4
+
+    LDI r2, 0x00003A65   // "e:\0\0"
+    STORE r1, r2
+    ADD r1, 1
+    ADD r8, 4
+
+    // Write cycle count
+    LDI r2, CYCLE_COUNT
+    LOAD r2, r1
+    ADD r1, 1
+    ADD r8, 4
+
+    // Write " goal:"
+    LDI r2, 0x6C616F67   // "goal"
+    STORE r1, r2
+    ADD r1, 1
+    ADD r8, 4
+
+    LDI r2, 0x00003A00   // ":\0\0\0"
+    STORE r1, r2
+    ADD r1, 1
+    ADD r8, 4
+
+    // Write goal value
+    LDI r2, GOAL_REGISTER
+    LOAD r2, r1
+    ADD r1, 1
+    ADD r8, 4
+
+    // Write " suggest action"
+    LDI r2, 0x67677573   // "sugg"
+    STORE r1, r2
+    ADD r1, 1
+    ADD r8, 4
+
+    LDI r2, 0x74206573   // "se t"
+    STORE r1, r2
+    ADD r1, 1
+    ADD r8, 4
+
+    LDI r2, 0x6F6E6961   // "aino"
+    STORE r1, r2
+    ADD r1, 1
+    ADD r8, 4
+
+    // Store request length
+    LDI r1, REQUEST_LENGTH
+    STORE r1, r8
+
+:build_return
+    JMP r6
+
+// ============================================================================
+// QUERY BRAIN - Send request to LM Studio via Brain Bridge
+// ============================================================================
+
+:query_brain
+    LDI r6, :query_return
+
+    // Set CTRL_SEMAPHORE to 1 to trigger request
+    LDI r1, CTRL_SEMAPHORE
+    LDI r2, 1
+    STORE r1, r2
+
+    // Wait for response (poll RESPONSE_READY)
+:wait_response
+    LDI r1, RESPONSE_READY
+    LOAD r1, r2
+    LDI r7, 0
+    SUB r2, r7
+    JZ r2, :wait_response  // If r2 == 0, keep waiting
+
+    // Response ready!
+    // Clear RESPONSE_READY for next cycle
+    LDI r1, RESPONSE_READY
+    LDI r2, 0
+    STORE r1, r2
+
+:query_return
+    JMP r6
+
+// ============================================================================
+// PROCESS RESPONSE - Parse LM Studio response and apply actions
+// ============================================================================
+
+:process_response
+    LDI r6, :process_return
+
+    // Read first word of response
+    LDI r1, HTTP_RESPONSE
+    LOAD r2, r1
+
+    // Check for "MUTA" command (0x4D555441 = "MUTA")
+    LDI r7, 0x4D555441
+    SUB r7, r2
+    JZ r7, :handle_mutate
+
+    // Check for "INTE" command (0x494E5445 = "INTE" for intent)
+    LDI r7, 0x494E5445
+    SUB r7, r2
+    JZ r7, :handle_intent
+
+    // Check for "GOAL" command (0x474F414C = "GOAL")
+    LDI r7, 0x474F414C
+    SUB r7, r2
+    JZ r7, :handle_goal
+
+    // Check for "CONT" command (0x434F4E54 = "CONT" for continue)
+    LDI r7, 0x434F4E54
+    SUB r7, r2
+    JZ r7, :handle_continue
+
+    // Unknown command - just continue
+    JMP :process_return
+
+:handle_mutate
+    // Parse: MUTATE addr value
+    // Response format: "MUTATE" + addr (word 1) + value (word 2)
+    ADD r1, 1
+    LOAD r7, r1          // r7 = target address
+    ADD r1, 1
+    LOAD r2, r1          // r2 = new value
+
+    // Apply mutation using trap (POKE_SUBSTRATE)
+    LDI r1, TRAP_OP
+    LDI r3, OP_POKE
+    STORE r1, r3
+
+    LDI r1, TRAP_ARG0
+    STORE r1, r7         // arg0 = address
+
+    LDI r1, TRAP_ARG1
+    STORE r1, r2         // arg1 = value
+
+    LDI r1, TRAP_STATUS
+    LDI r3, STATUS_PENDING
+    STORE r1, r3
+
+:wait_mutate_trap
+    LDI r1, TRAP_STATUS
+    LOAD r1, r3
+    LDI r2, STATUS_COMPLETE
+    SUB r3, r2
+    JNZ r3, :wait_mutate_trap
+
+    // Increment mutation count
+    LDI r1, 1
+    ADD r4, r1
+    LDI r1, MUTATION_COUNT
+    STORE r1, r4
+
+    JMP :process_return
+
+:handle_intent
+    // Parse: INTENT value
+    // Response format: "INTENT" + value (word 1)
+    ADD r1, 1
+    LOAD r2, r1          // r2 = intent value
+
+    // Write to intent region (0x0300-0x031F)
+    LDI r1, INTENT_REGION
+    STORE r1, r2
+
+    JMP :process_return
+
+:handle_goal
+    // Parse: GOAL value
+    // Response format: "GOAL" + value (word 1)
+    ADD r1, 1
+    LOAD r2, r1          // r2 = goal value
+
+    // Update goal register
+    LDI r1, GOAL_REGISTER
+    STORE r1, r2
+    LDI r5, r2           // Also update local copy
+
+    JMP :process_return
+
+:handle_continue
+    // Just continue - no action needed
+    NOP
+
+:process_return
+    JMP r6
+
+// ============================================================================
+// WRITE INTENT - Update brain intent region for coordination
+// ============================================================================
+
+:write_intent
+    LDI r6, :write_return
+
+    // Write current intent to 0x0300-0x031F region
+    // This allows other glyphs/daemons to read our intent
+
+    // Intent word 0: Current goal
+    LDI r1, INTENT_REGION
+    LDI r2, GOAL_REGISTER
+    LOAD r2, r2
+    STORE r1, r2
+
+    // Intent word 1: Current cycle
+    LDI r1, INTENT_REGION
+    ADD r1, 1
+    STORE r1, r11
+
+    // Intent word 2: Current entropy
+    LDI r1, INTENT_REGION
+    ADD r1, 2
+    LDI r2, ENTROPY_LOW
+    LOAD r2, r2
+    STORE r1, r2
+
+    // Intent word 3: Mutation count
+    LDI r1, INTENT_REGION
+    ADD r1, 3
+    STORE r1, r4
+
+    // Intent word 4: Status (1 = active)
+    LDI r1, INTENT_REGION
+    ADD r1, 4
+    LDI r2, 1
+    STORE r1, r2
+
+:write_return
+    JMP r6
+
+// ============================================================================
+// TRAP HELPERS - Peek/Poke substrate via trap interface
+// ============================================================================
+
+// Peek substrate at address
+// Input: r7 = address
+// Output: r10 = value
+:trap_peek
+    LDI r6, :peek_return
+
+    LDI r1, TRAP_OP
+    LDI r2, OP_PEEK
+    STORE r1, r2
+
+    LDI r1, TRAP_ARG0
+    STORE r1, r7
+
+    LDI r1, TRAP_STATUS
+    LDI r2, STATUS_PENDING
+    STORE r1, r2
+
+:peek_wait
+    LDI r1, TRAP_STATUS
+    LOAD r1, r2
+    LDI r3, STATUS_COMPLETE
+    SUB r2, r3
+    JNZ r2, :peek_wait
+
+    LDI r1, TRAP_RESULT
+    LOAD r1, r10
+
+:peek_return
+    JMP r6
+
+// Poke substrate at address
+// Input: r7 = address, r2 = value
+:trap_poke
+    LDI r6, :poke_return
+
+    LDI r1, TRAP_OP
+    LDI r3, OP_POKE
+    STORE r1, r3
+
+    LDI r1, TRAP_ARG0
+    STORE r1, r7
+
+    LDI r1, TRAP_ARG1
+    STORE r1, r2
+
+    LDI r1, TRAP_STATUS
+    LDI r3, STATUS_PENDING
+    STORE r1, r3
+
+:poke_wait
+    LDI r1, TRAP_STATUS
+    LOAD r1, r3
+    LDI r2, STATUS_COMPLETE
+    SUB r3, r2
+    JNZ r3, :poke_wait
+
+:poke_return
+    JMP r6
+
+// ============================================================================
+// HALT (should never reach here in normal operation)
+// ============================================================================
+
+:end
+    HALT
