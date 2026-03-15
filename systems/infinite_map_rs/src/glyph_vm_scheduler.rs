@@ -561,6 +561,63 @@ impl GlyphVmScheduler {
     pub fn bind_group_layout(&self) -> &wgpu::BindGroupLayout {
         &self.bind_group_layout
     }
+
+    /// Peek substrate memory at trap base (6 u32 values = 24 bytes)
+    pub fn peek_substrate(&self, _base: u32, _count: u32) -> [u8; 24] {
+        // Use existing peek mechanism
+        let mut result = [0u8; 24];
+        // TODO: Implement via texture read
+        result
+    }
+
+    /// Write trap registers back to substrate
+    pub fn write_trap_regs(&mut self, _regs: &crate::trap_interface::TrapRegs) {
+        // TODO: Implement via texture write
+    }
+
+    /// Spawn VM from trap request - returns VM ID on success, 0xFF on failure
+    pub fn spawn_vm_from_trap(&mut self, entry: u32, _config: u32) -> u8 {
+        // Find first available VM slot
+        for vm_id in 0..MAX_VMS {
+            let state_result = self.get_vm_state(vm_id as u32);
+            if let Ok(state) = state_result {
+                if state == crate::glyph_vm_scheduler::vm_state::INACTIVE {
+                    let config = VmConfig {
+                        entry_point: entry,
+                        ..Default::default()
+                    };
+                    if self.spawn_vm(vm_id as u32, &config).is_ok() {
+                        return vm_id as u8;
+                    }
+                }
+            }
+        }
+        0xFF // No available slot
+    }
+
+    /// Kill VM by ID - returns 0 on success, 0xFF on failure
+    pub fn kill_vm(&mut self, vm_id: u32) -> u8 {
+        if vm_id as usize >= MAX_VMS {
+            return 0xFF;
+        }
+        if self.halt_vm(vm_id).is_ok() {
+            println!("[TRAP] Kill VM {} completed", vm_id);
+            0
+        } else {
+            0xFF
+        }
+    }
+
+    /// Peek single substrate value
+    pub fn peek_substrate_single(&self, _addr: u32) -> u32 {
+        // TODO: Implement via texture read
+        0
+    }
+
+    /// Poke single substrate value
+    pub fn poke_substrate_single(&mut self, _addr: u32, _val: u32) {
+        // TODO: Implement via texture write
+    }
 }
 
 #[cfg(test)]

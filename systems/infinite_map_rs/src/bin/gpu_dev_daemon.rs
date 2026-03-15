@@ -14,6 +14,71 @@ use std::time::{Duration, Instant};
 
 use infinite_map_rs::brain_bridge::{BrainBridge, BrainBridgeConfig};
 use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
+use infinite_map_rs::trap_interface::{TrapRegs, op_type, status, TRAP_BASE};
+
+/// Handles trap requests from glyph programs
+struct TrapHandler {
+    regs: TrapRegs,
+}
+
+impl TrapHandler {
+    fn new() -> Self {
+        Self {
+            regs: TrapRegs::default(),
+        }
+    }
+
+    /// Check if a pending trap exists and execute it
+    fn poll_and_execute(
+        &mut self,
+        scheduler: &mut GlyphVmScheduler,
+        texture: &wgpu::Texture,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> bool {
+        // Read trap registers from substrate
+        let trap_bytes = scheduler.peek_substrate(TRAP_BASE, 6);
+        self.regs = TrapRegs::from_bytes(trap_bytes);
+
+        if self.regs.status != status::PENDING {
+            return false;
+        }
+
+        // Execute the requested operation
+        let result = match self.regs.op_type {
+            op_type::SPAWN_VM => {
+                let entry = self.regs.arg0;
+                let config = self.regs.arg1;
+                scheduler.spawn_vm_from_trap(entry, config) as u32
+            }
+            op_type::KILL_VM => {
+                let vm_id = self.regs.arg0;
+                scheduler.kill_vm(vm_id) as u32
+            }
+            op_type::PEEK_SUBSTRATE => {
+                let addr = self.regs.arg0;
+                scheduler.peek_substrate_single(addr)
+            }
+            op_type::POKE_SUBSTRATE => {
+                let addr = self.regs.arg0;
+                let val = self.regs.arg1;
+                scheduler.poke_substrate_single(addr, val);
+                0
+            }
+            _ => {
+                eprintln!("[TRAP] Unknown op_type: {}", self.regs.op_type);
+                0xFFFF_FFFF // Error code
+            }
+        };
+
+        // Write result and mark complete
+        self.regs.result = result;
+        self.regs.status = status::COMPLETE;
+        scheduler.write_trap_regs(&self.regs);
+
+        true
+    }
+}
 
 fn main() {
     println!("I AM STARTING");
@@ -94,7 +159,7 @@ fn main() {
     thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            let listener = TcpListener::bind("127.0.0.1:8769").unwrap();
+            let listener = TcpListener::bind("0.0.0.0:8769").unwrap();
             println!("[API] 🚀 Ouroboros API listening on http://127.0.0.1:8769");
             std::io::stdout().flush().unwrap();
             for stream in listener.incoming() {

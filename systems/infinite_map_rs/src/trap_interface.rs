@@ -56,4 +56,28 @@ impl TrapRegs {
         // This is for documentation; actual access goes through texture reads
         std::ptr::null()
     }
+
+    /// Create TrapRegs from byte array (24 bytes = 6 u32s)
+    pub fn from_bytes(bytes: [u8; 24]) -> Self {
+        Self {
+            op_type: u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
+            arg0: u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]),
+            arg1: u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]),
+            arg2: u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]),
+            result: u32::from_le_bytes([bytes[16], bytes[17], bytes[18], bytes[19]]),
+            status: u32::from_le_bytes([bytes[20], bytes[21], bytes[22], bytes[23]]),
+        }
+    }
+
+    /// Convert TrapRegs to byte array
+    pub fn to_bytes(&self) -> [u8; 24] {
+        let mut bytes = [0u8; 24];
+        bytes[0..4].copy_from_slice(&self.op_type.to_le_bytes());
+        bytes[4..8].copy_from_slice(&self.arg0.to_le_bytes());
+        bytes[8..12].copy_from_slice(&self.arg1.to_le_bytes());
+        bytes[12..16].copy_from_slice(&self.arg2.to_le_bytes());
+        bytes[16..20].copy_from_slice(&self.result.to_le_bytes());
+        bytes[20..24].copy_from_slice(&self.status.to_le_bytes());
+        bytes
+    }
 }
