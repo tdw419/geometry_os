@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS - GPU Daemon Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: #00ff88; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .card h2 {
+            color: #00ff88;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .vm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .vm-box {
+            background: #0a0a0a;
+            border: 2px solid #333;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+        }
+        .vm-box.running { border-color: #00ff88; }
+        .vm-box.halted { border-color: #ff4444; }
+        .vm-box.waiting { border-color: #ffaa00; }
+        .vm-box.inactive { border-color: #333; opacity: 0.5; }
+
+        .vm-id { font-size: 12px; color: #666; }
+        .vm-state { font-size: 18px; font-weight: bold; margin: 5px 0; }
+        .vm-pc { font-size: 11px; color: #888; }
+
+        .memory-view {
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .mem-row { display: flex; gap: 10px; }
+        .mem-addr { color: #666; min-width: 80px; }
+        .mem-value { color: #00ff88; }
+        .mem-value.zero { color: #333; }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-indicator.ok { background: #00ff88; }
+        .status-indicator.error { background: #ff4444; }
+
+        .btn {
+            background: #1a1a1a;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            margin-right: 10px;
+        }
+        .btn:hover { background: #00ff88; color: #0a0a0a; }
+
+        .controls { margin-bottom: 20px; }
+
+        .error { color: #ff4444; padding: 20px; text-align: center; }
+
+        .loading { color: #666; text-align: center; padding: 40px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Geometry OS - GPU Daemon</h1>
+        <p class="subtitle">Real-time GPU substrate monitoring</p>
+
+        <div class="controls">
+            <button class="btn" onclick="refresh()">Refresh</button>
+            <button class="btn" onclick="pauseAll()">Pause VMs</button>
+            <button class="btn" onclick="loadDemo()">Load Demo</button>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2><span class="status-indicator ok"></span>Daemon Status</h2>
+                <div id="daemon-status" class="loading">Connecting...</div>
+            </div>
+
+            <div class="card">
+                <h2>Virtual Machines</h2>
+                <div id="vm-grid" class="vm-grid">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Memory Peek</h2>
+                <div>
+                    <input type="text" id="peek-addr" placeholder="Address (e.g., 0x1000)"
+                           style="background:#0a0a0a;border:1px solid #333;color:#e0e0e0;padding:8px;width:150px;margin-right:10px;">
+                    <button class="btn" onclick="peekMemory()">Peek</button>
+                </div>
+                <div id="memory-view" class="memory-view" style="margin-top:15px;">
+                    <div class="mem-row"><span class="mem-addr">Enter address</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8769';
+        let refreshInterval;
+
+        async function fetchAPI(endpoint) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (e) {
+                // Try parsing plain text responses
+                try {
+                    const response = await fetch(`${API_BASE}${endpoint}`);
+                    return await response.text();
+                } catch (e2) {
+                    throw e;
+                }
+            }
+        }
+
+        async function refresh() {
+            await Promise.all([
+                updateDaemonStatus(),
+                updateVMStates()
+            ]);
+        }
+
+        async function updateDaemonStatus() {
+            const el = document.getElementById('daemon-status');
+            try {
+                const status = await fetchAPI('/status');
+                el.innerHTML = `
+                    <div style="line-height:2;">
+                        <div><strong>Daemon:</strong> ${status.daemon || 'unknown'}</div>
+                        <div><strong>Version:</strong> ${status.version || 'unknown'}</div>
+                        <div><strong>Status:</strong> <span style="color:#00ff88">${status.status || 'unknown'}</span></div>
+                        <div><strong>Substrate:</strong> ${status.substrate?.width || 0}x${status.substrate?.height || 0}</div>
+                        <div><strong>Format:</strong> ${status.substrate?.format || 'unknown'}</div>
+                    </div>
+                `;
+            } catch (e) {
+                el.innerHTML = `<div class="error">Connection failed: ${e.message}</div>`;
+            }
+        }
+
+        async function updateVMStates() {
+            const el = document.getElementById('vm-grid');
+            let html = '';
+
+            for (let i = 0; i < 8; i++) {
+                try {
+                    const state = await fetchAPI(`/vmstate?vm=${i}`);
+                    const stateClass = ['inactive', 'running', 'halted', 'waiting'][state.state] || 'inactive';
+                    const stateName = ['INACTIVE', 'RUNNING', 'HALTED', 'WAITING'][state.state] || 'UNKNOWN';
+
+                    html += `
+                        <div class="vm-box ${stateClass}">
+                            <div class="vm-id">VM ${i}</div>
+                            <div class="vm-state">${stateName}</div>
+                            <div class="vm-pc">PC: 0x${(state.pc || 0).toString(16).padStart(4, '0')}</div>
+                        </div>
+                    `;
+                } catch (e) {
+                    html += `
+                        <div class="vm-box inactive">
+                            <div class="vm-id">VM ${i}</div>
+                            <div class="vm-state">ERROR</div>
+                        </div>
+                    `;
+                }
+            }
+
+            el.innerHTML = html;
+        }
+
+        async function peekMemory() {
+            const addrInput = document.getElementById('peek-addr').value || '0x1000';
+            const addr = addrInput.startsWith('0x') ? addrInput : `0x${parseInt(addrInput).toString(16)}`;
+            const el = document.getElementById('memory-view');
+
+            try {
+                const result = await fetchAPI(`/peek?addr=${addr}&size=8`);
+                const values = result.trim().split(/\s+/);
+
+                let html = '';
+                values.forEach((val, i) => {
+                    const isZero = val === '00000000';
+                    html += `<div class="mem-row">
+                        <span class="mem-addr">0x${(parseInt(addr) + i).toString(16).padStart(6, '0')}</span>
+                        <span class="mem-value ${isZero ? 'zero' : ''}">${val}</span>
+                    </div>`;
+                });
+
+                el.innerHTML = html;
+            } catch (e) {
+                el.innerHTML = `<div class="error">Peek failed: ${e.message}</div>`;
+            }
+        }
+
+        async function pauseAll() {
+            try {
+                await fetchAPI('/pause');
+                refresh();
+            } catch (e) {
+                alert('Pause failed: ' + e.message);
+            }
+        }
+
+        async function loadDemo() {
+            try {
+                const result = await fetchAPI('/load', {
+                    method: 'POST',
+                    body: '/tmp/ai_opcodes_demo.png'
+                });
+                refresh();
+            } catch (e) {
+                alert('Load failed: ' + e.message);
+            }
+        }
+
+        // Initial load and refresh interval
+        refresh();
+        refreshInterval = setInterval(refresh, 3000);
+    </script>
+</body>
+</html>
