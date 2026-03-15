@@ -159,6 +159,20 @@ def parse_glyph(source):
             # VM: stratum=target
             target = int(parts[1], 0) if len(parts) > 1 else 0
             final_pixels.append([opcode, target & 0xFF, 0, 0])
+        elif op_name == "ATTENTION_FOCUS":
+            # ATTENTION_FOCUS start_addr, end_addr, vm_id
+            # opcode=233, stratum=start, p1=end, dst=vm_id
+            start_addr = int(parts[1], 0) if len(parts) > 1 else 0
+            end_addr = int(parts[2], 0) if len(parts) > 2 else 0
+            vm_id = int(parts[3], 0) if len(parts) > 3 else 0
+            final_pixels.append([233, start_addr & 0xFF, end_addr & 0xFF, vm_id & 0xFF])
+        elif op_name == "SEMANTIC_MERGE":
+            # SEMANTIC_MERGE src, dst, count
+            # opcode=235, stratum=src, p1=dst, p2=count
+            src_addr = int(parts[1], 0) if len(parts) > 1 else 0
+            dst_addr = int(parts[2], 0) if len(parts) > 2 else 0
+            count = int(parts[3], 0) if len(parts) > 3 else 0
+            final_pixels.append([235, src_addr & 0xFF, dst_addr & 0xFF, count & 0xFF])
         else:
             p1 = p2 = 0
             for i, part in enumerate(parts[1:]):

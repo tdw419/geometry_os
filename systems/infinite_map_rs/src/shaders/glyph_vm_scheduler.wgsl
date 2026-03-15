@@ -417,17 +417,27 @@ fn execute_instruction(vm_idx: u32) {
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 233u: { // ATTENTION_FOCUS: Mark active regions for sparse execution
-            // stratum = start_addr, p1 = end_addr, p2 = vm_id (optional)
-            // Bounds check
-            if (u32(inst.dst) >= MAX_VMS) {
-                state.pc = state.pc + 1u;
-                return;
-            }
+             // stratum = start_addr, p1 = end_addr, p2 = vm_id (optional)
+             // Bounds check
+             if (u32(p2) >= MAX_VMS) {
+                 state.pc = state.pc + 1u;
+                 return;
+             }
 
-            // Update attention mask in scheduler
-            // For simplicity, store as single u32 bitmask (max 8 VMS)
-            let mask_idx = u32(inst.dst) / 32u;
-            let bit_idx = u32(inst.dst) % 32u;
+             // Update attention mask in scheduler
+             // For simplicity, store as single u32 bitmask (max 8 VMS)
+             let mask_idx = u32(p2) / 32u;
+             let bit_idx = u32(p2) % 32u;
+
+             if (bit_idx < 32u) {
+                 scheduler.attention_mask[mask_idx / 32u] = scheduler.attention_mask | ~(1u << bit_idx);
+             }
+         }
+
+             // Update attention mask in scheduler
+             // For simplicity, store as single u32 bitmask (max 8 VMS)
+             let mask_idx = u32(p2) / 32u;
+             let bit_idx = u32(p2) % 32u;
 
             if (bit_idx < 32u) {
                 scheduler.attention_mask[mask_idx / 32u] = scheduler.attention_mask | ~(1u << bit_idx);
