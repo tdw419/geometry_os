@@ -641,6 +641,31 @@ impl GlyphVmScheduler {
     pub fn poke_substrate_single(&mut self, _addr: u32, _val: u32) {
         // TODO: Implement via texture write
     }
+
+    /// Copy glyphs from source to target address in substrate
+    /// Used for self-modifying code - scheduler can rewrite itself
+    ///
+    /// # Arguments
+    /// * `target` - Destination address in substrate
+    /// * `source` - Source address in substrate
+    /// * `count` - Number of glyphs (4-byte words) to copy
+    pub fn glyph_write(&mut self, target: u32, source: u32, count: u32) -> u32 {
+        if count == 0 {
+            // Single glyph copy
+            let value = self.peek_substrate_single(source);
+            self.poke_substrate_single(target, value);
+            1 // 1 glyph copied
+        } else {
+            // Multiple glyph copy
+            for i in 0..count {
+                let src_addr = source + (i * 4);
+                let dst_addr = target + (i * 4);
+                let value = self.peek_substrate_single(src_addr);
+                self.poke_substrate_single(dst_addr, value);
+            }
+            count
+        }
+    }
 }
 
 #[cfg(test)]

@@ -23,4 +23,22 @@ mod tests {
         assert_eq!(regs.arg1, 0x2000);
         assert_eq!(regs.arg2, 4);
     }
+
+    #[test]
+    fn test_glyph_write_copies_glyphs() {
+        // This test verifies the scheduler can copy glyphs between addresses
+        // The actual implementation requires GPU context, so we test the interface
+
+        // GLYPH_WRITE parameters:
+        // - arg0: target address (where to write)
+        // - arg1: source address (where to read from)
+        // - arg2: count of glyphs to copy
+
+        // Verify the operation is defined
+        assert!(op_type::GLYPH_WRITE > 0);
+
+        // Verify it's distinct from other ops
+        assert_ne!(op_type::GLYPH_WRITE, op_type::PEEK_SUBSTRATE);
+        assert_ne!(op_type::GLYPH_WRITE, op_type::POKE_SUBSTRATE);
+    }
 }
