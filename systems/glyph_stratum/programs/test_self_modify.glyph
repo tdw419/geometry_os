@@ -1,0 +1,124 @@
+// ============================================================================
+// Geometry OS - Self-Modification Test Glyph
+// ============================================================================
+//
+// Tests the scheduler's ability to modify its own code via GLYPH_WRITE.
+// This demonstrates meta-circular self-hosting capability.
+//
+// Memory Layout:
+//   0x1000-0x10FF: Staging area for new code
+//   0x2000-0x20FF: Target area (simulated scheduler code region)
+//   0xFF000000: TRAP_OP
+//   0xFF000004: TRAP_ARG0
+//   0xFF000008: TRAP_ARG1
+//   0xFF00000C: TRAP_ARG2
+//   0xFF000010: TRAP_RESULT
+//   0xFF000014: TRAP_STATUS
+//
+// ============================================================================
+
+// Trap Interface
+.equ TRAP_OP,      0xFF000000
+.equ TRAP_ARG0,    0xFF000004
+.equ TRAP_ARG1,    0xFF000008
+.equ TRAP_ARG2,    0xFF00000C
+.equ TRAP_RESULT,  0xFF000010
+.equ TRAP_STATUS,  0xFF000014
+
+// Trap Opcodes
+.equ OP_GLYPH_WRITE, 8
+.equ OP_PEEK,        5
+.equ OP_POKE,        6
+
+// Trap Status
+.equ STATUS_IDLE,      0
+.equ STATUS_PENDING,   1
+.equ STATUS_COMPLETE,  2
+
+// Test addresses
+.equ STAGING_AREA,    0x1000
+.equ TARGET_AREA,     0x2000
+.equ VERIFICATION,    0x3000
+
+:main
+    // ================================================================
+    // PHASE 1: Write test pattern to staging area
+    // ================================================================
+
+    // Store "PATCH" marker (0x48544150) at staging area
+    LDI r1, STAGING_AREA
+    LDI r2, 0x48544150    // "PATH" in little-endian
+    STORE r1, r2
+
+    // Store secondary marker
+    LDI r1, STAGING_AREA + 4
+    LDI r2, 0x00444554    // "TED\0"
+    STORE r1, r2
+
+    // ================================================================
+    // PHASE 2: Request GLYPH_WRITE via trap
+    // ================================================================
+
+    // Write trap request
+    LDI r1, TRAP_OP
+    LDI r2, OP_GLYPH_WRITE
+    STORE r1, r2
+
+    LDI r1, TRAP_ARG0
+    LDI r2, TARGET_AREA    // target = where to write
+    STORE r1, r2
+
+    LDI r1, TRAP_ARG1
+    LDI r2, STAGING_AREA   // source = what to copy
+    STORE r1, r2
+
+    LDI r1, TRAP_ARG2
+    LDI r2, 2              // count = 2 glyphs (8 bytes)
+    STORE r1, r2
+
+    LDI r1, TRAP_STATUS
+    LDI r2, STATUS_PENDING
+    STORE r1, r2
+
+:wait_glyph_write
+    // Poll for completion
+    LDI r1, TRAP_STATUS
+    LOAD r1, r2
+    LDI r3, STATUS_COMPLETE
+    SUB r2, r3
+    JNZ r2, :wait_glyph_write
+
+    // ================================================================
+    // PHASE 3: Verify the copy worked
+    // ================================================================
+
+    // Read from target area
+    LDI r1, TARGET_AREA
+    LOAD r1, r10           // r10 = copied value
+
+    // Read expected value
+    LDI r1, STAGING_AREA
+    LOAD r1, r11           // r11 = original value
+
+    // Compare
+    SUB r10, r11
+    JNZ r10, :test_failed
+
+    // Write success marker
+    LDI r1, VERIFICATION
+    LDI r2, 0x53554343     // "SUCC" = success
+    STORE r1, r2
+
+    LDI r1, VERIFICATION + 4
+    LDI r2, 0x53534553     // "ESS" = ESS
+    STORE r1, r2
+
+    HALT
+
+:test_failed
+    // Write failure marker
+    LDI r1, VERIFICATION
+    LDI r2, 0x4C494146     // "FAIL"
+    STORE r1, r2
+
+    HALT
