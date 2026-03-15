@@ -8,9 +8,27 @@ Rust code for performance hot spots detected by the PerformanceMonitor.
 import asyncio
 import re
 from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 from systems.sisyphus.performance_monitor import HotSpot
-from systems.visual_shell.api.pixel_brain_service import get_pixel_brain_service
+
+# PixelBrain service import (optional - resilient to missing module)
+try:
+    from systems.visual_shell.api.pixel_brain_service import get_pixel_brain_service
+    PIXEL_BRAIN_AVAILABLE = True
+except ImportError:
+    PIXEL_BRAIN_AVAILABLE = False
+    
+    # Stub service for when PixelBrain is not available
+    class _StubPixelBrainService:
+        """Fallback service when PixelBrain module is not installed."""
+        def is_available(self) -> bool:
+            return False
+        async def generate(self, prompt: str, **kwargs) -> Dict[str, Any]:
+            return {"text": "", "tokens": [], "error": "PixelBrain not available"}
+    
+    def get_pixel_brain_service() -> _StubPixelBrainService:
+        return _StubPixelBrainService()
 
 
 @dataclass
