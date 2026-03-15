@@ -49,6 +49,7 @@ build/
 *.ext4
 *.pid
 .loop/checkpoint.json
+.loop/*.json
 
 # Temporary files
 *.tmp

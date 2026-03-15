@@ -35,6 +35,7 @@ fn test_vib_write_input_event() {
         state: 1, // Key down
         mods: 0,
         timestamp: 1000,
+        attention_weight: 1.0,
     };
 
     coordinator.write_input_event(event).expect("Failed to write input event");
@@ -60,6 +61,7 @@ fn test_vib_fifo_multiple_events() {
             state: 1,
             mods: 0,
             timestamp: 1000 + i * 100,
+            attention_weight: 1.0,
         };
         coordinator.write_input_event(event).expect("Failed to write input event");
     }

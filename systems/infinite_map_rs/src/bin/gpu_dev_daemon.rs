@@ -226,8 +226,14 @@ fn handle_hal_request<S: Read + Write>(
     if request.starts_with("GET /brain/health") {
         let rt = tokio::runtime::Handle::try_current();
         let healthy = match rt {
-            Ok(handle) => tokio::task::block_in_place(|| handle.block_on(brain_bridge.test_connection())).unwrap_or(false),
-            Err(_) => tokio::runtime::Runtime::new().unwrap().block_on(brain_bridge.test_connection()).unwrap_or(false),
+            Ok(handle) => {
+                tokio::task::block_in_place(|| handle.block_on(brain_bridge.test_connection()))
+                    .unwrap_or(false)
+            },
+            Err(_) => tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(brain_bridge.test_connection())
+                .unwrap_or(false),
         };
         let response = format!("HTTP/1.1 200 OK\r\n\r\n{{\"lm_studio\": {}}}\n", healthy);
         let _ = stream.write_all(response.as_bytes());
@@ -235,12 +241,24 @@ fn handle_hal_request<S: Read + Write>(
     } else if request.starts_with("GET /brain/state") {
         let rt = tokio::runtime::Handle::try_current();
         let entropy = match &rt {
-            Ok(handle) => tokio::task::block_in_place(|| handle.block_on(brain_bridge.read_gpu_u32(0x0400))).unwrap_or(0),
-            Err(_) => tokio::runtime::Runtime::new().unwrap().block_on(brain_bridge.read_gpu_u32(0x0400)).unwrap_or(0),
+            Ok(handle) => {
+                tokio::task::block_in_place(|| handle.block_on(brain_bridge.read_gpu_u32(0x0400)))
+                    .unwrap_or(0)
+            },
+            Err(_) => tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(brain_bridge.read_gpu_u32(0x0400))
+                .unwrap_or(0),
         };
         let cycles = match &rt {
-            Ok(handle) => tokio::task::block_in_place(|| handle.block_on(brain_bridge.read_gpu_u32(0x0304))).unwrap_or(0),
-            Err(_) => tokio::runtime::Runtime::new().unwrap().block_on(brain_bridge.read_gpu_u32(0x0304)).unwrap_or(0),
+            Ok(handle) => {
+                tokio::task::block_in_place(|| handle.block_on(brain_bridge.read_gpu_u32(0x0304)))
+                    .unwrap_or(0)
+            },
+            Err(_) => tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(brain_bridge.read_gpu_u32(0x0304))
+                .unwrap_or(0),
         };
         let response = format!(
             "HTTP/1.1 200 OK\r\n\r\n{{\"entropy\": {}, \"cycles\": {}}}\n",
@@ -265,8 +283,14 @@ fn handle_hal_request<S: Read + Write>(
         for (i, &byte) in intent_bytes.iter().enumerate().take(32) {
             let rt = tokio::runtime::Handle::try_current();
             match rt {
-                Ok(handle) => tokio::task::block_in_place(|| handle.block_on(brain_bridge.write_gpu_u32(0x0300 + i as u32, byte as u32))).ok(),
-                Err(_) => tokio::runtime::Runtime::new().unwrap().block_on(brain_bridge.write_gpu_u32(0x0300 + i as u32, byte as u32)).ok(),
+                Ok(handle) => tokio::task::block_in_place(|| {
+                    handle.block_on(brain_bridge.write_gpu_u32(0x0300 + i as u32, byte as u32))
+                })
+                .ok(),
+                Err(_) => tokio::runtime::Runtime::new()
+                    .unwrap()
+                    .block_on(brain_bridge.write_gpu_u32(0x0300 + i as u32, byte as u32))
+                    .ok(),
             };
         }
         let _ = stream.write_all(b"HTTP/1.1 200 OK\r\n\r\nIntent injected\n");
@@ -386,7 +410,8 @@ fn handle_hal_request<S: Read + Write>(
         for i in 0..size_val {
             let (tx, ty) = hilbert_d2xy(4096, addr_val + i);
             if i == 0 {
-                println!("[PEEK] addr {} -> coords ({}, {})", addr_val, tx, ty); std::io::stdout().flush().unwrap();
+                println!("[PEEK] addr {} -> coords ({}, {})", addr_val, tx, ty);
+                std::io::stdout().flush().unwrap();
             }
             encoder.copy_texture_to_buffer(
                 wgpu::ImageCopyTexture {
@@ -433,7 +458,14 @@ fn handle_hal_request<S: Read + Write>(
                         data[offset + 3],
                     ]);
                     if i < 3 {
-                        println!("[PEEK] result[{}] @ offset {} = {:08x} (bytes: {:02x?})", i, offset, val, &data[offset..offset+4]); std::io::stdout().flush().unwrap();
+                        println!(
+                            "[PEEK] result[{}] @ offset {} = {:08x} (bytes: {:02x?})",
+                            i,
+                            offset,
+                            val,
+                            &data[offset..offset + 4]
+                        );
+                        std::io::stdout().flush().unwrap();
                     }
                     results.push(format!("{:08x}", val));
                 }
@@ -557,7 +589,7 @@ fn handle_hal_request<S: Read + Write>(
         for i in 0..8u32 {
             let _ = s.halt_vm(i);
         }
-        s.pause_all();  // Ensure GPU work is complete before reading
+        s.pause_all(); // Ensure GPU work is complete before reading
         let _ = stream.write_all(b"HTTP/1.1 200 OK\r\n\r\nVMs paused and GPU synchronized\n");
         return;
     } else if request.starts_with("GET /vmstate") {
@@ -669,6 +701,135 @@ fn handle_hal_request<S: Read + Write>(
         let response = format!(
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}\n",
             chat_history.trim_end_matches(char::from(0))
+        );
+        let _ = stream.write_all(response.as_bytes());
+        return;
+    } else if request.starts_with("POST /chat") {
+        println!("[CHAT] Received chat request");
+        // Natural language chat endpoint - converts text to GPU commands
+        let body_start = request.find("\r\n\r\n").unwrap_or(0) + 4;
+        let body = &request[body_start..];
+
+        // Simple command parsing - in a real implementation this would use an LLM
+        let response = if body.contains("help") {
+            "Available commands:\n- help: Show this help\n- status: Get daemon status\n- mem <addr>: Peek memory at address\n- reset: Reset all VMs\n- spawn <entry_point>: Spawn a new VM".to_string()
+        } else if body.contains("status") {
+            let status = format!(
+                "{{\n  \"daemon\": \"ouroboros\",\n  \"version\": \"Phase 43\",\n  \"status\": \"healthy\",\n  \"transports\": [\"tcp://127.0.0.1:8769\", \"unix:///tmp/gpu_daemon.sock\"],\n  \"substrate\": {{\n    \"width\": 4096,\n    \"height\": 4096,\n    \"format\": \"Rgba8Uint\"\n  }},\n  \"self_hosting\": true,\n  \"vcc_enabled\": true\n}}"
+            );
+            status
+        } else if body.contains("mem ") {
+            if let Some(addr_str) = body
+                .split("mem ")
+                .nth(1)
+                .and_then(|s| s.split_whitespace().next())
+            {
+                if let Ok(addr) = u32::from_str_radix(addr_str.trim_start_matches("0x"), 16) {
+                    // Read from GPU memory
+                    let size_val = 16; // Read 16 pixels (64 bytes)
+                    let staging = device.create_buffer(&wgpu::BufferDescriptor {
+                        label: Some("chat mem staging"),
+                        size: (size_val * 4) as u64,
+                        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+                        mapped_at_creation: false,
+                    });
+
+                    let mut encoder = device
+                        .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+                    for i in 0..size_val {
+                        let (tx, ty) = hilbert_d2xy(4096, addr + i);
+                        encoder.copy_texture_to_buffer(
+                            wgpu::ImageCopyTexture {
+                                texture,
+                                mip_level: 0,
+                                origin: wgpu::Origin3d { x: tx, y: ty, z: 0 },
+                                aspect: wgpu::TextureAspect::All,
+                            },
+                            wgpu::ImageCopyBuffer {
+                                buffer: &staging,
+                                layout: wgpu::ImageDataLayout {
+                                    offset: (i * 4) as u64,
+                                    bytes_per_row: Some(4),
+                                    rows_per_image: Some(1),
+                                },
+                            },
+                            wgpu::Extent3d {
+                                width: 1,
+                                height: 1,
+                                depth_or_array_layers: 1,
+                            },
+                        );
+                    }
+                    queue.submit(Some(encoder.finish()));
+
+                    let slice = staging.slice(..);
+                    let (tx_chan, rx) = std::sync::mpsc::channel();
+                    slice.map_async(wgpu::MapMode::Read, move |res| {
+                        tx_chan.send(res).ok();
+                    });
+                    device.poll(wgpu::Maintain::Wait);
+
+                    let mut hex_results = Vec::new();
+                    if let Ok(Ok(())) = rx.recv() {
+                        let data = slice.get_mapped_range();
+                        for chunk in data.chunks_exact(4) {
+                            hex_results.push(format!(
+                                "{:08x}",
+                                u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]])
+                            ));
+                        }
+                        drop(data);
+                        staging.unmap();
+                    }
+
+                    format!("Memory at 0x{:08x}: {}", addr, hex_results.join(" "))
+                } else {
+                    "Invalid address format".to_string()
+                }
+            } else {
+                "Please specify an address: mem <hex_address>".to_string()
+            }
+        } else if body.contains("reset") {
+            let mut s = scheduler.lock().unwrap();
+            s.reset_all();
+            "All VMs reset".to_string()
+        } else if body.starts_with("spawn ") {
+            if let Some(entry_str) = body
+                .split("spawn ")
+                .nth(1)
+                .and_then(|s| s.split_whitespace().next())
+            {
+                if let Ok(entry_point) = u32::from_str_radix(entry_str, 10) {
+                    let mut s = scheduler.lock().unwrap();
+                    let mut regs = [0u32; 128];
+                    regs[0] = entry_point;
+                    let config = VmConfig {
+                        entry_point: 0,
+                        parent_id: 0xFF,
+                        base_addr: 0,
+                        bound_addr: 0,
+                        initial_regs: regs,
+                    };
+                    match s.spawn_vm(0, &config) {
+                        Ok(_) => format!("Spawned VM at entry point {}", entry_point),
+                        Err(e) => format!("Failed to spawn VM: {}", e),
+                    }
+                } else {
+                    "Invalid entry point".to_string()
+                }
+            } else {
+                "Please specify an entry point: spawn <number>".to_string()
+            }
+        } else {
+            format!(
+                "Unknown command: {}. Try 'help' for available commands.",
+                body.trim()
+            )
+        };
+
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{}\n",
+            response
         );
         let _ = stream.write_all(response.as_bytes());
         return;
@@ -1145,9 +1306,10 @@ fn handle_hal_request<S: Read + Write>(
                 usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
             });
-            let mut encoder_check = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("post-frame encoder"),
-            });
+            let mut encoder_check =
+                device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("post-frame encoder"),
+                });
             encoder_check.copy_texture_to_buffer(
                 wgpu::ImageCopyTexture {
                     texture,
