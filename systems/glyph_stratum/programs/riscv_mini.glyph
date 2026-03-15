@@ -1,0 +1,254 @@
+// ============================================================================
+// Geometry OS - Minimal RISC-V Emulator (Proper Decoding)
+// ============================================================================
+//
+// Memory Layout:
+// 0x14000: Guest PC
+// 0x14100: Guest Registers (x0-x31, each 4 bytes)
+// 0x18000: Guest RAM (RISC-V code)
+// 0x00200: UART Output
+//
+// Register conventions:
+// r10: Guest PC value
+// r11: Temp address pointer
+// r12: UART address (0x200)
+// r13: Current instruction (FULL, not masked)
+// r14: Temp for comparisons/extracted values
+// r15: Temp for comparisons
+// r16: Jump target (fetch)
+// r17: Jump target (handlers)
+// r18: Temp for guest register values
+// r19: Guest register base address
+// ============================================================================
+
+.equ GUEST_PC, 0x14000
+.equ GUEST_REGS, 0x14100
+.equ GUEST_RAM, 0x18000
+.equ UART, 0x200
+.equ UART_POS, 0x204    // UART write position
+
+:boot
+    // Initialize Guest PC to start of guest RAM
+    LDI r10, GUEST_RAM
+    LDI r11, GUEST_PC
+    STORE r11, r10        // memory[0x14000] = 0x18000
+
+    // Initialize UART pointer and position
+    LDI r12, UART
+    LDI r14, 0
+    LDI r11, UART_POS
+    STORE r11, r14        // memory[0x204] = 0 (write position)
+
+    // Initialize guest register base
+    LDI r19, GUEST_REGS
+
+    // Load fetch address for jumping
+    LDI r16, fetch
+
+:fetch
+    // Load Guest PC into r10
+    LDI r11, GUEST_PC
+    LOAD r11, r10         // r10 = memory[0x14000]
+
+    // Fetch instruction at Guest PC
+    LOAD r10, r13         // r13 = memory[r10] = full instruction
+
+    // Increment Guest PC
+    LDI r14, 1
+    ADD r14, r10          // r10 = r10 + 1
+    LDI r11, GUEST_PC
+    STORE r11, r10        // memory[0x14000] = r10
+
+    // Extract opcode (bits 0-6) into r14 for comparison
+    LDI r14, 0x7F
+    AND r13, r14          // r14 = r13 & 0x7F = opcode
+
+    // Check for STORE (0x23): r15 = r14 - 0x23
+    LDI r15, 0x23
+    SUB r14, r15          // r15 = r14 - 0x23
+    LDI r17, handle_store
+    JZ r15, r17           // if r15 == 0, jump to handle_store
+
+    // Check for LOAD (0x03): r15 = r14 - 0x03
+    LDI r15, 0x03
+    SUB r14, r15          // r15 = r14 - 0x03
+    LDI r17, handle_load
+    JZ r15, r17           // if r15 == 0, jump to handle_load
+
+    // Check for ADDI (0x13): r15 = r14 - 0x13
+    LDI r15, 0x13
+    SUB r14, r15          // r15 = r14 - 0x13
+    LDI r17, handle_addi
+    JZ r15, r17           // if r15 == 0, jump to handle_addi
+
+    // Re-extract opcode for remaining checks
+    LDI r14, 0x7F
+    MOV r13, r15
+    AND r14, r15          // r15 = opcode
+
+    // Check for LUI (0x37)
+    LDI r14, 0x37
+    SUB r15, r14
+    LDI r17, handle_lui
+    JZ r15, r17
+
+    // Check for AUIPC (0x17)
+    LDI r14, 0x17
+    SUB r15, r14
+    LDI r17, handle_auipc
+    JZ r15, r17
+
+    // Check for EBREAK/SYSTEM (0x73)
+    LDI r14, 0x73
+    SUB r15, r14
+    LDI r17, handle_system
+    JZ r15, r17
+
+    // Unknown opcode - halt
+    HALT
+
+:handle_store
+    // SW rs2, imm(rs1): Store word from guest register rs2 to memory
+    // Format: imm[11:5] | rs2[4:0] | rs1[4:0] | funct3=2 | imm[4:0] | opcode=0x23
+
+    // Extract rs2 (bits 20-24)
+    MOV r18, r13
+    LDI r14, 20
+    SHR r18, r14          // r18 = instruction >> 20
+    LDI r14, 0x1F
+    AND r18, r14          // r18 = rs2 index
+
+    // Load rs2 value from guest registers
+    LDI r11, GUEST_REGS
+    ADD r11, r18
+    ADD r11, r18          // r11 = GUEST_REGS + rs2*2
+    LOAD r11, r18         // r18 = guest[rs2]
+
+    // Load current UART position into r14
+    LDI r11, UART_POS     // r11 = 0x204
+    LOAD r11, r14         // r14 = memory[0x204] = position
+
+    // Write char to UART[position]
+    LDI r15, UART         // r15 = 0x200
+    ADD r14, r15          // r15 = 0x200 + position
+    STORE r15, r18        // memory[0x200 + pos] = char from rs2
+
+    // Increment position: position = position + 1
+    LDI r15, 1
+    ADD r14, r15          // r15 = position + 1
+    LDI r11, UART_POS
+    STORE r11, r15        // memory[0x204] = position + 1
+
+    JMP r16
+
+:handle_load
+    // LOAD: Just continue for now
+    JMP r16
+
+:handle_addi
+    // ADDI rd, rs1, imm: rd = rs1 + sign_extend(imm)
+    // Format: imm[11:0] | rs1[4:0] | funct3=0 | rd[4:0] | opcode=0x13
+
+    // For simplicity, hardcode: load immediate into guest x1
+    // Extract imm (bits 20-31) and rd (bits 7-11)
+    // Since we can't easily do complex bit extraction, use a simpler approach:
+
+    // Store the immediate value (lower 12 bits of instruction) to guest x1
+    // imm = instruction >> 20
+    LDI r14, 20
+    SHR r13, r14          // r14 = instruction >> 20 = imm[11:0]
+
+    // Write to guest register x1 at GUEST_REGS + 4
+    LDI r11, GUEST_REGS
+    LDI r15, 4
+    ADD r15, r11          // r11 = GUEST_REGS + 4 (x1's location)
+    STORE r11, r14        // memory[GUEST_REGS+4] = imm (guest x1 = imm)
+
+    JMP r16
+
+// ============================================================================
+// LUI: rd = imm[31:12] << 12
+// ============================================================================
+:handle_lui
+    // Extract rd (bits 7-11)
+    MOV r14, r13
+    LDI r15, 7
+    SHR r14, r15          // r14 = instruction >> 7
+    LDI r15, 0x1F
+    AND r14, r15          // r14 = rd index
+
+    // Extract immediate (bits 12-31)
+    MOV r18, r13
+    LDI r15, 0xFFFFF000
+    AND r18, r15          // r18 = imm << 12
+
+    // Write to guest register rd (skip if rd=0)
+    LDI r15, 0
+    SUB r14, r15
+    JZ fetch_after_lui
+
+    // Store to guest[rd]
+    LDI r11, GUEST_REGS
+    ADD r11, r14
+    ADD r11, r14          // r11 = GUEST_REGS + rd*2
+    STORE r11, r18
+
+:fetch_after_lui
+    JMP r16
+
+// ============================================================================
+// AUIPC: rd = PC + (imm[31:12] << 12)
+// ============================================================================
+:handle_auipc
+    // Extract rd (bits 7-11)
+    MOV r14, r13
+    LDI r15, 7
+    SHR r14, r15
+    LDI r15, 0x1F
+    AND r14, r15          // r14 = rd index
+
+    // Extract immediate (bits 12-31)
+    MOV r18, r13
+    LDI r15, 0xFFFFF000
+    AND r18, r15          // r18 = imm << 12
+
+    // Load current PC and subtract 1 (undo fetch increment)
+    LDI r11, GUEST_PC
+    LOAD r11, r15         // r15 = current PC
+    LDI r17, 1
+    SUB r15, r17          // r15 = PC - 1 (original PC at fetch time)
+    ADD r18, r15          // r18 = original PC + imm
+
+    // Write to guest register rd (skip if rd=0)
+    LDI r15, 0
+    SUB r14, r15
+    JZ fetch_after_auipc
+
+    // Store to guest[rd]
+    LDI r11, GUEST_REGS
+    ADD r11, r14
+    ADD r11, r14
+    STORE r11, r18
+
+:fetch_after_auipc
+    JMP r16
+
+// ============================================================================
+// SYSTEM: Handle EBREAK and other system calls
+// ============================================================================
+:handle_system
+    // Check if it's EBREAK (funct12 = 1)
+    MOV r14, r13
+    LDI r15, 20
+    SHR r14, r15          // r14 = instruction >> 20
+    LDI r15, 0xFFF
+    AND r14, r15          // r14 = funct12
+    LDI r15, 1
+    SUB r14, r15
+    JZ halt_emulation
+
+    // Unknown system call - continue
+    JMP r16
+
+:halt_emulation
+    HALT
