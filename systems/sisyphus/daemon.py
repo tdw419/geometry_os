@@ -73,10 +73,13 @@ try:
     from systems.evolution_daemon.brain_mutations import evaluate_brain_fitness
     from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import BrainEvolutionHook
     from systems.sisyphus.critic import SisyphusCritic
+    from systems.sisyphus.lm_studio_client import get_lm_studio_client, LMStudioClient
 
     BRAIN_EVOLUTION_AVAILABLE = True
+    LM_STUDIO_AVAILABLE = True
 except ImportError:
     BRAIN_EVOLUTION_AVAILABLE = False
+    LM_STUDIO_AVAILABLE = False
 
 
 class CheckpointManager:
@@ -450,10 +453,13 @@ class SisyphusDaemon:
         self.brain_hook = None
         self.critic = None
         self.router = None
+        self.lm_client = None
         if self.enable_brain_evolution:
             self.brain_hook = BrainEvolutionHook()
             self.critic = SisyphusCritic()
             self.router = get_cognitive_router()
+            if LM_STUDIO_AVAILABLE:
+                self.lm_client = get_lm_studio_client()
             logger.info("Brain Evolution enabled in Sisyphus v4")
 
         # Determine session dir if not provided
