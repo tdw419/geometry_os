@@ -515,20 +515,7 @@ fn handle_hal_request<S: Read + Write>(
         } else if request.starts_with("GET /status") {
             // Health check endpoint - returns daemon status as JSON
             let status = format!(
-                r#"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{
-  "daemon": "ouroboros",
-  "version": "Phase 43",
-  "status": "healthy",
-  "transports": ["tcp://127.0.0.1:8769", "unix:///tmp/gpu_daemon.sock"],
-  "substrate": {{
-    "width": 4096,
-    "height": 4096,
-    "format": "Rgba8Uint"
-  }},
-  "self_hosting": true,
-  "vcc_enabled": true
-}}
-"#
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\n  \"daemon\": \"ouroboros\",\n  \"version\": \"Phase 43\",\n  \"status\": \"healthy\",\n  \"transports\": [\"tcp://127.0.0.1:8769\", \"unix:///tmp/gpu_daemon.sock\"],\n  \"substrate\": {{\n    \"width\": 4096,\n    \"height\": 4096,\n    \"format\": \"Rgba8Uint\"\n  }},\n  \"self_hosting\": true,\n  \"vcc_enabled\": true\n}}\n"
             );
             let _ = stream.write_all(status.as_bytes());
             return;
