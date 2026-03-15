@@ -4,4 +4,5 @@ pub mod brain_test;
 pub mod geometric_tests;
 pub mod glyph_write_test;
 pub mod riscv_test_programs;
+pub mod self_hosting_test;
 pub mod trap_test;
