@@ -142,6 +142,12 @@ impl TrapHandler {
 
                 response.len() as u32
             }
+            op_type::GLYPH_WRITE => {
+                let target = self.regs.arg0;
+                let source = self.regs.arg1;
+                let count = self.regs.arg2;
+                scheduler.glyph_write(target, source, count)
+            }
             _ => {
                 eprintln!("[TRAP] Unknown op_type: {}", self.regs.op_type);
                 0xFFFF_FFFF // Error code
