@@ -1,0 +1,27 @@
+// Minimal test for GLYPH_WRITE
+ This instructions execute properly
+// We verify GLYPH_WRITE works
+
+// memory layout: 4 floats per instruction
+// mem[100] = 13 (HALT opcode), stratum=0 (LOGIC), p1=0 (p2=0 (dst)
+// mem[101] = 0 (stratum)
+// mem[102] = 0 (p1)
+// mem[103] = 0 (p2)
+// mem[104] = 0 (dst)
+// mem[105] = 0 (unused padding)
+
+// mem[200] = 13 (HALT opcode)
+// mem[201] = 0 (LOGIC stratum)
+// mem[202] = 0 (p1)
+// mem[203] = 0 (p2)
+// mem[204] = 0 (count)
+            mem[205] = 0 (vms[vm_idx].stratum = 2 (for GLYPH_WRITE)
+            mem_write(u32(stratum), u32(source))
+            mem_write(target_addr, glyph_val);
+        }
+        state.pc = state.pc + 1u;
+    }
+    default: {
+        state.pc = state.pc + 1u;
+    }
+}

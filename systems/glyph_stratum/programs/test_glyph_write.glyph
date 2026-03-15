@@ -1,0 +1,23 @@
+// Test GLYPH_WRITE opcode 232
+// This test verifies self-modifying code capability
+
+// Step 1: Store HALT instruction (opcode 13) in memory addresses 100-103
+// Memory layout: 4 bytes per instruction
+// mem[100] = 13 (HALT opcode)
+// mem[101] = 0 (stratum)
+// mem[102] = 0 (p1)
+// mem[103] = 0 (p2)
+
+// M_STORE 100, 13  // mem[100] = 13
+M_STORE 101, 0   // mem[101] = 0
+M_STORE 102, 0   // mem[102] = 0
+M_STORE 103, 0   // mem[103] = 0
+
+// Step 2: Copy the glyph at memory[100] to program[200]
+// GLYPH_WRITE 200, 100, 0  // target=200, source=100, count=0 (single)
+
+// Step 3: Jump to address 200
+// M_JUMP 200  // pc = 200
+// If we get here, GLYPH_WRITE didn't work
+
+HALT

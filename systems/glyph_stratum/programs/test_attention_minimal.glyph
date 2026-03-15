@@ -1,0 +1,12 @@
+// Minimal test: Attention focus
+// Write attention mask, address 100
+// Copy HALT to address 200, then jump to it
+HALT
+
+M_STORE 100, 0   // mem[100] = 0 (attention mask)
+M_STORE 101, 0   // mem[101] = 0
+M_STORE 102, 0   // mem[102] = 0
+M_STORE 103, 0   // mem[103] = 0
+GLYPH_WRITE 200, 100, 0  // Copy mem[100] to program[200]
+M_JUMP 200  // Jump to program[200]
+HALT

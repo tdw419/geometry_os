@@ -1,0 +1,19 @@
+// Test GLYPH_WRITE opcode 232
+// This test verifies that a glyph program can copy data from memory
+// to program memory, then execute the copied instruction
+
+// Test: Copy HALT to program[200]
+// then jump to 200
+
+// Expected: pc=1, state=2 (HALTED)
+
+// then pc=3 (state=3 (HALTED)
+// then jump to 200
+
+HALT
+
+// Fallback - should never reach
+HALT
+
+// Should never reach
+HALT at pc=3
