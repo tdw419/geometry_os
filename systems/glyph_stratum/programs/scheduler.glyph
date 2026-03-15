@@ -4,6 +4,18 @@
 //
 // This glyph runs as VM 0 and schedules VMs 1-255 in round-robin fashion.
 // Uses trap interface for VM spawn/kill operations.
+// Integrates with brain_bridge for AI-driven scheduling decisions.
+//
+// Brain Bridge Memory Map:
+// - 0x2000: CTRL_SEMAPHORE (1 = request pending)
+// - 0x2004: RESPONSE_READY (1 = response available)
+// - 0x2008: REQUEST_LENGTH (bytes)
+// - 0x0500: HTTP Request Buffer start
+// - 0x1000: HTTP Response Buffer start
+// - 0x0300: Cognitive State (current_intent)
+// - 0x0304: thought_cycle_count
+// - 0x0308: last_action
+// - 0x030C: fitness_score
 
 .equ TRAP_BASE,    0xFF000000
 .equ TRAP_OP,      0xFF000000
@@ -21,6 +33,24 @@
 .equ VM_PC,        4
 .equ VM_ACTIVE,    1
 
+// Brain Bridge addresses
+.equ BRAIN_CTRL_SEMAPHORE, 0x2000
+.equ BRAIN_RESPONSE_READY, 0x2004
+.equ BRAIN_REQUEST_LENGTH, 0x2008
+.equ BRAIN_REQUEST_START,  0x0500
+.equ BRAIN_RESPONSE_START, 0x1000
+.equ BRAIN_CURRENT_INTENT, 0x0300
+.equ BRAIN_THOUGHT_COUNT,  0x0304
+.equ BRAIN_LAST_ACTION,    0x0308
+.equ BRAIN_FITNESS,        0x030C
+
+// Brain coordination state
+.equ BRAIN_POLL_INTERVAL,  100   // Poll brain every N frames
+.equ BRAIN_ACTION_NONE,    0
+.equ BRAIN_ACTION_REBALANCE, 1
+.equ BRAIN_ACTION_SPAWN,   2
+.equ BRAIN_ACTION_KILL,    3
+
 :main
     // Mark self as running (VM 0)
     LDI r1, 0xFF000100
@@ -30,8 +60,170 @@
     // Initialize frame counter
     LDI r20, 0          // r20 = frame count
 
+    // Initialize brain coordination state
+    LDI r23, 0          // r23 = last brain poll frame
+    LDI r24, BRAIN_ACTION_NONE  // r24 = pending brain action
+
+    // Initialize cognitive state region
+    LDI r1, BRAIN_CURRENT_INTENT
+    LDI r2, 0           // No initial intent
+    STORE r1, r2
+
+    LDI r1, BRAIN_THOUGHT_COUNT
+    LDI r2, 0
+    STORE r1, r2
+
+    LDI r1, BRAIN_FITNESS
+    LDI r2, 0x3F800000  // 1.0 as float bits
+    STORE r1, r2
+
 :scheduler_loop
     ADDI r20, r20, 1    // frame++
+
+    // ================================================================
+    // BRAIN COORDINATION: Check for AI guidance
+    // ================================================================
+
+    // Check if it's time to poll the brain
+    LDI r1, BRAIN_POLL_INTERVAL
+    ADD r1, r23, r1     // r1 = last_poll + interval
+    SUB r1, r20         // r1 = (last_poll + interval) - frame
+    LDI r2, 0
+    SUB r1, r2          // If r1 <= 0, time to poll
+    JNZ :skip_brain_poll
+
+    // Time to poll brain - check for response
+    LDI r1, BRAIN_RESPONSE_READY
+    LOAD r1, r25        // r25 = response ready flag
+
+    LDI r2, 1
+    SUB r25, r2
+    JNZ :brain_no_response
+
+    // Response is ready - read brain's intent
+    LDI r1, BRAIN_CURRENT_INTENT
+    LOAD r1, r24        // r24 = brain's suggested action
+
+    // Update thought cycle count
+    LDI r1, BRAIN_THOUGHT_COUNT
+    LOAD r1, r26        // r26 = current count
+    ADDI r26, r26, 1    // increment
+    LDI r1, BRAIN_THOUGHT_COUNT
+    STORE r1, r26
+
+    // Clear response ready flag
+    LDI r1, BRAIN_RESPONSE_READY
+    LDI r2, 0
+    STORE r1, r2
+
+    // Record last action
+    LDI r1, BRAIN_LAST_ACTION
+    STORE r1, r24
+
+    // Update last poll frame
+    LDI r23, r20
+    JMP :brain_processed
+
+:brain_no_response
+    // No response yet - check if we should request one
+    LDI r1, BRAIN_CTRL_SEMAPHORE
+    LOAD r1, r25        // r25 = semaphore value
+
+    LDI r2, 0
+    SUB r25, r2
+    JNZ :skip_brain_request  // Request already pending
+
+    // Build simple request asking for scheduling guidance
+    // Request: "Analyze VM load and suggest action"
+    LDI r10, BRAIN_REQUEST_START
+
+    // Write request message (simplified - just marker bytes)
+    LDI r1, r10
+    LDI r2, 0x564D5F53  // "VM_S" in ASCII
+    STORE r1, r2
+    ADDI r10, r10, 4
+
+    LDI r1, r10
+    LDI r2, 0x54415445  // "TATE" in ASCII
+    STORE r1, r2
+    ADDI r10, r10, 4
+
+    LDI r1, r10
+    LDI r2, 0x5F524551  // "_REQ" in ASCII
+    STORE r1, r2
+    ADDI r10, r10, 4
+
+    // Calculate request length (12 bytes)
+    LDI r1, BRAIN_REQUEST_LENGTH
+    LDI r2, 12
+    STORE r1, r2
+
+    // Set semaphore to trigger brain bridge
+    LDI r1, BRAIN_CTRL_SEMAPHORE
+    LDI r2, 1
+    STORE r1, r2
+
+    // Update last poll frame
+    LDI r23, r20
+
+:skip_brain_request
+:skip_brain_poll
+:brain_processed
+
+    // ================================================================
+    // EXECUTE BRAIN ACTION (if any)
+    // ================================================================
+
+    // Check for pending brain action
+    LDI r2, BRAIN_ACTION_NONE
+    SUB r24, r2
+    JZ :no_brain_action
+
+    // Execute action based on r24
+    LDI r2, BRAIN_ACTION_REBALANCE
+    SUB r24, r2
+    JNZ :check_spawn_action
+
+    // REBALANCE: Adjust VM priorities (future implementation)
+    // For now, just clear the action
+    LDI r24, BRAIN_ACTION_NONE
+    JMP :no_brain_action
+
+:check_spawn_action
+    LDI r2, BRAIN_ACTION_SPAWN
+    SUB r24, r2
+    JNZ :check_kill_action
+
+    // SPAWN: Request new VM via trap
+    LDI r1, TRAP_OP
+    LDI r2, 3           // SPAWN_VM op
+    STORE r1, r2
+
+    LDI r1, TRAP_ARG0
+    LDI r2, 0           // entry point (placeholder)
+    STORE r1, r2
+
+    LDI r1, TRAP_STATUS
+    LDI r2, 1           // PENDING
+    STORE r1, r2
+
+    LDI r24, BRAIN_ACTION_NONE
+    JMP :no_brain_action
+
+:check_kill_action
+    LDI r2, BRAIN_ACTION_KILL
+    SUB r24, r2
+    JNZ :no_brain_action
+
+    // KILL: Request VM termination via trap
+    // TODO: Get VM ID from brain response
+    LDI r24, BRAIN_ACTION_NONE
+
+:no_brain_action
+
+    // ================================================================
+    // ROUND-ROBIN VM SCHEDULING
+    // ================================================================
 
     // Round-robin through VMs 1-255
     LDI r21, 1          // r21 = current VM ID
