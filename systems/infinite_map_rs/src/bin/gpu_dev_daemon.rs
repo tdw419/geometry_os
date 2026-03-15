@@ -1133,6 +1133,57 @@ fn handle_hal_request<S: Read + Write>(
             println!("[LOAD] VM spawned");
             std::io::stdout().flush().unwrap();
 
+            // Execute one frame and check if addr 0 changes
+            s.execute_frame();
+            println!("[LOAD] After 1 frame, checking addr 0...");
+            std::io::stdout().flush().unwrap();
+            // Peek at addr 0 again
+            let (tx, ty) = hilbert_d2xy(4096, 0);
+            let staging_check = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("post-frame check"),
+                size: 256,
+                usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            let mut encoder_check = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("post-frame encoder"),
+            });
+            encoder_check.copy_texture_to_buffer(
+                wgpu::ImageCopyTexture {
+                    texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d { x: tx, y: ty, z: 0 },
+                    aspect: wgpu::TextureAspect::All,
+                },
+                wgpu::ImageCopyBuffer {
+                    buffer: &staging_check,
+                    layout: wgpu::ImageDataLayout {
+                        offset: 0,
+                        bytes_per_row: Some(256),
+                        rows_per_image: Some(1),
+                    },
+                },
+                wgpu::Extent3d {
+                    width: 1,
+                    height: 1,
+                    depth_or_array_layers: 1,
+                },
+            );
+            queue.submit(Some(encoder_check.finish()));
+            let slice_check = staging_check.slice(..);
+            let (tx_check, rx_check) = std::sync::mpsc::channel();
+            slice_check.map_async(wgpu::MapMode::Read, move |res| {
+                tx_check.send(res).ok();
+            });
+            device.poll(wgpu::Maintain::Wait);
+            if let Ok(Ok(())) = rx_check.recv() {
+                let data_check = slice_check.get_mapped_range();
+                println!("[LOAD] Post-frame peek at 0: {:02x?}", &data_check[..4]);
+                std::io::stdout().flush().unwrap();
+                drop(data_check);
+                staging_check.unmap();
+            }
+
             let _ = stream.write_all(b"HTTP/1.1 200 OK\r\n\r\nSubstrate Reloaded and VM Spawned\n");
             return;
         }
