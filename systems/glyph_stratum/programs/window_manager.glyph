@@ -224,6 +224,56 @@
     RET
 
 // ============================================================================
+// AI-NATIVE OPCODES (232-235) - Self-Modifying Code
+// ============================================================================
+
+// These opcodes enable autonomous behavior:
+// - GLYPH_WRITE (232): Copy glyphs between memory locations
+// - ATTENTION_FOCUS (233): Mark active VM regions for sparse scheduling
+// - GLYPH_MUTATE (234): Modify individual bytes of a glyph
+// - SEMANTIC_MERGE (235): Deduplicate identical glyphs
+
+:self_modify_demo
+    // Focus attention on VM 0 (ourselves) for scheduler optimization
+    // ATTENTION_FOCUS start_addr, end_addr, vm_id
+    ATTENTION_FOCUS 0, 255, 0
+
+    // Demonstrate GLYPH_WRITE: copy a template window into place
+    // Copy from template region to window table
+    GLYPH_WRITE 0x0180, 0xF000, 8    // Copy 8 glyphs from template to window slot 3
+
+    // Demonstrate GLYPH_MUTATE: change a single field
+    // Modify window[3].width by patching the glyph at 0x0183
+    GLYPH_MUTATE 0x0183, 2, 1024    // Set field 2 (width) to 1024
+
+    // Demonstrate SEMANTIC_MERGE: deduplicate identical glyphs
+    // If window[2] and window[3] have same glyph, merge them
+    SEMANTIC_MERGE 0x0110, 0x0180, 8  // Compare 8 glyphs, dedupe if same
+
+    RET
+
+// Template region for dynamic window creation
+// These glyphs are copied via GLYPH_WRITE when spawning new windows
+:window_template
+    .glyph 0, 0, 0, 0      // window_id = 0 (filled at runtime)
+    .glyph 0, 50, 50, 0    // x=50, y=50
+    .glyph 0, 640, 480, 0  // width=640, height=480
+    .glyph 0, 0, 128, 0    // focused=0, z_order=128
+    .glyph 0, 0, 0, 0      // vm_id (filled at spawn)
+    .glyph 0, 0, 0, 0      // padding
+    .glyph 0, 0, 0, 0      // padding
+    .glyph 0, 0, 0, 0      // padding
+
+// Hot-patchable code region - can be modified via GLYPH_WRITE
+:hot_patch_region
+    // This code can be replaced at runtime
+    NOP
+    NOP
+    NOP
+    NOP
+    RET
+
+// ============================================================================
 // HALT (never reached - event loop is infinite)
 // ============================================================================
 

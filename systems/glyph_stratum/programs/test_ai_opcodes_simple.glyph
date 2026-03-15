@@ -1,0 +1,29 @@
+// Test AI-Native Opcodes (232-235) with small addresses
+// Addresses must be < 256 due to transpiler limitations
+
+:main
+    // Test 1: ATTENTION_FOCUS (233) - Mark VM 0 as active
+    // opcode=233, stratum=start_addr, p1=end_addr, dst=vm_id
+    ATTENTION_FOCUS 0, 100, 0
+
+    // Test 2: M_STORE to set up test data
+    // Store HALT opcode (13) at address 50
+    M_STORE 50, 13
+
+    // Test 3: GLYPH_WRITE (232) - Copy glyph from addr 50 to addr 100
+    // opcode=232, stratum=target, p1=source, p2=count (0=single)
+    GLYPH_WRITE 100, 50, 0
+
+    // Test 4: GLYPH_MUTATE (234) - Modify a glyph field
+    // Change the p1 byte of the glyph at addr 100
+    GLYPH_MUTATE 100, 1, 42
+
+    // Test 5: SEMANTIC_MERGE (235) - Deduplicate
+    // Set up two glyphs at 60 and 70
+    M_STORE 60, 77
+    M_STORE 70, 77
+    SEMANTIC_MERGE 60, 70, 0
+
+    // Halt - tests complete
+    M_NOP
+    HALT

@@ -444,9 +444,9 @@ fn execute_instruction(vm_idx: u32) {
         }
         case 235u: { // SEMANTIC_MERGE: Deduplicate and unify redundant glyph clusters
             // stratum = source_addr, p1 = target_addr, p2 = count
-            let src_addr = u32(inst.stratum);
-            let dst_addr = u32(inst.p1);
-            let count = u32(inst.p2);
+            let src_addr = u32(stratum) | (u32(p1) << 8u);
+            let dst_addr = u32(p2);
+            let count = u32(p2 >> 8u);
 
             if (count == 0u) {
                 // Single glyph deduplication: compare and copy if different

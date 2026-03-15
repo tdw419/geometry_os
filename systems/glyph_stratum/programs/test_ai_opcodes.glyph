@@ -1,0 +1,34 @@
+// Test AI-Native Opcodes (232-235)
+// This program verifies GLYPH_WRITE, ATTENTION_FOCUS, GLYPH_MUTATE, SEMANTIC_MERGE
+
+// Memory layout constants
+.equ MEM_BASE, 0x1000
+.equ TEMP_BUF, 0x2000
+
+:main
+    // Test 1: ATTENTION_FOCUS (233) - Mark VM 0 as active
+    // opcode=233, stratum=start_addr, p1=end_addr, dst=vm_id
+    ATTENTION_FOCUS 0, 100, 0
+
+    // Test 2: M_STORE to set up test data
+    // Store HALT opcode (13) at MEM_BASE (0x1000 = 4096)
+    M_STORE 4096, 13
+
+    // Test 3: GLYPH_WRITE (232) - Copy glyph from MEM_BASE to TEMP_BUF
+    // opcode=232, stratum=target, p1=source, p2=count (0=single)
+    // TEMP_BUF = 0x2000 = 8192
+    GLYPH_WRITE 8192, 4096, 0
+
+    // Test 4: GLYPH_MUTATE (234) - Modify a glyph field
+    // Change the stratum byte of the glyph at TEMP_BUF
+    GLYPH_MUTATE 8192, 1, 42    // Set stratum (byte 1) to 42
+
+    // Test 5: SEMANTIC_MERGE (235) - Deduplicate
+    // Set up two identical glyphs, then merge
+    M_STORE 4100, 100
+    M_STORE 4104, 100
+    SEMANTIC_MERGE 4100, 4104, 0
+
+    // Halt - tests complete
+    M_NOP
+    HALT
