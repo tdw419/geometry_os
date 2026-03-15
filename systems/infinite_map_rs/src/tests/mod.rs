@@ -2,3 +2,4 @@
 
 pub mod geometric_tests;
 pub mod riscv_test_programs;
+pub mod trap_test;

@@ -40,7 +40,7 @@ mod tests {
         let config = VmConfig::default();
         assert_eq!(config.entry_point, 0);
         assert_eq!(config.parent_id, 0xFF);
-        assert_eq!(config.initial_regs, [0u32; 32]);
+        assert_eq!(config.initial_regs, [0u32; 128]);
     }
 
     #[test]
@@ -91,7 +91,7 @@ mod tests {
             parent_id: 0xFF,
             base_addr: 0,
             bound_addr: 0,
-            initial_regs: [0; 32],
+            initial_regs: [0; 128],
         };
 
         scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
