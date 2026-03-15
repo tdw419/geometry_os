@@ -382,6 +382,17 @@ impl GlyphVmScheduler {
         Ok(())
     }
 
+    /// Pause all VMs and wait for GPU to complete all pending work
+    pub fn pause_all(&self) {
+        // Submit an empty command buffer to ensure all GPU work is complete
+        let encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("pause encoder"),
+        });
+        self.queue.submit(Some(encoder.finish()));
+        self.device.poll(wgpu::Maintain::Wait);
+        log::info!("All VMs paused and GPU synchronized");
+    }
+
     /// Read the current state of a VM from GPU memory
     pub fn get_vm_state(&self, vm_id: u32) -> Result<u32, String> {
         let stats = self.read_stats();

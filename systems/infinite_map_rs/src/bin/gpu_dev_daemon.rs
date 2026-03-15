@@ -364,6 +364,13 @@ fn handle_hal_request<S: Read + Write>(
         let addr_val = u32::from_str_radix(addr.trim_start_matches("0x"), 16).unwrap_or(0);
         let size_val = size.parse::<u32>().unwrap_or(1).min(64);
 
+        // Synchronize with scheduler before reading texture
+        // This ensures any pending GPU writes are complete
+        {
+            let s = scheduler.lock().unwrap();
+            s.pause_all();
+        }
+
         // Read all pixels at once into a single buffer for efficiency
         let staging = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("peek staging"),
@@ -545,12 +552,13 @@ fn handle_hal_request<S: Read + Write>(
         let _ = stream.write_all(response.as_bytes());
         return;
     } else if request.starts_with("GET /pause") {
-        // Pause VM execution by halting all VMs
-        let mut s = scheduler.lock().unwrap();
+        // Pause VM execution by halting all VMs and synchronizing GPU
+        let s = scheduler.lock().unwrap();
         for i in 0..8u32 {
             let _ = s.halt_vm(i);
         }
-        let _ = stream.write_all(b"HTTP/1.1 200 OK\r\n\r\nVMs paused\n");
+        s.pause_all();  // Ensure GPU work is complete before reading
+        let _ = stream.write_all(b"HTTP/1.1 200 OK\r\n\r\nVMs paused and GPU synchronized\n");
         return;
     } else if request.starts_with("GET /vmstate") {
         // Read VM state from buffer
