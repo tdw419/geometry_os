@@ -550,6 +550,12 @@ impl GlyphVmScheduler {
             .ok_or_else(|| format!("VM {} not found in stats", vm_id))
     }
 
+    /// Count active VMs (non-INACTIVE state)
+    pub fn active_vm_count(&self) -> usize {
+        let stats = self.read_stats();
+        stats.iter().filter(|s| s.state != vm_state::INACTIVE).count()
+    }
+
     /// Reset all VMs to inactive state
     pub fn reset_all(&self) {
         // Zero out VM buffer

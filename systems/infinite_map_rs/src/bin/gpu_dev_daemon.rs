@@ -239,9 +239,19 @@ fn main() {
     }
 
     // Load daemon.glyph into VM 1 for HTTP handling
+    // Try compiled binary first, fall back to source
+    let daemon_bin_path = "systems/glyph_stratum/programs/daemon.bin";
     let daemon_glyph_path = "systems/glyph_stratum/programs/daemon.glyph";
-    if let Ok(glyph_bytes) = std::fs::read(daemon_glyph_path) {
-        println!("[BOOT] Loading daemon.glyph into VM 1...");
+    let (glyph_bytes, loaded_from) = if let Ok(bytes) = std::fs::read(daemon_bin_path) {
+        (bytes, daemon_bin_path)
+    } else if let Ok(bytes) = std::fs::read(daemon_glyph_path) {
+        (bytes, daemon_glyph_path)
+    } else {
+        (Vec::new(), "")
+    };
+
+    if !glyph_bytes.is_empty() {
+        println!("[BOOT] Loading {} into VM 1...", loaded_from);
         // Write glyph bytes to substrate at address 0
         write_glyph_to_substrate(&glyph_bytes, &ram_texture, &device, &queue, 0);
 
@@ -458,6 +468,84 @@ fn handle_raw_request<S: Read + Write>(
     };
 
     let request_data = &buffer[..size];
+    let request_str = String::from_utf8_lossy(request_data);
+
+    // === DIRECT ENDPOINT HANDLERS (bypass daemon.glyph) ===
+
+    // GET /status - Health check endpoint
+    if request_str.starts_with("GET /status") {
+        let vm_count = scheduler.lock().unwrap().active_vm_count();
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"status\":\"running\",\"vms\":{}}}",
+            vm_count
+        );
+        let _ = stream.write_all(response.as_bytes());
+        return;
+    }
+
+    // GET /poke?addr=0xXXXX&value=0xYYYY - Write value to substrate address
+    if request_str.starts_with("GET /poke?") {
+        if let Some(query) = request_str.split("GET /poke?").nth(1) {
+            let query = query.split_whitespace().next().unwrap_or("");
+
+            let mut addr: Option<u32> = None;
+            let mut value: Option<u32> = None;
+
+            for param in query.split('&') {
+                if let Some(addr_val) = param.strip_prefix("addr=") {
+                    addr = u32::from_str_radix(addr_val.trim_start_matches("0x"), 16).ok();
+                } else if let Some(val) = param.strip_prefix("value=") {
+                    value = u32::from_str_radix(val.trim_start_matches("0x"), 16).ok();
+                }
+            }
+
+            if let (Some(addr), Some(value)) = (addr, value) {
+                write_u32_to_substrate(addr, value, texture, queue);
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"ok\":true,\"addr\":\"0x{:x}\",\"value\":\"0x{:x}\"}}",
+                    addr, value
+                );
+                let _ = stream.write_all(response.as_bytes());
+                return;
+            }
+        }
+        let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"error\":\"invalid parameters\"}");
+        return;
+    }
+
+    // GET /read?addr=0xXXXX&len=N - Read N bytes from substrate
+    if request_str.starts_with("GET /read?") {
+        if let Some(query) = request_str.split("GET /read?").nth(1) {
+            let query = query.split_whitespace().next().unwrap_or("");
+
+            let mut addr: Option<u32> = None;
+            let mut len: Option<usize> = None;
+
+            for param in query.split('&') {
+                if let Some(addr_val) = param.strip_prefix("addr=") {
+                    addr = u32::from_str_radix(addr_val.trim_start_matches("0x"), 16).ok();
+                } else if let Some(len_val) = param.strip_prefix("len=") {
+                    len = len_val.parse().ok();
+                }
+            }
+
+            if let (Some(addr), Some(len)) = (addr, len) {
+                let data = read_from_substrate(len, texture, device, queue, addr);
+                // Return as hex string for readability
+                let hex_data: String = data.iter().map(|b| format!("{:02x}", b)).collect();
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"addr\":\"0x{:x}\",\"len\":{},\"hex\":\"{}\"}}",
+                    addr, data.len(), hex_data
+                );
+                let _ = stream.write_all(response.as_bytes());
+                return;
+            }
+        }
+        let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"error\":\"invalid parameters\"}");
+        return;
+    }
+
+    // === FALLBACK: Pass to daemon.glyph via substrate ===
 
     // Write request to REQ_BUFFER in substrate
     write_to_substrate(request_data, texture, device, queue, REQ_BUFFER);
