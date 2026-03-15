@@ -14,6 +14,7 @@ pub mod op_type {
     pub const KILL_VM: u32 = 4;
     pub const PEEK_SUBSTRATE: u32 = 5;
     pub const POKE_SUBSTRATE: u32 = 6;
+    pub const LM_STUDIO: u32 = 7; // Request LM Studio inference
 }
 
 /// Trap status values
