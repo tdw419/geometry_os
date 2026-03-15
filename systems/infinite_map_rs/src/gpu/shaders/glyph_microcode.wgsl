@@ -220,35 +220,35 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         case 232u: { // SPATIAL_SPAWN - Write glyphs into program buffer
             let mode = u32(inst.p1);
             let src_addr = u32(inst.p2);
-            let target = inst.dst;
+            let dst_idx = inst.dst;
 
             // Bounds check - silent no-op on failure
-            if (target >= arrayLength(&program)) {
+            if (dst_idx >= arrayLength(&program)) {
                 state.pc = state.pc + 1u;
                 return;
             }
 
             if (mode == 0u) {
                 // Single glyph spawn
-                program[target].opcode = u32(memory[src_addr]);
-                program[target].stratum = u32(memory[src_addr + 1u]);
-                program[target].p1 = memory[src_addr + 2u];
-                program[target].p2 = memory[src_addr + 3u];
-                program[target].dst = u32(memory[src_addr + 4u]);
+                program[dst_idx].opcode = u32(memory[src_addr]);
+                program[dst_idx].stratum = u32(memory[src_addr + 1u]);
+                program[dst_idx].p1 = memory[src_addr + 2u];
+                program[dst_idx].p2 = memory[src_addr + 3u];
+                program[dst_idx].dst = u32(memory[src_addr + 4u]);
             } else {
                 // Block spawn - check bounds
-                if (target + mode > arrayLength(&program)) {
+                if (dst_idx + mode > arrayLength(&program)) {
                     state.pc = state.pc + 1u;
                     return;
                 }
                 for (var i: u32 = 0u; i < mode; i++) {
                     let src_offset = src_addr + i * 5u;
-                    let dst_offset = target + i;
-                    program[dst_offset].opcode = u32(memory[src_offset]);
-                    program[dst_offset].stratum = u32(memory[src_offset + 1u]);
-                    program[dst_offset].p1 = memory[src_offset + 2u];
-                    program[dst_offset].p2 = memory[src_offset + 3u];
-                    program[dst_offset].dst = u32(memory[src_offset + 4u]);
+                    let dst_offset_i = dst_idx + i;
+                    program[dst_offset_i].opcode = u32(memory[src_offset]);
+                    program[dst_offset_i].stratum = u32(memory[src_offset + 1u]);
+                    program[dst_offset_i].p1 = memory[src_offset + 2u];
+                    program[dst_offset_i].p2 = memory[src_offset + 3u];
+                    program[dst_offset_i].dst = u32(memory[src_offset + 4u]);
                 }
             }
             state.pc = state.pc + 1u;

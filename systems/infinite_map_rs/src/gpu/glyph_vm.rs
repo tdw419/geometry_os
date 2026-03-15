@@ -106,11 +106,11 @@ impl GlyphVM {
             label: Some("Glyph VM Layout"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
-                    // program
+                    // program - read_write needed for SPATIAL_SPAWN opcode
                     binding: 0,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
                         has_dynamic_offset: false,
                         min_binding_size: None,
                     },
