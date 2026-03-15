@@ -1,4 +1,4 @@
-use crate::backends::{ExecutionBackend, InputEvent, InputBusState};
+use crate::backends::{ExecutionBackend, InputBusState, InputEvent};
 use crate::types::{AppId, AppLayout, GlyphId, Intent};
 use bytemuck::{Pod, Zeroable};
 use std::collections::HashMap;
@@ -64,13 +64,13 @@ struct SyscallRequest {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 struct InputBusHeader {
-    magic: u32,       // 0x56494255 "VIBU"
-    mouse_x: f32,     // 0-1920
-    mouse_y: f32,     // 0-1080
-    mouse_btn: u32,   // Bitmask: 0=Left, 1=Right, 2=Middle
-    kb_head: u32,     // Producer index (CPU writes)
-    kb_tail: u32,     // Consumer index (GPU writes)
-    kb_cap: u32,      // FIFO capacity (256)
+    magic: u32,     // 0x56494255 "VIBU"
+    mouse_x: f32,   // 0-1920
+    mouse_y: f32,   // 0-1080
+    mouse_btn: u32, // Bitmask: 0=Left, 1=Right, 2=Middle
+    kb_head: u32,   // Producer index (CPU writes)
+    kb_tail: u32,   // Consumer index (GPU writes)
+    kb_cap: u32,    // FIFO capacity (256)
     _pad: u32,
 }
 
@@ -78,10 +78,10 @@ struct InputBusHeader {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 struct KeyEventEntry {
-    code: u32,        // ASCII or ScanCode
-    state: u32,       // 1=Down, 0=Up
-    mods: u32,        // Shift=1, Ctrl=2, Alt=4, Super=8
-    timestamp: u32,   // Relative ms
+    code: u32,      // ASCII or ScanCode
+    state: u32,     // 1=Down, 0=Up
+    mods: u32,      // Shift=1, Ctrl=2, Alt=4, Super=8
+    timestamp: u32, // Relative ms
 }
 
 const VIB_MAGIC: u32 = 0x56494255; // "VIBU"
@@ -94,7 +94,7 @@ pub struct WgpuBackend {
     device: Option<wgpu::Device>,
     queue: Option<wgpu::Queue>,
     shader_module: Option<wgpu::ShaderModule>,
-    
+
     // GPU Resources
     context_buffer: Option<wgpu::Buffer>,
     register_buffer: Option<wgpu::Buffer>,
@@ -112,7 +112,7 @@ pub struct WgpuBackend {
 
     compute_pipeline: Option<wgpu::ComputePipeline>,
     bind_group: Option<wgpu::BindGroup>,
-    
+
     // CPU State
     apps: HashMap<AppId, usize>, // AppId -> Index in buffers
     next_index: usize,
@@ -150,12 +150,13 @@ impl WgpuBackend {
 
 impl ExecutionBackend for WgpuBackend {
     fn init(&mut self) -> Result<(), String> {
-        let adapter = pollster::block_on(self.instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::HighPerformance,
-            compatible_surface: None,
-            force_fallback_adapter: false,
-        }))
-        .ok_or("Failed to find a suitable GPU adapter")?;
+        let adapter =
+            pollster::block_on(self.instance.request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                compatible_surface: None,
+                force_fallback_adapter: false,
+            }))
+            .ok_or("Failed to find a suitable GPU adapter")?;
 
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
@@ -179,7 +180,7 @@ impl ExecutionBackend for WgpuBackend {
             "../spatial_coordinator/wgsl/glyph_vm.wgsl",
             "../../systems/spatial_coordinator/wgsl/glyph_vm.wgsl",
         ];
-        
+
         let mut shader_source = None;
         for path in shader_paths {
             if let Ok(source) = std::fs::read_to_string(path) {
@@ -187,9 +188,11 @@ impl ExecutionBackend for WgpuBackend {
                 break;
             }
         }
-        
-        let shader_source = shader_source.ok_or_else(|| "Failed to find glyph_vm.wgsl shader file in any standard location".to_string())?;
-        
+
+        let shader_source = shader_source.ok_or_else(|| {
+            "Failed to find glyph_vm.wgsl shader file in any standard location".to_string()
+        })?;
+
         let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("GlyphVM Shader"),
             source: wgpu::ShaderSource::Wgsl(shader_source.into()),
@@ -199,45 +202,57 @@ impl ExecutionBackend for WgpuBackend {
         let context_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("App Contexts"),
             size: (std::mem::size_of::<AppContext>() * self.max_apps) as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
 
         let register_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Register Files"),
             size: (std::mem::size_of::<RegisterFile>() * self.max_apps) as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
 
         let memory_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("App Memory"),
             size: (std::mem::size_of::<AppMemory>() * self.max_apps) as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
-        
+
         let stack_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Call Stacks"),
             size: (std::mem::size_of::<CallStack>() * self.max_apps) as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
-        
+
         let syscall_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Syscall Queue"),
             size: (std::mem::size_of::<SyscallRequest>() * self.max_apps) as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
-        
+
         let syscall_count_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Syscall Count"),
             size: 8,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
-        
+
         let frame_count_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Frame Count"),
             size: 4,
@@ -248,7 +263,9 @@ impl ExecutionBackend for WgpuBackend {
         let display_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Display Buffer"),
             size: 1920 * 1080 * 4,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
@@ -263,7 +280,9 @@ impl ExecutionBackend for WgpuBackend {
         let input_bus_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Input Bus"),
             size: VIB_BUFFER_SIZE,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
 
@@ -283,11 +302,12 @@ impl ExecutionBackend for WgpuBackend {
         // Zero all buffers initially
         let zero_contexts = vec![0u8; (std::mem::size_of::<AppContext>() * self.max_apps) as usize];
         queue.write_buffer(&context_buffer, 0, &zero_contexts);
-        
+
         let zero_memory = vec![0u8; (std::mem::size_of::<AppMemory>() * self.max_apps) as usize];
         queue.write_buffer(&memory_buffer, 0, &zero_memory);
-        
-        let zero_registers = vec![0u8; (std::mem::size_of::<RegisterFile>() * self.max_apps) as usize];
+
+        let zero_registers =
+            vec![0u8; (std::mem::size_of::<RegisterFile>() * self.max_apps) as usize];
         queue.write_buffer(&register_buffer, 0, &zero_registers);
 
         // Bind group layout
@@ -500,18 +520,20 @@ impl ExecutionBackend for WgpuBackend {
             _pad: [0; 2],
         };
 
-        if let (Some(device),
-                Some(queue), 
-                Some(context_buffer), 
-                Some(register_buffer), 
-                Some(stack_buffer),
-                Some(syscall_buffer)) = (
+        if let (
+            Some(device),
+            Some(queue),
+            Some(context_buffer),
+            Some(register_buffer),
+            Some(stack_buffer),
+            Some(syscall_buffer),
+        ) = (
             &self.device,
-            &self.queue, 
-            &self.context_buffer, 
-            &self.register_buffer, 
+            &self.queue,
+            &self.context_buffer,
+            &self.register_buffer,
             &self.stack_buffer,
-            &self.syscall_buffer
+            &self.syscall_buffer,
         ) {
             // Initialize Context
             let bytes = bytemuck::bytes_of(&context);
@@ -531,7 +553,10 @@ impl ExecutionBackend for WgpuBackend {
 
             // Initialize Stack
             let stack = CallStack {
-                frames: [StackFrame { return_pc: 0, _pad: [0; 3] }; 64],
+                frames: [StackFrame {
+                    return_pc: 0,
+                    _pad: [0; 3],
+                }; 64],
                 depth: 0,
                 _pad: [0; 3],
             };
@@ -556,8 +581,12 @@ impl ExecutionBackend for WgpuBackend {
                 (index * std::mem::size_of::<SyscallRequest>()) as u64,
                 bytemuck::bytes_of(&syscall),
             );
-            
-            queue.submit(std::iter::once(device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None }).finish()));
+
+            queue.submit(std::iter::once(
+                device
+                    .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None })
+                    .finish(),
+            ));
         }
 
         Ok(app_id)
@@ -565,7 +594,7 @@ impl ExecutionBackend for WgpuBackend {
 
     fn set_state(&mut self, app_id: AppId, addr: u64, value: f32) -> Result<(), String> {
         let index = self.apps.get(&app_id).ok_or("Application not found")?;
-        
+
         if let (Some(queue), Some(memory_buffer)) = (&self.queue, &self.memory_buffer) {
             let val_u32 = value.to_bits();
             queue.write_buffer(
@@ -584,13 +613,20 @@ impl ExecutionBackend for WgpuBackend {
         Ok(results[0])
     }
 
-    fn get_state_range(&mut self, app_id: AppId, addr: u64, count: u64) -> Result<Vec<f32>, String> {
+    fn get_state_range(
+        &mut self,
+        app_id: AppId,
+        addr: u64,
+        count: u64,
+    ) -> Result<Vec<f32>, String> {
         let index = *self.apps.get(&app_id).ok_or("Application not found")?;
-        
-        if let (Some(device), Some(queue), Some(memory_buffer)) = (&self.device, &self.queue, &self.memory_buffer) {
+
+        if let (Some(device), Some(queue), Some(memory_buffer)) =
+            (&self.device, &self.queue, &self.memory_buffer)
+        {
             let size = count * 4;
             let offset = (index * std::mem::size_of::<AppMemory>() + (addr as usize * 4)) as u64;
-            
+
             let staging_buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Memory Read Staging"),
                 size,
@@ -608,7 +644,7 @@ impl ExecutionBackend for WgpuBackend {
             let buffer_slice = staging_buffer.slice(..);
             let (sender, receiver) = std::sync::mpsc::channel();
             buffer_slice.map_async(wgpu::MapMode::Read, move |v| sender.send(v).unwrap());
-            
+
             device.poll(wgpu::Maintain::Wait);
 
             if let Ok(Ok(())) = receiver.recv() {
@@ -616,7 +652,11 @@ impl ExecutionBackend for WgpuBackend {
                 let mut results = Vec::with_capacity(count as usize);
                 for i in 0..count as usize {
                     let start = i * 4;
-                    let result_u32 = u32::from_ne_bytes(data[start..start+4].try_into().expect("Slice to array conversion failed"));
+                    let result_u32 = u32::from_ne_bytes(
+                        data[start..start + 4]
+                            .try_into()
+                            .expect("Slice to array conversion failed"),
+                    );
                     results.push(f32::from_bits(result_u32));
                 }
                 drop(data);
@@ -632,11 +672,13 @@ impl ExecutionBackend for WgpuBackend {
 
     fn get_context(&mut self, app_id: AppId) -> Result<[u32; 10], String> {
         let index = *self.apps.get(&app_id).ok_or("Application not found")?;
-        
-        if let (Some(device), Some(queue), Some(context_buffer)) = (&self.device, &self.queue, &self.context_buffer) {
+
+        if let (Some(device), Some(queue), Some(context_buffer)) =
+            (&self.device, &self.queue, &self.context_buffer)
+        {
             let size = 256u64; // Read more
             let offset = 0u64; // Start from 0
-            
+
             let staging_buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Context Read Staging"),
                 size,
@@ -654,17 +696,17 @@ impl ExecutionBackend for WgpuBackend {
             let buffer_slice = staging_buffer.slice(..);
             let (sender, receiver) = std::sync::mpsc::channel();
             buffer_slice.map_async(wgpu::MapMode::Read, move |v| sender.send(v).unwrap());
-            
+
             device.poll(wgpu::Maintain::Wait);
 
             if let Ok(Ok(())) = receiver.recv() {
                 let data = buffer_slice.get_mapped_range();
                 let mut result = [0u32; 10];
-                
+
                 let start = index * std::mem::size_of::<AppContext>();
                 for i in 0..10 {
                     let idx = start + i * 4;
-                    result[i] = u32::from_ne_bytes(data[idx..idx+4].try_into().unwrap());
+                    result[i] = u32::from_ne_bytes(data[idx..idx + 4].try_into().unwrap());
                 }
                 drop(data);
                 staging_buffer.unmap();
@@ -678,10 +720,12 @@ impl ExecutionBackend for WgpuBackend {
     }
 
     fn get_display_pixel(&mut self, x: u32, y: u32) -> Result<u32, String> {
-        if let (Some(device), Some(queue), Some(display_buffer)) = (&self.device, &self.queue, &self.display_buffer) {
+        if let (Some(device), Some(queue), Some(display_buffer)) =
+            (&self.device, &self.queue, &self.display_buffer)
+        {
             let offset = (y * 1920 + x) as u64 * 4;
             let size = 4u64;
-            
+
             let staging_buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Pixel Read Staging"),
                 size,
@@ -699,7 +743,7 @@ impl ExecutionBackend for WgpuBackend {
             let buffer_slice = staging_buffer.slice(..);
             let (sender, receiver) = std::sync::mpsc::channel();
             buffer_slice.map_async(wgpu::MapMode::Read, move |v| sender.send(v).unwrap());
-            
+
             device.poll(wgpu::Maintain::Wait);
 
             if let Ok(Ok(())) = receiver.recv() {
@@ -718,16 +762,14 @@ impl ExecutionBackend for WgpuBackend {
 
     fn send_intent(&mut self, app_id: AppId, intent: Intent) -> Result<(), String> {
         let index = self.apps.get(&app_id).ok_or("Application not found")?;
-        
-        if let (Some(queue), Some(register_buffer), Some(memory_buffer)) = (
-            &self.queue, 
-            &self.register_buffer,
-            &self.memory_buffer
-        ) {
+
+        if let (Some(queue), Some(register_buffer), Some(memory_buffer)) =
+            (&self.queue, &self.register_buffer, &self.memory_buffer)
+        {
             match intent {
                 Intent::MouseClick { x, y } => {
                     let payload = (x << 16) | (y & 0xFFFF);
-                    let int_type = 1u32; 
+                    let int_type = 1u32;
 
                     queue.write_buffer(
                         register_buffer,
@@ -739,12 +781,12 @@ impl ExecutionBackend for WgpuBackend {
                         (index * std::mem::size_of::<RegisterFile>() + (30 * 4)) as u64,
                         bytemuck::bytes_of(&int_type),
                     );
-                }
+                },
                 Intent::KeyPress(c) => {
                     let char_val = c as u32;
                     let pending = 1u32;
                     let mem_base = index * std::mem::size_of::<AppMemory>();
-                    
+
                     // Map to memory addresses 102 (INPUT_PENDING) and 103 (INPUT_CHAR)
                     queue.write_buffer(
                         memory_buffer,
@@ -766,8 +808,8 @@ impl ExecutionBackend for WgpuBackend {
                             bytemuck::bytes_of(&active),
                         );
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
             Ok(())
         } else {
@@ -788,7 +830,13 @@ impl ExecutionBackend for WgpuBackend {
         }
     }
 
-    fn draw(&mut self, _app_id: AppId, _glyph_id: GlyphId, _local_x: u32, _local_y: u32) -> Result<(), String> {
+    fn draw(
+        &mut self,
+        _app_id: AppId,
+        _glyph_id: GlyphId,
+        _local_x: u32,
+        _local_y: u32,
+    ) -> Result<(), String> {
         Ok(())
     }
 
@@ -852,7 +900,9 @@ impl ExecutionBackend for WgpuBackend {
     }
 
     fn get_input_bus_state(&mut self) -> Result<InputBusState, String> {
-        if let (Some(device), Some(queue), Some(input_bus_buffer)) = (&self.device, &self.queue, &self.input_bus_buffer) {
+        if let (Some(device), Some(queue), Some(input_bus_buffer)) =
+            (&self.device, &self.queue, &self.input_bus_buffer)
+        {
             let staging_buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Input Bus Read Staging"),
                 size: 32, // Just the header

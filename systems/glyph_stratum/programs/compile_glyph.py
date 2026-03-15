@@ -20,7 +20,10 @@ OPCODES = {
     "DATA": 14, "LOOP": 15, "JAL": 16,
     "BEQ": 10, "BNE": 10, "BLT": 10, "BGE": 10, "BLTU": 10, "BGEU": 10,
     "AND": 128, "OR": 129, "XOR": 130, "SHL": 131, "SHR": 132, "SAR": 133,
-    "SPAWN": 232, "MUTATE": 233,
+    "SPAWN": 232,
+    "ATTENTION_FOCUS": 233,
+    "GLYPH_MUTATE": 234,
+    "SEMANTIC_MERGE": 235,
     # WGSL-compatible opcodes (glyph_microcode.wgsl)
     "W_NOP": 140, "W_DATA": 128, "W_LOAD": 129, "W_STORE": 130,
     "W_LD": 204, "W_ST": 205, "W_MOV": 206,
@@ -166,6 +169,13 @@ def parse_glyph(source):
             end_addr = int(parts[2], 0) if len(parts) > 2 else 0
             vm_id = int(parts[3], 0) if len(parts) > 3 else 0
             final_pixels.append([233, start_addr & 0xFF, end_addr & 0xFF, vm_id & 0xFF])
+        elif op_name == "GLYPH_MUTATE":
+            # GLYPH_MUTATE target_addr, field_offset, new_value
+            # opcode=234, stratum=target, p1=field_offset, p2=new_value
+            target_addr = int(parts[1], 0) if len(parts) > 1 else 0
+            field_offset = int(parts[2], 0) if len(parts) > 2 else 0
+            new_value = int(parts[3], 0) if len(parts) > 3 else 0
+            final_pixels.append([234, target_addr & 0xFF, field_offset & 0xFF, new_value & 0xFF])
         elif op_name == "SEMANTIC_MERGE":
             # SEMANTIC_MERGE src, dst, count
             # opcode=235, stratum=src, p1=dst, p2=count

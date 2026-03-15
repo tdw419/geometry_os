@@ -28,14 +28,19 @@ struct DrmApp {
 impl DrmBackend {
     pub async fn new() -> Result<Self, String> {
         let instance = wgpu::Instance::default();
-        let adapter = instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::HighPerformance,
-            compatible_surface: None,
-            force_fallback_adapter: false,
-        }).await.ok_or("Failed to find GPU adapter")?;
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                compatible_surface: None,
+                force_fallback_adapter: false,
+            })
+            .await
+            .ok_or("Failed to find GPU adapter")?;
 
-        let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor::default(), None)
-            .await.map_err(|e| e.to_string())?;
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor::default(), None)
+            .await
+            .map_err(|e| e.to_string())?;
 
         let device = Arc::new(device);
         let queue = Arc::new(queue);
@@ -81,7 +86,7 @@ impl ExecutionBackend for DrmBackend {
             return Err("Address out of bounds".to_string());
         }
         let bytes = value.to_ne_bytes();
-        app.inputs[byte_addr..byte_addr+4].copy_from_slice(&bytes);
+        app.inputs[byte_addr..byte_addr + 4].copy_from_slice(&bytes);
         Ok(())
     }
 
@@ -92,11 +97,16 @@ impl ExecutionBackend for DrmBackend {
             return Err("Address out of bounds".to_string());
         }
         let mut bytes = [0u8; 4];
-        bytes.copy_from_slice(&app.inputs[byte_addr..byte_addr+4]);
+        bytes.copy_from_slice(&app.inputs[byte_addr..byte_addr + 4]);
         Ok(f32::from_ne_bytes(bytes))
     }
 
-    fn get_state_range(&mut self, app_id: AppId, addr: u64, count: u64) -> Result<Vec<f32>, String> {
+    fn get_state_range(
+        &mut self,
+        app_id: AppId,
+        addr: u64,
+        count: u64,
+    ) -> Result<Vec<f32>, String> {
         let app = self.apps.get(&app_id).ok_or("App not found")?;
         let mut results = Vec::with_capacity(count as usize);
         for i in 0..count {
@@ -105,7 +115,7 @@ impl ExecutionBackend for DrmBackend {
                 return Err("Address out of bounds".to_string());
             }
             let mut bytes = [0u8; 4];
-            bytes.copy_from_slice(&app.inputs[byte_addr..byte_addr+4]);
+            bytes.copy_from_slice(&app.inputs[byte_addr..byte_addr + 4]);
             results.push(f32::from_ne_bytes(bytes));
         }
         Ok(results)
@@ -115,17 +125,27 @@ impl ExecutionBackend for DrmBackend {
         Ok(())
     }
 
-    fn draw(&mut self, _app_id: AppId, _glyph_id: GlyphId, _local_x: u32, _local_y: u32) -> Result<(), String> {
+    fn draw(
+        &mut self,
+        _app_id: AppId,
+        _glyph_id: GlyphId,
+        _local_x: u32,
+        _local_y: u32,
+    ) -> Result<(), String> {
         Ok(())
     }
 
     fn step(&mut self) -> Result<(), String> {
         for app in self.apps.values_mut() {
             if !app.spirv.is_empty() {
-                self.executor.load_spirv(&app.spirv).map_err(|e| e.to_string())?;
-                let (output, _memory) = self.executor.execute(&app.inputs, (app.layout.width, app.layout.height))
+                self.executor
+                    .load_spirv(&app.spirv)
                     .map_err(|e| e.to_string())?;
-                
+                let (output, _memory) = self
+                    .executor
+                    .execute(&app.inputs, (app.layout.width, app.layout.height))
+                    .map_err(|e| e.to_string())?;
+
                 app.output = Some(output);
             }
         }

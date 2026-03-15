@@ -38,6 +38,8 @@ pub struct InputEvent {
     pub dy: f32,
     pub code: u32,
     pub modifiers: u32,
+    /// Attention weight for prioritization (0.0 = ignore, 1.0 = normal, >1.0 = boosted)
+    pub attention_weight: f32,
 }
 
 impl Default for InputEvent {
@@ -52,6 +54,7 @@ impl Default for InputEvent {
             dy: 0.0,
             code: 0,
             modifiers: 0,
+            attention_weight: 1.0, // Normal attention weight by default
         }
     }
 }

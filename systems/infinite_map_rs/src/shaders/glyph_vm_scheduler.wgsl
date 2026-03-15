@@ -380,12 +380,14 @@ fn execute_instruction(vm_idx: u32) {
         case 223u: { // WRITE: mem[dst] = mem[src1] (alias for STORE via memory)
             let v = mem_read(u32(p1));
             mem_write(u32(stratum), v);
-            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
-        }
-        case 224u: { // SYNC: memory barrier (no-op in single-threaded)
-            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
-        }
-        case 228u: { // FADD: mem[dst] = bitcast<f32>(mem[src1]) + bitcast<f32>(mem[src2])
+             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
+         }
+         case 233u: { // ATTENTION_FOCUS: Mark active regions for sparse execution
+              // TODO: Implement attention masking when scheduler struct supports it
+              vms[vm_idx].pc = vms[vm_idx].pc + 1u;
+         }
+
+         case 228u: { // FADD: mem[dst] = bitcast<f32>(mem[src1]) + bitcast<f32>(mem[src2])
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
             // For now, just do integer add (float support would need bitcast)
             mem_write(u32(stratum), v1 + v2);
@@ -415,40 +417,48 @@ fn execute_instruction(vm_idx: u32) {
                 }
             }
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
-        }
-        case 233u: { // ATTENTION_FOCUS: Mark active regions for sparse execution
-             // stratum = start_addr, p1 = end_addr, p2 = vm_id (optional)
-             // Bounds check
-             if (u32(p2) >= MAX_VMS) {
-                 state.pc = state.pc + 1u;
-                 return;
-             }
-
-             // Update attention mask in scheduler
-             // For simplicity, store as single u32 bitmask (max 8 VMS)
-             let mask_idx = u32(p2) / 32u;
-             let bit_idx = u32(p2) % 32u;
-
-             if (bit_idx < 32u) {
-                 scheduler.attention_mask[mask_idx / 32u] = scheduler.attention_mask | ~(1u << bit_idx);
-             }
          }
-
-             // Update attention mask in scheduler
-             // For simplicity, store as single u32 bitmask (max 8 VMS)
-             let mask_idx = u32(p2) / 32u;
-             let bit_idx = u32(p2) % 32u;
-
+        case 233u: { // ATTENTION_FOCUS: Mark active regions for sparse execution
+            // stratum = start_addr, p1 = end_addr, p2 = vm_id (optional)
+            let mask_idx = u32(inst.dst) / 32u;
+            let bit_idx = u32(inst.dst) % 32u;
             if (bit_idx < 32u) {
-                scheduler.attention_mask[mask_idx / 32u] = scheduler.attention_mask | ~(1u << bit_idx);
+                scheduler.attention_mask = scheduler.attention_mask | (1u << bit_idx);
+            } else {
+                scheduler.attention_mask = scheduler.attention_mask & ~(1u << bit_idx);
+            }
+            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
+        }
+        case 234u: { // GLYPH_MUTATE: Single-field glyph modification
+            // stratum = target_addr, p1 = field_offset, p2 = new_value
+            let target_addr = u32(inst.stratum);
+            let field_offset = u32(inst.p1);
+            let new_value = inst.p2;
+
+            // Read current glyph
+            let current_glyph = mem_read(target_addr);
+
+            // Modify single byte
+            var modified = current_glyph;
+            if (field_offset == 0u) {
+                modified = (modified & 0xFFFFFF00u) | (u32(new_value) & 0xFFu);
+            } else if (field_offset == 1u) {
+                modified = (modified & 0xFFFF00FFu) | ((u32(new_value) & 0xFFu) << 8u);
+            } else if (field_offset == 2u) {
+                modified = (modified & 0xFF00FFFFu) | ((u32(new_value) & 0xFFu) << 16u);
+            } else if (field_offset == 3u) {
+                modified = (modified & 0x00FFFFFFu) | ((u32(new_value) & 0xFFu) << 24u);
             }
 
+            mem_write(target_addr, modified);
+            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
-        default: {
-            state.pc = state.pc + 1u;
+
+         default: {
+            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
-    }
-}
+    } // end switch
+} // end fn
 
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {

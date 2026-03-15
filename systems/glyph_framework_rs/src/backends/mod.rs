@@ -1,22 +1,22 @@
-pub mod wgpu_backend;
 pub mod drm_backend;
+pub mod wgpu_backend;
 pub mod window_manager_bytecode;
 
-pub use wgpu_backend::WgpuBackend;
 #[cfg(feature = "drm")]
 pub use drm_backend::DrmBackend;
+pub use wgpu_backend::WgpuBackend;
 pub use window_manager_bytecode::WindowManagerBytecode;
-pub use window_manager_bytecode::{SPAWN_APP, FOCUS_CHANGE, CLOSE_APP, KEY_PRESS};
+pub use window_manager_bytecode::{CLOSE_APP, FOCUS_CHANGE, KEY_PRESS, SPAWN_APP};
 
 use crate::types::{AppId, AppLayout, GlyphId, Intent};
 
 pub trait ExecutionBackend {
     /// Initialize the backend.
     fn init(&mut self) -> Result<(), String>;
-    
+
     /// Allocate space and create a new application instance.
     fn spawn_app(&mut self, name: &str, layout: AppLayout) -> Result<AppId, String>;
-    
+
     /// Write a specific value to an application's spatial memory.
     fn set_state(&mut self, app_id: AppId, addr: u64, value: f32) -> Result<(), String>;
 
@@ -24,14 +24,21 @@ pub trait ExecutionBackend {
     fn get_state(&mut self, app_id: AppId, addr: u64) -> Result<f32, String>;
 
     /// Read a range of values from an application's spatial memory.
-    fn get_state_range(&mut self, app_id: AppId, addr: u64, count: u64) -> Result<Vec<f32>, String>;
-    
+    fn get_state_range(&mut self, app_id: AppId, addr: u64, count: u64)
+        -> Result<Vec<f32>, String>;
+
     /// Drop an intent glyph into the application's message bus/interrupt queue.
     fn send_intent(&mut self, app_id: AppId, intent: Intent) -> Result<(), String>;
-    
+
     /// Request an application to draw a glyph at a local coordinate.
-    fn draw(&mut self, app_id: AppId, glyph_id: GlyphId, local_x: u32, local_y: u32) -> Result<(), String>;
-    
+    fn draw(
+        &mut self,
+        app_id: AppId,
+        glyph_id: GlyphId,
+        local_x: u32,
+        local_y: u32,
+    ) -> Result<(), String>;
+
     /// Advance the execution state (tick the VM/compute shader).
     fn step(&mut self) -> Result<(), String>;
 
@@ -55,7 +62,7 @@ pub trait ExecutionBackend {
     fn get_input_bus_state(&mut self) -> Result<InputBusState, String>;
 }
 
-/// Visual Interaction Bus input event (16 bytes)
+/// Visual Interaction Bus input event (20 bytes)
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Default)]
 pub struct InputEvent {
@@ -67,6 +74,8 @@ pub struct InputEvent {
     pub mods: u32,
     /// Relative timestamp in milliseconds
     pub timestamp: u32,
+    /// Attention weight for prioritization (0.0 = ignore, 1.0 = normal, >1.0 = boosted)
+    pub attention_weight: f32,
 }
 
 /// Visual Interaction Bus state snapshot (for debugging)

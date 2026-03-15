@@ -70,17 +70,15 @@ impl WindowManagerBytecode {
         match intent {
             Intent::MouseClick { x, y } => {
                 self.handle_mouse_click(x, y);
-            }
+            },
             Intent::KeyPress(c) => {
                 self.handle_key_press(c);
-            }
-            Intent::Custom { opcode, payload } => {
-                match opcode {
-                    SPAWN_APP => self.handle_spawn(&payload),
-                    CLOSE_APP => self.handle_close(&payload),
-                    _ => {}
-                }
-            }
+            },
+            Intent::Custom { opcode, payload } => match opcode {
+                SPAWN_APP => self.handle_spawn(&payload),
+                CLOSE_APP => self.handle_close(&payload),
+                _ => {},
+            },
         }
     }
 
@@ -170,10 +168,7 @@ impl WindowManagerBytecode {
 
 /// Check if a point is within an app's layout rectangle
 fn point_in_rect(x: u32, y: u32, entry: &LayoutEntry) -> bool {
-    x >= entry.x
-        && x < entry.x + entry.width
-        && y >= entry.y
-        && y < entry.y + entry.height
+    x >= entry.x && x < entry.x + entry.width && y >= entry.y && y < entry.y + entry.height
 }
 
 #[cfg(test)]

@@ -104,6 +104,7 @@ struct InputEvent {
     dy: f32,
     code: u32,
     modifiers: u32,
+    attention_weight: f32,
 };
 
 /// Event queue header

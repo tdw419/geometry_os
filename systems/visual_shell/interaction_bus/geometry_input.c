@@ -30,6 +30,7 @@ struct input_event_geos {
     float dy;
     uint32_t code;
     uint32_t modifiers;
+    float attention_weight;
 };
 
 struct event_queue_header {
@@ -64,9 +65,10 @@ static void geos_input_event(struct input_handle *handle, unsigned int type,
         return;
     }
 
-    event = &state->queue[state->header->head];
-    event->timestamp_ns = ktime_get_ns();
-    event->code = code;
+     event = &state->queue[state->header->head];
+     event->timestamp_ns = ktime_get_ns();
+     event->code = code;
+     event->attention_weight = 1.0f; // Default attention weight
 
     if (type == EV_REL) {
         if (code == REL_X) {

@@ -27,6 +27,7 @@ struct InputEvent {
     dy: f32,
     code: u32,
     modifiers: u32,
+    attention_weight: f32,
 };
 
 struct EventQueueHeader {
@@ -77,11 +78,11 @@ fn process_event(event: InputEvent) {
         global.mouse_y = event.y;
         
         if (global.drag_id != 0xffffffffu) {
-            // Update window position if dragging
+            // Update window position if dragging, scaled by attention weight
             let idx = find_window_index(global.drag_id);
             if (idx < MAX_WINDOWS) {
-                window_table[idx].x = window_table[idx].x + event.dx;
-                window_table[idx].y = window_table[idx].y + event.dy;
+                window_table[idx].x = window_table[idx].x + event.dx * event.attention_weight;
+                window_table[idx].y = window_table[idx].y + event.dy * event.attention_weight;
             }
         }
     } else if (event.event_type == EVENT_MOUSE_DOWN) {
