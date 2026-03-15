@@ -159,7 +159,7 @@ fn main() {
     thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            let listener = TcpListener::bind("0.0.0.0:8769").unwrap();
+            let listener = TcpListener::bind("127.0.0.1:8769").unwrap();
             println!("[API] 🚀 Ouroboros API listening on http://127.0.0.1:8769");
             std::io::stdout().flush().unwrap();
             for stream in listener.incoming() {
