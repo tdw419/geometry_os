@@ -98,10 +98,22 @@
     LDI r17, handle_auipc
     JZ r15, r17
 
-    // Check for EBREAK/SYSTEM (0x73)
-    LDI r14, 0x73
+    // Check for JAL (0x6F)
+    LDI r14, 0x6F
     SUB r15, r14
-    LDI r17, handle_system
+    LDI r17, handle_jal
+    JZ r15, r17
+
+    // Check for JALR (0x67)
+    LDI r14, 0x67
+    SUB r15, r14
+    LDI r17, handle_jalr
+    JZ r15, r17
+
+    // Check for BRANCH (0x63)
+    LDI r14, 0x63
+    SUB r15, r14
+    LDI r17, handle_branch
     JZ r15, r17
 
     // Unknown opcode - halt
