@@ -51,6 +51,26 @@
 .equ BRAIN_ACTION_SPAWN,   2
 .equ BRAIN_ACTION_KILL,    3
 
+// Self-Modification State
+.equ SELF_MODIFY_TRIGGER,  0x03F0    // Brain writes here to request self-mod
+.equ SELF_MODIFY_SOURCE,   0x03F4    // Source address for new code
+.equ SELF_MODIFY_TARGET,   0x03F8    // Target address (scheduler code)
+.equ SELF_MODIFY_COUNT,    0x03FC    // Number of glyphs to copy
+.equ SELF_MODIFY_STATUS,   0x03FE    // 0=idle, 1=requested, 2=complete
+
+// Self-modify action codes
+.equ SELF_MOD_ACTION_NONE,     0
+.equ SELF_MOD_ACTION_PATCH,    1
+.equ SELF_MOD_ACTION_HOTFIX,   2
+
+// Trap status codes
+.equ STATUS_IDLE,      0
+.equ STATUS_PENDING,   1
+.equ STATUS_COMPLETE,  2
+
+// Additional trap argument
+.equ TRAP_ARG2,        0xFF00000C
+
 :main
     // Mark self as running (VM 0)
     LDI r1, 0xFF000100
@@ -75,6 +95,40 @@
 
     LDI r1, BRAIN_FITNESS
     LDI r2, 0x3F800000  // 1.0 as float bits
+    STORE r1, r2
+
+    // ========================================
+    // SPAWN: Start brain.glyph as VM 1
+    // ========================================
+    LDI r1, TRAP_OP
+    LDI r2, 3           // SPAWN_VM
+    STORE r1, r2
+
+    LDI r1, TRAP_ARG0
+    LDI r2, 0x1000      // Entry point for brain.glyph
+    STORE r1, r2
+
+    LDI r1, TRAP_ARG1
+    LDI r2, 1           // VM ID 1
+    STORE r1, r2
+
+    LDI r1, TRAP_STATUS
+    LDI r2, 1           // PENDING
+    STORE r1, r2
+
+    // Wait for spawn to complete
+:wait_brain_spawn
+    LDI r1, TRAP_STATUS
+    LOAD r2, r1
+    LDI r7, 2           // COMPLETE
+    SUB r2, r7
+    JZ r2, :brain_spawned
+    LDI r6, :wait_brain_spawn
+    JMP r6
+
+:brain_spawned
+    LDI r1, TRAP_STATUS
+    LDI r2, 0           // IDLE
     STORE r1, r2
 
 :scheduler_loop
@@ -177,7 +231,7 @@
     // Check for pending brain action
     LDI r2, BRAIN_ACTION_NONE
     SUB r24, r2
-    JZ :no_brain_action
+    JZ r24, :no_brain_action
 
     // Execute action based on r24
     LDI r2, BRAIN_ACTION_REBALANCE
@@ -220,6 +274,64 @@
     LDI r24, BRAIN_ACTION_NONE
 
 :no_brain_action
+
+    // ================================================================
+    // SELF-MODIFICATION: Check for code patch requests
+    // ================================================================
+
+    LDI r1, SELF_MODIFY_TRIGGER
+    LOAD r1, r27           // r27 = self-modify trigger
+
+    LDI r2, SELF_MOD_ACTION_NONE
+    SUB r27, r2
+    JZ r27, :skip_self_modify
+
+    // Self-modification requested!
+    // Read parameters
+    LDI r1, SELF_MODIFY_SOURCE
+    LOAD r1, r28           // r28 = source address
+
+    LDI r1, SELF_MODIFY_TARGET
+    LOAD r1, r29           // r29 = target address
+
+    LDI r1, SELF_MODIFY_COUNT
+    LOAD r1, r30           // r30 = count
+
+    // Request GLYPH_WRITE via trap
+    LDI r1, TRAP_OP
+    LDI r2, 8              // GLYPH_WRITE opcode
+    STORE r1, r2
+
+    LDI r1, TRAP_ARG0
+    STORE r1, r29          // target
+
+    LDI r1, TRAP_ARG1
+    STORE r1, r28          // source
+
+    LDI r1, TRAP_ARG2
+    STORE r1, r30          // count
+
+    LDI r1, TRAP_STATUS
+    LDI r2, STATUS_PENDING
+    STORE r1, r2
+
+:wait_self_modify
+    LDI r1, TRAP_STATUS
+    LOAD r1, r27
+    LDI r2, STATUS_COMPLETE
+    SUB r27, r2
+    JNZ r27, :wait_self_modify
+
+    // Mark complete
+    LDI r1, SELF_MODIFY_TRIGGER
+    LDI r2, SELF_MOD_ACTION_NONE
+    STORE r1, r2
+
+    LDI r1, SELF_MODIFY_STATUS
+    LDI r2, 2              // COMPLETE
+    STORE r1, r2
+
+:skip_self_modify
 
     // ================================================================
     // ROUND-ROBIN VM SCHEDULING
