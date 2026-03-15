@@ -25,6 +25,10 @@ Repository = "https://github.com/knowsuchagency/mcp2cli"
 [project.scripts]
 mcp2cli = "mcp2cli:main"
 
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
 [build-system]
 requires = ["uv_build>=0.9.5,<0.10.0"]
 build-backend = "uv_build"

@@ -1,9 +1,16 @@
 """Shared fixtures for mcp2cli tests."""
 
+import sys
+from pathlib import Path
+
+# Add src directory to path for src-layout imports
+_src_dir = Path(__file__).parent.parent / "src"
+if str(_src_dir) not in sys.path:
+    sys.path.insert(0, str(_src_dir))
+
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from pathlib import Path
 
 import pytest
 
@@ -341,6 +348,30 @@ def _clean_cache(tmp_path, monkeypatch):
     import mcp2cli
 
     monkeypatch.setattr(mcp2cli, "CACHE_DIR", tmp_path / "cache")
+
+
+@pytest.fixture(autouse=True)
+def _subprocess_pythonpath(monkeypatch):
+    """Ensure subprocess calls have correct PYTHONPATH for src-layout."""
+    import os
+    import subprocess
+
+    src_path = str(_src_dir)
+    original_run = subprocess.run
+
+    def patched_run(*args, **kwargs):
+        # Inject PYTHONPATH into env if not already set
+        env = kwargs.get("env", os.environ.copy())
+        if "PYTHONPATH" not in env or src_path not in env.get("PYTHONPATH", ""):
+            existing = env.get("PYTHONPATH", "")
+            if existing:
+                env["PYTHONPATH"] = f"{src_path}:{existing}"
+            else:
+                env["PYTHONPATH"] = src_path
+            kwargs["env"] = env
+        return original_run(*args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", patched_run)
 
 
 # ---------------------------------------------------------------------------
