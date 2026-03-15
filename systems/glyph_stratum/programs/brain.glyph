@@ -147,9 +147,9 @@
     ADD r1, r2
 
     // Check if we've reached end of weights region
-    // Compare r1 with r7 (end address)
+    // r7 already contains WEIGHTS_END (loaded at line 132)
     // Use r6 as temp since SUB modifies destination
-    LDI r6, WEIGHTS_END
+    MOV r6, r7           // r6 = WEIGHTS_END (from r7)
     SUB r6, r1           // r6 = WEIGHTS_END - r1
     JZ r6, :sense_done   // If r1 == WEIGHTS_END, we're done
 
@@ -243,12 +243,15 @@
 
 :wait_complete
     LDI r1, TRAP_STATUS
-    LOAD r1, r2
+    LOAD r2, r1          // r2 = *r1 (load status into r2)
 
     // Check if status == COMPLETE
     LDI r7, STATUS_COMPLETE
     SUB r2, r7           // r2 = r2 - r7
-    JNZ r2, :wait_complete  // If not complete, keep waiting
+    JZ r2, :trap_complete  // If complete (result is 0), continue
+    LDI r6, :wait_complete
+    JMP r6               // Otherwise, keep waiting
+:trap_complete
 
     // ========================================================================
     // PHASE 4: ACT - Parse response, apply mutations via STORE
@@ -277,6 +280,34 @@
     ADD r1, 1
     LOAD r7, r1          // r7 = target address
 
+    // SECURITY: Bounds check - validate address is within WEIGHTS region
+    // Check lower bound: addr >= WEIGHTS_START
+    // We compute offset = addr - WEIGHTS_START
+    // If offset has high bit set (negative in signed), addr < WEIGHTS_START
+    MOV r6, r7
+    LDI r2, WEIGHTS_START
+    SUB r6, r2           // r6 = addr - WEIGHTS_START (offset)
+
+    // Check upper bound: addr <= WEIGHTS_END
+    // We compute remaining = WEIGHTS_END - addr
+    // If remaining has high bit set, addr > WEIGHTS_END
+    LDI r2, WEIGHTS_END
+    SUB r2, r7           // r2 = WEIGHTS_END - addr
+
+    // Load high bit mask (0x80000000) to check for negative results
+    // Note: Without full comparison ops, this is a best-effort check
+    // The Rust trap handler performs additional validation
+    LDI r1, 0x80000000
+    AND r6, r1           // Check if offset is negative
+    JZ r6, :check_upper  // If offset >= 0, check upper bound
+    JMP :act_done        // addr < WEIGHTS_START, skip mutation
+
+:check_upper
+    AND r2, r1           // Check if remaining is negative
+    JZ r2, :do_mutation  // If remaining >= 0, address is valid
+    JMP :act_done        // addr > WEIGHTS_END, skip mutation
+
+:do_mutation
     ADD r1, 1
     LOAD r2, r1          // r2 = new value
 
@@ -310,7 +341,10 @@
 :delay_loop
     LDI r2, 1
     SUB r1, r2
-    JNZ r1, :delay_loop
+    JZ r1, :delay_done   // If r1 == 0, exit loop
+    LDI r6, :delay_loop
+    JMP r6
+:delay_done
 
     // Loop forever
     JMP :brain_loop
