@@ -1,17 +1,9 @@
 #!/usr/bin/env python3
 """
-Minimal .glyph to .rts.png compiler.
-
-Compiles .glyph assembly files into RGBA8 texture format for the Glyph VM.
-Each pixel encodes one instruction:
-  R = opcode (0-255)
-  G = stratum (0=SUBSTRATE, 1=MEMORY, 2=LOGIC, 3=SPEC, 4=INTENT)
-  B = p1 (parameter 1)
-  A = p2 (parameter 2)
+Geometry OS Glyph Compiler (v3: Constant & Label Support)
 """
 
 import sys
-import re
 from pathlib import Path
 
 try:
@@ -21,59 +13,21 @@ except ImportError:
     print("Install: pip install Pillow numpy")
     sys.exit(1)
 
-# Opcode map (from glyph_to_rts.rs)
 OPCODES = {
-    "NOP": 0,
-    "ALLOC": 1,
-    "FREE": 2,
-    "LOAD": 3,
-    "STORE": 4,
-    "ADD": 5,
-    "SUB": 6,
-    "MUL": 7,
-    "DIV": 8,
-    "JMP": 9,
-    "JZ": 10,
-    "CALL": 11,
-    "RET": 12,
-    "HALT": 13,
-    "DATA": 14,
-    "LOOP": 15,
-    # Extended (200+)
-    "ADD_M": 200,
-    "SUB_M": 201,
-    "MUL_M": 202,
-    "DIV_M": 203,
-    "LDI": 204,
-    "ST": 205,
-    "MOV": 206,
-    "CLR": 207,
-    "JMP": 209,
-    "JLT": 214,
-    "JGT": 215,
-    "ADD_MEM": 216,
-    "SUB_MEM": 217,
-    "DRAW": 215,
-    "BRANCH": 220,
-    "CONFIDENCE": 221,
-    "ALTERNATE_PATH": 222,
-    "ATTENTION_FOCUS": 223,
-    "GLYPH_MUTATE": 224,
-    "SPATIAL_SPAWN": 225,
-    "CAMERA": 230,
-    "HILBERT_D2XY": 231,
-    "TILE_LOAD": 233,
-    "TILE_EVICT": 234,
-    "ZOOM": 235,
-    "PAN": 236,
-    "CMP": 214,
+    "NOP": 0, "LDI": 1, "MOV": 2, "LOAD": 3, "STORE": 4,
+    "ADD": 5, "SUB": 6, "MUL": 7, "DIV": 8, "JMP": 9,
+    "JZ": 10, "CALL": 11, "RET": 12, "HALT": 13,
+    "DATA": 14, "LOOP": 15, "JAL": 16,
+    "BEQ": 10, "BNE": 10, "BLT": 10, "BGE": 10, "BLTU": 10, "BGEU": 10,
+    "AND": 128, "OR": 129, "XOR": 130, "SHL": 131, "SHR": 132, "SAR": 133,
+    "SPAWN": 232, "MUTATE": 233,
 }
 
-STRATUM_MAP = {"SUBSTRATE": 0, "MEMORY": 1, "LOGIC": 2, "SPEC": 3, "INTENT": 4}
-
+BRANCH_CONDS = {
+    "BEQ": 0, "BNE": 1, "BLT": 2, "BGE": 3, "BLTU": 4, "BGEU": 5, "JZ": 0,
+}
 
 def hilbert_d2xy(n, d):
-    """Convert Hilbert index to (x, y) coordinates."""
     x = y = 0
     s = 1
     t = d
@@ -91,147 +45,123 @@ def hilbert_d2xy(n, d):
         s *= 2
     return x, y
 
-
 def parse_glyph(source):
-    """Parse .glyph source into instructions."""
-    labels = {}
-    constants = {}
+    symbols = {}
     instructions = []
     current_addr = 0
 
-    # Pass 1: Collect labels and constants
+    # Pass 1: Collect Labels and Constants
     for line in source.split("\n"):
-        line = line.strip().replace(",", " ")
-        if not line or line.startswith("//") or line.startswith(";"):
-            continue
+        line = line.strip().split("//")[0].split(";")[0]
+        if not line: continue
+        
         if line.startswith(".equ"):
-            parts = line.split()
+            parts = line.replace(",", " ").split()
             if len(parts) >= 3:
-                name = parts[1].rstrip(",")
-                try:
-                    val = int(parts[2], 0)
-                except:
-                    val = int(parts[2])
-                constants[name] = val
+                symbols[parts[1]] = int(parts[2], 0)
             continue
-        if line.startswith(".glyph"):
-            # Inline glyph directive - parse manually
-            parts = line.split()
-            if len(parts) >= 5:
-                op = int(parts[1])
-                st = int(parts[2])
-                p1 = int(parts[3])
-                p2 = int(parts[4])
-                instructions.append((op, st, p1, p2))
-                current_addr += 1
-            continue
-        if line.startswith("."):
-            continue
+            
         if line.startswith(":"):
-            label = line[1:].split()[0]
-            labels[label] = current_addr
+            symbols[line[1:].strip()] = current_addr
             continue
-        current_addr += 1
+            
+        if line.upper().startswith("LDI") or line.upper().startswith("JAL") or any(line.upper().startswith(c) for c in BRANCH_CONDS):
+            current_addr += 2
+        else:
+            current_addr += 1
 
-    # Pass 2: Generate instructions
-    current_addr = 0
+    # Pass 2: Instruction Generation
+    final_pixels = []
     for line in source.split("\n"):
-        line = line.strip()
-        if not line or line.startswith("//") or line.startswith(";") or line.startswith("."):
-            continue
-        if line.startswith(":"):
-            continue
+        line = line.strip().split("//")[0].split(";")[0]
+        if not line or line.startswith(".") or line.startswith(":"): continue
 
-        # Parse instruction
         parts = line.replace(",", " ").split()
-        if not parts:
-            continue
-
-        # Get opcode
         op_name = parts[0].upper()
-        if op_name not in OPCODES:
-            # Check for .glyph directive already handled
-            if op_name != ".GLYPH":
-                continue
-
+        if op_name not in OPCODES: continue
+        
         opcode = OPCODES[op_name]
-        stratum = 2  # Default LOGIC
-        p1 = 0
-        p2 = 0
-
-        # Parse operands
-        for i, part in enumerate(parts[1:]):
-            part = part.strip()
-            if not part:
-                continue
-            # Check for stratum prefix
-            if part.startswith("s:") or part.startswith("S:"):
-                stratum = STRATUM_MAP.get(part[2:].upper(), 2)
-                continue
-            # Check for register
-            if part.startswith("r") or part.startswith("R"):
-                try:
-                    val = int(part[1:])
-                except:
-                    val = 0
-                if i == 0:
-                    p1 = val
-                else:
-                    p2 = val
-            # Check for immediate
-            elif part.startswith("0x"):
-                try:
-                    val = int(part, 16)
-                except:
-                    val = 0
-                if i == 0:
-                    p1 = val
-                else:
-                    p2 = val
+        
+        if op_name == "LDI":
+            rd = int(parts[1].lower().replace("r", ""))
+            val_str = parts[2]
+            imm = symbols.get(val_str, 0)
+            if imm == 0:
+                try: imm = int(val_str, 0)
+                except: imm = 0
+            
+            final_pixels.append([opcode, 2, rd, 0])
+            final_pixels.append([imm & 0xFF, (imm >> 8) & 0xFF, (imm >> 16) & 0xFF, (imm >> 24) & 0xFF])
+        elif op_name == "JAL":
+            rd = int(parts[1].lower().replace("r", ""))
+            val_str = parts[2]
+            imm = symbols.get(val_str, 0)
+            if imm == 0:
+                try: imm = int(val_str, 0)
+                except: imm = 0
+            
+            final_pixels.append([opcode, 2, rd, 0])
+            final_pixels.append([imm & 0xFF, (imm >> 8) & 0xFF, (imm >> 16) & 0xFF, (imm >> 24) & 0xFF])
+        elif op_name in BRANCH_CONDS:
+            cond = BRANCH_CONDS[op_name]
+            rs1 = int(parts[1].lower().replace("r", ""))
+            rs2 = 0
+            if op_name != "JZ":
+                rs2 = int(parts[2].lower().replace("r", ""))
+                target_str = parts[3]
             else:
-                try:
-                    val = int(part)
-                except:
-                    val = 0
-                if i == 0:
-                    p1 = val
+                target_str = parts[2]
+                
+            imm = symbols.get(target_str, 0)
+            if imm == 0:
+                try: imm = int(target_str, 0)
+                except: imm = 0
+                
+            final_pixels.append([opcode, cond, rs1, rs2])
+            final_pixels.append([imm & 0xFF, (imm >> 8) & 0xFF, (imm >> 16) & 0xFF, (imm >> 24) & 0xFF])
+        elif op_name == "SPAWN":
+            # SPAWN dst, src, count
+            # Maps to: opcode=232, dst=target, p2=source, p1=count
+            target = int(parts[1], 0) if len(parts) > 1 else 0
+            src = int(parts[2], 0) if len(parts) > 2 else 0
+            count = int(parts[3], 0) if len(parts) > 3 else 0
+            # Output: [opcode, stratum, p1(count), p2(src)] + separate dst encoding
+            # For now, use p2 for src, p1 for count, and encode dst in next slot
+            final_pixels.append([opcode, 0, count & 0xFF, src & 0xFF])
+            final_pixels.append([target & 0xFF, (target >> 8) & 0xFF, (target >> 16) & 0xFF, (target >> 24) & 0xFF])
+        else:
+            p1 = p2 = 0
+            for i, part in enumerate(parts[1:]):
+                val = 0
+                # Check if it's a register (r followed by digits only)
+                if part.lower().startswith("r") and part[1:].isdigit():
+                    val = int(part[1:])
                 else:
-                    p2 = val
+                    # Try symbol first, then literal
+                    val = symbols.get(part, None)
+                    if val is None:
+                        try: val = int(part, 0)
+                        except: val = 0
+                if i == 0: p1 = val & 0xFF
+                else: p2 = val & 0xFF
+            final_pixels.append([opcode, 2, p1, p2])
 
-        instructions.append((opcode, stratum, p1, p2))
-        current_addr += 1
-
-    return instructions, labels, constants
-
+    return final_pixels
 
 def compile_glyph_file(input_path, output_path):
-    """Compile a .glyph file to .rts.png."""
     source = Path(input_path).read_text()
-
-    instructions, labels, constants = parse_glyph(source)
-
-    # Use 4096x4096 texture
+    pixels_data = parse_glyph(source)
     width = height = 4096
-
-    # Create image
     img = Image.new("RGBA", (width, height), color=0)
     pixels = np.array(img)
-
-    # Write instructions using Hilbert curve addressing
-    for d, (opcode, stratum, p1, p2) in enumerate(instructions):
+    for d, pixel_val in enumerate(pixels_data):
         x, y = hilbert_d2xy(width, d)
-        if x < width and y < height:
-            pixels[y, x] = [opcode, stratum, p1, p2]
-
-    # Save
-    img = Image.fromarray(pixels.astype(np.uint8))
-    img.save(output_path)
-    print(f"Compiled {len(instructions)} instructions to {output_path}")
-
+        pixels[y, x] = pixel_val
+    Image.fromarray(pixels.astype(np.uint8)).save(output_path)
+    print(f"Compiled {len(pixels_data)} pixels to {output_path}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: compile_glyph.py <input.glyph> <output.rts.png>")
+        print("Usage: compile_glyph.py <in> <out>")
         sys.exit(1)
-
     compile_glyph_file(sys.argv[1], sys.argv[2])
