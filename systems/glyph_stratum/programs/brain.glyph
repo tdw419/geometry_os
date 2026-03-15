@@ -297,13 +297,14 @@
     // Load high bit mask (0x80000000) to check for negative results
     // Note: Without full comparison ops, this is a best-effort check
     // The Rust trap handler performs additional validation
-    LDI r1, 0x80000000
-    AND r6, r1           // Check if offset is negative
+    // Use r5 for mask to avoid clobbering r1 (response buffer pointer)
+    LDI r5, 0x80000000
+    AND r6, r5           // Check if offset is negative
     JZ r6, :check_upper  // If offset >= 0, check upper bound
     JMP :act_done        // addr < WEIGHTS_START, skip mutation
 
 :check_upper
-    AND r2, r1           // Check if remaining is negative
+    AND r2, r5           // Check if remaining is negative
     JZ r2, :do_mutation  // If remaining >= 0, address is valid
     JMP :act_done        // addr > WEIGHTS_END, skip mutation
 
