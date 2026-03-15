@@ -32,9 +32,19 @@ from geos_mcp_server import (
     WINDOW_MANAGER_GLYPH,
     UBUNTU_KERNEL,
     BOOT_SCRIPT,
+    DAEMON_URL,
     tool_glyph_patch,
     tool_linux_to_glyph,
+    tool_mem_peek,
+    tool_mem_poke,
+    tool_gpu_write,
+    tool_gpu_exec,
+    tool_gpu_pause,
+    tool_gpu_vmstate,
+    tool_daemon_status,
+    tool_substrate_load,
 )
+import requests
 
 
 def cmd_crystallize(args):
@@ -271,6 +281,107 @@ def cmd_linux_to_glyph(args):
     return 0
 
 
+def cmd_firmware(args):
+    """Crystallize firmware blobs into RTS textures"""
+    import sys
+    sys.path.insert(0, str(GEOS_ROOT / "systems"))
+    from geos.firmware import crystallize_firmware, crystallize_amdgpu_firmware, extract_firmware
+
+    if args.operation == "crystallize":
+        result = crystallize_firmware(
+            args.firmware,
+            args.output,
+            args.name
+        )
+        print(f"✓ Crystallized: {result.name}")
+        print(f"  Size: {result.original_size} bytes")
+        print(f"  Grid: {result.grid_size}x{result.grid_size}")
+        print(f"  Checksum: {result.checksum}")
+        print(f"  Output: {result.texture_path}")
+        return 0
+
+    elif args.operation == "extract":
+        data, meta = extract_firmware(args.texture, args.output)
+        print(f"✓ Extracted: {meta.name}")
+        print(f"  Size: {len(data)} bytes")
+        print(f"  Checksum: {meta.checksum}")
+        if args.output:
+            print(f"  Output: {args.output}")
+        return 0
+
+    elif args.operation == "batch-amd":
+        output_dir = args.output_dir or str(GEOS_ROOT / "kernel" / "firmware")
+        results = crystallize_amdgpu_firmware(args.firmware_dir, output_dir)
+        print(f"\n✓ Crystallized {len(results)} firmware blobs to {output_dir}")
+        return 0
+
+    return 1
+
+
+# ============================================================================
+# GPU Daemon Commands
+# ============================================================================
+
+def cmd_daemon_status(args):
+    """Check daemon status"""
+    result = asyncio.run(tool_daemon_status({}))
+    print(result[0].text)
+    return 0
+
+
+def cmd_peek(args):
+    """Read GPU memory"""
+    result = asyncio.run(tool_mem_peek({"addr": args.addr, "size": args.size}))
+    print(result[0].text)
+    return 0
+
+
+def cmd_poke(args):
+    """Write to GPU memory"""
+    result = asyncio.run(tool_mem_poke({"addr": args.addr, "val": args.val}))
+    print(result[0].text)
+    return 0
+
+
+def cmd_gpu_write(args):
+    """Batch write to GPU memory"""
+    result = asyncio.run(tool_gpu_write({"addr": args.addr, "data": args.data}))
+    print(result[0].text)
+    return 0
+
+
+def cmd_gpu_exec(args):
+    """Execute command via daemon"""
+    result = asyncio.run(tool_gpu_exec({
+        "cmd": args.cmd,
+        "cwd": args.cwd,
+        "timeout": args.timeout
+    }))
+    print(result[0].text)
+    return 0
+
+
+def cmd_gpu_pause(args):
+    """Pause all VMs"""
+    result = asyncio.run(tool_gpu_pause({}))
+    print(result[0].text)
+    return 0
+
+
+def cmd_gpu_vmstate(args):
+    """Query VM state"""
+    result = asyncio.run(tool_gpu_vmstate({"vm": args.vm}))
+    print(result[0].text)
+    return 0
+
+
+def cmd_substrate_load(args):
+    """Load substrate to daemon"""
+    result = asyncio.run(tool_substrate_load({"rts_file": args.rts_file}))
+    print(result[0].text)
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description="Geometry OS CLI")
     subparsers = parser.add_subparsers(dest="command", help="Command")
@@ -322,6 +433,64 @@ def main():
     hilbert.add_argument("--y", type=int, help="Y coordinate (for xy2d)")
     hilbert.add_argument("--grid-size", type=int, default=4096, help="Grid size")
     hilbert.set_defaults(func=cmd_hilbert)
+
+    # firmware
+    firmware = subparsers.add_parser("firmware", help="Crystallize firmware blobs into RTS textures")
+    firmware.add_argument("operation", choices=["crystallize", "extract", "batch-amd"],
+                         help="Operation: crystallize, extract, or batch-amd")
+    firmware.add_argument("--firmware", "-f", help="Input firmware .bin file")
+    firmware.add_argument("--texture", "-t", help="Input .rts.png texture (for extract)")
+    firmware.add_argument("--output", "-o", help="Output file path")
+    firmware.add_argument("--name", "-n", help="Friendly name for firmware")
+    firmware.add_argument("--firmware-dir", default="/lib/firmware/amdgpu",
+                         help="Directory containing AMD firmware files")
+    firmware.add_argument("--output-dir", help="Output directory for batch-amd")
+    firmware.set_defaults(func=cmd_firmware)
+
+    # === GPU Daemon Commands ===
+
+    # daemon-status
+    ds = subparsers.add_parser("daemon-status", help="Check Ouroboros daemon status")
+    ds.set_defaults(func=cmd_daemon_status)
+
+    # peek
+    peek = subparsers.add_parser("peek", help="Read GPU memory at address")
+    peek.add_argument("addr", help="Hilbert address (hex, e.g. 0x100000)")
+    peek.add_argument("--size", "-s", type=int, default=16, help="Number of words to read")
+    peek.set_defaults(func=cmd_peek)
+
+    # poke
+    poke = subparsers.add_parser("poke", help="Write value to GPU memory")
+    poke.add_argument("addr", help="Hilbert address (hex)")
+    poke.add_argument("val", help="Value to write (hex)")
+    poke.set_defaults(func=cmd_poke)
+
+    # gpu-write
+    gw = subparsers.add_parser("gpu-write", help="Batch write values to GPU memory")
+    gw.add_argument("addr", help="Starting address (hex)")
+    gw.add_argument("data", nargs="+", type=int, help="Values to write (space-separated integers)")
+    gw.set_defaults(func=cmd_gpu_write)
+
+    # gpu-exec
+    ge = subparsers.add_parser("gpu-exec", help="Execute shell command via daemon")
+    ge.add_argument("cmd", help="Shell command to execute")
+    ge.add_argument("--cwd", "-c", help="Working directory")
+    ge.add_argument("--timeout", "-t", type=int, default=30, help="Timeout in seconds")
+    ge.set_defaults(func=cmd_gpu_exec)
+
+    # gpu-pause
+    gp = subparsers.add_parser("gpu-pause", help="Pause all GPU VMs")
+    gp.set_defaults(func=cmd_gpu_pause)
+
+    # gpu-vmstate
+    gv = subparsers.add_parser("gpu-vmstate", help="Query VM state")
+    gv.add_argument("--vm", "-v", type=int, default=0, help="VM ID (0-7)")
+    gv.set_defaults(func=cmd_gpu_vmstate)
+
+    # substrate-load
+    sl = subparsers.add_parser("substrate-load", help="Load .rts.png to daemon")
+    sl.add_argument("rts_file", help="Path to .rts.png file")
+    sl.set_defaults(func=cmd_substrate_load)
 
     args = parser.parse_args()
 

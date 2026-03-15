@@ -126,12 +126,13 @@ def calculate_sls(instructions: list[tuple[int, int, int, int]], grid_size: int 
 def parse_glyph_file(path: str) -> list[tuple[int, int, int, int]]:
     """Parse a .glyph file or .rts.png into instruction tuples."""
     path_obj = Path(path)
-    
+
     if path_obj.suffix == ".png":
         # Read from texture
         from PIL import Image
         import numpy as np
-        img = Image.open(path).convert('RGBA')
+
+        img = Image.open(path).convert("RGBA")
         pixels = np.array(img)
         # Flatten and filter out NOPs (where opcode=0)
         flat = pixels.reshape(-1, 4)
@@ -158,7 +159,11 @@ async def list_tools():
                 "properties": {
                     "input": {"type": "string", "description": "Path to .glyph source file"},
                     "output": {"type": "string", "description": "Path to output .rts.png texture"},
-                    "dense": {"type": "boolean", "description": "Enable dense packing (no NOP gaps)", "default": False},
+                    "dense": {
+                        "type": "boolean",
+                        "description": "Enable dense packing (no NOP gaps)",
+                        "default": False,
+                    },
                 },
                 "required": ["input", "output"],
             },
@@ -198,8 +203,15 @@ async def list_tools():
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "glyph_file": {"type": "string", "description": "Path to .glyph file to analyze"},
-                    "grid_size": {"type": "integer", "description": "Texture grid size (default 4096)", "default": 4096},
+                    "glyph_file": {
+                        "type": "string",
+                        "description": "Path to .glyph file to analyze",
+                    },
+                    "grid_size": {
+                        "type": "integer",
+                        "description": "Texture grid size (default 4096)",
+                        "default": 4096,
+                    },
                 },
                 "required": ["glyph_file"],
             },
@@ -211,8 +223,15 @@ async def list_tools():
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "image_path": {"type": "string", "description": "Path to boot.img (optional, uses default if not specified)"},
-                    "verbose": {"type": "boolean", "description": "Enable verbose output", "default": False},
+                    "image_path": {
+                        "type": "string",
+                        "description": "Path to boot.img (optional, uses default if not specified)",
+                    },
+                    "verbose": {
+                        "type": "boolean",
+                        "description": "Enable verbose output",
+                        "default": False,
+                    },
                 },
                 "required": [],
             },
@@ -224,10 +243,21 @@ async def list_tools():
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "vm_id": {"type": "integer", "description": "VM ID (1-7, 0 is reserved for Window Manager)"},
+                    "vm_id": {
+                        "type": "integer",
+                        "description": "VM ID (1-7, 0 is reserved for Window Manager)",
+                    },
                     "glyph_file": {"type": "string", "description": "Path to child .glyph program"},
-                    "window_x": {"type": "number", "description": "Window X position", "default": 100},
-                    "window_y": {"type": "number", "description": "Window Y position", "default": 100},
+                    "window_x": {
+                        "type": "number",
+                        "description": "Window X position",
+                        "default": 100,
+                    },
+                    "window_y": {
+                        "type": "number",
+                        "description": "Window Y position",
+                        "default": 100,
+                    },
                     "window_w": {"type": "number", "description": "Window width", "default": 800},
                     "window_h": {"type": "number", "description": "Window height", "default": 600},
                 },
@@ -241,11 +271,22 @@ async def list_tools():
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "index": {"type": "integer", "description": "Hilbert index to convert to (x, y)"},
+                    "index": {
+                        "type": "integer",
+                        "description": "Hilbert index to convert to (x, y)",
+                    },
                     "x": {"type": "integer", "description": "X coordinate to convert to index"},
                     "y": {"type": "integer", "description": "Y coordinate to convert to index"},
-                    "grid_size": {"type": "integer", "description": "Grid size (default 4096)", "default": 4096},
-                    "mode": {"type": "string", "description": "'d2xy' or 'xy2d'", "enum": ["d2xy", "xy2d"]},
+                    "grid_size": {
+                        "type": "integer",
+                        "description": "Grid size (default 4096)",
+                        "default": 4096,
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "'d2xy' or 'xy2d'",
+                        "enum": ["d2xy", "xy2d"],
+                    },
                 },
                 "required": ["mode"],
             },
@@ -256,6 +297,190 @@ async def list_tools():
             inputSchema={
                 "type": "object",
                 "properties": {},
+                "required": [],
+            },
+        ),
+        Tool(
+            name="mem_store",
+            description="Store structured data in GPU-backed development memory. Data persists across AI context resets as long as the daemon is running. "
+            "Use this to remember decisions, context, or state for Geometry OS development.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "key": {"type": "string", "description": "Unique key for this memory entry"},
+                    "value": {"type": "object", "description": "JSON data to store"},
+                },
+                "required": ["key", "value"],
+            },
+        ),
+        Tool(
+            name="mem_retrieve",
+            description="Retrieve structured data from GPU-backed development memory. Returns stored JSON data by key.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "description": "Key to retrieve (optional, returns all if not specified)",
+                    },
+                },
+                "required": [],
+            },
+        ),
+        Tool(
+            name="mem_peek",
+            description="Read raw GPU memory at a Hilbert address. Low-level access to the substrate.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "addr": {
+                        "type": "string",
+                        "description": "Hilbert address (hex, e.g. 0x100000)",
+                    },
+                    "size": {
+                        "type": "integer",
+                        "description": "Number of 32-bit words to read",
+                        "default": 16,
+                    },
+                },
+                "required": ["addr"],
+            },
+        ),
+        Tool(
+            name="mem_poke",
+            description="Write a single 32-bit value to GPU memory at a Hilbert address. Low-level substrate manipulation.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "addr": {
+                        "type": "string",
+                        "description": "Hilbert address (hex, e.g. 0x100000)",
+                    },
+                    "val": {
+                        "type": "string",
+                        "description": "32-bit value to write (hex, e.g. 0xDEADBEEF)",
+                    },
+                },
+                "required": ["addr", "val"],
+            },
+        ),
+        Tool(
+            name="opcode_decode",
+            description="Decode opcode value → name, stratum, description based on Geometry OS Glyph opcode table.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "opcode": {
+                        "type": "integer",
+                        "description": "Opcode value to decode (0-65535)",
+                    },
+                },
+                "required": ["opcode"],
+            },
+        ),
+        Tool(
+            name="opcode_encode",
+            description="Encode opcode name → value, parameters based on Geometry OS Glyph opcode table.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Opcode name to encode (e.g., ADD, LD, JMP)",
+                    },
+                },
+                "required": ["name"],
+            },
+        ),
+        Tool(
+            name="vlm_health",
+            description="Run VLM vitality check on .rts.png file to assess visual language model health.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "rts_file": {
+                        "type": "string",
+                        "description": "Path to .rts.png file to analyze",
+                    },
+                    "json": {"type": "boolean", "description": "Output as JSON", "default": False},
+                    "verbose": {
+                        "type": "boolean",
+                        "description": "Verbose output",
+                        "default": False,
+                    },
+                },
+                "required": ["rts_file"],
+            },
+        ),
+        Tool(
+            name="daemon_status",
+            description="Check Ouroboros HAL daemon status on port 8769.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        ),
+        Tool(
+            name="substrate_load",
+            description="Load .rts.png to running daemon via /load endpoint.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "rts_file": {"type": "string", "description": "Path to .rts.png file to load"},
+                },
+                "required": ["rts_file"],
+            },
+        ),
+        Tool(
+            name="gpu_write",
+            description="Batch write multiple 32-bit values to GPU memory starting at an address.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "addr": {
+                        "type": "string",
+                        "description": "Starting Hilbert address (hex, e.g. 0x100000)",
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": "Array of 32-bit values to write",
+                    },
+                },
+                "required": ["addr", "data"],
+            },
+        ),
+        Tool(
+            name="gpu_exec",
+            description="Execute a shell command through the daemon with optional cwd and timeout.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "cmd": {"type": "string", "description": "Shell command to execute"},
+                    "cwd": {"type": "string", "description": "Working directory (optional)"},
+                    "timeout": {"type": "integer", "description": "Timeout in seconds (default 30)", "default": 30},
+                },
+                "required": ["cmd"],
+            },
+        ),
+        Tool(
+            name="gpu_pause",
+            description="Pause all running glyph VMs on the daemon.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        ),
+        Tool(
+            name="gpu_vmstate",
+            description="Query the state of a specific glyph VM.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "vm": {"type": "integer", "description": "VM ID to query (0-7)", "default": 0},
+                },
                 "required": [],
             },
         ),
@@ -281,6 +506,32 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             return await tool_hilbert_test(arguments)
         elif name == "geos_status":
             return await tool_geos_status(arguments)
+        elif name == "mem_store":
+            return await tool_mem_store(arguments)
+        elif name == "mem_retrieve":
+            return await tool_mem_retrieve(arguments)
+        elif name == "mem_peek":
+            return await tool_mem_peek(arguments)
+        elif name == "mem_poke":
+            return await tool_mem_poke(arguments)
+        elif name == "opcode_decode":
+            return await tool_opcode_decode(arguments)
+        elif name == "opcode_encode":
+            return await tool_opcode_encode(arguments)
+        elif name == "vlm_health":
+            return await tool_vlm_health(arguments)
+        elif name == "daemon_status":
+            return await tool_daemon_status(arguments)
+        elif name == "substrate_load":
+            return await tool_substrate_load(arguments)
+        elif name == "gpu_write":
+            return await tool_gpu_write(arguments)
+        elif name == "gpu_exec":
+            return await tool_gpu_exec(arguments)
+        elif name == "gpu_pause":
+            return await tool_gpu_pause(arguments)
+        elif name == "gpu_vmstate":
+            return await tool_gpu_vmstate(arguments)
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
     except Exception as e:
@@ -301,12 +552,7 @@ async def tool_crystallize(args: dict) -> list[TextContent]:
     if dense:
         cmd.append("--dense")
 
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        cwd=str(GEOS_ROOT)
-    )
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(GEOS_ROOT))
 
     if result.returncode != 0:
         return [TextContent(type="text", text=f"Compilation failed:\n{result.stderr}")]
@@ -314,17 +560,22 @@ async def tool_crystallize(args: dict) -> list[TextContent]:
     # Get output file size
     output_size = output_path.stat().st_size if output_path.exists() else 0
 
-    return [TextContent(
-        type="text",
-        text=json.dumps({
-            "status": "success",
-            "input": str(input_path),
-            "output": str(output_path),
-            "output_size_bytes": output_size,
-            "dense": dense,
-            "compiler_output": result.stdout.strip()
-        }, indent=2)
-    )]
+    return [
+        TextContent(
+            type="text",
+            text=json.dumps(
+                {
+                    "status": "success",
+                    "input": str(input_path),
+                    "output": str(output_path),
+                    "output_size_bytes": output_size,
+                    "dense": dense,
+                    "compiler_output": result.stdout.strip(),
+                },
+                indent=2,
+            ),
+        )
+    ]
 
 
 async def tool_benchmark_sls(args: dict) -> list[TextContent]:
@@ -361,20 +612,27 @@ async def tool_benchmark_sls(args: dict) -> list[TextContent]:
     else:
         recommendation = "OPTIMAL: SLS target achieved."
 
-    return [TextContent(
-        type="text",
-        text=json.dumps({
-            "status": "success",
-            "glyph_file": str(glyph_file),
-            "spatial_locality_score": round(sls, 4),
-            "target_sls": 0.90,
-            "target_met": target_met,
-            "recommendation": recommendation,
-            "instruction_count": instruction_count,
-            "grid_size": grid_size,
-            "stratum_distribution": {stratum_names[k]: v for k, v in stratum_counts.items() if v > 0}
-        }, indent=2)
-    )]
+    return [
+        TextContent(
+            type="text",
+            text=json.dumps(
+                {
+                    "status": "success",
+                    "glyph_file": str(glyph_file),
+                    "spatial_locality_score": round(sls, 4),
+                    "target_sls": 0.90,
+                    "target_met": target_met,
+                    "recommendation": recommendation,
+                    "instruction_count": instruction_count,
+                    "grid_size": grid_size,
+                    "stratum_distribution": {
+                        stratum_names[k]: v for k, v in stratum_counts.items() if v > 0
+                    },
+                },
+                indent=2,
+            ),
+        )
+    ]
 
 
 async def tool_boot_sim(args: dict) -> list[TextContent]:
@@ -388,20 +646,22 @@ async def tool_boot_sim(args: dict) -> list[TextContent]:
     # Stage 1: Check bootloader
     bootloader_src = GEOS_ROOT / "bootloader" / "efi" / "boot.c"
     if bootloader_src.exists():
-        stages.append({
-            "stage": "UEFI Bootloader",
-            "file": str(bootloader_src.relative_to(GEOS_ROOT)),
-            "status": "PRESENT",
-            "actions": [
-                "Find AMD GPU on PCI bus",
-                "Map GPU MMIO region (BAR0)",
-                "Allocate 256MB glyph memory",
-                "Load geometry_os.kernel",
-                "Load window_manager.rts.png",
-                "Load glyph_microcode.spv",
-                "ExitBootServices() and jump to kernel"
-            ]
-        })
+        stages.append(
+            {
+                "stage": "UEFI Bootloader",
+                "file": str(bootloader_src.relative_to(GEOS_ROOT)),
+                "status": "PRESENT",
+                "actions": [
+                    "Find AMD GPU on PCI bus",
+                    "Map GPU MMIO region (BAR0)",
+                    "Allocate 256MB glyph memory",
+                    "Load geometry_os.kernel",
+                    "Load window_manager.rts.png",
+                    "Load glyph_microcode.spv",
+                    "ExitBootServices() and jump to kernel",
+                ],
+            }
+        )
     else:
         issues.append("Bootloader source not found")
         stages.append({"stage": "UEFI Bootloader", "status": "MISSING"})
@@ -409,18 +669,20 @@ async def tool_boot_sim(args: dict) -> list[TextContent]:
     # Stage 2: Check kernel
     kernel_src = GEOS_ROOT / "kernel" / "geos" / "main.c"
     if kernel_src.exists():
-        stages.append({
-            "stage": "Geometry OS Kernel",
-            "file": str(kernel_src.relative_to(GEOS_ROOT)),
-            "status": "PRESENT",
-            "actions": [
-                "Receive boot_info from UEFI",
-                "Initialize GPU MMIO registers",
-                "Copy init_glyph to GPU memory",
-                "Submit microcode to compute rings",
-                "Start Window Manager VM #0"
-            ]
-        })
+        stages.append(
+            {
+                "stage": "Geometry OS Kernel",
+                "file": str(kernel_src.relative_to(GEOS_ROOT)),
+                "status": "PRESENT",
+                "actions": [
+                    "Receive boot_info from UEFI",
+                    "Initialize GPU MMIO registers",
+                    "Copy init_glyph to GPU memory",
+                    "Submit microcode to compute rings",
+                    "Start Window Manager VM #0",
+                ],
+            }
+        )
     else:
         issues.append("Kernel source not found")
         stages.append({"stage": "Geometry OS Kernel", "status": "MISSING"})
@@ -428,35 +690,38 @@ async def tool_boot_sim(args: dict) -> list[TextContent]:
     # Stage 3: Check Window Manager
     wm_glyph = WINDOW_MANAGER_GLYPH
     if wm_glyph.exists():
-        stages.append({
-            "stage": "Window Manager Glyph",
-            "file": str(wm_glyph.relative_to(GEOS_ROOT)),
-            "status": "PRESENT"
-        })
+        stages.append(
+            {
+                "stage": "Window Manager Glyph",
+                "file": str(wm_glyph.relative_to(GEOS_ROOT)),
+                "status": "PRESENT",
+            }
+        )
     else:
         issues.append("Window Manager glyph not found")
         stages.append({"stage": "Window Manager Glyph", "status": "MISSING"})
 
     # Stage 4: Check Ubuntu kernel (optional)
     if UBUNTU_KERNEL.exists():
-        stages.append({
-            "stage": "Ubuntu Kernel (Transpiled)",
-            "file": str(UBUNTU_KERNEL.relative_to(GEOS_ROOT)),
-            "status": "PRESENT"
-        })
+        stages.append(
+            {
+                "stage": "Ubuntu Kernel (Transpiled)",
+                "file": str(UBUNTU_KERNEL.relative_to(GEOS_ROOT)),
+                "status": "PRESENT",
+            }
+        )
     else:
-        stages.append({
-            "stage": "Ubuntu Kernel (Transpiled)",
-            "status": "OPTIONAL - Not found"
-        })
+        stages.append({"stage": "Ubuntu Kernel (Transpiled)", "status": "OPTIONAL - Not found"})
 
     # Stage 5: Check boot script
     if BOOT_SCRIPT.exists():
-        stages.append({
-            "stage": "Boot Chain Builder",
-            "file": str(BOOT_SCRIPT.relative_to(GEOS_ROOT)),
-            "status": "PRESENT"
-        })
+        stages.append(
+            {
+                "stage": "Boot Chain Builder",
+                "file": str(BOOT_SCRIPT.relative_to(GEOS_ROOT)),
+                "status": "PRESENT",
+            }
+        )
     else:
         issues.append("Boot script not found")
 
@@ -464,17 +729,24 @@ async def tool_boot_sim(args: dict) -> list[TextContent]:
     ready = len(issues) == 0
     critical_missing = [s for s in stages if s.get("status") == "MISSING"]
 
-    return [TextContent(
-        type="text",
-        text=json.dumps({
-            "status": "success",
-            "boot_ready": ready,
-            "stages": stages,
-            "issues": issues,
-            "critical_missing": len(critical_missing),
-            "next_step": "Run boot chain on real AMD hardware" if ready else "Fix missing components"
-        }, indent=2)
-    )]
+    return [
+        TextContent(
+            type="text",
+            text=json.dumps(
+                {
+                    "status": "success",
+                    "boot_ready": ready,
+                    "stages": stages,
+                    "issues": issues,
+                    "critical_missing": len(critical_missing),
+                    "next_step": "Run boot chain on real AMD hardware"
+                    if ready
+                    else "Fix missing components",
+                },
+                indent=2,
+            ),
+        )
+    ]
 
 
 async def tool_vm_spawn(args: dict) -> list[TextContent]:
@@ -505,32 +777,29 @@ async def tool_vm_spawn(args: dict) -> list[TextContent]:
     # Entry point (first instruction)
     entry_point = 0x0000
 
-    return [TextContent(
-        type="text",
-        text=json.dumps({
-            "status": "success",
-            "action": "SPATIAL_SPAWN simulated",
-            "vm_config": {
-                "vm_id": vm_id,
-                "parent_id": 0,
-                "entry_point": f"0x{entry_point:04X}",
-                "base_addr": f"0x{base_addr:04X}",
-                "bound_addr": f"0x{bound_addr:04X}",
-                "memory_region": f"{0x1000} bytes ({4}KB)"
-            },
-            "window": {
-                "x": window_x,
-                "y": window_y,
-                "width": window_w,
-                "height": window_h
-            },
-            "program": {
-                "file": str(glyph_file),
-                "instruction_count": len(instructions)
-            },
-            "note": "This is a simulation. Use Visual Kernel for actual execution."
-        }, indent=2)
-    )]
+    return [
+        TextContent(
+            type="text",
+            text=json.dumps(
+                {
+                    "status": "success",
+                    "action": "SPATIAL_SPAWN simulated",
+                    "vm_config": {
+                        "vm_id": vm_id,
+                        "parent_id": 0,
+                        "entry_point": f"0x{entry_point:04X}",
+                        "base_addr": f"0x{base_addr:04X}",
+                        "bound_addr": f"0x{bound_addr:04X}",
+                        "memory_region": f"{0x1000} bytes ({4}KB)",
+                    },
+                    "window": {"x": window_x, "y": window_y, "width": window_w, "height": window_h},
+                    "program": {"file": str(glyph_file), "instruction_count": len(instructions)},
+                    "note": "This is a simulation. Use Visual Kernel for actual execution.",
+                },
+                indent=2,
+            ),
+        )
+    ]
 
 
 async def tool_hilbert_test(args: dict) -> list[TextContent]:
@@ -541,28 +810,38 @@ async def tool_hilbert_test(args: dict) -> list[TextContent]:
     if mode == "d2xy":
         index = args.get("index", 0)
         x, y = hilbert_d2xy(grid_size, index)
-        return [TextContent(
-            type="text",
-            text=json.dumps({
-                "mode": "d2xy",
-                "input": {"index": index},
-                "output": {"x": x, "y": y},
-                "grid_size": grid_size
-            }, indent=2)
-        )]
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "mode": "d2xy",
+                        "input": {"index": index},
+                        "output": {"x": x, "y": y},
+                        "grid_size": grid_size,
+                    },
+                    indent=2,
+                ),
+            )
+        ]
     elif mode == "xy2d":
         x = args.get("x", 0)
         y = args.get("y", 0)
         d = hilbert_xy2d(grid_size, x, y)
-        return [TextContent(
-            type="text",
-            text=json.dumps({
-                "mode": "xy2d",
-                "input": {"x": x, "y": y},
-                "output": {"index": d},
-                "grid_size": grid_size
-            }, indent=2)
-        )]
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "mode": "xy2d",
+                        "input": {"x": x, "y": y},
+                        "output": {"index": d},
+                        "grid_size": grid_size,
+                    },
+                    indent=2,
+                ),
+            )
+        ]
     else:
         return [TextContent(type="text", text=f"Unknown mode: {mode}")]
 
@@ -587,30 +866,30 @@ async def tool_glyph_patch(args: dict) -> list[TextContent]:
     x, y = hilbert_d2xy(grid_size, addr)
 
     # Build the new instruction pixel
-    new_pixel = {
-        "r": opcode,
-        "g": stratum,
-        "b": p1,
-        "a": p2
-    }
+    new_pixel = {"r": opcode, "g": stratum, "b": p1, "a": p2}
 
-    return [TextContent(
-        type="text",
-        text=json.dumps({
-            "status": "success",
-            "action": "VRAM_HOT_PATCH",
-            "vm_id": vm_id,
-            "patch": {
-                "address": addr,
-                "address_hex": f"0x{addr:08X}",
-                "hilbert_coords": {"x": x, "y": y},
-                "old_instruction": "UNKNOWN (requires VRAM read)",
-                "new_instruction": new_pixel
-            },
-            "note": "This is a simulation. Real patching requires running GPU context.",
-            "next_step": "Apply via visual_kernel or bare-metal MMIO write"
-        }, indent=2)
-    )]
+    return [
+        TextContent(
+            type="text",
+            text=json.dumps(
+                {
+                    "status": "success",
+                    "action": "VRAM_HOT_PATCH",
+                    "vm_id": vm_id,
+                    "patch": {
+                        "address": addr,
+                        "address_hex": f"0x{addr:08X}",
+                        "hilbert_coords": {"x": x, "y": y},
+                        "old_instruction": "UNKNOWN (requires VRAM read)",
+                        "new_instruction": new_pixel,
+                    },
+                    "note": "This is a simulation. Real patching requires running GPU context.",
+                    "next_step": "Apply via visual_kernel or bare-metal MMIO write",
+                },
+                indent=2,
+            ),
+        )
+    ]
 
 
 async def tool_linux_to_glyph(args: dict) -> list[TextContent]:
@@ -626,7 +905,7 @@ async def tool_linux_to_glyph(args: dict) -> list[TextContent]:
     try:
         with open(binary_path, "rb") as f:
             magic = f.read(4)
-            if magic != b'\x7fELF':
+            if magic != b"\x7fELF":
                 return [TextContent(type="text", text=f"Error: Not an ELF file: {binary_path}")]
     except Exception as e:
         return [TextContent(type="text", text=f"Error reading file: {e}")]
@@ -644,35 +923,32 @@ async def tool_linux_to_glyph(args: dict) -> list[TextContent]:
     if dense:
         cmd.append("--dense")
 
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        cwd=str(GEOS_ROOT)
-    )
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(GEOS_ROOT))
 
     if result.returncode != 0:
         return [TextContent(type="text", text=f"Transpilation failed:\n{result.stderr}")]
 
     output_size = output_path.stat().st_size if output_path.exists() else 0
 
-    return [TextContent(
-        type="text",
-        text=json.dumps({
-            "status": "success",
-            "action": "LINUX_TO_GLYPH",
-            "input": {
-                "binary": str(binary_path),
-                "size_bytes": binary_size,
-                "estimated_instructions": instruction_count
-            },
-            "output": {
-                "texture": str(output_path),
-                "size_bytes": output_size
-            },
-            "transpiler_output": result.stdout.strip()[-500:] if result.stdout else ""
-        }, indent=2)
-    )]
+    return [
+        TextContent(
+            type="text",
+            text=json.dumps(
+                {
+                    "status": "success",
+                    "action": "LINUX_TO_GLYPH",
+                    "input": {
+                        "binary": str(binary_path),
+                        "size_bytes": binary_size,
+                        "estimated_instructions": instruction_count,
+                    },
+                    "output": {"texture": str(output_path), "size_bytes": output_size},
+                    "transpiler_output": result.stdout.strip()[-500:] if result.stdout else "",
+                },
+                indent=2,
+            ),
+        )
+    ]
 
 
 async def tool_geos_status(args: dict) -> list[TextContent]:
@@ -687,32 +963,820 @@ async def tool_geos_status(args: dict) -> list[TextContent]:
         ("boot_script", BOOT_SCRIPT, "Boot Chain Builder"),
         ("bootloader", GEOS_ROOT / "bootloader" / "efi" / "boot.c", "UEFI Bootloader"),
         ("kernel", GEOS_ROOT / "kernel" / "geos" / "main.c", "Bare Metal Kernel"),
-        ("visual_kernel", GEOS_ROOT / "systems" / "infinite_map_rs" / "src" / "visual_kernel_boot.rs", "Visual Kernel (Rust)"),
-        ("glyph_vm", GEOS_ROOT / "systems" / "infinite_map_rs" / "src" / "glyph_vm_scheduler.rs", "GPU Glyph VM Scheduler"),
+        (
+            "visual_kernel",
+            GEOS_ROOT / "systems" / "infinite_map_rs" / "src" / "visual_kernel_boot.rs",
+            "Visual Kernel (Rust)",
+        ),
+        (
+            "glyph_vm",
+            GEOS_ROOT / "systems" / "infinite_map_rs" / "src" / "glyph_vm_scheduler.rs",
+            "GPU Glyph VM Scheduler",
+        ),
     ]
 
     for name, path, desc in checks:
         exists = path.exists()
-        components.append({
-            "name": name,
-            "description": desc,
-            "path": str(path.relative_to(GEOS_ROOT)) if exists else str(path),
-            "status": "PRESENT" if exists else "MISSING"
-        })
+        components.append(
+            {
+                "name": name,
+                "description": desc,
+                "path": str(path.relative_to(GEOS_ROOT)) if exists else str(path),
+                "status": "PRESENT" if exists else "MISSING",
+            }
+        )
 
     present_count = sum(1 for c in components if c["status"] == "PRESENT")
 
-    return [TextContent(
-        type="text",
-        text=json.dumps({
-            "status": "success",
-            "geometry_os_root": str(GEOS_ROOT),
-            "components_present": f"{present_count}/{len(components)}",
-            "components": components,
-            "boot_chain_ready": present_count >= 6,
-            "mcp_tools_available": ["crystallize", "benchmark_sls", "boot_sim", "vm_spawn", "hilbert_test", "geos_status"]
-        }, indent=2)
-    )]
+    return [
+        TextContent(
+            type="text",
+            text=json.dumps(
+                {
+                    "status": "success",
+                    "geometry_os_root": str(GEOS_ROOT),
+                    "components_present": f"{present_count}/{len(components)}",
+                    "components": components,
+                    "boot_chain_ready": present_count >= 6,
+                    "mcp_tools_available": [
+                        "crystallize",
+                        "benchmark_sls",
+                        "boot_sim",
+                        "vm_spawn",
+                        "hilbert_test",
+                        "geos_status",
+                    ],
+                },
+                indent=2,
+            ),
+        )
+    ]
+
+
+async def tool_opcode_decode(args: dict) -> list[TextContent]:
+    """Decode opcode value → name, stratum, description."""
+    opcode = args.get("opcode")
+    if opcode is None:
+        return [TextContent(type="text", text="Error: opcode parameter is required")]
+
+    # Define opcode tables based on glyph-programming skill
+    opcode_table = {
+        # Logic Stratum (Foundation)
+        0: ("NOP", "LOGIC", "No Operation"),
+        3: ("LD", "LOGIC", "Load from Memory"),
+        4: ("ST", "LOGIC", "Store to Memory"),
+        5: ("ADD", "LOGIC", "Addition"),
+        6: ("SUB", "LOGIC", "Subtraction"),
+        10: ("JZ", "LOGIC", "Jump if Zero"),
+        11: ("CALL", "LOGIC", "Call Subroutine"),
+        12: ("RET", "LOGIC", "Return"),
+        13: ("HALT", "LOGIC", "Halt"),
+        204: ("LDI", "LOGIC", "Load Immediate"),
+        206: ("MOV", "LOGIC", "Move"),
+        209: ("JMP", "LOGIC", "Unconditional Jump"),
+        214: ("CMP", "LOGIC", "Compare"),
+        215: ("DRAW", "LOGIC", "Substrate Write"),
+        # Bitwise Stratum (220-231)
+        220: ("AND", "BITWISE", "Bitwise AND"),
+        221: ("OR", "BITWISE", "Bitwise OR"),
+        222: ("XOR", "BITWISE", "Bitwise XOR"),
+        223: ("NOT", "BITWISE", "Bitwise NOT"),
+        224: ("SHL", "BITWISE", "Shift Left"),
+        225: ("SHR", "BITWISE", "Shift Right"),
+        226: ("SAR", "BITWISE", "Shift Arithmetic Right"),
+        227: ("AND_MEM", "BITWISE", "AND directly on memory"),
+        228: ("OR_MEM", "BITWISE", "OR directly on memory"),
+        229: ("XOR_MEM", "BITWISE", "XOR directly on memory"),
+        230: ("SHL_MEM", "BITWISE", "SHL directly on memory"),
+        231: ("SHR_MEM", "BITWISE", "SHR directly on memory"),
+    }
+
+    if opcode in opcode_table:
+        name, stratum, description = opcode_table[opcode]
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "success",
+                        "opcode": opcode,
+                        "name": name,
+                        "stratum": stratum,
+                        "description": description,
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    else:
+        # Try to determine stratum based on ranges
+        stratum = "UNKNOWN"
+        if opcode == 0:
+            stratum = "LOGIC"
+        elif 3 <= opcode <= 13:
+            stratum = "LOGIC"
+        elif 204 <= opcode <= 215:
+            stratum = "LOGIC"
+        elif 220 <= opcode <= 231:
+            stratum = "BITWISE"
+        elif opcode >= 0x8000:
+            stratum = "GUEST_RAM"
+        elif opcode >= 0x1000:
+            stratum = "MMIO"
+        elif opcode >= 0x0200:
+            stratum = "IO_BRIDGE"
+        elif opcode >= 0x0100:
+            stratum = "GUEST_REGS"
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "unknown",
+                        "opcode": opcode,
+                        "name": f"OPCODE_{opcode:03X}",
+                        "stratum": stratum,
+                        "description": f"Undefined opcode {opcode} (0x{opcode:02X}) in stratum {stratum}",
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+
+
+async def tool_opcode_encode(args: dict) -> list[TextContent]:
+    """Encode opcode name → value, parameters."""
+    opcode_name = args.get("name")
+    if not opcode_name:
+        return [TextContent(type="text", text="Error: name parameter is required")]
+
+    # Define reverse lookup table based on glyph-programming skill
+    opcode_table = {
+        # Logic Stratum (Foundation)
+        "NOP": (0, "LOGIC", "No Operation"),
+        "LD": (3, "LOGIC", "Load from Memory"),
+        "ST": (4, "LOGIC", "Store to Memory"),
+        "ADD": (5, "LOGIC", "Addition"),
+        "SUB": (6, "LOGIC", "Subtraction"),
+        "JZ": (10, "LOGIC", "Jump if Zero"),
+        "CALL": (11, "LOGIC", "Call Subroutine"),
+        "RET": (12, "LOGIC", "Return"),
+        "HALT": (13, "LOGIC", "Halt"),
+        "LDI": (204, "LOGIC", "Load Immediate"),
+        "MOV": (206, "LOGIC", "Move"),
+        "JMP": (209, "LOGIC", "Unconditional Jump"),
+        "CMP": (214, "LOGIC", "Compare"),
+        "DRAW": (215, "LOGIC", "Substrate Write"),
+        # Bitwise Stratum (220-231)
+        "AND": (220, "BITWISE", "Bitwise AND"),
+        "OR": (221, "BITWISE", "Bitwise OR"),
+        "XOR": (222, "BITWISE", "Bitwise XOR"),
+        "NOT": (223, "BITWISE", "Bitwise NOT"),
+        "SHL": (224, "BITWISE", "Shift Left"),
+        "SHR": (225, "BITWISE", "Shift Right"),
+        "SAR": (226, "BITWISE", "Shift Arithmetic Right"),
+        "AND_MEM": (227, "BITWISE", "AND directly on memory"),
+        "OR_MEM": (228, "BITWISE", "OR directly on memory"),
+        "XOR_MEM": (229, "BITWISE", "XOR directly on memory"),
+        "SHL_MEM": (230, "BITWISE", "SHL directly on memory"),
+        "SHR_MEM": (231, "BITWISE", "SHR directly on memory"),
+    }
+
+    opcode_name_upper = opcode_name.upper()
+    if opcode_name_upper in opcode_table:
+        value, stratum, description = opcode_table[opcode_name_upper]
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "success",
+                        "name": opcode_name_upper,
+                        "value": value,
+                        "stratum": stratum,
+                        "description": description,
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    else:
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "error",
+                        "name": opcode_name,
+                        "error": f"Unknown opcode name: {opcode_name}",
+                        "available_opcodes": list(opcode_table.keys()),
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+
+
+# ============================================================================
+# GPU Memory Bridge Tools
+# ============================================================================
+
+DAEMON_URL = "http://127.0.0.1:8769"
+DEV_MEM_START = 0x100000  # Reserved region for development memory
+
+# Simple in-memory index (maps keys to offsets)
+# In a real system, this would be stored in the GPU substrate itself
+_memory_index: dict = {}
+_index_loaded = False
+
+import requests
+
+
+def _ensure_index_loaded():
+    """Load memory index from GPU substrate."""
+    global _memory_index, _index_loaded
+    if _index_loaded:
+        return
+
+    # Try to read index from address 0x100000 (first 4KB of dev memory)
+    try:
+        resp = requests.get(f"{DAEMON_URL}/peek?addr=0x{DEV_MEM_START:08x}&size=1024", timeout=1)
+        if resp.status_code == 200:
+            hex_words = resp.text.strip().split()
+            raw_bytes = bytearray()
+            for word in hex_words:
+                val = int(word, 16)
+                raw_bytes.extend(val.to_bytes(4, "little"))
+            content = raw_bytes.decode("utf-8", errors="replace").rstrip("\x00")
+            if content.startswith("{"):
+                _memory_index = json.loads(content)
+    except Exception:
+        pass
+
+    _index_loaded = True
+
+
+def _save_index():
+    """Persist memory index to GPU substrate."""
+    global _memory_index
+    try:
+        data = json.dumps(_memory_index)
+        encoded = data.encode("utf-8")
+        hex_words = ""
+        for i in range(0, len(encoded), 4):
+            chunk = encoded[i : i + 4]
+            if len(chunk) < 4:
+                chunk = chunk + b"\x00" * (4 - len(chunk))
+            val = int.from_bytes(chunk, "little")
+            hex_words += f"{val:08x}"
+
+        requests.post(f"{DAEMON_URL}/write?addr=0x{DEV_MEM_START:08x}", data=hex_words, timeout=2)
+    except Exception as e:
+        print(f"Warning: Failed to save memory index: {e}")
+
+
+async def tool_mem_store(args: dict) -> list[TextContent]:
+    """Store data in GPU-backed development memory."""
+    _ensure_index_loaded()
+
+    key = args["key"]
+    value = args["value"]
+
+    # Allocate space at next available offset
+    # Index is at 0x100000, data starts at 0x100000 + 0x1000 (4KB offset)
+    base_offset = 0x1000
+    next_offset = base_offset
+
+    for k, v in _memory_index.items():
+        if isinstance(v, dict) and "offset" in v:
+            end = v["offset"] + v.get("size", 256)
+            next_offset = max(next_offset, end)
+
+    # Store the data
+    data = json.dumps({"key": key, "val": value, "ts": __import__("time").time()})
+    encoded = data.encode("utf-8")
+    hex_words = ""
+    for i in range(0, len(encoded), 4):
+        chunk = encoded[i : i + 4]
+        if len(chunk) < 4:
+            chunk = chunk + b"\x00" * (4 - len(chunk))
+        val = int.from_bytes(chunk, "little")
+        hex_words += f"{val:08x}"
+
+    abs_addr = DEV_MEM_START + next_offset
+
+    try:
+        resp = requests.post(f"{DAEMON_URL}/write?addr=0x{abs_addr:08x}", data=hex_words, timeout=2)
+        if resp.status_code != 200:
+            return [
+                TextContent(
+                    type="text", text=f"Error: Daemon returned {resp.status_code}: {resp.text}"
+                )
+            ]
+
+        # Update index
+        _memory_index[key] = {
+            "offset": next_offset,
+            "size": len(hex_words) // 8,  # Number of 32-bit words
+            "addr": f"0x{abs_addr:08x}",
+        }
+        _save_index()
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "success",
+                        "action": "GPU_MEM_STORE",
+                        "key": key,
+                        "addr": f"0x{abs_addr:08x}",
+                        "size_bytes": len(encoded),
+                        "substrate_region": "DEV_MEMORY",
+                        "hilbert_base": f"0x{DEV_MEM_START:08x}",
+                        "daemon": DAEMON_URL,
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except requests.exceptions.ConnectionError:
+        return [
+            TextContent(
+                type="text",
+                text=f"Error: Cannot connect to Ouroboros daemon at {DAEMON_URL}. Start it with: cargo run --release --bin gpu_dev_daemon",
+            )
+        ]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+
+async def tool_mem_retrieve(args: dict) -> list[TextContent]:
+    """Retrieve data from GPU-backed development memory."""
+    _ensure_index_loaded()
+
+    key = args.get("key")
+
+    if key:
+        if key not in _memory_index:
+            return [TextContent(type="text", text=f"Error: Key '{key}' not found in memory index")]
+
+        entry = _memory_index[key]
+        addr = DEV_MEM_START + entry["offset"]
+        size = entry.get("size", 256)
+
+        try:
+            resp = requests.get(f"{DAEMON_URL}/peek?addr=0x{addr:08x}&size={size}", timeout=2)
+            if resp.status_code != 200:
+                return [TextContent(type="text", text=f"Error: Daemon returned {resp.status_code}")]
+
+            hex_words = resp.text.strip().split()
+            raw_bytes = bytearray()
+            for word in hex_words:
+                val = int(word, 16)
+                raw_bytes.extend(val.to_bytes(4, "little"))
+
+            content = raw_bytes.decode("utf-8", errors="replace").rstrip("\x00")
+            data = json.loads(content)
+
+            return [
+                TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {
+                            "status": "success",
+                            "action": "GPU_MEM_RETRIEVE",
+                            "key": key,
+                            "addr": f"0x{addr:08x}",
+                            "data": data,
+                        },
+                        indent=2,
+                    ),
+                )
+            ]
+        except requests.exceptions.ConnectionError:
+            return [
+                TextContent(
+                    type="text", text=f"Error: Cannot connect to Ouroboros daemon at {DAEMON_URL}"
+                )
+            ]
+        except Exception as e:
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+    # Return all keys
+    return [
+        TextContent(
+            type="text",
+            text=json.dumps(
+                {
+                    "status": "success",
+                    "action": "GPU_MEM_LIST",
+                    "keys": list(_memory_index.keys()),
+                    "count": len(_memory_index),
+                    "substrate": f"0x{DEV_MEM_START:08x}",
+                },
+                indent=2,
+            ),
+        )
+    ]
+
+
+async def tool_mem_peek(args: dict) -> list[TextContent]:
+    """Read raw GPU memory."""
+    addr_str = args["addr"]
+    size = args.get("size", 16)
+
+    addr = int(addr_str, 16) if addr_str.startswith("0x") else int(addr_str)
+
+    try:
+        resp = requests.get(f"{DAEMON_URL}/peek?addr=0x{addr:08x}&size={size}", timeout=2)
+        if resp.status_code != 200:
+            return [TextContent(type="text", text=f"Error: Daemon returned {resp.status_code}")]
+
+        hex_words = resp.text.strip().split()
+
+        # Convert to readable format
+        raw_bytes = bytearray()
+        for word in hex_words:
+            val = int(word, 16)
+            raw_bytes.extend(val.to_bytes(4, "little"))
+
+        # ASCII representation
+        ascii_repr = "".join(chr(b) if 32 <= b < 127 else "." for b in raw_bytes)
+
+        # Calculate Hilbert coordinates
+        x, y = hilbert_d2xy(4096, addr)
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "success",
+                        "action": "GPU_PEEK",
+                        "addr": f"0x{addr:08x}",
+                        "hilbert_coords": {"x": x, "y": y},
+                        "size_words": len(hex_words),
+                        "hex": hex_words,
+                        "ascii": ascii_repr,
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except requests.exceptions.ConnectionError:
+        return [
+            TextContent(
+                type="text", text=f"Error: Cannot connect to Ouroboros daemon at {DAEMON_URL}"
+            )
+        ]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+
+async def tool_mem_poke(args: dict) -> list[TextContent]:
+    """Write a single value to GPU memory."""
+    addr_str = args["addr"]
+    val_str = args["val"]
+
+    addr = int(addr_str, 16) if addr_str.startswith("0x") else int(addr_str)
+    val = int(val_str, 16) if val_str.startswith("0x") else int(val_str)
+
+    # Calculate Hilbert coordinates
+    x, y = hilbert_d2xy(4096, addr)
+
+    try:
+        resp = requests.get(f"{DAEMON_URL}/poke?addr=0x{addr:08x}&val=0x{val:08x}", timeout=2)
+        if resp.status_code != 200:
+            return [TextContent(type="text", text=f"Error: Daemon returned {resp.status_code}")]
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "success",
+                        "action": "GPU_POKE",
+                        "addr": f"0x{addr:08x}",
+                        "val": f"0x{val:08x}",
+                        "hilbert_coords": {"x": x, "y": y},
+                        "daemon_response": resp.text.strip(),
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except requests.exceptions.ConnectionError:
+        return [
+            TextContent(
+                type="text", text=f"Error: Cannot connect to Ouroboros daemon at {DAEMON_URL}"
+            )
+        ]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+
+async def tool_vlm_health(args: dict) -> list[TextContent]:
+    """Run VLM vitality check on .rts.png file."""
+    rts_file = Path(args["rts_file"])
+    json_output = args.get("json", False)
+    verbose = args.get("verbose", False)
+
+    if not rts_file.exists():
+        return [TextContent(type="text", text=f"Error: RTS file not found: {rts_file}")]
+
+    # Path to the VLM health CLI
+    vlm_health_cli = GEOS_ROOT / "systems" / "pixel_compiler" / "vlm_health_cli.py"
+    if not vlm_health_cli.exists():
+        return [TextContent(type="text", text=f"Error: VLM health CLI not found: {vlm_health_cli}")]
+
+    # Build command
+    cmd = [sys.executable, str(vlm_health_cli), "check", str(rts_file)]
+    if json_output:
+        cmd.append("--json")
+    if verbose:
+        cmd.append("--verbose")
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(GEOS_ROOT))
+        if result.returncode != 0:
+            return [TextContent(type="text", text=f"VLM health check failed:\n{result.stderr}")]
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "success",
+                        "action": "VLM_HEALTH_CHECK",
+                        "rts_file": str(rts_file),
+                        "output": result.stdout.strip(),
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error running VLM health check: {str(e)}")]
+
+
+async def tool_daemon_status(args: dict) -> list[TextContent]:
+    """Check Ouroboros HAL daemon status on port 8769."""
+    try:
+        resp = requests.get(f"{DAEMON_URL}", timeout=2)
+        if resp.status_code == 200:
+            return [
+                TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {
+                            "status": "success",
+                            "action": "DAEMON_STATUS_CHECK",
+                            "daemon_url": DAEMON_URL,
+                            "status": "ONLINE",
+                            "response": resp.text.strip()[:200],  # Limit response length
+                        },
+                        indent=2,
+                    ),
+                )
+            ]
+        else:
+            return [
+                TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {
+                            "status": "error",
+                            "action": "DAEMON_STATUS_CHECK",
+                            "daemon_url": DAEMON_URL,
+                            "status": "OFFLINE",
+                            "error": f"Daemon returned status {resp.status_code}",
+                        },
+                        indent=2,
+                    ),
+                )
+            ]
+    except requests.exceptions.ConnectionError:
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "error",
+                        "action": "DAEMON_STATUS_CHECK",
+                        "daemon_url": DAEMON_URL,
+                        "status": "OFFLINE",
+                        "error": f"Cannot connect to Ouroboros daemon at {DAEMON_URL}. Start it with: cargo run --release --bin gpu_dev_daemon",
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error checking daemon status: {str(e)}")]
+
+
+async def tool_substrate_load(args: dict) -> list[TextContent]:
+    """Load .rts.png to running daemon via /load endpoint."""
+    rts_file = Path(args["rts_file"])
+
+    if not rts_file.exists():
+        return [TextContent(type="text", text=f"Error: RTS file not found: {rts_file}")]
+
+    try:
+        with open(rts_file, "rb") as f:
+            files = {"file": (rts_file.name, f, "image/png")}
+            resp = requests.post(f"{DAEMON_URL}/load", files=files, timeout=10)
+
+        if resp.status_code != 200:
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Error: Daemon returned {resp.status_code}: {resp.text}",
+                )
+            ]
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "success",
+                        "action": "SUBSTRATE_LOAD",
+                        "rts_file": str(rts_file),
+                        "daemon_url": DAEMON_URL,
+                        "response": resp.text.strip(),
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except requests.exceptions.ConnectionError:
+        return [
+            TextContent(
+                type="text",
+                text=f"Error: Cannot connect to Ouroboros daemon at {DAEMON_URL}. Start it with: cargo run --release --bin gpu_dev_daemon",
+            )
+        ]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error loading substrate: {str(e)}")]
+
+
+async def tool_gpu_write(args: dict) -> list[TextContent]:
+    """Batch write multiple values to GPU memory."""
+    addr_str = args["addr"]
+    data = args["data"]
+
+    addr = int(addr_str, 16) if addr_str.startswith("0x") else int(addr_str)
+
+    # Convert data array to hex string
+    hex_words = "".join(f"{val:08x}" for val in data)
+
+    try:
+        resp = requests.post(
+            f"{DAEMON_URL}/write?addr=0x{addr:08x}",
+            data=hex_words,
+            timeout=5,
+        )
+        if resp.status_code != 200:
+            return [TextContent(type="text", text=f"Error: Daemon returned {resp.status_code}")]
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "success",
+                        "action": "GPU_WRITE",
+                        "addr": f"0x{addr:08x}",
+                        "count": len(data),
+                        "daemon_response": resp.text.strip(),
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except requests.exceptions.ConnectionError:
+        return [
+            TextContent(
+                type="text",
+                text=f"Error: Cannot connect to daemon at {DAEMON_URL}",
+            )
+        ]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+
+async def tool_gpu_exec(args: dict) -> list[TextContent]:
+    """Execute shell command via daemon."""
+    cmd = args["cmd"]
+    cwd = args.get("cwd")
+    timeout = args.get("timeout", 30)
+
+    params = f"timeout={timeout}"
+    if cwd:
+        params += f"&cwd={cwd}"
+
+    try:
+        resp = requests.post(
+            f"{DAEMON_URL}/exec?{params}",
+            data=cmd,
+            timeout=timeout + 5,
+        )
+        if resp.status_code != 200:
+            return [TextContent(type="text", text=f"Error: Daemon returned {resp.status_code}")]
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "success",
+                        "action": "GPU_EXEC",
+                        "cmd": cmd,
+                        "cwd": cwd,
+                        "timeout": timeout,
+                        "output": resp.text.strip(),
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except requests.exceptions.ConnectionError:
+        return [
+            TextContent(
+                type="text",
+                text=f"Error: Cannot connect to daemon at {DAEMON_URL}",
+            )
+        ]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+
+async def tool_gpu_pause(args: dict) -> list[TextContent]:
+    """Pause all VMs."""
+    try:
+        resp = requests.get(f"{DAEMON_URL}/pause", timeout=2)
+        if resp.status_code != 200:
+            return [TextContent(type="text", text=f"Error: Daemon returned {resp.status_code}")]
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "success",
+                        "action": "GPU_PAUSE",
+                        "daemon_response": resp.text.strip(),
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except requests.exceptions.ConnectionError:
+        return [
+            TextContent(
+                type="text",
+                text=f"Error: Cannot connect to daemon at {DAEMON_URL}",
+            )
+        ]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+
+async def tool_gpu_vmstate(args: dict) -> list[TextContent]:
+    """Query VM state."""
+    vm = args.get("vm", 0)
+
+    try:
+        resp = requests.get(f"{DAEMON_URL}/vmstate?vm={vm}", timeout=2)
+        if resp.status_code != 200:
+            return [TextContent(type="text", text=f"Error: Daemon returned {resp.status_code}")]
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "success",
+                        "action": "GPU_VMSTATE",
+                        "vm": vm,
+                        "daemon_response": resp.text.strip(),
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except requests.exceptions.ConnectionError:
+        return [
+            TextContent(
+                type="text",
+                text=f"Error: Cannot connect to daemon at {DAEMON_URL}",
+            )
+        ]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
 
 
 async def main():
