@@ -1586,9 +1586,8 @@ async def tool_substrate_load(args: dict) -> list[TextContent]:
         return [TextContent(type="text", text=f"Error: RTS file not found: {rts_file}")]
 
     try:
-        with open(rts_file, "rb") as f:
-            files = {"file": (rts_file.name, f, "image/png")}
-            resp = requests.post(f"{DAEMON_URL}/load", files=files, timeout=10)
+        # Daemon expects the path as plain text body, not multipart
+        resp = requests.post(f"{DAEMON_URL}/load", data=str(rts_file), timeout=10)
 
         if resp.status_code != 200:
             return [
