@@ -1,40 +1,19 @@
-// Self-Modifying Code Demo
-// This program demonstrates GLYPH_WRITE to GLYPH_MUTATE to SEMANTIC_MERGE
+// Self-Modifying Code Demo (AI-Native Opcodes)
+// Demonstrates GLYPH_WRITE, M_STORE, GLYPH_MUTATE, SEMANTIC_MERGE
 
-.equ HELLO_str, 0
+// Constants
 .equ MEM_BASE, 0x1000
-.equ TEMP_BUF, 0x2000
 
-// Step 1: Write template to TEMP region
-LDI r0, 0x10000        // r0 = 42
-ST r0, TEMP_BUF, r0
+// Step 1: Store 42 in memory
+M_STORE 0x1000, 42
 
-// Step 2: Copy HALT to HALT copy template to window
-HALT_COPY:
-    GLYPH_WRITE WINDOW_BASE, TEMP_BUF, 0   // Copy 1 glyph
-    // Verify: After copy, window_base should have HALT (0x006400)
-    // Check TEMP_BUF[0] should have 42
-    // Step 3: Modify via GLYPH_MUTATE
-    // Change the stratum byte to 42
-    GLYPH_MUTATE WINDOW_BASE, 1, 42
-    
-    // Verify: After mutation, stratum should be 42
-    // Step 4: Set up another template
-LDI r1, 0x20000        // r1 = 42
-LD r2, TEMP_BUF, r1
-    
-// Step 5: Create another window via SEMANTIC_MERGE
-LDI r3, 42
-ST r3, TEMP_BUF, r3
-ST r4, TEMP_BUF, r4
-    
-// Step 6: Run and verify
-    // Execute the program (16 frames at 60fps)
-    // After execution, peek at results
-    // Peek at TEMP_BUF[0]: should have 42
-    // Peek at WINDOW_BASE[0]: should have 0x006400
-    // Peek at MEM_base+50]: should have 13
-    // Peek at mem_base + 60]: should have 77
-    
-    // Program halted at pc=8,    println!("Self-modifying demo complete!");
-    HALT
+// Step 2: Copy via GLYPH_WRITE (simulate M_STORE behavior)
+GLYPH_WRITE 0x2000
+ 0x1000, 0
+
+// Step 3: Modify via GLYPH_MUTATE
+GLYPH_MUTATE 0x2000, 1
+ 42
+
+// Step 4: Check results
+HALT
