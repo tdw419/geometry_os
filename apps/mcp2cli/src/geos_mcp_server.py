@@ -1524,7 +1524,8 @@ async def tool_vlm_health(args: dict) -> list[TextContent]:
 async def tool_daemon_status(args: dict) -> list[TextContent]:
     """Check Ouroboros HAL daemon status on port 8769."""
     try:
-        resp = requests.get(f"{DAEMON_URL}", timeout=2)
+        # Use /peek endpoint since root "/" doesn't exist
+        resp = requests.get(f"{DAEMON_URL}/peek?addr=0x0&size=1", timeout=2)
         if resp.status_code == 200:
             return [
                 TextContent(
@@ -1534,8 +1535,8 @@ async def tool_daemon_status(args: dict) -> list[TextContent]:
                             "status": "success",
                             "action": "DAEMON_STATUS_CHECK",
                             "daemon_url": DAEMON_URL,
-                            "status": "ONLINE",
-                            "response": resp.text.strip()[:200],  # Limit response length
+                            "daemon": "ONLINE",
+                            "test_peek": resp.text.strip()[:50],
                         },
                         indent=2,
                     ),
@@ -1550,7 +1551,7 @@ async def tool_daemon_status(args: dict) -> list[TextContent]:
                             "status": "error",
                             "action": "DAEMON_STATUS_CHECK",
                             "daemon_url": DAEMON_URL,
-                            "status": "OFFLINE",
+                            "daemon": "OFFLINE",
                             "error": f"Daemon returned status {resp.status_code}",
                         },
                         indent=2,
@@ -1566,7 +1567,7 @@ async def tool_daemon_status(args: dict) -> list[TextContent]:
                         "status": "error",
                         "action": "DAEMON_STATUS_CHECK",
                         "daemon_url": DAEMON_URL,
-                        "status": "OFFLINE",
+                        "daemon": "OFFLINE",
                         "error": f"Cannot connect to Ouroboros daemon at {DAEMON_URL}. Start it with: cargo run --release --bin gpu_dev_daemon",
                     },
                     indent=2,
