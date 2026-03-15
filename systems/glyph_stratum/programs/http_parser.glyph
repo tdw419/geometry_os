@@ -6,32 +6,32 @@
 //   GET /path HTTP/1.1
 //   POST /path HTTP/1.1\r\n...\r\n\r\n<body>
 //
+// NOTE: This glyph works with 4-byte word-aligned access.
+// - Method is parsed as 4-byte word comparison
+// - Path is returned as pointer to word-aligned position
+// - Body is returned as pointer after \r\n\r\n
+//
 // Input:
-//   r1 = pointer to request buffer
-//   r2 = pointer to output struct (caller-allocated)
+//   r1 = pointer to request buffer (word-aligned)
+//   r2 = pointer to output struct (caller-allocated, 20 bytes)
 //
 // Output struct layout:
-//   +0:  method (0=GET, 1=POST, 0xFF=ERROR)
-//   +4:  path pointer (points into request buffer)
-//   +8:  path length (bytes)
+//   +0:  method (0=GET, 1=POST, 0xFF=MALFORMED, 0xFE=UNSUPPORTED)
+//   +4:  path pointer (word-aligned position in request buffer)
+//   +8:  path length (bytes, approximate - rounds to word boundary)
 //   +12: body pointer (0 if no body)
-//   +16: body length (0 if no body)
-//
-// Error codes in method field:
-//   0xFF = malformed request
-//   0xFE = unsupported method
+//   +16: body length (0 if no body, in words)
 //
 // Register conventions:
 //   r1  = input buffer pointer (preserved)
 //   r2  = output struct pointer (preserved)
 //   r10 = current read position
 //   r11 = temp for calculations
-//   r12 = method code
+//   r12 = method code / temp
 //   r13 = path length counter
-//   r14 = temp char/value
+//   r14 = temp word value
 //   r15 = comparison temp
-//   r16 = body length
-//   r17 = temp pointer
+//   r16 = body length counter
 // ============================================================================
 
 .equ METHOD_GET,  0
@@ -39,9 +39,9 @@
 .equ ERROR_MALFORMED, 0xFF
 .equ ERROR_UNSUPPORTED, 0xFE
 
-.equ CR, 0x0D
-.equ LF, 0x0A
-.equ SPACE, 0x20
+// HTTP method constants (4-char ASCII as u32, little-endian)
+.equ HTTP_GET,  0x20544547  // "GET "
+.equ HTTP_POST, 0x54534F50  // "POST"
 
 // ============================================================================
 // Entry Point
@@ -71,8 +71,7 @@
     ADD r2, r11
     STORE r2, r0         // body length = 0
 
-    // Restore r2 to base
-    // (We added 16 total, subtract back)
+    // Restore r2 to base (subtracted 16 total)
     LDI r11, 16
     SUB r2, r11
 
@@ -85,17 +84,14 @@
     LOAD r10, r12        // r12 = first word of request
 
     // Check for "GET " (0x20544547)
-    // In little-endian: 'G'(0x47) 'E'(0x45) 'T'(0x54) ' '(0x20)
-    LDI r11, 0x20544547
+    LDI r11, HTTP_GET
     SUB r12, r11
     LDI r11, found_get
     JZ r12, r11
 
     // Check for "POST" (0x54534F50)
-    // In little-endian: 'P'(0x50) 'O'(0x4F) 'S'(0x53) 'T'(0x54)
-    // Need to reload r12 since SUB modified it
     LOAD r10, r12
-    LDI r11, 0x54534F50
+    LDI r11, HTTP_POST
     SUB r12, r11
     LDI r11, found_post
     JZ r12, r11
@@ -107,7 +103,7 @@
     LDI r11, return_malformed
     JZ r12, r11
 
-    // Unsupported method
+    // Unsupported method (PUT, DELETE, etc.)
     LDI r11, return_unsupported
     JMP r11
 
@@ -115,8 +111,8 @@
     LDI r12, METHOD_GET
     STORE r2, r12        // output.method = GET
 
-    // Advance past "GET " (4 bytes)
-    LDI r11, 4
+    // Advance past "GET " (1 word = 4 bytes)
+    LDI r11, 1
     ADD r10, r11
     JMP parse_path
 
@@ -124,55 +120,58 @@
     LDI r12, METHOD_POST
     STORE r2, r12        // output.method = POST
 
-    // Advance past "POST" (4 bytes)
-    // Still need to skip the space after POST
-    LDI r11, 4
+    // Advance past "POST" (1 word, then parse_path skips space)
+    LDI r11, 1
     ADD r10, r11
     JMP parse_path
 
 // ============================================================================
 // Parse Path
 // ============================================================================
+// Path starts at current position (word-aligned)
+// We scan word-by-word looking for space or CR
 
 :parse_path
-    // Skip leading space if present
-    LOAD r10, r14        // r14 = current char
-    LDI r11, SPACE
-    SUB r14, r11
-    LDI r11, skip_space_done
-    JNZ r14, r11
-
-    // It was a space, skip it
-    LDI r11, 1
-    ADD r10, r11
-
-:skip_space_done
     // Store path pointer at output+4
     LDI r11, 4
     ADD r2, r11
     STORE r2, r10        // output.path_ptr = current position
-
-    // Restore r2
     LDI r11, 4
     SUB r2, r11
 
-    // Count path length
-    MOV r13, r0          // r13 = 0 (length counter)
+    // Count path length in words
+    LDI r13, 0           // r13 = word counter
 
 :count_path_loop
-    LOAD r10, r14        // r14 = current char
+    LOAD r10, r14        // r14 = current word
 
-    // Check for space (end of path)
-    LDI r11, SPACE
-    SUB r14, r11
-    LDI r11, path_done
-    JZ r14, r11
+    // Check if word contains space (0x20) or CR (0x0D)
+    // We check the first byte (lowest 8 bits)
+    LDI r11, 0xFF
+    AND r14, r11         // r11 = first byte
+    LDI r15, 0x20        // space
+    SUB r11, r15
+    LDI r15, path_done
+    JZ r11, r15
 
-    // Check for CR (malformed but handle it)
-    LDI r11, CR
-    SUB r14, r11
-    LDI r11, path_done
-    JZ r14, r11
+    // Check for CR in first byte
+    LDI r11, 0xFF
+    AND r14, r11
+    LDI r15, 0x0D        // CR
+    SUB r11, r15
+    LDI r15, path_done
+    JZ r11, r15
+
+    // Check for space in other bytes of the word
+    // Shift right and check each byte
+    LDI r15, 8
+    SHR r14, r15         // shift right 8 bits
+    LDI r11, 0xFF
+    AND r14, r11
+    LDI r15, 0x20
+    SUB r11, r15
+    LDI r15, path_done
+    JZ r11, r15
 
     // Increment position and counter
     LDI r11, 1
@@ -180,50 +179,41 @@
     LDI r11, 1
     ADD r13, r11
 
-    // Check max path length (256)
-    LDI r11, 256
+    // Max path length check (64 words = 256 bytes)
+    LDI r11, 64
     SUB r13, r11
     LDI r11, count_path_loop
     JNZ r13, r11
 
-    // Path too long, stop counting
-    JMP path_done
-
 :path_done
-    // Store path length at output+8
+    // Store path length (in bytes: words * 4)
+    LDI r11, 4
+    MUL r13, r11         // r13 = r13 * 4 (bytes)
+
     LDI r11, 8
     ADD r2, r11
     STORE r2, r13        // output.path_len = r13
-
-    // Restore r2
     LDI r11, 8
     SUB r2, r11
 
-    // Skip space after path
+    // Skip to end of first line (find \r\n)
+:skip_to_newline
     LOAD r10, r14
-    LDI r11, SPACE
-    SUB r14, r11
-    LDI r11, skip_http_version
-    JNZ r14, r11
+    // Check for CR in lowest byte
+    LDI r11, 0xFF
+    AND r14, r11
+    LDI r15, 0x0D
+    SUB r11, r15
+    LDI r15, found_first_cr
+    JZ r11, r15
+
     LDI r11, 1
     ADD r10, r11
+    JMP skip_to_newline
 
-:skip_http_version
-    // Skip "HTTP/1.1\r\n" or "HTTP/1.0\r\n"
-    // Find first \r\n
-:skip_version_loop
-    LOAD r10, r14
-    LDI r11, CR
-    SUB r14, r11
-    LDI r11, found_version_cr
-    JZ r14, r11
+:found_first_cr
+    // Skip past \r\n (advance by 1 word to be safe)
     LDI r11, 1
-    ADD r10, r11
-    JMP skip_version_loop
-
-:found_version_cr
-    // Skip \r\n (2 bytes)
-    LDI r11, 2
     ADD r10, r11
 
     // Check if this is a POST request (needs body parsing)
@@ -239,92 +229,84 @@
 // ============================================================================
 // Parse Body (POST only)
 // ============================================================================
+// Find \r\n\r\n (end of headers), then body starts after
 
 :parse_body
-    // Need to find \r\n\r\n (end of headers)
-    // Then body starts after that
+    // Scan for \r\n\r\n pattern
+    // We look for two consecutive CR bytes in word-aligned positions
 
-:find_header_end_loop
-    LOAD r10, r14        // r14 = current char
+:find_header_end
+    LOAD r10, r14
 
-    // Check for CR
-    LDI r11, CR
+    // Check if this word starts with \r\n
+    // In little-endian: \r\n = 0x0A0D
+    LDI r11, 0x0A0D
+    LDI r15, 0xFFFF
+    AND r14, r15
     SUB r14, r11
-    LDI r11, check_first_lf
-    JZ r14, r11
+    LDI r15, check_double_crlf
+    JZ r14, r15
 
-    // Not CR, continue
+    // Not found, advance
     LDI r11, 1
     ADD r10, r11
-    JMP find_header_end_loop
+    JMP find_header_end
 
-:check_first_lf
-    // Check if next char is LF
-    LDI r11, 1
-    ADD r10, r11         // r10 now points to char after CR
-    LOAD r10, r14
-    LDI r11, LF
-    SUB r14, r11
-    LDI r11, find_header_end_loop
-    JNZ r14, r11         // Not LF, continue searching
-
-    // Found \r\n, check if next is \r\n too
-    LDI r11, 1
-    ADD r10, r11         // r10 now points to char after LF
-    LOAD r10, r14
-    LDI r11, CR
-    SUB r14, r11
-    LDI r11, find_header_end_loop
-    JNZ r14, r11         // Not CR, continue searching
-
-    // Check if next is LF
+:check_double_crlf
+    // Check if next word also starts with \r\n (i.e., \r\n\r\n)
     LDI r11, 1
     ADD r10, r11
     LOAD r10, r14
-    LDI r11, LF
-    SUB r14, r11
-    LDI r11, find_header_end_loop
-    JNZ r14, r11         // Not LF, continue searching
 
-    // Found \r\n\r\n! Body starts at r10 + 1
+    LDI r11, 0x0A0D
+    LDI r15, 0xFFFF
+    AND r14, r15
+    SUB r14, r11
+    LDI r15, found_body_start
+    JZ r14, r15
+
+    // Not \r\n\r\n, continue searching (go back one word since we advanced)
+    JMP find_header_end
+
+:found_body_start
+    // Body starts at next word
     LDI r11, 1
     ADD r10, r11
 
     // Store body pointer at output+12
-    LDI r17, 12
-    ADD r2, r17
+    LDI r11, 12
+    ADD r2, r11
     STORE r2, r10        // output.body_ptr = current position
-    LDI r17, 12
-    SUB r2, r17
+    LDI r11, 12
+    SUB r2, r11
 
-    // Calculate body length
-    // We need to find end of body (next null or end of buffer)
-    // For simplicity, count until we hit 0 or max (1024)
-    LDI r16, 0           // r16 = body length counter
+    // Count body length in words
+    LDI r16, 0
 
 :count_body_loop
     LOAD r10, r14
+    // Check for null terminator (empty word)
     LDI r11, 0
     SUB r14, r11
     LDI r11, body_count_done
-    JZ r14, r11          // Hit null terminator
+    JZ r14, r11
 
     LDI r11, 1
     ADD r10, r11
     LDI r11, 1
     ADD r16, r11
 
-    // Max body length check
-    LDI r11, 1024
+    // Max body length check (256 words = 1KB)
+    LDI r11, 256
     SUB r16, r11
     LDI r11, count_body_loop
     JNZ r16, r11
 
 :body_count_done
-    // Store body length at output+16
-    LDI r17, 16
-    ADD r2, r17
-    STORE r2, r16        // output.body_len = r16
+    // Store body length (in words)
+    LDI r11, 16
+    ADD r2, r11
+    STORE r2, r16        // output.body_len = r16 (words)
 
     HALT
 
