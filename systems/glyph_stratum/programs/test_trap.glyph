@@ -1,0 +1,56 @@
+// ============================================================================
+// Geometry OS - Trap Interface Test
+// ============================================================================
+//
+// Tests the trap mechanism by requesting a PEEK_SUBSTRATE operation.
+
+.equ TRAP_BASE,    0xFF000000
+.equ TRAP_OP,      0xFF000000
+.equ TRAP_ARG0,    0xFF000004
+.equ TRAP_ARG1,    0xFF000008
+.equ TRAP_RESULT,  0xFF000010
+.equ TRAP_STATUS,  0xFF000014
+
+.equ STATUS_IDLE,     0
+.equ STATUS_PENDING,  1
+.equ STATUS_COMPLETE, 2
+
+.equ OP_PEEK, 5
+.equ OP_POKE, 6
+
+:main
+    // Write test pattern to substrate first
+    LDI r1, 0xDEADBEEF
+    LDI r2, 0x0100      // Address to write
+    STORE r2, r1
+
+    // Request PEEK via trap
+    LDI r1, TRAP_OP
+    LDI r2, OP_PEEK     // op_type = PEEK_SUBSTRATE
+    STORE r1, r2
+
+    LDI r1, TRAP_ARG0
+    LDI r2, 0x0100      // arg0 = address to peek
+    STORE r1, r2
+
+    LDI r1, TRAP_STATUS
+    LDI r2, STATUS_PENDING
+    STORE r1, r2        // Signal pending
+
+:wait_complete
+    LDI r1, TRAP_STATUS
+    LOAD r1, r2
+    LDI r3, STATUS_COMPLETE
+    SUB r2, r3
+    JNZ wait_complete   // Loop until complete
+
+    // Read result
+    LDI r1, TRAP_RESULT
+    LOAD r1, r10        // r10 = peeked value
+
+    // Write result to visible location
+    LDI r1, 0x0200
+    STORE r1, r10
+
+    // Halt
+    HALT
