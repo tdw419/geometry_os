@@ -28,6 +28,14 @@ pub mod status {
     pub const COMPLETE: u32 = 2;
 }
 
+/// Brain state memory addresses (for brain.glyph self-improvement loop)
+pub mod brain_state {
+    pub const BRAIN_CYCLE: u32 = 0x0300;
+    pub const BRAIN_ENTROPY: u32 = 0x0304;
+    pub const BRAIN_MUTATIONS: u32 = 0x0308;
+    pub const BRAIN_PEAK: u32 = 0x030C;
+}
+
 /// Trap interface offsets (relative to TRAP_BASE)
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
