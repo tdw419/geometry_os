@@ -15,13 +15,22 @@ use std::io::Write;
 use std::net::TcpListener;
 use std::os::unix::net::UnixListener;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant};
+
+use tokio::runtime::Runtime;
 
 use infinite_map_rs::brain_bridge::{BrainBridge, BrainBridgeConfig};
 use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
 use infinite_map_rs::trap_interface::{TrapRegs, op_type, status, TRAP_BASE};
+
+/// Static Tokio runtime for async operations (avoids creating new runtime on each trap)
+static TOKIO_RT: OnceLock<Runtime> = OnceLock::new();
+
+fn get_tokio_rt() -> &'static Runtime {
+    TOKIO_RT.get_or_init(|| Runtime::new().expect("Failed to create tokio runtime"))
+}
 
 /// Call LM Studio for inference via HTTP
 async fn call_lm_studio(request: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
@@ -124,8 +133,7 @@ impl TrapHandler {
                 let request = String::from_utf8_lossy(&request_bytes).to_string();
 
                 // Call LM Studio
-                let rt = tokio::runtime::Runtime::new().unwrap();
-                let response = rt.block_on(call_lm_studio(&request)).unwrap_or_default();
+                let response = get_tokio_rt().block_on(call_lm_studio(&request)).unwrap_or_default();
 
                 // Write response to substrate
                 for (i, byte) in response.bytes().take(4096).enumerate() {
