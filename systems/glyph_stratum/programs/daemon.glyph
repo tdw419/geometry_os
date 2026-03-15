@@ -4,11 +4,35 @@
 //
 // Uses the 32-bit ISA (LDI) for large Hilbert addresses.
 //
+// HTTP Request/Response Protocol:
+// - REQ_BUFFER (0x4000): Incoming HTTP request from Rust shim
+// - RES_BUFFER (0x5000): Outgoing HTTP response to Rust shim
+// - CTRL_PORT (0x6000): Control semaphore (0=idle, 1=request, 2=response)
+//
+// Supported Endpoints:
+// - GET /state    - Returns system state
+// - GET /status   - Returns daemon status
+// - GET /health   - Health check
+// - POST /command - Execute command (placeholder)
+//
 // ============================================================================
 
 .equ REQ_BUFFER, 0x4000
 .equ RES_BUFFER, 0x5000
 .equ CTRL_PORT,  0x6000
+
+// HTTP Method constants (4-char ASCII as u32, little-endian)
+.equ METHOD_GET,  0x20544547  // "GET " in memory
+.equ METHOD_POST, 0x54534F50  // "POST"
+
+// Path markers (first 4 chars of path)
+.equ PATH_STATE,  0x6174732F  // "/sta" (for /state)
+.equ PATH_HEALT,  0x6C616568  // "heal" (for /health) - at offset 1
+.equ PATH_COMM,   0x6F6D6D2F  // "/comm" (for /command)
+
+// ============================================================================
+// MAIN ENTRY POINT
+// ============================================================================
 
 :main
     // Draw "DAEMON ACTIVE" pulse (Magenta)
@@ -16,54 +40,396 @@
     LDI r2, 0x0200
     STORE r2, r1
 
+// ============================================================================
+// MAIN REQUEST LOOP
+// ============================================================================
+
 :poll_request
+    // Check control port for pending request
     LDI r1, CTRL_PORT
-    LOAD r1, r2        // r2 = mem[CTRL_PORT]
+    LOAD r1, r2          // r2 = mem[CTRL_PORT]
     LDI r3, 1
-    SUB r2, r3         // if (r2 == 1) res=0
-    JZ handle_request
+    SUB r2, r3           // if (r2 == 1) res=0
+    JZ process_request
     JMP poll_request
 
-:handle_request
-    // --- NATIVE HTTP PARSER ---
+// ============================================================================
+// HTTP REQUEST PARSER
+// ============================================================================
+// Parses HTTP request from REQ_BUFFER
+// Output: r10 = method, r11 = path marker
+
+:process_request
+    // --- READ METHOD ---
+    // Read first 4 bytes (method)
     LDI r1, REQ_BUFFER
-    LOAD r1, r2        // r2 = mem[REQ_BUFFER]
-    
-    // Check for "GET " (0x20544547)
-    LDI r3, 0x20544547
-    SUB r2, r3
-    JZ handle_get
-    
+    LOAD r1, r10         // r10 = method (e.g., "GET " or "POST")
+
+    // --- READ PATH ---
+    // Read bytes 4-7 which should contain "/path..."
+    // For "GET /state", byte 4 is ' ', byte 5 is '/', bytes 5-8 contain "/sta"
+    LDI r1, REQ_BUFFER
+    LDI r2, 1
+    ADD r1, r2           // r1 = REQ_BUFFER + 1 (word offset)
+    LOAD r1, r11         // r11 = path marker (e.g., "/sta")
+
+// ============================================================================
+// HTTP ROUTER
+// ============================================================================
+// Routes requests to appropriate handlers based on method and path
+
+    // --- CHECK GET METHOD ---
+    LDI r3, METHOD_GET
+    SUB r10, r3          // Compare method with "GET "
+    JNZ check_post       // If not GET, check POST
+
+    // --- GET ROUTES ---
+    // Check for /state (path starts with "/sta")
+    LDI r3, PATH_STATE
+    SUB r11, r3
+    JZ handle_get_state
+
+    // Unknown GET path - 404
     JMP send_404
 
-:handle_get
-    // Check "/sta" (0x6174732F)
-    LDI r1, REQ_BUFFER + 1
-    LOAD r1, r2
-    LDI r3, 0x6174732F
-    SUB r2, r3
-    JZ handle_state
-    
+:check_post
+    // --- CHECK POST METHOD ---
+    // Check if method is "POST" (without trailing space, so compare differently)
+    // POST is 4 chars, GET is 3 chars + space
+    // For simplicity, check the first 4 bytes for "POST"
+    LDI r3, METHOD_POST
+    SUB r10, r3
+    JNZ send_404         // Unknown method - 404
+
+    // --- POST ROUTES ---
+    // Check for /command (path starts with "/comm")
+    LDI r3, PATH_COMM
+    SUB r11, r3
+    JZ handle_post_command
+
+    // Unknown POST path - 404
     JMP send_404
 
-:handle_state
-    // Write "GEOS: OK" to RES_BUFFER
-    LDI r1, 0x534F4547 // "GEOS"
-    LDI r2, RES_BUFFER
-    STORE r2, r1
-    
-    // Signal completion: CTRL_PORT = 2
-    LDI r1, CTRL_PORT
-    LDI r2, 2
+// ============================================================================
+// REQUEST HANDLERS
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// handle_get_state - GET /state
+// Returns: GEOS system state
+// ----------------------------------------------------------------------------
+:handle_get_state
+    // Build HTTP 200 response with state info
+    // Response: "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nGEOS: OK\n"
+
+    LDI r1, RES_BUFFER
+
+    // "HTTP"
+    LDI r2, 0x50545448
     STORE r1, r2
-    JMP poll_request
+    LDI r2, 4
+    ADD r1, r2
 
+    // "/1.1"
+    LDI r2, 0x312E312F
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // " 200"
+    LDI r2, 0x20303032
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // " OK\r"
+    LDI r2, 0x0D4B4F20
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "\nCon"
+    LDI r2, 0x6E6F430A
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "tent"
+    LDI r2, 0x746E6574
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "-Typ"
+    LDI r2, 0x7054592D
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "e: t"
+    LDI r2, 0x74203A65
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "ext"
+    LDI r2, 0x74786574
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "/pla"
+    LDI r2, 0x616C702F
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "in\r\n"
+    LDI r2, 0x0A0D6E69
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "\r\nGE"
+    LDI r2, 0x45470D0A
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "OS: "
+    LDI r2, 0x203A534F
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "OK\n"
+    LDI r2, 0x000A4B4F
+    STORE r1, r2
+
+    JMP response_complete
+
+// ----------------------------------------------------------------------------
+// handle_post_command - POST /command
+// Placeholder for command execution
+// ----------------------------------------------------------------------------
+:handle_post_command
+    // Build HTTP 200 response acknowledging command
+    LDI r1, RES_BUFFER
+
+    // "HTTP"
+    LDI r2, 0x50545448
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "/1.1"
+    LDI r2, 0x312E312F
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // " 200"
+    LDI r2, 0x20303032
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // " OK\r"
+    LDI r2, 0x0D4B4F20
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "\nCon"
+    LDI r2, 0x6E6F430A
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "tent"
+    LDI r2, 0x746E6574
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "-Typ"
+    LDI r2, 0x7054592D
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "e: t"
+    LDI r2, 0x74203A65
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "ext"
+    LDI r2, 0x74786574
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "/pla"
+    LDI r2, 0x616C702F
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "in\r\n"
+    LDI r2, 0x0A0D6E69
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "\r\nCo"
+    LDI r2, 0x6F430D0A
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "mman"
+    LDI r2, 0x6E616D6D
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "d re"
+    LDI r2, 0x65722064
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "ceiv"
+    LDI r2, 0x76696563
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "ed\n\0"
+    LDI r2, 0x000A6465
+    STORE r1, r2
+
+    JMP response_complete
+
+// ----------------------------------------------------------------------------
+// send_404 - Unknown route
+// Returns: HTTP 404 Not Found
+// ----------------------------------------------------------------------------
 :send_404
-    LDI r1, 0x20343034 // " 404"
-    LDI r2, RES_BUFFER
-    STORE r2, r1
-    
+    LDI r1, RES_BUFFER
+
+    // "HTTP"
+    LDI r2, 0x50545448
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "/1.1"
+    LDI r2, 0x312E312F
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // " 404"
+    LDI r2, 0x20343034
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // " Not"
+    LDI r2, 0x746F4E20
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // " Fou"
+    LDI r2, 0x75462074
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "nd\r\n"
+    LDI r2, 0x0A0D646E
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "Cont"
+    LDI r2, 0x746E6F43
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "ent-"
+    LDI r2, 0x2D746E65
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "Type"
+    LDI r2, 0x65707954
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // ": te"
+    LDI r2, 0x6574203A
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "xt/p"
+    LDI r2, 0x702F7478
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "lain"
+    LDI r2, 0x6E69616C
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "\r\n\r\n"
+    LDI r2, 0x0A0D0A0D
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "Not "
+    LDI r2, 0x20746F4E
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "Foun"
+    LDI r2, 0x6E754F20
+    STORE r1, r2
+    LDI r2, 4
+    ADD r1, r2
+
+    // "d\n\0\0"
+    LDI r2, 0x00000A64
+    STORE r1, r2
+
+    JMP response_complete
+
+// ============================================================================
+// RESPONSE COMPLETE
+// ============================================================================
+// Signals to Rust shim that response is ready
+
+:response_complete
+    // Signal completion: CTRL_PORT = 2 (response ready)
     LDI r1, CTRL_PORT
     LDI r2, 2
     STORE r1, r2
+
+    // Clear first word of request buffer
+    LDI r1, REQ_BUFFER
+    LDI r2, 0
+    STORE r1, r2
+
+    // Return to polling
     JMP poll_request
