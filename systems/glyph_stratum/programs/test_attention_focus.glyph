@@ -1,0 +1,23 @@
+// Test ATTENTION_FOCUS (opcode 233)
+// This test marks a VM region as "active" for the scheduler
+
+// Set up memory with some data
+LD r1, 42        // Load 42 into r1 (answer to everything)
+
+// Mark VM 1 as active (scheduler will focus on it)
+ATTENTION_FOCUS 0, 100, 1
+
+// Simple calculation to verify VM is running
+ADD r2, r1       // r2 = r1 + r1 = 43
+SUB r3, r1       // r3 = r1 - 1 = 41
+
+// If r3 == 42, we found the answer
+CMP r3, 42
+JZ correct
+
+// Wrong answer - halt with error
+HALT
+
+:correct
+// Correct answer - halt cleanly
+HALT
