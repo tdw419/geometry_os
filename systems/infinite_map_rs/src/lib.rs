@@ -24,6 +24,7 @@
 
 // Refactored app state sub-structs for improved maintainability
 pub mod app_state;
+pub mod brain_bridge;
 pub mod glyph_stratum;
 pub use app_state::{
     BridgeState, CognitiveState, CompilationStatus, CompilerState, InputState, MapState,

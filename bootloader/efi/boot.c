@@ -35,8 +35,16 @@ struct geometry_os_boot_info {
 	UINT32 num_compute_units;
 	UINT64 init_glyph_base;		/* Address of loaded window_manager.rts.png */
 	UINT64 init_glyph_size;		/* Size of loaded glyph program */
+	UINT64 guest_os_base;		/* Address of loaded ubuntu_native.rts.png */
+	UINT64 guest_os_size;
 	UINT64 microcode_base;		/* Address of glyph_microcode.spv */
 	UINT64 microcode_size;		/* Size of microcode */
+	/* AMD Firmware Textures */
+	UINT64 fw_pfp_base;
+	UINT64 fw_me_base;
+	UINT64 fw_ce_base;
+	UINT64 fw_mec_base;
+	UINT64 fw_rlc_base;
 	UINT8  reserved[20];
 };
 
@@ -489,12 +497,33 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE Handle, EFI_SYSTEM_TABLE *SysTable)
 	}
 	KernelEntryFunc = (kernel_entry_t)KernelEntry;
 
-	/* Step 5: Load initial glyph program (optional) */
+	/* Step 5: Load initial glyph program (RISC-V Emulator) */
 	void *InitGlyphBase;
 	UINT64 InitGlyphSize;
-	Status = load_init_glyph(Handle, &InitGlyphBase, &InitGlyphSize);
+	Status = load_file(Handle, L"\\qemu_riscv.rts.png", &InitGlyphBase, &InitGlyphSize);
+	if (EFI_ERROR(Status)) {
+		Print(L"qemu_riscv.rts.png not found - using window_manager.rts.png fallback\r\n");
+		load_file(Handle, L"\\window_manager.rts.png", &InitGlyphBase, &InitGlyphSize);
+	}
 
-	/* Step 6: Load glyph microcode (required) */
+	/* Step 6: Load Guest OS (Raw Binary or RTS) */
+	void *GuestOsBase;
+	UINT64 GuestOsSize;
+	// Try raw binary first, then fall back to RTS
+	Status = load_file(Handle, L"\\ubuntu.bin", &GuestOsBase, &GuestOsSize);
+	if (EFI_ERROR(Status)) {
+		Status = load_file(Handle, L"\\ubuntu_native.rts.png", &GuestOsBase, &GuestOsSize);
+	}
+	
+	if (EFI_ERROR(Status)) {
+		Print(L"No guest OS binary found (tried ubuntu.bin and ubuntu_native.rts.png)\r\n");
+		GuestOsBase = 0;
+		GuestOsSize = 0;
+	} else {
+		Print(L"Guest OS loaded: %lu bytes\r\n", GuestOsSize);
+	}
+
+	/* Step 7: Load glyph microcode (required) */
 	void *MicrocodeBase;
 	UINT64 MicrocodeSize;
 	Status = load_microcode(Handle, &MicrocodeBase, &MicrocodeSize);
@@ -502,7 +531,16 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE Handle, EFI_SYSTEM_TABLE *SysTable)
 		return Status;
 	}
 
-	/* Step 7: Prepare boot info */
+	/* Step 8: Load AMD Firmware Textures (Optional but recommended) */
+	void *FwPfp, *FwMe, *FwCe, *FwMec, *FwRlc;
+	UINT64 FwSize;
+	load_file(Handle, L"\\navi10_pfp.rts.png", &FwPfp, &FwSize);
+	load_file(Handle, L"\\navi10_me.rts.png", &FwMe, &FwSize);
+	load_file(Handle, L"\\navi10_ce.rts.png", &FwCe, &FwSize);
+	load_file(Handle, L"\\navi10_mec.rts.png", &FwMec, &FwSize);
+	load_file(Handle, L"\\navi10_rlc.rts.png", &FwRlc, &FwSize);
+
+	/* Step 9: Prepare boot info */
 	Print(L"[5/5] Preparing boot information...\r\n");
 	BootInfo.magic = 0x47454F535F52ULL; /* "GEOSR" */
 	BootInfo.gpu_mmio_base = GpuMmioBase;
@@ -511,8 +549,15 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE Handle, EFI_SYSTEM_TABLE *SysTable)
 	BootInfo.glyph_memory_size = 256 * 1024 * 1024;
 	BootInfo.init_glyph_base = (UINT64)InitGlyphBase;
 	BootInfo.init_glyph_size = InitGlyphSize;
+	BootInfo.guest_os_base = (UINT64)GuestOsBase;
+	BootInfo.guest_os_size = GuestOsSize;
 	BootInfo.microcode_base = (UINT64)MicrocodeBase;
 	BootInfo.microcode_size = MicrocodeSize;
+	BootInfo.fw_pfp_base = (UINT64)FwPfp;
+	BootInfo.fw_me_base = (UINT64)FwMe;
+	BootInfo.fw_ce_base = (UINT64)FwCe;
+	BootInfo.fw_mec_base = (UINT64)FwMec;
+	BootInfo.fw_rlc_base = (UINT64)FwRlc;
 
 	Print(L"\r\n");
 	Print(L"Boot configuration:\r\n");

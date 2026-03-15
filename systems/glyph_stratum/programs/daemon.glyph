@@ -1,0 +1,69 @@
+// ============================================================================
+// Geometry OS - Native Daemon (Ouroboros)
+// ============================================================================
+//
+// Uses the 32-bit ISA (LDI) for large Hilbert addresses.
+//
+// ============================================================================
+
+.equ REQ_BUFFER, 0x4000
+.equ RES_BUFFER, 0x5000
+.equ CTRL_PORT,  0x6000
+
+:main
+    // Draw "DAEMON ACTIVE" pulse (Magenta)
+    LDI r1, 0xFFFF00FF
+    LDI r2, 0x0200
+    STORE r2, r1
+
+:poll_request
+    LDI r1, CTRL_PORT
+    LOAD r1, r2        // r2 = mem[CTRL_PORT]
+    LDI r3, 1
+    SUB r2, r3         // if (r2 == 1) res=0
+    JZ handle_request
+    JMP poll_request
+
+:handle_request
+    // --- NATIVE HTTP PARSER ---
+    LDI r1, REQ_BUFFER
+    LOAD r1, r2        // r2 = mem[REQ_BUFFER]
+    
+    // Check for "GET " (0x20544547)
+    LDI r3, 0x20544547
+    SUB r2, r3
+    JZ handle_get
+    
+    JMP send_404
+
+:handle_get
+    // Check "/sta" (0x6174732F)
+    LDI r1, REQ_BUFFER + 1
+    LOAD r1, r2
+    LDI r3, 0x6174732F
+    SUB r2, r3
+    JZ handle_state
+    
+    JMP send_404
+
+:handle_state
+    // Write "GEOS: OK" to RES_BUFFER
+    LDI r1, 0x534F4547 // "GEOS"
+    LDI r2, RES_BUFFER
+    STORE r2, r1
+    
+    // Signal completion: CTRL_PORT = 2
+    LDI r1, CTRL_PORT
+    LDI r2, 2
+    STORE r1, r2
+    JMP poll_request
+
+:send_404
+    LDI r1, 0x20343034 // " 404"
+    LDI r2, RES_BUFFER
+    STORE r2, r1
+    
+    LDI r1, CTRL_PORT
+    LDI r2, 2
+    STORE r1, r2
+    JMP poll_request

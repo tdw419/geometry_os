@@ -1,0 +1,35 @@
+// Simple Counter Program
+// Increments a counter at address 0x100 repeatedly
+//
+// Register usage:
+//   r0 = counter address (0x100)
+//   r1 = increment value address (0x104)
+//   r2 = temp for counter value
+//   r3 = loop target address
+//   r4 = temp for increment value
+
+.equ COUNTER_ADDR 0x100
+.equ INCR_ADDR    0x104
+.equ LOOP_START   0
+
+:boot
+    // Initialize r0 = COUNTER_ADDR (we need to load from memory since no LDI)
+    // Actually, we'll use the daemon to pre-initialize registers
+    // r0 = 0x40 (Hilbert address for counter)
+    // r1 = 0x80 (Hilbert address for increment value = 1)
+    // r3 = 0 (loop target)
+
+    // LOAD: r2 = mem[r0]  (load counter)
+    .glyph 3, 1, 0, 2
+
+    // LOAD: r4 = mem[r1]  (load increment value)
+    .glyph 3, 1, 1, 4
+
+    // ADD: r2 = r4 + r2   (increment counter)
+    .glyph 5, 2, 4, 2
+
+    // STORE: mem[r0] = r2 (save counter)
+    .glyph 4, 1, 0, 2
+
+    // JMP: pc = r3        (loop)
+    .glyph 9, 2, 3, 0

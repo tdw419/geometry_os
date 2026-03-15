@@ -1,0 +1,478 @@
+// ============================================================================
+// Geometry OS - Glyph-Native RISC-V Emulator (RV64I)
+// ============================================================================
+//
+// A minimal RV64I CPU emulator written entirely in Geometry OS Glyph assembly.
+//
+// Memory Layout:
+// 0x10000 - 0x13FFF: Emulator Code (this program)
+// 0x14000 - 0x140FF: Emulator State (PC, temp registers)
+// 0x14100 - 0x1413F: RV64 Registers x0-x31 (64-bit: Low at 2*i, High at 2*i+1)
+// 0x18000 - ...:     Guest RAM (Alpine/Ubuntu)
+//
+// ============================================================================
+
+.equ GUEST_PC, 0x14000
+.equ GUEST_HW_FLAG, 0x14001
+.equ GUEST_REG_BASE, 0x14100
+.equ CSR_BASE, 0x14300
+
+:boot
+    // r0 contains the entry point passed by the scheduler
+    STORE GUEST_PC, r0
+    MOV r1, 0
+    STORE GUEST_HW_FLAG, r1
+
+    // Clear Guest Registers
+    MOV r1, 0
+    MOV r2, GUEST_REG_BASE
+:clear_regs
+    ST r1, r2
+    ADD r2, 1
+    CMP r2, 0x14140
+    JLT clear_regs
+
+:fetch
+    LOAD r100, GUEST_PC
+    LOAD r107, GUEST_HW_FLAG
+    
+    // --- TIMER LOGIC ---
+    LOAD r1, 0x0310
+    ADD r1, 1
+    ST r1, 0x0310
+    LOAD r2, 0x0318
+    CMP r1, r2
+    JGT trigger_timer_irq
+
+    // --- FLUID FETCH ---
+    LOAD r11, r100
+    CMP r107, 0
+    JZ fetch_aligned
+    SHR r11, 16
+    MOV r20, r100
+    ADD r20, 1
+    LOAD r1, r20
+    SHL r1, 16
+    OR r11, r1
+    JMP check_compressed
+:fetch_aligned
+:check_compressed
+    MOV r101, r11
+    MOV r3, r101
+    AND r3, 3
+    CMP r3, 3
+    JE handle_32bit
+:handle_16bit
+    AND r101, 0xFFFF
+    CMP r107, 0
+    JZ c_inc_flag
+    ADD r100, 1
+    STORE GUEST_PC, r100
+    MOV r20, 0
+    STORE GUEST_HW_FLAG, r20
+    JMP decode_compressed
+:c_inc_flag
+    MOV r20, 1
+    STORE GUEST_HW_FLAG, r20
+    JMP decode_compressed
+:handle_32bit
+    ADD r100, 1
+    STORE GUEST_PC, r100
+    JMP decode
+
+:decode_compressed
+    MOV r12, r101
+    AND r12, 3
+    CMP r12, 0
+    JZ decode_c0
+    CMP r12, 1
+    JZ decode_c1
+    CMP r12, 2
+    JZ decode_c2
+    JMP fetch
+:decode_c0
+    MOV r17, r101
+    SHR r17, 13
+    AND r17, 7
+    CMP r17, 2
+    JZ handle_c_lw
+    CMP r17, 6
+    JZ handle_c_sw
+    JMP fetch
+:decode_c1
+    MOV r17, r101
+    SHR r17, 13
+    AND r17, 7
+    CMP r17, 0
+    JZ handle_c_addi
+    CMP r17, 2
+    JZ handle_c_li
+    JMP fetch
+:decode_c2
+    JMP fetch
+
+:handle_c_li
+    MOV r103, r101
+    SHR r103, 7
+    AND r103, 0x1F
+    MOV r106, r101
+    SHR r106, 2
+    AND r106, 0x1F
+    MOV r1, r101
+    SHR r1, 12
+    AND r1, 1
+    SHL r1, 5
+    OR r106, r1
+    MOV r1, r106
+    AND r1, 32
+    JZ c_li_pos
+    OR r106, 0xFFFFFFC0
+:c_li_pos
+    MOV r21, r106
+    JMP writeback_rd
+:handle_c_addi
+    MOV r103, r101
+    SHR r103, 7
+    AND r103, 0x1F
+    MOV r30, GUEST_REG_BASE
+    ADD r30, r103
+    ADD r30, r103
+    LOAD r21, r30
+    JMP handle_c_li
+:handle_c_lw
+:handle_c_sw
+    JMP fetch
+
+:trigger_timer_irq
+    MOV r2, 7
+    JMP take_trap
+
+:decode
+    LD r102, r101
+    AND r102, 0x7F
+    CMP r102, 0x37
+    JZ handle_lui
+    CMP r102, 0x33
+    JZ handle_op_reg
+    CMP r102, 0x13
+    JZ handle_op_imm
+    CMP r102, 0x03
+    JZ handle_load
+    CMP r102, 0x23
+    JZ handle_store
+    CMP r102, 0x63
+    JZ handle_branch
+    CMP r102, 0x6F
+    JZ handle_jal
+    CMP r102, 0x67
+    JZ handle_jalr
+    CMP r102, 0x17
+    JZ handle_auipc
+    CMP r102, 0x73
+    JZ handle_system
+    JMP fetch
+
+:handle_lui
+    MOV r103, r101
+    SHR r103, 7
+    AND r103, 0x1F
+    MOV r21, r101
+    AND r21, 0xFFFFF000
+    JMP writeback_rd
+:handle_auipc
+    MOV r103, r101
+    SHR r103, 7
+    AND r103, 0x1F
+    MOV r106, r101
+    AND r106, 0xFFFFF000
+    LOAD r100, GUEST_PC
+    ADD r106, r100
+    MOV r21, r106
+    JMP writeback_rd
+:handle_jalr
+    MOV r103, r101
+    SHR r103, 7
+    AND r103, 0x1F
+    MOV r104, r101
+    SHR r104, 15
+    AND r104, 0x1F
+    MOV r106, r101
+    SAR r106, 20
+    MOV r30, GUEST_REG_BASE
+    ADD r30, r104
+    ADD r30, r104
+    LOAD r2, r30
+    ADD r2, r106
+    AND r2, 0xFFFFFFFE
+    LOAD r21, GUEST_PC
+    ADD r21, 1
+    STORE GUEST_PC, r2
+    JMP writeback_rd
+:handle_system
+    MOV r17, r101
+    SHR r17, 12
+    AND r17, 0x7
+    CMP r17, 0
+    JZ handle_ecall
+    MOV r103, r101
+    SHR r103, 7
+    AND r103, 0x1F
+    MOV r104, r101
+    SHR r104, 15
+    AND r104, 0x1F
+    MOV r106, r101
+    SHR r106, 20
+    MOV r30, CSR_BASE
+    ADD r30, r106
+    LOAD r21, r30
+    MOV r31, GUEST_REG_BASE
+    ADD r31, r104
+    ADD r31, r104
+    LOAD r2, r31
+    ST r2, r30
+    JMP writeback_rd
+:handle_ecall
+    MOV r2, 11
+    JMP take_trap
+:take_trap
+    LOAD r1, GUEST_PC
+    SUB r1, 1
+    ST r1, 0x14341
+    ST r2, 0x14342
+    LOAD r1, 0x14305
+    STORE GUEST_PC, r1
+    MOV r1, 0
+    STORE GUEST_HW_FLAG, r1
+    JMP fetch
+:load_fault
+    MOV r2, 5
+    JMP take_trap
+:store_fault
+    MOV r2, 7
+    JMP take_trap
+:handle_load
+    MOV r103, r101
+    SHR r103, 7
+    AND r103, 0x1F
+    MOV r104, r101
+    SHR r104, 15
+    AND r104, 0x1F
+    MOV r106, r101
+    SAR r106, 20
+    MOV r30, GUEST_REG_BASE
+    ADD r30, r104
+    ADD r30, r104
+    LOAD r2, r30
+    ADD r2, r106
+    CMP r2, 0x1000
+    JE load_uart
+    LOAD r21, r2
+    JMP writeback_rd
+:load_uart
+    MOV r21, 0x60
+    JMP writeback_rd
+:handle_store
+    MOV r104, r101
+    SHR r104, 15
+    AND r104, 0x1F
+    MOV r105, r101
+    SHR r105, 20
+    AND r105, 0x1F
+    MOV r16, r101
+    SHR r16, 7
+    AND r16, 0x1F
+    MOV r3, r101
+    SAR r3, 25
+    SHL r3, 5
+    OR r16, r3
+    MOV r30, GUEST_REG_BASE
+    ADD r30, r104
+    ADD r30, r104
+    LOAD r2, r30
+    ADD r2, r16
+    MOV r30, GUEST_REG_BASE
+    ADD r30, r105
+    ADD r30, r105
+    LOAD r21, r30
+    CMP r2, 0x1000
+    JE handle_uart_tx_store
+    STORE r2, r21
+    JMP fetch
+:handle_uart_tx_store
+    CALL uart_tx
+    JMP fetch
+:writeback_rd
+    CMP r103, 0
+    JE fetch
+    MOV r30, GUEST_REG_BASE
+    ADD r30, r103
+    ADD r30, r103
+    ST r21, r30
+    JMP fetch
+:handle_op_imm
+    MOV r103, r101
+    SHR r103, 7
+    AND r103, 0x1F
+    MOV r104, r101
+    SHR r104, 15
+    AND r104, 0x1F
+    MOV r17, r101
+    SHR r17, 12
+    AND r17, 0x7
+    MOV r106, r101
+    SAR r106, 20
+    MOV r30, GUEST_REG_BASE
+    ADD r30, r104
+    ADD r30, r104
+    LOAD r21, r30
+    CMP r17, 0
+    JZ imm_addi
+    CMP r17, 4
+    JZ imm_xori
+    CMP r17, 6
+    JZ imm_ori
+    CMP r17, 7
+    JZ imm_andi
+    JMP fetch
+:imm_addi
+    ADD r21, r106
+    JMP writeback_rd
+:imm_xori
+    XOR r21, r106
+    JMP writeback_rd
+:imm_ori
+    OR r21, r106
+    JMP writeback_rd
+:imm_andi
+    AND r21, r106
+    JMP writeback_rd
+:handle_op_reg
+    MOV r103, r101
+    SHR r103, 7
+    AND r103, 0x1F
+    MOV r104, r101
+    SHR r104, 15
+    AND r104, 0x1F
+    MOV r105, r101
+    SHR r105, 20
+    AND r105, 0x1F
+    MOV r17, r101
+    SHR r17, 12
+    AND r17, 0x7
+    MOV r30, GUEST_REG_BASE
+    ADD r30, r104
+    ADD r30, r104
+    LOAD r21, r30
+    MOV r30, GUEST_REG_BASE
+    ADD r30, r105
+    ADD r30, r105
+    LOAD r22, r30
+    CMP r17, 0
+    JZ reg_add_sub
+    CMP r17, 4
+    JZ reg_xor
+    CMP r17, 6
+    JZ reg_or
+    CMP r17, 7
+    JZ reg_and
+    JMP fetch
+:reg_add_sub
+    MOV r1, r101
+    SHR r1, 25
+    AND r1, 0x7F
+    CMP r1, 0x20
+    JZ reg_do_sub
+    ADD r21, r22
+    JMP writeback_rd
+:reg_do_sub
+    SUB r21, r22
+    JMP writeback_rd
+:reg_xor
+    XOR r21, r22
+    JMP writeback_rd
+:reg_or
+    OR r21, r22
+    JMP writeback_rd
+:reg_and
+    AND r21, r22
+    JMP writeback_rd
+:handle_jal
+    MOV r103, r101
+    SHR r103, 7
+    AND r103, 0x1F
+    LOAD r100, GUEST_PC
+    CMP r103, 0
+    JE jal_skip_ra
+    MOV r30, GUEST_REG_BASE
+    ADD r30, r103
+    ADD r30, r103
+    ST r100, r30
+:jal_skip_ra
+    MOV r106, 0
+    MOV r1, r101
+    SHR r1, 12
+    AND r1, 0xFF
+    SHL r1, 12
+    OR r106, r1
+    MOV r1, r101
+    SHR r1, 20
+    AND r1, 1
+    SHL r1, 11
+    OR r106, r1
+    MOV r1, r101
+    SHR r1, 21
+    AND r1, 0x3FF
+    SHL r1, 1
+    OR r106, r1
+    MOV r1, r101
+    SHR r1, 31
+    AND r1, 1
+    SHL r1, 20
+    OR r106, r1
+    LOAD r100, GUEST_PC
+    SUB r100, 1
+    ADD r100, r106
+    STORE GUEST_PC, r100
+    JMP fetch
+:handle_branch
+    MOV r104, r101
+    SHR r104, 15
+    AND r104, 0x1F
+    MOV r105, r101
+    SHR r105, 20
+    AND r105, 0x1F
+    MOV r30, GUEST_REG_BASE
+    ADD r30, r104
+    ADD r30, r104
+    LOAD r21, r30
+    MOV r30, GUEST_REG_BASE
+    ADD r30, r105
+    ADD r30, r105
+    LOAD r22, r30
+    MOV r17, r101
+    SHR r17, 12
+    AND r17, 0x7
+    CMP r17, 0
+    JZ handle_beq
+    CMP r17, 1
+    JZ handle_bne
+    JMP fetch
+:handle_beq
+    CMP r21, r22
+    JZ take_branch
+    JMP fetch
+:handle_bne
+    CMP r21, r22
+    JNZ take_branch
+    JMP fetch
+:take_branch
+    MOV r106, r101
+    SAR r106, 20
+    LOAD r100, GUEST_PC
+    SUB r100, 1
+    ADD r100, r106
+    STORE GUEST_PC, r100
+    JMP fetch
+:uart_tx
+    ST r21, 0x0200
+    RET

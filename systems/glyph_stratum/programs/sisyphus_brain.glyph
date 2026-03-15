@@ -1,0 +1,60 @@
+// ============================================================================
+// Geometry OS - Sisyphus Brain Glyph (Simplified v2)
+// ============================================================================
+//
+// A self-aware cognitive agent that lives on the GPU substrate.
+// Perceives memory state, queries LM Studio for guidance, and executes actions.
+//
+// Memory Layout:
+//   0x0300: COG_INTENT   (input from daemon)
+//   0x0304: COG_CYCLES   (cycle counter)
+//   0x0308: COG_LAST_ACT (last action taken)
+//   0x0400: PERCEPT_ENTROPY
+//   0x0500: HTTP_REQ buffer
+//   0x1000: HTTP_RES buffer
+//   0x2000: CTRL_SEMAPHORE
+//   0x2004: RESPONSE_READY
+//   0x2008: REQUEST_LENGTH
+//
+// ============================================================================
+
+.equ COG_INTENT,    0x0300
+.equ COG_CYCLES,    0x0304
+.equ COG_LAST_ACT,  0x0308
+
+.equ PERCEPT_ENTROPY, 0x0400
+
+.equ HTTP_REQ,       0x0500
+.equ HTTP_RES,       0x1000
+.equ CTRL_SEM,       0x2000
+.equ RES_READY,      0x2004
+.equ REQ_LEN,        0x2008
+
+// ============================================================================
+// MAIN COGNITIVE LOOP - Simplified for testing
+// ============================================================================
+
+:main
+    // Initialize: write 0 to COG_CYCLES
+    LDI r1, COG_CYCLES
+    LDI r2, 0
+    STORE r1, r2
+
+:cognitive_loop
+    // Load current cycle count
+    LDI r1, COG_CYCLES
+    LOAD r1, r2          // r2 = mem[COG_CYCLES]
+
+    // Increment: ADD r3, r2 means r2 = r3 + r2
+    LDI r3, 1
+    ADD r3, r2           // r2 = r3 + r2 = 1 + r2
+
+    // Store incremented value
+    STORE r1, r2         // mem[COG_CYCLES] = r2
+
+    // Write entropy as simple counter (for now)
+    LDI r1, PERCEPT_ENTROPY
+    STORE r1, r2
+
+    // Loop forever
+    JMP cognitive_loop

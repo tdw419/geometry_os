@@ -1,0 +1,35 @@
+// ============================================================================
+// Geometry OS - Root Orchestrator
+// ============================================================================
+//
+// This is the first program executed by the substrate (VM #0).
+// Its job is to spawn the system services and user environment.
+//
+// ============================================================================
+
+.equ EMULATOR_ADDR 0x10000 // RISC-V Emulator code start
+.equ GUEST_RAM_ADDR 0x18000 // Guest RAM start
+
+:main
+    // 1. Initialize Visual Substrate
+    // Draw a "Loading" indicator (Cyan pixel at 0,0)
+    MOV r1, 0xFF00FFFF // Cyan
+    ST r1, 0x0200      // Virtual Framebuffer
+
+    // 2. Spawn the RISC-V Emulator (VM #1)
+    // SPATIAL_SPAWN(entry_point, flags)
+    // Flags: 1 = Persistent, 2 = Focused
+    MOV r1, EMULATOR_ADDR
+    MOV r2, 1
+    SPATIAL_SPAWN r1, r2
+
+    // 3. Monitor Loop
+:monitor
+    // Read the emulator's PC (lives at EMULATOR_ADDR + 0)
+    LOAD r10, EMULATOR_ADDR
+    
+    // Draw the PC value to the status bar (top-left)
+    ST r10, 0x0201
+    
+    // Idle for a bit
+    JMP monitor

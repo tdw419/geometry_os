@@ -32,8 +32,9 @@ KERNEL = geometry_os.kernel
 all: $(KERNEL)
 
 $(KERNEL): $(OBJS) link.ld
-	$(LD) $(LDFLAGS) -o $@ $(OBJS)
-	@echo "Built: $(KERNEL)"
+	$(LD) $(LDFLAGS) -o $(KERNEL).elf $(OBJS)
+	$(OBJCOPY) -O binary $(KERNEL).elf $(KERNEL)
+	@echo "Built: $(KERNEL) (raw binary from ELF)"
 	@ls -la $(KERNEL)
 
 main.o: main.c gpu.h

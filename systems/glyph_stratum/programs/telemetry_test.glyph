@@ -1,0 +1,8 @@
+// telemetry_test.glyph
+:main
+    LDI r1, 0x14000
+    LDI r2, 0xCAFE
+:loop
+    STORE r1, r2
+    ADD r2, 1
+    JMP loop

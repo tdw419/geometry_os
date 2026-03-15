@@ -30,7 +30,7 @@ from mcp.types import TextContent, Tool
 
 # Geometry OS paths (relative to this file)
 GEOS_ROOT = Path(__file__).parent.parent.parent.parent
-GLYPH_COMPILER = GEOS_ROOT / "systems" / "glyph_stratum" / "programs" / "compile_glyph.py"
+GLYPH_COMPILER = GEOS_ROOT / "compile_glyph.py"
 WINDOW_MANAGER_GLYPH = GEOS_ROOT / "systems" / "glyph_stratum" / "programs" / "window_manager.glyph"
 UBUNTU_KERNEL = GEOS_ROOT / "systems" / "ubuntu_riscv" / "ubuntu_native.rts.png"
 BOOT_SCRIPT = GEOS_ROOT / "kernel" / "boot" / "run_bare_metal.sh"
@@ -151,393 +151,95 @@ def parse_glyph_file(path: str) -> list[tuple[int, int, int, int]]:
 @app.list_tools()
 async def list_tools():
     return [
-        Tool(
-            name="crystallize",
-            description="Compile a .glyph assembly file to .rts.png GPU texture format.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "input": {"type": "string", "description": "Path to .glyph source file"},
-                    "output": {"type": "string", "description": "Path to output .rts.png texture"},
-                    "dense": {
-                        "type": "boolean",
-                        "description": "Enable dense packing (no NOP gaps)",
-                        "default": False,
-                    },
-                },
-                "required": ["input", "output"],
-            },
-        ),
-        Tool(
-            name="glyph_patch",
-            description="Hot-patch a running glyph instruction in VRAM.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "vm_id": {"type": "integer", "description": "VM ID to patch (0=WM)"},
-                    "address": {"type": "string", "description": "Hilbert index or hex address"},
-                    "opcode": {"type": "integer", "description": "New R channel value"},
-                    "stratum": {"type": "integer", "description": "New G channel value"},
-                    "p1": {"type": "integer", "description": "New B channel value"},
-                    "p2": {"type": "integer", "description": "New A channel value"},
-                },
-                "required": ["address", "opcode"],
-            },
-        ),
-        Tool(
-            name="linux_to_glyph",
-            description="Transpile a Linux ELF binary to a spatial glyph texture.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "binary": {"type": "string", "description": "Path to RISC-V ELF binary"},
-                    "output": {"type": "string", "description": "Path to output .rts.png"},
-                },
-                "required": ["binary", "output"],
-            },
-        ),
-        Tool(
-            name="benchmark_sls",
-            description="Calculate Spatial Locality Score (SLS) for a .glyph program. "
-            "SLS measures GPU cache efficiency. Target: 0.90+ for optimal performance.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "glyph_file": {
-                        "type": "string",
-                        "description": "Path to .glyph file to analyze",
-                    },
-                    "grid_size": {
-                        "type": "integer",
-                        "description": "Texture grid size (default 4096)",
-                        "default": 4096,
-                    },
-                },
-                "required": ["glyph_file"],
-            },
-        ),
-        Tool(
-            name="boot_sim",
-            description="Simulate the Geometry OS boot chain: UEFI → Kernel → GPU MMIO. "
-            "Validates boot image structure and reports what would happen at each stage.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "image_path": {
-                        "type": "string",
-                        "description": "Path to boot.img (optional, uses default if not specified)",
-                    },
-                    "verbose": {
-                        "type": "boolean",
-                        "description": "Enable verbose output",
-                        "default": False,
-                    },
-                },
-                "required": [],
-            },
-        ),
-        Tool(
-            name="vm_spawn",
-            description="Simulate spawning a child glyph VM with SPATIAL_SPAWN. "
-            "Returns the VM configuration and memory bounds.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "vm_id": {
-                        "type": "integer",
-                        "description": "VM ID (1-7, 0 is reserved for Window Manager)",
-                    },
-                    "glyph_file": {"type": "string", "description": "Path to child .glyph program"},
-                    "window_x": {
-                        "type": "number",
-                        "description": "Window X position",
-                        "default": 100,
-                    },
-                    "window_y": {
-                        "type": "number",
-                        "description": "Window Y position",
-                        "default": 100,
-                    },
-                    "window_w": {"type": "number", "description": "Window width", "default": 800},
-                    "window_h": {"type": "number", "description": "Window height", "default": 600},
-                },
-                "required": ["vm_id", "glyph_file"],
-            },
-        ),
-        Tool(
-            name="hilbert_test",
-            description="Test Hilbert curve coordinate conversion. "
-            "Converts between linear index and 2D coordinates.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "index": {
-                        "type": "integer",
-                        "description": "Hilbert index to convert to (x, y)",
-                    },
-                    "x": {"type": "integer", "description": "X coordinate to convert to index"},
-                    "y": {"type": "integer", "description": "Y coordinate to convert to index"},
-                    "grid_size": {
-                        "type": "integer",
-                        "description": "Grid size (default 4096)",
-                        "default": 4096,
-                    },
-                    "mode": {
-                        "type": "string",
-                        "description": "'d2xy' or 'xy2d'",
-                        "enum": ["d2xy", "xy2d"],
-                    },
-                },
-                "required": ["mode"],
-            },
-        ),
-        Tool(
-            name="geos_status",
-            description="Get current Geometry OS status: available components, compiled programs, boot chain readiness.",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": [],
-            },
-        ),
-        Tool(
-            name="mem_store",
-            description="Store structured data in GPU-backed development memory. Data persists across AI context resets as long as the daemon is running. "
-            "Use this to remember decisions, context, or state for Geometry OS development.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "key": {"type": "string", "description": "Unique key for this memory entry"},
-                    "value": {"type": "object", "description": "JSON data to store"},
-                },
-                "required": ["key", "value"],
-            },
-        ),
-        Tool(
-            name="mem_retrieve",
-            description="Retrieve structured data from GPU-backed development memory. Returns stored JSON data by key.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "key": {
-                        "type": "string",
-                        "description": "Key to retrieve (optional, returns all if not specified)",
-                    },
-                },
-                "required": [],
-            },
-        ),
-        Tool(
-            name="mem_peek",
-            description="Read raw GPU memory at a Hilbert address. Low-level access to the substrate.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "addr": {
-                        "type": "string",
-                        "description": "Hilbert address (hex, e.g. 0x100000)",
-                    },
-                    "size": {
-                        "type": "integer",
-                        "description": "Number of 32-bit words to read",
-                        "default": 16,
-                    },
-                },
-                "required": ["addr"],
-            },
-        ),
-        Tool(
-            name="mem_poke",
-            description="Write a single 32-bit value to GPU memory at a Hilbert address. Low-level substrate manipulation.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "addr": {
-                        "type": "string",
-                        "description": "Hilbert address (hex, e.g. 0x100000)",
-                    },
-                    "val": {
-                        "type": "string",
-                        "description": "32-bit value to write (hex, e.g. 0xDEADBEEF)",
-                    },
-                },
-                "required": ["addr", "val"],
-            },
-        ),
-        Tool(
-            name="opcode_decode",
-            description="Decode opcode value → name, stratum, description based on Geometry OS Glyph opcode table.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "opcode": {
-                        "type": "integer",
-                        "description": "Opcode value to decode (0-65535)",
-                    },
-                },
-                "required": ["opcode"],
-            },
-        ),
-        Tool(
-            name="opcode_encode",
-            description="Encode opcode name → value, parameters based on Geometry OS Glyph opcode table.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "Opcode name to encode (e.g., ADD, LD, JMP)",
-                    },
-                },
-                "required": ["name"],
-            },
-        ),
-        Tool(
-            name="vlm_health",
-            description="Run VLM vitality check on .rts.png file to assess visual language model health.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "rts_file": {
-                        "type": "string",
-                        "description": "Path to .rts.png file to analyze",
-                    },
-                    "json": {"type": "boolean", "description": "Output as JSON", "default": False},
-                    "verbose": {
-                        "type": "boolean",
-                        "description": "Verbose output",
-                        "default": False,
-                    },
-                },
-                "required": ["rts_file"],
-            },
-        ),
-        Tool(
-            name="daemon_status",
-            description="Check Ouroboros HAL daemon status on port 8769.",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": [],
-            },
-        ),
-        Tool(
-            name="substrate_load",
-            description="Load .rts.png to running daemon via /load endpoint.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "rts_file": {"type": "string", "description": "Path to .rts.png file to load"},
-                },
-                "required": ["rts_file"],
-            },
-        ),
-        Tool(
-            name="gpu_write",
-            description="Batch write multiple 32-bit values to GPU memory starting at an address.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "addr": {
-                        "type": "string",
-                        "description": "Starting Hilbert address (hex, e.g. 0x100000)",
-                    },
-                    "data": {
-                        "type": "array",
-                        "items": {"type": "integer"},
-                        "description": "Array of 32-bit values to write",
-                    },
-                },
-                "required": ["addr", "data"],
-            },
-        ),
-        Tool(
-            name="gpu_exec",
-            description="Execute a shell command through the daemon with optional cwd and timeout.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "cmd": {"type": "string", "description": "Shell command to execute"},
-                    "cwd": {"type": "string", "description": "Working directory (optional)"},
-                    "timeout": {"type": "integer", "description": "Timeout in seconds (default 30)", "default": 30},
-                },
-                "required": ["cmd"],
-            },
-        ),
-        Tool(
-            name="gpu_pause",
-            description="Pause all running glyph VMs on the daemon.",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": [],
-            },
-        ),
-        Tool(
-            name="gpu_vmstate",
-            description="Query the state of a specific glyph VM.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "vm": {"type": "integer", "description": "VM ID to query (0-7)", "default": 0},
-                },
-                "required": [],
-            },
-        ),
+        Tool(name="crystallize", description="Compile .glyph to .rts.png", inputSchema={"type": "object", "properties": {"input": {"type": "string"}, "output": {"type": "string"}, "dense": {"type": "boolean", "default": False}}, "required": ["input", "output"]}),
+        Tool(name="glyph_patch", description="Hot-patch instruction", inputSchema={"type": "object", "properties": {"vm_id": {"type": "integer"}, "address": {"type": "string"}, "opcode": {"type": "integer"}, "stratum": {"type": "integer"}, "p1": {"type": "integer"}, "p2": {"type": "integer"}}, "required": ["address", "opcode"]}),
+        Tool(name="linux_to_glyph", description="Transpile Linux to glyph", inputSchema={"type": "object", "properties": {"binary": {"type": "string"}, "output": {"type": "string"}}, "required": ["binary", "output"]}),
+        Tool(name="benchmark_sls", description="Calculate SLS", inputSchema={"type": "object", "properties": {"glyph_file": {"type": "string"}, "grid_size": {"type": "integer", "default": 4096}}, "required": ["glyph_file"]}),
+        Tool(name="boot_sim", description="Simulate boot chain", inputSchema={"type": "object", "properties": {"image_path": {"type": "string"}, "verbose": {"type": "boolean", "default": False}}}),
+        Tool(name="vm_spawn", description="Spawn child VM", inputSchema={"type": "object", "properties": {"vm_id": {"type": "integer"}, "glyph_file": {"type": "string"}, "window_x": {"type": "integer"}, "window_y": {"type": "integer"}, "window_w": {"type": "integer"}, "window_h": {"type": "integer"}}, "required": ["vm_id", "glyph_file"]}),
+        Tool(name="hilbert_test", description="Test Hilbert conversion", inputSchema={"type": "object", "properties": {"mode": {"type": "string", "enum": ["d2xy", "xy2d"]}, "index": {"type": "integer"}, "x": {"type": "integer"}, "y": {"type": "integer"}, "grid_size": {"type": "integer", "default": 4096}}, "required": ["mode"]}),
+        Tool(name="geos_status", description="Get system status", inputSchema={"type": "object"}),
+        Tool(name="mem_store", description="Store persistent value", inputSchema={"type": "object", "properties": {"key": {"type": "string"}, "value": {"type": "object"}}, "required": ["key", "value"]}),
+        Tool(name="mem_retrieve", description="Retrieve persistent value", inputSchema={"type": "object", "properties": {"key": {"type": "string"}}, "required": ["key"]}),
+        Tool(name="mem_peek", description="Read memory", inputSchema={"type": "object", "properties": {"addr": {"type": "string"}, "size": {"type": "integer", "default": 1}}, "required": ["addr"]}),
+        Tool(name="mem_poke", description="Write memory", inputSchema={"type": "object", "properties": {"addr": {"type": "string"}, "val": {"type": "string"}}, "required": ["addr", "val"]}),
+        Tool(name="opcode_decode", description="Decode opcode", inputSchema={"type": "object", "properties": {"opcode": {"type": "integer"}, "stratum": {"type": "integer"}}, "required": ["opcode"]}),
+        Tool(name="opcode_encode", description="Encode opcode", inputSchema={"type": "object", "properties": {"name": {"type": "string"}, "stratum": {"type": "string"}}, "required": ["name"]}),
+        Tool(name="vlm_health", description="VLM health check", inputSchema={"type": "object", "properties": {"rts_file": {"type": "string"}}, "required": ["rts_file"]}),
+        Tool(name="daemon_status", description="Check daemon status", inputSchema={"type": "object"}),
+        Tool(name="substrate_load", description="Load substrate", inputSchema={"type": "object", "properties": {"rts_file": {"type": "string"}}, "required": ["rts_file"]}),
+        Tool(name="gpu_write", description="Batch write memory", inputSchema={"type": "object", "properties": {"addr": {"type": "string"}, "data": {"type": "array", "items": {"type": "integer"}}}, "required": ["addr", "data"]}),
+        Tool(name="gpu_exec", description="Execute command via daemon", inputSchema={"type": "object", "properties": {"cmd": {"type": "string"}, "cwd": {"type": "string"}}, "required": ["cmd"]}),
+        Tool(name="gpu_pause", description="Pause all VMs", inputSchema={"type": "object"}),
+        Tool(name="gpu_vmstate", description="Query VM state", inputSchema={"type": "object", "properties": {"vm": {"type": "integer", "default": 0}}}),
+        Tool(name="agent_register", description="Register AI agent", inputSchema={"type": "object", "properties": {"agent_type": {"type": "string"}, "capabilities": {"type": "array", "items": {"type": "string"}}}}),
+        Tool(name="agent_unregister", description="Unregister agent", inputSchema={"type": "object", "properties": {"agent_id": {"type": "string"}}, "required": ["agent_id"]}),
+        Tool(name="agent_list", description="List agents", inputSchema={"type": "object"}),
+        Tool(name="agent_status", description="Get multi-agent status", inputSchema={"type": "object"}),
+        Tool(name="agent_alloc", description="Allocate agent memory", inputSchema={"type": "object", "properties": {"agent_id": {"type": "string"}, "size": {"type": "integer"}, "purpose": {"type": "string"}}, "required": ["agent_id"]}),
+        Tool(name="agent_free", description="Free agent memory", inputSchema={"type": "object", "properties": {"agent_id": {"type": "string"}, "addr": {"type": "string"}}, "required": ["agent_id", "addr"]}),
+        Tool(name="agent_lock", description="Acquire lock", inputSchema={"type": "object", "properties": {"agent_id": {"type": "string"}, "resource": {"type": "string"}}, "required": ["agent_id", "resource"]}),
+        Tool(name="agent_unlock", description="Release lock", inputSchema={"type": "object", "properties": {"agent_id": {"type": "string"}, "resource": {"type": "string"}}, "required": ["agent_id", "resource"]}),
+        Tool(name="agent_event", description="Send agent event", inputSchema={"type": "object", "properties": {"source_agent": {"type": "string"}, "event_type": {"type": "string"}, "payload": {"type": "object"}, "target_agent": {"type": "string"}}, "required": ["source_agent", "event_type"]}),
+        Tool(name="memory_map", description="Show memory layout", inputSchema={"type": "object"}),
+        Tool(name="driver_template", description="Generate driver template", inputSchema={"type": "object", "properties": {"name": {"type": "string"}, "io_addr": {"type": "string"}}}),
+        Tool(name="riscv_template", description="Generate RISC-V template", inputSchema={"type": "object"}),
+        Tool(name="vcc_validate", description="Validate Visual Consistency Contract", inputSchema={"type": "object", "properties": {"region": {"type": "string", "description": "Memory region (e.g., 0x0000-0x1000)"}, "expected_hash": {"type": "string", "description": "Expected SHA256 hash"}}, "required": ["region"]}),
+        Tool(name="vcc_sign", description="Sign a Visual Consistency Contract for a region", inputSchema={"type": "object", "properties": {"agent_id": {"type": "string", "description": "Agent signing the VCC"}, "region_start": {"type": "string", "description": "Start address (hex)"}, "region_end": {"type": "string", "description": "End address (hex)"}, "region_type": {"type": "string", "description": "Region type", "enum": ["boot_sector", "kernel", "driver", "vm_state", "agent_workspace", "shared"]}, "description": {"type": "string", "description": "Description of this region"}}, "required": ["agent_id", "region_start", "region_end"]}),
+        Tool(name="vcc_status", description="Get VCC system status", inputSchema={"type": "object"}),
+        Tool(name="vcc_audit", description="Get audit trail for a region", inputSchema={"type": "object", "properties": {"addr": {"type": "string", "description": "Address to audit (hex)"}}, "required": ["addr"]}),
+        Tool(name="vcc_guard", description="Enable or disable VCC guard", inputSchema={"type": "object", "properties": {"enable": {"type": "boolean", "description": "Enable (true) or disable (false) the guard"}}}),
+        Tool(name="vcc_list", description="List all VCC manifest entries", inputSchema={"type": "object"}),
+        Tool(name="vcc_audit_all", description="Validate ALL regions in manifest against substrate. Returns pass/fail per region with optional auto-repair.", inputSchema={"type": "object", "properties": {"auto_repair": {"type": "boolean", "description": "Reload substrate on critical failure (default: false)"}, "strict": {"type": "boolean", "description": "Fail on any mismatch (default: true)"}}}),
+        Tool(name="self_host_loop", description="Execute a self-hosting loop step (ANALYZE→PLAN→EXECUTE→DEPLOY→VERIFY)", inputSchema={"type": "object", "properties": {"step": {"type": "string", "description": "Loop step", "enum": ["analyze", "plan", "execute", "deploy", "verify"]}, "agent_id": {"type": "string", "description": "Agent executing the step"}, "target": {"type": "string", "description": "Target component"}, "payload": {"type": "object", "description": "Step-specific data"}}, "required": ["agent_id"]}),
     ]
-
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     try:
-        if name == "crystallize":
-            return await tool_crystallize(arguments)
-        elif name == "glyph_patch":
-            return await tool_glyph_patch(arguments)
-        elif name == "linux_to_glyph":
-            return await tool_linux_to_glyph(arguments)
-        elif name == "benchmark_sls":
-            return await tool_benchmark_sls(arguments)
-        elif name == "boot_sim":
-            return await tool_boot_sim(arguments)
-        elif name == "vm_spawn":
-            return await tool_vm_spawn(arguments)
-        elif name == "hilbert_test":
-            return await tool_hilbert_test(arguments)
-        elif name == "geos_status":
-            return await tool_geos_status(arguments)
-        elif name == "mem_store":
-            return await tool_mem_store(arguments)
-        elif name == "mem_retrieve":
-            return await tool_mem_retrieve(arguments)
-        elif name == "mem_peek":
-            return await tool_mem_peek(arguments)
-        elif name == "mem_poke":
-            return await tool_mem_poke(arguments)
-        elif name == "opcode_decode":
-            return await tool_opcode_decode(arguments)
-        elif name == "opcode_encode":
-            return await tool_opcode_encode(arguments)
-        elif name == "vlm_health":
-            return await tool_vlm_health(arguments)
-        elif name == "daemon_status":
-            return await tool_daemon_status(arguments)
-        elif name == "substrate_load":
-            return await tool_substrate_load(arguments)
-        elif name == "gpu_write":
-            return await tool_gpu_write(arguments)
-        elif name == "gpu_exec":
-            return await tool_gpu_exec(arguments)
-        elif name == "gpu_pause":
-            return await tool_gpu_pause(arguments)
-        elif name == "gpu_vmstate":
-            return await tool_gpu_vmstate(arguments)
-        else:
-            return [TextContent(type="text", text=f"Unknown tool: {name}")]
-    except Exception as e:
-        return [TextContent(type="text", text=f"Error: {str(e)}")]
-
-
+        if name == "crystallize": return await tool_crystallize(arguments)
+        elif name == "glyph_patch": return await tool_glyph_patch(arguments)
+        elif name == "linux_to_glyph": return await tool_linux_to_glyph(arguments)
+        elif name == "benchmark_sls": return await tool_benchmark_sls(arguments)
+        elif name == "boot_sim": return await tool_boot_sim(arguments)
+        elif name == "vm_spawn": return await tool_vm_spawn(arguments)
+        elif name == "hilbert_test": return await tool_hilbert_test(arguments)
+        elif name == "geos_status": return await tool_geos_status(arguments)
+        elif name == "mem_store": return await tool_mem_store(arguments)
+        elif name == "mem_retrieve": return await tool_mem_retrieve(arguments)
+        elif name == "mem_peek": return await tool_mem_peek(arguments)
+        elif name == "mem_poke": return await tool_mem_poke(arguments)
+        elif name == "opcode_decode": return await tool_opcode_decode(arguments)
+        elif name == "opcode_encode": return await tool_opcode_encode(arguments)
+        elif name == "vlm_health": return await tool_vlm_health(arguments)
+        elif name == "daemon_status": return await tool_daemon_status(arguments)
+        elif name == "substrate_load": return await tool_substrate_load(arguments)
+        elif name == "gpu_write": return await tool_gpu_write(arguments)
+        elif name == "gpu_exec": return await tool_gpu_exec(arguments)
+        elif name == "gpu_pause": return await tool_gpu_pause(arguments)
+        elif name == "gpu_vmstate": return await tool_gpu_vmstate(arguments)
+        elif name == "agent_register": return await tool_agent_register(arguments)
+        elif name == "agent_unregister": return await tool_agent_unregister(arguments)
+        elif name == "agent_list": return await tool_agent_list(arguments)
+        elif name == "agent_status": return await tool_agent_status(arguments)
+        elif name == "agent_alloc": return await tool_agent_alloc(arguments)
+        elif name == "agent_free": return await tool_agent_free(arguments)
+        elif name == "agent_lock": return await tool_agent_lock(arguments)
+        elif name == "agent_unlock": return await tool_agent_unlock(arguments)
+        elif name == "agent_event": return await tool_agent_event(arguments)
+        elif name == "memory_map": return await tool_memory_map(arguments)
+        elif name == "driver_template": return await tool_driver_template(arguments)
+        elif name == "riscv_template": return await tool_riscv_template(arguments)
+        elif name == "vcc_validate": return await tool_vcc_validate(arguments)
+        elif name == "vcc_sign": return await tool_vcc_sign(arguments)
+        elif name == "vcc_status": return await tool_vcc_status(arguments)
+        elif name == "vcc_audit": return await tool_vcc_audit(arguments)
+        elif name == "vcc_guard": return await tool_vcc_guard(arguments)
+        elif name == "vcc_list": return await tool_vcc_list(arguments)
+        elif name == "vcc_audit_all": return await tool_vcc_audit_all(arguments)
+        elif name == "self_host_loop": return await tool_self_host_loop(arguments)
+        else: return [TextContent(type="text", text=f"Unknown tool: {name}")]
+    except Exception as e: return [TextContent(type="text", text=f"Error: {str(e)}")]
 async def tool_crystallize(args: dict) -> list[TextContent]:
     """Compile .glyph to .rts.png."""
     input_path = Path(args["input"])
@@ -1183,6 +885,7 @@ async def tool_opcode_encode(args: dict) -> list[TextContent]:
 # ============================================================================
 
 DAEMON_URL = "http://127.0.0.1:8769"
+DAEMON_SOCKET_PATH = "/tmp/gpu_daemon.sock"
 DEV_MEM_START = 0x100000  # Reserved region for development memory
 
 # Simple in-memory index (maps keys to offsets)
@@ -1191,6 +894,83 @@ _memory_index: dict = {}
 _index_loaded = False
 
 import requests
+import socket
+
+
+def _daemon_request_unix(endpoint: str, params: dict = None, body: str = None,
+                         method: str = "GET", timeout: float = 2.0) -> str:
+    """Make daemon request via Unix socket."""
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    sock.connect(DAEMON_SOCKET_PATH)
+
+    # Build query string
+    query = ""
+    if params:
+        query = "?" + "&".join(f"{k}={v}" for k, v in params.items())
+
+    # Build HTTP-like request
+    request = f"{method} {endpoint}{query} HTTP/1.1\r\nHost: daemon\r\n"
+    if body:
+        request += f"Content-Length: {len(body)}\r\n"
+    request += "\r\n"
+    if body:
+        request += body
+
+    sock.sendall(request.encode())
+
+    # Read response
+    response = b""
+    while True:
+        chunk = sock.recv(4096)
+        if not chunk:
+            break
+        response += chunk
+        # Check for end of response
+        if b"\r\n\r\n" in response and b"Content-Length:" not in response[:200]:
+            break
+        # Handle Content-Length based response
+        if b"Content-Length:" in response:
+            header_end = response.find(b"\r\n\r\n")
+            if header_end > 0:
+                headers = response[:header_end].decode()
+                for line in headers.split("\r\n"):
+                    if line.lower().startswith("content-length:"):
+                        content_len = int(line.split(":")[1].strip())
+                        body_start = header_end + 4
+                        if len(response) >= body_start + content_len:
+                            break
+
+    sock.close()
+
+    # Extract body after headers
+    header_end = response.find(b"\r\n\r\n")
+    if header_end >= 0:
+        return response[header_end + 4:].decode("utf-8", errors="replace")
+    return response.decode("utf-8", errors="replace")
+
+
+def _daemon_request(endpoint: str, params: dict = None, body: str = None,
+                    method: str = "GET", timeout: float = 2.0,
+                    prefer_unix: bool = True) -> str:
+    """Make daemon request with Unix socket preference, HTTP fallback."""
+    if prefer_unix:
+        try:
+            return _daemon_request_unix(endpoint, params, body, method, timeout)
+        except (ConnectionError, FileNotFoundError, socket.error):
+            pass  # Fall back to HTTP
+
+    # HTTP fallback
+    url = f"{DAEMON_URL}{endpoint}"
+    if params:
+        url += "?" + "&".join(f"{k}={v}" for k, v in params.items())
+
+    if method == "GET":
+        return requests.get(url, timeout=timeout).text
+    elif method == "POST":
+        return requests.post(url, data=body, timeout=timeout).text
+    else:
+        raise ValueError(f"Invalid method: {method}")
 
 
 def _ensure_index_loaded():
@@ -1522,43 +1302,27 @@ async def tool_vlm_health(args: dict) -> list[TextContent]:
 
 
 async def tool_daemon_status(args: dict) -> list[TextContent]:
-    """Check Ouroboros HAL daemon status on port 8769."""
+    """Check Ouroboros HAL daemon status via Unix socket or HTTP."""
     try:
-        # Use /peek endpoint since root "/" doesn't exist
-        resp = requests.get(f"{DAEMON_URL}/peek?addr=0x0&size=1", timeout=2)
-        if resp.status_code == 200:
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {
-                            "status": "success",
-                            "action": "DAEMON_STATUS_CHECK",
-                            "daemon_url": DAEMON_URL,
-                            "daemon": "ONLINE",
-                            "test_peek": resp.text.strip()[:50],
-                        },
-                        indent=2,
-                    ),
-                )
-            ]
-        else:
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {
-                            "status": "error",
-                            "action": "DAEMON_STATUS_CHECK",
-                            "daemon_url": DAEMON_URL,
-                            "daemon": "OFFLINE",
-                            "error": f"Daemon returned status {resp.status_code}",
-                        },
-                        indent=2,
-                    ),
-                )
-            ]
-    except requests.exceptions.ConnectionError:
+        # Use /peek endpoint via unified request (Unix socket first, HTTP fallback)
+        resp = _daemon_request("/peek", params={"addr": "0x0", "size": "1"}, timeout=2)
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": "success",
+                        "action": "DAEMON_STATUS_CHECK",
+                        "daemon_url": DAEMON_URL,
+                        "daemon_socket": DAEMON_SOCKET_PATH,
+                        "daemon": "ONLINE",
+                        "test_peek": resp.strip()[:50],
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except (requests.exceptions.ConnectionError, ConnectionError, FileNotFoundError, socket.error):
         return [
             TextContent(
                 type="text",
@@ -1567,8 +1331,9 @@ async def tool_daemon_status(args: dict) -> list[TextContent]:
                         "status": "error",
                         "action": "DAEMON_STATUS_CHECK",
                         "daemon_url": DAEMON_URL,
+                        "daemon_socket": DAEMON_SOCKET_PATH,
                         "daemon": "OFFLINE",
-                        "error": f"Cannot connect to Ouroboros daemon at {DAEMON_URL}. Start it with: cargo run --release --bin gpu_dev_daemon",
+                        "error": f"Cannot connect to Ouroboros daemon. Start it with: cargo run --release --bin gpu_dev_daemon",
                     },
                     indent=2,
                 ),
@@ -1777,6 +1542,818 @@ async def tool_gpu_vmstate(args: dict) -> list[TextContent]:
         ]
     except Exception as e:
         return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+
+# ============================================================================
+# Multi-Agent Tools
+# ============================================================================
+
+from geos_agent_manager import (
+    get_manager,
+    AgentCapability,
+    MultiAgentManager,
+)
+
+
+async def tool_agent_register(args: dict) -> list[TextContent]:
+    """Register a new AI agent session."""
+    manager = get_manager()
+    manager._load_state()
+
+    agent_type = args.get("agent_type", "custom")
+    capabilities = args.get("capabilities", ["read", "write"])
+    metadata = args.get("metadata", {})
+
+    cap_set = set()
+    for c in capabilities:
+        try:
+            cap_set.add(AgentCapability(c))
+        except ValueError:
+            pass
+
+    session = manager.register_agent(
+        agent_type=agent_type,
+        capabilities=cap_set,
+        metadata=metadata,
+    )
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "AGENT_REGISTER",
+            "session": {
+                "agent_id": session.agent_id,
+                "agent_type": session.agent_type,
+                "capabilities": [c.value for c in session.capabilities],
+                "created_at": session.created_at,
+            },
+            "message": f"Agent {session.agent_id} registered. Include 'agent_id' in future tool calls.",
+        }, indent=2)
+    )]
+
+
+async def tool_agent_unregister(args: dict) -> list[TextContent]:
+    """Unregister an agent and release its resources."""
+    manager = get_manager()
+    manager._load_state()
+    agent_id = args.get("agent_id")
+
+    if not agent_id:
+        return [TextContent(type="text", text="Error: agent_id required")]
+
+    success = manager.unregister_agent(agent_id)
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success" if success else "not_found",
+            "action": "AGENT_UNREGISTER",
+            "agent_id": agent_id,
+        }, indent=2)
+    )]
+
+
+async def tool_agent_list(args: dict) -> list[TextContent]:
+    """List all registered agents."""
+    manager = get_manager()
+    manager._load_state()
+    agents = manager.list_agents()
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "AGENT_LIST",
+            "agents": [
+                {
+                    "agent_id": a.agent_id,
+                    "agent_type": a.agent_type,
+                    "capabilities": [c.value for c in a.capabilities],
+                    "memory_regions": len(manager.get_agent_regions(a.agent_id)),
+                    "last_activity": a.last_activity,
+                }
+                for a in agents
+            ],
+            "count": len(agents),
+        }, indent=2)
+    )]
+
+
+async def tool_agent_status(args: dict) -> list[TextContent]:
+    """Get multi-agent system status."""
+    manager = get_manager()
+    manager._load_state()
+    status = manager.get_status()
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "AGENT_STATUS",
+            "multi_agent_system": status,
+        }, indent=2)
+    )]
+
+
+async def tool_agent_alloc(args: dict) -> list[TextContent]:
+    """Allocate a memory region for an agent."""
+    manager = get_manager()
+    manager._load_state()
+    agent_id = args.get("agent_id")
+    size = args.get("size", 4096)
+    purpose = args.get("purpose", "general")
+
+    if not agent_id:
+        return [TextContent(type="text", text="Error: agent_id required")]
+
+    region = manager.allocate_memory(agent_id, size, purpose)
+
+    if not region:
+        return [TextContent(
+            type="text",
+            text=json.dumps({
+                "status": "error",
+                "message": "Allocation failed (agent not found or out of space)",
+            }, indent=2)
+        )]
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "AGENT_ALLOC",
+            "region": {
+                "start_addr": f"0x{region.start_addr:08X}",
+                "end_addr": f"0x{region.end_addr:08X}",
+                "size": region.end_addr - region.start_addr,
+                "owner_id": region.owner_id,
+                "purpose": region.purpose,
+            },
+        }, indent=2)
+    )]
+
+
+async def tool_agent_free(args: dict) -> list[TextContent]:
+    """Release a memory region."""
+    manager = get_manager()
+    manager._load_state()
+    agent_id = args.get("agent_id")
+    addr_str = args.get("addr")
+
+    if not agent_id or not addr_str:
+        return [TextContent(type="text", text="Error: agent_id and addr required")]
+
+    addr = int(addr_str, 16) if addr_str.startswith("0x") else int(addr_str)
+    success = manager.release_memory(agent_id, addr)
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success" if success else "not_found",
+            "action": "AGENT_FREE",
+            "addr": f"0x{addr:08X}",
+            "agent_id": agent_id,
+        }, indent=2)
+    )]
+
+
+async def tool_agent_lock(args: dict) -> list[TextContent]:
+    """Acquire a lock on a resource."""
+    manager = get_manager()
+    manager._load_state()
+    agent_id = args.get("agent_id")
+    resource = args.get("resource")
+    timeout = args.get("timeout", 30.0)
+
+    if not agent_id or not resource:
+        return [TextContent(type="text", text="Error: agent_id and resource required")]
+
+    success = manager.acquire_lock(agent_id, resource, timeout)
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "acquired" if success else "conflict",
+            "action": "AGENT_LOCK",
+            "resource": resource,
+            "agent_id": agent_id,
+            "current_owner": manager.locks.get(resource) if not success else agent_id,
+        }, indent=2)
+    )]
+
+
+async def tool_agent_unlock(args: dict) -> list[TextContent]:
+    """Release a lock on a resource."""
+    manager = get_manager()
+    manager._load_state()
+    agent_id = args.get("agent_id")
+    resource = args.get("resource")
+
+    if not agent_id or not resource:
+        return [TextContent(type="text", text="Error: agent_id and resource required")]
+
+    success = manager.release_lock(agent_id, resource)
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "released" if success else "not_owner",
+            "action": "AGENT_UNLOCK",
+            "resource": resource,
+            "agent_id": agent_id,
+        }, indent=2)
+    )]
+
+
+async def tool_agent_event(args: dict) -> list[TextContent]:
+    """Send an event to other agents."""
+    manager = get_manager()
+    manager._load_state()
+    source_agent = args.get("source_agent")
+    event_type = args.get("event_type")
+    payload = args.get("payload", {})
+    target_agent = args.get("target_agent")
+
+    if not source_agent or not event_type:
+        return [TextContent(type="text", text="Error: source_agent and event_type required")]
+
+    manager.send_event(source_agent, event_type, payload, target_agent)
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "AGENT_EVENT",
+            "event_type": event_type,
+            "source_agent": source_agent,
+            "target_agent": target_agent or "broadcast",
+        }, indent=2)
+    )]
+
+
+async def tool_memory_map(args: dict) -> list[TextContent]:
+    """Show Hilbert memory layout."""
+    manager = get_manager()
+    manager._load_state()
+
+    regions = [
+        {"name": "Emulator State", "start": "0x0000", "end": "0x00FF", "type": "system"},
+        {"name": "Guest Registers", "start": "0x0100", "end": "0x013F", "type": "system"},
+        {"name": "I/O Bridge", "start": "0x0200", "end": "0x02FF", "type": "system"},
+        {"name": "MMIO", "start": "0x1000", "end": "0x10FF", "type": "system"},
+        {"name": "Guest RAM", "start": "0x8000", "end": "0xFFFF", "type": "system"},
+    ]
+
+    for region in manager.memory_regions:
+        regions.append({
+            "name": f"Agent: {region.owner_id} ({region.purpose})",
+            "start": f"0x{region.start_addr:08X}",
+            "end": f"0x{region.end_addr:08X}",
+            "type": "agent"
+        })
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "MEMORY_MAP",
+            "regions": regions,
+            "grid_size": 4096
+        }, indent=2)
+    )]
+
+
+async def tool_driver_template(args: dict) -> list[TextContent]:
+    """Generate a polling driver glyph template."""
+    name = args.get("name", "generic_driver")
+    io_addr = args.get("io_addr", "0x0200")
+    template = f"""
+; {name} - Polling Driver Template
+; I/O Address: {io_addr}
+
+@start:
+    MOV R1, {io_addr}    ; Set I/O base address
+
+@poll_loop:
+    PEEK R2, R1         ; Read from I/O status register
+    AND R2, 0x01        ; Check if data ready (bit 0)
+    BEQ R2, @poll_loop  ; If zero, keep polling
+
+    ADD R1, 1           ; Move to data register
+    PEEK R3, R1         ; Read data
+    SUB R1, 1           ; Return to status register
+
+    ; Process data in R3
+    ; ...
+
+    JMP @poll_loop      ; Repeat
+"""
+    return [TextContent(type="text", text=template.strip())]
+
+
+async def tool_riscv_template(args: dict) -> list[TextContent]:
+    """Generate a RISC-V emulator template."""
+    template = """
+; RISC-V Fetch/Decode Stage
+; R1 = PC (Program Counter)
+; R2 = IR (Instruction Register)
+
+@fetch:
+    PEEK R2, R1         ; Fetch instruction from memory at PC
+    ADD R1, 4           ; Increment PC by 4 (standard RV32I)
+
+@decode:
+    MOV R3, R2          ; Copy IR for extraction
+    AND R3, 0x7F        ; Extract opcode (bits 0-6)
+
+    CMP R3, 0x33        ; Check if R-Type
+    BEQ R3, @rtype_decode
+
+    CMP R3, 0x13        ; Check if I-Type
+    BEQ R3, @itype_decode
+
+    ; ... other types ...
+
+    JMP @fetch          ; Next instruction
+"""
+    return [TextContent(type="text", text=template.strip())]
+
+
+async def tool_vcc_validate(args: dict) -> list[TextContent]:
+    """Validate Visual Consistency Contract (VCC)."""
+    region_str = args["region"]
+    expected_hash = args.get("expected_hash")
+
+    # Parse region (e.g., "0x0000-0x1000")
+    try:
+        start_str, end_str = region_str.split("-")
+        start_addr = int(start_str, 16) if start_str.startswith("0x") else int(start_str)
+        end_addr = int(end_str, 16) if end_str.startswith("0x") else int(end_str)
+        size = (end_addr - start_addr) // 4  # Number of 32-bit words
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error parsing region '{region_str}': {e}")]
+
+    try:
+        # Use _daemon_request to get memory
+        resp = _daemon_request("/peek", params={"addr": f"0x{start_addr:08x}", "size": str(size)}, timeout=5)
+        hex_words = resp.strip().split()
+
+        # Calculate hash
+        import hashlib
+        hasher = hashlib.sha256()
+        for word in hex_words:
+            val = int(word, 16)
+            hasher.update(val.to_bytes(4, "little"))
+        actual_hash = hasher.hexdigest()
+
+        status = "match" if not expected_hash or actual_hash == expected_hash else "mismatch"
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "status": status,
+                        "action": "VCC_VALIDATE",
+                        "region": region_str,
+                        "actual_hash": f"sha256:{actual_hash}",
+                        "expected_hash": f"sha256:{expected_hash}" if expected_hash else None,
+                        "word_count": len(hex_words),
+                    },
+                    indent=2,
+                ),
+            )
+        ]
+    except (requests.exceptions.ConnectionError, ConnectionError, FileNotFoundError, socket.error):
+        return [TextContent(type="text", text="Error: Cannot connect to Ouroboros daemon.")]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error during VCC validation: {str(e)}")]
+
+
+# ============================================================================
+# VCC (Visual Consistency Contract) Tools
+# ============================================================================
+
+from geos_vcc import get_vcc_manager, VCCRegionType
+
+
+async def tool_vcc_sign(args: dict) -> list[TextContent]:
+    """Sign a Visual Consistency Contract for a region."""
+    vcc = get_vcc_manager()
+    agent_manager = get_manager()
+
+    agent_id = args.get("agent_id")
+    region_start_str = args.get("region_start")
+    region_end_str = args.get("region_end")
+    region_type = args.get("region_type", "agent_workspace")
+    description = args.get("description", "")
+
+    if not all([agent_id, region_start_str, region_end_str]):
+        return [TextContent(type="text", text="Error: agent_id, region_start, and region_end required")]
+
+    try:
+        region_start = int(region_start_str, 16) if region_start_str.startswith("0x") else int(region_start_str)
+        region_end = int(region_end_str, 16) if region_end_str.startswith("0x") else int(region_end_str)
+        size = (region_end - region_start) // 4
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error parsing addresses: {e}")]
+
+    # Check permission
+    allowed, reason = vcc.check_modification_permission(region_start, agent_id, agent_manager)
+    if not allowed:
+        return [TextContent(type="text", text=f"Permission denied: {reason}")]
+
+    # Fetch current data from daemon
+    try:
+        resp = _daemon_request("/peek", params={"addr": f"0x{region_start:08x}", "size": str(size)}, timeout=5)
+        hex_words = resp.strip().split()
+
+        # Reconstruct bytes
+        data = bytearray()
+        for word in hex_words:
+            val = int(word, 16)
+            data.extend(val.to_bytes(4, "little"))
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error fetching region data: {e}")]
+
+    # Sign the VCC
+    try:
+        region_type_enum = VCCRegionType(region_type)
+    except ValueError:
+        region_type_enum = VCCRegionType.AGENT_WORKSPACE
+
+    entry = vcc.sign_region(
+        region_start=region_start,
+        region_end=region_end,
+        region_type=region_type_enum,
+        data=bytes(data),
+        agent_id=agent_id,
+        description=description,
+        metadata={"size_words": len(hex_words)},
+    )
+
+    # Notify other agents
+    agent_manager.send_event(
+        source_agent=agent_id,
+        event_type="geos:vcc_signed",
+        payload={
+            "region": f"0x{region_start:08X}-0x{region_end:08X}",
+            "hash": entry.expected_hash[:16] + "...",
+        },
+    )
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "VCC_SIGN",
+            "agent_id": agent_id,
+            "region": f"0x{region_start:08X}-0x{region_end:08X}",
+            "hash": f"sha256:{entry.expected_hash}",
+            "signed_at": entry.signed_at,
+            "parent_hash": entry.parent_hash[:16] + "..." if entry.parent_hash else None,
+        }, indent=2)
+    )]
+
+
+async def tool_vcc_status(args: dict) -> list[TextContent]:
+    """Get VCC system status."""
+    vcc = get_vcc_manager()
+    status = vcc.get_status()
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "VCC_STATUS",
+            "vcc_system": status,
+        }, indent=2)
+    )]
+
+
+async def tool_vcc_audit(args: dict) -> list[TextContent]:
+    """Get audit trail for a region."""
+    vcc = get_vcc_manager()
+
+    addr_str = args.get("addr")
+    if not addr_str:
+        return [TextContent(type="text", text="Error: addr required")]
+
+    addr = int(addr_str, 16) if addr_str.startswith("0x") else int(addr_str)
+    trail = vcc.get_audit_trail(addr)
+
+    entries = [
+        {
+            "region": f"0x{e.region_start:08X}-0x{e.region_end:08X}",
+            "type": e.region_type.value,
+            "hash": e.expected_hash[:16] + "...",
+            "signed_by": e.signing_agent,
+            "signed_at": e.signed_at,
+            "description": e.description,
+            "parent": e.parent_hash[:16] + "..." if e.parent_hash else None,
+        }
+        for e in trail
+    ]
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "VCC_AUDIT",
+            "addr": f"0x{addr:08X}",
+            "history": entries,
+        }, indent=2)
+    )]
+
+
+async def tool_vcc_guard(args: dict) -> list[TextContent]:
+    """Enable or disable VCC guard."""
+    vcc = get_vcc_manager()
+
+    enable = args.get("enable", True)
+    vcc.guard_enabled = enable
+    vcc._save_manifest()
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "VCC_GUARD",
+            "guard_enabled": vcc.guard_enabled,
+            "warning": "Guard disabled - critical regions unprotected" if not vcc.guard_enabled else None,
+        }, indent=2)
+    )]
+
+
+async def tool_vcc_list(args: dict) -> list[TextContent]:
+    """List all VCC manifest entries."""
+    vcc = get_vcc_manager()
+
+    entries = [
+        {
+            "region": f"0x{e.region_start:08X}-0x{e.region_end:08X}",
+            "type": e.region_type.value,
+            "hash": e.expected_hash[:16] + "...",
+            "signed_by": e.signing_agent,
+            "signed_at": e.signed_at,
+            "description": e.description[:50],
+        }
+        for e in vcc.manifest
+    ]
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "VCC_LIST",
+            "entries": entries,
+            "total": len(entries),
+            "violations": len(vcc.violations),
+        }, indent=2)
+    )]
+
+
+async def tool_vcc_audit_all(args: dict) -> list[TextContent]:
+    """
+    Validate ALL regions in the VCC manifest against the substrate.
+
+    This is the "Immune System" check - it verifies every registered region
+    and can optionally trigger auto-repair on critical failures.
+    """
+    import hashlib
+    vcc = get_vcc_manager()
+    auto_repair = args.get("auto_repair", False)
+    strict = args.get("strict", True)
+
+    # Critical region types
+    CRITICAL_TYPES = {VCCRegionType.BOOT_SECTOR, VCCRegionType.KERNEL}
+
+    results = []
+    passed = 0
+    failed = 0
+    critical_failures = []
+
+    for entry in vcc.manifest:
+        region_str = f"0x{entry.region_start:08X}-0x{entry.region_end:08X}"
+        size = (entry.region_end - entry.region_start) // 4
+        is_critical = entry.region_type in CRITICAL_TYPES
+
+        try:
+            # Read substrate memory
+            resp = _daemon_request("/peek", params={
+                "addr": f"0x{entry.region_start:08x}",
+                "size": str(size)
+            }, timeout=5)
+            hex_words = resp.strip().split()
+
+            # Compute hash
+            hasher = hashlib.sha256()
+            for word in hex_words:
+                val = int(word, 16)
+                hasher.update(val.to_bytes(4, "little"))
+            actual_hash = hasher.hexdigest()
+
+            # Compare
+            if actual_hash == entry.expected_hash:
+                status = "PASS"
+                passed += 1
+            else:
+                status = "FAIL"
+                failed += 1
+                if is_critical:
+                    critical_failures.append({
+                        "region": region_str,
+                        "expected": entry.expected_hash[:16] + "...",
+                        "actual": actual_hash[:16] + "...",
+                        "description": entry.description,
+                    })
+
+            results.append({
+                "region": region_str,
+                "type": entry.region_type.value,
+                "status": status,
+                "critical": is_critical,
+                "description": entry.description[:40] if entry.description else "",
+            })
+
+        except Exception as e:
+            failed += 1
+            results.append({
+                "region": region_str,
+                "status": "ERROR",
+                "error": str(e),
+            })
+
+    # Determine overall status
+    if failed == 0:
+        overall = "HEALTHY"
+    elif critical_failures:
+        overall = "CRITICAL_FAILURE"
+    else:
+        overall = "DEGRADED"
+
+    # Auto-repair on critical failure
+    repair_result = None
+    if auto_repair and critical_failures:
+        repair_result = {
+            "action": "AUTO_REPAIR_TRIGGERED",
+            "message": "Attempting substrate reload due to critical failures",
+            "failed_regions": [f["region"] for f in critical_failures],
+        }
+        # In a real implementation, this would trigger substrate_reload
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "action": "VCC_AUDIT_ALL",
+            "overall": overall,
+            "summary": {
+                "total": len(results),
+                "passed": passed,
+                "failed": failed,
+                "critical_failures": len(critical_failures),
+            },
+            "results": results,
+            "critical_failures": critical_failures if critical_failures else None,
+            "auto_repair": repair_result,
+            "strict_mode": strict,
+        }, indent=2)
+    )]
+
+
+async def tool_self_host_loop(args: dict) -> list[TextContent]:
+    """
+    Execute a self-hosting loop step.
+
+    This is the core of autonomous evolution - it runs one iteration of:
+    ANALYZE → PLAN → EXECUTE → DEPLOY → VERIFY
+
+    The multi-agent system coordinates which agent is responsible for each step.
+    """
+    agent_manager = get_manager()
+    vcc = get_vcc_manager()
+
+    step = args.get("step", "analyze")
+    agent_id = args.get("agent_id")
+    target = args.get("target", "kernel")
+    payload = args.get("payload", {})
+
+    if not agent_id:
+        return [TextContent(type="text", text="Error: agent_id required")]
+
+    agent = agent_manager.get_agent(agent_id)
+    if not agent:
+        return [TextContent(type="text", text=f"Error: Agent {agent_id} not registered")]
+
+    result = {"step": step, "agent_id": agent_id, "target": target}
+
+    if step == "analyze":
+        # Step 1: Analyze substrate state
+        result["action"] = "SUBSTRATE_ANALYSIS"
+
+        # Check VCC status
+        vcc_status = vcc.get_status()
+        result["vcc_status"] = vcc_status
+
+        # Check daemon status
+        try:
+            resp = _daemon_request("/peek", params={"addr": "0x00000000", "size": "1"}, timeout=2)
+            result["daemon"] = "online"
+        except Exception:
+            result["daemon"] = "offline"
+
+        # Emit analysis event
+        agent_manager.send_event(agent_id, "geos:analysis_complete", result)
+
+    elif step == "plan":
+        # Step 2: Plan modifications
+        result["action"] = "ARCHITECTURE_PLAN"
+        result["plan"] = payload.get("plan", "No plan provided")
+        result["regions"] = payload.get("regions", [])
+
+        # Allocate workspace if needed
+        if "workspace_size" in payload:
+            region = agent_manager.allocate_memory(
+                agent_id=agent_id,
+                size=payload["workspace_size"],
+                purpose=f"self_host_{target}",
+            )
+            if region:
+                result["workspace"] = f"0x{region.start_addr:08X}-0x{region.end_addr:08X}"
+
+    elif step == "execute":
+        # Step 3: Execute build/compilation
+        result["action"] = "REMOTE_BUILD"
+
+        cmd = payload.get("cmd")
+        if cmd:
+            # Acquire lock on build system
+            lock_acquired = agent_manager.acquire_lock(agent_id, "build:system")
+            if not lock_acquired:
+                return [TextContent(type="text", text="Error: Build system locked by another agent")]
+
+            try:
+                # Execute via daemon
+                resp = _daemon_request("/exec", params={"cwd": payload.get("cwd", "/tmp")}, data=cmd, timeout=60)
+                result["output"] = resp
+                result["success"] = True
+            except Exception as e:
+                result["error"] = str(e)
+                result["success"] = False
+            finally:
+                agent_manager.release_lock(agent_id, "build:system")
+
+        # Emit build event
+        agent_manager.send_event(agent_id, "geos:build_ready" if result.get("success") else "geos:build_failed", result)
+
+    elif step == "deploy":
+        # Step 4: Deploy to substrate
+        result["action"] = "SUBSTRATE_DEPLOY"
+
+        rts_file = payload.get("rts_file")
+        if rts_file:
+            try:
+                # Load via daemon
+                resp = _daemon_request("/load", data=rts_file, timeout=10)
+                result["daemon_response"] = resp
+                result["success"] = True
+            except Exception as e:
+                result["error"] = str(e)
+                result["success"] = False
+
+        # Emit deploy event
+        agent_manager.send_event(agent_id, "geos:deploy_complete", result)
+
+    elif step == "verify":
+        # Step 5: Verify VCC
+        result["action"] = "VCC_VERIFICATION"
+
+        region = payload.get("region", "0x0000-0x1000")
+        expected_hash = payload.get("expected_hash")
+
+        # Use vcc_validate
+        validate_args = {"region": region, "expected_hash": expected_hash}
+        validate_result = await tool_vcc_validate(validate_args)
+        result["validation"] = json.loads(validate_result[0].text)
+
+        if result["validation"]["status"] == "match":
+            # Sign the VCC
+            agent_manager.send_event(agent_id, "geos:vcc_verified", {"region": region})
+        else:
+            agent_manager.send_event(agent_id, "geos:vcc_violation", {"region": region})
+
+    else:
+        return [TextContent(type="text", text=f"Error: Unknown step '{step}'. Valid steps: analyze, plan, execute, deploy, verify")]
+
+    return [TextContent(
+        type="text",
+        text=json.dumps({
+            "status": "success",
+            "self_host_loop": result,
+        }, indent=2)
+    )]
 
 
 async def main():

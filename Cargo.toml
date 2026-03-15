@@ -1,9 +1,18 @@
 [workspace]
+resolver = "2"
 members = [
     "systems/infinite_map_rs",
     "systems/glyph_compiler",
     "systems/glyph_framework_rs",
     "kernel/boot",
+    "systems/glyph_boot",
+    "systems/sisyphus",
+    "systems/glyph_allocator",
+]
+default-members = [
+    "systems/infinite_map_rs",
+    "systems/glyph_compiler",
+    "systems/glyph_framework_rs",
     "systems/glyph_boot",
     "systems/sisyphus",
     "systems/glyph_allocator",

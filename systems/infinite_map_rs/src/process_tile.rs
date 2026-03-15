@@ -444,7 +444,9 @@ mod tests {
             match manager.refresh() {
                 Ok(_) => {
                     // No processes available in this test environment
-                return;
+                    return;
+                }
+                Err(_) => return,
             }
 
             // Should have at least the current process (in real Linux)

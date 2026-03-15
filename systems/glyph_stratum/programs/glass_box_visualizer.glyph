@@ -1,0 +1,220 @@
+// ============================================================================
+// Geometry OS - Glass Box CPU Visualizer
+// ============================================================================
+//
+// Renders guest RISC-V registers (x0-x31) to the screen in real-time.
+// Each register is displayed as a hex value in a grid.
+//
+// Memory Layout:
+// 0x0100 - 0x013F: Guest Registers (source data)
+// 0x0200 - 0x02FF: Video Buffer (destination)
+//
+// Display Grid:
+// - 8 columns x 4 rows = 32 registers
+// - Each register: "Xnn=FFFFFFFF" (11 chars)
+// - Total width: 8 * 12 = 96 chars
+//
+// ============================================================================
+
+.equ REG_BASE 0x0100
+.equ VIDEO_BASE 0x0200
+.equ UART_BASE 0x1000
+
+// Hex digit lookup table (stored in high memory)
+.equ HEX_TABLE 0xF000
+
+:boot
+    // Initialize hex table
+    MOV r1, HEX_TABLE
+    MOV r2, 0x30       // '0'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x31       // '1'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x32       // '2'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x33       // '3'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x34       // '4'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x35       // '5'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x36       // '6'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x37       // '7'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x38       // '8'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x39       // '9'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x41       // 'A'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x42       // 'B'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x43       // 'C'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x44       // 'D'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x45       // 'E'
+    ST r2, r1
+    ADD r1, 1
+    MOV r2, 0x46       // 'F'
+    ST r2, r1
+
+// Main render loop
+:render_frame
+    // Clear video buffer (write spaces)
+    MOV r1, VIDEO_BASE
+    MOV r2, 0x20       // Space
+    MOV r3, 256        // Buffer size
+:clear_loop
+    ST r2, r1
+    ADD r1, 1
+    SUB r3, 1
+    JNZ clear_loop
+
+    // Render all 32 registers
+    MOV r10, 0         // Register index
+    MOV r11, VIDEO_BASE // Video position
+:render_regs
+    // Print "Xnn="
+    MOV r1, 0x58       // 'X'
+    ST r1, r11
+    ADD r11, 1
+
+    // Print register number (2 digits)
+    MOV r1, r10
+    SHR r1, 4          // High nibble
+    ADD r1, HEX_TABLE
+    LOAD r2, r1
+    ST r2, r11
+    ADD r11, 1
+
+    MOV r1, r10
+    AND r1, 0x0F       // Low nibble
+    ADD r1, HEX_TABLE
+    LOAD r2, r1
+    ST r2, r11
+    ADD r11, 1
+
+    MOV r1, 0x3D       // '='
+    ST r1, r11
+    ADD r11, 1
+
+    // Load register value
+    MOV r1, REG_BASE
+    ADD r1, r10
+    ADD r1, r10        // 2 * index (64-bit pairs)
+    LOAD r20, r1       // r20 = reg[index]_low
+
+    // Print 8 hex digits
+    MOV r12, 8         // Digit count
+:print_hex_loop
+    MOV r1, r20
+    SHR r1, 28         // Get top nibble
+    ADD r1, HEX_TABLE
+    LOAD r2, r1
+    ST r2, r11         // Write digit
+    ADD r11, 1
+
+    SHL r20, 4         // Shift next nibble into position
+    SUB r12, 1
+    JNZ print_hex_loop
+
+    // Add space separator
+    MOV r1, 0x20
+    ST r1, r11
+    ADD r11, 1
+
+    // Newline every 4 registers
+    MOV r1, r10
+    ADD r1, 1
+    AND r1, 0x03       // (index + 1) % 4
+    JNZ skip_newline
+
+    MOV r1, 0x0A       // '\n'
+    ST r1, r11
+    ADD r11, 1
+
+:skip_newline
+    // Next register
+    ADD r10, 1
+    CMP r10, 32
+    JLT render_regs
+
+    // Flush video buffer to UART (for now)
+    // In real GPU mode, this would render to texture
+    MOV r1, VIDEO_BASE
+    MOV r2, 0
+:flush_loop
+    LOAD r3, r1        // Get char
+    CMP r3, 0
+    JZ flush_done
+
+    // Write to UART
+    ST r3, UART_BASE
+
+    ADD r1, 1
+    ADD r2, 1
+    CMP r2, 256
+    JLT flush_loop
+
+:flush_done
+    // Delay before next frame
+    MOV r1, 10000
+:delay_loop
+    SUB r1, 1
+    JNZ delay_loop
+
+    JMP render_frame
+
+// Helper: Print register to UART
+:print_reg_to_uart
+    // r10 = register index
+    // Uses r20 for value
+    MOV r1, 0x58       // 'X'
+    ST r1, UART_BASE
+
+    MOV r1, r10
+    SHR r1, 4
+    ADD r1, HEX_TABLE
+    LOAD r2, r1
+    ST r2, UART_BASE
+
+    MOV r1, r10
+    AND r1, 0x0F
+    ADD r1, HEX_TABLE
+    LOAD r2, r1
+    ST r2, UART_BASE
+
+    MOV r1, 0x3D       // '='
+    ST r1, UART_BASE
+
+    // Print hex value
+    MOV r12, 8
+:prtu_hex
+    MOV r1, r20
+    SHR r1, 28
+    ADD r1, HEX_TABLE
+    LOAD r2, r1
+    ST r2, UART_BASE
+    SHL r20, 4
+    SUB r12, 1
+    JNZ prtu_hex
+
+    MOV r1, 0x0A       // '\n'
+    ST r1, UART_BASE
+    RET

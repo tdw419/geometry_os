@@ -57,6 +57,7 @@ pub enum Opcode {
     Halt = 13,
     Data = 14,
     Loop = 15,
+    Jal = 16,
 }
 
 /// Metabolic cost per opcode (VRAM cycles)
@@ -79,6 +80,7 @@ impl Opcode {
             Opcode::Halt => 0,   // Terminal
             Opcode::Data => 0,   // Passive data
             Opcode::Loop => 3,   // Loop overhead
+            Opcode::Jal => 2,    // Jump and Link
         }
     }
 
@@ -117,6 +119,7 @@ impl Opcode {
             13 => Some(Self::Halt),
             14 => Some(Self::Data),
             15 => Some(Self::Loop),
+            16 => Some(Self::Jal),
             _ => None,
         }
     }

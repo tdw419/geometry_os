@@ -1,0 +1,25 @@
+// Test program for BRANCH/JAL expansion
+// Uses JAL for a function call and BEQ for loop
+
+:main
+    LDI r1, 0        // Counter
+    LDI r2, 5        // Limit
+
+:loop
+    // Call "increment" function
+    JAL r3, increment
+    
+    // Check if r1 == r2
+    BEQ r1, r2, exit
+    
+    // Otherwise loop
+    JMP loop
+
+:increment
+    // Increment r1
+    LDI r4, 1
+    ADD r1, r4
+    JMP r3
+
+:exit
+    HALT

@@ -1,33 +1,26 @@
-# AI-Native Glyph Evolution Research (Phase 46)
+# AI Entropy Optimization Loop (Track 2)
 
-Target: **1,000,000 GIPS** for Probabilistic Execution.
+Target: **Entropy Score > 0.99** for Opcode 220 (BRANCH_PROB).
 
 ## Objective
-The goal is to optimize the **AI-Native Opcodes** (220-227) we just implemented. Currently, `BRANCH_PROB` and `SPATIAL_SPAWN` are functional but not yet performance-optimized for large-scale "Superposition" execution.
+The goal is to optimize the randomness quality of the **Probabilistic Opcodes**. We need to ensure that 1,000,000 coin flips across the 2D plane result in a perfect 50/50 distribution with zero spatial artifacts (striping, clusters).
 
-## The Metric: Probabilistic GIPS
-- **Metric**: Glyph Instructions Per Second (GIPS) during a 1000-run "Coin Flip" batch.
-- **Success Criteria**: 1,000,000 GIPS while maintaining perfect 50/50 entropy.
+## The Metric: Entropy Score
+- **Measurement**: Run `python3 systems/glyph_stratum/visualize_collapse.py --iterations 1000`
+- **Success Criteria**: Score > 0.99 (Optimal: 1.0)
 
 ## Experimentation Loop
 
 LOOP:
 
-1. **Benchmark**: Run the new AI-native benchmark script.
-   ```bash
-   python3 systems/glyph_stratum/benchmark_ai_native.py
-   ```
+1. **Observe**: Run entropy benchmark and analyze the `divergence_*.png` for patterns.
+2. **Identify Bottleneck**: Current LCG might have low period or poor bit distribution.
+3. **Hypothesize**: "If I replace the LCG with a PCG-RXS-M-XS (Permuted Congruential Generator), the entropy will increase."
+4. **Act**: Modify the randomness logic in `glyph_microcode.wgsl`.
+5. **Verify**: Run entropy check.
+6. **Decide**: KEEP if Score > Previous AND GIPS >= Baseline.
 
-2. **Optimize**: Modify `systems/infinite_map_rs/shaders/glyph_microcode.wgsl`.
-   - **Candidate 1**: Replace the LCG with a faster PCG (Permuted Congruential Generator).
-   - **Candidate 2**: Use bit-shifts instead of division for LCG normalization.
-   - **Candidate 3**: Parallelize `SPATIAL_SPAWN` by using atomic writes to the program buffer.
-
-3. **Verify**:
-   - Ensure `Entropy Score` remains > 0.95.
-   - Ensure GIPS increases.
-
-4. **Record**: Log results to `apps/autoresearch/glyph_results.tsv`.
-
-## Success Definition
-> "The AI can flip 1 million coins per second across the map without losing its mind."
+## Candidate Randomness Shaders
+- **PCG-32**: High quality, 32-bit.
+- **Xorshift**: Extremely fast, moderate quality.
+- **Philox**: Counter-based, crypto-grade, heavy.

@@ -1,0 +1,65 @@
+// Self-Modifying Transformer Layer (Minimal Prototype)
+// Substrate-Native Glyph Assembly
+
+// Define Layout Constants
+.equ ADDR_W_Q 0x1000
+.equ ADDR_W_K 0x1800
+.equ ADDR_W_V 0x2000
+
+// Register Layout
+// R0: Input Vector Address
+// R1: Seq Length
+// R2: Hidden Dim (D)
+// R3: Current Token Index
+// R4: Temp / Activation Accumulator
+// R5: Post-activation
+// R6: Jump Target
+// R7: Jump Target (Conditional)
+// R10: Q_addr
+// R11: K_addr
+// R12: V_addr
+
+// Initialization
+LDI R2, 128
+LDI R3, 0
+LDI R1, 10 // Demo seq length
+
+// LOOP START: Compute Attention for each token
+:attention_loop
+  // (Simplified attention logic for demo)
+  // 1. Load weights base addresses
+  LDI R10, ADDR_W_Q
+  LDI R11, ADDR_W_K
+  
+  // 2. Perform matrix-vector multiplication (pseudo-code)
+  // For demo, we just simulate an activation in R4
+  LDI R4, 255
+  LDI R5, 255
+
+  // 3. APPLY SELF-MODIFICATION
+  MUTATE R4, R11
+  MUTATE R4, R11 // Double mutation for speed
+
+  // 4. Increment and Continue
+  ADD R3, 1
+  CMP R3, R1
+  // JZ R3, end_loop -> need register for target
+  LDI R7, end_loop
+  // Wait, CMP sets... what? Scheduler doesn't have flags!
+  // It uses regs[p1] == 0 for JZ.
+  // Wait, I don't have CMP in the scheduler!
+  // Let me check scheduler for CMP.
+  // I saw OP2_CMP (211) but that's memory-based.
+  // Let's use SUB and then JZ.
+  
+  MOV R3, R8
+  SUB R1, R8 // R8 = R3 - R1. If R3 == R1, R8 == 0.
+  
+  // Now JZ if R8 is zero
+  JZ R8, R7
+  
+  LDI R6, attention_loop
+  JMP R6
+
+:end_loop
+HALT

@@ -291,11 +291,6 @@ mod tests {
             panic!("Expected intersection");
         }
     }
-            assert!(intersection.uv.is_some());
-        } else {
-            panic!("Expected intersection");
-        }
-    }
 
     #[test]
     fn test_screen_to_address() {

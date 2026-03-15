@@ -21,6 +21,21 @@ OPCODES = {
     "BEQ": 10, "BNE": 10, "BLT": 10, "BGE": 10, "BLTU": 10, "BGEU": 10,
     "AND": 128, "OR": 129, "XOR": 130, "SHL": 131, "SHR": 132, "SAR": 133,
     "SPAWN": 232, "MUTATE": 233,
+    # WGSL-compatible opcodes (glyph_microcode.wgsl)
+    "W_NOP": 140, "W_DATA": 128, "W_LOAD": 129, "W_STORE": 130,
+    "W_LD": 204, "W_ST": 205, "W_MOV": 206,
+    "W_ADD": 142, "W_SUB": 143,
+    "W_JMP": 208, "W_JZ": 209,
+    "W_DRAW": 215, "W_HALT": 141,
+    # glyph_vm_scheduler.wgsl opcodes (200-229)
+    "M_NOP": 200, "M_ADD": 201, "M_SUB": 202, "M_MUL": 203, "M_DIV": 204,
+    "M_LOAD": 205, "M_STORE": 206, "M_LOADIMM": 207,
+    "M_JUMP": 208, "M_JUMPZ": 209, "M_JUMPNZ": 210, "M_CMP": 211,
+    "M_AND": 212, "M_OR": 213, "M_XOR": 214, "M_NOT": 215,
+    "M_SHL": 216, "M_SHR": 217, "M_CALL": 218, "M_RET": 219,
+    "M_PUSH": 220, "M_POP": 221, "M_READ": 222, "M_WRITE": 223,
+    "M_SYNC": 224, "M_ATOMIC": 225,
+    "GLYPH_WRITE": 232,
 }
 
 BRANCH_CONDS = {
@@ -121,14 +136,29 @@ def parse_glyph(source):
             final_pixels.append([imm & 0xFF, (imm >> 8) & 0xFF, (imm >> 16) & 0xFF, (imm >> 24) & 0xFF])
         elif op_name == "SPAWN":
             # SPAWN dst, src, count
-            # Maps to: opcode=232, dst=target, p2=source, p1=count
+            # Maps to: opcode=232, stratum=target, p1=source, p2=count
             target = int(parts[1], 0) if len(parts) > 1 else 0
             src = int(parts[2], 0) if len(parts) > 2 else 0
             count = int(parts[3], 0) if len(parts) > 3 else 0
-            # Output: [opcode, stratum, p1(count), p2(src)] + separate dst encoding
-            # For now, use p2 for src, p1 for count, and encode dst in next slot
-            final_pixels.append([opcode, 0, count & 0xFF, src & 0xFF])
-            final_pixels.append([target & 0xFF, (target >> 8) & 0xFF, (target >> 16) & 0xFF, (target >> 24) & 0xFF])
+            final_pixels.append([opcode, target & 0xFF, src & 0xFF, count & 0xFF])
+        elif op_name == "M_STORE":
+            # M_STORE dst, imm -> mem[dst] = imm
+            # VM: stratum=dst, p1=imm
+            dst = int(parts[1], 0) if len(parts) > 1 else 0
+            imm = int(parts[2], 0) if len(parts) > 2 else 0
+            final_pixels.append([opcode, dst & 0xFF, imm & 0xFF, 0])
+        elif op_name == "GLYPH_WRITE":
+            # GLYPH_WRITE target, source, count
+            # VM: stratum=target, p1=source, p2=count
+            target = int(parts[1], 0) if len(parts) > 1 else 0
+            source = int(parts[2], 0) if len(parts) > 2 else 0
+            count = int(parts[3], 0) if len(parts) > 3 else 0
+            final_pixels.append([opcode, target & 0xFF, source & 0xFF, count & 0xFF])
+        elif op_name == "M_JUMP":
+            # M_JUMP target -> pc = target
+            # VM: stratum=target
+            target = int(parts[1], 0) if len(parts) > 1 else 0
+            final_pixels.append([opcode, target & 0xFF, 0, 0])
         else:
             p1 = p2 = 0
             for i, part in enumerate(parts[1:]):

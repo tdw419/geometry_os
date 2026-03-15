@@ -204,12 +204,20 @@ impl GlyphAssembler {
             m.insert("DIV", (8, stratum::LOGIC));
             m.insert("JMP", (9, stratum::LOGIC));
             m.insert("BRANCH", (10, stratum::LOGIC));
+            m.insert("JZ", (10, stratum::LOGIC));
+            m.insert("BEQ", (10, stratum::LOGIC));
+            m.insert("BNE", (10, stratum::LOGIC));
+            m.insert("BLT", (10, stratum::LOGIC));
+            m.insert("BGE", (10, stratum::LOGIC));
+            m.insert("BLTU", (10, stratum::LOGIC));
+            m.insert("BGEU", (10, stratum::LOGIC));
             m.insert("CALL", (11, stratum::LOGIC));
             m.insert("RETURN", (12, stratum::LOGIC));
             m.insert("RET", (12, stratum::LOGIC));
             m.insert("HALT", (13, stratum::LOGIC));
             m.insert("DATA", (14, stratum::SPEC));
             m.insert("LOOP", (15, stratum::LOGIC));
+            m.insert("JAL", (16, stratum::LOGIC));
 
             // Extended opcodes (200+)
             m.insert("ADD_M", (200, stratum::LOGIC));

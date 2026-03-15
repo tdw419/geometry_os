@@ -8,18 +8,29 @@ import json
 # Geometry OS - Phase 44 Spatial Re-Linker
 # Converts RISC-V 64-bit to Executable Geometric Bricks
 
-OP_NOP = 0x00
-OP_MOV = 0x01
-OP_LDI = 0x08
-OP_LOAD = 0x03
-OP_STORE = 0x04
-OP_ADD = 0x33
-OP_SUB = 0x34
-OP_MUL = 0x35
-OP_DIV = 0x36
-OP_JMP = 0x06
-OP_HALT = 0x07
-OP_DATA = 0x09
+OP_NOP = 0
+OP_LDI = 1
+OP_MOV = 2
+OP_LOAD = 3
+OP_STORE = 4
+OP_ADD = 5
+OP_SUB = 6
+OP_MUL = 7
+OP_DIV = 8
+OP_JMP = 9
+OP_BRANCH = 10
+OP_CALL = 11
+OP_RET = 12
+OP_HALT = 13
+OP_JAL = 16
+
+# RISC-V Branch condition types
+F3_BEQ = 0
+F3_BNE = 1
+F3_BLT = 2
+F3_BGE = 3
+F3_BLTU = 4
+F3_BGEU = 5
 
 class HilbertCurve:
     def __init__(self, order):

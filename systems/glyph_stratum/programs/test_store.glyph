@@ -1,0 +1,5 @@
+// Simple test: store value 42 to memory address 100, then halt
+// M_STORE 100, 42
+// HALT
+M_STORE 100, 42
+HALT

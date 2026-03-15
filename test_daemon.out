@@ -1,0 +1,469 @@
+============================================================
+  GEOMETRY OS - OUROBOROS DAEMON (Phase 43)
+============================================================
+[SCHEDULER] Creating compute pipeline...
+[SCHEDULER] Compute pipeline created OK
+[SCHEDULER] Setting RAM texture view...
+[SCHEDULER] RAM texture view set OK
+[BOOT] Substrate initialized.
+[API] 🚀 Ouroboros Unix socket listening on /tmp/gpu_daemon.sock
+[EXEC] Substrate pulse starting...
+[API] 🚀 Ouroboros API listening on http://127.0.0.1:8769
+[SCHEDULER] Frame 0 complete
+[SCHEDULER] Frame 60 complete
+[SCHEDULER] Frame 120 complete
+[SCHEDULER] Frame 180 complete
+[SCHEDULER] Frame 240 complete
+[LOAD] Attempting to load: systems/glyph_stratum/programs/sisyphus_brain.rts.png
+[LOAD] Image loaded: 4096x4096
+[LOAD] First 16 bytes: [01, 02, 01, 00, 00, 00, 00, 00, 04, 02, 02, 01, 01, 02, 02, 00]
+[LOAD] Texture write submitted and polled
+[LOAD] Immediate peek at 0: [01, 02, 01, 00]
+[LOAD] reset_all() done
+[LOAD] Pre-spawn peek at 0: [01, 02, 01, 00]
+[LOAD] VM spawned
+[SCHEDULER] Frame 300 complete
+[API] /write request received
+[API] /write addr: 0x00000000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00000400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00000800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00000c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00001000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00001400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00001800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00001c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00006000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00006400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00006800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00006c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00007000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00007400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00007800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00007c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00000800
+[API] /write pixels: 128
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00001000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00001400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00001800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00001c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00001800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00001c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00002c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00006000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00006400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00003c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00004c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005000
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005400
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005800
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00005c00
+[API] /write pixels: 1024
+[API] /write texture calls done
+[API] /write request received
+[API] /write addr: 0x00006000
+[API] /write pixels: 1024
+[API] /write texture calls done

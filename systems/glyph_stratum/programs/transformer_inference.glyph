@@ -1,0 +1,115 @@
+// Self-Modifying Transformer Inference Kernel
+// Geometry OS Substrate Native (.glyph)
+//
+// Addresses are in pixels (4 bytes each), mapped via Hilbert Curve.
+// Memory Layout:
+// 0x0000: Token Embedding Matrix (V=256, D=128)
+// 0x1000: W_q Weights (D x D)
+// 0x1800: W_k Weights (D x D)
+// 0x2000: W_v Weights (D x D)
+// 0x8000: Activation Buffer (X)
+// 0x8100: Query Vector (Q)
+// 0x8200: Key Vector (K)
+// 0x8300: Value Vector (V)
+//
+// Register Usage:
+// r0: Token Index (Input)
+// r1-r10: Loop counters and temporary accumulators
+// r31: Constant 1
+
+.equ D, 128
+.equ V, 256
+.equ EMBED_BASE, 0x0000
+.equ WQ_BASE, 0x1000
+.equ WK_BASE, 0x1800
+.equ WV_BASE, 0x2000
+.equ ACT_BASE, 0x8000
+.equ Q_BASE, 0x8100
+
+:init
+    LDI r31, 1              // Constant 1
+    LDI r30, 0              // Constant 0
+
+:embedding_lookup
+    // r1 = token_idx * D
+    LDI r1, D
+    MUL r0, r1              // r1 = token_idx * 128
+    
+    // Loop to copy D weights from EMBED_BASE + r1 to ACT_BASE
+    LDI r2, 0               // counter (i)
+:embed_loop
+    // Load weight
+    LDI r3, EMBED_BASE
+    ADD r1, r3
+    ADD r2, r3              // r3 = EMBED_BASE + token_offset + i
+    LOAD r3, r4             // r4 = weight[i]
+    
+    // Store activation
+    LDI r5, ACT_BASE
+    ADD r2, r5              // r5 = ACT_BASE + i
+    STORE r5, r4
+    
+    // Increment i
+    ADD r31, r2
+    
+    // Check if i == D
+    LDI r6, D
+    MOV r2, r7
+    SUB r6, r7              // r7 = D - i
+    JZ r7, :qkv_start
+    JMP :embed_loop
+
+:qkv_start
+    // Compute Q = x * W_q
+    // For simplicity, we'll implement a single dot product loop and repeat it
+    LDI r8, 0               // j (column index)
+:q_outer_loop
+    LDI r10, 0              // accumulator (sum)
+    LDI r9, 0               // i (row index)
+:q_inner_loop
+    // Load x[i]
+    LDI r11, ACT_BASE
+    ADD r9, r11
+    LOAD r11, r12           // r12 = x[i]
+    
+    // Load Wq[i][j]
+    LDI r13, D
+    MOV r8, r14
+    MUL r13, r14            // r14 = j * D
+    LDI r15, WQ_BASE
+    ADD r14, r15
+    ADD r9, r15             // r15 = WQ_BASE + j*D + i
+    LOAD r15, r16           // r16 = Wq[i][j]
+    
+    // Multiply and accumulate
+    MUL r12, r16            // r16 = x[i] * Wq[i][j]
+    ADD r16, r10            // r10 = sum
+    
+    // Increment i
+    ADD r31, r9
+    LDI r17, D
+    MOV r9, r18
+    SUB r17, r18
+    JZ r18, :q_inner_done
+    JMP :q_inner_loop
+
+:q_inner_done
+    // Store result to Q_BASE + j
+    LDI r19, Q_BASE
+    ADD r8, r19
+    STORE r19, r10
+    
+    // Self-Modification Trigger (Phase 2 Preview)
+    // If activation is high, mutate weight
+    // MUTATE r10, r15      // Not used in Stage 1, but planned for Stage 2
+    
+    // Increment j
+    ADD r31, r8
+    LDI r20, D
+    MOV r8, r21
+    SUB r20, r21
+    JZ r21, :all_done
+    JMP :q_outer_loop
+
+:all_done
+    HALT

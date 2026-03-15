@@ -1,0 +1,124 @@
+// ============================================================================
+// Task Manager - Phase 46
+// ============================================================================
+//
+// Manages the lifecycle of spatial applications (Tasks).
+// Bridges VM IDs to Hilbert regions and allocation metadata.
+//
+// Memory Layout (Hilbert indices):
+// 0x1300 - 0x133F: Task Table (8 tasks * 8 u32 each)
+//                  Each entry: [vm_id, start_addr, page_count, state, 
+//                               parent_id, focus_score, res1, res2]
+// ============================================================================
+
+.equ TASK_TABLE_BASE, 0x1300
+.equ MAX_TASKS, 8
+.equ TASK_ENTRY_SIZE, 8
+
+// Task States
+.equ TASK_EMPTY, 0
+.equ TASK_ACTIVE, 1
+.equ TASK_PAUSED, 2
+.equ TASK_ZOMBIE, 3
+
+// ----------------------------------------------------------------------------
+// REGISTER_TASK
+// ----------------------------------------------------------------------------
+// Adds a new task to the table.
+//
+// IN: 
+// r1 = vm_id
+// r2 = start_addr
+// r3 = page_count
+//
+// Returns:
+// r1 = 0 on success, 0xFFFFFFFF if table full.
+// ----------------------------------------------------------------------------
+
+:register_task
+    MOV r4, 0           // loop_idx = 0
+    MOV r5, TASK_TABLE_BASE
+
+:search_empty_loop
+    // Calculate entry address: r6 = r5 + (r4 * TASK_ENTRY_SIZE)
+    MOV r6, TASK_ENTRY_SIZE
+    .glyph 202, 2, r4, r6, 7 // r7 = r4 * 8.0
+    .glyph 216, 2, r5, r7, 6 // r6 = base + offset
+
+    // Check state (field 3)
+    .glyph 216, 2, r6, 3, 8  // r8 = r6 + 3
+    .glyph 204, 2, r8, 0, 9  // r9 = memory[r8] (state)
+
+    CMP r9, TASK_EMPTY
+    JE found_slot
+
+    // Increment index
+    MOV r10, 1
+    .glyph 216, 2, r4, r10, 4 // r4 = r4 + 1
+    
+    MOV r10, MAX_TASKS
+    CMP r4, r10
+    JLT search_empty_loop
+
+    MOV r1, 0xFFFFFFFF
+    RET
+
+:found_slot
+    // Write entry
+    STORE r6 + 0, r1    // vm_id
+    STORE r6 + 1, r2    // start_addr
+    STORE r6 + 2, r3    // page_count
+    
+    MOV r10, TASK_ACTIVE
+    STORE r6 + 3, r10   // state = ACTIVE
+    
+    MOV r1, 0
+    RET
+
+// ----------------------------------------------------------------------------
+// UNREGISTER_TASK
+// ----------------------------------------------------------------------------
+// Removes a task and marks slot as empty.
+//
+// IN: r1 = vm_id
+// ----------------------------------------------------------------------------
+
+:unregister_task
+    MOV r4, 0           // loop_idx = 0
+    MOV r5, TASK_TABLE_BASE
+
+:find_task_loop
+    MOV r6, TASK_ENTRY_SIZE
+    .glyph 202, 2, r4, r6, 7 // r7 = r4 * 8.0
+    .glyph 216, 2, r5, r7, 6 // r6 = base + offset
+
+    // Load vm_id
+    .glyph 204, 2, r6, 0, 8  // r8 = memory[r6] (vm_id)
+    
+    CMP r8, r1
+    JE do_unregister
+
+    ADD r4, 1
+    MOV r10, MAX_TASKS
+    CMP r4, r10
+    JLT find_task_loop
+    RET
+
+:do_unregister
+    MOV r10, TASK_EMPTY
+    STORE r6 + 3, r10   // state = EMPTY
+    RET
+
+// ----------------------------------------------------------------------------
+// QUERY_TASK
+// ----------------------------------------------------------------------------
+// Finds task metadata by VM ID.
+//
+// IN: r1 = vm_id
+// OUT: r2 = start_addr, r3 = page_count
+// ----------------------------------------------------------------------------
+
+:query_task
+    // (Search loop logic same as unregister)
+    // ...
+    RET

@@ -1,0 +1,708 @@
+// ============================================================================
+// Geometry OS - RISC-V Emulator (Register-Indirect Addressing)
+// ============================================================================
+//
+// All large addresses loaded via LDI to avoid 8-bit truncation.
+// Memory Layout:
+//   0x0200: UART output buffer
+//   0x0300: Timer counter
+//   0x0308: Timer compare
+//   0x14000: GUEST_PC (current PC)
+//   0x14001: GUEST_HW_FLAG (halfword flag)
+//   0x14100: GUEST_REGS (x0-x31, each 4 bytes)
+//   0x14300: CSR_BASE
+//   0x18000: GUEST_RAM (RISC-V code starts here)
+//
+// Register allocation:
+//   r0: Entry point (passed by scheduler)
+//   r1-r9: Temporaries
+//   r10: GUEST_PC address (0x14000)
+//   r11: GUEST_REGS address (0x14100)
+//   r12: UART address (0x0200)
+//   r13: Current instruction
+//   r14-r19: Decode temporaries
+//   r20-r31: Guest register cache / work regs
+// ============================================================================
+
+:boot
+    // Initialize base addresses
+    LDI r10, 0x14000      // GUEST_PC address
+    LDI r11, 0x14100      // GUEST_REGS address
+    LDI r12, 0x0200       // UART address
+
+    // Store entry point (r0) to GUEST_PC
+    STORE r10, r0
+
+    // Clear halfword flag
+    LDI r1, 0x14001
+    LDI r2, 0
+    STORE r1, r2
+
+    // Initialize timer
+    LDI r1, 0x0300
+    LDI r2, 0
+    STORE r1, r2
+
+// ============================================================================
+// FETCH LOOP
+// ============================================================================
+:fetch
+    // Load GUEST_PC into r100
+    LOAD r10, r100
+
+    // Check halfword flag
+    LDI r1, 0x14001
+    LOAD r1, r107
+
+    // --- TIMER LOGIC ---
+    LDI r1, 0x0300
+    LOAD r1, r2
+    LDI r3, 1
+    ADD r2, r3
+    LDI r1, 0x0300
+    STORE r1, r2
+    LDI r1, 0x0308
+    LOAD r1, r3
+    SUB r2, r3
+    JZ trigger_timer_irq
+
+    // --- FETCH INSTRUCTION ---
+    LOAD r100, r11        // r11 = instruction at GUEST_PC
+
+    // Check if halfword
+    MOV r107, r3
+    JZ fetch_aligned
+
+    // Unaligned: shift and combine
+    // r11 = (r11 >> 16) | (mem[r100+1] << 16)
+    SHR r11, 16
+    MOV r20, r100
+    LDI r21, 1
+    ADD r20, r21
+    LOAD r20, r1
+    SHL r1, 16
+    OR r11, r1
+    JMP check_compressed
+
+:fetch_aligned
+    // Aligned fetch - check for compressed
+:check_compressed
+    MOV r101, r11
+    MOV r3, r101
+    LDI r4, 3
+    AND r3, r4
+    LDI r4, 3
+    SUB r3, r4
+    JZ handle_32bit
+
+// ============================================================================
+// COMPRESSED INSTRUCTIONS (16-bit)
+// ============================================================================
+:handle_16bit
+    LDI r4, 0xFFFF
+    AND r101, r4
+
+    // Check halfword flag for PC increment
+    MOV r107, r3
+    JZ c_inc_flag
+
+    // Increment PC, clear flag
+    LDI r20, 1
+    ADD r100, r20
+    STORE r10, r100
+    LDI r20, 0
+    LDI r1, 0x14001
+    STORE r1, r20
+    JMP decode_compressed
+
+:c_inc_flag
+    // Set flag, don't increment PC yet
+    LDI r20, 1
+    LDI r1, 0x14001
+    STORE r1, r20
+    JMP decode_compressed
+
+// ============================================================================
+// 32-BIT INSTRUCTIONS
+// ============================================================================
+:handle_32bit
+    // Increment PC by 1 (32-bit = 2 halfwords, but we count in words)
+    LDI r20, 1
+    ADD r100, r20
+    STORE r10, r100
+    JMP decode
+
+// ============================================================================
+// DECODE COMPRESSED
+// ============================================================================
+:decode_compressed
+    MOV r12, r101
+    LDI r17, 3
+    AND r12, r17
+
+    // quadrant 0
+    JZ decode_c0
+    // quadrant 1
+    LDI r17, 1
+    SUB r12, r17
+    JZ decode_c1
+    // quadrant 2
+    LDI r17, 1
+    SUB r12, r17
+    JZ decode_c2
+    JMP fetch
+
+:decode_c0
+    MOV r17, r101
+    SHR r17, 13
+    LDI r18, 7
+    AND r17, r18
+    // C.LW = 2
+    LDI r18, 2
+    SUB r17, r18
+    JZ handle_c_lw
+    // C.SW = 6
+    LDI r18, 4
+    ADD r17, r18
+    JZ handle_c_sw
+    JMP fetch
+
+:decode_c1
+    MOV r17, r101
+    SHR r17, 13
+    LDI r18, 7
+    AND r17, r18
+    // C.ADDI = 0
+    JZ handle_c_addi
+    // C.LI = 2
+    LDI r18, 2
+    SUB r17, r18
+    JZ handle_c_li
+    JMP fetch
+
+:decode_c2
+    JMP fetch
+
+// ============================================================================
+// COMPRESSED HANDLERS
+// ============================================================================
+:handle_c_li
+    // Decode rd
+    MOV r103, r101
+    SHR r103, 7
+    LDI r17, 0x1F
+    AND r103, r17
+    // Decode imm
+    MOV r106, r101
+    SHR r106, 2
+    AND r106, r17
+    MOV r1, r101
+    SHR r1, 12
+    LDI r17, 1
+    AND r1, r17
+    SHL r1, 5
+    OR r106, r1
+    // Sign extend
+    MOV r1, r106
+    LDI r17, 32
+    AND r1, r17
+    JZ c_li_pos
+    LDI r17, 0xFFFFFFC0
+    OR r106, r17
+:c_li_pos
+    MOV r21, r106
+    JMP writeback_rd
+
+:handle_c_addi
+    MOV r103, r101
+    SHR r103, 7
+    LDI r17, 0x1F
+    AND r103, r17
+    // Load current value
+    LDI r30, 0x14100
+    ADD r30, r103
+    ADD r30, r103
+    LOAD r30, r21
+    JMP handle_c_li
+
+:handle_c_lw
+:handle_c_sw
+    JMP fetch
+
+// ============================================================================
+// TRAP HANDLING
+// ============================================================================
+:trigger_timer_irq
+    LDI r2, 7
+    JMP take_trap
+
+// ============================================================================
+// 32-BIT DECODE
+// ============================================================================
+:decode
+    // Get opcode (bits 0-6)
+    MOV r102, r101
+    LDI r17, 0x7F
+    AND r102, r17
+
+    // LUI = 0x37
+    LDI r17, 0x37
+    SUB r102, r17
+    JZ handle_lui
+
+    // OP-REG = 0x33
+    LDI r102, r101
+    AND r102, r17
+    LDI r17, 0x33
+    SUB r102, r17
+    JZ handle_op_reg
+
+    // OP-IMM = 0x13
+    LDI r102, r101
+    LDI r17, 0x7F
+    AND r102, r17
+    LDI r17, 0x13
+    SUB r102, r17
+    JZ handle_op_imm
+
+    // LOAD = 0x03
+    LDI r102, r101
+    LDI r17, 0x7F
+    AND r102, r17
+    LDI r17, 0x03
+    SUB r102, r17
+    JZ handle_load
+
+    // STORE = 0x23
+    LDI r102, r101
+    LDI r17, 0x7F
+    AND r102, r17
+    LDI r17, 0x23
+    SUB r102, r17
+    JZ handle_store
+
+    // BRANCH = 0x63
+    LDI r102, r101
+    LDI r17, 0x7F
+    AND r102, r17
+    LDI r17, 0x63
+    SUB r102, r17
+    JZ handle_branch
+
+    // JAL = 0x6F
+    LDI r102, r101
+    LDI r17, 0x7F
+    AND r102, r17
+    LDI r17, 0x6F
+    SUB r102, r17
+    JZ handle_jal
+
+    // JALR = 0x67
+    LDI r102, r101
+    LDI r17, 0x7F
+    AND r102, r17
+    LDI r17, 0x67
+    SUB r102, r17
+    JZ handle_jalr
+
+    // AUIPC = 0x17
+    LDI r102, r101
+    LDI r17, 0x7F
+    AND r102, r17
+    LDI r17, 0x17
+    SUB r102, r17
+    JZ handle_auipc
+
+    // SYSTEM = 0x73
+    LDI r102, r101
+    LDI r17, 0x7F
+    AND r102, r17
+    LDI r17, 0x73
+    SUB r102, r17
+    JZ handle_system
+
+    JMP fetch
+
+// ============================================================================
+// INSTRUCTION HANDLERS
+// ============================================================================
+:handle_lui
+    // rd = imm[31:12] << 12
+    MOV r103, r101
+    SHR r103, 7
+    LDI r17, 0x1F
+    AND r103, r17
+    MOV r21, r101
+    LDI r17, 0xFFFFF000
+    AND r21, r17
+    JMP writeback_rd
+
+:handle_auipc
+    MOV r103, r101
+    SHR r103, 7
+    LDI r17, 0x1F
+    AND r103, r17
+    MOV r106, r101
+    LDI r17, 0xFFFFF000
+    AND r106, r17
+    LOAD r10, r100
+    ADD r106, r100
+    MOV r21, r106
+    JMP writeback_rd
+
+:handle_jalr
+    MOV r103, r101
+    SHR r103, 7
+    LDI r17, 0x1F
+    AND r103, r17
+    MOV r104, r101
+    SHR r104, 15
+    AND r104, r17
+    MOV r106, r101
+    SAR r106, 20
+    // Load rs1 from guest regs
+    LDI r30, 0x14100
+    ADD r30, r104
+    ADD r30, r104
+    LOAD r30, r2
+    ADD r2, r106
+    LDI r17, 0xFFFFFFFE
+    AND r2, r17
+    LOAD r10, r21
+    LDI r17, 1
+    ADD r21, r17
+    STORE r10, r2
+    JMP writeback_rd
+
+:handle_system
+    MOV r17, r101
+    SHR r17, 12
+    LDI r18, 0x7
+    AND r17, r18
+    JZ handle_ecall
+    // CSR access
+    MOV r103, r101
+    SHR r103, 7
+    LDI r17, 0x1F
+    AND r103, r17
+    MOV r104, r101
+    SHR r104, 15
+    AND r104, r17
+    MOV r106, r101
+    SHR r106, 20
+    LDI r30, 0x14300
+    ADD r30, r106
+    LOAD r30, r21
+    LDI r31, 0x14100
+    ADD r31, r104
+    ADD r31, r104
+    LOAD r31, r2
+    STORE r30, r2
+    JMP writeback_rd
+
+:handle_ecall
+    LDI r2, 11
+    JMP take_trap
+
+:take_trap
+    LOAD r10, r1
+    LDI r17, 1
+    SUB r1, r17
+    LDI r30, 0x14341
+    STORE r30, r1
+    LDI r30, 0x14342
+    STORE r30, r2
+    LDI r30, 0x14305
+    LOAD r30, r1
+    STORE r10, r1
+    LDI r1, 0
+    LDI r30, 0x14001
+    STORE r30, r1
+    JMP fetch
+
+:handle_load
+    MOV r103, r101
+    SHR r103, 7
+    LDI r17, 0x1F
+    AND r103, r17
+    MOV r104, r101
+    SHR r104, 15
+    AND r104, r17
+    MOV r106, r101
+    SAR r106, 20
+    // Load rs1
+    LDI r30, 0x14100
+    ADD r30, r104
+    ADD r30, r104
+    LOAD r30, r2
+    ADD r2, r106
+    // Check for UART
+    LDI r17, 0x1000
+    SUB r2, r17
+    JZ load_uart
+    LOAD r2, r21
+    JMP writeback_rd
+
+:load_uart
+    LDI r21, 0x60
+    JMP writeback_rd
+
+:handle_store
+    MOV r104, r101
+    SHR r104, 15
+    LDI r17, 0x1F
+    AND r104, r17
+    MOV r105, r101
+    SHR r105, 20
+    AND r105, r17
+    MOV r16, r101
+    SHR r16, 7
+    AND r16, r17
+    MOV r3, r101
+    SAR r3, 25
+    SHL r3, 5
+    OR r16, r3
+    // Load rs1
+    LDI r30, 0x14100
+    ADD r30, r104
+    ADD r30, r104
+    LOAD r30, r2
+    ADD r2, r16
+    // Load rs2
+    LDI r30, 0x14100
+    ADD r30, r105
+    ADD r30, r105
+    LOAD r30, r21
+    // Check for UART
+    LDI r17, 0x1000
+    SUB r2, r17
+    JZ handle_uart_tx_store
+    STORE r2, r21
+    JMP fetch
+
+:handle_uart_tx_store
+    // Write to our UART at 0x200
+    LDI r1, 0x0200
+    STORE r1, r21
+    JMP fetch
+
+:writeback_rd
+    // Skip if rd = 0
+    // r103 contains rd, check if zero
+    LDI r17, 0
+    SUB r103, r17
+    JZ fetch
+    // Store r21 to guest reg[rd]
+    LDI r30, 0x14100
+    ADD r30, r103
+    ADD r30, r103
+    STORE r30, r21
+    JMP fetch
+
+:handle_op_imm
+    MOV r103, r101
+    SHR r103, 7
+    LDI r17, 0x1F
+    AND r103, r17
+    MOV r104, r101
+    SHR r104, 15
+    AND r104, r17
+    MOV r17, r101
+    SHR r17, 12
+    LDI r18, 0x7
+    AND r17, r18
+    MOV r106, r101
+    SAR r106, 20
+    // Load rs1
+    LDI r30, 0x14100
+    ADD r30, r104
+    ADD r30, r104
+    LOAD r30, r21
+    // funct3 dispatch
+    JZ imm_addi
+    LDI r18, 4
+    SUB r17, r18
+    JZ imm_xori
+    LDI r18, 2
+    ADD r17, r18
+    JZ imm_ori
+    LDI r18, 1
+    ADD r17, r18
+    JZ imm_andi
+    JMP fetch
+
+:imm_addi
+    ADD r21, r106
+    JMP writeback_rd
+
+:imm_xori
+    XOR r21, r106
+    JMP writeback_rd
+
+:imm_ori
+    OR r21, r106
+    JMP writeback_rd
+
+:imm_andi
+    AND r21, r106
+    JMP writeback_rd
+
+:handle_op_reg
+    MOV r103, r101
+    SHR r103, 7
+    LDI r17, 0x1F
+    AND r103, r17
+    MOV r104, r101
+    SHR r104, 15
+    AND r104, r17
+    MOV r105, r101
+    SHR r105, 20
+    AND r105, r17
+    MOV r17, r101
+    SHR r17, 12
+    LDI r18, 0x7
+    AND r17, r18
+    // Load rs1
+    LDI r30, 0x14100
+    ADD r30, r104
+    ADD r30, r104
+    LOAD r30, r21
+    // Load rs2
+    LDI r30, 0x14100
+    ADD r30, r105
+    ADD r30, r105
+    LOAD r30, r22
+    // funct3 dispatch
+    JZ reg_add_sub
+    LDI r18, 4
+    SUB r17, r18
+    JZ reg_xor
+    LDI r18, 2
+    ADD r17, r18
+    JZ reg_or
+    LDI r18, 1
+    ADD r17, r18
+    JZ reg_and
+    JMP fetch
+
+:reg_add_sub
+    MOV r1, r101
+    SHR r1, 25
+    LDI r17, 0x7F
+    AND r1, r17
+    LDI r17, 0x20
+    SUB r1, r17
+    JZ reg_do_sub
+    ADD r21, r22
+    JMP writeback_rd
+
+:reg_do_sub
+    SUB r21, r22
+    JMP writeback_rd
+
+:reg_xor
+    XOR r21, r22
+    JMP writeback_rd
+
+:reg_or
+    OR r21, r22
+    JMP writeback_rd
+
+:reg_and
+    AND r21, r22
+    JMP writeback_rd
+
+:handle_jal
+    MOV r103, r101
+    SHR r103, 7
+    LDI r17, 0x1F
+    AND r103, r17
+    LOAD r10, r100
+    JZ jal_skip_ra
+    LDI r30, 0x14100
+    ADD r30, r103
+    ADD r30, r103
+    STORE r30, r100
+
+:jal_skip_ra
+    // Decode JAL offset
+    MOV r106, r1
+    LDI r106, 0
+    MOV r1, r101
+    SHR r1, 12
+    LDI r17, 0xFF
+    AND r1, r17
+    SHL r1, 12
+    OR r106, r1
+    MOV r1, r101
+    SHR r1, 20
+    LDI r17, 1
+    AND r1, r17
+    SHL r1, 11
+    OR r106, r1
+    MOV r1, r101
+    SHR r1, 21
+    LDI r17, 0x3FF
+    AND r1, r17
+    SHL r1, 1
+    OR r106, r1
+    MOV r1, r101
+    SHR r1, 31
+    LDI r17, 1
+    AND r1, r17
+    SHL r1, 20
+    OR r106, r1
+    LOAD r10, r100
+    LDI r17, 1
+    SUB r100, r17
+    ADD r100, r106
+    STORE r10, r100
+    JMP fetch
+
+:handle_branch
+    MOV r104, r101
+    SHR r104, 15
+    LDI r17, 0x1F
+    AND r104, r17
+    MOV r105, r101
+    SHR r105, 20
+    AND r105, r17
+    // Load rs1
+    LDI r30, 0x14100
+    ADD r30, r104
+    ADD r30, r104
+    LOAD r30, r21
+    // Load rs2
+    LDI r30, 0x14100
+    ADD r30, r105
+    ADD r30, r105
+    LOAD r30, r22
+    MOV r17, r101
+    SHR r17, 12
+    LDI r18, 0x7
+    AND r17, r18
+    JZ handle_beq
+    LDI r18, 1
+    SUB r17, r18
+    JZ handle_bne
+    JMP fetch
+
+:handle_beq
+    SUB r21, r22
+    JZ take_branch
+    JMP fetch
+
+:handle_bne
+    SUB r21, r22
+    JNZ take_branch
+    JMP fetch
+
+:take_branch
+    MOV r106, r101
+    SAR r106, 20
+    LOAD r10, r100
+    LDI r17, 1
+    SUB r100, r17
+    ADD r100, r106
+    STORE r10, r100
+    JMP fetch

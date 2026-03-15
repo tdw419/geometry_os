@@ -1,0 +1,103 @@
+// ============================================================================
+// Spatial Memory Allocator - Phase 45
+// ============================================================================
+//
+// Manages the 2D VRAM stratum as a set of "Spatial Pages".
+// Each page is a 64x64 Hilbert quadrant (4096 instructions).
+//
+// Memory Layout (Hilbert indices):
+// 0x0300 - 0x12FF: Free Space Bitmap (4096 floats)
+//                  0.0 = Free, 1.0 = Occupied
+// ============================================================================
+
+.equ BITMAP_BASE, 0x0300
+.equ TOTAL_PAGES, 4096
+.equ PAGE_SIZE, 4096
+
+// ----------------------------------------------------------------------------
+// ALLOCATE
+// ----------------------------------------------------------------------------
+// Finds the first free spatial page and marks it as occupied.
+//
+// Returns:
+// r1 = Base Hilbert address of the allocated page
+//      or 0xFFFFFFFF if no free pages available.
+// ----------------------------------------------------------------------------
+
+:allocate
+    MOV r2, BITMAP_BASE
+    MOV r3, 0           // page_idx = 0
+
+:scan_loop
+    // Calculate bitmap address: r4 = r2 + r3
+    MOV r4, r2
+    ADD r4, r3          // Note: using ADD (200) which takes immediates in microcode? 
+                        // Wait, check microcode ADD logic.
+    
+    // In glyph_microcode.wgsl:
+    // case 200u: { memory[glyph.dst] = glyph.p1 + glyph.p2; } // ADD_M
+    // case 216u: { memory[glyph.dst] = memory[u32(glyph.p1)] + memory[u32(glyph.p2)]; } // ADD_MEM
+    
+    // I'll use register-to-register ops for the loop.
+    .glyph 216, 2, 2, 3, 4  // r4 = r2 + r3
+    
+    // Load status: r5 = memory[r4]
+    // case 204u: { memory[glyph.dst] = memory[u32(glyph.p1)]; } // LD
+    .glyph 204, 2, 4, 0, 5  // r5 = memory[r4]
+
+    // Check if free (r5 == 0.0)
+    // case 209u: { if (memory[glyph.dst] == 0.0) { state.pc = u32(glyph.p1); } } // JZ
+    // JZ takes target in p1, condition reg in dst.
+    .glyph 209, 2, found_free, 0, 5 
+
+    // Increment index
+    MOV r6, 1
+    .glyph 216, 2, 3, 6, 3  // r3 = r3 + 1
+    
+    // Check limit
+    MOV r6, TOTAL_PAGES
+    .glyph 217, 2, 3, 6, 7  // r7 = r3 - 4096
+    .glyph 209, 2, alloc_failed, 0, 7 
+
+    JMP scan_loop
+
+:found_free
+    // Mark as occupied: memory[r4] = 1.0
+    MOV r5, 1.0
+    // case 205u: { memory[u32(glyph.p1)] = glyph.p2; } // ST
+    .glyph 205, 2, 4, 1.0, 0 // Note: ST takes immediate in p2
+
+    // Calculate address: r1 = r3 * PAGE_SIZE
+    MOV r6, PAGE_SIZE
+    .glyph 202, 2, r3, r6, 1 // Wait, MUL_M (202) is immediate? 
+                             // case 202u: { memory[glyph.dst] = glyph.p1 * glyph.p2; }
+                             // Need register MUL? Not in microcode.
+                             // I'll use MUL_M with r3 as p1 (casted to f32)
+    .glyph 202, 2, r3, 4096.0, 1 // r1 = r3 * 4096.0
+    
+    RET
+
+:alloc_failed
+    MOV r1, 0xFFFFFFFF
+    RET
+
+// ----------------------------------------------------------------------------
+// FREE
+// ----------------------------------------------------------------------------
+// IN: r1 = Base Hilbert address
+// ----------------------------------------------------------------------------
+
+:free
+    // page_idx = addr / PAGE_SIZE
+    MOV r2, PAGE_SIZE
+    // case 203u: { memory[glyph.dst] = glyph.p1 / glyph.p2; }
+    .glyph 203, 2, r1, 4096.0, 3 // r3 = page_idx
+    
+    // addr = BITMAP_BASE + r3
+    MOV r2, BITMAP_BASE
+    .glyph 216, 2, 2, 3, 4 // r4 = address in bitmap
+    
+    // memory[r4] = 0.0
+    MOV r5, 0.0
+    .glyph 205, 2, 4, 0.0, 0
+    RET

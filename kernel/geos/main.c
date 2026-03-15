@@ -10,23 +10,24 @@
 #include "gpu.h"
 #include "window_renderer.h"
 
-/* Boot info from UEFI */
+/* Boot info from UEFI - MUST match kernel/boot/src/main.rs GeometryOsBootInfo */
 struct boot_info {
-    unsigned long magic;
-    unsigned long gpu_mmio_base;
-    unsigned long gpu_mmio_size;
-    unsigned long vram_base;
-    unsigned long vram_size;
-    unsigned long glyph_memory_base;
-    unsigned long glyph_memory_size;
+    unsigned long long magic;           /* 0x47454F535F525354 = "GEOSRST" */
+    unsigned long long gpu_mmio_base;
+    unsigned long long gpu_mmio_size;
+    unsigned long long glyph_memory_base;
+    unsigned long long glyph_memory_size;
+    unsigned long long glyph_program_base;  /* init_glyph in old struct */
+    unsigned long long glyph_program_size;
+    unsigned long long guest_os_base;
+    unsigned long long guest_os_size;
+    unsigned long long fw_pfp_base;
+    unsigned long long fw_me_base;
+    unsigned long long fw_ce_base;
+    unsigned long long fw_mec_base;
+    unsigned long long fw_rlc_base;
     unsigned int gpu_vendor_id;
     unsigned int gpu_device_id;
-    unsigned int num_compute_units;
-    unsigned long init_glyph_base;
-    unsigned long init_glyph_size;
-    unsigned long microcode_base;
-    unsigned long microcode_size;
-    unsigned char reserved[20];
 };
 
 /* UART for debug output */
@@ -112,7 +113,7 @@ static int gpu_init(struct boot_info *info)
     uart_puts("\n[GPU] Initializing...\n");
 
     gpu.mmio_base = (void *)info->gpu_mmio_base;
-    gpu.vram_base = (void *)info->vram_base;
+    gpu.vram_base = (void *)info->gpu_mmio_base;  /* Use MMIO as VRAM fallback */
     gpu.glyph_memory = (void *)info->glyph_memory_base;
     gpu.vendor_id = info->gpu_vendor_id;
     gpu.device_id = info->gpu_device_id;
@@ -130,7 +131,7 @@ static int gpu_init(struct boot_info *info)
     /* Initialize GPU command queues based on vendor */
     if (gpu.vendor_id == 0x1002) {
         uart_puts("[GPU] AMD GPU detected - initializing amdgpu...\n");
-        /* TODO: amdgpu_init(gpu.mmio_base); */
+        amdgpu_init(gpu.mmio_base);
     } else if (gpu.vendor_id == 0x8086) {
         uart_puts("[GPU] Intel GPU detected - initializing i915...\n");
         /* TODO: intel_gpu_init(gpu.mmio_base); */
@@ -222,8 +223,8 @@ void kernel_main(struct boot_info *info)
     uart_puts("\n");
 
     /* Verify boot info magic */
-    if (info->magic != 0x47454F535F52ULL) {
-        uart_puts("[Kernel] Invalid boot magic, halting.\n");
+    if (info->magic != 0x47454F535F525354ULL) {
+        uart_puts("[Kernel] Invalid boot magic (expected 0x47454F535F525354), halting.\n");
         while (1) {
             __asm__ volatile ("hlt");
         }
@@ -237,35 +238,47 @@ void kernel_main(struct boot_info *info)
         }
     }
 
+    /* Load Firmware from Spatial Textures */
+    if (info->fw_pfp_base != 0) {
+        uart_puts("[Kernel] Extracting PFP firmware from pixels...\n");
+        /* In Path B, we extract raw bytes from the RGBA8 texture */
+        /* Each pixel contains 4 bytes of firmware */
+        amdgpu_submit_shader((void *)info->fw_pfp_base, 0x10000); // Dummy size for now
+    }
+
     /* Load initial glyph program into glyph memory */
-    if (info->init_glyph_size > 0 && info->init_glyph_base != 0) {
-        uart_puts("[Kernel] Loading init glyph (");
-        uart_puthex(info->init_glyph_size);
+    if (info->glyph_program_size > 0 && info->glyph_program_base != 0) {
+        uart_puts("[Kernel] Loading glyph program (");
+        uart_puthex(info->glyph_program_size);
         uart_puts(" bytes) into glyph memory...\n");
+
+        memcpy((void *)gpu.glyph_memory, (void *)info->glyph_program_base, info->glyph_program_size);
+        uart_puts("[Kernel] Glyph program loaded at offset 0\n");
+    }
+
+    /* Load Guest OS into glyph memory at offset 0x8000 (32,768 instructions) */
+    /* Each instruction is 4 bytes, so byte offset = 0x8000 * 4 = 0x20000 (128KB) */
+    if (info->guest_os_size > 0 && info->guest_os_base != 0) {
+        uart_puts("[Kernel] Loading guest OS (");
+        uart_puthex(info->guest_os_size);
+        uart_puts(" bytes) into guest RAM (Hilbert offset 0x8000)...\n");
         
-        memcpy((void *)gpu.glyph_memory, (void *)info->init_glyph_base, info->init_glyph_size);
-        uart_puts("[Kernel] Init glyph loaded\n");
+        void *guest_ram_dest = (void *)((unsigned char *)gpu.glyph_memory + 0x20000);
+        memcpy(guest_ram_dest, (void *)info->guest_os_base, info->guest_os_size);
+        uart_puts("[Kernel] Guest OS loaded at offset 0x8000\n");
     }
 
     /* Submit glyph microcode to GPU */
-    if (info->microcode_size > 0 && info->microcode_base != 0) {
-        uart_puts("[Kernel] Submitting glyph microcode (");
-        uart_puthex(info->microcode_size);
-        uart_puts(" bytes)...\n");
-        
-        amdgpu_submit_shader((void *)info->microcode_base, info->microcode_size);
-        uart_puts("[Kernel] Microcode submitted\n");
-    }
+    /* Note: Microcode is now embedded in glyph_program_base via glyph_microcode.wgsl */
+    /* The firmware textures (fw_pfp, etc.) are loaded separately above */
 
     /* Run glyph compute test */
     glyph_compute_test();
 
     /* Dispatch real Glyph VM execution on GPU */
-    if (info->microcode_size > 0) {
-        uart_puts("[Kernel] Dispatching Glyph VM on GPU...\n");
-        amdgpu_dispatch(1, 1, 1);
-        uart_puts("[Kernel] Dispatch complete\n");
-    }
+    uart_puts("[Kernel] Dispatching Glyph VM on GPU...\n");
+    amdgpu_dispatch(1, 1, 1);
+    uart_puts("[Kernel] Dispatch complete\n");
 
     /* Initialize window renderer */
     WindowRenderer wren;

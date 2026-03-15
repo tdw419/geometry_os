@@ -1,0 +1,19 @@
+// Simple Hello World test for Geometry OS
+// Writes "HI" to UART buffer at 0x0200
+
+:main
+    // Load 'H' (0x48) into r1
+    LDI r1, 0x48
+    // Load UART address (0x0200) into r2
+    LDI r2, 0x0200
+    // Store 'H' at UART
+    STORE r2, r1
+
+    // Load 'I' (0x49) into r1
+    LDI r1, 0x49
+    // Store 'I' at UART+1
+    LDI r2, 0x0201
+    STORE r2, r1
+
+    // Halt
+    HALT

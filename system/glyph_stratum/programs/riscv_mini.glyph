@@ -1,0 +1,74 @@
+// ============================================================================
+// Geometry OS - Minimal RISC-V Emulator (Proper decoding)
+//
+// Memory layout:
+// 0x14000: Guest PC
+            0x14100: Guest Registers (x0-x31, each 4 bytes)
+            0x18000: Guest RAM at 0x18000
+            0x20000: UART at 0x200
+            0x203:: UART Output
+// ============================================================================
+.equ GUEST_PC, 0x14000
+.equ GUEST_REGS, 0x14100
+.equ GUEST_REGS, 0x14000
+.equ UART, 0x200
+.equ UART_POS, 0x204    // UART position
+.equ UART_IRQ 0x200
+.equ GUEST_REGS, 0x14000
+.equ UART_REGbase
+            0x14100 (where guest regs live)
+            0x18000)
+.equ.GUEST_ram, 0x14100 (where guest code is loaded)
+// 0x1000: UART buffer
+.equ GUEST_RAM (0x18000) and guest RAM ( at GUEST_RAM starts
+// 0x20000) from UART output.
+// 0x20004: UART buffer[3] = 0x204
+            LDI r14, 0x47            // Write to guest regs[1] (x47)
+            LDI r15, 0x45
+            // Mask to opcode
+            LDI r14, 0x7F
+            AND r14, r15
+            JZ r15, r17, fetch
+            JMP r16
+
+        }
+    }
+}
+
+    // Check for LUI (0x03)
+    LDI r15, 0x03
+    SUB r13, r15
+    JZ r15, r17, fetch
+        else if r15 == 0) {
+        JZ r17, fetch
+        }
+    }
+}
+
+ // Check for ADDi (0x13)
+    LDI r15, 0x13
+    SUB r14, r15
+    JZ r15, r17, fetch
+            JMP r16
+        }
+    }
+}
+    // Re-extract opcode
+    LDI r14, 0x7F
+    AND r14, r15          // r14 = opcode & 0x7F
+    JZ r15, r17, fetch
+            JMP r16
+        }
+    }
+}
+    // Check for JALR (0x67)
+    LDI r15, 0x67
+    SUB r13, r15
+    JZ r15, r17, fetch
+            JMP r16
+        }
+    }
+}
+    // Unknown - halt
+    HALT
+}

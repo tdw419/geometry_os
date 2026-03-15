@@ -1,34 +1,27 @@
-// Test SPATIAL_SPAWN (opcode 232)
-// Verifies that a program can write new glyphs into itself
+// Test GLYPH_WRITE (opcode 232) for self-modifying code
+// Uses glyph_vm_scheduler.wgsl opcodes (M_ prefix)
 
-// Setup: Write a HALT instruction into memory at address 100-104
-// Memory layout: 5 floats per glyph (opcode, stratum, p1, p2, dst)
+// Store HALT opcode (13) at memory address 100
+// M_STORE (206): mem[dst] = immediate (stratum=dst, p1=value)
+M_STORE 100, 13
 
-// memory[100] = 141 (HALT opcode)
-LDI r0, 141
-STORE r0, 100
+// Store stratum (0) at address 101
+M_STORE 101, 0
 
-// memory[101] = 0 (stratum)
-LDI r0, 0
-STORE r0, 101
+// Store p1 (0) at address 102
+M_STORE 102, 0
 
-// memory[102] = 0 (p1)
-STORE r0, 102
+// Store p2 (0) at address 103
+M_STORE 103, 0
 
-// memory[103] = 0 (p2)
-STORE r0, 103
+// GLYPH_WRITE (232): copy glyph from memory[100] to program[200]
+// encoding: R=232, G=target, B=source, A=count
+// stratum=target (200), p1=source (100), p2=count (0=single)
+GLYPH_WRITE 200, 100, 0
 
-// memory[104] = 0 (dst)
-STORE r0, 104
+// Jump to address 200 - should hit the HALT we wrote
+// M_JUMP (208): pc = stratum
+M_JUMP 200
 
-// Spawn single glyph at program[200] from memory[100]
-// SPAWN dst=200, src=100, count=0 (single mode)
-SPAWN 200, 100, 0
-
-// Jump to 200 - should hit the spawned HALT
-JMP 200
-
-// Should never reach here
-NOP
-NOP
+// Fallback (should never reach)
 HALT

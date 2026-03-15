@@ -20,12 +20,16 @@ from PIL import Image
 import io
 import base64
 
-from geos import hilbert_d2xy, hilbert_xy2d
+from geos import hilbert_d2xy, hilbert_xy2d, SpatialAllocator, TaskManager, TaskState
 from geos.benchmarks import benchmark_sls
 from geos.mcp import glyph_patch, geos_status
 from geos.types import Opcode
 
 app = FastAPI(title="Spatial Debugger", version="0.1.0")
+
+# Global instances
+allocator = SpatialAllocator()
+task_manager = TaskManager()
 
 # Store loaded textures
 _loaded_textures: dict = {}
@@ -44,9 +48,75 @@ class TextureLoadRequest(BaseModel):
     path: str
 
 
+class AllocateRequest(BaseModel):
+    num_pages: int = 1
+
+
+class RegisterTaskRequest(BaseModel):
+    vm_id: int
+    start_addr: int
+    page_count: int
+    parent_id: int = 0
+
+
 @app.get("/")
 async def root():
-    return {"status": "Spatial Debugger v0.1.0", "endpoints": ["/texture", "/patch", "/status", "/hilbert/{d}"]}
+    return {"status": "Spatial Debugger v0.1.0", "endpoints": ["/texture", "/patch", "/status", "/allocator", "/tasks", "/hilbert/{d}"]}
+
+
+@app.get("/tasks")
+async def get_tasks():
+    """Get the list of registered tasks."""
+    return task_manager.get_task_list()
+
+
+@app.post("/tasks/register")
+async def do_register_task(req: RegisterTaskRequest):
+    """Register a task in the table."""
+    success = task_manager.register_task(
+        vm_id=req.vm_id,
+        start_addr=req.start_addr,
+        page_count=req.page_count,
+        parent_id=req.parent_id
+    )
+    if not success:
+        raise HTTPException(400, "Task table full")
+    return {"status": "registered", "vm_id": req.vm_id}
+
+
+@app.delete("/tasks/{vm_id}")
+async def do_unregister_task(vm_id: int):
+    """Unregister a task."""
+    task_manager.unregister_task(vm_id)
+    return {"status": "unregistered", "vm_id": vm_id}
+
+
+@app.get("/allocator/status")
+async def get_allocator_status():
+    """Get spatial allocation status."""
+    return allocator.get_status()
+
+
+@app.post("/allocator/allocate")
+async def do_allocate(req: AllocateRequest):
+    """Simulate a spatial allocation."""
+    addr = allocator.allocate(req.num_pages)
+    if addr is None:
+        raise HTTPException(400, "Out of spatial memory")
+    
+    return {
+        "status": "allocated",
+        "base_addr": addr,
+        "base_addr_hex": f"0x{addr:08X}",
+        "num_pages": req.num_pages,
+        "total_instructions": req.num_pages * allocator.page_size
+    }
+
+
+@app.get("/allocator/bitmap")
+async def get_bitmap():
+    """Get the free space bitmap."""
+    return {"bitmap": allocator.bitmap.tolist()}
 
 
 @app.post("/texture/load")

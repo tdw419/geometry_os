@@ -56,4 +56,10 @@ int gpu_dispatch_compute(unsigned int x, unsigned int y, unsigned int z);
 int gpu_wait_completion(unsigned int timeout_ms);
 int gpu_export_dmabuf(struct gpu_bo *bo, struct dmabuf *dmabuf);
 
+/* AMDGPU specific functions */
+int amdgpu_init(void *mmio_base);
+int amdgpu_submit_shader(const void *binary, size_t size);
+int amdgpu_dispatch(unsigned int x, unsigned int y, unsigned int z);
+int amdgpu_wait(unsigned int timeout_ms);
+
 #endif /* _GEOMETRY_OS_GPU_H */

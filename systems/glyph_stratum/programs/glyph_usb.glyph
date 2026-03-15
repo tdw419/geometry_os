@@ -1,0 +1,742 @@
+// ============================================================================
+// Geometry OS - Glyph-Native USB 1.1 Controller (OHCI/UHCI Template)
+// ============================================================================
+//
+// A USB controller emulator that teaches real driver development patterns:
+// - Device enumeration and address assignment
+// - Control transfers (SETUP, DATA, STATUS phases)
+// - Endpoint management (IN/OUT/CONTROL)
+// - USB descriptors parsing
+// - Transaction state machines
+//
+// USB Protocol Overview:
+// 1. Host detects device attachment (D+/D- pull-up)
+// 2. Host issues RESET on bus
+// 3. Host reads Device Descriptor (address 0, endpoint 0)
+// 4. Host assigns unique address (SET_ADDRESS)
+// 5. Host reads full descriptors
+// 6. Host configures device (SET_CONFIGURATION)
+// 7. Device is ready for use
+//
+// ============================================================================
+// MEMORY LAYOUT
+// ============================================================================
+//
+// OHCI Registers (Host Controller):
+// 0x2000: HcRevision      - OHCI version
+// 0x2004: HcControl       - Host controller control
+// 0x2008: HcCommandStatus - Command and status
+// 0x200C: HcInterruptStatus - IRQ status
+// 0x2010: HcInterruptEnable - IRQ enable
+// 0x2014: HcHCCA          - HCCA pointer
+// 0x2018: HcPeriodCurrentED - Current periodic ED
+// 0x201C: HcControlHeadED - Control ED head
+// 0x2020: HcControlCurrentED - Current control ED
+// 0x2024: HcBulkHeadED    - Bulk ED head
+// 0x2028: HcBulkCurrentED - Current bulk ED
+// 0x202C: HcDoneHead      - Done queue head
+// 0x2030: HcFmInterval    - Frame interval
+// 0x2034: HcFmRemaining   - Frame remaining
+// 0x2038: HcFmNumber      - Frame number
+// 0x203C: HcPeriodicStart - Periodic start
+// 0x2040: HcLSThreshold   - Low-speed threshold
+// 0x2044: HcRhDescriptorA - Root hub A
+// 0x2048: HcRhDescriptorB - Root hub B
+// 0x204C: HcRhStatus      - Root hub status
+// 0x2050: HcRhPortStatus1 - Port 1 status
+// 0x2054: HcRhPortStatus2 - Port 2 status
+//
+// Internal State:
+// 0x2100: USB_STATE       - Controller state
+// 0x2101: DEVICE_ADDR     - Current device address
+// 0x2102: DEVICE_STATE    - Device state machine
+// 0x2103: CURRENT_PID     - Current packet ID
+// 0x2104: DATA_TOGGLE     - Data toggle bit
+// 0x2105: FRAME_COUNT     - Frame counter
+//
+// Endpoint Descriptors (simplified):
+// 0x2200-0x22FF: ED array (16 endpoints max)
+//   Each ED: [FLAGS(4), ADDR(1), ENDP(1), DIR(1), MAX_PKT(2), TD_HEAD(4), TD_TAIL(4)]
+//
+// Transfer Descriptors:
+// 0x2300-0x23FF: TD pool
+//   Each TD: [FLAGS(4), CBP(4), NEXT_TD(4), BUF_END(4), DATA(64)]
+//
+// Device Descriptor Storage:
+// 0x3000: Device Descriptor (18 bytes)
+// 0x3020: Configuration Descriptor (configurable)
+// 0x3100: String Descriptors
+//
+// ============================================================================
+
+// ============================================================================
+// REGISTER DEFINITIONS
+// ============================================================================
+
+.equ HC_REVISION       0x2000
+.equ HC_CONTROL        0x2004
+.equ HC_CMD_STATUS     0x2008
+.equ HC_INT_STATUS     0x200C
+.equ HC_INT_ENABLE     0x2010
+.equ HC_HCCA           0x2014
+.equ HC_CTRL_HEAD_ED   0x201C
+.equ HC_CTRL_CUR_ED    0x2020
+.equ HC_BULK_HEAD_ED   0x2024
+.equ HC_BULK_CUR_ED    0x2028
+.equ HC_DONE_HEAD      0x202C
+.equ HC_FM_INTERVAL    0x2030
+.equ HC_FM_NUMBER      0x2038
+.equ HC_RH_STATUS      0x204C
+.equ HC_RH_PORT1       0x2050
+.equ HC_RH_PORT2       0x2054
+
+// Internal state
+.equ USB_STATE         0x2100
+.equ DEVICE_ADDR       0x2101
+.equ DEVICE_STATE      0x2102
+.equ CURRENT_PID       0x2103
+.equ DATA_TOGGLE       0x2104
+.equ FRAME_COUNT       0x2105
+
+// Endpoint pool
+.equ ED_POOL           0x2200
+.equ TD_POOL           0x2300
+
+// Descriptor storage
+.equ DEV_DESC          0x3000
+.equ CFG_DESC          0x3020
+
+// USB States
+.equ STATE_RESET       0
+.equ STATE_SUSPEND     1
+.equ STATE_OPERATIONAL 2
+
+// Device States
+.equ DEV_DETACHED      0
+.equ DEV_ATTACHED      1
+.equ DEV_POWERED       2
+.equ DEV_DEFAULT       3
+.equ DEV_ADDRESS       4
+.equ DEV_CONFIGURED    5
+
+// PID values (Packet Identifiers)
+.equ PID_SETUP         0x2D
+.equ PID_IN            0x69
+.equ PID_OUT           0xE1
+.equ PID_DATA0         0xC3
+.equ PID_DATA1         0x4B
+.equ PID_ACK           0xD2
+.equ PID_NAK           0x5A
+.equ PID_STALL         0x1E
+
+// Standard Requests
+.equ REQ_GET_STATUS    0x00
+.equ REQ_CLEAR_FEATURE 0x01
+.equ REQ_SET_FEATURE   0x03
+.equ REQ_SET_ADDRESS   0x05
+.equ REQ_GET_DESC      0x06
+.equ REQ_SET_DESC      0x07
+.equ REQ_GET_CONFIG    0x08
+.equ REQ_SET_CONFIG    0x09
+.equ REQ_GET_INTERFACE 0x0A
+.equ REQ_SET_INTERFACE 0x0B
+.equ REQ_SYNCH_FRAME   0x0C
+
+// Descriptor Types
+.equ DESC_DEVICE       0x01
+.equ DESC_CONFIG       0x02
+.equ DESC_STRING       0x03
+.equ DESC_INTERFACE    0x04
+.equ DESC_ENDPOINT     0x05
+
+// Port Status bits
+.equ PORT_CONN         0x0001  // Device present
+.equ PORT_ENABLE       0x0002  // Port enabled
+.equ PORT_SUSPEND      0x0004  // Suspended
+.equ PORT_OVER_CURRENT 0x0008  // Over-current
+.equ PORT_RESET        0x0010  // Reset
+.equ PORT_POWER        0x0100  // Power on
+.equ PORT_LOW_SPEED    0x0200  // Low-speed device
+
+// ============================================================================
+// BOOT / INITIALIZATION
+// ============================================================================
+
+:boot
+    // Initialize controller to RESET state
+    MOV r1, STATE_RESET
+    ST r1, USB_STATE
+
+    // Clear device address
+    MOV r1, 0
+    ST r1, DEVICE_ADDR
+    ST r1, DEVICE_STATE
+    ST r1, DATA_TOGGLE
+    ST r1, FRAME_COUNT
+
+    // Initialize OHCI registers
+    MOV r1, 0x10         // OHCI 1.0
+    ST r1, HC_REVISION
+
+    // Reset control register
+    MOV r1, 0
+    ST r1, HC_CONTROL
+
+    // Frame interval (12000 12MHz clocks = 1ms)
+    MOV r1, 0x2EDF
+    ST r1, HC_FM_INTERVAL
+
+    // Initialize port status (no devices)
+    MOV r1, PORT_POWER   // Power on, no device
+    ST r1, HC_RH_PORT1
+    ST r1, HC_RH_PORT2
+
+    // Fall through to main loop
+
+// ============================================================================
+// MAIN LOOP - USB Frame Processing
+// ============================================================================
+
+:main_loop
+    // Check controller state
+    LOAD r1, USB_STATE
+    CMP r1, STATE_OPERATIONAL
+    JNE wait_for_start
+
+    // Process USB frame
+    CALL process_frame
+
+    // Increment frame counter
+    LOAD r1, FRAME_COUNT
+    ADD r1, 1
+    ST r1, FRAME_COUNT
+
+    // Update HcFmNumber
+    ST r1, HC_FM_NUMBER
+
+    JMP main_loop
+
+:wait_for_start
+    // Wait for host to start controller
+    LOAD r1, HC_CONTROL
+    AND r1, 0xC0         // Check HCFS bits
+    CMP r1, 0x80         // Operational?
+    JNE main_loop
+
+    // Transition to operational
+    MOV r1, STATE_OPERATIONAL
+    ST r1, USB_STATE
+    JMP main_loop
+
+// ============================================================================
+// PROCESS FRAME - Handle one USB frame (1ms)
+// ============================================================================
+
+:process_frame
+    // In a real controller, we would:
+    // 1. Process isochronous transfers
+    // 2. Process interrupt transfers
+    // 3. Process control transfers
+    // 4. Process bulk transfers
+
+    // For this template, we'll just handle control transfers
+    CALL process_control_transfers
+
+    // Check for port changes (device connect/disconnect)
+    CALL check_port_status
+
+    RET
+
+// ============================================================================
+// CHECK PORT STATUS - Detect device attachment
+// ============================================================================
+
+:check_port_status
+    // Simulate device detection
+    // In real hardware, this checks D+/D- line status
+
+    LOAD r1, HC_RH_PORT1
+    AND r1, PORT_CONN
+    CMP r1, 0
+    JNE port_has_device
+
+    // No device - check if we need to simulate attachment
+    // For testing, assume a device is always present
+    MOV r1, PORT_CONN | PORT_POWER
+    ST r1, HC_RH_PORT1
+
+    // Trigger port change interrupt
+    LOAD r1, HC_INT_STATUS
+    OR r1, 0x40         // RHSC (Root Hub Status Change)
+    ST r1, HC_INT_STATUS
+
+    RET
+
+:port_has_device
+    // Check if port needs reset
+    LOAD r1, HC_RH_PORT1
+    AND r1, PORT_RESET
+    CMP r1, 0
+    JNE do_port_reset
+
+    RET
+
+:do_port_reset
+    // Perform USB reset (10ms of SE0)
+    // Clear reset bit, set enable bit
+    LOAD r1, HC_RH_PORT1
+    AND r1, ~PORT_RESET
+    OR r1, PORT_ENABLE
+    ST r1, HC_RH_PORT1
+
+    // Device is now in DEFAULT state
+    MOV r1, DEV_DEFAULT
+    ST r1, DEVICE_STATE
+    MOV r1, 0
+    ST r1, DEVICE_ADDR
+
+    RET
+
+// ============================================================================
+// PROCESS CONTROL TRANSFERS
+// ============================================================================
+
+:process_control_transfers
+    // Check if there's a control transfer pending
+    LOAD r1, HC_CTRL_CUR_ED
+    CMP r1, 0
+    JE no_control
+
+    // Process the endpoint descriptor
+    CALL process_ed
+
+:no_control
+    RET
+
+// ============================================================================
+// PROCESS ED (Endpoint Descriptor)
+// ============================================================================
+
+:process_ed
+    // r1 contains ED address
+    MOV r2, r1          // Save ED address
+
+    // Load ED fields
+    LOAD r3, r2         // Flags
+    LOAD r4, r2 + 4     // TD head pointer
+    LOAD r5, r2 + 8     // TD tail pointer
+
+    // Check if TD queue is empty
+    CMP r4, r5
+    JE ed_done
+
+    // Process the head TD
+    MOV r1, r4
+    CALL process_td
+
+    // Update done queue
+    LOAD r6, HC_DONE_HEAD
+    ST r6, r4           // Link to done queue
+    ST r2, HC_DONE_HEAD
+
+:ed_done
+    RET
+
+// ============================================================================
+// PROCESS TD (Transfer Descriptor)
+// ============================================================================
+
+:process_td
+    // r1 contains TD address
+    MOV r2, r1
+
+    // Load TD fields
+    LOAD r3, r2         // Flags/control
+    LOAD r4, r2 + 4     // Buffer pointer
+    LOAD r5, r2 + 8     // Next TD
+    LOAD r6, r2 + 12    // Buffer end
+
+    // Extract PID from flags
+    SHR r3, 19
+    AND r3, 0x03        // PID bits
+
+    // Dispatch based on PID
+    CMP r3, 0
+    JE td_setup
+    CMP r3, 1
+    JE td_out
+    CMP r3, 2
+    JE td_in
+
+    JMP td_complete
+
+:td_setup
+    // SETUP transaction - read 8-byte setup packet
+    MOV r1, r4
+    CALL handle_setup_packet
+    JMP td_complete
+
+:td_out
+    // OUT transaction - host to device
+    CALL handle_out_transaction
+    JMP td_complete
+
+:td_in
+    // IN transaction - device to host
+    CALL handle_in_transaction
+    JMP td_complete
+
+:td_complete
+    // Mark TD as complete (no error)
+    LOAD r7, r2
+    OR r7, 0xF0000000   // CC = No Error
+    ST r2, r7
+
+    RET
+
+// ============================================================================
+// HANDLE SETUP PACKET
+// ============================================================================
+
+:handle_setup_packet
+    // r1 = buffer address containing 8-byte setup packet
+    // Setup packet format:
+    // [0] bmRequestType
+    // [1] bRequest
+    // [2-3] wValue
+    // [4-5] wIndex
+    // [6-7] wLength
+
+    LOAD r2, r1 + 1     // bRequest
+
+    // Dispatch based on request type
+    CMP r2, REQ_SET_ADDRESS
+    JE do_set_address
+    CMP r2, REQ_GET_DESC
+    JE do_get_descriptor
+    CMP r2, REQ_SET_CONFIG
+    JE do_set_configuration
+    CMP r2, REQ_GET_STATUS
+    JE do_get_status
+
+    // Unknown request - stall
+    JMP send_stall
+
+:do_set_address
+    // wValue contains the new address
+    LOAD r3, r1 + 2     // wValue low byte
+    ST r3, DEVICE_ADDR
+
+    // Transition to ADDRESS state
+    MOV r3, DEV_ADDRESS
+    ST r3, DEVICE_STATE
+
+    // Send ACK (zero-length DATA1)
+    CALL send_ack
+    RET
+
+:do_get_descriptor
+    // wValue high byte = descriptor type
+    LOAD r3, r1 + 3     // wValue high = type
+
+    CMP r3, DESC_DEVICE
+    JE send_device_desc
+    CMP r3, DESC_CONFIG
+    JE send_config_desc
+
+    // Unknown descriptor
+    JMP send_stall
+
+:send_device_desc
+    // Copy device descriptor to TX buffer
+    MOV r4, DEV_DESC
+    MOV r5, 0x4000      // TX buffer
+    MOV r6, 18          // Device descriptor length
+:copy_dev_desc
+    LOAD r7, r4
+    ST r5, r7
+    ADD r4, 1
+    ADD r5, 1
+    SUB r6, 1
+    CMP r6, 0
+    JNE copy_dev_desc
+
+    // Queue IN transaction with DATA0
+    MOV r1, 0x4000
+    MOV r2, 18
+    CALL queue_in_data0
+    RET
+
+:send_config_desc
+    // Similar to device descriptor
+    MOV r4, CFG_DESC
+    MOV r5, 0x4000
+    MOV r6, 32          // Config descriptor length
+:copy_cfg_desc
+    LOAD r7, r4
+    ST r5, r7
+    ADD r4, 1
+    ADD r5, 1
+    SUB r6, 1
+    CMP r6, 0
+    JNE copy_cfg_desc
+
+    MOV r1, 0x4000
+    MOV r2, 32
+    CALL queue_in_data0
+    RET
+
+:do_set_configuration
+    // wValue = configuration number
+    LOAD r3, r1 + 2
+
+    // Transition to CONFIGURED state
+    MOV r4, DEV_CONFIGURED
+    ST r4, DEVICE_STATE
+
+    CALL send_ack
+    RET
+
+:do_get_status
+    // Return 0x0000 (device is bus-powered, no remote wakeup)
+    MOV r3, 0
+    MOV r4, 0x4000
+    ST r4, r3
+
+    MOV r1, 0x4000
+    MOV r2, 2
+    CALL queue_in_data0
+    RET
+
+:send_stall
+    // Send STALL PID
+    MOV r1, PID_STALL
+    CALL send_pid
+    RET
+
+:send_ack
+    // Send zero-length packet with DATA1
+    MOV r1, 0
+    MOV r2, 0
+    CALL queue_in_data1
+    RET
+
+// ============================================================================
+// HANDLE IN TRANSACTION
+// ============================================================================
+
+:handle_in_transaction
+    // Device to host data
+    // Check if we have data queued
+
+    // For now, return NAK if no data
+    MOV r1, PID_NAK
+    CALL send_pid
+    RET
+
+// ============================================================================
+// HANDLE OUT TRANSACTION
+// ============================================================================
+
+:handle_out_transaction
+    // Host to device data
+    // Accept the data (send ACK)
+
+    MOV r1, PID_ACK
+    CALL send_pid
+    RET
+
+// ============================================================================
+// QUEUE IN DATA
+// ============================================================================
+
+:queue_in_data0
+    // r1 = buffer, r2 = length
+    // Toggle data sequence to DATA0
+    MOV r3, 0
+    ST r3, DATA_TOGGLE
+
+    // Store in TX buffer
+    // (Implementation would set up DMA)
+    RET
+
+:queue_in_data1
+    // r1 = buffer, r2 = length
+    // Toggle data sequence to DATA1
+    MOV r3, 1
+    ST r3, DATA_TOGGLE
+    RET
+
+// ============================================================================
+// SEND PID
+// ============================================================================
+
+:send_pid
+    // r1 = PID to send
+    // In real hardware, this would encode and transmit on USB bus
+    // For simulation, write to a status register
+
+    MOV r2, 0x5000      // TX status register
+    ST r2, r1
+    RET
+
+// ============================================================================
+// INITIALIZATION - Create default descriptors
+// ============================================================================
+
+:init_descriptors
+    // Create a simple HID-like device descriptor
+
+    // Device Descriptor (18 bytes)
+    // Offset 0: bLength
+    MOV r1, 18
+    ST r1, DEV_DESC + 0
+
+    // Offset 1: bDescriptorType
+    MOV r1, DESC_DEVICE
+    ST r1, DEV_DESC + 1
+
+    // Offset 2-3: bcdUSB (2.0 = 0x0200)
+    MOV r1, 0x00
+    ST r1, DEV_DESC + 2
+    MOV r1, 0x02
+    ST r1, DEV_DESC + 3
+
+    // Offset 4: bDeviceClass (0 = use interface class)
+    MOV r1, 0
+    ST r1, DEV_DESC + 4
+
+    // Offset 5: bDeviceSubClass
+    MOV r1, 0
+    ST r1, DEV_DESC + 5
+
+    // Offset 6: bDeviceProtocol
+    MOV r1, 0
+    ST r1, DEV_DESC + 6
+
+    // Offset 7: bMaxPacketSize0 (64)
+    MOV r1, 64
+    ST r1, DEV_DESC + 7
+
+    // Offset 8-9: idVendor (Geometry OS = 0x6E65)
+    MOV r1, 0x65
+    ST r1, DEV_DESC + 8
+    MOV r1, 0x6E
+    ST r1, DEV_DESC + 9
+
+    // Offset 10-11: idProduct
+    MOV r1, 0x01
+    ST r1, DEV_DESC + 10
+    MOV r1, 0x00
+    ST r1, DEV_DESC + 11
+
+    // Offset 12-13: bcdDevice
+    MOV r1, 0x01
+    ST r1, DEV_DESC + 12
+    MOV r1, 0x00
+    ST r1, DEV_DESC + 13
+
+    // Offset 14: iManufacturer
+    MOV r1, 1
+    ST r1, DEV_DESC + 14
+
+    // Offset 15: iProduct
+    MOV r1, 2
+    ST r1, DEV_DESC + 15
+
+    // Offset 16: iSerialNumber
+    MOV r1, 0
+    ST r1, DEV_DESC + 16
+
+    // Offset 17: bNumConfigurations
+    MOV r1, 1
+    ST r1, DEV_DESC + 17
+
+    RET
+
+// ============================================================================
+// HOST REGISTER READ/WRITE HANDLERS
+// ============================================================================
+
+:host_read_reg
+    // r1 = register offset, returns r2 = value
+    ADD r1, 0x2000      // Base address
+
+    CMP r1, HC_REVISION
+    JE read_revision
+    CMP r1, HC_FM_NUMBER
+    JE read_frame
+    CMP r1, HC_RH_PORT1
+    JE read_port1
+
+    // Default: read from memory
+    LOAD r2, r1
+    RET
+
+:read_revision
+    MOV r2, 0x10        // OHCI 1.0
+    RET
+
+:read_frame
+    LOAD r2, FRAME_COUNT
+    RET
+
+:read_port1
+    LOAD r2, HC_RH_PORT1
+    RET
+
+:host_write_reg
+    // r1 = register offset, r2 = value
+    ADD r1, 0x2000
+
+    CMP r1, HC_CONTROL
+    JE write_control
+    CMP r1, HC_RH_PORT1
+    JE write_port1
+
+    // Default: write to memory
+    ST r1, r2
+    RET
+
+:write_control
+    ST r1, r2
+
+    // Check if transitioning to operational
+    AND r3, r2, 0xC0
+    CMP r3, 0x80
+    JNE host_write_done
+
+    MOV r3, STATE_OPERATIONAL
+    ST r3, USB_STATE
+
+    // Initialize descriptors
+    CALL init_descriptors
+
+    RET
+
+:write_port1
+    // Handle port status changes
+    // Check for reset request
+    AND r3, r2, PORT_RESET
+    CMP r3, 0
+    JNE do_port_reset_write
+
+    ST r1, r2
+    RET
+
+:do_port_reset_write
+    // Set reset bit (will be cleared in main loop)
+    LOAD r3, HC_RH_PORT1
+    OR r3, PORT_RESET
+    ST r3, HC_RH_PORT1
+    RET
+
+:host_write_done
+    RET
+
+// ============================================================================
+// HALT
+// ============================================================================
+
+:halt
+    HALT

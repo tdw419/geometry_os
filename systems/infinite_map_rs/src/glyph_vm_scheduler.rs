@@ -34,8 +34,8 @@ pub struct VmConfig {
     pub base_addr: u32,
     /// Spatial MMU: End Hilbert index (0 = unrestricted)
     pub bound_addr: u32,
-    /// Initial register values (32 registers)
-    pub initial_regs: [u32; 32],
+    /// Initial register values (128 registers)
+    pub initial_regs: [u32; 128],
 }
 
 impl Default for VmConfig {
@@ -45,7 +45,7 @@ impl Default for VmConfig {
             parent_id: 0xFF,
             base_addr: 0,
             bound_addr: 0,
-            initial_regs: [0; 32],
+            initial_regs: [0; 128],
         }
     }
 }
@@ -102,6 +102,9 @@ pub struct GlyphVmScheduler {
 
     /// RAM texture view (.rts.png program memory)
     ram_view: Option<wgpu::TextureView>,
+
+    /// Frame counter for debugging
+    frame_count: std::sync::atomic::AtomicU64,
 }
 
 impl GlyphVmScheduler {
@@ -198,6 +201,8 @@ impl GlyphVmScheduler {
             push_constant_ranges: &[],
         });
 
+        eprintln!("[SCHEDULER] Creating compute pipeline...");
+
         let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some("Glyph VM Scheduler Pipeline"),
             layout: Some(&pipeline_layout),
@@ -205,10 +210,12 @@ impl GlyphVmScheduler {
             entry_point: "main",
         });
 
+        eprintln!("[SCHEDULER] Compute pipeline created OK");
+
         // Create VM state buffer
-        // Each VmState is: 32 regs + 12 fields + 64 stack = 108 u32s = 432 bytes
-        // Total: 8 * 432 = 3456 bytes
-        let vm_buffer_size = 8 * 432;
+        // Each VmState is: 128 regs + 12 fields + 64 stack = 204 u32s = 816 bytes
+        // Total: 8 * 816 = 6528 bytes
+        let vm_buffer_size = 8 * 816;
         let vm_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph VM States Buffer"),
             size: vm_buffer_size,
@@ -276,12 +283,24 @@ impl GlyphVmScheduler {
             event_queue_buffer,
             stats_buffer,
             ram_view: None,
+            frame_count: std::sync::atomic::AtomicU64::new(0),
         }
     }
 
     /// Set the RAM texture (program memory)
     pub fn set_ram_texture(&mut self, texture: &wgpu::Texture) {
-        self.ram_view = Some(texture.create_view(&wgpu::TextureViewDescriptor::default()));
+        eprintln!("[SCHEDULER] Setting RAM texture view...");
+        self.ram_view = Some(texture.create_view(&wgpu::TextureViewDescriptor {
+            label: Some("RAM Texture View"),
+            format: Some(wgpu::TextureFormat::Rgba8Uint),
+            dimension: Some(wgpu::TextureViewDimension::D2),
+            aspect: wgpu::TextureAspect::All,
+            base_mip_level: 0,
+            mip_level_count: None,
+            base_array_layer: 0,
+            array_layer_count: None,
+        }));
+        eprintln!("[SCHEDULER] RAM texture view set OK");
     }
 
 
@@ -293,15 +312,16 @@ impl GlyphVmScheduler {
 
         // Build initial VM state
         // VmState layout matches shader:
-        // - regs: [u32; 32]
-        // - pc, halted, stratum, cycles, stack_ptr, vm_id, state, parent_id, entry_point, padding[2]
-        // - stack: [u32; 64]
-        let mut vm_data = Vec::with_capacity(108);
+        // - regs: [u32; 128] = 128 u32s (512 bytes)
+        // - pc, halted, stratum, cycles, stack_ptr, vm_id, state, parent_id, entry_point, base_addr, bound_addr, _padding = 12 u32s (48 bytes)
+        // - stack: [u32; 64] = 64 u32s (256 bytes)
+        // Total: 128 + 12 + 64 = 204 u32s = 816 bytes
+        let mut vm_data = Vec::with_capacity(204);
 
-        // Copy initial registers
+        // Copy initial registers (config.initial_regs is already [u32; 128])
         vm_data.extend_from_slice(&config.initial_regs);
 
-        // Fields
+        // Fields (at offset 512)
         vm_data.push(config.entry_point); // pc
         vm_data.push(0); // halted
         vm_data.push(2); // stratum (LOGIC)
@@ -313,21 +333,29 @@ impl GlyphVmScheduler {
         vm_data.push(config.entry_point); // entry_point
         vm_data.push(config.base_addr); // base_addr
         vm_data.push(config.bound_addr); // bound_addr
+        vm_data.push(0); // _padding (to match 816-byte stride)
 
         // Stack (64 zeros)
         vm_data.extend_from_slice(&[0u32; 64]);
 
+        // Verify size
+        assert_eq!(vm_data.len(), 204, "VM data size mismatch: expected 204, got {}", vm_data.len());
+
         // Calculate offset in buffer
-        let offset = (vm_id as u64) * 432;
+        let offset = (vm_id as u64) * 816;
 
         self.queue
             .write_buffer(&self.vm_buffer, offset, bytemuck::cast_slice(&vm_data));
+
+        // Flush the write to ensure it's visible to GPU before execution
+        self.queue.submit([]);
+        self.device.poll(wgpu::Maintain::Wait);
 
         // Update scheduler active count (atomic increment would be better but requires shader)
         // For now, we track on CPU side
 
         log::info!(
-            "Spawned VM {} at entry point 0x{:X}",
+            "Spawned VM {} at entry point 0x{:X} (flushed)",
             vm_id,
             config.entry_point
         );
@@ -340,17 +368,28 @@ impl GlyphVmScheduler {
             return Err(format!("Invalid VM ID: {}", vm_id));
         }
 
-        // Write state = HALTED at offset + 40 (after regs[32] + pc + halted + stratum + cycles + stack_ptr + vm_id)
-        let state_offset = (vm_id as u64) * 432 + 40;
-        let halted_data: [u32; 2] = [vm_state::HALTED, 1]; // state, halted
+        // Write state = HALTED at offset + 536 (after regs[128] + pc + halted + stratum + cycles + stack_ptr + vm_id)
+        // Layout: regs[128]=512, pc=4, halted=4, stratum=4, cycles=4, stack_ptr=4, vm_id=4 -> 536 bytes
+        let state_offset = (vm_id as u64) * 816 + 536;
+        // 512 + 6*4 = 536. Correct.
         self.queue.write_buffer(
             &self.vm_buffer,
             state_offset,
-            bytemuck::cast_slice(&halted_data),
+            bytemuck::cast_slice(&[vm_state::HALTED]),
         );
 
         log::info!("Halted VM {}", vm_id);
         Ok(())
+    }
+
+    /// Read the current state of a VM from GPU memory
+    pub fn get_vm_state(&self, vm_id: u32) -> Result<u32, String> {
+        let stats = self.read_stats();
+        stats
+            .iter()
+            .find(|s| s.vm_id == vm_id)
+            .map(|s| s.state)
+            .ok_or_else(|| format!("VM {} not found in stats", vm_id))
     }
 
     /// Execute one frame of the scheduler
@@ -358,7 +397,6 @@ impl GlyphVmScheduler {
         let ram_view = match &self.ram_view {
             Some(view) => view,
             None => {
-                log::warn!("No RAM texture set for Glyph VM Scheduler");
                 return;
             },
         };
@@ -411,6 +449,15 @@ impl GlyphVmScheduler {
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
+
+        // Ensure the compute pass completes before continuing
+        self.device.poll(wgpu::Maintain::Wait);
+
+        // Increment frame counter
+        let frame = self.frame_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        if frame % 60 == 0 {
+            eprintln!("[SCHEDULER] Frame {} complete", frame);
+        }
     }
 
     /// Read VM statistics from GPU
@@ -421,14 +468,64 @@ impl GlyphVmScheduler {
                 label: Some("Glyph VM Stats Read Encoder"),
             });
 
-        // Copy VM buffer to readback buffer
-        encoder.copy_buffer_to_buffer(&self.vm_buffer, 0, &self.stats_buffer, 0, 3456);
+        // Copy VM buffer to readback buffer (8 * 816 bytes)
+        let vm_buffer_size = 8 * 816;
+        encoder.copy_buffer_to_buffer(&self.vm_buffer, 0, &self.stats_buffer, 0, vm_buffer_size);
 
         self.queue.submit(std::iter::once(encoder.finish()));
 
-        // Note: Actual readback requires async mapping in wgpu
-        // For now, return empty stats (real implementation would use callback)
-        Vec::new()
+        let slice = self.stats_buffer.slice(..vm_buffer_size);
+        let (tx, rx) = std::sync::mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |res| {
+            tx.send(res).ok();
+        });
+        self.device.poll(wgpu::Maintain::Wait);
+
+        // Use pollster::block_on for simplicity if needed
+        if let Ok(Ok(())) = pollster::block_on(async { rx.recv() }) {
+            let data = slice.get_mapped_range();
+            let mut stats = Vec::with_capacity(MAX_VMS);
+
+            for i in 0..MAX_VMS {
+                let offset = i * 816;
+                // Field offsets (relative to start of VM state):
+                // pc: 512, halted: 516, stratum: 520, cycles: 524, stack_ptr: 528, vm_id: 532, state: 536, parent_id: 540
+
+                let get_u32 = |off: usize| {
+                    u32::from_le_bytes(
+                        data[offset + off..offset + off + 4]
+                            .try_into()
+                            .expect("Failed to read u32 from buffer"),
+                    )
+                };
+
+                stats.push(VmStats {
+                    vm_id: get_u32(532),
+                    state: get_u32(536),
+                    pc: get_u32(512),
+                    cycles: get_u32(524),
+                    halted: get_u32(516),
+                    parent_id: get_u32(540),
+                });
+            }
+
+            drop(data);
+            self.stats_buffer.unmap();
+            stats
+        } else {
+            log::warn!("Failed to read VM stats from GPU");
+            Vec::new()
+        }
+    }
+
+    /// Get PC of a specific VM
+    pub fn get_vm_pc(&self, vm_id: u32) -> Result<u32, String> {
+        let stats = self.read_stats();
+        stats
+            .iter()
+            .find(|s| s.vm_id == vm_id)
+            .map(|s| s.pc)
+            .ok_or_else(|| format!("VM {} not found in stats", vm_id))
     }
 
     /// Reset all VMs to inactive state
@@ -482,7 +579,7 @@ mod tests {
             parent_id: 0xFF,
             base_addr: 0,
             bound_addr: 0, // 0 = unrestricted
-            initial_regs: [0; 32],
+            initial_regs: [0; 128],
         };
         assert_eq!(root_config.bound_addr, 0, "Root VM should have unrestricted memory");
 
@@ -492,7 +589,7 @@ mod tests {
             parent_id: 0,
             base_addr: 0x1000,  // Start of child's region
             bound_addr: 0x1FFF, // End of child's region
-            initial_regs: [0; 32],
+            initial_regs: [0; 128],
         };
         assert!(child_config.base_addr < child_config.bound_addr,
             "Child VM should have valid memory bounds");
@@ -516,7 +613,7 @@ mod tests {
             parent_id: if i == 0 { 0xFF } else { 0 },
             base_addr: if i == 0 { 0 } else { i * 0x1000 },
             bound_addr: if i == 0 { 0 } else { (i + 1) * 0x1000 - 1 },
-            initial_regs: [0; 32],
+            initial_regs: [0; 128],
         }).collect();
 
         // Verify VM #0 has unrestricted access

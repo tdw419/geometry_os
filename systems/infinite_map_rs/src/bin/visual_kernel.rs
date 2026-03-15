@@ -122,6 +122,28 @@ fn run_with_window(ubuntu_path: Option<String>) {
         kernel_config.ubuntu_kernel_path = Some(path);
     }
 
+    // Start API Server for remote control (Phase 41.5 Integration)
+    let runtime_state = Arc::new(std::sync::Mutex::new(infinite_map_rs::api_server::RuntimeState::default()));
+    let synaptic_layer = Arc::new(std::sync::Mutex::new(infinite_map_rs::synapse::SynapticLayer::new()));
+    let rs_clone = Arc::clone(&runtime_state);
+    let sl_clone = Arc::clone(&synaptic_layer);
+
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            infinite_map_rs::api_server::start_api_server(
+                3000,
+                std::path::PathBuf::from("maps/default"),
+                rs_clone,
+                sl_clone,
+            ).await;
+        });
+    });
+    println!("[API] 🚀 Remote Control Server active on http://localhost:3000");
+
     // Boot the Visual Kernel
     let mut kernel = infinite_map_rs::visual_kernel_boot::VisualKernel::new(
         device.clone(),

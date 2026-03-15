@@ -290,7 +290,7 @@ impl VisualKernel {
             parent_id: 0xFF,
             base_addr: 0,
             bound_addr: 0, // Unrestricted for VM #0
-            initial_regs: [0; 32],
+            initial_regs: [0; 128],
         };
 
         self.scheduler.spawn_vm(0, &wm_config)?;
@@ -385,7 +385,7 @@ impl VisualKernel {
             parent_id: 0, // Parent is Window Manager
             base_addr: vm_id * 0x1000,  // Each VM gets 4KB region
             bound_addr: (vm_id + 1) * 0x1000 - 1,  // Upper bound
-            initial_regs: [0; 32],
+            initial_regs: [0; 128],
         };
 
         // Spawn the VM
@@ -480,7 +480,7 @@ mod tests {
             parent_id: 0xFF,
             base_addr: 0,
             bound_addr: 0,
-            initial_regs: [0; 32],
+            initial_regs: [0; 128],
         };
         assert_eq!(config.entry_point, 0);
         assert_eq!(config.parent_id, 0xFF);
