@@ -403,8 +403,16 @@ impl GlyphVmScheduler {
             .ok_or_else(|| format!("VM {} not found in stats", vm_id))
     }
 
+    /// Poll trap region for pending requests
+    fn poll_trap_region(&mut self) {
+        // Read trap status from substrate
+        // This would use texture readback to check TRAP_STATUS at 0xFF000014
+        // For now, we just log that we're polling
+        log::trace!("[TRAP] Polling trap region");
+    }
+
     /// Execute one frame of the scheduler
-    pub fn execute_frame(&self) {
+    pub fn execute_frame(&mut self) {
         let ram_view = match &self.ram_view {
             Some(view) => view,
             None => {
@@ -469,6 +477,9 @@ impl GlyphVmScheduler {
         if frame % 60 == 0 {
             eprintln!("[SCHEDULER] Frame {} complete", frame);
         }
+
+        // Poll trap region for pending requests
+        self.poll_trap_region();
     }
 
     /// Read VM statistics from GPU
@@ -563,16 +574,28 @@ impl GlyphVmScheduler {
     }
 
     /// Peek substrate memory at trap base (6 u32 values = 24 bytes)
-    pub fn peek_substrate(&self, _base: u32, _count: u32) -> [u8; 24] {
-        // Use existing peek mechanism
+    pub fn peek_substrate(&self, base: u32, count: u32) -> [u8; 24] {
         let mut result = [0u8; 24];
-        // TODO: Implement via texture read
+
+        // For now, return zeros as we need async texture read
+        // The actual implementation would:
+        // 1. Create a staging buffer
+        // 2. Copy from texture to buffer via encoder
+        // 3. Map the buffer and read
+        // This requires async or polling, so we return zeros for now
+
+        // Log for debugging
+        log::debug!("[TRAP] peek_substrate at 0x{:08X} ({} values)", base, count);
+
         result
     }
 
     /// Write trap registers back to substrate
-    pub fn write_trap_regs(&mut self, _regs: &crate::trap_interface::TrapRegs) {
-        // TODO: Implement via texture write
+    pub fn write_trap_regs(&mut self, regs: &crate::trap_interface::TrapRegs) {
+        // Write trap registers to substrate via texture write
+        // For now, just log
+        log::debug!("[TRAP] write_trap_regs: status={} result=0x{:08X}",
+            regs.status, regs.result);
     }
 
     /// Spawn VM from trap request - returns VM ID on success, 0xFF on failure
