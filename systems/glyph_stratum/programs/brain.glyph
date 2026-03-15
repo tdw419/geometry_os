@@ -1,0 +1,323 @@
+// ============================================================================
+// Geometry OS - Self-Improving Brain VM (brain.glyph)
+// ============================================================================
+//
+// Runs as VM 1 and continuously improves transformer weights.
+// Uses trap interface to communicate with LM Studio for mutation suggestions.
+//
+// Memory Map:
+//   0x0300-0x03FF: Brain State (entropy, cycles, mutations, goals)
+//   0x0400-0x04FF: Sensor Data (weight stats, activation patterns)
+//   0x0500-0x0FFF: Request Buffer (to LM Studio)
+//   0x1000-0x1FFF: Response Buffer (from LM Studio)
+//   0x1800-0x1FFF: Transformer Weights (self-modifying region)
+//   0xFF00_0000:   Trap Interface Base
+//
+// Main Loop:
+//   1. SENSE: Read weights from 0x1800, calculate entropy
+//   2. PROMPT: Build request to LM Studio, set trap with LM_STUDIO op
+//   3. WAIT: Poll for trap completion
+//   4. ACT: Parse response, apply mutations via STORE
+//   5. YIELD: Small delay before next cycle
+//
+// ============================================================================
+
+// ============================================================================
+// EQUATES
+// ============================================================================
+
+// Brain State Region (0x0300-0x03FF)
+.equ BRAIN_STATE_BASE, 0x0300
+.equ ENTROPY,        0x0300
+.equ CYCLES,         0x0304
+.equ MUTATIONS,      0x0308
+.equ GOALS,          0x030C
+.equ LAST_ENTROPY,   0x0310
+.equ WEIGHT_COUNT,   0x0314
+
+// Sensor Data Region (0x0400-0x04FF)
+.equ SENSOR_DATA,    0x0400
+.equ WEIGHT_MIN,     0x0400
+.equ WEIGHT_MAX,     0x0404
+.equ WEIGHT_AVG,     0x0408
+
+// Request Buffer (0x0500-0x0FFF)
+.equ REQUEST_BUF,    0x0500
+
+// Response Buffer (0x1000-0x1FFF)
+.equ RESPONSE_BUF,   0x1000
+
+// Transformer Weights Region (0x1800-0x1FFF)
+.equ WEIGHTS_START,  0x1800
+.equ WEIGHTS_END,    0x1FFF
+.equ WEIGHTS_SIZE,   0x0800
+
+// Trap Interface (0xFF00_0000)
+.equ TRAP_BASE,      0xFF000000
+.equ TRAP_OP_TYPE,   0xFF000000
+.equ TRAP_ARG0,      0xFF000004
+.equ TRAP_ARG1,      0xFF000008
+.equ TRAP_ARG2,      0xFF00000C
+.equ TRAP_RESULT,    0xFF000010
+.equ TRAP_STATUS,    0xFF000014
+
+// Trap Op Types
+.equ OP_LM_STUDIO,   7
+
+// Trap Status Values
+.equ STATUS_IDLE,     0
+.equ STATUS_PENDING,  1
+.equ STATUS_COMPLETE, 2
+
+// ============================================================================
+// REGISTER USAGE
+// ============================================================================
+//
+// R0: Cycle counter
+// R1: Address pointer
+// R2: Value buffer
+// R3: Entropy accumulator
+// R4: Mutation count
+// R5: Unique weight count
+// R6: Jump target / link register
+// R7: Temp / comparison
+//
+// ============================================================================
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+:main
+    // Initialize brain state
+    LDI r0, 0            // Cycle counter = 0
+    LDI r4, 0            // Mutation count = 0
+    LDI r3, 0            // Entropy = 0
+    LDI r5, 0            // Weight count = 0
+
+    // Store initial state
+    LDI r1, CYCLES
+    STORE r1, r0
+
+    LDI r1, MUTATIONS
+    STORE r1, r4
+
+    LDI r1, ENTROPY
+    STORE r1, r3
+
+    LDI r1, GOALS
+    LDI r2, 1            // Goal = 1 (IMPROVE)
+    STORE r1, r2
+
+// ============================================================================
+// MAIN BRAIN LOOP
+// ============================================================================
+
+:brain_loop
+
+    // ========================================================================
+    // PHASE 1: SENSE - Read weights from 0x1800, calculate entropy
+    // ========================================================================
+
+    // Initialize entropy accumulator
+    LDI r3, 0
+
+    // Initialize weight counter
+    LDI r5, 0
+
+    // Start at weights region
+    LDI r1, WEIGHTS_START
+
+    // Load end address for loop termination
+    LDI r7, WEIGHTS_END
+
+:sense_loop
+    // Load weight at current address
+    LOAD r2, r1
+
+    // XOR into entropy accumulator (simple entropy calculation)
+    XOR r3, r2
+
+    // Increment weight count
+    LDI r2, 1
+    ADD r5, r2
+
+    // Move to next weight (4 bytes = 1 word)
+    LDI r2, 1
+    ADD r1, r2
+
+    // Check if we've reached end of weights region
+    // Compare r1 with r7 (end address)
+    // Use r6 as temp since SUB modifies destination
+    LDI r6, WEIGHTS_END
+    SUB r6, r1           // r6 = WEIGHTS_END - r1
+    JZ r6, :sense_done   // If r1 == WEIGHTS_END, we're done
+
+    JMP :sense_loop
+
+:sense_done
+    // Store computed entropy
+    LDI r1, ENTROPY
+    STORE r1, r3
+
+    // Store weight count
+    LDI r1, WEIGHT_COUNT
+    STORE r1, r5
+
+    // ========================================================================
+    // PHASE 2: PROMPT - Build request to LM Studio, set trap
+    // ========================================================================
+
+    // Build a simple request in REQUEST_BUF
+    // Format: "improve entropy:NNNN weights:N"
+    // The Rust trap handler wraps this in chat format for LM Studio
+
+    LDI r1, REQUEST_BUF
+    LDI r2, 0x6F72706D   // "mpri" (little-endian "impr" reversed)
+    STORE r1, r2
+    ADD r1, 1
+
+    LDI r2, 0x00206576   // "ve \0"
+    STORE r1, r2
+    ADD r1, 1
+
+    LDI r2, 0x74726E65   // "entrt" (entropy)
+    STORE r1, r2
+    ADD r1, 1
+
+    LDI r2, 0x0079703A   // ":py\0"
+    STORE r1, r2
+    ADD r1, 1
+
+    // Store entropy value
+    LDI r2, ENTROPY
+    LOAD r2, r2
+    STORE r1, r2
+    ADD r1, 1
+
+    LDI r2, 0x74686977   // "wihit" (weights)
+    STORE r1, r2
+    ADD r1, 1
+
+    LDI r2, 0x00733A73   // "s:s\0"
+    STORE r1, r2
+    ADD r1, 1
+
+    // Store weight count
+    LDI r2, WEIGHT_COUNT
+    LOAD r2, r2
+    STORE r1, r2
+
+    // ========================================================================
+    // Set trap for LM Studio request
+    // ========================================================================
+
+    // Set op_type = LM_STUDIO (7)
+    LDI r1, TRAP_OP_TYPE
+    LDI r2, OP_LM_STUDIO
+    STORE r1, r2
+
+    // Set arg0 = request buffer address
+    LDI r1, TRAP_ARG0
+    LDI r2, REQUEST_BUF
+    STORE r1, r2
+
+    // Set arg1 = response buffer address
+    LDI r1, TRAP_ARG1
+    LDI r2, RESPONSE_BUF
+    STORE r1, r2
+
+    // Set arg2 = request length (approximate)
+    LDI r1, TRAP_ARG2
+    LDI r2, 32
+    STORE r1, r2
+
+    // Set status = PENDING to trigger the trap
+    LDI r1, TRAP_STATUS
+    LDI r2, STATUS_PENDING
+    STORE r1, r2
+
+    // ========================================================================
+    // PHASE 3: WAIT - Poll for trap completion
+    // ========================================================================
+
+:wait_complete
+    LDI r1, TRAP_STATUS
+    LOAD r1, r2
+
+    // Check if status == COMPLETE
+    LDI r7, STATUS_COMPLETE
+    SUB r2, r7           // r2 = r2 - r7
+    JNZ r2, :wait_complete  // If not complete, keep waiting
+
+    // ========================================================================
+    // PHASE 4: ACT - Parse response, apply mutations via STORE
+    // ========================================================================
+
+    // Read first word of response
+    LDI r1, RESPONSE_BUF
+    LOAD r2, r1
+
+    // Check for "MUTA" command (0x4D555441 = "MUTA")
+    LDI r7, 0x4D555441
+    SUB r7, r2
+    JZ r7, :apply_mutation
+
+    // Check for "CONT" command (0x434F4E54 = "CONT" for continue)
+    LDI r7, 0x434F4E54
+    SUB r7, r2
+    JZ r7, :act_done
+
+    // Unknown command - skip mutations
+    JMP :act_done
+
+:apply_mutation
+    // Parse: MUTATE addr value
+    // Response format: "MUTA" + addr (word 1) + value (word 2)
+    ADD r1, 1
+    LOAD r7, r1          // r7 = target address
+
+    ADD r1, 1
+    LOAD r2, r1          // r2 = new value
+
+    // Apply mutation directly via STORE
+    STORE r7, r2
+
+    // Increment mutation count
+    LDI r1, 1
+    ADD r4, r1
+
+    // Store updated mutation count
+    LDI r1, MUTATIONS
+    STORE r1, r4
+
+:act_done
+
+    // ========================================================================
+    // PHASE 5: YIELD - Small delay before next cycle
+    // ========================================================================
+
+    // Increment cycle counter
+    LDI r1, 1
+    ADD r0, r1
+
+    // Store updated cycle count
+    LDI r1, CYCLES
+    STORE r1, r0
+
+    // Small delay loop (yield)
+    LDI r1, 10           // Delay iterations
+:delay_loop
+    LDI r2, 1
+    SUB r1, r2
+    JNZ r1, :delay_loop
+
+    // Loop forever
+    JMP :brain_loop
+
+// ============================================================================
+// HALT (should never reach here)
+// ============================================================================
+
+:end
+    HALT
