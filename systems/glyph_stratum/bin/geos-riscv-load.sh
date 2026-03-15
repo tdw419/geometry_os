@@ -54,11 +54,15 @@ else
 fi
 
 # Inject binary at guest RAM offset using /poke endpoint
-# This writes 4 bytes at a time to address 0x8000 and beyond
-echo "Loading binary $BINARY at offset 0x8000..."
+# This writes 4 bytes at a time to substrate address 0x8000 and beyond
+# Note: Substrate addresses are word-indexed (Hilbert curve distance)
+RAM_OFFSET=0x8000
+
+echo "Loading binary $BINARY at substrate offset 0x8000..."
 
 # Read binary and poke each 4-byte word
 OFFSET=0
+WORDS_WRITTEN=0
 BYTES_REMAINING=$BINARY_SIZE
 
 while [[ $BYTES_REMAINING -gt 0 ]]; do
@@ -76,12 +80,14 @@ while [[ $BYTES_REMAINING -gt 0 ]]; do
         VALUE=$((VALUE | (0x$BYTE << (i * 8))))
     done
 
-    ADDR=$((0x8000 + OFFSET / 4))
+    # Calculate substrate word address
+    WORD_ADDR=$((RAM_OFFSET + OFFSET / 4))
 
-    # Use /poke endpoint to write value
-    curl -s "$DAEMON_URL/poke?addr=0x$ADDR&value=0x$VALUE" > /dev/null
+    # Use /poke endpoint to write value (address in hex)
+    curl -s "$DAEMON_URL/poke?addr=0x$(printf '%x' $WORD_ADDR)&value=0x$(printf '%x' $VALUE)" > /dev/null
 
     OFFSET=$((OFFSET + CHUNK_SIZE))
+    WORDS_WRITTEN=$((WORDS_WRITTEN + 1))
     BYTES_REMAINING=$((BYTES_REMAINING - CHUNK_SIZE))
 
     # Progress indicator every 256 bytes
@@ -90,7 +96,7 @@ while [[ $BYTES_REMAINING -gt 0 ]]; do
     fi
 done
 
-echo "Binary loaded: $OFFSET bytes written to substrate."
+echo "Binary loaded: $OFFSET bytes ($WORDS_WRITTEN words) written to substrate."
 
 # Set entry point at address 0x14000 (GUEST_PC location)
 echo "Setting entry point to $ENTRY..."

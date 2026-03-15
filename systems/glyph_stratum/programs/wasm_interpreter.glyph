@@ -1,0 +1,627 @@
+// ============================================================================
+// Geometry OS - WASM Interpreter (MVP Subset)
+// ============================================================================
+//
+// Implements a minimal WebAssembly interpreter for the MVP subset:
+//   - Value Types: i32 only (match Glyph VM word size)
+//   - Control: block, loop, br, br_if, return, call, end
+//   - Variables: local.get, local.set
+//   - Memory: i32.load, i32.store
+//   - Numeric: i32.add, i32.sub, i32.mul, i32.div_s, i32.and, i32.or, i32.xor
+//   - Comparison: i32.eq, i32.ne, i32.lt_s, i32.gt_s, i32.le_s, i32.ge_s
+//
+// Memory Layout:
+//   0x20000-0x2FFFF: WASM Linear Memory (64KB / 1 page)
+//   0x30000: WASM_SP (operand stack pointer, grows down)
+//   0x30004: WASM_IP (instruction pointer / program counter)
+//   0x30008: WASM_BP (base pointer for locals)
+//   0x3000C: WASM_STATUS (0=halted, 1=running, 2=error)
+//   0x30010: WASM_OPERAND_STACK_TOP (cached top value for speed)
+//
+// Register Allocation:
+//   r0: Entry point (passed by scheduler)
+//   r1: Temp / IP value during fetch
+//   r2: Current opcode byte
+//   r3-r9: Temporaries for decoding and operations
+//   r10: WASM_SP address pointer
+//   r11: WASM linear memory base (WASM_MEM_BASE)
+//   r12: Temp for stack operations
+//   r13: Jump target for dispatch
+//   r14: Temp for comparisons
+//   r15: Temp for comparisons
+//
+// Reference: docs/plans/2026-03-15-wasm-subset-design.md
+// ============================================================================
+
+.equ WASM_MEM_BASE,   0x20000
+.equ WASM_SP_ADDR,    0x30000
+.equ WASM_IP_ADDR,    0x30004
+.equ WASM_BP_ADDR,    0x30008
+.equ WASM_STATUS,     0x3000C
+.equ WASM_STACK_TOP,  0x30010
+
+.equ STATUS_HALTED,   0
+.equ STATUS_RUNNING,  1
+.equ STATUS_ERROR,    2
+
+// Opcode constants
+.equ OP_UNREACHABLE,  0x00
+.equ OP_NOP,          0x01
+.equ OP_BLOCK,        0x02
+.equ OP_LOOP,         0x03
+.equ OP_IF,           0x04
+.equ OP_ELSE,         0x05
+.equ OP_END,          0x0B
+.equ OP_BR,           0x0C
+.equ OP_BR_IF,        0x0D
+.equ OP_RETURN,       0x0F
+.equ OP_CALL,         0x10
+.equ OP_LOCAL_GET,    0x20
+.equ OP_LOCAL_SET,    0x21
+.equ OP_I32_LOAD,     0x28
+.equ OP_I32_STORE,    0x36
+.equ OP_I32_CONST,    0x41
+.equ OP_I32_EQZ,      0x45
+.equ OP_I32_EQ,       0x46
+.equ OP_I32_NE,       0x47
+.equ OP_I32_LT_S,     0x48
+.equ OP_I32_GT_S,     0x4A
+.equ OP_I32_LE_S,     0x4C
+.equ OP_I32_GE_S,     0x4E
+.equ OP_I32_ADD,      0x6A
+.equ OP_I32_SUB,      0x6B
+.equ OP_I32_MUL,      0x6C
+.equ OP_I32_DIV_S,    0x6D
+.equ OP_I32_AND,      0x71
+.equ OP_I32_OR,       0x72
+.equ OP_I32_XOR,      0x73
+
+// ============================================================================
+// BOOT
+// ============================================================================
+
+:boot
+    // Initialize IP from entry point (passed in r0)
+    LDI r1, WASM_IP_ADDR
+    STORE r1, r0           // memory[WASM_IP_ADDR] = entry_point
+
+    // Initialize SP to end of linear memory (stack grows down)
+    LDI r1, WASM_SP_ADDR
+    LDI r2, 0x2FFFC        // Top of 64KB region - 4 (one word)
+    STORE r1, r2           // memory[WASM_SP_ADDR] = 0x2FFFC
+
+    // Initialize BP to start of locals area
+    LDI r1, WASM_BP_ADDR
+    LDI r2, 0x28000        // Locals area at 160KB mark
+    STORE r1, r2
+
+    // Set status to running
+    LDI r1, WASM_STATUS
+    LDI r2, STATUS_RUNNING
+    STORE r1, r2
+
+    // Load base address constant
+    LDI r11, WASM_MEM_BASE
+
+    // Load dispatch target
+    LDI r13, wasm_fetch
+
+// ============================================================================
+// FETCH-DECODE-EXECUTE LOOP
+// ============================================================================
+
+:wasm_fetch
+    // Check status - only continue if running
+    LDI r1, WASM_STATUS
+    LOAD r1, r2            // r2 = current status
+    LDI r3, STATUS_RUNNING
+    SUB r2, r3             // r2 = status - RUNNING
+    JZ r2, r13             // if status == RUNNING, continue (jump to wasm_continue)
+    JMP wasm_halt          // Not running, exit
+
+:wasm_continue
+    // Load current IP
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r1            // r1 = IP value
+
+    // Fetch byte at IP (in WASM linear memory)
+    // Physical address = WASM_MEM_BASE + IP
+    MOV r11, r3            // r3 = WASM_MEM_BASE
+    ADD r3, r1             // r3 = physical address
+    LOAD r3, r2            // r2 = opcode byte
+
+    // Increment IP
+    LDI r3, 1
+    ADD r1, r3             // r1 = IP + 1
+    LDI r3, WASM_IP_ADDR
+    STORE r3, r1           // memory[WASM_IP_ADDR] = IP + 1
+
+    // Reload WASM_MEM_BASE (clobbered above)
+    LDI r11, WASM_MEM_BASE
+
+    // ================================================================
+    // OPCODE DISPATCH
+    // ================================================================
+
+    // Check for END (0x0B)
+    LDI r3, OP_END
+    SUB r2, r3
+    LDI r13, wasm_op_end
+    JZ r2, r13
+
+    // Check for NOP (0x01)
+    LDI r3, OP_NOP
+    SUB r2, r3
+    LDI r13, wasm_op_nop
+    JZ r2, r13
+
+    // Check for UNREACHABLE (0x00)
+    LDI r3, OP_UNREACHABLE
+    SUB r2, r3
+    LDI r13, wasm_op_unreachable
+    JZ r2, r13
+
+    // Check for I32_CONST (0x41)
+    LDI r3, OP_I32_CONST
+    SUB r2, r3
+    LDI r13, wasm_op_i32_const
+    JZ r2, r13
+
+    // Check for I32_ADD (0x6A)
+    LDI r3, OP_I32_ADD
+    SUB r2, r3
+    LDI r13, wasm_op_i32_add
+    JZ r2, r13
+
+    // Check for I32_SUB (0x6B)
+    LDI r3, OP_I32_SUB
+    SUB r2, r3
+    LDI r13, wasm_op_i32_sub
+    JZ r2, r13
+
+    // Check for I32_MUL (0x6C)
+    LDI r3, OP_I32_MUL
+    SUB r2, r3
+    LDI r13, wasm_op_i32_mul
+    JZ r2, r13
+
+    // Check for I32_DIV_S (0x6D)
+    LDI r3, OP_I32_DIV_S
+    SUB r2, r3
+    LDI r13, wasm_op_i32_div_s
+    JZ r2, r13
+
+    // Check for LOCAL_GET (0x20)
+    LDI r3, OP_LOCAL_GET
+    SUB r2, r3
+    LDI r13, wasm_op_local_get
+    JZ r2, r13
+
+    // Check for LOCAL_SET (0x21)
+    LDI r3, OP_LOCAL_SET
+    SUB r2, r3
+    LDI r13, wasm_op_local_set
+    JZ r2, r13
+
+    // Check for I32_LOAD (0x28)
+    LDI r3, OP_I32_LOAD
+    SUB r2, r3
+    LDI r13, wasm_op_i32_load
+    JZ r2, r13
+
+    // Check for I32_STORE (0x36)
+    LDI r3, OP_I32_STORE
+    SUB r2, r3
+    LDI r13, wasm_op_i32_store
+    JZ r2, r13
+
+    // Check for I32_EQ (0x46)
+    LDI r3, OP_I32_EQ
+    SUB r2, r3
+    LDI r13, wasm_op_i32_eq
+    JZ r2, r13
+
+    // Check for I32_NE (0x47)
+    LDI r3, OP_I32_NE
+    SUB r2, r3
+    LDI r13, wasm_op_i32_ne
+    JZ r2, r13
+
+    // Check for RETURN (0x0F)
+    LDI r3, OP_RETURN
+    SUB r2, r3
+    LDI r13, wasm_op_return
+    JZ r2, r13
+
+    // Check for CALL (0x10)
+    LDI r3, OP_CALL
+    SUB r2, r3
+    LDI r13, wasm_op_call
+    JZ r2, r13
+
+    // Unknown opcode - set error and halt
+    LDI r1, WASM_STATUS
+    LDI r2, STATUS_ERROR
+    STORE r1, r2
+    JMP wasm_halt
+
+// ============================================================================
+// OPCODE IMPLEMENTATIONS
+// ============================================================================
+
+// ------------------------------------------------------------
+// Control Flow
+// ------------------------------------------------------------
+
+:wasm_op_nop
+    // No operation - just continue
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_unreachable
+    // Trap - this code should never be reached
+    LDI r1, WASM_STATUS
+    LDI r2, STATUS_ERROR
+    STORE r1, r2
+    JMP wasm_halt
+
+:wasm_op_end
+    // End of function/block - halt for now
+    // TODO: Handle block stack for proper nesting
+    JMP wasm_halt
+
+:wasm_op_return
+    // Return from function
+    // TODO: Pop return address from call stack
+    JMP wasm_halt
+
+:wasm_op_call
+    // Call function - read function index (LEB128)
+    // TODO: Implement LEB128 decoding and call stack
+    // For now, skip the immediate and continue
+    LDI r13, wasm_fetch
+    JMP r13
+
+// ------------------------------------------------------------
+// Constants
+// ------------------------------------------------------------
+
+:wasm_op_i32_const
+    // i32.const: read LEB128 immediate, push to operand stack
+    // r1 still contains IP (already incremented once)
+
+    // Load current IP
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r1
+
+    // Calculate physical address
+    MOV r11, r3
+    ADD r3, r1
+
+    // Read immediate byte (simple case: single byte, value < 128)
+    LOAD r3, r4            // r4 = immediate value
+
+    // Push to operand stack
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12          // r12 = current SP
+    STORE r12, r4          // memory[SP] = value
+
+    // Decrement SP (stack grows down)
+    LDI r3, 4
+    SUB r12, r3
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    // Advance IP by 1 (for immediate byte)
+    LDI r3, 1
+    ADD r1, r3
+    LDI r3, WASM_IP_ADDR
+    STORE r3, r1
+
+    // Reload WASM_MEM_BASE
+    LDI r11, WASM_MEM_BASE
+
+    // Continue
+    LDI r13, wasm_fetch
+    JMP r13
+
+// ------------------------------------------------------------
+// Arithmetic Operations
+// ------------------------------------------------------------
+
+:wasm_op_i32_add
+    // i32.add: pop two values, push sum
+    // Stack: [..., a, b] -> [..., (a + b)]
+
+    // Get SP
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12          // r12 = SP
+
+    // Pop b (increment SP first since it points to next free slot)
+    LDI r3, 4
+    ADD r12, r3
+    LOAD r12, r4           // r4 = b
+
+    // Pop a
+    LDI r3, 4
+    ADD r12, r3
+    LOAD r12, r5           // r5 = a
+
+    // Compute a + b
+    ADD r5, r4             // r4 = a + b
+
+    // Push result (decrement SP, then store)
+    LDI r3, 4
+    SUB r12, r3
+    STORE r12, r4
+
+    // Update SP
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    // Continue
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_i32_sub
+    // i32.sub: pop two values, push difference
+    // Stack: [..., a, b] -> [..., (a - b)]
+
+    // Get SP
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12          // r12 = SP
+
+    // Pop b
+    LDI r3, 4
+    ADD r12, r3
+    LOAD r12, r4           // r4 = b
+
+    // Pop a
+    LDI r3, 4
+    ADD r12, r3
+    LOAD r12, r5           // r5 = a
+
+    // Compute a - b
+    SUB r5, r4             // r4 = a - b
+
+    // Push result
+    LDI r3, 4
+    SUB r12, r3
+    STORE r12, r4
+
+    // Update SP
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    // Continue
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_i32_mul
+    // i32.mul: pop two values, push product
+    // TODO: Implement multiplication (may need MUL instruction in Glyph VM)
+    // Placeholder: just pop two and push 0
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12
+    LDI r3, 8
+    ADD r12, r3            // Skip two values
+    LDI r4, 0
+    LDI r3, 4
+    SUB r12, r3
+    STORE r12, r4
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_i32_div_s
+    // i32.div_s: pop two values, push quotient (signed)
+    // TODO: Implement signed division
+    // Placeholder: same as mul
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12
+    LDI r3, 8
+    ADD r12, r3
+    LDI r4, 0
+    LDI r3, 4
+    SUB r12, r3
+    STORE r12, r4
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    LDI r13, wasm_fetch
+    JMP r13
+
+// ------------------------------------------------------------
+// Comparison Operations
+// ------------------------------------------------------------
+
+:wasm_op_i32_eq
+    // i32.eq: pop two values, push 1 if equal, 0 otherwise
+    // Stack: [..., a, b] -> [..., (a == b ? 1 : 0)]
+
+    // Get SP
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12
+
+    // Pop b
+    LDI r3, 4
+    ADD r12, r3
+    LOAD r12, r4           // r4 = b
+
+    // Pop a
+    LDI r3, 4
+    ADD r12, r3
+    LOAD r12, r5           // r5 = a
+
+    // Compare: r6 = (a == b) ? 1 : 0
+    MOV r5, r6
+    SUB r6, r4             // r6 = a - b
+    LDI r7, 1
+    LDI r8, 0
+    // If r6 == 0, they're equal
+    // TODO: Need conditional move or branch
+    // For skeleton, just push 0
+    LDI r4, 0
+
+    // Push result
+    LDI r3, 4
+    SUB r12, r3
+    STORE r12, r4
+
+    // Update SP
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_i32_ne
+    // i32.ne: pop two values, push 1 if not equal, 0 otherwise
+    // TODO: Implement properly
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12
+    LDI r3, 8
+    ADD r12, r3
+    LDI r4, 1              // Placeholder: push 1
+    LDI r3, 4
+    SUB r12, r3
+    STORE r12, r4
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    LDI r13, wasm_fetch
+    JMP r13
+
+// ------------------------------------------------------------
+// Variable Access
+// ------------------------------------------------------------
+
+:wasm_op_local_get
+    // local.get: read local index (LEB128), push local value to stack
+    // TODO: Implement LEB128 decoding
+    // Skeleton: skip immediate, push 0
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r1
+    LDI r3, 1
+    ADD r1, r3
+    LDI r3, WASM_IP_ADDR
+    STORE r3, r1
+
+    // Push 0
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12
+    LDI r4, 0
+    STORE r12, r4
+    LDI r3, 4
+    SUB r12, r3
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_local_set
+    // local.set: read local index (LEB128), pop value and store to local
+    // TODO: Implement LEB128 decoding
+    // Skeleton: skip immediate, pop value
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r1
+    LDI r3, 1
+    ADD r1, r3
+    LDI r3, WASM_IP_ADDR
+    STORE r3, r1
+
+    // Pop value (discard)
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12
+    LDI r3, 4
+    ADD r12, r3
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    LDI r13, wasm_fetch
+    JMP r13
+
+// ------------------------------------------------------------
+// Memory Operations
+// ------------------------------------------------------------
+
+:wasm_op_i32_load
+    // i32.load: read align/offset (LEB128 x2), pop address, push value
+    // TODO: Implement properly with alignment and offset
+    // Skeleton: skip 2 immediates, pop addr, push mem[addr]
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r1
+    LDI r3, 2              // Skip 2 bytes (simplified)
+    ADD r1, r3
+    LDI r3, WASM_IP_ADDR
+    STORE r3, r1
+
+    // Pop address
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12
+    LDI r3, 4
+    ADD r12, r3
+    LOAD r12, r4           // r4 = address
+
+    // Load from WASM memory
+    LDI r11, WASM_MEM_BASE
+    ADD r11, r4
+    LOAD r11, r5           // r5 = value
+
+    // Push value
+    LDI r3, 4
+    SUB r12, r3
+    STORE r12, r5
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_i32_store
+    // i32.store: read align/offset (LEB128 x2), pop value and address, store
+    // TODO: Implement properly
+    // Skeleton: skip 2 immediates, pop value and address, store
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r1
+    LDI r3, 2
+    ADD r1, r3
+    LDI r3, WASM_IP_ADDR
+    STORE r3, r1
+
+    // Pop value
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12
+    LDI r3, 4
+    ADD r12, r3
+    LOAD r12, r4           // r4 = value
+
+    // Pop address
+    LDI r3, 4
+    ADD r12, r3
+    LOAD r12, r5           // r5 = address
+
+    // Store to WASM memory
+    LDI r11, WASM_MEM_BASE
+    ADD r11, r5
+    STORE r11, r4
+
+    // Update SP (popped 2 values)
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    LDI r13, wasm_fetch
+    JMP r13
+
+// ============================================================================
+// HALT
+// ============================================================================
+
+:wasm_halt
+    LDI r1, WASM_STATUS
+    LDI r2, STATUS_HALTED
+    STORE r1, r2
+    HALT
