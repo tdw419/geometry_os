@@ -12,6 +12,7 @@ dependencies = [
     "httpx",
     "mcp>=1.0",
     "pyyaml",
+    "anthropic",
 ]
 
 [project.optional-dependencies]

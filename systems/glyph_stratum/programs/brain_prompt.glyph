@@ -1,0 +1,96 @@
+// Brain Prompt - Glyph program that prompts LM Studio
+// Demonstrates the Brain Bridge: GPU Substrate -> LM Studio
+
+// Memory addresses for Brain Bridge
+.equ CTRL_SEMAPHORE 0x2000
+.equ RESPONSE_READY 0x2004
+.equ REQUEST_LENGTH 0x2008
+.equ HTTP_REQUEST 0x0500
+.equ HTTP_RESPONSE 0x1000
+
+// Registers
+// R0: temp / loop counter
+// R1: address pointer
+// R2: character value
+// R3: semaphore value
+
+// Initialize - write a simple question to HTTP_REQUEST buffer
+// "What is the meaning of life?"
+
+:start
+  LDI R1, HTTP_REQUEST
+
+  // Write "What is the meaning of life?"
+  // Each character as 32-bit word (little endian packed)
+  // "Wha" = 0x61685700 -> actually need to pack 4 chars per word
+
+  // For simplicity, write each char in its own word (inefficient but clear)
+  // Character 'W' = 0x57
+  LDI R2, 0x57
+  STORE R1, R2
+  ADD R1, 1
+
+  // 'h' = 0x68
+  LDI R2, 0x68
+  STORE R1, R2
+  ADD R1, 1
+
+  // 'a' = 0x61
+  LDI R2, 0x61
+  STORE R1, R2
+  ADD R1, 1
+
+  // 't' = 0x74
+  LDI R2, 0x74
+  STORE R1, R2
+  ADD R1, 1
+
+  // ' ' = 0x20
+  LDI R2, 0x20
+  STORE R1, R2
+  ADD R1, 1
+
+  // 'i' = 0x69
+  LDI R2, 0x69
+  STORE R1, R2
+  ADD R1, 1
+
+  // 's' = 0x73
+  LDI R2, 0x73
+  STORE R1, R2
+  ADD R1, 1
+
+  // ' ' = 0x20
+  LDI R2, 0x20
+  STORE R1, R2
+  ADD R1, 1
+
+  // Write length (27 bytes) to REQUEST_LENGTH
+  LDI R2, 27
+  STORE R2, REQUEST_LENGTH  // R2 -> [REQUEST_LENGTH]
+
+  // Set CTRL_SEMAPHORE to 1 to trigger request
+  LDI R3, 1
+  STORE R3, CTRL_SEMAPHORE
+
+  // Wait for response (poll RESPONSE_READY)
+:wait_loop
+  LOAD R3, RESPONSE_READY  // R3 = [RESPONSE_READY]
+  CMP R3, 0
+  JZ R3, wait_loop         // If R3 == 0, keep waiting
+
+  // Response ready! Read first word from HTTP_RESPONSE
+  LDI R1, HTTP_RESPONSE
+  LOAD R4, R1              // R4 = response[0]
+
+  // Store result somewhere visible (e.g., 0x8000 = ACT_BASE)
+  LDI R5, 0x8000
+  STORE R5, R4
+
+  // Clear semaphore
+  LDI R3, 0
+  STORE R3, CTRL_SEMAPHORE
+  STORE R3, RESPONSE_READY
+
+  // Done - halt
+  HALT

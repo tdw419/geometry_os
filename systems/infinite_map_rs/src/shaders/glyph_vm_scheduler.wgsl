@@ -418,22 +418,11 @@ fn execute_instruction(vm_idx: u32) {
             }
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
          }
-        case 233u: { // ATTENTION_FOCUS: Mark active regions for sparse execution
-            // stratum = start_addr, p1 = end_addr, p2 = vm_id (optional)
-            let mask_idx = u32(inst.dst) / 32u;
-            let bit_idx = u32(inst.dst) % 32u;
-            if (bit_idx < 32u) {
-                scheduler.attention_mask = scheduler.attention_mask | (1u << bit_idx);
-            } else {
-                scheduler.attention_mask = scheduler.attention_mask & ~(1u << bit_idx);
-            }
-            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
-        }
         case 234u: { // GLYPH_MUTATE: Single-field glyph modification
-            // stratum = target_addr, p1 = field_offset, p2 = new_value
-            let target_addr = u32(inst.stratum);
-            let field_offset = u32(inst.p1);
-            let new_value = inst.p2;
+            // stratum = target_addr (low byte), p1 = field_offset, p2 = new_value
+            let target_addr = u32(stratum) | (u32(p1) << 8u);
+            let field_offset = u32(p2 & 0xFFu);
+            let new_value = p2;
 
             // Read current glyph
             let current_glyph = mem_read(target_addr);
@@ -451,6 +440,33 @@ fn execute_instruction(vm_idx: u32) {
             }
 
             mem_write(target_addr, modified);
+            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
+        }
+        case 235u: { // SEMANTIC_MERGE: Deduplicate and unify redundant glyph clusters
+            // stratum = source_addr, p1 = target_addr, p2 = count
+            let src_addr = u32(inst.stratum);
+            let dst_addr = u32(inst.p1);
+            let count = u32(inst.p2);
+
+            if (count == 0u) {
+                // Single glyph deduplication: compare and copy if different
+                let src_glyph = mem_read(src_addr);
+                let dst_glyph = mem_read(dst_addr);
+
+                if (src_glyph != dst_glyph) {
+                    mem_write(dst_addr, src_glyph);
+                }
+            } else {
+                // Block deduplication: compare and copy count glyphs
+                for (var i = 0u; i < count; i++) {
+                    let src_glyph = mem_read(src_addr + i);
+                    let dst_glyph = mem_read(dst_addr + i);
+
+                    if (src_glyph != dst_glyph) {
+                        mem_write(dst_addr + i, src_glyph);
+                    }
+                }
+            }
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
 

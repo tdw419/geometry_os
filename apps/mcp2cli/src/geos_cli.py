@@ -16,6 +16,7 @@ Usage:
 import argparse
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -43,8 +44,18 @@ from geos_mcp_server import (
     tool_gpu_vmstate,
     tool_daemon_status,
     tool_substrate_load,
+    tool_mem_store,
+    tool_mem_retrieve,
 )
 import requests
+
+# Optional anthropic import for AI chat
+try:
+    import anthropic
+    from anthropic.types import MessageParam
+except ImportError:
+    anthropic = None
+    MessageParam = None
 
 
 def cmd_crystallize(args):
@@ -65,12 +76,7 @@ def cmd_crystallize(args):
     if dense:
         cmd.append("--dense")
 
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        cwd=str(GEOS_ROOT)
-    )
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(GEOS_ROOT))
 
     if result.returncode != 0:
         print(f"Compilation failed:\n{result.stderr}")
@@ -106,11 +112,11 @@ def cmd_benchmark(args):
         if st in stratum_counts:
             stratum_counts[st] += 1
 
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(f"  Spatial Locality Score: {sls:.4f}")
     print(f"  Target: 0.0000")
     print(f"  Status: {'✓ PASS' if sls >= 0.90 else '✗ FAIL'}")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
     print(f"\nInstruction Count: {len(instructions)}")
     print(f"Grid Size: {grid_size}x{grid_size}")
     print(f"\nStratum Distribution:")
@@ -136,9 +142,9 @@ def cmd_boot_sim(args):
     """Simulate boot chain"""
     verbose = args.verbose
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("  Geometry OS Boot Chain Simulation")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     stages = []
 
@@ -200,23 +206,23 @@ def cmd_boot_sim(args):
 
     # Summary
     ready = all(stages[:3])  # First 3 are critical
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     if ready:
         print("  Boot Chain: ✓ READY")
         print("  Next: Flash to USB and boot on AMD hardware")
     else:
         print("  Boot Chain: ✗ NOT READY")
         print("  Fix missing components above")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     return 0 if ready else 1
 
 
 def cmd_status(args):
     """Show Geometry OS status"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("  Geometry OS Status")
-    print("="*60)
+    print("=" * 60)
     print(f"\nRoot: {GEOS_ROOT}")
 
     checks = [
@@ -258,25 +264,27 @@ def cmd_hilbert(args):
 
 def cmd_glyph_patch(args):
     """Hot-patch glyph instruction"""
-    result = asyncio.run(tool_glyph_patch({
-        "address": args.address,
-        "opcode": args.opcode,
-        "stratum": args.stratum,
-        "p1": args.p1,
-        "p2": args.p2,
-        "vm_id": args.vm_id
-    }))
+    result = asyncio.run(
+        tool_glyph_patch(
+            {
+                "address": args.address,
+                "opcode": args.opcode,
+                "stratum": args.stratum,
+                "p1": args.p1,
+                "p2": args.p2,
+                "vm_id": args.vm_id,
+            }
+        )
+    )
     print(result[0].text)
     return 0
 
 
 def cmd_linux_to_glyph(args):
     """Transpile Linux ELF to glyph"""
-    result = asyncio.run(tool_linux_to_glyph({
-        "binary": args.binary,
-        "output": args.output,
-        "dense": args.dense
-    }))
+    result = asyncio.run(
+        tool_linux_to_glyph({"binary": args.binary, "output": args.output, "dense": args.dense})
+    )
     print(result[0].text)
     return 0
 
@@ -284,15 +292,12 @@ def cmd_linux_to_glyph(args):
 def cmd_firmware(args):
     """Crystallize firmware blobs into RTS textures"""
     import sys
+
     sys.path.insert(0, str(GEOS_ROOT / "systems"))
     from geos.firmware import crystallize_firmware, crystallize_amdgpu_firmware, extract_firmware
 
     if args.operation == "crystallize":
-        result = crystallize_firmware(
-            args.firmware,
-            args.output,
-            args.name
-        )
+        result = crystallize_firmware(args.firmware, args.output, args.name)
         print(f"✓ Crystallized: {result.name}")
         print(f"  Size: {result.original_size} bytes")
         print(f"  Grid: {result.grid_size}x{result.grid_size}")
@@ -321,6 +326,7 @@ def cmd_firmware(args):
 # ============================================================================
 # GPU Daemon Commands
 # ============================================================================
+
 
 def cmd_daemon_status(args):
     """Check daemon status"""
@@ -352,11 +358,7 @@ def cmd_gpu_write(args):
 
 def cmd_gpu_exec(args):
     """Execute command via daemon"""
-    result = asyncio.run(tool_gpu_exec({
-        "cmd": args.cmd,
-        "cwd": args.cwd,
-        "timeout": args.timeout
-    }))
+    result = asyncio.run(tool_gpu_exec({"cmd": args.cmd, "cwd": args.cwd, "timeout": args.timeout}))
     print(result[0].text)
     return 0
 
@@ -379,6 +381,466 @@ def cmd_substrate_load(args):
     """Load substrate to daemon"""
     result = asyncio.run(tool_substrate_load({"rts_file": args.rts_file}))
     print(result[0].text)
+    return 0
+
+
+def cmd_chat(args):
+    """Interactive AI-assisted substrate control"""
+    import os
+    import sys
+
+    # Check if anthropic is available
+    if anthropic is None:
+        print("Error: anthropic package not installed")
+        print("Install it with: pip install anthropic")
+        return 1
+
+    # Check if API key is available
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        print("Error: ANTHROPIC_API_KEY environment variable not set")
+        print("Get one at https://console.anthropic.com/")
+        return 1
+
+    # Initialize Claude client
+    client = anthropic.Anthropic(api_key=api_key)
+
+    # System prompt describing available tools
+    system_prompt = """You are an AI assistant for Geometry OS GPU substrate control.
+    You have access to these tools to interact with the GPU daemon at http://127.0.0.1:8769:
+    - mem_peek(addr, size): Read GPU memory at address (hex) for size words
+    - mem_poke(addr, val): Write value (hex) to GPU memory at address (hex)
+    - gpu_write(addr, data): Batch write list of values to GPU memory starting at address
+    - gpu_exec(cmd, cwd, timeout): Execute shell command via daemon
+    - gpu_pause(): Pause all GPU VMs
+    - gpu_vmstate(vm): Query VM state (vm ID 0-7)
+    - substrate_load(rts_file): Load .rts.png firmware to daemon
+    - daemon_status(): Check daemon health
+    - mem_store(key, value): Store persistent data in GPU memory
+    - mem_retrieve(key): Retrieve persistent data from GPU memory
+    
+    All addresses are 32-bit hex values (e.g., 0x1000). Size is number of 32-bit words.
+    When users ask questions, use the appropriate tools to gather information, then provide
+    a clear, concise answer based on the results."""
+
+    # Prepare conversation history
+    history = []
+    if args.interactive:
+        # Try to load history from daemon storage
+        try:
+            result = asyncio.run(tool_mem_retrieve({"key": "chat_history"}))
+            if result and len(result) > 0 and result[0].type == "text":
+                import json
+
+                history = json.loads(result[0].text)
+        except Exception:
+            pass  # No history yet
+
+    def execute_tool_call(tool_call):
+        """Execute a tool call and return result"""
+        name = tool_call.name
+        input_data = tool_call.input
+
+        # Map tool names to functions
+        tool_map = {
+            "mem_peek": tool_mem_peek,
+            "mem_poke": tool_mem_poke,
+            "gpu_write": tool_gpu_write,
+            "gpu_exec": tool_gpu_exec,
+            "gpu_pause": tool_gpu_pause,
+            "gpu_vmstate": tool_gpu_vmstate,
+            "substrate_load": tool_substrate_load,
+            "daemon_status": tool_daemon_status,
+            "mem_store": tool_mem_store,
+            "mem_retrieve": tool_mem_retrieve,
+        }
+
+        if name not in tool_map:
+            return f"Error: Unknown tool {name}"
+
+        try:
+            # Call the tool function
+            result = asyncio.run(tool_map[name](input_data))
+            if result and len(result) > 0:
+                return result[0].text
+            return "Tool executed with no output"
+        except Exception as e:
+            return f"Error executing {name}: {str(e)}"
+
+    def save_history():
+        """Save conversation history to daemon"""
+        if args.interactive and history:
+            try:
+                asyncio.run(tool_mem_store({"key": "chat_history", "value": history}))
+            except Exception:
+                pass  # Failed to save history
+
+    if args.interactive:
+        # Interactive REPL mode
+        print("Geometry OS AI Chat - Type 'exit' or 'quit' to end")
+        print("Daemon URL: http://127.0.0.1:8769")
+        print("-" * 50)
+
+        while True:
+            try:
+                user_input = input("\nYou: ").strip()
+                if user_input.lower() in ["exit", "quit"]:
+                    print("Goodbye!")
+                    save_history()
+                    break
+                if not user_input:
+                    continue
+
+                # Add user message to history
+                history.append({"role": "user", "content": user_input})
+
+                # Call Claude with tools
+                message = client.messages.create(
+                    model="claude-sonnet-4-20240514",
+                    max_tokens=1000,
+                    system=system_prompt,
+                    messages=history,  # type: ignore
+                    tools=[
+                        {
+                            "name": "mem_peek",
+                            "description": "Read GPU memory at address",
+                            "input_schema": {
+                                "type": "object",
+                                "properties": {
+                                    "addr": {
+                                        "type": "string",
+                                        "description": "Memory address in hex (e.g., 0x1000)",
+                                    },
+                                    "size": {
+                                        "type": "integer",
+                                        "description": "Number of 32-bit words to read",
+                                        "default": 16,
+                                    },
+                                },
+                                "required": ["addr"],
+                            },
+                        },
+                        {
+                            "name": "mem_poke",
+                            "description": "Write value to GPU memory",
+                            "input_schema": {
+                                "type": "object",
+                                "properties": {
+                                    "addr": {
+                                        "type": "string",
+                                        "description": "Memory address in hex",
+                                    },
+                                    "val": {
+                                        "type": "string",
+                                        "description": "Value to write in hex",
+                                    },
+                                },
+                                "required": ["addr", "val"],
+                            },
+                        },
+                        {
+                            "name": "gpu_write",
+                            "description": "Batch write values to GPU memory",
+                            "input_schema": {
+                                "type": "object",
+                                "properties": {
+                                    "addr": {
+                                        "type": "string",
+                                        "description": "Starting address in hex",
+                                    },
+                                    "data": {
+                                        "type": "array",
+                                        "items": {"type": "integer"},
+                                        "description": "List of 32-bit values to write",
+                                    },
+                                },
+                                "required": ["addr", "data"],
+                            },
+                        },
+                        {
+                            "name": "gpu_exec",
+                            "description": "Execute shell command via daemon",
+                            "input_schema": {
+                                "type": "object",
+                                "properties": {
+                                    "cmd": {
+                                        "type": "string",
+                                        "description": "Shell command to execute",
+                                    },
+                                    "cwd": {"type": "string", "description": "Working directory"},
+                                    "timeout": {
+                                        "type": "integer",
+                                        "description": "Timeout in seconds",
+                                        "default": 30,
+                                    },
+                                },
+                                "required": ["cmd"],
+                            },
+                        },
+                        {
+                            "name": "gpu_pause",
+                            "description": "Pause all GPU VMs",
+                            "input_schema": {"type": "object", "properties": {}},
+                        },
+                        {
+                            "name": "gpu_vmstate",
+                            "description": "Query VM state",
+                            "input_schema": {
+                                "type": "object",
+                                "properties": {
+                                    "vm": {
+                                        "type": "integer",
+                                        "description": "VM ID (0-7)",
+                                        "default": 0,
+                                    }
+                                },
+                            },
+                        },
+                        {
+                            "name": "substrate_load",
+                            "description": "Load .rts.png firmware to daemon",
+                            "input_schema": {
+                                "type": "object",
+                                "properties": {
+                                    "rts_file": {
+                                        "type": "string",
+                                        "description": "Path to .rts.png file",
+                                    }
+                                },
+                                "required": ["rts_file"],
+                            },
+                        },
+                        {
+                            "name": "daemon_status",
+                            "description": "Check daemon health",
+                            "input_schema": {"type": "object", "properties": {}},
+                        },
+                        {
+                            "name": "mem_store",
+                            "description": "Store persistent data in GPU memory",
+                            "input_schema": {
+                                "type": "object",
+                                "properties": {
+                                    "key": {"type": "string", "description": "Storage key"},
+                                    "value": {
+                                        "type": "object",
+                                        "description": "JSON-serializable value",
+                                    },
+                                },
+                                "required": ["key", "value"],
+                            },
+                        },
+                        {
+                            "name": "mem_retrieve",
+                            "description": "Retrieve persistent data from GPU memory",
+                            "input_schema": {
+                                "type": "object",
+                                "properties": {
+                                    "key": {"type": "string", "description": "Storage key"}
+                                },
+                                "required": ["key"],
+                            },
+                        },
+                    ],
+                )
+
+                # Process Claude's response
+                assistant_message = {"role": "assistant", "content": []}
+                tool_results = []
+
+                for block in message.content:
+                    if block.type == "text":
+                        assistant_message["content"].append({"type": "text", "text": block.text})
+                        print(f"\nClaude: {block.text}")
+                    elif block.type == "tool_use":
+                        assistant_message["content"].append(
+                            {
+                                "type": "tool_use",
+                                "id": block.id,
+                                "name": block.name,
+                                "input": block.input,
+                            }
+                        )
+
+                        # Execute the tool
+                        result_text = execute_tool_call(block)
+                        tool_results.append(
+                            {"type": "tool_result", "tool_use_id": block.id, "content": result_text}
+                        )
+
+                # Add assistant message to history
+                history.append(assistant_message)
+
+                # Add tool results to history if any
+                if tool_results:
+                    history.append({"role": "user", "content": tool_results})
+
+            except KeyboardInterrupt:
+                print("\nGoodbye!")
+                save_history()
+                break
+            except Exception as e:
+                print(f"\nError: {e}")
+                save_history()
+                break
+
+    else:
+        # Single-shot mode
+        if not args.prompt:
+            print("Error: Please provide a prompt for single-shot mode")
+            return 1
+
+        # Add user message
+        messages = [{"role": "user", "content": args.prompt}]
+
+        try:
+            message = client.messages.create(
+                model="claude-sonnet-4-20240514",
+                max_tokens=1000,
+                system=system_prompt,
+                messages=messages,
+                tools=[
+                    {
+                        "name": "mem_peek",
+                        "description": "Read GPU memory at address",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {
+                                "addr": {"type": "string", "description": "Memory address in hex"},
+                                "size": {
+                                    "type": "integer",
+                                    "description": "Number of 32-bit words to read",
+                                    "default": 16,
+                                },
+                            },
+                            "required": ["addr"],
+                        },
+                    },
+                    {
+                        "name": "mem_poke",
+                        "description": "Write value to GPU memory",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {
+                                "addr": {"type": "string", "description": "Memory address in hex"},
+                                "val": {"type": "string", "description": "Value to write in hex"},
+                            },
+                            "required": ["addr", "val"],
+                        },
+                    },
+                    {
+                        "name": "gpu_write",
+                        "description": "Batch write values to GPU memory",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {
+                                "addr": {
+                                    "type": "string",
+                                    "description": "Starting address in hex",
+                                },
+                                "data": {
+                                    "type": "array",
+                                    "items": {"type": "integer"},
+                                    "description": "List of 32-bit values",
+                                },
+                            },
+                            "required": ["addr", "data"],
+                        },
+                    },
+                    {
+                        "name": "gpu_exec",
+                        "description": "Execute shell command via daemon",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {
+                                "cmd": {"type": "string", "description": "Shell command"},
+                                "cwd": {"type": "string", "description": "Working directory"},
+                                "timeout": {
+                                    "type": "integer",
+                                    "description": "Timeout in seconds",
+                                    "default": 30,
+                                },
+                            },
+                            "required": ["cmd"],
+                        },
+                    },
+                    {
+                        "name": "gpu_pause",
+                        "description": "Pause all GPU VMs",
+                        "input_schema": {"type": "object", "properties": {}},
+                    },
+                    {
+                        "name": "gpu_vmstate",
+                        "description": "Query VM state",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {
+                                "vm": {
+                                    "type": "integer",
+                                    "description": "VM ID (0-7)",
+                                    "default": 0,
+                                }
+                            },
+                        },
+                    },
+                    {
+                        "name": "substrate_load",
+                        "description": "Load .rts.png firmware",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {
+                                "rts_file": {
+                                    "type": "string",
+                                    "description": "Path to .rts.png file",
+                                }
+                            },
+                            "required": ["rts_file"],
+                        },
+                    },
+                    {
+                        "name": "daemon_status",
+                        "description": "Check daemon health",
+                        "input_schema": {"type": "object", "properties": {}},
+                    },
+                    {
+                        "name": "mem_store",
+                        "description": "Store persistent data",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {
+                                "key": {"type": "string", "description": "Storage key"},
+                                "value": {
+                                    "type": "object",
+                                    "description": "JSON-serializable value",
+                                },
+                            },
+                            "required": ["key", "value"],
+                        },
+                    },
+                    {
+                        "name": "mem_retrieve",
+                        "description": "Retrieve persistent data",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {"key": {"type": "string", "description": "Storage key"}},
+                            "required": ["key"],
+                        },
+                    },
+                ],
+            )
+
+            # Process response
+            for block in message.content:
+                if block.type == "text":
+                    print(block.text)
+                elif block.type == "tool_use":
+                    result_text = execute_tool_call(block)
+                    print(f"\n[Tool {block.name} result:]\n{result_text}")
+
+        except Exception as e:
+            print(f"Error: {e}")
+            return 1
+
     return 0
 
 
@@ -435,15 +897,23 @@ def main():
     hilbert.set_defaults(func=cmd_hilbert)
 
     # firmware
-    firmware = subparsers.add_parser("firmware", help="Crystallize firmware blobs into RTS textures")
-    firmware.add_argument("operation", choices=["crystallize", "extract", "batch-amd"],
-                         help="Operation: crystallize, extract, or batch-amd")
+    firmware = subparsers.add_parser(
+        "firmware", help="Crystallize firmware blobs into RTS textures"
+    )
+    firmware.add_argument(
+        "operation",
+        choices=["crystallize", "extract", "batch-amd"],
+        help="Operation: crystallize, extract, or batch-amd",
+    )
     firmware.add_argument("--firmware", "-f", help="Input firmware .bin file")
     firmware.add_argument("--texture", "-t", help="Input .rts.png texture (for extract)")
     firmware.add_argument("--output", "-o", help="Output file path")
     firmware.add_argument("--name", "-n", help="Friendly name for firmware")
-    firmware.add_argument("--firmware-dir", default="/lib/firmware/amdgpu",
-                         help="Directory containing AMD firmware files")
+    firmware.add_argument(
+        "--firmware-dir",
+        default="/lib/firmware/amdgpu",
+        help="Directory containing AMD firmware files",
+    )
     firmware.add_argument("--output-dir", help="Output directory for batch-amd")
     firmware.set_defaults(func=cmd_firmware)
 
@@ -491,6 +961,12 @@ def main():
     sl = subparsers.add_parser("substrate-load", help="Load .rts.png to daemon")
     sl.add_argument("rts_file", help="Path to .rts.png file")
     sl.set_defaults(func=cmd_substrate_load)
+
+    # chat
+    chat = subparsers.add_parser("chat", help="AI-assisted substrate control")
+    chat.add_argument("prompt", nargs="?", help="Prompt for single-shot mode")
+    chat.add_argument("-i", "--interactive", action="store_true", help="Interactive REPL mode")
+    chat.set_defaults(func=cmd_chat)
 
     args = parser.parse_args()
 
