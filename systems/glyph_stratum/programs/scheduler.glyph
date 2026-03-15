@@ -317,7 +317,7 @@
 
 :wait_self_modify
     LDI r1, TRAP_STATUS
-    LOAD r1, r27
+    LOAD r27, r1       // Load status INTO r27 FROM address r1
     LDI r2, STATUS_COMPLETE
     SUB r27, r2
     JNZ r27, :wait_self_modify
@@ -328,7 +328,7 @@
     STORE r1, r2
 
     LDI r1, SELF_MODIFY_STATUS
-    LDI r2, 2              // COMPLETE
+    LDI r2, STATUS_COMPLETE
     STORE r1, r2
 
 :skip_self_modify
