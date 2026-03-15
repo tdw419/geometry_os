@@ -15,7 +15,11 @@ pub mod op_type {
     pub const PEEK_SUBSTRATE: u32 = 5;
     pub const POKE_SUBSTRATE: u32 = 6;
     pub const LM_STUDIO: u32 = 7; // Request LM Studio inference
+    pub const GLYPH_WRITE: u32 = 8; // Copy glyphs between substrate locations
 }
+
+/// GLYPH_WRITE operation constant (for convenience)
+pub const GLYPH_WRITE_OP: u32 = 8;
 
 /// Trap status values
 pub mod status {
