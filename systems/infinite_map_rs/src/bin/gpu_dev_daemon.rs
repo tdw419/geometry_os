@@ -23,6 +23,33 @@ use infinite_map_rs::brain_bridge::{BrainBridge, BrainBridgeConfig};
 use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
 use infinite_map_rs::trap_interface::{TrapRegs, op_type, status, TRAP_BASE};
 
+/// Call LM Studio for inference via HTTP
+async fn call_lm_studio(request: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let client = reqwest::Client::new();
+    let response = client
+        .post("http://localhost:1234/v1/chat/completions")
+        .json(&serde_json::json!({
+            "model": "qwen/qwen3.5-9b",
+            "messages": [{"role": "user", "content": request}],
+            "max_tokens": 50,
+            "temperature": 0.9
+        }))
+        .timeout(std::time::Duration::from_secs(5))
+        .send()
+        .await?;
+
+    if response.status().is_success() {
+        let json: serde_json::Value = response.json().await?;
+        let content = json["choices"][0]["message"]["content"]
+            .as_str()
+            .unwrap_or("")
+            .to_string();
+        Ok(content)
+    } else {
+        Err(format!("LM Studio error: {}", response.status()).into())
+    }
+}
+
 /// Memory locations for daemon.glyph communication
 const REQ_BUFFER: u32 = 0x4000;
 const RES_BUFFER: u32 = 0x5000;
@@ -81,6 +108,31 @@ impl TrapHandler {
                 let val = self.regs.arg1;
                 scheduler.poke_substrate_single(addr, val);
                 0
+            }
+            op_type::LM_STUDIO => {
+                // arg0 = request_addr (in substrate)
+                // arg1 = request_length
+                // arg2 = response_addr (in substrate)
+                let request_addr = self.regs.arg0;
+                let request_len = self.regs.arg1 as usize;
+                let response_addr = self.regs.arg2;
+
+                // Read request from substrate
+                let request_bytes: Vec<u8> = (0..request_len)
+                    .map(|i| scheduler.peek_substrate_single(request_addr + i as u32) as u8)
+                    .collect();
+                let request = String::from_utf8_lossy(&request_bytes).to_string();
+
+                // Call LM Studio
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                let response = rt.block_on(call_lm_studio(&request)).unwrap_or_default();
+
+                // Write response to substrate
+                for (i, byte) in response.bytes().take(4096).enumerate() {
+                    scheduler.poke_substrate_single(response_addr + i as u32, byte as u32);
+                }
+
+                response.len() as u32
             }
             _ => {
                 eprintln!("[TRAP] Unknown op_type: {}", self.regs.op_type);
