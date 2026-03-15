@@ -129,6 +129,22 @@ fn main() {
     }));
     scheduler.lock().unwrap().set_ram_texture(&ram_texture);
 
+    // Load scheduler.glyph into VM 0
+    let scheduler_glyph_path = "systems/glyph_stratum/programs/scheduler.glyph";
+    if let Ok(_glyph_bytes) = std::fs::read(scheduler_glyph_path) {
+        println!("[BOOT] Loading scheduler.glyph into VM 0...");
+        let config = VmConfig {
+            entry_point: 0,
+            ..Default::default()
+        };
+        match scheduler.lock().unwrap().spawn_vm(0, &config) {
+            Ok(()) => println!("[BOOT] scheduler.glyph loaded as VM 0"),
+            Err(e) => eprintln!("[BOOT] Warning: Failed to spawn VM 0: {}", e),
+        }
+    } else {
+        println!("[BOOT] Warning: Could not load scheduler.glyph, running without meta-scheduler");
+    }
+
     // Initial Substrate Setup
     let mut substrate = vec![0u8; 4096 * 4096 * 4];
     // (Optional: Pre-load Daemon and Emulator here)
@@ -162,8 +178,14 @@ fn main() {
     thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            let listener = TcpListener::bind("127.0.0.1:8769").unwrap();
-            println!("[API] 🚀 Ouroboros API listening on http://127.0.0.1:8769");
+            let listener = match TcpListener::bind("0.0.0.0:8769") {
+                Ok(l) => l,
+                Err(e) => {
+                    eprintln!("[API] ❌ Failed to bind TCP socket: {}", e);
+                    return;
+                }
+            };
+            println!("[API] 🚀 Ouroboros API listening on http://0.0.0.0:8769");
             std::io::stdout().flush().unwrap();
             for stream in listener.incoming() {
                 if let Ok(mut stream) = stream {
