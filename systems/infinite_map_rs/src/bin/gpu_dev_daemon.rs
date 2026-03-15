@@ -96,6 +96,11 @@ fn main() {
     let adapter =
         pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
             .unwrap();
+
+    // Print adapter info
+    let info = adapter.get_info();
+    println!("[GPU] Adapter: {} ({:?})", info.name, info.backend);
+
     let (device, queue) = pollster::block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             label: Some("Ouroboros GPU"),
@@ -105,6 +110,10 @@ fn main() {
         None,
     ))
     .unwrap();
+
+    // Print device limits
+    let limits = device.limits();
+    println!("[GPU] Max texture dimension 2D: {}", limits.max_texture_dimension_2d);
 
     let device = Arc::new(device);
     let queue = Arc::new(queue);

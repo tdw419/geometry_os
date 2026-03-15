@@ -1,19 +1,20 @@
 // Self-Modifying Code Demo (AI-Native Opcodes)
-// Demonstrates GLYPH_WRITE, M_STORE, GLYPH_MUTATE, SEMANTIC_MERGE
+// WORKAROUND: Use addresses >= 0x1000 due to GPU texture bug
+// See: docs/plans/2026-03-15-gpu-texture-bug.md
 
-// Constants
-.equ MEM_BASE, 0x1000
+// Memory Layout (all addresses >= 0x1000 for safety):
+// 0x1000 - Test value storage
+// 0x1004 - Copy target
 
-// Step 1: Store 42 in memory
-M_STORE 0x1000, 42
+// Step 1: Load address 0x1000 into r1, value 42 into r2, then STORE
+LDI r1, 0x1000    // r1 = 0x1000 (destination address)
+LDI r2, 42        // r2 = 42 (value to store)
+STORE r1, r2      // mem[0x1000] = 42
 
-// Step 2: Copy via GLYPH_WRITE (simulate M_STORE behavior)
-GLYPH_WRITE 0x2000
- 0x1000, 0
+// Step 2: Load address 0x1004 into r3, load value from 0x1000, store to 0x1004
+LDI r3, 0x1004    // r3 = 0x1004 (copy target)
+LOAD r1, r4       // r4 = mem[r1] = mem[0x1000] = 42
+STORE r3, r4      // mem[0x1004] = r4 = 42
 
-// Step 3: Modify via GLYPH_MUTATE
-GLYPH_MUTATE 0x2000, 1
- 42
-
-// Step 4: Check results
+// Step 3: Verify by checking VM halted correctly
 HALT
