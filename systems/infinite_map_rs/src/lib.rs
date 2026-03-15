@@ -133,6 +133,7 @@ pub mod tile;
 pub mod tile_executor;
 pub mod tool_adapter;
 pub mod tool_manager;
+pub mod trap_interface;
 pub mod ui;
 pub mod vector_memory_client;
 pub mod virtual_machine;
