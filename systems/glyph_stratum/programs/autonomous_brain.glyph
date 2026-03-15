@@ -1,0 +1,185 @@
+// Autonomous Self-Improving Brain
+// Continuously prompts LM Studio to analyze and improve the substrate
+//
+// Memory Layout:
+// 0x0300-0x03FF: Brain State (entropy, cycles, mutations, goals)
+// 0x0400-0x04FF: Sensor Data (weight stats, activation patterns)
+// 0x0500-0x0FFF: Request Buffer (to LM Studio)
+// 0x1000-0x1FFF: Response Buffer (from LM Studio)
+// 0x1800-0x1FFF: Transformer Weights (self-modifying region)
+// 0x2000: CTRL_SEMAPHORE
+// 0x2004: RESPONSE_READY
+// 0x2008: REQUEST_LENGTH
+// 0x8000: Action Buffer (commands to execute)
+
+// Registers
+// R0: Loop counter / temp
+// R1: Address pointer
+// R2: Value buffer
+// R3: Entropy accumulator
+// R4: Mutation count
+// R5: Goal register
+// R6: Jump target
+// R7: Condition
+
+.equ BRAIN_STATE 0x0300
+.equ SENSOR_DATA 0x0400
+.equ REQUEST_BUF 0x0500
+.equ RESPONSE_BUF 0x1000
+.equ WEIGHT_BASE 0x1800
+.equ CTRL_SEM 0x2000
+.equ RESP_READY 0x2004
+.equ REQ_LEN 0x2008
+.equ ACTION_BUF 0x8000
+
+// Initialize
+:start
+  LDI R0, 0          // Cycle counter
+  LDI R3, 0          // Entropy accumulator
+  LDI R4, 0          // Mutation count
+  LDI R5, 1          // Goal: 1 = IMPROVE
+
+// Main self-improvement loop
+:main_loop
+  // Increment cycle
+  ADD R0, 1
+
+  // 1. SENSE: Read weight region entropy
+  LDI R1, WEIGHT_BASE
+  LDI R3, 0          // Reset entropy
+  LDI R7, 32         // Sample 32 weights
+
+:sense_loop
+  LOAD R2, R1        // R2 = weight at R1
+  // Simple entropy: XOR accumulator with weight
+  XOR R3, R2
+  ADD R1, 1
+  SUB R7, 1
+  JZ R7, :sense_done
+  LDI R6, :sense_loop
+  JMP R6
+
+:sense_done
+  // Store entropy in brain state
+  STORE R3, BRAIN_STATE
+
+  // 2. BUILD REQUEST: Create analysis prompt for LM Studio
+  // Format: "entropy:XXXXX cycles:XXXXX goal:improve analyze and suggest mutations"
+  LDI R1, REQUEST_BUF
+
+  // Write "entropy:"
+  LDI R2, 0x746E65   // "ent"
+  STORE R1, R2
+  ADD R1, 1
+  LDI R2, 0x707972   // "ropy"
+  STORE R1, R2
+  ADD R1, 1
+
+  // Write entropy value (hex)
+  STORE R1, R3
+  ADD R1, 1
+
+  // Write " cycles:"
+  LDI R2, 0x206379   // " cy"
+  STORE R1, R2
+  ADD R1, 1
+  LDI R2, 0x6C6563   // "cles"
+  STORE R1, R2
+  ADD R1, 1
+
+  // Write cycle count
+  STORE R1, R0
+  ADD R1, 1
+
+  // Write " goal:improve analyze weights suggest mutations"
+  LDI R2, 0x20676F   // " go"
+  STORE R1, R2
+  ADD R1, 1
+  LDI R2, 0x616C3A   // "al:"
+  STORE R1, R2
+  ADD R1, 1
+  LDI R2, 0x706D69   // "pmi" (improve starts)
+  STORE R1, R2
+  ADD R1, 1
+
+  // Calculate request length (R1 - REQUEST_BUF)
+  // For simplicity, hardcode approximate length
+  LDI R2, 64         // ~64 bytes
+  STORE R2, REQ_LEN
+
+  // 3. TRIGGER: Set semaphore to send to LM Studio
+  LDI R2, 1
+  STORE R2, CTRL_SEM
+
+  // 4. WAIT: Poll for response
+:wait_response
+  LOAD R2, RESP_READY
+  JZ R2, :wait_response
+
+  // 5. ACT: Read response and apply mutations
+  // Response contains mutation commands in format:
+  // "MUTATE addr value" or "RESET" or "CONTINUE"
+
+  LDI R1, RESPONSE_BUF
+  LOAD R2, R1        // First word of response
+
+  // Check for MUTATE command (0x4D555441 = "MUTA")
+  LDI R7, 0x4D555441
+  SUB R7, R2
+  JZ R7, :do_mutate
+
+  // Check for RESET command (0x52455345 = "RESE")
+  LDI R7, 0x52455345
+  SUB R7, R2
+  JZ R7, :do_reset
+
+  // Default: continue loop
+  LDI R6, :continue_loop
+  JMP R6
+
+:do_mutate
+  // Parse mutation: addr at word 2, value at word 3
+  ADD R1, 2
+  LOAD R7, R1        // R7 = target address
+  ADD R1, 1
+  LOAD R2, R1        // R2 = new value
+
+  // Apply mutation using OP_GLYPH_MUTATE (226)
+  // This is self-modification!
+  MUTATE R2, R7
+  ADD R4, 1          // Increment mutation count
+
+  LDI R6, :continue_loop
+  JMP R6
+
+:do_reset
+  // Reset weights to zero
+  LDI R1, WEIGHT_BASE
+  LDI R7, 128        // 128 words
+  LDI R2, 0
+
+:reset_loop
+  STORE R1, R2
+  ADD R1, 1
+  SUB R7, 1
+  JZ R7, :continue_loop
+  LDI R6, :reset_loop
+  JMP R6
+
+:continue_loop
+  // Clear semaphores
+  LDI R2, 0
+  STORE R2, CTRL_SEM
+  STORE R2, RESP_READY
+
+  // Store mutation count
+  LDI R1, BRAIN_STATE
+  ADD R1, 1          // Second word of brain state
+  STORE R4, R1
+
+  // Loop forever (self-improvement never ends)
+  LDI R6, :main_loop
+  JMP R6
+
+:end
+  HALT
