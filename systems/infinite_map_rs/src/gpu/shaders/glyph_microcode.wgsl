@@ -54,6 +54,23 @@ const OP_ADD_MEM: u32 = 216u;
 const OP_SUB_MEM: u32 = 217u;
 const OP_INT_DISPATCH: u32 = 218u;
 
+// Bitwise Opcodes (for RISC-V emulation)
+const OP_AND: u32 = 220u;      // memory[dst] = memory[dst] & p1 (as bits)
+const OP_OR: u32 = 221u;       // memory[dst] = memory[dst] | p1
+const OP_XOR: u32 = 222u;      // memory[dst] = memory[dst] ^ p1
+const OP_NOT: u32 = 223u;      // memory[dst] = ~memory[dst]
+const OP_SHL: u32 = 224u;      // memory[dst] = memory[dst] << p1
+const OP_SHR: u32 = 225u;      // memory[dst] = memory[dst] >> p1 (logical)
+const OP_SAR: u32 = 226u;      // memory[dst] = memory[dst] >> p1 (arithmetic)
+const OP_AND_MEM: u32 = 227u;  // memory[dst] = memory[dst] & memory[p1]
+const OP_OR_MEM: u32 = 228u;   // memory[dst] = memory[dst] | memory[p1]
+const OP_XOR_MEM: u32 = 229u;  // memory[dst] = memory[dst] ^ memory[p1]
+const OP_SHL_MEM: u32 = 230u;  // memory[dst] = memory[dst] << memory[p1]
+const OP_SHR_MEM: u32 = 231u;  // memory[dst] = memory[dst] >> memory[p1]
+
+// AI-Native Opcodes
+const OP_SPAWN: u32 = 232u;    // Spawn new glyphs into program buffer
+
 @compute @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     if (state.halted != 0u) { return; }
@@ -123,6 +140,81 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
             // Hit = inside rect AND mouse button pressed
             memory[inst.dst] = select(0.0, 1.0, in_rect && mouse_btn > 0.0);
+            state.pc = state.pc + 1u;
+        }
+
+        // === BITWISE OPERATIONS (for RISC-V emulation) ===
+        // Note: memory stores floats, but we treat them as u32 bit patterns
+        case 220u: { // AND - Bitwise AND with immediate
+            let val = bitcast<u32>(memory[inst.dst]);
+            let imm = u32(inst.p1);
+            memory[inst.dst] = bitcast<f32>(val & imm);
+            state.pc = state.pc + 1u;
+        }
+        case 221u: { // OR - Bitwise OR with immediate
+            let val = bitcast<u32>(memory[inst.dst]);
+            let imm = u32(inst.p1);
+            memory[inst.dst] = bitcast<f32>(val | imm);
+            state.pc = state.pc + 1u;
+        }
+        case 222u: { // XOR - Bitwise XOR with immediate
+            let val = bitcast<u32>(memory[inst.dst]);
+            let imm = u32(inst.p1);
+            memory[inst.dst] = bitcast<f32>(val ^ imm);
+            state.pc = state.pc + 1u;
+        }
+        case 223u: { // NOT - Bitwise NOT
+            let val = bitcast<u32>(memory[inst.dst]);
+            memory[inst.dst] = bitcast<f32>(~val);
+            state.pc = state.pc + 1u;
+        }
+        case 224u: { // SHL - Shift left by immediate
+            let val = bitcast<u32>(memory[inst.dst]);
+            let shift = u32(inst.p1) & 31u;
+            memory[inst.dst] = bitcast<f32>(val << shift);
+            state.pc = state.pc + 1u;
+        }
+        case 225u: { // SHR - Shift right (logical) by immediate
+            let val = bitcast<u32>(memory[inst.dst]);
+            let shift = u32(inst.p1) & 31u;
+            memory[inst.dst] = bitcast<f32>(val >> shift);
+            state.pc = state.pc + 1u;
+        }
+        case 226u: { // SAR - Shift right (arithmetic) by immediate
+            // Treat as signed, shift, preserve sign
+            let val = bitcast<i32>(memory[inst.dst]);
+            let shift = u32(inst.p1) & 31u;
+            memory[inst.dst] = bitcast<f32>(val >> shift);
+            state.pc = state.pc + 1u;
+        }
+        case 227u: { // AND_MEM - Bitwise AND with memory
+            let val1 = bitcast<u32>(memory[inst.dst]);
+            let val2 = bitcast<u32>(memory[u32(inst.p1)]);
+            memory[inst.dst] = bitcast<f32>(val1 & val2);
+            state.pc = state.pc + 1u;
+        }
+        case 228u: { // OR_MEM - Bitwise OR with memory
+            let val1 = bitcast<u32>(memory[inst.dst]);
+            let val2 = bitcast<u32>(memory[u32(inst.p1)]);
+            memory[inst.dst] = bitcast<f32>(val1 | val2);
+            state.pc = state.pc + 1u;
+        }
+        case 229u: { // XOR_MEM - Bitwise XOR with memory
+            let val1 = bitcast<u32>(memory[inst.dst]);
+            let val2 = bitcast<u32>(memory[u32(inst.p1)]);
+            memory[inst.dst] = bitcast<f32>(val1 ^ val2);
+            state.pc = state.pc + 1u;
+        }
+        case 230u: { // SHL_MEM - Shift left by memory value
+            let val = bitcast<u32>(memory[inst.dst]);
+            let shift = u32(memory[u32(inst.p1)]) & 31u;
+            memory[inst.dst] = bitcast<f32>(val << shift);
+            state.pc = state.pc + 1u;
+        }
+        case 231u: { // SHR_MEM - Shift right by memory value
+            let val = bitcast<u32>(memory[inst.dst]);
+            let shift = u32(memory[u32(inst.p1)]) & 31u;
+            memory[inst.dst] = bitcast<f32>(val >> shift);
             state.pc = state.pc + 1u;
         }
         case 208u: { // JMP
