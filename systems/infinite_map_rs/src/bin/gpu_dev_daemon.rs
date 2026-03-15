@@ -144,6 +144,9 @@ fn main() {
         ram_texture.clone(),
     ));
 
+    let trap_handler = Arc::new(Mutex::new(TrapHandler::new()));
+    println!("[TRAP] Handler initialized");
+
     let q_clone = queue.clone();
     let t_clone = ram_texture.clone();
     let d_clone = device.clone();
@@ -233,11 +236,33 @@ fn main() {
     std::io::stdout().flush().unwrap();
     println!("[EXEC] Substrate pulse starting...");
     std::io::stdout().flush().unwrap();
+
+    let trap_handler_loop = trap_handler.clone();
+    let scheduler_loop = scheduler.clone();
+    let texture_loop = ram_texture.clone();
+    let device_loop = device.clone();
+    let queue_loop = queue.clone();
+
     loop {
         println!("I AM IN THE LOOP");
         std::io::stdout().flush().unwrap();
         let start = Instant::now();
+
+        // Execute VM frame
         scheduler.lock().unwrap().execute_frame();
+
+        // Poll for trap requests
+        {
+            let mut th = trap_handler_loop.lock().unwrap();
+            let mut sched = scheduler_loop.lock().unwrap();
+            th.poll_and_execute(
+                &mut sched,
+                &texture_loop,
+                &device_loop,
+                &queue_loop,
+            );
+        }
+
         if let Some(delay) = Duration::from_micros(16667).checked_sub(start.elapsed()) {
             thread::sleep(delay);
         }
