@@ -497,17 +497,20 @@ class SisyphusDaemon:
 
         # Phase 5: Mind's Eye & Tectonic
         self.token_rasterizer = TokenRasterizer(self.compositor)
-        self.gravity_engine = GravityEngine()
+        self.gravity_engine = GravityEngine() if GravityEngine else None
         self._gravity_thread: threading.Thread | None = None
 
         # Tectonic real-time gravity
-        self.enable_tectonic = enable_tectonic
+        self.enable_tectonic = enable_tectonic and INFINITE_MAP_AVAILABLE
         self.tectonic_updater = None
 
-        # Shared visual bridge for real-time desktop feedback
-        from systems.visual_shell.api.visual_bridge import multi_vm_streamer
-
-        self.visual_bridge = multi_vm_streamer
+        # Shared visual bridge for real-time desktop feedback (optional)
+        try:
+            from systems.visual_shell.api.visual_bridge import multi_vm_streamer
+            self.visual_bridge = multi_vm_streamer
+        except ImportError:
+            logger.warning("Visual bridge not available (systems.visual_shell.api.visual_bridge)")
+            self.visual_bridge = None
 
         # Font rendering for visual task status
         self.font_renderer = None
@@ -525,7 +528,7 @@ class SisyphusDaemon:
                 logger.warning(f"Failed to initialize font renderer: {e}")
                 self.font_renderer = None
 
-        if enable_tectonic:
+        if self.enable_tectonic and TectonicUpdater and self.gravity_engine:
             # Use project_dir as watch path
             self.tectonic_updater = TectonicUpdater(
                 self.gravity_engine,
