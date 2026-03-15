@@ -2,6 +2,8 @@
 
 How to extract useful patterns from external codebases without importing code baggage.
 
+> **For theoretical foundations:** See `PATTERN_EXTRACTION_EPISTEMOLOGY.md` for the complete academic treatment including cognitive load theory, software archaeology, ADRs, and Intent-Driven Development.
+
 ## Overview
 
 When encountering an external project, library, or experimental codebase, the goal is to capture **ideas, not implementations**. Code rots; patterns endure.

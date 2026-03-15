@@ -3,6 +3,7 @@
 //! Polls a semaphore in GPU memory and forwards HTTP requests
 //! to LM Studio's OpenAI-compatible API.
 
+use std::io::Write;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
@@ -96,7 +97,8 @@ impl BrainBridge {
         *running = true;
         drop(running);
 
-        log::info!("🧠 Brain Bridge started - polling for glyph requests");
+        println!("🧠 Brain Bridge started - polling for glyph requests");
+        std::io::stdout().flush().unwrap();
 
         loop {
             let running = self.running.lock().await;
@@ -106,7 +108,8 @@ impl BrainBridge {
             drop(running);
 
             if let Err(e) = self.poll_and_forward().await {
-                log::warn!("Brain bridge error: {}", e);
+                println!("⚠️  Brain bridge error: {}", e);
+                std::io::stdout().flush().unwrap();
             }
 
             tokio::time::sleep(Duration::from_millis(self.config.poll_interval_ms)).await;
@@ -129,7 +132,8 @@ impl BrainBridge {
             return Ok(()); // No pending request
         }
 
-        log::info!("🧠 Glyph request detected - reading HTTP buffer");
+        println!("🧠 Glyph request detected - reading HTTP buffer");
+        std::io::stdout().flush().unwrap();
 
         // Read request length
         let request_len = self.read_gpu_u32(addresses::REQUEST_LENGTH).await? as usize;
@@ -156,7 +160,8 @@ impl BrainBridge {
         self.write_gpu_u32(addresses::RESPONSE_READY, 1).await?;
         self.write_gpu_u32(addresses::CTRL_SEMAPHORE, 0).await?; // Clear request
 
-        log::info!("🧠 Response written ({} bytes)", response_len);
+        println!("🧠 Response written ({} bytes)", response_len);
+        std::io::stdout().flush().unwrap();
 
         Ok(())
     }
