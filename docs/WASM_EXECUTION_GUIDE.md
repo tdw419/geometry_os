@@ -220,6 +220,24 @@ emcc test.c -o test.wasm -O2 --no-entry
 
 ### Step 3: Load into Geometry OS
 
+**Using the CLI (recommended):**
+
+```bash
+# Start the GPU daemon
+cargo run --release --bin gpu_dev_daemon &
+
+# Load the WASM interpreter (if not already loaded)
+geos_cli.py substrate-load systems/glyph_stratum/programs/wasm_interpreter.rts.png
+
+# Load your WASM binary
+geos_cli.py wasm-load your_program.wasm --base 0x20000
+
+# Run and read result
+geos_cli.py wasm-run --entry 0x20000 --read-result
+```
+
+**Using raw HTTP API:**
+
 ```bash
 # Start the GPU daemon
 cargo run --release --bin gpu_dev_daemon &
