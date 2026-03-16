@@ -1971,7 +1971,9 @@ fn read_u32_from_substrate(
 
     // Read from shadow buffer instead of GPU texture (workaround for Intel Vulkan driver bugs)
     let shadow_offset = addr as usize;
-    if shadow_offset + 4 <= shadow_ram.len() {
+    let shadow_len = shadow_ram.len();
+    println!("[READ] shadow_offset={}, shadow_len={}, within={}", shadow_offset, shadow_len, shadow_offset + 4 <= shadow_len);
+    if shadow_offset + 4 <= shadow_len {
         let v = u32::from_le_bytes([
             shadow_ram[shadow_offset],
             shadow_ram[shadow_offset + 1],
