@@ -545,7 +545,10 @@ fn main() {
     if !glyph_bytes.is_empty() {
         println!("[BOOT] Loading {} into VM 1...", loaded_from);
         // Write glyph bytes to substrate at address 0
-        write_glyph_to_substrate(&glyph_bytes, &ram_texture, &device, &queue, 0);
+        {
+            let mut shadow = shadow_ram.lock().unwrap();
+            write_glyph_to_substrate(&glyph_bytes, &ram_texture, &device, &queue, 0, &mut shadow);
+        }
 
         let config = VmConfig {
             entry_point: 0,
@@ -568,7 +571,10 @@ fn main() {
     if let Ok(wasm_bytes) = std::fs::read(wasm_interp_path) {
         println!("[BOOT] Loading wasm_interpreter.bin into VM 2 at 0x{:x}...", WASM_INTERPRETER_ADDR);
         std::io::stdout().flush().unwrap();
-        write_glyph_to_substrate(&wasm_bytes, &ram_texture, &device, &queue, WASM_INTERPRETER_ADDR);
+        {
+            let mut shadow = shadow_ram.lock().unwrap();
+            write_glyph_to_substrate(&wasm_bytes, &ram_texture, &device, &queue, WASM_INTERPRETER_ADDR, &mut shadow);
+        }
         println!("[BOOT] WASM interpreter written to substrate, spawning VM...");
         std::io::stdout().flush().unwrap();
         let config = VmConfig {
@@ -729,6 +735,7 @@ fn write_glyph_to_substrate(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     base_addr: u32,
+    shadow_ram: &mut Vec<u8>,
 ) {
     // Pad to 4-byte boundaries
     let padded_len = (glyph_bytes.len() + 3) & !3;
@@ -759,6 +766,12 @@ fn write_glyph_to_substrate(
                 depth_or_array_layers: 1,
             },
         );
+
+        // Also update shadow buffer
+        let shadow_offset = (base_addr as usize + i) * 4;
+        if shadow_offset + 4 <= shadow_ram.len() {
+            shadow_ram[shadow_offset..shadow_offset + 4].copy_from_slice(word);
+        }
     }
     queue.submit(None);
     device.poll(wgpu::Maintain::Wait);
