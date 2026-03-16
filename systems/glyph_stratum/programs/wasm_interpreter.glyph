@@ -765,3 +765,69 @@
     STORE r3, r12
 
     RET
+
+// ------------------------------------------------------------
+// Block Stack Push
+// ------------------------------------------------------------
+// Push a new block onto the block stack
+// Input: r4 = block_type, r5 = start_addr
+// Uses: r1, r2, r3, r6, r10, r12
+// ------------------------------------------------------------
+
+:block_push
+    // Get current block count
+    LDI r1, BLOCK_STACK_COUNT
+    LOAD r1, r6            // r6 = count
+
+    // Calculate entry address: BLOCK_STACK_DATA + (count * 12)
+    LDI r10, BLOCK_STACK_DATA
+
+    // Multiply count by 12: count * 8 + count * 4
+    // r3 = count * 8 (shift left 3)
+    MOV r6, r3
+    LDI r2, 3
+:block_push_shift1
+    LDI r12, 1
+    SHL r3, r12
+    LDI r12, 1
+    SUB r2, r12
+    JNZ r2, :block_push_shift1
+
+    // r12 = count * 4 (shift left 2)
+    MOV r6, r12
+    LDI r2, 2
+:block_push_shift2
+    LDI r1, 1
+    SHL r12, r1
+    LDI r1, 1
+    SUB r2, r1
+    JNZ r2, :block_push_shift2
+
+    // r3 = count * 12
+    ADD r3, r12
+    ADD r10, r3            // r10 = entry address
+
+    // Store block_type at offset 0
+    STORE r10, r4
+
+    // Store start_addr at offset 4
+    LDI r1, 4
+    ADD r10, r1
+    STORE r10, r5
+
+    // Store current SP (stack_height) at offset 8
+    LDI r1, 4
+    ADD r10, r1
+    LDI r1, WASM_SP_ADDR
+    LOAD r1, r12           // r12 = current SP
+    STORE r10, r12
+
+    // Increment block count
+    LDI r1, BLOCK_STACK_COUNT
+    LOAD r1, r6
+    LDI r2, 1
+    ADD r6, r2
+    LDI r1, BLOCK_STACK_COUNT
+    STORE r1, r6
+
+    RET
