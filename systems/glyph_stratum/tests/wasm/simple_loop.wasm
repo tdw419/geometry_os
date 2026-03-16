@@ -1,0 +1,26 @@
+(module
+  (type (;0;) (func))
+  (memory (;0;) 1)
+  (export "test" (func 0))
+  (func (;0;) (type 0)
+    (local $i i32)
+    i32.const 0
+    local.set $i
+    block $exit
+      loop $continue
+        local.get $i
+        i32.const 10
+        i32.ge_s
+        br_if $exit
+        i32.const 0
+        local.get $i
+        i32.store
+        local.get $i
+        i32.const 1
+        i32.add
+        local.set $i
+        br $continue
+      end
+    end
+  )
+)

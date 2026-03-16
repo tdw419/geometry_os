@@ -755,7 +755,8 @@ fn handle_raw_request<S: Read + Write>(
     }
 
     // POST /load?binary=0xADDR - Load binary data to substrate at address
-    if request_str.starts_with("POST /load") {
+    // Note: POST /load without binary= falls through to daemon.glyph for RTS file loading
+    if request_str.starts_with("POST /load?") {
         if let Some(query) = request_str.split("POST /load?").nth(1) {
             let query = query.split_whitespace().next().unwrap_or("").split(" HTTP").next().unwrap_or("");
 
@@ -782,8 +783,7 @@ fn handle_raw_request<S: Read + Write>(
                 return;
             }
         }
-        let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"error\":\"missing binary=0xADDR parameter\"}");
-        return;
+        // If binary= not found, fall through to daemon.glyph
     }
 
     // Handle /chat endpoint directly
