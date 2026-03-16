@@ -1087,33 +1087,30 @@
 
 :wasm_op_i32_load
     // i32.load: read align/offset (LEB128 x2), pop address, push value
-    // TODO: Implement properly with alignment and offset
-    // Skeleton: skip 2 immediates, pop addr, push mem[addr]
-    LDI r1, WASM_IP_ADDR
-    LOAD r1, r1
-    LDI r3, 2              // Skip 2 bytes (simplified)
-    ADD r1, r3
-    LDI r3, WASM_IP_ADDR
-    STORE r3, r1
+    // Offset is added to the address before memory access
+    // Alignment is ignored for now
 
-    // Pop address
-    LDI r10, WASM_SP_ADDR
-    LOAD r10, r12
-    LDI r3, 4
-    ADD r12, r3
-    LOAD r12, r4           // r4 = address
+    // Read and discard alignment (LEB128 unsigned)
+    CALL :leb128_unsigned
+
+    // Read offset (LEB128 unsigned) -> r6
+    CALL :leb128_unsigned
+    MOV r6, r5   // save offset in r5
+
+    // Pop address from stack
+    CALL :stack_pop
+    // r4 = address
+
+    // Add offset to address
+    ADD r4, r5   // r4 = address + offset
 
     // Load from WASM memory
     LDI r11, WASM_MEM_BASE
     ADD r11, r4
-    LOAD r11, r5           // r5 = value
+    LOAD r11, r5   // r5 = value
 
     // Push value
-    LDI r3, 4
-    SUB r12, r3
-    STORE r12, r5
-    LDI r3, WASM_SP_ADDR
-    STORE r3, r12
+    CALL :stack_push
 
     LDI r13, wasm_fetch
     JMP r13
