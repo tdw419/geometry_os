@@ -143,6 +143,7 @@ pub mod visual_cortex;
 pub mod visual_feedback;
 pub mod visual_kernel_boot;
 pub mod pixel_brain;
+pub mod ml_memory;
 pub mod visual_shell;
 pub mod window;
 pub mod renderer;
