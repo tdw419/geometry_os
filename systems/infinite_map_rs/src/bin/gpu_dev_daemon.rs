@@ -23,7 +23,6 @@ use wgpu::util::DeviceExt;
 
 use futures::{SinkExt, StreamExt, TryStreamExt};
 use tokio::runtime::Runtime;
-use tokio::sync::broadcast;
 use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
 use uuid::Uuid;
 
@@ -814,28 +813,28 @@ fn main() {
     let b_clone_loop = brain_bridge.clone();
     thread::spawn(move || {
         println!("[BRIDGE] Starting Brain Bridge thread...");
-        std::io.stdout().flush().unwrap();
+        std::io::stdout().flush().unwrap();
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
             println!("[BRIDGE] Inside tokio runtime, calling start()...");
-            std::io.stdout().flush().unwrap();
+            std::io::stdout().flush().unwrap();
             b_clone_loop.start().await;
         });
     });
     println!("[MAIN] Brain Bridge thread spawned successfully");
-    std::io.stdout().flush().unwrap();
+    std::io::stdout().flush().unwrap();
 
     // === THOUGHT PULSE WEBSOCKET SERVER ===
     println!("[MAIN] About to spawn Thought Pulse WebSocket server...");
-    std::io.stdout().flush().unwrap();
+    std::io::stdout().flush().unwrap();
     let thought_pulse_broadcaster_clone = Arc::new(Mutex::new(None));
     let broadcaster_for_thread = thought_pulse_broadcaster_clone.clone();
     thread::spawn(move || {
         println!("[WEBSOCKET] Starting Thought Pulse WebSocket server on 0.0.0.0:8770");
-        std::io.stdout().flush().unwrap();
+        std::io::stdout().flush().unwrap();
         
         // Initialize the broadcaster with a channel for sending messages
-        let (tx, rx) = mpsc::unbounded_channel::<String>();
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<String>();
         let broadcaster = Arc::new(Mutex::new(WebsocketBroadcaster {
             clients: Arc::new(Mutex::new(Vec::new())),
         }));
@@ -906,7 +905,7 @@ fn main() {
         });
     });
     println!("[MAIN] Thought Pulse WebSocket server spawned successfully");
-    std::io.stdout().flush().unwrap();
+    std::io::stdout().flush().unwrap();
 
     // === SUBSTRATE HEARTBEAT ===
     println!("I AM INITIALIZED");
