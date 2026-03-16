@@ -168,33 +168,54 @@ The AI uses a request-response loop with tool execution:
 
 ## Persistent Chat History
 
-Chat history is stored in GPU substrate memory at `0xF0000000`:
+Chat history is stored in daemon memory (64KB max) and persists for the daemon's lifetime:
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│                   GPU Memory Region                         │
-│                    0xF0000000                               │
+│                   Daemon Memory                             │
+│              CHAT_HISTORY (OnceLock<Mutex<String>>)         │
 ├────────────────────────────────────────────────────────────┤
 │                                                            │
-│   Offset 0x0000:  Chat history header                      │
-│                   - magic bytes "GEOSCHAT"                 │
-│                   - message count                          │
-│                   - write pointer                          │
+│   Format: [ROLE] content\n                                 │
 │                                                            │
-│   Offset 0x0100:  Message ring buffer                      │
-│                   - [role: 1 byte][length: 2 bytes]        │
-│                   - [content: N bytes]                     │
-│                   - Circular, overwrites old messages      │
+│   [SYSTEM] PERSISTENT MEMORY TEST: Claude was here...      │
+│   [USER] Hello from a future session!                      │
+│   [ASSISTANT] I confirm: this memory persists...           │
+│   [SYSTEM] Timestamp: 2026-03-15 21:58 UTC                 │
 │                                                            │
-│   Max size: 64KB (0x10000 bytes)                          │
+│   Max size: 64KB (auto-truncates when full)                │
 │                                                            │
 └────────────────────────────────────────────────────────────┘
 ```
 
-This enables:
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/chat_history` | GET | Read full history as JSON |
+| `/chat_history` | POST | Append message (JSON body: `{role, content}`) |
+
+### Example Usage
+
+```bash
+# Write a message
+curl --unix-socket /tmp/gpu_daemon.sock \
+    -X POST \
+    -H "Content-Type: application/json" \
+    -d '{"role":"system","content":"Test message"}' \
+    http://daemon/chat_history
+
+# Read history
+curl --unix-socket /tmp/gpu_daemon.sock \
+    http://daemon/chat_history
+```
+
+### Benefits
+
 - **Session continuity**: Resume conversations across CLI restarts
 - **AI memory**: Future AI sessions can read past context
 - **Cross-AI collaboration**: Different AI models share same memory
+- **Simple format**: Human-readable text with role prefixes
 
 ## Daemon Communication
 
