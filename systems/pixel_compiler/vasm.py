@@ -211,6 +211,20 @@ class VisualAssembler:
         print(f"✅ Saved PixelRTS container to {output_path}")
         print(f"✅ Saved Metadata to {meta_path}")
 
+def list_templates():
+    """List available VASM templates"""
+    templates_dir = Path(__file__).parent / "templates"
+    if not templates_dir.exists():
+        return []
+    return [f.stem for f in templates_dir.glob("*.vasm")]
+
+def load_template(name: str) -> str:
+    """Load a VASM template by name"""
+    template_path = Path(__file__).parent / "templates" / f"{name}.vasm"
+    if not template_path.exists():
+        raise FileNotFoundError(f"Template '{name}' not found at {template_path}")
+    return template_path.read_text()
+
 def main():
     if len(sys.argv) < 3:
         print("Usage: python3 vasm.py build <input.vasm> <output.rts.png>")
