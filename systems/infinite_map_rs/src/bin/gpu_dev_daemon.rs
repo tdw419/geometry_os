@@ -202,19 +202,31 @@ mod wasm_parser {
                 SECTION_CODE => {
                     // Code section - function bodies
                     info.code_section_offset = offset;
-                    eprintln!("[WASM] DEBUG: code_section_offset set to {} (0x{:x})", offset, offset);
+                    eprintln!(
+                        "[WASM] DEBUG: code_section_offset set to {} (0x{:x})",
+                        offset, offset
+                    );
                     let func_count = read_leb128_u32(wasm_bytes, &mut offset)?;
-                    eprintln!("[WASM] DEBUG: func_count={}, offset now {} (0x{:x})", func_count, offset, offset);
+                    eprintln!(
+                        "[WASM] DEBUG: func_count={}, offset now {} (0x{:x})",
+                        func_count, offset, offset
+                    );
 
                     for func_idx in 0..func_count {
                         let body_size = read_leb128_u32(wasm_bytes, &mut offset)? as usize;
                         let body_start = offset;
-                        eprintln!("[WASM] DEBUG: func {} body_size={}, body_start={} (0x{:x})", func_idx, body_size, body_start, body_start);
+                        eprintln!(
+                            "[WASM] DEBUG: func {} body_size={}, body_start={} (0x{:x})",
+                            func_idx, body_size, body_start, body_start
+                        );
 
                         // Skip locals declaration to find actual code start
                         let mut local_offset = body_start;
                         let local_count = read_leb128_u32(wasm_bytes, &mut local_offset)?;
-                        eprintln!("[WASM] DEBUG: local_count={}, local_offset after count={} (0x{:x})", local_count, local_offset, local_offset);
+                        eprintln!(
+                            "[WASM] DEBUG: local_count={}, local_offset after count={} (0x{:x})",
+                            local_count, local_offset, local_offset
+                        );
                         for _ in 0..local_count {
                             let _count = read_leb128_u32(wasm_bytes, &mut local_offset)?;
                             let _type = wasm_bytes.get(local_offset).copied().unwrap_or(0);
@@ -222,7 +234,10 @@ mod wasm_parser {
                         }
                         let code_start = local_offset;
                         let code_offset = code_start - info.code_section_offset;
-                        eprintln!("[WASM] DEBUG: code_start={} (0x{:x}), code_offset={} (0x{:x})", code_start, code_start, code_offset, code_offset);
+                        eprintln!(
+                            "[WASM] DEBUG: code_start={} (0x{:x}), code_offset={} (0x{:x})",
+                            code_start, code_start, code_offset, code_offset
+                        );
 
                         // Store offset relative to code section start (after locals)
                         info.func_code_offsets.push(code_offset);
@@ -281,43 +296,6 @@ struct ChatActivation {
 }
 
 static CHAT_CACHE: OnceLock<Mutex<std::collections::HashMap<String, ChatActivation>>> =
-    OnceLock::new();
-
-/// Thought pulse data structure for WebSocket broadcasting
-#[derive(Debug, serde::Serialize)]
-struct ThoughtPulse {
-    /// Timestamp of the pulse
-    timestamp: u64,
-    /// Associated chat ID
-    chat_id: String,
-    /// Reward signal (-1.0 to 1.0)
-    reward: f32,
-    /// Number of weights updated
-    weights_updated: usize,
-    /// Learning delta applied
-    learning_delta: f32,
-    /// Activated addresses and their strength changes
-    activations: Vec<ThoughtActivation>,
-}
-
-#[derive(Debug, serde::Serialize)]
-struct ThoughtActivation {
-    /// Memory address that was activated
-    address: u32,
-    /// Activation strength (0.0-1.0)
-    strength: f32,
-    /// Weight change applied (Δw = η × activation × reward)
-    weight_delta: f32,
-}
-
-/// Trait for broadcasting thought pulses
-trait ThoughtPulseBroadcaster: Send + Sync {
-    /// Broadcast a thought pulse to all connected clients
-    fn broadcast(&self, pulse: &ThoughtPulse) -> Result<(), Box<dyn std::error::Error>>;
-}
-
-/// Static storage for the WebSocket broadcaster
-static THOUGHT_PULSE_BROADCASTER: OnceLock<Option<Arc<dyn ThoughtPulseBroadcaster>>> =
     OnceLock::new();
 
 /// WASM entry point storage (parsed from loaded WASM binary)
@@ -1730,7 +1708,8 @@ fn handle_raw_request<S: Read + Write>(
 
         // Broadcast thought pulse via WebSocket if we have updates
         if updates_applied > 0 {
-            if let Some(broadcaster) = THOUGHT_PULSE_BROADCASTER.get().and_then(|opt| opt.as_ref()) {
+            if let Some(broadcaster) = THOUGHT_PULSE_BROADCASTER.get().and_then(|opt| opt.as_ref())
+            {
                 let thought_pulse = ThoughtPulse {
                     timestamp: Instant::now().elapsed().as_millis() as u64,
                     chat_id: chat_id.clone(),
