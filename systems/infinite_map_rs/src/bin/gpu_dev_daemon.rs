@@ -573,15 +573,19 @@ fn main() {
             entry_point: WASM_INTERPRETER_ADDR,
             ..Default::default()
         };
-        match scheduler.lock().unwrap().spawn_vm(2, &config) {
-            Ok(()) => {
-                println!("[BOOT] VM 2 spawned, halting...");
-                std::io::stdout().flush().unwrap();
-                // Immediately halt VM 2 so it waits for WASM binary to be loaded
-                let _ = scheduler.lock().unwrap().halt_vm(2);
-                println!("[BOOT] wasm_interpreter.bin loaded as VM 2 (WASM interpreter, halted)");
-            },
-            Err(e) => eprintln!("[BOOT] Warning: Failed to spawn VM 2: {}", e),
+        // Use a single lock scope to avoid deadlock
+        {
+            let mut sched = scheduler.lock().unwrap();
+            match sched.spawn_vm(2, &config) {
+                Ok(()) => {
+                    println!("[BOOT] VM 2 spawned, halting...");
+                    std::io::stdout().flush().unwrap();
+                    // Immediately halt VM 2 so it waits for WASM binary to be loaded
+                    let _ = sched.halt_vm(2);
+                    println!("[BOOT] wasm_interpreter.bin loaded as VM 2 (WASM interpreter, halted)");
+                },
+                Err(e) => eprintln!("[BOOT] Warning: Failed to spawn VM 2: {}", e),
+            }
         }
     } else {
         println!("[BOOT] Warning: Could not load wasm_interpreter.bin, WASM execution disabled");
