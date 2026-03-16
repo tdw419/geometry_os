@@ -340,6 +340,23 @@ fn main() {
         println!("[BOOT] Warning: Could not load daemon.glyph, HTTP handling disabled");
     }
 
+    // Load WASM interpreter as VM 2 (if available)
+    let wasm_interp_path = "systems/glyph_stratum/programs/wasm_interpreter.rts.png";
+    if let Ok(wasm_bytes) = std::fs::read(wasm_interp_path) {
+        println!("[BOOT] Loading wasm_interpreter.rts.png into VM 2...");
+        write_glyph_to_substrate(&wasm_bytes, &ram_texture, &device, &queue, 0);
+        let config = VmConfig {
+            entry_point: 0,
+            ..Default::default()
+        };
+        match scheduler.lock().unwrap().spawn_vm(2, &config) {
+            Ok(()) => println!("[BOOT] wasm_interpreter.rts.png loaded as VM 2 (WASM interpreter)"),
+            Err(e) => eprintln!("[BOOT] Warning: Failed to spawn VM 2: {}", e),
+        }
+    } else {
+        println!("[BOOT] Warning: Could not load wasm_interpreter.rts.png, WASM execution disabled");
+    }
+
     // Initial Substrate Setup
     let _substrate = vec![0u8; 4096 * 4096 * 4];
 
@@ -751,6 +768,131 @@ fn handle_raw_request<S: Read + Write>(
             }
         }
         let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"error\":\"invalid parameters\"}");
+        return;
+    }
+
+    // Chat history storage at 0x00F00000 (within 4096x4096 texture bounds)
+    // Valid range: 0 to 0x01000000 (16M words = 4096*4096)
+    const CHAT_HISTORY_BASE: u32 = 0x00F00000;
+    const CHAT_HISTORY_MAX: usize = 0x10000; // 64KB
+
+    // GET /chat_history - Read chat history from substrate
+    if request_str.starts_with("GET /chat_history") {
+        let sched = scheduler.lock().unwrap();
+        // Read header: first word is message count, second is write offset
+        let count = sched.peek_substrate_single(CHAT_HISTORY_BASE);
+        let offset = sched.peek_substrate_single(CHAT_HISTORY_BASE + 1);
+
+        // Read messages (each message: 1 byte role, 2 bytes len, N bytes content)
+        let mut messages: Vec<serde_json::Value> = Vec::new();
+        let mut pos = 4u32; // Start after header
+
+        for _ in 0..count.min(100) { // Max 100 messages
+            if pos >= CHAT_HISTORY_MAX as u32 { break; }
+
+            let role_byte = sched.peek_substrate_single(CHAT_HISTORY_BASE + pos / 4) as u8;
+            let len_low = sched.peek_substrate_single(CHAT_HISTORY_BASE + (pos + 1) as u32 / 4) as u16;
+            let len_high = (sched.peek_substrate_single(CHAT_HISTORY_BASE + (pos + 2) as u32 / 4) as u16) << 8;
+            let msg_len = (len_low | len_high) as usize;
+
+            if msg_len == 0 || msg_len > 4000 { break; }
+
+            // Read message content
+            let mut content = String::new();
+            for i in 0..msg_len {
+                let word = sched.peek_substrate_single(CHAT_HISTORY_BASE + (pos + 3 + i as u32) / 4);
+                let byte = (word >> ((i % 4) * 8)) as u8;
+                if byte == 0 { break; }
+                content.push(byte as char);
+            }
+
+            let role = if role_byte == 1 { "user" } else if role_byte == 2 { "assistant" } else { "system" };
+            messages.push(serde_json::json!({
+                "role": role,
+                "content": content,
+                "offset": pos
+            }));
+
+            pos += 3 + msg_len as u32;
+        }
+
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}",
+            serde_json::json!({
+                "status": "ok",
+                "message_count": count,
+                "write_offset": offset,
+                "messages": messages
+            }).to_string()
+        );
+        let _ = stream.write_all(response.as_bytes());
+        return;
+    }
+
+    // POST /chat_history - Append message to chat history
+    if request_str.starts_with("POST /chat_history") {
+        let body_start = request_str.find("\r\n\r\n").unwrap_or(0) + 4;
+        let body = &request_str[body_start..];
+
+        // Parse JSON body
+        if let Ok(msg) = serde_json::from_str::<serde_json::Value>(body) {
+            let role = msg["role"].as_str().unwrap_or("system");
+            let content = msg["content"].as_str().unwrap_or("");
+
+            let role_byte: u8 = match role {
+                "user" => 1,
+                "assistant" => 2,
+                _ => 0,
+            };
+
+            let mut sched = scheduler.lock().unwrap();
+
+            // Read current offset
+            let mut offset = sched.peek_substrate_single(CHAT_HISTORY_BASE + 1);
+            let count = sched.peek_substrate_single(CHAT_HISTORY_BASE);
+
+            // Ensure we have space (leave room for header)
+            if offset < 4 { offset = 4; }
+
+            // Write message: role (1 byte) + len (2 bytes) + content
+            let content_bytes = content.as_bytes();
+            let msg_len = content_bytes.len().min(4000) as u16;
+
+            // Write role byte
+            sched.poke_substrate_single(CHAT_HISTORY_BASE + offset / 4, role_byte as u32);
+
+            // Write length (little-endian)
+            let len_offset = offset + 1;
+            sched.poke_substrate_single(CHAT_HISTORY_BASE + len_offset / 4, msg_len as u32);
+
+            // Write content bytes
+            for (i, &byte) in content_bytes.iter().take(msg_len as usize).enumerate() {
+                let word_offset = (offset + 3 + i as u32) / 4;
+                let shift = (i % 4) * 8;
+                // Read-modify-write to preserve other bytes in word
+                let existing = sched.peek_substrate_single(CHAT_HISTORY_BASE + word_offset);
+                let new_val = (existing & !(0xFF << shift)) | ((byte as u32) << shift);
+                sched.poke_substrate_single(CHAT_HISTORY_BASE + word_offset, new_val);
+            }
+
+            // Update offset and count
+            let new_offset = offset + 3 + msg_len as u32;
+            sched.poke_substrate_single(CHAT_HISTORY_BASE + 1, new_offset);
+            sched.poke_substrate_single(CHAT_HISTORY_BASE, count + 1);
+
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}",
+                serde_json::json!({
+                    "status": "ok",
+                    "written": msg_len,
+                    "new_offset": new_offset,
+                    "message_count": count + 1
+                }).to_string()
+            );
+            let _ = stream.write_all(response.as_bytes());
+            return;
+        }
+        let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"error\":\"invalid JSON\"}");
         return;
     }
 
