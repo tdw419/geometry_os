@@ -370,30 +370,123 @@ curl "http://127.0.0.1:8769/read?addr=0x31000&len=4"
 
 ## Limitations (MVP)
 
-1. **No floating point** - Only integer operations
-2. **No 64-bit integers** - i32 only
-3. **No indirect calls** - No function tables
-4. **Limited memory** - 64KB (1 page) only
-5. **No imports** - No host functions yet
-6. **IF/ELSE skipping** - Requires forward END scanning (stubbed)
+  1. **No floating point** - Only integer operations
+  2. **No 64-bit integers** - i32 only
+  3. **No indirect calls** - No function tables
+  4. **Limited memory** - 64KB (1 page) only
+  5. **No imports** - No host functions yet
+  6. **IF/ELSE skipping** - Requires forward END scanning (stubbed)
 
-## Future Work
+## Host Functions (WASM → Glyph Bridge)
 
-- [ ] Implement i64 support
-- [ ] Add floating point (f32/f64)
-- [ ] Support function tables (indirect calls)
-- [ ] Add host function interface for I/O
-- [ ] Implement proper forward scanning for IF/ELSE
-- [ ] Add WASI support for system calls
+To enable practical programs, WASM needs to call Geometry OS services:
+
+### Current Status
+- No host function interface implemented yet
+- WASM programs are currently limited to pure computation
+
+### Planned Interface
+Host functions will be exposed as WASM imports:
+```
+(module
+  (import "glyph" "uart_write" (func $uart_write (param i32 i32)))
+  (import "glyph" "get_timer" (func $get_timer (result i32)))
+  ;; etc.
+)
+```
+
+### Calling Convention
+- Parameters passed via linear memory (standard WASM calling convention)
+- Results returned in registers or via memory pointers
+- Function signatures defined in Glyph using standard WASM types
+
+### Example: UART Output
+```wat
+;; Write a byte to UART
+(i32.const 0x0200)    ;; UART_OUT address
+(i32.const 65)        ;; ASCII 'A'
+(call $glyph_uart_write)
+```
+
+### Implementation Plan
+1. Define host function table in Glyph memory
+2. Implement `call_import` opcode handler
+3. Export standard functions: UART, timers, framebuffer access
+4. Provide Glyph-compatible wrappers for common libc functions
+
+## WASI Support
+
+WebAssembly System Interface provides standardized system calls:
+
+### Current Status
+- No WASI support implemented
+- Limits portability of existing Rust/C programs
+
+### Planned Subset
+Initial implementation will target:
+- `fd_write` → UART/console output
+- `fd_read` → UART/console input (when available)
+- `proc_exit` → Program termination
+- `clock_time_get` → System timer
+- `random_get` → Hardware RNG (when available)
+
+### Benefits
+- Enables running unmodified Rust `println!` and C `printf`
+- Allows file-like abstractions over GPU resources
+- Provides standard interface for filesystem, networking, etc.
+- Compatible with wasi-sdk and existing toolchains
+
+### Implementation Approach
+1. Map WASI file descriptors to Geometry OS resources
+   - fd 0 (stdin) → UART input
+   - fd 1 (stdout) → UART output
+   - fd 2 (stderr) → UART output
+2. Implement core WASI functions as host imports
+3. Provide libc overlay that translates to WASI syscalls
+
+## Example: Hello World with Host Functions
+
+Once host functions are implemented, a "Hello World" program would look like:
+
+```wat
+(module
+  (import "glyph" "uart_write" (func $uart_write (param i32 i32)))
+  (import "glyph" "uart_flush" (func $uart_flush))
+  
+  (func $hello
+    ;; Write "Hello" to UART
+    i32.const 0x0200      ;; UART_OUT address
+    i32.const 72          ;; 'H'
+    call $uart_write
+    i32.const 0x0200
+    i32.const 101         ;; 'e'
+    call $uart_write
+    i32.const 0x0200
+    i32.const 108         ;; 'l'
+    call $uart_write
+    i32.const 0x0200
+    i32.const 108         ;; 'l'
+    call $uart_write
+    i32.const 0x0200
+    i32.const 111         ;; 'o'
+    call $uart_write
+    call $uart_flush
+  )
+  
+  (start $hello)
+)
+```
+
+This would compile and run to output "Hello" to the UART console.
 
 ## References
 
-- **WASM Spec**: https://webassembly.github.io/spec/core/
-- **Opcode Reference**: https://webassembly.github.io/spec/core/appendix/index-instructions.html
-- **Interpreter Source**: `systems/glyph_stratum/programs/wasm_interpreter.glyph`
-- **Design Doc**: `docs/plans/2026-03-15-wasm-subset-design.md`
-- **Block Stack Plan**: `docs/plans/2026-03-15-wasm-block-stack.md`
+  - **WASM Spec**: https://webassembly.github.io/spec/core/
+  - **Opcode Reference**: https://webassembly.github.io/spec/core/appendix/index-instructions.html
+  - **Interpreter Source**: `systems/glyph_stratum/programs/wasm_interpreter.glyph`
+  - **Design Doc**: `docs/plans/2026-03-15-wasm-subset-design.md`
+  - **Block Stack Plan**: `docs/plans/2026-03-15-wasm-block-stack.md`
 
----
+  ---
 
-*"One interpreter, twenty languages, infinite GPU."*
+  *"One interpreter, twenty languages, infinite GPU."*
