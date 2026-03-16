@@ -76,6 +76,19 @@
 .equ OP_I32_OR,       0x72
 .equ OP_I32_XOR,      0x73
 
+// Block Stack (for control flow)
+.equ BLOCK_STACK_BASE,  0x31000
+.equ BLOCK_STACK_COUNT, 0x31000    // Number of active blocks (u32)
+.equ BLOCK_STACK_DATA,  0x31004    // Start of block entries
+
+// Block types
+.equ BLOCK_TYPE_BLOCK,  0
+.equ BLOCK_TYPE_LOOP,   1
+.equ BLOCK_TYPE_IF,     2
+
+// Block entry size (12 bytes: type + addr + stack_height)
+.equ BLOCK_ENTRY_SIZE,  12
+
 // ============================================================================
 // BOOT
 // ============================================================================
@@ -98,6 +111,11 @@
     // Set status to running
     LDI r1, WASM_STATUS
     LDI r2, STATUS_RUNNING
+    STORE r1, r2
+
+    // Initialize block stack count to 0
+    LDI r1, BLOCK_STACK_COUNT
+    LDI r2, 0
     STORE r1, r2
 
     // Load base address constant
