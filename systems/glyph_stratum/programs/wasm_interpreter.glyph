@@ -616,18 +616,105 @@
 
 :wasm_op_call
     // Call function - read function index (LEB128)
-    // For now, we ignore the function index and just push the return address
-    // In a real implementation, we would use the index to look up a function in a table
-    
-    // Read and discard function index (LEB128 unsigned)
-    CALL :leb128_unsigned
-    
-    // Push the return address (current IP) onto the call stack
-    // Note: IP has already been advanced by the leb128_unsigned call
+    CALL :leb128_unsigned    // r6 = function index
+
+    // Check if this is an imported function
+    // Import table entry = IMPORT_TABLE_BASE + (func_idx * 4)
+    LDI r1, IMPORT_TABLE_BASE
+    LDI r2, 4
+    MUL r6, r2               // r2 = func_idx * 4
+    ADD r1, r2               // r1 = address of import entry
+    LOAD r1, r3              // r3 = import entry value
+
+    // Check if entry is valid (not 0xFFFFFFFF)
+    LDI r4, 0xFFFFFFFF
+    SUB r3, r4
+    JZ r3, :wasm_call_local  // If 0xFFFFFFFF, it's a local function
+
+    // It's an imported function - r3 contains host function ID
+    // Call the host function trap
+    MOV r3, r7               // r7 = host function ID
+
+    // Pop arguments from stack
+    // For poke(peek): arg0 = addr, arg1 = val
+    // For peek: arg0 = addr
+    // For print: arg0 = ptr, arg1 = len
+
+    // Get SP
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12            // r12 = SP
+
+    // Pop first arg (increment SP, load)
+    LDI r1, 4
+    ADD r12, r1
+    LOAD r12, r8             // r8 = arg1 (top of stack)
+
+    // Pop second arg if needed (peek only has 1 arg)
+    // We'll always pop 2 and let host function ignore extras
+    LDI r1, 4
+    ADD r12, r1
+    LOAD r12, r9             // r9 = arg0 (second from top)
+
+    // Update SP
+    LDI r1, WASM_SP_ADDR
+    STORE r1, r12
+
+    // Trigger trap
+    // TRAP_OP_TYPE = WASM_HOST_CALL
+    LDI r1, TRAP_OP_TYPE
+    LDI r2, TRAP_WASM_HOST
+    STORE r1, r2
+
+    // TRAP_ARG0 = host function ID
+    LDI r1, TRAP_ARG0
+    STORE r1, r7
+
+    // TRAP_ARG1 = arg0 (addr)
+    LDI r1, TRAP_ARG1
+    STORE r1, r9
+
+    // TRAP_ARG2 = arg1 (val/ptr)
+    LDI r1, TRAP_ARG2
+    STORE r1, r8
+
+    // TRAP_STATUS = PENDING
+    LDI r1, TRAP_STATUS
+    LDI r2, TRAP_STATUS_PENDING
+    STORE r1, r2
+
+    // Wait for trap completion
+    :wasm_call_wait
+    LDI r1, TRAP_STATUS
+    LOAD r1, r2              // r2 = status
+    LDI r3, TRAP_STATUS_PENDING
+    SUB r2, r3
+    JZ r2, :wasm_call_wait   // Loop while PENDING
+
+    // Read result (for functions that return values)
+    LDI r1, TRAP_RESULT
+    LOAD r1, r4              // r4 = result
+
+    // If peek (host function ID 1), push result to stack
+    LDI r1, HOST_PEEK
+    SUB r7, r1
+    JNZ r7, :wasm_call_done
+
+    // Push result for peek
+    MOV r4, r6               // r6 = result to push
+    CALL :stack_push
+
+    :wasm_call_done
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_call_local
+    // Local function call - push return address and jump
     LDI r1, WASM_IP_ADDR
-    LOAD r1, r4          // r4 = current IP (return address)
+    LOAD r1, r4              // r4 = current IP (return address)
     CALL :call_push
-    
+
+    // For now, we don't have function address table
+    // This is a stub - local calls need full implementation
     LDI r13, wasm_fetch
     JMP r13
 
