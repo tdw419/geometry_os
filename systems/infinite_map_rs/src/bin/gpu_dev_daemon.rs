@@ -630,6 +630,399 @@ impl TrapHandler {
     }
 }
 
+// ============================================================================
+// RAM-as-Bitmap Visualization
+// ============================================================================
+
+/// Memory block state for visualization
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum BlockState {
+    Free,
+    Allocated,
+    Fragmented,
+    HilbertAligned,
+}
+
+/// Color palette for memory visualization (RGBA)
+struct ColorPalette {
+    free: [u8; 4],
+    allocated: [u8; 4],
+    fragmented: [u8; 4],
+    hilbert_aligned: [u8; 4],
+    grid: [u8; 4],
+}
+
+impl Default for ColorPalette {
+    fn default() -> Self {
+        Self {
+            free: [0x1a, 0x1a, 0x2e, 0xff],       // Dark blue (free)
+            allocated: [0x16, 0xc7, 0x9d, 0xff],  // Teal/green (in use)
+            fragmented: [0xff, 0x6b, 0x6b, 0xff], // Red (fragmented)
+            hilbert_aligned: [0x4e, 0xbc, 0xff, 0xff], // Cyan (Hilbert-aligned)
+            grid: [0x2a, 0x2a, 0x4e, 0xff],       // Grid lines
+        }
+    }
+}
+
+/// Generate a PNG visualization of memory pool state
+fn generate_memory_visualization(pool: &str, width: u32) -> Vec<u8> {
+    use std::io::Cursor;
+
+    let palette = ColorPalette::default();
+    let height = width; // Square visualization
+
+    // Create pixel buffer (RGBA)
+    let mut pixels = vec![0u8; (width * height * 4) as usize];
+
+    // Get pool statistics
+    let pool_stats = get_pool_stats_for_visualization(pool);
+
+    // Draw memory blocks
+    draw_memory_blocks(&mut pixels, width, height, &pool_stats, &palette);
+
+    // Draw grid overlay
+    draw_grid_overlay(&mut pixels, width, height, &palette);
+
+    // Encode as PNG
+    encode_png(&pixels, width, height)
+}
+
+/// Get pool statistics for visualization
+fn get_pool_stats_for_visualization(pool: &str) -> Vec<(BlockState, f64)> {
+    // Simulated memory blocks based on pool type
+    // In production, this would read from actual MLMemoryPool
+    let total_blocks = 256;
+
+    match pool {
+        "weight" => {
+            // Weight pool: mostly allocated with some fragmentation
+            (0..total_blocks).map(|i| {
+                let state = if i < 180 {
+                    if i % 7 == 0 { BlockState::Fragmented } else { BlockState::Allocated }
+                } else if i % 3 == 0 {
+                    BlockState::HilbertAligned
+                } else {
+                    BlockState::Free
+                };
+                (state, (i as f64 / total_blocks as f64) * 100.0)
+            }).collect()
+        }
+        "activation" => {
+            // Activation pool: ring buffer pattern
+            (0..total_blocks).map(|i| {
+                let state = if (i >= 50 && i < 150) || (i >= 200 && i < 230) {
+                    BlockState::Allocated
+                } else if i % 11 == 0 {
+                    BlockState::Fragmented
+                } else {
+                    BlockState::Free
+                };
+                (state, (i as f64 / total_blocks as f64) * 100.0)
+            }).collect()
+        }
+        "gradient" => {
+            // Gradient pool: sparse, training-dependent
+            (0..total_blocks).map(|i| {
+                let state = if i < 40 || (i >= 80 && i < 100) {
+                    BlockState::Allocated
+                } else {
+                    BlockState::Free
+                };
+                (state, (i as f64 / total_blocks as f64) * 100.0)
+            }).collect()
+        }
+        _ => {
+            // All pools combined - show summary
+            (0..total_blocks).map(|i| {
+                let state = if i < 160 {
+                    if i % 5 == 0 { BlockState::HilbertAligned } else { BlockState::Allocated }
+                } else if i % 13 == 0 {
+                    BlockState::Fragmented
+                } else {
+                    BlockState::Free
+                };
+                (state, (i as f64 / total_blocks as f64) * 100.0)
+            }).collect()
+        }
+    }
+}
+
+/// Draw memory blocks into pixel buffer
+fn draw_memory_blocks(
+    pixels: &mut [u8],
+    width: u32,
+    height: u32,
+    blocks: &[(BlockState, f64)],
+    palette: &ColorPalette,
+) {
+    let grid_size = (width as f64).sqrt().ceil() as u32;
+    let block_size = width / grid_size;
+
+    for (idx, (state, _offset)) in blocks.iter().enumerate() {
+        if idx >= (grid_size * grid_size) as usize {
+            break;
+        }
+
+        let grid_x = (idx as u32) % grid_size;
+        let grid_y = (idx as u32) / grid_size;
+
+        let color = match state {
+            BlockState::Free => palette.free,
+            BlockState::Allocated => palette.allocated,
+            BlockState::Fragmented => palette.fragmented,
+            BlockState::HilbertAligned => palette.hilbert_aligned,
+        };
+
+        // Fill block
+        for dy in 0..block_size {
+            for dx in 0..block_size {
+                let px = grid_x * block_size + dx;
+                let py = grid_y * block_size + dy;
+                if px < width && py < height {
+                    let offset = ((py * width + px) * 4) as usize;
+                    if offset + 3 < pixels.len() {
+                        pixels[offset..offset + 4].copy_from_slice(&color);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Draw grid overlay
+fn draw_grid_overlay(pixels: &mut [u8], width: u32, height: u32, palette: &ColorPalette) {
+    let grid_size = (width as f64).sqrt().ceil() as u32;
+    let block_size = width / grid_size;
+
+    // Draw vertical lines
+    for i in 0..=grid_size {
+        let x = (i * block_size).min(width - 1);
+        for y in 0..height {
+            let offset = ((y * width + x) * 4) as usize;
+            if offset + 3 < pixels.len() {
+                pixels[offset..offset + 4].copy_from_slice(&palette.grid);
+            }
+        }
+    }
+
+    // Draw horizontal lines
+    for i in 0..=grid_size {
+        let y = (i * block_size).min(height - 1);
+        for x in 0..width {
+            let offset = ((y * width + x) * 4) as usize;
+            if offset + 3 < pixels.len() {
+                pixels[offset..offset + 4].copy_from_slice(&palette.grid);
+            }
+        }
+    }
+}
+
+/// Encode pixels as PNG
+fn encode_png(pixels: &[u8], width: u32, height: u32) -> Vec<u8> {
+    use std::io::Cursor;
+
+    // Simple PNG encoder (no external dependencies)
+    // PNG signature
+    let mut png = vec![
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+    ];
+
+    // IHDR chunk
+    let ihdr_data = build_ihdr(width, height);
+    png.extend_from_slice(&build_png_chunk(b"IHDR", &ihdr_data));
+
+    // IDAT chunk (compressed image data)
+    let raw_data = build_raw_image_data(pixels, width, height);
+    let compressed = compress_zlib(&raw_data);
+    png.extend_from_slice(&build_png_chunk(b"IDAT", &compressed));
+
+    // IEND chunk
+    png.extend_from_slice(&build_png_chunk(b"IEND", &[]));
+
+    png
+}
+
+/// Build IHDR chunk data
+fn build_ihdr(width: u32, height: u32) -> Vec<u8> {
+    let mut data = Vec::with_capacity(13);
+    data.extend_from_slice(&width.to_be_bytes());
+    data.extend_from_slice(&height.to_be_bytes());
+    data.push(8);  // Bit depth
+    data.push(6);  // Color type: RGBA
+    data.push(0);  // Compression
+    data.push(0);  // Filter
+    data.push(0);  // Interlace
+    data
+}
+
+/// Build raw image data with filter bytes
+fn build_raw_image_data(pixels: &[u8], width: u32, height: u32) -> Vec<u8> {
+    let row_len = (width * 4) as usize;
+    let mut data = Vec::with_capacity(pixels.len() + height as usize);
+
+    for y in 0..height as usize {
+        data.push(0); // Filter type: None
+        let row_start = y * row_len;
+        let row_end = (row_start + row_len).min(pixels.len());
+        data.extend_from_slice(&pixels[row_start..row_end]);
+    }
+
+    data
+}
+
+/// Simple zlib compression (using miniz_oxide or fallback)
+fn compress_zlib(data: &[u8]) -> Vec<u8> {
+    // Use flate2 if available, otherwise return uncompressed with zlib header
+    // For simplicity, we'll use a basic zlib wrapper
+    use std::io::Write;
+
+    // Try to use flate2
+    let mut compressed = Vec::new();
+    {
+        let mut encoder = flate2::write::ZlibEncoder::new(&mut compressed, flate2::Compression::default());
+        let _ = encoder.write_all(data);
+    }
+    compressed
+}
+
+/// Build a PNG chunk with CRC
+fn build_png_chunk(chunk_type: &[u8; 4], data: &[u8]) -> Vec<u8> {
+    let mut chunk = Vec::with_capacity(12 + data.len());
+
+    // Length (4 bytes, big-endian)
+    chunk.extend_from_slice(&(data.len() as u32).to_be_bytes());
+
+    // Chunk type (4 bytes)
+    chunk.extend_from_slice(chunk_type);
+
+    // Data
+    chunk.extend_from_slice(data);
+
+    // CRC (4 bytes)
+    let crc = calculate_crc32(chunk_type, data);
+    chunk.extend_from_slice(&crc.to_be_bytes());
+
+    chunk
+}
+
+/// Calculate CRC32 for PNG chunk
+fn calculate_crc32(chunk_type: &[u8; 4], data: &[u8]) -> u32 {
+    // PNG uses CRC-32
+    let mut crc: u32 = 0xFFFFFFFF;
+
+    fn update_crc(crc: u32, byte: u8) -> u32 {
+        const CRC_TABLE: [u32; 256] = generate_crc_table();
+        (crc >> 8) ^ CRC_TABLE[((crc ^ byte as u32) & 0xFF) as usize]
+    }
+
+    const fn generate_crc_table() -> [u32; 256] {
+        let mut table = [0u32; 256];
+        let mut i = 0;
+        while i < 256 {
+            let mut crc = i as u32;
+            let mut j = 0;
+            while j < 8 {
+                if crc & 1 != 0 {
+                    crc = (crc >> 1) ^ 0xEDB88320;
+                } else {
+                    crc >>= 1;
+                }
+                j += 1;
+            }
+            table[i] = crc;
+            i += 1;
+        }
+        table
+    }
+
+    for &byte in chunk_type {
+        crc = update_crc(crc, byte);
+    }
+    for &byte in data {
+        crc = update_crc(crc, byte);
+    }
+
+    !crc
+}
+
+/// Generate ASCII art memory visualization
+fn generate_ascii_memory_visualization(width: usize) -> String {
+    let blocks = get_pool_stats_for_visualization("all");
+
+    let mut output = String::new();
+    output.push_str("╔══════════════════════════════════════════════════════════════╗\n");
+    output.push_str("║              ML MEMORY POOL - RAM VISUALIZATION              ║\n");
+    output.push_str("╠══════════════════════════════════════════════════════════════╣\n");
+    output.push_str("║  Legend: ░ Free  █ Allocated  ▒ Fragmented  ▓ Hilbert       ║\n");
+    output.push_str("╚══════════════════════════════════════════════════════════════╝\n\n");
+
+    // Calculate dimensions
+    let cols = width.min(64);
+    let rows = (blocks.len() + cols - 1) / cols;
+
+    // Draw memory grid
+    output.push_str("┌");
+    for _ in 0..cols {
+        output.push_str("──");
+    }
+    output.push_str("┐\n");
+
+    for row in 0..rows {
+        output.push('│');
+        for col in 0..cols {
+            let idx = row * cols + col;
+            if idx < blocks.len() {
+                let ch = match blocks[idx].0 {
+                    BlockState::Free => '░',
+                    BlockState::Allocated => '█',
+                    BlockState::Fragmented => '▒',
+                    BlockState::HilbertAligned => '▓',
+                };
+                output.push(ch);
+                output.push(ch);
+            } else {
+                output.push_str("  ");
+            }
+        }
+        output.push_str("│\n");
+    }
+
+    output.push_str("└");
+    for _ in 0..cols {
+        output.push_str("──");
+    }
+    output.push_str("┘\n");
+
+    // Add statistics
+    let free_count = blocks.iter().filter(|(s, _)| *s == BlockState::Free).count();
+    let alloc_count = blocks.iter().filter(|(s, _)| *s == BlockState::Allocated).count();
+    let frag_count = blocks.iter().filter(|(s, _)| *s == BlockState::Fragmented).count();
+    let hilb_count = blocks.iter().filter(|(s, _)| *s == BlockState::HilbertAligned).count();
+    let total = blocks.len();
+
+    output.push_str(&format!(
+        "\n┌─────────────────────────────────────────────────────────────┐\n"
+    ));
+    output.push_str(&format!(
+        "│  Total: {:4}  │  Free: {:4} ({:3.0}%)  │  Used: {:4} ({:3.0}%)  │\n",
+        total,
+        free_count,
+        (free_count as f64 / total as f64) * 100.0,
+        alloc_count + hilb_count,
+        ((alloc_count + hilb_count) as f64 / total as f64) * 100.0,
+    ));
+    output.push_str(&format!(
+        "│  Fragmented: {:4} ({:3.0}%)  │  Hilbert-aligned: {:4} ({:3.0}%)  │\n",
+        frag_count,
+        (frag_count as f64 / total as f64) * 100.0,
+        hilb_count,
+        (hilb_count as f64 / total as f64) * 100.0,
+    ));
+    output.push_str("└─────────────────────────────────────────────────────────────┘\n");
+
+    output
+}
+
 fn main() {
     println!("I AM STARTING");
     std::io::stdout().flush().unwrap();
@@ -2463,6 +2856,68 @@ fn handle_raw_request<S: Read + Write>(
                 let _ = stream.write_all(error_response.as_bytes());
             }
         }
+        return;
+    }
+
+    // GET /ml/visualize - Get RAM-as-Bitmap visualization
+    // Returns a PNG image showing memory pool state
+    if request_str.starts_with("GET /ml/visualize") {
+        // Parse query parameters for pool selection and size
+        let pool = if request_str.contains("pool=weight") {
+            "weight"
+        } else if request_str.contains("pool=activation") {
+            "activation"
+        } else if request_str.contains("pool=gradient") {
+            "gradient"
+        } else {
+            "all" // Default to all pools
+        };
+
+        let width = if let Some(start) = request_str.find("width=") {
+            let substr = &request_str[start + 6..];
+            substr.chars()
+                .take_while(|c| c.is_ascii_digit())
+                .collect::<String>()
+                .parse::<u32>()
+                .unwrap_or(256)
+                .clamp(64, 1024)
+        } else {
+            256
+        };
+
+        // Generate visualization bitmap
+        let png_data = generate_memory_visualization(pool, width);
+
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: {}\r\n\r\n",
+            png_data.len()
+        );
+        let _ = stream.write_all(response.as_bytes());
+        let _ = stream.write_all(&png_data);
+        return;
+    }
+
+    // GET /ml/visualize/ascii - Get ASCII art memory visualization
+    if request_str.starts_with("GET /ml/visualize/ascii") {
+        let width = if let Some(start) = request_str.find("width=") {
+            let substr = &request_str[start + 6..];
+            substr.chars()
+                .take_while(|c| c.is_ascii_digit())
+                .collect::<String>()
+                .parse::<usize>()
+                .unwrap_or(64)
+                .clamp(16, 128)
+        } else {
+            64
+        };
+
+        let ascii_art = generate_ascii_memory_visualization(width);
+
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{}\n",
+            ascii_art
+        );
+        let _ = stream.write_all(response.as_bytes());
         return;
     }
 
