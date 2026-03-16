@@ -278,6 +278,66 @@ struct ChatActivation {
 static CHAT_CACHE: OnceLock<Mutex<std::collections::HashMap<String, ChatActivation>>> =
     OnceLock::new();
 
+/// Thought pulse data structure for WebSocket broadcasting
+#[derive(Debug, serde::Serialize)]
+struct ThoughtPulse {
+    /// Timestamp of the pulse
+    timestamp: u64,
+    /// Associated chat ID
+    chat_id: String,
+    /// Reward signal (-1.0 to 1.0)
+    reward: f32,
+    /// Number of weights updated
+    weights_updated: usize,
+    /// Learning delta applied
+    learning_delta: f32,
+    /// Activated addresses and their strength changes
+    activations: Vec<ThoughtActivation>,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct ThoughtActivation {
+    /// Memory address that was activated
+    address: u32,
+    /// Activation strength (0.0-1.0)
+    strength: f32,
+    /// Weight change applied (Δw = η × activation × reward)
+    weight_delta: f32,
+}
+
+/// Trait for broadcasting thought pulses
+trait ThoughtPulseBroadcaster: Send + Sync {
+    /// Broadcast a thought pulse to all connected clients
+    fn broadcast(&self, pulse: &ThoughtPulse) -> Result<(), Box<dyn std::error::Error>>;
+}
+
+/// WebSocket broadcaster implementation
+struct WebsocketBroadcaster {
+    /// Connected WebSocket clients
+    clients: Arc<Mutex<Vec<Arc<Mutex<Box<dyn futures::Sink<warp::ws::Message, Error = warp::Error> + Unsend>>>>>,
+}
+
+impl ThoughtPulseBroadcaster for WebsocketBroadcaster {
+    fn broadcast(&self, pulse: &ThoughtPulse) -> Result<(), Box<dyn std::error::Error>> {
+        let message = warp::ws::Message::text(serde_json::to_string(pulse)?);
+        let mut clients = self.clients.lock().unwrap();
+        
+        // Send to all connected clients and remove disconnected ones
+        clients.retain(|client| {
+            let mut client = client.lock().unwrap();
+            match client.try_send(message.clone()) {
+                Ok(_) => true,  // Keep connected client
+                Err(_) => false, // Remove disconnected client
+            }
+        });
+        
+        Ok(())
+    }
+}
+
+/// Static storage for the WebSocket broadcaster
+static THOUGHT_PULSE_BROADCASTER: OnceLock<Option<Arc<dyn ThoughtPulseBroadcaster>>> = OnceLock::new();
+
 /// WASM entry point storage (parsed from loaded WASM binary)
 static WASM_ENTRY_POINT: OnceLock<Mutex<Option<u32>>> = OnceLock::new();
 
