@@ -287,39 +287,17 @@
 // ------------------------------------------------------------
 
 :wasm_op_i32_const
-    // i32.const: read LEB128 immediate, push to operand stack
-    // r1 still contains IP (already incremented once)
+    // i32.const: read signed LEB128 immediate, push to operand stack
+    // Uses leb128_unsigned for decoding (sign-extend handled separately for now)
 
-    // Load current IP
-    LDI r1, WASM_IP_ADDR
-    LOAD r1, r1
+    // Call LEB128 decoder - result in r6
+    CALL :leb128_unsigned
 
-    // Calculate physical address
-    MOV r11, r3
-    ADD r3, r1
-
-    // Read immediate byte (simple case: single byte, value < 128)
-    LOAD r3, r4            // r4 = immediate value
+    // Move result to r4 for stack_push
+    MOV r6, r4
 
     // Push to operand stack
-    LDI r10, WASM_SP_ADDR
-    LOAD r10, r12          // r12 = current SP
-    STORE r12, r4          // memory[SP] = value
-
-    // Decrement SP (stack grows down)
-    LDI r3, 4
-    SUB r12, r3
-    LDI r3, WASM_SP_ADDR
-    STORE r3, r12
-
-    // Advance IP by 1 (for immediate byte)
-    LDI r3, 1
-    ADD r1, r3
-    LDI r3, WASM_IP_ADDR
-    STORE r3, r1
-
-    // Reload WASM_MEM_BASE
-    LDI r11, WASM_MEM_BASE
+    CALL :stack_push
 
     // Continue
     LDI r13, wasm_fetch
@@ -441,38 +419,31 @@
     // i32.eq: pop two values, push 1 if equal, 0 otherwise
     // Stack: [..., a, b] -> [..., (a == b ? 1 : 0)]
 
-    // Get SP
-    LDI r10, WASM_SP_ADDR
-    LOAD r10, r12
+    // Pop b into r4
+    CALL :stack_pop
+    MOV r4, r7             // r7 = b (save)
 
-    // Pop b
-    LDI r3, 4
-    ADD r12, r3
-    LOAD r12, r4           // r4 = b
+    // Pop a into r4
+    CALL :stack_pop
+    // r4 = a
 
-    // Pop a
-    LDI r3, 4
-    ADD r12, r3
-    LOAD r12, r5           // r5 = a
+    // Compare: subtract a - b
+    MOV r4, r5             // r5 = a
+    SUB r5, r7             // r5 = a - b
 
-    // Compare: r6 = (a == b) ? 1 : 0
-    MOV r5, r6
-    SUB r6, r4             // r6 = a - b
-    LDI r7, 1
-    LDI r8, 0
-    // If r6 == 0, they're equal
-    // TODO: Need conditional move or branch
-    // For skeleton, just push 0
+    // If result is 0, they're equal
+    JZ r5, :eq_true
+
+:eq_false
     LDI r4, 0
+    JMP :eq_push
 
+:eq_true
+    LDI r4, 1
+
+:eq_push
     // Push result
-    LDI r3, 4
-    SUB r12, r3
-    STORE r12, r4
-
-    // Update SP
-    LDI r3, WASM_SP_ADDR
-    STORE r3, r12
+    CALL :stack_push
 
     LDI r13, wasm_fetch
     JMP r13
@@ -500,46 +471,66 @@
 
 :wasm_op_local_get
     // local.get: read local index (LEB128), push local value to stack
-    // TODO: Implement LEB128 decoding
-    // Skeleton: skip immediate, push 0
-    LDI r1, WASM_IP_ADDR
-    LOAD r1, r1
-    LDI r3, 1
-    ADD r1, r3
-    LDI r3, WASM_IP_ADDR
-    STORE r3, r1
+    // Locals are stored at BP + (index * 4)
 
-    // Push 0
-    LDI r10, WASM_SP_ADDR
-    LOAD r10, r12
-    LDI r4, 0
-    STORE r12, r4
-    LDI r3, 4
-    SUB r12, r3
-    LDI r3, WASM_SP_ADDR
-    STORE r3, r12
+    // Read LEB128 index -> r6
+    CALL :leb128_unsigned
+
+    // Calculate local address: BP + (index * 4)
+    LDI r1, WASM_BP_ADDR
+    LOAD r1, r1            // r1 = BP
+
+    // Multiply index by 4 (shift left 2)
+    MOV r6, r2
+    LDI r3, 2
+:local_get_shift
+    LDI r5, 1
+    SHL r2, r5
+    LDI r5, 1
+    SUB r3, r5
+    JNZ r3, :local_get_shift
+
+    // r2 = index * 4
+    ADD r1, r2             // r1 = BP + index*4
+
+    // Load local value
+    LOAD r1, r4            // r4 = local value
+
+    // Push to stack
+    CALL :stack_push
 
     LDI r13, wasm_fetch
     JMP r13
 
 :wasm_op_local_set
     // local.set: read local index (LEB128), pop value and store to local
-    // TODO: Implement LEB128 decoding
-    // Skeleton: skip immediate, pop value
-    LDI r1, WASM_IP_ADDR
-    LOAD r1, r1
-    LDI r3, 1
-    ADD r1, r3
-    LDI r3, WASM_IP_ADDR
-    STORE r3, r1
+    // Locals are stored at BP + (index * 4)
 
-    // Pop value (discard)
-    LDI r10, WASM_SP_ADDR
-    LOAD r10, r12
-    LDI r3, 4
-    ADD r12, r3
-    LDI r3, WASM_SP_ADDR
-    STORE r3, r12
+    // Read LEB128 index -> r6
+    CALL :leb128_unsigned
+
+    // Pop value from stack -> r4
+    CALL :stack_pop
+
+    // Calculate local address: BP + (index * 4)
+    LDI r1, WASM_BP_ADDR
+    LOAD r1, r1            // r1 = BP
+
+    // Multiply index by 4 (shift left 2)
+    MOV r6, r2
+    LDI r3, 2
+:local_set_shift
+    LDI r5, 1
+    SHL r2, r5
+    LDI r5, 1
+    SUB r3, r5
+    JNZ r3, :local_set_shift
+
+    // r2 = index * 4
+    ADD r1, r2             // r1 = BP + index*4
+
+    // Store value to local
+    STORE r1, r4
 
     LDI r13, wasm_fetch
     JMP r13
@@ -625,3 +616,134 @@
     LDI r2, STATUS_HALTED
     STORE r1, r2
     HALT
+
+// ============================================================================
+// UTILITY ROUTINES
+// ============================================================================
+
+// ------------------------------------------------------------
+// LEB128 Unsigned Decoder
+// ------------------------------------------------------------
+// Reads an unsigned LEB128 value from IP, advances IP, returns value in r6
+//
+// LEB128 format:
+//   - Each byte has 7 data bits (0-6) and 1 continuation bit (7)
+//   - If bit 7 is set, more bytes follow
+//   - Result = b0 | (b1 << 7) | (b2 << 14) | ...
+//
+// Registers used: r3, r4, r5, r6 (result), r7, r8
+// ------------------------------------------------------------
+
+:leb128_unsigned
+    // r6 = result (accumulator)
+    // r7 = shift count
+    // r8 = byte counter (for IP advance)
+
+    LDI r6, 0              // result = 0
+    LDI r7, 0              // shift = 0
+    LDI r8, 0              // byte_count = 0
+
+:leb128_loop
+    // Load current IP
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r1            // r1 = IP
+
+    // Calculate physical address
+    LDI r11, WASM_MEM_BASE
+    ADD r11, r1            // r11 = WASM_MEM_BASE + IP
+
+    // Read byte
+    LOAD r11, r4           // r4 = byte
+
+    // Extract data bits (byte & 0x7F)
+    LDI r5, 0x7F
+    AND r4, r5             // r4 = byte & 0x7F
+
+    // Shift data bits by shift amount
+    // We need to shift left by r7 bits
+    // Glyph doesn't have variable shift, so we loop
+    MOV r4, r5             // r5 = data bits
+
+    // r7 contains shift amount - we need r5 << r7
+    // If r7 == 0, no shift needed
+    LDI r3, 0
+    SUB r7, r3
+    JZ r7, :leb128_shift_done
+
+:leb128_shift_loop
+    LDI r3, 1
+    SHL r5, r3             // r5 = r5 << 1
+    LDI r3, 1
+    SUB r7, r3             // r7--
+    JNZ r7, :leb128_shift_loop
+
+:leb128_shift_done
+    // OR into result
+    OR r6, r5              // result |= (data << shift)
+
+    // Reload original byte to check continuation bit
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r1
+    LDI r11, WASM_MEM_BASE
+    ADD r11, r1
+    LOAD r11, r4           // r4 = byte (original)
+
+    // Increment IP
+    LDI r3, 1
+    ADD r1, r3
+    LDI r3, WASM_IP_ADDR
+    STORE r3, r1
+
+    // Check continuation bit (0x80)
+    LDI r5, 0x80
+    AND r4, r5             // r4 = byte & 0x80
+    JZ r4, :leb128_done    // If 0, we're done
+
+    // More bytes - increment shift and continue
+    LDI r3, 7
+    ADD r7, r3             // shift += 7
+    JMP :leb128_loop
+
+:leb128_done
+    // r6 contains the decoded value
+    // Reload WASM_MEM_BASE before returning
+    LDI r11, WASM_MEM_BASE
+    RET
+
+// ------------------------------------------------------------
+// Stack Push / Pop Helpers
+// ------------------------------------------------------------
+
+:stack_push
+    // Push value in r4 onto operand stack
+    // Uses: r10 (SP addr), r12 (SP value), r3 (temp)
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12          // r12 = current SP
+
+    // Store value at SP
+    STORE r12, r4
+
+    // Decrement SP (stack grows down)
+    LDI r3, 4
+    SUB r12, r3
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    RET
+
+:stack_pop
+    // Pop value from operand stack into r4
+    // Uses: r10 (SP addr), r12 (SP value), r3 (temp)
+    LDI r10, WASM_SP_ADDR
+    LOAD r10, r12          // r12 = current SP
+
+    // Increment SP to get value address
+    LDI r3, 4
+    ADD r12, r3
+    LOAD r12, r4           // r4 = value
+
+    // Update SP
+    LDI r3, WASM_SP_ADDR
+    STORE r3, r12
+
+    RET
