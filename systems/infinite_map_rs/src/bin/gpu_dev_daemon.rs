@@ -1372,6 +1372,7 @@ fn read_u32_from_substrate(
     queue: &wgpu::Queue,
 ) -> u32 {
     let (tx, ty) = hilbert_d2xy(4096, addr);
+    println!("[READ] addr=0x{:x} -> pixel({}, {})", addr, tx, ty);
 
     let staging = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("read_u32 staging"),
