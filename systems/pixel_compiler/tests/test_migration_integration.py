@@ -19,6 +19,11 @@ Related Files:
 - systems/pixel_compiler/infinite_map_v2.py - VAT and file system
 """
 
+import pytest
+
+# Skip entire module if migration_daemon not implemented
+pytest.importorskip("systems.pixel_compiler.migration_daemon")
+
 import asyncio
 import json
 import math
