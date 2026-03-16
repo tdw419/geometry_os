@@ -384,8 +384,6 @@ fn main() {
     let queue_loop = queue.clone();
 
     loop {
-        println!("I AM IN THE LOOP");
-        std::io::stdout().flush().unwrap();
         let start = Instant::now();
 
         // Execute VM frame
