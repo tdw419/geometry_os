@@ -28,6 +28,10 @@ use infinite_map_rs::trap_interface::{op_type, status, TrapRegs, TRAP_BASE};
 /// Static Tokio runtime for async operations (avoids creating new runtime on each trap)
 static TOKIO_RT: OnceLock<Runtime> = OnceLock::new();
 
+/// Chat history storage (in-memory, persists for daemon lifetime)
+static CHAT_HISTORY: OnceLock<Mutex<String>> = OnceLock::new();
+const CHAT_HISTORY_MAX: usize = 0x10000; // 64KB
+
 fn get_tokio_rt() -> &'static Runtime {
     TOKIO_RT.get_or_init(|| Runtime::new().expect("Failed to create tokio runtime"))
 }
@@ -771,11 +775,7 @@ fn handle_raw_request<S: Read + Write>(
         return;
     }
 
-    // Chat history storage - simple in-memory string
-    // Using static OnceLock for thread-safe global state
-    use std::sync::{Mutex, OnceLock};
-    static CHAT_HISTORY: OnceLock<Mutex<String>> = OnceLock::new();
-    const CHAT_HISTORY_MAX: usize = 0x10000; // 64KB
+    // Chat history endpoints using module-level static storage
 
     // GET /chat_history - Read chat history
     if request_str.starts_with("GET /chat_history") {
