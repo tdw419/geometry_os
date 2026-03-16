@@ -1219,6 +1219,24 @@ fn main() {
                 eprintln!("[HEBBIAN] Warning: Failed to initialize GPU processor (already set?)");
             }
 
+            // Initialize PixelBrain inferencer for GPU-based inference
+            let brain_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+            let mut inferencer = PixelBrainInferencer::new(Arc::clone(&device), Arc::clone(&queue));
+            if let Err(e) = inferencer.init_pipelines() {
+                eprintln!("[INFER] Warning: Failed to initialize inference pipelines: {}", e);
+            } else {
+                inferencer.init_buffers();
+                inferencer.set_brain_atlas(brain_view);
+                if let Err(e) = inferencer.init_bind_groups() {
+                    eprintln!("[INFER] Warning: Failed to initialize bind groups: {}", e);
+                } else {
+                    println!("[INFER] PixelBrain inferencer initialized with {} layers", inferencer.config().n_layers);
+                }
+            }
+            if BRAIN_INFERENCER.set(Mutex::new(inferencer)).is_err() {
+                eprintln!("[INFER] Warning: Failed to set global inferencer (already set?)");
+            }
+
             Some(texture)
         }
         Err(e) => {
@@ -2889,13 +2907,36 @@ fn handle_raw_request<S: Read + Write>(
                 let tokenizer = get_brain_tokenizer();
                 let tokens = tokenizer.encode(prompt);
 
-                // Return placeholder (actual inference needs GPU setup)
+                // Run actual GPU inference if inferencer is available
+                let mut output_tokens: Vec<u32> = Vec::new();
+                let mut output_text = String::new();
+
+                if let Some(inferencer) = get_brain_inferencer() {
+                    let mut infer = inferencer.lock().unwrap();
+
+                    // Start with the last token of the prompt (or 0 if empty)
+                    let mut current_token = tokens.last().copied().unwrap_or(0);
+
+                    // Generate tokens
+                    for _ in 0..max_tokens {
+                        let next_token = infer.infer_token(current_token);
+                        output_tokens.push(next_token);
+                        output_text.push_str(&tokenizer.decode(&[next_token]));
+                        current_token = next_token;
+
+                        // Stop on newline or special tokens
+                        if next_token == b'\n' as u32 || next_token == 0 {
+                            break;
+                        }
+                    }
+                }
+
                 let response = serde_json::json!({
                     "prompt": prompt,
                     "input_tokens": tokens.len(),
-                    "output_tokens": [],
-                    "output_text": "",
-                    "status": "inference_pipeline_initialized"
+                    "output_tokens": output_tokens,
+                    "output_text": output_text,
+                    "status": "inference_complete"
                 });
 
                 let http_response = format!(
