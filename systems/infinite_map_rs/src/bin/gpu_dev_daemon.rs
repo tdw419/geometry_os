@@ -206,9 +206,19 @@ mod wasm_parser {
                         let body_size = read_leb128_u32(wasm_bytes, &mut offset)? as usize;
                         let body_start = offset;
 
-                        // Store offset relative to code section start
+                        // Skip locals declaration to find actual code start
+                        let mut local_offset = body_start;
+                        let local_count = read_leb128_u32(wasm_bytes, &mut local_offset)?;
+                        for _ in 0..local_count {
+                            let _count = read_leb128_u32(wasm_bytes, &mut local_offset)?;
+                            let _type = wasm_bytes.get(local_offset).copied().unwrap_or(0);
+                            local_offset += 1;
+                        }
+                        let code_start = local_offset;
+
+                        // Store offset relative to code section start (after locals)
                         info.func_code_offsets
-                            .push(body_start - info.code_section_offset);
+                            .push(code_start - info.code_section_offset);
 
                         // Skip function body
                         offset = body_start + body_size;
