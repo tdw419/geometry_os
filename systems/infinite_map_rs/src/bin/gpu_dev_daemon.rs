@@ -32,6 +32,7 @@ use infinite_map_rs::trap_interface::{op_type, status, TrapRegs, TRAP_BASE};
 use infinite_map_rs::ml_memory::{
     MLMemoryPool, PoolConfig, TensorSpec, TensorId, DataType, MemoryRegion,
 };
+use infinite_map_rs::gpu::hebbian_processor::{GPUHebbianProcessor, HebbianUpdate};
 
 /// WASM binary parsing utilities
 mod wasm_parser {
@@ -358,6 +359,14 @@ fn get_brain_size() -> u32 {
 /// Brain weight shadow buffer for CPU-side Hebbian updates
 /// This mirrors the brain texture and allows read-modify-write operations
 static BRAIN_SHADOW: OnceLock<Mutex<Vec<f32>>> = OnceLock::new();
+
+/// GPU Hebbian Processor for batch parallel weight updates
+static HEBBIAN_PROCESSOR: OnceLock<Mutex<GPUHebbianProcessor>> = OnceLock::new();
+
+/// Get the GPU Hebbian processor if initialized
+fn get_hebbian_processor() -> Option<&'static Mutex<GPUHebbianProcessor>> {
+    HEBBIAN_PROCESSOR.get()
+}
 
 /// Get or initialize the brain shadow buffer
 fn get_brain_shadow() -> &'static Mutex<Vec<f32>> {

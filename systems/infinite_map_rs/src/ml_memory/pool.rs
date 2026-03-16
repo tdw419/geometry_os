@@ -450,7 +450,7 @@ mod tests {
     fn test_hilbert_offset_conversion() {
         let pool_size = 4096u32;
         let d = 1000u64;
-        let offset = Self::calc_hilbert_offset(d, pool_size);
+        let offset = MLMemoryPool::calc_hilbert_offset(d, pool_size);
         let recovered = MLMemoryPool::calc_hilbert_distance(offset, pool_size);
         assert_eq!(d, recovered);
     }
