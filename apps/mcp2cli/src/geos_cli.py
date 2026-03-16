@@ -401,6 +401,87 @@ def cmd_substrate_load(args):
     return 0
 
 
+def cmd_wasm_load(args):
+    """Load WASM binary to daemon at specified address"""
+    wasm_path = Path(args.wasm_file)
+    if not wasm_path.exists():
+        print(f"Error: WASM file not found: {wasm_path}")
+        return 1
+
+    wasm_bytes = wasm_path.read_bytes()
+    addr = args.base
+
+    print(f"Loading {wasm_path} ({len(wasm_bytes)} bytes) to 0x{addr:x}...")
+
+    # POST to /load?binary=0xADDR
+    try:
+        response = requests.post(
+            f"{DAEMON_URL}/load?binary=0x{addr:x}",
+            data=wasm_bytes,
+            timeout=30,
+        )
+        if response.status_code == 200:
+            print(f"✓ {response.text.strip()}")
+            return 0
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
+            return 1
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+def cmd_wasm_run(args):
+    """Set WASM interpreter entry point and optionally read result"""
+    entry = args.entry
+
+    # Set WASM_IP to entry point
+    print(f"Setting entry point to 0x{entry:x}...")
+
+    try:
+        # Poke the entry point address
+        response = requests.get(
+            f"{DAEMON_URL}/poke",
+            params={"addr": f"0x30004", "value": f"0x{entry:x}"},
+            timeout=10,
+        )
+        if response.status_code != 200:
+            print(f"Error setting IP: {response.text}")
+            return 1
+
+        # Set WASM_STATUS to 1 (running)
+        response = requests.get(
+            f"{DAEMON_URL}/poke",
+            params={"addr": "0x3000C", "value": "0x1"},
+            timeout=10,
+        )
+        if response.status_code != 200:
+            print(f"Error setting status: {response.text}")
+            return 1
+
+        print("✓ WASM interpreter started")
+
+        if args.read_result:
+            import time
+            time.sleep(0.5)  # Brief wait for execution
+
+            # Read result from WASM memory
+            response = requests.get(
+                f"{DAEMON_URL}/read",
+                params={"addr": "0x20000", "len": args.read_len},
+                timeout=10,
+            )
+            if response.status_code == 200:
+                print(f"Result: {response.text.strip()}")
+            else:
+                print(f"Error reading result: {response.text}")
+
+        return 0
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
 def cmd_chat(args):
     """Interactive AI-assisted substrate control"""
     import os
@@ -1037,6 +1118,23 @@ def main():
     sl = subparsers.add_parser("substrate-load", help="Load .rts.png to daemon")
     sl.add_argument("rts_file", help="Path to .rts.png file")
     sl.set_defaults(func=cmd_substrate_load)
+
+    # wasm-load
+    wl = subparsers.add_parser("wasm-load", help="Load WASM binary to GPU daemon")
+    wl.add_argument("wasm_file", help="Path to .wasm file")
+    wl.add_argument("--base", "-b", type=lambda x: int(x, 0), default=0x20000,
+                    help="Base address in hex (default: 0x20000)")
+    wl.set_defaults(func=cmd_wasm_load)
+
+    # wasm-run
+    wr = subparsers.add_parser("wasm-run", help="Run WASM program on interpreter")
+    wr.add_argument("--entry", "-e", type=lambda x: int(x, 0), default=0x20000,
+                    help="Entry point address (default: 0x20000)")
+    wr.add_argument("--read-result", "-r", action="store_true",
+                    help="Read result from memory after execution")
+    wr.add_argument("--read-len", "-l", type=int, default=64,
+                    help="Bytes to read for result (default: 64)")
+    wr.set_defaults(func=cmd_wasm_run)
 
     # chat
     chat = subparsers.add_parser("chat", help="AI-assisted substrate control")

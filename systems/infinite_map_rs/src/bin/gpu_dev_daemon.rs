@@ -653,6 +653,38 @@ fn handle_raw_request<S: Read + Write>(
         return;
     }
 
+    // POST /load?binary=0xADDR - Load binary data to substrate at address
+    if request_str.starts_with("POST /load") {
+        if let Some(query) = request_str.split("POST /load?").nth(1) {
+            let query = query.split_whitespace().next().unwrap_or("").split(" HTTP").next().unwrap_or("");
+
+            let mut addr: Option<u32> = None;
+
+            for param in query.split('&') {
+                if let Some(addr_val) = param.strip_prefix("binary=") {
+                    addr = u32::from_str_radix(addr_val.trim_start_matches("0x"), 16).ok();
+                }
+            }
+
+            if let Some(addr) = addr {
+                let body_start = request_str.find("\r\n\r\n").unwrap_or(0) + 4;
+                let body = &request_data[body_start..];
+
+                // Write binary data to substrate
+                write_to_substrate(body, texture, device, queue, addr);
+
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"status\":\"ok\",\"addr\":\"0x{:x}\",\"bytes\":{}}}",
+                    addr, body.len()
+                );
+                let _ = stream.write_all(response.as_bytes());
+                return;
+            }
+        }
+        let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"error\":\"missing binary=0xADDR parameter\"}");
+        return;
+    }
+
     // Handle /chat endpoint directly
     if request_str.starts_with("POST /chat") {
         // Natural language chat endpoint - converts text to GPU commands
