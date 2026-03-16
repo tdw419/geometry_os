@@ -148,7 +148,7 @@ mod tests {
         let mut scheduler = GlyphVmScheduler::new(device.clone(), queue.clone(), shadow_ram);
 
         // Create RAM texture (4096x4096 rgba8uint)
-        let ram_texture = device.create_texture(&wgpu::TextureDescriptor {
+        let ram_texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Test RAM Texture"),
             size: wgpu::Extent3d { width: 4096, height: 4096, depth_or_array_layers: 1 },
             mip_level_count: 1,
@@ -157,9 +157,9 @@ mod tests {
             format: wgpu::TextureFormat::Rgba8Uint,
             usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
-        });
+        }));
 
-        scheduler.set_ram_texture(&ram_texture);
+        scheduler.set_ram_texture(ram_texture);
 
         // Spawn VM 0 at entry point 0
         let config = VmConfig {

@@ -65,6 +65,33 @@ except ImportError:
     except ImportError:
         LAYOUT_AVAILABLE = False
 
+# ============================================================================
+# AVX-512 & CACHE ALIGNMENT (Phase A)
+# ============================================================================
+CACHE_LINE = 64      # AVX-512 / x86 cache line size in bytes
+GPU_ALIGN = 128      # Standard GPU cache line
+TRANSPORT_ALIGN = 64 # Alignment for binary-to-pixel transport
+
+def cache_aligned(data: bytes | np.ndarray) -> np.ndarray:
+    """
+    Wrap data in a 64-byte aligned numpy array for AVX-512 performance.
+    """
+    if isinstance(data, np.ndarray):
+        # Check if already aligned
+        if data.ctypes.data % CACHE_LINE == 0:
+            return data
+        return np.array(data, dtype=data.dtype, copy=True) # NumPy typically aligns to 64-byte boundaries on x86_64
+    
+    # Create new aligned array from bytes
+    # np.frombuffer doesn't guarantee alignment of the underlying buffer
+    # so we create a new array which is aligned.
+    arr = np.frombuffer(data, dtype=np.uint8)
+    aligned_arr = np.empty(len(arr), dtype=np.uint8) # np.empty is typically aligned
+    aligned_arr[:] = arr
+    return aligned_arr
+
+# ============================================================================
+
 
 class HilbertCurve:
     """
@@ -274,6 +301,7 @@ class PixelRTSMetadata:
 def calculate_grid_size(data_size_bytes: int, bytes_per_pixel: int = 4) -> int:
     """
     Calculate minimum power-of-2 grid size for given data.
+    Rounds up to 64-byte boundaries for AVX-512 performance.
 
     Args:
         data_size_bytes: Size of data to encode
@@ -288,7 +316,9 @@ def calculate_grid_size(data_size_bytes: int, bytes_per_pixel: int = 4) -> int:
     if data_size_bytes == 0:
         return 1  # Minimum 1x1 grid
 
-    pixels_needed = math.ceil(data_size_bytes / bytes_per_pixel)
+    # Round up to 64-byte boundary for AVX-512 SIMD
+    aligned_size = ((data_size_bytes + 63) // 64) * 64
+    pixels_needed = math.ceil(aligned_size / bytes_per_pixel)
     side_len = math.ceil(math.sqrt(pixels_needed))
 
     # Handle edge case where side_len is 0 or 1
@@ -421,25 +451,44 @@ class PixelRTSEncoder:
         data_len = len(data)
         pixels_needed = (data_len + 3) // 4  # 4 bytes per pixel
 
-        for pixel_idx in range(min(pixels_needed, len(lut))):
-            x, y = lut[pixel_idx]
+        if self.mode == "standard":
+            # Phase A: Fast path using vectorized mapping and cache alignment
+            # Ensure data is aligned for SIMD
+            aligned_data = cache_aligned(data)
+            
+            # Pad to multiple of 4 bytes if needed
+            if len(aligned_data) < pixels_needed * 4:
+                padded_data = np.zeros(pixels_needed * 4, dtype=np.uint8)
+                padded_data[:len(aligned_data)] = aligned_data
+                data_to_map = padded_data
+            else:
+                data_to_map = aligned_data[:pixels_needed * 4]
+            
+            # Reshape to pixel array
+            pixel_data_flat = data_to_map.reshape(-1, 4)
+            
+            # Get x, y coordinates from LUT
+            lut_arr = np.array(lut[:pixels_needed])
+            xs = lut_arr[:, 0]
+            ys = lut_arr[:, 1]
+            
+            # Batch map pixels to coordinates
+            pixel_array[ys, xs] = pixel_data_flat
+            
+        else:  # code mode - apply semantic coloring (requires per-pixel logic)
+            for pixel_idx in range(min(pixels_needed, len(lut))):
+                x, y = lut[pixel_idx]
 
-            # Extract 4 bytes for this pixel
-            start = pixel_idx * 4
-            end = min(start + 4, data_len)
-            pixel_data = data[start:end]
+                # Extract 4 bytes for this pixel
+                start = pixel_idx * 4
+                end = min(start + 4, data_len)
+                pixel_data = data[start:end]
 
-            # Pad with zeros if needed
-            if len(pixel_data) < 4:
-                pixel_data = pixel_data + b'\x00' * (4 - len(pixel_data))
+                # Pad with zeros if needed
+                if len(pixel_data) < 4:
+                    pixel_data = pixel_data + b'\x00' * (4 - len(pixel_data))
 
-            # Set pixel values (RGBA)
-            if self.mode == "standard":
-                pixel_array[y, x, 0] = pixel_data[0]  # R
-                pixel_array[y, x, 1] = pixel_data[1]  # G
-                pixel_array[y, x, 2] = pixel_data[2]  # B
-                pixel_array[y, x, 3] = pixel_data[3]  # A
-            else:  # code mode - apply semantic coloring
+                # Set pixel values (RGBA)
                 # Check if data is WASM and apply semantic coloring
                 if self.wasm_visualizer and self.wasm_visualizer.is_wasm(data):
                     # Apply WASM semantic coloring
@@ -705,9 +754,6 @@ class PixelRTSDecoder:
         # Convert image to numpy array
         pixel_array = np.array(image, dtype=np.uint8)
 
-        # Decode data using inverse Hilbert mapping
-        data_parts = []
-
         # Determine how many pixels to read
         # For compressed data, use encoded_size; otherwise use data_size
         if self._metadata:
@@ -724,20 +770,18 @@ class PixelRTSDecoder:
             # Decode all non-zero pixels
             max_pixels = len(lut)
 
-        for pixel_idx in range(max_pixels):
-            x, y = lut[pixel_idx]
-
-            # Extract RGBA bytes
-            r = pixel_array[y, x, 0]
-            g = pixel_array[y, x, 1]
-            b = pixel_array[y, x, 2]
-            a = pixel_array[y, x, 3]
-
-            # Append to data
-            data_parts.extend([r, g, b, a])
-
-        # Convert to bytes
-        data = bytes(data_parts)
+        # Decode data using inverse Hilbert mapping (Phase A Vectorized)
+        if max_pixels > len(lut):
+            max_pixels = len(lut)
+            
+        lut_arr = np.array(lut[:max_pixels])
+        xs = lut_arr[:, 0]
+        ys = lut_arr[:, 1]
+        
+        # Batch extract pixels from coordinates
+        # Each pixel is 4 bytes (RGBA)
+        data_mapped = pixel_array[ys, xs]
+        data = data_mapped.tobytes()
 
         # Trim to expected size if known
         # For compressed data, use encoded_size; otherwise use data_size

@@ -35,7 +35,7 @@ pub struct GlyphPool {
     base: *mut u8,
     /// Total size in bytes
     total_size: u64,
-    /// Block size alignment (GPU cache line)
+    /// Block size alignment (AVX-512 cache line)
     block_align: u64,
     /// Allocated blocks
     blocks: Vec<GlyphBlock>,
@@ -46,13 +46,18 @@ pub struct GlyphPool {
     free_count: u64,
 }
 
+// Alignment constants for different hardware substrates
+pub const CACHE_LINE: u64 = 64;      // AVX-512 / x86 cache line
+pub const GPU_ALIGN: u64 = 128;      // GPU cache line (standard)
+pub const TRANSPORT_ALIGN: u64 = 64; // For binary-to-pixel conversion
+
 impl GlyphPool {
-    /// Create a new glyph pool with GPU-aligned blocks
+    /// Create a new glyph pool with CPU/GPU-aligned blocks
     pub fn new(size_mb: u64) -> Self {
         let total_size = size_mb * 1024 * 1024;
-        let block_align = 128; // GPU cache line size
+        let block_align = CACHE_LINE; // Default to AVX-512 alignment
 
-        let layout = Layout::from_size_align(total_size as usize, 256)
+        let layout = Layout::from_size_align(total_size as usize, GPU_ALIGN as usize)
             .expect("Invalid layout");
 
         let base = unsafe { alloc(layout) };

@@ -179,6 +179,66 @@ class PixelRTSBenchmark:
 
         return results
 
+    def benchmark_alignment_gains(
+        self,
+        data_size: int = 10 * 1024 * 1024,
+        iterations: int = 5
+    ) -> dict:
+        """
+        Benchmark performance gains from 64-byte alignment.
+
+        Args:
+            data_size: Size of data to encode (bytes)
+            iterations: Number of iterations
+
+        Returns:
+            Dictionary with performance comparison
+        """
+        # Generate unaligned test data
+        test_data_unaligned = self.generate_test_data(data_size, "random")
+        
+        # Create aligned version
+        from .pixelrts_v2_core import cache_aligned
+        test_data_aligned = cache_aligned(test_data_unaligned)
+
+        encoder = PixelRTSEncoder(mode="standard")
+        grid_size = calculate_grid_size(data_size)
+
+        # Benchmark unaligned
+        unaligned_times = []
+        for _ in range(iterations):
+            start = time.perf_counter()
+            encoder.encode(test_data_unaligned, grid_size=grid_size)
+            unaligned_times.append(time.perf_counter() - start)
+        
+        avg_unaligned = sum(unaligned_times) / len(unaligned_times)
+
+        # Benchmark aligned
+        aligned_times = []
+        for _ in range(iterations):
+            start = time.perf_counter()
+            encoder.encode(test_data_aligned, grid_size=grid_size)
+            aligned_times.append(time.perf_counter() - start)
+        
+        avg_aligned = sum(aligned_times) / len(aligned_times)
+
+        improvement = (avg_unaligned - avg_aligned) / avg_unaligned if avg_unaligned > 0 else 0
+
+        result = {
+            "test_name": "alignment_gains",
+            "data_size": data_size,
+            "avg_unaligned_sec": avg_unaligned,
+            "avg_aligned_sec": avg_aligned,
+            "improvement_percent": improvement * 100
+        }
+        
+        print(f"\nAlignment Gains Benchmark ({data_size/(1024*1024):.1f}MB):")
+        print(f"  Unaligned: {avg_unaligned:.4f}s")
+        print(f"  Aligned:   {avg_aligned:.4f}s")
+        print(f"  Speedup:   {improvement*100:.1f}%")
+
+        return result
+
     def _save_result(self, result: BenchmarkResult):
         """Save benchmark result to history file."""
         with open(self.history_file, 'a') as f:
@@ -251,10 +311,16 @@ def main():
                        help='Output directory for results')
     parser.add_argument('--check-regression', action='store_true',
                        help='Check for performance regressions')
+    parser.add_argument('--alignment-gains', action='store_true',
+                       help='Benchmark performance gains from 64-byte alignment')
 
     args = parser.parse_args()
 
     bench = PixelRTSBenchmark(output_dir=args.output)
+
+    if args.alignment_gains:
+        bench.benchmark_alignment_gains(iterations=args.iterations)
+        return 0
 
     if args.check_regression:
         regressions = bench.detect_regression()
