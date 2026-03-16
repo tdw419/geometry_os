@@ -35,6 +35,13 @@ Everything Claude Code (ECC) integration exposes 60+ commands, 65+ skills, 47 ag
 │   │ ecc_guild_dispatch   │ Dispatch task to an ECC agent instance      │   │
 │   │ ecc_guild_spatial    │ Get spatial state for Infinite Map          │   │
 │   │ ecc_guild_discover   │ Discover all ECC agents                     │   │
+│   ├──────────────────────┼──────────────────────────────────────────────┤   │
+│   │ ecc_skills_status    │ Get ECC Skills Bridge status                │   │
+│   │ ecc_skills_list      │ List available ECC skills                   │   │
+│   │ ecc_skills_execute   │ Execute an ECC skill (CPU or GPU mode)      │   │
+│   │ ecc_skills_find      │ Find skill by trigger phrase                │   │
+│   │ ecc_skills_spatial   │ Get spatial state for Infinite Map          │   │
+│   │ ecc_skills_discover  │ Discover all ECC skills                     │   │
 │   └──────────────────────┴──────────────────────────────────────────────┘   │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -387,6 +394,7 @@ apps/mcp2cli/src/
 ├── geos_mcp_server.py   # Main MCP server with ECC tools
 ├── ecc_bridge.py        # ECC command execution bridge
 ├── ecc_agent_guild.py   # ECC Agent Guild - spatial agent management
+├── ecc_skills_bridge.py # ECC Skills Bridge - spatial skill management
 └── ...
 
 The ECC bridge:
@@ -400,6 +408,12 @@ The ECC Agent Guild:
 2. Organizes agents into guilds (Engineering, Review, Testing, Analysis, BMAD)
 3. Provides spawn/despawn lifecycle management
 4. Exposes spatial state for Infinite Map visualization
+
+The ECC Skills Bridge:
+1. Maps ECC skills to Geometry OS spatial sectors (Hilbert coordinates)
+2. Organizes skills by category (Testing, Patterns, Review, Planning, Domain, BMAD)
+3. Compiles skills to glyph programs for GPU execution
+4. Supports dual execution modes (CPU fallback, GPU target)
 ```
 
 ## Integration Phases
@@ -409,7 +423,7 @@ The ECC Agent Guild:
 | **1** | MCP Bridge → ECC Commands | ✅ Complete |
 | **2** | Visual Shell → ECC Canvas | ✅ Complete |
 | **3** | Swarm Guilds → ECC Agents | ✅ Complete |
-| **4** | Glyph Programs → ECC Skills | Planned |
+| **4** | Glyph Programs → ECC Skills | ✅ Complete |
 | **5** | GPU Daemon → ECC HTTP API | Planned |
 
 ### Phase 2: Visual Shell → ECC Canvas
@@ -451,12 +465,64 @@ geos ecc_guild_dispatch --instance_id planner_abc123 --task "Plan GPU allocator"
 geos ecc_guild_spatial_state
 ```
 
+### Phase 4: Glyph Programs → ECC Skills
+
+The ECC Skills Bridge wraps ECC's 40+ skills as spatially-addressed glyph programs:
+
+**Skill Sectors (Hilbert Space):**
+- Testing (20M-21M): tdd-workflow, python-testing, golang-testing, e2e
+- Patterns (21M-22M): python-patterns, golang-patterns, frontend-patterns
+- Review (22M-23M): verification-loop, build-fix, go-build, kotlin-build
+- Planning (23M-24M): brainstorming, plan, systematic-debugging
+- Domain (24M-25M): claude-api, glyph-programming, frontend-design
+- Superpowers (25M-26M): superpowers:tdd, superpowers:brainstorming
+- BMAD (26M-27M): bmad-brainstorming, bmad-bmm-create-prd
+
+**Execution Modes:**
+- **CPU Mode**: Direct invocation via subprocess/Agent tool
+- **GPU Mode**: Compiled to glyph program and executed on substrate
+
+**Usage:**
+```bash
+# Check skills bridge status
+geos ecc_skills_status
+
+# List available skills
+geos ecc_skills_list --category testing
+
+# Find skill by trigger phrase
+geos ecc_skills_find --text "write tests first"
+
+# Execute a skill
+geos ecc_skills_execute --skill_name tdd-workflow --context '{"feature": "allocator"}' --mode cpu
+
+# Get spatial state for Infinite Map
+geos ecc_skills_spatial
+```
+
+**Glyph Generation:**
+
+Each skill can be compiled to a `.glyph` program for GPU execution:
+```bash
+# Skills are compiled on-demand when executed in GPU mode
+# Generated glyphs are stored in systems/glyph_stratum/programs/skill_*.glyph
+```
+
 ## Testing
 
 ```bash
-# Run ECC bridge tests
+# Run all ECC tests
 cd apps/mcp2cli
+pytest tests/test_ecc*.py -v
+
+# Run ECC bridge tests
 pytest tests/test_ecc_bridge.py -v
+
+# Run ECC Agent Guild tests
+pytest tests/test_ecc_agent_guild.py -v
+
+# Run ECC Skills Bridge tests
+pytest tests/test_ecc_skills_bridge.py -v
 
 # Test ECC status directly
 python src/ecc_bridge.py

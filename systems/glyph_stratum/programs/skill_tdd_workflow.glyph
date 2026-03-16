@@ -1,0 +1,46 @@
+// ============================================================================
+// Geometry OS - ECC Skill: tdd-workflow
+// ============================================================================
+//
+// Auto-generated glyph wrapper for ECC skill.
+// Hilbert Address: 20000000 - 20050000
+// Category: testing
+// Description: Test-driven development workflow enforcement
+//
+// Triggers: write tests first, tdd, red-green-refactor
+
+.equ SKILL_BASE,     0x01312D00
+.equ SKILL_STATUS,   SKILL_BASE + 0x00
+.equ SKILL_CONTEXT,  SKILL_BASE + 0x04
+.equ SKILL_RESULT,   SKILL_BASE + 0x100
+.equ TRAP_BASE,      0xFF000000
+
+:main
+    // Initialize skill execution
+    LDI r1, SKILL_STATUS
+    LDI r2, 1           // RUNNING
+    STORE r1, r2
+
+    // Wait for context to be written
+    LDI r1, SKILL_CONTEXT
+    LOAD r1, r2
+    LDI r3, 0
+    SUB r2, r3
+    JZ :main            // Spin until context is set
+
+    // Execute skill via trap (CPU fallback)
+    LDI r1, TRAP_BASE
+    LDI r2, 0x10        // EXECUTE_SKILL trap
+    STORE r1, r2
+
+    // Write result
+    LDI r1, SKILL_RESULT
+    LDI r2, 0           // SUCCESS
+    STORE r1, r2
+
+    // Update status
+    LDI r1, SKILL_STATUS
+    LDI r2, 2           // COMPLETED
+    STORE r1, r2
+
+    HALT
