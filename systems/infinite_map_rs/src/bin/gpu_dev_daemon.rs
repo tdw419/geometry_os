@@ -1389,10 +1389,14 @@ fn read_u32_from_substrate(
     let (tx, ty) = hilbert_d2xy(4096, addr);
     println!("[READ] addr=0x{:x} -> pixel({}, {})", addr, tx, ty);
 
-    // Workaround for Intel Vulkan driver bug: copy a 2x2 region instead of 1x1
-    // and extract the pixel we need. The 1x1 copy returns wrong values for some pixels.
-    if let Some(data) = read_substrate_region(texture, device, queue, tx, ty, 1, 1) {
+    // Workaround for Intel Vulkan driver bug: 1x1 copies return wrong values.
+    // Always read at least 2x2 region and extract the pixel we need.
+    let region_w = 2u32.min(texture.width() - tx);
+    let region_h = 2u32.min(texture.height() - ty);
+
+    if let Some(data) = read_substrate_region(texture, device, queue, tx, ty, region_w, region_h) {
         if data.len() >= 4 {
+            // First pixel is at offset 0
             let v = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
             println!("[READ] pixel({}, {}) = 0x{:08x}", tx, ty, v);
             return v;
