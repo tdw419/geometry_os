@@ -28,6 +28,13 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
+# ECC Bridge integration
+try:
+    from ecc_bridge import ECC_MCP_TOOLS, dispatch_ecc_tool, get_ecc_status
+    ECC_AVAILABLE = True
+except ImportError:
+    ECC_AVAILABLE = False
+
 # Geometry OS paths (relative to this file)
 GEOS_ROOT = Path(__file__).parent.parent.parent.parent
 GLYPH_COMPILER = GEOS_ROOT / "compile_glyph.py"
@@ -196,6 +203,18 @@ async def list_tools():
         Tool(name="wasm_load", description="Load WASM binary to GPU substrate at WASM linear memory base (0x20000)", inputSchema={"type": "object", "properties": {"wasm_file": {"type": "string", "description": "Path to .wasm file"}, "addr": {"type": "string", "description": "Override load address (hex, default: 0x20000)"}}, "required": ["wasm_file"]}),
         Tool(name="wasm_run", description="Trigger WASM interpreter execution. Sets IP and status to start running loaded WASM.", inputSchema={"type": "object", "properties": {"entry_point": {"type": "string", "description": "Entry point offset in WASM linear memory (hex, default: 0x0)"}}}),
         Tool(name="wasm_status", description="Check WASM interpreter state (IP, SP, status, block stack)", inputSchema={"type": "object"}),
+        # ECC Integration Tools
+        Tool(name="ecc_status", description="Get ECC (Everything Claude Code) integration status", inputSchema={"type": "object"}),
+        Tool(name="ecc_plan", description="Create implementation plan using ECC planner agent", inputSchema={"type": "object", "properties": {"task": {"type": "string", "description": "Task to plan"}, "scope": {"type": "string", "description": "Optional scope"}}, "required": ["task"]}),
+        Tool(name="ecc_tdd", description="Execute TDD workflow using ECC TDD skill", inputSchema={"type": "object", "properties": {"feature": {"type": "string", "description": "Feature to implement"}, "test_first": {"type": "boolean", "default": True}, "coverage_target": {"type": "number", "default": 0.8}}, "required": ["feature"]}),
+        Tool(name="ecc_review", description="Run code review using ECC code-reviewer agent", inputSchema={"type": "object", "properties": {"files": {"type": "array", "items": {"type": "string"}}, "scope": {"type": "string"}, "strictness": {"type": "string", "enum": ["lenient", "standard", "strict"], "default": "standard"}}}),
+        Tool(name="ecc_verify", description="Run verification loop (build, test, lint) using ECC verify skill", inputSchema={"type": "object", "properties": {"run_tests": {"type": "boolean", "default": True}, "run_lint": {"type": "boolean", "default": True}, "run_build": {"type": "boolean", "default": True}, "auto_fix": {"type": "boolean", "default": False}}}),
+        Tool(name="ecc_learn", description="Extract reusable patterns from session using ECC learn skill", inputSchema={"type": "object", "properties": {"session_only": {"type": "boolean", "default": True}}}),
+        Tool(name="ecc_instincts", description="View learned instincts from ECC memory", inputSchema={"type": "object"}),
+        Tool(name="ecc_skill_create", description="Generate a new skill from patterns using ECC skill-create", inputSchema={"type": "object", "properties": {"pattern_source": {"type": "string", "description": "Source: file path, 'git', or 'session'"}, "skill_name": {"type": "string", "description": "Name for the generated skill"}}, "required": ["pattern_source"]}),
+        Tool(name="ecc_brainstorm", description="Run brainstorming session using ECC brainstorming skill", inputSchema={"type": "object", "properties": {"topic": {"type": "string", "description": "Topic to brainstorm"}, "techniques": {"type": "array", "items": {"type": "string"}}}, "required": ["topic"]}),
+        Tool(name="ecc_debug", description="Run systematic debugging using ECC debug skill", inputSchema={"type": "object", "properties": {"issue": {"type": "string", "description": "Issue description"}, "context": {"type": "string", "description": "Additional context"}}, "required": ["issue"]}),
+        Tool(name="ecc_architect", description="Get architectural guidance using ECC architect agent", inputSchema={"type": "object", "properties": {"decision": {"type": "string", "description": "Architectural decision to make"}, "constraints": {"type": "array", "items": {"type": "string"}}}, "required": ["decision"]}),
     ]
 
 @app.call_tool()
@@ -245,6 +264,8 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         elif name == "wasm_load": return await tool_wasm_load(arguments)
         elif name == "wasm_run": return await tool_wasm_run(arguments)
         elif name == "wasm_status": return await tool_wasm_status(arguments)
+        # ECC Integration Handlers
+        elif name.startswith("ecc_"): return await tool_ecc_dispatch(name, arguments)
         else: return [TextContent(type="text", text=f"Unknown tool: {name}")]
     except Exception as e: return [TextContent(type="text", text=f"Error: {str(e)}")]
 async def tool_crystallize(args: dict) -> list[TextContent]:
