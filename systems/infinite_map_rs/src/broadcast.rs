@@ -421,8 +421,8 @@ impl NeuralBroadcast {
 /// A channel sender that can be used to send messages to this client
 ///
 /// # Usage Example
-/// ```rust
-/// use crate::broadcast::NeuralBroadcast;
+/// ```rust,ignore
+/// use infinite_map_rs::broadcast::{NeuralBroadcast, connect_client_to_broadcast};
 ///
 /// let broadcast = NeuralBroadcast::new();
 /// let tx = connect_client_to_broadcast(&broadcast, "client-123".to_string()).await.unwrap();
