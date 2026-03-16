@@ -10,6 +10,7 @@
 //! - Inter-VM messaging via mailbox queue
 
 use std::sync::{Arc, Mutex};
+use crate::glyph_stratum::glyph_compiler::hilbert_d2xy;
 
 /// Maximum concurrent VMs
 pub const MAX_VMS: usize = 8;
@@ -708,9 +709,31 @@ impl GlyphVmScheduler {
         if offset + 4 <= shadow.len() {
             shadow[offset..offset + 4].copy_from_slice(&val.to_le_bytes());
         }
+        drop(shadow); // Release lock before GPU operations
+
         // Also write to GPU texture
-        // For now, just update shadow buffer
-        // GPU texture update would require async operations
+        if let Some(ref texture) = self.ram_texture {
+            let (tx, ty) = hilbert_d2xy(4096, addr);
+            self.queue.write_texture(
+                wgpu::ImageCopyTexture {
+                    texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d { x: tx, y: ty, z: 0 },
+                    aspect: wgpu::TextureAspect::All,
+                },
+                &val.to_le_bytes(),
+                wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: Some(4),
+                    rows_per_image: Some(1),
+                },
+                wgpu::Extent3d {
+                    width: 1,
+                    height: 1,
+                    depth_or_array_layers: 1,
+                },
+            );
+        }
         log::debug!("[POKE] addr=0x{:x} val=0x{:x}", addr, val);
     }
 
