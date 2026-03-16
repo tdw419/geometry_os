@@ -748,7 +748,10 @@ fn read_substrate_region(
     h: u32,
 ) -> Option<Vec<u8>> {
     let bytes_per_pixel = 4u32;
-    let buffer_size = (w * h * bytes_per_pixel) as u64;
+    // Align bytes_per_row to 256 (wgpu requirement for COPY_BYTES_PER_ROW_ALIGNMENT)
+    let unaligned_row_bytes = w * bytes_per_pixel;
+    let bytes_per_row = ((unaligned_row_bytes + 255) / 256) * 256;
+    let buffer_size = (bytes_per_row * h) as u64;
     let staging_buffer = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("substrate staging"),
         size: buffer_size,
@@ -780,7 +783,7 @@ fn read_substrate_region(
             buffer: &staging_buffer,
             layout: wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some(clamped_w * bytes_per_pixel),
+                bytes_per_row: Some(bytes_per_row),
                 rows_per_image: Some(clamped_h),
             },
         },
@@ -804,8 +807,18 @@ fn read_substrate_region(
         return None;
     }
 
-    let data = buffer_slice.get_mapped_range().to_vec();
-    Some(data)
+    // Read data and strip padding bytes
+    let mapped = buffer_slice.get_mapped_range();
+    let row_bytes = clamped_w * bytes_per_pixel;
+    let mut result = Vec::with_capacity((row_bytes * clamped_h) as usize);
+    for row in 0..clamped_h as usize {
+        let start = row * bytes_per_row as usize;
+        let end = start + row_bytes as usize;
+        result.extend_from_slice(&mapped[start..end]);
+    }
+    drop(mapped);
+    staging_buffer.unmap();
+    Some(result)
 }
 
 /// Handle raw socket request by passing to daemon.glyph via substrate
