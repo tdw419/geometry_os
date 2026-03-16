@@ -12,8 +12,8 @@ mod tests {
 
     #[test]
     fn test_trap_base_address() {
-        // Trap base should be in high memory
-        assert_eq!(TRAP_BASE, 0xFF000000);
+        // Trap base should be within valid substrate range (0-64MB)
+        assert_eq!(TRAP_BASE, 0x03F0_0000);
     }
 
     #[test]
