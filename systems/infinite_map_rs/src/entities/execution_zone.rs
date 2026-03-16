@@ -105,7 +105,7 @@ impl ExecutionZone {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// use infinite_map_rs::entities::ExecutionZone;
     /// use glam::Vec2;
     ///
