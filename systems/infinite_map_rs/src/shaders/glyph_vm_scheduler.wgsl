@@ -188,6 +188,13 @@ fn execute_instruction(vm_idx: u32) {
         }
         case 5u: { vms[vm_idx].regs[p2] = vms[vm_idx].regs[p1] + vms[vm_idx].regs[p2]; vms[vm_idx].pc = vms[vm_idx].pc + 1u; }
         case 6u: { vms[vm_idx].regs[p2] = vms[vm_idx].regs[p1] - vms[vm_idx].regs[p2]; vms[vm_idx].pc = vms[vm_idx].pc + 1u; }
+        case 7u: { vms[vm_idx].regs[p2] = vms[vm_idx].regs[p1] * vms[vm_idx].regs[p2]; vms[vm_idx].pc = vms[vm_idx].pc + 1u; }
+        case 8u: { // DIV: guard against divide by zero
+            if (vms[vm_idx].regs[p2] != 0u) {
+                vms[vm_idx].regs[p2] = vms[vm_idx].regs[p1] / vms[vm_idx].regs[p2];
+            }
+            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
+        }
         case 9u: { // JMP: stratum determines mode
             if (stratum == 2u) {
                 // PC-relative immediate mode: p1|p2<<8 is signed offset from PC+1
