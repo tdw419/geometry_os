@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geometry OS - Substrate Viewer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden;
+        }
+        #canvas {
+            cursor: crosshair;
+        }
+        .controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        .controls button {
+            background: #1a1a1a;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 5px 10px;
+            margin: 2px;
+            cursor: pointer;
+        }
+        .controls button:hover { background: #00ff8833; }
+        .info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            font-size: 12px;
+        }
+        .info span { color: #00ff88; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="zoomIn()">Zoom +</button>
+        <button onclick="zoomOut()">Zoom -</button>
+        <button onclick="resetView()">Reset</button>
+        <button onclick="toggleRefresh()">Pause/Play</button>
+    </div>
+    <div class="info">
+        <div>Position: <span id="pos">0, 0</span></div>
+        <div>Zoom: <span id="zoom">1.0</span>x</div>
+        <div>Address: <span id="addr">0x0000</span></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const DAEMON_URL = 'http://127.0.0.1:8769';
+
+        let zoom = 1.0;
+        let offsetX = 0, offsetY = 0;
+        let isDragging = false;
+        let lastX, lastY;
+        let refreshing = true;
+        let regionSize = 512;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            render();
+        }
+
+        async function fetchSubstrate() {
+            const x = Math.max(0, Math.floor(offsetX));
+            const y = Math.max(0, Math.floor(offsetY));
+            const w = Math.min(regionSize, 4096 - x);
+            const h = Math.min(regionSize, 4096 - h);
+
+            try {
+                const response = await fetch(`${DAEMON_URL}/substrate?x=${x}&y=${y}&w=${w}&h=${h}`);
+                if (!response.ok) return null;
+                const blob = await response.blob();
+                return await createImageBitmap(blob);
+            } catch (e) {
+                console.error('Fetch error:', e);
+                return null;
+            }
+        }
+
+        async function render() {
+            if (!refreshing) return;
+            const img = await fetchSubstrate();
+            if (img) {
+                ctx.fillStyle = '#0a0a0a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.imageSmoothingEnabled = false;
+                const scaledW = img.width * zoom;
+                const scaledH = img.height * zoom;
+                ctx.drawImage(img, 0, 0, scaledW, scaledH);
+            }
+            document.getElementById('pos').textContent = `${Math.floor(offsetX)}, ${Math.floor(offsetY)}`;
+            document.getElementById('zoom').textContent = zoom.toFixed(1);
+        }
+
+        function zoomIn() { zoom = Math.min(zoom * 1.5, 64); render(); }
+        function zoomOut() { zoom = Math.max(zoom / 1.5, 0.1); render(); }
+        function resetView() { zoom = 1; offsetX = 0; offsetY = 0; render(); }
+        function toggleRefresh() { refreshing = !refreshing; if (refreshing) render(); }
+
+        canvas.addEventListener('mousedown', e => {
+            isDragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if (isDragging) {
+                offsetX -= (e.clientX - lastX) / zoom;
+                offsetY -= (e.clientY - lastY) / zoom;
+                offsetX = Math.max(0, Math.min(4096 - regionSize, offsetX));
+                offsetY = Math.max(0, Math.min(4096 - regionSize, offsetY));
+                lastX = e.clientX;
+                lastY = e.clientY;
+                render();
+            }
+
+            const canvasX = Math.floor(offsetX + e.clientX / zoom);
+            const canvasY = Math.floor(offsetY + e.clientY / zoom);
+            document.getElementById('addr').textContent = `0x${(canvasY * 4096 + canvasX).toString(16).padStart(8, '0')}`;
+        });
+
+        canvas.addEventListener('mouseup', () => isDragging = false);
+        canvas.addEventListener('mouseleave', () => isDragging = false);
+
+        canvas.addEventListener('wheel', e => {
+            e.preventDefault();
+            if (e.deltaY < 0) zoomIn();
+            else zoomOut();
+        });
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        setInterval(() => { if (refreshing) render(); }, 100);
+    </script>
+</body>
+</html>
