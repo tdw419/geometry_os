@@ -270,6 +270,7 @@ impl HilbertCurve {
     /// # Examples
     ///
     /// ```
+    /// use infinite_map_rs::hilbert::HilbertCurve;
     /// let curve = HilbertCurve::new(4);
     /// let lut = curve.generate_lut();
     /// assert_eq!(lut[0], (0, 0));
