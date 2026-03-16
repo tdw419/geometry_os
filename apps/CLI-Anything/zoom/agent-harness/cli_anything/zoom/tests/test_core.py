@@ -16,7 +16,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 
-from zoom.zoom_cli import cli
+from cli_anything.zoom.zoom_cli import cli
 
 
 # ── Fixtures ────────────────────────────────────────────────────

@@ -611,6 +611,39 @@ fn handle_raw_request<S: Read + Write>(
         return;
     }
 
+    // GET /peek?addr=0xXXXX&size=N - Read N words from substrate using scheduler peek
+    if request_str.starts_with("GET /peek?") {
+        if let Some(query) = request_str.split("GET /peek?").nth(1) {
+            let query = query.split_whitespace().next().unwrap_or("");
+
+            let mut addr: Option<u32> = None;
+            let mut size: Option<usize> = None;
+
+            for param in query.split('&') {
+                if let Some(addr_val) = param.strip_prefix("addr=") {
+                    addr = u32::from_str_radix(addr_val.trim_start_matches("0x"), 16).ok();
+                } else if let Some(size_val) = param.strip_prefix("size=") {
+                    size = size_val.parse().ok();
+                }
+            }
+
+            if let (Some(addr), Some(size)) = (addr, size) {
+                let sched = scheduler.lock().unwrap();
+                let words: Vec<String> = (0..size)
+                    .map(|i| format!("0x{:08x}", sched.peek_substrate_single(addr + i as u32)))
+                    .collect();
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{}",
+                    words.join(" ")
+                );
+                let _ = stream.write_all(response.as_bytes());
+                return;
+            }
+        }
+        let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"error\":\"invalid parameters\"}");
+        return;
+    }
+
     // GET /substrate - Return texture region as PNG
     if request_str.starts_with("GET /substrate") {
         let params: std::collections::HashMap<&str, u32> = request_str
