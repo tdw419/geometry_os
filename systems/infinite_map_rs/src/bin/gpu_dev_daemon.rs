@@ -170,6 +170,67 @@ impl TrapHandler {
 
         true
     }
+
+    /// Handle WASM host function calls
+    fn handle_wasm_host_call(
+        &mut self,
+        func_id: u32,
+        arg0: u32,
+        arg1: u32,
+        scheduler: &mut GlyphVmScheduler,
+    ) -> u32 {
+        match func_id {
+            0 => self.host_poke(arg0, arg1, scheduler),
+            1 => self.host_peek(arg0, scheduler),
+            2 => self.host_print(arg0, arg1, scheduler),
+            3 => self.host_spawn(arg0, arg1),
+            4 => self.host_kill(arg0),
+            _ => {
+                eprintln!("[WASM] Unknown host function: {}", func_id);
+                0
+            }
+        }
+    }
+
+    /// poke(addr, val) - Write to substrate
+    fn host_poke(&mut self, addr: u32, val: u32, scheduler: &mut GlyphVmScheduler) -> u32 {
+        scheduler.poke_substrate_single(addr, val);
+        println!("[WASM] poke(0x{:x}, 0x{:x})", addr, val);
+        0
+    }
+
+    /// peek(addr) -> val - Read from substrate
+    fn host_peek(&mut self, addr: u32, scheduler: &mut GlyphVmScheduler) -> u32 {
+        let val = scheduler.peek_substrate_single(addr);
+        println!("[WASM] peek(0x{:x}) -> 0x{:x}", addr, val);
+        val
+    }
+
+    /// print(ptr, len) - Write string to console
+    fn host_print(&mut self, ptr: u32, len: u32, scheduler: &mut GlyphVmScheduler) -> u32 {
+        let wasm_mem_base = 0x20000u32;
+        let mut bytes = Vec::with_capacity(len as usize);
+        for i in 0..len {
+            let addr = wasm_mem_base + ptr + i;
+            let byte = scheduler.peek_substrate_single(addr) & 0xFF;
+            bytes.push(byte as u8);
+        }
+        let s = String::from_utf8_lossy(&bytes);
+        println!("[WASM] print: {}", s);
+        0
+    }
+
+    /// spawn(path_ptr, path_len) -> vm_id
+    fn host_spawn(&mut self, _path_ptr: u32, _path_len: u32) -> u32 {
+        println!("[WASM] spawn (not implemented)");
+        0xFFFFFFFF
+    }
+
+    /// kill(vm_id)
+    fn host_kill(&mut self, _vm_id: u32) -> u32 {
+        println!("[WASM] kill (not implemented)");
+        0
+    }
 }
 
 fn main() {
