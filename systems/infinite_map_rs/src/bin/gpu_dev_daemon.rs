@@ -202,25 +202,30 @@ mod wasm_parser {
                 SECTION_CODE => {
                     // Code section - function bodies
                     info.code_section_offset = offset;
+                    println!("[WASM] DEBUG: code_section_offset set to {} (0x{:x})", offset, offset);
                     let func_count = read_leb128_u32(wasm_bytes, &mut offset)?;
+                    println!("[WASM] DEBUG: func_count={}, offset now {} (0x{:x})", func_count, offset, offset);
 
                     for func_idx in 0..func_count {
                         let body_size = read_leb128_u32(wasm_bytes, &mut offset)? as usize;
                         let body_start = offset;
+                        println!("[WASM] DEBUG: func {} body_size={}, body_start={} (0x{:x})", func_idx, body_size, body_start, body_start);
 
                         // Skip locals declaration to find actual code start
                         let mut local_offset = body_start;
                         let local_count = read_leb128_u32(wasm_bytes, &mut local_offset)?;
+                        println!("[WASM] DEBUG: local_count={}, local_offset after count={} (0x{:x})", local_count, local_offset, local_offset);
                         for _ in 0..local_count {
                             let _count = read_leb128_u32(wasm_bytes, &mut local_offset)?;
                             let _type = wasm_bytes.get(local_offset).copied().unwrap_or(0);
                             local_offset += 1;
                         }
                         let code_start = local_offset;
+                        let code_offset = code_start - info.code_section_offset;
+                        println!("[WASM] DEBUG: code_start={} (0x{:x}), code_offset={} (0x{:x})", code_start, code_start, code_offset, code_offset);
 
                         // Store offset relative to code section start (after locals)
-                        info.func_code_offsets
-                            .push(code_start - info.code_section_offset);
+                        info.func_code_offsets.push(code_offset);
 
                         // Skip function body
                         offset = body_start + body_size;
