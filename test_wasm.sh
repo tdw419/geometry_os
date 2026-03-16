@@ -27,28 +27,26 @@ echo "=== Test 1: Status ==="
 curl -s http://127.0.0.1:8769/status
 echo ""
 
-# Test 2: Load WASM interpreter glyph to substrate at entry 0
+# Test 2: Load WASM binary to linear memory (0x20000) - this parses entry point
 echo ""
-echo "=== Test 2: Load WASM interpreter ==="
-curl -s -X POST "http://127.0.0.1:8769/load?binary=0x0" \
-    --data-binary "@systems/glyph_stratum/programs/wasm_interpreter.rts.png" \
-    -H "Content-Type: application/octet-stream"
-echo ""
-
-# Test 3: Load WASM binary to linear memory (0x20000)
-echo ""
-echo "=== Test 3: Load WASM binary ==="
+echo "=== Test 2: Load WASM binary (with entry point parsing) ==="
 WASM_FILE="systems/glyph_stratum/tests/wasm/host_test/target/wasm32-unknown-unknown/release/deps/wasm_host_test.wasm"
 curl -s -X POST "http://127.0.0.1:8769/load?binary=0x20000" \
     --data-binary "@$WASM_FILE" \
     -H "Content-Type: application/octet-stream"
 echo ""
 
-# Test 4: Spawn WASM interpreter as VM 2 at entry point 0
+# Test 3: Check parsed WASM info
+echo ""
+echo "=== Test 3: Check WASM entry point ==="
+curl -s http://127.0.0.1:8769/wasm_info
+echo ""
+
+# Test 4: Spawn WASM interpreter with parsed entry point
 echo ""
 echo "=== Test 4: Spawn WASM interpreter VM ==="
 curl -s -X POST "http://127.0.0.1:8769/chat" \
-    -d "spawn 0" \
+    -d "spawn wasm" \
     -H "Content-Type: text/plain"
 echo ""
 
@@ -65,7 +63,7 @@ curl -s "http://127.0.0.1:8769/read?addr=0x1000&len=8" | xxd
 # Test 6: Check daemon logs for WASM host function calls
 echo ""
 echo "=== Test 6: Daemon logs (WASM calls) ==="
-grep -i "wasm" /tmp/daemon.log | tail -10 || echo "No WASM logs found"
+grep -i "wasm" /tmp/daemon.log | tail -20 || echo "No WASM logs found"
 
 # Cleanup
 echo ""
