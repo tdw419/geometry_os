@@ -303,8 +303,7 @@ impl GlyphVmScheduler {
     /// Set the RAM texture (program memory)
     pub fn set_ram_texture(&mut self, texture: Arc<wgpu::Texture>) {
         eprintln!("[SCHEDULER] Setting RAM texture view...");
-        // Store the texture for write_texture operations
-        self.ram_texture = Some(texture);
+        // Create view first (before storing texture)
         self.ram_view = Some(texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("RAM Texture View"),
             format: Some(wgpu::TextureFormat::Rgba8Uint),
@@ -315,6 +314,8 @@ impl GlyphVmScheduler {
             base_array_layer: 0,
             array_layer_count: None,
         }));
+        // Store the texture for write_texture operations
+        self.ram_texture = Some(texture);
         eprintln!("[SCHEDULER] RAM texture view set OK");
     }
 
