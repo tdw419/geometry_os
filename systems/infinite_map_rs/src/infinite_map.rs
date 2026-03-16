@@ -211,13 +211,19 @@ impl InfiniteMap {
         // Use fitness landscape information to guide mutation direction
         let current_fitness = tile.fitness.overall;
 
-        // Adaptive mutation rate based on fitness
-        // Higher fitness = more conservative mutations (exploit)
-        // Lower fitness = more exploratory mutations (explore)
+        // Get temperature from evolution manager (would need to pass as parameter or store reference)
+        // For now, use default temperature - in full implementation this would come from EvolutionManager
+        let temperature = 1.0; // TODO: Wire up to EvolutionManager
+
+        // LLM Temperature pattern: control exploration vs exploitation
+        // Higher temperature = more exploration, lower temperature = more exploitation
+        // Adaptive mutation rate based on fitness and temperature
+        // Base rate adjusted by temperature and fitness
+        let base_rate = self.evolution_rate * temperature;
         let adaptive_rate = if current_fitness > 0.7 {
-            self.evolution_rate * 0.5 // Conservative when doing well
+            base_rate * 0.5 // Conservative when doing well
         } else {
-            self.evolution_rate * 2.0 // Exploratory when struggling
+            base_rate * 2.0 // Exploratory when struggling
         }
         .min(1.0);
 
