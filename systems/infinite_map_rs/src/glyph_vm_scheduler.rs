@@ -9,7 +9,7 @@
 //! - SPATIAL_SPAWN allocates free slots and initializes state
 //! - Inter-VM messaging via mailbox queue
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 /// Maximum concurrent VMs
 pub const MAX_VMS: usize = 8;
@@ -103,7 +103,8 @@ pub struct GlyphVmScheduler {
     /// RAM texture view (.rts.png program memory)
     ram_view: Option<wgpu::TextureView>,
 
-    /// Shadow RAM buffer for CPU-side reads (    shadow_ram: Arc<Mutex<Vec<u8>>>,
+    /// Shadow RAM buffer for CPU-side reads (workaround for Intel Vulkan driver bugs)
+    shadow_ram: Arc<Mutex<Vec<u8>>>,
 
     /// Frame counter for debugging
     frame_count: std::sync::atomic::AtomicU64,
@@ -111,7 +112,7 @@ pub struct GlyphVmScheduler {
 
 impl GlyphVmScheduler {
     /// Create a new Glyph VM Scheduler
-    pub fn new(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>) -> Self {
+    pub fn new(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>, shadow_ram: Arc<Mutex<Vec<u8>>>) -> Self {
         let shader_source = include_str!("shaders/glyph_vm_scheduler.wgsl");
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Glyph VM Scheduler Shader"),
@@ -285,6 +286,7 @@ impl GlyphVmScheduler {
             event_queue_buffer,
             stats_buffer,
             ram_view: None,
+            shadow_ram,
             frame_count: std::sync::atomic::AtomicU64::new(0),
         }
     }

@@ -487,9 +487,15 @@ fn main() {
 
     let device = Arc::new(device);
     let queue = Arc::new(queue);
+
+    // Shadow buffer for reliable CPU reads (workaround for Intel Vulkan driver bugs)
+    // This mirrors what we write to the texture since texture-to-buffer copies are unreliable
+    let shadow_ram: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(vec![0x55; 4096 * 4096 * 4]));
+
     let scheduler = Arc::new(Mutex::new(GlyphVmScheduler::new(
         device.clone(),
         queue.clone(),
+        shadow_ram.clone(),
     )));
 
     let ram_texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
@@ -507,10 +513,6 @@ fn main() {
         view_formats: &[],
     }));
     scheduler.lock().unwrap().set_ram_texture(&ram_texture);
-
-    // Shadow buffer for reliable CPU reads (workaround for Intel Vulkan driver bugs)
-    // This mirrors what we write to the texture since texture-to-buffer copies are unreliable
-    let shadow_ram: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(vec![0x55; 4096 * 4096 * 4]));
 
     // Load scheduler.glyph into VM 0
     let scheduler_glyph_path = "systems/glyph_stratum/programs/scheduler.glyph";

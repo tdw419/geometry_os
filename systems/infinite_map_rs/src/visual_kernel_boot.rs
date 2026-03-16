@@ -5,7 +5,7 @@
 //!
 //! This is the "init" process of Geometry OS.
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::path::Path;
 
 use crate::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
@@ -227,7 +227,9 @@ impl VisualKernel {
         queue: Arc<wgpu::Queue>,
         config: VisualKernelConfig,
     ) -> Self {
-        let scheduler = GlyphVmScheduler::new(Arc::clone(&device), Arc::clone(&queue));
+        // Create shadow RAM buffer for CPU-side reads
+        let shadow_ram = Arc::new(Mutex::new(vec![0x55; 4096 * 4096 * 4]));
+        let scheduler = GlyphVmScheduler::new(Arc::clone(&device), Arc::clone(&queue), shadow_ram);
 
         Self {
             scheduler,
