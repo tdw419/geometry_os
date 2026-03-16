@@ -348,6 +348,9 @@ fn get_thought_pulse_sender() -> &'static tokio::sync::broadcast::Sender<Thought
 /// This mirrors the brain texture and allows read-modify-write operations
 static BRAIN_SHADOW: OnceLock<Mutex<Vec<f32>>> = OnceLock::new();
 
+/// Default brain atlas dimension (power of 2 required)
+const DEFAULT_BRAIN_SIZE: u32 = 4096;
+
 /// Brain atlas size (2048x2048 = 4M weights)
 const BRAIN_ATLAS_SIZE: usize = 2048 * 2048;
 
@@ -607,6 +610,17 @@ fn main() {
     std::io::stdout().flush().unwrap();
     println!("CWD: {:?}", std::env::current_dir().unwrap());
     std::io::stdout().flush().unwrap();
+
+    // === CLI ARGUMENT PARSING ===
+    let args: Vec<String> = std::env::args().collect();
+    let brain_size = args.iter().position(|a| a == "--brain-size")
+        .and_then(|i| args.get(i + 1).and_then(|s| s.parse::<u32>().ok()))
+        .unwrap_or(DEFAULT_BRAIN_SIZE);
+
+    // Validate power of 2
+    assert!(brain_size.is_power_of_two(), "brain-size must be power of 2, got {}", brain_size);
+    println!("[CONFIG] Brain size: {}x{}", brain_size, brain_size);
+
     println!("============================================================");
     std::io::stdout().flush().unwrap();
     println!("  GEOMETRY OS - OUROBOROS DAEMON (Phase 70 - Glyph HTTP)");
