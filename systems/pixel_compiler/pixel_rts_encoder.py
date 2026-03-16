@@ -21,14 +21,49 @@ class HilbertCurve:
         self.order = order
         self.grid_size = 2**order
 
+    def _d2xy(self, n: int, d: int) -> tuple:
+        """
+        Convert Hilbert curve distance d to (x, y) coordinates.
+        Based on the algorithm from "Hacker's Delight" by Henry S. Warren.
+        
+        Args:
+            n: Grid size (must be power of 2)
+            d: Distance along the curve (0 to n*n-1)
+        
+        Returns:
+            (x, y) tuple of coordinates
+        """
+        x = y = 0
+        s = 1
+        while s < n:
+            rx = 1 & (d // 2)
+            ry = 1 & (d ^ rx)
+            x, y = self._rot(s, x, y, rx, ry)
+            x += s * rx
+            y += s * ry
+            d //= 4
+            s *= 2
+        return (x, y)
+
+    def _rot(self, n: int, x: int, y: int, rx: int, ry: int) -> tuple:
+        """Rotate/flip a quadrant appropriately."""
+        if ry == 0:
+            if rx == 1:
+                x = n - 1 - x
+                y = n - 1 - y
+            x, y = y, x
+        return (x, y)
+
     def generate_lut(self):
-        """Generate lookup table for Hilbert curve."""
-        # Use simpler approach: just return points in a simple order
-        # TODO: Implement actual Hilbert curve traversal
+        """Generate lookup table for Hilbert curve traversal.
+        
+        Returns a list of (x, y) tuples in Hilbert curve order,
+        visiting each point in the grid exactly once.
+        """
         lut = []
-        for y in range(self.grid_size):
-            for x in range(self.grid_size):
-                lut.append((x, y))
+        n = self.grid_size
+        for d in range(n * n):
+            lut.append(self._d2xy(n, d))
         return lut
 
 
