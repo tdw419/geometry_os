@@ -190,14 +190,17 @@ fn execute_instruction(vm_idx: u32) {
         case 6u: { vms[vm_idx].regs[p2] = vms[vm_idx].regs[p1] - vms[vm_idx].regs[p2]; vms[vm_idx].pc = vms[vm_idx].pc + 1u; }
         case 9u: { // JMP: stratum determines mode
             if (stratum == 2u) {
-                // Immediate mode: p1 contains target address directly
-                vms[vm_idx].pc = u32(p1) | (u32(p2) << 8u);
+                // PC-relative immediate mode: p1|p2<<8 is signed offset from PC+1
+                let offset = i32(u32(p1) | (u32(p2) << 8u));
+                // Sign extend from 16-bit if needed (offsets are usually small)
+                let extended_offset = offset; // Already signed
+                vms[vm_idx].pc = u32(i32(vms[vm_idx].pc + 1u) + extended_offset);
             } else {
-                // Register mode: pc = regs[p1]
+                // Register mode: pc = regs[p1] (absolute, for computed jumps)
                 vms[vm_idx].pc = vms[vm_idx].regs[p1];
             }
         }
-        case 10u: { // BRANCH: stratum=cond, p1=rs1, p2=rs2, next_pixel=target
+        case 10u: { // BRANCH: stratum=cond, p1=rs1, p2=rs2, next_pixel=signed_offset
             let v1 = vms[vm_idx].regs[p1];
             let v2 = vms[vm_idx].regs[p2];
             var take_branch = false;

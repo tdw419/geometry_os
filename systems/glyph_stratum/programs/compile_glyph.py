@@ -88,8 +88,10 @@ def parse_glyph(source):
         else:
             current_addr += 1
 
-    # Pass 2: Instruction Generation
+    # Pass 2: Instruction Generation (with PC-relative jumps)
     final_pixels = []
+    current_addr = 0  # Track address for PC-relative offsets
+
     for line in source.split("\n"):
         line = line.strip().split("//")[0].split(";")[0]
         if not line or line.startswith(".") or line.startswith(":"): continue
@@ -97,9 +99,9 @@ def parse_glyph(source):
         parts = line.replace(",", " ").split()
         op_name = parts[0].upper()
         if op_name not in OPCODES: continue
-        
+
         opcode = OPCODES[op_name]
-        
+
         if op_name == "LDI":
             rd = int(parts[1].lower().replace("r", ""))
             val_str = parts[2]
@@ -107,19 +109,26 @@ def parse_glyph(source):
             if imm == 0:
                 try: imm = int(val_str, 0)
                 except: imm = 0
-            
+
             final_pixels.append([opcode, 2, rd, 0])
             final_pixels.append([imm & 0xFF, (imm >> 8) & 0xFF, (imm >> 16) & 0xFF, (imm >> 24) & 0xFF])
+            current_addr += 2
         elif op_name == "JAL":
             rd = int(parts[1].lower().replace("r", ""))
             val_str = parts[2]
-            imm = symbols.get(val_str, 0)
-            if imm == 0:
-                try: imm = int(val_str, 0)
-                except: imm = 0
-            
+            target_addr = symbols.get(val_str, 0)
+            if target_addr == 0:
+                try: target_addr = int(val_str, 0)
+                except: target_addr = 0
+
+            # PC-relative: offset = target - (current_addr + 2)
+            # Store as signed 32-bit offset
+            offset = target_addr - (current_addr + 2)
+            imm = offset & 0xFFFFFFFF  # Convert to unsigned for storage
+
             final_pixels.append([opcode, 2, rd, 0])
             final_pixels.append([imm & 0xFF, (imm >> 8) & 0xFF, (imm >> 16) & 0xFF, (imm >> 24) & 0xFF])
+            current_addr += 2
         elif op_name in BRANCH_CONDS:
             cond = BRANCH_CONDS[op_name]
             rs2 = 0
@@ -136,14 +145,20 @@ def parse_glyph(source):
             else:
                 rs1 = int(parts[1].lower().replace("r", ""))
                 target_str = parts[2]
-                
-            imm = symbols.get(target_str, 0)
-            if imm == 0:
-                try: imm = int(target_str, 0)
-                except: imm = 0
-                
+
+            target_addr = symbols.get(target_str, 0)
+            if target_addr == 0:
+                try: target_addr = int(target_str, 0)
+                except: target_addr = 0
+
+            # PC-relative: offset = target - (current_addr + 2)
+            # Store as signed 32-bit offset
+            offset = target_addr - (current_addr + 2)
+            imm = offset & 0xFFFFFFFF  # Convert to unsigned for storage
+
             final_pixels.append([opcode, cond, rs1, rs2])
             final_pixels.append([imm & 0xFF, (imm >> 8) & 0xFF, (imm >> 16) & 0xFF, (imm >> 24) & 0xFF])
+            current_addr += 2
         elif op_name == "SPAWN":
             # SPAWN dst, src, count
             # Maps to: opcode=232, stratum=target, p1=source, p2=count
@@ -151,12 +166,14 @@ def parse_glyph(source):
             src = int(parts[2], 0) if len(parts) > 2 else 0
             count = int(parts[3], 0) if len(parts) > 3 else 0
             final_pixels.append([opcode, target & 0xFF, src & 0xFF, count & 0xFF])
+            current_addr += 1
         elif op_name == "M_STORE":
             # M_STORE dst, imm -> mem[dst] = imm
             # VM: stratum=dst, p1=imm
             dst = int(parts[1], 0) if len(parts) > 1 else 0
             imm = int(parts[2], 0) if len(parts) > 2 else 0
             final_pixels.append([opcode, dst & 0xFF, imm & 0xFF, 0])
+            current_addr += 1
         elif op_name == "GLYPH_WRITE":
             # GLYPH_WRITE target, source, count
             # VM: stratum=target, p1=source, p2=count
@@ -164,11 +181,13 @@ def parse_glyph(source):
             source = int(parts[2], 0) if len(parts) > 2 else 0
             count = int(parts[3], 0) if len(parts) > 3 else 0
             final_pixels.append([opcode, target & 0xFF, source & 0xFF, count & 0xFF])
+            current_addr += 1
         elif op_name == "M_JUMP":
             # M_JUMP target -> pc = target
             # VM: stratum=target
             target = int(parts[1], 0) if len(parts) > 1 else 0
             final_pixels.append([opcode, target & 0xFF, 0, 0])
+            current_addr += 1
         elif op_name == "ATTENTION_FOCUS":
             # ATTENTION_FOCUS start_addr, end_addr, vm_id
             # opcode=233, stratum=start, p1=end, dst=vm_id
@@ -176,6 +195,7 @@ def parse_glyph(source):
             end_addr = int(parts[2], 0) if len(parts) > 2 else 0
             vm_id = int(parts[3], 0) if len(parts) > 3 else 0
             final_pixels.append([233, start_addr & 0xFF, end_addr & 0xFF, vm_id & 0xFF])
+            current_addr += 1
         elif op_name == "GLYPH_MUTATE":
             # GLYPH_MUTATE target_addr, field_offset, new_value
             # opcode=234, stratum=target, p1=field_offset, p2=new_value
@@ -183,6 +203,7 @@ def parse_glyph(source):
             field_offset = int(parts[2], 0) if len(parts) > 2 else 0
             new_value = int(parts[3], 0) if len(parts) > 3 else 0
             final_pixels.append([234, target_addr & 0xFF, field_offset & 0xFF, new_value & 0xFF])
+            current_addr += 1
         elif op_name == "SEMANTIC_MERGE":
             # SEMANTIC_MERGE src, dst, count
             # opcode=235, stratum=src, p1=dst, p2=count
@@ -190,6 +211,7 @@ def parse_glyph(source):
             dst_addr = int(parts[2], 0) if len(parts) > 2 else 0
             count = int(parts[3], 0) if len(parts) > 3 else 0
             final_pixels.append([235, src_addr & 0xFF, dst_addr & 0xFF, count & 0xFF])
+            current_addr += 1
         else:
             p1 = p2 = 0
             for i, part in enumerate(parts[1:]):
@@ -206,6 +228,7 @@ def parse_glyph(source):
                 if i == 0: p1 = val & 0xFF
                 else: p2 = val & 0xFF
             final_pixels.append([opcode, 2, p1, p2])
+            current_addr += 1
 
     return final_pixels
 
