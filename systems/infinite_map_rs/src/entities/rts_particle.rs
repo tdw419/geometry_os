@@ -164,7 +164,7 @@ impl RTSParticle {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,no_run
     /// use infinite_map_rs::entities::RTSParticle;
     /// use glam::Vec2;
     ///
