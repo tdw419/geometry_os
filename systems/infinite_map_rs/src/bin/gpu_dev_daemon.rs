@@ -62,6 +62,8 @@ mod wasm_parser {
         pub func_code_offsets: Vec<usize>,
         /// Import count (functions before code section are imports)
         pub import_count: u32,
+        /// Import function names (module, name) pairs in order
+        pub import_names: Vec<(String, String)>,
     }
 
     /// Read a LEB128 unsigned integer from bytes
@@ -136,17 +138,19 @@ mod wasm_parser {
                     }
                 },
                 SECTION_IMPORT => {
-                    // Import section - count imported functions
+                    // Import section - count imported functions and capture names
                     let import_count = read_leb128_u32(wasm_bytes, &mut offset)?;
                     for _ in 0..import_count {
-                        let _module = read_name(wasm_bytes, &mut offset)?;
-                        let _name = read_name(wasm_bytes, &mut offset)?;
+                        let module = read_name(wasm_bytes, &mut offset)?;
+                        let name = read_name(wasm_bytes, &mut offset)?;
                         let import_kind = wasm_bytes.get(offset)?;
                         offset += 1;
                         if *import_kind == 0 {
-                            // Function import
+                            // Function import - store name for host function ID mapping
                             let _type_idx = read_leb128_u32(wasm_bytes, &mut offset)?;
                             info.import_count += 1;
+                            info.import_names.push((module.clone(), name.clone()));
+                            println!("[WASM] Import #{}: {}.{}", info.import_count, module, name);
                         } else if *import_kind == 1 {
                             // Table import
                             let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // elem type
