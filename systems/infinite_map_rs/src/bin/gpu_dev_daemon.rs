@@ -1374,6 +1374,7 @@ fn read_u32_from_substrate(
     queue: &wgpu::Queue,
 ) -> u32 {
     let (tx, ty) = hilbert_d2xy(4096, addr);
+    println!("[READ] addr=0x{:x} -> pixel({}, {})", addr, tx, ty);
 
     // Create unique staging buffer for this read (avoid caching)
     let staging = device.create_buffer(&wgpu::BufferDescriptor {
@@ -1432,7 +1433,7 @@ fn read_u32_from_substrate(
         0
     };
 
-    println!("[READ] addr=0x{:x} pixel({}, {}) = 0x{:08x}", addr, tx, ty, val);
+    println!("[READ] pixel({}, {}) = 0x{:08x}", tx, ty, val);
     val
 }
 
