@@ -109,13 +109,14 @@
 .equ NUM_IMPORTS_ADDR,  0x33FFF   // Number of imported functions
 
 // Trap interface for host calls
-.equ TRAP_BASE,        0xFF000000
-.equ TRAP_OP_TYPE,     0xFF000000
-.equ TRAP_ARG0,        0xFF000004
-.equ TRAP_ARG1,        0xFF000008
-.equ TRAP_ARG2,        0xFF00000C
-.equ TRAP_RESULT,      0xFF000010
-.equ TRAP_STATUS,      0xFF000014
+// TRAP_BASE must be within substrate memory (0-64MB = 0x04000000)
+.equ TRAP_BASE,        0x03F00000
+.equ TRAP_OP_TYPE,     0x03F00000
+.equ TRAP_ARG0,        0x03F00004
+.equ TRAP_ARG1,        0x03F00008
+.equ TRAP_ARG2,        0x03F0000C
+.equ TRAP_RESULT,      0x03F00010
+.equ TRAP_STATUS,      0x03F00014
 
 .equ TRAP_WASM_HOST,   9
 .equ TRAP_STATUS_IDLE, 0

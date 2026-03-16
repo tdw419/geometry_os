@@ -604,18 +604,21 @@ impl GlyphVmScheduler {
     }
 
     /// Peek substrate memory at trap base (6 u32 values = 24 bytes)
+    /// Uses shadow buffer for reliable CPU-side reads
     pub fn peek_substrate(&self, base: u32, count: u32) -> [u8; 24] {
         let mut result = [0u8; 24];
 
-        // For now, return zeros as we need async texture read
-        // The actual implementation would:
-        // 1. Create a staging buffer
-        // 2. Copy from texture to buffer via encoder
-        // 3. Map the buffer and read
-        // This requires async or polling, so we return zeros for now
+        // Read from shadow buffer
+        let shadow = self.shadow_ram.lock().unwrap();
+        let start_offset = base as usize * 4;
+        let bytes_to_read = (count as usize * 4).min(24);
 
-        // Log for debugging
-        log::debug!("[TRAP] peek_substrate at 0x{:08X} ({} values)", base, count);
+        if start_offset + bytes_to_read <= shadow.len() {
+            result[..bytes_to_read].copy_from_slice(&shadow[start_offset..start_offset + bytes_to_read]);
+        }
+
+        log::debug!("[TRAP] peek_substrate at 0x{:08X} ({} values) -> {:02X?}",
+            base, count, &result[..bytes_to_read]);
 
         result
     }

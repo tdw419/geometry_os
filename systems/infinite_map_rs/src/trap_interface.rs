@@ -1,10 +1,12 @@
 //! Trap Interface - Glyph ↔ Rust Shim Communication
 //!
-//! Memory-mapped region at 0xFF00_0000 for glyph programs to request
+//! Memory-mapped region at 0x03F0_0000 for glyph programs to request
 //! operations that require Rust/wgpu context.
+//!
+//! Note: TRAP_BASE must be within the substrate texture memory range (0-64MB)
 
-/// Base address of trap interface in substrate memory
-pub const TRAP_BASE: u32 = 0xFF00_0000;
+/// Base address of trap interface in substrate memory (1MB before end of 64MB)
+pub const TRAP_BASE: u32 = 0x03F0_0000;
 
 /// Trap operation types
 pub mod op_type {
