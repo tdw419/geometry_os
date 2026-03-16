@@ -176,6 +176,12 @@
     LDI r13, wasm_op_br
     JZ r2, r13
 
+    // Check for BR_IF (0x0D)
+    LDI r3, OP_BR_IF
+    SUB r2, r3
+    LDI r13, wasm_op_br_if
+    JZ r2, r13
+
     // Check for NOP (0x01)
     LDI r3, OP_NOP
     SUB r2, r3
@@ -482,6 +488,65 @@
     // Re-push the loop block for next iteration
     CALL :block_push
 
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_br_if
+    // br_if: conditional branch
+    // Format: br_if label_index
+    // Stack: [..., condition] -> [...]
+
+    // Read label index
+    CALL :leb128_unsigned    // r6 = label_index
+
+    // Pop condition from operand stack
+    CALL :stack_pop          // r4 = condition
+
+    // If condition is zero, skip branch
+    LDI r2, 0
+    SUB r4, r2
+    JZ r4, :wasm_br_if_skip
+
+    // Condition true - perform branch (same logic as br)
+    // Pop blocks until we reach target
+:wasm_br_if_loop
+    LDI r2, 0
+    SUB r6, r2
+    JZ r6, :wasm_br_if_target
+    CALL :block_pop
+    LDI r2, 1
+    SUB r6, r2
+    JMP :wasm_br_if_loop
+
+:wasm_br_if_target
+    // Pop target block
+    CALL :block_pop          // r4 = type, r5 = start_addr, r6 = stack_height
+
+    // Restore stack height
+    LDI r1, WASM_SP_ADDR
+    STORE r1, r6
+
+    // Check if LOOP
+    LDI r2, BLOCK_TYPE_LOOP
+    SUB r4, r2
+    JZ r4, :wasm_br_if_to_loop
+
+    // BLOCK - MVP: halt
+    JMP wasm_halt
+
+:wasm_br_if_to_loop
+    // Jump to loop start
+    LDI r1, WASM_IP_ADDR
+    STORE r1, r5
+
+    // Re-push loop block
+    CALL :block_push
+
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_br_if_skip
+    // Condition false - continue
     LDI r13, wasm_fetch
     JMP r13
 
