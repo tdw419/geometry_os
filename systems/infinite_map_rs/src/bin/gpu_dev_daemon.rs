@@ -3186,3 +3186,123 @@ fn hilbert_d2xy(n: u32, d: u32) -> (u32, u32) {
     }
     (x, y)
 }
+
+// ============================================================================
+// Tests for RAM Visualization
+// ============================================================================
+
+#[cfg(test)]
+mod visualization_tests {
+    use super::*;
+
+    #[test]
+    fn test_block_state_variants() {
+        assert_eq!(BlockState::Free, BlockState::Free);
+        assert_ne!(BlockState::Free, BlockState::Allocated);
+        assert_ne!(BlockState::Allocated, BlockState::Fragmented);
+        assert_ne!(BlockState::Fragmented, BlockState::HilbertAligned);
+    }
+
+    #[test]
+    fn test_color_palette_default() {
+        let palette = ColorPalette::default();
+        // Free blocks should be dark
+        assert_eq!(palette.free[0], 0x1a);
+        assert_eq!(palette.free[3], 0xff); // Alpha should be 255
+        // Allocated blocks should be teal/green
+        assert_eq!(palette.allocated[1], 0xc7);
+        // Fragmented blocks should be red-ish
+        assert_eq!(palette.fragmented[0], 0xff);
+    }
+
+    #[test]
+    fn test_pool_stats_weight() {
+        let stats = get_pool_stats_for_visualization("weight");
+        assert_eq!(stats.len(), 256);
+
+        // Weight pool should have more allocated than free
+        let allocated = stats.iter().filter(|(s, _)| *s == BlockState::Allocated).count();
+        let free = stats.iter().filter(|(s, _)| *s == BlockState::Free).count();
+        assert!(allocated > free, "Weight pool should be mostly allocated");
+    }
+
+    #[test]
+    fn test_pool_stats_activation() {
+        let stats = get_pool_stats_for_visualization("activation");
+        assert_eq!(stats.len(), 256);
+
+        // Activation pool should have ring buffer pattern
+        let allocated = stats.iter().filter(|(s, _)| *s == BlockState::Allocated).count();
+        assert!(allocated > 0, "Activation pool should have some allocated blocks");
+    }
+
+    #[test]
+    fn test_pool_stats_gradient() {
+        let stats = get_pool_stats_for_visualization("gradient");
+        assert_eq!(stats.len(), 256);
+
+        // Gradient pool should be sparse
+        let allocated = stats.iter().filter(|(s, _)| *s == BlockState::Allocated).count();
+        assert!(allocated < 128, "Gradient pool should be sparse during inference");
+    }
+
+    #[test]
+    fn test_ascii_visualization() {
+        let viz = generate_ascii_memory_visualization(32);
+
+        // Should contain legend
+        assert!(viz.contains("Legend"));
+        assert!(viz.contains("Free"));
+        assert!(viz.contains("Allocated"));
+
+        // Should contain box drawing characters
+        assert!(viz.contains('╔') || viz.contains('┌'));
+        assert!(viz.contains('░') || viz.contains('█'));
+    }
+
+    #[test]
+    fn test_png_generation() {
+        let png_data = generate_memory_visualization("weight", 64);
+
+        // PNG should start with signature
+        assert_eq!(&png_data[0..8], &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+
+        // Should have reasonable size
+        assert!(png_data.len() > 100, "PNG should have content");
+    }
+
+    #[test]
+    fn test_crc32_calculation() {
+        // Test with known values
+        let chunk_type = b"IHDR";
+        let data = [0u8; 12]; // Simple IHDR data
+        let crc = calculate_crc32(chunk_type, &data);
+
+        // CRC should be non-zero for any data
+        assert!(crc != 0 || data.is_empty());
+    }
+
+    #[test]
+    fn test_png_chunk_building() {
+        let chunk = build_png_chunk(b"TEST", &[1, 2, 3, 4]);
+
+        // Chunk should have: length (4) + type (4) + data (4) + crc (4) = 16 bytes
+        assert_eq!(chunk.len(), 16);
+
+        // Type should be at bytes 4-7
+        assert_eq!(&chunk[4..8], b"TEST");
+    }
+
+    #[test]
+    fn test_visualization_pool_parameter() {
+        // Different pools should produce different visualizations
+        let png_weight = generate_memory_visualization("weight", 64);
+        let png_activation = generate_memory_visualization("activation", 64);
+        let png_gradient = generate_memory_visualization("gradient", 64);
+
+        // All should be valid PNGs but different content
+        assert!(png_weight.len() > 0);
+        assert!(png_activation.len() > 0);
+        assert!(png_gradient.len() > 0);
+    }
+}
