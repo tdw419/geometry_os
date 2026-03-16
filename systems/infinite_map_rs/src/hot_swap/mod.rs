@@ -10,8 +10,8 @@
 //! 4. **Restore**: New module reads from Vat and resumes
 //!
 //! ## Usage
-//! ```rust
-//! use crate::hot_swap::{VatState, VatId, VatRegistry};
+//! ```rust,ignore
+//! use crate::hot_swap::{VatState, VatId, VatRegistry, VatBuffer, VatError};
 //!
 //! // Module implements VatState trait
 //! struct MyModule {

@@ -1308,6 +1308,11 @@ fn write_to_substrate(
         let mut word = [0u8; 4];
         word[..end - start].copy_from_slice(&data[start..end]);
 
+        // Debug: print first 4 writes
+        if i < 4 {
+            println!("[WRITE] addr=0x{:x} -> pixel({}, {}) = {:02x?}", base_addr + i as u32, tx, ty, word);
+        }
+
         queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture,
