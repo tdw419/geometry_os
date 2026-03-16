@@ -12,7 +12,7 @@
 //!
 //! # Usage
 //! ```rust
-//! use crate::broadcast::NeuralBroadcast;
+//! use infinite_map_rs::broadcast::NeuralBroadcast;
 //!
 //! #[tokio::main]
 //! async fn main() {
