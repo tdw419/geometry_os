@@ -1229,10 +1229,14 @@ fn handle_raw_request<S: Read + Write>(
                 write_u32_to_substrate(addr, value, texture, queue);
 
                 // Also update shadow buffer
-                let shadow_offset = addr as usize * 4;
+                let shadow_offset = addr as usize;
                 let mut shadow = shadow_ram.lock().unwrap();
+                println!("[POKE] addr=0x{:x} value=0x{:x} shadow.len()={}", addr, value, shadow.len());
                 if shadow_offset + 4 <= shadow.len() {
                     shadow[shadow_offset..shadow_offset + 4].copy_from_slice(&value.to_le_bytes());
+                    println!("[POKE] wrote to shadow at offset {}", shadow_offset);
+                } else {
+                    println!("[POKE] FAILED: offset {} + 4 > {}", shadow_offset, shadow.len());
                 }
 
                 // Submit and wait for GPU to process the write
