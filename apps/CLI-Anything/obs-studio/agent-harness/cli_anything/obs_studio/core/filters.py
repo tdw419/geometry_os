@@ -2,7 +2,7 @@
 
 import copy
 from typing import Dict, Any, List, Optional
-from .obs_studio.utils.obs_utils import generate_id, unique_name, get_item, validate_range
+from ..utils.obs_utils import generate_id, unique_name, get_item, validate_range
 
 
 FILTER_TYPES = {

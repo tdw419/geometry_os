@@ -2,7 +2,7 @@
 
 import copy
 from typing import Dict, Any, List, Optional
-from .obs_studio.utils.obs_utils import generate_id, unique_name, get_item
+from ..utils.obs_utils import generate_id, unique_name, get_item
 
 
 def _get_scenes(project: Dict[str, Any]) -> List[Dict[str, Any]]:
