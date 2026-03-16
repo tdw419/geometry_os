@@ -1725,14 +1725,38 @@ fn handle_raw_request<S: Read + Write>(
 
             // Apply Hebbian update
             let delta_w = learning_rate * activation * reward;
-
+            
             // In a real implementation, this would update actual weights
             // For now, we'll just log the update that would happen
-            if delta_w.abs() > 0.0001 {
-                // Only count significant updates
+            if delta_w.abs() > 0.0001 { // Only count significant updates
                 updates_applied += 1;
                 // OP_GLYPH_MUTATE would be called here in a real implementation
                 // op_glyph_mutate(addr, delta_w);
+            }
+        }
+
+        // Broadcast thought pulse via WebSocket if we have updates
+        if updates_applied > 0 {
+            if let Some(broadcaster) = THOUGHT_PULSE_BROADCASTER.get() {
+                let thought_pulse = ThoughtPulse {
+                    timestamp: Instant::now().as_millis() as u64,
+                    chat_id: chat_id.clone(),
+                    reward,
+                    weights_updated: updates_applied,
+                    learning_delta: learning_rate * reward.abs(),
+                    activations: chat_activations.addresses
+                        .iter()
+                        .zip(chat_activations.strengths.iter())
+                        .map(|(addr, strength)| ThoughtActivation {
+                            address: *addr,
+                            strength: *strength,
+                            weight_delta: learning_rate * *strength * reward
+                        })
+                        .collect()
+                };
+                
+                // Ignore broadcast errors - we don't want learning to fail if WebSocket has issues
+                let _ = broadcaster.broadcast(&thought_pulse);
             }
         }
 
