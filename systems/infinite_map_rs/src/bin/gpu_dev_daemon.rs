@@ -1733,31 +1733,31 @@ fn handle_raw_request<S: Read + Write>(
             }
         }
 
-        // Broadcast thought pulse via WebSocket if we have updates
+        // Log thought pulse for visualization (can be extended to WebSocket later)
         if updates_applied > 0 {
-            if let Some(broadcaster) = THOUGHT_PULSE_BROADCASTER.get().and_then(|opt| opt.as_ref())
-            {
-                let thought_pulse = ThoughtPulse {
-                    timestamp: Instant::now().elapsed().as_millis() as u64,
-                    chat_id: chat_id.clone(),
-                    reward,
-                    weights_updated: updates_applied,
-                    learning_delta: learning_rate * reward.abs(),
-                    activations: chat_activations
-                        .addresses
-                        .iter()
-                        .zip(chat_activations.strengths.iter())
-                        .map(|(addr, strength)| ThoughtActivation {
-                            address: *addr,
-                            strength: *strength,
-                            weight_delta: learning_rate * *strength * reward,
-                        })
-                        .collect(),
-                };
+            let thought_pulse = ThoughtPulse {
+                timestamp: Instant::now().elapsed().as_millis() as u64,
+                chat_id: chat_id.clone(),
+                reward,
+                weights_updated: updates_applied,
+                learning_delta: learning_rate * reward.abs(),
+                activations: chat_activations
+                    .addresses
+                    .iter()
+                    .zip(chat_activations.strengths.iter())
+                    .map(|(addr, strength)| ThoughtActivation {
+                        address: *addr,
+                        strength: *strength,
+                        weight_delta: learning_rate * *strength * reward,
+                    })
+                    .collect(),
+            };
 
-                // Ignore broadcast errors - we don't want learning to fail if WebSocket has issues
-                let _ = broadcaster.broadcast(&thought_pulse);
-            }
+            // Log the thought pulse for debugging/visualization
+            println!(
+                "[THOUGHT_PULSE] {}",
+                serde_json::to_string(&thought_pulse).unwrap()
+            );
         }
 
         // Remove from cache to prevent re-rating
