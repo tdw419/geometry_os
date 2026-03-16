@@ -48,6 +48,8 @@ pub struct EvolutionManager {
     cartridge_registry: CartridgeRegistry,
     sib_path: String,
     last_sib_check: Instant,
+    // LLM Temperature pattern: controls exploration vs exploitation
+    temperature: f32,
 }
 
 impl Clone for EvolutionManager {
@@ -101,7 +103,11 @@ impl EvolutionManager {
             cartridge_registry: CartridgeRegistry::new(),
             sib_path: "/tmp/geometry_os_sib.json".to_string(),
             last_sib_check: Instant::now(),
+            // LLM Temperature: start with balanced exploration/exploitation
+            temperature: 1.0,
         }
+    }
+}
     }
 
     /// Set the embedded daemon instance
@@ -519,6 +525,18 @@ impl EvolutionManager {
     /// Get visualization mode
     pub fn get_visualization_mode(&self) -> NeuralVisualizationMode {
         self.config.mode
+    }
+
+    /// Get LLM temperature (controls exploration vs exploitation)
+    pub fn get_temperature(&self) -> f32 {
+        self.temperature
+    }
+
+    /// Set LLM temperature (controls exploration vs exploitation)
+    /// Lower values = more exploitation (prefer known good solutions)
+    /// Higher values = more exploration (try novel solutions)
+    pub fn set_temperature(&mut self, temp: f32) {
+        self.temperature = temp.clamp(0.0, 2.0);
     }
 
     /// Set brightness
