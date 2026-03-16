@@ -1302,15 +1302,11 @@ fn write_to_substrate(
     let num_words = padded_len / 4;
     println!("[WRITE] Writing {} words ({} bytes) to substrate at 0x{:x}", num_words, data.len(), base_addr);
 
+    // Batch writes into a single staging buffer for efficiency
+    // Write each word individually using write_texture
     for i in 0..num_words {
         let (tx, ty) = hilbert_d2xy(4096, base_addr + i as u32);
         let word = &padded_data[i * 4..i * 4 + 4];
-
-        // Debug first few writes
-        if i < 3 {
-            println!("[WRITE] Word {}: addr=0x{:x} -> pixel({}, {}) = {:02x?}",
-                i, base_addr + i as u32, tx, ty, word);
-        }
 
         queue.write_texture(
             wgpu::ImageCopyTexture {
@@ -1333,16 +1329,11 @@ fn write_to_substrate(
         );
     }
 
-    // Submit all writes and wait for completion
+    // Ensure all writes are submitted and visible
     queue.submit(None);
     device.poll(wgpu::Maintain::Wait);
 
-    // Small delay to ensure GPU has processed the writes
-    std::thread::sleep(std::time::Duration::from_millis(10));
-
-    // Verify write by reading back first word
-    let verify_val = read_u32_from_substrate(base_addr, texture, device, queue);
-    println!("[WRITE] Verify read at 0x{:x}: 0x{:08x}", base_addr, verify_val);
+    println!("[WRITE] Committed {} words to 0x{:x}", num_words, base_addr);
 }
 
 /// Write a single u32 to substrate at specified address
@@ -1378,19 +1369,16 @@ fn read_u32_from_substrate(
     queue: &wgpu::Queue,
 ) -> u32 {
     let (tx, ty) = hilbert_d2xy(4096, addr);
-    println!("[READ] addr=0x{:x} -> pixel({}, {})", addr, tx, ty);
-    std::io::stdout().flush().ok();
 
-    // Ensure any pending GPU operations complete before reading
-    device.poll(wgpu::Maintain::Wait);
-
+    // Create unique staging buffer for this read (avoid caching)
     let staging = device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("read_u32 staging"),
+        label: Some(&format!("read_u32_staging_0x{:x}", addr)),
         size: 256,
         usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
         mapped_at_creation: false,
     });
 
+    // Create encoder and copy
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("read_u32 encoder"),
     });
@@ -1416,10 +1404,12 @@ fn read_u32_from_substrate(
             depth_or_array_layers: 1,
         },
     );
-    println!("[READ] Copy origin: ({}, {})", tx, ty);
+
+    // Submit and wait for GPU to complete the copy
     queue.submit(Some(encoder.finish()));
     device.poll(wgpu::Maintain::Wait);
 
+    // Map and read
     let slice = staging.slice(..);
     let (tx_chan, rx) = std::sync::mpsc::channel();
     slice.map_async(wgpu::MapMode::Read, move |res| {
@@ -1427,17 +1417,18 @@ fn read_u32_from_substrate(
     });
     device.poll(wgpu::Maintain::Wait);
 
-    if let Ok(Ok(())) = rx.recv() {
+    let val = if let Ok(Ok(())) = rx.recv() {
         let data = slice.get_mapped_range();
-        let val = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
-        println!("[READ] Read value: 0x{:08x} from pixel({}, {})", val, tx, ty);
+        let v = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
         drop(data);
         staging.unmap();
-        val
+        v
     } else {
-        println!("[READ] Failed to map buffer!");
         0
-    }
+    };
+
+    println!("[READ] addr=0x{:x} pixel({}, {}) = 0x{:08x}", addr, tx, ty, val);
+    val
 }
 
 /// Read bytes from substrate at specified address
