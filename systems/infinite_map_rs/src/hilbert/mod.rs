@@ -204,6 +204,7 @@ impl HilbertCurve {
     /// # Examples
     ///
     /// ```
+    /// use infinite_map_rs::hilbert::HilbertCurve;
     /// let curve = HilbertCurve::new(64);
     /// assert_eq!(curve.n, 64);
     /// assert_eq!(curve.order, 6);
