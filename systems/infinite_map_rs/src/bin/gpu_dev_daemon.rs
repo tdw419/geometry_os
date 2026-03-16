@@ -1175,40 +1175,38 @@ fn handle_raw_request<S: Read + Write>(
                 .and_then(|s| s.split_whitespace().next())
             {
                 // Check for "spawn wasm" to use parsed WASM entry point
-                let entry_point = if entry_str == "wasm" {
+                let entry_point: Option<u32> = if entry_str == "wasm" {
                     let wasm_store = WASM_ENTRY_POINT.get_or_init(|| Mutex::new(None));
                     let entry = wasm_store.lock().unwrap();
                     match *entry {
                         Some(ep) => {
                             println!("[WASM] Using parsed entry point: 0x{:x}", ep);
-                            ep
+                            Some(ep)
                         }
-                        None => {
-                            return "No WASM loaded or entry point not found".to_string();
-                        }
+                        None => None,
                     }
                 } else {
-                    match u32::from_str_radix(entry_str, 10) {
-                        Ok(ep) => ep,
-                        Err(_) => {
-                            return "Invalid entry point. Use 'spawn <number>' or 'spawn wasm'".to_string();
-                        }
-                    }
+                    u32::from_str_radix(entry_str, 10).ok()
                 };
 
-                let mut s = scheduler.lock().unwrap();
-                let mut regs = [0u32; 128];
-                regs[0] = entry_point;
-                let config = VmConfig {
-                    entry_point: 0,
-                    parent_id: 0xFF,
-                    base_addr: 0,
-                    bound_addr: 0,
-                    initial_regs: regs,
-                };
-                match s.spawn_vm(0, &config) {
-                    Ok(_) => format!("Spawned VM at entry point 0x{:x}", entry_point),
-                    Err(e) => format!("Failed to spawn VM: {}", e),
+                match entry_point {
+                    Some(ep) => {
+                        let mut s = scheduler.lock().unwrap();
+                        let mut regs = [0u32; 128];
+                        regs[0] = ep;
+                        let config = VmConfig {
+                            entry_point: 0,
+                            parent_id: 0xFF,
+                            base_addr: 0,
+                            bound_addr: 0,
+                            initial_regs: regs,
+                        };
+                        match s.spawn_vm(0, &config) {
+                            Ok(_) => format!("Spawned VM at entry point 0x{:x}", ep),
+                            Err(e) => format!("Failed to spawn VM: {}", e),
+                        }
+                    }
+                    None => "Invalid entry point. Use 'spawn <number>' or 'spawn wasm' (if WASM loaded)".to_string(),
                 }
             } else {
                 "Please specify an entry point: spawn <number> or spawn wasm".to_string()
