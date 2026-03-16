@@ -831,3 +831,83 @@
     STORE r1, r6
 
     RET
+
+// ------------------------------------------------------------
+// Block Stack Pop
+// ------------------------------------------------------------
+// Pop the current block from the block stack
+// Output: r4 = block_type, r5 = start_addr, r6 = stack_height
+// Uses: r1, r2, r3, r10, r12
+// ------------------------------------------------------------
+
+:block_pop
+    // Get current block count
+    LDI r1, BLOCK_STACK_COUNT
+    LOAD r1, r3            // r3 = count
+
+    // If count is 0, error (underflow)
+    LDI r2, 0
+    SUB r3, r2
+    JZ r3, :block_pop_error
+
+    // Decrement count to get last entry index
+    LDI r2, 1
+    SUB r3, r2             // r3 = count - 1
+
+    // Calculate entry address: BLOCK_STACK_DATA + (index * 12)
+    // Same shift-add method as block_push
+    LDI r10, BLOCK_STACK_DATA
+
+    // r12 = index * 4 (shift left 2)
+    MOV r3, r12
+    LDI r2, 2
+:block_pop_shift2
+    LDI r1, 1
+    SHL r12, r1
+    LDI r1, 1
+    SUB r2, r1
+    JNZ r2, :block_pop_shift2
+
+    // r1 = index * 8 (shift left 3)
+    MOV r3, r1
+    LDI r2, 3
+:block_pop_shift3
+    LDI r2, 1
+    SHL r1, r2
+    LDI r2, 1
+    SUB r2, r2
+    JNZ r2, :block_pop_shift3
+
+    // r10 = BLOCK_STACK_DATA + index*12
+    ADD r10, r1
+    ADD r10, r12
+
+    // Load block_type at offset 0
+    LOAD r10, r4
+
+    // Load start_addr at offset 4
+    LDI r2, 4
+    ADD r10, r2
+    LOAD r10, r5
+
+    // Load stack_height at offset 8
+    LDI r2, 4
+    ADD r10, r2
+    LOAD r10, r6
+
+    // Decrement block count
+    LDI r1, BLOCK_STACK_COUNT
+    LOAD r1, r12
+    LDI r2, 1
+    SUB r12, r2
+    LDI r1, BLOCK_STACK_COUNT
+    STORE r1, r12
+
+    RET
+
+:block_pop_error
+    // Block stack underflow - set error and halt
+    LDI r1, WASM_STATUS
+    LDI r2, STATUS_ERROR
+    STORE r1, r2
+    JMP wasm_halt
