@@ -376,19 +376,27 @@ fn get_brain_shadow() -> &'static Mutex<Vec<f32>> {
     })
 }
 
-/// Apply Hebbian weight update to brain shadow buffer
-/// Δw = η × activation × reward
-fn apply_hebbian_update(addr: u32, delta_w: f32) -> f32 {
+/// Apply Hebbian weight update via GPU batch processing
+/// Queues update for batch dispatch at 256 updates
+/// Δw = η × pre × post × reward
+fn apply_hebbian_update(addr: u32, pre: f32, post: f32, reward: f32) {
+    if let Some(processor) = get_hebbian_processor() {
+        let mut processor_lock = processor.lock().unwrap();
+        processor_lock.queue_update(HebbianUpdate {
+            address: addr,
+            pre_activation: pre,
+            post_activation: post,
+            reward: reward,
+        });
+    }
+
+    // Also update shadow buffer for CPU-side reads
+    // Delta is computed with learning_rate = 0.01 (matches shader default)
+    let delta_w = 0.01 * pre * post * reward;
     let shadow = get_brain_shadow();
     let mut shadow_lock = shadow.lock().unwrap();
-
     if (addr as usize) < shadow_lock.len() {
-        let current = shadow_lock[addr as usize];
-        let new_weight = current + delta_w;
-        shadow_lock[addr as usize] = new_weight;
-        new_weight
-    } else {
-        0.0
+        shadow_lock[addr as usize] += delta_w;
     }
 }
 
@@ -787,6 +795,21 @@ fn main() {
 
             println!("[BRAIN] Weight atlas uploaded to GPU texture ({} bytes)", rgba_data.len());
             println!("[BRAIN] PixelBrain initialized - chat learning enabled");
+
+            // Initialize GPU Hebbian processor for parallel weight updates
+            let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+            let processor = GPUHebbianProcessor::new(
+                Arc::clone(&device),
+                Arc::clone(&queue),
+                texture_view,
+                size,
+            );
+            if HEBBIAN_PROCESSOR.set(Mutex::new(processor)).is_ok() {
+                println!("[HEBBIAN] GPU processor initialized with batch size 256");
+            } else {
+                eprintln!("[HEBBIAN] Warning: Failed to initialize GPU processor (already set?)");
+            }
+
             Some(texture)
         }
         Err(e) => {
@@ -2005,25 +2028,24 @@ fn handle_raw_request<S: Read + Write>(
         // Calculate reward signal (-1.0 to 1.0)
         let reward = rating as f32 / 1.0; // Assuming rating is -1, 0, or 1
 
-        // Apply Hebbian updates: Δw = η × activation × reward
-        let learning_rate = 0.01; // η - learning rate
+        // Apply Hebbian updates: Δw = η × pre × post × reward
+        // Using activation as post-synaptic, with pre-synaptic = 1.0 (simplified)
+        let learning_rate = 0.01; // η - must match GPUHebbianProcessor default
         let mut updates_applied = 0;
 
         for i in 0..chat_activations.addresses.len() {
             let addr = chat_activations.addresses[i];
-            let activation = chat_activations.strengths[i];
+            let post_activation = chat_activations.strengths[i];
+            let pre_activation = 1.0; // Simplified: assume input neuron fully activated
 
-            // Apply Hebbian update: Δw = η × activation × reward
-            let delta_w = learning_rate * activation * reward;
-
-            // Apply actual weight update via OP_GLYPH_MUTATE
+            // Apply Hebbian update via GPU batch processing
+            let delta_w = 0.01 * pre_activation * post_activation * reward;
             if delta_w.abs() > 0.0001 {
-                // Apply the update to the brain shadow buffer
-                let new_weight = apply_hebbian_update(addr, delta_w);
+                apply_hebbian_update(addr, pre_activation, post_activation, reward);
 
                 // Log significant weight changes
                 if i < 5 {
-                    println!("[HEBBIAN] addr=0x{:06X} delta_w={:.6} -> w={:.6}", addr, delta_w, new_weight);
+                    println!("[HEBBIAN] addr=0x{:06X} pre={:.3} post={:.3} reward={:.3}", addr, pre_activation, post_activation, reward);
                 }
 
                 updates_applied += 1;
