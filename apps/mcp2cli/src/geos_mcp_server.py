@@ -42,6 +42,13 @@ try:
 except ImportError:
     ECC_GUILD_AVAILABLE = False
 
+# ECC Skills Bridge integration
+try:
+    from ecc_skills_bridge import ECC_SKILLS_MCP_TOOLS, dispatch_skills_tool
+    ECC_SKILLS_AVAILABLE = True
+except ImportError:
+    ECC_SKILLS_AVAILABLE = False
+
 # Geometry OS paths (relative to this file)
 GEOS_ROOT = Path(__file__).parent.parent.parent.parent
 GLYPH_COMPILER = GEOS_ROOT / "compile_glyph.py"
@@ -231,6 +238,13 @@ async def list_tools():
         Tool(name="ecc_guild_dispatch", description="Dispatch a task to an ECC agent instance", inputSchema={"type": "object", "properties": {"instance_id": {"type": "string", "description": "Instance ID"}, "task": {"type": "string", "description": "Task description"}, "context": {"type": "object", "description": "Optional context"}}, "required": ["instance_id", "task"]}),
         Tool(name="ecc_guild_spatial_state", description="Get spatial state for Infinite Map visualization", inputSchema={"type": "object"}),
         Tool(name="ecc_guild_discover", description="Discover all ECC agents and register them", inputSchema={"type": "object"}),
+        # ECC Skills Bridge Tools
+        Tool(name="ecc_skills_status", description="Get ECC Skills Bridge status and organization", inputSchema={"type": "object"}),
+        Tool(name="ecc_skills_list", description="List available ECC skills", inputSchema={"type": "object", "properties": {"category": {"type": "string", "description": "Filter by category", "enum": ["testing", "patterns", "review", "planning", "domain", "bmad", "superpowers"]}}}),
+        Tool(name="ecc_skills_execute", description="Execute an ECC skill", inputSchema={"type": "object", "properties": {"skill_name": {"type": "string", "description": "Skill to execute"}, "context": {"type": "object", "description": "Execution context"}, "mode": {"type": "string", "enum": ["cpu", "gpu"], "default": "cpu"}}, "required": ["skill_name"]}),
+        Tool(name="ecc_skills_find", description="Find a skill by trigger phrase", inputSchema={"type": "object", "properties": {"text": {"type": "string", "description": "Text to match against triggers"}}, "required": ["text"]}),
+        Tool(name="ecc_skills_spatial", description="Get spatial state for Infinite Map visualization", inputSchema={"type": "object"}),
+        Tool(name="ecc_skills_discover", description="Discover all ECC skills and register them", inputSchema={"type": "object"}),
     ]
 
 @app.call_tool()
@@ -2601,6 +2615,34 @@ async def tool_ecc_dispatch(name: str, args: dict) -> list[TextContent]:
 
         try:
             result = await dispatch_guild_tool(name, args)
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, indent=2)
+            )]
+        except Exception as e:
+            return [TextContent(
+                type="text",
+                text=json.dumps({
+                    "status": "error",
+                    "error": str(e),
+                    "tool": name
+                }, indent=2)
+            )]
+
+    # Route skills tools to the skills dispatcher
+    if name.startswith("ecc_skills_"):
+        if not ECC_SKILLS_AVAILABLE:
+            return [TextContent(
+                type="text",
+                text=json.dumps({
+                    "status": "error",
+                    "error": "ECC Skills Bridge not available. Ensure ecc_skills_bridge.py is in the same directory.",
+                    "tool": name
+                }, indent=2)
+            )]
+
+        try:
+            result = await dispatch_skills_tool(name, args)
             return [TextContent(
                 type="text",
                 text=json.dumps(result, indent=2)
