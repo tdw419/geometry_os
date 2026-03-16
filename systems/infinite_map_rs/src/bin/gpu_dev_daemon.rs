@@ -311,42 +311,6 @@ trait ThoughtPulseBroadcaster: Send + Sync {
     fn broadcast(&self, pulse: &ThoughtPulse) -> Result<(), Box<dyn std::error::Error>>;
 }
 
-/// WebSocket broadcaster implementation
-struct WebsocketBroadcaster {
-    /// Connected WebSocket clients
-    clients: Arc<
-        Mutex<
-            Vec<
-                Arc<
-                    Mutex<
-                        Box<
-                            dyn futures::Sink<warp::ws::Message, Error = warp::Error> + Send + Sync,
-                        >,
-                    >,
-                >,
-            >,
-        >,
-    >,
-}
-
-impl ThoughtPulseBroadcaster for WebsocketBroadcaster {
-    fn broadcast(&self, pulse: &ThoughtPulse) -> Result<(), Box<dyn std::error::Error>> {
-        let message = warp::ws::Message::text(serde_json::to_string(pulse)?);
-        let mut clients = self.clients.lock().unwrap();
-
-        // Send to all connected clients and remove disconnected ones
-        clients.retain(|client| {
-            let mut client = client.lock().unwrap();
-            match client.try_send(message.clone()) {
-                Ok(_) => true,   // Keep connected client
-                Err(_) => false, // Remove disconnected client
-            }
-        });
-
-        Ok(())
-    }
-}
-
 /// Static storage for the WebSocket broadcaster
 static THOUGHT_PULSE_BROADCASTER: OnceLock<Option<Arc<dyn ThoughtPulseBroadcaster>>> =
     OnceLock::new();
@@ -1761,7 +1725,7 @@ fn handle_raw_request<S: Read + Write>(
 
         // Broadcast thought pulse via WebSocket if we have updates
         if updates_applied > 0 {
-            if let Some(broadcaster) = THOUGHT_PULSE_BROADCASTER.get() {
+            if let Some(broadcaster) = THOUGHT_PULSE_BROADCASTER.get().and_then(|opt| opt.as_ref()) {
                 let thought_pulse = ThoughtPulse {
                     timestamp: Instant::now().elapsed().as_millis() as u64,
                     chat_id: chat_id.clone(),
