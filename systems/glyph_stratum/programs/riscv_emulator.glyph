@@ -218,10 +218,11 @@
     SHR r103, 7
     LDI r17, 0x1F
     AND r103, r17
-    // Load current value
+    // Load current value: addr = 0x14100 + (rd * 4)
+    MOV r1, r103
+    SHL r1, 2              // r1 = rd * 4
     LDI r30, 0x14100
-    ADD r30, r103
-    ADD r30, r103
+    ADD r30, r1
     LOAD r30, r21
     JMP handle_c_li
 
@@ -360,10 +361,11 @@
     AND r104, r17
     MOV r106, r101
     SAR r106, 20
-    // Load rs1 from guest regs
+    // Load rs1 from guest regs: addr = 0x14100 + (rs1 * 4)
+    MOV r1, r104
+    SHL r1, 2
     LDI r30, 0x14100
-    ADD r30, r104
-    ADD r30, r104
+    ADD r30, r1
     LOAD r30, r2
     ADD r2, r106
     LDI r17, 0xFFFFFFFE
@@ -393,9 +395,11 @@
     LDI r30, 0x14300
     ADD r30, r106
     LOAD r30, r21
+    // Load rs1: addr = 0x14100 + (rs1 * 4)
+    MOV r1, r104
+    SHL r1, 2
     LDI r31, 0x14100
-    ADD r31, r104
-    ADD r31, r104
+    ADD r31, r1
     LOAD r31, r2
     STORE r30, r2
     JMP writeback_rd
@@ -430,10 +434,11 @@
     AND r104, r17
     MOV r106, r101
     SAR r106, 20
-    // Load rs1
+    // Load rs1: addr = 0x14100 + (rs1 * 4)
+    MOV r1, r104
+    SHL r1, 2
     LDI r30, 0x14100
-    ADD r30, r104
-    ADD r30, r104
+    ADD r30, r1
     LOAD r30, r2
     ADD r2, r106
     // Check for UART
@@ -462,16 +467,18 @@
     SAR r3, 25
     SHL r3, 5
     OR r16, r3
-    // Load rs1
+    // Load rs1: addr = 0x14100 + (rs1 * 4)
+    MOV r1, r104
+    SHL r1, 2
     LDI r30, 0x14100
-    ADD r30, r104
-    ADD r30, r104
+    ADD r30, r1
     LOAD r30, r2
     ADD r2, r16
-    // Load rs2
+    // Load rs2: addr = 0x14100 + (rs2 * 4)
+    MOV r1, r105
+    SHL r1, 2
     LDI r30, 0x14100
-    ADD r30, r105
-    ADD r30, r105
+    ADD r30, r1
     LOAD r30, r21
     // Check for UART
     LDI r17, 0x1000
@@ -492,10 +499,11 @@
     LDI r17, 0
     SUB r103, r17
     JZ fetch
-    // Store r21 to guest reg[rd]
+    // Store r21 to guest reg[rd]: addr = 0x14100 + (rd * 4)
+    MOV r1, r103
+    SHL r1, 2
     LDI r30, 0x14100
-    ADD r30, r103
-    ADD r30, r103
+    ADD r30, r1
     STORE r30, r21
     JMP fetch
 
@@ -513,10 +521,11 @@
     AND r17, r18
     MOV r106, r101
     SAR r106, 20
-    // Load rs1
+    // Load rs1: addr = 0x14100 + (rs1 * 4)
+    MOV r1, r104
+    SHL r1, 2
     LDI r30, 0x14100
-    ADD r30, r104
-    ADD r30, r104
+    ADD r30, r1
     LOAD r30, r21
     // funct3 dispatch
     JZ imm_addi
@@ -562,15 +571,17 @@
     SHR r17, 12
     LDI r18, 0x7
     AND r17, r18
-    // Load rs1
+    // Load rs1: addr = 0x14100 + (rs1 * 4)
+    MOV r1, r104
+    SHL r1, 2
     LDI r30, 0x14100
-    ADD r30, r104
-    ADD r30, r104
+    ADD r30, r1
     LOAD r30, r21
-    // Load rs2
+    // Load rs2: addr = 0x14100 + (rs2 * 4)
+    MOV r1, r105
+    SHL r1, 2
     LDI r30, 0x14100
-    ADD r30, r105
-    ADD r30, r105
+    ADD r30, r1
     LOAD r30, r22
     // funct3 dispatch
     JZ reg_add_sub
@@ -619,9 +630,11 @@
     AND r103, r17
     LOAD r10, r100
     JZ jal_skip_ra
+    // Store return address: addr = 0x14100 + (rd * 4)
+    MOV r1, r103
+    SHL r1, 2
     LDI r30, 0x14100
-    ADD r30, r103
-    ADD r30, r103
+    ADD r30, r1
     STORE r30, r100
 
 :jal_skip_ra
@@ -667,15 +680,17 @@
     MOV r105, r101
     SHR r105, 20
     AND r105, r17
-    // Load rs1
+    // Load rs1: addr = 0x14100 + (rs1 * 4)
+    MOV r1, r104
+    SHL r1, 2
     LDI r30, 0x14100
-    ADD r30, r104
-    ADD r30, r104
+    ADD r30, r1
     LOAD r30, r21
-    // Load rs2
+    // Load rs2: addr = 0x14100 + (rs2 * 4)
+    MOV r1, r105
+    SHL r1, 2
     LDI r30, 0x14100
-    ADD r30, r105
-    ADD r30, r105
+    ADD r30, r1
     LOAD r30, r22
     MOV r17, r101
     SHR r17, 12

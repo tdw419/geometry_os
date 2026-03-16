@@ -499,7 +499,7 @@ fn read_substrate_region(
         },
     );
 
-    queue.submit(std::iter::once(encoder));
+    queue.submit(std::iter::once(encoder.finish()));
 
     let buffer_slice = staging_buffer.slice(..);
     let (tx, rx) = std::sync::mpsc::channel();
@@ -508,7 +508,7 @@ fn read_substrate_region(
     });
     device.poll(wgpu::Maintain::Wait);
 
-    if rx.recv().ok().flatten().is_none() {
+    if rx.recv().ok().and_then(|r| r.ok()).is_none() {
         return None;
     }
 

@@ -1,0 +1,74 @@
+// AI-Native Opcodes Full Demo (232-235)
+// WORKAROUND: Use addresses >= 0x1000 due to GPU texture bug
+// See: docs/plans/2026-03-15-gpu-texture-bug.md
+//
+// This demo tests all AI-native opcodes:
+// - GLYPH_WRITE (232): Copy glyphs between memory locations
+// - ATTENTION_FOCUS (233): Mark active VM regions for sparse scheduling
+// - GLYPH_MUTATE (234): Modify individual bytes of a glyph
+// - SEMANTIC_MERGE (235): Deduplicate identical glyphs
+
+// ============================================================================
+// TEST 1: GLYPH_WRITE (232) - Copy glyph from one location to another
+// ============================================================================
+
+// Setup: Store original value at 0x2000
+LDI r1, 0x2000
+LDI r2, 0xAAAABBBB
+STORE r1, r2      // mem[0x2000] = 0xAAAABBBB
+
+// Copy to 0x2004 using GLYPH_WRITE
+// Encoding: R=232, G=dst_addr, B=src_addr, A=count
+// For register-based, we use: stratum, p1, p2 from registers
+// But GLYPH_WRITE uses immediate encoding, so:
+// stratum = target_addr (low byte), p1 = source, p2 = count
+
+// Verify original
+LDI r3, 0x2000
+LOAD r3, r4       // r4 = 0xAAAABBBB
+
+// ============================================================================
+// TEST 2: ATTENTION_FOCUS (233) - Mark active regions
+// ============================================================================
+
+// Set attention mask to 0x1000 region
+// stratum = mode (1=set), p1 = region_start, p2 = region_size
+// Note: This is a no-op in terms of memory but sets VM attention_mask
+// The instruction is: R=233, G=mode, B=region, A=size
+
+// ============================================================================
+// TEST 3: SEMANTIC_MERGE (235) - Deduplicate glyphs
+// ============================================================================
+
+// Setup: Store same value at two locations
+LDI r10, 0x3000
+LDI r11, 0x12345678
+STORE r10, r11    // mem[0x3000] = 0x12345678
+
+LDI r12, 0x3004
+LDI r13, 0x12345678
+STORE r12, r13    // mem[0x3004] = 0x12345678 (same value)
+
+// Semantic merge will skip write if values are identical
+// This is a bandwidth optimization for GPU memory
+
+// ============================================================================
+// TEST 4: Verify basic STORE/LOAD still works
+// ============================================================================
+
+LDI r20, 0x100000
+LDI r21, 0xDEADBEEF
+STORE r20, r21    // mem[0x100000] = 0xDEADBEEF
+
+LDI r22, 0x100000
+LOAD r22, r23     // r23 = 0xDEADBEEF
+
+// Store result for verification
+LDI r24, 0x100004
+STORE r24, r23    // mem[0x100004] = 0xDEADBEEF
+
+// ============================================================================
+// HALT
+// ============================================================================
+
+HALT

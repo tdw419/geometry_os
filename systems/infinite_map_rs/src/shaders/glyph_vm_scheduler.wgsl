@@ -44,6 +44,9 @@ const OP_SAR: u32    = 133u;
 const OP_SPATIAL_SPAWN: u32 = 225u;
 const OP_GLYPH_MUTATE: u32  = 226u;
 const OP_GLYPH_WRITE: u32   = 232u;  // Write glyphs into RAM (self-modifying code)
+const OP_ATTENTION_FOCUS: u32 = 233u;  // Mark active regions for sparse execution
+const OP_GLYPH_MUTATE_FIELD: u32 = 234u;  // Single-field glyph modification
+const OP_SEMANTIC_MERGE: u32 = 235u;  // Deduplicate glyph clusters
 
 // Memory-based opcodes (200-227) - for compiled programs
 const OP2_NOP: u32 = 200u;
@@ -93,7 +96,7 @@ struct VmState {
     regs: array<u32, 128>,
     pc: u32, halted: u32, stratum: u32, cycles: u32, stack_ptr: u32,
     vm_id: u32, state: u32, parent_id: u32, entry_point: u32,
-    base_addr: u32, bound_addr: u32, _padding: u32,
+    base_addr: u32, bound_addr: u32, attention_mask: u32,
     stack: array<u32, 64>,
 }
 
@@ -383,7 +386,25 @@ fn execute_instruction(vm_idx: u32) {
              vms[vm_idx].pc = vms[vm_idx].pc + 1u;
          }
          case 233u: { // ATTENTION_FOCUS: Mark active regions for sparse execution
-              // TODO: Implement attention masking when scheduler struct supports it
+              // stratum = attention mode (0=clear, 1=set, 2=add, 3=remove)
+              // p1 = region start address, p2 = region size
+              let mode = u32(stratum);
+              let region_start = u32(p1);
+              let region_size = u32(p2);
+
+              if (mode == 0u) {
+                  // Clear attention mask
+                  vms[vm_idx].attention_mask = 0u;
+              } else if (mode == 1u) {
+                  // Set attention mask to this region
+                  vms[vm_idx].attention_mask = region_start;
+              } else if (mode == 2u) {
+                  // Add to attention (OR with current)
+                  vms[vm_idx].attention_mask = vms[vm_idx].attention_mask | region_start;
+              } else if (mode == 3u) {
+                  // Remove from attention (AND NOT)
+                  vms[vm_idx].attention_mask = vms[vm_idx].attention_mask & (~region_start);
+              }
               vms[vm_idx].pc = vms[vm_idx].pc + 1u;
          }
 

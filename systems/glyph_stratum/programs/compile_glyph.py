@@ -42,7 +42,7 @@ OPCODES = {
 }
 
 BRANCH_CONDS = {
-    "BEQ": 0, "BNE": 1, "BLT": 2, "BGE": 3, "BLTU": 4, "BGEU": 5, "JZ": 0,
+    "BEQ": 0, "BNE": 1, "BLT": 2, "BGE": 3, "BLTU": 4, "BGEU": 5, "JZ": 0, "JNZ": 1,
 }
 
 def hilbert_d2xy(n, d):
@@ -122,12 +122,19 @@ def parse_glyph(source):
             final_pixels.append([imm & 0xFF, (imm >> 8) & 0xFF, (imm >> 16) & 0xFF, (imm >> 24) & 0xFF])
         elif op_name in BRANCH_CONDS:
             cond = BRANCH_CONDS[op_name]
-            rs1 = int(parts[1].lower().replace("r", ""))
             rs2 = 0
-            if op_name != "JZ":
+            # Check if it's single-operand format: JZ label (implicit r0 check)
+            # or two-operand format: JZ r1, label
+            if len(parts) == 2 or (len(parts) >= 2 and not parts[1].lower().startswith("r")):
+                # Single operand: JZ label -> rs1=0 (check implicit zero from prev op)
+                rs1 = 0
+                target_str = parts[1]
+            elif op_name not in ("JZ", "JNZ"):
+                rs1 = int(parts[1].lower().replace("r", ""))
                 rs2 = int(parts[2].lower().replace("r", ""))
                 target_str = parts[3]
             else:
+                rs1 = int(parts[1].lower().replace("r", ""))
                 target_str = parts[2]
                 
             imm = symbols.get(target_str, 0)
@@ -214,8 +221,23 @@ def compile_glyph_file(input_path, output_path):
     Image.fromarray(pixels.astype(np.uint8)).save(output_path)
     print(f"Compiled {len(pixels_data)} pixels to {output_path}")
 
+def compile_glyph_raw(source_path, output_path):
+    """Compile glyph to raw binary (4 bytes per pixel, RGBA order, linear)"""
+    with open(source_path) as f:
+        source = f.read()
+    pixels_data = parse_glyph(source)
+
+    # Write raw bytes: each pixel is 4 bytes (RGBA)
+    with open(output_path, 'wb') as f:
+        for pixel in pixels_data:
+            f.write(bytes(pixel))  # R, G, B, A
+    print(f"Compiled {len(pixels_data)} pixels to raw binary {output_path}")
+
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: compile_glyph.py <in> <out>")
+        print("Usage: compile_glyph.py <in> <out> [--raw]")
         sys.exit(1)
-    compile_glyph_file(sys.argv[1], sys.argv[2])
+    if len(sys.argv) > 3 and sys.argv[3] == "--raw":
+        compile_glyph_raw(sys.argv[1], sys.argv[2])
+    else:
+        compile_glyph_file(sys.argv[1], sys.argv[2])

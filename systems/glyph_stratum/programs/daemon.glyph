@@ -50,7 +50,7 @@
     LOAD r1, r2          // r2 = mem[CTRL_PORT]
     LDI r3, 1
     SUB r2, r3           // if (r2 == 1) res=0
-    JZ process_request
+    JZ r2, process_request
     JMP poll_request
 
 // ============================================================================
@@ -81,13 +81,13 @@
     // --- CHECK GET METHOD ---
     LDI r3, METHOD_GET
     SUB r10, r3          // Compare method with "GET "
-    JNZ check_post       // If not GET, check POST
+    JNZ r10, check_post       // If not GET, check POST
 
     // --- GET ROUTES ---
     // Check for /state (path starts with "/sta")
     LDI r3, PATH_STATE
     SUB r11, r3
-    JZ handle_get_state
+    JZ r11, handle_get_state
 
     // Unknown GET path - 404
     JMP send_404
@@ -99,13 +99,13 @@
     // For simplicity, check the first 4 bytes for "POST"
     LDI r3, METHOD_POST
     SUB r10, r3
-    JNZ send_404         // Unknown method - 404
+    JNZ r10, send_404         // Unknown method - 404
 
     // --- POST ROUTES ---
     // Check for /command (path starts with "/comm")
     LDI r3, PATH_COMM
     SUB r11, r3
-    JZ handle_post_command
+    JZ r11, handle_post_command
 
     // Unknown POST path - 404
     JMP send_404
