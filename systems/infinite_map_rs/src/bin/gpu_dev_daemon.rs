@@ -1048,9 +1048,12 @@ fn read_from_substrate(
 ) -> Vec<u8> {
     let num_words = (max_bytes + 3) / 4;
 
+    // wgpu requires bytes_per_row to be aligned to COPY_BYTES_PER_ROW_ALIGNMENT (256)
+    let bytes_per_row = ((num_words * 4 + 255) / 256) * 256;
+
     let staging = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("read_from_substrate staging"),
-        size: (num_words * 4) as u64,
+        size: bytes_per_row as u64,
         usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
         mapped_at_creation: false,
     });
@@ -1059,6 +1062,8 @@ fn read_from_substrate(
         label: Some("read_from_substrate encoder"),
     });
 
+    // Read each pixel individually - we use a properly aligned buffer
+    // but copy each pixel to its own position
     for i in 0..num_words as u32 {
         let (tx, ty) = hilbert_d2xy(4096, base_addr + i);
         encoder.copy_texture_to_buffer(
@@ -1072,7 +1077,7 @@ fn read_from_substrate(
                 buffer: &staging,
                 layout: wgpu::ImageDataLayout {
                     offset: (i * 4) as u64,
-                    bytes_per_row: Some(4),
+                    bytes_per_row: Some(bytes_per_row as u32),
                     rows_per_image: Some(1),
                 },
             },
