@@ -9,8 +9,8 @@ import html as html_module
 import tempfile
 from typing import Dict, Any, Optional, List
 
-from .libreoffice.utils.odf_utils import write_odf, ODF_EXTENSIONS
-from .libreoffice.utils.lo_backend import convert_odf_to
+from ..utils.odf_utils import write_odf, ODF_EXTENSIONS
+from ..utils.lo_backend import convert_odf_to
 
 
 # Export presets
