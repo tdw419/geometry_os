@@ -392,45 +392,91 @@ curl "http://127.0.0.1:8769/read?addr=0x31000&len=4"
   2. **No 64-bit integers** - i32 only
   3. **No indirect calls** - No function tables
   4. **Limited memory** - 64KB (1 page) only
-  5. **No imports** - No host functions yet
+  5. **Host functions subset** - Only poke, peek, print, spawn, kill
   6. **IF/ELSE skipping** - Requires forward END scanning (stubbed)
 
 ## Host Functions (WASM → Glyph Bridge)
 
-To enable practical programs, WASM needs to call Geometry OS services:
+### Implemented Functions
 
-### Current Status
-- No host function interface implemented yet
-- WASM programs are currently limited to pure computation
+WASM programs can import host functions from the `geos` module:
 
-### Planned Interface
-Host functions will be exposed as WASM imports:
+| Function | Params | Returns | Description |
+|----------|--------|---------|-------------|
+| `poke` | (addr: i32, val: i32) | - | Write to substrate memory |
+| `peek` | (addr: i32) | i32 | Read from substrate memory |
+| `print` | (ptr: i32, len: i32) | - | Write string to console |
+| `spawn` | (path_ptr: i32, path_len: i32) | i32 | Spawn glyph VM (stub) |
+| `kill` | (vm_id: i32) | - | Kill VM (stub) |
+
+### Usage Example (Rust)
+
+```rust
+#![no_std]
+
+#[link(wasm_import_module = "geos")]
+extern "C" {
+    fn poke(addr: i32, val: i32);
+    fn peek(addr: i32) -> i32;
+    fn print(ptr: i32, len: i32);
+}
+
+#[no_mangle]
+pub extern "C" fn _start() {
+    unsafe {
+        poke(0x1000, 42);          // Write to substrate
+        let val = peek(0x1000);     // Read back
+
+        static MSG: &[u8] = b"Hello";
+        print(MSG.as_ptr() as i32, MSG.len() as i32);
+    }
+}
+
+#[panic_handler]
+fn panic(_: &core::panic::PanicInfo) -> ! {
+    loop {}
+}
 ```
+
+### Usage Example (WAT)
+
+```wat
 (module
-  (import "glyph" "uart_write" (func $uart_write (param i32 i32)))
-  (import "glyph" "get_timer" (func $get_timer (result i32)))
-  ;; etc.
+  (import "geos" "poke" (func $poke (param i32 i32)))
+  (import "geos" "peek" (func $peek (param i32) (result i32)))
+  (import "geos" "print" (func $print (param i32 i32)))
+  (memory 1)
+
+  (func (export "_start")
+    i32.const 0x1000
+    i32.const 42
+    call $poke
+
+    i32.const 0x1000
+    call $peek
+    ;; result on stack
+  )
 )
 ```
 
-### Calling Convention
-- Parameters passed via linear memory (standard WASM calling convention)
-- Results returned in registers or via memory pointers
-- Function signatures defined in Glyph using standard WASM types
+### Testing
 
-### Example: UART Output
-```wat
-;; Write a byte to UART
-(i32.const 0x0200)    ;; UART_OUT address
-(i32.const 65)        ;; ASCII 'A'
-(call $glyph_uart_write)
+```bash
+# Build test program
+cd systems/glyph_stratum/tests/wasm/host_test
+cargo build --target wasm32-unknown-unknown --release
+
+# Start daemon
+cargo run --release --bin gpu_dev_daemon &
+
+# Load WASM binary at linear memory base
+curl -X POST "http://127.0.0.1:8769/load?binary=0x20000" \
+    --data-binary @target/wasm32-unknown-unknown/release/wasm_host_test.wasm
+
+# Check daemon output for "[WASM] poke(0x1000, 0x2a)" etc.
+# Verify with substrate read:
+curl "http://127.0.0.1:8769/read?addr=0x1000&len=8"
 ```
-
-### Implementation Plan
-1. Define host function table in Glyph memory
-2. Implement `call_import` opcode handler
-3. Export standard functions: UART, timers, framebuffer access
-4. Provide Glyph-compatible wrappers for common libc functions
 
 ## WASI Support
 
