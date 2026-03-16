@@ -744,14 +744,16 @@ fn sync_trap_region_to_shadow(
 ) {
     use infinite_map_rs::trap_interface::TRAP_BASE;
 
-    // TRAP_BASE is a byte address, convert to word address for Hilbert coordinates
-    let base_word = TRAP_BASE / 4; // Convert byte address to word address
+    // VM uses byte addresses directly as Hilbert distances
+    // TRAP_BASE = 0x03F00000 is both the byte address AND the Hilbert distance
+    let base_hilbert = TRAP_BASE; // Use directly, dont divide by 4
 
     // Read 8 pixels (32 bytes) from trap region
     for i in 0..8 {
-        let (px, py) = hilbert_d2xy(4096, base_word + i);
+        let (px, py) = hilbert_d2xy(4096, base_hilbert + i);
         if let Some(bytes) = read_single_texture_pixel(texture, device, queue, px, py) {
-            scheduler.poke_substrate_single(base_word + i, u32::from_le_bytes(bytes));
+            // poke_substrate_single expects word address, so divide by 4
+            scheduler.poke_substrate_single((base_hilbert + i) / 4, u32::from_le_bytes(bytes));
         }
     }
 }
