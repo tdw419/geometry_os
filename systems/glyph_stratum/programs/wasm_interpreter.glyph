@@ -192,7 +192,7 @@
     LOAD r1, r2            // r2 = current status
     LDI r3, STATUS_RUNNING
     SUB r2, r3             // r2 = status - RUNNING
-    JZ r2, r13             // if status == RUNNING, continue (jump to wasm_continue)
+    JZ r2, wasm_continue   // if status == RUNNING, continue to fetch
     JMP wasm_halt          // Not running, exit
 
 :wasm_continue
