@@ -976,6 +976,10 @@ fn handle_raw_request<S: Read + Write>(
                     shadow[shadow_offset..shadow_offset + 4].copy_from_slice(&value.to_le_bytes());
                 }
 
+                // Submit and wait for GPU to process the write
+                queue.submit(None);
+                device.poll(wgpu::Maintain::Wait);
+
                 let response = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"ok\":true,\"addr\":\"0x{:x}\",\"value\":\"0x{:x}\"}}",
                     addr, value
