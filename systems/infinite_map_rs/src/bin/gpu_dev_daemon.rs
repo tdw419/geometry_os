@@ -1373,6 +1373,7 @@ fn read_u32_from_substrate(
 ) -> u32 {
     let (tx, ty) = hilbert_d2xy(4096, addr);
     println!("[READ] addr=0x{:x} -> pixel({}, {})", addr, tx, ty);
+    std::io::stdout().flush().ok();
 
     let staging = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("read_u32 staging"),
@@ -1418,10 +1419,12 @@ fn read_u32_from_substrate(
     if let Ok(Ok(())) = rx.recv() {
         let data = slice.get_mapped_range();
         let val = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
+        println!("[READ] Read value: 0x{:08x} from pixel({}, {})", val, tx, ty);
         drop(data);
         staging.unmap();
         val
     } else {
+        println!("[READ] Failed to map buffer!");
         0
     }
 }
