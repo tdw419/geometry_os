@@ -1332,7 +1332,13 @@ fn write_to_substrate(
             },
         );
     }
+
+    // Submit all writes and wait for completion
+    queue.submit(None);
     device.poll(wgpu::Maintain::Wait);
+
+    // Small delay to ensure GPU has processed the writes
+    std::thread::sleep(std::time::Duration::from_millis(10));
 
     // Verify write by reading back first word
     let verify_val = read_u32_from_substrate(base_addr, texture, device, queue);
@@ -1375,6 +1381,9 @@ fn read_u32_from_substrate(
     println!("[READ] addr=0x{:x} -> pixel({}, {})", addr, tx, ty);
     std::io::stdout().flush().ok();
 
+    // Ensure any pending GPU operations complete before reading
+    device.poll(wgpu::Maintain::Wait);
+
     let staging = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("read_u32 staging"),
         size: 256,
@@ -1407,7 +1416,9 @@ fn read_u32_from_substrate(
             depth_or_array_layers: 1,
         },
     );
+    println!("[READ] Copy origin: ({}, {})", tx, ty);
     queue.submit(Some(encoder.finish()));
+    device.poll(wgpu::Maintain::Wait);
 
     let slice = staging.slice(..);
     let (tx_chan, rx) = std::sync::mpsc::channel();
