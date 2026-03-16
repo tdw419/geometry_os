@@ -771,26 +771,24 @@ fn handle_raw_request<S: Read + Write>(
         return;
     }
 
-    // Chat history storage at 0x00F00000 (within 4096x4096 texture bounds)
-    // Simple format: null-terminated string at offset 0
-    const CHAT_HISTORY_BASE: u32 = 0x00F00000;
+    // Chat history storage - in-memory for reliability
+    // Note: GPU substrate storage would require async reads which can cause issues
+    // Using thread-local storage for simplicity
+    use std::sync::OnceLock;
+    static CHAT_HISTORY: OnceLock<std::sync::Mutex<String>> = OnceLock::new();
     const CHAT_HISTORY_MAX: usize = 0x10000; // 64KB
 
-    // GET /chat_history - Read chat history from substrate
+    // GET /chat_history - Read chat history
     if request_str.starts_with("GET /chat_history") {
-        // Read raw bytes from substrate using async GPU read
-        let data = read_from_substrate(CHAT_HISTORY_MAX, texture, device, queue, CHAT_HISTORY_BASE);
-
-        // Find null terminator
-        let content_end = data.iter().position(|&b| b == 0).unwrap_or(data.len());
-        let content = String::from_utf8_lossy(&data[..content_end]);
+        let history = CHAT_HISTORY.get_or_init(|| std::sync::Mutex::new(String::new()));
+        let content = history.lock().unwrap().clone();
 
         let response = format!(
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}",
             serde_json::json!({
                 "status": "ok",
                 "content": content,
-                "bytes": content_end
+                "bytes": content.len()
             }).to_string()
         );
         let _ = stream.write_all(response.as_bytes());
@@ -809,31 +807,27 @@ fn handle_raw_request<S: Read + Write>(
 
             // Format: [role] content\n
             let formatted = format!("[{}] {}\n", role.to_uppercase(), content);
-            let new_bytes = formatted.as_bytes();
 
-            // Read existing content to find append position
-            let existing = read_from_substrate(CHAT_HISTORY_MAX, texture, device, queue, CHAT_HISTORY_BASE);
-            let append_pos = existing.iter().position(|&b| b == 0).unwrap_or(0);
+            let history = CHAT_HISTORY.get_or_init(|| std::sync::Mutex::new(String::new()));
+            let mut hist = history.lock().unwrap();
 
             // Check if we have space
-            if append_pos + new_bytes.len() >= CHAT_HISTORY_MAX {
-                let _ = stream.write_all(b"HTTP/1.1 413 Payload Too Large\r\nContent-Type: application/json\r\n\r\n{\"error\":\"history full\"}");
-                return;
+            if hist.len() + formatted.len() >= CHAT_HISTORY_MAX {
+                // Truncate old content
+                let overflow = (hist.len() + formatted.len()) - CHAT_HISTORY_MAX + 1000;
+                if overflow < hist.len() {
+                    hist.drain(..overflow);
+                }
             }
 
-            // Write new content at append position
-            let mut combined = vec![0u8; CHAT_HISTORY_MAX];
-            combined[..append_pos].copy_from_slice(&existing[..append_pos]);
-            combined[append_pos..append_pos + new_bytes.len()].copy_from_slice(new_bytes);
-
-            write_to_substrate(&combined[..append_pos + new_bytes.len() + 1], texture, device, queue, CHAT_HISTORY_BASE);
+            hist.push_str(&formatted);
 
             let response = format!(
                 "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}",
                 serde_json::json!({
                     "status": "ok",
-                    "appended": new_bytes.len(),
-                    "total": append_pos + new_bytes.len()
+                    "appended": formatted.len(),
+                    "total": hist.len()
                 }).to_string()
             );
             let _ = stream.write_all(response.as_bytes());
