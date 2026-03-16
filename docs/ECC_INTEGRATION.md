@@ -239,12 +239,154 @@ Get architectural guidance.
 }
 ```
 
+### ecc_canvas
+
+Render ECC learning state as visual canvas (PNG/JSON) for Infinite Map visualization.
+
+**Input Schema:**
+```json
+{
+  "output_dir": "string (optional) - Output directory (default: cwd)",
+  "format": "png | json | both (default: both)"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "files": {
+    "png": "/tmp/ecc_canvas.png",
+    "json": "/tmp/ecc_canvas.json"
+  },
+  "health": 60.0,
+  "state": {
+    "commands_count": 117,
+    "skills_count": 66,
+    "agents_count": 46,
+    "rules_count": 53
+  }
+}
+```
+
+## ECC Agent Guild Tools
+
+### ecc_guild_status
+
+Get ECC Agent Guild status and organization.
+
+**Input Schema:**
+```json
+{}
+```
+
+**Response:**
+```json
+{
+  "status": "active",
+  "total_agents": 25,
+  "active_instances": 1,
+  "guilds": {
+    "engineering": {"member_count": 4, "sector_range": [8000000, 8400000]},
+    "review": {"member_count": 6, "sector_range": [9000000, 9900000]},
+    ...
+  }
+}
+```
+
+### ecc_guild_list_agents
+
+List ECC agents available as guild members.
+
+**Input Schema:**
+```json
+{
+  "guild": "engineering | review | testing | analysis | bmad (optional)"
+}
+```
+
+### ecc_guild_spawn
+
+Spawn an ECC agent as a guild member.
+
+**Input Schema:**
+```json
+{
+  "agent_name": "string (required)",
+  "hilbert_position": "integer (optional)"
+}
+```
+
+### ecc_guild_despawn
+
+Remove an agent instance from the guild.
+
+**Input Schema:**
+```json
+{
+  "instance_id": "string (required)"
+}
+```
+
+### ecc_guild_dispatch
+
+Dispatch a task to an ECC agent instance.
+
+**Input Schema:**
+```json
+{
+  "instance_id": "string (required)",
+  "task": "string (required)",
+  "context": "object (optional)"
+}
+```
+
+### ecc_guild_spatial_state
+
+Get spatial state for Infinite Map visualization.
+
+**Input Schema:**
+```json
+{}
+```
+
+**Response:**
+```json
+{
+  "timestamp": 1234567890.123,
+  "guild_sectors": {
+    "engineering": {"start": 8000000, "end": 8400000},
+    ...
+  },
+  "active_instances": [
+    {
+      "instance_id": "planner_abc123",
+      "agent_name": "planner",
+      "guild": "engineering",
+      "hilbert_position": 8000000,
+      "status": "idle",
+      "color_hex": 5164484
+    }
+  ]
+}
+```
+
+### ecc_guild_discover
+
+Discover all ECC agents and register them.
+
+**Input Schema:**
+```json
+{}
+```
+
 ## Architecture
 
 ```
 apps/mcp2cli/src/
 ├── geos_mcp_server.py   # Main MCP server with ECC tools
 ├── ecc_bridge.py        # ECC command execution bridge
+├── ecc_agent_guild.py   # ECC Agent Guild - spatial agent management
 └── ...
 
 The ECC bridge:
@@ -252,6 +394,12 @@ The ECC bridge:
 2. Wraps ECC CLI commands as async functions
 3. Provides structured input/output for MCP tools
 4. Handles errors and timeouts gracefully
+
+The ECC Agent Guild:
+1. Maps ECC agents to Geometry OS spatial sectors (Hilbert coordinates)
+2. Organizes agents into guilds (Engineering, Review, Testing, Analysis, BMAD)
+3. Provides spawn/despawn lifecycle management
+4. Exposes spatial state for Infinite Map visualization
 ```
 
 ## Integration Phases
