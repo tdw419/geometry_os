@@ -170,19 +170,23 @@ fn test_weight_encoding_roundtrip() {
 
 #[test]
 fn test_hilbert_addressing_consistency() {
-    // Unit test for Hilbert curve addressing
+    // Unit test for Hilbert curve addressing at both 2048 and 4096 sizes
     use infinite_map_rs::pixel_brain::WeightAtlas;
 
-    let atlas = WeightAtlas::new(2048);
+    // Test both 2048 and 4096 sizes
+    for size in [2048u32, 4096] {
+        let atlas = WeightAtlas::new(size);
+        let max_d = (size * size - 1) as u64;
 
-    // Test round-trip for various addresses within 2048x2048 = 4,194,304 max
-    for d in [0u64, 1, 2, 3, 100, 1000, 0xFFFF, 0x10000, 0x3FFFFF] {
-        let (x, y) = atlas.hilbert_d2xy(d);
-        let recovered = atlas.hilbert_xy2d(x, y);
-        assert_eq!(
-            d, recovered,
-            "Hilbert round-trip failed: d={} -> ({},{}) -> {}",
-            d, x, y, recovered
-        );
+        // Test round-trip for various addresses
+        for d in [0u64, 1, 100, 0xFFFF, max_d / 2, max_d] {
+            let (x, y) = atlas.hilbert_d2xy(d);
+            let recovered = atlas.hilbert_xy2d(x, y);
+            assert_eq!(
+                d, recovered,
+                "Hilbert round-trip failed at size {}: d={} -> ({},{}) -> {}",
+                size, d, x, y, recovered
+            );
+        }
     }
 }
