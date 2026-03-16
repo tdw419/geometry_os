@@ -424,7 +424,7 @@ The ECC Skills Bridge:
 | **2** | Visual Shell → ECC Canvas | ✅ Complete |
 | **3** | Swarm Guilds → ECC Agents | ✅ Complete |
 | **4** | Glyph Programs → ECC Skills | ✅ Complete |
-| **5** | GPU Daemon → ECC HTTP API | Planned |
+| **5** | GPU Daemon → ECC HTTP API | ✅ Complete |
 
 ### Phase 2: Visual Shell → ECC Canvas
 
@@ -545,6 +545,66 @@ Ensure `ecc_bridge.py` is in the same directory as `geos_mcp_server.py`.
 ### Commands timeout
 
 Some ECC commands (plan, verify) may take longer. The default timeout is 120-300 seconds. Adjust in `ecc_bridge.py` if needed.
+
+### Phase 5: GPU Daemon → ECC HTTP API
+
+The ECC HTTP API exposes all ECC functionality via HTTP REST API:
+
+**Starting the API:**
+```bash
+# Start the ECC HTTP API server
+python apps/mcp2cli/src/ecc_http_api.py --port 3421
+
+# The GPU daemon (port 8769) proxies /ecc/* requests to this API
+```
+
+**HTTP Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/ecc/status` | GET | Get overall ECC status |
+| `/ecc/tools` | GET | List all available tools |
+| `/ecc/execute/<tool>` | POST | Execute tool by name |
+| `/ecc/plan` | POST | Create implementation plan |
+| `/ecc/tdd` | POST | Execute TDD workflow |
+| `/ecc/review` | POST | Run code review |
+| `/ecc/verify` | POST | Run verification loop |
+| `/ecc/brainstorm` | POST | Run brainstorming session |
+| `/ecc/debug` | POST | Run systematic debugging |
+| `/ecc/canvas` | POST | Render ECC canvas |
+| `/ecc/guild/status` | GET | Get guild status |
+| `/ecc/guild/agents` | GET | List guild agents |
+| `/ecc/guild/spatial` | GET | Get spatial state |
+| `/ecc/guild/spawn` | POST | Spawn an agent |
+| `/ecc/guild/despawn` | POST | Despawn an agent |
+| `/ecc/guild/dispatch` | POST | Dispatch task to agent |
+| `/ecc/skills/status` | GET | Get skills status |
+| `/ecc/skills/list` | GET | List available skills |
+| `/ecc/skills/spatial` | GET | Get spatial state |
+| `/ecc/skills/execute` | POST | Execute a skill |
+| `/ecc/skills/find` | POST | Find skill by trigger |
+| `/health` | GET | Health check |
+
+**Example Usage:**
+```bash
+# Get status
+curl http://localhost:3421/ecc/status
+
+# Create a plan
+curl -X POST http://localhost:3421/ecc/plan \
+  -H "Content-Type: application/json" \
+  -d '{"task": "Implement GPU allocator"}'
+
+# Spawn an agent
+curl -X POST http://localhost:3421/ecc/guild/spawn \
+  -H "Content-Type: application/json" \
+  -d '{"agent_name": "planner"}'
+
+# Execute a skill
+curl -X POST http://localhost:3421/ecc/skills/execute \
+  -H "Content-Type: application/json" \
+  -d '{"skill_name": "tdd-workflow", "context": {"feature": "test"}}'
+```
 
 ## See Also
 
