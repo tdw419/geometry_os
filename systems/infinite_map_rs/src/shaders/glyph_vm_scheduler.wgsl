@@ -200,7 +200,7 @@ fn execute_instruction(vm_idx: u32) {
                 vms[vm_idx].pc = vms[vm_idx].regs[p1];
             }
         }
-        case 10u: { // BRANCH: stratum=cond, p1=rs1, p2=rs2, next_pixel=signed_offset
+        case 10u: { // BRANCH: stratum=cond, p1=rs1, p2=rs2, next_pixel=signed_offset (PC-relative)
             let v1 = vms[vm_idx].regs[p1];
             let v2 = vms[vm_idx].regs[p2];
             var take_branch = false;
@@ -214,7 +214,9 @@ fn execute_instruction(vm_idx: u32) {
                 default: { take_branch = false; }
             }
             if (take_branch) {
-                vms[vm_idx].pc = mem_read(vms[vm_idx].pc + 1u);
+                // PC-relative: new_pc = current_pc + 2 + signed_offset
+                let offset = i32(mem_read(vms[vm_idx].pc + 1u));
+                vms[vm_idx].pc = u32(i32(vms[vm_idx].pc) + 2 + offset);
             } else {
                 vms[vm_idx].pc = vms[vm_idx].pc + 2u;
             }
@@ -235,9 +237,10 @@ fn execute_instruction(vm_idx: u32) {
         case 13u: { vms[vm_idx].state = VM_STATE_HALTED; vms[vm_idx].halted = 1u; }
         case 14u: { vms[vm_idx].pc = vms[vm_idx].pc + 1u; } // DATA: passive (skip)
         case 15u: { vms[vm_idx].pc = vms[vm_idx].pc + 1u; } // LOOP: stub
-        case 16u: { // JAL: regs[p1] = return_addr, pc = target (immediate)
+        case 16u: { // JAL: regs[p1] = return_addr, pc = PC + 2 + signed_offset (PC-relative)
             vms[vm_idx].regs[p1] = vms[vm_idx].pc + 2u;
-            vms[vm_idx].pc = mem_read(vms[vm_idx].pc + 1u);
+            let offset = i32(mem_read(vms[vm_idx].pc + 1u));
+            vms[vm_idx].pc = u32(i32(vms[vm_idx].pc) + 2 + offset);
         }
         case 128u: { vms[vm_idx].regs[p2] = vms[vm_idx].regs[p1] & vms[vm_idx].regs[p2]; vms[vm_idx].pc = vms[vm_idx].pc + 1u; }
         case 129u: { vms[vm_idx].regs[p2] = vms[vm_idx].regs[p1] | vms[vm_idx].regs[p2]; vms[vm_idx].pc = vms[vm_idx].pc + 1u; }
