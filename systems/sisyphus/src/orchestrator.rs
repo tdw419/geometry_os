@@ -39,6 +39,17 @@ impl TaskOrchestrator {
         orchestrator
     }
 
+    /// Create a new task orchestrator with a custom state path (for testing)
+    #[cfg(test)]
+    pub fn new_with_state_path(state_path: String) -> Self {
+        TaskOrchestrator {
+            tasks: Arc::new(Mutex::new(HashMap::new())),
+            next_task_id: 1,
+            enforce_completion: true,
+            state_path,
+        }
+    }
+
     /// Save the current state to a JSON file
     pub fn save_state(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let tasks = futures::executor::block_on(self.tasks.lock());
@@ -216,16 +227,28 @@ impl TaskOrchestrator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
+
+    fn temp_state_path() -> String {
+        let tmp = std::env::temp_dir();
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        tmp.join(format!("sisyphus_test_{}.json", unique))
+            .to_string_lossy()
+            .to_string()
+    }
 
     #[tokio::test]
     async fn test_orchestrator_creation() {
-        let orchestrator = TaskOrchestrator::new();
+        let orchestrator = TaskOrchestrator::new_with_state_path(temp_state_path());
         assert_eq!(orchestrator.next_task_id, 1);
     }
 
     #[tokio::test]
     async fn test_add_task() {
-        let mut orchestrator = TaskOrchestrator::new();
+        let mut orchestrator = TaskOrchestrator::new_with_state_path(temp_state_path());
         let task_id = orchestrator
             .add_task(Task::new(
                 0,
