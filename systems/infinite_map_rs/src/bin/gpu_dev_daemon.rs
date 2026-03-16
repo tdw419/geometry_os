@@ -560,10 +560,11 @@ fn main() {
     // Load WASM interpreter as VM 2 (if available)
     // Load at address 0x1000 to avoid overwriting VM 1 (daemon.glyph) at address 0
     // Spawn in HALTED state so we can configure WASM binary and entry point before running
-    let wasm_interp_path = "systems/glyph_stratum/programs/wasm_interpreter.rts.png";
+    // Use .bin (raw binary) format instead of .rts.png (PNG compressed)
+    let wasm_interp_path = "systems/glyph_stratum/programs/wasm_interpreter.bin";
     const WASM_INTERPRETER_ADDR: u32 = 0x1000;
     if let Ok(wasm_bytes) = std::fs::read(wasm_interp_path) {
-        println!("[BOOT] Loading wasm_interpreter.rts.png into VM 2 at 0x{:x}...", WASM_INTERPRETER_ADDR);
+        println!("[BOOT] Loading wasm_interpreter.bin into VM 2 at 0x{:x}...", WASM_INTERPRETER_ADDR);
         write_glyph_to_substrate(&wasm_bytes, &ram_texture, &device, &queue, WASM_INTERPRETER_ADDR);
         let config = VmConfig {
             entry_point: WASM_INTERPRETER_ADDR,
@@ -573,12 +574,12 @@ fn main() {
             Ok(()) => {
                 // Immediately halt VM 2 so it waits for WASM binary to be loaded
                 let _ = scheduler.lock().unwrap().halt_vm(2);
-                println!("[BOOT] wasm_interpreter.rts.png loaded as VM 2 (WASM interpreter, halted)");
+                println!("[BOOT] wasm_interpreter.bin loaded as VM 2 (WASM interpreter, halted)");
             },
             Err(e) => eprintln!("[BOOT] Warning: Failed to spawn VM 2: {}", e),
         }
     } else {
-        println!("[BOOT] Warning: Could not load wasm_interpreter.rts.png, WASM execution disabled");
+        println!("[BOOT] Warning: Could not load wasm_interpreter.bin, WASM execution disabled");
     }
 
     // Initial Substrate Setup
