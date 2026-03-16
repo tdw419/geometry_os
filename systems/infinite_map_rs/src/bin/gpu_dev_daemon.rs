@@ -33,6 +33,8 @@ use infinite_map_rs::ml_memory::{
     MLMemoryPool, PoolConfig, TensorSpec, TensorId, DataType, MemoryRegion,
 };
 use infinite_map_rs::gpu::hebbian_processor::{GPUHebbianProcessor, HebbianUpdate};
+use infinite_map_rs::pixel_brain::infer::PixelBrainInferencer;
+use infinite_map_rs::pixel_brain::tokenizer::ByteTokenizer;
 
 /// WASM binary parsing utilities
 mod wasm_parser {
@@ -414,6 +416,20 @@ fn read_brain_weight(addr: u32) -> f32 {
 
 /// WASM entry point storage (parsed from loaded WASM binary)
 static WASM_ENTRY_POINT: OnceLock<Mutex<Option<u32>>> = OnceLock::new();
+
+/// PixelBrain inferencer for GPU-based inference
+static BRAIN_INFERENCER: OnceLock<Mutex<PixelBrainInferencer>> = OnceLock::new();
+
+/// Byte tokenizer for encoding/decoding text
+static BRAIN_TOKENIZER: OnceLock<ByteTokenizer> = OnceLock::new();
+
+fn get_brain_inferencer() -> Option<&'static Mutex<PixelBrainInferencer>> {
+    BRAIN_INFERENCER.get()
+}
+
+fn get_brain_tokenizer() -> &'static ByteTokenizer {
+    BRAIN_TOKENIZER.get_or_init(ByteTokenizer::new)
+}
 
 fn get_tokio_rt() -> &'static Runtime {
     TOKIO_RT.get_or_init(|| Runtime::new().expect("Failed to create tokio runtime"))
@@ -2840,6 +2856,46 @@ fn handle_raw_request<S: Read + Write>(
                     "head_dim": head_dim,
                     "num_heads": num_heads,
                     "bytes_used": tokens * head_dim * num_heads * 2
+                });
+
+                let http_response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}\n",
+                    serde_json::to_string(&response).unwrap_or_default()
+                );
+                let _ = stream.write_all(http_response.as_bytes());
+            }
+            Err(e) => {
+                let error_response = format!(
+                    "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"{}\"}}\n",
+                    e
+                );
+                let _ = stream.write_all(error_response.as_bytes());
+            }
+        }
+        return;
+    }
+
+    // POST /infer - Generate tokens from prompt
+    if request_str.starts_with("POST /infer") {
+        let body_start = request_str.find("\r\n\r\n").unwrap_or(0) + 4;
+        let body = &request_str[body_start..];
+
+        match serde_json::from_str::<serde_json::Value>(body) {
+            Ok(json) => {
+                let prompt = json["prompt"].as_str().unwrap_or("");
+                let max_tokens = json["max_tokens"].as_u64().unwrap_or(32) as usize;
+
+                // Get tokenizer and encode prompt
+                let tokenizer = get_brain_tokenizer();
+                let tokens = tokenizer.encode(prompt);
+
+                // Return placeholder (actual inference needs GPU setup)
+                let response = serde_json::json!({
+                    "prompt": prompt,
+                    "input_tokens": tokens.len(),
+                    "output_tokens": [],
+                    "output_text": "",
+                    "status": "inference_pipeline_initialized"
                 });
 
                 let http_response = format!(
