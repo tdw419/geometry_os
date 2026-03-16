@@ -463,27 +463,21 @@ impl PixelBrainInferencer {
             label: Some("Embed Pipeline"),
             layout: Some(&embed_pipeline_layout),
             module: &embed_shader,
-            entry_point: Some("main"),
-            compilation_options: wgpu::PipelineCompilationOptions::default(),
-            cache: None,
+            entry_point: "main",
         });
 
         let attention_pipeline = self.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some("Attention Pipeline"),
             layout: Some(&attention_pipeline_layout),
             module: &attention_shader,
-            entry_point: Some("main"),
-            compilation_options: wgpu::PipelineCompilationOptions::default(),
-            cache: None,
+            entry_point: "main",
         });
 
         let ffn_pipeline = self.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some("FFN Pipeline"),
             layout: Some(&ffn_pipeline_layout),
             module: &ffn_shader,
-            entry_point: Some("main"),
-            compilation_options: wgpu::PipelineCompilationOptions::default(),
-            cache: None,
+            entry_point: "main",
         });
 
         // Store all pipeline-related resources
