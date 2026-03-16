@@ -1541,7 +1541,7 @@ fn handle_raw_request<S: Read + Write>(
         for (i, c) in body.chars().enumerate() {
             let addr = (i as u32 * 17 + c as u32) % 0x1000; // Spread across substrate
             activations.push(addr);
-            strengths.push(0.5 + (c as f32 % 10.0) / 20.0); // Strength between 0.5-1.0
+            strengths.push(0.5 + (c as u32 as f32 % 10.0) / 20.0); // Strength between 0.5-1.0
         }
         
         // Limit to reasonable number of activations
@@ -1572,125 +1572,6 @@ fn handle_raw_request<S: Read + Write>(
             response
         );
         let _ = stream.write_all(http_response.as_bytes());
-        return;
-    }
-            }
-            if result == "VM Statistics:\n" {
-                result.push_str("  No active VMs\n");
-            }
-            result
-        } else if body.contains("status") {
-            let status = format!(
-                "{{\n  \"daemon\": \"ouroboros\",\n  \"version\": \"Phase 70\",\n  \"status\": \"healthy\",\n  \"transports\": [\"tcp://127.0.0.1:8769\", \"unix:///tmp/gpu_daemon.sock\"],\n  \"substrate\": {{\n    \"width\": 4096,\n    \"height\": 4096,\n    \"format\": \"Rgba8Uint\"\n  }},\n  \"self_hosting\": true,\n  \"vcc_enabled\": true\n}}"
-            );
-            status
-        } else if body.contains("mem ") {
-            if let Some(addr_str) = body
-                .split("mem ")
-                .nth(1)
-                .and_then(|s| s.split_whitespace().next())
-            {
-                if let Ok(addr) = u32::from_str_radix(addr_str.trim_start_matches("0x"), 16) {
-                    // Read from shadow buffer (Hilbert address)
-                    let size_val = 16; // Read 16 words (64 bytes)
-                    let mut hex_results = Vec::new();
-                    for i in 0..size_val {
-                        let val = read_u32_from_substrate(
-                            addr + i as u32,
-                            texture,
-                            device,
-                            queue,
-                            &shadow_ram.lock().unwrap(),
-                        );
-                        hex_results.push(format!("{:08x}", val));
-                    }
-                    format!("Memory at 0x{:08x}: {}", addr, hex_results.join(" "))
-                } else {
-                    "Invalid address format".to_string()
-                }
-            } else {
-                "Please specify an address: mem <hex_address>".to_string()
-            }
-        } else if body.contains("reset") {
-            let mut s = scheduler.lock().unwrap();
-            s.reset_all();
-            "All VMs reset".to_string()
-        } else if body.starts_with("resume ") {
-            // Resume a halted VM: "resume 2" resumes VM 2
-            if let Some(vm_str) = body
-                .split("resume ")
-                .nth(1)
-                .and_then(|s| s.split_whitespace().next())
-            {
-                if let Ok(vm_id) = vm_str.parse::<u32>() {
-                    match scheduler.lock().unwrap().resume_vm(vm_id) {
-                        Ok(()) => format!("VM {} resumed", vm_id),
-                        Err(e) => format!("Failed to resume VM {}: {}", vm_id, e),
-                    }
-                } else {
-                    "Invalid VM ID. Use: resume <vm_id>".to_string()
-                }
-            } else {
-                "Please specify VM ID: resume <vm_id>".to_string()
-            }
-        } else if body.starts_with("spawn ") {
-            if let Some(entry_str) = body
-                .split("spawn ")
-                .nth(1)
-                .and_then(|s| s.split_whitespace().next())
-            {
-                // Check for "spawn wasm" to use parsed WASM entry point
-                let entry_point: Option<u32> = if entry_str == "wasm" {
-                    let wasm_store = WASM_ENTRY_POINT.get_or_init(|| Mutex::new(None));
-                    let entry = wasm_store.lock().unwrap();
-                    match *entry {
-                        Some(ep) => {
-                            println!("[WASM] Using parsed entry point: 0x{:x}", ep);
-                            Some(ep)
-                        },
-                        None => None,
-                    }
-                } else {
-                    u32::from_str_radix(entry_str, 10).ok()
-                };
-
-                match entry_point {
-                    Some(ep) => {
-                        let mut s = scheduler.lock().unwrap();
-                        let mut regs = [0u32; 128];
-                        regs[0] = ep;
-                        let config = VmConfig {
-                            entry_point: 0,
-                            parent_id: 0xFF,
-                            base_addr: 0,
-                            bound_addr: 0,
-                            initial_regs: regs,
-                        };
-                        match s.spawn_vm(0, &config) {
-                            Ok(_) => format!("Spawned VM at entry point 0x{:x}", ep),
-                            Err(e) => format!("Failed to spawn VM: {}", e),
-                        }
-                    },
-                    None => {
-                        "Invalid entry point. Use 'spawn <number>' or 'spawn wasm' (if WASM loaded)"
-                            .to_string()
-                    },
-                }
-            } else {
-                "Please specify an entry point: spawn <number> or spawn wasm".to_string()
-            }
-        } else {
-            format!(
-                "Unknown command: {}. Try 'help' for available commands.",
-                body.trim()
-            )
-        };
-
-        let response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{}\n",
-            response
-        );
-        let _ = stream.write_all(response.as_bytes());
         return;
     }
 
