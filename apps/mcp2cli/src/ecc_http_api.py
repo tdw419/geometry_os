@@ -185,9 +185,15 @@ class ECCHTTPHandler(BaseHTTPRequestHandler):
             return
 
         status = get_ecc_status()
-        status["guild_available"] = ECC_GUILD_AVAILABLE
-        status["skills_available"] = ECC_SKILLS_AVAILABLE
-        self._send_json(status)
+        # Convert dataclass to dict
+        if hasattr(status, 'to_dict'):
+            status_dict = status.to_dict()
+        else:
+            status_dict = status
+
+        status_dict["guild_available"] = ECC_GUILD_AVAILABLE
+        status_dict["skills_available"] = ECC_SKILLS_AVAILABLE
+        self._send_json(status_dict)
 
     def _handle_list_tools(self):
         """List all available ECC tools."""
