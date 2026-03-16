@@ -758,7 +758,7 @@ fn main() {
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8Unorm,
+                format: wgpu::TextureFormat::Rgba16Float,
                 usage: wgpu::TextureUsages::TEXTURE_BINDING
                      | wgpu::TextureUsages::STORAGE_BINDING
                      | wgpu::TextureUsages::COPY_DST
@@ -766,10 +766,10 @@ fn main() {
                 view_formats: &[],
             }));
 
-            // Encode weights to RGBA and upload
-            let mut rgba_data = Vec::with_capacity(weights.len() * 4);
+            // Encode weights to Rgba16Float and upload
+            let mut rgba_data = Vec::with_capacity(weights.len() * 8);
             for weight in &weights {
-                let encoded = infinite_map_rs::pixel_brain::encode_weight_f16(*weight);
+                let encoded = infinite_map_rs::pixel_brain::encode_weight_rgba16float(*weight);
                 rgba_data.extend_from_slice(&encoded);
             }
 
@@ -783,7 +783,7 @@ fn main() {
                 &rgba_data,
                 wgpu::ImageDataLayout {
                     offset: 0,
-                    bytes_per_row: Some(size * 4),
+                    bytes_per_row: Some(size * 8), // 8 bytes per pixel for Rgba16Float
                     rows_per_image: Some(size),
                 },
                 wgpu::Extent3d {

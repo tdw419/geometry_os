@@ -96,6 +96,33 @@ pub fn decode_weight_f16(rgba: [u8; 4]) -> f32 {
     half::f16::from_bits(bits).to_f32()
 }
 
+/// Encode a float32 weight as Rgba16Float (8 bytes: 4 half-floats)
+/// Weight stored in R channel, GBA set to zero for metadata extensions
+pub fn encode_weight_rgba16float(value: f32) -> [u8; 8] {
+    let r_bits = half::f16::from_f32(value).to_bits();
+    let g_bits: u16 = 0;
+    let b_bits: u16 = 0;
+    let a_bits: u16 = 0;
+
+    // Pack as little-endian u16 pairs
+    let mut result = [0u8; 8];
+    result[0] = r_bits as u8;
+    result[1] = (r_bits >> 8) as u8;
+    result[2] = g_bits as u8;
+    result[3] = (g_bits >> 8) as u8;
+    result[4] = b_bits as u8;
+    result[5] = (b_bits >> 8) as u8;
+    result[6] = a_bits as u8;
+    result[7] = (a_bits >> 8) as u8;
+    result
+}
+
+/// Decode Rgba16Float bytes to float32 weight (reads R channel only)
+pub fn decode_weight_rgba16float(data: &[u8; 8]) -> f32 {
+    let r_bits = data[0] as u16 | ((data[1] as u16) << 8);
+    half::f16::from_bits(r_bits).to_f32()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
