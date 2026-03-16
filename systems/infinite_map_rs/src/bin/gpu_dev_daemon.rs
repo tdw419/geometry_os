@@ -968,6 +968,14 @@ fn handle_raw_request<S: Read + Write>(
 
             if let (Some(addr), Some(value)) = (addr, value) {
                 write_u32_to_substrate(addr, value, texture, queue);
+
+                // Also update shadow buffer
+                let shadow_offset = addr as usize * 4;
+                let mut shadow = shadow_ram.lock().unwrap();
+                if shadow_offset + 4 <= shadow.len() {
+                    shadow[shadow_offset..shadow_offset + 4].copy_from_slice(&value.to_le_bytes());
+                }
+
                 let response = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"ok\":true,\"addr\":\"0x{:x}\",\"value\":\"0x{:x}\"}}",
                     addr, value
