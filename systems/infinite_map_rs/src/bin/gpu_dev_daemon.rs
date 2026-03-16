@@ -1357,13 +1357,12 @@ fn handle_raw_request<S: Read + Write>(
                 .and_then(|s| s.split_whitespace().next())
             {
                 if let Ok(addr) = u32::from_str_radix(addr_str.trim_start_matches("0x"), 16) {
-                    // Read from GPU memory
-                    let size_val = 16; // Read 16 pixels (64 bytes)
+                    // Read from shadow buffer (Hilbert address)
+                    let size_val = 16; // Read 16 words (64 bytes)
                     let mut hex_results = Vec::new();
                     for i in 0..size_val {
-                        let (tx, ty) = hilbert_d2xy(4096, addr + i);
                         let val =
-                            read_u32_from_substrate((ty * 4096 + tx) * 4, texture, device, queue, &shadow_ram.lock().unwrap());
+                            read_u32_from_substrate(addr + i as u32, texture, device, queue, &shadow_ram.lock().unwrap());
                         hex_results.push(format!("{:08x}", val));
                     }
                     format!("Memory at 0x{:08x}: {}", addr, hex_results.join(" "))
