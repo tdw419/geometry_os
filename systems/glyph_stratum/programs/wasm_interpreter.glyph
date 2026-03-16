@@ -179,6 +179,18 @@
     LDI r13, wasm_op_unreachable
     JZ r2, r13
 
+    // Check for BLOCK (0x02)
+    LDI r3, OP_BLOCK
+    SUB r2, r3
+    LDI r13, wasm_op_block
+    JZ r2, r13
+
+    // Check for LOOP (0x03)
+    LDI r3, OP_LOOP
+    SUB r2, r3
+    LDI r13, wasm_op_loop
+    JZ r2, r13
+
     // Check for I32_CONST (0x41)
     LDI r3, OP_I32_CONST
     SUB r2, r3
@@ -287,6 +299,49 @@
     // End of function/block - halt for now
     // TODO: Handle block stack for proper nesting
     JMP wasm_halt
+
+:wasm_op_block
+    // block: push block, continue execution
+    // Format: block blocktype
+
+    // Skip blocktype byte
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r1
+    LDI r3, 1
+    ADD r1, r3
+    LDI r3, WASM_IP_ADDR
+    STORE r3, r1
+
+    // Push block with type BLOCK and current IP
+    LDI r4, BLOCK_TYPE_BLOCK
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r5            // r5 = current IP (start of block body)
+    CALL :block_push
+
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_loop
+    // loop: push loop block for back-edge
+    // Format: loop blocktype
+    // On br to loop, IP resets here
+
+    // Skip blocktype byte
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r1
+    LDI r3, 1
+    ADD r1, r3
+    LDI r3, WASM_IP_ADDR
+    STORE r3, r1
+
+    // Push block with type LOOP and current IP
+    LDI r4, BLOCK_TYPE_LOOP
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r5
+    CALL :block_push
+
+    LDI r13, wasm_fetch
+    JMP r13
 
 :wasm_op_return
     // Return from function
