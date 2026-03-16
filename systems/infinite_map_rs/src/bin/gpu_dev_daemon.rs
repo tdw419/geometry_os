@@ -329,6 +329,46 @@ struct ThoughtActivation {
 static CHAT_CACHE: OnceLock<Mutex<std::collections::HashMap<String, ChatActivation>>> =
     OnceLock::new();
 
+/// Brain weight shadow buffer for CPU-side Hebbian updates
+/// This mirrors the brain texture and allows read-modify-write operations
+static BRAIN_SHADOW: OnceLock<Mutex<Vec<f32>>> = OnceLock::new();
+
+/// Brain atlas size (2048x2048 = 4M weights)
+const BRAIN_ATLAS_SIZE: usize = 2048 * 2048;
+
+/// Get or initialize the brain shadow buffer
+fn get_brain_shadow() -> &'static Mutex<Vec<f32>> {
+    BRAIN_SHADOW.get_or_init(|| Mutex::new(vec![0.0; BRAIN_ATLAS_SIZE]))
+}
+
+/// Apply Hebbian weight update to brain shadow buffer
+/// Δw = η × activation × reward
+fn apply_hebbian_update(addr: u32, delta_w: f32) -> f32 {
+    let shadow = get_brain_shadow();
+    let mut shadow_lock = shadow.lock().unwrap();
+
+    if (addr as usize) < shadow_lock.len() {
+        let current = shadow_lock[addr as usize];
+        let new_weight = current + delta_w;
+        shadow_lock[addr as usize] = new_weight;
+        new_weight
+    } else {
+        0.0
+    }
+}
+
+/// Read weight from brain shadow buffer
+fn read_brain_weight(addr: u32) -> f32 {
+    let shadow = get_brain_shadow();
+    let shadow_lock = shadow.lock().unwrap();
+
+    if (addr as usize) < shadow_lock.len() {
+        shadow_lock[addr as usize]
+    } else {
+        0.0
+    }
+}
+
 /// WASM entry point storage (parsed from loaded WASM binary)
 static WASM_ENTRY_POINT: OnceLock<Mutex<Option<u32>>> = OnceLock::new();
 
@@ -624,6 +664,19 @@ fn main() {
         Ok(weights) => {
             let weight_count = weights.len();
             println!("[BRAIN] Loaded {} weights from {}", weight_count, brain_atlas_path);
+
+            // Initialize brain shadow buffer with loaded weights
+            {
+                let shadow = get_brain_shadow();
+                let mut shadow_lock = shadow.lock().unwrap();
+                // Copy weights, padding with zeros if needed
+                for (i, &w) in weights.iter().enumerate() {
+                    if i < shadow_lock.len() {
+                        shadow_lock[i] = w;
+                    }
+                }
+                println!("[BRAIN] Shadow buffer initialized with {} weights", weight_count.min(BRAIN_ATLAS_SIZE));
+            }
 
             // Create brain texture (2048x2048 RGBA)
             let texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
@@ -1866,16 +1919,20 @@ fn handle_raw_request<S: Read + Write>(
             let addr = chat_activations.addresses[i];
             let activation = chat_activations.strengths[i];
 
-            // Apply Hebbian update
+            // Apply Hebbian update: Δw = η × activation × reward
             let delta_w = learning_rate * activation * reward;
 
-            // In a real implementation, this would update actual weights
-            // For now, we'll just log the update that would happen
+            // Apply actual weight update via OP_GLYPH_MUTATE
             if delta_w.abs() > 0.0001 {
-                // Only count significant updates
+                // Apply the update to the brain shadow buffer
+                let new_weight = apply_hebbian_update(addr, delta_w);
+
+                // Log significant weight changes
+                if i < 5 {
+                    println!("[HEBBIAN] addr=0x{:06X} delta_w={:.6} -> w={:.6}", addr, delta_w, new_weight);
+                }
+
                 updates_applied += 1;
-                // OP_GLYPH_MUTATE would be called here in a real implementation
-                // op_glyph_mutate(addr, delta_w);
             }
         }
 
