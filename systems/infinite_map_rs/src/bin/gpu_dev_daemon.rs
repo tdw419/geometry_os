@@ -314,7 +314,7 @@ trait ThoughtPulseBroadcaster: Send + Sync {
 /// WebSocket broadcaster implementation
 struct WebsocketBroadcaster {
     /// Connected WebSocket clients
-    clients: Arc<Mutex<Vec<Arc<Mutex<Box<dyn futures::Sink<warp::ws::Message, Error = warp::Error> + Unsend>>>>>,
+    clients: Arc<Mutex<Vec<Arc<Mutex<Box<dyn futures::Sink<warp::ws::Message, Error = warp::Error> + Unsend>>>>>>,
 }
 
 impl ThoughtPulseBroadcaster for WebsocketBroadcaster {
