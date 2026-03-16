@@ -295,6 +295,33 @@ struct ChatActivation {
     strengths: Vec<f32>,
 }
 
+/// Thought pulse data structure for logging
+#[derive(Debug, serde::Serialize)]
+struct ThoughtPulse {
+    /// Timestamp of the pulse
+    timestamp: u64,
+    /// Associated chat ID
+    chat_id: String,
+    /// Reward signal (-1.0 to 1.0)
+    reward: f32,
+    /// Number of weights updated
+    weights_updated: usize,
+    /// Learning delta applied
+    learning_delta: f32,
+    /// Activated addresses and their strength changes
+    activations: Vec<ThoughtActivation>,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct ThoughtActivation {
+    /// Memory address that was activated
+    address: u32,
+    /// Activation strength (0.0-1.0)
+    strength: f32,
+    /// Weight change applied (Δw = η × activation × reward)
+    weight_delta: f32,
+}
+
 static CHAT_CACHE: OnceLock<Mutex<std::collections::HashMap<String, ChatActivation>>> =
     OnceLock::new();
 
