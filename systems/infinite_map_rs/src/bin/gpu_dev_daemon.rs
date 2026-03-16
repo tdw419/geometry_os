@@ -508,6 +508,10 @@ fn main() {
     }));
     scheduler.lock().unwrap().set_ram_texture(&ram_texture);
 
+    // Shadow buffer for reliable CPU reads (workaround for Intel Vulkan driver bugs)
+    // This mirrors what we write to the texture since texture-to-buffer copies are unreliable
+    let shadow_ram: Arc<Mutex<Vec<u8>>> = Arc::new(Mutex::new(vec![0x55; 4096 * 4096 * 4]));
+
     // Load scheduler.glyph into VM 0
     let scheduler_glyph_path = "systems/glyph_stratum/programs/scheduler.glyph";
     if let Ok(_glyph_bytes) = std::fs::read(scheduler_glyph_path) {
@@ -1308,6 +1312,7 @@ fn write_to_substrate(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     base_addr: u32,
+    shadow_ram: &mut Vec<u8>,
 ) {
     let num_words = (data.len() + 3) / 4;
     println!("[WRITE] Writing {} words ({} bytes) to substrate at 0x{:x}", num_words, data.len(), base_addr);
@@ -1323,6 +1328,12 @@ fn write_to_substrate(
         // Debug: print first 4 writes
         if i < 4 {
             println!("[WRITE] addr=0x{:x} -> pixel({}, {}) = {:02x?}", base_addr + i as u32, tx, ty, word);
+        }
+
+        // Update shadow buffer (linear address = addr * 4)
+        let shadow_offset = (base_addr as usize + i) * 4;
+        if shadow_offset + 4 <= shadow_ram.len() {
+            shadow_ram[shadow_offset..shadow_offset + 4].copy_from_slice(&word);
         }
 
         // Create staging buffer for this pixel
