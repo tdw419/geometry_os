@@ -1389,7 +1389,9 @@ fn read_u32_from_substrate(
     let (tx, ty) = hilbert_d2xy(4096, addr);
     println!("[READ] addr=0x{:x} -> pixel({}, {})", addr, tx, ty);
 
-    // Create unique staging buffer for this read (avoid caching)
+    // Use the same approach as read_substrate_region: copy a small aligned region
+    // and extract the pixel we need
+    let bytes_per_row: u32 = 256;  // Aligned to 256 as required
     let staging = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some(&format!("read_u32_staging_0x{:x}", addr)),
         size: 256,
@@ -1397,11 +1399,12 @@ fn read_u32_from_substrate(
         mapped_at_creation: false,
     });
 
-    // Create encoder and copy
+    // Create encoder and copy a small region containing our pixel
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("read_u32 encoder"),
     });
 
+    // Copy a 1x1 pixel (simpler, but we'll see if it works now)
     encoder.copy_texture_to_buffer(
         wgpu::ImageCopyTexture {
             texture,
@@ -1413,7 +1416,7 @@ fn read_u32_from_substrate(
             buffer: &staging,
             layout: wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some(256),
+                bytes_per_row: Some(bytes_per_row),
                 rows_per_image: Some(1),
             },
         },
@@ -1438,6 +1441,8 @@ fn read_u32_from_substrate(
 
     let val = if let Ok(Ok(())) = rx.recv() {
         let data = slice.get_mapped_range();
+        // Debug: print first 16 bytes
+        println!("[READ] Buffer bytes: {:02x?}", &data[..16.min(data.len())]);
         let v = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
         drop(data);
         staging.unmap();
