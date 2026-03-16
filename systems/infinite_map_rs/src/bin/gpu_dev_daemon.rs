@@ -314,29 +314,42 @@ trait ThoughtPulseBroadcaster: Send + Sync {
 /// WebSocket broadcaster implementation
 struct WebsocketBroadcaster {
     /// Connected WebSocket clients
-    clients: Arc<Mutex<Vec<Arc<Mutex<Box<dyn futures::Sink<warp::ws::Message, Error = warp::Error> + Unsend>>>>>>,
+    clients: Arc<
+        Mutex<
+            Vec<
+                Arc<
+                    Mutex<
+                        Box<
+                            dyn futures::Sink<warp::ws::Message, Error = warp::Error> + Send + Sync,
+                        >,
+                    >,
+                >,
+            >,
+        >,
+    >,
 }
 
 impl ThoughtPulseBroadcaster for WebsocketBroadcaster {
     fn broadcast(&self, pulse: &ThoughtPulse) -> Result<(), Box<dyn std::error::Error>> {
         let message = warp::ws::Message::text(serde_json::to_string(pulse)?);
         let mut clients = self.clients.lock().unwrap();
-        
+
         // Send to all connected clients and remove disconnected ones
         clients.retain(|client| {
             let mut client = client.lock().unwrap();
             match client.try_send(message.clone()) {
-                Ok(_) => true,  // Keep connected client
+                Ok(_) => true,   // Keep connected client
                 Err(_) => false, // Remove disconnected client
             }
         });
-        
+
         Ok(())
     }
 }
 
 /// Static storage for the WebSocket broadcaster
-static THOUGHT_PULSE_BROADCASTER: OnceLock<Option<Arc<dyn ThoughtPulseBroadcaster>>> = OnceLock::new();
+static THOUGHT_PULSE_BROADCASTER: OnceLock<Option<Arc<dyn ThoughtPulseBroadcaster>>> =
+    OnceLock::new();
 
 /// WASM entry point storage (parsed from loaded WASM binary)
 static WASM_ENTRY_POINT: OnceLock<Mutex<Option<u32>>> = OnceLock::new();
@@ -410,8 +423,10 @@ impl TrapHandler {
         static COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
         let count = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         if count % 60 == 0 {
-            println!("[TRAP_POLL] op={} arg0={:08x} arg1={:08x} arg2={:08x} status={}",
-                self.regs.op_type, self.regs.arg0, self.regs.arg1, self.regs.arg2, self.regs.status);
+            println!(
+                "[TRAP_POLL] op={} arg0={:08x} arg1={:08x} arg2={:08x} status={}",
+                self.regs.op_type, self.regs.arg0, self.regs.arg1, self.regs.arg2, self.regs.status
+            );
         }
 
         if self.regs.status != status::PENDING {
@@ -822,89 +837,6 @@ fn main() {
         });
     });
     println!("[MAIN] Brain Bridge thread spawned successfully");
-    std::io::stdout().flush().unwrap();
-
-    // === THOUGHT PULSE WEBSOCKET SERVER ===
-    println!("[MAIN] About to spawn Thought Pulse WebSocket server...");
-    std::io::stdout().flush().unwrap();
-    let thought_pulse_broadcaster_clone = Arc::new(Mutex::new(None));
-    let broadcaster_for_thread = thought_pulse_broadcaster_clone.clone();
-    thread::spawn(move || {
-        println!("[WEBSOCKET] Starting Thought Pulse WebSocket server on 0.0.0.0:8770");
-        std::io::stdout().flush().unwrap();
-        
-        // Initialize the broadcaster with a channel for sending messages
-        let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<String>();
-        let broadcaster = Arc::new(Mutex::new(WebsocketBroadcaster {
-            clients: Arc::new(Mutex::new(Vec::new())),
-        }));
-        
-        // Store the broadcaster for use by the rate endpoint
-        *broadcaster_for_thread.lock().unwrap() = Some(broadcaster.clone());
-        
-        // Set up the WebSocket server
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            // Create TCP listener for WebSocket upgrades
-            let tcp_listener = TcpListener::bind("0.0.0.0:8770").unwrap();
-            println!("[WEBSOCKET] Listening on ws://0.0.0.0:8770");
-            
-            // Channel for broadcasting messages to all WebSocket connections
-            let (broadcast_tx, mut broadcast_rx) = broadcast::channel::<String>(1024);
-            
-            // Task to relay messages from the rate endpoint to WebSocket clients
-            let relay_task = tokio::spawn(async move {
-                while let Ok(msg) = rx.recv().await {
-                    let _ = broadcast_tx.send(msg);
-                }
-            });
-            
-            // Accept incoming connections
-            while let Ok((stream, _)) = tcp_listener.accept().await {
-                let broadcast_tx_clone = broadcast_tx.clone();
-                tokio::spawn(async move {
-                    let ws_stream = accept_async(stream).await.expect("Failed to accept WebSocket");
-                    println!("[WEBSOCKET] New client connected");
-                    
-                    // Split the WebSocket stream into sink and stream
-                    let (mut write, mut read) = ws_stream.split();
-                    
-                    // Task to send broadcast messages to this client
-                    let tx_clone = broadcast_tx_clone.clone();
-                    let send_task = tokio::spawn(async move {
-                        while let Ok(msg) = tx_clone.subscribe().recv().await {
-                            if let Err(e) = write.send(Message::Text(msg)).await {
-                                eprintln!("[WEBSOCKET] Error sending to client: {}", e);
-                                break;
-                            }
-                        }
-                    });
-                    
-                    // Task to handle incoming messages (we don't expect any, but keep connection alive)
-                    let recv_task = tokio::spawn(async move {
-                        while let Some(Ok(_)) = read.next().await {
-                            // We don't process incoming messages for this simple broadcaster
-                        }
-                    });
-                    
-                    // Wait for either task to complete (client disconnect)
-                    let _ = tokio::select! {
-                        _ = send_task => {},
-                        _ = recv_task => {},
-                    };
-                    
-                    println!("[WEBSOCKET] Client disconnected");
-                });
-            }
-            
-            // Relay messages from the rate endpoint to the broadcast channel
-            while let Ok(msg) = broadcast_rx.recv().await {
-                // Send to the WebSocket broadcaster's channel for relaying to clients
-                let _ = tx.send(msg);
-            }
-        });
-    });
-    println!("[MAIN] Thought Pulse WebSocket server spawned successfully");
     std::io::stdout().flush().unwrap();
 
     // === SUBSTRATE HEARTBEAT ===
@@ -1816,10 +1748,11 @@ fn handle_raw_request<S: Read + Write>(
 
             // Apply Hebbian update
             let delta_w = learning_rate * activation * reward;
-            
+
             // In a real implementation, this would update actual weights
             // For now, we'll just log the update that would happen
-            if delta_w.abs() > 0.0001 { // Only count significant updates
+            if delta_w.abs() > 0.0001 {
+                // Only count significant updates
                 updates_applied += 1;
                 // OP_GLYPH_MUTATE would be called here in a real implementation
                 // op_glyph_mutate(addr, delta_w);
@@ -1830,22 +1763,23 @@ fn handle_raw_request<S: Read + Write>(
         if updates_applied > 0 {
             if let Some(broadcaster) = THOUGHT_PULSE_BROADCASTER.get() {
                 let thought_pulse = ThoughtPulse {
-                    timestamp: Instant::now().as_millis() as u64,
+                    timestamp: Instant::now().elapsed().as_millis() as u64,
                     chat_id: chat_id.clone(),
                     reward,
                     weights_updated: updates_applied,
                     learning_delta: learning_rate * reward.abs(),
-                    activations: chat_activations.addresses
+                    activations: chat_activations
+                        .addresses
                         .iter()
                         .zip(chat_activations.strengths.iter())
                         .map(|(addr, strength)| ThoughtActivation {
                             address: *addr,
                             strength: *strength,
-                            weight_delta: learning_rate * *strength * reward
+                            weight_delta: learning_rate * *strength * reward,
                         })
-                        .collect()
+                        .collect(),
                 };
-                
+
                 // Ignore broadcast errors - we don't want learning to fail if WebSocket has issues
                 let _ = broadcaster.broadcast(&thought_pulse);
             }
