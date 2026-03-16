@@ -1389,22 +1389,24 @@ fn read_u32_from_substrate(
     let (tx, ty) = hilbert_d2xy(4096, addr);
     println!("[READ] addr=0x{:x} -> pixel({}, {})", addr, tx, ty);
 
-    // Use the same approach as read_substrate_region: copy a small aligned region
-    // and extract the pixel we need
-    let bytes_per_row: u32 = 256;  // Aligned to 256 as required
-    let staging = device.create_buffer(&wgpu::BufferDescriptor {
+    // Use exact same approach as read_substrate_region (which works)
+    let bytes_per_pixel = 4u32;
+    let w: u32 = 1;
+    let h: u32 = 1;
+    let bytes_per_row = ((w * bytes_per_pixel + 255) / 256) * 256;  // 256 for 1 pixel
+    let buffer_size = (bytes_per_row * h) as u64;  // 256 bytes
+
+    let staging_buffer = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some(&format!("read_u32_staging_0x{:x}", addr)),
-        size: 256,
+        size: buffer_size,
         usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
         mapped_at_creation: false,
     });
 
-    // Create encoder and copy a small region containing our pixel
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("read_u32 encoder"),
     });
 
-    // Copy a 1x1 pixel (simpler, but we'll see if it works now)
     encoder.copy_texture_to_buffer(
         wgpu::ImageCopyTexture {
             texture,
@@ -1413,39 +1415,37 @@ fn read_u32_from_substrate(
             aspect: wgpu::TextureAspect::All,
         },
         wgpu::ImageCopyBuffer {
-            buffer: &staging,
+            buffer: &staging_buffer,
             layout: wgpu::ImageDataLayout {
                 offset: 0,
                 bytes_per_row: Some(bytes_per_row),
-                rows_per_image: Some(1),
+                rows_per_image: Some(h),
             },
         },
         wgpu::Extent3d {
-            width: 1,
-            height: 1,
+            width: w,
+            height: h,
             depth_or_array_layers: 1,
         },
     );
 
-    // Submit and wait for GPU to complete the copy
-    queue.submit(Some(encoder.finish()));
-    device.poll(wgpu::Maintain::Wait);
+    // Same pattern as read_substrate_region: submit, then map_async, then poll
+    queue.submit(std::iter::once(encoder.finish()));
 
-    // Map and read
-    let slice = staging.slice(..);
+    let buffer_slice = staging_buffer.slice(..);
     let (tx_chan, rx) = std::sync::mpsc::channel();
-    slice.map_async(wgpu::MapMode::Read, move |res| {
-        tx_chan.send(res).ok();
+    buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
+        tx_chan.send(result).ok();
     });
     device.poll(wgpu::Maintain::Wait);
 
-    let val = if let Ok(Ok(())) = rx.recv() {
-        let data = slice.get_mapped_range();
-        // Debug: print first 16 bytes
-        println!("[READ] Buffer bytes: {:02x?}", &data[..16.min(data.len())]);
-        let v = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
-        drop(data);
-        staging.unmap();
+    let val = if rx.recv().ok().and_then(|r| r.ok()).is_some() {
+        let mapped = buffer_slice.get_mapped_range();
+        // Debug: print first 8 bytes
+        println!("[READ] Buffer bytes: {:02x?}", &mapped[..8.min(mapped.len())]);
+        let v = u32::from_le_bytes([mapped[0], mapped[1], mapped[2], mapped[3]]);
+        drop(mapped);
+        staging_buffer.unmap();
         v
     } else {
         0
