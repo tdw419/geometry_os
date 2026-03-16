@@ -405,22 +405,182 @@ def cmd_chat(args):
     """Interactive AI-assisted substrate control"""
     import os
     import sys
+    import json as json_module
 
-    # Check if anthropic is available
-    if anthropic is None:
-        print("Error: anthropic package not installed")
-        print("Install it with: pip install anthropic")
+    # Check which API to use (Z.ai or Anthropic)
+    zai_api_key = os.environ.get("ZAI_API_KEY")
+    zai_base_url = os.environ.get("ZAI_BASE_URL", "https://api.z.ai/api/coding/paas/v4")
+
+    if zai_api_key:
+        # Use Z.ai API (OpenAI-compatible)
+        use_zai = True
+        api_key = zai_api_key
+        base_url = zai_base_url
+        print(f"Using Z.ai API at {base_url}")
+    elif os.environ.get("ANTHROPIC_API_KEY"):
+        # Use Anthropic API
+        use_zai = False
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if anthropic is None:
+            print("Error: anthropic package not installed")
+            print("Install it with: pip install anthropic")
+            return 1
+        client = anthropic.Anthropic(api_key=api_key)
+        print("Using Anthropic Claude API")
+    else:
+        print("Error: No API key found")
+        print("Set ZAI_API_KEY (and optionally ZAI_BASE_URL) for Z.ai API")
+        print("Or set ANTHROPIC_API_KEY for Anthropic API")
         return 1
 
-    # Check if API key is available
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        print("Error: ANTHROPIC_API_KEY environment variable not set")
-        print("Get one at https://console.anthropic.com/")
-        return 1
+    # Define tools (shared between APIs)
+    tools_anthropic = [
+        {
+            "name": "mem_peek",
+            "description": "Read GPU memory at address",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "addr": {"type": "string", "description": "Memory address in hex (e.g., 0x1000)"},
+                    "size": {"type": "integer", "description": "Number of 32-bit words to read", "default": 16},
+                },
+                "required": ["addr"],
+            },
+        },
+        {
+            "name": "mem_poke",
+            "description": "Write value to GPU memory",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "addr": {"type": "string", "description": "Memory address in hex"},
+                    "val": {"type": "string", "description": "Value to write in hex"},
+                },
+                "required": ["addr", "val"],
+            },
+        },
+        {
+            "name": "gpu_write",
+            "description": "Batch write values to GPU memory",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "addr": {"type": "string", "description": "Starting address in hex"},
+                    "data": {"type": "array", "items": {"type": "integer"}, "description": "List of 32-bit values to write"},
+                },
+                "required": ["addr", "data"],
+            },
+        },
+        {
+            "name": "gpu_exec",
+            "description": "Execute shell command via daemon",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "cmd": {"type": "string", "description": "Shell command to execute"},
+                    "cwd": {"type": "string", "description": "Working directory"},
+                    "timeout": {"type": "integer", "description": "Timeout in seconds", "default": 30},
+                },
+                "required": ["cmd"],
+            },
+        },
+        {
+            "name": "gpu_pause",
+            "description": "Pause all GPU VMs",
+            "input_schema": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "gpu_vmstate",
+            "description": "Query VM state",
+            "input_schema": {
+                "type": "object",
+                "properties": {"vm": {"type": "integer", "description": "VM ID (0-7)", "default": 0}},
+            },
+        },
+        {
+            "name": "substrate_load",
+            "description": "Load .rts.png firmware to daemon",
+            "input_schema": {
+                "type": "object",
+                "properties": {"rts_file": {"type": "string", "description": "Path to .rts.png file"}},
+                "required": ["rts_file"],
+            },
+        },
+        {
+            "name": "daemon_status",
+            "description": "Check daemon health",
+            "input_schema": {"type": "object", "properties": {}},
+        },
+        {
+            "name": "mem_store",
+            "description": "Store persistent data in GPU memory",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "key": {"type": "string", "description": "Storage key"},
+                    "value": {"type": "object", "description": "JSON-serializable value"},
+                },
+                "required": ["key", "value"],
+            },
+        },
+        {
+            "name": "mem_retrieve",
+            "description": "Retrieve persistent data from GPU memory",
+            "input_schema": {
+                "type": "object",
+                "properties": {"key": {"type": "string", "description": "Storage key"}},
+                "required": ["key"],
+            },
+        },
+    ]
 
-    # Initialize Claude client
-    client = anthropic.Anthropic(api_key=api_key)
+    # Convert to OpenAI format for Z.ai
+    tools_openai = []
+    for t in tools_anthropic:
+        tools_openai.append({
+            "type": "function",
+            "function": {
+                "name": t["name"],
+                "description": t["description"],
+                "parameters": t["input_schema"],
+            }
+        })
+
+    def call_zai_api(messages):
+        """Call Z.ai API (OpenAI-compatible)"""
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": "glm-4.6",  # Z.ai GLM model
+            "messages": [{"role": "system", "content": system_prompt}] + messages,
+            "tools": tools_openai,
+            "max_tokens": 1000,
+        }
+        response = requests.post(
+            f"{base_url}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=60,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def process_zai_response(response_json):
+        """Process Z.ai API response and return (text, tool_calls)"""
+        choice = response_json["choices"][0]
+        message = choice["message"]
+        text_content = message.get("content", "")
+        tool_calls = []
+        if message.get("tool_calls"):
+            for tc in message["tool_calls"]:
+                tool_calls.append({
+                    "id": tc["id"],
+                    "name": tc["function"]["name"],
+                    "input": json_module.loads(tc["function"]["arguments"]),
+                })
+        return text_content, tool_calls
 
     # System prompt describing available tools
     system_prompt = """You are an AI assistant for Geometry OS GPU substrate control.
@@ -455,8 +615,13 @@ def cmd_chat(args):
 
     def execute_tool_call(tool_call):
         """Execute a tool call and return result"""
-        name = tool_call.name
-        input_data = tool_call.input
+        # Handle both dict (Z.ai) and object (Anthropic) tool calls
+        if isinstance(tool_call, dict):
+            name = tool_call["name"]
+            input_data = tool_call["input"]
+        else:
+            name = tool_call.name
+            input_data = tool_call.input
 
         # Map tool names to functions
         tool_map = {
@@ -470,6 +635,8 @@ def cmd_chat(args):
             "daemon_status": tool_daemon_status,
             "mem_store": tool_mem_store,
             "mem_retrieve": tool_mem_retrieve,
+            "mem_store": tool_mem_store,  # alias
+            "mem_retrieve": tool_mem_retrieve,  # alias
         }
 
         if name not in tool_map:
@@ -717,148 +884,34 @@ def cmd_chat(args):
         messages = [{"role": "user", "content": args.prompt}]
 
         try:
-            message = client.messages.create(
-                model="claude-sonnet-4-20240514",
-                max_tokens=1000,
-                system=system_prompt,
-                messages=messages,  # type: ignore
-                tools=[
-                    {
-                        "name": "mem_peek",
-                        "description": "Read GPU memory at address",
-                        "input_schema": {
-                            "type": "object",
-                            "properties": {
-                                "addr": {"type": "string", "description": "Memory address in hex"},
-                                "size": {
-                                    "type": "integer",
-                                    "description": "Number of 32-bit words to read",
-                                    "default": 16,
-                                },
-                            },
-                            "required": ["addr"],
-                        },
-                    },
-                    {
-                        "name": "mem_poke",
-                        "description": "Write value to GPU memory",
-                        "input_schema": {
-                            "type": "object",
-                            "properties": {
-                                "addr": {"type": "string", "description": "Memory address in hex"},
-                                "val": {"type": "string", "description": "Value to write in hex"},
-                            },
-                            "required": ["addr", "val"],
-                        },
-                    },
-                    {
-                        "name": "gpu_write",
-                        "description": "Batch write values to GPU memory",
-                        "input_schema": {
-                            "type": "object",
-                            "properties": {
-                                "addr": {
-                                    "type": "string",
-                                    "description": "Starting address in hex",
-                                },
-                                "data": {
-                                    "type": "array",
-                                    "items": {"type": "integer"},
-                                    "description": "List of 32-bit values",
-                                },
-                            },
-                            "required": ["addr", "data"],
-                        },
-                    },
-                    {
-                        "name": "gpu_exec",
-                        "description": "Execute shell command via daemon",
-                        "input_schema": {
-                            "type": "object",
-                            "properties": {
-                                "cmd": {"type": "string", "description": "Shell command"},
-                                "cwd": {"type": "string", "description": "Working directory"},
-                                "timeout": {
-                                    "type": "integer",
-                                    "description": "Timeout in seconds",
-                                    "default": 30,
-                                },
-                            },
-                            "required": ["cmd"],
-                        },
-                    },
-                    {
-                        "name": "gpu_pause",
-                        "description": "Pause all GPU VMs",
-                        "input_schema": {"type": "object", "properties": {}},
-                    },
-                    {
-                        "name": "gpu_vmstate",
-                        "description": "Query VM state",
-                        "input_schema": {
-                            "type": "object",
-                            "properties": {
-                                "vm": {
-                                    "type": "integer",
-                                    "description": "VM ID (0-7)",
-                                    "default": 0,
-                                }
-                            },
-                        },
-                    },
-                    {
-                        "name": "substrate_load",
-                        "description": "Load .rts.png firmware",
-                        "input_schema": {
-                            "type": "object",
-                            "properties": {
-                                "rts_file": {
-                                    "type": "string",
-                                    "description": "Path to .rts.png file",
-                                }
-                            },
-                            "required": ["rts_file"],
-                        },
-                    },
-                    {
-                        "name": "daemon_status",
-                        "description": "Check daemon health",
-                        "input_schema": {"type": "object", "properties": {}},
-                    },
-                    {
-                        "name": "mem_store",
-                        "description": "Store persistent data",
-                        "input_schema": {
-                            "type": "object",
-                            "properties": {
-                                "key": {"type": "string", "description": "Storage key"},
-                                "value": {
-                                    "type": "object",
-                                    "description": "JSON-serializable value",
-                                },
-                            },
-                            "required": ["key", "value"],
-                        },
-                    },
-                    {
-                        "name": "mem_retrieve",
-                        "description": "Retrieve persistent data",
-                        "input_schema": {
-                            "type": "object",
-                            "properties": {"key": {"type": "string", "description": "Storage key"}},
-                            "required": ["key"],
-                        },
-                    },
-                ],
-            )
+            if use_zai:
+                # Z.ai API (OpenAI-compatible)
+                response_json = call_zai_api(messages)
+                text_content, tool_calls = process_zai_response(response_json)
 
-            # Process response
-            for block in message.content:
-                if block.type == "text":
-                    print(block.text)
-                elif block.type == "tool_use":
-                    result_text = execute_tool_call(block)
-                    print(f"\n[Tool {block.name} result:]\n{result_text}")
+                if text_content:
+                    print(f"\nAI: {text_content}")
+
+                # Execute tool calls
+                for tc in tool_calls:
+                    result_text = execute_tool_call(tc)
+                    print(f"[Tool {tc['name']}: {result_text}]")
+            else:
+                # Anthropic API
+                message = client.messages.create(
+                    model="claude-sonnet-4-20240514",
+                    max_tokens=1000,
+                    system=system_prompt,
+                    messages=messages,  # type: ignore
+                    tools=tools_anthropic,
+                )
+
+                for block in message.content:
+                    if block.type == "text":
+                        print(f"\nClaude: {block.text}")
+                    elif block.type == "tool_use":
+                        result_text = execute_tool_call(block)
+                        print(f"[Tool {block.name}: {result_text}]")
 
         except Exception as e:
             print(f"Error: {e}")

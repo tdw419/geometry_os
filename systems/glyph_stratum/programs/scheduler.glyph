@@ -1,12 +1,17 @@
 // ============================================================================
-// Geometry OS - Meta-Circular Scheduler (VM 0)
+// Geometry OS - Attention-Weighted Meta-Circular Scheduler (VM 0)
 // ============================================================================
 //
-// This glyph runs as VM 0 and schedules VMs 1-255 in round-robin fashion.
-// Uses trap interface for VM spawn/kill operations.
-// Integrates with brain_bridge for AI-driven scheduling decisions.
+// This glyph implements attention-weighted VM scheduling inspired by LLM attention mechanisms.
+// VM 0 attends to which VMs deserve compute cycles based on:
+//   - Recent activity (recency bias)
+//   - Historical performance (importance)
+//   - Resource usage patterns
 //
-// Brain Bridge Memory Map:
+// Attention mechanism: Each VM gets an attention score that determines its scheduling priority.
+// Higher attention = more frequent/longer time slices.
+//
+// Brain Bridge Memory Map (same as original scheduler):
 // - 0x2000: CTRL_SEMAPHORE (1 = request pending)
 // - 0x2004: RESPONSE_READY (1 = response available)
 // - 0x2008: REQUEST_LENGTH (bytes)
@@ -16,6 +21,12 @@
 // - 0x0304: thought_cycle_count
 // - 0x0308: last_action
 // - 0x030C: fitness_score
+//
+// Attention-specific memory map:
+// - 0x3000: Attention scores for VMs 1-255 (1 byte each, 0-255)
+// - 0x3100: VM activity counters (4 bytes each)
+// - 0x3200: VM importance weights (4 bytes each, fixed point)
+// - 0x3300: Last schedule frame for each VM (4 bytes each)
 
 .equ TRAP_BASE,    0xFF000000
 .equ TRAP_OP,      0xFF000000
@@ -26,7 +37,7 @@
 
 .equ VM_TABLE,     0xFE000000    // VM state table region
 .equ MAX_VMS,      255
-.equ CYCLES_PER_VM, 64
+.equ BASE_CYCLES_PER_VM, 32     // Base cycles, attention modifies this
 
 // VM state offsets (relative to VM base)
 .equ VM_STATE,     0
@@ -44,32 +55,18 @@
 .equ BRAIN_LAST_ACTION,    0x0308
 .equ BRAIN_FITNESS,        0x030C
 
+// Attention memory regions
+.equ ATTENTION_SCORES,   0x3000    // 1 byte per VM (1-255)
+.equ VM_ACTIVITY,        0x3100    // 4 bytes per VM
+.equ VM_IMPORTANCE,      0x3200    // 4 bytes per VM (fixed point)
+.equ LAST_SCHEDULED,     0x3300    // 4 bytes per VM
+
 // Brain coordination state
 .equ BRAIN_POLL_INTERVAL,  100   // Poll brain every N frames
 .equ BRAIN_ACTION_NONE,    0
 .equ BRAIN_ACTION_REBALANCE, 1
 .equ BRAIN_ACTION_SPAWN,   2
 .equ BRAIN_ACTION_KILL,    3
-
-// Self-Modification State
-.equ SELF_MODIFY_TRIGGER,  0x03F0    // Brain writes here to request self-mod
-.equ SELF_MODIFY_SOURCE,   0x03F4    // Source address for new code
-.equ SELF_MODIFY_TARGET,   0x03F8    // Target address (scheduler code)
-.equ SELF_MODIFY_COUNT,    0x03FC    // Number of glyphs to copy
-.equ SELF_MODIFY_STATUS,   0x03FE    // 0=idle, 1=requested, 2=complete
-
-// Self-modify action codes
-.equ SELF_MOD_ACTION_NONE,     0
-.equ SELF_MOD_ACTION_PATCH,    1
-.equ SELF_MOD_ACTION_HOTFIX,   2
-
-// Trap status codes
-.equ STATUS_IDLE,      0
-.equ STATUS_PENDING,   1
-.equ STATUS_COMPLETE,  2
-
-// Additional trap argument
-.equ TRAP_ARG2,        0xFF00000C
 
 :main
     // Mark self as running (VM 0)
@@ -79,6 +76,9 @@
 
     // Initialize frame counter
     LDI r20, 0          // r20 = frame count
+
+    // Initialize attention system
+    CALL :init_attention_system
 
     // Initialize brain coordination state
     LDI r23, 0          // r23 = last brain poll frame
@@ -95,40 +95,6 @@
 
     LDI r1, BRAIN_FITNESS
     LDI r2, 0x3F800000  // 1.0 as float bits
-    STORE r1, r2
-
-    // ========================================
-    // SPAWN: Start brain.glyph as VM 1
-    // ========================================
-    LDI r1, TRAP_OP
-    LDI r2, 3           // SPAWN_VM
-    STORE r1, r2
-
-    LDI r1, TRAP_ARG0
-    LDI r2, 0x1000      // Entry point for brain.glyph
-    STORE r1, r2
-
-    LDI r1, TRAP_ARG1
-    LDI r2, 1           // VM ID 1
-    STORE r1, r2
-
-    LDI r1, TRAP_STATUS
-    LDI r2, 1           // PENDING
-    STORE r1, r2
-
-    // Wait for spawn to complete
-:wait_brain_spawn
-    LDI r1, TRAP_STATUS
-    LOAD r2, r1
-    LDI r7, 2           // COMPLETE
-    SUB r2, r7
-    JZ r2, :brain_spawned
-    LDI r6, :wait_brain_spawn
-    JMP r6
-
-:brain_spawned
-    LDI r1, TRAP_STATUS
-    LDI r2, 0           // IDLE
     STORE r1, r2
 
 :scheduler_loop
@@ -231,16 +197,16 @@
     // Check for pending brain action
     LDI r2, BRAIN_ACTION_NONE
     SUB r24, r2
-    JZ r24, :no_brain_action
+    JZ :no_brain_action
 
     // Execute action based on r24
     LDI r2, BRAIN_ACTION_REBALANCE
     SUB r24, r2
     JNZ :check_spawn_action
 
-    // REBALANCE: Adjust VM priorities (future implementation)
-    // For now, just clear the action
+    // REBALANCE: Recompute attention scores based on VM performance
     LDI r24, BRAIN_ACTION_NONE
+    CALL :recompute_attention_scores
     JMP :no_brain_action
 
 :check_spawn_action
@@ -254,7 +220,7 @@
     STORE r1, r2
 
     LDI r1, TRAP_ARG0
-    LDI r2, 0           // entry point (placeholder)
+    LDI r2, 0           // entry point (placeholder - should come from brain)
     STORE r1, r2
 
     LDI r1, TRAP_STATUS
@@ -270,92 +236,351 @@
     JNZ :no_brain_action
 
     // KILL: Request VM termination via trap
-    // TODO: Get VM ID from brain response
+    // TODO: Get VM ID from brain response (for now, kill lowest attention VM)
+    LDI r1, TRAP_OP
+    LDI r2, 4           // KILL_VM op
+    STORE r1, r2
+
+    // Find VM with lowest attention score to kill
+    LDI r1, ATTENTION_SCORES
+    LDI r2, 1           // Start with VM 1
+    LDI r3, 255         // r3 = current VM ID to check
+    LDI r4, 255         // r4 = min attention score found
+    LDI r5, 1           // r5 = VM ID with min attention
+
+:find_min_attention_loop
+    LOAD r1, r6         // r6 = attention score of current VM
+    SUB r6, r4
+    JGE :not_new_min    // If attention >= current min, skip
+    MOV r4, r6          // New minimum found
+    MOV r5, r3          // Record VM ID
+
+:not_new_min
+    ADDI r1, r1, 1      // Next VM's attention score
+    ADDI r3, r3, 1      // Next VM ID
+    LDI r6, 255
+    SUB r6, r3
+    JNZ :find_min_attention_loop
+
+    // Kill the VM with lowest attention
+    LDI r1, TRAP_ARG0
+    LDI r2, r5          // VM ID to kill
+    STORE r1, r2
+
     LDI r24, BRAIN_ACTION_NONE
+    JMP :no_brain_action
 
 :no_brain_action
 
     // ================================================================
-    // SELF-MODIFICATION: Check for code patch requests
+    // ATTENTION-WEIGHTED VM SCHEDULING
     // ================================================================
 
-    LDI r1, SELF_MODIFY_TRIGGER
-    LOAD r1, r27           // r27 = self-modify trigger
+    // Update attention decay (older activity gets less weight)
+    LDI r20, r20
+    ANDI r20, r20, 31   // Only decay every 32 frames
+    JNZ :skip_attention_decay
+    CALL :decay_attention_scores
+:skip_attention_decay
 
-    LDI r2, SELF_MOD_ACTION_NONE
-    SUB r27, r2
-    JZ r27, :skip_self_modify
+    // Select next VM based on attention weights
+    CALL :select_vm_by_attention
+    MOV r21, r0         // r21 = selected VM ID
 
-    // Self-modification requested!
-    // Read parameters
-    LDI r1, SELF_MODIFY_SOURCE
-    LOAD r1, r28           // r28 = source address
+    // Execute the selected VM for attention-weighted cycles
+    LDI r1, VM_TABLE
+    LDI r2, 256         // Each VM state is 256 bytes (simplified)
+    MUL r2, r21         // Offset to VM state
+    ADD r1, r2          // r1 = pointer to VM state
 
-    LDI r1, SELF_MODIFY_TARGET
-    LOAD r1, r29           // r29 = target address
+    // Check if VM is active
+    LDI r2, 1           // Active flag offset
+    ADD r1, r2
+    LOAD r1, r2         // r2 = active flag
+    SUB r2, 1
+    JZ :scheduler_loop  // Skip inactive VMs
 
-    LDI r1, SELF_MODIFY_COUNT
-    LOAD r1, r30           // r30 = count
+    // Get attention score for this VM
+    LDI r1, ATTENTION_SCORES
+    ADDI r1, r21        // Offset to this VM's attention score
+    LOAD r1, r22        // r22 = attention score (0-255)
 
-    // Request GLYPH_WRITE via trap
+    // Calculate cycles: base_cycles * (attention_score / 255 + 1)
+    // This gives 1x to 2x base cycles based on attention
+    LDI r3, BASE_CYCLES_PER_VM
+    LDI r4, 255
+    MUL r3, r22         // base * attention
+    DIV r3, r4          // Divide by 255
+    ADD r3, r3, BASE_CYCLES_PER_VM  // Add base
+    MOV r25, r3         // r25 = cycles to execute
+
+    // Execute VM for calculated cycles
+    LDI r26, 0          // cycle counter
+
+:vm_execution_loop
+    // Execute one instruction via trap
     LDI r1, TRAP_OP
-    LDI r2, 8              // GLYPH_WRITE opcode
+    LDI r2, 1           // EXECUTE_INSTRUCTION op
     STORE r1, r2
 
     LDI r1, TRAP_ARG0
-    STORE r1, r29          // target
-
-    LDI r1, TRAP_ARG1
-    STORE r1, r28          // source
-
-    LDI r1, TRAP_ARG2
-    STORE r1, r30          // count
+    LDI r2, r21         // VM ID to execute
+    STORE r1, r2
 
     LDI r1, TRAP_STATUS
-    LDI r2, STATUS_PENDING
+    LDI r2, 1           // PENDING
     STORE r1, r2
 
-:wait_self_modify
-    LDI r1, TRAP_STATUS
-    LOAD r27, r1       // Load status INTO r27 FROM address r1
-    LDI r2, STATUS_COMPLETE
-    SUB r27, r2
-    JNZ r27, :wait_self_modify
+    // Check if VM halted
+    LDI r1, TRAP_RESULT
+    LOAD r1, r2         // r2 = halt status (0=running, 1=halted)
+    LDI r3, 1
+    SUB r2, r3
+    JNZ :vm_execution_done
 
-    // Mark complete
-    LDI r1, SELF_MODIFY_TRIGGER
-    LDI r2, SELF_MOD_ACTION_NONE
+    // Increment cycle counter
+    ADDI r26, r26, 1
+    LDI r3, 0
+    SUB r26, r25        // Check if we've done enough cycles
+    JNZ :vm_execution_loop
+
+:vm_execution_done
+    // Update last scheduled time
+    LDI r1, LAST_SCHEDULED
+    ADDI r1, r21, 2     // Offset to last_scheduled (assuming 2-byte offset for simplicity)
+    LDI r2, r20         // Current frame
     STORE r1, r2
 
-    LDI r1, SELF_MODIFY_STATUS
-    LDI r2, STATUS_COMPLETE
+    // Update activity counter for this VM
+    LDI r1, VM_ACTIVITY
+    ADDI r1, r21, 4     // 4 bytes per VM
+    LOAD r1, r2         // Load current activity
+    ADDI r2, r2, 1      // Increment
+    LDI r1, VM_ACTIVITY
+    ADDI r1, r21, 4
     STORE r1, r2
 
-:skip_self_modify
+    JMP :scheduler_loop
 
-    // ================================================================
-    // ROUND-ROBIN VM SCHEDULING
-    // ================================================================
+// ============================================================================
+// SUBROUTINES
+// ============================================================================
 
-    // Round-robin through VMs 1-255
-    LDI r21, 1          // r21 = current VM ID
+:init_attention_system
+    // Initialize attention scores to default (128 = medium)
+    LDI r1, ATTENTION_SCORES
+    LDI r2, 1           // Start with VM 1
+    LDI r3, 128         // Default attention score
 
-:vm_loop
-    // Check if VM r21 is active
-    // For now, just yield to let shim handle scheduling
-    // Real implementation would check VM_TABLE[r21].active
+:init_attention_loop
+    STORE r1, r3
+    ADDI r1, r1, 1
+    ADDI r2, r2, 1
+    LDI r4, 255
+    SUB r4 = r2
+    JNZ :init_attention_loop
 
-    // Increment VM ID
-    ADDI r21, r21, 1
-    LDI r22, MAX_VMS
-    SUB r21, r22
-    JNZ vm_loop         // Loop until r21 > MAX_VMS
+    // Initialize activity counters to 0
+    LDI r1, VM_ACTIVITY
+    LDI r2, 1
+    LDI r3, 0
 
-    // Frame sync - write heartbeat
-    LDI r1, 0xFF000200
-    STORE r1, r20
+:init_activity_loop
+    STORE r1, r3
+    STORE r1, r3        // Second byte
+    STORE r1, r3        // Third byte
+    STORE r1, r3        // Fourth byte
+    ADDI r1, r1, 4
+    ADDI r2 = r2, 1
+    LDI r4, 255
+    SUB r4 = r2
+    JNZ :init_activity_loop
 
-    // Yield to shim for trap processing
-    // (shim will handle actual VM execution)
+    // Initialize importance weights to 1.0 (fixed point: 1.0 = 0x3F800000)
+    LDI r1, VM_IMPORTANCE
+    LDI r2, 1
+    LDI r3, 0x3F800000
 
-    JMP scheduler_loop
+:init_importance_loop
+    STORE r1, r3        // First byte
+    STORE r1, r3        // Second byte
+    STORE r1, r3        // Third byte
+    STORE r1, r3        // Fourth byte
+    ADDI r1 = r1, 4
+    ADDI r2 = r2, 1
+    LDI r4 = 255
+    SUB r4 = r2
+    JNZ :init_importance_loop
+
+    // Initialize last scheduled to 0
+    LDI r1 = LAST_SCHEDULED
+    LDI r2 = 1
+    LDI r3 = 0
+
+:init_last_scheduled_loop
+    STORE r1 = r3
+    STORE r1 = r3
+    STORE r1 = r3
+    STORE r1 = r3
+    ADDI r1 = r1, 4
+    ADDI r2 = r2, 1
+    LDI r4 = 255
+    SUB r4 = r2
+    JNZ :init_last_scheduled_loop
+
+    RET
+
+:decay_attention_scores
+    // Apply decay to all attention scores (multiply by 0.95)
+    LDI r1 = ATTENTION_SCORES
+    LDI r2 = 1           // Start with VM 1
+
+:decay_loop
+    LOAD r1, r3         // Load current attention score
+    // r3 = r3 * 0.95 (approx: r3 - r3/20)
+    LDI r4 = r3
+    LDI r5 = 20
+    DIV r4 = r5          // r4 = r3 / 20
+    SUB r3 = r4          // r3 = r3 - r3/20
+    // Ensure minimum of 1
+    LDI r4 = 1
+    SUB r3 = r4
+    JGE :no_underflow
+    LDI r3 = 1
+
+:no_underflow
+    STORE r1 = r3
+    ADDI r1 = r1, 1
+    ADDI r2 = r2, 1
+    LDI r4 = 255
+    SUB r4 = r2
+    JNZ :decay_loop
+
+    RET
+
+:recompute_attention_scores
+    // Recompute attention scores based on activity and importance
+    // attention = log(1 + activity) * importance
+    LDI r1 = VM_ACTIVITY
+    LDI r2 = ATTENTION_SCORES
+    LDI r3 = VM_IMPORTANCE
+    LDI r4 = 1           // Start with VM 1
+
+:recompute_loop
+    // Load activity (4 bytes)
+    LDI r5 = r1
+    LOAD r5 = r6         // r6 = activity byte 0
+    ADDI r5 = r5, 1
+    LOAD r5 = r7         // r7 = activity byte 1
+    ADDI r5 = r5, 1
+    LOAD r5 = r8         // r8 = activity byte 2
+    ADDI r5 = r5, 1
+    LOAD r5 = r9         // r9 = activity byte 3
+    // Combine bytes into activity value (simplified - just use first byte for now)
+    MOV r6 = r6          // Use first byte as activity for simplicity
+
+    // Load importance (4 bytes)
+    LDI r5 = r3
+    LOAD r5 = r10        // r10 = importance byte 0
+    // Simplified: use first byte as importance
+
+    // Calculate attention: log(1 + activity) * importance
+    // Approximate log(1+x) for small x: x/(1+x/2)
+    LDI r5 = r6          // activity
+    LDI r7 = 2
+    MUL r7 = r6
+    ADD r7 = r7, 1       // denominator: 1 + activity/2
+    DIV r6 = r7          // r6 = activity / (1 + activity/2) ≈ log(1+activity)
+    MUL r6 = r10         // Multiply by importance
+
+    // Store attention score (clamp to 1-255)
+    LDI r7 = 1
+    SUB r6 = r7
+    JGE :attention_ok
+    LDI r6 = 1
+
+:attention_ok
+    LDI r7 = 255
+    SUB r6 = r7
+    JLE :attention_ok2
+    LDI r6 = 255
+
+:attention_ok2
+    STORE r2 = r6
+
+    // Move to next VM
+    ADDI r1 = r1, 4      // Next activity
+    ADDI r2 = r2, 1      // Next attention score
+    ADDI r3 = r3, 4      // Next importance
+    ADDI r4 = r4, 1
+    LDI r5 = 255
+    SUB r5 = r4
+    JNZ :recompute_loop
+
+    RET
+
+:select_vm_by_attention
+    // Select VM using attention-weighted random selection
+    // Build cumulative distribution and pick random point
+    LDI r1 = ATTENTION_SCORES
+    LDI r2 = 1           // Start with VM 1
+    LDI r3 = 0           // r3 = cumulative sum
+    LDI r4 = 0           // r4 = selected VM ID
+
+    // First pass: calculate total attention
+    LDI r5 = 0           // r5 = total attention
+
+:sum_loop
+    LOAD r1 = r6         // Load attention score
+    ADD r5 = r5, r6
+    ADDI r1 = r1, 1
+    ADDI r2 = r2, 1
+    LDI r7 = 255
+    SUB r7 = r2
+    JNZ :sum_loop
+
+    // If total attention is 0, select VM 1
+    LDI r6 = 0
+    SUB r5 = r6
+    JZ :select_vm_1
+
+    // Generate random number [0, total_attention)
+    // Simple pseudo-random: use frame counter
+    LDI r6 = r20         // Use frame counter as random seed
+    LDI r7 = 17          // Prime multiplier
+    MUL r6 = r6, r7
+    LDI r7 = 31          // Another prime
+    ADD r6 = r6, r7
+    DIV r6 = r5          // r6 = random % total_attention
+
+    // Second pass: find VM where cumulative sum > random
+    LDI r1 = ATTENTION_SCORES
+    LDI r2 = 1
+    LDI r3 = 0           // cumulative sum
+
+:selection_loop
+    LOAD r1 = r4         // Load attention score
+    ADD r3 = r3, r4      // Add to cumulative
+    SUB r3 = r6          // Subtract random target
+    JGE :selected       // If cumulative >= random, we've selected
+    ADDI r1 = r1, 1
+    ADDI r2 = r2, 1
+    LDI r5 = 255
+    SUB r5 = r2
+    JNZ :selection_loop
+
+    // Fallback to VM 1
+    LDI r2 = 1
+    JMP :return_selected
+
+:selected
+    MOV r4 = r2          // Store selected VM ID
+
+:return_selected
+    MOV r0 = r4          // Return selected VM ID in r0
+    RET
+
+:select_vm_1
+    LDI r2 = 1
+    MOV r0 = r2
+    RET

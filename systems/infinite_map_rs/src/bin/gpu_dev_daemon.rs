@@ -23,7 +23,7 @@ use tokio::runtime::Runtime;
 
 use infinite_map_rs::brain_bridge::{BrainBridge, BrainBridgeConfig};
 use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
-use infinite_map_rs::trap_interface::{TrapRegs, op_type, status, TRAP_BASE};
+use infinite_map_rs::trap_interface::{op_type, status, TrapRegs, TRAP_BASE};
 
 /// Static Tokio runtime for async operations (avoids creating new runtime on each trap)
 static TOKIO_RT: OnceLock<Runtime> = OnceLock::new();
@@ -103,21 +103,21 @@ impl TrapHandler {
                 let entry = self.regs.arg0;
                 let config = self.regs.arg1;
                 scheduler.spawn_vm_from_trap(entry, config) as u32
-            }
+            },
             op_type::KILL_VM => {
                 let vm_id = self.regs.arg0;
                 scheduler.kill_vm(vm_id) as u32
-            }
+            },
             op_type::PEEK_SUBSTRATE => {
                 let addr = self.regs.arg0;
                 scheduler.peek_substrate_single(addr)
-            }
+            },
             op_type::POKE_SUBSTRATE => {
                 let addr = self.regs.arg0;
                 let val = self.regs.arg1;
                 scheduler.poke_substrate_single(addr, val);
                 0
-            }
+            },
             op_type::LM_STUDIO => {
                 // arg0 = request_addr (in substrate)
                 // arg1 = request_length
@@ -133,7 +133,9 @@ impl TrapHandler {
                 let request = String::from_utf8_lossy(&request_bytes).to_string();
 
                 // Call LM Studio
-                let response = get_tokio_rt().block_on(call_lm_studio(&request)).unwrap_or_default();
+                let response = get_tokio_rt()
+                    .block_on(call_lm_studio(&request))
+                    .unwrap_or_default();
 
                 // Write response to substrate
                 for (i, byte) in response.bytes().take(4096).enumerate() {
@@ -141,17 +143,17 @@ impl TrapHandler {
                 }
 
                 response.len() as u32
-            }
+            },
             op_type::GLYPH_WRITE => {
                 let target = self.regs.arg0;
                 let source = self.regs.arg1;
                 let count = self.regs.arg2;
                 scheduler.glyph_write(target, source, count)
-            }
+            },
             _ => {
                 eprintln!("[TRAP] Unknown op_type: {}", self.regs.op_type);
                 0xFFFF_FFFF // Error code
-            }
+            },
         };
 
         // Write result and mark complete
@@ -197,7 +199,10 @@ fn main() {
 
     // Print device limits
     let limits = device.limits();
-    println!("[GPU] Max texture dimension 2D: {}", limits.max_texture_dimension_2d);
+    println!(
+        "[GPU] Max texture dimension 2D: {}",
+        limits.max_texture_dimension_2d
+    );
 
     let device = Arc::new(device);
     let queue = Arc::new(queue);
@@ -299,7 +304,7 @@ fn main() {
             Err(e) => {
                 eprintln!("[API] Failed to bind TCP socket: {}", e);
                 return;
-            }
+            },
         };
         println!("[API] Ouroboros API listening on http://0.0.0.0:8769");
         std::io::stdout().flush().unwrap();
@@ -309,13 +314,7 @@ fn main() {
                 break;
             }
             if let Ok(mut stream) = stream {
-                handle_raw_request(
-                    &mut stream,
-                    &q_clone,
-                    &t_clone,
-                    &d_clone,
-                    &s_clone,
-                );
+                handle_raw_request(&mut stream, &q_clone, &t_clone, &d_clone, &s_clone);
             }
         }
     });
@@ -326,10 +325,7 @@ fn main() {
         let _ = fs::remove_file(socket_path);
     }
     let listener = UnixListener::bind(socket_path).unwrap();
-    println!(
-        "[API] Ouroboros Unix socket listening on {}",
-        socket_path
-    );
+    println!("[API] Ouroboros Unix socket listening on {}", socket_path);
     std::io::stdout().flush().unwrap();
 
     let q_clone_unix = queue.clone();
@@ -393,12 +389,7 @@ fn main() {
         {
             let mut th = trap_handler_loop.lock().unwrap();
             let mut sched = scheduler_loop.lock().unwrap();
-            th.poll_and_execute(
-                &mut sched,
-                &texture_loop,
-                &device_loop,
-                &queue_loop,
-            );
+            th.poll_and_execute(&mut sched, &texture_loop, &device_loop, &queue_loop);
         }
 
         if let Some(delay) = Duration::from_micros(16667).checked_sub(start.elapsed()) {
@@ -453,7 +444,10 @@ fn read_substrate_region(
     texture: &wgpu::Texture,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    x: u32, y: u32, w: u32, h: u32,
+    x: u32,
+    y: u32,
+    w: u32,
+    h: u32,
 ) -> Option<Vec<u8>> {
     let bytes_per_pixel = 4u32;
     let buffer_size = (w * h * bytes_per_pixel) as u64;
@@ -575,7 +569,13 @@ fn handle_raw_request<S: Read + Write>(
         if let Some(data) = read_substrate_region(texture, device, queue, x, y, w, h) {
             if let Some(img) = image::RgbaImage::from_raw(w, h, data) {
                 let mut png_bytes = Vec::new();
-                if img.write_to(&mut std::io::Cursor::new(&mut png_bytes), image::ImageFormat::Png).is_ok() {
+                if img
+                    .write_to(
+                        &mut std::io::Cursor::new(&mut png_bytes),
+                        image::ImageFormat::Png,
+                    )
+                    .is_ok()
+                {
                     let response = format!(
                         "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: {}\r\n\r\n",
                         png_bytes.len()
@@ -650,6 +650,89 @@ fn handle_raw_request<S: Read + Write>(
             }
         }
         let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"error\":\"invalid parameters\"}");
+        return;
+    }
+
+    // Handle /chat endpoint directly
+    if request_str.starts_with("POST /chat") {
+        // Natural language chat endpoint - converts text to GPU commands
+        let body_start = request_str.find("\r\n\r\n").unwrap_or(0) + 4;
+        let body = &request_str[body_start..];
+
+        // Simple command parsing - in a real implementation this would use an LLM
+        let response = if body.contains("help") {
+            "Available commands:\n- help: Show this help\n- status: Get daemon status\n- mem <addr>: Peek memory at address\n- reset: Reset all VMs\n- spawn <entry_point>: Spawn a new VM".to_string()
+        } else if body.contains("status") {
+            let status = format!(
+                "{{\n  \"daemon\": \"ouroboros\",\n  \"version\": \"Phase 70\",\n  \"status\": \"healthy\",\n  \"transports\": [\"tcp://127.0.0.1:8769\", \"unix:///tmp/gpu_daemon.sock\"],\n  \"substrate\": {{\n    \"width\": 4096,\n    \"height\": 4096,\n    \"format\": \"Rgba8Uint\"\n  }},\n  \"self_hosting\": true,\n  \"vcc_enabled\": true\n}}"
+            );
+            status
+        } else if body.contains("mem ") {
+            if let Some(addr_str) = body
+                .split("mem ")
+                .nth(1)
+                .and_then(|s| s.split_whitespace().next())
+            {
+                if let Ok(addr) = u32::from_str_radix(addr_str.trim_start_matches("0x"), 16) {
+                    // Read from GPU memory
+                    let size_val = 16; // Read 16 pixels (64 bytes)
+                    let mut hex_results = Vec::new();
+                    for i in 0..size_val {
+                        let (tx, ty) = hilbert_d2xy(4096, addr + i);
+                        let val =
+                            read_u32_from_substrate((ty * 4096 + tx) * 4, texture, device, queue);
+                        hex_results.push(format!("{:08x}", val));
+                    }
+                    format!("Memory at 0x{:08x}: {}", addr, hex_results.join(" "))
+                } else {
+                    "Invalid address format".to_string()
+                }
+            } else {
+                "Please specify an address: mem <hex_address>".to_string()
+            }
+        } else if body.contains("reset") {
+            let mut s = scheduler.lock().unwrap();
+            s.reset_all();
+            "All VMs reset".to_string()
+        } else if body.starts_with("spawn ") {
+            if let Some(entry_str) = body
+                .split("spawn ")
+                .nth(1)
+                .and_then(|s| s.split_whitespace().next())
+            {
+                if let Ok(entry_point) = u32::from_str_radix(entry_str, 10) {
+                    let mut s = scheduler.lock().unwrap();
+                    let mut regs = [0u32; 128];
+                    regs[0] = entry_point;
+                    let config = VmConfig {
+                        entry_point: 0,
+                        parent_id: 0xFF,
+                        base_addr: 0,
+                        bound_addr: 0,
+                        initial_regs: regs,
+                    };
+                    match s.spawn_vm(0, &config) {
+                        Ok(_) => format!("Spawned VM at entry point {}", entry_point),
+                        Err(e) => format!("Failed to spawn VM: {}", e),
+                    }
+                } else {
+                    "Invalid entry point".to_string()
+                }
+            } else {
+                "Please specify an entry point: spawn <number>".to_string()
+            }
+        } else {
+            format!(
+                "Unknown command: {}. Try 'help' for available commands.",
+                body.trim()
+            )
+        };
+
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{}\n",
+            response
+        );
+        let _ = stream.write_all(response.as_bytes());
         return;
     }
 
@@ -737,12 +820,7 @@ fn write_to_substrate(
 }
 
 /// Write a single u32 to substrate at specified address
-fn write_u32_to_substrate(
-    addr: u32,
-    value: u32,
-    texture: &wgpu::Texture,
-    queue: &wgpu::Queue,
-) {
+fn write_u32_to_substrate(addr: u32, value: u32, texture: &wgpu::Texture, queue: &wgpu::Queue) {
     let (tx, ty) = hilbert_d2xy(4096, addr);
     let data = value.to_le_bytes();
     queue.write_texture(
