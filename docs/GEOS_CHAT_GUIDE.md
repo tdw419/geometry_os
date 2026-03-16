@@ -316,6 +316,58 @@ The Unix socket needs `Connection: close` header. This is handled in `_daemon_re
 | `systems/infinite_map_rs/src/bin/gpu_dev_daemon.rs` | Ouroboros HAL daemon |
 | `docs/MCP2CLI_GUIDE.md` | MCP tools documentation |
 
+## WASM Execution Tools
+
+The MCP server includes tools for loading and executing WASM binaries on the GPU substrate:
+
+### wasm_load
+
+Load a WASM binary to GPU substrate at the WASM linear memory base:
+
+```
+GEOS Chat> load and run counter.wasm
+
+AI: I'll load the WASM binary and trigger execution.
+[Tool wasm_load: wasm_file=counter.wasm → loaded 667 bytes to 0x20000]
+```
+
+### wasm_run
+
+Start WASM interpreter execution:
+
+```
+[Tool wasm_run: entry_point=0x0 → interpreter started]
+```
+
+### wasm_status
+
+Check interpreter state:
+
+```
+GEOS Chat> check WASM interpreter status
+
+AI: [Tool wasm_status]
+{
+  "ip": "0x42",
+  "sp": "0x2fff8",
+  "status": "HALTED",
+  "linear_memory": "0x20000"
+}
+```
+
+### Example: Running WASM with Host Functions
+
+```
+GEOS Chat> load test.wasm and run it, then check memory at 0x1000
+
+AI: Let me do this step by step.
+[Tool wasm_load: test.wasm → loaded]
+[Tool wasm_run: entry_point=0x0 → running]
+[Tool mem_peek: addr=0x1000, size=4 → value=0x2a (42)]
+
+The WASM program executed successfully and wrote 42 to address 0x1000!
+```
+
 ## Future Enhancements
 
 - [ ] Voice input via microphone
