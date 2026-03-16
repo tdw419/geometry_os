@@ -17,15 +17,15 @@
 //!
 //! # Usage
 //!
-//! ```rust
-//! use crate::cognitive::{CognitiveEntityManager, TextureType, agents::CityAgentManager};
+//! ```ignore
+//! use infinite_map_rs::cognitive::{CognitiveEntityManager, EntityType, agents::CityAgentManager, AgentRole};
 //!
 //! // Detect texture type
-//! let texture_type = TextureType::from_metadata(&metadata);
+//! let entity_type = EntityType::from_metadata(&metadata);
 //!
 //! // Register entity if cognitive
-//! if matches!(texture_type, TextureType::CognitiveEntity) {
-//!     manager.register_entity(texture_path)?;
+//! if matches!(entity_type, EntityType::CognitiveEntity) {
+//!     manager.register_entity(&texture_path)?;
 //! }
 //!
 //! // Spawn autonomous agent

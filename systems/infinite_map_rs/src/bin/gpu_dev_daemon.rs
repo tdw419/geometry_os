@@ -118,7 +118,8 @@ mod wasm_parser {
                     for _ in 0..type_count {
                         let form = wasm_bytes.get(offset)?;
                         offset += 1;
-                        if *form != 0x60 { // func type
+                        if *form != 0x60 {
+                            // func type
                             break;
                         }
                         let param_count = read_leb128_u32(wasm_bytes, &mut offset)?;
@@ -130,7 +131,7 @@ mod wasm_parser {
                             read_leb128_u32(wasm_bytes, &mut offset)?; // result type
                         }
                     }
-                }
+                },
                 SECTION_IMPORT => {
                     // Import section - count imported functions
                     let import_count = read_leb128_u32(wasm_bytes, &mut offset)?;
@@ -139,24 +140,31 @@ mod wasm_parser {
                         let _name = read_name(wasm_bytes, &mut offset)?;
                         let import_kind = wasm_bytes.get(offset)?;
                         offset += 1;
-                        if *import_kind == 0 { // Function import
+                        if *import_kind == 0 {
+                            // Function import
                             let _type_idx = read_leb128_u32(wasm_bytes, &mut offset)?;
                             info.import_count += 1;
-                        } else if *import_kind == 1 { // Table import
+                        } else if *import_kind == 1 {
+                            // Table import
                             let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // elem type
                             let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // limits flags
                             let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // limits initial
-                        } else if *import_kind == 2 { // Memory import
+                        } else if *import_kind == 2 {
+                            // Memory import
                             let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // limits flags
                             let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // limits initial
-                        } else if *import_kind == 3 { // Global import
+                        } else if *import_kind == 3 {
+                            // Global import
                             let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // value type
                             let _ = wasm_bytes.get(offset); // mutability
                             offset += 1;
                         }
                     }
-                    println!("[WASM] Import section: {} function imports", info.import_count);
-                }
+                    println!(
+                        "[WASM] Import section: {} function imports",
+                        info.import_count
+                    );
+                },
                 SECTION_FUNCTION => {
                     // Function section - type indices for each function
                     let func_count = read_leb128_u32(wasm_bytes, &mut offset)?;
@@ -165,7 +173,7 @@ mod wasm_parser {
                         func_types.push(type_idx);
                     }
                     println!("[WASM] Function section: {} functions", func_count);
-                }
+                },
                 SECTION_EXPORT => {
                     // Export section - find _start
                     let export_count = read_leb128_u32(wasm_bytes, &mut offset)?;
@@ -175,18 +183,19 @@ mod wasm_parser {
                         offset += 1;
                         let index = read_leb128_u32(wasm_bytes, &mut offset)?;
 
-                        if name == "_start" && *export_kind == 0 { // Function export
+                        if name == "_start" && *export_kind == 0 {
+                            // Function export
                             start_func = Some(index);
                             println!("[WASM] Found _start export at function index {}", index);
                         }
                     }
-                }
+                },
                 SECTION_START => {
                     // Start section - entry point function index
                     let func_idx = read_leb128_u32(wasm_bytes, &mut offset)?;
                     start_func = Some(func_idx);
                     println!("[WASM] Found start section: function {}", func_idx);
-                }
+                },
                 SECTION_CODE => {
                     // Code section - function bodies
                     info.code_section_offset = offset;
@@ -197,17 +206,21 @@ mod wasm_parser {
                         let body_start = offset;
 
                         // Store offset relative to code section start
-                        info.func_code_offsets.push(body_start - info.code_section_offset);
+                        info.func_code_offsets
+                            .push(body_start - info.code_section_offset);
 
                         // Skip function body
                         offset = body_start + body_size;
                     }
-                    println!("[WASM] Code section: {} functions at offset {}", func_count, info.code_section_offset);
-                }
+                    println!(
+                        "[WASM] Code section: {} functions at offset {}",
+                        func_count, info.code_section_offset
+                    );
+                },
                 _ => {
                     // Skip unknown sections
                     offset = section_start + section_size;
-                }
+                },
             }
 
             // Ensure we're at the right position
@@ -222,8 +235,11 @@ mod wasm_parser {
             if let Some(&code_offset) = info.func_code_offsets.get(local_idx as usize) {
                 // The entry point is the absolute offset from WASM binary start
                 info.start_func_idx = Some((info.code_section_offset + code_offset) as u32);
-                println!("[WASM] Entry point: function {} -> code offset 0x{:x}",
-                    func_idx, info.start_func_idx.unwrap());
+                println!(
+                    "[WASM] Entry point: function {} -> code offset 0x{:x}",
+                    func_idx,
+                    info.start_func_idx.unwrap()
+                );
             }
         }
 
@@ -237,6 +253,17 @@ static TOKIO_RT: OnceLock<Runtime> = OnceLock::new();
 /// Chat history storage (in-memory, persists for daemon lifetime)
 static CHAT_HISTORY: OnceLock<Mutex<String>> = OnceLock::new();
 const CHAT_HISTORY_MAX: usize = 0x10000; // 64KB
+
+/// Chat cache for storing activations during learning
+struct ChatActivation {
+    /// Memory addresses that were activated during inference
+    addresses: Vec<u32>,
+    /// Activation strength for each address (0.0-1.0)
+    strengths: Vec<f32>,
+}
+
+static CHAT_CACHE: OnceLock<Mutex<std::collections::HashMap<String, ChatActivation>>> =
+    OnceLock::new();
 
 /// WASM entry point storage (parsed from loaded WASM binary)
 static WASM_ENTRY_POINT: OnceLock<Mutex<Option<u32>>> = OnceLock::new();
@@ -369,7 +396,7 @@ impl TrapHandler {
                 let arg1 = self.regs.arg2;
                 let result = self.handle_wasm_host_call(func_id, arg0, arg1, scheduler);
                 result
-            }
+            },
             _ => {
                 eprintln!("[TRAP] Unknown op_type: {}", self.regs.op_type);
                 0xFFFF_FFFF // Error code
@@ -401,7 +428,7 @@ impl TrapHandler {
             _ => {
                 eprintln!("[WASM] Unknown host function: {}", func_id);
                 0
-            }
+            },
         }
     }
 
@@ -569,11 +596,21 @@ fn main() {
     let wasm_interp_path = "systems/glyph_stratum/programs/wasm_interpreter.bin";
     const WASM_INTERPRETER_ADDR: u32 = 0x1000;
     if let Ok(wasm_bytes) = std::fs::read(wasm_interp_path) {
-        println!("[BOOT] Loading wasm_interpreter.bin into VM 2 at 0x{:x}...", WASM_INTERPRETER_ADDR);
+        println!(
+            "[BOOT] Loading wasm_interpreter.bin into VM 2 at 0x{:x}...",
+            WASM_INTERPRETER_ADDR
+        );
         std::io::stdout().flush().unwrap();
         {
             let mut shadow = shadow_ram.lock().unwrap();
-            write_glyph_to_substrate(&wasm_bytes, &ram_texture, &device, &queue, WASM_INTERPRETER_ADDR, &mut shadow);
+            write_glyph_to_substrate(
+                &wasm_bytes,
+                &ram_texture,
+                &device,
+                &queue,
+                WASM_INTERPRETER_ADDR,
+                &mut shadow,
+            );
         }
         println!("[BOOT] WASM interpreter written to substrate, spawning VM...");
         std::io::stdout().flush().unwrap();
@@ -590,7 +627,9 @@ fn main() {
                     std::io::stdout().flush().unwrap();
                     // Immediately halt VM 2 so it waits for WASM binary to be loaded
                     let _ = sched.halt_vm(2);
-                    println!("[BOOT] wasm_interpreter.bin loaded as VM 2 (WASM interpreter, halted)");
+                    println!(
+                        "[BOOT] wasm_interpreter.bin loaded as VM 2 (WASM interpreter, halted)"
+                    );
                 },
                 Err(e) => eprintln!("[BOOT] Warning: Failed to spawn VM 2: {}", e),
             }
@@ -642,7 +681,14 @@ fn main() {
                 break;
             }
             if let Ok(mut stream) = stream {
-                handle_raw_request(&mut stream, &q_clone, &t_clone, &d_clone, &s_clone, &shadow_clone);
+                handle_raw_request(
+                    &mut stream,
+                    &q_clone,
+                    &t_clone,
+                    &d_clone,
+                    &s_clone,
+                    &shadow_clone,
+                );
             }
         }
     });
@@ -976,9 +1022,16 @@ fn handle_raw_request<S: Read + Write>(
 
     // Debug: log incoming requests
     if request_str.len() < 200 {
-        println!("[HTTP] Request: {}", request_str.lines().next().unwrap_or(""));
+        println!(
+            "[HTTP] Request: {}",
+            request_str.lines().next().unwrap_or("")
+        );
     } else {
-        println!("[HTTP] Request: {}... ({} bytes)", request_str.lines().next().unwrap_or(""), size);
+        println!(
+            "[HTTP] Request: {}... ({} bytes)",
+            request_str.lines().next().unwrap_or(""),
+            size
+        );
     }
 
     // === DIRECT ENDPOINT HANDLERS (bypass daemon.glyph) ===
@@ -1013,7 +1066,18 @@ fn handle_raw_request<S: Read + Write>(
             if let (Some(addr), Some(size)) = (addr, size) {
                 // Read directly from substrate texture (not via scheduler stub)
                 let words: Vec<String> = (0..size)
-                    .map(|i| format!("0x{:08x}", read_u32_from_substrate(addr + i as u32, texture, device, queue, &shadow_ram.lock().unwrap())))
+                    .map(|i| {
+                        format!(
+                            "0x{:08x}",
+                            read_u32_from_substrate(
+                                addr + i as u32,
+                                texture,
+                                device,
+                                queue,
+                                &shadow_ram.lock().unwrap()
+                            )
+                        )
+                    })
                     .collect();
                 let response = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{}",
@@ -1173,7 +1237,8 @@ fn handle_raw_request<S: Read + Write>(
                 "status": "ok",
                 "content": content,
                 "bytes": content.len()
-            }).to_string()
+            })
+            .to_string()
         );
         let _ = stream.write_all(response.as_bytes());
         return;
@@ -1212,11 +1277,12 @@ fn handle_raw_request<S: Read + Write>(
                         "status": "ok",
                         "appended": formatted.len(),
                         "total": hist.len()
-                    }).to_string()
+                    })
+                    .to_string()
                 );
                 let _ = stream.write_all(response.as_bytes());
                 return;
-            }
+            },
             Err(e) => {
                 let response = format!(
                     "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{}",
@@ -1224,7 +1290,7 @@ fn handle_raw_request<S: Read + Write>(
                 );
                 let _ = stream.write_all(response.as_bytes());
                 return;
-            }
+            },
         }
     }
 
@@ -1232,7 +1298,13 @@ fn handle_raw_request<S: Read + Write>(
     // Note: POST /load without binary= falls through to daemon.glyph for RTS file loading
     if request_str.starts_with("POST /load?") {
         if let Some(query) = request_str.split("POST /load?").nth(1) {
-            let query = query.split_whitespace().next().unwrap_or("").split(" HTTP").next().unwrap_or("");
+            let query = query
+                .split_whitespace()
+                .next()
+                .unwrap_or("")
+                .split(" HTTP")
+                .next()
+                .unwrap_or("");
 
             let mut addr: Option<u32> = None;
 
@@ -1244,12 +1316,18 @@ fn handle_raw_request<S: Read + Write>(
 
             if let Some(addr) = addr {
                 // Find body start in raw bytes (not string, to handle binary data correctly)
-                let body_start = request_data.windows(4)
+                let body_start = request_data
+                    .windows(4)
                     .position(|w| w == b"\r\n\r\n")
                     .map(|p| p + 4)
                     .unwrap_or(0);
                 let body = &request_data[body_start..];
-                println!("[LOAD] binary=0x{:x} body_start={} body_len={}", addr, body_start, body.len());
+                println!(
+                    "[LOAD] binary=0x{:x} body_start={} body_len={}",
+                    addr,
+                    body_start,
+                    body.len()
+                );
 
                 // Debug: print first 16 bytes
                 if body.len() >= 16 {
@@ -1257,9 +1335,11 @@ fn handle_raw_request<S: Read + Write>(
                 }
 
                 // Check if this is a WASM binary (magic: 0x00 'asm')
-                let is_wasm = body.len() >= 8 &&
-                    body[0] == 0x00 && body[1] == 0x61 &&
-                    body[2] == 0x73 && body[3] == 0x6D;
+                let is_wasm = body.len() >= 8
+                    && body[0] == 0x00
+                    && body[1] == 0x61
+                    && body[2] == 0x73
+                    && body[3] == 0x6D;
 
                 let mut wasm_entry = None;
                 if is_wasm {
@@ -1273,7 +1353,14 @@ fn handle_raw_request<S: Read + Write>(
                 }
 
                 // Write binary data to substrate
-                write_to_substrate(body, texture, device, queue, addr, &mut shadow_ram.lock().unwrap());
+                write_to_substrate(
+                    body,
+                    texture,
+                    device,
+                    queue,
+                    addr,
+                    &mut shadow_ram.lock().unwrap(),
+                );
 
                 // Store WASM entry point if found
                 if let Some(entry) = wasm_entry {
@@ -1320,6 +1407,9 @@ fn handle_raw_request<S: Read + Write>(
         // Natural language chat endpoint - converts text to GPU commands
         let body_start = request_str.find("\r\n\r\n").unwrap_or(0) + 4;
         let body = &request_str[body_start..];
+
+        // Generate a unique chat ID
+        let chat_id = uuid::Uuid::new_v4().to_string();
 
         // Simple command parsing - in a real implementation this would use an LLM
         let response = if body.contains("help") {
@@ -1442,6 +1532,160 @@ fn handle_raw_request<S: Read + Write>(
             )
         };
 
+        // For now, we'll simulate some activations - in a real implementation,
+        // we would extract these from the actual neural inference
+        let mut activations = Vec::new();
+        let mut strengths = Vec::new();
+        
+        // Simple hash-based activation simulation
+        for (i, c) in body.chars().enumerate() {
+            let addr = (i as u32 * 17 + c as u32) % 0x1000; // Spread across substrate
+            activations.push(addr);
+            strengths.push(0.5 + (c as f32 % 10.0) / 20.0); // Strength between 0.5-1.0
+        }
+        
+        // Limit to reasonable number of activations
+        if activations.len() > 100 {
+            activations.truncate(100);
+            strengths.truncate(100);
+        }
+
+        // Store activations for potential rating
+        let cache = CHAT_CACHE.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
+        let mut cache_lock = cache.lock().unwrap();
+        cache_lock.insert(
+            chat_id.clone(),
+            ChatActivation {
+                addresses: activations,
+                strengths,
+            }
+        );
+
+        let response = format!(
+            "{{\"chat_id\": \"{}\", \"response\": \"{}\"}}",
+            chat_id,
+            response.replace('"', "\\\"")
+        );
+
+        let http_response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}\n",
+            response
+        );
+        let _ = stream.write_all(http_response.as_bytes());
+        return;
+    }
+            }
+            if result == "VM Statistics:\n" {
+                result.push_str("  No active VMs\n");
+            }
+            result
+        } else if body.contains("status") {
+            let status = format!(
+                "{{\n  \"daemon\": \"ouroboros\",\n  \"version\": \"Phase 70\",\n  \"status\": \"healthy\",\n  \"transports\": [\"tcp://127.0.0.1:8769\", \"unix:///tmp/gpu_daemon.sock\"],\n  \"substrate\": {{\n    \"width\": 4096,\n    \"height\": 4096,\n    \"format\": \"Rgba8Uint\"\n  }},\n  \"self_hosting\": true,\n  \"vcc_enabled\": true\n}}"
+            );
+            status
+        } else if body.contains("mem ") {
+            if let Some(addr_str) = body
+                .split("mem ")
+                .nth(1)
+                .and_then(|s| s.split_whitespace().next())
+            {
+                if let Ok(addr) = u32::from_str_radix(addr_str.trim_start_matches("0x"), 16) {
+                    // Read from shadow buffer (Hilbert address)
+                    let size_val = 16; // Read 16 words (64 bytes)
+                    let mut hex_results = Vec::new();
+                    for i in 0..size_val {
+                        let val = read_u32_from_substrate(
+                            addr + i as u32,
+                            texture,
+                            device,
+                            queue,
+                            &shadow_ram.lock().unwrap(),
+                        );
+                        hex_results.push(format!("{:08x}", val));
+                    }
+                    format!("Memory at 0x{:08x}: {}", addr, hex_results.join(" "))
+                } else {
+                    "Invalid address format".to_string()
+                }
+            } else {
+                "Please specify an address: mem <hex_address>".to_string()
+            }
+        } else if body.contains("reset") {
+            let mut s = scheduler.lock().unwrap();
+            s.reset_all();
+            "All VMs reset".to_string()
+        } else if body.starts_with("resume ") {
+            // Resume a halted VM: "resume 2" resumes VM 2
+            if let Some(vm_str) = body
+                .split("resume ")
+                .nth(1)
+                .and_then(|s| s.split_whitespace().next())
+            {
+                if let Ok(vm_id) = vm_str.parse::<u32>() {
+                    match scheduler.lock().unwrap().resume_vm(vm_id) {
+                        Ok(()) => format!("VM {} resumed", vm_id),
+                        Err(e) => format!("Failed to resume VM {}: {}", vm_id, e),
+                    }
+                } else {
+                    "Invalid VM ID. Use: resume <vm_id>".to_string()
+                }
+            } else {
+                "Please specify VM ID: resume <vm_id>".to_string()
+            }
+        } else if body.starts_with("spawn ") {
+            if let Some(entry_str) = body
+                .split("spawn ")
+                .nth(1)
+                .and_then(|s| s.split_whitespace().next())
+            {
+                // Check for "spawn wasm" to use parsed WASM entry point
+                let entry_point: Option<u32> = if entry_str == "wasm" {
+                    let wasm_store = WASM_ENTRY_POINT.get_or_init(|| Mutex::new(None));
+                    let entry = wasm_store.lock().unwrap();
+                    match *entry {
+                        Some(ep) => {
+                            println!("[WASM] Using parsed entry point: 0x{:x}", ep);
+                            Some(ep)
+                        },
+                        None => None,
+                    }
+                } else {
+                    u32::from_str_radix(entry_str, 10).ok()
+                };
+
+                match entry_point {
+                    Some(ep) => {
+                        let mut s = scheduler.lock().unwrap();
+                        let mut regs = [0u32; 128];
+                        regs[0] = ep;
+                        let config = VmConfig {
+                            entry_point: 0,
+                            parent_id: 0xFF,
+                            base_addr: 0,
+                            bound_addr: 0,
+                            initial_regs: regs,
+                        };
+                        match s.spawn_vm(0, &config) {
+                            Ok(_) => format!("Spawned VM at entry point 0x{:x}", ep),
+                            Err(e) => format!("Failed to spawn VM: {}", e),
+                        }
+                    },
+                    None => {
+                        "Invalid entry point. Use 'spawn <number>' or 'spawn wasm' (if WASM loaded)"
+                            .to_string()
+                    },
+                }
+            } else {
+                "Please specify an entry point: spawn <number> or spawn wasm".to_string()
+            }
+        } else {
+            format!(
+                "Unknown command: {}. Try 'help' for available commands.",
+                body.trim()
+            )
+        };
+
         let response = format!(
             "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{}\n",
             response
@@ -1453,7 +1697,14 @@ fn handle_raw_request<S: Read + Write>(
     // === FALLBACK: Pass to daemon.glyph via substrate ===
 
     // Write request to REQ_BUFFER in substrate
-    write_to_substrate(request_data, texture, device, queue, REQ_BUFFER, &mut shadow_ram.lock().unwrap());
+    write_to_substrate(
+        request_data,
+        texture,
+        device,
+        queue,
+        REQ_BUFFER,
+        &mut shadow_ram.lock().unwrap(),
+    );
 
     // Signal request pending to daemon.glyph
     write_u32_to_substrate(CTRL_PORT, CTRL_REQUEST_PENDING, texture, queue);
@@ -1464,7 +1715,13 @@ fn handle_raw_request<S: Read + Write>(
 
     loop {
         // Check control port for response ready
-        let ctrl_val = read_u32_from_substrate(CTRL_PORT, texture, device, queue, &shadow_ram.lock().unwrap());
+        let ctrl_val = read_u32_from_substrate(
+            CTRL_PORT,
+            texture,
+            device,
+            queue,
+            &shadow_ram.lock().unwrap(),
+        );
 
         if ctrl_val == CTRL_RESPONSE_READY {
             // Read response from RES_BUFFER using shadow buffer
@@ -1507,7 +1764,12 @@ fn write_to_substrate(
     shadow_ram: &mut Vec<u8>,
 ) {
     let num_words = (data.len() + 3) / 4;
-    println!("[WRITE] Writing {} words ({} bytes) to substrate at 0x{:x}", num_words, data.len(), base_addr);
+    println!(
+        "[WRITE] Writing {} words ({} bytes) to substrate at 0x{:x}",
+        num_words,
+        data.len(),
+        base_addr
+    );
 
     // Use individual staging buffers per pixel for reliability
     for i in 0..num_words {
@@ -1519,7 +1781,13 @@ fn write_to_substrate(
 
         // Debug: print first 4 writes
         if i < 4 {
-            println!("[WRITE] addr=0x{:x} -> pixel({}, {}) = {:02x?}", base_addr + i as u32, tx, ty, word);
+            println!(
+                "[WRITE] addr=0x{:x} -> pixel({}, {}) = {:02x?}",
+                base_addr + i as u32,
+                tx,
+                ty,
+                word
+            );
         }
 
         // Update shadow buffer (linear address = addr * 4)
@@ -1531,7 +1799,7 @@ fn write_to_substrate(
         // Create staging buffer for this pixel
         let staging = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some(&format!("write_staging_{}", i)),
-            size: 256,  // Aligned to 256
+            size: 256, // Aligned to 256
             usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_WRITE,
             mapped_at_creation: true,
         });
