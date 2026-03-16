@@ -20,8 +20,8 @@ COMPILER ?= $(shell which wat2wasm 2>/dev/null || echo wasm-tools)
 ifeq ($(COMPILER),wat2wasm)
   WAT2WASM = wat2wasm
 else
-  # wasm-tools uses: wasm-tools print input.wat -o output.wasm
-  WAT2WASM = wasm-tools print
+  # wasm-tools uses: wasm-tools parse input.wat -o output.wasm (outputs binary)
+  WAT2WASM = wasm-tools parse
 endif
 
 all: simple_loop.wasm conditional.wasm
