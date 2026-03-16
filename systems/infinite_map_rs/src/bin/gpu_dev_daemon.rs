@@ -1389,70 +1389,17 @@ fn read_u32_from_substrate(
     let (tx, ty) = hilbert_d2xy(4096, addr);
     println!("[READ] addr=0x{:x} -> pixel({}, {})", addr, tx, ty);
 
-    // Use exact same approach as read_substrate_region (which works)
-    let bytes_per_pixel = 4u32;
-    let w: u32 = 1;
-    let h: u32 = 1;
-    let bytes_per_row = ((w * bytes_per_pixel + 255) / 256) * 256;  // 256 for 1 pixel
-    let buffer_size = (bytes_per_row * h) as u64;  // 256 bytes
-
-    let staging_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some(&format!("read_u32_staging_0x{:x}", addr)),
-        size: buffer_size,
-        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-        mapped_at_creation: false,
-    });
-
-    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-        label: Some("read_u32 encoder"),
-    });
-
-    encoder.copy_texture_to_buffer(
-        wgpu::ImageCopyTexture {
-            texture,
-            mip_level: 0,
-            origin: wgpu::Origin3d { x: tx, y: ty, z: 0 },
-            aspect: wgpu::TextureAspect::All,
-        },
-        wgpu::ImageCopyBuffer {
-            buffer: &staging_buffer,
-            layout: wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(bytes_per_row),
-                rows_per_image: Some(h),
-            },
-        },
-        wgpu::Extent3d {
-            width: w,
-            height: h,
-            depth_or_array_layers: 1,
-        },
-    );
-
-    // Same pattern as read_substrate_region: submit, then map_async, then poll
-    queue.submit(std::iter::once(encoder.finish()));
-
-    let buffer_slice = staging_buffer.slice(..);
-    let (tx_chan, rx) = std::sync::mpsc::channel();
-    buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
-        tx_chan.send(result).ok();
-    });
-    device.poll(wgpu::Maintain::Wait);
-
-    let val = if rx.recv().ok().and_then(|r| r.ok()).is_some() {
-        let mapped = buffer_slice.get_mapped_range();
-        // Debug: print first 8 bytes
-        println!("[READ] Buffer bytes: {:02x?}", &mapped[..8.min(mapped.len())]);
-        let v = u32::from_le_bytes([mapped[0], mapped[1], mapped[2], mapped[3]]);
-        drop(mapped);
-        staging_buffer.unmap();
-        v
-    } else {
-        0
-    };
-
-    println!("[READ] pixel({}, {}) = 0x{:08x}", tx, ty, val);
-    val
+    // Workaround for Intel Vulkan driver bug: copy a 2x2 region instead of 1x1
+    // and extract the pixel we need. The 1x1 copy returns wrong values for some pixels.
+    if let Some(data) = read_substrate_region(texture, device, queue, tx, ty, 1, 1) {
+        if data.len() >= 4 {
+            let v = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
+            println!("[READ] pixel({}, {}) = 0x{:08x}", tx, ty, v);
+            return v;
+        }
+    }
+    println!("[READ] pixel({}, {}) = FAILED", tx, ty);
+    0
 }
 
 /// Read bytes from substrate at specified address
