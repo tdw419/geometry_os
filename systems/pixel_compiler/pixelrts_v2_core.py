@@ -92,6 +92,8 @@ def cache_aligned(data: bytes | np.ndarray) -> np.ndarray:
 
 # ============================================================================
 
+# Global LUT Cache for HilbertCurve
+_HILBERT_LUT_CACHE = {}
 
 class HilbertCurve:
     """
@@ -108,7 +110,7 @@ class HilbertCurve:
         """
         self.order = order
         self.grid_size = 2 ** order
-        self._lut = None
+        self._lut = _HILBERT_LUT_CACHE.get(order)
 
     def generate_lut(self) -> list[tuple[int, int]]:
         """
@@ -127,6 +129,8 @@ class HilbertCurve:
             x, y = self._index_to_coord(index, n)
             self._lut.append((x, y))
 
+        # Store in global cache
+        _HILBERT_LUT_CACHE[self.order] = self._lut
         return self._lut
 
     def _index_to_coord(self, index: int, n: int) -> tuple[int, int]:

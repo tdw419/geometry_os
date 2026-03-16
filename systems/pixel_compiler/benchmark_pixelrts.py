@@ -204,6 +204,10 @@ class PixelRTSBenchmark:
         encoder = PixelRTSEncoder(mode="standard")
         grid_size = calculate_grid_size(data_size)
 
+        # Warm up Hilbert LUT cache
+        print(f"Warming up Hilbert LUT for grid size {grid_size}...")
+        encoder.encode(test_data_unaligned[:1024], grid_size=grid_size)
+
         # Benchmark unaligned
         unaligned_times = []
         for _ in range(iterations):
