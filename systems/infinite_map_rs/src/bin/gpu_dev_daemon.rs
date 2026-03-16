@@ -300,7 +300,7 @@ struct ChatActivation {
 }
 
 /// Thought pulse data structure for logging
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 struct ThoughtPulse {
     /// Timestamp of the pulse
     timestamp: u64,
@@ -316,7 +316,7 @@ struct ThoughtPulse {
     activations: Vec<ThoughtActivation>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 struct ThoughtActivation {
     /// Memory address that was activated
     address: u32,
@@ -328,6 +328,18 @@ struct ThoughtActivation {
 
 static CHAT_CACHE: OnceLock<Mutex<std::collections::HashMap<String, ChatActivation>>> =
     OnceLock::new();
+
+/// THOUGHT_PULSE broadcast channel for WebSocket clients
+/// Allows real-time visualization of brain activity
+static THOUGHT_PULSE_CHANNEL: OnceLock<tokio::sync::broadcast::Sender<ThoughtPulse>> = OnceLock::new();
+
+/// Get or initialize the thought pulse broadcast sender
+fn get_thought_pulse_sender() -> &'static tokio::sync::broadcast::Sender<ThoughtPulse> {
+    THOUGHT_PULSE_CHANNEL.get_or_init(|| {
+        let (tx, _rx) = tokio::sync::broadcast::channel(100);
+        tx
+    })
+}
 
 /// Brain weight shadow buffer for CPU-side Hebbian updates
 /// This mirrors the brain texture and allows read-modify-write operations
@@ -1960,6 +1972,14 @@ fn handle_raw_request<S: Read + Write>(
             println!(
                 "[THOUGHT_PULSE] {}",
                 serde_json::to_string(&thought_pulse).unwrap()
+            );
+
+            // Broadcast to WebSocket clients
+            let sender = get_thought_pulse_sender();
+            let _ = sender.send(thought_pulse);
+            println!(
+                "[THOUGHT_PULSE] Broadcasted to {} WebSocket clients",
+                sender.receiver_count()
             );
         }
 
