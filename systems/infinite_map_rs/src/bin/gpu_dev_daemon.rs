@@ -615,6 +615,73 @@ fn main() {
     }));
     scheduler.lock().unwrap().set_ram_texture(ram_texture.clone());
 
+    // === PIXELBRAIN: Load weight atlas into dedicated texture ===
+    // Brain atlas path (configurable via env var GEOS_BRAIN_ATLAS)
+    let brain_atlas_path = std::env::var("GEOS_BRAIN_ATLAS")
+        .unwrap_or_else(|_| "systems/glyph_stratum/programs/tinystories_brain.rts.png".to_string());
+
+    let brain_texture: Option<Arc<wgpu::Texture>> = match infinite_map_rs::pixel_brain::WeightAtlas::load_from_png_file(&brain_atlas_path) {
+        Ok(weights) => {
+            let weight_count = weights.len();
+            println!("[BRAIN] Loaded {} weights from {}", weight_count, brain_atlas_path);
+
+            // Create brain texture (2048x2048 RGBA)
+            let texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("brain_weight_atlas"),
+                size: wgpu::Extent3d {
+                    width: 2048,
+                    height: 2048,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING
+                     | wgpu::TextureUsages::STORAGE_BINDING
+                     | wgpu::TextureUsages::COPY_DST
+                     | wgpu::TextureUsages::COPY_SRC,
+                view_formats: &[],
+            }));
+
+            // Encode weights to RGBA and upload
+            let mut rgba_data = Vec::with_capacity(weights.len() * 4);
+            for weight in &weights {
+                let encoded = infinite_map_rs::pixel_brain::encode_weight_f16(*weight);
+                rgba_data.extend_from_slice(&encoded);
+            }
+
+            queue.write_texture(
+                wgpu::ImageCopyTexture {
+                    texture: &texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                &rgba_data,
+                wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: Some(2048 * 4),
+                    rows_per_image: Some(2048),
+                },
+                wgpu::Extent3d {
+                    width: 2048,
+                    height: 2048,
+                    depth_or_array_layers: 1,
+                },
+            );
+
+            println!("[BRAIN] Weight atlas uploaded to GPU texture ({} bytes)", rgba_data.len());
+            println!("[BRAIN] PixelBrain initialized - chat learning enabled");
+            Some(texture)
+        }
+        Err(e) => {
+            println!("[BRAIN] No brain atlas found at {}: {}", brain_atlas_path, e);
+            println!("[BRAIN] Chat learning disabled - run with GEOS_BRAIN_ATLAS to enable");
+            None
+        }
+    };
+
     // Load scheduler.glyph into VM 0
     let scheduler_glyph_path = "systems/glyph_stratum/programs/scheduler.glyph";
     if let Ok(_glyph_bytes) = std::fs::read(scheduler_glyph_path) {
@@ -1491,10 +1558,21 @@ fn handle_raw_request<S: Read + Write>(
                         // Write to import table: IMPORT_TABLE_BASE + (func_idx * 4)
                         let table_addr = IMPORT_TABLE_BASE + (func_idx as u32 * 4);
                         let shadow_offset = table_addr as usize;
+                        println!("[WASM] Writing import[{}] at shadow_offset=0x{:x} (addr=0x{:x}), len_check={}",
+                            func_idx, shadow_offset, table_addr, shadow_offset + 4 <= shadow.len());
                         if shadow_offset + 4 <= shadow.len() {
                             shadow[shadow_offset..shadow_offset + 4].copy_from_slice(&host_id.to_le_bytes());
-                            println!("[WASM] Import[{}] {}.{} -> host_id={} at 0x{:x}",
-                                func_idx, module, name, host_id, table_addr);
+                            // Immediate verification
+                            let verify = u32::from_le_bytes([
+                                shadow[shadow_offset],
+                                shadow[shadow_offset + 1],
+                                shadow[shadow_offset + 2],
+                                shadow[shadow_offset + 3],
+                            ]);
+                            println!("[WASM] Import[{}] {}.{} -> host_id={} at 0x{:x} (verify: 0x{:x})",
+                                func_idx, module, name, host_id, table_addr, verify);
+                        } else {
+                            println!("[WASM] SKIP: offset 0x{:x} + 4 > shadow.len() {}", shadow_offset, shadow.len());
                         }
 
                         // Also write to GPU texture
