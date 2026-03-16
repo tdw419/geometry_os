@@ -19,6 +19,8 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use wgpu::util::DeviceExt;
+
 use tokio::runtime::Runtime;
 
 use infinite_map_rs::brain_bridge::{BrainBridge, BrainBridgeConfig};
@@ -1297,28 +1299,13 @@ fn write_to_substrate(
     let num_words = (data.len() + 3) / 4;
     println!("[WRITE] Writing {} words ({} bytes) to substrate at 0x{:x}", num_words, data.len(), base_addr);
 
-    // Use a staging buffer for batched writes
-    // Create buffer with enough space for all words
-    let buffer_size = ((num_words + 63) / 64) * 64 * 4; // Align to 256 bytes
-    let staging = device.create_buffer(&wgpu::BufferDescriptor {
+    // Create staging buffer with data
+    let buffer_size = (((data.len() + 3) / 4) * 4).max(4) as u64;
+    let staging = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("write_staging"),
-        size: buffer_size as u64,
+        contents: data,
         usage: wgpu::BufferUsages::COPY_SRC,
-        mapped_at_creation: true,
     });
-
-    // Write data to staging buffer with padding
-    {
-        let mut view = staging.map_at_creation();
-        for (i, byte) in data.iter().enumerate() {
-            view[i] = *byte;
-        }
-        // Pad remaining bytes with zeros
-        for i in data.len()..buffer_size as usize {
-            view[i] = 0;
-        }
-    }
-    staging.unmap();
 
     // Create command encoder and copy each word to its Hilbert-mapped pixel
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
