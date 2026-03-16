@@ -1338,6 +1338,12 @@ fn write_to_substrate(
         let shadow_offset = (base_addr as usize + i) * 4;
         if shadow_offset + 4 <= shadow_ram.len() {
             shadow_ram[shadow_offset..shadow_offset + 4].copy_from_slice(&word);
+            // Debug: confirm first few updates
+            if i < 4 {
+                println!("[SHADOW] Updated shadow[0x{:x}] = {:02x?}", shadow_offset, word);
+            }
+        } else {
+            println!("[SHADOW] Out of bounds! offset=0x{:x} len={}", shadow_offset, shadow_ram.len());
         }
 
         // Create staging buffer for this pixel
@@ -1431,6 +1437,7 @@ fn read_u32_from_substrate(
 
     // Read from shadow buffer instead of GPU texture (workaround for Intel Vulkan driver bugs)
     let shadow_offset = addr as usize * 4;
+    println!("[READ] Reading from shadow[0x{:x}]", shadow_offset);
     if shadow_offset + 4 <= shadow_ram.len() {
         let v = u32::from_le_bytes([
             shadow_ram[shadow_offset],
