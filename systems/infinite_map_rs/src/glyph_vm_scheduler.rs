@@ -103,6 +103,8 @@ pub struct GlyphVmScheduler {
     /// RAM texture view (.rts.png program memory)
     ram_view: Option<wgpu::TextureView>,
 
+    /// Shadow RAM buffer for CPU-side reads (    shadow_ram: Arc<Mutex<Vec<u8>>>,
+
     /// Frame counter for debugging
     frame_count: std::sync::atomic::AtomicU64,
 }
@@ -658,14 +660,33 @@ impl GlyphVmScheduler {
     }
 
     /// Peek single substrate value
-    pub fn peek_substrate_single(&self, _addr: u32) -> u32 {
-        // TODO: Implement via texture read
-        0
+    pub fn peek_substrate_single(&self, addr: u32) -> u32 {
+        let shadow = self.shadow_ram.lock().unwrap();
+        let offset = addr as usize * 4;
+        if offset + 4 <= shadow.len() {
+            u32::from_le_bytes([
+                shadow[offset],
+                shadow[offset + 1],
+                shadow[offset + 2],
+                shadow[offset + 3],
+            ])
+        } else {
+            0
+        }
     }
 
     /// Poke single substrate value
-    pub fn poke_substrate_single(&mut self, _addr: u32, _val: u32) {
-        // TODO: Implement via texture write
+    pub fn poke_substrate_single(&mut self, addr: u32, val: u32) {
+        // Update shadow buffer
+        let mut shadow = self.shadow_ram.lock().unwrap();
+        let offset = addr as usize * 4;
+        if offset + 4 <= shadow.len() {
+            shadow[offset..offset + 4].copy_from_slice(&val.to_le_bytes());
+        }
+        // Also write to GPU texture
+        // For now, just update shadow buffer
+        // GPU texture update would require async operations
+        log::debug!("[POKE] addr=0x{:x} val=0x{:x}", addr, val);
     }
 
     /// Copy glyphs from source to target address in substrate
