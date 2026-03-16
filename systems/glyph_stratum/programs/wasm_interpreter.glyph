@@ -80,6 +80,9 @@
 .equ BLOCK_STACK_BASE,  0x31000
 .equ BLOCK_STACK_COUNT, 0x31000    // Number of active blocks (u32)
 .equ BLOCK_STACK_DATA,  0x31004    // Start of block entries
+.equ CALL_STACK_BASE,   0x32000
+.equ CALL_STACK_COUNT,  0x32000    // Number of active call frames (u32)
+.equ CALL_STACK_DATA,   0x32004    // Start of call entries (each is a u32 return address)
 
 // Block types
 .equ BLOCK_TYPE_BLOCK,  0
@@ -576,13 +579,29 @@
 
 :wasm_op_return
     // Return from function
-    // TODO: Pop return address from call stack
-    JMP wasm_halt
+    // Pop return address from call stack
+    CALL :call_pop
+    // r4 = return address
+    LDI r1, WASM_IP_ADDR
+    STORE r1, r4   // memory[WASM_IP_ADDR] = return address
+    
+    LDI r13, wasm_fetch
+    JMP r13
 
 :wasm_op_call
     // Call function - read function index (LEB128)
-    // TODO: Implement LEB128 decoding and call stack
-    // For now, skip the immediate and continue
+    // For now, we ignore the function index and just push the return address
+    // In a real implementation, we would use the index to look up a function in a table
+    
+    // Read and discard function index (LEB128 unsigned)
+    CALL :leb128_unsigned
+    
+    // Push the return address (current IP) onto the call stack
+    // Note: IP has already been advanced by the leb128_unsigned call
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r4          // r4 = current IP (return address)
+    CALL :call_push
+    
     LDI r13, wasm_fetch
     JMP r13
 
@@ -1117,35 +1136,31 @@
 
 :wasm_op_i32_store
     // i32.store: read align/offset (LEB128 x2), pop value and address, store
-    // TODO: Implement properly
-    // Skeleton: skip 2 immediates, pop value and address, store
-    LDI r1, WASM_IP_ADDR
-    LOAD r1, r1
-    LDI r3, 2
-    ADD r1, r3
-    LDI r3, WASM_IP_ADDR
-    STORE r3, r1
+    // Offset is added to the address before memory access
+    // Alignment is ignored for now
 
-    // Pop value
-    LDI r10, WASM_SP_ADDR
-    LOAD r10, r12
-    LDI r3, 4
-    ADD r12, r3
-    LOAD r12, r4           // r4 = value
+    // Read and discard alignment (LEB128 unsigned)
+    CALL :leb128_unsigned
 
-    // Pop address
-    LDI r3, 4
-    ADD r12, r3
-    LOAD r12, r5           // r5 = address
+    // Read offset (LEB128 unsigned) -> r6
+    CALL :leb128_unsigned
+    MOV r6, r5   // save offset in r5
+
+    // Pop value from stack
+    CALL :stack_pop
+    // r4 = value
+
+    // Pop address from stack
+    CALL :stack_pop
+    // r5 = address
+
+    // Add offset to address
+    ADD r5, r6   // r5 = address + offset
 
     // Store to WASM memory
     LDI r11, WASM_MEM_BASE
     ADD r11, r5
     STORE r11, r4
-
-    // Update SP (popped 2 values)
-    LDI r3, WASM_SP_ADDR
-    STORE r3, r12
 
     LDI r13, wasm_fetch
     JMP r13
@@ -1159,6 +1174,91 @@
     LDI r2, STATUS_HALTED
     STORE r1, r2
     HALT
+
+// ============================================================================
+// CALL STACK HELPERS
+// ============================================================================
+
+// ------------------------------------------------------------
+// Call Push / Pop Helpers
+// ------------------------------------------------------------
+
+:call_push
+    // Push return address onto call stack
+    // Value to push is in r4
+    // Uses: r10 (SP addr), r12 (SP value), r3 (temp)
+    LDI r10, CALL_STACK_COUNT
+    LOAD r10, r12          // r12 = current count
+    
+    // Calculate stack address: CALL_STACK_DATA + (count * 4)
+    LDI r1, CALL_STACK_DATA
+    
+    // Multiply count by 4 (shift left 2)
+    MOV r12, r2
+    LDI r3, 2
+:call_push_shift
+    LDI r5, 1
+    SHL r2, r5
+    LDI r5, 1
+    SUB r3, r5
+    JNZ r3, :call_push_shift
+    
+    // r2 = count * 4
+    ADD r1, r2             // r1 = CALL_STACK_DATA + count*4
+    
+    // Store return address
+    STORE r1, r4
+    
+    // Increment count
+    LDI r3, 1
+    ADD r12, r3
+    LDI r3, CALL_STACK_COUNT
+    STORE r3, r12
+    
+    RET
+
+:call_pop
+    // Pop return address from call stack into r4
+    // Uses: r10 (SP addr), r12 (SP value), r3 (temp)
+    LDI r10, CALL_STACK_COUNT
+    LOAD r10, r12          // r12 = current count
+    
+    // If count is 0, error (underflow)
+    LDI r2, 0
+    SUB r12, r2
+    JZ r12, :call_pop_error
+    
+    // Decrement count to get last entry index
+    LDI r2, 1
+    SUB r12, r2            // r12 = count - 1
+    
+    // Calculate stack address: CALL_STACK_DATA + (index * 4)
+    LDI r1, CALL_STACK_DATA
+    
+    // Multiply index by 4 (shift left 2)
+    MOV r12, r2
+    LDI r3, 2
+:call_pop_shift
+    LDI r5, 1
+    SHL r2, r5
+    LDI r5, 1
+    SUB r3, r5
+    JNZ r3, :call_pop_shift
+    
+    // r2 = index * 4
+    ADD r1, r2             // r1 = CALL_STACK_DATA + index*4
+    
+    // Load return address
+    LOAD r1, r4
+    
+    RET
+
+:call_pop_error
+    // Call stack underflow - set error and halt
+    LDI r1, WASM_STATUS
+    LDI r2, STATUS_ERROR
+    STORE r1, r2
+    JMP wasm_halt
 
 // ============================================================================
 // UTILITY ROUTINES
