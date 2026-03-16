@@ -863,9 +863,9 @@ fn handle_raw_request<S: Read + Write>(
             }
 
             if let (Some(addr), Some(size)) = (addr, size) {
-                let sched = scheduler.lock().unwrap();
+                // Read directly from substrate texture (not via scheduler stub)
                 let words: Vec<String> = (0..size)
-                    .map(|i| format!("0x{:08x}", sched.peek_substrate_single(addr + i as u32)))
+                    .map(|i| format!("0x{:08x}", read_u32_from_substrate(addr + i as u32, texture, device, queue)))
                     .collect();
                 let response = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{}",
