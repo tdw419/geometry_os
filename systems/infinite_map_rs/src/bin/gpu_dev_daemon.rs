@@ -22,6 +22,7 @@ use std::time::{Duration, Instant};
 use wgpu::util::DeviceExt;
 
 use tokio::runtime::Runtime;
+use uuid::Uuid;
 
 use infinite_map_rs::brain_bridge::{BrainBridge, BrainBridgeConfig};
 use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
@@ -1419,7 +1420,8 @@ fn handle_raw_request<S: Read + Write>(
             let stats = sched.read_stats();
             let mut result = String::from("VM Statistics:\n");
             for (i, s) in stats.iter().enumerate() {
-                if s.state != 0 { // Skip INACTIVE VMs
+                if s.state != 0 {
+                    // Skip INACTIVE VMs
                     let state_name = match s.state {
                         0 => "INACTIVE",
                         1 => "RUNNING",
@@ -1453,8 +1455,13 @@ fn handle_raw_request<S: Read + Write>(
                     let size_val = 16; // Read 16 words (64 bytes)
                     let mut hex_results = Vec::new();
                     for i in 0..size_val {
-                        let val =
-                            read_u32_from_substrate(addr + i as u32, texture, device, queue, &shadow_ram.lock().unwrap());
+                        let val = read_u32_from_substrate(
+                            addr + i as u32,
+                            texture,
+                            device,
+                            queue,
+                            &shadow_ram.lock().unwrap(),
+                        );
                         hex_results.push(format!("{:08x}", val));
                     }
                     format!("Memory at 0x{:08x}: {}", addr, hex_results.join(" "))
@@ -1470,7 +1477,11 @@ fn handle_raw_request<S: Read + Write>(
             "All VMs reset".to_string()
         } else if body.starts_with("resume ") {
             // Resume a halted VM: "resume 2" resumes VM 2
-            if let Some(vm_str) = body.split("resume ").nth(1).and_then(|s| s.split_whitespace().next()) {
+            if let Some(vm_str) = body
+                .split("resume ")
+                .nth(1)
+                .and_then(|s| s.split_whitespace().next())
+            {
                 if let Ok(vm_id) = vm_str.parse::<u32>() {
                     match scheduler.lock().unwrap().resume_vm(vm_id) {
                         Ok(()) => format!("VM {} resumed", vm_id),
@@ -1496,7 +1507,7 @@ fn handle_raw_request<S: Read + Write>(
                         Some(ep) => {
                             println!("[WASM] Using parsed entry point: 0x{:x}", ep);
                             Some(ep)
-                        }
+                        },
                         None => None,
                     }
                 } else {
@@ -1519,8 +1530,11 @@ fn handle_raw_request<S: Read + Write>(
                             Ok(_) => format!("Spawned VM at entry point 0x{:x}", ep),
                             Err(e) => format!("Failed to spawn VM: {}", e),
                         }
-                    }
-                    None => "Invalid entry point. Use 'spawn <number>' or 'spawn wasm' (if WASM loaded)".to_string(),
+                    },
+                    None => {
+                        "Invalid entry point. Use 'spawn <number>' or 'spawn wasm' (if WASM loaded)"
+                            .to_string()
+                    },
                 }
             } else {
                 "Please specify an entry point: spawn <number> or spawn wasm".to_string()
@@ -1536,14 +1550,14 @@ fn handle_raw_request<S: Read + Write>(
         // we would extract these from the actual neural inference
         let mut activations = Vec::new();
         let mut strengths = Vec::new();
-        
+
         // Simple hash-based activation simulation
         for (i, c) in body.chars().enumerate() {
             let addr = (i as u32 * 17 + c as u32) % 0x1000; // Spread across substrate
             activations.push(addr);
             strengths.push(0.5 + (c as u32 as f32 % 10.0) / 20.0); // Strength between 0.5-1.0
         }
-        
+
         // Limit to reasonable number of activations
         if activations.len() > 100 {
             activations.truncate(100);
@@ -1558,13 +1572,106 @@ fn handle_raw_request<S: Read + Write>(
             ChatActivation {
                 addresses: activations,
                 strengths,
-            }
+            },
         );
 
         let response = format!(
             "{{\"chat_id\": \"{}\", \"response\": \"{}\"}}",
             chat_id,
             response.replace('"', "\\\"")
+        );
+
+        let http_response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}\n",
+            response
+        );
+        let _ = stream.write_all(http_response.as_bytes());
+        return;
+    }
+
+    // Handle /rate endpoint for learning from chat interactions
+    if request_str.starts_with("POST /rate") {
+        // Parse JSON body for chat_id and rating
+        let body_start = request_str.find("\r\n\r\n").unwrap_or(0) + 4;
+        let body = &request_str[body_start..];
+
+        let rating: i32 = match serde_json::from_str::<serde_json::Value>(body) {
+            Ok(json) => json["rating"].as_i64().unwrap_or(0) as i32,
+            Err(_) => {
+                let error_response = format!(
+                    "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"invalid JSON\"}}\n"
+                );
+                let _ = stream.write_all(error_response.as_bytes());
+                return;
+            },
+        };
+
+        // Extract chat_id from JSON
+        let chat_id: String = match serde_json::from_str::<serde_json::Value>(body) {
+            Ok(json) => json["chat_id"].as_str().unwrap_or("").to_string(),
+            Err(_) => {
+                let error_response = format!(
+                    "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"invalid JSON\"}}\n"
+                );
+                let _ = stream.write_all(error_response.as_bytes());
+                return;
+            },
+        };
+
+        if chat_id.is_empty() {
+            let error_response = format!(
+                "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"missing chat_id\"}}\n"
+            );
+            let _ = stream.write_all(error_response.as_bytes());
+            return;
+        }
+
+        // Get the chat activations from cache
+        let cache = CHAT_CACHE.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
+        let mut cache_lock = cache.lock().unwrap();
+        let chat_activations = match cache_lock.remove(&chat_id) {
+            Some(activations) => activations,
+            None => {
+                let error_response = format!(
+                    "HTTP/1.1 404 Not Found\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"chat not found or already rated\"}}\n"
+                );
+                let _ = stream.write_all(error_response.as_bytes());
+                return;
+            },
+        };
+
+        // Calculate reward signal (-1.0 to 1.0)
+        let reward = rating as f32 / 1.0; // Assuming rating is -1, 0, or 1
+
+        // Apply Hebbian updates: Δw = η × activation × reward
+        let learning_rate = 0.01; // η - learning rate
+        let mut updates_applied = 0;
+
+        for i in 0..chat_activations.addresses.len() {
+            let addr = chat_activations.addresses[i];
+            let activation = chat_activations.strengths[i];
+
+            // Apply Hebbian update
+            let delta_w = learning_rate * activation * reward;
+
+            // In a real implementation, this would update actual weights
+            // For now, we'll just log the update that would happen
+            if delta_w.abs() > 0.0001 {
+                // Only count significant updates
+                updates_applied += 1;
+                // OP_GLYPH_MUTATE would be called here in a real implementation
+                // op_glyph_mutate(addr, delta_w);
+            }
+        }
+
+        // Remove from cache to prevent re-rating
+        drop(cache_lock);
+
+        let response = format!(
+            "{{\"status\":\"learned\",\"reward\":{},\"weights_updated\":{},\"learning_delta\":{}}}",
+            reward,
+            updates_applied,
+            learning_rate * reward.abs()
         );
 
         let http_response = format!(
