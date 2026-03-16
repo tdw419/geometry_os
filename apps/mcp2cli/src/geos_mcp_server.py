@@ -2560,6 +2560,44 @@ async def tool_wasm_status(args: dict) -> list[TextContent]:
         return [TextContent(type="text", text=f"Error: {str(e)}")]
 
 
+# ============================================================================
+# ECC Integration Tool Handler
+# ============================================================================
+
+async def tool_ecc_dispatch(name: str, args: dict) -> list[TextContent]:
+    """
+    Dispatch ECC tool calls to the ECC bridge.
+
+    This handler allows AI assistants to invoke ECC commands (plan, tdd, verify, etc.)
+    directly through the MCP interface.
+    """
+    if not ECC_AVAILABLE:
+        return [TextContent(
+            type="text",
+            text=json.dumps({
+                "status": "error",
+                "error": "ECC Bridge not available. Ensure ecc_bridge.py is in the same directory.",
+                "tool": name
+            }, indent=2)
+        )]
+
+    try:
+        result = await dispatch_ecc_tool(name, args)
+        return [TextContent(
+            type="text",
+            text=json.dumps(result, indent=2)
+        )]
+    except Exception as e:
+        return [TextContent(
+            type="text",
+            text=json.dumps({
+                "status": "error",
+                "error": str(e),
+                "tool": name
+            }, indent=2)
+        )]
+
+
 async def main():
     async with stdio_server() as (read, write):
         await app.run(read, write, app.create_initialization_options())

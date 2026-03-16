@@ -26,21 +26,6 @@ def leb128_u(n):
             break
     return bytes(result)
 
-def leb128_s(n):
-    """Encode signed LEB128"""
-    result = []
-    more = True
-    while more:
-        byte = n & 0x7F
-        n >>= 7
-        # Check if more bytes needed
-        if (n == 0 and (byte & 0x40) == 0) or (n == -1 and (byte & 0x40) != 0):
-            more = False
-        else:
-            byte |= 0x80
-        result.append(byte)
-    return bytes(result)
-
 def name(s):
     """Encode a WASM name (length-prefixed)"""
     encoded = s.encode('utf-8')
@@ -65,14 +50,50 @@ type_section_content = (
 type_section = section(1, type_section_content)
 
 # Import section (id=2)
-# Import 0: env.poke (type 0)
-# Import 1: env.peek (type 1)
+# WASM import format: module_name, field_name, import_kind, import_descriptor
+# Import 0: env.poke (func, type 0)
+# Import 1: env.peek (func, type 1)
 import_section_content = (
     leb128_u(2) +  # 2 imports
-    name("env") + bytes([0x00]) + name("poke") + leb128_u(0) +  # func, type 0
-    name("env") + bytes([0x00]) + name("peek") + leb128_u(1)    # func, type 1
+    # Import 0: env.poke
+    name("env") +      # module name
+    name("poke") +     # field name
+    bytes([0x00]) +    # import kind: 0 = function
+    leb128_u(0) +      # type index 0
+    # Import 1: env.peek
+    name("env") +      # module name
+    name("peek") +     # field name
+    bytes([0x00]) +    # import kind: 0 = function
+    leb128_u(1)        # type index 1
 )
 import_section = section(2, import_section_content)
+
+# Function section (id=3) - declares that function 2 uses type 0
+# Function 2 (_start) has no parameters and no return, but we need a type for it
+# Actually, let's add a type for _start: () -> void
+# Let me recalculate...
+
+# Actually, we need:
+# Type 0: (i32, i32) -> void  (for poke)
+# Type 1: (i32) -> i32       (for peek)
+# Type 2: () -> void         (for _start)
+
+# Redo type section with 3 types
+type_section_content = (
+    leb128_u(3) +  # 3 types
+    bytes([0x60, 0x02, 0x7F, 0x7F, 0x00]) +  # Type 0: (i32, i32) -> void
+    bytes([0x60, 0x01, 0x7F, 0x01, 0x7F]) +  # Type 1: (i32) -> i32
+    bytes([0x60, 0x00, 0x00])                 # Type 2: () -> void
+)
+type_section = section(1, type_section_content)
+
+# Function section (id=3) - type indices for local functions
+# Function 2 (_start) uses type 2
+func_section_content = (
+    leb128_u(1) +   # 1 function
+    leb128_u(2)     # function 2 uses type 2
+)
+func_section = section(3, func_section_content)
 
 # Memory section (id=5)
 # 1 page of memory
@@ -83,7 +104,7 @@ memory_section_content = (
 memory_section = section(5, memory_section_content)
 
 # Export section (id=7)
-# Export _start as function 2 (0=poke, 1=peek, 2=_start)
+# Export _start as function 2
 export_section_content = (
     leb128_u(1) +  # 1 export
     name("_start") + bytes([0x00]) + leb128_u(2)  # func index 2
@@ -134,8 +155,6 @@ func_body = bytes([
     0x0B,  # end
 ])
 
-# Function 2 has no additional locals beyond parameters, just the body
-# Actually, we need to encode the function properly with local count
 func_body_with_size = leb128_u(len(func_body)) + func_body
 
 code_section_content = (
@@ -145,17 +164,20 @@ code_section_content = (
 code_section = section(10, code_section_content)
 
 # Assemble the WASM
-wasm = magic + version + type_section + import_section + memory_section + export_section + start_section + code_section
+wasm = (magic + version + type_section + import_section + func_section +
+        memory_section + export_section + start_section + code_section)
 
 # Write to file
 with open('host_test_manual.wasm', 'wb') as f:
     f.write(wasm)
 
 print(f"Created host_test_manual.wasm ({len(wasm)} bytes)")
-print(f"Imports: env.poke (func 0), env.peek (func 1)")
+print(f"Imports: env.poke (func 0, type 0), env.peek (func 1, type 1)")
+print(f"Function 2 (_start, type 2): calls poke and peek")
 print(f"Exports: _start (func 2)")
 print("")
 print("Hex dump:")
 for i in range(0, len(wasm), 16):
     hex_str = ' '.join(f'{b:02x}' for b in wasm[i:i+16])
-    print(f"  {i:04x}: {hex_str}")
+    ascii_str = ''.join(chr(b) if 32 <= b < 127 else '.' for b in wasm[i:i+16])
+    print(f"  {i:04x}: {hex_str:<48} {ascii_str}")
