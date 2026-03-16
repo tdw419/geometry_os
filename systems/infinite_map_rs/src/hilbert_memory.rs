@@ -22,6 +22,7 @@ impl HilbertMemoryMapper {
     ///
     /// # Examples
     /// ```
+    /// use infinite_map_rs::hilbert_memory::HilbertMemoryMapper;
     /// let mapper = HilbertMemoryMapper::new(8); // 256x256 texture
     /// ```
     pub fn new(order: u32) -> Self {

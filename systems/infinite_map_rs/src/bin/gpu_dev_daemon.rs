@@ -565,13 +565,18 @@ fn main() {
     const WASM_INTERPRETER_ADDR: u32 = 0x1000;
     if let Ok(wasm_bytes) = std::fs::read(wasm_interp_path) {
         println!("[BOOT] Loading wasm_interpreter.bin into VM 2 at 0x{:x}...", WASM_INTERPRETER_ADDR);
+        std::io::stdout().flush().unwrap();
         write_glyph_to_substrate(&wasm_bytes, &ram_texture, &device, &queue, WASM_INTERPRETER_ADDR);
+        println!("[BOOT] WASM interpreter written to substrate, spawning VM...");
+        std::io::stdout().flush().unwrap();
         let config = VmConfig {
             entry_point: WASM_INTERPRETER_ADDR,
             ..Default::default()
         };
         match scheduler.lock().unwrap().spawn_vm(2, &config) {
             Ok(()) => {
+                println!("[BOOT] VM 2 spawned, halting...");
+                std::io::stdout().flush().unwrap();
                 // Immediately halt VM 2 so it waits for WASM binary to be loaded
                 let _ = scheduler.lock().unwrap().halt_vm(2);
                 println!("[BOOT] wasm_interpreter.bin loaded as VM 2 (WASM interpreter, halted)");
@@ -749,6 +754,7 @@ fn write_glyph_to_substrate(
             },
         );
     }
+    queue.submit(None);
     device.poll(wgpu::Maintain::Wait);
 }
 
