@@ -771,17 +771,17 @@ fn handle_raw_request<S: Read + Write>(
         return;
     }
 
-    // Chat history storage - in-memory for reliability
-    // Note: GPU substrate storage would require async reads which can cause issues
-    // Using thread-local storage for simplicity
-    use std::sync::OnceLock;
-    static CHAT_HISTORY: OnceLock<std::sync::Mutex<String>> = OnceLock::new();
+    // Chat history storage - simple in-memory string
+    // Using lazy_static for thread-safe global state
+    use std::sync::Mutex;
+    lazy_static::lazy_static! {
+        static ref CHAT_HISTORY: Mutex<String> = Mutex::new(String::new());
+    }
     const CHAT_HISTORY_MAX: usize = 0x10000; // 64KB
 
     // GET /chat_history - Read chat history
     if request_str.starts_with("GET /chat_history") {
-        let history = CHAT_HISTORY.get_or_init(|| std::sync::Mutex::new(String::new()));
-        let content = history.lock().unwrap().clone();
+        let content = CHAT_HISTORY.lock().unwrap().clone();
 
         let response = format!(
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}",
@@ -801,40 +801,46 @@ fn handle_raw_request<S: Read + Write>(
         let body = &request_str[body_start..];
 
         // Parse JSON body
-        if let Ok(msg) = serde_json::from_str::<serde_json::Value>(body) {
-            let role = msg["role"].as_str().unwrap_or("system");
-            let content = msg["content"].as_str().unwrap_or("");
+        match serde_json::from_str::<serde_json::Value>(body) {
+            Ok(msg) => {
+                let role = msg["role"].as_str().unwrap_or("system");
+                let content = msg["content"].as_str().unwrap_or("");
 
-            // Format: [role] content\n
-            let formatted = format!("[{}] {}\n", role.to_uppercase(), content);
+                // Format: [role] content\n
+                let formatted = format!("[{}] {}\n", role.to_uppercase(), content);
 
-            let history = CHAT_HISTORY.get_or_init(|| std::sync::Mutex::new(String::new()));
-            let mut hist = history.lock().unwrap();
+                let mut hist = CHAT_HISTORY.lock().unwrap();
 
-            // Check if we have space
-            if hist.len() + formatted.len() >= CHAT_HISTORY_MAX {
-                // Truncate old content
-                let overflow = (hist.len() + formatted.len()) - CHAT_HISTORY_MAX + 1000;
-                if overflow < hist.len() {
-                    hist.drain(..overflow);
+                // Check if we have space, truncate if needed
+                if hist.len() + formatted.len() >= CHAT_HISTORY_MAX {
+                    let overflow = (hist.len() + formatted.len()) - CHAT_HISTORY_MAX + 1000;
+                    if overflow < hist.len() {
+                        hist.drain(..overflow);
+                    }
                 }
+
+                hist.push_str(&formatted);
+
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}",
+                    serde_json::json!({
+                        "status": "ok",
+                        "appended": formatted.len(),
+                        "total": hist.len()
+                    }).to_string()
+                );
+                let _ = stream.write_all(response.as_bytes());
+                return;
             }
-
-            hist.push_str(&formatted);
-
-            let response = format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}",
-                serde_json::json!({
-                    "status": "ok",
-                    "appended": formatted.len(),
-                    "total": hist.len()
-                }).to_string()
-            );
-            let _ = stream.write_all(response.as_bytes());
-            return;
+            Err(e) => {
+                let response = format!(
+                    "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{}",
+                    serde_json::json!({"error": format!("invalid JSON: {}", e)}).to_string()
+                );
+                let _ = stream.write_all(response.as_bytes());
+                return;
+            }
         }
-        let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"error\":\"invalid JSON\"}");
-        return;
     }
 
     // POST /load?binary=0xADDR - Load binary data to substrate at address
