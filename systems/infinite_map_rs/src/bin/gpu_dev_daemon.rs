@@ -1679,6 +1679,39 @@ fn handle_raw_request<S: Read + Write>(
         return;
     }
 
+    // GET /ws/thought_pulse - WebSocket endpoint for real-time brain visualization
+    if request_str.starts_with("GET /ws/thought_pulse") {
+        // WebSocket upgrade - this is handled asynchronously
+        // For now, we return a simple SSE-like endpoint that works with HTTP
+        // Full WebSocket requires async stream handling which is complex with the current architecture
+
+        // Return HTTP response that streams thought pulses
+        let response = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\n\r\ndata: {\"status\":\"connected\"}\n\n";
+        let _ = stream.write_all(response.as_bytes());
+
+        // Subscribe to thought pulses and stream them
+        let mut receiver = get_thought_pulse_sender().subscribe();
+
+        // Use tokio runtime for async subscription
+        let rt = get_tokio_rt();
+        rt.block_on(async {
+            // Stream up to 100 thought pulses or until connection closes
+            for _ in 0..100 {
+                match tokio::time::timeout(Duration::from_secs(30), receiver.recv()).await {
+                    Ok(Ok(pulse)) => {
+                        let json = serde_json::to_string(&pulse).unwrap_or_default();
+                        let event = format!("data: {}\n\n", json);
+                        if stream.write_all(event.as_bytes()).is_err() {
+                            break;
+                        }
+                    }
+                    _ => break,
+                }
+            }
+        });
+        return;
+    }
+
     // Handle /chat endpoint directly
     if request_str.starts_with("POST /chat") {
         // Natural language chat endpoint - converts text to GPU commands
