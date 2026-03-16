@@ -2034,6 +2034,41 @@ fn handle_raw_request<S: Read + Write>(
         return;
     }
 
+    // === ECC HTTP API PROXY (Phase 5) ===
+    // Proxy /ecc/* requests to ECC HTTP API server (port 3421)
+
+    if request_str.starts_with("GET /ecc/") || request_str.starts_with("POST /ecc/") {
+        // Forward to ECC HTTP API
+        let ecc_response = match reqwest::blocking::Client::new()
+            .request(
+                if request_str.starts_with("POST") { reqwest::Method::POST } else { reqwest::Method::GET },
+                &format!("http://localhost:3421{}", request_str.split_whitespace().nth(1).unwrap_or("/ecc/status"))
+            )
+            .body(request_str.split("\r\n\r\n").nth(1).unwrap_or("").to_string())
+            .header("Content-Type", "application/json")
+            .send()
+        {
+            Ok(resp) => {
+                let status = resp.status();
+                let body = resp.text().unwrap_or_else(|_| "{\"error\":\"Failed to read response\"}".to_string());
+                format!(
+                    "HTTP/1.1 {} OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\n\r\n{}",
+                    status.as_str(),
+                    body.len(),
+                    body
+                )
+            }
+            Err(e) => {
+                format!(
+                    "HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"ECC API unavailable: {}\"}}",
+                    e
+                )
+            }
+        };
+        let _ = stream.write_all(ecc_response.as_bytes());
+        return;
+    }
+
     // === FALLBACK: Pass to daemon.glyph via substrate ===
 
     // Write request to REQ_BUFFER in substrate
