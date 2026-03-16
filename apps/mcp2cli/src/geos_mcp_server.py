@@ -909,8 +909,8 @@ def _daemon_request_unix(endpoint: str, params: dict = None, body: str = None,
     if params:
         query = "?" + "&".join(f"{k}={v}" for k, v in params.items())
 
-    # Build HTTP-like request
-    request = f"{method} {endpoint}{query} HTTP/1.1\r\nHost: daemon\r\n"
+    # Build HTTP-like request (Connection: close ensures daemon closes after response)
+    request = f"{method} {endpoint}{query} HTTP/1.1\r\nHost: daemon\r\nConnection: close\r\n"
     if body:
         request += f"Content-Length: {len(body)}\r\n"
     request += "\r\n"
@@ -1170,17 +1170,25 @@ async def tool_mem_peek(args: dict) -> list[TextContent]:
     addr = int(addr_str, 16) if addr_str.startswith("0x") else int(addr_str)
 
     try:
-        resp = requests.get(f"{DAEMON_URL}/peek?addr=0x{addr:08x}&size={size}", timeout=2)
-        if resp.status_code != 200:
-            return [TextContent(type="text", text=f"Error: Daemon returned {resp.status_code}")]
+        # Use /read endpoint via unified request (Unix socket first, HTTP fallback)
+        # Note: size is in words (4 bytes each), convert to bytes
+        byte_len = size * 4
+        resp = _daemon_request("/read", params={"addr": f"0x{addr:08x}", "len": str(byte_len)}, timeout=2)
 
-        hex_words = resp.text.strip().split()
+        # Parse JSON response: {"addr":"0x0","len":16,"hex":"..."}
+        data = json.loads(resp.strip())
+        hex_str = data.get("hex", "")
 
-        # Convert to readable format
-        raw_bytes = bytearray()
-        for word in hex_words:
-            val = int(word, 16)
-            raw_bytes.extend(val.to_bytes(4, "little"))
+        # Convert hex string to bytes
+        raw_bytes = bytes.fromhex(hex_str) if hex_str else b""
+
+        # Convert to hex words for display (4 bytes each)
+        hex_words = []
+        for i in range(0, len(raw_bytes), 4):
+            word = raw_bytes[i:i+4]
+            if len(word) == 4:
+                val = int.from_bytes(word, "little")
+                hex_words.append(f"0x{val:08x}")
 
         # ASCII representation
         ascii_repr = "".join(chr(b) if 32 <= b < 127 else "." for b in raw_bytes)
@@ -1205,7 +1213,7 @@ async def tool_mem_peek(args: dict) -> list[TextContent]:
                 ),
             )
         ]
-    except requests.exceptions.ConnectionError:
+    except (requests.exceptions.ConnectionError, ConnectionError, FileNotFoundError, socket.error):
         return [
             TextContent(
                 type="text", text=f"Error: Cannot connect to Ouroboros daemon at {DAEMON_URL}"
@@ -1304,8 +1312,10 @@ async def tool_vlm_health(args: dict) -> list[TextContent]:
 async def tool_daemon_status(args: dict) -> list[TextContent]:
     """Check Ouroboros HAL daemon status via Unix socket or HTTP."""
     try:
-        # Use /peek endpoint via unified request (Unix socket first, HTTP fallback)
-        resp = _daemon_request("/peek", params={"addr": "0x0", "size": "1"}, timeout=2)
+        # Use /status endpoint via unified request (Unix socket first, HTTP fallback)
+        resp = _daemon_request("/status", timeout=2)
+        # Parse the response to extract daemon info
+        status_data = json.loads(resp.strip()) if resp.strip() else {}
         return [
             TextContent(
                 type="text",
@@ -1316,7 +1326,8 @@ async def tool_daemon_status(args: dict) -> list[TextContent]:
                         "daemon_url": DAEMON_URL,
                         "daemon_socket": DAEMON_SOCKET_PATH,
                         "daemon": "ONLINE",
-                        "test_peek": resp.strip()[:50],
+                        "daemon_status": status_data.get("status", "unknown"),
+                        "active_vms": status_data.get("vms", 0),
                     },
                     indent=2,
                 ),
