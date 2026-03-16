@@ -427,6 +427,36 @@ impl GlyphVmScheduler {
             .ok_or_else(|| format!("VM {} not found in stats", vm_id))
     }
 
+    /// Sync trap region from GPU texture to shadow buffer
+    /// This must be called after execute_frame() to see GPU writes
+    pub fn sync_trap_region(&mut self, texture: &wgpu::Texture, device: &wgpu::Device, queue: &wgpu::Queue) {
+        use crate::trap_interface::TRAP_BASE;
+
+        // Read a small aligned region from GPU texture
+        // TRAP_BASE is in word addresses, convert to pixel coordinates
+        let base_word = TRAP_BASE; // Word address in Hilbert space
+        let (tx, ty) = hilbert_d2xy(4096, base_word);
+
+        // Read 8 pixels (32 bytes, enough for 6 trap registers = 24 bytes)
+        // We need to handle each pixel separately due to alignment
+        let mut trap_bytes = [0u8; 32];
+
+        for i in 0..8 {
+            let (px, py) = hilbert_d2xy(4096, base_word + i);
+            let bytes = read_single_pixel(texture, device, queue, px, py);
+            trap_bytes[i*4..i*4+4].copy_from_slice(&bytes);
+        }
+
+        // Update shadow buffer with trap region
+        let shadow_offset = TRAP_BASE as usize * 4;
+        let mut shadow = self.shadow_ram.lock().unwrap();
+        if shadow_offset + 32 <= shadow.len() {
+            shadow[shadow_offset..shadow_offset + 32].copy_from_slice(&trap_bytes);
+        }
+
+        log::trace!("[SYNC] Trap region synced from GPU to shadow buffer");
+    }
+
     /// Poll trap region for pending requests
     fn poll_trap_region(&mut self) {
         // Read trap status from substrate
