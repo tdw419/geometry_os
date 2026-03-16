@@ -715,6 +715,12 @@ fn main() {
         // Execute VM frame
         scheduler.lock().unwrap().execute_frame();
 
+        // Sync trap region from GPU to shadow buffer
+        {
+            let mut sched = scheduler_loop.lock().unwrap();
+            sync_trap_region_to_shadow(&texture_loop, &device_loop, &queue_loop, &mut sched);
+        }
+
         // Poll for trap requests
         {
             let mut th = trap_handler_loop.lock().unwrap();
@@ -726,6 +732,88 @@ fn main() {
             thread::sleep(delay);
         }
     }
+}
+
+/// Sync trap region from GPU texture to shadow buffer
+/// This allows the CPU to see GPU writes to trap registers
+fn sync_trap_region_to_shadow(
+    texture: &wgpu::Texture,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    scheduler: &mut GlyphVmScheduler,
+) {
+    use infinite_map_rs::trap_interface::TRAP_BASE;
+
+    // Read 8 pixels (32 bytes) from trap region
+    let base_word = TRAP_BASE;
+    for i in 0..8 {
+        let (px, py) = hilbert_d2xy(4096, base_word + i);
+        if let Some(bytes) = read_single_texture_pixel(texture, device, queue, px, py) {
+            scheduler.poke_substrate_single(TRAP_BASE + i, u32::from_le_bytes(bytes));
+        }
+    }
+}
+
+/// Read a single pixel from the texture (slow but works for small reads)
+fn read_single_texture_pixel(
+    texture: &wgpu::Texture,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    x: u32,
+    y: u32,
+) -> Option<[u8; 4]> {
+    // Create a staging buffer for 1 pixel
+    // wgpu requires bytes_per_row to be multiple of 256, so we need at least 256 bytes
+    let staging = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("pixel staging"),
+        size: 256,
+        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("pixel copy encoder"),
+    });
+
+    encoder.copy_texture_to_buffer(
+        wgpu::ImageCopyTexture {
+            texture,
+            mip_level: 0,
+            origin: wgpu::Origin3d { x, y, z: 0 },
+            aspect: wgpu::TextureAspect::All,
+        },
+        wgpu::ImageCopyBuffer {
+            buffer: &staging,
+            layout: wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(256), // Aligned to 256
+                rows_per_image: Some(1),
+            },
+        },
+        wgpu::Extent3d {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 1,
+        },
+    );
+    queue.submit(Some(encoder.finish()));
+
+    // Map and read
+    let slice = staging.slice(..);
+    let (tx, rx) = std::sync::mpsc::channel();
+    slice.map_async(wgpu::MapMode::Read, move |res| {
+        tx.send(res).ok();
+    });
+    device.poll(wgpu::Maintain::Wait);
+
+    if let Ok(Ok(())) = rx.recv() {
+        let data = slice.get_mapped_range();
+        let pixel = [data[0], data[1], data[2], data[3]];
+        drop(data);
+        staging.unmap();
+        return Some(pixel);
+    }
+    None
 }
 
 /// Write glyph bytes to substrate at the specified address
