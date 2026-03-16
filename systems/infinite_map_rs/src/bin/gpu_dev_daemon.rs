@@ -344,19 +344,27 @@ fn get_thought_pulse_sender() -> &'static tokio::sync::broadcast::Sender<Thought
     })
 }
 
+/// Default brain atlas dimension (power of 2 required)
+const DEFAULT_BRAIN_SIZE: u32 = 4096;
+
+/// Brain atlas size (set at initialization)
+static BRAIN_SIZE: OnceLock<u32> = OnceLock::new();
+
+/// Get the configured brain size
+fn get_brain_size() -> u32 {
+    *BRAIN_SIZE.get().unwrap_or(&DEFAULT_BRAIN_SIZE)
+}
+
 /// Brain weight shadow buffer for CPU-side Hebbian updates
 /// This mirrors the brain texture and allows read-modify-write operations
 static BRAIN_SHADOW: OnceLock<Mutex<Vec<f32>>> = OnceLock::new();
 
-/// Default brain atlas dimension (power of 2 required)
-const DEFAULT_BRAIN_SIZE: u32 = 4096;
-
-/// Brain atlas size (2048x2048 = 4M weights)
-const BRAIN_ATLAS_SIZE: usize = 2048 * 2048;
-
 /// Get or initialize the brain shadow buffer
 fn get_brain_shadow() -> &'static Mutex<Vec<f32>> {
-    BRAIN_SHADOW.get_or_init(|| Mutex::new(vec![0.0; BRAIN_ATLAS_SIZE]))
+    BRAIN_SHADOW.get_or_init(|| {
+        let size = get_brain_size();
+        Mutex::new(vec![0.0; (size * size) as usize])
+    })
 }
 
 /// Apply Hebbian weight update to brain shadow buffer
@@ -655,6 +663,20 @@ fn main() {
         limits.max_texture_dimension_2d
     );
 
+    // Validate brain size against GPU limits
+    let max_texture_size = limits.max_texture_dimension_2d;
+    if brain_size > max_texture_size {
+        panic!(
+            "Requested brain size {} exceeds GPU max texture dimension {}",
+            brain_size, max_texture_size
+        );
+    }
+    println!("[BRAIN] Atlas size: {}x{} (max supported: {})",
+        brain_size, brain_size, max_texture_size);
+
+    // Initialize brain size static
+    BRAIN_SIZE.set(brain_size).expect("brain size already set");
+
     let device = Arc::new(device);
     let queue = Arc::new(queue);
 
@@ -704,15 +726,16 @@ fn main() {
                         shadow_lock[i] = w;
                     }
                 }
-                println!("[BRAIN] Shadow buffer initialized with {} weights", weight_count.min(BRAIN_ATLAS_SIZE));
+                println!("[BRAIN] Shadow buffer initialized with {} weights", weight_count.min(shadow_lock.len()));
             }
 
-            // Create brain texture (2048x2048 RGBA)
+            // Create brain texture with dynamic size
+            let size = get_brain_size();
             let texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
                 label: Some("brain_weight_atlas"),
                 size: wgpu::Extent3d {
-                    width: 2048,
-                    height: 2048,
+                    width: size,
+                    height: size,
                     depth_or_array_layers: 1,
                 },
                 mip_level_count: 1,
@@ -743,12 +766,12 @@ fn main() {
                 &rgba_data,
                 wgpu::ImageDataLayout {
                     offset: 0,
-                    bytes_per_row: Some(2048 * 4),
-                    rows_per_image: Some(2048),
+                    bytes_per_row: Some(size * 4),
+                    rows_per_image: Some(size),
                 },
                 wgpu::Extent3d {
-                    width: 2048,
-                    height: 2048,
+                    width: size,
+                    height: size,
                     depth_or_array_layers: 1,
                 },
             );
