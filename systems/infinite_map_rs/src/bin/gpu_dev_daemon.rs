@@ -448,6 +448,74 @@ fn write_glyph_to_substrate(
     device.poll(wgpu::Maintain::Wait);
 }
 
+/// Read a region of the GPU substrate texture and return it as RGBA bytes
+fn read_substrate_region(
+    texture: &wgpu::Texture,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    x: u32, y: u32, w: u32, h: u32,
+) -> Option<Vec<u8>> {
+    let bytes_per_pixel = 4u32;
+    let buffer_size = (w * h * bytes_per_pixel) as u64;
+    let staging_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("substrate staging"),
+        size: buffer_size,
+        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+
+    let tex_width = texture.width();
+    let tex_height = texture.height();
+    let clamped_w = w.min(tex_width.saturating_sub(x));
+    let clamped_h = h.min(tex_height.saturating_sub(y));
+
+    if clamped_w == 0 || clamped_h == 0 {
+        return None;
+    }
+
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("substrate copy"),
+    });
+
+    encoder.copy_texture_to_buffer(
+        wgpu::ImageCopyTexture {
+            texture,
+            mip_level: 0,
+            origin: wgpu::Origin3d { x, y, z: 0 },
+            aspect: wgpu::TextureAspect::All,
+        },
+        wgpu::ImageCopyBuffer {
+            buffer: &staging_buffer,
+            layout: wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(clamped_w * bytes_per_pixel),
+                rows_per_image: Some(clamped_h),
+            },
+        },
+        wgpu::Extent3d {
+            width: clamped_w,
+            height: clamped_h,
+            depth_or_array_layers: 1,
+        },
+    );
+
+    queue.submit(std::iter::once(encoder));
+
+    let buffer_slice = staging_buffer.slice(..);
+    let (tx, rx) = std::sync::mpsc::channel();
+    buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
+        tx.send(result).ok();
+    });
+    device.poll(wgpu::Maintain::Wait);
+
+    if rx.recv().ok().flatten().is_none() {
+        return None;
+    }
+
+    let data = buffer_slice.get_mapped_range().to_vec();
+    Some(data)
+}
+
 /// Handle raw socket request by passing to daemon.glyph via substrate
 fn handle_raw_request<S: Read + Write>(
     stream: &mut S,
@@ -477,6 +545,48 @@ fn handle_raw_request<S: Read + Write>(
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"status\":\"running\",\"vms\":{}}}",
             vm_count
         );
+        let _ = stream.write_all(response.as_bytes());
+        return;
+    }
+
+    // GET /substrate - Return texture region as PNG
+    if request_str.starts_with("GET /substrate") {
+        let params: std::collections::HashMap<&str, u32> = request_str
+            .split('?')
+            .nth(1)
+            .unwrap_or("")
+            .split(|c| c == ' ' || c == '\r' || c == '\n')
+            .next()
+            .unwrap_or("")
+            .split('&')
+            .filter_map(|p| {
+                let mut parts = p.split('=');
+                let key = parts.next()?;
+                let value = parts.next()?.parse().ok()?;
+                Some((key, value))
+            })
+            .collect();
+
+        let x = params.get("x").copied().unwrap_or(0);
+        let y = params.get("y").copied().unwrap_or(0);
+        let w = params.get("w").copied().unwrap_or(256).min(1024);
+        let h = params.get("h").copied().unwrap_or(256).min(1024);
+
+        if let Some(data) = read_substrate_region(texture, device, queue, x, y, w, h) {
+            if let Some(img) = image::RgbaImage::from_raw(w, h, data) {
+                let mut png_bytes = Vec::new();
+                if img.write_to(&mut std::io::Cursor::new(&mut png_bytes), image::ImageFormat::Png).is_ok() {
+                    let response = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: {}\r\n\r\n",
+                        png_bytes.len()
+                    );
+                    let _ = stream.write_all(response.as_bytes());
+                    let _ = stream.write_all(&png_bytes);
+                    return;
+                }
+            }
+        }
+        let response = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to read substrate";
         let _ = stream.write_all(response.as_bytes());
         return;
     }
