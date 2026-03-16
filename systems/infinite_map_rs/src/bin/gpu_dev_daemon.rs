@@ -609,7 +609,7 @@ fn main() {
         usage: wgpu::TextureUsages::all(),
         view_formats: &[],
     }));
-    scheduler.lock().unwrap().set_ram_texture(&ram_texture);
+    scheduler.lock().unwrap().set_ram_texture(ram_texture.clone());
 
     // Load scheduler.glyph into VM 0
     let scheduler_glyph_path = "systems/glyph_stratum/programs/scheduler.glyph";
@@ -1231,12 +1231,21 @@ fn handle_raw_request<S: Read + Write>(
                 // Also update shadow buffer
                 let shadow_offset = addr as usize;
                 let mut shadow = shadow_ram.lock().unwrap();
-                println!("[POKE] addr=0x{:x} value=0x{:x} shadow.len()={}", addr, value, shadow.len());
+                println!(
+                    "[POKE] addr=0x{:x} value=0x{:x} shadow.len()={}",
+                    addr,
+                    value,
+                    shadow.len()
+                );
                 if shadow_offset + 4 <= shadow.len() {
                     shadow[shadow_offset..shadow_offset + 4].copy_from_slice(&value.to_le_bytes());
                     println!("[POKE] wrote to shadow at offset {}", shadow_offset);
                 } else {
-                    println!("[POKE] FAILED: offset {} + 4 > {}", shadow_offset, shadow.len());
+                    println!(
+                        "[POKE] FAILED: offset {} + 4 > {}",
+                        shadow_offset,
+                        shadow.len()
+                    );
                 }
 
                 // Submit and wait for GPU to process the write
@@ -1619,16 +1628,20 @@ fn handle_raw_request<S: Read + Write>(
             )
         };
 
-        // For now, we'll simulate some activations - in a real implementation,
-        // we would extract these from the actual neural inference
+        // Generate activations from RESPONSE tokens (what the brain "thought")
+        // This makes Hebbian learning meaningful - strengthens pathways that led to good outputs
         let mut activations = Vec::new();
         let mut strengths = Vec::new();
 
-        // Simple hash-based activation simulation
-        for (i, c) in body.chars().enumerate() {
-            let addr = (i as u32 * 17 + c as u32) % 0x1000; // Spread across substrate
+        // Hash response tokens to create neural pathway activations
+        // In production, this would use actual token embeddings from LM Studio
+        for (i, c) in response.chars().enumerate() {
+            let addr = (i as u32 * 31 + c as u32) % 0x10000; // Spread across 64K substrate
+            let char_val = c as u32;
+            let strength =
+                0.3 + ((char_val % 17) as f32 / 20.0) + (0.2 * (i as f32 / response.len() as f32));
             activations.push(addr);
-            strengths.push(0.5 + (c as u32 as f32 % 10.0) / 20.0); // Strength between 0.5-1.0
+            strengths.push(strength.min(1.0));
         }
 
         // Limit to reasonable number of activations
@@ -1976,7 +1989,12 @@ fn read_u32_from_substrate(
     // Read from shadow buffer instead of GPU texture (workaround for Intel Vulkan driver bugs)
     let shadow_offset = addr as usize;
     let shadow_len = shadow_ram.len();
-    println!("[READ] shadow_offset={}, shadow_len={}, within={}", shadow_offset, shadow_len, shadow_offset + 4 <= shadow_len);
+    println!(
+        "[READ] shadow_offset={}, shadow_len={}, within={}",
+        shadow_offset,
+        shadow_len,
+        shadow_offset + 4 <= shadow_len
+    );
     if shadow_offset + 4 <= shadow_len {
         let v = u32::from_le_bytes([
             shadow_ram[shadow_offset],

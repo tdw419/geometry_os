@@ -282,7 +282,7 @@ impl VisualKernel {
             ram_texture.width(), ram_texture.height());
 
         // Set RAM texture on scheduler
-        self.scheduler.set_ram_texture(&ram_texture);
+        self.scheduler.set_ram_texture(std::sync::Arc::new(ram_texture));
 
         // Step 2: Initialize the Window Manager as VM #0
         log::info!("[BOOT] Spawning Window Manager as VM #0...");
