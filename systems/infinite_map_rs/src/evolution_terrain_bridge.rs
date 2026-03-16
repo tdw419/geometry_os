@@ -5,7 +5,7 @@
 //! becomes terrain in the 3D world.
 //!
 //! Architecture:
-//! ```
+//! ```ignore
 //! Evolution Canvas          Infinite Map
 //!      │                        │
 //!      ▼                        ▼

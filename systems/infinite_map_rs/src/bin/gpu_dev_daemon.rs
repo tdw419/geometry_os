@@ -1299,36 +1299,27 @@ fn write_to_substrate(
     let num_words = (data.len() + 3) / 4;
     println!("[WRITE] Writing {} words ({} bytes) to substrate at 0x{:x}", num_words, data.len(), base_addr);
 
-    // Create staging buffer with data
-    let buffer_size = (((data.len() + 3) / 4) * 4).max(4) as u64;
-    let staging = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("write_staging"),
-        contents: data,
-        usage: wgpu::BufferUsages::COPY_SRC,
-    });
-
-    // Create command encoder and copy each word to its Hilbert-mapped pixel
-    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-        label: Some("write_substrate_encoder"),
-    });
-
+    // Write each 4-byte word to its Hilbert-mapped pixel using queue.write_texture
+    // This handles alignment automatically
     for i in 0..num_words {
         let (tx, ty) = hilbert_d2xy(4096, base_addr + i as u32);
+        let start = i * 4;
+        let end = std::cmp::min(start + 4, data.len());
+        let mut word = [0u8; 4];
+        word[..end - start].copy_from_slice(&data[start..end]);
 
-        encoder.copy_buffer_to_texture(
-            wgpu::ImageCopyBuffer {
-                buffer: &staging,
-                layout: wgpu::ImageDataLayout {
-                    offset: (i * 4) as u64,
-                    bytes_per_row: Some(4),
-                    rows_per_image: Some(1),
-                },
-            },
+        queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d { x: tx, y: ty, z: 0 },
                 aspect: wgpu::TextureAspect::All,
+            },
+            &word,
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(4),
+                rows_per_image: Some(1),
             },
             wgpu::Extent3d {
                 width: 1,
@@ -1338,7 +1329,8 @@ fn write_to_substrate(
         );
     }
 
-    queue.submit(Some(encoder.finish()));
+    // Submit all writes and wait for GPU to process
+    queue.submit(None);
     device.poll(wgpu::Maintain::Wait);
 
     println!("[WRITE] Committed {} words to 0x{:x}", num_words, base_addr);
