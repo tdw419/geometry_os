@@ -35,6 +35,13 @@ try:
 except ImportError:
     ECC_AVAILABLE = False
 
+# ECC Agent Guild integration
+try:
+    from ecc_agent_guild import ECC_GUILD_MCP_TOOLS, dispatch_guild_tool
+    ECC_GUILD_AVAILABLE = True
+except ImportError:
+    ECC_GUILD_AVAILABLE = False
+
 # Geometry OS paths (relative to this file)
 GEOS_ROOT = Path(__file__).parent.parent.parent.parent
 GLYPH_COMPILER = GEOS_ROOT / "compile_glyph.py"
@@ -216,6 +223,14 @@ async def list_tools():
         Tool(name="ecc_debug", description="Run systematic debugging using ECC debug skill", inputSchema={"type": "object", "properties": {"issue": {"type": "string", "description": "Issue description"}, "context": {"type": "string", "description": "Additional context"}}, "required": ["issue"]}),
         Tool(name="ecc_architect", description="Get architectural guidance using ECC architect agent", inputSchema={"type": "object", "properties": {"decision": {"type": "string", "description": "Architectural decision to make"}, "constraints": {"type": "array", "items": {"type": "string"}}}, "required": ["decision"]}),
         Tool(name="ecc_canvas", description="Render ECC learning state as visual canvas (PNG/JSON) for Infinite Map", inputSchema={"type": "object", "properties": {"output_dir": {"type": "string", "description": "Output directory (default: cwd)"}, "format": {"type": "string", "enum": ["png", "json", "both"], "default": "both"}}}),
+        # ECC Agent Guild Tools
+        Tool(name="ecc_guild_status", description="Get ECC Agent Guild status and organization", inputSchema={"type": "object"}),
+        Tool(name="ecc_guild_list_agents", description="List ECC agents available as guild members", inputSchema={"type": "object", "properties": {"guild": {"type": "string", "description": "Filter by guild (engineering, review, testing, analysis, bmad)", "enum": ["engineering", "review", "testing", "analysis", "bmad"]}}}),
+        Tool(name="ecc_guild_spawn", description="Spawn an ECC agent as a guild member", inputSchema={"type": "object", "properties": {"agent_name": {"type": "string", "description": "ECC agent to spawn"}, "hilbert_position": {"type": "integer", "description": "Optional spatial position"}}, "required": ["agent_name"]}),
+        Tool(name="ecc_guild_despawn", description="Remove an agent instance from the guild", inputSchema={"type": "object", "properties": {"instance_id": {"type": "string", "description": "Instance ID to remove"}}, "required": ["instance_id"]}),
+        Tool(name="ecc_guild_dispatch", description="Dispatch a task to an ECC agent instance", inputSchema={"type": "object", "properties": {"instance_id": {"type": "string", "description": "Instance ID"}, "task": {"type": "string", "description": "Task description"}, "context": {"type": "object", "description": "Optional context"}}, "required": ["instance_id", "task"]}),
+        Tool(name="ecc_guild_spatial_state", description="Get spatial state for Infinite Map visualization", inputSchema={"type": "object"}),
+        Tool(name="ecc_guild_discover", description="Discover all ECC agents and register them", inputSchema={"type": "object"}),
     ]
 
 @app.call_tool()
@@ -2567,11 +2582,40 @@ async def tool_wasm_status(args: dict) -> list[TextContent]:
 
 async def tool_ecc_dispatch(name: str, args: dict) -> list[TextContent]:
     """
-    Dispatch ECC tool calls to the ECC bridge.
+    Dispatch ECC tool calls to the ECC bridge or ECC Agent Guild.
 
     This handler allows AI assistants to invoke ECC commands (plan, tdd, verify, etc.)
-    directly through the MCP interface.
+    and ECC Agent Guild operations (spawn, dispatch, etc.) directly through the MCP interface.
     """
+    # Route guild tools to the guild dispatcher
+    if name.startswith("ecc_guild_"):
+        if not ECC_GUILD_AVAILABLE:
+            return [TextContent(
+                type="text",
+                text=json.dumps({
+                    "status": "error",
+                    "error": "ECC Agent Guild not available. Ensure ecc_agent_guild.py is in the same directory.",
+                    "tool": name
+                }, indent=2)
+            )]
+
+        try:
+            result = await dispatch_guild_tool(name, args)
+            return [TextContent(
+                type="text",
+                text=json.dumps(result, indent=2)
+            )]
+        except Exception as e:
+            return [TextContent(
+                type="text",
+                text=json.dumps({
+                    "status": "error",
+                    "error": str(e),
+                    "tool": name
+                }, indent=2)
+            )]
+
+    # Route other ECC tools to the bridge dispatcher
     if not ECC_AVAILABLE:
         return [TextContent(
             type="text",
