@@ -829,13 +829,21 @@ fn main() {
     let device_loop = device.clone();
     let queue_loop = queue.clone();
 
+    let mut frame_counter: u64 = 0;
     loop {
         let start = Instant::now();
 
         // Execute VM frame
         scheduler.lock().unwrap().execute_frame();
 
-        // Sync trap region from GPU to shadow buffer
+        // Sync GPU texture to shadow buffer every 4 frames
+        // (full 64MB readback is expensive; trap region sync handles urgent reads)
+        if frame_counter % 4 == 0 {
+            scheduler.lock().unwrap().sync_gpu_to_shadow();
+        }
+        frame_counter += 1;
+
+        // Sync trap region from GPU to shadow buffer (every frame, for trap register polling)
         {
             let mut sched = scheduler_loop.lock().unwrap();
             sync_trap_region_to_shadow(&texture_loop, &device_loop, &queue_loop, &mut sched);
@@ -1467,12 +1475,13 @@ fn handle_raw_request<S: Read + Write>(
                     let mut shadow = shadow_ram.lock().unwrap();
                     for (func_idx, (module, name)) in info.import_names.iter().enumerate() {
                         // Map import name to host function ID
+                        // Support both "env" and "geos" module names for compatibility
                         let host_id: u32 = match (module.as_str(), name.as_str()) {
-                            ("env", "poke") => 0,
-                            ("env", "peek") => 1,
-                            ("env", "print") => 2,
-                            ("env", "spawn") => 3,
-                            ("env", "kill") => 4,
+                            ("env", "poke") | ("geos", "poke") => 0,
+                            ("env", "peek") | ("geos", "peek") => 1,
+                            ("env", "print") | ("geos", "print") => 2,
+                            ("env", "spawn") | ("geos", "spawn") => 3,
+                            ("env", "kill") | ("geos", "kill") => 4,
                             _ => {
                                 println!("[WASM] Unknown import: {}.{} - using ID 0xFF", module, name);
                                 0xFF // Unknown function
