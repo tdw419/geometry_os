@@ -13,6 +13,12 @@ except ImportError:
                 with open(path, "rb") as f:
                     return f.read()
 
+
+class WASMExtractionError(Exception):
+    """Raised when WASM extraction from .rts.png fails."""
+    pass
+
+
 class WASMExtractor:
     """
     Extracts WASM binary from .rts.png files and parses
