@@ -25,12 +25,219 @@ use infinite_map_rs::brain_bridge::{BrainBridge, BrainBridgeConfig};
 use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
 use infinite_map_rs::trap_interface::{op_type, status, TrapRegs, TRAP_BASE};
 
+/// WASM binary parsing utilities
+mod wasm_parser {
+    /// WASM section IDs
+    const SECTION_CUSTOM: u8 = 0;
+    const SECTION_TYPE: u8 = 1;
+    const SECTION_IMPORT: u8 = 2;
+    const SECTION_FUNCTION: u8 = 3;
+    const SECTION_TABLE: u8 = 4;
+    const SECTION_MEMORY: u8 = 5;
+    const SECTION_GLOBAL: u8 = 6;
+    const SECTION_EXPORT: u8 = 7;
+    const SECTION_START: u8 = 8;
+    const SECTION_ELEMENT: u8 = 9;
+    const SECTION_CODE: u8 = 10;
+    const SECTION_DATA: u8 = 11;
+    const SECTION_DATA_COUNT: u8 = 12;
+
+    /// WASM magic number and version
+    const WASM_MAGIC: [u8; 4] = [0x00, 0x61, 0x73, 0x6D]; // \0asm
+    const WASM_VERSION: [u8; 4] = [0x01, 0x00, 0x00, 0x00]; // version 1
+
+    /// Parsed WASM metadata
+    #[derive(Debug, Default)]
+    pub struct WasmInfo {
+        /// Function index of _start export (if found)
+        pub start_func_idx: Option<u32>,
+        /// Code section offset in bytes (from start of WASM binary)
+        pub code_section_offset: usize,
+        /// Function indices to their code body offsets (relative to code section start)
+        pub func_code_offsets: Vec<usize>,
+        /// Import count (functions before code section are imports)
+        pub import_count: u32,
+    }
+
+    /// Read a LEB128 unsigned integer from bytes
+    fn read_leb128_u32(bytes: &[u8], offset: &mut usize) -> Option<u32> {
+        let mut result: u32 = 0;
+        let mut shift = 0;
+        loop {
+            let byte = bytes.get(*offset)?;
+            *offset += 1;
+            result |= ((byte & 0x7F) as u32) << shift;
+            if byte & 0x80 == 0 {
+                break;
+            }
+            shift += 7;
+            if shift >= 35 {
+                return None; // Overflow
+            }
+        }
+        Some(result)
+    }
+
+    /// Read a UTF-8 name from bytes (length-prefixed)
+    fn read_name(bytes: &[u8], offset: &mut usize) -> Option<String> {
+        let len = read_leb128_u32(bytes, offset)? as usize;
+        let name_bytes = bytes.get(*offset..*offset + len)?;
+        *offset += len;
+        String::from_utf8(name_bytes.to_vec()).ok()
+    }
+
+    /// Parse a WASM binary and extract entry point information
+    pub fn parse_wasm(wasm_bytes: &[u8]) -> Option<WasmInfo> {
+        // Validate magic and version
+        if wasm_bytes.len() < 8 {
+            return None;
+        }
+        if wasm_bytes[0..4] != WASM_MAGIC || wasm_bytes[4..8] != WASM_VERSION {
+            println!("[WASM] Invalid magic or version");
+            return None;
+        }
+
+        let mut info = WasmInfo::default();
+        let mut offset = 8; // Skip magic + version
+        let mut func_types: Vec<u32> = Vec::new(); // Type indices for functions
+        let mut start_func: Option<u32> = None;
+
+        // Parse sections
+        while offset < wasm_bytes.len() {
+            let section_id = wasm_bytes.get(offset)?;
+            offset += 1;
+            let section_size = read_leb128_u32(wasm_bytes, &mut offset)? as usize;
+            let section_start = offset;
+
+            match *section_id {
+                SECTION_TYPE => {
+                    // Type section - parse function signatures
+                    let type_count = read_leb128_u32(wasm_bytes, &mut offset)?;
+                    for _ in 0..type_count {
+                        let form = wasm_bytes.get(offset)?;
+                        offset += 1;
+                        if *form != 0x60 { // func type
+                            break;
+                        }
+                        let param_count = read_leb128_u32(wasm_bytes, &mut offset)?;
+                        for _ in 0..param_count {
+                            read_leb128_u32(wasm_bytes, &mut offset)?; // param type
+                        }
+                        let result_count = read_leb128_u32(wasm_bytes, &mut offset)?;
+                        for _ in 0..result_count {
+                            read_leb128_u32(wasm_bytes, &mut offset)?; // result type
+                        }
+                    }
+                }
+                SECTION_IMPORT => {
+                    // Import section - count imported functions
+                    let import_count = read_leb128_u32(wasm_bytes, &mut offset)?;
+                    for _ in 0..import_count {
+                        let _module = read_name(wasm_bytes, &mut offset)?;
+                        let _name = read_name(wasm_bytes, &mut offset)?;
+                        let import_kind = wasm_bytes.get(offset)?;
+                        offset += 1;
+                        if *import_kind == 0 { // Function import
+                            let _type_idx = read_leb128_u32(wasm_bytes, &mut offset)?;
+                            info.import_count += 1;
+                        } else if *import_kind == 1 { // Table import
+                            let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // elem type
+                            let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // limits flags
+                            let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // limits initial
+                        } else if *import_kind == 2 { // Memory import
+                            let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // limits flags
+                            let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // limits initial
+                        } else if *import_kind == 3 { // Global import
+                            let _ = read_leb128_u32(wasm_bytes, &mut offset)?; // value type
+                            let _ = wasm_bytes.get(offset); // mutability
+                            offset += 1;
+                        }
+                    }
+                    println!("[WASM] Import section: {} function imports", info.import_count);
+                }
+                SECTION_FUNCTION => {
+                    // Function section - type indices for each function
+                    let func_count = read_leb128_u32(wasm_bytes, &mut offset)?;
+                    for _ in 0..func_count {
+                        let type_idx = read_leb128_u32(wasm_bytes, &mut offset)?;
+                        func_types.push(type_idx);
+                    }
+                    println!("[WASM] Function section: {} functions", func_count);
+                }
+                SECTION_EXPORT => {
+                    // Export section - find _start
+                    let export_count = read_leb128_u32(wasm_bytes, &mut offset)?;
+                    for _ in 0..export_count {
+                        let name = read_name(wasm_bytes, &mut offset)?;
+                        let export_kind = wasm_bytes.get(offset)?;
+                        offset += 1;
+                        let index = read_leb128_u32(wasm_bytes, &mut offset)?;
+
+                        if name == "_start" && *export_kind == 0 { // Function export
+                            start_func = Some(index);
+                            println!("[WASM] Found _start export at function index {}", index);
+                        }
+                    }
+                }
+                SECTION_START => {
+                    // Start section - entry point function index
+                    let func_idx = read_leb128_u32(wasm_bytes, &mut offset)?;
+                    start_func = Some(func_idx);
+                    println!("[WASM] Found start section: function {}", func_idx);
+                }
+                SECTION_CODE => {
+                    // Code section - function bodies
+                    info.code_section_offset = offset;
+                    let func_count = read_leb128_u32(wasm_bytes, &mut offset)?;
+
+                    for func_idx in 0..func_count {
+                        let body_size = read_leb128_u32(wasm_bytes, &mut offset)? as usize;
+                        let body_start = offset;
+
+                        // Store offset relative to code section start
+                        info.func_code_offsets.push(body_start - info.code_section_offset);
+
+                        // Skip function body
+                        offset = body_start + body_size;
+                    }
+                    println!("[WASM] Code section: {} functions at offset {}", func_count, info.code_section_offset);
+                }
+                _ => {
+                    // Skip unknown sections
+                    offset = section_start + section_size;
+                }
+            }
+
+            // Ensure we're at the right position
+            offset = section_start + section_size;
+        }
+
+        // Calculate actual code offset for start function
+        if let Some(func_idx) = start_func {
+            // Adjust for imports: function index includes imports
+            let local_idx = func_idx.saturating_sub(info.import_count);
+
+            if let Some(&code_offset) = info.func_code_offsets.get(local_idx as usize) {
+                // The entry point is the absolute offset from WASM binary start
+                info.start_func_idx = Some((info.code_section_offset + code_offset) as u32);
+                println!("[WASM] Entry point: function {} -> code offset 0x{:x}",
+                    func_idx, info.start_func_idx.unwrap());
+            }
+        }
+
+        Some(info)
+    }
+}
+
 /// Static Tokio runtime for async operations (avoids creating new runtime on each trap)
 static TOKIO_RT: OnceLock<Runtime> = OnceLock::new();
 
 /// Chat history storage (in-memory, persists for daemon lifetime)
 static CHAT_HISTORY: OnceLock<Mutex<String>> = OnceLock::new();
 const CHAT_HISTORY_MAX: usize = 0x10000; // 64KB
+
+/// WASM entry point storage (parsed from loaded WASM binary)
+static WASM_ENTRY_POINT: OnceLock<Mutex<Option<u32>>> = OnceLock::new();
 
 fn get_tokio_rt() -> &'static Runtime {
     TOKIO_RT.get_or_init(|| Runtime::new().expect("Failed to create tokio runtime"))
@@ -861,18 +1068,63 @@ fn handle_raw_request<S: Read + Write>(
                 let body_start = request_str.find("\r\n\r\n").unwrap_or(0) + 4;
                 let body = &request_data[body_start..];
 
+                // Check if this is a WASM binary (magic: 0x00 'asm')
+                let is_wasm = body.len() >= 8 &&
+                    body[0] == 0x00 && body[1] == 0x61 &&
+                    body[2] == 0x73 && body[3] == 0x6D;
+
+                let mut wasm_entry = None;
+                if is_wasm {
+                    println!("[WASM] Detected WASM binary, parsing...");
+                    if let Some(info) = wasm_parser::parse_wasm(body) {
+                        wasm_entry = info.start_func_idx;
+                        if let Some(entry) = wasm_entry {
+                            println!("[WASM] Parsed entry point: 0x{:x}", entry);
+                        }
+                    }
+                }
+
                 // Write binary data to substrate
                 write_to_substrate(body, texture, device, queue, addr);
 
+                // Store WASM entry point if found
+                if let Some(entry) = wasm_entry {
+                    let wasm_store = WASM_ENTRY_POINT.get_or_init(|| Mutex::new(None));
+                    *wasm_store.lock().unwrap() = Some(entry);
+                }
+
+                let entry_json = if let Some(entry) = wasm_entry {
+                    format!(",\"wasm_entry\":\"0x{:x}\"", entry)
+                } else {
+                    String::new()
+                };
+
                 let response = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"status\":\"ok\",\"addr\":\"0x{:x}\",\"bytes\":{}}}",
-                    addr, body.len()
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"status\":\"ok\",\"addr\":\"0x{:x}\",\"bytes\":{}{}}}",
+                    addr, body.len(), entry_json
                 );
                 let _ = stream.write_all(response.as_bytes());
                 return;
             }
         }
         // If binary= not found, fall through to daemon.glyph
+    }
+
+    // GET /wasm_info - Get parsed WASM entry point
+    if request_str.starts_with("GET /wasm_info") {
+        let wasm_store = WASM_ENTRY_POINT.get_or_init(|| Mutex::new(None));
+        let entry = wasm_store.lock().unwrap();
+
+        let response = if let Some(ep) = *entry {
+            format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"status\":\"ok\",\"entry_point\":\"0x{:x}\"}}",
+                ep
+            )
+        } else {
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"status\":\"no_wasm\",\"entry_point\":null}".to_string()
+        };
+        let _ = stream.write_all(response.as_bytes());
+        return;
     }
 
     // Handle /chat endpoint directly
