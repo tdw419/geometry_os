@@ -284,6 +284,30 @@
     LDI r13, wasm_op_i32_ne
     JZ r2, r13
 
+    // Check for I32_LT_S (0x48)
+    LDI r3, OP_I32_LT_S
+    SUB r2, r3
+    LDI r13, wasm_op_i32_lt_s
+    JZ r2, r13
+
+    // Check for I32_GT_S (0x4A)
+    LDI r3, OP_I32_GT_S
+    SUB r2, r3
+    LDI r13, wasm_op_i32_gt_s
+    JZ r2, r13
+
+    // Check for I32_LE_S (0x4C)
+    LDI r3, OP_I32_LE_S
+    SUB r2, r3
+    LDI r13, wasm_op_i32_le_s
+    JZ r2, r13
+
+    // Check for I32_GE_S (0x4E)
+    LDI r3, OP_I32_GE_S
+    SUB r2, r3
+    LDI r13, wasm_op_i32_ge_s
+    JZ r2, r13
+
     // Check for RETURN (0x0F)
     LDI r3, OP_RETURN
     SUB r2, r3
@@ -657,13 +681,25 @@
 
 :wasm_op_i32_mul
     // i32.mul: pop two values, push product
-    // TODO: Implement multiplication (may need MUL instruction in Glyph VM)
-    // Placeholder: just pop two and push 0
-    LDI r10, WASM_SP_ADDR
-    LOAD r10, r12
-    LDI r3, 8
-    ADD r12, r3            // Skip two values
-    LDI r4, 0
+    // Stack: [..., a, b] -> [..., (a * b)]
+    
+    // Pop b
+    CALL :stack_pop
+    MOV r7, r4             // r7 = b (save)
+    
+    // Pop a
+    CALL :stack_pop
+    // r4 = a
+    
+    // Multiply a * b using MUL opcode
+    // Glyph VM MUL opcode does unsigned multiplication, but for i32.mul
+    // the low 32 bits are the same for signed and unsigned
+    MOV r4, r5             // r5 = a
+    MOV r7, r6             // r6 = b
+    MUL r5, r6             // r5 = a * b (low 32 bits)
+    MOV r5, r4             // move result to r4 for pushing
+    
+    // Push result
     LDI r3, 4
     SUB r12, r3
     STORE r12, r4
@@ -675,13 +711,71 @@
 
 :wasm_op_i32_div_s
     // i32.div_s: pop two values, push quotient (signed)
-    // TODO: Implement signed division
-    // Placeholder: same as mul
-    LDI r10, WASM_SP_ADDR
-    LOAD r10, r12
-    LDI r3, 8
-    ADD r12, r3
-    LDI r4, 0
+    // Stack: [..., a, b] -> [..., (a / b)] (truncated toward zero)
+    // Note: Division by zero should trap, but we'll return 0 for now
+    
+    // Pop b (divisor)
+    CALL :stack_pop
+    MOV r7, r4             // r7 = b (save)
+    
+    // Pop a (dividend)
+    CALL :stack_pop
+    // r4 = a
+    
+    // Check for division by zero
+    LDI r5, 0
+    SUB r7, r5             // r7 = b - 0
+    JZ r7, :div_by_zero
+    
+    // Determine sign of result
+    // Result is negative if signs differ
+    MOV r4, r6             // r6 = a (save)
+    MOV r7, r8             // r8 = b (save)
+    XOR r6, r8             // r6 = sign bit (0 if same, 1 if different)
+    AND r6, 0x80000000     // isolate sign bit
+    
+    // Work with absolute values
+    // Make dividend positive
+    LDI r5, 0
+    SUB r4, r5             // r5 = 0 - a
+    JGE r4, :dividend_pos  // if a >= 0, skip negation
+    SUB r5, r4             // r5 = -a
+    MOV r5, r4             // r4 = |a|
+    
+:dividend_pos
+    // Make divisor positive
+    LDI r5, 0
+    SUB r7, r5             // r5 = 0 - b
+    JGE r7, :divisor_pos   // if b >= 0, skip negation
+    SUB r5, r7             // r5 = -b
+    MOV r5, r7             // r7 = |b|
+    
+:divisor_pos
+    // Now perform unsigned division using repeated subtraction
+    // This is inefficient but works for small numbers
+    LDI r5, 0              // quotient = 0
+    
+:div_loop
+    // if dividend < divisor, we're done
+    SUB r4, r7             // r4 = |a| - |b|
+    JL r4, :div_done       // if |a| < |b|, exit loop
+    
+    // subtract divisor from dividend
+    MOV r4, r5             // r5 = |a| - |b|
+    ADD r5, r1             // increment quotient (r1)
+    JMP :div_loop
+    
+:div_done
+    // Apply sign to quotient
+    LDI r5, 0
+    SUB r6, r5             // r6 = 0 - sign
+    JZ r6, :div_apply_pos  // if sign was 0 (positive), keep positive
+    SUB r1, r5             // r1 = 0 - quotient (negate)
+    
+:div_apply_pos
+    MOV r1, r4             // move quotient to r4 for pushing
+    
+    // Push result
     LDI r3, 4
     SUB r12, r3
     STORE r12, r4
@@ -690,6 +784,13 @@
 
     LDI r13, wasm_fetch
     JMP r13
+
+:div_by_zero
+    // Division by zero - set error and halt
+    LDI r1, WASM_STATUS
+    LDI r2, STATUS_ERROR
+    STORE r1, r2
+    JMP wasm_halt
 
 // ------------------------------------------------------------
 // Comparison Operations
@@ -730,18 +831,183 @@
 
 :wasm_op_i32_ne
     // i32.ne: pop two values, push 1 if not equal, 0 otherwise
-    // TODO: Implement properly
-    LDI r10, WASM_SP_ADDR
-    LOAD r10, r12
-    LDI r3, 8
-    ADD r12, r3
-    LDI r4, 1              // Placeholder: push 1
-    LDI r3, 4
-    SUB r12, r3
-    STORE r12, r4
-    LDI r3, WASM_SP_ADDR
-    STORE r3, r12
+    // Pop b into r4
+    CALL :stack_pop
+    MOV r4, r7             // r7 = b (save)
+    
+    // Pop a into r4
+    CALL :stack_pop
+    // r4 = a
+    
+    // Compare: subtract a - b
+    MOV r5, r4             // r5 = a
+    SUB r5, r7             // r5 = a - b
+    
+    // If result is 0, they're equal (so not equal = 0)
+    // If result is not 0, they're not equal (so not equal = 1)
+    LDI r6, 0
+    SUB r5, r6
+    LDI r4, 0              // Assume equal
+    JNZ r5, :ne_true       // If not zero, jump to not equal
+    JMP :ne_push
+    
+:ne_true
+    LDI r4, 1              // Not equal
+    
+:ne_push
+    // Push result
+    CALL :stack_push
+    
+    LDI r13, wasm_fetch
+    JMP r13
 
+// ------------------------------------------------------------
+// Comparison Operations (continued)
+// ------------------------------------------------------------
+
+:wasm_op_i32_lt_s
+    // i32.lt_s: pop two values, push 1 if a < b (signed), 0 otherwise
+    // Stack: [..., a, b] -> [..., (a < b ? 1 : 0)]
+    
+    // Pop b into r7
+    CALL :stack_pop
+    MOV r7, r4             // r7 = b (save)
+    
+    // Pop a into r4
+    CALL :stack_pop
+    // r4 = a
+    
+    // Compare: subtract a - b
+    MOV r5, r4             // r5 = a
+    SUB r5, r7             // r5 = a - b
+    
+    // For signed less than, we need to check if result is negative
+    // In two's complement, negative numbers have the sign bit set (bit 31)
+    LDI r6, 0x80000000     // Sign bit mask
+    AND r5, r6             // r5 = sign bit of (a - b)
+    
+    // If sign bit is set, result is negative (a < b)
+    LDI r4, 0              // Assume false
+    JNZ r5, :lt_true       // If sign bit set, jump to true
+    JMP :lt_push
+    
+:lt_true
+    LDI r4, 1              // True
+    
+:lt_push
+    // Push result
+    CALL :stack_push
+    
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_i32_gt_s
+    // i32.gt_s: pop two values, push 1 if a > b (signed), 0 otherwise
+    // Stack: [..., a, b] -> [..., (a > b ? 1 : 0)]
+    // a > b is equivalent to b < a
+    
+    // Pop b into r7
+    CALL :stack_pop
+    MOV r7, r4             // r7 = b (save)
+    
+    // Pop a into r4
+    CALL :stack_pop
+    // r4 = a
+    
+    // Compare: subtract b - a (to get b < a)
+    MOV r5, r7             // r5 = b
+    SUB r5, r4             // r5 = b - a
+    
+    // For signed less than, check if result is negative
+    LDI r6, 0x80000000     // Sign bit mask
+    AND r5, r6             // r5 = sign bit of (b - a)
+    
+    // If sign bit is set, b < a, which means a > b
+    LDI r4, 0              // Assume false
+    JNZ r5, :gt_true       // If sign bit set, jump to true
+    JMP :gt_push
+    
+:gt_true
+    LDI r4, 1              // True
+    
+:gt_push
+    // Push result
+    CALL :stack_push
+    
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_i32_le_s
+    // i32.le_s: pop two values, push 1 if a <= b (signed), 0 otherwise
+    // Stack: [..., a, b] -> [..., (a <= b ? 1 : 0)]
+    // a <= b is equivalent to !(a > b)
+    
+    // Pop b into r7
+    CALL :stack_pop
+    MOV r7, r4             // r7 = b (save)
+    
+    // Pop a into r4
+    CALL :stack_pop
+    // r4 = a
+    
+    // Compare: subtract b - a (to check b < a)
+    MOV r5, r7             // r5 = b
+    SUB r5, r4             // r5 = b - a
+    
+    // For signed less than, check if result is negative
+    LDI r6, 0x80000000     // Sign bit mask
+    AND r5, r6             // r5 = sign bit of (b - a)
+    
+    // If sign bit is set, b < a, which means a > b, so a <= b is false
+    // If sign bit is not set, b >= a, which means a <= b is true
+    LDI r4, 1              // Assume true (a <= b)
+    JNZ r5, :le_false      // If sign bit set, jump to false
+    JMP :le_push
+    
+:le_false
+    LDI r4, 0              // False
+    
+:le_push
+    // Push result
+    CALL :stack_push
+    
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_i32_ge_s
+    // i32.ge_s: pop two values, push 1 if a >= b (signed), 0 otherwise
+    // Stack: [..., a, b] -> [..., (a >= b ? 1 : 0)]
+    // a >= b is equivalent to !(a < b)
+    
+    // Pop b into r7
+    CALL :stack_pop
+    MOV r7, r4             // r7 = b (save)
+    
+    // Pop a into r4
+    CALL :stack_pop
+    // r4 = a
+    
+    // Compare: subtract a - b
+    MOV r5, r4             // r5 = a
+    SUB r5, r7             // r5 = a - b
+    
+    // For signed less than, check if result is negative
+    LDI r6, 0x80000000     // Sign bit mask
+    AND r5, r6             // r5 = sign bit of (a - b)
+    
+    // If sign bit is set, a < b, so a >= b is false
+    // If sign bit is not set, a >= b, so a >= b is true
+    LDI r4, 1              // Assume true (a >= b)
+    JNZ r5, :ge_false      // If sign bit set, jump to false
+    JMP :ge_push
+    
+:ge_false
+    LDI r4, 0              // False
+    
+:ge_push
+    // Push result
+    CALL :stack_push
+    
     LDI r13, wasm_fetch
     JMP r13
 
