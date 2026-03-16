@@ -303,7 +303,7 @@ impl TrapHandler {
         _queue: &wgpu::Queue,
     ) -> bool {
         // Read trap registers from substrate
-        let trap_bytes = scheduler.peek_substrate(TRAP_BASE, 6);
+        let trap_bytes = scheduler.peek_substrate(TRAP_BASE / 4, 6);
         self.regs = TrapRegs::from_bytes(trap_bytes);
 
         if self.regs.status != status::PENDING {
