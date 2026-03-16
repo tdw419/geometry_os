@@ -591,6 +591,17 @@ ECC_MCP_TOOLS = [
             },
             "required": ["decision"]
         }
+    },
+    {
+        "name": "ecc_canvas",
+        "description": "Render ECC learning state as visual canvas (PNG/JSON)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "output_dir": {"type": "string", "description": "Output directory (default: cwd)"},
+                "format": {"type": "string", "enum": ["png", "json", "both"], "default": "both"}
+            }
+        }
     }
 ]
 
