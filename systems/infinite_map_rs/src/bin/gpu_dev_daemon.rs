@@ -1874,8 +1874,8 @@ fn write_to_substrate(
             );
         }
 
-        // Update shadow buffer (linear address = addr * 4)
-        let shadow_offset = (base_addr as usize + i) * 4;
+        // Update shadow buffer (byte offset = base_addr + word_index * 4)
+        let shadow_offset = base_addr as usize + i * 4;
         if shadow_offset + 4 <= shadow_ram.len() {
             shadow_ram[shadow_offset..shadow_offset + 4].copy_from_slice(&word);
         }
@@ -1970,7 +1970,7 @@ fn read_u32_from_substrate(
     println!("[READ] addr=0x{:x} -> pixel({}, {})", addr, tx, ty);
 
     // Read from shadow buffer instead of GPU texture (workaround for Intel Vulkan driver bugs)
-    let shadow_offset = addr as usize * 4;
+    let shadow_offset = addr as usize;
     if shadow_offset + 4 <= shadow_ram.len() {
         let v = u32::from_le_bytes([
             shadow_ram[shadow_offset],
