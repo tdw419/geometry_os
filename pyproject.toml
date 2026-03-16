@@ -54,6 +54,7 @@ exclude = [
 
 [tool.pytest.ini_options]
 minversion = "7.0"
+pythonpath = ["apps/CLI-Anything/zoom/agent-harness"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"

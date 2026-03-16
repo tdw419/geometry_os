@@ -7,9 +7,9 @@ sleep 1
 
 # Start daemon in background
 echo "Starting daemon..."
-./target/release/gpu_dev_daemon &>/tmp/daemon.log &
+./target/release/gpu_dev_daemon &>/tmp/daemon.log 2>&1
 DAEMON_PID=$!
-echo "Daemon PID: $DAEMON_PID"
+echo "Daemon started with PID: $DAEMON_PID"
 
 # Wait for daemon to be ready
 echo "Waiting for daemon..."
@@ -27,11 +27,12 @@ echo "=== Test 1: Status ==="
 curl -s http://127.0.0.1:8769/status
 echo ""
 
-# Test 2: Load WASM interpreter glyph to VM 2
+# Test 2: Load WASM interpreter glyph to substrate at entry 0
 echo ""
 echo "=== Test 2: Load WASM interpreter ==="
-curl -s -X POST "http://127.0.0.1:8769/load?vm=2" \
-    -d "systems/glyph_stratum/programs/wasm_interpreter.png"
+curl -s -X POST "http://127.0.0.1:8769/load?binary=0x0" \
+    --data-binary "@systems/glyph_stratum/programs/wasm_interpreter.rts.png" \
+    -H "Content-Type: application/octet-stream"
 echo ""
 
 # Test 3: Load WASM binary to linear memory (0x20000)
@@ -43,33 +44,27 @@ curl -s -X POST "http://127.0.0.1:8769/load?binary=0x20000" \
     -H "Content-Type: application/octet-stream"
 echo ""
 
-# Test 4: Set entry point for WASM interpreter
-# WASM interpreter expects entry point in WASM_IP_ADDR (0x30004)
-# The _start function in WASM is typically at offset 0 in the code section
+# Test 4: Spawn WASM interpreter as VM 2 at entry point 0
 echo ""
-echo "=== Test 4: Set WASM IP ==="
-curl -s "http://127.0.0.1:8769/poke?addr=0x30004&value=0x0"
-echo ""
-
-# Test 5: Set WASM status to running (0x3000C = 1)
-echo ""
-echo "=== Test 5: Start WASM interpreter ==="
-curl -s "http://127.0.0.1:8769/poke?addr=0x3000C&value=0x1"
+echo "=== Test 4: Spawn WASM interpreter VM ==="
+curl -s -X POST "http://127.0.0.1:8769/chat" \
+    -d "spawn 0" \
+    -H "Content-Type: text/plain"
 echo ""
 
-# Wait for WASM to execute
+# Wait for execution
 echo ""
 echo "=== Waiting for WASM execution ==="
-sleep 2
+sleep 3
 
-# Test 6: Read substrate at 0x1000 (where WASM should have written 42)
+# Test 5: Read substrate at 0x1000 (where WASM should have written 42)
 echo ""
-echo "=== Test 6: Read substrate at 0x1000 ==="
+echo "=== Test 5: Read substrate at 0x1000 ==="
 curl -s "http://127.0.0.1:8769/read?addr=0x1000&len=8" | xxd
 
-# Test 7: Check daemon logs for WASM host function calls
+# Test 6: Check daemon logs for WASM host function calls
 echo ""
-echo "=== Test 7: Daemon logs (WASM calls) ==="
+echo "=== Test 6: Daemon logs (WASM calls) ==="
 grep -i "wasm" /tmp/daemon.log | tail -10 || echo "No WASM logs found"
 
 # Cleanup

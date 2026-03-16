@@ -1,0 +1,329 @@
+# GEOS Chat - AI-Assisted GPU Substrate Control
+
+> Natural language interface for controlling the Geometry OS GPU substrate through AI assistants.
+
+## Overview
+
+`geos chat` enables natural language control of the GPU substrate by bridging user prompts to AI models (Z.ai or Anthropic Claude) that can execute tool calls against the Ouroboros HAL daemon.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          GEOS CHAT ARCHITECTURE                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   User Prompt: "peek memory at 0x1000 and check daemon status"              │
+│        │                                                                    │
+│        ▼                                                                    │
+│   ┌─────────────────┐                                                      │
+│   │   geos chat     │  CLI interface (geos_cli.py)                         │
+│   │   -i or "text"  │                                                      │
+│   └────────┬────────┘                                                      │
+│            │                                                                │
+│            ▼                                                                │
+│   ┌─────────────────┐                                                      │
+│   │   Z.ai API      │  glm-4.6 model with tool calling                    │
+│   │   (or Claude)   │  Processes natural language → tool calls            │
+│   └────────┬────────┘                                                      │
+│            │                                                                │
+│            ▼                                                                │
+│   ┌─────────────────┐                                                      │
+│   │  MCP Tools      │  15 substrate operations                            │
+│   │  (geos_mcp_     │  - daemon_status, mem_peek, mem_poke                │
+│   │   server.py)    │  - substrate_load, boot_sim, etc.                   │
+│   └────────┬────────┘                                                      │
+│            │                                                                │
+│            ▼                                                                │
+│   ┌─────────────────┐      ┌─────────────────┐                            │
+│   │  Unix Socket    │ or   │   HTTP API      │                            │
+│   │  /tmp/gpu_      │      │   127.0.0.1:8769│                            │
+│   │  daemon.sock    │      │                 │                            │
+│   └────────┬────────┘      └────────┬────────┘                            │
+│            │                        │                                      │
+│            └────────────┬───────────┘                                      │
+│                         ▼                                                  │
+│   ┌─────────────────────────────────────────────────────────────────────┐ │
+│   │                    gpu_dev_daemon (Ouroboros HAL)                    │ │
+│   │                                                                      │ │
+│   │   Endpoints:                                                         │ │
+│   │   - GET /status      → {"status":"running","vms":N}                 │ │
+│   │   - GET /peek        → Read words via scheduler                      │ │
+│   │   - GET /poke        → Write value to address                        │ │
+│   │   - POST /load       → Load binary/RTS to substrate                  │ │
+│   │   - POST /chat       → Natural language → GPU commands               │ │
+│   └─────────────────────────────────────────────────────────────────────┘ │
+│                         │                                                  │
+│                         ▼                                                  │
+│   ┌─────────────────────────────────────────────────────────────────────┐ │
+│   │                        GPU SUBSTRATE                                  │ │
+│   │                     (4096 x 4096 texture)                            │ │
+│   │                                                                       │ │
+│   │   Memory Map:                                                         │ │
+│   │   0x00000000 - 0x0FFFFFFF  Glyph VM memory                           │ │
+│   │   0x10000000 - 0x1FFFFFFF  Dev memory (MCP indices)                  │ │
+│   │   0xF0000000 - 0xF000FFFF  Chat history (persistent)                 │ │
+│   │                                                                       │ │
+│   │   Hilbert Curve Addressing: addr → (x, y) pixel coordinates          │ │
+│   └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Quick Start
+
+### Prerequisites
+
+1. **GPU Daemon running:**
+   ```bash
+   cargo run --release --bin gpu_dev_daemon
+   ```
+
+2. **API credentials** (choose one):
+   ```bash
+   # Z.ai (recommended - included in implementation)
+   export ZAI_API_KEY="your_key_here"
+   export ZAI_BASE_URL="https://api.z.ai/api/coding/paas/v4"
+
+   # Or Anthropic Claude
+   export ANTHROPIC_API_KEY="your_key_here"
+   ```
+
+### Usage
+
+**Single-shot mode:**
+```bash
+python3 apps/mcp2cli/src/geos_cli.py chat "check daemon status and peek at 0x0 for 4 words"
+```
+
+**Interactive REPL mode:**
+```bash
+python3 apps/mcp2cli/src/geos_cli.py chat -i
+
+GEOS Chat> what's running on the GPU?
+[AI queries daemon, interprets results]
+
+GEOS Chat> load this program: programs/test.rts.png
+[AI calls substrate_load tool]
+
+GEOS Chat> exit
+```
+
+## Available Tools
+
+The AI has access to 15 MCP tools for substrate control:
+
+### System Operations
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `daemon_status` | Check if Ouroboros HAL is running | none |
+| `geos_status` | Component availability, boot readiness | none |
+| `boot_sim` | Simulate boot chain (UEFI → Kernel → GPU) | none |
+
+### Memory Operations
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `mem_peek` | Read GPU memory at address | `addr`, `size` (words) |
+| `mem_poke` | Write value to address | `addr`, `val` |
+| `mem_store` | Store JSON data in GPU memory | `key`, `value` |
+| `mem_retrieve` | Retrieve JSON from GPU memory | `key` |
+
+### Compilation & Loading
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `crystallize` | Compile .glyph → .rts.png | `input`, `output` |
+| `substrate_load` | Load .rts.png to daemon | `rts_file` |
+| `linux_to_glyph` | Transpile RISC-V ELF → glyph | `input`, `output` |
+
+### Development Helpers
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `glyph_patch` | Hot-patch instruction in VRAM | `addr`, `opcode` |
+| `vm_spawn` | Simulate spawning child VM | `parent`, `child` |
+| `hilbert_test` | Test Hilbert coordinate conversion | `addr` |
+| `opcode_decode` | Decode opcode value | `opcode` |
+| `opcode_encode` | Encode opcode name | `name` |
+| `benchmark_sls` | Calculate Spatial Locality Score | `glyph_file` |
+| `vlm_health` | Run VLM vitality check | `rts_file` |
+
+## How Tool Calling Works
+
+The AI uses a request-response loop with tool execution:
+
+```
+1. User: "peek memory at 0x1000"
+
+2. AI decides: I should use mem_peek tool
+   → Returns: tool_call("mem_peek", {"addr": "0x1000", "size": 4})
+
+3. CLI executes tool:
+   → Calls _daemon_request("/peek", params={"addr": "0x1000", "size": 4})
+   → Unix socket → daemon → scheduler.peek_substrate_single()
+   → Returns: {"hex": ["0x00000000", ...], "ascii": "...."}
+
+4. Tool result sent back to AI
+
+5. AI interprets: "Memory at 0x1000 contains all zeros"
+
+6. Response shown to user
+```
+
+## Persistent Chat History
+
+Chat history is stored in GPU substrate memory at `0xF0000000`:
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                   GPU Memory Region                         │
+│                    0xF0000000                               │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│   Offset 0x0000:  Chat history header                      │
+│                   - magic bytes "GEOSCHAT"                 │
+│                   - message count                          │
+│                   - write pointer                          │
+│                                                            │
+│   Offset 0x0100:  Message ring buffer                      │
+│                   - [role: 1 byte][length: 2 bytes]        │
+│                   - [content: N bytes]                     │
+│                   - Circular, overwrites old messages      │
+│                                                            │
+│   Max size: 64KB (0x10000 bytes)                          │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+This enables:
+- **Session continuity**: Resume conversations across CLI restarts
+- **AI memory**: Future AI sessions can read past context
+- **Cross-AI collaboration**: Different AI models share same memory
+
+## Daemon Communication
+
+The MCP server uses a unified request function that tries Unix socket first, then HTTP:
+
+```python
+def _daemon_request(endpoint, params=None, timeout=2.0):
+    # Try Unix socket (faster, more reliable)
+    try:
+        return _daemon_request_unix(endpoint, params, timeout)
+    except (ConnectionError, FileNotFoundError):
+        pass
+
+    # Fall back to HTTP
+    url = f"{DAEMON_URL}{endpoint}"
+    return requests.get(url, timeout=timeout).text
+```
+
+### Unix Socket Protocol
+
+The daemon implements a minimal HTTP-like protocol:
+
+```
+Request:
+GET /peek?addr=0x0&size=4 HTTP/1.1
+Host: daemon
+Connection: close
+
+Response:
+HTTP/1.1 200 OK
+Content-Type: text/plain
+
+0x00000000 0x00000000 0x00000000 0x00000000
+```
+
+**Important:** The `Connection: close` header is required - without it, the daemon keeps the connection open until timeout.
+
+## Daemon Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/status` | GET | Health check: `{"status":"running","vms":N}` |
+| `/peek?addr=X&size=N` | GET | Read N words at address X |
+| `/poke?addr=X&value=Y` | GET | Write value Y to address X |
+| `/read?addr=X&len=N` | GET | Read N bytes (async GPU op) |
+| `/substrate?x=Y&w=W&h=H` | GET | Return texture region as PNG |
+| `/load?binary=0xADDR` | POST | Load binary data to address |
+| `/chat` | POST | Natural language → GPU commands |
+
+## Example Session
+
+```bash
+$ python3 apps/mcp2cli/src/geos_cli.py chat -i
+
+GEOS Chat> what's the current state of the GPU?
+
+AI: Let me check the daemon status and examine some key memory regions.
+[Tool daemon_status: ONLINE, running, 2 VMs]
+[Tool mem_peek: addr=0x0, 4 words, all zeros]
+
+The GPU daemon is running with 2 active virtual machines.
+Memory at address 0x0 is currently cleared (all zeros).
+
+GEOS Chat> load the counter demo and run it
+
+AI: I'll load the counter demo program.
+[Tool substrate_load: programs/counter.rts.png → loaded]
+
+Program loaded. The counter will increment at address 0x100.
+
+GEOS Chat> show me the counter value
+
+AI: Reading the counter memory location...
+[Tool mem_peek: addr=0x100, 1 word]
+
+Counter value: 42 (0x2a)
+
+GEOS Chat> exit
+```
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ZAI_API_KEY` | (required) | Z.ai API key |
+| `ZAI_BASE_URL` | `https://api.z.ai/api/coding/paas/v4` | Z.ai API endpoint |
+| `ANTHROPIC_API_KEY` | (optional) | Anthropic API key (fallback) |
+| `DAEMON_URL` | `http://127.0.0.1:8769` | HTTP daemon URL |
+| `DAEMON_SOCKET_PATH` | `/tmp/gpu_daemon.sock` | Unix socket path |
+
+## Troubleshooting
+
+### "daemon OFFLINE" error
+
+```bash
+# Check if daemon is running
+ls -la /tmp/gpu_daemon.sock
+
+# Start daemon if needed
+cargo run --release --bin gpu_dev_daemon
+```
+
+### "Unknown Model" error
+
+Ensure you're using the correct model name:
+- Z.ai: `glm-4.6` (auto-detected)
+- Anthropic: `claude-sonnet-4-20250514`
+
+### Tool call timeout
+
+The Unix socket needs `Connection: close` header. This is handled in `_daemon_request_unix()` at line 913 of `geos_mcp_server.py`.
+
+## Architecture Files
+
+| File | Purpose |
+|------|---------|
+| `apps/mcp2cli/src/geos_cli.py` | CLI implementation with `cmd_chat()` |
+| `apps/mcp2cli/src/geos_mcp_server.py` | MCP tools and daemon communication |
+| `systems/infinite_map_rs/src/bin/gpu_dev_daemon.rs` | Ouroboros HAL daemon |
+| `docs/MCP2CLI_GUIDE.md` | MCP tools documentation |
+
+## Future Enhancements
+
+- [ ] Voice input via microphone
+- [ ] Multi-turn conversation context
+- [ ] AI can spawn background tasks
+- [ ] Cross-session memory indexing
+- [ ] Support for more AI providers (Gemini, local LLMs)
+
+---
+
+*"Speak naturally, compute on GPU."*
