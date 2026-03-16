@@ -150,6 +150,13 @@ impl TrapHandler {
                 let count = self.regs.arg2;
                 scheduler.glyph_write(target, source, count)
             },
+            op_type::WASM_HOST_CALL => {
+                let func_id = self.regs.arg0;
+                let arg0 = self.regs.arg1;
+                let arg1 = self.regs.arg2;
+                let result = self.handle_wasm_host_call(func_id, arg0, arg1, scheduler);
+                result
+            }
             _ => {
                 eprintln!("[TRAP] Unknown op_type: {}", self.regs.op_type);
                 0xFFFF_FFFF // Error code
