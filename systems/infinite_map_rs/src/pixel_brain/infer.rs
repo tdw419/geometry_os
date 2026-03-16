@@ -109,6 +109,33 @@ impl PixelBrainInferencer {
         &self.config
     }
 
+    /// Initialize GPU pipelines
+    pub fn init_pipelines(&mut self) -> Result<(), String> {
+        // Load embed shader
+        let _embed_shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("pixel_brain_embed"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/pixel_brain_embed.wgsl").into()),
+        });
+
+        // Load attention shader
+        let _attention_shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("pixel_brain_attention"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/pixel_brain_attention.wgsl").into()),
+        });
+
+        // Load FFN shader
+        let _ffn_shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("pixel_brain_ffn"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/pixel_brain_ffn.wgsl").into()),
+        });
+
+        // Create pipelines (simplified - actual implementation needs bind group layouts)
+        // For now, just store that we can compile shaders
+        // Full pipeline creation will come later
+
+        Ok(())
+    }
+
     /// Infer the next token given the current token
     /// Returns the predicted next token ID
     pub fn infer_token(&mut self, _token_id: u32) -> u32 {
