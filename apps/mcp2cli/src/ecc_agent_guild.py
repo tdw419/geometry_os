@@ -62,7 +62,10 @@ class ECCAgentProfile:
     color_hex: int = 0x888888
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        d = asdict(self)
+        # Convert enum to string value
+        d["guild"] = self.guild.value
+        return d
 
 
 @dataclass

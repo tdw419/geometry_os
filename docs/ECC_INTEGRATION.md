@@ -12,21 +12,30 @@ Everything Claude Code (ECC) integration exposes 60+ commands, 65+ skills, 47 ag
 │   AI Assistant ──▶ MCP Bridge ──▶ ECC Tools ──▶ Geometry OS Substrate       │
 │                                                                              │
 │   Available ECC MCP Tools:                                                   │
-│   ┌──────────────────┬─────────────────────────────────────────────────┐    │
-│   │ Tool             │ Purpose                                          │    │
-│   ├──────────────────┼─────────────────────────────────────────────────┤    │
-│   │ ecc_status       │ Get ECC integration status                       │    │
-│   │ ecc_plan         │ Create implementation plan                       │    │
-│   │ ecc_tdd          │ Execute TDD workflow                             │    │
-│   │ ecc_review       │ Run code review                                  │    │
-│   │ ecc_verify       │ Run verification loop (build, test, lint)        │    │
-│   │ ecc_learn        │ Extract reusable patterns                        │    │
-│   │ ecc_instincts    │ View learned instincts                           │    │
-│   │ ecc_skill_create │ Generate new skill from patterns                 │    │
-│   │ ecc_brainstorm   │ Run brainstorming session                        │    │
-│   │ ecc_debug        │ Run systematic debugging                         │    │
-│   │ ecc_architect    │ Get architectural guidance                       │    │
-│   └──────────────────┴─────────────────────────────────────────────────┘    │
+│   ┌──────────────────────┬──────────────────────────────────────────────┐   │
+│   │ Tool                 │ Purpose                                     │   │
+│   ├──────────────────────┼──────────────────────────────────────────────┤   │
+│   │ ecc_status           │ Get ECC integration status                  │   │
+│   │ ecc_plan             │ Create implementation plan                  │   │
+│   │ ecc_tdd              │ Execute TDD workflow                        │   │
+│   │ ecc_review           │ Run code review                             │   │
+│   │ ecc_verify           │ Run verification loop (build, test, lint)   │   │
+│   │ ecc_learn            │ Extract reusable patterns                   │   │
+│   │ ecc_instincts        │ View learned instincts                      │   │
+│   │ ecc_skill_create     │ Generate new skill from patterns            │   │
+│   │ ecc_brainstorm       │ Run brainstorming session                   │   │
+│   │ ecc_debug            │ Run systematic debugging                    │   │
+│   │ ecc_architect        │ Get architectural guidance                  │   │
+│   │ ecc_canvas           │ Render ECC state as visual canvas (PNG/JSON)│   │
+│   ├──────────────────────┼──────────────────────────────────────────────┤   │
+│   │ ecc_guild_status     │ Get ECC Agent Guild status                  │   │
+│   │ ecc_guild_list_agents│ List available ECC agents as guild members │   │
+│   │ ecc_guild_spawn      │ Spawn an ECC agent as guild member          │   │
+│   │ ecc_guild_despawn    │ Remove an agent instance                    │   │
+│   │ ecc_guild_dispatch   │ Dispatch task to an ECC agent instance      │   │
+│   │ ecc_guild_spatial    │ Get spatial state for Infinite Map          │   │
+│   │ ecc_guild_discover   │ Discover all ECC agents                     │   │
+│   └──────────────────────┴──────────────────────────────────────────────┘   │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -245,15 +254,54 @@ The ECC bridge:
 4. Handles errors and timeouts gracefully
 ```
 
-## Future Integration Phases
+## Integration Phases
 
 | Phase | Integration | Status |
 |-------|-------------|--------|
 | **1** | MCP Bridge → ECC Commands | ✅ Complete |
-| **2** | Visual Shell → ECC Canvas | Planned |
-| **3** | Swarm Guilds → ECC Agents | Planned |
+| **2** | Visual Shell → ECC Canvas | ✅ Complete |
+| **3** | Swarm Guilds → ECC Agents | ✅ Complete |
 | **4** | Glyph Programs → ECC Skills | Planned |
 | **5** | GPU Daemon → ECC HTTP API | Planned |
+
+### Phase 2: Visual Shell → ECC Canvas
+
+The `ecc_canvas` tool renders ECC learning state as a 1024x1024 RGBA PNG for visualization on the Infinite Map:
+
+- **Header Region** (64px): ECC branding and timestamp
+- **Instincts Region** (192px): Learned patterns with confidence bars
+- **Skills Region** (192px): Available skills with usage indicators
+- **Agents Region** (192px): Active agents with status colors
+- **Memory Region** (192px): Session memories and associations
+- **Summary Region** (192px): Health score and metrics
+
+Output: `/tmp/ecc_canvas.png` (20KB) + `/tmp/ecc_canvas.json` (16KB)
+
+### Phase 3: Swarm Guilds → ECC Agents
+
+The ECC Agent Guild system wraps ECC's 46 agents as Geometry OS spatial agents:
+
+**Guild Divisions (Hilbert Sectors):**
+- Engineering (8M-9M): planner, architect, tdd-guide, refactor-cleaner
+- Review (9M-10M): code-reviewer, security-reviewer, database-reviewer, python-reviewer, go-reviewer, kotlin-reviewer
+- Testing (10M-11M): e2e-runner, build-error-resolver, go-build-resolver, kotlin-build-resolver
+- Analysis (11M-12M): Explore, doc-updater
+- BMAD (12M-13M): bmad-master, bmad-*-router agents
+
+**Usage:**
+```bash
+# Check guild status
+geos ecc_guild_status
+
+# Spawn a planner agent at position 8,050,000
+geos ecc_guild_spawn --agent_name planner --hilbert_position 8050000
+
+# Dispatch a task to an agent
+geos ecc_guild_dispatch --instance_id planner_abc123 --task "Plan GPU allocator"
+
+# Get spatial state for Infinite Map
+geos ecc_guild_spatial_state
+```
 
 ## Testing
 
