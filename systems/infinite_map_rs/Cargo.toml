@@ -114,6 +114,7 @@ zai-rs = "0.1" # Zhipu AI / Z.ai SDK
 flume = "0.11"
 regex = "1.11"
 byteorder = "1.5"
+half = "2.4"
 
 
 # Phase 43: Visual Shell Integration - WebSocket server for camera sync

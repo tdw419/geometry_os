@@ -3588,6 +3588,7 @@ dependencies = [
  "futures-intrusive",
  "futures-util",
  "glam",
+ "half",
  "image 0.25.10",
  "khronos-egl",
  "kvm-bindings",
