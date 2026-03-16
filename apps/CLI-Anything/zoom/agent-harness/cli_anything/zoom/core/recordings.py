@@ -10,7 +10,7 @@ Handles:
 import os
 from pathlib import Path
 
-from .zoom.utils.zoom_backend import api_get, api_delete, api_request
+from ..utils.zoom_backend import api_get, api_delete, api_request
 
 
 def list_recordings(
@@ -134,7 +134,7 @@ def download_recording(
     resp = api_request("GET", "", stream=True)
     # For recording downloads, we need to use the direct URL with token
     import requests
-    from .zoom.utils.zoom_backend import _get_valid_token
+    from ..utils.zoom_backend import _get_valid_token
 
     token = _get_valid_token()
     resp = requests.get(

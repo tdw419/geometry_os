@@ -32,10 +32,10 @@ from typing import Optional
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from .zoom.core import auth as auth_mod
-from .zoom.core import meetings as meet_mod
-from .zoom.core import participants as part_mod
-from .zoom.core import recordings as rec_mod
+from .core import auth as auth_mod
+from .core import meetings as meet_mod
+from .core import participants as part_mod
+from .core import recordings as rec_mod
 
 # Global state
 _json_output = False
