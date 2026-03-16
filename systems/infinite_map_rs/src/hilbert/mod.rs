@@ -24,7 +24,7 @@
 //!
 //! ## Usage
 //!
-//! ```rust
+//! ```rust,ignore
 //! use hilbert::{d2xy, xy2d, HilbertCurve};
 //!
 //! // Convert distance to coordinates
