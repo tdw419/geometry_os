@@ -826,6 +826,13 @@ fn handle_raw_request<S: Read + Write>(
     let request_data = &buffer[..size];
     let request_str = String::from_utf8_lossy(request_data);
 
+    // Debug: log incoming requests
+    if request_str.len() < 200 {
+        println!("[HTTP] Request: {}", request_str.lines().next().unwrap_or(""));
+    } else {
+        println!("[HTTP] Request: {}... ({} bytes)", request_str.lines().next().unwrap_or(""), size);
+    }
+
     // === DIRECT ENDPOINT HANDLERS (bypass daemon.glyph) ===
 
     // GET /status - Health check endpoint

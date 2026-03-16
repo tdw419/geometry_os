@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-"""Debug WASM interpreter state."""
+"""Debug WASM interpreter state - with daemon output capture."""
 
 import subprocess
 import time
 import requests
 import sys
 import os
+import threading
 
 DAEMON_URL = "http://127.0.0.1:8769"
+
+def print_daemon_output(daemon):
+    """Print daemon output in background thread."""
+    for line in daemon.stdout:
+        print(f"[DAEMON] {line.rstrip()}")
 
 def main():
     # Kill existing daemon
@@ -21,8 +27,12 @@ def main():
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
-        bufsize=1  # Line buffered
+        bufsize=1
     )
+
+    # Start thread to print daemon output
+    output_thread = threading.Thread(target=print_daemon_output, args=(daemon,), daemon=True)
+    output_thread.start()
 
     # Wait for daemon
     print("Waiting for daemon...")
@@ -54,54 +64,23 @@ def main():
     )
     print(f"Load response: {r.text}")
 
+    time.sleep(1)  # Let daemon output print
+
     # Check parsed entry point
     r = requests.get(f"{DAEMON_URL}/wasm_info", timeout=2)
     print(f"Entry point: {r.text}")
 
-    # Read first few bytes of WASM binary at 0x20000
-    print("\n=== WASM binary at 0x20000 ===")
+    # Check memory at 0x20000
+    print("\n=== Memory at 0x20000 (should show WASM magic) ===")
     r = requests.get(f"{DAEMON_URL}/peek?addr=0x20000&size=4", timeout=2)
-    print(f"Magic bytes: {r.text}")
-
-    # Read bytes at entry point offset 0x20098
-    print("\n=== Code at entry point 0x98 (absolute 0x20098) ===")
-    r = requests.get(f"{DAEMON_URL}/peek?addr=0x20098&size=8", timeout=2)
     print(f"Bytes: {r.text}")
 
-    # Spawn interpreter
-    print("\n=== Spawning WASM interpreter ===")
-    r = requests.post(
-        f"{DAEMON_URL}/chat",
-        data="spawn wasm",
-        headers={"Content-Type": "text/plain"},
-        timeout=5
-    )
-    print(f"Spawn response: {r.text}")
-
-    # Wait briefly
     time.sleep(1)
-
-    # Check interpreter state at 0x30000+
-    print("\n=== Interpreter state (0x30000) ===")
-    r = requests.get(f"{DAEMON_URL}/peek?addr=0x30000&size=16", timeout=2)
-    print(f"State: {r.text}")
-    # 0x30000 = SP, 0x30004 = IP, 0x30008 = BP, 0x3000C = Status
-
-    # Wait more and check again
-    time.sleep(2)
-
-    print("\n=== Interpreter state after 2s ===")
-    r = requests.get(f"{DAEMON_URL}/peek?addr=0x30000&size=16", timeout=2)
-    print(f"State: {r.text}")
-
-    # Check memory at 0x1000
-    print("\n=== Memory at 0x1000 ===")
-    r = requests.get(f"{DAEMON_URL}/peek?addr=0x1000&size=4", timeout=2)
-    print(f"Value: {r.text}")
 
     # Cleanup
     print("\n=== Cleanup ===")
     daemon.kill()
+    time.sleep(0.5)
     print("Done!")
     return 0
 
