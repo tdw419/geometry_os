@@ -1294,32 +1294,54 @@ fn write_to_substrate(
     queue: &wgpu::Queue,
     base_addr: u32,
 ) {
-    // Pad to 4-byte boundaries
-    let padded_len = (data.len() + 3) & !3;
-    let mut padded_data = vec![0u8; padded_len];
-    padded_data[..data.len()].copy_from_slice(data);
-
-    let num_words = padded_len / 4;
+    let num_words = (data.len() + 3) / 4;
     println!("[WRITE] Writing {} words ({} bytes) to substrate at 0x{:x}", num_words, data.len(), base_addr);
 
-    // Batch writes into a single staging buffer for efficiency
-    // Write each word individually using write_texture
+    // Use a staging buffer for batched writes
+    // Create buffer with enough space for all words
+    let buffer_size = ((num_words + 63) / 64) * 64 * 4; // Align to 256 bytes
+    let staging = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("write_staging"),
+        size: buffer_size as u64,
+        usage: wgpu::BufferUsages::COPY_SRC,
+        mapped_at_creation: true,
+    });
+
+    // Write data to staging buffer with padding
+    {
+        let mut view = staging.map_at_creation();
+        for (i, byte) in data.iter().enumerate() {
+            view[i] = *byte;
+        }
+        // Pad remaining bytes with zeros
+        for i in data.len()..buffer_size as usize {
+            view[i] = 0;
+        }
+    }
+    staging.unmap();
+
+    // Create command encoder and copy each word to its Hilbert-mapped pixel
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("write_substrate_encoder"),
+    });
+
     for i in 0..num_words {
         let (tx, ty) = hilbert_d2xy(4096, base_addr + i as u32);
-        let word = &padded_data[i * 4..i * 4 + 4];
 
-        queue.write_texture(
+        encoder.copy_buffer_to_texture(
+            wgpu::ImageCopyBuffer {
+                buffer: &staging,
+                layout: wgpu::ImageDataLayout {
+                    offset: (i * 4) as u64,
+                    bytes_per_row: Some(4),
+                    rows_per_image: Some(1),
+                },
+            },
             wgpu::ImageCopyTexture {
                 texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d { x: tx, y: ty, z: 0 },
                 aspect: wgpu::TextureAspect::All,
-            },
-            word,
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(4),
-                rows_per_image: Some(1),
             },
             wgpu::Extent3d {
                 width: 1,
@@ -1329,8 +1351,7 @@ fn write_to_substrate(
         );
     }
 
-    // Ensure all writes are submitted and visible
-    queue.submit(None);
+    queue.submit(Some(encoder.finish()));
     device.poll(wgpu::Maintain::Wait);
 
     println!("[WRITE] Committed {} words to 0x{:x}", num_words, base_addr);
