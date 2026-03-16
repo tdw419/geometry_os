@@ -103,6 +103,9 @@ pub struct GlyphVmScheduler {
     /// RAM texture view (.rts.png program memory)
     ram_view: Option<wgpu::TextureView>,
 
+    /// RAM texture (for write_texture operations in poke_substrate_single)
+    ram_texture: Option<Arc<wgpu::Texture>>,
+
     /// Shadow RAM buffer for CPU-side reads (workaround for Intel Vulkan driver bugs)
     shadow_ram: Arc<Mutex<Vec<u8>>>,
 
@@ -286,6 +289,7 @@ impl GlyphVmScheduler {
             event_queue_buffer,
             stats_buffer,
             ram_view: None,
+            ram_texture: None,
             shadow_ram,
             frame_count: std::sync::atomic::AtomicU64::new(0),
         }
@@ -294,6 +298,8 @@ impl GlyphVmScheduler {
     /// Set the RAM texture (program memory)
     pub fn set_ram_texture(&mut self, texture: &wgpu::Texture) {
         eprintln!("[SCHEDULER] Setting RAM texture view...");
+        // Store the texture for write_texture operations
+        self.ram_texture = Some(Arc::new(texture.clone()));
         self.ram_view = Some(texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("RAM Texture View"),
             format: Some(wgpu::TextureFormat::Rgba8Uint),
