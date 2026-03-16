@@ -238,6 +238,7 @@ impl HilbertCurve {
     /// # Examples
     ///
     /// ```
+    /// use infinite_map_rs::hilbert::HilbertCurve;
     /// let curve = HilbertCurve::new(8);
     /// assert_eq!(curve.d2xy(7), (2, 1));
     /// ```

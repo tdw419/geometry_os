@@ -558,13 +558,15 @@ fn main() {
     }
 
     // Load WASM interpreter as VM 2 (if available)
+    // Load at address 0x1000 to avoid overwriting VM 1 (daemon.glyph) at address 0
     // Spawn in HALTED state so we can configure WASM binary and entry point before running
     let wasm_interp_path = "systems/glyph_stratum/programs/wasm_interpreter.rts.png";
+    const WASM_INTERPRETER_ADDR: u32 = 0x1000;
     if let Ok(wasm_bytes) = std::fs::read(wasm_interp_path) {
-        println!("[BOOT] Loading wasm_interpreter.rts.png into VM 2...");
-        write_glyph_to_substrate(&wasm_bytes, &ram_texture, &device, &queue, 0);
+        println!("[BOOT] Loading wasm_interpreter.rts.png into VM 2 at 0x{:x}...", WASM_INTERPRETER_ADDR);
+        write_glyph_to_substrate(&wasm_bytes, &ram_texture, &device, &queue, WASM_INTERPRETER_ADDR);
         let config = VmConfig {
-            entry_point: 0,
+            entry_point: WASM_INTERPRETER_ADDR,
             ..Default::default()
         };
         match scheduler.lock().unwrap().spawn_vm(2, &config) {
