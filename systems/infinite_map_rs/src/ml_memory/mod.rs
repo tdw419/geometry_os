@@ -53,7 +53,7 @@ pub mod gradient_pool;
 pub mod zero_copy;
 
 pub use block_allocator::{BlockAllocator, Block, BlockSize, AllocatedBlock};
-pub use pool::{MLMemoryPool, PoolStats, TensorHandle};
+pub use pool::{MLMemoryPool, PoolStats, PoolConfig, TensorHandle};
 pub use weight_pool::{WeightPool, WeightRegion, HebbianUpdate};
 pub use activation_pool::{ActivationPool, ActivationHandle, KVCacheEntry};
 pub use gradient_pool::{GradientPool, GradientHandle};

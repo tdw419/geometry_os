@@ -19,6 +19,7 @@ Or via mcp2cli:
 
 import asyncio
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -245,6 +246,17 @@ async def list_tools():
         Tool(name="ecc_skills_find", description="Find a skill by trigger phrase", inputSchema={"type": "object", "properties": {"text": {"type": "string", "description": "Text to match against triggers"}}, "required": ["text"]}),
         Tool(name="ecc_skills_spatial", description="Get spatial state for Infinite Map visualization", inputSchema={"type": "object"}),
         Tool(name="ecc_skills_discover", description="Discover all ECC skills and register them", inputSchema={"type": "object"}),
+        # ML Memory Pool Tools
+        Tool(name="ml_pool_status", description="Get ML memory pool statistics", inputSchema={"type": "object"}),
+        Tool(name="ml_tensor_alloc", description="Allocate a tensor in the ML memory pool", inputSchema={"type": "object", "properties": {"name": {"type": "string", "description": "Unique tensor name"}, "shape": {"type": "array", "items": {"type": "integer"}, "description": "Tensor shape dimensions"}, "dtype": {"type": "string", "enum": ["float16", "float32", "int8", "uint8", "int32"], "default": "float16"}, "region": {"type": "string", "enum": ["weight", "activation", "gradient"], "default": "weight"}}, "required": ["name", "shape"]}),
+        Tool(name="ml_tensor_free", description="Free a tensor from the ML memory pool", inputSchema={"type": "object", "properties": {"name": {"type": "string", "description": "Tensor name to free"}}, "required": ["name"]}),
+        Tool(name="ml_tensor_read", description="Read tensor data from ML memory pool", inputSchema={"type": "object", "properties": {"name": {"type": "string", "description": "Tensor name to read"}}, "required": ["name"]}),
+        Tool(name="ml_tensor_write", description="Write tensor data to ML memory pool", inputSchema={"type": "object", "properties": {"name": {"type": "string", "description": "Tensor name to write"}, "data": {"type": "array", "items": {"type": "number"}, "description": "Tensor data (float values)"}}, "required": ["name", "data"]}),
+        Tool(name="ml_weights_load", description="Load weight atlas from PNG file", inputSchema={"type": "object", "properties": {"path": {"type": "string", "description": "Path to PNG file"}, "offset": {"type": "integer", "default": 0, "description": "GPU offset to load at"}}, "required": ["path"]}),
+        Tool(name="ml_hebbian_apply", description="Apply Hebbian update batch to weights", inputSchema={"type": "object", "properties": {"updates": {"type": "array", "items": {"type": "object", "properties": {"tensor_name": {"type": "string"}, "offset": {"type": "integer"}, "delta": {"type": "number"}, "learning_rate": {"type": "number", "default": 0.01}}}, "description": "Hebbian updates to apply"}, "learning_rate": {"type": "number", "default": 0.01, "description": "Global learning rate"}}, "required": ["updates"]}),
+        Tool(name="ml_sync", description="Sync CPU and GPU memory in ML pool", inputSchema={"type": "object"}),
+        Tool(name="ml_activation_layer", description="Allocate layer activation in activation pool", inputSchema={"type": "object", "properties": {"layer": {"type": "integer", "description": "Layer index"}, "size": {"type": "integer", "description": "Activation size in bytes"}}, "required": ["layer", "size"]}),
+        Tool(name="ml_kv_append", description="Append tokens to KV cache", inputSchema={"type": "object", "properties": {"name": {"type": "string", "default": "default", "description": "Cache name"}, "tokens": {"type": "integer", "description": "Number of tokens to add"}, "head_dim": {"type": "integer", "default": 64}, "num_heads": {"type": "integer", "default": 8}}, "required": ["tokens"]}),
     ]
 
 @app.call_tool()
@@ -296,6 +308,19 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         elif name == "wasm_status": return await tool_wasm_status(arguments)
         # ECC Integration Handlers
         elif name.startswith("ecc_"): return await tool_ecc_dispatch(name, arguments)
+        # ML Memory Pool Handlers
+        elif name == "ml_pool_status": return await tool_ml_pool_status(arguments)
+        elif name == "ml_tensor_alloc": return await tool_ml_tensor_alloc(arguments)
+        elif name == "ml_tensor_free": return await tool_ml_tensor_free(arguments)
+        elif name == "ml_tensor_read": return await tool_ml_tensor_read(arguments)
+        elif name == "ml_tensor_write": return await tool_ml_tensor_write(arguments)
+        elif name == "ml_weights_load": return await tool_ml_weights_load(arguments)
+        elif name == "ml_hebbian_apply": return await tool_ml_hebbian_apply(arguments)
+        elif name == "ml_sync": return await tool_ml_sync(arguments)
+        elif name == "ml_activation_layer": return await tool_ml_activation_layer(arguments)
+        elif name == "ml_kv_append": return await tool_ml_kv_append(arguments)
+        elif name == "ml_tensor_alloc": return await tool_ml_tensor_alloc(arguments)
+        elif name == "ml_pool_status": return await tool_ml_pool_status(arguments)
         else: return [TextContent(type="text", text=f"Unknown tool: {name}")]
     except Exception as e: return [TextContent(type="text", text=f"Error: {str(e)}")]
 async def tool_crystallize(args: dict) -> list[TextContent]:
@@ -2683,6 +2708,117 @@ async def tool_ecc_dispatch(name: str, args: dict) -> list[TextContent]:
                 "tool": name
             }, indent=2)
         )]
+
+
+# === ML MEMORY POOL TOOLS ===
+
+DAEMON_URL = os.environ.get("GEOS_DAEMON_URL", "http://127.0.0.1:8769")
+
+async def _ml_request(endpoint: str, method: str = "GET", data: dict = None) -> dict:
+    """Make HTTP request to ML memory pool endpoints."""
+    import aiohttp
+    url = f"{DAEMON_URL}{endpoint}"
+    try:
+        async with aiohttp.ClientSession() as session:
+            if method == "GET":
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                    text = await resp.text()
+                    try:
+                        return json.loads(text)
+                    except:
+                        return {"status": "ok", "response": text}
+            elif method == "POST":
+                async with session.post(url, json=data, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                    text = await resp.text()
+                    try:
+                        return json.loads(text)
+                    except:
+                        return {"status": "ok", "response": text}
+            elif method == "PUT":
+                async with session.put(url, json=data, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                    text = await resp.text()
+                    try:
+                        return json.loads(text)
+                    except:
+                        return {"status": "ok", "response": text}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "endpoint": endpoint}
+
+async def tool_ml_pool_status(args: dict) -> list[TextContent]:
+    """Get ML memory pool statistics."""
+    result = await _ml_request("/ml/status")
+    return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+async def tool_ml_tensor_alloc(args: dict) -> list[TextContent]:
+    """Allocate a tensor in the ML memory pool."""
+    result = await _ml_request("/ml/alloc", "POST", {
+        "name": args.get("name"),
+        "shape": args.get("shape", []),
+        "dtype": args.get("dtype", "float16"),
+        "region": args.get("region", "weight")
+    })
+    return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+async def tool_ml_tensor_free(args: dict) -> list[TextContent]:
+    """Free a tensor from the ML memory pool."""
+    result = await _ml_request("/ml/free", "POST", {
+        "name": args.get("name")
+    })
+    return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+async def tool_ml_tensor_read(args: dict) -> list[TextContent]:
+    """Read tensor data from ML memory pool."""
+    name = args.get("name", "")
+    result = await _ml_request(f"/ml/tensor?name={name}")
+    return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+async def tool_ml_tensor_write(args: dict) -> list[TextContent]:
+    """Write tensor data to ML memory pool."""
+    name = args.get("name", "")
+    data = args.get("data", [])
+    result = await _ml_request(f"/ml/tensor?name={name}", "PUT", {
+        "data": data
+    })
+    return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+async def tool_ml_weights_load(args: dict) -> list[TextContent]:
+    """Load weight atlas from PNG file."""
+    result = await _ml_request("/ml/weights/load", "POST", {
+        "path": args.get("path"),
+        "offset": args.get("offset", 0)
+    })
+    return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+async def tool_ml_hebbian_apply(args: dict) -> list[TextContent]:
+    """Apply Hebbian update batch to weights."""
+    result = await _ml_request("/ml/hebbian", "POST", {
+        "updates": args.get("updates", []),
+        "learning_rate": args.get("learning_rate", 0.01)
+    })
+    return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+async def tool_ml_sync(args: dict) -> list[TextContent]:
+    """Sync CPU and GPU memory in ML pool."""
+    result = await _ml_request("/ml/sync", "POST")
+    return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+async def tool_ml_activation_layer(args: dict) -> list[TextContent]:
+    """Allocate layer activation in activation pool."""
+    result = await _ml_request("/ml/activation/layer", "POST", {
+        "layer": args.get("layer"),
+        "size": args.get("size")
+    })
+    return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+async def tool_ml_kv_append(args: dict) -> list[TextContent]:
+    """Append tokens to KV cache."""
+    result = await _ml_request("/ml/kv/append", "POST", {
+        "name": args.get("name", "default"),
+        "tokens": args.get("tokens"),
+        "head_dim": args.get("head_dim", 64),
+        "num_heads": args.get("num_heads", 8)
+    })
+    return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
 
 async def main():
