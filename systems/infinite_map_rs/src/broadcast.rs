@@ -28,7 +28,7 @@
 //!     broadcast.broadcast(data).await;
 //!
 //!     // Remove client
-//!     broadcast.remove_client(client_id).await;
+//!     broadcast.remove_client(&client_id).await;
 //! }
 //! ```
 
