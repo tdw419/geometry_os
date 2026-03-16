@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
 
     // Note: These tests require a GPU context. Run with `cargo test -- --ignored` for GPU tests.
 
@@ -66,7 +66,8 @@ mod tests {
 
         use infinite_map_rs::glyph_vm_scheduler::GlyphVmScheduler;
 
-        let scheduler = GlyphVmScheduler::new(device, queue);
+        let shadow_ram = Arc::new(Mutex::new(vec![0u8; 64 * 1024 * 1024])); // 64MB shadow RAM
+        let scheduler = GlyphVmScheduler::new(device, queue, shadow_ram);
         println!("Glyph VM Scheduler created successfully");
     }
 
@@ -83,7 +84,8 @@ mod tests {
 
         use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
 
-        let scheduler = GlyphVmScheduler::new(device, queue);
+        let shadow_ram = Arc::new(Mutex::new(vec![0u8; 64 * 1024 * 1024]));
+        let scheduler = GlyphVmScheduler::new(device, queue, shadow_ram);
 
         // Spawn a VM at entry point 0x1000
         let config = VmConfig {
@@ -111,7 +113,8 @@ mod tests {
 
         use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
 
-        let scheduler = GlyphVmScheduler::new(device, queue);
+        let shadow_ram = Arc::new(Mutex::new(vec![0u8; 64 * 1024 * 1024]));
+        let scheduler = GlyphVmScheduler::new(device, queue, shadow_ram);
 
         let config = VmConfig::default();
         scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
@@ -141,7 +144,8 @@ mod tests {
 
         use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
 
-        let mut scheduler = GlyphVmScheduler::new(device.clone(), queue.clone());
+        let shadow_ram = Arc::new(Mutex::new(vec![0u8; 64 * 1024 * 1024]));
+        let mut scheduler = GlyphVmScheduler::new(device.clone(), queue.clone(), shadow_ram);
 
         // Create RAM texture (4096x4096 rgba8uint)
         let ram_texture = device.create_texture(&wgpu::TextureDescriptor {
