@@ -74,6 +74,7 @@
 /// # Examples
 ///
 /// ```
+/// use infinite_map_rs::hilbert::d2xy;
 /// assert_eq!(d2xy(4, 0), (0, 0));
 /// assert_eq!(d2xy(4, 1), (1, 0));
 /// assert_eq!(d2xy(4, 2), (1, 1));
