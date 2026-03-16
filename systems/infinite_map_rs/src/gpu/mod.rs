@@ -5,7 +5,9 @@
 
 pub mod geometric_vm;
 pub mod glyph_vm;
+pub mod hebbian_processor;
 pub mod wgsl_compiler;
 
 pub use geometric_vm::{GeometricState, GeometricVM};
+pub use hebbian_processor::{GPUHebbianProcessor, HebbianUpdate, HebbianUniforms};
 pub use wgsl_compiler::WGSLCompiler;
