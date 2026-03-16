@@ -1280,7 +1280,7 @@ fn handle_raw_request<S: Read + Write>(
 
     loop {
         // Check control port for response ready
-        let ctrl_val = read_u32_from_substrate(CTRL_PORT, texture, device, queue, shadow_ram);
+        let ctrl_val = read_u32_from_substrate(CTRL_PORT, texture, device, queue, &shadow_ram.lock().unwrap());
 
         if ctrl_val == CTRL_RESPONSE_READY {
             // Read response from RES_BUFFER
