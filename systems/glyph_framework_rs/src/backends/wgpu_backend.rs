@@ -475,7 +475,7 @@ impl ExecutionBackend for WgpuBackend {
             label: Some("GlyphVM Compute Pipeline"),
             layout: Some(&pipeline_layout),
             module: &shader_module,
-            entry_point: "execute_all_apps",
+            entry_point: "main",
         });
 
         self.adapter = Some(adapter);
