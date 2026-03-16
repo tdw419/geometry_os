@@ -73,6 +73,7 @@ impl Clone for EvolutionManager {
             cartridge_registry: self.cartridge_registry.clone(),
             sib_path: self.sib_path.clone(),
             last_sib_check: self.last_sib_check,
+            temperature: self.temperature,
         }
     }
 }
