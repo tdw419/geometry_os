@@ -1429,10 +1429,12 @@ fn handle_raw_request<S: Read + Write>(
                     && body[3] == 0x6D;
 
                 let mut wasm_entry = None;
+                let mut wasm_info = None;
                 if is_wasm {
                     println!("[WASM] Detected WASM binary, parsing...");
                     if let Some(info) = wasm_parser::parse_wasm(body) {
                         wasm_entry = info.start_func_idx;
+                        wasm_info = Some(info);
                         if let Some(entry) = wasm_entry {
                             println!("[WASM] Parsed entry point: 0x{:x}", entry);
                         }
@@ -1453,6 +1455,42 @@ fn handle_raw_request<S: Read + Write>(
                 if let Some(entry) = wasm_entry {
                     let wasm_store = WASM_ENTRY_POINT.get_or_init(|| Mutex::new(None));
                     *wasm_store.lock().unwrap() = Some(entry);
+                }
+
+                // Write import table to 0x33000 for WASM interpreter
+                // Maps function index -> host function ID
+                // Host function IDs: poke=0, peek=1, print=2
+                if let Some(ref info) = wasm_info {
+                    const IMPORT_TABLE_BASE: u32 = 0x33000;
+                    println!("[WASM] Writing import table to 0x{:x}", IMPORT_TABLE_BASE);
+
+                    let mut shadow = shadow_ram.lock().unwrap();
+                    for (func_idx, (module, name)) in info.import_names.iter().enumerate() {
+                        // Map import name to host function ID
+                        let host_id: u32 = match (module.as_str(), name.as_str()) {
+                            ("env", "poke") => 0,
+                            ("env", "peek") => 1,
+                            ("env", "print") => 2,
+                            ("env", "spawn") => 3,
+                            ("env", "kill") => 4,
+                            _ => {
+                                println!("[WASM] Unknown import: {}.{} - using ID 0xFF", module, name);
+                                0xFF // Unknown function
+                            }
+                        };
+
+                        // Write to import table: IMPORT_TABLE_BASE + (func_idx * 4)
+                        let table_addr = IMPORT_TABLE_BASE + (func_idx as u32 * 4);
+                        let shadow_offset = table_addr as usize;
+                        if shadow_offset + 4 <= shadow.len() {
+                            shadow[shadow_offset..shadow_offset + 4].copy_from_slice(&host_id.to_le_bytes());
+                            println!("[WASM] Import[{}] {}.{} -> host_id={} at 0x{:x}",
+                                func_idx, module, name, host_id, table_addr);
+                        }
+
+                        // Also write to GPU texture
+                        write_u32_to_substrate(table_addr, host_id, texture, queue);
+                    }
                 }
 
                 let entry_json = if let Some(entry) = wasm_entry {
