@@ -599,6 +599,7 @@ fn main() {
     let t_clone = ram_texture.clone();
     let d_clone = device.clone();
     let s_clone = scheduler.clone();
+    let shadow_clone = shadow_ram.clone();
     let shutdown_clone = shutdown.clone();
     thread::spawn(move || {
         let listener = match TcpListener::bind("0.0.0.0:8769") {
@@ -616,7 +617,7 @@ fn main() {
                 break;
             }
             if let Ok(mut stream) = stream {
-                handle_raw_request(&mut stream, &q_clone, &t_clone, &d_clone, &s_clone);
+                handle_raw_request(&mut stream, &q_clone, &t_clone, &d_clone, &s_clone, &shadow_clone);
             }
         }
     });
@@ -832,6 +833,7 @@ fn handle_raw_request<S: Read + Write>(
     texture: &wgpu::Texture,
     device: &wgpu::Device,
     scheduler: &Arc<Mutex<GlyphVmScheduler>>,
+    shadow_ram: &Arc<Mutex<Vec<u8>>>,
 ) {
     let mut buffer = [0u8; 4096];
 
@@ -1417,27 +1419,27 @@ fn write_u32_to_substrate(addr: u32, value: u32, texture: &wgpu::Texture, queue:
 /// Read a single u32 from substrate at specified address
 fn read_u32_from_substrate(
     addr: u32,
-    texture: &wgpu::Texture,
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
+    _texture: &wgpu::Texture,
+    _device: &wgpu::Device,
+    _queue: &wgpu::Queue,
+    shadow_ram: &Vec<u8>,
 ) -> u32 {
     let (tx, ty) = hilbert_d2xy(4096, addr);
     println!("[READ] addr=0x{:x} -> pixel({}, {})", addr, tx, ty);
 
-    // Workaround for Intel Vulkan driver bug: 1x1 copies return wrong values.
-    // Always read at least 2x2 region and extract the pixel we need.
-    let region_w = 2u32.min(texture.width() - tx);
-    let region_h = 2u32.min(texture.height() - ty);
-
-    if let Some(data) = read_substrate_region(texture, device, queue, tx, ty, region_w, region_h) {
-        if data.len() >= 4 {
-            // First pixel is at offset 0
-            let v = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
-            println!("[READ] pixel({}, {}) = 0x{:08x}", tx, ty, v);
-            return v;
-        }
+    // Read from shadow buffer instead of GPU texture (workaround for Intel Vulkan driver bugs)
+    let shadow_offset = addr as usize * 4;
+    if shadow_offset + 4 <= shadow_ram.len() {
+        let v = u32::from_le_bytes([
+            shadow_ram[shadow_offset],
+            shadow_ram[shadow_offset + 1],
+            shadow_ram[shadow_offset + 2],
+            shadow_ram[shadow_offset + 3],
+        ]);
+        println!("[READ] pixel({}, {}) = 0x{:08x} (from shadow)", tx, ty, v);
+        return v;
     }
-    println!("[READ] pixel({}, {}) = FAILED", tx, ty);
+    println!("[READ] pixel({}, {}) = FAILED (out of bounds)", tx, ty);
     0
 }
 
