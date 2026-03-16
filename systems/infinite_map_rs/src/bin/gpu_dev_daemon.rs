@@ -1333,6 +1333,10 @@ fn write_to_substrate(
         );
     }
     device.poll(wgpu::Maintain::Wait);
+
+    // Verify write by reading back first word
+    let verify_val = read_u32_from_substrate(base_addr, texture, device, queue);
+    println!("[WRITE] Verify read at 0x{:x}: 0x{:08x}", base_addr, verify_val);
 }
 
 /// Write a single u32 to substrate at specified address
