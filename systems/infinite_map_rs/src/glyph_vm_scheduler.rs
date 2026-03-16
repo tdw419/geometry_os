@@ -382,6 +382,26 @@ impl GlyphVmScheduler {
         Ok(())
     }
 
+    /// Resume a halted VM
+    pub fn resume_vm(&self, vm_id: u32) -> Result<(), String> {
+        if vm_id as usize >= MAX_VMS {
+            return Err(format!("Invalid VM ID: {}", vm_id));
+        }
+
+        // Write state = RUNNING at offset + 536
+        let state_offset = (vm_id as u64) * 816 + 536;
+        self.queue.write_buffer(
+            &self.vm_buffer,
+            state_offset,
+            bytemuck::cast_slice(&[vm_state::RUNNING]),
+        );
+        self.queue.submit(None);
+        self.device.poll(wgpu::Maintain::Wait);
+
+        log::info!("Resumed VM {}", vm_id);
+        Ok(())
+    }
+
     /// Pause all VMs and wait for GPU to complete all pending work
     pub fn pause_all(&self) {
         // Submit an empty command buffer to ensure all GPU work is complete

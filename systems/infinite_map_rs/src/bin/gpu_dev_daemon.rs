@@ -558,6 +558,7 @@ fn main() {
     }
 
     // Load WASM interpreter as VM 2 (if available)
+    // Spawn in HALTED state so we can configure WASM binary and entry point before running
     let wasm_interp_path = "systems/glyph_stratum/programs/wasm_interpreter.rts.png";
     if let Ok(wasm_bytes) = std::fs::read(wasm_interp_path) {
         println!("[BOOT] Loading wasm_interpreter.rts.png into VM 2...");
@@ -567,7 +568,11 @@ fn main() {
             ..Default::default()
         };
         match scheduler.lock().unwrap().spawn_vm(2, &config) {
-            Ok(()) => println!("[BOOT] wasm_interpreter.rts.png loaded as VM 2 (WASM interpreter)"),
+            Ok(()) => {
+                // Immediately halt VM 2 so it waits for WASM binary to be loaded
+                let _ = scheduler.lock().unwrap().halt_vm(2);
+                println!("[BOOT] wasm_interpreter.rts.png loaded as VM 2 (WASM interpreter, halted)");
+            },
             Err(e) => eprintln!("[BOOT] Warning: Failed to spawn VM 2: {}", e),
         }
     } else {
@@ -1187,7 +1192,7 @@ fn handle_raw_request<S: Read + Write>(
 
         // Simple command parsing - in a real implementation this would use an LLM
         let response = if body.contains("help") {
-            "Available commands:\n- help: Show this help\n- status: Get daemon status\n- mem <addr>: Peek memory at address\n- reset: Reset all VMs\n- spawn <entry_point>: Spawn a new VM".to_string()
+            "Available commands:\n- help: Show this help\n- status: Get daemon status\n- mem <addr>: Peek memory at address\n- reset: Reset all VMs\n- resume <vm_id>: Resume a halted VM\n- spawn <entry_point>: Spawn a new VM".to_string()
         } else if body.contains("status") {
             let status = format!(
                 "{{\n  \"daemon\": \"ouroboros\",\n  \"version\": \"Phase 70\",\n  \"status\": \"healthy\",\n  \"transports\": [\"tcp://127.0.0.1:8769\", \"unix:///tmp/gpu_daemon.sock\"],\n  \"substrate\": {{\n    \"width\": 4096,\n    \"height\": 4096,\n    \"format\": \"Rgba8Uint\"\n  }},\n  \"self_hosting\": true,\n  \"vcc_enabled\": true\n}}"
@@ -1220,6 +1225,20 @@ fn handle_raw_request<S: Read + Write>(
             let mut s = scheduler.lock().unwrap();
             s.reset_all();
             "All VMs reset".to_string()
+        } else if body.starts_with("resume ") {
+            // Resume a halted VM: "resume 2" resumes VM 2
+            if let Some(vm_str) = body.split("resume ").nth(1).and_then(|s| s.split_whitespace().next()) {
+                if let Ok(vm_id) = vm_str.parse::<u32>() {
+                    match scheduler.lock().unwrap().resume_vm(vm_id) {
+                        Ok(()) => format!("VM {} resumed", vm_id),
+                        Err(e) => format!("Failed to resume VM {}: {}", vm_id, e),
+                    }
+                } else {
+                    "Invalid VM ID. Use: resume <vm_id>".to_string()
+                }
+            } else {
+                "Please specify VM ID: resume <vm_id>".to_string()
+            }
         } else if body.starts_with("spawn ") {
             if let Some(entry_str) = body
                 .split("spawn ")

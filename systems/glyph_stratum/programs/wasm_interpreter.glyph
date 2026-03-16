@@ -126,10 +126,34 @@
 // ============================================================================
 
 :boot
-    // Initialize IP from entry point (passed in r0)
-    LDI r1, WASM_IP_ADDR
-    STORE r1, r0           // memory[WASM_IP_ADDR] = entry_point
+    // Check if WASM_STATUS is already set (non-zero)
+    // If so, skip initialization - WASM binary was preloaded
+    LDI r1, WASM_STATUS
+    LOAD r1, r3            // r3 = current status
+    LDI r2, 0
+    SUB r3, r2             // r3 = status - 0
+    JNZ r3, wasm_init_done // If status != 0, skip to wasm_init_done
 
+    // Initialize IP from entry point (passed in r0)
+    // Only do this if r0 is non-zero
+    LDI r1, WASM_IP_ADDR
+    LDI r2, 0
+    SUB r0, r2             // r2 = r0 - 0
+    JZ r0, boot_skip_ip    // If r0 == 0, skip IP init
+    STORE r1, r0           // memory[WASM_IP_ADDR] = entry_point
+    JMP boot_init_sp
+:boot_skip_ip
+    // r0 was 0, check if WASM_IP is already set
+    LOAD r1, r2            // r2 = current IP
+    LDI r3, 0
+    SUB r2, r3             // r2 = IP - 0
+    JZ r2, boot_set_default_ip  // If IP == 0, set default
+    JMP boot_init_sp
+:boot_set_default_ip
+    // No IP set, use 0 (will fail, but at least won't crash)
+    STORE r1, r3           // memory[WASM_IP_ADDR] = 0
+
+:boot_init_sp
     // Initialize SP to end of linear memory (stack grows down)
     LDI r1, WASM_SP_ADDR
     LDI r2, 0x2FFFC        // Top of 64KB region - 4 (one word)
@@ -150,6 +174,7 @@
     LDI r2, 0
     STORE r1, r2
 
+:wasm_init_done
     // Load base address constant
     LDI r11, WASM_MEM_BASE
 
