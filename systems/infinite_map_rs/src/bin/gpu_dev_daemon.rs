@@ -635,6 +635,7 @@ fn main() {
     let t_clone_unix = ram_texture.clone();
     let d_clone_unix = device.clone();
     let s_clone_unix = scheduler.clone();
+    let shadow_clone_unix = shadow_ram.clone();
     let shutdown_unix = shutdown.clone();
     thread::spawn(move || {
         for stream in listener.incoming() {
@@ -648,6 +649,7 @@ fn main() {
                     &t_clone_unix,
                     &d_clone_unix,
                     &s_clone_unix,
+                    &shadow_clone_unix,
                 );
             }
         }
@@ -886,7 +888,7 @@ fn handle_raw_request<S: Read + Write>(
             if let (Some(addr), Some(size)) = (addr, size) {
                 // Read directly from substrate texture (not via scheduler stub)
                 let words: Vec<String> = (0..size)
-                    .map(|i| format!("0x{:08x}", read_u32_from_substrate(addr + i as u32, texture, device, queue)))
+                    .map(|i| format!("0x{:08x}", read_u32_from_substrate(addr + i as u32, texture, device, queue, &shadow_ram.lock().unwrap())))
                     .collect();
                 let response = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{}",
@@ -1123,7 +1125,7 @@ fn handle_raw_request<S: Read + Write>(
                 }
 
                 // Write binary data to substrate
-                write_to_substrate(body, texture, device, queue, addr);
+                write_to_substrate(body, texture, device, queue, addr, &mut shadow_ram.lock().unwrap());
 
                 // Store WASM entry point if found
                 if let Some(entry) = wasm_entry {
@@ -1192,7 +1194,7 @@ fn handle_raw_request<S: Read + Write>(
                     for i in 0..size_val {
                         let (tx, ty) = hilbert_d2xy(4096, addr + i);
                         let val =
-                            read_u32_from_substrate((ty * 4096 + tx) * 4, texture, device, queue);
+                            read_u32_from_substrate((ty * 4096 + tx) * 4, texture, device, queue, &shadow_ram.lock().unwrap());
                         hex_results.push(format!("{:08x}", val));
                     }
                     format!("Memory at 0x{:08x}: {}", addr, hex_results.join(" "))
@@ -1267,7 +1269,7 @@ fn handle_raw_request<S: Read + Write>(
     // === FALLBACK: Pass to daemon.glyph via substrate ===
 
     // Write request to REQ_BUFFER in substrate
-    write_to_substrate(request_data, texture, device, queue, REQ_BUFFER);
+    write_to_substrate(request_data, texture, device, queue, REQ_BUFFER, &mut shadow_ram.lock().unwrap());
 
     // Signal request pending to daemon.glyph
     write_u32_to_substrate(CTRL_PORT, CTRL_REQUEST_PENDING, texture, queue);
@@ -1278,7 +1280,7 @@ fn handle_raw_request<S: Read + Write>(
 
     loop {
         // Check control port for response ready
-        let ctrl_val = read_u32_from_substrate(CTRL_PORT, texture, device, queue);
+        let ctrl_val = read_u32_from_substrate(CTRL_PORT, texture, device, queue, shadow_ram);
 
         if ctrl_val == CTRL_RESPONSE_READY {
             // Read response from RES_BUFFER
