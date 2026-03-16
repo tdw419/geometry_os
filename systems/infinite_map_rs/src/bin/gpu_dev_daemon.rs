@@ -772,57 +772,25 @@ fn handle_raw_request<S: Read + Write>(
     }
 
     // Chat history storage at 0x00F00000 (within 4096x4096 texture bounds)
-    // Valid range: 0 to 0x01000000 (16M words = 4096*4096)
+    // Simple format: null-terminated string at offset 0
     const CHAT_HISTORY_BASE: u32 = 0x00F00000;
     const CHAT_HISTORY_MAX: usize = 0x10000; // 64KB
 
     // GET /chat_history - Read chat history from substrate
     if request_str.starts_with("GET /chat_history") {
-        let sched = scheduler.lock().unwrap();
-        // Read header: first word is message count, second is write offset
-        let count = sched.peek_substrate_single(CHAT_HISTORY_BASE);
-        let offset = sched.peek_substrate_single(CHAT_HISTORY_BASE + 1);
+        // Read raw bytes from substrate using async GPU read
+        let data = read_from_substrate(CHAT_HISTORY_MAX, texture, device, queue, CHAT_HISTORY_BASE);
 
-        // Read messages (each message: 1 byte role, 2 bytes len, N bytes content)
-        let mut messages: Vec<serde_json::Value> = Vec::new();
-        let mut pos = 4u32; // Start after header
-
-        for _ in 0..count.min(100) { // Max 100 messages
-            if pos >= CHAT_HISTORY_MAX as u32 { break; }
-
-            let role_byte = sched.peek_substrate_single(CHAT_HISTORY_BASE + pos / 4) as u8;
-            let len_low = sched.peek_substrate_single(CHAT_HISTORY_BASE + (pos + 1) as u32 / 4) as u16;
-            let len_high = (sched.peek_substrate_single(CHAT_HISTORY_BASE + (pos + 2) as u32 / 4) as u16) << 8;
-            let msg_len = (len_low | len_high) as usize;
-
-            if msg_len == 0 || msg_len > 4000 { break; }
-
-            // Read message content
-            let mut content = String::new();
-            for i in 0..msg_len {
-                let word = sched.peek_substrate_single(CHAT_HISTORY_BASE + (pos + 3 + i as u32) / 4);
-                let byte = (word >> ((i % 4) * 8)) as u8;
-                if byte == 0 { break; }
-                content.push(byte as char);
-            }
-
-            let role = if role_byte == 1 { "user" } else if role_byte == 2 { "assistant" } else { "system" };
-            messages.push(serde_json::json!({
-                "role": role,
-                "content": content,
-                "offset": pos
-            }));
-
-            pos += 3 + msg_len as u32;
-        }
+        // Find null terminator
+        let content_end = data.iter().position(|&b| b == 0).unwrap_or(data.len());
+        let content = String::from_utf8_lossy(&data[..content_end]);
 
         let response = format!(
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}",
             serde_json::json!({
                 "status": "ok",
-                "message_count": count,
-                "write_offset": offset,
-                "messages": messages
+                "content": content,
+                "bytes": content_end
             }).to_string()
         );
         let _ = stream.write_all(response.as_bytes());
@@ -839,54 +807,33 @@ fn handle_raw_request<S: Read + Write>(
             let role = msg["role"].as_str().unwrap_or("system");
             let content = msg["content"].as_str().unwrap_or("");
 
-            let role_byte: u8 = match role {
-                "user" => 1,
-                "assistant" => 2,
-                _ => 0,
-            };
+            // Format: [role] content\n
+            let formatted = format!("[{}] {}\n", role.to_uppercase(), content);
+            let new_bytes = formatted.as_bytes();
 
-            let mut sched = scheduler.lock().unwrap();
+            // Read existing content to find append position
+            let existing = read_from_substrate(CHAT_HISTORY_MAX, texture, device, queue, CHAT_HISTORY_BASE);
+            let append_pos = existing.iter().position(|&b| b == 0).unwrap_or(0);
 
-            // Read current offset
-            let mut offset = sched.peek_substrate_single(CHAT_HISTORY_BASE + 1);
-            let count = sched.peek_substrate_single(CHAT_HISTORY_BASE);
-
-            // Ensure we have space (leave room for header)
-            if offset < 4 { offset = 4; }
-
-            // Write message: role (1 byte) + len (2 bytes) + content
-            let content_bytes = content.as_bytes();
-            let msg_len = content_bytes.len().min(4000) as u16;
-
-            // Write role byte
-            sched.poke_substrate_single(CHAT_HISTORY_BASE + offset / 4, role_byte as u32);
-
-            // Write length (little-endian)
-            let len_offset = offset + 1;
-            sched.poke_substrate_single(CHAT_HISTORY_BASE + len_offset / 4, msg_len as u32);
-
-            // Write content bytes
-            for (i, &byte) in content_bytes.iter().take(msg_len as usize).enumerate() {
-                let word_offset = (offset + 3 + i as u32) / 4;
-                let shift = (i % 4) * 8;
-                // Read-modify-write to preserve other bytes in word
-                let existing = sched.peek_substrate_single(CHAT_HISTORY_BASE + word_offset);
-                let new_val = (existing & !(0xFF << shift)) | ((byte as u32) << shift);
-                sched.poke_substrate_single(CHAT_HISTORY_BASE + word_offset, new_val);
+            // Check if we have space
+            if append_pos + new_bytes.len() >= CHAT_HISTORY_MAX {
+                let _ = stream.write_all(b"HTTP/1.1 413 Payload Too Large\r\nContent-Type: application/json\r\n\r\n{\"error\":\"history full\"}");
+                return;
             }
 
-            // Update offset and count
-            let new_offset = offset + 3 + msg_len as u32;
-            sched.poke_substrate_single(CHAT_HISTORY_BASE + 1, new_offset);
-            sched.poke_substrate_single(CHAT_HISTORY_BASE, count + 1);
+            // Write new content at append position
+            let mut combined = vec![0u8; CHAT_HISTORY_MAX];
+            combined[..append_pos].copy_from_slice(&existing[..append_pos]);
+            combined[append_pos..append_pos + new_bytes.len()].copy_from_slice(new_bytes);
+
+            write_to_substrate(&combined[..append_pos + new_bytes.len() + 1], texture, device, queue, CHAT_HISTORY_BASE);
 
             let response = format!(
                 "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}",
                 serde_json::json!({
                     "status": "ok",
-                    "written": msg_len,
-                    "new_offset": new_offset,
-                    "message_count": count + 1
+                    "appended": new_bytes.len(),
+                    "total": append_pos + new_bytes.len()
                 }).to_string()
             );
             let _ = stream.write_all(response.as_bytes());
