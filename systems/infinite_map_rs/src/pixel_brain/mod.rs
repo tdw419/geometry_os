@@ -34,7 +34,9 @@
 //! - **A channel**: Saliency score (for thought pulse visualization)
 
 pub mod atlas;
+pub mod infer;
 pub mod tokenizer;
 
 pub use atlas::*;
+pub use infer::*;
 pub use tokenizer::*;
