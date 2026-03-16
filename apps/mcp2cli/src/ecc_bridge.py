@@ -463,6 +463,64 @@ async def ecc_architect(decision: str, constraints: Optional[list[str]] = None) 
     }
 
 
+async def ecc_canvas(output_dir: Optional[str] = None, format: str = "both") -> dict:
+    """
+    Render ECC learning state as visual canvas (PNG/JSON).
+
+    This renders instincts, skills, agents, and memory as pixels
+    on a 1024x1024 canvas for visual debugging on the Infinite Map.
+
+    Args:
+        output_dir: Output directory (default: cwd)
+        format: Output format - "png", "json", or "both"
+
+    Returns:
+        Render result with paths to generated files
+    """
+    try:
+        # Import the ECC canvas module
+        spatial_debugger_path = Path(__file__).parent.parent.parent.parent / "systems" / "spatial_debugger"
+        sys.path.insert(0, str(spatial_debugger_path))
+
+        from ecc_canvas import ECCCanvas
+
+        canvas = ECCCanvas(Path(output_dir) if output_dir else None)
+        state = canvas.collect_state()
+
+        result = {
+            "status": "success",
+            "state": asdict(state),
+            "files": {}
+        }
+
+        if format in ("png", "both"):
+            png_path = canvas.render()
+            result["files"]["png"] = png_path
+
+        if format in ("json", "both"):
+            json_path = png_path.replace(".png", ".json") if format == "both" else str(Path(output_dir or ".") / "ecc_canvas.json")
+            with open(json_path, "w") as f:
+                f.write(canvas.to_json())
+            result["files"]["json"] = json_path
+
+        result["health"] = canvas._calculate_health()
+
+        return result
+
+    except ImportError as e:
+        return {
+            "status": "error",
+            "error": f"ECC Canvas module not available: {e}",
+            "hint": "Ensure systems/spatial_debugger/ecc_canvas.py exists",
+            "searched_path": str(spatial_debugger_path)
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
+
 # ============================================================================
 # MCP Tool Definitions
 # ============================================================================
@@ -658,6 +716,11 @@ async def dispatch_ecc_tool(name: str, arguments: dict) -> dict:
         return await ecc_architect(
             arguments["decision"],
             arguments.get("constraints")
+        )
+    elif name == "ecc_canvas":
+        return await ecc_canvas(
+            arguments.get("output_dir"),
+            arguments.get("format", "both")
         )
     else:
         return {"status": "error", "error": f"Unknown ECC tool: {name}"}

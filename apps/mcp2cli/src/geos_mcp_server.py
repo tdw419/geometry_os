@@ -215,6 +215,7 @@ async def list_tools():
         Tool(name="ecc_brainstorm", description="Run brainstorming session using ECC brainstorming skill", inputSchema={"type": "object", "properties": {"topic": {"type": "string", "description": "Topic to brainstorm"}, "techniques": {"type": "array", "items": {"type": "string"}}}, "required": ["topic"]}),
         Tool(name="ecc_debug", description="Run systematic debugging using ECC debug skill", inputSchema={"type": "object", "properties": {"issue": {"type": "string", "description": "Issue description"}, "context": {"type": "string", "description": "Additional context"}}, "required": ["issue"]}),
         Tool(name="ecc_architect", description="Get architectural guidance using ECC architect agent", inputSchema={"type": "object", "properties": {"decision": {"type": "string", "description": "Architectural decision to make"}, "constraints": {"type": "array", "items": {"type": "string"}}}, "required": ["decision"]}),
+        Tool(name="ecc_canvas", description="Render ECC learning state as visual canvas (PNG/JSON) for Infinite Map", inputSchema={"type": "object", "properties": {"output_dir": {"type": "string", "description": "Output directory (default: cwd)"}, "format": {"type": "string", "enum": ["png", "json", "both"], "default": "both"}}}),
     ]
 
 @app.call_tool()
