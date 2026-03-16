@@ -772,16 +772,15 @@ fn handle_raw_request<S: Read + Write>(
     }
 
     // Chat history storage - simple in-memory string
-    // Using lazy_static for thread-safe global state
-    use std::sync::Mutex;
-    lazy_static::lazy_static! {
-        static ref CHAT_HISTORY: Mutex<String> = Mutex::new(String::new());
-    }
+    // Using static OnceLock for thread-safe global state
+    use std::sync::{Mutex, OnceLock};
+    static CHAT_HISTORY: OnceLock<Mutex<String>> = OnceLock::new();
     const CHAT_HISTORY_MAX: usize = 0x10000; // 64KB
 
     // GET /chat_history - Read chat history
     if request_str.starts_with("GET /chat_history") {
-        let content = CHAT_HISTORY.lock().unwrap().clone();
+        let history = CHAT_HISTORY.get_or_init(|| Mutex::new(String::new()));
+        let content = history.lock().unwrap().clone();
 
         let response = format!(
             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}",
@@ -809,7 +808,8 @@ fn handle_raw_request<S: Read + Write>(
                 // Format: [role] content\n
                 let formatted = format!("[{}] {}\n", role.to_uppercase(), content);
 
-                let mut hist = CHAT_HISTORY.lock().unwrap();
+                let history = CHAT_HISTORY.get_or_init(|| Mutex::new(String::new()));
+                let mut hist = history.lock().unwrap();
 
                 // Check if we have space, truncate if needed
                 if hist.len() + formatted.len() >= CHAT_HISTORY_MAX {

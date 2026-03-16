@@ -192,6 +192,10 @@ async def list_tools():
         Tool(name="vcc_list", description="List all VCC manifest entries", inputSchema={"type": "object"}),
         Tool(name="vcc_audit_all", description="Validate ALL regions in manifest against substrate. Returns pass/fail per region with optional auto-repair.", inputSchema={"type": "object", "properties": {"auto_repair": {"type": "boolean", "description": "Reload substrate on critical failure (default: false)"}, "strict": {"type": "boolean", "description": "Fail on any mismatch (default: true)"}}}),
         Tool(name="self_host_loop", description="Execute a self-hosting loop step (ANALYZE→PLAN→EXECUTE→DEPLOY→VERIFY)", inputSchema={"type": "object", "properties": {"step": {"type": "string", "description": "Loop step", "enum": ["analyze", "plan", "execute", "deploy", "verify"]}, "agent_id": {"type": "string", "description": "Agent executing the step"}, "target": {"type": "string", "description": "Target component"}, "payload": {"type": "object", "description": "Step-specific data"}}, "required": ["agent_id"]}),
+        # WASM Tools
+        Tool(name="wasm_load", description="Load WASM binary to GPU substrate at WASM linear memory base (0x20000)", inputSchema={"type": "object", "properties": {"wasm_file": {"type": "string", "description": "Path to .wasm file"}, "addr": {"type": "string", "description": "Override load address (hex, default: 0x20000)"}}, "required": ["wasm_file"]}),
+        Tool(name="wasm_run", description="Trigger WASM interpreter execution. Sets IP and status to start running loaded WASM.", inputSchema={"type": "object", "properties": {"entry_point": {"type": "string", "description": "Entry point offset in WASM linear memory (hex, default: 0x0)"}}}),
+        Tool(name="wasm_status", description="Check WASM interpreter state (IP, SP, status, block stack)", inputSchema={"type": "object"}),
     ]
 
 @app.call_tool()
@@ -238,6 +242,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         elif name == "vcc_list": return await tool_vcc_list(arguments)
         elif name == "vcc_audit_all": return await tool_vcc_audit_all(arguments)
         elif name == "self_host_loop": return await tool_self_host_loop(arguments)
+        elif name == "wasm_load": return await tool_wasm_load(arguments)
+        elif name == "wasm_run": return await tool_wasm_run(arguments)
+        elif name == "wasm_status": return await tool_wasm_status(arguments)
         else: return [TextContent(type="text", text=f"Unknown tool: {name}")]
     except Exception as e: return [TextContent(type="text", text=f"Error: {str(e)}")]
 async def tool_crystallize(args: dict) -> list[TextContent]:
@@ -2358,6 +2365,178 @@ async def tool_self_host_loop(args: dict) -> list[TextContent]:
             "self_host_loop": result,
         }, indent=2)
     )]
+
+
+# ============================================================================
+# WASM Tools
+# ============================================================================
+
+# WASM interpreter memory layout (must match wasm_interpreter.glyph)
+WASM_MEM_BASE = 0x20000       # WASM linear memory base
+WASM_SP_ADDR = 0x30000         # Stack pointer
+WASM_IP_ADDR = 0x30004         # Instruction pointer
+WASM_BP_ADDR = 0x30008         # Base pointer
+WASM_STATUS_ADDR = 0x3000C     # Status register
+WASM_STATUS_HALTED = 0
+WASM_STATUS_RUNNING = 1
+WASM_STATUS_ERROR = 2
+
+
+async def tool_wasm_load(args: dict) -> list[TextContent]:
+    """Load WASM binary to GPU substrate at WASM linear memory base."""
+    wasm_file = Path(args["wasm_file"])
+    addr_str = args.get("addr", "0x20000")
+
+    # Parse address
+    try:
+        addr = int(addr_str, 16) if addr_str.startswith("0x") else int(addr_str)
+    except ValueError:
+        return [TextContent(type="text", text=f"Error: Invalid address format: {addr_str}")]
+
+    if not wasm_file.exists():
+        return [TextContent(type="text", text=f"Error: WASM file not found: {wasm_file}")]
+
+    try:
+        wasm_bytes = wasm_file.read_bytes()
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error reading WASM file: {e}")]
+
+    # Load via daemon's /load?binary= endpoint
+    try:
+        resp = requests.post(
+            f"{DAEMON_URL}/load?binary=0x{addr:x}",
+            data=wasm_bytes,
+            headers={"Content-Type": "application/octet-stream"},
+            timeout=10
+        )
+
+        if resp.status_code != 200:
+            return [TextContent(type="text", text=f"Error loading WASM: {resp.text}")]
+
+        result = json.loads(resp.text) if resp.text.strip() else {}
+
+        return [TextContent(
+            type="text",
+            text=json.dumps({
+                "status": "success",
+                "action": "WASM_LOAD",
+                "file": str(wasm_file),
+                "addr": f"0x{addr:x}",
+                "bytes": len(wasm_bytes),
+                "daemon_response": result,
+            }, indent=2)
+        )]
+    except requests.exceptions.ConnectionError:
+        return [TextContent(type="text", text="Error: Cannot connect to daemon. Start with: cargo run --release --bin gpu_dev_daemon")]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+
+async def tool_wasm_run(args: dict) -> list[TextContent]:
+    """Trigger WASM interpreter execution by setting IP and status."""
+    entry_str = args.get("entry_point", "0x0")
+
+    # Parse entry point
+    try:
+        entry = int(entry_str, 16) if entry_str.startswith("0x") else int(entry_str)
+    except ValueError:
+        return [TextContent(type="text", text=f"Error: Invalid entry point format: {entry_str}")]
+
+    try:
+        # Set instruction pointer
+        resp_ip = requests.get(
+            f"{DAEMON_URL}/poke",
+            params={"addr": f"0x{WASM_IP_ADDR:x}", "value": f"0x{entry:x}"},
+            timeout=5
+        )
+
+        # Set status to RUNNING
+        resp_status = requests.get(
+            f"{DAEMON_URL}/poke",
+            params={"addr": f"0x{WASM_STATUS_ADDR:x}", "value": f"0x{WASM_STATUS_RUNNING:x}"},
+            timeout=5
+        )
+
+        if resp_ip.status_code != 200 or resp_status.status_code != 200:
+            return [TextContent(type="text", text=f"Error setting interpreter state")]
+
+        return [TextContent(
+            type="text",
+            text=json.dumps({
+                "status": "success",
+                "action": "WASM_RUN",
+                "entry_point": f"0x{entry:x}",
+                "ip_addr": f"0x{WASM_IP_ADDR:x}",
+                "status_addr": f"0x{WASM_STATUS_ADDR:x}",
+                "message": "WASM interpreter started. Check wasm_status for execution state.",
+            }, indent=2)
+        )]
+    except requests.exceptions.ConnectionError:
+        return [TextContent(type="text", text="Error: Cannot connect to daemon")]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+
+async def tool_wasm_status(args: dict) -> list[TextContent]:
+    """Check WASM interpreter state."""
+    try:
+        # Read interpreter state registers
+        resp_ip = requests.get(
+            f"{DAEMON_URL}/read",
+            params={"addr": f"0x{WASM_IP_ADDR:x}", "len": "4"},
+            timeout=5
+        )
+        resp_sp = requests.get(
+            f"{DAEMON_URL}/read",
+            params={"addr": f"0x{WASM_SP_ADDR:x}", "len": "4"},
+            timeout=5
+        )
+        resp_status = requests.get(
+            f"{DAEMON_URL}/read",
+            params={"addr": f"0x{WASM_STATUS_ADDR:x}", "len": "4"},
+            timeout=5
+        )
+
+        # Parse values
+        def parse_u32(resp):
+            if resp.status_code != 200:
+                return None
+            # Response is JSON with hex field
+            try:
+                data = json.loads(resp.text)
+                hex_str = data.get("hex", "00000000")
+                return int(hex_str[:8], 16)
+            except:
+                return None
+
+        ip_val = parse_u32(resp_ip)
+        sp_val = parse_u32(resp_sp)
+        status_val = parse_u32(resp_status)
+
+        status_names = {0: "HALTED", 1: "RUNNING", 2: "ERROR"}
+        status_name = status_names.get(status_val, f"UNKNOWN({status_val})")
+
+        return [TextContent(
+            type="text",
+            text=json.dumps({
+                "status": "success",
+                "action": "WASM_STATUS",
+                "interpreter": {
+                    "ip": f"0x{ip_val:x}" if ip_val is not None else "read_error",
+                    "sp": f"0x{sp_val:x}" if sp_val is not None else "read_error",
+                    "status": status_name,
+                    "status_raw": status_val,
+                },
+                "memory_layout": {
+                    "linear_memory": f"0x{WASM_MEM_BASE:x}",
+                    "registers": f"0x{WASM_SP_ADDR:x}",
+                },
+            }, indent=2)
+        )]
+    except requests.exceptions.ConnectionError:
+        return [TextContent(type="text", text="Error: Cannot connect to daemon")]
+    except Exception as e:
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
 
 
 async def main():
