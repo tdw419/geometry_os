@@ -1205,7 +1205,30 @@ fn handle_raw_request<S: Read + Write>(
 
         // Simple command parsing - in a real implementation this would use an LLM
         let response = if body.contains("help") {
-            "Available commands:\n- help: Show this help\n- status: Get daemon status\n- mem <addr>: Peek memory at address\n- reset: Reset all VMs\n- resume <vm_id>: Resume a halted VM\n- spawn <entry_point>: Spawn a new VM".to_string()
+            "Available commands:\n- help: Show this help\n- status: Get daemon status\n- mem <addr>: Peek memory at address\n- reset: Reset all VMs\n- resume <vm_id>: Resume a halted VM\n- spawn <entry_point>: Spawn a new VM\n- vmstats: Show VM statistics (state, PC, cycles)".to_string()
+        } else if body.contains("vmstats") {
+            let sched = scheduler.lock().unwrap();
+            let stats = sched.read_stats();
+            let mut result = String::from("VM Statistics:\n");
+            for (i, s) in stats.iter().enumerate() {
+                if s.state != 0 { // Skip INACTIVE VMs
+                    let state_name = match s.state {
+                        0 => "INACTIVE",
+                        1 => "RUNNING",
+                        2 => "HALTED",
+                        3 => "WAITING",
+                        _ => "UNKNOWN",
+                    };
+                    result.push_str(&format!(
+                        "  VM {}: state={} ({}) pc=0x{:x} cycles={} halted={}\n",
+                        i, s.state, state_name, s.pc, s.cycles, s.halted
+                    ));
+                }
+            }
+            if result == "VM Statistics:\n" {
+                result.push_str("  No active VMs\n");
+            }
+            result
         } else if body.contains("status") {
             let status = format!(
                 "{{\n  \"daemon\": \"ouroboros\",\n  \"version\": \"Phase 70\",\n  \"status\": \"healthy\",\n  \"transports\": [\"tcp://127.0.0.1:8769\", \"unix:///tmp/gpu_daemon.sock\"],\n  \"substrate\": {{\n    \"width\": 4096,\n    \"height\": 4096,\n    \"format\": \"Rgba8Uint\"\n  }},\n  \"self_hosting\": true,\n  \"vcc_enabled\": true\n}}"
