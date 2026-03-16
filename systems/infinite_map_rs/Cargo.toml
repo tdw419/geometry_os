@@ -21,6 +21,7 @@ ruffle_core = { git = "https://github.com/ruffle-rs/ruffle", branch = "master", 
 ruffle_render_wgpu = { git = "https://github.com/ruffle-rs/ruffle", branch = "master", package = "ruffle_render_wgpu", optional = true }
 glam = "0.30" # Mathematics (vectors, matrices) for camera
 tokio = { version = "1.50", features = ["full"] }
+tokio-tungstenite = { version = "0.20", features = ["rustls-tls"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
