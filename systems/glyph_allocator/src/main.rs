@@ -36,4 +36,9 @@ fn main() {
     println!("Blocks: {} ({} free)", stats.block_count, stats.free_blocks);
     println!("Operations: {} alloc, {} free ({} successful, {} failed)",
              stats.alloc_count, stats.free_count, successful_allocs, failed_allocs);
+
+    // Phase 3: Dump spatial state for visual debugger
+    let json_state = pool.dump_spatial_state();
+    std::fs::write("spatial_state.json", json_state).expect("Unable to write spatial state");
+    println!("Spatial state dumped to spatial_state.json");
 }

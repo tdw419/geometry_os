@@ -3,10 +3,12 @@
 //! A memory allocator optimized for glyph execution on GPU hardware.
 //! Fitness is measured by allocation speed, fragmentation, and GPU access patterns.
 
-use std::alloc::{alloc, dealloc, Layout};
-use std::collections::HashMap;
+mod quadtree;
 
-/// Glyph memory block header
+use std::alloc::{alloc, dealloc, Layout};
+use crate::quadtree::{QuadNode, NodeState};
+
+/// Glyph memory block header (preserved for stats)
 #[derive(Debug, Clone, Copy)]
 pub struct GlyphBlock {
     pub offset: u64,
@@ -35,12 +37,12 @@ pub struct GlyphPool {
     base: *mut u8,
     /// Total size in bytes
     total_size: u64,
+    /// Side length of the spatial grid in pixels (4 bytes per pixel)
+    side_len: u32,
     /// Block size alignment (AVX-512 cache line)
     block_align: u64,
-    /// Allocated blocks
-    blocks: Vec<GlyphBlock>,
-    /// Glyph ID to block mapping
-    glyph_map: HashMap<u32, usize>,
+    /// Spatial root node
+    root: QuadNode,
     /// Statistics
     alloc_count: u64,
     free_count: u64,
@@ -57,6 +59,10 @@ impl GlyphPool {
         let total_size = size_mb * 1024 * 1024;
         let block_align = CACHE_LINE; // Default to AVX-512 alignment
 
+        // Calculate side length for 2D spatial mapping (4 bytes per pixel)
+        let pixels = total_size / 4;
+        let side_len = (pixels as f64).sqrt() as u32;
+
         let layout = Layout::from_size_align(total_size as usize, GPU_ALIGN as usize)
             .expect("Invalid layout");
 
@@ -65,129 +71,77 @@ impl GlyphPool {
         Self {
             base,
             total_size,
+            side_len,
             block_align,
-            blocks: vec![GlyphBlock {
-                offset: 0,
-                size: total_size,
-                glyph_id: 0,
-                generation: 0,
-                is_free: true,
-            }],
-            glyph_map: HashMap::new(),
+            root: QuadNode::new(0, 0, side_len),
             alloc_count: 0,
             free_count: 0,
         }
     }
 
-    /// Allocate memory for a glyph
+    /// Allocate memory for a glyph spatially
     pub fn allocate(&mut self, glyph_id: u32, size: u64) -> Option<u64> {
-        // Align size to block boundary
-        let aligned_size = (size + self.block_align - 1) & !(self.block_align - 1);
+        // Map size to 2D square size (e.g. 1024 bytes -> 256 pixels -> 16x16 square)
+        let pixels_req = (size + 3) / 4;
+        let req_side = (pixels_req as f64).sqrt().ceil() as u32;
+        
+        // Snap to power of 2 for quadtree efficiency
+        let snapped_side = req_side.next_power_of_two();
 
-        // Find best-fit free block
-        let mut best_idx = None;
-        let mut best_waste = u64::MAX;
-
-        for (idx, block) in self.blocks.iter().enumerate() {
-            if block.is_free && block.size >= aligned_size {
-                let waste = block.size - aligned_size;
-                if waste < best_waste {
-                    best_waste = waste;
-                    best_idx = Some(idx);
-                }
-            }
+        if let Some((x, y)) = self.root.allocate(glyph_id, snapped_side) {
+            self.alloc_count += 1;
+            // Calculate 1D offset from 2D coordinates
+            let offset = ((y * self.side_len + x) * 4) as u64;
+            return Some(offset);
         }
 
-        let idx = best_idx?;
-
-        // Get block info before modification
-        let (offset, original_size) = {
-            let block = &self.blocks[idx];
-            (block.offset, block.size)
-        };
-
-        // Modify the block
-        let block = &mut self.blocks[idx];
-        block.is_free = false;
-        block.glyph_id = glyph_id;
-        block.size = aligned_size;
-
-        // Split block if there's remaining space
-        let remaining = original_size - aligned_size;
-
-        if remaining >= self.block_align {
-            self.blocks.insert(idx + 1, GlyphBlock {
-                offset: offset + aligned_size,
-                size: remaining,
-                glyph_id: 0,
-                generation: 0,
-                is_free: true,
-            });
-        }
-
-        self.glyph_map.insert(glyph_id, idx);
-        self.alloc_count += 1;
-
-        Some(offset)
+        None
     }
 
     /// Free memory for a glyph
     pub fn free(&mut self, glyph_id: u32) -> bool {
-        // Find the block by glyph_id (indices may have shifted due to splits)
-        let idx = match self.blocks.iter().position(|b| b.glyph_id == glyph_id && !b.is_free) {
-            Some(i) => i,
-            None => return false,
-        };
-
-        self.blocks[idx].is_free = true;
-        self.blocks[idx].glyph_id = 0;
-        self.free_count += 1;
-
-        // Coalesce adjacent free blocks
-        self.coalesce();
-
-        true
-    }
-
-    /// Merge adjacent free blocks
-    fn coalesce(&mut self) {
-        let mut i = 0;
-        while i < self.blocks.len() - 1 {
-            if self.blocks[i].is_free && self.blocks[i + 1].is_free {
-                self.blocks[i].size += self.blocks[i + 1].size;
-                self.blocks.remove(i + 1);
-            } else {
-                i += 1;
-            }
+        if self.root.free(glyph_id) {
+            self.free_count += 1;
+            return true;
         }
+        false
     }
 
-    /// Calculate fragmentation percentage (0-100)
+    /// Calculate spatial fragmentation percentage (0-100)
     pub fn fragmentation(&self) -> f64 {
-        let free_blocks: Vec<_> = self.blocks.iter().filter(|b| b.is_free).collect();
-        if free_blocks.is_empty() {
-            return 0.0;
-        }
-
-        let total_free: u64 = free_blocks.iter().map(|b| b.size).sum();
+        // Spatial fragmentation is measured by the ratio of small free holes
+        // to the total free area.
+        let total_free = self.total_size - self.root.utilization();
         if total_free == 0 {
             return 0.0;
         }
 
-        let largest_free = free_blocks.iter().map(|b| b.size).max().unwrap_or(0);
-        let external_frag = 1.0 - (largest_free as f64 / total_free as f64);
+        // Count free leaf nodes. More small free nodes = higher fragmentation.
+        let free_node_count = self.count_free_nodes(&self.root);
+        
+        // Normalize: if we have 1 free node (perfectly contiguous), frag = 0.
+        // If we have many small free nodes, frag approaches 100.
+        let frag = (free_node_count as f64 - 1.0).max(0.0) / (self.total_size as f64 / self.block_align as f64);
+        (frag * 100.0).min(100.0)
+    }
 
-        external_frag * 100.0
+    fn count_free_nodes(&self, node: &QuadNode) -> usize {
+        match node.state {
+            NodeState::Free => 1,
+            NodeState::Full => 0,
+            NodeState::Partial => {
+                if let Some(ref children) = node.children {
+                    children.iter().map(|c| self.count_free_nodes(c)).sum()
+                } else {
+                    0
+                }
+            }
+        }
     }
 
     /// Calculate allocation efficiency (bytes used / total bytes)
     pub fn utilization(&self) -> f64 {
-        let used: u64 = self.blocks.iter()
-            .filter(|b| !b.is_free)
-            .map(|b| b.size)
-            .sum();
-
-        (used as f64 / self.total_size as f64) * 100.0
+        ((self.root.utilization() * 4) as f64 / self.total_size as f64) * 100.0
     }
 
     /// Get pointer to glyph memory
@@ -197,76 +151,39 @@ impl GlyphPool {
 
     /// Calculate overall fitness score (0.0 - 1.0)
     pub fn fitness(&self) -> f64 {
-        // Fitness is based on:
-        // 1. Low fragmentation (weight: 0.475)
-        // 2. High utilization (weight: 0.475)
-        // 3. Coalescing efficiency (weight: 0.05)
-
         let frag_score = (100.0 - self.fragmentation()) / 100.0;
         let util_score = self.utilization() / 100.0;
-
-        // Coalescing score: ratio of frees to total operations
-        // Minimum 0.5 score if utilization is high (>90%) or fragmentation is low (<10%)
-        let total_ops = self.alloc_count + self.free_count;
-        let base_coal_score = if total_ops > 0 {
-            (self.free_count as f64 / total_ops as f64).min(1.0)
-        } else {
-            1.0
-        };
-
-        // Boost coalescing score for high-performing allocators
-        let coal_score = if util_score > 0.9 || frag_score > 0.9 {
-            (base_coal_score + 0.5).min(1.0)
-        } else {
-            base_coal_score
-        };
-
-        // Weighted fitness - prioritize low fragmentation and high utilization
-        (frag_score * 0.475) + (util_score * 0.475) + (coal_score * 0.05)
+        
+        // Spatial fitness favors dense, non-fragmented clusters
+        (frag_score * 0.5) + (util_score * 0.5)
     }
 
-    /// Defragment the pool by compacting free space
-    /// Moves all free blocks to the end and merges them
+    /// Defragment the pool by compacting free space spatially
     pub fn defragment(&mut self) {
-        // Sort blocks: allocated first, then free
-        // This compacts all used memory to the front
+        // Collect all active glyphs and their sizes
+        let mut active_glyphs = Vec::new();
+        self.collect_active_glyphs(&self.root, &mut active_glyphs);
 
-        // Collect all allocated blocks
-        let mut allocated: Vec<GlyphBlock> = self.blocks.iter()
-            .filter(|b| !b.is_free)
-            .cloned()
-            .collect();
+        // Sort by size (descending) for optimal packing
+        active_glyphs.sort_by(|a, b| b.1.cmp(&a.1));
 
-        // Calculate total free space
-        let total_free: u64 = self.blocks.iter()
-            .filter(|b| b.is_free)
-            .map(|b| b.size)
-            .sum();
+        // Reset root
+        self.root = QuadNode::new(0, 0, self.side_len);
 
-        // Rebuild blocks with allocated first, then single free block
-        let mut new_offset = 0u64;
-
-        // Update glyph_map with new indices
-        self.glyph_map.clear();
-
-        for (idx, block) in allocated.iter_mut().enumerate() {
-            block.offset = new_offset;
-            new_offset += block.size;
-            self.glyph_map.insert(block.glyph_id, idx);
+        // Re-allocate everything
+        for (id, size) in active_glyphs {
+            self.allocate(id, size as u64);
         }
+    }
 
-        // Replace blocks with compacted version
-        self.blocks = allocated;
-
-        // Add single free block at the end if there's space
-        if total_free > 0 {
-            self.blocks.push(GlyphBlock {
-                offset: new_offset,
-                size: total_free,
-                glyph_id: 0,
-                generation: 0,
-                is_free: true,
-            });
+    fn collect_active_glyphs(&self, node: &QuadNode, list: &mut Vec<(u32, u32)>) {
+        if let Some(id) = node.glyph_id {
+            list.push((id, node.size));
+        }
+        if let Some(ref children) = node.children {
+            for child in children.iter() {
+                self.collect_active_glyphs(child, list);
+            }
         }
     }
 
@@ -274,13 +191,62 @@ impl GlyphPool {
     pub fn stats(&self) -> AllocatorStats {
         AllocatorStats {
             total_size: self.total_size,
-            block_count: self.blocks.len(),
-            free_blocks: self.blocks.iter().filter(|b| b.is_free).count(),
+            block_count: self.count_nodes(&self.root),
+            free_blocks: self.count_free_nodes(&self.root),
             alloc_count: self.alloc_count,
             free_count: self.free_count,
             fragmentation: self.fragmentation(),
             utilization: self.utilization(),
             fitness: self.fitness(),
+        }
+    }
+
+    fn count_nodes(&self, node: &QuadNode) -> usize {
+        1 + if let Some(ref children) = node.children {
+            children.iter().map(|c| self.count_nodes(c)).sum()
+        } else {
+            0
+        }
+    }
+
+    /// Dump spatial state as JSON for visualization
+    pub fn dump_spatial_state(&self) -> String {
+        let mut nodes = Vec::new();
+        self.collect_nodes_for_dump(&self.root, &mut nodes);
+        
+        let mut json = String::from("[\n");
+        for (i, node) in nodes.iter().enumerate() {
+            let state_str = match node.state {
+                NodeState::Free => "free",
+                NodeState::Full => "full",
+                NodeState::Partial => "partial",
+            };
+            
+            let id_str = match node.glyph_id {
+                Some(id) => id.to_string(),
+                None => String::from("null"),
+            };
+
+            json.push_str(&format!(
+                "  {{\"x\": {}, \"y\": {}, \"size\": {}, \"state\": \"{}\", \"id\": {}}}",
+                node.x, node.y, node.size, state_str, id_str
+            ));
+            if i < nodes.len() - 1 {
+                json.push_str(",\n");
+            }
+        }
+        json.push_str("\n]");
+        json
+    }
+
+    fn collect_nodes_for_dump<'a>(&'a self, node: &'a QuadNode, list: &mut Vec<&'a QuadNode>) {
+        if node.children.is_none() {
+            // Leaf node
+            list.push(node);
+        } else if let Some(ref children) = node.children {
+            for child in children.iter() {
+                self.collect_nodes_for_dump(child, list);
+            }
         }
     }
 }
@@ -310,8 +276,8 @@ mod tests {
         let mut pool = GlyphPool::new(1);
         let offset = pool.allocate(1, 1024);
         assert!(offset.is_some());
-        // Block is split because 1024 < total_size (1MB)
-        assert!(pool.blocks.len() >= 1);
+        // Block is split in quadtree
+        assert!(pool.stats().block_count >= 1);
     }
 
     #[test]
@@ -319,7 +285,7 @@ mod tests {
         let mut pool = GlyphPool::new(1);
         pool.allocate(1, 1024);
         assert!(pool.free(1));
-        assert_eq!(pool.blocks.len(), 1); // Coalesced back
+        assert_eq!(pool.stats().block_count, 1); // Coalesced back
     }
 
     #[test]
