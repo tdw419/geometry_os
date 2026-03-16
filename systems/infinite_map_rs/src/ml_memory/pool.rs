@@ -360,12 +360,22 @@ impl MLMemoryPool {
 
     /// Convert Hilbert distance to GPU offset
     pub fn hilbert_to_offset(&self, d: u64, texture_size: u32) -> u64 {
-        let (x, y) = hilbert::d2xy(texture_size, d);
-        (y as u64 * texture_size as u64 * 4) + (x as u64 * 4)
+        Self::hilbert_d2xy_offset(d, texture_size)
     }
 
     /// Convert GPU offset to Hilbert distance
     pub fn offset_to_hilbert(&self, offset: u64, texture_size: u32) -> u64 {
+        Self::hilbert_xy2d_offset(offset, texture_size)
+    }
+
+    /// Convert Hilbert distance to GPU offset (standalone)
+    pub fn hilbert_d2xy_offset(d: u64, texture_size: u32) -> u64 {
+        let (x, y) = hilbert::d2xy(texture_size, d);
+        (y as u64 * texture_size as u64 * 4) + (x as u64 * 4)
+    }
+
+    /// Convert GPU offset to Hilbert distance (standalone)
+    pub fn hilbert_xy2d_offset(offset: u64, texture_size: u32) -> u64 {
         let x = (offset / 4) % texture_size as u64;
         let y = (offset / 4) / texture_size as u64;
         hilbert::xy2d(texture_size, x as u32, y as u32)
@@ -440,8 +450,8 @@ mod tests {
     fn test_hilbert_offset_conversion() {
         let pool_size = 4096u32;
         let d = 1000u64;
-        let offset = MLMemoryPool::hilbert_to_offset(&unsafe { std::mem::zeroed() }, d, pool_size);
-        let recovered = MLMemoryPool::offset_to_hilbert(&unsafe { std::mem::zeroed() }, offset, pool_size);
+        let offset = MLMemoryPool::hilbert_d2xy_offset(d, pool_size);
+        let recovered = MLMemoryPool::hilbert_xy2d_offset(offset, pool_size);
         assert_eq!(d, recovered);
     }
 }
