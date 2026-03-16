@@ -1312,52 +1312,46 @@ fn write_to_substrate(
     let num_words = (data.len() + 3) / 4;
     println!("[WRITE] Writing {} words ({} bytes) to substrate at 0x{:x}", num_words, data.len(), base_addr);
 
-    // Use staging buffer approach for better synchronization
-    // Create a single staging buffer with all data properly aligned
-    let bytes_per_row = ((data.len() as u32 + 255) / 256) * 256;
-    let staging = device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("write_staging"),
-        size: bytes_per_row as u64,
-        usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_WRITE,
-        mapped_at_creation: true,
-    });
-
-    // Copy data to staging buffer
-    {
-        let mut mapped = staging.slice(..).get_mapped_range_mut();
-        mapped[..data.len()].copy_from_slice(data);
-        // Zero out the rest
-        for byte in &mut mapped[data.len()..] {
-            *byte = 0;
-        }
-        drop(mapped);
-        staging.unmap();
-    }
-
-    // Create command encoder for copy operations
-    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-        label: Some("write_substrate encoder"),
-    });
-
-    // Copy each 4-byte word from staging buffer to texture
+    // Use individual staging buffers per pixel for reliability
     for i in 0..num_words {
         let (tx, ty) = hilbert_d2xy(4096, base_addr + i as u32);
-        let offset = (i * 4) as u64;
+        let start = i * 4;
+        let end = std::cmp::min(start + 4, data.len());
+        let mut word = [0u8; 4];
+        word[..end - start].copy_from_slice(&data[start..end]);
 
         // Debug: print first 4 writes
         if i < 4 {
-            let start = i * 4;
-            let end = std::cmp::min(start + 4, data.len());
-            let word = &data[start..end];
             println!("[WRITE] addr=0x{:x} -> pixel({}, {}) = {:02x?}", base_addr + i as u32, tx, ty, word);
         }
+
+        // Create staging buffer for this pixel
+        let staging = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some(&format!("write_staging_{}", i)),
+            size: 256,  // Aligned to 256
+            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_WRITE,
+            mapped_at_creation: true,
+        });
+
+        // Copy data to staging buffer
+        {
+            let mut mapped = staging.slice(..).get_mapped_range_mut();
+            mapped[..4].copy_from_slice(&word);
+            drop(mapped);
+            staging.unmap();
+        }
+
+        // Create command encoder for this write
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some(&format!("write_pixel_{}", i)),
+        });
 
         encoder.copy_buffer_to_texture(
             wgpu::ImageCopyBuffer {
                 buffer: &staging,
                 layout: wgpu::ImageDataLayout {
-                    offset,
-                    bytes_per_row: Some(bytes_per_row),
+                    offset: 0,
+                    bytes_per_row: Some(256),
                     rows_per_image: Some(1),
                 },
             },
@@ -1373,10 +1367,12 @@ fn write_to_substrate(
                 depth_or_array_layers: 1,
             },
         );
+
+        // Submit this write immediately
+        queue.submit(Some(encoder.finish()));
     }
 
-    // Submit and wait for GPU to process
-    queue.submit(Some(encoder.finish()));
+    // Wait for all writes to complete
     device.poll(wgpu::Maintain::Wait);
 
     println!("[WRITE] Committed {} words to 0x{:x}", num_words, base_addr);
