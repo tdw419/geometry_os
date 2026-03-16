@@ -136,6 +136,23 @@ impl PixelBrainInferencer {
         Ok(())
     }
 
+    /// Create hidden state buffer
+    fn create_hidden_buffer(&self) -> Buffer {
+        let size = (self.config.hidden_dim as usize * std::mem::size_of::<f32>()) as u64;
+
+        self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("hidden_state_buffer"),
+            size,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        })
+    }
+
+    /// Initialize buffers for inference
+    pub fn init_buffers(&mut self) {
+        self.hidden_buffer = Some(self.create_hidden_buffer());
+    }
+
     /// Infer the next token given the current token
     /// Returns the predicted next token ID
     pub fn infer_token(&mut self, _token_id: u32) -> u32 {
