@@ -106,8 +106,7 @@ impl EvolutionManager {
             // LLM Temperature: start with balanced exploration/exploitation
             temperature: 1.0,
         }
-         }
-     }
+    }
 
     /// Set the embedded daemon instance
     pub fn set_embedded_daemon(&mut self, daemon: Arc<Mutex<PyEvolutionDaemon>>) {
