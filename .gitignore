@@ -148,3 +148,4 @@ systems/visual_shell/electron/dist/
 
 # Git rewrite history
 .git-rewrite/
+.cargo-target/

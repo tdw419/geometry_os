@@ -1170,25 +1170,18 @@ async def tool_mem_peek(args: dict) -> list[TextContent]:
     addr = int(addr_str, 16) if addr_str.startswith("0x") else int(addr_str)
 
     try:
-        # Use /read endpoint via unified request (Unix socket first, HTTP fallback)
-        # Note: size is in words (4 bytes each), convert to bytes
-        byte_len = size * 4
-        resp = _daemon_request("/read", params={"addr": f"0x{addr:08x}", "len": str(byte_len)}, timeout=2)
+        # Use /peek endpoint via unified request (Unix socket first, HTTP fallback)
+        # Returns space-separated hex words like: 0x00000000 0x00000001 ...
+        resp = _daemon_request("/peek", params={"addr": f"0x{addr:08x}", "size": str(size)}, timeout=2)
 
-        # Parse JSON response: {"addr":"0x0","len":16,"hex":"..."}
-        data = json.loads(resp.strip())
-        hex_str = data.get("hex", "")
+        # Parse space-separated hex words
+        hex_words = resp.strip().split()
 
-        # Convert hex string to bytes
-        raw_bytes = bytes.fromhex(hex_str) if hex_str else b""
-
-        # Convert to hex words for display (4 bytes each)
-        hex_words = []
-        for i in range(0, len(raw_bytes), 4):
-            word = raw_bytes[i:i+4]
-            if len(word) == 4:
-                val = int.from_bytes(word, "little")
-                hex_words.append(f"0x{val:08x}")
+        # Convert hex words to raw bytes for ASCII representation
+        raw_bytes = bytearray()
+        for word in hex_words:
+            val = int(word, 16)
+            raw_bytes.extend(val.to_bytes(4, "little"))
 
         # ASCII representation
         ascii_repr = "".join(chr(b) if 32 <= b < 127 else "." for b in raw_bytes)
