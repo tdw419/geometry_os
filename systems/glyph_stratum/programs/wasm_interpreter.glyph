@@ -648,8 +648,8 @@
     // Import table entry = IMPORT_TABLE_BASE + (func_idx * 4)
     LDI r1, IMPORT_TABLE_BASE
     LDI r2, 4
-    MUL r6, r2               // r2 = func_idx * 4
-    ADD r1, r2               // r1 = address of import entry
+    MUL r6, r2               // r6 = func_idx * 4
+    ADD r1, r6               // r1 = address of import entry
     LOAD r1, r3              // r3 = import entry value
 
     // Check if entry is valid (not 0xFFFFFFFF)
