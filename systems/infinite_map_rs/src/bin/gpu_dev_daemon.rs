@@ -1065,8 +1065,18 @@ fn handle_raw_request<S: Read + Write>(
             }
 
             if let Some(addr) = addr {
-                let body_start = request_str.find("\r\n\r\n").unwrap_or(0) + 4;
+                // Find body start in raw bytes (not string, to handle binary data correctly)
+                let body_start = request_data.windows(4)
+                    .position(|w| w == b"\r\n\r\n")
+                    .map(|p| p + 4)
+                    .unwrap_or(0);
                 let body = &request_data[body_start..];
+                println!("[LOAD] binary=0x{:x} body_start={} body_len={}", addr, body_start, body.len());
+
+                // Debug: print first 16 bytes
+                if body.len() >= 16 {
+                    println!("[LOAD] First 16 bytes: {:02x?}", &body[..16]);
+                }
 
                 // Check if this is a WASM binary (magic: 0x00 'asm')
                 let is_wasm = body.len() >= 8 &&
