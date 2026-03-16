@@ -2523,6 +2523,18 @@ fn handle_raw_request<S: Read + Write>(
 
         // Also execute a VM frame to allow daemon.glyph to process
         scheduler.lock().unwrap().execute_frame();
+
+        // Dispatch any pending Hebbian updates to GPU
+        if let Some(processor) = get_hebbian_processor() {
+            let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("hebbian_dispatch"),
+            });
+            let mut processor_lock = processor.lock().unwrap();
+            if processor_lock.dispatch_if_ready(&mut encoder) {
+                println!("[HEBBIAN] Dispatched batch of weight updates to GPU");
+            }
+            queue.submit(Some(encoder.finish()));
+        }
     }
 }
 
