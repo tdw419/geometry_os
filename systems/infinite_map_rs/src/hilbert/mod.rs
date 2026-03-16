@@ -345,6 +345,7 @@ pub fn grid_order(n: u32) -> u32 {
 /// # Examples
 ///
 /// ```
+/// use infinite_map_rs::hilbert::grid_capacity;
 /// assert_eq!(grid_capacity(64), 16384);  // 64*64*4
 /// assert_eq!(grid_capacity(256), 262144); // 256*256*4
 /// ```
