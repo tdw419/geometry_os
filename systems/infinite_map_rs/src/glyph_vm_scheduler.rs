@@ -10,6 +10,7 @@
 //! - Inter-VM messaging via mailbox queue
 
 use crate::glyph_stratum::glyph_compiler::hilbert_d2xy;
+use crate::hilbert::xy2d as hilbert_xy2d;
 use std::sync::{Arc, Mutex};
 
 /// Maximum concurrent VMs
@@ -106,6 +107,9 @@ pub struct GlyphVmScheduler {
 
     /// RAM texture (for write_texture operations in poke_substrate_single)
     ram_texture: Option<Arc<wgpu::Texture>>,
+
+    /// Staging buffer for GPU→CPU texture readback (sync_gpu_to_shadow)
+    ram_staging_buffer: Option<wgpu::Buffer>,
 
     /// Shadow RAM buffer for CPU-side reads (workaround for Intel Vulkan driver bugs)
     shadow_ram: Arc<Mutex<Vec<u8>>>,
@@ -295,6 +299,7 @@ impl GlyphVmScheduler {
             stats_buffer,
             ram_view: None,
             ram_texture: None,
+            ram_staging_buffer: None,
             shadow_ram,
             frame_count: std::sync::atomic::AtomicU64::new(0),
         }
@@ -314,9 +319,102 @@ impl GlyphVmScheduler {
             base_array_layer: 0,
             array_layer_count: None,
         }));
+        // Create staging buffer for GPU→CPU readback (4096×4096×4 = 64MB)
+        // wgpu requires bytes_per_row to be aligned to 256 bytes
+        // 4096 pixels × 4 bytes = 16384 bytes per row (already 256-aligned)
+        let bytes_per_row: u32 = 4096 * 4;
+        let staging_size = (bytes_per_row as u64) * 4096;
+        self.ram_staging_buffer = Some(self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("RAM Texture Staging Buffer"),
+            size: staging_size,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        }));
+        eprintln!("[SCHEDULER] RAM staging buffer created ({}MB)", staging_size / (1024 * 1024));
+
         // Store the texture for write_texture operations
         self.ram_texture = Some(texture);
         eprintln!("[SCHEDULER] RAM texture view set OK");
+    }
+
+    /// Sync GPU texture contents back to shadow RAM buffer.
+    /// Call this after execute_frame() to ensure CPU reads see GPU STORE writes.
+    pub fn sync_gpu_to_shadow(&self) {
+        let (texture, staging) = match (&self.ram_texture, &self.ram_staging_buffer) {
+            (Some(t), Some(s)) => (t, s),
+            _ => return,
+        };
+
+        let bytes_per_row: u32 = 4096 * 4;
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("GPU→Shadow Sync Encoder"),
+        });
+
+        encoder.copy_texture_to_buffer(
+            wgpu::ImageCopyTexture {
+                texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::ImageCopyBuffer {
+                buffer: staging,
+                layout: wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: Some(bytes_per_row),
+                    rows_per_image: Some(4096),
+                },
+            },
+            wgpu::Extent3d {
+                width: 4096,
+                height: 4096,
+                depth_or_array_layers: 1,
+            },
+        );
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        // Map staging buffer and copy to shadow RAM
+        let slice = staging.slice(..);
+        let (tx, rx) = std::sync::mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |res| {
+            tx.send(res).ok();
+        });
+        self.device.poll(wgpu::Maintain::Wait);
+
+        if let Ok(Ok(())) = rx.recv() {
+            let data = slice.get_mapped_range();
+            let mut shadow = self.shadow_ram.lock().unwrap();
+
+            // The GPU texture is in row-major pixel order, but shadow RAM
+            // is indexed by Hilbert curve address. We need to copy raw pixel
+            // data and rebuild the Hilbert mapping.
+            //
+            // Actually, shadow RAM is byte-addressed linearly where
+            // poke_substrate_single(addr, val) writes at offset = addr * 4.
+            // The GPU texture stores pixel (x,y) = hilbert_d2xy(4096, addr).
+            // So we need to reverse-map: for each pixel (x,y), find the
+            // Hilbert address and write to shadow[addr*4..addr*4+4].
+            //
+            // For efficiency, iterate all pixels and use xy2d (inverse Hilbert).
+            for y in 0..4096u32 {
+                let row_offset = (y as usize) * (bytes_per_row as usize);
+                for x in 0..4096u32 {
+                    let pixel_offset = row_offset + (x as usize) * 4;
+                    let addr = hilbert_xy2d(4096, x, y) as usize;
+                    let shadow_offset = addr * 4;
+                    if shadow_offset + 4 <= shadow.len() {
+                        shadow[shadow_offset..shadow_offset + 4]
+                            .copy_from_slice(&data[pixel_offset..pixel_offset + 4]);
+                    }
+                }
+            }
+            drop(data);
+            staging.unmap();
+        } else {
+            eprintln!("[SYNC] Failed to map staging buffer for GPU→shadow sync");
+        }
     }
 
     /// Initialize a VM slot with configuration
