@@ -23,6 +23,7 @@ use wgpu::util::DeviceExt;
 
 use futures::{SinkExt, StreamExt, TryStreamExt};
 use tokio::runtime::Runtime;
+use tokio::sync::broadcast;
 use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
 use uuid::Uuid;
 
@@ -405,6 +406,14 @@ impl TrapHandler {
         // Read trap registers from substrate
         let trap_bytes = scheduler.peek_substrate(TRAP_BASE / 4, 6);
         self.regs = TrapRegs::from_bytes(trap_bytes);
+
+        // Debug: print TRAP status periodically
+        static COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let count = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        if count % 60 == 0 {
+            println!("[TRAP_POLL] op={} arg0={:08x} arg1={:08x} arg2={:08x} status={}",
+                self.regs.op_type, self.regs.arg0, self.regs.arg1, self.regs.arg2, self.regs.status);
+        }
 
         if self.regs.status != status::PENDING {
             return false;
@@ -805,16 +814,99 @@ fn main() {
     let b_clone_loop = brain_bridge.clone();
     thread::spawn(move || {
         println!("[BRIDGE] Starting Brain Bridge thread...");
-        std::io::stdout().flush().unwrap();
+        std::io.stdout().flush().unwrap();
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
             println!("[BRIDGE] Inside tokio runtime, calling start()...");
-            std::io::stdout().flush().unwrap();
+            std::io.stdout().flush().unwrap();
             b_clone_loop.start().await;
         });
     });
     println!("[MAIN] Brain Bridge thread spawned successfully");
-    std::io::stdout().flush().unwrap();
+    std::io.stdout().flush().unwrap();
+
+    // === THOUGHT PULSE WEBSOCKET SERVER ===
+    println!("[MAIN] About to spawn Thought Pulse WebSocket server...");
+    std::io.stdout().flush().unwrap();
+    let thought_pulse_broadcaster_clone = Arc::new(Mutex::new(None));
+    let broadcaster_for_thread = thought_pulse_broadcaster_clone.clone();
+    thread::spawn(move || {
+        println!("[WEBSOCKET] Starting Thought Pulse WebSocket server on 0.0.0.0:8770");
+        std::io.stdout().flush().unwrap();
+        
+        // Initialize the broadcaster with a channel for sending messages
+        let (tx, rx) = mpsc::unbounded_channel::<String>();
+        let broadcaster = Arc::new(Mutex::new(WebsocketBroadcaster {
+            clients: Arc::new(Mutex::new(Vec::new())),
+        }));
+        
+        // Store the broadcaster for use by the rate endpoint
+        *broadcaster_for_thread.lock().unwrap() = Some(broadcaster.clone());
+        
+        // Set up the WebSocket server
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            // Create TCP listener for WebSocket upgrades
+            let tcp_listener = TcpListener::bind("0.0.0.0:8770").unwrap();
+            println!("[WEBSOCKET] Listening on ws://0.0.0.0:8770");
+            
+            // Channel for broadcasting messages to all WebSocket connections
+            let (broadcast_tx, mut broadcast_rx) = broadcast::channel::<String>(1024);
+            
+            // Task to relay messages from the rate endpoint to WebSocket clients
+            let relay_task = tokio::spawn(async move {
+                while let Ok(msg) = rx.recv().await {
+                    let _ = broadcast_tx.send(msg);
+                }
+            });
+            
+            // Accept incoming connections
+            while let Ok((stream, _)) = tcp_listener.accept().await {
+                let broadcast_tx_clone = broadcast_tx.clone();
+                tokio::spawn(async move {
+                    let ws_stream = accept_async(stream).await.expect("Failed to accept WebSocket");
+                    println!("[WEBSOCKET] New client connected");
+                    
+                    // Split the WebSocket stream into sink and stream
+                    let (mut write, mut read) = ws_stream.split();
+                    
+                    // Task to send broadcast messages to this client
+                    let tx_clone = broadcast_tx_clone.clone();
+                    let send_task = tokio::spawn(async move {
+                        while let Ok(msg) = tx_clone.subscribe().recv().await {
+                            if let Err(e) = write.send(Message::Text(msg)).await {
+                                eprintln!("[WEBSOCKET] Error sending to client: {}", e);
+                                break;
+                            }
+                        }
+                    });
+                    
+                    // Task to handle incoming messages (we don't expect any, but keep connection alive)
+                    let recv_task = tokio::spawn(async move {
+                        while let Some(Ok(_)) = read.next().await {
+                            // We don't process incoming messages for this simple broadcaster
+                        }
+                    });
+                    
+                    // Wait for either task to complete (client disconnect)
+                    let _ = tokio::select! {
+                        _ = send_task => {},
+                        _ = recv_task => {},
+                    };
+                    
+                    println!("[WEBSOCKET] Client disconnected");
+                });
+            }
+            
+            // Relay messages from the rate endpoint to the broadcast channel
+            while let Ok(msg) = broadcast_rx.recv().await {
+                // Send to the WebSocket broadcaster's channel for relaying to clients
+                let _ = tx.send(msg);
+            }
+        });
+    });
+    println!("[MAIN] Thought Pulse WebSocket server spawned successfully");
+    std::io.stdout().flush().unwrap();
 
     // === SUBSTRATE HEARTBEAT ===
     println!("I AM INITIALIZED");
