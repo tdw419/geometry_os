@@ -89,6 +89,9 @@
 // Block entry size (12 bytes: type + addr + stack_height)
 .equ BLOCK_ENTRY_SIZE,  12
 
+// IF condition storage (for ELSE branch selection)
+.equ IF_CONDITION_ADDR, 0x31020
+
 // ============================================================================
 // BOOT
 // ============================================================================
@@ -195,6 +198,18 @@
     LDI r3, OP_LOOP
     SUB r2, r3
     LDI r13, wasm_op_loop
+    JZ r2, r13
+
+    // Check for IF (0x04)
+    LDI r3, OP_IF
+    SUB r2, r3
+    LDI r13, wasm_op_if
+    JZ r2, r13
+
+    // Check for ELSE (0x05)
+    LDI r3, OP_ELSE
+    SUB r2, r3
+    LDI r13, wasm_op_else
     JZ r2, r13
 
     // Check for I32_CONST (0x41)
@@ -363,6 +378,61 @@
     LOAD r1, r5
     CALL :block_push
 
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_if
+    // if: conditional block
+    // Format: if blocktype
+    // Stack: [..., condition] -> [...]
+
+    // Skip blocktype byte
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r1
+    LDI r3, 1
+    ADD r1, r3
+    LDI r3, WASM_IP_ADDR
+    STORE r3, r1
+
+    // Pop condition
+    CALL :stack_pop          // r4 = condition
+
+    // Push IF block (regardless of condition)
+    LDI r4, BLOCK_TYPE_IF
+    LDI r1, WASM_IP_ADDR
+    LOAD r1, r5
+    CALL :block_push
+
+    // If condition is 0, we need to skip to ELSE or END
+    // MVP: We don't have forward scanning, so we set a flag
+    // Store condition result for ELSE to check
+    LDI r1, IF_CONDITION_ADDR
+    STORE r1, r4
+
+    // Continue (MVP limitation: always executes then-branch)
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_else
+    // else: reached else branch
+    // Check if we should skip to END
+
+    // Load condition from IF
+    LDI r1, IF_CONDITION_ADDR
+    LOAD r1, r4
+
+    // If condition was true, we need to skip to END
+    LDI r2, 0
+    SUB r4, r2
+    JZ r4, :wasm_else_execute
+
+    // Condition was true - skip to END
+    // MVP: We'd need to scan forward for END
+    // For now, just halt (proper impl needs pre-processing)
+    JMP wasm_halt
+
+:wasm_else_execute
+    // Condition was false - execute else body
     LDI r13, wasm_fetch
     JMP r13
 
