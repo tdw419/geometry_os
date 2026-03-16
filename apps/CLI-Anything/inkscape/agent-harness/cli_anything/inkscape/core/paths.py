@@ -10,7 +10,7 @@ Inkscape actions for rendering.
 from typing import Dict, Any, List, Optional
 import copy
 
-from .inkscape.utils.svg_utils import generate_id
+from ..utils.svg_utils import generate_id
 
 # Path operations that Inkscape supports
 PATH_OPERATIONS = {

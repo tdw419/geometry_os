@@ -6,7 +6,7 @@ This module manages layers in the JSON project format.
 
 from typing import Dict, Any, List, Optional
 
-from .inkscape.utils.svg_utils import generate_id
+from ..utils.svg_utils import generate_id
 
 
 def add_layer(

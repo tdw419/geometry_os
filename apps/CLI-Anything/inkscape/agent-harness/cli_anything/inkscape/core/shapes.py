@@ -8,7 +8,7 @@ import copy
 import math
 from typing import Dict, Any, List, Optional
 
-from .inkscape.utils.svg_utils import generate_id, serialize_style
+from ..utils.svg_utils import generate_id, serialize_style
 
 # ── Shape Registry ──────────────────────────────────────────────
 
