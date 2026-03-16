@@ -163,7 +163,10 @@ pub enum MLError {
 pub type MLResult<T> = Result<T, MLError>;
 
 #[cfg(test)]
-mod tests {
+mod tests;
+
+#[cfg(test)]
+mod module_tests {
     use super::*;
 
     #[test]
