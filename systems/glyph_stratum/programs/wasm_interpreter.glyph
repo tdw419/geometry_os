@@ -167,6 +167,12 @@
     LDI r13, wasm_op_end
     JZ r2, r13
 
+    // Check for BR (0x0C)
+    LDI r3, OP_BR
+    SUB r2, r3
+    LDI r13, wasm_op_br
+    JZ r2, r13
+
     // Check for NOP (0x01)
     LDI r3, OP_NOP
     SUB r2, r3
@@ -296,8 +302,25 @@
     JMP wasm_halt
 
 :wasm_op_end
-    // End of function/block - halt for now
-    // TODO: Handle block stack for proper nesting
+    // end: pop current block, continue or halt
+    // If block stack is empty, this is end of function
+
+    // Check block count
+    LDI r1, BLOCK_STACK_COUNT
+    LOAD r1, r3
+    LDI r2, 0
+    SUB r3, r2
+    JZ r3, :wasm_op_end_function
+
+    // Pop block (discard values for now)
+    CALL :block_pop
+
+    // Continue execution
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_end_function
+    // No blocks - end of function
     JMP wasm_halt
 
 :wasm_op_block
@@ -338,6 +361,55 @@
     LDI r4, BLOCK_TYPE_LOOP
     LDI r1, WASM_IP_ADDR
     LOAD r1, r5
+    CALL :block_push
+
+    LDI r13, wasm_fetch
+    JMP r13
+
+:wasm_op_br
+    // br: branch to Nth enclosing block
+    // Format: br label_index (LEB128)
+
+    // Read label index
+    CALL :leb128_unsigned    // r6 = label_index
+
+    // Pop blocks until we reach target
+    // label_index 0 = current block, 1 = parent, etc.
+:wasm_br_loop
+    LDI r2, 0
+    SUB r6, r2
+    JZ r6, :wasm_br_target
+
+    // Pop and discard block, decrement label_index
+    CALL :block_pop
+    LDI r2, 1
+    SUB r6, r2
+    JMP :wasm_br_loop
+
+:wasm_br_target
+    // Pop the target block to get its info
+    CALL :block_pop          // r4 = type, r5 = start_addr, r6 = stack_height
+
+    // Restore operand stack height
+    LDI r1, WASM_SP_ADDR
+    STORE r1, r6
+
+    // If LOOP, jump to start and re-push
+    LDI r2, BLOCK_TYPE_LOOP
+    SUB r4, r2
+    JZ r4, :wasm_br_to_loop
+
+:wasm_br_to_block
+    // For blocks, continue after END
+    // MVP: just halt (proper impl needs END scanning)
+    JMP wasm_halt
+
+:wasm_br_to_loop
+    // Jump to loop start
+    LDI r1, WASM_IP_ADDR
+    STORE r1, r5
+
+    // Re-push the loop block for next iteration
     CALL :block_push
 
     LDI r13, wasm_fetch
