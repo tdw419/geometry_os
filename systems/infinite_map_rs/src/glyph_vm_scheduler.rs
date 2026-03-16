@@ -625,10 +625,24 @@ impl GlyphVmScheduler {
 
     /// Write trap registers back to substrate
     pub fn write_trap_regs(&mut self, regs: &crate::trap_interface::TrapRegs) {
-        // Write trap registers to substrate via texture write
-        // For now, just log
-        log::debug!("[TRAP] write_trap_regs: status={} result=0x{:08X}",
-            regs.status, regs.result);
+        use crate::trap_interface::TRAP_BASE;
+
+        // Write trap registers to shadow buffer
+        let mut shadow = self.shadow_ram.lock().unwrap();
+        let base_offset = TRAP_BASE as usize;
+
+        // Write each field as little-endian u32
+        if base_offset + 24 <= shadow.len() {
+            shadow[base_offset..base_offset + 4].copy_from_slice(&regs.op_type.to_le_bytes());
+            shadow[base_offset + 4..base_offset + 8].copy_from_slice(&regs.arg0.to_le_bytes());
+            shadow[base_offset + 8..base_offset + 12].copy_from_slice(&regs.arg1.to_le_bytes());
+            shadow[base_offset + 12..base_offset + 16].copy_from_slice(&regs.arg2.to_le_bytes());
+            shadow[base_offset + 16..base_offset + 20].copy_from_slice(&regs.result.to_le_bytes());
+            shadow[base_offset + 20..base_offset + 24].copy_from_slice(&regs.status.to_le_bytes());
+        }
+
+        log::debug!("[TRAP] write_trap_regs: op={} status={} result=0x{:08X}",
+            regs.op_type, regs.status, regs.result);
     }
 
     /// Spawn VM from trap request - returns VM ID on success, 0xFF on failure
