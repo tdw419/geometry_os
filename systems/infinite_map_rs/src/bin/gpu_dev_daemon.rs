@@ -1300,9 +1300,18 @@ fn write_to_substrate(
     padded_data[..data.len()].copy_from_slice(data);
 
     let num_words = padded_len / 4;
+    println!("[WRITE] Writing {} words ({} bytes) to substrate at 0x{:x}", num_words, data.len(), base_addr);
+
     for i in 0..num_words {
         let (tx, ty) = hilbert_d2xy(4096, base_addr + i as u32);
         let word = &padded_data[i * 4..i * 4 + 4];
+
+        // Debug first few writes
+        if i < 3 {
+            println!("[WRITE] Word {}: addr=0x{:x} -> pixel({}, {}) = {:02x?}",
+                i, base_addr + i as u32, tx, ty, word);
+        }
+
         queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture,
