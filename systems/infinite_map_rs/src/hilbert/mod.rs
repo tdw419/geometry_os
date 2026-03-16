@@ -309,6 +309,7 @@ impl HilbertCurve {
 /// # Examples
 ///
 /// ```
+/// use infinite_map_rs::hilbert::validate_grid_size;
 /// assert!(validate_grid_size(64));
 /// assert!(!validate_grid_size(100));
 /// ```
