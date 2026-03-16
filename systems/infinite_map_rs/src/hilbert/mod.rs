@@ -146,6 +146,7 @@ pub fn d2xy(n: u32, d: u64) -> (u32, u32) {
 /// # Examples
 ///
 /// ```
+/// use infinite_map_rs::hilbert::xy2d;
 /// assert_eq!(xy2d(4, 0, 0), 0);
 /// assert_eq!(xy2d(4, 1, 0), 1);
 /// assert_eq!(xy2d(4, 1, 1), 2);
