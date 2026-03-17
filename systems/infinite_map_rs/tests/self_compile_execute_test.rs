@@ -254,7 +254,7 @@ mod tests {
             entry_point: 0,
             parent_id: 0xFF,
             base_addr: 0,
-            bound_addr: 1,
+            bound_addr: 0,  // unrestricted
             initial_regs: [0; 128],
         };
         scheduler.spawn_vm(1, &config).expect("Failed to spawn assembler VM");
@@ -283,7 +283,7 @@ mod tests {
             entry_point: 200,
             parent_id: 0xFF,
             base_addr: 1,
-            bound_addr: 1,
+            bound_addr: 0,  // unrestricted
             initial_regs: [0; 128],
         };
         scheduler.spawn_vm(2, &compiled_config).expect("Failed to spawn compiled VM");
