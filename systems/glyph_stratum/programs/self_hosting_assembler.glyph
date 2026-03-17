@@ -1,19 +1,18 @@
 // ============================================================================
-// Geometry OS - Self-Hosting Assembler (Version 4.4 - BIT-IDENTICAL)
+// Geometry OS - Self-Hosting Assembler (Version 5.1 - BIT-PERFECT)
 // ============================================================================
 :main
-@LDI r0, 0x1000
-    LDI r1, 0x2000
-    LDI r2, 0x3000
-    LDI r13, 1
-    LDI r127, 0
-    LDI r12, 0x4004
-    STORE r12, r127
-
-    LDI r14, :init_mnem_table
-    CALL r14
-
-    JMP :start
+@
+LDI r0, 0x1000
+LDI r1, 0x2000
+LDI r2, 0x3000
+LDI r13, 1
+LDI r127, 0
+LDI r12, 0x4004
+STORE r12, r127
+LDI r14, :init_mnem_table
+CALL r14
+JMP :start
 
 :start
 :p1_loop
@@ -54,7 +53,7 @@
     LDI r8, 64; BEQ r7, r8, :p2_fnd
     ADD r0, r0, r13; JMP :p2_anc_lp
 :p2_fnd
-    ADD r0, r0, r13
+    ADD r0, r0, r13; LDI r14, :skip_ws; CALL r14
 
 :p2_loop
     LOAD r7, [r0]; BEQ r7, r127, :eof
@@ -111,13 +110,78 @@
     LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
     LDI r5, 68; STORE r4, r5; ADD r4, r4, r13 // D
     LDI r5, 73; STORE r4, r5; ADD r4, r4, r13 // I
-    LDI r5, 1;  STORE r4, r5; ADD r4, r4, r13 // Op 1
-    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13 // Str 0
+    LDI r5, 1;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
     LDI r5, 65; STORE r4, r5; ADD r4, r4, r13 // A
     LDI r5, 68; STORE r4, r5; ADD r4, r4, r13 // D
     LDI r5, 68; STORE r4, r5; ADD r4, r4, r13 // D
-    LDI r5, 5;  STORE r4, r5; ADD r4, r4, r13 // Op 5
-    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13 // Str 0
+    LDI r5, 5;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 83; STORE r4, r5; ADD r4, r4, r13 // S
+    LDI r5, 84; STORE r4, r5; ADD r4, r4, r13 // T
+    LDI r5, 79; STORE r4, r5; ADD r4, r4, r13 // O
+    LDI r5, 4;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
+    LDI r5, 79; STORE r4, r5; ADD r4, r4, r13 // O
+    LDI r5, 65; STORE r4, r5; ADD r4, r4, r13 // A
+    LDI r5, 3;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 77; STORE r4, r5; ADD r4, r4, r13 // M
+    LDI r5, 79; STORE r4, r5; ADD r4, r4, r13 // V
+    LDI r5, 32; STORE r4, r5; ADD r4, r4, r13 //  
+    LDI r5, 2;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 66; STORE r4, r5; ADD r4, r4, r13 // B
+    LDI r5, 69; STORE r4, r5; ADD r4, r4, r13 // E
+    LDI r5, 81; STORE r4, r5; ADD r4, r4, r13 // Q
+    LDI r5, 10; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 66; STORE r4, r5; ADD r4, r4, r13 // B
+    LDI r5, 78; STORE r4, r5; ADD r4, r4, r13 // N
+    LDI r5, 69; STORE r4, r5; ADD r4, r4, r13 // E
+    LDI r5, 10; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 1;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 74; STORE r4, r5; ADD r4, r4, r13 // J
+    LDI r5, 77; STORE r4, r5; ADD r4, r4, r13 // M
+    LDI r5, 80; STORE r4, r5; ADD r4, r4, r13 // P
+    LDI r5, 9;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 67; STORE r4, r5; ADD r4, r4, r13 // C
+    LDI r5, 65; STORE r4, r5; ADD r4, r4, r13 // A
+    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
+    LDI r5, 11; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 82; STORE r4, r5; ADD r4, r4, r13 // R
+    LDI r5, 69; STORE r4, r5; ADD r4, r4, r13 // E
+    LDI r5, 84; STORE r4, r5; ADD r4, r4, r13 // T
+    LDI r5, 12; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 72; STORE r4, r5; ADD r4, r4, r13 // H
+    LDI r5, 65; STORE r4, r5; ADD r4, r4, r13 // A
+    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
+    LDI r5, 13; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 83; STORE r4, r5; ADD r4, r4, r13 // S
+    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
+    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
+    LDI r5, 131; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 79; STORE r4, r5; ADD r4, r4, r13 // O
+    LDI r5, 82; STORE r4, r5; ADD r4, r4, r13 // R
+    LDI r5, 32; STORE r4, r5; ADD r4, r4, r13 //  
+    LDI r5, 129; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 83; STORE r4, r5; ADD r4, r4, r13 // S
+    LDI r5, 85; STORE r4, r5; ADD r4, r4, r13 // U
+    LDI r5, 66; STORE r4, r5; ADD r4, r4, r13 // B
+    LDI r5, 6;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 77; STORE r4, r5; ADD r4, r4, r13 // M
+    LDI r5, 85; STORE r4, r5; ADD r4, r4, r13 // U
+    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
+    LDI r5, 7;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
     LDI r5, 0xFFFFFFFF; STORE r4, r5
     RET
 
@@ -141,6 +205,7 @@
 :skip_ws
     LOAD r7, [r0]
     LDI r8, 32; BEQ r7, r8, :sw_adv
+    LDI r8, 10; BEQ r7, r8, :sw_adv
     LDI r8, 44; BEQ r7, r8, :sw_adv
     LDI r8, 91; BEQ r7, r8, :sw_adv
     LDI r8, 93; BEQ r7, r8, :sw_adv
