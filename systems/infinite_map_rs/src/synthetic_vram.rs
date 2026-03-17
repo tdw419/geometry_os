@@ -2464,6 +2464,12 @@ mod tests {
         let mut assembler = crate::glyph_assembler::GlyphAssembler::new();
         let assembled = assembler.assemble(&source_text).expect("Rust assembler failed");
 
+        // Debug: show first few words of assembled binary
+        println!("\n  Assembled binary (first 10 words):");
+        for (i, word) in assembled.words.iter().take(10).enumerate() {
+            println!("    {:04X}: {:08X}", i, word);
+        }
+
         // 1. Load Binary into 0x0000
         for (i, word) in assembled.words.iter().enumerate() {
             vram.poke(i as u32, *word);
@@ -2556,18 +2562,18 @@ mod tests {
         // 4. Verify Output Binary at 0x2000
         println!("Self-Hosting Quine Verification:");
         println!("  Binary Size: {} words", assembled.words.len());
-        
+
         println!("  Binary Comparison (First 16 words):");
         println!("  Offset | Original | Compiled");
         println!("  -------|----------|---------");
         for i in 0..16 {
-            let original = vram.peek(i);
+            let original = assembled.words.get(i as usize).copied().unwrap_or(0);
             let compiled = vram.peek(0x2000 + i);
             println!("  {:6} | {:08X} | {:08X}", i, original, compiled);
         }
-        
+
         for i in 0..assembled.words.len() as u32 {
-            let original = vram.peek(i);
+            let original = assembled.words[i as usize];
             let compiled = vram.peek(0x2000 + i);
             assert_eq!(compiled, original, "Mismatch at offset {}: Expected {:08X}, got {:08X}", i, original, compiled);
         }

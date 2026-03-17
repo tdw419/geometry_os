@@ -198,17 +198,23 @@ impl GlyphAssembler {
                 continue;
             }
 
-
-            // Check for label
-            if line.ends_with(':') {
+            // Handle labels - extract label name stopping at semicolon
+            let remaining_line = if line.starts_with(':') {
+                let label_end = line.find(';').unwrap_or(line.len());
+                let label = line[1..label_end].trim().to_string();
+                self.labels.insert(label, self.addr);
+                if label_end < line.len() { &line[label_end..] } else { "" }
+            } else if line.ends_with(':') {
                 let label = line[..line.len()-1].trim().to_string();
                 self.labels.insert(label, self.addr);
-            } else if line.starts_with(':') {
-                let label = line[1..].trim().to_string();
-                self.labels.insert(label, self.addr);
+                ""
             } else {
-                // Count words for this instruction
-                let word_count = self.count_words(line)?;
+                line
+            };
+
+            // Count words for any instructions after the label
+            if !remaining_line.is_empty() {
+                let word_count = self.count_words(remaining_line)?;
                 self.addr += word_count;
             }
         }
@@ -218,11 +224,20 @@ impl GlyphAssembler {
         for line in text.lines() {
             let line = Self::strip_comment(line).trim();
             let line = line.trim_start_matches('@');
-            if line.is_empty() || line.ends_with(':') || line.starts_with(':') {
-                continue;
-            }
+            if line.is_empty() { continue; }
 
-            self.assemble_line(line)?;
+            // Handle labels at start of line - skip the label, process instructions
+            let remaining_line = if line.starts_with(':') {
+                let label_end = line.find(';').unwrap_or(line.len());
+                if label_end < line.len() { line[label_end..].trim() } else { "" }
+            } else if line.ends_with(':') {
+                ""  // Label-only line, no instructions
+            } else {
+                line
+            };
+
+            if remaining_line.is_empty() { continue; }
+            self.assemble_line(remaining_line)?;
         }
 
         // Resolve forward references

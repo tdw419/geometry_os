@@ -853,12 +853,18 @@ const VIRTIO_CONSOLE_F_EMERG_WRITE: u8 = 1 << 1; // Emergency write
 #[cfg(feature = "hypervisor")]
 use crate::clipboard_manager::TerminalClipboard;
 
-// VirtIO Device Status Flags
+// VirtIO Device Status Flags (spec-defined, may be used in future)
+#[allow(dead_code)]
 const VIRTIO_STATUS_ACKNOWLEDGE: u8 = 1;
+#[allow(dead_code)]
 const VIRTIO_STATUS_DRIVER: u8 = 2;
+#[allow(dead_code)]
 const VIRTIO_STATUS_DRIVER_OK: u8 = 4;
+#[allow(dead_code)]
 const VIRTIO_STATUS_FEATURES_OK: u8 = 8;
+#[allow(dead_code)]
 const VIRTIO_STATUS_DEVICE_NEEDS_RESET: u8 = 64;
+#[allow(dead_code)]
 const VIRTIO_STATUS_FAILED: u8 = 128;
 
 // VirtIO Queue Size
