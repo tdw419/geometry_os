@@ -1,0 +1,153 @@
+// RISC-V test program that outputs "GEOM" via UART (memory address 0x200)
+// Format: SW x1, 0(x1) - Store word to to memory[0x200+xoffset]
+//        ADDI x4, 1   // Increment position
+//        ADDI 5, 1   // Increment position
+//        ADDI 5, 1   // Increment position
+//        ADDI 5, 1   // Increment position
+// HALT
+
+// Memory layout:
+// 0x14000: Guest PC
+// 0x14100: Guest registers
+// 0x18000: Guest RAM (RISC-V code)
+// 0x00200: UART Output
+// 0x00204: UART write position
+
+// ============================================================================
+
+// Guest RAM at 0x18000: Simple RISC-V program that writes "GEOM"
+// Format: LUI + ADDI + SW + ADDI + ADDI + SW + ADDI + ADDI + EBREAK
+// ============================================================================
+
+.equ GUEST_PC, 0x14000
+.equ GUEST_REGS, 0x14100
+.equ GUEST_RAM, 0x18000
+.equ UART, 0x200
+.equ UART_POS, 0x204
+
+.equ CHAR_G, 71
+.equ CHAR_E, 69
+.equ CHAR_O, 79
+.equ CHAR_M, 77
+
+.equ DONE_FLAG, 0x300
+
+.equ LOOP_COUNT, 4
+:boot
+    // Initialize Guest PC
+    LDI r10, GUEST_RAM
+    LDI r11, GUEST_PC
+    STORE r11, r10
+    // Initialize UART pointer
+    LDI r12, UART
+    // Initialize write position to 0
+    LDI r14, 0
+    LDI r11, UART_POS
+    STORE r11, r14
+    // Initialize guest registers base
+    LDI r19, GUEST_REGS
+    // Load jump target for loop
+    LDI r16, fetch
+:fetch
+    // Load Guest PC
+    LDI r11, GUEST_PC
+    LOAD r11, r10
+    // Fetch instruction at Guest PC
+    LOAD r10, r13
+    // Increment Guest PC
+    LDI r14, 1
+    ADD r14, r10
+    LDI r11, GUEST_PC
+    STORE r11, r10
+    // Extract opcode (bits 0-6)
+    LDI r14, 0x7F
+    AND r13, r14
+    // Check for ADDI (opcode 0x13)
+    LDI r15, 0x13
+    SUB r14, r15
+    JZ r15, handle_addi
+    // Check for LUI (opcode 0x37)
+    LDI r15, 0x37
+    SUB r14, r15
+    JZ r15, handle_lui
+    // Check for STORE (opcode 0x23)
+    LDI r15, 0x23
+    SUB r14, r15
+    JZ r15, handle_store
+    // Check for EBREAK (opcode 0x73 with funct3=0)
+    LDI r15, 0x73
+    SUB r14, r15
+    JZ r15, handle_ebreak
+    // Unknown opcode - halt
+    HALT
+:handle_addi
+    // ADDI format: imm[11:0] | rs1[4:0] | funct3[0] | rd[4:0] | opcode[6:0]=0x13
+    // Extract rd (bits 7-11)
+    MOV r14, r13
+    LDI r15, 7
+    SHR r14, r15
+    LDI r15, 0x1F
+    AND r14, r15
+    // Store result to guest register rd
+    LDI r11, GUEST_REGS
+    ADD r11, r14
+    ADD r11, r14
+    LDI r15, 1
+    ADD r14, r15
+    ADD r14, r15
+    STORE r11, r15
+    JMP r16
+:handle_lui
+    // LUI format: imm[31:12] << 12 | rd[4:0] | opcode[6:0]=0x37
+    // Extract rd (bits 7-11)
+    MOV r14, r13
+    LDI r15, 7
+    SHR r14, r15
+    LDI r15, 0x1F
+    AND r14, r15
+    // Extract immediate (bits 12-31)
+    MOV r15, r13
+    LDI r18, 0xFFFFF000
+    AND r15, r18
+    // Store result in guest register rd
+    LDI r11, GUEST_REGS
+    ADD r11, r14
+    ADD r11, r14
+    LDI r18, 4
+    ADD r14, r18
+    ADD r14, r18
+    STORE r11, r15
+    JMP r16
+:handle_store
+    // SW format: imm[11:5] | rs2[4:0] | rs1[4:0] | funct3=2 | imm[4:0] | opcode[6:0]=0x23
+    // For this test, we store writes a character from guest register to UART
+    // Extract rs2 (bits 20-24) - source register
+    MOV r14, r13
+    LDI r15, 20
+    SHR r14, r15
+    LDI r15, 0x1F
+    AND r14, r15
+    // Load guest register rs2 value
+    LDI r11, GUEST_REGS
+    ADD r11, r14
+    ADD r11, r14
+    LDI r15, 4
+    ADD r14, r15
+    ADD r14, r15
+    LOAD r11, r14
+    // Get current UART write position
+    LDI r11, UART_POS
+    LOAD r11, r15
+    // Write character to UART
+    LDI r12, UART
+    ADD r15, r12
+    STORE r15, r14
+    // Increment UART position
+    LDI r14, 1
+    ADD r14, r15
+    LDI r11, UART_POS
+    STORE r11, r14
+    JMP r16
+:handle_ebreak
+    // EBREAK - halt emulation
+    HALT

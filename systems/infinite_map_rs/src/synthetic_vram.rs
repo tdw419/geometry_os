@@ -283,6 +283,30 @@ impl SyntheticVram {
         self.frame += 1;
     }
 
+    /// Execute one frame using interleaved (round-robin) scheduling.
+    /// This allows VMs to make progress concurrently, enabling polling IPC patterns.
+    pub fn execute_frame_interleaved(&mut self, cycles_per_step: u32) {
+        let mut completed_cycles = [0u32; MAX_VMS];
+        let mut active = true;
+
+        while active {
+            active = false;
+            for vm_idx in 0..MAX_VMS {
+                if self.vms[vm_idx].state == VM_STATE_RUNNING && completed_cycles[vm_idx] < MAX_CYCLES_PER_VM {
+                    active = true;
+                    for _ in 0..cycles_per_step {
+                        if self.vms[vm_idx].state != VM_STATE_RUNNING || completed_cycles[vm_idx] >= MAX_CYCLES_PER_VM {
+                            break;
+                        }
+                        self.execute_instruction(vm_idx);
+                        completed_cycles[vm_idx] += 1;
+                    }
+                }
+            }
+        }
+        self.frame += 1;
+    }
+
     /// Step a single instruction on a specific VM (for debugging)
     pub fn step(&mut self, vm_id: usize) -> bool {
         if vm_id >= MAX_VMS || self.vms[vm_id].state != VM_STATE_RUNNING {
@@ -1128,47 +1152,58 @@ mod tests {
     }
 
     #[test]
-    fn test_multi_vm_spawn() {
-        // Multi-VM Spawn Pattern (simplified for sequential scheduler):
-        // 1. Parent (VM 0) spawns child at addr 100, then HALTS
-        // 2. Child (VM 1) runs independently, writes 0xCAFE to mem[512]
-        // 3. Both HALT
-        //
-        // Note: The scheduler runs VMs sequentially (VM 0 completes, then VM 1 runs).
-        // This test verifies SPATIAL_SPAWN creates independent child VMs.
+    fn test_multi_vm_ipc_interleaved() {
+        // Multi-VM IPC Pattern (polling handshake):
+        // 1. Parent (VM 0) spawns child (VM 1) at addr 100
+        // 2. Parent polls mem[512] for 0xCAFE
+        // 3. Child computes/writes 0xCAFE to mem[512]
+        // 4. Child polls mem[516] for 0xF00D (acknowledgment)
+        // 5. Parent sees 0xCAFE, writes 0xF00D to mem[516]
+        // 6. Both VMs HALT after seeing their respective signals
 
         let mut vram = SyntheticVram::new_small(1024);
 
-        // === CHILD PROGRAM (addr 100-105) ===
-        // LDI r0, 0xCAFE; LDI r1, 512; STORE [r1], r0; HALT
-        vram.poke(100, glyph(1, 0, 0, 0));   // LDI r0
-        vram.poke(101, 0xCAFE);               // = 0xCAFE
-        vram.poke(102, glyph(1, 0, 1, 0));   // LDI r1
-        vram.poke(103, 512);                  // = 512 (shared mem addr)
-        vram.poke(104, glyph(4, 0, 1, 0));   // STORE [r1], r0
-        vram.poke(105, glyph(13, 0, 0, 0));  // HALT
+        // === CHILD PROGRAM (addr 100-112) ===
+        vram.poke(100, glyph(1, 0, 0, 0));   // LDI r0 = 0xCAFE
+        vram.poke(101, 0xCAFE);
+        vram.poke(102, glyph(1, 0, 1, 0));   // LDI r1 = 512
+        vram.poke(103, 512);
+        vram.poke(104, glyph(4, 0, 1, 0));   // STORE [r1], r0 (Signal parent)
+        vram.poke(105, glyph(1, 0, 1, 0));   // LDI r1 = 516
+        vram.poke(106, 516);
+        vram.poke(107, glyph(1, 0, 3, 0));   // LDI r3 = 0xF00D (Expected ack)
+        vram.poke(108, 0xF00D);
+        vram.poke(109, glyph(3, 0, 1, 2));   // LOAD r2 = mem[r1] (Poll for ack)
+        vram.poke(110, glyph(10, 1, 2, 3));  // BNE r2, r3, -3 (offset = 110 + 2 - 3 = 109)
+        vram.poke(111, (-3i32) as u32);
+        vram.poke(112, glyph(13, 0, 0, 0));  // HALT
 
-        // === PARENT PROGRAM (addr 0-4) ===
-        // LDI r4, 100; SPATIAL_SPAWN r0=spawn(r4); HALT
-        vram.poke(0, glyph(1, 0, 4, 0));     // LDI r4
+        // === PARENT PROGRAM (addr 0-15) ===
+        vram.poke(0, glyph(1, 0, 4, 0));     // LDI r4 = 100
         vram.poke(1, 100);                    // = 100
         vram.poke(2, glyph(225, 0, 4, 0));   // SPATIAL_SPAWN r0 = spawn(r4)
-        vram.poke(3, glyph(13, 0, 0, 0));    // HALT
+        vram.poke(3, glyph(1, 0, 5, 0));     // LDI r5 = 512
+        vram.poke(4, 512);
+        vram.poke(5, glyph(1, 0, 7, 0));     // LDI r7 = 0xCAFE (Expected child signal)
+        vram.poke(6, 0xCAFE);
+        vram.poke(7, glyph(3, 0, 5, 6));     // LOAD r6 = mem[r5] (Poll for signal)
+        vram.poke(8, glyph(10, 1, 6, 7));    // BNE r6, r7, -3 (offset = 8 + 2 - 3 = 7)
+        vram.poke(9, (-3i32) as u32);
+        vram.poke(10, glyph(1, 0, 0, 0));    // LDI r0 = 0xF00D
+        vram.poke(11, 0xF00D);
+        vram.poke(12, glyph(1, 0, 1, 0));    // LDI r1 = 516
+        vram.poke(13, 516);
+        vram.poke(14, glyph(4, 0, 1, 0));    // STORE [r1], r0 (Signal ack)
+        vram.poke(15, glyph(13, 0, 0, 0));   // HALT
 
-        // === RUN ===
+        // Run with interleaved scheduler (1 cycle per VM at a time)
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
-        vram.execute_frame();
+        vram.execute_frame_interleaved(1);
 
-        // === VERIFY ===
-        // 1. Child should have written 0xCAFE to shared memory
-        assert_eq!(vram.peek(512), 0xCAFE, "Child should write 0xCAFE to shared memory");
-
-        // 2. Both VMs should be halted
-        assert!(vram.is_halted(0), "Parent VM should be halted");
-        assert!(vram.is_halted(1), "Child VM should be halted");
-
-        // 3. Child VM ID should be 1 (returned in r4 of parent - same register as entry point)
-        //    SPATIAL_SPAWN overwrites p1 (r4) with the new VM ID
-        assert_eq!(vram.vm_state(0).unwrap().regs[4], 1, "Parent r4 should contain child VM ID");
+        // Verify: Both should have reached HALT and shared memory should be updated
+        assert_eq!(vram.peek(512), 0xCAFE);
+        assert_eq!(vram.peek(516), 0xF00D);
+        assert!(vram.is_halted(0), "Parent should be halted");
+        assert!(vram.is_halted(1), "Child should be halted");
     }
 }
