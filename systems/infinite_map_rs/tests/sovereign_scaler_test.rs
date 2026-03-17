@@ -92,9 +92,9 @@ fn create_scaler_program(src_addr: u32, dst_addr: u32, count: u32) -> Vec<(u32, 
         (16, glyph(5, 0, 3, 1)),
         // 17: ADD r2, r3, r2 (counter++)
         (17, glyph(5, 0, 3, 2)),
-        // 18-19: BNE r2, r4, -8 (jump to addr 12)
+        // 18-19: BNE r2, r4, -10 (jump to addr 10)
         (18, glyph(10, 1, 2, 4)),
-        (19, (-8i32) as u32),
+        (19, 0xFFFFFFF6u32),  // -10 as u32
         // 20: STORE [r7], r6
         (20, glyph(4, 0, 7, 6)),
         // 21: HALT
@@ -136,10 +136,24 @@ fn test_sovereign_scaler_1k() {
     let count = 1024u32;
     let checksum_addr = 30000u32;
 
+    println!("[DEBUG] Filling source region {}-{}...", src_base, src_base + count - 1);
     for i in 0..count {
         let value = 0xDEAD_0000 | (i & 0xFFFF);
         scheduler.poke_substrate_single(src_base + i, value);
     }
+
+    // Verify source was filled
+    println!("[DEBUG] Verifying source was filled correctly...");
+    for i in 0..5 {
+        let expected = 0xDEAD_0000 | (i & 0xFFFF);
+        let actual = scheduler.peek_substrate_single(src_base + i);
+        if actual != expected {
+            println!("  ✗ Source NOT filled at {}: expected {:08x}, got {:08x}",
+                     src_base + i, expected, actual);
+            panic!("Source data not written correctly!");
+        }
+    }
+    println!("[DEBUG] Source verified OK");
 
     // Write scaler program
     let program = create_scaler_program(src_base, dst_base, count);
@@ -161,12 +175,32 @@ fn test_sovereign_scaler_1k() {
     };
     scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
 
-    // Execute
+    // Execute (multiple frames needed - MAX_CYCLES_PER_VM = 1024)
+    // Program needs ~6144 cycles: 10 LDI × 2 + 6 instructions × 1024 iterations
     println!("[SCALER] Executing copy of 1024 words (4KB)...");
+    println!("[SCALER] Note: MAX_CYCLES_PER_VM = 1024, need ~6144 cycles for 1024 iterations");
     let start = std::time::Instant::now();
-    scheduler.execute_frame();
+
+    let mut frames = 0u32;
+    loop {
+        scheduler.execute_frame();
+        frames += 1;
+
+        // Check if VM has halted
+        let state = scheduler.get_vm_state(0).expect("Failed to get VM state");
+        if state == 2 { // VM_STATE_HALTED
+            break;
+        }
+
+        // Safety limit
+        if frames > 100 {
+            println!("[SCALER] Warning: Exceeded 100 frames, forcing halt");
+            break;
+        }
+    }
+
     let elapsed = start.elapsed();
-    println!("[SCALER] Execution time: {:?}", elapsed);
+    println!("[SCALER] Execution completed in {} frames, {:?}", frames, elapsed);
 
     // Sync
     scheduler.sync_gpu_to_shadow();
@@ -174,6 +208,15 @@ fn test_sovereign_scaler_1k() {
     // Verify
     let mut errors = 0;
     let mut expected_checksum: u32 = 0;
+
+    // Debug: check first few destination positions
+    println!("[DEBUG] First 10 destination values:");
+    for i in 0..10u32 {
+        let dst_val = scheduler.peek_substrate_single(dst_base + i);
+        let expected = 0xDEAD_0000 | (i & 0xFFFF);
+        println!("  dst[{}] = {:08x} (expected {:08x})",
+                 dst_base + i, dst_val, expected);
+    }
 
     for i in 0..count {
         let expected = 0xDEAD_0000 | (i & 0xFFFF);
@@ -273,10 +316,27 @@ fn test_sovereign_scaler_64k() {
     scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
 
     println!("[SCALER] Executing copy of 65536 words (256KB)...");
+    println!("[SCALER] Note: Need ~393216 cycles for 65536 iterations");
     let start = std::time::Instant::now();
-    scheduler.execute_frame();
+
+    let mut frames = 0u32;
+    loop {
+        scheduler.execute_frame();
+        frames += 1;
+
+        let state = scheduler.get_vm_state(0).expect("Failed to get VM state");
+        if state == 2 { // VM_STATE_HALTED
+            break;
+        }
+
+        if frames > 1000 {
+            println!("[SCALER] Warning: Exceeded 1000 frames, forcing halt");
+            break;
+        }
+    }
+
     let elapsed = start.elapsed();
-    println!("[SCALER] Execution time: {:?}", elapsed);
+    println!("[SCALER] Execution completed in {} frames, {:?}", frames, elapsed);
 
     scheduler.sync_gpu_to_shadow();
 
@@ -377,10 +437,27 @@ fn test_sovereign_scaler_kernel_sized() {
 
     println!("[SCALER] Executing copy of 524288 words (2MB)...");
     println!("[SCALER] This simulates kernel image transfer...");
+    println!("[SCALER] Note: Need ~3.1M cycles for 524288 iterations");
     let start = std::time::Instant::now();
-    scheduler.execute_frame();
+
+    let mut frames = 0u32;
+    loop {
+        scheduler.execute_frame();
+        frames += 1;
+
+        let state = scheduler.get_vm_state(0).expect("Failed to get VM state");
+        if state == 2 { // VM_STATE_HALTED
+            break;
+        }
+
+        if frames > 5000 {
+            println!("[SCALER] Warning: Exceeded 5000 frames, forcing halt");
+            break;
+        }
+    }
+
     let elapsed = start.elapsed();
-    println!("[SCALER] Execution time: {:?}", elapsed);
+    println!("[SCALER] Execution completed in {} frames, {:?}", frames, elapsed);
 
     scheduler.sync_gpu_to_shadow();
 
