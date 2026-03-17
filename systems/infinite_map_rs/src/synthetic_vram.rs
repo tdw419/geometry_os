@@ -443,26 +443,47 @@ impl SyntheticVram {
                 self.vms[vm_idx].pc += 1;
             },
 
-            // ADD — regs[p2] = regs[p1] + regs[p2]
+            // ADD — two forms:
+            // stratum=0: ADD src, dst → dst = src + dst (two-operand)
+            // stratum>0: ADD dst, src1, src2 → dst = src1 + src2 (three-operand)
             5 => {
-                let v1 = self.vms[vm_idx].regs[p1 as usize];
-                let v2 = self.vms[vm_idx].regs[p2 as usize];
-                self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_add(v2);
+                if stratum == 0 {
+                    let v1 = self.vms[vm_idx].regs[p1 as usize];
+                    let v2 = self.vms[vm_idx].regs[p2 as usize];
+                    self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_add(v2);
+                } else {
+                    // Three-operand form: dst=p2, src1=p1, src2=stratum
+                    let v1 = self.vms[vm_idx].regs[p1 as usize];
+                    let v2 = self.vms[vm_idx].regs[stratum as usize];
+                    self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_add(v2);
+                }
                 self.vms[vm_idx].pc += 1;
             },
 
-            // SUB — regs[p2] = regs[p1] - regs[p2]
+            // SUB — two forms:
+            // stratum=0: SUB src, dst → dst = src - dst (two-operand)
+            // stratum>0: SUB dst, src1, src2 → dst = src1 - src2 (three-operand)
             6 => {
-                let v1 = self.vms[vm_idx].regs[p1 as usize];
-                let v2 = self.vms[vm_idx].regs[p2 as usize];
-                self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_sub(v2);
+                if stratum == 0 {
+                    let v1 = self.vms[vm_idx].regs[p1 as usize];
+                    let v2 = self.vms[vm_idx].regs[p2 as usize];
+                    self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_sub(v2);
+                } else {
+                    // Three-operand form: dst=p2, src1=p1, src2=stratum
+                    let v1 = self.vms[vm_idx].regs[p1 as usize];
+                    let v2 = self.vms[vm_idx].regs[stratum as usize];
+                    self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_sub(v2);
+                }
                 self.vms[vm_idx].pc += 1;
             },
 
-            // MUL — regs[p2] = regs[p1] * regs[p2]
+            // MUL — two forms:
+            // stratum=0: MUL src, dst → dst = src * dst (two-operand)
+            // stratum>0: MUL dst, src1, src2 → dst = src1 * src2 (three-operand)
             7 => {
-                let v1 = self.vms[vm_idx].regs[p1 as usize];
-                let v2 = self.vms[vm_idx].regs[p2 as usize];
+                if stratum == 0 {
+                    let v1 = self.vms[vm_idx].regs[p1 as usize];
+                    let v2 = self.vms[vm_idx].regs[p2 as usize];
                 self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_mul(v2);
                 self.vms[vm_idx].pc += 1;
             },
@@ -2578,33 +2599,27 @@ mod tests {
         println!("\n  Pass counter at 0x4004: {:08X}", vram.peek(0x4004));
         println!("  Source pointer r0 should be around 0x1000-0x1FFF");
 
-        // Debug: show where in source the output came from
-        println!("\n  Source around 0x10XX (looking for 'IRE'):");
-        for offset in 0..500 {
-            let addr = 0x1000 + offset;
-            // Check for "IRE" pattern
-            let c1 = vram.peek(addr);
-            let c2 = vram.peek(addr + 1);
-            let c3 = vram.peek(addr + 2);
-            if c1 == 0x49 && c2 == 0x52 && c3 == 0x45 {  // 'I', 'R', 'E'
-                println!("    Found 'IRE' at source offset 0x{:04X}", offset);
-                // Print surrounding context
-                let start = if offset > 20 { offset - 20 } else { 0 };
-                let mut context = String::new();
-                for i in start..offset+30 {
-                    let c = vram.peek(0x1000 + i);
-                    if c >= 32 && c < 127 {
-                        context.push((c & 0xFF) as u8 as char);
-                    } else if c == 10 {
-                        context.push('↵');
-                    } else if c == 0 {
-                        break;
-                    }
-                }
-                println!("    Context: \"{}\"", context.escape_default());
-                break;
+        // Debug: check if source at 0x1000 is intact
+        println!("\n  Source at 0x1000 (first 100 chars):");
+        let mut src_check = String::new();
+        for i in 0..100 {
+            let c = vram.peek(0x1000 + i);
+            if c == 0 { break; }
+            if c >= 32 && c < 127 {
+                src_check.push((c & 0xFF) as u8 as char);
+            } else if c == 10 {
+                src_check.push('↵');
             }
         }
+        println!("    \"{}\"", src_check.escape_default());
+
+        // Check if there's a memory overlap issue
+        println!("\n  Checking for memory overlap:");
+        println!("    Binary end: {:04X} (assembled.words.len() = {})", assembled.words.len(), assembled.words.len());
+        println!("    Source start: 1000");
+        println!("    Source end: {:04X}", 0x1000 + source_text.len());
+        println!("    Output start: 2000");
+        println!("    Labels start: 3000");
 
         // 4. Verify Output Binary at 0x2000
         println!("Self-Hosting Quine Verification:");

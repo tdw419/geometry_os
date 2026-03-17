@@ -629,19 +629,19 @@ mod tests {
     fn test_assemble_self_replication() {
         let mut asm = GlyphAssembler::new();
         let program = asm.assemble(r#"
-            ; Self-replicating glyph
-            LDI r0, 0           ; src = 0
-            LDI r1, 100         ; dst = 100
-            LDI r2, 0           ; counter = 0
-            LDI r3, 1           ; increment = 1
-            LDI r4, 18          ; length = 18
+            // Self-replicating glyph
+            LDI r0, 0           // src = 0
+            LDI r1, 100         // dst = 100
+            LDI r2, 0           // counter = 0
+            LDI r3, 1           // increment = 1
+            LDI r4, 18          // length = 18
         loop:
-            LOAD r5, [r0]       ; r5 = mem[r0]
-            STORE [r1], r5      ; mem[r1] = r5
-            ADD r0, r3, r0      ; src++
-            ADD r1, r3, r1      ; dst++
-            ADD r2, r3, r2      ; counter++
-            BNE r2, r4, loop    ; if counter != length, loop
+            LOAD r5, [r0]       // r5 = mem[r0]
+            STORE [r1], r5      // mem[r1] = r5
+            ADD r0, r3, r0      // src++
+            ADD r1, r3, r1      // dst++
+            ADD r2, r3, r2      // counter++
+            BNE r2, r4, loop    // if counter != length, loop
             HALT
         "#).unwrap();
 
