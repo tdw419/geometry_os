@@ -3075,19 +3075,8 @@ fn handle_raw_request<S: Read + Write>(
                     }
                 }
 
-                // Flush pending Hebbian updates
-                if let Some(processor) = get_hebbian_processor() {
-                    if let Some(device) = get_device() {
-                        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                            label: Some("train_flush"),
-                        });
-                        let mut proc = processor.lock().unwrap();
-                        proc.flush(&mut encoder);
-                        if let Some(queue) = get_queue() {
-                            queue.submit(std::iter::once(encoder.finish()));
-                        }
-                    }
-                }
+                // Hebbian processor will flush automatically when batch is full
+                // or on next frame dispatch
 
                 let accuracy = if total_predictions > 0 {
                     correct_predictions as f32 / total_predictions as f32
