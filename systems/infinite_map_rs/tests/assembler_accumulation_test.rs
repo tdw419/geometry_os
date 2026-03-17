@@ -57,6 +57,11 @@ mod tests {
         
         
         
+        
+        
+        
+        
+        
         let program = vec![
             (0, glyph(1, 0, 0, 0)), (1, 10000),   // r0 = 10000 (text ptr)
             (2, glyph(1, 0, 6, 0)), (3, 0),       // r6 = 0 (accumulator)
@@ -68,37 +73,39 @@ mod tests {
             // LOOP START (addr 12)
             (12, glyph(3, 0, 0, 1)),              // r1 = char = mem[r0]
             
-            // Null check
-            (13, glyph(10, 0, 1, 12)), (14, 10i32 as u32), // BEQ r1, r12 -> END (addr 24)
+            // BEQ r1, r12 (0) -> END
+            // PC=13. Instruction takes PC and PC+1. 
+            // offset = 24 - (13 + 2) = 9
+            (13, glyph(10, 0, 1, 12)), (14, 9i32 as u32), 
             
-            // digit = char - 48
-            // Shader: r[p2] = r[p1] - r[p2]
-            // We want r8 = r1 - r11.
-            // p1=1 (char), p2=11? No, r11 is constant.
-            (15, glyph(2, 0, 11, 8)),             // r8 = 48
-            (16, glyph(6, 0, 1, 8)),              // r8 = r1 - r8 = char - 48
-            
-            // accumulator = (accumulator * 10) + digit
-            // r6 = (r6 * r7) + r8
-            // MUL: r[p2] = r[p1] * r[p2]
             // r6 = r7 * r6
-            (17, glyph(7, 0, 7, 6)),              // r6 = 10 * r6
+            (15, glyph(7, 0, 7, 6)),              
             
-            // ADD: r[p2] = r[p1] + r[p2]
+            // r8 = 48
+            (16, glyph(2, 0, 11, 8)),             
+            // r8 = r1 - r8
+            (17, glyph(6, 0, 1, 8)),              
+            
             // r6 = r8 + r6
-            (18, glyph(5, 0, 8, 6)),              // r6 = r6 + r8
+            (18, glyph(5, 0, 8, 6)),              
             
-            // text_ptr++
-            (19, glyph(5, 0, 10, 0)),             // r0++
+            // r0 = r0 + r10
+            (19, glyph(5, 0, 10, 0)),             
             
-            // jump back
-            (20, glyph(10, 0, 10, 10)), (21, (-10i32) as u32), // BEQ r10, r10 -> 12
+            // Always JMP 12. PC=20. 
+            // offset = 12 - (20 + 2) = -10
+            (20, glyph(10, 0, 10, 10)), (21, (-10i32) as u32),
             
-            // END (addr 24)
-            (22, glyph(1, 0, 15, 0)), (23, 200),  // r15 = 200
-            (24, glyph(4, 0, 15, 6)),             // STORE mem[200] = r6
-            (25, glyph(13, 0, 0, 0)),             // HALT
+            // END (addr 22)
+            (22, glyph(1, 0, 15, 0)), (23, 200),  
+            (24, glyph(4, 0, 15, 6)),             
+            (25, glyph(13, 0, 0, 0)),             
         ];
+
+
+
+
+
 
 
 
@@ -108,7 +115,7 @@ mod tests {
 
         let config = VmConfig { entry_point: 0, parent_id: 0xFF, base_addr: 0, bound_addr: 0, initial_regs: [0; 128] };
         scheduler.spawn_vm(0, &config).unwrap();
-        scheduler.execute_frame();
+        for _ in 0..100 { scheduler.execute_frame(); }
         scheduler.sync_gpu_to_shadow();
 
         let result = scheduler.peek_substrate_single(200);
