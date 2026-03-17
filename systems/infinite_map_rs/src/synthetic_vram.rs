@@ -583,9 +583,18 @@ impl SyntheticVram {
                 self.vms[vm_idx].pc += 1;
             },
             131 => {
-                // SHL
-                let shift = self.vms[vm_idx].regs[p2 as usize] & 31;
-                self.vms[vm_idx].regs[p2 as usize] = self.vms[vm_idx].regs[p1 as usize] << shift;
+                // SHL - two forms:
+                // stratum=0: SHL src, dst → dst = src << (dst & 31)
+                // stratum>0: SHL dst, src, shift_reg → dst = src << (shift_reg & 31)
+                //            where shift_reg is encoded in stratum field
+                if stratum == 0 {
+                    let shift = self.vms[vm_idx].regs[p2 as usize] & 31;
+                    self.vms[vm_idx].regs[p2 as usize] = self.vms[vm_idx].regs[p1 as usize] << shift;
+                } else {
+                    // Three-operand form: dst=p2, src=p1, shift_reg=stratum
+                    let shift = self.vms[vm_idx].regs[stratum as usize] & 31;
+                    self.vms[vm_idx].regs[p2 as usize] = self.vms[vm_idx].regs[p1 as usize] << shift;
+                }
                 self.vms[vm_idx].pc += 1;
             },
             132 => {
