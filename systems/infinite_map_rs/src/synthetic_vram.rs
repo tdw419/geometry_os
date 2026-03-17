@@ -1526,4 +1526,205 @@ mod tests {
         assert_eq!(vram.peek(500), 0xFF, "Unknown mnemonic should emit 0xFF error");
         println!("  \"XYZ\" → 0xFF (error, as expected)");
     }
+
+    #[test]
+    fn test_operand_parser() {
+        let mut vram = SyntheticVram::new_small(1024);
+
+        // Registers for the parser:
+        // r0: input pointer (0x200)
+        // r1: accumulator
+        // r2: current char
+        // r3: temp
+        // r4: base
+        // r5: output addr (0x500)
+        // r6: error addr (0x504)
+
+        // I'll skip manually poking the parser and instead rely on the 
+        // Logic implemented in operand_parser.glyph.
+        // For the test, I'll manually poke the compiled instructions.
+        
+        let mut pc = 0;
+        let mut poke_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+            v.poke(*p, glyph(1, 0, reg, 0)); *p += 1;
+            v.poke(*p, val); *p += 1;
+        };
+
+        // --- PREAMBLE ---
+        poke_ldi(&mut vram, &mut pc, 0, 0x200); // r0 = 0x200
+        poke_ldi(&mut vram, &mut pc, 1, 0);     // r1 = 0
+        poke_ldi(&mut vram, &mut pc, 5, 0x500); // r5 = 0x500
+        poke_ldi(&mut vram, &mut pc, 6, 0x504); // r6 = 0x504
+        vram.poke(pc, glyph(4, 0, 6, 1)); pc += 1; // STORE [r6], r1 (init error=0)
+
+        // LOAD r2, [r0]
+        vram.poke(pc, glyph(3, 0, 0, 2)); pc += 1;
+
+        // --- CHECK 'r' ---
+        poke_ldi(&mut vram, &mut pc, 3, 114); // r3 = 'r'
+        let bne_r_pc = pc; vram.poke(pc, glyph(10, 1, 2, 3)); pc += 1; // BNE r2, r3, :check_hex
+        let bne_r_off = pc; pc += 1;
+
+        // IS 'r': Skip 'r'
+        poke_ldi(&mut vram, &mut pc, 3, 1);
+        vram.poke(pc, glyph(5, 0, 0, 3)); pc += 1; // ADD r0, r0, r3
+        // JMP :parse_dec_init
+        let jump_dec_off_pc = pc + 1; // addr where target will be stored
+        vram.poke(pc, glyph(1, 0, 1, 0)); pc += 1; // LDI r1
+        vram.poke(pc, 0); pc += 1; // target (fill later)
+        vram.poke(pc, glyph(9, 0, 1, 0)); pc += 1; // JMP r1
+
+        // --- CHECK HEX ---
+        let check_hex_label = pc;
+        vram.poke(bne_r_off, (check_hex_label as i32 - bne_r_pc as i32 - 2) as u32);
+        
+        poke_ldi(&mut vram, &mut pc, 3, 48); // r3 = '0'
+        let bne_0_pc = pc; vram.poke(pc, glyph(10, 1, 2, 3)); pc += 1; // BNE r2, r3, :parse_dec_init
+        let bne_0_off = pc; pc += 1;
+
+        // IS '0': Peek next
+        poke_ldi(&mut vram, &mut pc, 3, 1);
+        vram.poke(pc, glyph(5, 0, 0, 3)); pc += 1; // ADD r0, r0, r3
+        vram.poke(pc, glyph(3, 0, 0, 2)); pc += 1; // LOAD r2, [r0]
+        poke_ldi(&mut vram, &mut pc, 3, 120); // r3 = 'x'
+        let bne_x_pc = pc; vram.poke(pc, glyph(10, 1, 2, 3)); pc += 1; // BNE r2, r3, :finish (simplified)
+        let bne_x_off = pc; pc += 1;
+
+        // IS 'x': Parse Hex
+        poke_ldi(&mut vram, &mut pc, 3, 1);
+        vram.poke(pc, glyph(5, 0, 0, 3)); pc += 1; // ADD r0, r0, r3
+        // JMP :parse_hex_init
+        let jump_hex_off_pc = pc + 1;
+        vram.poke(pc, glyph(1, 0, 1, 0)); pc += 1; // LDI r1
+        vram.poke(pc, 0); pc += 1;
+        vram.poke(pc, glyph(9, 0, 1, 0)); pc += 1; // JMP r1
+
+        // --- PARSE DEC ---
+        let parse_dec_label = pc;
+        vram.poke(bne_0_off, (parse_dec_label as i32 - bne_0_pc as i32 - 2) as u32);
+        vram.poke(jump_dec_off_pc, parse_dec_label);
+        
+        poke_ldi(&mut vram, &mut pc, 4, 10); // Base 10
+        let dec_loop_start = pc;
+        vram.poke(pc, glyph(3, 0, 0, 2)); pc += 1; // LOAD r2, [r0]
+        poke_ldi(&mut vram, &mut pc, 3, 32); // r3 = 32 (space)
+        let beq_space_dec_pc = pc; vram.poke(pc, glyph(10, 0, 2, 3)); pc += 1; // BEQ r2, r3, :finish
+        let beq_space_dec_off = pc; pc += 1;
+        let blt_space_dec_pc = pc; vram.poke(pc, glyph(10, 4, 2, 3)); pc += 1; // BLTU r2, r3, :finish
+        let blt_space_dec_off = pc; pc += 1;
+
+        poke_ldi(&mut vram, &mut pc, 3, 48); // r3 = '0'
+        vram.poke(pc, glyph(2, 0, 2, 10)); pc += 1; // MOV r10, r2
+        vram.poke(pc, glyph(2, 0, 3, 2)); pc += 1;  // MOV r2, r3
+        vram.poke(pc, glyph(6, 0, 10, 2)); pc += 1; // SUB r2 = r10 - r2 = char - '0'
+        
+        vram.poke(pc, glyph(7, 0, 4, 1)); pc += 1; // MUL r1, r4, r1 (acc *= 10)
+        vram.poke(pc, glyph(5, 0, 2, 1)); pc += 1; // ADD r1, r2, r1 (acc += digit)
+        poke_ldi(&mut vram, &mut pc, 3, 1);
+        vram.poke(pc, glyph(5, 0, 0, 3)); pc += 1; // r0++
+        // JMP dec_loop_start
+        poke_ldi(&mut vram, &mut pc, 3, dec_loop_start);
+        vram.poke(pc, glyph(9, 0, 3, 0)); pc += 1; // JMP r3
+
+        // --- PARSE HEX ---
+        let parse_hex_label = pc;
+        vram.poke(jump_hex_off_pc, parse_hex_label);
+        poke_ldi(&mut vram, &mut pc, 4, 16); // Base 16
+        let hex_loop_start = pc;
+        vram.poke(pc, glyph(3, 0, 0, 2)); pc += 1; // LOAD r2, [r0]
+        poke_ldi(&mut vram, &mut pc, 3, 32); // r3 = 32 (space)
+        let beq_space_hex_pc = pc; vram.poke(pc, glyph(10, 0, 2, 3)); pc += 1; // BEQ r2, r3, :finish
+        let beq_space_hex_off = pc; pc += 1;
+        let blt_space_hex_pc = pc; vram.poke(pc, glyph(10, 4, 2, 3)); pc += 1; // BLTU r2, r3, :finish
+        let blt_space_hex_off = pc; pc += 1;
+
+        // Simplified hex logic
+        poke_ldi(&mut vram, &mut pc, 3, 97); // 'a'
+        let bge_a_pc = pc; vram.poke(pc, glyph(10, 3, 2, 3)); pc += 1; // BGE r2, r3, :hex_a
+        let bge_a_off = pc; pc += 1;
+        poke_ldi(&mut vram, &mut pc, 3, 65); // 'A'
+        let bge_A_pc = pc; vram.poke(pc, glyph(10, 3, 2, 3)); pc += 1; // BGE r2, r3, :hex_A
+        let bge_A_off = pc; pc += 1;
+        
+        // 0-9 case:
+        poke_ldi(&mut vram, &mut pc, 3, 48); // '0'
+        vram.poke(pc, glyph(2, 0, 2, 10)); pc += 1; // MOV r10, r2
+        vram.poke(pc, glyph(2, 0, 3, 2)); pc += 1;  // MOV r2, r3
+        vram.poke(pc, glyph(6, 0, 10, 2)); pc += 1; // r2 = r10 - r2 = char - '0'
+        // JMP :hex_acc
+        let jump_hex_acc_off_pc = pc + 1;
+        vram.poke(pc, glyph(1, 0, 3, 0)); pc += 1;
+        vram.poke(pc, 0); pc += 1;
+        vram.poke(pc, glyph(9, 0, 3, 0)); pc += 1;
+
+        let hex_a_label = pc;
+        vram.poke(bge_a_off, (hex_a_label as i32 - bge_a_pc as i32 - 2) as u32);
+        poke_ldi(&mut vram, &mut pc, 3, 87);
+        vram.poke(pc, glyph(2, 0, 2, 10)); pc += 1; // MOV r10, r2
+        vram.poke(pc, glyph(2, 0, 3, 2)); pc += 1;  // MOV r2, r3
+        vram.poke(pc, glyph(6, 0, 10, 2)); pc += 1; // r2 = char - 87
+        // JMP :hex_acc
+        let jump_hex_acc2_off_pc = pc + 1;
+        vram.poke(pc, glyph(1, 0, 3, 0)); pc += 1;
+        vram.poke(pc, 0); pc += 1;
+        vram.poke(pc, glyph(9, 0, 3, 0)); pc += 1;
+
+        let hex_A_label = pc;
+        vram.poke(bge_A_off, (hex_A_label as i32 - bge_A_pc as i32 - 2) as u32);
+        poke_ldi(&mut vram, &mut pc, 3, 55);
+        vram.poke(pc, glyph(2, 0, 2, 10)); pc += 1; // MOV r10, r2
+        vram.poke(pc, glyph(2, 0, 3, 2)); pc += 1;  // MOV r2, r3
+        vram.poke(pc, glyph(6, 0, 10, 2)); pc += 1; // r2 = char - 55
+
+        let hex_acc_label = pc;
+        vram.poke(jump_hex_acc_off_pc, hex_acc_label);
+        vram.poke(jump_hex_acc2_off_pc, hex_acc_label);
+        vram.poke(pc, glyph(7, 0, 4, 1)); pc += 1; // acc *= 16
+        vram.poke(pc, glyph(5, 0, 2, 1)); pc += 1; // acc += digit
+        poke_ldi(&mut vram, &mut pc, 3, 1);
+        vram.poke(pc, glyph(5, 0, 0, 3)); pc += 1; // r0++
+        // JMP hex_loop_start
+        poke_ldi(&mut vram, &mut pc, 3, hex_loop_start);
+        vram.poke(pc, glyph(9, 0, 3, 0)); pc += 1;
+
+        // --- FINISH ---
+        let finish_label = pc;
+        vram.poke(beq_space_dec_off, (finish_label as i32 - beq_space_dec_pc as i32 - 2) as u32);
+        vram.poke(blt_space_dec_off, (finish_label as i32 - blt_space_dec_pc as i32 - 2) as u32);
+        vram.poke(beq_space_hex_off, (finish_label as i32 - beq_space_hex_pc as i32 - 2) as u32);
+        vram.poke(blt_space_hex_off, (finish_label as i32 - blt_space_hex_pc as i32 - 2) as u32);
+        vram.poke(bne_x_off, (finish_label as i32 - bne_x_pc as i32 - 2) as u32); // Handle "0" as dec
+
+        vram.poke(pc, glyph(4, 0, 5, 1)); pc += 1; // STORE [r5], r1
+        vram.poke(pc, glyph(13, 0, 0, 0)); pc += 1; // HALT
+
+        println!("Operand parser: {} instructions", pc);
+
+        let test_cases = &[
+            ("r12", 12),
+            ("1234", 1234),
+            ("0xABCD", 0xABCD),
+            ("r0", 0),
+            ("0", 0),
+            ("42", 42),
+            ("0x100", 256),
+        ];
+
+        for (input, expected) in test_cases {
+            vram.reset(false);
+            // Poke input
+            for (i, b) in input.bytes().enumerate() {
+                vram.poke(0x200 + i as u32, b as u32);
+            }
+            vram.poke(0x200 + input.len() as u32, 0); // Null terminator
+            vram.poke(0x500, 0xDEADBEEF);
+
+            vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
+            vram.execute_frame_interleaved(1);
+
+            let result = vram.peek(0x500);
+            println!("  \"{}\" → {} (expected {})", input, result, expected);
+            assert_eq!(result, *expected, "Failed to parse \"{}\"", input);
+        }
+    }
 }

@@ -290,11 +290,11 @@ def compile_glyph_program(source):
                 p1 = parse_register(parts[1])
             stratum = 0  # Register mode (any value != 2)
 
-        elif opcode_str == 'BRANCH':
+        elif opcode_str in ['BRANCH', 'JZ', 'JNZ']:
             # BRANCH cond, rs1, rs2, offset
             # JZ rs1, label (pseudo) -> BRANCH stratum=0, rs1, r0, offset
             # JNZ rs1, label (pseudo) -> BRANCH stratum=1, rs1, r0, offset
-            if len(parts) >= 3:
+            if len(parts) >= 2:
                 # Check if it's JZ/JNZ format: JZ rs, label
                 if opcode_str in ['JZ', 'JNZ']:
                     p1 = parse_register(parts[1])  # Condition register
@@ -332,11 +332,6 @@ def compile_glyph_program(source):
                 ))
                 pc += 1
             continue
-
-        elif opcode_str in ['JZ', 'JNZ']:
-            # These should have been converted to BRANCH above
-            # This handles the case where they weren't
-            pass
 
         elif opcode_str in ['CALL', 'RET', 'RETURN', 'HALT', 'NOP']:
             # No additional operands
