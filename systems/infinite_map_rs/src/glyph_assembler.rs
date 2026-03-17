@@ -307,8 +307,9 @@ impl GlyphAssembler {
                 (Instruction { opcode, stratum: 0, p1: rs, p2: rd }, None)
             }
             Opcode::Store => {
-                // STORE [rd], rs or STORE mem[rd] = rs
+                // STORE [rd], rs or STORE mem[rd], rs
                 let addr_part = parts.get(1).ok_or("STORE needs address register")?;
+                let addr_part = addr_part.trim_end_matches(','); // Remove trailing comma
                 let addr_reg = addr_part.trim_start_matches('[').trim_start_matches("mem")
                     .trim_start_matches('[').trim_end_matches(']');
                 let rd = parse_reg(addr_reg)
@@ -467,7 +468,8 @@ mod tests {
         assert_eq!(program.len(), 6);
         assert_eq!(program.words[0], 0x00000001); // LDI r0
         assert_eq!(program.words[1], 42);          // DATA: 42
-        assert_eq!(program.words[4], 0x0000000D); // HALT
+        assert_eq!(program.words[4], 0x00010004); // STORE mem[r1], r0
+        assert_eq!(program.words[5], 0x0000000D); // HALT
     }
 
     #[test]
@@ -506,7 +508,8 @@ mod tests {
             HALT
         "#).unwrap();
 
-        assert_eq!(program.len(), 36); // 18 instructions, each is 2 words
+        // 5 LDI (2 words each) + 1 LOAD + 1 STORE + 3 ADD + 1 BNE (2 words) + 1 HALT = 18 words
+        assert_eq!(program.len(), 18);
         assert!(program.labels.contains_key("loop"));
     }
 }
