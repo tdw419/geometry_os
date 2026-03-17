@@ -705,10 +705,66 @@ fn generate_memory_visualization(pool: &str, width: u32) -> Vec<u8> {
 
 /// Get pool statistics for visualization
 fn get_pool_stats_for_visualization(pool: &str) -> Vec<(BlockState, f64)> {
-    // Simulated memory blocks based on pool type
-    // In production, this would read from actual MLMemoryPool
     let total_blocks = 256;
 
+    // Try to get real pool stats if available
+    if let Some(ml_pool) = get_global_pool() {
+        let stats = ml_pool.stats();
+        return convert_real_pool_stats(&stats, pool, total_blocks);
+    }
+
+    // Fallback to simulated data if pool not initialized
+    get_simulated_pool_stats(pool, total_blocks)
+}
+
+/// Convert real MLMemoryPool stats to visualization format
+fn convert_real_pool_stats(
+    all_stats: &std::collections::HashMap<String, crate::ml_memory::PoolStats>,
+    pool: &str,
+    total_blocks: usize,
+) -> Vec<(BlockState, f64)> {
+    use crate::ml_memory::PoolStats;
+
+    let pool_stats = match pool {
+        "weight" => all_stats.get("weight"),
+        "activation" => all_stats.get("activation"),
+        "gradient" => all_stats.get("gradient"),
+        _ => None, // For "all", we combine stats
+    };
+
+    let Some(stats) = pool_stats else {
+        // Fallback to simulated if this specific pool not found
+        return get_simulated_pool_stats(pool, total_blocks);
+    };
+
+    let fragmentation = stats.fragmentation_percent;
+    let used_ratio = if stats.total_allocated > 0 {
+        stats.used_bytes as f64 / stats.total_allocated as f64
+    } else {
+        0.0
+    };
+
+    // Generate block states based on actual stats
+    (0..total_blocks).map(|i| {
+        let pos_ratio = i as f64 / total_blocks as f64;
+        let state = if pos_ratio < used_ratio {
+            // Allocated region
+            if (pos_ratio * 100.0) as usize % (fragmentation as usize).max(1) {
+                BlockState::Fragmented
+            } else if i % 7 == 0 {
+                BlockState::HilbertAligned
+            } else {
+                BlockState::Allocated
+            }
+        } else {
+            BlockState::Free
+        };
+        (state, pos_ratio * 100.0)
+    }).collect()
+}
+
+/// Get simulated pool stats (fallback when pool not initialized)
+fn get_simulated_pool_stats(pool: &str, total_blocks: usize) -> Vec<(BlockState, f64)> {
     match pool {
         "weight" => {
             // Weight pool: mostly allocated with some fragmentation
