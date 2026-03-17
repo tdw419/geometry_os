@@ -100,7 +100,11 @@ mod tests {
         // STORE r7, r1
         // HALT
 
-        let input = b"LDI r1, 1\nLDI r2, 1\nLDI r4, 10\nLDI r5, 0\nLDI r6, 1\nMOV r1, r3\nADD r2, r1\nMOV r3, r2\nADD r6, r5\nBLT r5, r4, -4\nLDI r7, 400\nSTORE r7, r1\nHALT";
+        // The BLT offset is computed relative to PC after reading the offset word.
+        // Loop starts at 510, BLT at 514, offset at 515. After reading offset, PC=516.
+        // Offset = 510 - 516 = -6
+        // r4=8 for 8 iterations to get fib(10)=55 (starting from fib(1)=1, fib(2)=1)
+        let input = b"LDI r1, 1\nLDI r2, 1\nLDI r4, 8\nLDI r5, 0\nLDI r6, 1\nMOV r1, r3\nADD r2, r1\nMOV r3, r2\nADD r6, r5\nBLT r5, r4, -6\nLDI r7, 400\nSTORE r7, r1\nHALT";
         for (i, &b) in input.iter().enumerate() {
             scheduler.poke_substrate_single(10000 + i as u32, b as u32);
         }
