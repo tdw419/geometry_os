@@ -1,216 +1,194 @@
 // ============================================================================
-// Geometry OS - RISC-V Mini Emulator (Simplified v2)
+// Geometry OS - RISC-V Mini Emulator (Corrected Operand Order & 8-bit LDI)
+// ============================================================================
+// Host Registers:
+// r10: Guest PC
+// r11: Guest Register Base (0x14100)
+// r13: Instruction buffer
+// r14: Opcode / Temp
+// r15: rd / Temp
+// r16: rs1 / Temp
+// r17: rs2 / Temp
+// r18: shift count / immediate / destination
+// r19: work address / Temp
 // ============================================================================
 
 :boot
-    // Initialize
-    LDI r10, 0x18000  // Guest PC
-    LDI r11, 0x14100  // Guest Registers base
+    // Initialize Guest PC (r10) = 0x18000 (0x18 << 12)
+    LDI r10, 0x18
+    LDI r18, 12
+    SHL r10, r18    // r18 = r10 << 12 = 0x18000
+    MOV r18, r10    // r10 = 0x18000
+
+    // Initialize Guest Regs Base (r11) = 0x14100 (321 << 8)
+    LDI r11, 1
+    LDI r18, 8
+    SHL r11, r18    // r18 = 1 << 8 = 256
+    LDI r17, 65
+    ADD r17, r18    // r18 = 65 + 256 = 321 (0x141)
+    LDI r17, 8
+    SHL r18, r17    // r17 = 321 << 8 = 82176 (0x14100)
+    MOV r17, r11    // r11 = 0x14100
 
 :fetch_loop
-    // Load instruction at Guest PC
+    // Fetch instruction from Guest RAM
     LOAD r10, r13
-
-    // Increment Guest PC: r14 = r10 + 4
-    LDI r14, 4
-    ADD r14, r10   // r14 = 4 + r10 (result in r10! no wait...)
-    // ADD dst, src: result in src
-    // We want: r14 = r10 + 4
-    // So: ADD r14, r10 (result in r10 - wrong)
-    // Need: use different approach
-    // Actually ADD r10, r14 means r14 = r10 + r14
-    // So to increment PC: r14 = r10 + 4, we need:
-    // Use r15 as temp
-    LDI r14, 4    // r14 = 4
-    ADD r14, r10  // r14 = r10 + r4 = r10 + 4 (since ADD puts result in second arg)
-    // Actually that's still wrong
-    // Let me use: MOV r14, r10 then ADD r14, immediate
     
-    // Simpler: just add 4 to r10 directly
-    // ADD r10, r4: r4 = r10 + r4
-    LDI r14, 4    // r14 = 4
-    ADD r14, r10  // r14 = r10 + r14
-    
-    // Now copy back to r10
-    MOV r10, r14
-    
-    // Actually this is getting complex. Let me use a simpler approach.
-    // Just add 4 to r10 using two instructions
-    LDI r14, 0x18004  // Next instruction address
-    MOV r10, r14
+    // Increment Guest PC (r10 = r10 + 4)
+    LDI r18, 4
+    ADD r18, r10    // r10 = r18 + r10 = 4 + r10
 
-    // Extract opcode (bits 0-6)
-    MOV r14, r13
-    LDI r15, 0x7F
-    AND r14, r15
+    // Decode Opcode (bits 0-6)
+    MOV r13, r14
+    LDI r18, 0x7F
+    AND r18, r14    // r14 = r18 & r14 = 0x7F & r14
 
-    // Check for EBREAK (0x73)
-    LDI r15, 0x73
-    SUB r14, r15
-    JZ r14, handle_ebreak
+    // Dispatch
+    // LUI (0x37)
+    LDI r18, 0x37
+    SUB r14, r18    // r18 = r14 - 0x37
+    JZ r18, handle_lui
 
-    // Check for SW (0x23)
-    MOV r14, r13
-    LDI r15, 0x7F
-    AND r14, r15
-    LDI r15, 0x23
-    SUB r14, r15
-    JZ r14, handle_sw
+    // ADDI (0x13)
+    MOV r13, r14
+    LDI r18, 0x7F
+    AND r18, r14
+    LDI r18, 0x13
+    SUB r14, r18    // r18 = r14 - 0x13
+    JZ r18, handle_addi
 
-    // Check for LUI (0x37)
-    MOV r14, r13
-    LDI r15, 0x7F
-    AND r14, r15
-    LDI r15, 0x37
-    SUB r14, r15
-    JZ r14, handle_lui
+    // SW (0x23)
+    MOV r13, r14
+    LDI r18, 0x7F
+    AND r18, r14
+    LDI r18, 0x23
+    SUB r14, r18    // r18 = r14 - 0x23
+    JZ r18, handle_sw
 
-    // Check for ADDI (0x13)
-    MOV r14, r13
-    LDI r15, 0x7F
-    AND r14, r15
-    LDI r15, 0x13
-    SUB r14, r15
-    JZ r14, handle_addi
+    // SYSTEM (0x73) -> EBREAK
+    MOV r13, r14
+    LDI r18, 0x7F
+    AND r18, r14
+    LDI r18, 0x73
+    SUB r14, r18    // r18 = r14 - 0x73
+    JZ r18, handle_ebreak
 
-    // Unknown opcode - halt
-    HALT
-
-// ============================================================================
-// Handlers
-// ============================================================================
+    // Loop if unknown
+    JMP fetch_loop
 
 :handle_lui
-    // LUI: rd = imm[31:12] << 12
-    // Extract rd (bits 7-11)
-    MOV r14, r13
-    LDI r15, 7
-    SHR r14, r15
+    // rd = (ins >> 7) & 0x1F
+    MOV r13, r15
+    LDI r18, 7
+    SHR r15, r18    // r18 = r15 >> 7
     LDI r15, 0x1F
-    AND r14, r15
+    AND r18, r15    // r15 = r18 & 0x1F
 
-    // Skip if rd = 0
-    JZ r14, fetch_loop
+    JZ r15, fetch_loop
 
-    // Extract immediate (bits 12-31)
-    MOV r15, r13
-    LDI r16, 0xFFFFF000
-    AND r15, r16
+    // imm = (ins >> 12) << 12
+    MOV r13, r17
+    LDI r18, 12
+    SHR r17, r18    // r18 = r17 >> 12
+    LDI r17, 12
+    SHL r18, r17    // r17 = r18 << 12
 
-    // Store to guest register
-    LDI r16, 2
-    SHL r14, r16
-    ADD r14, r11
-    STORE r14, r15
-
-    JZ r0, fetch_loop
+    // Store to GUEST_REGS[rd]
+    MOV r15, r19
+    LDI r18, 2
+    SHL r18, r19    // r18 = r19 << 2 = rd * 4
+    ADD r18, r11    // r18 = r11 + rd*4
+    STORE r18, r17
+    JMP fetch_loop
 
 :handle_addi
-    // ADDI: rd = rs1 + imm
-    // Extract rd (bits 7-11)
-    MOV r14, r13
-    LDI r15, 7
-    SHR r14, r15
+    // rd = (ins >> 7) & 0x1F
+    MOV r13, r15
+    LDI r18, 7
+    SHR r15, r18    // r18 = r15 >> 7
     LDI r15, 0x1F
-    AND r14, r14
+    AND r18, r15    // r15 = r18 & 0x1F
 
-    // Skip if rd = 0
-    JZ r14, fetch_loop
-
-    // Extract rs1 (bits 15-19)
-    MOV r15, r13
-    LDI r16, 15
-    SHR r15, r16
+    // rs1 = (ins >> 15) & 0x1F
+    MOV r13, r16
+    LDI r18, 15
+    SHR r16, r18    // r18 = r16 >> 15
     LDI r16, 0x1F
-    AND r15, r15
+    AND r18, r16    // r16 = r18 & 0x1F
 
-    // Load rs1 from guest registers
-    LDI r16, 2
-    SHL r15, r16
-    ADD r15, r11
-    LOAD r15, r16
-
-    // Extract immediate (bits 20-31)
-    MOV r17, r13
+    // imm = (ins >> 20)
+    MOV r13, r17
     LDI r18, 20
-    SHR r17, r18
+    SHR r17, r18    // r18 = r17 >> 20 (assuming positive for Phase 1)
 
-    // Add: result = rs1 + imm
-    ADD r16, r17
+    // rs1_val = GUEST_REGS[rs1]
+    MOV r16, r19
+    LDI r14, 2
+    SHL r19, r14    // r14 = rs1 * 4
+    ADD r11, r14    // r14 = r11 + offset
+    LOAD r14, r19   // r19 = mem[r14]
+
+    // r19 = rs1_val + imm
+    ADD r18, r19    
+
+    JZ r15, fetch_loop
 
     // Store to rd
-    MOV r14, r13
-    LDI r15, 7
-    SHR r14, r15
-    LDI r15, 0x1F
-    AND r14, r14
-    LDI r15, 2
-    SHL r14, r15
-    ADD r14, r11
-    STORE r14, r16
-
-    JZ r0, fetch_loop
+    MOV r15, r14
+    LDI r17, 2
+    SHL r14, r17    // r17 = rd * 4
+    ADD r11, r17    // r17 = r11 + offset
+    STORE r17, r19
+    JMP fetch_loop
 
 :handle_sw
-    // SW: mem[rs1 + imm] = rs2
-    // Extract rs2 (bits 20-24)
-    MOV r14, r13
-    LDI r15, 20
-    SHR r14, r15
-    LDI r15, 0x1F
-    AND r14, r14
+    // rs1 = (ins >> 15) & 0x1F
+    MOV r13, r16
+    LDI r18, 15
+    SHR r16, r18    // r18 = rs1
+    LDI r16, 0x1F
+    AND r18, r16    // r16 = rs1 index
 
-    // Load rs2 from guest registers
-    LDI r15, 2
-    SHL r14, r15
-    ADD r14, r11
-    LOAD r14, r16
-
-    // Extract rs1 (bits 15-19)
-    MOV r15, r13
-    LDI r17, 15
-    SHR r15, r17
+    // rs2 = (ins >> 20) & 0x1F
+    MOV r13, r17
+    LDI r18, 20
+    SHR r17, r18
     LDI r17, 0x1F
-    AND r15, r15
+    AND r18, r17    // r17 = rs2 index
 
-    // Load rs1 value
-    LDI r17, 2
-    SHL r15, r17
-    ADD r15, r11
-    LOAD r15, r17
-
-    // Extract offset (bits 7-11 and 25-31)
-    MOV r18, r13
-    LDI r19, 7
-    SHR r18, r19
+    // offset = ((ins >> 25) << 5) | ((ins >> 7) & 0x1F)
+    MOV r13, r15
+    LDI r18, 25
+    SHR r15, r18    // r18 = bits 31:25
+    LDI r15, 5
+    SHL r18, r15    // r15 = (bits 31:25) << 5
+    MOV r13, r19
+    LDI r14, 7
+    SHR r19, r14    // r14 = bits 31:7
     LDI r19, 0x1F
-    AND r18, r18
+    AND r14, r19    // r19 = bits 11:7
+    ADD r15, r19    // r19 = offset
 
-    MOV r19, r13
-    LDI r20, 25
-    SHR r19, r20
-    LDI r21, 0x7F
-    AND r19, r21
-    LDI r21, 5
-    SHL r19, r21
-    OR r18, r19
+    // rs1_val
+    MOV r16, r14
+    LDI r18, 2
+    SHL r18, r14    // r18 = r14 << 2 = rs1 * 4
+    ADD r18, r11    // r18 = r11 + rs1*4
+    LOAD r18, r16   // r16 = guest_regs[rs1]
 
-    // Add offset to base
-    ADD r17, r18
+    // rs2_val
+    MOV r17, r14
+    LDI r18, 2
+    SHL r18, r14    // r18 = r14 << 2 = rs2 * 4
+    ADD r18, r11    // r18 = r11 + rs2*4
+    LOAD r18, r17   // r17 = guest_regs[rs2]
 
-    // Check for UART address (0x200)
-    LDI r19, 0x200
-    SUB r17, r19
-    JZ r17, store_uart
+    // target = rs1_val + offset
+    ADD r16, r19    // r16 = rs1_val + offset
 
-    // Store to memory
-    STORE r17, r16
-    JZ r0, fetch_loop
-
-:store_uart
-    LDI r17, 0x0200
-    STORE r17, r16
-    JZ r0, fetch_loop
+    // mem[target] = rs2_val
+    STORE r16, r17
+    JMP fetch_loop
 
 :handle_ebreak
     HALT

@@ -621,7 +621,23 @@ impl<'a> InfiniteMapApp<'a> {
 
                         // Auto-spawn first Scout agent
                         log::info!("🤖 Auto-spawning Scout agent for syntax patrol...");
-                        // TODO: Spawn Scout agent (Phase 46)
+                        
+                        // Ensure agent manager exists
+                        if self.agent_manager.is_none() {
+                            let mgr = crate::cognitive::agents::CityAgentManager::new(4096);
+                            self.agent_manager = Some(mgr);
+                        }
+                        
+                        // Spawn Scout agent at Visual AST location (Hilbert coords approximate)
+                        if let Some(ref mut mgr) = self.agent_manager {
+                            // Use a deterministic position near the Visual AST
+                            let scout_pos = 1200 * 4096 + 3400; // Approximate Hilbert position
+                            let scout_id = mgr.spawn_agent(
+                                crate::cognitive::agents::AgentRole::Scout,
+                                scout_pos
+                            );
+                            log::info!("🤖 Spawned Scout agent {} for syntax patrol", scout_id);
+                        }
 
                         eprintln!("✅ Global Source Crystal + Visual AST at (1200, 3400)");
                     },

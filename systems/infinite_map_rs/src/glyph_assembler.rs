@@ -165,8 +165,10 @@ pub struct GlyphAssembler {
     addr: u32,
     /// Labels
     labels: HashMap<String, u32>,
-    /// Forward references to resolve
-    forward_refs: Vec<(u32, String)>,
+    /// Forward references to resolve: (address, label, is_absolute)
+    /// is_absolute = true for LDI (needs absolute address)
+    /// is_absolute = false for branches (needs PC-relative offset)
+    forward_refs: Vec<(u32, String, bool)>,
     /// Output words
     words: Vec<u32>,
 }
@@ -224,15 +226,21 @@ impl GlyphAssembler {
         }
 
         // Resolve forward references
-        for (ref_addr, label) in &self.forward_refs {
+        for (ref_addr, label, is_absolute) in &self.forward_refs {
             let target = self.labels.get(label)
                 .ok_or_else(|| format!("Undefined label: {}", label))?;
-            let offset = (*target as i32) - (*ref_addr as i32);
-            // Branch offset is relative to instruction after branch
-            // PC = addr + 2 + offset = target
-            // offset = target - addr - 2
-            let branch_offset = offset - 2;
-            self.words[*ref_addr as usize] = branch_offset as u32;
+
+            let value = if *is_absolute {
+                // LDI needs absolute address
+                *target as i32
+            } else {
+                // Branch offset is relative to instruction after branch
+                // PC = addr + 2 + offset = target
+                // offset = target - addr - 2
+                let offset = (*target as i32) - (*ref_addr as i32);
+                offset - 2
+            };
+            self.words[*ref_addr as usize] = value as u32;
         }
 
         Ok(AssembledProgram {
@@ -285,21 +293,28 @@ impl GlyphAssembler {
                 (Instruction { opcode, stratum: 0, p1: 0, p2: 0 }, None)
             }
             Opcode::Ldi => {
-                // LDI rX, imm
+                // LDI rX, imm or LDI rX, :label
                 let rd = parse_reg(parts.get(1).ok_or("LDI needs destination register")?)
                     .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
                 let imm = parts.get(2).ok_or("LDI needs immediate value")?;
-                let imm_val = parse_imm(imm.trim_end_matches(','))
-                    .or_else(|| {
-                        // Try as label (with or without : prefix)
-                        let label = imm.trim_end_matches(',').trim_start_matches(':');
-                        if self.labels.contains_key(label) {
-                            Some(*self.labels.get(label)? as i32)
-                        } else {
-                            None
-                        }
-                    })
-                    .ok_or_else(|| format!("Invalid immediate: {}", imm))?;
+                let imm_str = imm.trim_end_matches(',');
+
+                // Try immediate value first
+                let imm_val = if let Some(v) = parse_imm(imm_str) {
+                    v
+                } else {
+                    // Try as label (with or without : prefix)
+                    let label = imm_str.trim_start_matches(':');
+                    if self.labels.contains_key(label) {
+                        *self.labels.get(label).unwrap() as i32
+                    } else if imm_str.starts_with(':') || !label.is_empty() {
+                        // Forward reference or label syntax - use 0, will be resolved later
+                        // The forward reference mechanism will catch this if it starts with ':'
+                        0
+                    } else {
+                        return Err(format!("Invalid immediate: {}", imm));
+                    }
+                };
                 (Instruction { opcode, stratum: 0, p1: rd, p2: 0 }, Some(imm_val))
             }
             Opcode::Add => {
@@ -413,14 +428,24 @@ impl GlyphAssembler {
         // Emit data if present
         if let Some(data) = data {
             if let Some(label) = self.extract_label_ref(&parts) {
+                // Determine if this is an absolute or relative reference
+                // LDI uses absolute addresses, branches use relative offsets
+                let is_absolute = instr.opcode == Opcode::Ldi;
+
                 if !self.labels.contains_key(&label) {
                     // Forward reference, will resolve later
-                    self.forward_refs.push((self.addr, label));
+                    self.forward_refs.push((self.addr, label, is_absolute));
                     self.words.push(0); // Placeholder
                 } else {
                     let target = self.labels[&label] as i32;
-                    let branch_offset = target - (self.addr as i32) - 1;
-                    self.words.push(branch_offset as u32);
+                    if is_absolute {
+                        // LDI needs absolute address
+                        self.words.push(target as u32);
+                    } else {
+                        // Branch needs relative offset
+                        let branch_offset = target - (self.addr as i32) - 1;
+                        self.words.push(branch_offset as u32);
+                    }
                 }
             } else {
                 self.words.push(data as u32);
