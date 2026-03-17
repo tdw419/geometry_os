@@ -92,9 +92,9 @@ fn create_scaler_program(src_addr: u32, dst_addr: u32, count: u32) -> Vec<(u32, 
         (16, glyph(5, 0, 3, 1)),
         // 17: ADD r2, r3, r2 (counter++)
         (17, glyph(5, 0, 3, 2)),
-        // 18-19: BNE r2, r4, -7
+        // 18-19: BNE r2, r4, -8 (jump to addr 12)
         (18, glyph(10, 1, 2, 4)),
-        (19, (-7i32) as u32),
+        (19, (-8i32) as u32),
         // 20: STORE [r7], r6
         (20, glyph(4, 0, 7, 6)),
         // 21: HALT

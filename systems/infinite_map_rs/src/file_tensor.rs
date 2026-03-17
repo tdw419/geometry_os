@@ -368,6 +368,7 @@ pub struct FileTensorFolder {
     // State
     last_dispatch: std::time::Instant,
     dispatch_count: u64,
+    total_dispatch_time: std::time::Duration,
 }
 
 impl FileTensorFolder {
@@ -548,6 +549,7 @@ impl FileTensorFolder {
             metadata,
             last_dispatch: std::time::Instant::now(),
             dispatch_count: 0,
+            total_dispatch_time: std::time::Duration::ZERO,
         })
     }
 
@@ -623,7 +625,9 @@ impl FileTensorFolder {
             },
         );
 
+        let dispatch_start = std::time::Instant::now();
         queue.submit(Some(encoder.finish()));
+        self.total_dispatch_time += dispatch_start.elapsed();
 
         self.last_dispatch = std::time::Instant::now();
         self.dispatch_count += 1;
@@ -661,7 +665,11 @@ impl FileTensorFolder {
         DispatchStats {
             total_dispatches: self.dispatch_count,
             time_since_last_dispatch: self.last_dispatch.elapsed(),
-            average_dispatch_time: std::time::Duration::from_millis(0), // TODO: Track actual timing
+            average_dispatch_time: if self.dispatch_count > 0 {
+                self.total_dispatch_time / self.dispatch_count as u32
+            } else {
+                std::time::Duration::ZERO
+            },
         }
     }
 
