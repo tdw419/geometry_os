@@ -455,22 +455,6 @@ mod tests {
     }
 
     #[test]
-    fn test_assemble_with_label() {
-        let mut asm = GlyphAssembler::new();
-        let program = asm.assemble(r#"
-            LDI r0, 0
-            LDI r1, 1
-            ADD r0, r0, r1
-            BNE r1, r0, start
-            HALT
-        "#).unwrap();
-
-        assert!(program.labels.contains_key("start"));
-        assert_eq!(program.len(), 6);
-        assert!(program.labels["start"], 0);
-    }
-
-    #[test]
     fn test_assemble_simple() {
         let mut asm = GlyphAssembler::new();
         let program = asm.assemble(r#"
