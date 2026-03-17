@@ -285,10 +285,10 @@ def compile_glyph_program(source):
 
         elif opcode_str == 'JMP':
             # JMP reg - jump to address in register
-            # synthetic_vram stratum=2: pc = regs[p1]
+            # synthetic_vram: stratum != 2 means register mode (pc = regs[p1])
             if len(parts) >= 2:
                 p1 = parse_register(parts[1])
-            stratum = 2  # Register mode
+            stratum = 0  # Register mode (any value != 2)
 
         elif opcode_str == 'BRANCH':
             # BRANCH cond, rs1, rs2, offset

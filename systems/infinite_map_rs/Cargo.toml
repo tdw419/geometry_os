@@ -198,6 +198,10 @@ path = "src/bin/glyph_infinite_map.rs"
 name = "build_alpine_substrate"
 path = "src/bin/build_alpine_substrate.rs"
 
+[[bin]]
+name = "run_glyph_cpu"
+path = "src/bin/run_glyph_cpu.rs"
+
 [features]
 default = []
 audio = ["cpal", "rustfft"]

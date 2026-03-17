@@ -1,0 +1,56 @@
+// =============================================================================
+// Multi-VM Spawn Pattern
+// =============================================================================
+//
+// Demonstrates: SPATIAL_SPAWN (opcode 225), independent execution, shared memory
+//
+// Execution flow (sequential scheduler):
+// 1. Parent (VM 0) spawns child VM at entry point 100
+// 2. Parent HALTs
+// 3. Child (VM 1) runs: writes 0xCAFE to mem[512]
+// 4. Child HALTs
+//
+// Key insight: SPATIAL_SPAWN returns the new VM ID in the same register
+// that contained the entry point (p1 is both input and output).
+//
+// =============================================================================
+
+// =============================================================================
+// OPCODES
+// =============================================================================
+.equ OP_LDI, 1
+.equ OP_STORE, 4
+.equ OP_HALT, 13
+.equ OP_SPATIAL_SPAWN, 225
+
+// =============================================================================
+// PARENT PROGRAM (VM 0) - Starts at address 0
+// =============================================================================
+
+:main
+    // Load child entry point (100) into r4
+    LDI r4, 100
+
+    // SPATIAL_SPAWN: spawn a new VM at the entry point in r4
+    // After execution, r4 contains the new VM ID (1)
+    // opcode=225, stratum=0, p1=4 (r4), p2=0
+    .glyph 225, 0, 4, 0
+
+    // Parent done - halt
+    HALT
+
+// =============================================================================
+// CHILD PROGRAM - Starts at address 100
+// =============================================================================
+// When executed, child will:
+//   LDI r0, 0xCAFE    // Load 0xCAFE into r0
+//   LDI r1, 512       // Load shared memory address into r1
+//   STORE [r1], r0    // Write 0xCAFE to mem[512]
+//   HALT              // Done
+// =============================================================================
+
+:child_start
+    LDI r0, 0xCAFE       // Value to write
+    LDI r1, 512          // Shared memory address
+    STORE [r1], r0       // mem[512] = 0xCAFE
+    HALT                 // Done

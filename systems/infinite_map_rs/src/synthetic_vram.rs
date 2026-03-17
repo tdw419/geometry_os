@@ -1126,4 +1126,49 @@ mod tests {
         // 3. VM should be halted
         assert!(vram.is_halted(0));
     }
+
+    #[test]
+    fn test_multi_vm_spawn() {
+        // Multi-VM Spawn Pattern (simplified for sequential scheduler):
+        // 1. Parent (VM 0) spawns child at addr 100, then HALTS
+        // 2. Child (VM 1) runs independently, writes 0xCAFE to mem[512]
+        // 3. Both HALT
+        //
+        // Note: The scheduler runs VMs sequentially (VM 0 completes, then VM 1 runs).
+        // This test verifies SPATIAL_SPAWN creates independent child VMs.
+
+        let mut vram = SyntheticVram::new_small(1024);
+
+        // === CHILD PROGRAM (addr 100-105) ===
+        // LDI r0, 0xCAFE; LDI r1, 512; STORE [r1], r0; HALT
+        vram.poke(100, glyph(1, 0, 0, 0));   // LDI r0
+        vram.poke(101, 0xCAFE);               // = 0xCAFE
+        vram.poke(102, glyph(1, 0, 1, 0));   // LDI r1
+        vram.poke(103, 512);                  // = 512 (shared mem addr)
+        vram.poke(104, glyph(4, 0, 1, 0));   // STORE [r1], r0
+        vram.poke(105, glyph(13, 0, 0, 0));  // HALT
+
+        // === PARENT PROGRAM (addr 0-4) ===
+        // LDI r4, 100; SPATIAL_SPAWN r0=spawn(r4); HALT
+        vram.poke(0, glyph(1, 0, 4, 0));     // LDI r4
+        vram.poke(1, 100);                    // = 100
+        vram.poke(2, glyph(225, 0, 4, 0));   // SPATIAL_SPAWN r0 = spawn(r4)
+        vram.poke(3, glyph(13, 0, 0, 0));    // HALT
+
+        // === RUN ===
+        vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
+        vram.execute_frame();
+
+        // === VERIFY ===
+        // 1. Child should have written 0xCAFE to shared memory
+        assert_eq!(vram.peek(512), 0xCAFE, "Child should write 0xCAFE to shared memory");
+
+        // 2. Both VMs should be halted
+        assert!(vram.is_halted(0), "Parent VM should be halted");
+        assert!(vram.is_halted(1), "Child VM should be halted");
+
+        // 3. Child VM ID should be 1 (returned in r4 of parent - same register as entry point)
+        //    SPATIAL_SPAWN overwrites p1 (r4) with the new VM ID
+        assert_eq!(vram.vm_state(0).unwrap().regs[4], 1, "Parent r4 should contain child VM ID");
+    }
 }
