@@ -413,8 +413,11 @@ impl GlyphAssembler {
                 (Instruction { opcode, stratum: 0, p1: rs1, p2: rd }, None)
             }
             Opcode::Sll => {
+                // SLL rd, rs1, rs2 (three-operand form)
+                // Encodes as: opcode=131, stratum=rs2, p1=rs1, p2=rd
+                // VM behavior: rd = rs1 << (rs2 & 31)
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: 0, p1: rs1, p2: rd }, None)
+                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
             }
             _ => {
                 (Instruction { opcode, stratum: 0, p1: 0, p2: 0 }, None)
