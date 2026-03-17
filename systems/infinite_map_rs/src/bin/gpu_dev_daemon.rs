@@ -3054,7 +3054,7 @@ fn handle_raw_request<S: Read + Write>(
                         // Apply Hebbian update to embedding weights
                         // The embedding weight for input_token should be strengthened
                         // when it leads to correct prediction
-                        let embed_offset = 0u32; // Embeddings start at offset 0
+                        let embed_offset: u32 = 0; // Embeddings start at offset 0
                         let input_addr = embed_offset + input_token as u32;
                         apply_hebbian_update(
                             input_addr,
@@ -3072,6 +3072,42 @@ fn handle_raw_request<S: Read + Write>(
                             1.0,    // post is target activation
                             learning_rate,
                         );
+
+                        // Update attention weights for each layer
+                        // For Hebbian learning, we strengthen Q/K/V/O based on reward
+                        const NUM_LAYERS: usize = 4;
+                        const HIDDEN_DIM: usize = 256;
+
+                        for layer in 0..NUM_LAYERS {
+                            // Calculate layer base offset
+                            // Embeddings: 256 * 256 = 65536
+                            // Layer size: Q(65536) + K(65536) + V(65536) + O(16384) + FFN_up(262144) + FFN_down(262144) = 737280
+                            let layer_base = 65536 + layer * 737280;
+
+                            // Q weight for input position at row = input_token % HIDDEN_DIM
+                            let q_addr = layer_base + (input_token as u32 % HIDDEN_DIM);
+                            apply_hebbian_update(q_addr, 1.0, reward, learning_rate);
+
+                            // K weight for target position
+                            let k_addr = layer_base + 65536 + (target_token as u32 % HIDDEN_DIM);
+                            apply_hebbian_update(k_addr, reward, 1.0, learning_rate);
+
+                            // V weight - blend input and target
+                            let v_addr = layer_base + 131072 + ((input_token as u32 + target_token as u32) % HIDDEN_DIM) / 2;
+                            apply_hebbian_update(v_addr, 0.5, 0.5, learning_rate);
+
+                            // O weight - output projection
+                            let o_addr = layer_base + 196608 + (predicted as u32 * 64); // head_dim = 64
+                            apply_hebbian_update(o_addr, reward, 1.0, learning_rate);
+
+                            // FFN up weight
+                            let ffn_up_addr = layer_base + 212992 + (input_token as u32 * 1024);
+                            apply_hebbian_update(ffn_up_addr, 1.0, reward, learning_rate);
+
+                            // FFN down weight
+                            let ffn_down_addr = layer_base + 475136 + (predicted as u32 * 1024);
+                            apply_hebbian_update(ffn_down_addr, reward, 1.0, learning_rate);
+                        }
                     }
                 }
 
