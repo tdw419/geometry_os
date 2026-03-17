@@ -1314,7 +1314,7 @@ fn execute_instruction(decoded: DecodedInstruction) -> u32 {
                                 registers[10] = 0u;
                                 // Skip to next instruction
                                 atomicStore(&pc, atomicLoad(&pc) + 4u);
-                                return;
+                                return next_pc;
                             }
 
                             switch (state.privilege) {

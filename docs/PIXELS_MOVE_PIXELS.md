@@ -324,8 +324,11 @@ This is the base case for Geometry OS. Everything else builds on this loop:
 | **Self-replication** | Pixels can copy pixels | ✅ Done |
 | **Copy executes** | The copy is a valid program that runs | ✅ Done |
 | **Self-modification** | A program can rewrite its own opcodes | ✅ Done |
-| Visual editor | Mouse clicks write opcodes into the texture | Future |
-| Glyph assembler | A glyph program that compiles text → opcodes | Future |
+| **The Writer** | Pixels copy from atlas (texture-native abstraction) | ✅ Done |
+| **Patch-and-copy** | GPU loads template, patches operands, emits new code | ✅ Done |
+| **Pixels boot RISC-V** | Glyph VM bootloads RISC-V program → UART "Hi" | ✅ Done |
+| Glyph assembler | A glyph program that compiles text → opcodes | Next |
+| Boot Linux | Glyph VM loads kernel into RISC-V VM | Future |
 | Self-hosting | No more Rust bootstrap needed | Goal |
 
 The frozen bootstrap (18 `poke_substrate_single` calls) is the last time the CPU writes program logic. After that, programs write programs. Pixels move pixels. Light computes with light.

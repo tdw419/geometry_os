@@ -199,6 +199,14 @@ impl RiscVLinuxVM {
             mapped_at_creation: false,
         });
 
+        // Create separate ram_buffer for binding 0 (read-only, unused by shader but required by layout)
+        let ram_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("RISC-V VM RAM (read-only placeholder)"),
+            size: 256, // minimal size, shader doesn't use it
+            usage: wgpu::BufferUsages::STORAGE,
+            mapped_at_creation: false,
+        });
+
         // Create registers buffer (32 x 4 bytes)
         let registers_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("RISC-V VM Registers"),
@@ -393,7 +401,7 @@ impl RiscVLinuxVM {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: memory_buffer.as_entire_binding(),
+                    resource: ram_buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
