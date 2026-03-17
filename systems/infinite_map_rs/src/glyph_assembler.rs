@@ -469,7 +469,6 @@ mod tests {
         assert_eq!(program.len(), 6);
         assert!(program.labels["start"], 0);
     }
-}
 
     #[test]
     fn test_assemble_simple() {
