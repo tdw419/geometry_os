@@ -51,9 +51,9 @@
     // Load instruction: r13 = mem[r10]
     LOAD r10, r13
 
-    // Increment PC: r10 = r10 + 4
-    LDI r14, 4
-    ADD r14, r10        // r10 = r10 + 4
+    // Increment PC: r10 = r10 + 1 (guest instructions are at consecutive pixel addresses)
+    LDI r14, 1
+    ADD r14, r10        // r10 = r10 + 1
 
     // Extract opcode (bits 0-6): r14 = r13 & 0x7F
     MOV r13, r14        // r14 = instruction
