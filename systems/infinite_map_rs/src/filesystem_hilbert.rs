@@ -65,17 +65,21 @@ pub struct FilesystemHilbertManager {
     /// Order of the Hilbert curve (N where size = 2^N x 2^N)
     order: u32,
     grid_size: u32,
+    /// 2D grid for O(1) position lookup: grid[y * grid_size + x] = Some(node_index)
+    grid: Vec<Option<usize>>,
 }
 
 impl FilesystemHilbertManager {
     /// Create a new manager for a root directory
     pub fn new(root: PathBuf) -> Self {
+        let grid_size = 256;
         Self {
             root_path: root,
             nodes: Vec::new(),
             path_to_index: HashMap::new(),
             order: 8, // 256x256 grid by default
-            grid_size: 256,
+            grid_size,
+            grid: vec![None; (grid_size * grid_size) as usize],
         }
     }
 
@@ -105,6 +109,15 @@ impl FilesystemHilbertManager {
         let side = count.sqrt().ceil() as u32;
         self.order = (side as f32).log2().ceil() as u32;
         self.grid_size = 2u32.pow(self.order);
+
+        // Rebuild grid for O(1) lookup
+        self.grid = vec![None; (self.grid_size * self.grid_size) as usize];
+        for (i, node) in self.nodes.iter().enumerate() {
+            let (x, y) = self.d2xy(node.hilbert_index);
+            if x < self.grid_size && y < self.grid_size {
+                self.grid[(y * self.grid_size + x) as usize] = Some(i);
+            }
+        }
 
         log::info!(
             "🗄️  Filesystem Hilbert: Scanned {} nodes. Grid size: {}x{}",
@@ -225,7 +238,7 @@ impl FilesystemHilbertManager {
         ))
     }
 
-    /// Find node at world position
+    /// Find node at world position (O(1) lookup via grid)
     pub fn find_node_at(&self, world_x: f32, world_y: f32) -> Option<&FileNode> {
         let hx = (world_x / 128.0 + self.grid_size as f32 / 2.0).round() as u32;
         let hy = (world_y / 128.0 + self.grid_size as f32 / 2.0).round() as u32;
@@ -234,14 +247,9 @@ impl FilesystemHilbertManager {
             return None;
         }
 
-        // Search for node that maps to these coords (TODO: inverse Hilbert mapping for O(1))
-        for node in &self.nodes {
-            let (nx, ny) = self.d2xy(node.hilbert_index);
-            if nx == hx && ny == hy {
-                return Some(node);
-            }
-        }
-        None
+        // O(1) grid lookup
+        let grid_idx = (hy * self.grid_size + hx) as usize;
+        self.grid.get(grid_idx).and_then(|opt| opt.map(|i| &self.nodes[i]))
     }
 
     pub fn nodes(&self) -> &[FileNode] {
