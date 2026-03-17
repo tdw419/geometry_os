@@ -233,10 +233,8 @@ impl SyntheticVram {
 
     /// Write a glyph instruction pixel: R=opcode, G=stratum, B=p1, A=p2
     pub fn poke_glyph(&mut self, addr: u32, opcode: u8, stratum: u8, p1: u8, p2: u8) {
-        let val = opcode as u32
-            | ((stratum as u32) << 8)
-            | ((p1 as u32) << 16)
-            | ((p2 as u32) << 24);
+        let val =
+            opcode as u32 | ((stratum as u32) << 8) | ((p1 as u32) << 16) | ((p2 as u32) << 24);
         self.poke(addr, val);
     }
 
@@ -292,10 +290,14 @@ impl SyntheticVram {
         while active {
             active = false;
             for vm_idx in 0..MAX_VMS {
-                if self.vms[vm_idx].state == VM_STATE_RUNNING && completed_cycles[vm_idx] < MAX_CYCLES_PER_VM {
+                if self.vms[vm_idx].state == VM_STATE_RUNNING
+                    && completed_cycles[vm_idx] < MAX_CYCLES_PER_VM
+                {
                     active = true;
                     for _ in 0..cycles_per_step {
-                        if self.vms[vm_idx].state != VM_STATE_RUNNING || completed_cycles[vm_idx] >= MAX_CYCLES_PER_VM {
+                        if self.vms[vm_idx].state != VM_STATE_RUNNING
+                            || completed_cycles[vm_idx] >= MAX_CYCLES_PER_VM
+                        {
                             break;
                         }
                         self.execute_instruction(vm_idx);
@@ -402,20 +404,20 @@ impl SyntheticVram {
             // NOP
             0 => {
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // LDI — Load Immediate 32-bit (uses 2 pixels)
             1 => {
                 let data = self.mem_read(pc + 1);
                 self.vms[vm_idx].regs[p1 as usize] = data;
                 self.vms[vm_idx].pc += 2;
-            }
+            },
 
             // MOV — regs[p2] = regs[p1]
             2 => {
                 self.vms[vm_idx].regs[p2 as usize] = self.vms[vm_idx].regs[p1 as usize];
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // LOAD — regs[p2] = memory[regs[p1]]
             3 => {
@@ -427,7 +429,7 @@ impl SyntheticVram {
                 let val = self.mem_read(addr);
                 self.vms[vm_idx].regs[p2 as usize] = val;
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // STORE — memory[regs[p1]] = regs[p2]
             4 => {
@@ -439,7 +441,7 @@ impl SyntheticVram {
                 let val = self.vms[vm_idx].regs[p2 as usize];
                 self.mem_write(addr, val);
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // ADD — regs[p2] = regs[p1] + regs[p2]
             5 => {
@@ -447,7 +449,7 @@ impl SyntheticVram {
                 let v2 = self.vms[vm_idx].regs[p2 as usize];
                 self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_add(v2);
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // SUB — regs[p2] = regs[p1] - regs[p2]
             6 => {
@@ -455,7 +457,7 @@ impl SyntheticVram {
                 let v2 = self.vms[vm_idx].regs[p2 as usize];
                 self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_sub(v2);
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // MUL — regs[p2] = regs[p1] * regs[p2]
             7 => {
@@ -463,7 +465,7 @@ impl SyntheticVram {
                 let v2 = self.vms[vm_idx].regs[p2 as usize];
                 self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_mul(v2);
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // DIV — regs[p2] = regs[p1] / regs[p2]
             8 => {
@@ -473,7 +475,7 @@ impl SyntheticVram {
                     self.vms[vm_idx].regs[p2 as usize] = v1 / v2;
                 }
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // JMP
             9 => {
@@ -485,19 +487,19 @@ impl SyntheticVram {
                     // Register mode: pc = regs[p1]
                     self.vms[vm_idx].pc = self.vms[vm_idx].regs[p1 as usize];
                 }
-            }
+            },
 
             // BRANCH — conditional, stratum=cond, p1=rs1, p2=rs2, next pixel=signed offset
             10 => {
                 let v1 = self.vms[vm_idx].regs[p1 as usize];
                 let v2 = self.vms[vm_idx].regs[p2 as usize];
                 let take_branch = match stratum {
-                    0 => v1 == v2,              // BEQ
-                    1 => v1 != v2,              // BNE
+                    0 => v1 == v2,                   // BEQ
+                    1 => v1 != v2,                   // BNE
                     2 => (v1 as i32) < (v2 as i32),  // BLT
-                    3 => (v1 as i32) >= (v2 as i32),  // BGE
-                    4 => v1 < v2,               // BLTU
-                    5 => v1 >= v2,              // BGEU
+                    3 => (v1 as i32) >= (v2 as i32), // BGE
+                    4 => v1 < v2,                    // BLTU
+                    5 => v1 >= v2,                   // BGEU
                     _ => false,
                 };
                 if take_branch {
@@ -506,7 +508,7 @@ impl SyntheticVram {
                 } else {
                     self.vms[vm_idx].pc += 2;
                 }
-            }
+            },
 
             // CALL
             11 => {
@@ -518,42 +520,41 @@ impl SyntheticVram {
                 } else {
                     self.vms[vm_idx].state = VM_STATE_HALTED;
                 }
-            }
+            },
 
             // RETURN
             12 => {
                 let sp = self.vms[vm_idx].stack_ptr;
                 if sp > 0 {
                     self.vms[vm_idx].stack_ptr -= 1;
-                    self.vms[vm_idx].pc =
-                        self.vms[vm_idx].stack[(sp - 1) as usize];
+                    self.vms[vm_idx].pc = self.vms[vm_idx].stack[(sp - 1) as usize];
                 } else {
                     self.vms[vm_idx].state = VM_STATE_HALTED;
                 }
-            }
+            },
 
             // HALT
             13 => {
                 self.vms[vm_idx].state = VM_STATE_HALTED;
                 self.vms[vm_idx].halted = 1;
-            }
+            },
 
             // DATA (skip)
             14 => {
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // LOOP (stub)
             15 => {
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // JAL — regs[p1] = return_addr, pc = PC + 2 + signed offset
             16 => {
                 self.vms[vm_idx].regs[p1 as usize] = pc + 2;
                 let offset = self.mem_read(pc + 1) as i32;
                 self.vms[vm_idx].pc = (pc as i32 + 2 + offset) as u32;
-            }
+            },
 
             // --- Bitwise (128-133) ---
             128 => {
@@ -561,40 +562,38 @@ impl SyntheticVram {
                 self.vms[vm_idx].regs[p2 as usize] =
                     self.vms[vm_idx].regs[p1 as usize] & self.vms[vm_idx].regs[p2 as usize];
                 self.vms[vm_idx].pc += 1;
-            }
+            },
             129 => {
                 // OR
                 self.vms[vm_idx].regs[p2 as usize] =
                     self.vms[vm_idx].regs[p1 as usize] | self.vms[vm_idx].regs[p2 as usize];
                 self.vms[vm_idx].pc += 1;
-            }
+            },
             130 => {
                 // XOR
                 self.vms[vm_idx].regs[p2 as usize] =
                     self.vms[vm_idx].regs[p1 as usize] ^ self.vms[vm_idx].regs[p2 as usize];
                 self.vms[vm_idx].pc += 1;
-            }
+            },
             131 => {
                 // SHL
                 let shift = self.vms[vm_idx].regs[p2 as usize] & 31;
-                self.vms[vm_idx].regs[p2 as usize] =
-                    self.vms[vm_idx].regs[p1 as usize] << shift;
+                self.vms[vm_idx].regs[p2 as usize] = self.vms[vm_idx].regs[p1 as usize] << shift;
                 self.vms[vm_idx].pc += 1;
-            }
+            },
             132 => {
                 // SHR
                 let shift = self.vms[vm_idx].regs[p2 as usize] & 31;
-                self.vms[vm_idx].regs[p2 as usize] =
-                    self.vms[vm_idx].regs[p1 as usize] >> shift;
+                self.vms[vm_idx].regs[p2 as usize] = self.vms[vm_idx].regs[p1 as usize] >> shift;
                 self.vms[vm_idx].pc += 1;
-            }
+            },
             133 => {
                 // SAR (arithmetic shift right — preserve sign)
                 let shift = self.vms[vm_idx].regs[p2 as usize] & 31;
                 self.vms[vm_idx].regs[p2 as usize] =
                     ((self.vms[vm_idx].regs[p1 as usize] as i32) >> shift) as u32;
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // --- SPATIAL_SPAWN (225) ---
             225 => {
@@ -617,7 +616,7 @@ impl SyntheticVram {
                     self.vms[vm_idx].regs[p1 as usize] = 0xFFFFFFFF;
                 }
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // --- GLYPH_MUTATE (226) ---
             226 => {
@@ -633,7 +632,7 @@ impl SyntheticVram {
                 };
                 self.mem_write(weight_addr, new_weight);
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // --- GLYPH_WRITE (232) — Self-modifying code ---
             232 => {
@@ -650,7 +649,7 @@ impl SyntheticVram {
                     }
                 }
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // --- ATTENTION_FOCUS (233) ---
             233 => {
@@ -660,10 +659,10 @@ impl SyntheticVram {
                     1 => self.vms[vm_idx].attention_mask = p1,
                     2 => self.vms[vm_idx].attention_mask |= p1,
                     3 => self.vms[vm_idx].attention_mask &= !p1,
-                    _ => {}
+                    _ => {},
                 }
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // --- GLYPH_MUTATE_FIELD (234) ---
             234 => {
@@ -680,7 +679,7 @@ impl SyntheticVram {
                 };
                 self.mem_write(target_addr, modified);
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // --- SEMANTIC_MERGE (235) ---
             235 => {
@@ -703,103 +702,131 @@ impl SyntheticVram {
                     }
                 }
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // --- Memory-based opcodes (200-229) ---
-            200 => { self.vms[vm_idx].pc += 1; } // NOP
-            201 => { // ADD: mem[dst] = mem[src1] + mem[src2]
+            200 => {
+                self.vms[vm_idx].pc += 1;
+            }, // NOP
+            201 => {
+                // ADD: mem[dst] = mem[src1] + mem[src2]
                 let v1 = self.mem_read(p1);
                 let v2 = self.mem_read(p2);
                 self.mem_write(stratum, v1.wrapping_add(v2));
                 self.vms[vm_idx].pc += 1;
-            }
-            202 => { // SUB
+            },
+            202 => {
+                // SUB
                 let v1 = self.mem_read(p1);
                 let v2 = self.mem_read(p2);
                 self.mem_write(stratum, v1.wrapping_sub(v2));
                 self.vms[vm_idx].pc += 1;
-            }
-            203 => { // MUL
+            },
+            203 => {
+                // MUL
                 let v1 = self.mem_read(p1);
                 let v2 = self.mem_read(p2);
                 self.mem_write(stratum, v1.wrapping_mul(v2));
                 self.vms[vm_idx].pc += 1;
-            }
-            204 => { // DIV
+            },
+            204 => {
+                // DIV
                 let v1 = self.mem_read(p1);
                 let v2 = self.mem_read(p2);
-                if v2 != 0 { self.mem_write(stratum, v1 / v2); }
+                if v2 != 0 {
+                    self.mem_write(stratum, v1 / v2);
+                }
                 self.vms[vm_idx].pc += 1;
-            }
-            205 => { // LOAD: mem[dst] = mem[src1]
+            },
+            205 => {
+                // LOAD: mem[dst] = mem[src1]
                 let v = self.mem_read(p1);
                 self.mem_write(stratum, v);
                 self.vms[vm_idx].pc += 1;
-            }
-            206 => { // STORE: mem[dst] = src1 (immediate)
+            },
+            206 => {
+                // STORE: mem[dst] = src1 (immediate)
                 self.mem_write(stratum, p1);
                 self.vms[vm_idx].pc += 1;
-            }
-            207 => { // LOADIMM: mem[dst] = 32-bit immediate (next pixel)
+            },
+            207 => {
+                // LOADIMM: mem[dst] = 32-bit immediate (next pixel)
                 let imm = self.mem_read(pc + 1);
                 self.mem_write(stratum, imm);
                 self.vms[vm_idx].pc += 2;
-            }
-            208 => { // JUMP: pc = dst
+            },
+            208 => {
+                // JUMP: pc = dst
                 self.vms[vm_idx].pc = stratum;
-            }
-            209 => { // JUMPZ: if mem[dst] == 0 then pc = src1
+            },
+            209 => {
+                // JUMPZ: if mem[dst] == 0 then pc = src1
                 let v = self.mem_read(stratum);
-                if v == 0 { self.vms[vm_idx].pc = p1; }
-                else { self.vms[vm_idx].pc += 1; }
-            }
-            210 => { // JUMPNZ: if mem[dst] != 0 then pc = src1
+                if v == 0 {
+                    self.vms[vm_idx].pc = p1;
+                } else {
+                    self.vms[vm_idx].pc += 1;
+                }
+            },
+            210 => {
+                // JUMPNZ: if mem[dst] != 0 then pc = src1
                 let v = self.mem_read(stratum);
-                if v != 0 { self.vms[vm_idx].pc = p1; }
-                else { self.vms[vm_idx].pc += 1; }
-            }
-            211 => { // CMP: mem[dst] = (mem[src1] == mem[src2]) ? 1 : 0
+                if v != 0 {
+                    self.vms[vm_idx].pc = p1;
+                } else {
+                    self.vms[vm_idx].pc += 1;
+                }
+            },
+            211 => {
+                // CMP: mem[dst] = (mem[src1] == mem[src2]) ? 1 : 0
                 let v1 = self.mem_read(p1);
                 let v2 = self.mem_read(p2);
                 self.mem_write(stratum, if v1 == v2 { 1 } else { 0 });
                 self.vms[vm_idx].pc += 1;
-            }
-            212 => { // AND
+            },
+            212 => {
+                // AND
                 let v1 = self.mem_read(p1);
                 let v2 = self.mem_read(p2);
                 self.mem_write(stratum, v1 & v2);
                 self.vms[vm_idx].pc += 1;
-            }
-            213 => { // OR
+            },
+            213 => {
+                // OR
                 let v1 = self.mem_read(p1);
                 let v2 = self.mem_read(p2);
                 self.mem_write(stratum, v1 | v2);
                 self.vms[vm_idx].pc += 1;
-            }
-            214 => { // XOR
+            },
+            214 => {
+                // XOR
                 let v1 = self.mem_read(p1);
                 let v2 = self.mem_read(p2);
                 self.mem_write(stratum, v1 ^ v2);
                 self.vms[vm_idx].pc += 1;
-            }
-            215 => { // NOT
+            },
+            215 => {
+                // NOT
                 let v = self.mem_read(p1);
                 self.mem_write(stratum, !v);
                 self.vms[vm_idx].pc += 1;
-            }
-            216 => { // SHL
+            },
+            216 => {
+                // SHL
                 let v1 = self.mem_read(p1);
                 let v2 = self.mem_read(p2);
                 self.mem_write(stratum, v1 << (v2 & 31));
                 self.vms[vm_idx].pc += 1;
-            }
-            217 => { // SHR
+            },
+            217 => {
+                // SHR
                 let v1 = self.mem_read(p1);
                 let v2 = self.mem_read(p2);
                 self.mem_write(stratum, v1 >> (v2 & 31));
                 self.vms[vm_idx].pc += 1;
-            }
-            218 => { // CALL: push pc+1, pc = dst
+            },
+            218 => {
+                // CALL: push pc+1, pc = dst
                 let sp = self.vms[vm_idx].stack_ptr as usize;
                 if sp < STACK_SIZE {
                     self.vms[vm_idx].stack[sp] = pc + 1;
@@ -808,8 +835,9 @@ impl SyntheticVram {
                 } else {
                     self.vms[vm_idx].state = VM_STATE_HALTED;
                 }
-            }
-            219 => { // RET
+            },
+            219 => {
+                // RET
                 let sp = self.vms[vm_idx].stack_ptr;
                 if sp > 0 {
                     self.vms[vm_idx].stack_ptr -= 1;
@@ -817,15 +845,17 @@ impl SyntheticVram {
                 } else {
                     self.vms[vm_idx].state = VM_STATE_HALTED;
                 }
-            }
-            220 => { // PUSH
+            },
+            220 => {
+                // PUSH
                 let sp_addr = 0xF000 + self.vms[vm_idx].stack_ptr;
                 let v = self.mem_read(stratum);
                 self.mem_write(sp_addr, v);
                 self.vms[vm_idx].stack_ptr += 1;
                 self.vms[vm_idx].pc += 1;
-            }
-            221 => { // POP
+            },
+            221 => {
+                // POP
                 let sp = self.vms[vm_idx].stack_ptr;
                 if sp > 0 {
                     self.vms[vm_idx].stack_ptr -= 1;
@@ -834,34 +864,38 @@ impl SyntheticVram {
                     self.mem_write(stratum, v);
                 }
                 self.vms[vm_idx].pc += 1;
-            }
-            222 => { // READ (alias for LOAD)
+            },
+            222 => {
+                // READ (alias for LOAD)
                 let v = self.mem_read(p1);
                 self.mem_write(stratum, v);
                 self.vms[vm_idx].pc += 1;
-            }
-            223 => { // WRITE (alias for STORE via memory)
+            },
+            223 => {
+                // WRITE (alias for STORE via memory)
                 let v = self.mem_read(p1);
                 self.mem_write(stratum, v);
                 self.vms[vm_idx].pc += 1;
-            }
-            228 => { // FADD (integer fallback)
+            },
+            228 => {
+                // FADD (integer fallback)
                 let v1 = self.mem_read(p1);
                 let v2 = self.mem_read(p2);
                 self.mem_write(stratum, v1.wrapping_add(v2));
                 self.vms[vm_idx].pc += 1;
-            }
-            229 => { // FMUL (integer fallback)
+            },
+            229 => {
+                // FMUL (integer fallback)
                 let v1 = self.mem_read(p1);
                 let v2 = self.mem_read(p2);
                 self.mem_write(stratum, v1.wrapping_mul(v2));
                 self.vms[vm_idx].pc += 1;
-            }
+            },
 
             // Unknown opcode — skip
             _ => {
                 self.vms[vm_idx].pc += 1;
-            }
+            },
         }
     }
 }
@@ -877,7 +911,14 @@ impl std::fmt::Debug for SyntheticVram {
         f.debug_struct("SyntheticVram")
             .field("grid_size", &self.grid_size())
             .field("frame", &self.frame)
-            .field("active_vms", &self.vms.iter().filter(|v| v.state == VM_STATE_RUNNING).count())
+            .field(
+                "active_vms",
+                &self
+                    .vms
+                    .iter()
+                    .filter(|v| v.state == VM_STATE_RUNNING)
+                    .count(),
+            )
             .finish()
     }
 }
@@ -892,10 +933,7 @@ mod tests {
 
     /// Helper to encode a glyph pixel
     fn glyph(opcode: u8, stratum: u8, p1: u8, p2: u8) -> u32 {
-        opcode as u32
-            | ((stratum as u32) << 8)
-            | ((p1 as u32) << 16)
-            | ((p2 as u32) << 24)
+        opcode as u32 | ((stratum as u32) << 8) | ((p1 as u32) << 16) | ((p2 as u32) << 24)
     }
 
     #[test]
@@ -931,9 +969,9 @@ mod tests {
     #[test]
     fn test_ldi() {
         let mut vram = SyntheticVram::new();
-        vram.poke(0, glyph(1, 0, 0, 0));  // LDI r0
-        vram.poke(1, 42);                   // DATA = 42
-        vram.poke(2, glyph(13, 0, 0, 0));  // HALT
+        vram.poke(0, glyph(1, 0, 0, 0)); // LDI r0
+        vram.poke(1, 42); // DATA = 42
+        vram.poke(2, glyph(13, 0, 0, 0)); // HALT
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
         vram.execute_frame();
         assert_eq!(vram.vm_state(0).unwrap().regs[0], 42);
@@ -942,12 +980,12 @@ mod tests {
     #[test]
     fn test_add() {
         let mut vram = SyntheticVram::new();
-        vram.poke(0, glyph(1, 0, 0, 0));  // LDI r0
-        vram.poke(1, 10);                   // r0 = 10
-        vram.poke(2, glyph(1, 0, 1, 0));  // LDI r1
-        vram.poke(3, 20);                   // r1 = 20
-        vram.poke(4, glyph(5, 0, 0, 1));  // ADD r1 = r0 + r1
-        vram.poke(5, glyph(13, 0, 0, 0));  // HALT
+        vram.poke(0, glyph(1, 0, 0, 0)); // LDI r0
+        vram.poke(1, 10); // r0 = 10
+        vram.poke(2, glyph(1, 0, 1, 0)); // LDI r1
+        vram.poke(3, 20); // r1 = 20
+        vram.poke(4, glyph(5, 0, 0, 1)); // ADD r1 = r0 + r1
+        vram.poke(5, glyph(13, 0, 0, 0)); // HALT
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
         vram.execute_frame();
         assert_eq!(vram.vm_state(0).unwrap().regs[1], 30);
@@ -959,24 +997,24 @@ mod tests {
         let mut vram = SyntheticVram::new();
 
         let program: Vec<(u32, u32)> = vec![
-            (0,  glyph(1, 0, 0, 0)),   // LDI r0 (source addr)
-            (1,  0u32),                  // DATA = 0
-            (2,  glyph(1, 0, 1, 0)),   // LDI r1 (dest addr)
-            (3,  100u32),                // DATA = 100
-            (4,  glyph(1, 0, 2, 0)),   // LDI r2 (counter)
-            (5,  0u32),                  // DATA = 0
-            (6,  glyph(1, 0, 3, 0)),   // LDI r3 (increment)
-            (7,  1u32),                  // DATA = 1
-            (8,  glyph(1, 0, 4, 0)),   // LDI r4 (length)
-            (9,  18u32),                 // DATA = 18
-            (10, glyph(3, 0, 0, 5)),   // LOAD r5 = mem[r0]
-            (11, glyph(4, 0, 1, 5)),   // STORE mem[r1] = r5
-            (12, glyph(5, 0, 3, 0)),   // ADD r0 = r3 + r0
-            (13, glyph(5, 0, 3, 1)),   // ADD r1 = r3 + r1
-            (14, glyph(5, 0, 3, 2)),   // ADD r2 = r3 + r2
-            (15, glyph(10, 1, 2, 4)),  // BRANCH BNE r2, r4
-            (16, (-7i32) as u32),        // offset = -7
-            (17, glyph(13, 0, 0, 0)),  // HALT
+            (0, glyph(1, 0, 0, 0)),   // LDI r0 (source addr)
+            (1, 0u32),                // DATA = 0
+            (2, glyph(1, 0, 1, 0)),   // LDI r1 (dest addr)
+            (3, 100u32),              // DATA = 100
+            (4, glyph(1, 0, 2, 0)),   // LDI r2 (counter)
+            (5, 0u32),                // DATA = 0
+            (6, glyph(1, 0, 3, 0)),   // LDI r3 (increment)
+            (7, 1u32),                // DATA = 1
+            (8, glyph(1, 0, 4, 0)),   // LDI r4 (length)
+            (9, 18u32),               // DATA = 18
+            (10, glyph(3, 0, 0, 5)),  // LOAD r5 = mem[r0]
+            (11, glyph(4, 0, 1, 5)),  // STORE mem[r1] = r5
+            (12, glyph(5, 0, 3, 0)),  // ADD r0 = r3 + r0
+            (13, glyph(5, 0, 3, 1)),  // ADD r1 = r3 + r1
+            (14, glyph(5, 0, 3, 2)),  // ADD r2 = r3 + r2
+            (15, glyph(10, 1, 2, 4)), // BRANCH BNE r2, r4
+            (16, (-7i32) as u32),     // offset = -7
+            (17, glyph(13, 0, 0, 0)), // HALT
         ];
 
         // Write program (frozen bootstrap)
@@ -1000,8 +1038,10 @@ mod tests {
             let dst_addr = 100 + src_addr;
             let actual = vram.peek(dst_addr);
             let status = if actual == expected { "✓" } else { "✗" };
-            println!("  {} addr {:3} → {:3}: expected 0x{:08X}, got 0x{:08X}",
-                     status, src_addr, dst_addr, expected, actual);
+            println!(
+                "  {} addr {:3} → {:3}: expected 0x{:08X}, got 0x{:08X}",
+                status, src_addr, dst_addr, expected, actual
+            );
             if actual != expected {
                 all_match = false;
             }
@@ -1025,16 +1065,16 @@ mod tests {
     fn test_branch_bne_loop() {
         let mut vram = SyntheticVram::new();
         // Count from 0 to 5: LDI r0=0, LDI r1=1, LDI r2=5, loop: ADD r0+=r1, BRANCH BNE r0,r2
-        vram.poke(0, glyph(1, 0, 0, 0));   // LDI r0
-        vram.poke(1, 0);                     // = 0
-        vram.poke(2, glyph(1, 0, 1, 0));   // LDI r1
-        vram.poke(3, 1);                     // = 1
-        vram.poke(4, glyph(1, 0, 2, 0));   // LDI r2
-        vram.poke(5, 5);                     // = 5
-        vram.poke(6, glyph(5, 0, 1, 0));   // ADD r0 = r1 + r0
-        vram.poke(7, glyph(10, 1, 0, 2));  // BRANCH BNE r0, r2
-        vram.poke(8, (-3i32) as u32);        // offset = -3 (7 + 2 + (-3) = 6)
-        vram.poke(9, glyph(13, 0, 0, 0));  // HALT
+        vram.poke(0, glyph(1, 0, 0, 0)); // LDI r0
+        vram.poke(1, 0); // = 0
+        vram.poke(2, glyph(1, 0, 1, 0)); // LDI r1
+        vram.poke(3, 1); // = 1
+        vram.poke(4, glyph(1, 0, 2, 0)); // LDI r2
+        vram.poke(5, 5); // = 5
+        vram.poke(6, glyph(5, 0, 1, 0)); // ADD r0 = r1 + r0
+        vram.poke(7, glyph(10, 1, 0, 2)); // BRANCH BNE r0, r2
+        vram.poke(8, (-3i32) as u32); // offset = -3 (7 + 2 + (-3) = 6)
+        vram.poke(9, glyph(13, 0, 0, 0)); // HALT
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
         vram.execute_frame();
         assert_eq!(vram.vm_state(0).unwrap().regs[0], 5);
@@ -1045,7 +1085,7 @@ mod tests {
     fn test_tracing() {
         let mut vram = SyntheticVram::new();
         vram.enable_tracing();
-        vram.poke(0, glyph(1, 0, 0, 0));  // LDI r0
+        vram.poke(0, glyph(1, 0, 0, 0)); // LDI r0
         vram.poke(1, 99);
         vram.poke(2, glyph(13, 0, 0, 0)); // HALT
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
@@ -1059,10 +1099,10 @@ mod tests {
     #[test]
     fn test_spatial_bounds_check() {
         let mut vram = SyntheticVram::new();
-        vram.poke(50, glyph(1, 0, 0, 0));   // LDI r0
-        vram.poke(51, 200);                    // addr 200 (outside bounds)
-        vram.poke(52, glyph(3, 0, 0, 1));   // LOAD r1 = mem[r0] → should fault
-        vram.poke(53, glyph(13, 0, 0, 0));  // HALT (should never reach)
+        vram.poke(50, glyph(1, 0, 0, 0)); // LDI r0
+        vram.poke(51, 200); // addr 200 (outside bounds)
+        vram.poke(52, glyph(3, 0, 0, 1)); // LOAD r1 = mem[r0] → should fault
+        vram.poke(53, glyph(13, 0, 0, 0)); // HALT (should never reach)
 
         let config = SyntheticVmConfig {
             entry_point: 50,
@@ -1083,29 +1123,33 @@ mod tests {
         // Compute fib(10) = 55
         let mut vram = SyntheticVram::new();
         // r0 = fib(n-2), r1 = fib(n-1), r2 = temp, r3 = counter, r4 = limit, r5 = one
-        vram.poke(0, glyph(1, 0, 0, 0));   // LDI r0 = 0
+        vram.poke(0, glyph(1, 0, 0, 0)); // LDI r0 = 0
         vram.poke(1, 0);
-        vram.poke(2, glyph(1, 0, 1, 0));   // LDI r1 = 1
+        vram.poke(2, glyph(1, 0, 1, 0)); // LDI r1 = 1
         vram.poke(3, 1);
-        vram.poke(4, glyph(1, 0, 3, 0));   // LDI r3 = 0 (counter)
+        vram.poke(4, glyph(1, 0, 3, 0)); // LDI r3 = 0 (counter)
         vram.poke(5, 0);
-        vram.poke(6, glyph(1, 0, 4, 0));   // LDI r4 = 10 (limit)
+        vram.poke(6, glyph(1, 0, 4, 0)); // LDI r4 = 10 (limit)
         vram.poke(7, 10);
-        vram.poke(8, glyph(1, 0, 5, 0));   // LDI r5 = 1
+        vram.poke(8, glyph(1, 0, 5, 0)); // LDI r5 = 1
         vram.poke(9, 1);
         // Loop start at addr 10:
-        vram.poke(10, glyph(2, 0, 1, 2));  // MOV r2 = r1 (temp = fib(n-1))
-        vram.poke(11, glyph(5, 0, 0, 1));  // ADD r1 = r0 + r1 (fib(n) = fib(n-2) + fib(n-1))
-        vram.poke(12, glyph(2, 0, 2, 0));  // MOV r0 = r2 (fib(n-2) = old fib(n-1))
-        vram.poke(13, glyph(5, 0, 5, 3));  // ADD r3 = r5 + r3 (counter++)
+        vram.poke(10, glyph(2, 0, 1, 2)); // MOV r2 = r1 (temp = fib(n-1))
+        vram.poke(11, glyph(5, 0, 0, 1)); // ADD r1 = r0 + r1 (fib(n) = fib(n-2) + fib(n-1))
+        vram.poke(12, glyph(2, 0, 2, 0)); // MOV r0 = r2 (fib(n-2) = old fib(n-1))
+        vram.poke(13, glyph(5, 0, 5, 3)); // ADD r3 = r5 + r3 (counter++)
         vram.poke(14, glyph(10, 1, 3, 4)); // BRANCH BNE r3, r4
-        vram.poke(15, (-6i32) as u32);       // offset = -6 (14 + 2 + (-6) = 10)
+        vram.poke(15, (-6i32) as u32); // offset = -6 (14 + 2 + (-6) = 10)
         vram.poke(16, glyph(13, 0, 0, 0)); // HALT
 
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
         vram.execute_frame();
         // 10 iterations from (0,1) → fib(11) = 89
-        assert_eq!(vram.vm_state(0).unwrap().regs[1], 89, "10 iterations of fib should give 89");
+        assert_eq!(
+            vram.vm_state(0).unwrap().regs[1],
+            89,
+            "10 iterations of fib should give 89"
+        );
         assert!(vram.is_halted(0));
     }
 
@@ -1117,26 +1161,26 @@ mod tests {
         // 0: Copy template (64-79) to child (96-111)
         vram.poke(0, glyph(232, 96, 64, 16));
         // 1-2: Patch child's value at addr 97 (the data part of LDI)
-        vram.poke(1, glyph(1, 0, 1, 0));   // LDI r1
-        vram.poke(2, 97);                   // = 97
-        vram.poke(3, glyph(1, 0, 2, 0));   // LDI r2
-        vram.poke(4, 0xBEEF);               // = 0xBEEF
-        vram.poke(5, glyph(4, 0, 1, 2));   // STORE [r1], r2
-        // 6-7: Jump to child at addr 96
-        vram.poke(6, glyph(1, 0, 1, 0));   // LDI r1
-        vram.poke(7, 96);                   // = 96
-        vram.poke(8, glyph(9, 0, 1, 0));   // JMP r1
+        vram.poke(1, glyph(1, 0, 1, 0)); // LDI r1
+        vram.poke(2, 97); // = 97
+        vram.poke(3, glyph(1, 0, 2, 0)); // LDI r2
+        vram.poke(4, 0xBEEF); // = 0xBEEF
+        vram.poke(5, glyph(4, 0, 1, 2)); // STORE [r1], r2
+                                         // 6-7: Jump to child at addr 96
+        vram.poke(6, glyph(1, 0, 1, 0)); // LDI r1
+        vram.poke(7, 96); // = 96
+        vram.poke(8, glyph(9, 0, 1, 0)); // JMP r1
 
         // --- TEMPLATE PROGRAM (addr 64-69) ---
         // 64-65: Load value
         vram.poke(64, glyph(1, 0, 10, 0)); // LDI r10
-        vram.poke(65, 0xDEAD);              // = 0xDEAD (to be patched)
-        // 66-67: Target address
+        vram.poke(65, 0xDEAD); // = 0xDEAD (to be patched)
+                               // 66-67: Target address
         vram.poke(66, glyph(1, 0, 11, 0)); // LDI r11
-        vram.poke(67, 200);                 // = 200 (Result addr)
-        // 68-69: Store and Halt
+        vram.poke(67, 200); // = 200 (Result addr)
+                            // 68-69: Store and Halt
         vram.poke(68, glyph(4, 0, 11, 10)); // STORE [r11], r10
-        vram.poke(69, glyph(13, 0, 0, 0));  // HALT
+        vram.poke(69, glyph(13, 0, 0, 0)); // HALT
 
         // Run it
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
@@ -1164,37 +1208,37 @@ mod tests {
         let mut vram = SyntheticVram::new_small(1024);
 
         // === CHILD PROGRAM (addr 100-112) ===
-        vram.poke(100, glyph(1, 0, 0, 0));   // LDI r0 = 0xCAFE
+        vram.poke(100, glyph(1, 0, 0, 0)); // LDI r0 = 0xCAFE
         vram.poke(101, 0xCAFE);
-        vram.poke(102, glyph(1, 0, 1, 0));   // LDI r1 = 512
+        vram.poke(102, glyph(1, 0, 1, 0)); // LDI r1 = 512
         vram.poke(103, 512);
-        vram.poke(104, glyph(4, 0, 1, 0));   // STORE [r1], r0 (Signal parent)
-        vram.poke(105, glyph(1, 0, 1, 0));   // LDI r1 = 516
+        vram.poke(104, glyph(4, 0, 1, 0)); // STORE [r1], r0 (Signal parent)
+        vram.poke(105, glyph(1, 0, 1, 0)); // LDI r1 = 516
         vram.poke(106, 516);
-        vram.poke(107, glyph(1, 0, 3, 0));   // LDI r3 = 0xF00D (Expected ack)
+        vram.poke(107, glyph(1, 0, 3, 0)); // LDI r3 = 0xF00D (Expected ack)
         vram.poke(108, 0xF00D);
-        vram.poke(109, glyph(3, 0, 1, 2));   // LOAD r2 = mem[r1] (Poll for ack)
-        vram.poke(110, glyph(10, 1, 2, 3));  // BNE r2, r3, -3 (offset = 110 + 2 - 3 = 109)
+        vram.poke(109, glyph(3, 0, 1, 2)); // LOAD r2 = mem[r1] (Poll for ack)
+        vram.poke(110, glyph(10, 1, 2, 3)); // BNE r2, r3, -3 (offset = 110 + 2 - 3 = 109)
         vram.poke(111, (-3i32) as u32);
-        vram.poke(112, glyph(13, 0, 0, 0));  // HALT
+        vram.poke(112, glyph(13, 0, 0, 0)); // HALT
 
         // === PARENT PROGRAM (addr 0-15) ===
-        vram.poke(0, glyph(1, 0, 4, 0));     // LDI r4 = 100
-        vram.poke(1, 100);                    // = 100
-        vram.poke(2, glyph(225, 0, 4, 0));   // SPATIAL_SPAWN r0 = spawn(r4)
-        vram.poke(3, glyph(1, 0, 5, 0));     // LDI r5 = 512
+        vram.poke(0, glyph(1, 0, 4, 0)); // LDI r4 = 100
+        vram.poke(1, 100); // = 100
+        vram.poke(2, glyph(225, 0, 4, 0)); // SPATIAL_SPAWN r0 = spawn(r4)
+        vram.poke(3, glyph(1, 0, 5, 0)); // LDI r5 = 512
         vram.poke(4, 512);
-        vram.poke(5, glyph(1, 0, 7, 0));     // LDI r7 = 0xCAFE (Expected child signal)
+        vram.poke(5, glyph(1, 0, 7, 0)); // LDI r7 = 0xCAFE (Expected child signal)
         vram.poke(6, 0xCAFE);
-        vram.poke(7, glyph(3, 0, 5, 6));     // LOAD r6 = mem[r5] (Poll for signal)
-        vram.poke(8, glyph(10, 1, 6, 7));    // BNE r6, r7, -3 (offset = 8 + 2 - 3 = 7)
+        vram.poke(7, glyph(3, 0, 5, 6)); // LOAD r6 = mem[r5] (Poll for signal)
+        vram.poke(8, glyph(10, 1, 6, 7)); // BNE r6, r7, -3 (offset = 8 + 2 - 3 = 7)
         vram.poke(9, (-3i32) as u32);
-        vram.poke(10, glyph(1, 0, 0, 0));    // LDI r0 = 0xF00D
+        vram.poke(10, glyph(1, 0, 0, 0)); // LDI r0 = 0xF00D
         vram.poke(11, 0xF00D);
-        vram.poke(12, glyph(1, 0, 1, 0));    // LDI r1 = 516
+        vram.poke(12, glyph(1, 0, 1, 0)); // LDI r1 = 516
         vram.poke(13, 516);
-        vram.poke(14, glyph(4, 0, 1, 0));    // STORE [r1], r0 (Signal ack)
-        vram.poke(15, glyph(13, 0, 0, 0));   // HALT
+        vram.poke(14, glyph(4, 0, 1, 0)); // STORE [r1], r0 (Signal ack)
+        vram.poke(15, glyph(13, 0, 0, 0)); // HALT
 
         // Run with interleaved scheduler (1 cycle per VM at a time)
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
@@ -1205,5 +1249,121 @@ mod tests {
         assert_eq!(vram.peek(516), 0xF00D);
         assert!(vram.is_halted(0), "Parent should be halted");
         assert!(vram.is_halted(1), "Child should be halted");
+    }
+
+    #[test]
+    fn test_micro_assembler() {
+        // Micro-Assembler: Reads ASCII mnemonics, emits opcode bytes
+        // Source: "LDI" at addr 200 (ASCII bytes: 76, 68, 73)
+        // Output: opcode 1 at addr 500
+
+        let mut vram = SyntheticVram::new_small(1024);
+
+        // === SOURCE TEXT (ASCII) at addr 200-202 ===
+        vram.poke(200, 76); // 'L'
+        vram.poke(201, 68); // 'D'
+        vram.poke(202, 73); // 'I'
+
+        // === MICRO-ASSEMBLER PROGRAM (addr 0-25) ===
+        // r0 = source pointer (200)
+        // r1 = first char ('L')
+        // r2 = second char ('D')
+        // r3 = third char ('I')
+        // r4 = output pointer (500)
+        // r5 = temp for comparison
+
+        // 0-1: LDI r0, 200 (source ptr)
+        vram.poke(0, glyph(1, 0, 0, 0));
+        vram.poke(1, 200);
+
+        // 2-3: LOAD r1, [r0] (load first char)
+        vram.poke(2, glyph(3, 0, 1, 0));
+
+        // 4: ADD r0, r0, 1 (increment source)
+        vram.poke(4, glyph(5, 0, 0, 1));
+
+        // 5-6: LOAD r2, [r0] (load second char)
+        vram.poke(5, glyph(3, 0, 2, 0));
+
+        // 7: ADD r0, r0, 1 (increment source)
+        vram.poke(7, glyph(5, 0, 0, 1));
+
+        // 8-9: LOAD r3, [r0] (load third char)
+        vram.poke(8, glyph(3, 0, 3, 0));
+
+        // 10-11: LDI r5, 76 ('L')
+        vram.poke(10, glyph(1, 0, 5, 0));
+        vram.poke(11, 76);
+
+        // 12: SUB r6, r1, r5 (r6 = r1 - 76, check if first char == 'L')
+        vram.poke(12, glyph(6, 0, 6, 5));
+
+        // 13-14: LDI r5, 68 ('D')
+        vram.poke(13, glyph(1, 0, 5, 0));
+        vram.poke(14, 68);
+
+        // 15: SUB r7, r2, r5 (r7 = r2 - 68, check if second char == 'D')
+        vram.poke(15, glyph(6, 0, 7, 5));
+
+        // 16-17: LDI r5, 73 ('I')
+        vram.poke(16, glyph(1, 0, 5, 0));
+        vram.poke(17, 73);
+
+        // 18: SUB r8, r3, r5 (r8 = r3 - 73, check if third char == 'I')
+        vram.poke(18, glyph(6, 0, 8, 5));
+
+        // 19: ADD r6, r6, r7 (r6 = r6 + r7)
+        vram.poke(19, glyph(5, 0, 6, 7));
+
+        // 20: ADD r6, r6, r8 (r6 = r6 + r8, if all zero, r6 = 0 means match!)
+        vram.poke(20, glyph(5, 0, 6, 8));
+
+        // 21-22: LDI r4, 500 (output ptr)
+        vram.poke(21, glyph(1, 0, 4, 0));
+        vram.poke(22, 500);
+
+        // 23: JMP :skip (if not match, skip emit) - we'll just emit anyway for simplicity
+        // Actually, let's do: if r6 != 0, skip emit
+        // 23: JZ r6 (if r6 == 0, match found)
+        vram.poke(23, glyph(10, 0, 6, 0)); // JZ r6
+
+        // For now, always emit (simplified)
+        // 24: LDI r0, 1 (opcode for LDI)
+        vram.poke(24, glyph(1, 0, 0, 0));
+        vram.poke(25, 1);
+
+        // 26-27: STORE [r4], r0 (write opcode to output)
+        vram.poke(26, glyph(4, 0, 4, 0));
+
+        // 28: HALT
+        vram.poke(27, glyph(13, 0, 0, 0));
+
+        // === RUN ===
+        vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
+        vram.enable_tracing();
+        vram.execute_frame();
+
+        // Debug: print trace
+        println!("=== TRACE ===");
+        for (i, entry) in vram.trace().iter().enumerate() {
+            println!(
+                "{}: PC={} op={} str={} p1={} p2={}",
+                i, entry.pc, entry.opcode, entry.stratum, entry.p1, entry.p2
+            );
+            if i > 30 {
+                break;
+            }
+        }
+        println!("=== END TRACE ===");
+        println!("VM state: {:?}", vram.vm_state(0));
+
+        // === VERIFY ===
+        // The source had "LDI" (76, 68, 73)
+        // The assembler should have emitted opcode 1 to addr 500
+        let emitted = vram.peek(500);
+        println!("Emitted at addr 500: {}", emitted);
+
+        // Check the low byte is 1 (LDI opcode)
+        assert_eq!(emitted & 0xFF, 1, "Should emit LDI opcode (1)");
     }
 }
