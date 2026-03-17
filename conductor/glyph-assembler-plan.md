@@ -18,5 +18,7 @@ To build an assembler, we need:
 3. `ADD` / bitwise ops (to assemble the operands into the correct color channels)
 4. `STORE` (to write the compiled pixel to the Execution Region)
 
-## Next Step
-We will design a state machine that reads one instruction string at a time, parses it into an opcode/parameters, and uses the existing `STORE` command to pack it into the proper address.
+## The Self-Spawning Insight
+We just successfully proved `OP_SPATIAL_SPAWN`. The 21-pixel program copies itself and then spawns a new VM. We realized it actually creates a "fork bomb" if left unchecked because the spawned VM also executes the same static addresses. 
+
+For the Assembler, we will write a program that simply reads character data from a fixed address, translates it to opcodes, writes the opcodes to a target address, and then `HALT`s (or `SPAWN`s the compiled program!).
