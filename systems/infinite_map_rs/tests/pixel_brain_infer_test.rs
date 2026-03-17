@@ -41,8 +41,8 @@ fn test_layer_offsets_layer_0() {
 fn test_layer_offsets_layer_1() {
     let offsets = LayerOffsets::for_layer(1);
     // Embeddings: 65536 (256 * 256)
-    // Layer 0 size: Q(65536) + K(65536) + V(65536) + O(16384) + FFN_up(262144) + FFN_down(262144) = 741280
-    // Layer 1 starts at 65536 + 741280 = 806816
-    assert_eq!(offsets.q_offset, 806816);
+    // Layer 0 size: Q(65536) + K(65536) + V(65536) + O(16384) + FFN_up(262144) + FFN_down(262144) = 737280
+    // Layer 1 starts at 65536 + 737280 = 802816
+    assert_eq!(offsets.q_offset, 802816);
 }
 
