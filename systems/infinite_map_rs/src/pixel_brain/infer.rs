@@ -895,7 +895,7 @@ impl PixelBrainInferencer {
     pub fn get_logits(&mut self, token: u32) -> Vec<f32> {
         // Ensure pipelines and buffers are initialized
         if self.embed_pipeline.is_none() {
-            return vec![0.0; self.config.hidden_dim];
+            return vec![0.0; self.config.hidden_dim as usize];
         }
 
         // 1. Dispatch embed shader
@@ -907,8 +907,8 @@ impl PixelBrainInferencer {
         let embed_config = EmbedConfig {
             token_id: token,
             hidden_dim: self.config.hidden_dim,
-            embed_offset: 0,
-            _padding: 0,
+            embed_offset: LayerOffsets::embed_offset(),
+            atlas_size: self.config.atlas_size,
         };
         self.queue.write_buffer(
             self.embed_uniform_buffer.as_ref().unwrap(),
@@ -930,17 +930,17 @@ impl PixelBrainInferencer {
         // Process through all layers
         let attention_pipeline = self.attention_pipeline.as_ref().unwrap();
         let ffn_pipeline = self.ffn_pipeline.as_ref().unwrap();
-        let workgroups = (self.config.hidden_dim + 255) / 256;
+        let workgroups = (self.config.hidden_dim + 63) / 64;
 
-        for layer in 0..self.config.num_layers {
+        for layer in 0..self.config.n_layers {
             let offsets = LayerOffsets::for_layer(layer);
 
             // Write attention config
             let attn_config = AttentionConfig {
                 layer,
                 hidden_dim: self.config.hidden_dim,
-                head_dim: self.config.head_dim,
-                seq_len: self.config.seq_len,
+                head_dim: self.config.hidden_dim / self.config.n_heads,
+                seq_len: 1,
                 q_offset: offsets.q_offset,
                 k_offset: offsets.k_offset,
                 v_offset: offsets.v_offset,
@@ -962,7 +962,7 @@ impl PixelBrainInferencer {
                 up_offset: offsets.ffn_up_offset,
                 down_offset: offsets.ffn_down_offset,
                 atlas_size: self.config.atlas_size,
-                _padding: 0,
+                _padding: [0, 0],
             };
             self.queue.write_buffer(
                 self.ffn_uniform_buffer.as_ref().unwrap(),
@@ -1029,7 +1029,7 @@ impl PixelBrainInferencer {
 
             result
         } else {
-            vec![0.0; self.config.hidden_dim]
+            vec![0.0; self.config.hidden_dim as usize]
         }
     }
 
