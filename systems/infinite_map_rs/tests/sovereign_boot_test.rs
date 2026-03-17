@@ -59,6 +59,7 @@ mod tests {
         fn halt(&mut self) { self.ins(glyph(13, 0, 0, 0)); }
         fn beq(&mut self, r1: u8, r2: u8, target: &str) { self.branch(0, r1, r2, target); }
         fn bne(&mut self, r1: u8, r2: u8, target: &str) { self.branch(1, r1, r2, target); }
+        fn blt(&mut self, r1: u8, r2: u8, target: &str) { self.branch(2, r1, r2, target); }
         fn jmp(&mut self, target: &str) { self.beq(10, 10, target); }
     }
 
@@ -218,6 +219,16 @@ mod tests {
         scheduler.spawn_vm(1, &boot_config).unwrap();
         scheduler.execute_frame();
         scheduler.sync_gpu_to_shadow();
+
+        // Debug: What did the assembler emit?
+        println!("\n=== ASSEMBLER OUTPUT (addr 200-220) ===");
+        for i in 200..220 {
+            let val = scheduler.peek_substrate_single(i);
+            if val != 0 {
+                println!("  addr {}: 0, 0x{:08X}", i, val);
+            }
+        }
+        println!("");
 
         // --- PHASE 3: Run RISC-V ---
         println!("Booting RISC-V VM...");
