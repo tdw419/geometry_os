@@ -149,7 +149,7 @@ mod tests {
 
         // Init constants
         b.ldi(0, 10000);  // text_ptr
-        b.ldi(3, 300);    // emit_ptr (start AFTER assembler code)
+        b.ldi(3, 500);    // emit_ptr (start AFTER assembler code at 0-377)
         b.ldi(9, 10);     // multiplier
         b.ldi(10, 1);     // increment
         b.ldi(11, 48);    // '0'
@@ -458,8 +458,8 @@ mod tests {
         println!("\nAssembler program size: {} pixels", program.len());
 
         // Check if assembler fits before emit area
-        if program.len() > 300 {
-            println!("WARNING: Assembler too large ({}), will overlap emit area (300+)", program.len());
+        if program.len() > 500 {
+            println!("WARNING: Assembler too large ({}), will overlap emit area (500+)", program.len());
         }
 
         for &(addr, val) in &program {
@@ -482,7 +482,7 @@ mod tests {
         // Dump compiled program
         println!("\n=== COMPILED OUTPUT ===");
         for i in 0..20 {
-            let addr = 300 + i;
+            let addr = 500 + i;
             let val = scheduler.peek_substrate_single(addr);
             if val != 0 {
                 println!("  addr {}: 0x{:08X}", addr, val);
@@ -492,7 +492,7 @@ mod tests {
         // PHASE 2: Execute the compiled Fibonacci program
         println!("\n=== PHASE 2: EXECUTING FIBONACCI ===");
         let compiled_config = VmConfig {
-            entry_point: 300,
+            entry_point: 500,
             parent_id: 0xFF,
             base_addr: 1,
             bound_addr: 0,
