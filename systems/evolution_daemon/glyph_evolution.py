@@ -10,6 +10,8 @@ from typing import List, Dict, Any, Callable
 import random
 import json
 
+from .compiler_bridge import compile_glyph_program
+
 # Valid opcodes from champion_shader.wgsl (200-227)
 VALID_OPCODES = [
     200, 201, 202, 203,  # Arithmetic: ADD_M, SUB_M, MUL_M, DIV_M
@@ -163,13 +165,20 @@ def evolve_glyph_program(
     best_fitness = 0.0
 
     for gen in range(generations):
-        # TODO(Task 2.2): Replace placeholder with actual compiler evaluation
-        # via compiler_bridge.compile_glyph_program()
         fitness_scores = []
         for program in population:
-            # Placeholder result - real fitness requires compiler integration
-            result = {"spirv_size": 100, "magic": "0x07230203"}
-            fitness = fitness_fn(program, result)
+            # Compile via compiler_bridge for real fitness evaluation
+            compile_result = compile_glyph_program(program, timeout=5.0)
+            result = {
+                "spirv_size": compile_result.spirv_size,
+                "word_count": compile_result.word_count,
+                "magic": compile_result.magic,
+                "success": compile_result.success,
+            }
+            if compile_result.success:
+                fitness = fitness_fn(program, result)
+            else:
+                fitness = 0.0  # Failed compilations get zero fitness
             fitness_scores.append((program, fitness))
 
         # Sort by fitness
