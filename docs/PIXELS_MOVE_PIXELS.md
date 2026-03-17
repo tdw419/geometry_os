@@ -330,6 +330,7 @@ This is the base case for Geometry OS. Everything else builds on this loop:
 | **Glyph assembler (Rust)** | Bootstrap tool compiles text → opcodes | ✅ Done |
 | **Full Assembler Loop** | GPU-native text → opcode compilation | ✅ Done |
 | **Linux Boot Sim** | Glyph VM loads kernel → prints boot messages + shell | ✅ Done |
+| **Text Boots RISC-V** | **COMPLETE CHAIN**: Text → GPU Assembler → Glyph VM → RISC-V → UART | ✅ Done |
 | Real Linux Kernel | Boot actual Linux kernel | Next |
 | Self-hosting | No more Rust bootstrap needed | Goal |
 
@@ -345,5 +346,6 @@ The frozen bootstrap (18 `poke_substrate_single` calls) is the last time the CPU
 | `systems/infinite_map_rs/tests/copy_executes_test.rs` | Tests that copies can execute (0 → 100 → 200) |
 | `systems/infinite_map_rs/tests/self_modification_test.rs` | Tests programs rewriting their own opcodes |
 | `systems/infinite_map_rs/tests/training_glyph_test.rs` | GPU-native training glyph tests |
+| `systems/infinite_map_rs/tests/text_boots_riscv_test.rs` | **COMPLETE CHAIN**: Text → GPU Assembler → Glyph → RISC-V → UART |
 | `systems/infinite_map_rs/src/shaders/glyph_vm_scheduler.wgsl` | The GPU VM — executes instructions from the RAM texture |
 | `systems/infinite_map_rs/src/glyph_vm_scheduler.rs` | Rust scheduler — manages VM state, dispatches compute shader |
