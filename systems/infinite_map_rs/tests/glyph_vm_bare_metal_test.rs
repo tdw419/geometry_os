@@ -6,9 +6,8 @@
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
-    use infinite_map_rs::gpu::glyph_vm::{GlyphVM, Glyph, GlyphVMState};
+    use infinite_map_rs::gpu::glyph_vm::{GlyphVM, Glyph};
     use infinite_map_rs::backend::drm::glyph_executor::DrmGlyphExecutor;
-    use wgpu::util::DeviceExt;
 
     async fn create_test_context() -> Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -141,10 +140,8 @@ mod tests {
         println!("✅ DrmGlyphExecutor successfully loaded Glyph VM pipeline with 6-binding layout");
     }
 
-    // TODO: execute_attested needs updating to create 6-binding bind groups for full VM execution
-    // The pipeline loads correctly, but execution requires buffers for program, state, memory, stack + textures
+    /// Test execute_attested with Glyph VM 6-binding pipeline (program, state, memory, stack, atlas, screen)
     #[tokio::test]
-    #[ignore = "execute_attested needs update to create 6-binding bind groups (program, state, memory, stack, atlas, screen)"]
     async fn test_drm_executor_with_glyph_vm() {
         let ctx = create_test_context().await;
         if ctx.is_none() { return; }
