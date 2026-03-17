@@ -2534,7 +2534,7 @@ mod tests {
             entry_point: main_addr,
             ..SyntheticVmConfig::default()
         }).unwrap();
-        
+
         // Give it plenty of cycles
         for _ in 0..200 {
             vram.execute_frame_interleaved(10);
@@ -2543,12 +2543,52 @@ mod tests {
             }
         }
 
-        // Debug: print first 20 trace entries
+        // Debug: print trace around Pass 2 (look for p2_anc_lp pattern)
         let trace = vram.trace();
-        println!("  Execution Trace (first 20):");
-        for (i, entry) in trace.iter().take(20).enumerate() {
-            println!("    {}: PC={:04X} OP={:02X} STR={} p1={:08X} p2={:08X}", 
+        println!("  Execution Trace (first 30):");
+        for (i, entry) in trace.iter().take(30).enumerate() {
+            println!("    {}: PC={:04X} OP={:02X} STR={} p1={:08X} p2={:08X}",
                 i, entry.pc, entry.opcode, entry.stratum, entry.p1, entry.p2);
+        }
+
+        // Find ALL STOREs to addresses 0x2000-0x2FFF (output buffer range)
+        println!("\n  Looking for STOREs to output buffer (address 0x2000+):");
+        let mut store_to_output = 0;
+        for (i, entry) in trace.iter().enumerate() {
+            if entry.opcode == 4 { // STORE
+                // p1 is address register index, need to check what address that register held
+                // But we can't get that from the trace directly
+                // Instead, let's check the memory after and see what got written
+                store_to_output += 1;
+            }
+        }
+        println!("    Total STOREs executed: {}", store_to_output);
+
+        // Check what characters are at key positions in source
+        println!("\n  Source buffer analysis:");
+        println!("    First char at 0x1000: '{}' ({:02X})",
+            if vram.peek(0x1000) >= 32 && vram.peek(0x1000) < 127 {
+                (vram.peek(0x1000) & 0xFF) as u8 as char
+            } else { '?' }, vram.peek(0x1000));
+
+        // Find first '@' in source
+        for i in 0..source_text.len() as u32 {
+            if vram.peek(0x1000 + i) == 64 { // '@' = 64
+                println!("    First '@' found at source offset {} (address {:04X})", i, 0x1000 + i);
+                // Show context around the '@'
+                let start = if i > 10 { i - 10 } else { 0 };
+                let mut context = String::new();
+                for j in start..i+20 {
+                    let c = vram.peek(0x1000 + j);
+                    if c >= 32 && c < 127 {
+                        context.push((c & 0xFF) as u8 as char);
+                    } else if c == 10 {
+                        context.push('↵');
+                    }
+                }
+                println!("    Context: \"{}\"", context.escape_default());
+                break;
+            }
         }
         
         // Debug: print binary around the branch at 0x54
