@@ -115,7 +115,7 @@ fn parse_reg(s: &str) -> Option<u8> {
 fn parse_imm(s: &str) -> Option<i32> {
     let s = s.trim();
     if s.starts_with("0x") || s.starts_with("0X") {
-        i32::from_str_radix(&s[2..], 16).ok()
+        u32::from_str_radix(&s[2..], 16).ok().map(|v| v as i32)
     } else if s.starts_with("-0x") || s.starts_with("-0X") {
         // Parse negative hex: -0xFF -> -255
         i32::from_str_radix(&s[3..], 16).ok().map(|v| -v)
@@ -467,10 +467,12 @@ impl GlyphAssembler {
         let r2 = parse_reg(parts.get(2 + offset).ok_or("Branch needs r2")?)
             .ok_or_else(|| format!("Invalid register: {}", parts[2 + offset]))?;
 
-        let target_str = parts.get(3 + offset).ok_or("Branch needs target")?;
+        let target_str = parts.get(3 + offset).ok_or("Branch needs target")?.trim_end_matches(',');
+        let label_name = if target_str.starts_with(':') { &target_str[1..] } else { target_str };
+        
         let target = parse_imm(target_str)
-            .or_else(|| self.labels.get(*target_str).map(|&a| a as i32))
-            .unwrap_or(0); // Will be resolved later
+            .or_else(|| self.labels.get(label_name).map(|&a| a as i32))
+            .unwrap_or(0); // Will be resolved by forward_refs if missing
 
         Ok((cond, r1, r2, target))
     }
@@ -479,18 +481,19 @@ impl GlyphAssembler {
     fn extract_label_ref(&self, parts: &[&str]) -> Option<String> {
         for part in parts {
             let cleaned = part.trim_end_matches(',');
-            // Handle :label syntax
             if cleaned.starts_with(':') {
                 return Some(cleaned[1..].to_string());
             }
-            if cleaned.starts_with(|c: char| c.is_alphabetic()) && !cleaned.starts_with('r') && !cleaned.starts_with('R') {
-                // Could be a label
-                if Opcode::from_str(cleaned).is_none() && BranchCond::from_str(cleaned).is_none() {
-                    return Some(cleaned.to_string());
-                }
+            // Check if it's a known label
+            if self.labels.contains_key(cleaned) {
+                return Some(cleaned.to_string());
             }
         }
         None
+    }
+    /// Get the address of a label if it exists
+    pub fn get_label_addr(&self, name: &str) -> Option<u32> {
+        self.labels.get(name).copied()
     }
 }
 

@@ -2460,7 +2460,13 @@ mod tests {
         vram.poke(0x1000 + source_text.len() as u32, 0);
 
         // 3. Run the Assembler
-        vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
+        // We find the address of the :main label in the binary
+        let main_addr = assembler.get_label_addr("main").unwrap_or(0);
+        vram.enable_tracing();
+        vram.spawn_vm(0, &SyntheticVmConfig {
+            entry_point: main_addr,
+            ..SyntheticVmConfig::default()
+        }).unwrap();
         
         // Give it plenty of cycles
         for _ in 0..200 {
@@ -2470,9 +2476,18 @@ mod tests {
             }
         }
 
-        // 4. Verify Output Binary at 0x2000
+        // Debug Output
         println!("Self-Hosting Quine Verification:");
         println!("  Binary Size: {} words", assembled.words.len());
+        println!("  VM 0 State: {:?}", vram.vm_state(0));
+        println!("  mem[0x2000] = {:08X}", vram.peek(0x2000));
+        
+        println!("Execution Trace (last 100):");
+        let trace = vram.trace();
+        let start_idx = if trace.len() > 100 { trace.len() - 100 } else { 0 };
+        for entry in &trace[start_idx..] {
+            println!("  {:?}", entry);
+        }
         
         for i in 0..assembled.words.len() as u32 {
             let original = vram.peek(i);

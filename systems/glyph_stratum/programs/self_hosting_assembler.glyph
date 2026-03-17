@@ -1,15 +1,13 @@
 // ============================================================================
-// Geometry OS - Self-Hosting Assembler (Version 2.7 - BUGFIX)
+// Geometry OS - Self-Hosting Assembler (Version 3.4 - FINAL)
 // ============================================================================
 //
-// A sovereign, GPU-native assembler that can compile its own source code.
-//
 // Memory Layout:
-//   0x0000 - 0x0FFF: Executing Binary
-//   0x1000 - 0x1FFF: ASCII Source (Self)
-//   0x2000 - 0x2FFF: Output Binary
-//   0x3000 - 0x3FFF: Symbol Table (Labels)
-//   0x0800 - 0x08FF: Mnemonic Lookup Table
+//   0x0000 - 0x0FFF: Binary (Executing)
+//   0x1000 - 0x1FFF: Source (ASCII)
+//   0x2000 - 0x2FFF: Output (Compiled)
+//   0x3000 - 0x3FFF: Symbols (Label Table)
+//   0x0800 - 0x08FF: Mnemonic Table
 //   0x4004: ESTIMATED_PC
 // ============================================================================
 
@@ -18,36 +16,29 @@
     LDI r1, 0x2000          // BIN_PTR
     LDI r2, 0x3000          // SYMBOL_TABLE
     LDI r13, 1              // CONST 1
+    LDI r127, 0             // ZERO
     LDI r12, 0x4004
-    LDI r10, 0
-    STORE r12, r10          // Initialize ESTIMATED_PC to 0
+    STORE r12, r127
 
-    CALL :init_mnem_table
+    LDI r14, :init_mnem_table
+    CALL r14
 
-    // === PASS 1: Symbol Collection ===
+    JMP :start
+
+:start
+    // === PASS 1 ===
 :p1_loop
     LOAD r7, [r0]
-    BEQ r7, r10, :p1_done   // check null
+    BEQ r7, r127, :p1_done
     LDI r8, 58              // ':'
     BNE r7, r8, :p1_check_inst
     
-    // Found Label: :ABC
-    ADD r0, r0, r13         // skip ':'
-    LOAD r7, [r0]           // char 0
-    STORE r2, r7
-    ADD r2, r2, r13
     ADD r0, r0, r13
-    LOAD r7, [r0]           // char 1
-    STORE r2, r7
-    ADD r2, r2, r13
-    ADD r0, r0, r13
-    LOAD r7, [r0]           // char 2
-    STORE r2, r7
-    ADD r2, r2, r13
+    LOAD r7, [r0]; STORE r2, r7; ADD r2, r2, r13; ADD r0, r0, r13
+    LOAD r7, [r0]; STORE r2, r7; ADD r2, r2, r13; ADD r0, r0, r13
+    LOAD r7, [r0]; STORE r2, r7; ADD r2, r2, r13
     
-    LOAD r9, [r12]          // PC
-    STORE r2, r9
-    ADD r2, r2, r13
+    LOAD r9, [r12]; STORE r2, r9; ADD r2, r2, r13
     JMP :p1_skip_line
 
 :p1_check_inst
@@ -57,85 +48,84 @@
     // Instruction: LDI?
     LOAD r7, [r0]
     LDI r8, 76; BNE r7, r8, :p1_not_ldi
-    ADD r0, r0, r13
-    LOAD r7, [r0]
+    ADD r0, r0, r13; LOAD r7, [r0]
     LDI r8, 68; BNE r7, r8, :p1_not_ldi_adj1
     
-    LOAD r9, [r12]; LDI r10, 2; ADD r9, r9, r10; STORE r12, r9
-    LDI r10, 0              // restore r10
+    LOAD r9, [r12]; LDI r11, 2; ADD r9, r9, r11; STORE r12, r9
     JMP :p1_skip_line
 
 :p1_not_ldi_adj1; SUB r0, r0, r13
 :p1_not_ldi
     LOAD r9, [r12]; ADD r9, r9, r13; STORE r12, r9
-    LDI r10, 0              // restore r10
 
 :p1_skip_line
-    LOAD r7, [r0]
-    BEQ r7, r10, :p1_done
+    LOAD r7, [r0]; BEQ r7, r127, :p1_done
     LDI r8, 10; BEQ r7, r8, :p1_adv_ws
-    ADD r0, r0, r13
-    JMP :p1_skip_line
+    ADD r0, r0, r13; JMP :p1_skip_line
 
 :p1_adv_ws; ADD r0, r0, r13; JMP :p1_loop
 
 :p1_done
-    // === PASS 2: Compilation ===
+    // === PASS 2 ===
     LDI r0, 0x1000; LDI r1, 0x2000
 
 :p2_loop
-    LOAD r7, [r0]
-    BEQ r7, r10, :eof
+    LOAD r7, [r0]; BEQ r7, r127, :eof
     LDI r8, 58; BEQ r7, r8, :p2_skip_line
     LDI r8, 32; BEQ r7, r8, :p2_adv_ws
     LDI r8, 10; BEQ r7, r8, :p2_adv_ws
     
-    // Parse Mnemonic
+    // Explicit LDI check to avoid table walking for first instr
+    LOAD r7, [r0]; LDI r8, 76; BNE r7, r8, :p2_use_table
+    ADD r0, r0, r13; LOAD r7, [r0]; LDI r8, 68; BNE r7, r8, :p2_backtrack
+    ADD r0, r0, r13; LOAD r7, [r0]; LDI r8, 73; BNE r7, r8, :p2_backtrack2
+    
+    // IS LDI
+    ADD r0, r0, r13; LDI r4, 1; LDI r5, 0; JMP :p2_emit_ldi
+
+:p2_backtrack2; SUB r0, r0, r13
+:p2_backtrack;  SUB r0, r0, r13
+:p2_use_table
     LOAD r7, [r0]; ADD r0, r0, r13
     LOAD r8, [r0]; ADD r0, r0, r13
     LOAD r9, [r0]; ADD r0, r0, r13
-    CALL :match_mnemonic    // r4=opcode, r5=stratum
+    LDI r14, :match_mnemonic; CALL r14
     
     LDI r14, 0xFF; BEQ r4, r14, :p2_skip_line
     
-    // Special Cases
     LDI r14, 13; BEQ r4, r14, :p2_emit_halt
     LDI r14, 12; BEQ r4, r14, :p2_emit_ret
     LDI r14, 1;  BEQ r4, r14, :p2_emit_ldi
     
-    // General: reg, reg
-    CALL :skip_ws
-    CALL :parse_operand; MOV r10, r7
-    CALL :skip_ws
-    CALL :parse_operand; MOV r11, r7
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_operand; CALL r14; MOV r10, r7
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_operand; CALL r14; MOV r11, r7
     
     MOV r3, r4
-    LDI r14, 8;  SLL r15, r5, r14;  OR r3, r3, r15
+    LDI r14, 8; SLL r15, r5, r14; OR r3, r3, r15
     LDI r14, 16; SLL r15, r10, r14; OR r3, r3, r15
     LDI r14, 24; SLL r15, r11, r14; OR r3, r3, r15
-    STORE r1, r3
-    ADD r1, r1, r13
-    LDI r10, 0; JMP :p2_skip_line
+    STORE r1, r3; ADD r1, r1, r13
+    JMP :p2_skip_line
 
-:p2_emit_halt
-    LDI r3, 13; STORE r1, r3; ADD r1, r1, r13; LDI r10, 0; JMP :p2_skip_line
-:p2_emit_ret
-    LDI r3, 12; STORE r1, r3; ADD r1, r1, r13; LDI r10, 0; JMP :p2_skip_line
+:p2_emit_halt; LDI r3, 13; STORE r1, r3; ADD r1, r1, r13; JMP :p2_skip_line
+:p2_emit_ret;  LDI r3, 12; STORE r1, r3; ADD r1, r1, r13; JMP :p2_skip_line
 
 :p2_emit_ldi
-    CALL :skip_ws
-    CALL :parse_operand; MOV r10, r7
-    CALL :skip_ws
-    CALL :parse_operand; MOV r11, r7
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_operand; CALL r14; MOV r10, r7
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_operand; CALL r14; MOV r11, r7
     
     LDI r14, 16; SLL r15, r10, r14
-    LDI r3, 1;   OR r3, r3, r15
+    LDI r3, 1; OR r3, r3, r15
     STORE r1, r3; ADD r1, r1, r13
     STORE r1, r11; ADD r1, r1, r13
-    LDI r10, 0; JMP :p2_skip_line
+    JMP :p2_skip_line
 
 :p2_skip_line
-    LOAD r7, [r0]; BEQ r7, r10, :eof
+    LOAD r7, [r0]; BEQ r7, r127, :eof
     LDI r8, 10; BEQ r7, r8, :p2_adv_ws
     ADD r0, r0, r13; JMP :p2_skip_line
 
@@ -147,39 +137,44 @@
 
 :init_mnem_table
     LDI r4, 0x800
-    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // 'L'
-    LDI r5, 68; STORE r4, r5; ADD r4, r4, r13 // 'D'
-    LDI r5, 73; STORE r4, r5; ADD r4, r4, r13 // 'I'
-    LDI r5, 1;  STORE r4, r5; ADD r4, r4, r13 // Op 1
-    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13 // Str 0
+    // LDI (1, 0)
+    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 68; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 73; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 1;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
     
     LDI r5, 65; STORE r4, r5; ADD r4, r4, r13 // 'A'
     LDI r5, 68; STORE r4, r5; ADD r4, r4, r13 // 'D'
     LDI r5, 68; STORE r4, r5; ADD r4, r4, r13 // 'D'
-    LDI r5, 5;  STORE r4, r5; ADD r4, r4, r13 // Op 5
-    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13 // Str 0
+    LDI r5, 5;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
     
     LDI r5, 83; STORE r4, r5; ADD r4, r4, r13 // 'S'
     LDI r5, 84; STORE r4, r5; ADD r4, r4, r13 // 'T'
     LDI r5, 79; STORE r4, r5; ADD r4, r4, r13 // 'O'
-    LDI r5, 4;  STORE r4, r5; ADD r4, r4, r13 // Op 4
-    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13 // Str 0
+    LDI r5, 4;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
     
+    LDI r5, 0xFFFFFFFF; STORE r4, r5 // End marker
     RET
 
 :match_mnemonic
-    LDI r4, 0x800; LDI r14, 0x8A0
+    LDI r4, 0x800
 :mm_loop
-    LOAD r15, [r4]; BNE r15, r7, :mm_next
-    ADD r4, r4, r13; LOAD r15, [r4]; BNE r15, r8, :mm_next_adj1
-    ADD r4, r4, r13; LOAD r15, [r4]; BNE r15, r9, :mm_next_adj2
-    ADD r4, r4, r13; LOAD r15, [r4]; MOV r4, r15
+    LOAD r15, [r4]
+    LDI r14, 0xFFFFFFFF; BEQ r15, r14, :mm_fail
+    BNE r15, r7, :mm_next
+    ADD r4, r4, r13; LOAD r15, [r4]; BNE r15, r8, :mm_next_ptr1
+    ADD r4, r4, r13; LOAD r15, [r4]; BNE r15, r9, :mm_next_ptr2
+    ADD r4, r4, r13; LOAD r15, [r4]; MOV r10, r15
     ADD r4, r4, r13; LOAD r15, [r4]; MOV r5, r15
-    RET
-:mm_next_adj2; ADD r4, r4, r13
-:mm_next_adj1; ADD r4, r4, r13
-:mm_next;      LDI r15, 5; ADD r4, r4, r15; BNE r4, r14, :mm_loop
-    LDI r4, 0xFF; RET
+    MOV r4, r10; RET
+:mm_next_ptr2; SUB r4, r4, r13
+:mm_next_ptr1; SUB r4, r4, r13
+:mm_next
+    LDI r15, 5; ADD r4, r4, r15; JMP :mm_loop
+:mm_fail; LDI r4, 0xFF; RET
 
 :skip_ws
     LOAD r7, [r0]
@@ -194,26 +189,49 @@
     LOAD r7, [r0]
     LDI r8, 114; BEQ r7, r8, :po_reg
     LDI r8, 58;  BEQ r7, r8, :po_lbl
-    JMP :po_dec
-:po_reg; ADD r0, r0, r13; JMP :po_dec
+    LDI r14, :parse_val; CALL r14; RET
+:po_reg; ADD r0, r0, r13; LDI r14, :parse_val; CALL r14; RET
 :po_lbl
     ADD r0, r0, r13; LOAD r7, [r0]; ADD r0, r0, r13
     LOAD r8, [r0]; ADD r0, r0, r13; LOAD r9, [r0]; ADD r0, r0, r13
     LDI r14, 0x3000; LDI r15, 0x3400
 :sl_loop
     LOAD r10, [r14]; BNE r10, r7, :sl_next
-    ADD r14, r14, r13; LOAD r10, [r14]; BNE r10, r8, :sl_next_adj1
-    ADD r14, r14, r13; LOAD r10, [r14]; BNE r10, r9, :sl_next_adj2
+    ADD r14, r14, r13; LOAD r10, [r14]; BNE r10, r8, :sl_next_ptr1
+    ADD r14, r14, r13; LOAD r10, [r14]; BNE r10, r9, :sl_next_ptr2
     ADD r14, r14, r13; LOAD r7, [r14]; RET
-:sl_next_adj2; ADD r14, r14, r13
-:sl_next_adj1; ADD r14, r14, r13
+:sl_next_ptr2; SUB r14, r14, r13
+:sl_next_ptr1; SUB r14, r14, r13
 :sl_next;      LDI r10, 4; ADD r14, r14, r10; BNE r14, r15, :sl_loop
     LDI r7, 0; RET
 
-:po_dec
+:parse_val
+    LOAD r7, [r0]
+    LDI r8, 48; BNE r7, r8, :pv_dec
+    ADD r0, r0, r13; LOAD r7, [r0]
+    LDI r8, 120; BEQ r7, r8, :pv_hex
+    SUB r0, r0, r13
+:pv_dec; LDI r14, :parse_decimal; CALL r14; RET
+:pv_hex; ADD r0, r0, r13; LDI r14, :parse_hex; CALL r14; RET
+
+:parse_decimal
     LDI r7, 0; LDI r14, 10
 :pd_loop
     LOAD r15, [r0]; LDI r8, 48; SUB r15, r15, r8; LDI r8, 10
     BGEU r15, r8, :pd_done
     MUL r7, r7, r14; ADD r7, r7, r15; ADD r0, r0, r13; JMP :pd_loop
 :pd_done; RET
+
+:parse_hex
+    LDI r7, 0; LDI r14, 16
+:ph_loop
+    LOAD r15, [r0]
+    LDI r8, 48; SUB r15, r15, r8; LDI r8, 10; BLTU r15, r8, :ph_digit
+    LDI r8, 17; SUB r15, r15, r8; LDI r8, 6;  BLTU r15, r8, :ph_upper
+    LDI r8, 32; SUB r15, r15, r8; LDI r8, 6;  BLTU r15, r8, :ph_lower
+    JMP :ph_done
+:ph_upper; LDI r8, 10; ADD r15, r15, r8; JMP :ph_digit
+:ph_lower; LDI r8, 10; ADD r15, r15, r8; JMP :ph_digit
+:ph_digit
+    MUL r7, r7, r14; ADD r7, r7, r15; ADD r0, r0, r13; JMP :ph_loop
+:ph_done; RET

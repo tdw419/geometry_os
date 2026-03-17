@@ -1,45 +1,44 @@
 // ============================================================================
-// Geometry OS - RISC-V Emulator - Step 1: ADD and SUB work!
+// Geometry OS - RISC-V Emulator - Step 1: Guest Register File
+// ============================================================================
+//
+// Goal: Test reading/writing guest registers
 // ============================================================================
 
 :boot
-    // ADD 1 + 1 = 2
-    LDI r15, 1
-    LDI r16, 1
-    ADD r16, r15  // r16 = 2
-    
-    // SUB 5 - 3 = 2
-    // SUB dst, src: regs[src] = regs[dst] - regs[src]
-    LDI r17, 5
-    LDI r15, 3
-    SUB r17, r15  // r15 = r17 - r15 = 2
-    
-    // Check: both should be 2
-    // Compare r16 with 2: need r16 - 2 = 0
-    // SUB r16, r17: r17 = r16 - r17 = r16 - 2 = 0
-    LDI r17, 2
-    SUB r16, r17  // r17 = 0
-    JZ r17, check_r15
-    
-    // Failed
-    LDI r15, 0x46  // 'F'
-    LDI r16, 0x0200
-    STORE r16, r15
-    HALT
+    // Setup: GUEST_REGS at 0x14100
+    LDI r11, 0x14100
 
-:check_r15
-    // Check r15 with 2: need r15 - 2 = 0
-    LDI r17, 2
-    SUB r15, r17   // r17 = r15 - 2 = 0
-    JZ r17, success
-    
-    LDI r15, 0x46  // 'F'
+    // Write value 5 to guest register x1 (at address 0x14104)
+    // guest[x1] = 5
+    LDI r15, 5           // value = 5
+    LDI r16, 1           // reg = 1 (x1)
+    LDI r17, 2           // shift = 2 (multiply by 4)
+    SHL r16, r17         // reg * 4 = 4
+    ADD r16, r11         // addr = 0x14100 + 4 = 0x14104
+    // Now r16 has the address, store value there
+    STORE r16, r15       // mem[0x14104] = 5
+
+    // Read guest register x1 back
+    LDI r16, 1           // reg = 1
+    LDI r17, 2           // shift = 2
+    SHL r16, r17         // reg * 4 = 4
+    ADD r16, r11         // addr = 0x14104
+    LOAD r16, r15         // r15 = mem[0x14104] = 5
+
+    // Check if r15 == 5
+    LDI r16, 5
+    SUB r15, r16         // r16 = r15 - 5
+    JZ r16, success
+
+    // Failed
+    LDI r15, 0x46        // 'F'
     LDI r16, 0x0200
     STORE r16, r15
     HALT
 
 :success
-    LDI r15, 0x53  // 'S'
+    LDI r15, 0x53        // 'S'
     LDI r16, 0x0200
     STORE r16, r15
     HALT
