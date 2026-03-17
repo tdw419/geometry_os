@@ -1084,4 +1084,46 @@ mod tests {
         assert_eq!(vram.vm_state(0).unwrap().regs[1], 89, "10 iterations of fib should give 89");
         assert!(vram.is_halted(0));
     }
+
+    #[test]
+    fn test_self_modifying_quine() {
+        let mut vram = SyntheticVram::new_small(256);
+
+        // --- PARENT PROGRAM (addr 0-8) ---
+        // 0: Copy template (64-79) to child (96-111)
+        vram.poke(0, glyph(232, 96, 64, 16));
+        // 1-2: Patch child's value at addr 97 (the data part of LDI)
+        vram.poke(1, glyph(1, 0, 1, 0));   // LDI r1
+        vram.poke(2, 97);                   // = 97
+        vram.poke(3, glyph(1, 0, 2, 0));   // LDI r2
+        vram.poke(4, 0xBEEF);               // = 0xBEEF
+        vram.poke(5, glyph(4, 0, 1, 2));   // STORE [r1], r2
+        // 6-7: Jump to child at addr 96
+        vram.poke(6, glyph(1, 0, 1, 0));   // LDI r1
+        vram.poke(7, 96);                   // = 96
+        vram.poke(8, glyph(9, 0, 1, 0));   // JMP r1
+
+        // --- TEMPLATE PROGRAM (addr 64-69) ---
+        // 64-65: Load value
+        vram.poke(64, glyph(1, 0, 10, 0)); // LDI r10
+        vram.poke(65, 0xDEAD);              // = 0xDEAD (to be patched)
+        // 66-67: Target address
+        vram.poke(66, glyph(1, 0, 11, 0)); // LDI r11
+        vram.poke(67, 200);                 // = 200 (Result addr)
+        // 68-69: Store and Halt
+        vram.poke(68, glyph(4, 0, 11, 10)); // STORE [r11], r10
+        vram.poke(69, glyph(13, 0, 0, 0));  // HALT
+
+        // Run it
+        vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
+        vram.execute_frame();
+
+        // Verify:
+        // 1. The memory at 97 should be 0xBEEF (not 0xDEAD)
+        assert_eq!(vram.peek(97), 0xBEEF);
+        // 2. The result memory at 200 should be 0xBEEF
+        assert_eq!(vram.peek(200), 0xBEEF);
+        // 3. VM should be halted
+        assert!(vram.is_halted(0));
+    }
 }

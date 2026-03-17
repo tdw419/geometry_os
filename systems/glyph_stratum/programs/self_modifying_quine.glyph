@@ -1,0 +1,50 @@
+// ============================================================================
+// Geometry OS - Self-Modifying Quine Glyph
+// ============================================================================
+//
+// This program demonstrates the "Patch-and-Jump" pattern:
+// 1. Copy a template program to a new address using GLYPH_WRITE.
+// 2. Modify one instruction in the child using STORE (CPU-style patching).
+// 3. Jump to the modified child code using JMP.
+// 4. Verify the child executes the modified behavior.
+//
+// Address Mapping:
+//   0x00-0x1F: Main program (Parent)
+//   0x40-0x5F: Template program (Source)
+//   0x60-0x7F: Modified program (Child)
+//   0xFF: Result memory (where child writes)
+//
+// ============================================================================
+
+:main
+    // PHASE 1: Copy template (addr 0x40) to child area (addr 0x60)
+    // GLYPH_WRITE target=0x60, source=0x40, count=16
+    // Opcode 232 (GLYPH_WRITE), stratum=96 (0x60), p1=64 (0x40), p2=16
+    .glyph 232, 96, 64, 16
+
+    // PHASE 2: Patch the child's instruction at addr 0x61
+    // The template at 0x40 is:
+    //   0x40: LDI r10, 0xDEAD  (pixel 1)
+    //   0x41: 0xDEAD           (pixel 2 - DATA)
+    //   0x42: LDI r11, 0xFF    (target addr)
+    //   0x43: 0xFF
+    //   0x44: STORE r11, r10
+    //   0x45: HALT
+    
+    // We will patch addr 0x61 from 0xDEAD to 0xBEEF
+    LDI r1, 0x61            // target address to patch
+    LDI r2, 0xBEEF          // new value
+    STORE r1, r2            // Overwrite memory at 0x61
+
+    // PHASE 3: Jump to the modified program at 0x60
+    LDI r1, 0x60
+    JMP r1
+
+// ============================================================================
+// TEMPLATE PROGRAM
+// ============================================================================
+:template
+    LDI r10, 0xDEAD
+    LDI r11, 0x00FF         // Result address
+    STORE r11, r10
+    HALT
