@@ -56,7 +56,7 @@ fn hilbert_d2xy(n: u32, d: u32) -> vec2<u32> {
 fn load_weight(offset: u32, row: u32, col: u32) -> f32 {
     let addr = offset + row * config.hidden_dim + col;
     let coords = hilbert_d2xy(config.atlas_size, addr);
-    return textureLoad(brain_atlas, vec2<i32>(i32(coords.x), i32(coords.y)), 0).r;
+    return textureLoad(brain_atlas, vec2<i32>(i32(coords.x), i32(coords.y)), 0i).r;
 }
 
 @compute @workgroup_size(64)

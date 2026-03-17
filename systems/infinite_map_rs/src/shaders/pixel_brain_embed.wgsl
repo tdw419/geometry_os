@@ -64,7 +64,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let coords = hilbert_d2xy(config.atlas_size, addr);
 
     // Load embedding weight from brain atlas
-    let weight = textureLoad(brain_atlas, vec2<i32>(i32(coords.x), i32(coords.y)), 0).r;
+    let weight = textureLoad(brain_atlas, vec2<i32>(i32(coords.x), i32(coords.y)), 0i).r;
 
     // Store to hidden state buffer
     hidden_state[idx] = weight;
