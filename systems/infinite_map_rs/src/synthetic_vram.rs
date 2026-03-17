@@ -2476,6 +2476,20 @@ mod tests {
             }
         }
 
+        // Debug: print first 20 trace entries
+        let trace = vram.trace();
+        println!("  Execution Trace (first 20):");
+        for (i, entry) in trace.iter().take(20).enumerate() {
+            println!("    {}: PC={:04X} OP={:02X} STR={} p1={:08X} p2={:08X}", 
+                i, entry.pc, entry.opcode, entry.stratum, entry.p1, entry.p2);
+        }
+        
+        // Debug: print binary around the branch at 0x54
+        println!("  Binary at offsets 0x50-0x60:");
+        for i in 0x50..0x60 {
+            println!("    {:04X}: {:08X}", i, vram.peek(i as u32));
+        }
+
         // 4. Verify Output Binary at 0x2000
         println!("Self-Hosting Quine Verification:");
         println!("  Binary Size: {} words", assembled.words.len());

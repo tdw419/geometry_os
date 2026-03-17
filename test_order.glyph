@@ -1,0 +1,12 @@
+:boot
+    LDI r1, 10
+    LDI r2, 5
+    SUB r2, r1    // Does r1 = 10 - 5 = 5? Or r2 = 5 - 10?
+    JZ r1, result_in_r1
+    HALT
+
+:result_in_r1
+    LDI r3, 0x52  // 'R'
+    LDI r4, 0x0200
+    STORE r4, r3
+    HALT

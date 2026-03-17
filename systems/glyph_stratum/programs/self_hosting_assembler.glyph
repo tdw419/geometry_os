@@ -1,9 +1,8 @@
 // ============================================================================
-// Geometry OS - Self-Hosting Assembler (Version 5.1 - BIT-PERFECT)
+// Geometry OS - Self-Hosting Assembler (Version 5.3 - PERFECT LOCK)
 // ============================================================================
 :main
-@
-LDI r0, 0x1000
+@LDI r0, 0x1000
 LDI r1, 0x2000
 LDI r2, 0x3000
 LDI r13, 1
@@ -53,7 +52,7 @@ JMP :start
     LDI r8, 64; BEQ r7, r8, :p2_fnd
     ADD r0, r0, r13; JMP :p2_anc_lp
 :p2_fnd
-    ADD r0, r0, r13; LDI r14, :skip_ws; CALL r14
+    ADD r0, r0, r13; LDI r4, 1; LDI r5, 0; JMP :p2_emit_ldi
 
 :p2_loop
     LOAD r7, [r0]; BEQ r7, r127, :eof

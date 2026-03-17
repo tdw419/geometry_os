@@ -1,239 +1,228 @@
 // ============================================================================
-// Geometry OS - Minimal RISC-V Emulator (GEOM Test)
+// Geometry OS - RISC-V Mini Emulator (RV64I Subset)
 // ============================================================================
 //
-// Only supports: LUI, ADDI, SW, EBREAK
 // Memory Layout:
-//   0x0200: UART output buffer
-//   0x14000: GUEST_PC
-//   0x14100: GUEST_REGS (x0-x31, each 4 bytes)
-//   0x18000: GUEST_RAM
+// 0x000200: UART Output
+// 0x014100: Guest Registers (x0-x31, 4 bytes each)
+// 0x018000: Guest RAM / RISC-V Program
 //
-// Register allocation:
-//   r10: Pointer to GUEST_PC
-//   r11: Base address of GUEST_REGS
-//   r12: UART base
-//   r13: Current instruction word
-//   r14: Guest PC value (working)
-//   r15: Scratch
-//   r16: Scratch
-//   r17: Scratch
-//   r18: Scratch (for shift amounts)
+// Host Registers:
+// r10: Guest PC (starts at 0x18000)
+// r11: GUEST_REGS base (0x14100)
+// r13: Instruction buffer
+// r14: Opcode (bits 0-6)
+// r15: rd
+// r16: rs1
+// r17: rs2
+// r18: temp / imm
+// r19: work addr
 // ============================================================================
 
 :boot
-    // Initialize
-    LDI r10, 0x14000      // GUEST_PC address
-    LDI r11, 0x14100      // GUEST_REGS base
-    LDI r12, 0x0200       // UART base
+    // --- Loader: Write "GEOM" test program to 0x18000 ---
+    LDI r19, 0x18000
+    
+    LDI r18, 0x000000B7 // LUI x1, 0
+    STORE r19, r18
+    LDI r18, 4
+    ADD r18, r19
+    
+    LDI r18, 0x20008093 // ADDI x1, x1, 0x200
+    STORE r19, r18
+    LDI r18, 4
+    ADD r18, r19
+    
+    LDI r18, 0x04700113 // ADDI x2, x0, 71 ('G')
+    STORE r19, r18
+    LDI r18, 4
+    ADD r18, r19
+    
+    LDI r18, 0x0020A023 // SW x2, 0(x1)
+    STORE r19, r18
+    LDI r18, 4
+    ADD r18, r19
+    
+    LDI r18, 0x04500113 // ADDI x2, x0, 69 ('E')
+    STORE r19, r18
+    LDI r18, 4
+    ADD r18, r19
+    
+    LDI r18, 0x0020A223 // SW x2, 4(x1)
+    STORE r19, r18
+    LDI r18, 4
+    ADD r18, r19
+    
+    LDI r18, 0x04F00113 // ADDI x2, x0, 79 ('O')
+    STORE r19, r18
+    LDI r18, 4
+    ADD r18, r19
+    
+    LDI r18, 0x0020A423 // SW x2, 8(x1)
+    STORE r19, r18
+    LDI r18, 4
+    ADD r18, r19
+    
+    LDI r18, 0x04D00113 // ADDI x2, x0, 77 ('M')
+    STORE r19, r18
+    LDI r18, 4
+    ADD r18, r19
+    
+    LDI r18, 0x0020A623 // SW x2, 12(x1)
+    STORE r19, r18
+    LDI r18, 4
+    ADD r18, r19
+    
+    LDI r18, 0x00100073 // EBREAK
+    STORE r19, r18
 
-    // Initialize guest PC to 0x18000 (start of guest RAM)
-    LDI r14, 0x18000
-    STORE r10, r14
+    // --- End of Loader ---
 
-// ============================================================================
-// FETCH
-// ============================================================================
-:fetch
-    // Load guest PC value into r14
-    LOAD r10, r14
+    // Initialize Guest PC
+    LDI r10, 0x18000
+    // Initialize Register Base
+    LDI r11, 0x14100
 
-    // Load instruction from guest RAM at address in r14
-    LOAD r14, r13
+    // Clear guest registers (important for x0)
+    LDI r18, 0
+    LDI r19, 0
+:clear_regs_loop
+    MOV r19, r15
+    LDI r17, 2
+    SHL r17, r15
+    ADD r11, r15
+    STORE r15, r18
+    LDI r17, 1
+    ADD r17, r19
+    LDI r17, 32
+    SUB r19, r17
+    JZ r17, fetch_loop
+    JZ r0, clear_regs_loop
 
-    // Extract opcode: bits 0-6
-    MOV r15, r13
-    LDI r16, 0x7F
-    AND r15, r16
+:fetch_loop
+    // Fetch instruction from GUEST_RAM[Guest_PC]
+    LOAD r10, r13
+    
+    // Increment Guest PC by 4
+    LDI r18, 4
+    ADD r18, r10
 
-    // Check for SYSTEM (0x73) - EBREAK
-    LDI r16, 0x73
-    SUB r15, r16
-    JZ r15, handle_system
+    // Decode Opcode (bits 0-6)
+    MOV r13, r14
+    LDI r18, 0x7F
+    AND r18, r14
 
-    // Check for STORE (0x23)
-    MOV r15, r13
-    LDI r16, 0x7F
-    AND r15, r16
-    LDI r16, 0x23
-    SUB r15, r16
-    JZ r15, handle_store
+    // Dispatch Table
+    LDI r18, 0x37
+    SUB r14, r18
+    JZ r18, handle_lui
 
-    // Check for LUI (0x37)
-    MOV r15, r13
-    LDI r16, 0x7F
-    AND r15, r16
-    LDI r16, 0x37
-    SUB r15, r16
-    JZ r15, handle_lui
+    LDI r18, 0x13
+    SUB r14, r18
+    JZ r18, handle_addi
 
-    // Check for OP-IMM (0x13) - ADDI
-    MOV r15, r13
-    LDI r16, 0x7F
-    AND r15, r16
-    LDI r16, 0x13
-    SUB r15, r16
-    JZ r15, handle_addi
+    LDI r18, 0x23
+    SUB r14, r18
+    JZ r18, handle_sw
 
-    // Unknown opcode - halt
-    JZ r0, halt
+    LDI r18, 0x73
+    SUB r14, r18
+    JZ r18, handle_ebreak
 
-// ============================================================================
-// HANDLERS
-// ============================================================================
+    // Default: Loop back
+    JZ r0, fetch_loop
 
 :handle_lui
-    // LUI: rd = imm[31:12] << 12
-    // Extract rd: bits 7-11
-    MOV r15, r13
-    LDI r16, 7
-    SHR r15, r16
-    LDI r16, 0x1F
-    AND r15, r16
-
-    // Extract immediate: bits 12-31, shift left 12
-    MOV r16, r13
-    LDI r18, 0xFFFFF000
-    AND r16, r18
-
-    // Skip if rd = 0
-    LDI r18, 0
-    SUB r15, r18
-    JZ r15, next_instruction
-
-    // Store to guest register rd
-    // Address = 0x14100 + (rd * 4)
-    MOV r18, r15
-    LDI r15, 2
-    SHL r18, r15
-    ADD r18, r11
-    STORE r18, r16
-
-    JZ r0, next_instruction
-
-:handle_addi
-    // ADDI: rd = rs1 + imm
-    // Extract rd: bits 7-11
-    MOV r15, r13
-    LDI r16, 7
-    SHR r15, r16
-    LDI r16, 0x1F
-    AND r15, r16
-
-    // Skip if rd = 0
-    LDI r16, 0
-    SUB r15, r16
-    JZ r15, addi_skip_write
-
-    // Extract rs1: bits 15-19
-    MOV r16, r13
-    LDI r18, 15
-    SHR r16, r18
+    // LUI rd, imm: rd = imm << 12
+    MOV r13, r15
+    LDI r18, 7
+    SHR r18, r15
     LDI r18, 0x1F
-    AND r16, r18
+    AND r18, r15
 
-    // Load rs1 from guest registers
-    // Address = 0x14100 + (rs1 * 4)
-    MOV r18, r16
-    LDI r16, 2
-    SHL r18, r16
-    ADD r18, r11
-    LOAD r18, r16
-
-    // Extract immediate: bits 20-31 (sign-extended from bit 31)
-    MOV r17, r13
-    LDI r18, 20
-    SHR r17, r18
-
-    // Add rs1 + imm
-    ADD r16, r17
-
-    // Store result to rd
-    // Address = 0x14100 + (rd * 4)
-    MOV r17, r15
-    LDI r15, 2
-    SHL r17, r15
-    ADD r17, r11
-    STORE r17, r16
-
-:addi_skip_write
-    JZ r0, next_instruction
-
-:handle_store
-    // SW: mem[rs1 + imm] = rs2
-    // Extract rs2 (source): bits 20-24
-    MOV r15, r13
-    LDI r16, 20
-    SHR r15, r16
-    LDI r16, 0x1F
-    AND r15, r16
-
-    // Load rs2 value from guest registers
-    MOV r16, r15
-    LDI r15, 2
-    SHL r16, r15
-    ADD r16, r11
-    LOAD r16, r15          // r15 = rs2 value
-
-    // Extract rs1 (base): bits 15-19
-    MOV r17, r13
-    LDI r18, 15
-    SHR r17, r18
-    LDI r18, 0x1F
+    MOV r13, r18
+    LDI r17, 0xFFFFF000
     AND r17, r18
 
-    // Load rs1 value from guest registers
-    MOV r18, r17
+    JZ r15, fetch_loop
+
+    MOV r15, r19
     LDI r17, 2
-    SHL r18, r17
-    ADD r18, r11
-    LOAD r18, r17          // r17 = rs1 value (base address)
+    SHL r17, r19
+    ADD r11, r19
+    STORE r19, r18
+    JZ r0, fetch_loop
 
-    // Extract offset: bits 7-11 (imm[4:0]) and bits 25-31 (imm[11:5])
-    MOV r19, r13
-    LDI r20, 7
-    SHR r19, r20
-    LDI r20, 0x1F
-    AND r19, r20           // r19 = lower offset
+:handle_addi
+    // ADDI rd, rs1, imm: rd = rs1 + imm
+    MOV r13, r15
+    LDI r18, 7
+    SHR r18, r15
+    LDI r18, 0x1F
+    AND r18, r15
 
-    MOV r20, r13
-    LDI r21, 25
-    SHR r20, r21
-    LDI r21, 0x7F
-    AND r20, r20
-    LDI r21, 5
-    SHL r20, r21
-    OR r19, r20           // r19 = full offset
+    MOV r13, r16
+    LDI r18, 15
+    SHR r18, r16
+    LDI r18, 0x1F
+    AND r18, r16
 
-    // Calculate address = rs1 + offset
-    ADD r17, r19          // r17 = target address
+    MOV r13, r18
+    LDI r17, 20
+    SHR r17, r18
 
-    // Check for UART address (0x200)
-    LDI r19, 0x200
-    SUB r17, r19
-    JZ r17, store_uart
+    MOV r16, r19
+    LDI r17, 2
+    SHL r17, r19
+    ADD r11, r19
+    LOAD r19, r16
 
-    // Regular memory store
-    STORE r17, r15
-    JZ r0, next_instruction
+    ADD r18, r16
 
-:store_uart
-    // Store to UART at 0x200
-    LDI r17, 0x0200
-    STORE r17, r15
-    JZ r0, next_instruction
+    JZ r15, fetch_loop
 
-:handle_system
-    // EBREAK - halt
-    JZ r0, halt
+    MOV r15, r19
+    LDI r17, 2
+    SHL r17, r19
+    ADD r11, r19
+    STORE r19, r16
+    JZ r0, fetch_loop
 
-:next_instruction
-    // Increment PC by 4
-    LOAD r10, r14
-    LDI r15, 4
-    ADD r14, r15
-    STORE r10, r14
-    JZ r0, fetch
+:handle_sw
+    // SW rs2, offset(rs1): mem[rs1 + offset] = rs2
+    MOV r13, r16
+    LDI r18, 15
+    SHR r18, r16
+    LDI r18, 0x1F
+    AND r18, r16
 
-:halt
+    MOV r13, r17
+    LDI r18, 20
+    SHR r18, r17
+    LDI r18, 0x1F
+    AND r18, r17
+
+    MOV r13, r18
+    LDI r14, 7
+    SHR r14, r18
+    LDI r14, 0x1F
+    AND r14, r18
+
+    MOV r16, r19
+    LDI r14, 2
+    SHL r14, r19
+    ADD r11, r19
+    LOAD r19, r16
+
+    MOV r17, r19
+    LDI r14, 2
+    SHL r14, r19
+    ADD r11, r19
+    LOAD r19, r17
+
+    ADD r18, r16
+    STORE r16, r17
+    JZ r0, fetch_loop
+
+:handle_ebreak
     HALT
