@@ -49,7 +49,16 @@ This allows the GPU to build its own instructions without ever needing a host-si
 
 1. **The Writer (Level 1)**: A program that copies character bitmaps from the Atlas to a Text Buffer. *Result: The GPU can write "Hello World" to itself.*
 2. **The Patcher (Level 2)**: A program that copies instruction templates and patches them with data. *Result: The GPU can generate its own logic.*
-3. **The Assembler (Level 3)**: A program that reads ASCII from the Text Buffer, looks up opcodes in the Atlas, patches them, and writes them to the Exec region. *Result: Self-hosting. You type code into the texture, and the GPU compiles it.*
+3. **The Mnemonic Matcher (Level 3)**: A program that reads ASCII from the Text Buffer, matches it against a known string (e.g. "LDI"), and emits the patched template. *Result: The GPU can parse its own language.*
+
+### Level 3 Detail: The State Machine
+
+Each character parse uses three core instructions:
+1. `LOAD`: Read character from Text Buffer.
+2. `LDI`: Load the expected ASCII value.
+3. `BRANCH (BNE)`: If not equal, jump to the end/error state. If equal, proceed.
+
+When all characters match, the program transitions seamlessly into the **Patch-and-Copy** logic to emit the compiled opcode. 
 
 ## Conclusion
 
