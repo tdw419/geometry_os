@@ -75,7 +75,7 @@
     JZ r15, handle_addi
 
     // Unknown opcode - halt
-    JMP halt
+    JZ r0, halt
 
 // ============================================================================
 // HANDLERS
@@ -196,7 +196,7 @@
     // Check for UART address (0x200)
     LDI r19, 0x200
     SUB r17, r19
-    JZ store_uart
+    JZ r17, store_uart
 
     // Regular memory store
     STORE r17, r15
@@ -210,7 +210,7 @@
 
 :handle_system
     // EBREAK - halt
-    JMP halt
+    JZ r0, halt
 
 :next_instruction
     // Increment PC by 4

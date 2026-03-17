@@ -1,0 +1,325 @@
+// ============================================================================
+// Geometry OS - Self-Hosting Assembler (Version 2.1)
+// ============================================================================
+//
+// Multi-pass assembler that can compile ITSELF.
+// Memory Layout:
+//   0x0000 - 0x0FFF: Assembler Binary (Executing)
+//   0x1000 - 0x1FFF: Source Table (ASCII source code)
+//   0x2000 - 0x2FFF: Output Binary (Compiled version)
+//   0x3000 - 0x3FFF: Label Table (Label -> Address mapping)
+//   0x4000: PASS_COUNTER (0 = Pass 1, 1 = Pass 2)
+//   0x4100: Current output address during pass 1
+// ============================================================================
+
+:main
+    LDI r0, 0x1000          // SRC_PTR (source at 0x1000)
+    LDI r1, 0x2000          // BIN_PTR (output at 0x2000)
+    LDI r2, 0x3000          // LABEL_TABLE
+    LDI r3, 0x4000          // PASS_COUNTER address
+    LDI r4, 0               // 0 = Pass 1
+    STORE r3, r4
+    LDI r5, 0x4100          // PASS1_OUTPUT_PTR
+    STORE r5, 0
+    
+    // === PASS 1: Collect Labels ===
+:pass1_start
+    LOAD r7, [r0]
+    BEQ r7, 0, :pass1_done
+    LDI r8, 58              // ':'
+    BEQ r7, r8, :found_label
+    JMP :pass1_advance
+
+:found_label
+    // Found label at current position!
+    // Store: [r2] = label_char, [r2+1] = address_high, [r2+2] = address_low
+    // First, read the label name (next 3 chars)
+    LDI r8, 1
+    ADD r0, r0, r8
+    LOAD r7, [r0]           // label char 0
+    STORE r2, r7
+    LDI r8, 2
+    ADD r2, r2, r8
+    LOAD r7, [r0]           // label char 1
+    STORE r2, r7
+    LDI r8, 3
+    ADD r2, r2, r8
+    LOAD r7, [r0]           // label char 2
+    STORE r2, r7
+    LDI r8, 4
+    ADD r2, r2, r8
+    
+    // Store the address where this label points
+    LDI r7, 0x4100
+    LOAD r8, [r7]           // Get current pass1 output ptr
+    STORE r2, r8            // Store address in table
+    LDI r8, 5
+    ADD r2, r2, r8
+    
+    // Skip the label line (until \n)
+:skip_label_line
+    LOAD r7, [r0]
+    BEQ r7, 0, :pass1_done
+    LDI r8, 10              // newline
+    BEQ r7, r8, :pass1_advance
+    LDI r8, 1
+    ADD r0, r0, r8
+    JMP :skip_label_line
+
+:pass1_advance
+    // Advance until newline
+:pass1_scan
+    LOAD r7, [r0]
+    BEQ r7, 0, :pass1_done
+    LDI r8, 10              // newline
+    BEQ r7, r8, :pass1_next
+    LDI r8, 1
+    ADD r0, r0, r8
+    JMP :pass1_scan
+
+:pass1_next
+    LDI r8, 1
+    ADD r0, r0, r8          // skip \n
+    JMP :pass1_start
+
+:pass1_done
+    // === PASS 2: Emit Binary ===
+    LDI r3, 0x4000
+    LDI r4, 1               // Pass 2
+    STORE r3, r4
+    LDI r0, 0x1000          // Reset SRC_PTR
+    LDI r1, 0x2000          // Reset BIN_PTR
+
+:pass2_start
+    LOAD r7, [r0]
+    BEQ r7, 0, :eof
+    
+    // Skip labels in pass 2
+    LDI r8, 58              // ':'
+    BEQ r7, r8, :pass2_skip_label
+    
+    // Skip whitespace
+    LDI r8, 32              // ' '
+    BEQ r7, r8, :pass2_ws
+    LDI r8, 44              // ','
+    BEQ r7, r8, :pass2_ws
+    LDI r8, 10              // newline
+    BEQ r7, r8, :pass2_ws
+    JMP :pass2_parse
+
+:pass2_ws
+    LDI r8, 1
+    ADD r0, r0, r8
+    JMP :pass2_start
+
+:pass2_skip_label
+    // Skip entire label line
+:pass2_skip_label_loop
+    LOAD r7, [r0]
+    BEQ r7, 0, :eof
+    LDI r8, 10
+    BEQ r7, r8, :pass2_next_line
+    LDI r8, 1
+    ADD r0, r0, r8
+    JMP :pass2_skip_label_loop
+
+:pass2_parse
+    // === PARSE MNEMONIC (3 chars) ===
+    LOAD r7, [r0]           // char 0
+    LDI r8, 1
+    ADD r0, r0, r8
+    LOAD r8, [r0]           // char 1
+    LDI r9, 1
+    ADD r0, r0, r9
+    LOAD r9, [r0]           // char 2
+    LDI r10, 1
+    ADD r0, r0, r10
+    
+    // Match against table at 0x800
+    CALL :match_mnemonic
+    
+    // r4 = opcode (0xFF = error)
+    LDI r8, 0xFF
+    BEQ r4, r8, :pass2_next_line
+    
+    // Parse operands based on opcode
+    BEQ r4, 13, :emit_pass2     // HALT: no operands
+    
+    // Parse first operand (register)
+    CALL :pass2_skip_ws
+    CALL :pass2_parse_operand   // r5 = result
+    MOV r14, r5
+    
+    // Second operand?
+    LDI r8, 1
+    BEQ r4, r8, :emit_ldi_pass2  // LDI: parse immediate
+    CALL :pass2_skip_ws
+    CALL :pass2_parse_operand    // r6 = result
+    MOV r15, r6
+    JMP :emit_pass2
+
+:emit_ldi_pass2
+    MOV r6, r14                  // r6 = immediate value
+    MOV r5, r14                 // r5 = register for LDI
+    MOV r4, 1                   // opcode = LDI
+    
+    // Emit LDI glyph + immediate
+    LDI r8, 1
+    SLL r5, r5, r8
+    LDI r8, 16
+    SLL r6, r6, r8
+    OR r7, r4, r5
+    OR r7, r7, r6
+    STORE r1, r7
+    LDI r8, 1
+    ADD r1, r1, r8
+    
+    // Get next word for immediate
+    CALL :pass2_skip_ws
+    CALL :pass2_parse_operand
+    STORE r1, r7
+    ADD r1, r1, r8
+    
+    JMP :pass2_next_line
+
+:emit_pass2
+    // Simple emit: [opcode, 0, reg, 0]
+    LDI r8, 1
+    SLL r14, r14, r8
+    OR r7, r4, r14
+    STORE r1, r7
+    LDI r8, 1
+    ADD r1, r1, r8
+
+:pass2_next_line
+    // Skip to end of line
+:pass2_scan
+    LOAD r7, [r0]
+    BEQ r7, 0, :eof
+    LDI r8, 10
+    BEQ r7, r8, :pass2_adv
+    LDI r8, 1
+    ADD r0, r0, r8
+    JMP :pass2_scan
+
+:pass2_adv
+    LDI r8, 1
+    ADD r0, r0, r8
+    JMP :pass2_start
+
+:eof
+    HALT
+
+// === HELPERS ===
+
+:match_mnemonic
+    // r7,r8,r9 = 3 chars; returns r4 = opcode
+    LDI r4, 0x800          // Table base
+    LDI r5, 0x818          // Table end
+:mm_loop
+    LOAD r6, [r4]
+    BEQ r6, 0, :mm_not_found
+    BEQ r6, r7, :mm_c1
+    LDI r6, 4
+    ADD r4, r4, r6
+    BNE r4, r5, :mm_loop
+:mm_not_found
+    LDI r4, 0xFF
+    RET
+:mm_c1
+    LDI r6, 1
+    ADD r4, r4, r6
+    LOAD r6, [r4]
+    BEQ r6, r8, :mm_c2
+    LDI r6, 3
+    ADD r4, r4, r6
+    JMP :mm_loop
+:mm_c2
+    LDI r6, 1
+    ADD r4, r4, r6
+    LOAD r6, [r4]
+    BEQ r6, r9, :mm_found
+    LDI r6, 2
+    ADD r4, r4, r6
+    JMP :mm_loop
+:mm_found
+    LDI r6, 1
+    ADD r4, r4, r6
+    LOAD r4, [r4]          // r4 = opcode
+    RET
+
+:pass2_skip_ws
+    LOAD r7, [r0]
+    BEQ r7, 0, :ret
+    LDI r8, 32
+    BEQ r7, r8, :psw_next
+    LDI r8, 44
+    BEQ r7, r8, :psw_next
+    LDI r8, 10
+    BEQ r7, r8, :psw_next
+    RET
+:psw_next
+    LDI r8, 1
+    ADD r0, r0, r8
+    JMP :pass2_skip_ws
+
+:pass2_parse_operand
+    // Simplified: read number (up to 4 digits)
+    LDI r5, 0               // accumulator
+    LDI r6, 10              // multiplier
+:pop_loop
+    LOAD r7, [r0]
+    LDI r8, 48              // '0'
+    BEQ r7, r8, :pop_digit
+    SUB r8, r7, 48
+    // Check if digit (0-9)
+    LDI r9, 10
+    BEQ r8, r9, :pop_done   // Special case: if subtracted gave 10, it was ':'
+    LDI r9, 0
+    BEQ r8, r9, :pop_zero
+    LDI r9, 1
+    BEQ r8, r9, :pop_digit_ok
+    LDI r9, 2
+    BEQ r8, r9, :pop_digit_ok
+    LDI r9, 3
+    BEQ r8, r9, :pop_digit_ok
+    LDI r9, 4
+    BEQ r8, r9, :pop_digit_ok
+    LDI r9, 5
+    BEQ r8, r9, :pop_digit_ok
+    LDI r9, 6
+    BEQ r8, r9, :pop_digit_ok
+    LDI r9, 7
+    BEQ r8, r9, :pop_digit_ok
+    LDI r9, 8
+    BEQ r8, r9, :pop_digit_ok
+    LDI r9, 9
+    BEQ r8, r9, :pop_digit_ok
+    JMP :pop_done           // Not a digit
+    
+:pop_zero
+    // It's '0' so digit is 0
+    MUL r5, r5, r6
+    ADD r5, r5, r8
+    LDI r8, 1
+    ADD r0, r0, r8
+    JMP :pop_loop
+
+:pop_digit_ok
+    // digit in r8
+    MUL r5, r5, r6
+    ADD r5, r5, r8
+    LDI r8, 1
+    ADD r0, r0, r8
+    JMP :pop_loop
+    
+:pop_digit
+    LDI r8, 1
+    ADD r0, r0, r8
+    JMP :pop_loop
+:pop_done
+    MOV r7, r5
+    RET
+
+:ret
+    RET
