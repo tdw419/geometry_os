@@ -448,8 +448,9 @@ impl GlyphAssembler {
                 (Instruction { opcode, stratum: 0, p1: 0, p2: 0 }, None)
             }
             Opcode::Or => {
+                // OR rd, rs1, rs2 → rd = rs1 | rs2 (three-operand form)
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: 0, p1: rs1, p2: rd }, None)
+                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
             }
             Opcode::Sll => {
                 // SLL rd, rs1, rs2 (three-operand form)
