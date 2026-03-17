@@ -194,6 +194,10 @@ path = "src/bin/bare_metal_swarm.rs"
 name = "glyph_infinite_map"
 path = "src/bin/glyph_infinite_map.rs"
 
+[[bin]]
+name = "build_alpine_substrate"
+path = "src/bin/build_alpine_substrate.rs"
+
 [features]
 default = []
 audio = ["cpal", "rustfft"]
