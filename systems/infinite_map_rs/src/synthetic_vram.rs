@@ -2478,6 +2478,10 @@ mod tests {
         // 3. Run the Assembler
         // We find the address of the :main label in the binary
         let main_addr = assembler.get_label_addr("main").unwrap_or(0);
+        let init_mnem_addr = assembler.get_label_addr("init_mnem_table").unwrap_or(0);
+        println!("\n  Label addresses:");
+        println!("    :main = {:#04X}", main_addr);
+        println!("    :init_mnem_table = {:#04X}", init_mnem_addr);
         vram.enable_tracing();
         vram.spawn_vm(0, &SyntheticVmConfig {
             entry_point: main_addr,

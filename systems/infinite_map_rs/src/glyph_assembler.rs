@@ -250,10 +250,10 @@ impl GlyphAssembler {
     }
 
     /// Strip comment from line
+    /// Note: Semicolons are used to separate instructions, not for comments.
+    /// Comments are marked with // only.
     fn strip_comment(line: &str) -> &str {
-        if let Some(pos) = line.find(';') {
-            &line[..pos]
-        } else if let Some(pos) = line.find("//") {
+        if let Some(pos) = line.find("//") {
             &line[..pos]
         } else {
             line
