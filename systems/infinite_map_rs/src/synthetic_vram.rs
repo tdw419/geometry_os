@@ -2559,6 +2559,21 @@ mod tests {
                 vm.regs[10], vm.regs[11], vm.regs[13], vm.regs[14], vm.regs[15]);
         }
 
+        // Debug: show output buffer as ASCII
+        println!("\n  Output at 0x2000 (first 40 words as ASCII):");
+        let mut out_ascii = String::new();
+        for i in 0..40 {
+            let val = vram.peek(0x2000 + i);
+            if val >= 32 && val < 127 {
+                out_ascii.push((val & 0xFF) as u8 as char);
+            } else if val == 0 {
+                out_ascii.push('·');
+            } else {
+                out_ascii.push('?');
+            }
+        }
+        println!("    \"{}\"", out_ascii.escape_default());
+
         // 4. Verify Output Binary at 0x2000
         println!("Self-Hosting Quine Verification:");
         println!("  Binary Size: {} words", assembled.words.len());
