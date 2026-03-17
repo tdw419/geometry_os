@@ -209,11 +209,11 @@ mod tests {
         b.mov(11, 7); b.sub(1, 7);
 
         // Emit ADD opcode: template | (src << 16) | (dst << 24)
-        b.ldi(4, 50001); b.load(4, 5);  // ADD template
-        b.ldi(8, 16); b.shl(6, 8);    // src << 16
-        b.or(5, 8);                   // template | (src << 16)
-        b.ldi(8, 24); b.shl(7, 5);    // dst << 24
-        b.or(8, 5);                   // final opcode
+        b.ldi(4, 50001); b.load(4, 5);  // r5 = ADD template
+        b.ldi(8, 16); b.shl(6, 8);      // r8 = src << 16
+        b.or(5, 8);                     // r8 = template | (src << 16)
+        b.ldi(8, 24); b.shl(7, 8);      // r8 = dst << 24  ← FIX: use r8 as dest
+        b.or(8, 5);                     // r5 = r5 | r8 = final opcode  ← FIX
         b.store(3, 5);
         b.add(10, 3);
         b.jmp("main_loop");
