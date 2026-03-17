@@ -93,10 +93,14 @@ fn main() -> Result<()> {
     println!("Geometry OS - Alpine Substrate Builder (Rust)");
     println!("============================================================");
 
-    // Paths
-    let glyph_path = Path::new("systems/glyph_stratum/programs/riscv_mini.glyph");
-    let alpine_path = Path::new("alpine.rts.png");
-    let output_path = Path::new("alpine_emulated.rts.png");
+    // Paths - relative to workspace root (geometry_os/geometry_os)
+    let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent().unwrap()  // systems
+        .parent().unwrap(); // geometry_os (geometry_os/geometry_os)
+
+    let glyph_path = workspace_root.join("systems/glyph_stratum/programs/riscv_mini.glyph");
+    let alpine_path = workspace_root.join("alpine.rts.png");
+    let output_path = workspace_root.join("alpine_emulated.rts.png");
 
     println!("\nGlyph emulator: {:?}", glyph_path);
     println!("Alpine kernel: {:?}", alpine_path);
@@ -104,19 +108,20 @@ fn main() -> Result<()> {
 
     // Compile glyph program
     println!("\n[1/3] Compiling RISC-V emulator...");
-    let compiled = compile_glyph_file(glyph_path.to_str().unwrap())?;
+    let compiled = compile_glyph_file(glyph_path.to_str().unwrap())
+        .map_err(|e| anyhow::anyhow!("Failed to compile glyph: {}", e))?;
     println!("  Compiled {} instructions", compiled.instruction_count);
     println!("  Entry point: {}", compiled.entry_point);
 
     // Load Alpine kernel
     println!("\n[2/3] Loading Alpine kernel...");
-    let guest_data = load_alpine_kernel(alpine_path)?;
+    let guest_data = load_alpine_kernel(&alpine_path)?;
     println!("  Loaded {} words of guest memory", guest_data.len());
 
     // Create combined substrate
     println!("\n[3/3] Creating combined substrate (4096x4096)...");
     let substrate = create_combined_substrate(&compiled, &guest_data, 4096);
-    substrate.save(output_path)?;
+    substrate.save(&output_path)?;
     println!("  Saved to {:?}", output_path);
 
     // Memory layout summary
