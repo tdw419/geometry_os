@@ -333,7 +333,7 @@ This is the base case for Geometry OS. Everything else builds on this loop:
 | **Fibonacci self-compile** | GPU compiles + executes fib(10)=55 from text | ✅ Done |
 | **Visual renderer** | RAM texture → PPM/PNG with opcode-colored pixels | ✅ Done |
 | Live substrate viewer | `substrate.html` + daemon `/substrate?colored=1` endpoint | Wired |
-| Real Linux kernel | Boot actual Linux kernel via RISC-V VM | Future |
+| Real Linux kernel | Boot actual Linux kernel via RISC-V VM | 🔄 In Progress |
 | Self-hosting | No more Rust bootstrap needed | Goal |
 
 The frozen bootstrap (18 `poke_substrate_single` calls) is the last time the CPU writes program logic. After that, programs write programs. Pixels move pixels. Light computes with light.
