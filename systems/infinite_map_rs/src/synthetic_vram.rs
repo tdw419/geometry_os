@@ -484,7 +484,13 @@ impl SyntheticVram {
                 if stratum == 0 {
                     let v1 = self.vms[vm_idx].regs[p1 as usize];
                     let v2 = self.vms[vm_idx].regs[p2 as usize];
-                self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_mul(v2);
+                    self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_mul(v2);
+                } else {
+                    // Three-operand form: dst=p2, src1=p1, src2=stratum
+                    let v1 = self.vms[vm_idx].regs[p1 as usize];
+                    let v2 = self.vms[vm_idx].regs[stratum as usize];
+                    self.vms[vm_idx].regs[p2 as usize] = v1.wrapping_mul(v2);
+                }
                 self.vms[vm_idx].pc += 1;
             },
 

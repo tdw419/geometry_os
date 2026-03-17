@@ -355,18 +355,20 @@ impl GlyphAssembler {
                 (Instruction { opcode, stratum: 0, p1: rd, p2: 0 }, Some(imm_val))
             }
             Opcode::Add => {
-                // ADD rd, rs1, rs2 or ADD rd = rs1 + rs2
+                // ADD rd, rs1, rs2 → rd = rs1 + rs2 (three-operand form)
+                // Uses stratum field for rs2
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: 0, p1: rs1, p2: rd }, None)
-                // Note: encoding is ADD rd = rs1 + rd, so we swap
+                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
             }
             Opcode::Sub => {
+                // SUB rd, rs1, rs2 → rd = rs1 - rs2 (three-operand form)
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: 0, p1: rs1, p2: rd }, None)
+                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
             }
             Opcode::Mul => {
+                // MUL rd, rs1, rs2 → rd = rs1 * rs2 (three-operand form)
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: 0, p1: rs1, p2: rd }, None)
+                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
             }
             Opcode::Load => {
                 // LOAD rd, [rs] or LOAD rd = mem[rs]
