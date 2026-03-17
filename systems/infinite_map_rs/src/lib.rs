@@ -122,6 +122,7 @@ pub mod source_city;
 pub mod source_importer;
 pub mod surface_manager;
 pub mod synapse;
+pub mod synthetic_vram;
 pub mod tectonic;
 pub mod tectonic_simulator;
 pub mod terminal_clone;
