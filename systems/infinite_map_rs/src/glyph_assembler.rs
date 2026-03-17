@@ -262,20 +262,42 @@ impl GlyphAssembler {
 
     /// Count words for an instruction (1 or 2)
     fn count_words(&self, line: &str) -> Result<u32, String> {
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.is_empty() {
-            return Ok(0);
+        // Handle semicolon-separated instructions on one line
+        let mut total = 0u32;
+        for sub_line in line.split(';') {
+            let sub_line = sub_line.trim();
+            if sub_line.is_empty() {
+                continue;
+            }
+            let parts: Vec<&str> = sub_line.split_whitespace().collect();
+            if parts.is_empty() {
+                continue;
+            }
+
+            let opcode = Opcode::from_str(parts[0])
+                .ok_or_else(|| format!("Unknown opcode: {}", parts[0]))?;
+
+            // LDI and BRANCH take 2 words (instruction + data)
+            total += if opcode == Opcode::Ldi || opcode == Opcode::Branch { 2 } else { 1 };
         }
-
-        let opcode = Opcode::from_str(parts[0])
-            .ok_or_else(|| format!("Unknown opcode: {}", parts[0]))?;
-
-        // LDI and BRANCH take 2 words (instruction + data)
-        Ok(if opcode == Opcode::Ldi || opcode == Opcode::Branch { 2 } else { 1 })
+        Ok(total)
     }
 
-    /// Assemble a single line
+    /// Assemble a single line (may contain semicolon-separated instructions)
     fn assemble_line(&mut self, line: &str) -> Result<(), String> {
+        // Handle semicolon-separated instructions on one line
+        for sub_line in line.split(';') {
+            let sub_line = sub_line.trim();
+            if sub_line.is_empty() {
+                continue;
+            }
+            self.assemble_single_instruction(sub_line)?;
+        }
+        Ok(())
+    }
+
+    /// Assemble a single instruction
+    fn assemble_single_instruction(&mut self, line: &str) -> Result<(), String> {
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.is_empty() {
             return Ok(());

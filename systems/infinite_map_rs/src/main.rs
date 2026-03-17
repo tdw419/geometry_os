@@ -17,7 +17,7 @@ async fn main() -> Result<()> {
     let dh = display.handle();
 
     // 2. Initialize Compositor State
-    let mut state = GeometryCompositorState::new(dh);
+    let state = GeometryCompositorState::new(dh);
 
     // 3. Initialize Winit Backend
     let mut backend = WinitBackend::new();

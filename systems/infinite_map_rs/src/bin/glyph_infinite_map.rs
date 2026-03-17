@@ -11,7 +11,7 @@ use std::fs;
 use anyhow::Result;
 
 use infinite_map_rs::backend::drm::{
-    VisualInteractionBus, InputState,
+    VisualInteractionBus,
     GlyphVmExecutor, GlyphVmState,
 };
 use infinite_map_rs::glyph_stratum::glyph_compiler::compile_glyph_source;

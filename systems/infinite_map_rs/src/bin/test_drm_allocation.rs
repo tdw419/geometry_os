@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use std::fs::File;
 use std::os::unix::io::AsRawFd;
 use infinite_map_rs::backend::drm::DrmDevice;
 use infinite_map_rs::backend::drm::dmabuf::DmaBuf;

@@ -5,7 +5,6 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
-use bytemuck;
 use serde_json;
 use std::fs;
 
@@ -70,7 +69,7 @@ async fn main() {
     let screen_view = screen.create_view(&wgpu::TextureViewDescriptor::default());
 
     // Initialize Glyph VM
-    let mut vm = GlyphVM::new(
+    let vm = GlyphVM::new(
         device.clone(),
         queue.clone(),
         atlas_view,
