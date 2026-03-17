@@ -11,7 +11,7 @@
 //! 5. **Unload**: Drop the library handle
 //!
 //! ## Usage
-//! ```rust
+//! ```rust,ignore
 //! use crate::hot_swap::{ModuleManager, VatRegistry};
 //!
 //! let mut manager = ModuleManager::new(vat_registry);

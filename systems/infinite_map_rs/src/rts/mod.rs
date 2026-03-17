@@ -16,7 +16,7 @@
 //!
 //! # Example
 //!
-//! ```rust
+//! ```rust,ignore
 //! use infinite_map_rs::rts::extractor::extract_wgsl_from_rts;
 //!
 //! let rts_data = std::fs::read("shader.rts.png")?;

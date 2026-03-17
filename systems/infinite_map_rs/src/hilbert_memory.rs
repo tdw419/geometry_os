@@ -50,6 +50,7 @@ impl HilbertMemoryMapper {
     ///
     /// # Examples
     /// ```
+    /// use infinite_map_rs::hilbert_memory::HilbertMemoryMapper;
     /// let mapper = HilbertMemoryMapper::new(2); // 4x4 texture
     /// let (x, y) = mapper.hilbert_index_to_xy(0);
     /// assert_eq!(x, 0);
@@ -101,6 +102,7 @@ impl HilbertMemoryMapper {
     ///
     /// # Examples
     /// ```
+    /// use infinite_map_rs::hilbert_memory::HilbertMemoryMapper;
     /// let mapper = HilbertMemoryMapper::new(2); // 4x4 texture
     /// let idx = mapper.xy_to_hilbert_index(0, 0);
     /// assert_eq!(idx, 0);
@@ -137,6 +139,7 @@ impl HilbertMemoryMapper {
     ///
     /// # Examples
     /// ```
+    /// use infinite_map_rs::hilbert_memory::HilbertMemoryMapper;
     /// let mapper = HilbertMemoryMapper::new(8); // 256x256 texture
     /// let (u, v) = mapper.address_to_uv(0x10004000, 0x10000000, 4096);
     /// ```
@@ -165,6 +168,7 @@ impl HilbertMemoryMapper {
     ///
     /// # Examples
     /// ```
+    /// use infinite_map_rs::hilbert_memory::HilbertMemoryMapper;
     /// let mapper = HilbertMemoryMapper::new(8); // 256x256 texture
     /// let addr = mapper.uv_to_address(0.5, 0.5, 0x10000000, 4096);
     /// ```

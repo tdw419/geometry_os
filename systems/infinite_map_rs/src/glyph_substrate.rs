@@ -24,6 +24,7 @@ impl GlyphSubstrate {
     /// # Examples
     ///
     /// ```
+    /// use infinite_map_rs::glyph_substrate::GlyphSubstrate;
     /// let substrate = GlyphSubstrate::new(8); // 256x256 grid
     /// ```
     pub fn new(order: u32) -> Self {

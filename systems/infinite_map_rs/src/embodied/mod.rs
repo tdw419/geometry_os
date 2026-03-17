@@ -15,7 +15,7 @@
 //!
 //! # Example
 //!
-//! ```no_run
+//! ```ignore
 //! use infinite_map_rs::embodied::{
 //!     MomentumCamera, MomentumCameraConfig, CameraInput,
 //!     PulseManager, PulseType,

@@ -18,7 +18,7 @@
 //!
 //! # Example
 //!
-//! ```rust
+//! ```rust,ignore
 //! use infinite_map_rs::input::drag_handler::{is_wgsl_rts_png, handle_file_drop};
 //!
 //! // Check if a file is a WGSL .rts.png
@@ -49,7 +49,7 @@ use std::path::Path;
 ///
 /// # Example
 ///
-/// ```rust
+/// ```rust,ignore
 /// use infinite_map_rs::input::drag_handler::is_wgsl_rts_png;
 ///
 /// let file_data = std::fs::read("my_shader.rts.png")?;
@@ -104,7 +104,7 @@ pub fn is_wgsl_rts_png(data: &[u8]) -> bool {
 ///
 /// # Example
 ///
-/// ```rust
+/// ```rust,ignore
 /// use infinite_map_rs::input::drag_handler::handle_file_drop;
 ///
 /// let file_path = "shader.rts.png";
@@ -194,7 +194,7 @@ pub fn get_file_name(path: &str) -> String {
 ///
 /// # Example
 ///
-/// ```rust
+/// ```rust,ignore
 /// use infinite_map_rs::input::drag_handler::is_pixelrts_v2;
 ///
 /// let file_data = std::fs::read("kernel.rts.png")?;

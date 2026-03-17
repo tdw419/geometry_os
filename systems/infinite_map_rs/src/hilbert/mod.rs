@@ -254,6 +254,7 @@ impl HilbertCurve {
     /// # Examples
     ///
     /// ```
+    /// use infinite_map_rs::hilbert::HilbertCurve;
     /// let curve = HilbertCurve::new(8);
     /// assert_eq!(curve.xy2d(2, 1), 7);
     /// ```
@@ -328,6 +329,7 @@ pub fn validate_grid_size(n: u32) -> bool {
 /// # Examples
 ///
 /// ```
+/// use infinite_map_rs::hilbert::grid_order;
 /// assert_eq!(grid_order(64), 6);
 /// assert_eq!(grid_order(256), 8);
 /// ```
