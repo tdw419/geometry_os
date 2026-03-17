@@ -2506,6 +2506,49 @@ mod tests {
             println!("    {:04X}: {:08X}", i, vram.peek(i as u32));
         }
 
+        // Debug: show what source text is at 0x1000
+        println!("\n  Source at 0x1000 (first 80 chars):");
+        let mut src_preview = String::new();
+        for i in 0..80 {
+            let c = vram.peek(0x1000 + i);
+            if c == 0 { break; }
+            src_preview.push((c & 0xFF) as u8 as char);
+        }
+        println!("    \"{}\"", src_preview.escape_default());
+
+        // Debug: show mnemonic table at 0x800
+        println!("\n  Mnemonic table at 0x800 (first 20 words):");
+        for i in 0..20 {
+            print!("    {:04X}: {:08X}", 0x800 + i, vram.peek(0x800 + i));
+            let val = vram.peek(0x800 + i);
+            if val >= 32 && val < 127 {
+                println!(" ('{}')", (val & 0xFF) as u8 as char);
+            } else {
+                println!();
+            }
+        }
+
+        // Debug: show init_mnem_table code in memory (around PC 0x63)
+        println!("\n  init_mnem_table code (0x63-0x90):");
+        for i in 0x63..0x90 {
+            let word = vram.peek(i);
+            let opcode = word & 0xFF;
+            let stratum = (word >> 8) & 0xFF;
+            let p1 = (word >> 16) & 0xFF;
+            let p2 = (word >> 24) & 0xFF;
+            println!("    {:04X}: {:08X}  op={} st={} p1={} p2={}", i, word, opcode, stratum, p1, p2);
+        }
+
+        // Debug: show VM state after execution
+        if let Some(vm) = vram.vm_state(0) {
+            println!("\n  Final VM state:");
+            println!("    PC: {:04X}", vm.pc);
+            println!("    r0: {:08X}  r1: {:08X}  r4: {:08X}  r7: {:08X}",
+                vm.regs[0], vm.regs[1], vm.regs[4], vm.regs[7]);
+            println!("    r10: {:08X}  r11: {:08X}  r13: {:08X}  r14: {:08X}  r15: {:08X}",
+                vm.regs[10], vm.regs[11], vm.regs[13], vm.regs[14], vm.regs[15]);
+        }
+
         // 4. Verify Output Binary at 0x2000
         println!("Self-Hosting Quine Verification:");
         println!("  Binary Size: {} words", assembled.words.len());

@@ -612,4 +612,20 @@ mod tests {
         assert_eq!(program.len(), 18);
         assert!(program.labels.contains_key("loop"));
     }
+
+    #[test]
+    fn test_sll_encoding() {
+        // Test three-operand SLL: SLL rd, rs1, rs2
+        // Encodes as: opcode=131, stratum=rs2, p1=rs1, p2=rd
+        let mut asm = GlyphAssembler::new();
+        let program = asm.assemble("SLL r15, r10, r14").unwrap();
+
+        // SLL r15, r10, r14 means: r15 = r10 << r14
+        // Encoding: opcode=131, stratum=14 (r14), p1=10 (r10), p2=15 (r15)
+        // Expected: 0x0F0A0E83 = 131 | (14 << 8) | (10 << 16) | (15 << 24)
+        let expected = 0x0F0A0E83u32;
+        assert_eq!(program.words[0], expected,
+            "SLL r15, r10, r14 should encode as {:08X}, got {:08X}",
+            expected, program.words[0]);
+    }
 }
