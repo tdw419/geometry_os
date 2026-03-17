@@ -864,7 +864,9 @@ impl PixelBrainInferencer {
         });
         self.device.poll(wgpu::Maintain::Wait);
 
-        if rx.recv().is_ok() && rx.recv().unwrap().is_ok() {
+        // Receive once and check result
+        let map_result = rx.recv();
+        if let Ok(Ok(())) = map_result {
             let data = buffer_slice.get_mapped_range();
             let logits: &[f32] = bytemuck::cast_slice(&data);
 
