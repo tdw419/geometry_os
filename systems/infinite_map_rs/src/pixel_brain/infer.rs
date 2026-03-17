@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 use wgpu::{Device, Queue, ComputePipeline, Buffer, TextureView, BindGroupLayout, BindGroup};
+use crate::pixel_brain::tokenizer::ByteTokenizer;
 
 /// Configuration for the embedding shader
 #[repr(C)]
