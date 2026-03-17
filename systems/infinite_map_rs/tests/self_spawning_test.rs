@@ -2,11 +2,11 @@
 //!
 //! THE FIRST REAL "PIXELS MOVE PIXELS" TEST.
 //!
-//! This test writes a tiny glyph program (18 pixels) into the GPU RAM texture.
+//! This test writes a tiny glyph program (21 pixels) into the GPU RAM texture.
 //! The program copies itself from Hilbert address 0 to address 100.
 //! No Python. No new Rust logic. No new WGSL. Just existing opcodes.
 //!
-//! After execute_frame(), addresses 100-117 should be an exact mirror of 0-17.
+//! After execute_frame(), addresses 100-120 should be an exact mirror of 0-20.
 //! The GPU moved its own pixels.
 
 #[cfg(test)]
@@ -51,7 +51,7 @@ mod tests {
 
     /// The self-replicating glyph program.
     ///
-    /// 18 pixels that copy themselves from address 0 to address 100.
+    /// 21 pixels that copy themselves from address 0 to address 100.
     ///
     /// Uses the REAL opcodes from src/shaders/glyph_vm_scheduler.wgsl:
     ///   LDI (1)   = 2-pixel: r[p1] = next_pixel_as_u32
@@ -62,7 +62,7 @@ mod tests {
     ///   HALT (13) = stop
     fn self_spawning_program() -> Vec<(u32, u32)> {
         // (hilbert_address, value) pairs
-        let program_len: u32 = 18;
+        let program_len: u32 = 21;
         let dst_addr: u32 = 100;
 
         vec![
@@ -103,14 +103,20 @@ mod tests {
             (15, glyph(10, 1, 2, 4)),
             // Addr 16: DATA = -7 as u32 (PC-relative offset: 15 + 2 + (-7) = 10)
             (16, (-7i32) as u32),
-            // Addr 17: HALT
-            (17, glyph(13, 0, 0, 0)),
+            // Addr 17: LDI r5 (spawn address)
+            (17, glyph(1, 0, 5, 0)),
+            // Addr 18: DATA = 100
+            (18, 100u32),
+            // Addr 19: SPATIAL_SPAWN r5
+            (19, glyph(225, 0, 5, 0)),
+            // Addr 20: HALT
+            (20, glyph(13, 0, 0, 0)),
         ]
     }
 
     #[test]
     #[ignore = "Requires GPU"]
-    fn test_pixels_move_pixels() {
+    fn test_pixels_spawn_pixels() {
         let (device, queue) = match create_test_device() {
             Some(d) => d,
             None => {
@@ -172,8 +178,8 @@ mod tests {
         println!("  ✓ All {} source pixels verified", program.len());
 
         // --- Verify destination is empty before execution ---
-        println!("\nVerifying destination (addr 100-117) is empty...");
-        for i in 0..18u32 {
+        println!("\nVerifying destination (addr 100-120) is empty...");
+        for i in 0..21u32 {
             let val = scheduler.peek_substrate_single(100 + i);
             assert_eq!(
                 val, 0,
@@ -227,7 +233,7 @@ mod tests {
         if all_match {
             println!("  ╔══════════════════════════════════════════╗");
             println!("  ║   PIXELS SPAWNED PIXELS.                  ║");
-            println!("  ║   18 glyphs copied themselves on GPU.   ║");
+            println!("  ║   21 glyphs copied themselves on GPU.   ║");
             println!("  ║   No Python. No CPU. Just light.        ║");
             println!("  ╚══════════════════════════════════════════╝");
         } else {
@@ -248,5 +254,21 @@ mod tests {
             );
         }
         println!("  ✓ Source pixels intact. Self-replication is non-destructive.");
+
+        // --- Verify VM 1 spawned ---
+        println!("\nVerifying VM 1 was spawned at address 100...");
+        
+        let stats = scheduler.read_stats();
+        assert_eq!(stats.len(), 2, "Expected 2 active VMs, got {}", stats.len());
+        println!("  ✓ Scheduler reports 2 active VMs");
+
+        // Execute one more frame to let VM 1 do some work
+        println!("Executing another frame for VM 1...");
+        scheduler.execute_frame();
+        println!("Frame 2 complete.");
+        
+        // We'd expect VM 1 to copy from 100 to 200, wait, it loads from its own r0=0.
+        // It's still copying from 0. To make it truly recursive, we need relative addressing,
+        // but spawning is proven.
     }
 }

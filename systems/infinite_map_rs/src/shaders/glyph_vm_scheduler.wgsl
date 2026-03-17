@@ -272,7 +272,7 @@ fn execute_instruction(vm_idx: u32) {
                     vms[i].vm_id = i; vms[i].entry_point = ep; vms[i].pc = ep; vms[i].state = VM_STATE_RUNNING;
                     vms[i].base_addr = vms[vm_idx].base_addr; vms[i].bound_addr = vms[vm_idx].bound_addr;
                     scheduler.active_count = scheduler.active_count + 1u;
-                    vms[vm_idx].regs[p1] = i; return;
+                    vms[vm_idx].regs[p1] = i; vms[vm_idx].pc = vms[vm_idx].pc + 1u; return;
                 }
             }
             vms[vm_idx].regs[p1] = 0xFFFFFFFFu; vms[vm_idx].pc = vms[vm_idx].pc + 1u;
