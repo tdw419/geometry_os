@@ -108,7 +108,8 @@ This proves the Glyph VM works as a sovereign substrate. After the frozen bootst
 | 15-16 | `BRANCH BNE r2, r4, -7` | Loop if counter != 18 |
 | 17 | `HALT` | Execution complete |
 
-**Test:** `cargo test --test self_replication_test -- --ignored --nocapture`
+**GPU Test:** `cargo test --test self_replication_test -- --ignored --nocapture`
+**CPU Test (Synthetic VRAM):** `cargo test --lib synthetic_vram` — same program, no GPU required
 
 ---
 
@@ -125,6 +126,89 @@ This proves the Glyph VM works as a sovereign substrate. After the frozen bootst
 | **Fibonacci Self-Compile** | ✅ Done | Complex loops compiled and executed on-GPU |
 | **Text Boots RISC-V** | ✅ **SOVEREIGNTY CHAIN COMPLETE** | Text → GPU Assembler → Glyph VM → RISC-V → UART "Hi" |
 | **Self-Hosting** | 🔄 Goal | Complete elimination of the Rust bootstrap |
+
+---
+
+## Synthetic VRAM (CPU-Side Glyph VM Emulator)
+
+A `Vec<u32>` that pretends to be a GPU texture. Every opcode, every Hilbert mapping, every VM state transition from `glyph_vm_scheduler.wgsl` is replicated exactly in Rust on the CPU.
+
+**File:** `systems/infinite_map_rs/src/synthetic_vram.rs`
+**Tests:** `cargo test --lib synthetic_vram`
+**Full docs:** `docs/SYNTHETIC_VRAM.md`
+
+### Why Use It
+
+- **No crashes.** A bug is a Rust panic with a stack trace, not a frozen GPU.
+- **Single-stepping.** `vram.step(vm_id)` executes one instruction. Inspect every register after every cycle.
+- **Execution tracing.** `vram.enable_tracing()` records every opcode, PC, and cycle.
+- **Fast iteration.** No GPU init, no wgpu device, no shader compilation. Tests run in microseconds.
+- **CI-friendly.** Runs on any machine, even headless servers with no GPU.
+
+### GPU ↔ Synthetic Equivalence
+
+| Component | GPU | Synthetic |
+|---|---|---|
+| Memory | 4096×4096 RGBA8 texture | `Vec<u32>` of 16M entries |
+| Addressing | Hilbert curve `d2xy()` | Same algorithm in Rust |
+| Pixel format | R=opcode, G=stratum, B=p1, A=p2 | Same u32 encoding |
+| VM count / Registers / Call stack | 8 / 128 / 64 | 8 / 128 / 64 |
+| Cycles per frame | 1024 | 1024 (configurable) |
+| All opcodes | 0–235 | Same set |
+
+**Key difference:** Real GPU runs 8 VMs in parallel; Synthetic VRAM runs them sequentially (deterministic, reproducible).
+
+### Instruction Encoding
+
+```
+ 31       24 23       16 15        8 7         0
+┌───────────┬───────────┬───────────┬───────────┐
+│    p2     │    p1     │  stratum  │  opcode   │
+│  (A byte) │  (B byte) │  (G byte) │  (R byte) │
+└───────────┴───────────┴───────────┴───────────┘
+```
+
+```rust
+fn glyph(opcode: u8, stratum: u8, p1: u8, p2: u8) -> u32 {
+    opcode as u32 | ((stratum as u32) << 8) | ((p1 as u32) << 16) | ((p2 as u32) << 24)
+}
+```
+
+### Quick API
+
+```rust
+let mut vram = SyntheticVram::new();          // Full 4096×4096 (64MB)
+let mut vram = SyntheticVram::new_small(256); // Small grid for unit tests
+
+vram.poke(addr, value);                       // Write to Hilbert address
+vram.poke_glyph(addr, op, stratum, p1, p2);  // Write structured instruction
+let val = vram.peek(addr);                    // Read from Hilbert address
+
+vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
+vram.execute_frame();                         // Run up to 1024 cycles per VM
+vram.step(0);                                 // Single-step VM 0
+
+let vm = vram.vm_state(0).unwrap();           // Inspect registers, PC
+vram.is_halted(0);                            // Check if VM stopped
+```
+
+### Development Workflow
+
+```
+1. Write program → 2. Test on Synthetic VRAM → 3. Deploy to GPU
+   (poke() calls)     (cargo test --lib)         (proven, same bytes)
+```
+
+**If it works in Synthetic VRAM, it works on the GPU.** The program bytes and encoding are identical.
+
+### Complete Opcode Table
+
+Two ISA families exist — see `docs/SYNTHETIC_VRAM.md` for full details:
+
+- **Register-based (0–16):** Core ISA — LDI, MOV, LOAD, STORE, ADD, SUB, MUL, DIV, JMP, BRANCH, CALL, RET, HALT, JAL
+- **Bitwise (128–133):** AND, OR, XOR, SHL, SHR, SAR
+- **Spatial/Self-Modifying (225–235):** SPATIAL_SPAWN, GLYPH_MUTATE, GLYPH_WRITE, ATTENTION_FOCUS, GLYPH_MUTATE_FIELD, SEMANTIC_MERGE
+- **Memory-based (200–229):** Compiled program ISA — operates on memory addresses directly (ADD_MEM, STORE, LOADIMM, JUMP, JUMPZ, CALL, RET, PUSH, POP, etc.)
 
 ---
 
@@ -149,11 +233,17 @@ This proves the Glyph VM works as a sovereign substrate. After the frozen bootst
    python3 systems/glyph_stratum/programs/compile_glyph.py input.glyph output.rts.png
    ```
 
-3. **Simulation & Verification:**
+3. **Test on Synthetic VRAM (PREFERRED):**
+   - Write program using `poke()` / `poke_glyph()` in a Rust test
+   - Single-step, trace execution, assert register values
+   - `cargo test --lib synthetic_vram` — no GPU required, no crash risk
+   - **If it works in Synthetic VRAM, it works on the GPU**
+
+4. **Simulation & Verification:**
    - Test in Python simulator
    - Analyze with `python3 -m systems.pixel_compiler.vlm_health_cli check output.rts.png`
 
-4. **Hardware Boot:** Dispatch via the bare-metal kernel or the `visual_kernel` CLI.
+5. **Hardware Boot:** Dispatch via the bare-metal kernel or the `visual_kernel` CLI.
 
 ---
 
@@ -162,6 +252,7 @@ This proves the Glyph VM works as a sovereign substrate. After the frozen bootst
 | Path | Purpose |
 | :--- | :--- |
 | `systems/infinite_map_rs/` | Rust GPU substrate (wgpu) |
+| `systems/infinite_map_rs/src/synthetic_vram.rs` | CPU-side Glyph VM emulator (Synthetic VRAM) |
 | `systems/infinite_map_rs/src/gpu/shaders/` | WGSL shaders (glyph microcode) |
 | `systems/glyph_stratum/programs/` | Example `.glyph` programs |
 | `systems/pixel_compiler/` | Python pixel compiler & tools |
@@ -172,7 +263,8 @@ This proves the Glyph VM works as a sovereign substrate. After the frozen bootst
 
 ## Hazards & Anti-Patterns
 
-- **The Escape Problem:** Guest programs calculating Hilbert addresses outside `0x8000-0xFFFF` can corrupt emulator state. Always implement spatial bounds checks.
+- **The Escape Problem:** Guest programs calculating Hilbert addresses outside `0x8000-0xFFFF` can corrupt emulator state. Always implement spatial bounds checks. Use Synthetic VRAM's `base_addr`/`bound_addr` to sandbox VMs during development.
+- **"Let me test on the real GPU first":** Test on Synthetic VRAM first. A GPU crash means a hard reboot. A Synthetic VRAM crash means a stack trace.
 - **"Let me write this in Python first":** Use Glyph directly.
 - **Scattering logic:** Placing related instructions at distant Hilbert coordinates breaks cache locality.
 - **Forgetting Sign-Extension:** Always sign-extend 8-bit RGBA channel values when moving to system registers.
