@@ -102,6 +102,13 @@ mod tests {
         scheduler.poke_substrate_single(50003, glyph(13, 0, 0, 0));    // HALT template
         println!("Atlas: LDI at 50000, STORE at 50001, ADD at 50002, HALT at 50003");
 
+        // Debug: verify templates
+        println!("\n=== TEMPLATE VERIFICATION ===");
+        println!("  50000 (LDI):  expected 1, got {}", scheduler.peek_substrate_single(50000));
+        println!("  50001 (STORE): expected 4, got {}", scheduler.peek_substrate_single(50001));
+        println!("  50002 (ADD):  expected 5, got {}", scheduler.peek_substrate_single(50002));
+        println!("  50003 (HALT): expected 13, got {}", scheduler.peek_substrate_single(50003));
+
         // Build assembler program (simplified - just handles LDI, STORE, HALT)
         let mut b = ProgramBuilder::new();
 
