@@ -361,7 +361,11 @@ mod tests {
         // Negative: read digit and negate
         b.add(10, 0); b.load(0, 1);
         b.mov(11, 8); b.sub(1, 8);  // r8 = digit - 48
-        b.neg(8, 8);                 // r8 = -r8
+        // Negate: r8 = 0 - r8 (opcode 128 is AND, not NEG, so we use SUB)
+        b.ldi(2, 0); b.sub(8, 2);   // r2 = r8 - r2... wait that's wrong
+        // SUB semantics: r[p2] = r[p1] - r[p2], so sub(8, 2) means r2 = r8 - r2
+        // We need r8 = 0 - r8, so: sub(2, 8) means r8 = r2 - r8 = 0 - r8 = -r8
+        b.ldi(2, 0); b.sub(2, 8);   // r8 = r2 - r8 = 0 - r8 = -r8
         b.jmp("blt_emit");
 
         b.label("blt_pos");
