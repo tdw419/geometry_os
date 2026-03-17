@@ -84,129 +84,7 @@ mod tests {
         scheduler.poke_substrate_single(10000 + digits.len() as u32, 0);
         println!("Input: \"50000\" at address 10000");
 
-        // ========================================
-        // THE ACCUMULATION LOOP PROGRAM
-        // ========================================
-        //
-        // Register map:
-        //   r0  = text_ptr (10000)
-        //   r1  = current_char
-        //   r2  = temp / digit
-        //   r3  = constant 48 ('0')
-        //   r4  = constant 10
-        //   r5  = constant '0' (48) for comparison
-        //   r6  = constant '9' (57) for comparison
-        //   r7  = accumulator
-        //   r8  = output address (200)
-        //   r10 = constant 1 (increment)
-        //   r11 = temp for MUL result
-        //
-        // Loop:
-        //   LOAD r1 = mem[r0]
-        //   if r1 == 0: goto done
-        //   if r1 < '0': goto done
-        //   if r1 > '9': goto done
-        //   r2 = r1 - 48  (digit value)
-        //   r11 = r7 * 10
-        //   r7 = r11 + r2  (acc = acc*10 + digit)
-        //   r0 += 1
-        //   goto loop
-        // done:
-        //   STORE [r8] = r7
-        //   HALT
-
-        let program: Vec<(u32, u32)> = vec![
-            // === INIT CONSTANTS ===
-            (0, glyph(1, 0, 0, 0)),   // LDI r0
-            (1, 10000),                // r0 = 10000 (text_ptr)
-
-            (2, glyph(1, 0, 3, 0)),   // LDI r3
-            (3, 48),                   // r3 = 48 ('0')
-
-            (4, glyph(1, 0, 4, 0)),   // LDI r4
-            (5, 10),                   // r4 = 10
-
-            (6, glyph(1, 0, 5, 0)),   // LDI r5
-            (7, 48),                   // r5 = '0' (48) for comparison
-
-            (8, glyph(1, 0, 6, 0)),   // LDI r6
-            (9, 57),                   // r6 = '9' (57) for comparison
-
-            (10, glyph(1, 0, 7, 0)),  // LDI r7
-            (11, 0),                   // r7 = 0 (accumulator)
-
-            (12, glyph(1, 0, 8, 0)),  // LDI r8
-            (13, 200),                 // r8 = 200 (output address)
-
-            (14, glyph(1, 0, 10, 0)), // LDI r10
-            (15, 1),                   // r10 = 1 (increment)
-
-            // === MAIN LOOP (starts at addr 16) ===
-            (16, glyph(3, 0, 0, 1)),  // LOAD r1 = mem[r0]
-
-            // Check for null terminator
-            (17, glyph(1, 0, 2, 0)),  // LDI r2
-            (18, 0),                   // r2 = 0
-            (19, glyph(10, 0, 1, 2)), // BEQ r1, r2 -> done
-            (20, 20i32 as u32),        // offset to addr 40 (done)
-
-            // Check r1 < '0' (48): if r1 < r5, done
-            (21, glyph(10, 4, 1, 5)), // BLTU r1, r5 -> done (if r1 < 48)
-            (22, 18i32 as u32),        // offset to addr 40
-
-            // Check r1 > '9' (57): if r1 > r6, done
-            (23, glyph(10, 5, 1, 6)), // BGEU r1, r6 -> done (if r1 >= 58, i.e. > 57)
-            (24, 16i32 as u32),        // offset to addr 40
-
-            // r2 = r1 - r3 (digit = char - 48)
-            // SUB: r[p2] = r[p1] - r[p2]
-            // We want r2 = r1 - r3, so p1=1, p2=3 → r3 = r1 - r3
-            // Then move r3 back to r2
-            (25, glyph(6, 0, 1, 2)),  // SUB r2 = r1 - r2 (but r2 is 0 from earlier... need to reload r3)
-
-            // Actually, let's use a different approach:
-            // Move r1 to r2 first, then subtract r3
-            (25, glyph(2, 0, 1, 2)),  // MOV r2 = r1
-            (26, glyph(6, 0, 3, 2)),  // SUB r2 = r3 - r2... no that's wrong too
-
-            // Let me reload r3 since we overwrote it... wait, r3 should still be 48
-            // Actually the issue is SUB: r[p2] = r[p1] - r[p2]
-            // To do r2 = r2 - r3, we need p1=2, p2=3, which gives r3 = r2 - r3
-            // Then we need to move result back
-
-            // Simpler: use r9 as scratch for digit
-            // r9 = r1 - r3
-            (25, glyph(2, 0, 1, 9)),  // MOV r9 = r1
-            (26, glyph(6, 0, 3, 9)),  // SUB r9 = r3 - r9... no, still wrong
-
-            // The SUB is r[p2] = r[p1] - r[p2]
-            // So to get r9 = r1 - r3:
-            // We need r9 in p2 position, r1 in p1 position
-            // glyph(6, 0, 1, 9) → r9 = r1 - r9 (but r9 might not be 0)
-
-            // Let's zero r9 first, then MOV r1→r9, then subtract
-            (25, glyph(1, 0, 9, 0)),  // LDI r9
-            (26, 0),                   // r9 = 0
-            (27, glyph(5, 0, 1, 9)),  // ADD r9 = r1 + r9 = r1
-            (28, glyph(6, 0, 3, 9)),  // SUB r9 = r3 - r9 = 48 - r1... WRONG
-
-            // OK the SUB operand order is confusing. Let me check:
-            // r[p2] = r[p1] - r[p2]
-            // If we want result = r1 - r3:
-            // We need r1 in p1, r3 in p2, result in... r3 (p2 position)
-            // So glyph(6, 0, 1, 3) gives r3 = r1 - r3
-            // Then we can use r3 as the digit value
-
-            // Let me restart the program with this understanding
-        ];
-
-        // The program is getting complex. Let me write a cleaner version using ProgramBuilder.
-        // Actually, let me first verify the SUB instruction works as expected.
-
-        // Simpler approach: test just the core accumulation in isolation
-        // Test: r7 = 0, r7 = r7*10 + 5, r7 = r7*10 + 0, ... = 50000
-
-        println!("Program too complex for manual encoding. Using ProgramBuilder...");
+        println!("Using ProgramBuilder for clean encoding...");
 
         // Use the ProgramBuilder pattern from full_assembler_test
         let mut b = ProgramBuilder::new();
@@ -378,10 +256,6 @@ mod tests {
 
         fn beq(&mut self, r1: u8, r2: u8, target: &str) {
             self.branch(0, r1, r2, target);
-        }
-
-        fn bne(&mut self, r1: u8, r2: u8, target: &str) {
-            self.branch(1, r1, r2, target);
         }
 
         fn blt(&mut self, r1: u8, r2: u8, target: &str) {
