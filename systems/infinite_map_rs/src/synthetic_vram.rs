@@ -2180,37 +2180,106 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Compositor test incomplete - parent writes to child mailbox works, child execution needs debugging"]
     fn test_compositor_window_manager() {
-        // Simplified Compositor Test - demonstrates parent-child shared memory communication
-        // The pattern: Parent writes to child mailbox, child reads and acknowledges
-        // This test shows parent writing works; child needs more debugging
+        // Full Compositor Test:
+        // 1. Parent (Compositor) defines a window at (100, 100, 200, 200)
+        // 2. Parent spawns Child (Application)
+        // 3. Parent reads Mouse X, Y (simulated at 150, 150)
+        // 4. Parent performs hit-test against Window Table
+        // 5. If hit, Parent writes '1' to Child Mailbox
+        // 6. Child polls Mailbox, sees '1', writes 0xCAFE to 0x500 to acknowledge focus
+
+        let mut vram = SyntheticVram::new_small(2048);
+
+        // --- WINDOW TABLE (0x100) ---
+        vram.poke(0x100, 100); // x
+        vram.poke(0x101, 100); // y
+        vram.poke(0x102, 200); // w
+        vram.poke(0x103, 200); // h
+        vram.poke(0x104, 0x300); // Mailbox addr
+
+        // --- CHILD PROGRAM (addr 400) ---
+        let mut cp = 400;
+        vram.poke(cp, glyph(1, 0, 0, 0)); cp += 1; // LDI r0 = 0x300 (mailbox)
+        vram.poke(cp, 0x300); cp += 1;
+        let c_loop = cp;
+        vram.poke(cp, glyph(3, 0, 0, 1)); cp += 1; // LOAD r1, [r0]
+        vram.poke(cp, glyph(10, 0, 1, 127)); cp += 1; // BEQ r1, r127(0), loop
+        vram.poke(cp, (c_loop as i32 - cp as i32 - 1) as u32); cp += 1;
+        vram.poke(cp, glyph(1, 0, 2, 0)); cp += 1; // LDI r2 = 0xCAFE
+        vram.poke(cp, 0xCAFE); cp += 1;
+        vram.poke(cp, glyph(1, 0, 3, 0)); cp += 1; // LDI r3 = 0x500
+        vram.poke(cp, 0x500); cp += 1;
+        vram.poke(cp, glyph(4, 0, 3, 2)); cp += 1; // STORE [r3], r2
+        vram.poke(cp, glyph(13, 0, 0, 0)); cp += 1; // HALT
+
+        // --- COMPOSITOR PROGRAM (addr 0) ---
+        let mut pp = 0;
+        let mut poke_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+            v.poke(*p, glyph(1, 0, reg, 0)); *p += 1;
+            v.poke(*p, val); *p += 1;
+        };
         
-        let mut vram = SyntheticVram::new_small(1024);
+        poke_ldi(&mut vram, &pp, 13, 1); pp += 1; // r13 = CONST 1
+        
+        // 1. Spawn Child
+        poke_ldi(&mut vram, &mut pp, 1, 400);
+        vram.poke(pp, glyph(225, 0, 1, 0)); pp += 1; // SPATIAL_SPAWN
+        
+        // 2. Load Mouse X, Y (from 0x200, 0x204)
+        poke_ldi(&mut vram, &mut pp, 2, 0x200);
+        vram.poke(pp, glyph(3, 0, 2, 3)); pp += 1; // r3 = Mouse X
+        poke_ldi(&mut vram, &mut pp, 2, 0x204);
+        vram.poke(pp, glyph(3, 0, 2, 4)); pp += 1; // r4 = Mouse Y
+        
+        // 3. Load Win Bounds
+        poke_ldi(&mut vram, &mut pp, 5, 0x100);
+        vram.poke(pp, glyph(3, 0, 5, 6)); pp += 1; // r6 = win.x
+        vram.poke(pp, glyph(5, 0, 13, 5)); pp += 1; // r5++
+        vram.poke(pp, glyph(3, 0, 5, 7)); pp += 1; // r7 = win.y
+        vram.poke(pp, glyph(5, 0, 13, 5)); pp += 1; // r5++
+        vram.poke(pp, glyph(3, 0, 5, 8)); pp += 1; // r8 = win.w
+        vram.poke(pp, glyph(5, 0, 13, 5)); pp += 1; // r5++
+        vram.poke(pp, glyph(3, 0, 5, 9)); pp += 1; // r9 = win.h
+        vram.poke(pp, glyph(5, 0, 13, 5)); pp += 1; // r5++
+        vram.poke(pp, glyph(3, 0, 5, 10)); pp += 1; // r10 = mailbox addr (0x300)
+        
+        // 4. Hit Test: x >= win.x && x < win.x + win.w
+        vram.poke(pp, glyph(10, 4, 3, 6)); pp += 1; // BLTU r3, r6, :fail
+        let f1 = pp; pp += 1;
+        vram.poke(pp, glyph(5, 0, 6, 8)); pp += 1;  // r8 = win.x + win.w
+        vram.poke(pp, glyph(10, 5, 3, 8)); pp += 1; // BGEU r3, r8, :fail
+        let f2 = pp; pp += 1;
+        
+        // y >= win.y && y < win.y + win.h
+        vram.poke(pp, glyph(10, 4, 4, 7)); pp += 1; // BLTU r4, r7, :fail
+        let f3 = pp; pp += 1;
+        vram.poke(pp, glyph(5, 0, 7, 9)); pp += 1;  // r9 = win.y + win.h
+        vram.poke(pp, glyph(10, 5, 4, 9)); pp += 1; // BGEU r4, r9, :fail
+        let f4 = pp; pp += 1;
+        
+        // SUCCESS: Write 1 to mailbox
+        vram.poke(pp, glyph(1, 0, 11, 0)); pp += 1; vram.poke(pp, 1); pp += 1;
+        vram.poke(pp, glyph(4, 0, 10, 11)); pp += 1; // STORE [r10], r11
+        vram.poke(pp, glyph(13, 0, 0, 0)); pp += 1; // HALT
+        
+        let fail_target = pp;
+        vram.poke(pp, glyph(13, 0, 0, 0)); pp += 1; // HALT
+        
+        vram.poke(f1, (fail_target as i32 - f1 as i32 - 1) as u32);
+        vram.poke(f2, (fail_target as i32 - f2 as i32 - 1) as u32);
+        vram.poke(f3, (fail_target as i32 - f3 as i32 - 1) as u32);
+        vram.poke(f4, (fail_target as i32 - f4 as i32 - 1) as u32);
 
-        // === CHILD PROGRAM (addr 200) ===
-        vram.poke(200, glyph(1, 0, 0, 0));  // LDI r0 = 300
-        vram.poke(201, 300);
-        vram.poke(202, glyph(3, 0, 1, 0));  // LOAD r1, [r0]
-        vram.poke(203, glyph(1, 0, 2, 0));  // LDI r2 = 0xCAFE
-        vram.poke(204, 0xCAFE);
-        vram.poke(205, glyph(4, 0, 0, 2));  // STORE [r0+4], r2
-        vram.poke(206, glyph(13, 0, 0, 0)); // HALT
-
-        // === PARENT PROGRAM (addr 0) ===
-        vram.poke(0, glyph(1, 0, 0, 0));  // LDI r0 = 300
-        vram.poke(1, 300);
-        vram.poke(2, glyph(1, 0, 1, 0));  // LDI r1 = 1
-        vram.poke(3, 1);
-        vram.poke(4, glyph(4, 0, 0, 1));  // STORE [r0], r1  
-        vram.poke(5, glyph(13, 0, 0, 0)); // HALT
-
-        // === RUN ===
+        // --- RUN ---
+        // Mouse at (150, 150) - inside window
+        vram.poke(0x200, 150);
+        vram.poke(0x204, 150);
+        
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
-        vram.execute_frame();
+        vram.execute_frame_interleaved(1);
         
-        // Parent wrote event to child mailbox at 300
-        assert_eq!(vram.peek(300), 1, "Parent should write event to mailbox");
-        println!("  ✓ Parent wrote event to child mailbox (IPC proven)");
+        assert_eq!(vram.peek(0x500), 0xCAFE, "Child should acknowledge focus");
+        println!("  ✓ Compositor routed event to child window via hit-test");
     }
 }

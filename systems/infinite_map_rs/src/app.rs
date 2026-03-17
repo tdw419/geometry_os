@@ -1570,14 +1570,41 @@ impl<'a> InfiniteMapApp<'a> {
 
     /// Phase 34.4: Execute Riscv code on RiscvExecutor
     /// Full implementation with assembler-to-GPU integration
-    /// TODO: This function needs updating to use current RiscvExecutor API
-    /// The current API doesn't have assemble_and_load() or step() methods
-    fn execute_riscv_code(&mut self, _code: &str) -> String {
-        log::info!("🎮 Phase 34.4: RISC-V execution stub");
-        // TODO: Implement using current RiscvExecutor API:
-        // - Use load_program_raw() or load_program() to load binary
-        // - Use execute_frame() to run instructions
-        "⚠️ RISC-V code execution: API needs updating".to_string()
+    fn execute_riscv_code(&mut self, code: &str) -> String {
+        use crate::glyph_assembler::GlyphAssembler;
+
+        log::info!("🎮 Phase 34.4: Assembling and executing RISC-V code");
+
+        // Create assembler and assemble the code
+        let mut assembler = GlyphAssembler::new();
+        let program = match assembler.assemble(code) {
+            Ok(p) => p,
+            Err(e) => {
+                log::error!("Assembly error: {}", e);
+                return format!("⚠️ Assembly error: {}", e);
+            }
+        };
+
+        log::info!("Assembled {} words ({} bytes)", program.len(), program.len() * 4);
+
+        // Get binary bytes
+        let bytes = program.to_bytes();
+
+        // Load and execute on RiscvExecutor
+        if let Some(ref executor_arc) = self.riscv_executor {
+            let mut executor = executor_arc.lock().unwrap();
+            if let Err(e) = executor.load_binary(&bytes, 0) {
+                log::error!("Load error: {}", e);
+                return format!("⚠️ Load error: {}", e);
+            }
+            executor.execute_frame();
+            let output = executor.get_console_output().to_string();
+            log::info!("Execution output: {} bytes", output.len());
+            output
+        } else {
+            log::warn!("No RiscvExecutor initialized");
+            "⚠️ No RiscvExecutor initialized - load a program first".to_string()
+        }
     }
 
     // Phase 47: Handle crystallize commands (F5 - Text to RTS)
