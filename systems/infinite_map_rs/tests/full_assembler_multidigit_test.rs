@@ -113,12 +113,12 @@ mod tests {
 
         let mut b = ProgramBuilder::new();
 
-        // Init constants
+        // Init constants (match original test)
         b.ldi(0, 10000);  // text_ptr
         b.ldi(3, 200);    // emit_ptr
-        b.ldi(8, 48);     // '0'
         b.ldi(9, 10);     // multiplier
         b.ldi(10, 1);     // increment
+        b.ldi(11, 48);    // '0' (used for digit conversion)
         b.ldi(12, 32);    // ' '
         b.ldi(13, 10);    // '\n'
         b.ldi(14, 114);   // 'r'
@@ -163,25 +163,14 @@ mod tests {
         // Debug: store digit char at addr 301
         b.ldi(7, 301); b.store(7, 1);
 
-        // r6 = digit - 48 (register number)
-        b.mov(8, 6);      // r6 = 48 (copy from r8)
-        b.sub(1, 6);      // r6 = r1 - r6 = digit - 48
-        b.add(10, 0);     // text_ptr++ (past register digit)
+        // r6 = digit - 48 (register number) - match original test exactly
+        b.mov(11, 6); b.sub(1, 6);  // r6 = r1 - r11 = char - 48
 
-        // Debug: store register number at addr 302
-        b.ldi(7, 302); b.store(7, 6);
-
-        // Debug: store r6 (register number) at addr 304 using r2 as temp
-        b.ldi(2, 304); b.store(2, 6);
-
-        // Emit LDI opcode from template
-        b.ldi(4, 50000);  // atlas: LDI template at 50000
-        b.load(4, 5);     // r5 = template (1,0,0,0)
-        b.ldi(7, 16);     // shift amount
-        b.shl(6, 7);      // r7 = reg << 16
-        b.or(5, 7);       // r7 = template | (reg << 16)
-        b.store(3, 7);    // emit opcode
-        b.add(10, 3);     // emit_ptr++
+        // Emit LDI opcode from template (match original test exactly)
+        b.ldi(4, 50000); b.load(4, 5);  // r5 = template from atlas
+        b.ldi(7, 16); b.shl(6, 7);      // r7 = reg << 16
+        b.or(5, 7); b.store(3, 7);      // mem[emit_ptr] = opcode
+        b.add(10, 3);                    // emit_ptr++
 
         // Debug: store LDI opcode emitted marker at addr 303
         b.ldi(2, 2); b.ldi(7, 303); b.store(7, 2);
@@ -203,8 +192,8 @@ mod tests {
         b.ldi(2, 58);     // '9' + 1
         b.bgeu(1, 2, "num_done");  // if char >= ':', done
 
-        // digit = char - 48 (use r7 as temp)
-        b.mov(8, 7);      // r7 = 48
+        // digit = char - 48 (use r7 as temp, copy from r11)
+        b.mov(11, 7);     // r7 = 48
         b.sub(1, 7);      // r7 = digit
 
         // acc = acc * 10 + digit
