@@ -1,35 +1,35 @@
-# Plan: The Operand Parser
+# Plan: GPU-Native Operand Parser
 
 ## Objective
-Extend the Mnemonic Matcher to parse operands (like `r3` and `42`) dynamically from the ASCII Text Buffer, completely eliminating hardcoded emission logic.
+Implement a `.glyph` program that parses assembly operands from ASCII text in memory. This is the second major primitive for the Self-Hosting Assembler.
 
-## The Challenge
-We proved we can parse `"LDI"`. The next bytes in the buffer are `' '`, `'r'`, `'3'`, `','`, `' '`, `'4'`, `'2'`. 
-We need a glyph program state machine that:
-1. Skips whitespace and commas.
-2. Identifies `'r'` as a register indicator.
-3. Reads the digit(s) after `'r'` (e.g., `'3'`), subtracts `48` (ASCII '0'), and converts it to an integer.
-4. Shifts that integer into the correct bit-mask position (e.g., `value << 16` for `p1`).
-5. Identifies raw digits (e.g., `'4'`, `'2'`), accumulates them (`(4 * 10) + 2`), and emits them as the immediate `DATA` pixel.
+## Supported Formats
+1. **Registers**: `r0` through `r127`.
+   - ASCII 'r' followed by 1-3 digits.
+2. **Decimal Immediates**: `0` through `4294967295`.
+   - String of digits.
+3. **Hex Immediates**: `0x0` through `0xFFFFFFFF`.
+   - ASCII '0', then 'x', followed by hex digits.
 
-## Architecture
+## Design
+- **Input**: ASCII string at `0x200`.
+- **Output**: Parsed `u32` value at `0x500`.
+- **State Machine**:
+  - `INIT`: Read first char.
+    - If 'r' -> goto `PARSE_REG`.
+    - If '0' -> peek next. If 'x' -> goto `PARSE_HEX`. Else -> goto `PARSE_DEC` (starting with 0).
+    - If '1'-'9' -> goto `PARSE_DEC`.
+  - `PARSE_REG`: Accumulate digits, subtract ASCII '0', multiply by 10.
+  - `PARSE_DEC`: Accumulate digits, multiply by 10.
+  - `PARSE_HEX`: Accumulate hex digits (0-9, A-F, a-f), multiply by 16.
 
-The parser will be an extension of the existing Level 3 state machine:
+## Implementation Steps
+1. Create `systems/glyph_stratum/programs/operand_parser.glyph`.
+2. Implement the parsing logic using registers for intermediate state.
+3. Add `test_operand_parser` to `systems/infinite_map_rs/src/synthetic_vram.rs`.
+4. Verify with test cases: "r12", "1234", "0xABCD", "r0", "0".
 
-### State: Parse Register (e.g. `r3`)
-1. `LOAD` char. Check if `'r'` (114).
-2. If yes, `LOAD` next char.
-3. Subtract 48 (`SUB` isn't supported with immediate values directly, so we load 48 and `SUB` the registers).
-4. Shift result by 16 (`SHL` opcode 216 or just multiplying by 65536 via `ADD` loop/`MUL` if available).
-5. Accumulate this into our "instruction patch mask" register.
-
-### State: Parse Immediate (e.g. `42`)
-1. `LOAD` char. Check if it's a digit (>= 48 and <= 57).
-2. If yes, subtract 48 to get value.
-3. Add to `accumulator`.
-4. `LOAD` next char. If digit, `accumulator = (accumulator * 10) + new_value`.
-5. Repeat until space/newline/null.
-6. Emit `accumulator` as the second pixel.
-
-## Next Steps
-Design the WGSL instruction sequence for the `parse_reg` and `parse_imm` blocks to add to our test framework.
+## Memory Mapping
+- `0x200-0x20F`: Input buffer (16 chars max).
+- `0x500`: Result (parsed value).
+- `0x504`: Error code (0 = success, 1 = overflow, 2 = invalid char).

@@ -1,0 +1,147 @@
+// ============================================================================
+// Geometry OS - Operand Parser Glyph
+// ============================================================================
+//
+// Parses ASCII operands from memory:
+//   "r12"   -> 12
+//   "123"   -> 123
+//   "0xABC" -> 43981
+//
+// Memory Layout:
+//   0x200: Input ASCII (null-terminated or space-terminated)
+//   0x500: Parsed Result (u32)
+//   0x504: Error Code (0=Success, 1=Invalid)
+//
+// ============================================================================
+
+:main
+    LDI r0, 0x200           // Input pointer
+    LDI r1, 0               // Result accumulator
+    LDI r5, 0x500           // Output address
+    LDI r6, 0x504           // Error address
+    STORE r6, r1            // Initialize error to 0
+
+    LOAD r2, [r0]           // Load first char
+    
+    // Check for 'r' (register)
+    LDI r3, 114             // 'r'
+    BNE r2, r3, :check_hex
+    
+    // It's a register. Skip 'r' and parse decimal.
+    LDI r3, 1
+    ADD r0, r0, r3
+    JMP :parse_dec_init
+
+:check_hex
+    // Check if starts with '0x'
+    LDI r3, 48              // '0'
+    BNE r2, r3, :parse_dec_init
+    
+    // First char is '0', peek next
+    LDI r3, 1
+    ADD r0, r0, r3
+    LOAD r2, [r0]
+    LDI r3, 120             // 'x'
+    BNE r2, r3, :parse_dec_from_zero
+    
+    // It's hex. Skip 'x' and parse.
+    LDI r3, 1
+    ADD r0, r0, r3
+    JMP :parse_hex_init
+
+:parse_dec_from_zero
+    // We already skipped the '0'. If next is space/null, we are done (val=0).
+    LDI r3, 32              // space
+    BLTU r2, r3, :finish    // < 32 (null/control) -> success
+    BEQ r2, r3, :finish     // == 32 (space) -> success
+    // Else continue parsing decimal from where we are (r0 points to char after '0')
+    JMP :parse_dec_loop
+
+:parse_dec_init
+    LDI r4, 10              // Base 10
+:parse_dec_loop
+    LOAD r2, [r0]           // Get char
+    LDI r3, 32              // space
+    BLTU r2, r3, :finish
+    BEQ r2, r3, :finish
+    
+    // Convert digit: char - '0'
+    LDI r3, 48              // '0'
+    BLTU r2, r3, :error
+    LDI r3, 57              // '9'
+    BGEU r2, r3, :check_digit_9
+:parse_dec_cont
+    LDI r3, 48
+    SUB r2, r2, r3          // r2 = digit value
+    
+    // Accumulate: result = result * 10 + r2
+    MUL r1, r1, r4
+    ADD r1, r1, r2
+    
+    LDI r3, 1
+    ADD r0, r0, r3
+    JMP :parse_dec_loop
+
+:check_digit_9
+    LDI r3, 57
+    BNE r2, r3, :error      // If > 57, it's an error
+    JMP :parse_dec_cont
+
+:parse_hex_init
+    LDI r4, 16              // Base 16
+:parse_hex_loop
+    LOAD r2, [r0]
+    LDI r3, 32
+    BLTU r2, r3, :finish
+    BEQ r2, r3, :finish
+    
+    // Check 0-9
+    LDI r3, 48              // '0'
+    BLTU r2, r3, :error
+    LDI r3, 58              // char after '9'
+    BLTU r2, r3, :hex_digit_09
+    
+    // Check A-F
+    LDI r3, 65              // 'A'
+    BLTU r2, r3, :error
+    LDI r3, 71              // char after 'F'
+    BLTU r2, r3, :hex_digit_AF
+    
+    // Check a-f
+    LDI r3, 97              // 'a'
+    BLTU r2, r3, :error
+    LDI r3, 103             // char after 'f'
+    BLTU r2, r3, :hex_digit_af
+    
+    JMP :error
+
+:hex_digit_09
+    LDI r3, 48
+    SUB r2, r2, r3
+    JMP :hex_accum
+
+:hex_digit_AF
+    LDI r3, 55              // 'A' - 10 = 65 - 10 = 55
+    SUB r2, r2, r3
+    JMP :hex_accum
+
+:hex_digit_af
+    LDI r3, 87              // 'a' - 10 = 97 - 10 = 87
+    SUB r2, r2, r3
+    JMP :hex_accum
+
+:hex_accum
+    MUL r1, r1, r4
+    ADD r1, r1, r2
+    LDI r3, 1
+    ADD r0, r0, r3
+    JMP :parse_hex_loop
+
+:finish
+    STORE r5, r1            // Write result
+    HALT
+
+:error
+    LDI r3, 1
+    STORE r6, r3            // Write error code 1
+    HALT
