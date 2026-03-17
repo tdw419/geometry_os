@@ -2574,6 +2574,38 @@ mod tests {
         }
         println!("    \"{}\"", out_ascii.escape_default());
 
+        // Debug: show pass counter and source pointer
+        println!("\n  Pass counter at 0x4004: {:08X}", vram.peek(0x4004));
+        println!("  Source pointer r0 should be around 0x1000-0x1FFF");
+
+        // Debug: show where in source the output came from
+        println!("\n  Source around 0x10XX (looking for 'IRE'):");
+        for offset in 0..500 {
+            let addr = 0x1000 + offset;
+            // Check for "IRE" pattern
+            let c1 = vram.peek(addr);
+            let c2 = vram.peek(addr + 1);
+            let c3 = vram.peek(addr + 2);
+            if c1 == 0x49 && c2 == 0x52 && c3 == 0x45 {  // 'I', 'R', 'E'
+                println!("    Found 'IRE' at source offset 0x{:04X}", offset);
+                // Print surrounding context
+                let start = if offset > 20 { offset - 20 } else { 0 };
+                let mut context = String::new();
+                for i in start..offset+30 {
+                    let c = vram.peek(0x1000 + i);
+                    if c >= 32 && c < 127 {
+                        context.push((c & 0xFF) as u8 as char);
+                    } else if c == 10 {
+                        context.push('↵');
+                    } else if c == 0 {
+                        break;
+                    }
+                }
+                println!("    Context: \"{}\"", context.escape_default());
+                break;
+            }
+        }
+
         // 4. Verify Output Binary at 0x2000
         println!("Self-Hosting Quine Verification:");
         println!("  Binary Size: {} words", assembled.words.len());
