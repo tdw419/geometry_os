@@ -2277,6 +2277,5 @@ mod tests {
         vram.execute_frame_interleaved(1);
         
         assert_eq!(vram.peek(0x500), 0xCAFE, "Child should acknowledge focus");
-        println!("  ✓ Compositor routed event to child window via hit-test");
     }
 }
