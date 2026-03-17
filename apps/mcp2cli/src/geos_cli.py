@@ -65,6 +65,11 @@ from geos_mcp_server import (
     tool_mem_store,
     tool_mem_retrieve,
 )
+from systems.geos.firmware import (
+    crystallize_firmware,
+    extract_firmware,
+    crystallize_amdgpu_firmware,
+)
 import requests
 
 # Optional anthropic import for AI chat
@@ -309,10 +314,6 @@ def cmd_linux_to_glyph(args):
 
 def cmd_firmware(args):
     """Crystallize firmware blobs into RTS textures"""
-    # TODO: Fix firmware import - temporarily disabled for chat implementation
-    print("Error: firmware command temporarily disabled")
-    return 1
-
     if args.operation == "crystallize":
         result = crystallize_firmware(args.firmware, args.output, args.name)
         print(f"✓ Crystallized: {result.name}")
