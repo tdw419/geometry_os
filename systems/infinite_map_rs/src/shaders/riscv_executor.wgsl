@@ -143,6 +143,10 @@ struct ProfilerEntry {
 // Shared profiler storage (256 blocks × 16 bytes = 4KB)
 @group(0) @binding(8) var<storage, read_write> profiler_blocks: array<ProfilerEntry, MAX_PROFILED_BLOCKS>;
 
+// Phase 49: Keyboard input buffer (CPU → GPU)
+// Layout: [0] = key count, [1..15] = key codes (ASCII or scancodes)
+@group(0) @binding(9) var<storage, read_write> keyboard_buffer: array<u32, 16>;
+
 // Per-shard pending block (to reduce atomic contention)
 var<workgroup> pending_block: ProfilerEntry;
 

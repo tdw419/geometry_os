@@ -246,6 +246,10 @@ pub struct RiscvExecutor {
     pub profiler_buffer: wgpu::Buffer,
     pub profiler_staging: wgpu::Buffer,
 
+    /// Phase 49: Keyboard input buffer (CPU → GPU for keyboard input)
+    /// Layout: [0] = key count, [1..16] = key codes (ASCII or scancodes)
+    keyboard_buffer: wgpu::Buffer,
+
     /// Current execution state
     uniforms: RiscvUniforms,
 
@@ -437,6 +441,17 @@ impl RiscvExecutor {
                     },
                     count: None,
                 },
+                // Phase 49: Keyboard input buffer (CPU → GPU)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 9,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
         });
 
@@ -576,6 +591,17 @@ impl RiscvExecutor {
             mapped_at_creation: false,
         });
 
+        // Phase 49: Keyboard input buffer
+        // Layout: [0] = key count, [1..16] = key codes
+        const KEYBOARD_BUFFER_SIZE: u64 = 16 * 4; // 16 u32s = 64 bytes
+        let keyboard_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("RISC-V Keyboard Input"),
+            size: KEYBOARD_BUFFER_SIZE,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
         // Create bind group
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("RISC-V Executor Bind Group"),
@@ -617,6 +643,10 @@ impl RiscvExecutor {
                     binding: 8,
                     resource: profiler_buffer.as_entire_binding(),
                 },
+                wgpu::BindGroupEntry {
+                    binding: 9,
+                    resource: keyboard_buffer.as_entire_binding(),
+                },
             ],
         });
 
@@ -642,6 +672,7 @@ impl RiscvExecutor {
             vm_status_staging,
             profiler_buffer,
             profiler_staging,
+            keyboard_buffer,
             uniforms,
             console_output: String::new(),
             program_loaded: false,
@@ -1310,13 +1341,32 @@ impl RiscvExecutor {
         self.queue
             .write_buffer(&self.console_buffer, 0, &console_zeros);
 
+        // Clear keyboard buffer
+        let keyboard_zeros = vec![0u8; 16 * 4];
+        self.queue
+            .write_buffer(&self.keyboard_buffer, 0, &keyboard_zeros);
+
         self.program_loaded = false;
     }
 
     /// Send keyboard input to the VM
-    pub fn send_input(&mut self, _key: char) {
-        // TODO: Implement keyboard input buffer
-        // This would write to a special MMIO region
+    /// Writes the key code to the keyboard buffer (binding 9)
+    /// Buffer layout: [0] = key count, [1..16] = key codes
+    pub fn send_input(&mut self, key: char) {
+        // Read current key count (first u32), increment, write key
+        // For simplicity, we write directly to slot 1 and set count to 1
+        // A more sophisticated implementation would queue multiple keys
+        let key_code = key as u32;
+        let data: [u8; 8] = {
+            let mut arr = [0u8; 8];
+            // count = 1 (one key in buffer)
+            arr[0..4].copy_from_slice(&1u32.to_le_bytes());
+            // key code at slot 1
+            arr[4..8].copy_from_slice(&key_code.to_le_bytes());
+            arr
+        };
+        self.queue.write_buffer(&self.keyboard_buffer, 0, &data);
+        info!("Keyboard input sent: '{}' (0x{:02x})", key, key_code);
     }
 }
 
