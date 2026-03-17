@@ -323,7 +323,7 @@ This is the base case for Geometry OS. Everything else builds on this loop:
 |-----------|----------------|--------|
 | **Self-replication** | Pixels can copy pixels | ✅ Done |
 | **Copy executes** | The copy is a valid program that runs | ✅ Done |
-| Self-modification | A program can rewrite its own opcodes | Next |
+| **Self-modification** | A program can rewrite its own opcodes | ✅ Done |
 | Visual editor | Mouse clicks write opcodes into the texture | Future |
 | Glyph assembler | A glyph program that compiles text → opcodes | Future |
 | Self-hosting | No more Rust bootstrap needed | Goal |
@@ -338,6 +338,7 @@ The frozen bootstrap (18 `poke_substrate_single` calls) is the last time the CPU
 |------|---------|
 | `systems/infinite_map_rs/tests/self_replication_test.rs` | The test — loads 18 pixels, runs VM, verifies copy |
 | `systems/infinite_map_rs/tests/copy_executes_test.rs` | Tests that copies can execute (0 → 100 → 200) |
+| `systems/infinite_map_rs/tests/self_modification_test.rs` | Tests programs rewriting their own opcodes |
 | `systems/infinite_map_rs/tests/training_glyph_test.rs` | GPU-native training glyph tests |
 | `systems/infinite_map_rs/src/shaders/glyph_vm_scheduler.wgsl` | The GPU VM — executes instructions from the RAM texture |
 | `systems/infinite_map_rs/src/glyph_vm_scheduler.rs` | Rust scheduler — manages VM state, dispatches compute shader |
