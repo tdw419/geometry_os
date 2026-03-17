@@ -436,25 +436,25 @@ mod tests {
 
     #[test]
     fn test_nop_encoding() {
-        let instr = Instruction { opcode: Opcode::Nop, stratum: 0, p1: 0, p2: 0 };
+        let instr = Instruction { opcode: Opcode::Nop, stratum: 0, p1: 0, p2: 0, data: None };
         assert_eq!(instr.encode(), 0x00000000);
     }
 
     #[test]
     fn test_halt_encoding() {
-        let instr = Instruction { opcode: Opcode::Halt, stratum: 0, p1: 0, p2: 0 };
+        let instr = Instruction { opcode: Opcode::Halt, stratum: 0, p1: 0, p2: 0, data: None };
         assert_eq!(instr.encode(), 0x0000000D);
     }
 
     #[test]
     fn test_ldi_encoding() {
-        let instr = Instruction { opcode: Opcode::Ldi, stratum: 0, p1: 5, p2: 0 };
+        let instr = Instruction { opcode: Opcode::Ldi, stratum: 0, p1: 5, p2: 0, data: Some(42) };
         assert_eq!(instr.encode(), 0x00050001);
     }
 
     #[test]
     fn test_store_encoding() {
-        let instr = Instruction { opcode: Opcode::Store, stratum: 0, p1: 0, p2: 5 };
+        let instr = Instruction { opcode: Opcode::Store, stratum: 0, p1: 0, p2: 5, data: None };
         assert_eq!(instr.encode(), 0x00050004);
     }
 
