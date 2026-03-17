@@ -89,168 +89,122 @@ mod tests {
         scheduler.poke_substrate_single(50001, glyph(13, 0, 0, 0)); // HALT template
         println!("Atlas: LDI template at 50000, HALT template at 50001");
 
-        // ========================================
-        // THE FULL ASSEMBLER WITH MULTI-DIGIT
-        // ========================================
-        //
+        // Build assembler program
+        let mut b = ProgramBuilder::new();
+
         // Register map:
-        //   r0  = text_ptr
+        //   r0  = text_ptr (10000)
         //   r1  = current_char
         //   r2  = temp
-        //   r3  = emit_ptr
-        //   r4  = atlas_ptr (for templates)
-        //   r5  = template value
-        //   r6  = register number / digit accumulator
-        //   r7  = temp for shifts
-        //   r8  = constant '0' (48)
+        //   r3  = emit_ptr (200)
+        //   r4  = atlas_ptr
+        //   r5  = template
+        //   r6  = register number / accumulator
+        //   r7  = temp
+        //   r8  = temp
         //   r9  = constant 10
         //   r10 = constant 1
-        //   r11 = temp
+        //   r11 = constant 48 ('0')
         //   r12 = ' ' (32)
         //   r13 = '\n' (10)
         //   r14 = 'r' (114)
         //   r15 = ',' (44)
 
-        let mut b = ProgramBuilder::new();
-
-        // Init constants (match original test)
+        // Init constants
         b.ldi(0, 10000);  // text_ptr
         b.ldi(3, 200);    // emit_ptr
         b.ldi(9, 10);     // multiplier
         b.ldi(10, 1);     // increment
-        b.ldi(11, 48);    // '0' (used for digit conversion)
-        b.ldi(12, 32);    // ' '
-        b.ldi(13, 10);    // '\n'
-        b.ldi(14, 114);   // 'r'
-        b.ldi(15, 44);    // ','
+        b.ldi(11, 48);     // '0'
+        b.ldi(12, 32);     // ' '
+        b.ldi(13, 10);     // '\n'
+        b.ldi(14, 114);    // 'r'
+        b.ldi(15, 44);     // ','
 
-        // Main loop
+        // Main loop - skip whitespace
         b.label("main_loop");
-        b.load(0, 1);     // r1 = char
-
-        // Skip whitespace
-        b.beq(1, 12, "skip_ws");  // ' '
-        b.beq(1, 13, "skip_ws");  // '\n'
+        b.load(0, 1);
+        b.beq(1, 12, "skip_ws");
+        b.beq(1, 13, "skip_ws");
         b.jmp("try_ldi");
 
         b.label("skip_ws");
-        b.add(10, 0);     // text_ptr++
+        b.add(10, 0);
         b.jmp("main_loop");
 
         // Try LDI
         b.label("try_ldi");
-        b.ldi(2, 76);     // 'L'
-        b.bne(1, 2, "try_halt");
-        b.add(10, 0); b.load(0, 1);  // 'D'
-        b.ldi(2, 68); b.bne(1, 2, "error");
-        b.add(10, 0); b.load(0, 1);  // 'I'
-        b.ldi(2, 73); b.bne(1, 2, "error");
+        b.ldi(2, 76); b.bne(1, 2, "try_halt");  // 'L'
+        b.add(10, 0); b.load(0, 1);
+        b.ldi(2, 68); b.bne(1, 2, "error");  // 'D'
+        b.add(10, 0); b.load(0, 1);
+        b.ldi(2, 73); b.bne(1, 2, "error");  // 'I'
 
-        // LDI matched! Parse register
+        // Skip spaces after LDI
         b.label("ldi_skip_ws1");
         b.add(10, 0); b.load(0, 1);
-        b.beq(1, 12, "ldi_skip_ws1");  // skip spaces
-        b.beq(1, 15, "ldi_skip_ws1");  // skip commas
+        b.beq(1, 12, "ldi_skip_ws1");
 
         // Expect 'r'
-        b.bne(1, 14, "error");  // must be 'r'
-
-        // Debug: store 'r' found marker at addr 300
-        b.ldi(2, 1); b.ldi(7, 300); b.store(7, 2);
+        b.bne(1, 14, "error");
 
         b.add(10, 0); b.load(0, 1);  // digit
 
-        // Debug: store digit char at addr 301
-        b.ldi(7, 301); b.store(7, 1);
+        // r6 = digit - 48 (register number)
+        b.mov(11, 6); b.sub(1, 6);
 
-        // r6 = digit - 48 (register number) - match original test exactly
-        b.mov(11, 6); b.sub(1, 6);  // r6 = r1 - r11 = char - 48
+        // Emit LDI opcode from template
+        b.ldi(4, 50000); b.load(4, 5);
+        b.ldi(7, 16); b.shl(6, 7);
+        b.or(5, 7); b.store(3, 7);
+        b.add(10, 3);
 
-        // Debug: store r6 (register number) at addr 302 using r2
-        b.mov(6, 2); b.ldi(7, 302); b.store(7, 2); b.mov(2, 6);  // restore r6
-
-        // Debug: store r3 (emit_ptr) at addr 303 using r2
-        b.mov(3, 2); b.ldi(7, 303); b.store(7, 2); b.mov(2, 3);  // restore r3
-
-        // Emit LDI opcode from template (match original test exactly)
-        b.ldi(4, 50000); b.load(4, 5);  // r5 = template from atlas
-
-        // Debug: store r5 (template) at addr 304 using r2
-        b.mov(5, 2); b.ldi(7, 304); b.store(7, 2); b.mov(2, 5);  // restore r5
-
-        b.ldi(7, 16); b.shl(6, 7);      // r7 = reg << 16
-
-        // Debug: store r7 (shifted) at addr 305 using r2
-        b.mov(7, 2); b.ldi(7, 305); b.store(7, 2);
-
-        // Now r7 = 305, need to restore shifted value
-        b.ldi(7, 16); b.shl(6, 7);      // r7 = reg << 16 (recompute)
-
-        b.or(5, 7);      // r7 = template | shifted
-
-        // Debug: store r7 (opcode) at addr 306 using r2
-        b.mov(7, 2); b.ldi(7, 306); b.store(7, 2);
-
-        // Recompute opcode
-        b.ldi(7, 16); b.shl(6, 7); b.or(5, 7);
-
-        b.store(3, 7);      // mem[emit_ptr] = opcode
-        b.add(10, 3);                    // emit_ptr++
-
-        // Debug: store LDI done marker at addr 307
-        b.ldi(2, 7); b.ldi(7, 307); b.store(7, 2);
-
-        // Skip to number (skip comma, spaces)
+        // Skip comma and spaces
         b.label("ldi_skip_ws2");
         b.add(10, 0); b.load(0, 1);
         b.beq(1, 12, "ldi_skip_ws2");
         b.beq(1, 15, "ldi_skip_ws2");
 
         // Multi-digit number accumulation
-        // r6 = accumulator (starts at 0)
-        b.ldi(6, 0);      // acc = 0
+        b.ldi(6, 0);  // acc = 0
 
         b.label("num_loop");
-        // Check if char is digit
-        b.ldi(2, 48);     // '0'
-        b.blt(1, 2, "num_done");  // if char < '0', done
-        b.ldi(2, 58);     // '9' + 1
-        b.bgeu(1, 2, "num_done");  // if char >= ':', done
+        // Check if digit
+        b.ldi(2, 48);
+        b.blt(1, 2, "num_done");
+        b.ldi(2, 58);
+        b.bgeu(1, 2, "num_done");
 
-        // digit = char - 48 (use r7 as temp, copy from r11)
-        b.mov(11, 7);     // r7 = 48
-        b.sub(1, 7);      // r7 = digit
+        // digit = char - 48
+        b.mov(11, 7);
+        b.sub(1, 7);
 
         // acc = acc * 10 + digit
-        b.mul(9, 6);      // r6 = acc * 10
-        b.add(7, 6);      // r6 = acc * 10 + digit
+        b.mul(9, 6);
+        b.add(7, 6);
 
         // Next char
-        b.add(10, 0);     // text_ptr++
-        b.load(0, 1);     // r1 = next char
+        b.add(10, 0);
+        b.load(0, 1);
         b.jmp("num_loop");
 
         b.label("num_done");
-        // r6 = accumulated number (50000)
-        b.store(3, 6);    // emit number
-        b.add(10, 3);     // emit_ptr++
-        b.add(10, 0);     // text_ptr++ (skip last digit)
+        b.store(3, 6);
+        b.add(10, 3);
         b.jmp("main_loop");
 
         // Try HALT
         b.label("try_halt");
-        b.ldi(2, 72);     // 'H'
-        b.bne(1, 2, "check_end");
-        b.add(10, 0); b.load(0, 1);  // 'A'
-        b.ldi(2, 65); b.bne(1, 2, "error");
-        b.add(10, 0); b.load(0, 1);  // 'L'
-        b.ldi(2, 76); b.bne(1, 2, "error");
-        b.add(10, 0); b.load(0, 1);  // 'T'
-        b.ldi(2, 84); b.bne(1, 2, "error");
+        b.ldi(2, 72); b.bne(1, 2, "check_end");  // 'H'
+        b.add(10, 0); b.load(0, 1);
+        b.ldi(2, 65); b.bne(1, 2, "error");  // 'A'
+        b.add(10, 0); b.load(0, 1);
+        b.ldi(2, 76); b.bne(1, 2, "error");  // 'L'
+        b.add(10, 0); b.load(0, 1);
+        b.ldi(2, 84); b.bne(1, 2, "error");  // 'T'
 
         // Emit HALT
-        b.ldi(4, 50001);  // atlas: HALT template
-        b.load(4, 5);
+        b.ldi(4, 50001); b.load(4, 5);
         b.store(3, 5);
         b.add(10, 3);
         b.jmp("main_loop");
@@ -289,26 +243,6 @@ mod tests {
         let r201 = scheduler.peek_substrate_single(201);
         let r202 = scheduler.peek_substrate_single(202);
 
-        // Debug values
-        let r300 = scheduler.peek_substrate_single(300);
-        let r301 = scheduler.peek_substrate_single(301);
-        let r302 = scheduler.peek_substrate_single(302);
-        let r303 = scheduler.peek_substrate_single(303);
-        let r304 = scheduler.peek_substrate_single(304);
-        let r305 = scheduler.peek_substrate_single(305);
-        let r306 = scheduler.peek_substrate_single(306);
-        let r307 = scheduler.peek_substrate_single(307);
-
-        println!("\n=== DEBUG ===");
-        println!("  addr 300 (found 'r' marker): {}", r300);
-        println!("  addr 301 (digit char): {} ('{}')", r301, if r301 >= 32 && r301 < 127 { r301 as u8 as char } else { '?' });
-        println!("  addr 302 (r6 register number): {}", r302);
-        println!("  addr 303 (r3 emit_ptr before store): {}", r303);
-        println!("  addr 304 (r5 template from atlas): 0x{:08X}", r304);
-        println!("  addr 305 (r7 shifted reg): 0x{:08X}", r305);
-        println!("  addr 306 (r7 final opcode): 0x{:08X}", r306);
-        println!("  addr 307 (LDI done marker): {}", r307);
-
         println!("\n=== VERIFICATION ===");
         println!("  addr 200: expected 0x00030001 (LDI r3), got 0x{:08X}", r200);
         println!("  addr 201: expected 0x0000C350 (50000), got 0x{:08X}", r201);
@@ -334,7 +268,7 @@ mod tests {
         assert_eq!(r202, expected_halt, "HALT opcode mismatch");
     }
 
-    // ProgramBuilder (same as other tests)
+    // ProgramBuilder
     struct ProgramBuilder {
         instructions: Vec<(u32, u32)>,
         labels: std::collections::HashMap<String, u32>,
