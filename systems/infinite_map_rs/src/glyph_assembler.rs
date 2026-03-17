@@ -405,7 +405,7 @@ impl GlyphAssembler {
 
         let target_str = parts.get(3 + offset).ok_or("Branch needs target")?;
         let target = parse_imm(target_str)
-            .or_else(|| self.labels.get(target_str).map(|&a| a as i32))
+            .or_else(|| self.labels.get(*target_str).map(|&a| a as i32))
             .unwrap_or(0); // Will be resolved later
 
         Ok((cond, r1, r2, target))
