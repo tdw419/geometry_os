@@ -13,10 +13,10 @@
 //! # Usage
 //!
 //! ```rust
-//! use crate::cognitive::binary_extractor::ACEBinaryExtractor;
+//! use infinite_map_rs::cognitive::binary_extractor::ACEBinaryExtractor;
 //!
-//! let extractor = ACEBinaryExtractor::new();
-//! let binary = extractor.extract_from_texture("ace.rts.png").unwrap?;
+//! let extractor = ACEBinaryExtractor::new(256);
+//! let binary = extractor.extract_from_texture("ace.rts.png");
 //! ```
 
 use anyhow::{Context, Result};
