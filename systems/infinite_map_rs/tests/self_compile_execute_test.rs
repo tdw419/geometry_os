@@ -78,15 +78,16 @@ mod tests {
 
         println!("\n=== SELF-COMPILE-AND-EXECUTE TEST ===");
 
-        // Input: "LDI r1, 42\nSTORE r2, r1\nHALT"
-        let input = b"LDI r1, 42\nSTORE r2, r1\nHALT";
+        // Input: "LDI r1, 42\nLDI r2, 300\nSTORE r2, r1\nHALT"
+        // This loads 42 into r1, loads 300 (address) into r2, then stores r1 to [r2]
+        let input = b"LDI r1, 42\nLDI r2, 300\nSTORE r2, r1\nHALT";
         for (i, &b) in input.iter().enumerate() {
             scheduler.poke_substrate_single(10000 + i as u32, b as u32);
         }
         scheduler.poke_substrate_single(10000 + input.len() as u32, 0);
         println!("Input: {:?}", std::str::from_utf8(input).unwrap());
 
-        // Set up result address (r2 = 300)
+        // Initialize result address
         scheduler.poke_substrate_single(300, 0);
 
         // Atlas templates
@@ -273,8 +274,10 @@ mod tests {
         println!("\n=== COMPILED OUTPUT ===");
         println!("  addr 200: 0x{:08X} (LDI r1)", r200);
         println!("  addr 201: 0x{:08X} (42)", r201);
-        println!("  addr 202: 0x{:08X} (STORE r2, r1)", r202);
-        println!("  addr 203: 0x{:08X} (HALT)", r203);
+        println!("  addr 202: 0x{:08X} (LDI r2)", r202);
+        println!("  addr 203: 0x{:08X} (300)", r203);
+        println!("  addr 204: 0x{:08X} (STORE r2, r1)", r204);
+        println!("  addr 205: 0x{:08X} (HALT)", r205);
 
         // PHASE 2: Execute the compiled program
         println!("\n=== PHASE 2: EXECUTING COMPILED PROGRAM ===");
