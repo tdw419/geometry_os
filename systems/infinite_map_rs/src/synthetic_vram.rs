@@ -1777,6 +1777,7 @@ mod tests {
         // r1 = BIN_PTR (0x500)
         poke_ldi(&mut vram, &mut pc, 0, 0x200);
         poke_ldi(&mut vram, &mut pc, 1, 0x500);
+        poke_ldi(&mut vram, &mut pc, 13, 1);    // r13 = CONSTANT 1
 
         // === LINE LOOP ===
         let line_start = pc;
@@ -1801,12 +1802,11 @@ mod tests {
         
         // --- PARSE MNEMONIC ---
         vram.poke(pc, glyph(3, 0, 0, 7)); pc += 1; // LOAD r7, [r0] (c0)
-        poke_ldi(&mut vram, &mut pc, 3, 1);
-        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0++
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++
         vram.poke(pc, glyph(3, 0, 0, 8)); pc += 1; // LOAD r8, [r0] (c1)
-        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0++
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++
         vram.poke(pc, glyph(3, 0, 0, 9)); pc += 1; // LOAD r9, [r0] (c2)
-        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0++
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++
 
         // Match against "LDI" (1)
         poke_ldi(&mut vram, &mut pc, 3, b'L' as u32);
@@ -1817,8 +1817,8 @@ mod tests {
         poke_ldi(&mut vram, &mut pc, 4, 1); // opcode = 1
         
         // Parse " r3" (simplified: skip 1, parse reg)
-        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0++ (skip space)
-        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0++ (skip 'r')
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++ (skip space)
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++ (skip 'r')
         vram.poke(pc, glyph(3, 0, 0, 5)); pc += 1; // LOAD r5, [r0] (get '3')
         poke_ldi(&mut vram, &mut pc, 3, 48); // '0'
         vram.poke(pc, glyph(2, 0, 5, 10)); pc += 1; // MOV r10, r5
@@ -1832,18 +1832,17 @@ mod tests {
         vram.poke(pc, glyph(133, 0, 3, 2)); pc += 1; // OR r2 = r3 | r2
         vram.poke(pc, glyph(4, 0, 1, 2)); pc += 1; // STORE [r1], r2
         
-        poke_ldi(&mut vram, &mut pc, 3, 1);
-        vram.poke(pc, glyph(5, 0, 3, 1)); pc += 1; // BIN_PTR++
+        vram.poke(pc, glyph(5, 0, 13, 1)); pc += 1; // BIN_PTR++
         
         // Parse ", 42" (skip 2, parse dec)
-        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0++ (skip ',')
-        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0++ (skip ' ')
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++ (skip ',')
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++ (skip ' ')
         
         // Parse "42" (simplified: load 2 digits)
         vram.poke(pc, glyph(3, 0, 0, 10)); pc += 1; // '4'
-        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0++
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++
         vram.poke(pc, glyph(3, 0, 0, 11)); pc += 1; // '2'
-        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0++
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++
         
         poke_ldi(&mut vram, &mut pc, 3, 48); // '0'
         vram.poke(pc, glyph(2, 0, 10, 12)); pc += 1; // MOV r12, r10
@@ -1859,8 +1858,7 @@ mod tests {
         vram.poke(pc, glyph(5, 0, 10, 11)); pc += 1; // 40 + 2 = 42 (result in r11)
         
         vram.poke(pc, glyph(4, 0, 1, 11)); pc += 1; // STORE [r1], r11 (emit immediate)
-        poke_ldi(&mut vram, &mut pc, 3, 1);
-        vram.poke(pc, glyph(5, 0, 3, 1)); pc += 1; // BIN_PTR++
+        vram.poke(pc, glyph(5, 0, 13, 1)); pc += 1; // BIN_PTR++
         
         // JMP :next_line
         let jump_next_line_pc = pc;
@@ -1873,7 +1871,7 @@ mod tests {
         vram.poke(bne_ldi_off, (match_hlt as i32 - bne_ldi_off as i32 - 1) as u32);
         poke_ldi(&mut vram, &mut pc, 4, 13); // opcode = 13
         vram.poke(pc, glyph(4, 0, 1, 4)); pc += 1; // STORE [r1], r4
-        vram.poke(pc, glyph(5, 0, 3, 1)); pc += 1; // BIN_PTR++
+        vram.poke(pc, glyph(5, 0, 13, 1)); pc += 1; // BIN_PTR++
         
         // JMP :eof
         let jump_eof_pc = pc;
@@ -1883,9 +1881,7 @@ mod tests {
 
         // Finish whitespace jump
         let skip_ws_next_label = pc;
-        vram.poke(pc, glyph(1, 0, 3, 0)); pc += 1;
-        vram.poke(pc, 1); pc += 1;
-        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0++
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++
         poke_ldi(&mut vram, &mut pc, 3, skip_ws_start);
         vram.poke(pc, glyph(9, 0, 3, 0)); pc += 1; // loop skip_ws
         
@@ -1899,15 +1895,12 @@ mod tests {
         poke_ldi(&mut vram, &mut pc, 3, 10);
         let beq_nl_done_pc = pc; vram.poke(pc, glyph(10, 0, 2, 3)); pc += 1;
         let beq_nl_done_off = pc; pc += 1;
-        poke_ldi(&mut vram, &mut pc, 3, 1);
-        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0++
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++
         poke_ldi(&mut vram, &mut pc, 3, next_line_label);
         vram.poke(pc, glyph(9, 0, 3, 0)); pc += 1; // loop
         
         let next_line_done = pc;
-        vram.poke(pc, glyph(1, 0, 3, 0)); pc += 1;
-        vram.poke(pc, 1); pc += 1;
-        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0++
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++
         poke_ldi(&mut vram, &mut pc, 3, line_start);
         vram.poke(pc, glyph(9, 0, 3, 0)); pc += 1; // JMP line_start
         vram.poke(beq_nl_done_off, (next_line_done as i32 - beq_nl_done_pc as i32 - 2) as u32);
@@ -1919,8 +1912,20 @@ mod tests {
 
         println!("Full assembler: {} instructions", pc);
 
+        vram.enable_tracing();
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
         vram.execute_frame_interleaved(1);
+
+        // Debug Output
+        println!("Execution Trace (last 100):");
+        let trace = vram.trace();
+        let start = if trace.len() > 100 { trace.len() - 100 } else { 0 };
+        for entry in &trace[start..] {
+            println!("  {:?}", entry);
+        }
+
+        println!("VM 0 State: {:?}", vram.vm_state(0));
+        println!("mem[0x500] = {:08X}", vram.peek(0x500));
 
         // Verify Output
         // [500] = LDI r3 (opcode 1, p1 3) = 1 | (3 << 16) = 196609

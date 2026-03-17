@@ -1,0 +1,28 @@
+// Simple UART test - directly write "GEOM" to UART
+// No RISC-V emulation, just glyph instructions storing to memory
+
+.equ UART, 0x200
+
+:boot
+    // Store 'G' (71) at UART[0]
+    LDI r10, UART
+    LDI r11, 71
+    STORE r10, r11
+
+    // Store 'E' (69) at UART[1]
+    LDI r11, 69
+    ADDI r10, 1
+    STORE r10, r11
+
+    // Store 'O' (79) at UART[2]
+    LDI r11, 79
+    ADDI r10, 1
+    STORE r10, r11
+
+    // Store 'M' (77) at UART[3]
+    LDI r11, 77
+    ADDI r10, 1
+    STORE r10, r11
+
+    // Halt
+    HALT
