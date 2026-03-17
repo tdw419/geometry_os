@@ -891,9 +891,32 @@ impl PixelBrainInferencer {
     }
 
     /// Generate tokens for a prompt
-    pub fn generate(&mut self, _prompt: &str, _max_tokens: usize) -> Vec<u32> {
-        // TODO: Implement generation loop with tokenizer
-        Vec::new()
+    pub fn generate(&mut self, prompt: &str, max_tokens: usize) -> Vec<u32> {
+        // Get tokenizer
+        let tokenizer = crate::pixel_brain::tokenizer::ByteTokenizer::new();
+
+        // Encode prompt
+        let mut tokens = tokenizer.encode(prompt);
+
+        // Generate tokens autoregressively
+        let mut output_tokens = Vec::with_capacity(max_tokens);
+
+        // Start with last token of prompt (or BOS if empty)
+        let mut current_token = tokens.last().copied().unwrap_or(0);
+
+        for _ in 0..max_tokens {
+            let next_token = self.infer_token(current_token);
+            output_tokens.push(next_token);
+
+            // Stop on newline or null token
+            if next_token == b'\n' as u32 || next_token == 0 {
+                break;
+            }
+
+            current_token = next_token;
+        }
+
+        output_tokens
     }
 }
 

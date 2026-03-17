@@ -2969,22 +2969,8 @@ fn handle_raw_request<S: Read + Write>(
 
                 if let Some(inferencer) = get_brain_inferencer() {
                     let mut infer = inferencer.lock().unwrap();
-
-                    // Start with the last token of the prompt (or 0 if empty)
-                    let mut current_token = tokens.last().copied().unwrap_or(0);
-
-                    // Generate tokens
-                    for _ in 0..max_tokens {
-                        let next_token = infer.infer_token(current_token);
-                        output_tokens.push(next_token);
-                        output_text.push_str(&tokenizer.decode(&[next_token]));
-                        current_token = next_token;
-
-                        // Stop on newline or special tokens
-                        if next_token == b'\n' as u32 || next_token == 0 {
-                            break;
-                        }
-                    }
+                    output_tokens = infer.generate(prompt, max_tokens);
+                    output_text = tokenizer.decode(&output_tokens);
                 }
 
                 let response = serde_json::json!({
