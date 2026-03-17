@@ -2958,6 +2958,7 @@ fn handle_raw_request<S: Read + Write>(
             Ok(json) => {
                 let prompt = json["prompt"].as_str().unwrap_or("");
                 let max_tokens = json["max_tokens"].as_u64().unwrap_or(32) as usize;
+                let temperature = json["temperature"].as_f64().unwrap_or(0.0) as f32;
 
                 // Get tokenizer
                 let tokenizer = infinite_map_rs::pixel_brain::tokenizer::ByteTokenizer::new();
@@ -2969,7 +2970,7 @@ fn handle_raw_request<S: Read + Write>(
 
                 if let Some(inferencer) = get_brain_inferencer() {
                     let mut infer = inferencer.lock().unwrap();
-                    output_tokens = infer.generate(prompt, max_tokens);
+                    output_tokens = infer.generate_with_temperature(prompt, max_tokens, temperature);
                     output_text = tokenizer.decode(&output_tokens);
                 }
 
@@ -2978,6 +2979,7 @@ fn handle_raw_request<S: Read + Write>(
                     "input_tokens": tokens.len(),
                     "output_tokens": output_tokens,
                     "output_text": output_text,
+                    "temperature": temperature,
                     "status": "inference_complete"
                 });
 

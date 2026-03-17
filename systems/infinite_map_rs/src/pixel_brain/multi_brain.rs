@@ -28,7 +28,7 @@
 //! 4. LEARN_SIGNAL - Signal for learning update
 
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use wgpu::{Device, Queue, Texture, TextureView, Buffer, BindGroup, ComputePipeline};
 
 use super::infer::PixelBrainInferencer;
@@ -437,15 +437,15 @@ impl MultiBrainCoordinator {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingView(&self.atlas_view),
+                    resource: wgpu::BindingResource::TextureView(&self.atlas_view),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: wgpu::TextureView(&self.atlas_view),
+                    resource: wgpu::BindingResource::TextureView(&self.atlas_view),
                 },
                 wgpu::BindGroupEntry {
                     binding: 3,
-                    resource: wgpu::TextureView(&self.atlas_view),
+                    resource: wgpu::BindingResource::TextureView(&self.atlas_view),
                 },
             ],
         });

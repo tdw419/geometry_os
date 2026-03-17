@@ -891,13 +891,195 @@ impl PixelBrainInferencer {
         }
     }
 
-    /// Generate tokens for a prompt
+    /// Get logits for a token (returns full hidden state)
+    pub fn get_logits(&mut self, token: u32) -> Vec<f32> {
+        // Ensure pipelines and buffers are initialized
+        if self.embed_pipeline.is_none() {
+            return vec![0.0; self.config.hidden_dim];
+        }
+
+        // 1. Dispatch embed shader
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("get_logits_encoder"),
+        });
+
+        // Write embed config
+        let embed_config = EmbedConfig {
+            token_id: token,
+            hidden_dim: self.config.hidden_dim,
+            embed_offset: 0,
+            _padding: 0,
+        };
+        self.queue.write_buffer(
+            self.embed_uniform_buffer.as_ref().unwrap(),
+            0,
+            bytemuck::bytes_of(&embed_config),
+        );
+
+        // Dispatch embedding
+        {
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("embed_pass"),
+                timestamp_writes: None,
+            });
+            compute_pass.set_pipeline(self.embed_pipeline.as_ref().unwrap());
+            compute_pass.set_bind_group(0, self.embed_bind_group.as_ref().unwrap(), &[]);
+            compute_pass.dispatch_workgroups(1, 1, 1);
+        }
+
+        // Process through all layers
+        let attention_pipeline = self.attention_pipeline.as_ref().unwrap();
+        let ffn_pipeline = self.ffn_pipeline.as_ref().unwrap();
+        let workgroups = (self.config.hidden_dim + 255) / 256;
+
+        for layer in 0..self.config.num_layers {
+            let offsets = LayerOffsets::for_layer(layer);
+
+            // Write attention config
+            let attn_config = AttentionConfig {
+                layer,
+                hidden_dim: self.config.hidden_dim,
+                head_dim: self.config.head_dim,
+                seq_len: self.config.seq_len,
+                q_offset: offsets.q_offset,
+                k_offset: offsets.k_offset,
+                v_offset: offsets.v_offset,
+                o_offset: offsets.o_offset,
+                atlas_size: self.config.atlas_size,
+                _padding: 0,
+            };
+            self.queue.write_buffer(
+                self.attention_uniform_buffer.as_ref().unwrap(),
+                0,
+                bytemuck::bytes_of(&attn_config),
+            );
+
+            // Write FFN config
+            let ffn_config = FFNConfig {
+                layer,
+                hidden_dim: self.config.hidden_dim,
+                ffn_dim: self.config.ffn_dim,
+                up_offset: offsets.ffn_up_offset,
+                down_offset: offsets.ffn_down_offset,
+                atlas_size: self.config.atlas_size,
+                _padding: 0,
+            };
+            self.queue.write_buffer(
+                self.ffn_uniform_buffer.as_ref().unwrap(),
+                0,
+                bytemuck::bytes_of(&ffn_config),
+            );
+
+            let (attn_bg, ffn_bg) = if layer % 2 == 0 {
+                (
+                    self.attention_bind_group_a.as_ref().unwrap(),
+                    self.ffn_bind_group_a.as_ref().unwrap(),
+                )
+            } else {
+                (
+                    self.attention_bind_group_b.as_ref().unwrap(),
+                    self.ffn_bind_group_b.as_ref().unwrap(),
+                )
+            };
+
+            {
+                let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                    label: Some(&format!("attention_pass_layer_{}", layer)),
+                    timestamp_writes: None,
+                });
+                compute_pass.set_pipeline(attention_pipeline);
+                compute_pass.set_bind_group(0, attn_bg, &[]);
+                compute_pass.dispatch_workgroups(workgroups, 1, 1);
+            }
+
+            {
+                let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                    label: Some(&format!("ffn_pass_layer_{}", layer)),
+                    timestamp_writes: None,
+                });
+                compute_pass.set_pipeline(ffn_pipeline);
+                compute_pass.set_bind_group(0, ffn_bg, &[]);
+                compute_pass.dispatch_workgroups(workgroups, 1, 1);
+            }
+        }
+
+        // Copy to staging buffer
+        let hidden_a = self.hidden_buffer_a.as_ref().unwrap();
+        let staging = self.staging_buffer.as_ref().unwrap();
+        encoder.copy_buffer_to_buffer(hidden_a, 0, staging, 0, self.config.hidden_dim as u64 * 4);
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        // Map and read
+        let buffer_slice = staging.slice(..);
+        let (tx, rx) = std::sync::mpsc::channel();
+        buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
+            tx.send(result).ok();
+        });
+        self.device.poll(wgpu::Maintain::Wait);
+
+        let map_result = rx.recv();
+        if let Ok(Ok(())) = map_result {
+            let data = buffer_slice.get_mapped_range();
+            let logits: &[f32] = bytemuck::cast_slice(&data);
+            let result = logits.to_vec();
+
+            drop(data);
+            staging.unmap();
+
+            result
+        } else {
+            vec![0.0; self.config.hidden_dim]
+        }
+    }
+
+    /// Sample a token from logits with temperature
+    pub fn sample_with_temperature(logits: &[f32], temperature: f32, vocab_size: usize) -> u32 {
+        use rand::prelude::*;
+
+        // Clamp temperature to avoid division by zero
+        let temp = temperature.max(0.01);
+
+        // Take only vocab_size logits
+        let vocab_logits = &logits[..vocab_size.min(logits.len())];
+
+        // Apply temperature scaling
+        let scaled: Vec<f32> = vocab_logits.iter().map(|&x| x / temp).collect();
+
+        // Compute softmax
+        let max_val = scaled.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+        let exp_vals: Vec<f32> = scaled.iter().map(|&x| (x - max_val).exp()).collect();
+        let sum: f32 = exp_vals.iter().sum();
+        let probs: Vec<f32> = exp_vals.iter().map(|&x| x / sum).collect();
+
+        // Sample from distribution
+        let mut rng = rand::thread_rng();
+        let r: f32 = rng.gen();
+        let mut cumulative = 0.0;
+
+        for (i, &p) in probs.iter().enumerate() {
+            cumulative += p;
+            if r < cumulative {
+                return i as u32;
+            }
+        }
+
+        // Fallback to last token
+        (vocab_size - 1) as u32
+    }
+
+    /// Generate tokens for a prompt (greedy, temperature = 0)
     pub fn generate(&mut self, prompt: &str, max_tokens: usize) -> Vec<u32> {
+        self.generate_with_temperature(prompt, max_tokens, 0.0)
+    }
+
+    /// Generate tokens for a prompt with temperature sampling
+    pub fn generate_with_temperature(&mut self, prompt: &str, max_tokens: usize, temperature: f32) -> Vec<u32> {
         // Get tokenizer
         let tokenizer = crate::pixel_brain::tokenizer::ByteTokenizer::new();
 
         // Encode prompt
-        let mut tokens = tokenizer.encode(prompt);
+        let tokens = tokenizer.encode(prompt);
 
         // Generate tokens autoregressively
         let mut output_tokens = Vec::with_capacity(max_tokens);
@@ -906,7 +1088,14 @@ impl PixelBrainInferencer {
         let mut current_token = tokens.last().copied().unwrap_or(0);
 
         for _ in 0..max_tokens {
-            let next_token = self.infer_token(current_token);
+            let next_token = if temperature > 0.0 {
+                // Sample with temperature
+                let logits = self.get_logits(current_token);
+                Self::sample_with_temperature(&logits, temperature, self.config.vocab_size)
+            } else {
+                // Greedy (temperature = 0)
+                self.infer_token(current_token)
+            };
             output_tokens.push(next_token);
 
             // Stop on newline or null token
@@ -955,5 +1144,46 @@ mod tests {
         // Layer 0 size: Q(65536) + K(65536) + V(65536) + O(16384) + FFN_up(262144) + FFN_down(262144) = 737280
         // Layer 1 starts at 65536 + 737280 = 802816
         assert_eq!(offsets.q_offset, 802816);
+    }
+
+    #[test]
+    fn test_sample_with_temperature_returns_valid_token() {
+        // Test that sampling always returns a valid token index
+        let logits = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        for _ in 0..100 {
+            let token = PixelBrainInferencer::sample_with_temperature(&logits, 1.0, 5);
+            assert!(token < 5, "Token {} should be < 5", token);
+        }
+    }
+
+    #[test]
+    fn test_sample_with_temperature_low_temp_favors_high_logits() {
+        // With very low temperature, should almost always pick the highest logit
+        let logits = vec![0.0, 0.0, 0.0, 0.0, 100.0]; // Last token has much higher logit
+        let mut counts = [0usize; 5];
+
+        for _ in 0..100 {
+            let token = PixelBrainInferencer::sample_with_temperature(&logits, 0.01, 5);
+            counts[token as usize] += 1;
+        }
+
+        // Token 4 should be selected most of the time
+        assert!(counts[4] > 90, "Token 4 should dominate with low temp, got {:?}", counts);
+    }
+
+    #[test]
+    fn test_sample_with_temperature_high_temp_more_random() {
+        // With high temperature, distribution should be more uniform
+        let logits = vec![0.0, 0.0, 0.0, 0.0, 1.0];
+        let mut counts = [0usize; 5];
+
+        for _ in 0..100 {
+            let token = PixelBrainInferencer::sample_with_temperature(&logits, 5.0, 5);
+            counts[token as usize] += 1;
+        }
+
+        // With high temp, we should see more variety
+        let non_zero_count = counts.iter().filter(|&&c| c > 0).count();
+        assert!(non_zero_count >= 3, "High temp should produce variety, got {:?}", counts);
     }
 }
