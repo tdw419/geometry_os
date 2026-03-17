@@ -2959,8 +2959,8 @@ fn handle_raw_request<S: Read + Write>(
                 let prompt = json["prompt"].as_str().unwrap_or("");
                 let max_tokens = json["max_tokens"].as_u64().unwrap_or(32) as usize;
 
-                // Get tokenizer and encode prompt
-                let tokenizer = get_brain_tokenizer();
+                // Get tokenizer
+                let tokenizer = crate::pixel_brain::tokenizer::ByteTokenizer::new();
                 let tokens = tokenizer.encode(prompt);
 
                 // Run actual GPU inference if inferencer is available
