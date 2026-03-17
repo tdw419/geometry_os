@@ -149,3 +149,6 @@ systems/visual_shell/electron/dist/
 # Git rewrite history
 .git-rewrite/
 .cargo-target/
+
+# Buildroot (7.2GB)
+buildroot/
