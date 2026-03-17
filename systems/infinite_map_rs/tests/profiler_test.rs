@@ -7,9 +7,6 @@
 fn test_profiler_entry_size() {
     // Verify ProfilerEntry is 20 bytes (5 u32s)
     // This matches the WGSL layout for proper GPU readback
-    // TODO: Re-enable when riscv_executor is exported from lib.rs
-    // use infinite_map_rs::riscv_executor::ProfilerEntry;
-
     use infinite_map_rs::riscv_executor::ProfilerEntry;
 
     let entry = ProfilerEntry {
@@ -26,9 +23,6 @@ fn test_profiler_entry_size() {
 #[test]
 fn test_profiler_entry_default() {
     // Verify default initialization
-    // TODO: Re-enable when riscv_executor is exported from lib.rs
-    // use infinite_map_rs::riscv_executor::ProfilerEntry;
-
     use infinite_map_rs::riscv_executor::ProfilerEntry;
 
     let entry = ProfilerEntry::default();
