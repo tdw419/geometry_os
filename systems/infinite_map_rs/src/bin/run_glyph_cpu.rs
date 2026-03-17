@@ -5,7 +5,7 @@
 
 use anyhow::Result;
 use image::GenericImageView;
-use infinite_map_rs::synthetic_vram::{SyntheticVram, SyntheticVmConfig};
+use infinite_map_rs::synthetic_vram::{SyntheticVmConfig, SyntheticVram};
 use std::path::Path;
 
 /// Convert (x, y) coordinates to Hilbert distance
@@ -30,7 +30,9 @@ fn hilbert_xy2d(n: u32, mut x: u32, mut y: u32) -> u32 {
 
 fn main() -> Result<()> {
     let args: std::env::Args = std::env::args();
-    let program_path = args.skip(1).next()
+    let program_path = args
+        .skip(1)
+        .next()
         .ok_or_else(|| anyhow::anyhow!("Usage: run_glyph_cpu <program.rts.png>"))?;
 
     println!("Loading program from {}...", program_path);
@@ -46,9 +48,9 @@ fn main() -> Result<()> {
 
     // Create synthetic VRAM with size matching the image
     // Image must be power of 2 (e.g., 64, 128, 256, 512, 1024, 2048, 4096)
-    let grid_size = width;  // Use actual image dimension
+    let grid_size = width; // Use actual image dimension
     let mut vram = if grid_size <= 1024 {
-        SyntheticVram::new_small(grid_size as usize * grid_size as usize)
+        SyntheticVram::new_small(grid_size)
     } else {
         SyntheticVram::new()
     };
@@ -56,7 +58,6 @@ fn main() -> Result<()> {
     // Copy pixels into VRAM using Hilbert curve addressing
     // The PNG stores pixels at Hilbert(x,y) in row-major order
     // We need to convert each (x,y) back to Hilbert address
-    let mut first_pixels: Vec<(u32, u32, u32, u32)> = Vec::new();
     for y in 0..height {
         for x in 0..width {
             let pixel = rgba.get_pixel(x, y);
@@ -68,23 +69,7 @@ fn main() -> Result<()> {
             // Convert (x,y) to Hilbert address
             let hilbert_addr = hilbert_xy2d(grid_size, x, y);
             vram.poke(hilbert_addr, val);
-
-            // Collect first few non-zero pixels for debugging
-            if first_pixels.len() < 10 && val != 0 {
-                first_pixels.push((x, y, hilbert_addr, val));
-            }
         }
-    }
-
-    // Debug: show first non-zero pixels
-    println!("\nFirst 10 non-zero pixels loaded:");
-    for (x, y, addr, val) in &first_pixels {
-        let opcode = val & 0xFF;
-        let stratum = (val >> 8) & 0xFF;
-        let p1 = (val >> 16) & 0xFF;
-        let p2 = (val >> 24) & 0xFF;
-        println!("  ({},{}) -> addr {} = 0x{:08x} (op={} st={} p1={} p2={})",
-            x, y, addr, val, opcode, stratum, p1, p2);
     }
 
     // Dump first 30 instructions for debugging
@@ -95,8 +80,10 @@ fn main() -> Result<()> {
         let stratum = (val >> 8) & 0xFF;
         let p1 = (val >> 16) & 0xFF;
         let p2 = (val >> 24) & 0xFF;
-        println!("  [{}] opcode={} stratum={} p1={} p2={} (raw={:08x})",
-            i, opcode, stratum, p1, p2, val);
+        println!(
+            "  [{}] opcode={} stratum={} p1={} p2={} (raw={:08x})",
+            i, opcode, stratum, p1, p2, val
+        );
     }
 
     // Spawn VM at entry point 0
@@ -129,9 +116,10 @@ fn main() -> Result<()> {
                 let r14 = vm.regs[14];
                 let r15 = vm.regs[15];
                 let r13 = vm.regs[13];
-                println!("  [{}] PC={} op={} st={} p1={} p2={} | r10={} r13={} r14={} r15={}",
-                    debug_cycles, pc, opcode, stratum, p1, p2,
-                    vm.regs[10], r13, r14, r15);
+                println!(
+                    "  [{}] PC={} op={} st={} p1={} p2={} | r10={} r13={} r14={} r15={}",
+                    debug_cycles, pc, opcode, stratum, p1, p2, vm.regs[10], r13, r14, r15
+                );
             }
         }
 
@@ -146,7 +134,8 @@ fn main() -> Result<()> {
             total_cycles = vm.cycles;
 
             // Check if halted
-            if vm.state == 2 {  // VM_STATE_HALTED
+            if vm.state == 2 {
+                // VM_STATE_HALTED
                 println!("\nVM Halted after {} cycles", total_cycles);
                 break;
             }
@@ -165,8 +154,10 @@ fn main() -> Result<()> {
     // Print trace
     println!("\n\nExecution trace (last 50 instructions):");
     for entry in vram.trace().iter().rev().take(50).rev() {
-        println!("  PC={} opcode={} stratum={} p1={} p2={}",
-            entry.pc, entry.opcode, entry.stratum, entry.p1, entry.p2);
+        println!(
+            "  PC={} opcode={} stratum={} p1={} p2={}",
+            entry.pc, entry.opcode, entry.stratum, entry.p1, entry.p2
+        );
     }
 
     if total_cycles >= max_cycles {
