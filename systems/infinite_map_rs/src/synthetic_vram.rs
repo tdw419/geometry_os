@@ -2419,4 +2419,61 @@ mod tests {
         assert_eq!(vram.peek(0x2000), 0x00030001, "LDI r3 glyph");
         assert_eq!(vram.peek(0x2001), 42, "immediate 42");
     }
+
+    #[test]
+    fn test_self_hosting_quine() {
+        // THE ULTIMATE SOVEREIGNTY TEST
+        // 1. Load the Assembler Binary into 0x0000
+        // 2. Load the Assembler Source into 0x1000
+        // 3. Run the Assembler
+        // 4. Verify Output Binary at 0x2000 matches Executing Binary at 0x0000
+
+        let mut vram = SyntheticVram::new_small(8192);
+
+        // Load source from disk
+        let source_path = "src/glyph_stratum/programs/self_hosting_assembler.glyph";
+        // Wait, the path might be relative to the workspace root or the crate root.
+        // Let's use a path that works from systems/infinite_map_rs
+        let source_text = std::fs::read_to_string("../../systems/glyph_stratum/programs/self_hosting_assembler.glyph")
+            .expect("Failed to read assembler source");
+
+        // Compile it using the Rust assembler
+        let mut assembler = crate::glyph_assembler::GlyphAssembler::new();
+        let assembled = assembler.assemble(&source_text).expect("Rust assembler failed");
+
+        // 1. Load Binary into 0x0000
+        for (i, word) in assembled.words.iter().enumerate() {
+            vram.poke(i as u32, *word);
+        }
+
+        // 2. Load Source into 0x1000
+        for (i, b) in source_text.bytes().enumerate() {
+            vram.poke(0x1000 + i as u32, b as u32);
+        }
+        vram.poke(0x1000 + source_text.len() as u32, 0);
+
+        // 3. Run the Assembler
+        vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
+        
+        // Give it plenty of cycles
+        for _ in 0..200 {
+            vram.execute_frame_interleaved(10);
+            if vram.is_halted(0) {
+                break;
+            }
+        }
+
+        // 4. Verify Output Binary at 0x2000
+        println!("Self-Hosting Quine Verification:");
+        println!("  Binary Size: {} words", assembled.words.len());
+        
+        for i in 0..assembled.words.len() as u32 {
+            let original = vram.peek(i);
+            let compiled = vram.peek(0x2000 + i);
+            assert_eq!(compiled, original, "Mismatch at offset {}: Expected {:08X}, got {:08X}", i, original, compiled);
+        }
+        
+        println!("  ✓ Output binary is bit-identical to executing binary.");
+        println!("  ✓ SOVEREIGNTY COMPLETE.");
+    }
 }

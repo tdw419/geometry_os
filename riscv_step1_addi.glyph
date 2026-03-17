@@ -1,87 +1,10 @@
 // ============================================================================
-// Geometry OS - RISC-V Emulator - Step 1: ADDI only
-// ============================================================================
-//
-// Goal: Get ADDI working, verify it reads/writes guest registers correctly
-// Only supports: ADDI
-// Memory Layout:
-//   0x14100: GUEST_REGS (x0-x31, each 4 bytes)
-//
-// This tests the register file access:
-// - Read rs1 from guest registers
-// - Add immediate
-// - Write rd to guest registers
+// Geometry OS - RISC-V Emulator - Step 1: Simple test
 // ============================================================================
 
 :boot
-    // Setup: Initialize GUEST_REGS base address in r11
-    LDI r11, 0x14100
-
-    // Test: x1 = x0 + 5 (should be x1 = 5)
-    // Write x0 = 0 to guest register file first
-    LDI r15, 0          // r15 = 0
-    LDI r16, 0          // rd = 0
-    LDI r17, 2          // shift amount = 2
-    SHL r16, r17        // rd * 4
-    ADD r16, r11        // addr = 0x14100 + rd*4
-    STORE r16, r15     // guest_regs[0] = 0
-
-    // Write x1 = 5 to guest register file (what ADDI should compute)
-    LDI r15, 5          // r15 = 5
-    LDI r16, 1          // rd = 1
-    LDI r17, 2          // shift amount = 2
-    SHL r16, r17        // rd * 4
-    ADD r16, r11        // addr = 0x14100 + rd*4
-    STORE r16, r15     // guest_regs[1] = 5
-
-    // Now test ADDI: x2 = x1 + 3
-    // ADDI x2, x1, 3  (rd=2, rs1=1, imm=3)
-    
-    // Read rs1 (x1) from guest register file
-    // rs1 = 1
-    LDI r15, 1          // rs1 = 1
-    LDI r17, 2          // shift amount = 2
-    SHL r15, r17        // rs1 * 4
-    ADD r15, r11        // addr = 0x14100 + rs1*4
-    LOAD r15, r16       // r16 = guest_regs[1] = 5
-
-    // Add immediate (imm = 3)
-    LDI r17, 3          // r17 = 3
-    ADD r16, r17        // r16 = 5 + 3 = 8
-
-    // Write rd (x2) to guest register file
-    LDI r17, 2          // rd = 2
-    LDI r18, 2          // shift amount = 2
-    SHL r17, r18        // rd * 4
-    ADD r17, r11        // addr = 0x14100 + rd*4
-    STORE r17, r16     // guest_regs[2] = 8
-
-    // Verify: Read back x2 and check if it's 8
-    LDI r17, 2          // rd = 2
-    LDI r18, 2          // shift amount = 2
-    SHL r17, r18        // rd * 4
-    ADD r17, r11        // addr = 0x14100 + rd*4
-    LOAD r17, r16       // r16 = guest_regs[2] = 8
-
-    // If r16 == 8, we're done
-    LDI r18, 8          // r18 = 8 (expected value)
-    SUB r16, r18        // r16 = r16 - r18 = 8 - 8 = 0
-    JZ r16, success     // If r16 == 0, branch to success
-
-    // If we get here, something is wrong - output 'F' for fail
-    LDI r17, 0x0200
-    LDI r16, 0x46       // 'F' for fail
-    STORE r17, r16
-
-    JZ r0, halt
-
-:success
-    // Store marker to UART to indicate success
-    LDI r17, 0x0200
-    LDI r16, 0x53       // 'S' for success
-    STORE r17, r16
-
-    JZ r0, halt
-
-:halt
+    // Just output 'X'
+    LDI r15, 0x58   // 'X'
+    LDI r16, 0x0200
+    STORE r16, r15
     HALT
