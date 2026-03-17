@@ -185,16 +185,20 @@ mod tests {
         b.jmp("parse_2_regs_imm"); // Reuses logic, just doesn't follow with imm
 
         b.label("parse_imm");
-        // Simplified multi-digit/negative parsing
+        // Multi-digit/negative parsing
         b.ldi(6, 0); b.ldi(16, 0); // r6=acc, r16=neg
-        b.bne(1, 17, "dig1"); b.ldi(16, 1); b.add(10, 0); b.load(0, 1);
-        b.label("dig1"); b.mov(11, 7); b.sub(1, 7); b.mov(7, 6);
+        b.bne(1, 17, "dig1"); b.ldi(16, 1); b.add(10, 0); b.load(0, 1); // Handle '-'
+        b.label("dig1");
+        b.ldi(2, 48); b.blt(1, 2, "imm_done"); // If char < '0', done
+        b.ldi(2, 57); b.blt(2, 1, "imm_done"); // If char > '9', done (blt checks 57 < char)
+        // digit: r6 = r6 * 10 + (char - '0')
+        b.mov(11, 7); b.sub(1, 7); // r7 = char - '0' (digit value)
+        b.ldi(8, 10); b.mul(8, 6); // r8 = acc * 10
+        b.add(8, 7); b.mov(7, 6); // r6 = r8 + digit
         b.add(10, 0); b.load(0, 1); // next char
-        b.ldi(2, 48); b.blt(1, 2, "imm_done");
-        b.ldi(7, 10); b.mul(7, 6); b.mov(11, 7); b.sub(1, 7); b.add(7, 6); // r6 = acc*10 + digit
-        b.add(10, 0); b.jmp("imm_done"); // past digits for this proof
+        b.jmp("dig1"); // Loop for more digits
         b.label("imm_done");
-        b.ldi(2, 0); b.beq(16, 2, "pos"); b.ldi(2, 0); b.sub(6, 2); b.mov(2, 6); // r6 = 0 - r6
+        b.ldi(2, 0); b.beq(16, 2, "pos"); b.ldi(2, 0); b.sub(6, 2); b.mov(2, 6); // r6 = 0 - r6 if neg
         b.label("pos");
         b.store(3, 5); b.add(10, 3); // store opcode
         b.store(3, 6); b.add(10, 3); // store data
