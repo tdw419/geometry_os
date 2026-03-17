@@ -1560,8 +1560,7 @@ mod tests {
             // Clear output
             vram.poke(500, 0xDEADDEAD);
 
-            // Reset and run
-            vram.reset(false);
+            // Run
             vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
             vram.execute_frame();
 
@@ -1587,7 +1586,6 @@ mod tests {
         vram.poke(201, b'Y' as u32);
         vram.poke(202, b'Z' as u32);
         vram.poke(500, 0xDEADDEAD);
-        vram.reset(false);
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
         vram.execute_frame();
         assert_eq!(
@@ -1874,7 +1872,6 @@ mod tests {
         ];
 
         for (input, expected) in test_cases {
-            vram.reset(false);
             // Poke input
             for (i, b) in input.bytes().enumerate() {
                 vram.poke(0x200 + i as u32, b as u32);
@@ -2220,7 +2217,7 @@ mod tests {
             v.poke(*p, val); *p += 1;
         };
         
-        poke_ldi(&mut vram, &pp, 13, 1); pp += 1; // r13 = CONST 1
+        poke_ldi(&mut vram, &mut pp, 13, 1); // r13 = CONST 1
         
         // 1. Spawn Child
         poke_ldi(&mut vram, &mut pp, 1, 400);
