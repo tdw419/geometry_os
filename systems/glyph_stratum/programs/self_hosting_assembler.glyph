@@ -1,6 +1,8 @@
 // ============================================================================
-// Geometry OS - Self-Hosting Assembler (Version 2.6 - FINAL)
+// Geometry OS - Self-Hosting Assembler (Version 2.7 - BUGFIX)
 // ============================================================================
+//
+// A sovereign, GPU-native assembler that can compile its own source code.
 //
 // Memory Layout:
 //   0x0000 - 0x0FFF: Executing Binary
@@ -8,7 +10,7 @@
 //   0x2000 - 0x2FFF: Output Binary
 //   0x3000 - 0x3FFF: Symbol Table (Labels)
 //   0x0800 - 0x08FF: Mnemonic Lookup Table
-//   0x4004: ESTIMATED_PC (Pass 1)
+//   0x4004: ESTIMATED_PC
 // ============================================================================
 
 :main
@@ -17,28 +19,29 @@
     LDI r2, 0x3000          // SYMBOL_TABLE
     LDI r13, 1              // CONST 1
     LDI r12, 0x4004
-    STORE r12, 0
+    LDI r10, 0
+    STORE r12, r10          // Initialize ESTIMATED_PC to 0
 
     CALL :init_mnem_table
 
     // === PASS 1: Symbol Collection ===
 :p1_loop
     LOAD r7, [r0]
-    BEQ r7, 0, :p1_done
+    BEQ r7, r10, :p1_done   // check null
     LDI r8, 58              // ':'
     BNE r7, r8, :p1_check_inst
     
     // Found Label: :ABC
     ADD r0, r0, r13         // skip ':'
-    LOAD r7, [r0]           // c0
+    LOAD r7, [r0]           // char 0
     STORE r2, r7
     ADD r2, r2, r13
     ADD r0, r0, r13
-    LOAD r7, [r0]           // c1
+    LOAD r7, [r0]           // char 1
     STORE r2, r7
     ADD r2, r2, r13
     ADD r0, r0, r13
-    LOAD r7, [r0]           // c2
+    LOAD r7, [r0]           // char 2
     STORE r2, r7
     ADD r2, r2, r13
     
@@ -59,15 +62,17 @@
     LDI r8, 68; BNE r7, r8, :p1_not_ldi_adj1
     
     LOAD r9, [r12]; LDI r10, 2; ADD r9, r9, r10; STORE r12, r9
+    LDI r10, 0              // restore r10
     JMP :p1_skip_line
 
 :p1_not_ldi_adj1; SUB r0, r0, r13
 :p1_not_ldi
     LOAD r9, [r12]; ADD r9, r9, r13; STORE r12, r9
+    LDI r10, 0              // restore r10
 
 :p1_skip_line
     LOAD r7, [r0]
-    BEQ r7, 0, :p1_done
+    BEQ r7, r10, :p1_done
     LDI r8, 10; BEQ r7, r8, :p1_adv_ws
     ADD r0, r0, r13
     JMP :p1_skip_line
@@ -80,7 +85,7 @@
 
 :p2_loop
     LOAD r7, [r0]
-    BEQ r7, 0, :eof
+    BEQ r7, r10, :eof
     LDI r8, 58; BEQ r7, r8, :p2_skip_line
     LDI r8, 32; BEQ r7, r8, :p2_adv_ws
     LDI r8, 10; BEQ r7, r8, :p2_adv_ws
@@ -94,7 +99,7 @@
     LDI r14, 0xFF; BEQ r4, r14, :p2_skip_line
     
     // Special Cases
-    BEQ r4, 13, :p2_emit_halt
+    LDI r14, 13; BEQ r4, r14, :p2_emit_halt
     LDI r14, 12; BEQ r4, r14, :p2_emit_ret
     LDI r14, 1;  BEQ r4, r14, :p2_emit_ldi
     
@@ -110,10 +115,12 @@
     LDI r14, 24; SLL r15, r11, r14; OR r3, r3, r15
     STORE r1, r3
     ADD r1, r1, r13
-    JMP :p2_skip_line
+    LDI r10, 0; JMP :p2_skip_line
 
-:p2_emit_halt; STORE r1, 13; ADD r1, r1, r13; JMP :p2_skip_line
-:p2_emit_ret;  STORE r1, 12; ADD r1, r1, r13; JMP :p2_skip_line
+:p2_emit_halt
+    LDI r3, 13; STORE r1, r3; ADD r1, r1, r13; LDI r10, 0; JMP :p2_skip_line
+:p2_emit_ret
+    LDI r3, 12; STORE r1, r3; ADD r1, r1, r13; LDI r10, 0; JMP :p2_skip_line
 
 :p2_emit_ldi
     CALL :skip_ws
@@ -125,10 +132,10 @@
     LDI r3, 1;   OR r3, r3, r15
     STORE r1, r3; ADD r1, r1, r13
     STORE r1, r11; ADD r1, r1, r13
-    JMP :p2_skip_line
+    LDI r10, 0; JMP :p2_skip_line
 
 :p2_skip_line
-    LOAD r7, [r0]; BEQ r7, 0, :eof
+    LOAD r7, [r0]; BEQ r7, r10, :eof
     LDI r8, 10; BEQ r7, r8, :p2_adv_ws
     ADD r0, r0, r13; JMP :p2_skip_line
 
@@ -140,7 +147,6 @@
 
 :init_mnem_table
     LDI r4, 0x800
-    // [c0, c1, c2, opcode, stratum]
     LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // 'L'
     LDI r5, 68; STORE r4, r5; ADD r4, r4, r13 // 'D'
     LDI r5, 73; STORE r4, r5; ADD r4, r4, r13 // 'I'

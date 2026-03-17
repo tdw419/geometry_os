@@ -10,15 +10,24 @@ use std::collections::HashMap;
 pub enum Opcode {
     Nop = 0,
     Ldi = 1,
+    Mov = 2,
+    Load = 3,
+    Store = 4,
     Add = 5,
     Sub = 6,
     Mul = 7,
-    Load = 3,
-    Store = 4,
+    Div = 8,
+    Jmp = 9,
     Branch = 10,
     Cmp = 11,
-    Call = 12,
+    Ret = 12,
     Halt = 13,
+    Data = 14,
+    Loop = 15,
+    Jal = 16,
+    Or = 129,
+    Sll = 131,
+    Call = 218, // Memory-based call often used in tests
 }
 
 impl Opcode {
@@ -27,15 +36,21 @@ impl Opcode {
         match s.to_uppercase().as_str() {
             "NOP" => Some(Self::Nop),
             "LDI" => Some(Self::Ldi),
+            "MOV" => Some(Self::Mov),
+            "LOAD" => Some(Self::Load),
+            "STORE" => Some(Self::Store),
             "ADD" => Some(Self::Add),
             "SUB" => Some(Self::Sub),
             "MUL" => Some(Self::Mul),
-            "LOAD" => Some(Self::Load),
-            "STORE" => Some(Self::Store),
-            "BRANCH" | "BNE" | "BEQ" | "BLT" | "BGE" => Some(Self::Branch),
+            "DIV" => Some(Self::Div),
+            "JMP" => Some(Self::Jmp),
+            "BRANCH" | "BNE" | "BEQ" | "BLT" | "BGE" | "BLTU" | "BGEU" => Some(Self::Branch),
             "CMP" => Some(Self::Cmp),
-            "CALL" => Some(Self::Call),
+            "RET" | "RETURN" => Some(Self::Ret),
             "HALT" => Some(Self::Halt),
+            "OR" => Some(Self::Or),
+            "SLL" => Some(Self::Sll),
+            "CALL" => Some(Self::Call),
             _ => None,
         }
     }
@@ -184,6 +199,9 @@ impl GlyphAssembler {
             if line.ends_with(':') {
                 let label = line[..line.len()-1].trim().to_string();
                 self.labels.insert(label, self.addr);
+            } else if line.starts_with(':') {
+                let label = line[1..].trim().to_string();
+                self.labels.insert(label, self.addr);
             } else {
                 // Count words for this instruction
                 let word_count = self.count_words(line)?;
@@ -195,7 +213,7 @@ impl GlyphAssembler {
         self.addr = 0;
         for line in &lines {
             let line = Self::strip_comment(line).trim();
-            if line.is_empty() || line.ends_with(':') {
+            if line.is_empty() || line.ends_with(':') || line.starts_with(':') {
                 continue;
             }
 
@@ -338,6 +356,34 @@ impl GlyphAssembler {
                     .or_else(|| self.labels.get(addr.trim_end_matches(',')).map(|&a| a as i32))
                     .ok_or_else(|| format!("Invalid address: {}", addr))?;
                 (Instruction { opcode, stratum: 0, p1: rd, p2: 0 }, Some(addr_val))
+            }
+            Opcode::Mov => {
+                // MOV rd, rs
+                let rd = parse_reg(parts.get(1).ok_or("MOV needs destination register")?)
+                    .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
+                let rs = parse_reg(parts.get(2).ok_or("MOV needs source register")?)
+                    .ok_or_else(|| format!("Invalid register: {}", parts[2]))?;
+                (Instruction { opcode, stratum: 0, p1: rs, p2: rd }, None)
+            }
+            Opcode::Jmp => {
+                // JMP rs
+                let rs = parse_reg(parts.get(1).ok_or("JMP needs register")?)
+                    .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
+                (Instruction { opcode, stratum: 0, p1: rs, p2: 0 }, None)
+            }
+            Opcode::Ret => {
+                (Instruction { opcode, stratum: 0, p1: 0, p2: 0 }, None)
+            }
+            Opcode::Or => {
+                let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
+                (Instruction { opcode, stratum: 0, p1: rs1, p2: rd }, None)
+            }
+            Opcode::Sll => {
+                let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
+                (Instruction { opcode, stratum: 0, p1: rs1, p2: rd }, None)
+            }
+            _ => {
+                (Instruction { opcode, stratum: 0, p1: 0, p2: 0 }, None)
             }
         };
 
