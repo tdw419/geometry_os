@@ -113,12 +113,13 @@ fn main() -> Result<()> {
                 let p2 = (instr >> 24) & 0xFF;
 
                 // Show more registers for debugging BRANCH issues
+                let r0 = vm.regs[0];
                 let r14 = vm.regs[14];
                 let r15 = vm.regs[15];
                 let r13 = vm.regs[13];
                 println!(
-                    "  [{}] PC={} op={} st={} p1={} p2={} | r10={} r13={} r14={} r15={}",
-                    debug_cycles, pc, opcode, stratum, p1, p2, vm.regs[10], r13, r14, r15
+                    "  [{}] PC={} op={} st={} p1={} p2={} | r0={} r10={} r13={} r14={} r15={}",
+                    debug_cycles, pc, opcode, stratum, p1, p2, r0, vm.regs[10], r13, r14, r15
                 );
             }
         }
