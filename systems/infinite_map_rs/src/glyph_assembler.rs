@@ -189,12 +189,13 @@ impl GlyphAssembler {
         self.words.clear();
 
         // First pass: collect labels
-        let lines: Vec<&str> = text.lines().collect();
-        for line in &lines {
+        for line in text.lines() {
             let line = Self::strip_comment(line).trim();
+            let line = line.trim_start_matches('@');
             if line.is_empty() {
                 continue;
             }
+
 
             // Check for label
             if line.ends_with(':') {
@@ -212,8 +213,9 @@ impl GlyphAssembler {
 
         // Second pass: assemble
         self.addr = 0;
-        for line in &lines {
+        for line in text.lines() {
             let line = Self::strip_comment(line).trim();
+            let line = line.trim_start_matches('@');
             if line.is_empty() || line.ends_with(':') || line.starts_with(':') {
                 continue;
             }
