@@ -439,9 +439,6 @@ impl SyntheticVram {
                     return;
                 }
                 let val = self.vms[vm_idx].regs[p2 as usize];
-                if self.tracing && addr >= 0x200 && addr < 0x300 {
-                    eprintln!("STORE to UART: addr=0x{:x} val={} char='{}'", addr, val, (val & 0xFF) as u8 as char);
-                }
                 self.mem_write(addr, val);
                 self.vms[vm_idx].pc += 1;
             },
@@ -496,9 +493,8 @@ impl SyntheticVram {
             10 => {
                 let v1 = self.vms[vm_idx].regs[p1 as usize];
                 let v2 = self.vms[vm_idx].regs[p2 as usize];
-                let beq_result = v1 == v2;
                 let take_branch = match stratum {
-                    0 => beq_result,                 // BEQ
+                    0 => v1 == v2,                   // BEQ
                     1 => v1 != v2,                   // BNE
                     2 => (v1 as i32) < (v2 as i32),  // BLT
                     3 => (v1 as i32) >= (v2 as i32), // BGE
@@ -506,9 +502,6 @@ impl SyntheticVram {
                     5 => v1 >= v2,                   // BGEU
                     _ => false,
                 };
-                if self.tracing && pc < 100 {
-                    eprintln!("BRANCH at PC={}: stratum={} p1={} p2={} v1={} v2={} beq={} take={}", pc, stratum, p1, p2, v1, v2, beq_result, take_branch);
-                }
                 if take_branch {
                     let offset = self.mem_read(pc + 1) as i32;
                     self.vms[vm_idx].pc = (pc as i32 + 2 + offset) as u32;
