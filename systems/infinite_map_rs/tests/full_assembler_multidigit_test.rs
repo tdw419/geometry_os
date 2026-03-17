@@ -84,6 +84,11 @@ mod tests {
         scheduler.poke_substrate_single(10000 + input.len() as u32, 0);
         println!("Input: {:?}", std::str::from_utf8(input).unwrap());
 
+        // Atlas templates at address 50000
+        scheduler.poke_substrate_single(50000, glyph(1, 0, 0, 0));  // LDI template
+        scheduler.poke_substrate_single(50001, glyph(13, 0, 0, 0)); // HALT template
+        println!("Atlas: LDI template at 50000, HALT template at 50001");
+
         // ========================================
         // THE FULL ASSEMBLER WITH MULTI-DIGIT
         // ========================================
@@ -154,6 +159,7 @@ mod tests {
         // r6 = digit - 48 (register number)
         b.mov(8, 6);      // r6 = 48 (copy from r8)
         b.sub(1, 6);      // r6 = r1 - r6 = digit - 48
+        b.add(10, 0);     // text_ptr++ (past register digit)
 
         // Emit LDI opcode from template
         b.ldi(4, 50000);  // atlas: LDI template at 50000
