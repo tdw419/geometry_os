@@ -78,9 +78,14 @@ mod tests {
 
         println!("\n=== SELF-COMPILE-AND-EXECUTE TEST ===");
 
-        // Input: "LDI r1, 42\nLDI r2, 300\nSTORE r2, r1\nHALT"
-        // This loads 42 into r1, loads 300 (address) into r2, then stores r1 to [r2]
-        let input = b"LDI r1, 42\nLDI r2, 300\nSTORE r2, r1\nHALT";
+        // Input: Fibonacci-like program that computes 5 + 3 = 8
+        // LDI r1, 5    - load 5 into r1
+        // LDI r2, 3    - load 3 into r2
+        // ADD r2, r1   - r1 = r1 + r2 = 8
+        // LDI r3, 300  - load address 300 into r3
+        // STORE r3, r1 - store r1 (8) to [r3]
+        // HALT
+        let input = b"LDI r1, 5\nLDI r2, 3\nADD r2, r1\nLDI r3, 300\nSTORE r3, r1\nHALT";
         for (i, &b) in input.iter().enumerate() {
             scheduler.poke_substrate_single(10000 + i as u32, b as u32);
         }
@@ -93,8 +98,9 @@ mod tests {
         // Atlas templates
         scheduler.poke_substrate_single(50000, glyph(1, 0, 0, 0));     // LDI template
         scheduler.poke_substrate_single(50001, glyph(4, 0, 0, 0));     // STORE template
-        scheduler.poke_substrate_single(50002, glyph(13, 0, 0, 0));    // HALT template
-        println!("Atlas: LDI at 50000, STORE at 50001, HALT at 50002");
+        scheduler.poke_substrate_single(50002, glyph(5, 0, 0, 0));     // ADD template
+        scheduler.poke_substrate_single(50003, glyph(13, 0, 0, 0));    // HALT template
+        println!("Atlas: LDI at 50000, STORE at 50001, ADD at 50002, HALT at 50003");
 
         // Build assembler program (simplified - just handles LDI, STORE, HALT)
         let mut b = ProgramBuilder::new();
@@ -172,7 +178,7 @@ mod tests {
 
         // Try STORE
         b.label("try_store");
-        b.ldi(2, 83); b.bne(1, 2, "try_halt");  // 'S'
+        b.ldi(2, 83); b.bne(1, 2, "try_add");  // 'S'
         b.add(10, 0); b.load(0, 1);
         b.ldi(2, 84); b.bne(1, 2, "error");  // 'T'
         b.add(10, 0); b.load(0, 1);
@@ -217,6 +223,51 @@ mod tests {
         b.store(3, 5);
         b.add(10, 3);
         b.add(10, 0);                   // Advance text pointer
+        b.jmp("main_loop");
+
+        // Try ADD
+        b.label("try_add");
+        b.ldi(2, 65); b.bne(1, 2, "try_halt");  // 'A'
+        b.add(10, 0); b.load(0, 1);
+        b.ldi(2, 68); b.bne(1, 2, "error");  // 'D'
+        b.add(10, 0); b.load(0, 1);
+        b.ldi(2, 68); b.bne(1, 2, "error");  // 'D'
+
+        // Skip spaces
+        b.label("add_skip_ws1");
+        b.add(10, 0); b.load(0, 1);
+        b.beq(1, 12, "add_skip_ws1");
+
+        // Expect 'r'
+        b.bne(1, 14, "error");
+        b.add(10, 0); b.load(0, 1);  // first digit
+
+        // r6 = digit - 48 (src register)
+        b.mov(11, 6); b.sub(1, 6);
+
+        // Skip comma/space
+        b.label("add_skip_ws2");
+        b.add(10, 0); b.load(0, 1);
+        b.beq(1, 12, "add_skip_ws2");
+        b.beq(1, 15, "add_skip_ws2");
+
+        // Expect 'r'
+        b.bne(1, 14, "error");
+        b.add(10, 0); b.load(0, 1);  // second digit
+
+        // r7 = digit - 48 (dst register)
+        b.mov(11, 7); b.sub(1, 7);
+
+        // Emit ADD opcode: template | (src << 16) | (dst << 24)
+        b.ldi(4, 50002); b.load(4, 5);  // r5 = ADD template
+        b.ldi(8, 16); b.shl(6, 8);      // r8 = src << 16
+        b.mov(8, 2);                    // r2 = src << 16 (save it!)
+        b.ldi(8, 24); b.shl(7, 8);      // r8 = dst << 24
+        b.or(2, 5);                     // r5 = r2 | r5 = (src << 16) | template
+        b.or(8, 5);                     // r5 = r8 | r5 = final opcode
+        b.store(3, 5);
+        b.add(10, 3);
+        b.add(10, 0);                   // Advance text pointer past second register digit
         b.jmp("main_loop");
 
         // Try HALT
