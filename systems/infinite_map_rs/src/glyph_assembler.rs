@@ -87,7 +87,7 @@ impl Instruction {
 
 /// Parse register name to index (r0-r127)
 fn parse_reg(s: &str) -> Option<u8> {
-    let s = s.trim();
+    let s = s.trim().trim_end_matches(',');
     if s.starts_with('r') || s.starts_with('R') {
         s[1..].parse::<u8>().ok().filter(|&r| r < 128)
     } else {
@@ -456,8 +456,9 @@ mod tests {
 
     #[test]
     fn test_store_encoding() {
-        let instr = Instruction { opcode: Opcode::Store, stratum: 0, p1: 0, p2: 5 };
-        assert_eq!(instr.encode(), 0x00050004);
+        // STORE mem[r1], r0  => p1=1 (addr reg), p2=0 (value reg)
+        let instr = Instruction { opcode: Opcode::Store, stratum: 0, p1: 1, p2: 0 };
+        assert_eq!(instr.encode(), 0x00010004);
     }
 
     #[test]
