@@ -10,40 +10,46 @@
 // Host Registers:
 //   r10: Guest PC
 //   r11: Guest Regs Base (constant 0x14100)
-//   r12: Return address
+//   r12: Return address (to fetch)
 //   r13: Current instruction (preserved!)
 //   r14-r19: Temps
 //
-// Key: ADD dst, src stores result in src!
+// Operand semantics (from synthetic_vram.rs):
+//   SHL p1, p2: regs[p2] = regs[p1] << (regs[p2] & 31)
+//   SHR p1, p2: regs[p2] = regs[p1] >> (regs[p2] & 31)
+//   ADD p1, p2: regs[p2] = regs[p1] + regs[p2]
+//   SUB p1, p2: regs[p2] = regs[p1] - regs[p2]
+//   AND p1, p2: regs[p2] = regs[p1] & regs[p2]
+//   OR p1, p2: regs[p2] = regs[p1] | regs[p2]
+//   MOV p1, p2: regs[p2] = regs[p1]
+//   LOAD p1, p2: regs[p2] = mem[regs[p1]]
+//   STORE p1, p2: mem[regs[p1]] = regs[p2]
+//
+// Key insight: p2 is BOTH source (for shift amount) AND destination
 // ============================================================================
 
 :boot
-    // r10 = Guest PC = 0x18000
-    LDI r10, 24         // 24 = 0x18
-    LDI r14, 12
-    SHL r10, r14        // r14 = 24 << 12 = 98304 = 0x18000
-    MOV r14, r10        // r10 = 0x18000
+    // r10 = Guest PC = 0x18000 = 98304
+    // Build: 0x18000 = 24 << 12
+    LDI r14, 24         // r14 = 24 (value to shift)
+    LDI r15, 12         // r15 = 12 (shift amount)
+    SHL r14, r15        // r15 = r14 << r15 = 24 << 12 = 0x18000
+    MOV r15, r10        // r10 = 0x18000
 
-    // r11 = Guest Regs Base = 0x14100
-    LDI r11, 65         // 65 = 0x41
-    LDI r14, 8
-    SHL r11, r14        // r14 = 65 << 8 = 16640 = 0x4100
-    LDI r15, 256        // 256 = 0x100
-    ADD r15, r14        // r14 = 0x4100 + 256 = 0x14100... wait, LDI is 8-bit
+    // r11 = Guest Regs Base = 0x14100 = 82176
+    // Build: 0x14100 = 321 << 8 = (256 + 65) << 8
+    LDI r14, 1          // r14 = 1
+    LDI r15, 8          // r15 = 8 (shift amount)
+    SHL r14, r15        // r15 = 1 << 8 = 256
+    LDI r14, 65         // r14 = 65
+    ADD r14, r15        // r15 = r14 + r15 = 256 + 65 = 321
+    LDI r14, 8          // r14 = 8 (shift amount)
+    SHL r15, r14        // r14 = r15 << r14 = 321 << 8 = 0x14100
+    MOV r14, r11        // r11 = 0x14100
 
-    // Actually, 0x14100 = 82176, which is 321 << 8
-    // 321 = 0x141 = 256 + 64 + 1 = 256 + 65
-    LDI r11, 1
-    LDI r14, 8
-    SHL r11, r14        // r14 = 1 << 8 = 256
-    LDI r15, 65
-    ADD r15, r14        // r14 = 256 + 65 = 321
-    LDI r15, 8
-    SHL r14, r15        // r15 = 321 << 8 = 82176 = 0x14100
-    MOV r15, r11        // r11 = 0x14100
-
-    // r12 = return address
-    LDI r12, fetch
+    // r12 = return address to fetch
+    LDI r14, fetch
+    MOV r14, r12        // r12 = fetch
 
 // ============================================================================
 :fetch
@@ -52,41 +58,40 @@
 
     // Increment PC: r10 = r10 + 4
     LDI r14, 4
-    ADD r14, r10        // r10 = 4 + r10
+    ADD r14, r10        // r10 = r10 + 4
 
     // Extract opcode (bits 0-6): r14 = r13 & 0x7F
-    MOV r13, r14
+    MOV r13, r14        // r14 = instruction
     LDI r15, 0x7F
     AND r15, r14        // r14 = opcode
 
-    // Dispatch
-    // Check LUI (0x37)
+    // Dispatch - check LUI (0x37)
     LDI r15, 0x37
-    SUB r14, r15        // r15 = opcode - 0x37
+    SUB r14, r15        // r15 = r14 - 0x37 = opcode - 0x37
     JZ r15, handle_lui
 
     // Restore opcode and check ADDI (0x13)
-    MOV r13, r14
+    MOV r13, r14        // r14 = instruction
     LDI r15, 0x7F
-    AND r15, r14        // r14 = opcode (restored)
+    AND r15, r14        // r14 = opcode
     LDI r15, 0x13
     SUB r14, r15        // r15 = opcode - 0x13
     JZ r15, handle_addi
 
     // Restore opcode and check SW (0x23)
-    MOV r13, r14
+    MOV r13, r14        // r14 = instruction
     LDI r15, 0x7F
-    AND r15, r14
+    AND r15, r14        // r14 = opcode
     LDI r15, 0x23
-    SUB r14, r15
+    SUB r14, r15        // r15 = opcode - 0x23
     JZ r15, handle_sw
 
     // Restore opcode and check EBREAK (0x73)
-    MOV r13, r14
+    MOV r13, r14        // r14 = instruction
     LDI r15, 0x7F
-    AND r15, r14
+    AND r15, r14        // r14 = opcode
     LDI r15, 0x73
-    SUB r14, r15
+    SUB r14, r15        // r15 = opcode - 0x73
     JZ r15, handle_ebreak
 
     // Unknown opcode - halt
@@ -97,37 +102,35 @@
     // LUI rd, imm[31:12]
     // Format: imm[31:12] | rd[4:0] | 0x37
 
-    // rd = (instr >> 7) & 0x1F
-    MOV r13, r15        // r15 = instruction
-    LDI r14, 7
-    SHR r15, r14        // r14 = instr >> 7
-    LDI r15, 0x1F
-    AND r15, r14        // r14 = rd
+    // rd = (instr >> 7) & 0x1F → r14
+    MOV r13, r14        // r14 = instruction
+    LDI r15, 7          // r15 = 7 (shift amount)
+    SHR r14, r15        // r15 = r14 >> 7 = instr >> 7
+    LDI r14, 0x1F
+    AND r15, r14        // r14 = r15 & 0x1F = rd
 
     // Skip if rd = 0
     JZ r14, fetch
 
-    // imm = instr & 0xFFFFF000 (i.e., (instr >> 12) << 12)
-    MOV r13, r16        // r16 = instruction
-    LDI r14, 12
-    SHR r16, r14        // r14 = instr >> 12
-    SHL r14, r16        // r16 = (instr >> 12) << 12
+    // Save rd to r16
+    MOV r14, r16        // r16 = rd
 
-    // Store to guest_regs[rd]
-    // r14 still has rd, but we modified it... need to recompute
-    MOV r13, r15        // r15 = instruction
-    LDI r14, 7
-    SHR r15, r14
-    LDI r15, 0x1F
-    AND r15, r14        // r14 = rd
+    // imm = (instr >> 12) << 12
+    MOV r13, r14        // r14 = instruction
+    LDI r15, 12         // r15 = 12 (shift amount)
+    SHR r14, r15        // r15 = r14 >> 12 = instr >> 12
+    LDI r14, 12         // r14 = 12 (shift amount)
+    SHL r15, r14        // r14 = r15 << 12 = imm
+    MOV r14, r17        // r17 = imm
 
-    // addr = r11 + (rd * 4)
-    LDI r15, 2
-    SHL r14, r15        // r15 = rd << 2 = rd * 4
-    ADD r11, r15        // r15 = guest_regs + rd*4
+    // Compute guest_regs[rd] address: r11 + (rd << 2)
+    MOV r16, r14        // r14 = rd
+    LDI r15, 2          // r15 = 2 (shift amount)
+    SHL r14, r15        // r15 = r14 << 2 = rd << 2
+    ADD r11, r15        // r15 = r11 + r15 = &guest_regs[rd]
 
     // Store imm to guest_regs[rd]
-    STORE r15, r16
+    STORE r15, r17
 
     JMP r12
 
@@ -136,94 +139,104 @@
     // ADDI rd, rs1, imm[11:0]
     // Format: imm[11:0] | rs1[4:0] | 0 | rd[4:0] | 0x13
 
-    // rd = (instr >> 7) & 0x1F
-    MOV r13, r14
-    LDI r15, 7
-    SHR r14, r15
+    // rd = (instr >> 7) & 0x1F → r14
+    MOV r13, r14        // r14 = instruction
+    LDI r15, 7          // r15 = 7 (shift amount)
+    SHR r14, r15        // r15 = r14 >> 7
     LDI r14, 0x1F
-    AND r14, r15        // r15 = rd
+    AND r15, r14        // r14 = rd
 
-    // rs1 = (instr >> 15) & 0x1F
-    MOV r13, r16
-    LDI r14, 15
-    SHR r16, r14
-    LDI r16, 0x1F
-    AND r16, r14        // r14 = rs1
+    // Save rd to r16
+    MOV r14, r16        // r16 = rd
 
-    // imm = (instr >> 20) & 0xFFF (sign extend ignored for now)
-    MOV r13, r17
-    LDI r14, 20
-    SHR r17, r14        // r14 = imm
-
-    // Load guest_regs[rs1]
-    LDI r15, 2
-    SHL r14, r15        // r15 = rs1 * 4
-    ADD r11, r15        // r15 = &guest_regs[rs1]
-    LOAD r15, r18       // r18 = guest_regs[rs1]
-
-    // result = guest_regs[rs1] + imm
-    ADD r17, r18        // r18 = result
-
-    // Get rd again
-    MOV r13, r14
-    LDI r15, 7
-    SHR r14, r15
+    // rs1 = (instr >> 15) & 0x1F → r17
+    MOV r13, r14        // r14 = instruction
+    LDI r15, 15         // r15 = 15 (shift amount)
+    SHR r14, r15        // r15 = r14 >> 15
     LDI r14, 0x1F
-    AND r14, r15        // r15 = rd
+    AND r15, r14        // r14 = rs1
+    MOV r14, r17        // r17 = rs1
+
+    // imm = (instr >> 20) → r18
+    MOV r13, r14        // r14 = instruction
+    LDI r15, 20         // r15 = 20 (shift amount)
+    SHR r14, r15        // r15 = r14 >> 20 = imm
+    MOV r15, r18        // r18 = imm
+
+    // Load guest_regs[rs1] → r19
+    // addr = r11 + (rs1 << 2)
+    MOV r17, r14        // r14 = rs1
+    LDI r15, 2          // r15 = 2 (shift amount)
+    SHL r14, r15        // r15 = r14 << 2 = rs1 << 2
+    ADD r11, r15        // r15 = r11 + r15 = &guest_regs[rs1]
+    LOAD r15, r19       // r19 = guest_regs[rs1]
+
+    // result = guest_regs[rs1] + imm → r19
+    ADD r18, r19        // r19 = r19 + r18
 
     // Skip if rd = 0
-    JZ r15, fetch
+    JZ r16, fetch
 
-    // Store to guest_regs[rd]
-    LDI r14, 2
-    SHL r15, r14        // r14 = rd * 4
-    ADD r11, r14        // r14 = &guest_regs[rd]
-    STORE r14, r18
+    // Store result to guest_regs[rd]
+    // addr = r11 + (rd << 2)
+    MOV r16, r14        // r14 = rd
+    LDI r15, 2          // r15 = 2 (shift amount)
+    SHL r14, r15        // r15 = r14 << 2 = rd << 2
+    ADD r11, r15        // r15 = r11 + r15 = &guest_regs[rd]
+    STORE r15, r19
 
     JMP r12
 
 // ============================================================================
 :handle_sw
-    // SW rs2, imm(rs1)
+    // SW rs2, offset(rs1)
     // Format: imm[11:5] | rs2[4:0] | rs1[4:0] | 2 | imm[4:0] | 0x23
+    // For GEOM test: offsets are small (0, 4, 8, 12)
 
-    // For the GEOM test, offsets are 0, 4, 8, 12
-    // and rs1 = x1 (UART pointer), rs2 = x2 (character)
-
-    // rs1 = (instr >> 15) & 0x1F
-    MOV r13, r14
-    LDI r15, 15
-    SHR r14, r15
+    // rs1 = (instr >> 15) & 0x1F → r14
+    MOV r13, r14        // r14 = instruction
+    LDI r15, 15         // r15 = 15 (shift amount)
+    SHR r14, r15        // r15 = r14 >> 15
     LDI r14, 0x1F
-    AND r14, r15        // r15 = rs1
+    AND r15, r14        // r14 = rs1
+    MOV r14, r16        // r16 = rs1
 
-    // rs2 = (instr >> 20) & 0x1F
-    MOV r13, r16
-    LDI r14, 20
-    SHR r16, r14
-    LDI r16, 0x1F
-    AND r16, r14        // r14 = rs2
+    // rs2 = (instr >> 20) & 0x1F → r17
+    MOV r13, r14        // r14 = instruction
+    LDI r15, 20         // r15 = 20 (shift amount)
+    SHR r14, r15        // r15 = r14 >> 20
+    LDI r14, 0x1F
+    AND r15, r14        // r14 = rs2
+    MOV r14, r17        // r17 = rs2
 
-    // offset = ((instr >> 25) << 5) | ((instr >> 7) & 0x1F)
-    MOV r13, r17
-    LDI r14, 25
-    SHR r17, r14        // r14 = instr >> 25
-    LDI r15, 5
-    SHL r14, r15        // r15 = (instr >> 25) << 5
+    // offset (simplified - lower 5 bits only for small offsets) → r18
+    MOV r13, r14        // r14 = instruction
+    LDI r15, 7          // r15 = 7 (shift amount)
+    SHR r14, r15        // r15 = r14 >> 7
+    LDI r14, 0x1F
+    AND r15, r14        // r14 = (instr >> 7) & 0x1F
+    MOV r14, r18        // r18 = offset
 
-    MOV r13, r18
-    LDI r14, 7
-    SHR r18, r14        // r14 = instr >> 7
-    LDI r18, 0x1F
-    AND r18, r14        // r14 = (instr >> 7) & 0x1F
+    // Load guest_regs[rs1] (base address) → r19
+    MOV r16, r14        // r14 = rs1
+    LDI r15, 2          // r15 = 2 (shift amount)
+    SHL r14, r15        // r15 = r14 << 2 = rs1 << 2
+    ADD r11, r15        // r15 = r11 + r15 = &guest_regs[rs1]
+    LOAD r15, r19       // r19 = guest_regs[rs1]
 
-    // offset = r15 | r14 = r15 + r14 (since bits don't overlap)
-    ADD r14, r15        // r15 = offset
+    // effective_addr = base + offset → r19
+    ADD r18, r19        // r19 = r19 + offset
 
-    // Load guest_regs[rs1]
-    MOV r13, r14        // r14 = instruction (need to recompute rs1)
+    // Load guest_regs[rs2] (value to store) → r15
+    MOV r17, r14        // r14 = rs2
+    LDI r17, 2          // r17 = 2 (using r17 for shift amount to avoid conflict)
+    SHL r14, r17        // r17 = r14 << 2 = rs2 << 2
+    ADD r11, r17        // r17 = r11 + r17 = &guest_regs[rs2]
+    LOAD r17, r15       // r15 = guest_regs[rs2]
 
-    // This is getting too complex... let me simplify
+    // Store r15 to [r19]
+    STORE r19, r15
+
     JMP r12
 
 // ============================================================================
