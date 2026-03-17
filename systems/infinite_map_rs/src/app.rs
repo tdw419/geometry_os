@@ -3045,14 +3045,28 @@ impl<'a> InfiniteMapApp<'a> {
         binary_data: &[u8],
         window_id: usize,
     ) -> Result<(), String> {
-        // TODO: Phase 35.9.4 - Actually launch VM with MultiVmManager
-        // For now, just log and create a visual window
-
         log::info!(
-            "🎯 Would launch VM for cartridge {} ({} bytes)",
+            "🎯 Launching VM for cartridge {} ({} bytes)",
             cartridge_id,
             binary_data.len()
         );
+
+        // Ensure MultiVmManager exists
+        if self.multi_vm_manager.is_none() {
+            return Err("MultiVmManager not initialized - GPU context required".to_string());
+        }
+
+        // Allocate a VM ID based on window_id (simple mapping)
+        let vm_id = (window_id % 8) as u32;
+
+        // Launch VM with cartridge binary
+        if let Some(ref mut mgr) = self.multi_vm_manager {
+            mgr.launch_vm_with_binary(
+                vm_id,
+                format!("Cartridge: {}", cartridge_id),
+                binary_data,
+            )?;
+        }
 
         // Create a console window to show VM output
         let console_window_id = self.window_manager.create_window(
@@ -3071,8 +3085,10 @@ impl<'a> InfiniteMapApp<'a> {
         }
 
         log::info!(
-            "✅ Created console window {} for VM output",
-            console_window_id
+            "✅ Launched VM {} and created console window {} for cartridge {}",
+            vm_id,
+            console_window_id,
+            cartridge_id
         );
 
         Ok(())

@@ -167,6 +167,61 @@ impl MultiVmManager {
         Ok(())
     }
 
+    /// Launch a VM instance with in-memory binary data (for cartridges)
+    pub fn launch_vm_with_binary(
+        &mut self,
+        vm_id: u32,
+        name: String,
+        binary_data: &[u8],
+    ) -> Result<(), String> {
+        // Check vm_id is valid
+        if vm_id >= self.max_vms as u32 {
+            return Err(format!(
+                "Invalid vm_id: {} (must be 0-{})",
+                vm_id,
+                self.max_vms - 1
+            ));
+        }
+
+        // Check if vm_id is already in use
+        if self.instances.contains_key(&vm_id) {
+            return Err(format!("VM {} is already running", vm_id));
+        }
+
+        log::info!("Launching VM {} with binary: {} ({} bytes)", vm_id, name, binary_data.len());
+
+        // Create executor with specific vm_id
+        let mut executor = RiscvExecutor::new(self.device.clone(), self.queue.clone());
+        executor.set_vm_id(vm_id);
+
+        // Load binary directly into executor memory at RAM_BASE
+        executor
+            .load_binary(binary_data, 0x80000000)
+            .map_err(|e| format!("Failed to load binary: {}", e))?;
+        executor.set_pc(0x80000000);
+
+        // Create config (no kernel_path since we loaded from memory)
+        let config = VmInstanceConfig {
+            vm_id,
+            kernel_path: None,
+            name,
+        };
+
+        // Create instance
+        let instance = VmInstance {
+            config,
+            executor,
+            state: VmInstanceState::Booting,
+            console_output: String::new(),
+            instruction_count: 0,
+            syscall_count: 0,
+        };
+
+        self.instances.insert(vm_id, instance);
+        log::info!("✅ VM {} launched successfully", vm_id);
+        Ok(())
+    }
+
     /// Load a kernel into the executor
     fn load_kernel(&self, executor: &mut RiscvExecutor, kernel_path: &str) -> Result<(), String> {
         use std::fs;
