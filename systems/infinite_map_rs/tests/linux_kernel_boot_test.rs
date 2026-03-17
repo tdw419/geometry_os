@@ -19,7 +19,7 @@ mod tests {
     use infinite_map_rs::riscv_executor::RiscvExecutor;
     use infinite_map_rs::gpu_capabilities::GpuCapabilities;
 
-    fn create_test_device() -> Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> {
+    fn create_test_device() -> Option<(Arc<wgpu::Adapter>, Arc<wgpu::Device>, Arc<wgpu::Queue>)> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
@@ -38,7 +38,7 @@ mod tests {
             None,
         ))
         .ok()?;
-        Some((Arc::new(device), Arc::new(queue)))
+        Some((Arc::new(adapter), Arc::new(device), Arc::new(queue)))
     }
 
     fn get_kernel_path() -> std::path::PathBuf {
@@ -76,7 +76,7 @@ mod tests {
     #[test]
     #[ignore]
     fn linux_kernel_boot() {
-        let Some((device, queue)) = create_test_device() else {
+        let Some((adapter, device, queue)) = create_test_device() else {
             println!("Skipping: no GPU available");
             return;
         };
@@ -105,7 +105,7 @@ mod tests {
         }
 
         // Create RISC-V executor with Linux VM shader
-        let caps = GpuCapabilities::detect(&device);
+        let caps = pollster::block_on(GpuCapabilities::new(&adapter));
         let mut riscv_vm = RiscvExecutor::new_with_caps(device, queue, &caps);
 
         // Linux kernel entry point for QEMU virt machine
