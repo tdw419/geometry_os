@@ -300,17 +300,15 @@ def compile_glyph_program(source):
 
         elif opcode_str == "JMP":
             # JMP reg - jump to address in register
-            # JMP label - jump to label address (2 pixels: JMP + offset)
-            # synthetic_vram: stratum != 2 means register mode (pc = regs[p1])
+            # JMP label - load address into r0 then JMP to it (2 instructions)
             if len(parts) >= 2:
                 target = parts[1]
                 # Check if it's a label
                 if target in labels:
                     target_addr = labels[target]
-                    # First pixel: JMP instruction
-                    instructions.append((opcode, stratum, p1, p2))
-                    pc += 1
-                    # Second pixel: absolute address (for JMP, we use absolute)
+                    # Generate: LDI r0, target_addr (loads into r0)
+                    # Then JMP r0 (jumps to address in r0)
+                    instructions.append((1, 2, 0, 0))  # LDI r0, <addr> - first pixel
                     instructions.append(
                         (
                             target_addr & 0xFF,
@@ -319,6 +317,9 @@ def compile_glyph_program(source):
                             (target_addr >> 24) & 0xFF,
                         )
                     )
+                    pc += 2
+                    # JMP r0
+                    instructions.append((9, 0, 0, 0))  # JMP r0 - register mode
                     pc += 1
                     continue
                 else:
