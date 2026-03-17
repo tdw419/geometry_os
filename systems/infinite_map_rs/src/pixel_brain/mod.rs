@@ -36,6 +36,7 @@
 pub mod atlas;
 pub mod infer;
 pub mod tokenizer;
+pub mod multi_brain;
 
 pub use atlas::*;
 pub use infer::*;
