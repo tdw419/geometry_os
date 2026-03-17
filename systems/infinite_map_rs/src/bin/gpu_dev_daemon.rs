@@ -3000,6 +3000,127 @@ fn handle_raw_request<S: Read + Write>(
         return;
     }
 
+    // POST /train - Supervised training on text data
+    // Trains the PixelBrain to predict next tokens from text
+    if request_str.starts_with("POST /train") {
+        let body_start = request_str.find("\r\n\r\n").unwrap_or(0) + 4;
+        let body = &request_str[body_start..];
+
+        match serde_json::from_str::<serde_json::Value>(body) {
+            Ok(json) => {
+                let text = json["text"].as_str().unwrap_or("");
+                let epochs = json["epochs"].as_u64().unwrap_or(1) as usize;
+                let learning_rate = json["learning_rate"].as_f64().unwrap_or(0.01) as f32;
+
+                // Get tokenizer
+                let tokenizer = infinite_map_rs::pixel_brain::tokenizer::ByteTokenizer::new();
+                let tokens = tokenizer.encode(text);
+
+                if tokens.len() < 2 {
+                    let error_response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"error\":\"text too short, need at least 2 tokens\"}\n";
+                    let _ = stream.write_all(error_response.as_bytes());
+                    return;
+                }
+
+                let mut total_loss = 0.0f32;
+                let mut correct_predictions = 0usize;
+                let mut total_predictions = 0usize;
+
+                // Training loop
+                for _epoch in 0..epochs {
+                    for i in 0..tokens.len() - 1 {
+                        let input_token = tokens[i];
+                        let target_token = tokens[i + 1];
+
+                        // Run inference
+                        let predicted = if let Some(inferencer) = get_brain_inferencer() {
+                            let mut infer = inferencer.lock().unwrap();
+                            infer.infer_token(input_token)
+                        } else {
+                            0
+                        };
+
+                        // Calculate reward: +1 for correct, -0.1 for incorrect
+                        let reward = if predicted == target_token {
+                            correct_predictions += 1;
+                            1.0
+                        } else {
+                            -0.1
+                        };
+
+                        total_predictions += 1;
+                        total_loss += if predicted == target_token { 0.0 } else { 1.0 };
+
+                        // Apply Hebbian update to embedding weights
+                        // The embedding weight for input_token should be strengthened
+                        // when it leads to correct prediction
+                        let embed_offset = 0u32; // Embeddings start at offset 0
+                        let input_addr = embed_offset + input_token as u32;
+                        apply_hebbian_update(
+                            input_addr,
+                            1.0, // pre-activation (input token is active)
+                            reward, // post-activation is the reward signal
+                            learning_rate,
+                        );
+
+                        // Also update the output projection
+                        // Weight connecting to target_token should be strengthened
+                        let output_addr = embed_offset + target_token as u32;
+                        apply_hebbian_update(
+                            output_addr,
+                            reward, // pre is reward
+                            1.0,    // post is target activation
+                            learning_rate,
+                        );
+                    }
+                }
+
+                // Flush pending Hebbian updates
+                if let Some(processor) = get_hebbian_processor() {
+                    if let Some(device) = get_device() {
+                        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                            label: Some("train_flush"),
+                        });
+                        let mut proc = processor.lock().unwrap();
+                        proc.flush(&mut encoder);
+                        if let Some(queue) = get_queue() {
+                            queue.submit(std::iter::once(encoder.finish()));
+                        }
+                    }
+                }
+
+                let accuracy = if total_predictions > 0 {
+                    correct_predictions as f32 / total_predictions as f32
+                } else {
+                    0.0
+                };
+
+                let response = serde_json::json!({
+                    "tokens_trained": tokens.len() * epochs,
+                    "epochs": epochs,
+                    "accuracy": accuracy,
+                    "loss": total_loss / total_predictions.max(1) as f32,
+                    "learning_rate": learning_rate,
+                    "status": "training_complete"
+                });
+
+                let http_response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{}\n",
+                    serde_json::to_string(&response).unwrap_or_default()
+                );
+                let _ = stream.write_all(http_response.as_bytes());
+            }
+            Err(e) => {
+                let error_response = format!(
+                    "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"{}\"}}\n",
+                    e
+                );
+                let _ = stream.write_all(error_response.as_bytes());
+            }
+        }
+        return;
+    }
+
     // GET /ml/visualize - Get RAM-as-Bitmap visualization
     // Returns a PNG image showing memory pool state
     if request_str.starts_with("GET /ml/visualize") {
