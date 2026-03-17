@@ -3075,14 +3075,14 @@ fn handle_raw_request<S: Read + Write>(
 
                         // Update attention weights for each layer
                         // For Hebbian learning, we strengthen Q/K/V/O based on reward
-                        const NUM_LAYERS: usize = 4;
-                        const HIDDEN_DIM: usize = 256;
+                        const NUM_LAYERS: u32 = 4;
+                        const HIDDEN_DIM: u32 = 256;
 
                         for layer in 0..NUM_LAYERS {
                             // Calculate layer base offset
                             // Embeddings: 256 * 256 = 65536
                             // Layer size: Q(65536) + K(65536) + V(65536) + O(16384) + FFN_up(262144) + FFN_down(262144) = 737280
-                            let layer_base = 65536 + layer * 737280;
+                            let layer_base: u32 = 65536 + layer * 737280;
 
                             // Q weight for input position at row = input_token % HIDDEN_DIM
                             let q_addr = layer_base + (input_token as u32 % HIDDEN_DIM);
