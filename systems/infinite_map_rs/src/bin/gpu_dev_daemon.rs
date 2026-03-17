@@ -2960,7 +2960,7 @@ fn handle_raw_request<S: Read + Write>(
                 let max_tokens = json["max_tokens"].as_u64().unwrap_or(32) as usize;
 
                 // Get tokenizer
-                let tokenizer = crate::pixel_brain::tokenizer::ByteTokenizer::new();
+                let tokenizer = infinite_map_rs::pixel_brain::tokenizer::ByteTokenizer::new();
                 let tokens = tokenizer.encode(prompt);
 
                 // Run actual GPU inference if inferencer is available
