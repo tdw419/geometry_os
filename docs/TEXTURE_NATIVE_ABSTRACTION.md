@@ -50,6 +50,7 @@ This allows the GPU to build its own instructions without ever needing a host-si
 1. **The Writer (Level 1)**: A program that copies character bitmaps from the Atlas to a Text Buffer. *Result: The GPU can write "Hello World" to itself.*
 2. **The Patcher (Level 2)**: A program that copies instruction templates and patches them with data. *Result: The GPU can generate its own logic.*
 3. **The Mnemonic Matcher (Level 3)**: A program that reads ASCII from the Text Buffer, matches it against a known string (e.g. "LDI"), and emits the patched template. *Result: The GPU can parse its own language.*
+4. **The Operand Parser (Level 4)**: A program that dynamically parses numeric operands ('r3', '42') from ASCII and shifts them into bitwise payload locations. *Result: The GPU can compile its own generic logic.*
 
 ### Level 3 Detail: The State Machine
 
@@ -59,6 +60,10 @@ Each character parse uses three core instructions:
 3. `BRANCH (BNE)`: If not equal, jump to the end/error state. If equal, proceed.
 
 When all characters match, the program transitions seamlessly into the **Patch-and-Copy** logic to emit the compiled opcode. 
+
+### Level 4 Detail: The Arithmetic State Machine
+*   **Registers**: To convert `'3'` (51) to a register patch mask, the program subtracts `48` to get integer `3`, loads `16` into another register, and performs a bitwise `SHL` to yield `3 << 16` (`0x00030000`), which can be directly ORed into a template.
+*   **Immediates**: To convert `'4'`, `'2'` to `42`, the program reads `'4'`, subtracts `48` to get `4`. It loads `10`, multiplies `4 * 10 = 40`. Then it reads `'2'`, subtracts `48`, and adds it to get `42`.
 
 ## Conclusion
 
