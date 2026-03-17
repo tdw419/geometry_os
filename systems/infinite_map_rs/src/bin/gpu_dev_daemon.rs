@@ -1684,6 +1684,48 @@ fn write_glyph_to_substrate(
     device.poll(wgpu::Maintain::Wait);
 }
 
+/// Map raw RGBA8Uint substrate data to semantic opcode colors.
+/// Each pixel's R channel is the opcode; we replace the whole pixel
+/// with a human-readable color.
+fn apply_opcode_colors(raw: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(raw.len());
+    for chunk in raw.chunks(4) {
+        let opcode = chunk[0];
+        let (r, g, b) = match opcode {
+            0   => (20, 20, 20),       // NOP - near black
+            1   => (0, 255, 255),      // LDI - cyan
+            2   => (128, 128, 128),    // MOV - gray
+            3   => (255, 255, 0),      // LOAD - yellow
+            4   => (255, 0, 0),        // STORE - red
+            5   => (0, 255, 0),        // ADD - green
+            6   => (0, 200, 100),      // SUB - sea green
+            7   => (255, 128, 0),      // MUL - orange
+            8   => (200, 100, 0),      // DIV - brown
+            9   => (128, 0, 128),      // JMP - purple
+            10  => (200, 0, 200),      // BRANCH - magenta
+            11  => (0, 128, 200),      // CALL - sky blue
+            12  => (80, 160, 200),     // RETURN - light blue
+            13  => (255, 255, 255),    // HALT - white
+            14  => (160, 160, 0),      // DATA - olive
+            129 => (200, 200, 0),      // OR - yellow-green
+            131 => (0, 0, 200),        // SHL - blue
+            _   => {
+                // Non-zero data: dim heat based on value
+                if chunk.iter().any(|&b| b != 0) {
+                    let v = opcode as u32;
+                    (((v * 7) % 60 + 30) as u8,
+                     ((v * 13) % 40 + 20) as u8,
+                     ((v * 3) % 50 + 30) as u8)
+                } else {
+                    (10, 10, 10) // empty
+                }
+            }
+        };
+        out.extend_from_slice(&[r, g, b, 255]);
+    }
+    out
+}
+
 /// Read a region of the GPU substrate texture and return it as RGBA bytes
 fn read_substrate_region(
     texture: &wgpu::Texture,
@@ -1883,8 +1925,16 @@ fn handle_raw_request<S: Read + Write>(
         let w = params.get("w").copied().unwrap_or(256).min(1024);
         let h = params.get("h").copied().unwrap_or(256).min(1024);
 
+        let colored = params.get("colored").copied().unwrap_or(0) != 0;
+
         if let Some(data) = read_substrate_region(texture, device, queue, x, y, w, h) {
-            if let Some(img) = image::RgbaImage::from_raw(w, h, data) {
+            // Apply opcode color mapping if requested
+            let pixel_data = if colored {
+                apply_opcode_colors(&data)
+            } else {
+                data
+            };
+            if let Some(img) = image::RgbaImage::from_raw(w, h, pixel_data) {
                 let mut png_bytes = Vec::new();
                 if img
                     .write_to(

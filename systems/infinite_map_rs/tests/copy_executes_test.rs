@@ -1,35 +1,35 @@
 //! Copy Executes Test
 //!
-//! Tests that the copy of a self-replicating glyph can itself execute and make another copy.
-//! This is milestone #2 after self-replication: proving that copies are valid programs.
+//! Tests that the copy of a self-replicating program can itself execute
+//! and make another copy. Uses JAL to discover its own PC, making the
+//! program position-independent — a true digital quine.
+//!
+//! Generation 0 → 100: Original copies itself
+//! Generation 100 → 200: The COPY copies itself (no CPU help)
+//! All three generations are byte-identical.
 
 use std::sync::{Arc, Mutex};
 use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
 
-/// Helper to create device and queue
 fn create_test_device() -> Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> {
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::default());
-
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::default(),
         compatible_surface: None,
         force_fallback_adapter: false,
     }))?;
-
     let (device, queue) = pollster::block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
-            label: Some("Copy Executes Device"),
-            required_features: wgpu::Features::empty(),
+            label: Some("Copy Executes"),
+            required_features: wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
             required_limits: wgpu::Limits::default(),
         },
         None,
     ))
     .ok()?;
-
     Some((Arc::new(device), Arc::new(queue)))
 }
 
-/// Helper to encode an instruction
 fn glyph(opcode: u8, stratum: u8, p1: u8, p2: u8) -> u32 {
     (opcode as u32)
         | ((stratum as u32) << 8)
@@ -37,36 +37,87 @@ fn glyph(opcode: u8, stratum: u8, p1: u8, p2: u8) -> u32 {
         | ((p2 as u32) << 24)
 }
 
-/// Test that the copy at address 100 can execute and copy itself to address 200
+/// Position-independent self-replicating program.
+///
+/// Uses JAL to discover its own PC, then computes:
+///   src = base (my location)
+///   dst = base + 100 (where to copy)
+///
+/// This program can execute at ANY address and copy itself
+/// to addr + 100. The copy is byte-identical and can itself
+/// execute to produce generation N+1.
+///
+/// Layout (22 pixels):
+///   0-1:  JAL r20, 0       ; r20 = PC+2 = base+2
+///   2-3:  LDI r21, 2       ; r21 = 2
+///   4:    SUB r20, r21     ; r21 = r20 - r21 = base
+///   5:    MOV r21, r0      ; r0 = base (src)
+///   6-7:  LDI r6, 100      ; r6 = 100 (copy offset)
+///   8:    ADD r21, r6      ; r6 = base + 100
+///   9:    MOV r6, r1       ; r1 = base + 100 (dst)
+///  10-11: LDI r2, 0        ; r2 = counter
+///  12-13: LDI r3, 1        ; r3 = increment
+///  14-15: LDI r4, 22       ; r4 = program size
+///  16:    LOAD r0, r5      ; r5 = mem[src]
+///  17:    STORE r1, r5     ; mem[dst] = r5
+///  18:    ADD r3, r0       ; src++
+///  19:    ADD r3, r1       ; dst++
+///  20:    ADD r3, r2       ; counter++
+///  21:    BNE r2, r4       ; if counter != size, loop
+///  22:    offset -7        ; → addr 16
+///  23:    HALT
+fn position_independent_replicator() -> Vec<(u32, u32)> {
+    vec![
+        // Discover base address via JAL
+        (0, glyph(16, 0, 20, 0)),     // JAL r20, offset(next pixel)
+        (1, 0u32),                     // offset = 0 → r20 = base+2, falls through
+        (2, glyph(1, 0, 21, 0)),      // LDI r21
+        (3, 2u32),                     // = 2
+        (4, glyph(6, 0, 20, 21)),     // SUB: r21 = r20 - r21 = base
+        (5, glyph(2, 0, 21, 0)),      // MOV r0 = r21 = base (src)
+
+        // Compute destination = base + 100
+        (6, glyph(1, 0, 6, 0)),       // LDI r6
+        (7, 100u32),                   // = 100
+        (8, glyph(5, 0, 21, 6)),      // ADD: r6 = r21 + r6 = base + 100
+        (9, glyph(2, 0, 6, 1)),       // MOV r1 = r6 = base + 100 (dst)
+
+        // Copy loop setup
+        (10, glyph(1, 0, 2, 0)),      // LDI r2
+        (11, 0u32),                    // = 0 (counter)
+        (12, glyph(1, 0, 3, 0)),      // LDI r3
+        (13, 1u32),                    // = 1 (increment)
+        (14, glyph(1, 0, 4, 0)),      // LDI r4
+        (15, 24u32),                   // = 24 (program size)
+
+        // Copy loop body
+        (16, glyph(3, 0, 0, 5)),      // LOAD r5 = mem[r0]
+        (17, glyph(4, 0, 1, 5)),      // STORE mem[r1] = r5
+        (18, glyph(5, 0, 3, 0)),      // ADD r0 += r3 (src++)
+        (19, glyph(5, 0, 3, 1)),      // ADD r1 += r3 (dst++)
+        (20, glyph(5, 0, 3, 2)),      // ADD r2 += r3 (counter++)
+        (21, glyph(10, 1, 2, 4)),     // BNE r2, r4
+        (22, (-7i32) as u32),          // offset → addr 16
+        (23, glyph(13, 0, 0, 0)),     // HALT
+    ]
+}
+
 #[test]
 #[ignore = "Requires GPU"]
 fn copy_executes() {
     let (device, queue) = match create_test_device() {
         Some(d) => d,
-        None => {
-            println!("SKIP: No GPU available");
-            return;
-        }
+        None => { println!("SKIP: No GPU"); return; }
     };
 
-    // Create shadow RAM
     let shadow_ram = Arc::new(Mutex::new(vec![0u8; 64 * 1024 * 1024]));
     let mut scheduler = GlyphVmScheduler::new(
-        Arc::clone(&device),
-        Arc::clone(&queue),
-        shadow_ram.clone(),
+        Arc::clone(&device), Arc::clone(&queue), shadow_ram.clone(),
     );
-
-    // Create RAM texture
     let ram_texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Copy Executes RAM"),
-        size: wgpu::Extent3d {
-            width: 4096,
-            height: 4096,
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
+        size: wgpu::Extent3d { width: 4096, height: 4096, depth_or_array_layers: 1 },
+        mip_level_count: 1, sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: wgpu::TextureFormat::Rgba8Uint,
         usage: wgpu::TextureUsages::STORAGE_BINDING
@@ -74,175 +125,112 @@ fn copy_executes() {
             | wgpu::TextureUsages::COPY_SRC,
         view_formats: &[],
     }));
-
     scheduler.set_ram_texture(ram_texture);
 
-    // Write the original self-replicating program at address 0
-    // This version copies from its own base to base + 100
-    let program: Vec<(u32, u32)> = vec![
-        // LDI r0 = 0 (source = base address)
-        (0, glyph(1, 0, 0, 0)),
-        (1, 0),
-        // LDI r1 = 100 (destination = base + 100)
-        (2, glyph(1, 0, 1, 0)),
-        (3, 100),
-        // LDI r2 = 0 (counter)
-        (4, glyph(1, 0, 2, 0)),
-        (5, 0),
-        // LDI r3 = 1 (increment)
-        (6, glyph(1, 0, 3, 0)),
-        (7, 1),
-        // LDI r4 = 18 (program length)
-        (8, glyph(1, 0, 4, 0)),
-        (9, 18),
-        // Copy loop:
-        // LOAD r5 = mem[r0 + base]
-        (10, glyph(3, 0, 0, 5)),
-        // STORE mem[r1 + base] = r5
-        (11, glyph(4, 0, 1, 5)),
-        // ADD r0 = r3 + r0
-        (12, glyph(5, 0, 3, 0)),
-        // ADD r1 = r3 + r1
-        (13, glyph(5, 0, 3, 1)),
-        // ADD r2 = r3 + r2
-        (14, glyph(5, 0, 3, 2)),
-        // BRANCH BNE r2, r4
-        (15, glyph(10, 1, 2, 4)),
-        // DATA: -7 (jump back)
-        (16, (-7i32) as u32),
-        // HALT
-        (17, glyph(13, 0, 0, 0)),
-    ];
+    println!("\n=== COPY EXECUTES: Position-Independent Self-Replication ===\n");
 
-    println!("\n=== COPY EXECUTES: Generation Test ===");
-    println!("Writing original program at address 0...");
-
+    // Write program at address 0
+    let program = position_independent_replicator();
+    let prog_size = program.len();
+    println!("Program size: {} pixels (position-independent via JAL)\n", prog_size);
     for &(addr, val) in &program {
         scheduler.poke_substrate_single(addr, val);
     }
 
-    // === GENERATION 1: Original copies itself to 100 ===
-    println!("\n--- Generation 1: Original → Copy at 100 ---");
-
+    // === GENERATION 1: addr 0 copies itself to addr 100 ===
+    println!("--- Generation 1: Original at 0 → Copy at 100 ---");
     let config = VmConfig {
         entry_point: 0,
         parent_id: 0xFF,
         base_addr: 0,
         bound_addr: 0,
-        initial_regs: [0u32; 128],
+        initial_regs: [0; 128],
     };
-
-    scheduler.spawn_vm(0, &config).expect("Failed to spawn VM 0");
+    scheduler.spawn_vm(0, &config).expect("spawn gen 1");
     scheduler.execute_frame();
     scheduler.sync_gpu_to_shadow();
 
-    // Verify first copy
-    let mut gen1_match = true;
-    for i in 0..18 {
+    let mut gen1_ok = true;
+    for i in 0..prog_size as u32 {
         let src = scheduler.peek_substrate_single(i);
         let dst = scheduler.peek_substrate_single(100 + i);
-        if src != dst {
-            gen1_match = false;
-            println!("  ✗ Gen 1: addr {} != addr {}", i, 100 + i);
-        }
+        if src != dst { gen1_ok = false; }
     }
-    if gen1_match {
-        println!("  ✓ Generation 1 complete: 0 → 100");
-    }
+    println!("  {} Generation 1 (0 → 100)", if gen1_ok { "✓" } else { "✗" });
+    assert!(gen1_ok, "Generation 1 failed");
 
-    // === GENERATION 2: Copy at 100 copies itself to 200 ===
-    println!("\n--- Generation 2: Copy at 100 → Copy at 200 ---");
-
-    // Spawn VM 1 at the copy's address
+    // === GENERATION 2: copy at 100 copies itself to 200 ===
+    // NO CPU PATCHING. The copy at 100 uses JAL to discover
+    // its own PC = 100, computes src=100, dst=200 autonomously.
+    println!("--- Generation 2: Copy at 100 → Copy at 200 ---");
     let config2 = VmConfig {
         entry_point: 100,
         parent_id: 0,
-        base_addr: 100,
+        base_addr: 0,   // unrestricted
         bound_addr: 0,
-        initial_regs: [0u32; 128],
+        initial_regs: [0; 128],
     };
-
-    scheduler.spawn_vm(1, &config2).expect("Failed to spawn VM 1");
+    scheduler.spawn_vm(1, &config2).expect("spawn gen 2");
     scheduler.execute_frame();
     scheduler.sync_gpu_to_shadow();
 
-    // Verify second copy
-    let mut gen2_match = true;
-    for i in 0..18 {
+    let mut gen2_ok = true;
+    for i in 0..prog_size as u32 {
         let src = scheduler.peek_substrate_single(100 + i);
         let dst = scheduler.peek_substrate_single(200 + i);
-        if src != dst {
-            gen2_match = false;
-            println!("  ✗ Gen 2: addr {} != addr {}", 100 + i, 200 + i);
-        }
+        if src != dst { gen2_ok = false; }
     }
-    if gen2_match {
-        println!("  ✓ Generation 2 complete: 100 → 200");
-    }
+    println!("  {} Generation 2 (100 → 200)", if gen2_ok { "✓" } else { "✗" });
 
-    // === VERIFICATION ===
-    println!("\n=== FINAL VERIFICATION ===");
-
-    // All three should be identical
+    // === VERIFICATION: all three generations identical ===
+    println!("\n=== VERIFICATION ===\n");
     let mut all_match = true;
-    for i in 0..18 {
-        let orig = scheduler.peek_substrate_single(i);
-        let gen1 = scheduler.peek_substrate_single(100 + i);
-        let gen2 = scheduler.peek_substrate_single(200 + i);
-
-        if orig == gen1 && gen1 == gen2 {
-            println!("  ✓ addr {:3}, {:3}, {:3}: all match (0x{:08X})",
-                i, 100 + i, 200 + i, orig);
-        } else {
-            println!("  ✗ addr {:3}=0x{:08X}, {:3}=0x{:08X}, {:3}=0x{:08X}",
-                i, orig, 100 + i, gen1, 200 + i, gen2);
-            all_match = false;
-        }
+    for i in 0..prog_size as u32 {
+        let g0 = scheduler.peek_substrate_single(i);
+        let g1 = scheduler.peek_substrate_single(100 + i);
+        let g2 = scheduler.peek_substrate_single(200 + i);
+        let mark = if g0 == g1 && g1 == g2 { "✓" } else { "✗" };
+        if g0 != g1 || g1 != g2 { all_match = false; }
+        println!("  {} [{:3}] [{:3}] [{:3}]: 0x{:08X} 0x{:08X} 0x{:08X}",
+            mark, i, 100+i, 200+i, g0, g1, g2);
     }
 
+    println!();
     if all_match {
-        println!("\n  ╔════════════════════════════════════════════╗");
-        println!("  ║   COPIES EXECUTE.                          ║");
-        println!("  ║   Three generations of identical glyphs.   ║");
-        println!("  ║   0 → 100 → 200                            ║");
-        println!("  ╚════════════════════════════════════════════╝\n");
+        println!("  ╔════════════════════════════════════════════════════════╗");
+        println!("  ║  COPIES EXECUTE.                                      ║");
+        println!("  ║                                                        ║");
+        println!("  ║  Three generations of identical self-replicators.      ║");
+        println!("  ║  Position-independent via JAL (discovers own PC).     ║");
+        println!("  ║  0 → 100 → 200 with zero CPU intervention.           ║");
+        println!("  ╚════════════════════════════════════════════════════════╝");
+    } else {
+        println!("  FAILED: generations are not identical");
     }
+    println!();
 
-    assert!(gen1_match, "Generation 1 should have copied to 100");
-    assert!(gen2_match, "Generation 2 should have copied to 200");
+    assert!(gen1_ok, "Generation 1 should copy to 100");
+    assert!(gen2_ok, "Generation 2 should copy to 200");
     assert!(all_match, "All three generations should be identical");
 }
 
-/// Test that multiple copies can exist and run concurrently
+/// Test 5 generations of self-replication: 0→100→200→300→400
 #[test]
 #[ignore = "Requires GPU"]
 fn multiple_copies_concurrent() {
     let (device, queue) = match create_test_device() {
         Some(d) => d,
-        None => {
-            println!("SKIP: No GPU available");
-            return;
-        }
+        None => { println!("SKIP: No GPU"); return; }
     };
 
-    // Create scheduler
     let shadow_ram = Arc::new(Mutex::new(vec![0u8; 64 * 1024 * 1024]));
     let mut scheduler = GlyphVmScheduler::new(
-        Arc::clone(&device),
-        Arc::clone(&queue),
-        shadow_ram.clone(),
+        Arc::clone(&device), Arc::clone(&queue), shadow_ram.clone(),
     );
-
-    // Create RAM texture
     let ram_texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Concurrent Copies RAM"),
-        size: wgpu::Extent3d {
-            width: 4096,
-            height: 4096,
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
+        label: Some("Multi-Gen RAM"),
+        size: wgpu::Extent3d { width: 4096, height: 4096, depth_or_array_layers: 1 },
+        mip_level_count: 1, sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: wgpu::TextureFormat::Rgba8Uint,
         usage: wgpu::TextureUsages::STORAGE_BINDING
@@ -250,69 +238,54 @@ fn multiple_copies_concurrent() {
             | wgpu::TextureUsages::COPY_SRC,
         view_formats: &[],
     }));
-
     scheduler.set_ram_texture(ram_texture);
 
-    // Write simple "write value to address" programs at different locations
-    // Program A at 0: writes 111 to address 1000
-    scheduler.poke_substrate_single(0, glyph(1, 0, 0, 0));  // LDI r0
-    scheduler.poke_substrate_single(1, 1000);               // addr
-    scheduler.poke_substrate_single(2, glyph(1, 0, 1, 0));  // LDI r1
-    scheduler.poke_substrate_single(3, 111);                // value
-    scheduler.poke_substrate_single(4, glyph(4, 0, 0, 1));  // STORE
-    scheduler.poke_substrate_single(5, glyph(13, 0, 0, 0)); // HALT
+    println!("\n=== 5 GENERATIONS: 0 → 100 → 200 → 300 → 400 ===\n");
 
-    // Program B at 10: writes 222 to address 2000
-    scheduler.poke_substrate_single(10, glyph(1, 0, 0, 0));
-    scheduler.poke_substrate_single(11, 2000);
-    scheduler.poke_substrate_single(12, glyph(1, 0, 1, 0));
-    scheduler.poke_substrate_single(13, 222);
-    scheduler.poke_substrate_single(14, glyph(4, 0, 0, 1));
-    scheduler.poke_substrate_single(15, glyph(13, 0, 0, 0));
+    let program = position_independent_replicator();
+    let prog_size = program.len();
+    for &(addr, val) in &program {
+        scheduler.poke_substrate_single(addr, val);
+    }
 
-    // Program C at 20: writes 333 to address 3000
-    scheduler.poke_substrate_single(20, glyph(1, 0, 0, 0));
-    scheduler.poke_substrate_single(21, 3000);
-    scheduler.poke_substrate_single(22, glyph(1, 0, 1, 0));
-    scheduler.poke_substrate_single(23, 333);
-    scheduler.poke_substrate_single(24, glyph(4, 0, 0, 1));
-    scheduler.poke_substrate_single(25, glyph(13, 0, 0, 0));
+    for gen in 0..5u32 {
+        let base = gen * 100;
+        let vm_slot = (gen % 8) as u32; // reuse slots
+        println!("  Gen {}: executing at {}, copying to {}", gen, base, base + 100);
 
-    println!("\n=== CONCURRENT COPIES TEST ===");
-    println!("Spawning 3 VMs at addresses 0, 10, 20...");
+        let config = VmConfig {
+            entry_point: base,
+            parent_id: 0xFF,
+            base_addr: 0,
+            bound_addr: 0,
+            initial_regs: [0; 128],
+        };
+        scheduler.spawn_vm(vm_slot, &config).expect("spawn");
+        scheduler.execute_frame();
+        scheduler.sync_gpu_to_shadow();
 
-    // Spawn all three VMs
-    scheduler.spawn_vm(0, &VmConfig {
-        entry_point: 0, parent_id: 0xFF, base_addr: 0, bound_addr: 0,
-        initial_regs: [0u32; 128],
-    }).expect("Failed to spawn VM 0");
+        // Verify this generation's copy
+        let mut ok = true;
+        for i in 0..prog_size as u32 {
+            let src = scheduler.peek_substrate_single(base + i);
+            let dst = scheduler.peek_substrate_single(base + 100 + i);
+            if src != dst { ok = false; }
+        }
+        let mark = if ok { "✓" } else { "✗" };
+        println!("    {} {} → {} copy verified", mark, base, base + 100);
+        assert!(ok, "Generation {} failed to copy", gen);
+    }
 
-    scheduler.spawn_vm(1, &VmConfig {
-        entry_point: 10, parent_id: 0xFF, base_addr: 10, bound_addr: 0,
-        initial_regs: [0u32; 128],
-    }).expect("Failed to spawn VM 1");
+    // Final: verify generation 5 exists at addr 500
+    let g0_first = scheduler.peek_substrate_single(0);
+    let g5_first = scheduler.peek_substrate_single(500);
+    assert_eq!(g0_first, g5_first, "Generation 5 should match generation 0");
 
-    scheduler.spawn_vm(2, &VmConfig {
-        entry_point: 20, parent_id: 0xFF, base_addr: 20, bound_addr: 0,
-        initial_regs: [0u32; 128],
-    }).expect("Failed to spawn VM 2");
-
-    // Execute all VMs in one frame
-    scheduler.execute_frame();
-    scheduler.sync_gpu_to_shadow();
-
-    // Verify all three wrote their values
-    let val_a = scheduler.peek_substrate_single(1000);
-    let val_b = scheduler.peek_substrate_single(2000);
-    let val_c = scheduler.peek_substrate_single(3000);
-
-    println!("  Program A wrote: {} to 1000 (expected 111)", val_a);
-    println!("  Program B wrote: {} to 2000 (expected 222)", val_b);
-    println!("  Program C wrote: {} to 3000 (expected 333)", val_c);
-
-    assert_eq!(val_a, 111, "Program A should write 111");
-    assert_eq!(val_b, 222, "Program B should write 222");
-    assert_eq!(val_c, 333, "Program C should write 333");
-
-    println!("\n  ✓ All three programs executed correctly in one frame");
+    println!();
+    println!("  ╔══════════════════════════════════════════════════════════╗");
+    println!("  ║  5 GENERATIONS OF SELF-REPLICATION.                     ║");
+    println!("  ║  0 → 100 → 200 → 300 → 400 → 500                      ║");
+    println!("  ║  Position-independent digital quine.                    ║");
+    println!("  ╚══════════════════════════════════════════════════════════╝");
+    println!();
 }

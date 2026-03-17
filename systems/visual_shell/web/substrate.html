@@ -81,10 +81,10 @@
             const x = Math.max(0, Math.floor(offsetX));
             const y = Math.max(0, Math.floor(offsetY));
             const w = Math.min(regionSize, 4096 - x);
-            const h = Math.min(regionSize, 4096 - h);
+            const h = Math.min(regionSize, 4096 - y);
 
             try {
-                const response = await fetch(`${DAEMON_URL}/substrate?x=${x}&y=${y}&w=${w}&h=${h}`);
+                const response = await fetch(`${DAEMON_URL}/substrate?x=${x}&y=${y}&w=${w}&h=${h}&colored=1`);
                 if (!response.ok) return null;
                 const blob = await response.blob();
                 return await createImageBitmap(blob);

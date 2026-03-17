@@ -19,7 +19,7 @@ fn create_test_device() -> Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> {
     let (device, queue) = pollster::block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             label: Some("Self-Modification Device"),
-            required_features: wgpu::Features::empty(),
+            required_features: wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
             required_limits: wgpu::Limits::default(),
         },
         None,
@@ -215,27 +215,35 @@ fn self_modify_branch_target() {
     // 16: DATA: -9
     // 17: HALT
 
+    // Program: count from 0 to 9, writing each value to mem[100+i]
+    // Self-modifies addr 7 (initial value) each iteration
+    //
+    // r0 = 100 (dest addr)        r1 = 0 (counter)
+    // r2 = 1 (increment)          r3 = 0 (value, self-modified)
+    // r4 = 7 (addr to self-mod)   r5 = 10 (limit)
+
     scheduler.poke_substrate_single(0, glyph(1, 0, 0, 0));   // LDI r0
-    scheduler.poke_substrate_single(1, 100);                  // dest addr
+    scheduler.poke_substrate_single(1, 100);                  // dest = 100
     scheduler.poke_substrate_single(2, glyph(1, 0, 1, 0));   // LDI r1
-    scheduler.poke_substrate_single(3, 10);                   // loop count
+    scheduler.poke_substrate_single(3, 0);                    // counter = 0
     scheduler.poke_substrate_single(4, glyph(1, 0, 2, 0));   // LDI r2
-    scheduler.poke_substrate_single(5, 1);                    // increment
+    scheduler.poke_substrate_single(5, 1);                    // increment = 1
     scheduler.poke_substrate_single(6, glyph(1, 0, 3, 0));   // LDI r3
-    scheduler.poke_substrate_single(7, 0);                    // initial value
+    scheduler.poke_substrate_single(7, 0);                    // initial value = 0
     scheduler.poke_substrate_single(8, glyph(1, 0, 4, 0));   // LDI r4
     scheduler.poke_substrate_single(9, 7);                    // addr of DATA[7]
-    scheduler.poke_substrate_single(10, glyph(4, 0, 0, 3));  // STORE mem[r0] = r3
-    scheduler.poke_substrate_single(11, glyph(5, 0, 2, 0));  // ADD r0 = r2 + r0
-    scheduler.poke_substrate_single(12, glyph(5, 0, 2, 3));  // ADD r3 = r2 + r3
-    scheduler.poke_substrate_single(13, glyph(4, 0, 4, 3));  // STORE mem[r4] = r3 (self-mod!)
-    // Need SUB opcode - let's use ADD with negative: r1 = r1 + (-1)
-    // Actually, let's just use a different approach - count up and compare
-    scheduler.poke_substrate_single(14, glyph(1, 0, 5, 0));  // LDI r5
-    scheduler.poke_substrate_single(15, 10);                  // target
-    scheduler.poke_substrate_single(16, glyph(10, 1, 1, 5)); // BNE r1, r5
-    scheduler.poke_substrate_single(17, (-8i32) as u32);      // offset: jump to 10
-    scheduler.poke_substrate_single(18, glyph(13, 0, 0, 0)); // HALT
+    scheduler.poke_substrate_single(10, glyph(1, 0, 5, 0));  // LDI r5
+    scheduler.poke_substrate_single(11, 10);                  // limit = 10
+
+    // Loop body (addr 12-19):
+    scheduler.poke_substrate_single(12, glyph(4, 0, 0, 3));  // STORE mem[r0] = r3
+    scheduler.poke_substrate_single(13, glyph(5, 0, 2, 0));  // ADD r0 += r2 (dest++)
+    scheduler.poke_substrate_single(14, glyph(5, 0, 2, 3));  // ADD r3 += r2 (value++)
+    scheduler.poke_substrate_single(15, glyph(5, 0, 2, 1));  // ADD r1 += r2 (counter++)
+    scheduler.poke_substrate_single(16, glyph(4, 0, 4, 3));  // STORE mem[r4] = r3 (SELF-MOD!)
+    scheduler.poke_substrate_single(17, glyph(10, 1, 1, 5)); // BNE r1, r5 → loop
+    scheduler.poke_substrate_single(18, (-7i32) as u32);      // offset → addr 12
+    scheduler.poke_substrate_single(19, glyph(13, 0, 0, 0)); // HALT
 
     println!("\n=== SELF-MODIFICATION: Dynamic Value Update ===");
     println!("Program modifies its own DATA value each iteration");
