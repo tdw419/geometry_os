@@ -198,24 +198,35 @@ def compile_glyph_program(source):
                 p2 = parse_register(parts[2])
 
         elif opcode_str in ['JMP', 'JZ', 'JNZ', 'CALL']:
-            # JMP rs / JZ cond_reg, target_reg
+            # JMP rs / JZ cond_reg, target_reg / JZ label (implicit zero flag)
             if len(parts) >= 2:
-                p1 = parse_register(parts[1])
-                if len(parts) >= 3:
-                    target = parts[2]
-                    # Check if it's a label first
-                    if target in labels:
-                        p2 = labels[target] & 0xFF
-                    elif target.startswith('r'):
-                        p2 = parse_register(target)
+                first_op = parts[1]
+                # Check if first operand is a register or a label
+                if first_op.startswith('r'):
+                    p1 = parse_register(first_op)
+                    if len(parts) >= 3:
+                        target = parts[2]
+                        if target in labels:
+                            p2 = labels[target] & 0xFF
+                        elif target.startswith('r'):
+                            p2 = parse_register(target)
+                        else:
+                            try:
+                                p2 = parse_immediate(target) & 0xFF
+                            except ValueError:
+                                p2 = 0
+                    else:
+                        p2 = 0
+                else:
+                    # First operand is a label (implicit zero flag check)
+                    p1 = 0  # Use r0 (always zero)
+                    if first_op in labels:
+                        p2 = labels[first_op] & 0xFF
                     else:
                         try:
-                            p2 = parse_immediate(target) & 0xFF
+                            p2 = parse_immediate(first_op) & 0xFF
                         except ValueError:
-                            # Unknown label - might be forward reference
                             p2 = 0
-                else:
-                    p2 = 0
 
         elif opcode_str == 'HALT':
             pass  # No operands
