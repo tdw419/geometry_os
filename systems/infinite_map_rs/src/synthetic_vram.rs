@@ -2553,17 +2553,21 @@ mod tests {
         }
         println!("    \"{}\"", src_preview.escape_default());
 
-        // Debug: show mnemonic table at 0x800
-        println!("\n  Mnemonic table at 0x800 (first 20 words):");
-        for i in 0..20 {
-            print!("    {:04X}: {:08X}", 0x800 + i, vram.peek(0x800 + i));
-            let val = vram.peek(0x800 + i);
+        // Debug: show mnemonic table at 0x800 (more entries)
+        println!("\n  Mnemonic table at 0x800 (first 60 words):");
+        for i in 0..60 {
+            let addr = 0x800 + i;
+            let val = vram.peek(addr);
             if val >= 32 && val < 127 {
-                println!(" ('{}')", (val & 0xFF) as u8 as char);
+                print!("{:02X}:{} ", addr & 0xFF, (val & 0xFF) as u8 as char);
+            } else if val == 0xFFFFFFFF {
+                print!("{:02X}:END ", addr & 0xFF);
             } else {
-                println!();
+                print!("{:02X}:{:02X} ", addr & 0xFF, val & 0xFF);
             }
+            if i % 10 == 9 { println!(); }
         }
+        println!();
 
         // Debug: show init_mnem_table code in memory (around PC 0x63)
         println!("\n  init_mnem_table code (0x63-0x90):");
