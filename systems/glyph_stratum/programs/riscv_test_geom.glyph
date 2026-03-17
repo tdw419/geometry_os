@@ -1,0 +1,58 @@
+// ============================================================================
+// Geometry OS - Simple RISC-V Test Program (Output "GEOM")
+// ============================================================================
+//
+// This is a simple test guest program that writes "GEOM" to UART.
+// It's used to verify the RISC-V emulator works correctly.
+//
+// Memory Layout:
+// 0x14000: Guest PC
+// 0x14100: Guest Registers (x0-x31)
+// 0x18000: Guest RAM (this program)
+// 0x00200: UART Output
+// ============================================================================
+
+// RISC-V program that outputs "GEOM" using STORE instructions
+// Format: SW rs2, imm(rs1) - Store word from rs2 to memory[rs1+imm]
+
+// We'll use x1 as UART pointer and x2-x5 for the characters
+
+// LUI x1, 0x00000 - Load upper immediate (x1 = 0x00000000)
+// Then ADDI x1, x1, 0x200 to get UART address
+
+// Actually, let's use a simpler approach:
+// ADDI x1, x0, 0x200 would need to sign-extend, but 0x200 > 12 bits
+// So we use LUI + ADDI
+
+// LUI x1, 0x00000 (x1 = 0)
+// 0x00000037
+
+// ADDI x1, x1, 0x200 (x1 = 0x200 = UART)
+// 0x20010093
+
+// ADDI x2, x0, 0x47 (x2 = 'G' = 0x47 = 71)
+// 0x04700113
+
+// SW x2, 0(x1) - Store 'G' to UART
+// 0x00209023
+
+// ADDI x2, x0, 0x45 (x2 = 'E' = 0x45 = 69)
+// 0x04500113
+
+// SW x2, 4(x1) - Store 'E' to UART+4
+// 0x00209223
+
+// ADDI x2, x0, 0x4F (x2 = 'O' = 0x4F = 79)
+// 0x04F00113
+
+// SW x2, 8(x1) - Store 'O' to UART+8
+// 0x00209423
+
+// ADDI x2, x0, 0x4D (x2 = 'M' = 0x4D = 77)
+// 0x04D00113
+
+// SW x2, 12(x1) - Store 'M' to UART+12
+// 0x00209623
+
+// EBREAK - Halt
+// 0x00100073

@@ -8,6 +8,26 @@ use image::GenericImageView;
 use infinite_map_rs::synthetic_vram::{SyntheticVram, SyntheticVmConfig};
 use std::path::Path;
 
+/// Convert (x, y) coordinates to Hilbert distance
+fn hilbert_xy2d(n: u32, mut x: u32, mut y: u32) -> u32 {
+    let mut d = 0u32;
+    let mut s = n / 2;
+    while s > 0 {
+        let rx = if (x & s) > 0 { 1u32 } else { 0u32 };
+        let ry = if (y & s) > 0 { 1u32 } else { 0u32 };
+        d += s * s * ((3 * rx) ^ ry);
+        if ry == 0 {
+            if rx == 1 {
+                x = s - 1 - x;
+                y = s - 1 - y;
+            }
+            std::mem::swap(&mut x, &mut y);
+        }
+        s /= 2;
+    }
+    d
+}
+
 fn main() -> Result<()> {
     let args: std::env::Args = std::env::args();
     let program_path = args.skip(1).next()
@@ -23,18 +43,25 @@ fn main() -> Result<()> {
     println!("Image size: {}x{}", width, height);
 
     let rgba = img.to_rgba8();
-    let pixels: Vec<u32> = rgba.pixels()
-        .map(|p| p[0] as u32 | ((p[1] as u32) << 8) | ((p[2] as u32) << 16) | ((p[3] as u32) << 24))
-        .collect();
 
     // Create synthetic VRAM (use smaller grid if image is smaller)
     let grid_size = if width == 4096 { 4096 } else { 64 };
     let mut vram = SyntheticVram::new_small(grid_size);
 
-    // Copy pixels into VRAM
-    for (i, &val) in pixels.iter().enumerate() {
-        if i < (grid_size * grid_size) as usize {
-            vram.poke(i as u32, val);
+    // Copy pixels into VRAM using Hilbert curve addressing
+    // The PNG stores pixels at Hilbert(x,y) in row-major order
+    // We need to convert each (x,y) back to Hilbert address
+    for y in 0..height {
+        for x in 0..width {
+            let pixel = rgba.get_pixel(x, y);
+            let val = pixel[0] as u32
+                | ((pixel[1] as u32) << 8)
+                | ((pixel[2] as u32) << 16)
+                | ((pixel[3] as u32) << 24);
+
+            // Convert (x,y) to Hilbert address
+            let hilbert_addr = hilbert_xy2d(grid_size, x, y);
+            vram.poke(hilbert_addr, val);
         }
     }
 
@@ -66,8 +93,8 @@ fn main() -> Result<()> {
     let mut debug_cycles = 0;
 
     while total_cycles < max_cycles {
-        // Print detailed execution for first 20 cycles
-        if debug_cycles < 20 {
+        // Print detailed execution for first 50 cycles
+        if debug_cycles < 50 {
             if let Some(vm) = vram.vm_state(0) {
                 let pc = vm.pc;
                 let instr = vram.peek(pc);
