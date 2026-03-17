@@ -564,7 +564,13 @@ impl DrmGlyphExecutor {
         }
 
         // 2. EXECUTE: Run glyph program (only if verified)
-        let (_, output) = self.execute(inputs, output_size)?;
+        // Use Glyph VM 6-binding pipeline if available, otherwise fall back to 3-binding
+        let output = if let Some(vm_pipeline) = &self.glyph_vm_pipeline {
+            self.execute_glyph_vm(vm_pipeline, atlas_data, atlas_width, atlas_height, inputs, output_size)?
+        } else {
+            let (_, data) = self.execute(inputs, output_size)?;
+            data
+        };
 
         // 3. ATTEST: Verify output reached expected state
         // (Optional - for now we just return success)
@@ -576,6 +582,192 @@ impl DrmGlyphExecutor {
             scanout: None,
             executed: true,
         })
+    }
+
+    /// Execute using the Glyph VM 6-binding pipeline.
+    ///
+    /// Creates bind groups for all 6 resources:
+    /// - Binding 0: program buffer (glyph instructions from inputs)
+    /// - Binding 1: state buffer (VM state)
+    /// - Binding 2: memory buffer (VM memory)
+    /// - Binding 3: stack buffer (VM stack)
+    /// - Binding 4: atlas texture (visual substrate)
+    /// - Binding 5: screen texture (output)
+    fn execute_glyph_vm(
+        &self,
+        vm_pipeline: &GlyphVMPipeline,
+        atlas_data: &[u8],
+        atlas_width: u32,
+        atlas_height: u32,
+        inputs: &[u8],
+        output_size: (u32, u32),
+    ) -> Result<Vec<u8>, GlyphError> {
+        // Create program buffer from inputs (binding 0)
+        let program_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Glyph VM Program Buffer"),
+            size: if inputs.is_empty() { 16 } else { inputs.len() as u64 },
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        if !inputs.is_empty() {
+            self.queue.write_buffer(&program_buffer, 0, inputs);
+        }
+
+        // Create state buffer (binding 1) - VMState struct
+        let state_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Glyph VM State Buffer"),
+            size: 256, // Reserve space for VMState
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
+        // Create memory buffer (binding 2) - VM memory
+        let memory_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Glyph VM Memory Buffer"),
+            size: 4096, // 4KB VM memory
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
+        // Create stack buffer (binding 3) - VM stack
+        let stack_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Glyph VM Stack Buffer"),
+            size: 1024, // 1KB stack
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
+        // Create atlas texture (binding 4) from atlas_data
+        let atlas_texture = self.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Glyph VM Atlas Texture"),
+            size: wgpu::Extent3d {
+                width: atlas_width,
+                height: atlas_height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        self.queue.write_texture(
+            wgpu::ImageCopyTexture {
+                texture: &atlas_texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            atlas_data,
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(atlas_width * 4),
+                rows_per_image: Some(atlas_height),
+            },
+            wgpu::Extent3d {
+                width: atlas_width,
+                height: atlas_height,
+                depth_or_array_layers: 1,
+            },
+        );
+        let atlas_view = atlas_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        // Create screen/output texture (binding 5)
+        let screen_texture = self.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Glyph VM Screen Texture"),
+            size: wgpu::Extent3d {
+                width: output_size.0,
+                height: output_size.1,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::COPY_SRC,
+            view_formats: &[],
+        });
+        let screen_view = screen_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        // Create bind group with all 6 resources
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Glyph VM Bind Group"),
+            layout: &vm_pipeline.bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: program_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: state_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: memory_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: stack_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: wgpu::BindingResource::TextureView(&atlas_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: wgpu::BindingResource::TextureView(&screen_view),
+                },
+            ],
+        });
+
+        // Create command encoder and dispatch
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Glyph VM Compute Encoder"),
+        });
+
+        {
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("Glyph VM Compute Pass"),
+                timestamp_writes: None,
+            });
+            compute_pass.set_pipeline(&vm_pipeline.pipeline);
+            compute_pass.set_bind_group(0, &bind_group, &[]);
+            compute_pass.dispatch_workgroups(
+                (output_size.0 + 7) / 8,
+                (output_size.1 + 7) / 8,
+                1,
+            );
+        }
+
+        // Create staging buffer for readback from program buffer
+        let staging_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Glyph VM Staging Buffer"),
+            size: program_buffer.size(),
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        encoder.copy_buffer_to_buffer(&program_buffer, 0, &staging_buffer, 0, program_buffer.size());
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        // Map and read back
+        let buffer_slice = staging_buffer.slice(..);
+        let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();
+        buffer_slice.map_async(wgpu::MapMode::Read, move |v| sender.send(v).unwrap());
+
+        self.device.poll(wgpu::Maintain::Wait);
+
+        pollster::block_on(receiver.receive())
+            .unwrap()
+            .map_err(|e| GlyphError::Execution(format!("Map async failed: {:?}", e)))?;
+
+        let data = buffer_slice.get_mapped_range().to_vec();
+        staging_buffer.unmap();
+
+        Ok(data)
     }
 
     /// Quick check: Can this executor run given the current atlas?
