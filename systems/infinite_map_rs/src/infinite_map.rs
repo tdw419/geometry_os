@@ -26,6 +26,8 @@ pub struct InfiniteMap {
     selection_pressure: f64,
     /// Evolution rate (mutations per generation)
     evolution_rate: f64,
+    /// LLM temperature for controlling exploration vs exploitation (0.0 to 2.0)
+    temperature: f64,
 }
 
 impl InfiniteMap {
@@ -37,6 +39,7 @@ impl InfiniteMap {
             phylogeny: HashMap::new(),
             selection_pressure: 0.1, // Default 10% pressure
             evolution_rate: 0.05,    // Default 5% mutation rate
+            temperature: 1.0,        // Default LLM temperature (balanced exploration/exploitation)
         }
     }
 
@@ -213,7 +216,7 @@ impl InfiniteMap {
 
         // Get temperature from evolution manager (would need to pass as parameter or store reference)
         // For now, use default temperature - in full implementation this would come from EvolutionManager
-        let temperature = 1.0; // TODO: Wire up to EvolutionManager
+        let temperature = self.temperature;
 
         // LLM Temperature pattern: control exploration vs exploitation
         // Higher temperature = more exploration, lower temperature = more exploitation
@@ -326,6 +329,16 @@ impl InfiniteMap {
     /// Set evolution rate
     pub fn set_evolution_rate(&mut self, rate: f64) {
         self.evolution_rate = rate.clamp(0.0, 1.0);
+    }
+
+    /// Get LLM temperature (controls exploration vs exploitation)
+    pub fn get_temperature(&self) -> f64 {
+        self.temperature
+    }
+
+    /// Set LLM temperature (controls exploration vs exploitation)
+    pub fn set_temperature(&mut self, temp: f64) {
+        self.temperature = temp.clamp(0.0, 2.0);
     }
 
     /// Get map statistics
