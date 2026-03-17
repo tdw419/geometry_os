@@ -82,10 +82,10 @@ mod tests {
         // LDI r1, 5    - load 5 into r1
         // LDI r2, 3    - load 3 into r2
         // ADD r2, r1   - r1 = r1 + r2 = 8
-        // LDI r3, 300  - load address 300 into r3
+        // LDI r3, 400  - load address 400 into r3
         // STORE r3, r1 - store r1 (8) to [r3]
         // HALT
-        let input = b"LDI r1, 5\nLDI r2, 3\nADD r2, r1\nLDI r3, 300\nSTORE r3, r1\nHALT";
+        let input = b"LDI r1, 5\nLDI r2, 3\nADD r2, r1\nLDI r3, 400\nSTORE r3, r1\nHALT";
         for (i, &b) in input.iter().enumerate() {
             scheduler.poke_substrate_single(10000 + i as u32, b as u32);
         }
@@ -93,7 +93,7 @@ mod tests {
         println!("Input: {:?}", std::str::from_utf8(input).unwrap());
 
         // Initialize result address
-        scheduler.poke_substrate_single(300, 0);
+        scheduler.poke_substrate_single(400, 0);
 
         // Atlas templates
         scheduler.poke_substrate_single(50000, glyph(1, 0, 0, 0));     // LDI template
@@ -347,7 +347,7 @@ mod tests {
         println!("\n=== PHASE 2: EXECUTING COMPILED PROGRAM ===");
 
         let compiled_config = VmConfig {
-            entry_point: 200,
+            entry_point: 300,  // Compiled program starts at 300
             parent_id: 0xFF,
             base_addr: 1,
             bound_addr: 0,  // unrestricted
@@ -358,10 +358,10 @@ mod tests {
         scheduler.sync_gpu_to_shadow();
 
         // PHASE 3: Verify result
-        let result = scheduler.peek_substrate_single(300);
+        let result = scheduler.peek_substrate_single(400);
 
         println!("\n=== PHASE 3: VERIFICATION ===");
-        println!("  addr 300: expected 8 (5+3), got {}", result);
+        println!("  addr 400: expected 8 (5+3), got {}", result);
 
         if result == 8 {
             println!("\n  ╔═══════════════════════════════════════════════════════╗");
@@ -370,10 +370,10 @@ mod tests {
             println!("  ║  Full sovereignty with arithmetic demonstrated.     ║");
             println!("  ╚═══════════════════════════════════════════════════════╝");
         } else {
-            println!("\n  FAILED: expected 8 at addr 300, got {}", result);
+            println!("\n  FAILED: expected 8 at addr 400, got {}", result);
         }
 
-        assert_eq!(result, 8, "ADD should have computed 5+3=8 and STORE should have written it to addr 300");
+        assert_eq!(result, 8, "ADD should have computed 5+3=8 and STORE should have written it to addr 400");
     }
 
     // ProgramBuilder
