@@ -166,14 +166,39 @@ mod tests {
         // r6 = digit - 48 (register number) - match original test exactly
         b.mov(11, 6); b.sub(1, 6);  // r6 = r1 - r11 = char - 48
 
+        // Debug: store r6 (register number) at addr 302 using r2
+        b.mov(6, 2); b.ldi(7, 302); b.store(7, 2); b.mov(2, 6);  // restore r6
+
+        // Debug: store r3 (emit_ptr) at addr 303 using r2
+        b.mov(3, 2); b.ldi(7, 303); b.store(7, 2); b.mov(2, 3);  // restore r3
+
         // Emit LDI opcode from template (match original test exactly)
         b.ldi(4, 50000); b.load(4, 5);  // r5 = template from atlas
+
+        // Debug: store r5 (template) at addr 304 using r2
+        b.mov(5, 2); b.ldi(7, 304); b.store(7, 2); b.mov(2, 5);  // restore r5
+
         b.ldi(7, 16); b.shl(6, 7);      // r7 = reg << 16
-        b.or(5, 7); b.store(3, 7);      // mem[emit_ptr] = opcode
+
+        // Debug: store r7 (shifted) at addr 305 using r2
+        b.mov(7, 2); b.ldi(7, 305); b.store(7, 2);
+
+        // Now r7 = 305, need to restore shifted value
+        b.ldi(7, 16); b.shl(6, 7);      // r7 = reg << 16 (recompute)
+
+        b.or(5, 7);      // r7 = template | shifted
+
+        // Debug: store r7 (opcode) at addr 306 using r2
+        b.mov(7, 2); b.ldi(7, 306); b.store(7, 2);
+
+        // Recompute opcode
+        b.ldi(7, 16); b.shl(6, 7); b.or(5, 7);
+
+        b.store(3, 7);      // mem[emit_ptr] = opcode
         b.add(10, 3);                    // emit_ptr++
 
-        // Debug: store LDI opcode emitted marker at addr 303
-        b.ldi(2, 2); b.ldi(7, 303); b.store(7, 2);
+        // Debug: store LDI done marker at addr 307
+        b.ldi(2, 7); b.ldi(7, 307); b.store(7, 2);
 
         // Skip to number (skip comma, spaces)
         b.label("ldi_skip_ws2");
@@ -270,13 +295,19 @@ mod tests {
         let r302 = scheduler.peek_substrate_single(302);
         let r303 = scheduler.peek_substrate_single(303);
         let r304 = scheduler.peek_substrate_single(304);
+        let r305 = scheduler.peek_substrate_single(305);
+        let r306 = scheduler.peek_substrate_single(306);
+        let r307 = scheduler.peek_substrate_single(307);
 
         println!("\n=== DEBUG ===");
         println!("  addr 300 (found 'r' marker): {}", r300);
         println!("  addr 301 (digit char): {} ('{}')", r301, if r301 >= 32 && r301 < 127 { r301 as u8 as char } else { '?' });
-        println!("  addr 302 (register number): {}", r302);
-        println!("  addr 303 (LDI emitted marker): {}", r303);
-        println!("  addr 304 (r6 reg num backup): {}", r304);
+        println!("  addr 302 (r6 register number): {}", r302);
+        println!("  addr 303 (r3 emit_ptr before store): {}", r303);
+        println!("  addr 304 (r5 template from atlas): 0x{:08X}", r304);
+        println!("  addr 305 (r7 shifted reg): 0x{:08X}", r305);
+        println!("  addr 306 (r7 final opcode): 0x{:08X}", r306);
+        println!("  addr 307 (LDI done marker): {}", r307);
 
         println!("\n=== VERIFICATION ===");
         println!("  addr 200: expected 0x00030001 (LDI r3), got 0x{:08X}", r200);
