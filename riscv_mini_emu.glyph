@@ -18,6 +18,7 @@
 //   r15: Scratch
 //   r16: Scratch
 //   r17: Scratch
+//   r18: Scratch (for shift amounts)
 // ============================================================================
 
 :boot
@@ -85,34 +86,37 @@
     // LUI: rd = imm[31:12] << 12
     // Extract rd: bits 7-11
     MOV r15, r13
-    SHR r15, 7
+    LDI r16, 7
+    SHR r15, r16
     LDI r16, 0x1F
     AND r15, r16
 
     // Extract immediate: bits 12-31, shift left 12
     MOV r16, r13
-    LDI r17, 0xFFFFF000
-    AND r16, r17
+    LDI r18, 0xFFFFF000
+    AND r16, r18
 
     // Skip if rd = 0
-    LDI r17, 0
-    SUB r15, r17
+    LDI r18, 0
+    SUB r15, r18
     JZ r15, next_instruction
 
     // Store to guest register rd
     // Address = 0x14100 + (rd * 4)
-    MOV r17, r15
-    SHL r17, 2
-    ADD r17, r11
-    STORE r17, r16
+    MOV r18, r15
+    LDI r15, 2
+    SHL r18, r15
+    ADD r18, r11
+    STORE r18, r16
 
-    JMP next_instruction
+    JZ r0, next_instruction
 
 :handle_addi
     // ADDI: rd = rs1 + imm
     // Extract rd: bits 7-11
     MOV r15, r13
-    SHR r15, 7
+    LDI r16, 7
+    SHR r15, r16
     LDI r16, 0x1F
     AND r15, r16
 
@@ -123,71 +127,82 @@
 
     // Extract rs1: bits 15-19
     MOV r16, r13
-    SHR r16, 15
-    LDI r17, 0x1F
-    AND r16, r17
+    LDI r18, 15
+    SHR r16, r18
+    LDI r18, 0x1F
+    AND r16, r18
 
     // Load rs1 from guest registers
     // Address = 0x14100 + (rs1 * 4)
-    MOV r17, r16
-    SHL r17, 2
-    ADD r17, r11
-    LOAD r17, r16
+    MOV r18, r16
+    LDI r16, 2
+    SHL r18, r16
+    ADD r18, r11
+    LOAD r18, r16
 
     // Extract immediate: bits 20-31 (sign-extended from bit 31)
-    MOV r18, r13
-    SHR r18, 20
+    MOV r17, r13
+    LDI r18, 20
+    SHR r17, r18
 
     // Add rs1 + imm
-    ADD r16, r18
+    ADD r16, r17
 
     // Store result to rd
     // Address = 0x14100 + (rd * 4)
-    MOV r18, r15
-    SHL r18, 2
-    ADD r18, r11
-    STORE r18, r16
+    MOV r17, r15
+    LDI r15, 2
+    SHL r17, r15
+    ADD r17, r11
+    STORE r17, r16
 
 :addi_skip_write
-    JMP next_instruction
+    JZ r0, next_instruction
 
 :handle_store
     // SW: mem[rs1 + imm] = rs2
     // Extract rs2 (source): bits 20-24
     MOV r15, r13
-    SHR r15, 20
+    LDI r16, 20
+    SHR r15, r16
     LDI r16, 0x1F
     AND r15, r16
 
     // Load rs2 value from guest registers
     MOV r16, r15
-    SHL r16, 2
+    LDI r15, 2
+    SHL r16, r15
     ADD r16, r11
     LOAD r16, r15          // r15 = rs2 value
 
     // Extract rs1 (base): bits 15-19
     MOV r17, r13
-    SHR r17, 15
+    LDI r18, 15
+    SHR r17, r18
     LDI r18, 0x1F
     AND r17, r18
 
     // Load rs1 value from guest registers
     MOV r18, r17
-    SHL r18, 2
+    LDI r17, 2
+    SHL r18, r17
     ADD r18, r11
     LOAD r18, r17          // r17 = rs1 value (base address)
 
     // Extract offset: bits 7-11 (imm[4:0]) and bits 25-31 (imm[11:5])
     MOV r19, r13
-    SHR r19, 7
+    LDI r20, 7
+    SHR r19, r20
     LDI r20, 0x1F
     AND r19, r20           // r19 = lower offset
 
     MOV r20, r13
-    SHR r20, 25
+    LDI r21, 25
+    SHR r20, r21
     LDI r21, 0x7F
     AND r20, r20
-    SHL r20, 5
+    LDI r21, 5
+    SHL r20, r21
     OR r19, r20           // r19 = full offset
 
     // Calculate address = rs1 + offset
@@ -200,13 +215,13 @@
 
     // Regular memory store
     STORE r17, r15
-    JMP next_instruction
+    JZ r0, next_instruction
 
 :store_uart
     // Store to UART at 0x200
     LDI r17, 0x0200
     STORE r17, r15
-    JMP next_instruction
+    JZ r0, next_instruction
 
 :handle_system
     // EBREAK - halt
@@ -218,7 +233,7 @@
     LDI r15, 4
     ADD r14, r15
     STORE r10, r14
-    JMP fetch
+    JZ r0, fetch
 
 :halt
     HALT

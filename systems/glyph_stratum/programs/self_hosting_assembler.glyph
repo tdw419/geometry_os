@@ -269,14 +269,16 @@
     LDI r6, 10              // multiplier
 :pop_loop
     LOAD r7, [r0]
+    // Check if digit '0'-'9'
     LDI r8, 48              // '0'
-    BEQ r7, r8, :pop_digit
-    SUB r8, r7, 48
-    // Check if digit (0-9)
+    SUB r8, r7, r8         // r8 = char - 48
     LDI r9, 10
-    BEQ r8, r9, :pop_done   // Special case: if subtracted gave 10, it was ':'
+    BNE r8, r9, :pop_maybe_digit
+    JMP :pop_done           // Not a digit (result was >= 10)
+:pop_maybe_digit
+    // Check if 0-9
     LDI r9, 0
-    BEQ r8, r9, :pop_zero
+    BEQ r8, r9, :pop_digit_0
     LDI r9, 1
     BEQ r8, r9, :pop_digit_ok
     LDI r9, 2
@@ -295,12 +297,11 @@
     BEQ r8, r9, :pop_digit_ok
     LDI r9, 9
     BEQ r8, r9, :pop_digit_ok
-    JMP :pop_done           // Not a digit
+    JMP :pop_done           // Not a digit 0-9
     
-:pop_zero
-    // It's '0' so digit is 0
+:pop_digit_0
     MUL r5, r5, r6
-    ADD r5, r5, r8
+    ADD r5, r5, r8          // Add 0
     LDI r8, 1
     ADD r0, r0, r8
     JMP :pop_loop
@@ -313,10 +314,6 @@
     ADD r0, r0, r8
     JMP :pop_loop
     
-:pop_digit
-    LDI r8, 1
-    ADD r0, r0, r8
-    JMP :pop_loop
 :pop_done
     MOV r7, r5
     RET
