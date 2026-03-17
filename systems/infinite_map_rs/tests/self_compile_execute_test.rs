@@ -114,7 +114,7 @@ mod tests {
 
         // Constants
         b.ldi(0, 10000);  // text_ptr
-        b.ldi(3, 200);    // emit_ptr
+        b.ldi(3, 300);    // emit_ptr (start AFTER assembler code at 0-247)
         b.ldi(9, 10);     // multiplier
         b.ldi(10, 1);     // increment
         b.ldi(11, 48);    // '0'
@@ -322,26 +322,26 @@ mod tests {
         scheduler.sync_gpu_to_shadow();
 
         // Verify compiled program
-        let r200 = scheduler.peek_substrate_single(200);
-        let r201 = scheduler.peek_substrate_single(201);
-        let r202 = scheduler.peek_substrate_single(202);
-        let r203 = scheduler.peek_substrate_single(203);
-        let r204 = scheduler.peek_substrate_single(204);
-        let r205 = scheduler.peek_substrate_single(205);
-        let r206 = scheduler.peek_substrate_single(206);
-        let r207 = scheduler.peek_substrate_single(207);
-        let r208 = scheduler.peek_substrate_single(208);
+        let r300 = scheduler.peek_substrate_single(300);
+        let r301 = scheduler.peek_substrate_single(301);
+        let r302 = scheduler.peek_substrate_single(302);
+        let r303 = scheduler.peek_substrate_single(303);
+        let r304 = scheduler.peek_substrate_single(304);
+        let r305 = scheduler.peek_substrate_single(305);
+        let r306 = scheduler.peek_substrate_single(306);
+        let r307 = scheduler.peek_substrate_single(307);
+        let r308 = scheduler.peek_substrate_single(308);
 
         println!("\n=== COMPILED OUTPUT ===");
-        println!("  addr 200: 0x{:08X} (LDI r1, 5)", r200);
-        println!("  addr 201: 0x{:08X} (5)", r201);
-        println!("  addr 202: 0x{:08X} (LDI r2, 3)", r202);
-        println!("  addr 203: 0x{:08X} (3)", r203);
-        println!("  addr 204: 0x{:08X} (ADD r2, r1)", r204);
-        println!("  addr 205: 0x{:08X} (LDI r3)", r205);
-        println!("  addr 206: 0x{:08X} (300)", r206);
-        println!("  addr 207: 0x{:08X} (STORE r3, r1)", r207);
-        println!("  addr 208: 0x{:08X} (HALT)", r208);
+        println!("  addr 300: 0x{:08X} (LDI r1, 5)", r300);
+        println!("  addr 301: 0x{:08X} (5)", r301);
+        println!("  addr 302: 0x{:08X} (LDI r2, 3)", r302);
+        println!("  addr 303: 0x{:08X} (3)", r303);
+        println!("  addr 304: 0x{:08X} (ADD r2, r1)", r304);
+        println!("  addr 305: 0x{:08X} (LDI r3)", r305);
+        println!("  addr 306: 0x{:08X} (300)", r306);
+        println!("  addr 307: 0x{:08X} (STORE r3, r1)", r307);
+        println!("  addr 308: 0x{:08X} (HALT)", r308);
 
         // PHASE 2: Execute the compiled program
         println!("\n=== PHASE 2: EXECUTING COMPILED PROGRAM ===");
