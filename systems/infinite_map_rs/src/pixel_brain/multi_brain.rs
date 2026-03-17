@@ -163,9 +163,9 @@ impl MessageQueue {
         Self {
             region,
             head: AtomicU32::new(0),
-            tail: AtomicU32::new(1),
+            tail: AtomicU32::new(0),
             capacity,
-            count: AtomicU32::new(1),
+            count: AtomicU32::new(0),
         }
     }
 
@@ -174,7 +174,7 @@ impl MessageQueue {
         let current = self.head.load(Ordering::Relaxed);
         let next = (current + 1) % self.capacity;
         self.head.store(next, Ordering::Relaxed);
-        next
+        current
     }
 
     /// Get the next read slot
