@@ -2476,17 +2476,17 @@ mod tests {
             }
         }
 
-        // Debug Output
+        // 4. Verify Output Binary at 0x2000
         println!("Self-Hosting Quine Verification:");
         println!("  Binary Size: {} words", assembled.words.len());
-        println!("  VM 0 State: {:?}", vram.vm_state(0));
-        println!("  mem[0x2000] = {:08X}", vram.peek(0x2000));
         
-        println!("Execution Trace (last 100):");
-        let trace = vram.trace();
-        let start_idx = if trace.len() > 100 { trace.len() - 100 } else { 0 };
-        for entry in &trace[start_idx..] {
-            println!("  {:?}", entry);
+        println!("  Binary Comparison (First 16 words):");
+        println!("  Offset | Original | Compiled");
+        println!("  -------|----------|---------");
+        for i in 0..16 {
+            let original = vram.peek(i);
+            let compiled = vram.peek(0x2000 + i);
+            println!("  {:6} | {:08X} | {:08X}", i, original, compiled);
         }
         
         for i in 0..assembled.words.len() as u32 {

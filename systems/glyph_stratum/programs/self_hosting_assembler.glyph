@@ -1,5 +1,5 @@
 // ============================================================================
-// Geometry OS - Self-Hosting Assembler (Version 3.4 - FINAL)
+// Geometry OS - Self-Hosting Assembler (Version 3.6 - SYNCHRONIZED)
 // ============================================================================
 //
 // Memory Layout:
@@ -10,6 +10,11 @@
 //   0x0800 - 0x08FF: Mnemonic Table
 //   0x4004: ESTIMATED_PC
 // ============================================================================
+
+:boot
+    NOP                     // Absolute offset 0
+    LDI r14, :main
+    JMP r14
 
 :main
     LDI r0, 0x1000          // SRC_PTR
@@ -45,11 +50,9 @@
     LDI r8, 32; BEQ r7, r8, :p1_adv_ws
     LDI r8, 10; BEQ r7, r8, :p1_adv_ws
     
-    // Instruction: LDI?
-    LOAD r7, [r0]
-    LDI r8, 76; BNE r7, r8, :p1_not_ldi
-    ADD r0, r0, r13; LOAD r7, [r0]
-    LDI r8, 68; BNE r7, r8, :p1_not_ldi_adj1
+    // Instruction: check if LDI
+    LOAD r7, [r0]; LDI r8, 76; BNE r7, r8, :p1_not_ldi
+    ADD r0, r0, r13; LOAD r7, [r0]; LDI r8, 68; BNE r7, r8, :p1_not_ldi_adj1
     
     LOAD r9, [r12]; LDI r11, 2; ADD r9, r9, r11; STORE r12, r9
     JMP :p1_skip_line
@@ -75,16 +78,28 @@
     LDI r8, 32; BEQ r7, r8, :p2_adv_ws
     LDI r8, 10; BEQ r7, r8, :p2_adv_ws
     
-    // Explicit LDI check to avoid table walking for first instr
-    LOAD r7, [r0]; LDI r8, 76; BNE r7, r8, :p2_use_table
-    ADD r0, r0, r13; LOAD r7, [r0]; LDI r8, 68; BNE r7, r8, :p2_backtrack
-    ADD r0, r0, r13; LOAD r7, [r0]; LDI r8, 73; BNE r7, r8, :p2_backtrack2
+    // Check for NOP first (boot anchor)
+    LOAD r7, [r0]; LDI r8, 78; BNE r7, r8, :p2_check_ldi
+    ADD r0, r0, r13; LOAD r7, [r0]; LDI r8, 79; BNE r7, r8, :p2_backtrack_nop
+    ADD r0, r0, r13; LOAD r7, [r0]; LDI r8, 80; BNE r7, r8, :p2_backtrack_nop2
     
-    // IS LDI
+    // IS NOP
+    ADD r0, r0, r13; LDI r3, 0; STORE r1, r3; ADD r1, r1, r13
+    JMP :p2_skip_line
+
+:p2_backtrack_nop2; SUB r0, r0, r13
+:p2_backtrack_nop;  SUB r0, r0, r13
+
+:p2_check_ldi
+    LOAD r7, [r0]; LDI r8, 76; BNE r7, r8, :p2_use_table
+    ADD r0, r0, r13; LOAD r7, [r0]; LDI r8, 68; BNE r7, r8, :p2_backtrack_ldi
+    ADD r0, r0, r13; LOAD r7, [r0]; LDI r8, 73; BNE r7, r8, :p2_backtrack_ldi2
+    
     ADD r0, r0, r13; LDI r4, 1; LDI r5, 0; JMP :p2_emit_ldi
 
-:p2_backtrack2; SUB r0, r0, r13
-:p2_backtrack;  SUB r0, r0, r13
+:p2_backtrack_ldi2; SUB r0, r0, r13
+:p2_backtrack_ldi;  SUB r0, r0, r13
+
 :p2_use_table
     LOAD r7, [r0]; ADD r0, r0, r13
     LOAD r8, [r0]; ADD r0, r0, r13
@@ -156,7 +171,7 @@
     LDI r5, 4;  STORE r4, r5; ADD r4, r4, r13
     LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
     
-    LDI r5, 0xFFFFFFFF; STORE r4, r5 // End marker
+    LDI r5, 0xFFFFFFFF; STORE r4, r5
     RET
 
 :match_mnemonic
