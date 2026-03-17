@@ -154,12 +154,25 @@ mod tests {
 
         // Expect 'r'
         b.bne(1, 14, "error");  // must be 'r'
+
+        // Debug: store 'r' found marker at addr 300
+        b.ldi(2, 1); b.ldi(7, 300); b.store(7, 2);
+
         b.add(10, 0); b.load(0, 1);  // digit
+
+        // Debug: store digit char at addr 301
+        b.ldi(7, 301); b.store(7, 1);
 
         // r6 = digit - 48 (register number)
         b.mov(8, 6);      // r6 = 48 (copy from r8)
         b.sub(1, 6);      // r6 = r1 - r6 = digit - 48
         b.add(10, 0);     // text_ptr++ (past register digit)
+
+        // Debug: store register number at addr 302
+        b.ldi(7, 302); b.store(7, 6);
+
+        // Debug: store r6 (register number) at addr 304 using r2 as temp
+        b.ldi(2, 304); b.store(2, 6);
 
         // Emit LDI opcode from template
         b.ldi(4, 50000);  // atlas: LDI template at 50000
@@ -169,6 +182,9 @@ mod tests {
         b.or(5, 7);       // r7 = template | (reg << 16)
         b.store(3, 7);    // emit opcode
         b.add(10, 3);     // emit_ptr++
+
+        // Debug: store LDI opcode emitted marker at addr 303
+        b.ldi(2, 2); b.ldi(7, 303); b.store(7, 2);
 
         // Skip to number (skip comma, spaces)
         b.label("ldi_skip_ws2");
@@ -258,6 +274,20 @@ mod tests {
         let r200 = scheduler.peek_substrate_single(200);
         let r201 = scheduler.peek_substrate_single(201);
         let r202 = scheduler.peek_substrate_single(202);
+
+        // Debug values
+        let r300 = scheduler.peek_substrate_single(300);
+        let r301 = scheduler.peek_substrate_single(301);
+        let r302 = scheduler.peek_substrate_single(302);
+        let r303 = scheduler.peek_substrate_single(303);
+        let r304 = scheduler.peek_substrate_single(304);
+
+        println!("\n=== DEBUG ===");
+        println!("  addr 300 (found 'r' marker): {}", r300);
+        println!("  addr 301 (digit char): {} ('{}')", r301, if r301 >= 32 && r301 < 127 { r301 as u8 as char } else { '?' });
+        println!("  addr 302 (register number): {}", r302);
+        println!("  addr 303 (LDI emitted marker): {}", r303);
+        println!("  addr 304 (r6 reg num backup): {}", r304);
 
         println!("\n=== VERIFICATION ===");
         println!("  addr 200: expected 0x00030001 (LDI r3), got 0x{:08X}", r200);
@@ -357,7 +387,7 @@ mod tests {
         }
 
         fn shl(&mut self, rs1: u8, rs2: u8) {
-            self.ins(glyph(9, 0, rs1, rs2));
+            self.ins(glyph(131, 0, rs1, rs2));
         }
 
         fn mov(&mut self, rs1: u8, rs2: u8) {
