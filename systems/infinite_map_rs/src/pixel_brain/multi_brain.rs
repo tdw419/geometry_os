@@ -77,7 +77,7 @@ impl BrainRegion {
 
 /// Message glyph - 16x16 pixel message encoded in atlas
 #[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Clone, Copy, Debug)]
 pub struct MessageGlyph {
     /// Sender brain ID
     pub sender_id: u32,
@@ -90,6 +90,10 @@ pub struct MessageGlyph {
     /// Payload data (60 floats = 240 bytes)
     pub payload: [f32; 60],
 }
+
+// Manually implement Pod and Zeroable since [f32; 60] is too large for derive
+unsafe impl bytemuck::Zeroable for MessageGlyph {}
+unsafe impl bytemuck::Pod for MessageGlyph {}
 
 impl MessageGlyph {
     /// Size of a message glyph in bytes
@@ -429,7 +433,7 @@ impl MultiBrainCoordinator {
         // Create bind group
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Attention Blend Bind Group"),
-            layout: self.attention_pipeline.as_ref().unwrap().get_bind_group_layout().unwrap(),
+            layout: &self.attention_pipeline.as_ref().unwrap().get_bind_group_layout(0),
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -464,12 +468,12 @@ impl MultiBrainCoordinator {
 
     /// Get the by ID
     pub fn get_brain(&self, id: u32) -> Option<Arc<Mutex<PixelBrainInferencer>>> {
-        self.brains.get(id).map(Arc::clone)
+        self.brains.get(id as usize).map(Arc::clone)
     }
 
     /// Get the region by brain ID
     pub fn get_region(&self, id: u32) -> Option<&BrainRegion> {
-        self.regions.get(id)
+        self.regions.get(id as usize)
     }
 
     /// Increment frame counter

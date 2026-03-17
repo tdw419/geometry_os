@@ -1091,7 +1091,7 @@ impl PixelBrainInferencer {
             let next_token = if temperature > 0.0 {
                 // Sample with temperature
                 let logits = self.get_logits(current_token);
-                Self::sample_with_temperature(&logits, temperature, self.config.vocab_size)
+                Self::sample_with_temperature(&logits, temperature, self.config.vocab_size as usize)
             } else {
                 // Greedy (temperature = 0)
                 self.infer_token(current_token)
