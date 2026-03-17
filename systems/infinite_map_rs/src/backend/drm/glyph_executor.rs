@@ -88,17 +88,27 @@ struct GlyphUniforms {
     _padding: f32,
 }
 
-/// Holds the compiled compute pipeline
+/// Holds the compiled compute pipeline (generic 3-binding layout)
 struct LoadedPipeline {
     pipeline: wgpu::ComputePipeline,
     bind_group_layout: wgpu::BindGroupLayout,
+}
+
+/// Holds the Glyph VM pipeline with 6-binding layout matching glyph_microcode.wgsl
+/// Bindings: 0=program, 1=state, 2=memory, 3=stack, 4=atlas, 5=screen
+pub struct GlyphVMPipeline {
+    pub pipeline: wgpu::ComputePipeline,
+    pub bind_group_layout: wgpu::BindGroupLayout,
 }
 
 /// Executes compiled glyph programs on DRM-backed GPU
 pub struct DrmGlyphExecutor {
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
+    /// Generic 3-binding pipeline (buffer, texture, uniforms)
     pipeline: Option<LoadedPipeline>,
+    /// Glyph VM 6-binding pipeline (program, state, memory, stack, atlas, screen)
+    glyph_vm_pipeline: Option<GlyphVMPipeline>,
 }
 
 impl DrmGlyphExecutor {
@@ -108,6 +118,7 @@ impl DrmGlyphExecutor {
             device,
             queue,
             pipeline: None,
+            glyph_vm_pipeline: None,
         }
     }
 
@@ -201,6 +212,133 @@ impl DrmGlyphExecutor {
         });
 
         Ok(())
+    }
+
+    /// Load the Glyph VM shader with 6-binding layout matching glyph_microcode.wgsl
+    ///
+    /// Bindings:
+    /// - 0: program buffer (array<Glyph>)
+    /// - 1: state buffer (VMState)
+    /// - 2: memory buffer (array<f32>)
+    /// - 3: stack buffer (array<f32>)
+    /// - 4: atlas texture (texture_2d<f32>)
+    /// - 5: screen texture (texture_storage_2d<rgba8unorm, write>)
+    pub fn load_glyph_vm(&mut self, wgsl_source: &str) -> Result<(), GlyphError> {
+        let shader_module = self
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("Glyph VM Shader"),
+                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(wgsl_source)),
+            });
+
+        // Create bind group layout with 6 bindings matching glyph_microcode.wgsl
+        let bind_group_layout =
+            self.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("Glyph VM Bind Group Layout"),
+                    entries: &[
+                        // Binding 0: program buffer (array<Glyph>)
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        // Binding 1: state buffer (VMState)
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        // Binding 2: memory buffer (array<f32>)
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 2,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        // Binding 3: stack buffer (array<f32>)
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 3,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        // Binding 4: atlas texture (texture_2d<f32>)
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 4,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Texture {
+                                sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                        // Binding 5: screen texture (texture_storage_2d<rgba8unorm, write>)
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 5,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::StorageTexture {
+                                access: wgpu::StorageTextureAccess::WriteOnly,
+                                format: wgpu::TextureFormat::Rgba8Unorm,
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                            },
+                            count: None,
+                        },
+                    ],
+                });
+
+        let pipeline_layout = self
+            .device
+            .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Glyph VM Pipeline Layout"),
+                bind_group_layouts: &[&bind_group_layout],
+                push_constant_ranges: &[],
+            });
+
+        let pipeline = self
+            .device
+            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: Some("Glyph VM Compute Pipeline"),
+                layout: Some(&pipeline_layout),
+                module: &shader_module,
+                entry_point: "main",
+            });
+
+        self.glyph_vm_pipeline = Some(GlyphVMPipeline {
+            pipeline,
+            bind_group_layout,
+        });
+
+        Ok(())
+    }
+
+    /// Check if the Glyph VM pipeline is loaded
+    pub fn is_glyph_vm_loaded(&self) -> bool {
+        self.glyph_vm_pipeline.is_some()
+    }
+
+    /// Get a reference to the Glyph VM pipeline (if loaded)
+    pub fn glyph_vm_pipeline(&self) -> Option<&GlyphVMPipeline> {
+        self.glyph_vm_pipeline.as_ref()
     }
 
     /// Convert SPIR-V binary to WGSL source using naga

@@ -123,11 +123,28 @@ mod tests {
         println!("✅ Glyph VM Bare Metal Addition Test Passed: 5.0 + 10.0 = {}", result);
     }
 
-    // TODO: Re-enable when DrmGlyphExecutor bind group layout matches glyph_microcode.wgsl
-    // The shader expects 6 bindings (program, state, memory, stack, atlas, screen)
-    // but DrmGlyphExecutor only provides 3 bindings (buffer, texture, uniforms).
+    // Test that DrmGlyphExecutor can load the Glyph VM shader with correct 6-binding layout
+    // Bindings: program, state, memory, stack, atlas, screen
     #[tokio::test]
-    #[ignore = "DrmGlyphExecutor bind group layout (3 bindings) doesn't match glyph_microcode.wgsl (6 bindings)"]
+    async fn test_drm_executor_loads_glyph_vm_pipeline() {
+        let ctx = create_test_context().await;
+        if ctx.is_none() { return; }
+        let (device, queue) = ctx.unwrap();
+
+        let mut executor = DrmGlyphExecutor::new(device.clone(), queue.clone());
+
+        // Load Glyph VM shader using the dedicated method with 6-binding layout
+        let wgsl_source = include_str!("../src/gpu/shaders/glyph_microcode.wgsl");
+        executor.load_glyph_vm(wgsl_source).expect("Failed to load Glyph VM pipeline");
+        
+        assert!(executor.is_glyph_vm_loaded(), "Glyph VM pipeline should be loaded");
+        println!("✅ DrmGlyphExecutor successfully loaded Glyph VM pipeline with 6-binding layout");
+    }
+
+    // TODO: execute_attested needs updating to create 6-binding bind groups for full VM execution
+    // The pipeline loads correctly, but execution requires buffers for program, state, memory, stack + textures
+    #[tokio::test]
+    #[ignore = "execute_attested needs update to create 6-binding bind groups (program, state, memory, stack, atlas, screen)"]
     async fn test_drm_executor_with_glyph_vm() {
         let ctx = create_test_context().await;
         if ctx.is_none() { return; }
@@ -135,21 +152,10 @@ mod tests {
 
         let mut executor = DrmGlyphExecutor::new(device.clone(), queue.clone());
 
-        // 1. Load Glyph VM shader into Executor
+        // 1. Load Glyph VM shader using dedicated method
         let wgsl_source = include_str!("../src/gpu/shaders/glyph_microcode.wgsl");
-        
-        // Compile WGSL to SPIR-V using naga (simulated since load_spirv takes [u32])
-        use naga::back::spv;
-        use naga::valid::{Capabilities, ValidationFlags, Validator};
-        
-        let mut frontend = naga::front::wgsl::Frontend::new();
-        let module = frontend.parse(wgsl_source).expect("Failed to parse WGSL");
-        let mut validator = Validator::new(ValidationFlags::all(), Capabilities::all());
-        let info = validator.validate(&module).expect("Failed to validate");
-        let spirv = spv::write_vec(&module, &info, &spv::Options::default(), None).expect("Failed to write SPIR-V");
-
-        executor.load_spirv(&spirv).expect("Failed to load Glyph VM into DrmExecutor");
-        assert!(executor.is_pipeline_loaded());
+        executor.load_glyph_vm(wgsl_source).expect("Failed to load Glyph VM into DrmExecutor");
+        assert!(executor.is_glyph_vm_loaded());
 
         // 2. Execute attested (Verifies Atlas -> Executes VM)
         let atlas_data = vec![0u8; 2048 * 2048 * 4];
