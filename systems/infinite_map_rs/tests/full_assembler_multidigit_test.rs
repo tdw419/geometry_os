@@ -403,7 +403,7 @@ mod tests {
         }
 
         fn or(&mut self, rs1: u8, rs2: u8) {
-            self.ins(glyph(8, 0, rs1, rs2));
+            self.ins(glyph(129, 0, rs1, rs2));
         }
 
         fn shl(&mut self, rs1: u8, rs2: u8) {
