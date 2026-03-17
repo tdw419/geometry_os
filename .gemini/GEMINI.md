@@ -140,6 +140,7 @@ Produce executable output from simulations:
 | **Raw RTS** | `.rts` | Binary tensor substrate | `rts_manager.py` |
 | **Metadata** | `.rts.meta.json` | SHA256 hashes, offsets, entropy | Generated automatically |
 | **Boot Script** | `.rts.boot.sh` | QEMU launch script | Generated automatically |
+| **Synthetic VRAM** | `.rs` | CPU-side Glyph VM emulator | `systems/infinite_map_rs/src/synthetic_vram.rs` |
 
 ### Essential Commands
 
@@ -159,6 +160,9 @@ cargo run --release path/to/texture.rts.png
 
 # Start Visual Shell (PixiJS)
 ./start_infinite_desktop.sh
+
+# Run Synthetic VRAM tests
+cargo test --lib synthetic_vram
 ```
 
 ### Current Phase: Phase 20-25 (Generative Evolution)
@@ -170,6 +174,7 @@ cargo run --release path/to/texture.rts.png
 - ✅ Area Agent architecture
 - ✅ **Pixels Move Pixels** (First proven self-replicating GPU programs)
 - ✅ **Sovereignty Chain** (Text → GPU Assembler → Glyph VM → RISC-V → UART "Hi")
+- ✅ **Synthetic VRAM** (CPU-side emulator for safe, fast Glyph VM development)
 - 🚧 **Self-Hosting** (Goal: Complete elimination of Rust/Python bootstrap)
 - 🚧 Visual Consistency Contract (VCC)
 - 🚧 LayoutGAN saccade optimization

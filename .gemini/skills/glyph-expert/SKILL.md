@@ -155,15 +155,34 @@ The `gpu_dev_daemon` provides a low-level HTTP bridge (Port 8769) to the GPU sub
 - **GPU Status:** `nvidia-smi` (NVIDIA) or `rocminfo` (AMD)
 
 ### Performance Matrix
-| Feature | Procedural (Python/Rust) | Spatial (Glyph/GPU) |
-| :--- | :--- | :--- |
-| Memory Usage | High (loads full datasets) | Low (spatially bound active blocks) |
-| Latency | Milliseconds (CPU overhead) | Microseconds (GPU-direct) |
-| Cache Efficiency | Unpredictable | Guaranteed by Hilbert locality |
+| Feature | Procedural (Python/Rust) | Spatial (Glyph/GPU) | Synthetic VRAM (CPU Emulator) |
+| :--- | :--- | :--- | :--- |
+| Memory Usage | High (loads full datasets) | Low (active blocks) | 64MB (fixed grid) |
+| Latency | Milliseconds (CPU overhead) | Microseconds (GPU-direct) | Fast (no GPU init) |
+| Cache Efficiency | Unpredictable | Guaranteed (Hilbert) | N/A (linear memory) |
+| Debugging | Full Debugger | Black Box / `peek` | Step, Trace, Assert |
 
 ---
 
-## 7. Hazards & Anti-Patterns
+## 8. Synthetic VRAM: Safe Development
+
+**Definition:** A CPU-side emulator (`systems/infinite_map_rs/src/synthetic_vram.rs`) that replicates the Glyph VM's WGSL logic in Rust.
+
+### Why Use It?
+- **Zero Crash Risk:** Bugs in glyphs won't hang the GPU or freeze the display.
+- **Single-Stepping:** `vram.step(vm_id)` to execute one instruction at a time.
+- **Full Trace:** `vram.enable_tracing()` to see every PC, register, and cycle transition.
+- **CI-Ready:** Runs tests on headless servers without GPU hardware.
+
+### Testing Workflow
+1.  **Write program** using `poke()` or `poke_glyph()`.
+2.  **Spawn VM** with `SyntheticVmConfig`.
+3.  **Run** using `execute_frame()` or `step()`.
+4.  **Verify** using `vram.peek(addr)` or `vram.vm_state(id)`.
+
+---
+
+## 9. Hazards & Anti-Patterns
 
 ### The Escape Problem
 Guest programs calculating Hilbert addresses **outside 0x8000-0xFFFF** can corrupt emulator state (0x0000) or MMIO (0x1000). **Mitigation:** Implement rigorous spatial bounds checks.

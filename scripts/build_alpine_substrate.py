@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """
-Build combined substrate: RISC-V emulator + Alpine kernel
+Build combined substrate: RISC-V emulator + guest code
 
 Memory layout:
   0x00000 - 0x13FFF: RISC-V emulator (glyph program)
   0x14000: Guest PC
-  0x14100: Guest registers (x0-x31)
-  0x18000+: Guest RAM (Alpine kernel)
+  0x14100: Guest registers (x0-x31, each 4 bytes)
+  0x18000+: Guest RAM
 
 The substrate is a 4096x4096 RGBA8 texture addressed via Hilbert curve.
+Encoding per pixel:
+  R = opcode
+  G = stratum
+  B = p1
+  A = p2
 """
 
 import sys
@@ -27,6 +32,50 @@ except ImportError:
     print("Installing Pillow...")
     os.system(f"{sys.executable} -m pip install Pillow")
     from PIL import Image
+
+# ============================================================================
+# Glyph VM Opcodes (matching synthetic_vram.rs CPU emulator)
+# ============================================================================
+OPCODES = {
+    'NOP': 0,
+    'LDI': 1,        # Load Immediate 32-bit (uses 2 pixels: inst + data)
+    'MOV': 2,        # regs[p2] = regs[p1]
+    'LOAD': 3,       # regs[p2] = memory[regs[p1]]
+    'STORE': 4,      # memory[regs[p1]] = regs[p2]
+    'ADD': 5,        # regs[p2] = regs[p1] + regs[p2]
+    'SUB': 6,        # regs[p2] = regs[p1] - regs[p2]
+    'MUL': 7,        # regs[p2] = regs[p1] * regs[p2]
+    'DIV': 8,        # regs[p2] = regs[p1] / regs[p2]
+    'JMP': 9,        # Jump to register address
+    'BRANCH': 10,    # Conditional branch (stratum=condition type)
+    'CALL': 11,      # Call subroutine
+    'RET': 12,       # Return from subroutine
+    'RETURN': 12,    # Alias
+    'HALT': 13,      # Halt execution
+    'DATA': 14,      # Data word
+    'LOOP': 15,      # Loop construct
+    'JAL': 16,       # Jump and link
+    'AND': 128,      # Bitwise AND
+    'OR': 129,       # Bitwise OR
+    'XOR': 130,      # Bitwise XOR
+    'SHL': 131,      # Shift left
+    'SHR': 132,      # Shift right logical
+    'SAR': 133,      # Shift right arithmetic
+    # Pseudo-instructions (compile to real opcodes)
+    'JZ': 'BRANCH_EQ',   # Branch if zero -> BRANCH stratum=0
+    'JNZ': 'BRANCH_NE',  # Branch if not zero -> BRANCH stratum=1
+    'CMP': 'SUB',        # Compare -> SUB (result discarded)
+}
+
+# Branch conditions (stratum value for BRANCH instruction)
+BRANCH_COND = {
+    'BEQ': 0,  # v1 == v2
+    'BNE': 1,  # v1 != v2
+    'BLT': 2,  # v1 < v2 (signed)
+    'BGE': 3,  # v1 >= v2 (signed)
+    'BLTU': 4, # v1 < v2 (unsigned)
+    'BGEU': 5, # v1 >= v2 (unsigned)
+}
 
 # Hilbert curve functions
 def hilbert_d2xy(n, d):
@@ -63,18 +112,6 @@ def hilbert_xy2d(n, x, y):
         s //= 2
     return d
 
-# Glyph instruction opcodes (matching shader)
-OPCODES = {
-    'NOP': 0, 'LDI': 1, 'LDI16': 2, 'LDI32': 3, 'MOV': 4, 'SWAP': 5,
-    'LOAD': 6, 'STORE': 7, 'FLUSH': 8, 'SPAWN': 9,
-    'ADD': 10, 'SUB': 11, 'MUL': 12, 'DIV': 13, 'MOD': 14,
-    'AND': 15, 'OR': 16, 'XOR': 17, 'NOT': 18, 'SHL': 19, 'SHR': 20,
-    'CMP': 21, 'JMP': 22, 'JZ': 23, 'JNZ': 24, 'CALL': 25, 'RET': 26,
-    'PUSH': 27, 'POP': 28, 'YIELD': 29, 'HALT': 30, 'DEBUG': 31,
-    'ADDI': 32, 'SUBI': 33, 'MULI': 34, 'DIVI': 35, 'MODI': 36,
-    'ANDI': 37, 'ORI': 38, 'XORI': 39, 'SHLI': 40, 'SHRI': 41,
-}
-
 def parse_register(reg_str):
     """Parse register string like 'r10' or 'r[10]' to register number."""
     reg_str = reg_str.strip()
@@ -91,18 +128,21 @@ def parse_immediate(imm_str):
     if imm_str.startswith('0x') or imm_str.startswith('0X'):
         return int(imm_str, 16)
     elif imm_str.startswith('-'):
-        return int(imm_str)
+        return int(imm_str) & 0xFFFFFFFF  # Convert to unsigned
     else:
         return int(imm_str)
 
 def compile_glyph_program(source):
-    """Compile .glyph source to texture data."""
+    """Compile .glyph source to texture data.
+
+    Returns a list of (opcode, stratum, p1, p2) tuples.
+    Each tuple represents one pixel in the texture.
+    """
     lines = source.split('\n')
     instructions = []
     labels = {}
-    pending_labels = []
 
-    # First pass: collect labels
+    # First pass: collect labels and calculate addresses
     pc = 0
     for line in lines:
         # Remove comments
@@ -128,11 +168,23 @@ def compile_glyph_program(source):
         if line.startswith(':'):
             label_name = line[1:].strip()
             labels[label_name] = pc
-            pending_labels.append((label_name, pc))
             continue
 
-        # Count instruction
-        pc += 1
+        # Parse instruction to count pixels
+        parts = line.replace(',', ' ').split()
+        if not parts:
+            continue
+
+        opcode_str = parts[0].upper()
+
+        # LDI uses 2 pixels (instruction + data)
+        if opcode_str == 'LDI':
+            pc += 2
+        # BRANCH uses 2 pixels (instruction + offset)
+        elif opcode_str in ['BRANCH', 'JZ', 'JNZ'] or OPCODES.get(opcode_str, 0) == 10:
+            pc += 2
+        else:
+            pc += 1
 
     # Second pass: compile instructions
     pc = 0
@@ -153,120 +205,150 @@ def compile_glyph_program(source):
             continue
 
         opcode_str = parts[0].upper()
-        if opcode_str not in OPCODES:
-            print(f"Warning: Unknown opcode '{opcode_str}' at line {pc}")
+
+        # Handle pseudo-instructions
+        actual_opcode = OPCODES.get(opcode_str, 0)
+        if isinstance(actual_opcode, str):
+            if actual_opcode == 'BRANCH_EQ':
+                # JZ -> BRANCH with stratum=0 (BEQ)
+                opcode_str = 'BRANCH'
+                actual_opcode = OPCODES['BRANCH']
+                # Will add stratum=0 below
+            elif actual_opcode == 'BRANCH_NE':
+                # JNZ -> BRANCH with stratum=1 (BNE)
+                opcode_str = 'BRANCH'
+                actual_opcode = OPCODES['BRANCH']
+                # Will add stratum=1 below
+            elif actual_opcode == 'SUB':
+                # CMP -> SUB
+                opcode_str = 'SUB'
+                actual_opcode = OPCODES['SUB']
+
+        if opcode_str not in OPCODES and actual_opcode == 0:
+            print(f"Warning: Unknown opcode '{opcode_str}' at PC {pc}")
             continue
 
-        opcode = OPCODES[opcode_str]
-        stratum = 2  # LOGIC stratum
+        opcode = actual_opcode
+        stratum = 2  # Default: LOGIC stratum
         p1 = 0
         p2 = 0
 
         # Parse operands based on instruction type
-        if opcode_str in ['LDI', 'LDI16', 'LDI32', 'LDI24']:
-            # LDI rd, imm
+        if opcode_str == 'LDI':
+            # LDI rd, imm - uses 2 pixels
             if len(parts) >= 3:
                 p1 = parse_register(parts[1])
                 imm_str = parts[2]
                 if imm_str in labels:
-                    p2 = labels[imm_str] & 0xFF
-                elif imm_str.startswith('r'):
-                    # It's actually a register (shouldn't happen for LDI, but handle it)
-                    p2 = parse_register(imm_str)
+                    imm = labels[imm_str]
                 else:
                     try:
                         imm = parse_immediate(imm_str)
-                        p2 = imm & 0xFF
                     except ValueError:
-                        # Unknown label, use 0
-                        p2 = 0
+                        imm = 0
 
-        elif opcode_str in ['MOV', 'ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'AND', 'OR', 'XOR', 'SHL', 'SHR']:
-            # OP rd, rs (result in rd)
+                # First pixel: LDI instruction
+                instructions.append((opcode, stratum, p1, 0))
+                pc += 1
+
+                # Second pixel: 32-bit immediate value
+                # Encode as (R, G, B, A) = (imm & 0xFF, (imm>>8)&0xFF, (imm>>16)&0xFF, (imm>>24)&0xFF)
+                instructions.append((
+                    imm & 0xFF,
+                    (imm >> 8) & 0xFF,
+                    (imm >> 16) & 0xFF,
+                    (imm >> 24) & 0xFF
+                ))
+                pc += 1
+            continue
+
+        elif opcode_str in ['MOV', 'ADD', 'SUB', 'MUL', 'DIV', 'AND', 'OR', 'XOR', 'SHL', 'SHR', 'SAR']:
+            # OP src, dst (result goes into dst)
+            # synthetic_vram: regs[p2] = regs[p1] OP regs[p2]
             if len(parts) >= 3:
                 p1 = parse_register(parts[1])
                 p2 = parse_register(parts[2])
 
-        elif opcode_str in ['LOAD', 'STORE']:
-            # LOAD addr, rd / STORE addr, rs
+        elif opcode_str == 'LOAD':
+            # LOAD addr_reg, dst_reg
+            # synthetic_vram: regs[p2] = memory[regs[p1]]
             if len(parts) >= 3:
-                addr_str = parts[1]
-                if addr_str in labels:
-                    p1 = labels[addr_str] & 0xFF
-                else:
-                    p1 = parse_register(addr_str)
+                p1 = parse_register(parts[1])
                 p2 = parse_register(parts[2])
 
-        elif opcode_str in ['JMP', 'JZ', 'JNZ', 'CALL']:
-            # JMP rs / JZ cond_reg, target_reg / JZ label (implicit zero flag)
-            if len(parts) >= 2:
-                first_op = parts[1]
-                # Check if first operand is a register or a label
-                if first_op.startswith('r'):
-                    p1 = parse_register(first_op)
-                    if len(parts) >= 3:
-                        target = parts[2]
-                        if target in labels:
-                            p2 = labels[target] & 0xFF
-                        elif target.startswith('r'):
-                            p2 = parse_register(target)
-                        else:
-                            try:
-                                p2 = parse_immediate(target) & 0xFF
-                            except ValueError:
-                                p2 = 0
-                    else:
-                        p2 = 0
-                else:
-                    # First operand is a label (implicit zero flag check)
-                    p1 = 0  # Use r0 (always zero)
-                    if first_op in labels:
-                        p2 = labels[first_op] & 0xFF
-                    else:
-                        try:
-                            p2 = parse_immediate(first_op) & 0xFF
-                        except ValueError:
-                            p2 = 0
+        elif opcode_str == 'STORE':
+            # STORE addr_reg, src_reg
+            # synthetic_vram: memory[regs[p1]] = regs[p2]
+            if len(parts) >= 3:
+                p1 = parse_register(parts[1])
+                p2 = parse_register(parts[2])
 
-        elif opcode_str == 'HALT':
-            pass  # No operands
+        elif opcode_str == 'JMP':
+            # JMP reg - jump to address in register
+            # synthetic_vram stratum=2: pc = regs[p1]
+            if len(parts) >= 2:
+                p1 = parse_register(parts[1])
+            stratum = 2  # Register mode
+
+        elif opcode_str == 'BRANCH':
+            # BRANCH cond, rs1, rs2, offset
+            # JZ rs1, label (pseudo) -> BRANCH stratum=0, rs1, r0, offset
+            # JNZ rs1, label (pseudo) -> BRANCH stratum=1, rs1, r0, offset
+            if len(parts) >= 3:
+                # Check if it's JZ/JNZ format: JZ rs, label
+                if opcode_str in ['JZ', 'JNZ']:
+                    p1 = parse_register(parts[1])  # Condition register
+                    p2 = 0  # Compare against r0 (always zero)
+                    stratum = 0 if opcode_str == 'JZ' else 1  # BEQ or BNE
+                    target = parts[2] if len(parts) >= 3 else '0'
+                else:
+                    # Full BRANCH format: BRANCH rs1, rs2, offset
+                    p1 = parse_register(parts[1])
+                    p2 = parse_register(parts[2]) if len(parts) >= 3 else 0
+                    stratum = 0  # Default: BEQ
+                    target = parts[3] if len(parts) >= 4 else '0'
+
+                # Calculate offset (relative to next instruction)
+                if target in labels:
+                    target_addr = labels[target]
+                else:
+                    try:
+                        target_addr = parse_immediate(target)
+                    except ValueError:
+                        target_addr = 0
+
+                # First pixel: BRANCH instruction
+                instructions.append((opcode, stratum, p1, p2))
+                pc += 1
+
+                # Second pixel: signed offset
+                offset = target_addr - (pc + 1)  # Relative to pixel after offset
+                offset = offset & 0xFFFFFFFF  # Convert to unsigned
+                instructions.append((
+                    offset & 0xFF,
+                    (offset >> 8) & 0xFF,
+                    (offset >> 16) & 0xFF,
+                    (offset >> 24) & 0xFF
+                ))
+                pc += 1
+            continue
+
+        elif opcode_str in ['JZ', 'JNZ']:
+            # These should have been converted to BRANCH above
+            # This handles the case where they weren't
+            pass
+
+        elif opcode_str in ['CALL', 'RET', 'RETURN', 'HALT', 'NOP']:
+            # No additional operands
+            pass
 
         instructions.append((opcode, stratum, p1, p2))
         pc += 1
 
     return instructions
 
-def create_substrate_texture(instructions, guest_data=None, size=4096):
-    """Create a 4096x4096 RGBA8 texture with the program and guest data."""
-    # Create empty texture
-    texture = bytearray(size * size * 4)
-
-    # Write instructions using Hilbert addressing
-    for i, (opcode, stratum, p1, p2) in enumerate(instructions):
-        x, y = hilbert_d2xy(size, i)
-        offset = (y * size + x) * 4
-        texture[offset + 0] = opcode
-        texture[offset + 1] = stratum
-        texture[offset + 2] = p1
-        texture[offset + 3] = p2
-
-    # Write guest data at address 0x18000 (98304 in decimal)
-    if guest_data:
-        guest_start = 0x18000
-        for i, val in enumerate(guest_data):
-            addr = guest_start + i
-            x, y = hilbert_d2xy(size, addr)
-            offset = (y * size + x) * 4
-            # Write 32-bit value as RGBA
-            texture[offset + 0] = (val >> 0) & 0xFF
-            texture[offset + 1] = (val >> 8) & 0xFF
-            texture[offset + 2] = (val >> 16) & 0xFF
-            texture[offset + 3] = (val >> 24) & 0xFF
-
-    return bytes(texture)
-
-def load_alpine_kernel(path):
-    """Load Alpine kernel from .rts.png file."""
+def load_guest_data(path):
+    """Load guest data from .rts.png file."""
     img = Image.open(path)
     if img.mode != 'RGBA':
         img = img.convert('RGBA')
@@ -274,18 +356,47 @@ def load_alpine_kernel(path):
     size = img.size[0]  # Assume square
     pixels = list(img.getdata())
 
-    # Convert RGBA pixels to 32-bit values using Hilbert addressing
+    # Convert RGBA pixels to 32-bit values
     data = []
-    for i, pixel in enumerate(pixels):
+    for pixel in pixels:
         r, g, b, a = pixel[:4]
         val = r | (g << 8) | (b << 16) | (a << 24)
         data.append(val)
 
     return data
 
+def create_substrate_texture(instructions, guest_data=None, size=4096):
+    """Create a size x size RGBA8 texture with the program and guest data."""
+    texture = bytearray(size * size * 4)
+
+    # Write instructions using Hilbert addressing
+    for i, (r, g, b, a) in enumerate(instructions):
+        x, y = hilbert_d2xy(size, i)
+        offset = (y * size + x) * 4
+        texture[offset + 0] = r & 0xFF
+        texture[offset + 1] = g & 0xFF
+        texture[offset + 2] = b & 0xFF
+        texture[offset + 3] = a & 0xFF
+
+    # Write guest data at address 0x18000 (98304)
+    if guest_data:
+        guest_start = 0x18000
+        for i, val in enumerate(guest_data):
+            addr = guest_start + i
+            if addr >= size * size:
+                break
+            x, y = hilbert_d2xy(size, addr)
+            offset = (y * size + x) * 4
+            texture[offset + 0] = (val >> 0) & 0xFF
+            texture[offset + 1] = (val >> 8) & 0xFF
+            texture[offset + 2] = (val >> 16) & 0xFF
+            texture[offset + 3] = (val >> 24) & 0xFF
+
+    return bytes(texture)
+
 def main():
     print("=" * 60)
-    print("Geometry OS - Alpine Substrate Builder")
+    print("Geometry OS - Substrate Builder")
     print("=" * 60)
 
     # Paths
@@ -310,11 +421,11 @@ def main():
     with open(glyph_path) as f:
         source = f.read()
     instructions = compile_glyph_program(source)
-    print(f"  Compiled {len(instructions)} instructions")
+    print(f"  Compiled {len(instructions)} pixels")
 
     # Load Alpine kernel
     print("\n[2/3] Loading Alpine kernel...")
-    guest_data = load_alpine_kernel(alpine_path)
+    guest_data = load_guest_data(alpine_path)
     print(f"  Loaded {len(guest_data)} words of guest memory")
 
     # Create combined substrate
@@ -328,13 +439,13 @@ def main():
 
     # Verify memory layout
     print("\nMemory Layout:")
-    print(f"  0x00000: Emulator code ({len(instructions)} instructions)")
+    print(f"  0x00000: Emulator code ({len(instructions)} pixels)")
     print(f"  0x14000: Guest PC")
     print(f"  0x14100: Guest registers")
     print(f"  0x18000: Guest RAM (Alpine kernel)")
 
     print("\nDone! Run with:")
-    print(f"  cargo run --bin glyph_vm_boot -- {output_path}")
+    print(f"  cargo run --release --bin glyph_vm_boot -- {output_path}")
 
     return 0
 
