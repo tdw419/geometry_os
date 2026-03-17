@@ -19,7 +19,7 @@ pub enum Opcode {
     Div = 8,
     Jmp = 9,
     Branch = 10,
-    Cmp = 11,
+    Call = 11,
     Ret = 12,
     Halt = 13,
     Data = 14,
@@ -27,7 +27,6 @@ pub enum Opcode {
     Jal = 16,
     Or = 129,
     Sll = 131,
-    Call = 218, // Memory-based call often used in tests
 }
 
 impl Opcode {
@@ -45,12 +44,14 @@ impl Opcode {
             "DIV" => Some(Self::Div),
             "JMP" => Some(Self::Jmp),
             "BRANCH" | "BNE" | "BEQ" | "BLT" | "BGE" | "BLTU" | "BGEU" => Some(Self::Branch),
-            "CMP" => Some(Self::Cmp),
+            "CALL" => Some(Self::Call),
             "RET" | "RETURN" => Some(Self::Ret),
             "HALT" => Some(Self::Halt),
+            "DATA" => Some(Self::Data),
+            "LOOP" => Some(Self::Loop),
+            "JAL" => Some(Self::Jal),
             "OR" => Some(Self::Or),
             "SLL" => Some(Self::Sll),
-            "CALL" => Some(Self::Call),
             _ => None,
         }
     }
@@ -288,8 +289,8 @@ impl GlyphAssembler {
                 let imm = parts.get(2).ok_or("LDI needs immediate value")?;
                 let imm_val = parse_imm(imm.trim_end_matches(','))
                     .or_else(|| {
-                        // Try as label
-                        let label = imm.trim_end_matches(',');
+                        // Try as label (with or without : prefix)
+                        let label = imm.trim_end_matches(',').trim_start_matches(':');
                         if self.labels.contains_key(label) {
                             Some(*self.labels.get(label)? as i32)
                         } else {
@@ -343,19 +344,23 @@ impl GlyphAssembler {
                 let (cond, r1, r2, target) = self.parse_branch(&parts)?;
                 (Instruction { opcode, stratum: cond as u8, p1: r1, p2: r2 }, Some(target))
             }
-            Opcode::Cmp => {
-                let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: 0, p1: rs1, p2: rd }, None)
-            }
             Opcode::Call => {
-                // CALL rd, addr
-                let rd = parse_reg(parts.get(1).ok_or("CALL needs register")?)
-                    .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
-                let addr = parts.get(2).ok_or("CALL needs address")?;
-                let addr_val = parse_imm(addr.trim_end_matches(','))
-                    .or_else(|| self.labels.get(addr.trim_end_matches(',')).map(|&a| a as i32))
-                    .ok_or_else(|| format!("Invalid address: {}", addr))?;
-                (Instruction { opcode, stratum: 0, p1: rd, p2: 0 }, Some(addr_val))
+                // CALL rs | CALL :label
+                let arg = parts.get(1).ok_or("CALL needs register or label")?;
+                // Try register first
+                if let Some(rs) = parse_reg(arg) {
+                    (Instruction { opcode, stratum: 0, p1: rs, p2: 0 }, None)
+                } else if arg.starts_with(':') {
+                    // Label reference - use PC-relative encoding (stratum=2)
+                    let label = arg[1..].to_string();
+                    let target = *self.labels.get(&label).unwrap_or(&0) as i32;
+                    let next_pc = self.addr as i32 + 1;
+                    let offset = target - next_pc;
+                    let offset = offset.clamp(-32768, 32767) as i16 as u16;
+                    (Instruction { opcode, stratum: 2, p1: (offset & 0xFF) as u8, p2: ((offset >> 8) & 0xFF) as u8 }, None)
+                } else {
+                    return Err(format!("Invalid CALL operand: {}", arg));
+                }
             }
             Opcode::Mov => {
                 // MOV rd, rs
@@ -366,10 +371,22 @@ impl GlyphAssembler {
                 (Instruction { opcode, stratum: 0, p1: rs, p2: rd }, None)
             }
             Opcode::Jmp => {
-                // JMP rs
-                let rs = parse_reg(parts.get(1).ok_or("JMP needs register")?)
-                    .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
-                (Instruction { opcode, stratum: 0, p1: rs, p2: 0 }, None)
+                // JMP rs | JMP :label
+                let arg = parts.get(1).ok_or("JMP needs register or label")?;
+                // Try register first
+                if let Some(rs) = parse_reg(arg) {
+                    (Instruction { opcode, stratum: 0, p1: rs, p2: 0 }, None)
+                } else if arg.starts_with(':') {
+                    // Label reference - use PC-relative encoding (stratum=2)
+                    let label = arg[1..].to_string();
+                    let target = *self.labels.get(&label).unwrap_or(&0) as i32;
+                    let next_pc = self.addr as i32 + 1;
+                    let offset = target - next_pc;
+                    let offset = offset.clamp(-32768, 32767) as i16 as u16;
+                    (Instruction { opcode, stratum: 2, p1: (offset & 0xFF) as u8, p2: ((offset >> 8) & 0xFF) as u8 }, None)
+                } else {
+                    return Err(format!("Invalid JMP operand: {}", arg));
+                }
             }
             Opcode::Ret => {
                 (Instruction { opcode, stratum: 0, p1: 0, p2: 0 }, None)
@@ -462,6 +479,10 @@ impl GlyphAssembler {
     fn extract_label_ref(&self, parts: &[&str]) -> Option<String> {
         for part in parts {
             let cleaned = part.trim_end_matches(',');
+            // Handle :label syntax
+            if cleaned.starts_with(':') {
+                return Some(cleaned[1..].to_string());
+            }
             if cleaned.starts_with(|c: char| c.is_alphabetic()) && !cleaned.starts_with('r') && !cleaned.starts_with('R') {
                 // Could be a label
                 if Opcode::from_str(cleaned).is_none() && BranchCond::from_str(cleaned).is_none() {

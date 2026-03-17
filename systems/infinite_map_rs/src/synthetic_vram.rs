@@ -516,7 +516,14 @@ impl SyntheticVram {
                 if sp < STACK_SIZE {
                     self.vms[vm_idx].stack[sp] = pc + 1;
                     self.vms[vm_idx].stack_ptr += 1;
-                    self.vms[vm_idx].pc = self.vms[vm_idx].regs[p1 as usize];
+                    if stratum == 2 {
+                        // PC-relative immediate: offset = p1 | p2<<8
+                        let offset = (p1 | (p2 << 8)) as i32;
+                        self.vms[vm_idx].pc = (pc as i32 + 1 + offset) as u32;
+                    } else {
+                        // Register mode: pc = regs[p1]
+                        self.vms[vm_idx].pc = self.vms[vm_idx].regs[p1 as usize];
+                    }
                 } else {
                     self.vms[vm_idx].state = VM_STATE_HALTED;
                 }
