@@ -189,10 +189,11 @@ mod tests {
         // r6 = digit - 48 (register number)
         b.mov(11, 6); b.sub(1, 6);
 
-        // Emit LDI opcode
-        b.ldi(4, 50000); b.load(4, 5);
-        b.ldi(8, 16); b.shl(6, 8);
-        b.or(5, 7); b.store(3, 7);
+        // Emit LDI opcode: template | (reg << 16)
+        b.ldi(4, 50000); b.load(4, 5);  // r5 = LDI template
+        b.ldi(8, 16); b.shl(6, 8);      // r8 = r6 << 16
+        b.or(5, 8);                     // r8 = r5 | r8 = template | (reg << 16)
+        b.store(3, 8);                  // mem[r3] = r8
         b.add(10, 3);
 
         // Skip to number
@@ -481,12 +482,10 @@ mod tests {
 
         // Dump compiled program
         println!("\n=== COMPILED OUTPUT ===");
-        for i in 0..20 {
+        for i in 0..30 {
             let addr = 500 + i;
             let val = scheduler.peek_substrate_single(addr);
-            if val != 0 {
-                println!("  addr {}: 0x{:08X}", addr, val);
-            }
+            println!("  addr {}: 0x{:08X}", addr, val);
         }
 
         // PHASE 2: Execute the compiled Fibonacci program
