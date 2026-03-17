@@ -21,6 +21,7 @@ The era of symbolic computation is over. In Geometry OS, the **program is not a 
 ## The Hilbert Curve
 
 A **space-filling fractal** that maps a 1D sequence to a 2D grid while **preserving locality**.
+
 - **Cache Efficiency:** Instructions that execute together stay physically close in GPU cache.
 - **Continuous Manifold:** Minimizes distance between logically adjacent data points.
 
@@ -29,6 +30,7 @@ A **space-filling fractal** that maps a 1D sequence to a 2D grid while **preserv
 ## Core Opcodes
 
 ### Logic Stratum (0-15)
+
 | Opcode | Value | Function |
 | :--- | :--- | :--- |
 | `NOP` | 0 | No Operation (spatial padding) |
@@ -45,6 +47,7 @@ A **space-filling fractal** that maps a 1D sequence to a 2D grid while **preserv
 | `JMP` | 209 | Unconditional Jump |
 
 ### Bitwise Stratum (220-231)
+
 | Opcode | Value | Function |
 | :--- | :--- | :--- |
 | `AND` | 220 | Bitwise AND |
@@ -61,6 +64,7 @@ A **space-filling fractal** that maps a 1D sequence to a 2D grid while **preserv
 | `SHR_MEM` | 231 | SHR on memory |
 
 ### Spatial & Windowing (215-237)
+
 - `DRAW glyph_id, x, y`: 215 (Substrate write)
 - `INT_DISPATCH table, mode, dst`: 218 (Mouse hit-testing)
 - `SPATIAL_SPAWN entry, flags`: 225 (Autonomous region instantiation)
@@ -86,9 +90,11 @@ A **space-filling fractal** that maps a 1D sequence to a 2D grid while **preserv
 **Milestone:** On 2026-03-16, an 18-pixel program copied itself from Hilbert address 0 to address 100 **without any CPU involvement during execution**.
 
 ### The Breakthrough
+
 This proves the Glyph VM works as a sovereign substrate. After the frozen bootstrap (the last time the CPU writes program logic), the GPU reads its own instructions from the RAM texture and executes LOAD/STORE/ADD/BRANCH loops to duplicate or evolve itself.
 
 ### The 18-Pixel Self-Copy Program
+
 | Addr | Instruction | Meaning |
 | :--- | :--- | :--- |
 | 0-1 | `LDI r0, 0` | Source Hilbert address |
@@ -137,13 +143,16 @@ This proves the Glyph VM works as a sovereign substrate. After the frozen bootst
 ## Implementation Workflow
 
 1. **Architect the Morphology:** Write `.glyph` assembly. Ensure related logic lives in the same spatial block for cache saturation.
+
 2. **Compile to Substrate:**
    ```bash
    python3 systems/glyph_stratum/programs/compile_glyph.py input.glyph output.rts.png
    ```
+
 3. **Simulation & Verification:**
    - Test in Python simulator
    - Analyze with `python3 -m systems.pixel_compiler.vlm_health_cli check output.rts.png`
+
 4. **Hardware Boot:** Dispatch via the bare-metal kernel or the `visual_kernel` CLI.
 
 ---
