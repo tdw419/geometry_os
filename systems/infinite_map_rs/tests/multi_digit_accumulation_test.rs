@@ -236,29 +236,11 @@ mod tests {
         b.bgeu(1, 6, "done");  // if r1 >= 58, done (BLTU doesn't exist, use BGEU)
 
         // digit = char - 48
-        // MOV r9 = r1; SUB r9 = r9 - r3 (but SUB is r[p2] = r[p1] - r[p2])
-        // So to get r9 = r1 - r3, we need:
-        // First copy r1 to r9: ADD r9 = r1 + 0
-        b.ldi(11, 0);
-        b.add(1, 11);      // r11 = r1 + 0 = r1... wait, add puts result in p2
-        // ADD r[p2] = r[p1] + r[p2]
-        // So add(1, 11) → r11 = r1 + r11 = r1 + 0 = r1 ✓
-
-        // Now subtract: r9 = r11 - r3
-        // SUB r[p2] = r[p1] - r[p2]
-        // So sub(3, 9) → r9 = r3 - r9... wrong
-        // We want r9 = r11 - r3
-        // Need r11 in p1, r3 in p2, but result goes to r3
-        // sub(11, 3) → r3 = r11 - r3 = r1 - 48 ✓
-        b.mov(11, 3);      // r3 = r11 - r3... but mov is just copy
-        // Actually mov(11, 3) does r3 = r11, not subtract
-
-        // Let me use sub directly:
-        // We have r11 = r1 (the char)
-        // We want digit = r11 - 48
+        // Reload r3 = 48 (it gets overwritten by SUB result)
+        b.ldi(3, 48);
         // SUB: r[p2] = r[p1] - r[p2]
-        // sub(11, 3) → r3 = r11 - r3 = char - 48 ✓
-        b.sub(11, 3);      // r3 = r11 - r3 = digit
+        // sub(1, 3) → r3 = r1 - r3 = char - 48 = digit ✓
+        b.sub(1, 3);
 
         // Now accumulate: r7 = r7 * 10 + r3
         // MUL: r[p2] = r[p1] * r[p2]
