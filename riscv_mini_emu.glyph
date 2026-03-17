@@ -1,5 +1,5 @@
 // ============================================================================
-// Geometry OS - RISC-V Mini Emulator (Simple & Correct)
+// Geometry OS - RISC-V Mini Emulator (Fixed)
 // ============================================================================
 //
 // Memory Layout:
@@ -20,31 +20,26 @@
 //   ADD p1, p2: regs[p2] = regs[p1] + regs[p2]
 //   SUB p1, p2: regs[p2] = regs[p1] - regs[p2]
 //   AND p1, p2: regs[p2] = regs[p1] & regs[p2]
-//   OR p1, p2: regs[p2] = regs[p1] | regs[p2]
 //   MOV p1, p2: regs[p2] = regs[p1]
 //   LOAD p1, p2: regs[p2] = mem[regs[p1]]
 //   STORE p1, p2: mem[regs[p1]] = regs[p2]
-//
-// Key insight: p2 is BOTH source (for shift amount) AND destination
 // ============================================================================
 
 :boot
     // r10 = Guest PC = 0x18000 = 98304
-    // Build: 0x18000 = 24 << 12
     LDI r14, 24         // r14 = 24 (value to shift)
     LDI r15, 12         // r15 = 12 (shift amount)
-    SHL r14, r15        // r15 = r14 << r15 = 24 << 12 = 0x18000
+    SHL r14, r15        // r15 = 24 << 12 = 0x18000
     MOV r15, r10        // r10 = 0x18000
 
     // r11 = Guest Regs Base = 0x14100 = 82176
-    // Build: 0x14100 = 321 << 8 = (256 + 65) << 8
     LDI r14, 1          // r14 = 1
     LDI r15, 8          // r15 = 8 (shift amount)
     SHL r14, r15        // r15 = 1 << 8 = 256
     LDI r14, 65         // r14 = 65
-    ADD r14, r15        // r15 = r14 + r15 = 256 + 65 = 321
+    ADD r14, r15        // r15 = 256 + 65 = 321
     LDI r14, 8          // r14 = 8 (shift amount)
-    SHL r15, r14        // r14 = r15 << r14 = 321 << 8 = 0x14100
+    SHL r15, r14        // r14 = 321 << 8 = 0x14100
     MOV r14, r11        // r11 = 0x14100
 
     // r12 = return address to fetch
@@ -102,12 +97,12 @@
     // LUI rd, imm[31:12]
     // Format: imm[31:12] | rd[4:0] | 0x37
 
-    // rd = (instr >> 7) & 0x1F → r14
+    // rd = (instr >> 7) & 0x1F
     MOV r13, r14        // r14 = instruction
     LDI r15, 7          // r15 = 7 (shift amount)
-    SHR r14, r15        // r15 = r14 >> 7 = instr >> 7
-    LDI r14, 0x1F
-    AND r15, r14        // r14 = r15 & 0x1F = rd
+    SHR r14, r15        // r15 = instr >> 7
+    LDI r14, 0x1F       // r14 = mask
+    AND r15, r14        // r14 = rd
 
     // Skip if rd = 0
     JZ r14, fetch
@@ -115,19 +110,20 @@
     // Save rd to r16
     MOV r14, r16        // r16 = rd
 
-    // imm = (instr >> 12) << 12
+    // imm = (instr >> 12) << 12 = instr & 0xFFFFF000
+    // For LUI x1, 0: imm = 0
     MOV r13, r14        // r14 = instruction
     LDI r15, 12         // r15 = 12 (shift amount)
-    SHR r14, r15        // r15 = r14 >> 12 = instr >> 12
+    SHR r14, r15        // r15 = instr >> 12
     LDI r14, 12         // r14 = 12 (shift amount)
-    SHL r15, r14        // r14 = r15 << 12 = imm
+    SHL r15, r14        // r14 = (instr >> 12) << 12 = imm
     MOV r14, r17        // r17 = imm
 
     // Compute guest_regs[rd] address: r11 + (rd << 2)
     MOV r16, r14        // r14 = rd
     LDI r15, 2          // r15 = 2 (shift amount)
-    SHL r14, r15        // r15 = r14 << 2 = rd << 2
-    ADD r11, r15        // r15 = r11 + r15 = &guest_regs[rd]
+    SHL r14, r15        // r15 = rd << 2
+    ADD r11, r15        // r15 = r11 + (rd << 2) = &guest_regs[rd]
 
     // Store imm to guest_regs[rd]
     STORE r15, r17
@@ -139,40 +135,38 @@
     // ADDI rd, rs1, imm[11:0]
     // Format: imm[11:0] | rs1[4:0] | 0 | rd[4:0] | 0x13
 
-    // rd = (instr >> 7) & 0x1F → r14
+    // rd = (instr >> 7) & 0x1F
     MOV r13, r14        // r14 = instruction
     LDI r15, 7          // r15 = 7 (shift amount)
-    SHR r14, r15        // r15 = r14 >> 7
-    LDI r14, 0x1F
+    SHR r14, r15        // r15 = instr >> 7
+    LDI r14, 0x1F       // r14 = mask
     AND r15, r14        // r14 = rd
-
-    // Save rd to r16
     MOV r14, r16        // r16 = rd
 
-    // rs1 = (instr >> 15) & 0x1F → r17
+    // rs1 = (instr >> 15) & 0x1F
     MOV r13, r14        // r14 = instruction
     LDI r15, 15         // r15 = 15 (shift amount)
-    SHR r14, r15        // r15 = r14 >> 15
-    LDI r14, 0x1F
+    SHR r14, r15        // r15 = instr >> 15
+    LDI r14, 0x1F       // r14 = mask
     AND r15, r14        // r14 = rs1
     MOV r14, r17        // r17 = rs1
 
-    // imm = (instr >> 20) → r18
+    // imm = (instr >> 20) & 0xFFF
     MOV r13, r14        // r14 = instruction
     LDI r15, 20         // r15 = 20 (shift amount)
-    SHR r14, r15        // r15 = r14 >> 20 = imm
+    SHR r14, r15        // r15 = instr >> 20 = imm
     MOV r15, r18        // r18 = imm
 
     // Load guest_regs[rs1] → r19
     // addr = r11 + (rs1 << 2)
     MOV r17, r14        // r14 = rs1
     LDI r15, 2          // r15 = 2 (shift amount)
-    SHL r14, r15        // r15 = r14 << 2 = rs1 << 2
-    ADD r11, r15        // r15 = r11 + r15 = &guest_regs[rs1]
+    SHL r14, r15        // r15 = rs1 << 2
+    ADD r11, r15        // r15 = r11 + (rs1 << 2) = &guest_regs[rs1]
     LOAD r15, r19       // r19 = guest_regs[rs1]
 
     // result = guest_regs[rs1] + imm → r19
-    ADD r18, r19        // r19 = r19 + r18
+    ADD r18, r19        // r19 = r19 + imm
 
     // Skip if rd = 0
     JZ r16, fetch
@@ -181,8 +175,8 @@
     // addr = r11 + (rd << 2)
     MOV r16, r14        // r14 = rd
     LDI r15, 2          // r15 = 2 (shift amount)
-    SHL r14, r15        // r15 = r14 << 2 = rd << 2
-    ADD r11, r15        // r15 = r11 + r15 = &guest_regs[rd]
+    SHL r14, r15        // r15 = rd << 2
+    ADD r11, r15        // r15 = r11 + (rd << 2) = &guest_regs[rd]
     STORE r15, r19
 
     JMP r12
@@ -193,35 +187,35 @@
     // Format: imm[11:5] | rs2[4:0] | rs1[4:0] | 2 | imm[4:0] | 0x23
     // For GEOM test: offsets are small (0, 4, 8, 12)
 
-    // rs1 = (instr >> 15) & 0x1F → r14
+    // rs1 = (instr >> 15) & 0x1F
     MOV r13, r14        // r14 = instruction
     LDI r15, 15         // r15 = 15 (shift amount)
-    SHR r14, r15        // r15 = r14 >> 15
-    LDI r14, 0x1F
+    SHR r14, r15        // r15 = instr >> 15
+    LDI r14, 0x1F       // r14 = mask
     AND r15, r14        // r14 = rs1
     MOV r14, r16        // r16 = rs1
 
-    // rs2 = (instr >> 20) & 0x1F → r17
+    // rs2 = (instr >> 20) & 0x1F
     MOV r13, r14        // r14 = instruction
     LDI r15, 20         // r15 = 20 (shift amount)
-    SHR r14, r15        // r15 = r14 >> 20
-    LDI r14, 0x1F
+    SHR r14, r15        // r15 = instr >> 20
+    LDI r14, 0x1F       // r14 = mask
     AND r15, r14        // r14 = rs2
     MOV r14, r17        // r17 = rs2
 
     // offset (simplified - lower 5 bits only for small offsets) → r18
     MOV r13, r14        // r14 = instruction
     LDI r15, 7          // r15 = 7 (shift amount)
-    SHR r14, r15        // r15 = r14 >> 7
-    LDI r14, 0x1F
+    SHR r14, r15        // r15 = instr >> 7
+    LDI r14, 0x1F       // r14 = mask
     AND r15, r14        // r14 = (instr >> 7) & 0x1F
     MOV r14, r18        // r18 = offset
 
     // Load guest_regs[rs1] (base address) → r19
     MOV r16, r14        // r14 = rs1
     LDI r15, 2          // r15 = 2 (shift amount)
-    SHL r14, r15        // r15 = r14 << 2 = rs1 << 2
-    ADD r11, r15        // r15 = r11 + r15 = &guest_regs[rs1]
+    SHL r14, r15        // r15 = rs1 << 2
+    ADD r11, r15        // r15 = r11 + (rs1 << 2) = &guest_regs[rs1]
     LOAD r15, r19       // r19 = guest_regs[rs1]
 
     // effective_addr = base + offset → r19
@@ -229,9 +223,9 @@
 
     // Load guest_regs[rs2] (value to store) → r15
     MOV r17, r14        // r14 = rs2
-    LDI r17, 2          // r17 = 2 (using r17 for shift amount to avoid conflict)
-    SHL r14, r17        // r17 = r14 << 2 = rs2 << 2
-    ADD r11, r17        // r17 = r11 + r17 = &guest_regs[rs2]
+    LDI r17, 2          // r17 = 2 (shift amount, using r17 to avoid conflict)
+    SHL r14, r17        // r17 = rs2 << 2
+    ADD r11, r17        // r17 = r11 + (rs2 << 2) = &guest_regs[rs2]
     LOAD r17, r15       // r15 = guest_regs[rs2]
 
     // Store r15 to [r19]
