@@ -30,7 +30,7 @@ use infinite_map_rs::brain_bridge::{BrainBridge, BrainBridgeConfig};
 use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
 use infinite_map_rs::trap_interface::{op_type, status, TrapRegs, TRAP_BASE};
 use infinite_map_rs::ml_memory::{
-    MLMemoryPool, PoolConfig, TensorSpec, TensorId, DataType, MemoryRegion,
+    MLMemoryPool, PoolConfig, TensorSpec, TensorId, DataType, MemoryRegion, get_global_pool,
 };
 use infinite_map_rs::gpu::hebbian_processor::{GPUHebbianProcessor, HebbianUpdate};
 use infinite_map_rs::pixel_brain::infer::PixelBrainInferencer;
@@ -719,11 +719,11 @@ fn get_pool_stats_for_visualization(pool: &str) -> Vec<(BlockState, f64)> {
 
 /// Convert real MLMemoryPool stats to visualization format
 fn convert_real_pool_stats(
-    all_stats: &std::collections::HashMap<String, crate::ml_memory::PoolStats>,
+    all_stats: &std::collections::HashMap<String, infinite_map_rs::ml_memory::PoolStats>,
     pool: &str,
     total_blocks: usize,
 ) -> Vec<(BlockState, f64)> {
-    use crate::ml_memory::PoolStats;
+    use infinite_map_rs::ml_memory::PoolStats;
 
     let pool_stats = match pool {
         "weight" => all_stats.get("weight"),
@@ -749,7 +749,7 @@ fn convert_real_pool_stats(
         let pos_ratio = i as f64 / total_blocks as f64;
         let state = if pos_ratio < used_ratio {
             // Allocated region
-            if (pos_ratio * 100.0) as usize % (fragmentation as usize).max(1) {
+            if (pos_ratio * 100.0) as usize % (fragmentation as usize).max(1) != 0 {
                 BlockState::Fragmented
             } else if i % 7 == 0 {
                 BlockState::HilbertAligned
