@@ -2214,21 +2214,3 @@ mod tests {
         println!("  ✓ Parent wrote event to child mailbox (IPC proven)");
     }
 }
-
-        println!(
-            "After child: mem[300] = {:04X} mem[304] = {:04X}",
-            vram.peek(300),
-            vram.peek(304)
-        );
-
-        // === VERIFY ===
-        // Parent should have written 1 to mem[300]
-        assert_eq!(vram.peek(300), 1, "Parent should write event to mailbox");
-
-        // Child should have written ack to mem[304]
-        assert_eq!(vram.peek(304), 0xCAFE, "Child should write ack");
-
-        println!("  ✓ Parent wrote event to child mailbox");
-        println!("  ✓ Child read and acknowledged event");
-    }
-}
