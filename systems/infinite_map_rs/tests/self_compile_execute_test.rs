@@ -280,7 +280,7 @@ mod tests {
         b.add(10, 0); b.load(0, 1);
         b.ldi(2, 84); b.bne(1, 2, "error");  // 'T'
 
-        b.ldi(4, 50002); b.load(4, 5);
+        b.ldi(4, 50003); b.load(4, 5);
         b.store(3, 5);
         b.add(10, 3);
         b.jmp("main_loop");
@@ -321,14 +321,20 @@ mod tests {
         let r203 = scheduler.peek_substrate_single(203);
         let r204 = scheduler.peek_substrate_single(204);
         let r205 = scheduler.peek_substrate_single(205);
+        let r206 = scheduler.peek_substrate_single(206);
+        let r207 = scheduler.peek_substrate_single(207);
+        let r208 = scheduler.peek_substrate_single(208);
 
         println!("\n=== COMPILED OUTPUT ===");
-        println!("  addr 200: 0x{:08X} (LDI r1)", r200);
-        println!("  addr 201: 0x{:08X} (42)", r201);
-        println!("  addr 202: 0x{:08X} (LDI r2)", r202);
-        println!("  addr 203: 0x{:08X} (300)", r203);
-        println!("  addr 204: 0x{:08X} (STORE r2, r1)", r204);
-        println!("  addr 205: 0x{:08X} (HALT)", r205);
+        println!("  addr 200: 0x{:08X} (LDI r1, 5)", r200);
+        println!("  addr 201: 0x{:08X} (5)", r201);
+        println!("  addr 202: 0x{:08X} (LDI r2, 3)", r202);
+        println!("  addr 203: 0x{:08X} (3)", r203);
+        println!("  addr 204: 0x{:08X} (ADD r2, r1)", r204);
+        println!("  addr 205: 0x{:08X} (LDI r3)", r205);
+        println!("  addr 206: 0x{:08X} (300)", r206);
+        println!("  addr 207: 0x{:08X} (STORE r3, r1)", r207);
+        println!("  addr 208: 0x{:08X} (HALT)", r208);
 
         // PHASE 2: Execute the compiled program
         println!("\n=== PHASE 2: EXECUTING COMPILED PROGRAM ===");
@@ -348,19 +354,19 @@ mod tests {
         let result = scheduler.peek_substrate_single(300);
 
         println!("\n=== PHASE 3: VERIFICATION ===");
-        println!("  addr 300: expected 42, got {}", result);
+        println!("  addr 300: expected 8 (5+3), got {}", result);
 
-        if result == 42 {
+        if result == 8 {
             println!("\n  ╔═══════════════════════════════════════════════════════╗");
-            println!("  ║  SELF-COMPILE-AND-EXECUTE WORKS!              ║");
-            println!("  ║  GPU compiled text → opcodes, then ran it.         ║");
-            println!("  ║  Full sovereignty demonstrated.                      ║");
+            println!("  ║  SELF-COMPILE-AND-EXECUTE WITH ADD WORKS!           ║");
+            println!("  ║  GPU compiled Fibonacci-like program and ran it.    ║");
+            println!("  ║  Full sovereignty with arithmetic demonstrated.     ║");
             println!("  ╚═══════════════════════════════════════════════════════╝");
         } else {
-            println!("\n  FAILED: expected 42 at addr 300, got {}", result);
+            println!("\n  FAILED: expected 8 at addr 300, got {}", result);
         }
 
-        assert_eq!(result, 42, "STORE should have written 42 to addr 300");
+        assert_eq!(result, 8, "ADD should have computed 5+3=8 and STORE should have written it to addr 300");
     }
 
     // ProgramBuilder
