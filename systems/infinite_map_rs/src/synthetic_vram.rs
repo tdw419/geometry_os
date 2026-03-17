@@ -1567,12 +1567,12 @@ mod tests {
 
         // IS 'r': Skip 'r'
         poke_ldi(&mut vram, &mut pc, 3, 1);
-        vram.poke(pc, glyph(5, 0, 0, 3)); pc += 1; // ADD r0, r0, r3
+        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0 = r3 + r0 (r0++)
         // JMP :parse_dec_init
         let jump_dec_off_pc = pc + 1; // addr where target will be stored
-        vram.poke(pc, glyph(1, 0, 1, 0)); pc += 1; // LDI r1
+        vram.poke(pc, glyph(1, 0, 3, 0)); pc += 1; // LDI r3
         vram.poke(pc, 0); pc += 1; // target (fill later)
-        vram.poke(pc, glyph(9, 0, 1, 0)); pc += 1; // JMP r1
+        vram.poke(pc, glyph(9, 0, 3, 0)); pc += 1; // JMP r3
 
         // --- CHECK HEX ---
         let check_hex_label = pc;
@@ -1584,7 +1584,7 @@ mod tests {
 
         // IS '0': Peek next
         poke_ldi(&mut vram, &mut pc, 3, 1);
-        vram.poke(pc, glyph(5, 0, 0, 3)); pc += 1; // ADD r0, r0, r3
+        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0 = r3 + r0 (r0++)
         vram.poke(pc, glyph(3, 0, 0, 2)); pc += 1; // LOAD r2, [r0]
         poke_ldi(&mut vram, &mut pc, 3, 120); // r3 = 'x'
         let bne_x_pc = pc; vram.poke(pc, glyph(10, 1, 2, 3)); pc += 1; // BNE r2, r3, :finish (simplified)
@@ -1592,12 +1592,12 @@ mod tests {
 
         // IS 'x': Parse Hex
         poke_ldi(&mut vram, &mut pc, 3, 1);
-        vram.poke(pc, glyph(5, 0, 0, 3)); pc += 1; // ADD r0, r0, r3
+        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0 = r3 + r0 (r0++)
         // JMP :parse_hex_init
         let jump_hex_off_pc = pc + 1;
-        vram.poke(pc, glyph(1, 0, 1, 0)); pc += 1; // LDI r1
+        vram.poke(pc, glyph(1, 0, 3, 0)); pc += 1; // LDI r3
         vram.poke(pc, 0); pc += 1;
-        vram.poke(pc, glyph(9, 0, 1, 0)); pc += 1; // JMP r1
+        vram.poke(pc, glyph(9, 0, 3, 0)); pc += 1; // JMP r3
 
         // --- PARSE DEC ---
         let parse_dec_label = pc;
@@ -1621,7 +1621,7 @@ mod tests {
         vram.poke(pc, glyph(7, 0, 4, 1)); pc += 1; // MUL r1, r4, r1 (acc *= 10)
         vram.poke(pc, glyph(5, 0, 2, 1)); pc += 1; // ADD r1, r2, r1 (acc += digit)
         poke_ldi(&mut vram, &mut pc, 3, 1);
-        vram.poke(pc, glyph(5, 0, 0, 3)); pc += 1; // r0++
+        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0 = r3 + r0 (r0++)
         // JMP dec_loop_start
         poke_ldi(&mut vram, &mut pc, 3, dec_loop_start);
         vram.poke(pc, glyph(9, 0, 3, 0)); pc += 1; // JMP r3
@@ -1682,7 +1682,7 @@ mod tests {
         vram.poke(pc, glyph(7, 0, 4, 1)); pc += 1; // acc *= 16
         vram.poke(pc, glyph(5, 0, 2, 1)); pc += 1; // acc += digit
         poke_ldi(&mut vram, &mut pc, 3, 1);
-        vram.poke(pc, glyph(5, 0, 0, 3)); pc += 1; // r0++
+        vram.poke(pc, glyph(5, 0, 3, 0)); pc += 1; // r0 = r3 + r0 (r0++)
         // JMP hex_loop_start
         poke_ldi(&mut vram, &mut pc, 3, hex_loop_start);
         vram.poke(pc, glyph(9, 0, 3, 0)); pc += 1;
@@ -1719,10 +1719,17 @@ mod tests {
             vram.poke(0x200 + input.len() as u32, 0); // Null terminator
             vram.poke(0x500, 0xDEADBEEF);
 
+            vram.enable_tracing();
             vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
             vram.execute_frame_interleaved(1);
 
             let result = vram.peek(0x500);
+            if result != *expected {
+                println!("Execution Trace for \"{}\":", input);
+                for entry in vram.trace() {
+                    println!("  {:?}", entry);
+                }
+            }
             println!("  \"{}\" → {} (expected {})", input, result, expected);
             assert_eq!(result, *expected, "Failed to parse \"{}\"", input);
         }
