@@ -50,17 +50,17 @@ fn glyph(opcode: u32, stratum: u32, p1: u32, p2: u32) -> u32 {
 /// 6-7:   LDI r3 = 1 (increment)
 /// 8-9:   LDI r4 = count
 /// 10-11: LDI r6 = 0 (checksum)
-/// 12:    LOAD r5, [r0]
-/// 13:    STORE [r1], r5
-/// 14:    ADD r6, r5, r6
-/// 15:    ADD r0, r3, r0
-/// 16:    ADD r1, r3, r1
-/// 17:    ADD r2, r3, r2
-/// 18-19: BNE r2, r4, -7
-/// 20:    STORE [r7], r6 (checksum)
-/// 21:    HALT
-/// 22-23: LDI r7 = checksum_addr (patched in separately)
-fn create_scaler_program(src_addr: u32, dst_addr: u32, count: u32) -> Vec<(u32, u32)> {
+/// 12-13: LDI r7 = checksum_addr
+/// 14:    LOAD r5, [r0]
+/// 15:    STORE [r1], r5
+/// 16:    ADD r6, r5, r6
+/// 17:    ADD r0, r3, r0
+/// 18:    ADD r1, r3, r1
+/// 19:    ADD r2, r3, r2
+/// 20-21: BNE r2, r4, -8 (jump to addr 14)
+/// 22:    STORE [r7], r6 (checksum)
+/// 23:    HALT
+fn create_scaler_program(src_addr: u32, dst_addr: u32, count: u32, checksum_addr: u32) -> Vec<(u32, u32)> {
     vec![
         // 0-1: LDI r0 = src_addr
         (0, glyph(1, 0, 0, 0)),
@@ -80,25 +80,28 @@ fn create_scaler_program(src_addr: u32, dst_addr: u32, count: u32) -> Vec<(u32, 
         // 10-11: LDI r6 = 0 (checksum)
         (10, glyph(1, 0, 6, 0)),
         (11, 0),
-        // 12: LOAD r5, [r0]
-        (12, glyph(3, 0, 0, 5)),
-        // 13: STORE [r1], r5
-        (13, glyph(4, 0, 1, 5)),
-        // 14: ADD r6, r5, r6
-        (14, glyph(5, 0, 5, 6)),
-        // 15: ADD r0, r3, r0 (src++)
-        (15, glyph(5, 0, 3, 0)),
-        // 16: ADD r1, r3, r1 (dst++)
-        (16, glyph(5, 0, 3, 1)),
-        // 17: ADD r2, r3, r2 (counter++)
-        (17, glyph(5, 0, 3, 2)),
-        // 18-19: BNE r2, r4, -10 (jump to addr 10)
-        (18, glyph(10, 1, 2, 4)),
-        (19, 0xFFFFFFF6u32),  // -10 as u32
-        // 20: STORE [r7], r6
-        (20, glyph(4, 0, 7, 6)),
-        // 21: HALT
-        (21, glyph(13, 0, 0, 0)),
+        // 12-13: LDI r7 = checksum_addr
+        (12, glyph(1, 0, 7, 0)),
+        (13, checksum_addr),
+        // 14: LOAD r5, [r0]
+        (14, glyph(3, 0, 0, 5)),
+        // 15: STORE [r1], r5
+        (15, glyph(4, 0, 1, 5)),
+        // 16: ADD r6, r5, r6
+        (16, glyph(5, 0, 5, 6)),
+        // 17: ADD r0, r3, r0 (src++)
+        (17, glyph(5, 0, 3, 0)),
+        // 18: ADD r1, r3, r1 (dst++)
+        (18, glyph(5, 0, 3, 1)),
+        // 19: ADD r2, r3, r2 (counter++)
+        (19, glyph(5, 0, 3, 2)),
+        // 20-21: BNE r2, r4, -8 (jump to addr 14)
+        (20, glyph(10, 1, 2, 4)),
+        (21, 0xFFFFFFF8u32),  // -8 as u32
+        // 22: STORE [r7], r6
+        (22, glyph(4, 0, 7, 6)),
+        // 23: HALT
+        (23, glyph(13, 0, 0, 0)),
     ]
 }
 
@@ -156,14 +159,10 @@ fn test_sovereign_scaler_1k() {
     println!("[DEBUG] Source verified OK");
 
     // Write scaler program
-    let program = create_scaler_program(src_base, dst_base, count);
+    let program = create_scaler_program(src_base, dst_base, count, checksum_addr);
     for &(addr, val) in &program {
         scheduler.poke_substrate_single(addr, val);
     }
-
-    // Set r7 = checksum address
-    scheduler.poke_substrate_single(22, glyph(1, 0, 7, 0)); // LDI r7
-    scheduler.poke_substrate_single(23, checksum_addr);      // = checksum_addr
 
     // Spawn VM
     let config = VmConfig {
@@ -298,13 +297,10 @@ fn test_sovereign_scaler_64k() {
     }
 
     // Write program
-    let program = create_scaler_program(src_base, dst_base, count);
+    let program = create_scaler_program(src_base, dst_base, count, checksum_addr);
     for &(addr, val) in &program {
         scheduler.poke_substrate_single(addr, val);
     }
-
-    scheduler.poke_substrate_single(22, glyph(1, 0, 7, 0));
-    scheduler.poke_substrate_single(23, checksum_addr);
 
     let config = VmConfig {
         entry_point: 0,
@@ -418,13 +414,10 @@ fn test_sovereign_scaler_kernel_sized() {
     }
 
     // Write program
-    let program = create_scaler_program(src_base, dst_base, count);
+    let program = create_scaler_program(src_base, dst_base, count, checksum_addr);
     for &(addr, val) in &program {
         scheduler.poke_substrate_single(addr, val);
     }
-
-    scheduler.poke_substrate_single(22, glyph(1, 0, 7, 0));
-    scheduler.poke_substrate_single(23, checksum_addr);
 
     let config = VmConfig {
         entry_point: 0,
