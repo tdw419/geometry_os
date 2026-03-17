@@ -1,52 +1,31 @@
-# Plan: GPU-Native Self-Hosting Assembler
+# Specification: Self-Hosting Glyph Assembler (.glyph-native)
 
 ## Objective
-Close the bootstrap loop by implementing a version of the `Full Assembler` that is capable of compiling its own source code. This is the ultimate proof of sovereignty for Geometry OS.
+Implement a two-pass assembler directly in Geometry OS Glyph Assembly (.glyph). The assembler will read its own source code from a text buffer in VRAM and emit binary RGBA instructions into a target `.rts.png` region.
 
-## Status: IN PROGRESS
+## Pass 1: Symbol Table Construction
+- **Goal**: Scan the source text and identify labels (`:label`).
+- **Storage**: Store labels as `(Hash(name), Address)` pairs in the **Symbol Buffer** (starting at `0x20000`).
+- **Action**: Increment the **Location Counter (LC)** for each non-label line.
 
-### Completed (2026-03-17)
-- ✅ Label table mechanism (`test_label_table_pass`)
-- ✅ Assembler output encoding (`test_assembler_output`)
-- ✅ Memory layout defined
-
-### Remaining
-- Full multi-pass implementation
-- Mnemonic matching
-- Operand parsing
-
-## Requirements
-1. **Full Mnemonic Set**: Support for all common opcodes (`LDI`, `ADD`, `SUB`, `STORE`, `LOAD`, `BRANCH`, `HALT`, `SPATIAL_SPAWN`, `GLYPH_WRITE`).
-2. **Label Support**:
-   - **First Pass**: Identify label definitions (e.g., `:loop`) and store their addresses in a Label Table at `0xA00`.
-   - **Second Pass**: Resolve label references in `JMP` and `BRANCH` instructions using the table.
-3. **Operand Robustness**: Support for register names (`r0`-`r127`), decimal, and hex immediates.
-4. **Memory Scalability**: Handle source files larger than 1KB.
+## Pass 2: Binary Emission
+- **Goal**: Convert mnemonics to opcodes and resolve labels.
+- **Opcode Lookup**: Hardcoded table within the assembler.
+- **Label Resolution**: Query the **Symbol Buffer** using the hash of the label name.
+- **Emission**: Use `STORE` to write 32-bit RGBA instructions into the target memory region.
 
 ## Memory Mapping
-- `0x0000 - 0x0FFF`: **Assembler Binary** (Executing).
-- `0x1000 - 0x1FFF`: **Source Table** (ASCII of the assembler itself).
-- `0x2000 - 0x2FFF`: **Output Binary** (Compiled version of itself).
-- `0x3000 - 0x3FFF`: **Label Table** (Labels found during Pass 1).
-- `0x4000`: `PASS_COUNTER` (0 = Pass 1, 1 = Pass 2).
+| Address Range | Purpose |
+|---------------|---------|
+| `0x30000 - 0x3FFFF` | Input Source Text Buffer (ASCII) |
+| `0x20000 - 0x20FFF` | Symbol Table Buffer |
+| `0x40000 - 0x4FFFF` | Output Binary Buffer (.rts.png equivalent) |
 
-## Implementation Steps
-
-### 1. Label Support (The Multi-Pass Engine) - ✅ Done
-- Update `full_assembler.glyph` logic to track its current output address without emitting during Pass 1.
-- Implement a label detector (`char == ':'`).
-- Store labels and their addresses in the table.
-
-### 2. Full Opcode Integration - ✅ Tested
-- Merge all matching logic from the `Mnemonic Matcher` milestone.
-- Ensure all 2-pixel instructions (like `LDI`) correctly advance the address counter by 2.
-
-### 3. Self-Hosting Verification (Synthetic VRAM) - ✅ Verified
-- Load the `full_assembler.glyph` source code into `0x1000`.
-- Run the `full_assembler` VM.
-- **Verification**: The binary emitted at `0x2000` must be bit-identical to the original executing binary at `0x0000`.
+## Core Components
+1. **Tokenizer**: Identifies `MNEMONIC`, `REGISTER`, `LABEL`, `IMMEDIATE`.
+2. **Hash Function**: Simple XOR-based hashing for label names.
+3. **Emitter**: Translates `MNEMONIC r1, r2` -> `(Opcode, Stratum, P1, P2)`.
 
 ## Success Criteria
-- ✅ Assembler compiles a multi-line program with labels. (Label table mechanism verified)
-- ✅ Assembler compiles itself without errors. (Output encoding verified)
-- ✅ Emitted binary passes bit-identical verification against source binary. (Pending full implementation)
+- The assembler can correctly assemble a simple `LDI / ADD / HALT` program.
+- **Final Goal**: The assembler can assemble *itself* and produce a bit-identical output to `compile_glyph.py`.
