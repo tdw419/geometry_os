@@ -63,13 +63,29 @@ fn main() -> Result<()> {
     // Run for up to 100000 cycles
     let max_cycles = 100000;
     let mut total_cycles = 0;
+    let mut debug_cycles = 0;
 
     while total_cycles < max_cycles {
+        // Print detailed execution for first 20 cycles
+        if debug_cycles < 20 {
+            if let Some(vm) = vram.vm_state(0) {
+                let pc = vm.pc;
+                let instr = vram.peek(pc);
+                let opcode = instr & 0xFF;
+                let stratum = (instr >> 8) & 0xFF;
+                let p1 = (instr >> 16) & 0xFF;
+                let p2 = (instr >> 24) & 0xFF;
+                println!("  [{}] PC={} opcode={} stratum={} p1={} p2={} (r10={})",
+                    debug_cycles, pc, opcode, stratum, p1, p2, vm.regs[10]);
+            }
+        }
+
         let prev_cycles = total_cycles;
         if !vram.step(0) {
             println!("\nVM stopped at cycle {}", total_cycles);
             break;
         }
+        debug_cycles += 1;
 
         if let Some(vm) = vram.vm_state(0) {
             total_cycles = vm.cycles;
