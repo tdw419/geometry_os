@@ -215,9 +215,10 @@ mod tests {
         b.mov(8, 2);                    // r2 = src << 16 (save it!)
         b.ldi(8, 24); b.shl(7, 8);      // r8 = dst << 24
         b.or(2, 5);                     // r5 = r2 | r5 = (src << 16) | template
-        b.or(8, 5);                     // r5 = r8 | r5 = (dst << 24) | (src << 16) | template
+        b.or(8, 5);                     // r5 = r8 | r5 = final opcode
         b.store(3, 5);
         b.add(10, 3);
+        b.add(10, 0);                   // Advance text pointer past second register digit
         b.jmp("main_loop");
 
         // Try HALT
