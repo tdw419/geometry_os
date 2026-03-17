@@ -608,10 +608,6 @@ mod tests {
             self.ins(glyph(7, 0, rs1, rs2));
         }
 
-        fn neg(&mut self, rs1: u8, rs2: u8) {
-            self.ins(glyph(128, 0, rs1, rs2));  // NEG opcode
-        }
-
         fn or(&mut self, rs1: u8, rs2: u8) {
             self.ins(glyph(129, 0, rs1, rs2));
         }
