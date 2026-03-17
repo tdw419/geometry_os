@@ -73,8 +73,6 @@ pub struct Instruction {
     pub stratum: u8,
     pub p1: u8,
     pub p2: u8,
-    /// Optional immediate data (for LDI, BRANCH)
-    pub data: Option<i32>,
 }
 
 impl Instruction {
@@ -103,7 +101,11 @@ fn parse_imm(s: &str) -> Option<i32> {
     if s.starts_with("0x") || s.starts_with("0X") {
         i32::from_str_radix(&s[2..], 16).ok()
     } else if s.starts_with("-0x") || s.starts_with("-0X") {
-        -i32::from_str_radix(&s[3..], 16).ok()?
+        // Parse negative hex: -0xFF -> -255
+        i32::from_str_radix(&s[3..], 16).ok().map(|v| -v)
+    } else if s.starts_with('-') {
+        // Negative decimal: -42
+        s.parse::<i32>().ok()
     } else {
         s.parse::<i32>().ok()
     }
@@ -436,25 +438,25 @@ mod tests {
 
     #[test]
     fn test_nop_encoding() {
-        let instr = Instruction { opcode: Opcode::Nop, stratum: 0, p1: 0, p2: 0, data: None };
+        let instr = Instruction { opcode: Opcode::Nop, stratum: 0, p1: 0, p2: 0 };
         assert_eq!(instr.encode(), 0x00000000);
     }
 
     #[test]
     fn test_halt_encoding() {
-        let instr = Instruction { opcode: Opcode::Halt, stratum: 0, p1: 0, p2: 0, data: None };
+        let instr = Instruction { opcode: Opcode::Halt, stratum: 0, p1: 0, p2: 0 };
         assert_eq!(instr.encode(), 0x0000000D);
     }
 
     #[test]
     fn test_ldi_encoding() {
-        let instr = Instruction { opcode: Opcode::Ldi, stratum: 0, p1: 5, p2: 0, data: Some(42) };
+        let instr = Instruction { opcode: Opcode::Ldi, stratum: 0, p1: 5, p2: 0 };
         assert_eq!(instr.encode(), 0x00050001);
     }
 
     #[test]
     fn test_store_encoding() {
-        let instr = Instruction { opcode: Opcode::Store, stratum: 0, p1: 0, p2: 5, data: None };
+        let instr = Instruction { opcode: Opcode::Store, stratum: 0, p1: 0, p2: 5 };
         assert_eq!(instr.encode(), 0x00050004);
     }
 
