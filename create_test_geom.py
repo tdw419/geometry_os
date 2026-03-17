@@ -76,8 +76,8 @@ print(f"Guest program: {len(guest_program)} bytes = {len(guest_program)//4} inst
 for i in range(len(guest_program)//4):
     instr = struct.unpack('>I', guest_program[i*4:i*4+4])[0]
     print(f"  [{i}] {instr:08x}")
-# Create 64x64 texture
-size = 64
+# Create 512x512 texture (262144 pixels, enough for address 0x18000)
+size = 512
 texture_data = create_substrate_texture(emulator_instructions, list(guest_program), size=size)
 img = Image.frombytes('RGBA', (size, size), texture_data)
 img.save('test_riscv_geom.rts.png')

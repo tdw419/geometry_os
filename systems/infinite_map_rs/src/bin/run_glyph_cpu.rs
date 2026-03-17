@@ -44,13 +44,19 @@ fn main() -> Result<()> {
 
     let rgba = img.to_rgba8();
 
-    // Create synthetic VRAM (use smaller grid if image is smaller)
-    let grid_size = if width == 4096 { 4096 } else { 64 };
-    let mut vram = SyntheticVram::new_small(grid_size);
+    // Create synthetic VRAM with size matching the image
+    // Image must be power of 2 (e.g., 64, 128, 256, 512, 1024, 2048, 4096)
+    let grid_size = width;  // Use actual image dimension
+    let mut vram = if grid_size <= 1024 {
+        SyntheticVram::new_small(grid_size as usize * grid_size as usize)
+    } else {
+        SyntheticVram::new()
+    };
 
     // Copy pixels into VRAM using Hilbert curve addressing
     // The PNG stores pixels at Hilbert(x,y) in row-major order
     // We need to convert each (x,y) back to Hilbert address
+    let mut first_pixels: Vec<(u32, u32, u32, u32)> = Vec::new();
     for y in 0..height {
         for x in 0..width {
             let pixel = rgba.get_pixel(x, y);
@@ -62,7 +68,23 @@ fn main() -> Result<()> {
             // Convert (x,y) to Hilbert address
             let hilbert_addr = hilbert_xy2d(grid_size, x, y);
             vram.poke(hilbert_addr, val);
+
+            // Collect first few non-zero pixels for debugging
+            if first_pixels.len() < 10 && val != 0 {
+                first_pixels.push((x, y, hilbert_addr, val));
+            }
         }
+    }
+
+    // Debug: show first non-zero pixels
+    println!("\nFirst 10 non-zero pixels loaded:");
+    for (x, y, addr, val) in &first_pixels {
+        let opcode = val & 0xFF;
+        let stratum = (val >> 8) & 0xFF;
+        let p1 = (val >> 16) & 0xFF;
+        let p2 = (val >> 24) & 0xFF;
+        println!("  ({},{}) -> addr {} = 0x{:08x} (op={} st={} p1={} p2={})",
+            x, y, addr, val, opcode, stratum, p1, p2);
     }
 
     // Dump first 30 instructions for debugging
@@ -94,7 +116,7 @@ fn main() -> Result<()> {
 
     while total_cycles < max_cycles {
         // Print detailed execution for first 50 cycles
-        if debug_cycles < 50 {
+        if debug_cycles < 100 {
             if let Some(vm) = vram.vm_state(0) {
                 let pc = vm.pc;
                 let instr = vram.peek(pc);
@@ -102,8 +124,14 @@ fn main() -> Result<()> {
                 let stratum = (instr >> 8) & 0xFF;
                 let p1 = (instr >> 16) & 0xFF;
                 let p2 = (instr >> 24) & 0xFF;
-                println!("  [{}] PC={} opcode={} stratum={} p1={} p2={} (r10={})",
-                    debug_cycles, pc, opcode, stratum, p1, p2, vm.regs[10]);
+
+                // Show more registers for debugging BRANCH issues
+                let r14 = vm.regs[14];
+                let r15 = vm.regs[15];
+                let r13 = vm.regs[13];
+                println!("  [{}] PC={} op={} st={} p1={} p2={} | r10={} r13={} r14={} r15={}",
+                    debug_cycles, pc, opcode, stratum, p1, p2,
+                    vm.regs[10], r13, r14, r15);
             }
         }
 

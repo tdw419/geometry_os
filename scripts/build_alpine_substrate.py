@@ -205,6 +205,7 @@ def compile_glyph_program(source):
             continue
 
         opcode_str = parts[0].upper()
+        original_opcode_str = opcode_str  # Preserve original for JZ/JNZ detection
 
         # Handle pseudo-instructions
         actual_opcode = OPCODES.get(opcode_str, 0)
@@ -296,10 +297,10 @@ def compile_glyph_program(source):
             # JNZ rs1, label (pseudo) -> BRANCH stratum=1, rs1, r0, offset
             if len(parts) >= 2:
                 # Check if it's JZ/JNZ format: JZ rs, label
-                if opcode_str in ['JZ', 'JNZ']:
+                if original_opcode_str in ['JZ', 'JNZ']:
                     p1 = parse_register(parts[1])  # Condition register
                     p2 = 0  # Compare against r0 (always zero)
-                    stratum = 0 if opcode_str == 'JZ' else 1  # BEQ or BNE
+                    stratum = 0 if original_opcode_str == 'JZ' else 1  # BEQ or BNE
                     target = parts[2] if len(parts) >= 3 else '0'
                 else:
                     # Full BRANCH format: BRANCH rs1, rs2, offset
@@ -374,13 +375,23 @@ def create_substrate_texture(instructions, guest_data=None, size=4096):
         texture[offset + 3] = a & 0xFF
 
     # Write guest data at address 0x18000 (98304)
+    # Guest data is a bytearray - combine 4 bytes into each 32-bit pixel
     if guest_data:
         guest_start = 0x18000
-        for i, val in enumerate(guest_data):
-            addr = guest_start + i
-            if addr >= size * size:
+        for i in range(0, len(guest_data), 4):
+            # Combine 4 bytes into a 32-bit word (big-endian)
+            if i + 3 < len(guest_data):
+                val = (guest_data[i] << 24) | (guest_data[i+1] << 16) | (guest_data[i+2] << 8) | guest_data[i+3]
+            else:
+                # Handle partial word at end
+                val = 0
+                for j in range(min(4, len(guest_data) - i)):
+                    val |= guest_data[i + j] << (24 - j * 8)
+
+            pixel_addr = guest_start + (i // 4)
+            if pixel_addr >= size * size:
                 break
-            x, y = hilbert_d2xy(size, addr)
+            x, y = hilbert_d2xy(size, pixel_addr)
             offset = (y * size + x) * 4
             texture[offset + 0] = (val >> 0) & 0xFF
             texture[offset + 1] = (val >> 8) & 0xFF

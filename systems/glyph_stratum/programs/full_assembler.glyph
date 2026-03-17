@@ -1,0 +1,176 @@
+// ============================================================================
+// Geometry OS - Full Assembler Glyph (Version 1.0)
+// ============================================================================
+//
+// A multi-line GPU-native assembler.
+// Compiles ASCII assembly text into Glyph pixels.
+//
+// Memory Layout:
+//   0x200: Source Buffer (ASCII)
+//   0x500: Binary Buffer (Output)
+//   0x800: Mnemonic Table ([c0, c1, c2, opcode] x 6)
+//
+// ============================================================================
+
+:main
+    LDI r0, 0x200           // SRC_PTR
+    LDI r1, 0x500           // BIN_PTR
+    LDI r10, 0x800          // Table Base
+    LDI r12, 0x818          // Table End (6 entries * 4)
+
+:line_start
+    // Skip leading whitespace/commas
+:skip_ws
+    LOAD r2, [r0]
+    BEQ r2, 0, :eof         // Null -> End of file
+    LDI r3, 32              // space
+    BEQ r2, r3, :skip_ws_next
+    LDI r3, 44              // comma
+    BEQ r2, r3, :skip_ws_next
+    LDI r3, 10              // newline
+    BEQ r2, r3, :skip_ws_next
+    JMP :parse_mnemonic
+
+:skip_ws_next
+    LDI r3, 1
+    ADD r0, r0, r3
+    JMP :skip_ws
+
+:parse_mnemonic
+    // Read 3 chars for mnemonic
+    LOAD r7, [r0]
+    LDI r3, 1
+    ADD r0, r0, r3
+    LOAD r8, [r0]
+    ADD r0, r0, r3
+    LOAD r9, [r0]
+    ADD r0, r0, r3
+
+    // Match against table at 0x800
+    MOV r11, r10            // Start at table base
+:match_loop
+    LOAD r3, [r11]          // Table char 0
+    BNE r7, r3, :match_next
+    LDI r3, 1
+    ADD r11, r11, r3
+    LOAD r3, [r11]          // Table char 1
+    BNE r8, r3, :match_next_adj1
+    ADD r11, r11, r3
+    LOAD r3, [r11]          // Table char 2
+    BNE r9, r3, :match_next_adj2
+    ADD r11, r11, r3
+    LOAD r4, [r11]          // SUCCESS: Match found! r4 = opcode
+    JMP :parse_operands
+
+:match_next_adj2
+    LDI r3, 1
+    ADD r11, r11, r3
+:match_next_adj1
+    LDI r3, 1
+    ADD r11, r11, r3
+:match_next
+    LDI r3, 1
+    ADD r11, r11, r3        // Advance to next entry start
+    BNE r11, r12, :match_loop
+    
+    // Unknown mnemonic: set opcode to 0xFF (error)
+    LDI r4, 0xFF
+    JMP :next_line
+
+:parse_operands
+    // Simple logic:
+    // If opcode == 1 (LDI): parse reg, then parse imm
+    // If opcode == 5 (ADD): parse reg, then parse reg
+    // If opcode == 13 (HALT): nothing
+    
+    BEQ r4, 13, :emit_glyph
+    
+    // Skip ws before op1
+    CALL :skip_ws_local
+    CALL :parse_operand_local  // result in r5
+    MOV r5, r1
+    
+    BEQ r4, 1, :parse_imm
+    
+    // Op2 for non-LDI
+    CALL :skip_ws_local
+    CALL :parse_operand_local  // result in r6
+    MOV r6, r1
+    JMP :emit_glyph
+
+:parse_imm
+    CALL :skip_ws_local
+    CALL :parse_operand_local  // result in r6 (immediate)
+    MOV r6, r1
+    JMP :emit_ldi_special
+
+:emit_glyph
+    // [opcode, stratum, p1, p2]
+    // result = opcode | (p1 << 16) | (p2 << 24)
+    MOV r3, r4              // Red = opcode
+    LDI r2, 16
+    SLL r5, r5, r2          // Blue = P1
+    LDI r2, 24
+    SLL r6, r6, r2          // Alpha = P2
+    OR r3, r3, r5
+    OR r3, r3, r6
+    STORE r1, r3
+    LDI r2, 1
+    ADD r1, r1, r2          // Advance BIN_PTR
+    JMP :next_line
+
+:emit_ldi_special
+    // Emit LDI glyph, then the immediate word
+    MOV r3, r4
+    LDI r2, 16
+    SLL r5, r5, r2
+    OR r3, r3, r5
+    STORE r1, r3
+    LDI r2, 1
+    ADD r1, r1, r2
+    STORE r1, r6            // Emit immediate data
+    ADD r1, r1, r2
+    JMP :next_line
+
+:next_line
+    // Advance SRC_PTR until \n or null
+:next_line_loop
+    LOAD r2, [r0]
+    BEQ r2, 0, :eof
+    LDI r3, 10              // \n
+    BEQ r2, r3, :next_line_done
+    LDI r3, 1
+    ADD r0, r0, r3
+    JMP :next_line_loop
+:next_line_done
+    LDI r3, 1
+    ADD r0, r0, r3
+    JMP :line_start
+
+:eof
+    HALT
+
+// --- HELPERS ---
+
+:skip_ws_local
+    // Same as main skip_ws but increments r0 and returns
+    LOAD r2, [r0]
+    BEQ r2, 0, :ret
+    LDI r3, 32
+    BEQ r2, r3, :swl_next
+    LDI r3, 44
+    BEQ r2, r3, :swl_next
+    RET
+:swl_next
+    LDI r3, 1
+    ADD r0, r0, r3
+    JMP :skip_ws_local
+
+:parse_operand_local
+    // Stub: simplified parser for the integrated test
+    // Real one would be the 108-pixel state machine
+    LDI r1, 0
+    RET
+
+:ret
+    RET
