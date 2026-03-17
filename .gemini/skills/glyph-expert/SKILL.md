@@ -79,7 +79,48 @@ A **space-filling fractal** that maps a 1D sequence to a 2D grid while **preserv
 
 ---
 
-## 4. Interaction: Ouroboros HAL API
+## 4. Self-Replication: Pixels Move Pixels
+
+**Milestone:** On 2026-03-16, an 18-pixel program copied itself from Hilbert address 0 to address 100 **without any CPU involvement during execution**.
+
+### The Breakthrough
+This proves the Glyph VM works as a sovereign substrate. After the frozen bootstrap (the last time the CPU writes program logic), the GPU reads its own instructions from the RAM texture and executes LOAD/STORE/ADD/BRANCH loops to duplicate or evolve itself.
+
+### The 18-Pixel Self-Copy Program
+| Addr | Instruction | Meaning |
+| :--- | :--- | :--- |
+| 0-1 | `LDI r0, 0` | Source Hilbert address. |
+| 2-3 | `LDI r1, 100` | Destination Hilbert address. |
+| 4-5 | `LDI r2, 0` | Loop counter. |
+| 6-7 | `LDI r3, 1` | Increment constant. |
+| 8-9 | `LDI r4, 18` | Program length (pixels). |
+| 10 | `LOAD r5, [r0]` | Read source glyph from texture. |
+| 11 | `STORE [r1], r5` | Write to destination in texture. |
+| 12-14 | `ADD r0/r1/r2 += r3` | Increment pointers and counter. |
+| 15-16 | `BRANCH BNE r2, r4, -7` | Loop if counter != 18. |
+| 17 | `HALT` | Execution complete. |
+
+**Validation:** `cargo test --test self_replication_test -- --ignored --nocapture`
+
+---
+
+## 5. Sovereignty Milestones
+
+| Milestone | Status | Significance |
+| :--- | :--- | :--- |
+| **Self-Replication** | ✅ Done | Pixels move pixels; no CPU orchestration. |
+| **The Writer** | ✅ Done | GPU copies from atlas (Texture-Native Abstraction). |
+| **Patch-and-Copy** | ✅ Done | GPU loads template, patches operands, emits code. |
+| **Mnemonic Matcher** | ✅ Done | GPU parses 'LDI' ASCII → Compiles opcode. |
+| **Full Assembler** | ✅ Done | GPU compiles multi-line text → Executable. |
+| **Self-Compile-Execute** | ✅ Done | GPU compiles AND executes its own program. |
+| **Fibonacci Self-Compile**| ✅ Done | Complex loops compiled and executed on-GPU. |
+| **Text Boots RISC-V** | ✅ **COMPLETE** | Text → GPU Assembler → Glyph VM → RISC-V → UART "Hi". |
+| **Self-Hosting** | 🔄 Goal | Complete elimination of the Rust bootstrap. |
+
+---
+
+## 6. Interaction: Ouroboros HAL API
 The `gpu_dev_daemon` provides a low-level HTTP bridge (Port 8769) to the GPU substrate.
 
 | Endpoint | Method | Description |
