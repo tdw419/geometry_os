@@ -1821,41 +1821,40 @@ mod tests {
         vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++ (skip 'r')
         vram.poke(pc, glyph(3, 0, 0, 5)); pc += 1; // LOAD r5, [r0] (get '3')
         poke_ldi(&mut vram, &mut pc, 3, 48); // '0'
-        vram.poke(pc, glyph(2, 0, 5, 10)); pc += 1; // MOV r10, r5
-        vram.poke(pc, glyph(2, 0, 3, 5)); pc += 1;  // MOV r5, r3
-        vram.poke(pc, glyph(6, 0, 10, 5)); pc += 1; // r5 = r10 - r5
+        vram.poke(pc, glyph(6, 0, 5, 3)); pc += 1; // r3 = r5 - r3 = '3' - '0' = 3
+        vram.poke(pc, glyph(2, 0, 3, 5)); pc += 1; // r5 = 3
         
         // Construct glyph: opcode | (p1 << 16)
         vram.poke(pc, glyph(2, 0, 4, 3)); pc += 1; // MOV r3, r4 (opcode)
         poke_ldi(&mut vram, &mut pc, 2, 16);
-        vram.poke(pc, glyph(128, 0, 5, 2)); pc += 1; // SLL r2 = r5 << 16
-        vram.poke(pc, glyph(133, 0, 3, 2)); pc += 1; // OR r2 = r3 | r2
+        vram.poke(pc, glyph(131, 0, 5, 2)); pc += 1; // SHL r2 = r5 << 16
+        vram.poke(pc, glyph(129, 0, 3, 2)); pc += 1; // OR r2 = r3 | r2
         vram.poke(pc, glyph(4, 0, 1, 2)); pc += 1; // STORE [r1], r2
         
         vram.poke(pc, glyph(5, 0, 13, 1)); pc += 1; // BIN_PTR++
         
-        // Parse ", 42" (skip 2, parse dec)
+        // Parse ", 42" (skip 3: '3', ',', ' ')
+        vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++ (skip '3')
         vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++ (skip ',')
         vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++ (skip ' ')
         
         // Parse "42" (simplified: load 2 digits)
-        vram.poke(pc, glyph(3, 0, 0, 10)); pc += 1; // '4'
+        vram.poke(pc, glyph(3, 0, 0, 10)); pc += 1; // LOAD r10, [r0] ('4')
         vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++
-        vram.poke(pc, glyph(3, 0, 0, 11)); pc += 1; // '2'
+        vram.poke(pc, glyph(3, 0, 0, 11)); pc += 1; // LOAD r11, [r0] ('2')
         vram.poke(pc, glyph(5, 0, 13, 0)); pc += 1; // r0++
         
-        poke_ldi(&mut vram, &mut pc, 3, 48); // '0'
-        vram.poke(pc, glyph(2, 0, 10, 12)); pc += 1; // MOV r12, r10
-        vram.poke(pc, glyph(2, 0, 3, 10)); pc += 1;  // MOV r10, r3
-        vram.poke(pc, glyph(6, 0, 12, 10)); pc += 1; // '4'-'0' = 4
+        poke_ldi(&mut vram, &mut pc, 3, 48); // r3 = '0'
+        vram.poke(pc, glyph(6, 0, 10, 3)); pc += 1; // r3 = r10 - r3 = '4' - '0' = 4
+        vram.poke(pc, glyph(2, 0, 3, 10)); pc += 1; // r10 = 4
         
-        vram.poke(pc, glyph(2, 0, 11, 12)); pc += 1; // MOV r12, r11
-        vram.poke(pc, glyph(2, 0, 3, 11)); pc += 1;  // MOV r11, r3
-        vram.poke(pc, glyph(6, 0, 12, 11)); pc += 1; // '2'-'0' = 2
+        poke_ldi(&mut vram, &mut pc, 3, 48); // r3 = '0'
+        vram.poke(pc, glyph(6, 0, 11, 3)); pc += 1; // r3 = r11 - r3 = '2' - '0' = 2
+        vram.poke(pc, glyph(2, 0, 3, 11)); pc += 1; // r11 = 2
         
         poke_ldi(&mut vram, &mut pc, 3, 10);
-        vram.poke(pc, glyph(7, 0, 3, 10)); pc += 1; // 4 * 10 = 40
-        vram.poke(pc, glyph(5, 0, 10, 11)); pc += 1; // 40 + 2 = 42 (result in r11)
+        vram.poke(pc, glyph(7, 0, 3, 10)); pc += 1; // r10 = 10 * 4 = 40
+        vram.poke(pc, glyph(5, 0, 10, 11)); pc += 1; // r11 = 40 + 2 = 42
         
         vram.poke(pc, glyph(4, 0, 1, 11)); pc += 1; // STORE [r1], r11 (emit immediate)
         vram.poke(pc, glyph(5, 0, 13, 1)); pc += 1; // BIN_PTR++
@@ -1912,20 +1911,8 @@ mod tests {
 
         println!("Full assembler: {} instructions", pc);
 
-        vram.enable_tracing();
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
         vram.execute_frame_interleaved(1);
-
-        // Debug Output
-        println!("Execution Trace (last 100):");
-        let trace = vram.trace();
-        let start = if trace.len() > 100 { trace.len() - 100 } else { 0 };
-        for entry in &trace[start..] {
-            println!("  {:?}", entry);
-        }
-
-        println!("VM 0 State: {:?}", vram.vm_state(0));
-        println!("mem[0x500] = {:08X}", vram.peek(0x500));
 
         // Verify Output
         // [500] = LDI r3 (opcode 1, p1 3) = 1 | (3 << 16) = 196609
