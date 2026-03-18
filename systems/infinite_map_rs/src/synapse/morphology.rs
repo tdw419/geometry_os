@@ -29,6 +29,31 @@ pub struct AestheticsRequest {
     pub saturation: Option<f32>,
 }
 
+/// Effect request sent to effect system
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum EffectRequest {
+    /// Highlight effect
+    Highlight {
+        /// Center coordinates
+        center: (f32, f32, f32),
+        /// Radius in world units
+        radius: f32,
+        /// Highlight color (RGBA)
+        color: [f32; 4],
+        /// Duration in seconds (None = permanent)
+        duration: Option<f32>,
+    },
+    /// Spawn visual effect
+    Spawn {
+        /// Effect type
+        effect: EffectType,
+        /// Position
+        position: (f32, f32, f32),
+        /// Scale multiplier
+        scale: f32,
+    },
+}
+
 /// Commands that modify the geometric substrate
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MorphologyCommand {
@@ -143,6 +168,9 @@ pub struct MorphologyExecutor {
 
     /// Optional aesthetics update sender (wired to renderer)
     aesthetics_tx: Option<broadcast::Sender<AestheticsRequest>>,
+
+    /// Optional effect sender (wired to effect system)
+    effect_tx: Option<broadcast::Sender<EffectRequest>>,
 }
 
 impl MorphologyExecutor {
@@ -154,6 +182,7 @@ impl MorphologyExecutor {
             navigation_tx: None,
             camera_tx: None,
             aesthetics_tx: None,
+            effect_tx: None,
         }
     }
 
@@ -172,6 +201,12 @@ impl MorphologyExecutor {
     /// Wire aesthetics updates to a broadcast channel
     pub fn with_aesthetics_sender(mut self, tx: broadcast::Sender<AestheticsRequest>) -> Self {
         self.aesthetics_tx = Some(tx);
+        self
+    }
+
+    /// Wire effect requests to a broadcast channel
+    pub fn with_effect_sender(mut self, tx: broadcast::Sender<EffectRequest>) -> Self {
+        self.effect_tx = Some(tx);
         self
     }
 
@@ -294,7 +329,18 @@ impl MorphologyExecutor {
             radius,
             duration
         );
-        // TODO: Send to effect system
+
+        // Send to effect system if wired
+        if let Some(tx) = &self.effect_tx {
+            let request = EffectRequest::Highlight {
+                center,
+                radius,
+                color,
+                duration,
+            };
+            let _ = tx.send(request);
+        }
+
         Ok(())
     }
 
@@ -338,7 +384,17 @@ impl MorphologyExecutor {
         scale: f32,
     ) -> Result<(), String> {
         log::info!("💫 Spawn {:?} at {:?}, scale={}", effect, position, scale);
-        // TODO: Send to effect system
+
+        // Send to effect system if wired
+        if let Some(tx) = &self.effect_tx {
+            let request = EffectRequest::Spawn {
+                effect,
+                position,
+                scale,
+            };
+            let _ = tx.send(request);
+        }
+
         Ok(())
     }
 
