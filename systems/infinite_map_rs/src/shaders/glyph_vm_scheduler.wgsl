@@ -97,7 +97,8 @@ struct VmState {
     pc: u32, halted: u32, stratum: u32, cycles: u32, stack_ptr: u32,
     vm_id: u32, state: u32, parent_id: u32, entry_point: u32,
     base_addr: u32, bound_addr: u32, eap_coord: u32, generation: u32,
-    _padding: array<u32, 3>,
+    attention_mask: u32,
+    _padding: array<u32, 2>,
     stack: array<u32, 64>,
 }
 
@@ -441,7 +442,7 @@ fn execute_instruction(vm_idx: u32) {
         }
         case 220u: { // PUSH: mem[sp++] = mem[dst]
             let sp_addr = 0xF000u + vms[vm_idx].stack_ptr;
-            mem_write(sp_addr, mem_read(u32(stratum)));
+            mem_write(vm_idx, sp_addr, mem_read(u32(stratum)));
             vms[vm_idx].stack_ptr = vms[vm_idx].stack_ptr + 1u;
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
@@ -449,8 +450,7 @@ fn execute_instruction(vm_idx: u32) {
             if (vms[vm_idx].stack_ptr > 0u) {
                 vms[vm_idx].stack_ptr = vms[vm_idx].stack_ptr - 1u;
                 let sp_addr = 0xF000u + vms[vm_idx].stack_ptr;
-                mem_write(vm_idx, u32(stratum), 
- mem_read(sp_addr));
+                mem_write(vm_idx, u32(stratum), mem_read(sp_addr));
             }
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }

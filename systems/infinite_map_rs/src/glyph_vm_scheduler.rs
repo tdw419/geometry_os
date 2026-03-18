@@ -550,9 +550,10 @@ impl GlyphVmScheduler {
         vm_data.push(config.bound_addr); // bound_addr
         vm_data.push(config.eap_coord); // eap_coord
         vm_data.push(config.generation); // generation
+        vm_data.push(0); // attention_mask (initial)
 
-        // Padding (3 zeros)
-        vm_data.extend_from_slice(&[0u32; 3]);
+        // Padding (2 zeros)
+        vm_data.extend_from_slice(&[0u32; 2]);
 
         // Stack (64 zeros)
         vm_data.extend_from_slice(&[0u32; 64]);
@@ -781,7 +782,7 @@ impl GlyphVmScheduler {
             let mut stats = Vec::with_capacity(MAX_VMS);
 
             for i in 0..MAX_VMS {
-                let offset = i * VM_STATE_SIZE;
+                let offset = i * VM_STATE_SIZE as usize;
                 // Field offsets (relative to start of VM state):
                 // pc: 512, halted: 516, stratum: 520, cycles: 524, stack_ptr: 528, vm_id: 532, state: 536, parent_id: 540
 
@@ -854,6 +855,86 @@ impl GlyphVmScheduler {
         } else {
             Vec::new()
         }
+    }
+
+    /// Read the ledger from GPU
+    pub fn read_ledger(&self) -> Vec<LedgerEntry> {
+        // 1. Read ledger head first to know how many entries to read
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Glyph VM Ledger Head Read Encoder"),
+            });
+
+        encoder.copy_buffer_to_buffer(&self.ledger_head_buffer, 0, &self.stats_buffer, 0, 4);
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        let slice = self.stats_buffer.slice(0..4);
+        let (tx, rx) = std::sync::mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |res| {
+            tx.send(res).ok();
+        });
+        self.device.poll(wgpu::Maintain::Wait);
+
+        let head = if let Ok(Ok(())) = pollster::block_on(async { rx.recv() }) {
+            let data = slice.get_mapped_range();
+            let h = u32::from_le_bytes(data[0..4].try_into().unwrap());
+            drop(data);
+            self.stats_buffer.unmap();
+            h
+        } else {
+            0
+        };
+
+        if head == 0 {
+            return Vec::new();
+        }
+
+        // 2. Read 'head' entries from ledger buffer
+        let mut entries = Vec::with_capacity(head as usize);
+        let count = head.min(1048576); // Cap at 1M entries
+        let size = (count as u64) * 32;
+
+        // Since stats_buffer might be too small for the whole ledger, we might need a larger readback buffer
+        // Or read in chunks. For now, let's just read as much as fits in 64MB (our shadow ram size)
+        // Wait, stats_buffer was initialized with:
+        // vm_buffer_size + scheduler_buffer_size + debug_buffer_size + 4
+        // That's about 12KB. 
+        // I should probably use a dedicated large readback buffer or use shadow_ram if possible.
+        // Actually, poke_substrate_batch uses write_texture.
+        // sync_gpu_to_shadow uses copy_texture_to_buffer to a staging buffer.
+        
+        // Let's create a temporary staging buffer for ledger readback
+        let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Ledger Staging Buffer"),
+            size,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Ledger Read Encoder"),
+            });
+
+        encoder.copy_buffer_to_buffer(&self.ledger_buffer, 0, &staging, 0, size);
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        let slice = staging.slice(..size);
+        let (tx, rx) = std::sync::mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |res| {
+            tx.send(res).ok();
+        });
+        self.device.poll(wgpu::Maintain::Wait);
+
+        if let Ok(Ok(())) = pollster::block_on(async { rx.recv() }) {
+            let data = slice.get_mapped_range();
+            entries = bytemuck::cast_slice(&data).to_vec();
+            drop(data);
+        }
+
+        entries
     }
 
     /// Count active VMs (non-INACTIVE state)
