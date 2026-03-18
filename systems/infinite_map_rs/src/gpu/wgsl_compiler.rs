@@ -4,7 +4,8 @@
 //! Parses workgroup size attributes and creates compute pipelines.
 
 use regex::Regex;
-use wgpu::{Device, ShaderModule, ShaderModuleDescriptor};
+use std::sync::Arc;
+use wgpu::{ComputePipeline, Device, PipelineLayoutDescriptor, ShaderModule, ShaderModuleDescriptor};
 
 /// WGSL Compiler
 ///
@@ -15,6 +16,8 @@ pub struct WGSLCompiler {
     device: Device,
     /// Compiled shader module
     shader_module: Option<ShaderModule>,
+    /// Compiled compute pipeline (Arc for sharing with ExecutionZone)
+    pipeline: Option<Arc<ComputePipeline>>,
     /// Workgroup size extracted from shader (x, y, z)
     workgroup_size: (u32, u32, u32),
 }
@@ -29,6 +32,7 @@ impl WGSLCompiler {
         Self {
             device,
             shader_module: None,
+            pipeline: None,
             workgroup_size: (1, 1, 1), // Default workgroup size
         }
     }
@@ -165,6 +169,52 @@ impl WGSLCompiler {
     /// Reference to the WebGPU device
     pub fn device(&self) -> &Device {
         &self.device
+    }
+
+    /// Create a compute pipeline from the compiled shader
+    ///
+    /// Creates a compute pipeline with an empty bind group layout for simple
+    /// shaders that don't require external resources. For shaders with bind groups,
+    /// use `create_pipeline_with_layout`.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Arc<ComputePipeline>)` if pipeline creation succeeds
+    /// * `Err(String)` if no shader has been compiled
+    pub fn create_pipeline(&mut self) -> Result<Arc<ComputePipeline>, String> {
+        let shader = self
+            .shader_module
+            .as_ref()
+            .ok_or_else(|| "No shader compiled yet".to_string())?;
+
+        let pipeline_layout = self
+            .device
+            .create_pipeline_layout(&PipelineLayoutDescriptor {
+                label: Some("ExecutionZone Pipeline Layout"),
+                bind_group_layouts: &[],
+                push_constant_ranges: &[],
+            });
+
+        let pipeline = self.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("ExecutionZone Compute Pipeline"),
+            layout: Some(&pipeline_layout),
+            module: shader,
+            entry_point: "main",
+        });
+
+        let pipeline_arc = Arc::new(pipeline);
+        self.pipeline = Some(pipeline_arc.clone());
+        Ok(pipeline_arc)
+    }
+
+    /// Get the compiled compute pipeline
+    ///
+    /// # Returns
+    ///
+    /// * `Some(Arc<ComputePipeline>)` if pipeline has been created
+    /// * `None` if no pipeline has been created yet
+    pub fn pipeline(&self) -> Option<Arc<ComputePipeline>> {
+        self.pipeline.clone()
     }
 }
 

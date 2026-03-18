@@ -231,7 +231,7 @@ impl ExecutionZoneRenderer {
     /// This method should return `Result<(), DispatchError>` to handle potential
     /// failures such as invalid workgroup sizes, missing pipelines, or dispatch
     /// limit exceeded errors.
-    fn dispatch_shader(&self, _encoder: &mut CommandEncoder, zone: &ExecutionZone) {
+    fn dispatch_shader(&self, encoder: &mut CommandEncoder, zone: &ExecutionZone) {
         let workgroup_size = zone.workgroup_size();
         log::trace!(
             "Dispatching shader '{}' with workgroup size ({}, {}, {})",
@@ -241,11 +241,31 @@ impl ExecutionZoneRenderer {
             workgroup_size.2
         );
 
-        // TODO: Implement actual compute pass dispatch
-        // This requires:
-        // - Creating or retrieving the compute pipeline
-        // - Binding resources (textures, buffers)
-        // - Dispatching with appropriate workgroup count
+        // Get the compiled pipeline from the zone
+        if let Some(pipeline) = zone.pipeline() {
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some(&format!("ExecutionZone: {}", zone.shader_name)),
+                timestamp_writes: None,
+            });
+
+            compute_pass.set_pipeline(&pipeline);
+            // Note: Bind groups would be set here if the shader has resources
+            // For simple shaders with no bindings, we dispatch directly
+            compute_pass.dispatch_workgroups(workgroup_size.0, workgroup_size.1, workgroup_size.2);
+
+            log::debug!(
+                "Dispatched compute pass for '{}' with {}x{}x{} workgroups",
+                zone.shader_name,
+                workgroup_size.0,
+                workgroup_size.1,
+                workgroup_size.2
+            );
+        } else {
+            log::warn!(
+                "Zone '{}' has no compiled pipeline - skipping dispatch",
+                zone.shader_name
+            );
+        }
     }
 
     /// Blit compute shader results to output texture
@@ -260,7 +280,7 @@ impl ExecutionZoneRenderer {
     /// This method should return `Result<(), BlitError>` to handle potential
     /// failures such as texture format mismatches, out-of-bounds blit regions,
     /// or missing source textures.
-    fn blit_results(&self, _encoder: &mut CommandEncoder, zone: &ExecutionZone) {
+    fn blit_results(&self, encoder: &mut CommandEncoder, zone: &ExecutionZone) {
         log::trace!(
             "Blitting results for zone '{}' at ({}, {})",
             zone.shader_name,
@@ -268,11 +288,23 @@ impl ExecutionZoneRenderer {
             zone.position.y
         );
 
-        // TODO: Implement texture blitting
-        // This requires:
-        // - Source texture from the zone's compute output
-        // - Destination region in the output texture
-        // - Blit command with proper scaling/filtering
+        // Check if zone has an output texture
+        if let Some(_texture) = zone.texture() {
+            // TODO: Implement actual texture blitting with encoder.copy_texture_to_texture
+            // This requires:
+            // - Source texture view from the zone's compute output
+            // - Destination region in the output texture
+            // - Proper image copy texture descriptors
+            log::debug!(
+                "Zone '{}' has output texture - blit implementation pending",
+                zone.shader_name
+            );
+        } else {
+            log::trace!(
+                "Zone '{}' has no output texture - skipping blit",
+                zone.shader_name
+            );
+        }
     }
 
     /// Get reference to the WebGPU device

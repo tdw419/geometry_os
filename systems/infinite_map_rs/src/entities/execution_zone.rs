@@ -18,8 +18,10 @@ pub struct ExecutionZone {
     compiler: Option<std::sync::Arc<std::sync::Mutex<WGSLCompiler>>>,
     /// Workgroup size extracted from shader (x, y, z)
     workgroup_size: (u32, u32, u32),
-    _pipeline: Option<std::sync::Arc<wgpu::ComputePipeline>>,
-    _texture: Option<std::sync::Arc<wgpu::Texture>>,
+    /// Compiled compute pipeline (Arc for sharing with renderer)
+    pipeline: Option<std::sync::Arc<wgpu::ComputePipeline>>,
+    /// Output texture for compute results
+    texture: Option<std::sync::Arc<wgpu::Texture>>,
 }
 
 impl ExecutionZone {
@@ -31,8 +33,8 @@ impl ExecutionZone {
             active: false,
             compiler: None,
             workgroup_size: (1, 1, 1),
-            _pipeline: None,
-            _texture: None,
+            pipeline: None,
+            texture: None,
         }
     }
 
@@ -53,8 +55,9 @@ impl ExecutionZone {
 
     /// Compile the WGSL shader
     ///
-    /// If a device has been set, compiles the shader using the WGSL compiler.
-    /// Otherwise, sets active state without compilation (for testing).
+    /// If a device has been set, compiles the shader using the WGSL compiler
+    /// and creates the compute pipeline. Otherwise, sets active state without
+    /// compilation (for testing).
     ///
     /// # Returns
     ///
@@ -72,6 +75,13 @@ impl ExecutionZone {
 
             compiler.compile_shader(&wgsl_string)?;
             self.workgroup_size = compiler.workgroup_size();
+
+            // Create the compute pipeline and store it
+            self.pipeline = Some(
+                compiler
+                    .create_pipeline()
+                    .map_err(|e| format!("Failed to create pipeline: {}", e))?,
+            );
         }
 
         self.active = true;
@@ -85,6 +95,26 @@ impl ExecutionZone {
     /// Workgroup size as (x, y, z) tuple
     pub fn workgroup_size(&self) -> (u32, u32, u32) {
         self.workgroup_size
+    }
+
+    /// Get the compiled compute pipeline
+    ///
+    /// # Returns
+    ///
+    /// * `Some(Arc<ComputePipeline>)` if pipeline has been created
+    /// * `None` if no pipeline exists
+    pub fn pipeline(&self) -> Option<std::sync::Arc<wgpu::ComputePipeline>> {
+        self.pipeline.clone()
+    }
+
+    /// Get the output texture
+    ///
+    /// # Returns
+    ///
+    /// * `Some(Arc<Texture>)` if texture has been created
+    /// * `None` if no texture exists
+    pub fn texture(&self) -> Option<std::sync::Arc<wgpu::Texture>> {
+        self.texture.clone()
     }
 
     /// Create an ExecutionZone from a .rts.png file
