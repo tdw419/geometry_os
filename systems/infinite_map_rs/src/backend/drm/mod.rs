@@ -4,6 +4,7 @@
 //! of the Glyph-to-Metal pipeline.
 
 pub mod amdgpu;
+pub mod buffer_binding;
 pub mod compute;
 pub mod device;
 pub mod dmabuf;
@@ -30,6 +31,7 @@ pub use integrated_executor::{
     IntegratedExecutorConfig, IntegratedGlyphExecutor, ZeroCopyExecutionLoop,
 };
 pub use intel::IntelCommandBuffer;
+pub use buffer_binding::{BindingPoint, BufferBindingInterface, BoundBuffer, DispatchBindings};
 pub use memory::{GpuMemoryAllocator, MappedBuffer};
 pub use scanout::KmsScanout;
 pub use vcc_compute::{
