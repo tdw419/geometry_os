@@ -208,11 +208,11 @@ impl Compositor {
     ///
     /// # Integration Note
     ///
-    /// TODO: This method should be called from the app's main render loop.
-    /// Integration with the main render loop is deferred to integration testing
-    /// to ensure proper command encoder ordering and resource synchronization.
-    /// The main render loop should call compositor.render() after the main
-    /// scene rendering is complete.
+    /// The compositor.render() is now integrated into Renderer::render() via the
+    /// optional `compositor` parameter (Phase 48.3). Pass the compositor reference
+    /// when calling Renderer::render() to enable execution zone rendering.
+    /// The compositor renders after the main scene (compilation border) and before
+    /// the final queue.submit().
     pub fn render(&mut self, encoder: &mut CommandEncoder, output_view: &TextureView) {
         self.zone_renderer.render(encoder, output_view);
     }

@@ -1835,7 +1835,7 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    pub fn render(&mut self, camera: &Camera, window_manager: &crate::window::WindowManager, thought_renderer: Option<&ThoughtRenderer>, vm_texture_manager: Option<&crate::vm_texture_manager::VmTextureManager>, memory_texture_manager: Option<&crate::memory_texture_manager::MemoryTextureManager>, cartridge_texture_manager: Option<&crate::cartridge_texture_manager::CartridgeTextureManager>, memory_artifact_manager: Option<&crate::memory_artifacts::MemoryArtifactManager>, graph_renderer: Option<&std::sync::Arc<crate::graph_renderer::GraphRenderer>>, inspector_ui: Option<&std::sync::Arc<crate::inspector_ui::InspectorUI>>, agent_manager: Option<&crate::cognitive::agents::CityAgentManager>, visual_ast: Option<&crate::visual_ast::VisualAST>, inspector_visible: bool, screenshot_request: Option<(i32, i32, u32, u32)>) -> Result<Option<(Vec<u8>, u32, u32)>, wgpu::SurfaceError> {
+    pub fn render(&mut self, camera: &Camera, window_manager: &crate::window::WindowManager, thought_renderer: Option<&ThoughtRenderer>, vm_texture_manager: Option<&crate::vm_texture_manager::VmTextureManager>, memory_texture_manager: Option<&crate::memory_texture_manager::MemoryTextureManager>, cartridge_texture_manager: Option<&crate::cartridge_texture_manager::CartridgeTextureManager>, memory_artifact_manager: Option<&crate::memory_artifacts::MemoryArtifactManager>, graph_renderer: Option<&std::sync::Arc<crate::graph_renderer::GraphRenderer>>, inspector_ui: Option<&std::sync::Arc<crate::inspector_ui::InspectorUI>>, agent_manager: Option<&crate::cognitive::agents::CityAgentManager>, visual_ast: Option<&crate::visual_ast::VisualAST>, inspector_visible: bool, screenshot_request: Option<(i32, i32, u32, u32)>, compositor: Option<&mut crate::Compositor>) -> Result<Option<(Vec<u8>, u32, u32)>, wgpu::SurfaceError> {
         self.check_hot_reload();
         // Performance Logging
         self.frame_count += 1;
@@ -2351,6 +2351,12 @@ impl<'a> Renderer<'a> {
 
         // Phase 42: Render compilation status border
         self.render_compilation_border(&mut encoder, &view);
+
+        // Phase 48.3: Render execution zone compositor (if initialized)
+        // The compositor renders execution zones for WGSL .rts.png file drops
+        if let Some(comp) = compositor {
+            comp.render(&mut encoder, &view);
+        }
 
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
