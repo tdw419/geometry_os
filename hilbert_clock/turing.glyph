@@ -1,8 +1,10 @@
-# Self-Modifying Turing Machine (Pixels as Program)
+# Glyph Turing Machine (Self-Modifying Pixels)
+# Each pixel position = 1 bytecode instruction
+# Execution reads own glyphs as opcodes
 
-LDI r0, 0          ; PC=0
-HILBERT_D2XY r1, r0 ; map to Hilbert coords
-DRAW 0x69, r1, r2 ; draw 'i' at that pixel
-ADD r1, 0x400      ; advance PC
-HALT               ; program done
-# Output: "i" rendered on screen
+LDI r0, 0          ; PC = 0 (start)
+HILBERT_D2XY r1, r0 ; map to 2D Hilbert coords
+DRAW 0x69, r1, r2 ; write pixel = 'i'
+ADD r0, 1          ; advance PC
+JMP 5              ; loop: 0->1->2->3->4->5 (back to 0)
+HALT               ; never reached (loops forever)
