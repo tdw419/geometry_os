@@ -46,6 +46,9 @@ use crate::visual_shell::VisualShellIntegration;
 use crate::vm_texture_manager::VmTextureManager;
 // use crate::bridge::unreal::UnrealBridge;
 use crate::neural_console::ConsoleAction;
+// Phase 46: WLU GPU Integration
+use crate::wave_logic_unit::WaveLogicBackend;
+use crate::backend::wgpu::wlu_wgpu::WluWgpuResources;
 
 pub struct Config {
     pub damping: f32,
@@ -55,6 +58,8 @@ pub struct Config {
     pub min_zoom: f32,
     #[allow(dead_code)]
     pub max_zoom: f32,
+    /// Use GPU-accelerated Wave-Logic Unit backend (default: false for stability)
+    pub use_wlu_gpu: bool,
 }
 
 pub const CONFIG: Config = Config {
@@ -62,6 +67,7 @@ pub const CONFIG: Config = Config {
     max_zoom: 5.0,
     damping: 0.1,
     grid_size: 100.0,
+    use_wlu_gpu: false, // CPU backend by default for stability
 };
 
 pub struct InfiniteMapApp<'a> {
@@ -263,7 +269,8 @@ pub struct InfiniteMapApp<'a> {
     pub zai_client: Option<crate::synapse::z_ai_client::ZAiClient>,
 
     // Phase 46: Wave-Logic Unit (Analog Computing Prototype)
-    pub wave_logic_unit: Option<crate::wave_logic_unit::WaveLogicUnit>,
+    // Phase 46.4: GPU Integration - Support both CPU and GPU backends via trait object
+    pub wlu_backend: Option<Box<dyn WaveLogicBackend>>,
 
     // Phase 48: Mouse Text Selection State
     pub text_selection_drag_start: Option<u32>, // Grid index where drag started
@@ -441,7 +448,14 @@ impl<'a> InfiniteMapApp<'a> {
              cognitive_runtimes: std::collections::HashMap::new(),
 
              // Phase 46: Initialize Wave-Logic Unit (Analog Computing Prototype)
-            wave_logic_unit: Some(crate::wave_logic_unit::WaveLogicUnit::new()),
+             // Phase 46.4: GPU Integration - Choose backend based on config
+            wlu_backend: if CONFIG.use_wlu_gpu {
+                // GPU backend - requires device and queue (initialized later in initialize_gpu_capabilities)
+                None // Will be initialized when GPU is ready
+            } else {
+                // CPU backend - always available
+                Some(Box::new(crate::wave_logic_unit::WaveLogicUnit::new()))
+            },
 
              // Phase 2: Initialize RISC-V Executor
              riscv_executor: None,
@@ -598,7 +612,7 @@ impl<'a> InfiniteMapApp<'a> {
 
      /// Update the Wave-Logic Unit (called each frame)
      pub fn update_wave_logic_unit(&mut self, dt: f32) {
-         if let Some(ref mut wlu) = self.wave_logic_unit {
+         if let Some(ref mut wlu) = self.wlu_backend {
              wlu.update(dt);
          }
      }
@@ -609,6 +623,25 @@ impl<'a> InfiniteMapApp<'a> {
     pub async fn initialize_gpu_capabilities(&mut self, adapter: &wgpu::Adapter) {
         self.gpu_caps = crate::gpu_capabilities::GpuCapabilities::new(adapter).await;
         self.log_gpu_info();
+
+        // Phase 46.4: Initialize WLU GPU backend if configured
+        if CONFIG.use_wlu_gpu {
+            // Clone Arc references from renderer
+            let device = self.renderer.device.clone();
+            let queue = self.renderer.queue.clone();
+
+            match WluWgpuResources::new(device, queue, None) {
+                Ok(gpu_backend) => {
+                    self.wlu_backend = Some(Box::new(gpu_backend));
+                    log::info!("WLU GPU backend initialized successfully");
+                }
+                Err(e) => {
+                    log::error!("Failed to initialize WLU GPU backend: {:?}", e);
+                    log::warn!("Falling back to CPU backend");
+                    self.wlu_backend = Some(Box::new(crate::wave_logic_unit::WaveLogicUnit::new()));
+                }
+            }
+        }
     }
 
     // Synchronous version for simpler integration (uses pollster internally)

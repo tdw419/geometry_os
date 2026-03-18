@@ -22,6 +22,7 @@
 
 use anyhow::Result;
 use std::mem::size_of;
+use std::sync::Arc;
 use wgpu::{Device, Queue, Buffer, ComputePipeline, BindGroup, BindGroupLayout};
 
 use crate::wave_logic_unit::WaveLogicBackend;
@@ -64,10 +65,10 @@ impl GpuOscillator {
 /// - Output buffer for sensor readings
 /// - Compute pipeline and bind groups
 pub struct WluWgpuResources {
-    /// wgpu device (borrowed from App)
-    device: Device,
-    /// wgpu queue (borrowed from App)
-    queue: Queue,
+    /// wgpu device (shared with App's Renderer)
+    device: Arc<Device>,
+    /// wgpu queue (shared with App's Renderer)
+    queue: Arc<Queue>,
     
     // GPU Buffers
     /// Input wave field (previous state)
@@ -113,14 +114,14 @@ impl WluWgpuResources {
     ///
     /// # Arguments
     ///
-    /// * `device` - wgpu device from the App
-    /// * `queue` - wgpu queue from the App
+    /// * `device` - wgpu device from the App (Arc for sharing with Renderer)
+    /// * `queue` - wgpu queue from the App (Arc for sharing with Renderer)
     /// * `grid_size` - Size of the wave simulation grid (default: 256)
     ///
     /// # Returns
     ///
     /// A new WluWgpuResources instance with allocated GPU buffers
-    pub fn new(device: Device, queue: Queue, grid_size: Option<u32>) -> Result<Self> {
+    pub fn new(device: Arc<Device>, queue: Arc<Queue>, grid_size: Option<u32>) -> Result<Self> {
         let grid_size = grid_size.unwrap_or(DEFAULT_GRID_SIZE);
         let field_size = (grid_size * grid_size) as usize * size_of::<f32>();
         
@@ -499,7 +500,7 @@ mod tests {
     use std::sync::Arc;
 
     /// Create a test wgpu device for unit tests
-    async fn create_test_device() -> Option<(Device, Queue)> {
+    async fn create_test_device() -> Option<(Arc<Device>, Arc<Queue>)> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
@@ -518,7 +519,7 @@ mod tests {
             .await
             .ok()?;
 
-        Some((device, queue))
+        Some((Arc::new(device), Arc::new(queue)))
     }
 
     #[test]
