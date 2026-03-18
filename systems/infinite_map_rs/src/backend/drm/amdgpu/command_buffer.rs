@@ -2,7 +2,7 @@
 //!
 //! Constructs command buffers for AMD GPU execution via DRM-AMDGPU.
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::Result;
 use std::os::unix::io::RawFd;
 
 /// AMDGPU command buffer header (PM4 format).

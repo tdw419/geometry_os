@@ -2,7 +2,7 @@
 //!
 //! Converts SPIR-V to Intel GPU native format for direct execution.
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::Result;
 
 /// Intel compute shader loaded from SPIR-V.
 pub struct ComputeShader {

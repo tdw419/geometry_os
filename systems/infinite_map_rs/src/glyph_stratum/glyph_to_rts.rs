@@ -11,7 +11,6 @@
 
 use image::{ImageBuffer, Rgba};
 use std::collections::HashMap;
-use std::path::Path;
 
 /// Stratum constants
 pub mod stratum {

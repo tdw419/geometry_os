@@ -16,7 +16,6 @@ use smithay::{
 use crate::{
     audio_manager::AudioManager,
     camera::Camera,
-    cartridge_registry::CartridgeRegistry,
     clipboard_manager::SharedClipboardManager,
     clipboard_rts::ClipboardRTS,
     clipboard_texture_manager::ClipboardTextureManager,
@@ -41,7 +40,6 @@ use crate::cartridge_texture_manager::CartridgeTextureManager;
 use crate::gpu::geometric_vm::GeometricVM;
 use crate::tectonic_simulator::TectonicSimulator;
 use crate::virtual_machine::QemuProcessWithShm;
-use crate::wave_logic_unit::WaveLogicUnit;
 #[cfg(feature = "hypervisor")]
 use crate::virtual_machine::VirtualMachine;
 use crate::visual_shell::VisualShellIntegration;

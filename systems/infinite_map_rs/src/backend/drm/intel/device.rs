@@ -1,6 +1,6 @@
 //! Intel GPU Device - Direct i915 access via DRM.
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use std::fs::File;
 use std::os::unix::io::{AsRawFd, RawFd};
 

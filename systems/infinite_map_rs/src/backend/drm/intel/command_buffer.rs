@@ -2,7 +2,7 @@
 //!
 //! Constructs batch buffers for Intel GPU execution via i915 DRM.
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::Result;
 use std::os::unix::io::RawFd;
 
 /// Intel GPU batch buffer commands (GEN commands).

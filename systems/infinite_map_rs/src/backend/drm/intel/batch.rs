@@ -2,12 +2,10 @@
 //!
 //! Real batch buffer submission to Intel GPU via MMIO.
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use std::fs::File;
-use std::os::unix::io::{AsRawFd, FromRawFd, OwnedFd};
+use std::os::unix::io::FromRawFd;
 use std::ptr;
-
-use std::mem::ManuallyDrop;
 
 /// Intel GPU ring identifiers
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

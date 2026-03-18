@@ -1,6 +1,6 @@
 //! AMDGPU Compute Shader - SPIR-V shader loading for AMD GPUs.
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::Result;
 
 /// AMDGPU compute shader loaded from SPIR-V.
 pub struct ComputeShader {

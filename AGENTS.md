@@ -274,3 +274,66 @@ Two ISA families exist — see `docs/SYNTHETIC_VRAM.md` for full details:
 ## The North Star
 
 > Geometry OS is an **autonomous entity that lives on screen**. Every pixel is simultaneously data, instruction, and visualization. The frozen bootstrap is the LAST time the CPU touches program logic. After that, **programs write programs**. This is the path to fully GPU-sovereign computing.
+
+---
+
+## Skill: Glyph Expert (Spatial Engineering)
+
+This section provides expert guidance for Geometry OS Glyph Assembly (.glyph) and spatial substrate engineering.
+
+### 1. The Core Opcodes (Extended)
+
+#### Logic Stratum (0-15)
+- `NOP`: 0
+- `MOV dst, src`: 206
+- `LD dst, addr`: 204 (Immediate) / 3 (Load from mem)
+- `ST src, addr`: 205 (Store to addr) / 4 (Store to mem)
+- `ADD dst, p1`: 5
+- `SUB dst, p1`: 6
+- `CMP r1, r2`: 214
+- `JMP addr`: 209
+- `JZ addr`: 10
+- `CALL addr`: 11
+- `RET`: 12
+- `HALT`: 13
+
+#### Bitwise Stratum (220-231)
+- `AND dst, imm`: 220
+- `OR dst, imm`: 221
+- `XOR dst, imm`: 222
+- `NOT dst`: 223
+- `SHL dst, imm`: 224
+- `SHR dst, imm`: 225
+- `SAR dst, imm`: 226
+- `AND_MEM dst, p1`: 227
+- `OR_MEM dst, p1`: 228
+- `XOR_MEM dst, p1`: 229
+- `SHL_MEM dst, p1`: 230
+- `SHR_MEM dst, p1`: 231
+
+#### Spatial & Windowing (215-237)
+- `DRAW glyph_id, x, y`: 215
+- `INT_DISPATCH table, mode, dst`: 218 (Mouse hit-testing)
+- `SPATIAL_SPAWN entry, flags`: 225
+- `CAMERA r_x, r_y`: 230
+- `HILBERT_D2XY index`: 231
+
+### 2. Standard Memory Layout (Hilbert Indices)
+
+| Range | Purpose | Description |
+|-------|---------|-------------|
+| `0x0000 - 0x00FF` | **Emulator State** | PC, IR, and internal registers. |
+| `0x0100 - 0x013F` | **Guest Registers** | RV64 x0-x31 (stored as 64-bit pairs). |
+| `0x0200 - 0x02FF` | **I/O Bridge** | Virtual UART and Event Queue. |
+| `0x1000 - 0x10FF` | **MMIO Range** | Mapped hardware device registers. |
+| `0x8000 - 0xFFFF` | **Guest RAM** | The primary payload (e.g., Ubuntu RISC-V). |
+
+### 3. Driver Pattern: Polling
+Real hardware in Geometry OS is managed by polling status registers mapped to pixels.
+```assembly
+:poll_loop
+    LOAD r2, DEVICE_STATUS
+    AND r2, READY_BIT
+    JZ poll_loop
+    STORE DEVICE_DATA, r1
+```

@@ -20,7 +20,6 @@
 use anyhow::Result;
 use std::sync::Arc;
 
-use super::dmabuf::DmaBuf;
 use super::glyph_vm_executor::{GlyphVmExecutor, GlyphVmState};
 use super::input_bridge::{EvdevInputBridge, InputEvent, SimulatedInputBridge};
 use super::visual_interaction_bus::{InputState, VisualInteractionBus};

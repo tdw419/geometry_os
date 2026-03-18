@@ -7,7 +7,7 @@ members = [
     # "kernel/boot",  # UEFI bootloader - build separately with: cd kernel/boot && cargo build
     "systems/glyph_boot",
     "systems/sisyphus",
-    "systems/glyph_allocator",
+    "systems/glyph_allocator", "hilbert_clock",
 ]
 default-members = [
     "systems/infinite_map_rs",

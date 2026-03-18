@@ -10,7 +10,6 @@
 //!
 //! The texture is addressed via Hilbert curve coordinates.
 
-use std::sync::Arc;
 use wgpu::{Device, Queue, Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, Extent3d, ImageDataLayout};
 
 use crate::glyph_stratum::glyph_parser::parse_glyph_program;
