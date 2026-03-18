@@ -107,6 +107,25 @@ impl GpuMemoryAllocator {
         // Check if DRM device exists
         std::path::Path::new("/dev/dri/card0").exists()
     }
+    
+    /// Allocate a buffer for SPIR-V shader code.
+    ///
+    /// This allocates GPU-visible memory for storing a SPIR-V binary
+    /// that will be used for compute operations.
+    ///
+    /// # Arguments
+    /// * `spirv_size` - Size of the SPIR-V binary in bytes
+    ///
+    /// # Returns
+    /// A BufferObject for the SPIR-V shader code.
+    ///
+    /// # Notes
+    /// - Uses LINEAR layout for CPU access during upload
+    /// - Uses RENDERING flag for GPU shader access
+    /// - In production, this would be followed by driver-specific compilation
+    pub fn allocate_spirv_buffer(&self, spirv_size: usize) -> Result<BufferObject<()>> {
+        self.allocate_buffer(spirv_size, Some("spirv-shader"))
+    }
 }
 
 /// RAII wrapper for a mapped GPU buffer.
