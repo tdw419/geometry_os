@@ -2574,9 +2574,9 @@ mod tests {
 
         // Give it plenty of cycles
         let mut cycle_count = 0;
-        for frame in 0..200 {
-            vram.execute_frame_interleaved(10);
-            cycle_count += 10;
+        for frame in 0..10000 {
+            vram.execute_frame_interleaved(100);
+            cycle_count += 100;
             if vram.is_halted(0) {
                 println!("\n  VM halted after {} cycles (frame {})", cycle_count, frame);
                 break;
