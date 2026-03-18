@@ -32,7 +32,7 @@ pub enum Opcode {
     Srl = 132,
     Sra = 133,
     // Spatial/GPU opcodes (200-227)
-    Draw = 215,    // DRAW glyph_id, x, y - blit from atlas to screen
+    Draw = 215, // DRAW glyph_id, x, y - blit from atlas to screen
 }
 
 impl Opcode {
@@ -215,9 +215,13 @@ impl GlyphAssembler {
                 let label = line[1..label_end].trim().to_string();
                 eprintln!("  Found label '{}' at addr {}", label, self.addr);
                 self.labels.insert(label, self.addr);
-                if label_end < line.len() { &line[label_end..] } else { "" }
+                if label_end < line.len() {
+                    &line[label_end..]
+                } else {
+                    ""
+                }
             } else if line.ends_with(':') {
-                let label = line[..line.len()-1].trim().to_string();
+                let label = line[..line.len() - 1].trim().to_string();
                 eprintln!("  Found label '{}' at addr {}", label, self.addr);
                 self.labels.insert(label, self.addr);
                 ""
@@ -242,30 +246,45 @@ impl GlyphAssembler {
         for line in text.lines() {
             let line = Self::strip_comment(line).trim();
             let line = line.trim_start_matches('@');
-            if line.is_empty() { continue; }
+            if line.is_empty() {
+                continue;
+            }
 
             // Handle labels at start of line - skip the label, process instructions
             let remaining_line = if line.starts_with(':') {
                 let label_end = line.find(';').unwrap_or(line.len());
-                if label_end < line.len() { line[label_end..].trim() } else { "" }
+                if label_end < line.len() {
+                    line[label_end..].trim()
+                } else {
+                    ""
+                }
             } else if line.ends_with(':') {
-                ""  // Label-only line, no instructions
+                "" // Label-only line, no instructions
             } else {
                 line
             };
 
-            if remaining_line.is_empty() { continue; }
+            if remaining_line.is_empty() {
+                continue;
+            }
             self.assemble_line(remaining_line)?;
         }
 
         // Resolve forward references
-        eprintln!("\nDEBUG: Resolving {} forward references:", self.forward_refs.len());
+        eprintln!(
+            "\nDEBUG: Resolving {} forward references:",
+            self.forward_refs.len()
+        );
         for (ref_addr, label, is_absolute) in &self.forward_refs {
-            let target = self.labels.get(label)
+            let target = self
+                .labels
+                .get(label)
                 .ok_or_else(|| format!("Undefined label: {}", label))?;
 
-            eprintln!("  Forward ref: addr={}, label={}, is_absolute={}, target={}",
-                ref_addr, label, is_absolute, target);
+            eprintln!(
+                "  Forward ref: addr={}, label={}, is_absolute={}, target={}",
+                ref_addr, label, is_absolute, target
+            );
 
             let value = if *is_absolute {
                 // LDI needs absolute address
@@ -316,7 +335,11 @@ impl GlyphAssembler {
                 .ok_or_else(|| format!("Unknown opcode: {}", parts[0]))?;
 
             // LDI and BRANCH take 2 words (instruction + data)
-            total += if opcode == Opcode::Ldi || opcode == Opcode::Branch { 2 } else { 1 };
+            total += if opcode == Opcode::Ldi || opcode == Opcode::Branch {
+                2
+            } else {
+                1
+            };
         }
         Ok(total)
     }
@@ -346,12 +369,24 @@ impl GlyphAssembler {
             .ok_or_else(|| format!("Unknown opcode: {}", opcode_str))?;
 
         let (instr, data) = match opcode {
-            Opcode::Nop => {
-                (Instruction { opcode, stratum: 0, p1: 0, p2: 0 }, None)
-            }
-            Opcode::Halt => {
-                (Instruction { opcode, stratum: 0, p1: 0, p2: 0 }, None)
-            }
+            Opcode::Nop => (
+                Instruction {
+                    opcode,
+                    stratum: 0,
+                    p1: 0,
+                    p2: 0,
+                },
+                None,
+            ),
+            Opcode::Halt => (
+                Instruction {
+                    opcode,
+                    stratum: 0,
+                    p1: 0,
+                    p2: 0,
+                },
+                None,
+            ),
             Opcode::Ldi => {
                 // LDI rX, imm or LDI rX, :label
                 let rd = parse_reg(parts.get(1).ok_or("LDI needs destination register")?)
@@ -375,60 +410,129 @@ impl GlyphAssembler {
                         return Err(format!("Invalid immediate: {}", imm));
                     }
                 };
-                (Instruction { opcode, stratum: 0, p1: rd, p2: 0 }, Some(imm_val))
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: 0,
+                        p1: rd,
+                        p2: 0,
+                    },
+                    Some(imm_val),
+                )
+            },
             Opcode::Add => {
                 // ADD rd, rs1, rs2 → rd = rs1 + rs2 (three-operand form)
                 // Uses stratum field for rs2
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: rs2,
+                        p1: rs1,
+                        p2: rd,
+                    },
+                    None,
+                )
+            },
             Opcode::Sub => {
                 // SUB rd, rs1, rs2 → rd = rs1 - rs2 (three-operand form)
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: rs2,
+                        p1: rs1,
+                        p2: rd,
+                    },
+                    None,
+                )
+            },
             Opcode::Mul => {
                 // MUL rd, rs1, rs2 → rd = rs1 * rs2 (three-operand form)
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: rs2,
+                        p1: rs1,
+                        p2: rd,
+                    },
+                    None,
+                )
+            },
             Opcode::Load => {
                 // LOAD rd, [rs] or LOAD rd = mem[rs]
                 let rd = parse_reg(parts.get(1).ok_or("LOAD needs destination register")?)
                     .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
                 let rs = parts.get(2).ok_or("LOAD needs source register")?;
-                let rs = rs.trim_start_matches('[').trim_start_matches("mem")
-                    .trim_start_matches('[').trim_end_matches(']');
-                let rs = parse_reg(rs)
-                    .ok_or_else(|| format!("Invalid source register: {}", rs))?;
-                (Instruction { opcode, stratum: 0, p1: rs, p2: rd }, None)
-            }
+                let rs = rs
+                    .trim_start_matches('[')
+                    .trim_start_matches("mem")
+                    .trim_start_matches('[')
+                    .trim_end_matches(']');
+                let rs = parse_reg(rs).ok_or_else(|| format!("Invalid source register: {}", rs))?;
+                (
+                    Instruction {
+                        opcode,
+                        stratum: 0,
+                        p1: rs,
+                        p2: rd,
+                    },
+                    None,
+                )
+            },
             Opcode::Store => {
                 // STORE [rd], rs or STORE mem[rd], rs
                 let addr_part = parts.get(1).ok_or("STORE needs address register")?;
                 let addr_part = addr_part.trim_end_matches(','); // Remove trailing comma
-                let addr_reg = addr_part.trim_start_matches('[').trim_start_matches("mem")
-                    .trim_start_matches('[').trim_end_matches(']');
+                let addr_reg = addr_part
+                    .trim_start_matches('[')
+                    .trim_start_matches("mem")
+                    .trim_start_matches('[')
+                    .trim_end_matches(']');
                 let rd = parse_reg(addr_reg)
                     .ok_or_else(|| format!("Invalid address register: {}", addr_part))?;
                 let val_part = parts.get(2).ok_or("STORE needs value register")?;
                 let rs = parse_reg(val_part.trim_end_matches(','))
                     .ok_or_else(|| format!("Invalid value register: {}", val_part))?;
-                (Instruction { opcode, stratum: 0, p1: rd, p2: rs }, None)
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: 0,
+                        p1: rd,
+                        p2: rs,
+                    },
+                    None,
+                )
+            },
             Opcode::Branch => {
                 // BRANCH cond r1, r2, target
                 // BNE r1, r2, label
                 let (cond, r1, r2, target) = self.parse_branch(&parts)?;
-                (Instruction { opcode, stratum: cond as u8, p1: r1, p2: r2 }, Some(target))
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: cond as u8,
+                        p1: r1,
+                        p2: r2,
+                    },
+                    Some(target),
+                )
+            },
             Opcode::Call => {
                 // CALL rs | CALL :label
                 let arg = parts.get(1).ok_or("CALL needs register or label")?;
                 // Try register first
                 if let Some(rs) = parse_reg(arg) {
-                    (Instruction { opcode, stratum: 0, p1: rs, p2: 0 }, None)
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: rs,
+                            p2: 0,
+                        },
+                        None,
+                    )
                 } else if arg.starts_with(':') {
                     // Label reference - use PC-relative encoding (stratum=2)
                     let label = arg[1..].to_string();
@@ -436,25 +540,49 @@ impl GlyphAssembler {
                     let next_pc = self.addr as i32 + 1;
                     let offset = target - next_pc;
                     let offset = offset.clamp(-32768, 32767) as i16 as u16;
-                    (Instruction { opcode, stratum: 2, p1: (offset & 0xFF) as u8, p2: ((offset >> 8) & 0xFF) as u8 }, None)
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 2,
+                            p1: (offset & 0xFF) as u8,
+                            p2: ((offset >> 8) & 0xFF) as u8,
+                        },
+                        None,
+                    )
                 } else {
                     return Err(format!("Invalid CALL operand: {}", arg));
                 }
-            }
+            },
             Opcode::Mov => {
                 // MOV rd, rs
                 let rd = parse_reg(parts.get(1).ok_or("MOV needs destination register")?)
                     .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
                 let rs = parse_reg(parts.get(2).ok_or("MOV needs source register")?)
                     .ok_or_else(|| format!("Invalid register: {}", parts[2]))?;
-                (Instruction { opcode, stratum: 0, p1: rs, p2: rd }, None)
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: 0,
+                        p1: rs,
+                        p2: rd,
+                    },
+                    None,
+                )
+            },
             Opcode::Jmp => {
                 // JMP rs | JMP :label
                 let arg = parts.get(1).ok_or("JMP needs register or label")?;
                 // Try register first
                 if let Some(rs) = parse_reg(arg) {
-                    (Instruction { opcode, stratum: 0, p1: rs, p2: 0 }, None)
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: rs,
+                            p2: 0,
+                        },
+                        None,
+                    )
                 } else if arg.starts_with(':') {
                     // Label reference - use PC-relative encoding (stratum=2)
                     let label = arg[1..].to_string();
@@ -462,51 +590,119 @@ impl GlyphAssembler {
                     let next_pc = self.addr as i32 + 1;
                     let offset = target - next_pc;
                     let offset = offset.clamp(-32768, 32767) as i16 as u16;
-                    (Instruction { opcode, stratum: 2, p1: (offset & 0xFF) as u8, p2: ((offset >> 8) & 0xFF) as u8 }, None)
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 2,
+                            p1: (offset & 0xFF) as u8,
+                            p2: ((offset >> 8) & 0xFF) as u8,
+                        },
+                        None,
+                    )
                 } else {
                     return Err(format!("Invalid JMP operand: {}", arg));
                 }
-            }
-            Opcode::Ret => {
-                (Instruction { opcode, stratum: 0, p1: 0, p2: 0 }, None)
-            }
+            },
+            Opcode::Ret => (
+                Instruction {
+                    opcode,
+                    stratum: 0,
+                    p1: 0,
+                    p2: 0,
+                },
+                None,
+            ),
             Opcode::Or => {
                 // OR rd, rs1, rs2 → rd = rs1 | rs2 (three-operand form)
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: rs2,
+                        p1: rs1,
+                        p2: rd,
+                    },
+                    None,
+                )
+            },
             Opcode::And => {
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: rs2,
+                        p1: rs1,
+                        p2: rd,
+                    },
+                    None,
+                )
+            },
             Opcode::Xor => {
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: rs2,
+                        p1: rs1,
+                        p2: rd,
+                    },
+                    None,
+                )
+            },
             Opcode::Sll => {
                 // SLL rd, rs1, rs2 (three-operand form)
                 // Encodes as: opcode=131, stratum=rs2, p1=rs1, p2=rd
                 // VM behavior: rd = rs1 << (rs2 & 31)
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: rs2,
+                        p1: rs1,
+                        p2: rd,
+                    },
+                    None,
+                )
+            },
             Opcode::Srl => {
                 // SRL rd, rs1, rs2 (three-operand form)
                 // Encodes as: opcode=132, stratum=rs2, p1=rs1, p2=rd
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: rs2,
+                        p1: rs1,
+                        p2: rd,
+                    },
+                    None,
+                )
+            },
             Opcode::Draw => {
                 // DRAW glyph_id, x, y - blit 64x64 cell from Atlas to Screen
                 // Format: DRAW r_glyph, r_x, r_y
                 // Encodes as: opcode=215, stratum=r_y, p1=r_glyph, p2=r_x
                 // VM reads: glyph_id = reg[p1], x = reg[p2], y = reg[stratum]
                 let (glyph_reg, x_reg, y_reg) = self.parse_three_regs(&parts[1..])?;
-                (Instruction { opcode, stratum: y_reg, p1: glyph_reg, p2: x_reg }, None)
-            }
-            _ => {
-                (Instruction { opcode, stratum: 0, p1: 0, p2: 0 }, None)
-            }
+                (
+                    Instruction {
+                        opcode,
+                        stratum: y_reg,
+                        p1: glyph_reg,
+                        p2: x_reg,
+                    },
+                    None,
+                )
+            },
+            _ => (
+                Instruction {
+                    opcode,
+                    stratum: 0,
+                    p1: 0,
+                    p2: 0,
+                },
+                None,
+            ),
         };
 
         // Emit instruction
@@ -547,7 +743,8 @@ impl GlyphAssembler {
     /// Parse three registers from args
     fn parse_three_regs(&self, args: &[&str]) -> Result<(u8, u8, u8), String> {
         // Format: rd, rs1, rs2 or rd = rs1 + rs2
-        let clean_args: Vec<&str> = args.iter()
+        let clean_args: Vec<&str> = args
+            .iter()
             .map(|s| s.trim_end_matches(',').trim())
             .collect();
 
@@ -568,10 +765,15 @@ impl GlyphAssembler {
     fn parse_branch(&self, parts: &[&str]) -> Result<(BranchCond, u8, u8, i32), String> {
         // BNE r1, r2, label
         // BRANCH BNE r1, r2, label
-        let offset = if parts[0].to_uppercase() == "BRANCH" { 1 } else { 0 };
+        let offset = if parts[0].to_uppercase() == "BRANCH" {
+            1
+        } else {
+            0
+        };
 
         let cond = if parts[0].to_uppercase() == "BRANCH" {
-            BranchCond::from_str(parts[1]).ok_or_else(|| format!("Invalid condition: {}", parts[1]))?
+            BranchCond::from_str(parts[1])
+                .ok_or_else(|| format!("Invalid condition: {}", parts[1]))?
         } else {
             BranchCond::from_str(parts[0])
                 .ok_or_else(|| format!("Invalid branch type: {}", parts[0]))?
@@ -582,9 +784,16 @@ impl GlyphAssembler {
         let r2 = parse_reg(parts.get(2 + offset).ok_or("Branch needs r2")?)
             .ok_or_else(|| format!("Invalid register: {}", parts[2 + offset]))?;
 
-        let target_str = parts.get(3 + offset).ok_or("Branch needs target")?.trim_end_matches(',');
-        let label_name = if target_str.starts_with(':') { &target_str[1..] } else { target_str };
-        
+        let target_str = parts
+            .get(3 + offset)
+            .ok_or("Branch needs target")?
+            .trim_end_matches(',');
+        let label_name = if target_str.starts_with(':') {
+            &target_str[1..]
+        } else {
+            target_str
+        };
+
         let target = parse_imm(target_str)
             .or_else(|| self.labels.get(label_name).map(|&a| a as i32))
             .unwrap_or(0); // Will be resolved by forward_refs if missing
@@ -624,35 +833,54 @@ mod tests {
 
     #[test]
     fn test_nop_encoding() {
-        let instr = Instruction { opcode: Opcode::Nop, stratum: 0, p1: 0, p2: 0 };
+        let instr = Instruction {
+            opcode: Opcode::Nop,
+            stratum: 0,
+            p1: 0,
+            p2: 0,
+        };
         assert_eq!(instr.encode(), 0x00000000);
     }
 
     #[test]
     fn test_halt_encoding() {
-        let instr = Instruction { opcode: Opcode::Halt, stratum: 0, p1: 0, p2: 0 };
+        let instr = Instruction {
+            opcode: Opcode::Halt,
+            stratum: 0,
+            p1: 0,
+            p2: 0,
+        };
         assert_eq!(instr.encode(), 0x0000000D);
     }
 
     #[test]
     fn test_ldi_encoding() {
-        let instr = Instruction { opcode: Opcode::Ldi, stratum: 0, p1: 5, p2: 0 };
+        let instr = Instruction {
+            opcode: Opcode::Ldi,
+            stratum: 0,
+            p1: 5,
+            p2: 0,
+        };
         assert_eq!(instr.encode(), 0x00050001);
     }
 
     #[test]
     fn test_assemble_simple() {
         let mut asm = GlyphAssembler::new();
-        let program = asm.assemble(r#"
+        let program = asm
+            .assemble(
+                r#"
             LDI r0, 42
             LDI r1, 100
             STORE mem[r1], r0
             HALT
-        "#).unwrap();
+        "#,
+            )
+            .unwrap();
 
         assert_eq!(program.len(), 6);
         assert_eq!(program.words[0], 0x00000001); // LDI r0
-        assert_eq!(program.words[1], 42);          // DATA: 42
+        assert_eq!(program.words[1], 42); // DATA: 42
         assert_eq!(program.words[4], 0x00010004); // STORE mem[r1], r0
         assert_eq!(program.words[5], 0x0000000D); // HALT
     }
@@ -660,14 +888,18 @@ mod tests {
     #[test]
     fn test_assemble_with_label() {
         let mut asm = GlyphAssembler::new();
-        let program = asm.assemble(r#"
+        let program = asm
+            .assemble(
+                r#"
         start:
             LDI r0, 0
             LDI r1, 1
             ADD r0, r0, r1
             BNE r1, r0, start
             HALT
-        "#).unwrap();
+        "#,
+            )
+            .unwrap();
 
         assert!(program.labels.contains_key("start"));
         assert_eq!(program.labels["start"], 0);
@@ -676,7 +908,9 @@ mod tests {
     #[test]
     fn test_assemble_self_replication() {
         let mut asm = GlyphAssembler::new();
-        let program = asm.assemble(r#"
+        let program = asm
+            .assemble(
+                r#"
             // Self-replicating glyph
             LDI r0, 0           // src = 0
             LDI r1, 100         // dst = 100
@@ -691,7 +925,9 @@ mod tests {
             ADD r2, r3, r2      // counter++
             BNE r2, r4, loop    // if counter != length, loop
             HALT
-        "#).unwrap();
+        "#,
+            )
+            .unwrap();
 
         // 5 LDI (2 words each) + 1 LOAD + 1 STORE + 3 ADD + 1 BNE (2 words) + 1 HALT = 18 words
         assert_eq!(program.len(), 18);
@@ -709,9 +945,11 @@ mod tests {
         // Encoding: opcode=131, stratum=14 (r14), p1=10 (r10), p2=15 (r15)
         // Expected: 0x0F0A0E83 = 131 | (14 << 8) | (10 << 16) | (15 << 24)
         let expected = 0x0F0A0E83u32;
-        assert_eq!(program.words[0], expected,
+        assert_eq!(
+            program.words[0], expected,
             "SLL r15, r10, r14 should encode as {:08X}, got {:08X}",
-            expected, program.words[0]);
+            expected, program.words[0]
+        );
     }
 
     #[test]
@@ -725,8 +963,10 @@ mod tests {
         // Encoding: opcode=215, stratum=21 (r_y), p1=23 (r_glyph), p2=20 (r_x)
         // Expected: 0x141715D7 = 215 | (21 << 8) | (23 << 16) | (20 << 24)
         let expected = 215u32 | (21u32 << 8) | (23u32 << 16) | (20u32 << 24);
-        assert_eq!(program.words[0], expected,
+        assert_eq!(
+            program.words[0], expected,
             "DRAW r23, r20, r21 should encode as {:08X}, got {:08X}",
-            expected, program.words[0]);
+            expected, program.words[0]
+        );
     }
 }

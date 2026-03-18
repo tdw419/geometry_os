@@ -1387,7 +1387,7 @@ async fn handle_poke(
                 success: false,
                 message: format!("Invalid address format: {}", e),
             })
-        }
+        },
     };
 
     // Parse value from body (hex string)
@@ -1398,7 +1398,7 @@ async fn handle_poke(
                 success: false,
                 message: format!("Invalid value format: {}", e),
             })
-        }
+        },
     };
 
     // Queue the poke request

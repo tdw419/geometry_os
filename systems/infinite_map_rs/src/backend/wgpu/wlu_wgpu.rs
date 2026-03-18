@@ -23,7 +23,7 @@
 use anyhow::Result;
 use std::mem::size_of;
 use std::sync::Arc;
-use wgpu::{Device, Queue, Buffer, ComputePipeline, BindGroup, BindGroupLayout};
+use wgpu::{BindGroup, BindGroupLayout, Buffer, ComputePipeline, Device, Queue};
 
 use crate::wave_logic_unit::WaveLogicBackend;
 
@@ -69,7 +69,7 @@ pub struct WluWgpuResources {
     device: Arc<Device>,
     /// wgpu queue (shared with App's Renderer)
     queue: Arc<Queue>,
-    
+
     // GPU Buffers
     /// Input wave field (previous state)
     input_field_buffer: Buffer,
@@ -81,7 +81,7 @@ pub struct WluWgpuResources {
     result_buffer: Buffer,
     /// Staging buffer for reading back results
     staging_buffer: Buffer,
-    
+
     // Compute Pipeline
     /// Compute pipeline for wave propagation
     pipeline: ComputePipeline,
@@ -89,13 +89,13 @@ pub struct WluWgpuResources {
     bind_group_layout: BindGroupLayout,
     /// Bind group for current frame
     bind_group: BindGroup,
-    
+
     // Configuration
     /// Grid size (width = height)
     grid_size: u32,
     /// Current frame number
     frame: u32,
-    
+
     // CPU-side caches
     /// Oscillator configurations
     oscillators: [GpuOscillator; MAX_OSCILLATORS],
@@ -124,7 +124,7 @@ impl WluWgpuResources {
     pub fn new(device: Arc<Device>, queue: Arc<Queue>, grid_size: Option<u32>) -> Result<Self> {
         let grid_size = grid_size.unwrap_or(DEFAULT_GRID_SIZE);
         let field_size = (grid_size * grid_size) as usize * size_of::<f32>();
-        
+
         // Create buffers
         let input_field_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("WLU Input Field"),
@@ -132,14 +132,14 @@ impl WluWgpuResources {
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        
+
         let output_field_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("WLU Output Field"),
             size: field_size as u64,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
-        
+
         // Params buffer: array<f32, 21> (84 bytes)
         let params_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("WLU Params"),
@@ -147,7 +147,7 @@ impl WluWgpuResources {
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        
+
         // Result buffer: [sensor_value, logic_output] (2 floats = 8 bytes)
         let result_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("WLU Result"),
@@ -155,7 +155,7 @@ impl WluWgpuResources {
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
-        
+
         // Staging buffer for CPU readback
         let staging_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("WLU Staging"),
@@ -163,14 +163,14 @@ impl WluWgpuResources {
             usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        
+
         // Load shader and create compute pipeline
         let shader_source = include_str!("../../shaders/wave_logic_unit.wgsl");
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Wave Logic Unit Shader"),
             source: wgpu::ShaderSource::Wgsl(shader_source.into()),
         });
-        
+
         // Create bind group layout
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("WLU Bind Group Layout"),
@@ -221,14 +221,14 @@ impl WluWgpuResources {
                 },
             ],
         });
-        
+
         // Create pipeline layout
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("WLU Pipeline Layout"),
             bind_group_layouts: &[&bind_group_layout],
             push_constant_ranges: &[],
         });
-        
+
         // Create compute pipeline
         let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some("WLU Compute Pipeline"),
@@ -236,7 +236,7 @@ impl WluWgpuResources {
             module: &shader,
             entry_point: "main",
         });
-        
+
         // Create bind group
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("WLU Bind Group"),
@@ -260,13 +260,13 @@ impl WluWgpuResources {
                 },
             ],
         });
-        
+
         // Initialize with default configuration
         let oscillators = [
             GpuOscillator::new(64, 128, 1.0, 0.0, 0.5),
             GpuOscillator::new(192, 128, 1.0, 0.0, 0.5),
         ];
-        
+
         Ok(Self {
             device,
             queue,
@@ -287,11 +287,11 @@ impl WluWgpuResources {
             current_sensor_value: 0.0,
         })
     }
-    
+
     /// Swap input and output buffers (ping-pong)
     fn swap_buffers(&mut self) {
         std::mem::swap(&mut self.input_field_buffer, &mut self.output_field_buffer);
-        
+
         // Recreate bind group with swapped buffers
         self.bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("WLU Bind Group"),
@@ -316,14 +316,16 @@ impl WluWgpuResources {
             ],
         });
     }
-    
+
     /// Read back the sensor value from the GPU
     fn read_sensor_value(&mut self) -> Result<f32> {
         // Copy result to staging buffer
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("WLU Readback Encoder"),
-        });
-        
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("WLU Readback Encoder"),
+            });
+
         encoder.copy_buffer_to_buffer(
             &self.result_buffer,
             0,
@@ -331,9 +333,9 @@ impl WluWgpuResources {
             0,
             (2 * size_of::<f32>()) as u64,
         );
-        
+
         self.queue.submit(std::iter::once(encoder.finish()));
-        
+
         // Map staging buffer and read (synchronous for now, should be async in production)
         // Note: In a real implementation, this should be async using buffer_slice.map_async
         let staging_slice = self.staging_buffer.slice(..);
@@ -343,64 +345,65 @@ impl WluWgpuResources {
             }
         });
         self.device.poll(wgpu::Maintain::Wait);
-        
+
         // Read the mapped data
         {
             let data = staging_slice.get_mapped_range();
             let result: &[f32] = bytemuck::cast_slice(&data);
             self.current_sensor_value = result[0];
         }
-        
+
         self.staging_buffer.unmap();
-        
+
         Ok(self.current_sensor_value)
     }
-    
+
     /// Update the params buffer with current oscillator and simulation settings
     fn update_params_buffer(&self) -> Result<()> {
         // Pack params array matching WGSL layout
         let mut params = [0.0f32; 21];
-        
+
         // params[0-4]: oscillator A (pos_x, pos_y, freq, phase, amp)
         params[0] = self.oscillators[0].position_x as f32;
         params[1] = self.oscillators[0].position_y as f32;
         params[2] = self.oscillators[0].frequency;
         params[3] = self.oscillators[0].phase;
         params[4] = self.oscillators[0].amplitude;
-        
+
         // params[5-9]: oscillator B (pos_x, pos_y, freq, phase, amp)
         params[5] = self.oscillators[1].position_x as f32;
         params[6] = self.oscillators[1].position_y as f32;
         params[7] = self.oscillators[1].frequency;
         params[8] = self.oscillators[1].phase;
         params[9] = self.oscillators[1].amplitude;
-        
+
         // params[10-11]: sensor position (x, y)
         params[10] = self.sensor_pos.0 as f32;
         params[11] = self.sensor_pos.1 as f32;
-        
+
         // params[12]: wave_speed
         params[12] = self.wave_speed;
-        
+
         // params[13]: sensor_threshold
         params[13] = self.sensor_threshold;
-        
+
         // params[14-15]: reserved (set to 0)
         params[14] = 0.0;
         params[15] = 0.0;
-        
+
         // params[16]: grid_size
         params[16] = self.grid_size as f32;
-        
+
         // params[17-20]: reserved (set to 0)
         params[17] = 0.0;
         params[18] = 0.0;
         params[19] = 0.0;
         params[20] = 0.0;
-        
+
         // Upload to GPU
-        self.queue.write_buffer(&self.params_buffer, 0, bytemuck::cast_slice(&params));
-        
+        self.queue
+            .write_buffer(&self.params_buffer, 0, bytemuck::cast_slice(&params));
+
         Ok(())
     }
 }
@@ -413,45 +416,47 @@ impl WaveLogicBackend for WluWgpuResources {
             eprintln!("Failed to update params buffer: {:?}", e);
             return;
         }
-        
+
         // Create command encoder
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("WLU Update Encoder"),
-        });
-        
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("WLU Update Encoder"),
+            });
+
         // Dispatch compute shader
         {
             let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 label: Some("WLU Compute Pass"),
                 timestamp_writes: None,
             });
-            
+
             compute_pass.set_pipeline(&self.pipeline);
             compute_pass.set_bind_group(0, &self.bind_group, &[]);
-            
+
             // Workgroup size is 16x16, so we need (grid_size + 15) / 16 workgroups
             let workgroup_count = (self.grid_size + 15) / 16;
             compute_pass.dispatch_workgroups(workgroup_count, workgroup_count, 1);
         }
-        
+
         // Submit commands
         self.queue.submit(std::iter::once(encoder.finish()));
-        
+
         // Swap buffers for next frame
         self.swap_buffers();
-        
+
         // Read back sensor value
         if let Err(e) = self.read_sensor_value() {
             eprintln!("Failed to read sensor value: {:?}", e);
         }
-        
+
         self.frame += 1;
     }
-    
+
     fn get_sensor_value(&self) -> f32 {
         self.current_sensor_value
     }
-    
+
     fn get_logic_output(&self) -> u32 {
         if self.current_sensor_value > self.sensor_threshold {
             1
@@ -459,35 +464,35 @@ impl WaveLogicBackend for WluWgpuResources {
             0
         }
     }
-    
+
     fn set_oscillator_a_frequency(&mut self, frequency: f32) {
         self.oscillators[0].frequency = frequency;
     }
-    
+
     fn set_oscillator_b_frequency(&mut self, frequency: f32) {
         self.oscillators[1].frequency = frequency;
     }
-    
+
     fn set_oscillator_a_phase(&mut self, phase: f32) {
         self.oscillators[0].phase = phase;
     }
-    
+
     fn set_oscillator_b_phase(&mut self, phase: f32) {
         self.oscillators[1].phase = phase;
     }
-    
+
     fn set_oscillator_a_amplitude(&mut self, amplitude: f32) {
         self.oscillators[0].amplitude = amplitude;
     }
-    
+
     fn set_oscillator_b_amplitude(&mut self, amplitude: f32) {
         self.oscillators[1].amplitude = amplitude;
     }
-    
+
     fn grid_size(&self) -> u32 {
         self.grid_size
     }
-    
+
     fn frame(&self) -> u32 {
         self.frame
     }
@@ -534,12 +539,12 @@ mod tests {
         let result = create_test_device().await;
         if let Some((device, queue)) = result {
             let wlu_result = WluWgpuResources::new(device, queue, Some(DEFAULT_GRID_SIZE));
-            
+
             // Creation should succeed with valid device/queue
             assert!(wlu_result.is_ok(), "WLU wgpu creation should succeed");
-            
+
             let wlu = wlu_result.unwrap();
-            
+
             // Verify initial state
             assert_eq!(wlu.grid_size(), DEFAULT_GRID_SIZE);
             assert_eq!(wlu.frame(), 0);
@@ -554,14 +559,14 @@ mod tests {
         if let Some((device, queue)) = result {
             let mut wlu = WluWgpuResources::new(device, queue, Some(DEFAULT_GRID_SIZE))
                 .expect("WLU creation should succeed");
-            
+
             // Initial frame should be 0
             assert_eq!(wlu.frame(), 0);
-            
+
             // Update should advance frame
             wlu.update(0.016); // ~60fps timestep
             assert_eq!(wlu.frame(), 1);
-            
+
             // Multiple updates should advance frame counter
             wlu.update(0.016);
             wlu.update(0.016);
@@ -577,23 +582,26 @@ mod tests {
         if let Some((device, queue)) = result {
             let mut wlu = WluWgpuResources::new(device, queue, Some(DEFAULT_GRID_SIZE))
                 .expect("WLU creation should succeed");
-            
+
             // Set oscillator A to generate waves
             wlu.set_oscillator_a_frequency(1.0);
             wlu.set_oscillator_a_amplitude(1.0);
-            
+
             // Run simulation for a few frames
             for _ in 0..10 {
                 wlu.update(0.016);
             }
-            
+
             // Sensor value should be a valid float (not NaN or infinite)
             let sensor_value = wlu.get_sensor_value();
             assert!(sensor_value.is_finite(), "Sensor value should be finite");
-            
+
             // Logic output should be 0 or 1
             let logic_output = wlu.get_logic_output();
-            assert!(logic_output == 0 || logic_output == 1, "Logic output should be 0 or 1");
+            assert!(
+                logic_output == 0 || logic_output == 1,
+                "Logic output should be 0 or 1"
+            );
         }
         // Skip if no GPU available
     }
@@ -605,22 +613,22 @@ mod tests {
         if let Some((device, queue)) = result {
             let mut wlu = WluWgpuResources::new(device, queue, Some(DEFAULT_GRID_SIZE))
                 .expect("WLU creation should succeed");
-            
+
             // Configure oscillator A
             wlu.set_oscillator_a_frequency(2.5);
             wlu.set_oscillator_a_phase(0.5);
             wlu.set_oscillator_a_amplitude(0.8);
-            
+
             // Configure oscillator B
             wlu.set_oscillator_b_frequency(3.0);
             wlu.set_oscillator_b_phase(1.0);
             wlu.set_oscillator_b_amplitude(0.6);
-            
+
             // Run simulation - should not crash
             for _ in 0..5 {
                 wlu.update(0.016);
             }
-            
+
             // Verify frame advanced
             assert_eq!(wlu.frame(), 5);
         }
@@ -635,13 +643,13 @@ mod tests {
             // Create as trait object to verify interface compatibility
             let wlu: Box<dyn WaveLogicBackend> = Box::new(
                 WluWgpuResources::new(device, queue, Some(DEFAULT_GRID_SIZE))
-                    .expect("WLU creation should succeed")
+                    .expect("WLU creation should succeed"),
             );
-            
+
             // Test trait methods
             assert_eq!(wlu.grid_size(), DEFAULT_GRID_SIZE);
             assert_eq!(wlu.frame(), 0);
-            
+
             // These should not panic
             let _ = wlu.get_sensor_value();
             let _ = wlu.get_logic_output();

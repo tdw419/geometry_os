@@ -33,7 +33,7 @@ pub mod unpacker;
 pub use extractor::{extract_wgsl_from_rts, is_wgsl_color, is_wgsl_metadata, WgslExtractor};
 pub use geometric_extractor::extract_geometric_from_rts;
 pub use packer::{PackOptions, RTSPacker};
-pub use unpacker::{RtsMetadata, RTSUnpacker, UnpackOptions};
+pub use unpacker::{RTSUnpacker, RtsMetadata, UnpackOptions};
 
 #[cfg(test)]
 mod extractor_tests;

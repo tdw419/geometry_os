@@ -65,7 +65,9 @@ impl WeightAtlas {
     ///
     /// The PNG is expected to be an RGBA image where each pixel encodes
     /// one Float16 weight in the R and G channels (B and A are metadata).
-    pub fn load_from_png_bytes(data: &[u8]) -> Result<Vec<f32>, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn load_from_png_bytes(
+        data: &[u8],
+    ) -> Result<Vec<f32>, Box<dyn std::error::Error + Send + Sync>> {
         let img = image::load_from_memory(data)?;
         let rgba = img.to_rgba8();
 
@@ -78,7 +80,9 @@ impl WeightAtlas {
     }
 
     /// Load weights from a PNG file.
-    pub fn load_from_png_file(path: &str) -> Result<Vec<f32>, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn load_from_png_file(
+        path: &str,
+    ) -> Result<Vec<f32>, Box<dyn std::error::Error + Send + Sync>> {
         let data = std::fs::read(path)?;
         Self::load_from_png_bytes(&data)
     }
@@ -169,7 +173,15 @@ mod tests {
 
         let weights = WeightAtlas::load_from_png_bytes(&cursor.into_inner()).unwrap();
         assert_eq!(weights.len(), 16); // 4x4 = 16 pixels
-        assert!((weights[0] - 1.0).abs() < 0.01, "Expected 1.0, got {}", weights[0]);
-        assert!((weights[1] - (-1.0)).abs() < 0.01, "Expected -1.0, got {}", weights[1]);
+        assert!(
+            (weights[0] - 1.0).abs() < 0.01,
+            "Expected 1.0, got {}",
+            weights[0]
+        );
+        assert!(
+            (weights[1] - (-1.0)).abs() < 0.01,
+            "Expected -1.0, got {}",
+            weights[1]
+        );
     }
 }

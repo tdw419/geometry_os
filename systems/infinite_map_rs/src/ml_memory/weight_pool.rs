@@ -6,8 +6,8 @@
 use std::collections::HashMap;
 
 use super::{
-    block_allocator::{BlockAllocator, AllocatedBlock},
-    {TensorId, MLError, MLResult, PoolStats},
+    block_allocator::{AllocatedBlock, BlockAllocator},
+    {MLError, MLResult, PoolStats, TensorId},
 };
 
 /// Weight memory regions
@@ -50,7 +50,9 @@ pub struct HebbianBatch {
 
 impl HebbianBatch {
     pub fn new() -> Self {
-        Self { updates: Vec::new() }
+        Self {
+            updates: Vec::new(),
+        }
     }
 
     pub fn add(&mut self, update: HebbianUpdate) {
@@ -112,7 +114,9 @@ impl WeightPool {
 
     /// Free a weight tensor
     pub fn free(&mut self, id: TensorId) -> MLResult<()> {
-        let block = self.allocations.remove(&id)
+        let block = self
+            .allocations
+            .remove(&id)
             .ok_or(MLError::TensorNotFound(id))?;
         self.regions.remove(&id);
 
@@ -137,13 +141,10 @@ impl WeightPool {
     }
 
     /// Write weights to the pool
-    pub fn write_weights(
-        &self,
-        queue: &wgpu::Queue,
-        offset: u64,
-        data: &[u8],
-    ) -> MLResult<()> {
-        let buffer = self.buffer.as_ref()
+    pub fn write_weights(&self, queue: &wgpu::Queue, offset: u64, data: &[u8]) -> MLResult<()> {
+        let buffer = self
+            .buffer
+            .as_ref()
             .ok_or_else(|| MLError::GpuError("Weight buffer not initialized".into()))?;
 
         queue.write_buffer(buffer, offset, data);

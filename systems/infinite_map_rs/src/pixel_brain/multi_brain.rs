@@ -29,10 +29,10 @@
 
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
-use wgpu::{Device, Queue, Texture, TextureView, Buffer, BindGroup, ComputePipeline};
+use wgpu::{BindGroup, Buffer, ComputePipeline, Device, Queue, Texture, TextureView};
 
-use super::infer::PixelBrainInferencer;
 use super::atlas::WeightAtlas;
+use super::infer::PixelBrainInferencer;
 
 /// Message types for inter-brain communication
 #[repr(u32)]
@@ -61,7 +61,13 @@ pub struct BrainRegion {
 impl BrainRegion {
     /// Create a new brain region
     pub fn new(id: u32, x: u32, y: u32, width: u32, height: u32) -> Self {
-        Self { id, x, y, width, height }
+        Self {
+            id,
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     /// Check if a point is within this region
@@ -100,7 +106,12 @@ impl MessageGlyph {
     pub const SIZE: usize = 256; // 64 pixels * 4 bytes
 
     /// Create a new message glyph
-    pub fn new(sender_id: u32, recipient_id: u32, message_type: MessageType, payload: [f32; 60]) -> Self {
+    pub fn new(
+        sender_id: u32,
+        recipient_id: u32,
+        message_type: MessageType,
+        payload: [f32; 60],
+    ) -> Self {
         Self {
             sender_id,
             recipient_id,
@@ -111,20 +122,38 @@ impl MessageGlyph {
     }
 
     /// Create a request attention message
-    pub fn request_attention(sender_id: u32, recipient_id: u32, attention_coords: (f32, f32, f32, f32)) -> Self {
+    pub fn request_attention(
+        sender_id: u32,
+        recipient_id: u32,
+        attention_coords: (f32, f32, f32, f32),
+    ) -> Self {
         let mut payload = [0.0f32; 60];
         payload[0] = attention_coords.0;
         payload[1] = attention_coords.1;
         payload[2] = attention_coords.2;
         payload[3] = attention_coords.3;
-        Self::new(sender_id, recipient_id, MessageType::RequestAttention, payload)
+        Self::new(
+            sender_id,
+            recipient_id,
+            MessageType::RequestAttention,
+            payload,
+        )
     }
 
     /// Create a share attention message
-    pub fn share_attention(sender_id: u32, recipient_id: u32, attention_weights: &[f32; 56]) -> Self {
+    pub fn share_attention(
+        sender_id: u32,
+        recipient_id: u32,
+        attention_weights: &[f32; 56],
+    ) -> Self {
         let mut payload = [1.0f32; 60];
         payload[4..60].copy_from_slice(attention_weights);
-        Self::new(sender_id, recipient_id, MessageType::ShareAttention, payload)
+        Self::new(
+            sender_id,
+            recipient_id,
+            MessageType::ShareAttention,
+            payload,
+        )
     }
 
     /// Create a sync state message
@@ -135,7 +164,12 @@ impl MessageGlyph {
     }
 
     /// Create a learn signal message
-    pub fn learn_signal(sender_id: u32, recipient_id: u32, reward: f32, gradient: &[f32; 55]) -> Self {
+    pub fn learn_signal(
+        sender_id: u32,
+        recipient_id: u32,
+        reward: f32,
+        gradient: &[f32; 55],
+    ) -> Self {
         let mut payload = [1.0f32; 60];
         payload[0] = reward;
         payload[5..60].copy_from_slice(gradient);
@@ -240,11 +274,7 @@ pub struct MultiBrainCoordinator {
 
 impl MultiBrainCoordinator {
     /// Create a new multi-brain coordinator
-    pub fn new(
-        device: Arc<Device>,
-        queue: Arc<Queue>,
-        atlas_texture: Arc<Texture>,
-    ) -> Self {
+    pub fn new(device: Arc<Device>, queue: Arc<Queue>, atlas_texture: Arc<Texture>) -> Self {
         let atlas_view = atlas_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         // Define regions for a 4096x4096 atlas
@@ -307,76 +337,86 @@ impl MultiBrainCoordinator {
         );
 
         // Load attention blend shader
-        let shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("attention_blend"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/attention_blend.wgsl").into()),
-        });
+        let shader = self
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("attention_blend"),
+                source: wgpu::ShaderSource::Wgsl(
+                    include_str!("../shaders/attention_blend.wgsl").into(),
+                ),
+            });
 
         // Create bind group layout
-        let bind_group_layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Attention Blend Layout"),
-            entries: &[
-                // Binding 0: Uniform config
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                // Binding 1: Brain 1 atlas view
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    multisampled: false,
-                    },
-                    count: None,
-                },
-                // Binding 2: Brain 2 atlas view
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    multisampled: false,
-                    },
-                    count: None,
-                },
-                // Binding 3: Output attention view
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::StorageTexture {
-                        access: wgpu::StorageTextureAccess::WriteOnly,
-                    format: wgpu::TextureFormat::Rgba16Float,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    },
-                    count: None,
-                },
-            ],
-        });
+        let bind_group_layout =
+            self.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("Attention Blend Layout"),
+                    entries: &[
+                        // Binding 0: Uniform config
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Uniform,
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        // Binding 1: Brain 1 atlas view
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Texture {
+                                sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                        // Binding 2: Brain 2 atlas view
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 2,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Texture {
+                                sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                        // Binding 3: Output attention view
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 2,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::StorageTexture {
+                                access: wgpu::StorageTextureAccess::WriteOnly,
+                                format: wgpu::TextureFormat::Rgba16Float,
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                            },
+                            count: None,
+                        },
+                    ],
+                });
 
         // Create pipeline layout
-        let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Attention Blend Pipeline Layout"),
-            bind_group_layouts: &[&bind_group_layout],
-            push_constant_ranges: &[],
-        });
+        let pipeline_layout = self
+            .device
+            .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Attention Blend Pipeline Layout"),
+                bind_group_layouts: &[&bind_group_layout],
+                push_constant_ranges: &[],
+            });
 
         // Create pipeline
-        self.attention_pipeline = Some(self.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("Attention Blend Pipeline"),
-            layout: Some(&pipeline_layout),
-            module: &shader,
-            entry_point: "main",
-        }));
+        self.attention_pipeline = Some(self.device.create_compute_pipeline(
+            &wgpu::ComputePipelineDescriptor {
+                label: Some("Attention Blend Pipeline"),
+                layout: Some(&pipeline_layout),
+                module: &shader,
+                entry_point: "main",
+            },
+        ));
 
         Ok(())
     }
@@ -433,11 +473,19 @@ impl MultiBrainCoordinator {
         // Create bind group
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Attention Blend Bind Group"),
-            layout: &self.attention_pipeline.as_ref().unwrap().get_bind_group_layout(0),
+            layout: &self
+                .attention_pipeline
+                .as_ref()
+                .unwrap()
+                .get_bind_group_layout(0),
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: self.attention_uniform_buffer.as_ref().unwrap().as_entire_binding(),
+                    resource: self
+                        .attention_uniform_buffer
+                        .as_ref()
+                        .unwrap()
+                        .as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,

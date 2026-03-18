@@ -445,7 +445,7 @@ mod tests {
                 Ok(_) => {
                     // No processes available in this test environment
                     return;
-                }
+                },
                 Err(_) => return,
             }
 

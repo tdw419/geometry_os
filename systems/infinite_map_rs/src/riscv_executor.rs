@@ -597,8 +597,7 @@ impl RiscvExecutor {
         let keyboard_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("RISC-V Keyboard Input"),
             size: KEYBOARD_BUFFER_SIZE,
-            usage: wgpu::BufferUsages::STORAGE
-                | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 

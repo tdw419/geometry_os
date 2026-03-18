@@ -10,7 +10,10 @@
 //!
 //! The texture is addressed via Hilbert curve coordinates.
 
-use wgpu::{Device, Queue, Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, Extent3d, ImageDataLayout};
+use wgpu::{
+    Device, Extent3d, ImageDataLayout, Queue, Texture, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureUsages,
+};
 
 use crate::glyph_stratum::glyph_parser::parse_glyph_program;
 
@@ -33,10 +36,22 @@ pub fn compile_glyph_source(source: &str) -> Result<CompiledGlyph, String> {
     let mut texture_data = Vec::with_capacity(program.len());
 
     for chunk in program.chunks(4) {
-        let opcode = if chunk.len() > 0 { (chunk[0] as u8).saturating_sub(200) } else { 0 };
+        let opcode = if chunk.len() > 0 {
+            (chunk[0] as u8).saturating_sub(200)
+        } else {
+            0
+        };
         let stratum = if chunk.len() > 1 { chunk[1] as u8 } else { 0 };
-        let p1 = if chunk.len() > 2 { (chunk[2] & 0xFF) as u8 } else { 0 };
-        let p2 = if chunk.len() > 3 { (chunk[3] & 0xFF) as u8 } else { 0 };
+        let p1 = if chunk.len() > 2 {
+            (chunk[2] & 0xFF) as u8
+        } else {
+            0
+        };
+        let p2 = if chunk.len() > 3 {
+            (chunk[3] & 0xFF) as u8
+        } else {
+            0
+        };
 
         texture_data.push(opcode);
         texture_data.push(stratum);
@@ -55,8 +70,8 @@ pub fn compile_glyph_source(source: &str) -> Result<CompiledGlyph, String> {
 
 /// Compile a .glyph file from disk
 pub fn compile_glyph_file(path: &str) -> Result<CompiledGlyph, String> {
-    let source = std::fs::read_to_string(path)
-        .map_err(|e| format!("Failed to read {}: {}", path, e))?;
+    let source =
+        std::fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {}", path, e))?;
     compile_glyph_source(&source)
 }
 /// Create a GPU texture from compiled glyph data
@@ -84,7 +99,9 @@ pub fn create_glyph_texture(
         sample_count: 1,
         dimension: TextureDimension::D2,
         format: TextureFormat::Rgba8Uint,
-        usage: TextureUsages::TEXTURE_BINDING | TextureUsages::STORAGE_BINDING | TextureUsages::COPY_DST,
+        usage: TextureUsages::TEXTURE_BINDING
+            | TextureUsages::STORAGE_BINDING
+            | TextureUsages::COPY_DST,
         view_formats: &[],
     });
 
@@ -99,7 +116,7 @@ pub fn create_glyph_texture(
 
         let offset = ((y * texture_size + x) * 4) as usize;
         if offset + 4 <= padded_data.len() {
-            padded_data[offset] = chunk[0];     // opcode
+            padded_data[offset] = chunk[0]; // opcode
             padded_data[offset + 1] = chunk[1]; // stratum
             padded_data[offset + 2] = chunk[2]; // p1
             padded_data[offset + 3] = chunk[3]; // p2
@@ -144,7 +161,7 @@ pub fn hilbert_d2xy(n: u32, d: u32) -> (u32, u32) {
         if ry == 0 {
             if rx == 1 {
                 x = s - 1 - x;
-                y = s- 1 - y;
+                y = s - 1 - y;
             }
             std::mem::swap(&mut x, &mut y);
         }
@@ -212,13 +229,20 @@ mod tests {
         let glyph_path = workspace_root.join("systems/glyph_stratum/programs/window_manager.glyph");
         let path_str = glyph_path.to_str().expect("Invalid path");
         let result = compile_glyph_file(path_str);
-        assert!(result.is_ok(), "Failed to compile window_manager.glyph: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to compile window_manager.glyph: {:?}",
+            result.err()
+        );
 
         let compiled = result.unwrap();
         // Window manager has boot, event_loop, spawn_ubuntu, inject_event, halt sections
         // Should be at least 50 instructions
-        assert!(compiled.instruction_count >= 50,
-            "Expected at least 50 instructions, got {}", compiled.instruction_count);
+        assert!(
+            compiled.instruction_count >= 50,
+            "Expected at least 50 instructions, got {}",
+            compiled.instruction_count
+        );
 
         // Entry point should be 0 (boot label is first)
         assert_eq!(compiled.entry_point, 0);
@@ -231,7 +255,11 @@ mod tests {
         let first_opcode = compiled.texture_data[0];
         // Opcode 6 (MOV) - note: parser adds 200, compiler subtracts 200
         // So if parser outputs 206, compiler outputs 6
-        assert!(first_opcode < 50, "First opcode should be a valid instruction, got {}", first_opcode);
+        assert!(
+            first_opcode < 50,
+            "First opcode should be a valid instruction, got {}",
+            first_opcode
+        );
     }
 
     #[test]
@@ -253,18 +281,27 @@ mod tests {
         // Test compiling the counter_child.glyph file
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
         let workspace_root = std::path::Path::new(&manifest_dir)
-            .parent().unwrap()
-            .parent().unwrap();
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap();
         let glyph_path = workspace_root.join("systems/glyph_stratum/programs/counter_child.glyph");
         let path_str = glyph_path.to_str().expect("Invalid path");
         let result = compile_glyph_file(path_str);
-        assert!(result.is_ok(), "Failed to compile counter_child.glyph: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to compile counter_child.glyph: {:?}",
+            result.err()
+        );
 
         let compiled = result.unwrap();
         // Counter child has entry, main_loop, continue_counting, halt sections
         // Should be at least 10 instructions
-        assert!(compiled.instruction_count >= 10,
-            "Expected at least 10 instructions, got {}", compiled.instruction_count);
+        assert!(
+            compiled.instruction_count >= 10,
+            "Expected at least 10 instructions, got {}",
+            compiled.instruction_count
+        );
 
         // Entry point should be 0 (entry label is first)
         assert_eq!(compiled.entry_point, 0);
@@ -273,6 +310,9 @@ mod tests {
         let has_yield = compiled.texture_data.chunks(4).any(|chunk| {
             chunk[0] == 27 // YIELD = 227 - 200 = 27 in normalized form
         });
-        assert!(has_yield, "Counter child should contain YIELD instruction for cooperative multitasking");
+        assert!(
+            has_yield,
+            "Counter child should contain YIELD instruction for cooperative multitasking"
+        );
     }
 }

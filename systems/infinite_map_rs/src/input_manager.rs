@@ -264,7 +264,8 @@ impl InputManager {
                         64 => Some((6, 0)),  // F6 -> RUN
                         _ => {
                             // Default: Map to ASCII for INSERT
-                            self.map_scancode_to_ascii(key.raw()).map(|ascii| (1, ascii as u32))
+                            self.map_scancode_to_ascii(key.raw())
+                                .map(|ascii| (1, ascii as u32))
                         },
                     };
 

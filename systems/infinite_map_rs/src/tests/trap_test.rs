@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::trap_interface::{TrapRegs, op_type, status, TRAP_BASE};
+    use crate::trap_interface::{op_type, status, TrapRegs, TRAP_BASE};
 
     #[test]
     fn test_trap_regs_size() {

@@ -53,7 +53,11 @@ fn test_trap_lifecycle_simulation() {
 
     // Step 3: Mark as PENDING to signal Rust shim to process
     regs.status = status::PENDING;
-    assert_eq!(regs.status, status::PENDING, "Status should be PENDING after setting");
+    assert_eq!(
+        regs.status,
+        status::PENDING,
+        "Status should be PENDING after setting"
+    );
 
     // Step 4: Simulate completion by Rust shim
     // The shim would read the request, process it, write result, and set COMPLETE
@@ -61,12 +65,27 @@ fn test_trap_lifecycle_simulation() {
     regs.status = status::COMPLETE;
 
     // Step 5: Verify final state
-    assert_eq!(regs.op_type, op_type::LM_STUDIO, "op_type should remain LM_STUDIO");
-    assert_eq!(regs.arg0, brain_state::BRAIN_ENTROPY, "arg0 should be preserved");
+    assert_eq!(
+        regs.op_type,
+        op_type::LM_STUDIO,
+        "op_type should remain LM_STUDIO"
+    );
+    assert_eq!(
+        regs.arg0,
+        brain_state::BRAIN_ENTROPY,
+        "arg0 should be preserved"
+    );
     assert_eq!(regs.arg1, 4, "arg1 should be preserved");
     assert_eq!(regs.arg2, 0x2000, "arg2 should be preserved");
-    assert_eq!(regs.result, 0xABCD_1234, "result should contain shim response");
-    assert_eq!(regs.status, status::COMPLETE, "Status should be COMPLETE after processing");
+    assert_eq!(
+        regs.result, 0xABCD_1234,
+        "result should contain shim response"
+    );
+    assert_eq!(
+        regs.status,
+        status::COMPLETE,
+        "Status should be COMPLETE after processing"
+    );
 }
 
 #[test]

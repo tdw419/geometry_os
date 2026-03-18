@@ -3,10 +3,10 @@
 //! Provides reusable staging buffers for efficient CPU↔GPU transfers.
 //! Eliminates per-transfer allocation overhead.
 
-use std::sync::Arc;
 use std::collections::VecDeque;
+use std::sync::Arc;
 
-use super::{MLResult, MLError};
+use super::{MLError, MLResult};
 
 /// Staging buffer for CPU-GPU transfers
 #[derive(Debug)]
@@ -156,8 +156,7 @@ impl ZeroCopyManager {
         if size > self.primary.size {
             return Err(MLError::GpuError(format!(
                 "Read size {} exceeds staging buffer size {}",
-                size,
-                self.primary.size
+                size, self.primary.size
             )));
         }
 

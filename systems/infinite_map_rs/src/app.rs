@@ -47,8 +47,8 @@ use crate::vm_texture_manager::VmTextureManager;
 // use crate::bridge::unreal::UnrealBridge;
 use crate::neural_console::ConsoleAction;
 // Phase 46: WLU GPU Integration
-use crate::wave_logic_unit::WaveLogicBackend;
 use crate::backend::wgpu::wlu_wgpu::WluWgpuResources;
+use crate::wave_logic_unit::WaveLogicBackend;
 
 pub struct Config {
     pub damping: f32,
@@ -443,12 +443,14 @@ impl<'a> InfiniteMapApp<'a> {
             // Phase 44: Initialize Antigravity's Territory
             cognitive_territory: Some(crate::cognitive_territory::CognitiveTerritory::new()),
 
-             // Phase 46: Initialize ACE-RTS Cognitive System
-             cognitive_manager: Some(std::sync::Arc::new(crate::cognitive::entity_manager::CognitiveEntityManager::new())),
-             cognitive_runtimes: std::collections::HashMap::new(),
+            // Phase 46: Initialize ACE-RTS Cognitive System
+            cognitive_manager: Some(std::sync::Arc::new(
+                crate::cognitive::entity_manager::CognitiveEntityManager::new(),
+            )),
+            cognitive_runtimes: std::collections::HashMap::new(),
 
-             // Phase 46: Initialize Wave-Logic Unit (Analog Computing Prototype)
-             // Phase 46.4: GPU Integration - Choose backend based on config
+            // Phase 46: Initialize Wave-Logic Unit (Analog Computing Prototype)
+            // Phase 46.4: GPU Integration - Choose backend based on config
             wlu_backend: if CONFIG.use_wlu_gpu {
                 // GPU backend - requires device and queue (initialized later in initialize_gpu_capabilities)
                 None // Will be initialized when GPU is ready
@@ -457,8 +459,8 @@ impl<'a> InfiniteMapApp<'a> {
                 Some(Box::new(crate::wave_logic_unit::WaveLogicUnit::new()))
             },
 
-             // Phase 2: Initialize RISC-V Executor
-             riscv_executor: None,
+            // Phase 2: Initialize RISC-V Executor
+            riscv_executor: None,
             // Phase 44: Initialize JIT Profiler
             profiler_enabled: false, // Disabled by default, can be enabled via hotkey
             profiler_interval: std::time::Duration::from_secs(1), // Poll every 1 second
@@ -507,17 +509,17 @@ impl<'a> InfiniteMapApp<'a> {
                 .map(crate::synapse::z_ai_client::ZAiClient::new),
 
             // Phase 48: Mouse Text Selection State
-             text_selection_drag_start: None,
-             text_selection_last_update: None,
-             last_click_time: None,
-             last_click_pos: None,
-             click_count: 0,
+            text_selection_drag_start: None,
+            text_selection_last_update: None,
+            last_click_time: None,
+            last_click_pos: None,
+            click_count: 0,
 
-             // Phase 42: Micro-Compiler Tile - Visual Feedback
-             compilation_status: CompilationStatus::None,
-             compilation_tile_path: None,
-             compilation_start_time: None,
-             compiler_dispatcher: None, // Will be initialized after renderer is ready
+            // Phase 42: Micro-Compiler Tile - Visual Feedback
+            compilation_status: CompilationStatus::None,
+            compilation_tile_path: None,
+            compilation_start_time: None,
+            compiler_dispatcher: None, // Will be initialized after renderer is ready
 
             // Phase 43: Geometric JIT Evolution
             jit_bridge: None,
@@ -607,15 +609,15 @@ impl<'a> InfiniteMapApp<'a> {
             }
         }
 
-         app
-     }
+        app
+    }
 
-     /// Update the Wave-Logic Unit (called each frame)
-     pub fn update_wave_logic_unit(&mut self, dt: f32) {
-         if let Some(ref mut wlu) = self.wlu_backend {
-             wlu.update(dt);
-         }
-     }
+    /// Update the Wave-Logic Unit (called each frame)
+    pub fn update_wave_logic_unit(&mut self, dt: f32) {
+        if let Some(ref mut wlu) = self.wlu_backend {
+            wlu.update(dt);
+        }
+    }
 
     // Phase 48: Initialize GPU capabilities asynchronously
     // This should be called during app initialization when we have access to the GPU adapter
@@ -634,12 +636,12 @@ impl<'a> InfiniteMapApp<'a> {
                 Ok(gpu_backend) => {
                     self.wlu_backend = Some(Box::new(gpu_backend));
                     log::info!("WLU GPU backend initialized successfully");
-                }
+                },
                 Err(e) => {
                     log::error!("Failed to initialize WLU GPU backend: {:?}", e);
                     log::warn!("Falling back to CPU backend");
                     self.wlu_backend = Some(Box::new(crate::wave_logic_unit::WaveLogicUnit::new()));
-                }
+                },
             }
         }
     }
@@ -689,21 +691,19 @@ impl<'a> InfiniteMapApp<'a> {
 
                         // Auto-spawn first Scout agent
                         log::info!("🤖 Auto-spawning Scout agent for syntax patrol...");
-                        
+
                         // Ensure agent manager exists
                         if self.agent_manager.is_none() {
                             let mgr = crate::cognitive::agents::CityAgentManager::new(4096);
                             self.agent_manager = Some(mgr);
                         }
-                        
+
                         // Spawn Scout agent at Visual AST location (Hilbert coords approximate)
                         if let Some(ref mut mgr) = self.agent_manager {
                             // Use a deterministic position near the Visual AST
                             let scout_pos = 1200 * 4096 + 3400; // Approximate Hilbert position
-                            let scout_id = mgr.spawn_agent(
-                                crate::cognitive::agents::AgentRole::Scout,
-                                scout_pos
-                            );
+                            let scout_id = mgr
+                                .spawn_agent(crate::cognitive::agents::AgentRole::Scout, scout_pos);
                             log::info!("🤖 Spawned Scout agent {} for syntax patrol", scout_id);
                         }
 
@@ -1666,10 +1666,14 @@ impl<'a> InfiniteMapApp<'a> {
             Err(e) => {
                 log::error!("Assembly error: {}", e);
                 return format!("⚠️ Assembly error: {}", e);
-            }
+            },
         };
 
-        log::info!("Assembled {} words ({} bytes)", program.len(), program.len() * 4);
+        log::info!(
+            "Assembled {} words ({} bytes)",
+            program.len(),
+            program.len() * 4
+        );
 
         // Get binary bytes
         let bytes = program.to_bytes();
@@ -2733,7 +2737,12 @@ impl<'a> InfiniteMapApp<'a> {
         {
             let device = self.renderer.get_device();
             let surface_format = self.renderer.get_surface_format();
-            let ui = InspectorUI::new(graph_renderer.clone(), protocol.clone(), &*device, surface_format);
+            let ui = InspectorUI::new(
+                graph_renderer.clone(),
+                protocol.clone(),
+                &*device,
+                surface_format,
+            );
             self.inspector_ui = Some(std::sync::Arc::new(ui));
             log::info!("✅ Inspector UI initialized");
         } else {
@@ -3129,11 +3138,7 @@ impl<'a> InfiniteMapApp<'a> {
 
         // Launch VM with cartridge binary
         if let Some(ref mut mgr) = self.multi_vm_manager {
-            mgr.launch_vm_with_binary(
-                vm_id,
-                format!("Cartridge: {}", cartridge_id),
-                binary_data,
-            )?;
+            mgr.launch_vm_with_binary(vm_id, format!("Cartridge: {}", cartridge_id), binary_data)?;
         }
 
         // Create a console window to show VM output
@@ -3195,7 +3200,7 @@ impl<'a> InfiniteMapApp<'a> {
                             file_name
                         );
                         Ok(binary)
-                    }
+                    },
                     Err(e) => {
                         log::warn!(
                             "⚠️  Failed to decode cartridge '{}': {} - falling back to placeholder",
@@ -3203,9 +3208,9 @@ impl<'a> InfiniteMapApp<'a> {
                             e
                         );
                         Ok(vec![0x90, 0x00, 0x00, 0x00]) // RISC-V NOP instruction placeholder
-                    }
+                    },
                 }
-            }
+            },
             Err(e) => {
                 log::warn!(
                     "⚠️  Failed to parse cartridge '{}' as PixelRTS v2: {} - falling back to placeholder",
@@ -3213,7 +3218,7 @@ impl<'a> InfiniteMapApp<'a> {
                     e
                 );
                 Ok(vec![0x90, 0x00, 0x00, 0x00]) // RISC-V NOP instruction placeholder
-            }
+            },
         }
     }
 
@@ -4359,7 +4364,8 @@ impl<'a> InfiniteMapApp<'a> {
                         console.write_prompt();
                     }
                     // Phase 49: Trigger morph visual effect for 2 seconds
-                    self.morph_effect_until = Some(std::time::Instant::now() + std::time::Duration::from_secs(2));
+                    self.morph_effect_until =
+                        Some(std::time::Instant::now() + std::time::Duration::from_secs(2));
                     // Increase aesthetic entropy to create visual disturbance
                     self.diagnostic_overlay.set_aesthetic_entropy(0.85);
                     log::info!("🌀 Morph effect triggered - visual disturbance active for 2s");
@@ -5637,13 +5643,16 @@ impl<'a> InfiniteMapApp<'a> {
                 if let Some(tm) = &mut self.vm_texture_manager {
                     let window = crate::ui::introspection_window::IntrospectionWindow::new(
                         &mut self.window_manager,
-                        x, y,
-                        &analysis
+                        x,
+                        y,
+                        &analysis,
                     );
 
                     window.update_texture(tm);
                 } else {
-                    log::error!("Cannot create IntrospectionWindow: VmTextureManager not available");
+                    log::error!(
+                        "Cannot create IntrospectionWindow: VmTextureManager not available"
+                    );
                 }
             }
         }
@@ -5722,15 +5731,18 @@ impl<'a> InfiniteMapApp<'a> {
                                 if z > 0.0 {
                                     self.camera.set_zoom(z);
                                 }
-                            }
+                            },
                             crate::synapse::SynapticCommand::RealignAesthetics(factor) => {
                                 log::info!("🎨 Synaptic RealignAesthetics: {}", factor);
                                 self.diagnostic_overlay.set_aesthetic_entropy(factor);
-                            }
+                            },
                             crate::synapse::SynapticCommand::SynthesizeBrick(description) => {
                                 // TODO: Requires brick synthesis infrastructure
-                                log::info!("🧱 Synaptic SynthesizeBrick: '{}' (not yet implemented)", description);
-                            }
+                                log::info!(
+                                    "🧱 Synaptic SynthesizeBrick: '{}' (not yet implemented)",
+                                    description
+                                );
+                            },
                         }
                     },
                     crate::glass_ram::bridge::VisualCommand::TypeText { text } => {
@@ -7950,5 +7962,4 @@ impl<'a> InfiniteMapApp<'a> {
             vk.execute_frame();
         }
     }
-
 }

@@ -70,7 +70,9 @@ pub fn parse_glyph_program(source: &str) -> Result<(Vec<u32>, VmConfig), String>
             let parts: Vec<_> = trimmed.split_whitespace().collect();
             if parts.len() == 3 {
                 let name = parts[1].to_string();
-                let value = parts[2].parse::<u32>().unwrap_or_else(|_| u32::from_str_radix(&parts[2][2..], 16).unwrap_or(0));
+                let value = parts[2]
+                    .parse::<u32>()
+                    .unwrap_or_else(|_| u32::from_str_radix(&parts[2][2..], 16).unwrap_or(0));
                 equs.insert(name, value);
             }
         } else {
@@ -89,24 +91,67 @@ pub fn parse_glyph_program(source: &str) -> Result<(Vec<u32>, VmConfig), String>
             continue;
         }
 
-        let parts: Vec<_> = trimmed.split_whitespace().map(|s| s.trim_end_matches(',')).collect();
+        let parts: Vec<_> = trimmed
+            .split_whitespace()
+            .map(|s| s.trim_end_matches(','))
+            .collect();
         let mnemonic = parts[0].to_uppercase();
 
         let (opcode, p1, p2, stratum) = match mnemonic.as_str() {
             "MOV" => (OP_ADD, resolve_operand(parts[1], &equs, &labels), 0, 2),
-            "ADD" => (OP_ADD, resolve_operand(parts[1], &equs, &labels), resolve_operand(parts[2], &equs, &labels), 2),
-            "SUB" => (OP_SUB, resolve_operand(parts[1], &equs, &labels), resolve_operand(parts[2], &equs, &labels), 2),
-            "MUL" => (OP_MUL, resolve_operand(parts[1], &equs, &labels), resolve_operand(parts[2], &equs, &labels), 2),
-            "DIV" => (OP_DIV, resolve_operand(parts[1], &equs, &labels), resolve_operand(parts[2], &equs, &labels), 2),
-            "LOAD" => (OP_LOAD, resolve_operand(parts[2], &equs, &labels), resolve_operand(parts[1], &equs, &labels), 2),
-            "STORE" => (OP_STORE, resolve_operand(parts[1], &equs, &labels), resolve_operand(parts[2], &equs, &labels), 2),
+            "ADD" => (
+                OP_ADD,
+                resolve_operand(parts[1], &equs, &labels),
+                resolve_operand(parts[2], &equs, &labels),
+                2,
+            ),
+            "SUB" => (
+                OP_SUB,
+                resolve_operand(parts[1], &equs, &labels),
+                resolve_operand(parts[2], &equs, &labels),
+                2,
+            ),
+            "MUL" => (
+                OP_MUL,
+                resolve_operand(parts[1], &equs, &labels),
+                resolve_operand(parts[2], &equs, &labels),
+                2,
+            ),
+            "DIV" => (
+                OP_DIV,
+                resolve_operand(parts[1], &equs, &labels),
+                resolve_operand(parts[2], &equs, &labels),
+                2,
+            ),
+            "LOAD" => (
+                OP_LOAD,
+                resolve_operand(parts[2], &equs, &labels),
+                resolve_operand(parts[1], &equs, &labels),
+                2,
+            ),
+            "STORE" => (
+                OP_STORE,
+                resolve_operand(parts[1], &equs, &labels),
+                resolve_operand(parts[2], &equs, &labels),
+                2,
+            ),
             "JMP" => (OP_JMP, resolve_operand(parts[1], &equs, &labels), 0, 2),
             "CALL" => (OP_CALL, resolve_operand(parts[1], &equs, &labels), 0, 2),
             "RET" => (OP_RETURN, 0, 0, 2),
             "HALT" => (OP_HALT, 0, 0, 2),
             "YIELD" => (OP_YIELD, 0, 0, 2),
-            "CAMERA" => (OP_CAMERA, resolve_operand(parts[1], &equs, &labels), resolve_operand(parts[2], &equs, &labels), 2),
-            "CMP" => (OP_SUB, resolve_operand(parts[1], &equs, &labels), resolve_operand(parts[2], &equs, &labels), 2), // Simulate with SUB
+            "CAMERA" => (
+                OP_CAMERA,
+                resolve_operand(parts[1], &equs, &labels),
+                resolve_operand(parts[2], &equs, &labels),
+                2,
+            ),
+            "CMP" => (
+                OP_SUB,
+                resolve_operand(parts[1], &equs, &labels),
+                resolve_operand(parts[2], &equs, &labels),
+                2,
+            ), // Simulate with SUB
             "JE" => (OP_BRANCH, resolve_operand(parts[1], &equs, &labels), 0, 2), // Simplified Branch if Zero
             "JNE" => (OP_BRANCH, resolve_operand(parts[1], &equs, &labels), 1, 2), // Simplified Branch if Not Zero
             "JLT" => (OP_BRANCH, resolve_operand(parts[1], &equs, &labels), 2, 2), // Simplified Branch if Less Than
@@ -121,7 +166,7 @@ pub fn parse_glyph_program(source: &str) -> Result<(Vec<u32>, VmConfig), String>
         program.push(stratum);
         program.push(p1);
         program.push(p2);
-        
+
         pc += 4;
     }
 
@@ -139,7 +184,7 @@ pub fn parse_glyph_program(source: &str) -> Result<(Vec<u32>, VmConfig), String>
 
 fn resolve_operand(op: &str, equs: &HashMap<String, u32>, labels: &HashMap<String, u32>) -> u32 {
     if op.starts_with("r[") {
-        let reg_name = &op[2..op.len()-1];
+        let reg_name = &op[2..op.len() - 1];
         if let Ok(num) = reg_name.parse::<u32>() {
             num
         } else {

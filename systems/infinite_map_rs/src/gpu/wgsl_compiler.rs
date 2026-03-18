@@ -5,7 +5,9 @@
 
 use regex::Regex;
 use std::sync::Arc;
-use wgpu::{ComputePipeline, Device, PipelineLayoutDescriptor, ShaderModule, ShaderModuleDescriptor};
+use wgpu::{
+    ComputePipeline, Device, PipelineLayoutDescriptor, ShaderModule, ShaderModuleDescriptor,
+};
 
 /// WGSL Compiler
 ///
@@ -195,12 +197,14 @@ impl WGSLCompiler {
                 push_constant_ranges: &[],
             });
 
-        let pipeline = self.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("ExecutionZone Compute Pipeline"),
-            layout: Some(&pipeline_layout),
-            module: shader,
-            entry_point: "main",
-        });
+        let pipeline = self
+            .device
+            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: Some("ExecutionZone Compute Pipeline"),
+                layout: Some(&pipeline_layout),
+                module: shader,
+                entry_point: "main",
+            });
 
         let pipeline_arc = Arc::new(pipeline);
         self.pipeline = Some(pipeline_arc.clone());

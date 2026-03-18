@@ -566,7 +566,14 @@ impl DrmGlyphExecutor {
         // 2. EXECUTE: Run glyph program (only if verified)
         // Use Glyph VM 6-binding pipeline if available, otherwise fall back to 3-binding
         let output = if let Some(vm_pipeline) = &self.glyph_vm_pipeline {
-            self.execute_glyph_vm(vm_pipeline, atlas_data, atlas_width, atlas_height, inputs, output_size)?
+            self.execute_glyph_vm(
+                vm_pipeline,
+                atlas_data,
+                atlas_width,
+                atlas_height,
+                inputs,
+                output_size,
+            )?
         } else {
             let (_, data) = self.execute(inputs, output_size)?;
             data
@@ -605,8 +612,14 @@ impl DrmGlyphExecutor {
         // Create program buffer from inputs (binding 0)
         let program_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph VM Program Buffer"),
-            size: if inputs.is_empty() { 16 } else { inputs.len() as u64 },
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            size: if inputs.is_empty() {
+                16
+            } else {
+                inputs.len() as u64
+            },
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
         if !inputs.is_empty() {
@@ -617,7 +630,9 @@ impl DrmGlyphExecutor {
         let state_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph VM State Buffer"),
             size: 256, // Reserve space for VMState
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
 
@@ -625,7 +640,9 @@ impl DrmGlyphExecutor {
         let memory_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph VM Memory Buffer"),
             size: 4096, // 4KB VM memory
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
 
@@ -633,7 +650,9 @@ impl DrmGlyphExecutor {
         let stack_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph VM Stack Buffer"),
             size: 1024, // 1KB stack
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
 
@@ -723,9 +742,11 @@ impl DrmGlyphExecutor {
         });
 
         // Create command encoder and dispatch
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Glyph VM Compute Encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Glyph VM Compute Encoder"),
+            });
 
         {
             let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -734,11 +755,7 @@ impl DrmGlyphExecutor {
             });
             compute_pass.set_pipeline(&vm_pipeline.pipeline);
             compute_pass.set_bind_group(0, &bind_group, &[]);
-            compute_pass.dispatch_workgroups(
-                (output_size.0 + 7) / 8,
-                (output_size.1 + 7) / 8,
-                1,
-            );
+            compute_pass.dispatch_workgroups((output_size.0 + 7) / 8, (output_size.1 + 7) / 8, 1);
         }
 
         // Create staging buffer for readback from program buffer
@@ -749,7 +766,13 @@ impl DrmGlyphExecutor {
             mapped_at_creation: false,
         });
 
-        encoder.copy_buffer_to_buffer(&program_buffer, 0, &staging_buffer, 0, program_buffer.size());
+        encoder.copy_buffer_to_buffer(
+            &program_buffer,
+            0,
+            &staging_buffer,
+            0,
+            program_buffer.size(),
+        );
 
         self.queue.submit(std::iter::once(encoder.finish()));
 

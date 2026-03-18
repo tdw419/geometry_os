@@ -43,12 +43,12 @@ pub mod brain_state {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct TrapRegs {
-    pub op_type: u32,    // +0x00
-    pub arg0: u32,       // +0x04
-    pub arg1: u32,       // +0x08
-    pub arg2: u32,       // +0x0C
-    pub result: u32,     // +0x10
-    pub status: u32,     // +0x14
+    pub op_type: u32, // +0x00
+    pub arg0: u32,    // +0x04
+    pub arg1: u32,    // +0x08
+    pub arg2: u32,    // +0x0C
+    pub result: u32,  // +0x10
+    pub status: u32,  // +0x14
 }
 
 impl Default for TrapRegs {

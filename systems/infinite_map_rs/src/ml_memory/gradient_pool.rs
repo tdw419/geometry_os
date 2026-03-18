@@ -5,8 +5,8 @@
 use std::collections::HashMap;
 
 use super::{
-    block_allocator::{BlockAllocator, AllocatedBlock},
-    {TensorId, MLError, MLResult, PoolStats},
+    block_allocator::{AllocatedBlock, BlockAllocator},
+    {MLError, MLResult, PoolStats, TensorId},
 };
 
 /// Handle for a gradient allocation
@@ -133,7 +133,9 @@ impl GradientPool {
 
     /// Free a gradient
     pub fn free(&mut self, id: TensorId) -> MLResult<()> {
-        let handle = self.gradients.remove(&id)
+        let handle = self
+            .gradients
+            .remove(&id)
             .ok_or(MLError::TensorNotFound(id))?;
 
         self.gradient_to_weight.remove(&id);
@@ -159,7 +161,9 @@ impl GradientPool {
 
     /// Mark gradient as accumulated (for gradient accumulation)
     pub fn accumulate(&mut self, id: TensorId) -> MLResult<()> {
-        let handle = self.gradients.get_mut(&id)
+        let handle = self
+            .gradients
+            .get_mut(&id)
             .ok_or(MLError::TensorNotFound(id))?;
 
         handle.accumulation_count += 1;
@@ -168,7 +172,9 @@ impl GradientPool {
 
     /// Mark gradient as ready for update
     pub fn mark_ready(&mut self, id: TensorId) -> MLResult<()> {
-        let handle = self.gradients.get_mut(&id)
+        let handle = self
+            .gradients
+            .get_mut(&id)
             .ok_or(MLError::TensorNotFound(id))?;
 
         handle.ready = true;
@@ -177,7 +183,9 @@ impl GradientPool {
 
     /// Reset gradient after update
     pub fn reset(&mut self, id: TensorId) -> MLResult<()> {
-        let handle = self.gradients.get_mut(&id)
+        let handle = self
+            .gradients
+            .get_mut(&id)
             .ok_or(MLError::TensorNotFound(id))?;
 
         handle.accumulation_count = 0;
@@ -203,13 +211,10 @@ impl GradientPool {
     }
 
     /// Write gradient data
-    pub fn write(
-        &self,
-        queue: &wgpu::Queue,
-        offset: u64,
-        data: &[u8],
-    ) -> MLResult<()> {
-        let buffer = self.buffer.as_ref()
+    pub fn write(&self, queue: &wgpu::Queue, offset: u64, data: &[u8]) -> MLResult<()> {
+        let buffer = self
+            .buffer
+            .as_ref()
             .ok_or_else(|| MLError::GpuError("Gradient buffer not initialized".into()))?;
 
         queue.write_buffer(buffer, offset, data);

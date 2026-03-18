@@ -2,9 +2,9 @@
 // Phase 31: Host Clipboard Manager
 // Handles interactions with the host OS clipboard using copypasta
 
+use crate::clipboard_rts::ClipboardRTS;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use std::sync::{Arc, Mutex};
-use crate::clipboard_rts::ClipboardRTS;
 
 /// Shared Clipboard Manager
 /// Can be safely shared between threads (e.g. InputManager and App)

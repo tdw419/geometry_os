@@ -29,7 +29,8 @@ mod tests {
     #[test]
     fn test_scheduler_glyph_exists() {
         // Verify scheduler.glyph file exists
-        let scheduler_path = workspace_root().join("systems/glyph_stratum/programs/scheduler.glyph");
+        let scheduler_path =
+            workspace_root().join("systems/glyph_stratum/programs/scheduler.glyph");
         assert!(
             scheduler_path.exists(),
             "scheduler.glyph should exist at {:?}",
@@ -40,7 +41,8 @@ mod tests {
     /// Test that test_self_modify glyph exists
     #[test]
     fn test_self_modify_glyph_exists() {
-        let test_path = workspace_root().join("systems/glyph_stratum/programs/test_self_modify.glyph");
+        let test_path =
+            workspace_root().join("systems/glyph_stratum/programs/test_self_modify.glyph");
         assert!(
             test_path.exists(),
             "test_self_modify.glyph should exist at {:?}",
@@ -67,25 +69,42 @@ mod tests {
     #[ignore = "scheduler.glyph uses attention-weighted scheduling, not self-modification"]
     fn test_scheduler_self_modify_constants() {
         // Read scheduler.glyph and verify self-modify constants exist
-        let scheduler_path = workspace_root().join("systems/glyph_stratum/programs/scheduler.glyph");
-        let content = std::fs::read_to_string(&scheduler_path)
-            .expect("Failed to read scheduler.glyph");
+        let scheduler_path =
+            workspace_root().join("systems/glyph_stratum/programs/scheduler.glyph");
+        let content =
+            std::fs::read_to_string(&scheduler_path).expect("Failed to read scheduler.glyph");
 
         // Check for required constants
-        assert!(content.contains("SELF_MODIFY_TRIGGER"), "Missing SELF_MODIFY_TRIGGER");
-        assert!(content.contains("SELF_MODIFY_SOURCE"), "Missing SELF_MODIFY_SOURCE");
-        assert!(content.contains("SELF_MODIFY_TARGET"), "Missing SELF_MODIFY_TARGET");
-        assert!(content.contains("SELF_MODIFY_COUNT"), "Missing SELF_MODIFY_COUNT");
-        assert!(content.contains("SELF_MODIFY_STATUS"), "Missing SELF_MODIFY_STATUS");
+        assert!(
+            content.contains("SELF_MODIFY_TRIGGER"),
+            "Missing SELF_MODIFY_TRIGGER"
+        );
+        assert!(
+            content.contains("SELF_MODIFY_SOURCE"),
+            "Missing SELF_MODIFY_SOURCE"
+        );
+        assert!(
+            content.contains("SELF_MODIFY_TARGET"),
+            "Missing SELF_MODIFY_TARGET"
+        );
+        assert!(
+            content.contains("SELF_MODIFY_COUNT"),
+            "Missing SELF_MODIFY_COUNT"
+        );
+        assert!(
+            content.contains("SELF_MODIFY_STATUS"),
+            "Missing SELF_MODIFY_STATUS"
+        );
     }
 
     /// Test GLYPH_WRITE trap handling in daemon
     #[test]
     fn test_glyph_write_in_trap_handler() {
         // Verify daemon handles GLYPH_WRITE
-        let daemon_path = workspace_root().join("systems/infinite_map_rs/src/bin/gpu_dev_daemon.rs");
-        let content = std::fs::read_to_string(&daemon_path)
-            .expect("Failed to read gpu_dev_daemon.rs");
+        let daemon_path =
+            workspace_root().join("systems/infinite_map_rs/src/bin/gpu_dev_daemon.rs");
+        let content =
+            std::fs::read_to_string(&daemon_path).expect("Failed to read gpu_dev_daemon.rs");
 
         assert!(
             content.contains("op_type::GLYPH_WRITE"),

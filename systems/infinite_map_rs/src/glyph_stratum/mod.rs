@@ -4,13 +4,15 @@
 //! Software is represented as visual glyphs across 5 strata:
 //! INTENT → SPEC → LOGIC → MEMORY → SUBSTRATE
 
-pub mod glyph_to_rts;
-pub mod glyph_parser;
 pub mod glyph_compiler;
+pub mod glyph_parser;
+pub mod glyph_to_rts;
 
 // Re-export key types
+pub use glyph_compiler::{
+    compile_glyph_file, compile_glyph_source, create_glyph_texture, hilbert_d2xy, CompiledGlyph,
+};
 pub use glyph_parser::{parse_glyph_program, VmConfig};
-pub use glyph_compiler::{compile_glyph_source, compile_glyph_file, create_glyph_texture, CompiledGlyph, hilbert_d2xy};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

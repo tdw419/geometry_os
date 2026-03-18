@@ -2,9 +2,9 @@
 //!
 //! Orchestrates GPU inference through embedding, attention, and FFN layers.
 
-use std::sync::Arc;
-use wgpu::{Device, Queue, ComputePipeline, Buffer, TextureView, BindGroupLayout, BindGroup};
 use crate::pixel_brain::tokenizer::ByteTokenizer;
+use std::sync::Arc;
+use wgpu::{BindGroup, BindGroupLayout, Buffer, ComputePipeline, Device, Queue, TextureView};
 
 /// Configuration for the embedding shader
 #[repr(C)]
@@ -126,7 +126,7 @@ impl LayerOffsets {
             + hidden_dim * hidden_dim  // V
             + hidden_dim * head_dim    // O
             + ffn_dim * hidden_dim     // FFN up
-            + hidden_dim * ffn_dim     // FFN down
+            + hidden_dim * ffn_dim // FFN down
     }
 
     /// Embedding offset (start of embeddings in atlas)
@@ -161,10 +161,10 @@ pub struct PixelBrainInferencer {
 
     // Bind groups
     embed_bind_group: Option<BindGroup>,
-    attention_bind_group_a: Option<BindGroup>,  // A → B
-    attention_bind_group_b: Option<BindGroup>,  // B → A
-    ffn_bind_group_a: Option<BindGroup>,        // B → A
-    ffn_bind_group_b: Option<BindGroup>,        // A → B
+    attention_bind_group_a: Option<BindGroup>, // A → B
+    attention_bind_group_b: Option<BindGroup>, // B → A
+    ffn_bind_group_a: Option<BindGroup>,       // B → A
+    ffn_bind_group_b: Option<BindGroup>,       // A → B
 
     // Uniform buffers
     embed_uniform_buffer: Option<Buffer>,
@@ -264,41 +264,43 @@ impl PixelBrainInferencer {
         // Binding 0: Uniform buffer (EmbedConfig)
         // Binding 1: Texture (brain_atlas)
         // Binding 2: Storage buffer read_write (hidden_state)
-        let embed_bind_group_layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Embed Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-            ],
-        });
+        let embed_bind_group_layout =
+            self.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("Embed Bind Group Layout"),
+                    entries: &[
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Uniform,
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Texture {
+                                sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 2,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                    ],
+                });
 
         // Attention bind group layout:
         // Binding 0: Uniform buffer (AttentionConfig)
@@ -306,61 +308,63 @@ impl PixelBrainInferencer {
         // Binding 2: Storage buffer read (hidden_in)
         // Binding 3: Storage buffer read_write (hidden_out)
         // Binding 4: Storage buffer read_write (attention_buffer)
-        let attention_bind_group_layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Attention Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 4,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-            ],
-        });
+        let attention_bind_group_layout =
+            self.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("Attention Bind Group Layout"),
+                    entries: &[
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Uniform,
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Texture {
+                                sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 2,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: true },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 3,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 4,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                    ],
+                });
 
         // FFN bind group layout:
         // Binding 0: Uniform buffer (FFNConfig)
@@ -368,118 +372,144 @@ impl PixelBrainInferencer {
         // Binding 2: Storage buffer read (hidden_in)
         // Binding 3: Storage buffer read_write (hidden_out)
         // Binding 4: Storage buffer read_write (ffn_buffer)
-        let ffn_bind_group_layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("FFN Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 4,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-            ],
-        });
+        let ffn_bind_group_layout =
+            self.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("FFN Bind Group Layout"),
+                    entries: &[
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Uniform,
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Texture {
+                                sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 2,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: true },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 3,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 4,
+                            visibility: wgpu::ShaderStages::COMPUTE,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: false },
+                                has_dynamic_offset: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                    ],
+                });
 
         // 2. Create shader modules
-        let embed_shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("pixel_brain_embed"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/pixel_brain_embed.wgsl").into()),
-        });
+        let embed_shader = self
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("pixel_brain_embed"),
+                source: wgpu::ShaderSource::Wgsl(
+                    include_str!("../shaders/pixel_brain_embed.wgsl").into(),
+                ),
+            });
 
-        let attention_shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("pixel_brain_attention"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/pixel_brain_attention.wgsl").into()),
-        });
+        let attention_shader = self
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("pixel_brain_attention"),
+                source: wgpu::ShaderSource::Wgsl(
+                    include_str!("../shaders/pixel_brain_attention.wgsl").into(),
+                ),
+            });
 
-        let ffn_shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("pixel_brain_ffn"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/pixel_brain_ffn.wgsl").into()),
-        });
+        let ffn_shader = self
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("pixel_brain_ffn"),
+                source: wgpu::ShaderSource::Wgsl(
+                    include_str!("../shaders/pixel_brain_ffn.wgsl").into(),
+                ),
+            });
 
         // 3. Create pipeline layouts
-        let embed_pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Embed Pipeline Layout"),
-            bind_group_layouts: &[&embed_bind_group_layout],
-            push_constant_ranges: &[],
-        });
+        let embed_pipeline_layout =
+            self.device
+                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: Some("Embed Pipeline Layout"),
+                    bind_group_layouts: &[&embed_bind_group_layout],
+                    push_constant_ranges: &[],
+                });
 
-        let attention_pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Attention Pipeline Layout"),
-            bind_group_layouts: &[&attention_bind_group_layout],
-            push_constant_ranges: &[],
-        });
+        let attention_pipeline_layout =
+            self.device
+                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: Some("Attention Pipeline Layout"),
+                    bind_group_layouts: &[&attention_bind_group_layout],
+                    push_constant_ranges: &[],
+                });
 
-        let ffn_pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("FFN Pipeline Layout"),
-            bind_group_layouts: &[&ffn_bind_group_layout],
-            push_constant_ranges: &[],
-        });
+        let ffn_pipeline_layout =
+            self.device
+                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: Some("FFN Pipeline Layout"),
+                    bind_group_layouts: &[&ffn_bind_group_layout],
+                    push_constant_ranges: &[],
+                });
 
         // 4. Create compute pipelines
-        let embed_pipeline = self.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("Embed Pipeline"),
-            layout: Some(&embed_pipeline_layout),
-            module: &embed_shader,
-            entry_point: "main",
-        });
+        let embed_pipeline =
+            self.device
+                .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                    label: Some("Embed Pipeline"),
+                    layout: Some(&embed_pipeline_layout),
+                    module: &embed_shader,
+                    entry_point: "main",
+                });
 
-        let attention_pipeline = self.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("Attention Pipeline"),
-            layout: Some(&attention_pipeline_layout),
-            module: &attention_shader,
-            entry_point: "main",
-        });
+        let attention_pipeline =
+            self.device
+                .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                    label: Some("Attention Pipeline"),
+                    layout: Some(&attention_pipeline_layout),
+                    module: &attention_shader,
+                    entry_point: "main",
+                });
 
-        let ffn_pipeline = self.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("FFN Pipeline"),
-            layout: Some(&ffn_pipeline_layout),
-            module: &ffn_shader,
-            entry_point: "main",
-        });
+        let ffn_pipeline = self
+            .device
+            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: Some("FFN Pipeline"),
+                layout: Some(&ffn_pipeline_layout),
+                module: &ffn_shader,
+                entry_point: "main",
+            });
 
         // Store all pipeline-related resources
         self.embed_bind_group_layout = Some(embed_bind_group_layout);
@@ -505,14 +535,18 @@ impl PixelBrainInferencer {
         self.hidden_buffer_a = Some(self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("hidden_buffer_a"),
             size: hidden_size,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         }));
 
         self.hidden_buffer_b = Some(self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("hidden_buffer_b"),
             size: hidden_size,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         }));
 
@@ -565,19 +599,52 @@ impl PixelBrainInferencer {
 
     /// Initialize bind groups after setting brain atlas and creating buffers
     pub fn init_bind_groups(&mut self) -> Result<(), String> {
-        let brain_view = self.brain_atlas_view.as_ref().ok_or("Brain atlas view not set")?;
-        let embed_layout = self.embed_bind_group_layout.as_ref().ok_or("Embed bind group layout not initialized")?;
-        let attention_layout = self.attention_bind_group_layout.as_ref().ok_or("Attention bind group layout not initialized")?;
-        let ffn_layout = self.ffn_bind_group_layout.as_ref().ok_or("FFN bind group layout not initialized")?;
+        let brain_view = self
+            .brain_atlas_view
+            .as_ref()
+            .ok_or("Brain atlas view not set")?;
+        let embed_layout = self
+            .embed_bind_group_layout
+            .as_ref()
+            .ok_or("Embed bind group layout not initialized")?;
+        let attention_layout = self
+            .attention_bind_group_layout
+            .as_ref()
+            .ok_or("Attention bind group layout not initialized")?;
+        let ffn_layout = self
+            .ffn_bind_group_layout
+            .as_ref()
+            .ok_or("FFN bind group layout not initialized")?;
 
-        let embed_uniform = self.embed_uniform_buffer.as_ref().ok_or("Embed uniform buffer not initialized")?;
-        let attention_uniform = self.attention_uniform_buffer.as_ref().ok_or("Attention uniform buffer not initialized")?;
-        let ffn_uniform = self.ffn_uniform_buffer.as_ref().ok_or("FFN uniform buffer not initialized")?;
+        let embed_uniform = self
+            .embed_uniform_buffer
+            .as_ref()
+            .ok_or("Embed uniform buffer not initialized")?;
+        let attention_uniform = self
+            .attention_uniform_buffer
+            .as_ref()
+            .ok_or("Attention uniform buffer not initialized")?;
+        let ffn_uniform = self
+            .ffn_uniform_buffer
+            .as_ref()
+            .ok_or("FFN uniform buffer not initialized")?;
 
-        let hidden_a = self.hidden_buffer_a.as_ref().ok_or("Hidden buffer A not initialized")?;
-        let hidden_b = self.hidden_buffer_b.as_ref().ok_or("Hidden buffer B not initialized")?;
-        let attn_buf = self.attention_buffer.as_ref().ok_or("Attention buffer not initialized")?;
-        let ffn_buf = self.ffn_buffer.as_ref().ok_or("FFN buffer not initialized")?;
+        let hidden_a = self
+            .hidden_buffer_a
+            .as_ref()
+            .ok_or("Hidden buffer A not initialized")?;
+        let hidden_b = self
+            .hidden_buffer_b
+            .as_ref()
+            .ok_or("Hidden buffer B not initialized")?;
+        let attn_buf = self
+            .attention_buffer
+            .as_ref()
+            .ok_or("Attention buffer not initialized")?;
+        let ffn_buf = self
+            .ffn_buffer
+            .as_ref()
+            .ok_or("FFN buffer not initialized")?;
 
         // Create embed bind group
         self.embed_bind_group = Some(self.device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -600,59 +667,61 @@ impl PixelBrainInferencer {
         }));
 
         // Create attention bind groups (A → B and B → A for ping-pong)
-        self.attention_bind_group_a = Some(self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Attention Bind Group A→B"),
-            layout: attention_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: attention_uniform.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(brain_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: hidden_a.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: hidden_b.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 4,
-                    resource: attn_buf.as_entire_binding(),
-                },
-            ],
-        }));
+        self.attention_bind_group_a =
+            Some(self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("Attention Bind Group A→B"),
+                layout: attention_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: attention_uniform.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(brain_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: hidden_a.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: hidden_b.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 4,
+                        resource: attn_buf.as_entire_binding(),
+                    },
+                ],
+            }));
 
-        self.attention_bind_group_b = Some(self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Attention Bind Group B→A"),
-            layout: attention_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: attention_uniform.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(brain_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: hidden_b.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: hidden_a.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 4,
-                    resource: attn_buf.as_entire_binding(),
-                },
-            ],
-        }));
+        self.attention_bind_group_b =
+            Some(self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("Attention Bind Group B→A"),
+                layout: attention_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: attention_uniform.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(brain_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: hidden_b.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: hidden_a.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 4,
+                        resource: attn_buf.as_entire_binding(),
+                    },
+                ],
+            }));
 
         // Create FFN bind groups (B → A and A → B for ping-pong)
         self.ffn_bind_group_a = Some(self.device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -765,11 +834,14 @@ impl PixelBrainInferencer {
             embed_offset: LayerOffsets::embed_offset(),
             atlas_size: self.config.atlas_size,
         };
-        self.queue.write_buffer(embed_uniform, 0, bytemuck::bytes_of(&embed_config));
+        self.queue
+            .write_buffer(embed_uniform, 0, bytemuck::bytes_of(&embed_config));
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("inference_encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("inference_encoder"),
+            });
 
         // Embed: token → hidden_buffer_a
         {
@@ -799,7 +871,8 @@ impl PixelBrainInferencer {
                 atlas_size: self.config.atlas_size,
                 _padding: 0,
             };
-            self.queue.write_buffer(attention_uniform, 0, bytemuck::bytes_of(&attention_config));
+            self.queue
+                .write_buffer(attention_uniform, 0, bytemuck::bytes_of(&attention_config));
 
             // FFN config
             let ffn_config = FFNConfig {
@@ -811,7 +884,8 @@ impl PixelBrainInferencer {
                 atlas_size: self.config.atlas_size,
                 _padding: [0, 0],
             };
-            self.queue.write_buffer(ffn_uniform, 0, bytemuck::bytes_of(&ffn_config));
+            self.queue
+                .write_buffer(ffn_uniform, 0, bytemuck::bytes_of(&ffn_config));
 
             // Get bind groups based on which buffer we're reading from
             let (attn_bg, ffn_bg) = if layer % 2 == 0 {
@@ -899,9 +973,11 @@ impl PixelBrainInferencer {
         }
 
         // 1. Dispatch embed shader
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("get_logits_encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("get_logits_encoder"),
+            });
 
         // Write embed config
         let embed_config = EmbedConfig {
@@ -1074,7 +1150,12 @@ impl PixelBrainInferencer {
     }
 
     /// Generate tokens for a prompt with temperature sampling
-    pub fn generate_with_temperature(&mut self, prompt: &str, max_tokens: usize, temperature: f32) -> Vec<u32> {
+    pub fn generate_with_temperature(
+        &mut self,
+        prompt: &str,
+        max_tokens: usize,
+        temperature: f32,
+    ) -> Vec<u32> {
         // Get tokenizer
         let tokenizer = crate::pixel_brain::tokenizer::ByteTokenizer::new();
 
@@ -1168,7 +1249,11 @@ mod tests {
         }
 
         // Token 4 should be selected most of the time
-        assert!(counts[4] > 90, "Token 4 should dominate with low temp, got {:?}", counts);
+        assert!(
+            counts[4] > 90,
+            "Token 4 should dominate with low temp, got {:?}",
+            counts
+        );
     }
 
     #[test]
@@ -1184,6 +1269,10 @@ mod tests {
 
         // With high temp, we should see more variety
         let non_zero_count = counts.iter().filter(|&&c| c > 0).count();
-        assert!(non_zero_count >= 3, "High temp should produce variety, got {:?}", counts);
+        assert!(
+            non_zero_count >= 3,
+            "High temp should produce variety, got {:?}",
+            counts
+        );
     }
 }

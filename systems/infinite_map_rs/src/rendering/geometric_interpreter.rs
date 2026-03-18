@@ -84,17 +84,17 @@ impl GeometricEngine {
                 let s1 = self.read_reg(instr.rs1);
                 let s2 = self.read_reg(instr.rs2);
                 self.write_reg(instr.rd, s1.wrapping_add(s2));
-            }
+            },
             GeometricOpcode::Sub => {
                 let s1 = self.read_reg(instr.rs1);
                 let s2 = self.read_reg(instr.rs2);
                 self.write_reg(instr.rd, s1.wrapping_sub(s2));
-            }
+            },
             GeometricOpcode::Mul => {
                 let s1 = self.read_reg(instr.rs1);
                 let s2 = self.read_reg(instr.rs2);
                 self.write_reg(instr.rd, s1.wrapping_mul(s2));
-            }
+            },
             GeometricOpcode::Div => {
                 let s1 = self.read_reg(instr.rs1);
                 let s2 = self.read_reg(instr.rs2);
@@ -103,19 +103,19 @@ impl GeometricEngine {
                 } else {
                     self.write_reg(instr.rd, 0xFFFFFFFF);
                 }
-            }
+            },
             GeometricOpcode::Mov => {
                 let s1 = self.read_reg(instr.rs1);
                 self.write_reg(instr.rd, s1);
-            }
+            },
             GeometricOpcode::Jmp => {
                 self.pc = self.read_reg(instr.rs1);
                 return; // PC already updated
-            }
+            },
             GeometricOpcode::Halt => {
                 self.halted = true;
-            }
-            GeometricOpcode::Nop => {}
+            },
+            GeometricOpcode::Nop => {},
         }
 
         self.pc += 1;

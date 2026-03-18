@@ -45,19 +45,21 @@
 //! pool.apply_hebbian_batch(&updates)?;
 //! ```
 
+pub mod activation_pool;
 pub mod block_allocator;
+pub mod gradient_pool;
 pub mod pool;
 pub mod weight_pool;
-pub mod activation_pool;
-pub mod gradient_pool;
 pub mod zero_copy;
 
-pub use block_allocator::{BlockAllocator, Block, BlockSize, AllocatedBlock};
-pub use pool::{MLMemoryPool, PoolStats, PoolConfig, TensorHandle, get_global_pool, init_global_pool};
-pub use weight_pool::{WeightPool, WeightRegion, HebbianUpdate, HebbianBatch};
-pub use activation_pool::{ActivationPool, ActivationHandle, KVCacheEntry, RingBuffer};
-pub use gradient_pool::{GradientPool, GradientHandle};
-pub use zero_copy::{ZeroCopyManager, StagingBuffer};
+pub use activation_pool::{ActivationHandle, ActivationPool, KVCacheEntry, RingBuffer};
+pub use block_allocator::{AllocatedBlock, Block, BlockAllocator, BlockSize};
+pub use gradient_pool::{GradientHandle, GradientPool};
+pub use pool::{
+    get_global_pool, init_global_pool, MLMemoryPool, PoolConfig, PoolStats, TensorHandle,
+};
+pub use weight_pool::{HebbianBatch, HebbianUpdate, WeightPool, WeightRegion};
+pub use zero_copy::{StagingBuffer, ZeroCopyManager};
 
 use serde::{Deserialize, Serialize};
 
@@ -135,10 +137,7 @@ impl std::fmt::Display for TensorId {
 #[derive(Debug, thiserror::Error)]
 pub enum MLError {
     #[error("Out of memory: requested {requested} bytes, available {available} bytes")]
-    OutOfMemory {
-        requested: usize,
-        available: usize,
-    },
+    OutOfMemory { requested: usize, available: usize },
 
     #[error("Tensor not found: {0}")]
     TensorNotFound(TensorId),

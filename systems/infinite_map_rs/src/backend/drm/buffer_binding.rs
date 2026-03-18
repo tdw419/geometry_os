@@ -121,7 +121,9 @@ impl BufferBindingInterface {
 
         // Write initial data if provided
         if let Some(data) = data {
-            buffer.write(data).context("Failed to write initial data to input buffer")?;
+            buffer
+                .write(data)
+                .context("Failed to write initial data to input buffer")?;
         }
 
         let bound = BoundBuffer::new(buffer, BindingPoint::Input, size, Some("compute-input"));
@@ -171,7 +173,9 @@ impl BufferBindingInterface {
 
         // Write initial data if provided
         if let Some(data) = data {
-            buffer.write(data).context("Failed to write initial data to uniform buffer")?;
+            buffer
+                .write(data)
+                .context("Failed to write initial data to uniform buffer")?;
         }
 
         let bound = BoundBuffer::new(buffer, BindingPoint::Uniform, size, Some("compute-uniform"));
@@ -202,7 +206,9 @@ impl BufferBindingInterface {
 
         // Write initial data if provided
         if let Some(data) = data {
-            buffer.write(data).context("Failed to write initial data to storage buffer")?;
+            buffer
+                .write(data)
+                .context("Failed to write initial data to storage buffer")?;
         }
 
         let bound = BoundBuffer::new(buffer, BindingPoint::Storage, size, Some("compute-storage"));
@@ -231,15 +237,18 @@ impl BufferBindingInterface {
     /// # Errors
     /// Returns an error if the buffer doesn't exist or the write fails.
     pub fn write_buffer(&mut self, index: usize, data: &[u8]) -> Result<()> {
-        let bound = self.bound_buffers.get_mut(index)
+        let bound = self
+            .bound_buffers
+            .get_mut(index)
             .with_context(|| format!("Buffer index {} not found", index))?;
-        
+
         // We need mutable access to the underlying buffer
         // This is safe because we're the only ones accessing it
         let buffer = &mut bound.buffer;
-        buffer.write(data)
+        buffer
+            .write(data)
             .with_context(|| format!("Failed to write {} bytes to buffer {}", data.len(), index))?;
-        
+
         log::trace!("Wrote {} bytes to buffer {}", data.len(), index);
         Ok(())
     }
@@ -294,20 +303,20 @@ impl BufferBindingInterface {
     ///
     /// Part of sensor value readback implementation (TODO-4/5 ✓).
     pub fn read_buffer(&self, index: usize) -> Result<Vec<u8>> {
-        let bound = self.bound_buffers.get(index)
+        let bound = self
+            .bound_buffers
+            .get(index)
             .with_context(|| format!("Buffer index {} not found", index))?;
-        
+
         let buffer = &bound.buffer;
         let width = buffer.width();
         let height = buffer.height();
-        
+
         // Map the buffer for reading using GBM's map callback
         let data = buffer
-            .map(0, 0, width, height, |mapped_bo| {
-                mapped_bo.buffer().to_vec()
-            })
+            .map(0, 0, width, height, |mapped_bo| mapped_bo.buffer().to_vec())
             .with_context(|| format!("Failed to map/read buffer {}", index))?;
-        
+
         log::trace!("Read {} bytes from buffer {}", data.len(), index);
         Ok(data)
     }
@@ -391,7 +400,7 @@ mod tests {
             Err(e) => {
                 log::warn!("Skipping test: DRM device not available: {}", e);
                 return;
-            }
+            },
         };
 
         let allocator = match GpuMemoryAllocator::new(&drm_device) {
@@ -399,7 +408,7 @@ mod tests {
             Err(e) => {
                 log::warn!("Skipping test: GBM not available: {}", e);
                 return;
-            }
+            },
         };
 
         let interface = BufferBindingInterface::new(allocator);
@@ -418,7 +427,7 @@ mod tests {
             Err(_) => {
                 log::warn!("Skipping test: DRM device not available");
                 return;
-            }
+            },
         };
 
         let allocator = match GpuMemoryAllocator::new(&drm_device) {
@@ -426,7 +435,7 @@ mod tests {
             Err(e) => {
                 log::warn!("Skipping test: GBM not available: {}", e);
                 return;
-            }
+            },
         };
 
         let mut interface = BufferBindingInterface::new(allocator);
@@ -437,7 +446,7 @@ mod tests {
             Err(e) => {
                 log::warn!("Input buffer bind failed (may be expected): {}", e);
                 return;
-            }
+            },
         }
 
         match interface.bind_output_buffer(2048) {
@@ -445,7 +454,7 @@ mod tests {
             Err(e) => {
                 log::warn!("Output buffer bind failed: {}", e);
                 return;
-            }
+            },
         }
 
         assert_eq!(interface.len(), 2);
@@ -456,10 +465,10 @@ mod tests {
                 assert_eq!(bindings.input_count, 1);
                 assert_eq!(bindings.output_count, 1);
                 log::info!("Dispatch prepared: {:?}", bindings);
-            }
+            },
             Err(e) => {
                 log::warn!("Prepare dispatch failed: {}", e);
-            }
+            },
         }
     }
 

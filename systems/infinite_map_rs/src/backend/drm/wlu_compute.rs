@@ -20,16 +20,16 @@
 //! - TODO-5/5: DRM compute backend integration ✓
 
 use anyhow::{Context, Result};
-use std::mem::size_of;
 use naga::{
     back::spv,
     front::wgsl,
     valid::{Capabilities, ValidationFlags, Validator},
 };
+use std::mem::size_of;
 
-use super::buffer_binding::{BufferBindingInterface, BoundBuffer};
-use super::memory::GpuMemoryAllocator;
+use super::buffer_binding::{BoundBuffer, BufferBindingInterface};
 use super::device::DrmDevice;
+use super::memory::GpuMemoryAllocator;
 
 /// Default grid size for wave simulation (must match WGSL shader workgroup size expectations)
 pub const DEFAULT_GRID_SIZE: u32 = 256;
@@ -42,14 +42,14 @@ pub const MAX_OSCILLATORS: usize = 2;
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct GpuOscillator {
-    pub position_x: u32,    // 0-3
-    pub position_y: u32,    // 4-7
-    pub frequency: f32,     // 8-11
-    pub phase: f32,         // 12-15
-    pub amplitude: f32,     // 16-19
-    _padding: u32,          // 20-23
-    _padding2: u32,         // 24-27
-    _padding3: u32,         // 28-31
+    pub position_x: u32, // 0-3
+    pub position_y: u32, // 4-7
+    pub frequency: f32,  // 8-11
+    pub phase: f32,      // 12-15
+    pub amplitude: f32,  // 16-19
+    _padding: u32,       // 20-23
+    _padding2: u32,      // 24-27
+    _padding3: u32,      // 28-31
 }
 
 impl GpuOscillator {
@@ -73,16 +73,16 @@ impl GpuOscillator {
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct WaveUniforms {
-    pub grid_size: u32,           // 0-3
-    pub wave_speed: f32,          // 4-7
-    pub damping: f32,             // 8-11
-    pub max_amplitude: f32,       // 12-15
-    pub dt: f32,                  // 16-19
-    pub current_time: f32,        // 20-23
-    pub sensor_pos_x: u32,        // 24-27
-    pub sensor_pos_y: u32,        // 28-31
-    _padding: u32,                // 32-35
-    _padding2: u32,               // 36-39
+    pub grid_size: u32,     // 0-3
+    pub wave_speed: f32,    // 4-7
+    pub damping: f32,       // 8-11
+    pub max_amplitude: f32, // 12-15
+    pub dt: f32,            // 16-19
+    pub current_time: f32,  // 20-23
+    pub sensor_pos_x: u32,  // 24-27
+    pub sensor_pos_y: u32,  // 28-31
+    _padding: u32,          // 32-35
+    _padding2: u32,         // 36-39
 }
 
 impl Default for WaveUniforms {
@@ -145,10 +145,10 @@ impl WluGpuResources {
         let allocator = GpuMemoryAllocator::new(drm_device)
             .context("Failed to create GPU memory allocator for WLU")?;
         let bindings = BufferBindingInterface::new(allocator);
-        
+
         let grid_size = DEFAULT_GRID_SIZE;
         let field_size = (grid_size * grid_size) as usize * size_of::<f32>();
-        
+
         Ok(Self {
             bindings,
             grid_size,
@@ -158,15 +158,19 @@ impl WluGpuResources {
             buffers_allocated: false,
         })
     }
-    
+
     /// Create with custom configuration
-    pub fn with_config(drm_device: &DrmDevice, grid_size: u32, uniforms: WaveUniforms) -> Result<Self> {
+    pub fn with_config(
+        drm_device: &DrmDevice,
+        grid_size: u32,
+        uniforms: WaveUniforms,
+    ) -> Result<Self> {
         let allocator = GpuMemoryAllocator::new(drm_device)
             .context("Failed to create GPU memory allocator for WLU")?;
         let bindings = BufferBindingInterface::new(allocator);
-        
+
         let field_size = (grid_size * grid_size) as usize * size_of::<f32>();
-        
+
         Ok(Self {
             bindings,
             grid_size,
@@ -176,7 +180,7 @@ impl WluGpuResources {
             buffers_allocated: false,
         })
     }
-    
+
     /// Allocate all GPU buffers for wave simulation
     ///
     /// This allocates 6 buffers matching the WGSL shader bindings:
@@ -193,95 +197,98 @@ impl WluGpuResources {
             log::warn!("WLU GPU buffers already allocated, skipping");
             return Ok(());
         }
-        
+
         log::info!(
             "Allocating WLU GPU buffers: grid_size={}x{}, field_size={} bytes",
             self.grid_size,
             self.grid_size,
             self.field_size
         );
-        
+
         // Binding 0: previous_field (input)
-        self.bindings.bind_input_buffer(self.field_size, None)
+        self.bindings
+            .bind_input_buffer(self.field_size, None)
             .context("Failed to allocate previous_field buffer")?;
-        
+
         // Binding 1: current_field (input)
-        self.bindings.bind_input_buffer(self.field_size, None)
+        self.bindings
+            .bind_input_buffer(self.field_size, None)
             .context("Failed to allocate current_field buffer")?;
-        
+
         // Binding 2: oscillators (storage input)
         let oscillators_size = MAX_OSCILLATORS * size_of::<GpuOscillator>();
         let osc_data = unsafe {
-            std::slice::from_raw_parts(
-                self.oscillators.as_ptr() as *const u8,
-                oscillators_size
-            )
+            std::slice::from_raw_parts(self.oscillators.as_ptr() as *const u8, oscillators_size)
         };
-        self.bindings.bind_storage_buffer(oscillators_size, Some(osc_data))
+        self.bindings
+            .bind_storage_buffer(oscillators_size, Some(osc_data))
             .context("Failed to allocate oscillators buffer")?;
-        
+
         // Binding 3: new_field (storage output)
-        self.bindings.bind_output_buffer(self.field_size)
+        self.bindings
+            .bind_output_buffer(self.field_size)
             .context("Failed to allocate new_field buffer")?;
-        
+
         // Binding 4: uniforms (uniform buffer)
         let uniforms_data = unsafe {
             std::slice::from_raw_parts(
                 &self.uniforms as *const WaveUniforms as *const u8,
-                size_of::<WaveUniforms>()
+                size_of::<WaveUniforms>(),
             )
         };
-        self.bindings.bind_uniform_buffer(size_of::<WaveUniforms>(), Some(uniforms_data))
+        self.bindings
+            .bind_uniform_buffer(size_of::<WaveUniforms>(), Some(uniforms_data))
             .context("Failed to allocate uniforms buffer")?;
-        
+
         // Binding 5: output (storage output for sensor value)
         let output_size = size_of::<WaveOutput>();
-        self.bindings.bind_output_buffer(output_size)
+        self.bindings
+            .bind_output_buffer(output_size)
             .context("Failed to allocate output buffer")?;
-        
+
         self.buffers_allocated = true;
-        
+
         log::info!(
             "WLU GPU buffers allocated successfully: {} total buffers, {} total bytes",
             6,
             self.field_size * 3 + oscillators_size + size_of::<WaveUniforms>() + output_size
         );
-        
+
         Ok(())
     }
-    
+
     /// Get the grid size
     pub fn grid_size(&self) -> u32 {
         self.grid_size
     }
-    
+
     /// Get the field size in bytes
     pub fn field_size(&self) -> usize {
         self.field_size
     }
-    
+
     /// Check if buffers have been allocated
     pub fn is_allocated(&self) -> bool {
         self.buffers_allocated
     }
-    
+
     /// Get the buffer binding interface
     pub fn bindings(&self) -> &BufferBindingInterface {
         &self.bindings
     }
-    
+
     /// Get mutable buffer binding interface
     pub fn bindings_mut(&mut self) -> &mut BufferBindingInterface {
         &mut self.bindings
     }
-    
+
     /// Set oscillator configuration
     pub fn set_oscillator(&mut self, index: usize, oscillator: GpuOscillator) {
         if index < MAX_OSCILLATORS {
             self.oscillators[index] = oscillator;
         }
     }
-    
+
     /// Set oscillator and immediately update GPU buffer
     ///
     /// Convenience method that combines set_oscillator and update_oscillators.
@@ -289,12 +296,12 @@ impl WluGpuResources {
         self.set_oscillator(index, oscillator);
         self.update_oscillators()
     }
-    
+
     /// Get oscillator configuration
     pub fn get_oscillator(&self, index: usize) -> Option<&GpuOscillator> {
         self.oscillators.get(index)
     }
-    
+
     /// Update oscillator buffer on GPU
     ///
     /// TODO-3/5: Syncs the CPU-side oscillator cache to the GPU buffer.
@@ -304,27 +311,25 @@ impl WluGpuResources {
             log::warn!("Cannot update oscillators: buffers not allocated");
             return Ok(());
         }
-        
+
         let oscillators_size = MAX_OSCILLATORS * size_of::<GpuOscillator>();
         let osc_data = unsafe {
-            std::slice::from_raw_parts(
-                self.oscillators.as_ptr() as *const u8,
-                oscillators_size
-            )
+            std::slice::from_raw_parts(self.oscillators.as_ptr() as *const u8, oscillators_size)
         };
-        
-        self.bindings.write_buffer(WluBufferIndex::Oscillators as usize, osc_data)
+
+        self.bindings
+            .write_buffer(WluBufferIndex::Oscillators as usize, osc_data)
             .context("Failed to update oscillator buffer")?;
-        
+
         log::debug!("Updated oscillator buffer on GPU");
         Ok(())
     }
-    
+
     /// Set uniforms configuration
     pub fn set_uniforms(&mut self, uniforms: WaveUniforms) {
         self.uniforms = uniforms;
     }
-    
+
     /// Set uniforms and immediately update GPU buffer
     ///
     /// Convenience method that combines set_uniforms and update_uniforms.
@@ -332,7 +337,7 @@ impl WluGpuResources {
         self.set_uniforms(uniforms);
         self.update_uniforms()
     }
-    
+
     /// Update uniforms buffer on GPU
     ///
     /// TODO-3/5: Syncs the CPU-side uniforms cache to the GPU buffer.
@@ -342,31 +347,32 @@ impl WluGpuResources {
             log::warn!("Cannot update uniforms: buffers not allocated");
             return Ok(());
         }
-        
+
         let uniforms_data = unsafe {
             std::slice::from_raw_parts(
                 &self.uniforms as *const WaveUniforms as *const u8,
-                size_of::<WaveUniforms>()
+                size_of::<WaveUniforms>(),
             )
         };
-        
-        self.bindings.write_buffer(WluBufferIndex::Uniforms as usize, uniforms_data)
+
+        self.bindings
+            .write_buffer(WluBufferIndex::Uniforms as usize, uniforms_data)
             .context("Failed to update uniforms buffer")?;
-        
+
         log::debug!("Updated uniforms buffer on GPU");
         Ok(())
     }
-    
+
     /// Get uniforms configuration
     pub fn get_uniforms(&self) -> &WaveUniforms {
         &self.uniforms
     }
-    
+
     /// Get a bound buffer by WLU index
     pub fn get_buffer(&self, index: WluBufferIndex) -> Option<&BoundBuffer> {
         self.bindings.get_buffer(index as usize)
     }
-    
+
     /// Read sensor value from GPU output buffer.
     ///
     /// TODO-4/5: Reads back the WaveOutput struct from the GPU output buffer.
@@ -382,11 +388,13 @@ impl WluGpuResources {
         if !self.buffers_allocated {
             anyhow::bail!("Cannot read sensor value: buffers not allocated");
         }
-        
+
         // Read the output buffer (binding 5)
-        let data = self.bindings.read_buffer(WluBufferIndex::Output as usize)
+        let data = self
+            .bindings
+            .read_buffer(WluBufferIndex::Output as usize)
             .context("Failed to read output buffer")?;
-        
+
         // Parse the WaveOutput struct (16 bytes)
         if data.len() < size_of::<WaveOutput>() {
             anyhow::bail!(
@@ -395,22 +403,21 @@ impl WluGpuResources {
                 size_of::<WaveOutput>()
             );
         }
-        
+
         // Safe because we know the layout matches
-        let output: WaveOutput = unsafe {
-            std::ptr::read_unaligned(data.as_ptr() as *const WaveOutput)
-        };
-        
+        let output: WaveOutput =
+            unsafe { std::ptr::read_unaligned(data.as_ptr() as *const WaveOutput) };
+
         log::debug!(
             "Read sensor value: {} at position ({}, {})",
             output.sensor_value,
             self.uniforms.sensor_pos_x,
             self.uniforms.sensor_pos_y
         );
-        
+
         Ok(output)
     }
-    
+
     /// Set sensor position in the grid.
     ///
     /// Updates the sensor position in uniforms. Call update_uniforms() after
@@ -419,27 +426,27 @@ impl WluGpuResources {
         self.uniforms.sensor_pos_x = x;
         self.uniforms.sensor_pos_y = y;
     }
-    
+
     /// Set sensor position and immediately sync to GPU.
     pub fn set_sensor_position_sync(&mut self, x: u32, y: u32) -> Result<()> {
         self.set_sensor_position(x, y);
         self.update_uniforms()
     }
-    
+
     /// Calculate buffer index from 2D coordinates
     pub fn coord_to_index(&self, x: u32, y: u32) -> usize {
         (y * self.grid_size + x) as usize
     }
-    
+
     /// Get total memory used by WLU buffers (in bytes)
     pub fn total_memory(&self) -> usize {
         let oscillators_size = MAX_OSCILLATORS * size_of::<GpuOscillator>();
         let output_size = size_of::<WaveOutput>();
-        
+
         // 3 wave fields + oscillators + uniforms + output
         self.field_size * 3 + oscillators_size + size_of::<WaveUniforms>() + output_size
     }
-    
+
     /// Dispatch the wave propagation compute shader on GPU.
     ///
     /// TODO-5/5: Integrates WLU with DRM compute backend.
@@ -472,44 +479,48 @@ impl WluGpuResources {
     ///
     /// let sensor = wlu.read_sensor_value()?;
     /// ```
-    pub fn dispatch_wave_propagation(&mut self, compute: &mut super::compute::GlyphCompute) -> Result<()> {
+    pub fn dispatch_wave_propagation(
+        &mut self,
+        compute: &mut super::compute::GlyphCompute,
+    ) -> Result<()> {
         if !self.buffers_allocated {
             anyhow::bail!("Cannot dispatch: buffers not allocated");
         }
-        
+
         log::info!("Dispatching wave propagation compute shader");
-        
+
         // 1. Load WGSL shader
         let wgsl_source = include_str!("../../shaders/wave_propagation.wgsl");
-        
+
         // 2. Compile WGSL to SPIR-V using Naga
         log::debug!("Parsing wave_propagation.wgsl");
         let module = wgsl::parse_str(&wgsl_source)
             .context("Failed to parse wave_propagation WGSL shader")?;
-        
+
         log::debug!("Validating wave_propagation module");
         let mut validator = Validator::new(ValidationFlags::all(), Capabilities::all());
         let info = validator
             .validate(&module)
             .context("Failed to validate wave_propagation module")?;
-        
+
         log::debug!("Compiling wave_propagation to SPIR-V");
         let options = spv::Options::default();
         let spirv_binary = spv::write_vec(&module, &info, &options, None)
             .context("Failed to compile wave_propagation to SPIR-V")?;
-        
+
         log::info!(
             "Compiled wave_propagation.wgsl to SPIR-V: {} words ({} bytes)",
             spirv_binary.len(),
             spirv_binary.len() * size_of::<u32>()
         );
-        
+
         // 3. Execute on GPU using pre-allocated buffers
-        compute.execute_spirv_with_bindings(&spirv_binary, &self.bindings)
+        compute
+            .execute_spirv_with_bindings(&spirv_binary, &self.bindings)
             .context("Failed to execute wave propagation on GPU")?;
-        
+
         log::info!("Wave propagation dispatch complete");
-        
+
         Ok(())
     }
 }
@@ -517,45 +528,45 @@ impl WluGpuResources {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_oscillator_size() {
         // Ensure GPU struct matches expected size (8 * 4 = 32 bytes)
         // WGSL requires 16-byte alignment
         assert_eq!(size_of::<GpuOscillator>(), 32);
     }
-    
+
     #[test]
     fn test_uniforms_size() {
         // Ensure uniform struct matches expected size (10 * 4 = 40 bytes)
         // WGSL requires 16-byte alignment
         assert_eq!(size_of::<WaveUniforms>(), 40);
     }
-    
+
     #[test]
     fn test_output_size() {
         // Ensure output struct matches expected size (4 * 4 = 16 bytes)
         assert_eq!(size_of::<WaveOutput>(), 16);
     }
-    
+
     #[test]
     fn test_field_size_calculation() {
         let grid_size = 256u32;
         let expected_size = (grid_size * grid_size) as usize * size_of::<f32>();
         assert_eq!(expected_size, 256 * 256 * 4); // 262,144 bytes
     }
-    
+
     #[test]
     fn test_coord_to_index() {
         let grid_size = 256u32;
-        
+
         // Test corner cases
         assert_eq!((0 * grid_size + 0) as usize, 0);
         assert_eq!((0 * grid_size + 255) as usize, 255);
         assert_eq!((255 * grid_size + 0) as usize, 65280);
         assert_eq!((255 * grid_size + 255) as usize, 65535);
     }
-    
+
     #[test]
     fn test_oscillator_creation() {
         let osc = GpuOscillator::new(128, 64, 440.0, 0.0, 1.0);
@@ -565,7 +576,7 @@ mod tests {
         assert!((osc.phase - 0.0).abs() < f32::EPSILON);
         assert!((osc.amplitude - 1.0).abs() < f32::EPSILON);
     }
-    
+
     #[test]
     fn test_uniforms_default() {
         let uniforms = WaveUniforms::default();
@@ -573,20 +584,20 @@ mod tests {
         assert!((uniforms.wave_speed - 0.1).abs() < f32::EPSILON);
         assert!((uniforms.damping - 0.995).abs() < f32::EPSILON);
     }
-    
+
     #[test]
     fn test_sensor_position() {
         let mut uniforms = WaveUniforms::default();
         assert_eq!(uniforms.sensor_pos_x, 128);
         assert_eq!(uniforms.sensor_pos_y, 128);
-        
+
         // Test sensor position setter
         uniforms.sensor_pos_x = 64;
         uniforms.sensor_pos_y = 192;
         assert_eq!(uniforms.sensor_pos_x, 64);
         assert_eq!(uniforms.sensor_pos_y, 192);
     }
-    
+
     #[test]
     fn test_wave_output_struct() {
         // Test that WaveOutput can be created and read
@@ -598,7 +609,7 @@ mod tests {
         };
         assert!((output.sensor_value - 0.5).abs() < f32::EPSILON);
     }
-    
+
     #[test]
     fn test_read_sensor_value_without_buffers() {
         // Test that read_sensor_value fails gracefully without buffers
@@ -606,26 +617,29 @@ mod tests {
             log::warn!("Skipping test: DRM/GBM not available");
             return;
         }
-        
+
         let drm_device = match super::super::device::DrmDevice::open_default() {
             Ok(d) => d,
             Err(_) => {
                 log::warn!("Skipping test: DRM device not available");
                 return;
-            }
+            },
         };
-        
+
         let wlu = match WluGpuResources::new(&drm_device) {
             Ok(w) => w,
             Err(_) => {
                 log::warn!("Skipping test: WLU creation failed");
                 return;
-            }
+            },
         };
-        
+
         // Should fail because buffers not allocated
         let result = wlu.read_sensor_value();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("buffers not allocated"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("buffers not allocated"));
     }
 }

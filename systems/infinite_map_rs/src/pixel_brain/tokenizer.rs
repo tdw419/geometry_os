@@ -46,7 +46,8 @@ impl ByteTokenizer {
 
     /// Decode token IDs to text
     pub fn decode(&self, tokens: &[u32]) -> String {
-        tokens.iter()
+        tokens
+            .iter()
             .filter(|&&t| t < 256)
             .filter_map(|&t| {
                 let b = t as u8;

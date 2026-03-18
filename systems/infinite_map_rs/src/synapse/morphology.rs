@@ -337,7 +337,11 @@ impl MorphologyExecutor {
 
         // Send to renderer via broadcast channel
         if let Some(ref tx) = self.aesthetics_tx {
-            let request = AestheticsRequest { chaos, temperature, saturation };
+            let request = AestheticsRequest {
+                chaos,
+                temperature,
+                saturation,
+            };
             if let Err(e) = tx.send(request) {
                 log::warn!("Failed to send aesthetics request: {}", e);
             }
@@ -460,10 +464,7 @@ impl MorphologyExecutor {
 
         // Send to system state manager if wired
         if let Some(tx) = &self.query_tx {
-            let request = QueryRequest {
-                query_type,
-                target,
-            };
+            let request = QueryRequest { query_type, target };
             let _ = tx.send(request);
         }
 

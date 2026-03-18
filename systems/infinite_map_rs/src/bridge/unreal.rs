@@ -93,8 +93,7 @@ impl UnrealBridge {
 
         // Serialize packet header first
         let encoded_packet =
-            bincode::serde::encode_to_vec(&packet, bincode::config::standard())
-                .unwrap_or_default();
+            bincode::serde::encode_to_vec(&packet, bincode::config::standard()).unwrap_or_default();
 
         // Total write size: packet header + payload
         let total_size = encoded_packet.len() + payload.len();
@@ -122,7 +121,10 @@ impl UnrealBridge {
 
             // Check if we have enough space
             if total_size > available {
-                error!("Ring buffer full! Need {} bytes, have {}", total_size, available);
+                error!(
+                    "Ring buffer full! Need {} bytes, have {}",
+                    total_size, available
+                );
                 return;
             }
 
@@ -138,11 +140,7 @@ impl UnrealBridge {
                 // Write first part (to end of buffer)
                 let data_ptr = ptr.add(data_start);
                 let first_packet_len = encoded_packet.len().min(first_part);
-                std::ptr::copy_nonoverlapping(
-                    encoded_packet.as_ptr(),
-                    data_ptr,
-                    first_packet_len,
-                );
+                std::ptr::copy_nonoverlapping(encoded_packet.as_ptr(), data_ptr, first_packet_len);
 
                 // If packet header wraps, write remainder at start
                 if first_packet_len < encoded_packet.len() {
@@ -177,14 +175,20 @@ impl UnrealBridge {
             } else {
                 // Simple case: write fits without wrap
                 let data_ptr = ptr.add(data_start);
-                std::ptr::copy_nonoverlapping(encoded_packet.as_ptr(), data_ptr, encoded_packet.len());
+                std::ptr::copy_nonoverlapping(
+                    encoded_packet.as_ptr(),
+                    data_ptr,
+                    encoded_packet.len(),
+                );
 
                 let payload_ptr = data_ptr.add(encoded_packet.len());
                 std::ptr::copy_nonoverlapping(payload.as_ptr(), payload_ptr, payload.len());
             }
 
             // Update write cursor atomically
-            header.write_cursor.fetch_add(total_size as u64, Ordering::Release);
+            header
+                .write_cursor
+                .fetch_add(total_size as u64, Ordering::Release);
         }
     }
 }

@@ -170,7 +170,10 @@ impl IntelGpuDevice {
     pub fn submit_batch(&self, commands: &[u8]) -> Result<()> {
         use std::mem::size_of;
 
-        log::info!("Submitting {} bytes to Intel GPU via EXECBUFFER2", commands.len());
+        log::info!(
+            "Submitting {} bytes to Intel GPU via EXECBUFFER2",
+            commands.len()
+        );
 
         // i915 DRM ioctl structures
         #[repr(C)]

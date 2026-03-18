@@ -3,16 +3,16 @@
 //! Top-level pool manager that coordinates weight, activation, and gradient pools
 //! with zero-copy staging for efficient CPU↔GPU transfers.
 
-use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use super::{
-    block_allocator::BlockAllocator,
-    weight_pool::WeightPool,
     activation_pool::ActivationPool,
+    block_allocator::BlockAllocator,
     gradient_pool::GradientPool,
+    weight_pool::WeightPool,
     zero_copy::ZeroCopyManager,
-    {TensorSpec, TensorId, MemoryRegion, MLError, MLResult, DataType},
+    {DataType, MLError, MLResult, MemoryRegion, TensorId, TensorSpec},
 };
 use crate::hilbert;
 
@@ -31,10 +31,10 @@ pub struct PoolConfig {
 impl Default for PoolConfig {
     fn default() -> Self {
         Self {
-            weight_pool_size: 256 * 1024 * 1024,      // 256MB
-            activation_pool_size: 192 * 1024 * 1024,  // 192MB
-            gradient_pool_size: 64 * 1024 * 1024,     // 64MB
-            staging_buffer_size: 64 * 1024 * 1024,    // 64MB
+            weight_pool_size: 256 * 1024 * 1024,     // 256MB
+            activation_pool_size: 192 * 1024 * 1024, // 192MB
+            gradient_pool_size: 64 * 1024 * 1024,    // 64MB
+            staging_buffer_size: 64 * 1024 * 1024,   // 64MB
         }
     }
 }
@@ -101,25 +101,13 @@ impl MLMemoryPool {
         queue: Arc<wgpu::Queue>,
         config: PoolConfig,
     ) -> MLResult<Self> {
-        let weight_pool = WeightPool::new(
-            &device,
-            config.weight_pool_size,
-        )?;
+        let weight_pool = WeightPool::new(&device, config.weight_pool_size)?;
 
-        let activation_pool = ActivationPool::new(
-            &device,
-            config.activation_pool_size,
-        )?;
+        let activation_pool = ActivationPool::new(&device, config.activation_pool_size)?;
 
-        let gradient_pool = GradientPool::new(
-            &device,
-            config.gradient_pool_size,
-        )?;
+        let gradient_pool = GradientPool::new(&device, config.gradient_pool_size)?;
 
-        let zero_copy = ZeroCopyManager::new(
-            &device,
-            config.staging_buffer_size,
-        )?;
+        let zero_copy = ZeroCopyManager::new(&device, config.staging_buffer_size)?;
 
         Ok(Self {
             device,
@@ -136,10 +124,7 @@ impl MLMemoryPool {
     }
 
     /// Create with default configuration
-    pub fn with_defaults(
-        device: Arc<wgpu::Device>,
-        queue: Arc<wgpu::Queue>,
-    ) -> MLResult<Self> {
+    pub fn with_defaults(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>) -> MLResult<Self> {
         Self::new(device, queue, PoolConfig::default())
     }
 
@@ -153,17 +138,17 @@ impl MLMemoryPool {
                 let mut pool = self.weight_pool.lock().unwrap();
                 let block = pool.allocate(bytes)?;
                 (block.gpu_offset, block.hilbert_aligned)
-            }
+            },
             MemoryRegion::Activation => {
                 let mut pool = self.activation_pool.lock().unwrap();
                 let block = pool.allocate(bytes)?;
                 (block.gpu_offset, block.hilbert_aligned)
-            }
+            },
             MemoryRegion::Gradient => {
                 let mut pool = self.gradient_pool.lock().unwrap();
                 let block = pool.allocate(bytes)?;
                 (block.gpu_offset, block.hilbert_aligned)
-            }
+            },
         };
 
         // Generate tensor ID
@@ -216,15 +201,15 @@ impl MLMemoryPool {
             MemoryRegion::Weight => {
                 let mut pool = self.weight_pool.lock().unwrap();
                 pool.free(id)?;
-            }
+            },
             MemoryRegion::Activation => {
                 let mut pool = self.activation_pool.lock().unwrap();
                 pool.free(id)?;
-            }
+            },
             MemoryRegion::Gradient => {
                 let mut pool = self.gradient_pool.lock().unwrap();
                 pool.free(id)?;
-            }
+            },
         }
 
         Ok(())
@@ -234,9 +219,10 @@ impl MLMemoryPool {
     pub fn free_by_name(&self, name: &str) -> MLResult<()> {
         let id = {
             let name_index = self.name_index.lock().unwrap();
-            name_index.get(name).copied().ok_or_else(|| {
-                MLError::TensorNotFound(TensorId(0))
-            })?
+            name_index
+                .get(name)
+                .copied()
+                .ok_or_else(|| MLError::TensorNotFound(TensorId(0)))?
         };
         self.free(id)
     }
@@ -251,9 +237,10 @@ impl MLMemoryPool {
     pub fn get_tensor_by_name(&self, name: &str) -> MLResult<TensorHandle> {
         let id = {
             let name_index = self.name_index.lock().unwrap();
-            name_index.get(name).copied().ok_or_else(|| {
-                MLError::TensorNotFound(TensorId(0))
-            })?
+            name_index
+                .get(name)
+                .copied()
+                .ok_or_else(|| MLError::TensorNotFound(TensorId(0)))?
         };
         self.get_tensor(id)
     }
@@ -271,12 +258,7 @@ impl MLMemoryPool {
         }
 
         let mut zero_copy = self.zero_copy.lock().unwrap();
-        zero_copy.write_to_gpu(
-            &self.device,
-            &self.queue,
-            handle.gpu_offset,
-            data,
-        )?;
+        zero_copy.write_to_gpu(&self.device, &self.queue, handle.gpu_offset, data)?;
 
         Ok(())
     }
@@ -286,12 +268,8 @@ impl MLMemoryPool {
         let handle = self.get_tensor(id)?;
 
         let mut zero_copy = self.zero_copy.lock().unwrap();
-        let data = zero_copy.read_from_gpu(
-            &self.device,
-            &self.queue,
-            handle.gpu_offset,
-            handle.bytes,
-        )?;
+        let data =
+            zero_copy.read_from_gpu(&self.device, &self.queue, handle.gpu_offset, handle.bytes)?;
 
         Ok(data)
     }

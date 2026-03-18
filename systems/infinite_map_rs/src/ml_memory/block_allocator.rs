@@ -19,7 +19,7 @@
 //! - Automatic block coalescing on free
 //! - Hilbert curve alignment for spatial locality
 
-use super::{MLResult, MLError};
+use super::{MLError, MLResult};
 use std::collections::HashMap;
 
 /// Block size levels (powers of 2 from 4KB to 64MB)
@@ -213,11 +213,12 @@ impl BlockAllocator {
 
     /// Allocate a block of at least the requested size
     pub fn allocate(&mut self, size: usize) -> MLResult<AllocatedBlock> {
-        let requested_size = BlockSize::fit(size)
-            .ok_or_else(|| MLError::BlockAllocationFailed(format!(
+        let requested_size = BlockSize::fit(size).ok_or_else(|| {
+            MLError::BlockAllocationFailed(format!(
                 "Requested size {} exceeds maximum (64MB)",
                 size
-            )))?;
+            ))
+        })?;
 
         // Find a free block of the requested size or larger
         let mut found_level = None;
@@ -263,7 +264,9 @@ impl BlockAllocator {
 
     /// Free a previously allocated block
     pub fn free(&mut self, id: u64) -> MLResult<()> {
-        let block = self.allocated.remove(&id)
+        let block = self
+            .allocated
+            .remove(&id)
             .ok_or(MLError::TensorNotFound(super::TensorId(id)))?;
 
         let local_offset = block.offset - self.base_offset;
@@ -290,8 +293,9 @@ impl BlockAllocator {
 
     /// Split a block into two buddies
     fn split_block(&mut self, block: Block) -> MLResult<Block> {
-        let smaller = block.size.smaller()
-            .ok_or_else(|| MLError::BlockAllocationFailed("Cannot split minimum block size".into()))?;
+        let smaller = block.size.smaller().ok_or_else(|| {
+            MLError::BlockAllocationFailed("Cannot split minimum block size".into())
+        })?;
 
         let half_size = smaller.size_bytes();
         let offset1 = block.offset;
@@ -329,14 +333,16 @@ impl BlockAllocator {
 
     /// Try to coalesce a block with its buddy
     fn coalesce_block(&mut self, block: &mut Block) {
-        let Some(buddy_offset) = block.buddy_offset else { return };
+        let Some(buddy_offset) = block.buddy_offset else {
+            return;
+        };
 
         let level = Self::size_to_level(block.size);
 
         // Look for buddy in free list
-        let buddy_idx = self.free_lists[level].iter().position(|b| {
-            b.offset == buddy_offset && b.is_free
-        });
+        let buddy_idx = self.free_lists[level]
+            .iter()
+            .position(|b| b.offset == buddy_offset && b.is_free);
 
         if let Some(idx) = buddy_idx {
             // Remove buddy and merge
@@ -386,7 +392,9 @@ impl BlockAllocator {
         }
 
         // Fragmentation = 1 - (largest_free / total_free)
-        let largest_free = self.free_lists.iter()
+        let largest_free = self
+            .free_lists
+            .iter()
             .rev()
             .find_map(|list| list.iter().find(|b| b.is_free).map(|b| b.size.size_bytes()))
             .unwrap_or(0);

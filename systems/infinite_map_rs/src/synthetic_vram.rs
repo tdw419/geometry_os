@@ -4664,15 +4664,18 @@ mod tests {
         pc += 1;
         vram.poke(pc, glyph(4, 0, 1, 8));
         pc += 1; // STORE [r1], r8
-        // buffer_len--
+                 // buffer_len--
         vram.poke(pc, glyph(3, 0, 11, 10));
         pc += 1; // LOAD r10 = buffer_len from [r11]
         vram.poke(pc, glyph(6, 9, 10, 10));
         pc += 1; // SUB r10, r10, r9 (three-operand: dst=r10, src1=r10, src2=r9)
         vram.poke(pc, glyph(4, 0, 11, 10));
         pc += 1; // STORE buffer_len to [r11]
-        // Skip target (after deletion)
-        vram.poke(delete_skip_off, (pc as i32 - delete_skip_off as i32 - 1) as u32);
+                 // Skip target (after deletion)
+        vram.poke(
+            delete_skip_off,
+            (pc as i32 - delete_skip_off as i32 - 1) as u32,
+        );
         // Clear and loop
         vram.poke(pc, glyph(4, 0, 0, 127));
         pc += 1; // STORE [r0], r127
@@ -4681,7 +4684,10 @@ mod tests {
         pc += 1;
 
         // CURSOR_LEFT handler
-        vram.poke(cursor_left_off, (pc as i32 - cursor_left_off as i32 - 1) as u32);
+        vram.poke(
+            cursor_left_off,
+            (pc as i32 - cursor_left_off as i32 - 1) as u32,
+        );
         // r8 = cursor
         vram.poke(pc, glyph(3, 0, 1, 8));
         pc += 1;
@@ -4698,8 +4704,11 @@ mod tests {
         pc += 1;
         vram.poke(pc, glyph(4, 0, 1, 8));
         pc += 1; // STORE [r1], r8
-        // Skip target
-        vram.poke(cursor_left_skip_off, (pc as i32 - cursor_left_skip_off as i32 - 1) as u32);
+                 // Skip target
+        vram.poke(
+            cursor_left_skip_off,
+            (pc as i32 - cursor_left_skip_off as i32 - 1) as u32,
+        );
         // Clear and loop
         vram.poke(pc, glyph(4, 0, 0, 127));
         pc += 1; // STORE [r0], r127
@@ -4708,7 +4717,10 @@ mod tests {
         pc += 1;
 
         // CURSOR_RIGHT handler
-        vram.poke(cursor_right_off, (pc as i32 - cursor_right_off as i32 - 1) as u32);
+        vram.poke(
+            cursor_right_off,
+            (pc as i32 - cursor_right_off as i32 - 1) as u32,
+        );
         // r8 = cursor
         vram.poke(pc, glyph(3, 0, 1, 8));
         pc += 1;
@@ -4717,7 +4729,7 @@ mod tests {
         // r10 = buffer_len
         vram.poke(pc, glyph(3, 0, 11, 10));
         pc += 1; // LOAD r10 = buffer_len from [r11]
-        // If cursor == buffer_len, skip (at end)
+                 // If cursor == buffer_len, skip (at end)
         vram.poke(pc, glyph(10, 0, 8, 10)); // BEQ r8, r10
         pc += 1;
         let cursor_right_skip_off = pc;
@@ -4727,8 +4739,11 @@ mod tests {
         pc += 1;
         vram.poke(pc, glyph(4, 0, 1, 8));
         pc += 1; // STORE [r1], r8
-        // Skip target
-        vram.poke(cursor_right_skip_off, (pc as i32 - cursor_right_skip_off as i32 - 1) as u32);
+                 // Skip target
+        vram.poke(
+            cursor_right_skip_off,
+            (pc as i32 - cursor_right_skip_off as i32 - 1) as u32,
+        );
         // Clear and loop
         vram.poke(pc, glyph(4, 0, 0, 127));
         pc += 1; // STORE [r0], r127
@@ -4877,7 +4892,11 @@ mod tests {
         println!("  cursor = {}", vm.regs[8]);
         println!("  buffer_len = {}", vram.peek(0x101));
         assert_eq!(vm.regs[8], 0, "cursor should be 0 after second DELETE");
-        assert_eq!(vram.peek(0x101), 0, "buffer_len should be 0 after second DELETE");
+        assert_eq!(
+            vram.peek(0x101),
+            0,
+            "buffer_len should be 0 after second DELETE"
+        );
 
         // Clear mailbox
         vram.poke(0x200, 0);
@@ -4956,7 +4975,10 @@ mod tests {
 
         let vm = vram.vm_state(0).unwrap();
         println!("  cursor = {}", vm.regs[8]);
-        assert_eq!(vm.regs[8], 1, "cursor should be at 1 after second CURSOR_LEFT");
+        assert_eq!(
+            vm.regs[8], 1,
+            "cursor should be at 1 after second CURSOR_LEFT"
+        );
 
         // Clear mailbox
         vram.poke(0x200, 0);
@@ -5029,7 +5051,10 @@ mod tests {
 
         let vm = vram.vm_state(0).unwrap();
         println!("  cursor = {}", vm.regs[8]);
-        assert_eq!(vm.regs[8], 3, "cursor should remain at buffer_len (guarded)");
+        assert_eq!(
+            vm.regs[8], 3,
+            "cursor should remain at buffer_len (guarded)"
+        );
 
         println!("\n{}", "=".repeat(60));
         println!("SUCCESS: Editor can insert, delete, and move cursor!");
@@ -5064,8 +5089,8 @@ mod tests {
         let mut pc = 0u32;
 
         // Setup constants
-        emit_ldi(&mut vram, &mut pc, 13, 1);    // r13 = 1
-        emit_ldi(&mut vram, &mut pc, 127, 0);   // r127 = 0
+        emit_ldi(&mut vram, &mut pc, 13, 1); // r13 = 1
+        emit_ldi(&mut vram, &mut pc, 127, 0); // r127 = 0
         emit_ldi(&mut vram, &mut pc, 0, 0x200); // r0 = mailbox
         emit_ldi(&mut vram, &mut pc, 1, 0x100); // r1 = cursor addr
         emit_ldi(&mut vram, &mut pc, 2, 0x1000); // r2 = buffer base
@@ -5073,112 +5098,158 @@ mod tests {
 
         // Event loop
         let event_loop = pc;
-        vram.poke(pc, glyph(3, 0, 0, 3)); pc += 1; // LOAD r3, [r0]
-        vram.poke(pc, 0); pc += 1;
-        vram.poke(pc, glyph(10, 0, 3, 127)); pc += 1; // BEQ r3, r127, loop
-        vram.poke(pc, (event_loop as i32 - pc as i32 - 1) as u32); pc += 1;
+        vram.poke(pc, glyph(3, 0, 0, 3));
+        pc += 1; // LOAD r3, [r0]
+        vram.poke(pc, 0);
+        pc += 1;
+        vram.poke(pc, glyph(10, 0, 3, 127));
+        pc += 1; // BEQ r3, r127, loop
+        vram.poke(pc, (event_loop as i32 - pc as i32 - 1) as u32);
+        pc += 1;
 
         // Dispatch: INSERT (type=1) → skip to insert handler
         emit_ldi(&mut vram, &mut pc, 4, 1);
-        vram.poke(pc, glyph(10, 0, 3, 4)); pc += 1;
-        let insert_off = pc; pc += 1;
+        vram.poke(pc, glyph(10, 0, 3, 4));
+        pc += 1;
+        let insert_off = pc;
+        pc += 1;
 
         // Dispatch: RENDER (type=7) → skip to render handler
         emit_ldi(&mut vram, &mut pc, 5, 7);
-        vram.poke(pc, glyph(10, 0, 3, 5)); pc += 1;
-        let render_off = pc; pc += 1;
+        vram.poke(pc, glyph(10, 0, 3, 5));
+        pc += 1;
+        let render_off = pc;
+        pc += 1;
 
         // Unknown event: clear and loop
-        vram.poke(pc, glyph(4, 0, 0, 127)); pc += 1; // STORE [r0], r127
+        vram.poke(pc, glyph(4, 0, 0, 127));
+        pc += 1; // STORE [r0], r127
         let jmp_back = event_loop as i32 - pc as i32 - 1;
-        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8)); pc += 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8));
+        pc += 1;
 
         // === INSERT HANDLER ===
         vram.poke(insert_off, (pc as i32 - insert_off as i32 - 1) as u32);
         // r6 = char from mailbox+1
         emit_ldi(&mut vram, &mut pc, 6, 0x201);
-        vram.poke(pc, glyph(3, 0, 6, 7)); pc += 1; // LOAD r7, [r6]
-        vram.poke(pc, 0); pc += 1;
+        vram.poke(pc, glyph(3, 0, 6, 7));
+        pc += 1; // LOAD r7, [r6]
+        vram.poke(pc, 0);
+        pc += 1;
         // r8 = cursor
-        vram.poke(pc, glyph(3, 0, 1, 8)); pc += 1; // LOAD r8, [r1]
-        vram.poke(pc, 0); pc += 1;
+        vram.poke(pc, glyph(3, 0, 1, 8));
+        pc += 1; // LOAD r8, [r1]
+        vram.poke(pc, 0);
+        pc += 1;
         // r9 = buffer + cursor
-        vram.poke(pc, glyph(2, 0, 2, 9)); pc += 1; // MOV r9, r2
-        vram.poke(pc, glyph(5, 0, 8, 9)); pc += 1; // ADD r9, r9, r8
-        // Store char
-        vram.poke(pc, glyph(4, 0, 9, 7)); pc += 1; // STORE [r9], r7
-        // cursor++
-        vram.poke(pc, glyph(5, 0, 13, 8)); pc += 1; // ADD r8, r8, r13
-        vram.poke(pc, glyph(4, 0, 1, 8)); pc += 1; // STORE [r1], r8
-        // Clear and loop
-        vram.poke(pc, glyph(4, 0, 0, 127)); pc += 1;
+        vram.poke(pc, glyph(2, 0, 2, 9));
+        pc += 1; // MOV r9, r2
+        vram.poke(pc, glyph(5, 0, 8, 9));
+        pc += 1; // ADD r9, r9, r8
+                 // Store char
+        vram.poke(pc, glyph(4, 0, 9, 7));
+        pc += 1; // STORE [r9], r7
+                 // cursor++
+        vram.poke(pc, glyph(5, 0, 13, 8));
+        pc += 1; // ADD r8, r8, r13
+        vram.poke(pc, glyph(4, 0, 1, 8));
+        pc += 1; // STORE [r1], r8
+                 // Clear and loop
+        vram.poke(pc, glyph(4, 0, 0, 127));
+        pc += 1;
         let jmp_back = event_loop as i32 - pc as i32 - 1;
-        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8)); pc += 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8));
+        pc += 1;
 
         // === RENDER HANDLER ===
         vram.poke(render_off, (pc as i32 - render_off as i32 - 1) as u32);
         // Render loop: for each char in buffer, DRAW to screen
         // r20 = buffer index, r21 = screen x, r22 = screen y
-        emit_ldi(&mut vram, &mut pc, 20, 0);  // index = 0
-        emit_ldi(&mut vram, &mut pc, 21, 0);  // x = 0
-        emit_ldi(&mut vram, &mut pc, 22, 0);  // y = 0
+        emit_ldi(&mut vram, &mut pc, 20, 0); // index = 0
+        emit_ldi(&mut vram, &mut pc, 21, 0); // x = 0
+        emit_ldi(&mut vram, &mut pc, 22, 0); // y = 0
 
         let render_loop = pc;
         // Load char from buffer[index]
-        vram.poke(pc, glyph(2, 0, 2, 23)); pc += 1; // MOV r23, r2 (buffer base)
-        vram.poke(pc, glyph(5, 0, 20, 23)); pc += 1; // ADD r23, r23, r20 (offset)
-        vram.poke(pc, glyph(3, 0, 23, 24)); pc += 1; // LOAD r24, [r23]
-        vram.poke(pc, 0); pc += 1;
+        vram.poke(pc, glyph(2, 0, 2, 23));
+        pc += 1; // MOV r23, r2 (buffer base)
+        vram.poke(pc, glyph(5, 0, 20, 23));
+        pc += 1; // ADD r23, r23, r20 (offset)
+        vram.poke(pc, glyph(3, 0, 23, 24));
+        pc += 1; // LOAD r24, [r23]
+        vram.poke(pc, 0);
+        pc += 1;
 
         // If char == 0, done
-        vram.poke(pc, glyph(10, 0, 24, 127)); pc += 1; // BEQ r24, r127, render_done
-        let render_done_off = pc; pc += 1;
+        vram.poke(pc, glyph(10, 0, 24, 127));
+        pc += 1; // BEQ r24, r127, render_done
+        let render_done_off = pc;
+        pc += 1;
 
         // DRAW: screen[screen_y * 64 + screen_x] = char
         // Calculate screen offset: y * 64 + x
         // For simplicity, just write to screen_base + x (single row)
-        vram.poke(pc, glyph(2, 0, 12, 25)); pc += 1; // MOV r25, r12 (screen base)
-        vram.poke(pc, glyph(5, 0, 21, 25)); pc += 1; // ADD r25, r25, r21 (offset by x)
-        vram.poke(pc, glyph(4, 0, 25, 24)); pc += 1; // STORE [r25], r24 (write char to screen)
+        vram.poke(pc, glyph(2, 0, 12, 25));
+        pc += 1; // MOV r25, r12 (screen base)
+        vram.poke(pc, glyph(5, 0, 21, 25));
+        pc += 1; // ADD r25, r25, r21 (offset by x)
+        vram.poke(pc, glyph(4, 0, 25, 24));
+        pc += 1; // STORE [r25], r24 (write char to screen)
 
         // Advance: x++, index++
-        vram.poke(pc, glyph(5, 0, 13, 21)); pc += 1; // ADD r21, r21, r13 (x++)
-        vram.poke(pc, glyph(5, 0, 13, 20)); pc += 1; // ADD r20, r20, r13 (index++)
+        vram.poke(pc, glyph(5, 0, 13, 21));
+        pc += 1; // ADD r21, r21, r13 (x++)
+        vram.poke(pc, glyph(5, 0, 13, 20));
+        pc += 1; // ADD r20, r20, r13 (index++)
 
         // Loop back
         let jmp_render = render_loop as i32 - pc as i32 - 1;
-        vram.poke(pc, glyph(9, 2, jmp_render as u8, (jmp_render >> 8) as u8)); pc += 1;
+        vram.poke(pc, glyph(9, 2, jmp_render as u8, (jmp_render >> 8) as u8));
+        pc += 1;
 
         // render_done
-        vram.poke(render_done_off, (pc as i32 - render_done_off as i32 - 1) as u32);
+        vram.poke(
+            render_done_off,
+            (pc as i32 - render_done_off as i32 - 1) as u32,
+        );
         // Clear event and loop
-        vram.poke(pc, glyph(4, 0, 0, 127)); pc += 1;
+        vram.poke(pc, glyph(4, 0, 0, 127));
+        pc += 1;
         let jmp_back = event_loop as i32 - pc as i32 - 1;
-        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8)); pc += 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8));
+        pc += 1;
 
         // Spawn editor VM
-        vram.spawn_vm(0, &SyntheticVmConfig {
-            entry_point: 0,
-            parent_id: 0xFF,
-            base_addr: 0,
-            bound_addr: 0xA000,
-            eap_coord: 0,
-            generation: 0,
-            initial_regs: [0; 128],
-        }).unwrap();
+        vram.spawn_vm(
+            0,
+            &SyntheticVmConfig {
+                entry_point: 0,
+                parent_id: 0xFF,
+                base_addr: 0,
+                bound_addr: 0xA000,
+                eap_coord: 0,
+                generation: 0,
+                initial_regs: [0; 128],
+            },
+        )
+        .unwrap();
 
         // === STEP 1: Insert "HI" ===
         println!("\n[STEP 1] Insert 'H' (72)");
         vram.poke(0x100, 0); // cursor = 0
-        vram.poke(0x200, 1);  // INSERT event
+        vram.poke(0x200, 1); // INSERT event
         vram.poke(0x201, 72); // 'H'
-        for _ in 0..5 { vram.execute_frame_with_limit(50); }
-        vram.poke(0x200, 0);  // clear mailbox
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
+        vram.poke(0x200, 0); // clear mailbox
 
         println!("[STEP 2] Insert 'I' (73)");
-        vram.poke(0x200, 1);  // INSERT event
+        vram.poke(0x200, 1); // INSERT event
         vram.poke(0x201, 73); // 'I'
-        for _ in 0..5 { vram.execute_frame_with_limit(50); }
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
         vram.poke(0x200, 0);
 
         // Verify buffer
@@ -5189,7 +5260,9 @@ mod tests {
         println!("\n[STEP 3] Send RENDER event (type=7)");
         vram.poke(0x200, 7); // RENDER event
 
-        for _ in 0..20 { vram.execute_frame_with_limit(50); }
+        for _ in 0..20 {
+            vram.execute_frame_with_limit(50);
+        }
 
         // === VERIFY SCREEN ===
         println!("\n[VERIFY] Screen region at 0x8000:");
@@ -5239,13 +5312,13 @@ mod tests {
         // 'H' shape: two vertical bars + horizontal crossbar
         for y in 0..64usize {
             for x in 0..10usize {
-                vram.vram[(h_sy + y) * n + (h_sx + x)] = white;          // left bar
-                vram.vram[(h_sy + y) * n + (h_sx + 54 + x)] = white;     // right bar
+                vram.vram[(h_sy + y) * n + (h_sx + x)] = white; // left bar
+                vram.vram[(h_sy + y) * n + (h_sx + 54 + x)] = white; // right bar
             }
         }
         for x in 10..54usize {
             for y in 27..37usize {
-                vram.vram[(h_sy + y) * n + (h_sx + x)] = white;          // crossbar
+                vram.vram[(h_sy + y) * n + (h_sx + x)] = white; // crossbar
             }
         }
 
@@ -5257,15 +5330,15 @@ mod tests {
         // 'I' shape: top bar + vertical center + bottom bar
         for x in 10..54usize {
             for y in 0..10usize {
-                vram.vram[(i_sy + y) * n + (i_sx + x)] = white;          // top bar
+                vram.vram[(i_sy + y) * n + (i_sx + x)] = white; // top bar
             }
             for y in 54..64usize {
-                vram.vram[(i_sy + y) * n + (i_sx + x)] = white;          // bottom bar
+                vram.vram[(i_sy + y) * n + (i_sx + x)] = white; // bottom bar
             }
         }
         for y in 10..54usize {
             for x in 25..39usize {
-                vram.vram[(i_sy + y) * n + (i_sx + x)] = white;          // vertical
+                vram.vram[(i_sy + y) * n + (i_sx + x)] = white; // vertical
             }
         }
 
@@ -5281,115 +5354,159 @@ mod tests {
         let mut pc = 0u32;
 
         // Constants
-        emit_ldi(&mut vram, &mut pc, 13, 1);      // r13 = 1 (increment)
-        emit_ldi(&mut vram, &mut pc, 14, 64);     // r14 = 64 (glyph width for x stride)
-        emit_ldi(&mut vram, &mut pc, 127, 0);     // r127 = 0 (zero)
-        emit_ldi(&mut vram, &mut pc, 0, 0x200);   // r0 = mailbox addr
-        emit_ldi(&mut vram, &mut pc, 1, 0x100);   // r1 = cursor addr
-        emit_ldi(&mut vram, &mut pc, 2, 0x1000);  // r2 = buffer base
+        emit_ldi(&mut vram, &mut pc, 13, 1); // r13 = 1 (increment)
+        emit_ldi(&mut vram, &mut pc, 14, 64); // r14 = 64 (glyph width for x stride)
+        emit_ldi(&mut vram, &mut pc, 127, 0); // r127 = 0 (zero)
+        emit_ldi(&mut vram, &mut pc, 0, 0x200); // r0 = mailbox addr
+        emit_ldi(&mut vram, &mut pc, 1, 0x100); // r1 = cursor addr
+        emit_ldi(&mut vram, &mut pc, 2, 0x1000); // r2 = buffer base
 
         // Event loop: wait for event
         let event_loop = pc;
-        vram.poke(pc, glyph(3, 0, 0, 3)); pc += 1;   // LOAD r3, [r0]
-        vram.poke(pc, 0); pc += 1;
-        vram.poke(pc, glyph(10, 0, 3, 127)); pc += 1; // BEQ r3, r127 → loop
-        vram.poke(pc, (event_loop as i32 - pc as i32 - 1) as u32); pc += 1;
+        vram.poke(pc, glyph(3, 0, 0, 3));
+        pc += 1; // LOAD r3, [r0]
+        vram.poke(pc, 0);
+        pc += 1;
+        vram.poke(pc, glyph(10, 0, 3, 127));
+        pc += 1; // BEQ r3, r127 → loop
+        vram.poke(pc, (event_loop as i32 - pc as i32 - 1) as u32);
+        pc += 1;
 
         // Dispatch INSERT (type=1)
         emit_ldi(&mut vram, &mut pc, 4, 1);
-        vram.poke(pc, glyph(10, 0, 3, 4)); pc += 1;   // BEQ r3, r4 → insert
-        let insert_off = pc; pc += 1;
+        vram.poke(pc, glyph(10, 0, 3, 4));
+        pc += 1; // BEQ r3, r4 → insert
+        let insert_off = pc;
+        pc += 1;
 
         // Dispatch RENDER (type=7)
         emit_ldi(&mut vram, &mut pc, 5, 7);
-        vram.poke(pc, glyph(10, 0, 3, 5)); pc += 1;   // BEQ r3, r5 → render
-        let render_off = pc; pc += 1;
+        vram.poke(pc, glyph(10, 0, 3, 5));
+        pc += 1; // BEQ r3, r5 → render
+        let render_off = pc;
+        pc += 1;
 
         // Unknown: clear & loop
-        vram.poke(pc, glyph(4, 0, 0, 127)); pc += 1;
+        vram.poke(pc, glyph(4, 0, 0, 127));
+        pc += 1;
         let jb = event_loop as i32 - pc as i32 - 1;
-        vram.poke(pc, glyph(9, 2, jb as u8, (jb >> 8) as u8)); pc += 1;
+        vram.poke(pc, glyph(9, 2, jb as u8, (jb >> 8) as u8));
+        pc += 1;
 
         // === INSERT HANDLER ===
         vram.poke(insert_off, (pc as i32 - insert_off as i32 - 1) as u32);
         emit_ldi(&mut vram, &mut pc, 6, 0x201);
-        vram.poke(pc, glyph(3, 0, 6, 7)); pc += 1;   // LOAD r7, [r6] (char)
-        vram.poke(pc, 0); pc += 1;
-        vram.poke(pc, glyph(3, 0, 1, 8)); pc += 1;   // LOAD r8, [r1] (cursor)
-        vram.poke(pc, 0); pc += 1;
-        vram.poke(pc, glyph(2, 0, 2, 9)); pc += 1;   // MOV r9, r2
-        vram.poke(pc, glyph(5, 0, 8, 9)); pc += 1;   // ADD r9 += r8
-        vram.poke(pc, glyph(4, 0, 9, 7)); pc += 1;   // STORE [r9], r7
-        vram.poke(pc, glyph(5, 0, 13, 8)); pc += 1;  // ADD r8 += 1
-        vram.poke(pc, glyph(4, 0, 1, 8)); pc += 1;   // STORE [r1], r8
-        vram.poke(pc, glyph(4, 0, 0, 127)); pc += 1;
+        vram.poke(pc, glyph(3, 0, 6, 7));
+        pc += 1; // LOAD r7, [r6] (char)
+        vram.poke(pc, 0);
+        pc += 1;
+        vram.poke(pc, glyph(3, 0, 1, 8));
+        pc += 1; // LOAD r8, [r1] (cursor)
+        vram.poke(pc, 0);
+        pc += 1;
+        vram.poke(pc, glyph(2, 0, 2, 9));
+        pc += 1; // MOV r9, r2
+        vram.poke(pc, glyph(5, 0, 8, 9));
+        pc += 1; // ADD r9 += r8
+        vram.poke(pc, glyph(4, 0, 9, 7));
+        pc += 1; // STORE [r9], r7
+        vram.poke(pc, glyph(5, 0, 13, 8));
+        pc += 1; // ADD r8 += 1
+        vram.poke(pc, glyph(4, 0, 1, 8));
+        pc += 1; // STORE [r1], r8
+        vram.poke(pc, glyph(4, 0, 0, 127));
+        pc += 1;
         let jb = event_loop as i32 - pc as i32 - 1;
-        vram.poke(pc, glyph(9, 2, jb as u8, (jb >> 8) as u8)); pc += 1;
+        vram.poke(pc, glyph(9, 2, jb as u8, (jb >> 8) as u8));
+        pc += 1;
 
         // === RENDER HANDLER (uses DRAW opcode 215) ===
         vram.poke(render_off, (pc as i32 - render_off as i32 - 1) as u32);
 
         // r20 = buffer index, r21 = screen x (pixel), r22 = screen y (pixel)
-        emit_ldi(&mut vram, &mut pc, 20, 0);  // index = 0
-        emit_ldi(&mut vram, &mut pc, 21, 0);  // x = 0 pixels
-        emit_ldi(&mut vram, &mut pc, 22, 0);  // y = 0 pixels
+        emit_ldi(&mut vram, &mut pc, 20, 0); // index = 0
+        emit_ldi(&mut vram, &mut pc, 21, 0); // x = 0 pixels
+        emit_ldi(&mut vram, &mut pc, 22, 0); // y = 0 pixels
 
         let render_loop = pc;
 
         // Load char from buffer[index]
-        vram.poke(pc, glyph(2, 0, 2, 23)); pc += 1;   // MOV r23, r2
-        vram.poke(pc, glyph(5, 0, 20, 23)); pc += 1;  // ADD r23 += r20
-        vram.poke(pc, glyph(3, 0, 23, 24)); pc += 1;  // LOAD r24, [r23]
-        vram.poke(pc, 0); pc += 1;
+        vram.poke(pc, glyph(2, 0, 2, 23));
+        pc += 1; // MOV r23, r2
+        vram.poke(pc, glyph(5, 0, 20, 23));
+        pc += 1; // ADD r23 += r20
+        vram.poke(pc, glyph(3, 0, 23, 24));
+        pc += 1; // LOAD r24, [r23]
+        vram.poke(pc, 0);
+        pc += 1;
 
         // If char == 0, done
-        vram.poke(pc, glyph(10, 0, 24, 127)); pc += 1;
-        let render_done_off = pc; pc += 1;
+        vram.poke(pc, glyph(10, 0, 24, 127));
+        pc += 1;
+        let render_done_off = pc;
+        pc += 1;
 
         // DRAW glyph_id=r24, dst_x=r21, dst_y=r22
         // DRAW encoding: glyph(215, reg_y, reg_id, reg_x)
-        vram.poke(pc, glyph(215, 22, 24, 21)); pc += 1;
+        vram.poke(pc, glyph(215, 22, 24, 21));
+        pc += 1;
 
         // Advance: x += 64 (glyph width), index++
-        vram.poke(pc, glyph(5, 0, 14, 21)); pc += 1;  // ADD r21 += 64
-        vram.poke(pc, glyph(5, 0, 13, 20)); pc += 1;  // ADD r20 += 1
+        vram.poke(pc, glyph(5, 0, 14, 21));
+        pc += 1; // ADD r21 += 64
+        vram.poke(pc, glyph(5, 0, 13, 20));
+        pc += 1; // ADD r20 += 1
 
         // Loop back
         let jr = render_loop as i32 - pc as i32 - 1;
-        vram.poke(pc, glyph(9, 2, jr as u8, (jr >> 8) as u8)); pc += 1;
+        vram.poke(pc, glyph(9, 2, jr as u8, (jr >> 8) as u8));
+        pc += 1;
 
         // render_done: clear & loop
-        vram.poke(render_done_off, (pc as i32 - render_done_off as i32 - 1) as u32);
-        vram.poke(pc, glyph(4, 0, 0, 127)); pc += 1;
+        vram.poke(
+            render_done_off,
+            (pc as i32 - render_done_off as i32 - 1) as u32,
+        );
+        vram.poke(pc, glyph(4, 0, 0, 127));
+        pc += 1;
         let jb = event_loop as i32 - pc as i32 - 1;
-        vram.poke(pc, glyph(9, 2, jb as u8, (jb >> 8) as u8)); pc += 1;
+        vram.poke(pc, glyph(9, 2, jb as u8, (jb >> 8) as u8));
+        pc += 1;
 
         println!("Editor program: {} pixels", pc);
 
         // === SPAWN & RUN ===
-        vram.spawn_vm(0, &SyntheticVmConfig {
-            entry_point: 0,
-            parent_id: 0xFF,
-            base_addr: 0,
-            bound_addr: 0xFFFF,
-            eap_coord: 0,
-            generation: 0,
-            initial_regs: [0; 128],
-        }).unwrap();
+        vram.spawn_vm(
+            0,
+            &SyntheticVmConfig {
+                entry_point: 0,
+                parent_id: 0xFF,
+                base_addr: 0,
+                bound_addr: 0xFFFF,
+                eap_coord: 0,
+                generation: 0,
+                initial_regs: [0; 128],
+            },
+        )
+        .unwrap();
 
         // Insert 'H'
         println!("\n[INSERT] 'H' (72)");
         vram.poke(0x100, 0);
         vram.poke(0x200, 1);
         vram.poke(0x201, 72);
-        for _ in 0..5 { vram.execute_frame_with_limit(50); }
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
         vram.poke(0x200, 0);
 
         // Insert 'I'
         println!("[INSERT] 'I' (73)");
         vram.poke(0x200, 1);
         vram.poke(0x201, 73);
-        for _ in 0..5 { vram.execute_frame_with_limit(50); }
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
         vram.poke(0x200, 0);
 
         // Verify buffer
@@ -5399,7 +5516,9 @@ mod tests {
         // RENDER
         println!("\n[RENDER] Sending RENDER event (type=7)");
         vram.poke(0x200, 7);
-        for _ in 0..20 { vram.execute_frame_with_limit(100); }
+        for _ in 0..20 {
+            vram.execute_frame_with_limit(100);
+        }
 
         // === VERIFY ATLAS BLIT TO SCREEN ===
         // Screen base is (0, 2048) in grid
@@ -5411,8 +5530,14 @@ mod tests {
         // Check 'H' glyph at screen (0, 2048) — left bar should be white
         let h_pixel = vram.vram[screen_y * n + 0]; // top-left of 'H'
         println!("\n[VERIFY] Screen pixels:");
-        println!("  'H' top-left (0, 2048) = 0x{:08X} (expect 0xFFFFFFFF)", h_pixel);
-        assert_eq!(h_pixel, white, "'H' glyph left bar should be white at screen");
+        println!(
+            "  'H' top-left (0, 2048) = 0x{:08X} (expect 0xFFFFFFFF)",
+            h_pixel
+        );
+        assert_eq!(
+            h_pixel, white,
+            "'H' glyph left bar should be white at screen"
+        );
 
         // Check 'H' crossbar pixel
         let h_cross = vram.vram[(screen_y + 32) * n + 30];
@@ -5426,7 +5551,10 @@ mod tests {
 
         // Check 'I' glyph at screen (64, 2048) — top bar
         let i_pixel = vram.vram[screen_y * n + 64 + 30]; // top bar of 'I'
-        println!("  'I' top-bar (94, 2048) = 0x{:08X} (expect 0xFFFFFFFF)", i_pixel);
+        println!(
+            "  'I' top-bar (94, 2048) = 0x{:08X} (expect 0xFFFFFFFF)",
+            i_pixel
+        );
         assert_eq!(i_pixel, white, "'I' glyph top bar should be white");
 
         // Check 'I' vertical center

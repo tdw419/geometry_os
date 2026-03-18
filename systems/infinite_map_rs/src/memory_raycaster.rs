@@ -269,7 +269,7 @@ mod tests {
 
         // Verify ray direction
         assert!(dir[2] < 0.0); // Pointing into screen
-        // Origin is at camera position, can be 0 at center
+                               // Origin is at camera position, can be 0 at center
         assert!(origin[0].is_finite());
     }
 

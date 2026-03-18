@@ -20,8 +20,8 @@ pub struct WindowVertex {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct WindowInstance {
-    pub window_pos: [f32; 2],  // x, y
-    pub window_size: [f32; 2], // width, height
+    pub window_pos: [f32; 2],   // x, y
+    pub window_size: [f32; 2],  // width, height
     pub border_color: [f32; 4], // RGBA
     pub vm_id: u32,
     pub state: u32, // 0=inactive, 1=running, 2=halted, 3=waiting
@@ -37,10 +37,7 @@ pub struct GlyphWindowRenderer {
 }
 
 impl GlyphWindowRenderer {
-    pub fn new(
-        device: &wgpu::Device,
-        surface_format: wgpu::TextureFormat,
-    ) -> Self {
+    pub fn new(device: &wgpu::Device, surface_format: wgpu::TextureFormat) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Glyph Window Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shaders/glyph_windows.wgsl").into()),
@@ -49,18 +46,16 @@ impl GlyphWindowRenderer {
         // Create bind group layout for uniforms (screen size, etc.)
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Glyph Window Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
                 },
-            ],
+                count: None,
+            }],
         });
 
         // Create uniform buffer for screen dimensions
@@ -73,12 +68,10 @@ impl GlyphWindowRenderer {
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Glyph Window Bind Group"),
             layout: &bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: uniform_buffer.as_entire_binding(),
-                },
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            }],
         });
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -89,10 +82,22 @@ impl GlyphWindowRenderer {
 
         // Create vertex buffer for a unit quad
         let vertices: &[WindowVertex] = &[
-            WindowVertex { position: [0.0, 0.0], tex_coords: [0.0, 0.0] },
-            WindowVertex { position: [1.0, 0.0], tex_coords: [1.0, 0.0] },
-            WindowVertex { position: [0.0, 1.0], tex_coords: [0.0, 1.0] },
-            WindowVertex { position: [1.0, 1.0], tex_coords: [1.0, 1.0] },
+            WindowVertex {
+                position: [0.0, 0.0],
+                tex_coords: [0.0, 0.0],
+            },
+            WindowVertex {
+                position: [1.0, 0.0],
+                tex_coords: [1.0, 0.0],
+            },
+            WindowVertex {
+                position: [0.0, 1.0],
+                tex_coords: [0.0, 1.0],
+            },
+            WindowVertex {
+                position: [1.0, 1.0],
+                tex_coords: [1.0, 1.0],
+            },
         ];
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -172,16 +177,9 @@ impl GlyphWindowRenderer {
     }
 
     /// Update window instances from VM state
-    pub fn update_windows(
-        &self,
-        queue: &wgpu::Queue,
-        windows: &[WindowInstance],
-    ) {
-        let instances: Vec<WindowInstance> = windows
-            .iter()
-            .take(self.max_windows)
-            .cloned()
-            .collect();
+    pub fn update_windows(&self, queue: &wgpu::Queue, windows: &[WindowInstance]) {
+        let instances: Vec<WindowInstance> =
+            windows.iter().take(self.max_windows).cloned().collect();
 
         // Pad to max_windows if needed
         let mut padded = instances;
@@ -207,11 +205,7 @@ impl GlyphWindowRenderer {
     }
 
     /// Render the windows
-    pub fn render<'a>(
-        &'a self,
-        render_pass: &mut wgpu::RenderPass<'a>,
-        instance_count: u32,
-    ) {
+    pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, instance_count: u32) {
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));

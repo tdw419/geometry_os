@@ -20,6 +20,7 @@ pub mod visual_interaction_bus;
 pub mod wlu_compute;
 
 pub use amdgpu::command_buffer::AmdgpuCommandBuffer;
+pub use buffer_binding::{BindingPoint, BoundBuffer, BufferBindingInterface, DispatchBindings};
 pub use compute::GlyphCompute;
 pub use device::DrmDevice;
 pub use dmabuf::{DmaBuf, ZeroCopyPipeline};
@@ -32,7 +33,6 @@ pub use integrated_executor::{
     IntegratedExecutorConfig, IntegratedGlyphExecutor, ZeroCopyExecutionLoop,
 };
 pub use intel::IntelCommandBuffer;
-pub use buffer_binding::{BindingPoint, BufferBindingInterface, BoundBuffer, DispatchBindings};
 pub use memory::{GpuMemoryAllocator, MappedBuffer};
 pub use scanout::KmsScanout;
 pub use vcc_compute::{
@@ -40,6 +40,6 @@ pub use vcc_compute::{
 };
 pub use visual_interaction_bus::{InputReceiver, InputState, VisualInteractionBus};
 pub use wlu_compute::{
-    GpuOscillator, WaveOutput, WaveUniforms, WluBufferIndex, WluGpuResources,
-    DEFAULT_GRID_SIZE, MAX_OSCILLATORS,
+    GpuOscillator, WaveOutput, WaveUniforms, WluBufferIndex, WluGpuResources, DEFAULT_GRID_SIZE,
+    MAX_OSCILLATORS,
 };

@@ -272,7 +272,12 @@ impl HilbertPathfinder {
     }
 
     /// A* pathfinding with complexity preference (lower cost for high-complexity areas)
-    fn astar_path_complexity_weighted(&self, start: u32, end: u32, blocked: &HashSet<u32>) -> HilbertPath {
+    fn astar_path_complexity_weighted(
+        &self,
+        start: u32,
+        end: u32,
+        blocked: &HashSet<u32>,
+    ) -> HilbertPath {
         use std::cmp::Reverse;
 
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -319,7 +324,8 @@ impl HilbertPathfinder {
                 let complexity = self.get_complexity_at(neighbor);
                 // Cost is inversely proportional to complexity (max complexity ~10, so scale appropriately)
                 let complexity_cost = (10.0 - complexity.min(10.0)) as u32;
-                let tentative_g = g_score.get(&current.hilbert).unwrap_or(&u32::MAX) + 1 + complexity_cost;
+                let tentative_g =
+                    g_score.get(&current.hilbert).unwrap_or(&u32::MAX) + 1 + complexity_cost;
 
                 if tentative_g < *g_score.get(&neighbor).unwrap_or(&u32::MAX) {
                     came_from.insert(neighbor, current.hilbert);
@@ -344,7 +350,12 @@ impl HilbertPathfinder {
     }
 
     /// A* pathfinding with modification time preference (lower cost for recent changes)
-    fn astar_path_mtime_weighted(&self, start: u32, end: u32, blocked: &HashSet<u32>) -> HilbertPath {
+    fn astar_path_mtime_weighted(
+        &self,
+        start: u32,
+        end: u32,
+        blocked: &HashSet<u32>,
+    ) -> HilbertPath {
         use std::cmp::Reverse;
 
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -413,7 +424,8 @@ impl HilbertPathfinder {
                     50 // Default: medium priority if no mtime data
                 };
 
-                let tentative_g = g_score.get(&current.hilbert).unwrap_or(&u32::MAX) + 1 + recency_cost;
+                let tentative_g =
+                    g_score.get(&current.hilbert).unwrap_or(&u32::MAX) + 1 + recency_cost;
 
                 if tentative_g < *g_score.get(&neighbor).unwrap_or(&u32::MAX) {
                     came_from.insert(neighbor, current.hilbert);

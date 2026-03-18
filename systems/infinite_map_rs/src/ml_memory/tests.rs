@@ -6,9 +6,8 @@
 #[cfg(test)]
 mod tests {
     use crate::ml_memory::{
-        BlockAllocator, BlockSize, PoolConfig,
-        TensorSpec, DataType, MemoryRegion, TensorId,
-        HebbianUpdate, HebbianBatch, RingBuffer,
+        BlockAllocator, BlockSize, DataType, HebbianBatch, HebbianUpdate, MemoryRegion, PoolConfig,
+        RingBuffer, TensorId, TensorSpec,
     };
 
     // === Block Allocator Tests ===

@@ -431,7 +431,10 @@ impl GlyphVmScheduler {
             usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         }));
-        eprintln!("[SCHEDULER] RAM staging buffer created ({}MB)", staging_size / (1024 * 1024));
+        eprintln!(
+            "[SCHEDULER] RAM staging buffer created ({}MB)",
+            staging_size / (1024 * 1024)
+        );
 
         // Store the texture for write_texture operations
         self.ram_texture = Some(texture);
@@ -448,9 +451,11 @@ impl GlyphVmScheduler {
 
         let bytes_per_row: u32 = 4096 * 4;
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("GPU→Shadow Sync Encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("GPU→Shadow Sync Encoder"),
+            });
 
         encoder.copy_texture_to_buffer(
             wgpu::ImageCopyTexture {
@@ -899,11 +904,11 @@ impl GlyphVmScheduler {
         // Or read in chunks. For now, let's just read as much as fits in 64MB (our shadow ram size)
         // Wait, stats_buffer was initialized with:
         // vm_buffer_size + scheduler_buffer_size + debug_buffer_size + 4
-        // That's about 12KB. 
+        // That's about 12KB.
         // I should probably use a dedicated large readback buffer or use shadow_ram if possible.
         // Actually, poke_substrate_batch uses write_texture.
         // sync_gpu_to_shadow uses copy_texture_to_buffer to a staging buffer.
-        
+
         // Let's create a temporary staging buffer for ledger readback
         let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Ledger Staging Buffer"),
@@ -1153,7 +1158,11 @@ impl GlyphVmScheduler {
             self.queue.submit([]);
             self.device.poll(wgpu::Maintain::Wait);
 
-            log::debug!("[BATCH] wrote {} words starting at 0x{:x}", words.len(), base_addr);
+            log::debug!(
+                "[BATCH] wrote {} words starting at 0x{:x}",
+                words.len(),
+                base_addr
+            );
         }
     }
 

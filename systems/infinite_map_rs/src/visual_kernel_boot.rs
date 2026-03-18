@@ -5,12 +5,12 @@
 //!
 //! This is the "init" process of Geometry OS.
 
-use std::sync::{Arc, Mutex};
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
-use crate::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
-use crate::glyph_stratum::glyph_compiler::{compile_glyph_file, create_glyph_texture};
 use crate::glyph_stratum::glyph_compiler::CompiledGlyph;
+use crate::glyph_stratum::glyph_compiler::{compile_glyph_file, create_glyph_texture};
+use crate::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
 
 /// Default Hilbert offset for Ubuntu kernel in unified RAM
 pub const UBUNTU_KERNEL_OFFSET: u32 = 0x8000; // 32768
@@ -27,7 +27,7 @@ fn hilbert_d2xy(n: u32, d: u32) -> (u32, u32) {
         let ry = 1 & (t ^ rx);
 
         if ry == 0 {
-            if rx == 1{
+            if rx == 1 {
                 x = s - 1 - x;
                 y = s - 1 - y;
             }
@@ -99,7 +99,10 @@ fn create_unified_ram_texture(
             unified_data[offset..offset + 4].copy_from_slice(chunk);
         }
     }
-    log::info!("[RAM] ✓ WM: {} instructions placed", wm_compiled.instruction_count);
+    log::info!(
+        "[RAM] ✓ WM: {} instructions placed",
+        wm_compiled.instruction_count
+    );
 
     // Load and copy Ubuntu kernel at UBUNTU_KERNEL_OFFSET
     if let Some(ubuntu_path) = ubuntu_path {
@@ -108,7 +111,12 @@ fn create_unified_ram_texture(
 
             match load_rts_png(ubuntu_path) {
                 Ok((ubuntu_data, ubuntu_w, ubuntu_h)) => {
-                    log::info!("[RAM] Ubuntu texture: {}x{} ({} pixels)", ubuntu_w, ubuntu_h, ubuntu_w * ubuntu_h);
+                    log::info!(
+                        "[RAM] Ubuntu texture: {}x{} ({} pixels)",
+                        ubuntu_w,
+                        ubuntu_h,
+                        ubuntu_w * ubuntu_h
+                    );
 
                     // Copy Ubuntu at UBUNTU_KERNEL_OFFSET
                     let offset = UBUNTU_KERNEL_OFFSET;
@@ -117,18 +125,23 @@ fn create_unified_ram_texture(
                         let src_offset = (i * 4) as usize;
                         let dst_offset = ((y * grid_size + x) * 4) as usize;
 
-                        if src_offset + 4 <= ubuntu_data.len() && dst_offset + 4 <= unified_data.len() {
+                        if src_offset + 4 <= ubuntu_data.len()
+                            && dst_offset + 4 <= unified_data.len()
+                        {
                             unified_data[dst_offset..dst_offset + 4]
                                 .copy_from_slice(&ubuntu_data[src_offset..src_offset + 4]);
                         }
                     }
 
-                    log::info!("[RAM] ✓ Ubuntu: {} instructions placed at offset 0x{:X}",
-                        ubuntu_w * ubuntu_h, UBUNTU_KERNEL_OFFSET);
-                }
+                    log::info!(
+                        "[RAM] ✓ Ubuntu: {} instructions placed at offset 0x{:X}",
+                        ubuntu_w * ubuntu_h,
+                        UBUNTU_KERNEL_OFFSET
+                    );
+                },
                 Err(e) => {
                     log::warn!("[RAM] ⚠ Failed to load Ubuntu kernel: {}", e);
-                }
+                },
             }
         } else {
             log::warn!("[RAM] ⚠ Ubuntu kernel not found at: {}", ubuntu_path);
@@ -156,7 +169,11 @@ fn create_unified_ram_texture(
         },
     );
 
-    log::info!("[RAM] ✓ Unified RAM texture created ({}x{})", grid_size, grid_size);
+    log::info!(
+        "[RAM] ✓ Unified RAM texture created ({}x{})",
+        grid_size,
+        grid_size
+    );
 
     texture
 }
@@ -255,20 +272,30 @@ impl VisualKernel {
         log::info!("═══════════════════════════════════════════════════════════");
 
         // Step 1: Compile and load the Window Manager glyph
-        log::info!("[BOOT] Loading Window Manager from: {}", self.config.window_manager_path);
+        log::info!(
+            "[BOOT] Loading Window Manager from: {}",
+            self.config.window_manager_path
+        );
 
         let wm_path = Path::new(&self.config.window_manager_path);
         if !wm_path.exists() {
-            return Err(format!("Window Manager glyph not found: {}", self.config.window_manager_path));
+            return Err(format!(
+                "Window Manager glyph not found: {}",
+                self.config.window_manager_path
+            ));
         }
 
         // Compile the .glyph file to GPU texture
         log::info!("[BOOT] Compiling Window Manager glyph...");
         let compiled = crate::glyph_stratum::glyph_compiler::compile_glyph_file(
-            &self.config.window_manager_path
-        ).map_err(|e| format!("Failed to compile window_manager.glyph: {}", e))?;
+            &self.config.window_manager_path,
+        )
+        .map_err(|e| format!("Failed to compile window_manager.glyph: {}", e))?;
 
-        log::info!("[BOOT] ✓ Compiled {} instructions", compiled.instruction_count);
+        log::info!(
+            "[BOOT] ✓ Compiled {} instructions",
+            compiled.instruction_count
+        );
 
         // Create GPU texture from compiled program
         let ram_texture = crate::glyph_stratum::glyph_compiler::create_glyph_texture(
@@ -278,11 +305,15 @@ impl VisualKernel {
             Some("Visual Kernel RAM Texture"),
         );
 
-        log::info!("[BOOT] ✓ Created RAM texture ({}x{})",
-            ram_texture.width(), ram_texture.height());
+        log::info!(
+            "[BOOT] ✓ Created RAM texture ({}x{})",
+            ram_texture.width(),
+            ram_texture.height()
+        );
 
         // Set RAM texture on scheduler
-        self.scheduler.set_ram_texture(std::sync::Arc::new(ram_texture));
+        self.scheduler
+            .set_ram_texture(std::sync::Arc::new(ram_texture));
 
         // Step 2: Initialize the Window Manager as VM #0
         log::info!("[BOOT] Spawning Window Manager as VM #0...");
@@ -298,8 +329,10 @@ impl VisualKernel {
         };
 
         self.scheduler.spawn_vm(0, &wm_config)?;
-        log::info!("[BOOT] ✓ Window Manager (VM #0) spawned at entry 0x{:04X}",
-            wm_config.entry_point);
+        log::info!(
+            "[BOOT] ✓ Window Manager (VM #0) spawned at entry 0x{:04X}",
+            wm_config.entry_point
+        );
 
         // Step 3: Initialize the Window Table
         log::info!("[BOOT] Initializing Window Table...");
@@ -315,17 +348,25 @@ impl VisualKernel {
             focused: true,
         });
 
-        log::info!("[BOOT] ✓ Root window registered ({}x{})",
-            self.config.screen_width, self.config.screen_height);
+        log::info!(
+            "[BOOT] ✓ Root window registered ({}x{})",
+            self.config.screen_width,
+            self.config.screen_height
+        );
 
         // Step 4: Pre-load Ubuntu kernel into RAM texture
         if let Some(ubuntu_path) = &self.config.ubuntu_kernel_path {
             log::info!("[BOOT] Pre-loading Ubuntu kernel from: {}", ubuntu_path);
 
             if Path::new(ubuntu_path).exists() {
-                log::info!("[BOOT] ✓ Ubuntu kernel found, will be SPATIAL_SPAWNed by Window Manager");
+                log::info!(
+                    "[BOOT] ✓ Ubuntu kernel found, will be SPATIAL_SPAWNed by Window Manager"
+                );
             } else {
-                log::warn!("[BOOT] ⚠ Ubuntu kernel not found at {}, running in single-VM mode", ubuntu_path);
+                log::warn!(
+                    "[BOOT] ⚠ Ubuntu kernel not found at {}, running in single-VM mode",
+                    ubuntu_path
+                );
             }
         }
 
@@ -362,7 +403,15 @@ impl VisualKernel {
     ///
     /// This is the CPU-side SPATIAL_SPAWN mechanism.
     /// Loads and compiles a .glyph program, then spawns it as a new VM.
-    pub fn spawn_child_vm(&mut self, vm_id: u32, glyph_path: &str, window_x: f32, window_y: f32, window_w: f32, window_h: f32) -> Result<(), String> {
+    pub fn spawn_child_vm(
+        &mut self,
+        vm_id: u32,
+        glyph_path: &str,
+        window_x: f32,
+        window_y: f32,
+        window_w: f32,
+        window_h: f32,
+    ) -> Result<(), String> {
         if !self.booted {
             return Err("Visual Kernel not booted".to_string());
         }
@@ -381,14 +430,17 @@ impl VisualKernel {
         let compiled = crate::glyph_stratum::glyph_compiler::compile_glyph_file(glyph_path)
             .map_err(|e| format!("Failed to compile {}: {}", glyph_path, e))?;
 
-        log::info!("[SPAWN] ✓ Compiled {} instructions", compiled.instruction_count);
+        log::info!(
+            "[SPAWN] ✓ Compiled {} instructions",
+            compiled.instruction_count
+        );
 
         // Create VM config with spatial MMU bounds
         let vm_config = crate::glyph_vm_scheduler::VmConfig {
             entry_point: compiled.entry_point,
-            parent_id: 0, // Parent is Window Manager
-            base_addr: vm_id * 0x1000,  // Each VM gets 4KB region
-            bound_addr: (vm_id + 1) * 0x1000 - 1,  // Upper bound
+            parent_id: 0,                         // Parent is Window Manager
+            base_addr: vm_id * 0x1000,            // Each VM gets 4KB region
+            bound_addr: (vm_id + 1) * 0x1000 - 1, // Upper bound
             initial_regs: [0; 128],
             eap_coord: 0,
             generation: 0,
@@ -400,9 +452,20 @@ impl VisualKernel {
         // Register window for this VM
         self.register_window(window_x, window_y, window_w, window_h, vm_id);
 
-        log::info!("[SPAWN] ✓ Child VM #{} spawned at entry 0x{:04X}, memory 0x{:04X}-0x{:04X}",
-            vm_id, vm_config.entry_point, vm_config.base_addr, vm_config.bound_addr);
-        log::info!("[SPAWN]   Window: ({}, {}) {}x{}", window_x, window_y, window_w, window_h);
+        log::info!(
+            "[SPAWN] ✓ Child VM #{} spawned at entry 0x{:04X}, memory 0x{:04X}-0x{:04X}",
+            vm_id,
+            vm_config.entry_point,
+            vm_config.base_addr,
+            vm_config.bound_addr
+        );
+        log::info!(
+            "[SPAWN]   Window: ({}, {}) {}x{}",
+            window_x,
+            window_y,
+            window_w,
+            window_h
+        );
 
         Ok(())
     }
@@ -475,7 +538,10 @@ impl VisualKernel {
 /// Boot the Visual Kernel in standalone mode
 ///
 /// This is the entry point for running Geometry OS without a display server.
-pub fn boot_standalone(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>) -> Result<VisualKernel, String> {
+pub fn boot_standalone(
+    device: Arc<wgpu::Device>,
+    queue: Arc<wgpu::Queue>,
+) -> Result<VisualKernel, String> {
     let config = VisualKernelConfig::default();
     let mut kernel = VisualKernel::new(device, queue, config);
     kernel.boot()?;
@@ -520,8 +586,10 @@ mod tests {
         // Verify the file exists
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
         let workspace_root = std::path::Path::new(&manifest_dir)
-            .parent().unwrap()
-            .parent().unwrap();
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap();
         let glyph_path = workspace_root.join(&config.window_manager_path);
 
         assert!(

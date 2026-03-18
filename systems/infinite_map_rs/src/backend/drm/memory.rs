@@ -26,15 +26,18 @@ impl GpuMemoryAllocator {
     /// # Returns
     /// A new allocator instance, or an error if GBM initialization fails.
     pub fn new(drm_device: &DrmDevice) -> Result<Self> {
-        let file = drm_device.file().try_clone().context("Failed to clone DRM device file")?;
-        
+        let file = drm_device
+            .file()
+            .try_clone()
+            .context("Failed to clone DRM device file")?;
+
         let gbm_device = GbmDevice::new(file).context("Failed to create GBM device")?;
-        
+
         log::info!("Created GPU memory allocator (GBM device initialized)");
-        
+
         Ok(Self { gbm_device })
     }
-    
+
     /// Allocate a GPU-visible buffer for compute operations.
     ///
     /// # Arguments
@@ -52,7 +55,7 @@ impl GpuMemoryAllocator {
         // Calculate dimensions: treat as 1D array of 32-bit values
         let width = ((size + 3) / 4) as u32; // Round up to 4-byte boundary
         let height = 1u32;
-        
+
         log::debug!(
             "Allocating GPU buffer: {} bytes ({}x{} 32-bit elements){}",
             size,
@@ -60,9 +63,10 @@ impl GpuMemoryAllocator {
             height,
             name.map(|n| format!(" ({})", n)).unwrap_or_default()
         );
-        
+
         // Create buffer with linear layout (for CPU access) and rendering usage (for GPU)
-        let buffer = self.gbm_device
+        let buffer = self
+            .gbm_device
             .create_buffer_object::<()>(
                 width,
                 height,
@@ -70,12 +74,16 @@ impl GpuMemoryAllocator {
                 BufferObjectFlags::LINEAR | BufferObjectFlags::RENDERING | BufferObjectFlags::WRITE,
             )
             .context("Failed to allocate GBM buffer")?;
-        
-        log::info!("Allocated GPU buffer: {} bytes ({} stride)", size, buffer.stride());
-        
+
+        log::info!(
+            "Allocated GPU buffer: {} bytes ({} stride)",
+            size,
+            buffer.stride()
+        );
+
         Ok(buffer)
     }
-    
+
     /// Allocate a buffer optimized for compute shader input.
     ///
     /// This creates a buffer with flags suitable for input data that will
@@ -83,7 +91,7 @@ impl GpuMemoryAllocator {
     pub fn allocate_input_buffer(&self, size: usize) -> Result<BufferObject<()>> {
         self.allocate_buffer(size, Some("compute-input"))
     }
-    
+
     /// Allocate a buffer optimized for compute shader output.
     ///
     /// This creates a buffer with flags suitable for output data that will
@@ -91,12 +99,12 @@ impl GpuMemoryAllocator {
     pub fn allocate_output_buffer(&self, size: usize) -> Result<BufferObject<()>> {
         self.allocate_buffer(size, Some("compute-output"))
     }
-    
+
     /// Get the GBM device handle.
     pub fn device(&self) -> &GbmDevice<std::fs::File> {
         &self.gbm_device
     }
-    
+
     /// Check if GPU memory allocation is available.
     ///
     /// This requires:
@@ -107,7 +115,7 @@ impl GpuMemoryAllocator {
         // Check if DRM device exists
         std::path::Path::new("/dev/dri/card0").exists()
     }
-    
+
     /// Allocate a buffer for SPIR-V shader code.
     ///
     /// This allocates GPU-visible memory for storing a SPIR-V binary
@@ -148,7 +156,7 @@ impl<'a> MappedBuffer<'a> {
     pub fn new(buffer: &'a BufferObject<()>) -> Result<Self> {
         let width = buffer.width();
         let height = buffer.height();
-        
+
         // Map the buffer for reading using a closure
         let mapped_data = buffer
             .map(0, 0, width, height, |mapped_bo| {
@@ -157,16 +165,19 @@ impl<'a> MappedBuffer<'a> {
                 mapped_bo.buffer().to_vec()
             })
             .context("Failed to map GPU buffer")?;
-        
+
         // For now, we need to leak this to maintain the lifetime
         // This is a simplification - in production we'd use a different approach
         let mapped_data: &'a [u8] = Box::leak(mapped_data.into_boxed_slice());
-        
+
         log::trace!("Mapped GPU buffer: {}x{}", width, height);
-        
-        Ok(Self { buffer, mapped_data })
+
+        Ok(Self {
+            buffer,
+            mapped_data,
+        })
     }
-    
+
     /// Get a reference to the mapped data.
     pub fn as_slice(&self) -> &[u8] {
         self.mapped_data
@@ -176,61 +187,70 @@ impl<'a> MappedBuffer<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_allocator_creation() {
         if !GpuMemoryAllocator::is_available() {
             log::warn!("Skipping test: DRM/GBM not available");
             return;
         }
-        
+
         let drm_device = match DrmDevice::open_default() {
             Ok(d) => d,
             Err(e) => {
                 log::warn!("Skipping test: Failed to open DRM device: {}", e);
                 return;
-            }
+            },
         };
-        
+
         match GpuMemoryAllocator::new(&drm_device) {
             Ok(_) => log::info!("GPU memory allocator created successfully"),
-            Err(e) => log::warn!("GPU memory allocator creation failed (expected in some envs): {}", e),
+            Err(e) => log::warn!(
+                "GPU memory allocator creation failed (expected in some envs): {}",
+                e
+            ),
         }
     }
-    
+
     #[test]
     fn test_buffer_allocation() {
         if !GpuMemoryAllocator::is_available() {
             log::warn!("Skipping test: DRM/GBM not available");
             return;
         }
-        
+
         let drm_device = match DrmDevice::open_default() {
             Ok(d) => d,
             Err(_) => {
                 log::warn!("Skipping test: DRM device not available");
                 return;
-            }
+            },
         };
-        
+
         let allocator = match GpuMemoryAllocator::new(&drm_device) {
             Ok(a) => a,
             Err(e) => {
                 log::warn!("Skipping test: GBM not available: {}", e);
                 return;
-            }
+            },
         };
-        
+
         // Try to allocate a small buffer
         match allocator.allocate_buffer(4096, Some("test")) {
             Ok(buffer) => {
-                log::info!("Allocated test buffer: {}x{}, stride={}", 
-                    buffer.width(), buffer.height(), buffer.stride());
-            }
+                log::info!(
+                    "Allocated test buffer: {}x{}, stride={}",
+                    buffer.width(),
+                    buffer.height(),
+                    buffer.stride()
+                );
+            },
             Err(e) => {
-                log::warn!("Buffer allocation failed (may be expected in some envs): {}", e);
-            }
+                log::warn!(
+                    "Buffer allocation failed (may be expected in some envs): {}",
+                    e
+                );
+            },
         }
     }
 }
-

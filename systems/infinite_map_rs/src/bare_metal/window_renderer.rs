@@ -98,10 +98,7 @@ impl WindowRenderer {
                     let dist_top = py;
                     let dist_bottom = win.height.saturating_sub(py).saturating_sub(1);
 
-                    let min_dist = dist_left
-                        .min(dist_right)
-                        .min(dist_top)
-                        .min(dist_bottom);
+                    let min_dist = dist_left.min(dist_right).min(dist_top).min(dist_bottom);
 
                     // Draw border or background
                     let color = if min_dist < BORDER_THICKNESS {
@@ -166,10 +163,22 @@ mod tests {
 
     #[test]
     fn test_state_colors() {
-        assert_eq!(WindowRenderer::get_state_color(WindowState::Inactive), 0x333333);
-        assert_eq!(WindowRenderer::get_state_color(WindowState::Running), 0x00FF00);
-        assert_eq!(WindowRenderer::get_state_color(WindowState::Halted), 0xFF0000);
-        assert_eq!(WindowRenderer::get_state_color(WindowState::Waiting), 0xFFFF00);
+        assert_eq!(
+            WindowRenderer::get_state_color(WindowState::Inactive),
+            0x333333
+        );
+        assert_eq!(
+            WindowRenderer::get_state_color(WindowState::Running),
+            0x00FF00
+        );
+        assert_eq!(
+            WindowRenderer::get_state_color(WindowState::Halted),
+            0xFF0000
+        );
+        assert_eq!(
+            WindowRenderer::get_state_color(WindowState::Waiting),
+            0xFFFF00
+        );
     }
 
     #[test]

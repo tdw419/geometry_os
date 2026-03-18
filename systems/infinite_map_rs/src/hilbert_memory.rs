@@ -109,7 +109,7 @@ impl HilbertMemoryMapper {
     /// ```
     pub fn xy_to_hilbert_index(&self, x: u32, y: u32) -> u32 {
         let mut d = 0u32;
-        let mut s = self.size / 2;  // Start from n/2 like canonical implementation
+        let mut s = self.size / 2; // Start from n/2 like canonical implementation
         let mut xx = x;
         let mut yy = y;
 

@@ -32,34 +32,34 @@ use std::time::Instant;
 pub trait WaveLogicBackend {
     /// Advance the simulation by dt seconds
     fn update(&mut self, dt: f32);
-    
+
     /// Get the current sensor value (wave amplitude at sensor position)
     fn get_sensor_value(&self) -> f32;
-    
+
     /// Get the logic output (0 = LOW, 1 = HIGH based on threshold)
     fn get_logic_output(&self) -> u32;
-    
+
     /// Set oscillator A frequency (Hz)
     fn set_oscillator_a_frequency(&mut self, frequency: f32);
-    
+
     /// Set oscillator B frequency (Hz)
     fn set_oscillator_b_frequency(&mut self, frequency: f32);
-    
+
     /// Set oscillator A phase (radians)
     fn set_oscillator_a_phase(&mut self, phase: f32);
-    
+
     /// Set oscillator B phase (radians)
     fn set_oscillator_b_phase(&mut self, phase: f32);
-    
+
     /// Set oscillator A amplitude (0.0 to 1.0)
     fn set_oscillator_a_amplitude(&mut self, amplitude: f32);
-    
+
     /// Set oscillator B amplitude (0.0 to 1.0)
     fn set_oscillator_b_amplitude(&mut self, amplitude: f32);
-    
+
     /// Get the grid size (width = height)
     fn grid_size(&self) -> u32;
-    
+
     /// Get current simulation frame number
     fn frame(&self) -> u32;
 }
@@ -280,13 +280,12 @@ impl WaveLogicUnit {
                     - 4.0 * self.state.current_field[y][x];
 
                 new_field[y][x] = damping
-                    * (2.0 * self.state.current_field[y][x]
-                        - self.state.previous_field[y][x]
+                    * (2.0 * self.state.current_field[y][x] - self.state.previous_field[y][x]
                         + c2 * laplacian * dt * dt);
 
                 // Clamp to max amplitude
-                new_field[y][x] = new_field[y][x]
-                    .clamp(-self.config.max_amplitude, self.config.max_amplitude);
+                new_field[y][x] =
+                    new_field[y][x].clamp(-self.config.max_amplitude, self.config.max_amplitude);
             }
         }
 
@@ -302,8 +301,11 @@ impl WaveLogicUnit {
         }
 
         // Determine logic output based on threshold
-        self.state.logic_output =
-            if self.state.sensor_value > self.config.sensor_threshold { 1 } else { 0 };
+        self.state.logic_output = if self.state.sensor_value > self.config.sensor_threshold {
+            1
+        } else {
+            0
+        };
 
         self.state.frame += 1;
         self.state.last_update = Instant::now();
@@ -371,43 +373,43 @@ impl WaveLogicBackend for WaveLogicUnit {
         // Call the inherent update method (not recursive - calls WaveLogicUnit::update)
         WaveLogicUnit::update(self, dt);
     }
-    
+
     fn get_sensor_value(&self) -> f32 {
         self.state.sensor_value
     }
-    
+
     fn get_logic_output(&self) -> u32 {
         self.state.logic_output
     }
-    
+
     fn set_oscillator_a_frequency(&mut self, frequency: f32) {
         self.state.oscillator_a.frequency = frequency;
     }
-    
+
     fn set_oscillator_b_frequency(&mut self, frequency: f32) {
         self.state.oscillator_b.frequency = frequency;
     }
-    
+
     fn set_oscillator_a_phase(&mut self, phase: f32) {
         self.state.oscillator_a.phase = phase;
     }
-    
+
     fn set_oscillator_b_phase(&mut self, phase: f32) {
         self.state.oscillator_b.phase = phase;
     }
-    
+
     fn set_oscillator_a_amplitude(&mut self, amplitude: f32) {
         self.state.oscillator_a.amplitude = amplitude;
     }
-    
+
     fn set_oscillator_b_amplitude(&mut self, amplitude: f32) {
         self.state.oscillator_b.amplitude = amplitude;
     }
-    
+
     fn grid_size(&self) -> u32 {
         self.config.grid_size
     }
-    
+
     fn frame(&self) -> u32 {
         self.state.frame
     }

@@ -150,66 +150,74 @@ impl ExecutionZoneRenderer {
         log::info!("Initializing border rendering pipeline");
 
         // Load border shader
-        let border_shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Border Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/border_quad.wgsl").into()),
-        });
+        let border_shader = self
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("Border Shader"),
+                source: wgpu::ShaderSource::Wgsl(
+                    include_str!("../shaders/border_quad.wgsl").into(),
+                ),
+            });
 
         // Create bind group layout
-        let bind_group_layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Border Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-            ],
-        });
+        let bind_group_layout =
+            self.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("Border Bind Group Layout"),
+                    entries: &[wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    }],
+                });
 
         // Create pipeline layout
-        let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Border Pipeline Layout"),
-            bind_group_layouts: &[&bind_group_layout],
-            push_constant_ranges: &[],
-        });
+        let pipeline_layout = self
+            .device
+            .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Border Pipeline Layout"),
+                bind_group_layouts: &[&bind_group_layout],
+                push_constant_ranges: &[],
+            });
 
         // Create render pipeline
-        let pipeline = self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Border Pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &border_shader,
-                entry_point: "vs_main",
-                buffers: &[],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &border_shader,
-                entry_point: "fs_main",
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: surface_format,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: None,
-                polygon_mode: wgpu::PolygonMode::Fill,
-                unclipped_depth: false,
-                conservative: false,
-            },
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview: None,
-        });
+        let pipeline = self
+            .device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("Border Pipeline"),
+                layout: Some(&pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &border_shader,
+                    entry_point: "vs_main",
+                    buffers: &[],
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &border_shader,
+                    entry_point: "fs_main",
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: surface_format,
+                        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    strip_index_format: None,
+                    front_face: wgpu::FrontFace::Ccw,
+                    cull_mode: None,
+                    polygon_mode: wgpu::PolygonMode::Fill,
+                    unclipped_depth: false,
+                    conservative: false,
+                },
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState::default(),
+                multiview: None,
+            });
 
         // Create uniform buffer (initialized with dummy values)
         let uniform_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -223,12 +231,10 @@ impl ExecutionZoneRenderer {
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Border Bind Group"),
             layout: &bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: uniform_buffer.as_entire_binding(),
-                },
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            }],
         });
 
         // Store all resources
@@ -306,7 +312,10 @@ impl ExecutionZoneRenderer {
         }
 
         // Render borders for all zones
-        let screen_size = (output_texture.width() as f32, output_texture.height() as f32);
+        let screen_size = (
+            output_texture.width() as f32,
+            output_texture.height() as f32,
+        );
         self.render_borders(encoder, output_texture, screen_size);
 
         // Render text overlays for all zones
@@ -482,7 +491,12 @@ impl ExecutionZoneRenderer {
     /// This method should return `Result<(), BlitError>` to handle potential
     /// failures such as texture format mismatches, out-of-bounds blit regions,
     /// or missing source textures.
-    fn blit_results(&self, encoder: &mut CommandEncoder, zone: &ExecutionZone, output_texture: &Texture) {
+    fn blit_results(
+        &self,
+        encoder: &mut CommandEncoder,
+        zone: &ExecutionZone,
+        output_texture: &Texture,
+    ) {
         log::trace!(
             "Blitting results for zone '{}' at ({}, {})",
             zone.shader_name,
@@ -517,7 +531,11 @@ impl ExecutionZoneRenderer {
             let dest = ImageCopyTexture {
                 texture: output_texture,
                 mip_level: 0,
-                origin: Origin3d { x: dest_x, y: dest_y, z: 0 },
+                origin: Origin3d {
+                    x: dest_x,
+                    y: dest_y,
+                    z: 0,
+                },
                 aspect: wgpu::TextureAspect::All,
             };
 
@@ -596,15 +614,15 @@ impl ExecutionZoneRenderer {
             // Generate border config
             let border_config = crate::ui::zone_overlay::render_zone_border(
                 zone.position,
-                (256.0, 256.0), // Standard zone size
+                (256.0, 256.0),            // Standard zone size
                 zone.pipeline().is_some(), // Active if has pipeline
             );
 
             // Convert BorderColor to RGBA
             let border_color = match border_config.color {
-                BorderColor::Active => [0.2, 0.8, 0.3, 1.0], // Green
+                BorderColor::Active => [0.2, 0.8, 0.3, 1.0],   // Green
                 BorderColor::Inactive => [0.5, 0.5, 0.5, 0.8], // Gray
-                BorderColor::Error => [0.9, 0.2, 0.2, 1.0], // Red
+                BorderColor::Error => [0.9, 0.2, 0.2, 1.0],    // Red
             };
 
             // Create uniforms for this zone
@@ -621,11 +639,8 @@ impl ExecutionZoneRenderer {
             // Update uniform buffer
             // Note: In a production system, we'd use a dynamic uniform buffer
             // or staging buffer for better performance
-            self.queue.write_buffer(
-                uniform_buffer,
-                0,
-                bytemuck::cast_slice(&[uniforms]),
-            );
+            self.queue
+                .write_buffer(uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
             // Draw border (6 vertices for 2 triangles forming a quad)
             render_pass.draw(0..6, 0..1);
@@ -650,11 +665,7 @@ impl ExecutionZoneRenderer {
     ///
     /// * `encoder` - Command encoder for recording rendering commands
     /// * `output_texture` - Output texture to render text to
-    fn render_text_overlays(
-        &mut self,
-        encoder: &mut CommandEncoder,
-        output_texture: &Texture,
-    ) {
+    fn render_text_overlays(&mut self, encoder: &mut CommandEncoder, output_texture: &Texture) {
         // Skip if no zones
         if self.zones.is_empty() {
             return;
@@ -665,7 +676,10 @@ impl ExecutionZoneRenderer {
         self.initialize_glyph_pipeline(surface_format);
 
         // Get glyph renderer (safe to unwrap after initialization)
-        if self.glyph_renderer.is_none() || self.glyph_atlas.is_none() || self.glyph_substrate.is_none() {
+        if self.glyph_renderer.is_none()
+            || self.glyph_atlas.is_none()
+            || self.glyph_substrate.is_none()
+        {
             log::warn!("Glyph pipeline not fully initialized, skipping text overlays");
             return;
         }
@@ -674,16 +688,18 @@ impl ExecutionZoneRenderer {
         let screen_height = output_texture.height() as f32;
 
         // Collect overlay texts and positions first (to avoid borrow issues)
-        let overlays: Vec<(String, f32, f32)> = self.zones
+        let overlays: Vec<(String, f32, f32)> = self
+            .zones
             .iter()
             .filter(|z| z.is_active())
             .map(|zone| {
-                let overlay_text = crate::ui::zone_overlay::generate_zone_overlay_text_with_position(
-                    &zone.shader_name,
-                    zone.workgroup_size(),
-                    true,
-                    zone.position,
-                );
+                let overlay_text =
+                    crate::ui::zone_overlay::generate_zone_overlay_text_with_position(
+                        &zone.shader_name,
+                        zone.workgroup_size(),
+                        true,
+                        zone.position,
+                    );
                 let zone_screen_x = zone.position.x as f32 * 256.0;
                 let zone_screen_y = zone.position.y as f32 * 256.0;
                 let overlay_y = zone_screen_y - 30.0;
@@ -709,13 +725,15 @@ impl ExecutionZoneRenderer {
             );
 
             // Update substrate and uniforms on GPU
-            if let (Some(renderer), Some(substrate)) = (&self.glyph_renderer, &self.glyph_substrate) {
+            if let (Some(renderer), Some(substrate)) = (&self.glyph_renderer, &self.glyph_substrate)
+            {
                 renderer.update_substrate(&self.queue, substrate);
                 renderer.set_position(&self.queue, uniforms);
 
                 // Create render pass for text overlay
                 {
-                    let overlay_view = output_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                    let overlay_view =
+                        output_texture.create_view(&wgpu::TextureViewDescriptor::default());
                     let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("Text Overlay Render Pass"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -762,7 +780,7 @@ impl ExecutionZoneRenderer {
 
         for (glyph_info, x_offset) in glyphs {
             let glyph_x = x_cursor + (x_offset as u32).max(0);
-            
+
             // Write glyph pixels to substrate
             for gy in 0..glyph_info.height {
                 for gx in 0..glyph_info.width {
@@ -777,7 +795,7 @@ impl ExecutionZoneRenderer {
                     }
                 }
             }
-            
+
             x_cursor += glyph_info.advance_x as u32;
         }
     }

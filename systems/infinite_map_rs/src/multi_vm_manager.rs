@@ -188,7 +188,12 @@ impl MultiVmManager {
             return Err(format!("VM {} is already running", vm_id));
         }
 
-        log::info!("Launching VM {} with binary: {} ({} bytes)", vm_id, name, binary_data.len());
+        log::info!(
+            "Launching VM {} with binary: {} ({} bytes)",
+            vm_id,
+            name,
+            binary_data.len()
+        );
 
         // Create executor with specific vm_id
         let mut executor = RiscvExecutor::new(self.device.clone(), self.queue.clone());

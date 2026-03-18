@@ -29,13 +29,32 @@ HEIGHT = 24
 GLYPH_WIDTH = 8
 GLSIT_ENTRIES = 256
 
+# Glyph VM opcodes (aligned with synthetic_vram.rs)
 OPCODES = {
     "NOP": 0,
-    "JUMP": 1,
-    "CALL": 2,
-    "TOGGLE": 3,
-    "INPUT": 4,
-    "OUTPUT": 5,
+    "LD": 3,
+    "ST": 4,
+    "ADD": 5,
+    "SUB": 6,
+    "MUL": 7,
+    "DIV": 8,
+    "JMP": 209,
+    "JZ": 10,
+    "JAL": 11,
+    "CALL": 11,
+    "RET": 12,
+    "HALT": 13,
+    "LDI": 204,
+    "MOV": 206,
+    "AND": 220,
+    "OR": 221,
+    "XOR": 222,
+    "NOT": 223,
+    "SHL": 224,
+    "SHR": 225,
+    "SAR": 226,
+    # Legacy aliases for compatibility
+    "JUMP": 209,
     "EXIT": 255,
 }
 
@@ -120,9 +139,7 @@ def create_bootstrap(name: str, version: str, pattern_count: int) -> np.ndarray:
     bootstrap[2, 1, 0] = (pattern_count >> 8) & 0xFF
     bootstrap[2, :, 3] = 255
 
-    bootstrap[3, :, 0] = [ord(c) for c in "GEOSASCII"][:16] + [0] * max(
-        0, 16 - len("GEOSASCII")
-    )
+    bootstrap[3, :, 0] = [ord(c) for c in "GEOSASCII"][:16] + [0] * max(0, 16 - len("GEOSASCII"))
     bootstrap[3, :, 3] = 255
 
     return bootstrap

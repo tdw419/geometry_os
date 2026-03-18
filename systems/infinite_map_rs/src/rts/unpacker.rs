@@ -77,22 +77,22 @@ impl<'a> RTSUnpacker<'a> {
     fn parse_png(&mut self) -> Result<()> {
         let cursor = Cursor::new(self.data);
         let mut decoder = Decoder::new(cursor);
-        
+
         // Don't ignore text chunks (read them by default)
         decoder.set_ignore_text_chunk(false);
-        
+
         let mut reader = decoder.read_info()?;
-        
+
         // Extract metadata from info first (before next_frame)
         let (width, height, needs_alpha_extraction) = {
             let info = reader.info();
-            
+
             // Extract tEXt chunks
             for text_chunk in &info.uncompressed_latin1_text {
                 match text_chunk.keyword.as_str() {
                     "type" => {
                         self.metadata.data_type = Some(text_chunk.text.clone());
-                    }
+                    },
                     "alpha_encoding" => {
                         // Parse format: "{len}_{mode}"
                         let parts: Vec<&str> = text_chunk.text.split('_').collect();
@@ -101,26 +101,26 @@ impl<'a> RTSUnpacker<'a> {
                                 self.metadata.alpha_encoding = Some((len, parts[1].to_string()));
                             }
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
-            
+
             let needs_alpha = self.options.extract_alpha || self.metadata.alpha_encoding.is_some();
             (info.width, info.height, needs_alpha)
         };
-        
+
         // Decode image for alpha extraction
         if needs_alpha_extraction {
             let mut img_data = vec![0u8; reader.output_buffer_size()];
             reader.next_frame(&mut img_data)?;
-            
+
             // Convert to RgbaImage
             if let Some(img) = ImageBuffer::from_raw(width, height, img_data) {
                 self.image = Some(img);
             }
         }
-        
+
         Ok(())
     }
 
@@ -135,7 +135,7 @@ impl<'a> RTSUnpacker<'a> {
     /// Recovered bytes
     pub fn unpack_all(&mut self) -> Result<Vec<u8>> {
         self.parse_png()?;
-        
+
         // Try alpha channel extraction first if enabled
         if self.options.extract_alpha || self.metadata.alpha_encoding.is_some() {
             if let Some(ref image) = self.image {
@@ -145,7 +145,7 @@ impl<'a> RTSUnpacker<'a> {
                     } else {
                         self.extract_alpha_linear(image, *len)?
                     };
-                    
+
                     if self.options.validate_length && data.len() != *len {
                         return Err(anyhow!(
                             "Length mismatch: expected {}, got {}",
@@ -153,12 +153,12 @@ impl<'a> RTSUnpacker<'a> {
                             data.len()
                         ));
                     }
-                    
+
                     return Ok(data);
                 }
             }
         }
-        
+
         // Fall back to tEXt chunk extraction
         self.unpack_from_text_chunk()
     }
@@ -168,16 +168,16 @@ impl<'a> RTSUnpacker<'a> {
         let cursor = Cursor::new(self.data);
         let mut decoder = Decoder::new(cursor);
         decoder.set_ignore_text_chunk(false);
-        
+
         let mut reader = decoder.read_info()?;
         let info = reader.info();
-        
+
         for text_chunk in &info.uncompressed_latin1_text {
             if text_chunk.keyword == "data" {
                 return base64_decode(&text_chunk.text);
             }
         }
-        
+
         Err(anyhow!("No 'data' tEXt chunk found in .rts.png"))
     }
 
@@ -186,7 +186,7 @@ impl<'a> RTSUnpacker<'a> {
         let width = img.width() as usize;
         let height = img.height() as usize;
         let total_pixels = width * height;
-        
+
         if len > total_pixels {
             return Err(anyhow!(
                 "Data length {} exceeds image capacity {}",
@@ -194,21 +194,21 @@ impl<'a> RTSUnpacker<'a> {
                 total_pixels
             ));
         }
-        
+
         let mut result = Vec::with_capacity(len);
-        
+
         for idx in 0..len {
             let x = (idx % width) as u32;
             let y = (idx / width) as u32;
-            
+
             if y as usize >= height {
                 break;
             }
-            
+
             let pixel = img.get_pixel(x, y);
             result.push(pixel[3]); // Alpha channel
         }
-        
+
         Ok(result)
     }
 
@@ -217,19 +217,19 @@ impl<'a> RTSUnpacker<'a> {
         let width = img.width();
         let height = img.height();
         let grid_size = width.min(height);
-        
+
         if !grid_size.is_power_of_two() {
             return Err(anyhow!(
                 "Grid size {} must be power of 2 for Hilbert decoding",
                 grid_size
             ));
         }
-        
+
         let mut result = Vec::with_capacity(len);
-        
+
         for d in 0..len {
             let (x, y) = hilbert_d2xy(grid_size, d as u64);
-            
+
             if x >= width || y >= height {
                 return Err(anyhow!(
                     "Hilbert coordinate ({}, {}) out of bounds at index {}",
@@ -238,11 +238,11 @@ impl<'a> RTSUnpacker<'a> {
                     d
                 ));
             }
-            
+
             let pixel = img.get_pixel(x, y);
             result.push(pixel[3]); // Alpha channel
         }
-        
+
         Ok(result)
     }
 
@@ -265,21 +265,19 @@ impl<'a> RTSUnpacker<'a> {
 /// Simple base64 decoding
 fn base64_decode(input: &str) -> Result<Vec<u8>> {
     const DECODE_TABLE: [i8; 128] = [
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,
-        52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,
-        -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
-        15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,
-        -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-        41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1,
+        -1, 63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1, -1, 0, 1, 2, 3, 4,
+        5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1,
+        -1, -1, -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
+        46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
     ];
 
     let input = input.trim_end_matches('=');
     let mut result = Vec::with_capacity(input.len() * 3 / 4);
 
     let chars: Vec<u8> = input.bytes().collect();
-    
+
     for chunk in chars.chunks(4) {
         if chunk.len() < 2 {
             break;
@@ -298,7 +296,7 @@ fn base64_decode(input: &str) -> Result<Vec<u8>> {
             let v2 = DECODE_TABLE[(chunk[2] & 0x7F) as usize];
             if v2 >= 0 {
                 result.push(((v1 as u8) << 4) | ((v2 as u8) >> 2));
-                
+
                 if chunk.len() > 3 {
                     let v3 = DECODE_TABLE[(chunk[3] & 0x7F) as usize];
                     if v3 >= 0 {
@@ -318,11 +316,11 @@ fn hilbert_d2xy(n: u32, d: u64) -> (u32, u32) {
     let mut y = 0u64;
     let mut s = 1u64;
     let mut d = d;
-    
+
     while s < n as u64 {
         let rx = (d / 2) & 1;
         let ry = (d ^ rx) & 1;
-        
+
         if ry == 0 {
             if rx == 1 {
                 x = s - 1 - x;
@@ -330,13 +328,13 @@ fn hilbert_d2xy(n: u32, d: u64) -> (u32, u32) {
             }
             std::mem::swap(&mut x, &mut y);
         }
-        
+
         x += s * rx;
         y += s * ry;
         d /= 4;
         s *= 2;
     }
-    
+
     (x as u32, y as u32)
 }
 
@@ -371,32 +369,32 @@ mod tests {
         let packer = RTSPacker::new();
         let test_data = b"Hello, RTS!";
         let packed = packer.pack_bytes(test_data);
-        
+
         let unpacker = RTSUnpacker::new(&packed);
         let recovered = unpacker.unpack_from_text_chunk().unwrap();
-        
+
         assert_eq!(recovered, test_data);
     }
 
     #[test]
     fn test_pack_unpack_roundtrip() {
         let test_data: Vec<u8> = (0..=255u8).cycle().take(1000).collect();
-        
+
         // Pack
         let packer = RTSPacker::new();
         let packed = packer.pack_bytes(&test_data);
-        
+
         // Unpack
         let mut unpacker = RTSUnpacker::new(&packed);
         let recovered = unpacker.unpack_all().unwrap();
-        
+
         assert_eq!(recovered, test_data);
     }
 
     #[test]
     fn test_alpha_linear_roundtrip() {
         let test_data: Vec<u8> = (0..=255u8).cycle().take(100).collect();
-        
+
         // Pack with alpha encoding
         let opts = PackOptions {
             data_type: "test".to_string(),
@@ -407,7 +405,7 @@ mod tests {
         };
         let packer = RTSPacker::with_options(opts);
         let packed = packer.pack_bytes(&test_data);
-        
+
         // Unpack
         let unpack_opts = UnpackOptions {
             extract_alpha: true,
@@ -416,14 +414,14 @@ mod tests {
         };
         let mut unpacker = RTSUnpacker::with_options(&packed, unpack_opts);
         let recovered = unpacker.unpack_all().unwrap();
-        
+
         assert_eq!(recovered, test_data);
     }
 
     #[test]
     fn test_alpha_hilbert_roundtrip() {
         let test_data: Vec<u8> = (0..=255u8).cycle().take(256).collect();
-        
+
         // Pack with Hilbert alpha encoding
         let opts = PackOptions {
             data_type: "test".to_string(),
@@ -434,7 +432,7 @@ mod tests {
         };
         let packer = RTSPacker::with_options(opts);
         let packed = packer.pack_bytes(&test_data);
-        
+
         // Unpack (auto-detects Hilbert from metadata)
         let unpack_opts = UnpackOptions {
             extract_alpha: true,
@@ -443,7 +441,7 @@ mod tests {
         };
         let mut unpacker = RTSUnpacker::with_options(&packed, unpack_opts);
         let recovered = unpacker.unpack_all().unwrap();
-        
+
         assert_eq!(recovered, test_data);
     }
 }

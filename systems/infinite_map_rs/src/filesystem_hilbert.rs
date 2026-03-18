@@ -249,7 +249,9 @@ impl FilesystemHilbertManager {
 
         // O(1) grid lookup
         let grid_idx = (hy * self.grid_size + hx) as usize;
-        self.grid.get(grid_idx).and_then(|opt| opt.map(|i| &self.nodes[i]))
+        self.grid
+            .get(grid_idx)
+            .and_then(|opt| opt.map(|i| &self.nodes[i]))
     }
 
     pub fn nodes(&self) -> &[FileNode] {

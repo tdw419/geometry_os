@@ -629,7 +629,13 @@ impl InspectorUI {
     }
 
     /// Generate vertices for a single UI panel rectangle
-    fn generate_panel_vertices(x: f32, y: f32, width: f32, height: f32, color: [f32; 4]) -> [UIVertex; 6] {
+    fn generate_panel_vertices(
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        color: [f32; 4],
+    ) -> [UIVertex; 6] {
         // Two triangles forming a quad
         let x1 = x;
         let y1 = y;
@@ -656,7 +662,14 @@ impl InspectorUI {
     }
 
     /// Generate text vertices for a string (minimal: creates placeholder quads)
-    fn generate_text_line(&self, text: &str, x: f32, y: f32, max_width: f32, font_size: f32) -> Vec<UIVertex> {
+    fn generate_text_line(
+        &self,
+        text: &str,
+        x: f32,
+        y: f32,
+        max_width: f32,
+        font_size: f32,
+    ) -> Vec<UIVertex> {
         // Minimal implementation: create placeholder quads for each character
         // Each character is approximately font_size × font_size
         let char_width = font_size * 0.6; // Approximate character aspect ratio
@@ -670,12 +683,8 @@ impl InspectorUI {
 
             // Skip spaces (no quad needed)
             if ch != ' ' {
-                let char_quad = Self::generate_text_placeholder(
-                    current_x,
-                    y,
-                    char_width,
-                    font_size,
-                );
+                let char_quad =
+                    Self::generate_text_placeholder(current_x, y, char_width, font_size);
                 vertices.extend_from_slice(&char_quad);
             }
 
@@ -918,11 +927,7 @@ impl InspectorUI {
 
         // Upload vertices to GPU buffer
         if vertex_count > 0 {
-            queue.write_buffer(
-                &self.ui_vertex_buffer,
-                0,
-                bytemuck::cast_slice(&vertices),
-            );
+            queue.write_buffer(&self.ui_vertex_buffer, 0, bytemuck::cast_slice(&vertices));
         }
 
         // Log the state for debugging
@@ -1045,11 +1050,14 @@ mod tests {
 
     #[test]
     fn test_generate_panel_vertices() {
-        let vertices = InspectorUI::generate_panel_vertices(
-            0.0, 0.0, 1.0, 1.0, [1.0, 1.0, 1.0, 1.0]
-        );
+        let vertices =
+            InspectorUI::generate_panel_vertices(0.0, 0.0, 1.0, 1.0, [1.0, 1.0, 1.0, 1.0]);
 
-        assert_eq!(vertices.len(), 6, "Panel should generate 6 vertices (2 triangles)");
+        assert_eq!(
+            vertices.len(),
+            6,
+            "Panel should generate 6 vertices (2 triangles)"
+        );
 
         // Check first triangle (top-left, top-right, bottom-left)
         assert_eq!(vertices[0].position, [0.0, 0.0, 0.0]); // top-left
@@ -1069,15 +1077,26 @@ mod tests {
 
     #[test]
     fn test_panel_vertices_with_offset() {
-        let vertices = InspectorUI::generate_panel_vertices(
-            -0.5, 0.5, 0.3, 0.2, [0.5, 0.5, 0.5, 1.0]
-        );
+        let vertices =
+            InspectorUI::generate_panel_vertices(-0.5, 0.5, 0.3, 0.2, [0.5, 0.5, 0.5, 1.0]);
 
         // Verify bounding box
-        let x_min = vertices.iter().map(|v| v.position[0]).fold(f32::INFINITY, f32::min);
-        let x_max = vertices.iter().map(|v| v.position[0]).fold(f32::NEG_INFINITY, f32::max);
-        let y_min = vertices.iter().map(|v| v.position[1]).fold(f32::INFINITY, f32::min);
-        let y_max = vertices.iter().map(|v| v.position[1]).fold(f32::NEG_INFINITY, f32::max);
+        let x_min = vertices
+            .iter()
+            .map(|v| v.position[0])
+            .fold(f32::INFINITY, f32::min);
+        let x_max = vertices
+            .iter()
+            .map(|v| v.position[0])
+            .fold(f32::NEG_INFINITY, f32::max);
+        let y_min = vertices
+            .iter()
+            .map(|v| v.position[1])
+            .fold(f32::INFINITY, f32::min);
+        let y_max = vertices
+            .iter()
+            .map(|v| v.position[1])
+            .fold(f32::NEG_INFINITY, f32::max);
 
         assert!((x_min - (-0.5)).abs() < 0.001);
         assert!((x_max - (-0.2)).abs() < 0.001); // -0.5 + 0.3
@@ -1138,7 +1157,7 @@ mod tests {
         // Create a simple mock without GPU dependencies
         // We can test the handle_keyboard logic pattern
         // 'i' (105), 's' (115), '/' (47), 'c' (99)
-        
+
         // Verify keycodes are correct
         assert_eq!('i' as u32, 105);
         assert_eq!('s' as u32, 115);
@@ -1193,7 +1212,10 @@ mod tests {
         assert!(manager.selected_nodes.contains("node1"));
 
         manager.toggle_node("node1".to_string());
-        assert!(!manager.selected_nodes.contains("node1"), "Second toggle should deselect");
+        assert!(
+            !manager.selected_nodes.contains("node1"),
+            "Second toggle should deselect"
+        );
     }
 
     #[test]
@@ -1215,7 +1237,11 @@ mod tests {
         // Note: This requires glyph_atlas, which needs GPU context
         // For now, we test the static helper method
         let placeholder = InspectorUI::generate_text_placeholder(0.0, 0.0, 1.0, 0.1);
-        assert_eq!(placeholder.len(), 6, "Text placeholder should be 6 vertices");
+        assert_eq!(
+            placeholder.len(),
+            6,
+            "Text placeholder should be 6 vertices"
+        );
 
         // Check color is light/white
         assert_eq!(placeholder[0].color, [0.9, 0.9, 0.9, 0.7]);
@@ -1286,4 +1312,3 @@ mod tests {
         assert_eq!(panel.filtered_nodes.len(), 0);
     }
 }
-

@@ -9,5 +9,5 @@ pub mod hebbian_processor;
 pub mod wgsl_compiler;
 
 pub use geometric_vm::{GeometricState, GeometricVM};
-pub use hebbian_processor::{GPUHebbianProcessor, HebbianUpdate, HebbianUniforms};
+pub use hebbian_processor::{GPUHebbianProcessor, HebbianUniforms, HebbianUpdate};
 pub use wgsl_compiler::WGSLCompiler;

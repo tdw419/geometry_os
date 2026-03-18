@@ -6,8 +6,8 @@
 use std::collections::HashMap;
 
 use super::{
-    block_allocator::{BlockAllocator, AllocatedBlock},
-    {TensorId, MLError, MLResult, PoolStats},
+    block_allocator::{AllocatedBlock, BlockAllocator},
+    {MLError, MLResult, PoolStats, TensorId},
 };
 
 /// Handle for an activation allocation
@@ -85,7 +85,8 @@ impl RingBuffer {
         }
 
         let offset = self.write_pos;
-        self.write_pos = self.start + ((self.write_pos - self.start + size as u64) % self.size as u64);
+        self.write_pos =
+            self.start + ((self.write_pos - self.start + size as u64) % self.size as u64);
         self.active_count += 1;
 
         Some(offset)
@@ -97,7 +98,8 @@ impl RingBuffer {
             return;
         }
 
-        self.read_pos = self.start + ((self.read_pos - self.start + size as u64) % self.size as u64);
+        self.read_pos =
+            self.start + ((self.read_pos - self.start + size as u64) % self.size as u64);
         self.active_count = self.active_count.saturating_sub(1);
     }
 
@@ -291,13 +293,10 @@ impl ActivationPool {
     }
 
     /// Write activation data
-    pub fn write(
-        &self,
-        queue: &wgpu::Queue,
-        offset: u64,
-        data: &[u8],
-    ) -> MLResult<()> {
-        let buffer = self.buffer.as_ref()
+    pub fn write(&self, queue: &wgpu::Queue, offset: u64, data: &[u8]) -> MLResult<()> {
+        let buffer = self
+            .buffer
+            .as_ref()
             .ok_or_else(|| MLError::GpuError("Activation buffer not initialized".into()))?;
 
         queue.write_buffer(buffer, offset, data);
@@ -311,7 +310,8 @@ impl ActivationPool {
 
         PoolStats {
             total_allocated: self.total_size,
-            used_bytes: allocator_stats.current_used + (self.ring_size as f64 * ring_util / 100.0) as usize,
+            used_bytes: allocator_stats.current_used
+                + (self.ring_size as f64 * ring_util / 100.0) as usize,
             tensor_count: self.allocations.len() + self.kv_cache.len(),
             fragmentation_percent: self.allocator.fragmentation_percent(),
             pool_type: "activation".into(),
@@ -325,7 +325,9 @@ impl ActivationPool {
 
     /// Get free bytes
     pub fn free_bytes(&self) -> usize {
-        self.allocator.free_bytes() + (self.ring_size - (self.ring_size as f64 * self.ring_buffer.utilization() / 100.0) as usize)
+        self.allocator.free_bytes()
+            + (self.ring_size
+                - (self.ring_size as f64 * self.ring_buffer.utilization() / 100.0) as usize)
     }
 
     /// Get total size

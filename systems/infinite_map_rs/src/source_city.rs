@@ -152,8 +152,8 @@ impl SourceCityLoader {
 
             if ry == 0 {
                 if rx == 1 {
-                    x = s as i32 - 1 - x;  // Fixed: use s, not n
-                    y = s as i32 - 1 - y;  // Fixed: use s, not n
+                    x = s as i32 - 1 - x; // Fixed: use s, not n
+                    y = s as i32 - 1 - y; // Fixed: use s, not n
                 }
                 std::mem::swap(&mut x, &mut y);
             }

@@ -117,7 +117,9 @@ impl RTSPacker {
                 keyword: "type".to_string(),
                 text: self.options.data_type.clone(),
             };
-            writer.write_text_chunk(&type_chunk).expect("Failed to write type chunk");
+            writer
+                .write_text_chunk(&type_chunk)
+                .expect("Failed to write type chunk");
 
             // Write data chunk (base64 encoded to ensure valid UTF-8)
             let encoded_data = base64_encode(data);
@@ -125,19 +127,33 @@ impl RTSPacker {
                 keyword: "data".to_string(),
                 text: encoded_data,
             };
-            writer.write_text_chunk(&data_chunk).expect("Failed to write data chunk");
+            writer
+                .write_text_chunk(&data_chunk)
+                .expect("Failed to write data chunk");
 
             // Write alpha encoding marker if enabled
             if self.options.use_alpha_encoding {
                 let alpha_chunk = TEXtChunk {
                     keyword: "alpha_encoding".to_string(),
-                    text: format!("{}_{}", data.len(), if self.options.use_hilbert_encoding { "hilbert" } else { "linear" }),
+                    text: format!(
+                        "{}_{}",
+                        data.len(),
+                        if self.options.use_hilbert_encoding {
+                            "hilbert"
+                        } else {
+                            "linear"
+                        }
+                    ),
                 };
-                writer.write_text_chunk(&alpha_chunk).expect("Failed to write alpha chunk");
+                writer
+                    .write_text_chunk(&alpha_chunk)
+                    .expect("Failed to write alpha chunk");
             }
 
             // Write the image data
-            writer.write_image_data(&img.into_raw()).expect("Failed to write image data");
+            writer
+                .write_image_data(&img.into_raw())
+                .expect("Failed to write image data");
         }
 
         output.into_inner()
@@ -166,7 +182,10 @@ impl RTSPacker {
             if grid_size.is_power_of_two() {
                 self.encode_alpha_hilbert(img, data, grid_size);
             } else {
-                log::warn!("Grid size {} not power of 2, falling back to linear encoding", grid_size);
+                log::warn!(
+                    "Grid size {} not power of 2, falling back to linear encoding",
+                    grid_size
+                );
                 self.encode_alpha_linear(img, data);
             }
         } else {
@@ -200,7 +219,12 @@ impl RTSPacker {
             let (x, y) = hilbert_d2xy(grid_size, d as u64);
 
             if x >= img.width() || y >= img.height() {
-                log::warn!("Hilbert coordinate ({}, {}) out of bounds, truncating at byte {}", x, y, d);
+                log::warn!(
+                    "Hilbert coordinate ({}, {}) out of bounds, truncating at byte {}",
+                    x,
+                    y,
+                    d
+                );
                 break;
             }
 
@@ -350,8 +374,8 @@ mod tests {
 
         // Verify RGB is blue-purple WGSL indicator
         let pixel = rgba.get_pixel(0, 0);
-        assert_eq!(pixel[0], 64);  // R
-        assert_eq!(pixel[1], 32);  // G
+        assert_eq!(pixel[0], 64); // R
+        assert_eq!(pixel[1], 32); // G
         assert_eq!(pixel[2], 180); // B
     }
 

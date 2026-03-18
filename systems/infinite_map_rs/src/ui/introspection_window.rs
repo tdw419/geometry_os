@@ -1,6 +1,6 @@
-use crate::window::{WindowManager, WindowType};
+use crate::terminal_emulator::{CellAttributes, TerminalBuffer, TerminalColor};
 use crate::vm_texture_manager::VmTextureManager;
-use crate::terminal_emulator::{TerminalBuffer, TerminalColor, CellAttributes};
+use crate::window::{WindowManager, WindowType};
 
 pub struct IntrospectionWindow {
     pub window_id: usize,
@@ -8,20 +8,16 @@ pub struct IntrospectionWindow {
 }
 
 impl IntrospectionWindow {
-    pub fn new(
-        window_manager: &mut WindowManager,
-        x: f32,
-        y: f32,
-        analysis_text: &str
-    ) -> Self {
+    pub fn new(window_manager: &mut WindowManager, x: f32, y: f32, analysis_text: &str) -> Self {
         // Create a dedicated window for introspection
         // We use "System" type for green/stable look
         // Content is initially empty string as we use VmTexture
         let window_id = window_manager.create_demo_window(
-            "Synaptic Analysis".to_string(), 
-            String::new(), 
-            x, y, 
-            WindowType::System
+            "Synaptic Analysis".to_string(),
+            String::new(),
+            x,
+            y,
+            WindowType::System,
         );
 
         // Resize window to fit text (approx 80 chars x 24 lines)
@@ -39,19 +35,16 @@ impl IntrospectionWindow {
         // Write content to buffer
         Self::write_content(&mut buffer, analysis_text);
 
-        IntrospectionWindow {
-            window_id,
-            buffer,
-        }
+        IntrospectionWindow { window_id, buffer }
     }
 
     fn write_content(buffer: &mut TerminalBuffer, text: &str) {
         buffer.clear_screen();
-        
+
         // Define styles
         let mut normal = CellAttributes::default();
         normal.fg = TerminalColor::Green; // Matrix style
-        
+
         let mut header = CellAttributes::default();
         header.fg = TerminalColor::BrightWhite;
         header.bold = true;
@@ -86,13 +79,9 @@ impl IntrospectionWindow {
     pub fn update_texture(&self, texture_manager: &mut VmTextureManager) {
         // Render buffer to texture
         // No cursor, no selection
-        if let Err(e) = texture_manager.update_terminal_texture(
-            self.window_id, 
-            &self.buffer, 
-            false, 
-            0.0, 
-            None
-        ) {
+        if let Err(e) =
+            texture_manager.update_terminal_texture(self.window_id, &self.buffer, false, 0.0, None)
+        {
             log::error!("Failed to update introspection window texture: {}", e);
         }
     }

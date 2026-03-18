@@ -251,7 +251,8 @@ impl GlyphVmExecutor {
         // kb_head, kb_tail, kb_cap at 4, 5, 6 (all 0 for no keyboard events)
         vib_data[6] = 64; // kb_cap = 64 events
 
-        self.queue.write_buffer(&self.vib_buffer, 0, bytemuck::cast_slice(&vib_data));
+        self.queue
+            .write_buffer(&self.vib_buffer, 0, bytemuck::cast_slice(&vib_data));
     }
 
     /// Push a keyboard event to the VIB FIFO
@@ -278,6 +279,7 @@ impl GlyphVmExecutor {
         vib_data[10] = mods;
         vib_data[11] = 0; // timestamp (could use std::time)
 
-        self.queue.write_buffer(&self.vib_buffer, 0, bytemuck::cast_slice(&vib_data));
+        self.queue
+            .write_buffer(&self.vib_buffer, 0, bytemuck::cast_slice(&vib_data));
     }
 }
