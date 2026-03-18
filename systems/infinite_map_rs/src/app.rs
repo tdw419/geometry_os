@@ -2666,7 +2666,9 @@ impl<'a> InfiniteMapApp<'a> {
         if let (Some(graph_renderer), Some(protocol)) =
             (&self.graph_renderer, &self.evolution_protocol)
         {
-            let ui = InspectorUI::new(graph_renderer.clone(), protocol.clone());
+            let device = self.renderer.get_device();
+            let surface_format = self.renderer.get_surface_format();
+            let ui = InspectorUI::new(graph_renderer.clone(), protocol.clone(), &*device, surface_format);
             self.inspector_ui = Some(std::sync::Arc::new(ui));
             log::info!("✅ Inspector UI initialized");
         } else {

@@ -6,11 +6,53 @@
 use crate::evolution_protocol::{MemoryGraphProtocol, Message};
 use crate::graph_renderer::GraphRenderer;
 use crate::memory_graph::{MemoryGraph, MemoryNode};
+use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec2, Vec3};
 use smithay::backend::input::ButtonState;
 use std::collections::HashSet;
 use std::sync::Arc;
 use wgpu;
+
+/// UI vertex for rendering panel rectangles
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Pod, Zeroable)]
+pub struct UIVertex {
+    /// Position in screen space (x, y, z)
+    pub position: [f32; 3],
+    /// Color (r, g, b, a)
+    pub color: [f32; 4],
+}
+
+impl UIVertex {
+    pub fn new(x: f32, y: f32, z: f32, color: [f32; 4]) -> Self {
+        Self {
+            position: [x, y, z],
+            color,
+        }
+    }
+}
+
+/// Vertex buffer layout descriptor for UIVertex
+pub fn ui_vertex_layout() -> wgpu::VertexBufferLayout<'static> {
+    wgpu::VertexBufferLayout {
+        array_stride: std::mem::size_of::<UIVertex>() as wgpu::BufferAddress,
+        step_mode: wgpu::VertexStepMode::Vertex,
+        attributes: &[
+            // position: vec3<f32>
+            wgpu::VertexAttribute {
+                offset: 0,
+                shader_location: 0,
+                format: wgpu::VertexFormat::Float32x3,
+            },
+            // color: vec4<f32>
+            wgpu::VertexAttribute {
+                offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                shader_location: 1,
+                format: wgpu::VertexFormat::Float32x4,
+            },
+        ],
+    }
+}
 
 /// Camera controller for graph navigation
 #[derive(Debug, Clone)]
@@ -461,10 +503,75 @@ pub struct InspectorUI {
     pub control_panel: ControlPanel,
     pub graph_renderer: Arc<GraphRenderer>,
     pub protocol: Arc<MemoryGraphProtocol>,
+    /// UI render pipeline
+    ui_pipeline: wgpu::RenderPipeline,
+    /// Vertex buffer for UI rectangles (4 panels max)
+    ui_vertex_buffer: wgpu::Buffer,
+    /// Number of vertices currently in buffer
+    ui_vertex_count: usize,
 }
 
 impl InspectorUI {
-    pub fn new(graph_renderer: Arc<GraphRenderer>, protocol: Arc<MemoryGraphProtocol>) -> Self {
+    pub fn new(
+        graph_renderer: Arc<GraphRenderer>,
+        protocol: Arc<MemoryGraphProtocol>,
+        device: &wgpu::Device,
+        surface_format: wgpu::TextureFormat,
+    ) -> Self {
+        // Create UI shader
+        let ui_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("UI Panel Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/ui_panel.wgsl").into()),
+        });
+
+        // Create pipeline layout (no bind groups for simple colored rectangles)
+        let ui_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("UI Pipeline Layout"),
+            bind_group_layouts: &[],
+            push_constant_ranges: &[],
+        });
+
+        // Create render pipeline
+        let ui_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("UI Panel Pipeline"),
+            layout: Some(&ui_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &ui_shader,
+                entry_point: "vs_main",
+                buffers: &[ui_vertex_layout()],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &ui_shader,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: surface_format,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: Some(wgpu::Face::Back),
+                polygon_mode: wgpu::PolygonMode::Fill,
+                unclipped_depth: false,
+                conservative: false,
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None,
+        });
+
+        // Create vertex buffer (4 panels × 6 vertices per quad = 24 vertices max)
+        let max_vertices = 24;
+        let ui_vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("UI Vertex Buffer"),
+            size: (max_vertices * std::mem::size_of::<UIVertex>()) as wgpu::BufferAddress,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
         Self {
             node_info_panel: NodeInfoPanel::new(),
             graph_stats_panel: GraphStatsPanel::new(),
@@ -472,6 +579,9 @@ impl InspectorUI {
             control_panel: ControlPanel::new(),
             graph_renderer,
             protocol,
+            ui_pipeline,
+            ui_vertex_buffer,
+            ui_vertex_count: 0,
         }
     }
 
@@ -515,10 +625,33 @@ impl InspectorUI {
         }
     }
 
-    /// Render UI overlay (placeholder - actual rendering would use egui or similar)
+    /// Generate vertices for a single UI panel rectangle
+    fn generate_panel_vertices(x: f32, y: f32, width: f32, height: f32, color: [f32; 4]) -> [UIVertex; 6] {
+        // Two triangles forming a quad
+        let x1 = x;
+        let y1 = y;
+        let x2 = x + width;
+        let y2 = y + height;
+
+        [
+            // Triangle 1
+            UIVertex::new(x1, y1, 0.0, color), // top-left
+            UIVertex::new(x2, y1, 0.0, color), // top-right
+            UIVertex::new(x1, y2, 0.0, color), // bottom-left
+            // Triangle 2
+            UIVertex::new(x1, y2, 0.0, color), // bottom-left
+            UIVertex::new(x2, y1, 0.0, color), // top-right
+            UIVertex::new(x2, y2, 0.0, color), // bottom-right
+        ]
+    }
+
+    /// Render UI overlay
     pub fn render(&self, _render_pass: &mut wgpu::RenderPass) {
-        // This would render the UI panels using a UI library
-        // For now, just log the state for debugging
+        // TODO-3/5: Implement actual panel rendering
+        // For now, the pipeline and vertex buffer are created and ready
+        // Next step: populate vertex buffer with panel rectangles and draw them
+
+        // Log the state for debugging
         if self.node_info_panel.visible && self.node_info_panel.node_info.is_some() {
             log::debug!("Node Info Panel: {:?}", self.node_info_panel.node_info);
         }
@@ -550,10 +683,15 @@ pub struct MemoryGraphInspector {
 }
 
 impl MemoryGraphInspector {
-    pub fn new(graph_renderer: Arc<GraphRenderer>, protocol: Arc<MemoryGraphProtocol>) -> Self {
+    pub fn new(
+        graph_renderer: Arc<GraphRenderer>,
+        protocol: Arc<MemoryGraphProtocol>,
+        device: &wgpu::Device,
+        surface_format: wgpu::TextureFormat,
+    ) -> Self {
         Self {
             controls: GraphControls::new(graph_renderer.clone()),
-            ui: InspectorUI::new(graph_renderer, protocol),
+            ui: InspectorUI::new(graph_renderer, protocol, device, surface_format),
             current_graph: None,
         }
     }
