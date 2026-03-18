@@ -116,7 +116,7 @@ def resolve_target(target: str, labels: Dict[str, int]) -> int:
     Resolve a target string to a numeric address.
 
     - If target is a number, return as-is
-    - If target is a label, look up in label table
+    - If target is a label (with or without leading ':'), look up in label table
     - If target is unknown, return 0 (will halt/error)
     """
     # Try parsing as number first
@@ -125,8 +125,11 @@ def resolve_target(target: str, labels: Dict[str, int]) -> int:
     except ValueError:
         pass
 
+    # Strip leading ':' if present
+    lookup_key = target.lstrip(":")
+
     # Look up label
-    return labels.get(target, 0)
+    return labels.get(lookup_key, 0)
 
 
 def parse_instructions(ascii_content: str) -> List[Tuple[str, str]]:

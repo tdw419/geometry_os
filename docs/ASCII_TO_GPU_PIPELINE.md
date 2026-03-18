@@ -358,13 +358,26 @@ Each step is a format transformation, not an interpretation layer.
 
 ---
 
-## Next Steps
+## Verification
 
-1. **Fix the compiler** - Update `OPCODES` in `geos_ascii_compiler.py`
-2. **Create `ascii_cartridge.rs`** - Rust loader
-3. **Add `handle_click` to SyntheticVram** - VM execution on click
-4. **Write integration test** - Verify the full chain
-5. **Delete the HTML viewer** - No more JavaScript
+The The reactive loop is verified by integration tests in `systems/infinite_map_rs/tests/ascii_cartridge_integration.rs`:
+
+    | Test | Verifies |
+    |------|-------------|
+    | `test_cartridge_loads` | Cartridge parses correctly |
+    | `test_memory_layout_constants` | Memory addresses match design |
+    | `test_click_to_vm_execution` | Click triggers VM opcode |
+    | `test_vm_writes_to_glyph_grid` | VM can write to display |
+    | `test_vm_writes_to_state_buffer` | VM can read/write state |
+    | `test_full_reactive_loop` | Complete click → display cycle |
+    | `test_sit_opcode_conversion` | Legacy SIT opcodes map correctly |
+    | `test_cartridge_glyph_grid_dimensions` | Glyph grid size is correct |
+    | `test_cartridge_state_buffer_dimensions` | State buffer size is correct |
+
+Run all tests:
+```bash
+cargo test ascii_cartridge_integration -- --nocapture
+```
 
 ---
 
