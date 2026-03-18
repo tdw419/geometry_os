@@ -191,6 +191,7 @@ impl GlyphAssembler {
         self.words.clear();
 
         // First pass: collect labels
+        eprintln!("DEBUG: First pass - collecting labels");
         for line in text.lines() {
             let line = Self::strip_comment(line).trim();
             let line = line.trim_start_matches('@');
@@ -202,10 +203,12 @@ impl GlyphAssembler {
             let remaining_line = if line.starts_with(':') {
                 let label_end = line.find(';').unwrap_or(line.len());
                 let label = line[1..label_end].trim().to_string();
+                eprintln!("  Found label '{}' at addr {}", label, self.addr);
                 self.labels.insert(label, self.addr);
                 if label_end < line.len() { &line[label_end..] } else { "" }
             } else if line.ends_with(':') {
                 let label = line[..line.len()-1].trim().to_string();
+                eprintln!("  Found label '{}' at addr {}", label, self.addr);
                 self.labels.insert(label, self.addr);
                 ""
             } else {
@@ -218,6 +221,7 @@ impl GlyphAssembler {
                 self.addr += word_count;
             }
         }
+        eprintln!("DEBUG: First pass done, total words = {}", self.addr);
 
         // Second pass: assemble
         self.addr = 0;
@@ -241,9 +245,13 @@ impl GlyphAssembler {
         }
 
         // Resolve forward references
+        eprintln!("\nDEBUG: Resolving {} forward references:", self.forward_refs.len());
         for (ref_addr, label, is_absolute) in &self.forward_refs {
             let target = self.labels.get(label)
                 .ok_or_else(|| format!("Undefined label: {}", label))?;
+
+            eprintln!("  Forward ref: addr={}, label={}, is_absolute={}, target={}",
+                ref_addr, label, is_absolute, target);
 
             let value = if *is_absolute {
                 // LDI needs absolute address
@@ -255,6 +263,7 @@ impl GlyphAssembler {
                 let offset = (*target as i32) - (*ref_addr as i32);
                 offset - 2
             };
+            eprintln!("    -> Writing value {} to words[{}]", value, ref_addr);
             self.words[*ref_addr as usize] = value as u32;
         }
 
