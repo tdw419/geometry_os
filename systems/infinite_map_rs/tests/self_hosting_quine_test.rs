@@ -140,9 +140,15 @@ mod tests {
             scheduler.poke_substrate_single(0x5000 + i as u32, 0);
         }
 
-        // CRITICAL: Flush all writes to GPU before execution
-        println!("Flushing writes to GPU...");
-        scheduler.flush_writes();
+        // Verify shadow RAM has correct data before execution
+        println!("\nVerifying shadow RAM before execution:");
+        println!("  instr[0] = {:08X} (expected {:08X})", scheduler.peek_substrate_single(0), assembled.words[0]);
+        println!("  instr[1] = {:08X} (expected {:08X})", scheduler.peek_substrate_single(1), assembled.words[1]);
+        println!("  source[0x1000] = {:02X} '{}' ", scheduler.peek_substrate_single(0x1000), scheduler.peek_substrate_single(0x1000) as u8 as char);
+
+        // NOTE: Do NOT call flush_writes() - it doesn't work correctly.
+        // execute_frame() will implicitly submit the queued write_texture operations.
+        // The working self_compile_execute test doesn't use flush_writes.
 
         println!("\nSpawning VM at entry point 0x{:04X}...", main_addr);
 
@@ -157,17 +163,9 @@ mod tests {
         scheduler.spawn_vm(1, &config).expect("Failed to spawn VM");
         println!("VM 1 spawned successfully");
 
-        // Verify VM state
-        scheduler.sync_gpu_to_shadow();
-        let initial_state = scheduler.get_vm_state(1);
-        println!("Initial VM state: {:?}", initial_state);
-
-        // Verify binary was written
-        println!("\nVerifying binary at 0x0000:");
-        for i in 0..5 {
-            let val = scheduler.peek_substrate_single(i as u32);
-            println!("  0x{:04X}: {:08X} (expected {:08X})", i, val, assembled.words[i]);
-        }
+        // NOTE: Do NOT call sync_gpu_to_shadow() here!
+        // It would overwrite our shadow RAM data with uninitialized GPU texture.
+        // The GPU writes from poke_substrate_single are already queued and flushed.
 
         // Execute frames with early termination if halted
         println!("\nExecuting (max 1000 frames)...");

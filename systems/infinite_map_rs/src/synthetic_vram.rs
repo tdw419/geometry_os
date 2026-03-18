@@ -2788,4 +2788,121 @@ mod tests {
         println!("  ✓ Output binary is bit-identical to executing binary.");
         println!("  ✓ SOVEREIGNTY COMPLETE.");
     }
+
+    #[test]
+    fn test_text_buffer_insert() {
+        // Text Buffer VM Test:
+        // 1. Send ASCII char 'L' to mailbox at 0x200
+        // 2. VM reads mailbox, appends to buffer at 0x1000
+        // 3. Verify buffer contains 'L' at position 0
+
+        let mut vram = SyntheticVram::new_small(4096);
+
+        // Mailbox: type=1 (KEY_INSERT), char='L' (76)
+        vram.poke(0x200, 1);    // event type = INSERT
+        vram.poke(0x201, 76);   // char = 'L'
+        vram.poke(0x202, 0);    // cursor pos (not used yet)
+
+        // Editor state at 0x100
+        vram.poke(0x100, 0);    // cursor = 0
+        vram.poke(0x101, 0);    // buffer_len = 0
+
+        // --- TEXT EDITOR PROGRAM (addr 0) ---
+        let mut pp = 0u32;
+        let mut poke_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+            v.poke(*p, glyph(1, 0, reg, 0));
+            *p += 1;
+            v.poke(*p, val);
+            *p += 1;
+        };
+
+        poke_ldi(&mut vram, &mut pp, 13, 1);     // r13 = 1 (increment)
+        poke_ldi(&mut vram, &mut pp, 0, 0x200);  // r0 = mailbox addr
+        poke_ldi(&mut vram, &mut pp, 1, 0x100);  // r1 = state addr
+        poke_ldi(&mut vram, &mut pp, 2, 0x1000); // r2 = buffer base
+
+        // Loop: poll mailbox
+        let loop_start = pp;
+        vram.poke(pp, glyph(3, 0, 0, 3)); pp += 1;  // LOAD r3 = event_type
+        vram.poke(pp, 0); pp += 1;                  // offset 0
+
+        // If event_type == 0, keep polling
+        vram.poke(pp, glyph(10, 0, 3, 127)); pp += 1; // BEQ r3, r127(0), loop
+        vram.poke(pp, (loop_start as i32 - pp as i32 - 1) as u32); pp += 1;
+
+        // If event_type == 1 (INSERT), handle insert
+        vram.poke(pp, glyph(1, 0, 4, 0)); pp += 1;  // LDI r4 = 1
+        vram.poke(pp, 1); pp += 1;
+        vram.poke(pp, glyph(10, 0, 3, 4)); pp += 1; // BEQ r3, r4, :do_insert
+        let do_insert_addr = pp;
+        pp += 1; // placeholder
+
+        // Unknown event: clear and loop
+        vram.poke(pp, glyph(1, 0, 5, 0)); pp += 1;  // LDI r5 = 0
+        vram.poke(pp, 0); pp += 1;
+        vram.poke(pp, glyph(4, 0, 0, 5)); pp += 1;  // STORE [r0], r5 (clear event)
+        vram.poke(pp, 0); pp += 1;
+        vram.poke(pp, glyph(9, 0, 0, 0)); pp += 1;  // JMP loop
+        vram.poke(pp, loop_start); pp += 1;
+
+        // :do_insert
+        let do_insert = pp;
+        vram.poke(do_insert_addr - 1, do_insert);  // patch branch target
+
+        // Load char from mailbox offset 1
+        poke_ldi(&mut vram, &mut pp, 6, 1);         // r6 = 1
+        vram.poke(pp, glyph(3, 0, 0, 7)); pp += 1;  // LOAD r7 = char (offset 1)
+        vram.poke(pp, 1); pp += 1;
+
+        // Load cursor position
+        vram.poke(pp, glyph(3, 0, 1, 8)); pp += 1;  // LOAD r8 = cursor
+        vram.poke(pp, 0); pp += 1;
+
+        // Calculate buffer addr: base + cursor
+        vram.poke(pp, glyph(2, 0, 2, 9)); pp += 1;  // MOV r9 = r2 (base)
+        vram.poke(pp, glyph(5, 0, 8, 9)); pp += 1;  // ADD r9 = r9 + cursor
+
+        // Store char at buffer[cursor]
+        vram.poke(pp, glyph(4, 0, 9, 7)); pp += 1;  // STORE [r9], r7
+
+        // Increment cursor and buffer_len
+        vram.poke(pp, glyph(5, 0, 13, 8)); pp += 1; // ADD cursor += 1
+        vram.poke(pp, glyph(4, 0, 1, 8)); pp += 1;  // STORE cursor
+        vram.poke(pp, 0); pp += 1;
+
+        // Increment buffer_len
+        vram.poke(pp, glyph(3, 0, 1, 10)); pp += 1; // LOAD r10 = buffer_len
+        vram.poke(pp, 1); pp += 1;
+        vram.poke(pp, glyph(5, 0, 13, 10)); pp += 1; // ADD r10 += 1
+        vram.poke(pp, glyph(4, 0, 1, 10)); pp += 1;  // STORE buffer_len
+        vram.poke(pp, 1); pp += 1;
+
+        // Clear event and loop
+        vram.poke(pp, glyph(1, 0, 5, 0)); pp += 1;  // LDI r5 = 0
+        vram.poke(pp, 0); pp += 1;
+        vram.poke(pp, glyph(4, 0, 0, 5)); pp += 1;  // STORE [r0], r5
+        vram.poke(pp, 0); pp += 1;
+        vram.poke(pp, glyph(9, 0, 0, 0)); pp += 1;  // JMP loop
+        vram.poke(pp, loop_start); pp += 1;
+
+        // HALT (for test - in real editor this is unreachable)
+        vram.poke(pp, glyph(13, 0, 0, 0)); pp += 1;
+
+        // Spawn and run
+        vram.spawn_vm(0, &SyntheticVmConfig {
+            entry_point: 0,
+            ..Default::default()
+        }).unwrap();
+
+        // Run enough cycles to process the event
+        for _ in 0..100 {
+            vram.execute_frame_interleaved(10);
+            if vram.is_halted(0) { break; }
+        }
+
+        // Verify: buffer[0] should be 'L' (76)
+        assert_eq!(vram.peek(0x1000), 76, "Buffer should contain 'L'");
+        assert_eq!(vram.peek(0x100), 1, "Cursor should be at 1");
+        assert_eq!(vram.peek(0x101), 1, "Buffer len should be 1");
+    }
 }
