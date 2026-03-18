@@ -27,11 +27,13 @@
 pub mod extractor;
 pub mod geometric_extractor;
 pub mod packer;
+pub mod unpacker;
 
 // Re-export main extraction functions for convenience
 pub use extractor::{extract_wgsl_from_rts, is_wgsl_color, is_wgsl_metadata, WgslExtractor};
 pub use geometric_extractor::extract_geometric_from_rts;
 pub use packer::{PackOptions, RTSPacker};
+pub use unpacker::{RtsMetadata, RTSUnpacker, UnpackOptions};
 
 #[cfg(test)]
 mod extractor_tests;
