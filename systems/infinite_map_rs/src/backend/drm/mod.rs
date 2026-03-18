@@ -17,6 +17,7 @@ pub mod memory;
 pub mod scanout;
 pub mod vcc_compute;
 pub mod visual_interaction_bus;
+pub mod wlu_compute;
 
 pub use amdgpu::command_buffer::AmdgpuCommandBuffer;
 pub use compute::GlyphCompute;
@@ -38,3 +39,7 @@ pub use vcc_compute::{
     BufferInitDescriptor, BufferInitExt, HardwareVCC, HardwareVCCResult, VccCompute,
 };
 pub use visual_interaction_bus::{InputReceiver, InputState, VisualInteractionBus};
+pub use wlu_compute::{
+    GpuOscillator, WaveOutput, WaveUniforms, WluBufferIndex, WluGpuResources,
+    DEFAULT_GRID_SIZE, MAX_OSCILLATORS,
+};

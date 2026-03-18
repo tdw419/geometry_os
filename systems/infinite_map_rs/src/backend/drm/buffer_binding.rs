@@ -177,6 +177,34 @@ impl BufferBindingInterface {
         Ok(index)
     }
 
+    /// Allocate and bind a storage buffer.
+    ///
+    /// Storage buffers are read-write buffers that can be used for
+    /// arbitrary data structures in compute shaders.
+    ///
+    /// # Arguments
+    /// * `size` - Size in bytes
+    /// * `data` - Optional initial data
+    ///
+    /// # Returns
+    /// The binding index of the newly bound buffer.
+    pub fn bind_storage_buffer(&mut self, size: usize, data: Option<&[u8]>) -> Result<usize> {
+        let buffer = self
+            .allocator
+            .allocate_buffer(size, Some("compute-storage"))
+            .context("Failed to allocate storage buffer")?;
+
+        // TODO: Write initial data if provided
+
+        let bound = BoundBuffer::new(buffer, BindingPoint::Storage, size, Some("compute-storage"));
+        self.bound_buffers.push(bound);
+
+        let index = self.bound_buffers.len() - 1;
+        log::debug!("Bound storage buffer at index {} ({} bytes)", index, size);
+
+        Ok(index)
+    }
+
     /// Get a bound buffer by index.
     pub fn get_buffer(&self, index: usize) -> Option<&BoundBuffer> {
         self.bound_buffers.get(index)
