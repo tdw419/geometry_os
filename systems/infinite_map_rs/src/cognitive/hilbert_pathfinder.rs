@@ -266,13 +266,82 @@ impl HilbertPathfinder {
 
     /// Find path preferring high-complexity areas (for Scouts)
     fn find_path_preferring_complexity(&self, start: u32, end: u32) -> HilbertPath {
-        // TODO: Integrate with complexity metrics from source city
+        // Weighted A* that reduces cost for high-complexity areas
+        // Scouts explore complex code regions first
+        self.astar_path_complexity_weighted(start, end, &self.blocked)
+    }
+
+    /// A* pathfinding with complexity preference (lower cost for high-complexity areas)
+    fn astar_path_complexity_weighted(&self, start: u32, end: u32, blocked: &HashSet<u32>) -> HilbertPath {
+        use std::cmp::Reverse;
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct Node {
+            hilbert: u32,
+            g: u32, // Cost from start
+            f: u32, // Estimated total cost
+        }
+
+        impl Ord for Node {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                other.f.cmp(&self.f) // Reverse for min-heap
+            }
+        }
+
+        impl PartialOrd for Node {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(other))
+            }
+        }
+
+        let mut open_set = BinaryHeap::new();
+        let mut came_from: HashMap<u32, u32> = HashMap::new();
+        let mut g_score: HashMap<u32, u32> = HashMap::new();
+
+        g_score.insert(start, 0);
+        open_set.push(Node {
+            hilbert: start,
+            g: 0,
+            f: self.hilbert_heuristic(start, end),
+        });
+
+        while let Some(current) = open_set.pop() {
+            if current.hilbert == end {
+                return self.reconstruct_path(start, end, &came_from);
+            }
+
+            for neighbor in self.hilbert_neighbors(current.hilbert) {
+                if blocked.contains(&neighbor) {
+                    continue;
+                }
+
+                // Get complexity and adjust cost (higher complexity = lower cost)
+                let complexity = self.get_complexity_at(neighbor);
+                // Cost is inversely proportional to complexity (max complexity ~10, so scale appropriately)
+                let complexity_cost = (10.0 - complexity.min(10.0)) as u32;
+                let tentative_g = g_score.get(&current.hilbert).unwrap_or(&u32::MAX) + 1 + complexity_cost;
+
+                if tentative_g < *g_score.get(&neighbor).unwrap_or(&u32::MAX) {
+                    came_from.insert(neighbor, current.hilbert);
+                    g_score.insert(neighbor, tentative_g);
+                    open_set.push(Node {
+                        hilbert: neighbor,
+                        g: tentative_g,
+                        f: tentative_g + self.hilbert_heuristic(neighbor, end),
+                    });
+                }
+            }
+        }
+
+        // No path found, return direct path
         self.find_direct_path(start, end)
     }
 
     /// Find path preferring recently modified areas (for Engineers)
     fn find_path_preferring_recent(&self, start: u32, end: u32) -> HilbertPath {
-        // TODO: Integrate with modification timestamps
+        // TODO: Requires modification timestamps in SourceTile or a separate heatmap
+        // For now, fall back to direct path - Engineers will need timestamp data
+        // from file_tensor.rs:last_modified or map_loader.rs:last_modified
         self.find_direct_path(start, end)
     }
 
@@ -501,6 +570,20 @@ impl HilbertPathfinder {
             .iter()
             .find(|(_, (min, max))| hilbert >= *min && hilbert <= *max)
             .map(|(name, _)| name)
+    }
+
+    /// Get complexity score for a Hilbert coordinate (from district's avg_complexity)
+    pub fn get_complexity_at(&self, hilbert: u32) -> f64 {
+        if let Some(district_name) = self.get_district_at(hilbert) {
+            if let Some(ref loader) = self.source_loader {
+                if let Some(layout) = loader.layout() {
+                    if let Some(summary) = layout.districts.get(district_name) {
+                        return summary.avg_complexity;
+                    }
+                }
+            }
+        }
+        1.0 // Default complexity if no data available
     }
 
     /// Clear path cache
