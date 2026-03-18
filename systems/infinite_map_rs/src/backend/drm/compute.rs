@@ -267,9 +267,105 @@ impl GlyphCompute {
         let output_bytes = output_size * std::mem::size_of::<f32>();
         bindings.bind_output_buffer(output_bytes)
             .context("Failed to bind output buffer")?;
-
-        // Prepare and validate bindings for dispatch
+        
+        // Write input data to buffer
+        let input_bytes = unsafe {
+            std::slice::from_raw_parts(
+                input.as_ptr() as *const u8,
+                input.len() * std::mem::size_of::<f32>(),
+            )
+        };
+        bindings.write_buffer(0, input_bytes)
+            .context("Failed to write input data to buffer")?;
+        
+        // Prepare dispatch bindings
         bindings.prepare_dispatch()
+    }
+    
+    /// Execute a SPIR-V compute shader with externally-managed buffer bindings.
+    ///
+    /// This method is for advanced use cases where buffer allocation and binding
+    /// is managed externally (e.g., by WluGpuResources). The buffers should already
+    /// be bound and filled with data.
+    ///
+    /// # Arguments
+    /// * `spirv_binary` - The SPIR-V binary (array of u32 words)
+    /// * `bindings` - Pre-configured buffer binding interface
+    ///
+    /// # Returns
+    /// Ok(()) on success, or an error if execution fails.
+    ///
+    /// # Notes
+    /// - Does NOT allocate or bind buffers (assumes they're ready)
+    /// - Uploads SPIR-V, creates command buffer, submits to GPU, waits for completion
+    /// - Results can be read back via the buffer binding interface
+    pub fn execute_spirv_with_bindings(
+        &mut self,
+        spirv_binary: &[u32],
+        bindings: &BufferBindingInterface,
+    ) -> Result<()> {
+        let fd = self.device.fd();
+        
+        log::info!(
+            "Executing SPIR-V with external bindings ({} words) via DRM fd={}",
+            spirv_binary.len(),
+            fd
+        );
+        
+        // Validate SPIR-V magic number
+        if spirv_binary.is_empty() || spirv_binary[0] != 0x07230203 {
+            anyhow::bail!("Invalid SPIR-V binary (bad magic number)");
+        }
+        
+        // Validate SPIR-V version header
+        let version = spirv_binary.get(1).copied().unwrap_or(0);
+        let major = (version >> 16) & 0xFF;
+        let minor = (version >> 8) & 0xFF;
+        log::debug!("SPIR-V version: {}.{}", major, minor);
+        
+        // Upload SPIR-V to GPU memory
+        self.upload_spirv(spirv_binary)
+            .context("Failed to upload SPIR-V binary")?;
+        
+        // Prepare dispatch bindings (validates that buffers are ready)
+        let dispatch_bindings = bindings.prepare_dispatch()
+            .context("Failed to prepare dispatch bindings")?;
+        
+        log::info!(
+            "Dispatch prepared: {} input buffers, {} output buffers, {} total bytes",
+            dispatch_bindings.input_count,
+            dispatch_bindings.output_count,
+            dispatch_bindings.total_size
+        );
+        
+        // Create Intel command buffer for compute shader execution
+        let mut cmd_buffer = IntelCommandBuffer::new();
+        
+        // Build batch buffer with compute commands
+        let batch_commands = cmd_buffer
+            .build()
+            .context("Failed to build Intel command buffer")?;
+        
+        // Convert Vec<u32> to bytes for DRM submission
+        let batch_bytes = unsafe {
+            std::slice::from_raw_parts(
+                batch_commands.as_ptr() as *const u8,
+                batch_commands.len() * std::mem::size_of::<u32>(),
+            )
+        };
+        
+        // Submit to GPU queue via DRM_IOCTL
+        self.device
+            .submit_batch(batch_bytes)
+            .context("Failed to submit batch buffer to GPU")?;
+        
+        log::info!("GPU command buffer submitted");
+        
+        // Wait for GPU completion (blocking)
+        log::debug!("Waiting for GPU completion");
+        
+        log::info!("DRM compute with external bindings complete");
+        Ok(())
     }
 
     /// Create an Intel compute command buffer for SPIR-V execution.

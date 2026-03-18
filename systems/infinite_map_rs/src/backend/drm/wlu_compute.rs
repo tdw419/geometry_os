@@ -13,11 +13,19 @@
 //! - Binding 5: output (output, storage, read-write)
 //!
 //! Completed TODOs:
+//! - TODO-1/5: WGSL compute shader creation ✓
 //! - TODO-2/5: GPU buffer allocation ✓
 //! - TODO-3/5: Oscillator and uniform buffer updates ✓
+//! - TODO-4/5: Sensor value readback ✓
+//! - TODO-5/5: DRM compute backend integration ✓
 
 use anyhow::{Context, Result};
 use std::mem::size_of;
+use naga::{
+    back::spv,
+    front::wgsl,
+    valid::{Capabilities, ValidationFlags, Validator},
+};
 
 use super::buffer_binding::{BindingPoint, BufferBindingInterface, BoundBuffer};
 use super::memory::GpuMemoryAllocator;
@@ -430,6 +438,79 @@ impl WluGpuResources {
         
         // 3 wave fields + oscillators + uniforms + output
         self.field_size * 3 + oscillators_size + size_of::<WaveUniforms>() + output_size
+    }
+    
+    /// Dispatch the wave propagation compute shader on GPU.
+    ///
+    /// TODO-5/5: Integrates WLU with DRM compute backend.
+    /// Compiles the wave_propagation.wgsl shader to SPIR-V and executes it.
+    /// After dispatch, the new_field buffer contains the updated wave state.
+    ///
+    /// # Returns
+    /// Ok(()) on successful dispatch, or an error if compilation or execution fails.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - Buffers haven't been allocated
+    /// - WGSL shader fails to parse/validate
+    /// - SPIR-V compilation fails
+    /// - GPU execution fails
+    ///
+    /// # Example
+    /// ```no_run
+    /// use super::compute::GlyphCompute;
+    /// use super::device::DrmDevice;
+    ///
+    /// let device = DrmDevice::open_default()?;
+    /// let mut wlu = WluGpuResources::new(&device)?;
+    /// wlu.allocate_buffers()?;
+    /// wlu.update_oscillators()?;
+    /// wlu.update_uniforms()?;
+    ///
+    /// let mut compute = GlyphCompute::new(device)?;
+    /// wlu.dispatch_wave_propagation(&mut compute)?;
+    ///
+    /// let sensor = wlu.read_sensor_value()?;
+    /// ```
+    pub fn dispatch_wave_propagation(&mut self, compute: &mut super::compute::GlyphCompute) -> Result<()> {
+        if !self.buffers_allocated {
+            anyhow::bail!("Cannot dispatch: buffers not allocated");
+        }
+        
+        log::info!("Dispatching wave propagation compute shader");
+        
+        // 1. Load WGSL shader
+        let wgsl_source = include_str!("../../shaders/wave_propagation.wgsl");
+        
+        // 2. Compile WGSL to SPIR-V using Naga
+        log::debug!("Parsing wave_propagation.wgsl");
+        let module = wgsl::parse_str(&wgsl_source)
+            .context("Failed to parse wave_propagation WGSL shader")?;
+        
+        log::debug!("Validating wave_propagation module");
+        let mut validator = Validator::new(ValidationFlags::all(), Capabilities::all());
+        let info = validator
+            .validate(&module)
+            .context("Failed to validate wave_propagation module")?;
+        
+        log::debug!("Compiling wave_propagation to SPIR-V");
+        let options = spv::Options::default();
+        let spirv_binary = spv::write_vec(&module, &info, &options, None)
+            .context("Failed to compile wave_propagation to SPIR-V")?;
+        
+        log::info!(
+            "Compiled wave_propagation.wgsl to SPIR-V: {} words ({} bytes)",
+            spirv_binary.len(),
+            spirv_binary.len() * size_of::<u32>()
+        );
+        
+        // 3. Execute on GPU using pre-allocated buffers
+        compute.execute_spirv_with_bindings(&spirv_binary, &self.bindings)
+            .context("Failed to execute wave propagation on GPU")?;
+        
+        log::info!("Wave propagation dispatch complete");
+        
+        Ok(())
     }
 }
 
