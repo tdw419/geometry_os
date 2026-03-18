@@ -860,6 +860,15 @@ impl GlyphVmScheduler {
         log::debug!("[POKE] addr=0x{:x} val=0x{:x}", addr, val);
     }
 
+    /// Flush all pending texture writes to GPU.
+    /// MUST be called after poke_substrate_single() writes before execute_frame().
+    /// This ensures the GPU texture is updated before the shader reads from it.
+    pub fn flush_writes(&self) {
+        self.queue.submit([]);
+        self.device.poll(wgpu::Maintain::Wait);
+        log::debug!("[FLUSH] GPU writes submitted");
+    }
+
     /// Copy glyphs from source to target address in substrate
     /// Used for self-modifying code - scheduler can rewrite itself
     ///

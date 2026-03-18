@@ -140,6 +140,10 @@ mod tests {
             scheduler.poke_substrate_single(0x5000 + i as u32, 0);
         }
 
+        // CRITICAL: Flush all writes to GPU before execution
+        println!("Flushing writes to GPU...");
+        scheduler.flush_writes();
+
         println!("\nSpawning VM at entry point 0x{:04X}...", main_addr);
 
         // Spawn VM at main (use VM ID 1 like the working tests)
