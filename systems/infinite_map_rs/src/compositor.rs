@@ -26,7 +26,7 @@ use wgpu::{CommandEncoder, TextureView};
 ///    which is a heavyweight resource
 /// 4. This design supports lazy initialization where the renderer may be created
 ///    before the compositor has any zones to manage
-#[derive(Debug)]
+// Debug disabled - ExecutionZoneRenderer does not implement Debug
 pub struct Compositor {
     /// WebGPU device for rendering operations
     ///
