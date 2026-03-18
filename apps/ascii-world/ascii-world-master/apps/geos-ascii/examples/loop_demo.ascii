@@ -1,0 +1,22 @@
+┌────────────────────────────────────────────────────────────┐
+│  LOOP DEMO - Counter 0 to 9                            │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│   :main                                                   │
+│   LDI r0, 10           ; Loop counter (10 iterations)     │
+│   LDI r1, 0            ; Accumulator (starts at 0)        │
+│                                                            │
+│   :loop                                                   │
+│   ADD r1, r1, r1       ; r1 = r1 + 1                      │
+│   SUB r0, r0, 1        ; r0 = r0 - 1                      │
+│   JZ r0, :done         ; Jump if r0 == 0                 │
+│   JMP :loop            ; Repeat                           │
+│                                                            │
+│   :done                                                   │
+│   HALT                 ; Stop execution                  │
+│                                                            │
+│   [A] Run    [B] Reset  [C] Next                          │
+│                                                            │
+├────────────────────────────────────────────────────────────┤
+│   Result will be in r1 register: 10                        │
+└────────────────────────────────────────────────────────────┘

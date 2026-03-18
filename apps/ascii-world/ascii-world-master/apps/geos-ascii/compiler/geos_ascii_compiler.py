@@ -60,6 +60,7 @@ OPCODES = {
 
 ACTION_PATTERN = re.compile(r"\[([A-Z0-9])\]\s*(\w+)")
 LABEL_PATTERN = re.compile(r"^:(\w+)\s*$")
+INSTR_PATTERN = re.compile(r"^\s*(\w+)\s+(.+)\s*(;.*)?$")
 
 # Memory layout constants (must match ascii_cartridge.rs)
 PROGRAM_BASE = 0x8000  # Program code starts here
@@ -77,25 +78,35 @@ def scan_labels(ascii_content: str) -> Dict[str, int]:
     labels = {}
     addr = PROGRAM_BASE
 
-    lines = ascii_content.split("\n")
-    for line in lines:
-        line = line.strip()
+    # Use the same parsing logic as parse_instructions()
+    for line in ascii_content.split("\n"):
+        # Remove box characters and leading/trailing whitespace
+        cleaned = line.replace("│", " ").strip()
 
-        # Skip empty lines and comments
-        if not line or line.startswith("#"):
+        # Skip empty lines, comments-only lines, and non-code lines
+        if (
+            not cleaned
+            or cleaned.startswith("┌")
+            or cleaned.startswith("├")
+            or cleaned.startswith("└")
+            or cleaned.startswith("─")
+        ):
             continue
 
-        # Check for label definition
-        match = LABEL_PATTERN.match(line)
-        if match:
-            label_name = match.group(1)
-            labels[label_name] = addr
+        # Check for label (must start with ':' as first character)
+        if cleaned.startswith(":"):
+            label_match = re.match(r":(\w+)", cleaned)
+            if label_match:
+                label_name = label_match.group(1)
+                labels[label_name] = addr
             continue
 
-        # Count instructions (rough estimate: 1 instruction per significant line)
-        # This is simplified - real implementation would tokenize properly
-        if not line.startswith("[") and not line.startswith("|"):
-            addr += 1  # Advance address for each instruction
+        # Count instructions
+        instr_match = INSTR_PATTERN.match(cleaned)
+        if instr_match:
+            opcode = instr_match.group(1).upper()
+            if opcode in OPCODES:
+                addr += 1
 
     return labels
 
@@ -116,6 +127,156 @@ def resolve_target(target: str, labels: Dict[str, int]) -> int:
 
     # Look up label
     return labels.get(target, 0)
+
+
+def parse_instructions(ascii_content: str) -> List[Tuple[str, str]]:
+    """
+    Parse inline assembly instructions from ASCII content.
+
+    Instructions format: "OPCODE operand1, operand2 ; comment"
+    Labels format: ":labelname"
+
+    Returns list of (label_or_instruction, line) tuples
+    """
+    instructions = []
+    lines = ascii_content.split("\n")
+
+    for line in lines:
+        # Remove box characters and leading/trailing whitespace
+        cleaned = line.replace("│", " ").strip()
+
+        # Skip empty lines, comments-only lines, and non-code lines
+        if (
+            not cleaned
+            or cleaned.startswith("┌")
+            or cleaned.startswith("├")
+            or cleaned.startswith("└")
+            or cleaned.startswith("─")
+        ):
+            continue
+
+        # Check for label (must start with ':' as first character)
+        if cleaned.startswith(":"):
+            label_match = re.match(r":(\w+)", cleaned)
+            if label_match:
+                instructions.append(("LABEL", label_match.group(1)))
+            continue
+
+        # Check for instruction (e.g., "LDI r0, 10 ; comment")
+        # Must match: OPCODE followed by operands (comma-separated or spaced)
+        instr_match = INSTR_PATTERN.match(cleaned)
+        if instr_match:
+            opcode = instr_match.group(1).upper()
+            # Verify it's a known opcode
+            if opcode in OPCODES:
+                operands = instr_match.group(2)
+                instructions.append(("INSTR", f"{opcode} {operands}"))
+
+    return instructions
+
+
+def encode_instruction(instr: str, labels: Dict[str, int]) -> int:
+    """
+    Encode an assembly instruction into a u32 glyph.
+
+    Encoding: [opcode, stratum, p1, p2]
+
+    Supported formats:
+    - LDI r0, 10           -> Load immediate
+    - ADD r1, r2, r3       -> r3 = r1 + r2
+    - SUB r0, r0, 1        -> r0 = r0 - 1
+    - MOV r0, r1           -> r0 = r1
+    - JMP :loop            -> Jump to label
+    - JZ r0, :done         -> Jump if zero
+    - HALT                 -> Stop
+    """
+    import struct
+
+    parts = instr.split()
+    opcode = parts[0]
+
+    if opcode == "LDI" and len(parts) >= 3:
+        # LDI r0, 10 -> [204, 0, r0_reg, 10]
+        reg = parts[1].strip(",")
+        value = int(parts[2])
+        reg_num = int(reg[1:])  # r0 -> 0
+        return (204 << 24) | (reg_num << 16) | (value & 0xFFFF)
+
+    elif opcode == "MOV" and len(parts) >= 3:
+        # MOV r0, r1 -> [206, 0, r0, r1]
+        dst = parts[1].strip(",")
+        src = parts[2]
+        dst_reg = int(dst[1:])
+        src_reg = int(src[1:])
+        return (206 << 24) | (dst_reg << 16) | (src_reg << 8)
+
+    elif opcode == "ADD" and len(parts) >= 4:
+        # ADD r1, r2, r3 -> [5, 0, r1, r2]
+        dst = parts[1].strip(",")
+        src1 = parts[2].strip(",")
+        src2 = parts[3]
+        dst_reg = int(dst[1:])
+        src1_reg = int(src1[1:])
+        src2_reg = int(src2[1:])
+        return (5 << 24) | (dst_reg << 16) | (src1_reg << 8)
+
+    elif opcode == "SUB" and len(parts) >= 4:
+        # SUB r0, r0, 1 -> [6, 0, r0, r0]
+        dst = parts[1].strip(",")
+        src1 = parts[2].strip(",")
+        src2 = parts[3]
+        dst_reg = int(dst[1:])
+        src1_reg = int(src1[1:])
+        try:
+            src2_val = int(src2)
+        except ValueError:
+            src2_reg = int(src2[1:])
+            src2_val = src2_reg
+        return (6 << 24) | (dst_reg << 16) | (src1_reg << 8)
+
+    elif opcode == "JMP":
+        # JMP :loop -> [209, 0, addr_lo, addr_hi]
+        target = parts[1]
+        addr = resolve_target(target, labels)
+        return (209 << 24) | (addr & 0xFFFF)
+
+    elif opcode == "JZ" and len(parts) >= 3:
+        # JZ r0, :done -> [10, 0, r0, addr_lo/hi]
+        reg = parts[1].strip(",")
+        target = parts[2]
+        reg_num = int(reg[1:])
+        addr = resolve_target(target, labels)
+        return (10 << 24) | (reg_num << 16) | (addr & 0xFFFF)
+
+    elif opcode == "HALT":
+        return 13 << 24
+
+    elif opcode == "NOP":
+        return 0
+
+    else:
+        print(f"Warning: Unknown opcode: {opcode}")
+        return 0
+
+
+def create_program_section(
+    instructions: List[Tuple[str, str]], labels: Dict[str, int]
+) -> List[int]:
+    """
+    Create program bytecode from parsed instructions.
+
+    Returns list of u32 instructions ready for GPU execution.
+    """
+    program = []
+
+    for itype, content in instructions:
+        if itype == "LABEL":
+            continue  # Labels already resolved
+        elif itype == "INSTR":
+            encoded = encode_instruction(content, labels)
+            program.append(encoded)
+
+    return program
 
 
 def create_glyph_grid(ascii_content: str) -> np.ndarray:
@@ -227,6 +388,21 @@ def compile_cartridge(ascii_path: Path, mapping: Dict, output: Path) -> bool:
         print(f"  Resolved {len(labels)} labels: {list(labels.keys())}")
         for name, addr in labels.items():
             print(f"    :{name} -> 0x{addr:04X}")
+
+    # Parse inline instructions
+    inline_instructions = parse_instructions(ascii_content)
+    if inline_instructions:
+        print(f"  Parsed {len(inline_instructions)} inline instructions:")
+        for itype, content in inline_instructions[:10]:  # Show first 10
+            print(f"    [{itype}] {content}")
+        if len(inline_instructions) > 10:
+            print(f"    ... and {len(inline_instructions) - 10} more")
+        program = create_program_section(inline_instructions, labels)
+        print(f"  Generated {len(program)} bytecode instructions:")
+        for i, instr in enumerate(program[:10]):
+            print(f"    {i}: 0x{instr:08X}")
+        if len(program) > 10:
+            print(f"    ... and {len(program) - 10} more")
 
     glyph_grid = create_glyph_grid(ascii_content)
     patterns = detect_patterns(ascii_content)

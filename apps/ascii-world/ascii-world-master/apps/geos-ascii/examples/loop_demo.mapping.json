@@ -1,0 +1,30 @@
+{
+  "run": {
+    "opcode": "JUMP",
+    "target": "main"
+  },
+  "stop": {
+    "opcode": "EXIT",
+    "target": ""
+  },
+  "quit": {
+    "opcode": "EXIT",
+    "target": ""
+  },
+  "start": {
+    "opcode": "JUMP",
+    "target": "start"
+  },
+  "back": {
+    "opcode": "JUMP",
+    "target": "menu"
+  },
+  "next": {
+    "opcode": "JUMP",
+    "target": "next_page"
+  },
+  "prev": {
+    "opcode": "JUMP",
+    "target": "prev_page"
+  }
+}
