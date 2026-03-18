@@ -33,6 +33,12 @@ const OP_MOV: u32 = 206u;
 const OP_JMP: u32 = 209u;
 const OP_DRAW: u32 = 215u;
 
+// Pixel Framebuffer: 0x0700-0x0FFF (2304 bytes = 576 pixels)
+// 64x9 pixel display (576 total pixels, RGBA8)
+const FRAMEBUFFER_START: u32 = 0x0700u / 4u; // u32 index = 448
+const FRAMEBUFFER_WIDTH: u32 = 64u;
+const FRAMEBUFFER_HEIGHT: u32 = 9u;
+
 @compute @workgroup_size(1, 1, 1)
 fn main() {
     // 1. Process CPU Events -> Mailbox
