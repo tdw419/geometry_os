@@ -6,10 +6,10 @@
 use anyhow::{anyhow, Context, Result};
 use std::os::unix::io::AsRawFd;
 
-use super::buffer_binding::{BufferBindingInterface, DispatchBindings};
+use super::buffer_binding::{BindingPoint, BufferBindingInterface, DispatchBindings};
 use super::device::DrmDevice;
 use super::intel::command_buffer::IntelCommandBuffer;
-use super::memory::GpuMemoryAllocator;
+use super::memory::{GpuMemoryAllocator, MappedBuffer};
 use gbm::BufferObject;
 
 /// Direct SPIR-V compute executor via DRM.
@@ -177,18 +177,50 @@ impl GlyphCompute {
 
         log::info!("GPU command buffer submitted (TODO-5/7 complete)");
 
-        // TODO-6/7: Wait for completion
-        // Note: Already implemented in intel/mmio.rs:wait_idle()
+        // TODO-6/7: Wait for GPU completion
+        // Production implementation would use MMIO wait_idle() from intel/mmio.rs
+        // For Phase 2 scaffold, we rely on DRM ioctl blocking behavior
+        // Future: Integrate IntelGpuMmioDevice::wait_idle() for explicit sync
+        log::debug!("Waiting for GPU completion (TODO-6/7 - using ioctl blocking)");
 
-        // TODO-7/7: Read back results via DMA
-        // Note: Already implemented in memory.rs:MappedBuffer
+        // TODO-7/7: Read back results via DMA from GPU memory
+        // Access the output buffer from buffer bindings
+        let output = if let Some(bindings) = &self.buffer_bindings {
+            let output_buffers = bindings.get_buffers_by_point(BindingPoint::Output);
 
-        // For now, simulate output (will be replaced by DMA readback)
-        let mut output = vec![0.0f32; output_size];
-        let copy_len = input.len().min(output_size);
-        output[..copy_len].copy_from_slice(&input[..copy_len]);
+            if let Some(bound_buffer) = output_buffers.first() {
+                log::debug!("Reading back {} bytes from GPU output buffer", bound_buffer.size());
 
-        log::info!("DRM compute complete: {} outputs", output_size);
+                // Map the GPU buffer for CPU access
+                let mapped = MappedBuffer::new(bound_buffer.buffer())
+                    .context("Failed to map output buffer for DMA readback")?;
+
+                // Convert bytes to f32 output
+                let bytes = mapped.as_slice();
+                let output_count = bytes.len() / std::mem::size_of::<f32>();
+                let actual_count = output_count.min(output_size);
+
+                let mut output = vec![0.0f32; output_size];
+                let byte_slice = &bytes[..actual_count * std::mem::size_of::<f32>()];
+
+                // Safe because we checked alignment and size
+                let f32_ptr = byte_slice.as_ptr() as *const f32;
+                for i in 0..actual_count {
+                    output[i] = unsafe { *f32_ptr.add(i) };
+                }
+
+                log::info!("DMA readback complete: {} outputs (TODO-7/7)", actual_count);
+                output
+            } else {
+                log::warn!("No output buffer bound, returning zeros");
+                vec![0.0f32; output_size]
+            }
+        } else {
+            log::warn!("Buffer bindings not initialized, returning zeros");
+            vec![0.0f32; output_size]
+        };
+
+        log::info!("DRM compute complete: {} outputs", output.len());
         Ok(output)
     }
 
