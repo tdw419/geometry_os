@@ -298,6 +298,9 @@ pub struct InfiniteMapApp<'a> {
 
     // Phase 48: GPU Capabilities for i64 support detection
     pub gpu_caps: crate::gpu_capabilities::GpuCapabilities,
+
+    // Phase 49: Morph Visual Effect (ConsoleAction::Morph)
+    pub morph_effect_until: Option<std::time::Instant>,
 }
 
 /// Phase 42: Compilation status for visual feedback
@@ -522,6 +525,8 @@ impl<'a> InfiniteMapApp<'a> {
                 vendor_name: "Unknown".to_string(),
                 device_name: "Unknown".to_string(),
             },
+            // Phase 49: Morph visual effect - initially inactive
+            morph_effect_until: None,
         };
 
         // Initial filesystem scan
@@ -4283,13 +4288,17 @@ impl<'a> InfiniteMapApp<'a> {
                     }
                 },
                 ConsoleAction::Morph => {
-                    // Trigger a visual glitch or effect?
+                    // Trigger a visual glitch or effect
                     if let Some(console) = &mut self.neural_console {
                         console.writeln("Initiating Morphological Phase Shift...");
                         console.writeln("Warning: Metric Stability < 50%");
                         console.write_prompt();
                     }
-                    // TODO: Actually trigger visual effect in Renderer
+                    // Phase 49: Trigger morph visual effect for 2 seconds
+                    self.morph_effect_until = Some(std::time::Instant::now() + std::time::Duration::from_secs(2));
+                    // Increase aesthetic entropy to create visual disturbance
+                    self.diagnostic_overlay.set_aesthetic_entropy(0.85);
+                    log::info!("🌀 Morph effect triggered - visual disturbance active for 2s");
                 },
                 ConsoleAction::Quit => {
                     self.input_manager.set_possessed_window(None);
@@ -5234,6 +5243,15 @@ impl<'a> InfiniteMapApp<'a> {
             let tool_health = tm.get_health_sync();
             self.diagnostic_overlay
                 .update_system_from_tools(tool_health, Some(0.5));
+        }
+
+        // Phase 49: Reset morph effect when expired
+        if let Some(until) = self.morph_effect_until {
+            if std::time::Instant::now() >= until {
+                self.morph_effect_until = None;
+                self.diagnostic_overlay.set_aesthetic_entropy(0.1); // Return to calm
+                log::info!("🌀 Morph effect expired - visual stability restored");
+            }
         }
 
         // Update aesthetic entropy (Phase 1 shim)
