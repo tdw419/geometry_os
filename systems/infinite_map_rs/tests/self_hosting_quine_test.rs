@@ -211,6 +211,43 @@ mod tests {
             shadow[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
         }
 
+        // CRITICAL TEST: Skip execute_frame and verify texture is preserved
+        // This will tell us if execute_frame is corrupting the texture
+        println!("\n=== BYPASSING execute_frame - Testing texture preservation ===");
+        println!("Skipping compute shader to verify texture data persists...");
+
+        // Just do a no-op submit to see if texture is preserved
+        {
+            let mut encoder = scheduler.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("No-op Encoder"),
+            });
+            // No operations - just submit empty command buffer
+            scheduler.queue.submit(std::iter::once(encoder.finish()));
+            scheduler.device.poll(wgpu::Maintain::Wait);
+        }
+
+        // Verify texture after no-op submit
+        scheduler.sync_gpu_to_shadow();
+        let noop_instr_0 = scheduler.peek_substrate_single(0);
+        println!("  After no-op submit: instr[0] = {:08X} (expected {:08X})", noop_instr_0, assembled.words[0]);
+
+        if noop_instr_0 != assembled.words[0] {
+            println!("\n  ⚠️  TEXTURE CORRUPTED BY EMPTY SUBMIT!");
+            panic!("GPU texture corrupted by no-op command buffer submission");
+        } else {
+            println!("  ✓ Texture preserved after no-op submit");
+        }
+
+        // Restore shadow RAM again
+        for (i, word) in assembled.words.iter().enumerate() {
+            let mut shadow = shadow_ram.lock().unwrap();
+            let offset = i * 4;
+            shadow[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
+        }
+
+        // NOW run the actual compute shader
+        println!("\n=== Running actual execute_frame ===");
+
         // Execute frames with early termination if halted
         println!("\nExecuting (max 1000 frames)...");
         let max_frames = 1000;

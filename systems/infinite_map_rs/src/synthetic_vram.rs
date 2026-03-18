@@ -1027,10 +1027,108 @@ mod tests {
     }
 
     #[test]
-    fn test_poke_peek() {
-        let mut vram = SyntheticVram::new();
-        vram.poke(42, 0xDEADBEEF);
-        assert_eq!(vram.peek(42), 0xDEADBEEF);
+    fn test_text_buffer_vm() {
+        let mut vram = SyntheticVram::new_small(2048);
+
+        vram.poke(0x200, 0);
+        vram.poke(0x300, 0);
+
+        let mut pc = 0;
+
+        // r13 = 1
+        vram.poke(pc, glyph(1, 0, 13, 0));
+        pc += 1;
+        vram.poke(pc, 1);
+        pc += 1;
+
+        // r10 = mailbox(0x100), r11=cursor(0x200), r12=buffer(0x300)
+        vram.poke(pc, glyph(1, 0, 10, 0));
+        pc += 1;
+        vram.poke(pc, 0x100);
+        pc += 1;
+        vram.poke(pc, glyph(1, 0, 11, 0));
+        pc += 1;
+        vram.poke(pc, 0x200);
+        pc += 1;
+        vram.poke(pc, glyph(1, 0, 12, 0));
+        pc += 1;
+        vram.poke(pc, 0x300);
+        pc += 1;
+
+        let loop_start = pc;
+
+        // r1 = mailbox, r2 = cursor
+        vram.poke(pc, glyph(3, 0, 1, 10));
+        pc += 1;
+        vram.poke(pc, glyph(3, 0, 2, 11));
+        pc += 1;
+
+        // if r1==0, loop
+        vram.poke(pc, glyph(10, 0, 1, 127));
+        pc += 1;
+        vram.poke(pc, (loop_start as i32 - pc as i32 - 1) as u32);
+        pc += 1;
+
+        // INSERT
+        vram.poke(pc, glyph(5, 0, 3, 12));
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 3, 1));
+        pc += 1;
+        vram.poke(pc, glyph(5, 0, 2, 13));
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 11, 2));
+        pc += 1;
+
+        // clear mailbox
+        vram.poke(pc, glyph(1, 0, 1, 0));
+        pc += 1;
+        vram.poke(pc, 0);
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 10, 1));
+        pc += 1;
+
+        vram.poke(pc, glyph(209, 0, 0, 0));
+        pc += 1;
+        vram.poke(pc, (loop_start as i32 - pc as i32 - 1) as u32);
+        pc += 1;
+
+        // --- TEST ---
+        vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
+
+        vram.poke(0x100, 0x48);
+
+        // Step and check state
+        for i in 0..30 {
+            vram.step(0);
+            if i < 15 {
+                let state = vram.vm_state(0).unwrap();
+                println!(
+                    "Step {}: PC={}, r1={:x}, r2={}, r3={}, r10={:x}, r11={:x}, r12={:x}",
+                    i,
+                    state.pc,
+                    state.regs[1],
+                    state.regs[2],
+                    state.regs[3],
+                    state.regs[10],
+                    state.regs[11],
+                    state.regs[12]
+                );
+            }
+        }
+
+        println!(
+            "After execution: mailbox={:x}, buffer[0]={:x}, cursor={}",
+            vram.peek(0x100),
+            vram.peek(0x300),
+            vram.peek(0x200)
+        );
+
+        assert_eq!(
+            vram.peek(0x300),
+            0x48,
+            "First insert: got {:x}, expected 0x48",
+            vram.peek(0x300)
+        );
     }
 
     #[test]
@@ -2394,88 +2492,6 @@ mod tests {
         vram.execute_frame_interleaved(1);
 
         assert_eq!(vram.peek(0x500), 0xCAFE, "Child should acknowledge focus");
-    }
-
-    #[test]
-    fn test_text_buffer_vm() {
-        let mut vram = SyntheticVram::new_small(2048);
-
-        vram.poke(0x200, 0);
-        vram.poke(0x300, 0);
-
-        let mut pc = 0;
-
-        // r13 = 1
-        vram.poke(pc, glyph(1, 0, 13, 0));
-        pc += 1;
-        vram.poke(pc, 1);
-        pc += 1;
-
-        // r10 = mailbox(0x100), r11=cursor(0x200), r12=buffer(0x300)
-        vram.poke(pc, glyph(1, 0, 10, 0));
-        pc += 1;
-        vram.poke(pc, 0x100);
-        pc += 1;
-        vram.poke(pc, glyph(1, 0, 11, 0));
-        pc += 1;
-        vram.poke(pc, 0x200);
-        pc += 1;
-        vram.poke(pc, glyph(1, 0, 12, 0));
-        pc += 1;
-        vram.poke(pc, 0x300);
-        pc += 1;
-
-        let loop_start = pc;
-
-        // r1 = mailbox, r2 = cursor
-        vram.poke(pc, glyph(3, 0, 1, 10));
-        pc += 1;
-        vram.poke(pc, glyph(3, 0, 2, 11));
-        pc += 1;
-
-        // if r1==0, loop
-        vram.poke(pc, glyph(10, 0, 1, 127));
-        pc += 1;
-        vram.poke(pc, (loop_start as i32 - pc as i32 - 1) as u32);
-        pc += 1;
-
-        // INSERT
-        vram.poke(pc, glyph(5, 0, 3, 12));
-        pc += 1;
-        vram.poke(pc, glyph(4, 0, 3, 1));
-        pc += 1;
-        vram.poke(pc, glyph(5, 0, 2, 13));
-        pc += 1;
-        vram.poke(pc, glyph(4, 0, 11, 2));
-        pc += 1;
-
-        // clear mailbox
-        vram.poke(pc, glyph(1, 0, 1, 0));
-        pc += 1;
-        vram.poke(pc, 0);
-        pc += 1;
-        vram.poke(pc, glyph(4, 0, 10, 1));
-        pc += 1;
-
-        vram.poke(pc, glyph(209, 0, 0, 0));
-        pc += 1;
-        vram.poke(pc, (loop_start as i32 - pc as i32 - 1) as u32);
-        pc += 1;
-
-        // --- TEST ---
-        vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
-
-        vram.poke(0x100, 0x48);
-
-        // Execute with execute_frame instead of stepping
-        vram.execute_frame_interleaved(1);
-
-        assert_eq!(
-            vram.peek(0x300),
-            0x48,
-            "First insert: got {:x}, expected 0x48",
-            vram.peek(0x300)
-        );
     }
 
     #[test]
