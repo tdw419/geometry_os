@@ -67,7 +67,7 @@ pub const CONFIG: Config = Config {
     max_zoom: 5.0,
     damping: 0.1,
     grid_size: 100.0,
-    use_wlu_gpu: false, // CPU backend by default for stability
+    use_wlu_gpu: true, // GPU backend enabled for production (Phase 4 complete, fallback to CPU on init failure)
 };
 
 pub struct InfiniteMapApp<'a> {
