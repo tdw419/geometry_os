@@ -10,8 +10,30 @@
 //! - Blits results to the output texture
 
 use crate::entities::execution_zone::ExecutionZone;
+use crate::ui::zone_overlay::{BorderColor, BorderRenderConfig};
 use std::sync::Arc;
 use wgpu::{CommandEncoder, Device, Texture, TextureView};
+
+/// Uniform buffer structure for border shader
+/// Must match the BorderUniforms struct in border_quad.wgsl
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct BorderUniforms {
+    /// Tile position in world coordinates (top-left)
+    tile_pos: [f32; 2],
+    /// Tile size in pixels
+    tile_size: [f32; 2],
+    /// Border thickness in pixels
+    border_thickness: f32,
+    /// Padding to align to 16 bytes
+    _pad1: f32,
+    /// Border color (r, g, b, a)
+    border_color: [f32; 4],
+    /// Screen dimensions
+    screen_size: [f32; 2],
+    /// Padding to align total struct to 16 bytes
+    _pad2: [f32; 2],
+}
 
 /// Execution Zone Renderer
 ///
@@ -32,8 +54,18 @@ pub struct ExecutionZoneRenderer {
     /// for encoding render commands and managing GPU resources during the
     /// rendering process.
     device: Arc<Device>,
+    /// WebGPU queue for submitting commands
+    queue: Arc<wgpu::Queue>,
     /// Collection of execution zones to render
     zones: Vec<ExecutionZone>,
+    /// Border rendering pipeline (lazy-initialized)
+    border_pipeline: Option<wgpu::RenderPipeline>,
+    /// Border uniform buffer (lazy-initialized)
+    border_uniform_buffer: Option<wgpu::Buffer>,
+    /// Border bind group (lazy-initialized)
+    border_bind_group: Option<wgpu::BindGroup>,
+    /// Border bind group layout (lazy-initialized)
+    border_bind_group_layout: Option<wgpu::BindGroupLayout>,
 }
 
 impl ExecutionZoneRenderer {
@@ -46,10 +78,15 @@ impl ExecutionZoneRenderer {
     /// # Returns
     ///
     /// A new ExecutionZoneRenderer instance
-    pub fn new(device: Arc<Device>) -> Self {
+    pub fn new(device: Arc<Device>, queue: Arc<wgpu::Queue>) -> Self {
         Self {
             device,
+            queue,
             zones: Vec::new(),
+            border_pipeline: None,
+            border_uniform_buffer: None,
+            border_bind_group: None,
+            border_bind_group_layout: None,
         }
     }
 
@@ -85,6 +122,113 @@ impl ExecutionZoneRenderer {
         self.add_zone(zone.clone());
     }
 
+    /// Initialize border rendering pipeline (lazy initialization)
+    ///
+    /// Creates the border shader pipeline, uniform buffer, and bind groups.
+    /// This is called lazily when borders need to be rendered for the first time.
+    ///
+    /// # Arguments
+    ///
+    /// * `surface_format` - Texture format of the output surface
+    fn initialize_border_pipeline(&mut self, surface_format: wgpu::TextureFormat) {
+        // Skip if already initialized
+        if self.border_pipeline.is_some() {
+            return;
+        }
+
+        log::info!("Initializing border rendering pipeline");
+
+        // Load border shader
+        let border_shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Border Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/border_quad.wgsl").into()),
+        });
+
+        // Create bind group layout
+        let bind_group_layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Border Bind Group Layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+        });
+
+        // Create pipeline layout
+        let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Border Pipeline Layout"),
+            bind_group_layouts: &[&bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
+        // Create render pipeline
+        let pipeline = self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Border Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &border_shader,
+                entry_point: "vs_main",
+                buffers: &[],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &border_shader,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: surface_format,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: None,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                unclipped_depth: false,
+                conservative: false,
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview: None,
+        });
+
+        // Create uniform buffer (initialized with dummy values)
+        let uniform_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Border Uniform Buffer"),
+            size: std::mem::size_of::<BorderUniforms>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // Create bind group
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Border Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: uniform_buffer.as_entire_binding(),
+                },
+            ],
+        });
+
+        // Store all resources
+        self.border_pipeline = Some(pipeline);
+        self.border_uniform_buffer = Some(uniform_buffer);
+        self.border_bind_group = Some(bind_group);
+        self.border_bind_group_layout = Some(bind_group_layout);
+
+        log::info!("Border rendering pipeline initialized successfully");
+    }
+
     /// Render all execution zones
     ///
     /// Iterates through all zones and renders them based on their active state.
@@ -116,6 +260,10 @@ impl ExecutionZoneRenderer {
                 self.blit_results(encoder, zone, output_texture);
             }
         }
+
+        // Render borders for all zones
+        let screen_size = (output_texture.width() as f32, output_texture.height() as f32);
+        self.render_borders(encoder, output_texture, screen_size);
     }
 
     /// Render an active execution zone
@@ -342,6 +490,109 @@ impl ExecutionZoneRenderer {
                 zone.shader_name
             );
         }
+    }
+
+    /// Render borders for all execution zones
+    ///
+    /// Creates a render pass and draws borders around all zones.
+    /// Active zones get green borders, inactive zones get gray borders.
+    ///
+    /// # Arguments
+    ///
+    /// * `encoder` - Command encoder for recording rendering commands
+    /// * `output_texture` - Output texture to render borders to
+    /// * `screen_size` - Screen dimensions in pixels
+    fn render_borders(
+        &mut self,
+        encoder: &mut CommandEncoder,
+        output_texture: &Texture,
+        screen_size: (f32, f32),
+    ) {
+        // Skip if no zones
+        if self.zones.is_empty() {
+            return;
+        }
+
+        // Initialize pipeline if needed
+        let surface_format = output_texture.format();
+        self.initialize_border_pipeline(surface_format);
+
+        // Get pipeline resources (safe to unwrap after initialization)
+        let pipeline = self.border_pipeline.as_ref().unwrap();
+        let uniform_buffer = self.border_uniform_buffer.as_ref().unwrap();
+        let bind_group = self.border_bind_group.as_ref().unwrap();
+
+        // Create texture view for render pass
+        let output_view = output_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        // Create render pass with LoadOp::Load to preserve existing content
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Border Render Pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &output_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load, // Preserve existing content
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+
+        // Set pipeline and bind group
+        render_pass.set_pipeline(pipeline);
+        render_pass.set_bind_group(0, bind_group, &[]);
+
+        // Render border for each zone
+        for zone in &self.zones {
+            // Generate border config
+            let border_config = crate::ui::zone_overlay::render_zone_border(
+                zone.position,
+                (256.0, 256.0), // Standard zone size
+                zone.pipeline().is_some(), // Active if has pipeline
+            );
+
+            // Convert BorderColor to RGBA
+            let border_color = match border_config.color {
+                BorderColor::Active => [0.2, 0.8, 0.3, 1.0], // Green
+                BorderColor::Inactive => [0.5, 0.5, 0.5, 0.8], // Gray
+                BorderColor::Error => [0.9, 0.2, 0.2, 1.0], // Red
+            };
+
+            // Create uniforms for this zone
+            let uniforms = BorderUniforms {
+                tile_pos: [border_config.top_left().x, border_config.top_left().y],
+                tile_size: [border_config.width, border_config.height],
+                border_thickness: border_config.line_width,
+                _pad1: 0.0,
+                border_color,
+                screen_size: [screen_size.0, screen_size.1],
+                _pad2: [0.0, 0.0],
+            };
+
+            // Update uniform buffer
+            // Note: In a production system, we'd use a dynamic uniform buffer
+            // or staging buffer for better performance
+            self.queue.write_buffer(
+                uniform_buffer,
+                0,
+                bytemuck::cast_slice(&[uniforms]),
+            );
+
+            // Draw border (6 vertices for 2 triangles forming a quad)
+            render_pass.draw(0..6, 0..1);
+
+            log::trace!(
+                "Rendered border for zone '{}' at ({}, {})",
+                zone.shader_name,
+                zone.position.x,
+                zone.position.y
+            );
+        }
+
+        log::debug!("Rendered borders for {} zones", self.zones.len());
     }
 
     /// Get reference to the WebGPU device

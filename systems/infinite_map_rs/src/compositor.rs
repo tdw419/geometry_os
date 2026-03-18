@@ -52,15 +52,16 @@ impl Compositor {
     /// # Returns
     ///
     /// A new Compositor instance
-    pub fn new(device: Arc<wgpu::Device>) -> Self {
+    pub fn new(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>) -> Self {
         // Clone the Arc for the renderer
         let device_clone = Arc::clone(&device);
+        let queue_clone = Arc::clone(&queue);
 
         Self {
             device,
             execution_zones: Vec::new(),
             rts_particles: Vec::new(),
-            zone_renderer: ExecutionZoneRenderer::new(device_clone),
+            zone_renderer: ExecutionZoneRenderer::new(device_clone, queue_clone),
         }
     }
 
@@ -324,11 +325,22 @@ mod tests {
         panic!("Mock device creation not implemented - requires wgpu testing framework");
     }
 
+    /// Create a mock queue for testing
+    /// This is a placeholder that will panic if called.
+    /// Real tests should use a proper testing framework like
+    /// wgpu-test or similar for actual device/queue creation.
+    fn create_mock_queue() -> Arc<wgpu::Queue> {
+        // Placeholder implementation
+        // In real tests, we would use wgpu::Queue from device request
+        panic!("Mock queue creation not implemented - requires wgpu testing framework");
+    }
+
     #[test]
     #[ignore = "Requires actual WebGPU device"]
     fn test_compositor_creation() {
         let device = create_mock_device();
-        let compositor = Compositor::new(device);
+        let queue = create_mock_queue();
+        let compositor = Compositor::new(device, queue);
 
         assert_eq!(compositor.zone_count(), 0);
         assert!(compositor.execution_zones().is_empty());
@@ -338,7 +350,8 @@ mod tests {
     #[ignore = "Requires actual WebGPU device"]
     fn test_add_execution_zone() {
         let device = create_mock_device();
-        let mut compositor = Compositor::new(device);
+        let queue = create_mock_queue();
+        let mut compositor = Compositor::new(device, queue);
 
         let zone = ExecutionZone::new(
             Vec2::new(100.0, 200.0),
@@ -370,7 +383,8 @@ mod tests {
     fn test_compositor_initial_rts_particle_count() {
         // Test that compositor starts with no RTS particles
         let device = create_mock_device();
-        let compositor = Compositor::new(device);
+        let queue = create_mock_queue();
+        let compositor = Compositor::new(device, queue);
 
         assert_eq!(compositor.rts_particle_count(), 0);
         assert!(compositor.rts_particles().is_empty());
@@ -380,7 +394,8 @@ mod tests {
     #[ignore = "Requires actual WebGPU device and valid PixelRTS v2 PNG"]
     fn test_add_rts_particle() {
         let device = create_mock_device();
-        let mut compositor = Compositor::new(device);
+        let queue = create_mock_queue();
+        let mut compositor = Compositor::new(device, queue);
 
         // Create a test PNG with PixelRTS metadata
         let test_png = create_test_pixelrts_png();

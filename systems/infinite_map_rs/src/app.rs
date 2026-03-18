@@ -2724,9 +2724,10 @@ impl<'a> InfiniteMapApp<'a> {
         log::info!("🎨 Initializing Execution Zone Compositor...");
 
         let device = self.renderer.get_device();
+        let queue = self.renderer.get_queue();
 
-        // Create the compositor with the device
-        let compositor = crate::Compositor::new(device);
+        // Create the compositor with the device and queue
+        let compositor = crate::Compositor::new(device, queue);
 
         self.compositor = Some(compositor);
 
