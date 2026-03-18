@@ -28,6 +28,15 @@ mod tests {
             force_fallback_adapter: false,
         }))?;
 
+        // Print adapter info for debugging
+        let info = adapter.get_info();
+        println!("\n=== GPU ADAPTER INFO ===");
+        println!("  Name: {}", info.name);
+        println!("  Vendor: {}", info.vendor);
+        println!("  Backend: {:?}", info.backend);
+        println!("  DeviceType: {:?}", info.device_type);
+        println!("=========================\n");
+
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: Some("Self-Hosting Quine Test"),
@@ -176,6 +185,12 @@ mod tests {
         };
         scheduler.spawn_vm(1, &config).expect("Failed to spawn VM");
         println!("VM 1 spawned successfully");
+
+        // Verify VM state right after spawn
+        let post_spawn_state = scheduler.get_vm_state(1);
+        let post_spawn_pc = scheduler.get_vm_pc(1);
+        println!("  Post-spawn VM state: {:?}", post_spawn_state);
+        println!("  Post-spawn VM PC: {:?}", post_spawn_pc);
 
         // Execute frames with early termination if halted
         println!("\nExecuting (max 1000 frames)...");
