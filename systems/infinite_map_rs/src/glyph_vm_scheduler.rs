@@ -916,11 +916,10 @@ impl GlyphVmScheduler {
                 );
             }
 
-            // Submit all queued writes in one batch
-            self.queue.submit([]);
-            self.device.poll(wgpu::Maintain::Wait);
-
-            log::debug!("[BATCH] wrote {} words starting at 0x{:x}", words.len(), base_addr);
+            // NOTE: Do NOT submit/poll here - let execute_frame() submit everything together.
+            // This matches the behavior of poke_substrate_single and the working tests.
+            // Explicit submit/poll was causing texture synchronization issues.
+            log::debug!("[BATCH] queued {} words starting at 0x{:x}", words.len(), base_addr);
         }
     }
 

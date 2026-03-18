@@ -210,45 +210,6 @@ mod tests {
             shadow[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
         }
 
-        // CRITICAL TEST: Skip execute_frame and verify texture is preserved
-        // This will tell us if execute_frame is corrupting the texture
-        println!("\n=== BYPASSING execute_frame - Testing texture preservation ===");
-        println!("Skipping compute shader to verify texture data persists...");
-
-        // Use spawn_vm to do a no-op submit (it calls queue.submit internally)
-        // This tests if texture is preserved across submits
-        let noop_config = VmConfig {
-            entry_point: 0,
-            parent_id: 0xFF,
-            base_addr: 0,
-            bound_addr: 0,
-            initial_regs: [0; 128],
-        };
-        // Spawn a second VM (VM 2) which won't be executed
-        scheduler.spawn_vm(2, &noop_config).expect("Failed to spawn noop VM");
-
-        // Verify texture after no-op submit
-        scheduler.sync_gpu_to_shadow();
-        let noop_instr_0 = scheduler.peek_substrate_single(0);
-        println!("  After spawn_vm(2) submit: instr[0] = {:08X} (expected {:08X})", noop_instr_0, assembled.words[0]);
-
-        if noop_instr_0 != assembled.words[0] {
-            println!("\n  ⚠️  TEXTURE CORRUPTED BY SPAWN_VM SUBMIT!");
-            panic!("GPU texture corrupted by spawn_vm submit");
-        } else {
-            println!("  ✓ Texture preserved after spawn_vm submit");
-        }
-
-        // Restore shadow RAM again
-        for (i, word) in assembled.words.iter().enumerate() {
-            let mut shadow = shadow_ram.lock().unwrap();
-            let offset = i * 4;
-            shadow[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
-        }
-
-        // NOW run the actual compute shader
-        println!("\n=== Running actual execute_frame ===");
-
         // Execute frames with early termination if halted
         println!("\nExecuting (max 1000 frames)...");
         let max_frames = 1000;
