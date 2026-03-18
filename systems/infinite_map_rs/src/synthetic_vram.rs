@@ -4561,150 +4561,345 @@ mod tests {
     }
 
     // ====================================================================
-    // FULL PIXEL PAINTER LOOP - Bootstrap to Paint to Execute
+    // SELF-HOSTING EDITOR - Edit, Compile, Run
     // ====================================================================
 
     #[test]
-    fn test_pixel_painter_full_loop() {
+    fn test_self_hosting_editor_insert() {
         println!("\n{}", "=".repeat(60));
-        println!("PIXEL PAINTER: Bootstrap → Paint → Execute");
+        println!("SELF-HOSTING EDITOR: Insert characters into buffer");
         println!("{}", "=".repeat(60));
 
-        let mut vram = SyntheticVram::new_small(256);
-        vram.enable_provenance();
+        let mut vram = SyntheticVram::new_small(8192);
 
-        // === STEP 1: BOOTSTRAP PIXEL PAINTER ===
-        println!("\n[STEP 1] Bootstrap Pixel Painter program...");
+        // Helper: emit LDI instruction
+        let mut emit_ldi = |vram: &mut SyntheticVram, pc: &mut u32, reg: u8, val: u32| {
+            vram.poke(*pc, glyph(1, 0, reg, 0));
+            *pc += 1;
+            vram.poke(*pc, val);
+            *pc += 1;
+        };
 
+        // === LOAD TEXT EDITOR PROGRAM (simplified) ===
+        // Memory: 0x100=cursor, 0x101=buffer_len, 0x200=mailbox, 0x1000=buffer
         let mut pc = 0u32;
 
-        // Initialize palette
-        vram.poke(0x0100, 0x00000000); // NOP
-        vram.poke(0x0101, 0x00000001); // LDI
-        vram.poke(0x0102, 0x00000003); // LOAD
-        vram.poke(0x0103, 0x00000004); // STORE
-        vram.poke(0x0104, 0x00000005); // ADD
-        vram.poke(0x0105, 0x00000006); // SUB
-        vram.poke(0x0106, 0x00000007); // MUL
-        vram.poke(0x0107, 0x0000000D); // HALT
+        emit_ldi(&mut vram, &mut pc, 13, 1); // r13 = 1
+        emit_ldi(&mut vram, &mut pc, 127, 0); // r127 = 0
+        emit_ldi(&mut vram, &mut pc, 0, 0x200); // r0 = mailbox
+        emit_ldi(&mut vram, &mut pc, 1, 0x100); // r1 = state
+        emit_ldi(&mut vram, &mut pc, 2, 0x1000); // r2 = buffer
 
-        // Setup: r10=mailbox, r11=palette, r12=canvas, r13=width
-        vram.poke_glyph(pc, 1, 0, 10, 0);
-        pc += 1;
-        vram.poke(pc, 0x00000200);
-        pc += 1;
-
-        vram.poke_glyph(pc, 1, 0, 11, 0);
-        pc += 1;
-        vram.poke(pc, 0x00000100);
-        pc += 1;
-
-        vram.poke_glyph(pc, 1, 0, 12, 0);
-        pc += 1;
-        vram.poke(pc, 0x00001000);
-        pc += 1;
-
-        vram.poke_glyph(pc, 1, 0, 13, 0);
-        pc += 1;
-        vram.poke(pc, 64);
-        pc += 1;
-
-        let loop_start = pc;
-
-        // Read event
-        vram.poke_glyph(pc, 3, 0, 10, 0);
-        pc += 1;
-        vram.poke_glyph(pc, 3, 0, 10, 1);
-        pc += 1;
-        vram.poke_glyph(pc, 3, 0, 10, 2);
-        pc += 1;
-        vram.poke_glyph(pc, 3, 0, 10, 3);
-        pc += 1;
-
-        // If button == 0, skip
-        vram.poke_glyph(pc, 10, 0, 3, 0);
-        pc += 1;
-        let skip_addr = pc;
+        // Main event loop
+        let event_loop = pc;
+        vram.poke(pc, glyph(3, 0, 0, 3));
+        pc += 1; // LOAD r3, [r0]
         vram.poke(pc, 0);
         pc += 1;
 
-        // Calculate addr = y*width + x + canvas
-        vram.poke_glyph(pc, 7, 0, 13, 6);
+        // If r3 == 0, loop
+        vram.poke(pc, glyph(10, 0, 3, 127));
         pc += 1;
-        vram.poke_glyph(pc, 5, 0, 1, 6);
-        pc += 1;
-        vram.poke_glyph(pc, 5, 0, 12, 7);
+        vram.poke(pc, (event_loop as i32 - pc as i32 - 1) as u32);
         pc += 1;
 
-        // Read brush from palette[1] (LDI)
-        vram.poke_glyph(pc, 3, 0, 11, 8);
+        // Dispatch: INSERT (type=1)
+        emit_ldi(&mut vram, &mut pc, 4, 1);
+        vram.poke(pc, glyph(10, 0, 3, 4));
         pc += 1;
-        vram.poke_glyph(pc, 4, 0, 7, 8);
+        let insert_off = pc;
         pc += 1;
 
-        // Clear mailbox
-        vram.poke_glyph(pc, 1, 0, 9, 0);
+        // Unknown: clear and loop
+        emit_ldi(&mut vram, &mut pc, 5, 0);
+        vram.poke(pc, glyph(4, 0, 0, 5));
+        pc += 1; // STORE [r0], r5
+        let clear_jmp = pc;
+        let jmp_back = event_loop as i32 - pc as i32 - 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8));
+        pc += 1;
+
+        // INSERT handler
+        vram.poke(insert_off, (pc as i32 - insert_off as i32 - 1) as u32);
+        // r4 = mailbox addr + 1 (for char)
+        emit_ldi(&mut vram, &mut pc, 4, 0x201);
+        // r7 = char from mailbox
+        vram.poke(pc, glyph(3, 0, 4, 7));
         pc += 1;
         vram.poke(pc, 0);
         pc += 1;
-        vram.poke_glyph(pc, 4, 0, 10, 9);
+        // r8 = cursor
+        vram.poke(pc, glyph(3, 0, 1, 8));
+        pc += 1;
+        vram.poke(pc, 0);
+        pc += 1;
+        // r9 = buffer + cursor
+        vram.poke(pc, glyph(5, 0, 2, 9));
+        pc += 1; // ADD r9, r2, r8
+                 // Store char
+        vram.poke(pc, glyph(4, 0, 9, 7));
+        pc += 1; // STORE [r9], r7
+                 // cursor++
+        vram.poke(pc, glyph(5, 0, 13, 8));
+        pc += 1; // ADD r8, r8, r13
+        vram.poke(pc, glyph(4, 0, 1, 8));
+        pc += 1; // STORE [r1], r8
+                 // buffer_len++
+        vram.poke(pc, glyph(3, 0, 1, 10));
+        pc += 1;
+        vram.poke(pc, 1);
+        pc += 1; // offset 1
+        vram.poke(pc, glyph(5, 0, 13, 10));
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 1, 10));
+        pc += 1;
+        // Clear and loop
+        vram.poke(pc, glyph(4, 0, 0, 127));
+        pc += 1; // STORE [r0], r127
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8));
         pc += 1;
 
-        // Loop
-        vram.poke_glyph(pc, 9, 0, 0, 0);
-        pc += 1;
-        vram.poke(pc, (loop_start as i32 - pc as i32 - 1) as u32);
-        pc += 1;
+        // Spawn VM
+        vram.spawn_vm(
+            0,
+            &SyntheticVmConfig {
+                entry_point: 0,
+                parent_id: 0xFF,
+                base_addr: 0,
+                bound_addr: 0x8000,
+                eap_coord: 0,
+                generation: 0,
+                initial_regs: [0; 128],
+            },
+        )
+        .unwrap();
 
-        let skip_target = pc;
-        vram.poke(
-            skip_addr,
-            (skip_target as i32 - skip_addr as i32 - 1) as u32,
-        );
+        // === SEND INSERT 'H' (ASCII 72) ===
+        println!("\n[STEP 1] Send INSERT 'H' (ASCII 72)");
+        vram.poke(0x200, 1); // event type = INSERT
+        vram.poke(0x201, 72); // char = 'H'
 
-        println!("  Painter: {} instructions", pc);
+        // Run a few cycles to process the event
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
 
-        // === STEP 2: PAINT WITH MOUSE ===
-        println!("\n[STEP 2] Simulate mouse clicks...");
-
-        let mut painter_config = SyntheticVmConfig::default();
-        painter_config.entry_point = 0;
-        vram.spawn_vm(0, &painter_config).unwrap();
-
-        // Click at x=10, y=10
-        vram.poke(0x0200, 1);
-        vram.poke(0x0201, 10);
-        vram.poke(0x0202, 10);
-        vram.poke(0x0203, 1);
-
-        vram.execute_frame_with_limit(30);
-
-        // === STEP 3: EXECUTE PAINTED PROGRAM ===
-        println!("\n[STEP 3] Execute painted program...");
-
-        // Write a simple painted program
-        // LDI r1, 42; HALT at addr 0x2000
-        // LDI encoding: glyph(1, 0, rd, 0) + immediate
-        let program = 0x2000;
-        vram.poke_glyph(program, 1, 0, 1, 0); // LDI r1, imm
-        vram.poke(program + 1, 42); // immediate 42
-        vram.poke_glyph(program + 2, 13, 0, 0, 0); // HALT
-
-        let mut exec_config = SyntheticVmConfig::default();
-        exec_config.entry_point = program;
-        exec_config.generation = 1;
-        vram.spawn_vm(1, &exec_config).unwrap();
-
-        vram.execute_frame_with_limit(10);
-
-        let vm = vram.vm_state(1).unwrap();
-        println!("  r1 = {} (from painted LDI #42)", vm.regs[1]);
+        let vm = vram.vm_state(0).unwrap();
+        println!("  pc = {}", vm.pc);
         println!("  halted = {}", vm.halted);
+        println!("  cursor = {}", vm.regs[8]);
+        println!("  buffer[0] = {}", vram.peek(0x1000));
+        assert_eq!(vram.peek(0x1000), 72, "First char should be 'H'");
+        assert_eq!(vm.regs[8], 1, "cursor should be 1");
 
-        assert_eq!(vm.regs[1], 42);
+        // Clear mailbox first
+        vram.poke(0x200, 0);
+        vram.poke(0x201, 0);
+
+        // === SEND INSERT 'E' (ASCII 69) ===
+        println!("\n[STEP 2] Send INSERT 'E' (ASCII 69)");
+        vram.poke(0x200, 1); // event type = INSERT
+        vram.poke(0x201, 69); // char = 'E'
+        println!("  mailbox[0] = {}", vram.peek(0x200));
+        println!("  mailbox[1] = {}", vram.peek(0x201));
+
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
+
+        let vm = vram.vm_state(0).unwrap();
+        println!("  pc = {}", vm.pc);
+        println!("  halted = {}", vm.halted);
+        println!("  cursor = {}", vm.regs[8]);
+        println!("  buffer[0] = {}", vram.peek(0x1000));
+        println!("  buffer[1] = {}", vram.peek(0x1001));
+        assert_eq!(vram.peek(0x1000), 72);
+        assert_eq!(vram.peek(0x1001), 69);
+        assert_eq!(vm.regs[8], 2, "cursor should be 2");
 
         println!("\n{}", "=".repeat(60));
-        println!("SUCCESS: Painted program executed!");
-        println!("No Rust used for the executed program.");
+        println!("SUCCESS: Editor can insert characters!");
+    }
+
+    #[test]
+    fn test_self_hosting_editor_cursor() {
+        println!("\n{}", "=".repeat(60));
+        println!("SELF-HOSTING EDITOR: Cursor movement");
+        println!("{}", "=".repeat(60));
+
+        let mut vram = SyntheticVram::new_small(8192);
+
+        let mut emit_ldi = |vram: &mut SyntheticVram, pc: &mut u32, reg: u8, val: u32| {
+            vram.poke(*pc, glyph(1, 0, reg, 0));
+            *pc += 1;
+            vram.poke(*pc, val);
+            *pc += 1;
+        };
+
+        let mut pc = 0u32;
+        emit_ldi(&mut vram, &mut pc, 13, 1);
+        emit_ldi(&mut vram, &mut pc, 127, 0);
+        emit_ldi(&mut vram, &mut pc, 0, 0x200);
+        emit_ldi(&mut vram, &mut pc, 1, 0x100);
+        emit_ldi(&mut vram, &mut pc, 2, 0x1000);
+
+        let event_loop = pc;
+        vram.poke(pc, glyph(3, 0, 0, 3));
+        pc += 1;
+        vram.poke(pc, 0);
+        pc += 1;
+        vram.poke(pc, glyph(10, 0, 3, 127));
+        pc += 1;
+        let beq_back = pc;
+        pc += 1;
+
+        // INSERT (type=1)
+        emit_ldi(&mut vram, &mut pc, 4, 1);
+        vram.poke(pc, glyph(10, 0, 3, 4));
+        pc += 1;
+        pc += 1; // offset placeholder
+
+        // CURSOR_LEFT (type=3)
+        emit_ldi(&mut vram, &mut pc, 4, 3);
+        vram.poke(pc, glyph(10, 0, 3, 4));
+        pc += 1;
+        let left_off = pc;
+        pc += 1;
+
+        // CURSOR_RIGHT (type=4)
+        emit_ldi(&mut vram, &mut pc, 4, 4);
+        vram.poke(pc, glyph(10, 0, 3, 4));
+        pc += 1;
+        let right_off = pc;
+        pc += 1;
+
+        // Clear
+        emit_ldi(&mut vram, &mut pc, 5, 0);
+        vram.poke(pc, glyph(4, 0, 0, 5));
+        pc += 1;
+        let jmp_back = event_loop as i32 - pc as i32 - 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8));
+        pc += 1;
+
+        // INSERT handler
+        vram.poke(beq_back + 1, (pc as i32 - beq_back as i32 - 1) as u32);
+        vram.poke(pc, glyph(3, 0, 0, 7));
+        pc += 1;
+        vram.poke(pc, 1);
+        pc += 1;
+        vram.poke(pc, glyph(3, 0, 1, 8));
+        pc += 1;
+        vram.poke(pc, 0);
+        pc += 1;
+        vram.poke(pc, glyph(5, 0, 2, 9));
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 9, 7));
+        pc += 1;
+        vram.poke(pc, glyph(5, 0, 13, 8));
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 1, 8));
+        pc += 1;
+        vram.poke(pc, glyph(3, 0, 1, 10));
+        pc += 1;
+        vram.poke(pc, 1);
+        pc += 1;
+        vram.poke(pc, glyph(5, 0, 13, 10));
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 1, 10));
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 0, 127));
+        pc += 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8));
+        pc += 1;
+
+        // LEFT handler
+        vram.poke(left_off, (pc as i32 - left_off as i32 - 1) as u32);
+        vram.poke(pc, glyph(3, 0, 1, 5));
+        pc += 1;
+        vram.poke(pc, 0);
+        pc += 1;
+        vram.poke(pc, glyph(6, 13, 5, 5));
+        pc += 1; // SUB r5, r5, r13
+        vram.poke(pc, glyph(4, 0, 1, 5));
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 0, 127));
+        pc += 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8));
+        pc += 1;
+
+        // RIGHT handler
+        vram.poke(right_off, (pc as i32 - right_off as i32 - 1) as u32);
+        vram.poke(pc, glyph(3, 0, 1, 5));
+        pc += 1;
+        vram.poke(pc, 0);
+        pc += 1;
+        vram.poke(pc, glyph(3, 0, 1, 6));
+        pc += 1;
+        vram.poke(pc, 1);
+        pc += 1;
+        vram.poke(pc, glyph(10, 0, 5, 6));
+        pc += 1;
+        let skip_right = pc;
+        pc += 1;
+        vram.poke(pc, glyph(5, 0, 13, 5));
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 1, 5));
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 0, 127));
+        pc += 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8));
+        pc += 1;
+        vram.poke(skip_right, (pc as i32 - skip_right as i32 - 1) as u32);
+
+        vram.spawn_vm(
+            0,
+            &SyntheticVmConfig {
+                entry_point: 0,
+                parent_id: 0xFF,
+                base_addr: 0,
+                bound_addr: 0x8000,
+                eap_coord: 0,
+                generation: 0,
+                initial_regs: [0; 128],
+            },
+        )
+        .unwrap();
+
+        // Insert 'A', 'B', 'C'
+        vram.poke(0x200, 1);
+        vram.poke(0x201, 65);
+        vram.execute_frame();
+        vram.poke(0x200, 1);
+        vram.poke(0x201, 66);
+        vram.execute_frame();
+        vram.poke(0x200, 1);
+        vram.poke(0x201, 67);
+        vram.execute_frame();
+
+        println!("\n[STEP 1] After inserting 'ABC':");
+        let vm = vram.vm_state(0).unwrap();
+        println!("  cursor = {}", vm.regs[8]);
+        assert_eq!(vm.regs[8], 3);
+
+        // Move left twice
+        vram.poke(0x200, 3);
+        vram.execute_frame();
+        vram.poke(0x200, 3);
+        vram.execute_frame();
+        let vm = vram.vm_state(0).unwrap();
+        println!("\n[STEP 2] After CURSOR_LEFT x2:");
+        println!("  cursor = {}", vm.regs[8]);
+        assert_eq!(vm.regs[8], 1, "cursor should be at position 1");
+
+        // Move right
+        vram.poke(0x200, 4);
+        vram.execute_frame();
+        let vm = vram.vm_state(0).unwrap();
+        println!("\n[STEP 3] After CURSOR_RIGHT:");
+        println!("  cursor = {}", vm.regs[8]);
+        assert_eq!(vm.regs[8], 2);
+
+        println!("\n{}", "=".repeat(60));
+        println!("SUCCESS: Editor cursor movement works!");
     }
 }
