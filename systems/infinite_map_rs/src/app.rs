@@ -2609,14 +2609,11 @@ impl<'a> InfiniteMapApp<'a> {
     pub fn initialize_rts_clipboard(&mut self) {
         log::info!("📋 Initializing RTS Clipboard for visual persistence...");
 
-        let _rts_clipboard = ClipboardRTS::new(None);
+        let rts_clipboard = ClipboardRTS::new(None);
 
         // Set RTS Clipboard in ClipboardManager
-        if let Some(ref _clipboard_manager) = self.clipboard_manager {
-            // SharedClipboardManager uses internal locking
-            // TODO: Add set_rts_clipboard to SharedClipboardManager (Phase 31.2)
-            // clipboard_manager.set_rts_clipboard(rts_clipboard);
-            log::info!("✅ RTS Clipboard initialized (Linking pending)");
+        if let Some(ref clipboard_manager) = self.clipboard_manager {
+            clipboard_manager.set_rts_clipboard(rts_clipboard);
         }
 
         // Initialize clipboard texture manager

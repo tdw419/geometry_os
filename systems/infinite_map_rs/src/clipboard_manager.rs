@@ -4,12 +4,15 @@
 
 use copypasta::{ClipboardContext, ClipboardProvider};
 use std::sync::{Arc, Mutex};
+use crate::clipboard_rts::ClipboardRTS;
 
 /// Shared Clipboard Manager
 /// Can be safely shared between threads (e.g. InputManager and App)
 #[derive(Clone)]
 pub struct SharedClipboardManager {
     context: Arc<Mutex<Option<ClipboardContext>>>,
+    /// Phase 31.2: RTS Clipboard for visual persistence
+    rts_clipboard: Arc<Mutex<Option<Arc<ClipboardRTS>>>>,
 }
 
 #[derive(Clone)]
@@ -31,6 +34,7 @@ impl SharedClipboardManager {
 
         Self {
             context: Arc::new(Mutex::new(ctx)),
+            rts_clipboard: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -74,5 +78,18 @@ impl SharedClipboardManager {
         } else {
             None
         }
+    }
+
+    /// Phase 31.2: Set RTS Clipboard for visual persistence
+    pub fn set_rts_clipboard(&self, rts_clipboard: ClipboardRTS) {
+        let mut guard = self.rts_clipboard.lock().unwrap();
+        *guard = Some(Arc::new(rts_clipboard));
+        log::info!("✅ RTS Clipboard linked to SharedClipboardManager");
+    }
+
+    /// Phase 31.2: Get RTS Clipboard
+    pub fn get_rts_clipboard(&self) -> Option<Arc<ClipboardRTS>> {
+        let guard = self.rts_clipboard.lock().unwrap();
+        guard.clone()
     }
 }
