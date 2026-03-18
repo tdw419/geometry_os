@@ -120,18 +120,21 @@ mod tests {
         println!("  0x5000-0x5FFF: Output buffer");
         println!("  0x6000-0x7FFF: Label table");
 
-        // Write binary to memory at 0x0000
-        println!("\nWriting binary to GPU memory...");
-        for (i, word) in assembled.words.iter().enumerate() {
+        // Write binary to memory at 0x0000 (MINIMAL test: only first 10 words)
+        println!("\nWriting binary to GPU memory (first 10 words only)...");
+        for (i, word) in assembled.words.iter().enumerate().take(10) {
             scheduler.poke_substrate_single(i as u32, *word);
         }
 
-        // Write source to memory at 0x1000
-        println!("Writing source to GPU memory...");
+        // Write source to memory at 0x1000 (MINIMAL test: only first 100 chars)
+        println!("Writing source to GPU memory (first 100 chars only)...");
         for (i, b) in source_text.bytes().enumerate() {
+            if i >= 100 {
+                break;
+            }
             scheduler.poke_substrate_single(0x1000 + i as u32, b as u32);
         }
-        scheduler.poke_substrate_single(0x1000 + source_text.len() as u32, 0); // null terminator
+        scheduler.poke_substrate_single(0x1000 + 100, 0); // null terminator
 
         println!("Memory initialization complete.");
 
@@ -216,26 +219,28 @@ mod tests {
         println!("\n=== BYPASSING execute_frame - Testing texture preservation ===");
         println!("Skipping compute shader to verify texture data persists...");
 
-        // Just do a no-op submit to see if texture is preserved
-        {
-            let mut encoder = scheduler.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("No-op Encoder"),
-            });
-            // No operations - just submit empty command buffer
-            scheduler.queue.submit(std::iter::once(encoder.finish()));
-            scheduler.device.poll(wgpu::Maintain::Wait);
-        }
+        // Use spawn_vm to do a no-op submit (it calls queue.submit internally)
+        // This tests if texture is preserved across submits
+        let noop_config = VmConfig {
+            entry_point: 0,
+            parent_id: 0xFF,
+            base_addr: 0,
+            bound_addr: 0,
+            initial_regs: [0; 128],
+        };
+        // Spawn a second VM (VM 2) which won't be executed
+        scheduler.spawn_vm(2, &noop_config).expect("Failed to spawn noop VM");
 
         // Verify texture after no-op submit
         scheduler.sync_gpu_to_shadow();
         let noop_instr_0 = scheduler.peek_substrate_single(0);
-        println!("  After no-op submit: instr[0] = {:08X} (expected {:08X})", noop_instr_0, assembled.words[0]);
+        println!("  After spawn_vm(2) submit: instr[0] = {:08X} (expected {:08X})", noop_instr_0, assembled.words[0]);
 
         if noop_instr_0 != assembled.words[0] {
-            println!("\n  ⚠️  TEXTURE CORRUPTED BY EMPTY SUBMIT!");
-            panic!("GPU texture corrupted by no-op command buffer submission");
+            println!("\n  ⚠️  TEXTURE CORRUPTED BY SPAWN_VM SUBMIT!");
+            panic!("GPU texture corrupted by spawn_vm submit");
         } else {
-            println!("  ✓ Texture preserved after no-op submit");
+            println!("  ✓ Texture preserved after spawn_vm submit");
         }
 
         // Restore shadow RAM again

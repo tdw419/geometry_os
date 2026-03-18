@@ -1057,14 +1057,16 @@ mod tests {
 
         let loop_start = pc;
 
-        // r1 = mailbox, r2 = cursor
-        vram.poke(pc, glyph(3, 0, 1, 10));
-        pc += 1;
-        vram.poke(pc, glyph(3, 0, 2, 11));
-        pc += 1;
+        // r1 = mailbox, r2 = cursor (LOAD: glyph(addr_reg, dest_reg))
+        vram.poke(pc, glyph(3, 0, 10, 1));
+        pc += 1; // LOAD r1 from [r10]
+        vram.poke(pc, glyph(3, 0, 11, 2));
+        pc += 1; // LOAD r2 from [r11]
 
         // if r1==0, loop
         vram.poke(pc, glyph(10, 0, 1, 127));
+        pc += 1;
+        let beq_offset_pc = pc;
         pc += 1;
         vram.poke(pc, (loop_start as i32 - pc as i32 - 1) as u32);
         pc += 1;
@@ -1092,32 +1094,38 @@ mod tests {
         vram.poke(pc, (loop_start as i32 - pc as i32 - 1) as u32);
         pc += 1;
 
+        // Fix BEQ offset - it should jump from PC=10 (after BEQ) to loop_start
+        // offset = loop_start - (PC after BEQ) - 1 = 16 - 10 - 1 = 5
+        vram.poke(beq_offset_pc, 5);
+
         // --- TEST ---
         vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
 
+        // Put 0x48 at mailbox address BEFORE spawning VM
         vram.poke(0x100, 0x48);
 
-        // Step and check state
-        for i in 0..30 {
+        // Check what's in memory
+        println!("Memory at 0x100 = {:x}", vram.peek(0x100));
+
+        // Execute with stepping, check after first INSERT
+        for i in 0..15 {
             vram.step(0);
-            if i < 15 {
-                let state = vram.vm_state(0).unwrap();
+            let state = vram.vm_state(0).unwrap();
+            if i > 8 && i < 25 {
                 println!(
-                    "Step {}: PC={}, r1={:x}, r2={}, r3={}, r10={:x}, r11={:x}, r12={:x}",
-                    i,
-                    state.pc,
-                    state.regs[1],
-                    state.regs[2],
-                    state.regs[3],
-                    state.regs[10],
-                    state.regs[11],
-                    state.regs[12]
+                    "Step {}: PC={}, r1={:x}, r2={}, r3={}",
+                    i, state.pc, state.regs[1], state.regs[2], state.regs[3]
                 );
             }
         }
 
+        let state = vram.vm_state(0).unwrap();
         println!(
-            "After execution: mailbox={:x}, buffer[0]={:x}, cursor={}",
+            "Final: PC={}, r1={:x}, r2={}, r3={}",
+            state.pc, state.regs[1], state.regs[2], state.regs[3]
+        );
+        println!(
+            "Memory: mailbox={:x}, buffer[0]={:x}, cursor={}",
             vram.peek(0x100),
             vram.peek(0x300),
             vram.peek(0x200)
