@@ -507,8 +507,8 @@ impl SyntheticVram {
             // JMP
             9 => {
                 if stratum == 2 {
-                    // PC-relative immediate: offset = p1 | p2<<8
-                    let offset = (p1 | (p2 << 8)) as i32;
+                    // PC-relative immediate: offset = p1 | p2<<8 (signed 16-bit)
+                    let offset = (p1 | ((p2 as u32) << 8)) as u16 as i16 as i32;
                     self.vms[vm_idx].pc = (pc as i32 + 1 + offset) as u32;
                 } else {
                     // Register mode: pc = regs[p1]
@@ -544,8 +544,8 @@ impl SyntheticVram {
                     self.vms[vm_idx].stack[sp] = pc + 1;
                     self.vms[vm_idx].stack_ptr += 1;
                     if stratum == 2 {
-                        // PC-relative immediate: offset = p1 | p2<<8
-                        let offset = (p1 | (p2 << 8)) as i32;
+                        // PC-relative immediate: offset = p1 | p2<<8 (signed 16-bit)
+                        let offset = (p1 | ((p2 as u32) << 8)) as u16 as i16 as i32;
                         self.vms[vm_idx].pc = (pc as i32 + 1 + offset) as u32;
                     } else {
                         // Register mode: pc = regs[p1]
