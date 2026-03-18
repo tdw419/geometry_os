@@ -187,10 +187,22 @@ fn mem_read(addr: u32) -> u32 {
 }
 
 // Write 32-bit value to memory at Hilbert address
-fn mem_write(addr: u32, val: u32) {
+fn mem_write(vm_idx: u32, addr: u32, val: u32) {
     let coords = d2xy(GRID_SIZE, addr);
     textureStore(ram, vec2<i32>(i32(coords.x), i32(coords.y)),
                 vec4<u32>(val & 0xFFu, (val >> 8u) & 0xFFu, (val >> 16u) & 0xFFu, (val >> 24u) & 0xFFu));
+
+    // Append to immutable ledger (Unified Ledger Architecture)
+    var entry: LedgerEntry;
+    entry.timestamp = scheduler.frame;
+    entry.eap_coord = vms[vm_idx].eap_coord;
+    entry.action_type = 15u; // MEM_WRITE (0x0F)
+    entry.agent_id = vm_idx;
+    entry.context_ptr = vms[vm_idx].pc; // Source instruction
+    entry.result = val;
+    entry.cycles_used = vms[vm_idx].cycles;
+    entry.checksum = addr; // Target address (repurposed field)
+    ledger_append(entry);
 }
 
 fn execute_instruction(vm_idx: u32) {
@@ -223,9 +235,7 @@ fn execute_instruction(vm_idx: u32) {
             let addr = vms[vm_idx].regs[p1];
             if (!check_spatial_bounds(vm_idx, addr)) { vms[vm_idx].state = VM_STATE_HALTED; return; }
             let val = vms[vm_idx].regs[p2];
-            let a_coords = d2xy(GRID_SIZE, addr);
-            textureStore(ram, vec2<i32>(i32(a_coords.x), i32(a_coords.y)),
-                        vec4<u32>(val & 0xFFu, (val >> 8u) & 0xFFu, (val >> 16u) & 0xFFu, (val >> 24u) & 0xFFu));
+            mem_write(vm_idx, addr, val);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 5u: { vms[vm_idx].regs[p2] = vms[vm_idx].regs[p1] + vms[vm_idx].regs[p2]; vms[vm_idx].pc = vms[vm_idx].pc + 1u; }
@@ -304,7 +314,7 @@ fn execute_instruction(vm_idx: u32) {
             let learning_rate = 1u; 
             let delta = u32(f32(activation) * f32(post_act) * f32(learning_rate) / 256.0);
             let new_weight = select(current_weight + delta, current_weight - delta, (current_weight > 0x80000000u)); 
-            mem_write(weight_addr, new_weight);
+            mem_write(vm_idx, weight_addr, new_weight);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 225u: {
@@ -323,17 +333,20 @@ fn execute_instruction(vm_idx: u32) {
         case 200u: { vms[vm_idx].pc = vms[vm_idx].pc + 1u; } // NOP
         case 201u: { // ADD: mem[dst] = mem[src1] + mem[src2]
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
-            mem_write(u32(stratum), v1 + v2);
+            mem_write(vm_idx, u32(stratum), 
+ v1 + v2);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 202u: { // SUB: mem[dst] = mem[src1] - mem[src2]
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
-            mem_write(u32(stratum), v1 - v2);
+            mem_write(vm_idx, u32(stratum), 
+ v1 - v2);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 203u: { // MUL: mem[dst] = mem[src1] * mem[src2]
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
-            mem_write(u32(stratum), v1 * v2);
+            mem_write(vm_idx, u32(stratum), 
+ v1 * v2);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 204u: { // DIV: mem[dst] = mem[src1] / mem[src2]
@@ -343,18 +356,21 @@ fn execute_instruction(vm_idx: u32) {
         }
         case 205u: { // LOAD: mem[dst] = mem[src1]
             let v = mem_read(u32(p1));
-            mem_write(u32(stratum), v);
+            mem_write(vm_idx, u32(stratum), 
+ v);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 206u: { // STORE: mem[dst] = src1 (immediate)
-            mem_write(u32(stratum), u32(p1));
+            mem_write(vm_idx, u32(stratum), 
+ u32(p1));
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 207u: { // LOADIMM: mem[dst] = 32-bit immediate (next pixel)
             let d_coords = d2xy(GRID_SIZE, vms[vm_idx].pc + 1u);
             let d_glyph = textureLoad(ram, vec2<i32>(i32(d_coords.x), i32(d_coords.y)));
             let imm = d_glyph.r | (d_glyph.g << 8u) | (d_glyph.b << 16u) | (d_glyph.a << 24u);
-            mem_write(u32(stratum), imm);
+            mem_write(vm_idx, u32(stratum), 
+ imm);
             vms[vm_idx].pc = vms[vm_idx].pc + 2u;
         }
         case 208u: { // JUMP: pc = dst
@@ -370,37 +386,44 @@ fn execute_instruction(vm_idx: u32) {
         }
         case 211u: { // CMP: mem[dst] = (mem[src1] == mem[src2]) ? 1 : 0
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
-            mem_write(u32(stratum), select(0u, 1u, v1 == v2));
+            mem_write(vm_idx, u32(stratum), 
+ select(0u, 1u, v1 == v2));
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 212u: { // AND: mem[dst] = mem[src1] & mem[src2]
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
-            mem_write(u32(stratum), v1 & v2);
+            mem_write(vm_idx, u32(stratum), 
+ v1 & v2);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 213u: { // OR: mem[dst] = mem[src1] | mem[src2]
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
-            mem_write(u32(stratum), v1 | v2);
+            mem_write(vm_idx, u32(stratum), 
+ v1 | v2);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 214u: { // XOR: mem[dst] = mem[src1] ^ mem[src2]
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
-            mem_write(u32(stratum), v1 ^ v2);
+            mem_write(vm_idx, u32(stratum), 
+ v1 ^ v2);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 215u: { // NOT: mem[dst] = ~mem[src1]
             let v = mem_read(u32(p1));
-            mem_write(u32(stratum), ~v);
+            mem_write(vm_idx, u32(stratum), 
+ ~v);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 216u: { // SHL: mem[dst] = mem[src1] << mem[src2]
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
-            mem_write(u32(stratum), v1 << (v2 & 31u));
+            mem_write(vm_idx, u32(stratum), 
+ v1 << (v2 & 31u));
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 217u: { // SHR: mem[dst] = mem[src1] >> mem[src2]
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
-            mem_write(u32(stratum), v1 >> (v2 & 31u));
+            mem_write(vm_idx, u32(stratum), 
+ v1 >> (v2 & 31u));
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 218u: { // CALL: push pc+1, pc = dst
@@ -426,18 +449,21 @@ fn execute_instruction(vm_idx: u32) {
             if (vms[vm_idx].stack_ptr > 0u) {
                 vms[vm_idx].stack_ptr = vms[vm_idx].stack_ptr - 1u;
                 let sp_addr = 0xF000u + vms[vm_idx].stack_ptr;
-                mem_write(u32(stratum), mem_read(sp_addr));
+                mem_write(vm_idx, u32(stratum), 
+ mem_read(sp_addr));
             }
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 222u: { // READ: mem[dst] = mem[src1] (alias for LOAD)
             let v = mem_read(u32(p1));
-            mem_write(u32(stratum), v);
+            mem_write(vm_idx, u32(stratum), 
+ v);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 223u: { // WRITE: mem[dst] = mem[src1] (alias for STORE via memory)
             let v = mem_read(u32(p1));
-            mem_write(u32(stratum), v);
+            mem_write(vm_idx, u32(stratum), 
+ v);
              vms[vm_idx].pc = vms[vm_idx].pc + 1u;
          }
          case 233u: { // ATTENTION_FOCUS: Mark active regions for sparse execution
@@ -466,13 +492,15 @@ fn execute_instruction(vm_idx: u32) {
          case 228u: { // FADD: mem[dst] = bitcast<f32>(mem[src1]) + bitcast<f32>(mem[src2])
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
             // For now, just do integer add (float support would need bitcast)
-            mem_write(u32(stratum), v1 + v2);
+            mem_write(vm_idx, u32(stratum), 
+ v1 + v2);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 229u: { // FMUL: mem[dst] = bitcast<f32>(mem[src1]) * bitcast<f32>(mem[src2])
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
             // For now, just do integer mul (float support would need bitcast)
-            mem_write(u32(stratum), v1 * v2);
+            mem_write(vm_idx, u32(stratum), 
+ v1 * v2);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 232u: { // GLYPH_WRITE: Write glyph(s) into RAM (self-modifying code)
@@ -484,12 +512,12 @@ fn execute_instruction(vm_idx: u32) {
             if (count == 0u) {
                 // Single glyph: copy 4 bytes from src to target
                 let glyph_val = mem_read(src_addr);
-                mem_write(target_addr, glyph_val);
+                mem_write(vm_idx, target_addr, glyph_val);
             } else {
                 // Block copy: copy count * 1 pixels
                 for (var i = 0u; i < count; i++) {
                     let glyph_val = mem_read(src_addr + i);
-                    mem_write(target_addr + i, glyph_val);
+                    mem_write(vm_idx, target_addr + i, glyph_val);
                 }
             }
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
@@ -515,7 +543,7 @@ fn execute_instruction(vm_idx: u32) {
                 modified = (modified & 0x00FFFFFFu) | ((u32(new_value) & 0xFFu) << 24u);
             }
 
-            mem_write(target_addr, modified);
+            mem_write(vm_idx, target_addr, modified);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 235u: { // SEMANTIC_MERGE: Deduplicate and unify redundant glyph clusters
@@ -530,7 +558,7 @@ fn execute_instruction(vm_idx: u32) {
                 let dst_glyph = mem_read(dst_addr);
 
                 if (src_glyph != dst_glyph) {
-                    mem_write(dst_addr, src_glyph);
+                    mem_write(vm_idx, dst_addr, src_glyph);
                 }
             } else {
                 // Block deduplication: compare and copy count glyphs
@@ -539,7 +567,7 @@ fn execute_instruction(vm_idx: u32) {
                     let dst_glyph = mem_read(dst_addr + i);
 
                     if (src_glyph != dst_glyph) {
-                        mem_write(dst_addr + i, src_glyph);
+                        mem_write(vm_idx, dst_addr + i, src_glyph);
                     }
                 }
             }

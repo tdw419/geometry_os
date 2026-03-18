@@ -16,6 +16,10 @@ use std::sync::{Arc, Mutex};
 /// Maximum concurrent VMs
 pub const MAX_VMS: usize = 8;
 
+/// Size of each VM state in bytes (must match WGSL struct layout)
+/// 128 regs + 16 fields + 64 stack = 208 u32s = 832 bytes
+pub const VM_STATE_SIZE: u64 = 832;
+
 /// VM state constants (must match shader)
 pub mod vm_state {
     pub const INACTIVE: u32 = 0;
@@ -290,9 +294,9 @@ impl GlyphVmScheduler {
         eprintln!("[SCHEDULER] Compute pipeline created OK");
 
         // Create VM state buffer
-        // Each VmState is: 128 regs + 12 fields + 64 stack = 204 u32s = 816 bytes
-        // Total: 8 * 816 = 6528 bytes
-        let vm_buffer_size = 8 * 816;
+        // Each VmState is: 128 regs + 12 fields + 64 stack = 204 u32s = VM_STATE_SIZE bytes
+        // Total: 8 * VM_STATE_SIZE = 6528 bytes
+        let vm_buffer_size = 8 * VM_STATE_SIZE;
         let vm_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph VM States Buffer"),
             size: vm_buffer_size,
@@ -523,10 +527,11 @@ impl GlyphVmScheduler {
         // Build initial VM state
         // VmState layout matches shader:
         // - regs: [u32; 128] = 128 u32s (512 bytes)
-        // - pc, halted, stratum, cycles, stack_ptr, vm_id, state, parent_id, entry_point, base_addr, bound_addr, _padding = 12 u32s (48 bytes)
+        // - fields: pc, halted, stratum, cycles, stack_ptr, vm_id, state, parent_id, entry_point, base_addr, bound_addr, eap_coord, generation = 13 u32s (52 bytes)
+        // - _padding: [u32; 3] (12 bytes)
         // - stack: [u32; 64] = 64 u32s (256 bytes)
-        // Total: 128 + 12 + 64 = 204 u32s = 816 bytes
-        let mut vm_data = Vec::with_capacity(204);
+        // Total: 128 + 13 + 3 + 64 = 208 u32s = VM_STATE_SIZE bytes
+        let mut vm_data = Vec::with_capacity(208);
 
         // Copy initial registers (config.initial_regs is already [u32; 128])
         vm_data.extend_from_slice(&config.initial_regs);
@@ -543,7 +548,11 @@ impl GlyphVmScheduler {
         vm_data.push(config.entry_point); // entry_point
         vm_data.push(config.base_addr); // base_addr
         vm_data.push(config.bound_addr); // bound_addr
-        vm_data.push(0); // _padding (to match 816-byte stride)
+        vm_data.push(config.eap_coord); // eap_coord
+        vm_data.push(config.generation); // generation
+
+        // Padding (3 zeros)
+        vm_data.extend_from_slice(&[0u32; 3]);
 
         // Stack (64 zeros)
         vm_data.extend_from_slice(&[0u32; 64]);
@@ -551,13 +560,13 @@ impl GlyphVmScheduler {
         // Verify size
         assert_eq!(
             vm_data.len(),
-            204,
-            "VM data size mismatch: expected 204, got {}",
+            208,
+            "VM data size mismatch: expected 208, got {}",
             vm_data.len()
         );
 
         // Calculate offset in buffer
-        let offset = (vm_id as u64) * 816;
+        let offset = (vm_id as u64) * VM_STATE_SIZE;
 
         self.queue
             .write_buffer(&self.vm_buffer, offset, bytemuck::cast_slice(&vm_data));
@@ -585,7 +594,7 @@ impl GlyphVmScheduler {
 
         // Write state = HALTED at offset + 536 (after regs[128] + pc + halted + stratum + cycles + stack_ptr + vm_id)
         // Layout: regs[128]=512, pc=4, halted=4, stratum=4, cycles=4, stack_ptr=4, vm_id=4 -> 536 bytes
-        let state_offset = (vm_id as u64) * 816 + 536;
+        let state_offset = (vm_id as u64) * VM_STATE_SIZE + 536;
         // 512 + 6*4 = 536. Correct.
         self.queue.write_buffer(
             &self.vm_buffer,
@@ -604,7 +613,7 @@ impl GlyphVmScheduler {
         }
 
         // Write state = RUNNING at offset + 536
-        let state_offset = (vm_id as u64) * 816 + 536;
+        let state_offset = (vm_id as u64) * VM_STATE_SIZE + 536;
         self.queue.write_buffer(
             &self.vm_buffer,
             state_offset,
@@ -753,8 +762,8 @@ impl GlyphVmScheduler {
                 label: Some("Glyph VM Stats Read Encoder"),
             });
 
-        // Copy VM buffer to readback buffer (8 * 816 bytes)
-        let vm_buffer_size = 8 * 816;
+        // Copy VM buffer to readback buffer (8 * VM_STATE_SIZE bytes)
+        let vm_buffer_size = 8 * VM_STATE_SIZE;
         encoder.copy_buffer_to_buffer(&self.vm_buffer, 0, &self.stats_buffer, 0, vm_buffer_size);
 
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -772,7 +781,7 @@ impl GlyphVmScheduler {
             let mut stats = Vec::with_capacity(MAX_VMS);
 
             for i in 0..MAX_VMS {
-                let offset = i * 816;
+                let offset = i * VM_STATE_SIZE;
                 // Field offsets (relative to start of VM state):
                 // pc: 512, halted: 516, stratum: 520, cycles: 524, stack_ptr: 528, vm_id: 532, state: 536, parent_id: 540
 
