@@ -1,0 +1,24 @@
+[package]
+name = "geos-boot"
+version = "0.1.0"
+edition = "2021"
+description = "Frozen Rust bootloader for Geometry OS - CPU shell that never changes"
+
+[dependencies]
+wgpu = "0.19"
+winit = "0.29"
+bytemuck = { version = "1.14", features = ["derive"] }
+pollster = "0.3"
+log = "0.4"
+env_logger = "0.11"
+
+[dev-dependencies]
+tempfile = "3.10"
+
+[lib]
+name = "geos_boot"
+path = "src/lib.rs"
+
+[[bin]]
+name = "geos-boot"
+path = "src/main.rs"
