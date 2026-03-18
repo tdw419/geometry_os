@@ -114,12 +114,15 @@ impl BufferBindingInterface {
     /// # Returns
     /// The binding index of the newly bound buffer.
     pub fn bind_input_buffer(&mut self, size: usize, data: Option<&[u8]>) -> Result<usize> {
-        let buffer = self
+        let mut buffer = self
             .allocator
             .allocate_input_buffer(size)
             .context("Failed to allocate input buffer")?;
 
-        // TODO: Write initial data if provided (requires map_buffer implementation)
+        // Write initial data if provided
+        if let Some(data) = data {
+            buffer.write(data).context("Failed to write initial data to input buffer")?;
+        }
 
         let bound = BoundBuffer::new(buffer, BindingPoint::Input, size, Some("compute-input"));
         self.bound_buffers.push(bound);
@@ -161,12 +164,15 @@ impl BufferBindingInterface {
     /// # Returns
     /// The binding index of the newly bound buffer.
     pub fn bind_uniform_buffer(&mut self, size: usize, data: Option<&[u8]>) -> Result<usize> {
-        let buffer = self
+        let mut buffer = self
             .allocator
             .allocate_buffer(size, Some("compute-uniform"))
             .context("Failed to allocate uniform buffer")?;
 
-        // TODO: Write initial data if provided
+        // Write initial data if provided
+        if let Some(data) = data {
+            buffer.write(data).context("Failed to write initial data to uniform buffer")?;
+        }
 
         let bound = BoundBuffer::new(buffer, BindingPoint::Uniform, size, Some("compute-uniform"));
         self.bound_buffers.push(bound);
@@ -189,12 +195,15 @@ impl BufferBindingInterface {
     /// # Returns
     /// The binding index of the newly bound buffer.
     pub fn bind_storage_buffer(&mut self, size: usize, data: Option<&[u8]>) -> Result<usize> {
-        let buffer = self
+        let mut buffer = self
             .allocator
             .allocate_buffer(size, Some("compute-storage"))
             .context("Failed to allocate storage buffer")?;
 
-        // TODO: Write initial data if provided
+        // Write initial data if provided
+        if let Some(data) = data {
+            buffer.write(data).context("Failed to write initial data to storage buffer")?;
+        }
 
         let bound = BoundBuffer::new(buffer, BindingPoint::Storage, size, Some("compute-storage"));
         self.bound_buffers.push(bound);
@@ -208,6 +217,31 @@ impl BufferBindingInterface {
     /// Get a bound buffer by index.
     pub fn get_buffer(&self, index: usize) -> Option<&BoundBuffer> {
         self.bound_buffers.get(index)
+    }
+
+    /// Write data to a bound buffer.
+    ///
+    /// This updates the GPU buffer contents after allocation.
+    /// Useful for updating uniforms, oscillators, or other dynamic data.
+    ///
+    /// # Arguments
+    /// * `index` - The binding index of the buffer
+    /// * `data` - The data to write
+    ///
+    /// # Errors
+    /// Returns an error if the buffer doesn't exist or the write fails.
+    pub fn write_buffer(&mut self, index: usize, data: &[u8]) -> Result<()> {
+        let bound = self.bound_buffers.get_mut(index)
+            .with_context(|| format!("Buffer index {} not found", index))?;
+        
+        // We need mutable access to the underlying buffer
+        // This is safe because we're the only ones accessing it
+        let buffer = &mut bound.buffer;
+        buffer.write(data)
+            .with_context(|| format!("Failed to write {} bytes to buffer {}", data.len(), index))?;
+        
+        log::trace!("Wrote {} bytes to buffer {}", data.len(), index);
+        Ok(())
     }
 
     /// Get all bound buffers.

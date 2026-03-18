@@ -12,7 +12,9 @@
 //! - Binding 4: uniforms (uniform buffer)
 //! - Binding 5: output (output, storage, read-write)
 //!
-//! TODO-2/5: Allocate GPU buffers for current and previous wave fields
+//! Completed TODOs:
+//! - TODO-2/5: GPU buffer allocation ✓
+//! - TODO-3/5: Oscillator and uniform buffer updates ✓
 
 use anyhow::{Context, Result};
 use std::mem::size_of;
@@ -272,14 +274,79 @@ impl WluGpuResources {
         }
     }
     
+    /// Set oscillator and immediately update GPU buffer
+    ///
+    /// Convenience method that combines set_oscillator and update_oscillators.
+    pub fn set_oscillator_sync(&mut self, index: usize, oscillator: GpuOscillator) -> Result<()> {
+        self.set_oscillator(index, oscillator);
+        self.update_oscillators()
+    }
+    
     /// Get oscillator configuration
     pub fn get_oscillator(&self, index: usize) -> Option<&GpuOscillator> {
         self.oscillators.get(index)
     }
     
+    /// Update oscillator buffer on GPU
+    ///
+    /// TODO-3/5: Syncs the CPU-side oscillator cache to the GPU buffer.
+    /// Must be called after set_oscillator() if buffers are already allocated.
+    pub fn update_oscillators(&mut self) -> Result<()> {
+        if !self.buffers_allocated {
+            log::warn!("Cannot update oscillators: buffers not allocated");
+            return Ok(());
+        }
+        
+        let oscillators_size = MAX_OSCILLATORS * size_of::<GpuOscillator>();
+        let osc_data = unsafe {
+            std::slice::from_raw_parts(
+                self.oscillators.as_ptr() as *const u8,
+                oscillators_size
+            )
+        };
+        
+        self.bindings.write_buffer(WluBufferIndex::Oscillators as usize, osc_data)
+            .context("Failed to update oscillator buffer")?;
+        
+        log::debug!("Updated oscillator buffer on GPU");
+        Ok(())
+    }
+    
     /// Set uniforms configuration
     pub fn set_uniforms(&mut self, uniforms: WaveUniforms) {
         self.uniforms = uniforms;
+    }
+    
+    /// Set uniforms and immediately update GPU buffer
+    ///
+    /// Convenience method that combines set_uniforms and update_uniforms.
+    pub fn set_uniforms_sync(&mut self, uniforms: WaveUniforms) -> Result<()> {
+        self.set_uniforms(uniforms);
+        self.update_uniforms()
+    }
+    
+    /// Update uniforms buffer on GPU
+    ///
+    /// TODO-3/5: Syncs the CPU-side uniforms cache to the GPU buffer.
+    /// Must be called after set_uniforms() if buffers are already allocated.
+    pub fn update_uniforms(&mut self) -> Result<()> {
+        if !self.buffers_allocated {
+            log::warn!("Cannot update uniforms: buffers not allocated");
+            return Ok(());
+        }
+        
+        let uniforms_data = unsafe {
+            std::slice::from_raw_parts(
+                &self.uniforms as *const WaveUniforms as *const u8,
+                size_of::<WaveUniforms>()
+            )
+        };
+        
+        self.bindings.write_buffer(WluBufferIndex::Uniforms as usize, uniforms_data)
+            .context("Failed to update uniforms buffer")?;
+        
+        log::debug!("Updated uniforms buffer on GPU");
+        Ok(())
     }
     
     /// Get uniforms configuration
@@ -347,5 +414,23 @@ mod tests {
         assert_eq!((0 * grid_size + 255) as usize, 255);
         assert_eq!((255 * grid_size + 0) as usize, 65280);
         assert_eq!((255 * grid_size + 255) as usize, 65535);
+    }
+    
+    #[test]
+    fn test_oscillator_creation() {
+        let osc = GpuOscillator::new(128, 64, 440.0, 0.0, 1.0);
+        assert_eq!(osc.position_x, 128);
+        assert_eq!(osc.position_y, 64);
+        assert!((osc.frequency - 440.0).abs() < f32::EPSILON);
+        assert!((osc.phase - 0.0).abs() < f32::EPSILON);
+        assert!((osc.amplitude - 1.0).abs() < f32::EPSILON);
+    }
+    
+    #[test]
+    fn test_uniforms_default() {
+        let uniforms = WaveUniforms::default();
+        assert_eq!(uniforms.grid_size, DEFAULT_GRID_SIZE);
+        assert!((uniforms.wave_speed - 0.1).abs() < f32::EPSILON);
+        assert!((uniforms.damping - 0.995).abs() < f32::EPSILON);
     }
 }
