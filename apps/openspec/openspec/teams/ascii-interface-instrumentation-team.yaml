@@ -1,0 +1,148 @@
+# ASCII Interface Instrumentation Team
+# Add ASCII-first control layer to session-analyzer-app
+
+team:
+  name: ascii-interface-instrumentation-team
+  description: |
+    Instruments session-analyzer-app with ASCII-first interface for AI agent control.
+    Creates ASCII state templates, bindings configuration, and extends the Control API.
+    Ensures GUI and ASCII views are fully symmetric.
+
+  project_root: /home/jericho/zion/projects/ai_auto_development/ai_auto_development/apps/session-analyzer-app
+
+  agents:
+    - name: template-architect
+      role: Creates ASCII state templates for all app states
+      focus:
+        - Design 80x24 ASCII grids for Dashboard, Sources, Config, History
+        - Add [A-Z] labels for all interactive elements
+        - Ensure consistent layout across states
+      files:
+        - src/ascii/states/dashboard.ascii
+        - src/ascii/states/sources.ascii
+        - src/ascii/states/config.ascii
+        - src/ascii/states/history.ascii
+
+    - name: bindings-engineer
+      role: Creates label-to-action mapping configuration
+      focus:
+        - Map all labels to existing RPC actions
+        - Define state transitions
+        - Create bindings.json schema
+      files:
+        - src/ascii/bindings.json
+
+    - name: core-implementer
+      role: Implements ASCII generator and extends Control API
+      focus:
+        - Create AsciiGenerator class with template rendering
+        - Add /view, /bindings, /control endpoints to API
+        - Wire to existing state manager
+      files:
+        - src/bun/ascii-generator.ts
+        - src/bun/api.ts
+
+    - name: gui-integrator
+      role: Adds visual labels and ASCII panel to GUI
+      focus:
+        - Add [A-Z] labels to all GUI buttons
+        - Create split-view layout with ASCII panel
+        - Sync ASCII view with GUI state
+      files:
+        - src/mainview/index.html
+        - src/mainview/index.css
+        - src/mainview/index.ts
+
+    - name: test-engineer
+      role: Creates integration tests for ASCII interface
+      focus:
+        - Test /view, /bindings, /control endpoints
+        - Test state transitions via label commands
+        - Verify GUI-ASCII symmetry
+      files:
+        - tests/ascii-integration.test.ts
+
+  tasks:
+    - id: task-1
+      title: ASCII State Templates
+      assignee: template-architect
+      dependencies: []
+      description: |
+        Create 80x24 ASCII templates for Dashboard, Sources, Config, and History states.
+        Add [A-Z] labels for all interactive elements.
+        Use consistent layout with header, navigation, content, and footer sections.
+
+    - id: task-2
+      title: Bindings Configuration
+      assignee: bindings-engineer
+      dependencies: [task-1]
+      description: |
+        Create bindings.json mapping all labels to RPC actions.
+        Define state transitions for navigation.
+        Include metadata for grid size and label format.
+
+    - id: task-3
+      title: ASCII Generator Implementation
+      assignee: core-implementer
+      dependencies: [task-1, task-2]
+      description: |
+        Create AsciiGenerator class with template loading and variable substitution.
+        Support {{variable}} and {{#each}} patterns.
+        Write unit tests for the generator.
+
+    - id: task-4
+      title: Control API Extension
+      assignee: core-implementer
+      dependencies: [task-3]
+      description: |
+        Add /view endpoint returning rendered ASCII.
+        Add /bindings endpoint returning label mappings.
+        Add /control endpoint accepting { "label": "X" } commands.
+        Wire to existing state manager and RPC handlers.
+
+    - id: task-5
+      title: GUI Visual Labels
+      assignee: gui-integrator
+      dependencies: [task-2]
+      description: |
+        Add [A-Z] labels to all tab buttons and action buttons.
+        Style labels with monospace font and subtle opacity.
+        Ensure labels match bindings.json exactly.
+
+    - id: task-6
+      title: ASCII Panel Integration
+      assignee: gui-integrator
+      dependencies: [task-4, task-5]
+      description: |
+        Create split-view layout with GUI and ASCII panels.
+        Add live ASCII view that polls /view endpoint.
+        Style with dark theme and monospace font.
+
+    - id: task-7
+      title: Integration Testing
+      assignee: test-engineer
+      dependencies: [task-4, task-6]
+      description: |
+        Create integration tests for all ASCII endpoints.
+        Test state transitions via label commands.
+        Verify GUI-ASCII symmetry after each action.
+
+    - id: task-8
+      title: Documentation
+      assignee: core-implementer
+      dependencies: [task-7]
+      description: |
+        Update README with ASCII interface documentation.
+        Document all endpoints and label reference.
+        Add usage examples for AI agent control.
+
+  success_criteria:
+    - AI can control app via ASCII /control endpoint
+    - All GUI buttons have matching ASCII labels
+    - ASCII view updates in real-time with GUI
+    - API latency < 10ms for /view and /control
+    - All integration tests pass
+
+  reference_docs:
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/docs/plans/2026-03-17-session-analyzer-ascii-instrumentation.md
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/apps/ascii-ref-app/ASCII-FIRST_PATTERN.md
