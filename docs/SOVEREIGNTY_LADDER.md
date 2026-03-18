@@ -233,6 +233,7 @@ The successful implementation of the Edit-Compile-Execute loop demonstrates that
 | 10d | Compile-on-Save | ✅ Complete | Editor → Assembler |
 | 10e | Edit-Compile-Execute | ✅ Complete | **THE CLOSED LOOP** |
 | 10f | Visual Feedback | ✅ Complete | Buffer → Screen (RENDER event) |
+| 10g | Atlas-Backed Render | ✅ Complete | DRAW opcode blits 64×64 glyphs from Atlas |
 
 ### Recent Additions (March 2026)
 

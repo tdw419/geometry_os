@@ -5197,4 +5197,247 @@ mod tests {
         println!("  Editor renders buffer to screen via STORE (simplified DRAW)");
         println!("  Next: Wire actual DRAW opcode for glyph atlas blitting");
     }
+
+    #[test]
+    fn test_self_hosting_editor_atlas_render() {
+        // ============================================================
+        // Milestone 10g: Atlas-Backed Visual Feedback
+        // ============================================================
+        // The editor renders its text buffer using the DRAW opcode (215)
+        // which blits 64x64 glyph cells from the Atlas to the Screen.
+        //
+        // This is the REAL render path: typed characters appear as
+        // actual visual glyphs, not raw ASCII codes.
+        //
+        // Memory Layout:
+        //   0x0100 = cursor position
+        //   0x0200 = mailbox (event_type)
+        //   0x0201 = mailbox (char)
+        //   0x1000 = text buffer
+        //   Atlas:  (2048, 0) in grid — source glyphs
+        //   Screen: (0, 2048) in grid — destination pixels
+        // ============================================================
+
+        // Need 4096 grid for atlas/screen regions
+        let mut vram = SyntheticVram::new_small(4096);
+        let n: usize = 4096;
+
+        // === SETUP ATLAS: Paint 'H' (72) and 'I' (73) glyphs ===
+
+        // Glyph 72 ('H'): src_x_cell = 72%16 = 8, src_y_cell = 72/16 = 4
+        // Position: (2048 + 8*64, 4*64) = (2560, 256)
+        let h_sx: usize = 2560;
+        let h_sy: usize = 256;
+        let white = 0xFFFFFFFFu32;
+
+        // 'H' shape: two vertical bars + horizontal crossbar
+        for y in 0..64usize {
+            for x in 0..10usize {
+                vram.vram[(h_sy + y) * n + (h_sx + x)] = white;          // left bar
+                vram.vram[(h_sy + y) * n + (h_sx + 54 + x)] = white;     // right bar
+            }
+        }
+        for x in 10..54usize {
+            for y in 27..37usize {
+                vram.vram[(h_sy + y) * n + (h_sx + x)] = white;          // crossbar
+            }
+        }
+
+        // Glyph 73 ('I'): src_x_cell = 73%16 = 9, src_y_cell = 73/16 = 4
+        // Position: (2048 + 9*64, 4*64) = (2624, 256)
+        let i_sx: usize = 2624;
+        let i_sy: usize = 256;
+
+        // 'I' shape: top bar + vertical center + bottom bar
+        for x in 10..54usize {
+            for y in 0..10usize {
+                vram.vram[(i_sy + y) * n + (i_sx + x)] = white;          // top bar
+            }
+            for y in 54..64usize {
+                vram.vram[(i_sy + y) * n + (i_sx + x)] = white;          // bottom bar
+            }
+        }
+        for y in 10..54usize {
+            for x in 25..39usize {
+                vram.vram[(i_sy + y) * n + (i_sx + x)] = white;          // vertical
+            }
+        }
+
+        // === EMIT EDITOR PROGRAM ===
+
+        let mut emit_ldi = |vram: &mut SyntheticVram, pc: &mut u32, reg: u8, val: u32| {
+            vram.poke(*pc, glyph(1, 0, reg, 0)); // LDI
+            *pc += 1;
+            vram.poke(*pc, val);
+            *pc += 1;
+        };
+
+        let mut pc = 0u32;
+
+        // Constants
+        emit_ldi(&mut vram, &mut pc, 13, 1);      // r13 = 1 (increment)
+        emit_ldi(&mut vram, &mut pc, 14, 64);     // r14 = 64 (glyph width for x stride)
+        emit_ldi(&mut vram, &mut pc, 127, 0);     // r127 = 0 (zero)
+        emit_ldi(&mut vram, &mut pc, 0, 0x200);   // r0 = mailbox addr
+        emit_ldi(&mut vram, &mut pc, 1, 0x100);   // r1 = cursor addr
+        emit_ldi(&mut vram, &mut pc, 2, 0x1000);  // r2 = buffer base
+
+        // Event loop: wait for event
+        let event_loop = pc;
+        vram.poke(pc, glyph(3, 0, 0, 3)); pc += 1;   // LOAD r3, [r0]
+        vram.poke(pc, 0); pc += 1;
+        vram.poke(pc, glyph(10, 0, 3, 127)); pc += 1; // BEQ r3, r127 → loop
+        vram.poke(pc, (event_loop as i32 - pc as i32 - 1) as u32); pc += 1;
+
+        // Dispatch INSERT (type=1)
+        emit_ldi(&mut vram, &mut pc, 4, 1);
+        vram.poke(pc, glyph(10, 0, 3, 4)); pc += 1;   // BEQ r3, r4 → insert
+        let insert_off = pc; pc += 1;
+
+        // Dispatch RENDER (type=7)
+        emit_ldi(&mut vram, &mut pc, 5, 7);
+        vram.poke(pc, glyph(10, 0, 3, 5)); pc += 1;   // BEQ r3, r5 → render
+        let render_off = pc; pc += 1;
+
+        // Unknown: clear & loop
+        vram.poke(pc, glyph(4, 0, 0, 127)); pc += 1;
+        let jb = event_loop as i32 - pc as i32 - 1;
+        vram.poke(pc, glyph(9, 2, jb as u8, (jb >> 8) as u8)); pc += 1;
+
+        // === INSERT HANDLER ===
+        vram.poke(insert_off, (pc as i32 - insert_off as i32 - 1) as u32);
+        emit_ldi(&mut vram, &mut pc, 6, 0x201);
+        vram.poke(pc, glyph(3, 0, 6, 7)); pc += 1;   // LOAD r7, [r6] (char)
+        vram.poke(pc, 0); pc += 1;
+        vram.poke(pc, glyph(3, 0, 1, 8)); pc += 1;   // LOAD r8, [r1] (cursor)
+        vram.poke(pc, 0); pc += 1;
+        vram.poke(pc, glyph(2, 0, 2, 9)); pc += 1;   // MOV r9, r2
+        vram.poke(pc, glyph(5, 0, 8, 9)); pc += 1;   // ADD r9 += r8
+        vram.poke(pc, glyph(4, 0, 9, 7)); pc += 1;   // STORE [r9], r7
+        vram.poke(pc, glyph(5, 0, 13, 8)); pc += 1;  // ADD r8 += 1
+        vram.poke(pc, glyph(4, 0, 1, 8)); pc += 1;   // STORE [r1], r8
+        vram.poke(pc, glyph(4, 0, 0, 127)); pc += 1;
+        let jb = event_loop as i32 - pc as i32 - 1;
+        vram.poke(pc, glyph(9, 2, jb as u8, (jb >> 8) as u8)); pc += 1;
+
+        // === RENDER HANDLER (uses DRAW opcode 215) ===
+        vram.poke(render_off, (pc as i32 - render_off as i32 - 1) as u32);
+
+        // r20 = buffer index, r21 = screen x (pixel), r22 = screen y (pixel)
+        emit_ldi(&mut vram, &mut pc, 20, 0);  // index = 0
+        emit_ldi(&mut vram, &mut pc, 21, 0);  // x = 0 pixels
+        emit_ldi(&mut vram, &mut pc, 22, 0);  // y = 0 pixels
+
+        let render_loop = pc;
+
+        // Load char from buffer[index]
+        vram.poke(pc, glyph(2, 0, 2, 23)); pc += 1;   // MOV r23, r2
+        vram.poke(pc, glyph(5, 0, 20, 23)); pc += 1;  // ADD r23 += r20
+        vram.poke(pc, glyph(3, 0, 23, 24)); pc += 1;  // LOAD r24, [r23]
+        vram.poke(pc, 0); pc += 1;
+
+        // If char == 0, done
+        vram.poke(pc, glyph(10, 0, 24, 127)); pc += 1;
+        let render_done_off = pc; pc += 1;
+
+        // DRAW glyph_id=r24, dst_x=r21, dst_y=r22
+        // DRAW encoding: glyph(215, reg_y, reg_id, reg_x)
+        vram.poke(pc, glyph(215, 22, 24, 21)); pc += 1;
+
+        // Advance: x += 64 (glyph width), index++
+        vram.poke(pc, glyph(5, 0, 14, 21)); pc += 1;  // ADD r21 += 64
+        vram.poke(pc, glyph(5, 0, 13, 20)); pc += 1;  // ADD r20 += 1
+
+        // Loop back
+        let jr = render_loop as i32 - pc as i32 - 1;
+        vram.poke(pc, glyph(9, 2, jr as u8, (jr >> 8) as u8)); pc += 1;
+
+        // render_done: clear & loop
+        vram.poke(render_done_off, (pc as i32 - render_done_off as i32 - 1) as u32);
+        vram.poke(pc, glyph(4, 0, 0, 127)); pc += 1;
+        let jb = event_loop as i32 - pc as i32 - 1;
+        vram.poke(pc, glyph(9, 2, jb as u8, (jb >> 8) as u8)); pc += 1;
+
+        println!("Editor program: {} pixels", pc);
+
+        // === SPAWN & RUN ===
+        vram.spawn_vm(0, &SyntheticVmConfig {
+            entry_point: 0,
+            parent_id: 0xFF,
+            base_addr: 0,
+            bound_addr: 0xFFFF,
+            eap_coord: 0,
+            generation: 0,
+            initial_regs: [0; 128],
+        }).unwrap();
+
+        // Insert 'H'
+        println!("\n[INSERT] 'H' (72)");
+        vram.poke(0x100, 0);
+        vram.poke(0x200, 1);
+        vram.poke(0x201, 72);
+        for _ in 0..5 { vram.execute_frame_with_limit(50); }
+        vram.poke(0x200, 0);
+
+        // Insert 'I'
+        println!("[INSERT] 'I' (73)");
+        vram.poke(0x200, 1);
+        vram.poke(0x201, 73);
+        for _ in 0..5 { vram.execute_frame_with_limit(50); }
+        vram.poke(0x200, 0);
+
+        // Verify buffer
+        assert_eq!(vram.peek(0x1000), 72, "buffer[0] = 'H'");
+        assert_eq!(vram.peek(0x1001), 73, "buffer[1] = 'I'");
+
+        // RENDER
+        println!("\n[RENDER] Sending RENDER event (type=7)");
+        vram.poke(0x200, 7);
+        for _ in 0..20 { vram.execute_frame_with_limit(100); }
+
+        // === VERIFY ATLAS BLIT TO SCREEN ===
+        // Screen base is (0, 2048) in grid
+        // 'H' drawn at (0, 0) relative → screen pixel (0, 2048)
+        // 'I' drawn at (64, 0) relative → screen pixel (64, 2048)
+
+        let screen_y: usize = 2048;
+
+        // Check 'H' glyph at screen (0, 2048) — left bar should be white
+        let h_pixel = vram.vram[screen_y * n + 0]; // top-left of 'H'
+        println!("\n[VERIFY] Screen pixels:");
+        println!("  'H' top-left (0, 2048) = 0x{:08X} (expect 0xFFFFFFFF)", h_pixel);
+        assert_eq!(h_pixel, white, "'H' glyph left bar should be white at screen");
+
+        // Check 'H' crossbar pixel
+        let h_cross = vram.vram[(screen_y + 32) * n + 30];
+        println!("  'H' crossbar (30, 2080) = 0x{:08X}", h_cross);
+        assert_eq!(h_cross, white, "'H' crossbar should be white");
+
+        // Check gap (top center of 'H' should be empty)
+        let h_gap = vram.vram[screen_y * n + 32];
+        println!("  'H' top-gap (32, 2048) = 0x{:08X} (expect 0)", h_gap);
+        assert_eq!(h_gap, 0, "'H' top center should be empty");
+
+        // Check 'I' glyph at screen (64, 2048) — top bar
+        let i_pixel = vram.vram[screen_y * n + 64 + 30]; // top bar of 'I'
+        println!("  'I' top-bar (94, 2048) = 0x{:08X} (expect 0xFFFFFFFF)", i_pixel);
+        assert_eq!(i_pixel, white, "'I' glyph top bar should be white");
+
+        // Check 'I' vertical center
+        let i_vert = vram.vram[(screen_y + 32) * n + 64 + 32];
+        println!("  'I' center (96, 2080) = 0x{:08X}", i_vert);
+        assert_eq!(i_vert, white, "'I' vertical center should be white");
+
+        // Check 'I' gap (top-left of 'I' cell should be empty)
+        let i_gap = vram.vram[screen_y * n + 64 + 5];
+        println!("  'I' top-left-gap (69, 2048) = 0x{:08X} (expect 0)", i_gap);
+        assert_eq!(i_gap, 0, "'I' top-left should be empty");
+
+        println!("\n{}", "=".repeat(60));
+        println!("✅ Milestone 10g: Atlas-Backed Visual Feedback — PASSED");
+        println!("  Editor types 'HI' → RENDER → DRAW blits from atlas to screen");
+        println!("  64x64 glyph shapes verified at correct screen positions");
+        println!("  This is REAL rendering: pixels, not codes.");
+        println!("{}", "=".repeat(60));
+    }
 }
