@@ -2668,22 +2668,23 @@ mod tests {
                 vm.regs[10], vm.regs[11], vm.regs[13], vm.regs[14], vm.regs[15]);
         }
 
-        // Debug: show label table at 0x6000 (first 20 entries = 80 words)
-        println!("\n  Label table at 0x6000 (first 20 entries):");
-        for entry in 0..20 {
+        // Debug: show label table at 0x6000 (first 50 entries = 200 words)
+        println!("\n  Label table at 0x6000 (first 50 entries):");
+        for entry in 0..50 {
             let base = 0x6000 + entry * 4;
             let c1 = vram.peek(base);
             let c2 = vram.peek(base + 1);
             let c3 = vram.peek(base + 2);
             let addr = vram.peek(base + 3);
             if c1 == 0 && c2 == 0 && c3 == 0 {
+                println!("    Entry {}: END (all zeros)", entry);
                 break; // End of table
             }
             let name: String = [c1, c2, c3].iter()
                 .filter(|&&c| c >= 32 && c < 127)
                 .map(|&c| (c as u8) as char)
                 .collect();
-            println!("    Entry {}: '{}' {} {} {} -> addr {:04X}", entry, name, c1, c2, c3, addr);
+            println!("    Entry {}: '{}' ({},{},{}) -> addr {:04X}", entry, name, c1, c2, c3, addr);
         }
 
         // Debug: show output buffer as ASCII
