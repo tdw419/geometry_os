@@ -18,6 +18,17 @@ pub struct NavigationRequest {
     pub duration: f32,
 }
 
+/// Aesthetics adjustment request sent to renderer
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AestheticsRequest {
+    /// Chaos factor (0.0-1.0)
+    pub chaos: Option<f32>,
+    /// Color temperature (-1.0 to 1.0, cold to warm)
+    pub temperature: Option<f32>,
+    /// Saturation multiplier (0.0-2.0)
+    pub saturation: Option<f32>,
+}
+
 /// Commands that modify the geometric substrate
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MorphologyCommand {
@@ -129,6 +140,9 @@ pub struct MorphologyExecutor {
 
     /// Optional camera update sender (wired to camera_sync)
     camera_tx: Option<broadcast::Sender<CameraUpdate>>,
+
+    /// Optional aesthetics update sender (wired to renderer)
+    aesthetics_tx: Option<broadcast::Sender<AestheticsRequest>>,
 }
 
 impl MorphologyExecutor {
@@ -139,6 +153,7 @@ impl MorphologyExecutor {
             max_history: 100,
             navigation_tx: None,
             camera_tx: None,
+            aesthetics_tx: None,
         }
     }
 
@@ -151,6 +166,12 @@ impl MorphologyExecutor {
     /// Wire camera updates to a broadcast channel
     pub fn with_camera_sender(mut self, tx: broadcast::Sender<CameraUpdate>) -> Self {
         self.camera_tx = Some(tx);
+        self
+    }
+
+    /// Wire aesthetics updates to a broadcast channel
+    pub fn with_aesthetics_sender(mut self, tx: broadcast::Sender<AestheticsRequest>) -> Self {
+        self.aesthetics_tx = Some(tx);
         self
     }
 
@@ -236,7 +257,15 @@ impl MorphologyExecutor {
             temperature,
             saturation
         );
-        // TODO: Send to renderer
+
+        // Send to renderer via broadcast channel
+        if let Some(ref tx) = self.aesthetics_tx {
+            let request = AestheticsRequest { chaos, temperature, saturation };
+            if let Err(e) = tx.send(request) {
+                log::warn!("Failed to send aesthetics request: {}", e);
+            }
+        }
+
         Ok(())
     }
 
