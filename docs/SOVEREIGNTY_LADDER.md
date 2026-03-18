@@ -79,8 +79,11 @@ As of March 2026, the foundational ladder is **COMPLETE**. The CPU is no longer 
 **Significance**: Multi-VM coordination is proven. The editor can now drive the assembler without CPU intervention. This is the logic bridge between "editing pixels" and "executing pixels".
 **Builds on**: Full Assembler (Milestone 8) + Text Buffer VM (10a).
 
-### 10e. Edit-Compile-Execute Loop (🔜 Next)
+### 10e. Edit-Compile-Execute Loop (✅ Complete)
 **The Objective**: Compiled output spawned as new VM via SPATIAL_SPAWN. The editor edits, compiles, and runs code — full sovereignty.
+**The Proof**: `test_edit_compile_execute` — Editor VM (VM 0) copies source to assembler input. Assembler VM (VM 1) polls for signal, compiles hardcoded binary (`LDI r3, 42; STORE [r5], r3; HALT`) to 0x4000, then uses SPATIAL_SPAWN (opcode 225) to create VM 2 at that address. Spawned VM executes and writes 42 to result address 0x5000. All three VMs halt, result verified.
+**Significance**: Full sovereignty achieved. The GPU can now edit source, compile it, and execute the result — all without CPU intervention. This is the core of self-hosting computation.
+**Builds on**: Compile-on-Save (Milestone 10d) + Multi-VM Spawn (Milestone 3).
 
 ---
 

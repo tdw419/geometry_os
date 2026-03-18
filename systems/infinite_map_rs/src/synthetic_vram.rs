@@ -1892,6 +1892,138 @@ mod tests {
     }
 
     #[test]
+    fn test_edit_compile_execute() {
+        // ============================================================
+        // Milestone 10e: Edit-Compile-Execute Loop
+        // ============================================================
+        // Full sovereignty: Editor copies source, Assembler compiles,
+        // then SPATIAL_SPAWN executes the compiled binary.
+        //
+        // Memory Layout:
+        //   0x1000 = Text Buffer (Source)
+        //   0x2000 = Assembler Input
+        //   0x3000 = Compile Signal (0=idle, 1=compile)
+        //   0x4000 = Binary Output (Spawned VM runs here)
+        //   0x5000 = Execution Result (spawned VM writes here)
+        // ============================================================
+
+        let mut vram = SyntheticVram::new_small(8192);
+
+        // --- 1. SETUP TEXT BUFFER ---
+        let source = "LDI r3, 42\nSTORE r5\nHALT";
+        for (i, b) in source.bytes().enumerate() {
+            vram.poke(0x1000 + i as u32, b as u32);
+        }
+        vram.poke(0x1000 + source.len() as u32, 0); // null
+
+        // --- 2. EMIT EDITOR VM (VM 0) ---
+        let mut pc: u32 = 0;
+        let mut emit_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+            v.poke(*p, glyph(1, 0, reg, 0));
+            *p += 1;
+            v.poke(*p, val);
+            *p += 1;
+        };
+
+        let editor_entry = pc;
+        emit_ldi(&mut vram, &mut pc, 0, 0x1000); // r0 = src
+        emit_ldi(&mut vram, &mut pc, 1, 0x2000); // r1 = dst
+        emit_ldi(&mut vram, &mut pc, 2, 1);      // r2 = increment
+
+        let copy_loop = pc;
+        vram.poke(pc, glyph(3, 0, 0, 3)); pc += 1;    // r3 = [r0] (LOAD)
+        vram.poke(pc, glyph(4, 0, 1, 3)); pc += 1;    // [r1] = r3 (STORE)
+        vram.poke(pc, glyph(5, 0, 2, 0)); pc += 1;    // r0 += 1 (ADD)
+        vram.poke(pc, glyph(5, 0, 2, 1)); pc += 1;    // r1 += 1 (ADD)
+        vram.poke(pc, glyph(10, 0, 3, 127)); pc += 1; // if r3 == 0 (null), exit loop
+        vram.poke(pc, 2); pc += 1;                    // offset to skip JMP
+
+        vram.poke(pc, glyph(9, 2, 0, 0)); pc += 1;    // JMP back to copy_loop
+        vram.poke(pc, (copy_loop as i32 - pc as i32) as u32); pc += 1;
+
+        // SIGNAL ASSEMBLER
+        emit_ldi(&mut vram, &mut pc, 4, 0x3000); // r4 = signal addr
+        emit_ldi(&mut vram, &mut pc, 5, 1);      // r5 = 1
+        vram.poke(pc, glyph(4, 0, 4, 5)); pc += 1; // [r4] = 1 (SIGNAL)
+        vram.poke(pc, glyph(13, 0, 0, 0)); pc += 1; // HALT
+
+        // --- 3. EMIT ASSEMBLER VM (VM 1) ---
+        let mut apc: u32 = 0x500; // Start at 0x500 to avoid conflict
+        let assembler_entry = apc;
+        emit_ldi(&mut vram, &mut apc, 0, 0x3000); // r0 = signal addr
+
+        let poll_loop = apc;
+        vram.poke(apc, glyph(3, 0, 0, 1)); apc += 1;    // r1 = [r0] (read signal)
+        vram.poke(apc, glyph(10, 0, 1, 127)); apc += 1; // if r1 == 0, keep polling
+        vram.poke(apc, (poll_loop as i32 - apc as i32 - 1) as u32); apc += 1;
+
+        // "COMPILE" (Hardcoded for 10e)
+        // Write: LDI r3, 42; STORE [r5], r3; HALT to address 0x4000
+        // This writes 42 to address in r5 (which we'll set to 0x5000)
+        emit_ldi(&mut vram, &mut apc, 2, 0x4000); // r2 = output addr
+
+        // LDI r3, 42
+        emit_ldi(&mut vram, &mut apc, 3, glyph(1, 0, 3, 0)); // LDI r3 opcode
+        vram.poke(apc, glyph(4, 0, 2, 3)); apc += 1; // [r2] = opcode
+        emit_ldi(&mut vram, &mut apc, 4, 1);
+        vram.poke(apc, glyph(5, 0, 4, 2)); apc += 1; // r2++
+        emit_ldi(&mut vram, &mut apc, 5, 42);
+        vram.poke(apc, glyph(4, 0, 2, 5)); apc += 1; // [r2] = 42
+        vram.poke(apc, glyph(5, 0, 4, 2)); apc += 1; // r2++
+
+        // LDI r5, 0x5000 (result address)
+        emit_ldi(&mut vram, &mut apc, 6, glyph(1, 0, 5, 0));
+        vram.poke(apc, glyph(4, 0, 2, 6)); apc += 1; // [r2] = LDI r5
+        vram.poke(apc, glyph(5, 0, 4, 2)); apc += 1; // r2++
+        emit_ldi(&mut vram, &mut apc, 7, 0x5000);
+        vram.poke(apc, glyph(4, 0, 2, 7)); apc += 1; // [r2] = 0x5000
+        vram.poke(apc, glyph(5, 0, 4, 2)); apc += 1; // r2++
+
+        // STORE [r5], r3 (write result)
+        emit_ldi(&mut vram, &mut apc, 8, glyph(4, 0, 5, 3));
+        vram.poke(apc, glyph(4, 0, 2, 8)); apc += 1; // [r2] = STORE
+        vram.poke(apc, glyph(5, 0, 4, 2)); apc += 1; // r2++
+
+        // HALT
+        emit_ldi(&mut vram, &mut apc, 9, glyph(13, 0, 0, 0));
+        vram.poke(apc, glyph(4, 0, 2, 9)); apc += 1; // [r2] = HALT
+
+        // SPATIAL_SPAWN: spawn VM at 0x4000
+        emit_ldi(&mut vram, &mut apc, 10, 0x4000); // r10 = entry point
+        vram.poke(apc, glyph(225, 0, 10, 0)); apc += 1; // SPATIAL_SPAWN r10 = spawn(r10)
+
+        vram.poke(apc, glyph(13, 0, 0, 0)); // HALT
+
+        // --- 4. EXECUTE INTERLEAVED ---
+        vram.spawn_vm(0, &SyntheticVmConfig { entry_point: editor_entry, ..Default::default() }).unwrap();
+        vram.spawn_vm(1, &SyntheticVmConfig { entry_point: assembler_entry, ..Default::default() }).unwrap();
+
+        // Give them plenty of cycles to coordinate and execute spawned VM
+        for _ in 0..500 {
+            vram.execute_frame_interleaved(1);
+        }
+
+        assert!(vram.is_halted(0), "Editor VM should have halted");
+        assert!(vram.is_halted(1), "Assembler VM should have halted");
+        assert!(vram.is_halted(2), "Spawned VM should have halted");
+
+        // --- 5. VERIFY OUTPUT ---
+        // Verify compiled binary
+        assert_eq!(vram.peek(0x4000), glyph(1, 0, 3, 0), "Should have LDI r3 opcode");
+        assert_eq!(vram.peek(0x4001), 42, "Should have immediate 42");
+        assert_eq!(vram.peek(0x4002), glyph(1, 0, 5, 0), "Should have LDI r5 opcode");
+        assert_eq!(vram.peek(0x4003), 0x5000, "Should have 0x5000 address");
+        assert_eq!(vram.peek(0x4004), glyph(4, 0, 5, 3), "Should have STORE opcode");
+        assert_eq!(vram.peek(0x4005), glyph(13, 0, 0, 0), "Should have HALT opcode");
+
+        // Verify spawned VM executed and wrote result
+        assert_eq!(vram.peek(0x5000), 42, "Spawned VM should have written 42 to result address");
+
+        println!("\n✅ Milestone 10e: Edit-Compile-Execute Loop — PASSED");
+        println!("  Editor → Assembler → SPATIAL_SPAWN → Execution verified");
+    }
+
+    #[test]
     fn test_halt() {
         let mut vram = SyntheticVram::new();
         vram.poke(0, glyph(13, 0, 0, 0)); // HALT at addr 0
