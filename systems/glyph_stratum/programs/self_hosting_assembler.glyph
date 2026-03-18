@@ -88,22 +88,25 @@ JMP :start
     LDI r14, 11; BEQ r4, r14, :p2_emit_jmp
     LDI r14, :skip_alpha; CALL r14; LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r10, r7
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r11, r7
-    LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r12, r7
-    
-    LDI r14, 2; BEQ r4, r14, :p2_swap
-    LDI r14, 3; BEQ r4, r14, :p2_swap
-    LDI r14, 5; BEQ r4, r14, :p2_3op
-    LDI r14, 6; BEQ r4, r14, :p2_3op
-    LDI r14, 7; BEQ r4, r14, :p2_3op
-    LDI r14, 8; BEQ r4, r14, :p2_3op
-    LDI r14, 128; BEQ r4, r14, :p2_3op
-    LDI r14, 129; BEQ r4, r14, :p2_3op
-    LDI r14, 130; BEQ r4, r14, :p2_3op
-    LDI r14, 131; BEQ r4, r14, :p2_3op
-    LDI r14, 132; BEQ r4, r14, :p2_3op
+    // Check if this is a 3-operand instruction BEFORE parsing third operand
+    LDI r14, 5; BEQ r4, r14, :p2_parse3
+    LDI r14, 6; BEQ r4, r14, :p2_parse3
+    LDI r14, 7; BEQ r4, r14, :p2_parse3
+    LDI r14, 8; BEQ r4, r14, :p2_parse3
+    LDI r14, 128; BEQ r4, r14, :p2_parse3
+    LDI r14, 129; BEQ r4, r14, :p2_parse3
+    LDI r14, 130; BEQ r4, r14, :p2_parse3
+    LDI r14, 131; BEQ r4, r14, :p2_parse3
+    LDI r14, 132; BEQ r4, r14, :p2_parse3
+    // 2-operand with swap: MOV(2), LOAD(3)
+    LDI r14, 2; BEQ r4, r14, :p2_swap2
+    LDI r14, 3; BEQ r4, r14, :p2_swap2
+    // 2-operand no swap: STORE(4) and others
     JMP :p2_emit_gen
-:p2_3op; MOV r5, r12
-:p2_swap; MOV r14, r10; MOV r10, r11; MOV r11, r14
+:p2_parse3
+    LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r12, r7
+    MOV r5, r12; JMP :p2_swap2
+:p2_swap2; MOV r14, r10; MOV r10, r11; MOV r11, r14
 :p2_emit_gen
     MOV r3, r4; LDI r14, 8; SLL r15, r5, r14; OR r3, r3, r15
     LDI r14, 16; SLL r15, r10, r14; OR r3, r3, r15
