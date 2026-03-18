@@ -59,6 +59,63 @@ OPCODES = {
 }
 
 ACTION_PATTERN = re.compile(r"\[([A-Z0-9])\]\s*(\w+)")
+LABEL_PATTERN = re.compile(r"^:(\w+)\s*$")
+
+# Memory layout constants (must match ascii_cartridge.rs)
+PROGRAM_BASE = 0x8000  # Program code starts here
+STATE_BASE = 0xF000  # State buffer base
+GLYPH_BASE = 0x0000  # Glyph grid base
+
+
+def scan_labels(ascii_content: str) -> Dict[str, int]:
+    """
+    Pass 1: Scan for labels in ASCII content.
+
+    Labels are denoted by ':' prefix (e.g., :main, :handler).
+    Each label gets assigned an address starting at PROGRAM_BASE.
+    """
+    labels = {}
+    addr = PROGRAM_BASE
+
+    lines = ascii_content.split("\n")
+    for line in lines:
+        line = line.strip()
+
+        # Skip empty lines and comments
+        if not line or line.startswith("#"):
+            continue
+
+        # Check for label definition
+        match = LABEL_PATTERN.match(line)
+        if match:
+            label_name = match.group(1)
+            labels[label_name] = addr
+            continue
+
+        # Count instructions (rough estimate: 1 instruction per significant line)
+        # This is simplified - real implementation would tokenize properly
+        if not line.startswith("[") and not line.startswith("|"):
+            addr += 1  # Advance address for each instruction
+
+    return labels
+
+
+def resolve_target(target: str, labels: Dict[str, int]) -> int:
+    """
+    Resolve a target string to a numeric address.
+
+    - If target is a number, return as-is
+    - If target is a label, look up in label table
+    - If target is unknown, return 0 (will halt/error)
+    """
+    # Try parsing as number first
+    try:
+        return int(target, 0)  # Allow hex (0x...) or decimal
+    except ValueError:
+        pass
+
+    # Look up label
+    return labels.get(target, 0)
 
 
 def create_glyph_grid(ascii_content: str) -> np.ndarray:
@@ -92,8 +149,22 @@ def detect_patterns(ascii_content: str) -> List[Tuple[int, int, str, str]]:
     return patterns
 
 
-def create_sit(patterns: List[Tuple[int, int, str, str]], mapping: Dict) -> np.ndarray:
-    """Create Spatial Instruction Table (256x1 RGBA)."""
+def create_sit(
+    patterns: List[Tuple[int, int, str, str]],
+    mapping: Dict,
+    labels: Optional[Dict[str, int]] = None,
+) -> np.ndarray:
+    """Create Spatial Instruction Table (256x1 RGBA).
+
+    Each entry contains:
+    - Byte 0: Opcode (209=JMP, 11=CALL, 13=HALT, etc.)
+    - Byte 1: Target address low byte
+    - Byte 2: Target address high byte
+    - Byte 3: Reserved (255)
+    """
+    if labels is None:
+        labels = {}
+
     sit = np.zeros((GLSIT_ENTRIES, 1, 4), dtype=np.uint8)
 
     for x, y, label, action in patterns:
@@ -108,10 +179,11 @@ def create_sit(patterns: List[Tuple[int, int, str, str]], mapping: Dict) -> np.n
 
         opcode_val = OPCODES.get(opcode.upper(), OPCODES["NOP"])
 
-        target_bytes = target.encode("utf-8")[:3]
-        target_int = int.from_bytes(target_bytes[:3].ljust(3, b"\x00"), "big")
+        # Resolve target to numeric address (compile-time binding)
+        target_addr = resolve_target(target, labels)
 
-        sit[idx, 0] = [opcode_val, target_int & 0xFF, (target_int >> 8) & 0xFF, 255]
+        # Pack address into p1/p2 bytes (little-endian)
+        sit[idx, 0] = [opcode_val, target_addr & 0xFF, (target_addr >> 8) & 0xFF, 255]
 
     return sit
 
@@ -149,9 +221,16 @@ def compile_cartridge(ascii_path: Path, mapping: Dict, output: Path) -> bool:
     """Compile ASCII file to .rts.png cartridge."""
     ascii_content = ascii_path.read_text()
 
+    # Pass 1: Scan for labels
+    labels = scan_labels(ascii_content)
+    if labels:
+        print(f"  Resolved {len(labels)} labels: {list(labels.keys())}")
+        for name, addr in labels.items():
+            print(f"    :{name} -> 0x{addr:04X}")
+
     glyph_grid = create_glyph_grid(ascii_content)
     patterns = detect_patterns(ascii_content)
-    sit = create_sit(patterns, mapping)
+    sit = create_sit(patterns, mapping, labels)
     state_buffer = create_state_buffer()
 
     name = ascii_path.stem

@@ -23,13 +23,46 @@ pub const SIT_ENTRIES: u32 = 256;
 pub const STATE_BUFFER_SIZE: u32 = 1024;
 pub const BOOTSTRAP_HEIGHT: u32 = 16;
 
+/// Memory layout constants (must match compiler)
+/// These define where each region lives in the cartridge's address space
+pub mod mem_layout {
+    /// Glyph grid: visible ASCII display (80x24 = 1920 bytes)
+    pub const GLYPH_BASE: u32 = 0x0000;
+    pub const GLYPH_SIZE: u32 = 80 * 24; // 1920
+
+    /// Reserved: future expansion
+    pub const RESERVED_BASE: u32 = 0x0C00;
+    pub const RESERVED_SIZE: u32 = 0x7400; // 29696
+
+    /// Program code: VM instructions (starts at 0x8000)
+    pub const PROGRAM_BASE: u32 = 0x8000;
+    pub const PROGRAM_SIZE: u32 = 0x7000; // 28672
+
+    /// State buffer: mutable application variables (1024 bytes)
+    pub const STATE_BASE: u32 = 0xF000;
+    pub const STATE_SIZE: u32 = 0x0400; // 1024
+
+    /// State buffer index helper
+    pub fn state_addr(index: u32) -> u32 {
+        STATE_BASE + index
+    }
+
+    /// Glyph grid index helper
+    pub fn glyph_addr(x: u32, y: u32) -> u32 {
+        GLYPH_BASE + (y * 80 + x)
+    }
+}
+
 /// SIT action parsed from cartridge
 #[derive(Clone, Debug)]
 pub struct SitAction {
     pub x: u32,
     pub y: u32,
     pub opcode: u8,
+    /// Target as string (for debugging/display)
     pub target: String,
+    /// Resolved target address (compile-time bound)
+    pub target_addr: u32,
 }
 
 /// Bootstrap header parsed from cartridge  
@@ -166,6 +199,7 @@ impl AsciiCartridge {
                             y,
                             opcode: glyph_opcode,
                             target,
+                            target_addr: target_int as u32, // Compile-time resolved address
                         });
                     }
                 }
