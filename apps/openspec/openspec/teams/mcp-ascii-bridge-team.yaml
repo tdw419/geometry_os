@@ -1,0 +1,104 @@
+# MCP ASCII Bridge Team
+# Bridges session-analyzer-app ASCII control API to MCP tools
+
+# Enables any MCP-compatible AI to control the app via label-based commands
+
+# Team Structure
+team:
+  name: mcp-ascii-bridge-team
+  description: |
+    Creates an MCP server that bridges to the session-analyzer-app ASCII control API.
+    Exposes 5 MCP tools for AI agent control via label-based commands.
+
+  project_root: /home/jericho/zion/projects/ai_auto_development/ai_auto_development/apps/session-analyzer-app
+
+  agents:
+    - name: project-init
+      role: Sets up project structure and dependencies
+      focus:
+        - Create pyproject.toml with README.md
+        - Set up source directory structure
+      files:
+        - mcp_ascii_bridge/pyproject.toml
+        - mcp_ascii_bridge/README.md
+
+    - name: server-implementer
+      role: Implements the MCP server with all tools
+      focus:
+        - Create server.py with 5 MCP tools
+        - Implement async HTTP client for ASCII API
+        - Add error handling for connection and HTTP errors
+      files:
+        - mcp_ascii_bridge/src/mcp_ascii_bridge/__init__.py
+        - mcp_ascii_bridge/src/mcp_ascii_bridge/server.py
+
+    - name: test-engine
+      role: Creates unit and integration tests
+      focus:
+        - Write unit tests for tool logic
+        - Create integration test script
+        - Verify server works with running app
+      files:
+        - mcp_ascii_bridge/tests/test_server.py
+        - mcp_ascii_bridge/scripts/test_integration.sh
+
+    - name: doc-writer
+      role: Updates documentation and creates skill
+      focus:
+        - Update main app README with MCP section
+        - Create skill file for Claude Code integration
+      files:
+        - README.md
+        - mcp_ascii_bridge/skill/mcp-ascii-control.md
+
+  tasks:
+    - id: task-1
+      title: Project Structure and Dependencies
+      assignee: project-init
+      dependencies: []
+      description: |
+        Create the project directory structure with pyproject.toml, README.md, and source directory.
+        Set up uv project with dependencies.
+
+    - id: task-2
+      title: MCP Server Implementation
+      assignee: server-implementer
+      dependencies: [task-1]
+      description: |
+        Implement the MCP server in server.py with all 5 tools (ascii_view, ascii_control, ascii_navigate, ascii_metrics, ascii_bindings).
+        Use httpx for async HTTP communication with the ASCII control API.
+        Add comprehensive error handling.
+
+    - id: task-3
+      title: Unit and Integration Tests
+      assignee: test-engine
+      dependencies: [task-2]
+      description: |
+        Create unit tests for tool logic and integration test script.
+        Verify the server works with a running session-analyzer-app.
+
+    - id: task-4
+      title: Documentation and assignee: doc-writer
+      dependencies: [task-3]
+      description: |
+        Update main app README with MCP section.
+        Create Claude Code skill file for MCP integration.
+
+    - id: task-5
+      title: Integration Verification
+      assignee: test-engine
+      dependencies: [task-4]
+      description: |
+        Run integration tests to verify the MCP bridge works with the running session-analyzer-app.
+        Test via mcp2cli if available.
+
+  success_criteria:
+    - All 5 MCP tools are functional
+    - Unit tests pass
+    - Can control app via mcp2cli
+    - Error handling works when app is not running
+    - Documentation is complete
+
+  reference_docs:
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/docs/plans/2026-03-18-mcp-bridge-ascii-control.md
+    - /home/jericho/zion/projects/ai_auto_development/ai_auto_development/apps/session-analyzer-app/src/ascii/bindings.json
