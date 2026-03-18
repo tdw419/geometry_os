@@ -204,7 +204,7 @@ impl Compositor {
     /// # Arguments
     ///
     /// * `encoder` - Command encoder for recording rendering commands
-    /// * `output_view` - Output texture view to render to
+    /// * `output_texture` - Output texture to blit results to
     ///
     /// # Integration Note
     ///
@@ -213,8 +213,8 @@ impl Compositor {
     /// when calling Renderer::render() to enable execution zone rendering.
     /// The compositor renders after the main scene (compilation border) and before
     /// the final queue.submit().
-    pub fn render(&mut self, encoder: &mut CommandEncoder, output_view: &TextureView) {
-        self.zone_renderer.render(encoder, output_view);
+    pub fn render(&mut self, encoder: &mut CommandEncoder, output_texture: &wgpu::Texture) {
+        self.zone_renderer.render(encoder, output_texture);
     }
 
     /// Get reference to the WebGPU device

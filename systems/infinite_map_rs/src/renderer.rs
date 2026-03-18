@@ -2355,7 +2355,7 @@ impl<'a> Renderer<'a> {
         // Phase 48.3: Render execution zone compositor (if initialized)
         // The compositor renders execution zones for WGSL .rts.png file drops
         if let Some(comp) = compositor {
-            comp.render(&mut encoder, &view);
+            comp.render(&mut encoder, &output.texture);
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));

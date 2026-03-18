@@ -11,7 +11,7 @@
 
 use crate::entities::execution_zone::ExecutionZone;
 use std::sync::Arc;
-use wgpu::{CommandEncoder, Device, TextureView};
+use wgpu::{CommandEncoder, Device, Texture, TextureView};
 
 /// Execution Zone Renderer
 ///
@@ -94,19 +94,26 @@ impl ExecutionZoneRenderer {
     /// # Arguments
     ///
     /// * `encoder` - Command encoder for recording rendering commands
-    /// * `output_view` - Output texture view to render to
+    /// * `output_texture` - Output texture to blit results to
     ///
     /// # TODO
     ///
     /// This method should return `Result<(), RenderError>` to handle potential
     /// rendering failures such as pipeline creation errors, resource binding
     /// failures, or command encoding errors.
-    pub fn render(&mut self, encoder: &mut CommandEncoder, _output_view: &TextureView) {
+    pub fn render(&mut self, encoder: &mut CommandEncoder, output_texture: &Texture) {
         for zone in &self.zones {
             if zone.is_active() {
                 self.render_zone(encoder, zone);
             } else {
                 self.render_inactive_indicator(encoder, zone);
+            }
+        }
+
+        // Blit all active zone results to output texture
+        for zone in &self.zones {
+            if zone.is_active() {
+                self.blit_results(encoder, zone, output_texture);
             }
         }
     }
@@ -162,8 +169,8 @@ impl ExecutionZoneRenderer {
         // Dispatch the compute shader
         self.dispatch_shader(encoder, zone);
 
-        // Blit results to output texture
-        self.blit_results(encoder, zone);
+        // Note: Blitting is done in the main render loop after all zones are dispatched
+        // This ensures all compute passes complete before blitting
 
         // TODO: Render overlay text and border
         // This would integrate with the text engine to display
@@ -274,13 +281,14 @@ impl ExecutionZoneRenderer {
     ///
     /// * `encoder` - Command encoder for recording rendering commands
     /// * `zone` - The execution zone whose results to blit
+    /// * `output_texture` - Destination texture to blit results to
     ///
     /// # TODO
     ///
     /// This method should return `Result<(), BlitError>` to handle potential
     /// failures such as texture format mismatches, out-of-bounds blit regions,
     /// or missing source textures.
-    fn blit_results(&self, encoder: &mut CommandEncoder, zone: &ExecutionZone) {
+    fn blit_results(&self, encoder: &mut CommandEncoder, zone: &ExecutionZone, output_texture: &Texture) {
         log::trace!(
             "Blitting results for zone '{}' at ({}, {})",
             zone.shader_name,
@@ -289,15 +297,44 @@ impl ExecutionZoneRenderer {
         );
 
         // Check if zone has an output texture
-        if let Some(_texture) = zone.texture() {
-            // TODO: Implement actual texture blitting with encoder.copy_texture_to_texture
-            // This requires:
-            // - Source texture view from the zone's compute output
-            // - Destination region in the output texture
-            // - Proper image copy texture descriptors
+        if let Some(source_texture) = zone.texture() {
+            use wgpu::{Extent3d, ImageCopyTexture, Origin3d};
+
+            // Calculate blit region based on zone position
+            // Each zone is 256x256 pixels (standard execution zone size)
+            let zone_size = 256u32;
+            let copy_size = Extent3d {
+                width: zone_size,
+                height: zone_size,
+                depth_or_array_layers: 1,
+            };
+
+            // Source: zone's compute output texture
+            let source = ImageCopyTexture {
+                texture: &source_texture,
+                mip_level: 0,
+                origin: Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            };
+
+            // Destination: output texture at zone position
+            let dest_x = zone.position.x as u32;
+            let dest_y = zone.position.y as u32;
+            let dest = ImageCopyTexture {
+                texture: output_texture,
+                mip_level: 0,
+                origin: Origin3d { x: dest_x, y: dest_y, z: 0 },
+                aspect: wgpu::TextureAspect::All,
+            };
+
+            // Perform the blit
+            encoder.copy_texture_to_texture(source, dest, copy_size);
+
             log::debug!(
-                "Zone '{}' has output texture - blit implementation pending",
-                zone.shader_name
+                "Blitted zone '{}' results to ({}, {})",
+                zone.shader_name,
+                dest_x,
+                dest_y
             );
         } else {
             log::trace!(
