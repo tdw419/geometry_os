@@ -1,0 +1,106 @@
+# GPU Wiring Team
+# Responsible for bridging verified Glyph programs to actual GPU execution in infinite_map_rs
+
+team:
+  name: gpu-wiring-team
+  description: |
+    Bridges the "Self-Hosting Editor" and "Full Assembler" from the Synthetic VRAM 
+    emulator to the production WGSL compute shaders. This completes the 
+    sovereignty transition from simulation to hardware-accelerated execution.
+
+  project_root: /home/jericho/zion/projects/geometry_os/geometry_os
+
+  agents:
+    - name: shader-architect
+      role: Updates WGSL shaders with missing opcodes
+      focus:
+        - Implementing DRAW (Opcode 215) in glyph_vm_scheduler.wgsl
+        - Reconciling opcode conflicts (e.g., NOT vs DRAW)
+        - Optimizing blit performance for 64x64 glyph cells
+      files:
+        - systems/infinite_map_rs/src/shaders/glyph_vm_scheduler.wgsl
+
+    - name: compositor-integrator
+      role: Integrates editor VM into the production hypervisor
+      focus:
+        - Modifying app.rs to load self_hosting_editor.rts.png
+        - Initializing VM 0 at the correct Hilbert index
+        - Mapping keyboard events to the VM's mailbox (0x200)
+      files:
+        - systems/infinite_map_rs/src/app.rs
+        - systems/infinite_map_rs/src/glyph_vm_scheduler.rs
+
+    - name: substrate-verifier
+      role: E2E validation of GPU-native execution
+      focus:
+        - Verifying VCC integrity of the editor buffer
+        - Using mcp2cli to peek/poke GPU state
+        - Benchmarking 60 FPS visual feedback
+      files:
+        - apps/mcp2cli/src/geos_cli.py
+
+  tasks:
+    - id: task-11.1
+      title: Reconcile Opcode 215 in WGSL
+      assignee: shader-architect
+      dependencies: []
+      description: |
+        - Move NOT2 from 215 to 240 in glyph_vm_scheduler.wgsl
+        - Implement DRAW at 215
+        - DRAW logic: Blit 64x64 RGBA cell from Atlas (2048,0) to Screen (0,2048)
+      acceptance_criteria:
+        - WGSL compiles
+        - NOT2 works at new address (if used)
+        - DRAW blits pixels correctly (verified via shader debug)
+
+    - id: task-11.2
+      title: Implement DRAW in production scheduler
+      assignee: shader-architect
+      dependencies: [task-11.1]
+      description: |
+        Implement the actual blit loop in the WGSL switch statement for case 215u.
+        Ensure it uses the correct dst_x, dst_y, and glyph_id from VM registers.
+      acceptance_criteria:
+        - DRAW opcode executes without hanging the GPU
+        - Blit correctly preserves RGBA channels
+
+    - id: task-11.3
+      title: Configure Production Boot to Editor
+      assignee: compositor-integrator
+      dependencies: [task-11.2]
+      description: |
+        - Compile self_hosting_editor.glyph to .rts.png
+        - Add logic to infinite_map_rs/app.rs to load this file at boot
+        - Spawn VM 0 at index 0 with RUNNING state
+      acceptance_criteria:
+        - App starts and shows editor code in RAM texture
+        - VM 0 is visible in diagnostic UI
+
+    - id: task-11.4
+      title: Real-time Keyboard Event Wiring
+      assignee: compositor-integrator
+      dependencies: [task-11.3]
+      description: |
+        - Connect the Rust input manager to the Glyph VM mailbox at 0x200
+        - Send scancodes as event_type=1 (INSERT) or 2 (DELETE)
+        - Verify editor responds on screen
+      acceptance_criteria:
+        - Typing on keyboard shows visual glyphs in the Screen region
+        - 60 FPS interactive latency
+
+    - id: task-11.5
+      title: Full GPU-Native Edit-Compile-Execute
+      assignee: substrate-verifier
+      dependencies: [task-11.4]
+      description: |
+        - Test the full loop on-GPU: edit, F5 (compile), F6 (run)
+        - Verify new VM spawns and executes on the actual shader
+      acceptance_criteria:
+        - Sovereignty Ladder Milestone 11 confirmed
+        - Full loop works without CPU involvement
+
+  success_criteria:
+    - DRAW opcode 215 implemented in WGSL
+    - Editor runs on-GPU at 60 FPS
+    - Keyboard input renders visual glyphs
+    - Multi-VM spawning works on production shader

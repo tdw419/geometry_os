@@ -251,6 +251,29 @@ impl InputManager {
                     );
                 }
             }
+
+            // Phase 50: Sovereign Visual Kernel Bridge
+            if let Some(ref mut app) = state.app {
+                if let Some(ref mut vk) = app.visual_kernel {
+                    // Map keys to Visual Kernel event types
+                    let vk_event = match key.raw() {
+                        105 => Some((3, 0)), // Left arrow -> CURSOR_LEFT
+                        106 => Some((4, 0)), // Right arrow -> CURSOR_RIGHT
+                        14 => Some((2, 0)),  // Backspace -> DELETE
+                        63 => Some((5, 0)),  // F5 -> COMPILE
+                        64 => Some((6, 0)),  // F6 -> RUN
+                        _ => {
+                            // Default: Map to ASCII for INSERT
+                            self.map_scancode_to_ascii(key.raw()).map(|ascii| (1, ascii as u32))
+                        },
+                    };
+
+                    if let Some((event_type, param1)) = vk_event {
+                        vk.send_event(event_type, param1, 0);
+                        log::info!("🚀 Sovereign Input: type={}, p1={}", event_type, param1);
+                    }
+                }
+            }
         }
 
         // Phase 41: Game Mode - Route to Possessed Window (VM)

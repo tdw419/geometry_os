@@ -449,6 +449,20 @@ impl VisualKernel {
         self.booted
     }
 
+    /// Send an event to VM #0's mailbox (0x200)
+    pub fn send_event(&mut self, event_type: u32, param1: u32, param2: u32) {
+        if !self.booted {
+            return;
+        }
+        // Mailbox format:
+        // 0x200: event_type
+        // 0x201: param1 (e.g. char)
+        // 0x202: param2 (e.g. cursor)
+        self.scheduler.poke_substrate_single(0x200, event_type);
+        self.scheduler.poke_substrate_single(0x201, param1);
+        self.scheduler.poke_substrate_single(0x202, param2);
+    }
+
     /// Reset the Visual Kernel
     pub fn reset(&mut self) {
         self.scheduler.reset_all();

@@ -291,6 +291,9 @@ pub struct InfiniteMapApp<'a> {
     #[cfg(feature = "hypervisor")]
     pub terminal_clone_manager: Option<crate::terminal_clone::TerminalCloneManager>,
 
+    // Phase 50: Visual Kernel - Sovereign GPU-Native Windowing
+    pub visual_kernel: Option<crate::visual_kernel_boot::VisualKernel>,
+
     // Shader Execution Zone: Compositor for drag-and-drop WGSL .rts.png files
     pub compositor: Option<crate::Compositor>,
 
@@ -515,6 +518,8 @@ impl<'a> InfiniteMapApp<'a> {
             terminal_tiles: Vec::new(),
             #[cfg(feature = "hypervisor")]
             terminal_clone_manager: Some(crate::terminal_clone::TerminalCloneManager::new()),
+            // Phase 50: Visual Kernel - Sovereign GPU-Native Windowing
+            visual_kernel: None,
             // Shader Execution Zone: Compositor initialized to None (will be set when device is available)
             compositor: None,
             // Phase 48: Initialize GPU capabilities with defaults (will be updated when adapter is available)
@@ -539,6 +544,33 @@ impl<'a> InfiniteMapApp<'a> {
 
         // Phase 37.3: Enable Cortex Layer
         app.renderer.enable_cortex();
+
+        // Phase 50: Initialize Visual Kernel (Sovereign GPU-Native OS)
+        let mut vk_config = crate::visual_kernel_boot::VisualKernelConfig::default();
+
+        // If --editor is passed, boot the self-hosting editor instead of window manager
+        if std::env::args().any(|arg| arg == "--editor") {
+            vk_config.window_manager_path =
+                "systems/glyph_stratum/programs/self_hosting_editor.glyph".to_string();
+            log::info!("🚀 Sovereign Boot: SELF-HOSTING EDITOR selected");
+        }
+
+        let mut visual_kernel = crate::visual_kernel_boot::VisualKernel::new(
+            app.renderer.get_device().clone(),
+            app.renderer.get_queue().clone(),
+            vk_config,
+        );
+
+        // Actually boot the kernel
+        match visual_kernel.boot() {
+            Ok(_) => {
+                log::info!("🚀 Visual Kernel Boot Complete (Phase 50)");
+                app.visual_kernel = Some(visual_kernel);
+            },
+            Err(e) => {
+                log::error!("❌ Visual Kernel Boot Failed: {}", e);
+            },
+        }
 
         // Phase 101: Benchmark Mode
         if std::env::args().any(|arg| arg == "--benchmark-text") {
@@ -570,6 +602,13 @@ impl<'a> InfiniteMapApp<'a> {
              wlu.update(dt);
          }
      }
+
+    /// Phase 50: Update Visual Kernel (Sovereign GPU-Native Windowing)
+    pub fn update_visual_kernel(&mut self) {
+        if let Some(ref mut vk) = self.visual_kernel {
+            vk.execute_frame();
+        }
+    }
 
     // Phase 48: Initialize GPU capabilities asynchronously
     // This should be called during app initialization when we have access to the GPU adapter
@@ -4978,6 +5017,9 @@ impl<'a> InfiniteMapApp<'a> {
         // Phase 35.9: Render new cartridges from evolution zone
         self.render_cartridges();
 
+        // Phase 50: Update Visual Kernel (Sovereign GPU-Native Windowing)
+        self.update_visual_kernel();
+
         // Phase 100: Visual Cortex (AI Feedback Loop)
         // Check if we should trigger a new capture
         if self.visual_cortex.should_capture() {
@@ -7875,4 +7917,12 @@ impl<'a> InfiniteMapApp<'a> {
             let _ = std::fs::remove_file(signal_path);
         }
     }
+
+    /// Phase 50: Update Visual Kernel (Sovereign GPU-Native Windowing)
+    pub fn update_visual_kernel(&mut self) {
+        if let Some(ref mut vk) = self.visual_kernel {
+            vk.execute_frame();
+        }
+    }
+
 }

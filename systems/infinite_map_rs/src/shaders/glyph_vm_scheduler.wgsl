@@ -64,7 +64,7 @@ const OP2_CMP: u32 = 211u;
 const OP2_AND: u32 = 212u;
 const OP2_OR: u32 = 213u;
 const OP2_XOR: u32 = 214u;
-const OP2_NOT: u32 = 215u;
+const OP_DRAW: u32 = 215u;  // Spatial Blit (Atlas -> Screen)
 const OP2_SHL: u32 = 216u;
 const OP2_SHR: u32 = 217u;
 const OP2_CALL: u32 = 218u;
@@ -77,6 +77,7 @@ const OP2_SYNC: u32 = 224u;
 const OP2_ATOMIC: u32 = 225u;
 const OP2_FADD: u32 = 228u;
 const OP2_FMUL: u32 = 229u;
+const OP2_NOT: u32 = 240u;  // Moved from 215 to 240
 
 // Strata
 const STRATUM_SUBSTRATE: u32 = 0u;
@@ -409,7 +410,36 @@ fn execute_instruction(vm_idx: u32) {
  v1 ^ v2);
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
-        case 215u: { // NOT: mem[dst] = ~mem[src1]
+        case 215u: { // DRAW (Spatial Blit: Atlas -> Screen)
+            // stratum = reg_y, p1 = reg_id, p2 = reg_x
+            let glyph_id = vms[vm_idx].regs[p1];
+            let dst_x = vms[vm_idx].regs[p2];
+            let dst_y = vms[vm_idx].regs[stratum];
+
+            let src_x_cell = glyph_id % 16u;
+            let src_y_cell = glyph_id / 16u;
+            let src_x = 2048u + src_x_cell * 64u;
+            let src_y = src_y_cell * 64u;
+
+            let screen_base_x = 0u;
+            let screen_base_y = 2048u;
+
+            for (var row = 0u; row < 64u; row++) {
+                for (var col = 0u; col < 64u; col++) {
+                    let s_x = src_x + col;
+                    let s_y = src_y + row;
+                    let d_x = screen_base_x + dst_x + col;
+                    let d_y = screen_base_y + dst_y + row;
+
+                    if (s_x < GRID_SIZE && s_y < GRID_SIZE && d_x < GRID_SIZE && d_y < GRID_SIZE) {
+                        let val = mem_read(s_y * GRID_SIZE + s_x);
+                        mem_write(vm_idx, d_y * GRID_SIZE + d_x, val);
+                    }
+                }
+            }
+            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
+        }
+        case 240u: { // NOT: mem[dst] = ~mem[src1]
             let v = mem_read(u32(p1));
             mem_write(vm_idx, u32(stratum), 
  ~v);

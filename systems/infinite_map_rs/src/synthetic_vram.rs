@@ -1146,6 +1146,12 @@ impl SyntheticVram {
                 }
                 self.vms[vm_idx].pc += 1;
             },
+            240 => {
+                // NOT
+                let v = self.mem_read(p1);
+                self.mem_write(stratum, !v);
+                self.vms[vm_idx].pc += 1;
+            },
             216 => {
                 // SHL
                 let v1 = self.mem_read(p1);

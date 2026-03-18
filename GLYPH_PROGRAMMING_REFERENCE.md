@@ -86,7 +86,7 @@ Each pixel in the .rts.png texture represents one Glyph instruction:
 | 212 | AND2 | mem[dst] = mem[src1] & mem[src2] |
 | 213 | OR2 | mem[dst] = mem[src1] \| mem[src2] |
 | 214 | XOR2 | mem[dst] = mem[src1] ^ mem[src2] |
-| 215 | NOT2 | mem[dst] = ~mem[src1] |
+| 215 | DRAW | Blit 64x64 glyph from Atlas to Screen |
 | 216 | SHL2 | mem[dst] = mem[src1] << (mem[src2] & 31) |
 | 217 | SHR2 | mem[dst] = mem[src1] >> (mem[src2] & 31) |
 | 218 | CALL2 | push PC+1, PC = dst |
@@ -96,6 +96,7 @@ Each pixel in the .rts.png texture represents one Glyph instruction:
 | 222 | READ2 | mem[dst] = mem[src1] (alias for LOAD) |
 | 223 | WRITE2 | mem[dst] = mem[src1] (alias for STORE via memory) |
 | 224 | SYNC2 | memory barrier (no-op in single-threaded) |
+| 240 | NOT2 | mem[dst] = ~mem[src1] |
 
 ### Floating Point Opcodes (Emulated)
 | Opcode | Mnemonic | Description |
