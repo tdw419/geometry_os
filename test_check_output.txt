@@ -1,0 +1,1535 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/jericho/zion/projects/geometry_os/geometry_os/systems/glyph_boot/Cargo.toml
+workspace: /home/jericho/zion/projects/geometry_os/geometry_os/Cargo.toml
+    Checking infinite_map_rs v0.1.0 (/home/jericho/zion/projects/geometry_os/geometry_os/systems/infinite_map_rs)
+warning: unused import: `ScreenDimensionsConfig`
+ --> systems/infinite_map_rs/src/bare_metal/window_renderer.rs:6:29
+  |
+6 | use super::{GpuFramebuffer, ScreenDimensionsConfig};
+  |                             ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::cmp::Reverse`
+   --> systems/infinite_map_rs/src/cognitive/hilbert_pathfinder.rs:276:13
+    |
+276 |         use std::cmp::Reverse;
+    |             ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::cmp::Reverse`
+   --> systems/infinite_map_rs/src/cognitive/hilbert_pathfinder.rs:348:13
+    |
+348 |         use std::cmp::Reverse;
+    |             ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `TextureView`
+  --> systems/infinite_map_rs/src/compositor.rs:11:28
+   |
+11 | use wgpu::{CommandEncoder, TextureView};
+   |                            ^^^^^^^^^^^
+
+warning: unused import: `crate::glyph_stratum::*`
+ --> systems/infinite_map_rs/src/font_atlas.rs:6:5
+  |
+6 | use crate::glyph_stratum::*;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `GlyphError`
+  --> systems/infinite_map_rs/src/riscv/ubuntu_bridge.rs:10:61
+   |
+10 | use crate::backend::drm::glyph_executor::{DrmGlyphExecutor, GlyphError};
+   |                                                             ^^^^^^^^^^
+
+warning: unused import: `anyhow::Result`
+  --> systems/infinite_map_rs/src/rts/packer.rs:23:5
+   |
+23 | use anyhow::Result;
+   |     ^^^^^^^^^^^^^^
+
+warning: unnecessary parentheses around assigned value
+  --> systems/infinite_map_rs/src/tile.rs:49:24
+   |
+49 |         self.overall = (boot_fitness * 0.2
+   |                        ^
+...
+52 |             + self.user_utility * 0.2);
+   |                                      ^
+   |
+   = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+   |
+49 ~         self.overall = boot_fitness * 0.2
+50 |             + self.stability_score * 0.3
+51 |             + self.performance_score * 0.3
+52 ~             + self.user_utility * 0.2;
+   |
+
+warning: unused imports: `compile_glyph_file` and `create_glyph_texture`
+  --> systems/infinite_map_rs/src/visual_kernel_boot.rs:12:44
+   |
+12 | use crate::glyph_stratum::glyph_compiler::{compile_glyph_file, create_glyph_texture};
+   |                                            ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::pixel_brain::tokenizer::ByteTokenizer`
+ --> systems/infinite_map_rs/src/pixel_brain/infer.rs:7:5
+  |
+7 | use crate::pixel_brain::tokenizer::ByteTokenizer;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `BindGroup`
+  --> systems/infinite_map_rs/src/pixel_brain/multi_brain.rs:32:57
+   |
+32 | use wgpu::{Device, Queue, Texture, TextureView, Buffer, BindGroup, ComputePipeline};
+   |                                                         ^^^^^^^^^
+
+warning: unused import: `super::atlas::WeightAtlas`
+  --> systems/infinite_map_rs/src/pixel_brain/multi_brain.rs:35:5
+   |
+35 | use super::atlas::WeightAtlas;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `block_allocator::BlockAllocator`
+  --> systems/infinite_map_rs/src/ml_memory/pool.rs:10:5
+   |
+10 |     block_allocator::BlockAllocator,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> systems/infinite_map_rs/src/ml_memory/zero_copy.rs:6:5
+  |
+6 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `std::fmt`
+ --> systems/infinite_map_rs/src/visual_shell.rs:6:5
+  |
+6 | use std::fmt;
+  |     ^^^^^^^^
+
+warning: unused import: `BorderRenderConfig`
+  --> systems/infinite_map_rs/src/rendering/execution_zone_renderer.rs:13:44
+   |
+13 | use crate::ui::zone_overlay::{BorderColor, BorderRenderConfig};
+   |                                            ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `TextureView`
+  --> systems/infinite_map_rs/src/rendering/execution_zone_renderer.rs:15:45
+   |
+15 | use wgpu::{CommandEncoder, Device, Texture, TextureView};
+   |                                             ^^^^^^^^^^^
+
+warning: unused imports: `TRAP_BASE`, `TrapRegs`, `brain_state`, `op_type`, and `status`
+ --> systems/infinite_map_rs/src/tests/brain_test.rs:3:29
+  |
+3 | use crate::trap_interface::{brain_state, op_type, status, TrapRegs, TRAP_BASE};
+  |                             ^^^^^^^^^^^  ^^^^^^^  ^^^^^^  ^^^^^^^^  ^^^^^^^^^
+  |
+help: if this is a test module, consider adding a `#[cfg(test)]` to the containing module
+ --> systems/infinite_map_rs/src/tests/mod.rs:3:1
+  |
+3 | pub mod brain_test;
+  | ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::cmp::Reverse`
+   --> systems/infinite_map_rs/src/cognitive/hilbert_pathfinder.rs:276:13
+    |
+276 |         use std::cmp::Reverse;
+    |             ^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+ --> systems/infinite_map_rs/src/qemu/qmp_tests.rs:3:9
+  |
+3 |     use super::*;
+  |         ^^^^^^^^
+
+warning: unused import: `super::*`
+   --> systems/infinite_map_rs/src/riscv/ubuntu_bridge.rs:147:9
+    |
+147 |     use super::*;
+    |         ^^^^^^^^
+
+warning: unused import: `std::io::Write`
+   --> systems/infinite_map_rs/src/source_importer.rs:937:9
+    |
+937 |     use std::io::Write;
+    |         ^^^^^^^^^^^^^^
+
+warning: unused import: `TRAP_BASE`
+ --> systems/infinite_map_rs/src/tests/brain_test.rs:3:69
+  |
+3 | use crate::trap_interface::{brain_state, op_type, status, TrapRegs, TRAP_BASE};
+  |                                                                     ^^^^^^^^^
+
+warning: unused import: `GLYPH_WRITE_OP`
+ --> systems/infinite_map_rs/src/tests/glyph_write_test.rs:5:42
+  |
+5 |     use crate::trap_interface::{op_type, GLYPH_WRITE_OP, TrapRegs};
+  |                                          ^^^^^^^^^^^^^^
+
+warning: unused variable: `clients_broadcast`
+   --> systems/infinite_map_rs/src/camera_sync.rs:172:21
+    |
+172 |                 let clients_broadcast = Arc::clone(&clients);
+    |                     ^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_clients_broadcast`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `client_id_broadcast`
+   --> systems/infinite_map_rs/src/camera_sync.rs:173:21
+    |
+173 |                 let client_id_broadcast = client_id.clone();
+    |                     ^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_client_id_broadcast`
+
+warning: unused variable: `u32_size`
+   --> systems/infinite_map_rs/src/compiler_tile.rs:496:13
+    |
+496 |         let u32_size = std::mem::size_of::<u32>() as u32;
+    |             ^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+496 |         let _u32_size = std::mem::size_of::<u32>() as u32;
+    |             +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+    |
+496 -         let u32_size = std::mem::size_of::<u32>() as u32;
+496 +         let visual_kernel_boot::UNIFIED_GRID_SIZE = std::mem::size_of::<u32>() as u32;
+    |
+
+warning: variable does not need to be mutable
+  --> systems/infinite_map_rs/src/glass_ram/bridge.rs:88:28
+   |
+88 | async fn handle_connection(mut stream: tokio::net::UnixStream, tx: mpsc::Sender<VisualCommand>) {
+   |                            ----^^^^^^
+   |                            |
+   |                            help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `code`
+  --> systems/infinite_map_rs/src/synapse/z_ai_client.rs:97:47
+   |
+97 |     pub async fn analyze_syntax_health(&self, code: &str) -> Result<(f32, Vec<String>)> {
+   |                                               ^^^^ help: if this is intentional, prefix it with an underscore: `_code`
+
+warning: unused variable: `prompt`
+  --> systems/infinite_map_rs/src/synapse/z_ai_client.rs:98:13
+   |
+98 |         let prompt = "Analyze this Rust code for 'health'. Return a JSON: {\"score\": 0.0-1.0, \"issues\": [\"list\"]}.";
+   |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_prompt`
+
+error[E0592]: duplicate definitions with name `update_visual_kernel`
+    --> systems/infinite_map_rs/src/app.rs:7922:5
+     |
+ 607 |     pub fn update_visual_kernel(&mut self) {
+     |     -------------------------------------- other definition for `update_visual_kernel`
+...
+7922 |     pub fn update_visual_kernel(&mut self) {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ duplicate definitions for `update_visual_kernel`
+
+warning: use of deprecated associated function `nix::errno::<impl nix::errno::Errno>::from_i32`: please use `Errno::from_raw()` instead
+   --> systems/infinite_map_rs/src/glass_ram/uffd_wrapper.rs:366:32
+    |
+366 |                     Err(Errno::from_i32(errno))
+    |                                ^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: unreachable statement
+    --> systems/infinite_map_rs/src/renderer.rs:1210:9
+     |
+1209 |         return; // TEMPORARY: Disable to stop crash due to shader binding mismatch
+     |         ------ any code following this expression is unreachable
+1210 |         eprintln!("debug: Enabling evolution terrain rendering...");
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+     |
+     = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+     = note: this warning originates in the macro `eprintln` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused variable: `x`
+   --> systems/infinite_map_rs/src/glyph_stratum/mod.rs:374:28
+    |
+374 |             .filter_map(|((x, y), glyph_id)| {
+    |                            ^ help: if this is intentional, prefix it with an underscore: `_x`
+
+warning: unused variable: `y`
+   --> systems/infinite_map_rs/src/glyph_stratum/mod.rs:374:31
+    |
+374 |             .filter_map(|((x, y), glyph_id)| {
+    |                               ^ help: if this is intentional, prefix it with an underscore: `_y`
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/alpine_vm.rs:530:13
+    |
+530 |         let mut child = Command::new("python3")
+    |             ----^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/app.rs:2873:23
+     |
+2873 |             if let Ok(mut bridge) = bridge_arc.lock() {
+     |                       ----^^^^^^
+     |                       |
+     |                       help: remove this `mut`
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/app.rs:3957:21
+     |
+3957 |                 let mut external_emu = None;
+     |                     ----^^^^^^^^^^^^
+     |                     |
+     |                     help: remove this `mut`
+
+warning: unused variable: `tokens_path`
+    --> systems/infinite_map_rs/src/app.rs:4223:13
+     |
+4223 |         let tokens_path = "../visual_shell/tokens.json";
+     |             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tokens_path`
+
+warning: variable does not need to be mutable
+  --> systems/infinite_map_rs/src/backend/drm/compute.rs:31:9
+   |
+31 |     let mut frontend = spv::Frontend::new(spirv_iter, &spv::Options::default());
+   |         ----^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: unused variable: `bindings`
+   --> systems/infinite_map_rs/src/backend/drm/compute.rs:199:13
+    |
+199 |         let bindings = self.prepare_buffer_bindings(input, output_size)?;
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_bindings`
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/backend/drm/compute.rs:401:13
+    |
+401 |         let mut cmd_buffer = IntelCommandBuffer::new();
+    |             ----^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `gpu_fd`
+  --> systems/infinite_map_rs/src/backend/drm/dmabuf.rs:35:9
+   |
+35 |         gpu_fd: RawFd,
+   |         ^^^^^^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+35 |         _gpu_fd: RawFd,
+   |         +
+help: you might have meant to pattern match on the similarly named constant `UFFD_USER_MODE_ONLY`
+   |
+35 -         gpu_fd: RawFd,
+35 +         glass_ram::uffd_wrapper::UFFD_USER_MODE_ONLY: RawFd,
+   |
+
+warning: unused variable: `handle`
+  --> systems/infinite_map_rs/src/backend/drm/dmabuf.rs:36:9
+   |
+36 |         handle: u32,
+   |         ^^^^^^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+36 |         _handle: u32,
+   |         +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+   |
+36 -         handle: u32,
+36 +         visual_kernel_boot::UNIFIED_GRID_SIZE: u32,
+   |
+
+warning: unused variable: `drm_fd`
+  --> systems/infinite_map_rs/src/backend/drm/dmabuf.rs:71:33
+   |
+71 |     pub fn import_to_kms(&self, drm_fd: RawFd) -> Result<u32> {
+   |                                 ^^^^^^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+71 |     pub fn import_to_kms(&self, _drm_fd: RawFd) -> Result<u32> {
+   |                                 +
+help: you might have meant to pattern match on the similarly named constant `UFFD_USER_MODE_ONLY`
+   |
+71 -     pub fn import_to_kms(&self, drm_fd: RawFd) -> Result<u32> {
+71 +     pub fn import_to_kms(&self, glass_ram::uffd_wrapper::UFFD_USER_MODE_ONLY: RawFd) -> Result<u32> {
+   |
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/backend/drm/glyph_executor.rs:354:13
+    |
+354 |         let mut frontend = naga::front::spv::Frontend::new(spirv_iter, &Options::default());
+    |             ----^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `header_size`
+   --> systems/infinite_map_rs/src/backend/drm/glyph_vm_executor.rs:260:13
+    |
+260 |         let header_size = 8 * std::mem::size_of::<u32>();
+    |             ^^^^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+260 |         let _header_size = 8 * std::mem::size_of::<u32>();
+    |             +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+    |
+260 -         let header_size = 8 * std::mem::size_of::<u32>();
+260 +         let virtual_machine::VIRTIO_CONSOLE_F_SIZE = 8 * std::mem::size_of::<u32>();
+    |
+
+warning: variable does not need to be mutable
+  --> systems/infinite_map_rs/src/backend/drm/intel/shader.rs:79:13
+   |
+79 |         let mut commands = Vec::new();
+   |             ----^^^^^^^^
+   |             |
+   |             help: remove this `mut`
+
+warning: unused variable: `input_buffer`
+  --> systems/infinite_map_rs/src/backend/vulkan/executor.rs:65:13
+   |
+65 |         let input_buffer = self.create_storage_buffer(input.len() * 4)?;
+   |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_input_buffer`
+
+warning: unused variable: `output_buffer`
+  --> systems/infinite_map_rs/src/backend/vulkan/executor.rs:66:13
+   |
+66 |         let output_buffer = self.create_storage_buffer(output_size * 4)?;
+   |             ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_output_buffer`
+
+warning: variable `first_error` is assigned to, but never used
+  --> systems/infinite_map_rs/src/backend/winit.rs:57:17
+   |
+57 |         let mut first_error = None;
+   |                 ^^^^^^^^^^^
+   |
+   = note: consider using `_first_error` instead
+
+warning: value assigned to `first_error` is never read
+  --> systems/infinite_map_rs/src/backend/winit.rs:65:17
+   |
+65 |                 first_error = Some(e);
+   |                 ^^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> systems/infinite_map_rs/src/cognitive/host_functions.rs:13:10
+   |
+13 |         |mut caller: Caller<'_, ACEState>, x: u32, y: u32| -> u32 {
+   |          ----^^^^^^
+   |          |
+   |          help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> systems/infinite_map_rs/src/cognitive/host_functions.rs:37:10
+   |
+37 |         |mut caller: Caller<'_, ACEState>, x: u32, y: u32, color: u32| {
+   |          ----^^^^^^
+   |          |
+   |          help: remove this `mut`
+
+warning: unused variable: `loop_handle`
+   --> systems/infinite_map_rs/src/compositor_state.rs:102:37
+    |
+102 |     pub fn init_xwayland(&mut self, loop_handle: &LoopHandle<'static, GeometryCompositorState>) {
+    |                                     ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_loop_handle`
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/evolution_manager.rs:205:17
+    |
+205 |             let mut client = self.client.lock().unwrap();
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/evolution_manager.rs:345:17
+    |
+345 |             let mut client = self.client.lock().unwrap();
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/evolution_manager.rs:385:17
+    |
+385 |             let mut client = self.client.lock().unwrap();
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/evolution_manager.rs:410:17
+    |
+410 |             let mut client = self.client.lock().unwrap();
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/evolution_manager.rs:435:17
+    |
+435 |             let mut client = self.client.lock().unwrap();
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/evolution_manager.rs:471:17
+    |
+471 |             let mut client = self.client.lock().unwrap();
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/evolution_manager.rs:567:13
+    |
+567 |         let mut client = self.client.lock().unwrap();
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/evolution_manager.rs:647:13
+    |
+647 |         let mut client = self.client.lock().unwrap();
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/evolution_manager.rs:689:13
+    |
+689 |         let mut client = self.client.lock().unwrap();
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `dt`
+   --> systems/infinite_map_rs/src/flash_texture.rs:114:30
+    |
+114 |     pub fn update(&mut self, dt: f64) {
+    |                              ^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+114 |     pub fn update(&mut self, _dt: f64) {
+    |                              +
+help: you might have meant to pattern match on the similarly named constant `MIN_TEMPERATURE`
+    |
+114 -     pub fn update(&mut self, dt: f64) {
+114 +     pub fn update(&mut self, tectonic::solver::MIN_TEMPERATURE: f64) {
+    |
+
+warning: unused variable: `device`
+   --> systems/infinite_map_rs/src/flash_texture.rs:125:30
+    |
+125 |     pub fn render(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+    |                              ^^^^^^ help: if this is intentional, prefix it with an underscore: `_device`
+
+warning: unused variable: `queue`
+   --> systems/infinite_map_rs/src/flash_texture.rs:125:53
+    |
+125 |     pub fn render(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+    |                                                     ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `info`
+  --> systems/infinite_map_rs/src/foundry/rts_loader.rs:27:13
+   |
+27 |         let info = reader
+   |             ^^^^ help: if this is intentional, prefix it with an underscore: `_info`
+
+warning: unused variable: `z`
+  --> systems/infinite_map_rs/src/glass_ram/compressed_sensing.rs:53:28
+   |
+53 |                 let (x, y, z) = self.hilbert.d_to_xyz(scaled_idx as u64);
+   |                            ^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+53 |                 let (x, y, _z) = self.hilbert.d_to_xyz(scaled_idx as u64);
+   |                            +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+   |
+53 -                 let (x, y, z) = self.hilbert.d_to_xyz(scaled_idx as u64);
+53 +                 let (x, y, visual_kernel_boot::UNIFIED_GRID_SIZE) = self.hilbert.d_to_xyz(scaled_idx as u64);
+   |
+
+warning: unused variable: `flags`
+  --> systems/infinite_map_rs/src/glass_ram/monitor.rs:63:17
+   |
+63 |                 flags,
+   |                 ^^^^^ help: try ignoring the field: `flags: _`
+
+warning: unused variable: `range`
+  --> systems/infinite_map_rs/src/glass_ram/process_attacher.rs:42:17
+   |
+42 |             let range = UffdIoctlMode::REGISTER_MODE_WP; // Use WP mode for registration if available?
+   |                 ^^^^^ help: if this is intentional, prefix it with an underscore: `_range`
+
+warning: unused variable: `id`
+   --> systems/infinite_map_rs/src/graph_renderer.rs:384:14
+    |
+384 |         for (id, node) in &graph.nodes {
+    |              ^^ help: if this is intentional, prefix it with an underscore: `_id`
+
+warning: unused variable: `queue`
+   --> systems/infinite_map_rs/src/hex_tensor_editor.rs:352:50
+    |
+352 |     pub fn set_mode(&mut self, mode: EditorMode, queue: &wgpu::Queue) {
+    |                                                  ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `queue`
+   --> systems/infinite_map_rs/src/hex_tensor_editor.rs:357:44
+    |
+357 |     pub fn update_hex_at_cursor(&mut self, queue: &wgpu::Queue, ch: char) -> bool {
+    |                                            ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `queue`
+   --> systems/infinite_map_rs/src/hex_tensor_editor.rs:406:36
+    |
+406 |     pub fn navigate_hex(&mut self, queue: &wgpu::Queue, direction: HexNavDirection) {
+    |                                    ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `queue`
+   --> systems/infinite_map_rs/src/hex_tensor_editor.rs:497:28
+    |
+497 |     pub fn undo(&mut self, queue: &wgpu::Queue) -> bool {
+    |                            ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `queue`
+   --> systems/infinite_map_rs/src/hex_tensor_editor.rs:516:28
+    |
+516 |     pub fn redo(&mut self, queue: &wgpu::Queue) -> bool {
+    |                            ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `start`
+   --> systems/infinite_map_rs/src/hex_tensor_editor.rs:543:32
+    |
+543 |     pub fn get_hex_dump(&self, start: usize, count: usize) -> Vec<String> {
+    |                                ^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+543 |     pub fn get_hex_dump(&self, _start: usize, count: usize) -> Vec<String> {
+    |                                +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+    |
+543 -     pub fn get_hex_dump(&self, start: usize, count: usize) -> Vec<String> {
+543 +     pub fn get_hex_dump(&self, virtual_machine::VIRTIO_CONSOLE_F_SIZE: usize, count: usize) -> Vec<String> {
+    |
+
+warning: unused variable: `count`
+   --> systems/infinite_map_rs/src/hex_tensor_editor.rs:543:46
+    |
+543 |     pub fn get_hex_dump(&self, start: usize, count: usize) -> Vec<String> {
+    |                                              ^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+543 |     pub fn get_hex_dump(&self, start: usize, _count: usize) -> Vec<String> {
+    |                                              +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+    |
+543 -     pub fn get_hex_dump(&self, start: usize, count: usize) -> Vec<String> {
+543 +     pub fn get_hex_dump(&self, start: usize, virtual_machine::VIRTIO_CONSOLE_F_SIZE: usize) -> Vec<String> {
+    |
+
+warning: unused variable: `last_idx`
+   --> systems/infinite_map_rs/src/hex_tensor_editor.rs:738:17
+    |
+738 |             let last_idx = self.search_query.len() - 1;
+    |                 ^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+738 |             let _last_idx = self.search_query.len() - 1;
+    |                 +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+    |
+738 -             let last_idx = self.search_query.len() - 1;
+738 +             let virtual_machine::VIRTIO_CONSOLE_F_SIZE = self.search_query.len() - 1;
+    |
+
+warning: unused variable: `j`
+   --> systems/infinite_map_rs/src/hex_tensor_editor.rs:889:17
+    |
+889 |             for j in chunk.len()..bytes_per_row {
+    |                 ^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+889 |             for _j in chunk.len()..bytes_per_row {
+    |                 +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+    |
+889 -             for j in chunk.len()..bytes_per_row {
+889 +             for virtual_machine::VIRTIO_CONSOLE_F_SIZE in chunk.len()..bytes_per_row {
+    |
+
+warning: unused variable: `manager_arc`
+   --> systems/infinite_map_rs/src/hex_tensor_editor.rs:912:21
+    |
+912 |         if let Some(manager_arc) = &self.evolution_manager {
+    |                     ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_manager_arc`
+
+warning: unused variable: `queue`
+    --> systems/infinite_map_rs/src/hex_tensor_editor.rs:1011:9
+     |
+1011 |         queue: &wgpu::Queue,
+     |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `current_time`
+   --> systems/infinite_map_rs/src/immune_system.rs:274:13
+    |
+274 |         let current_time = crate::tile::current_timestamp();
+    |             ^^^^^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+274 |         let _current_time = crate::tile::current_timestamp();
+    |             +
+help: you might have meant to pattern match on the similarly named constant `MIN_TEMPERATURE`
+    |
+274 -         let current_time = crate::tile::current_timestamp();
+274 +         let tectonic::solver::MIN_TEMPERATURE = crate::tile::current_timestamp();
+    |
+
+warning: variable does not need to be mutable
+  --> systems/infinite_map_rs/src/infinite_map.rs:47:32
+   |
+47 |     pub fn add_tile(&mut self, mut tile: Tile) {
+   |                                ----^^^^
+   |                                |
+   |                                help: remove this `mut`
+
+warning: unused variable: `key`
+   --> systems/infinite_map_rs/src/infinite_map.rs:251:14
+    |
+251 |         for (key, value) in &mut tile.genotype.kernel_params {
+    |              ^^^ help: if this is intentional, prefix it with an underscore: `_key`
+
+warning: unused variable: `key`
+   --> systems/infinite_map_rs/src/infinite_map.rs:265:14
+    |
+265 |         for (key, value) in &mut tile.genotype.kernel_params {
+    |              ^^^ help: if this is intentional, prefix it with an underscore: `_key`
+
+warning: unused variable: `duration_ms`
+    --> systems/infinite_map_rs/src/memory_artifacts.rs:1373:56
+     |
+1373 |     pub fn pulse(&mut self, id: usize, intensity: f32, duration_ms: u64) {
+     |                                                        ^^^^^^^^^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+1373 |     pub fn pulse(&mut self, id: usize, intensity: f32, _duration_ms: u64) {
+     |                                                        +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_PORT_SIZE`
+     |
+1373 -     pub fn pulse(&mut self, id: usize, intensity: f32, duration_ms: u64) {
+1373 +     pub fn pulse(&mut self, id: usize, intensity: f32, virtual_machine::VIRTIO_CONSOLE_PORT_SIZE: u64) {
+     |
+
+warning: unused variable: `world`
+  --> systems/infinite_map_rs/src/memory_inspector.rs:98:47
+   |
+98 |     pub fn create_memory_artifacts(&mut self, world: &mut ()) {
+   |                                               ^^^^^ help: if this is intentional, prefix it with an underscore: `_world`
+
+warning: variable `neural_metadata` is assigned to, but never used
+   --> systems/infinite_map_rs/src/memory_tensor.rs:384:17
+    |
+384 |         let mut neural_metadata = None;
+    |                 ^^^^^^^^^^^^^^^
+    |
+    = note: consider using `_neural_metadata` instead
+
+warning: value assigned to `neural_metadata` is never read
+   --> systems/infinite_map_rs/src/memory_tensor.rs:393:17
+    |
+393 |                 neural_metadata = Some(json.clone());
+    |                 ^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/memory_tensor.rs:347:13
+    |
+347 |         let mut text_chunks: HashMap<String, String> = HashMap::new();
+    |             ----^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `n`
+   --> systems/infinite_map_rs/src/memory_texture_manager.rs:505:13
+    |
+505 |         let n = width.max(height); // Assume power of 2
+    |             ^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+505 |         let _n = width.max(height); // Assume power of 2
+    |             +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+    |
+505 -         let n = width.max(height); // Assume power of 2
+505 +         let visual_kernel_boot::UNIFIED_GRID_SIZE = width.max(height); // Assume power of 2
+    |
+
+warning: unused variable: `width`
+  --> systems/infinite_map_rs/src/qemu/memory_bridge.rs:93:40
+   |
+93 |     pub fn xy2h(&self, x: u32, y: u32, width: u32) -> Option<usize> {
+   |                                        ^^^^^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+93 |     pub fn xy2h(&self, x: u32, y: u32, _width: u32) -> Option<usize> {
+   |                                        +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+   |
+93 -     pub fn xy2h(&self, x: u32, y: u32, width: u32) -> Option<usize> {
+93 +     pub fn xy2h(&self, x: u32, y: u32, visual_kernel_boot::UNIFIED_GRID_SIZE: u32) -> Option<usize> {
+   |
+
+warning: unused variable: `memory_size`
+   --> systems/infinite_map_rs/src/riscv_linux_vm.rs:756:32
+    |
+756 |     pub fn generate_simple_dtb(memory_size: u64, boot_args: &str) -> Vec<u8> {
+    |                                ^^^^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+756 |     pub fn generate_simple_dtb(_memory_size: u64, boot_args: &str) -> Vec<u8> {
+    |                                +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_PORT_SIZE`
+    |
+756 -     pub fn generate_simple_dtb(memory_size: u64, boot_args: &str) -> Vec<u8> {
+756 +     pub fn generate_simple_dtb(virtual_machine::VIRTIO_CONSOLE_PORT_SIZE: u64, boot_args: &str) -> Vec<u8> {
+    |
+
+warning: unused variable: `boot_args`
+   --> systems/infinite_map_rs/src/riscv_linux_vm.rs:756:50
+    |
+756 |     pub fn generate_simple_dtb(memory_size: u64, boot_args: &str) -> Vec<u8> {
+    |                                                  ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_boot_args`
+
+warning: unused variable: `args`
+   --> systems/infinite_map_rs/src/riscv_linux_vm.rs:851:52
+    |
+851 |     fn handle_time_extension(&self, function: u64, args: &[u64; 6]) -> SBIResponse {
+    |                                                    ^^^^ help: if this is intentional, prefix it with an underscore: `_args`
+
+warning: unused variable: `x`
+  --> systems/infinite_map_rs/src/rts/packer.rs:96:14
+   |
+96 |         for (x, y, pixel) in img.enumerate_pixels_mut() {
+   |              ^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+96 |         for (_x, y, pixel) in img.enumerate_pixels_mut() {
+   |              +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+   |
+96 -         for (x, y, pixel) in img.enumerate_pixels_mut() {
+96 +         for (visual_kernel_boot::UNIFIED_GRID_SIZE, y, pixel) in img.enumerate_pixels_mut() {
+   |
+
+warning: unused variable: `y`
+  --> systems/infinite_map_rs/src/rts/packer.rs:96:17
+   |
+96 |         for (x, y, pixel) in img.enumerate_pixels_mut() {
+   |                 ^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+96 |         for (x, _y, pixel) in img.enumerate_pixels_mut() {
+   |                 +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+   |
+96 -         for (x, y, pixel) in img.enumerate_pixels_mut() {
+96 +         for (x, visual_kernel_boot::UNIFIED_GRID_SIZE, pixel) in img.enumerate_pixels_mut() {
+   |
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/rts/unpacker.rs:172:13
+    |
+172 |         let mut reader = decoder.read_info()?;
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `template`
+   --> systems/infinite_map_rs/src/semantic_mutator.rs:288:9
+    |
+288 |         template: &MutationTemplate,
+    |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_template`
+
+warning: unused variable: `n`
+   --> systems/infinite_map_rs/src/synthetic_vram.rs:242:13
+    |
+242 |         let n = self.grid_size();
+    |             ^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+242 |         let _n = self.grid_size();
+    |             +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+    |
+242 -         let n = self.grid_size();
+242 +         let visual_kernel_boot::UNIFIED_GRID_SIZE = self.grid_size();
+    |
+
+warning: unused variable: `m`
+   --> systems/infinite_map_rs/src/terrain_raycaster.rs:169:26
+    |
+169 | pub fn invert_matrix_4x4(m: &[[f32; 4]; 4]) -> [[f32; 4]; 4] {
+    |                          ^ help: if this is intentional, prefix it with an underscore: `_m`
+
+warning: unused variable: `cell_size`
+   --> systems/infinite_map_rs/src/text_engine.rs:114:9
+    |
+114 |     let cell_size = 64.0;
+    |         ^^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+114 |     let _cell_size = 64.0;
+    |         +
+help: you might have meant to pattern match on the similarly named constant `MIN_TEMPERATURE`
+    |
+114 -     let cell_size = 64.0;
+114 +     let tectonic::solver::MIN_TEMPERATURE = 64.0;
+    |
+
+warning: unused variable: `end`
+    --> systems/infinite_map_rs/src/text_engine.rs:1173:25
+     |
+1173 |                     let end = (pos + chars.len() as u32) as usize;
+     |                         ^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+1173 |                     let _end = (pos + chars.len() as u32) as usize;
+     |                         +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+     |
+1173 -                     let end = (pos + chars.len() as u32) as usize;
+1173 +                     let virtual_machine::VIRTIO_CONSOLE_F_SIZE = (pos + chars.len() as u32) as usize;
+     |
+
+warning: unused variable: `end`
+    --> systems/infinite_map_rs/src/text_engine.rs:1329:25
+     |
+1329 |                     let end = (pos + chars.len() as u32) as usize;
+     |                         ^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+1329 |                     let _end = (pos + chars.len() as u32) as usize;
+     |                         +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+     |
+1329 -                     let end = (pos + chars.len() as u32) as usize;
+1329 +                     let virtual_machine::VIRTIO_CONSOLE_F_SIZE = (pos + chars.len() as u32) as usize;
+     |
+
+warning: unused variable: `syscall_rate`
+   --> systems/infinite_map_rs/src/tool_adapter/bpftrace_adapter.rs:187:38
+    |
+187 |     fn calculate_health_score(&self, syscall_rate: f64, io_wait: f32) -> f32 {
+    |                                      ^^^^^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+187 |     fn calculate_health_score(&self, _syscall_rate: f64, io_wait: f32) -> f32 {
+    |                                      +
+help: you might have meant to pattern match on the similarly named constant `MIN_TEMPERATURE`
+    |
+187 -     fn calculate_health_score(&self, syscall_rate: f64, io_wait: f32) -> f32 {
+187 +     fn calculate_health_score(&self, tectonic::solver::MIN_TEMPERATURE: f64, io_wait: f32) -> f32 {
+    |
+
+warning: unused variable: `offset`
+  --> systems/infinite_map_rs/src/trap_interface.rs:71:13
+   |
+71 |         let offset = (addr - TRAP_BASE) as usize;
+   |             ^^^^^^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+71 |         let _offset = (addr - TRAP_BASE) as usize;
+   |             +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+   |
+71 -         let offset = (addr - TRAP_BASE) as usize;
+71 +         let virtual_machine::VIRTIO_CONSOLE_F_SIZE = (addr - TRAP_BASE) as usize;
+   |
+
+warning: unused variable: `c`
+  --> systems/infinite_map_rs/src/ui/introspection_window.rs:81:21
+   |
+81 |             let (r, c) = buffer.get_cursor();
+   |                     ^
+   |
+help: if this is intentional, prefix it with an underscore
+   |
+81 |             let (r, _c) = buffer.get_cursor();
+   |                     +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+   |
+81 -             let (r, c) = buffer.get_cursor();
+81 +             let (r, virtual_machine::VIRTIO_CONSOLE_F_SIZE) = buffer.get_cursor();
+   |
+
+warning: unused variable: `device_id`
+   --> systems/infinite_map_rs/src/virtual_machine.rs:451:13
+    |
+451 |         let device_id = format!(
+    |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_device_id`
+
+warning: unused variable: `project_root`
+   --> systems/infinite_map_rs/src/visual_ast.rs:148:9
+    |
+148 |         project_root: &std::path::Path,
+    |         ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_project_root`
+
+warning: unused variable: `ffn_down_size`
+   --> systems/infinite_map_rs/src/pixel_brain/infer.rs:106:13
+    |
+106 |         let ffn_down_size = hidden_dim * ffn_dim;
+    |             ^^^^^^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+106 |         let _ffn_down_size = hidden_dim * ffn_dim;
+    |             +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+    |
+106 -         let ffn_down_size = hidden_dim * ffn_dim;
+106 +         let visual_kernel_boot::UNIFIED_GRID_SIZE = hidden_dim * ffn_dim;
+    |
+
+warning: unused variable: `hidden_b`
+   --> systems/infinite_map_rs/src/pixel_brain/infer.rs:738:13
+    |
+738 |         let hidden_b = match &self.hidden_buffer_b {
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_hidden_b`
+
+warning: unused variable: `msg_x`
+   --> systems/infinite_map_rs/src/pixel_brain/multi_brain.rs:414:13
+    |
+414 |         let msg_x = region.x + (slot % 16) * 16; // 16x16 glyph
+    |             ^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+414 |         let _msg_x = region.x + (slot % 16) * 16; // 16x16 glyph
+    |             +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+    |
+414 -         let msg_x = region.x + (slot % 16) * 16; // 16x16 glyph
+414 +         let visual_kernel_boot::UNIFIED_GRID_SIZE = region.x + (slot % 16) * 16; // 16x16 glyph
+    |
+
+warning: unused variable: `msg_y`
+   --> systems/infinite_map_rs/src/pixel_brain/multi_brain.rs:415:13
+    |
+415 |         let msg_y = region.y + (slot / 16) * 16;
+    |             ^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+415 |         let _msg_y = region.y + (slot / 16) * 16;
+    |             +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+    |
+415 -         let msg_y = region.y + (slot / 16) * 16;
+415 +         let visual_kernel_boot::UNIFIED_GRID_SIZE = region.y + (slot / 16) * 16;
+    |
+
+warning: unused variable: `brain_id`
+   --> systems/infinite_map_rs/src/pixel_brain/multi_brain.rs:401:35
+    |
+401 |     pub fn receive_message(&self, brain_id: u32) -> Option<MessageGlyph> {
+    |                                   ^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+401 |     pub fn receive_message(&self, _brain_id: u32) -> Option<MessageGlyph> {
+    |                                   +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+    |
+401 -     pub fn receive_message(&self, brain_id: u32) -> Option<MessageGlyph> {
+401 +     pub fn receive_message(&self, visual_kernel_boot::UNIFIED_GRID_SIZE: u32) -> Option<MessageGlyph> {
+    |
+
+warning: variable `free_blocks` is assigned to, but never used
+   --> systems/infinite_map_rs/src/ml_memory/block_allocator.rs:377:17
+    |
+377 |         let mut free_blocks = 0;
+    |                 ^^^^^^^^^^^
+    |
+    = note: consider using `_free_blocks` instead
+help: you might have meant to pattern match on the similarly named constant `UFFD_USER_MODE_ONLY`
+    |
+377 -         let mut free_blocks = 0;
+377 +         let mut glass_ram::uffd_wrapper::UFFD_USER_MODE_ONLY = 0;
+    |
+
+warning: unused variable: `handle`
+   --> systems/infinite_map_rs/src/ml_memory/pool.rs:301:13
+    |
+301 |         let handle = self.get_tensor(id)?;
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_handle`
+
+warning: unused variable: `block`
+   --> systems/infinite_map_rs/src/ml_memory/weight_pool.rs:115:13
+    |
+115 |         let block = self.allocations.remove(&id)
+    |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_block`
+
+warning: unused variable: `device`
+   --> systems/infinite_map_rs/src/ml_memory/weight_pool.rs:172:9
+    |
+172 |         device: &wgpu::Device,
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_device`
+
+warning: unused variable: `staging`
+   --> systems/infinite_map_rs/src/ml_memory/zero_copy.rs:165:13
+    |
+165 |         let staging = device.create_buffer(&wgpu::BufferDescriptor {
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_staging`
+
+warning: unused variable: `queue`
+   --> systems/infinite_map_rs/src/ml_memory/zero_copy.rs:149:9
+    |
+149 |         queue: &wgpu::Queue,
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_queue`
+
+warning: unused variable: `gpu_offset`
+   --> systems/infinite_map_rs/src/ml_memory/zero_copy.rs:150:9
+    |
+150 |         gpu_offset: u64,
+    |         ^^^^^^^^^^
+    |
+help: if this is intentional, prefix it with an underscore
+    |
+150 |         _gpu_offset: u64,
+    |         +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_PORT_SIZE`
+    |
+150 -         gpu_offset: u64,
+150 +         virtual_machine::VIRTIO_CONSOLE_PORT_SIZE: u64,
+    |
+
+warning: unused variable: `gpu_resources`
+    --> systems/infinite_map_rs/src/renderer.rs:1208:48
+     |
+1208 |     pub fn enable_evolution_terrain(&mut self, gpu_resources: &crate::evolution_terrain_bridge::EvolutionTerrainGPU) {
+     |                                                ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_gpu_resources`
+
+warning: value assigned to `view_proj_matrix` is never read
+    --> systems/infinite_map_rs/src/renderer.rs:1882:17
+     |
+1882 |         let mut view_proj_matrix = [[0.0; 4]; 4];
+     |                 ^^^^^^^^^^^^^^^^
+     |
+     = help: maybe it is overwritten before being read?
+
+For more information about this error, try `rustc --explain E0592`.
+warning: `infinite_map_rs` (lib) generated 118 warnings
+error: could not compile `infinite_map_rs` (lib) due to 1 previous error; 118 warnings emitted
+warning: build failed, waiting for other jobs to finish...
+warning: unreachable statement
+   --> systems/infinite_map_rs/src/process_tile.rs:453:13
+    |
+444 | /             match manager.refresh() {
+445 | |                 Ok(_) => {
+446 | |                     // No processes available in this test environment
+447 | |                     return;
+448 | |                 }
+449 | |                 Err(_) => return,
+450 | |             }
+    | |_____________- any code following this `match` expression is unreachable, as all arms diverge
+...
+453 |               assert!(manager.count() > 0, "Should have at least one process");
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+    |
+    = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unreachable expression
+   --> systems/infinite_map_rs/src/visual_feedback.rs:553:20
+    |
+552 |             device: unimplemented!(),
+    |                     ---------------- any code following this expression is unreachable
+553 |             queue: unimplemented!(),
+    |                    ^^^^^^^^^^^^^^^^ unreachable expression
+    |
+    = note: this warning originates in the macro `unimplemented` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unreachable statement
+    --> systems/infinite_map_rs/src/renderer.rs:1210:9
+     |
+1209 |         return; // TEMPORARY: Disable to stop crash due to shader binding mismatch
+     |         ------ any code following this expression is unreachable
+1210 |         eprintln!("debug: Enabling evolution terrain rendering...");
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+     |
+     = note: this warning originates in the macro `eprintln` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused variable: `event_rx`
+   --> systems/infinite_map_rs/src/glass_ram/fault_poller.rs:211:28
+    |
+211 |         let (event_tx, mut event_rx) = mpsc::unbounded_channel();
+    |                            ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_event_rx`
+
+warning: unused variable: `poller`
+   --> systems/infinite_map_rs/src/glass_ram/fault_poller.rs:218:13
+    |
+218 |         let poller = FaultPoller::new(uffd, event_tx);
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_poller`
+
+warning: variable does not need to be mutable
+   --> systems/infinite_map_rs/src/glass_ram/fault_poller.rs:211:24
+    |
+211 |         let (event_tx, mut event_rx) = mpsc::unbounded_channel();
+    |                        ----^^^^^^^^
+    |                        |
+    |                        help: remove this `mut`
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:1327:13
+     |
+1327 |         let mut emit_ldi = |vram: &mut SyntheticVram, pc: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:1596:13
+     |
+1596 |         let mut emit_ldi = |vram: &mut SyntheticVram, pc: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: value assigned to `cp` is never read
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:1712:9
+     |
+1712 |         cp += 1;
+     |         ^^
+     |
+     = help: maybe it is overwritten before being read?
+
+warning: value assigned to `pc` is never read
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:1793:9
+     |
+1793 |         pc = 0; // SPATIAL_SPAWN again
+     |         ^^
+     |
+     = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:1681:13
+     |
+1681 |         let mut emit_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:1716:13
+     |
+1716 |         let mut poke_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: value assigned to `pc` is never read
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:1862:9
+     |
+1862 |         pc += 1; // HALT
+     |         ^^
+     |
+     = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:1825:13
+     |
+1825 |         let mut emit_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: value assigned to `pc` is never read
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:2004:9
+     |
+2004 |         pc += 1; // HALT
+     |         ^^
+     |
+     = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:1967:13
+     |
+1967 |         let mut emit_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:2579:13
+     |
+2579 |         let mut emit_ldi = |vram: &mut SyntheticVram, pc: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:2788:13
+     |
+2788 |         let mut poke_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: unused variable: `parse_mnem_start`
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3142:13
+     |
+3142 |         let parse_mnem_start = pc;
+     |             ^^^^^^^^^^^^^^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+3142 |         let _parse_mnem_start = pc;
+     |             +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+     |
+3142 -         let parse_mnem_start = pc;
+3142 +         let visual_kernel_boot::UNIFIED_GRID_SIZE = pc;
+     |
+
+warning: unused variable: `jump_next_line_pc`
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3238:13
+     |
+3238 |         let jump_next_line_pc = pc;
+     |             ^^^^^^^^^^^^^^^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+3238 |         let _jump_next_line_pc = pc;
+     |             +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+     |
+3238 -         let jump_next_line_pc = pc;
+3238 +         let visual_kernel_boot::UNIFIED_GRID_SIZE = pc;
+     |
+
+warning: unused variable: `jump_eof_pc`
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3260:13
+     |
+3260 |         let jump_eof_pc = pc;
+     |             ^^^^^^^^^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+3260 |         let _jump_eof_pc = pc;
+     |             +
+help: you might have meant to pattern match on the similarly named constant `UNIFIED_GRID_SIZE`
+     |
+3260 -         let jump_eof_pc = pc;
+3260 +         let visual_kernel_boot::UNIFIED_GRID_SIZE = pc;
+     |
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3102:13
+     |
+3102 |         let mut poke_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: value assigned to `cp` is never read
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3393:9
+     |
+3393 |         cp += 1; // HALT
+     |         ^^
+     |
+     = help: maybe it is overwritten before being read?
+
+warning: value assigned to `pp` is never read
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3476:9
+     |
+3476 |         pp += 1; // HALT
+     |         ^^
+     |
+     = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3397:13
+     |
+3397 |         let mut poke_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: value assigned to `pc` is never read
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3584:9
+     |
+3584 |         pc += 1;
+     |         ^^
+     |
+     = help: maybe it is overwritten before being read?
+
+warning: unused variable: `source_path`
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3605:13
+     |
+3605 |         let source_path = "src/glyph_stratum/programs/self_hosting_assembler.glyph";
+     |             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_source_path`
+
+warning: unused variable: `i`
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3704:14
+     |
+3704 |         for (i, entry) in trace.iter().enumerate() {
+     |              ^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+3704 |         for (_i, entry) in trace.iter().enumerate() {
+     |              +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+     |
+3704 -         for (i, entry) in trace.iter().enumerate() {
+3704 +         for (virtual_machine::VIRTIO_CONSOLE_F_SIZE, entry) in trace.iter().enumerate() {
+     |
+
+warning: unused variable: `i`
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3837:14
+     |
+3837 |         for (i, entry) in trace.iter().enumerate() {
+     |              ^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+3837 |         for (_i, entry) in trace.iter().enumerate() {
+     |              +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+     |
+3837 -         for (i, entry) in trace.iter().enumerate() {
+3837 +         for (virtual_machine::VIRTIO_CONSOLE_F_SIZE, entry) in trace.iter().enumerate() {
+     |
+
+warning: unused variable: `i`
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3863:14
+     |
+3863 |         for (i, entry) in trace.iter().enumerate() {
+     |              ^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+3863 |         for (_i, entry) in trace.iter().enumerate() {
+     |              +
+help: you might have meant to pattern match on the similarly named constant `VIRTIO_CONSOLE_F_SIZE`
+     |
+3863 -         for (i, entry) in trace.iter().enumerate() {
+3863 +         for (virtual_machine::VIRTIO_CONSOLE_F_SIZE, entry) in trace.iter().enumerate() {
+     |
+
+warning: value assigned to `pp` is never read
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:4072:9
+     |
+4072 |         pp += 1;
+     |         ^^
+     |
+     = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:3970:13
+     |
+3970 |         let mut poke_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:4200:13
+     |
+4200 |         let mut poke = |v: &mut SyntheticVram, p: &mut u32, op: u8, s: u8, p1: u8, p2: u8| {
+     |             ----^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: value assigned to `pc` is never read
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:4779:9
+     |
+4779 |         pc += 1;
+     |         ^^
+     |
+     = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:4582:13
+     |
+4582 |         let mut emit_ldi = |vram: &mut SyntheticVram, pc: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: value assigned to `pc` is never read
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:5157:76
+     |
+5157 |         vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8)); pc += 1;
+     |                                                                            ^^
+     |
+     = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:5057:13
+     |
+5057 |         let mut emit_ldi = |vram: &mut SyntheticVram, pc: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+    --> systems/infinite_map_rs/src/synthetic_vram.rs:5274:13
+     |
+5274 |         let mut emit_ldi = |vram: &mut SyntheticVram, pc: &mut u32, reg: u8, val: u32| {
+     |             ----^^^^^^^^
+     |             |
+     |             help: remove this `mut`
+
+warning: unused variable: `b1`
+   --> systems/infinite_map_rs/src/ml_memory/block_allocator.rs:470:13
+    |
+470 |         let b1 = alloc.allocate(4096).unwrap();
+    |             ^^ help: if this is intentional, prefix it with an underscore: `_b1`
+
+warning: unused variable: `b2`
+   --> systems/infinite_map_rs/src/ml_memory/block_allocator.rs:472:13
+    |
+472 |         let b2 = alloc.allocate(4096).unwrap();
+    |             ^^ help: if this is intentional, prefix it with an underscore: `_b2`
+
+warning: unused variable: `blocks`
+   --> systems/infinite_map_rs/src/ml_memory/block_allocator.rs:517:13
+    |
+517 |         let blocks: Vec<_> = (0..4).map(|_| alloc.allocate(4096).unwrap()).collect();
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_blocks`
+
+warning: `infinite_map_rs` (lib test) generated 161 warnings (114 duplicates)
+error: could not compile `infinite_map_rs` (lib test) due to 1 previous error; 161 warnings emitted

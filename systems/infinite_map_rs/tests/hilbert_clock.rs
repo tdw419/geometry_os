@@ -36,12 +36,12 @@ fn test_hilbert_clock_simulation() {
     for i in 0..50 {
         vram.execute_frame();
 
-        if let Ok(vm) = vram.vm_state(0) {
-            if vm.is_halted() {
+        if let Some(vm) = vram.vm_state(0) {
+            if vm.halted != 0 {
                 println!("Halting at cycle {}", i);
                 break;
             }
-            println!("Cycle {}: PC=0x{:04X}", i, vm.program_counter);
+            println!("Cycle {}: PC=0x{:04X}", i, vm.pc);
         }
     }
 }

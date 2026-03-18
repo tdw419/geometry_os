@@ -603,13 +603,6 @@ impl<'a> InfiniteMapApp<'a> {
          }
      }
 
-    /// Phase 50: Update Visual Kernel (Sovereign GPU-Native Windowing)
-    pub fn update_visual_kernel(&mut self) {
-        if let Some(ref mut vk) = self.visual_kernel {
-            vk.execute_frame();
-        }
-    }
-
     // Phase 48: Initialize GPU capabilities asynchronously
     // This should be called during app initialization when we have access to the GPU adapter
     #[allow(dead_code)]
