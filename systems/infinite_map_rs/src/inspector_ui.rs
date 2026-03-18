@@ -4,6 +4,7 @@
 // ============================================
 
 use crate::evolution_protocol::{MemoryGraphProtocol, Message};
+use crate::glyph_atlas::GlyphAtlas;
 use crate::graph_renderer::GraphRenderer;
 use crate::memory_graph::{MemoryGraph, MemoryNode};
 use bytemuck::{Pod, Zeroable};
@@ -507,6 +508,8 @@ pub struct InspectorUI {
     ui_pipeline: wgpu::RenderPipeline,
     /// Vertex buffer for UI rectangles (4 panels max)
     ui_vertex_buffer: wgpu::Buffer,
+    /// Glyph atlas for text rendering
+    glyph_atlas: GlyphAtlas,
 }
 
 impl InspectorUI {
@@ -561,8 +564,10 @@ impl InspectorUI {
             multiview: None,
         });
 
-        // Create vertex buffer (4 panels × 6 vertices per quad = 24 vertices max)
-        let max_vertices = 24;
+        // Create vertex buffer
+        // 4 panels × 6 vertices (background) + text (4 panels × 4 lines × 30 chars × 6 vertices)
+        // ~2500 vertices max to accommodate panel backgrounds and text placeholders
+        let max_vertices = 2500;
         let ui_vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("UI Vertex Buffer"),
             size: (max_vertices * std::mem::size_of::<UIVertex>()) as wgpu::BufferAddress,
@@ -579,6 +584,7 @@ impl InspectorUI {
             protocol,
             ui_pipeline,
             ui_vertex_buffer,
+            glyph_atlas: GlyphAtlas::new(1024, 1024),
         }
     }
 
@@ -642,6 +648,43 @@ impl InspectorUI {
         ]
     }
 
+    /// Generate vertices for text placeholder (minimal implementation)
+    /// Creates a colored quad to represent text area
+    fn generate_text_placeholder(x: f32, y: f32, width: f32, height: f32) -> [UIVertex; 6] {
+        // White/light colored text placeholder
+        Self::generate_panel_vertices(x, y, width, height, [0.9, 0.9, 0.9, 0.7])
+    }
+
+    /// Generate text vertices for a string (minimal: creates placeholder quads)
+    fn generate_text_line(&self, text: &str, x: f32, y: f32, max_width: f32, font_size: f32) -> Vec<UIVertex> {
+        // Minimal implementation: create placeholder quads for each character
+        // Each character is approximately font_size × font_size
+        let char_width = font_size * 0.6; // Approximate character aspect ratio
+        let mut vertices = Vec::new();
+        let mut current_x = x;
+
+        for ch in text.chars() {
+            if current_x + char_width > x + max_width {
+                break; // Text doesn't fit
+            }
+
+            // Skip spaces (no quad needed)
+            if ch != ' ' {
+                let char_quad = Self::generate_text_placeholder(
+                    current_x,
+                    y,
+                    char_width,
+                    font_size,
+                );
+                vertices.extend_from_slice(&char_quad);
+            }
+
+            current_x += char_width;
+        }
+
+        vertices
+    }
+
     /// Prepare UI vertices for rendering (call before render_pass)
     /// Returns the number of vertices written
     pub fn prepare(&self, queue: &wgpu::Queue) -> usize {
@@ -657,14 +700,57 @@ impl InspectorUI {
 
         // Node Info Panel (top-left)
         if self.node_info_panel.visible {
+            let panel_x = -0.98;
+            let panel_y = 0.98 - panel_height;
             let panel_verts = Self::generate_panel_vertices(
-                -0.98,  // x (left edge)
-                0.98 - panel_height, // y (top, going down)
+                panel_x,
+                panel_y,
                 panel_width,
                 panel_height,
                 [0.1, 0.1, 0.15, 0.85], // Dark blue-gray, semi-transparent
             );
             vertices.extend_from_slice(&panel_verts);
+
+            // Add panel title
+            let title_text = self.generate_text_line(
+                "Node Info",
+                panel_x + 0.02,
+                panel_y + 0.02,
+                panel_width - 0.04,
+                0.03,
+            );
+            vertices.extend(title_text);
+
+            // Add node info content if available
+            if let Some(ref info) = self.node_info_panel.node_info {
+                let content_y = panel_y + 0.08;
+                let id_text = self.generate_text_line(
+                    &format!("ID: {}", info.id),
+                    panel_x + 0.02,
+                    content_y,
+                    panel_width - 0.04,
+                    0.025,
+                );
+                vertices.extend(id_text);
+
+                let type_text = self.generate_text_line(
+                    &format!("Type: {}", info.node_type),
+                    panel_x + 0.02,
+                    content_y + 0.035,
+                    panel_width - 0.04,
+                    0.025,
+                );
+                vertices.extend(type_text);
+
+                let activation_text = self.generate_text_line(
+                    &format!("Activation: {:.2}", info.activation),
+                    panel_x + 0.02,
+                    content_y + 0.07,
+                    panel_width - 0.04,
+                    0.025,
+                );
+                vertices.extend(activation_text);
+            }
         }
 
         // Graph Stats Panel (below node info)
@@ -674,26 +760,100 @@ impl InspectorUI {
             } else {
                 0.0
             };
+            let panel_x = -0.98;
+            let panel_y = 0.98 - panel_height - y_offset;
             let panel_verts = Self::generate_panel_vertices(
-                -0.98,
-                0.98 - panel_height - y_offset,
+                panel_x,
+                panel_y,
                 panel_width,
                 panel_height,
                 [0.1, 0.15, 0.1, 0.85], // Dark green-gray, semi-transparent
             );
             vertices.extend_from_slice(&panel_verts);
+
+            // Add panel title
+            let title_text = self.generate_text_line(
+                "Graph Stats",
+                panel_x + 0.02,
+                panel_y + 0.02,
+                panel_width - 0.04,
+                0.03,
+            );
+            vertices.extend(title_text);
+
+            // Add stats content
+            let content_y = panel_y + 0.08;
+            let nodes_text = self.generate_text_line(
+                &format!("Nodes: {}", self.graph_stats_panel.total_nodes),
+                panel_x + 0.02,
+                content_y,
+                panel_width - 0.04,
+                0.025,
+            );
+            vertices.extend(nodes_text);
+
+            let edges_text = self.generate_text_line(
+                &format!("Edges: {}", self.graph_stats_panel.total_edges),
+                panel_x + 0.02,
+                content_y + 0.035,
+                panel_width - 0.04,
+                0.025,
+            );
+            vertices.extend(edges_text);
+
+            let fps_text = self.generate_text_line(
+                &format!("FPS: {:.1}", self.graph_stats_panel.fps),
+                panel_x + 0.02,
+                content_y + 0.07,
+                panel_width - 0.04,
+                0.025,
+            );
+            vertices.extend(fps_text);
         }
 
         // Search Panel (top-right)
         if self.search_panel.visible {
+            let panel_x = 0.98 - panel_width;
+            let panel_y = 0.98 - panel_height;
             let panel_verts = Self::generate_panel_vertices(
-                0.98 - panel_width, // x (right edge)
-                0.98 - panel_height,
+                panel_x,
+                panel_y,
                 panel_width,
                 panel_height,
                 [0.15, 0.1, 0.1, 0.85], // Dark red-gray, semi-transparent
             );
             vertices.extend_from_slice(&panel_verts);
+
+            // Add panel title
+            let title_text = self.generate_text_line(
+                "Search",
+                panel_x + 0.02,
+                panel_y + 0.02,
+                panel_width - 0.04,
+                0.03,
+            );
+            vertices.extend(title_text);
+
+            // Add search query if present
+            if !self.search_panel.query.is_empty() {
+                let query_text = self.generate_text_line(
+                    &format!("Query: {}", self.search_panel.query),
+                    panel_x + 0.02,
+                    panel_y + 0.08,
+                    panel_width - 0.04,
+                    0.025,
+                );
+                vertices.extend(query_text);
+
+                let results_text = self.generate_text_line(
+                    &format!("Found: {} nodes", self.search_panel.filtered_nodes.len()),
+                    panel_x + 0.02,
+                    panel_y + 0.115,
+                    panel_width - 0.04,
+                    0.025,
+                );
+                vertices.extend(results_text);
+            }
         }
 
         // Control Panel (below search)
@@ -703,14 +863,55 @@ impl InspectorUI {
             } else {
                 0.0
             };
+            let panel_x = 0.98 - panel_width;
+            let panel_y = 0.98 - panel_height - y_offset;
             let panel_verts = Self::generate_panel_vertices(
-                0.98 - panel_width,
-                0.98 - panel_height - y_offset,
+                panel_x,
+                panel_y,
                 panel_width,
                 panel_height,
                 [0.12, 0.12, 0.12, 0.85], // Dark gray, semi-transparent
             );
             vertices.extend_from_slice(&panel_verts);
+
+            // Add panel title
+            let title_text = self.generate_text_line(
+                "Controls",
+                panel_x + 0.02,
+                panel_y + 0.02,
+                panel_width - 0.04,
+                0.03,
+            );
+            vertices.extend(title_text);
+
+            // Add control hints
+            let content_y = panel_y + 0.08;
+            let hint1 = self.generate_text_line(
+                "[i] Toggle Node Info",
+                panel_x + 0.02,
+                content_y,
+                panel_width - 0.04,
+                0.025,
+            );
+            vertices.extend(hint1);
+
+            let hint2 = self.generate_text_line(
+                "[s] Toggle Stats",
+                panel_x + 0.02,
+                content_y + 0.035,
+                panel_width - 0.04,
+                0.025,
+            );
+            vertices.extend(hint2);
+
+            let hint3 = self.generate_text_line(
+                "[/] Toggle Search",
+                panel_x + 0.02,
+                content_y + 0.07,
+                panel_width - 0.04,
+                0.025,
+            );
+            vertices.extend(hint3);
         }
 
         let vertex_count = vertices.len();
