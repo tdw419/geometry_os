@@ -638,11 +638,13 @@ impl SyntheticVram {
                 //            where shift_reg is encoded in stratum field
                 if stratum == 0 {
                     let shift = self.vms[vm_idx].regs[p2 as usize] & 31;
-                    self.vms[vm_idx].regs[p2 as usize] = self.vms[vm_idx].regs[p1 as usize] << shift;
+                    self.vms[vm_idx].regs[p2 as usize] =
+                        self.vms[vm_idx].regs[p1 as usize] << shift;
                 } else {
                     // Three-operand form: dst=p2, src=p1, shift_reg=stratum
                     let shift = self.vms[vm_idx].regs[stratum as usize] & 31;
-                    self.vms[vm_idx].regs[p2 as usize] = self.vms[vm_idx].regs[p1 as usize] << shift;
+                    self.vms[vm_idx].regs[p2 as usize] =
+                        self.vms[vm_idx].regs[p1 as usize] << shift;
                 }
                 self.vms[vm_idx].pc += 1;
             },
@@ -652,10 +654,12 @@ impl SyntheticVram {
                 // stratum>0: SHR dst, src, shift_reg → dst = src >> (shift_reg & 31)
                 if stratum == 0 {
                     let shift = self.vms[vm_idx].regs[p2 as usize] & 31;
-                    self.vms[vm_idx].regs[p2 as usize] = self.vms[vm_idx].regs[p1 as usize] >> shift;
+                    self.vms[vm_idx].regs[p2 as usize] =
+                        self.vms[vm_idx].regs[p1 as usize] >> shift;
                 } else {
                     let shift = self.vms[vm_idx].regs[stratum as usize] & 31;
-                    self.vms[vm_idx].regs[p2 as usize] = self.vms[vm_idx].regs[p1 as usize] >> shift;
+                    self.vms[vm_idx].regs[p2 as usize] =
+                        self.vms[vm_idx].regs[p1 as usize] >> shift;
                 }
                 self.vms[vm_idx].pc += 1;
             },
@@ -2393,6 +2397,88 @@ mod tests {
     }
 
     #[test]
+    fn test_text_buffer_vm() {
+        let mut vram = SyntheticVram::new_small(2048);
+
+        vram.poke(0x200, 0);
+        vram.poke(0x300, 0);
+
+        let mut pc = 0;
+
+        // r13 = 1
+        vram.poke(pc, glyph(1, 0, 13, 0));
+        pc += 1;
+        vram.poke(pc, 1);
+        pc += 1;
+
+        // r10 = mailbox(0x100), r11=cursor(0x200), r12=buffer(0x300)
+        vram.poke(pc, glyph(1, 0, 10, 0));
+        pc += 1;
+        vram.poke(pc, 0x100);
+        pc += 1;
+        vram.poke(pc, glyph(1, 0, 11, 0));
+        pc += 1;
+        vram.poke(pc, 0x200);
+        pc += 1;
+        vram.poke(pc, glyph(1, 0, 12, 0));
+        pc += 1;
+        vram.poke(pc, 0x300);
+        pc += 1;
+
+        let loop_start = pc;
+
+        // r1 = mailbox, r2 = cursor
+        vram.poke(pc, glyph(3, 0, 1, 10));
+        pc += 1;
+        vram.poke(pc, glyph(3, 0, 2, 11));
+        pc += 1;
+
+        // if r1==0, loop
+        vram.poke(pc, glyph(10, 0, 1, 127));
+        pc += 1;
+        vram.poke(pc, (loop_start as i32 - pc as i32 - 1) as u32);
+        pc += 1;
+
+        // INSERT
+        vram.poke(pc, glyph(5, 0, 3, 12));
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 3, 1));
+        pc += 1;
+        vram.poke(pc, glyph(5, 0, 2, 13));
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 11, 2));
+        pc += 1;
+
+        // clear mailbox
+        vram.poke(pc, glyph(1, 0, 1, 0));
+        pc += 1;
+        vram.poke(pc, 0);
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 10, 1));
+        pc += 1;
+
+        vram.poke(pc, glyph(209, 0, 0, 0));
+        pc += 1;
+        vram.poke(pc, (loop_start as i32 - pc as i32 - 1) as u32);
+        pc += 1;
+
+        // --- TEST ---
+        vram.spawn_vm(0, &SyntheticVmConfig::default()).unwrap();
+
+        vram.poke(0x100, 0x48);
+
+        // Execute with execute_frame instead of stepping
+        vram.execute_frame_interleaved(1);
+
+        assert_eq!(
+            vram.peek(0x300),
+            0x48,
+            "First insert: got {:x}, expected 0x48",
+            vram.peek(0x300)
+        );
+    }
+
+    #[test]
     fn test_label_table_pass() {
         // Test the label table mechanism needed for self-hosting
         // Pass 1: Collect labels from source
@@ -2506,12 +2592,16 @@ mod tests {
         let source_path = "src/glyph_stratum/programs/self_hosting_assembler.glyph";
         // Wait, the path might be relative to the workspace root or the crate root.
         // Let's use a path that works from systems/infinite_map_rs
-        let source_text = std::fs::read_to_string("../../systems/glyph_stratum/programs/self_hosting_assembler.glyph")
-            .expect("Failed to read assembler source");
+        let source_text = std::fs::read_to_string(
+            "../../systems/glyph_stratum/programs/self_hosting_assembler.glyph",
+        )
+        .expect("Failed to read assembler source");
 
         // Compile it using the Rust assembler
         let mut assembler = crate::glyph_assembler::GlyphAssembler::new();
-        let assembled = assembler.assemble(&source_text).expect("Rust assembler failed");
+        let assembled = assembler
+            .assemble(&source_text)
+            .expect("Rust assembler failed");
 
         // Debug: show first few words of assembled binary
         println!("\n  Assembled binary (first 10 words):");
@@ -2545,7 +2635,10 @@ mod tests {
         if non_zero_count == 0 {
             println!("    All zeros ✓");
         } else {
-            println!("    Found {} non-zero values before execution!", non_zero_count);
+            println!(
+                "    Found {} non-zero values before execution!",
+                non_zero_count
+            );
         }
 
         // 3. Run the Assembler
@@ -2556,10 +2649,14 @@ mod tests {
         println!("    :main = {:#04X}", main_addr);
         println!("    :init_mnem_table = {:#04X}", init_mnem_addr);
         vram.enable_tracing();
-        vram.spawn_vm(0, &SyntheticVmConfig {
-            entry_point: main_addr,
-            ..SyntheticVmConfig::default()
-        }).unwrap();
+        vram.spawn_vm(
+            0,
+            &SyntheticVmConfig {
+                entry_point: main_addr,
+                ..SyntheticVmConfig::default()
+            },
+        )
+        .unwrap();
 
         // Give it plenty of cycles
         let mut cycle_count = 0;
@@ -2567,7 +2664,10 @@ mod tests {
             vram.execute_frame_interleaved(100);
             cycle_count += 100;
             if vram.is_halted(0) {
-                println!("\n  VM halted after {} cycles (frame {})", cycle_count, frame);
+                println!(
+                    "\n  VM halted after {} cycles (frame {})",
+                    cycle_count, frame
+                );
                 break;
             }
         }
@@ -2579,15 +2679,18 @@ mod tests {
         let trace = vram.trace();
         println!("  Execution Trace (first 30):");
         for (i, entry) in trace.iter().take(30).enumerate() {
-            println!("    {}: PC={:04X} OP={:02X} STR={} p1={:08X} p2={:08X}",
-                i, entry.pc, entry.opcode, entry.stratum, entry.p1, entry.p2);
+            println!(
+                "    {}: PC={:04X} OP={:02X} STR={} p1={:08X} p2={:08X}",
+                i, entry.pc, entry.opcode, entry.stratum, entry.p1, entry.p2
+            );
         }
 
         // Find ALL STOREs to addresses 0x5000-0x5FFF (output buffer range)
         println!("\n  Looking for STOREs to output buffer (address 0x5000+):");
         let mut store_to_output = 0;
         for (i, entry) in trace.iter().enumerate() {
-            if entry.opcode == 4 { // STORE
+            if entry.opcode == 4 {
+                // STORE
                 // p1 is address register index, need to check what address that register held
                 // But we can't get that from the trace directly
                 // Instead, let's check the memory after and see what got written
@@ -2598,19 +2701,29 @@ mod tests {
 
         // Check what characters are at key positions in source
         println!("\n  Source buffer analysis:");
-        println!("    First char at 0x1000: '{}' ({:02X})",
+        println!(
+            "    First char at 0x1000: '{}' ({:02X})",
             if vram.peek(0x1000) >= 32 && vram.peek(0x1000) < 127 {
                 (vram.peek(0x1000) & 0xFF) as u8 as char
-            } else { '?' }, vram.peek(0x1000));
+            } else {
+                '?'
+            },
+            vram.peek(0x1000)
+        );
 
         // Find first '@' in source
         for i in 0..source_text.len() as u32 {
-            if vram.peek(0x1000 + i) == 64 { // '@' = 64
-                println!("    First '@' found at source offset {} (address {:04X})", i, 0x1000 + i);
+            if vram.peek(0x1000 + i) == 64 {
+                // '@' = 64
+                println!(
+                    "    First '@' found at source offset {} (address {:04X})",
+                    i,
+                    0x1000 + i
+                );
                 // Show context around the '@'
                 let start = if i > 10 { i - 10 } else { 0 };
                 let mut context = String::new();
-                for j in start..i+20 {
+                for j in start..i + 20 {
                     let c = vram.peek(0x1000 + j);
                     if c >= 32 && c < 127 {
                         context.push((c & 0xFF) as u8 as char);
@@ -2622,7 +2735,7 @@ mod tests {
                 break;
             }
         }
-        
+
         // Debug: print binary around the branch at 0x54
         println!("  Binary at offsets 0x50-0x60:");
         for i in 0x50..0x60 {
@@ -2634,7 +2747,9 @@ mod tests {
         let mut src_preview = String::new();
         for i in 0..80 {
             let c = vram.peek(0x1000 + i);
-            if c == 0 { break; }
+            if c == 0 {
+                break;
+            }
             src_preview.push((c & 0xFF) as u8 as char);
         }
         println!("    \"{}\"", src_preview.escape_default());
@@ -2651,7 +2766,9 @@ mod tests {
             } else {
                 print!("{:02X}:{:02X} ", addr & 0xFF, val & 0xFF);
             }
-            if i % 10 == 9 { println!(); }
+            if i % 10 == 9 {
+                println!();
+            }
         }
         println!();
 
@@ -2663,17 +2780,24 @@ mod tests {
             let stratum = (word >> 8) & 0xFF;
             let p1 = (word >> 16) & 0xFF;
             let p2 = (word >> 24) & 0xFF;
-            println!("    {:04X}: {:08X}  op={} st={} p1={} p2={}", i, word, opcode, stratum, p1, p2);
+            println!(
+                "    {:04X}: {:08X}  op={} st={} p1={} p2={}",
+                i, word, opcode, stratum, p1, p2
+            );
         }
 
         // Debug: show VM state after execution
         if let Some(vm) = vram.vm_state(0) {
             println!("\n  Final VM state:");
             println!("    PC: {:04X}", vm.pc);
-            println!("    r0: {:08X}  r1: {:08X}  r4: {:08X}  r7: {:08X}",
-                vm.regs[0], vm.regs[1], vm.regs[4], vm.regs[7]);
-            println!("    r10: {:08X}  r11: {:08X}  r13: {:08X}  r14: {:08X}  r15: {:08X}",
-                vm.regs[10], vm.regs[11], vm.regs[13], vm.regs[14], vm.regs[15]);
+            println!(
+                "    r0: {:08X}  r1: {:08X}  r4: {:08X}  r7: {:08X}",
+                vm.regs[0], vm.regs[1], vm.regs[4], vm.regs[7]
+            );
+            println!(
+                "    r10: {:08X}  r11: {:08X}  r13: {:08X}  r14: {:08X}  r15: {:08X}",
+                vm.regs[10], vm.regs[11], vm.regs[13], vm.regs[14], vm.regs[15]
+            );
         }
 
         // Debug: show label table at 0x6000 (2-word entries: [hash, addr])
@@ -2686,7 +2810,10 @@ mod tests {
                 println!("    Entry {}: END (all zeros)", entry);
                 break;
             }
-            println!("    Entry {}: hash={:08X} -> addr {:04X}", entry, hash, addr);
+            println!(
+                "    Entry {}: hash={:08X} -> addr {:04X}",
+                entry, hash, addr
+            );
         }
 
         // Debug: trace STOREs to output buffer
@@ -2695,19 +2822,27 @@ mod tests {
         let mut output_stores = 0;
         let mut r1_stores = 0;
         for (i, entry) in trace.iter().enumerate() {
-            if entry.opcode == 4 { // STORE
+            if entry.opcode == 4 {
+                // STORE
                 output_stores += 1;
-                if entry.p1 == 1 { // p1_reg == 1 means STORE r1, rX (writing to output buffer)
+                if entry.p1 == 1 {
+                    // p1_reg == 1 means STORE r1, rX (writing to output buffer)
                     r1_stores += 1;
                     if r1_stores <= 25 {
                         // Get the value being stored from the next trace entry's context
                         // We need to look at the VM state at this point
-                        println!("    STORE r1, r{} at PC={:04X} (writing to output offset)", entry.p2, entry.pc);
+                        println!(
+                            "    STORE r1, r{} at PC={:04X} (writing to output offset)",
+                            entry.p2, entry.pc
+                        );
                     }
                 }
             }
         }
-        println!("    Total STOREs: {}, STOREs to r1: {}", output_stores, r1_stores);
+        println!(
+            "    Total STOREs: {}, STOREs to r1: {}",
+            output_stores, r1_stores
+        );
 
         // Debug: show what r10 and r11 are when first few LDI instructions are emitted
         println!("\n  Looking for LDI emissions (STORE r1, r3 with r3 = 1 | (r10 << 16)):");
@@ -2749,7 +2884,9 @@ mod tests {
         let mut src_check = String::new();
         for i in 0..100 {
             let c = vram.peek(0x1000 + i);
-            if c == 0 { break; }
+            if c == 0 {
+                break;
+            }
             if c >= 32 && c < 127 {
                 src_check.push((c & 0xFF) as u8 as char);
             } else if c == 10 {
@@ -2760,7 +2897,11 @@ mod tests {
 
         // Check if there's a memory overlap issue
         println!("\n  Checking for memory overlap:");
-        println!("    Binary end: {:04X} (assembled.words.len() = {})", assembled.words.len(), assembled.words.len());
+        println!(
+            "    Binary end: {:04X} (assembled.words.len() = {})",
+            assembled.words.len(),
+            assembled.words.len()
+        );
         println!("    Source start: 1000");
         println!("    Source end: {:04X}", 0x1000 + source_text.len());
         println!("    Output start: 5000");
@@ -2782,9 +2923,13 @@ mod tests {
         for i in 0..assembled.words.len() as u32 {
             let original = assembled.words[i as usize];
             let compiled = vram.peek(0x5000 + i);
-            assert_eq!(compiled, original, "Mismatch at offset {}: Expected {:08X}, got {:08X}", i, original, compiled);
+            assert_eq!(
+                compiled, original,
+                "Mismatch at offset {}: Expected {:08X}, got {:08X}",
+                i, original, compiled
+            );
         }
-        
+
         println!("  ✓ Output binary is bit-identical to executing binary.");
         println!("  ✓ SOVEREIGNTY COMPLETE.");
     }
@@ -2799,13 +2944,13 @@ mod tests {
         let mut vram = SyntheticVram::new_small(4096);
 
         // Mailbox: type=1 (KEY_INSERT), char='L' (76)
-        vram.poke(0x200, 1);    // event type = INSERT
-        vram.poke(0x201, 76);   // char = 'L'
-        vram.poke(0x202, 0);    // cursor pos (not used yet)
+        vram.poke(0x200, 1); // event type = INSERT
+        vram.poke(0x201, 76); // char = 'L'
+        vram.poke(0x202, 0); // cursor pos (not used yet)
 
         // Editor state at 0x100
-        vram.poke(0x100, 0);    // cursor = 0
-        vram.poke(0x101, 0);    // buffer_len = 0
+        vram.poke(0x100, 0); // cursor = 0
+        vram.poke(0x101, 0); // buffer_len = 0
 
         // --- TEXT EDITOR PROGRAM (addr 0) ---
         let mut pp = 0u32;
@@ -2816,89 +2961,135 @@ mod tests {
             *p += 1;
         };
 
-        poke_ldi(&mut vram, &mut pp, 13, 1);     // r13 = 1 (increment)
-        poke_ldi(&mut vram, &mut pp, 0, 0x200);  // r0 = mailbox addr
-        poke_ldi(&mut vram, &mut pp, 1, 0x100);  // r1 = state addr
+        poke_ldi(&mut vram, &mut pp, 13, 1); // r13 = 1 (increment)
+        poke_ldi(&mut vram, &mut pp, 0, 0x200); // r0 = mailbox addr
+        poke_ldi(&mut vram, &mut pp, 1, 0x100); // r1 = state addr
         poke_ldi(&mut vram, &mut pp, 2, 0x1000); // r2 = buffer base
 
         // Loop: poll mailbox
         let loop_start = pp;
-        vram.poke(pp, glyph(3, 0, 0, 3)); pp += 1;  // LOAD r3 = event_type
-        vram.poke(pp, 0); pp += 1;                  // offset 0
+        vram.poke(pp, glyph(3, 0, 0, 3));
+        pp += 1; // LOAD r3 = event_type
+        vram.poke(pp, 0);
+        pp += 1; // offset 0
 
         // If event_type == 0, keep polling
-        vram.poke(pp, glyph(10, 0, 3, 127)); pp += 1; // BEQ r3, r127(0), loop
-        vram.poke(pp, (loop_start as i32 - pp as i32 - 1) as u32); pp += 1;
+        vram.poke(pp, glyph(10, 0, 3, 127));
+        pp += 1; // BEQ r3, r127(0), loop
+        vram.poke(pp, (loop_start as i32 - pp as i32 - 1) as u32);
+        pp += 1;
 
         // If event_type == 1 (INSERT), handle insert
-        vram.poke(pp, glyph(1, 0, 4, 0)); pp += 1;  // LDI r4 = 1
-        vram.poke(pp, 1); pp += 1;
-        vram.poke(pp, glyph(10, 0, 3, 4)); pp += 1; // BEQ r3, r4, :do_insert
-        let do_insert_addr = pp;
-        pp += 1; // placeholder
+        vram.poke(pp, glyph(1, 0, 4, 0));
+        pp += 1; // LDI r4 = 1
+        vram.poke(pp, 1);
+        pp += 1;
+        let beq_insert_addr = pp;
+        vram.poke(pp, glyph(10, 0, 3, 4));
+        pp += 1; // BEQ r3, r4, :do_insert
+        pp += 1; // placeholder (will be patched with relative offset)
 
         // Unknown event: clear and loop
-        vram.poke(pp, glyph(1, 0, 5, 0)); pp += 1;  // LDI r5 = 0
-        vram.poke(pp, 0); pp += 1;
-        vram.poke(pp, glyph(4, 0, 0, 5)); pp += 1;  // STORE [r0], r5 (clear event)
-        vram.poke(pp, 0); pp += 1;
-        vram.poke(pp, glyph(9, 0, 0, 0)); pp += 1;  // JMP loop
-        vram.poke(pp, loop_start); pp += 1;
+        vram.poke(pp, glyph(1, 0, 5, 0));
+        pp += 1; // LDI r5 = 0
+        vram.poke(pp, 0);
+        pp += 1;
+        vram.poke(pp, glyph(4, 0, 0, 5));
+        pp += 1; // STORE [r0], r5 (clear event)
+        vram.poke(pp, 0);
+        pp += 1;
+        vram.poke(pp, glyph(9, 0, 0, 0));
+        pp += 1; // JMP loop
+        vram.poke(pp, loop_start);
+        pp += 1;
 
         // :do_insert
         let do_insert = pp;
-        vram.poke(do_insert_addr - 1, do_insert);  // patch branch target
+        let branch_offset = (do_insert as i32) - (beq_insert_addr as i32) - 2;
+        vram.poke(beq_insert_addr + 1, branch_offset as u32); // patch branch offset
 
-        // Load char from mailbox offset 1
-        poke_ldi(&mut vram, &mut pp, 6, 1);         // r6 = 1
-        vram.poke(pp, glyph(3, 0, 0, 7)); pp += 1;  // LOAD r7 = char (offset 1)
-        vram.poke(pp, 1); pp += 1;
+        // Load char from mailbox offset 1 (addr 0x201)
+        poke_ldi(&mut vram, &mut pp, 6, 0x201); // r6 = 0x201 (mailbox + 1)
+        vram.poke(pp, glyph(3, 0, 6, 7));
+        pp += 1; // LOAD r7 = [r6] (load char)
 
         // Load cursor position
-        vram.poke(pp, glyph(3, 0, 1, 8)); pp += 1;  // LOAD r8 = cursor
-        vram.poke(pp, 0); pp += 1;
+        vram.poke(pp, glyph(3, 0, 1, 8));
+        pp += 1; // LOAD r8 = cursor
 
         // Calculate buffer addr: base + cursor
-        vram.poke(pp, glyph(2, 0, 2, 9)); pp += 1;  // MOV r9 = r2 (base)
-        vram.poke(pp, glyph(5, 0, 8, 9)); pp += 1;  // ADD r9 = r9 + cursor
+        vram.poke(pp, glyph(2, 0, 2, 9));
+        pp += 1; // MOV r9 = r2 (base)
+        vram.poke(pp, glyph(5, 0, 8, 9));
+        pp += 1; // ADD r9 = r9 + cursor
 
         // Store char at buffer[cursor]
-        vram.poke(pp, glyph(4, 0, 9, 7)); pp += 1;  // STORE [r9], r7
+        vram.poke(pp, glyph(4, 0, 9, 7));
+        pp += 1; // STORE [r9], r7
 
         // Increment cursor and buffer_len
-        vram.poke(pp, glyph(5, 0, 13, 8)); pp += 1; // ADD cursor += 1
-        vram.poke(pp, glyph(4, 0, 1, 8)); pp += 1;  // STORE cursor
-        vram.poke(pp, 0); pp += 1;
+        vram.poke(pp, glyph(5, 0, 13, 8));
+        pp += 1; // ADD cursor += 1
+        vram.poke(pp, glyph(4, 0, 1, 8));
+        pp += 1; // STORE cursor
 
         // Increment buffer_len
-        vram.poke(pp, glyph(3, 0, 1, 10)); pp += 1; // LOAD r10 = buffer_len
-        vram.poke(pp, 1); pp += 1;
-        vram.poke(pp, glyph(5, 0, 13, 10)); pp += 1; // ADD r10 += 1
-        vram.poke(pp, glyph(4, 0, 1, 10)); pp += 1;  // STORE buffer_len
-        vram.poke(pp, 1); pp += 1;
+        vram.poke(pp, glyph(3, 0, 1, 10));
+        pp += 1; // LOAD r10 = buffer_len
+        vram.poke(pp, glyph(5, 0, 13, 10));
+        pp += 1; // ADD r10 += 1
+        vram.poke(pp, glyph(4, 0, 1, 10));
+        pp += 1; // STORE buffer_len
 
         // Clear event and loop
-        vram.poke(pp, glyph(1, 0, 5, 0)); pp += 1;  // LDI r5 = 0
-        vram.poke(pp, 0); pp += 1;
-        vram.poke(pp, glyph(4, 0, 0, 5)); pp += 1;  // STORE [r0], r5
-        vram.poke(pp, 0); pp += 1;
-        vram.poke(pp, glyph(9, 0, 0, 0)); pp += 1;  // JMP loop
-        vram.poke(pp, loop_start); pp += 1;
+        vram.poke(pp, glyph(1, 0, 5, 0));
+        pp += 1; // LDI r5 = 0
+        vram.poke(pp, 0);
+        pp += 1;
+        vram.poke(pp, glyph(4, 0, 0, 5));
+        pp += 1; // STORE [r0], r5
+        vram.poke(pp, glyph(9, 0, 0, 0));
+        pp += 1; // JMP loop
+        vram.poke(pp, loop_start);
+        pp += 1;
 
         // HALT (for test - in real editor this is unreachable)
-        vram.poke(pp, glyph(13, 0, 0, 0)); pp += 1;
+        vram.poke(pp, glyph(13, 0, 0, 0));
+        pp += 1;
 
         // Spawn and run
-        vram.spawn_vm(0, &SyntheticVmConfig {
-            entry_point: 0,
-            ..Default::default()
-        }).unwrap();
+        vram.spawn_vm(
+            0,
+            &SyntheticVmConfig {
+                entry_point: 0,
+                ..Default::default()
+            },
+        )
+        .unwrap();
 
         // Run enough cycles to process the event
         for _ in 0..100 {
             vram.execute_frame_interleaved(10);
-            if vram.is_halted(0) { break; }
+            if vram.is_halted(0) {
+                break;
+            }
         }
+
+        // Debug: print VM state
+        println!("VM state after execution:");
+        println!("  Halted: {}", vram.is_halted(0));
+        println!(
+            "  Mailbox [0x200]: event_type={}, char={}, cursor_pos={}",
+            vram.peek(0x200),
+            vram.peek(0x201),
+            vram.peek(0x202)
+        );
+        println!(
+            "  Editor state [0x100]: cursor={}, buffer_len={}",
+            vram.peek(0x100),
+            vram.peek(0x101)
+        );
+        println!("  Buffer [0x1000]: {}", vram.peek(0x1000));
 
         // Verify: buffer[0] should be 'L' (76)
         assert_eq!(vram.peek(0x1000), 76, "Buffer should contain 'L'");

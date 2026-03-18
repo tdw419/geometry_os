@@ -163,9 +163,53 @@ mod tests {
         scheduler.spawn_vm(1, &config).expect("Failed to spawn VM");
         println!("VM 1 spawned successfully");
 
-        // NOTE: Do NOT call sync_gpu_to_shadow() here!
-        // It would overwrite our shadow RAM data with uninitialized GPU texture.
-        // The GPU writes from poke_substrate_single are already queued and flushed.
+        // CRITICAL DEBUG: Check GPU texture contents right after spawn_vm()
+        // spawn_vm() calls queue.submit([]) which should flush write_texture operations
+        println!("\n=== GPU TEXTURE VERIFICATION (after spawn_vm) ===");
+        scheduler.sync_gpu_to_shadow();
+        let gpu_instr_0 = scheduler.peek_substrate_single(0);
+        let gpu_instr_1 = scheduler.peek_substrate_single(1);
+        let gpu_source_0 = scheduler.peek_substrate_single(0x1000);
+        println!("  GPU instr[0] = {:08X} (expected {:08X})", gpu_instr_0, assembled.words[0]);
+        println!("  GPU instr[1] = {:08X} (expected {:08X})", gpu_instr_1, assembled.words[1]);
+        println!("  GPU source[0x1000] = {:02X} '{}' (expected 2F '/')",
+            gpu_source_0, gpu_source_0 as u8 as char);
+
+        if gpu_instr_0 == 0xFFFFFFFF {
+            println!("\n  ⚠️  GPU texture is UNINITIALIZED after spawn_vm()!");
+            println!("  This means write_texture operations were NOT submitted.");
+        } else if gpu_instr_0 == assembled.words[0] {
+            println!("\n  ✓ GPU texture has correct data after spawn_vm()!");
+        }
+
+        // Restore shadow RAM from assembled data (since sync_gpu_to_shadow may have corrupted it)
+        for (i, word) in assembled.words.iter().enumerate() {
+            let mut shadow = shadow_ram.lock().unwrap();
+            let offset = i * 4;
+            shadow[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
+        }
+
+        // CRITICAL: Verify GPU texture state right before execute_frame
+        // This tells us if the texture is corrupted BY execute_frame or before it
+        println!("\n=== PRE-EXECUTE FRAME VERIFICATION ===");
+        scheduler.sync_gpu_to_shadow();
+        let pre_exec_0 = scheduler.peek_substrate_single(0);
+        let pre_exec_1 = scheduler.peek_substrate_single(1);
+        println!("  PRE-execute instr[0] = {:08X} (expected {:08X})", pre_exec_0, assembled.words[0]);
+        println!("  PRE-execute instr[1] = {:08X} (expected {:08X})", pre_exec_1, assembled.words[1]);
+
+        if pre_exec_0 != assembled.words[0] {
+            println!("\n  ⚠️  TEXTURE CORRUPTED BEFORE execute_frame!");
+            println!("  This indicates a synchronization issue.");
+            panic!("GPU texture corrupted before execution");
+        }
+
+        // Restore shadow RAM again after sync
+        for (i, word) in assembled.words.iter().enumerate() {
+            let mut shadow = shadow_ram.lock().unwrap();
+            let offset = i * 4;
+            shadow[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
+        }
 
         // Execute frames with early termination if halted
         println!("\nExecuting (max 1000 frames)...");
