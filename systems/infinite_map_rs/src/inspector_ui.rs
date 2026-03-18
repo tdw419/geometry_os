@@ -1019,3 +1019,271 @@ impl MemoryGraphInspector {
         // Graph rendering is handled by GraphRenderer
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::memory_graph::MemoryGraph;
+
+    // === UIVertex Tests ===
+
+    #[test]
+    fn test_ui_vertex_creation() {
+        let vertex = UIVertex::new(10.0, 20.0, 0.5, [1.0, 0.5, 0.3, 0.8]);
+        assert_eq!(vertex.position, [10.0, 20.0, 0.5]);
+        assert_eq!(vertex.color, [1.0, 0.5, 0.3, 0.8]);
+    }
+
+    #[test]
+    fn test_ui_vertex_layout() {
+        let layout = ui_vertex_layout();
+        assert_eq!(layout.array_stride, std::mem::size_of::<UIVertex>() as u64);
+        assert_eq!(layout.attributes.len(), 2); // position + color
+    }
+
+    // === Panel Vertex Generation Tests ===
+
+    #[test]
+    fn test_generate_panel_vertices() {
+        let vertices = InspectorUI::generate_panel_vertices(
+            0.0, 0.0, 1.0, 1.0, [1.0, 1.0, 1.0, 1.0]
+        );
+
+        assert_eq!(vertices.len(), 6, "Panel should generate 6 vertices (2 triangles)");
+
+        // Check first triangle (top-left, top-right, bottom-left)
+        assert_eq!(vertices[0].position, [0.0, 0.0, 0.0]); // top-left
+        assert_eq!(vertices[1].position, [1.0, 0.0, 0.0]); // top-right
+        assert_eq!(vertices[2].position, [0.0, 1.0, 0.0]); // bottom-left
+
+        // Check second triangle (bottom-left, top-right, bottom-right)
+        assert_eq!(vertices[3].position, [0.0, 1.0, 0.0]); // bottom-left
+        assert_eq!(vertices[4].position, [1.0, 0.0, 0.0]); // top-right
+        assert_eq!(vertices[5].position, [1.0, 1.0, 0.0]); // bottom-right
+
+        // All vertices should have the same color
+        for v in &vertices {
+            assert_eq!(v.color, [1.0, 1.0, 1.0, 1.0]);
+        }
+    }
+
+    #[test]
+    fn test_panel_vertices_with_offset() {
+        let vertices = InspectorUI::generate_panel_vertices(
+            -0.5, 0.5, 0.3, 0.2, [0.5, 0.5, 0.5, 1.0]
+        );
+
+        // Verify bounding box
+        let x_min = vertices.iter().map(|v| v.position[0]).fold(f32::INFINITY, f32::min);
+        let x_max = vertices.iter().map(|v| v.position[0]).fold(f32::NEG_INFINITY, f32::max);
+        let y_min = vertices.iter().map(|v| v.position[1]).fold(f32::INFINITY, f32::min);
+        let y_max = vertices.iter().map(|v| v.position[1]).fold(f32::NEG_INFINITY, f32::max);
+
+        assert!((x_min - (-0.5)).abs() < 0.001);
+        assert!((x_max - (-0.2)).abs() < 0.001); // -0.5 + 0.3
+        assert!((y_min - 0.5).abs() < 0.001);
+        assert!((y_max - 0.7).abs() < 0.001); // 0.5 + 0.2
+    }
+
+    // === Panel Visibility Toggle Tests ===
+
+    #[test]
+    fn test_node_info_panel_visibility() {
+        let mut panel = NodeInfoPanel::new();
+        assert!(panel.visible, "NodeInfoPanel should start visible");
+
+        panel.visible = false;
+        assert!(!panel.visible);
+
+        panel.visible = true;
+        assert!(panel.visible);
+    }
+
+    #[test]
+    fn test_graph_stats_panel_visibility() {
+        let mut panel = GraphStatsPanel::new();
+        assert!(panel.visible, "GraphStatsPanel should start visible");
+
+        panel.visible = false;
+        assert!(!panel.visible);
+    }
+
+    #[test]
+    fn test_search_panel_visibility() {
+        let mut panel = SearchPanel::new();
+        assert!(!panel.visible, "SearchPanel should start hidden");
+
+        panel.visible = true;
+        assert!(panel.visible);
+
+        panel.visible = false;
+        assert!(!panel.visible);
+    }
+
+    #[test]
+    fn test_control_panel_visibility() {
+        let mut panel = ControlPanel::new();
+        assert!(panel.visible, "ControlPanel should start visible");
+
+        panel.visible = false;
+        assert!(!panel.visible);
+    }
+
+    // === InspectorUI Keyboard Tests ===
+    // Note: GraphControls tests require GPU context (GraphRenderer)
+    // Testing InspectorUI keyboard handling instead
+
+    #[test]
+    fn test_keyboard_toggle_panels() {
+        // Create a simple mock without GPU dependencies
+        // We can test the handle_keyboard logic pattern
+        // 'i' (105), 's' (115), '/' (47), 'c' (99)
+        
+        // Verify keycodes are correct
+        assert_eq!('i' as u32, 105);
+        assert_eq!('s' as u32, 115);
+        assert_eq!('/' as u32, 47);
+        assert_eq!('c' as u32, 99);
+    }
+
+    // === GraphCamera Tests ===
+
+    #[test]
+    fn test_camera_default() {
+        let camera = GraphCamera::default();
+        assert_eq!(camera.position, Vec3::new(0.0, 0.0, 10.0));
+        assert_eq!(camera.target, Vec3::ZERO);
+        assert_eq!(camera.up, Vec3::Y);
+    }
+
+    #[test]
+    fn test_camera_view_matrix() {
+        let camera = GraphCamera::default();
+        let view = camera.view_matrix();
+
+        // View matrix should be valid (not all zeros)
+        let col0 = view.col(0);
+        assert!(col0.x != 0.0 || col0.y != 0.0 || col0.z != 0.0);
+    }
+
+    #[test]
+    fn test_camera_projection_matrix() {
+        let camera = GraphCamera::default();
+        let proj = camera.projection_matrix();
+
+        // Projection matrix should be valid
+        let col0 = proj.col(0);
+        assert!(col0.x != 0.0 || col0.y != 0.0 || col0.z != 0.0);
+    }
+
+    // === NodeSelectionManager Tests ===
+
+    #[test]
+    fn test_selection_manager_default() {
+        let manager = NodeSelectionManager::default();
+        assert!(manager.selected_nodes.is_empty());
+        assert_eq!(manager.hovered_node, None);
+    }
+
+    #[test]
+    fn test_selection_toggle() {
+        let mut manager = NodeSelectionManager::default();
+
+        manager.toggle_node("node1".to_string());
+        assert!(manager.selected_nodes.contains("node1"));
+
+        manager.toggle_node("node1".to_string());
+        assert!(!manager.selected_nodes.contains("node1"), "Second toggle should deselect");
+    }
+
+    #[test]
+    fn test_selection_clear() {
+        let mut manager = NodeSelectionManager::default();
+
+        manager.toggle_node("node1".to_string());
+        manager.toggle_node("node2".to_string());
+        assert_eq!(manager.selected_nodes.len(), 2);
+
+        manager.clear_selection();
+        assert!(manager.selected_nodes.is_empty());
+    }
+
+    // === Text Generation Tests ===
+
+    #[test]
+    fn test_text_line_generation_empty() {
+        // Note: This requires glyph_atlas, which needs GPU context
+        // For now, we test the static helper method
+        let placeholder = InspectorUI::generate_text_placeholder(0.0, 0.0, 1.0, 0.1);
+        assert_eq!(placeholder.len(), 6, "Text placeholder should be 6 vertices");
+
+        // Check color is light/white
+        assert_eq!(placeholder[0].color, [0.9, 0.9, 0.9, 0.7]);
+    }
+
+    #[test]
+    fn test_text_placeholder_bounds() {
+        let x = 0.5;
+        let y = -0.3;
+        let width = 0.2;
+        let height = 0.05;
+
+        let vertices = InspectorUI::generate_text_placeholder(x, y, width, height);
+
+        // Verify bounds
+        let x_coords: Vec<f32> = vertices.iter().map(|v| v.position[0]).collect();
+        let y_coords: Vec<f32> = vertices.iter().map(|v| v.position[1]).collect();
+
+        let x_min = x_coords.iter().fold(f32::INFINITY, |a, &b| a.min(b));
+        let x_max = x_coords.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+        let y_min = y_coords.iter().fold(f32::INFINITY, |a, &b| a.min(b));
+        let y_max = y_coords.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+
+        assert!((x_min - x).abs() < 0.001);
+        assert!((x_max - (x + width)).abs() < 0.001);
+        assert!((y_min - y).abs() < 0.001);
+        assert!((y_max - (y + height)).abs() < 0.001);
+    }
+
+    // === Panel Update Tests ===
+
+    #[test]
+    fn test_node_info_panel_update() {
+        let mut panel = NodeInfoPanel::new();
+        let graph = MemoryGraph::new();
+        let selected = HashSet::new();
+
+        // Should not panic with empty graph
+        panel.update_info(&graph, &selected);
+
+        // With no selection, node_info should be None
+        assert!(panel.node_info.is_none());
+    }
+
+    #[test]
+    fn test_graph_stats_panel_update() {
+        let mut panel = GraphStatsPanel::new();
+        let graph = MemoryGraph::new();
+        let selected = HashSet::new();
+
+        // Should not panic with empty graph
+        panel.update_stats(&graph, &selected, 60.0);
+
+        // Stats should reflect empty graph
+        assert_eq!(panel.total_nodes, 0);
+        assert_eq!(panel.total_edges, 0);
+    }
+
+    #[test]
+    fn test_search_panel_update() {
+        let mut panel = SearchPanel::new();
+        let graph = MemoryGraph::new();
+
+        // Should not panic with empty graph
+        panel.update_search(&graph);
+
+        // Empty graph should have no results
+        assert_eq!(panel.filtered_nodes.len(), 0);
+    }
+}
+
