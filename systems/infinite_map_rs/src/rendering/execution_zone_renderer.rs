@@ -320,9 +320,10 @@ impl ExecutionZoneRenderer {
         // Note: Blitting is done in the main render loop after all zones are dispatched
         // This ensures all compute passes complete before blitting
 
-        // TODO: Render overlay text and border
-        // This would integrate with the text engine to display
-        // the overlay_text and border_config on screen
+        // ENHANCEMENT: Text overlay rendering
+        // Border rendering is implemented in render_borders().
+        // To add text overlay, integrate TextEngine to render overlay_text at zone position.
+        // Requires: (1) TextEngine reference in ExecutionZoneRenderer, (2) Render pass integration
     }
 
     /// Render an inactive zone indicator
@@ -367,11 +368,9 @@ impl ExecutionZoneRenderer {
             border_config.bounds().3
         );
 
-        // TODO: Implement actual visual indicator rendering
-        // This would:
-        // 1. Render the border_config using wgpu draw calls
-        // 2. Render the overlay_text using the text engine
-        // 3. Apply appropriate styling for inactive zones (gray/muted colors)
+        // ENHANCEMENT: Text overlay rendering
+        // Border rendering is implemented in render_borders().
+        // To add text overlay, integrate TextEngine to render overlay_text at zone position.
     }
 
     /// Dispatch a compute shader for an execution zone

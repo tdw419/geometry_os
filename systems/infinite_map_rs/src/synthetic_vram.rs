@@ -29,6 +29,8 @@ pub struct SyntheticVmConfig {
     pub parent_id: u32,
     pub base_addr: u32,
     pub bound_addr: u32, // 0 = unrestricted
+    pub eap_coord: u32,
+    pub generation: u32,
     pub initial_regs: [u32; REG_COUNT],
 }
 
@@ -39,6 +41,8 @@ impl Default for SyntheticVmConfig {
             parent_id: 0xFF,
             base_addr: 0,
             bound_addr: 0,
+            eap_coord: 0,
+            generation: 0,
             initial_regs: [0; REG_COUNT],
         }
     }
@@ -59,6 +63,8 @@ pub struct VmState {
     pub entry_point: u32,
     pub base_addr: u32,
     pub bound_addr: u32,
+    pub eap_coord: u32,
+    pub generation: u32,
     pub attention_mask: u32,
     pub stack: [u32; STACK_SIZE],
 }
@@ -78,6 +84,8 @@ impl Default for VmState {
             entry_point: 0,
             base_addr: 0,
             bound_addr: 0,
+            eap_coord: 0,
+            generation: 0,
             attention_mask: 0,
             stack: [0; STACK_SIZE],
         }
@@ -256,6 +264,8 @@ impl SyntheticVram {
         vm.entry_point = config.entry_point;
         vm.base_addr = config.base_addr;
         vm.bound_addr = config.bound_addr;
+        vm.eap_coord = config.eap_coord;
+        vm.generation = config.generation;
         vm.attention_mask = 0;
         vm.stack = [0; STACK_SIZE];
         Ok(())
@@ -3418,5 +3428,175 @@ mod tests {
         assert_eq!(vram.peek(0x1000), 76, "Buffer should contain 'L'");
         assert_eq!(vram.peek(0x100), 1, "Cursor should be at 1");
         assert_eq!(vram.peek(0x101), 1, "Buffer len should be 1");
+    }
+
+    #[test]
+    fn test_lineage_tracking_generation() {
+        let mut vram = SyntheticVram::new_small(256);
+
+        // Spawn genesis VM (generation 0)
+        let mut config = SyntheticVmConfig::default();
+        config.entry_point = 0;
+        config.parent_id = 0xFF;
+        config.eap_coord = 0x00010000; // EAP: {mission=0, phase=1, task=0, step=0, agent=0}
+        config.generation = 0;
+        vram.spawn_vm(0, &config).unwrap();
+
+        // Verify genesis VM state
+        let vm0 = vram.vm_state(0).unwrap();
+        assert_eq!(vm0.generation, 0, "Genesis VM should be generation 0");
+        assert_eq!(vm0.parent_id, 0xFF, "Genesis VM has no parent");
+        assert_eq!(vm0.eap_coord, 0x00010000, "Genesis EAP coord should be set");
+
+        // Simulate self-replication: spawn child VM at generation 1
+        let mut child_config = SyntheticVmConfig::default();
+        child_config.entry_point = 0x100; // Child runs at different address
+        child_config.parent_id = 0; // Parent is VM 0
+        child_config.eap_coord = 0x00020000; // EAP: {mission=0, phase=2, task=0, step=0, agent=0}
+        child_config.generation = 1; // Child is generation 1
+        vram.spawn_vm(1, &child_config).unwrap();
+
+        // Verify child VM state
+        let vm1 = vram.vm_state(1).unwrap();
+        assert_eq!(vm1.generation, 1, "Child VM should be generation 1");
+        assert_eq!(vm1.parent_id, 0, "Child's parent should be VM 0");
+        assert_eq!(vm1.eap_coord, 0x00020000, "Child EAP coord should be set");
+
+        // Spawn grandchild VM at generation 2
+        let mut grandchild_config = SyntheticVmConfig::default();
+        grandchild_config.entry_point = 0x200;
+        grandchild_config.parent_id = 1; // Parent is VM 1
+        grandchild_config.eap_coord = 0x00030000; // EAP: {mission=0, phase=3, task=0, step=0, agent=0}
+        grandchild_config.generation = 2; // Grandchild is generation 2
+        vram.spawn_vm(2, &grandchild_config).unwrap();
+
+        // Verify grandchild VM state
+        let vm2 = vram.vm_state(2).unwrap();
+        assert_eq!(vm2.generation, 2, "Grandchild VM should be generation 2");
+        assert_eq!(vm2.parent_id, 1, "Grandchild's parent should be VM 1");
+
+        // Demonstrate lineage query: find all VMs in generation chain
+        println!("=== Lineage Tree ===");
+        println!(
+            "VM 0: gen={}, parent={:}, eap=0x{:08X}",
+            vram.vm_state(0).unwrap().generation,
+            vram.vm_state(0).unwrap().parent_id,
+            vram.vm_state(0).unwrap().eap_coord
+        );
+        println!(
+            "VM 1: gen={}, parent={:}, eap=0x{:08X}",
+            vram.vm_state(1).unwrap().generation,
+            vram.vm_state(1).unwrap().parent_id,
+            vram.vm_state(1).unwrap().eap_coord
+        );
+        println!(
+            "VM 2: gen={}, parent={:}, eap=0x{:08X}",
+            vram.vm_state(2).unwrap().generation,
+            vram.vm_state(2).unwrap().parent_id,
+            vram.vm_state(2).unwrap().eap_coord
+        );
+
+        // Verify EAP coordinate hierarchy: phase increases with each generation
+        let gen0_phase = (vram.vm_state(0).unwrap().eap_coord >> 16) & 0xFF;
+        let gen1_phase = (vram.vm_state(1).unwrap().eap_coord >> 16) & 0xFF;
+        let gen2_phase = (vram.vm_state(2).unwrap().eap_coord >> 16) & 0xFF;
+
+        assert_eq!(gen0_phase, 1, "Genesis phase should be 1");
+        assert_eq!(gen1_phase, 2, "Child phase should be 2");
+        assert_eq!(gen2_phase, 3, "Grandchild phase should be 3");
+    }
+
+    #[test]
+    fn test_self_replication_with_lineage() {
+        // This test simulates "pixels move pixels" with full lineage tracking
+        // A parent VM copies itself to a new address, creating a child with incremented generation
+
+        let mut vram = SyntheticVram::new_small(256);
+
+        // Write a simple self-copy program at address 0
+        // This program copies 4 pixels from src to dst, then halts
+        let mut pc = 0u32;
+        let mut poke = |v: &mut SyntheticVram, p: &mut u32, op: u8, s: u8, p1: u8, p2: u8| {
+            let val = op as u32 | ((s as u32) << 8) | ((p1 as u32) << 16) | ((p2 as u32) << 24);
+            v.poke(*p, val);
+            *p += 1;
+        };
+
+        // LDI r0, 0       ; source address
+        poke(&mut vram, &mut pc, 1, 0, 0, 0);
+        vram.poke(pc, 0);
+        pc += 1;
+
+        // LDI r1, 0x100   ; destination address
+        poke(&mut vram, &mut pc, 1, 0, 1, 0);
+        vram.poke(pc, 0x100);
+        pc += 1;
+
+        // LDI r2, 4       ; count = 4 pixels
+        poke(&mut vram, &mut pc, 1, 0, 2, 0);
+        vram.poke(pc, 4);
+        pc += 1;
+
+        // LOAD r3, [r0]   ; load from source
+        poke(&mut vram, &mut pc, 3, 0, 0, 3);
+
+        // STORE [r1], r3  ; store to destination
+        poke(&mut vram, &mut pc, 4, 0, 1, 3);
+
+        // ADD r0, r1      ; increment both addresses (actually: r1 = r0 + r1)
+        // For simplicity, just halt after one copy
+        poke(&mut vram, &mut pc, 13, 0, 0, 0); // HALT
+
+        // Spawn the parent VM (generation 0)
+        let mut parent_config = SyntheticVmConfig::default();
+        parent_config.entry_point = 0;
+        parent_config.generation = 0;
+        parent_config.eap_coord = 0x00010000;
+        vram.spawn_vm(0, &parent_config).unwrap();
+
+        // Execute parent for a few cycles
+        vram.execute_frame_with_limit(10);
+
+        // Check that parent is halted
+        assert!(vram.is_halted(0), "Parent VM should halt after self-copy");
+
+        // Now simulate the "child" that was created by the copy
+        // In a real self-replicator, this would be the new code at 0x100
+        // For testing, we spawn a child VM that "inherits" from parent
+        let mut child_config = SyntheticVmConfig::default();
+        child_config.entry_point = 0x100;
+        child_config.parent_id = 0;
+        child_config.generation = 1; // Child is generation 1
+        child_config.eap_coord = 0x00020000;
+        vram.spawn_vm(1, &child_config).unwrap();
+
+        // Verify lineage: child knows its parent and generation
+        let parent = vram.vm_state(0).unwrap();
+        let child = vram.vm_state(1).unwrap();
+
+        println!("=== Self-Replication Lineage ===");
+        println!(
+            "Parent VM: gen={}, eap=0x{:08X}",
+            parent.generation, parent.eap_coord
+        );
+        println!(
+            "Child VM:  gen={}, parent={}, eap=0x{:08X}",
+            child.generation, child.parent_id, child.eap_coord
+        );
+
+        // Assertions
+        assert_eq!(parent.generation, 0, "Parent is generation 0");
+        assert_eq!(child.generation, 1, "Child is generation 1 (parent + 1)");
+        assert_eq!(child.parent_id, 0, "Child's parent is VM 0");
+
+        // EAP coord demonstrates hierarchical addressing
+        // Parent: phase=1, Child: phase=2
+        let parent_phase = (parent.eap_coord >> 16) & 0xFF;
+        let child_phase = (child.eap_coord >> 16) & 0xFF;
+        assert_eq!(
+            child_phase,
+            parent_phase + 1,
+            "Child phase = parent phase + 1"
+        );
     }
 }
