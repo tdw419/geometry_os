@@ -2079,6 +2079,17 @@ impl<'a> Renderer<'a> {
             cortex.update(queue);
         }
 
+        // TODO-3/5: Prepare inspector UI vertices before render pass
+        let inspector_vertex_count = if inspector_visible {
+            if let Some(inspector_ui) = inspector_ui {
+                inspector_ui.prepare(&self.queue)
+            } else {
+                0
+            }
+        } else {
+            0
+        };
+
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
@@ -2240,7 +2251,7 @@ impl<'a> Renderer<'a> {
             // Render inspector UI overlay if visible
             if inspector_visible {
                 if let Some(inspector_ui) = inspector_ui {
-                    inspector_ui.render(&mut render_pass);
+                    inspector_ui.render(&mut render_pass, inspector_vertex_count);
                 }
             }
         }

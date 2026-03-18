@@ -507,8 +507,6 @@ pub struct InspectorUI {
     ui_pipeline: wgpu::RenderPipeline,
     /// Vertex buffer for UI rectangles (4 panels max)
     ui_vertex_buffer: wgpu::Buffer,
-    /// Number of vertices currently in buffer
-    ui_vertex_count: usize,
 }
 
 impl InspectorUI {
@@ -581,7 +579,6 @@ impl InspectorUI {
             protocol,
             ui_pipeline,
             ui_vertex_buffer,
-            ui_vertex_count: 0,
         }
     }
 
@@ -645,11 +642,87 @@ impl InspectorUI {
         ]
     }
 
-    /// Render UI overlay
-    pub fn render(&self, _render_pass: &mut wgpu::RenderPass) {
-        // TODO-3/5: Implement actual panel rendering
-        // For now, the pipeline and vertex buffer are created and ready
-        // Next step: populate vertex buffer with panel rectangles and draw them
+    /// Prepare UI vertices for rendering (call before render_pass)
+    /// Returns the number of vertices written
+    pub fn prepare(&self, queue: &wgpu::Queue) -> usize {
+        // Collect vertices for all visible panels
+        let mut vertices = Vec::new();
+
+        // Panel dimensions and positions (screen-space coordinates)
+        // Using normalized device coordinates (-1 to 1)
+        // Left side panels
+        let panel_width = 0.35;
+        let panel_height = 0.25;
+        let padding = 0.02;
+
+        // Node Info Panel (top-left)
+        if self.node_info_panel.visible {
+            let panel_verts = Self::generate_panel_vertices(
+                -0.98,  // x (left edge)
+                0.98 - panel_height, // y (top, going down)
+                panel_width,
+                panel_height,
+                [0.1, 0.1, 0.15, 0.85], // Dark blue-gray, semi-transparent
+            );
+            vertices.extend_from_slice(&panel_verts);
+        }
+
+        // Graph Stats Panel (below node info)
+        if self.graph_stats_panel.visible {
+            let y_offset = if self.node_info_panel.visible {
+                panel_height + padding
+            } else {
+                0.0
+            };
+            let panel_verts = Self::generate_panel_vertices(
+                -0.98,
+                0.98 - panel_height - y_offset,
+                panel_width,
+                panel_height,
+                [0.1, 0.15, 0.1, 0.85], // Dark green-gray, semi-transparent
+            );
+            vertices.extend_from_slice(&panel_verts);
+        }
+
+        // Search Panel (top-right)
+        if self.search_panel.visible {
+            let panel_verts = Self::generate_panel_vertices(
+                0.98 - panel_width, // x (right edge)
+                0.98 - panel_height,
+                panel_width,
+                panel_height,
+                [0.15, 0.1, 0.1, 0.85], // Dark red-gray, semi-transparent
+            );
+            vertices.extend_from_slice(&panel_verts);
+        }
+
+        // Control Panel (below search)
+        if self.control_panel.visible {
+            let y_offset = if self.search_panel.visible {
+                panel_height + padding
+            } else {
+                0.0
+            };
+            let panel_verts = Self::generate_panel_vertices(
+                0.98 - panel_width,
+                0.98 - panel_height - y_offset,
+                panel_width,
+                panel_height,
+                [0.12, 0.12, 0.12, 0.85], // Dark gray, semi-transparent
+            );
+            vertices.extend_from_slice(&panel_verts);
+        }
+
+        let vertex_count = vertices.len();
+
+        // Upload vertices to GPU buffer
+        if vertex_count > 0 {
+            queue.write_buffer(
+                &self.ui_vertex_buffer,
+                0,
+                bytemuck::cast_slice(&vertices),
+            );
+        }
 
         // Log the state for debugging
         if self.node_info_panel.visible && self.node_info_panel.node_info.is_some() {
@@ -671,6 +744,18 @@ impl InspectorUI {
                 self.search_panel.query,
                 self.search_panel.filtered_nodes.len()
             );
+        }
+
+        vertex_count
+    }
+
+    /// Render UI overlay (immutable, call after prepare)
+    pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, vertex_count: usize) {
+        // Draw panels if we have vertices
+        if vertex_count > 0 {
+            render_pass.set_pipeline(&self.ui_pipeline);
+            render_pass.set_vertex_buffer(0, self.ui_vertex_buffer.slice(..));
+            render_pass.draw(0..vertex_count as u32, 0..1);
         }
     }
 }
@@ -722,9 +807,14 @@ impl MemoryGraphInspector {
         self.ui.update(&graph, selected_nodes, fps);
     }
 
-    /// Render the inspector
-    pub fn render(&self, render_pass: &mut wgpu::RenderPass) {
-        self.ui.render(render_pass);
+    /// Prepare inspector for rendering (call before render_pass)
+    pub fn prepare(&self, queue: &wgpu::Queue) -> usize {
+        self.ui.prepare(queue)
+    }
+
+    /// Render the inspector (immutable, call after prepare)
+    pub fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, vertex_count: usize) {
+        self.ui.render(render_pass, vertex_count);
         // Graph rendering is handled by GraphRenderer
     }
 }
