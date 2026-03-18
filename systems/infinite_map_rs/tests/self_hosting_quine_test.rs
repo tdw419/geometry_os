@@ -40,8 +40,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Requires GPU"]
+    #[ignore = "Requires GPU - may timeout or hang"]
     fn test_self_hosting_quine_gpu() {
+        use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig, vm_state};
+        use infinite_map_rs::glyph_assembler::GlyphAssembler;
+
         let (device, queue) = match create_test_device() {
             Some(d) => d,
             None => {
@@ -49,9 +52,6 @@ mod tests {
                 return;
             }
         };
-
-        use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig, vm_state};
-        use infinite_map_rs::glyph_assembler::GlyphAssembler;
 
         println!("\n╔════════════════════════════════════════════════════════╗");
         println!("║     SELF-HOSTING QUINE TEST - REAL GPU HARDWARE        ║");
@@ -84,13 +84,17 @@ mod tests {
         println!("Binary: {} words ({} bytes)", assembled.words.len(), assembled.words.len() * 4);
         println!("Entry point (:main) = 0x{:04X}", main_addr);
 
-        // Create shadow RAM
-        let shadow_ram = Arc::new(Mutex::new(vec![0u8; 64 * 1024 * 1024])); // 64MB
+        // Create shadow RAM (64MB)
+        let shadow_ram = Arc::new(Mutex::new(vec![0u8; 64 * 1024 * 1024]));
 
         // Create scheduler
-        let mut scheduler = GlyphVmScheduler::new(device.clone(), queue.clone(), shadow_ram.clone());
+        let mut scheduler = GlyphVmScheduler::new(
+            device.clone(),
+            queue.clone(),
+            shadow_ram.clone(),
+        );
 
-        // Create RAM texture (4096x4096 = 16M pixels = 64MB)
+        // Create RAM texture (4096x4096 = 64MB)
         let ram_texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Self-Hosting Quine RAM"),
             size: wgpu::Extent3d {
@@ -108,7 +112,7 @@ mod tests {
             view_formats: &[],
         }));
 
-        scheduler.set_ram_texture(ram_texture.clone());
+        scheduler.set_ram_texture(ram_texture);
 
         println!("\nMemory Layout:");
         println!("  0x0000-0x{:04X}: Binary ({} words)", assembled.words.len(), assembled.words.len());
@@ -117,15 +121,19 @@ mod tests {
         println!("  0x6000-0x7FFF: Label table");
 
         // Write binary to memory at 0x0000
+        println!("\nWriting binary to GPU memory...");
         for (i, word) in assembled.words.iter().enumerate() {
             scheduler.poke_substrate_single(i as u32, *word);
         }
 
         // Write source to memory at 0x1000
+        println!("Writing source to GPU memory...");
         for (i, b) in source_text.bytes().enumerate() {
             scheduler.poke_substrate_single(0x1000 + i as u32, b as u32);
         }
         scheduler.poke_substrate_single(0x1000 + source_text.len() as u32, 0); // null terminator
+
+        println!("Memory initialization complete.");
 
         // Clear output buffer at 0x5000
         for i in 0..assembled.words.len() + 100 {
@@ -143,26 +151,39 @@ mod tests {
             initial_regs: [0; 128],
         };
         scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
-        println!("VM 0 spawned");
+        println!("VM 0 spawned successfully");
 
-        // Execute frames
-        println!("\nExecuting (max 10000 frames)...");
-        let max_frames = 10000;
+        // Verify VM state
+        scheduler.sync_gpu_to_shadow();
+        let initial_state = scheduler.get_vm_state(0);
+        println!("Initial VM state: {:?}", initial_state);
+
+        // Verify binary was written
+        println!("\nVerifying binary at 0x0000:");
+        for i in 0..5 {
+            let val = scheduler.peek_substrate_single(i as u32);
+            println!("  0x{:04X}: {:08X} (expected {:08X})", i, val, assembled.words[i]);
+        }
+
+        // Execute frames with early termination if halted
+        println!("\nExecuting (max 1000 frames)...");
+        let max_frames = 1000;
         let mut halted = false;
 
         for frame in 0..max_frames {
             scheduler.execute_frame();
-            scheduler.sync_gpu_to_shadow();
 
-            // Check VM state
-            let state = scheduler.get_vm_state(0).unwrap_or(vm_state::INACTIVE);
-            if state == vm_state::HALTED {
-                println!("\nVM halted at frame {}", frame);
-                halted = true;
-                break;
-            }
+            if frame % 100 == 0 {
+                // Sync and check state every 100 frames
+                scheduler.sync_gpu_to_shadow();
+                let state = scheduler.get_vm_state(0).unwrap_or(vm_state::INACTIVE);
 
-            if frame % 500 == 0 {
+                if state == vm_state::HALTED {
+                    println!("\nVM halted at frame {}", frame);
+                    halted = true;
+                    break;
+                }
+
                 print!(".");
                 std::io::Write::flush(&mut std::io::stdout()).ok();
             }
@@ -171,6 +192,13 @@ mod tests {
         if !halted {
             println!("\nVM did not halt within {} frames", max_frames);
         }
+
+        // Check final VM state
+        let final_state = scheduler.get_vm_state(0);
+        println!("Final VM state: {:?}", final_state);
+
+        // Final sync
+        scheduler.sync_gpu_to_shadow();
 
         // Read output buffer at 0x5000
         println!("\nReading output buffer...");
