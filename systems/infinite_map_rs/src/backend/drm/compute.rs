@@ -5,12 +5,48 @@
 
 use anyhow::{anyhow, Context, Result};
 use std::os::unix::io::AsRawFd;
+use naga::front::spv;
+use naga::valid::{Capabilities, ValidationFlags, Validator};
 
 use super::buffer_binding::{BindingPoint, BufferBindingInterface, DispatchBindings};
 use super::device::DrmDevice;
 use super::intel::command_buffer::IntelCommandBuffer;
 use super::memory::{GpuMemoryAllocator, MappedBuffer};
 use gbm::BufferObject;
+
+/// Extract workgroup size from SPIR-V binary by parsing entry point metadata.
+///
+/// This uses naga to parse the SPIR-V and extract the LocalSize execution mode
+/// from the compute shader entry point.
+///
+/// # Arguments
+///
+/// * `spirv_binary` - SPIR-V binary as u32 words
+///
+/// # Returns
+///
+/// * `Ok((x, y, z))` - Workgroup size dimensions
+/// * `Err` - If parsing fails or no workgroup size found
+fn extract_workgroup_size_from_spirv(spirv_binary: &[u32]) -> Result<(u32, u32, u32)> {
+    let spirv_iter = spirv_binary.iter().copied();
+    let mut frontend = spv::Frontend::new(spirv_iter, &spv::Options::default());
+    let module = frontend.parse().map_err(|e| anyhow!("SPIR-V parse error: {:?}", e))?;
+
+    // Validate the module
+    let mut validator = Validator::new(ValidationFlags::all(), Capabilities::all());
+    let _info = validator.validate(&module).map_err(|e| anyhow!("SPIR-V validation error: {:?}", e))?;
+
+    // Find compute entry point and extract workgroup size
+    for entry_point in &module.entry_points {
+        if matches!(entry_point.stage, naga::ShaderStage::Compute) {
+            let wg = &entry_point.workgroup_size;
+            return Ok((wg[0], wg[1], wg[2]));
+        }
+    }
+
+    // Default workgroup size if no entry point found
+    Ok((1, 1, 1))
+}
 
 /// Direct SPIR-V compute executor via DRM.
 pub struct GlyphCompute {
@@ -170,7 +206,11 @@ impl GlyphCompute {
         let spirv_gpu_addr = 0x100000000u64; // Placeholder: SPIR-V shader address
         let input_gpu_addr = 0x200000000u64; // Placeholder: Input buffer address
         let output_gpu_addr = 0x300000000u64; // Placeholder: Output buffer address
-        let workgroup_size = (64, 1, 1); // TODO: Extract from SPIR-V metadata
+        let workgroup_size = extract_workgroup_size_from_spirv(spirv_binary)
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to extract workgroup size from SPIR-V, using default (64,1,1): {}", e);
+                (64, 1, 1)
+            });
 
         let batch_commands = self.create_intel_command_buffer(
             spirv_gpu_addr,
