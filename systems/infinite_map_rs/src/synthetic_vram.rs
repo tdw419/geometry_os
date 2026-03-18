@@ -201,6 +201,10 @@ impl SyntheticVram {
     }
 
     fn mem_write(&mut self, addr: u32, val: u32) {
+        if addr == 0x7000 {
+            eprintln!("MEM_WRITE 0x7000: '{}' ({:02X})", 
+                if val >= 32 && val < 127 { (val as u8) as char } else { '?' }, val);
+        }
         let (x, y) = self.d2xy(addr);
         let n = self.grid_size();
         let idx = (y * n + x) as usize;
@@ -428,6 +432,13 @@ impl SyntheticVram {
                 }
                 let val = self.mem_read(addr);
                 self.vms[vm_idx].regs[p2 as usize] = val;
+                if addr >= 0x1000 && addr < 0x5000 {
+                    if val != 0 {
+                        eprintln!("CHAR: '{}' ({:02X}) from {:04X} at PC={:04X}", 
+                            if val >= 32 && val < 127 { (val as u8) as char } else { '?' },
+                            val, addr, pc);
+                    }
+                }
                 self.vms[vm_idx].pc += 1;
             },
 

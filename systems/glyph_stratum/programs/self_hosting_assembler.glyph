@@ -32,6 +32,7 @@ JMP :start
 :p1_chi
     LDI r8, 32; BEQ r7, r8, :p1_vws
     LDI r8, 10; BEQ r7, r8, :p1_vws
+    LDI r8, 13; BEQ r7, r8, :p1_vws
     LOAD r7, [r0]
     LDI r8, 76; BEQ r7, r8, :p1_ldc // 'L'
     LDI r8, 66; BEQ r7, r8, :p1_brc // 'B'
@@ -47,6 +48,7 @@ JMP :start
 :p1_skip_line
     LOAD r7, [r0]; BEQ r7, r127, :p1_done
     LDI r8, 10; BEQ r7, r8, :p1_vws
+    LDI r8, 13; BEQ r7, r8, :p1_vws
     ADD r0, r0, r13; JMP :p1_skip_line
 :p1_vws; ADD r0, r0, r13; JMP :p1_loop
 
@@ -62,8 +64,11 @@ JMP :start
 
 :p2_loop
     LOAD r7, [r0]; BEQ r7, r127, :eof
+    // Debug: Store current char to a known location
+    LDI r14, 0x7000; STORE r14, r7
     LDI r8, 32; BEQ r7, r8, :p2_vws
     LDI r8, 10; BEQ r7, r8, :p2_vws
+    LDI r8, 13; BEQ r7, r8, :p2_vws
     
     JMP :p2_tbl
 
@@ -75,11 +80,10 @@ JMP :start
     LDI r14, 0xFF; BEQ r4, r14, :p2_skip_line
     LDI r14, 13; BEQ r4, r14, :p2_emit_halt
     LDI r14, 12; BEQ r4, r14, :p2_emit_ret
-    LDI r14, 1;  BEQ r4, r14, :p2_emit_ldi
+    LDI r14, 1; BEQ r4, r14, :p2_emit_ldi
     LDI r14, 10; BEQ r4, r14, :p2_emit_brc
     LDI r14, 9;  BEQ r4, r14, :p2_emit_jmp
     LDI r14, 11; BEQ r4, r14, :p2_emit_jmp
-    
     LDI r14, :skip_alpha; CALL r14; LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r10, r7
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r11, r7
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r12, r7
@@ -90,7 +94,9 @@ JMP :start
     LDI r14, 6; BEQ r4, r14, :p2_3op
     LDI r14, 7; BEQ r4, r14, :p2_3op
     LDI r14, 8; BEQ r4, r14, :p2_3op
+    LDI r14, 128; BEQ r4, r14, :p2_3op
     LDI r14, 129; BEQ r4, r14, :p2_3op
+    LDI r14, 130; BEQ r4, r14, :p2_3op
     LDI r14, 131; BEQ r4, r14, :p2_3op
     LDI r14, 132; BEQ r4, r14, :p2_3op
     JMP :p2_emit_gen
@@ -141,6 +147,7 @@ JMP :start
 :p2_skip_line
     LOAD r7, [r0]; BEQ r7, r127, :eof
     LDI r8, 10; BEQ r7, r8, :p2_vws
+    LDI r8, 13; BEQ r7, r8, :p2_vws
     ADD r0, r0, r13; JMP :p2_skip_line
 
 :p2_vws; ADD r0, r0, r13; JMP :p2_loop
@@ -265,6 +272,7 @@ JMP :start
     LOAD r7, [r0]
     LDI r8, 32; BEQ r7, r8, :sw_adv
     LDI r8, 10; BEQ r7, r8, :sw_adv
+    LDI r8, 13; BEQ r7, r8, :sw_adv
     LDI r8, 44; BEQ r7, r8, :sw_adv
     LDI r8, 91; BEQ r7, r8, :sw_adv
     LDI r8, 93; BEQ r7, r8, :sw_adv
