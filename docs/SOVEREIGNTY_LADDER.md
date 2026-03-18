@@ -62,11 +62,13 @@ As of March 2026, the foundational ladder is **COMPLETE**. The CPU is no longer 
 **The Proof**: `test_text_buffer_vm` — a 58-word program handles INSERT, DELETE, CURSOR_LEFT, and CURSOR_RIGHT. Inserts "Hello", deletes 'o', navigates with cursor keys, inserts '!' at position — all verified with memory assertions.
 **Significance**: The data model for an on-screen text editor exists as a self-contained GPU program. Keyboard events flow through the same mailbox protocol as the compositor's mouse events.
 
-### 10b. Keyboard→Mailbox Bridge (🔜 Next)
+### 10b. Keyboard→Mailbox Bridge (✅ Complete)
 **The Objective**: The compositor routes keyboard scancodes to the focused window's mailbox.
+**The Proof**: `test_keyboard_mailbox_bridge` — compositor (VM 0) reads keyboard state from 0x200, checks window focus flag at 0x105, routes scancode to mailbox at 0x300. Child (VM 1) polls mailbox in spin loop until key arrives, stores to buffer at 0x400. Interleaved scheduling ensures both VMs make progress concurrently.
+**Significance**: The keyboard input pipeline is complete. Keyboard events flow through the same mailbox protocol as mouse events. The polling pattern (spin until non-zero) handles the inherent race condition between concurrent VMs.
 **Builds on**: Window Manager (Milestone 9) + Text Buffer VM (10a).
 
-### 10c. Live Render (🔜)
+### 10c. Live Render (🔜 Next)
 **The Objective**: Text buffer VM uses DRAW (opcode 215) to render buffer contents to screen coordinates.
 
 ### 10d. Compile-on-Save (🔜)
