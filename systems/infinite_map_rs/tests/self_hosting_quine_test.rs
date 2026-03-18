@@ -200,15 +200,28 @@ mod tests {
         for frame in 0..max_frames {
             scheduler.execute_frame();
 
+            // IMMEDIATELY check after first frame to see when corruption happens
+            if frame == 0 {
+                scheduler.sync_gpu_to_shadow();
+                let post_frame0_0 = scheduler.peek_substrate_single(0);
+                let post_frame0_1 = scheduler.peek_substrate_single(1);
+                let post_frame0_state = scheduler.get_vm_state(1);
+                let post_frame0_pc = scheduler.get_vm_pc(1);
+                println!("\n  IMMEDIATELY after frame 0:");
+                println!("    instr[0] = {:08X} (expected 00000001)", post_frame0_0);
+                println!("    instr[1] = {:08X} (expected 00001000)", post_frame0_1);
+                println!("    VM state: {:?}", post_frame0_state);
+                println!("    VM PC: {:?}", post_frame0_pc);
+            }
+
             if frame % 100 == 0 {
                 // Sync and check state every 100 frames
                 scheduler.sync_gpu_to_shadow();
                 let state = scheduler.get_vm_state(1).unwrap_or(vm_state::INACTIVE);
 
-
                 if frame % 100 == 0 {
                     // Check PC and first few memory locations
-                    let pc = scheduler.peek_substrate_single(0x7000); // VM state area
+                    let pc = scheduler.get_vm_pc(1).unwrap_or(0xFFFF);
                     let first_instr = scheduler.peek_substrate_single(0);
                     println!("\n  Frame {}: PC={:04X}, state={}, instr[0]={:08X}",
                         frame, pc, state, first_instr);
