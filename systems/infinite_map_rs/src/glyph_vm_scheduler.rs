@@ -36,6 +36,10 @@ pub struct VmConfig {
     pub base_addr: u32,
     /// Spatial MMU: End Hilbert index (0 = unrestricted)
     pub bound_addr: u32,
+    /// EAP Coordinate (Hilbert-encoded mission context)
+    pub eap_coord: u32,
+    /// VM Generation (0 = genesis)
+    pub generation: u32,
     /// Initial register values (128 registers)
     pub initial_regs: [u32; 128],
 }
@@ -47,6 +51,8 @@ impl Default for VmConfig {
             parent_id: 0xFF,
             base_addr: 0,
             bound_addr: 0,
+            eap_coord: 0,
+            generation: 0,
             initial_regs: [0; 128],
         }
     }
@@ -71,6 +77,20 @@ pub struct SchedulerStats {
     pub active_count: u32,
     pub frame: u32,
     pub spawn_count: u32,
+}
+
+/// Immutable ledger entry for action logging
+#[repr(C)]
+#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct LedgerEntry {
+    pub timestamp: u32,
+    pub eap_coord: u32,
+    pub action_type: u32,
+    pub agent_id: u32,
+    pub context_ptr: u32,
+    pub result: u32,
+    pub cycles_used: u32,
+    pub checksum: u32,
 }
 
 /// Glyph VM Scheduler - manages multi-VM execution on GPU
@@ -104,6 +124,12 @@ pub struct GlyphVmScheduler {
 
     /// Debug buffer for shader tracing
     debug_buffer: wgpu::Buffer,
+
+    /// Ledger buffer for immutable action logging
+    ledger_buffer: wgpu::Buffer,
+
+    /// Ledger head counter (atomic index)
+    ledger_head_buffer: wgpu::Buffer,
 
     /// RAM texture view (.rts.png program memory)
     ram_view: Option<wgpu::TextureView>,
@@ -221,6 +247,28 @@ impl GlyphVmScheduler {
                     },
                     count: None,
                 },
+                // Binding 7: Ledger Buffer
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // Binding 8: Ledger Head
+                wgpu::BindGroupLayoutEntry {
+                    binding: 8,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
         });
 
@@ -303,10 +351,31 @@ impl GlyphVmScheduler {
             mapped_at_creation: false,
         });
 
-        // Create readback buffer for stats + debug
+        // Create ledger buffer (1M entries * 32 bytes = 32MB)
+        let ledger_buffer_size = 1024 * 1024 * 32;
+        let ledger_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Glyph VM Ledger Buffer"),
+            size: ledger_buffer_size as u64,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // Create ledger head buffer (atomic index)
+        let ledger_head_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Glyph VM Ledger Head"),
+            size: 4,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // Create readback buffer for stats + debug + ledger_head
         let stats_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph VM Stats Readback Buffer"),
-            size: vm_buffer_size + scheduler_buffer_size + debug_buffer_size,
+            size: vm_buffer_size + scheduler_buffer_size + debug_buffer_size + 4,
             usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -323,6 +392,8 @@ impl GlyphVmScheduler {
             event_queue_buffer,
             stats_buffer,
             debug_buffer,
+            ledger_buffer,
+            ledger_head_buffer,
             ram_view: None,
             ram_texture: None,
             ram_staging_buffer: None,
@@ -629,6 +700,14 @@ impl GlyphVmScheduler {
                 wgpu::BindGroupEntry {
                     binding: 6,
                     resource: self.debug_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: self.ledger_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 8,
+                    resource: self.ledger_head_buffer.as_entire_binding(),
                 },
             ],
         });
@@ -1051,6 +1130,8 @@ mod tests {
             base_addr: 0,
             bound_addr: 0, // 0 = unrestricted
             initial_regs: [0; 128],
+            eap_coord: 0,
+            generation: 0,
         };
         assert_eq!(
             root_config.bound_addr, 0,
@@ -1064,6 +1145,8 @@ mod tests {
             base_addr: 0x1000,  // Start of child's region
             bound_addr: 0x1FFF, // End of child's region
             initial_regs: [0; 128],
+            eap_coord: 0,
+            generation: 0,
         };
         assert!(
             child_config.base_addr < child_config.bound_addr,
@@ -1094,6 +1177,8 @@ mod tests {
                 base_addr: if i == 0 { 0 } else { i * 0x1000 },
                 bound_addr: if i == 0 { 0 } else { (i + 1) * 0x1000 - 1 },
                 initial_regs: [0; 128],
+                eap_coord: 0,
+                generation: 0,
             })
             .collect();
 

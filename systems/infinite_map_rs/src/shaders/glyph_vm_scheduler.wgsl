@@ -96,7 +96,8 @@ struct VmState {
     regs: array<u32, 128>,
     pc: u32, halted: u32, stratum: u32, cycles: u32, stack_ptr: u32,
     vm_id: u32, state: u32, parent_id: u32, entry_point: u32,
-    base_addr: u32, bound_addr: u32, attention_mask: u32,
+    base_addr: u32, bound_addr: u32, eap_coord: u32, generation: u32,
+    _padding: array<u32, 3>,
     stack: array<u32, 64>,
 }
 
@@ -117,9 +118,32 @@ struct SchedulerState {
 @group(0) @binding(5) var<storage, read> event_queue: array<vec4<u32>, 1024>;
 @group(0) @binding(6) var<storage, read_write> debug_buffer: array<u32, 1024>;
 
+struct LedgerEntry {
+    timestamp: u32,
+    eap_coord: u32,
+    action_type: u32,
+    agent_id: u32,
+    context_ptr: u32,
+    result: u32,
+    cycles_used: u32,
+    checksum: u32,
+}
+
+@group(0) @binding(7) var<storage, read_write> ledger: array<LedgerEntry>;
+@group(0) @binding(8) var<storage, read_write> ledger_head: atomic<u32>;
+
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+fn ledger_append(entry: LedgerEntry) -> u32 {
+    let index = atomicAdd(&ledger_head, 1u);
+    // Boundary check (1M entries)
+    if (index < 1048576u) {
+        ledger[index] = entry;
+    }
+    return index;
+}
 
 fn debug_log(vm_idx: u32, pc: u32, opcode: u32, stratum: u32, p1: u32, p2: u32) {
     if (vm_idx != 1u) { return; } // Only log VM 1

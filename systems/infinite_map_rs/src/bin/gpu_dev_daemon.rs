@@ -2439,6 +2439,8 @@ fn handle_raw_request<S: Read + Write>(
                             base_addr: 0,
                             bound_addr: 0,
                             initial_regs: regs,
+                            eap_coord: 0,
+                            generation: 0,
                         };
                         match s.spawn_vm(0, &config) {
                             Ok(_) => format!("Spawned VM at entry point 0x{:x}", ep),
