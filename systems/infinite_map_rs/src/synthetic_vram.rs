@@ -4618,11 +4618,24 @@ mod tests {
         let delete_off = pc;
         pc += 1;
 
+        // Dispatch: CURSOR_LEFT (type=3)
+        emit_ldi(&mut vram, &mut pc, 6, 3);
+        vram.poke(pc, glyph(10, 0, 3, 6));
+        pc += 1;
+        let cursor_left_off = pc;
+        pc += 1;
+
+        // Dispatch: CURSOR_RIGHT (type=4)
+        emit_ldi(&mut vram, &mut pc, 7, 4);
+        vram.poke(pc, glyph(10, 0, 3, 7));
+        pc += 1;
+        let cursor_right_off = pc;
+        pc += 1;
+
         // Unknown: clear and loop
-        emit_ldi(&mut vram, &mut pc, 6, 0);
-        vram.poke(pc, glyph(4, 0, 0, 6));
-        pc += 1; // STORE [r0], r6
-        let clear_jmp = pc;
+        emit_ldi(&mut vram, &mut pc, 8, 0);
+        vram.poke(pc, glyph(4, 0, 0, 8));
+        pc += 1; // STORE [r0], r8
         let jmp_back = event_loop as i32 - pc as i32 - 1;
         vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8));
         pc += 1;
@@ -4654,6 +4667,62 @@ mod tests {
         pc += 1; // STORE buffer_len to [r11]
         // Skip target (after deletion)
         vram.poke(delete_skip_off, (pc as i32 - delete_skip_off as i32 - 1) as u32);
+        // Clear and loop
+        vram.poke(pc, glyph(4, 0, 0, 127));
+        pc += 1; // STORE [r0], r127
+        let jmp_back = event_loop as i32 - pc as i32 - 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8));
+        pc += 1;
+
+        // CURSOR_LEFT handler
+        vram.poke(cursor_left_off, (pc as i32 - cursor_left_off as i32 - 1) as u32);
+        // r8 = cursor
+        vram.poke(pc, glyph(3, 0, 1, 8));
+        pc += 1;
+        vram.poke(pc, 0);
+        pc += 1;
+        // If cursor == 0, skip (guard)
+        vram.poke(pc, glyph(10, 0, 8, 127)); // BEQ r8, r127 (r127=0)
+        pc += 1;
+        let cursor_left_skip_off = pc;
+        pc += 1;
+        // cursor--
+        emit_ldi(&mut vram, &mut pc, 9, 1); // r9 = 1
+        vram.poke(pc, glyph(6, 9, 8, 8)); // SUB r8, r8, r9 (three-operand: dst=r8, src1=r8, src2=r9)
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 1, 8));
+        pc += 1; // STORE [r1], r8
+        // Skip target
+        vram.poke(cursor_left_skip_off, (pc as i32 - cursor_left_skip_off as i32 - 1) as u32);
+        // Clear and loop
+        vram.poke(pc, glyph(4, 0, 0, 127));
+        pc += 1; // STORE [r0], r127
+        let jmp_back = event_loop as i32 - pc as i32 - 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8));
+        pc += 1;
+
+        // CURSOR_RIGHT handler
+        vram.poke(cursor_right_off, (pc as i32 - cursor_right_off as i32 - 1) as u32);
+        // r8 = cursor
+        vram.poke(pc, glyph(3, 0, 1, 8));
+        pc += 1;
+        vram.poke(pc, 0);
+        pc += 1;
+        // r10 = buffer_len
+        vram.poke(pc, glyph(3, 0, 11, 10));
+        pc += 1; // LOAD r10 = buffer_len from [r11]
+        // If cursor == buffer_len, skip (at end)
+        vram.poke(pc, glyph(10, 0, 8, 10)); // BEQ r8, r10
+        pc += 1;
+        let cursor_right_skip_off = pc;
+        pc += 1;
+        // cursor++
+        vram.poke(pc, glyph(5, 0, 13, 8)); // ADD r8, r8, r13
+        pc += 1;
+        vram.poke(pc, glyph(4, 0, 1, 8));
+        pc += 1; // STORE [r1], r8
+        // Skip target
+        vram.poke(cursor_right_skip_off, (pc as i32 - cursor_right_skip_off as i32 - 1) as u32);
         // Clear and loop
         vram.poke(pc, glyph(4, 0, 0, 127));
         pc += 1; // STORE [r0], r127
@@ -4823,7 +4892,140 @@ mod tests {
         assert_eq!(vm.regs[8], 0, "cursor should remain 0 (guarded)");
         assert_eq!(vram.peek(0x101), 0, "buffer_len should remain 0 (guarded)");
 
+        // Clear mailbox
+        vram.poke(0x200, 0);
+
+        // === SETUP FOR CURSOR TESTS: Insert "ABC" ===
+        println!("\n[STEP 6] Setup: Insert 'ABC' for cursor tests");
+        vram.poke(0x101, 0); // Reset buffer_len
+        vram.poke(0x200, 1);
+        vram.poke(0x201, 65); // 'A'
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
+        vram.poke(0x200, 0);
+
+        vram.poke(0x200, 1);
+        vram.poke(0x201, 66); // 'B'
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
+        vram.poke(0x200, 0);
+
+        vram.poke(0x200, 1);
+        vram.poke(0x201, 67); // 'C'
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
+        vram.poke(0x200, 0);
+
+        let vm = vram.vm_state(0).unwrap();
+        println!("  cursor = {}", vm.regs[8]);
+        println!("  buffer_len = {}", vram.peek(0x101));
+        assert_eq!(vm.regs[8], 3, "cursor should be at 3 after inserting ABC");
+        assert_eq!(vram.peek(0x101), 3, "buffer_len should be 3");
+
+        // === SEND CURSOR_LEFT (type=3) ===
+        println!("\n[STEP 7] Send CURSOR_LEFT");
+        vram.poke(0x200, 3); // event type = CURSOR_LEFT
+
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
+
+        let vm = vram.vm_state(0).unwrap();
+        println!("  cursor = {}", vm.regs[8]);
+        assert_eq!(vm.regs[8], 2, "cursor should be at 2 after CURSOR_LEFT");
+
+        // Clear mailbox
+        vram.poke(0x200, 0);
+
+        // === SEND CURSOR_LEFT AGAIN ===
+        println!("\n[STEP 8] Send CURSOR_LEFT again");
+        vram.poke(0x200, 3); // event type = CURSOR_LEFT
+
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
+
+        let vm = vram.vm_state(0).unwrap();
+        println!("  cursor = {}", vm.regs[8]);
+        assert_eq!(vm.regs[8], 1, "cursor should be at 1 after second CURSOR_LEFT");
+
+        // Clear mailbox
+        vram.poke(0x200, 0);
+
+        // === SEND CURSOR_RIGHT (type=4) ===
+        println!("\n[STEP 9] Send CURSOR_RIGHT");
+        vram.poke(0x200, 4); // event type = CURSOR_RIGHT
+
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
+
+        let vm = vram.vm_state(0).unwrap();
+        println!("  cursor = {}", vm.regs[8]);
+        assert_eq!(vm.regs[8], 2, "cursor should be at 2 after CURSOR_RIGHT");
+
+        // Clear mailbox
+        vram.poke(0x200, 0);
+
+        // === SEND CURSOR_LEFT UNTIL 0 (guard test) ===
+        println!("\n[STEP 10] Send CURSOR_LEFT until cursor=0");
+        for _ in 0..10 {
+            vram.poke(0x200, 3);
+            for _ in 0..5 {
+                vram.execute_frame_with_limit(50);
+            }
+            vram.poke(0x200, 0);
+        }
+
+        let vm = vram.vm_state(0).unwrap();
+        println!("  cursor = {}", vm.regs[8]);
+        assert_eq!(vm.regs[8], 0, "cursor should be at 0 (guarded)");
+
+        // === SEND CURSOR_LEFT AT 0 (should stay at 0) ===
+        println!("\n[STEP 11] Send CURSOR_LEFT at cursor=0 (should be guarded)");
+        vram.poke(0x200, 3); // event type = CURSOR_LEFT
+
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
+
+        let vm = vram.vm_state(0).unwrap();
+        println!("  cursor = {}", vm.regs[8]);
+        assert_eq!(vm.regs[8], 0, "cursor should remain 0 (guarded)");
+
+        // Clear mailbox
+        vram.poke(0x200, 0);
+
+        // === SEND CURSOR_RIGHT UNTIL END (guard test) ===
+        println!("\n[STEP 12] Send CURSOR_RIGHT until cursor at buffer_len");
+        for _ in 0..10 {
+            vram.poke(0x200, 4);
+            for _ in 0..5 {
+                vram.execute_frame_with_limit(50);
+            }
+            vram.poke(0x200, 0);
+        }
+
+        let vm = vram.vm_state(0).unwrap();
+        println!("  cursor = {}", vm.regs[8]);
+        assert_eq!(vm.regs[8], 3, "cursor should be at buffer_len (3)");
+
+        // === SEND CURSOR_RIGHT AT END (should stay at buffer_len) ===
+        println!("\n[STEP 13] Send CURSOR_RIGHT at end (should be guarded)");
+        vram.poke(0x200, 4); // event type = CURSOR_RIGHT
+
+        for _ in 0..5 {
+            vram.execute_frame_with_limit(50);
+        }
+
+        let vm = vram.vm_state(0).unwrap();
+        println!("  cursor = {}", vm.regs[8]);
+        assert_eq!(vm.regs[8], 3, "cursor should remain at buffer_len (guarded)");
+
         println!("\n{}", "=".repeat(60));
-        println!("SUCCESS: Editor can insert and delete characters!");
+        println!("SUCCESS: Editor can insert, delete, and move cursor!");
     }
 }
