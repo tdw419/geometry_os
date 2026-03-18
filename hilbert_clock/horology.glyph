@@ -1,0 +1,11 @@
+# Horology Clock (Native) - 12-hour dial with hands
+# Draw clock face center
+DRAW 0x74, 2048, 2048
+# Draw clock hands (minute/second)
+LDI r1, 0x1C
+DRAW r1, 2048, 2100
+# Load program counter
+LDI r0, 0
+LDI r2, 10
+ADD r3, r0, r2
+JMP 4

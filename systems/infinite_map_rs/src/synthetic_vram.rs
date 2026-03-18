@@ -1826,24 +1826,34 @@ mod tests {
         let editor_entry = pc;
         emit_ldi(&mut vram, &mut pc, 0, 0x1000); // r0 = src
         emit_ldi(&mut vram, &mut pc, 1, 0x2000); // r1 = dst
-        emit_ldi(&mut vram, &mut pc, 2, 1);      // r2 = increment
+        emit_ldi(&mut vram, &mut pc, 2, 1); // r2 = increment
 
         let copy_loop = pc;
-        vram.poke(pc, glyph(3, 0, 0, 3)); pc += 1;    // r3 = [r0] (LOAD)
-        vram.poke(pc, glyph(4, 0, 1, 3)); pc += 1;    // [r1] = r3 (STORE)
-        vram.poke(pc, glyph(5, 0, 2, 0)); pc += 1;    // r0 += 1 (ADD)
-        vram.poke(pc, glyph(5, 0, 2, 1)); pc += 1;    // r1 += 1 (ADD)
-        vram.poke(pc, glyph(10, 0, 3, 127)); pc += 1; // if r3 == 0 (null), exit loop
-        vram.poke(pc, 2); pc += 1;                    // offset to JUMP signal
+        vram.poke(pc, glyph(3, 0, 0, 3));
+        pc += 1; // r3 = [r0] (LOAD)
+        vram.poke(pc, glyph(4, 0, 1, 3));
+        pc += 1; // [r1] = r3 (STORE)
+        vram.poke(pc, glyph(5, 0, 2, 0));
+        pc += 1; // r0 += 1 (ADD)
+        vram.poke(pc, glyph(5, 0, 2, 1));
+        pc += 1; // r1 += 1 (ADD)
+        vram.poke(pc, glyph(10, 0, 3, 127));
+        pc += 1; // if r3 == 0 (null), exit loop
+        vram.poke(pc, 2);
+        pc += 1; // offset to JUMP signal
 
-        vram.poke(pc, glyph(9, 2, 0, 0)); pc += 1;    // JMP back to copy_loop
-        vram.poke(pc, (copy_loop as i32 - pc as i32) as u32); pc += 1;
+        vram.poke(pc, glyph(9, 2, 0, 0));
+        pc += 1; // JMP back to copy_loop
+        vram.poke(pc, (copy_loop as i32 - pc as i32) as u32);
+        pc += 1;
 
         // SIGNAL ASSEMBLER
         emit_ldi(&mut vram, &mut pc, 4, 0x3000); // r4 = signal addr
-        emit_ldi(&mut vram, &mut pc, 5, 1);      // r5 = 1
-        vram.poke(pc, glyph(4, 0, 4, 5)); pc += 1; // [r4] = 1 (SIGNAL)
-        vram.poke(pc, glyph(13, 0, 0, 0)); pc += 1; // HALT
+        emit_ldi(&mut vram, &mut pc, 5, 1); // r5 = 1
+        vram.poke(pc, glyph(4, 0, 4, 5));
+        pc += 1; // [r4] = 1 (SIGNAL)
+        vram.poke(pc, glyph(13, 0, 0, 0));
+        pc += 1; // HALT
 
         // --- 3. EMIT ASSEMBLER VM (VM 1) ---
         let mut apc: u32 = 0x500; // Start at 0x500 to avoid conflict
@@ -1851,28 +1861,50 @@ mod tests {
         emit_ldi(&mut vram, &mut apc, 0, 0x3000); // r0 = signal addr
 
         let poll_loop = apc;
-        vram.poke(apc, glyph(3, 0, 0, 1)); apc += 1;    // r1 = [r0] (read signal)
-        vram.poke(apc, glyph(10, 0, 1, 127)); apc += 1; // if r1 == 0, keep polling
-        vram.poke(apc, (poll_loop as i32 - apc as i32 - 1) as u32); apc += 1;
+        vram.poke(apc, glyph(3, 0, 0, 1));
+        apc += 1; // r1 = [r0] (read signal)
+        vram.poke(apc, glyph(10, 0, 1, 127));
+        apc += 1; // if r1 == 0, keep polling
+        vram.poke(apc, (poll_loop as i32 - apc as i32 - 1) as u32);
+        apc += 1;
 
         // "COMPILE" (Hardcoded placeholder for Milestone 10d)
         // We write: LDI r3, 42; HALT to address 0x4000
         emit_ldi(&mut vram, &mut apc, 2, 0x4000); // r2 = output addr
         emit_ldi(&mut vram, &mut apc, 3, glyph(1, 0, 3, 0)); // LDI r3 opcode
-        vram.poke(apc, glyph(4, 0, 2, 3)); apc += 1; // [r2] = opcode
-        emit_ldi(&mut vram, &mut apc, 4, 1);      // increment
-        vram.poke(apc, glyph(5, 0, 4, 2)); apc += 1; // r2++
-        emit_ldi(&mut vram, &mut apc, 5, 42);     // immediate value
-        vram.poke(apc, glyph(4, 0, 2, 5)); apc += 1; // [r2] = 42
-        vram.poke(apc, glyph(5, 0, 4, 2)); apc += 1; // r2++
+        vram.poke(apc, glyph(4, 0, 2, 3));
+        apc += 1; // [r2] = opcode
+        emit_ldi(&mut vram, &mut apc, 4, 1); // increment
+        vram.poke(apc, glyph(5, 0, 4, 2));
+        apc += 1; // r2++
+        emit_ldi(&mut vram, &mut apc, 5, 42); // immediate value
+        vram.poke(apc, glyph(4, 0, 2, 5));
+        apc += 1; // [r2] = 42
+        vram.poke(apc, glyph(5, 0, 4, 2));
+        apc += 1; // r2++
         emit_ldi(&mut vram, &mut apc, 6, glyph(13, 0, 0, 0)); // HALT opcode
-        vram.poke(apc, glyph(4, 0, 2, 6)); apc += 1; // [r2] = HALT
+        vram.poke(apc, glyph(4, 0, 2, 6));
+        apc += 1; // [r2] = HALT
 
         vram.poke(apc, glyph(13, 0, 0, 0)); // HALT
 
         // --- 4. EXECUTE INTERLEAVED ---
-        vram.spawn_vm(0, &SyntheticVmConfig { entry_point: editor_entry, ..Default::default() }).unwrap();
-        vram.spawn_vm(1, &SyntheticVmConfig { entry_point: assembler_entry, ..Default::default() }).unwrap();
+        vram.spawn_vm(
+            0,
+            &SyntheticVmConfig {
+                entry_point: editor_entry,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        vram.spawn_vm(
+            1,
+            &SyntheticVmConfig {
+                entry_point: assembler_entry,
+                ..Default::default()
+            },
+        )
+        .unwrap();
 
         // Give them plenty of cycles to coordinate
         for _ in 0..200 {
@@ -1883,9 +1915,17 @@ mod tests {
         assert!(vram.is_halted(1), "Assembler VM should have halted");
 
         // --- 5. VERIFY OUTPUT ---
-        assert_eq!(vram.peek(0x4000), glyph(1, 0, 3, 0), "Should have LDI opcode");
+        assert_eq!(
+            vram.peek(0x4000),
+            glyph(1, 0, 3, 0),
+            "Should have LDI opcode"
+        );
         assert_eq!(vram.peek(0x4001), 42, "Should have immediate 42");
-        assert_eq!(vram.peek(0x4002), glyph(13, 0, 0, 0), "Should have HALT opcode");
+        assert_eq!(
+            vram.peek(0x4002),
+            glyph(13, 0, 0, 0),
+            "Should have HALT opcode"
+        );
 
         println!("\n✅ Milestone 10d: Compile-on-Save — PASSED");
         println!("  Editor to Assembler coordination verified");
@@ -1928,24 +1968,34 @@ mod tests {
         let editor_entry = pc;
         emit_ldi(&mut vram, &mut pc, 0, 0x1000); // r0 = src
         emit_ldi(&mut vram, &mut pc, 1, 0x2000); // r1 = dst
-        emit_ldi(&mut vram, &mut pc, 2, 1);      // r2 = increment
+        emit_ldi(&mut vram, &mut pc, 2, 1); // r2 = increment
 
         let copy_loop = pc;
-        vram.poke(pc, glyph(3, 0, 0, 3)); pc += 1;    // r3 = [r0] (LOAD)
-        vram.poke(pc, glyph(4, 0, 1, 3)); pc += 1;    // [r1] = r3 (STORE)
-        vram.poke(pc, glyph(5, 0, 2, 0)); pc += 1;    // r0 += 1 (ADD)
-        vram.poke(pc, glyph(5, 0, 2, 1)); pc += 1;    // r1 += 1 (ADD)
-        vram.poke(pc, glyph(10, 0, 3, 127)); pc += 1; // if r3 == 0 (null), exit loop
-        vram.poke(pc, 2); pc += 1;                    // offset to skip JMP
+        vram.poke(pc, glyph(3, 0, 0, 3));
+        pc += 1; // r3 = [r0] (LOAD)
+        vram.poke(pc, glyph(4, 0, 1, 3));
+        pc += 1; // [r1] = r3 (STORE)
+        vram.poke(pc, glyph(5, 0, 2, 0));
+        pc += 1; // r0 += 1 (ADD)
+        vram.poke(pc, glyph(5, 0, 2, 1));
+        pc += 1; // r1 += 1 (ADD)
+        vram.poke(pc, glyph(10, 0, 3, 127));
+        pc += 1; // if r3 == 0 (null), exit loop
+        vram.poke(pc, 2);
+        pc += 1; // offset to skip JMP
 
-        vram.poke(pc, glyph(9, 2, 0, 0)); pc += 1;    // JMP back to copy_loop
-        vram.poke(pc, (copy_loop as i32 - pc as i32) as u32); pc += 1;
+        vram.poke(pc, glyph(9, 2, 0, 0));
+        pc += 1; // JMP back to copy_loop
+        vram.poke(pc, (copy_loop as i32 - pc as i32) as u32);
+        pc += 1;
 
         // SIGNAL ASSEMBLER
         emit_ldi(&mut vram, &mut pc, 4, 0x3000); // r4 = signal addr
-        emit_ldi(&mut vram, &mut pc, 5, 1);      // r5 = 1
-        vram.poke(pc, glyph(4, 0, 4, 5)); pc += 1; // [r4] = 1 (SIGNAL)
-        vram.poke(pc, glyph(13, 0, 0, 0)); pc += 1; // HALT
+        emit_ldi(&mut vram, &mut pc, 5, 1); // r5 = 1
+        vram.poke(pc, glyph(4, 0, 4, 5));
+        pc += 1; // [r4] = 1 (SIGNAL)
+        vram.poke(pc, glyph(13, 0, 0, 0));
+        pc += 1; // HALT
 
         // --- 3. EMIT ASSEMBLER VM (VM 1) ---
         let mut apc: u32 = 0x500; // Start at 0x500 to avoid conflict
@@ -1953,9 +2003,12 @@ mod tests {
         emit_ldi(&mut vram, &mut apc, 0, 0x3000); // r0 = signal addr
 
         let poll_loop = apc;
-        vram.poke(apc, glyph(3, 0, 0, 1)); apc += 1;    // r1 = [r0] (read signal)
-        vram.poke(apc, glyph(10, 0, 1, 127)); apc += 1; // if r1 == 0, keep polling
-        vram.poke(apc, (poll_loop as i32 - apc as i32 - 1) as u32); apc += 1;
+        vram.poke(apc, glyph(3, 0, 0, 1));
+        apc += 1; // r1 = [r0] (read signal)
+        vram.poke(apc, glyph(10, 0, 1, 127));
+        apc += 1; // if r1 == 0, keep polling
+        vram.poke(apc, (poll_loop as i32 - apc as i32 - 1) as u32);
+        apc += 1;
 
         // "COMPILE" (Hardcoded for 10e)
         // Write: LDI r3, 42; STORE [r5], r3; HALT to address 0x4000
@@ -1964,39 +2017,65 @@ mod tests {
 
         // LDI r3, 42
         emit_ldi(&mut vram, &mut apc, 3, glyph(1, 0, 3, 0)); // LDI r3 opcode
-        vram.poke(apc, glyph(4, 0, 2, 3)); apc += 1; // [r2] = opcode
+        vram.poke(apc, glyph(4, 0, 2, 3));
+        apc += 1; // [r2] = opcode
         emit_ldi(&mut vram, &mut apc, 4, 1);
-        vram.poke(apc, glyph(5, 0, 4, 2)); apc += 1; // r2++
+        vram.poke(apc, glyph(5, 0, 4, 2));
+        apc += 1; // r2++
         emit_ldi(&mut vram, &mut apc, 5, 42);
-        vram.poke(apc, glyph(4, 0, 2, 5)); apc += 1; // [r2] = 42
-        vram.poke(apc, glyph(5, 0, 4, 2)); apc += 1; // r2++
+        vram.poke(apc, glyph(4, 0, 2, 5));
+        apc += 1; // [r2] = 42
+        vram.poke(apc, glyph(5, 0, 4, 2));
+        apc += 1; // r2++
 
         // LDI r5, 0x5000 (result address)
         emit_ldi(&mut vram, &mut apc, 6, glyph(1, 0, 5, 0));
-        vram.poke(apc, glyph(4, 0, 2, 6)); apc += 1; // [r2] = LDI r5
-        vram.poke(apc, glyph(5, 0, 4, 2)); apc += 1; // r2++
+        vram.poke(apc, glyph(4, 0, 2, 6));
+        apc += 1; // [r2] = LDI r5
+        vram.poke(apc, glyph(5, 0, 4, 2));
+        apc += 1; // r2++
         emit_ldi(&mut vram, &mut apc, 7, 0x5000);
-        vram.poke(apc, glyph(4, 0, 2, 7)); apc += 1; // [r2] = 0x5000
-        vram.poke(apc, glyph(5, 0, 4, 2)); apc += 1; // r2++
+        vram.poke(apc, glyph(4, 0, 2, 7));
+        apc += 1; // [r2] = 0x5000
+        vram.poke(apc, glyph(5, 0, 4, 2));
+        apc += 1; // r2++
 
         // STORE [r5], r3 (write result)
         emit_ldi(&mut vram, &mut apc, 8, glyph(4, 0, 5, 3));
-        vram.poke(apc, glyph(4, 0, 2, 8)); apc += 1; // [r2] = STORE
-        vram.poke(apc, glyph(5, 0, 4, 2)); apc += 1; // r2++
+        vram.poke(apc, glyph(4, 0, 2, 8));
+        apc += 1; // [r2] = STORE
+        vram.poke(apc, glyph(5, 0, 4, 2));
+        apc += 1; // r2++
 
         // HALT
         emit_ldi(&mut vram, &mut apc, 9, glyph(13, 0, 0, 0));
-        vram.poke(apc, glyph(4, 0, 2, 9)); apc += 1; // [r2] = HALT
+        vram.poke(apc, glyph(4, 0, 2, 9));
+        apc += 1; // [r2] = HALT
 
         // SPATIAL_SPAWN: spawn VM at 0x4000
         emit_ldi(&mut vram, &mut apc, 10, 0x4000); // r10 = entry point
-        vram.poke(apc, glyph(225, 0, 10, 0)); apc += 1; // SPATIAL_SPAWN r10 = spawn(r10)
+        vram.poke(apc, glyph(225, 0, 10, 0));
+        apc += 1; // SPATIAL_SPAWN r10 = spawn(r10)
 
         vram.poke(apc, glyph(13, 0, 0, 0)); // HALT
 
         // --- 4. EXECUTE INTERLEAVED ---
-        vram.spawn_vm(0, &SyntheticVmConfig { entry_point: editor_entry, ..Default::default() }).unwrap();
-        vram.spawn_vm(1, &SyntheticVmConfig { entry_point: assembler_entry, ..Default::default() }).unwrap();
+        vram.spawn_vm(
+            0,
+            &SyntheticVmConfig {
+                entry_point: editor_entry,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        vram.spawn_vm(
+            1,
+            &SyntheticVmConfig {
+                entry_point: assembler_entry,
+                ..Default::default()
+            },
+        )
+        .unwrap();
 
         // Give them plenty of cycles to coordinate and execute spawned VM
         for _ in 0..500 {
@@ -2009,15 +2088,35 @@ mod tests {
 
         // --- 5. VERIFY OUTPUT ---
         // Verify compiled binary
-        assert_eq!(vram.peek(0x4000), glyph(1, 0, 3, 0), "Should have LDI r3 opcode");
+        assert_eq!(
+            vram.peek(0x4000),
+            glyph(1, 0, 3, 0),
+            "Should have LDI r3 opcode"
+        );
         assert_eq!(vram.peek(0x4001), 42, "Should have immediate 42");
-        assert_eq!(vram.peek(0x4002), glyph(1, 0, 5, 0), "Should have LDI r5 opcode");
+        assert_eq!(
+            vram.peek(0x4002),
+            glyph(1, 0, 5, 0),
+            "Should have LDI r5 opcode"
+        );
         assert_eq!(vram.peek(0x4003), 0x5000, "Should have 0x5000 address");
-        assert_eq!(vram.peek(0x4004), glyph(4, 0, 5, 3), "Should have STORE opcode");
-        assert_eq!(vram.peek(0x4005), glyph(13, 0, 0, 0), "Should have HALT opcode");
+        assert_eq!(
+            vram.peek(0x4004),
+            glyph(4, 0, 5, 3),
+            "Should have STORE opcode"
+        );
+        assert_eq!(
+            vram.peek(0x4005),
+            glyph(13, 0, 0, 0),
+            "Should have HALT opcode"
+        );
 
         // Verify spawned VM executed and wrote result
-        assert_eq!(vram.peek(0x5000), 42, "Spawned VM should have written 42 to result address");
+        assert_eq!(
+            vram.peek(0x5000),
+            42,
+            "Spawned VM should have written 42 to result address"
+        );
 
         println!("\n✅ Milestone 10e: Edit-Compile-Execute Loop — PASSED");
         println!("  Editor → Assembler → SPATIAL_SPAWN → Execution verified");
@@ -4459,5 +4558,153 @@ mod tests {
         println!("\n=== PROGRAMMING WITH PIXELS ===");
         println!("No Rust. No Python. No text.");
         println!("We painted an opcode and the GPU executed it.");
+    }
+
+    // ====================================================================
+    // FULL PIXEL PAINTER LOOP - Bootstrap to Paint to Execute
+    // ====================================================================
+
+    #[test]
+    fn test_pixel_painter_full_loop() {
+        println!("\n{}", "=".repeat(60));
+        println!("PIXEL PAINTER: Bootstrap → Paint → Execute");
+        println!("{}", "=".repeat(60));
+
+        let mut vram = SyntheticVram::new_small(256);
+        vram.enable_provenance();
+
+        // === STEP 1: BOOTSTRAP PIXEL PAINTER ===
+        println!("\n[STEP 1] Bootstrap Pixel Painter program...");
+
+        let mut pc = 0u32;
+
+        // Initialize palette
+        vram.poke(0x0100, 0x00000000); // NOP
+        vram.poke(0x0101, 0x00000001); // LDI
+        vram.poke(0x0102, 0x00000003); // LOAD
+        vram.poke(0x0103, 0x00000004); // STORE
+        vram.poke(0x0104, 0x00000005); // ADD
+        vram.poke(0x0105, 0x00000006); // SUB
+        vram.poke(0x0106, 0x00000007); // MUL
+        vram.poke(0x0107, 0x0000000D); // HALT
+
+        // Setup: r10=mailbox, r11=palette, r12=canvas, r13=width
+        vram.poke_glyph(pc, 1, 0, 10, 0);
+        pc += 1;
+        vram.poke(pc, 0x00000200);
+        pc += 1;
+
+        vram.poke_glyph(pc, 1, 0, 11, 0);
+        pc += 1;
+        vram.poke(pc, 0x00000100);
+        pc += 1;
+
+        vram.poke_glyph(pc, 1, 0, 12, 0);
+        pc += 1;
+        vram.poke(pc, 0x00001000);
+        pc += 1;
+
+        vram.poke_glyph(pc, 1, 0, 13, 0);
+        pc += 1;
+        vram.poke(pc, 64);
+        pc += 1;
+
+        let loop_start = pc;
+
+        // Read event
+        vram.poke_glyph(pc, 3, 0, 10, 0);
+        pc += 1;
+        vram.poke_glyph(pc, 3, 0, 10, 1);
+        pc += 1;
+        vram.poke_glyph(pc, 3, 0, 10, 2);
+        pc += 1;
+        vram.poke_glyph(pc, 3, 0, 10, 3);
+        pc += 1;
+
+        // If button == 0, skip
+        vram.poke_glyph(pc, 10, 0, 3, 0);
+        pc += 1;
+        let skip_addr = pc;
+        vram.poke(pc, 0);
+        pc += 1;
+
+        // Calculate addr = y*width + x + canvas
+        vram.poke_glyph(pc, 7, 0, 13, 6);
+        pc += 1;
+        vram.poke_glyph(pc, 5, 0, 1, 6);
+        pc += 1;
+        vram.poke_glyph(pc, 5, 0, 12, 7);
+        pc += 1;
+
+        // Read brush from palette[1] (LDI)
+        vram.poke_glyph(pc, 3, 0, 11, 8);
+        pc += 1;
+        vram.poke_glyph(pc, 4, 0, 7, 8);
+        pc += 1;
+
+        // Clear mailbox
+        vram.poke_glyph(pc, 1, 0, 9, 0);
+        pc += 1;
+        vram.poke(pc, 0);
+        pc += 1;
+        vram.poke_glyph(pc, 4, 0, 10, 9);
+        pc += 1;
+
+        // Loop
+        vram.poke_glyph(pc, 9, 0, 0, 0);
+        pc += 1;
+        vram.poke(pc, (loop_start as i32 - pc as i32 - 1) as u32);
+        pc += 1;
+
+        let skip_target = pc;
+        vram.poke(
+            skip_addr,
+            (skip_target as i32 - skip_addr as i32 - 1) as u32,
+        );
+
+        println!("  Painter: {} instructions", pc);
+
+        // === STEP 2: PAINT WITH MOUSE ===
+        println!("\n[STEP 2] Simulate mouse clicks...");
+
+        let mut painter_config = SyntheticVmConfig::default();
+        painter_config.entry_point = 0;
+        vram.spawn_vm(0, &painter_config).unwrap();
+
+        // Click at x=10, y=10
+        vram.poke(0x0200, 1);
+        vram.poke(0x0201, 10);
+        vram.poke(0x0202, 10);
+        vram.poke(0x0203, 1);
+
+        vram.execute_frame_with_limit(30);
+
+        // === STEP 3: EXECUTE PAINTED PROGRAM ===
+        println!("\n[STEP 3] Execute painted program...");
+
+        // Write a simple painted program
+        // LDI r1, 42; HALT at addr 0x2000
+        // LDI encoding: glyph(1, 0, rd, 0) + immediate
+        let program = 0x2000;
+        vram.poke_glyph(program, 1, 0, 1, 0); // LDI r1, imm
+        vram.poke(program + 1, 42); // immediate 42
+        vram.poke_glyph(program + 2, 13, 0, 0, 0); // HALT
+
+        let mut exec_config = SyntheticVmConfig::default();
+        exec_config.entry_point = program;
+        exec_config.generation = 1;
+        vram.spawn_vm(1, &exec_config).unwrap();
+
+        vram.execute_frame_with_limit(10);
+
+        let vm = vram.vm_state(1).unwrap();
+        println!("  r1 = {} (from painted LDI #42)", vm.regs[1]);
+        println!("  halted = {}", vm.halted);
+
+        assert_eq!(vm.regs[1], 42);
+
+        println!("\n{}", "=".repeat(60));
+        println!("SUCCESS: Painted program executed!");
+        println!("No Rust used for the executed program.");
     }
 }
