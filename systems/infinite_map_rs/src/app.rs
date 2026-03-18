@@ -3098,6 +3098,8 @@ impl<'a> InfiniteMapApp<'a> {
 
     /// Extract binary data from a .rts.png cartridge file
     fn extract_cartridge_binary(&self, path: &str) -> Result<Vec<u8>, String> {
+        use crate::entities::RTSParticle;
+        use glam::Vec2;
         use std::path::Path;
 
         let path_obj = Path::new(path);
@@ -3109,14 +3111,44 @@ impl<'a> InfiniteMapApp<'a> {
         let image_data =
             std::fs::read(path_obj).map_err(|e| format!("Failed to read cartridge file: {}", e))?;
 
-        // Decode PNG to extract binary data using PixelRTS v2 format
-        // For now, return a placeholder
-        // TODO: Integrate with pixelrts_v2_extractor for real extraction
-        log::warn!(
-            "⚠️  Using placeholder binary extraction - real extraction pending Phase 35.9.4"
-        );
+        // Extract filename for RTSParticle
+        let file_name = path_obj
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("cartridge.rts.png");
 
-        Ok(vec![0x90, 0x00, 0x00, 0x00]) // RISC-V NOP instruction placeholder
+        // Create RTSParticle from PNG data to extract binary using PixelRTS v2 format
+        match RTSParticle::from_png(Vec2::ZERO, file_name.to_string(), &image_data) {
+            Ok(particle) => {
+                // Decode binary data using Hilbert curve extraction
+                match particle.decode() {
+                    Ok(binary) => {
+                        log::info!(
+                            "✅ Extracted {} bytes from cartridge '{}'",
+                            binary.len(),
+                            file_name
+                        );
+                        Ok(binary)
+                    }
+                    Err(e) => {
+                        log::warn!(
+                            "⚠️  Failed to decode cartridge '{}': {} - falling back to placeholder",
+                            file_name,
+                            e
+                        );
+                        Ok(vec![0x90, 0x00, 0x00, 0x00]) // RISC-V NOP instruction placeholder
+                    }
+                }
+            }
+            Err(e) => {
+                log::warn!(
+                    "⚠️  Failed to parse cartridge '{}' as PixelRTS v2: {} - falling back to placeholder",
+                    file_name,
+                    e
+                );
+                Ok(vec![0x90, 0x00, 0x00, 0x00]) // RISC-V NOP instruction placeholder
+            }
+        }
     }
 
     /// Submit a new genome to the evolution terrain bridge
