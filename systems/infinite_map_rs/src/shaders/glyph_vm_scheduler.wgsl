@@ -352,7 +352,7 @@ fn execute_instruction(vm_idx: u32) {
         }
         case 204u: { // DIV: mem[dst] = mem[src1] / mem[src2]
             let v1 = mem_read(u32(p1)); let v2 = mem_read(u32(p2));
-            if (v2 != 0u) { mem_write(u32(stratum), v1 / v2); }
+            if (v2 != 0u) { mem_write(vm_idx, u32(stratum), v1 / v2); }
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 205u: { // LOAD: mem[dst] = mem[src1]
