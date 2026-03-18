@@ -141,6 +141,10 @@ JMP :start
     STORE r1, r3; ADD r1, r1, r13; STORE r1, r11; ADD r1, r1, r13; JMP :p2_skip_line
 
 :p2_emit_brc
+    // Check for 'U' suffix (BLTU/BGEU): char at r0 is the 4th char of mnemonic
+    LOAD r14, [r0]; LDI r8, 85; BNE r14, r8, :p2_brc_nou
+    LDI r8, 2; ADD r5, r5, r8
+:p2_brc_nou
     LDI r14, :skip_alpha; CALL r14; LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r10, r7
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r11, r7
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r12, r7
@@ -226,6 +230,16 @@ JMP :start
     LDI r5, 69; STORE r4, r5; ADD r4, r4, r13 // E
     LDI r5, 10; STORE r4, r5; ADD r4, r4, r13
     LDI r5, 1;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 66; STORE r4, r5; ADD r4, r4, r13 // B
+    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
+    LDI r5, 84; STORE r4, r5; ADD r4, r4, r13 // T
+    LDI r5, 10; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 2;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 66; STORE r4, r5; ADD r4, r4, r13 // B
+    LDI r5, 71; STORE r4, r5; ADD r4, r4, r13 // G
+    LDI r5, 69; STORE r4, r5; ADD r4, r4, r13 // E
+    LDI r5, 10; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 3;  STORE r4, r5; ADD r4, r4, r13
     LDI r5, 74; STORE r4, r5; ADD r4, r4, r13 // J
     LDI r5, 77; STORE r4, r5; ADD r4, r4, r13 // M
     LDI r5, 80; STORE r4, r5; ADD r4, r4, r13 // P
