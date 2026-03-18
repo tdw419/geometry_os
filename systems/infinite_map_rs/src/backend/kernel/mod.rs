@@ -6,7 +6,6 @@
 use anyhow::{anyhow, Context, Result};
 use std::fs::{File, OpenOptions};
 use std::os::unix::io::{AsRawFd, RawFd};
-use std::ptr;
 
 /// IOCTL magic number
 const GEOMETRY_OS_IOC_MAGIC: u8 = b'G';

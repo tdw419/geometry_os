@@ -68,10 +68,13 @@ As of March 2026, the foundational ladder is **COMPLETE**. The CPU is no longer 
 **Significance**: The keyboard input pipeline is complete. Keyboard events flow through the same mailbox protocol as mouse events. The polling pattern (spin until non-zero) handles the inherent race condition between concurrent VMs.
 **Builds on**: Window Manager (Milestone 9) + Text Buffer VM (10a).
 
-### 10c. Live Render (🔜 Next)
+### 10c. Live Render (✅ Complete)
 **The Objective**: Text buffer VM uses DRAW (opcode 215) to render buffer contents to screen coordinates.
+**The Proof**: `test_live_render` — a 64x64 'H' glyph is manually created in the Atlas region (2048, 0). The VM uses `DRAW r1, r2, r3` (r1=glyph_id, r2=x, r3=y) to blit the 'H' from Atlas to the Screen region (0, 2048). Successful spatial blit verified by pixel assertions in the emulator's VRAM.
+**Significance**: The "The Screen is the Hard Drive" principle is mechanically realized. The VM can now move visual data across the unified spatial memory. This is the foundation for on-screen editing.
 
-### 10d. Compile-on-Save (🔜)
+### 10d. Compile-on-Save (🔜 Next)
+
 **The Objective**: Trigger key pipes text buffer to assembler VM's input region; assembler compiles it.
 **Builds on**: Full Assembler (Milestone 8) + Text Buffer VM (10a).
 

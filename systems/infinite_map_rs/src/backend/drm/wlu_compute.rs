@@ -27,7 +27,7 @@ use naga::{
     valid::{Capabilities, ValidationFlags, Validator},
 };
 
-use super::buffer_binding::{BindingPoint, BufferBindingInterface, BoundBuffer};
+use super::buffer_binding::{BufferBindingInterface, BoundBuffer};
 use super::memory::GpuMemoryAllocator;
 use super::device::DrmDevice;
 

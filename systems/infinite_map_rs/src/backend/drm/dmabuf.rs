@@ -4,7 +4,7 @@
 //! Zero-copy GPU→Display via DMA-BUF sharing.
 
 use super::vcc_compute::VccCompute;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use memmap2::Mmap;
 use sha2::{Digest, Sha256};
 use std::fs::File;

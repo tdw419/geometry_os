@@ -3,7 +3,6 @@
 
 use anyhow::{Context, Result};
 use ash::vk;
-use ash::Device;
 
 use super::device::VulkanDevice;
 

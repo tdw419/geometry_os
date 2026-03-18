@@ -4,7 +4,6 @@
 //! bypassing Vulkan/WebGPU for Phase 2 of the Glyph-to-Metal pipeline.
 
 use anyhow::{anyhow, Context, Result};
-use std::os::unix::io::AsRawFd;
 use naga::front::spv;
 use naga::valid::{Capabilities, ValidationFlags, Validator};
 

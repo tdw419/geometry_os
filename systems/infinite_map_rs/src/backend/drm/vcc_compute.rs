@@ -25,7 +25,6 @@ use naga::{
     valid::{Capabilities, ValidationFlags, Validator},
 };
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 use std::sync::Arc;
 use wgpu::*;
 
