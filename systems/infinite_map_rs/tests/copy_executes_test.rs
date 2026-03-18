@@ -145,7 +145,7 @@ fn copy_executes() {
         base_addr: 0,
         bound_addr: 0,
         initial_regs: [0; 128],
-    };
+    ..Default::default()};
     scheduler.spawn_vm(0, &config).expect("spawn gen 1");
     scheduler.execute_frame();
     scheduler.sync_gpu_to_shadow();
@@ -169,7 +169,7 @@ fn copy_executes() {
         base_addr: 0,   // unrestricted
         bound_addr: 0,
         initial_regs: [0; 128],
-    };
+    ..Default::default()};
     scheduler.spawn_vm(1, &config2).expect("spawn gen 2");
     scheduler.execute_frame();
     scheduler.sync_gpu_to_shadow();
@@ -259,7 +259,7 @@ fn multiple_copies_concurrent() {
             base_addr: 0,
             bound_addr: 0,
             initial_regs: [0; 128],
-        };
+        ..Default::default()};
         scheduler.spawn_vm(vm_slot, &config).expect("spawn");
         scheduler.execute_frame();
         scheduler.sync_gpu_to_shadow();

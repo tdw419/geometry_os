@@ -176,7 +176,7 @@ mod tests {
         let program = b.build();
         for &(addr, val) in &program { scheduler.poke_substrate_single(addr, val); }
 
-        let config = VmConfig { entry_point: 0, parent_id: 0xFF, base_addr: 0, bound_addr: 0, initial_regs: [0; 128] };
+        let config = VmConfig { entry_point: 0, parent_id: 0xFF, base_addr: 0, bound_addr: 0, initial_regs: [0; 128] , ..Default::default()};
         scheduler.spawn_vm(0, &config).unwrap();
         scheduler.execute_frame();
         scheduler.sync_gpu_to_shadow();

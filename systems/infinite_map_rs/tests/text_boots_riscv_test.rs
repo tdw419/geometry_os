@@ -574,7 +574,7 @@ HALT";
             base_addr: 0,
             bound_addr: 0,
             initial_regs: [0; 128],
-        };
+        ..Default::default()};
         scheduler.spawn_vm(0, &config).expect("spawn assembler");
         scheduler.execute_frame();
         scheduler.sync_gpu_to_shadow();
@@ -645,7 +645,7 @@ HALT";
             base_addr: 1,       // different from assembler
             bound_addr: 0,
             initial_regs: [0; 128],
-        };
+        ..Default::default()};
         scheduler.spawn_vm(1, &boot_config).expect("spawn bootloader");
         scheduler.execute_frame();
         scheduler.sync_gpu_to_shadow();

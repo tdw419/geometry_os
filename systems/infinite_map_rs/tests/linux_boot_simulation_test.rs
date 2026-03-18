@@ -190,7 +190,7 @@ mod tests {
             base_addr: 0,
             bound_addr: 0,
             initial_regs: [0; 128],
-        };
+        ..Default::default()};
         scheduler.spawn_vm(0, &config).expect("Failed to spawn glyph VM");
         println!("[Glyph VM] Executing bootloader...");
         scheduler.execute_frame();

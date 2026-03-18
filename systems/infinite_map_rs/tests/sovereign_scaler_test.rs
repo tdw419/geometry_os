@@ -171,7 +171,7 @@ fn test_sovereign_scaler_1k() {
         base_addr: 0,
         bound_addr: 0,
         initial_regs: [0u32; 128],
-    };
+    ..Default::default()};
     scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
 
     // Execute (multiple frames needed - MAX_CYCLES_PER_VM = 1024)
@@ -308,7 +308,7 @@ fn test_sovereign_scaler_64k() {
         base_addr: 0,
         bound_addr: 0,
         initial_regs: [0u32; 128],
-    };
+    ..Default::default()};
     scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
 
     println!("[SCALER] Executing copy of 65536 words (256KB)...");
@@ -425,7 +425,7 @@ fn test_sovereign_scaler_kernel_sized() {
         base_addr: 0,
         bound_addr: 0,
         initial_regs: [0u32; 128],
-    };
+    ..Default::default()};
     scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
 
     println!("[SCALER] Executing copy of 524288 words (2MB)...");

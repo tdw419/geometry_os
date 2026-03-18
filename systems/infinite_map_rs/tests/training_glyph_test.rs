@@ -114,7 +114,7 @@ fn training_glyph_basic() {
         base_addr: 0,
         bound_addr: 0,
         initial_regs: [0u32; 128],
-    };
+    ..Default::default()};
 
     scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
 
@@ -209,7 +209,7 @@ fn training_glyph_updates_memory() {
         base_addr: 0,
         bound_addr: 0,
         initial_regs: [0u32; 128],
-    };
+    ..Default::default()};
 
     scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
     scheduler.execute_frame();

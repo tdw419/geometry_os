@@ -109,7 +109,7 @@ fn self_modify_halt_to_nop() {
         base_addr: 0,
         bound_addr: 0,
         initial_regs: [0u32; 128],
-    }).expect("Failed to spawn VM");
+    ..Default::default()}).expect("Failed to spawn VM");
 
     scheduler.execute_frame();
     scheduler.sync_gpu_to_shadow();
@@ -254,7 +254,7 @@ fn self_modify_branch_target() {
         base_addr: 0,
         bound_addr: 0,
         initial_regs: [0u32; 128],
-    }).expect("Failed to spawn VM");
+    ..Default::default()}).expect("Failed to spawn VM");
 
     scheduler.execute_frame();
     scheduler.sync_gpu_to_shadow();
@@ -371,7 +371,7 @@ fn self_modify_write_new_instruction() {
         base_addr: 0,
         bound_addr: 0,
         initial_regs: [0u32; 128],
-    }).expect("Failed to spawn VM");
+    ..Default::default()}).expect("Failed to spawn VM");
 
     scheduler.execute_frame();
     scheduler.sync_gpu_to_shadow();

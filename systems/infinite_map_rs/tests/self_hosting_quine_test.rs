@@ -182,7 +182,7 @@ mod tests {
             base_addr: 0,
             bound_addr: 0,
             initial_regs: [0; 128],
-        };
+        ..Default::default()};
         scheduler.spawn_vm(1, &config).expect("Failed to spawn VM");
         println!("VM 1 spawned successfully");
 

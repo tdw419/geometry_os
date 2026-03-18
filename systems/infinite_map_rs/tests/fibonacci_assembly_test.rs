@@ -260,7 +260,7 @@ mod tests {
             base_addr: 0,
             bound_addr: 0,
             initial_regs: [0; 128],
-        };
+        ..Default::default()};
         scheduler.spawn_vm(1, &config).expect("Failed to spawn VM");
         println!("Executing assembler...");
         scheduler.execute_frame();
@@ -291,7 +291,7 @@ mod tests {
             base_addr: 1,
             bound_addr: 0,
             initial_regs: [1; 128],
-        };
+        ..Default::default()};
         scheduler.spawn_vm(2, &compiled_config).expect("Failed to spawn compiled VM");
         scheduler.execute_frame();
         scheduler.sync_gpu_to_shadow();

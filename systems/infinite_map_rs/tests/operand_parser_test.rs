@@ -222,7 +222,7 @@ mod tests {
             base_addr: 0,
             bound_addr: 0,
             initial_regs: [0; 128],
-        };
+        ..Default::default()};
         scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
         scheduler.execute_frame();
         scheduler.sync_gpu_to_shadow();
