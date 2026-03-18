@@ -2697,13 +2697,31 @@ mod tests {
                 output_stores += 1;
                 if entry.p1 == 1 { // p1_reg == 1 means STORE r1, rX (writing to output buffer)
                     r1_stores += 1;
-                    if r1_stores <= 20 {
-                        println!("    STORE r1, r{} at PC={:04X}", entry.p2, entry.pc);
+                    if r1_stores <= 25 {
+                        // Get the value being stored from the next trace entry's context
+                        // We need to look at the VM state at this point
+                        println!("    STORE r1, r{} at PC={:04X} (writing to output offset)", entry.p2, entry.pc);
                     }
                 }
             }
         }
         println!("    Total STOREs: {}, STOREs to r1: {}", output_stores, r1_stores);
+
+        // Debug: show what r10 and r11 are when first few LDI instructions are emitted
+        println!("\n  Looking for LDI emissions (STORE r1, r3 with r3 = 1 | (r10 << 16)):");
+        let mut ldi_count = 0;
+        for (i, entry) in trace.iter().enumerate() {
+            if entry.opcode == 4 && entry.p1 == 1 && entry.p2 == 3 {
+                // This is STORE r1, r3 - likely emitting an LDI instruction
+                ldi_count += 1;
+                if ldi_count <= 15 {
+                    // The value in r3 at this point would be 1 | (r10 << 16)
+                    // We can't see r10 directly, but we can see what was written to memory
+                    // The STORE writes to address in r1
+                    println!("    LDI emit #{} at PC={:04X}", ldi_count, entry.pc);
+                }
+            }
+        }
 
         // Debug: show output buffer as ASCII
         println!("\n  Output at 0x5000 (first 40 words as ASCII):");
