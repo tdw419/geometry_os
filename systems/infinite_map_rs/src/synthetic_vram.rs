@@ -1315,31 +1315,41 @@ mod tests {
         vram.poke(0x105, 1); // focus_flag = 1 (focused)
 
         // --- CHILD PROGRAM (Text Buffer at 400) ---
-        // Simplified: read mailbox, store to 0x400, halt
+        // Polls mailbox until key arrives, stores to buffer, halts
         let mut cp = 400;
-        let mut emit = |v: &mut SyntheticVram, p: &mut u32, g: u32| {
-            v.poke(*p, g);
+
+        let mut emit_ldi = |v: &mut SyntheticVram, p: &mut u32, reg: u8, val: u32| {
+            v.poke(*p, glyph(1, 0, reg, 0));
+            *p += 1;
+            v.poke(*p, val);
             *p += 1;
         };
 
-        // r0 = 0x300 (mailbox)
-        emit(&mut vram, &mut cp, glyph(1, 0, 0, 0));
-        vram.poke(cp, 0x300);
-        cp += 1;
+        // r0 = 0x300 (mailbox address)
+        emit_ldi(&mut vram, &mut cp, 0, 0x300);
 
-        // r1 = [r0] (read key)
-        emit(&mut vram, &mut cp, glyph(3, 0, 0, 1));
+        // r2 = 0x400 (buffer address)
+        emit_ldi(&mut vram, &mut cp, 2, 0x400);
 
-        // r0 = 0x400 (buffer)
-        emit(&mut vram, &mut cp, glyph(1, 0, 2, 0));
-        vram.poke(cp, 0x400);
-        cp += 1;
+        let poll_loop = cp;
 
-        // [r0] = r1 (store key)
-        emit(&mut vram, &mut cp, glyph(4, 0, 2, 1));
+        // r1 = [r0] (read mailbox)
+        vram.poke(cp, glyph(3, 0, 0, 1));
+        cp += 1; // LOAD r1, [r0]
+
+        // if r1 == 0, loop back to poll
+        vram.poke(cp, glyph(10, 0, 1, 127));
+        cp += 1; // BEQ r1, r127(=0)
+        vram.poke(cp, (poll_loop as i32 - cp as i32 - 1) as u32);
+        cp += 1; // offset to poll_loop
+
+        // [r2] = r1 (store key to buffer)
+        vram.poke(cp, glyph(4, 0, 2, 1));
+        cp += 1; // STORE [r2], r1
 
         // HALT
-        emit(&mut vram, &mut cp, glyph(13, 0, 0, 0));
+        vram.poke(cp, glyph(13, 0, 0, 0));
+        cp += 1;
 
         // --- COMPOSITOR PROGRAM (addr 0) ---
         let mut pc: u32 = 0;

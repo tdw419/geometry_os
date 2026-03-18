@@ -8,9 +8,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 use wgpu::{Device, Queue, Texture};
-use wgpu::util::DeviceExt;  // For create_buffer_init
-use serde::{Deserialize, Serialize};
+// For create_buffer_init
 use crate::hilbert::d2xy;
+use serde::{Deserialize, Serialize};
 
 /// Memory addresses for brain bridge communication
 pub mod addresses {
@@ -145,7 +145,9 @@ impl BrainBridge {
         }
 
         // Read HTTP request body from GPU memory
-        let request_body = self.read_gpu_bytes(addresses::HTTP_REQUEST_START, request_len).await?;
+        let request_body = self
+            .read_gpu_bytes(addresses::HTTP_REQUEST_START, request_len)
+            .await?;
 
         log::info!("🧠 Forwarding {} bytes to LM Studio", request_len);
 
@@ -156,7 +158,11 @@ impl BrainBridge {
         let response_bytes = response.as_bytes();
         let response_len = response_bytes.len().min(addresses::HTTP_RESPONSE_MAX);
 
-        self.write_gpu_bytes(addresses::HTTP_RESPONSE_START, &response_bytes[..response_len]).await?;
+        self.write_gpu_bytes(
+            addresses::HTTP_RESPONSE_START,
+            &response_bytes[..response_len],
+        )
+        .await?;
         self.write_gpu_u32(addresses::RESPONSE_READY, 1).await?;
         self.write_gpu_u32(addresses::CTRL_SEMAPHORE, 0).await?; // Clear request
 
@@ -167,7 +173,10 @@ impl BrainBridge {
     }
 
     /// Forward request to LM Studio and return response
-    async fn forward_to_lm_studio(&self, request_body: &[u8]) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    async fn forward_to_lm_studio(
+        &self,
+        request_body: &[u8],
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         // Parse the request body as JSON (glyph sends chat format)
         let request_text = String::from_utf8_lossy(request_body);
 
@@ -195,7 +204,8 @@ impl BrainBridge {
             serde_json::to_string(&chat)?
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(format!("{}/v1/chat/completions", self.config.lm_studio_url))
             .header("Content-Type", "application/json")
             .body(chat_request)
@@ -219,7 +229,10 @@ impl BrainBridge {
 
     /// Read a u32 from GPU texture at Hilbert address
     /// Each address is a word address (one pixel = one 32-bit value)
-    pub async fn read_gpu_u32(&self, addr: u32) -> Result<u32, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn read_gpu_u32(
+        &self,
+        addr: u32,
+    ) -> Result<u32, Box<dyn std::error::Error + Send + Sync>> {
         let (tx, ty) = d2xy(4096, addr as u64);
 
         let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -229,9 +242,11 @@ impl BrainBridge {
             mapped_at_creation: false,
         });
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("brain_bridge_read_u32"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("brain_bridge_read_u32"),
+            });
 
         encoder.copy_texture_to_buffer(
             wgpu::ImageCopyTexture {
@@ -248,14 +263,20 @@ impl BrainBridge {
                     rows_per_image: Some(1),
                 },
             },
-            wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
+            wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
         );
 
         self.queue.submit(Some(encoder.finish()));
 
         let slice = staging.slice(..);
         let (tx_chan, rx) = std::sync::mpsc::channel();
-        slice.map_async(wgpu::MapMode::Read, move |res| { tx_chan.send(res).ok(); });
+        slice.map_async(wgpu::MapMode::Read, move |res| {
+            tx_chan.send(res).ok();
+        });
         self.device.poll(wgpu::Maintain::Wait);
 
         if let Ok(Ok(())) = rx.recv() {
@@ -272,7 +293,11 @@ impl BrainBridge {
 
     /// Write a u32 to GPU texture at Hilbert address
     /// Each address is a word address (one pixel = one 32-bit value)
-    pub async fn write_gpu_u32(&self, addr: u32, value: u32) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn write_gpu_u32(
+        &self,
+        addr: u32,
+        value: u32,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let (tx, ty) = d2xy(4096, addr as u64);
         let bytes = value.to_le_bytes(); // RGBA: [R, G, B, A]
 
@@ -289,7 +314,11 @@ impl BrainBridge {
                 bytes_per_row: Some(4),
                 rows_per_image: Some(1),
             },
-            wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
+            wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
         );
 
         Ok(())
@@ -297,7 +326,11 @@ impl BrainBridge {
 
     /// Read multiple 32-bit words from GPU texture starting at Hilbert address
     /// Returns bytes (4 bytes per word)
-    pub async fn read_gpu_bytes(&self, start_addr: u32, len: usize) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn read_gpu_bytes(
+        &self,
+        start_addr: u32,
+        len: usize,
+    ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
         // len is in bytes, but we read whole words (4 bytes each)
         let num_words = (len + 3) / 4; // Round up to nearest word
         let mut result = Vec::with_capacity(num_words * 4);
@@ -313,9 +346,11 @@ impl BrainBridge {
                 mapped_at_creation: false,
             });
 
-            let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("brain_bridge_read"),
-            });
+            let mut encoder = self
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("brain_bridge_read"),
+                });
 
             encoder.copy_texture_to_buffer(
                 wgpu::ImageCopyTexture {
@@ -332,14 +367,20 @@ impl BrainBridge {
                         rows_per_image: Some(1),
                     },
                 },
-                wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
+                wgpu::Extent3d {
+                    width: 1,
+                    height: 1,
+                    depth_or_array_layers: 1,
+                },
             );
 
             self.queue.submit(Some(encoder.finish()));
 
             let slice = staging.slice(..);
             let (tx_chan, rx) = std::sync::mpsc::channel();
-            slice.map_async(wgpu::MapMode::Read, move |res| { tx_chan.send(res).ok(); });
+            slice.map_async(wgpu::MapMode::Read, move |res| {
+                tx_chan.send(res).ok();
+            });
             self.device.poll(wgpu::Maintain::Wait);
 
             if let Ok(Ok(())) = rx.recv() {
@@ -358,7 +399,11 @@ impl BrainBridge {
 
     /// Write bytes to GPU texture starting at Hilbert address
     /// Bytes are packed into 32-bit words (4 bytes per pixel)
-    pub async fn write_gpu_bytes(&self, start_addr: u32, data: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn write_gpu_bytes(
+        &self,
+        start_addr: u32,
+        data: &[u8],
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // Pad data to multiple of 4 bytes
         let padded_len = (data.len() + 3) & !3;
         let mut padded = data.to_vec();
@@ -382,7 +427,11 @@ impl BrainBridge {
                     bytes_per_row: Some(4),
                     rows_per_image: Some(1),
                 },
-                wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
+                wgpu::Extent3d {
+                    width: 1,
+                    height: 1,
+                    depth_or_array_layers: 1,
+                },
             );
         }
 
@@ -391,7 +440,8 @@ impl BrainBridge {
 
     /// Test connection to LM Studio
     pub async fn test_connection(&self) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        let response = self.client
+        let response = self
+            .client
             .get(format!("{}/v1/models", self.config.lm_studio_url))
             .send()
             .await?;

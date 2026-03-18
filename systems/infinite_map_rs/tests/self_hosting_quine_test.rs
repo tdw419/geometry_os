@@ -122,22 +122,27 @@ mod tests {
         println!("  0x5000-0x5FFF: Output buffer");
         println!("  0x6000-0x7FFF: Label table");
 
-        // Write binary to memory at 0x0000 (BATCH WRITE for efficiency)
+        // Write binary to memory at 0x0000 using SINGLE WRITES (like working test)
+        // Do NOT call flush_writes() - the working test doesn't use it
         println!("\nWriting binary to GPU memory ({} words)...", assembled.words.len());
-        scheduler.poke_substrate_batch(0, &assembled.words);
+        for (i, word) in assembled.words.iter().enumerate() {
+            scheduler.poke_substrate_single(i as u32, *word);
+        }
 
-        // Write source to memory at 0x1000 (BATCH WRITE for efficiency)
+        // Write source to memory at 0x1000 using SINGLE WRITES
         println!("Writing source to GPU memory ({} bytes)...", source_text.len());
-        let source_words: Vec<u32> = source_text.bytes().map(|b| b as u32).collect();
-        scheduler.poke_substrate_batch(0x1000, &source_words);
+        for (i, byte) in source_text.bytes().enumerate() {
+            scheduler.poke_substrate_single(0x1000 + i as u32, byte as u32);
+        }
         scheduler.poke_substrate_single(0x1000 + source_text.len() as u32, 0); // null terminator
 
         println!("Memory initialization complete.");
 
-        // Clear output buffer at 0x5000 (BATCH WRITE for efficiency)
+        // Clear output buffer at 0x5000 using SINGLE WRITES
         println!("Clearing output buffer...");
-        let zeros: Vec<u32> = vec![0; assembled.words.len() + 100];
-        scheduler.poke_substrate_batch(0x5000, &zeros);
+        for i in 0..(assembled.words.len() + 100) {
+            scheduler.poke_substrate_single(0x5000 + i as u32, 0);
+        }
 
         // Verify shadow RAM has correct data before execution
         println!("\nVerifying shadow RAM before execution:");
@@ -145,9 +150,19 @@ mod tests {
         println!("  instr[1] = {:08X} (expected {:08X})", scheduler.peek_substrate_single(1), assembled.words[1]);
         println!("  source[0x1000] = {:02X} '{}' ", scheduler.peek_substrate_single(0x1000), scheduler.peek_substrate_single(0x1000) as u8 as char);
 
-        // NOTE: Do NOT call flush_writes() - it doesn't work correctly.
-        // execute_frame() will implicitly submit the queued write_texture operations.
-        // The working self_compile_execute test doesn't use flush_writes.
+        // CRITICAL: Verify GPU texture has correct data by syncing and reading
+        println!("\nVerifying GPU texture (not just shadow RAM):");
+        scheduler.sync_gpu_to_shadow();
+        let gpu_instr_0 = scheduler.peek_substrate_single(0);
+        let gpu_instr_1 = scheduler.peek_substrate_single(1);
+        println!("  GPU instr[0] = {:08X} (expected {:08X})", gpu_instr_0, assembled.words[0]);
+        println!("  GPU instr[1] = {:08X} (expected {:08X})", gpu_instr_1, assembled.words[1]);
+
+        if gpu_instr_0 != assembled.words[0] {
+            println!("\n  ⚠️  GPU TEXTURE DOES NOT HAVE CORRECT DATA!");
+            println!("  This indicates write_texture operations are not working.");
+            panic!("GPU texture verification failed before execution");
+        }
 
         println!("\nSpawning VM at entry point 0x{:04X}...", main_addr);
 
@@ -161,54 +176,6 @@ mod tests {
         };
         scheduler.spawn_vm(1, &config).expect("Failed to spawn VM");
         println!("VM 1 spawned successfully");
-
-        // CRITICAL DEBUG: Check GPU texture contents right after spawn_vm()
-        // spawn_vm() calls queue.submit([]) which should flush write_texture operations
-        println!("\n=== GPU TEXTURE VERIFICATION (after spawn_vm) ===");
-        scheduler.sync_gpu_to_shadow();
-        let gpu_instr_0 = scheduler.peek_substrate_single(0);
-        let gpu_instr_1 = scheduler.peek_substrate_single(1);
-        let gpu_source_0 = scheduler.peek_substrate_single(0x1000);
-        println!("  GPU instr[0] = {:08X} (expected {:08X})", gpu_instr_0, assembled.words[0]);
-        println!("  GPU instr[1] = {:08X} (expected {:08X})", gpu_instr_1, assembled.words[1]);
-        println!("  GPU source[0x1000] = {:02X} '{}' (expected 2F '/')",
-            gpu_source_0, gpu_source_0 as u8 as char);
-
-        if gpu_instr_0 == 0xFFFFFFFF {
-            println!("\n  ⚠️  GPU texture is UNINITIALIZED after spawn_vm()!");
-            println!("  This means write_texture operations were NOT submitted.");
-        } else if gpu_instr_0 == assembled.words[0] {
-            println!("\n  ✓ GPU texture has correct data after spawn_vm()!");
-        }
-
-        // Restore shadow RAM from assembled data (since sync_gpu_to_shadow may have corrupted it)
-        for (i, word) in assembled.words.iter().enumerate() {
-            let mut shadow = shadow_ram.lock().unwrap();
-            let offset = i * 4;
-            shadow[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
-        }
-
-        // CRITICAL: Verify GPU texture state right before execute_frame
-        // This tells us if the texture is corrupted BY execute_frame or before it
-        println!("\n=== PRE-EXECUTE FRAME VERIFICATION ===");
-        scheduler.sync_gpu_to_shadow();
-        let pre_exec_0 = scheduler.peek_substrate_single(0);
-        let pre_exec_1 = scheduler.peek_substrate_single(1);
-        println!("  PRE-execute instr[0] = {:08X} (expected {:08X})", pre_exec_0, assembled.words[0]);
-        println!("  PRE-execute instr[1] = {:08X} (expected {:08X})", pre_exec_1, assembled.words[1]);
-
-        if pre_exec_0 != assembled.words[0] {
-            println!("\n  ⚠️  TEXTURE CORRUPTED BEFORE execute_frame!");
-            println!("  This indicates a synchronization issue.");
-            panic!("GPU texture corrupted before execution");
-        }
-
-        // Restore shadow RAM again after sync
-        for (i, word) in assembled.words.iter().enumerate() {
-            let mut shadow = shadow_ram.lock().unwrap();
-            let offset = i * 4;
-            shadow[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
-        }
 
         // Execute frames with early termination if halted
         println!("\nExecuting (max 1000 frames)...");
