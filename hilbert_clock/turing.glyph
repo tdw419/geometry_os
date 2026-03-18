@@ -1,0 +1,8 @@
+# Self-Modifying Turing Machine (Pixels as Program)
+
+LDI r0, 0          ; PC=0
+HILBERT_D2XY r1, r0 ; map to Hilbert coords
+DRAW 0x69, r1, r2 ; draw 'i' at that pixel
+ADD r1, 0x400      ; advance PC
+HALT               ; program done
+# Output: "i" rendered on screen
