@@ -1,0 +1,119 @@
+# Pattern Recognition Validation Team
+# Create comprehensive validation tests proving the Pattern Recognition Renderer works correctly
+
+team:
+  name: pattern-validation-team
+  description: |
+    Creates validation tests that prove the Pattern Recognition Renderer correctly detects
+    and renders ASCII patterns using LLM cross-validation and real manager integration.
+
+  project_root: /home/jericho/zion/projects/ascii_interface/ascii_interface
+
+  agents:
+    - name: fixture-engineer
+      role: Creates test fixtures with known patterns
+      focus:
+        - Define sample ASCII templates with documented expected patterns
+        - Create fixtures for buttons, containers, status indicators, tables
+        - Include complex multi-pattern templates
+      files:
+        - tests/validation/fixtures/sample-templates.ts
+
+    - name: cross-validation-engineer
+      role: Implements LLM cross-validation test utilities
+      focus:
+        - Create validateTemplate function comparing parser to expected patterns
+        - Implement pattern counting and type matching
+        - Generate human-readable pattern descriptions
+      files:
+        - tests/validation/llm-cross-validate.ts
+        - tests/validation/llm-cross-validate.test.ts
+
+    - name: integration-engineer
+      role: Creates real manager integration tests
+      focus:
+        - Test pattern detection against live manager server
+        - Verify navigation button consistency across views
+        - Test status indicator detection in dashboard
+      files:
+        - tests/validation/manager-integration.test.ts
+
+    - name: fidelity-engineer
+      role: Creates round-trip fidelity tests
+      focus:
+        - Verify exact pattern counts
+        - Test button label and text preservation
+        - Ensure no spurious detections
+      files:
+        - tests/validation/round-trip.test.ts
+
+    - name: runner-engineer
+      role: Creates validation runner and documentation
+      focus:
+        - Create run-validation.ts script
+        - Add README documentation
+        - Create LLM analysis prompt template
+      files:
+        - tests/validation/run-validation.ts
+        - tests/validation/README.md
+        - tests/validation/llm-analysis-prompt.md
+
+  tasks:
+    - id: task-1
+      title: Sample Templates Fixture
+      assignee: fixture-engineer
+      dependencies: []
+      description: |
+        Create sample ASCII templates with documented expected patterns.
+        Include: simple-buttons, status-indicators, container, table, complex-dashboard.
+
+    - id: task-2
+      title: LLM Cross-Validation Utility
+      assignee: cross-validation-engineer
+      dependencies: [task-1]
+      description: |
+        Create validateTemplate() function that compares parser output to expected patterns.
+        Implement match scoring and mismatch reporting.
+
+    - id: task-3
+      title: LLM Cross-Validation Tests
+      assignee: cross-validation-engineer
+      dependencies: [task-2]
+      description: |
+        Create 8+ tests that validate each sample template.
+        Test pattern counting, label matching, status state verification.
+
+    - id: task-4
+      title: Manager Integration Tests
+      assignee: integration-engineer
+      dependencies: []
+      description: |
+        Create tests that start the manager server and validate pattern detection
+        against real templates (projects view, dashboard view).
+
+    - id: task-5
+      title: Round-Trip Fidelity Tests
+      assignee: fidelity-engineer
+      dependencies: []
+      description: |
+        Create 12+ tests verifying pattern detection accuracy.
+        Test exact counts, no spurious detections, consistent repeated parsing.
+
+    - id: task-6
+      title: Validation Runner
+      assignee: runner-engineer
+      dependencies: [task-3, task-4, task-5]
+      description: |
+        Create run-validation.ts script that runs all validations and produces summary.
+        Add README documentation and LLM prompt template.
+
+  success_criteria:
+    - All validation tests pass (25+ tests)
+    - LLM cross-validation shows 100% match on simple templates
+    - Manager integration tests work with running server
+    - Round-trip fidelity tests show consistent pattern detection
+    - Validation runner produces clear summary report
+
+  reference_docs:
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/docs/plans/2026-03-18-validation-tests.md
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/src/renderer/patterns/README.md
