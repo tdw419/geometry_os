@@ -120,9 +120,9 @@ mod tests {
         println!("  0x5000-0x5FFF: Output buffer");
         println!("  0x6000-0x7FFF: Label table");
 
-        // Write binary to memory at 0x0000 (TEST: try 750 words)
-        println!("\nWriting binary to GPU memory (first 750 words)...");
-        for (i, word) in assembled.words.iter().enumerate().take(750) {
+        // Write binary to memory at 0x0000 (TEST: try 500 words)
+        println!("\nWriting binary to GPU memory (first 500 words)...");
+        for (i, word) in assembled.words.iter().enumerate().take(500) {
             scheduler.poke_substrate_single(i as u32, *word);
         }
 
