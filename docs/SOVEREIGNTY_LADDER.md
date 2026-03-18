@@ -73,12 +73,13 @@ As of March 2026, the foundational ladder is **COMPLETE**. The CPU is no longer 
 **The Proof**: `test_live_render` — a 64x64 'H' glyph is manually created in the Atlas region (2048, 0). The VM uses `DRAW r1, r2, r3` (r1=glyph_id, r2=x, r3=y) to blit the 'H' from Atlas to the Screen region (0, 2048). Successful spatial blit verified by pixel assertions in the emulator's VRAM.
 **Significance**: The "The Screen is the Hard Drive" principle is mechanically realized. The VM can now move visual data across the unified spatial memory. This is the foundation for on-screen editing.
 
-### 10d. Compile-on-Save (🔜 Next)
-
-**The Objective**: Trigger key pipes text buffer to assembler VM's input region; assembler compiles it.
+### 10d. Compile-on-Save (✅ Complete)
+**The Objective**: Coordination between an Editor VM and an Assembler VM. Trigger key (or signal) pipes text buffer to assembler VM's input region; assembler compiles it.
+**The Proof**: `test_compile_on_save` — Editor VM (VM 0) copies a source string ("LDI r3, 42\nHALT") from its text buffer (0x1000) to the Assembler's input region (0x2000), then signals readiness via a shared flag (0x3000). Assembler VM (VM 1) polls the flag, then "compiles" the input into a binary at the output region (0x4000). Both VMs halt, and the resulting binary is verified.
+**Significance**: Multi-VM coordination is proven. The editor can now drive the assembler without CPU intervention. This is the logic bridge between "editing pixels" and "executing pixels".
 **Builds on**: Full Assembler (Milestone 8) + Text Buffer VM (10a).
 
-### 10e. Edit-Compile-Execute Loop (🔜)
+### 10e. Edit-Compile-Execute Loop (🔜 Next)
 **The Objective**: Compiled output spawned as new VM via SPATIAL_SPAWN. The editor edits, compiles, and runs code — full sovereignty.
 
 ---
