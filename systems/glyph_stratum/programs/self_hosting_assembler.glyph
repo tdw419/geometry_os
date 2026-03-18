@@ -77,6 +77,8 @@ JMP :start
     LOAD r8, [r0]; ADD r0, r0, r13
     LOAD r9, [r0]; ADD r0, r0, r13
     LDI r14, :match_mnemonic; CALL r14
+    // Log matched opcode to 0x7000
+    LDI r14, 0x7000; STORE r14, r4
     LDI r14, 0xFF; BEQ r4, r14, :p2_skip_line
     LDI r14, 13; BEQ r4, r14, :p2_emit_halt
     LDI r14, 12; BEQ r4, r14, :p2_emit_ret
@@ -112,6 +114,7 @@ JMP :start
 :p2_emit_ret;  LDI r3, 12; STORE r1, r3; ADD r1, r1, r13; JMP :p2_skip_line
 
 :p2_emit_ldi
+    HALT
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r10, r7
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r11, r7
     LDI r14, 16; SLL r15, r10, r14; LDI r3, 1; OR r3, r3, r15
@@ -212,41 +215,6 @@ JMP :start
     LDI r5, 65; STORE r4, r5; ADD r4, r4, r13 // A
     LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
     LDI r5, 13; STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 83; STORE r4, r5; ADD r4, r4, r13 // S
-    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
-    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
-    LDI r5, 131; STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 79; STORE r4, r5; ADD r4, r4, r13 // O
-    LDI r5, 82; STORE r4, r5; ADD r4, r4, r13 // R
-    LDI r5, 32; STORE r4, r5; ADD r4, r4, r13 //  
-    LDI r5, 129; STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 83; STORE r4, r5; ADD r4, r4, r13 // S
-    LDI r5, 85; STORE r4, r5; ADD r4, r4, r13 // U
-    LDI r5, 66; STORE r4, r5; ADD r4, r4, r13 // B
-    LDI r5, 6;  STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 77; STORE r4, r5; ADD r4, r4, r13 // M
-    LDI r5, 85; STORE r4, r5; ADD r4, r4, r13 // U
-    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
-    LDI r5, 7;  STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 83; STORE r4, r5; ADD r4, r4, r13 // S
-    LDI r5, 82; STORE r4, r5; ADD r4, r4, r13 // R
-    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
-    LDI r5, 132; STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 65; STORE r4, r5; ADD r4, r4, r13 // A
-    LDI r5, 78; STORE r4, r5; ADD r4, r4, r13 // N
-    LDI r5, 68; STORE r4, r5; ADD r4, r4, r13 // D
-    LDI r5, 128; STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
-    LDI r5, 88; STORE r4, r5; ADD r4, r4, r13 // X
-    LDI r5, 79; STORE r4, r5; ADD r4, r4, r13 // O
-    LDI r5, 82; STORE r4, r5; ADD r4, r4, r13 // R
-    LDI r5, 130; STORE r4, r5; ADD r4, r4, r13
     LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
     LDI r5, 0xFFFFFFFF; STORE r4, r5
     RET
