@@ -1,0 +1,94 @@
+# Bare-Metal Boot Team
+# Replaces Rust bootloader with WGSL shader initialization
+
+team:
+  name: bare-metal-boot-team
+  description: |
+    Implements Bare-Metal Boot for Geometry OS - eliminating the Rust bootloader
+    by using WGSL shader initialization. This achieves true GPU sovereignty where
+    the CPU only loads the initial programs once (frozen bootstrap) and then
+    the GPU runs completely autonomously.
+
+  project_root: /home/jericho/zion/projects/geometry_os/geometry_os
+
+  agents:
+    - name: boot-shader-architect
+      role: Designs WGSL initialization shader
+      focus:
+        - Compute shader that initializes VM state
+        - Hilbert texture setup without CPU involvement
+        - Atlas/Screen region initialization
+      files:
+        - systems/infinite_map_rs/src/gpu/shaders/boot_init.wgsl
+
+    - name: bootstrap-loader
+      role: Implements one-time CPU->GPU load
+      focus:
+        - Single poke_substrate_single call sequence
+        - Load editor.glyph + assembler.glyph
+        - Verify GPU autonomous execution
+      files:
+        - systems/infinite_map_rs/src/bin/visual_kernel.rs
+
+    - name: sovereignty-validator
+      role: Validates complete autonomy
+      focus:
+        - No CPU code runs after initial load
+        - Editor receives keyboard events
+        - Assembler compiles, VM spawns
+      files:
+        - systems/infinite_map_rs/src/synthetic_vram.rs
+
+  tasks:
+    - id: boot-1
+      title: Create boot_init.wgsl shader
+      assignee: boot-shader-architect
+      dependencies: []
+      description: |
+        Create systems/infinite_map_rs/src/gpu/shaders/boot_init.wgsl:
+        - Compute shader that initializes VRAM regions
+        - Sets up Atlas region at (2048, 0)
+        - Sets up Screen region at (0, 2048)
+        - Initializes VM state region at 0x0000
+      acceptance_criteria:
+        - Shader compiles with wgslc
+        - Creates valid VRAM texture
+
+    - id: boot-2
+      title: Modify visual_kernel for frozen bootstrap
+      assignee: bootstrap-loader
+      dependencies: [boot-1]
+      description: |
+        Modify systems/infinite_map_rs/src/bin/visual_kernel.rs:
+        - Replace runtime VM setup with shader-based init
+        - One-time CPU load of editor.glyph + assembler.glyph
+        - Remove Rust-side VM initialization logic
+      acceptance_criteria:
+        - visual_kernel boots without full VM setup
+        - Loads glyph files to VRAM
+        - Spawns VM 0 at entry point
+
+    - id: boot-3
+      title: Validate GPU autonomy
+      assignee: sovereignty-validator
+      dependencies: [boot-2]
+      description: |
+        Test complete autonomy:
+        - After initial load, no CPU code executes
+        - Editor receives keyboard events via mailbox
+        - Assembler compiles buffer
+        - VM spawns and executes
+      acceptance_criteria:
+        - Full edit-compile-execute loop works
+        - No CPU involvement after boot
+        - Test passes: cargo test test_frozen_bootstrap
+
+  success_criteria:
+    - boot_init.wgsl creates valid VRAM
+    - visual_kernel uses shader-based init
+    - Frozen bootstrap achieved
+    - Full sovereignty validated
+
+  reference_docs:
+    - docs/SOVEREIGNTY_LADDER.md
+    - docs/GLYPH_PROGRAMMING_GUIDE.md
