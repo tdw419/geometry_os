@@ -7,11 +7,19 @@ Run Glyph programs WITHOUT Rust compilation. Just pixels.
 Usage:
     python3 glyph_vm.py program.glyph
     python3 glyph_vm.py --asm "LDI r0, 42; HALT"
+    python3 glyph_vm.py --visual program.glyph   # Show visual output
 """
 
 import sys
 import struct
 from pathlib import Path
+
+try:
+    import numpy as np
+
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
 
 OPCODES = {
     "NOP": 0,
@@ -28,6 +36,8 @@ OPCODES = {
     "CALL": 11,
     "RET": 12,
     "HALT": 13,
+    "DRAW": 215,
+    "CLEAR": 216,
     "DATA": 14,
     "LOOP": 15,
     "JAL": 16,
@@ -82,7 +92,7 @@ BRANCH_CONDS = {"BEQ": 0, "BNE": 1, "BLT": 2, "BGE": 3, "BLTU": 4, "BGEU": 5, "J
 
 
 class GlyphVM:
-    def __init__(self, memory_size=65536):
+    def __init__(self, memory_size=65536, display_size=32):
         self.memory = [0] * memory_size
         self.registers = [0] * 32
         self.pc = 0
@@ -91,6 +101,9 @@ class GlyphVM:
         self.cycles = 0
         self.max_cycles = 10000
         self.trace = []
+        self.display_size = display_size
+        self.framebuffer = [[0] * display_size for _ in range(display_size)]
+        self.draw_count = 0
 
     def load_program(self, pixels):
         for i, pixel in enumerate(pixels):
@@ -199,6 +212,14 @@ class GlyphVM:
                 self.pc = self.call_stack.pop()
         elif opcode == 13 or opcode == 141:  # HALT / W_HALT
             self.halted = True
+        elif opcode == 215:  # DRAW - draw pixel at (x, y) with color
+            x = p1 % self.display_size
+            y = stratum % self.display_size
+            color = p2
+            self.framebuffer[y][x] = color
+            self.draw_count += 1
+        elif opcode == 216:  # CLEAR - clear the framebuffer
+            self.framebuffer = [[0] * self.display_size for _ in range(self.display_size)]
         elif opcode == 128:  # AND
             rd = p1
             rs = stratum
@@ -247,6 +268,17 @@ class GlyphVM:
         print(f"\n=== Last {count} Instructions ===")
         for t in self.trace[-count:]:
             print(f"PC={t['pc']:4d}: {t['opname']:8s} op={t['opcode']:3d} r={t['registers'][:4]}")
+
+    def show_display(self):
+        print(f"\n=== Visual Output ({self.draw_count} draw operations) ===")
+        chars = " .:-=+*#%@"
+        for row in self.framebuffer:
+            line = ""
+            for pixel in row:
+                idx = min(pixel, len(chars) - 1)
+                line += chars[idx]
+            print(line)
+        print()
 
 
 def parse_glyph(source):
@@ -370,6 +402,20 @@ def parse_glyph(source):
             final_pixels.append([13, 0, 0, 0])
             current_addr += 1
 
+        elif op_name == "DRAW":
+            x_arg = parts[1] if len(parts) > 1 else "0"
+            y_arg = parts[2] if len(parts) > 2 else "0"
+            color_arg = parts[3] if len(parts) > 3 else "9"
+            x = int(x_arg, 0) if not x_arg.lower().startswith("r") else 0
+            y = int(y_arg, 0) if not y_arg.lower().startswith("r") else 0
+            color = int(color_arg, 0) if not color_arg.lower().startswith("r") else 9
+            final_pixels.append([215, y, x, color])
+            current_addr += 1
+
+        elif op_name == "CLEAR":
+            final_pixels.append([216, 0, 0, 0])
+            current_addr += 1
+
         elif op_name == "AND":
             rd = int(parts[1].lower().replace("r", ""))
             rs = int(parts[2].lower().replace("r", ""))
@@ -465,6 +511,42 @@ HALT
         print("Demo 3: Store to memory, load back")
         vm3 = run_asm(asm3)
         print(f"Result: r1 = {vm3.registers[1]} (expected 12345)\n")
+
+        # Demo 4: Visual - Draw a diagonal line
+        asm4 = """
+CLEAR
+LDI r0, 0
+:loop
+DRAW r0, r0, 9
+ADD r0, r0, 1
+LDI r1, 31
+SUB r1, r0
+JZ r1, end
+JMP loop
+:end
+HALT
+"""
+        print("Demo 4: Draw diagonal line")
+        vm4 = run_asm(asm4)
+        vm4.show_display()
+
+        # Demo 5: Visual - Draw a box
+        asm5 = """
+CLEAR
+LDI r0, 10
+LDI r1, 10
+DRAW r0, r1, 5
+LDI r2, 20
+DRAW r2, r1, 5
+LDI r2, 20
+DRAW r2, r0, 5
+LDI r1, 20
+DRAW r0, r1, 5
+HALT
+"""
+        print("Demo 5: Draw a box")
+        vm5 = run_asm(asm5)
+        vm5.show_display()
 
         return
 
