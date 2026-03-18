@@ -10,6 +10,9 @@
 //! - Blits results to the output texture
 
 use crate::entities::execution_zone::ExecutionZone;
+use crate::glyph_atlas::GlyphAtlas;
+use crate::glyph_substrate::GlyphSubstrate;
+use crate::rendering::glyph_renderer::GlyphRenderer;
 use crate::ui::zone_overlay::{BorderColor, BorderRenderConfig};
 use std::sync::Arc;
 use wgpu::{CommandEncoder, Device, Texture, TextureView};
@@ -46,7 +49,6 @@ struct BorderUniforms {
 /// The `device` field is stored as `Arc<Device>` to allow sharing with
 /// the parent `Compositor` without cloning the heavyweight device resource.
 /// See `Compositor` struct documentation for more details on this pattern.
-#[derive(Debug)]
 pub struct ExecutionZoneRenderer {
     /// WebGPU device for rendering operations
     ///
@@ -66,6 +68,12 @@ pub struct ExecutionZoneRenderer {
     border_bind_group: Option<wgpu::BindGroup>,
     /// Border bind group layout (lazy-initialized)
     border_bind_group_layout: Option<wgpu::BindGroupLayout>,
+    /// Glyph atlas for text rendering (lazy-initialized)
+    glyph_atlas: Option<GlyphAtlas>,
+    /// Glyph substrate for text rendering (lazy-initialized)
+    glyph_substrate: Option<GlyphSubstrate>,
+    /// Glyph renderer for text overlay (lazy-initialized)
+    glyph_renderer: Option<GlyphRenderer>,
 }
 
 impl ExecutionZoneRenderer {
@@ -87,6 +95,9 @@ impl ExecutionZoneRenderer {
             border_uniform_buffer: None,
             border_bind_group: None,
             border_bind_group_layout: None,
+            glyph_atlas: None,
+            glyph_substrate: None,
+            glyph_renderer: None,
         }
     }
 
@@ -229,6 +240,39 @@ impl ExecutionZoneRenderer {
         log::info!("Border rendering pipeline initialized successfully");
     }
 
+    /// Initialize glyph rendering pipeline (lazy initialization)
+    ///
+    /// Creates the GlyphAtlas, GlyphSubstrate, and GlyphRenderer for text overlay.
+    /// This is called lazily when text overlays need to be rendered for the first time.
+    ///
+    /// # Arguments
+    ///
+    /// * `surface_format` - Texture format of the output surface
+    fn initialize_glyph_pipeline(&mut self, surface_format: wgpu::TextureFormat) {
+        // Skip if already initialized
+        if self.glyph_renderer.is_some() {
+            return;
+        }
+
+        log::info!("Initializing glyph rendering pipeline for text overlays");
+
+        // Create glyph atlas (64x64 cells for zone labels)
+        let atlas = GlyphAtlas::new(64, 64);
+        self.glyph_atlas = Some(atlas);
+
+        // Create glyph substrate (order 8 = 256x256 grid)
+        let substrate = GlyphSubstrate::new(8);
+        self.glyph_substrate = Some(substrate);
+
+        // Create glyph renderer
+        // Note: We need to get a reference to the substrate we just created
+        if let Some(substrate) = &self.glyph_substrate {
+            let renderer = GlyphRenderer::new(&self.device, surface_format, substrate);
+            self.glyph_renderer = Some(renderer);
+            log::info!("Glyph rendering pipeline initialized successfully");
+        }
+    }
+
     /// Render all execution zones
     ///
     /// Iterates through all zones and renders them based on their active state.
@@ -264,6 +308,9 @@ impl ExecutionZoneRenderer {
         // Render borders for all zones
         let screen_size = (output_texture.width() as f32, output_texture.height() as f32);
         self.render_borders(encoder, output_texture, screen_size);
+
+        // Render text overlays for all zones
+        self.render_text_overlays(encoder, output_texture);
     }
 
     /// Render an active execution zone
@@ -592,6 +639,60 @@ impl ExecutionZoneRenderer {
         }
 
         log::debug!("Rendered borders for {} zones", self.zones.len());
+    }
+
+    /// Render text overlays for all zones
+    ///
+    /// Uses the GlyphAtlas and GlyphRenderer to render zone labels and metrics
+    /// as text overlays at each zone's position.
+    ///
+    /// # Arguments
+    ///
+    /// * `encoder` - Command encoder for recording rendering commands
+    /// * `output_texture` - Output texture to render text to
+    fn render_text_overlays(
+        &mut self,
+        encoder: &mut CommandEncoder,
+        output_texture: &Texture,
+    ) {
+        // Skip if no zones
+        if self.zones.is_empty() {
+            return;
+        }
+
+        // Initialize glyph pipeline if needed
+        let surface_format = output_texture.format();
+        self.initialize_glyph_pipeline(surface_format);
+
+        // Get glyph renderer (safe to unwrap after initialization)
+        if self.glyph_renderer.is_none() {
+            log::warn!("Glyph renderer not initialized, skipping text overlays");
+            return;
+        }
+
+        // Render text overlay for each active zone
+        for zone in &self.zones {
+            if zone.is_active() {
+                // Generate overlay text using existing zone_overlay module
+                let overlay_text = crate::ui::zone_overlay::generate_zone_overlay_text_with_position(
+                    &zone.shader_name,
+                    zone.workgroup_size(),
+                    true,
+                    zone.position,
+                );
+
+                log::trace!("Rendering text overlay: {}", overlay_text);
+
+                // TODO: Render text using glyph_renderer
+                // This requires:
+                // 1. Get or create a glyph texture from the atlas for the text
+                // 2. Position the text at zone.position
+                // 3. Blit to output_texture using the glyph_renderer pipeline
+                //
+                // For now, we log the text. Full rendering implementation
+                // will be added in a follow-up commit.
+            }
+        }
     }
 
     /// Get reference to the WebGPU device
