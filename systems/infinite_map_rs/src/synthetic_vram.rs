@@ -4587,7 +4587,8 @@ mod tests {
         emit_ldi(&mut vram, &mut pc, 13, 1); // r13 = 1
         emit_ldi(&mut vram, &mut pc, 127, 0); // r127 = 0
         emit_ldi(&mut vram, &mut pc, 0, 0x200); // r0 = mailbox
-        emit_ldi(&mut vram, &mut pc, 1, 0x100); // r1 = state
+        emit_ldi(&mut vram, &mut pc, 1, 0x100); // r1 = state (cursor)
+        emit_ldi(&mut vram, &mut pc, 11, 0x101); // r11 = buffer_len addr
         emit_ldi(&mut vram, &mut pc, 2, 0x1000); // r2 = buffer
 
         // Main event loop
@@ -4647,7 +4648,13 @@ mod tests {
         pc += 1; // ADD r8, r8, r13
         vram.poke(pc, glyph(4, 0, 1, 8));
         pc += 1; // STORE [r1], r8
-                 // Skip buffer_len increment for now - it's complex
+                 // Increment buffer_len (using r11 = 0x101)
+        vram.poke(pc, glyph(3, 0, 11, 10));
+        pc += 1; // LOAD r10 = buffer_len from [r11]
+        vram.poke(pc, glyph(5, 0, 13, 10));
+        pc += 1; // ADD r10 += 1
+        vram.poke(pc, glyph(4, 0, 11, 10));
+        pc += 1; // STORE buffer_len to [r11]
                  // Clear and loop
         vram.poke(pc, glyph(4, 0, 0, 127));
         pc += 1; // STORE [r0], r127
@@ -4672,6 +4679,7 @@ mod tests {
 
         // === SEND INSERT 'H' (ASCII 72) ===
         println!("\n[STEP 1] Send INSERT 'H' (ASCII 72)");
+        vram.poke(0x101, 0); // Initialize buffer_len = 0
         vram.poke(0x200, 1); // event type = INSERT
         vram.poke(0x201, 72); // char = 'H'
 
@@ -4684,9 +4692,11 @@ mod tests {
         println!("  pc = {}", vm.pc);
         println!("  halted = {}", vm.halted);
         println!("  cursor = {}", vm.regs[8]);
+        println!("  buffer_len = {}", vram.peek(0x101));
         println!("  buffer[0] = {}", vram.peek(0x1000));
         assert_eq!(vram.peek(0x1000), 72, "First char should be 'H'");
         assert_eq!(vm.regs[8], 1, "cursor should be 1");
+        assert_eq!(vram.peek(0x101), 1, "buffer_len should be 1");
 
         // Clear mailbox first
         vram.poke(0x200, 0);
@@ -4707,11 +4717,13 @@ mod tests {
         println!("  pc = {}", vm.pc);
         println!("  halted = {}", vm.halted);
         println!("  cursor = {}", vm.regs[8]);
+        println!("  buffer_len = {}", vram.peek(0x101));
         println!("  buffer[0] = {}", vram.peek(0x1000));
         println!("  buffer[1] = {}", vram.peek(0x1001));
         assert_eq!(vram.peek(0x1000), 72);
         assert_eq!(vram.peek(0x1001), 69);
         assert_eq!(vm.regs[8], 2, "cursor should be 2");
+        assert_eq!(vram.peek(0x101), 2, "buffer_len should be 2");
 
         println!("\n{}", "=".repeat(60));
         println!("SUCCESS: Editor can insert characters!");
