@@ -278,6 +278,40 @@ impl BufferBindingInterface {
         &self.allocator
     }
 
+    /// Read data from a bound buffer.
+    ///
+    /// This reads the GPU buffer contents back to CPU memory.
+    /// Used for reading back computation results like sensor values.
+    ///
+    /// # Arguments
+    /// * `index` - The binding index of the buffer
+    ///
+    /// # Returns
+    /// A Vec containing the buffer contents, or an error if read fails.
+    ///
+    /// # Errors
+    /// Returns an error if the buffer doesn't exist or the map/read fails.
+    ///
+    /// TODO-4/5: Part of sensor value readback implementation.
+    pub fn read_buffer(&self, index: usize) -> Result<Vec<u8>> {
+        let bound = self.bound_buffers.get(index)
+            .with_context(|| format!("Buffer index {} not found", index))?;
+        
+        let buffer = &bound.buffer;
+        let width = buffer.width();
+        let height = buffer.height();
+        
+        // Map the buffer for reading using GBM's map callback
+        let data = buffer
+            .map(0, 0, width, height, |mapped_bo| {
+                mapped_bo.buffer().to_vec()
+            })
+            .with_context(|| format!("Failed to map/read buffer {}", index))?;
+        
+        log::trace!("Read {} bytes from buffer {}", data.len(), index);
+        Ok(data)
+    }
+
     /// Prepare bindings for compute shader dispatch.
     ///
     /// This validates that required buffers are bound and returns

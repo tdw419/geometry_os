@@ -359,6 +359,65 @@ impl WluGpuResources {
         self.bindings.get_buffer(index as usize)
     }
     
+    /// Read sensor value from GPU output buffer.
+    ///
+    /// TODO-4/5: Reads back the WaveOutput struct from the GPU output buffer.
+    /// The sensor position is configured in WaveUniforms (sensor_pos_x, sensor_pos_y).
+    /// The shader writes the wave amplitude at that position to sensor_value.
+    ///
+    /// # Returns
+    /// The WaveOutput struct containing the sensor_value, or an error if read fails.
+    ///
+    /// # Errors
+    /// Returns an error if buffers aren't allocated or the GPU read fails.
+    pub fn read_sensor_value(&self) -> Result<WaveOutput> {
+        if !self.buffers_allocated {
+            anyhow::bail!("Cannot read sensor value: buffers not allocated");
+        }
+        
+        // Read the output buffer (binding 5)
+        let data = self.bindings.read_buffer(WluBufferIndex::Output as usize)
+            .context("Failed to read output buffer")?;
+        
+        // Parse the WaveOutput struct (16 bytes)
+        if data.len() < size_of::<WaveOutput>() {
+            anyhow::bail!(
+                "Output buffer too small: {} bytes, expected {}",
+                data.len(),
+                size_of::<WaveOutput>()
+            );
+        }
+        
+        // Safe because we know the layout matches
+        let output: WaveOutput = unsafe {
+            std::ptr::read_unaligned(data.as_ptr() as *const WaveOutput)
+        };
+        
+        log::debug!(
+            "Read sensor value: {} at position ({}, {})",
+            output.sensor_value,
+            self.uniforms.sensor_pos_x,
+            self.uniforms.sensor_pos_y
+        );
+        
+        Ok(output)
+    }
+    
+    /// Set sensor position in the grid.
+    ///
+    /// Updates the sensor position in uniforms. Call update_uniforms() after
+    /// to sync to GPU, or use set_sensor_position_sync() for convenience.
+    pub fn set_sensor_position(&mut self, x: u32, y: u32) {
+        self.uniforms.sensor_pos_x = x;
+        self.uniforms.sensor_pos_y = y;
+    }
+    
+    /// Set sensor position and immediately sync to GPU.
+    pub fn set_sensor_position_sync(&mut self, x: u32, y: u32) -> Result<()> {
+        self.set_sensor_position(x, y);
+        self.update_uniforms()
+    }
+    
     /// Calculate buffer index from 2D coordinates
     pub fn coord_to_index(&self, x: u32, y: u32) -> usize {
         (y * self.grid_size + x) as usize
@@ -432,5 +491,60 @@ mod tests {
         assert_eq!(uniforms.grid_size, DEFAULT_GRID_SIZE);
         assert!((uniforms.wave_speed - 0.1).abs() < f32::EPSILON);
         assert!((uniforms.damping - 0.995).abs() < f32::EPSILON);
+    }
+    
+    #[test]
+    fn test_sensor_position() {
+        let mut uniforms = WaveUniforms::default();
+        assert_eq!(uniforms.sensor_pos_x, 128);
+        assert_eq!(uniforms.sensor_pos_y, 128);
+        
+        // Test sensor position setter
+        uniforms.sensor_pos_x = 64;
+        uniforms.sensor_pos_y = 192;
+        assert_eq!(uniforms.sensor_pos_x, 64);
+        assert_eq!(uniforms.sensor_pos_y, 192);
+    }
+    
+    #[test]
+    fn test_wave_output_struct() {
+        // Test that WaveOutput can be created and read
+        let output = WaveOutput {
+            sensor_value: 0.5,
+            _padding1: 0,
+            _padding2: 0,
+            _padding3: 0,
+        };
+        assert!((output.sensor_value - 0.5).abs() < f32::EPSILON);
+    }
+    
+    #[test]
+    fn test_read_sensor_value_without_buffers() {
+        // Test that read_sensor_value fails gracefully without buffers
+        if !super::super::memory::GpuMemoryAllocator::is_available() {
+            log::warn!("Skipping test: DRM/GBM not available");
+            return;
+        }
+        
+        let drm_device = match super::super::device::DrmDevice::open_default() {
+            Ok(d) => d,
+            Err(_) => {
+                log::warn!("Skipping test: DRM device not available");
+                return;
+            }
+        };
+        
+        let wlu = match WluGpuResources::new(&drm_device) {
+            Ok(w) => w,
+            Err(_) => {
+                log::warn!("Skipping test: WLU creation failed");
+                return;
+            }
+        };
+        
+        // Should fail because buffers not allocated
+        let result = wlu.read_sensor_value();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("buffers not allocated"));
     }
 }
