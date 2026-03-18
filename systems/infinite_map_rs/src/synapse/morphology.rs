@@ -54,6 +54,15 @@ pub enum EffectRequest {
     },
 }
 
+/// Query request sent to system state manager
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryRequest {
+    /// Type of query to perform
+    pub query_type: QueryType,
+    /// Optional target location for location-specific queries
+    pub target: Option<(f32, f32, f32)>,
+}
+
 /// Commands that modify the geometric substrate
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MorphologyCommand {
@@ -171,6 +180,9 @@ pub struct MorphologyExecutor {
 
     /// Optional effect sender (wired to effect system)
     effect_tx: Option<broadcast::Sender<EffectRequest>>,
+
+    /// Optional query sender (wired to system state manager)
+    query_tx: Option<broadcast::Sender<QueryRequest>>,
 }
 
 impl MorphologyExecutor {
@@ -183,6 +195,7 @@ impl MorphologyExecutor {
             camera_tx: None,
             aesthetics_tx: None,
             effect_tx: None,
+            query_tx: None,
         }
     }
 
@@ -207,6 +220,12 @@ impl MorphologyExecutor {
     /// Wire effect requests to a broadcast channel
     pub fn with_effect_sender(mut self, tx: broadcast::Sender<EffectRequest>) -> Self {
         self.effect_tx = Some(tx);
+        self
+    }
+
+    /// Wire query requests to a broadcast channel
+    pub fn with_query_sender(mut self, tx: broadcast::Sender<QueryRequest>) -> Self {
+        self.query_tx = Some(tx);
         self
     }
 
@@ -404,7 +423,16 @@ impl MorphologyExecutor {
         target: Option<(f32, f32, f32)>,
     ) -> Result<(), String> {
         log::info!("❓ Query {:?} at {:?}", query_type, target);
-        // TODO: Query system state
+
+        // Send to system state manager if wired
+        if let Some(tx) = &self.query_tx {
+            let request = QueryRequest {
+                query_type,
+                target,
+            };
+            let _ = tx.send(request);
+        }
+
         Ok(())
     }
 
