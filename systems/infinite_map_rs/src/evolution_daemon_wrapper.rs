@@ -515,24 +515,125 @@ impl PyEvolutionDaemon {
             Python::with_gil(|py| {
                 let daemon = daemon_instance.as_ref(py);
 
-                // Try to call method to get full cognitive state
-                // For now, return default state as method may not exist yet
-                // This will be enhanced when Python daemon has the method
-                let _result = daemon.call_method0("get_unified_cognitive_state");
+                // Try to call unified method first (preferred)
+                if let Ok(result) = daemon.call_method0("get_unified_cognitive_state") {
+                    // Extract from returned dict if method exists
+                    if let Ok(mode) = result.getattr("mode").and_then(|v| v.extract()) {
+                        let active_chains = result
+                            .getattr("active_chains")
+                            .and_then(|v| v.extract())
+                            .unwrap_or_default();
+                        let working_memory = result
+                            .getattr("working_memory")
+                            .and_then(|v| v.extract())
+                            .unwrap_or_default();
+                        let decision_confidence = result
+                            .getattr("decision_confidence")
+                            .and_then(|v| v.extract())
+                            .unwrap_or(0.5);
+                        let error_rate = result
+                            .getattr("error_rate")
+                            .and_then(|v| v.extract())
+                            .unwrap_or(0.0);
+                        let complexity = result
+                            .getattr("complexity")
+                            .and_then(|v| v.extract())
+                            .unwrap_or(0.5);
+                        let safety_score = result
+                            .getattr("safety_score")
+                            .and_then(|v| v.extract())
+                            .unwrap_or(1.0);
+                        let is_reasoning = result
+                            .getattr("is_reasoning")
+                            .and_then(|v| v.extract())
+                            .unwrap_or(false);
+                        let self_confidence = result
+                            .getattr("self_confidence")
+                            .and_then(|v| v.extract())
+                            .unwrap_or(0.5);
+                        let alignment = result
+                            .getattr("alignment")
+                            .and_then(|v| v.extract())
+                            .unwrap_or(0.5);
 
-                // For now, return default cognitive state
-                // TODO: Extract actual values from daemon when method is implemented
+                        return Ok(CognitiveState {
+                            mode,
+                            active_chains,
+                            working_memory,
+                            decision_confidence,
+                            error_rate,
+                            complexity,
+                            safety_score,
+                            is_reasoning,
+                            self_confidence,
+                            alignment,
+                        });
+                    }
+                }
+
+                // Fallback: Extract individual attributes from daemon directly
+                // This provides resilience when unified method doesn't exist
+                let mode: String = daemon
+                    .getattr("mode")
+                    .and_then(|v| v.extract())
+                    .unwrap_or_else(|_| "idle".to_string());
+
+                let active_chains: Vec<String> = daemon
+                    .getattr("active_chains")
+                    .and_then(|v| v.extract())
+                    .unwrap_or_default();
+
+                let working_memory: Vec<String> = daemon
+                    .getattr("working_memory")
+                    .and_then(|v| v.extract())
+                    .unwrap_or_default();
+
+                let decision_confidence: f32 = daemon
+                    .getattr("decision_confidence")
+                    .and_then(|v| v.extract())
+                    .unwrap_or(0.5);
+
+                let error_rate: f32 = daemon
+                    .getattr("error_rate")
+                    .and_then(|v| v.extract())
+                    .unwrap_or(0.0);
+
+                let complexity: f32 = daemon
+                    .getattr("complexity")
+                    .and_then(|v| v.extract())
+                    .unwrap_or(0.5);
+
+                let safety_score: f32 = daemon
+                    .getattr("safety_score")
+                    .and_then(|v| v.extract())
+                    .unwrap_or(1.0);
+
+                let is_reasoning: bool = daemon
+                    .getattr("is_reasoning")
+                    .and_then(|v| v.extract())
+                    .unwrap_or(false);
+
+                let self_confidence: f32 = daemon
+                    .getattr("self_confidence")
+                    .and_then(|v| v.extract())
+                    .unwrap_or(0.5);
+
+                let alignment: f32 = daemon
+                    .getattr("alignment")
+                    .and_then(|v| v.extract())
+                    .unwrap_or(0.5);
+
                 Ok(CognitiveState {
-                    mode: "idle".to_string(),
-                    active_chains: Vec::new(),
-                    working_memory: Vec::new(),
-                    decision_confidence: 0.5,
-                    error_rate: 0.0,
-                    complexity: 0.5,
-                    safety_score: 1.0,
-                    is_reasoning: false,
-                    self_confidence: 0.5,
-                    alignment: 0.5,
+                    mode,
+                    active_chains,
+                    working_memory,
+                    decision_confidence,
+                    error_rate,
+                    complexity,
+                    safety_score,
+                    is_reasoning,
+                    self_confidence,
+                    alignment,
                 })
             })
         }
