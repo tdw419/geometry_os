@@ -32,6 +32,9 @@ pub struct SourceTile {
     pub lines: u32,
     pub district: String,
     pub color: Color,
+    /// Unix timestamp of last modification (for Engineer pathfinding)
+    #[serde(default)]
+    pub last_modified: Option<u64>,
 }
 
 /// District summary

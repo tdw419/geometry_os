@@ -339,10 +339,111 @@ impl HilbertPathfinder {
 
     /// Find path preferring recently modified areas (for Engineers)
     fn find_path_preferring_recent(&self, start: u32, end: u32) -> HilbertPath {
-        // TODO: Requires modification timestamps in SourceTile or a separate heatmap
-        // For now, fall back to direct path - Engineers will need timestamp data
-        // from file_tensor.rs:last_modified or map_loader.rs:last_modified
+        // Use modification timestamp heatmap to guide Engineers to recent changes
+        self.astar_path_mtime_weighted(start, end, &self.blocked)
+    }
+
+    /// A* pathfinding with modification time preference (lower cost for recent changes)
+    fn astar_path_mtime_weighted(&self, start: u32, end: u32, blocked: &HashSet<u32>) -> HilbertPath {
+        use std::cmp::Reverse;
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct Node {
+            hilbert: u32,
+            g: u32, // Cost from start
+            f: u32, // Estimated total cost
+        }
+
+        impl Ord for Node {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                other.f.cmp(&self.f) // Reverse for min-heap
+            }
+        }
+
+        impl PartialOrd for Node {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(other))
+            }
+        }
+
+        // Get reference timestamp (most recent modification in entire codebase)
+        // This normalizes timestamps so we can calculate "recency" as a cost
+        let reference_time = self.get_reference_mtime();
+
+        let mut open_set = BinaryHeap::new();
+        let mut came_from: HashMap<u32, u32> = HashMap::new();
+        let mut g_score: HashMap<u32, u32> = HashMap::new();
+
+        g_score.insert(start, 0);
+        open_set.push(Node {
+            hilbert: start,
+            g: 0,
+            f: self.hilbert_heuristic(start, end),
+        });
+
+        while let Some(current) = open_set.pop() {
+            if current.hilbert == end {
+                return self.reconstruct_path(start, end, &came_from);
+            }
+
+            for neighbor in self.hilbert_neighbors(current.hilbert) {
+                if blocked.contains(&neighbor) {
+                    continue;
+                }
+
+                // Get modification time and calculate recency cost
+                let mtime = self.get_mtime_at(neighbor);
+                // Recency cost: older files have higher cost
+                // Scale: 0-100 cost based on how old the modification is
+                let recency_cost = if reference_time > 0 && mtime > 0 {
+                    let age_seconds = reference_time.saturating_sub(mtime);
+                    // Age buckets: <1h=0, <1d=10, <1w=30, <1m=60, older=100
+                    if age_seconds < 3600 {
+                        0
+                    } else if age_seconds < 86400 {
+                        10
+                    } else if age_seconds < 604800 {
+                        30
+                    } else if age_seconds < 2592000 {
+                        60
+                    } else {
+                        100
+                    }
+                } else {
+                    50 // Default: medium priority if no mtime data
+                };
+
+                let tentative_g = g_score.get(&current.hilbert).unwrap_or(&u32::MAX) + 1 + recency_cost;
+
+                if tentative_g < *g_score.get(&neighbor).unwrap_or(&u32::MAX) {
+                    came_from.insert(neighbor, current.hilbert);
+                    g_score.insert(neighbor, tentative_g);
+                    open_set.push(Node {
+                        hilbert: neighbor,
+                        g: tentative_g,
+                        f: tentative_g + self.hilbert_heuristic(neighbor, end),
+                    });
+                }
+            }
+        }
+
+        // No path found, return direct path
         self.find_direct_path(start, end)
+    }
+
+    /// Get reference modification time (most recent in entire codebase)
+    fn get_reference_mtime(&self) -> u64 {
+        if let Some(ref loader) = self.source_loader {
+            if let Some(layout) = loader.layout() {
+                return layout
+                    .tiles
+                    .iter()
+                    .filter_map(|t| t.last_modified)
+                    .max()
+                    .unwrap_or(0);
+            }
+        }
+        0
     }
 
     /// A* pathfinding on Hilbert grid
@@ -584,6 +685,27 @@ impl HilbertPathfinder {
             }
         }
         1.0 // Default complexity if no data available
+    }
+
+    /// Get modification time for a Hilbert coordinate (most recent mtime in district)
+    /// Returns Unix timestamp, with 0 as default for unavailable data
+    pub fn get_mtime_at(&self, hilbert: u32) -> u64 {
+        if let Some(district_name) = self.get_district_at(hilbert) {
+            if let Some(ref loader) = self.source_loader {
+                if let Some(layout) = loader.layout() {
+                    // Find the most recent modification time in this district
+                    let max_mtime = layout
+                        .tiles
+                        .iter()
+                        .filter(|t| &t.district == district_name)
+                        .filter_map(|t| t.last_modified)
+                        .max()
+                        .unwrap_or(0);
+                    return max_mtime;
+                }
+            }
+        }
+        0 // Default: no modification time data
     }
 
     /// Clear path cache
