@@ -1,7 +1,7 @@
 // Hilbert clock: Live ticking clock in Hilbert space
 // Poke Hilbert coordinates directly into VRAM on port 8769
 
-use std::io, thread, time;
+use std::{io, thread, time};
 
 const HOST: &str = "127.0.0.1";
 const PORT: u16 = 8769;
@@ -18,7 +18,7 @@ impl HilbertClock {
     fn poke(&self, addr: u32, val: u32) -> io::Result<()> {
         let url = format!("http://{}/poke?addr=0x{:x}", HOST, addr);
         let value = format!("0x{:x}", val);
-        let resp = reqwest::blocking::Client::new().post(&url).body(&value).send()?;
+        let resp = reqwest::blocking::Client::new().post(&url).body(value).send().map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
         Ok(())
     }
 
@@ -37,9 +37,9 @@ impl HilbertClock {
     pub fn show_time(&self) -> io::Result<()> {
         let time_str = format!("{:02X}", self.time);
         let addr_base = 0x1100 as u32;
-        for (i, c) in time_str.as_bytes().enumerate() {
+        for (i, &c) in time_str.as_bytes().iter().enumerate() {
             let addr = addr_base + i as u32;
-            self.poke(addr, time_str[i as usize] as u32)?;
+            self.poke(addr, c as u32)?;
         }
         Ok(())
     }
@@ -63,7 +63,7 @@ pub fn main() -> io::Result<()> {
     
     let mut clock = HilbertClock::new();
     
-    for i in 0..5 {
+    for _ in 0..5 {
         clock.tick()?;
         thread::sleep(time::Duration::from_millis(300));
     }
