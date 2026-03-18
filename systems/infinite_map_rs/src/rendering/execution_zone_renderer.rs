@@ -665,33 +665,120 @@ impl ExecutionZoneRenderer {
         self.initialize_glyph_pipeline(surface_format);
 
         // Get glyph renderer (safe to unwrap after initialization)
-        if self.glyph_renderer.is_none() {
-            log::warn!("Glyph renderer not initialized, skipping text overlays");
+        if self.glyph_renderer.is_none() || self.glyph_atlas.is_none() || self.glyph_substrate.is_none() {
+            log::warn!("Glyph pipeline not fully initialized, skipping text overlays");
             return;
         }
 
-        // Render text overlay for each active zone
-        for zone in &self.zones {
-            if zone.is_active() {
-                // Generate overlay text using existing zone_overlay module
+        let screen_width = output_texture.width() as f32;
+        let screen_height = output_texture.height() as f32;
+
+        // Collect overlay texts and positions first (to avoid borrow issues)
+        let overlays: Vec<(String, f32, f32)> = self.zones
+            .iter()
+            .filter(|z| z.is_active())
+            .map(|zone| {
                 let overlay_text = crate::ui::zone_overlay::generate_zone_overlay_text_with_position(
                     &zone.shader_name,
                     zone.workgroup_size(),
                     true,
                     zone.position,
                 );
+                let zone_screen_x = zone.position.x as f32 * 256.0;
+                let zone_screen_y = zone.position.y as f32 * 256.0;
+                let overlay_y = zone_screen_y - 30.0;
+                (overlay_text, zone_screen_x, overlay_y)
+            })
+            .collect();
 
-                log::trace!("Rendering text overlay: {}", overlay_text);
+        // Now render each overlay
+        for (overlay_text, zone_screen_x, overlay_y) in overlays {
+            log::trace!("Rendering text overlay: {}", overlay_text);
 
-                // TODO: Render text using glyph_renderer
-                // This requires:
-                // 1. Get or create a glyph texture from the atlas for the text
-                // 2. Position the text at zone.position
-                // 3. Blit to output_texture using the glyph_renderer pipeline
-                //
-                // For now, we log the text. Full rendering implementation
-                // will be added in a follow-up commit.
+            // Render text to substrate
+            self.render_text_to_substrate(&overlay_text);
+
+            // Update uniforms for positioned rendering
+            let uniforms = GlyphRenderer::create_positioned_uniforms(
+                zone_screen_x,
+                overlay_y,
+                256.0, // Width of overlay
+                20.0,  // Height of text line
+                screen_width,
+                screen_height,
+            );
+
+            // Update substrate and uniforms on GPU
+            if let (Some(renderer), Some(substrate)) = (&self.glyph_renderer, &self.glyph_substrate) {
+                renderer.update_substrate(&self.queue, substrate);
+                renderer.set_position(&self.queue, uniforms);
+
+                // Create render pass for text overlay
+                {
+                    let overlay_view = output_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                    let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                        label: Some("Text Overlay Render Pass"),
+                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                            view: &overlay_view,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Load, // Preserve existing content
+                                store: wgpu::StoreOp::Store,
+                            },
+                        })],
+                        depth_stencil_attachment: None,
+                        timestamp_writes: None,
+                        occlusion_query_set: None,
+                    });
+
+                    renderer.render(&mut render_pass);
+                }
             }
+        }
+    }
+
+    /// Render text string to the glyph substrate
+    ///
+    /// Writes glyph pixels to the substrate buffer for GPU rendering.
+    fn render_text_to_substrate(&mut self, text: &str) {
+        let atlas = match &mut self.glyph_atlas {
+            Some(a) => a,
+            None => return,
+        };
+        let substrate = match &mut self.glyph_substrate {
+            Some(s) => s,
+            None => return,
+        };
+
+        // Clear substrate for fresh text
+        substrate.clear(0x00000000); // Transparent
+
+        // Render string and get glyph positions
+        let glyphs = atlas.render_string(text, 16.0);
+
+        // Write each glyph to the substrate
+        let mut x_cursor = 0u32;
+        let y_baseline = 16u32; // Baseline position in substrate
+
+        for (glyph_info, x_offset) in glyphs {
+            let glyph_x = x_cursor + (x_offset as u32).max(0);
+            
+            // Write glyph pixels to substrate
+            for gy in 0..glyph_info.height {
+                for gx in 0..glyph_info.width {
+                    let pixel_idx = (gy * glyph_info.width + gx) as usize;
+                    if pixel_idx < glyph_info.pixels.len() {
+                        let alpha = glyph_info.pixels[pixel_idx];
+                        if alpha > 0 {
+                            // Create RGBA color with alpha (white text)
+                            let color = 0x00FFFFFF | ((alpha as u32) << 24);
+                            substrate.set_pixel(glyph_x + gx, y_baseline + gy, color);
+                        }
+                    }
+                }
+            }
+            
+            x_cursor += glyph_info.advance_x as u32;
         }
     }
 

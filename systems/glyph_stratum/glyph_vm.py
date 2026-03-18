@@ -512,39 +512,36 @@ HALT
         vm3 = run_asm(asm3)
         print(f"Result: r1 = {vm3.registers[1]} (expected 12345)\n")
 
-        # Demo 4: Visual - Draw a diagonal line
+        # Demo 4: Visual - Draw multiple pixels
         asm4 = """
 CLEAR
-LDI r0, 0
-:loop
-DRAW r0, r0, 9
-ADD r0, r0, 1
-LDI r1, 31
-SUB r1, r0
-JZ r1, end
-JMP loop
-:end
+DRAW 5, 5, 9
+DRAW 6, 6, 9
+DRAW 7, 7, 9
+DRAW 8, 8, 9
+DRAW 9, 9, 9
+DRAW 10, 10, 9
+DRAW 11, 11, 9
+DRAW 12, 12, 9
+DRAW 13, 13, 9
+DRAW 14, 14, 9
+DRAW 15, 15, 9
 HALT
 """
         print("Demo 4: Draw diagonal line")
         vm4 = run_asm(asm4)
         vm4.show_display()
 
-        # Demo 5: Visual - Draw a box
+        # Demo 5: Visual - Draw a box with 4 corners
         asm5 = """
 CLEAR
-LDI r0, 10
-LDI r1, 10
-DRAW r0, r1, 5
-LDI r2, 20
-DRAW r2, r1, 5
-LDI r2, 20
-DRAW r2, r0, 5
-LDI r1, 20
-DRAW r0, r1, 5
+DRAW 10, 10, 5
+DRAW 20, 10, 5
+DRAW 20, 20, 5
+DRAW 10, 20, 5
 HALT
 """
-        print("Demo 5: Draw a box")
+        print("Demo 5: Draw box corners")
         vm5 = run_asm(asm5)
         vm5.show_display()
 
