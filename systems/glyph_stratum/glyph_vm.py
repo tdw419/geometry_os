@@ -154,14 +154,16 @@ class GlyphVM:
             imm = self.memory[self.pc]
             self.registers[rd] = imm
             self.pc += 1
-        elif opcode == 204:  # W_LD - Load from address
+        elif opcode == 204:  # W_LD - Load from address (2-word: opcode + addr)
             rd = p1
-            addr = p2 | (stratum << 8)
+            addr = self.memory[self.pc]
             self.registers[rd] = self.memory[addr & 0xFFFF]
-        elif opcode == 205:  # W_ST - Store to address
-            rs = stratum
-            addr = p1 | (p2 << 8)
+            self.pc += 1
+        elif opcode == 205:  # W_ST - Store to address (2-word: opcode + addr)
+            rs = p1
+            addr = self.memory[self.pc]
             self.memory[addr & 0xFFFF] = self.registers[rs]
+            self.pc += 1
         elif opcode == 206:  # MOV
             rd = p1
             rs = stratum
@@ -317,14 +319,16 @@ def parse_glyph(source):
         elif op_name == "STORE":
             rs = int(parts[1].lower().replace("r", ""))
             addr = int(parts[2], 0) if parts[2].startswith("0x") else int(parts[2])
-            final_pixels.append([205, rs, addr & 0xFF, (addr >> 8) & 0xFF])
-            current_addr += 1
+            final_pixels.append([205, 2, rs, 0])
+            final_pixels.append([addr & 0xFF, (addr >> 8) & 0xFF, 0, 0])
+            current_addr += 2
 
         elif op_name == "LOAD":
             rd = int(parts[1].lower().replace("r", ""))
             addr = int(parts[2], 0) if parts[2].startswith("0x") else int(parts[2])
-            final_pixels.append([204, rd, addr & 0xFF, (addr >> 8) & 0xFF])
-            current_addr += 1
+            final_pixels.append([204, 2, rd, 0])
+            final_pixels.append([addr & 0xFF, (addr >> 8) & 0xFF, 0, 0])
+            current_addr += 2
 
         elif op_name == "JMP":
             target = symbols.get(parts[1], 0)
@@ -333,7 +337,7 @@ def parse_glyph(source):
                     target = int(parts[1], 0)
                 except:
                     target = 0
-            final_pixels.append([9, target & 0xFF, (target >> 8) & 0xFF, 0])
+            final_pixels.append([9, 0, target & 0xFF, (target >> 8) & 0xFF])
             current_addr += 1
 
         elif op_name == "JZ":
@@ -344,7 +348,6 @@ def parse_glyph(source):
                     target = int(parts[2], 0)
                 except:
                     target = 0
-            # Absolute target address
             final_pixels.append([10, rs, target & 0xFF, (target >> 8) & 0xFF])
             current_addr += 1
 
