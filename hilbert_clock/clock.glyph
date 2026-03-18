@@ -1,0 +1,7 @@
+# Hilbert Clock (Native)
+LDI r0, 0
+HILBERT_D2XY r1, r0
+DRAW 0x69, r1, r2
+LDI r3, 1
+ADD r0, r3
+JMP 1

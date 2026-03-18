@@ -1,0 +1,29 @@
+# Pixels Move Pixels: Self-Replication Test
+# This program copies itself from Hilbert address 0 to address 100
+# using only GPU logic (Glyph VM).
+
+# 1. Initialize Registers (Immediate values)
+LDI r0, 0      # Source pointer (start of this program)
+LDI r1, 100    # Destination pointer (empty space in VRAM)
+LDI r2, 0      # Loop counter
+LDI r3, 1      # Increment constant
+LDI r4, 18     # Program length (number of pixels to copy)
+
+# 2. Main Copy Loop (Address 10)
+LOAD r5, [r0]  # Read a pixel (instruction) from source address
+STORE [r1], r5 # Write the pixel to the destination address
+
+# 3. Increment Pointers (Address 12)
+ADD r0, r3     # Advance source pointer
+ADD r1, r3     # Advance destination pointer
+ADD r2, r3     # Increment counter
+
+# 4. Loop Condition (Address 15)
+# JZ (Jump if Zero) is opcode 10. We use subtraction to check equality.
+MOV r6, r2     # Copy counter to r6
+SUB r6, r4     # r6 = counter - length
+JZ 18          # If r6 is 0 (counter == length), jump to HALT
+JMP 10         # Otherwise, jump back to LOAD (Address 10)
+
+# 5. Terminate (Address 18)
+HALT           # Stop execution

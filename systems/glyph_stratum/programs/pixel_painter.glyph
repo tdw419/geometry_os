@@ -1,0 +1,154 @@
+// ============================================================================
+// PIXEL PAINTER - Native IDE for Geometry OS
+// ============================================================================
+//
+// This program implements "programming with pixels" - no text compilers needed.
+//
+// Memory Layout:
+//   0x0000 - 0x007F: Pixel Painter code
+//   0x0100 - 0x01FF: Palette (8 colors * 32 entries = 256 pixels)
+//   0x0200 - 0x027F: UI state (current_brush, canvas_base, etc)
+//   0x0300 - 0x03FF: Mouse mailbox [event, x, y, button]
+//   0x1000 - 0xFFFF: Program Canvas
+//
+// Event Protocol:
+//   Mailbox at 0x0300:
+//     [0x0300] = event_type (0=NONE, 1=CLICK, 2=DRAG)
+//     [0x0301] = x
+//     [0x0302] = y
+//     [0x0303] = button
+//
+// Palette (each entry = encoded opcode):
+//   0x0100 = NOP  (0x00000000)
+//   0x0101 = LDI  (0x00000001)  
+//   0x0102 = LD   (0x00000003)
+//   0x0103 = ST   (0x00000004)
+//   0x0104 = ADD  (0x00000005)
+//   0x0105 = SUB  (0x00000006)
+//   0x0106 = MUL  (0x00000007)
+//   0x0107 = HALT (0x0000000D)
+//   0x0108 = JMP  (0x00000009)
+//   0x0109 = BEQ  (0x0000000A)
+//   0x010A = CALL (0x0000000B)
+//   0x010B = RET  (0x0000000C)
+//   0x010C = XOR  (0x00000082)
+//   0x010D = AND  (0x00000080)
+//   0x010E = OR   (0x00000081)
+//   0x010F = SPAWN(0x000000E1) // SPATIAL_SPAWN
+//
+// Canvas: Paint here by clicking
+// ============================================================================
+
+.equ PALETTE_BASE   0x0100
+.equ UI_BASE        0x0200
+.equ MAILBOX_BASE   0x0300
+.equ CANVAS_BASE    0x1000
+.equ EVENT_NONE     0
+.equ EVENT_CLICK    1
+.equ EVENT_DRAG     2
+.equ SCREEN_W       64
+.equ SCREEN_H       64
+
+:boot
+    // Initialize UI state
+    // r10 = palette base
+    LDI r10, PALETTE_BASE
+    
+    // r11 = canvas base  
+    LDI r11, CANVAS_BASE
+    
+    // r12 = current brush (default = LDI)
+    LDI r12, 0x00000001
+    
+    // r13 = previous mouse state (to detect clicks)
+    LDI r13, 0
+    
+    // r14 = screen dimensions
+    LDI r14, SCREEN_W
+    
+    // r15 = screen height
+    LDI r15, SCREEN_H
+
+:main_loop
+    // Read mouse event
+    LOAD r0, MAILBOX_BASE       // r0 = event_type
+    LOAD r1, MAILBOX_BASE + 1   // r1 = x
+    LOAD r2, MAILBOX_BASE + 2   // r2 = y
+    LOAD r3, MAILBOX_BASE + 3   // r3 = button
+
+    // If event == 0, no event - skip
+    BEQ r0, r0, :check_click
+    
+    // If button was just pressed (and wasn't before), it's a click
+    // For now, just process any event with button down
+    BEQ r3, r3, :process_event
+    
+    // Clear event and loop
+    JMP :main_loop
+
+:check_click
+    // Simple: if button > 0, paint
+    BEQ r3, r3, :process_event
+    
+    // Store prev state and loop
+    MOV r13, r3
+    JMP :main_loop
+
+:process_event
+    // Check if in palette region (y < 8)
+    // r2 = y
+    LDI r4, 8
+    SUB r4, r2, r4    // r4 = y - 8
+    BGTZ r4, :paint_canvas
+    
+    // In palette - select brush
+    // x determines which palette entry
+    // Palette is 16 entries wide
+    LDI r4, 16
+    DIV r5, r1, r4   // r5 = x / 16 (palette index)
+    MUL r6, r5, r4   // r6 = index * 16
+    ADD r6, r10, r6  // r6 = palette_addr
+    
+    // Load brush value
+    LOAD r12, r6
+    
+    // Visual feedback - could draw selection highlight here
+    JMP :clear_and_loop
+
+:paint_canvas
+    // Map (x, y) to canvas address
+    // Simple linear mapping for now: addr = base + y*W + x
+    // (Proper Hilbert would use xy2d)
+    
+    // r1 = x, r2 = y
+    MUL r6, r2, r14   // r6 = y * width
+    ADD r6, r6, r1   // r6 = y*width + x
+    ADD r6, r11, r6  // r6 = canvas_addr
+    
+    // Write brush (opcode) to canvas
+    STORE r6, r12
+    
+    // Could also increment a "paint count" for debugging
+    // For now, just visual feedback
+
+:clear_and_loop
+    // Clear mailbox
+    LDI r7, 0
+    STORE MAILBOX_BASE, r7
+    
+    // Store prev state
+    MOV r13, r3
+    
+    // Loop
+    JMP :main_loop
+
+// ============================================================================
+// Hilbert Curve Helper (for future - maps screen XY to Hilbert D)
+// ============================================================================
+// This would convert screen coordinates to Hilbert curve index for
+// better spatial locality in the canvas
+//
+// For now we use simple linear addressing. When Hilbert is needed:
+// - Use d2xy in reverse (xy2d)
+// - The canvas becomes a true "geometric" program memory
+// ============================================================================
