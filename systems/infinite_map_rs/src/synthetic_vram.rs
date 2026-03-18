@@ -201,10 +201,6 @@ impl SyntheticVram {
     }
 
     fn mem_write(&mut self, addr: u32, val: u32) {
-        if addr == 0x7000 {
-            eprintln!("MEM_WRITE 0x7000: '{}' ({:02X})", 
-                if val >= 32 && val < 127 { (val as u8) as char } else { '?' }, val);
-        }
         let (x, y) = self.d2xy(addr);
         let n = self.grid_size();
         let idx = (y * n + x) as usize;
@@ -432,13 +428,6 @@ impl SyntheticVram {
                 }
                 let val = self.mem_read(addr);
                 self.vms[vm_idx].regs[p2 as usize] = val;
-                if addr >= 0x1000 && addr < 0x5000 {
-                    if val != 0 {
-                        eprintln!("CHAR: '{}' ({:02X}) from {:04X} at PC={:04X}", 
-                            if val >= 32 && val < 127 { (val as u8) as char } else { '?' },
-                            val, addr, pc);
-                    }
-                }
                 self.vms[vm_idx].pc += 1;
             },
 
@@ -2687,23 +2676,17 @@ mod tests {
                 vm.regs[10], vm.regs[11], vm.regs[13], vm.regs[14], vm.regs[15]);
         }
 
-        // Debug: show label table at 0x6000 (first 50 entries = 200 words)
-        println!("\n  Label table at 0x6000 (first 30 entries):");
-        for entry in 0..30 {
-            let base = 0x6000 + entry * 4;
-            let c1 = vram.peek(base);
-            let c2 = vram.peek(base + 1);
-            let c3 = vram.peek(base + 2);
-            let addr = vram.peek(base + 3);
-            if c1 == 0 && c2 == 0 && c3 == 0 {
+        // Debug: show label table at 0x6000 (2-word entries: [hash, addr])
+        println!("\n  Label table at 0x6000 (first 40 entries):");
+        for entry in 0..40 {
+            let base = 0x6000 + entry * 2;
+            let hash = vram.peek(base);
+            let addr = vram.peek(base + 1);
+            if hash == 0 && addr == 0 {
                 println!("    Entry {}: END (all zeros)", entry);
-                break; // End of table
+                break;
             }
-            let name: String = [c1, c2, c3].iter()
-                .filter(|&&c| c >= 32 && c < 127)
-                .map(|&c| (c as u8) as char)
-                .collect();
-            println!("    Entry {}: '{}' ({},{},{}) -> addr {:04X}", entry, name, c1, c2, c3, addr);
+            println!("    Entry {}: hash={:08X} -> addr {:04X}", entry, hash, addr);
         }
 
         // Debug: trace STOREs to output buffer

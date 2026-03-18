@@ -18,14 +18,28 @@ JMP :start
     LOAD r7, [r0]
     BEQ r7, r127, :p1_done
     LDI r8, 64; BEQ r7, r8, :p1_skp
-    LDI r8, 47; BNE r7, r8, :p1_ncm; JMP :p1_skip_line
+    LDI r8, 47; BNE r7, r8, :p1_ncm; JMP :p1_skip_eol
 :p1_skp; ADD r0, r0, r13; JMP :p1_loop
 :p1_ncm
     LDI r8, 58; BNE r7, r8, :p1_chi
     ADD r0, r0, r13
-    LOAD r7, [r0]; STORE r2, r7; ADD r2, r2, r13; ADD r0, r0, r13
-    LOAD r7, [r0]; STORE r2, r7; ADD r2, r2, r13; ADD r0, r0, r13
-    LOAD r7, [r0]; STORE r2, r7; ADD r2, r2, r13
+    // Hash all label chars: h = 0; for each c: h = h * 31 + c
+    LDI r9, 0; LDI r11, 31
+:p1_hash_lp
+    LOAD r7, [r0]
+    // Stop at non-alphanumeric (space, newline, ';', etc.)
+    LDI r8, 95; BEQ r7, r8, :p1_hash_ch
+    LDI r8, 48; BLTU r7, r8, :p1_hash_dn
+    LDI r8, 58; BLTU r7, r8, :p1_hash_ch
+    LDI r8, 65; BLTU r7, r8, :p1_hash_dn
+    LDI r8, 91; BLTU r7, r8, :p1_hash_ch
+    LDI r8, 97; BLTU r7, r8, :p1_hash_dn
+    LDI r8, 123; BLTU r7, r8, :p1_hash_ch
+    JMP :p1_hash_dn
+:p1_hash_ch
+    MUL r9, r9, r11; ADD r9, r9, r7; ADD r0, r0, r13; JMP :p1_hash_lp
+:p1_hash_dn
+    STORE r2, r9; ADD r2, r2, r13
     LOAD r9, [r12]; STORE r2, r9; ADD r2, r2, r13
     JMP :p1_skip_line
 
@@ -49,15 +63,21 @@ JMP :start
     LOAD r7, [r0]; BEQ r7, r127, :p1_done
     LDI r8, 10; BEQ r7, r8, :p1_vws
     LDI r8, 13; BEQ r7, r8, :p1_vws
+    LDI r8, 59; BEQ r7, r8, :p1_semi
+    LDI r8, 47; BEQ r7, r8, :p1_skip_eol
     ADD r0, r0, r13; JMP :p1_skip_line
+:p1_semi; ADD r0, r0, r13; JMP :p1_loop
+:p1_skip_eol
+    LOAD r7, [r0]; BEQ r7, r127, :p1_done
+    LDI r8, 10; BEQ r7, r8, :p1_vws
+    LDI r8, 13; BEQ r7, r8, :p1_vws
+    ADD r0, r0, r13; JMP :p1_skip_eol
 :p1_vws; ADD r0, r0, r13; JMP :p1_loop
 
 :p1_done
     LDI r0, 0x1000; LDI r1, 0x5000
 :p2_anc_lp
     LOAD r7, [r0]; BEQ r7, r127, :eof
-    // Debug: log r0
-    LDI r14, 0x7000; STORE r14, r0
     LDI r8, 64; BEQ r7, r8, :p2_fnd
     ADD r0, r0, r13; JMP :p2_anc_lp
 :p2_fnd
@@ -69,15 +89,13 @@ JMP :start
     LDI r8, 32; BEQ r7, r8, :p2_vws
     LDI r8, 10; BEQ r7, r8, :p2_vws
     LDI r8, 13; BEQ r7, r8, :p2_vws
+    LDI r8, 47; BEQ r7, r8, :p2_skip_eol
+    LDI r8, 58; BEQ r7, r8, :p2_skip_lbl
     JMP :p2_tbl
 :p2_tbl
     LOAD r7, [r0]; ADD r0, r0, r13
     LOAD r8, [r0]; ADD r0, r0, r13
     LOAD r9, [r0]; ADD r0, r0, r13
-    // Log mnemonic chars
-    LDI r14, 0x7001; STORE r14, r7
-    LDI r14, 0x7002; STORE r14, r8
-    LDI r14, 0x7003; STORE r14, r9
     LDI r14, :match_mnemonic; CALL r14
     LDI r14, 0xFF; BEQ r4, r14, :p2_skip_line
     LDI r14, 13; BEQ r4, r14, :p2_emit_halt
@@ -153,7 +171,17 @@ JMP :start
     LOAD r7, [r0]; BEQ r7, r127, :eof
     LDI r8, 10; BEQ r7, r8, :p2_vws
     LDI r8, 13; BEQ r7, r8, :p2_vws
+    LDI r8, 59; BEQ r7, r8, :p2_semi
+    LDI r8, 47; BEQ r7, r8, :p2_skip_eol
     ADD r0, r0, r13; JMP :p2_skip_line
+:p2_semi; ADD r0, r0, r13; JMP :p2_loop
+:p2_skip_lbl
+    ADD r0, r0, r13; JMP :p2_skip_line
+:p2_skip_eol
+    LOAD r7, [r0]; BEQ r7, r127, :eof
+    LDI r8, 10; BEQ r7, r8, :p2_vws
+    LDI r8, 13; BEQ r7, r8, :p2_vws
+    ADD r0, r0, r13; JMP :p2_skip_eol
 
 :p2_vws; ADD r0, r0, r13; JMP :p2_loop
 
@@ -300,17 +328,28 @@ JMP :start
     LDI r14, :parse_val; CALL r14; LDI r6, 0; RET
 :po_reg; ADD r0, r0, r13; LDI r14, :parse_val; CALL r14; LDI r6, 1; RET
 :po_lbl
-    ADD r0, r0, r13; LOAD r7, [r0]; ADD r0, r0, r13
-    LOAD r8, [r0]; ADD r0, r0, r13; LOAD r9, [r0]; ADD r0, r0, r13
+    ADD r0, r0, r13
+    // Hash all label chars (same algorithm as pass 1)
+    LDI r9, 0; LDI r3, 31
+:sl_hash_lp
+    LOAD r7, [r0]
+    LDI r8, 95; BEQ r7, r8, :sl_hash_ch
+    LDI r8, 48; BLTU r7, r8, :sl_hash_dn
+    LDI r8, 58; BLTU r7, r8, :sl_hash_ch
+    LDI r8, 65; BLTU r7, r8, :sl_hash_dn
+    LDI r8, 91; BLTU r7, r8, :sl_hash_ch
+    LDI r8, 97; BLTU r7, r8, :sl_hash_dn
+    LDI r8, 123; BLTU r7, r8, :sl_hash_ch
+    JMP :sl_hash_dn
+:sl_hash_ch
+    MUL r9, r9, r3; ADD r9, r9, r7; ADD r0, r0, r13; JMP :sl_hash_lp
+:sl_hash_dn
+    // r9 = hash of label name. Search label table.
     LDI r14, 0x6000; LDI r15, 0x6400
 :sl_loop
-    LOAD r3, [r14]; BNE r3, r7, :sl_next
-    ADD r14, r14, r13; LOAD r3, [r14]; BNE r3, r8, :sl_ptr1
-    ADD r14, r14, r13; LOAD r3, [r14]; BNE r3, r9, :sl_ptr2
+    LOAD r3, [r14]; BNE r3, r9, :sl_next
     ADD r14, r14, r13; LOAD r7, [r14]; LDI r6, 2; RET
-:sl_ptr2; SUB r14, r14, r13
-:sl_ptr1; SUB r14, r14, r13
-:sl_next; LDI r3, 4; ADD r14, r14, r3; BNE r14, r15, :sl_loop
+:sl_next; LDI r3, 2; ADD r14, r14, r3; BNE r14, r15, :sl_loop
     LDI r7, 0; LDI r6, 2; RET
 
 :parse_val
