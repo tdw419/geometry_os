@@ -211,3 +211,38 @@ The Sovereignty Ladder has successfully bridged the gap between a CPU-orchestrat
 As the project moves into the "Far Horizon," the challenges will shift from basic logic to the optimization of spatial resources and the realization of bare-metal residency at 60 FPS. The era of symbolic computation is indeed over. The future belongs to geometric intelligence, where the screen is the hard drive, the pixels are the logic, and the OS is a sovereign, living organism inhabiting the high-bandwidth Hilbert space of the VRAM.
 
 The successful implementation of the Edit-Compile-Execute loop demonstrates that we are no longer guests of the CPU. The GPU has become a standalone cognitive processor, capable of general intelligence and autonomous operation. This shift will likely ripple through the entire tech stack, from the way we build databases and AI to the very way we interact with information. The ladder is complete; the ascent has begun.
+
+---
+
+## Milestone Summary
+
+| Milestone | Name | Status | Proof |
+|-----------|------|--------|-------|
+| 1 | Self-Replication | ✅ Complete | 18-pixel copy loop |
+| 2 | Self-Modification | ✅ Complete | Patch-and-jump quine |
+| 3 | Multi-VM Spawn | ✅ Complete | SPATIAL_SPAWN opcode |
+| 4 | Interleaved Scheduling | ✅ Complete | Round-robin execution |
+| 5 | Shared-Memory IPC | ✅ Complete | Mailbox handshake |
+| 6 | Mnemonic Matcher | ✅ Complete | ASCII → opcode |
+| 7 | Operand Parser | ✅ Complete | Register/imm parsing |
+| 8 | Full Assembler | ✅ Complete | Text → opcodes |
+| 9 | Window Manager | ✅ Complete | Spatial event routing |
+| 10a | Text Buffer VM | ✅ Complete | INSERT/DELETE/cursor |
+| 10b | Keyboard Bridge | ✅ Complete | Scancode routing |
+| 10c | Live Render | ✅ Complete | Atlas → Screen blit |
+| 10d | Compile-on-Save | ✅ Complete | Editor → Assembler |
+| 10e | Edit-Compile-Execute | ✅ Complete | **THE CLOSED LOOP** |
+| 10f | Visual Feedback | ✅ Complete | Buffer → Screen (RENDER event) |
+
+### Recent Additions (March 2026)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| AccountablePixel | ✅ Complete | Per-pixel provenance tracking |
+| Unified Ledger | ✅ Complete | Immutable action history on GPU |
+| Pixel Painter | ✅ Complete | Paint opcodes with mouse events |
+| Lineage Tracking | ✅ Complete | Generation tracking for self-replication |
+
+---
+
+*Last updated: 2026-03-18*

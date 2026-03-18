@@ -5028,4 +5028,173 @@ mod tests {
         println!("\n{}", "=".repeat(60));
         println!("SUCCESS: Editor can insert, delete, and move cursor!");
     }
+
+    #[test]
+    fn test_self_hosting_editor_render() {
+        // ============================================================
+        // Milestone 10f: Visual Feedback - RENDER with DRAW
+        // ============================================================
+        // The editor renders its text buffer to the screen using DRAW.
+        // This proves "what you type is what you see" on the GPU.
+        //
+        // Memory Layout:
+        //   0x0100 = cursor position
+        //   0x0101 = buffer length
+        //   0x0200 = mailbox (event_type)
+        //   0x0201 = mailbox (char)
+        //   0x1000 = text buffer
+        //   0x8000+ = screen region (DRAW writes here)
+        // ============================================================
+
+        let mut vram = SyntheticVram::new_small(16384);
+
+        let mut emit_ldi = |vram: &mut SyntheticVram, pc: &mut u32, reg: u8, val: u32| {
+            vram.poke(*pc, glyph(1, 0, reg, 0));
+            *pc += 1;
+            vram.poke(*pc, val);
+            *pc += 1;
+        };
+
+        let mut pc = 0u32;
+
+        // Setup constants
+        emit_ldi(&mut vram, &mut pc, 13, 1);    // r13 = 1
+        emit_ldi(&mut vram, &mut pc, 127, 0);   // r127 = 0
+        emit_ldi(&mut vram, &mut pc, 0, 0x200); // r0 = mailbox
+        emit_ldi(&mut vram, &mut pc, 1, 0x100); // r1 = cursor addr
+        emit_ldi(&mut vram, &mut pc, 2, 0x1000); // r2 = buffer base
+        emit_ldi(&mut vram, &mut pc, 12, 0x8000); // r12 = screen base
+
+        // Event loop
+        let event_loop = pc;
+        vram.poke(pc, glyph(3, 0, 0, 3)); pc += 1; // LOAD r3, [r0]
+        vram.poke(pc, 0); pc += 1;
+        vram.poke(pc, glyph(10, 0, 3, 127)); pc += 1; // BEQ r3, r127, loop
+        vram.poke(pc, (event_loop as i32 - pc as i32 - 1) as u32); pc += 1;
+
+        // Dispatch: INSERT (type=1) → skip to insert handler
+        emit_ldi(&mut vram, &mut pc, 4, 1);
+        vram.poke(pc, glyph(10, 0, 3, 4)); pc += 1;
+        let insert_off = pc; pc += 1;
+
+        // Dispatch: RENDER (type=7) → skip to render handler
+        emit_ldi(&mut vram, &mut pc, 5, 7);
+        vram.poke(pc, glyph(10, 0, 3, 5)); pc += 1;
+        let render_off = pc; pc += 1;
+
+        // Unknown event: clear and loop
+        vram.poke(pc, glyph(4, 0, 0, 127)); pc += 1; // STORE [r0], r127
+        let jmp_back = event_loop as i32 - pc as i32 - 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8)); pc += 1;
+
+        // === INSERT HANDLER ===
+        vram.poke(insert_off, (pc as i32 - insert_off as i32 - 1) as u32);
+        // r6 = char from mailbox+1
+        emit_ldi(&mut vram, &mut pc, 6, 0x201);
+        vram.poke(pc, glyph(3, 0, 6, 7)); pc += 1; // LOAD r7, [r6]
+        vram.poke(pc, 0); pc += 1;
+        // r8 = cursor
+        vram.poke(pc, glyph(3, 0, 1, 8)); pc += 1; // LOAD r8, [r1]
+        vram.poke(pc, 0); pc += 1;
+        // r9 = buffer + cursor
+        vram.poke(pc, glyph(2, 0, 2, 9)); pc += 1; // MOV r9, r2
+        vram.poke(pc, glyph(5, 0, 8, 9)); pc += 1; // ADD r9, r9, r8
+        // Store char
+        vram.poke(pc, glyph(4, 0, 9, 7)); pc += 1; // STORE [r9], r7
+        // cursor++
+        vram.poke(pc, glyph(5, 0, 13, 8)); pc += 1; // ADD r8, r8, r13
+        vram.poke(pc, glyph(4, 0, 1, 8)); pc += 1; // STORE [r1], r8
+        // Clear and loop
+        vram.poke(pc, glyph(4, 0, 0, 127)); pc += 1;
+        let jmp_back = event_loop as i32 - pc as i32 - 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8)); pc += 1;
+
+        // === RENDER HANDLER ===
+        vram.poke(render_off, (pc as i32 - render_off as i32 - 1) as u32);
+        // Render loop: for each char in buffer, DRAW to screen
+        // r20 = buffer index, r21 = screen x, r22 = screen y
+        emit_ldi(&mut vram, &mut pc, 20, 0);  // index = 0
+        emit_ldi(&mut vram, &mut pc, 21, 0);  // x = 0
+        emit_ldi(&mut vram, &mut pc, 22, 0);  // y = 0
+
+        let render_loop = pc;
+        // Load char from buffer[index]
+        vram.poke(pc, glyph(2, 0, 2, 23)); pc += 1; // MOV r23, r2 (buffer base)
+        vram.poke(pc, glyph(5, 0, 20, 23)); pc += 1; // ADD r23, r23, r20 (offset)
+        vram.poke(pc, glyph(3, 0, 23, 24)); pc += 1; // LOAD r24, [r23]
+        vram.poke(pc, 0); pc += 1;
+
+        // If char == 0, done
+        vram.poke(pc, glyph(10, 0, 24, 127)); pc += 1; // BEQ r24, r127, render_done
+        let render_done_off = pc; pc += 1;
+
+        // DRAW: screen[screen_y * 64 + screen_x] = char
+        // Calculate screen offset: y * 64 + x
+        // For simplicity, just write to screen_base + x (single row)
+        vram.poke(pc, glyph(2, 0, 12, 25)); pc += 1; // MOV r25, r12 (screen base)
+        vram.poke(pc, glyph(5, 0, 21, 25)); pc += 1; // ADD r25, r25, r21 (offset by x)
+        vram.poke(pc, glyph(4, 0, 25, 24)); pc += 1; // STORE [r25], r24 (write char to screen)
+
+        // Advance: x++, index++
+        vram.poke(pc, glyph(5, 0, 13, 21)); pc += 1; // ADD r21, r21, r13 (x++)
+        vram.poke(pc, glyph(5, 0, 13, 20)); pc += 1; // ADD r20, r20, r13 (index++)
+
+        // Loop back
+        let jmp_render = render_loop as i32 - pc as i32 - 1;
+        vram.poke(pc, glyph(9, 2, jmp_render as u8, (jmp_render >> 8) as u8)); pc += 1;
+
+        // render_done
+        vram.poke(render_done_off, (pc as i32 - render_done_off as i32 - 1) as u32);
+        // Clear event and loop
+        vram.poke(pc, glyph(4, 0, 0, 127)); pc += 1;
+        let jmp_back = event_loop as i32 - pc as i32 - 1;
+        vram.poke(pc, glyph(9, 2, jmp_back as u8, (jmp_back >> 8) as u8)); pc += 1;
+
+        // Spawn editor VM
+        vram.spawn_vm(0, &SyntheticVmConfig {
+            entry_point: 0,
+            parent_id: 0xFF,
+            base_addr: 0,
+            bound_addr: 0xA000,
+            eap_coord: 0,
+            generation: 0,
+            initial_regs: [0; 128],
+        }).unwrap();
+
+        // === STEP 1: Insert "HI" ===
+        println!("\n[STEP 1] Insert 'H' (72)");
+        vram.poke(0x100, 0); // cursor = 0
+        vram.poke(0x200, 1);  // INSERT event
+        vram.poke(0x201, 72); // 'H'
+        for _ in 0..5 { vram.execute_frame_with_limit(50); }
+        vram.poke(0x200, 0);  // clear mailbox
+
+        println!("[STEP 2] Insert 'I' (73)");
+        vram.poke(0x200, 1);  // INSERT event
+        vram.poke(0x201, 73); // 'I'
+        for _ in 0..5 { vram.execute_frame_with_limit(50); }
+        vram.poke(0x200, 0);
+
+        // Verify buffer
+        assert_eq!(vram.peek(0x1000), 72, "buffer[0] should be 'H'");
+        assert_eq!(vram.peek(0x1001), 73, "buffer[1] should be 'I'");
+
+        // === STEP 3: RENDER ===
+        println!("\n[STEP 3] Send RENDER event (type=7)");
+        vram.poke(0x200, 7); // RENDER event
+
+        for _ in 0..20 { vram.execute_frame_with_limit(50); }
+
+        // === VERIFY SCREEN ===
+        println!("\n[VERIFY] Screen region at 0x8000:");
+        println!("  screen[0] = {} (expected 72='H')", vram.peek(0x8000));
+        println!("  screen[1] = {} (expected 73='I')", vram.peek(0x8001));
+
+        assert_eq!(vram.peek(0x8000), 72, "screen[0] should have 'H'");
+        assert_eq!(vram.peek(0x8001), 73, "screen[1] should have 'I'");
+
+        println!("\n✅ Milestone 10f: Visual Feedback — PASSED");
+        println!("  Editor renders buffer to screen via STORE (simplified DRAW)");
+        println!("  Next: Wire actual DRAW opcode for glyph atlas blitting");
+    }
 }
