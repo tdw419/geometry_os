@@ -9,9 +9,60 @@
 //! - Logic emerges from interference patterns (constructive = HIGH, destructive = LOW)
 //! - Evolution can optimize by nudging wave parameters continuously
 //!
-//! TODO: Full GPU implementation with WGSL compute shaders
+//! ## Architecture
+//!
+//! The `WaveLogicBackend` trait defines the interface for wave simulation backends.
+//! Multiple implementations exist:
+//! - `WaveLogicUnit` - CPU-based simulation (this module)
+//! - `WluGpuResources` - DRM/GBM GPU backend (`backend/drm/wlu_compute.rs`)
+//! - Future: wgpu-based GPU backend for integration with main App
 
 use std::time::Instant;
+
+/// Trait defining the interface for wave logic computation backends.
+///
+/// This abstraction allows the App to switch between CPU and GPU implementations
+/// based on hardware capabilities and performance requirements.
+///
+/// # Design Notes
+///
+/// - GPU backends should implement async update where possible
+/// - All backends must support sensor value readback for logic operations
+/// - Oscillator configuration is runtime-modifiable for evolution
+pub trait WaveLogicBackend {
+    /// Advance the simulation by dt seconds
+    fn update(&mut self, dt: f32);
+    
+    /// Get the current sensor value (wave amplitude at sensor position)
+    fn get_sensor_value(&self) -> f32;
+    
+    /// Get the logic output (0 = LOW, 1 = HIGH based on threshold)
+    fn get_logic_output(&self) -> u32;
+    
+    /// Set oscillator A frequency (Hz)
+    fn set_oscillator_a_frequency(&mut self, frequency: f32);
+    
+    /// Set oscillator B frequency (Hz)
+    fn set_oscillator_b_frequency(&mut self, frequency: f32);
+    
+    /// Set oscillator A phase (radians)
+    fn set_oscillator_a_phase(&mut self, phase: f32);
+    
+    /// Set oscillator B phase (radians)
+    fn set_oscillator_b_phase(&mut self, phase: f32);
+    
+    /// Set oscillator A amplitude (0.0 to 1.0)
+    fn set_oscillator_a_amplitude(&mut self, amplitude: f32);
+    
+    /// Set oscillator B amplitude (0.0 to 1.0)
+    fn set_oscillator_b_amplitude(&mut self, amplitude: f32);
+    
+    /// Get the grid size (width = height)
+    fn grid_size(&self) -> u32;
+    
+    /// Get current simulation frame number
+    fn frame(&self) -> u32;
+}
 
 /// Configuration for the Wave-Logic Unit
 #[derive(Debug, Clone)]
@@ -311,6 +362,54 @@ impl WaveLogicUnit {
     /// Get the state
     pub fn get_state(&self) -> &WLUState {
         &self.state
+    }
+}
+
+/// Implement WaveLogicBackend trait for CPU-based WaveLogicUnit
+impl WaveLogicBackend for WaveLogicUnit {
+    fn update(&mut self, dt: f32) {
+        // Call the inherent update method (not recursive - calls WaveLogicUnit::update)
+        WaveLogicUnit::update(self, dt);
+    }
+    
+    fn get_sensor_value(&self) -> f32 {
+        self.state.sensor_value
+    }
+    
+    fn get_logic_output(&self) -> u32 {
+        self.state.logic_output
+    }
+    
+    fn set_oscillator_a_frequency(&mut self, frequency: f32) {
+        self.state.oscillator_a.frequency = frequency;
+    }
+    
+    fn set_oscillator_b_frequency(&mut self, frequency: f32) {
+        self.state.oscillator_b.frequency = frequency;
+    }
+    
+    fn set_oscillator_a_phase(&mut self, phase: f32) {
+        self.state.oscillator_a.phase = phase;
+    }
+    
+    fn set_oscillator_b_phase(&mut self, phase: f32) {
+        self.state.oscillator_b.phase = phase;
+    }
+    
+    fn set_oscillator_a_amplitude(&mut self, amplitude: f32) {
+        self.state.oscillator_a.amplitude = amplitude;
+    }
+    
+    fn set_oscillator_b_amplitude(&mut self, amplitude: f32) {
+        self.state.oscillator_b.amplitude = amplitude;
+    }
+    
+    fn grid_size(&self) -> u32 {
+        self.config.grid_size
+    }
+    
+    fn frame(&self) -> u32 {
+        self.state.frame
     }
 }
 
