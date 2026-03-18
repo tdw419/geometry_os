@@ -10,6 +10,7 @@ use glam::{Mat4, Vec2, Vec3};
 use smithay::backend::input::ButtonState;
 use std::collections::HashSet;
 use std::sync::Arc;
+use wgpu;
 
 /// Camera controller for graph navigation
 #[derive(Debug, Clone)]
@@ -515,7 +516,7 @@ impl InspectorUI {
     }
 
     /// Render UI overlay (placeholder - actual rendering would use egui or similar)
-    pub fn render(&self) {
+    pub fn render(&self, _render_pass: &mut wgpu::RenderPass) {
         // This would render the UI panels using a UI library
         // For now, just log the state for debugging
         if self.node_info_panel.visible && self.node_info_panel.node_info.is_some() {
@@ -584,8 +585,8 @@ impl MemoryGraphInspector {
     }
 
     /// Render the inspector
-    pub fn render(&self) {
-        self.ui.render();
+    pub fn render(&self, render_pass: &mut wgpu::RenderPass) {
+        self.ui.render(render_pass);
         // Graph rendering is handled by GraphRenderer
     }
 }

@@ -2239,9 +2239,8 @@ impl<'a> Renderer<'a> {
 
             // Render inspector UI overlay if visible
             if inspector_visible {
-                if let Some(_inspector_ui) = inspector_ui {
-                    // TODO: Implement proper WGPU UI rendering
-                    // _inspector_ui.render(&mut render_pass);
+                if let Some(inspector_ui) = inspector_ui {
+                    inspector_ui.render(&mut render_pass);
                 }
             }
         }
