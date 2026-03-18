@@ -1,0 +1,248 @@
+# ASCII-First Refactor Team
+# Refactors Session Analyzer to ASCII-First Architecture
+
+team:
+  name: ascii-first-refactor-team
+  description: |
+    Refactors Session Analyzer to ASCII-First Architecture where ASCII is the primary
+    interface and GUI is an optional mirror. Extracts core business logic, creates central
+    state store, implements template-driven rendering, and updates all layers.
+
+  project_root: /home/jericho/zion/projects/ai_auto_development/ai_auto_development/apps/session-analyzer-app
+
+  agents:
+    - name: core-architect
+      role: Extracts business logic from presentation layer
+      focus:
+        - Create src/core/ directory structure
+        - Move providers, scanner, scheduler, config, LLM client to core
+        - Create unified core/index.ts exports
+        - Update all imports to use core module
+      files:
+        - src/core/index.ts
+        - src/core/providers/*.ts
+        - src/core/scanner/SourceScanner.ts
+        - src/core/scheduler/SchedulerEngine.ts
+        - src/core/config/ConfigManager.ts
+        - src/core/llm/LLMClient.ts
+        - tests/core/*.test.ts
+
+    - name: state-architect
+      role: Creates central ASCII state machine
+      focus:
+        - Design AsciiStateStore with subscription model
+        - Define AsciiState and AsciiStateData types
+        - Implement state transitions via label bindings
+        - Refactor StateManager to delegate to store
+      files:
+        - src/ascii/state/store.ts
+        - src/ascii/state/types.ts
+        - src/bun/ascii-state-manager.ts
+        - tests/ascii/state/*.test.ts
+
+    - name: template-engineer
+      role: Creates ASCII templates and rendering engine
+      focus:
+        - Design ASCII templates for all states (dashboard, sources, config, history, providers)
+        - Use Mustache-style {{variable}} syntax
+        - Refactor AsciiGenerator to use templates
+        - Support {{#each}} for lists
+      files:
+        - src/ascii/states/dashboard.ascii
+        - src/ascii/states/sources.ascii
+        - src/ascii/states/config.ascii
+        - src/ascii/states/history.ascii
+        - src/ascii/states/providers.ascii
+        - src/bun/ascii-generator.ts
+        - tests/ascii/generator.test.ts
+
+    - name: api-refactorer
+      role: Refactors HTTP API to read from ASCII store
+      focus:
+        - Update /view to render from AsciiStateStore
+        - Update /control to delegate to store.transition()
+        - Accept store and generator as dependencies
+        - Maintain backward compatibility
+      files:
+        - src/bun/api.ts
+        - tests/api.test.ts
+
+    - name: gui-integrator
+      role: Updates GUI to mirror ASCII state
+      focus:
+        - Subscribe to AsciiStateStore changes
+        - Add data-label attributes to buttons
+        - Update tab highlighting based on state
+        - Display labels matching ASCII labels
+      files:
+        - src/mainview/index.ts
+        - src/mainview/index.html
+        - src/mainview/index.css
+
+    - name: mcp-specialist
+      role: Updates MCP bridge for new architecture
+      focus:
+        - Verify ascii_view tool works with new /view
+        - Verify ascii_control tool works with new /control
+        - Test with MCP client
+        - Update tool descriptions if needed
+      files:
+        - mcp_ascii_bridge/src/server.py
+
+    - name: test-engineer
+      role: Creates comprehensive test suite
+      focus:
+        - Unit tests for AsciiStateStore
+        - Unit tests for AsciiGenerator
+        - Integration tests for API endpoints
+        - E2E tests for state transitions
+        - Verify 80%+ coverage
+      files:
+        - tests/core/index.test.ts
+        - tests/ascii/state/store.test.ts
+        - tests/ascii/state/manager.test.ts
+        - tests/ascii/generator.test.ts
+        - tests/api.test.ts
+
+    - name: doc-writer
+      role: Updates documentation for ASCII-first architecture
+      focus:
+        - Update README with ASCII-first approach
+        - Document /view and /control endpoints
+        - Update architecture.md with new component diagram
+        - Add usage examples for AI agent control
+      files:
+        - README.md
+        - docs/architecture.md
+        - docs/api.md
+
+  tasks:
+    - id: task-1.1
+      title: Extract Core Business Logic
+      assignee: core-architect
+      dependencies: []
+      description: |
+        Create src/core/ directory and move all business logic from src/bun/:
+        - providers/ (from ai/providers/)
+        - scanner/ (from scanner/)
+        - scheduler/ (from scheduler/)
+        - config/ (from config/)
+        - llm/ (from ai/)
+
+        Update all imports. Run npx tsc --noEmit to verify.
+
+    - id: task-1.2
+      title: Create Core Index
+      assignee: core-architect
+      dependencies: [task-1.1]
+      description: |
+        Create src/core/index.ts with unified exports.
+        Write tests in tests/core/index.test.ts.
+        Verify all exports are accessible.
+
+    - id: task-2.1
+      title: Create Central State Store
+      assignee: state-architect
+      dependencies: [task-1.2]
+      description: |
+        Create AsciiStateStore in src/ascii/state/store.ts.
+        Define AsciiState and AsciiStateData types.
+        Implement transition(), subscribe(), getState(), setData().
+        Write comprehensive unit tests.
+
+    - id: task-2.2
+      title: Refactor StateManager
+      assignee: state-architect
+      dependencies: [task-2.1]
+      description: |
+        Refactor src/bun/ascii-state-manager.ts to delegate to AsciiStateStore.
+        Maintain backward compatibility with existing API.
+        Write tests verifying delegation works correctly.
+
+    - id: task-3.1
+      title: Create ASCII Templates
+      assignee: template-engineer
+      dependencies: [task-2.2]
+      description: |
+        Create ASCII templates for all states:
+        - dashboard.ascii
+        - sources.ascii
+        - config.ascii
+        - history.ascii
+        - providers.ascii
+
+        Use Mustache-style {{variable}} syntax.
+        Include {{#each}} for lists.
+
+    - id: task-3.2
+      title: Refactor AsciiGenerator
+      assignee: template-engineer
+      dependencies: [task-3.1]
+      description: |
+        Refactor AsciiGenerator to use template-driven rendering.
+        Accept state name and data, load template, render.
+        Support variable substitution and list iteration.
+
+    - id: task-4.1
+      title: Refactor HTTP API
+      assignee: api-refactorer
+      dependencies: [task-3.2]
+      description: |
+        Refactor src/bun/api.ts to:
+        - Accept AsciiStateStore and AsciiGenerator as dependencies
+        - /view renders current state from store
+        - /control delegates to store.transition()
+        Maintain backward compatibility.
+
+    - id: task-5.1
+      title: GUI Integration
+      assignee: gui-integrator
+      dependencies: [task-4.1]
+      description: |
+        Update GUI to subscribe to AsciiStateStore.
+        Add data-label attributes to all buttons.
+        Sync tab highlighting with ASCII state.
+        Test GUI mirrors ASCII state correctly.
+
+    - id: task-6.1
+      title: Update MCP Bridge
+      assignee: mcp-specialist
+      dependencies: [task-4.1]
+      description: |
+        Verify MCP tools work with refactored API:
+        - ascii_view
+        - ascii_control
+        - ascii_navigate
+        Test with actual MCP client.
+
+    - id: task-7.1
+      title: Update Documentation
+      assignee: doc-writer
+      dependencies: [task-5.1, task-6.1]
+      description: |
+        Update README.md and docs/architecture.md.
+        Document ASCII-first approach.
+        Add usage examples for /view and /control.
+
+    - id: task-7.2
+      title: Remove Dead Code
+      assignee: test-engineer
+      dependencies: [task-7.1]
+      description: |
+        Run npx ts-prune to find unused exports.
+        Remove duplicate state management code.
+        Remove old GUI-only code paths.
+        Run all tests to verify nothing broken.
+
+  success_criteria:
+    - App runs headless (no GUI required)
+    - /view returns correct ASCII for current state
+    - /control {"label": "X"} triggers correct action
+    - GUI mirrors ASCII state in real-time
+    - All tests pass with 80%+ coverage
+    - No breaking changes to existing API
+    - Documentation updated
+
+  reference_docs:
+    - /home/jericho/zion/projects/ai_auto_development/ai_auto_development/apps/session-analyzer-app/docs/plans/2026-03-18-ascii-first-refactor.md
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/apps/ascii-ref-app/ASCII-FIRST_PATTERN.md
