@@ -297,10 +297,19 @@ impl AsciiCartridge {
 
 /// Decode target string from packed bytes
 fn decode_target(packed: u16) -> String {
-    // Simple 3-byte ASCII decode
-    let bytes = packed.to_le_bytes();
-    let s = String::from_utf8_lossy(&bytes).to_string();
-    s.trim_end_matches('\0').to_string()
+    // Decode as 16-bit little-endian, but only use valid ASCII range
+    // The button label is stored in p1 (lower byte) and p2 (upper byte)
+    let byte1 = (packed & 0xFF) as u8;
+    let byte2 = ((packed >> 8) & 0xFF) as u8;
+
+    // Only use the first byte if it's a printable ASCII character
+    if byte1 >= 32 && byte1 <= 126 {
+        return String::from(byte1 as char);
+    } else if byte2 >= 32 && byte2 <= 126 {
+        return String::from(byte2 as char);
+    } else {
+        return format!("[0x{:02X}]", byte1);
+    }
 }
 
 #[cfg(test)]

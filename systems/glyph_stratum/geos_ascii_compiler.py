@@ -161,23 +161,23 @@ class GlyphAssemblyGenerator:
         sit_data = []
 
         for button in self.parser.buttons:
-            x, y = button["x"], button["y"]
-            label = button["label"]
+            x, y = button['x'], button['y']
+            label = button['label']
 
             # SIT entry format: x, y, opcode, target
             # Map to Hilbert address for SIT lookup
             sit_idx = y * GLYPH_WIDTH + x
 
             # For now, use JUMP (209) to handler
-            sit_data.append(
-                {
-                    "idx": sit_idx,
-                    "x": x,
-                    "y": y,
-                    "opcode": 209,  # JUMP
-                    "target": f"handle_{label}",
-                }
-            )
+            # Encode button label in p1 and p2 for debugging
+            sit_data.append({
+                'idx': sit_idx,
+                'x': x,
+                'y': y,
+                'opcode': 209,  # JUMP
+                'target': f'handle_{label}',
+                'label': label  # Store label for encoding
+            })
 
         return sit_data
 
