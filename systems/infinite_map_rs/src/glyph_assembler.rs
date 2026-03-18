@@ -222,6 +222,10 @@ impl GlyphAssembler {
             }
         }
         eprintln!("DEBUG: First pass done, total words = {}", self.addr);
+        eprintln!("DEBUG: Labels collected:");
+        for (name, addr) in &self.labels {
+            eprintln!("  {} = {:#04X}", name, addr);
+        }
 
         // Second pass: assemble
         self.addr = 0;
