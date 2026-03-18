@@ -115,10 +115,25 @@ struct SchedulerState {
 @group(0) @binding(3) var<storage, read_write> mailboxes: array<vec4<u32>, 32>;
 @group(0) @binding(4) var<storage, read> event_header: vec4<u32>; // [head, tail, cap, _]
 @group(0) @binding(5) var<storage, read> event_queue: array<vec4<u32>, 1024>;
+@group(0) @binding(6) var<storage, read_write> debug_buffer: array<u32, 1024>;
 
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+fn debug_log(vm_idx: u32, pc: u32, opcode: u32, stratum: u32, p1: u32, p2: u32) {
+    if (vm_idx != 1u) { return; } // Only log VM 1
+    let head = debug_buffer[0];
+    if (head >= 250u) { return; } // Buffer full (4 u32s per entry, header is first u32)
+    
+    let base = 1u + head * 4u;
+    debug_buffer[base] = pc;
+    debug_buffer[base + 1u] = opcode;
+    debug_buffer[base + 2u] = stratum;
+    debug_buffer[base + 3u] = (p1 << 16u) | p2;
+    
+    debug_buffer[0] = head + 1u;
+}
 
 fn d2xy(n: u32, d_in: u32) -> vec2<u32> {
     var x = 0u; var y = 0u; var s = 1u; var d = d_in;
@@ -159,6 +174,9 @@ fn execute_instruction(vm_idx: u32) {
     let coords = d2xy(GRID_SIZE, vms[vm_idx].pc);
     let glyph = textureLoad(ram, vec2<i32>(i32(coords.x), i32(coords.y)));
     let opcode = glyph.r; let stratum = glyph.g; let p1 = glyph.b; let p2 = glyph.a;
+
+    debug_log(vm_idx, vms[vm_idx].pc, opcode, stratum, p1, p2);
+
     vms[vm_idx].cycles = vms[vm_idx].cycles + 1u;
     switch (opcode) {
         case 0u: { vms[vm_idx].pc = vms[vm_idx].pc + 1u; }

@@ -102,6 +102,9 @@ pub struct GlyphVmScheduler {
     /// Readback buffer for stats
     stats_buffer: wgpu::Buffer,
 
+    /// Debug buffer for shader tracing
+    debug_buffer: wgpu::Buffer,
+
     /// RAM texture view (.rts.png program memory)
     ram_view: Option<wgpu::TextureView>,
 
@@ -207,6 +210,17 @@ impl GlyphVmScheduler {
                     },
                     count: None,
                 },
+                // Binding 6: Debug Buffer
+                wgpu::BindGroupLayoutEntry {
+                    binding: 6,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
         });
 
@@ -278,10 +292,21 @@ impl GlyphVmScheduler {
             mapped_at_creation: false,
         });
 
-        // Create readback buffer for stats
+        // Create debug buffer (1024 u32s)
+        let debug_buffer_size = 1024 * 4;
+        let debug_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Glyph VM Debug Buffer"),
+            size: debug_buffer_size,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // Create readback buffer for stats + debug
         let stats_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Glyph VM Stats Readback Buffer"),
-            size: vm_buffer_size + scheduler_buffer_size,
+            size: vm_buffer_size + scheduler_buffer_size + debug_buffer_size,
             usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -297,6 +322,7 @@ impl GlyphVmScheduler {
             event_header_buffer,
             event_queue_buffer,
             stats_buffer,
+            debug_buffer,
             ram_view: None,
             ram_texture: None,
             ram_staging_buffer: None,
@@ -600,6 +626,10 @@ impl GlyphVmScheduler {
                     binding: 5,
                     resource: self.event_queue_buffer.as_entire_binding(),
                 },
+                wgpu::BindGroupEntry {
+                    binding: 6,
+                    resource: self.debug_buffer.as_entire_binding(),
+                },
             ],
         });
 
@@ -702,6 +732,40 @@ impl GlyphVmScheduler {
             .find(|s| s.vm_id == vm_id)
             .map(|s| s.pc)
             .ok_or_else(|| format!("VM {} not found in stats", vm_id))
+    }
+
+    /// Read the debug buffer from GPU
+    pub fn read_debug_buffer(&self) -> Vec<u32> {
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Glyph VM Debug Read Encoder"),
+            });
+
+        let size = 1024 * 4;
+        encoder.copy_buffer_to_buffer(&self.debug_buffer, 0, &self.stats_buffer, 0, size);
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        let slice = self.stats_buffer.slice(..size);
+        let (tx, rx) = std::sync::mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |res| {
+            tx.send(res).ok();
+        });
+        self.device.poll(wgpu::Maintain::Wait);
+
+        if let Ok(Ok(())) = pollster::block_on(async { rx.recv() }) {
+            let data = slice.get_mapped_range();
+            let debug_data: Vec<u32> = data
+                .chunks_exact(4)
+                .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
+                .collect();
+            drop(data);
+            self.stats_buffer.unmap();
+            debug_data
+        } else {
+            Vec::new()
+        }
     }
 
     /// Count active VMs (non-INACTIVE state)

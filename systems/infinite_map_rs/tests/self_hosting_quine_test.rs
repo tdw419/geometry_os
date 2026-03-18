@@ -204,14 +204,23 @@ mod tests {
             if frame == 0 {
                 scheduler.sync_gpu_to_shadow();
                 let post_frame0_0 = scheduler.peek_substrate_single(0);
-                let post_frame0_1 = scheduler.peek_substrate_single(1);
-                let post_frame0_state = scheduler.get_vm_state(1);
                 let post_frame0_pc = scheduler.get_vm_pc(1);
                 println!("\n  IMMEDIATELY after frame 0:");
                 println!("    instr[0] = {:08X} (expected 00000001)", post_frame0_0);
-                println!("    instr[1] = {:08X} (expected 00001000)", post_frame0_1);
-                println!("    VM state: {:?}", post_frame0_state);
                 println!("    VM PC: {:?}", post_frame0_pc);
+
+                let debug_trace = scheduler.read_debug_buffer();
+                let entries = debug_trace[0];
+                println!("    Debug Trace (first 20 entries):");
+                for i in 0..entries.min(20) {
+                    let base = 1 + i as usize * 4;
+                    let pc = debug_trace[base];
+                    let op = debug_trace[base + 1];
+                    let st = debug_trace[base + 2];
+                    let p1p2 = debug_trace[base + 3];
+                    println!("      [{:3}] PC={:04X} OP={:3} ST={:3} P1={:3} P2={:3}", 
+                        i, pc, op, st, (p1p2 >> 16), (p1p2 & 0xFFFF));
+                }
             }
 
             if frame % 100 == 0 {
