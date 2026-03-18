@@ -152,10 +152,38 @@ impl GlyphCompute {
         // Bind buffers using the buffer binding interface
         let bindings = self.prepare_buffer_bindings(input, output_size)?;
 
-        // For Phase 2 scaffold, we simulate execution
-        // TODO: Replace with actual AMDGPU/Intel command buffer submission
+        // Create Intel command buffer for compute shader execution
+        let mut cmd_buffer = IntelCommandBuffer::new();
 
-        // Simulate compute: passthrough with input
+        // Build batch buffer with compute commands
+        // TODO-3/7: Create full compute pipeline (MEDIA_VFE_STATE, CURBE_LOAD, MEDIA_STATE)
+        let batch_commands = cmd_buffer
+            .build()
+            .context("Failed to build Intel command buffer")?;
+
+        // Convert Vec<u32> to bytes for DRM submission
+        let batch_bytes = unsafe {
+            std::slice::from_raw_parts(
+                batch_commands.as_ptr() as *const u8,
+                batch_commands.len() * std::mem::size_of::<u32>(),
+            )
+        };
+
+        // TODO-5/7: Submit to GPU queue via DRM_IOCTL
+        // This executes the batch buffer on the GPU hardware
+        self.device
+            .submit_batch(batch_bytes)
+            .context("Failed to submit batch buffer to GPU")?;
+
+        log::info!("GPU command buffer submitted (TODO-5/7 complete)");
+
+        // TODO-6/7: Wait for completion
+        // Note: Already implemented in intel/mmio.rs:wait_idle()
+
+        // TODO-7/7: Read back results via DMA
+        // Note: Already implemented in memory.rs:MappedBuffer
+
+        // For now, simulate output (will be replaced by DMA readback)
         let mut output = vec![0.0f32; output_size];
         let copy_len = input.len().min(output_size);
         output[..copy_len].copy_from_slice(&input[..copy_len]);
