@@ -2669,8 +2669,8 @@ mod tests {
         }
 
         // Debug: show label table at 0x6000 (first 50 entries = 200 words)
-        println!("\n  Label table at 0x6000 (first 50 entries):");
-        for entry in 0..50 {
+        println!("\n  Label table at 0x6000 (first 30 entries):");
+        for entry in 0..30 {
             let base = 0x6000 + entry * 4;
             let c1 = vram.peek(base);
             let c2 = vram.peek(base + 1);
@@ -2686,6 +2686,24 @@ mod tests {
                 .collect();
             println!("    Entry {}: '{}' ({},{},{}) -> addr {:04X}", entry, name, c1, c2, c3, addr);
         }
+
+        // Debug: trace STOREs to output buffer
+        println!("\n  Tracing STOREs to output buffer (r1 = address reg):");
+        let trace = vram.trace();
+        let mut output_stores = 0;
+        let mut r1_stores = 0;
+        for (i, entry) in trace.iter().enumerate() {
+            if entry.opcode == 4 { // STORE
+                output_stores += 1;
+                if entry.p1 == 1 { // p1_reg == 1 means STORE r1, rX (writing to output buffer)
+                    r1_stores += 1;
+                    if r1_stores <= 20 {
+                        println!("    STORE r1, r{} at PC={:04X}", entry.p2, entry.pc);
+                    }
+                }
+            }
+        }
+        println!("    Total STOREs: {}, STOREs to r1: {}", output_stores, r1_stores);
 
         // Debug: show output buffer as ASCII
         println!("\n  Output at 0x5000 (first 40 words as ASCII):");
