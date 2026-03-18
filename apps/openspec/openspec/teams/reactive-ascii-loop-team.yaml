@@ -1,0 +1,114 @@
+# Reactive ASCII Loop Team
+# Verifies the Click → VM → Display reactive loop
+
+team:
+  name: reactive-ascii-loop-team
+  description: |
+    Implements and verifies the reactive loop for ASCII cartridges.
+    Ensures clicks trigger VM execution, which updates the display.
+
+  project_root: /home/jericho/zion/projects/geometry_os/geometry_os
+
+  agents:
+    - name: cartridge-architect
+      role: Creates test cartridge with labels and VM code
+      focus:
+        - Design reactive_test.ascii with labeled buttons
+        - Create mapping.json with label-to-action bindings
+        - Verify compiler resolves labels to addresses
+      files:
+        - apps/ascii-world/ascii-world-master/apps/geos-ascii/examples/reactive_test.ascii
+        - apps/ascii-world/ascii-world-master/apps/geos-ascii/examples/reactive_test.mapping.json
+
+    - name: test-engineer
+      role: Creates integration tests for the reactive loop
+      focus:
+        - Test cartridge loading and label resolution
+        - Test click-to-VM execution
+        - Test VM writes to glyph grid and state buffer
+        - Test full reactive loop
+      files:
+        - systems/infinite_map_rs/tests/ascii_cartridge_integration.rs
+
+    - name: compiler-specialist
+      role: Ensures compiler handles labels correctly
+      focus:
+        - Verify scan_labels() works
+        - Verify resolve_target() converts labels to addresses
+        - Test with reactive_test.ascii
+      files:
+        - apps/ascii-world/ascii-world-master/apps/geos-ascii/compiler/geos_ascii_compiler.py
+
+    - name: doc-writer
+      role: Updates documentation
+      focus:
+        - Add verification section to ASCII_TO_GPU_PIPELINE.md
+        - Document test commands and expected results
+      files:
+        - docs/ASCII_TO_GPU_PIPELINE.md
+
+  tasks:
+    - id: task-1
+      title: Create Test Cartridge Template
+      assignee: cartridge-architect
+      dependencies: []
+      description: |
+        Create reactive_test.ascii with labeled buttons and reactive_test.mapping.json.
+        Include labels for increment, decrement, reset operations.
+
+    - id: task-2
+      title: Compile Test Cartridge
+      assignee: compiler-specialist
+      dependencies: [task-1]
+      description: |
+        Run geos_ascii_compiler.py on reactive_test.ascii.
+        Verify labels are resolved to addresses in the output PNG.
+
+    - id: task-3
+      title: Integration Tests - Label Resolution
+      assignee: test-engineer
+      dependencies: [task-2]
+      description: |
+        Create ascii_cartridge_integration.rs with tests for:
+        - Cartridge loads correctly
+        - Memory layout constants are correct
+        - Click triggers VM execution
+
+    - id: task-4
+      title: Integration Tests - VM Writes
+      assignee: test-engineer
+      dependencies: [task-3]
+      description: |
+        Add tests for VM writes to:
+        - Glyph grid (display updates)
+        - State buffer (variable storage)
+
+    - id: task-5
+      title: Integration Tests - Full Loop
+      assignee: test-engineer
+      dependencies: [task-4]
+      description: |
+        Add test for complete reactive loop:
+        Click → SIT Lookup → VM Execution → Display Update
+
+    - id: task-6
+      title: Update Documentation
+      assignee: doc-writer
+      dependencies: [task-5]
+      description: |
+        Add verification section to ASCII_TO_GPU_PIPELINE.md.
+        Document test commands and expected results.
+
+  success_criteria:
+    - Test cartridge compiles with resolved labels
+    - All integration tests pass
+    - Click triggers VM opcode execution
+    - VM can write to glyph grid
+    - VM can write to state buffer
+    - Full reactive loop test passes
+    - Documentation updated
+
+  reference_docs:
+    - docs/plans/2026-03-18-reactive-ascii-loop-design.md
+    - docs/plans/2026-03-18-reactive-ascii-loop-impl.md
+    - docs/ASCII_TO_GPU_PIPELINE.md

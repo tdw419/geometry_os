@@ -1,0 +1,12 @@
+{
+  "buttons": [
+    {"label": "A", "action": "JUMP", "target": "increment"},
+    {"label": "B", "action": "JUMP", "target": "decrement"},
+    {"label": "C", "action": "JUMP", "target": "reset"}
+  ],
+  "labels": {
+    "increment": "VM code that increments counter",
+    "decrement": "VM code that decrements counter",
+    "reset": "VM code that resets counter to 0"
+  }
+}

@@ -1,0 +1,43 @@
+# OpenSpec Change: Reactive ASCII Loop
+
+change:
+  name: reactive-ascii-loop
+  title: Reactive ASCII Loop - Click → VM → Display
+  status: proposed
+  created: 2026-03-18
+
+  scope:
+    - apps/ascii-world/ascii-world-master/apps/geos-ascii/compiler/geos_ascii_compiler.py
+    - apps/ascii-world/ascii-world-master/apps/geos-ascii/examples/reactive_test.ascii
+    - apps/ascii-world/ascii-world-master/apps/geos-ascii/examples/reactive_test.mapping.json
+    - apps/ascii-world/ascii-world-master/apps/geos-ascii/examples/reactive_test.rts.png
+    - systems/infinite_map_rs/src/ascii_cartridge.rs
+    - systems/infinite_map_rs/src/synthetic_vram.rs
+    - systems/infinite_map_rs/tests/ascii_cartridge_integration.rs
+    - docs/ASCII_TO_GPU_PIPELINE.md
+
+  references:
+    design: docs/plans/2026-03-18-reactive-ascii-loop-design.md
+    plan: docs/plans/2026-03-18-reactive-ascii-loop-impl.md
+    team: teams/reactive-ascii-loop-team.yaml
+
+  milestones:
+    - id: M1
+      name: Test Cartridge Creation
+      tasks: [task-1, task-2]
+      status: pending
+
+    - id: M2
+      name: Integration Tests
+      tasks: [task-3, task-4, task-5]
+      status: pending
+
+    - id: M3
+      name: Documentation
+      tasks: [task-6]
+      status: pending
+
+  metrics:
+    test_count: 6
+    coverage_target: 80
+    estimated_hours: 2
