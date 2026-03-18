@@ -8,6 +8,7 @@ use std::os::unix::io::AsRawFd;
 
 use super::buffer_binding::{BufferBindingInterface, DispatchBindings};
 use super::device::DrmDevice;
+use super::intel::command_buffer::IntelCommandBuffer;
 use super::memory::GpuMemoryAllocator;
 use gbm::BufferObject;
 
@@ -193,21 +194,93 @@ impl GlyphCompute {
     /// binds the input and output buffers for the compute shader.
     fn prepare_buffer_bindings(&mut self, input: &[f32], output_size: usize) -> Result<DispatchBindings> {
         let bindings = self.buffer_bindings_mut()?;
-        
+
         // Clear any previous bindings
         bindings.clear();
-        
+
         // Bind input buffer (convert f32 slice to bytes)
         let input_bytes = input.len() * std::mem::size_of::<f32>();
         bindings.bind_input_buffer(input_bytes, None)
             .context("Failed to bind input buffer")?;
-        
+
         // Bind output buffer
         let output_bytes = output_size * std::mem::size_of::<f32>();
         bindings.bind_output_buffer(output_bytes)
             .context("Failed to bind output buffer")?;
-        
+
         // Prepare and validate bindings for dispatch
         bindings.prepare_dispatch()
+    }
+
+    /// Create an Intel compute command buffer for SPIR-V execution.
+    ///
+    /// This builds a batch buffer with the necessary commands to execute
+    /// a compute shader on Intel GPUs via the RCS (Render Command Stream).
+    ///
+    /// # Arguments
+    /// * `spirv_gpu_addr` - GPU address of the uploaded SPIR-V binary
+    /// * `input_gpu_addr` - GPU address of the input buffer
+    /// * `output_gpu_addr` - GPU address of the output buffer
+    /// * `workgroup_size` - (x, y, z) workgroup dimensions
+    ///
+    /// # Returns
+    /// A vector of u32 commands ready for submission to the GPU.
+    ///
+    /// # Notes
+    /// - TODO-3/7: This implements command buffer creation for Intel GPUs
+    /// - Future: Will need AMDGPU equivalent for AMD hardware
+    /// - Uses MEDIA_VFE_STATE for compute engine setup
+    /// - Uses CURBE_LOAD for binding buffers
+    /// - Uses MEDIA_STATE for dispatch
+    pub fn create_intel_command_buffer(
+        &self,
+        spirv_gpu_addr: u64,
+        input_gpu_addr: u64,
+        output_gpu_addr: u64,
+        workgroup_size: (u32, u32, u32),
+    ) -> Result<Vec<u32>> {
+        let mut cmd_buffer = IntelCommandBuffer::new();
+
+        // Begin batch buffer
+        cmd_buffer.begin_batch();
+
+        // Setup compute engine (MEDIA_VFE_STATE)
+        // Scratch space for shader execution (can be 0 for simple shaders)
+        cmd_buffer.set_media_vfe(0, 0);
+
+        // Load constant buffer with buffer addresses
+        // This tells the shader where to find input/output buffers
+        let curbe_data = vec![
+            // Input buffer address (lower 32 bits, upper 32 bits)
+            (input_gpu_addr & 0xFFFFFFFF) as u32,
+            ((input_gpu_addr >> 32) & 0xFFFFFFFF) as u32,
+            // Output buffer address (lower 32 bits, upper 32 bits)
+            (output_gpu_addr & 0xFFFFFFFF) as u32,
+            ((output_gpu_addr >> 32) & 0xFFFFFFFF) as u32,
+            // SPIR-V shader address (lower 32 bits, upper 32 bits)
+            (spirv_gpu_addr & 0xFFFFFFFF) as u32,
+            ((spirv_gpu_addr >> 32) & 0xFFFFFFFF) as u32,
+        ];
+        cmd_buffer.load_curbe(0, &curbe_data);
+
+        // Dispatch compute workgroups
+        cmd_buffer.dispatch(workgroup_size.0, workgroup_size.1, workgroup_size.2);
+
+        // End batch buffer
+        cmd_buffer.end_batch();
+
+        // Build the command buffer
+        let commands = cmd_buffer.build()
+            .context("Failed to build Intel command buffer")?;
+
+        log::info!(
+            "Created Intel command buffer: {} commands, workgroup size ({}, {}, {})",
+            commands.len(),
+            workgroup_size.0,
+            workgroup_size.1,
+            workgroup_size.2
+        );
+
+        Ok(commands)
     }
 }

@@ -142,7 +142,7 @@ mod tests {
 
         println!("\nSpawning VM at entry point 0x{:04X}...", main_addr);
 
-        // Spawn VM at main
+        // Spawn VM at main (use VM ID 1 like the working tests)
         let config = VmConfig {
             entry_point: main_addr,
             parent_id: 0xFF,
@@ -150,12 +150,12 @@ mod tests {
             bound_addr: 0,
             initial_regs: [0; 128],
         };
-        scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
-        println!("VM 0 spawned successfully");
+        scheduler.spawn_vm(1, &config).expect("Failed to spawn VM");
+        println!("VM 1 spawned successfully");
 
         // Verify VM state
         scheduler.sync_gpu_to_shadow();
-        let initial_state = scheduler.get_vm_state(0);
+        let initial_state = scheduler.get_vm_state(1);
         println!("Initial VM state: {:?}", initial_state);
 
         // Verify binary was written
@@ -176,7 +176,7 @@ mod tests {
             if frame % 100 == 0 {
                 // Sync and check state every 100 frames
                 scheduler.sync_gpu_to_shadow();
-                let state = scheduler.get_vm_state(0).unwrap_or(vm_state::INACTIVE);
+                let state = scheduler.get_vm_state(1).unwrap_or(vm_state::INACTIVE);
 
                 if state == vm_state::HALTED {
                     println!("\nVM halted at frame {}", frame);
@@ -194,7 +194,7 @@ mod tests {
         }
 
         // Check final VM state
-        let final_state = scheduler.get_vm_state(0);
+        let final_state = scheduler.get_vm_state(1);
         println!("Final VM state: {:?}", final_state);
 
         // Final sync
