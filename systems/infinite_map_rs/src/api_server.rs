@@ -34,6 +34,13 @@ pub struct TerminalResizeRequest {
     pub cols: usize,
 }
 
+/// Hilbert Clock poke request
+#[derive(Clone, Debug, Default)]
+pub struct PokeRequest {
+    pub addr: u32,
+    pub val: u32,
+}
+
 #[derive(Clone)]
 pub struct RuntimeState {
     pub focused_id: Option<String>, // "Alpine_VM" or brick name
@@ -56,6 +63,9 @@ pub struct RuntimeState {
     pub pending_terminal_spawns: Vec<TerminalSpawnRequest>,
     pub pending_terminal_resizes: Vec<TerminalResizeRequest>,
     pub pending_terminal_destroys: Vec<i64>, // tile_ids to destroy
+
+    // Phase 37: Hilbert Clock Integration
+    pub pending_pokes: Vec<PokeRequest>,
 }
 
 impl Default for RuntimeState {
@@ -71,6 +81,7 @@ impl Default for RuntimeState {
             pending_terminal_spawns: Vec::new(),
             pending_terminal_resizes: Vec::new(),
             pending_terminal_destroys: Vec::new(),
+            pending_pokes: Vec::new(),
         }
     }
 }
@@ -88,6 +99,17 @@ pub struct ChunkQuery {
     x: i32,
     y: i32,
     size: Option<i32>,
+}
+
+#[derive(Deserialize)]
+pub struct PokeQuery {
+    addr: String, // Hex string like "0x1234"
+}
+
+#[derive(Serialize)]
+pub struct PokeResponse {
+    success: bool,
+    message: String,
 }
 
 #[derive(Serialize)]
@@ -193,6 +215,8 @@ pub async fn start_api_server(
         .route("/builder/queue/{brick}", get(get_texture))
         .route("/health", get(health_check))
         .route("/api/status", get(get_status))
+        // Phase 37: Hilbert Clock Integration
+        .route("/poke", post(handle_poke))
         .fallback_service(ServeDir::new("../visual_shell/web"))
         .layer(cors)
         .with_state(state);
@@ -1346,5 +1370,44 @@ async fn handle_terminal_destroy(
     Json(TerminalDestroyResponse {
         success: true,
         message: format!("Terminal {} destroy request queued", tile_id),
+    })
+}
+
+/// Hilbert Clock poke endpoint - writes a value to VRAM
+async fn handle_poke(
+    State(state): State<AppState>,
+    Query(query): Query<PokeQuery>,
+    body: String,
+) -> impl IntoResponse {
+    // Parse address from hex string
+    let addr = match u32::from_str_radix(query.addr.trim_start_matches("0x"), 16) {
+        Ok(a) => a,
+        Err(e) => {
+            return Json(PokeResponse {
+                success: false,
+                message: format!("Invalid address format: {}", e),
+            })
+        }
+    };
+
+    // Parse value from body (hex string)
+    let val = match u32::from_str_radix(body.trim().trim_start_matches("0x"), 16) {
+        Ok(v) => v,
+        Err(e) => {
+            return Json(PokeResponse {
+                success: false,
+                message: format!("Invalid value format: {}", e),
+            })
+        }
+    };
+
+    // Queue the poke request
+    if let Ok(mut rs) = state.runtime_state.lock() {
+        rs.pending_pokes.push(PokeRequest { addr, val });
+    }
+
+    Json(PokeResponse {
+        success: true,
+        message: format!("Poke queued: addr=0x{:04X}, val=0x{:08X}", addr, val),
     })
 }

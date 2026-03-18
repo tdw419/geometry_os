@@ -1,0 +1,23 @@
+# Clock Face (Native) - 12-hour dial with moving hands
+; Draw hour tick marks (12 positions)
+LDI r0, 0          ; counter
+LDI r1, 12         ; total ticks
+LOOP_TICKS:
+  HILBERT_D2XY r2, r0
+  DRAW 0x7461, r2, r0  ; 'a' for tick
+  ADD r0, 1
+  SUB r1, 1
+  JZ LOOP_TICKS
+LDI r0, 0          ; reset counter for hands
+; Draw minute hand
+LDI r1, 0x1C
+DRAW r1, 2048, 1900
+; Draw hour hand (shorter)
+LDI r1, 0x1A
+ADD r1, r1, 2048
+DRAW r1, r1, 2048
+LDI r0, 1          ; counter for hands
+; Draw minute indicator
+LDI r1, 1
+ADD r0, r1
+JMP 3              ; loop back
