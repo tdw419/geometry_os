@@ -1,6 +1,7 @@
 /// Morphology - Geometric transformation commands
 ///
 /// Defines the command language for manipulating the visual substrate
+use crate::camera_sync::CameraUpdate;
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
@@ -125,6 +126,9 @@ pub struct MorphologyExecutor {
 
     /// Optional navigation command sender (wired to momentum_camera)
     navigation_tx: Option<broadcast::Sender<NavigationRequest>>,
+
+    /// Optional camera update sender (wired to camera_sync)
+    camera_tx: Option<broadcast::Sender<CameraUpdate>>,
 }
 
 impl MorphologyExecutor {
@@ -134,12 +138,19 @@ impl MorphologyExecutor {
             history: Vec::new(),
             max_history: 100,
             navigation_tx: None,
+            camera_tx: None,
         }
     }
 
     /// Wire navigation commands to a broadcast channel
     pub fn with_navigation_sender(mut self, tx: broadcast::Sender<NavigationRequest>) -> Self {
         self.navigation_tx = Some(tx);
+        self
+    }
+
+    /// Wire camera updates to a broadcast channel
+    pub fn with_camera_sender(mut self, tx: broadcast::Sender<CameraUpdate>) -> Self {
+        self.camera_tx = Some(tx);
         self
     }
 
@@ -270,7 +281,24 @@ impl MorphologyExecutor {
             target,
             distance
         );
-        // TODO: Send to camera controller
+
+        // Send to camera sync server if wired
+        if let Some(tx) = &self.camera_tx {
+            let update = CameraUpdate {
+                x: 0.0, // Current position (not tracked in morphology)
+                y: 0.0,
+                zoom: fov.unwrap_or(1.0),
+                target_x: target.map(|t| t.0).unwrap_or(0.0),
+                target_y: target.map(|t| t.1).unwrap_or(0.0),
+                target_zoom: distance.unwrap_or(1.0),
+                timestamp: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
+            };
+            let _ = tx.send(update);
+        }
+
         Ok(())
     }
 
