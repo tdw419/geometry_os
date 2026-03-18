@@ -117,6 +117,67 @@ impl ExecutionZone {
         self.texture.clone()
     }
 
+    /// Create an output texture for compute shader results
+    ///
+    /// Creates a storage texture that can be bound to compute shaders for write access.
+    /// The texture is sized based on the workgroup size (workgroup * 4 for reasonable output).
+    ///
+    /// # Arguments
+    ///
+    /// * `width` - Texture width in pixels
+    /// * `height` - Texture height in pixels
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` if texture creation succeeds
+    /// * `Err(String)` if no device is available or creation fails
+    ///
+    /// # Note
+    ///
+    /// This creates a texture for future use with storage texture bindings.
+    /// Current compute shaders don't write to textures, so this is preparation
+    /// for the texture blitting feature.
+    pub fn create_output_texture(&mut self, width: u32, height: u32) -> Result<(), String> {
+        let compiler = self
+            .compiler
+            .as_ref()
+            .ok_or_else(|| "No device available - call set_device() first".to_string())?;
+
+        let compiler = compiler
+            .lock()
+            .map_err(|e| format!("Failed to lock compiler: {}", e))?;
+
+        let device = compiler.device();
+
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some(&format!("ExecutionZone output: {}", self.shader_name)),
+            size: wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::STORAGE_BINDING
+                | wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_SRC,
+            view_formats: &[],
+        });
+
+        self.texture = Some(std::sync::Arc::new(texture));
+
+        log::info!(
+            "Created output texture for zone '{}' ({}x{})",
+            self.shader_name,
+            width,
+            height
+        );
+
+        Ok(())
+    }
+
     /// Create an ExecutionZone from a .rts.png file
     ///
     /// Extracts WGSL shader source from the .rts.png format and creates
