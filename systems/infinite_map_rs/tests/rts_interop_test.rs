@@ -12,8 +12,9 @@
 //!
 //! ## Current State (Rust)
 //! - `infinite_map_rs::rts` module provides WGSL extraction from .rts.png files
+//! - `infinite_map_rs::rts::packer::RTSPacker` - Packs data into .rts.png format
+//! - `infinite_map_rs::rts::unpacker::RTSUnpacker` - Extracts data from .rts.png format
 //! - Hilbert curve implementation in `infinite_map_rs::hilbert` module
-//! - No full packer/unpacker yet (planned)
 //!
 //! ## Python Implementation
 //! - `systems.packaging.rts_bundler.RTSBundler` - Creates .rts.png bundles
@@ -27,6 +28,8 @@
 //! 3. **Golden master tests**: Use Python-generated bundles for validation
 
 use infinite_map_rs::hilbert::{d2xy, xy2d};
+use infinite_map_rs::rts::packer::{PackOptions, RTSPacker};
+use infinite_map_rs::rts::unpacker::{RTSUnpacker, UnpackOptions};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -339,53 +342,23 @@ fn test_rts_hilbert_grid_size_power_of_two() {
 fn test_rts_roundtrip_preservation_placeholder() {
     /// Verify pack/unpack preserves all bytes exactly.
     ///
-    /// PLACEHOLDER TEST - Requires RTS packer/unpacker implementation.
+    /// Verify pack/unpack preserves all bytes exactly.
     ///
-    /// TODO: Implement when RTS packer/unpacker modules are available:
-    /// 1. Create test data with known hash
-    /// 2. Pack into .rts.png format
-    /// 3. Unpack from .rts.png
-    /// 4. Verify hash matches original
-    ///
-    /// Expected implementation:
-    /// ```rust
-    /// use infinite_map_rs::rts::packer::{RTSPacker, PackOptions};
-    /// use infinite_map_rs::rts::unpacker::{RTSUnpacker, UnpackOptions};
-    ///
-    /// let test_data = b"Hello, RTS!";
-    /// let original_hash = compute_sha256(test_data);
-    ///
-    /// // Pack
-    /// let packer = RTSPacker::new();
-    /// let bundle = packer.pack_bytes(test_data);
-    ///
-    /// // Unpack
-    /// let unpacker = RTSUnpacker::new(&bundle);
-    /// let recovered = unpacker.unpack_all().unwrap();
-    ///
-    /// // Verify
-    /// assert_eq!(compute_sha256(&recovered), original_hash);
-    /// assert_eq!(recovered, test_data);
-    /// ```
-    // For now, verify the concept works with Hilbert mapping
-    let test_data: Vec<u8> = (0..255).cycle().take(1024).collect();
+    /// Test the roundtrip: pack data → .rts.png → unpack → verify hash matches
+    let test_data = b"Hello, RTS!";
+    let original_hash = compute_sha256(test_data);
 
-    // Simulate pixel mapping
-    let grid_size = 32u32; // 32x32 = 1024 pixels
-    for (byte_idx, &byte) in test_data.iter().enumerate().take(100) {
-        let pixel_idx = (byte_idx / 4) as u64;
-        let (x, y) = d2xy(grid_size, pixel_idx);
+    // Pack
+    let packer = RTSPacker::new();
+    let bundle = packer.pack_bytes(test_data);
 
-        // Verify we can recover the byte position from coordinates
-        let recovered_idx = xy2d(grid_size, x, y) as usize * 4 + (byte_idx % 4);
+    // Unpack
+    let mut unpacker = RTSUnpacker::new(&bundle);
+    let recovered = unpacker.unpack_all().expect("Unpack should succeed");
 
-        // For first 100 bytes, verify we recover correct position
-        // (Note: This only works because we're mapping byte_idx to pixel_idx)
-        if byte_idx < 16 {
-            // First 4 pixels (16 bytes)
-            assert_eq!(recovered_idx, byte_idx);
-        }
-    }
+    // Verify
+    assert_eq!(compute_sha256(&recovered), original_hash, "Hash should match after roundtrip");
+    assert_eq!(&recovered, test_data, "Data should be identical after roundtrip");
 }
 
 // ============================================
