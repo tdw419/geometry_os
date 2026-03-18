@@ -1,7 +1,7 @@
 # ❄️ Geos-Boot Freeze Manifest
 
-**Date:** _To be filled on freeze_
-**Commit:** _To be filled on freeze_
+**Date:** 2026-03-18
+**Commit:** 922a672c89e22657849ff9709bdb685f876e8ff7
 
 ## CPU Responsibilities (FROZEN)
 
