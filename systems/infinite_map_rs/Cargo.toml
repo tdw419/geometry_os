@@ -44,6 +44,7 @@ uuid = { version = "1.17", features = ["v4", "serde"] }
 # Phase 33.2: Zero-Copy Pipeline (dmabuf + EGL)
 khronos-egl = "6.0"
 drm = "0.12"
+gbm = "0.18.0"  # Generic Buffer Management for GPU memory allocation
 
 # Phase 33.3: Compressed Sensing
 ndarray = "0.15"

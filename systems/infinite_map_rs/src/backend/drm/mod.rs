@@ -12,6 +12,7 @@ pub mod glyph_vm_executor;
 pub mod input_bridge;
 pub mod integrated_executor;
 pub mod intel;
+pub mod memory;
 pub mod scanout;
 pub mod vcc_compute;
 pub mod visual_interaction_bus;
@@ -29,6 +30,7 @@ pub use integrated_executor::{
     IntegratedExecutorConfig, IntegratedGlyphExecutor, ZeroCopyExecutionLoop,
 };
 pub use intel::IntelCommandBuffer;
+pub use memory::{GpuMemoryAllocator, MappedBuffer};
 pub use scanout::KmsScanout;
 pub use vcc_compute::{
     BufferInitDescriptor, BufferInitExt, HardwareVCC, HardwareVCCResult, VccCompute,
