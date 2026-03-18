@@ -3,11 +3,11 @@
 // ============================================================================
 :main
 @LDI r0, 0x1000
-LDI r1, 0x2000
-LDI r2, 0x4000
+LDI r1, 0x5000
+LDI r2, 0x6000
 LDI r13, 1
 LDI r127, 0
-LDI r12, 0x5004
+LDI r12, 0x7004
 STORE r12, r127
 LDI r14, :init_mnem_table
 CALL r14
@@ -88,7 +88,6 @@ JMP :start
 :p2_emit_ret;  LDI r3, 12; STORE r1, r3; ADD r1, r1, r13; JMP :p2_skip_line
 
 :p2_emit_ldi
-    ADD r0, r0, r13; ADD r0, r0, r13; ADD r0, r0, r13
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r10, r7
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r11, r7
     LDI r14, 16; SLL r15, r10, r14; LDI r3, 1; OR r3, r3, r15
@@ -221,7 +220,7 @@ JMP :start
 :po_lbl
     ADD r0, r0, r13; LOAD r7, [r0]; ADD r0, r0, r13
     LOAD r8, [r0]; ADD r0, r0, r13; LOAD r9, [r0]; ADD r0, r0, r13
-    LDI r14, 0x4000; LDI r15, 0x4400
+    LDI r14, 0x6000; LDI r15, 0x6400
 :sl_loop
     LOAD r10, [r14]; BNE r10, r7, :sl_next
     ADD r14, r14, r13; LOAD r10, [r14]; BNE r10, r8, :sl_ptr1

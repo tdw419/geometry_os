@@ -2523,14 +2523,14 @@ mod tests {
         vram.poke(0x1000 + source_text.len() as u32, 0);
 
         // CRITICAL: Verify output buffer is initially empty
-        println!("\n  Pre-execution check - Output buffer at 0x2000 (should be all zeros):");
+        println!("\n  Pre-execution check - Output buffer at 0x5000 (should be all zeros):");
         let mut non_zero_count = 0;
         for i in 0..20 {
-            let val = vram.peek(0x2000 + i);
+            let val = vram.peek(0x5000 + i);
             if val != 0 {
                 non_zero_count += 1;
                 if non_zero_count <= 5 {
-                    println!("    0x{:04X}: {:08X} (NON-ZERO!)", 0x2000 + i, val);
+                    println!("    0x{:04X}: {:08X} (NON-ZERO!)", 0x5000 + i, val);
                 }
             }
         }
@@ -2569,8 +2569,8 @@ mod tests {
                 i, entry.pc, entry.opcode, entry.stratum, entry.p1, entry.p2);
         }
 
-        // Find ALL STOREs to addresses 0x2000-0x2FFF (output buffer range)
-        println!("\n  Looking for STOREs to output buffer (address 0x2000+):");
+        // Find ALL STOREs to addresses 0x5000-0x5FFF (output buffer range)
+        println!("\n  Looking for STOREs to output buffer (address 0x5000+):");
         let mut store_to_output = 0;
         for (i, entry) in trace.iter().enumerate() {
             if entry.opcode == 4 { // STORE
@@ -2663,10 +2663,10 @@ mod tests {
         }
 
         // Debug: show output buffer as ASCII
-        println!("\n  Output at 0x2000 (first 40 words as ASCII):");
+        println!("\n  Output at 0x5000 (first 40 words as ASCII):");
         let mut out_ascii = String::new();
         for i in 0..40 {
-            let val = vram.peek(0x2000 + i);
+            let val = vram.peek(0x5000 + i);
             if val >= 32 && val < 127 {
                 out_ascii.push((val & 0xFF) as u8 as char);
             } else if val == 0 {
@@ -2678,7 +2678,7 @@ mod tests {
         println!("    \"{}\"", out_ascii.escape_default());
 
         // Debug: show pass counter and source pointer
-        println!("\n  Pass counter at 0x4004: {:08X}", vram.peek(0x4004));
+        println!("\n  Pass counter at 0x7004: {:08X}", vram.peek(0x7004));
         println!("  Source pointer r0 should be around 0x1000-0x1FFF");
 
         // Debug: check if source at 0x1000 is intact
@@ -2700,10 +2700,10 @@ mod tests {
         println!("    Binary end: {:04X} (assembled.words.len() = {})", assembled.words.len(), assembled.words.len());
         println!("    Source start: 1000");
         println!("    Source end: {:04X}", 0x1000 + source_text.len());
-        println!("    Output start: 2000");
-        println!("    Labels start: 3000");
+        println!("    Output start: 5000");
+        println!("    Labels start: 6000");
 
-        // 4. Verify Output Binary at 0x2000
+        // 4. Verify Output Binary at 0x5000
         println!("Self-Hosting Quine Verification:");
         println!("  Binary Size: {} words", assembled.words.len());
 
@@ -2712,13 +2712,13 @@ mod tests {
         println!("  -------|----------|---------");
         for i in 0..16 {
             let original = assembled.words.get(i as usize).copied().unwrap_or(0);
-            let compiled = vram.peek(0x2000 + i);
+            let compiled = vram.peek(0x5000 + i);
             println!("  {:6} | {:08X} | {:08X}", i, original, compiled);
         }
 
         for i in 0..assembled.words.len() as u32 {
             let original = assembled.words[i as usize];
-            let compiled = vram.peek(0x2000 + i);
+            let compiled = vram.peek(0x5000 + i);
             assert_eq!(compiled, original, "Mismatch at offset {}: Expected {:08X}, got {:08X}", i, original, compiled);
         }
         
