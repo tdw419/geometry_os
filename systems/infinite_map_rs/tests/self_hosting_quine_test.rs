@@ -178,6 +178,15 @@ mod tests {
                 scheduler.sync_gpu_to_shadow();
                 let state = scheduler.get_vm_state(1).unwrap_or(vm_state::INACTIVE);
 
+
+                if frame % 100 == 0 {
+                    // Check PC and first few memory locations
+                    let pc = scheduler.peek_substrate_single(0x7000); // VM state area
+                    let first_instr = scheduler.peek_substrate_single(0);
+                    println!("\n  Frame {}: PC={:04X}, state={}, instr[0]={:08X}",
+                        frame, pc, state, first_instr);
+                }
+
                 if state == vm_state::HALTED {
                     println!("\nVM halted at frame {}", frame);
                     halted = true;
