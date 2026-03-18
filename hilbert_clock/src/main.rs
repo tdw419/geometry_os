@@ -1,81 +1,47 @@
-const WIDTH: u32 = 256;
-const HEIGHT: u32 = 256;
+// Hilbert clock: Live ticking clock in Hilbert space
+// Poke Hilbert coordinates directly into VRAM on port 8769
 
-/// Compute 2D coordinates from 1D index using Hilbert curve
-/// Spatial locality preserved for GPU cache efficiency
-fn hilbert_to_xy(index: u32) -> (usize, usize) {
-    let mut x: u32 = 0;
-    let mut y: u32 = 0;
+use std::{collections::BTreeMap, io, net::TcpStream, str::FromStr};
 
-    for level in 0..=7u32 {
-        let quadrant_mask = (1u64 << (level * 2)) as u32;
-        let quadrant_size = (1u64 << level) as u32;
+const HOST: &str = "127.0.0.1";
+const PORT: u16 = 8769;
 
-        let quadrant = index & quadrant_mask;
-        let (hx, hy) = hilbert_quadrant(quadrant, level as usize);
-
-        x += hx * (quadrant_size as u32);
-        y += hy * (quadrant_size as u32);
-    }
-
-    ((x.min(WIDTH - 1)) as usize, (y.min(HEIGHT - 1)) as usize)
+pub struct HilbertClock {
+    pixels: BTreeMap<u32, u32>,
+    time: u32,
 }
 
-fn hilbert_quadrant(index: u32, level: usize) -> (u32, u32) {
-    if level == 0 {
-        return if index < 2 { (0, 0) } else { (0, 1) };
-    }
-
-    let r = 1u64 << (level - 1);
-    let n = index % 4;
-    let (tx, ty) = hilbert_quadrant(index / 4, level - 1);
-
-    match n {
-        0 => (tx, ty),
-        1 => {
-            let new_x = (r as u32).wrapping_sub(tx.wrapping_add(1)).wrapping_sub(1);
-            (new_x, ty)
-        },
-        2 => {
-            let new_y = (r as u32).wrapping_sub(ty.wrapping_add(1)).wrapping_sub(1);
-            (tx, new_y)
-        },
-        _ => {
-            let new_x = (r as u32).wrapping_sub(tx.wrapping_add(1)).wrapping_sub(1);
-            let new_y = (r as u32).wrapping_sub(ty.wrapping_add(1)).wrapping_sub(1);
-            (new_x, new_y)
-        },
-    }
-}
-
-const VRAM_SIZE: usize = WIDTH as usize * HEIGHT as usize;
-
-fn main() {
-    println!("Hilbert Clock - Spatial locality visualization");
-    println!("Size: {}x{}", WIDTH, HEIGHT);
-    println!("Press Ctrl+C to stop");
-    println!();
-
-    let mut index = 0u32;
-
-    loop {
-        let mut rts_data = vec![0u8; VRAM_SIZE];
-
-        for i in 0..=(index as u32) {
-            let (x, y) = hilbert_to_xy(i);
-            let addr = y as usize * WIDTH as usize + x as usize;
-            // RGBA red pixel
-            rts_data[addr] = 0xFF;
-            rts_data[addr + 1] = 0;
-            rts_data[addr + 2] = 0;
-            rts_data[addr + 3] = 0xFF;
+impl HilbertClock {
+    pub fn new() -> Self {
+        Self {
+            pixels: BTreeMap::new(),
+            time: 0,
         }
-
-        let filename = format!("hilbert.{:05}.rts", index);
-        std::fs::write(&filename, &rts_data).expect("Write failed");
-        println!("index={}", index);
-
-        std::thread::sleep(std::time::Duration::from_secs(10));
-        index += 1;
     }
-}
+
+    // Poke single glyph into VRAM: opcode, stratum, p1, p2
+    fn poke_glyph(&self, addr: u32, op: u8, stratum: u8, p1: u8, p2: u8) -> io::Result<()> {
+        let url = format!("http://{}/poke?addr=0x{:x}", HOST, addr);
+        let body = format!("0x{:x}", op as u32 | ((stratum as u32) << 8) | ((p1 as u32) << 16) | ((p2 as u32) << 24));
+        post(url, body.as_str())
+    }
+
+    // Poke single pixel value
+    fn poke(&self, addr: u32, val: u32) -> io::Result<()> {
+        let url = format!("http://{}/poke?addr=0x{:x}", HOST, addr);
+        let value = format!("0x{:x}", val);
+        post(url, &value)
+    }
+
+    pub fn tick(&mut self) -> io::Result<()> {
+        // Increment time
+        let next_time = self.time.wrapping_add(1);
+        self.time = next_time;
+
+        // Visualize current time position (green active glyph)
+        self.poke_glyph((self.time & 0xFFFF) as u32,
+            1551, // opcode
+            16,   // stratum
+            5,    // p1
+            5     // p2
+        )?
