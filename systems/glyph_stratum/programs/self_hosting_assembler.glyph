@@ -62,17 +62,10 @@ JMP :start
 
 :p2_loop
     LOAD r7, [r0]; BEQ r7, r127, :eof
-    LDI r8, 47; BEQ r7, r8, :p2_skip_line
-    LDI r8, 58; BEQ r7, r8, :p2_skip_line
     LDI r8, 32; BEQ r7, r8, :p2_vws
     LDI r8, 10; BEQ r7, r8, :p2_vws
     
-    LOAD r7, [r0]; LDI r8, 76; BNE r7, r8, :p2_tbl
-    ADD r0, r0, r13; LOAD r7, [r0]; LDI r8, 68; BNE r7, r8, :p2_btl
-    ADD r0, r0, r13; LOAD r7, [r0]; LDI r8, 73; BNE r7, r8, :p2_btl2
-    ADD r0, r0, r13; LDI r4, 1; LDI r5, 0; JMP :p2_emit_ldi
-:p2_btl2; SUB r0, r0, r13
-:p2_btl;  SUB r0, r0, r13
+    JMP :p2_tbl
 
 :p2_tbl
     LOAD r7, [r0]; ADD r0, r0, r13
@@ -238,6 +231,16 @@ JMP :start
     LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
     LDI r5, 132; STORE r4, r5; ADD r4, r4, r13
     LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 65; STORE r4, r5; ADD r4, r4, r13 // A
+    LDI r5, 78; STORE r4, r5; ADD r4, r4, r13 // N
+    LDI r5, 68; STORE r4, r5; ADD r4, r4, r13 // D
+    LDI r5, 128; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 88; STORE r4, r5; ADD r4, r4, r13 // X
+    LDI r5, 79; STORE r4, r5; ADD r4, r4, r13 // O
+    LDI r5, 82; STORE r4, r5; ADD r4, r4, r13 // R
+    LDI r5, 130; STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
     LDI r5, 0xFFFFFFFF; STORE r4, r5
     RET
 
@@ -288,13 +291,13 @@ JMP :start
     LOAD r8, [r0]; ADD r0, r0, r13; LOAD r9, [r0]; ADD r0, r0, r13
     LDI r14, 0x6000; LDI r15, 0x6400
 :sl_loop
-    LOAD r11, [r14]; BNE r11, r7, :sl_next
-    ADD r14, r14, r13; LOAD r11, [r14]; BNE r11, r8, :sl_ptr1
-    ADD r14, r14, r13; LOAD r11, [r14]; BNE r11, r9, :sl_ptr2
+    LOAD r3, [r14]; BNE r3, r7, :sl_next
+    ADD r14, r14, r13; LOAD r3, [r14]; BNE r3, r8, :sl_ptr1
+    ADD r14, r14, r13; LOAD r3, [r14]; BNE r3, r9, :sl_ptr2
     ADD r14, r14, r13; LOAD r7, [r14]; LDI r6, 2; RET
 :sl_ptr2; SUB r14, r14, r13
 :sl_ptr1; SUB r14, r14, r13
-:sl_next; LDI r11, 4; ADD r14, r14, r11; BNE r14, r15, :sl_loop
+:sl_next; LDI r3, 4; ADD r14, r14, r3; BNE r14, r15, :sl_loop
     LDI r7, 0; LDI r6, 2; RET
 
 :parse_val
