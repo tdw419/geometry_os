@@ -128,8 +128,8 @@ JMP :start
     LDI r5, 3;  STORE r4, r5; ADD r4, r4, r13
     LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
     LDI r5, 77; STORE r4, r5; ADD r4, r4, r13 // M
-    LDI r5, 79; STORE r4, r5; ADD r4, r4, r13 // V
-    LDI r5, 32; STORE r4, r5; ADD r4, r4, r13 //  
+    LDI r5, 79; STORE r4, r5; ADD r4, r4, r13 // O
+    LDI r5, 86; STORE r4, r5; ADD r4, r4, r13 // V
     LDI r5, 2;  STORE r4, r5; ADD r4, r4, r13
     LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
     LDI r5, 66; STORE r4, r5; ADD r4, r4, r13 // B

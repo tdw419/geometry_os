@@ -63,6 +63,19 @@ pub struct QueryRequest {
     pub target: Option<(f32, f32, f32)>,
 }
 
+/// Brick generation request sent to brick generator system
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BrickRequest {
+    /// X position in world coordinates
+    pub x: f32,
+    /// Y position in world coordinates
+    pub y: f32,
+    /// Z position in world coordinates
+    pub z: f32,
+    /// Natural language description of brick content
+    pub description: String,
+}
+
 /// Commands that modify the geometric substrate
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MorphologyCommand {
@@ -183,6 +196,9 @@ pub struct MorphologyExecutor {
 
     /// Optional query sender (wired to system state manager)
     query_tx: Option<broadcast::Sender<QueryRequest>>,
+
+    /// Optional brick generator sender (wired to brick generator)
+    brick_tx: Option<broadcast::Sender<BrickRequest>>,
 }
 
 impl MorphologyExecutor {
@@ -196,6 +212,7 @@ impl MorphologyExecutor {
             aesthetics_tx: None,
             effect_tx: None,
             query_tx: None,
+            brick_tx: None,
         }
     }
 
@@ -226,6 +243,12 @@ impl MorphologyExecutor {
     /// Wire query requests to a broadcast channel
     pub fn with_query_sender(mut self, tx: broadcast::Sender<QueryRequest>) -> Self {
         self.query_tx = Some(tx);
+        self
+    }
+
+    /// Wire brick generation requests to a broadcast channel
+    pub fn with_brick_sender(mut self, tx: broadcast::Sender<BrickRequest>) -> Self {
+        self.brick_tx = Some(tx);
         self
     }
 
@@ -331,7 +354,18 @@ impl MorphologyExecutor {
         description: String,
     ) -> Result<(), String> {
         log::info!("🧱 Create brick at ({}, {}, {}): {}", x, y, z, description);
-        // TODO: Send to brick generator
+
+        // Send to brick generator if wired
+        if let Some(tx) = &self.brick_tx {
+            let request = BrickRequest {
+                x,
+                y,
+                z,
+                description,
+            };
+            let _ = tx.send(request);
+        }
+
         Ok(())
     }
 
