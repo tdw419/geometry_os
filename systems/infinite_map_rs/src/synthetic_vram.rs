@@ -2554,11 +2554,17 @@ mod tests {
         }).unwrap();
 
         // Give it plenty of cycles
-        for _ in 0..200 {
+        let mut cycle_count = 0;
+        for frame in 0..200 {
             vram.execute_frame_interleaved(10);
+            cycle_count += 10;
             if vram.is_halted(0) {
+                println!("\n  VM halted after {} cycles (frame {})", cycle_count, frame);
                 break;
             }
+        }
+        if !vram.is_halted(0) {
+            println!("\n  VM did NOT halt after {} cycles!", cycle_count);
         }
 
         // Debug: print trace around Pass 2 (look for p2_anc_lp pattern)
