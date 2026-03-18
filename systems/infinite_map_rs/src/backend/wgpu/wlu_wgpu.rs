@@ -124,36 +124,281 @@ impl WluWgpuResources {
         let grid_size = grid_size.unwrap_or(DEFAULT_GRID_SIZE);
         let field_size = (grid_size * grid_size) as usize * size_of::<f32>();
         
-        // TODO: Create buffers
-        // TODO: Load shader and create compute pipeline
-        // TODO: Create bind groups
+        // Create buffers
+        let input_field_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("WLU Input Field"),
+            size: field_size as u64,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
         
-        anyhow::bail!("WluWgpuResources::new not yet implemented - Phase 3 in progress");
+        let output_field_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("WLU Output Field"),
+            size: field_size as u64,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        
+        // Params buffer: array<f32, 21> (84 bytes)
+        let params_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("WLU Params"),
+            size: (21 * size_of::<f32>()) as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        
+        // Result buffer: [sensor_value, logic_output] (2 floats = 8 bytes)
+        let result_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("WLU Result"),
+            size: (2 * size_of::<f32>()) as u64,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        
+        // Staging buffer for CPU readback
+        let staging_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("WLU Staging"),
+            size: (2 * size_of::<f32>()) as u64,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        
+        // Load shader and create compute pipeline
+        let shader_source = include_str!("../../shaders/wave_logic_unit.wgsl");
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Wave Logic Unit Shader"),
+            source: wgpu::ShaderSource::Wgsl(shader_source.into()),
+        });
+        
+        // Create bind group layout
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("WLU Bind Group Layout"),
+            entries: &[
+                // Binding 0: input_field (storage, read)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // Binding 1: output_field (storage, read_write)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // Binding 2: result_output (storage, read_write)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // Binding 3: params (uniform)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+        });
+        
+        // Create pipeline layout
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("WLU Pipeline Layout"),
+            bind_group_layouts: &[&bind_group_layout],
+            push_constant_ranges: &[],
+        });
+        
+        // Create compute pipeline
+        let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("WLU Compute Pipeline"),
+            layout: Some(&pipeline_layout),
+            module: &shader,
+            entry_point: "main",
+        });
+        
+        // Create bind group
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("WLU Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: input_field_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: output_field_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: result_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: params_buffer.as_entire_binding(),
+                },
+            ],
+        });
+        
+        // Initialize with default configuration
+        let oscillators = [
+            GpuOscillator::new(64, 128, 1.0, 0.0, 0.5),
+            GpuOscillator::new(192, 128, 1.0, 0.0, 0.5),
+        ];
+        
+        Ok(Self {
+            device,
+            queue,
+            input_field_buffer,
+            output_field_buffer,
+            params_buffer,
+            result_buffer,
+            staging_buffer,
+            pipeline,
+            bind_group_layout,
+            bind_group,
+            grid_size,
+            frame: 0,
+            oscillators,
+            sensor_pos: (128, 128),
+            sensor_threshold: 0.5,
+            wave_speed: 0.1,
+            current_sensor_value: 0.0,
+        })
     }
     
     /// Swap input and output buffers (ping-pong)
     fn swap_buffers(&mut self) {
         std::mem::swap(&mut self.input_field_buffer, &mut self.output_field_buffer);
-        // TODO: Recreate bind group with new buffers
+        
+        // Recreate bind group with swapped buffers
+        self.bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("WLU Bind Group"),
+            layout: &self.bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.input_field_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: self.output_field_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: self.result_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: self.params_buffer.as_entire_binding(),
+                },
+            ],
+        });
     }
     
     /// Read back the sensor value from the GPU
     fn read_sensor_value(&mut self) -> Result<f32> {
-        // TODO: Implement async readback using staging buffer
+        // Copy result to staging buffer
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("WLU Readback Encoder"),
+        });
+        
+        encoder.copy_buffer_to_buffer(
+            &self.result_buffer,
+            0,
+            &self.staging_buffer,
+            0,
+            (2 * size_of::<f32>()) as u64,
+        );
+        
+        self.queue.submit(std::iter::once(encoder.finish()));
+        
+        // Map staging buffer and read (synchronous for now, should be async in production)
+        // Note: In a real implementation, this should be async using buffer_slice.map_async
+        let staging_slice = self.staging_buffer.slice(..);
+        staging_slice.map_async(wgpu::MapMode::Read, |result| {
+            if let Err(e) = result {
+                eprintln!("Failed to map staging buffer: {:?}", e);
+            }
+        });
+        self.device.poll(wgpu::Maintain::Wait);
+        
+        // Read the mapped data
+        {
+            let data = staging_slice.get_mapped_range();
+            let result: &[f32] = bytemuck::cast_slice(&data);
+            self.current_sensor_value = result[0];
+        }
+        
+        self.staging_buffer.unmap();
+        
         Ok(self.current_sensor_value)
     }
     
     /// Update the params buffer with current oscillator and simulation settings
     fn update_params_buffer(&self) -> Result<()> {
-        // TODO: Pack params array matching WGSL layout
+        // Pack params array matching WGSL layout
+        let mut params = [0.0f32; 21];
+        
         // params[0-4]: oscillator A (pos_x, pos_y, freq, phase, amp)
+        params[0] = self.oscillators[0].position_x as f32;
+        params[1] = self.oscillators[0].position_y as f32;
+        params[2] = self.oscillators[0].frequency;
+        params[3] = self.oscillators[0].phase;
+        params[4] = self.oscillators[0].amplitude;
+        
         // params[5-9]: oscillator B (pos_x, pos_y, freq, phase, amp)
+        params[5] = self.oscillators[1].position_x as f32;
+        params[6] = self.oscillators[1].position_y as f32;
+        params[7] = self.oscillators[1].frequency;
+        params[8] = self.oscillators[1].phase;
+        params[9] = self.oscillators[1].amplitude;
+        
         // params[10-11]: sensor position (x, y)
+        params[10] = self.sensor_pos.0 as f32;
+        params[11] = self.sensor_pos.1 as f32;
+        
         // params[12]: wave_speed
+        params[12] = self.wave_speed;
+        
         // params[13]: sensor_threshold
-        // params[14-15]: reserved
+        params[13] = self.sensor_threshold;
+        
+        // params[14-15]: reserved (set to 0)
+        params[14] = 0.0;
+        params[15] = 0.0;
+        
         // params[16]: grid_size
-        // params[17-20]: reserved
+        params[16] = self.grid_size as f32;
+        
+        // params[17-20]: reserved (set to 0)
+        params[17] = 0.0;
+        params[18] = 0.0;
+        params[19] = 0.0;
+        params[20] = 0.0;
+        
+        // Upload to GPU
+        self.queue.write_buffer(&self.params_buffer, 0, bytemuck::cast_slice(&params));
         
         Ok(())
     }
@@ -162,9 +407,43 @@ impl WluWgpuResources {
 /// Implement WaveLogicBackend trait for wgpu resources
 impl WaveLogicBackend for WluWgpuResources {
     fn update(&mut self, dt: f32) {
-        // TODO: Dispatch compute shader
-        // TODO: Swap buffers
-        // TODO: Read back sensor value
+        // Update params buffer with current oscillator settings
+        if let Err(e) = self.update_params_buffer() {
+            eprintln!("Failed to update params buffer: {:?}", e);
+            return;
+        }
+        
+        // Create command encoder
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("WLU Update Encoder"),
+        });
+        
+        // Dispatch compute shader
+        {
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("WLU Compute Pass"),
+                timestamp_writes: None,
+            });
+            
+            compute_pass.set_pipeline(&self.pipeline);
+            compute_pass.set_bind_group(0, &self.bind_group, &[]);
+            
+            // Workgroup size is 16x16, so we need (grid_size + 15) / 16 workgroups
+            let workgroup_count = (self.grid_size + 15) / 16;
+            compute_pass.dispatch_workgroups(workgroup_count, workgroup_count, 1);
+        }
+        
+        // Submit commands
+        self.queue.submit(std::iter::once(encoder.finish()));
+        
+        // Swap buffers for next frame
+        self.swap_buffers();
+        
+        // Read back sensor value
+        if let Err(e) = self.read_sensor_value() {
+            eprintln!("Failed to read sensor value: {:?}", e);
+        }
+        
         self.frame += 1;
     }
     
