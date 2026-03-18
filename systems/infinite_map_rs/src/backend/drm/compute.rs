@@ -92,16 +92,27 @@ impl GlyphCompute {
             .context("Failed to create GPU memory allocator for SPIR-V")?;
         
         // Allocate GPU buffer for SPIR-V
-        let buffer = allocator
+        let mut buffer = allocator
             .allocate_spirv_buffer(spirv_size)
             .context("Failed to allocate SPIR-V buffer")?;
         
+        // Upload SPIR-V data to GPU buffer
+        // Convert u32 words to bytes (safe because we allocated with exact size)
+        let spirv_bytes = unsafe {
+            std::slice::from_raw_parts(
+                spirv_binary.as_ptr() as *const u8,
+                spirv_size
+            )
+        };
+        
+        buffer
+            .write(spirv_bytes)
+            .context("Failed to write SPIR-V data to GPU buffer")?;
+        
         // Cache the buffer for later use
-        // Note: In production, we'd also upload the data here via mmap
-        // For now, we just allocate the buffer
         self.spirv_buffer = Some(buffer);
         
-        log::info!("SPIR-V buffer allocated (TODO: implement data upload via mmap)");
+        log::info!("SPIR-V uploaded to GPU: {} bytes written", spirv_size);
         
         Ok(())
     }
