@@ -1,0 +1,186 @@
+# Self-Hosting Text Editor Team
+# Implements the next sovereignty milestone: on-screen text editor that compiles its own source
+
+team:
+  name: self-hosting-editor-team
+  description: |
+    Implements the Self-Hosting Text Editor - Milestone 10 on the Sovereignty Ladder.
+    Combines the Full Assembler (Milestone 8) with the Window Manager (Milestone 9)
+    to create an interactive development environment where the GPU edits, compiles,
+    and runs code without CPU logic involvement.
+
+  project_root: /home/jericho/zion/projects/geometry_os/geometry_os
+
+  agents:
+    - name: buffer-architect
+      role: Designs and implements text buffer VM core
+      focus:
+        - Text buffer at 0x1000 (source code storage)
+        - Cursor position tracking in editor state
+        - INSERT/DELETE operations via mailbox events
+        - Buffer length management
+      files:
+        - systems/glyph_stratum/programs/text_editor.glyph
+        - systems/infinite_map_rs/src/synthetic_vram.rs (tests)
+
+    - name: event-router
+      role: Implements keyboard event routing via mailbox
+      focus:
+        - Event types: INSERT, DELETE, CURSOR_LEFT, CURSOR_RIGHT, COMPILE, RUN
+        - Mailbox at 0x200 (event_type, char, cursor)
+        - Event dispatch loop in glyph assembly
+        - Integration with compositor event pattern
+      files:
+        - systems/glyph_stratum/programs/text_editor.glyph
+
+    - name: assembler-integrator
+      role: Connects editor buffer to self-hosting assembler
+      focus:
+        - Copy buffer to assembler input at 0x3000
+        - Trigger assembler execution
+        - Collect compiled output at 0x5000
+        - Handle assembler errors gracefully
+      files:
+        - systems/glyph_stratum/programs/text_editor.glyph
+        - systems/glyph_stratum/programs/self_hosting_assembler.glyph
+
+    - name: vm-spawner
+      role: Implements SPATIAL_SPAWN for compiled programs
+      focus:
+        - Run compiled output via opcode 225
+        - Child VM management
+        - Error handling for spawn failures
+        - Multi-VM coordination
+      files:
+        - systems/glyph_stratum/programs/text_editor.glyph
+        - systems/infinite_map_rs/src/synthetic_vram.rs
+
+    - name: integration-validator
+      role: E2E validation of edit-compile-execute loop
+      focus:
+        - test_text_buffer_insert
+        - test_text_buffer_delete
+        - test_editor_compile_simple
+        - test_edit_compile_execute_loop
+      files:
+        - systems/infinite_map_rs/src/synthetic_vram.rs
+
+  tasks:
+    - id: task-10.1
+      title: Implement text buffer INSERT operation
+      assignee: buffer-architect
+      dependencies: []
+      description: |
+        Add test_text_buffer_insert to synthetic_vram.rs:
+        - Send ASCII char 'L' to mailbox at 0x200
+        - VM reads mailbox, appends to buffer at 0x1000
+        - Verify buffer contains 'L' at position 0
+        - Update cursor and buffer_len
+      acceptance_criteria:
+        - INSERT event appends char to buffer
+        - Cursor increments
+        - buffer_len increments
+        - Test passes: cargo test test_text_buffer_insert
+
+    - id: task-10.2
+      title: Implement text buffer DELETE operation
+      assignee: buffer-architect
+      dependencies: [task-10.1]
+      description: |
+        Add test_text_buffer_delete to synthetic_vram.rs:
+        - Pre-populate buffer with "HELLO"
+        - Send DELETE event
+        - Verify "HELL" remains, cursor at 4
+      acceptance_criteria:
+        - DELETE removes last char
+        - Cursor decrements (if > 0)
+        - buffer_len decrements
+        - Test passes: cargo test test_text_buffer_delete
+
+    - id: task-10.3
+      title: Create text_editor.glyph program skeleton
+      assignee: event-router
+      dependencies: [task-10.2]
+      description: |
+        Create systems/glyph_stratum/programs/text_editor.glyph:
+        - Memory layout: state at 0x100, mailbox at 0x200, buffer at 0x1000
+        - Event loop polling mailbox
+        - Dispatch on event type (1-6)
+        - Handlers for INSERT, DELETE, CURSOR_LEFT, CURSOR_RIGHT
+        - Stub handlers for COMPILE, RUN
+      acceptance_criteria:
+        - Compiles with compile_glyph.py
+        - All 6 event types have handlers
+        - Memory layout documented in comments
+
+    - id: task-10.4
+      title: Integrate assembler with editor
+      assignee: assembler-integrator
+      dependencies: [task-10.3]
+      description: |
+        Implement :do_compile in text_editor.glyph:
+        - Copy buffer to assembler input at 0x3000
+        - Null-terminate the source
+        - Call assembler entry point
+        - Collect output at 0x5000
+      acceptance_criteria:
+        - test_editor_compile_simple passes
+        - Source correctly copied
+        - Assembler produces output
+
+    - id: task-10.5
+      title: Implement RUN with SPATIAL_SPAWN
+      assignee: vm-spawner
+      dependencies: [task-10.4]
+      description: |
+        Implement :do_run in text_editor.glyph:
+        - Use opcode 225 (SPATIAL_SPAWN) on compiled output
+        - Pass entry point and flags
+        - Handle spawn failures
+      acceptance_criteria:
+        - Compiled program spawns as new VM
+        - Child VM executes independently
+        - Error handling works
+
+    - id: task-10.6
+      title: Full edit-compile-execute loop validation
+      assignee: integration-validator
+      dependencies: [task-10.5]
+      description: |
+        Add test_edit_compile_execute_loop:
+        - Editor edits a simple program
+        - Compiles it
+        - Spawns it as a new VM
+        - New VM writes 0xDEAD to address 0x400
+        - Verify 0x400 contains 0xDEAD
+      acceptance_criteria:
+        - All 6 tasks complete
+        - Full loop works without CPU logic
+        - Test passes: cargo test test_edit_compile_execute_loop
+
+    - id: task-10.7
+      title: Update sovereignty ladder documentation
+      assignee: integration-validator
+      dependencies: [task-10.6]
+      description: |
+        Add Milestone 10 to docs/SOVEREIGNTY_LADDER.md:
+        - Document the Self-Hosting Text Editor
+        - Reference test_edit_compile_execute_loop
+        - Update "Next Horizon" section
+      acceptance_criteria:
+        - Milestone 10 documented
+        - All tests pass
+        - Committed to git
+
+  success_criteria:
+    - Text buffer INSERT/DELETE work correctly
+    - Cursor movement works
+    - Assembler integration compiles buffer
+    - SPATIAL_SPAWN executes compiled code
+    - Full edit-compile-execute loop works
+    - All 4 tests passing
+    - SOVEREIGNTY_LADDER.md updated
+
+  reference_docs:
+    - docs/plans/2026-03-18-self-hosting-text-editor.md
+    - docs/SOVEREIGNTY_LADDER.md
