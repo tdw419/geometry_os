@@ -55,7 +55,7 @@ OPCODES = {
     "SAR": 226,
     # Legacy aliases for compatibility
     "JUMP": 209,
-    "EXIT": 255,
+    "EXIT": 13,
 }
 
 ACTION_PATTERN = re.compile(r"\[([A-Z0-9])\]\s*(\w+)")

@@ -569,6 +569,105 @@ impl SyntheticVram {
     }
 
     // ========================================================================
+    // ASCII Cartridge Click Handling
+    // ========================================================================
+
+    /// Handle a click at screen coordinates (x, y) by executing the SIT action.
+    ///
+    /// This is the "pixels move pixels" bridge: a click reads the SIT,
+    /// extracts the opcode and target, and directly modifies VM state.
+    ///
+    /// Returns true if an action was found and executed.
+    pub fn handle_sit_click(&mut self, vm_id: usize, opcode: u8, target_addr: u32) -> bool {
+        if vm_id >= MAX_VMS {
+            return false;
+        }
+
+        // Wake up VM if inactive
+        if self.vms[vm_id].state == VM_STATE_INACTIVE {
+            self.vms[vm_id].state = VM_STATE_RUNNING;
+        }
+
+        // Execute the opcode directly
+        match opcode {
+            0 => {
+                // NOP - just advance PC
+                self.vms[vm_id].pc += 1;
+                true
+            }
+            9 => {
+                // JMP - jump to target address
+                self.vms[vm_id].pc = target_addr;
+                true
+            }
+            11 => {
+                // CALL - push return address and jump
+                let sp = self.vms[vm_id].stack_ptr as usize;
+                if sp < STACK_SIZE {
+                    self.vms[vm_id].stack[sp] = self.vms[vm_id].pc + 1;
+                    self.vms[vm_id].stack_ptr += 1;
+                    self.vms[vm_id].pc = target_addr;
+                    true
+                } else {
+                    self.vms[vm_id].state = VM_STATE_HALTED;
+                    false
+                }
+            }
+            12 => {
+                // RET - return from call
+                let sp = self.vms[vm_id].stack_ptr;
+                if sp > 0 {
+                    self.vms[vm_id].stack_ptr -= 1;
+                    self.vms[vm_id].pc = self.vms[vm_id].stack[(sp - 1) as usize];
+                    true
+                } else {
+                    self.vms[vm_id].state = VM_STATE_HALTED;
+                    false
+                }
+            }
+            13 => {
+                // HALT - stop the VM
+                self.vms[vm_id].state = VM_STATE_HALTED;
+                self.vms[vm_id].halted = 1;
+                true
+            }
+            _ => {
+                // Unknown opcode - ignore
+                false
+            }
+        }
+    }
+
+    /// Execute a SIT action from a cartridge click.
+    ///
+    /// This combines with AsciiCartridge::find_action_at() to enable:
+    /// ```ignore
+    /// if let Some(action) = cartridge.find_action_at(x, y) {
+    ///     let target_addr = parse_target(&action.target);
+    ///     vram.handle_sit_click(0, action.opcode, target_addr);
+    /// }
+    /// ```
+    pub fn execute_sit_action(
+        &mut self,
+        vm_id: usize,
+        opcode: u8,
+        target: &str,
+        symbol_table: &std::collections::HashMap<String, u32>,
+    ) -> bool {
+        // Parse target: try as number first, then lookup in symbol table
+        let target_addr = if let Ok(addr) = target.parse::<u32>() {
+            addr
+        } else if let Some(&addr) = symbol_table.get(target) {
+            addr
+        } else {
+            // Unknown target - default to 0
+            0
+        };
+
+        self.handle_sit_click(vm_id, opcode, target_addr)
+    }
+
+    // ========================================================================
     // Instruction execution (pixel-perfect match to WGSL)
     // ========================================================================
 
@@ -5572,6 +5671,70 @@ mod tests {
         println!("  Editor types 'HI' → RENDER → DRAW blits from atlas to screen");
         println!("  64x64 glyph shapes verified at correct screen positions");
         println!("  This is REAL rendering: pixels, not codes.");
+        println!("{}", "=".repeat(60));
+    }
+
+    #[test]
+    fn test_sit_click_handler() {
+        // ============================================================
+        // SIT Click Handler Test — "Pixels Move Pixels"
+        // ============================================================
+        // When a user clicks on an ASCII UI element (e.g., [A] Run),
+        // the SIT action should execute a VM opcode directly.
+        //
+        // This is the bridge from visual interaction to compute.
+
+        let mut vram = SyntheticVram::new_small(256);
+        vram.spawn_vm(0, &SyntheticVmConfig {
+            entry_point: 100,
+            ..Default::default()
+        }).unwrap();
+
+        // === TEST 1: JMP (9) ===
+        // Click should jump PC to target address
+        let jumped = vram.handle_sit_click(0, 9, 200);
+        assert!(jumped, "JMP click should return true");
+        assert_eq!(vram.vm_state(0).unwrap().pc, 200, "PC should jump to target");
+
+        // === TEST 2: CALL (11) ===
+        // Click should push return address and jump
+        vram.vm_state_mut(0).unwrap().pc = 50;
+        vram.vm_state_mut(0).unwrap().stack_ptr = 0;
+        let called = vram.handle_sit_click(0, 11, 300);
+        assert!(called, "CALL click should return true");
+        assert_eq!(vram.vm_state(0).unwrap().pc, 300, "PC should jump to target");
+        assert_eq!(vram.vm_state(0).unwrap().stack_ptr, 1, "Stack should have return address");
+        assert_eq!(vram.vm_state(0).unwrap().stack[0], 51, "Return address should be PC+1");
+
+        // === TEST 3: HALT (13) ===
+        // Click should halt the VM
+        vram.vm_state_mut(0).unwrap().state = VM_STATE_RUNNING;
+        let halted = vram.handle_sit_click(0, 13, 0);
+        assert!(halted, "HALT click should return true");
+        assert_eq!(vram.vm_state(0).unwrap().state, VM_STATE_HALTED, "VM should be halted");
+
+        // === TEST 4: NOP (0) ===
+        // Click should just advance PC
+        vram.vm_state_mut(0).unwrap().state = VM_STATE_RUNNING;
+        vram.vm_state_mut(0).unwrap().pc = 100;
+        let nopped = vram.handle_sit_click(0, 0, 0);
+        assert!(nopped, "NOP click should return true");
+        assert_eq!(vram.vm_state(0).unwrap().pc, 101, "PC should advance by 1");
+
+        // === TEST 5: RET (12) ===
+        // Click should return from call
+        vram.vm_state_mut(0).unwrap().state = VM_STATE_RUNNING;
+        vram.vm_state_mut(0).unwrap().stack[0] = 42;
+        vram.vm_state_mut(0).unwrap().stack_ptr = 1;
+        let returned = vram.handle_sit_click(0, 12, 0);
+        assert!(returned, "RET click should return true");
+        assert_eq!(vram.vm_state(0).unwrap().pc, 42, "PC should be restored from stack");
+        assert_eq!(vram.vm_state(0).unwrap().stack_ptr, 0, "Stack pointer should decrement");
+
+        println!("\n{}", "=".repeat(60));
+        println!("✅ SIT Click Handler — PASSED");
+        println!("  JMP(9), CALL(11), HALT(13), NOP(0), RET(12) all work");
+        println!("  This is the 'pixels move pixels' bridge.");
         println!("{}", "=".repeat(60));
     }
 }

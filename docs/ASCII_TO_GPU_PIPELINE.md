@@ -24,17 +24,21 @@ The ASCII template IS the program. The pixels ARE the computation.
 | Dashboard Template | `apps/ascii-world/ascii-world-master/apps/geos-ascii/examples/dashboard.ascii` | ✅ Ready |
 | Action Mappings | `apps/ascii-world/ascii-world-master/apps/geos-ascii/examples/dashboard.mapping.json` | ✅ Ready |
 | Compiled Cartridge | `apps/ascii-world/ascii-world-master/apps/geos-ascii/examples/dashboard.rts.png` | ✅ Generated |
+| Rust Cartridge Loader | `systems/infinite_map_rs/src/ascii_cartridge.rs` | ✅ Implemented |
+| Opcode Alignment | `ascii_cartridge.rs::sit_to_glyph_opcode()` | ✅ Aligned |
+| Click Handler | `synthetic_vram.rs::handle_sit_click()` | ✅ Implemented |
 | Synthetic VRAM | `systems/infinite_map_rs/src/synthetic_vram.rs` | ✅ CPU emulator |
 | Glyph VM Opcodes | `systems/infinite_map_rs/src/glyph_assembler.rs` | ✅ Defined |
-| HTML Viewer | `apps/ascii-world/ascii-world-master/apps/geos-ascii/viewer/geos-viewer.html` | ⚠️ JS-based, not GPU |
 
-### What's Missing
+### Tests
 
-| Component | Description |
-|-----------|-------------|
-| Rust Cartridge Loader | Reads .rts.png into Synthetic VRAM |
-| Opcode Alignment | SIT opcodes must match Glyph VM opcodes |
-| Click → VM Execution | Clicking `[A]` should trigger VM opcode, not JS console.log |
+```bash
+# Run all ASCII cartridge tests
+cargo test ascii_cartridge --lib
+
+# Run click handler test
+cargo test test_sit_click_handler --lib
+```
 
 ---
 
