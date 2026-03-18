@@ -89,6 +89,21 @@ JMP :start
     
     LDI r14, :skip_alpha; CALL r14; LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r10, r7
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r11, r7
+    LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r12, r7
+    
+    LDI r14, 2; BEQ r4, r14, :p2_swap
+    LDI r14, 3; BEQ r4, r14, :p2_swap
+    LDI r14, 5; BEQ r4, r14, :p2_3op
+    LDI r14, 6; BEQ r4, r14, :p2_3op
+    LDI r14, 7; BEQ r4, r14, :p2_3op
+    LDI r14, 8; BEQ r4, r14, :p2_3op
+    LDI r14, 129; BEQ r4, r14, :p2_3op
+    LDI r14, 131; BEQ r4, r14, :p2_3op
+    LDI r14, 132; BEQ r4, r14, :p2_3op
+    JMP :p2_emit_gen
+:p2_3op; MOV r5, r12
+:p2_swap; MOV r14, r10; MOV r10, r11; MOV r11, r14
+:p2_emit_gen
     MOV r3, r4; LDI r14, 8; SLL r15, r5, r14; OR r3, r3, r15
     LDI r14, 16; SLL r15, r10, r14; OR r3, r3, r15
     LDI r14, 24; SLL r15, r11, r14; OR r3, r3, r15
@@ -119,7 +134,7 @@ JMP :start
     LDI r8, 1; BEQ r6, r8, :p2_jmp_reg
     LDI r14, 0x5000; SUB r3, r1, r14; ADD r3, r3, r13
     SUB r3, r7, r3; MOV r11, r3
-    MOV r10, r11; LDI r14, 8; LSR r11, r11, r14
+    MOV r10, r11; LDI r14, 8; SRL r11, r11, r14
     LDI r8, 0xFF; AND r10, r10, r8; AND r11, r11, r8
     LDI r5, 2; JMP :p2_jmp_gen
 :p2_jmp_reg
@@ -217,6 +232,11 @@ JMP :start
     LDI r5, 85; STORE r4, r5; ADD r4, r4, r13 // U
     LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
     LDI r5, 7;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
+    LDI r5, 83; STORE r4, r5; ADD r4, r4, r13 // S
+    LDI r5, 82; STORE r4, r5; ADD r4, r4, r13 // R
+    LDI r5, 76; STORE r4, r5; ADD r4, r4, r13 // L
+    LDI r5, 132; STORE r4, r5; ADD r4, r4, r13
     LDI r5, 0;  STORE r4, r5; ADD r4, r4, r13
     LDI r5, 0xFFFFFFFF; STORE r4, r5
     RET

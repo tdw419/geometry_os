@@ -25,8 +25,12 @@ pub enum Opcode {
     Data = 14,
     Loop = 15,
     Jal = 16,
+    And = 128,
     Or = 129,
+    Xor = 130,
     Sll = 131,
+    Srl = 132,
+    Sra = 133,
 }
 
 impl Opcode {
@@ -50,8 +54,11 @@ impl Opcode {
             "DATA" => Some(Self::Data),
             "LOOP" => Some(Self::Loop),
             "JAL" => Some(Self::Jal),
+            "AND" => Some(Self::And),
             "OR" => Some(Self::Or),
+            "XOR" => Some(Self::Xor),
             "SLL" => Some(Self::Sll),
+            "SRL" => Some(Self::Srl),
             _ => None,
         }
     }
@@ -465,10 +472,24 @@ impl GlyphAssembler {
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
                 (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
             }
+            Opcode::And => {
+                let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
+                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
+            }
+            Opcode::Xor => {
+                let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
+                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
+            }
             Opcode::Sll => {
                 // SLL rd, rs1, rs2 (three-operand form)
                 // Encodes as: opcode=131, stratum=rs2, p1=rs1, p2=rd
                 // VM behavior: rd = rs1 << (rs2 & 31)
+                let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
+                (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
+            }
+            Opcode::Srl => {
+                // SRL rd, rs1, rs2 (three-operand form)
+                // Encodes as: opcode=132, stratum=rs2, p1=rs1, p2=rd
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
                 (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
             }
