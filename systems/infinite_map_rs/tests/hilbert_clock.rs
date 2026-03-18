@@ -20,12 +20,13 @@ fn test_hilbert_clock_simulation() {
 
     // Copy to VRAM at 0x8000
     for (i, &byte) in program.iter().enumerate() {
+        let b = byte as u32;
         vram.poke_glyph(
             0x8000 + i as u32,
-            (byte >> 0) as u8,
-            (byte >> 4) as u8,
-            (byte >> 8) as u8,
-            (byte >> 12) as u8,
+            (b >> 0) as u8,
+            (b >> 4) as u8,
+            (b >> 8) as u8,
+            (b >> 12) as u8,
         );
     }
 
