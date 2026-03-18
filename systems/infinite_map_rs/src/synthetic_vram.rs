@@ -594,12 +594,12 @@ impl SyntheticVram {
                 // NOP - just advance PC
                 self.vms[vm_id].pc += 1;
                 true
-            }
+            },
             9 => {
                 // JMP - jump to target address
                 self.vms[vm_id].pc = target_addr;
                 true
-            }
+            },
             11 => {
                 // CALL - push return address and jump
                 let sp = self.vms[vm_id].stack_ptr as usize;
@@ -612,7 +612,7 @@ impl SyntheticVram {
                     self.vms[vm_id].state = VM_STATE_HALTED;
                     false
                 }
-            }
+            },
             12 => {
                 // RET - return from call
                 let sp = self.vms[vm_id].stack_ptr;
@@ -624,17 +624,17 @@ impl SyntheticVram {
                     self.vms[vm_id].state = VM_STATE_HALTED;
                     false
                 }
-            }
+            },
             13 => {
                 // HALT - stop the VM
                 self.vms[vm_id].state = VM_STATE_HALTED;
                 self.vms[vm_id].halted = 1;
                 true
-            }
+            },
             _ => {
                 // Unknown opcode - ignore
                 false
-            }
+            },
         }
     }
 
@@ -5685,16 +5685,24 @@ mod tests {
         // This is the bridge from visual interaction to compute.
 
         let mut vram = SyntheticVram::new_small(256);
-        vram.spawn_vm(0, &SyntheticVmConfig {
-            entry_point: 100,
-            ..Default::default()
-        }).unwrap();
+        vram.spawn_vm(
+            0,
+            &SyntheticVmConfig {
+                entry_point: 100,
+                ..Default::default()
+            },
+        )
+        .unwrap();
 
         // === TEST 1: JMP (9) ===
         // Click should jump PC to target address
         let jumped = vram.handle_sit_click(0, 9, 200);
         assert!(jumped, "JMP click should return true");
-        assert_eq!(vram.vm_state(0).unwrap().pc, 200, "PC should jump to target");
+        assert_eq!(
+            vram.vm_state(0).unwrap().pc,
+            200,
+            "PC should jump to target"
+        );
 
         // === TEST 2: CALL (11) ===
         // Click should push return address and jump
@@ -5702,16 +5710,32 @@ mod tests {
         vram.vm_state_mut(0).unwrap().stack_ptr = 0;
         let called = vram.handle_sit_click(0, 11, 300);
         assert!(called, "CALL click should return true");
-        assert_eq!(vram.vm_state(0).unwrap().pc, 300, "PC should jump to target");
-        assert_eq!(vram.vm_state(0).unwrap().stack_ptr, 1, "Stack should have return address");
-        assert_eq!(vram.vm_state(0).unwrap().stack[0], 51, "Return address should be PC+1");
+        assert_eq!(
+            vram.vm_state(0).unwrap().pc,
+            300,
+            "PC should jump to target"
+        );
+        assert_eq!(
+            vram.vm_state(0).unwrap().stack_ptr,
+            1,
+            "Stack should have return address"
+        );
+        assert_eq!(
+            vram.vm_state(0).unwrap().stack[0],
+            51,
+            "Return address should be PC+1"
+        );
 
         // === TEST 3: HALT (13) ===
         // Click should halt the VM
         vram.vm_state_mut(0).unwrap().state = VM_STATE_RUNNING;
         let halted = vram.handle_sit_click(0, 13, 0);
         assert!(halted, "HALT click should return true");
-        assert_eq!(vram.vm_state(0).unwrap().state, VM_STATE_HALTED, "VM should be halted");
+        assert_eq!(
+            vram.vm_state(0).unwrap().state,
+            VM_STATE_HALTED,
+            "VM should be halted"
+        );
 
         // === TEST 4: NOP (0) ===
         // Click should just advance PC
@@ -5728,8 +5752,16 @@ mod tests {
         vram.vm_state_mut(0).unwrap().stack_ptr = 1;
         let returned = vram.handle_sit_click(0, 12, 0);
         assert!(returned, "RET click should return true");
-        assert_eq!(vram.vm_state(0).unwrap().pc, 42, "PC should be restored from stack");
-        assert_eq!(vram.vm_state(0).unwrap().stack_ptr, 0, "Stack pointer should decrement");
+        assert_eq!(
+            vram.vm_state(0).unwrap().pc,
+            42,
+            "PC should be restored from stack"
+        );
+        assert_eq!(
+            vram.vm_state(0).unwrap().stack_ptr,
+            0,
+            "Stack pointer should decrement"
+        );
 
         println!("\n{}", "=".repeat(60));
         println!("✅ SIT Click Handler — PASSED");

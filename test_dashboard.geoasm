@@ -1,0 +1,48 @@
+; === BOOTSTRAP: Load ASCII Grid ===
+NOP
+LDI r0 32768
+LDI r1 1920
+LDI r2 0
+LOAD r3 [r0+r2]
+DRAW r3 r2 SCREEN_BASE
+ADD r2 1
+CMP r2 r1
+JZ 4
+; === INITIALIZING SIT ===
+LDI r0 34688
+; === EVENT LOOP ===
+LD r1 MOUSE_X
+LD r2 MOUSE_Y
+CALL handle_click
+JMP 10
+
+; === Handler for [A] ===
+:handle_A
+LDI r0, 1
+ST r0, BUTTON_PRESSED
+RET
+; === Handler for [B] ===
+:handle_B
+LDI r0, 1
+ST r0, BUTTON_PRESSED
+RET
+; === Handler for [C] ===
+:handle_C
+LDI r0, 1
+ST r0, BUTTON_PRESSED
+RET
+; === Handler for [F] ===
+:handle_F
+LDI r0, 1
+ST r0, BUTTON_PRESSED
+RET
+; === Handler for [X] ===
+:handle_X
+LDI r0, 1
+ST r0, BUTTON_PRESSED
+RET
+; === Handler for [R] ===
+:handle_R
+LDI r0, 1
+ST r0, BUTTON_PRESSED
+RET

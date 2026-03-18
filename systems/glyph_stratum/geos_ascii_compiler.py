@@ -242,7 +242,7 @@ def pack_cartridge(parser, sit_data, output_path):
     width = GLYPH_WIDTH
 
     # Create image
-    img = Image.new("RGBA", (width, total_height), color=(0, 0, 0, 0))
+    img = Image.new("RGBA", (width, total_height))
     pixels = np.array(img)
 
     # Segment 1: Glyph Grid (ASCII characters as RGBA)
