@@ -553,12 +553,24 @@ impl GlyphVmScheduler {
 
     /// Execute one frame of the scheduler
     pub fn execute_frame(&mut self) {
-        let ram_view = match &self.ram_view {
-            Some(view) => view,
+        let texture = match &self.ram_texture {
+            Some(t) => t,
             None => {
                 return;
             },
         };
+
+        // Create FRESH texture view each frame to avoid any caching issues
+        let ram_view = texture.create_view(&wgpu::TextureViewDescriptor {
+            label: Some("RAM Texture View (Fresh)"),
+            format: Some(wgpu::TextureFormat::Rgba8Uint),
+            dimension: Some(wgpu::TextureViewDimension::D2),
+            aspect: wgpu::TextureAspect::All,
+            base_mip_level: 0,
+            mip_level_count: None,
+            base_array_layer: 0,
+            array_layer_count: None,
+        });
 
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Glyph VM Scheduler Bind Group"),
@@ -566,7 +578,7 @@ impl GlyphVmScheduler {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(ram_view),
+                    resource: wgpu::BindingResource::TextureView(&ram_view),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
@@ -858,6 +870,58 @@ impl GlyphVmScheduler {
             );
         }
         log::debug!("[POKE] addr=0x{:x} val=0x{:x}", addr, val);
+    }
+
+    /// Write a batch of words to substrate starting at base_addr.
+    /// Queues all writes and submits in a single batch to avoid queue overflow.
+    pub fn poke_substrate_batch(&mut self, base_addr: u32, words: &[u32]) {
+        if words.is_empty() {
+            return;
+        }
+
+        // Update shadow RAM
+        {
+            let mut shadow = self.shadow_ram.lock().unwrap();
+            for (i, word) in words.iter().enumerate() {
+                let offset = (base_addr as usize + i) * 4;
+                if offset + 4 <= shadow.len() {
+                    shadow[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
+                }
+            }
+        }
+
+        // Write to GPU texture - queue all writes, then submit once
+        if let Some(ref texture) = self.ram_texture {
+            for (i, word) in words.iter().enumerate() {
+                let addr = base_addr + i as u32;
+                let (tx, ty) = hilbert_d2xy(4096, addr);
+                self.queue.write_texture(
+                    wgpu::ImageCopyTexture {
+                        texture,
+                        mip_level: 0,
+                        origin: wgpu::Origin3d { x: tx, y: ty, z: 0 },
+                        aspect: wgpu::TextureAspect::All,
+                    },
+                    &word.to_le_bytes(),
+                    wgpu::ImageDataLayout {
+                        offset: 0,
+                        bytes_per_row: Some(4),
+                        rows_per_image: Some(1),
+                    },
+                    wgpu::Extent3d {
+                        width: 1,
+                        height: 1,
+                        depth_or_array_layers: 1,
+                    },
+                );
+            }
+
+            // Submit all queued writes in one batch
+            self.queue.submit([]);
+            self.device.poll(wgpu::Maintain::Wait);
+
+            log::debug!("[BATCH] wrote {} words starting at 0x{:x}", words.len(), base_addr);
+        }
     }
 
     /// Flush all pending texture writes to GPU.

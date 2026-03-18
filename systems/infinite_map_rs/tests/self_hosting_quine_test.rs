@@ -15,8 +15,10 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     fn create_test_device() -> Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> {
+        // Try GL backend first (more compatible), fallback to Vulkan
+        let backends = wgpu::Backends::GL | wgpu::Backends::VULKAN;
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
+            backends,
             ..Default::default()
         });
 
@@ -120,28 +122,22 @@ mod tests {
         println!("  0x5000-0x5FFF: Output buffer");
         println!("  0x6000-0x7FFF: Label table");
 
-        // Write binary to memory at 0x0000 (TEST: try 575 words)
-        println!("\nWriting binary to GPU memory (first 575 words)...");
-        for (i, word) in assembled.words.iter().enumerate().take(575) {
-            scheduler.poke_substrate_single(i as u32, *word);
-        }
+        // Write binary to memory at 0x0000 (BATCH WRITE for efficiency)
+        println!("\nWriting binary to GPU memory ({} words)...", assembled.words.len());
+        scheduler.poke_substrate_batch(0, &assembled.words);
 
-        // Write source to memory at 0x1000 (MINIMAL test: only first 100 chars)
-        println!("Writing source to GPU memory (first 100 chars only)...");
-        for (i, b) in source_text.bytes().enumerate() {
-            if i >= 100 {
-                break;
-            }
-            scheduler.poke_substrate_single(0x1000 + i as u32, b as u32);
-        }
-        scheduler.poke_substrate_single(0x1000 + 100, 0); // null terminator
+        // Write source to memory at 0x1000 (BATCH WRITE for efficiency)
+        println!("Writing source to GPU memory ({} bytes)...", source_text.len());
+        let source_words: Vec<u32> = source_text.bytes().map(|b| b as u32).collect();
+        scheduler.poke_substrate_batch(0x1000, &source_words);
+        scheduler.poke_substrate_single(0x1000 + source_text.len() as u32, 0); // null terminator
 
         println!("Memory initialization complete.");
 
-        // Clear output buffer at 0x5000
-        for i in 0..assembled.words.len() + 100 {
-            scheduler.poke_substrate_single(0x5000 + i as u32, 0);
-        }
+        // Clear output buffer at 0x5000 (BATCH WRITE for efficiency)
+        println!("Clearing output buffer...");
+        let zeros: Vec<u32> = vec![0; assembled.words.len() + 100];
+        scheduler.poke_substrate_batch(0x5000, &zeros);
 
         // Verify shadow RAM has correct data before execution
         println!("\nVerifying shadow RAM before execution:");

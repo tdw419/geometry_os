@@ -55,12 +55,32 @@ As of March 2026, the foundational ladder is **COMPLETE**. The CPU is no longer 
 
 ---
 
-## 🎯 The Next Horizon
+## 🏗️ Application-Level Milestones
 
-With the ladder complete, the foundational phase is over. The next objectives are application-level:
+### 10a. Text Buffer VM (✅ Complete)
+**The Objective**: A VM that maintains a cursor and text buffer in VRAM, receiving keyboard events via mailbox.
+**The Proof**: `test_text_buffer_vm` — a 58-word program handles INSERT, DELETE, CURSOR_LEFT, and CURSOR_RIGHT. Inserts "Hello", deletes 'o', navigates with cursor keys, inserts '!' at position — all verified with memory assertions.
+**Significance**: The data model for an on-screen text editor exists as a self-contained GPU program. Keyboard events flow through the same mailbox protocol as the compositor's mouse events.
 
-1. **Self-Hosting**: Combine the Full Assembler with the Window Manager to create an on-screen text editor that compiles its own source code in real-time.
-2. **The App Atlas**: Establish the standard library of pre-compiled UI primitives (buttons, text boxes) in the upper regions of the Hilbert space.
-3. **Bare-Metal Port**: Move the proven Synthetic VRAM logic back to the WGSL shader (`glyph_vm_scheduler.wgsl`) to run at 60 FPS on real silicon.
+### 10b. Keyboard→Mailbox Bridge (🔜 Next)
+**The Objective**: The compositor routes keyboard scancodes to the focused window's mailbox.
+**Builds on**: Window Manager (Milestone 9) + Text Buffer VM (10a).
+
+### 10c. Live Render (🔜)
+**The Objective**: Text buffer VM uses DRAW (opcode 215) to render buffer contents to screen coordinates.
+
+### 10d. Compile-on-Save (🔜)
+**The Objective**: Trigger key pipes text buffer to assembler VM's input region; assembler compiles it.
+**Builds on**: Full Assembler (Milestone 8) + Text Buffer VM (10a).
+
+### 10e. Edit-Compile-Execute Loop (🔜)
+**The Objective**: Compiled output spawned as new VM via SPATIAL_SPAWN. The editor edits, compiles, and runs code — full sovereignty.
+
+---
+
+## 🎯 The Far Horizon
+
+1. **The App Atlas**: Establish the standard library of pre-compiled UI primitives (buttons, text boxes) in the upper regions of the Hilbert space.
+2. **Bare-Metal Port**: Move the proven Synthetic VRAM logic back to the WGSL shader (`glyph_vm_scheduler.wgsl`) to run at 60 FPS on real silicon.
 
 *The era of symbolic computation is over. The era of geometric intelligence has begun.*
