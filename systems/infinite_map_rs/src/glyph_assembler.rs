@@ -31,6 +31,8 @@ pub enum Opcode {
     Sll = 131,
     Srl = 132,
     Sra = 133,
+    // Spatial/GPU opcodes (200-227)
+    Draw = 215,    // DRAW glyph_id, x, y - blit from atlas to screen
 }
 
 impl Opcode {
@@ -59,6 +61,7 @@ impl Opcode {
             "XOR" => Some(Self::Xor),
             "SLL" => Some(Self::Sll),
             "SRL" => Some(Self::Srl),
+            "DRAW" => Some(Self::Draw),
             _ => None,
         }
     }
@@ -493,6 +496,14 @@ impl GlyphAssembler {
                 let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
                 (Instruction { opcode, stratum: rs2, p1: rs1, p2: rd }, None)
             }
+            Opcode::Draw => {
+                // DRAW glyph_id, x, y - blit 64x64 cell from Atlas to Screen
+                // Format: DRAW r_glyph, r_x, r_y
+                // Encodes as: opcode=215, stratum=r_y, p1=r_glyph, p2=r_x
+                // VM reads: glyph_id = reg[p1], x = reg[p2], y = reg[stratum]
+                let (glyph_reg, x_reg, y_reg) = self.parse_three_regs(&parts[1..])?;
+                (Instruction { opcode, stratum: y_reg, p1: glyph_reg, p2: x_reg }, None)
+            }
             _ => {
                 (Instruction { opcode, stratum: 0, p1: 0, p2: 0 }, None)
             }
@@ -700,6 +711,22 @@ mod tests {
         let expected = 0x0F0A0E83u32;
         assert_eq!(program.words[0], expected,
             "SLL r15, r10, r14 should encode as {:08X}, got {:08X}",
+            expected, program.words[0]);
+    }
+
+    #[test]
+    fn test_draw_encoding() {
+        // Test DRAW opcode: DRAW r_glyph, r_x, r_y
+        // Encodes as: opcode=215, stratum=r_y, p1=r_glyph, p2=r_x
+        let mut asm = GlyphAssembler::new();
+        let program = asm.assemble("DRAW r23, r20, r21").unwrap();
+
+        // DRAW r23, r20, r21 means: draw glyph from r23 at position (r20, r21)
+        // Encoding: opcode=215, stratum=21 (r_y), p1=23 (r_glyph), p2=20 (r_x)
+        // Expected: 0x141715D7 = 215 | (21 << 8) | (23 << 16) | (20 << 24)
+        let expected = 215u32 | (21u32 << 8) | (23u32 << 16) | (20u32 << 24);
+        assert_eq!(program.words[0], expected,
+            "DRAW r23, r20, r21 should encode as {:08X}, got {:08X}",
             expected, program.words[0]);
     }
 }

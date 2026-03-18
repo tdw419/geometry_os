@@ -188,43 +188,45 @@
 :do_render
     // Render buffer to screen using DRAW (opcode 215)
     // Each character in buffer is drawn at position (col, row)
-    // Font atlas assumed at fixed location, char code = glyph_id
-    LDI r20, 0           // x = 0 (column)
-    LDI r21, 0           // y = 0 (row)
+    // Font atlas at (2048, 0), Screen at (0, 2048)
+    // DRAW r_glyph, r_x, r_y - blits 64x64 cell from Atlas to Screen
+    LDI r20, 0           // x = 0 (column, in pixels)
+    LDI r21, 0           // y = 0 (row, in pixels)
     LDI r22, 0           // buffer index
 :render_loop
-    LOAD r23, [r2 + r22]    // r23 = buffer[index]
+    LOAD r23, [r2 + r22]    // r23 = buffer[index] (glyph_id)
     BEQ r23, r127, :render_done
     
     // DRAW r23, r20, r21
-    // Opcode 215: p1 = glyph_id, p2 = y | (x << 8)
-    // Pack x into high byte, y into low byte of p2
-    MOV r24, r20
-    SLL r24, r24, 8      // x << 8
-    OR r24, r24, r21     // p2 = (x << 8) | y
+    // Blits glyph from atlas to screen position (x, y)
+    DRAW r23, r20, r21
     
-    // Store DRAW instruction to screen region
-    // Actually DRAW writes directly to screen via MMIO
-    // For now, we just track position
-    // Real implementation would call DRAW opcode here
-    
-    // Advance position
-    ADD r20, r20, r13    // x++
-    LDI r25, 80          // 80 columns
+    // Advance position (64 pixels per glyph cell)
+    LDI r24, 64
+    ADD r20, r20, r24    // x += 64
+    LDI r25, 640         // 10 columns * 64 = 640 pixels
     BEQ r20, r25, :new_line
     JMP :render_continue
 :new_line
     LDI r20, 0
-    ADD r21, r21, r13    // y++
+    ADD r21, r21, r24    // y += 64
 :render_continue
     ADD r22, r22, r13    // index++
     JMP :render_loop
     
 :render_done
     // Draw cursor at current position
-    // (cursor position stored at 0x0100)
-    LOAD r20, [r1]      // cursor position
-    // Could draw cursor glyph here
+    LOAD r24, [r1]       // cursor position (0-based index)
+    // Convert cursor index to pixel position
+    // x = (cursor % 10) * 64, y = (cursor / 10) * 64
+    LDI r25, 10
+    LDI r26, 64
+    // Simple: x = cursor * 64 (assuming single line for now)
+    MUL r20, r24, r26    // x = cursor * 64
+    LDI r21, 0           // y = 0 (single line)
+    // Draw cursor glyph ('_' = 0x5F = 95)
+    LDI r23, 95
+    DRAW r23, r20, r21
     JMP :clear_event
 
 // --- CLEAR EVENT ---
