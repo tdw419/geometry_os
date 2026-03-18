@@ -1,0 +1,141 @@
+# Pattern CLI Team
+# CLI-Anything Integration for Pattern Recognition
+
+team:
+  name: pattern-cli-team
+  description: |
+    Creates a Python CLI wrapper using CLI-Anything framework that integrates
+    with the TypeScript pattern recognition system for AI agent consumption.
+
+  project_root: /home/jericho/zion/projects/ascii_interface/ascii_interface
+
+  agents:
+    - name: plugin-architect
+      role: Creates CLI-Anything plugin structure and setup
+      focus:
+        - Set up directory structure for pattern-cli plugin
+        - Create __init__.py and main CLI file
+        - Define CLI group structure with Click
+      files:
+        - apps/CLI-Anything/pattern-cli/agent-harness/cli_anything/pattern_cli/__init__.py
+        - apps/CLI-Anything/pattern-cli/agent-harness/cli_anything/pattern_cli/pattern_cli.py
+
+    - name: core-implementer
+      role: Implements core CLI functions and subprocess handling
+      focus:
+        - Create output helpers (JSON, human-readable)
+        - Implement run_ts_cli() for subprocess calls
+        - Add error handling and timeout support
+      files:
+        - apps/CLI-Anything/pattern-cli/agent-harness/cli_anything/pattern_cli/pattern_cli.py
+
+    - name: command-engineer
+      role: Implements CLI commands (parse, detect, validate, repl)
+      focus:
+        - Add parse command with file/stdin support
+        - Add detect subcommands (buttons, status, containers, tables)
+        - Add validate command with expected count
+        - Add interactive REPL mode
+      files:
+        - apps/CLI-Anything/pattern-cli/agent-harness/cli_anything/pattern_cli/pattern_cli.py
+
+    - name: package-engineer
+      role: Creates package setup and entry points
+      focus:
+        - Create setup.py with Click dependency
+        - Create __main__.py entry point
+        - Test installation and command availability
+      files:
+        - apps/CLI-Anything/pattern-cli/agent-harness/setup.py
+        - apps/CLI-Anything/pattern-cli/agent-harness/cli_anything/pattern_cli/__main__.py
+
+    - name: test-engineer
+      role: Creates test suite for CLI
+      focus:
+        - Test CLI help and basic invocation
+        - Test parse command with JSON output
+        - Test detect subcommands
+        - Test validate command pass/fail
+      files:
+        - apps/CLI-Anything/pattern-cli/tests/test_pattern_cli.py
+
+    - name: docs-engineer
+      role: Creates documentation
+      focus:
+        - Write comprehensive README
+        - Document all commands and options
+        - Include JSON output format specification
+      files:
+        - apps/CLI-Anything/pattern-cli/README.md
+
+  tasks:
+    - id: task-1
+      title: CLI Plugin Structure
+      assignee: plugin-architect
+      dependencies: []
+      description: |
+        Create the CLI-Anything plugin directory structure and initial files.
+        Set up __init__.py and main pattern_cli.py with imports and global state.
+
+    - id: task-2
+      title: Core Functions
+      assignee: core-implementer
+      dependencies: [task-1]
+      description: |
+        Implement output helpers (output, _print_dict, _print_list) and
+        run_ts_cli() function for subprocess calls to TypeScript backend.
+
+    - id: task-3
+      title: Parse and Detect Commands
+      assignee: command-engineer
+      dependencies: [task-2]
+      description: |
+        Implement parse command with file/stdin support and JSON output.
+        Add detect subcommands for buttons, status, containers, tables.
+
+    - id: task-4
+      title: REPL and Validate Commands
+      assignee: command-engineer
+      dependencies: [task-3]
+      description: |
+        Add interactive REPL mode for real-time pattern detection.
+        Add validate command with expected count checking.
+
+    - id: task-5
+      title: Package Setup
+      assignee: package-engineer
+      dependencies: [task-4]
+      description: |
+        Create setup.py with Click dependency and console_scripts entry point.
+        Create __main__.py for module execution.
+        Test installation.
+
+    - id: task-6
+      title: Test Suite
+      assignee: test-engineer
+      dependencies: [task-5]
+      description: |
+        Create comprehensive test suite using pytest.
+        Test all commands with various inputs.
+        Verify JSON output format.
+
+    - id: task-7
+      title: Documentation
+      assignee: docs-engineer
+      dependencies: [task-6]
+      description: |
+        Create comprehensive README with installation, usage, and examples.
+        Document JSON output format for AI agents.
+        Include architecture diagram.
+
+  success_criteria:
+    - pattern-cli command installs and runs successfully
+    - JSON output works for all commands
+    - REPL mode allows interactive pattern detection
+    - All tests pass
+    - Documentation is complete
+
+  reference_docs:
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/docs/plans/2026-03-18-cli-anything-integration.md
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/src/renderer/patterns/README.md
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/apps/CLI-Anything/README.md

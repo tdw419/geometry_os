@@ -1,0 +1,177 @@
+# Frozen Bootloader Team - Geos-Boot
+# Implements the frozen Rust shell for Geometry OS GPU sovereignty
+
+team:
+  name: frozen-bootloader-team
+  description: |
+    Creates the frozen Rust bootloader (geos-boot) that:
+    - Initializes WebGPU surface once
+    - Forwards events to GPU mailbox at 0x200
+    - Loads .glyph programs into GPU memory
+    - NEVER requires recompilation after freeze ceremony
+
+    This achieves the "Frozen Bootstrap Pattern" where all future programming
+    happens in WGSL shaders, not Rust.
+
+  project_root: /home/jericho/zion/projects/geometry_os/geometry_os
+
+  agents:
+    - name: io-contract-architect
+      role: Defines immutable I/O contract between CPU and GPU
+      focus:
+        - Memory layout at 0x0000 (VM State), 0x0200 (Mailbox), 0x0300 (Events), 0x1000 (Program)
+        - Event types: mouse_move, mouse_button, keyboard, scroll
+        - Buffer sizes: 512B state, 256B mailbox, 1KB events, 1MB program
+      files:
+        - systems/geos-boot/src/io_contract.rs
+
+    - name: gpu-validator
+      role: Validates GPU meets minimum requirements
+      focus:
+        - Minimum 128MB storage buffer
+        - Minimum 256 compute workgroup threads
+        - Discrete GPU preferred over integrated
+        - Surface compatibility check
+      files:
+        - systems/geos-boot/src/gpu_requirements.rs
+        - systems/geos-boot/src/adapter_selector.rs
+
+    - name: event-forwarder
+      role: Forwards winit events to GPU mailbox
+      focus:
+        - Mouse position to f32 bits
+        - Keyboard scancodes to u32
+        - Modifier state (Ctrl/Shift/Alt) encoding
+        - Frame-based event flushing
+      files:
+        - systems/geos-boot/src/bootstrap.rs
+
+    - name: glyph-loader
+      role: Loads .glyph files into GPU memory
+      focus:
+        - Binary u32 word format
+        - Little-endian conversion
+        - Program memory offset at 0x1000
+        - Test program generation (LDI r0, 42; HALT)
+      files:
+        - systems/geos-boot/src/glyph_loader.rs
+
+    - name: shader-placeholder
+      role: Creates placeholder WGSL shaders for initial testing
+      focus:
+        - Compute shader reads events, increments cycle counter
+        - Render shader shows VM state as visual pulse
+        - Bind group layouts for storage buffers
+      files:
+        - systems/geos-boot/shaders/glyph_vm_compute.wgsl
+        - systems/geos-boot/shaders/glyph_vm_render.wgsl
+
+  tasks:
+    - id: task-1
+      title: Create Project Structure
+      assignee: io-contract-architect
+      description: |
+        - Create Cargo.toml with wgpu, winit, bytemuck dependencies
+        - Create src/lib.rs with module declarations
+        - Create FREEZE_MANIFEST.md placeholder
+      acceptance_criteria:
+        - cargo check passes
+        - Project structure matches design
+
+    - id: task-2
+      title: Implement I/O Contract
+      assignee: io-contract-architect
+      dependencies: [task-1]
+      description: |
+        - Define memory offsets and sizes
+        - Create Event struct with constructors
+        - Create EventsBuffer with push/clear methods
+        - Add unit tests for sizes and offsets
+      acceptance_criteria:
+        - cargo test io_contract passes (3 tests)
+        - Offsets align correctly
+
+    - id: task-3
+      title: Implement GPU Validation
+      assignee: gpu-validator
+      dependencies: [task-1]
+      description: |
+        - Define GpuRequirements MINIMUM and RECOMMENDED
+        - Implement validate_gpu() function
+        - Add AdapterSelector with discrete GPU preference
+      acceptance_criteria:
+        - cargo test gpu_requirements passes
+        - Validation errors are clear
+
+    - id: task-4
+      title: Implement Glyph Loader
+      assignee: glyph-loader
+      dependencies: [task-1]
+      description: |
+        - GlyphProgram::from_file() for binary loading
+        - GlyphProgram::test_program() for LDI r0, 42; HALT
+        - as_bytes() for GPU upload
+      acceptance_criteria:
+        - cargo test glyph_loader passes (3 tests)
+        - Test program encodes correctly
+
+    - id: task-5
+      title: Implement Frozen Bootstrap Core
+      assignee: event-forwarder
+      dependencies: [task-2, task-3, task-4]
+      description: |
+        - FrozenBootstrap::new() async initialization
+        - dispatch_compute() for VM execution
+        - render() with uniforms update
+        - push_event() and resize() handlers
+      acceptance_criteria:
+        - cargo build --release succeeds
+        - WebGPU initialization works
+
+    - id: task-6
+      title: Create Placeholder Shaders
+      assignee: shader-placeholder
+      dependencies: [task-5]
+      description: |
+        - glyph_vm_compute.wgsl reads events, increments cycle
+        - glyph_vm_render.wgsl shows visual pulse
+        - Bind group layouts match bootstrap.rs
+      acceptance_criteria:
+        - Shaders compile with wgslc
+        - Render shows dark background with pulse
+
+    - id: task-7
+      title: Create Main Binary
+      assignee: event-forwarder
+      dependencies: [task-5, task-6]
+      description: |
+        - main.rs with CLI argument parsing
+        - Load .glyph file or use test program
+        - Run bootstrap with program
+      acceptance_criteria:
+        - cargo run displays window
+        - Test program runs
+
+    - id: task-8
+      title: Finalize Freeze Manifest
+      assignee: io-contract-architect
+      dependencies: [task-7]
+      description: |
+        - Fill in date and commit SHA
+        - Document CPU vs GPU responsibilities
+        - Define unfreeze ceremony
+      acceptance_criteria:
+        - FREEZE_MANIFEST.md committed
+        - All tests pass
+
+  success_criteria:
+    - cargo test passes all tests
+    - cargo build --release produces binary
+    - Binary runs with test program
+    - Events forwarded to GPU mailbox
+    - FREEZE_MANIFEST.md declares frozen state
+
+  reference_docs:
+    - docs/plans/2026-03-18-frozen-bootloader-design.md
+    - docs/plans/2026-03-18-geos-boot-implementation.md
+    - gvpie_bootstrap/gvpie/gvpie-bootstrap/FREEZE_RITUAL.md

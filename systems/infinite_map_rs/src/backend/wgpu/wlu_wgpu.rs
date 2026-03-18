@@ -143,7 +143,7 @@ impl WluWgpuResources {
         let params_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("WLU Params"),
             size: (21 * size_of::<f32>()) as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
         
@@ -207,12 +207,12 @@ impl WluWgpuResources {
                     },
                     count: None,
                 },
-                // Binding 3: params (uniform)
+                // Binding 3: params (storage, read-only)
                 wgpu::BindGroupLayoutEntry {
                     binding: 3,
                     visibility: wgpu::ShaderStages::COMPUTE,
                     ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
                         has_dynamic_offset: false,
                         min_binding_size: None,
                     },
@@ -495,16 +495,156 @@ impl WaveLogicBackend for WluWgpuResources {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+    use serial_test::serial;
+    use std::sync::Arc;
+
+    /// Create a test wgpu device for unit tests
+    async fn create_test_device() -> Option<(Device, Queue)> {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::all(),
+            ..Default::default()
+        });
+
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::default(),
+                compatible_surface: None,
+                force_fallback_adapter: false,
+            })
+            .await?;
+
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor::default(), None)
+            .await
+            .ok()?;
+
+        Some((device, queue))
+    }
+
     #[test]
     fn test_gpu_oscillator_layout() {
         // Verify struct size matches expectations
         assert_eq!(size_of::<GpuOscillator>(), 20); // 5 * 4 bytes
     }
-    
-    // TODO: Add integration tests once wgpu instance is available
-    // #[test]
-    // fn test_wlu_wgpu_creation() {
-    //     // Requires wgpu instance
-    // }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_wlu_wgpu_creation() {
+        let result = create_test_device().await;
+        if let Some((device, queue)) = result {
+            let wlu_result = WluWgpuResources::new(device, queue, Some(DEFAULT_GRID_SIZE));
+            
+            // Creation should succeed with valid device/queue
+            assert!(wlu_result.is_ok(), "WLU wgpu creation should succeed");
+            
+            let wlu = wlu_result.unwrap();
+            
+            // Verify initial state
+            assert_eq!(wlu.grid_size(), DEFAULT_GRID_SIZE);
+            assert_eq!(wlu.frame(), 0);
+        }
+        // Skip if no GPU available
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_wlu_wgpu_update() {
+        let result = create_test_device().await;
+        if let Some((device, queue)) = result {
+            let mut wlu = WluWgpuResources::new(device, queue, Some(DEFAULT_GRID_SIZE))
+                .expect("WLU creation should succeed");
+            
+            // Initial frame should be 0
+            assert_eq!(wlu.frame(), 0);
+            
+            // Update should advance frame
+            wlu.update(0.016); // ~60fps timestep
+            assert_eq!(wlu.frame(), 1);
+            
+            // Multiple updates should advance frame counter
+            wlu.update(0.016);
+            wlu.update(0.016);
+            assert_eq!(wlu.frame(), 3);
+        }
+        // Skip if no GPU available
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_wlu_wgpu_sensor_readback() {
+        let result = create_test_device().await;
+        if let Some((device, queue)) = result {
+            let mut wlu = WluWgpuResources::new(device, queue, Some(DEFAULT_GRID_SIZE))
+                .expect("WLU creation should succeed");
+            
+            // Set oscillator A to generate waves
+            wlu.set_oscillator_a_frequency(1.0);
+            wlu.set_oscillator_a_amplitude(1.0);
+            
+            // Run simulation for a few frames
+            for _ in 0..10 {
+                wlu.update(0.016);
+            }
+            
+            // Sensor value should be a valid float (not NaN or infinite)
+            let sensor_value = wlu.get_sensor_value();
+            assert!(sensor_value.is_finite(), "Sensor value should be finite");
+            
+            // Logic output should be 0 or 1
+            let logic_output = wlu.get_logic_output();
+            assert!(logic_output == 0 || logic_output == 1, "Logic output should be 0 or 1");
+        }
+        // Skip if no GPU available
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_wlu_wgpu_oscillator_configuration() {
+        let result = create_test_device().await;
+        if let Some((device, queue)) = result {
+            let mut wlu = WluWgpuResources::new(device, queue, Some(DEFAULT_GRID_SIZE))
+                .expect("WLU creation should succeed");
+            
+            // Configure oscillator A
+            wlu.set_oscillator_a_frequency(2.5);
+            wlu.set_oscillator_a_phase(0.5);
+            wlu.set_oscillator_a_amplitude(0.8);
+            
+            // Configure oscillator B
+            wlu.set_oscillator_b_frequency(3.0);
+            wlu.set_oscillator_b_phase(1.0);
+            wlu.set_oscillator_b_amplitude(0.6);
+            
+            // Run simulation - should not crash
+            for _ in 0..5 {
+                wlu.update(0.016);
+            }
+            
+            // Verify frame advanced
+            assert_eq!(wlu.frame(), 5);
+        }
+        // Skip if no GPU available
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_wlu_wgpu_backend_trait_compatibility() {
+        let result = create_test_device().await;
+        if let Some((device, queue)) = result {
+            // Create as trait object to verify interface compatibility
+            let wlu: Box<dyn WaveLogicBackend> = Box::new(
+                WluWgpuResources::new(device, queue, Some(DEFAULT_GRID_SIZE))
+                    .expect("WLU creation should succeed")
+            );
+            
+            // Test trait methods
+            assert_eq!(wlu.grid_size(), DEFAULT_GRID_SIZE);
+            assert_eq!(wlu.frame(), 0);
+            
+            // These should not panic
+            let _ = wlu.get_sensor_value();
+            let _ = wlu.get_logic_output();
+        }
+        // Skip if no GPU available
+    }
 }

@@ -1,0 +1,41 @@
+# Frozen Bootloader Change Spec
+# Geos-Boot Implementation
+
+change:
+  id: frozen-bootloader-geos-boot
+  title: Create Frozen Rust Bootloader for Geometry OS
+  status: in_progress
+  team: frozen-bootloader-team
+  created: 2026-03-18
+
+  summary: |
+    Create a frozen Rust shell (geos-boot) that:
+    - Initializes WebGPU surface once
+    - Forwards events to GPU mailbox at 0x200
+    - Loads .glyph programs into GPU memory
+    - NEVER requires recompilation after freeze ceremony
+
+  impact:
+    - Solves Rust compilation crashes (rustc at 100% CPU)
+    - Enables "programming with pixels" instead of Rust
+    - Achieves Frozen Bootstrap Pattern from gvpie_bootstrap
+
+  tasks:
+    - Create systems/geos-boot/ project structure
+    - Implement I/O contract module (io_contract.rs)
+    - Implement GPU requirements validation (gpu_requirements.rs)
+    - Implement smart adapter selection (adapter_selector.rs)
+    - Implement glyph program loader (glyph_loader.rs)
+    - Implement frozen bootstrap core (bootstrap.rs)
+    - Create placeholder WGSL shaders
+    - Create main binary entry point
+    - Commit FREEZE_MANIFEST.md
+
+  design_docs:
+    - docs/plans/2026-03-18-frozen-bootloader-design.md
+    - docs/plans/2026-03-18-geos-boot-implementation.md
+
+  pattern_source:
+    - gvpie_bootstrap/gvpie/gvpie-bootstrap/src/main.rs
+    - gvpie_bootstrap/gvpie/gvpie-bootstrap/src/io_contract.rs
+    - gvpie_bootstrap/gvpie/gvpie-bootstrap/FREEZE_RITUAL.md
