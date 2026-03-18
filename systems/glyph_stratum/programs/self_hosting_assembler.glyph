@@ -78,7 +78,7 @@ JMP :start
     LDI r14, 13; BEQ r4, r14, :p2_emit_halt
     LDI r14, 12; BEQ r4, r14, :p2_emit_ret
     LDI r14, 1;  BEQ r4, r14, :p2_emit_ldi
-    LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r10, r7
+    LDI r14, :skip_alpha; CALL r14; LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r10, r7
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r11, r7
     MOV r3, r4; LDI r14, 8; SLL r15, r5, r14; OR r3, r3, r15
     LDI r14, 16; SLL r15, r10, r14; OR r3, r3, r15
@@ -211,6 +211,15 @@ JMP :start
     LDI r8, 93; BEQ r7, r8, :sw_adv
     RET
 :sw_adv; ADD r0, r0, r13; JMP :skip_ws
+
+:skip_alpha
+    LOAD r7, [r0]
+    LDI r8, 65; BLTU r7, r8, :sa_ret
+    LDI r8, 91; BLTU r7, r8, :sa_adv
+    LDI r8, 97; BLTU r7, r8, :sa_ret
+    LDI r8, 123; BGEU r7, r8, :sa_ret
+:sa_adv; ADD r0, r0, r13; JMP :skip_alpha
+:sa_ret; RET
 
 :parse_operand
     LOAD r7, [r0]
