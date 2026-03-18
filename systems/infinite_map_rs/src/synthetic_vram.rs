@@ -1071,11 +1071,22 @@ mod tests {
         vram.poke(pc, (loop_start as i32 - pc as i32 - 1) as u32);
         pc += 1;
 
-        // INSERT
-        vram.poke(pc, glyph(5, 0, 3, 12));
+        // INSERT: compute address = buffer + cursor
+        // r3 = buffer base (0x300)
+        vram.poke(pc, glyph(1, 0, 3, 0));
         pc += 1;
+        vram.poke(pc, 0x300);
+        pc += 1;
+
+        // r3 = r3 + r2 (add cursor offset)
+        vram.poke(pc, glyph(5, 0, 2, 3));
+        pc += 1; // ADD r3 = r2 + r3
+
+        // STORE [r3], r1 (store char)
         vram.poke(pc, glyph(4, 0, 3, 1));
         pc += 1;
+
+        // cursor++
         vram.poke(pc, glyph(5, 0, 2, 13));
         pc += 1;
         vram.poke(pc, glyph(4, 0, 11, 2));
@@ -1107,21 +1118,19 @@ mod tests {
         // Check what's in memory
         println!("Memory at 0x100 = {:x}", vram.peek(0x100));
 
-        // Execute with stepping, check after first INSERT
+        // Execute with stepping
         for i in 0..15 {
             vram.step(0);
             let state = vram.vm_state(0).unwrap();
-            if i > 8 && i < 25 {
-                println!(
-                    "Step {}: PC={}, r1={:x}, r2={}, r3={}",
-                    i, state.pc, state.regs[1], state.regs[2], state.regs[3]
-                );
-            }
+            println!(
+                "Step {}: PC={}, r1={:x}, r2={}, r3={:x}",
+                i, state.pc, state.regs[1], state.regs[2], state.regs[3]
+            );
         }
 
         let state = vram.vm_state(0).unwrap();
         println!(
-            "Final: PC={}, r1={:x}, r2={}, r3={}",
+            "Final: PC={}, r1={:x}, r2={}, r3={:x}",
             state.pc, state.regs[1], state.regs[2], state.regs[3]
         );
         println!(
