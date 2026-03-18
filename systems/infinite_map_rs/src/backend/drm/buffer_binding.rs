@@ -292,7 +292,7 @@ impl BufferBindingInterface {
     /// # Errors
     /// Returns an error if the buffer doesn't exist or the map/read fails.
     ///
-    /// TODO-4/5: Part of sensor value readback implementation.
+    /// Part of sensor value readback implementation (TODO-4/5 ✓).
     pub fn read_buffer(&self, index: usize) -> Result<Vec<u8>> {
         let bound = self.bound_buffers.get(index)
             .with_context(|| format!("Buffer index {} not found", index))?;
