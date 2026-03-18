@@ -5646,8 +5646,25 @@ impl<'a> InfiniteMapApp<'a> {
                     },
                     crate::glass_ram::bridge::VisualCommand::SynapticAction { command } => {
                         log::info!("🧠 Bridge Command: SynapticAction {:?}", command);
-                        // TODO: Route to synaptic map for processing
-                        // This will be integrated when the SynapticMap is added to InfiniteMapApp
+                        // Route synaptic commands to substrate (Phase 48.2)
+                        match command {
+                            crate::synapse::SynapticCommand::Navigate(x, y, z) => {
+                                log::info!("🧭 Synaptic Navigate: ({}, {}, {})", x, y, z);
+                                self.camera.set_target(x, y);
+                                // z interpreted as zoom level (optional)
+                                if z > 0.0 {
+                                    self.camera.set_zoom(z);
+                                }
+                            }
+                            crate::synapse::SynapticCommand::RealignAesthetics(factor) => {
+                                log::info!("🎨 Synaptic RealignAesthetics: {}", factor);
+                                self.diagnostic_overlay.set_aesthetic_entropy(factor);
+                            }
+                            crate::synapse::SynapticCommand::SynthesizeBrick(description) => {
+                                // TODO: Requires brick synthesis infrastructure
+                                log::info!("🧱 Synaptic SynthesizeBrick: '{}' (not yet implemented)", description);
+                            }
+                        }
                     },
                     crate::glass_ram::bridge::VisualCommand::TypeText { text } => {
                         log::info!(
