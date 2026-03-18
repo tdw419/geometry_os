@@ -5514,22 +5514,21 @@ impl<'a> InfiniteMapApp<'a> {
                 // Create Window
                 // We'll place it slightly offset from camera center or near mouse?
                 // For now, center screen relative to camera
-                let _x = self.camera.x;
-                let _y = self.camera.y;
+                let x = self.camera.x;
+                let y = self.camera.y;
 
-                // TODO: Re-enable when introspection_window module is fixed
-                // if let Some(tm) = &mut self.vm_texture_manager {
-                //     let window = crate::ui::introspection_window::IntrospectionWindow::new(
-                //         &mut self.window_manager,
-                //         x, y,
-                //         &analysis
-                //     );
-                //
-                //     window.update_texture(tm);
-                // } else {
-                //     log::error!("Cannot create IntrospectionWindow: VmTextureManager not available");
-                // }
-                log::info!("IntrospectionWindow temporarily disabled (module commented out)");
+                // Re-enabled: introspection_window module is now working
+                if let Some(tm) = &mut self.vm_texture_manager {
+                    let window = crate::ui::introspection_window::IntrospectionWindow::new(
+                        &mut self.window_manager,
+                        x, y,
+                        &analysis
+                    );
+
+                    window.update_texture(tm);
+                } else {
+                    log::error!("Cannot create IntrospectionWindow: VmTextureManager not available");
+                }
             }
         }
 
