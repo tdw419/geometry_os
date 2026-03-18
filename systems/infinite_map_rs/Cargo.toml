@@ -130,6 +130,7 @@ ash = { version = "0.38.0", features = ["loaded"] }
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+serial_test = "3.0"  # GPU test serialization to prevent resource contention
 
 [[bench]]
 name = "compositor_benchmark"

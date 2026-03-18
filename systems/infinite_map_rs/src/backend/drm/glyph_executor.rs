@@ -812,6 +812,7 @@ pub fn compute_output_hash(output: &[u8]) -> [u8; 32] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     /// Create a test wgpu device for unit tests
     async fn create_test_device() -> Option<(Arc<wgpu::Device>, Arc<wgpu::Queue>)> {
@@ -863,6 +864,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_executor_creation() {
         let result = create_test_device().await;
         if let Some((device, queue)) = result {
@@ -874,6 +876,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_execute_without_pipeline_returns_error() {
         let result = create_test_device().await;
         if let Some((device, queue)) = result {
@@ -885,6 +888,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_load_spirv_creates_pipeline() {
         let result = create_test_device().await;
         if let Some((device, queue)) = result {
@@ -906,6 +910,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_execute_with_pipeline_loaded() {
         let result = create_test_device().await;
         if let Some((device, queue)) = result {
@@ -924,6 +929,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_execute_with_valid_pipeline() {
         let result = create_test_device().await;
         if let Some((device, queue)) = result {
