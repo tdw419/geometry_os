@@ -2522,6 +2522,24 @@ mod tests {
         }
         vram.poke(0x1000 + source_text.len() as u32, 0);
 
+        // CRITICAL: Verify output buffer is initially empty
+        println!("\n  Pre-execution check - Output buffer at 0x2000 (should be all zeros):");
+        let mut non_zero_count = 0;
+        for i in 0..20 {
+            let val = vram.peek(0x2000 + i);
+            if val != 0 {
+                non_zero_count += 1;
+                if non_zero_count <= 5 {
+                    println!("    0x{:04X}: {:08X} (NON-ZERO!)", 0x2000 + i, val);
+                }
+            }
+        }
+        if non_zero_count == 0 {
+            println!("    All zeros ✓");
+        } else {
+            println!("    Found {} non-zero values before execution!", non_zero_count);
+        }
+
         // 3. Run the Assembler
         // We find the address of the :main label in the binary
         let main_addr = assembler.get_label_addr("main").unwrap_or(0);

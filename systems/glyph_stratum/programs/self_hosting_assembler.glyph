@@ -87,6 +87,7 @@ JMP :start
 :p2_emit_halt; LDI r3, 13; STORE r1, r3; ADD r1, r1, r13; JMP :p2_skip_line
 :p2_emit_ret;  LDI r3, 12; STORE r1, r3; ADD r1, r1, r13; JMP :p2_skip_line
 
+:p2_emit_ldi
     ADD r0, r0, r13; ADD r0, r0, r13; ADD r0, r0, r13
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r10, r7
     LDI r14, :skip_ws; CALL r14; LDI r14, :parse_operand; CALL r14; MOV r11, r7
