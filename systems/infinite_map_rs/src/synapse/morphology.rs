@@ -2,6 +2,20 @@
 ///
 /// Defines the command language for manipulating the visual substrate
 use serde::{Deserialize, Serialize};
+use tokio::sync::broadcast;
+
+/// Navigation request sent to camera controller
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NavigationRequest {
+    /// Target X position in world coordinates
+    pub x: f32,
+    /// Target Y position in world coordinates
+    pub y: f32,
+    /// Target Z position in world coordinates
+    pub z: f32,
+    /// Animation duration in seconds
+    pub duration: f32,
+}
 
 /// Commands that modify the geometric substrate
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,6 +122,9 @@ pub struct MorphologyExecutor {
 
     /// Maximum history size
     max_history: usize,
+
+    /// Optional navigation command sender (wired to momentum_camera)
+    navigation_tx: Option<broadcast::Sender<NavigationRequest>>,
 }
 
 impl MorphologyExecutor {
@@ -116,7 +133,14 @@ impl MorphologyExecutor {
         Self {
             history: Vec::new(),
             max_history: 100,
+            navigation_tx: None,
         }
+    }
+
+    /// Wire navigation commands to a broadcast channel
+    pub fn with_navigation_sender(mut self, tx: broadcast::Sender<NavigationRequest>) -> Self {
+        self.navigation_tx = Some(tx);
+        self
     }
 
     /// Execute a morphology command
@@ -177,7 +201,15 @@ impl MorphologyExecutor {
 
     async fn execute_navigate(&self, x: f32, y: f32, z: f32, duration: f32) -> Result<(), String> {
         log::info!("📍 Navigate to ({}, {}, {}) over {}s", x, y, z, duration);
-        // TODO: Send to camera controller
+
+        // Send to camera controller via broadcast channel
+        if let Some(ref tx) = self.navigation_tx {
+            let request = NavigationRequest { x, y, z, duration };
+            if let Err(e) = tx.send(request) {
+                log::warn!("Failed to send navigation request: {}", e);
+            }
+        }
+
         Ok(())
     }
 
