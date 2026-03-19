@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
@@ -19,8 +20,8 @@ pub struct SisyphusAgent {
     orchestrator: Arc<Mutex<TaskOrchestrator>>,
     /// Worker pool for executing subagent tasks
     worker_pool: WorkerPool,
-    /// Whether the agent is currently running
-    running: bool,
+    /// Whether the agent is currently running (shared for thread-safe stop)
+    running: Arc<AtomicBool>,
     /// Persistence interval - how often to check for new work
     persistence_interval: Duration,
 }
@@ -39,7 +40,7 @@ impl SisyphusAgent {
         SisyphusAgent {
             orchestrator: Arc::new(Mutex::new(TaskOrchestrator::new())),
             worker_pool: WorkerPool::new(),
-            running: false,
+            running: Arc::new(AtomicBool::new(false)),
             persistence_interval: Duration::from_secs(5), // Check every 5 seconds
         }
     }
@@ -50,9 +51,9 @@ impl SisyphusAgent {
     /// tasks are completed to 100% before moving on.
     pub async fn start(&mut self) {
         info!("Starting Sisyphus Agent - entering persistent orchestration loop");
-        self.running = true;
+        self.running.store(true, Ordering::SeqCst);
 
-        while self.running {
+        while self.running.load(Ordering::SeqCst) {
             // Check for and process pending tasks
             if let Err(e) = self.process_cycle().await {
                 error!("Error in Sisyphus processing cycle: {}", e);
@@ -69,7 +70,7 @@ impl SisyphusAgent {
     /// Stop the Sisyphus agent
     pub fn stop(&mut self) {
         info!("Stopping Sisyphus Agent");
-        self.running = false;
+        self.running.store(false, Ordering::SeqCst);
     }
 
     /// Process one cycle of the Sisyphus agent
@@ -147,6 +148,6 @@ mod tests {
     #[tokio::test]
     async fn test_sisyphus_agent_creation() {
         let agent = SisyphusAgent::new();
-        assert!(!agent.running);
+        assert!(!agent.running.load(Ordering::SeqCst));
     }
 }
