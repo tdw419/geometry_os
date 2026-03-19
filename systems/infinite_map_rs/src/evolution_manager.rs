@@ -202,7 +202,7 @@ impl EvolutionManager {
         }
 
         let msg_result = {
-            let mut client = self.client.lock().unwrap();
+            let client = self.client.lock().unwrap();
             client.request_metrics()
         };
 
@@ -342,7 +342,7 @@ impl EvolutionManager {
         }
 
         let msg_result = {
-            let mut client = self.client.lock().unwrap();
+            let client = self.client.lock().unwrap();
             client.request_neural_state()
         };
 
@@ -382,7 +382,7 @@ impl EvolutionManager {
         }
 
         let msg_result = {
-            let mut client = self.client.lock().unwrap();
+            let client = self.client.lock().unwrap();
             client.request_self_state()
         };
 
@@ -407,7 +407,7 @@ impl EvolutionManager {
         }
 
         let msg_result = {
-            let mut client = self.client.lock().unwrap();
+            let client = self.client.lock().unwrap();
             client.request_theory_of_mind()
         };
 
@@ -432,7 +432,7 @@ impl EvolutionManager {
         }
 
         let msg_result = {
-            let mut client = self.client.lock().unwrap();
+            let client = self.client.lock().unwrap();
             client.request_daemon_sync()
         };
 
@@ -468,7 +468,7 @@ impl EvolutionManager {
         }
 
         let msg_result = {
-            let mut client = self.client.lock().unwrap();
+            let client = self.client.lock().unwrap();
             client.request_cognitive_state()
         };
 
@@ -564,7 +564,7 @@ impl EvolutionManager {
             return;
         }
 
-        let mut client = self.client.lock().unwrap();
+        let client = self.client.lock().unwrap();
         if let Err(e) = client.send_heartbeat() {
             log::warn!("⚠️  Failed to send heartbeat: {}", e);
             self.connected = false;
@@ -644,7 +644,7 @@ impl EvolutionManager {
             return;
         }
 
-        let mut client = self.client.lock().unwrap();
+        let client = self.client.lock().unwrap();
         if let Err(e) = client.send_input_event(key) {
             log::warn!("⚠️  Failed to send input event: {}", e);
             self.connected = false;
@@ -686,7 +686,7 @@ impl EvolutionManager {
             payload,
         );
 
-        let mut client = self.client.lock().unwrap();
+        let client = self.client.lock().unwrap();
         if let Err(e) = client.send_message(message) {
             log::warn!("⚠️  Failed to write evolved genome: {}", e);
             self.connected = false;

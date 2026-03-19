@@ -54,15 +54,15 @@ impl WinitBackend {
 
         // Wayland Socket - try multiple names to avoid conflicts
         let mut socket = None;
-        let mut first_error = None;
+        let _first_error: Option<std::io::Error> = None;
 
         // Try geometry-0 first
         match smithay::reexports::wayland_server::ListeningSocket::bind("geometry-0") {
             Ok(s) => {
                 socket = Some(s);
             },
-            Err(e) => {
-                first_error = Some(e);
+            Err(_e) => {
+                // Try alternate socket names
                 // Try geometry-1, geometry-2, etc.
                 for i in 1..10 {
                     let name = format!("geometry-{}", i);

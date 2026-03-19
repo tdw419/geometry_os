@@ -111,7 +111,7 @@ impl FlashTexture {
 
     /// Update the Flash movie (advance frame)
     /// Phase 2: Communicate with Ruffle process via IPC
-    pub fn update(&mut self, dt: f64) {
+    pub fn update(&mut self, _dt: f64) {
         if !self.is_loaded {
             return;
         }
@@ -122,7 +122,7 @@ impl FlashTexture {
     /// Render the current Flash frame to the texture
     /// Phase 2: Receive framebuffer from Ruffle via shared memory
     /// Phase 3: Direct wgpu rendering
-    pub fn render(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+    pub fn render(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue) {
         if !self.is_loaded {
             return;
         }
