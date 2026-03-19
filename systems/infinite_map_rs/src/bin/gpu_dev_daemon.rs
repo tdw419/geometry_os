@@ -2373,8 +2373,10 @@ fn handle_raw_request<S: Read + Write>(
             }
 
             if let Some(id) = vm_id {
+                println!("[VM_RESUME] Attempting to resume VM {}", id);
                 match scheduler.lock().unwrap().resume_vm(id) {
                     Ok(()) => {
+                        println!("[VM_RESUME] VM {} resumed successfully", id);
                         let response = format!(
                             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"status\":\"ok\",\"vm_id\":{}}}",
                             id
@@ -2383,6 +2385,7 @@ fn handle_raw_request<S: Read + Write>(
                         return;
                     },
                     Err(e) => {
+                        println!("[VM_RESUME] Failed to resume VM {}: {}", id, e);
                         let response = format!(
                             "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"{}\"}}",
                             e
@@ -2390,6 +2393,46 @@ fn handle_raw_request<S: Read + Write>(
                         let _ = stream.write_all(response.as_bytes());
                         return;
                     },
+                }
+            }
+        }
+        let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"error\":\"invalid parameters\"}");
+        return;
+    }
+
+    // GET /vm_state?vm_id=N - Get VM state
+    if request_str.starts_with("GET /vm_state?") {
+        if let Some(query) = request_str.split("GET /vm_state?").nth(1) {
+            let query = query.split_whitespace().next().unwrap_or("");
+
+            let mut vm_id: Option<u32> = None;
+
+            for param in query.split('&') {
+                if let Some(id_val) = param.strip_prefix("vm_id=") {
+                    vm_id = id_val.parse().ok();
+                }
+            }
+
+            if let Some(id) = vm_id {
+                let stats = scheduler.lock().unwrap().read_stats();
+                if let Some(vm_stat) = stats.iter().find(|s| s.vm_id == id) {
+                    println!(
+                        "[VM_STATE] VM {}: state={}, pc={}, cycles={}",
+                        id, vm_stat.state, vm_stat.pc, vm_stat.cycles
+                    );
+                    let response = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"vm_id\":{},\"state\":{},\"pc\":{},\"cycles\":{}}}",
+                        id, vm_stat.state, vm_stat.pc, vm_stat.cycles
+                    );
+                    let _ = stream.write_all(response.as_bytes());
+                    return;
+                } else {
+                    let response = format!(
+                        "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"VM {} not found\"}}",
+                        id
+                    );
+                    let _ = stream.write_all(response.as_bytes());
+                    return;
                 }
             }
         }
