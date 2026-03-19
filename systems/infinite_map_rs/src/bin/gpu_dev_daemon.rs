@@ -45,13 +45,9 @@ mod wasm_parser {
     const SECTION_FUNCTION: u8 = 3;
     const SECTION_TABLE: u8 = 4;
     const SECTION_MEMORY: u8 = 5;
-    const SECTION_GLOBAL: u8 = 6;
     const SECTION_EXPORT: u8 = 7;
     const SECTION_START: u8 = 8;
-    const SECTION_ELEMENT: u8 = 9;
     const SECTION_CODE: u8 = 10;
-    const SECTION_DATA: u8 = 11;
-    const SECTION_DATA_COUNT: u8 = 12;
 
     /// WASM magic number and version
     const WASM_MAGIC: [u8; 4] = [0x00, 0x61, 0x73, 0x6D]; // \0asm
@@ -3532,9 +3528,9 @@ fn write_to_substrate(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     base_addr: u32,
-    shadow_ram: &mut Vec<u8>,
+    shadow_ram: &mut [u8],
 ) {
-    let num_words = (data.len() + 3) / 4;
+    let num_words = data.len().div_ceil(4);
     println!(
         "[WRITE] Writing {} words ({} bytes) to substrate at 0x{:x}",
         num_words,
@@ -3651,7 +3647,7 @@ fn read_u32_from_substrate(
     _texture: &wgpu::Texture,
     _device: &wgpu::Device,
     _queue: &wgpu::Queue,
-    shadow_ram: &Vec<u8>,
+    shadow_ram: &[u8],
 ) -> u32 {
     let (tx, ty) = hilbert_d2xy(4096, addr);
     println!("[READ] addr=0x{:x} -> pixel({}, {})", addr, tx, ty);
