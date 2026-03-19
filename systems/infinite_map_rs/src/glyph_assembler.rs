@@ -5,7 +5,17 @@
 
 use std::collections::HashMap;
 
-/// Opcodes for the Glyph VM
+/// Opcodes for the Glyph VM (Aligned ISA)
+///
+/// These match the WGSL scheduler in shaders/glyph_vm_scheduler.wgsl
+/// and the synthetic_vram.rs CPU emulator.
+///
+/// **WARNING:** Do NOT use the legacy Python extended opcodes:
+/// - LDI was 204, now 1
+/// - MOV was 206, now 2
+/// - JMP was 209, now 9
+///
+/// The aligned ISA ensures GPU sovereignty without CPU translation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Opcode {
     Nop = 0,

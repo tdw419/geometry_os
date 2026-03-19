@@ -1,0 +1,215 @@
+# Self-Hosting Bootstrap Team
+# Eliminates Python compiler dependency - Rust-native glyph compilation
+
+team:
+  name: self-hosting-bootstrap-team
+  description: |
+    Implements the Self-Hosting Bootstrap - extends Rust GlyphAssembler to emit
+    GPU-ready PNG cartridges directly, eliminating the Python geos_ascii_compiler.py
+    dependency and completing the sovereignty chain:
+    Before: Text → Python → PNG → Rust → GPU
+    After:  Text → Rust → PNG → GPU
+
+  project_root: /home/jericho/zion/projects/geometry_os/geometry_os
+
+  agents:
+    - name: isa-unifier
+      role: Aligns opcode constants between Rust assembler and WGSL scheduler
+      focus:
+        - Verify aligned ISA: LDI=1, MOV=2, JMP=9, HALT=13
+        - Add legacy opcode aliases (JUMP→JMP, EXIT→HALT)
+        - Document ISA alignment in code comments
+      files:
+        - systems/infinite_map_rs/src/glyph_assembler.rs
+        - systems/infinite_map_rs/tests/full_assembler_test.rs
+
+    - name: cartridge-architect
+      role: Designs and implements PNG cartridge writer module
+      focus:
+        - 5-segment PNG format (glyph, SIT, state, bootstrap, program)
+        - 80x1576 pixel output dimensions
+        - Memory layout matching ascii_cartridge.rs expectations
+      files:
+        - systems/infinite_map_rs/src/cartridge_writer.rs
+        - systems/infinite_map_rs/tests/cartridge_writer_test.rs
+
+    - name: pattern-engineer
+      role: Implements SIT pattern detection and action mapping
+      focus:
+        - Regex detection of [X] button patterns
+        - Label-to-address resolution for SIT entries
+        - Action mapping configuration
+      files:
+        - systems/infinite_map_rs/src/cartridge_writer.rs
+
+    - name: e2e-integrator
+      role: Creates end-to-end glyph-to-cartridge compiler
+      focus:
+        - Combine GlyphAssembler output with CartridgeWriter
+        - Extract display text from source
+        - Default action mapping
+      files:
+        - systems/infinite_map_rs/src/glyph_to_cartridge.rs
+        - systems/infinite_map_rs/tests/glyph_to_cartridge_test.rs
+
+    - name: cli-engineer
+      role: Implements geos-compile CLI tool
+      focus:
+        - Command-line argument parsing with clap
+        - File I/O handling
+        - Verbose output mode
+      files:
+        - systems/infinite_map_rs/src/bin/geos-compile.rs
+        - examples/hello.glyph
+
+    - name: parity-validator
+      role: Verifies Rust compiler produces equivalent output to Python
+      focus:
+        - Compare program segments between Rust and Python output
+        - Functional equivalence testing
+        - Standalone Rust compiler validation
+      files:
+        - systems/infinite_map_rs/tests/compiler_parity_test.rs
+
+    - name: docs-curator
+      role: Updates documentation and memory files
+      focus:
+        - Create self-hosting-bootstrap.md memory file
+        - Update MEMORY.md index
+        - Create SELF_HOSTING_GUIDE.md usage documentation
+      files:
+        - memory/self-hosting-bootstrap.md
+        - memory/MEMORY.md
+        - docs/SELF_HOSTING_GUIDE.md
+
+  tasks:
+    - id: task-1.1
+      title: Document aligned ISA in glyph_assembler.rs
+      assignee: isa-unifier
+      dependencies: []
+      description: |
+        Add documentation comment to Opcode enum explaining the aligned ISA
+        and warning against legacy Python extended opcodes.
+      acceptance_criteria:
+        - Comment explains LDI=1 (not 204), JMP=9 (not 209)
+        - References WGSL scheduler alignment
+        - cargo test passes
+
+    - id: task-1.2
+      title: Add legacy opcode aliases
+      assignee: isa-unifier
+      dependencies: [task-1.1]
+      description: |
+        Modify Opcode::from_str to accept legacy Python opcodes:
+        - JUMP → JMP
+        - EXIT → HALT
+        - RETURN → RET
+        Add test test_legacy_opcode_aliases.
+      acceptance_criteria:
+        - Opcode::from_str("JUMP") returns Some(Opcode::Jmp)
+        - Opcode::from_str("EXIT") returns Some(Opcode::Halt)
+        - Test passes: cargo test test_legacy_opcode_aliases
+
+    - id: task-2.1
+      title: Create CartridgeWriter module skeleton
+      assignee: cartridge-architect
+      dependencies: []
+      description: |
+        Create systems/infinite_map_rs/src/cartridge_writer.rs:
+        - Constants: WIDTH=80, segment heights, TOTAL_HEIGHT=1576
+        - CartridgeConfig struct with name/version
+        - CartridgeWriter struct with glyph_grid, sit, state, bootstrap, program
+        - to_png() method returning Vec<u8>
+      acceptance_criteria:
+        - Module compiles
+        - Test test_cartridge_dimensions passes
+        - Test test_empty_cartridge passes
+
+    - id: task-2.2
+      title: Implement SIT pattern detection
+      assignee: pattern-engineer
+      dependencies: [task-2.1]
+      description: |
+        Add to cartridge_writer.rs:
+        - Pattern struct with x, y, label, action
+        - detect_patterns() using regex for [X] button patterns
+        - apply_action_mapping() to resolve labels and set SIT entries
+        Add regex dependency to Cargo.toml.
+      acceptance_criteria:
+        - detect_patterns() finds [R] and [Q] in sample text
+        - apply_action_mapping() sets correct SIT entries
+        - Tests pass: cargo test test_sit_pattern_detection
+
+    - id: task-3.1
+      title: Create glyph_to_cartridge module
+      assignee: e2e-integrator
+      dependencies: [task-2.2]
+      description: |
+        Create systems/infinite_map_rs/src/glyph_to_cartridge.rs:
+        - compile_glyph_to_cartridge(source, output_path) function
+        - Uses GlyphAssembler for bytecode
+        - Uses CartridgeWriter for PNG output
+        - extract_display_text() helper
+        - default_action_mapping() configuration
+      acceptance_criteria:
+        - Module compiles
+        - test_simple_program passes
+        - test_fibonacci_program passes
+
+    - id: task-3.2
+      title: Create geos-compile CLI binary
+      assignee: cli-engineer
+      dependencies: [task-3.1]
+      description: |
+        Create systems/infinite_map_rs/src/bin/geos-compile.rs:
+        - clap argument parsing for input, output, verbose
+        - Read source file
+        - Call compile_glyph_to_cartridge
+        - Write output file
+        Create examples/hello.glyph sample.
+      acceptance_criteria:
+        - Binary builds: cargo build --release --bin geos-compile
+        - CLI works: geos-compile examples/hello.glyph -v
+        - Output loads via AsciiCartridge
+
+    - id: task-4.1
+      title: Create compiler parity tests
+      assignee: parity-validator
+      dependencies: [task-3.2]
+      description: |
+        Create systems/infinite_map_rs/tests/compiler_parity_test.rs:
+        - test_rust_compiler_standalone validates Rust output
+        - test_parity_simple_loop compares with Python (ignored, requires env)
+      acceptance_criteria:
+        - test_rust_compiler_standalone passes
+        - Program segment verified with correct opcodes
+
+    - id: task-4.2
+      title: Update memory and documentation
+      assignee: docs-curator
+      dependencies: [task-4.1]
+      description: |
+        Create/update:
+        - memory/self-hosting-bootstrap.md with component table and ISA alignment
+        - memory/MEMORY.md adding to Active Systems table
+        - docs/SELF_HOSTING_GUIDE.md with syntax reference and usage
+      acceptance_criteria:
+        - Memory file describes all components
+        - MEMORY.md updated with new system
+        - Guide documents all opcodes and usage
+
+  success_criteria:
+    - ISA alignment documented and tested
+    - CartridgeWriter produces valid 80x1576 PNG
+    - SIT pattern detection finds button patterns
+    - glyph_to_cartridge compiles source to cartridge
+    - geos-compile CLI works standalone
+    - Parity tests verify Rust compiler output
+    - Documentation complete
+    - 12+ tests passing
+    - No Python dependency for glyph compilation
+
+  reference_docs:
+    - docs/plans/2026-03-18-self-hosting-bootstrap.md
+    - apps/ascii-world/ascii-world-master/apps/geos-ascii/compiler/geos_ascii_compiler.py
+    - systems/infinite_map_rs/src/ascii_cartridge.rs

@@ -47,6 +47,7 @@ pub mod broadcast;
 pub mod camera;
 pub mod camera_sync;
 pub mod cartridge_registry;
+pub mod cartridge_writer;
 pub mod cartridge_texture_manager;
 pub mod clipboard_manager;
 pub mod clipboard_rts;
