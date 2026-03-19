@@ -25,7 +25,7 @@ fn test_loop_demo_bytecode() {
 
     // Spawn VM
     let mut config = SyntheticVmConfig::default();
-    config.pc = 0x8000;
+    config.entry_point = 0x8000;
     vram.spawn_vm(0, &config).unwrap();
 
     // Execute until halt

@@ -154,8 +154,8 @@ fn test_sit_opcode_conversion() {
     );
     assert_eq!(
         sit_to_glyph_opcode(1),
-        209,
-        "JUMP should map to JMP (209)"
+        9,
+        "JUMP should map to JMP (9 in aligned ISA)"
     );
     assert_eq!(
         sit_to_glyph_opcode(2),
