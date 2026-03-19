@@ -1281,9 +1281,8 @@ impl<'a> InfiniteMapApp<'a> {
     pub fn handle_compile_commands(&mut self) {
         if let Some(commands) = self.input_manager.get_compile_commands() {
             for cmd in commands {
-                match cmd {
-                    154 => {
-                        // Ctrl+Shift+C = Compile focused tile
+                if cmd == 154 {
+                    // Ctrl+Shift+C = Compile focused tile
                         // Get current file path from hex editor or text engine
                         let source_path = if let Some(text_engine) = &self.renderer.text_engine {
                             if text_engine.is_hex_mode() {
@@ -1321,9 +1320,7 @@ impl<'a> InfiniteMapApp<'a> {
                             eprintln!("⚠️ Phase 42: No tile focused for compilation");
                             log::warn!("Phase 42: No tile focused for compilation");
                         }
-                    },
-                    _ => {},
-                }
+                    }
             }
         }
     }
@@ -1332,9 +1329,8 @@ impl<'a> InfiniteMapApp<'a> {
     pub fn handle_profiler_commands(&mut self) {
         if let Some(commands) = self.input_manager.get_profiler_commands() {
             for cmd in commands {
-                match cmd {
-                    155 => {
-                        // Ctrl+Shift+P = Toggle profiler
+                if cmd == 155 {
+                    // Ctrl+Shift+P = Toggle profiler
                         self.profiler_enabled = !self.profiler_enabled;
                         if self.profiler_enabled {
                             log::info!(
@@ -1349,9 +1345,7 @@ impl<'a> InfiniteMapApp<'a> {
                             log::info!("🔍 Phase 44: Profiler DISABLED");
                             eprintln!("🔍 Phase 44: Profiler DISABLED");
                         }
-                    },
-                    _ => {},
-                }
+                    }
             }
         }
     }
@@ -1360,15 +1354,12 @@ impl<'a> InfiniteMapApp<'a> {
     pub fn handle_multi_vm_commands(&mut self) {
         if let Some(commands) = self.input_manager.get_multi_vm_commands() {
             for cmd in commands {
-                match cmd {
-                    156 => {
-                        // Ctrl+Shift+M = Launch multiple VMs
+                if cmd == 156 {
+                    // Ctrl+Shift+M = Launch multiple VMs
                         log::info!("🚀 Phase 44: Launching multiple VM instances...");
                         eprintln!("🚀 Phase 44: Launching multiple VM instances...");
                         self.launch_multiple_vms();
-                    },
-                    _ => {},
-                }
+                    }
             }
         }
     }
@@ -2380,7 +2371,7 @@ impl<'a> InfiniteMapApp<'a> {
                                 // Log top 5 hot blocks
                                 let mut sorted = entries.clone();
                                 sorted.sort_by(|a, b| b.count.cmp(&a.count));
-                                for (_i, entry) in sorted.iter().take(5).enumerate() {
+                                for entry in sorted.iter().take(5) {
                                     log::info!(
                                         "  Block 0x{:04x}: {} executions",
                                         entry.pc,
@@ -2740,7 +2731,7 @@ impl<'a> InfiniteMapApp<'a> {
             let ui = InspectorUI::new(
                 graph_renderer.clone(),
                 protocol.clone(),
-                &*device,
+                &device,
                 surface_format,
             );
             self.inspector_ui = Some(std::sync::Arc::new(ui));

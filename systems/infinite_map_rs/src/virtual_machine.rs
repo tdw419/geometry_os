@@ -1053,7 +1053,9 @@ const VIRTIO_STATUS_FAILED: u8 = 128;
 const VIRTIO_QUEUE_SIZE: u16 = 256;
 
 // VirtIO Descriptor Flags
+#[allow(dead_code)]
 const VIRTQ_DESC_F_NEXT: u16 = 1;
+#[allow(dead_code)]
 const VIRTQ_DESC_F_WRITE: u16 = 2;
 #[allow(dead_code)]
 const VIRTQ_DESC_F_INDIRECT: u16 = 4;

@@ -314,7 +314,7 @@ for name, data in binaries.items():
         let temp_path = temp_dir.path().to_path_buf();
         *self.temp_dir.lock().unwrap() = Some(temp_path.clone());
 
-        let source = if path.extension().map_or(false, |e| e == "iso" || e == "img") {
+        let source = if path.extension().is_some_and(|e| e == "iso" || e == "img") {
             BootSource::Iso(path)
         } else {
             BootSource::Kernel(path)

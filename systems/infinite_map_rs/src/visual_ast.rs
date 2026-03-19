@@ -889,6 +889,7 @@ impl NodeStyle {
         }
     }
 
+    #[allow(dead_code)]
     fn error() -> Self {
         Self {
             background_color: (0.30, 0.10, 0.10, 0.95),
@@ -899,6 +900,7 @@ impl NodeStyle {
         }
     }
 
+    #[allow(dead_code)]
     fn warning() -> Self {
         Self {
             background_color: (0.30, 0.25, 0.10, 0.95),
@@ -909,6 +911,7 @@ impl NodeStyle {
         }
     }
 
+    #[allow(dead_code)]
     fn locked() -> Self {
         Self {
             background_color: (0.20, 0.10, 0.25, 0.95),

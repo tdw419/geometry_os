@@ -15,6 +15,7 @@ use crate::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
 pub const UBUNTU_KERNEL_OFFSET: u32 = 0x8000; // 32768
 
 /// Hilbert curve utilities for unified RAM texture
+#[allow(dead_code)]
 fn hilbert_d2xy(n: u32, d: u32) -> (u32, u32) {
     let mut x = 0u32;
     let mut y = 0u32;
@@ -45,6 +46,7 @@ fn hilbert_d2xy(n: u32, d: u32) -> (u32, u32) {
 }
 
 /// Load an .rts.png file and return its pixel data
+#[allow(dead_code)]
 fn load_rts_png(path: &str) -> Result<(Vec<u8>, u32, u32), String> {
     let img = image::open(path)
         .map_err(|e| format!("Failed to load {}: {}", path, e))?
@@ -57,6 +59,7 @@ fn load_rts_png(path: &str) -> Result<(Vec<u8>, u32, u32), String> {
 }
 
 /// Create unified RAM texture with Window Manager and Ubuntu kernel
+#[allow(dead_code)]
 fn create_unified_ram_texture(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
@@ -177,6 +180,7 @@ fn create_unified_ram_texture(
     texture
 }
 /// Default grid size for unified RAM texture (4096x4096 = 16M Hilbert addresses)
+#[allow(dead_code)]
 const UNIFIED_GRID_SIZE: u32 = 4096;
 
 /// Boot configuration for the Visual Kernel

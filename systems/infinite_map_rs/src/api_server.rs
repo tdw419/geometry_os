@@ -708,7 +708,7 @@ async fn handle_transmute(
     // We run python from project root so module path works
     let start_time = std::time::Instant::now();
     let output = std::process::Command::new("python3")
-        .args(&[
+        .args([
             "-m",
             "systems.transmutation.transmute",
             filepath_rel.to_str().unwrap(),
@@ -997,7 +997,7 @@ async fn handle_self_write(
 
     // Run evolution daemon code generation using the intent file
     let output = std::process::Command::new("python3")
-        .args(&[
+        .args([
             "-c",
             &format!(
                 r#"
@@ -1076,7 +1076,7 @@ os.remove(intent_file)
                     let _ = std::fs::remove_file(&rts_path);
 
                     let transmute_output = std::process::Command::new("python3")
-                        .args(&[
+                        .args([
                             "-m",
                             "systems.transmutation.transmute",
                             &format!("systems/transmutation/{}", output_filename),
@@ -1292,8 +1292,8 @@ async fn handle_terminal_spawn(
     }
 
     // SECURITY: Validate terminal dimensions
-    let rows = payload.rows.min(MAX_TERMINAL_ROWS).max(1);
-    let cols = payload.cols.min(MAX_TERMINAL_COLS).max(1);
+    let rows = payload.rows.clamp(1, MAX_TERMINAL_ROWS);
+    let cols = payload.cols.clamp(1, MAX_TERMINAL_COLS);
 
     log::info!(
         "Terminal spawn queued: tile_id={}, shell={}",
