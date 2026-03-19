@@ -18,17 +18,10 @@
     },
     {
       "label": "C",
-      "text": "Write",
-      "action": "JUMP",
-      "target": "write_cartridge",
-      "key": "c"
-    },
-    {
-      "label": "D",
       "text": "Run",
       "action": "JUMP",
       "target": "run_program",
-      "key": "d"
+      "key": "c"
     },
     {
       "label": "X",
@@ -39,40 +32,22 @@
     }
   ],
   "state_vars": {
-    "output_line_0": {
-      "address": "0xF000",
+    "version": {
       "type": "string",
-      "max_length": 60
+      "default": "1.0"
     },
-    "output_line_1": {
-      "address": "0xF040",
+    "status": {
       "type": "string",
-      "max_length": 60
+      "default": "Ready"
     },
-    "output_line_2": {
-      "address": "0xF080",
-      "type": "string",
-      "max_length": 60
-    },
-    "r0": {
-      "address": "0xF100",
-      "type": "u32",
-      "format": "hex"
-    },
-    "r1": {
-      "address": "0xF104",
-      "type": "u32",
-      "format": "hex"
-    },
-    "r2": {
-      "address": "0xF108",
-      "type": "u32",
-      "format": "hex"
-    },
-    "r3": {
-      "address": "0xF10C",
-      "type": "u32",
-      "format": "hex"
+    "source_lines": {
+      "type": "array",
+      "default": [
+        "LDI r0, 42",
+        "LDI r1, 10",
+        "ADD r2, r0, r1",
+        "HALT"
+      ]
     }
   },
   "memory_layout": {
@@ -105,23 +80,25 @@
       "size": "0x0FFF"
     },
     "program_segment": {
-      "base": "0x8000",
-      "size": "0x7FFF"
+      "base": "0x5000",
+      "size": "0x2FFF"
     }
   },
-  "events": {
-    "insert": 1,
-    "delete": 2,
-    "cursor_left": 3,
-    "cursor_right": 4,
-    "compile": 5,
-    "run": 6,
-    "render": 7
+  "handlers": {
+    "assemble": {
+      "action": "SPAWN_VM",
+      "address": "0x2000",
+      "description": "Spawn assembler VM to compile source"
+    },
+    "run_program": {
+      "action": "SPAWN_VM",
+      "address": "0x5000",
+      "description": "Spawn execution VM to run compiled code"
+    }
   },
   "entry_points": {
     "editor_mode": "0x2000",
     "assemble": "0x2000",
-    "write_cartridge": "0x2400",
-    "run_program": "0x8000"
+    "run_program": "0x5000"
   }
 }
