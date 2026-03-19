@@ -363,7 +363,7 @@ impl UserfaultFd {
             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(None),
             Err(e) => {
                 if let Some(errno) = e.raw_os_error() {
-                    Err(Errno::from_i32(errno))
+                    Err(Errno::from_raw(errno))
                 } else {
                     Err(Errno::EIO)
                 }
