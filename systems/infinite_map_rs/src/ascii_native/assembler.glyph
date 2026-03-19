@@ -590,7 +590,7 @@
     LDI r3, 0
     BLT r2, r3, :pd_done
     LDI r3, 9
-    BGT r2, r3, :pd_done
+    BLT r3, r2, :pd_done
     // r8 = r8 * 10 + digit
     MUL r8, r8, r9
     ADD r8, r8, r2
