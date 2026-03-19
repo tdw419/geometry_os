@@ -32,6 +32,16 @@ pub mod mem_layout {
 
     pub const STATE_BASE: u32 = 0xF000;
     pub const STATE_SIZE: u32 = 0x0400;
+
+    /// Compute address for state buffer index
+    pub const fn state_addr(index: u32) -> u32 {
+        STATE_BASE + index
+    }
+
+    /// Compute address for glyph at (x, y)
+    pub const fn glyph_addr(x: u32, y: u32) -> u32 {
+        GLYPH_BASE + y * 80 + x
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -151,5 +161,43 @@ impl AsciiCartridge {
 
     pub fn get_glyph_grid_u32(&self) -> Vec<u32> {
         self.glyph_grid.chunks_exact(4).map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect()
+    }
+
+    /// Get program buffer as u32 slice
+    pub fn get_program_buffer_u32(&self) -> &[u32] {
+        &self.program_buffer
+    }
+
+    /// Get SIT actions (clickable regions)
+    pub fn get_actions(&self) -> &[SitAction] {
+        &self.sit_entries
+    }
+
+    /// Load cartridge into Synthetic VRAM
+    pub fn load_into_vram(&self, vram: &mut crate::synthetic_vram::SyntheticVram, _vm_id: u32) -> Result<(), String> {
+        // Load program into VRAM at PROGRAM_BASE
+        if !self.program_buffer.is_empty() {
+            for (i, &word) in self.program_buffer.iter().enumerate() {
+                vram.poke(mem_layout::PROGRAM_BASE + i as u32, word);
+            }
+        }
+
+        // Load state buffer at STATE_BASE
+        let state_u32 = self.get_state_buffer_u32();
+        for (i, &word) in state_u32.iter().enumerate() {
+            if i < mem_layout::STATE_SIZE as usize {
+                vram.poke(mem_layout::STATE_BASE + i as u32, word);
+            }
+        }
+
+        // Load glyph grid at GLYPH_BASE
+        let glyph_u32 = self.get_glyph_grid_u32();
+        for (i, &word) in glyph_u32.iter().enumerate() {
+            if i < mem_layout::GLYPH_SIZE as usize {
+                vram.poke(mem_layout::GLYPH_BASE + i as u32, word);
+            }
+        }
+
+        Ok(())
     }
 }

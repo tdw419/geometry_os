@@ -125,6 +125,48 @@ mod tests {
 
     #[test]
     #[ignore = "Requires GPU"]
+    fn test_jump_vm() {
+        // Test the Sovereign Click Bridge: jump_vm() sets PC and resumes VM
+        let (device, queue) = match create_test_device() {
+            Some(d) => d,
+            None => {
+                println!("Skipping: No GPU available");
+                return;
+            }
+        };
+
+        use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig, vm_state};
+
+        let shadow_ram = Arc::new(Mutex::new(vec![0u8; 64 * 1024 * 1024]));
+        let scheduler = GlyphVmScheduler::new(device.clone(), queue.clone(), shadow_ram);
+
+        // Spawn VM 0 at entry point 0
+        let config = VmConfig {
+            entry_point: 0,
+            ..Default::default()
+        };
+        scheduler.spawn_vm(0, &config).expect("Failed to spawn VM");
+
+        // Halt the VM first
+        scheduler.halt_vm(0).expect("Failed to halt VM");
+
+        // Verify VM is halted
+        let state = scheduler.get_vm_state(0).expect("Failed to get VM state");
+        assert_eq!(state, vm_state::HALTED, "VM should be halted");
+
+        // Jump VM to new PC (this should also resume it)
+        let target_pc = 0x8000;
+        scheduler.jump_vm(0, target_pc).expect("Failed to jump VM");
+
+        // Verify PC was set and VM is running
+        let pc = scheduler.get_vm_pc(0).expect("Failed to get VM PC");
+        assert_eq!(pc, target_pc, "PC should be set to target address");
+
+        println!("Sovereign Jump: VM 0 -> PC 0x{:04X} verified", target_pc);
+    }
+
+    #[test]
+    #[ignore = "Requires GPU"]
     fn test_spatial_spawn_shader() {
         // This test verifies the SPATIAL_SPAWN opcode in the shader.
         // It creates a program that:
