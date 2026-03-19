@@ -523,46 +523,129 @@ impl GlyphAssembler {
             },
             Opcode::Add => {
                 // ADD rd, rs1, rs2 → rd = rs1 + rs2 (three-operand form)
-                // Uses stratum field for rs2
-                let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (
-                    Instruction {
-                        opcode,
-                        stratum: rs2,
-                        p1: rs1,
-                        p2: rd,
-                    },
-                    None,
-                )
+                // ADD rd, rs1, imm → rd = rs1 + imm (immediate form)
+                let rd = parse_reg(parts.get(1).ok_or("ADD needs destination register")?)
+                    .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
+                let rs1 = parse_reg(parts.get(2).ok_or("ADD needs source register")?)
+                    .ok_or_else(|| format!("Invalid register: {}", parts[2]))?;
+                let third = parts.get(3).ok_or("ADD needs third operand")?;
+                let third = third.trim_end_matches(',');
+                
+                if let Some(rs2) = parse_reg(third) {
+                    // Register form
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: rs2,
+                            p1: rs1,
+                            p2: rd,
+                        },
+                        None,
+                    )
+                } else {
+                    // Immediate form (also resolve .equ constants)
+                    let imm = if let Some(v) = third.parse::<i32>().ok() {
+                        v
+                    } else if let Some(v) = self.resolve_symbol(third) {
+                        v
+                    } else {
+                        return Err(format!("Invalid immediate: {}", third));
+                    };
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: rs1,
+                            p2: rd,
+                        },
+                        Some(imm),
+                    )
+                }
             },
             Opcode::Sub => {
                 // SUB rd, rs1, rs2 → rd = rs1 - rs2 (three-operand form)
-                let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (
-                    Instruction {
-                        opcode,
-                        stratum: rs2,
-                        p1: rs1,
-                        p2: rd,
-                    },
-                    None,
-                )
+                // SUB rd, rs1, imm → rd = rs1 - imm (immediate form)
+                let rd = parse_reg(parts.get(1).ok_or("SUB needs destination register")?)
+                    .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
+                let rs1 = parse_reg(parts.get(2).ok_or("SUB needs source register")?)
+                    .ok_or_else(|| format!("Invalid register: {}", parts[2]))?;
+                let third = parts.get(3).ok_or("SUB needs third operand")?;
+                let third = third.trim_end_matches(',');
+                
+                if let Some(rs2) = parse_reg(third) {
+                    // Register form
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: rs2,
+                            p1: rs1,
+                            p2: rd,
+                        },
+                        None,
+                    )
+                } else {
+                    // Immediate form (also resolve .equ constants)
+                    let imm = if let Some(v) = third.parse::<i32>().ok() {
+                        v
+                    } else if let Some(v) = self.resolve_symbol(third) {
+                        v
+                    } else {
+                        return Err(format!("Invalid immediate: {}", third));
+                    };
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: rs1,
+                            p2: rd,
+                        },
+                        Some(imm),
+                    )
+                }
             },
             Opcode::Mul => {
                 // MUL rd, rs1, rs2 → rd = rs1 * rs2 (three-operand form)
-                let (rd, rs1, rs2) = self.parse_three_regs(&parts[1..])?;
-                (
-                    Instruction {
-                        opcode,
-                        stratum: rs2,
-                        p1: rs1,
-                        p2: rd,
-                    },
-                    None,
-                )
+                // MUL rd, rs1, imm → rd = rs1 * imm (immediate form)
+                let rd = parse_reg(parts.get(1).ok_or("MUL needs destination register")?)
+                    .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
+                let rs1 = parse_reg(parts.get(2).ok_or("MUL needs source register")?)
+                    .ok_or_else(|| format!("Invalid register: {}", parts[2]))?;
+                let third = parts.get(3).ok_or("MUL needs third operand")?;
+                let third = third.trim_end_matches(',');
+                
+                if let Some(rs2) = parse_reg(third) {
+                    // Register form
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: rs2,
+                            p1: rs1,
+                            p2: rd,
+                        },
+                        None,
+                    )
+                } else {
+                    // Immediate form (also resolve .equ constants)
+                    let imm = if let Some(v) = third.parse::<i32>().ok() {
+                        v
+                    } else if let Some(v) = self.resolve_symbol(third) {
+                        v
+                    } else {
+                        return Err(format!("Invalid immediate: {}", third));
+                    };
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: rs1,
+                            p2: rd,
+                        },
+                        Some(imm),
+                    )
+                }
             },
             Opcode::Load => {
-                // LOAD rd, [rs] or LOAD rd, addr (constant/immediate)
+                // LOAD rd, [rs] or LOAD rd, rs or LOAD rd, addr (constant/immediate)
                 let rd = parse_reg(parts.get(1).ok_or("LOAD needs destination register")?)
                     .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
                 let src = parts.get(2).ok_or("LOAD needs source")?;
@@ -570,13 +653,24 @@ impl GlyphAssembler {
                 
                 // Check if it's register indirect [rs] or constant address
                 if src.starts_with('[') || src.starts_with("mem[") {
-                    // Register indirect: LOAD rd, [rs]
+                    // Register indirect with brackets: LOAD rd, [rs]
                     let rs = src
                         .trim_start_matches('[')
                         .trim_start_matches("mem")
                         .trim_start_matches('[')
                         .trim_end_matches(']');
                     let rs = parse_reg(rs).ok_or_else(|| format!("Invalid source register: {}", rs))?;
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: rs,
+                            p2: rd,
+                        },
+                        None,
+                    )
+                } else if let Some(rs) = parse_reg(src) {
+                    // Register indirect without brackets: LOAD rd, rs
                     (
                         Instruction {
                             opcode,
@@ -859,9 +953,14 @@ impl GlyphAssembler {
                         None,
                     )
                 } else {
-                    // Immediate comparison
-                    let imm = val_part.parse::<i32>()
-                        .map_err(|_| format!("Invalid immediate: {}", val_part))?;
+                    // Immediate comparison (also resolve .equ constants)
+                    let imm = if let Some(v) = val_part.parse::<i32>().ok() {
+                        v
+                    } else if let Some(v) = self.resolve_symbol(val_part) {
+                        v
+                    } else {
+                        return Err(format!("Invalid immediate: {}", val_part));
+                    };
                     (
                         Instruction {
                             opcode,
@@ -889,25 +988,38 @@ impl GlyphAssembler {
                 )
             },
             Opcode::Spawn => {
+                // SPAWN program_id (immediate) or SPAWN rs (register)
                 // SPAWN program_id, arg1, arg2 → spawn new VM
-                let prog_id = parts.get(1).ok_or("SPAWN needs program ID")?;
-                let prog_id = prog_id.trim_end_matches(',');
+                let prog_part = parts.get(1).ok_or("SPAWN needs program ID or register")?;
+                let prog_part = prog_part.trim_end_matches(',');
                 let arg1 = parts.get(2).map(|s| s.trim_end_matches(',')).unwrap_or("0");
                 
-                let prog: u8 = prog_id.parse()
-                    .map_err(|_| format!("Invalid program ID: {}", prog_id))?;
-                let a1: u8 = arg1.parse()
-                    .unwrap_or(0);
-                
-                (
-                    Instruction {
-                        opcode,
-                        stratum: a1,
-                        p1: prog,
-                        p2: 0,
-                    },
-                    None,
-                )
+                if let Some(rs) = parse_reg(prog_part) {
+                    // Register form: SPAWN rs
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: rs,
+                            p2: 0,
+                        },
+                        None,
+                    )
+                } else {
+                    // Immediate form: SPAWN prog_id
+                    let prog: u8 = prog_part.parse()
+                        .map_err(|_| format!("Invalid program ID: {}", prog_part))?;
+                    let a1: u8 = arg1.parse().unwrap_or(0);
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: a1,
+                            p1: prog,
+                            p2: 0,
+                        },
+                        None,
+                    )
+                }
             },
             Opcode::Draw => {
                 // DRAW glyph_id, x, y - blit 64x64 cell from Atlas to Screen

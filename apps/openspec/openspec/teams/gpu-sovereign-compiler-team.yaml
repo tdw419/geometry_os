@@ -1,0 +1,194 @@
+# GPU-Sovereign Compiler Team
+# Cartridge where GPU runs the assembler - no Rust GlyphAssembler needed at runtime
+
+team:
+  name: gpu-sovereign-compiler-team
+  description: |
+    Creates a fully self-hosting compiler cartridge where the GPU assembles
+    Glyph programs. The cartridge contains the self_hosting_assembler.glyph
+    which compiles source code at 0x1000 and outputs bytecode to 0x5000.
+
+    Before: Text → Rust GlyphAssembler → PNG → GPU
+    After:  Text → PNG (with assembler embedded) → GPU compiles itself
+
+  project_root: /home/jericho/zion/projects/geometry_os/geometry_os
+
+  agents:
+    - name: sovereign-architect
+      role: Creates the sovereign_compiler.rs module
+      focus:
+        - Generate cartridges with embedded assembler at 0x2000
+        - Embed source at 0x1000, output buffer at 0x5000
+        - Boot program handles UI and button routing
+      files:
+        - systems/infinite_map_rs/src/ascii_native/sovereign_compiler.rs
+        - systems/infinite_map_rs/src/ascii_native/mod.rs
+
+    - name: segment-engineer
+      role: Adds CartridgeWriter segment methods
+      focus:
+        - set_segment(address, words) for arbitrary memory placement
+        - set_source_text(address, text) for ASCII embedding
+        - Address-to-pixel coordinate conversion
+      files:
+        - systems/infinite_map_rs/src/cartridge_writer.rs
+        - systems/infinite_map_rs/tests/cartridge_writer_segment_test.rs
+
+    - name: synthetic-validator
+      role: Creates SyntheticVram integration tests
+      focus:
+        - Load assembler at 0x2000, source at 0x1000
+        - Run until halt with cycle limit
+        - Read output from 0x5000, verify bytecode
+        - Self-compilation test (assembler compiles itself)
+      files:
+        - systems/infinite_map_rs/tests/sovereign_synthetic_test.rs
+
+    - name: cli-integrator
+      role: Adds --sovereign CLI flag
+      focus:
+        - Add --sovereign boolean flag to geos-compile
+        - Wire to sovereign_compiler::generate_sovereign_cartridge
+        - Test with example files
+      files:
+        - systems/infinite_map_rs/src/bin/geos-compile.rs
+
+    - name: docs-curator
+      role: Creates sovereign compiler documentation
+      focus:
+        - Create docs/SOVEREIGN_COMPILER.md
+        - Update GLYPH_NATIVE_PROGRAMMING.md with sovereign workflow
+        - Document memory layout and self-hosting loop
+      files:
+        - docs/SOVEREIGN_COMPILER.md
+        - docs/GLYPH_NATIVE_PROGRAMMING.md
+
+  tasks:
+    - id: task-1.1
+      title: Create sovereign_compiler.rs module
+      assignee: sovereign-architect
+      dependencies: []
+      description: |
+        Create systems/infinite_map_rs/src/ascii_native/sovereign_compiler.rs
+
+        Implement generate_sovereign_cartridge(source, output_path) that:
+        - Loads self_hosting_assembler.glyph via include_str!
+        - Compiles assembler with GlyphAssembler (bootstrap step)
+        - Renders ASCII template with source
+        - Creates CartridgeWriter with all segments
+        - Embeds assembler at 0x2000
+        - Embeds source at 0x1000
+        - Sets up SIT for [B] Assemble button → jump to 0x2000
+
+    - id: task-1.2
+      title: Create sovereign compiler tests
+      assignee: sovereign-architect
+      dependencies: [task-1.1]
+      description: |
+        Create systems/infinite_map_rs/tests/sovereign_compiler_test.rs
+
+        Tests:
+        - test_sovereign_cartridge_generates: Basic generation works
+        - test_sovereign_cartridge_contains_assembler: Program segment exists
+        - test_source_loaded_at_correct_address: Source at 0x1000
+
+    - id: task-2.1
+      title: Add set_segment method to CartridgeWriter
+      assignee: segment-engineer
+      dependencies: []
+      description: |
+        Add to systems/infinite_map_rs/src/cartridge_writer.rs:
+
+        pub fn set_segment(&mut self, address: u32, words: &[u32])
+        - Convert address to pixel coordinates (row = address / 80)
+        - Pack u32 into RGBA pixels
+        - Write to state_buffer at calculated positions
+
+    - id: task-2.2
+      title: Add set_source_text method to CartridgeWriter
+      assignee: segment-engineer
+      dependencies: [task-2.1]
+      description: |
+        Add to systems/infinite_map_rs/src/cartridge_writer.rs:
+
+        pub fn set_source_text(&mut self, address: u32, text: &str)
+        - Convert address to pixel coordinates
+        - Write ASCII bytes as [byte, 0, 0, 255] pixels
+
+    - id: task-2.3
+      title: Create segment method tests
+      assignee: segment-engineer
+      dependencies: [task-2.2]
+      description: |
+        Create systems/infinite_map_rs/tests/cartridge_writer_segment_test.rs
+
+        Tests:
+        - test_set_segment_writes_at_address
+        - test_set_source_text_encodes_ascii
+
+    - id: task-3.1
+      title: Create SyntheticVram integration tests
+      assignee: synthetic-validator
+      dependencies: [task-1.1]
+      description: |
+        Create systems/infinite_map_rs/tests/sovereign_synthetic_test.rs
+
+        Implement run_assembler_on_synthetic(source) helper that:
+        - Creates SyntheticVram
+        - Loads source at 0x1000
+        - Loads assembler at 0x2000
+        - Runs until halt
+        - Returns output from 0x5000
+
+        Tests:
+        - test_synthetic_assemble_simple: "LDI r0, 42\nHALT"
+        - test_synthetic_assemble_with_label: ":loop\nLDI r0, 1\nJMP :loop"
+        - test_synthetic_self_compile: Assembler compiles itself
+
+    - id: task-4.1
+      title: Add --sovereign CLI flag
+      assignee: cli-integrator
+      dependencies: [task-1.1]
+      description: |
+        Modify systems/infinite_map_rs/src/bin/geos-compile.rs
+
+        Add --sovereign flag that:
+        - Calls sovereign_compiler::generate_sovereign_cartridge
+        - Prints "GPU-Sovereign compiler cartridge" message
+        - Returns early (bypasses normal compilation)
+
+    - id: task-5.1
+      title: Create SOVEREIGN_COMPILER.md documentation
+      assignee: docs-curator
+      dependencies: [task-4.1]
+      description: |
+        Create docs/SOVEREIGN_COMPILER.md with:
+        - Overview of self-hosting architecture
+        - Usage examples
+        - Memory map (0x1000 source, 0x2000 assembler, 0x5000 output)
+        - Self-hosting loop diagram
+        - CLI commands
+
+    - id: task-6.1
+      title: End-to-end verification
+      assignee: synthetic-validator
+      dependencies: [task-5.1]
+      description: |
+        Run complete verification:
+        - geos-compile mailbox.ascii --sovereign -o sovereign_mailbox.rts.png
+        - cargo test sovereign_synthetic_test::test_synthetic_self_compile
+        - Verify all 8+ tests passing
+
+  success_criteria:
+    - sovereign_compiler.rs generates valid cartridges
+    - CartridgeWriter has set_segment and set_source_text methods
+    - SyntheticVram tests pass (3 tests)
+    - geos-compile --sovereign works
+    - Documentation complete
+    - Self-hosting verified: assembler compiles itself
+    - 8+ tests passing
+
+  reference_docs:
+    - docs/plans/2026-03-19-gpu-sovereign-compiler.md
+    - systems/glyph_stratum/programs/self_hosting_assembler.glyph
+    - docs/GLYPH_NATIVE_PROGRAMMING.md

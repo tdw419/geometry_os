@@ -345,7 +345,8 @@ fn get_mouse_pos() -> (u32, u32) {
 
 | File | Purpose |
 |------|---------|
-| `apps/.../examples/mailbox.ascii` | Event handler example |
+| `apps/ascii-world/.../examples/loop_demo.ascii` | Loop counter example (canonical) |
+| `apps/ascii-world/.../examples/mailbox.ascii` | Event handler example |
 | `systems/glyph_stratum/programs/*.glyph` | More Glyph programs |
 | `systems/infinite_map_rs/src/glyph_assembler.rs` | Assembler implementation |
 | `systems/infinite_map_rs/src/bin/geos-compile.rs` | Compiler CLI |

@@ -38,16 +38,16 @@
 // ============================================================================
 :entry
     // Initialize state
-    MOV r0, 0
+    LDI r0, 0
     STORE STATE_FRAME, r0
     STORE STATE_MOUSE_X, r0
     STORE STATE_MOUSE_Y, r0
-    MOV r1, 100
+    LDI r1, 100
     STORE STATE_ZOOM, r1
-    MOV r1, 1
+    LDI r1, 1
     STORE STATE_VM_COUNT, r1
 
-    JMP main_loop
+    JMP :main_loop
 
 // ============================================================================
 // MAIN LOOP
@@ -59,22 +59,22 @@
     STORE STATE_FRAME, r1
 
     // Handle input events
-    CALL handle_input
+    CALL :handle_input
 
     // Update state from events
-    CALL update_state
+    CALL :update_state
 
     // Process window clicks
-    CALL process_windows
+    CALL :process_windows
 
     // Render ASCII grid
-    CALL render_ascii
+    CALL :render_ascii
 
     // Yield for cooperative multitasking
     YIELD
 
     // Loop forever
-    JMP main_loop
+    JMP :main_loop
 
 // ============================================================================
 // INPUT HANDLING
@@ -87,24 +87,24 @@
     // Event type 1 = Mouse move
     CMP r1, 1
     JNE :check_click
-    CALL handle_mouse_move
+    CALL :handle_mouse_move
     JMP :clear_event
 
 :check_click
     // Event type 2 = Click
     CMP r1, 2
     JNE :check_scroll
-    CALL handle_click
+    CALL :handle_click
     JMP :clear_event
 
 :check_scroll
     // Event type 4 = Scroll
     CMP r1, 4
     JNE :clear_event
-    CALL handle_scroll
+    CALL :handle_scroll
 
 :clear_event
-    MOV r1, 0
+    LDI r1, 0
     STORE EVENT_TYPE, r1
 
 :input_done
@@ -157,23 +157,23 @@
     JMP :click_done
 
 :spawn_terminal
-    MOV r8, 0x5000      ; Terminal segment
+    LDI r8, 0x5000      ; Terminal segment
     SPAWN r8            ; Opcode 225: SPATIAL_SPAWN
     JMP :click_done
 
 :spawn_editor
-    MOV r8, 0x6000      ; Editor segment
+    LDI r8, 0x6000      ; Editor segment
     SPAWN r8
     JMP :click_done
 
 :spawn_files
-    MOV r8, 0x7000      ; Files segment
+    LDI r8, 0x7000      ; Files segment
     SPAWN r8
     JMP :click_done
 
 :check_window_clicks
     // Hit test against window table
-    CALL hit_test_windows
+    CALL :hit_test_windows
     ; r8 = window ID or 0xFF if none
     RET
 
@@ -203,11 +203,11 @@
     JMP :store_zoom
 
 :set_min_zoom
-    MOV r3, 25
+    LDI r3, 25
     JMP :store_zoom
 
 :set_max_zoom
-    MOV r3, 400
+    LDI r3, 400
 
 :store_zoom
     STORE STATE_ZOOM, r3
@@ -228,8 +228,8 @@
     RET
 
 :hit_test_windows
-    MOV r8, 0xFF        ; No hit by default
-    MOV r9, 0           ; Window index
+    LDI r8, 0xFF        ; No hit by default
+    LDI r9, 0           ; Window index
 
 :hit_loop
     CMP r9, MAX_WINDOWS
@@ -238,12 +238,17 @@
     // Load window bounds from table
     MOV r10, r9
     MUL r10, r10, 8
-    ADD r10, WINDOW_TABLE, r10
+    ADD r10, r10, WINDOW_TABLE
 
-    LOAD r2, r10 + 1    ; win.x
-    LOAD r3, r10 + 2    ; win.y
-    LOAD r4, r10 + 3    ; win.w
-    LOAD r5, r10 + 4    ; win.h
+    // Load window bounds from table (r10 points to window entry)
+    ADD r11, r10, 1
+    LOAD r2, [r11]    ; win.x
+    ADD r11, r10, 2
+    LOAD r3, [r11]    ; win.y
+    ADD r11, r10, 3
+    LOAD r4, [r11]    ; win.w
+    ADD r11, r10, 4
+    LOAD r5, [r11]    ; win.h
 
     LOAD r6, EVENT_X
     LOAD r7, EVENT_Y

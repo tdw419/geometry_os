@@ -40,6 +40,7 @@
 
 pub mod self_hosting_cartridge;
 pub mod self_hosting_template;
+pub mod sovereign_compiler;
 pub mod workspace_cartridge;
 pub mod memory {
     //! Memory layout constants for ASCII-native programs
