@@ -11,6 +11,7 @@ use std::collections::HashMap;
 /// Semantic mutation engine
 pub struct SemanticMutator {
     /// LLM API endpoint (e.g., LM Studio)
+    #[allow(dead_code)]
     llm_endpoint: String,
     /// Mutation templates for different types of changes
     mutation_templates: HashMap<String, MutationTemplate>,

@@ -22,6 +22,7 @@ pub enum QmpError {
 
 pub struct QmpClient {
     stream: BufReader<UnixStream>,
+    #[allow(dead_code)]
     socket_path: String,
 }
 

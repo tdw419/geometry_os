@@ -57,6 +57,7 @@ pub struct VramMonitor {
     stats: Arc<RwLock<VramStats>>,
 
     /// WGPU device for querying memory
+    #[allow(dead_code)]
     device: Arc<wgpu::Device>,
 
     /// LLM inference parameters

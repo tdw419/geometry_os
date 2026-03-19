@@ -242,6 +242,7 @@ impl GlyphAssembler {
     }
 
     /// Replace constant names in operands with their values
+    #[allow(dead_code)]
     fn expand_constants(&self, parts: &mut Vec<&str>) {
         for i in 1..parts.len() {
             if let Some(&_value) = self.constants.get(parts[i]) {

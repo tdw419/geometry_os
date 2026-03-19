@@ -24,6 +24,7 @@ pub struct BpftraceAdapter {
     /// Whether bpftrace is available
     available: bool,
     /// Last poll result (for smoothing)
+    #[allow(dead_code)]
     last_metrics: Option<ToolMetrics>,
 }
 
@@ -55,6 +56,7 @@ impl BpftraceAdapter {
     /// # Returns
     /// * `Ok(String)` - Output from bpftrace
     /// * `Err(String)` - Error message
+    #[allow(dead_code)]
     fn run_bpftrace_script(&self, script: &str, duration_ms: u64) -> Result<String, String> {
         if !self.available {
             return Err("bpftrace is not available".to_string());

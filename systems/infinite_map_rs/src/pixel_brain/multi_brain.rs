@@ -256,12 +256,14 @@ pub struct MultiBrainCoordinator {
     /// Brain regions in atlas
     regions: Vec<BrainRegion>,
     /// Shared atlas texture
+    #[allow(dead_code)]
     atlas_texture: Arc<Texture>,
     /// Shared atlas view
     atlas_view: TextureView,
     /// Message queue
     message_queue: MessageQueue,
     /// Shared attention region
+    #[allow(dead_code)]
     attention_region: BrainRegion,
     /// Attention blend shader
     attention_pipeline: Option<ComputePipeline>,

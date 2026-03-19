@@ -509,6 +509,7 @@ pub struct InspectorUI {
     /// Vertex buffer for UI rectangles (4 panels max)
     ui_vertex_buffer: wgpu::Buffer,
     /// Glyph atlas for text rendering
+    #[allow(dead_code)]
     glyph_atlas: GlyphAtlas,
 }
 

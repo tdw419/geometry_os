@@ -132,6 +132,7 @@ pub struct ActivationPool {
     /// Ring buffer portion
     ring_size: usize,
     /// Static allocation portion
+    #[allow(dead_code)]
     static_size: usize,
     /// Active allocations
     allocations: HashMap<TensorId, ActivationHandle>,

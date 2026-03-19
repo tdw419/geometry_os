@@ -15,6 +15,7 @@ pub struct StagingBuffer {
     /// Buffer size
     size: usize,
     /// Whether currently mapped
+    #[allow(dead_code)]
     mapped: bool,
 }
 

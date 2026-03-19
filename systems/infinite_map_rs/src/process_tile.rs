@@ -36,6 +36,7 @@ pub struct ProcessInfo {
     /// System time in jiffies
     stime: u64,
     /// Start time in jiffies
+    #[allow(dead_code)]
     starttime: u64,
 }
 

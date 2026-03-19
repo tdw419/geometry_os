@@ -258,6 +258,7 @@ pub struct GridLayout {
     width: i32,
     current: i32,
     spacing: i32,
+    #[allow(dead_code)]
     tile_size: (f32, f32),
 }
 
@@ -834,6 +835,7 @@ impl SourceImporter {
 
 /// Bidirectional sync between filesystem and tiles
 pub struct SourceSync {
+    #[allow(dead_code)]
     project_root: PathBuf,
 }
 

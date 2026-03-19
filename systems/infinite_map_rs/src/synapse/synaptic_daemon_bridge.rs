@@ -24,6 +24,7 @@ struct DaemonRequest {
 #[derive(Debug, Deserialize)]
 struct DaemonResponse {
     status: String,
+    #[allow(dead_code)]
     intent: String,
     commands: Vec<serde_json::Value>,
     confidence: f32,

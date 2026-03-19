@@ -9,6 +9,7 @@ pub struct ByteTokenizer {
     /// Vocabulary: token_id -> string
     vocab: Vec<String>,
     /// Inverse vocabulary: string -> token_id
+    #[allow(dead_code)]
     vocab_inv: HashMap<String, u32>,
 }
 

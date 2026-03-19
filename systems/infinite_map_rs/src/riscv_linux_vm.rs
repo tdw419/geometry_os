@@ -170,6 +170,7 @@ pub struct RiscVLinuxVM {
 
     // Bind groups
     bind_group: wgpu::BindGroup,
+    #[allow(dead_code)]
     bind_group_layout: wgpu::BindGroupLayout,
 
     // Configuration
@@ -794,6 +795,7 @@ impl RiscVLinuxVM {
 // ============================================================================
 
 pub struct SBIHandler {
+    #[allow(dead_code)]
     vm: Arc<std::sync::Mutex<RiscVLinuxVM>>,
 }
 
@@ -908,6 +910,7 @@ impl SBIHandler {
 pub struct CognitiveBIOS {
     vm: Arc<std::sync::Mutex<RiscVLinuxVM>>,
     console_buffer: Arc<std::sync::Mutex<Vec<u8>>>,
+    #[allow(dead_code)]
     sbi_handler: SBIHandler,
 }
 

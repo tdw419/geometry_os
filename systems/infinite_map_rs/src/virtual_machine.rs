@@ -1016,12 +1016,19 @@ impl Drop for QemuProcessWithShm {
 // ============================================
 // VirtIO Console Device Constants
 // ============================================
+#[allow(dead_code)]
 const VIRTIO_CONSOLE_PORT_BASE: u64 = 0x10000000;
+#[allow(dead_code)]
 const VIRTIO_CONSOLE_PORT_SIZE: u64 = 0x10;
+#[allow(dead_code)]
 const VIRTIO_CONSOLE_MAGIC: u32 = 0x73724716;
+#[allow(dead_code)]
 const VIRTIO_CONSOLE_VERSION: u32 = 2;
+#[allow(dead_code)]
 const VIRTIO_CONSOLE_F_SIZE: usize = 2;
+#[allow(dead_code)]
 const VIRTIO_CONSOLE_F_MULTIPORT: u8 = 1 << 0; // Supports multiple ports
+#[allow(dead_code)]
 const VIRTIO_CONSOLE_F_EMERG_WRITE: u8 = 1 << 1; // Emergency write
 
 // Phase 31: Clipboard Integration
@@ -1048,6 +1055,7 @@ const VIRTIO_QUEUE_SIZE: u16 = 256;
 // VirtIO Descriptor Flags
 const VIRTQ_DESC_F_NEXT: u16 = 1;
 const VIRTQ_DESC_F_WRITE: u16 = 2;
+#[allow(dead_code)]
 const VIRTQ_DESC_F_INDIRECT: u16 = 4;
 
 /// VirtIO Descriptor (Guest Memory Layout)
@@ -1469,8 +1477,10 @@ pub struct VirtualMachine {
     /// VM configuration
     config: VmConfig,
     /// Running state
+    #[allow(dead_code)]
     running: Arc<Mutex<bool>>,
     // Stub fields matching hypervisor struct
+    #[allow(dead_code)]
     framebuffer: Arc<Mutex<Vec<u8>>>,
     pub width: u32,
     pub height: u32,
