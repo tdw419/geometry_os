@@ -1242,6 +1242,7 @@ impl<'a> Renderer<'a> {
     }
 
     /// Enable evolution terrain rendering from the Evolution → Infinite Map Bridge
+    #[allow(unreachable_code)]
     pub fn enable_evolution_terrain(
         &mut self,
         gpu_resources: &crate::evolution_terrain_bridge::EvolutionTerrainGPU,

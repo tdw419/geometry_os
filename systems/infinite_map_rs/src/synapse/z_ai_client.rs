@@ -94,8 +94,8 @@ impl ZAiClient {
     }
 
     /// Analyze code health (Visual AST enrichment)
-    pub async fn analyze_syntax_health(&self, code: &str) -> Result<(f32, Vec<String>)> {
-        let prompt = "Analyze this Rust code for 'health'. Return a JSON: {\"score\": 0.0-1.0, \"issues\": [\"list\"]}.";
+    pub async fn analyze_syntax_health(&self, _code: &str) -> Result<(f32, Vec<String>)> {
+        let _prompt = "Analyze this Rust code for 'health'. Return a JSON: {\"score\": 0.0-1.0, \"issues\": [\"list\"]}.";
 
         // ... Implementation would parse JSON response
         // For now, return stub

@@ -3,10 +3,7 @@
 //!
 //! Generates workspace.rts.png from workspace.ascii template.
 
-use crate::ascii_native::self_hosting_template::SelfHostingTemplate;
-use crate::glyph_assembler::GlyphAssembler;
 use crate::glyph_to_cartridge::compile_glyph_to_cartridge;
-use image::{DynamicImage, ImageBuffer, Rgba};
 use std::path::Path;
 
 /// Generate workspace cartridge
