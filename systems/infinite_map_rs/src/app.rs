@@ -6229,7 +6229,7 @@ impl<'a> InfiniteMapApp<'a> {
             let attributes = attributes_guard.current();
             for d in &attributes.damage {
                 match d {
-                    Damage::Buffer(rect) => damage_rects.push(rect.clone()),
+                    Damage::Buffer(rect) => damage_rects.push(*rect),
                     Damage::Surface(_rect) => {
                         // Logical damage requires scaling which we skip for now
                         full_update_needed = true;

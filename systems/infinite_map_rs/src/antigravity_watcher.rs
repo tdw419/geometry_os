@@ -74,7 +74,7 @@ impl AntigravityWatcher {
                 std::thread::sleep(Duration::from_millis(100));
 
                 // Drain pending events
-                while let Ok(_) = rx.try_recv() {}
+                while rx.try_recv().is_ok() {}
 
                 // Load
                 // Retry loop for atomicity race conditions

@@ -538,7 +538,7 @@ async fn get_texture(Path(brick): Path<String>) -> Response {
             *pixel = color;
         } else if x > 20 && x < 80 && y > 20 && y < 80 {
             // Inner square with alpha
-            let mut c = color.clone();
+            let mut c = color;
             c.0[3] = 100;
             *pixel = c;
         } else {

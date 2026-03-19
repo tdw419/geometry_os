@@ -306,8 +306,8 @@ impl GlyphAssembler {
         let s = s.trim();
 
         // Hex
-        if s.starts_with("0x") {
-            return u32::from_str_radix(&s[2..], 16).map_err(|_| format!("Invalid hex: {}", s));
+        if let Some(hex) = s.strip_prefix("0x") {
+            return u32::from_str_radix(hex, 16).map_err(|_| format!("Invalid hex: {}", s));
         }
 
         // Constant

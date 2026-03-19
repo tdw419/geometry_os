@@ -207,7 +207,7 @@ impl V2Brick {
 
         // Read header (132 bytes) or detect PNG
         let mut header_bytes = [0u8; V2BrickHeader::HEADER_SIZE];
-        if let Err(_) = file.read_exact(&mut header_bytes) {
+        if file.read_exact(&mut header_bytes).is_err() {
             // Failed to read full header, might be a small file or just PNG
             // Reset and try PNG
         }

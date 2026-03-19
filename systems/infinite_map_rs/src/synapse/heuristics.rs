@@ -117,7 +117,7 @@ pub fn analyze_buffer(data: &[u8]) -> MemoryHeuristics {
         MemoryType::Zero
     } else if entropy > 7.5 {
         MemoryType::Encrypted
-    } else if let Some(_) = magic {
+    } else if magic.is_some() {
         MemoryType::Data // or Code depending on magic
     } else if !strings.is_empty() && entropy < 4.5 {
         MemoryType::Text

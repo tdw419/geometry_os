@@ -76,15 +76,19 @@ pub fn parse_glyph_program(source: &str) -> Result<(Vec<u32>, VmConfig), String>
             continue;
         }
 
-        if trimmed.starts_with(':') {
-            labels.insert(trimmed[1..].to_string(), pc);
+        if let Some(label) = trimmed.strip_prefix(':') {
+            labels.insert(label.to_string(), pc);
         } else if trimmed.starts_with(".equ") {
             let parts: Vec<_> = trimmed.split_whitespace().collect();
             if parts.len() == 3 {
                 let name = parts[1].to_string();
                 let value = parts[2]
                     .parse::<u32>()
-                    .unwrap_or_else(|_| u32::from_str_radix(&parts[2][2..], 16).unwrap_or(0));
+                    .unwrap_or_else(|_| {
+                        parts[2].strip_prefix("0x")
+                            .and_then(|hex| u32::from_str_radix(hex, 16).ok())
+                            .unwrap_or(0)
+                    });
                 equs.insert(name, value);
             }
         } else {
@@ -204,8 +208,8 @@ fn resolve_operand(op: &str, equs: &HashMap<String, u32>, labels: &HashMap<Strin
         }
     } else if let Ok(num) = op.parse::<u32>() {
         num
-    } else if op.starts_with("0x") {
-        u32::from_str_radix(&op[2..], 16).unwrap_or(0)
+    } else if let Some(hex) = op.strip_prefix("0x") {
+        u32::from_str_radix(hex, 16).unwrap_or(0)
     } else {
         labels.get(op).cloned().unwrap_or(0)
     }

@@ -97,7 +97,7 @@ async fn handle_connection(stream: tokio::net::UnixStream, tx: mpsc::Sender<Visu
             Ok(0) => return, // EOF
             Ok(_) => {
                 if let Ok(cmd) = serde_json::from_str::<VisualCommand>(&line) {
-                    if let Err(_) = tx.send(cmd).await {
+                    if tx.send(cmd).await.is_err() {
                         break;
                     }
                 } else {
