@@ -1370,7 +1370,7 @@ impl MemoryArtifactManager {
     }
 
     /// Pulse an artifact by ID (scale effect)
-    pub fn pulse(&mut self, id: usize, intensity: f32, duration_ms: u64) {
+    pub fn pulse(&mut self, id: usize, intensity: f32, _duration_ms: u64) {
         if let Some(artifact) = self.artifacts.get_mut(id) {
             // Apply pulse effect by making it brighter
             for vertex in &mut artifact.vertices {

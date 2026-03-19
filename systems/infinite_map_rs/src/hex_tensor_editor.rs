@@ -540,7 +540,7 @@ impl HexTensorEditor {
         self.edit_history.can_redo()
     }
 
-    pub fn get_hex_dump(&self, start: usize, count: usize) -> Vec<String> {
+    pub fn get_hex_dump(&self, _start: usize, _count: usize) -> Vec<String> {
         // Return string representation for UI/Debug
         Vec::new() // Not strictly needed for GPU render, implies CPU-side UI visualization
     }
@@ -735,7 +735,7 @@ impl HexTensorEditor {
         if self.search_query.is_empty() {
             self.search_query.push(nibble << 4); // High nibble
         } else {
-            let last_idx = self.search_query.len() - 1;
+            let _last_idx = self.search_query.len() - 1;
             // Check if we are filling the low nibble of the last byte
             // This is tricky because we don't track nibble state for search query in the struct,
             // we assumed full bytes for search. But typing is nibble-by-nibble.
@@ -886,7 +886,7 @@ impl HexTensorEditor {
             }
 
             // Padding for incomplete rows
-            for j in chunk.len()..bytes_per_row {
+            for _j in chunk.len()..bytes_per_row {
                 output.push_str("   ");
             }
 
@@ -909,7 +909,7 @@ impl HexTensorEditor {
 
     /// Neural Consult: Ask Z.ai to interpret current bytes
     pub fn neural_consult(&mut self) -> Option<String> {
-        if let Some(manager_arc) = &self.evolution_manager {
+        if let Some(_manager_arc) = &self.evolution_manager {
             let context = self.get_context_hex_dump(256);
 
             log::info!(

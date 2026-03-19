@@ -44,7 +44,7 @@ impl InfiniteMap {
     }
 
     /// Add a tile to the map
-    pub fn add_tile(&mut self, mut tile: Tile) {
+    pub fn add_tile(&mut self, tile: Tile) {
         let id = tile.id.clone();
         let position = tile.position;
         let species = tile.species.clone();
@@ -248,7 +248,7 @@ impl InfiniteMap {
         // These have higher risk but potentially higher reward
 
         // Example: Add new features or restructure code
-        for (key, value) in &mut tile.genotype.kernel_params {
+        for (_key, value) in &mut tile.genotype.kernel_params {
             if rand::random::<f64>() < 0.2 {
                 // 20% chance per param
                 // Try parameter variations
@@ -262,7 +262,7 @@ impl InfiniteMap {
         // Small, safe changes when already performing well
         // Focus on fine-tuning existing good configurations
 
-        for (key, value) in &mut tile.genotype.kernel_params {
+        for (_key, value) in &mut tile.genotype.kernel_params {
             if rand::random::<f64>() < 0.05 {
                 // 5% chance per param
                 // Minor adjustments only
