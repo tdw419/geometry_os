@@ -345,10 +345,9 @@ impl V2Brick {
 
         // Read text chunks
         let mut text_chunks: HashMap<String, String> = HashMap::new();
-        // TODO: Fix text_chunks access - png crate API may have changed
-        // for chunk in reader.info().text_chunks() {
-        //     text_chunks.insert(chunk.keyword.clone(), chunk.text.clone());
-        // }
+        for chunk in &reader.info().uncompressed_latin1_text {
+            text_chunks.insert(chunk.keyword.clone(), chunk.text.clone());
+        }
 
         let mut buf = vec![0; reader.output_buffer_size()];
         let info = reader
