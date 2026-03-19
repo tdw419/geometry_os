@@ -145,7 +145,7 @@ impl VisualAST {
     /// Apply spatial layout based on directory structure
     fn apply_directory_layout(
         &mut self,
-        project_root: &std::path::Path,
+        _project_root: &std::path::Path,
         origin: (f32, f32),
     ) -> Result<(), ParseError> {
         use std::collections::HashMap;

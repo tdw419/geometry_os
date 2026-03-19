@@ -184,7 +184,7 @@ impl BpftraceAdapter {
     /// Calculate health score from kernel metrics
     ///
     /// Returns score (0.0 - 1.0)
-    fn calculate_health_score(&self, syscall_rate: f64, io_wait: f32) -> f32 {
+    fn calculate_health_score(&self, _syscall_rate: f64, io_wait: f32) -> f32 {
         // I/O wait is critical (high = disk bottleneck)
         let io_score = if io_wait <= 5.0 {
             1.0

@@ -169,7 +169,7 @@ impl<'a> RTSUnpacker<'a> {
         let mut decoder = Decoder::new(cursor);
         decoder.set_ignore_text_chunk(false);
 
-        let mut reader = decoder.read_info()?;
+        let reader = decoder.read_info()?;
         let info = reader.info();
 
         for text_chunk in &info.uncompressed_latin1_text {

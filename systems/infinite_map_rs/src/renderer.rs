@@ -2021,7 +2021,6 @@ impl<'a> Renderer<'a> {
 
         // Phase 39: Update neural terrain camera & Memory Artifacts
         // Shared View-Projection for 3D elements
-        let mut view_proj_matrix = [[0.0; 4]; 4];
         let time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
@@ -2072,7 +2071,7 @@ impl<'a> Renderer<'a> {
         ];
 
         // Multiply view * projection
-        view_proj_matrix = Self::multiply_matrices(view_matrix, proj);
+        let view_proj_matrix = Self::multiply_matrices(view_matrix, proj);
 
         // Update Terrain Camera
         if self.terrain_enabled {

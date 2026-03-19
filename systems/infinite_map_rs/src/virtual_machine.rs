@@ -622,8 +622,8 @@ impl SharedMemoryFramebuffer {
     /// Returns arguments to pass to QEMU for display output to shared memory.
     /// This uses the 'none' display with a chardev for framebuffer capture.
     pub fn get_qemu_args(&self) -> Vec<String> {
-        // Create a unique device ID
-        let device_id = format!(
+        // Create a unique device ID (reserved for future use)
+        let _device_id = format!(
             "fb_{}",
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

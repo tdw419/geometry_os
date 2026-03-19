@@ -111,7 +111,7 @@ pub fn save_font_metrics(
 pub fn generate_fallback_metrics() -> FontData {
     let atlas_cols = 16u32;
     let atlas_rows = 6u32;
-    let cell_size = 64.0;
+    let _cell_size = 64.0; // Reserved for future layout calculations
     let glyph_size = 40.0;
 
     let mut glyphs = Vec::new();
@@ -1170,7 +1170,7 @@ impl TextEngine {
                 EditCommand::Insert { pos, chars } => {
                     // To undo insert: delete those characters
                     let start = pos as usize;
-                    let end = (pos + chars.len() as u32) as usize;
+                    let _end = (pos + chars.len() as u32) as usize; // Track deletion boundary
 
                     // Shift remaining text left
                     let len = chars.len();
@@ -1326,7 +1326,7 @@ impl TextEngine {
                 EditCommand::Delete { pos, chars } => {
                     // Redo delete: remove the characters again
                     let start = pos as usize;
-                    let end = (pos + chars.len() as u32) as usize;
+                    let _end = (pos + chars.len() as u32) as usize; // Track deletion boundary
 
                     // Shift remaining text left
                     let len = chars.len();

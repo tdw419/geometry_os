@@ -68,7 +68,7 @@ impl TrapRegs {
     /// Convert substrate address to TrapRegs pointer
     pub fn from_substrate_addr(addr: u32) -> *const Self {
         debug_assert!(addr >= TRAP_BASE);
-        let offset = (addr - TRAP_BASE) as usize;
+        let _offset = (addr - TRAP_BASE) as usize; // Documentation: actual access via texture reads
         // This is for documentation; actual access goes through texture reads
         std::ptr::null()
     }

@@ -71,8 +71,8 @@ impl IntrospectionWindow {
                 buffer.write_char(char, attrs);
             }
             // Newline
-            let (r, c) = buffer.get_cursor();
-            buffer.move_cursor(r + 1, 0);
+            let (_r, c) = buffer.get_cursor();
+            buffer.move_cursor(_r + 1, 0);
         }
     }
 
