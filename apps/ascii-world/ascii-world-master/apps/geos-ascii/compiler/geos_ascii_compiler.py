@@ -426,7 +426,25 @@ def compile_cartridge(ascii_path: Path, mapping: Dict, output: Path) -> bool:
     bootstrap_padded = np.zeros((16, WIDTH, 4), dtype=np.uint8)
     bootstrap_padded[:, :16, :] = bootstrap
 
-    cartridge = np.vstack([glyph_grid, sit_padded, state_padded, bootstrap_padded])
+    # Phase 50: Include Program Segment (256 rows)
+    program_padded = np.zeros((256, WIDTH, 4), dtype=np.uint8)
+    if inline_instructions:
+        # Each program instruction is a u32, we pack it into RGBA pixels
+        # 1 pixel = 1 instruction
+        for i, instr in enumerate(program):
+            if i < 256 * WIDTH:
+                y = i // WIDTH
+                x = i % WIDTH
+                # Pack u32 into [R, G, B, A] (little-endian)
+                program_padded[y, x] = [
+                    instr & 0xFF,
+                    (instr >> 8) & 0xFF,
+                    (instr >> 16) & 0xFF,
+                    (instr >> 24) & 0xFF
+                ]
+
+    # Assemble final cartridge (5 segments)
+    cartridge = np.vstack([glyph_grid, sit_padded, state_padded, bootstrap_padded, program_padded])
 
     img = Image.fromarray(cartridge, mode="RGBA")
     img.save(output, "PNG")

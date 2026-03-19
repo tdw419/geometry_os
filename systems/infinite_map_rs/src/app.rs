@@ -3062,7 +3062,12 @@ impl<'a> InfiniteMapApp<'a> {
                 .clone()
         };
 
-        // Extract binary from .rts.png
+        // Phase 50: Detect ASCII cartridges and route to GPU Ascension path
+        if entry.path.ends_with(".ascii") {
+            return self.boot_ascii_cartridge(cartridge_id, window_id);
+        }
+
+        // Extract binary from .rts.png (Legacy RISC-V Path)
         let binary_data = self.extract_cartridge_binary(&entry.path)?;
 
         log::info!("📦 Extracted {} bytes from cartridge", binary_data.len());
@@ -3163,6 +3168,96 @@ impl<'a> InfiniteMapApp<'a> {
             console_window_id,
             cartridge_id
         );
+
+        Ok(())
+    }
+
+    /// Phase 50: Boot an ASCII cartridge onto the GPU substrate
+    ///
+    /// This uses the VisualKernel (GPU Glyph VM) instead of the MultiVmManager (RISC-V).
+    pub fn boot_ascii_cartridge(
+        &mut self,
+        cartridge_id: &str,
+        window_id: usize,
+    ) -> Result<(), String> {
+        log::info!(
+            "💎 GPU Ascension: Booting ASCII cartridge {} (window {})",
+            cartridge_id,
+            window_id
+        );
+
+        // Get evolution manager reference
+        let em_arc = self
+            .evolution_manager
+            .as_ref()
+            .ok_or("Evolution manager not initialized")?;
+
+        // Get cartridge entry from registry
+        let entry = {
+            let em = em_arc
+                .lock()
+                .map_err(|e| format!("Failed to lock evolution manager: {}", e))?;
+            em.get_cartridge_entry(cartridge_id)
+                .ok_or(format!("Cartridge {} not found in registry", cartridge_id))?
+                .clone()
+        };
+
+        // Ensure Visual Kernel is initialized
+        let vk = self
+            .visual_kernel
+            .as_mut()
+            .ok_or("Visual Kernel (GPU VM) not initialized")?;
+
+        // Load ASCII cartridge
+        let cartridge = crate::ascii_cartridge::AsciiCartridge::load(&entry.path)
+            .map_err(|e| format!("Failed to load ASCII cartridge: {}", e))?;
+
+        // 1. Upload memory blocks to GPU substrate
+        // We'll use a specific base address for this cartridge (e.g. based on window ID)
+        let vm_id = (window_id % 7 + 1) as u32; // Reserve VM 0 for Window Manager
+        let base_addr = vm_id * 0x10000; // 64KB per cartridge on-substrate
+
+        log::info!(
+            "💎 Uploading ASCII substrate for VM {} to 0x{:04X}",
+            vm_id,
+            base_addr
+        );
+
+        // Upload State Buffer
+        vk.scheduler.poke_substrate_batch(
+            base_addr + crate::ascii_cartridge::mem_layout::STATE_BASE,
+            &cartridge.get_state_buffer_u32(),
+        );
+
+        // Upload Glyph Buffer
+        vk.scheduler.poke_substrate_batch(
+            base_addr + crate::ascii_cartridge::mem_layout::GLYPH_BASE,
+            &cartridge.get_glyph_grid_u32(),
+        );
+
+        // Upload Program Buffer
+        vk.scheduler.poke_substrate_batch(
+            base_addr + crate::ascii_cartridge::mem_layout::PROGRAM_BASE,
+            &cartridge.program_buffer,
+        );
+
+        // 2. Spawn Glyph VM on GPU
+        let mut initial_regs = [0u32; 128];
+        initial_regs[0] = base_addr; // Store base_addr in r0 for coordinate relative addressing
+
+        let vm_config = crate::glyph_vm_scheduler::VmConfig {
+            entry_point: base_addr + crate::ascii_cartridge::mem_layout::PROGRAM_BASE,
+            parent_id: 0,
+            base_addr,
+            bound_addr: base_addr + 0xFFFF,
+            initial_regs,
+            eap_coord: 0,
+            generation: 1,
+        };
+
+        vk.scheduler.spawn_vm(vm_id, &vm_config)?;
+
+        log::info!("✅ GPU Ascension Complete: VM {} is RUNNING", vm_id);
 
         Ok(())
     }
@@ -7001,6 +7096,49 @@ impl<'a> InfiniteMapApp<'a> {
                                     }
                                 }
                                 return; // Consume the event
+                            }
+                        }
+
+                        // Phase 50: Sovereign SIT Click Bridge (GPU-Native)
+                        if let Some(vk) = &mut self.visual_kernel {
+                            if let Some(target_window) = self
+                                .window_manager
+                                .find_window_at_position(world_pos.x, world_pos.y)
+                            {
+                                // Find VM ID associated with this window in VisualKernel
+                                let vm_id = vk.get_windows().iter()
+                                    .find(|w| w.x == target_window.x && w.y == target_window.y) // Simple match
+                                    .map(|w| w.vm_id);
+
+                                if let Some(vm_id) = vm_id {
+                                    // Calculate local grid coordinates
+                                    let local_x = (world_pos.x - target_window.x) / (target_window.width / 80.0);
+                                    let local_y = (world_pos.y - target_window.y) / (target_window.height / 40.0);
+                                    let grid_index = (local_y as u32) * 80 + (local_x as u32);
+                                    
+                                    if grid_index < 3200 { // 80x40
+                                        // Read SIT entry from GPU substrate (via shadow RAM)
+                                        // Base address for this VM is vm_id * 0x10000
+                                        let base_addr = vm_id * 0x10000;
+                                        let sit_addr = base_addr + crate::ascii_cartridge::mem_layout::STATE_BASE + grid_index;
+                                        let sit_val = vk.scheduler.peek_substrate_single(sit_addr);
+                                        
+                                        if sit_val != 0 {
+                                            // Extract SIT action (opcode and target_addr)
+                                            // Format: opcode (8 bits) | target_addr (24 bits)
+                                            let opcode = (sit_val >> 24) as u8;
+                                            let target_relative = sit_val & 0x00FFFFFF;
+                                            let target_abs = base_addr + crate::ascii_cartridge::mem_layout::PROGRAM_BASE + target_relative;
+                                            
+                                            log::info!("⚡ Sovereign SIT Hit: VM {} index {} -> op {} addr 0x{:04X}", 
+                                                vm_id, grid_index, opcode, target_abs);
+                                                
+                                            if vk.handle_sit_click(vm_id, opcode, target_abs) {
+                                                return; // Consume the event
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
 

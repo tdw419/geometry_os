@@ -634,6 +634,46 @@ impl GlyphVmScheduler {
         Ok(())
     }
 
+    /// Set the program counter for a specific VM on the GPU
+    /// This is used by the Sovereign Click Bridge to trigger interactive execution.
+    pub fn jump_vm(&self, vm_id: u32, target_pc: u32) -> Result<(), String> {
+        if vm_id as usize >= MAX_VMS {
+            return Err(format!("Invalid VM ID: {}", vm_id));
+        }
+
+        // PC is at offset 512 in the VmState struct
+        let pc_offset = (vm_id as u64) * VM_STATE_SIZE + 512;
+        
+        // Write the new PC to the GPU buffer
+        self.queue.write_buffer(
+            &self.vm_buffer,
+            pc_offset,
+            bytemuck::cast_slice(&[target_pc]),
+        );
+
+        // Ensure VM is in RUNNING state and not halted
+        // halted flag is at offset 516, state is at offset 536
+        let halted_offset = (vm_id as u64) * VM_STATE_SIZE + 516;
+        let state_offset = (vm_id as u64) * VM_STATE_SIZE + 536;
+
+        self.queue.write_buffer(
+            &self.vm_buffer,
+            halted_offset,
+            bytemuck::cast_slice(&[0u32]), // Clear halted flag
+        );
+        self.queue.write_buffer(
+            &self.vm_buffer,
+            state_offset,
+            bytemuck::cast_slice(&[vm_state::RUNNING]),
+        );
+
+        // Submit writes
+        self.queue.submit(None);
+
+        log::info!("🎯 Sovereign Jump: VM {} -> PC 0x{:04X}", vm_id, target_pc);
+        Ok(())
+    }
+
     /// Pause all VMs and wait for GPU to complete all pending work
     pub fn pause_all(&self) {
         // Submit an empty command buffer to ensure all GPU work is complete

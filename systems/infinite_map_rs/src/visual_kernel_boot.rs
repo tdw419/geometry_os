@@ -219,7 +219,7 @@ pub struct WindowEntry {
 /// The Visual Kernel - root of the autonomous windowing system
 pub struct VisualKernel {
     /// GPU scheduler managing all VMs
-    scheduler: GlyphVmScheduler,
+    pub scheduler: GlyphVmScheduler,
 
     /// GPU device for texture creation
     device: Arc<wgpu::Device>,
@@ -524,6 +524,43 @@ impl VisualKernel {
         self.scheduler.poke_substrate_single(0x200, event_type);
         self.scheduler.poke_substrate_single(0x201, param1);
         self.scheduler.poke_substrate_single(0x202, param2);
+    }
+
+    /// Phase 50: Sovereign Click Bridge
+    ///
+    /// Directly mutates a VM's Program Counter on the GPU substrate
+    /// based on a Spatial Instruction Table (SIT) click.
+    pub fn handle_sit_click(&mut self, vm_id: u32, opcode: u8, target_addr: u32) -> bool {
+        if !self.booted {
+            return false;
+        }
+
+        match opcode {
+            9 | 209 | 10 | 11 => {
+                // JMP (9), BNE/JZ (10), CALL (11) all trigger a PC change
+                // We'll treat them as a 'jump' for the bridge
+                if let Err(e) = self.scheduler.jump_vm(vm_id, target_addr) {
+                    log::error!("❌ Sovereign Click Failed: {}", e);
+                    false
+                } else {
+                    log::info!("⚡ Sovereign Click: VM {} -> 0x{:04X}", vm_id, target_addr);
+                    true
+                }
+            },
+            13 => {
+                // HALT
+                if let Err(e) = self.scheduler.halt_vm(vm_id) {
+                    log::error!("❌ Sovereign Halt Failed: {}", e);
+                    false
+                } else {
+                    true
+                }
+            },
+            _ => {
+                log::warn!("⚠ Unsupported SIT opcode for GPU bridge: {}", opcode);
+                false
+            },
+        }
     }
 
     /// Reset the Visual Kernel

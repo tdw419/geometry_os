@@ -21,23 +21,24 @@ const VM_HALTED: u32 = 2u;
 const VM_WAITING: u32 = 3u;
 
 struct VmState {
-    regs: array<u32, 32>,    // 32 general-purpose registers (128 bytes)
-    pc: u32,                  // Program counter (Hilbert pixel index)
-    halted: u32,              // Halted flag
-    stratum: u32,             // Current stratum
-    cycles: u32,              // Cycle counter
-    stack_ptr: u32,           // Stack pointer
-    vm_id: u32,               // VM ID
-    state: u32,               // VM state (RUNNING, HALTED, etc.)
-    parent_id: u32,           // Parent VM ID
-    entry_point: u32,         // Original entry point
-    base_addr: u32,           // Memory base address
-    bound_addr: u32,          // Memory bound address
-    // Total: 32 + 11 = 43 u32s, then 64 stack = 107 u32s = 428 bytes
-    // Rust code writes 32 + 11 + 64 = 107 u32s but allocates 432 bytes (108 u32s)
-    // So we need 1 padding to match
-    _pad: u32,               // Padding to match Rust's 432-byte allocation
-    stack: array<u32, 64>,    // Call stack (256 bytes)
+    regs: array<u32, 128>,    // 128 general-purpose registers (512 bytes)
+    pc: u32,                   // Program counter (Hilbert pixel index) - offset 512
+    halted: u32,               // Halted flag - offset 516
+    stratum: u32,              // Current stratum - offset 520
+    cycles: u32,               // Cycle counter - offset 524
+    stack_ptr: u32,            // Stack pointer - offset 528
+    vm_id: u32,                // VM ID - offset 532
+    state: u32,                // VM state (RUNNING, HALTED, etc.) - offset 536
+    parent_id: u32,            // Parent VM ID - offset 540
+    entry_point: u32,          // Original entry point - offset 544
+    base_addr: u32,            // Memory base address - offset 548
+    bound_addr: u32,           // Memory bound address - offset 552
+    eap_coord: u32,            // EAP mission context - offset 556
+    generation: u32,           // VM generation - offset 560
+    attention_mask: u32,       // AI focus mask - offset 564
+    _pad: array<u32, 2>,       // Padding to match Rust's struct (576 bytes before stack)
+    stack: array<u32, 64>,     // Call stack (256 bytes) - offset 576
+    // Total: 576 + 256 = 832 bytes
 }
 
 struct SchedulerState {
@@ -123,49 +124,77 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
 
     let opcode = glyph.r;
     let stratum = glyph.g;
-    let p1 = glyph.b;
-    let p2 = glyph.a;
-
-    // Opcode dispatch
+    let p1 = glyph.b; // Usually rd (destination register)
+    let p2 = glyph.a; // Usually rs or immediate
+    
+    // Some instructions use a second word for immediate or extra params
+    // We'll read it lazily if needed
+    
+    // Opcode dispatch (Aligned with SyntheticVram / geos_ascii_compiler)
     switch (opcode) {
         // NOP
         case 0u: { }
 
-        // LD - Load from memory to register: LD rd, addr
+        // LDI - Load immediate: LDI rd, imm
+        // Note: Compiler emits LDI as [1, 0, rd, 0] followed by [imm]
+        case 1u: {
+            let imm = mem_read((pc + 1u) * 4u);
+            (*vm).regs[p1] = imm;
+            (*vm).pc = pc + 1u; // Consume immediate word
+        }
+
+        // MOV - Move register: MOV rd, rs
+        case 2u: {
+            (*vm).regs[p1] = (*vm).regs[p2];
+        }
+
+        // LD - Load from memory: LD rd, [rs]
         case 3u: {
-            (*vm).regs[p1] = mem_read(p2 * 4u);  // p2 is word address
+            let addr = (*vm).regs[p2];
+            (*vm).regs[p1] = mem_read(addr);
         }
 
-        // ST - Store register to memory: ST rs, addr
+        // ST - Store to memory: ST [rd], rs
         case 4u: {
-            mem_write(p2 * 4u, (*vm).regs[p1]);
+            let addr = (*vm).regs[p1];
+            mem_write(addr, (*vm).regs[p2]);
         }
 
-        // ADD - Add immediate: ADD rd, imm
+        // ADD - Add register: ADD rd, rs
         case 5u: {
-            (*vm).regs[p1] = (*vm).regs[p1] + p2;
+            (*vm).regs[p1] = (*vm).regs[p1] + (*vm).regs[p2];
         }
 
-        // SUB - Subtract immediate: SUB rd, imm
+        // SUB - Subtract register: SUB rd, rs
         case 6u: {
-            (*vm).regs[p1] = (*vm).regs[p1] - p2;
+            (*vm).regs[p1] = (*vm).regs[p1] - (*vm).regs[p2];
         }
 
-        // JZ - Jump if zero: JZ reg, addr
+        // BNE - Branch if not equal: BNE r1, r2, offset
+        // Note: Compiler emits BNE as [10, 1, r1, r2] followed by [offset]
         case 10u: {
-            if ((*vm).regs[p1] == 0u) {
-                (*vm).pc = p2;
-                return 1u;  // Jumped
+            let offset = mem_read((pc + 1u) * 4u);
+            if ((*vm).regs[p1] != (*vm).regs[p2]) {
+                // offset is signed, but we store it as u32
+                // We'll treat it as i32 for the jump
+                let signed_offset = i32(offset);
+                let new_pc = i32(pc) + signed_offset;
+                (*vm).pc = u32(new_pc);
+                return 1u; // Jumped
             }
+            (*vm).pc = pc + 1u; // Skip offset word
         }
 
         // CALL - Call subroutine: CALL addr
         case 11u: {
             let sp = (*vm).stack_ptr;
             if (sp < 64u) {
-                (*vm).stack[sp] = (*vm).pc + 1u;
+                (*vm).stack[sp] = pc + 1u;
                 (*vm).stack_ptr = sp + 1u;
-                (*vm).pc = p1;
+                (*vm).pc = p1; // p1 is target address in some formats, or read from next word
+                // For ASCII compiler, CALL is [11, 0, 0, 0] followed by [addr]
+                let addr = mem_read((pc + 1u) * 4u);
+                (*vm).pc = addr;
                 return 1u;
             }
         }
@@ -184,74 +213,6 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
         case 13u: {
             (*vm).halted = 1u;
             (*vm).state = VM_HALTED;
-        }
-
-        // LDI - Load immediate: LDI rd, imm (alias for MOV)
-        case 204u: {
-            (*vm).regs[p1] = p2;
-        }
-
-        // STI - Store immediate to memory: STI addr, imm
-        case 205u: {
-            mem_write(p1 * 4u, p2);  // p1 is word address, store p2
-        }
-
-        // MOV - Move immediate: MOV rd, imm
-        case 206u: {
-            (*vm).regs[p1] = p2;
-        }
-
-        // JMP - Unconditional jump: JMP addr
-        case 209u: {
-            (*vm).pc = p1;
-            return 1u;
-        }
-
-        // CMP - Compare: CMP rd, imm
-        case 214u: {
-            if ((*vm).regs[p1] == p2) {
-                (*vm).regs[31] = 0u;  // Equal
-            } else if ((*vm).regs[p1] < p2) {
-                (*vm).regs[31] = 1u;  // Less than
-            } else {
-                (*vm).regs[31] = 2u;  // Greater than
-            }
-        }
-
-        // JLT - Jump if less than
-        case 215u: {
-            if ((*vm).regs[31] == 1u) {
-                (*vm).pc = p1;
-                return 1u;
-            }
-        }
-
-        // JGT - Jump if greater than
-        case 216u: {
-            if ((*vm).regs[31] == 2u) {
-                (*vm).pc = p1;
-                return 1u;
-            }
-        }
-
-        // JNE - Jump if not equal
-        case 217u: {
-            if ((*vm).regs[31] != 0u) {
-                (*vm).pc = p1;
-                return 1u;
-            }
-        }
-
-        // LOAD - Load from address in register: LOAD rd, rs_addr
-        case 220u: {
-            let addr = (*vm).regs[p2];
-            (*vm).regs[p1] = mem_read(addr);
-        }
-
-        // STORE - Store to address in register: STORE rs_val, rs_addr
-        case 221u: {
-            let addr = (*vm).regs[p2];
-            mem_write(addr, (*vm).regs[p1]);
         }
 
         default: {
