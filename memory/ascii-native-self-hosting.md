@@ -32,11 +32,42 @@ generate_self_hosting_cartridge(source, "output.rts.png")?;
 
 ## Test Coverage
 
+**Total: 22 tests** (17 lib + 5 integration)
+
+### Unit Tests (self_hosting_template.rs)
 | Test | Status |
 |------|--------|
-| Template loads | ✅ |
-| Template renders | ✅ |
-| Cartridge generates | ✅ |
+| template_loads_successfully | ✅ |
+| template_has_source_placeholder | ✅ |
+| template_has_status_placeholder | ✅ |
+| template_has_buttons | ✅ |
+| render_basic | ✅ |
+
+### Unit Tests (self_hosting_cartridge.rs)
+| Test | Status |
+|------|--------|
+| generate_produces_valid_png | ✅ |
+| generate_with_empty_source | ✅ |
+| generate_with_multi_line_source | ✅ |
+
+### Integration Tests (ascii_native_integration_test.rs)
+| Test | Status |
+|------|--------|
+| test_template_loads_successfully | ✅ |
+| test_template_renders_with_source | ✅ |
+| test_cartridge_generation_produces_valid_png | ✅ |
+| test_cartridge_loads_via_ascii_cartridge | ✅ |
+| test_cartridge_with_labels | ✅ |
+
+## CLI Usage
+
+```bash
+# Compile .glyph to self-hosting cartridge
+geos-compile input.glyph --self-hosting -o output.rts.png
+
+# With verbose output
+geos-compile input.glyph --self-hosting -v
+```
 
 ---
 
