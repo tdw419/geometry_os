@@ -1,0 +1,162 @@
+// ============================================================================
+// Geometry OS - ASCII-Native Cartridge Writer
+// ============================================================================
+//
+// This Glyph VM program takes compiled bytecode from the emit buffer and
+// writes it to the program segment, setting up SIT entries for button patterns.
+//
+// Input:  Bytecode at EMIT_BUFFER (0x2200)
+// Output: Cartridge at PROGRAM_BASE (0x8000)
+//
+// Memory Layout:
+//   r0  = source pointer (emit buffer)
+//   r1  = destination pointer (program segment)
+//   r2  = word count
+//   r3  = current word
+//   r4  = SIT pointer
+//   r5  = temporary
+//   r10 = increment constant (1)
+//   r127 = zero constant
+//
+// ============================================================================
+
+:main
+    // Initialize constants
+    LDI r10, 1           // increment = 1
+    LDI r127, 0          // zero = 0
+
+    // Initialize pointers
+    LDI r0, 0x2200       // src = EMIT_BUFFER
+    LDI r1, 0x8000       // dst = PROGRAM_BASE
+    LDI r2, 0            // count = 0
+    LDI r4, 0x0C00       // SIT base
+
+    // Read emit count from state (at 0x3004)
+    LDI r5, 0x3004
+    LOAD r6, [r5]        // r6 = emit count (max words to copy)
+    BEQ r6, r127, :copy_default
+
+    // Copy up to r6 words
+    JMP :copy_loop
+
+:copy_default
+    // Default: copy 256 words
+    LDI r6, 256
+
+// ============================================================================
+// COPY BYTECODE TO PROGRAM SEGMENT
+// ============================================================================
+:copy_loop
+    BEQ r2, r6, :copy_done
+    LOAD r3, [r0]        // word = mem[src]
+    STORE [r1], r3       // mem[dst] = word
+    ADD r0, r0, r10      // src++
+    ADD r1, r1, r10      // dst++
+    ADD r2, r2, r10      // count++
+    JMP :copy_loop
+
+:copy_done
+    // Store program length at 0x3008 for reference
+    LDI r5, 0x3008
+    STORE [r5], r2
+
+// ============================================================================
+// SET UP SIT ENTRIES
+// ============================================================================
+// SIT format: each entry is a pixel at (x, y) in SIT region
+// R = opcode, G = target_lo, B = target_hi, A = flags
+//
+// Button [A] at row 2, col 1: JUMP to editor_mode
+// Button [B] at row 2, col 13: JUMP to assemble
+// Button [C] at row 2, col 27: JUMP to write_cartridge
+// Button [D] at row 2, col 40: JUMP to run_program
+
+:setup_sit
+    // SIT base at 0x0C00
+    LDI r4, 0x0C00
+
+    // Entry for [A] Edit: JUMP (9) to editor entry (0x2000)
+    // Position: y=2, x=1 -> SIT index = 2*80 + 1 = 161
+    LDI r5, 161
+    ADD r4, r4, r5       // SIT[161]
+    LDI r3, 9            // JUMP opcode
+    // Encode: R=9, G=0x00, B=0x20, A=0
+    // = 9 | (0 << 8) | (0x20 << 16) | (0 << 24)
+    // = 0x00200009
+    LDI r3, 0x00200009
+    STORE [r4], r3
+
+    // Entry for [B] Assemble: JUMP (9) to assembler (0x2000)
+    // Position: y=2, x=13 -> SIT index = 2*80 + 13 = 173
+    LDI r4, 0x0C00
+    LDI r5, 173
+    ADD r4, r4, r5
+    LDI r3, 0x00200009
+    STORE [r4], r3
+
+    // Entry for [C] Write: JUMP (9) to cartridge writer (0x2400)
+    // Position: y=2, x=27 -> SIT index = 2*80 + 27 = 187
+    LDI r4, 0x0C00
+    LDI r5, 187
+    ADD r4, r4, r5
+    LDI r3, 0x00240009   // JUMP to 0x2400
+    STORE [r4], r3
+
+    // Entry for [D] Run: JUMP (9) to program (0x8000)
+    // Position: y=2, x=40 -> SIT index = 2*80 + 40 = 200
+    LDI r4, 0x0C00
+    LDI r5, 200
+    ADD r4, r4, r5
+    LDI r3, 0x00800009   // JUMP to 0x8000
+    STORE [r4], r3
+
+// ============================================================================
+// SET UP BOOTSTRAP HEADER
+// ============================================================================
+// Bootstrap header at row 1344 (after GLYPH + SIT + STATE)
+// Format: name string (16 bytes), version (4 bytes), etc.
+
+:setup_bootstrap
+    LDI r1, 0xF000       // Bootstrap info area (simplified)
+
+    // Write name "ASCII-ASM" as null-terminated string
+    LDI r2, 65           // 'A'
+    STORE [r1], r2
+    ADD r1, r1, r10
+    LDI r2, 83           // 'S'
+    STORE [r1], r2
+    ADD r1, r1, r10
+    LDI r2, 67           // 'C'
+    STORE [r1], r2
+    ADD r1, r1, r10
+    LDI r2, 73           // 'I'
+    STORE [r1], r2
+    ADD r1, r1, r10
+    LDI r2, 73           // 'I'
+    STORE [r1], r2
+    ADD r1, r1, r10
+    LDI r2, 45           // '-'
+    STORE [r1], r2
+    ADD r1, r1, r10
+    LDI r2, 65           // 'A'
+    STORE [r1], r2
+    ADD r1, r1, r10
+    LDI r2, 83           // 'S'
+    STORE [r1], r2
+    ADD r1, r1, r10
+    LDI r2, 77           // 'M'
+    STORE [r1], r2
+    ADD r1, r1, r10
+    LDI r2, 0            // null terminator
+    STORE [r1], r2
+
+// ============================================================================
+// DONE
+// ============================================================================
+:write_done
+    // Signal completion by writing 1 to 0x300C
+    LDI r1, 0x300C
+    LDI r2, 1
+    STORE [r1], r2
+
+    HALT

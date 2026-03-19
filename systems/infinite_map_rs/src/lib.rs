@@ -197,3 +197,6 @@ pub use riscv_executor::{
 
 // Wave-Logic Unit (WLU) - Analog Computing Prototype
 pub mod wave_logic_unit;
+
+// ASCII-Native Self-Hosting Bootstrap
+pub mod ascii_native;

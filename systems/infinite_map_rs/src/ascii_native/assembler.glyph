@@ -1,0 +1,633 @@
+// ============================================================================
+// Geometry OS - ASCII-Native Assembler
+// ============================================================================
+//
+// This Glyph VM program reads ASCII assembly from the glyph grid and emits
+// executable bytecode to the emit buffer.
+//
+// Input:  ASCII text at GLYPH_BASE (0x0000)
+// Output: Bytecode at EMIT_BUFFER (0x2200)
+//
+// Memory Layout:
+//   r0  = source pointer (glyph grid address)
+//   r1  = emit pointer (output buffer address)
+//   r2  = current character
+//   r3  = temporary
+//   r4  = opcode
+//   r5  = stratum/condition
+//   r6  = p1 (first operand)
+//   r7  = p2 (second operand)
+//   r8  = accumulator (for multi-digit parsing)
+//   r9  = multiplier constant (10)
+//   r10 = increment constant (1)
+//   r11 = ASCII '0' (48)
+//   r12 = shift constant (8, 16, 24)
+//   r13 = label table pointer
+//   r127 = zero constant
+//
+// ============================================================================
+
+:main
+    // Initialize constants
+    LDI r10, 1           // increment = 1
+    LDI r127, 0          // zero = 0
+    LDI r11, 48          // '0' = 48
+    LDI r9, 10           // multiplier = 10
+
+    // Initialize pointers
+    LDI r0, 0x0000       // source_ptr = GLYPH_BASE
+    LDI r1, 0x2200       // emit_ptr = EMIT_BUFFER
+    LDI r13, 0x2100      // label_table = LABEL_TABLE_BASE
+
+    // Initialize pass counter (stored at working memory)
+    LDI r3, 0x3000       // working memory base
+    LDI r4, 0
+    STORE [r3], r4       // pass = 0 (pass 1: collect labels, pass 2: emit)
+
+// ============================================================================
+// PASS 1: Collect labels and count instructions
+// ============================================================================
+:pass1
+    LDI r3, 0x3000
+    LOAD r4, [r3]        // r4 = current pass
+    LDI r5, 1
+    BEQ r4, r5, :pass2   // if pass == 1, go to pass 2
+
+    // Reset for pass 1
+    LDI r0, 0x0000       // source_ptr = GLYPH_BASE
+
+:pass1_loop
+    LOAD r2, [r0]        // char = mem[source_ptr]
+    BEQ r2, r127, :pass1_done
+
+    // Check for label (starts with ':')
+    LDI r3, 58           // ':'
+    BNE r2, r3, :pass1_not_label
+
+    // Found label - store current emit address in label table
+    // Label format: hash(label_name) << 16 | emit_address
+    ADD r0, r0, r10      // skip ':'
+    LDI r8, 0            // hash = 0
+    LDI r3, 31           // hash multiplier
+
+:pass1_hash_loop
+    LOAD r2, [r0]
+    // Stop at whitespace or non-alphanumeric
+    LDI r4, 32; BEQ r2, r4, :pass1_hash_done
+    LDI r4, 10; BEQ r2, r4, :pass1_hash_done
+    LDI r4, 13; BEQ r2, r4, :pass1_hash_done
+    LDI r4, 59; BEQ r2, r4, :pass1_hash_done  // ';'
+    // Hash: h = h * 31 + c
+    MUL r8, r8, r3
+    ADD r8, r8, r2
+    ADD r0, r0, r10
+    JMP :pass1_hash_loop
+
+:pass1_hash_done
+    // Store: (hash << 16) | emit_address
+    LDI r3, 16
+    SLL r8, r8, r3       // hash << 16
+    OR r8, r8, r1        // | emit_address
+    STORE [r13], r8      // label_table[i] = entry
+    ADD r13, r13, r10    // label_table++
+    JMP :pass1_skip_line
+
+:pass1_not_label
+    // Check for comment '//'
+    LDI r3, 47           // '/'
+    BNE r2, r3, :pass1_check_mnemonic
+    ADD r0, r0, r10
+    LOAD r2, [r0]
+    BNE r2, r3, :pass1_backtrack
+    JMP :pass1_skip_line
+
+:pass1_backtrack
+    SUB r0, r0, r10
+
+:pass1_check_mnemonic
+    // Count instruction words
+    LDI r3, 32; BEQ r2, r3, :pass1_advance  // space
+    LDI r3, 10; BEQ r2, r3, :pass1_advance  // newline
+    LDI r3, 13; BEQ r2, r3, :pass1_advance  // CR
+
+    // Check for LDI/Branch (2-word instructions)
+    LDI r3, 76           // 'L'
+    BEQ r2, r3, :pass1_check_ldi
+    LDI r3, 66           // 'B'
+    BEQ r2, r3, :pass1_check_branch
+
+    // Other instructions are 1 word
+    ADD r1, r1, r10      // emit_ptr++
+    JMP :pass1_skip_line
+
+:pass1_check_ldi
+    // Check if it's LDI (2 words)
+    ADD r0, r0, r10
+    LOAD r2, [r0]
+    LDI r3, 68           // 'D'
+    BNE r2, r3, :pass1_not_ldi
+    ADD r0, r0, r10
+    LOAD r2, [r0]
+    LDI r3, 73           // 'I'
+    BNE r2, r3, :pass1_not_ldi
+    // It's LDI: 2 words
+    ADD r1, r1, r10
+    ADD r1, r1, r10
+    SUB r0, r0, r10
+    SUB r0, r0, r10
+    JMP :pass1_skip_line
+
+:pass1_not_ldi
+    SUB r0, r0, r10
+    ADD r1, r1, r10
+    JMP :pass1_skip_line
+
+:pass1_check_branch
+    // Branch instructions are 2 words
+    ADD r1, r1, r10
+    ADD r1, r1, r10
+    JMP :pass1_skip_line
+
+:pass1_advance
+    ADD r0, r0, r10
+    JMP :pass1_loop
+
+:pass1_skip_line
+    LOAD r2, [r0]
+    BEQ r2, r127, :pass1_done
+    LDI r3, 10
+    BEQ r2, r3, :pass1_eol
+    LDI r3, 13
+    BEQ r2, r3, :pass1_eol
+    LDI r3, 59           // ';'
+    BEQ r2, r3, :pass1_after_semi
+    ADD r0, r0, r10
+    JMP :pass1_skip_line
+
+:pass1_after_semi
+    ADD r0, r0, r10
+    JMP :pass1_skip_line
+
+:pass1_eol
+    ADD r0, r0, r10
+    JMP :pass1_loop
+
+:pass1_done
+    // Switch to pass 2
+    LDI r3, 0x3000
+    LDI r4, 1
+    STORE [r3], r4       // pass = 1
+    LDI r1, 0x2200       // reset emit_ptr
+    JMP :pass2
+
+// ============================================================================
+// PASS 2: Parse and emit opcodes
+// ============================================================================
+:pass2
+    LDI r0, 0x0000       // source_ptr = GLYPH_BASE
+
+:parse_loop
+    LOAD r2, [r0]        // char = mem[source_ptr]
+    BEQ r2, r127, :emit_done
+
+    // Skip whitespace
+    LDI r3, 32; BEQ r2, r3, :skip_whitespace
+    LDI r3, 10; BEQ r2, r3, :skip_whitespace
+    LDI r3, 13; BEQ r2, r3, :skip_whitespace
+
+    // Skip labels
+    LDI r3, 58           // ':'
+    BEQ r2, r3, :skip_label
+
+    // Skip comments
+    LDI r3, 47           // '/'
+    BEQ r2, r3, :check_comment
+
+    // Parse mnemonic
+    JMP :parse_mnemonic
+
+:skip_whitespace
+    ADD r0, r0, r10
+    JMP :parse_loop
+
+:check_comment
+    ADD r0, r0, r10
+    LOAD r2, [r0]
+    LDI r3, 47
+    BNE r2, r3, :backtrack_comment
+    // It's '//', skip to end of line
+    JMP :skip_line
+
+:backtrack_comment
+    SUB r0, r0, r10
+    JMP :parse_mnemonic
+
+:skip_label
+    ADD r0, r0, r10
+:skip_label_chars
+    LOAD r2, [r0]
+    LDI r3, 32; BEQ r2, r3, :parse_loop
+    LDI r3, 10; BEQ r2, r3, :parse_loop
+    LDI r3, 13; BEQ r2, r3, :parse_loop
+    ADD r0, r0, r10
+    JMP :skip_label_chars
+
+:skip_line
+    LOAD r2, [r0]
+    BEQ r2, r127, :emit_done
+    LDI r3, 10
+    BEQ r2, r3, :advance_line
+    LDI r3, 13
+    BEQ r2, r3, :advance_line
+    ADD r0, r0, r10
+    JMP :skip_line
+
+:advance_line
+    ADD r0, r0, r10
+    JMP :parse_loop
+
+// ============================================================================
+// MNEMONIC PARSER
+// ============================================================================
+:parse_mnemonic
+    // Read first 3 characters of mnemonic
+    LOAD r3, [r0]        // c1
+    ADD r0, r0, r10
+    LOAD r4, [r0]        // c2
+    ADD r0, r0, r10
+    LOAD r5, [r0]        // c3
+
+    // Match mnemonic
+    // 'L' 'D' 'I' -> LDI (1)
+    LDI r6, 76; BNE r3, r6, :check_halt
+    LDI r6, 68; BNE r4, r6, :check_load
+    LDI r6, 73; BNE r5, r6, :check_load
+    JMP :emit_ldi
+
+:check_load
+    // 'L' 'O' 'A' -> LOAD (3)
+    LDI r6, 79; BNE r4, r6, :unknown
+    LDI r6, 65; BNE r5, r6, :unknown
+    JMP :emit_load
+
+:check_halt
+    // 'H' 'A' 'L' -> HALT (13)
+    LDI r6, 72; BNE r3, r6, :check_nop
+    LDI r6, 65; BNE r4, r6, :unknown
+    LDI r6, 76; BNE r5, r6, :unknown
+    JMP :emit_halt
+
+:check_nop
+    // 'N' 'O' 'P' -> NOP (0)
+    LDI r6, 78; BNE r3, r6, :check_mov
+    LDI r6, 79; BNE r4, r6, :unknown
+    LDI r6, 80; BNE r5, r6, :unknown
+    JMP :emit_nop
+
+:check_mov
+    // 'M' 'O' 'V' -> MOV (2)
+    LDI r6, 77; BNE r3, r6, :check_add
+    LDI r6, 79; BNE r4, r6, :unknown
+    LDI r6, 86; BNE r5, r6, :unknown
+    JMP :emit_mov
+
+:check_add
+    // 'A' 'D' 'D' -> ADD (5)
+    LDI r6, 65; BNE r3, r6, :check_sub
+    LDI r6, 68; BNE r4, r6, :unknown
+    LDI r6, 68; BNE r5, r6, :unknown
+    JMP :emit_add
+
+:check_sub
+    // 'S' 'U' 'B' -> SUB (6)
+    LDI r6, 83; BNE r3, r6, :check_mul
+    LDI r6, 85; BNE r4, r6, :check_store
+    LDI r6, 66; BNE r5, r6, :check_store
+    JMP :emit_sub
+
+:check_store
+    // 'S' 'T' 'O' -> STORE (4)
+    LDI r6, 84; BNE r4, r6, :unknown
+    LDI r6, 79; BNE r5, r6, :unknown
+    JMP :emit_store
+
+:check_mul
+    // 'M' 'U' 'L' -> MUL (7)
+    LDI r6, 85; BNE r4, r6, :unknown
+    LDI r6, 76; BNE r5, r6, :unknown
+    JMP :emit_mul
+
+:unknown
+    // Unknown mnemonic - emit NOP and continue
+    JMP :emit_nop
+
+// ============================================================================
+// EMITTERS
+// ============================================================================
+
+:emit_ldi
+    // LDI rX, imm
+    // Skip to register
+    ADD r0, r0, r10      // skip 'I'
+    LDI r14, :skip_ws; CALL r14
+
+    // Parse register: 'r' followed by digit(s)
+    LOAD r2, [r0]        // should be 'r'
+    LDI r3, 114
+    BNE r2, r3, :emit_ldi_error
+    ADD r0, r0, r10
+
+    // Parse register number
+    LDI r14, :parse_decimal; CALL r14
+    MOV r6, r8           // r6 = register number (p1)
+
+    // Skip comma and whitespace
+    LDI r14, :skip_ws; CALL r14
+    LOAD r2, [r0]        // should be ','
+    LDI r3, 44
+    BNE r2, r3, :emit_ldi_error
+    ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+
+    // Parse immediate value
+    LDI r14, :parse_value; CALL r14
+    MOV r7, r8           // r7 = immediate value
+
+    // Emit LDI opcode: (1) | (reg << 16)
+    LDI r4, 1            // LDI opcode
+    LDI r3, 16
+    SLL r5, r6, r3       // reg << 16
+    OR r4, r4, r5        // opcode | (reg << 16)
+    STORE [r1], r4
+    ADD r1, r1, r10
+
+    // Emit immediate value
+    STORE [r1], r7
+    ADD r1, r1, r10
+
+    JMP :skip_line
+
+:emit_ldi_error
+    // Emit NOP on error
+    STORE [r1], r127
+    ADD r1, r1, r10
+    JMP :skip_line
+
+:emit_halt
+    // HALT -> emit 13
+    LDI r4, 13
+    STORE [r1], r4
+    ADD r1, r1, r10
+    JMP :skip_line
+
+:emit_nop
+    // NOP -> emit 0
+    STORE [r1], r127
+    ADD r1, r1, r10
+    JMP :skip_line
+
+:emit_mov
+    // MOV rd, rs -> emit 2 | (rs << 8) | (rd << 16)
+    ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14
+    MOV r6, r8           // rd
+    LDI r14, :skip_ws; CALL r14
+    ADD r0, r0, r10      // skip comma
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14
+    MOV r7, r8           // rs
+
+    // Encode: opcode=2, stratum=rs, p1=0, p2=rd
+    LDI r4, 2
+    LDI r3, 8
+    SLL r5, r7, r3       // rs << 8
+    OR r4, r4, r5
+    LDI r3, 16
+    SLL r5, r6, r3       // rd << 16
+    OR r4, r4, r5
+    STORE [r1], r4
+    ADD r1, r1, r10
+    JMP :skip_line
+
+:emit_add
+    // ADD rd, rs1, rs2 -> emit 5 | (rs2 << 8) | (rs1 << 16) | (rd << 24)
+    ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14; MOV r6, r8  // rd
+    LDI r14, :skip_ws; CALL r14; ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14; MOV r3, r8  // rs1
+    LDI r14, :skip_ws; CALL r14; ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14; MOV r7, r8  // rs2
+
+    // Encode: opcode=5, stratum=rs2, p1=rs1, p2=rd
+    LDI r4, 5
+    LDI r5, 8; SLL r7, r7, r5; OR r4, r4, r7
+    LDI r5, 16; SLL r3, r3, r5; OR r4, r4, r3
+    LDI r5, 24; SLL r6, r6, r5; OR r4, r4, r6
+    STORE [r1], r4
+    ADD r1, r1, r10
+    JMP :skip_line
+
+:emit_sub
+    // SUB rd, rs1, rs2 -> emit 6 | (rs2 << 8) | (rs1 << 16) | (rd << 24)
+    ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14; MOV r6, r8  // rd
+    LDI r14, :skip_ws; CALL r14; ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14; MOV r3, r8  // rs1
+    LDI r14, :skip_ws; CALL r14; ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14; MOV r7, r8  // rs2
+
+    LDI r4, 6
+    LDI r5, 8; SLL r7, r7, r5; OR r4, r4, r7
+    LDI r5, 16; SLL r3, r3, r5; OR r4, r4, r3
+    LDI r5, 24; SLL r6, r6, r5; OR r4, r4, r6
+    STORE [r1], r4
+    ADD r1, r1, r10
+    JMP :skip_line
+
+:emit_mul
+    // MUL rd, rs1, rs2 -> emit 7 | (rs2 << 8) | (rs1 << 16) | (rd << 24)
+    ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14; MOV r6, r8  // rd
+    LDI r14, :skip_ws; CALL r14; ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14; MOV r3, r8  // rs1
+    LDI r14, :skip_ws; CALL r14; ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14; MOV r7, r8  // rs2
+
+    LDI r4, 7
+    LDI r5, 8; SLL r7, r7, r5; OR r4, r4, r7
+    LDI r5, 16; SLL r3, r3, r5; OR r4, r4, r3
+    LDI r5, 24; SLL r6, r6, r5; OR r4, r4, r6
+    STORE [r1], r4
+    ADD r1, r1, r10
+    JMP :skip_line
+
+:emit_load
+    // LOAD rd, [rs] -> emit 3 | (rs << 8) | (rd << 16)
+    ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14; MOV r6, r8  // rd
+    LDI r14, :skip_ws; CALL r14; ADD r0, r0, r10  // skip comma
+    LDI r14, :skip_ws; CALL r14
+    LOAD r2, [r0]        // should be '['
+    LDI r3, 91
+    BNE r2, r3, :emit_load_error
+    ADD r0, r0, r10
+    LDI r14, :parse_reg; CALL r14; MOV r7, r8  // rs
+    LOAD r2, [r0]        // should be ']'
+    LDI r3, 93
+    BNE r2, r3, :emit_load_error
+    ADD r0, r0, r10
+
+    // Encode: opcode=3, stratum=0, p1=rs, p2=rd
+    LDI r4, 3
+    LDI r5, 16; SLL r7, r7, r5; OR r4, r4, r7
+    LDI r5, 24; SLL r6, r6, r5; OR r4, r4, r6
+    STORE [r1], r4
+    ADD r1, r1, r10
+    JMP :skip_line
+
+:emit_load_error
+    STORE [r1], r127
+    ADD r1, r1, r10
+    JMP :skip_line
+
+:emit_store
+    // STORE [rd], rs -> emit 4 | (rd << 8) | (rs << 16)
+    ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14
+    LOAD r2, [r0]        // should be '['
+    LDI r3, 91
+    BNE r2, r3, :emit_store_error
+    ADD r0, r0, r10
+    LDI r14, :parse_reg; CALL r14; MOV r6, r8  // rd (address)
+    LOAD r2, [r0]        // should be ']'
+    LDI r3, 93
+    BNE r2, r3, :emit_store_error
+    ADD r0, r0, r10
+    LDI r14, :skip_ws; CALL r14; ADD r0, r0, r10  // skip comma
+    LDI r14, :skip_ws; CALL r14
+    LDI r14, :parse_reg; CALL r14; MOV r7, r8  // rs (value)
+
+    // Encode: opcode=4, stratum=0, p1=rd, p2=rs
+    LDI r4, 4
+    LDI r5, 16; SLL r6, r6, r5; OR r4, r4, r6
+    LDI r5, 24; SLL r7, r7, r5; OR r4, r4, r7
+    STORE [r1], r4
+    ADD r1, r1, r10
+    JMP :skip_line
+
+:emit_store_error
+    STORE [r1], r127
+    ADD r1, r1, r10
+    JMP :skip_line
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+:skip_ws
+    // Skip whitespace characters
+    LOAD r2, [r0]
+    LDI r3, 32; BEQ r2, r3, :sw_adv   // space
+    LDI r3, 10; BEQ r2, r3, :sw_adv   // newline
+    LDI r3, 13; BEQ r2, r3, :sw_adv   // CR
+    LDI r3, 44; BEQ r2, r3, :sw_adv   // comma
+    RET
+:sw_adv
+    ADD r0, r0, r10
+    JMP :skip_ws
+
+:parse_reg
+    // Parse register: 'r' followed by number
+    LOAD r2, [r0]
+    LDI r3, 114          // 'r'
+    BNE r2, r3, :parse_reg_error
+    ADD r0, r0, r10
+    LDI r14, :parse_decimal; CALL r14
+    RET
+:parse_reg_error
+    LDI r8, 0
+    RET
+
+:parse_value
+    // Parse value (decimal or hex)
+    LOAD r2, [r0]
+    LDI r3, 48           // '0'
+    BNE r2, r3, :parse_val_decimal
+    ADD r0, r0, r10
+    LOAD r2, [r0]
+    LDI r3, 120          // 'x'
+    BEQ r2, r3, :parse_val_hex
+    SUB r0, r0, r10
+    JMP :parse_val_decimal
+
+:parse_val_hex
+    ADD r0, r0, r10
+    LDI r14, :parse_hex; CALL r14
+    RET
+
+:parse_val_decimal
+    LDI r14, :parse_decimal; CALL r14
+    RET
+
+:parse_decimal
+    // Parse decimal number into r8
+    LDI r8, 0
+:pd_loop
+    LOAD r2, [r0]
+    LDI r3, 48           // '0'
+    SUB r2, r2, r3       // digit = char - '0'
+    LDI r3, 0
+    BLT r2, r3, :pd_done
+    LDI r3, 9
+    BGT r2, r3, :pd_done
+    // r8 = r8 * 10 + digit
+    MUL r8, r8, r9
+    ADD r8, r8, r2
+    ADD r0, r0, r10
+    JMP :pd_loop
+:pd_done
+    RET
+
+:parse_hex
+    // Parse hex number into r8
+    LDI r8, 0
+    LDI r15, 16          // base
+:ph_loop
+    LOAD r2, [r0]
+    LDI r3, 48; SUB r2, r2, r3
+    LDI r3, 10
+    BLT r2, r3, :ph_digit
+    LDI r3, 17; SUB r2, r2, r3  // 'A' - '0' - 10 = 17
+    LDI r3, 6; BLT r2, r3, :ph_upper
+    LDI r3, 32; SUB r2, r2, r3  // 'a' - 'A' = 32
+    LDI r3, 6; BLT r2, r3, :ph_lower
+    JMP :ph_done
+:ph_upper
+    LDI r3, 10; ADD r2, r2, r3
+    JMP :ph_digit
+:ph_lower
+    LDI r3, 10; ADD r2, r2, r3
+:ph_digit
+    MUL r8, r8, r15
+    ADD r8, r8, r2
+    ADD r0, r0, r10
+    JMP :ph_loop
+:ph_done
+    RET
+
+// ============================================================================
+// DONE
+// ============================================================================
+:emit_done
+    HALT
