@@ -1,0 +1,97 @@
+; GEOS MAILBOX PROTOCOL v1.0
+; ============================================================================
+; EVENT MEMORY (Host writes to 0x0200-0x214)
+; 0x0200 = EVENT_TYPE (0=none, 1=move, 2=click, 4=scroll)
+; 0x0204 = EVENT_X
+; 0x0208 = EVENT_Y
+; 0x020C = EVENT_BTN
+; 0x0210 = EVENT_DX
+; 0x0214 = EVENT_DY
+;
+; STATE BUFFER (VM outputs to 0x1000-0x1010)
+; 0x1000 = frame_count
+; 0x1004 = mouse_x
+; 0x1008 = mouse_y
+; 0x100C = zoom (100 = 1x)
+; 0x1010 = click_count
+; ============================================================================
+
+:entry
+LDI r0, 0
+LDI r1, 0x1000
+STORE mem[r1], r0
+LDI r1, 0x1004
+STORE mem[r1], r0
+LDI r1, 0x1008
+STORE mem[r1], r0
+LDI r0, 100
+LDI r1, 0x100C
+STORE mem[r1], r0
+LDI r0, 0
+LDI r1, 0x1010
+STORE mem[r1], r0
+JMP :main_loop
+
+:main_loop
+LDI r1, 0x0200
+LOAD r2, mem[r1]
+LDI r3, 0
+BEQ r2, r3, :event_done
+
+LDI r3, 1
+SUB r4, r2, r3
+LDI r5, 0
+BEQ r4, r5, :on_mouse_move
+
+LDI r3, 2
+SUB r4, r2, r3
+BEQ r4, r5, :on_click
+
+LDI r3, 4
+SUB r4, r2, r3
+BEQ r4, r5, :on_scroll
+JMP :clear_event
+
+:on_mouse_move
+LDI r1, 0x0204
+LOAD r2, mem[r1]
+LDI r1, 0x0208
+LOAD r3, mem[r1]
+LDI r1, 0x1004
+STORE mem[r1], r2
+LDI r1, 0x1008
+STORE mem[r1], r3
+JMP :clear_event
+
+:on_click
+LDI r1, 0x1010
+LOAD r2, mem[r1]
+LDI r3, 1
+ADD r2, r2, r3
+LDI r1, 0x1010
+STORE mem[r1], r2
+JMP :clear_event
+
+:on_scroll
+LDI r1, 0x0214
+LOAD r2, mem[r1]
+LDI r1, 0x100C
+LOAD r3, mem[r1]
+ADD r3, r3, r2
+LDI r1, 0x100C
+STORE mem[r1], r3
+JMP :clear_event
+
+:clear_event
+LDI r0, 0
+LDI r1, 0x0200
+STORE mem[r1], r0
+
+:event_done
+LDI r1, 0x1000
+LOAD r2, mem[r1]
+LDI r3, 1
+ADD r2, r2, r3
+LDI r1, 0x1000
+STORE mem[r1], r2
+JMP :main_loop
