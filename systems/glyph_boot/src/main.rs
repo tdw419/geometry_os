@@ -124,7 +124,7 @@ fn main() {
         frame_count += 1;
 
         // Print status every 60 frames (~1 second)
-        if frame_count % 60 == 0 {
+        if frame_count.is_multiple_of(60) {
             let elapsed = start.elapsed();
             let fps = (frame_count as f64) / elapsed.as_secs_f64();
             let stats = scheduler.get_stats();

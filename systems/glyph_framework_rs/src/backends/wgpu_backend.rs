@@ -300,14 +300,14 @@ impl ExecutionBackend for WgpuBackend {
         queue.write_buffer(&input_bus_buffer, 0, bytemuck::bytes_of(&vib_header));
 
         // Zero all buffers initially
-        let zero_contexts = vec![0u8; (std::mem::size_of::<AppContext>() * self.max_apps)];
+        let zero_contexts = vec![0u8; std::mem::size_of::<AppContext>() * self.max_apps];
         queue.write_buffer(&context_buffer, 0, &zero_contexts);
 
-        let zero_memory = vec![0u8; (std::mem::size_of::<AppMemory>() * self.max_apps)];
+        let zero_memory = vec![0u8; std::mem::size_of::<AppMemory>() * self.max_apps];
         queue.write_buffer(&memory_buffer, 0, &zero_memory);
 
         let zero_registers =
-            vec![0u8; (std::mem::size_of::<RegisterFile>() * self.max_apps)];
+            vec![0u8; std::mem::size_of::<RegisterFile>() * self.max_apps];
         queue.write_buffer(&register_buffer, 0, &zero_registers);
 
         // Bind group layout

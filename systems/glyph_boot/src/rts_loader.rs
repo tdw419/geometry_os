@@ -6,7 +6,6 @@
 //!   B = p1 (parameter 1)
 //!   A = p2 (parameter 2)
 
-use std::sync::Arc;
 use anyhow::Result;
 
 /// RTS Texture Loader
