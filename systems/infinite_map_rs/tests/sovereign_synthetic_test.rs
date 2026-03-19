@@ -130,7 +130,8 @@ mod tests {
         );
 
         // Verify HALT opcode
-        assert!(bytecode.len() >= 3, "Should have HALT after LDI immediate");
+        eprintln!("DEBUG: Bytecode produced: {:?}", bytecode);
+        assert!(bytecode.len() >= 3, "Should have HALT after LDI immediate, got {} words: {:?}", bytecode.len(), bytecode);
         let halt_word = bytecode[2];
         let halt_opcode = halt_word & 0xFF;
         assert_eq!(
@@ -142,7 +143,8 @@ mod tests {
 
     #[test]
     fn test_synthetic_assemble_with_label() {
-        let source = ":loop\nLDI r0, 1\nJMP :loop\n";
+        // Use @ prefix for instructions (same as first test)
+        let source = ":loop\n@LDI r0, 1\n@JMP :loop\n";
         let result = run_assembler_on_synthetic(source, 100_000);
 
         assert!(result.is_ok(), "Assembly failed: {:?}", result);
