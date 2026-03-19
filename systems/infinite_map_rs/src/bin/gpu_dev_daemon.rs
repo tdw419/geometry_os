@@ -1588,9 +1588,10 @@ fn main() {
 
         // Sync GPU texture to shadow buffer every 4 frames
         // (full 64MB readback is expensive; trap region sync handles urgent reads)
-        if frame_counter % 4 == 0 {
-            scheduler.lock().unwrap().sync_gpu_to_shadow();
-        }
+        // TEMPORARILY DISABLED FOR WASM TESTING - sync overwrites manual writes
+        // if frame_counter % 4 == 0 {
+        //     scheduler.lock().unwrap().sync_gpu_to_shadow();
+        // }
         frame_counter += 1;
 
         // Sync trap region from GPU to shadow buffer (every frame, for trap register polling)
