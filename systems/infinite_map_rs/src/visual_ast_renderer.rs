@@ -183,12 +183,54 @@ impl VisualASTRenderer {
         }
     }
 
-    pub fn update(&mut self, queue: &wgpu::Queue, ast: &VisualAST) {
+    /// Check if a node is visible within the view bounds (AABB intersection)
+    fn is_node_visible(
+        node_x: f32,
+        node_y: f32,
+        node_width: f32,
+        node_height: f32,
+        view_left: f32,
+        view_top: f32,
+        view_right: f32,
+        view_bottom: f32,
+    ) -> bool {
+        // Node bounds
+        let node_left = node_x;
+        let node_top = node_y;
+        let node_right = node_x + node_width;
+        let node_bottom = node_y + node_height;
+
+        // AABB intersection test
+        node_left < view_right && node_right > view_left && node_top < view_bottom && node_bottom > view_top
+    }
+
+    pub fn update(&mut self, queue: &wgpu::Queue, ast: &VisualAST, camera_pos: [f32; 2], surface_size: [f32; 2]) {
         let mut instances = Vec::new();
 
-        // Collect all nodes
-        // TODO: Optimization - View culling or spatial query
+        // Calculate view bounds with margin (1.5x screen size for smooth scrolling)
+        let margin_x = surface_size[0] * 0.25;
+        let margin_y = surface_size[1] * 0.25;
+        let view_left = camera_pos[0] - margin_x;
+        let view_top = camera_pos[1] - margin_y;
+        let view_right = camera_pos[0] + surface_size[0] + margin_x;
+        let view_bottom = camera_pos[1] + surface_size[1] + margin_y;
+
+        // Collect visible nodes only (view culling optimization)
         for node in ast.nodes.values() {
+            // Skip nodes outside view bounds
+            if !Self::is_node_visible(
+                node.x,
+                node.y,
+                node.width,
+                node.height,
+                view_left,
+                view_top,
+                view_right,
+                view_bottom,
+            ) {
+                continue;
+            }
+
             instances.push(VisualNodeInstance {
                 world_pos: [node.x + node.width / 2.0, node.y + node.height / 2.0], // Center align for shader
                 size: [node.width, node.height],

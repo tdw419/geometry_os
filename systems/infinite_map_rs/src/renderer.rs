@@ -2367,7 +2367,9 @@ impl<'a> Renderer<'a> {
 
             // 1.8. Draw Visual AST (Phase 41)
             if let (Some(renderer), Some(ast)) = (&mut self.visual_ast_renderer, visual_ast) {
-                renderer.update(&self.queue, ast);
+                let camera_pos = [camera.x, camera.y];
+                let surface_size = [self.config.width as f32, self.config.height as f32];
+                renderer.update(&self.queue, ast, camera_pos, surface_size);
                 renderer.render(&mut render_pass);
             }
 
