@@ -349,12 +349,12 @@ impl HexTensorEditor {
         Ok(())
     }
 
-    pub fn set_mode(&mut self, mode: EditorMode, queue: &wgpu::Queue) {
+    pub fn set_mode(&mut self, mode: EditorMode, _queue: &wgpu::Queue) {
         self.mode = mode;
         // Optionally clear buffers or reset state
     }
 
-    pub fn update_hex_at_cursor(&mut self, queue: &wgpu::Queue, ch: char) -> bool {
+    pub fn update_hex_at_cursor(&mut self, _queue: &wgpu::Queue, ch: char) -> bool {
         let nibble = if ch >= '0' && ch <= '9' {
             ch as u8 - b'0'
         } else if ch >= 'A' && ch <= 'F' {
@@ -403,7 +403,7 @@ impl HexTensorEditor {
         true
     }
 
-    pub fn navigate_hex(&mut self, queue: &wgpu::Queue, direction: HexNavDirection) {
+    pub fn navigate_hex(&mut self, _queue: &wgpu::Queue, direction: HexNavDirection) {
         let max_pos = self.data_cache.len() as i32 - 1;
         let mut pos = self.cursor_byte_pos as i32;
 
@@ -494,7 +494,7 @@ impl HexTensorEditor {
     }
 
     // Phase 40.1: Undo/Redo methods
-    pub fn undo(&mut self, queue: &wgpu::Queue) -> bool {
+    pub fn undo(&mut self, _queue: &wgpu::Queue) -> bool {
         if let Some(cmd) = self.edit_history.pop_undo() {
             // Restore old value
             self.data_cache[cmd.offset] = cmd.old_value;
@@ -513,7 +513,7 @@ impl HexTensorEditor {
         }
     }
 
-    pub fn redo(&mut self, queue: &wgpu::Queue) -> bool {
+    pub fn redo(&mut self, _queue: &wgpu::Queue) -> bool {
         if let Some(cmd) = self.edit_history.pop_redo() {
             // Re-apply new value
             self.data_cache[cmd.offset] = cmd.new_value;
@@ -1008,7 +1008,7 @@ impl HexTensorEditor {
     /// Apply a suggested patch from neural analysis
     pub fn apply_neural_patch(
         &mut self,
-        queue: &wgpu::Queue,
+        _queue: &wgpu::Queue,
         offset: usize,
         patch: &[u8],
     ) -> Result<(), String> {

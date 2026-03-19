@@ -271,7 +271,7 @@ impl ImmuneSystem {
 
     /// Check quarantined tiles for recovery
     fn check_quarantine_recovery(&mut self, map: &mut InfiniteMap) {
-        let current_time = crate::tile::current_timestamp();
+        let _current_time = crate::tile::current_timestamp();
         let mut to_release = Vec::new();
 
         for (tile_id, quarantined) in &mut self.quarantine {

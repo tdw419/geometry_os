@@ -381,7 +381,7 @@ impl GraphRenderer {
     fn update_node_instances(&mut self, graph: &MemoryGraph) {
         self.node_instances.clear();
 
-        for (id, node) in &graph.nodes {
+        for (_id, node) in &graph.nodes {
             let color = self.node_type_to_color(&node.node_type);
             let scale = 0.1 + node.activation * 0.2; // Scale based on activation
 
