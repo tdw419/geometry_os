@@ -194,4 +194,16 @@ mod tests {
         assert_eq!(r201, 42);
         assert_eq!(r202, glyph(13, 0, 0, 0));
     }
+
+    #[test]
+    fn test_legacy_opcode_aliases() {
+        use infinite_map_rs::glyph_assembler::Opcode;
+
+        // Test legacy Python compiler opcodes are aliased
+        assert_eq!(Opcode::from_str("JUMP"), Some(Opcode::Jmp), "JUMP should alias to JMP");
+        assert_eq!(Opcode::from_str("EXIT"), Some(Opcode::Halt), "EXIT should alias to HALT");
+        assert_eq!(Opcode::from_str("RETURN"), Some(Opcode::Ret), "RETURN should alias to RET");
+        assert_eq!(Opcode::from_str("LD"), Some(Opcode::Load), "LD should alias to LOAD");
+        assert_eq!(Opcode::from_str("ST"), Some(Opcode::Store), "ST should alias to STORE");
+    }
 }

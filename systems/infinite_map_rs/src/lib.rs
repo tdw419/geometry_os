@@ -77,6 +77,7 @@ pub mod geometric_terminal_tile;
 pub mod glass_ram;
 pub mod glyph_assembler;
 pub mod glyph_atlas;
+pub mod glyph_to_cartridge;
 pub mod glyph_substrate;
 pub mod glyph_vm_scheduler;
 pub mod glyph_window_renderer;

@@ -10,6 +10,8 @@
 //! Total: 80x1576 pixels
 
 use png::{BitDepth, ColorType, Encoder};
+use regex::Regex;
+use std::collections::HashMap;
 use std::io::Cursor;
 
 // Segment dimensions (width is constant at 80 pixels)
@@ -49,6 +51,15 @@ impl Default for CartridgeConfig {
             version: 1,
         }
     }
+}
+
+/// Detected button pattern for SIT interaction
+#[derive(Debug, Clone)]
+pub struct Pattern {
+    pub x: u32,
+    pub y: u32,
+    pub label: char,
+    pub action: String,
 }
 
 /// GPU-native cartridge writer
@@ -235,6 +246,98 @@ impl CartridgeWriter {
     /// Get the cartridge configuration
     pub fn config(&self) -> &CartridgeConfig {
         &self.config
+    }
+
+    /// Get a character from the glyph grid at (x, y)
+    ///
+    /// Returns the ASCII character or '\0' if out of bounds.
+    /// Space (0x20) is returned as a space character.
+    fn get_glyph(&self, x: usize, y: usize) -> char {
+        if x < WIDTH && y < GLYPH_GRID_HEIGHT {
+            let offset = ((GLYPH_GRID_Y + y) * WIDTH + x) * 4;
+            let intensity = self.pixels[offset];
+            if intensity > 0 {
+                // Return the ASCII character (including space)
+                intensity as char
+            } else {
+                // Null or zero = treat as space for pattern matching
+                ' '
+            }
+        } else {
+            '\0'
+        }
+    }
+
+    /// Detect [X] button patterns in glyph grid
+    ///
+    /// Scans the glyph grid for patterns like "[R] Run" or "[Q] Quit"
+    /// and returns a list of detected patterns with their positions,
+    /// labels, and associated actions.
+    pub fn detect_patterns(&self) -> Vec<Pattern> {
+        let mut patterns = Vec::new();
+        let re = Regex::new(r"\[([A-Z0-9])\]\s*(\w+)").unwrap();
+
+        for y in 0..GLYPH_GRID_HEIGHT {
+            // Build line string from glyph grid
+            let mut line = String::new();
+            for x in 0..WIDTH {
+                line.push(self.get_glyph(x, y));
+            }
+
+            // Find all pattern matches in this line
+            for cap in re.captures_iter(&line) {
+                let label = cap[1].chars().next().unwrap();
+                let action = cap[2].to_string();
+
+                // Find x position of the pattern start
+                let pattern_str = format!("[{}]", label);
+                if let Some(x) = line.find(&pattern_str) {
+                    patterns.push(Pattern {
+                        x: x as u32,
+                        y: y as u32,
+                        label,
+                        action,
+                    });
+                }
+            }
+        }
+
+        patterns
+    }
+
+    /// Apply action mapping to SIT entries based on detected patterns
+    ///
+    /// For each detected pattern, looks up the action in the action_map
+    /// and sets the corresponding SIT entry with the opcode and target address.
+    ///
+    /// # Arguments
+    /// * `action_map` - Maps action names to (opcode_name, target_label) tuples
+    /// * `labels` - Maps label names to target addresses
+    pub fn apply_action_mapping(
+        &mut self,
+        action_map: &HashMap<&str, (&str, &str)>,
+        labels: &HashMap<String, u32>,
+    ) {
+        let patterns = self.detect_patterns();
+
+        for pattern in patterns {
+            if let Some(&(opcode_name, target)) = action_map.get(pattern.action.as_str()) {
+                // Convert opcode name to bytecode
+                let opcode: u8 = match opcode_name {
+                    "JUMP" => 9,
+                    "CALL" => 11,
+                    "EXIT" => 13,
+                    _ => 0,
+                };
+
+                // Get target address from labels
+                let target_addr = labels.get(target).copied().unwrap_or(0) as u16;
+
+                // Calculate SIT index from pattern position
+                let idx = (pattern.y * WIDTH as u32 + pattern.x) as usize;
+                self.set_sit(idx, opcode, target_addr);
+            }
+        }
     }
 }
 
