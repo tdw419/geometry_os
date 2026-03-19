@@ -380,7 +380,6 @@ impl V2Brick {
 
         let mut source_code = None;
         let mut flags = 0;
-        let mut neural_metadata = None;
 
         // Check for PixelRTS metadata (neural models)
         if let Some(pixelrts_text) = text_chunks.get("PixelRTS") {
@@ -389,7 +388,6 @@ impl V2Brick {
                 path.as_ref().display()
             );
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(pixelrts_text) {
-                neural_metadata = Some(json.clone());
 
                 // Check if it's a neural model
                 if let Some(container_type) = json.get("container_type").and_then(|v| v.as_str()) {

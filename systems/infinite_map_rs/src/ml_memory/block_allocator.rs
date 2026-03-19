@@ -380,12 +380,10 @@ impl BlockAllocator {
         }
 
         // Count free blocks of each size
-        let mut free_blocks = 0;
         let mut free_bytes = 0;
         for list in &self.free_lists {
             for block in list {
                 if block.is_free {
-                    free_blocks += 1;
                     free_bytes += block.size.size_bytes();
                 }
             }

@@ -502,7 +502,6 @@ impl MemoryTextureManager {
         // Generate Hilbert LUT for visual coherence
         log::info!("Generating Hilbert LUT for {}x{} texture...", width, height);
         let mut hilbert_lut = Vec::with_capacity((width * height) as usize);
-        let n = width.max(height); // Assume power of 2
 
         // Use fast_hilbert to generate mapping
         // We map linear address 'i' to (x, y), then back to texture linear index (y * width + x)

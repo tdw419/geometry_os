@@ -275,7 +275,7 @@ impl MLMemoryPool {
 
     /// Write Float16 weights to a tensor
     pub fn write_f16_weights(&self, id: TensorId, weights: &[f32]) -> MLResult<()> {
-        let handle = self.get_tensor(id)?;
+        let _handle = self.get_tensor(id)?;
 
         // Encode weights as Float16
         let mut data = Vec::with_capacity(weights.len() * 2);

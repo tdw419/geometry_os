@@ -94,8 +94,8 @@ impl MemoryInspector {
     /// Create 3D artifacts for memory regions
     ///
     /// # Arguments
-    /// * `world` - World to create artifacts in (placeholder)
-    pub fn create_memory_artifacts(&mut self, world: &mut ()) {
+    /// * `_world` - World to create artifacts in (placeholder)
+    pub fn create_memory_artifacts(&mut self, _world: &mut ()) {
         // This would integrate with the artifact system
         // For now, we'll create placeholder IDs
 

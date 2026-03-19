@@ -102,7 +102,7 @@ impl LayerOffsets {
         let v_size = hidden_dim * hidden_dim;
         let o_size = hidden_dim * head_dim;
         let ffn_up_size = ffn_dim * hidden_dim;
-        let ffn_down_size = hidden_dim * ffn_dim;
+        let _ffn_down_size = hidden_dim * ffn_dim;
 
         Self {
             q_offset: layer_base,
@@ -803,7 +803,7 @@ impl PixelBrainInferencer {
             Some(b) => b,
             None => return 0,
         };
-        let hidden_b = match &self.hidden_buffer_b {
+        let _hidden_b = match &self.hidden_buffer_b {
             Some(b) => b,
             None => return 0,
         };

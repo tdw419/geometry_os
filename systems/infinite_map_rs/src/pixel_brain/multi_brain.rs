@@ -437,7 +437,7 @@ impl MultiBrainCoordinator {
     }
 
     /// Receive a message for a brain
-    pub fn receive_message(&self, brain_id: u32) -> Option<MessageGlyph> {
+    pub fn receive_message(&self, _brain_id: u32) -> Option<MessageGlyph> {
         if self.message_queue.is_empty() {
             return None;
         }
@@ -450,8 +450,8 @@ impl MultiBrainCoordinator {
         let region = &self.message_queue.region;
 
         // Calculate message position in atlas
-        let msg_x = region.x + (slot % 16) * 16; // 16x16 glyph
-        let msg_y = region.y + (slot / 16) * 16;
+        let _msg_x = region.x + (slot % 16) * 16; // 16x16 glyph
+        let _msg_y = region.y + (slot / 16) * 16;
 
         // Read the message from texture (simplified)
         // In real implementation, this would be a GPU read operation

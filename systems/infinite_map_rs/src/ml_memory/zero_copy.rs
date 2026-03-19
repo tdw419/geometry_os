@@ -145,8 +145,8 @@ impl ZeroCopyManager {
     pub fn read_from_gpu(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        gpu_offset: u64,
+        _queue: &wgpu::Queue,
+        _gpu_offset: u64,
         size: usize,
     ) -> MLResult<Vec<u8>> {
         // For read operations, we need to use map_async pattern

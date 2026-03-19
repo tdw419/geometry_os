@@ -114,7 +114,7 @@ impl WeightPool {
 
     /// Free a weight tensor
     pub fn free(&mut self, id: TensorId) -> MLResult<()> {
-        let block = self
+        let _block = self
             .allocations
             .remove(&id)
             .ok_or(MLError::TensorNotFound(id))?;
@@ -170,7 +170,7 @@ impl WeightPool {
     /// Load weights from PNG atlas
     pub fn load_from_png(
         &mut self,
-        device: &wgpu::Device,
+        _device: &wgpu::Device,
         queue: &wgpu::Queue,
         png_data: &[u8],
         offset: u64,
