@@ -155,6 +155,8 @@ pub mod visual_shell;
 pub mod vm_texture_manager;
 pub mod window;
 
+pub mod mailbox_bridge;
+
 // Phase 51: Agency Tile - Spatial Persona Binding
 pub use agency_tile::{AgencyDivision, AgencyTile, Color, PersonaInjector, PersonaShiftEvent};
 
