@@ -18,7 +18,9 @@ pub struct VmConfig {
 
 // Opcodes (must match shader)
 const OP_NOP: u32 = 0;
+#[allow(dead_code)] // Scaffolding: memory management opcodes for future GPU allocator
 const OP_ALLOC: u32 = 1;
+#[allow(dead_code)] // Scaffolding: memory management opcodes for future GPU allocator
 const OP_FREE: u32 = 2;
 const OP_LOAD: u32 = 3;
 const OP_STORE: u32 = 4;
@@ -31,21 +33,31 @@ const OP_BRANCH: u32 = 10;
 const OP_CALL: u32 = 11;
 const OP_RETURN: u32 = 12;
 const OP_HALT: u32 = 13;
+#[allow(dead_code)] // Scaffolding: inline data embedding for future use
 const OP_DATA: u32 = 14;
+#[allow(dead_code)] // Scaffolding: structured loops for future use
 const OP_LOOP: u32 = 15;
 
 // AI-Native / Substrate Opcodes
+#[allow(dead_code)] // Scaffolding: spatial spawning for AI agents
 const OP_SPATIAL_SPAWN: u32 = 225;
+#[allow(dead_code)] // Scaffolding: self-modifying code support
 const OP_GLYPH_MUTATE: u32 = 226;
 const OP_YIELD: u32 = 227;
 
 // Spatial / Infinite Map Opcodes
 const OP_CAMERA: u32 = 230;
+#[allow(dead_code)] // Scaffolding: Hilbert curve coordinate conversion
 const OP_HILBERT_D2XY: u32 = 231;
+#[allow(dead_code)] // Scaffolding: Hilbert curve coordinate conversion
 const OP_HILBERT_XY2D: u32 = 232;
+#[allow(dead_code)] // Scaffolding: infinite map tile management
 const OP_TILE_LOAD: u32 = 233;
+#[allow(dead_code)] // Scaffolding: infinite map tile management
 const OP_TILE_EVICT: u32 = 234;
+#[allow(dead_code)] // Scaffolding: camera zoom control
 const OP_ZOOM: u32 = 235;
+#[allow(dead_code)] // Scaffolding: camera pan control
 const OP_PAN: u32 = 236;
 
 /// Parses a .glyph file into a raw program buffer

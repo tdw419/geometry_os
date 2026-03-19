@@ -31,6 +31,7 @@ pub struct BoundBuffer {
     /// Size in bytes
     size: usize,
     /// Optional name for debugging
+    #[allow(dead_code)] // Scaffolding: reserved for debug introspection
     name: Option<String>,
 }
 

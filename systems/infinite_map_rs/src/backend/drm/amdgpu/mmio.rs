@@ -97,8 +97,10 @@ pub struct AmdGpuDevice {
     /// PCI device info
     pci: PciDevice,
     /// Ring buffer base address (GPU VA)
+    #[allow(dead_code)] // Scaffolding: reserved for ring buffer commands
     ring_base: u64,
     /// Ring buffer size
+    #[allow(dead_code)] // Scaffolding: reserved for ring buffer commands
     ring_size: usize,
     /// Read pointer
     rptr: u32,

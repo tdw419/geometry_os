@@ -7,6 +7,7 @@ use std::os::unix::io::RawFd;
 
 /// AMDGPU command buffer header (PM4 format).
 #[repr(C, packed)]
+#[allow(dead_code)] // Scaffolding: AMDGPU PM4 command stream header for future use
 struct CmdStreamHeader {
     /// Command type (3 = compute)
     command_type: u32,

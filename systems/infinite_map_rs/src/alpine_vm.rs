@@ -717,6 +717,7 @@ if __name__ == "__main__":
     }
 
     /// Internal wrapper for inject_key_event to match naming
+    #[allow(dead_code)] // Scaffolding: reserved for future keyboard automation
     fn send_key_event(&self, key: &str, down: bool) {
         self.inject_key_event(key, down);
     }

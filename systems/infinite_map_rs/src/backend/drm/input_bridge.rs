@@ -179,7 +179,9 @@ impl EvdevInputBridge {
         const REL_X: u16 = 0x00;
         const REL_Y: u16 = 0x01;
         const BTN_MOUSE: u16 = 0x110;
+        #[allow(dead_code)] // Scaffolding: explicit left button constant
         const BTN_LEFT: u16 = 0x110;
+        #[allow(dead_code)] // Scaffolding: explicit right button constant
         const BTN_RIGHT: u16 = 0x111;
         const BTN_MIDDLE: u16 = 0x112;
 

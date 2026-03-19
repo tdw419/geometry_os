@@ -11,6 +11,7 @@ pub struct AntigravityWatcher {
     // Arc/Mutex so the loader thread can write and main thread can read.
     // Data, Width, Height, Metadata(JSON)
     latest_frame: Arc<Mutex<Option<(Vec<u8>, u32, u32, String)>>>,
+    #[allow(dead_code)] // Scaffolding: reserved for path-based operations
     path: PathBuf,
 }
 

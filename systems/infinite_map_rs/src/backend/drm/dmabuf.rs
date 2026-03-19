@@ -23,6 +23,7 @@ pub struct DmaBuf {
     /// Stride (bytes per row)
     stride: u32,
     /// FourCC format (DRM_FORMAT_*)
+    #[allow(dead_code)] // Scaffolding: reserved for format validation
     format: u32,
 }
 

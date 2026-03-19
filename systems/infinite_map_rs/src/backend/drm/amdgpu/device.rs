@@ -10,8 +10,10 @@ pub type BufferHandle = u32;
 /// AMD GPU device for direct command submission.
 pub struct AmdGpuDevice {
     device_file: File,
+    #[allow(dead_code)] // Scaffolding: reserved for device introspection
     device_path: String,
     /// GPU ID for command submission
+    #[allow(dead_code)] // Scaffolding: reserved for multi-GPU selection
     gpu_id: u32,
     /// Next buffer handle
     next_buffer_handle: u32,

@@ -910,6 +910,7 @@ async fn handle_load_file(
 pub struct SelfWriteRequest {
     intent: String,
     language: Option<String>, // "python", "javascript", "c", "rust"
+    #[allow(dead_code)] // Scaffolding: reserved for rich context passing
     context: Option<HashMap<String, String>>,
 }
 
