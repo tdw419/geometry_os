@@ -60,7 +60,7 @@ impl GlassRamMonitor {
         match event {
             FaultEvent::PageFault {
                 address,
-                flags,
+                flags: _flags,
                 thread_id,
             } => {
                 // Calculate Hilbert coordinates

@@ -50,7 +50,7 @@ impl CompressedSensingReconstructor {
                 // In reality we modulo or scale.
                 let scaled_idx = page_idx % (self.size * self.size * self.size);
 
-                let (x, y, z) = self.hilbert.d_to_xyz(scaled_idx as u64);
+                let (x, y, _z) = self.hilbert.d_to_xyz(scaled_idx as u64);
 
                 // Project 3D (x,y,z) to 2D texture (u, v) for density map.
                 // Strategy: Slice or flatten?

@@ -39,7 +39,7 @@ impl ProcessAttacher {
 
         // Register each writable region
         for region in &writable_regions {
-            let range = UffdIoctlMode::REGISTER_MODE_WP; // Use WP mode for registration if available?
+            let _range = UffdIoctlMode::REGISTER_MODE_WP; // Use WP mode for registration if available?
                                                          // Wait, register accepts mode (Missing, WP)
                                                          // The task spec says: let mode = UffdIoctlMode::WP;
                                                          // But usually we need REGISTER_MODE_MISSING | REGISTER_MODE_WP

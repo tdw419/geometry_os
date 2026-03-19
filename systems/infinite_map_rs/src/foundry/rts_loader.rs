@@ -24,7 +24,7 @@ impl RtsLoader {
         let mut buf = vec![0; reader.output_buffer_size()];
 
         // Read the next frame
-        let info = reader
+        let _info = reader
             .next_frame(&mut buf)
             .map_err(|e| Error::new(ErrorKind::InvalidData, e.to_string()))?;
 

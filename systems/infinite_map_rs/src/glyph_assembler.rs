@@ -244,7 +244,7 @@ impl GlyphAssembler {
     /// Replace constant names in operands with their values
     fn expand_constants(&self, parts: &mut Vec<&str>) {
         for i in 1..parts.len() {
-            if let Some(&value) = self.constants.get(parts[i]) {
+            if let Some(&_value) = self.constants.get(parts[i]) {
                 // Replace the constant name with its value
                 // This is a bit tricky since we have &str references
                 // We'll handle this in the operand parsing instead
@@ -975,7 +975,7 @@ impl GlyphAssembler {
             Opcode::Je | Opcode::Jne | Opcode::Jlt | Opcode::Jgt | Opcode::Jge => {
                 // Conditional jumps: JE/JNE/JLT/JGT/JGE label
                 let label_part = parts.get(1).ok_or("Conditional jump needs label")?;
-                let label = label_part.trim_start_matches(':').trim_end_matches(',');
+                let _label = label_part.trim_start_matches(':').trim_end_matches(',');
                 
                 (
                     Instruction {
