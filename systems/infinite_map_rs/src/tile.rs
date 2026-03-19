@@ -46,10 +46,10 @@ impl FitnessScore {
             1.0
         };
 
-        self.overall = (boot_fitness * 0.2
+        self.overall = boot_fitness * 0.2
             + self.stability_score * 0.3
             + self.performance_score * 0.3
-            + self.user_utility * 0.2);
+            + self.user_utility * 0.2;
     }
 }
 

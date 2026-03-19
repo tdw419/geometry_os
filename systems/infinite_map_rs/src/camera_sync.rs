@@ -169,8 +169,8 @@ impl CameraSyncServer {
                 println!("🔗 Client connected: {}", client_id);
 
                 // Spawn task to broadcast updates to this client
-                let clients_broadcast = Arc::clone(&clients);
-                let client_id_broadcast = client_id.clone();
+                let _clients_broadcast = Arc::clone(&clients);
+                let _client_id_broadcast = client_id.clone();
                 tokio::spawn(async move {
                     loop {
                         tokio::select! {

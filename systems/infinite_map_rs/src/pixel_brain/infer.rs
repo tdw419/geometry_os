@@ -2,7 +2,6 @@
 //!
 //! Orchestrates GPU inference through embedding, attention, and FFN layers.
 
-use crate::pixel_brain::tokenizer::ByteTokenizer;
 use std::sync::Arc;
 use wgpu::{BindGroup, BindGroupLayout, Buffer, ComputePipeline, Device, Queue, TextureView};
 

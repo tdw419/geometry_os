@@ -13,9 +13,9 @@ use crate::entities::execution_zone::ExecutionZone;
 use crate::glyph_atlas::GlyphAtlas;
 use crate::glyph_substrate::GlyphSubstrate;
 use crate::rendering::glyph_renderer::GlyphRenderer;
-use crate::ui::zone_overlay::{BorderColor, BorderRenderConfig};
+use crate::ui::zone_overlay::BorderColor;
 use std::sync::Arc;
-use wgpu::{CommandEncoder, Device, Texture, TextureView};
+use wgpu::{CommandEncoder, Device, Texture};
 
 /// Uniform buffer structure for border shader
 /// Must match the BorderUniforms struct in border_quad.wgsl

@@ -4,7 +4,6 @@
 //! Eliminates per-transfer allocation overhead.
 
 use std::collections::VecDeque;
-use std::sync::Arc;
 
 use super::{MLError, MLResult};
 

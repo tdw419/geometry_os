@@ -1,6 +1,6 @@
 //! Integration tests for brain.glyph self-improvement loop
 
-use crate::trap_interface::{brain_state, op_type, status, TrapRegs, TRAP_BASE};
+use crate::trap_interface::{brain_state, op_type, status, TrapRegs};
 
 #[test]
 fn test_trap_lm_studio_op_type() {

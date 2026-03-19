@@ -493,7 +493,7 @@ impl CompilerTileDispatcher {
         let rows_needed = (pixel_count + width - 1) / width + 1;
         let read_height = rows_needed.min(height);
 
-        let u32_size = std::mem::size_of::<u32>() as u32;
+        let _u32_size = std::mem::size_of::<u32>() as u32;
         let bytes_per_row = width * 4;
         let padded_bytes_per_row = (bytes_per_row + 255) & !255;
 

@@ -29,9 +29,8 @@
 
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
-use wgpu::{BindGroup, Buffer, ComputePipeline, Device, Queue, Texture, TextureView};
+use wgpu::{Buffer, ComputePipeline, Device, Queue, Texture, TextureView};
 
-use super::atlas::WeightAtlas;
 use super::infer::PixelBrainInferencer;
 
 /// Message types for inter-brain communication

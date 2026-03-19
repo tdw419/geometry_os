@@ -3,7 +3,6 @@
 //! Generates Multi-channel Signed Distance Fields for font glyphs
 //! and packs them into a 1024x1024 texture atlas.
 
-use crate::glyph_stratum::*;
 use fontdue::{Font, FontSettings};
 use serde::{Deserialize, Serialize};
 

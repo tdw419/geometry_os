@@ -467,7 +467,7 @@ impl GlyphStratumEngine {
                 if let Some(glyph) = self.get_glyph(x, y) {
                     if glyph.opcode() == Opcode::Nop {
                         // Check if next is also Nop
-                        if x + 1 <= max_x {
+                        if x < max_x {
                             if let Some(next) = self.get_glyph(x + 1, y) {
                                 if next.opcode() == Opcode::Nop {
                                     // Remove redundant Nop

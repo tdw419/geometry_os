@@ -85,7 +85,7 @@ impl BridgeServer {
     }
 }
 
-async fn handle_connection(mut stream: tokio::net::UnixStream, tx: mpsc::Sender<VisualCommand>) {
+async fn handle_connection(stream: tokio::net::UnixStream, tx: mpsc::Sender<VisualCommand>) {
     use tokio::io::{AsyncBufReadExt, BufReader};
 
     let mut reader = BufReader::new(stream);

@@ -8,7 +8,7 @@ use crate::input::drag_handler;
 use crate::rendering::execution_zone_renderer::ExecutionZoneRenderer;
 use glam::Vec2;
 use std::sync::Arc;
-use wgpu::{CommandEncoder, TextureView};
+use wgpu::CommandEncoder;
 
 /// Main compositor for the infinite map
 ///

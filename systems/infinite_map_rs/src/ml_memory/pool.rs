@@ -8,7 +8,6 @@ use std::sync::{Arc, Mutex};
 
 use super::{
     activation_pool::ActivationPool,
-    block_allocator::BlockAllocator,
     gradient_pool::GradientPool,
     weight_pool::WeightPool,
     zero_copy::ZeroCopyManager,

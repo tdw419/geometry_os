@@ -9,7 +9,6 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use crate::glyph_stratum::glyph_compiler::CompiledGlyph;
-use crate::glyph_stratum::glyph_compiler::{compile_glyph_file, create_glyph_texture};
 use crate::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
 
 /// Default Hilbert offset for Ubuntu kernel in unified RAM

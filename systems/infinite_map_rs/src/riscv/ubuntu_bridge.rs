@@ -7,7 +7,7 @@ use anyhow::Result;
 use std::sync::Arc;
 
 use crate::backend::drm::glyph_executor::GlyphOutput;
-use crate::backend::drm::glyph_executor::{DrmGlyphExecutor, GlyphError};
+use crate::backend::drm::glyph_executor::DrmGlyphExecutor;
 
 /// Ubuntu kernel input format
 pub struct UbuntuKernelInput {

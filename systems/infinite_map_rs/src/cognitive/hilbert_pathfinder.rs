@@ -278,8 +278,6 @@ impl HilbertPathfinder {
         end: u32,
         blocked: &HashSet<u32>,
     ) -> HilbertPath {
-        use std::cmp::Reverse;
-
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         struct Node {
             hilbert: u32,
@@ -356,8 +354,6 @@ impl HilbertPathfinder {
         end: u32,
         blocked: &HashSet<u32>,
     ) -> HilbertPath {
-        use std::cmp::Reverse;
-
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         struct Node {
             hilbert: u32,

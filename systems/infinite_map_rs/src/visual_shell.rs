@@ -3,8 +3,6 @@
 //! This module provides stub types for visual shell integration.
 //! The real implementation is in systems/visual_shell/.
 
-use std::fmt;
-
 /// Daemon identifier for tracking evolution daemons
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DaemonId(pub u64);

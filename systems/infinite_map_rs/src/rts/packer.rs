@@ -20,7 +20,6 @@
 //! std::fs::write("output.rts.png", &rts_png)?;
 //! ```
 
-use anyhow::Result;
 use image::{ImageBuffer, Rgba, RgbaImage};
 use png::text_metadata::TEXtChunk;
 use png::Encoder;
