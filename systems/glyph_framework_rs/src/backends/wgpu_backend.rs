@@ -704,9 +704,9 @@ impl ExecutionBackend for WgpuBackend {
                 let mut result = [0u32; 10];
 
                 let start = index * std::mem::size_of::<AppContext>();
-                for i in 0..10 {
+                for (i, item) in result.iter_mut().enumerate() {
                     let idx = start + i * 4;
-                    result[i] = u32::from_ne_bytes(data[idx..idx + 4].try_into().unwrap());
+                    *item = u32::from_ne_bytes(data[idx..idx + 4].try_into().unwrap());
                 }
                 drop(data);
                 staging_buffer.unmap();

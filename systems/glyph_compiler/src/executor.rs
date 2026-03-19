@@ -1,21 +1,6 @@
 use wgpu::{Device, Queue};
 use std::sync::Arc;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_executor_creation() {
-        let result = GlyphExecutor::new().await;
-        // May fail if no GPU, so we just check it doesn't panic
-        if let Ok(executor) = result {
-            // Check that we have some basic limits
-            assert!(executor.device.limits().max_compute_workgroup_storage_size > 0);
-        }
-    }
-}
-
 /// Executes compiled SPIR-V via wgpu
 pub struct GlyphExecutor {
     pub device: Arc<Device>,
@@ -90,5 +75,20 @@ impl GlyphExecutor {
         self.device.poll(wgpu::Maintain::Wait);
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_executor_creation() {
+        let result = GlyphExecutor::new().await;
+        // May fail if no GPU, so we just check it doesn't panic
+        if let Ok(executor) = result {
+            // Check that we have some basic limits
+            assert!(executor.device.limits().max_compute_workgroup_storage_size > 0);
+        }
     }
 }

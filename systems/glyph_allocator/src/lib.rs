@@ -302,7 +302,7 @@ mod tests {
     fn test_fitness() {
         let pool = GlyphPool::new(1);
         let fitness = pool.fitness();
-        assert!(fitness >= 0.0 && fitness <= 1.0);
+        assert!((0.0..=1.0).contains(&fitness));
     }
 
     #[test]

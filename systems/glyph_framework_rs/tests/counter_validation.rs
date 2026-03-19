@@ -1,4 +1,4 @@
-use glyph_framework_rs::{AppCoordinator, AppLayout, WgpuBackend, AppId};
+use glyph_framework_rs::{AppCoordinator, WgpuBackend};
 
 #[test]
 #[ignore = "Shader architecture mismatch: glyph_vm.wgsl expects texture-based RAM, test expects buffer-based architecture"]
@@ -47,7 +47,7 @@ fn test_native_counter() {
     // byte 1: 1 (rs = R1)
     // byte 2: 0 (unused)
     // byte 3: 10 (addr_idx)
-    let st_word = 19u32 | (1u32 << 8) | (0u32 << 16) | (10u32 << 24);
+    let st_word = 19u32 | (1u32 << 8) | (10u32 << 24);
     
     coordinator.set_state(app_id, 2, f32::from_bits(st_word)).unwrap();
     // New Loop: 
@@ -60,11 +60,11 @@ fn test_native_counter() {
     // Minimal Program: 
     // 0: MOVI R1, 1234
     // 1: HALT
-    let instr0 = 17u32 | (1u32 << 8) | (0u32 << 16) | (1234u32 << 24); // OP_MOVI=17, rd=1, imm=1234? 
+    let _instr0 = 17u32 | (1u32 << 8) | (1234u32 << 24); // OP_MOVI=17, rd=1, imm=1234?
     // Wait! imm is only 8 bits in fetch_instruction!
     // rs2/imm = (word >> 24u) & 0xFFu;
     // So max imm is 255.
-    let instr0_v2 = 17u32 | (1u32 << 8) | (0u32 << 16) | (123u32 << 24); // R1 = 123
+    let instr0_v2 = 17u32 | (1u32 << 8) | (123u32 << 24); // R1 = 123
     let instr1 = 255u32; // OP_HALT
 
     coordinator.set_state(app_id, 0, f32::from_bits(instr0_v2)).unwrap();
@@ -91,8 +91,8 @@ fn test_native_counter() {
     // Check PC and Registers
     let ctx = coordinator.get_context(app_id).expect("Failed to read context");
     println!("Step 1: Raw Context:");
-    for i in 0..10 {
-        println!("  [{}] {:08X}", i, ctx[i]);
+    for (i, val) in ctx.iter().enumerate().take(10) {
+        println!("  [{}] {:08X}", i, val);
     }
     
     // Check Register 1 (Need a way to read registers)

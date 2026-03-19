@@ -21,31 +21,6 @@ pub struct BinaryBuilder {
     id_bound: u32,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_simple_add_program_generates_valid_spirv() {
-        let program = GlyphProgram {
-            glyphs: vec![
-                Glyph { opcode: 206, p1: 1.0, p2: 0.0, dst: 0 }, // MOV 1.0 -> mem[0]
-                Glyph { opcode: 206, p1: 2.0, p2: 0.0, dst: 1 }, // MOV 2.0 -> mem[1]
-                Glyph { opcode: 216, p1: 0.0, p2: 1.0, dst: 2 }, // ADD mem[0] + mem[1] -> mem[2]
-                Glyph { opcode: 212, p1: 0.0, p2: 0.0, dst: 0 }, // HALT
-            ],
-        };
-
-        let mut builder = BinaryBuilder::new();
-        let spirv_binary = builder.compile(&program);
-
-        // Valid SPIR-V starts with magic number 0x07230203
-        assert_eq!(spirv_binary[0], 0x07230203);
-        // Should have non-zero length
-        assert!(spirv_binary.len() > 20);
-    }
-}
-
 impl Default for BinaryBuilder {
     fn default() -> Self {
         Self::new()
@@ -133,5 +108,30 @@ impl BinaryBuilder {
             // Add more opcode implementations here
             _ => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_simple_add_program_generates_valid_spirv() {
+        let program = GlyphProgram {
+            glyphs: vec![
+                Glyph { opcode: 206, p1: 1.0, p2: 0.0, dst: 0 }, // MOV 1.0 -> mem[0]
+                Glyph { opcode: 206, p1: 2.0, p2: 0.0, dst: 1 }, // MOV 2.0 -> mem[1]
+                Glyph { opcode: 216, p1: 0.0, p2: 1.0, dst: 2 }, // ADD mem[0] + mem[1] -> mem[2]
+                Glyph { opcode: 212, p1: 0.0, p2: 0.0, dst: 0 }, // HALT
+            ],
+        };
+
+        let mut builder = BinaryBuilder::new();
+        let spirv_binary = builder.compile(&program);
+
+        // Valid SPIR-V starts with magic number 0x07230203
+        assert_eq!(spirv_binary[0], 0x07230203);
+        // Should have non-zero length
+        assert!(spirv_binary.len() > 20);
     }
 }

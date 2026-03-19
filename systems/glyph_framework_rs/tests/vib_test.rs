@@ -2,8 +2,8 @@
 //!
 //! Verifies the zero-CPU input path: CPU writes to VIB → GPU polls → App receives input
 
-use glyph_framework_rs::{AppCoordinator, AppLayout, WgpuBackend, AppId};
-use glyph_framework_rs::backends::{InputEvent, InputBusState};
+use glyph_framework_rs::{AppCoordinator, WgpuBackend};
+use glyph_framework_rs::backends::InputEvent;
 
 #[test]
 #[ignore = "Shader architecture mismatch: glyph_vm.wgsl expects texture_storage_2d at binding 0, but Rust provides buffer"]
