@@ -164,6 +164,7 @@ pub use agency_tile::{AgencyDivision, AgencyTile, Color, PersonaInjector, Person
 pub use damage_tracker::{DamageTracker, DirtyRect};
 
 // Test utilities for benchmarks and compliance tests
+#[cfg(test)]
 pub mod tests;
 
 // Phase 35.9: Cartridge registry for evolution zone
