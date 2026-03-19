@@ -1,0 +1,127 @@
+{
+  "name": "GEOS Self-Hosting Compiler",
+  "version": "1.0.0",
+  "buttons": [
+    {
+      "label": "A",
+      "text": "Edit",
+      "action": "JUMP",
+      "target": "editor_mode",
+      "key": "a"
+    },
+    {
+      "label": "B",
+      "text": "Assemble",
+      "action": "JUMP",
+      "target": "assemble",
+      "key": "b"
+    },
+    {
+      "label": "C",
+      "text": "Write",
+      "action": "JUMP",
+      "target": "write_cartridge",
+      "key": "c"
+    },
+    {
+      "label": "D",
+      "text": "Run",
+      "action": "JUMP",
+      "target": "run_program",
+      "key": "d"
+    },
+    {
+      "label": "X",
+      "text": "Quit",
+      "action": "EXIT",
+      "target": "",
+      "key": "x"
+    }
+  ],
+  "state_vars": {
+    "output_line_0": {
+      "address": "0xF000",
+      "type": "string",
+      "max_length": 60
+    },
+    "output_line_1": {
+      "address": "0xF040",
+      "type": "string",
+      "max_length": 60
+    },
+    "output_line_2": {
+      "address": "0xF080",
+      "type": "string",
+      "max_length": 60
+    },
+    "r0": {
+      "address": "0xF100",
+      "type": "u32",
+      "format": "hex"
+    },
+    "r1": {
+      "address": "0xF104",
+      "type": "u32",
+      "format": "hex"
+    },
+    "r2": {
+      "address": "0xF108",
+      "type": "u32",
+      "format": "hex"
+    },
+    "r3": {
+      "address": "0xF10C",
+      "type": "u32",
+      "format": "hex"
+    }
+  },
+  "memory_layout": {
+    "glyph_grid": {
+      "base": "0x0000",
+      "size": "0x0BFF"
+    },
+    "sit": {
+      "base": "0x0C00",
+      "size": "0x00FF"
+    },
+    "state_buffer": {
+      "base": "0x1000",
+      "size": "0x03FF"
+    },
+    "assembler": {
+      "base": "0x2000",
+      "size": "0x00FF"
+    },
+    "label_table": {
+      "base": "0x2100",
+      "size": "0x00FF"
+    },
+    "emit_buffer": {
+      "base": "0x2200",
+      "size": "0x0DFF"
+    },
+    "working_memory": {
+      "base": "0x3000",
+      "size": "0x0FFF"
+    },
+    "program_segment": {
+      "base": "0x8000",
+      "size": "0x7FFF"
+    }
+  },
+  "events": {
+    "insert": 1,
+    "delete": 2,
+    "cursor_left": 3,
+    "cursor_right": 4,
+    "compile": 5,
+    "run": 6,
+    "render": 7
+  },
+  "entry_points": {
+    "editor_mode": "0x2000",
+    "assemble": "0x2000",
+    "write_cartridge": "0x2400",
+    "run_program": "0x8000"
+  }
+}
