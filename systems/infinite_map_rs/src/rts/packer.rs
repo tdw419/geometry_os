@@ -92,7 +92,7 @@ impl RTSPacker {
 
         // Fill with blue-purple WGSL indicator color
         // R=64 (< 100), B=128 (> 150) - matches is_wgsl_color() check
-        for (x, y, pixel) in img.enumerate_pixels_mut() {
+        for (_x, _y, pixel) in img.enumerate_pixels_mut() {
             *pixel = Rgba([64, 32, 180, 255]);
         }
 

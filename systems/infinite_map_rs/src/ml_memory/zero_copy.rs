@@ -160,7 +160,7 @@ impl ZeroCopyManager {
         }
 
         // Create a temporary staging buffer for this read
-        let staging = device.create_buffer(&wgpu::BufferDescriptor {
+        let _staging = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("ml_read_staging"),
             size: ((size + 255) / 256 * 256) as u64, // Round up to 256 alignment
             usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,

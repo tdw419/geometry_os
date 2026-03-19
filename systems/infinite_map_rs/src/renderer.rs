@@ -1245,7 +1245,7 @@ impl<'a> Renderer<'a> {
     #[allow(unreachable_code)]
     pub fn enable_evolution_terrain(
         &mut self,
-        gpu_resources: &crate::evolution_terrain_bridge::EvolutionTerrainGPU,
+        _gpu_resources: &crate::evolution_terrain_bridge::EvolutionTerrainGPU,
     ) {
         return; // TEMPORARY: Disable to stop crash due to shader binding mismatch
         eprintln!("debug: Enabling evolution terrain rendering...");

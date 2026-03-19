@@ -753,7 +753,7 @@ impl RiscVLinuxVM {
     }
 
     /// Generate a simple device tree blob
-    pub fn generate_simple_dtb(memory_size: u64, boot_args: &str) -> Vec<u8> {
+    pub fn generate_simple_dtb(_memory_size: u64, _boot_args: &str) -> Vec<u8> {
         // This is a simplified placeholder
         // In production, use the `fdt` crate or similar
 
@@ -848,7 +848,7 @@ impl SBIHandler {
         }
     }
 
-    fn handle_time_extension(&self, function: u64, args: &[u64; 6]) -> SBIResponse {
+    fn handle_time_extension(&self, function: u64, _args: &[u64; 6]) -> SBIResponse {
         match function {
             0 => {
                 // Set timer

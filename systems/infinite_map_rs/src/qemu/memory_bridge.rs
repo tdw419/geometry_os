@@ -90,7 +90,7 @@ impl SharedMemoryBridge {
 
     /// Inverse Hilbert mapping: (x,y) -> Linear address
     /// Used for mouse interaction to find which memory byte is at a pixel
-    pub fn xy2h(&self, x: u32, y: u32, width: u32) -> Option<usize> {
+    pub fn xy2h(&self, x: u32, y: u32, _width: u32) -> Option<usize> {
         // Use fast_hilbert to convert (x,y) back to linear address
         let addr = fast_hilbert::xy2h(x, y);
         if addr < self.size as u64 {

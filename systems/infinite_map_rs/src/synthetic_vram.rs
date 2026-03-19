@@ -239,7 +239,7 @@ impl SyntheticVram {
         let Some(meta) = &self.metadata else {
             return vec![];
         };
-        let n = self.grid_size();
+        let _n = self.grid_size();
         meta.iter()
             .enumerate()
             .filter(|(_, m)| m.writer_vm == vm_id)

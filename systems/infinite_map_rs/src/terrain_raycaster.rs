@@ -166,7 +166,7 @@ impl TerrainRaycaster {
 }
 
 // Matrix math helpers
-pub fn invert_matrix_4x4(m: &[[f32; 4]; 4]) -> [[f32; 4]; 4] {
+pub fn invert_matrix_4x4(_m: &[[f32; 4]; 4]) -> [[f32; 4]; 4] {
     // Simple matrix inversion (for 4x4 matrices)
     // For production, use proper linear algebra library (nalgebra, cgmath, etc.)
 

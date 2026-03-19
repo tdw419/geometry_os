@@ -285,7 +285,7 @@ Return only the enhanced code.
     fn simulate_llm_response(
         &self,
         request: &MutationRequest,
-        template: &MutationTemplate,
+        _template: &MutationTemplate,
     ) -> String {
         // Simple simulation: add a comment indicating the mutation
         format!(
