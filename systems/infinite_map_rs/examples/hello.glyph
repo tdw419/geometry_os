@@ -1,0 +1,9 @@
+// GEOS Hello World
+// A simple glyph program that writes "Hi" to memory
+
+:main
+    LDI r0, 72      // 'H'
+    STORE [r1], r0
+    LDI r0, 105     // 'i'
+    STORE [r1], r0
+    HALT

@@ -3593,6 +3593,7 @@ dependencies = [
  "bytemuck",
  "byteorder",
  "chrono",
+ "clap",
  "copypasta",
  "cpal",
  "crc32fast",
