@@ -197,9 +197,10 @@ path = "src/bin/bare_metal_swarm.rs"
 name = "glyph_infinite_map"
 path = "src/bin/glyph_infinite_map.rs"
 
-[[bin]]
-name = "micro_host"
-path = "src/bin/micro_host.rs"
+# Disabled: has borrow checker issues
+# [[bin]]
+# name = "micro_host"
+# path = "src/bin/micro_host.rs"
 
 [[bin]]
 name = "build_alpine_substrate"

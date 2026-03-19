@@ -38,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         power_preference: wgpu::PowerPreference::HighPerformance,
         compatible_surface: Some(&surface),
         ..Default::default()
-    }).await?;
+    }).await.ok_or_else(|| "Failed to request adapter")?;
 
     let (device, queue) = adapter.request_device(
         &wgpu::DeviceDescriptor::default(),
