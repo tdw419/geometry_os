@@ -651,7 +651,7 @@ impl GlyphVmScheduler {
 
         // PC is at offset 512 in the VmState struct
         let pc_offset = (vm_id as u64) * VM_STATE_SIZE + 512;
-        
+
         // Write the new PC to the GPU buffer
         self.queue.write_buffer(
             &self.vm_buffer,
@@ -1160,6 +1160,7 @@ impl GlyphVmScheduler {
                     depth_or_array_layers: 1,
                 },
             );
+            self.queue.submit(None);
         }
         log::debug!("[POKE] addr=0x{:x} val=0x{:x}", addr, val);
     }
