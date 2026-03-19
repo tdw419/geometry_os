@@ -494,7 +494,7 @@ impl WluGpuResources {
 
         // 2. Compile WGSL to SPIR-V using Naga
         log::debug!("Parsing wave_propagation.wgsl");
-        let module = wgsl::parse_str(&wgsl_source)
+        let module = wgsl::parse_str(wgsl_source)
             .context("Failed to parse wave_propagation WGSL shader")?;
 
         log::debug!("Validating wave_propagation module");

@@ -433,7 +433,7 @@ impl GlyphAssembler {
             // LDI, BRANCH, and CMP with immediate take 2 words (instruction + data)
             let needs_data = opcode == Opcode::Ldi 
                 || opcode == Opcode::Branch
-                || (opcode == Opcode::Cmp && parts.len() > 2 && !parse_reg(parts[2]).is_some());
+                || (opcode == Opcode::Cmp && parts.len() > 2 && parse_reg(parts[2]).is_none());
             total += if needs_data { 2 } else { 1 };
         }
         Ok(total)
@@ -545,7 +545,7 @@ impl GlyphAssembler {
                     )
                 } else {
                     // Immediate form (also resolve .equ constants)
-                    let imm = if let Some(v) = third.parse::<i32>().ok() {
+                    let imm = if let Ok(v) = third.parse::<i32>() {
                         v
                     } else if let Some(v) = self.resolve_symbol(third) {
                         v
@@ -586,7 +586,7 @@ impl GlyphAssembler {
                     )
                 } else {
                     // Immediate form (also resolve .equ constants)
-                    let imm = if let Some(v) = third.parse::<i32>().ok() {
+                    let imm = if let Ok(v) = third.parse::<i32>() {
                         v
                     } else if let Some(v) = self.resolve_symbol(third) {
                         v
@@ -627,7 +627,7 @@ impl GlyphAssembler {
                     )
                 } else {
                     // Immediate form (also resolve .equ constants)
-                    let imm = if let Some(v) = third.parse::<i32>().ok() {
+                    let imm = if let Ok(v) = third.parse::<i32>() {
                         v
                     } else if let Some(v) = self.resolve_symbol(third) {
                         v
@@ -955,7 +955,7 @@ impl GlyphAssembler {
                     )
                 } else {
                     // Immediate comparison (also resolve .equ constants)
-                    let imm = if let Some(v) = val_part.parse::<i32>().ok() {
+                    let imm = if let Ok(v) = val_part.parse::<i32>() {
                         v
                     } else if let Some(v) = self.resolve_symbol(val_part) {
                         v

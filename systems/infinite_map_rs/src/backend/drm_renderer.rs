@@ -597,7 +597,7 @@ impl DrmRenderer {
     ) {
         self.crtc_handle = Some(crtc_handle);
         self.connector_handle = Some(connector_handle);
-        self.output_mode = Some(mode.clone());
+        self.output_mode = Some(mode);
         self.output_size = (mode.size().0 as u32, mode.size().1 as u32);
         log::info!(
             "Output configured: {}x{} @ {}Hz",
@@ -981,7 +981,7 @@ impl DrmRenderer {
                 label: Some("Copy Encoder"),
             });
 
-        encoder.copy_texture_to_buffer(texture_copy_view, buffer_copy_view.clone(), texture_extent);
+        encoder.copy_texture_to_buffer(texture_copy_view, buffer_copy_view, texture_extent);
         self.queue.submit(std::iter::once(encoder.finish()));
 
         // Map and read buffer

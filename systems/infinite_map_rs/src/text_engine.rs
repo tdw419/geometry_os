@@ -192,11 +192,7 @@ impl Selection {
         if !self.active {
             return 0;
         }
-        if self.start <= self.end {
-            self.end - self.start
-        } else {
-            self.start - self.end
-        }
+        self.end.abs_diff(self.start)
     }
 }
 

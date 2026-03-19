@@ -187,7 +187,7 @@ impl EvolutionManager {
     /// Fetch evolution metrics from daemon
     fn fetch_metrics(&mut self) {
         // Try embedded daemon first
-        if let Some(daemon_arc) = self.embedded_daemon.as_ref().map(|d| Arc::clone(d)) {
+        if let Some(daemon_arc) = self.embedded_daemon.as_ref().map(Arc::clone) {
             if let Ok(daemon) = daemon_arc.lock() {
                 if let Ok(metrics) = daemon.get_metrics() {
                     self.metrics = Some(metrics);
@@ -321,7 +321,7 @@ impl EvolutionManager {
     /// Fetch neural state from daemon
     fn fetch_neural_state(&mut self) {
         // Try embedded daemon first
-        if let Some(daemon_arc) = self.embedded_daemon.as_ref().map(|d| Arc::clone(d)) {
+        if let Some(daemon_arc) = self.embedded_daemon.as_ref().map(Arc::clone) {
             if let Ok(daemon) = daemon_arc.lock() {
                 if let Ok(neural_state) = daemon.get_neural_state() {
                     // For embedded daemon, use default daemon_id and strength
@@ -454,7 +454,7 @@ impl EvolutionManager {
     /// Fetch cognitive state from daemon (Phase 27)
     fn fetch_cognitive_state(&mut self) {
         // Try embedded daemon first
-        if let Some(daemon_arc) = self.embedded_daemon.as_ref().map(|d| Arc::clone(d)) {
+        if let Some(daemon_arc) = self.embedded_daemon.as_ref().map(Arc::clone) {
             if let Ok(daemon) = daemon_arc.lock() {
                 if let Ok(state) = daemon.get_cognitive_state() {
                     self.cognitive_state = Some(state);

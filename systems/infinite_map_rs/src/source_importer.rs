@@ -455,7 +455,7 @@ impl SourceImporter {
     /// Parse Cargo.toml into manifest structure
     fn parse_cargo_toml(&self) -> Result<CrateManifest, ImportError> {
         let cargo_path = self.project_root.join("Cargo.toml");
-        let content = fs::read_to_string(&cargo_path).map_err(|e| ImportError::Io(e))?;
+        let content = fs::read_to_string(&cargo_path).map_err(ImportError::Io)?;
 
         let parsed: toml::Value = content
             .parse()

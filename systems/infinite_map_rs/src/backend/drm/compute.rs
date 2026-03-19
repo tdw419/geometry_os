@@ -117,7 +117,7 @@ impl GlyphCompute {
         }
 
         // Calculate size in bytes
-        let spirv_size = spirv_binary.len() * std::mem::size_of::<u32>();
+        let spirv_size = std::mem::size_of_val(spirv_binary);
 
         log::info!(
             "Uploading SPIR-V to GPU: {} words ({} bytes)",
@@ -329,7 +329,7 @@ impl GlyphCompute {
         bindings.clear();
 
         // Bind input buffer (convert f32 slice to bytes)
-        let input_bytes = input.len() * std::mem::size_of::<f32>();
+        let input_bytes = std::mem::size_of_val(input);
         bindings
             .bind_input_buffer(input_bytes, None)
             .context("Failed to bind input buffer")?;
@@ -344,7 +344,7 @@ impl GlyphCompute {
         let input_bytes = unsafe {
             std::slice::from_raw_parts(
                 input.as_ptr() as *const u8,
-                input.len() * std::mem::size_of::<f32>(),
+                std::mem::size_of_val(input),
             )
         };
         bindings

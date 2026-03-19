@@ -264,7 +264,7 @@ impl CityAgent {
     pub fn recall_nearby(&self, radius: u32) -> Vec<&AgentMemory> {
         self.memory
             .iter()
-            .filter(|m| ((m.location as i32 - self.hilbert_pos as i32).abs() as u32) < radius)
+            .filter(|m| (m.location as i32 - self.hilbert_pos as i32).unsigned_abs() < radius)
             .collect()
     }
 
@@ -585,7 +585,7 @@ impl CityAgentManager {
     pub fn agents_near(&self, hilbert_pos: u32, radius: u32) -> Vec<&CityAgent> {
         self.agents
             .values()
-            .filter(|a| ((a.hilbert_pos as i32 - hilbert_pos as i32).abs() as u32) < radius)
+            .filter(|a| (a.hilbert_pos as i32 - hilbert_pos as i32).unsigned_abs() < radius)
             .collect()
     }
 
@@ -600,7 +600,7 @@ impl CityAgentManager {
             .min_by_key(|a| {
                 // Find goal location if specified
                 goal_loc
-                    .map(|t| ((a.hilbert_pos as i32 - t as i32).abs()) as u32)
+                    .map(|t| (a.hilbert_pos as i32 - t as i32).unsigned_abs())
                     .unwrap_or(0)
             });
 

@@ -241,7 +241,7 @@ impl IntelGpuDevice {
 
         let ioctl_nr = (DRM_IOCTL_BASE << 30)
             | (DRM_COMMAND_BASE << 8)
-            | (I915_GEM_EXECBUFFER2 << 0)
+            | I915_GEM_EXECBUFFER2
             | ((size_of::<DrmI915GemExecbuffer2>() as u32) << 16);
 
         unsafe {

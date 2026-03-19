@@ -212,17 +212,14 @@ impl MemoryInspector {
         if let Some(ref mapper) = self.memory_mapper {
             // This is a simplified implementation
             // In practice, you'd query the mapper for all regions
-            match name {
-                "heap" => {
-                    if let Some(ref region) = mapper.heap_region {
-                        let region = region.clone();
-                        self.region_cache
-                            .borrow_mut()
-                            .insert(name.to_string(), region.clone());
-                        return Some(region);
-                    }
-                },
-                _ => {},
+            if name == "heap" {
+                if let Some(ref region) = mapper.heap_region {
+                    let region = region.clone();
+                    self.region_cache
+                        .borrow_mut()
+                        .insert(name.to_string(), region.clone());
+                    return Some(region);
+                }
             }
         }
 

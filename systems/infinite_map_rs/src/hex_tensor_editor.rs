@@ -355,7 +355,7 @@ impl HexTensorEditor {
     }
 
     pub fn update_hex_at_cursor(&mut self, _queue: &wgpu::Queue, ch: char) -> bool {
-        let nibble = if ('0'..='9').contains(&ch) {
+        let nibble = if ch.is_ascii_digit() {
             ch as u8 - b'0'
         } else if ('A'..='F').contains(&ch) {
             ch as u8 - b'A' + 10
@@ -565,7 +565,7 @@ impl HexTensorEditor {
                 }
 
                 // Populate from annotations
-                for (_, annotation) in &self.neural_analysis_cache {
+                for annotation in self.neural_analysis_cache.values() {
                     let end = (annotation.offset + annotation.length).min(self.meta_cache.len());
                     for i in annotation.offset..end {
                         // Tag 1: Neural Insight (Gold color in shader)
@@ -721,7 +721,7 @@ impl HexTensorEditor {
             return false;
         }
 
-        let nibble = if ('0'..='9').contains(&ch) {
+        let nibble = if ch.is_ascii_digit() {
             ch as u8 - b'0'
         } else if ('A'..='F').contains(&ch) {
             ch as u8 - b'A' + 10
@@ -967,13 +967,12 @@ impl HexTensorEditor {
                 return Some(ann);
             }
             let dist = (*key as isize - offset as isize).abs();
-            if dist <= 16 {
-                if nearest.is_none()
-                    || dist < (*nearest.unwrap().0 as isize - offset as isize).abs()
+            if dist <= 16
+                && (nearest.is_none()
+                    || dist < (*nearest.unwrap().0 as isize - offset as isize).abs())
                 {
                     nearest = Some((key, ann));
                 }
-            }
         }
 
         nearest.map(|(_, ann)| ann)

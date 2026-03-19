@@ -111,7 +111,7 @@ Be precise, creative, and maintain geometric integrity."#;
         // Send to LM Studio
         let response = self
             .client
-            .post(&format!("{}/v1/chat/completions", self.api_url))
+            .post(format!("{}/v1/chat/completions", self.api_url))
             .json(&request)
             .send()
             .await
@@ -210,7 +210,7 @@ Be precise, creative, and maintain geometric integrity."#;
 
         let response = self
             .client
-            .get(&format!("{}/v1/models", self.api_url))
+            .get(format!("{}/v1/models", self.api_url))
             .send()
             .await
             .map_err(|e| format!("Connection failed: {}", e))?;
@@ -271,7 +271,7 @@ Provide a concise, technical explanation."#,
 
         let response = self
             .client
-            .post(&format!("{}/v1/chat/completions", self.api_url))
+            .post(format!("{}/v1/chat/completions", self.api_url))
             .json(&request)
             .send()
             .await

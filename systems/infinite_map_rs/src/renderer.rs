@@ -1076,7 +1076,7 @@ impl<'a> Renderer<'a> {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            &cognitive_image.as_raw(),
+            cognitive_image.as_raw(),
             wgpu::ImageDataLayout {
                 offset: 0,
                 bytes_per_row: Some(4 * cognitive_image.width()),

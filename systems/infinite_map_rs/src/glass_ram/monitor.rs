@@ -47,8 +47,7 @@ impl GlassRamMonitor {
         while let Some(event) = self.event_rx.recv().await {
             self.handle_fault_event(event).map_err(|e| {
                 // Map generic error to Send+Sync error
-                Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
+                Box::new(std::io::Error::other(
                     e.to_string(),
                 )) as Box<dyn std::error::Error + Send + Sync>
             })?;

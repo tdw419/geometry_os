@@ -812,7 +812,7 @@ impl ThoughtRenderer {
 
         let uniforms = ThoughtUniforms {
             // Layer activations
-            layer_0: layer_activations.get(0).copied().unwrap_or(0.0),
+            layer_0: layer_activations.first().copied().unwrap_or(0.0),
             layer_1: layer_activations.get(1).copied().unwrap_or(0.0),
             layer_2: layer_activations.get(2).copied().unwrap_or(0.0),
             layer_3: layer_activations.get(3).copied().unwrap_or(0.0),

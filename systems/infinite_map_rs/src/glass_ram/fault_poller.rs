@@ -60,8 +60,7 @@ impl FaultPoller {
                     log::error!("Failed to send fault event: {}", e);
                     // Send error via channel closing is not an IO error, but we need to return
                     // map SendError to something generic or just break
-                    return Err(Box::new(std::io::Error::new(
-                        std::io::ErrorKind::Other,
+                    return Err(Box::new(std::io::Error::other(
                         "Channel closed",
                     )));
                 }
@@ -196,7 +195,7 @@ impl FaultPoller {
             }
         })
         .await
-        .map_err(|e| Box::<dyn std::error::Error + Send + Sync>::from(e))?
+        .map_err(Box::<dyn std::error::Error + Send + Sync>::from)?
     }
 }
 

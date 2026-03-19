@@ -248,7 +248,7 @@ impl InfiniteMap {
         // These have higher risk but potentially higher reward
 
         // Example: Add new features or restructure code
-        for (_key, value) in &mut tile.genotype.kernel_params {
+        for value in tile.genotype.kernel_params.values_mut() {
             if rand::random::<f64>() < 0.2 {
                 // 20% chance per param
                 // Try parameter variations
@@ -262,7 +262,7 @@ impl InfiniteMap {
         // Small, safe changes when already performing well
         // Focus on fine-tuning existing good configurations
 
-        for (_key, value) in &mut tile.genotype.kernel_params {
+        for value in tile.genotype.kernel_params.values_mut() {
             if rand::random::<f64>() < 0.05 {
                 // 5% chance per param
                 // Minor adjustments only

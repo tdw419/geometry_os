@@ -141,9 +141,8 @@ impl InputManager {
 
         // Remove focus from old surface
         if let Some(_old_surface) = &self.focused_surface {
-            self.seat
-                .get_keyboard()
-                .map(|k| k.set_focus(state, None, Serial::from(0)));
+            if let Some(k) = self.seat
+                .get_keyboard() { k.set_focus(state, None, Serial::from(0)) }
         }
 
         // Set new focus
@@ -152,9 +151,8 @@ impl InputManager {
 
         // Add focus to new surface
         if let Some(new_surface) = &self.focused_surface {
-            self.seat
-                .get_keyboard()
-                .map(|k| k.set_focus(state, Some(new_surface.clone()), Serial::from(0)));
+            if let Some(k) = self.seat
+                .get_keyboard() { k.set_focus(state, Some(new_surface.clone()), Serial::from(0)) }
         }
     }
 
@@ -286,7 +284,7 @@ impl InputManager {
             // But here we capture everything else.
 
             // Route to console
-            self.route_keyboard_to_console(key.raw(), key_state.into());
+            self.route_keyboard_to_console(key.raw(), key_state);
 
             // Do NOT forward to Wayland client if possessed
             return;
@@ -296,7 +294,7 @@ impl InputManager {
             keyboard.input(
                 state,
                 key,
-                key_state.into(),
+                key_state,
                 serial.into(),
                 time,
                 |_, _, _| FilterResult::<()>::Forward,
@@ -370,7 +368,7 @@ impl InputManager {
             serial: Serial::from(serial),
             time,
             button: code,
-            state: button_state.into(),
+            state: button_state,
         };
 
         if let Some(pointer) = self.seat.get_pointer() {

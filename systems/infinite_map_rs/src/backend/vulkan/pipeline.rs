@@ -61,7 +61,7 @@ impl GlyphPipeline {
         let shader_stage = vk::PipelineShaderStageCreateInfo::default()
             .stage(vk::ShaderStageFlags::COMPUTE)
             .module(shader_module)
-            .name(&std::ffi::CStr::from_bytes_with_nul(b"main\0").unwrap());
+            .name(c"main");
 
         let pipeline_create_info = vk::ComputePipelineCreateInfo::default()
             .stage(shader_stage)

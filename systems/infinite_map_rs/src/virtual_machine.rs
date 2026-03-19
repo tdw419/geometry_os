@@ -427,8 +427,7 @@ impl QemuProcess {
         let dimensions = lines.next().ok_or("No dimensions")?;
         let dim_str = String::from_utf8_lossy(dimensions);
         let dims: Vec<&str> = dim_str.split_whitespace().collect();
-        let width: u32 = dims
-            .get(0)
+        let width: u32 = dims.first()
             .ok_or("No width")?
             .parse()
             .map_err(|_| "Invalid width")?;

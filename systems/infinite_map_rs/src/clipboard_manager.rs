@@ -70,14 +70,10 @@ impl SharedClipboardManager {
     /// Get generic clipboard data (simulated for now as we only support text via copypasta)
     /// In future, we might use wayland-clipboard or X11 atoms for images
     pub fn get_clipboard(&self) -> Option<ClipboardData> {
-        if let Some(text) = self.get_text() {
-            Some(ClipboardData {
+        self.get_text().map(|text| ClipboardData {
                 mime_type: "text/plain".to_string(),
                 data: text.into_bytes(),
             })
-        } else {
-            None
-        }
     }
 
     /// Phase 31.2: Set RTS Clipboard for visual persistence

@@ -56,7 +56,7 @@ impl SynapticDaemonBridge {
         // Send to daemon
         let response = self
             .client
-            .post(&format!("{}/intent", self.daemon_url))
+            .post(format!("{}/intent", self.daemon_url))
             .json(&request)
             .send()
             .await
@@ -179,7 +179,7 @@ impl SynapticDaemonBridge {
                         .and_then(|v| v.as_array())
                         .ok_or("Highlight missing 'center'")?;
                     let center_tuple = (
-                        center.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
+                        center.first().and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                         center.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                         center.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                     );
@@ -193,7 +193,7 @@ impl SynapticDaemonBridge {
                         .and_then(|v| v.as_array())
                         .ok_or("Highlight missing 'color'")?;
                     let color_array = [
-                        color.get(0).and_then(|v| v.as_f64()).unwrap_or(1.0) as f32,
+                        color.first().and_then(|v| v.as_f64()).unwrap_or(1.0) as f32,
                         color.get(1).and_then(|v| v.as_f64()).unwrap_or(1.0) as f32,
                         color.get(2).and_then(|v| v.as_f64()).unwrap_or(1.0) as f32,
                         color.get(3).and_then(|v| v.as_f64()).unwrap_or(1.0) as f32,
@@ -214,7 +214,7 @@ impl SynapticDaemonBridge {
                     let fov = params.get("fov").and_then(|v| v.as_f64()).map(|v| v as f32);
                     let target = params.get("target").and_then(|v| v.as_array()).map(|arr| {
                         (
-                            arr.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
+                            arr.first().and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                             arr.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                             arr.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                         )
@@ -247,7 +247,7 @@ impl SynapticDaemonBridge {
                         .and_then(|v| v.as_array())
                         .ok_or("SpawnEffect missing 'position'")?;
                     let position_tuple = (
-                        position.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
+                        position.first().and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                         position.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                         position.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                     );
@@ -277,7 +277,7 @@ impl SynapticDaemonBridge {
                     };
                     let target = params.get("target").and_then(|v| v.as_array()).map(|arr| {
                         (
-                            arr.get(0).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
+                            arr.first().and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                             arr.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                             arr.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
                         )

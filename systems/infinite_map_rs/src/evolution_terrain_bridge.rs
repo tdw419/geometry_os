@@ -60,7 +60,7 @@ impl EvolutionGenome {
         let id = format!(
             "gen{}_{}",
             generation,
-            uuid::Uuid::new_v4().to_string()[..8].to_string()
+            &uuid::Uuid::new_v4().to_string()[..8]
         );
         let map_position = (0, 0);
 

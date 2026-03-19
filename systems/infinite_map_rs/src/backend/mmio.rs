@@ -220,8 +220,7 @@ pub fn find_gpu() -> Result<PciDevice> {
                     let (bus, slot, func) = if parts.len() >= 3 {
                         // Format: 0000:00:02.0 (domain:bus:slot.function)
                         let slot_func = parts[2].split('.').collect::<Vec<&str>>();
-                        let slot = slot_func
-                            .get(0)
+                        let slot = slot_func.first()
                             .and_then(|s| u8::from_str_radix(s, 16).ok())
                             .unwrap_or(0);
                         let func = slot_func
@@ -263,7 +262,7 @@ pub fn find_gpu() -> Result<PciDevice> {
                     return Ok(PciDevice {
                         vendor_id: vendor_val,
                         device_id: u16::from_str_radix(
-                            &std::fs::read_to_string(path.join("device"))
+                            std::fs::read_to_string(path.join("device"))
                                 .unwrap_or_default()
                                 .trim()
                                 .trim_start_matches("0x"),

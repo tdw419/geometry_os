@@ -206,11 +206,7 @@ impl BootableCartridge {
 
     /// Get texture dimensions
     pub fn get_dimensions(&self) -> Option<(u32, u32)> {
-        if let Some(texture) = &self.texture {
-            Some((texture.width(), texture.height()))
-        } else {
-            None
-        }
+        self.texture.as_ref().map(|texture| (texture.width(), texture.height()))
     }
 
     /// Update cartridge texture from raw bytes (RGBA)

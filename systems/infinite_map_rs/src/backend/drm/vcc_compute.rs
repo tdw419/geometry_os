@@ -92,7 +92,7 @@ impl VccCompute {
         let wgsl_source = include_str!("shaders/vcc_hash.wgsl");
 
         // 2. Compile WGSL to SPIR-V using Naga
-        let module = wgsl::parse_str(&wgsl_source).context("Failed to parse WGSL VCC shader")?;
+        let module = wgsl::parse_str(wgsl_source).context("Failed to parse WGSL VCC shader")?;
 
         let mut validator = Validator::new(ValidationFlags::all(), Capabilities::all());
         let info = validator

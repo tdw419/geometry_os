@@ -197,11 +197,7 @@ impl ImmuneSystem {
                 None => return false,
             };
             if let Some(parent_id) = tile.genotype.parents.first() {
-                if let Some(parent) = map.get_tile(parent_id) {
-                    Some((parent.genotype.clone(), parent_id.clone()))
-                } else {
-                    None
-                }
+                map.get_tile(parent_id).map(|parent| (parent.genotype.clone(), parent_id.clone()))
             } else {
                 None
             }

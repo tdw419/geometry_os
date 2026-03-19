@@ -256,9 +256,9 @@ impl Drop for ZeroCopyPipeline {
 // Helper: create a memfd as DMA-BUF stand-in
 fn create_memfd(size: usize) -> Result<OwnedFd> {
     use nix::sys::memfd::{memfd_create, MemFdCreateFlag};
-    use std::ffi::CStr;
+    
 
-    let name = CStr::from_bytes_with_nul(b"gpu_compute_buffer\0").unwrap();
+    let name = c"gpu_compute_buffer";
     let fd = memfd_create(name, MemFdCreateFlag::MFD_CLOEXEC).context("Failed to create memfd")?;
 
     // Set size

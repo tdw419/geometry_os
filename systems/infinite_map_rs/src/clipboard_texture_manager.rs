@@ -109,7 +109,7 @@ impl ClipboardTextureManager {
         }
 
         // Check if file was modified
-        if let Ok(metadata) = fs::metadata(&clipboard_path) {
+        if let Ok(metadata) = fs::metadata(clipboard_path) {
             if let Ok(modified) = metadata.modified() {
                 if let Some(last_modified) = self.last_modified {
                     if modified <= last_modified {
@@ -124,7 +124,7 @@ impl ClipboardTextureManager {
         log::info!("Loading clipboard texture: {}", self.clipboard_path);
 
         // Load image using image crate
-        let image_data = fs::read(&clipboard_path)
+        let image_data = fs::read(clipboard_path)
             .map_err(|e| format!("Failed to read clipboard file: {}", e))?;
 
         // Parse PNG

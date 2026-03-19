@@ -49,7 +49,7 @@ pub fn extract_strings(data: &[u8]) -> Vec<String> {
     let mut current_string = String::new();
 
     for &byte in data {
-        if byte >= 32 && byte <= 126 {
+        if (32..=126).contains(&byte) {
             current_string.push(byte as char);
         } else {
             if current_string.len() >= 4 {

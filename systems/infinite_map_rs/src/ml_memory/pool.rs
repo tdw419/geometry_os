@@ -221,7 +221,7 @@ impl MLMemoryPool {
             name_index
                 .get(name)
                 .copied()
-                .ok_or_else(|| MLError::TensorNotFound(TensorId(0)))?
+                .ok_or(MLError::TensorNotFound(TensorId(0)))?
         };
         self.free(id)
     }
@@ -239,7 +239,7 @@ impl MLMemoryPool {
             name_index
                 .get(name)
                 .copied()
-                .ok_or_else(|| MLError::TensorNotFound(TensorId(0)))?
+                .ok_or(MLError::TensorNotFound(TensorId(0)))?
         };
         self.get_tensor(id)
     }

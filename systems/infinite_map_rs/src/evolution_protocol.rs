@@ -340,7 +340,7 @@ impl EvolutionClient {
 
     pub fn send_message(&self, message: ProtocolMessage) -> std::io::Result<()> {
         self.send(message)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e)))
+            .map_err(|e| std::io::Error::other(format!("{}", e)))
     }
 
     pub fn request_metrics(&self) -> Result<ProtocolMessage, Box<dyn std::error::Error>> {
@@ -590,7 +590,7 @@ impl MemoryGraphProtocol {
 
     /// Receive a message from the daemon
     pub async fn receive_message(&mut self) -> Result<Message, Box<dyn std::error::Error>> {
-        if let Some(message) = self.message_rx.try_recv().ok() {
+        if let Ok(message) = self.message_rx.try_recv() {
             return Ok(message);
         }
 

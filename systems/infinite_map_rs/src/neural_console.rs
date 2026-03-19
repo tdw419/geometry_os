@@ -104,7 +104,7 @@ impl NeuralConsole {
     }
 
     fn execute_command(&mut self, cmd: &str) -> Option<ConsoleAction> {
-        let parts: Vec<&str> = cmd.trim().split_whitespace().collect();
+        let parts: Vec<&str> = cmd.split_whitespace().collect();
         if parts.is_empty() {
             return None;
         }

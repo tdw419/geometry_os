@@ -102,12 +102,11 @@ impl EvdevInputBridge {
             let path = entry.path();
 
             if let Some(name) = path.file_name() {
-                if name.to_string_lossy().starts_with("event") {
-                    if self.open_device(&path).is_ok() {
+                if name.to_string_lossy().starts_with("event")
+                    && self.open_device(&path).is_ok() {
                         count += 1;
                         log::info!("Opened input device: {:?}", path);
                     }
-                }
             }
         }
 
@@ -137,7 +136,7 @@ impl EvdevInputBridge {
         let mut raw_events = Vec::new();
 
         // First, collect all raw evdev events
-        for (_, file) in &mut self.devices {
+        for file in self.devices.values_mut() {
             let mut buffer = [0u8; std::mem::size_of::<EvdevEvent>()];
 
             // Read all available events from this device

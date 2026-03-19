@@ -902,8 +902,7 @@ impl SyntheticVram {
                 // stratum=0: AND src, dst → dst = src & dst (two-operand)
                 // stratum>0: AND dst, src1, src2 → dst = src1 & src2 (three-operand)
                 if stratum == 0 {
-                    self.vms[vm_idx].regs[p2 as usize] =
-                        self.vms[vm_idx].regs[p1 as usize] & self.vms[vm_idx].regs[p2 as usize];
+                    self.vms[vm_idx].regs[p2 as usize] &= self.vms[vm_idx].regs[p1 as usize];
                 } else {
                     let v1 = self.vms[vm_idx].regs[p1 as usize];
                     let v2 = self.vms[vm_idx].regs[stratum as usize];
@@ -916,8 +915,7 @@ impl SyntheticVram {
                 // stratum=0: OR src, dst → dst = src | dst (two-operand)
                 // stratum>0: OR dst, src1, src2 → dst = src1 | src2 (three-operand)
                 if stratum == 0 {
-                    self.vms[vm_idx].regs[p2 as usize] =
-                        self.vms[vm_idx].regs[p1 as usize] | self.vms[vm_idx].regs[p2 as usize];
+                    self.vms[vm_idx].regs[p2 as usize] |= self.vms[vm_idx].regs[p1 as usize];
                 } else {
                     let v1 = self.vms[vm_idx].regs[p1 as usize];
                     let v2 = self.vms[vm_idx].regs[stratum as usize];
@@ -928,8 +926,7 @@ impl SyntheticVram {
             130 => {
                 // XOR — two forms (same pattern)
                 if stratum == 0 {
-                    self.vms[vm_idx].regs[p2 as usize] =
-                        self.vms[vm_idx].regs[p1 as usize] ^ self.vms[vm_idx].regs[p2 as usize];
+                    self.vms[vm_idx].regs[p2 as usize] ^= self.vms[vm_idx].regs[p1 as usize];
                 } else {
                     let v1 = self.vms[vm_idx].regs[p1 as usize];
                     let v2 = self.vms[vm_idx].regs[stratum as usize];

@@ -450,12 +450,7 @@ impl WindowManager {
     /// Find window at world position
     pub fn find_window_at_position(&self, x: f32, y: f32) -> Option<&Window> {
         // Iterate windows in reverse order (top to bottom)
-        for window in self.windows.iter().rev() {
-            if window.contains_visual(x, y) {
-                return Some(window);
-            }
-        }
-        None
+        self.windows.iter().rev().find(|&window| window.contains_visual(x, y)).map(|v| v as _)
     }
 
     /// Find window at world position (mutable)

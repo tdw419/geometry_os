@@ -225,7 +225,7 @@ impl VisualFeedbackEncoder {
         self.device.poll(wgpu::MaintainBase::Wait);
 
         rx.recv().unwrap().map_err(|e| {
-            io::Error::new(io::ErrorKind::Other, format!("Buffer map failed: {:?}", e))
+            io::Error::other(format!("Buffer map failed: {:?}", e))
         })?;
 
         let padded_data = buffer_slice.get_mapped_range().to_vec();
@@ -401,7 +401,7 @@ impl VisualFeedbackEncoder {
             metrics: self
                 .last_metrics
                 .clone()
-                .unwrap_or_else(|| VisualFeedbackMetrics {
+                .unwrap_or(VisualFeedbackMetrics {
                     avg_brightness: 0.0,
                     avg_contrast: 0.0,
                     color_distribution: [0.0, 0.0, 0.0],

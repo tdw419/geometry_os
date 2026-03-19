@@ -212,7 +212,7 @@ impl VectorMemoryClient {
         let mut response_line = String::new();
         reader.read_line(&mut response_line)?;
 
-        let response_json: serde_json::Value = serde_json::from_str(&response_line.trim())?;
+        let response_json: serde_json::Value = serde_json::from_str(response_line.trim())?;
 
         // Parse response based on message type
         match response_json["message_type"].as_str() {

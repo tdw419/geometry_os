@@ -416,12 +416,10 @@ impl VmTextureManager {
                                 } else {
                                     fg_color
                                 }
+                            } else if pixel_set {
+                                fg_color
                             } else {
-                                if pixel_set {
-                                    fg_color
-                                } else {
-                                    bg_color
-                                }
+                                bg_color
                             };
 
                             framebuffer[pixel_idx] = color[0]; // R

@@ -1041,7 +1041,7 @@ impl CognitiveBIOS {
 
 /// Convert a physical address to a memory buffer offset
 pub fn phys_to_offset(addr: u32) -> Option<u64> {
-    if addr >= RAM_BASE && addr < RAM_BASE + RAM_SIZE {
+    if (RAM_BASE..RAM_BASE + RAM_SIZE).contains(&addr) {
         Some((addr - RAM_BASE) as u64)
     } else {
         None

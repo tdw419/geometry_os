@@ -779,7 +779,7 @@ impl ExecutionZoneRenderer {
         let y_baseline = 16u32; // Baseline position in substrate
 
         for (glyph_info, x_offset) in glyphs {
-            let glyph_x = x_cursor + (x_offset as u32).max(0);
+            let glyph_x = x_cursor + (x_offset as u32);
 
             // Write glyph pixels to substrate
             for gy in 0..glyph_info.height {

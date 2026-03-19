@@ -4251,12 +4251,7 @@ impl<'a> InfiniteMapApp<'a> {
                 // Just use current cursor world_x, world_y
                 // Determine new district based on nearest tile
                 let target_district = if let Some(loader) = &self.source_city_loader {
-                    if let Some(nearest) = loader.find_tile_at(world_x, world_y, 50.0) {
-                        // Large tolerance to find neighbor
-                        Some(nearest.district.clone())
-                    } else {
-                        None
-                    }
+                    loader.find_tile_at(world_x, world_y, 50.0).map(|nearest| nearest.district.clone())
                 } else {
                     None
                 };
@@ -4349,7 +4344,7 @@ impl<'a> InfiniteMapApp<'a> {
                     // Don't set self.visual_shell if GPU init fails
                 } else {
                     if let Some(view) = shell.texture_view() {
-                        self.renderer.set_background_texture(&*view);
+                        self.renderer.set_background_texture(&view);
                     }
                     self.visual_shell = Some(shell);
                     log::info!("✅ Visual Shell Integration initialized and linked to Renderer");
@@ -4652,7 +4647,7 @@ impl<'a> InfiniteMapApp<'a> {
     pub fn get_clipboard_manager(
         &self,
     ) -> Option<crate::clipboard_manager::SharedClipboardManager> {
-        self.clipboard_manager.as_ref().map(|cm| cm.clone())
+        self.clipboard_manager.clone()
     }
 
     /// Get memory texture manager reference
@@ -5013,15 +5008,12 @@ impl<'a> InfiniteMapApp<'a> {
                                 crate::cognitive::entity_type::RTSMetadata,
                             >(file)
                             {
-                                match crate::cognitive::entity_type::detect_entity_type(&metadata) {
-                                    crate::cognitive::entity_type::EntityType::CognitiveEntity => {
-                                        cognitive_manager.register_entity(brick_name.clone(), path.clone(), crate::cognitive::entity_type::EntityType::CognitiveEntity);
-                                        log::info!(
-                                            "🧠 Registered Cognitive Entity: {}",
-                                            brick_name
-                                        );
-                                    },
-                                    _ => {},
+                                if crate::cognitive::entity_type::detect_entity_type(&metadata) == crate::cognitive::entity_type::EntityType::CognitiveEntity {
+                                    cognitive_manager.register_entity(brick_name.clone(), path.clone(), crate::cognitive::entity_type::EntityType::CognitiveEntity);
+                                    log::info!(
+                                        "🧠 Registered Cognitive Entity: {}",
+                                        brick_name
+                                    );
                                 }
                             }
                         }
@@ -6462,8 +6454,7 @@ impl<'a> InfiniteMapApp<'a> {
                 // Also checking 113 ('q') just in case of weird mapping
                 if key_state == smithay::backend::input::KeyState::Pressed
                     && !self.input_manager.is_window_possessed()
-                {
-                    if key_code == 16 || key_code == 24 || key_code == 113 {
+                    && (key_code == 16 || key_code == 24 || key_code == 113) {
                         log::info!(
                             "⌨️  Detected 'Q' press (Code: {}) - Initiating VM Spawn Sequence",
                             key_code
@@ -6496,19 +6487,16 @@ impl<'a> InfiniteMapApp<'a> {
                         self.spawn_qemu_vm(iso);
                         return;
                     }
-                }
 
                 // Phase 41: Game Mode Interaction
                 // 1. Exit Possession (ESC or Left Alt)
                 if key_state == smithay::backend::input::KeyState::Pressed
                     && (key_code == 1 || key_code == 56)
-                {
-                    if self.input_manager.is_window_possessed() {
+                    && self.input_manager.is_window_possessed() {
                         log::info!("🎮 Game Mode: Exiting Possession");
                         self.input_manager.set_possessed_window(None);
                         return; // Consume event
                     }
-                }
 
                 // 2. Enter Possession (E)
                 // Only enter if not already possessed and not typing in overlay
@@ -7211,12 +7199,10 @@ impl<'a> InfiniteMapApp<'a> {
                                         return; // Consumer
                                     }
                                 }
-                            } else {
-                                if let Some(address) = self.hovered_memory_address {
-                                    if self.tectonic_simulator.is_some() {
-                                        self.trigger_memory_analysis(address);
-                                        return;
-                                    }
+                            } else if let Some(address) = self.hovered_memory_address {
+                                if self.tectonic_simulator.is_some() {
+                                    self.trigger_memory_analysis(address);
+                                    return;
                                 }
                             }
                         }

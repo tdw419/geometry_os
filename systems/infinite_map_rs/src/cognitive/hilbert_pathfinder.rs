@@ -80,11 +80,7 @@ impl HilbertPath {
         if self.hilbert_distance == 0 {
             return 1.0;
         }
-        let traveled = if current_hilbert > self.start_hilbert {
-            current_hilbert - self.start_hilbert
-        } else {
-            0
-        };
+        let traveled = current_hilbert.saturating_sub(self.start_hilbert);
         (traveled as f32 / self.hilbert_distance as f32).min(1.0)
     }
 }
@@ -142,7 +138,7 @@ impl HilbertPathfinder {
 
         if let Some(ref loader) = self.source_loader {
             if let Some(layout) = loader.layout() {
-                for (district_name, _) in &layout.districts {
+                for district_name in layout.districts.keys() {
                     let tiles: Vec<_> = layout
                         .tiles
                         .iter()
@@ -209,16 +205,12 @@ impl HilbertPathfinder {
             start,
         ));
 
-        let distance = if end > start {
-            end - start
-        } else {
-            start - end
-        };
+        let distance = end.abs_diff(start);
         let direction = if end > start { 1i32 } else { -1i32 };
 
         let mut current = start;
         while current != end {
-            let step = (step_size as i32 * direction).abs() as u32;
+            let step = (step_size as i32 * direction).unsigned_abs();
             let next = if direction > 0 {
                 (current + step).min(end)
             } else {
@@ -546,7 +538,7 @@ impl HilbertPathfinder {
         // Reverse to get start -> end order
         waypoints.reverse();
         path.waypoints = waypoints;
-        path.hilbert_distance = (end as i32 - start as i32).abs() as u32;
+        path.hilbert_distance = (end as i32 - start as i32).unsigned_abs();
         path.estimated_time = path.hilbert_distance as f32 / 100.0;
 
         path
@@ -578,7 +570,7 @@ impl HilbertPathfinder {
     fn hilbert_heuristic(&self, a: u32, b: u32) -> u32 {
         // Simple heuristic: just the difference in Hilbert coordinates
         // This works well because Hilbert curve preserves locality
-        (a as i32 - b as i32).abs() as u32
+        (a as i32 - b as i32).unsigned_abs()
     }
 
     /// Convert Hilbert coordinate to (x, y)

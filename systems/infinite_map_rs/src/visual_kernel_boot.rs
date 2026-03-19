@@ -31,9 +31,7 @@ fn hilbert_d2xy(n: u32, d: u32) -> (u32, u32) {
                 x = s - 1 - x;
                 y = s - 1 - y;
             }
-            let tmp = x;
-            x = y;
-            y = tmp;
+            std::mem::swap(&mut x, &mut y);
         }
 
         x += s * rx;

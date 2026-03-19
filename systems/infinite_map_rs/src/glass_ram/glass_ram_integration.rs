@@ -200,22 +200,22 @@ pub struct GlassRamStats {
 
 impl std::fmt::Display for GlassRamStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "GlassRamStats {{\n")?;
-        write!(f, "  frame_count: {},\n", self.frame_count)?;
-        write!(f, "  buffered_faults: {},\n", self.buffered_faults)?;
-        write!(
+        writeln!(f, "GlassRamStats {{")?;
+        writeln!(f, "  frame_count: {},", self.frame_count)?;
+        writeln!(f, "  buffered_faults: {},", self.buffered_faults)?;
+        writeln!(
             f,
-            "  non_zero_cells: {} / {} ({:.2}%),\n",
+            "  non_zero_cells: {} / {} ({:.2}%),",
             self.non_zero_cells,
             self.total_cells,
             (self.non_zero_cells as f32 / self.total_cells as f32) * 100.0
         )?;
-        write!(f, "  max_density: {:.2},\n", self.max_density)?;
-        write!(f, "  total_density: {:.2},\n", self.total_density)?;
-        write!(f, "  accuracy: {:.2}%,\n", self.accuracy * 100.0)?;
-        write!(
+        writeln!(f, "  max_density: {:.2},", self.max_density)?;
+        writeln!(f, "  total_density: {:.2},", self.total_density)?;
+        writeln!(f, "  accuracy: {:.2}%,", self.accuracy * 100.0)?;
+        writeln!(
             f,
-            "  resolution: {}x{},\n",
+            "  resolution: {}x{},",
             self.resolution, self.resolution
         )?;
         write!(f, "}}")
