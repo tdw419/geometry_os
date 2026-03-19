@@ -1,0 +1,135 @@
+# ASCII World Ecosystem Team
+# Integrates ASCII World Manager with session-analyzer-app and repository
+
+team:
+  name: ascii-world-ecosystem-team
+  description: |
+    Integrates ASCII World Manager into the repository, fixes the directory typo,
+    connects it with session-analyzer-app, and verifies end-to-end AI control works.
+
+  project_root: /home/jericho/zion/projects/ai_auto_development/ai_auto_development
+
+  agents:
+    - name: repo-organizer
+      role: Fixes directory naming and commits files
+      focus:
+        - Rename ascii-worlld to ascii-world
+        - Stage and commit all ascii-world files
+        - Update .ascii-registry.json
+      files:
+        - apps/ascii-world/
+        - .ascii-registry.json
+
+    - name: test-engineer
+      role: Creates integration tests
+      focus:
+        - Write integration test for session-analyzer proxy
+        - Test /projects/:id/view endpoint
+        - Test /projects/:id/control endpoint
+        - Test /projects/:id/bindings endpoint
+      files:
+        - apps/ascii-world/tests/integration/session-analyzer-integration.test.ts
+
+    - name: devops-engineer
+      role: Creates helper scripts and configuration
+      focus:
+        - Add npm scripts to package.json
+        - Create startup helper script
+        - Make scripts executable
+      files:
+        - apps/ascii-world/package.json
+        - apps/ascii-world/scripts/start-all.sh
+
+    - name: doc-writer
+      role: Updates documentation
+      focus:
+        - Add ASCII World section to README
+        - Document API endpoints
+        - Document startup process
+      files:
+        - README.md
+
+  tasks:
+    - id: task-1
+      title: Rename Directory and Commit
+      assignee: repo-organizer
+      dependencies: []
+      description: |
+        Rename ascii-worlld to ascii-world and commit:
+        - git mv apps/ascii-worlld apps/ascii-world
+        - git add apps/ascii-world/
+        - Commit with descriptive message
+
+    - id: task-2
+      title: Update Root Registry
+      assignee: repo-organizer
+      dependencies: [task-1]
+      description: |
+        Update .ascii-registry.json to include ascii-world:
+        - Add ascii-world entry with port 3422
+        - Include asciiPath and bindingsPath
+
+    - id: task-3
+      title: Write Integration Test
+      assignee: test-engineer
+      dependencies: [task-2]
+      description: |
+        Create integration test that verifies:
+        - session-analyzer-app appears in project list
+        - Proxy view endpoint works
+        - Proxy control endpoint works
+        - Bindings endpoint returns correct data
+
+    - id: task-4
+      title: Fix Package.json Scripts
+      assignee: devops-engineer
+      dependencies: [task-1]
+      description: |
+        Add missing scripts to package.json:
+        - start, dev, test, test:unit, test:integration
+
+    - id: task-5
+      title: Create Startup Script
+      assignee: devops-engineer
+      dependencies: [task-4]
+      description: |
+        Create scripts/start-all.sh:
+        - Starts session-analyzer-app on port 3421
+        - Starts ASCII World on port 3422
+        - Handles graceful shutdown
+
+    - id: task-6
+      title: Verify Integration
+      assignee: test-engineer
+      dependencies: [task-5]
+      description: |
+        Run verification:
+        - Start services with start-all.sh
+        - Test manager endpoints
+        - Test proxy endpoints
+        - Run integration tests
+
+    - id: task-7
+      title: Update Documentation
+      assignee: doc-writer
+      dependencies: [task-6]
+      description: |
+        Update README with:
+        - ASCII World Manager section
+        - API endpoint documentation
+        - Startup instructions
+
+  success_criteria:
+    - apps/ascii-world/ directory exists (renamed from ascii-worlld)
+    - bun run start works in ascii-world directory
+    - Manager responds at http://localhost:3422/health
+    - session-analyzer-app appears in /projects list
+    - Proxy endpoints work (/projects/session-analyzer-app/view)
+    - Control commands proxy correctly (/projects/session-analyzer-app/control)
+    - Integration tests pass
+    - Documentation updated
+
+  reference_docs:
+    - apps/ascii-worlld/docs/plans/2026-03-18-ascii-world-integration.md
+    - apps/ascii-worlld/README.md
+    - apps/session-analyzer-app/docs/ASCII-FIRST-ARCHITECTURE.md
