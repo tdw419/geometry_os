@@ -198,6 +198,10 @@ name = "glyph_infinite_map"
 path = "src/bin/glyph_infinite_map.rs"
 
 [[bin]]
+name = "micro_host"
+path = "src/bin/micro_host.rs"
+
+[[bin]]
 name = "build_alpine_substrate"
 path = "src/bin/build_alpine_substrate.rs"
 

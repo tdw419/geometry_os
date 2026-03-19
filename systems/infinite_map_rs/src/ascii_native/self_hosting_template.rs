@@ -6,7 +6,9 @@
 use chrono::Utc;
 
 /// Template embedded at compile time from ASCII file
-const TEMPLATE: &str = include_str!("../../../../apps/ascii-world/ascii-world-master/apps/geos-ascii/examples/self_hosting.ascii");
+const TEMPLATE: &str = include_str!(
+    "../../../../apps/ascii-world/ascii-world-master/apps/geos-ascii/examples/self_hosting.ascii"
+);
 
 /// Self-Hosting Template renderer
 pub struct SelfHostingTemplate {
@@ -110,7 +112,10 @@ mod tests {
         assert!(template.is_ok(), "Template should load successfully");
 
         let template = template.unwrap();
-        assert!(!template.source().is_empty(), "Template source should not be empty");
+        assert!(
+            !template.source().is_empty(),
+            "Template source should not be empty"
+        );
         assert!(
             template.source().contains("GEOS"),
             "Template should contain GEOS branding"
@@ -128,17 +133,31 @@ mod tests {
 
         // Verify status is included (though original template uses {{status}} placeholder differently)
         assert!(
-            rendered.contains("Ready") || rendered.contains("{{status}}") || rendered.contains("OUTPUT"),
+            rendered.contains("Ready")
+                || rendered.contains("{{status}}")
+                || rendered.contains("OUTPUT"),
             "Rendered template should contain status or output section"
         );
 
         // Verify template structure is preserved
-        assert!(rendered.contains("GEOS"), "Rendered template should contain GEOS branding");
-        assert!(rendered.contains("v1.0"), "Rendered template should contain version");
+        assert!(
+            rendered.contains("GEOS"),
+            "Rendered template should contain GEOS branding"
+        );
+        assert!(
+            rendered.contains("v1.0"),
+            "Rendered template should contain version"
+        );
 
         // Verify no unreplaced each blocks
-        assert!(!rendered.contains("{{#each"), "No {{#each markers should remain");
-        assert!(!rendered.contains("{{/each}}"), "No {{/each}} markers should remain");
+        assert!(
+            !rendered.contains("{{#each"),
+            "No {{#each markers should remain"
+        );
+        assert!(
+            !rendered.contains("{{/each}}"),
+            "No {{/each}} markers should remain"
+        );
     }
 
     #[test]
@@ -166,7 +185,8 @@ mod tests {
 {{#each source_lines}}
 │ {{this}}
 {{/each}}
-END"#.to_string();
+END"#
+            .to_string();
 
         let source_lines = vec!["line1", "line2", "line3"];
         let result = render_each_block(template, &source_lines);
@@ -174,8 +194,14 @@ END"#.to_string();
         assert!(result.contains("line1"), "Should contain first line");
         assert!(result.contains("line2"), "Should contain second line");
         assert!(result.contains("line3"), "Should contain third line");
-        assert!(!result.contains("{{#each"), "Should not contain start marker");
-        assert!(!result.contains("{{/each}}"), "Should not contain end marker");
+        assert!(
+            !result.contains("{{#each"),
+            "Should not contain start marker"
+        );
+        assert!(
+            !result.contains("{{/each}}"),
+            "Should not contain end marker"
+        );
     }
 
     #[test]
@@ -184,13 +210,17 @@ END"#.to_string();
 {{#each source_lines}}
 │ {{this}}
 {{/each}}
-END"#.to_string();
+END"#
+            .to_string();
 
         let source_lines: Vec<&str> = vec![];
         let result = render_each_block(template, &source_lines);
 
         assert!(result.contains("SOURCE:"), "Should preserve header");
         assert!(result.contains("END"), "Should preserve footer");
-        assert!(!result.contains("{{#each"), "Should not contain start marker");
+        assert!(
+            !result.contains("{{#each"),
+            "Should not contain start marker"
+        );
     }
 }

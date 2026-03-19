@@ -9,9 +9,9 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
+use super::self_hosting_template::SelfHostingTemplate;
 use crate::cartridge_writer::{CartridgeConfig, CartridgeWriter};
 use crate::glyph_assembler::GlyphAssembler;
-use super::self_hosting_template::SelfHostingTemplate;
 
 /// Generate a self-hosting cartridge from ASCII assembly source
 ///
@@ -140,7 +140,11 @@ mod tests {
         "#;
 
         let result = generate_self_hosting_cartridge(source, &output_path);
-        assert!(result.is_ok(), "Cartridge generation with labels failed: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Cartridge generation with labels failed: {:?}",
+            result
+        );
         assert!(output_path.exists(), "Output file was not created");
 
         // Verify dimensions
@@ -162,7 +166,11 @@ mod tests {
         let source = "";
 
         let result = generate_self_hosting_cartridge(source, &output_path);
-        assert!(result.is_ok(), "Empty cartridge generation failed: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Empty cartridge generation failed: {:?}",
+            result
+        );
         assert!(output_path.exists(), "Output file was not created");
 
         // Verify dimensions

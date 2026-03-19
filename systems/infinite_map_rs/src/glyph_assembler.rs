@@ -43,6 +43,7 @@ pub enum Opcode {
     Sra = 133,
     // Spatial/GPU opcodes (200-227)
     Draw = 215, // DRAW glyph_id, x, y - blit from atlas to screen
+    Yield = 227, // YIELD - cooperative multitasking, return control to scheduler
 }
 
 impl Opcode {
@@ -72,6 +73,7 @@ impl Opcode {
             "SLL" => Some(Self::Sll),
             "SRL" => Some(Self::Srl),
             "DRAW" => Some(Self::Draw),
+            "YIELD" => Some(Self::Yield),
             _ => None,
         }
     }
@@ -183,8 +185,10 @@ impl AssembledProgram {
 pub struct GlyphAssembler {
     /// Current address
     addr: u32,
-    /// Labels
+    /// Labels (code addresses)
     labels: HashMap<String, u32>,
+    /// Constants (.equ definitions)
+    constants: HashMap<String, i32>,
     /// Forward references to resolve: (address, label, is_absolute)
     /// is_absolute = true for LDI (needs absolute address)
     /// is_absolute = false for branches (needs PC-relative offset)
@@ -198,24 +202,74 @@ impl GlyphAssembler {
         Self {
             addr: 0,
             labels: HashMap::new(),
+            constants: HashMap::new(),
             forward_refs: Vec::new(),
             words: Vec::new(),
         }
+    }
+
+    /// Parse .equ directive: .equ NAME, value
+    fn parse_equ(line: &str) -> Option<(String, i32)> {
+        let line = line.trim();
+        if !line.to_lowercase().starts_with(".equ") {
+            return None;
+        }
+        // .equ NAME, value or .equ NAME value
+        let rest = &line[4..].trim();
+        let parts: Vec<&str> = rest.split(&[',', ' '][..]).filter(|s| !s.is_empty()).collect();
+        if parts.len() < 2 {
+            return None;
+        }
+        let name = parts[0].to_string();
+        let value = parse_imm(parts[1])?;
+        Some((name, value))
+    }
+
+    /// Replace constant names in operands with their values
+    fn expand_constants(&self, parts: &mut Vec<&str>) {
+        for i in 1..parts.len() {
+            if let Some(&value) = self.constants.get(parts[i]) {
+                // Replace the constant name with its value
+                // This is a bit tricky since we have &str references
+                // We'll handle this in the operand parsing instead
+            }
+        }
+    }
+
+    /// Resolve a symbol to its value (label address or constant value)
+    fn resolve_symbol(&self, name: &str) -> Option<i32> {
+        // First check constants
+        if let Some(&value) = self.constants.get(name) {
+            return Some(value);
+        }
+        // Then check labels (return address)
+        if let Some(&addr) = self.labels.get(name) {
+            return Some(addr as i32);
+        }
+        None
     }
 
     /// Assemble text to program
     pub fn assemble(&mut self, text: &str) -> Result<AssembledProgram, String> {
         self.addr = 0;
         self.labels.clear();
+        self.constants.clear();
         self.forward_refs.clear();
         self.words.clear();
 
-        // First pass: collect labels
-        eprintln!("DEBUG: First pass - collecting labels");
+        // First pass: collect labels and constants
+        eprintln!("DEBUG: First pass - collecting labels and constants");
         for line in text.lines() {
             let line = Self::strip_comment(line).trim();
             let line = line.trim_start_matches('@');
             if line.is_empty() {
+                continue;
+            }
+
+            // Handle .equ directives - they don't consume words
+            if let Some((name, value)) = Self::parse_equ(line) {
+                eprintln!("  Found constant '{}' = {}", name, value);
+                self.constants.insert(name, value);
                 continue;
             }
 
@@ -250,6 +304,10 @@ impl GlyphAssembler {
         for (name, addr) in &self.labels {
             eprintln!("  {} = {:#04X}", name, addr);
         }
+        eprintln!("DEBUG: Constants collected:");
+        for (name, value) in &self.constants {
+            eprintln!("  {} = {:#04X}", name, value);
+        }
 
         // Second pass: assemble
         self.addr = 0;
@@ -257,6 +315,11 @@ impl GlyphAssembler {
             let line = Self::strip_comment(line).trim();
             let line = line.trim_start_matches('@');
             if line.is_empty() {
+                continue;
+            }
+
+            // Skip .equ directives in second pass
+            if Self::parse_equ(line).is_some() {
                 continue;
             }
 
@@ -329,6 +392,10 @@ impl GlyphAssembler {
 
     /// Count words for an instruction (1 or 2)
     fn count_words(&self, line: &str) -> Result<u32, String> {
+        // Skip .equ directives - they don't generate code
+        if Self::parse_equ(line).is_some() {
+            return Ok(0);
+        }
         // Handle semicolon-separated instructions on one line
         let mut total = 0u32;
         for sub_line in line.split(';') {
@@ -471,49 +538,98 @@ impl GlyphAssembler {
                 )
             },
             Opcode::Load => {
-                // LOAD rd, [rs] or LOAD rd = mem[rs]
+                // LOAD rd, [rs] or LOAD rd, addr (constant/immediate)
                 let rd = parse_reg(parts.get(1).ok_or("LOAD needs destination register")?)
                     .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
-                let rs = parts.get(2).ok_or("LOAD needs source register")?;
-                let rs = rs
-                    .trim_start_matches('[')
-                    .trim_start_matches("mem")
-                    .trim_start_matches('[')
-                    .trim_end_matches(']');
-                let rs = parse_reg(rs).ok_or_else(|| format!("Invalid source register: {}", rs))?;
-                (
-                    Instruction {
-                        opcode,
-                        stratum: 0,
-                        p1: rs,
-                        p2: rd,
-                    },
-                    None,
-                )
+                let src = parts.get(2).ok_or("LOAD needs source")?;
+                let src = src.trim_end_matches(',');
+                
+                // Check if it's register indirect [rs] or constant address
+                if src.starts_with('[') || src.starts_with("mem[") {
+                    // Register indirect: LOAD rd, [rs]
+                    let rs = src
+                        .trim_start_matches('[')
+                        .trim_start_matches("mem")
+                        .trim_start_matches('[')
+                        .trim_end_matches(']');
+                    let rs = parse_reg(rs).ok_or_else(|| format!("Invalid source register: {}", rs))?;
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: rs,
+                            p2: rd,
+                        },
+                        None,
+                    )
+                } else {
+                    // Constant/immediate address: LOAD rd, addr
+                    // Uses 2-word encoding (instruction + address data)
+                    let addr = if let Some(v) = parse_imm(src) {
+                        v
+                    } else if let Some(v) = self.resolve_symbol(src) {
+                        v
+                    } else {
+                        return Err(format!("Invalid address: {}", src));
+                    };
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: 0, // immediate marker
+                            p2: rd,
+                        },
+                        Some(addr),
+                    )
+                }
             },
             Opcode::Store => {
-                // STORE [rd], rs or STORE mem[rd], rs
-                let addr_part = parts.get(1).ok_or("STORE needs address register")?;
-                let addr_part = addr_part.trim_end_matches(','); // Remove trailing comma
-                let addr_reg = addr_part
-                    .trim_start_matches('[')
-                    .trim_start_matches("mem")
-                    .trim_start_matches('[')
-                    .trim_end_matches(']');
-                let rd = parse_reg(addr_reg)
-                    .ok_or_else(|| format!("Invalid address register: {}", addr_part))?;
+                // STORE [rd], rs or STORE addr, rs (constant/immediate)
+                let addr_part = parts.get(1).ok_or("STORE needs address")?;
+                let addr_part = addr_part.trim_end_matches(',');
                 let val_part = parts.get(2).ok_or("STORE needs value register")?;
                 let rs = parse_reg(val_part.trim_end_matches(','))
                     .ok_or_else(|| format!("Invalid value register: {}", val_part))?;
-                (
-                    Instruction {
-                        opcode,
-                        stratum: 0,
-                        p1: rd,
-                        p2: rs,
-                    },
-                    None,
-                )
+                
+                // Check if it's register indirect [rd] or constant address
+                if addr_part.starts_with('[') || addr_part.starts_with("mem[") {
+                    // Register indirect: STORE [rd], rs
+                    let addr_reg = addr_part
+                        .trim_start_matches('[')
+                        .trim_start_matches("mem")
+                        .trim_start_matches('[')
+                        .trim_end_matches(']');
+                    let rd = parse_reg(addr_reg)
+                        .ok_or_else(|| format!("Invalid address register: {}", addr_part))?;
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: rd,
+                            p2: rs,
+                        },
+                        None,
+                    )
+                } else {
+                    // Constant/immediate address: STORE addr, rs
+                    // Uses 2-word encoding (instruction + address data)
+                    let addr = if let Some(v) = parse_imm(addr_part) {
+                        v
+                    } else if let Some(v) = self.resolve_symbol(addr_part) {
+                        v
+                    } else {
+                        return Err(format!("Invalid address: {}", addr_part));
+                    };
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: 0, // immediate marker
+                            p2: rs,
+                        },
+                        Some(addr),
+                    )
+                }
             },
             Opcode::Branch => {
                 // BRANCH cond r1, r2, target
