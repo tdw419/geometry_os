@@ -618,8 +618,16 @@ impl GlyphVmScheduler {
             return Err(format!("Invalid VM ID: {}", vm_id));
         }
 
-        // Write state = RUNNING at offset + 536
+        // Clear halted flag and set state = RUNNING
+        // halted flag is at offset + 516, state is at offset + 536
+        let halted_offset = (vm_id as u64) * VM_STATE_SIZE + 516;
         let state_offset = (vm_id as u64) * VM_STATE_SIZE + 536;
+
+        self.queue.write_buffer(
+            &self.vm_buffer,
+            halted_offset,
+            bytemuck::cast_slice(&[0u32]), // Clear halted flag
+        );
         self.queue.write_buffer(
             &self.vm_buffer,
             state_offset,
