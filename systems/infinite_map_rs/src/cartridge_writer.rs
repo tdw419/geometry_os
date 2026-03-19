@@ -183,7 +183,15 @@ impl CartridgeWriter {
     /// Encodes cartridge name and version into the bootstrap segment.
     fn write_bootstrap(&mut self) {
         // First 16 pixels: name (null-terminated, max 16 chars)
-        for (i, ch) in self.config.name.chars().take(16).enumerate() {
+        // Clone name to avoid borrow conflict
+        let name_chars: Vec<(usize, char)> = self
+            .config
+            .name
+            .chars()
+            .take(16)
+            .enumerate()
+            .collect();
+        for (i, ch) in name_chars {
             let ascii_val = if ch.is_ascii() { ch as u8 } else { 0 };
             self.set_pixel(i, BOOTSTRAP_Y, ascii_val, 0, 0, 255);
         }
