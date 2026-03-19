@@ -28,13 +28,13 @@ use uuid::Uuid;
 
 use infinite_map_rs::brain_bridge::{BrainBridge, BrainBridgeConfig};
 use infinite_map_rs::glyph_vm_scheduler::{GlyphVmScheduler, VmConfig};
-use infinite_map_rs::trap_interface::{op_type, status, TrapRegs, TRAP_BASE};
-use infinite_map_rs::ml_memory::{
-    MLMemoryPool, PoolConfig, TensorSpec, TensorId, DataType, MemoryRegion, get_global_pool,
-};
 use infinite_map_rs::gpu::hebbian_processor::{GPUHebbianProcessor, HebbianUpdate};
+use infinite_map_rs::ml_memory::{
+    get_global_pool, DataType, MLMemoryPool, MemoryRegion, PoolConfig, TensorId, TensorSpec,
+};
 use infinite_map_rs::pixel_brain::infer::PixelBrainInferencer;
 use infinite_map_rs::pixel_brain::tokenizer::ByteTokenizer;
+use infinite_map_rs::trap_interface::{op_type, status, TrapRegs, TRAP_BASE};
 
 /// WASM binary parsing utilities
 mod wasm_parser {
@@ -337,7 +337,8 @@ static CHAT_CACHE: OnceLock<Mutex<std::collections::HashMap<String, ChatActivati
 
 /// THOUGHT_PULSE broadcast channel for WebSocket clients
 /// Allows real-time visualization of brain activity
-static THOUGHT_PULSE_CHANNEL: OnceLock<tokio::sync::broadcast::Sender<ThoughtPulse>> = OnceLock::new();
+static THOUGHT_PULSE_CHANNEL: OnceLock<tokio::sync::broadcast::Sender<ThoughtPulse>> =
+    OnceLock::new();
 
 /// Get or initialize the thought pulse broadcast sender
 fn get_thought_pulse_sender() -> &'static tokio::sync::broadcast::Sender<ThoughtPulse> {
@@ -388,7 +389,7 @@ fn apply_hebbian_update(addr: u32, pre: f32, post: f32, reward: f32) {
             address: addr,
             pre_activation: pre,
             post_activation: post,
-            reward: reward,
+            reward,
         });
     }
 
@@ -671,11 +672,11 @@ struct ColorPalette {
 impl Default for ColorPalette {
     fn default() -> Self {
         Self {
-            free: [0x1a, 0x1a, 0x2e, 0xff],       // Dark blue (free)
-            allocated: [0x16, 0xc7, 0x9d, 0xff],  // Teal/green (in use)
-            fragmented: [0xff, 0x6b, 0x6b, 0xff], // Red (fragmented)
+            free: [0x1a, 0x1a, 0x2e, 0xff],            // Dark blue (free)
+            allocated: [0x16, 0xc7, 0x9d, 0xff],       // Teal/green (in use)
+            fragmented: [0xff, 0x6b, 0x6b, 0xff],      // Red (fragmented)
             hilbert_aligned: [0x4e, 0xbc, 0xff, 0xff], // Cyan (Hilbert-aligned)
-            grid: [0x2a, 0x2a, 0x4e, 0xff],       // Grid lines
+            grid: [0x2a, 0x2a, 0x4e, 0xff],            // Grid lines
         }
     }
 }
@@ -745,22 +746,24 @@ fn convert_real_pool_stats(
     };
 
     // Generate block states based on actual stats
-    (0..total_blocks).map(|i| {
-        let pos_ratio = i as f64 / total_blocks as f64;
-        let state = if pos_ratio < used_ratio {
-            // Allocated region
-            if (pos_ratio * 100.0) as usize % (fragmentation as usize).max(1) != 0 {
-                BlockState::Fragmented
-            } else if i % 7 == 0 {
-                BlockState::HilbertAligned
+    (0..total_blocks)
+        .map(|i| {
+            let pos_ratio = i as f64 / total_blocks as f64;
+            let state = if pos_ratio < used_ratio {
+                // Allocated region
+                if (pos_ratio * 100.0) as usize % (fragmentation as usize).max(1) != 0 {
+                    BlockState::Fragmented
+                } else if i % 7 == 0 {
+                    BlockState::HilbertAligned
+                } else {
+                    BlockState::Allocated
+                }
             } else {
-                BlockState::Allocated
-            }
-        } else {
-            BlockState::Free
-        };
-        (state, pos_ratio * 100.0)
-    }).collect()
+                BlockState::Free
+            };
+            (state, pos_ratio * 100.0)
+        })
+        .collect()
 }
 
 /// Get simulated pool stats (fallback when pool not initialized)
@@ -768,54 +771,70 @@ fn get_simulated_pool_stats(pool: &str, total_blocks: usize) -> Vec<(BlockState,
     match pool {
         "weight" => {
             // Weight pool: mostly allocated with some fragmentation
-            (0..total_blocks).map(|i| {
-                let state = if i < 180 {
-                    if i % 7 == 0 { BlockState::Fragmented } else { BlockState::Allocated }
-                } else if i % 3 == 0 {
-                    BlockState::HilbertAligned
-                } else {
-                    BlockState::Free
-                };
-                (state, (i as f64 / total_blocks as f64) * 100.0)
-            }).collect()
-        }
+            (0..total_blocks)
+                .map(|i| {
+                    let state = if i < 180 {
+                        if i % 7 == 0 {
+                            BlockState::Fragmented
+                        } else {
+                            BlockState::Allocated
+                        }
+                    } else if i % 3 == 0 {
+                        BlockState::HilbertAligned
+                    } else {
+                        BlockState::Free
+                    };
+                    (state, (i as f64 / total_blocks as f64) * 100.0)
+                })
+                .collect()
+        },
         "activation" => {
             // Activation pool: ring buffer pattern
-            (0..total_blocks).map(|i| {
-                let state = if (i >= 50 && i < 150) || (i >= 200 && i < 230) {
-                    BlockState::Allocated
-                } else if i % 11 == 0 {
-                    BlockState::Fragmented
-                } else {
-                    BlockState::Free
-                };
-                (state, (i as f64 / total_blocks as f64) * 100.0)
-            }).collect()
-        }
+            (0..total_blocks)
+                .map(|i| {
+                    let state = if (i >= 50 && i < 150) || (i >= 200 && i < 230) {
+                        BlockState::Allocated
+                    } else if i % 11 == 0 {
+                        BlockState::Fragmented
+                    } else {
+                        BlockState::Free
+                    };
+                    (state, (i as f64 / total_blocks as f64) * 100.0)
+                })
+                .collect()
+        },
         "gradient" => {
             // Gradient pool: sparse, training-dependent
-            (0..total_blocks).map(|i| {
-                let state = if i < 40 || (i >= 80 && i < 100) {
-                    BlockState::Allocated
-                } else {
-                    BlockState::Free
-                };
-                (state, (i as f64 / total_blocks as f64) * 100.0)
-            }).collect()
-        }
+            (0..total_blocks)
+                .map(|i| {
+                    let state = if i < 40 || (i >= 80 && i < 100) {
+                        BlockState::Allocated
+                    } else {
+                        BlockState::Free
+                    };
+                    (state, (i as f64 / total_blocks as f64) * 100.0)
+                })
+                .collect()
+        },
         _ => {
             // All pools combined - show summary
-            (0..total_blocks).map(|i| {
-                let state = if i < 160 {
-                    if i % 5 == 0 { BlockState::HilbertAligned } else { BlockState::Allocated }
-                } else if i % 13 == 0 {
-                    BlockState::Fragmented
-                } else {
-                    BlockState::Free
-                };
-                (state, (i as f64 / total_blocks as f64) * 100.0)
-            }).collect()
-        }
+            (0..total_blocks)
+                .map(|i| {
+                    let state = if i < 160 {
+                        if i % 5 == 0 {
+                            BlockState::HilbertAligned
+                        } else {
+                            BlockState::Allocated
+                        }
+                    } else if i % 13 == 0 {
+                        BlockState::Fragmented
+                    } else {
+                        BlockState::Free
+                    };
+                    (state, (i as f64 / total_blocks as f64) * 100.0)
+                })
+                .collect()
+        },
     }
 }
 
@@ -895,9 +914,7 @@ fn encode_png(pixels: &[u8], width: u32, height: u32) -> Vec<u8> {
 
     // Simple PNG encoder (no external dependencies)
     // PNG signature
-    let mut png = vec![
-        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
-    ];
+    let mut png = vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
     // IHDR chunk
     let ihdr_data = build_ihdr(width, height);
@@ -919,11 +936,11 @@ fn build_ihdr(width: u32, height: u32) -> Vec<u8> {
     let mut data = Vec::with_capacity(13);
     data.extend_from_slice(&width.to_be_bytes());
     data.extend_from_slice(&height.to_be_bytes());
-    data.push(8);  // Bit depth
-    data.push(6);  // Color type: RGBA
-    data.push(0);  // Compression
-    data.push(0);  // Filter
-    data.push(0);  // Interlace
+    data.push(8); // Bit depth
+    data.push(6); // Color type: RGBA
+    data.push(0); // Compression
+    data.push(0); // Filter
+    data.push(0); // Interlace
     data
 }
 
@@ -951,7 +968,8 @@ fn compress_zlib(data: &[u8]) -> Vec<u8> {
     // Try to use flate2
     let mut compressed = Vec::new();
     {
-        let mut encoder = flate2::write::ZlibEncoder::new(&mut compressed, flate2::Compression::default());
+        let mut encoder =
+            flate2::write::ZlibEncoder::new(&mut compressed, flate2::Compression::default());
         let _ = encoder.write_all(data);
     }
     compressed
@@ -1066,10 +1084,22 @@ fn generate_ascii_memory_visualization(width: usize) -> String {
     output.push_str("┘\n");
 
     // Add statistics
-    let free_count = blocks.iter().filter(|(s, _)| *s == BlockState::Free).count();
-    let alloc_count = blocks.iter().filter(|(s, _)| *s == BlockState::Allocated).count();
-    let frag_count = blocks.iter().filter(|(s, _)| *s == BlockState::Fragmented).count();
-    let hilb_count = blocks.iter().filter(|(s, _)| *s == BlockState::HilbertAligned).count();
+    let free_count = blocks
+        .iter()
+        .filter(|(s, _)| *s == BlockState::Free)
+        .count();
+    let alloc_count = blocks
+        .iter()
+        .filter(|(s, _)| *s == BlockState::Allocated)
+        .count();
+    let frag_count = blocks
+        .iter()
+        .filter(|(s, _)| *s == BlockState::Fragmented)
+        .count();
+    let hilb_count = blocks
+        .iter()
+        .filter(|(s, _)| *s == BlockState::HilbertAligned)
+        .count();
     let total = blocks.len();
 
     output.push_str(&format!(
@@ -1103,12 +1133,18 @@ fn main() {
 
     // === CLI ARGUMENT PARSING ===
     let args: Vec<String> = std::env::args().collect();
-    let brain_size = args.iter().position(|a| a == "--brain-size")
+    let brain_size = args
+        .iter()
+        .position(|a| a == "--brain-size")
         .and_then(|i| args.get(i + 1).and_then(|s| s.parse::<u32>().ok()))
         .unwrap_or(DEFAULT_BRAIN_SIZE);
 
     // Validate power of 2
-    assert!(brain_size.is_power_of_two(), "brain-size must be power of 2, got {}", brain_size);
+    assert!(
+        brain_size.is_power_of_two(),
+        "brain-size must be power of 2, got {}",
+        brain_size
+    );
     println!("[CONFIG] Brain size: {}x{}", brain_size, brain_size);
 
     println!("============================================================");
@@ -1153,8 +1189,10 @@ fn main() {
             brain_size, max_texture_size
         );
     }
-    println!("[BRAIN] Atlas size: {}x{} (max supported: {})",
-        brain_size, brain_size, max_texture_size);
+    println!(
+        "[BRAIN] Atlas size: {}x{} (max supported: {})",
+        brain_size, brain_size, max_texture_size
+    );
 
     // Initialize brain size static
     BRAIN_SIZE.set(brain_size).expect("brain size already set");
@@ -1186,121 +1224,146 @@ fn main() {
         usage: wgpu::TextureUsages::all(),
         view_formats: &[],
     }));
-    scheduler.lock().unwrap().set_ram_texture(ram_texture.clone());
+    scheduler
+        .lock()
+        .unwrap()
+        .set_ram_texture(ram_texture.clone());
 
     // === PIXELBRAIN: Load weight atlas into dedicated texture ===
     // Brain atlas path (configurable via env var GEOS_BRAIN_ATLAS)
     let brain_atlas_path = std::env::var("GEOS_BRAIN_ATLAS")
         .unwrap_or_else(|_| "systems/glyph_stratum/programs/tinystories_brain.rts.png".to_string());
 
-    let brain_texture: Option<Arc<wgpu::Texture>> = match infinite_map_rs::pixel_brain::WeightAtlas::load_from_png_file(&brain_atlas_path) {
-        Ok(weights) => {
-            let weight_count = weights.len();
-            println!("[BRAIN] Loaded {} weights from {}", weight_count, brain_atlas_path);
+    let brain_texture: Option<Arc<wgpu::Texture>> =
+        match infinite_map_rs::pixel_brain::WeightAtlas::load_from_png_file(&brain_atlas_path) {
+            Ok(weights) => {
+                let weight_count = weights.len();
+                println!(
+                    "[BRAIN] Loaded {} weights from {}",
+                    weight_count, brain_atlas_path
+                );
 
-            // Initialize brain shadow buffer with loaded weights
-            {
-                let shadow = get_brain_shadow();
-                let mut shadow_lock = shadow.lock().unwrap();
-                // Copy weights, padding with zeros if needed
-                for (i, &w) in weights.iter().enumerate() {
-                    if i < shadow_lock.len() {
-                        shadow_lock[i] = w;
+                // Initialize brain shadow buffer with loaded weights
+                {
+                    let shadow = get_brain_shadow();
+                    let mut shadow_lock = shadow.lock().unwrap();
+                    // Copy weights, padding with zeros if needed
+                    for (i, &w) in weights.iter().enumerate() {
+                        if i < shadow_lock.len() {
+                            shadow_lock[i] = w;
+                        }
+                    }
+                    println!(
+                        "[BRAIN] Shadow buffer initialized with {} weights",
+                        weight_count.min(shadow_lock.len())
+                    );
+                }
+
+                // Create brain texture with dynamic size
+                let size = get_brain_size();
+                let texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
+                    label: Some("brain_weight_atlas"),
+                    size: wgpu::Extent3d {
+                        width: size,
+                        height: size,
+                        depth_or_array_layers: 1,
+                    },
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    dimension: wgpu::TextureDimension::D2,
+                    format: wgpu::TextureFormat::Rgba16Float,
+                    usage: wgpu::TextureUsages::TEXTURE_BINDING
+                        | wgpu::TextureUsages::STORAGE_BINDING
+                        | wgpu::TextureUsages::COPY_DST
+                        | wgpu::TextureUsages::COPY_SRC,
+                    view_formats: &[],
+                }));
+
+                // Encode weights to Rgba16Float and upload
+                let mut rgba_data = Vec::with_capacity(weights.len() * 8);
+                for weight in &weights {
+                    let encoded = infinite_map_rs::pixel_brain::encode_weight_rgba16float(*weight);
+                    rgba_data.extend_from_slice(&encoded);
+                }
+
+                queue.write_texture(
+                    wgpu::ImageCopyTexture {
+                        texture: &texture,
+                        mip_level: 0,
+                        origin: wgpu::Origin3d::ZERO,
+                        aspect: wgpu::TextureAspect::All,
+                    },
+                    &rgba_data,
+                    wgpu::ImageDataLayout {
+                        offset: 0,
+                        bytes_per_row: Some(size * 8), // 8 bytes per pixel for Rgba16Float
+                        rows_per_image: Some(size),
+                    },
+                    wgpu::Extent3d {
+                        width: size,
+                        height: size,
+                        depth_or_array_layers: 1,
+                    },
+                );
+
+                println!(
+                    "[BRAIN] Weight atlas uploaded to GPU texture ({} bytes)",
+                    rgba_data.len()
+                );
+                println!("[BRAIN] PixelBrain initialized - chat learning enabled");
+
+                // Initialize GPU Hebbian processor for parallel weight updates
+                let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+                let processor = GPUHebbianProcessor::new(
+                    Arc::clone(&device),
+                    Arc::clone(&queue),
+                    texture_view,
+                    size,
+                );
+                if HEBBIAN_PROCESSOR.set(Mutex::new(processor)).is_ok() {
+                    println!("[HEBBIAN] GPU processor initialized with batch size 256");
+                } else {
+                    eprintln!(
+                        "[HEBBIAN] Warning: Failed to initialize GPU processor (already set?)"
+                    );
+                }
+
+                // Initialize PixelBrain inferencer for GPU-based inference
+                let brain_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+                let mut inferencer =
+                    PixelBrainInferencer::new(Arc::clone(&device), Arc::clone(&queue));
+                if let Err(e) = inferencer.init_pipelines() {
+                    eprintln!(
+                        "[INFER] Warning: Failed to initialize inference pipelines: {}",
+                        e
+                    );
+                } else {
+                    inferencer.init_buffers();
+                    inferencer.set_brain_atlas(brain_view);
+                    if let Err(e) = inferencer.init_bind_groups() {
+                        eprintln!("[INFER] Warning: Failed to initialize bind groups: {}", e);
+                    } else {
+                        println!(
+                            "[INFER] PixelBrain inferencer initialized with {} layers",
+                            inferencer.config().n_layers
+                        );
                     }
                 }
-                println!("[BRAIN] Shadow buffer initialized with {} weights", weight_count.min(shadow_lock.len()));
-            }
-
-            // Create brain texture with dynamic size
-            let size = get_brain_size();
-            let texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
-                label: Some("brain_weight_atlas"),
-                size: wgpu::Extent3d {
-                    width: size,
-                    height: size,
-                    depth_or_array_layers: 1,
-                },
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba16Float,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING
-                     | wgpu::TextureUsages::STORAGE_BINDING
-                     | wgpu::TextureUsages::COPY_DST
-                     | wgpu::TextureUsages::COPY_SRC,
-                view_formats: &[],
-            }));
-
-            // Encode weights to Rgba16Float and upload
-            let mut rgba_data = Vec::with_capacity(weights.len() * 8);
-            for weight in &weights {
-                let encoded = infinite_map_rs::pixel_brain::encode_weight_rgba16float(*weight);
-                rgba_data.extend_from_slice(&encoded);
-            }
-
-            queue.write_texture(
-                wgpu::ImageCopyTexture {
-                    texture: &texture,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d::ZERO,
-                    aspect: wgpu::TextureAspect::All,
-                },
-                &rgba_data,
-                wgpu::ImageDataLayout {
-                    offset: 0,
-                    bytes_per_row: Some(size * 8), // 8 bytes per pixel for Rgba16Float
-                    rows_per_image: Some(size),
-                },
-                wgpu::Extent3d {
-                    width: size,
-                    height: size,
-                    depth_or_array_layers: 1,
-                },
-            );
-
-            println!("[BRAIN] Weight atlas uploaded to GPU texture ({} bytes)", rgba_data.len());
-            println!("[BRAIN] PixelBrain initialized - chat learning enabled");
-
-            // Initialize GPU Hebbian processor for parallel weight updates
-            let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-            let processor = GPUHebbianProcessor::new(
-                Arc::clone(&device),
-                Arc::clone(&queue),
-                texture_view,
-                size,
-            );
-            if HEBBIAN_PROCESSOR.set(Mutex::new(processor)).is_ok() {
-                println!("[HEBBIAN] GPU processor initialized with batch size 256");
-            } else {
-                eprintln!("[HEBBIAN] Warning: Failed to initialize GPU processor (already set?)");
-            }
-
-            // Initialize PixelBrain inferencer for GPU-based inference
-            let brain_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-            let mut inferencer = PixelBrainInferencer::new(Arc::clone(&device), Arc::clone(&queue));
-            if let Err(e) = inferencer.init_pipelines() {
-                eprintln!("[INFER] Warning: Failed to initialize inference pipelines: {}", e);
-            } else {
-                inferencer.init_buffers();
-                inferencer.set_brain_atlas(brain_view);
-                if let Err(e) = inferencer.init_bind_groups() {
-                    eprintln!("[INFER] Warning: Failed to initialize bind groups: {}", e);
-                } else {
-                    println!("[INFER] PixelBrain inferencer initialized with {} layers", inferencer.config().n_layers);
+                if BRAIN_INFERENCER.set(Mutex::new(inferencer)).is_err() {
+                    eprintln!("[INFER] Warning: Failed to set global inferencer (already set?)");
                 }
-            }
-            if BRAIN_INFERENCER.set(Mutex::new(inferencer)).is_err() {
-                eprintln!("[INFER] Warning: Failed to set global inferencer (already set?)");
-            }
 
-            Some(texture)
-        }
-        Err(e) => {
-            println!("[BRAIN] No brain atlas found at {}: {}", brain_atlas_path, e);
-            println!("[BRAIN] Chat learning disabled - run with GEOS_BRAIN_ATLAS to enable");
-            None
-        }
-    };
+                Some(texture)
+            },
+            Err(e) => {
+                println!(
+                    "[BRAIN] No brain atlas found at {}: {}",
+                    brain_atlas_path, e
+                );
+                println!("[BRAIN] Chat learning disabled - run with GEOS_BRAIN_ATLAS to enable");
+                None
+            },
+        };
 
     // Load scheduler.glyph into VM 0
     let scheduler_glyph_path = "systems/glyph_stratum/programs/scheduler.glyph";
@@ -1692,34 +1755,36 @@ fn apply_opcode_colors(raw: &[u8]) -> Vec<u8> {
     for chunk in raw.chunks(4) {
         let opcode = chunk[0];
         let (r, g, b) = match opcode {
-            0   => (20, 20, 20),       // NOP - near black
-            1   => (0, 255, 255),      // LDI - cyan
-            2   => (128, 128, 128),    // MOV - gray
-            3   => (255, 255, 0),      // LOAD - yellow
-            4   => (255, 0, 0),        // STORE - red
-            5   => (0, 255, 0),        // ADD - green
-            6   => (0, 200, 100),      // SUB - sea green
-            7   => (255, 128, 0),      // MUL - orange
-            8   => (200, 100, 0),      // DIV - brown
-            9   => (128, 0, 128),      // JMP - purple
-            10  => (200, 0, 200),      // BRANCH - magenta
-            11  => (0, 128, 200),      // CALL - sky blue
-            12  => (80, 160, 200),     // RETURN - light blue
-            13  => (255, 255, 255),    // HALT - white
-            14  => (160, 160, 0),      // DATA - olive
-            129 => (200, 200, 0),      // OR - yellow-green
-            131 => (0, 0, 200),        // SHL - blue
-            _   => {
+            0 => (20, 20, 20),     // NOP - near black
+            1 => (0, 255, 255),    // LDI - cyan
+            2 => (128, 128, 128),  // MOV - gray
+            3 => (255, 255, 0),    // LOAD - yellow
+            4 => (255, 0, 0),      // STORE - red
+            5 => (0, 255, 0),      // ADD - green
+            6 => (0, 200, 100),    // SUB - sea green
+            7 => (255, 128, 0),    // MUL - orange
+            8 => (200, 100, 0),    // DIV - brown
+            9 => (128, 0, 128),    // JMP - purple
+            10 => (200, 0, 200),   // BRANCH - magenta
+            11 => (0, 128, 200),   // CALL - sky blue
+            12 => (80, 160, 200),  // RETURN - light blue
+            13 => (255, 255, 255), // HALT - white
+            14 => (160, 160, 0),   // DATA - olive
+            129 => (200, 200, 0),  // OR - yellow-green
+            131 => (0, 0, 200),    // SHL - blue
+            _ => {
                 // Non-zero data: dim heat based on value
                 if chunk.iter().any(|&b| b != 0) {
                     let v = opcode as u32;
-                    (((v * 7) % 60 + 30) as u8,
-                     ((v * 13) % 40 + 20) as u8,
-                     ((v * 3) % 50 + 30) as u8)
+                    (
+                        ((v * 7) % 60 + 30) as u8,
+                        ((v * 13) % 40 + 20) as u8,
+                        ((v * 3) % 50 + 30) as u8,
+                    )
                 } else {
                     (10, 10, 10) // empty
                 }
-            }
+            },
         };
         out.extend_from_slice(&[r, g, b, 255]);
     }
@@ -2220,9 +2285,12 @@ fn handle_raw_request<S: Read + Write>(
                             ("env", "spawn") | ("geos", "spawn") => 3,
                             ("env", "kill") | ("geos", "kill") => 4,
                             _ => {
-                                println!("[WASM] Unknown import: {}.{} - using ID 0xFF", module, name);
+                                println!(
+                                    "[WASM] Unknown import: {}.{} - using ID 0xFF",
+                                    module, name
+                                );
                                 0xFF // Unknown function
-                            }
+                            },
                         };
 
                         // Write to import table: IMPORT_TABLE_BASE + (func_idx * 4)
@@ -2231,7 +2299,8 @@ fn handle_raw_request<S: Read + Write>(
                         println!("[WASM] Writing import[{}] at shadow_offset=0x{:x} (addr=0x{:x}), len_check={}",
                             func_idx, shadow_offset, table_addr, shadow_offset + 4 <= shadow.len());
                         if shadow_offset + 4 <= shadow.len() {
-                            shadow[shadow_offset..shadow_offset + 4].copy_from_slice(&host_id.to_le_bytes());
+                            shadow[shadow_offset..shadow_offset + 4]
+                                .copy_from_slice(&host_id.to_le_bytes());
                             // Immediate verification
                             let verify = u32::from_le_bytes([
                                 shadow[shadow_offset],
@@ -2239,10 +2308,16 @@ fn handle_raw_request<S: Read + Write>(
                                 shadow[shadow_offset + 2],
                                 shadow[shadow_offset + 3],
                             ]);
-                            println!("[WASM] Import[{}] {}.{} -> host_id={} at 0x{:x} (verify: 0x{:x})",
-                                func_idx, module, name, host_id, table_addr, verify);
+                            println!(
+                                "[WASM] Import[{}] {}.{} -> host_id={} at 0x{:x} (verify: 0x{:x})",
+                                func_idx, module, name, host_id, table_addr, verify
+                            );
                         } else {
-                            println!("[WASM] SKIP: offset 0x{:x} + 4 > shadow.len() {}", shadow_offset, shadow.len());
+                            println!(
+                                "[WASM] SKIP: offset 0x{:x} + 4 > shadow.len() {}",
+                                shadow_offset,
+                                shadow.len()
+                            );
                         }
 
                         // Also write to GPU texture
@@ -2284,6 +2359,44 @@ fn handle_raw_request<S: Read + Write>(
         return;
     }
 
+    // GET /vm_resume?vm_id=N - Resume a halted VM
+    if request_str.starts_with("GET /vm_resume?") {
+        if let Some(query) = request_str.split("GET /vm_resume?").nth(1) {
+            let query = query.split_whitespace().next().unwrap_or("");
+
+            let mut vm_id: Option<u32> = None;
+
+            for param in query.split('&') {
+                if let Some(id_val) = param.strip_prefix("vm_id=") {
+                    vm_id = id_val.parse().ok();
+                }
+            }
+
+            if let Some(id) = vm_id {
+                match scheduler.lock().unwrap().resume_vm(id) {
+                    Ok(()) => {
+                        let response = format!(
+                            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{{\"status\":\"ok\",\"vm_id\":{}}}",
+                            id
+                        );
+                        let _ = stream.write_all(response.as_bytes());
+                        return;
+                    },
+                    Err(e) => {
+                        let response = format!(
+                            "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"{}\"}}",
+                            e
+                        );
+                        let _ = stream.write_all(response.as_bytes());
+                        return;
+                    },
+                }
+            }
+        }
+        let _ = stream.write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{\"error\":\"invalid parameters\"}");
+        return;
+    }
+
     // GET /ws/thought_pulse - WebSocket endpoint for real-time brain visualization
     if request_str.starts_with("GET /ws/thought_pulse") {
         // WebSocket upgrade - this is handled asynchronously
@@ -2309,7 +2422,7 @@ fn handle_raw_request<S: Read + Write>(
                         if stream.write_all(event.as_bytes()).is_err() {
                             break;
                         }
-                    }
+                    },
                     _ => break,
                 }
             }
@@ -2580,7 +2693,10 @@ fn handle_raw_request<S: Read + Write>(
 
                 // Log significant weight changes
                 if i < 5 {
-                    println!("[HEBBIAN] addr=0x{:06X} pre={:.3} post={:.3} reward={:.3}", addr, pre_activation, post_activation, reward);
+                    println!(
+                        "[HEBBIAN] addr=0x{:06X} pre={:.3} post={:.3} reward={:.3}",
+                        addr, pre_activation, post_activation, reward
+                    );
                 }
 
                 updates_applied += 1;
@@ -2647,29 +2763,47 @@ fn handle_raw_request<S: Read + Write>(
         // Forward to ECC HTTP API
         let ecc_response = match reqwest::blocking::Client::new()
             .request(
-                if request_str.starts_with("POST") { reqwest::Method::POST } else { reqwest::Method::GET },
-                &format!("http://localhost:3421{}", request_str.split_whitespace().nth(1).unwrap_or("/ecc/status"))
+                if request_str.starts_with("POST") {
+                    reqwest::Method::POST
+                } else {
+                    reqwest::Method::GET
+                },
+                &format!(
+                    "http://localhost:3421{}",
+                    request_str
+                        .split_whitespace()
+                        .nth(1)
+                        .unwrap_or("/ecc/status")
+                ),
             )
-            .body(request_str.split("\r\n\r\n").nth(1).unwrap_or("").to_string())
+            .body(
+                request_str
+                    .split("\r\n\r\n")
+                    .nth(1)
+                    .unwrap_or("")
+                    .to_string(),
+            )
             .header("Content-Type", "application/json")
             .send()
         {
             Ok(resp) => {
                 let status = resp.status();
-                let body = resp.text().unwrap_or_else(|_| "{\"error\":\"Failed to read response\"}".to_string());
+                let body = resp
+                    .text()
+                    .unwrap_or_else(|_| "{\"error\":\"Failed to read response\"}".to_string());
                 format!(
                     "HTTP/1.1 {} OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\n\r\n{}",
                     status.as_str(),
                     body.len(),
                     body
                 )
-            }
+            },
             Err(e) => {
                 format!(
                     "HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"ECC API unavailable: {}\"}}",
                     e
                 )
-            }
+            },
         };
         let _ = stream.write_all(ecc_response.as_bytes());
         return;
@@ -2708,7 +2842,11 @@ fn handle_raw_request<S: Read + Write>(
                 let name = json["name"].as_str().unwrap_or("unnamed").to_string();
                 let shape: Vec<usize> = json["shape"]
                     .as_array()
-                    .map(|arr| arr.iter().filter_map(|v| v.as_u64().map(|n| n as usize)).collect())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_u64().map(|n| n as usize))
+                            .collect()
+                    })
                     .unwrap_or_default();
                 let dtype_str = json["dtype"].as_str().unwrap_or("float16");
                 let region_str = json["region"].as_str().unwrap_or("weight");
@@ -2729,7 +2867,14 @@ fn handle_raw_request<S: Read + Write>(
 
                 // Calculate tensor size
                 let elements: usize = shape.iter().product();
-                let bytes = elements * if dtype == "Float32" { 4 } else if dtype == "Int32" { 4 } else { 2 };
+                let bytes = elements
+                    * if dtype == "Float32" {
+                        4
+                    } else if dtype == "Int32" {
+                        4
+                    } else {
+                        2
+                    };
 
                 let response = serde_json::json!({
                     "ok": true,
@@ -2747,14 +2892,14 @@ fn handle_raw_request<S: Read + Write>(
                     serde_json::to_string(&response).unwrap_or_default()
                 );
                 let _ = stream.write_all(http_response.as_bytes());
-            }
+            },
             Err(e) => {
                 let error_response = format!(
                     "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"{}\"}}\n",
                     e
                 );
                 let _ = stream.write_all(error_response.as_bytes());
-            }
+            },
         }
         return;
     }
@@ -2778,14 +2923,14 @@ fn handle_raw_request<S: Read + Write>(
                     serde_json::to_string(&response).unwrap_or_default()
                 );
                 let _ = stream.write_all(http_response.as_bytes());
-            }
+            },
             Err(e) => {
                 let error_response = format!(
                     "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"{}\"}}\n",
                     e
                 );
                 let _ = stream.write_all(error_response.as_bytes());
-            }
+            },
         }
         return;
     }
@@ -2865,14 +3010,14 @@ fn handle_raw_request<S: Read + Write>(
                     serde_json::to_string(&response).unwrap_or_default()
                 );
                 let _ = stream.write_all(http_response.as_bytes());
-            }
+            },
             Err(e) => {
                 let error_response = format!(
                     "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"{}\"}}\n",
                     e
                 );
                 let _ = stream.write_all(error_response.as_bytes());
-            }
+            },
         }
         return;
     }
@@ -2899,14 +3044,14 @@ fn handle_raw_request<S: Read + Write>(
                     serde_json::to_string(&response).unwrap_or_default()
                 );
                 let _ = stream.write_all(http_response.as_bytes());
-            }
+            },
             Err(e) => {
                 let error_response = format!(
                     "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"{}\"}}\n",
                     e
                 );
                 let _ = stream.write_all(error_response.as_bytes());
-            }
+            },
         }
         return;
     }
@@ -2950,14 +3095,14 @@ fn handle_raw_request<S: Read + Write>(
                     serde_json::to_string(&response).unwrap_or_default()
                 );
                 let _ = stream.write_all(http_response.as_bytes());
-            }
+            },
             Err(e) => {
                 let error_response = format!(
                     "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"{}\"}}\n",
                     e
                 );
                 let _ = stream.write_all(error_response.as_bytes());
-            }
+            },
         }
         return;
     }
@@ -2989,14 +3134,14 @@ fn handle_raw_request<S: Read + Write>(
                     serde_json::to_string(&response).unwrap_or_default()
                 );
                 let _ = stream.write_all(http_response.as_bytes());
-            }
+            },
             Err(e) => {
                 let error_response = format!(
                     "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"{}\"}}\n",
                     e
                 );
                 let _ = stream.write_all(error_response.as_bytes());
-            }
+            },
         }
         return;
     }
@@ -3022,7 +3167,8 @@ fn handle_raw_request<S: Read + Write>(
 
                 if let Some(inferencer) = get_brain_inferencer() {
                     let mut infer = inferencer.lock().unwrap();
-                    output_tokens = infer.generate_with_temperature(prompt, max_tokens, temperature);
+                    output_tokens =
+                        infer.generate_with_temperature(prompt, max_tokens, temperature);
                     output_text = tokenizer.decode(&output_tokens);
                 }
 
@@ -3040,14 +3186,14 @@ fn handle_raw_request<S: Read + Write>(
                     serde_json::to_string(&response).unwrap_or_default()
                 );
                 let _ = stream.write_all(http_response.as_bytes());
-            }
+            },
             Err(e) => {
                 let error_response = format!(
                     "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"{}\"}}\n",
                     e
                 );
                 let _ = stream.write_all(error_response.as_bytes());
-            }
+            },
         }
         return;
     }
@@ -3110,7 +3256,7 @@ fn handle_raw_request<S: Read + Write>(
                         let input_addr = embed_offset + input_token as u32;
                         apply_hebbian_update(
                             input_addr,
-                            1.0, // pre-activation (input token is active)
+                            1.0,    // pre-activation (input token is active)
                             reward, // post-activation is the reward signal
                             learning_rate,
                         );
@@ -3145,7 +3291,9 @@ fn handle_raw_request<S: Read + Write>(
                             apply_hebbian_update(k_addr, reward, 1.0, learning_rate);
 
                             // V weight - blend input and target
-                            let v_addr = layer_base + 131072 + ((input_token as u32 + target_token as u32) % HIDDEN_DIM) / 2;
+                            let v_addr = layer_base
+                                + 131072
+                                + ((input_token as u32 + target_token as u32) % HIDDEN_DIM) / 2;
                             apply_hebbian_update(v_addr, 0.5, 0.5, learning_rate);
 
                             // O weight - output projection
@@ -3186,14 +3334,14 @@ fn handle_raw_request<S: Read + Write>(
                     serde_json::to_string(&response).unwrap_or_default()
                 );
                 let _ = stream.write_all(http_response.as_bytes());
-            }
+            },
             Err(e) => {
                 let error_response = format!(
                     "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n{{\"error\":\"{}\"}}\n",
                     e
                 );
                 let _ = stream.write_all(error_response.as_bytes());
-            }
+            },
         }
         return;
     }
@@ -3214,7 +3362,8 @@ fn handle_raw_request<S: Read + Write>(
 
         let width = if let Some(start) = request_str.find("width=") {
             let substr = &request_str[start + 6..];
-            substr.chars()
+            substr
+                .chars()
                 .take_while(|c| c.is_ascii_digit())
                 .collect::<String>()
                 .parse::<u32>()
@@ -3240,7 +3389,8 @@ fn handle_raw_request<S: Read + Write>(
     if request_str.starts_with("GET /ml/visualize/ascii") {
         let width = if let Some(start) = request_str.find("width=") {
             let substr = &request_str[start + 6..];
-            substr.chars()
+            substr
+                .chars()
                 .take_while(|c| c.is_ascii_digit())
                 .collect::<String>()
                 .parse::<usize>()
@@ -3548,7 +3698,7 @@ mod visualization_tests {
         // Free blocks should be dark
         assert_eq!(palette.free[0], 0x1a);
         assert_eq!(palette.free[3], 0xff); // Alpha should be 255
-        // Allocated blocks should be teal/green
+                                           // Allocated blocks should be teal/green
         assert_eq!(palette.allocated[1], 0xc7);
         // Fragmented blocks should be red-ish
         assert_eq!(palette.fragmented[0], 0xff);
@@ -3560,7 +3710,10 @@ mod visualization_tests {
         assert_eq!(stats.len(), 256);
 
         // Weight pool should have more allocated than free
-        let allocated = stats.iter().filter(|(s, _)| *s == BlockState::Allocated).count();
+        let allocated = stats
+            .iter()
+            .filter(|(s, _)| *s == BlockState::Allocated)
+            .count();
         let free = stats.iter().filter(|(s, _)| *s == BlockState::Free).count();
         assert!(allocated > free, "Weight pool should be mostly allocated");
     }
@@ -3571,8 +3724,14 @@ mod visualization_tests {
         assert_eq!(stats.len(), 256);
 
         // Activation pool should have ring buffer pattern
-        let allocated = stats.iter().filter(|(s, _)| *s == BlockState::Allocated).count();
-        assert!(allocated > 0, "Activation pool should have some allocated blocks");
+        let allocated = stats
+            .iter()
+            .filter(|(s, _)| *s == BlockState::Allocated)
+            .count();
+        assert!(
+            allocated > 0,
+            "Activation pool should have some allocated blocks"
+        );
     }
 
     #[test]
@@ -3581,8 +3740,14 @@ mod visualization_tests {
         assert_eq!(stats.len(), 256);
 
         // Gradient pool should be sparse
-        let allocated = stats.iter().filter(|(s, _)| *s == BlockState::Allocated).count();
-        assert!(allocated < 128, "Gradient pool should be sparse during inference");
+        let allocated = stats
+            .iter()
+            .filter(|(s, _)| *s == BlockState::Allocated)
+            .count();
+        assert!(
+            allocated < 128,
+            "Gradient pool should be sparse during inference"
+        );
     }
 
     #[test]
@@ -3604,7 +3769,10 @@ mod visualization_tests {
         let png_data = generate_memory_visualization("weight", 64);
 
         // PNG should start with signature
-        assert_eq!(&png_data[0..8], &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        assert_eq!(
+            &png_data[0..8],
+            &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+        );
 
         // Should have reasonable size
         assert!(png_data.len() > 100, "PNG should have content");
