@@ -1,0 +1,297 @@
+// ============================================================================
+// WORKSPACE - GPU-Native ASCII Window Manager
+// ============================================================================
+//
+// This program IS THE GEOS desktop. It runs entirely on the GPU and handles:
+// - Mouse/keyboard input from mailbox
+// - Window management (drag, resize, spawn)
+// - Rendering of ASCII grid to screen
+//
+// Entry: 0x0000 (VM #0)
+// ============================================================================
+
+// Register conventions (same as infinite_map.glyph)
+.equ CAMERA_X, 20
+.equ CAMERA_Y, 21
+.equ ZOOM, 22
+.equ FRAME, 28
+
+// Memory addresses
+.equ EVENT_TYPE, 0x0200
+.equ EVENT_X, 0x0204
+.equ EVENT_Y, 0x0208
+.equ EVENT_BTN, 0x020C
+.equ EVENT_DX, 0x0210
+.equ EVENT_DY, 0x0214
+
+.equ STATE_FRAME, 0x1000
+.equ STATE_MOUSE_X, 0x1004
+.equ STATE_MOUSE_Y, 0x1008
+.equ STATE_ZOOM, 0x100C
+.equ STATE_VM_COUNT, 0x1010
+
+.equ WINDOW_TABLE, 0x0100
+.equ MAX_WINDOWS, 8
+
+// ============================================================================
+// ENTRY POINT
+// ============================================================================
+:entry
+    // Initialize state
+    MOV r0, 0
+    STORE STATE_FRAME, r0
+    STORE STATE_MOUSE_X, r0
+    STORE STATE_MOUSE_Y, r0
+    MOV r1, 100
+    STORE STATE_ZOOM, r1
+    MOV r1, 1
+    STORE STATE_VM_COUNT, r1
+
+    JMP main_loop
+
+// ============================================================================
+// MAIN LOOP
+// ============================================================================
+:main_loop
+    // Increment frame counter
+    LOAD r1, STATE_FRAME
+    ADD r1, r1, 1
+    STORE STATE_FRAME, r1
+
+    // Handle input events
+    CALL handle_input
+
+    // Update state from events
+    CALL update_state
+
+    // Process window clicks
+    CALL process_windows
+
+    // Render ASCII grid
+    CALL render_ascii
+
+    // Yield for cooperative multitasking
+    YIELD
+
+    // Loop forever
+    JMP main_loop
+
+// ============================================================================
+// INPUT HANDLING
+// ============================================================================
+:handle_input
+    LOAD r1, EVENT_TYPE
+    CMP r1, 0
+    JE :input_done
+
+    // Event type 1 = Mouse move
+    CMP r1, 1
+    JNE :check_click
+    CALL handle_mouse_move
+    JMP :clear_event
+
+:check_click
+    // Event type 2 = Click
+    CMP r1, 2
+    JNE :check_scroll
+    CALL handle_click
+    JMP :clear_event
+
+:check_scroll
+    // Event type 4 = Scroll
+    CMP r1, 4
+    JNE :clear_event
+    CALL handle_scroll
+
+:clear_event
+    MOV r1, 0
+    STORE EVENT_TYPE, r1
+
+:input_done
+    RET
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+:handle_mouse_move
+    // Update mouse position in state
+    LOAD r2, EVENT_X
+    LOAD r3, EVENT_Y
+    STORE STATE_MOUSE_X, r2
+    STORE STATE_MOUSE_Y, r3
+
+    // Check for window drag (button held)
+    LOAD r4, EVENT_BTN
+    CMP r4, 0
+    JE :mouse_done
+
+    // TODO: Implement window drag
+    // 1. Find which window is being dragged
+    // 2. Move window by EVENT_DX, EVENT_DY
+    // 3. Redraw
+
+:mouse_done
+    RET
+
+:handle_click
+    // Check for button bar clicks (row 1)
+    LOAD r2, EVENT_Y
+    CMP r2, 20          ; Approximate button bar Y
+    JLT :check_window_clicks
+
+    // Check which button was clicked
+    LOAD r3, EVENT_X
+
+    // [1] Terminal button
+    CMP r3, 80
+    JLT :spawn_terminal
+
+    // [2] Editor button
+    CMP r3, 200
+    JLT :spawn_editor
+
+    // [3] Files button
+    CMP r3, 300
+    JLT :spawn_files
+
+    JMP :click_done
+
+:spawn_terminal
+    MOV r8, 0x5000      ; Terminal segment
+    SPAWN r8            ; Opcode 225: SPATIAL_SPAWN
+    JMP :click_done
+
+:spawn_editor
+    MOV r8, 0x6000      ; Editor segment
+    SPAWN r8
+    JMP :click_done
+
+:spawn_files
+    MOV r8, 0x7000      ; Files segment
+    SPAWN r8
+    JMP :click_done
+
+:check_window_clicks
+    // Hit test against window table
+    CALL hit_test_windows
+    ; r8 = window ID or 0xFF if none
+    RET
+
+:click_done
+    RET
+
+:handle_scroll
+    // Update zoom
+    LOAD r2, EVENT_DY
+    LOAD r3, STATE_ZOOM
+
+    CMP r2, 0
+    JLT :zoom_out
+
+:zoom_in
+    ADD r3, r3, 10
+    JMP :clamp_zoom
+
+:zoom_out
+    SUB r3, r3, 10
+
+:clamp_zoom
+    CMP r3, 25
+    JLT :set_min_zoom
+    CMP r3, 400
+    JGT :set_max_zoom
+    JMP :store_zoom
+
+:set_min_zoom
+    MOV r3, 25
+    JMP :store_zoom
+
+:set_max_zoom
+    MOV r3, 400
+
+:store_zoom
+    STORE STATE_ZOOM, r3
+    RET
+
+// ============================================================================
+// STATE UPDATE
+// ============================================================================
+:update_state
+    // Already updated in event handlers
+    RET
+
+// ============================================================================
+// WINDOW MANAGEMENT
+// ============================================================================
+:process_windows
+    // Process any pending window operations
+    RET
+
+:hit_test_windows
+    MOV r8, 0xFF        ; No hit by default
+    MOV r9, 0           ; Window index
+
+:hit_loop
+    CMP r9, MAX_WINDOWS
+    JGE :hit_done
+
+    // Load window bounds from table
+    MOV r10, r9
+    MUL r10, r10, 8
+    ADD r10, WINDOW_TABLE, r10
+
+    LOAD r2, r10 + 1    ; win.x
+    LOAD r3, r10 + 2    ; win.y
+    LOAD r4, r10 + 3    ; win.w
+    LOAD r5, r10 + 4    ; win.h
+
+    LOAD r6, EVENT_X
+    LOAD r7, EVENT_Y
+
+    // Bounds check
+    CMP r6, r2
+    JLT :next_window
+    ADD r11, r2, r4
+    CMP r6, r11
+    JGT :next_window
+    CMP r7, r3
+    JLT :next_window
+    ADD r11, r3, r5
+    CMP r7, r11
+    JGT :next_window
+
+    // Hit!
+    LOAD r8, r10        ; win.id
+    JMP :hit_done
+
+:next_window
+    ADD r9, r9, 1
+    JMP :hit_loop
+
+:hit_done
+    RET
+
+// ============================================================================
+// ASCII RENDERING
+// ============================================================================
+:render_ascii
+    // Render ASCII grid to glyph grid memory
+    // This is done by copying template data to 0x0000-0x0BFF
+
+    // For now, just update the dynamic values
+    LOAD r1, STATE_FRAME
+    STORE 0x0040, r1    ; Frame counter in template
+
+    LOAD r1, STATE_MOUSE_X
+    STORE 0x0044, r1    ; Mouse X in template
+
+    LOAD r1, STATE_MOUSE_Y
+    STORE 0x0048, r1    ; Mouse Y in template
+
+    RET
+
+// ============================================================================
+// HALT (for testing)
+// ============================================================================
+:test_halt
+    HALT
