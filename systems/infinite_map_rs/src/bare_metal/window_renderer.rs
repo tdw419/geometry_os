@@ -3,7 +3,7 @@
 //! Renders VM windows as colored rectangles on the framebuffer.
 //! Windows have state-based border colors and can be dynamically managed.
 
-use super::{GpuFramebuffer, ScreenDimensionsConfig};
+use super::GpuFramebuffer;
 
 /// Window state enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -127,6 +127,7 @@ impl WindowRenderer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::ScreenDimensionsConfig;
 
     #[test]
     fn test_window_renderer_creation() {
