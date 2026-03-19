@@ -1,0 +1,194 @@
+# ASCII Prompter Team
+# Creates ASCII-First version of prompter.sh scripts
+
+team:
+  name: ascii-prompter-team
+  description: |
+    Creates ASCII Prompter - an ASCII-First application that wraps prompter.sh
+    functionality with labeled ASCII interface for AI agent control. Integrates
+    with ASCII World Manager on port 3423.
+
+  project_root: /home/jericho/zion/projects/ai_auto_development/ai_auto_development
+
+  agents:
+    - name: project-scaffolder
+      role: Creates project structure and configuration
+      focus:
+        - Create directory structure
+        - Initialize package.json and tsconfig.json
+        - Set up test directories
+      files:
+        - apps/ascii-prompter/package.json
+        - apps/ascii-prompter/tsconfig.json
+
+    - name: state-architect
+      role: Creates state machine and bindings
+      focus:
+        - Define AsciiState types
+        - Create bindings.json with label mappings
+        - Implement AsciiStateStore with subscription model
+      files:
+        - apps/ascii-prompter/src/ascii/state/types.ts
+        - apps/ascii-prompter/src/ascii/bindings.json
+        - apps/ascii-prompter/src/ascii/state/store.ts
+
+    - name: template-engineer
+      role: Creates ASCII templates
+      focus:
+        - Design ASCII templates for STATUS, GENERATE, CONFIG, HISTORY states
+        - Use Mustache-style {{variable}} syntax
+        - Ensure consistent 80x24 grid layout
+      files:
+        - apps/ascii-prompter/src/ascii/states/status.ascii
+        - apps/ascii-prompter/src/ascii/states/generate.ascii
+        - apps/ascii-prompter/src/ascii/states/config.ascii
+        - apps/ascii-prompter/src/ascii/states/history.ascii
+
+    - name: core-logic-engineer
+      role: Creates core business logic
+      focus:
+        - Project type detection (bun, rust, python, go, monorepo)
+        - Prompt generation with context
+        - Integration with existing prompter.sh patterns
+      files:
+        - apps/ascii-prompter/src/core/detector/projectDetector.ts
+        - apps/ascii-prompter/src/core/generator/promptGenerator.ts
+
+    - name: api-engineer
+      role: Creates HTTP API server
+      focus:
+        - Implement /health, /view, /control, /state, /bindings endpoints
+        - Template rendering with variable substitution
+        - Action handlers for all labels
+      files:
+        - apps/ascii-prompter/src/bun/ascii-server.ts
+
+    - name: test-engineer
+      role: Creates tests at all levels
+      focus:
+        - Unit tests for state store, detector, generator
+        - Integration tests for API endpoints
+        - TDD approach - tests first
+      files:
+        - apps/ascii-prompter/tests/unit/
+        - apps/ascii-prompter/tests/integration/
+
+    - name: integration-specialist
+      role: Integrates with ASCII World
+      focus:
+        - Register in .ascii-registry.json
+        - Update startup script
+        - Verify cross-app communication
+      files:
+        - .ascii-registry.json
+        - apps/ascii-world/scripts/start-all.sh
+
+  tasks:
+    - id: task-1
+      title: Create Project Structure
+      assignee: project-scaffolder
+      dependencies: []
+      description: |
+        Create directory structure and configuration files:
+        - mkdir -p apps/ascii-prompter/src/{core/{detector,generator},ascii/{states,api,state},bun}
+        - Create package.json with scripts
+        - Create tsconfig.json
+
+    - id: task-2
+      title: Create State Types and Bindings
+      assignee: state-architect
+      dependencies: [task-1]
+      description: |
+        Define state machine:
+        - AsciiState type (STATUS, GENERATE, CONFIG, HISTORY)
+        - AsciiStateData interface
+        - bindings.json with label-to-action mappings
+
+    - id: task-3
+      title: Create ASCII Templates
+      assignee: template-engineer
+      dependencies: [task-2]
+      description: |
+        Create ASCII templates for each state:
+        - status.ascii - project info and quick actions
+        - generate.ascii - prompt display and generation
+        - config.ascii - configuration options
+        - history.ascii - prompt history
+
+    - id: task-4
+      title: Create State Store (TDD)
+      assignee: state-architect
+      dependencies: [task-2]
+      description: |
+        Implement state store with TDD:
+        - Write failing tests first
+        - Implement AsciiStateStore class
+        - Support transition(), subscribe(), getData()
+
+    - id: task-5
+      title: Create Project Detector (TDD)
+      assignee: core-logic-engineer
+      dependencies: [task-1]
+      description: |
+        Port prompter.sh project detection logic:
+        - Write failing tests first
+        - Implement detectProjectType() function
+        - Support bun, rust, python, go, monorepo detection
+
+    - id: task-6
+      title: Create Prompt Generator (TDD)
+      assignee: core-logic-engineer
+      dependencies: [task-5]
+      description: |
+        Port prompter.sh prompt generation logic:
+        - Write failing tests first
+        - Implement generatePrompt() function
+        - Include project context, identity, instructions
+
+    - id: task-7
+      title: Create HTTP API Server
+      assignee: api-engineer
+      dependencies: [task-3, task-4, task-5, task-6]
+      description: |
+        Create Bun HTTP server on port 3423:
+        - /health, /view, /control, /state, /bindings endpoints
+        - Template rendering
+        - Action handlers for detect, generate, config
+
+    - id: task-8
+      title: Create Integration Tests
+      assignee: test-engineer
+      dependencies: [task-7]
+      description: |
+        Test full integration:
+        - Server starts and responds
+        - Navigation works
+        - Project detection works
+        - Prompt generation works
+
+    - id: task-9
+      title: Register with ASCII World
+      assignee: integration-specialist
+      dependencies: [task-8]
+      description: |
+        Integrate with ecosystem:
+        - Add to .ascii-registry.json
+        - Update start-all.sh script
+        - Verify discovery works
+
+  success_criteria:
+    - Project structure exists with all directories
+    - All unit tests pass
+    - Server responds on port 3423
+    - ASCII view renders correctly
+    - Navigation via labels works
+    - Project detection works
+    - Prompt generation works
+    - Registered in ASCII World
+    - Integration tests pass
+
+  reference_docs:
+    - /home/jericho/zion/projects/ai_auto_development/ai_auto_development/docs/plans/2026-03-19-ascii-prompter-app.md
+    - /home/jericho/zion/projects/ai_auto_development/ai_auto_development/apps/sh/prompter.sh
+    - /home/jericho/zion/projects/ai_auto_development/ai_auto_development/apps/session-analyzer-app/docs/ASCII-FIRST-REFACTORING-GUIDE.md
+    - /home/jericho/zion/projects/ai_auto_development/ai_auto_development/apps/ascii-world/README.md
