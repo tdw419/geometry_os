@@ -337,3 +337,59 @@ Real hardware in Geometry OS is managed by polling status registers mapped to pi
     JZ poll_loop
     STORE DEVICE_DATA, r1
 ```
+
+---
+
+## Example Program: Loop Demo
+
+**Location:** `apps/ascii-world/ascii-world-master/apps/geos-ascii/examples/loop_demo.ascii`
+
+A complete example demonstrating loops, labels, and control flow:
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  LOOP DEMO - Counter 0 to 9                               │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│   :main                                                   │
+│   LDI r0, 10           ; Loop counter (10 iterations)     │
+│   LDI r1, 0            ; Accumulator (starts at 0)        │
+│                                                            │
+│   :loop                                                   │
+│   ADD r1, r1, r1       ; r1 = r1 + 1                      │
+│   SUB r0, r0, 1        ; r0 = r0 - 1                      │
+│   JZ r0, :done         ; Jump if r0 == 0                  │
+│   JMP :loop            ; Repeat                           │
+│                                                            │
+│   :done                                                   │
+│   HALT                 ; Stop execution                   │
+│                                                            │
+│   [A] Run    [B] Reset  [C] Next                          │
+│                                                            │
+├────────────────────────────────────────────────────────────┤
+│   Result will be in r1 register: 10                        │
+└────────────────────────────────────────────────────────────┘
+```
+
+This example demonstrates:
+- **Labels** (`:main`, `:loop`, `:done`) for spatial organization
+- **LDI** for loading immediate values into registers
+- **ADD/SUB** for arithmetic operations
+- **JZ** for conditional branching (jump if zero)
+- **JMP** for unconditional jumps
+- **HALT** to stop execution
+
+---
+
+## Key Paths
+
+| Path | Purpose |
+| :--- | :--- |
+| `systems/infinite_map_rs/` | Rust GPU substrate (wgpu) |
+| `systems/infinite_map_rs/src/synthetic_vram.rs` | CPU-side Glyph VM emulator |
+| `systems/infinite_map_rs/src/gpu/shaders/` | WGSL shaders (glyph microcode) |
+| `systems/glyph_stratum/programs/` | Legacy `.glyph` programs |
+| `apps/ascii-world/ascii-world-master/apps/geos-ascii/examples/` | **ASCII cartridge examples** |
+| `systems/pixel_compiler/` | Python pixel compiler & tools |
+| `kernel/` | Bare-metal boot kernel |
+| `docs/` | Architecture docs & manifesto |

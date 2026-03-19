@@ -41,6 +41,15 @@ pub enum Opcode {
     Sll = 131,
     Srl = 132,
     Sra = 133,
+    // Memory-based operations (211+)
+    Cmp = 211, // CMP - compare values, write result to memory
+    // Conditional jumps (check comparison result)
+    Je = 220,  // JE - Jump if Equal (checks CMP result)
+    Jne = 221, // JNE - Jump if Not Equal (checks CMP result)
+    Jlt = 222, // JLT - Jump if Less Than
+    Jgt = 223, // JGT - Jump if Greater Than
+    Jge = 224, // JGE - Jump if Greater or Equal
+    Spawn = 230, // SPAWN - spawn a new VM
     // Spatial/GPU opcodes (200-227)
     Draw = 215, // DRAW glyph_id, x, y - blit from atlas to screen
     Yield = 227, // YIELD - cooperative multitasking, return control to scheduler
@@ -72,6 +81,13 @@ impl Opcode {
             "XOR" => Some(Self::Xor),
             "SLL" => Some(Self::Sll),
             "SRL" => Some(Self::Srl),
+            "CMP" => Some(Self::Cmp),
+            "JE" | "JZ" => Some(Self::Je),
+            "JNE" | "JNZ" => Some(Self::Jne),
+            "JLT" => Some(Self::Jlt),
+            "JGT" => Some(Self::Jgt),
+            "JGE" => Some(Self::Jge),
+            "SPAWN" => Some(Self::Spawn),
             "DRAW" => Some(Self::Draw),
             "YIELD" => Some(Self::Yield),
             _ => None,
@@ -397,6 +413,7 @@ impl GlyphAssembler {
             return Ok(0);
         }
         // Handle semicolon-separated instructions on one line
+        // Semicolons can also introduce comments - skip non-opcode segments
         let mut total = 0u32;
         for sub_line in line.split(';') {
             let sub_line = sub_line.trim();
@@ -407,16 +424,16 @@ impl GlyphAssembler {
             if parts.is_empty() {
                 continue;
             }
-
-            let opcode = Opcode::from_str(parts[0])
-                .ok_or_else(|| format!("Unknown opcode: {}", parts[0]))?;
-
-            // LDI and BRANCH take 2 words (instruction + data)
-            total += if opcode == Opcode::Ldi || opcode == Opcode::Branch {
-                2
-            } else {
-                1
+            // Skip if not a valid opcode (treat as comment)
+            let Some(opcode) = Opcode::from_str(parts[0]) else {
+                continue;
             };
+
+            // LDI, BRANCH, and CMP with immediate take 2 words (instruction + data)
+            let needs_data = opcode == Opcode::Ldi 
+                || opcode == Opcode::Branch
+                || (opcode == Opcode::Cmp && parts.len() > 2 && !parse_reg(parts[2]).is_some());
+            total += if needs_data { 2 } else { 1 };
         }
         Ok(total)
     }
@@ -424,9 +441,16 @@ impl GlyphAssembler {
     /// Assemble a single line (may contain semicolon-separated instructions)
     fn assemble_line(&mut self, line: &str) -> Result<(), String> {
         // Handle semicolon-separated instructions on one line
+        // Semicolons can also introduce comments - skip non-opcode segments
         for sub_line in line.split(';') {
             let sub_line = sub_line.trim();
             if sub_line.is_empty() {
+                continue;
+            }
+            // Check if this looks like an instruction (starts with opcode)
+            let first_word = sub_line.split_whitespace().next().unwrap_or("");
+            if Opcode::from_str(first_word).is_none() {
+                // Not a valid opcode - treat as comment
                 continue;
             }
             self.assemble_single_instruction(sub_line)?;
@@ -584,16 +608,16 @@ impl GlyphAssembler {
                 }
             },
             Opcode::Store => {
-                // STORE [rd], rs or STORE addr, rs (constant/immediate)
+                // STORE [rd], rs or STORE rd, rs or STORE addr, rs (constant/immediate)
                 let addr_part = parts.get(1).ok_or("STORE needs address")?;
                 let addr_part = addr_part.trim_end_matches(',');
                 let val_part = parts.get(2).ok_or("STORE needs value register")?;
                 let rs = parse_reg(val_part.trim_end_matches(','))
                     .ok_or_else(|| format!("Invalid value register: {}", val_part))?;
-                
-                // Check if it's register indirect [rd] or constant address
+
+                // Check if it's register indirect [rd], rd (without brackets), or constant address
                 if addr_part.starts_with('[') || addr_part.starts_with("mem[") {
-                    // Register indirect: STORE [rd], rs
+                    // Register indirect with brackets: STORE [rd], rs
                     let addr_reg = addr_part
                         .trim_start_matches('[')
                         .trim_start_matches("mem")
@@ -601,6 +625,17 @@ impl GlyphAssembler {
                         .trim_end_matches(']');
                     let rd = parse_reg(addr_reg)
                         .ok_or_else(|| format!("Invalid address register: {}", addr_part))?;
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: rd,
+                            p2: rs,
+                        },
+                        None,
+                    )
+                } else if let Some(rd) = parse_reg(addr_part) {
+                    // Register indirect without brackets: STORE rd, rs
                     (
                         Instruction {
                             opcode,
@@ -800,6 +835,76 @@ impl GlyphAssembler {
                         stratum: rs2,
                         p1: rs1,
                         p2: rd,
+                    },
+                    None,
+                )
+            },
+            Opcode::Cmp => {
+                // CMP rd, rs → compare rd with rs, store result in rd
+                // CMP rd, imm → compare rd with immediate, store result in rd
+                let rd = parse_reg(parts.get(1).ok_or("CMP needs destination register")?)
+                    .ok_or_else(|| format!("Invalid register: {}", parts[1]))?;
+                let val_part = parts.get(2).ok_or("CMP needs comparison value")?;
+                let val_part = val_part.trim_end_matches(',');
+                
+                if let Some(rs) = parse_reg(val_part) {
+                    // Register comparison
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: rs,
+                            p1: rd,
+                            p2: 0,
+                        },
+                        None,
+                    )
+                } else {
+                    // Immediate comparison
+                    let imm = val_part.parse::<i32>()
+                        .map_err(|_| format!("Invalid immediate: {}", val_part))?;
+                    (
+                        Instruction {
+                            opcode,
+                            stratum: 0,
+                            p1: rd,
+                            p2: 0,
+                        },
+                        Some(imm),
+                    )
+                }
+            },
+            Opcode::Je | Opcode::Jne | Opcode::Jlt | Opcode::Jgt | Opcode::Jge => {
+                // Conditional jumps: JE/JNE/JLT/JGT/JGE label
+                let label_part = parts.get(1).ok_or("Conditional jump needs label")?;
+                let label = label_part.trim_start_matches(':').trim_end_matches(',');
+                
+                (
+                    Instruction {
+                        opcode,
+                        stratum: 0,
+                        p1: 0,
+                        p2: 0,
+                    },
+                    Some(0), // Will be resolved by label handling below
+                )
+            },
+            Opcode::Spawn => {
+                // SPAWN program_id, arg1, arg2 → spawn new VM
+                let prog_id = parts.get(1).ok_or("SPAWN needs program ID")?;
+                let prog_id = prog_id.trim_end_matches(',');
+                let arg1 = parts.get(2).map(|s| s.trim_end_matches(',')).unwrap_or("0");
+                
+                let prog: u8 = prog_id.parse()
+                    .map_err(|_| format!("Invalid program ID: {}", prog_id))?;
+                let a1: u8 = arg1.parse()
+                    .unwrap_or(0);
+                
+                (
+                    Instruction {
+                        opcode,
+                        stratum: a1,
+                        p1: prog,
+                        p2: 0,
                     },
                     None,
                 )
