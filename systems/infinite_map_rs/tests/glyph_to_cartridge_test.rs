@@ -1,9 +1,14 @@
 use infinite_map_rs::ascii_cartridge::AsciiCartridge;
 use infinite_map_rs::glyph_to_cartridge::compile_glyph_to_cartridge;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 fn temp_dir() -> PathBuf {
-    std::env::temp_dir().join("geos-glyph-test")
+    // Use unique directory per test to avoid race conditions
+    let id = TEST_COUNTER.fetch_add(1, Ordering::SeqCst);
+    std::env::temp_dir().join(format!("geos-glyph-test-{}", id))
 }
 
 #[test]
