@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::{info, warn, error, debug};
+use tracing::{info, warn, debug};
 use std::fs;
 use std::path::Path;
 
@@ -17,6 +17,12 @@ pub struct TaskOrchestrator {
     enforce_completion: bool,
     /// Path to the state file for persistence
     state_path: String,
+}
+
+impl Default for TaskOrchestrator {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TaskOrchestrator {

@@ -95,6 +95,12 @@ pub struct SpirvBuilder {
     pub id_bound: u32,
 }
 
+impl Default for SpirvBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SpirvBuilder {
     pub fn new() -> Self {
         Self { id_bound: 1 }

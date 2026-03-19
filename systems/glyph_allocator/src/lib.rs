@@ -82,7 +82,7 @@ impl GlyphPool {
     /// Allocate memory for a glyph spatially
     pub fn allocate(&mut self, glyph_id: u32, size: u64) -> Option<u64> {
         // Map size to 2D square size (e.g. 1024 bytes -> 256 pixels -> 16x16 square)
-        let pixels_req = (size + 3) / 4;
+        let pixels_req = size.div_ceil(4);
         let req_side = (pixels_req as f64).sqrt().ceil() as u32;
         
         // Snap to power of 2 for quadtree efficiency

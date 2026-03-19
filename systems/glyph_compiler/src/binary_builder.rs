@@ -46,6 +46,12 @@ mod tests {
     }
 }
 
+impl Default for BinaryBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BinaryBuilder {
     pub fn new() -> Self {
         Self {

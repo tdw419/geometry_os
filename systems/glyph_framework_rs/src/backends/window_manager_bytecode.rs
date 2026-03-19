@@ -10,8 +10,7 @@
 //! - DrmBackend when running with `--features drm` on bare metal
 //! - WgpuBackend for the incubation (browser/debug) environment
 
-use crate::backends::ExecutionBackend;
-use crate::types::{AppId, AppLayout, GlyphId, Intent};
+use crate::types::Intent;
 use std::collections::HashMap;
 
 /// Opcode constants for custom intents
@@ -44,6 +43,12 @@ pub struct LayoutEntry {
     pub height: u32,
     pub app_id: u32,
     pub active: bool,
+}
+
+impl Default for WindowManagerBytecode {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl WindowManagerBytecode {

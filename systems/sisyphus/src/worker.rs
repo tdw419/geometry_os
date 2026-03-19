@@ -29,7 +29,7 @@ impl WorkerPool {
         info!("Initializing Worker Pool with standard subagents");
         let agents = SubagentFactory::create_all()
             .into_iter()
-            .map(|a| Arc::from(a))
+            .map(Arc::from)
             .collect();
 
         WorkerPool {

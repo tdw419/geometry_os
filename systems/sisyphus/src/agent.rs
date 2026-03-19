@@ -25,6 +25,12 @@ pub struct SisyphusAgent {
     persistence_interval: Duration,
 }
 
+impl Default for SisyphusAgent {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SisyphusAgent {
     /// Create a new Sisyphus agent
     pub fn new() -> Self {

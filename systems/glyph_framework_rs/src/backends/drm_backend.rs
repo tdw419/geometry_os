@@ -1,7 +1,3 @@
-use crate::backends::ExecutionBackend;
-use crate::types::{AppId, AppLayout, GlyphId, Intent};
-use std::collections::HashMap;
-use std::sync::Arc;
 
 #[cfg(feature = "drm")]
 use infinite_map_rs::backend::drm::{DrmGlyphExecutor, GlyphError, GlyphOutput, KmsScanout};

@@ -300,14 +300,14 @@ impl ExecutionBackend for WgpuBackend {
         queue.write_buffer(&input_bus_buffer, 0, bytemuck::bytes_of(&vib_header));
 
         // Zero all buffers initially
-        let zero_contexts = vec![0u8; (std::mem::size_of::<AppContext>() * self.max_apps) as usize];
+        let zero_contexts = vec![0u8; ((std::mem::size_of::<AppContext>() * self.max_apps))];
         queue.write_buffer(&context_buffer, 0, &zero_contexts);
 
-        let zero_memory = vec![0u8; (std::mem::size_of::<AppMemory>() * self.max_apps) as usize];
+        let zero_memory = vec![0u8; ((std::mem::size_of::<AppMemory>() * self.max_apps))];
         queue.write_buffer(&memory_buffer, 0, &zero_memory);
 
         let zero_registers =
-            vec![0u8; (std::mem::size_of::<RegisterFile>() * self.max_apps) as usize];
+            vec![0u8; ((std::mem::size_of::<RegisterFile>() * self.max_apps))];
         queue.write_buffer(&register_buffer, 0, &zero_registers);
 
         // Bind group layout
@@ -864,7 +864,7 @@ impl ExecutionBackend for WgpuBackend {
                 });
                 compute_pass.set_pipeline(pipeline);
                 compute_pass.set_bind_group(0, bind_group, &[]);
-                let workgroups = (self.max_apps as u32 + 63) / 64;
+                let workgroups = (self.max_apps as u32).div_ceil(64);
                 compute_pass.dispatch_workgroups(workgroups, 1, 1);
             }
 
