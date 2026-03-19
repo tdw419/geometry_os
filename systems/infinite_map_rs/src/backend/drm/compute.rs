@@ -196,7 +196,7 @@ impl GlyphCompute {
             .context("Failed to upload SPIR-V binary")?;
 
         // Bind buffers using the buffer binding interface
-        let bindings = self.prepare_buffer_bindings(input, output_size)?;
+        let _bindings = self.prepare_buffer_bindings(input, output_size)?;
 
         // Create Intel command buffer for compute shader execution
         // TODO-3/7: Create full compute pipeline (MEDIA_VFE_STATE, CURBE_LOAD, MEDIA_STATE)

@@ -2905,7 +2905,7 @@ impl<'a> InfiniteMapApp<'a> {
         }
         let bridge_arc_opt = self.evolution_terrain_bridge.clone();
         if let Some(bridge_arc) = bridge_arc_opt {
-            if let Ok(mut bridge) = bridge_arc.lock() {
+            if let Ok(bridge) = bridge_arc.lock() {
                 // Check if bridge wants to update
                 if bridge.should_update() {
                     let queue = self.renderer.get_queue();
@@ -4346,7 +4346,7 @@ impl<'a> InfiniteMapApp<'a> {
 
     fn initialize_visual_shell(&mut self) {
         // Assume tokens are in sibling directory
-        let tokens_path = "../visual_shell/tokens.json";
+        let _tokens_path = "../visual_shell/tokens.json";
 
         match VisualShell::new() {
             Ok(mut shell) => {

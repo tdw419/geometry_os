@@ -32,8 +32,8 @@ impl DmaBuf {
     /// This exports a GPU buffer as a shareable file descriptor
     /// that can be imported by the display controller (KMS).
     pub fn export_from_gpu(
-        gpu_fd: RawFd,
-        handle: u32,
+        _gpu_fd: RawFd,
+        _handle: u32,
         width: u32,
         height: u32,
         stride: u32,

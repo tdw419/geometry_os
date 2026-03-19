@@ -373,7 +373,7 @@ impl GlyphStratumEngine {
     pub fn calculate_metabolic_cost(&self) -> u32 {
         self.grid
             .iter()
-            .filter_map(|((x, y), glyph_id)| {
+            .filter_map(|((_x, _y), glyph_id)| {
                 self.registry
                     .get(glyph_id)
                     .map(|g| g.opcode().metabolic_cost())

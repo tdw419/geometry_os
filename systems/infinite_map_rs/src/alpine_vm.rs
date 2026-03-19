@@ -527,7 +527,7 @@ if __name__ == "__main__":
         );
 
         // Start VNC capture
-        let mut child = Command::new("python3")
+        let child = Command::new("python3")
             .arg(&script_path)
             .envs(&envs)
             .stdout(fs::File::create(temp_dir.join("vnc_capture.log")).unwrap())
