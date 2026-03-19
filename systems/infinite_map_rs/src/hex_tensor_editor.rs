@@ -355,11 +355,11 @@ impl HexTensorEditor {
     }
 
     pub fn update_hex_at_cursor(&mut self, _queue: &wgpu::Queue, ch: char) -> bool {
-        let nibble = if ch >= '0' && ch <= '9' {
+        let nibble = if ('0'..='9').contains(&ch) {
             ch as u8 - b'0'
-        } else if ch >= 'A' && ch <= 'F' {
+        } else if ('A'..='F').contains(&ch) {
             ch as u8 - b'A' + 10
-        } else if ch >= 'a' && ch <= 'f' {
+        } else if ('a'..='f').contains(&ch) {
             ch as u8 - b'a' + 10
         } else {
             return false;
@@ -721,11 +721,11 @@ impl HexTensorEditor {
             return false;
         }
 
-        let nibble = if ch >= '0' && ch <= '9' {
+        let nibble = if ('0'..='9').contains(&ch) {
             ch as u8 - b'0'
-        } else if ch >= 'A' && ch <= 'F' {
+        } else if ('A'..='F').contains(&ch) {
             ch as u8 - b'A' + 10
-        } else if ch >= 'a' && ch <= 'f' {
+        } else if ('a'..='f').contains(&ch) {
             ch as u8 - b'a' + 10
         } else {
             return false;

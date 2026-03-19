@@ -6879,7 +6879,7 @@ impl<'a> InfiniteMapApp<'a> {
                     let tex_x_i = (world_pos.x + half_size) as i32;
                     let tex_y_i = (world_pos.y + half_size) as i32;
 
-                    if tex_x_i >= 0 && tex_x_i < 4096 && tex_y_i >= 0 && tex_y_i < 4096 {
+                    if (0..4096).contains(&tex_x_i) && (0..4096).contains(&tex_y_i) {
                         let tex_x = tex_x_i as u32;
                         let tex_y = tex_y_i as u32;
 
@@ -7236,7 +7236,7 @@ impl<'a> InfiniteMapApp<'a> {
                                     let tex_x = (world_pos.x + half_size) as i32;
                                     let tex_y = (world_pos.y + half_size) as i32;
 
-                                    if tex_x >= 0 && tex_x < 4096 && tex_y >= 0 && tex_y < 4096 {
+                                    if (0..4096).contains(&tex_x) && (0..4096).contains(&tex_y) {
                                         log::info!(
                                             "⚡ Tectonic Kill: Killing pixel at ({}, {})",
                                             tex_x,

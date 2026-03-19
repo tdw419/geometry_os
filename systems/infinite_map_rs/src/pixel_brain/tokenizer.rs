@@ -18,7 +18,7 @@ impl ByteTokenizer {
     pub fn new() -> Self {
         let vocab: Vec<String> = (0u8..=255u8)
             .map(|b| {
-                if b >= 32 && b < 127 {
+                if (32..127).contains(&b) {
                     (b as char).to_string()
                 } else {
                     format!("<0x{:02X}>", b)
@@ -52,7 +52,7 @@ impl ByteTokenizer {
             .filter(|&&t| t < 256)
             .filter_map(|&t| {
                 let b = t as u8;
-                if b >= 32 && b < 127 {
+                if (32..127).contains(&b) {
                     Some(b as char)
                 } else {
                     None

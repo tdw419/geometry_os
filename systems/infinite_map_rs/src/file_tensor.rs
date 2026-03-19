@@ -92,7 +92,7 @@ impl FileType {
         let mut zero_count = 0;
 
         for &byte in sample {
-            if byte >= 32 && byte <= 126 || byte == b'\n' || byte == b'\r' || byte == b'\t' {
+            if (32..=126).contains(&byte) || byte == b'\n' || byte == b'\r' || byte == b'\t' {
                 ascii_count += 1;
             }
             if byte == 0 {
@@ -292,7 +292,7 @@ impl FileParams {
         for &byte in sample {
             freq[byte as usize] += 1;
 
-            if byte >= 32 && byte <= 126 || byte == b'\n' || byte == b'\r' || byte == b'\t' {
+            if (32..=126).contains(&byte) || byte == b'\n' || byte == b'\r' || byte == b'\t' {
                 ascii_count += 1;
             }
             if byte == 0 {
