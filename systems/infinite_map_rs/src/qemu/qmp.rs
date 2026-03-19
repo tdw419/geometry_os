@@ -148,4 +148,24 @@ impl QmpClient {
         self.execute("system_reset", None).await?;
         Ok(())
     }
+
+    /// Capture screenshot via screendump command
+    /// Returns the path where the screenshot was saved
+    pub async fn screendump(&mut self, filename: &str) -> Result<String, QmpError> {
+        let args = json!({
+            "filename": filename
+        });
+        let resp = self.execute("screendump", Some(args)).await?;
+
+        // Expect: {"return": {}}
+        if resp.get("return").is_some() {
+            log::info!("📸 QMP Screendump saved to {}", filename);
+            return Ok(filename.to_string());
+        }
+
+        Err(QmpError::Protocol(format!(
+            "Screendump failed: {:?}",
+            resp
+        )))
+    }
 }

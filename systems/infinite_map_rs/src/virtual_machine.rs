@@ -250,10 +250,21 @@ impl QemuProcess {
 
     /// Capture framebuffer from QEMU via QMP screendump
     pub fn capture_framebuffer(&self) -> Result<(), String> {
-        // TODO: Implement QMP connection and screendump command
-        // For now, generate a test pattern
-        self.generate_test_pattern();
-        Ok(())
+        // Try QMP screendump first
+        match self.capture_via_qmp_screendump() {
+            Ok(rgba_data) => {
+                let mut fb = self.framebuffer.lock().unwrap();
+                let copy_len = rgba_data.len().min(fb.len());
+                fb[..copy_len].copy_from_slice(&rgba_data[..copy_len]);
+                log::debug!("📸 Captured framebuffer via QMP screendump ({} bytes)", copy_len);
+                Ok(())
+            }
+            Err(e) => {
+                log::warn!("QMP screendump failed, using test pattern: {}", e);
+                self.generate_test_pattern();
+                Ok(())
+            }
+        }
     }
 
     /// Send input event to QEMU
@@ -286,6 +297,170 @@ impl QemuProcess {
                 }
             }
         }
+    }
+
+    /// Execute a synchronous QMP command (for use from non-async context)
+    fn qmp_execute(&self, command: &str, args: Option<&str>) -> Result<String, String> {
+        let mut stream = UnixStream::connect(&self.qmp_socket)
+            .map_err(|e| format!("QMP connect failed: {}", e))?;
+
+        stream
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .ok();
+
+        // Read greeting
+        let mut greeting = String::new();
+        stream
+            .read_to_string(&mut greeting)
+            .map_err(|e| format!("QMP greeting read failed: {}", e))?;
+
+        if !greeting.contains("QMP") {
+            return Err("No QMP greeting received".to_string());
+        }
+
+        // Send qmp_capabilities to complete handshake
+        let handshake = r#"{"execute": "qmp_capabilities"}"#;
+        stream
+            .write_all(handshake.as_bytes())
+            .map_err(|e| format!("QMP handshake failed: {}", e))?;
+        stream.flush().ok();
+
+        // Read handshake response
+        let mut response = String::new();
+        stream
+            .read_to_string(&mut response)
+            .map_err(|e| format!("QMP response read failed: {}", e))?;
+
+        if !response.contains("return") {
+            return Err(format!("QMP handshake failed: {}", response));
+        }
+
+        // Build and send command
+        let cmd = if let Some(arguments) = args {
+            format!(
+                r#"{{"execute": "{}", "arguments": {}}}"#,
+                command, arguments
+            )
+        } else {
+            format!(r#"{{"execute": "{}"}}"#, command)
+        };
+
+        // Reconnect for the actual command (QMP is stateful)
+        drop(stream);
+        let mut stream = UnixStream::connect(&self.qmp_socket)
+            .map_err(|e| format!("QMP reconnect failed: {}", e))?;
+
+        // Skip greeting on reconnect
+        let mut buf = [0u8; 1024];
+        stream
+            .read(&mut buf)
+            .map_err(|e| format!("QMP skip greeting failed: {}", e))?;
+
+        // Handshake again
+        stream.write_all(handshake.as_bytes()).ok();
+        stream.flush().ok();
+        stream.read(&mut buf).ok();
+
+        // Send command
+        stream
+            .write_all(cmd.as_bytes())
+            .map_err(|e| format!("QMP command send failed: {}", e))?;
+        stream
+            .flush()
+            .map_err(|e| format!("QMP flush failed: {}", e))?;
+
+        // Read response
+        let mut response_buf = String::new();
+        stream
+            .read_to_string(&mut response_buf)
+            .map_err(|e| format!("QMP response read failed: {}", e))?;
+
+        Ok(response_buf)
+    }
+
+    /// Capture framebuffer via QMP screendump command
+    fn capture_via_qmp_screendump(&self) -> Result<Vec<u8>, String> {
+        let screenshot_path = format!("/tmp/qemu_screenshot_{}.ppm", chrono::Utc::now().timestamp());
+
+        // Execute screendump command
+        let args = format!(r#"{{"filename": "{}"}}"#, screenshot_path);
+        let response = self.qmp_execute("screendump", Some(&args))?;
+
+        if !response.contains("return") {
+            return Err(format!("Screendump failed: {}", response));
+        }
+
+        // Wait for file to be written
+        thread::sleep(Duration::from_millis(100));
+
+        // Read and parse PPM file
+        let ppm_data = std::fs::read(&screenshot_path)
+            .map_err(|e| format!("Failed to read screenshot: {}", e))?;
+
+        // Clean up temp file
+        std::fs::remove_file(&screenshot_path).ok();
+
+        // Parse PPM (P6 format: binary RGB)
+        Self::parse_ppm(&ppm_data)
+    }
+
+    /// Parse PPM image data to RGBA framebuffer
+    fn parse_ppm(data: &[u8]) -> Result<Vec<u8>, String> {
+        // PPM P6 format: "P6\n<width> <height>\n<maxval>\n<binary RGB data>"
+        let header_end = data
+            .windows(3)
+            .position(|w| w == b"\n\n")
+            .or_else(|| data.windows(2).position(|w| w == b"\n\n"))
+            .unwrap_or(0);
+
+        if header_end == 0 {
+            return Err("Invalid PPM format".to_string());
+        }
+
+        // Find header boundaries
+        let mut lines = data[..header_end].split(|&b| b == b'\n');
+        let magic = lines.next().ok_or("No magic number")?;
+        if magic != b"P6" {
+            return Err(format!("Expected P6 PPM, got {:?}", magic));
+        }
+
+        let dimensions = lines.next().ok_or("No dimensions")?;
+        let dim_str = String::from_utf8_lossy(dimensions);
+        let dims: Vec<&str> = dim_str.split_whitespace().collect();
+        let width: u32 = dims
+            .get(0)
+            .ok_or("No width")?
+            .parse()
+            .map_err(|_| "Invalid width")?;
+        let height: u32 = dims
+            .get(1)
+            .ok_or("No height")?
+            .parse()
+            .map_err(|_| "Invalid height")?;
+
+        // Find start of pixel data (after all header newlines)
+        let pixel_start = data
+            .iter()
+            .position(|&b| b.is_ascii_digit())
+            .and_then(|pos| data[pos..].iter().position(|&b| b == b'\n').map(|p| pos + p + 1))
+            .unwrap_or(header_end + 2);
+
+        let pixel_data = &data[pixel_start..];
+        let pixel_count = (width * height) as usize;
+
+        // Convert RGB to RGBA
+        let mut rgba = Vec::with_capacity(pixel_count * 4);
+        for i in 0..pixel_count {
+            let offset = i * 3;
+            if offset + 2 < pixel_data.len() {
+                rgba.push(pixel_data[offset]); // R
+                rgba.push(pixel_data[offset + 1]); // G
+                rgba.push(pixel_data[offset + 2]); // B
+                rgba.push(255); // A
+            }
+        }
+
+        Ok(rgba)
     }
 }
 
