@@ -1,0 +1,179 @@
+# ASCII World Integration Team
+# Integrates ASCII-First Architecture into ASCII World
+
+team:
+  name: ascii-world-integration-team
+  description: |
+    Transforms ASCII World from a pattern detector into a full ASCII-First application
+    with state management, HTTP API, template rendering, and MCP bridge for AI agent control.
+
+  project_root: /home/jericho/zion/projects/ascii_interface/ascii_interface
+
+  agents:
+    - name: state-architect
+      role: Creates central ASCII state machine
+      focus:
+        - Design AsciiStateStore with subscription model
+        - Define AsciiState and AsciiStateData types
+        - Implement state transitions via label bindings
+        - Create bindings.json configuration
+      files:
+        - src/ascii/state/store.ts
+        - src/ascii/state/types.ts
+        - src/ascii/bindings.json
+        - tests/ascii/state/store.test.ts
+
+    - name: template-engineer
+      role: Creates ASCII templates and rendering engine
+      focus:
+        - Design ASCII templates for dashboard
+        - Implement AsciiGenerator with {{variable}} substitution
+        - Support template loading and rendering
+      files:
+        - src/ascii/templates/generator.ts
+        - src/ascii/templates/dashboard.ascii
+        - tests/ascii/templates/generator.test.ts
+
+    - name: api-engineer
+      role: Creates HTTP API server for ASCII control
+      focus:
+        - Implement /view endpoint for ASCII rendering
+        - Implement /control endpoint for label-based navigation
+        - Implement /state, /bindings, /health endpoints
+        - Add CORS and error handling
+      files:
+        - src/ascii/api/server.ts
+        - src/ascii/api/index.ts
+        - tests/ascii/api/server.test.ts
+
+    - name: mcp-specialist
+      role: Creates MCP bridge for AI agent control
+      focus:
+        - Create MCP server with 5 tools
+        - Implement ascii_view, ascii_control, ascii_navigate, ascii_state, ascii_bindings
+        - Add error handling for connection failures
+      files:
+        - apps/geos-ascii/mcp-bridge/pyproject.toml
+        - apps/geos-ascii/mcp-bridge/src/mcp_ascii_bridge/__init__.py
+        - apps/geos-ascii/mcp-bridge/src/mcp_ascii_bridge/server.py
+
+    - name: compiler-engineer
+      role: Enhances GeosASCII compiler with templates
+      focus:
+        - Add variable substitution to compiler
+        - Support --variables flag for dynamic content
+        - Integrate template system with cartridge generation
+      files:
+        - apps/geos-ascii/compiler/geos_ascii_compiler.py
+
+    - name: cli-engineer
+      role: Creates CLI entry point
+      focus:
+        - Create main CLI entry point
+        - Add server startup with banner
+        - Configure port and environment options
+      files:
+        - src/ascii/cli.ts
+        - package.json
+
+    - name: doc-writer
+      role: Updates documentation
+      focus:
+        - Create ASCII-First API documentation
+        - Update README with new features
+        - Document MCP tools and usage
+      files:
+        - docs/ASCII-FIRST-API.md
+        - apps/geos-ascii/README.md
+
+  tasks:
+    - id: task-1
+      title: Create AsciiStateStore
+      assignee: state-architect
+      dependencies: []
+      description: |
+        Create the central state management system:
+        - AsciiStateStore class with transition(), subscribe(), getState(), setData()
+        - AsciiState and AsciiStateData types
+        - bindings.json with state transitions and actions
+        - Unit tests for all functionality
+
+    - id: task-2
+      title: Create Template Renderer
+      assignee: template-engineer
+      dependencies: [task-1]
+      description: |
+        Create template-driven rendering system:
+        - AsciiGenerator class
+        - dashboard.ascii template with {{variable}} syntax
+        - Variable substitution
+        - Unit tests
+
+    - id: task-3
+      title: Create HTTP API Server
+      assignee: api-engineer
+      dependencies: [task-2]
+      description: |
+        Create HTTP API for AI agent control:
+        - /view - returns rendered ASCII
+        - /control - executes label action
+        - /state - returns current state JSON
+        - /bindings - returns label mappings
+        - /health - health check
+        - Integration tests
+
+    - id: task-4
+      title: Create MCP Bridge
+      assignee: mcp-specialist
+      dependencies: [task-3]
+      description: |
+        Create MCP server for Claude Code integration:
+        - pyproject.toml with dependencies
+        - server.py with 5 MCP tools
+        - Error handling for API connection
+
+    - id: task-5
+      title: Enhance Compiler with Templates
+      assignee: compiler-engineer
+      dependencies: [task-2]
+      description: |
+        Add template support to GeosASCII compiler:
+        - Variable substitution function
+        - --variables flag
+        - Integration with existing compilation
+
+    - id: task-6
+      title: Create CLI Entry Point
+      assignee: cli-engineer
+      dependencies: [task-3]
+      description: |
+        Create CLI for starting ASCII World server:
+        - Main entry point with Bun
+        - Server startup banner
+        - Environment configuration
+
+    - id: task-7
+      title: Update Documentation
+      assignee: doc-writer
+      dependencies: [task-4, task-5, task-6]
+      description: |
+        Update documentation for new features:
+        - ASCII-First API reference
+        - MCP tools documentation
+        - README updates
+
+  success_criteria:
+    - AsciiStateStore manages state correctly
+    - Template renderer substitutes {{variable}} syntax
+    - HTTP API responds to all endpoints
+    - MCP bridge connects Claude Code to ASCII World
+    - Compiler supports template variables
+    - CLI starts server successfully
+    - All tests pass
+    - Documentation is complete
+
+  reference_docs:
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/docs/plans/2026-03-18-ascii-first-integration.md
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/docs/ASCII-FIRST-REFACTORING-GUIDE.md
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/docs/REFERENCE-ARCHITECTURE.md
+    - /home/jericho/zion/projects/ascii_interface/ascii_interface/docs/ASCII-FIRST-ARCHITECTURE12.md
