@@ -10,7 +10,7 @@ pub fn register_host_functions(linker: &mut Linker<ACEState>) -> anyhow::Result<
     linker.func_wrap(
         "ace",
         "read_texture",
-        |mut caller: Caller<'_, ACEState>, x: u32, y: u32| -> u32 {
+        |caller: Caller<'_, ACEState>, x: u32, y: u32| -> u32 {
             // Read color from texture
             match image::open(&caller.data().texture_path) {
                 Ok(img) => {
@@ -34,7 +34,7 @@ pub fn register_host_functions(linker: &mut Linker<ACEState>) -> anyhow::Result<
     linker.func_wrap(
         "ace",
         "write_texture",
-        |mut caller: Caller<'_, ACEState>, x: u32, y: u32, color: u32| {
+        |caller: Caller<'_, ACEState>, x: u32, y: u32, color: u32| {
             // Write color to texture
             if let Ok(mut img) = image::open(&caller.data().texture_path) {
                 let (width, height) = img.dimensions();

@@ -62,8 +62,8 @@ impl GlyphExecutor {
         output_size: usize,
     ) -> Result<Vec<f32>> {
         // Allocate buffers
-        let input_buffer = self.create_storage_buffer(input.len() * 4)?;
-        let output_buffer = self.create_storage_buffer(output_size * 4)?;
+        let _input_buffer = self.create_storage_buffer(input.len() * 4)?;
+        let _output_buffer = self.create_storage_buffer(output_size * 4)?;
 
         // Create command buffer
         let alloc_info = vk::CommandBufferAllocateInfo::default()

@@ -258,7 +258,7 @@ impl GlyphVmExecutor {
     /// Push a keyboard event to the VIB FIFO
     pub fn push_key_event(&self, code: u32, pressed: bool, mods: u32) {
         // Read current VIB state
-        let header_size = 8 * std::mem::size_of::<u32>();
+        let _header_size = 8 * std::mem::size_of::<u32>();
         let mut vib_data: [u32; VIB_CAPACITY_U32] = [0u32; VIB_CAPACITY_U32];
 
         // We need to read-modify-write, but for simplicity just write the event

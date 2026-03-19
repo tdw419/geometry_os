@@ -4080,7 +4080,7 @@ impl<'a> InfiniteMapApp<'a> {
         // 3. Render tiles to textures
         for tile in &mut self.terminal_tiles {
             if tile.needs_render {
-                let mut external_emu = None;
+                let external_emu = None;
                 #[cfg(feature = "hypervisor")]
                 if let Some(pty_id) = tile.pty_id {
                     if let Some(ref manager) = self.terminal_clone_manager {

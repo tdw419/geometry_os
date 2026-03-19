@@ -351,7 +351,7 @@ impl DrmGlyphExecutor {
         let spirv_iter = spirv.iter().copied();
 
         // Parse SPIR-V
-        let mut frontend = naga::front::spv::Frontend::new(spirv_iter, &Options::default());
+        let frontend = naga::front::spv::Frontend::new(spirv_iter, &Options::default());
         let module = frontend
             .parse()
             .map_err(|e| GlyphError::SpirvValidation(format!("{:?}", e)))?;

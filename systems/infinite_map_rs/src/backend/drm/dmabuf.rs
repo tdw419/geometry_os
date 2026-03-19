@@ -68,7 +68,7 @@ impl DmaBuf {
     ///
     /// This creates a DRM framebuffer from the DMA-BUF,
     /// allowing direct display without CPU copy.
-    pub fn import_to_kms(&self, drm_fd: RawFd) -> Result<u32> {
+    pub fn import_to_kms(&self, _drm_fd: RawFd) -> Result<u32> {
         log::info!(
             "Importing DMA-BUF fd={} to KMS for scanout",
             self.fd.as_raw_fd()

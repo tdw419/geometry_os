@@ -76,7 +76,7 @@ impl ComputeShader {
             anyhow::bail!("Shader not ready");
         }
 
-        let mut commands = Vec::new();
+        let commands = Vec::new();
 
         // In a real implementation, this would:
         // 1. Parse SPIR-V to understand the kernel

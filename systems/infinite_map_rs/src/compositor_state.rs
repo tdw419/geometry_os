@@ -99,7 +99,7 @@ impl GeometryCompositorState {
         }
     }
 
-    pub fn init_xwayland(&mut self, loop_handle: &LoopHandle<'static, GeometryCompositorState>) {
+    pub fn init_xwayland(&mut self, _loop_handle: &LoopHandle<'static, GeometryCompositorState>) {
         use std::process::Stdio;
 
         // Spawn XWayland with Smithay 0.7.0 API

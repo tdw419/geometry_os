@@ -28,7 +28,7 @@ use gbm::BufferObject;
 /// * `Err` - If parsing fails or no workgroup size found
 fn extract_workgroup_size_from_spirv(spirv_binary: &[u32]) -> Result<(u32, u32, u32)> {
     let spirv_iter = spirv_binary.iter().copied();
-    let mut frontend = spv::Frontend::new(spirv_iter, &spv::Options::default());
+    let frontend = spv::Frontend::new(spirv_iter, &spv::Options::default());
     let module = frontend
         .parse()
         .map_err(|e| anyhow!("SPIR-V parse error: {:?}", e))?;
@@ -413,7 +413,7 @@ impl GlyphCompute {
         );
 
         // Create Intel command buffer for compute shader execution
-        let mut cmd_buffer = IntelCommandBuffer::new();
+        let cmd_buffer = IntelCommandBuffer::new();
 
         // Build batch buffer with compute commands
         let batch_commands = cmd_buffer

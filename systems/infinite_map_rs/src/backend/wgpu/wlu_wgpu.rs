@@ -410,7 +410,7 @@ impl WluWgpuResources {
 
 /// Implement WaveLogicBackend trait for wgpu resources
 impl WaveLogicBackend for WluWgpuResources {
-    fn update(&mut self, dt: f32) {
+    fn update(&mut self, _dt: f32) {
         // Update params buffer with current oscillator settings
         if let Err(e) = self.update_params_buffer() {
             eprintln!("Failed to update params buffer: {:?}", e);
