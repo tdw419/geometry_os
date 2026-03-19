@@ -1,0 +1,108 @@
+{
+  "name": "GEOS ASCII Workspace",
+  "version": "1.0.0",
+  "buttons": [
+    {
+      "label": "1",
+      "text": "Terminal",
+      "action": "SPAWN_VM",
+      "target": "0x5000",
+      "key": "1"
+    },
+    {
+      "label": "2",
+      "text": "Editor",
+      "action": "SPAWN_VM",
+      "target": "0x6000",
+      "key": "2"
+    },
+    {
+      "label": "3",
+      "text": "Files",
+      "action": "SPAWN_VM",
+      "target": "0x7000",
+      "key": "3"
+    },
+    {
+      "label": "Q",
+      "text": "Quit",
+      "action": "HALT",
+      "target": "",
+      "key": "q"
+    }
+  ],
+  "state_vars": {
+    "frame": {
+      "type": "u32",
+      "default": 0,
+      "address": "0x1000"
+    },
+    "mouse_x": {
+      "type": "u32",
+      "default": 0,
+      "address": "0x1004"
+    },
+    "mouse_y": {
+      "type": "u32",
+      "default": 0,
+      "address": "0x1008"
+    },
+    "zoom": {
+      "type": "u32",
+      "default": 100,
+      "address": "0x100C"
+    },
+    "vm_count": {
+      "type": "u32",
+      "default": 1,
+      "address": "0x1010"
+    },
+    "prompt": {
+      "type": "string",
+      "default": "$ ",
+      "address": "0x1100"
+    },
+    "terminal_lines": {
+      "type": "array",
+      "default": [
+        "GEOS ASCII Workspace Ready",
+        "Type 'help' for commands"
+      ],
+      "address": "0x1200"
+    }
+  },
+  "memory_layout": {
+    "glyph_grid": {
+      "base": "0x0000",
+      "size": "0x0BFF"
+    },
+    "sit": {
+      "base": "0x0C00",
+      "size": "0x00FF"
+    },
+    "state_buffer": {
+      "base": "0x1000",
+      "size": "0x03FF"
+    },
+    "mailbox": {
+      "base": "0x0200",
+      "size": "0x0010"
+    },
+    "window_table": {
+      "base": "0x0100",
+      "size": "0x0040"
+    },
+    "terminal_segment": {
+      "base": "0x5000",
+      "size": "0x0FFF"
+    },
+    "editor_segment": {
+      "base": "0x6000",
+      "size": "0x0FFF"
+    },
+    "files_segment": {
+      "base": "0x7000",
+      "size": "0x0FFF"
+    }
+  }
+}
