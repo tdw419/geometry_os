@@ -1,6 +1,6 @@
 //! Mailbox Bridge - CPU to VM Event Forwarding
 //!
-//! Serializes input events to the VM mailbox format at address 0x0200.
+//! Serializes input events to VM mailbox format at address 0x0200.
 //! Used by micro_host.rs to forward winit events to GPU VM.
 
 /// Memory layout for input events (matches infinite_map.glyph)
@@ -11,6 +11,11 @@ pub const EVENT_Y: u32 = 0x0208;
 pub const EVENT_BTN: u32 = 0x020C;
 pub const EVENT_DX: u32 = 0x0210;
 pub const EVENT_DY: u32 = 0x0214;
+
+/// Event types
+pub const EVENT_TYPE_MOUSE_MOVE: u32 = 1;
+pub const EVENT_TYPE_CLICK: u32 = 2;
+pub const EVENT_TYPE_SCROLL: u32 = 4;
 
 /// Input event types
 #[derive(Debug, Clone, Copy)]
@@ -34,7 +39,7 @@ impl MailboxBridge {
     pub fn write_event(&mut self, event: InputEvent) {
         match event {
             InputEvent::MouseMove { x, y, dx, dy } => {
-                self.mailbox[0] = 1; // EVENT_TYPE_MOUSE_MOVE
+                self.mailbox[0] = EVENT_TYPE_MOUSE_MOVE;
                 self.mailbox[1] = x;
                 self.mailbox[2] = y;
                 self.mailbox[3] = 0;
@@ -42,7 +47,7 @@ impl MailboxBridge {
                 self.mailbox[5] = dy as u32;
             }
             InputEvent::Click { x, y, button } => {
-                self.mailbox[0] = 2; // EVENT_TYPE_CLICK
+                self.mailbox[0] = EVENT_TYPE_CLICK;
                 self.mailbox[1] = x;
                 self.mailbox[2] = y;
                 self.mailbox[3] = button;
@@ -50,7 +55,7 @@ impl MailboxBridge {
                 self.mailbox[5] = 0;
             }
             InputEvent::Scroll { dx, dy } => {
-                self.mailbox[0] = 4; // EVENT_TYPE_SCROLL
+                self.mailbox[0] = EVENT_TYPE_SCROLL;
                 self.mailbox[1] = 0;
                 self.mailbox[2] = 0;
                 self.mailbox[3] = 0;
@@ -60,14 +65,19 @@ impl MailboxBridge {
         }
     }
 
-    /// Read the mailbox as raw words (for GPU upload)
-    pub fn read_mailbox(&self) -> &[u32; 6] {
-        &self.mailbox
+    /// Read mailbox as raw words (for GPU upload)
+    pub fn read_mailbox(&self) -> [u32; 6] {
+        self.mailbox
     }
 
-    /// Clear the event (set type to 0)
+    /// Clear event (set all fields to 0)
     pub fn clear_event(&mut self) {
         self.mailbox[0] = 0;
+        self.mailbox[1] = 0;
+        self.mailbox[2] = 0;
+        self.mailbox[3] = 0;
+        self.mailbox[4] = 0;
+        self.mailbox[5] = 0;
     }
 }
 
