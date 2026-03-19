@@ -63,7 +63,8 @@ pub enum SyncMessage {
 
 /// Connected client information
 struct ConnectedClient {
-    /// Client ID
+    /// Client ID (scaffolding: future client tracking)
+    #[allow(dead_code)]
     id: String,
     /// Last heartbeat timestamp
     last_heartbeat: std::time::Instant,

@@ -188,7 +188,8 @@ impl Default for BatchBuffer {
 
 /// GPU memory buffer for batch execution.
 pub struct GpuBuffer {
-    /// File descriptor for buffer
+    /// File descriptor for buffer (scaffolding: future PRIME buffer sharing)
+    #[allow(dead_code)]
     fd: File,
     /// Virtual address (CPU)
     virt: *mut u8,

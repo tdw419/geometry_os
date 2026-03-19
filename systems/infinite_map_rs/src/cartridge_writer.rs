@@ -244,9 +244,10 @@ impl CartridgeWriter {
         }
     }
 
-    /// Write bootstrap metadata header
+    /// Write bootstrap metadata header (scaffolding: future cartridge metadata)
     ///
     /// Encodes cartridge name and version into the bootstrap segment.
+    #[allow(dead_code)]
     fn write_bootstrap(&mut self) {
         // First 16 pixels: name (null-terminated, max 16 chars)
         // Clone name to avoid borrow conflict

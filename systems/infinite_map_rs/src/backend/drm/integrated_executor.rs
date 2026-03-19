@@ -56,11 +56,13 @@ impl Default for IntegratedExecutorConfig {
 /// 3. Glyph VM Executor (compute pipeline)
 /// 4. DMA-BUF output (zero-copy to display)
 pub struct IntegratedGlyphExecutor {
-    /// GPU device
+    /// GPU device (scaffolding: future direct GPU execution)
+    #[allow(dead_code)]
     device: Arc<wgpu::Device>,
     /// GPU queue
     queue: Arc<wgpu::Queue>,
-    /// Configuration
+    /// Configuration (scaffolding: future GPU config options)
+    #[allow(dead_code)]
     config: IntegratedExecutorConfig,
     /// Input bridge (hardware or simulated)
     input_bridge: InputBridgeType,

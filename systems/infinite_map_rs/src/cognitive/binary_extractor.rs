@@ -30,7 +30,8 @@ use std::path::Path;
 pub struct ACEBinaryExtractor {
     /// Grid size (must be power of 2)
     grid_size: u32,
-    /// Hilbert curve order (log2 of grid_size)
+    /// Hilbert curve order (log2 of grid_size) (scaffolding: future curve validation)
+    #[allow(dead_code)]
     order: u32,
     /// Total pixels in the grid
     total_pixels: u32,

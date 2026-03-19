@@ -2,6 +2,8 @@ use std::sync::Arc;
 use wgpu;
 
 pub struct TextureUpdater {
+    /// GPU device (scaffolding: future async texture ops)
+    #[allow(dead_code)]
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
 }

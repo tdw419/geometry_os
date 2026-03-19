@@ -5,7 +5,11 @@ use std::path::Path;
 use wasmtime::*;
 
 pub struct ACERuntime {
+    /// WASM engine (scaffolding: future runtime inspection)
+    #[allow(dead_code)]
     engine: Engine,
+    /// WASM module (scaffolding: future module inspection)
+    #[allow(dead_code)]
     module: Module,
     store: Store<ACEState>,
     instance: Instance,
@@ -56,6 +60,8 @@ impl ACERuntime {
         })
     }
 
+    /// Extract ACE binary from texture (scaffolding: future standalone extraction)
+    #[allow(dead_code)]
     fn extract_ace_binary(img: &DynamicImage) -> Result<Vec<u8>> {
         // Extract binary using Hilbert curve mapping
         let extractor = ACEBinaryExtractor::default();

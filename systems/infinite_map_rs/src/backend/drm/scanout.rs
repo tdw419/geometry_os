@@ -10,10 +10,13 @@ use std::time::SystemTime;
 use super::dmabuf::DmaBuf;
 
 /// KMS scanout for direct display via DRM.
+#[allow(dead_code)]
 pub struct KmsScanout {
     width: u32,
     height: u32,
+    /// CRTC ID (scaffolding: future atomic modeset)
     crtc_id: u32,
+    /// Connector ID (scaffolding: future atomic modeset)
     connector_id: u32,
 }
 
@@ -22,9 +25,11 @@ pub struct KmsScanout {
 /// This provides end-to-end verification that what's displayed on the
 /// monitor matches the signed visual contract.
 pub struct Scanout {
-    /// CRTC (display controller) ID
+    /// CRTC (display controller) ID (scaffolding: future modeset control)
+    #[allow(dead_code)]
     crtc: u32,
-    /// Connector ID
+    /// Connector ID (scaffolding: future modeset control)
+    #[allow(dead_code)]
     connector: u32,
     /// Current display mode (width x height @ refresh)
     mode: DisplayMode,

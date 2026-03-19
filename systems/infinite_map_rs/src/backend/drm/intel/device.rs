@@ -11,7 +11,8 @@ pub type BufferHandle = u32;
 pub struct IntelGpuDevice {
     device_file: File,
     device_path: String,
-    /// GPU ID for command submission
+    /// GPU ID for command submission (scaffolding: future multi-GPU support)
+    #[allow(dead_code)]
     gpu_id: u32,
     /// Next buffer handle
     next_buffer_handle: u32,
@@ -234,6 +235,8 @@ impl IntelGpuDevice {
         const DRM_IOCTL_BASE: u32 = 0x80;
         const DRM_COMMAND_BASE: u32 = 0x40;
         const I915_GEM_EXECBUFFER2: u32 = 0x17;
+        /// I915 ioctl magic number (scaffolding: future raw ioctl interface)
+        #[allow(dead_code)]
         const I915_IOC_MAGIC: u32 = 0x69;
 
         let ioctl_nr = (DRM_IOCTL_BASE << 30)

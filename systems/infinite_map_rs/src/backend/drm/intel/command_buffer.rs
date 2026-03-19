@@ -4,7 +4,8 @@
 use anyhow::Result;
 use std::os::unix::io::RawFd;
 
-/// Batch buffer header.
+/// Batch buffer header (scaffolding: future batch buffer submission)
+#[allow(dead_code)]
 #[repr(C, packed)]
 struct BatchBufferHeader {
     /// Batch buffer start
@@ -13,7 +14,8 @@ struct BatchBufferHeader {
     reserved: [u32; 3],
 }
 
-/// MEDIA_VFE_STATE - Video Front End state for compute.
+/// MEDIA_VFE_STATE - Video Front End state for compute (scaffolding: future GPU compute)
+#[allow(dead_code)]
 #[repr(C, packed)]
 struct MediaVfeState {
     /// Command type (0x71000000 for MEDIA_VFE_STATE)
@@ -26,7 +28,8 @@ struct MediaVfeState {
     scratch_size: u32,
 }
 
-/// INTERFACE_DESCRIPTOR_DATA - Compute shader interface.
+/// INTERFACE_DESCRIPTOR_DATA - Compute shader interface (scaffolding: future GPU compute)
+#[allow(dead_code)]
 #[repr(C, packed)]
 struct InterfaceDescriptor {
     /// Kernel start pointer
@@ -47,7 +50,8 @@ pub struct IntelCommandBuffer {
     commands: Vec<u32>,
     /// Current offset in command stream
     offset: usize,
-    /// Current batch buffer size
+    /// Current batch buffer size (scaffolding: future batch validation)
+    #[allow(dead_code)]
     batch_size: usize,
 }
 

@@ -123,6 +123,8 @@ const fn iowr(type_: u8, nr: u8, size: usize) -> u64 {
 /// Kernel module interface for direct glyph execution.
 pub struct KernelInterface {
     device_file: File,
+    /// Device path (scaffolding: future multi-device support)
+    #[allow(dead_code)]
     device_path: String,
 }
 

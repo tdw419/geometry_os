@@ -141,6 +141,8 @@ impl GpuMemoryAllocator {
 /// This provides CPU access to GPU memory while maintaining proper
 /// synchronization and cleanup.
 pub struct MappedBuffer<'a> {
+    /// Buffer reference (scaffolding: future buffer queries)
+    #[allow(dead_code)]
     buffer: &'a BufferObject<()>,
     mapped_data: &'a [u8],
 }
