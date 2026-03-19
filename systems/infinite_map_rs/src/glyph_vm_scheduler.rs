@@ -752,6 +752,10 @@ impl GlyphVmScheduler {
         let frame = self
             .frame_count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+        // Log every frame (temporary for debugging)
+        log::info!("[SCHEDULER] Frame {} dispatched", frame);
+
         if frame % 60 == 0 {
             eprintln!("[SCHEDULER] Frame {} complete", frame);
         }
