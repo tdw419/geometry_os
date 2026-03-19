@@ -136,6 +136,13 @@ benchmarks/
 # One-off verification/test scripts in root (not in tests/)
 /verify_*.py
 /test_*.py
+/check_*.py
+/debug_*.py
+/manual_*.py
+/comprehensive_*.py
+/final_*.py
+/configure_*.py
+/vm_state_investigation.py
 
 # Genesis pilot report
 genesis_pilot_report.json
