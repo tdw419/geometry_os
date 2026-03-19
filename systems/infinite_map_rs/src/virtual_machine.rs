@@ -359,7 +359,7 @@ impl QemuProcess {
         // Handshake again
         stream.write_all(handshake.as_bytes()).ok();
         stream.flush().ok();
-        stream.read(&mut buf).ok();
+        let _ = stream.read(&mut buf);
 
         // Send command
         stream
