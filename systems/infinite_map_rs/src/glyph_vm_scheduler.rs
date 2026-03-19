@@ -626,7 +626,9 @@ impl GlyphVmScheduler {
             bytemuck::cast_slice(&[vm_state::RUNNING]),
         );
         self.queue.submit(None);
-        self.device.poll(wgpu::Maintain::Wait);
+
+        // Removed blocking device.poll() to avoid interfering with main execution loop
+        // The main loop will process this in the next frame
 
         log::info!("Resumed VM {}", vm_id);
         Ok(())
