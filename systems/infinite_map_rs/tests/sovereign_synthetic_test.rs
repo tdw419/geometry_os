@@ -92,7 +92,8 @@ mod tests {
 
     #[test]
     fn test_synthetic_assemble_simple() {
-        let source = "LDI r0, 42\nHALT\n";
+        // The self-hosting assembler expects @ prefix on instructions to compile
+        let source = "@LDI r0, 42\n@HALT\n";
         let result = run_assembler_on_synthetic(source, 100_000);
 
         // Should produce bytecode
