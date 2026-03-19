@@ -7,6 +7,7 @@ use std::error::Error;
 ///
 /// Uses sparse sampling (10% Nyquist) and Hilbert curve locality
 /// to reconstruct the full memory density map.
+#[allow(dead_code)] // order, sample_count for future diagnostics
 pub struct CompressedSensingReconstructor {
     hilbert: Hilbert3D,
     order: u32,

@@ -45,6 +45,7 @@ pub struct SelectionUniform {
 }
 
 /// WGPU-based graph rendering pipeline
+#[allow(dead_code)] // node_bind_group_layout, edge_bind_group_layout - GPU scaffolding
 pub struct GraphRenderer {
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,

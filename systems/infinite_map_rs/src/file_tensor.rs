@@ -343,6 +343,7 @@ impl FileParams {
 // ============================================
 
 /// Main struct for file tensor folding
+#[allow(dead_code)] // GPU scaffolding - bind_group_layout used in future dispatch
 pub struct FileTensorFolder {
     // GPU Resources
     input_buffer: Buffer,

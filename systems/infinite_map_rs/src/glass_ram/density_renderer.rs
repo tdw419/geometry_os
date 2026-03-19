@@ -106,6 +106,7 @@ impl DensityPalette {
 /// Density map renderer
 ///
 /// Converts the 2D density array to a texture for GPU rendering
+#[allow(dead_code)] // device, sampler, bind_group_layout - GPU scaffolding for future rendering
 pub struct DensityRenderer {
     config: DensityRendererConfig,
     device: Arc<wgpu::Device>,

@@ -15,6 +15,7 @@ pub struct JitArtifact {
 }
 
 /// The JIT Bridge manages live code injection from the Infinite Map
+#[allow(dead_code)] // queue - GPU scaffolding for future hot-reload
 pub struct JitBridge {
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,

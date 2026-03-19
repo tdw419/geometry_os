@@ -215,9 +215,13 @@ pub struct PageFaultEvent {
 // IOCTL Definitions
 // -----------------------------------------------------------------------------
 
+#[allow(dead_code)] // IOCTL magic numbers for future uffd operations
 const UFFDIO: u8 = 0xAA;
+#[allow(dead_code)] // IOCTL API number
 const API: u8 = 0x3F;
+#[allow(dead_code)] // IOCTL register command
 const REGISTER: u8 = 0x00;
+#[allow(dead_code)] // IOCTL write protect command
 const WRITEPROTECT: u8 = 0x06;
 
 // Direct libc ioctl calls for userfaultfd operations

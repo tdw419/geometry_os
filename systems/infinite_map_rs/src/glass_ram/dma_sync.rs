@@ -15,6 +15,7 @@ use std::os::unix::io::RawFd;
 const DMA_BUF_BASE: u8 = b'b';
 const DMA_BUF_SYNC_READ: u64 = 1 << 0;
 const DMA_BUF_SYNC_WRITE: u64 = 1 << 1;
+#[allow(dead_code)] // Combined RW constant for future bidirectional sync
 const DMA_BUF_SYNC_RW: u64 = DMA_BUF_SYNC_READ | DMA_BUF_SYNC_WRITE;
 const DMA_BUF_SYNC_START: u64 = 0 << 2;
 const DMA_BUF_SYNC_END: u64 = 1 << 2;

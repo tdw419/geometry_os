@@ -678,6 +678,7 @@ pub struct MemoryTensorFolder {
 
     // Compute Pipeline
     compute_pipeline: ComputePipeline,
+    #[allow(dead_code)] // bind_group_layout - GPU scaffolding for future dispatch
     bind_group_layout: BindGroupLayout,
     bind_group: BindGroup,
 

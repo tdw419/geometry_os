@@ -4,6 +4,7 @@ use crate::glass_ram::process_attacher::ProcessAttacher;
 use nix::unistd::Pid;
 use tokio::sync::mpsc;
 
+#[allow(dead_code)] // attacher - process attachment scaffolding for future monitoring
 pub struct GlassRamMonitor {
     attacher: ProcessAttacher,
     poller: Option<FaultPoller>,
