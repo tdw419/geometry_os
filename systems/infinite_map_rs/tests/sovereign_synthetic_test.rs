@@ -38,6 +38,11 @@ mod tests {
 
         // Get entry point (:main label)
         let main_addr = asm.get_label_addr("main").unwrap_or(0);
+        eprintln!("DEBUG: Entry point = 0x{:04X}, program size = {} words", main_addr, program.words.len());
+        eprintln!("DEBUG: First 10 words of assembler binary:");
+        for (i, word) in program.words.iter().take(10).enumerate() {
+            eprintln!("  [0x{:04X}] = 0x{:08X}", i, word);
+        }
 
         // Load assembler binary at 0x0000
         for (i, word) in program.words.iter().enumerate() {
@@ -62,19 +67,50 @@ mod tests {
 
         // 5. Run until halt (with cycle limit)
         let mut total_cycles = 0u32;
-        let cycles_per_step = 100u32;
+        let cycles_per_step = 1u32;  // Execute one instruction at a time for debugging
 
         while total_cycles < max_cycles {
+            let pc_before = vram.vm_state(0).map(|s| s.pc).unwrap_or(0);
             vram.execute_frame_interleaved(cycles_per_step);
             total_cycles += cycles_per_step;
 
             if vram.is_halted(0) {
+                eprintln!("DEBUG: VM halted at cycle {}, PC was 0x{:04X}", total_cycles, pc_before);
+                break;
+            }
+
+            // Early exit if taking too long (for debugging)
+            if total_cycles >= 1000 {
+                eprintln!("DEBUG: VM still running after 1000 cycles, PC = 0x{:04X}",
+                    vram.vm_state(0).map(|s| s.pc).unwrap_or(0));
                 break;
             }
         }
 
         if !vram.is_halted(0) {
             return Err(format!("VM did not halt within {} cycles", max_cycles));
+        }
+
+        // Debug: dump output region
+        eprintln!("DEBUG: Output region 0x5000-0x5020:");
+        for i in 0..32 {
+            let word = vram.peek(0x5000 + i);
+            if word != 0 {
+                eprintln!("  0x{:04X}: 0x{:08X}", 0x5000 + i, word);
+            }
+        }
+
+        // Debug: dump source region to verify null termination
+        eprintln!("DEBUG: Source region 0x1000-0x1020:");
+        for i in 0..32 {
+            let word = vram.peek(0x1000 + i);
+            if word != 0 {
+                eprintln!("  0x{:04X}: 0x{:08X} ('{}')", 0x1000 + i, word,
+                    if word >= 32 && word < 127 { word as u8 as char } else { '?' });
+            } else {
+                eprintln!("  0x{:04X}: 0x00000000 (null)", 0x1000 + i);
+                break;
+            }
         }
 
         // 6. Read output from 0x5000
