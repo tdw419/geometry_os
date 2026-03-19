@@ -5,6 +5,7 @@
 //! Usage:
 //!   geos-compile input.glyph -o output.rts.png
 //!   geos-compile input.glyph  # outputs to input.rts.png
+//!   geos-compile --self-hosting input.glyph  # ASCII-First visual template
 
 use std::path::PathBuf;
 use clap::Parser;
@@ -23,6 +24,10 @@ struct Args {
     /// Verbose output
     #[arg(short, long)]
     verbose: bool,
+
+    /// Use ASCII-First self-hosting template for visual interface
+    #[arg(long)]
+    self_hosting: bool,
 }
 
 fn main() {
@@ -44,15 +49,34 @@ fn main() {
         eprintln!("Compiling {} -> {}", args.input.display(), output.display());
     }
 
-    match infinite_map_rs::glyph_to_cartridge::compile_glyph_to_cartridge(&source, &output) {
-        Ok(()) => {
-            if args.verbose {
-                eprintln!("Success: {}", output.display());
+    if args.self_hosting {
+        // Use ASCII-First self-hosting template for visual interface
+        if args.verbose {
+            eprintln!("Using ASCII-First self-hosting template");
+        }
+        match infinite_map_rs::ascii_native::self_hosting_cartridge::generate_self_hosting_cartridge(&source, &output) {
+            Ok(()) => {
+                if args.verbose {
+                    eprintln!("Success: {}", output.display());
+                }
+            }
+            Err(e) => {
+                eprintln!("Compilation error: {}", e);
+                std::process::exit(1);
             }
         }
-        Err(e) => {
-            eprintln!("Compilation error: {}", e);
-            std::process::exit(1);
+    } else {
+        // Standard compilation path
+        match infinite_map_rs::glyph_to_cartridge::compile_glyph_to_cartridge(&source, &output) {
+            Ok(()) => {
+                if args.verbose {
+                    eprintln!("Success: {}", output.display());
+                }
+            }
+            Err(e) => {
+                eprintln!("Compilation error: {}", e);
+                std::process::exit(1);
+            }
         }
     }
 }
