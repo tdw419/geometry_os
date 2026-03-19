@@ -189,6 +189,61 @@ impl CartridgeWriter {
         }
     }
 
+    /// Set a segment of words at a specific address in the state buffer
+    ///
+    /// This writes bytecode words at arbitrary addresses, useful for embedding
+    /// the assembler program at specific locations like 0x2000.
+    ///
+    /// # Arguments
+    /// * `address` - Target address (converts to pixel coordinates)
+    /// * `words` - Bytecode words to write
+    pub fn set_segment(&mut self, address: u32, words: &[u32]) {
+        // Convert address to pixel coordinates
+        // Each row is 80 pixels (width)
+        // State buffer starts at row STATE_BUFFER_Y (280)
+        let start_row = address / 80;
+        let start_col = address % 80;
+
+        for (i, word) in words.iter().enumerate() {
+            let pixel_idx = (start_row * 80 + start_col) as usize + i;
+            let absolute_row = STATE_BUFFER_Y + (pixel_idx / WIDTH);
+            let absolute_col = pixel_idx % WIDTH;
+
+            if absolute_row < STATE_BUFFER_Y + STATE_BUFFER_HEIGHT {
+                // Pack u32 into 4 pixels (little-endian)
+                let r = (word & 0xFF) as u8;
+                let g = ((word >> 8) & 0xFF) as u8;
+                let b = ((word >> 16) & 0xFF) as u8;
+                let a = ((word >> 24) & 0xFF) as u8;
+                self.set_pixel(absolute_col, absolute_row, r, g, b, a);
+            }
+        }
+    }
+
+    /// Set source text at a specific address in the state buffer
+    ///
+    /// This embeds ASCII source code as individual bytes at arbitrary addresses,
+    /// useful for embedding source at locations like 0x1000.
+    ///
+    /// # Arguments
+    /// * `address` - Target address (converts to pixel coordinates)
+    /// * `text` - ASCII text to embed
+    pub fn set_source_text(&mut self, address: u32, text: &str) {
+        let start_row = address / 80;
+        let start_col = address % 80;
+
+        for (i, byte) in text.bytes().enumerate() {
+            let pixel_idx = (start_row * 80 + start_col) as usize + i;
+            let absolute_row = STATE_BUFFER_Y + (pixel_idx / WIDTH);
+            let absolute_col = pixel_idx % WIDTH;
+
+            if absolute_row < STATE_BUFFER_Y + STATE_BUFFER_HEIGHT {
+                // Embed ASCII byte as single pixel (R channel)
+                self.set_pixel(absolute_col, absolute_row, byte, 0, 0, 255);
+            }
+        }
+    }
+
     /// Write bootstrap metadata header
     ///
     /// Encodes cartridge name and version into the bootstrap segment.
