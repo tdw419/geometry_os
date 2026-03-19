@@ -39,6 +39,7 @@
 //! | 0x8000-0xFFFF | Program Segment (cartridge output) |
 
 pub mod self_hosting_template;
+pub mod self_hosting_cartridge;
 pub mod memory {
     //! Memory layout constants for ASCII-native programs
 

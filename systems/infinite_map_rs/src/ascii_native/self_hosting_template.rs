@@ -57,10 +57,10 @@ impl SelfHostingTemplate {
 ///
 /// Looks for patterns like:
 /// {{#each source_lines}}
-///   │ {{line}}
+///   │ {{this}}
 /// {{/each}}
 ///
-/// And replaces with actual source lines
+/// And replaces with actual source lines using {{this}} as the line placeholder
 fn render_each_block(template: String, source_lines: &[&str]) -> String {
     let start_marker = "{{#each source_lines}}";
     let end_marker = "{{/each}}";
@@ -74,10 +74,10 @@ fn render_each_block(template: String, source_lines: &[&str]) -> String {
                 // Extract the template line between markers
                 let block_content = &result[start_idx + start_marker.len()..end_idx];
 
-                // Render each source line using the template
+                // Render each source line using the template ({{this}} is the placeholder)
                 let rendered_lines: String = source_lines
                     .iter()
-                    .map(|line| block_content.replace("{{line}}", line))
+                    .map(|line| block_content.replace("{{this}}", line))
                     .collect();
 
                 // Replace the entire block (including markers) with rendered content
@@ -164,7 +164,7 @@ mod tests {
     fn test_render_each_block() {
         let template = r#"SOURCE:
 {{#each source_lines}}
-│ {{line}}
+│ {{this}}
 {{/each}}
 END"#.to_string();
 
@@ -182,7 +182,7 @@ END"#.to_string();
     fn test_render_each_block_empty() {
         let template = r#"SOURCE:
 {{#each source_lines}}
-│ {{line}}
+│ {{this}}
 {{/each}}
 END"#.to_string();
 
