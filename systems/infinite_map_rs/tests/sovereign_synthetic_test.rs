@@ -14,8 +14,8 @@
 
 #[cfg(test)]
 mod tests {
-    use infinite_map_rs::synthetic_vram::{SyntheticVram, SyntheticVmConfig};
     use infinite_map_rs::glyph_assembler::GlyphAssembler;
+    use infinite_map_rs::synthetic_vram::{SyntheticVmConfig, SyntheticVram};
 
     /// Load and run the self-hosting assembler on synthetic VRAM
     ///
@@ -38,7 +38,11 @@ mod tests {
 
         // Get entry point (:main label)
         let main_addr = asm.get_label_addr("main").unwrap_or(0);
-        eprintln!("DEBUG: Entry point = 0x{:04X}, program size = {} words", main_addr, program.words.len());
+        eprintln!(
+            "DEBUG: Entry point = 0x{:04X}, program size = {} words",
+            main_addr,
+            program.words.len()
+        );
         eprintln!("DEBUG: First 10 words of assembler binary:");
         for (i, word) in program.words.iter().take(10).enumerate() {
             eprintln!("  [0x{:04X}] = 0x{:08X}", i, word);
@@ -67,7 +71,7 @@ mod tests {
 
         // 5. Run until halt (with cycle limit)
         let mut total_cycles = 0u32;
-        let cycles_per_step = 1u32;  // Execute one instruction at a time for debugging
+        let cycles_per_step = 1u32; // Execute one instruction at a time for debugging
 
         while total_cycles < max_cycles {
             let pc_before = vram.vm_state(0).map(|s| s.pc).unwrap_or(0);
@@ -75,14 +79,19 @@ mod tests {
             total_cycles += cycles_per_step;
 
             if vram.is_halted(0) {
-                eprintln!("DEBUG: VM halted at cycle {}, PC was 0x{:04X}", total_cycles, pc_before);
+                eprintln!(
+                    "DEBUG: VM halted at cycle {}, PC was 0x{:04X}",
+                    total_cycles, pc_before
+                );
                 break;
             }
 
             // Early exit if taking too long (for debugging)
             if total_cycles >= 1000 {
-                eprintln!("DEBUG: VM still running after 1000 cycles, PC = 0x{:04X}",
-                    vram.vm_state(0).map(|s| s.pc).unwrap_or(0));
+                eprintln!(
+                    "DEBUG: VM still running after 1000 cycles, PC = 0x{:04X}",
+                    vram.vm_state(0).map(|s| s.pc).unwrap_or(0)
+                );
                 break;
             }
         }
@@ -105,8 +114,16 @@ mod tests {
         for i in 0..32 {
             let word = vram.peek(0x1000 + i);
             if word != 0 {
-                eprintln!("  0x{:04X}: 0x{:08X} ('{}')", 0x1000 + i, word,
-                    if word >= 32 && word < 127 { word as u8 as char } else { '?' });
+                eprintln!(
+                    "  0x{:04X}: 0x{:08X} ('{}')",
+                    0x1000 + i,
+                    word,
+                    if word >= 32 && word < 127 {
+                        word as u8 as char
+                    } else {
+                        '?'
+                    }
+                );
             } else {
                 eprintln!("  0x{:04X}: 0x00000000 (null)", 0x1000 + i);
                 break;
@@ -128,8 +145,8 @@ mod tests {
 
     #[test]
     fn test_synthetic_assemble_simple() {
-        // The self-hosting assembler expects @ prefix on instructions to compile
-        let source = "@LDI r0, 42\n@HALT\n";
+        // Simple LDI and HALT
+        let source = "LDI r0, 42\nHALT\n";
         let result = run_assembler_on_synthetic(source, 100_000);
 
         // Should produce bytecode
@@ -167,7 +184,12 @@ mod tests {
 
         // Verify HALT opcode
         eprintln!("DEBUG: Bytecode produced: {:?}", bytecode);
-        assert!(bytecode.len() >= 3, "Should have HALT after LDI immediate, got {} words: {:?}", bytecode.len(), bytecode);
+        assert!(
+            bytecode.len() >= 3,
+            "Should have HALT after LDI immediate, got {} words: {:?}",
+            bytecode.len(),
+            bytecode
+        );
         let halt_word = bytecode[2];
         let halt_opcode = halt_word & 0xFF;
         assert_eq!(
@@ -179,8 +201,8 @@ mod tests {
 
     #[test]
     fn test_synthetic_assemble_with_label() {
-        // Use @ prefix for instructions (same as first test)
-        let source = ":loop\n@LDI r0, 1\n@JMP :loop\n";
+        // Label and loop
+        let source = ":loop\nLDI r0, 1\nJMP :loop\n";
         let result = run_assembler_on_synthetic(source, 100_000);
 
         assert!(result.is_ok(), "Assembly failed: {:?}", result);

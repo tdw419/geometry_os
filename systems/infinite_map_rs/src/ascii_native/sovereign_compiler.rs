@@ -21,7 +21,7 @@ use std::path::Path;
 
 use super::self_hosting_template::SelfHostingTemplate;
 use crate::cartridge_writer::{CartridgeConfig, CartridgeWriter};
-use crate::glyph_assembler::GlyphAssembler;
+use crate::glyph_assembler::{AssembledProgram, GlyphAssembler};
 
 /// Source text base address (ASCII assembly to compile)
 const SOURCE_BASE: u32 = 0x1000;
@@ -89,26 +89,30 @@ pub fn generate_sovereign_cartridge<P: AsRef<Path>>(
     // 4. Load display text into glyph grid
     writer.load_glyph_text(&display_text);
 
-    // 5. Embed assembler bytecode at 0x2000 (state buffer segment)
-    // Note: set_segment will be added in Task 2, for now we use set_program
-    // which places bytecode in the program segment
-    writer.set_program(&assembler_program.words);
+    // 5. Embed source text at 0x1000 (state buffer)
+    writer.set_source_text(SOURCE_BASE, source);
 
-    // 6. Apply action mapping for buttons
-    // [B] Assemble button -> jump to assembler entry point (0x2000)
+    // 6. Set boot program (UI event loop)
+    let boot_program = assemble_boot_program()?;
+    writer.set_program(&boot_program.words);
+
+    // 7. Embed assembler bytecode at 0x2000 (state buffer segment)
+    writer.set_segment(ASSEMBLER_BASE, &assembler_program.words);
+
+    // 8. Apply action mapping for buttons
+    // Map button actions to boot program labels
     let action_map: HashMap<&str, (&str, &str)> = [
-        ("Assemble", ("JUMP", "assemble")), // Jump to assembler
-        ("Run", ("JUMP", "run_program")),   // Run compiled program
-        ("Quit", ("EXIT", "")),             // Exit cartridge
+        ("Assemble", ("JUMP", "do_assemble")), // Jump to assemble handler
+        ("Run", ("JUMP", "do_run")),           // Jump to run handler
+        ("Quit", ("JUMP", "do_quit")),         // Jump to quit handler
     ]
     .iter()
     .cloned()
     .collect();
 
-    // Use the assembler's labels for action mapping
-    writer.apply_action_mapping(&action_map, &assembler_program.labels);
+    writer.apply_action_mapping(&action_map, &boot_program.labels);
 
-    // 7. Generate PNG
+    // 9. Generate PNG
     let png_bytes = writer.to_png()?;
 
     // 8. Write to file
@@ -118,6 +122,70 @@ pub fn generate_sovereign_cartridge<P: AsRef<Path>>(
         .map_err(|e| format!("Failed to write PNG data: {}", e))?;
 
     Ok(())
+}
+
+/// Assemble the boot program that handles UI and dispatches to assembler
+///
+/// The boot program:
+/// 1. Initializes state
+/// 2. Runs event loop checking for button presses
+/// 3. Dispatches to assembler on [B] Assemble
+/// 4. Dispatches to run compiled program on [R] Run
+fn assemble_boot_program() -> Result<AssembledProgram, String> {
+    let boot_source = r#"
+        :entry
+        LDI r0, 0          ; Zero register
+        LDI r1, 0x7000     ; State base
+        STORE mem[r1], r0  ; frame = 0
+        JMP :main_loop
+
+        :main_loop
+        ; Check for input events at 0x0200
+        LDI r1, 0x0200
+        LOAD r2, mem[r1]
+        LD r3, 0
+        BEQ r2, r3, :update_frame
+
+        ; Event detected - check event type
+        ; 1 = Assemble (B button), 2 = Run (R button), 3 = Quit (Q button)
+        LDI r3, 1
+        BEQ r2, r3, :do_assemble
+        LDI r3, 2
+        BEQ r2, r3, :do_run
+        LDI r3, 3
+        BEQ r2, r3, :do_quit
+
+        ; Unknown event - just clear and continue
+        JMP :clear_event
+
+        :do_assemble
+        LDI r0, 0x2000
+        JMP r0
+
+        :do_run
+        LDI r0, 0x5000
+        JMP r0
+
+        :do_quit
+        HALT
+
+        :clear_event
+        LDI r0, 0
+        LDI r1, 0x0200
+        STORE mem[r1], r0
+
+        :update_frame
+        LDI r1, 0x7000
+        LOAD r2, mem[r1]
+        LDI r3, 1
+        ADD r2, r2, r3
+        STORE mem[r1], r2
+        JMP :main_loop
+    "#;
+
+    let mut asm = GlyphAssembler::new();
+    let program = asm.assemble(boot_source)?;
+    Ok(program)
 }
 
 /// Get the memory layout constants for documentation/debugging
@@ -136,16 +204,31 @@ mod tests {
     #[test]
     fn test_memory_layout_constants() {
         // Verify layout doesn't overlap and has reasonable spacing
-        assert!(SOURCE_BASE < ASSEMBLER_BASE, "Source should be before assembler");
-        assert!(ASSEMBLER_BASE < OUTPUT_BASE, "Assembler should be before output");
-        assert!(OUTPUT_BASE < LABEL_TABLE_BASE, "Output should be before label table");
-        assert!(LABEL_TABLE_BASE < STATE_BASE, "Label table should be before state");
+        assert!(
+            SOURCE_BASE < ASSEMBLER_BASE,
+            "Source should be before assembler"
+        );
+        assert!(
+            ASSEMBLER_BASE < OUTPUT_BASE,
+            "Assembler should be before output"
+        );
+        assert!(
+            OUTPUT_BASE < LABEL_TABLE_BASE,
+            "Output should be before label table"
+        );
+        assert!(
+            LABEL_TABLE_BASE < STATE_BASE,
+            "Label table should be before state"
+        );
     }
 
     #[test]
     fn test_assembler_source_embeds() {
         // Verify the assembler source is embedded
-        assert!(!ASSEMBLER_SOURCE.is_empty(), "Assembler source should be embedded");
+        assert!(
+            !ASSEMBLER_SOURCE.is_empty(),
+            "Assembler source should be embedded"
+        );
         assert!(
             ASSEMBLER_SOURCE.contains(":main"),
             "Assembler should have main label"
@@ -160,7 +243,10 @@ mod tests {
         assert!(result.is_ok(), "Assembler should compile: {:?}", result);
 
         let program = result.unwrap();
-        assert!(!program.words.is_empty(), "Assembler should produce bytecode");
+        assert!(
+            !program.words.is_empty(),
+            "Assembler should produce bytecode"
+        );
         assert!(
             program.labels.contains_key("main"),
             "Assembler should have main label"

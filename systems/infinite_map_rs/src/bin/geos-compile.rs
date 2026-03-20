@@ -7,8 +7,8 @@
 //!   geos-compile input.glyph  # outputs to input.rts.png
 //!   geos-compile --self-hosting input.glyph  # ASCII-First visual template
 
-use std::path::PathBuf;
 use clap::Parser;
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(name = "geos-compile")]
@@ -38,32 +38,34 @@ fn main() {
         Err(e) => {
             eprintln!("Error reading {}: {}", args.input.display(), e);
             std::process::exit(1);
-        }
+        },
     };
 
-    let output = args.output.unwrap_or_else(|| {
-        args.input.with_extension("rts.png")
-    });
+    let output = args
+        .output
+        .unwrap_or_else(|| args.input.with_extension("rts.png"));
 
     if args.verbose {
         eprintln!("Compiling {} -> {}", args.input.display(), output.display());
     }
 
     if args.self_hosting {
-        // Use ASCII-First self-hosting template for visual interface
+        // Use GPU-sovereign compiler (embeds self-hosting assembler in cartridge)
         if args.verbose {
-            eprintln!("Using ASCII-First self-hosting template");
+            eprintln!("Using GPU-sovereign compiler template");
         }
-        match infinite_map_rs::ascii_native::self_hosting_cartridge::generate_self_hosting_cartridge(&source, &output) {
+        match infinite_map_rs::ascii_native::sovereign_compiler::generate_sovereign_cartridge(
+            &source, &output,
+        ) {
             Ok(()) => {
                 if args.verbose {
                     eprintln!("Success: {}", output.display());
                 }
-            }
+            },
             Err(e) => {
                 eprintln!("Compilation error: {}", e);
                 std::process::exit(1);
-            }
+            },
         }
     } else {
         // Standard compilation path
@@ -72,11 +74,11 @@ fn main() {
                 if args.verbose {
                     eprintln!("Success: {}", output.display());
                 }
-            }
+            },
             Err(e) => {
                 eprintln!("Compilation error: {}", e);
                 std::process::exit(1);
-            }
+            },
         }
     }
 }

@@ -640,12 +640,12 @@ git commit -m "feat(sovereign): complete GPU-native self-hosting compiler"
 
 ## Verification Checklist
 
-- [ ] `sovereign_compiler.rs` generates valid cartridges
-- [ ] CartridgeWriter has `set_segment` and `set_source_text`
-- [ ] SyntheticVram tests pass
-- [ ] `geos-compile --sovereign` works
+- [x] `sovereign_compiler.rs` generates valid cartridges (4/4 tests pass)
+- [x] CartridgeWriter has `set_segment` and `set_source_text` (2/2 tests pass)
+- [ ] SyntheticVram tests pass (failing due to self_hosting_assembler.glyph issues, not sovereign compiler)
+- [x] `geos-compile --sovereign` works (generates valid 80x1576 PNG cartridges)
 - [ ] Documentation updated
-- [ ] Self-hosting test: assembler compiles itself
+- [ ] Self-hosting test: assembler compiles itself (test_synthetic_self_compile ignored - requires debugging self_hosting_assembler.glyph)
 
 ---
 
