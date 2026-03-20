@@ -25,6 +25,20 @@ pub enum InputEvent {
     Scroll { dx: i32, dy: i32 },
 }
 
+impl InputEvent {
+    pub fn Click(x: u32, y: u32, button: u32) -> Self {
+        Self::Click { x, y, button }
+    }
+
+    pub fn MouseMove(x: u32, y: u32, dx: i32, dy: i32) -> Self {
+        Self::MouseMove { x, y, dx, dy }
+    }
+
+    pub fn Scroll(dx: i32, dy: i32) -> Self {
+        Self::Scroll { dx, dy }
+    }
+}
+
 /// Bridge for writing events to VM mailbox
 pub struct MailboxBridge {
     mailbox: [u32; 6],
@@ -45,7 +59,7 @@ impl MailboxBridge {
                 self.mailbox[3] = 0;
                 self.mailbox[4] = dx as u32;
                 self.mailbox[5] = dy as u32;
-            }
+            },
             InputEvent::Click { x, y, button } => {
                 self.mailbox[0] = EVENT_TYPE_CLICK;
                 self.mailbox[1] = x;
@@ -53,7 +67,7 @@ impl MailboxBridge {
                 self.mailbox[3] = button;
                 self.mailbox[4] = 0;
                 self.mailbox[5] = 0;
-            }
+            },
             InputEvent::Scroll { dx, dy } => {
                 self.mailbox[0] = EVENT_TYPE_SCROLL;
                 self.mailbox[1] = 0;
@@ -61,7 +75,7 @@ impl MailboxBridge {
                 self.mailbox[3] = 0;
                 self.mailbox[4] = dx as u32;
                 self.mailbox[5] = dy as u32;
-            }
+            },
         }
     }
 

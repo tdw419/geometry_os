@@ -1254,6 +1254,29 @@ impl GlyphVmScheduler {
             count
         }
     }
+
+    /// Write mailbox data for a specific VM to shadow RAM
+    ///
+    /// Writes to the mailbox region (0x0200-0x0217) in VM address space.
+    /// This is used to forward input events from CPU to GPU VM.
+    ///
+    /// # Arguments
+    /// * `vm_id` - VM ID (typically 0)
+    /// * `data` - Array of 6 u32 words [event_type, x, y, button, dx, dy]
+    pub fn write_mailbox(&self, _vm_id: u32, data: &[u32; 6]) {
+        let mut shadow = self.shadow_ram.lock().unwrap();
+        let event_base = 0x0200;
+        let shadow_len = shadow.len();
+
+        for (i, word) in data.iter().enumerate() {
+            let addr = event_base + (i as u32) * 4;
+            if (addr as usize) < shadow_len {
+                let bytes = word.to_le_bytes();
+                let end = (addr as usize + 4).min(shadow_len);
+                shadow[addr as usize..end].copy_from_slice(&bytes[..(end - addr as usize).min(4)]);
+            }
+        }
+    }
 }
 
 #[cfg(test)]

@@ -192,15 +192,14 @@ path = "src/bin/glyph_vm_boot.rs"
 [[bin]]
 name = "bare_metal_swarm"
 path = "src/bin/bare_metal_swarm.rs"
-
+ 
 [[bin]]
 name = "glyph_infinite_map"
 path = "src/bin/glyph_infinite_map.rs"
 
-# Disabled: has borrow checker issues
-# [[bin]]
-# name = "micro_host"
-# path = "src/bin/micro_host.rs"
+[[bin]]
+name = "micro_host"
+path = "src/bin/micro_host.rs"
 
 [[bin]]
 name = "build_alpine_substrate"
