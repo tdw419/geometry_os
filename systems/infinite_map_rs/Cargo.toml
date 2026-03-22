@@ -186,6 +186,10 @@ name = "run_riscv"
 path = "src/bin/run_riscv.rs"
 
 [[bin]]
+name = "run_ubuntu_gpu"
+path = "src/bin/run_ubuntu_gpu.rs"
+
+[[bin]]
 name = "glyph_vm_boot"
 path = "src/bin/glyph_vm_boot.rs"
 

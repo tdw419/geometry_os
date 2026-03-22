@@ -69,6 +69,9 @@ mod tests {
             },
         )?;
 
+        // Enable tracing to see what instructions are executed
+        vram.enable_tracing();
+
         // 5. Run until halt (with cycle limit)
         let mut total_cycles = 0u32;
         let cycles_per_step = 1u32; // Execute one instruction at a time for debugging
@@ -83,6 +86,14 @@ mod tests {
                     "DEBUG: VM halted at cycle {}, PC was 0x{:04X}",
                     total_cycles, pc_before
                 );
+                // Print trace to see what happened
+                eprintln!("DEBUG: Execution trace:");
+                for entry in vram.trace() {
+                    eprintln!(
+                        "  cycle={} PC=0x{:04X} op={} stratum={} p1={} p2={}",
+                        entry.cycle, entry.pc, entry.opcode, entry.stratum, entry.p1, entry.p2
+                    );
+                }
                 break;
             }
 

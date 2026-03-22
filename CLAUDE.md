@@ -97,3 +97,6 @@ apps/ascii-world/            # ASCII cartridge system
 - Full documentation: `docs/GLYPH_PROGRAMMING_GUIDE.md`
 - Memory index: `.claude/projects/-home-jericho-zion-projects-geometry-os-geometry-os/memory/MEMORY.md`
 - Manifesto: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
+
+### js-supervision
+The **JS-native pxOS substrate** (`sync/server.js`) is the primary supervisor for Geometry OS. It uses `GpuBridge.js` to monitor GPU buffers and `PixelFormulaEngine` to render reactive dashboards.

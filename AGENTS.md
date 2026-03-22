@@ -6,7 +6,7 @@
 
 Geometry OS is a **GPU-sovereign operating system** where programs are spatial structures living in a Hilbert-mapped GPU substrate. The program IS the machine — there is no separation between code and display. Every pixel is simultaneously data, instruction, and visualization.
 
-**Language:** Rust (primary), WGSL (shaders), Python (tooling)
+**Language:** Rust (primary), WGSL (shaders), JS (pxOS supervisor), Python (tooling)
 **Build:** `cargo build` / `cargo test`
 **GPU Framework:** wgpu (WebGPU)
 
