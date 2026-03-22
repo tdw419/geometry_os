@@ -1,0 +1,16 @@
+[package]
+name = "mirror_engine"
+version = "0.1.0"
+edition = "2021"
+description = "AI-native framebuffer mapping engine for Geometry OS"
+
+[dependencies]
+thiserror = "1.0"
+tracing = "0.1"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+drm = "0.14"
+drm-ffi = "0.4"
+
+[dev-dependencies]
+pretty_assertions = "1.4"
