@@ -1,0 +1,27 @@
+// Geometry OS - Set Bit
+// Sets bit at position to 1
+// Args: r0=value, r1=bit_pos
+// Output: r2=value with bit set
+
+:set_bit
+    LDI r2, 1
+    LDI r3, r2
+    SUB r3, r1, r3
+    JZ r3, :already
+    LDI r3, 1
+
+:shift_loop
+    JZ r1, :shift_done
+    MUL r2, r2, 2
+    SUB r1, r1, 1
+    JMP :shift_loop
+
+:shift_done
+    OR r2, r0, r2
+    JMP :done
+
+:already
+    LDI r2, 1
+
+:done
+    HALT
