@@ -1,0 +1,56 @@
+// Geometry OS - Integer to String
+// Converts integer to decimal string
+// Args: r0=value, r1=buffer_addr
+// Output: writes string to buffer
+
+:int_to_str
+    LDI r2, 0    // digit count
+    LDI r3, 10   // divisor
+    
+:extract_digits
+    JZ r0, :write_digits
+    DIV r4, r0, r3
+    MUL r4, r4, r3
+    SUB r4, r0, r4   // digit = value % 10
+    ADD r4, r4, 48   // + '0'
+    
+    // Push digit to stack (temporarily use 0x8000)
+    LDI r5, 0x8000
+    ADD r5, r5, r2
+    STORE r5, r4
+    
+    ADD r2, r2, 1
+    DIV r0, r0, r3
+    JMP :extract_digits
+
+:write_digits
+    JZ r2, :write_zero
+    
+    LDI r3, 0
+:reverse_loop
+    SUB r4, r2, r3
+    JZ r4, :null_term
+    
+    LDI r5, 0x8000
+    ADD r5, r5, r4
+    LOAD r6, r5
+    
+    LDI r7, 0x8000
+    SUB r7, r3, r7
+    SUB r7, r2, r7
+    ADD r7, r7, r1
+    
+    STORE r7, r6
+    
+    ADD r3, r3, 1
+    JMP :reverse_loop
+
+:write_zero
+    LDI r3, 48
+    STORE r1, r3
+    ADD r1, r1, 1
+
+:null_term
+    LDI r3, 0
+    STORE r1, r3
+    HALT
