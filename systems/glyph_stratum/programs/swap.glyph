@@ -1,0 +1,10 @@
+// Geometry OS - Swap two values
+// Swaps values in place
+// Args: r0=addr1, r1=addr2
+
+:swap
+    LOAD r2, r0
+    LOAD r3, r1
+    STORE r0, r3
+    STORE r1, r2
+    HALT
