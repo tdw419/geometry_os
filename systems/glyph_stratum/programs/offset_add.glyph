@@ -1,0 +1,8 @@
+// Geometry OS - Offset Add
+// Adds offset to pointer
+// Args: r0=ptr, r1=offset
+// Output: r2=ptr+offset
+
+:offset_add
+    ADD r2, r0, r1
+    HALT
