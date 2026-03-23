@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-03-22T19:40:14.865633",
+  "generations": 100,
+  "population": 10,
+  "top_fitness": 28.9,
+  "organisms": [
+    {
+      "fitness": 28.9,
+      "genome": "88644776845d8fcd85860084ff1d00ec7df3a58d3200"
+    },
+    {
+      "fitness": 28.9,
+      "genome": "88644776845d8fcd85860084001d00ec7de6a58d3200"
+    },
+    {
+      "fitness": 28.9,
+      "genome": "88644776845d8fcd85860084ff1d01ec7df3a58d3300"
+    },
+    {
+      "fitness": 0.0,
+      "genome": "88644776845d8f3285860084ff1d00ec82f3a58d3200"
+    },
+    {
+      "fitness": 0.0,
+      "genome": "88644776845d8fba8586ff84ff1d00ec7df2a58d3200"
+    }
+  ]
+}

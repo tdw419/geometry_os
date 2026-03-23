@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geometry OS — Live Mirror Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a14;
+      font-family: 'Courier New', monospace;
+      color: #fff;
+      height: 100vh;
+      display: flex;
+    }
+    .split {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+    .text-side {
+      width: 40%;
+      background: #0d0d1a;
+      border-right: 2px solid #00ffff;
+      display: flex;
+      flex-direction: column;
+    }
+    .geometry-side {
+      width: 60%;
+      position: relative;
+    }
+    .header {
+      padding: 10px 15px;
+      background: #1a1a2e;
+      border-bottom: 1px solid #333;
+      font-size: 12px;
+      color: #00ffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header span {
+      color: #888;
+    }
+    textarea {
+      flex: 1;
+      background: #0d0d1a;
+      color: #0f0;
+      border: none;
+      padding: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      line-height: 1.6;
+    }
+    textarea::placeholder {
+      color: #444;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .hex-output {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.8);
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #888;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+    .hex-output strong {
+      color: #00ffff;
+    }
+    .status {
+      padding: 8px 15px;
+      background: #1a1a2e;
+      border-top: 1px solid #333;
+      font-size: 11px;
+      color: #666;
+      display: flex;
+      gap: 20px;
+    }
+    .status span {
+      color: #0f0;
+    }
+    .command-help {
+      padding: 10px 15px;
+      background: #12121f;
+      font-size: 11px;
+      color: #666;
+      border-top: 1px solid #222;
+    }
+    .command-help code {
+      color: #00ffff;
+      background: #1a1a2e;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="split">
+    <div class="text-side">
+      <div class="header">
+        TEXT SIDE <span>(Shadow)</span>
+      </div>
+      <textarea id="codeInput" placeholder="Type geometry commands...
+
+RECT 100 100 50 50 #FF0000
+CIRC 200 200 30 #00FF00
+TEXT 300 300 &quot;Hello&quot; #FFFFFF
+MOVE 500 500
+COLOR #00FFFF
+FREEZE 60
+THAW"></textarea>
+      <div class="command-help">
+        Commands: <code>RECT x y w h #COLOR</code> <code>CIRC x y r #COLOR</code> <code>TEXT x y "text" #COLOR</code> <code>MOVE x y</code> <code>FREEZE frames</code> <code>THAW</code>
+      </div>
+      <div class="status">
+        Lines: <span id="lineCount">0</span>
+        Bytes: <span id="byteCount">0</span>
+        Tokens: <span id="tokenCount">0</span>
+      </div>
+    </div>
+    <div class="geometry-side">
+      <div class="header">
+        GEOMETRY SIDE <span>(Reality)</span>
+      </div>
+      <canvas id="canvas"></canvas>
+      <div class="hex-output">
+        <strong>HEX OUTPUT:</strong>
+        <div id="hexOutput">Type commands to see hex...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =============================================================================
+    // MIRROR LINK - JavaScript Port
+    // =============================================================================
+
+    const GEOMETRY_TOKENS = {
+      MOVE: 0x80,
+      ZOOM: 0x81,
+      LINK: 0x82,
+      THREAD: 0x83,
+      RECT: 0x84,
+      CIRC: 0x85,
+      TEXT: 0x86,
+      SPRITE: 0x87,
+      LAYER: 0x88,
+      COLOR: 0x89,
+      ALPHA: 0x8A,
+      AGENT: 0x8B,
+      EMIT: 0x8C,
+      LISTEN: 0x8D,
+      FREEZE: 0x8E,
+      THAW: 0x8F
+    };
+
+    class MirrorLink {
+      constructor() {
+        this.tokens = [];
+        this.geometry = [];
+      }
+
+      parseColor(colorStr) {
+        let hex = colorStr.replace('#', '');
+        if (hex.length === 6) hex += 'FF';
+        if (hex.length !== 8) hex = 'FFFFFFff';
+        return {
+          r: parseInt(hex.substr(0, 2), 16),
+          g: parseInt(hex.substr(2, 2), 16),
+          b: parseInt(hex.substr(4, 2), 16),
+          a: parseInt(hex.substr(6, 2), 16)
+        };
+      }
+
+      parseCommand(line) {
+        line = line.trim();
+        if (!line || line.startsWith('//')) return null;
+
+        const tokens = [];
+        let geometry = null;
+
+        // RECT x y w h #COLOR
+        let match = line.match(/^RECT\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(#[0-9A-Fa-f]+)/i);
+        if (match) {
+          const [, x, y, w, h, color] = match;
+          const c = this.parseColor(color);
+
+          // COLOR token
+          tokens.push(GEOMETRY_TOKENS.COLOR, c.r, c.g, c.b, c.a);
+
+          // RECT token
+          tokens.push(GEOMETRY_TOKENS.RECT);
+          tokens.push(...this.int16(parseInt(x)));
+          tokens.push(...this.int16(parseInt(y)));
+          tokens.push(...this.uint16(parseInt(w)));
+          tokens.push(...this.uint16(parseInt(h)));
+          tokens.push(c.r, c.g, c.b, c.a);
+
+          geometry = { type: 'rect', x: +x, y: +y, w: +w, h: +h, color: c };
+          return { tokens, geometry };
+        }
+
+        // CIRC x y r #COLOR
+        match = line.match(/^CIRC\s+(\d+)\s+(\d+)\s+(\d+)\s+(#[0-9A-Fa-f]+)/i);
+        if (match) {
+          const [, x, y, r, color] = match;
+          const c = this.parseColor(color);
+
+          tokens.push(GEOMETRY_TOKENS.COLOR, c.r, c.g, c.b, c.a);
+          tokens.push(GEOMETRY_TOKENS.CIRC);
+          tokens.push(...this.int16(parseInt(x)));
+          tokens.push(...this.int16(parseInt(y)));
+          tokens.push(...this.uint16(parseInt(r)));
+          tokens.push(c.r, c.g, c.b, c.a);
+
+          geometry = { type: 'circ', x: +x, y: +y, r: +r, color: c };
+          return { tokens, geometry };
+        }
+
+        // TEXT x y "string" #COLOR
+        match = line.match(/^TEXT\s+(\d+)\s+(\d+)\s+"(.+?)"\s*(#[0-9A-Fa-f]+)?/i);
+        if (match) {
+          const [, x, y, text, colorStr] = match;
+          const c = this.parseColor(colorStr || '#FFFFFF');
+          const encoded = new TextEncoder().encode(text);
+
+          tokens.push(GEOMETRY_TOKENS.COLOR, c.r, c.g, c.b, c.a);
+          tokens.push(GEOMETRY_TOKENS.TEXT);
+          tokens.push(...this.int16(parseInt(x)));
+          tokens.push(...this.int16(parseInt(y)));
+          tokens.push(encoded.length);
+          tokens.push(...encoded);
+          tokens.push(c.r, c.g, c.b, c.a);
+
+          geometry = { type: 'text', x: +x, y: +y, text, color: c };
+          return { tokens, geometry };
+        }
+
+        // MOVE x y
+        match = line.match(/^MOVE\s+(-?\d+)\s+(-?\d+)/i);
+        if (match) {
+          const [, x, y] = match;
+          tokens.push(GEOMETRY_TOKENS.MOVE);
+          tokens.push(...this.int16(parseInt(x)));
+          tokens.push(...this.int16(parseInt(y)));
+
+          geometry = { type: 'move', x: +x, y: +y };
+          return { tokens, geometry };
+        }
+
+        // COLOR #HEX
+        match = line.match(/^COLOR\s+(#[0-9A-Fa-f]+)/i);
+        if (match) {
+          const c = this.parseColor(match[1]);
+          tokens.push(GEOMETRY_TOKENS.COLOR, c.r, c.g, c.b, c.a);
+          return { tokens, geometry: null };
+        }
+
+        // FREEZE frames
+        match = line.match(/^FREEZE\s+(\d+)/i);
+        if (match) {
+          const frames = parseInt(match[1]);
+          tokens.push(GEOMETRY_TOKENS.FREEZE);
+          tokens.push(...this.uint16(frames));
+          return { tokens, geometry: null };
+        }
+
+        // THAW
+        if (line.toUpperCase() === 'THAW') {
+          tokens.push(GEOMETRY_TOKENS.THAW);
+          return { tokens, geometry: null };
+        }
+
+        return null;
+      }
+
+      int16(val) {
+        const buf = new ArrayBuffer(2);
+        new DataView(buf).setInt16(0, val, true);
+        return Array.from(new Uint8Array(buf));
+      }
+
+      uint16(val) {
+        return [val & 0xFF, (val >> 8) & 0xFF];
+      }
+
+      parse(text) {
+        this.tokens = [];
+        this.geometry = [];
+
+        const lines = text.split('\n');
+        for (const line of lines) {
+          const result = this.parseCommand(line);
+          if (result) {
+            this.tokens.push(...result.tokens);
+            if (result.geometry) {
+              this.geometry.push(result.geometry);
+            }
+          }
+        }
+
+        return {
+          tokens: this.tokens,
+          geometry: this.geometry,
+          hex: this.toHex(),
+          bytes: this.tokens.length
+        };
+      }
+
+      toHex() {
+        return this.tokens.map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+    }
+
+    // =============================================================================
+    // CANVAS RENDERER
+    // =============================================================================
+
+    class GeometryRenderer {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+      }
+
+      resize() {
+        const rect = this.canvas.parentElement.getBoundingClientRect();
+        this.canvas.width = rect.width;
+        this.canvas.height = rect.height - 80; // Account for header and hex output
+      }
+
+      clear() {
+        this.ctx.fillStyle = '#0a0a14';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Grid
+        this.ctx.strokeStyle = '#1a1a2e';
+        this.ctx.lineWidth = 1;
+        const gridSize = 50;
+        for (let x = 0; x < this.canvas.width; x += gridSize) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(x, 0);
+          this.ctx.lineTo(x, this.canvas.height);
+          this.ctx.stroke();
+        }
+        for (let y = 0; y < this.canvas.height; y += gridSize) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(0, y);
+          this.ctx.lineTo(this.canvas.width, y);
+          this.ctx.stroke();
+        }
+      }
+
+      render(geometry) {
+        this.clear();
+
+        for (const g of geometry) {
+          const color = g.color ? `rgba(${g.color.r},${g.color.g},${g.color.b},${g.color.a/255})` : '#ffffff';
+
+          if (g.type === 'rect') {
+            this.ctx.fillStyle = color;
+            this.ctx.fillRect(g.x, g.y, g.w, g.h);
+
+            // Border
+            this.ctx.strokeStyle = '#ffffff40';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(g.x, g.y, g.w, g.h);
+          }
+          else if (g.type === 'circ') {
+            this.ctx.fillStyle = color;
+            this.ctx.beginPath();
+            this.ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Border
+            this.ctx.strokeStyle = '#ffffff40';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+          }
+          else if (g.type === 'text') {
+            this.ctx.font = '16px Courier New';
+            this.ctx.fillStyle = color;
+            this.ctx.fillText(g.text, g.x, g.y);
+          }
+          else if (g.type === 'move') {
+            // Draw a marker
+            this.ctx.fillStyle = '#ffff00';
+            this.ctx.beginPath();
+            this.ctx.arc(g.x, g.y, 5, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.strokeStyle = '#ffffff';
+            this.ctx.stroke();
+          }
+        }
+      }
+    }
+
+    // =============================================================================
+    // MAIN
+    // =============================================================================
+
+    const codeInput = document.getElementById('codeInput');
+    const lineCountEl = document.getElementById('lineCount');
+    const byteCountEl = document.getElementById('byteCount');
+    const tokenCountEl = document.getElementById('tokenCount');
+    const hexOutputEl = document.getElementById('hexOutput');
+    const canvas = document.getElementById('canvas');
+
+    const mirror = new MirrorLink();
+    const renderer = new GeometryRenderer(canvas);
+
+    function update() {
+      const text = codeInput.value;
+      const result = mirror.parse(text);
+
+      // Update stats
+      lineCountEl.textContent = text.split('\n').filter(l => l.trim()).length;
+      byteCountEl.textContent = result.bytes;
+      tokenCountEl.textContent = result.geometry.length;
+
+      // Update hex output
+      if (result.hex) {
+        hexOutputEl.textContent = result.hex.length > 200
+          ? result.hex.substring(0, 200) + '...'
+          : result.hex;
+      } else {
+        hexOutputEl.textContent = 'Type commands to see hex...';
+      }
+
+      // Render geometry
+      renderer.render(result.geometry);
+    }
+
+    codeInput.addEventListener('input', update);
+
+    // Initial demo content
+    codeInput.value = `// Geometry OS Live Mirror Demo
+// Change text → see geometry update
+
+RECT 50 50 100 80 #FF0000
+CIRC 250 100 40 #00FF00
+TEXT 50 200 "Hello Geometry" #00FFFF
+RECT 300 150 60 60 #FF00FF`;
+
+    update();
+  </script>
+</body>
+</html>

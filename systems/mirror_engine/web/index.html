@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mirror Engine - P2P Frame Buffer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Monaco', 'Consolas', monospace;
+      background: #0a0a14;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 { color: #00ffff; margin-bottom: 5px; font-size: 20px; }
+    .info { color: #666; margin-bottom: 15px; font-size: 11px; }
+    .canvas-container {
+      border: 2px solid #333;
+      border-radius: 4px;
+      background: #000;
+      position: relative;
+    }
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+      cursor: crosshair;
+    }
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: #1a1a2e;
+      border-radius: 4px;
+    }
+    label { color: #888; }
+    input[type="color"] { width: 32px; height: 24px; border: none; cursor: pointer; }
+    input[type="number"] {
+      width: 50px;
+      padding: 3px;
+      background: #0a0a14;
+      border: 1px solid #333;
+      color: #fff;
+      border-radius: 3px;
+    }
+    input[type="text"] {
+      width: 120px;
+      padding: 3px 6px;
+      background: #0a0a14;
+      border: 1px solid #333;
+      color: #fff;
+      border-radius: 3px;
+    }
+    button {
+      padding: 6px 12px;
+      background: #0088ff;
+      border: none;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 11px;
+    }
+    button:hover { background: #00aaff; }
+    button.secondary { background: #333; }
+    button.secondary:hover { background: #444; }
+    .status {
+      margin-top: 12px;
+      padding: 6px 12px;
+      background: #1a1a2e;
+      border-radius: 4px;
+      font-size: 11px;
+      display: flex;
+      gap: 15px;
+    }
+    .status .connected { color: #00ff00; }
+    .status .disconnected { color: #ff4444; }
+    .status .connecting { color: #ffaa00; }
+    .coords { color: #888; }
+    .room-info {
+      margin-top: 10px;
+      font-size: 10px;
+      color: #555;
+      text-align: center;
+    }
+    .room-info code {
+      background: #1a1a2e;
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: #00ffff;
+    }
+  </style>
+</head>
+<body>
+  <h1>MIRROR ENGINE</h1>
+  <div class="info">P2P Frame Buffer — Yjs + WebRTC</div>
+
+  <div class="canvas-container">
+    <canvas id="canvas" width="640" height="400"></canvas>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Color:</label>
+      <input type="color" id="color" value="#00ff00">
+    </div>
+    <div class="control-group">
+      <label>Brush:</label>
+      <input type="number" id="brushSize" value="4" min="1" max="32">
+    </div>
+    <div class="control-group">
+      <label>Text:</label>
+      <input type="text" id="textInput" placeholder="Type text...">
+      <button id="drawTextBtn">Draw</button>
+    </div>
+    <button class="secondary" id="clearBtn">Clear</button>
+    <button class="secondary" id="shareBtn">Copy Link</button>
+  </div>
+
+  <div class="status">
+    <span id="connectionStatus" class="disconnected">Disconnected</span>
+    <span class="coords" id="coords">x: 0, y: 0</span>
+    <span class="coords">Peers: <span id="peerCount">0</span></span>
+  </div>
+
+  <div class="room-info">
+    Room: <code id="roomId">...</code>
+  </div>
+
+  <!-- Yjs + WebRTC via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/yjs@13.6.10/dist/yjs.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/y-webrtc@10.2.5/dist/y-webrtc.iife.js"></script>
+
+  <!-- App Module -->
+  <script type="module">
+    import { Color, BitmapFont8x8, FrameBuffer, TextRenderer } from './bitmapFont.js';
+
+    // =========================================================================
+    // CONFIGURATION
+    // =========================================================================
+
+    const CANVAS_WIDTH = 640;
+    const CANVAS_HEIGHT = 400;
+    const DEFAULT_ROOM = 'mirror-engine-default';
+
+    // =========================================================================
+    // STATE
+    // =========================================================================
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const colorInput = document.getElementById('color');
+    const brushInput = document.getElementById('brushSize');
+    const textInput = document.getElementById('textInput');
+    const statusEl = document.getElementById('connectionStatus');
+    const coordsEl = document.getElementById('coords');
+    const peerCountEl = document.getElementById('peerCount');
+    const roomIdEl = document.getElementById('roomId');
+
+    let ydoc = null;
+    let ypixels = null;
+    let provider = null;
+    let buffer = new FrameBuffer(CANVAS_WIDTH, CANVAS_HEIGHT);
+    let font = new BitmapFont8x8();
+    let isDrawing = false;
+
+    // =========================================================================
+    // ROOM ID FROM URL
+    // =========================================================================
+
+    function getRoomId() {
+      // Check URL hash first
+      const hash = window.location.hash.slice(1);
+      if (hash.startsWith('room=')) {
+        return hash.slice(5);
+      }
+      // Check URL params
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('room')) {
+        return params.get('room');
+      }
+      // Generate from date for daily room
+      const today = new Date().toISOString().slice(0, 10);
+      return `mirror-${today}`;
+    }
+
+    const ROOM_ID = getRoomId();
+    roomIdEl.textContent = ROOM_ID;
+
+    // =========================================================================
+    // YJS + WEBRTC SETUP
+    // =========================================================================
+
+    function initYjs() {
+      statusEl.textContent = 'Connecting...';
+      statusEl.className = 'connecting';
+
+      // Create Yjs document
+      ydoc = new Y.Y();
+
+      // Create shared pixels map
+      // Key: "x,y" → Value: "RRGGBB"
+      ypixels = ydoc.getMap('pixels');
+
+      // Connect via WebRTC
+      provider = new WebrtcProvider(ROOM_ID, ydoc, {
+        signaling: [
+          'wss://signaling.yjs.dev',
+          'wss://y-webrtc-signaling-eu.herokuapp.com'
+        ]
+      });
+
+      // Sync state
+      provider.on('sync', (isSynced) => {
+        if (isSynced) {
+          statusEl.textContent = 'Connected';
+          statusEl.className = 'connected';
+          loadFromYjs();
+        }
+      });
+
+      // Track peers
+      provider.on('peers', (peers) => {
+        peerCountEl.textContent = peers.length || Object.keys(provider.peers).length;
+      });
+
+      // Watch for remote changes
+      ypixels.observe((event) => {
+        if (event.transaction.local) return; // Skip our own changes
+        for (const [key, change] of event.changes.keys) {
+          if (change.action === 'add' || change.action === 'update') {
+            const [x, y] = key.split(',').map(Number);
+            const hex = ypixels.get(key);
+            const color = Color.fromHex(hex);
+            buffer.setPixel(x, y, color);
+          } else if (change.action === 'delete') {
+            const [x, y] = key.split(',').map(Number);
+            buffer.setPixel(x, y, buffer.background);
+          }
+        }
+        renderCanvas();
+      });
+
+      // Connection state
+      provider.on('status', (event) => {
+        console.log('WebRTC status:', event);
+        if (event.connected) {
+          statusEl.textContent = 'Connected';
+          statusEl.className = 'connected';
+        } else {
+          statusEl.textContent = 'Disconnected';
+          statusEl.className = 'disconnected';
+        }
+      });
+    }
+
+    function loadFromYjs() {
+      // Load all pixels from Yjs
+      buffer.clear(new Color(10, 10, 20));
+
+      for (const [key, hex] of ypixels) {
+        const [x, y] = key.split(',').map(Number);
+        const color = Color.fromHex(hex);
+        buffer.setPixel(x, y, color);
+      }
+
+      renderCanvas();
+    }
+
+    function syncPixelToYjs(x, y, color) {
+      const key = `${x},${y}`;
+      const hex = color.toHex();
+      ypixels.set(key, hex);
+    }
+
+    function clearYjsBuffer() {
+      // Clear all pixels
+      for (const key of ypixels.keys()) {
+        ypixels.delete(key);
+      }
+    }
+
+    // =========================================================================
+    // CANVAS RENDERING
+    // =========================================================================
+
+    function renderCanvas() {
+      const imageData = buffer.toImageData(ctx);
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function drawPixel(x, y, color) {
+      buffer.setPixel(x, y, color);
+      syncPixelToYjs(x, y, color);
+    }
+
+    function drawRect(x, y, w, h, color) {
+      buffer.fillRect(x, y, w, h, color);
+      // Sync each pixel
+      for (let py = y; py < y + h; py++) {
+        for (let px = x; px < x + w; px++) {
+          syncPixelToYjs(px, py, color);
+        }
+      }
+    }
+
+    function drawText(text, x, y, color) {
+      font.renderString(
+        buffer.pixels, buffer.width, buffer.height,
+        text, x, y, color
+      );
+      // Sync affected pixels
+      const [w, h] = font.measure(text);
+      for (let py = y; py < y + h; py++) {
+        for (let px = x; px < x + w; px++) {
+          const pixel = buffer.getPixel(px, py);
+          if (pixel.toHex() !== buffer.background.toHex()) {
+            syncPixelToYjs(px, py, pixel);
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // EVENT HANDLERS
+    // =========================================================================
+
+    function hexFromColor(colorValue) {
+      return colorValue.substring(1).toUpperCase();
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor(e.clientX - rect.left);
+      const y = Math.floor(e.clientY - rect.top);
+      drawAt(x, y);
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor(e.clientX - rect.left);
+      const y = Math.floor(e.clientY - rect.top);
+
+      coordsEl.textContent = `x: ${x}, y: ${y}`;
+
+      if (isDrawing) {
+        drawAt(x, y);
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isDrawing = false;
+      renderCanvas();
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      isDrawing = false;
+    });
+
+    function drawAt(x, y) {
+      const color = Color.fromHex(hexFromColor(colorInput.value));
+      const size = parseInt(brushInput.value) || 1;
+
+      drawRect(x, y, size, size, color);
+      renderCanvas();
+    }
+
+    // Draw text button
+    document.getElementById('drawTextBtn').addEventListener('click', () => {
+      const text = textInput.value;
+      if (!text) return;
+
+      const color = Color.fromHex(hexFromColor(colorInput.value));
+      const x = 50;
+      const y = Math.floor(Math.random() * 300) + 50;
+
+      drawText(text, x, y, color);
+      renderCanvas();
+      textInput.value = '';
+    });
+
+    // Clear button
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      buffer.clear(new Color(10, 10, 20));
+      clearYjsBuffer();
+      renderCanvas();
+    });
+
+    // Share button
+    document.getElementById('shareBtn').addEventListener('click', () => {
+      const url = `${window.location.origin}${window.location.pathname}#room=${ROOM_ID}`;
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Link copied to clipboard!');
+      });
+    });
+
+    // Enter key in text input
+    textInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('drawTextBtn').click();
+      }
+    });
+
+    // =========================================================================
+    // INITIALIZATION
+    // =========================================================================
+
+    function init() {
+      // Clear canvas initially
+      buffer.clear(new Color(10, 10, 20));
+
+      // Draw welcome text
+      font.renderString(
+        buffer.pixels, buffer.width, buffer.height,
+        'MIRROR ENGINE', 260, 180, Color.CYAN
+      );
+      font.renderString(
+        buffer.pixels, buffer.width, buffer.height,
+        'P2P Frame Buffer', 255, 195, Color.GRAY
+      );
+      font.renderString(
+        buffer.pixels, buffer.width, buffer.height,
+        'Connecting to WebRTC...', 245, 220, Color.GREEN
+      );
+
+      renderCanvas();
+
+      // Initialize Yjs after short delay
+      setTimeout(initYjs, 500);
+    }
+
+    init();
+  </script>
+</body>
+</html>

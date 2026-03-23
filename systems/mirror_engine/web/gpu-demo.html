@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geometry Standard — WebGPU Renderer</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #0a0a14; overflow: hidden; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    .hud {
+      position: fixed; top: 10px; left: 10px;
+      background: rgba(0,0,0,0.8); padding: 10px; border-radius: 4px;
+      color: #0ff; font-family: monospace; font-size: 12px;
+    }
+    .error {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: #400; padding: 20px; border-radius: 8px;
+      color: #f88; font-family: monospace; text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div class="hud">
+    <div>GEOMETRY STANDARD — WebGPU</div>
+    <div>Tokens: <span id="tokenCount">0</span></div>
+    <div>FPS: <span id="fps">0</span></div>
+    <div>WASD: Move | Scroll: Zoom</div>
+  </div>
+  <script type="module">
+    import { createGPURenderer } from './gpu_renderer.js';
+
+    const canvas = document.getElementById('canvas');
+    const tokenCountEl = document.getElementById('tokenCount');
+    const fpsEl = document.getElementById('fps');
+
+    let renderer, frameCount, lastTime;
+
+    async function init() {
+      try {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        renderer = await createGPURenderer(canvas);
+        console.log('WebGPU initialized');
+
+        frameCount = 0;
+        lastTime = performance.now();
+
+        // Input handling
+        const keys = new Set();
+        window.addEventListener('keydown', e => keys.add(e.code));
+        window.addEventListener('keyup', e => keys.delete(e.code));
+        canvas.addEventListener('wheel', e => {
+          e.preventDefault();
+          renderer.zoom *= e.deltaY > 0 ? 0.9 : 1.1;
+          renderer.zoom = Math.max(0.1, Math.min(10, renderer.zoom));
+        });
+
+        window.addEventListener('resize', () => {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        });
+
+        // Main loop
+        function render() {
+          // Handle movement
+          const speed = 10 / renderer.zoom;
+          if (keys.has('KeyW')) renderer.cameraY -= speed;
+          if (keys.has('KeyS')) renderer.cameraY += speed;
+          if (keys.has('KeyA')) renderer.cameraX -= speed;
+          if (keys.has('KeyD')) renderer.cameraX += speed;
+
+          // Clear and rebuild tokens each frame
+          renderer.clear();
+
+          // Draw grid of rects
+          for (let y = -2; y <= 2; y++) {
+            for (let x = -2; x <= 2; x++) {
+              const wx = x * 128;
+              const wy = y * 128;
+              const dist = Math.sqrt(x*x + y*y);
+
+              // Color based on distance
+              const r = Math.min(255, Math.floor(dist * 50));
+              const g = 100;
+              const b = 255 - r;
+
+              renderer.addRect(wx, wy, 100, 100, r, g, b, 200);
+            }
+          }
+
+          // Draw circles
+          for (let i = 0; i < 5; i++) {
+            const angle = (Date.now() / 1000 + i) * 0.5;
+            const radius = 150 + Math.sin(angle) * 50;
+            renderer.addCircle(
+              Math.cos(angle) * 200,
+              Math.sin(angle) * 200,
+              30,
+              0, 255, 100, 255
+            );
+          }
+
+          // Draw links (hexagon portals)
+          renderer.addLink(-300, -200, 80, 80, 0, 255, 255, 200);
+          renderer.addLink(300, -200, 80, 80, 255, 0, 255, 200);
+
+          // Draw agents (diamonds)
+          renderer.addAgent(0, 0, 32, 255, 200, 0, 255);
+
+          // Render
+          renderer.render();
+
+          // Update HUD
+          tokenCountEl.textContent = renderer.tokens.length;
+          frameCount++;
+          const now = performance.now();
+          if (now - lastTime > 1000) {
+            fpsEl.textContent = frameCount;
+            frameCount = 0;
+            lastTime = now;
+          }
+
+          requestAnimationFrame(render);
+        }
+
+        render();
+
+      } catch (err) {
+        document.body.innerHTML = `<div class="error">
+          <h2>WebGPU Error</h2>
+          <p>${err.message}</p>
+          <p style="color:#888;margin-top:10px">Try Chrome 113+ or Edge 113+</p>
+        </div>`;
+        console.error(err);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

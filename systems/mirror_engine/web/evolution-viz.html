@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Evolution</title>
+<style>
+*{margin:0;padding:0}body{background:#0a0a14;overflow:hidden}
+canvas{display:block}
+.hud{position:fixed;top:10px;left:10px;color:#0ff;font:12px monospace}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud">GEN:<span id="g">0</span> POP:<span id="p">0</span></div>
+<script>
+const C=document.getElementById('c'),X=C.getContext('2d');
+C.width=innerWidth;C.height=innerHeight;
+const O=[],col=['#f44','#4f4','#f4f','#ff4'];
+let G=0;
+for(let i=0;i<20;i++)O.push({t:i%4,x:Math.random()*C.width,y:Math.random()*C.height,s:20,f:10+Math.random()*10,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2});
+function E(){G++;O.forEach(o=>o.f=10+Math.random()*10);O.sort((a,b)=>b.f-a.f);O.splice(10);O.forEach(o=>O.push({...o,x:o.x+50,y:o.y+50,f:10+Math.random()*10}))}
+function D(){
+X.fillStyle='#0a0a14';X.fillRect(0,0,C.width,C.height);
+O.forEach(o=>{
+    o.x+=o.vx;o.y+=o.vy;if(o.x<0||o.x>C.width)o.vx*=-1;if(o.y<0||o.y>C.height)o.vy*=-1;
+    X.fillStyle=col[o.t];X.beginPath();X.arc(o.x,o.y,o.s,0,6.28);X.fill();
+    X.strokeStyle=o.f>15?'#0ff':o.f>10?'#0f0':'#888';X.lineWidth=2;X.stroke();
+    X.fillStyle='#fff';X.font='10px monospace';X.textAlign='center';X.fillText(o.f.toFixed(0),o.x,o.y+4);
+  });
+document.getElementById('g').textContent=G;document.getElementById('p').textContent=O.length;
+requestAnimationFrame(D)
+}
+D();onclick=E;setInterval(E,2000);
+</script>
+</body>
+</html>

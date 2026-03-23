@@ -1,0 +1,513 @@
+/**
+ * Bitmap Font 8x8 - ES6 Module
+ *
+ * Each character = 8 bytes, each byte = one row of 8 pixels.
+ * Bit 7 (MSB) = leftmost pixel, Bit 0 = rightmost pixel.
+ *
+ * Ported from: systems/mirror_engine/bitmap_font.py
+ */
+
+// =============================================================================
+// 8x8 BITMAP FONT DATA
+// =============================================================================
+
+/**
+ * Font glyph data: char code → array of 8 bytes
+ * Each byte is a row, MSB = leftmost pixel
+ */
+export const FONT_8X8 = new Map([
+  // Space (0x20)
+  [0x20, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]],
+
+  // ! " # $ % & ' ( ) * + , - . /
+  [0x21, [0x18, 0x18, 0x18, 0x18, 0x18, 0x00, 0x18, 0x00]],
+  [0x22, [0x6C, 0x6C, 0x24, 0x00, 0x00, 0x00, 0x00, 0x00]],
+  [0x23, [0x6C, 0x6C, 0xFE, 0x6C, 0xFE, 0x6C, 0x6C, 0x00]],
+  [0x24, [0x18, 0x7E, 0xC0, 0x7C, 0x06, 0xFC, 0x18, 0x00]],
+  [0x25, [0xC6, 0xCC, 0x18, 0x30, 0x60, 0xC6, 0x86, 0x00]],
+  [0x26, [0x38, 0x6C, 0x38, 0x76, 0xDC, 0xCC, 0x76, 0x00]],
+  [0x27, [0x18, 0x18, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00]],
+  [0x28, [0x0C, 0x18, 0x30, 0x30, 0x30, 0x18, 0x0C, 0x00]],
+  [0x29, [0x30, 0x18, 0x0C, 0x0C, 0x0C, 0x18, 0x30, 0x00]],
+  [0x2A, [0x00, 0x66, 0x3C, 0xFF, 0x3C, 0x66, 0x00, 0x00]],
+  [0x2B, [0x00, 0x18, 0x18, 0x7E, 0x18, 0x18, 0x00, 0x00]],
+  [0x2C, [0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x30]],
+  [0x2D, [0x00, 0x00, 0x00, 0x7E, 0x00, 0x00, 0x00, 0x00]],
+  [0x2E, [0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x00]],
+  [0x2F, [0x06, 0x0C, 0x18, 0x30, 0x60, 0xC0, 0x80, 0x00]],
+
+  // 0-9 (0x30-0x39)
+  [0x30, [0x7C, 0xC6, 0xCE, 0xD6, 0xE6, 0xC6, 0x7C, 0x00]],
+  [0x31, [0x18, 0x38, 0x18, 0x18, 0x18, 0x18, 0x7E, 0x00]],
+  [0x32, [0x7C, 0xC6, 0x06, 0x1C, 0x30, 0x66, 0xFE, 0x00]],
+  [0x33, [0x7C, 0xC6, 0x06, 0x3C, 0x06, 0xC6, 0x7C, 0x00]],
+  [0x34, [0x1C, 0x3C, 0x6C, 0xCC, 0xFE, 0x0C, 0x1E, 0x00]],
+  [0x35, [0xFE, 0xC0, 0xC0, 0xFC, 0x06, 0xC6, 0x7C, 0x00]],
+  [0x36, [0x38, 0x60, 0xC0, 0xFC, 0xC6, 0xC6, 0x7C, 0x00]],
+  [0x37, [0xFE, 0xC6, 0x0C, 0x18, 0x30, 0x30, 0x30, 0x00]],
+  [0x38, [0x7C, 0xC6, 0xC6, 0x7C, 0xC6, 0xC6, 0x7C, 0x00]],
+  [0x39, [0x7C, 0xC6, 0xC6, 0x7E, 0x06, 0x0C, 0x78, 0x00]],
+
+  // : ; < = > ? @
+  [0x3A, [0x00, 0x18, 0x18, 0x00, 0x00, 0x18, 0x18, 0x00]],
+  [0x3B, [0x00, 0x18, 0x18, 0x00, 0x00, 0x18, 0x18, 0x30]],
+  [0x3C, [0x06, 0x0C, 0x18, 0x30, 0x18, 0x0C, 0x06, 0x00]],
+  [0x3D, [0x00, 0x00, 0x7E, 0x00, 0x00, 0x7E, 0x00, 0x00]],
+  [0x3E, [0x60, 0x30, 0x18, 0x0C, 0x18, 0x30, 0x60, 0x00]],
+  [0x3F, [0x7C, 0xC6, 0x0C, 0x18, 0x18, 0x00, 0x18, 0x00]],
+  [0x40, [0x7C, 0xC6, 0xDE, 0xDE, 0xDE, 0xC0, 0x78, 0x00]],
+
+  // A-Z (0x41-0x5A)
+  [0x41, [0x38, 0x6C, 0xC6, 0xC6, 0xFE, 0xC6, 0xC6, 0x00]],
+  [0x42, [0xFC, 0x66, 0x66, 0x7C, 0x66, 0x66, 0xFC, 0x00]],
+  [0x43, [0x3C, 0x66, 0xC0, 0xC0, 0xC0, 0x66, 0x3C, 0x00]],
+  [0x44, [0xF8, 0x6C, 0x66, 0x66, 0x66, 0x6C, 0xF8, 0x00]],
+  [0x45, [0xFE, 0x62, 0x68, 0x78, 0x68, 0x62, 0xFE, 0x00]],
+  [0x46, [0xFE, 0x62, 0x68, 0x78, 0x68, 0x60, 0xF0, 0x00]],
+  [0x47, [0x3C, 0x66, 0xC0, 0xC0, 0xCE, 0x66, 0x3A, 0x00]],
+  [0x48, [0xC6, 0xC6, 0xC6, 0xFE, 0xC6, 0xC6, 0xC6, 0x00]],
+  [0x49, [0x3C, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C, 0x00]],
+  [0x4A, [0x1E, 0x0C, 0x0C, 0x0C, 0xCC, 0xCC, 0x78, 0x00]],
+  [0x4B, [0xE6, 0x66, 0x6C, 0x78, 0x6C, 0x66, 0xE6, 0x00]],
+  [0x4C, [0xF0, 0x60, 0x60, 0x60, 0x62, 0x66, 0xFE, 0x00]],
+  [0x4D, [0xC6, 0xEE, 0xFE, 0xFE, 0xD6, 0xC6, 0xC6, 0x00]],
+  [0x4E, [0xC6, 0xE6, 0xF6, 0xDE, 0xCE, 0xC6, 0xC6, 0x00]],
+  [0x4F, [0x7C, 0xC6, 0xC6, 0xC6, 0xC6, 0xC6, 0x7C, 0x00]],
+  [0x50, [0xFC, 0x66, 0x66, 0x7C, 0x60, 0x60, 0xF0, 0x00]],
+  [0x51, [0x7C, 0xC6, 0xC6, 0xC6, 0xC6, 0xCE, 0x7C, 0x0E]],
+  [0x52, [0xFC, 0x66, 0x66, 0x7C, 0x6C, 0x66, 0xE6, 0x00]],
+  [0x53, [0x7C, 0xC6, 0x60, 0x38, 0x0C, 0xC6, 0x7C, 0x00]],
+  [0x54, [0x7E, 0x7E, 0x5A, 0x18, 0x18, 0x18, 0x3C, 0x00]],
+  [0x55, [0xC6, 0xC6, 0xC6, 0xC6, 0xC6, 0xC6, 0x7C, 0x00]],
+  [0x56, [0xC6, 0xC6, 0xC6, 0xC6, 0xC6, 0x6C, 0x38, 0x00]],
+  [0x57, [0xC6, 0xC6, 0xC6, 0xD6, 0xFE, 0xEE, 0xC6, 0x00]],
+  [0x58, [0xC6, 0xC6, 0x6C, 0x38, 0x6C, 0xC6, 0xC6, 0x00]],
+  [0x59, [0x66, 0x66, 0x66, 0x3C, 0x18, 0x18, 0x3C, 0x00]],
+  [0x5A, [0xFE, 0xC6, 0x8C, 0x18, 0x32, 0x66, 0xFE, 0x00]],
+
+  // [ \ ] ^ _
+  [0x5B, [0x3C, 0x30, 0x30, 0x30, 0x30, 0x30, 0x3C, 0x00]],
+  [0x5C, [0xC0, 0x60, 0x30, 0x18, 0x0C, 0x06, 0x02, 0x00]],
+  [0x5D, [0x3C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x3C, 0x00]],
+  [0x5E, [0x10, 0x38, 0x6C, 0xC6, 0x00, 0x00, 0x00, 0x00]],
+  [0x5F, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF]],
+
+  // `
+  [0x60, [0x30, 0x18, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00]],
+
+  // a-z (0x61-0x7A)
+  [0x61, [0x00, 0x00, 0x78, 0x0C, 0x7C, 0xCC, 0x76, 0x00]],
+  [0x62, [0xE0, 0x60, 0x60, 0x7C, 0x66, 0x66, 0xDC, 0x00]],
+  [0x63, [0x00, 0x00, 0x78, 0xCC, 0xC0, 0xCC, 0x78, 0x00]],
+  [0x64, [0x1C, 0x0C, 0x0C, 0x7C, 0xCC, 0xCC, 0x76, 0x00]],
+  [0x65, [0x00, 0x00, 0x78, 0xCC, 0xFC, 0xC0, 0x78, 0x00]],
+  [0x66, [0x38, 0x6C, 0x64, 0xF0, 0x60, 0x60, 0xF0, 0x00]],
+  [0x67, [0x00, 0x00, 0x76, 0xCC, 0xCC, 0x7C, 0x0C, 0xF8]],
+  [0x68, [0xE0, 0x60, 0x6C, 0x76, 0x66, 0x66, 0xE6, 0x00]],
+  [0x69, [0x18, 0x00, 0x38, 0x18, 0x18, 0x18, 0x3C, 0x00]],
+  [0x6A, [0x06, 0x00, 0x06, 0x06, 0x06, 0x66, 0x66, 0x3C]],
+  [0x6B, [0xE0, 0x60, 0x66, 0x6C, 0x78, 0x6C, 0xE6, 0x00]],
+  [0x6C, [0x38, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C, 0x00]],
+  [0x6D, [0x00, 0x00, 0xEC, 0xFE, 0xD6, 0xD6, 0xD6, 0x00]],
+  [0x6E, [0x00, 0x00, 0xDC, 0x66, 0x66, 0x66, 0x66, 0x00]],
+  [0x6F, [0x00, 0x00, 0x78, 0xCC, 0xCC, 0xCC, 0x78, 0x00]],
+  [0x70, [0x00, 0x00, 0xDC, 0x66, 0x66, 0x7C, 0x60, 0xF0]],
+  [0x71, [0x00, 0x00, 0x76, 0xCC, 0xCC, 0x7C, 0x0C, 0x1E]],
+  [0x72, [0x00, 0x00, 0xDC, 0x76, 0x60, 0x60, 0xF0, 0x00]],
+  [0x73, [0x00, 0x00, 0x7C, 0xC0, 0x70, 0x1C, 0xF8, 0x00]],
+  [0x74, [0x30, 0x30, 0xFC, 0x30, 0x30, 0x34, 0x18, 0x00]],
+  [0x75, [0x00, 0x00, 0xCC, 0xCC, 0xCC, 0xCC, 0x76, 0x00]],
+  [0x76, [0x00, 0x00, 0xCC, 0xCC, 0xCC, 0x78, 0x30, 0x00]],
+  [0x77, [0x00, 0x00, 0xC6, 0xD6, 0xD6, 0xFE, 0x6C, 0x00]],
+  [0x78, [0x00, 0x00, 0xC6, 0x6C, 0x38, 0x6C, 0xC6, 0x00]],
+  [0x79, [0x00, 0x00, 0xCC, 0xCC, 0xCC, 0x7C, 0x0C, 0xF8]],
+  [0x7A, [0x00, 0x00, 0xFC, 0x98, 0x30, 0x64, 0xFC, 0x00]],
+
+  // { | } ~
+  [0x7B, [0x0E, 0x18, 0x18, 0x70, 0x18, 0x18, 0x0E, 0x00]],
+  [0x7C, [0x18, 0x18, 0x18, 0x00, 0x18, 0x18, 0x18, 0x00]],
+  [0x7D, [0x70, 0x18, 0x18, 0x0E, 0x18, 0x18, 0x70, 0x00]],
+  [0x7E, [0x76, 0xDC, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]],
+]);
+
+// Default glyph for unknown characters (square box)
+const DEFAULT_GLYPH = [0xFF, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0xFF];
+
+
+// =============================================================================
+// COLOR CLASS
+// =============================================================================
+
+export class Color {
+  constructor(r, g, b, a = 255) {
+    this.r = r;
+    this.g = g;
+    this.b = b;
+    this.a = a;
+  }
+
+  /**
+   * Parse hex color: #FF5733, FF5733, #F53, F53
+   */
+  static fromHex(hexStr) {
+    let h = hexStr.trim().replace(/^#/, '');
+    if (h.length === 3) {
+      h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    }
+    if (h.length !== 6) {
+      throw new Error(`Invalid hex color: ${hexStr}`);
+    }
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return new Color(r, g, b);
+  }
+
+  /** Return as hex string FF5733 */
+  toHex() {
+    return this.r.toString(16).padStart(2, '0').toUpperCase() +
+           this.g.toString(16).padStart(2, '0').toUpperCase() +
+           this.b.toString(16).padStart(2, '0').toUpperCase();
+  }
+
+  /** Return as RGBA array */
+  toArray() {
+    return [this.r, this.g, this.b, this.a];
+  }
+
+  // Preset colors
+  static WHITE = new Color(255, 255, 255);
+  static BLACK = new Color(0, 0, 0);
+  static RED = new Color(255, 0, 0);
+  static GREEN = new Color(0, 255, 0);
+  static BLUE = new Color(0, 128, 255);
+  static CYAN = new Color(0, 255, 255);
+  static YELLOW = new Color(255, 255, 0);
+  static MAGENTA = new Color(255, 0, 255);
+  static ORANGE = new Color(255, 128, 0);
+  static GRAY = new Color(128, 128, 128);
+}
+
+
+// =============================================================================
+// BITMAP FONT CLASS
+// =============================================================================
+
+export class BitmapFont8x8 {
+  static CHAR_WIDTH = 8;
+  static CHAR_HEIGHT = 8;
+
+  constructor(customGlyphs = null) {
+    this.glyphs = new Map(FONT_8X8);
+    if (customGlyphs) {
+      for (const [code, data] of Object.entries(customGlyphs)) {
+        this.glyphs.set(parseInt(code), data);
+      }
+    }
+  }
+
+  /**
+   * Get glyph data for a character
+   * @param {string|number} char - Character or ASCII code
+   * @returns {number[]} 8 bytes representing the glyph bitmap
+   */
+  getGlyph(char) {
+    const code = typeof char === 'string' ? char.charCodeAt(0) : char;
+    return this.glyphs.get(code) || DEFAULT_GLYPH;
+  }
+
+  /**
+   * Set custom glyph for a character
+   */
+  setGlyph(char, data) {
+    if (data.length !== 8) {
+      throw new Error('Glyph must be exactly 8 bytes');
+    }
+    const code = typeof char === 'string' ? char.charCodeAt(0) : char;
+    this.glyphs.set(code, data);
+  }
+
+  /**
+   * Render a single character to a pixel buffer
+   * @param {Uint8ClampedArray} pixels - RGBA pixel buffer
+   * @param {number} width - Buffer width
+   * @param {number} height - Buffer height
+   * @param {string|number} char - Character to render
+   * @param {number} x - X position
+   * @param {number} y - Y position
+   * @param {Color} color - Foreground color
+   * @param {Color|null} bg - Background color (null = transparent)
+   */
+  renderChar(pixels, width, height, char, x, y, color, bg = null) {
+    const glyph = this.getGlyph(char);
+
+    for (let row = 0; row < 8; row++) {
+      const rowData = glyph[row];
+      for (let col = 0; col < 8; col++) {
+        const px = x + col;
+        const py = y + row;
+
+        if (px < 0 || px >= width || py < 0 || py >= height) continue;
+
+        const idx = (py * width + px) * 4;
+        const bitSet = (rowData & (0x80 >> col)) !== 0;
+
+        if (bitSet) {
+          pixels[idx] = color.r;
+          pixels[idx + 1] = color.g;
+          pixels[idx + 2] = color.b;
+          pixels[idx + 3] = color.a;
+        } else if (bg) {
+          pixels[idx] = bg.r;
+          pixels[idx + 1] = bg.g;
+          pixels[idx + 2] = bg.b;
+          pixels[idx + 3] = bg.a;
+        }
+      }
+    }
+  }
+
+  /**
+   * Render a string to a pixel buffer
+   * @returns {number} X position after the last character
+   */
+  renderString(pixels, width, height, text, x, y, color, bg = null, spacing = 0) {
+    let cx = x;
+    const charWidth = BitmapFont8x8.CHAR_WIDTH + spacing;
+
+    for (const char of text) {
+      if (char === '\n') {
+        cx = x;
+        y += BitmapFont8x8.CHAR_HEIGHT;
+      } else if (char === '\t') {
+        cx = Math.floor((cx - x) / 32 + 1) * 32 + x;
+      } else {
+        this.renderChar(pixels, width, height, char, cx, y, color, bg);
+        cx += charWidth;
+      }
+    }
+
+    return cx;
+  }
+
+  /**
+   * Measure the size of rendered text
+   * @returns {[number, number]} [width, height] in pixels
+   */
+  measure(text, spacing = 0) {
+    const lines = text.split('\n');
+    const maxWidth = Math.max(...lines.map(l => l.length)) * (BitmapFont8x8.CHAR_WIDTH + spacing);
+    const height = lines.length * BitmapFont8x8.CHAR_HEIGHT;
+    return [maxWidth, height];
+  }
+}
+
+
+// =============================================================================
+// FRAME BUFFER CLASS
+// =============================================================================
+
+export class FrameBuffer {
+  constructor(width = 640, height = 400) {
+    this.width = width;
+    this.height = height;
+    this.pixels = new Uint8ClampedArray(width * height * 4);
+    this.background = new Color(0, 0, 0);
+    this.clear();
+  }
+
+  clear(color = null) {
+    if (color) this.background = color;
+    for (let i = 0; i < this.pixels.length; i += 4) {
+      this.pixels[i] = this.background.r;
+      this.pixels[i + 1] = this.background.g;
+      this.pixels[i + 2] = this.background.b;
+      this.pixels[i + 3] = 255;
+    }
+  }
+
+  setPixel(x, y, color) {
+    if (x < 0 || x >= this.width || y < 0 || y >= this.height) return;
+    const idx = (y * this.width + x) * 4;
+    this.pixels[idx] = color.r;
+    this.pixels[idx + 1] = color.g;
+    this.pixels[idx + 2] = color.b;
+    this.pixels[idx + 3] = color.a;
+  }
+
+  getPixel(x, y) {
+    if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+      return this.background;
+    }
+    const idx = (y * this.width + x) * 4;
+    return new Color(
+      this.pixels[idx],
+      this.pixels[idx + 1],
+      this.pixels[idx + 2],
+      this.pixels[idx + 3]
+    );
+  }
+
+  fillRect(x, y, w, h, color) {
+    for (let py = y; py < y + h; py++) {
+      for (let px = x; px < x + w; px++) {
+        this.setPixel(px, py, color);
+      }
+    }
+  }
+
+  /**
+   * Export buffer as hex string (dense format)
+   * Each row = concatenated hex colors (6 chars per pixel)
+   */
+  toHex() {
+    const lines = [];
+    for (let y = 0; y < this.height; y++) {
+      let line = '';
+      for (let x = 0; x < this.width; x++) {
+        line += this.getPixel(x, y).toHex();
+      }
+      lines.push(line);
+    }
+    return lines.join('\n');
+  }
+
+  /**
+   * Import buffer from hex string
+   */
+  fromHex(hexStr) {
+    const lines = hexStr.trim().split('\n');
+    for (let y = 0; y < Math.min(lines.length, this.height); y++) {
+      const line = lines[y].trim();
+      for (let x = 0; x < Math.min(line.length / 6, this.width); x++) {
+        const hex = line.slice(x * 6, (x + 1) * 6);
+        try {
+          const color = Color.fromHex(hex);
+          this.setPixel(x, y, color);
+        } catch (e) {
+          // Skip invalid hex
+        }
+      }
+    }
+  }
+
+  /**
+   * Export as ImageData for Canvas
+   */
+  toImageData(ctx) {
+    return new ImageData(this.pixels, this.width, this.height);
+  }
+
+  /**
+   * Export as URL-safe base64 (for hash state)
+   */
+  toBase64() {
+    // Compress: only store non-background pixels
+    const changes = [];
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        const color = this.getPixel(x, y);
+        if (color.toHex() !== this.background.toHex()) {
+          changes.push(`${x},${y}:${color.toHex()}`);
+        }
+      }
+    }
+    const data = changes.join(';');
+    return btoa(data);
+  }
+
+  /**
+   * Import from URL-safe base64 (from hash state)
+   */
+  fromBase64(base64) {
+    try {
+      const data = atob(base64);
+      if (!data) return;
+
+      const changes = data.split(';');
+      for (const change of changes) {
+        if (!change) continue;
+        const [coords, hex] = change.split(':');
+        const [x, y] = coords.split(',').map(Number);
+        const color = Color.fromHex(hex);
+        this.setPixel(x, y, color);
+      }
+    } catch (e) {
+      console.error('Failed to parse base64 state:', e);
+    }
+  }
+}
+
+
+// =============================================================================
+// TEXT RENDERER (High-Level)
+// =============================================================================
+
+export class TextRenderer {
+  constructor(font = null) {
+    this.font = font || new BitmapFont8x8();
+  }
+
+  renderText(buffer, text, x, y, color = Color.WHITE, bg = null) {
+    return this.font.renderString(
+      buffer.pixels, buffer.width, buffer.height,
+      text, x, y, color, bg
+    );
+  }
+
+  renderCode(buffer, code, x, y, lineHeight = 10) {
+    let cy = y;
+    for (const line of code.split('\n')) {
+      const tokens = this.tokenize(line);
+      let cx = x;
+
+      for (const token of tokens) {
+        const color = this.getTokenColor(token);
+        cx = this.font.renderString(
+          buffer.pixels, buffer.width, buffer.height,
+          token, cx, cy, color
+        );
+        cx = this.font.renderString(
+          buffer.pixels, buffer.width, buffer.height,
+          ' ', cx, cy, Color.WHITE
+        );
+      }
+
+      cy += lineHeight;
+    }
+    return cy;
+  }
+
+  tokenize(line) {
+    return line.match(/[a-zA-Z_][a-zA-Z0-9_]*|[0-9]+|"[^"]*"|'[^']*'|[^\s\w]/g) || [];
+  }
+
+  getTokenColor(token) {
+    // Comments
+    if (token.startsWith('#')) return Color.GRAY;
+    // Strings
+    if (token.startsWith('"') || token.startsWith("'")) return Color.GREEN;
+    // Numbers
+    if (/^\d+$/.test(token)) return Color.CYAN;
+    // Keywords
+    const keywords = ['def', 'class', 'if', 'else', 'for', 'while', 'return',
+                      'import', 'from', 'const', 'let', 'function', 'async', 'await'];
+    if (keywords.includes(token)) return Color.MAGENTA;
+    // Operators
+    if (/^[+\-*/%=<>!&|^~]$/.test(token)) return Color.RED;
+    return Color.WHITE;
+  }
+}
+
+
+// =============================================================================
+// DEFAULT EXPORT
+// =============================================================================
+
+export default {
+  FONT_8X8,
+  Color,
+  BitmapFont8x8,
+  FrameBuffer,
+  TextRenderer,
+};
