@@ -1,0 +1,30 @@
+// Geometry OS - Memory Copy Program
+// Copies data from source to destination using LOAD/STORE
+// Args: r0=source, r1=dest, r2=count
+
+:main
+    // Initialize offset = 0
+    LDI r3, 0
+    
+:copy_loop
+    // Check if done (count - offset == 0)
+    LDI r4, 0
+    SUB r4, r2, r3
+    JZ r4, :done
+    
+    // Load from source + offset
+    ADD r4, r0, r3
+    LOAD r5, r4
+    
+    // Store to dest + offset
+    ADD r4, r1, r3
+    STORE r4, r5
+    
+    // Increment offset
+    ADD r3, r3, 1
+    
+    // Loop
+    JMP :copy_loop
+
+:done
+    HALT
