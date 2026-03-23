@@ -1,0 +1,24 @@
+// Geometry OS - Reverse Bits
+// Reverses bit order in byte
+// Args: r0=value
+// Output: r1=reversed
+
+:reverse_bits
+    LDI r1, 0
+    LDI r2, 8
+
+:loop
+    LDI r3, 1
+    AND r3, r0, r3
+    MUL r1, r1, 2
+    ADD r1, r1, r3
+    DIV r0, r0, r2
+    MUL r0, r0, r2
+    DIV r0, r0, r2
+    LDI r3, 0
+    SUB r3, r0, r3
+    JZ r3, :done
+    JMP :loop
+
+:done
+    HALT
