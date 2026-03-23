@@ -1,0 +1,17 @@
+// Geometry OS - Toggle Bit
+// Toggles bit at position
+// Args: r0=value, r1=bit_pos
+// Output: r2=value with bit toggled
+
+:toggle_bit
+    LDI r2, 1
+
+:shift_loop
+    JZ r1, :shift_done
+    MUL r2, r2, 2
+    SUB r1, r1, 1
+    JMP :shift_loop
+
+:shift_done
+    XOR r2, r0, r2
+    HALT
