@@ -1,0 +1,84 @@
+// Geometry OS - Draw Line (Bresenham)
+// Draws a line from (x0,y0) to (x1,y1)
+// Args: r0=x0, r1=y0, r2=x1, r3=y1, r4=color
+
+:draw_line
+    // dx = abs(x1-x0)
+    SUB r5, r2, r0
+    LDI r6, 0
+    SUB r6, r5, r6
+    JLT r6, :dx_neg
+    MOV r6, r5
+    JMP :dx_done
+:dx_neg
+    SUB r6, r0, r2
+    
+:dx_done
+    // dy = -abs(y1-y0)
+    SUB r7, r3, r1
+    LDI r8, 0
+    SUB r8, r7, r8
+    JLT r8, :dy_neg
+    SUB r7, r3, r1
+    JMP :dy_done
+:dy_neg
+    SUB r7, r1, r3
+    
+:dy_done
+    // sx = x0 < x1 ? 1 : -1
+    SUB r8, r2, r0
+    LDI r9, 1
+    LDI r10, -1
+    JLT r8, :sx_pos
+    MOV r9, r10
+:sx_pos
+    MOV r8, r9
+    
+    // sy = y0 < y1 ? 1 : -1
+    SUB r9, r3, r1
+    JLT r9, :sy_pos
+    MOV r9, r10
+:sy_pos
+    MOV r9, r9
+    
+    // err = dx + dy
+    ADD r10, r6, r7
+
+:plot_loop
+    // Draw pixel at (x0, y0)
+    LDI r11, 0x7000
+    MUL r12, r1, r12
+    MUL r12, r1, r12
+    LDI r12, 320
+    MUL r12, r1, r12
+    ADD r12, r12, r0
+    ADD r12, r12, r11
+    STORE r12, r4
+    
+    // Check: x0 == x1 && y0 == y1
+    SUB r12, r2, r0
+    JNZ r12, :not_done
+    SUB r12, r3, r1
+    JZ r12, :done
+    
+:not_done
+    // err2 = 2 * err
+    LDI r12, 2
+    MUL r12, r12, r10
+    
+    // if err2 > dy: err += dy, x0 += sx
+    SUB r13, r12, r7
+    JLT r13, :check_x
+    ADD r10, r10, r7
+    ADD r0, r0, r8
+    
+:check_x
+    // if err2 < dx: err += dx, y0 += sy
+    SUB r13, r12, r6
+    JLT r13, :plot_loop
+    ADD r10, r10, r6
+    ADD r1, r1, r9
+    JMP :plot_loop
+
+:done
+    HALT
