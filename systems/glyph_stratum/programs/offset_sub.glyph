@@ -1,0 +1,8 @@
+// Geometry OS - Offset Subtract
+// Subtracts offset from pointer
+// Args: r0=ptr, r1=offset
+// Output: r2=ptr-offset
+
+:offset_sub
+    SUB r2, r0, r1
+    HALT
