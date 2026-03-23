@@ -1,0 +1,20 @@
+// Geometry OS - Sign
+// Returns sign: -1 (neg), 0 (zero), 1 (pos)
+// Args: r0=value
+// Output: r1=sign
+
+:sign
+    JZ r0, :zero
+    LDI r2, 0
+    SUB r2, r0, r2
+    JLT r2, :neg
+    LDI r1, 1
+    HALT
+
+:neg
+    LDI r1, -1
+    HALT
+
+:zero
+    LDI r1, 0
+    HALT
