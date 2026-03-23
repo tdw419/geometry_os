@@ -1,0 +1,27 @@
+// Geometry OS - Rotate Right
+// Rotates value right by n bits
+// Args: r0=value, r1=bits
+// Output: r2=rotated value
+
+:rotr
+    MOV r2, r0
+    LDI r3, 0
+
+:loop
+    SUB r3, r1, r3
+    JZ r3, :done
+    LDI r3, 1
+    AND r4, r2, r3
+    DIV r2, r2, r2
+    MUL r2, r2, r4
+    LDI r3, 128
+    LDI r5, r2
+    LDI r5, 0
+    SUB r5, r3, r5
+    LDI r3, 1
+    ADD r2, r2, r3
+    ADD r3, r3, 1
+    JMP :loop
+
+:done
+    HALT
