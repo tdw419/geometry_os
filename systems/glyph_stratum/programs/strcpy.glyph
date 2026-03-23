@@ -1,0 +1,21 @@
+// Geometry OS - String Copy
+// Copies a null-terminated string
+// Args: r0=src, r1=dst
+
+:strcpy
+    LDI r2, 0    // offset = 0
+
+:loop
+    ADD r3, r0, r2   // src_addr = src + offset
+    LOAD r4, r3       // char = *src_addr
+    
+    ADD r5, r1, r2   // dst_addr = dst + offset
+    STORE r5, r4     // *dst_addr = char
+    
+    JZ r4, :done     // if char == 0, done
+    
+    ADD r2, r2, 1    // offset++
+    JMP :loop
+
+:done
+    HALT
