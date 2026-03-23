@@ -1,0 +1,21 @@
+// Geometry OS - Power (x^y)
+// Computes x raised to power y
+// Args: r0=base, r1=exponent
+// Output: r2=result
+
+:power
+    LDI r2, 1    // result = 1
+    
+:loop
+    // Check: exponent == 0 -> done
+    JZ r1, :done
+    
+    // result *= base
+    MUL r2, r2, r0
+    
+    // exponent--
+    SUB r1, r1, 1
+    JMP :loop
+
+:done
+    HALT
