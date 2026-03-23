@@ -1,0 +1,21 @@
+// Geometry OS - Clear Screen
+// Clears the framebuffer to a color
+// Args: r0=color
+
+:clear_screen
+    LDI r1, 0x7000  // framebuffer
+    LDI r2, 0       // i = 0
+    LDI r3, 76800   // 320x240 pixels
+
+:clear_loop
+    // Check: i >= 76800 -> done
+    SUB r4, r3, r2
+    JZ r4, :done
+    
+    STORE r1, r2, r0
+    
+    ADD r2, r2, 1
+    JMP :clear_loop
+
+:done
+    HALT
