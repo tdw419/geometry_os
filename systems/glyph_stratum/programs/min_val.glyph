@@ -1,0 +1,16 @@
+// Geometry OS - Min of two values
+// Returns minimum
+// Args: r0=a, r1=b
+// Output: r2=min(a,b)
+
+:min_val
+    SUB r2, r0, r1
+    JLT r2, :a_less
+    MOV r2, r1
+    JMP :done
+
+:a_less
+    MOV r2, r0
+
+:done
+    HALT
