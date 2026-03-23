@@ -1,0 +1,27 @@
+// Geometry OS - Get Bit
+// Gets bit at position
+// Args: r0=value, r1=bit_pos
+// Output: r2=bit value (0 or 1)
+
+:get_bit
+    LDI r2, 1
+
+:shift_loop
+    JZ r1, :shift_done
+    MUL r2, r2, 2
+    SUB r1, r1, 1
+    JMP :shift_loop
+
+:shift_done
+    AND r2, r0, r2
+    LDI r3, 1
+    DIV r2, r2, r3
+    LDI r3, 1
+    SUB r2, r2, r3
+    JNZ r2, :zero
+    LDI r2, 1
+    HALT
+
+:zero
+    LDI r2, 0
+    HALT
