@@ -1,0 +1,29 @@
+// Geometry OS - String Compare (strcmp)
+// Compares two strings
+// Args: r0=src1, r1=src2
+// Output: r2=0 (equal), <0 (s1<s2), >0 (s1>s2)
+
+:strcmp
+    LDI r2, 0
+
+:cmp_loop
+    LOAD r3, r0
+    LOAD r4, r1
+    
+    // Check: both null -> equal
+    JZ r3, :check_both_null
+    JZ r4, :check_both_null
+    
+    // Compare
+    SUB r5, r3, r4
+    JNZ r5, :done
+    
+    ADD r0, r0, 1
+    ADD r1, r1, 1
+    JMP :cmp_loop
+
+:check_both_null
+    SUB r2, r3, r4
+
+:done
+    HALT
