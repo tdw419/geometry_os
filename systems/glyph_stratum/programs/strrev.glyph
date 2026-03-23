@@ -1,0 +1,62 @@
+// Geometry OS - Reverse String
+// Reverses a null-terminated string in place
+// Args: r0=string_start
+
+:reverse
+    // First, find length
+    LDI r1, 0      // offset = 0
+    LDI r3, 0      // length = 0
+
+:find_len
+    ADD r4, r0, r1
+    LOAD r5, r4
+    JZ r5, :found_end
+    ADD r3, r3, 1
+    ADD r1, r1, 1
+    JMP :found_len
+
+:found_end
+    // length in r3, now reverse
+    LDI r1, 0      // start = 0
+    LDI r2, 0
+    SUB r2, r3, r1  // end = length - 1 - start
+    LDI r4, 1
+    SUB r2, r2, r4
+    LDI r4, 2
+    DIV r2, r2, r4  // mid = length / 2
+
+:reverse_loop
+    // Check: start >= mid -> done
+    SUB r4, r2, r1
+    JZ r4, :done
+    JLT r4, :done
+    
+    // Swap str[start] and str[end]
+    ADD r4, r0, r1
+    LOAD r5, r4      // temp = str[start]
+    
+    LDI r6, 1
+    SUB r6, r3, r1   // end = length - 1 - start
+    SUB r6, r6, r4   // actually length - 2 - start
+    ADD r6, r0, r6
+    LOAD r7, r6      // str[end]
+    
+    // str[start] = str[end]
+    ADD r6, r0, r1
+    STORE r6, r7
+    
+    // str[end] = temp
+    LDI r6, 1
+    SUB r6, r3, r1
+    SUB r6, r6, 1
+    ADD r6, r0, r6
+    STORE r6, r5
+    
+    ADD r1, r1, 1
+    JMP :reverse_loop
+
+:found_len
+    JMP :reverse_loop
+
+:done
+    HALT
