@@ -1,0 +1,17 @@
+// Geometry OS - Absolute Value
+// Returns absolute value of a number
+// Args: r0=value
+// Output: r1=abs(value)
+
+:abs_val
+    // Check: value >= 0 -> done
+    LDI r1, 0
+    SUB r1, r0, r1
+    JGE r1, :done
+    
+    // Negate
+    LDI r1, 0
+    SUB r1, r1, r0
+
+:done
+    HALT
