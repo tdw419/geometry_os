@@ -1,0 +1,24 @@
+// Geometry OS - Count Bytes
+// Counts occurrences of byte
+// Args: r0=start, r1=length, r2=target
+// Output: r3=count
+
+:count_bytes
+    LDI r3, 0
+    LDI r4, 0
+
+:loop
+    SUB r5, r1, r4
+    JZ r5, :done
+    LOAD r5, r0
+    SUB r5, r5, r2
+    JNZ r5, :skip
+    ADD r3, r3, 1
+
+:skip
+    ADD r0, r0, 1
+    ADD r4, r4, 1
+    JMP :loop
+
+:done
+    HALT
