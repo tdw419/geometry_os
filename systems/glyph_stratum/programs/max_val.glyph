@@ -1,0 +1,16 @@
+// Geometry OS - Max of two values
+// Returns maximum
+// Args: r0=a, r1=b
+// Output: r2=max(a,b)
+
+:max_val
+    SUB r2, r0, r1
+    JGT r2, :a_greater
+    MOV r2, r1
+    JMP :done
+
+:a_greater
+    MOV r2, r0
+
+:done
+    HALT
