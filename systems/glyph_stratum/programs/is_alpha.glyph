@@ -1,0 +1,29 @@
+// Geometry OS - Is Alpha
+// Checks if character is alphabetic
+// Args: r0=ASCII char
+// Output: r1=1 (alpha), 0 (not)
+
+:is_alpha
+    LDI r1, 0
+    SUB r2, r0, r1
+    JLT r2, :not_alpha
+    LDI r2, 90
+    SUB r2, r2, r0
+    JLT r2, :not_alpha
+    LDI r2, 65
+    SUB r2, r0, r2
+    JLT r2, :check_lower
+    LDI r1, 1
+    HALT
+
+:check_lower
+    LDI r2, 122
+    SUB r2, r2, r0
+    JLT r2, :not_alpha
+    LDI r2, 97
+    SUB r2, r0, r2
+    JLT r2, :not_alpha
+    LDI r1, 1
+
+:not_alpha
+    HALT
