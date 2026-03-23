@@ -1,0 +1,96 @@
+// Geometry OS - Queue (Circular Buffer)
+// Enqueue: value in r0, returns r1=success(1)/full(0)
+// Dequeue: returns r1=value/-1(empty)
+// Queue size: 16 entries at 0x5000
+
+:init_queue
+    LDI r1, 0x5000
+    LDI r2, 0
+    STORE r1, r2    // head = 0
+    STORE r1, r1     // tail = 0
+    LDI r1, 16
+    STORE r1, 1     // size = 0
+    HALT
+
+:enqueue
+    LDI r1, 0x5000
+    LOAD r2, r1     // head
+    LOAD r3, r1     // tail
+    LDI r4, 16
+    LOAD r5, r1, 1  // size
+    
+    // Check: size == 16 -> full
+    SUB r6, r4, r5
+    JZ r6, :full
+    
+    // Add to tail
+    ADD r5, r1, r3
+    LDI r7, 2
+    ADD r5, r5, r7   // queue[tail]
+    STORE r5, r0
+    
+    // Increment tail
+    ADD r3, r3, 1
+    LDI r6, 16
+    SUB r3, r3, r6
+    JZ r3, :wrap_tail
+    JMP :tail_ok
+    
+:wrap_tail
+    LDI r3, 0
+    
+:tail_ok
+    STORE r1, r3     // save tail
+    
+    // size++
+    LDI r1, 16
+    LOAD r2, r1, 1
+    ADD r2, r2, 1
+    STORE r1, r2
+    
+    LDI r1, 1        // success
+    RET
+
+:full
+    LDI r1, 0        // full
+    RET
+
+:dequeue
+    LDI r1, 0x5000
+    LOAD r2, r1     // head
+    LOAD r3, r1     // tail
+    LDI r4, 16
+    LOAD r5, r1, 1   // size
+    
+    // Check: size == 0 -> empty
+    JZ r5, :empty
+    
+    // Get from head
+    ADD r5, r1, r2
+    LDI r6, 2
+    ADD r5, r5, r6   // queue[head]
+    LOAD r1, r5      // return value
+    
+    // Increment head
+    ADD r2, r2, 1
+    SUB r2, r2, r4
+    JZ r2, :wrap_head
+    JMP :head_ok
+    
+:wrap_head
+    LDI r2, 0
+    
+:head_ok
+    STORE r1, r2     // save head
+    
+    // size--
+    LDI r1, 16
+    LOAD r2, r1, 1
+    SUB r2, r2, 1
+    STORE r1, r2
+    
+    RET
+
+:empty
+    LDI r1, -1       // empty
+    RET
