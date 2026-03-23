@@ -1,0 +1,14 @@
+// Geometry OS - Is Equal
+// Checks if two values are equal
+// Args: r0=a, r1=b
+// Output: r2=1 (equal), 0 (not equal)
+
+:is_equal
+    SUB r2, r0, r1
+    JNZ r2, :not_eq
+    LDI r2, 1
+    HALT
+
+:not_eq
+    LDI r2, 0
+    HALT
