@@ -1,0 +1,13 @@
+// Geometry OS - Unpack Byte to Nibbles
+// Splits byte into two 4-bit values
+// Args: r0=byte
+// Output: r1=low_nibble, r2=high_nibble
+
+:unpack_nibbles
+    LDI r1, 15
+    AND r1, r0, r1
+    LDI r2, 240
+    AND r2, r0, r2
+    LDI r3, 16
+    DIV r2, r2, r3
+    HALT
