@@ -1,0 +1,21 @@
+// Geometry OS - Clear Bit
+// Clears bit at position
+// Args: r0=value, r1=bit_pos
+// Output: r2=value with bit cleared
+
+:clear_bit
+    LDI r2, 1
+    LDI r3, 1
+
+:shift_loop
+    SUB r3, r1, r3
+    JZ r3, :shift_done
+    MUL r2, r2, 2
+    SUB r1, r1, 1
+    JMP :shift_loop
+
+:shift_done
+    LDI r3, 0xFF
+    XOR r2, r2, r3
+    AND r2, r0, r2
+    HALT
