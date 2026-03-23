@@ -1,0 +1,10 @@
+// Geometry OS - Average (Mean)
+// Calculates average of two values
+// Args: r0=a, r1=b
+// Output: r2=(a+b)/2
+
+:average
+    ADD r2, r0, r1
+    LDI r3, 2
+    DIV r2, r2, r3
+    HALT
