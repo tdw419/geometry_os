@@ -1,0 +1,23 @@
+// Geometry OS - ASCII to Digit
+// Converts ASCII digit to numeric value
+// Args: r0=ASCII character ('0'-'9')
+// Output: r1=digit value or -1 if invalid
+
+:ascii_digit
+    LDI r1, -1    // default: invalid
+    
+    // Check: '0' <= char <= '9'
+    LDI r2, 48    // '0'
+    SUB r2, r0, r2
+    JLT r2, :done
+    
+    LDI r2, 57    // '9'
+    SUB r2, r2, r0
+    JLT r2, :done
+    
+    // Valid: return value
+    LDI r1, 48
+    SUB r1, r0, r1
+
+:done
+    HALT
