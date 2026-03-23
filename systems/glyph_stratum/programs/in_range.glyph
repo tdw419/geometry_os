@@ -1,0 +1,15 @@
+// Geometry OS - Range Check
+// Checks if value is in range [min, max]
+// Args: r0=value, r1=min, r2=max
+// Output: r3=1 (in range), 0 (out of range)
+
+:in_range
+    LDI r3, 0
+    SUB r4, r0, r1
+    JLT r4, :out
+    SUB r4, r0, r2
+    JGT r4, :out
+    LDI r3, 1
+
+:out
+    HALT
