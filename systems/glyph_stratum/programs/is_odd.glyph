@@ -1,0 +1,20 @@
+// Geometry OS - Is Odd
+// Checks if value is odd
+// Args: r0=value
+// Output: r1=1 (odd), 0 (even)
+
+:is_odd
+    LDI r1, 2
+    DIV r2, r0, r1
+    MUL r1, r2, r1
+    SUB r1, r0, r1
+    LDI r2, 1
+    JNZ r1, :even
+    MOV r1, r2
+    JMP :done
+
+:even
+    LDI r1, 0
+
+:done
+    HALT
