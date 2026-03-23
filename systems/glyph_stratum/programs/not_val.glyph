@@ -1,0 +1,9 @@
+// Geometry OS - Not
+// Bitwise NOT
+// Args: r0=value
+// Output: r1=~value
+
+:not_val
+    LDI r1, 0xFF
+    XOR r1, r0, r1
+    HALT
