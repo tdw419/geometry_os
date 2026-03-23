@@ -1,0 +1,25 @@
+// Geometry OS - GCD (Greatest Common Divisor)
+// Computes GCD of two numbers using Euclidean algorithm
+// Args: r0=a, r1=b
+// Output: r2=GCD(a,b)
+
+:gcd
+:loop
+    // Check: b == 0 -> done
+    JZ r1, :done
+    
+    // a, b = b, a % b
+    MOV r2, r0
+    DIV r0, r0, r1
+    MUL r0, r0, r1
+    SUB r0, r2, r0    // a % b
+    
+    MOV r2, r1
+    MOV r1, r0
+    MOV r0, r2
+    
+    JMP :loop
+
+:done
+    MOV r2, r0
+    HALT
