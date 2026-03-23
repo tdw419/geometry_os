@@ -1,0 +1,16 @@
+// Geometry OS - Is Positive
+// Checks if value is positive (> 0)
+// Args: r0=value
+// Output: r1=1 (positive), 0 (non-positive)
+
+:is_positive
+    JZ r0, :no
+    LDI r2, 0
+    SUB r2, r0, r2
+    JLT r2, :no
+    LDI r1, 1
+    HALT
+
+:no
+    LDI r1, 0
+    HALT
