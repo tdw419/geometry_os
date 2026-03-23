@@ -1,0 +1,10 @@
+// Geometry OS - Percentage
+// Calculates percentage: (value * 100) / total
+// Args: r0=value, r1=total
+// Output: r2=percentage
+
+:percentage
+    LDI r2, 100
+    MUL r2, r0, r2
+    DIV r2, r2, r1
+    HALT
