@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geometry OS — Mirror App</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a14;
+      font-family: 'Courier New', monospace;
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #canvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      image-rendering: pixelated;
+    }
+    .hud {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.85);
+      padding: 10px 15px;
+      border-radius: 4px;
+      border: 1px solid #00ffff;
+      font-size: 12px;
+      color: #0ff;
+      z-index: 100;
+    }
+    .hud .status { color: #0f0; }
+    .hud .error { color: #f44; }
+    .controls {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      display: flex;
+      gap: 8px;
+      z-index: 100;
+    }
+    .controls button {
+      padding: 8px 16px;
+      background: #1a1a2e;
+      border: 1px solid #333;
+      color: #0ff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 11px;
+    }
+    .controls button:hover { background: #252540; }
+    .controls button.active { background: #004466; border-color: #0ff; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+  <div class="hud">
+    <div>GEOMETRY OS — MIRROR</div>
+    <div>Camera: <span id="cameraPos">0, 0</span></div>
+    <div>Zoom: <span id="zoomLevel">1.0x</span></div>
+    <div>Chunks: <span id="chunkCount">0</span></div>
+    <div class="status" id="status">Initializing...</div>
+  </div>
+  
+  <div class="controls">
+    <button id="btnThoughts">Thoughts</button>
+    <button id="btnNetwork">Network</button>
+    <button id="btnReset">Reset View</button>
+  </div>
+
+  <script type="module">
+    // =========================================================================
+    // IMPORTS
+    // =========================================================================
+    import { ViewportEngine, CHUNK_SIZE } from './viewportEngine.js';
+    import { ThoughtOverlay } from './thoughtOverlay.js';
+    import { YWebRTCAdapter } from './ywebrtc_adapter.js';
+
+    // =========================================================================
+    // MAIN APP
+    // =========================================================================
+
+    const canvas = document.getElementById('canvas');
+    const cameraPosEl = document.getElementById('cameraPos');
+    const zoomLevelEl = document.getElementById('zoomLevel');
+    const chunkCountEl = document.getElementById('chunkCount');
+    const statusEl = document.getElementById('status');
+    
+    const btnThoughts = document.getElementById('btnThoughts');
+    const btnNetwork = document.getElementById('btnNetwork');
+    const btnReset = document.getElementById('btnReset');
+
+    // Initialize viewport engine
+    const engine = new ViewportEngine(canvas);
+    
+    // Initialize thought overlay
+    const thoughtOverlay = new ThoughtOverlay(engine);
+    
+    // Initialize WebRTC adapter
+    const webrtc = new YWebRTCAdapter('geometry-os-mirror');
+    
+    // =========================================================================
+    // WEBSOCKET CONNECTION (optional - for Thought Gateway)
+    // =========================================================================
+    
+    let ws = null;
+    let thoughtApiUrl = 'http://localhost:8765';
+    
+    function connectThoughtGateway() {
+      // Try to connect to Thought Gateway
+      fetch(`${thoughtApiUrl}/stats`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.logger_active) {
+            thoughtOverlay.connect(thoughtApiUrl);
+            statusEl.textContent = 'Thought Gateway connected';
+            console.log('Connected to Thought Gateway');
+          }
+        })
+        .catch(err => {
+          console.log('Thought Gateway not available:', err.message);
+          statusEl.textContent = 'Thought Gateway offline';
+          statusEl.className = 'error';
+        });
+    }
+    
+    // =========================================================================
+    // P2P CHUNK SHARING (placeholder)
+    // =========================================================================
+    
+    async function initP2P() {
+      try {
+        await webrtc.connect();
+        statusEl.textContent = 'P2P connected';
+        statusEl.className = 'status';
+        
+        // Note: Chunk sync via YWebRTCAdapter is available but 
+        // viewportEngine uses its own chunk manager
+        console.log('P2P adapter ready');
+        
+      } catch (err) {
+        console.error('P2P init failed:', err);
+        statusEl.textContent = 'P2P offline (using local)';
+        statusEl.className = 'error';
+      }
+    }
+    
+    // =========================================================================
+    // UI CONTROLS
+    // =========================================================================
+    
+    btnThoughts.addEventListener('click', () => {
+      thoughtOverlay.toggle();
+      btnThoughts.classList.toggle('active');
+    });
+    
+    btnNetwork.addEventListener('click', () => {
+      webrtc.connect();
+      btnNetwork.classList.toggle('active');
+    });
+    
+    btnReset.addEventListener('click', () => {
+      engine.camera.snapTo(0, 0);
+      engine.camera.zoom = 1;
+    });
+    
+    // =========================================================================
+    // ADDITIONAL KEYBOARD SHORTCUTS
+    // =========================================================================
+    
+    document.addEventListener('keydown', (e) => {
+      // Space to toggle thoughts (not handled by engine)
+      if (e.key === ' ' && !e.target.matches('input, textarea')) {
+        e.preventDefault();
+        thoughtOverlay.toggle();
+        btnThoughts.classList.toggle('active');
+      }
+    });
+    
+    // =========================================================================
+    // HUD UPDATE LOOP
+    // =========================================================================
+    
+    function updateHUD() {
+      cameraPosEl.textContent = `${Math.round(engine.camera.x)}, ${Math.round(engine.camera.y)}`;
+      zoomLevelEl.textContent = `${engine.camera.zoom.toFixed(1)}x`;
+      chunkCountEl.textContent = engine.chunkManager.activeChunks.size;
+    }
+    
+    // Update HUD every 100ms
+    setInterval(updateHUD, 100);
+    
+    // =========================================================================
+    // INITIALIZATION
+    // =========================================================================
+    
+    async function init() {
+      console.log('Initializing Geometry OS Mirror App...');
+      
+      // Resize canvas
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      engine.resize(canvas.width, canvas.height);
+      
+      // Initialize systems
+      await initP2P();
+      connectThoughtGateway();
+      
+      // Start engine render loop
+      engine.start();
+      
+      console.log('Mirror App ready');
+      statusEl.textContent = 'Ready';
+    }
+    
+    // Handle resize
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      engine.resize(canvas.width, canvas.height);
+    });
+    
+    // Start
+    init();
+  </script>
+</body>
+</html>
