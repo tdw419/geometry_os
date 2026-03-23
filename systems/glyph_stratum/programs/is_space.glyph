@@ -1,0 +1,24 @@
+// Geometry OS - Is Space
+// Checks if character is whitespace
+// Args: r0=ASCII char
+// Output: r1=1 (space), 0 (not)
+
+:is_space
+    LDI r1, 0
+    LDI r2, 32
+    SUB r2, r0, r2
+    JZ r2, :yes
+    LDI r2, 9
+    SUB r2, r0, r2
+    JZ r2, :yes
+    LDI r2, 10
+    SUB r2, r0, r2
+    JZ r2, :yes
+    LDI r2, 13
+    SUB r2, r0, r2
+    JZ r2, :yes
+    HALT
+
+:yes
+    LDI r1, 1
+    HALT
