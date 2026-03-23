@@ -1,0 +1,27 @@
+// Geometry OS - Clamp value
+// Clamps value between min and max
+// Args: r0=value, r1=min, r2=max
+// Output: r3=clamped value
+
+:clamp
+    // Check: value < min -> return min
+    SUB r3, r0, r1
+    JLT r3, :return_min
+    
+    // Check: value > max -> return max
+    SUB r3, r0, r2
+    JGT r3, :return_max
+    
+    // Otherwise return value
+    MOV r3, r0
+    JMP :done
+
+:return_min
+    MOV r3, r1
+    JMP :done
+
+:return_max
+    MOV r3, r2
+
+:done
+    HALT
