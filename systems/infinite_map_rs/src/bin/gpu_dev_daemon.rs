@@ -1453,6 +1453,32 @@ fn main() {
                 },
                 Err(e) => eprintln!("[BOOT] Warning: Failed to spawn VM 2: {}", e),
             }
+
+            // Load brain.glyph as VM 3 for LM Studio integration
+            let brain_glyph_path = "systems/glyph_stratum/programs/brain.glyph";
+            if let Ok(glyph_bytes) = std::fs::read(brain_glyph_path) {
+                println!("[BOOT] Loading brain.glyph into VM 3...");
+                // Write glyph bytes to substrate at address 0x3000 (brain region)
+                {
+                    let mut shadow = shadow_ram.lock().unwrap();
+                    write_glyph_to_substrate(
+                        &glyph_bytes,
+                        &ram_texture,
+                        &device,
+                        &queue,
+                        0x3000,
+                        &mut shadow,
+                    );
+                }
+                let config = VmConfig {
+                    entry_point: 0x3000,
+                    ..Default::default()
+                };
+                match scheduler.lock().unwrap().spawn_vm(3, &config) {
+                    Ok(()) => println!("[BOOT] brain.glyph loaded as VM 3 (LM Studio bridge)"),
+                    Err(e) => eprintln!("[BOOT] Warning: Failed to spawn VM 3: {}", e),
+                }
+            }
         }
     } else {
         println!("[BOOT] Warning: Could not load wasm_interpreter.bin, WASM execution disabled");
