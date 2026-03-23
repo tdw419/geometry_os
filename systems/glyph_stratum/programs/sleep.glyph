@@ -1,0 +1,14 @@
+// Geometry OS - Sleep (delay)
+// Simple delay loop
+// Args: r0=cycles
+
+:sleep
+    LDI r1, 0
+
+:loop
+    ADD r1, r1, 1
+    SUB r2, r1, r0
+    JNZ r2, :loop
+
+:done
+    HALT
