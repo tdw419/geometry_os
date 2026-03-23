@@ -1,0 +1,17 @@
+// Geometry OS - Is Digit
+// Checks if character is digit
+// Args: r0=ASCII char
+// Output: r1=1 (digit), 0 (not)
+
+:is_digit
+    LDI r1, 0
+    LDI r2, 48
+    SUB r2, r0, r2
+    JLT r2, :not_digit
+    LDI r2, 57
+    SUB r2, r2, r0
+    JLT r2, :not_digit
+    LDI r1, 1
+
+:not_digit
+    HALT
