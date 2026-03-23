@@ -1,0 +1,28 @@
+// Geometry OS - Linear Search
+// Searches for value in array
+// Args: r0=array_ptr, r1=length, r2=target
+// Output: r3=index (or -1 if not found)
+
+:lsearch
+    LDI r3, -1    // result = -1 (not found)
+    LDI r4, 0     // i = 0
+
+:loop
+    // Check: i >= length -> done
+    SUB r5, r1, r4
+    JZ r5, :done
+    
+    // Check: arr[i] == target
+    ADD r5, r0, r4
+    LOAD r6, r5
+    SUB r5, r6, r2
+    JZ r5, :found
+    
+    ADD r4, r4, 1
+    JMP :loop
+
+:found
+    MOV r3, r4
+
+:done
+    HALT
