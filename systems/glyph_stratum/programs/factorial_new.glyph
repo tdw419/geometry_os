@@ -1,0 +1,21 @@
+// Geometry OS - Factorial
+// Computes factorial of n
+// Args: r0=n
+// Output: r1=n!
+
+:factorial
+    LDI r1, 1    // result = 1
+    
+:loop
+    // Check: n == 0 -> done
+    JZ r0, :done
+    
+    // result *= n
+    MUL r1, r1, r0
+    
+    // n--
+    SUB r0, r0, 1
+    JMP :loop
+
+:done
+    HALT
