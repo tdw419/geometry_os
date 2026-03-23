@@ -28,10 +28,28 @@ from typing import List, Tuple, Optional
 
 try:
     from integrations.openspec.geometry_bridge import GeometryBridge
+    from hex_logic_runner import HexLogicRunner
 
     HAS_GEOMETRY_BRIDGE = True
 except ImportError:
     HAS_GEOMETRY_BRIDGE = False
+
+
+class DNAInjector:
+    """Direct buffer injection for DNA planting"""
+
+    def __init__(self, width=1920, height=1080):
+        self.width = width
+        self.height = height
+        self.buffer = bytearray(width * height * 4)
+        self.runner = HexLogicRunner(self.buffer, width, height)
+
+    def inject_dna(self, bonds: bytes, x: int, y: int) -> bool:
+        offset = (y * self.width + x) * 4
+        if offset + len(bonds) < len(self.buffer):
+            self.buffer[offset : offset + len(bonds)] = bonds
+            return True
+        return False
 
 
 class SelfHostingDNA:
@@ -185,7 +203,7 @@ def mirror_loop():
         Plant the DNA in the spatial buffer.
 
         Args:
-            use_bridge: Use GeometryBridge if available, else write to local buffer
+            use_bridge: Use DNAInjector for direct buffer injection
 
         Returns:
             True if planting succeeded
@@ -197,13 +215,13 @@ def mirror_loop():
 
         if use_bridge and HAS_GEOMETRY_BRIDGE:
             try:
-                bridge = GeometryBridge(canvas_offset=(x, y))
+                injector = DNAInjector()
                 bonds = self._build_planting_bonds()
-                bridge.runner.write_spatial_tokens(bonds, x, y)
-                print(f"✓ Planted {len(self.dna_bonds)} bytes at ({x}, {y}) via GeometryBridge")
-                return True
+                if injector.inject_dna(bonds, x + 1000, y + 1000):  # Offset to positive
+                    print(f"✓ Injected {len(bonds)} bytes via DNAInjector")
+                    return True
             except Exception as e:
-                print(f"⚠ GeometryBridge failed: {e}, falling back to local buffer")
+                print(f"⚠ DNAInjector failed: {e}, falling back to local buffer")
 
         return self._plant_to_local_buffer(x, y)
 
