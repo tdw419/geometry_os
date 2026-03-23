@@ -1,0 +1,20 @@
+// Geometry OS - Sum 16-bit Words
+// Sums all 16-bit words in region
+// Args: r0=start, r1=count
+// Output: r2=sum
+
+:sum_words
+    LDI r2, 0
+    LDI r3, 0
+
+:loop
+    SUB r4, r1, r3
+    JZ r4, :done
+    LOAD r4, r0
+    ADD r2, r2, r4
+    ADD r0, r0, 1
+    ADD r3, r3, 1
+    JMP :loop
+
+:done
+    HALT
