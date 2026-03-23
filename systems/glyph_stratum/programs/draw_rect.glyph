@@ -1,0 +1,66 @@
+// Geometry OS - Draw Rectangle Outline
+// Draws rectangle border
+// Args: r0=x, r1=y, r2=width, r3=height, r4=color
+
+:draw_rect
+    // Top edge
+    LDI r5, 0
+    CALL :h_line
+    
+    // Bottom edge
+    LDI r5, r3
+    SUB r5, r5, 1
+    CALL :h_line
+    
+    // Left edge
+    LDI r5, 0
+    CALL :v_line
+    
+    // Right edge
+    LDI r5, r2
+    SUB r5, r5, 1
+    CALL :v_line
+    
+    HALT
+
+:h_line
+    // Horizontal line at row r5 from x to x+width
+    LDI r6, 0
+:h_loop
+    SUB r7, r2, r6
+    JZ r7, :h_done
+    
+    LDI r7, 0x7000
+    LDI r8, 320
+    MUL r8, r5, r8
+    ADD r8, r8, r0
+    ADD r7, r7, r8
+    STORE r7, r4
+    
+    ADD r6, r6, 1
+    ADD r0, r0, 1
+    JMP :h_loop
+
+:h_done
+    RET
+
+:v_line
+    // Vertical line at col r5 from y to y+height
+    LDI r6, 0
+:v_loop
+    SUB r7, r3, r6
+    JZ r7, :v_done
+    
+    LDI r7, 0x7000
+    LDI r8, 320
+    MUL r8, r1, r8
+    ADD r8, r8, r0
+    ADD r7, r7, r8
+    STORE r7, r4
+    
+    ADD r6, r6, 1
+    ADD r1, r1, 1
+    JMP :v_loop
+
+:v_done
+    RET
