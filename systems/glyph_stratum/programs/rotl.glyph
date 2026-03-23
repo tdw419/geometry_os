@@ -1,0 +1,28 @@
+// Geometry OS - Rotate Left
+// Rotates value left by n bits
+// Args: r0=value, r1=bits
+// Output: r2=rotated value
+
+:rotl
+    MOV r2, r0
+    LDI r3, 0
+
+:loop
+    SUB r3, r1, r3
+    JZ r3, :done
+    LDI r3, 1
+    AND r4, r2, r3
+    MUL r2, r2, 2
+    JNZ r4, :set_carry
+    JMP :continue
+
+:set_carry
+    LDI r3, 1
+    ADD r2, r2, r3
+
+:continue
+    ADD r3, r3, 1
+    JMP :loop
+
+:done
+    HALT
