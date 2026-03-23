@@ -1,0 +1,53 @@
+// Geometry OS - Greatest Common Divisor (Binary)
+// Optimized binary GCD algorithm
+// Args: r0=a, r1=b
+// Output: r2=GCD(a,b)
+
+:bgcd
+    LDI r3, 0    // shift = 0
+
+:shift_loop
+    // Both even: divide by 2
+    LDI r4, 2
+    DIV r4, r0, r4
+    MUL r4, r4, r2
+    SUB r4, r0, r4
+    JNZ r4, :a_even
+    
+    DIV r4, r1, r2
+    MUL r4, r4, r2
+    SUB r4, r1, r4
+    JNZ r4, :both_odd
+    
+    // a even, b even
+    DIV r0, r0, r2
+    DIV r1, r1, r2
+    ADD r3, r3, 1
+    JMP :shift_loop
+
+:a_even
+    DIV r0, r0, r2
+
+:both_odd
+    // a > b: a = a - b
+    SUB r4, r0, r1
+    JLT r4, :b_greater
+    SUB r0, r0, r1
+    JMP :shift_loop
+
+:b_greater
+    SUB r1, r1, r0
+    JMP :shift_loop
+
+:done
+    // result = a << shift
+    LDI r4, 1
+:shift_back
+    JZ r3, :final
+    MUL r0, r0, r4
+    SUB r3, r3, 1
+    JMP :shift_back
+
+:final
+    MOV r2, r0
+    HALT
