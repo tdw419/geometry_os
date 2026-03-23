@@ -1,0 +1,8 @@
+// Geometry OS - Wait for Flag
+// Polls memory until value is non-zero
+// Args: r0=flag_addr
+
+:wait_for_flag
+    LOAD r1, r0
+    JZ r1, :wait_for_flag
+    HALT
