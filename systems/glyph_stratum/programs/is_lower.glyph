@@ -1,0 +1,17 @@
+// Geometry OS - Is Lowercase
+// Checks if char is lowercase letter
+// Args: r0=ASCII char
+// Output: r1=1 (lower), 0 (not)
+
+:is_lower
+    LDI r1, 0
+    LDI r2, 97
+    SUB r2, r0, r2
+    JLT r2, :not_lower
+    LDI r2, 122
+    SUB r2, r2, r0
+    JLT r2, :not_lower
+    LDI r1, 1
+
+:not_lower
+    HALT
