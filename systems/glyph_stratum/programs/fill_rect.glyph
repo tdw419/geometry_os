@@ -1,0 +1,39 @@
+// Geometry OS - Fill Rectangle
+// Fills a rectangle with a color
+// Args: r0=x, r1=y, r2=width, r3=height, r4=color
+
+:fill_rect
+    LDI r5, 0    // row = 0
+
+:row_loop
+    // Check: row >= height -> done
+    SUB r6, r3, r5
+    JZ r6, :done
+    
+    LDI r7, 0    // col = 0
+
+:col_loop
+    // Check: col >= width -> next row
+    SUB r8, r2, r7
+    JZ r8, :next_row
+    
+    // Draw pixel at (x+col, y+row)
+    ADD r8, r0, r7
+    ADD r9, r1, r5
+    
+    LDI r10, 0x7000
+    LDI r11, 320
+    MUL r11, r9, r11
+    ADD r11, r11, r8
+    ADD r10, r10, r11
+    STORE r10, r4
+    
+    ADD r7, r7, 1
+    JMP :col_loop
+
+:next_row
+    ADD r5, r5, 1
+    JMP :row_loop
+
+:done
+    HALT
