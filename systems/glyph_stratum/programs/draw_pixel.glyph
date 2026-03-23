@@ -1,0 +1,14 @@
+// Geometry OS - Draw Pixel
+// Draws a single pixel at (x, y) with color
+// Args: r0=x, r1=y, r2=color
+// Output: writes to framebuffer at 0x7000
+
+:draw_pixel
+    // Calculate address: y * 320 + x
+    LDI r3, 320  // width
+    MUL r3, r1, r3  // y * width
+    ADD r3, r3, r0  // + x
+    LDI r4, 0x7000  // framebuffer base
+    ADD r4, r4, r3  // pixel address
+    STORE r4, r2     // write color
+    HALT
