@@ -1,0 +1,13 @@
+// Geometry OS - Is Zero
+// Checks if value is zero
+// Args: r0=value
+// Output: r1=1 (zero), 0 (non-zero)
+
+:is_zero
+    JZ r0, :zero
+    LDI r1, 0
+    HALT
+
+:zero
+    LDI r1, 1
+    HALT
