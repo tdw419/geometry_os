@@ -1,0 +1,24 @@
+// Geometry OS - Find Byte
+// Finds byte in memory
+// Args: r0=start, r1=length, r2=target
+// Output: r3=index or -1
+
+:find_byte
+    LDI r3, -1
+    LDI r4, 0
+
+:loop
+    SUB r5, r1, r4
+    JZ r5, :done
+    LOAD r5, r0
+    SUB r5, r5, r2
+    JZ r5, :found
+    ADD r0, r0, 1
+    ADD r4, r4, 1
+    JMP :loop
+
+:found
+    MOV r3, r4
+
+:done
+    HALT
