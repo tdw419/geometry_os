@@ -1,0 +1,19 @@
+// Geometry OS - Hex Digit to ASCII
+// Converts 4-bit value to hex character
+// Args: r0=nibble (0-15)
+// Output: r1=ASCII character
+
+:hex_nibble
+    LDI r1, 48   // '0'
+    LDI r2, 10
+    SUB r2, r0, r2
+    JLT r2, :digit
+    LDI r1, 55   // 'A' - 10
+    ADD r1, r1, r2
+    JMP :done
+
+:digit
+    ADD r1, r1, r0
+
+:done
+    HALT
