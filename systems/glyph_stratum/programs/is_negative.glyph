@@ -1,0 +1,15 @@
+// Geometry OS - Is Negative
+// Checks if value is negative
+// Args: r0=value
+// Output: r1=1 (negative), 0 (non-negative)
+
+:is_negative
+    LDI r1, 0
+    SUB r1, r0, r1
+    JLT r1, :yes
+    LDI r1, 0
+    HALT
+
+:yes
+    LDI r1, 1
+    HALT
