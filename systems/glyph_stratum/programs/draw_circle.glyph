@@ -1,0 +1,90 @@
+// Geometry OS - Draw Circle (Midpoint)
+// Draws a circle at (cx, cy) with radius r
+// Args: r0=cx, r1=cy, r2=radius, r3=color
+
+:draw_circle
+    // x = radius, y = 0
+    MOV r4, r2
+    LDI r5, 0
+    
+    // decision = 1 - radius
+    LDI r6, 1
+    SUB r6, r6, r2
+
+:circle_loop
+    // Check: x >= y -> done
+    SUB r7, r4, r5
+    JLT r7, :done
+    
+    // Draw 8 points (symmetry)
+    // (cx+x, cy+y)
+    ADD r7, r0, r4
+    ADD r8, r1, r5
+    CALL :put_pixel
+    
+    // (cx-x, cy+y)
+    SUB r7, r0, r4
+    ADD r8, r1, r5
+    CALL :put_pixel
+    
+    // (cx+x, cy-y)
+    ADD r7, r0, r4
+    SUB r8, r1, r5
+    CALL :put_pixel
+    
+    // (cx-x, cy-y)
+    SUB r7, r0, r4
+    SUB r8, r1, r5
+    CALL :put_pixel
+    
+    // (cx+y, cy+x)
+    ADD r7, r0, r5
+    ADD r8, r1, r4
+    CALL :put_pixel
+    
+    // (cx-y, cy+x)
+    SUB r7, r0, r5
+    ADD r8, r1, r4
+    CALL :put_pixel
+    
+    // (cx+y, cy-x)
+    ADD r7, r0, r5
+    SUB r8, r1, r4
+    CALL :put_pixel
+    
+    // (cx-y, cy-x)
+    SUB r7, r0, r5
+    SUB r8, r1, r4
+    CALL :put_pixel
+    
+    // Decision parameter update
+    JLT r6, :update_y
+    
+    // x--
+    SUB r4, r4, 1
+    LDI r7, 2
+    MUL r7, r7, r4
+    ADD r6, r6, r7
+    ADD r6, r6, 1
+    JMP :circle_loop
+
+:update_y
+    // y++
+    ADD r5, r5, 1
+    LDI r7, 2
+    MUL r7, r7, r5
+    ADD r6, r6, r7
+    JMP :circle_loop
+
+:put_pixel
+    // Draw pixel at (r7, r8) with color r3
+    LDI r9, 0x7000
+    LDI r10, 320
+    MUL r10, r8, r10
+    ADD r10, r10, r7
+    ADD r9, r9, r10
+    STORE r9, r3
+    RET
+
+:done
+    HALT
