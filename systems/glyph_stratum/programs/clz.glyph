@@ -1,0 +1,25 @@
+// Geometry OS - Count Leading Zeros
+// Counts leading zeros before first 1
+// Args: r0=value
+// Output: r1=count
+
+:clz
+    LDI r1, 0
+    LDI r2, 128
+
+:loop
+    DIV r3, r0, r2
+    MUL r3, r3, r2
+    SUB r3, r0, r3
+    JNZ r3, :done
+    ADD r1, r1, 1
+    DIV r2, r2, r2
+    MUL r2, r2, r2
+    LDI r3, 0
+    SUB r3, r2, r3
+    JZ r3, :done
+    LDI r2, 1
+    JMP :loop
+
+:done
+    HALT
