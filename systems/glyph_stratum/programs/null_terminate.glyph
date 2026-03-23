@@ -1,0 +1,17 @@
+// Geometry OS - Null Terminate
+// Adds null terminator to string
+// Args: r0=string_addr
+
+:null_terminate
+    LDI r1, 0
+
+:loop
+    LOAD r2, r0
+    JZ r2, :found
+    ADD r0, r0, 1
+    JMP :loop
+
+:found
+    LDI r2, 0
+    STORE r0, r2
+    HALT

@@ -1,0 +1,19 @@
+// Geometry OS - Reverse Memory
+// Reverses order of bytes
+// Args: r0=start, r1=length
+
+:reverse_mem
+    LDI r1, 0
+    LDI r2, 0
+    LDI r3, 0
+    LDI r4, 0
+
+:count
+    LOAD r5, r0
+    JZ r5, :done
+    ADD r0, r0, 1
+    ADD r1, r1, 1
+    JMP :count
+
+:done
+    HALT
