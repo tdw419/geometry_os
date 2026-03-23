@@ -1,0 +1,21 @@
+// Geometry OS - String Length Calculator
+// Counts characters until null terminator (0)
+// Input: r0 = string address
+// Output: r1 = length
+
+:strlen
+    LDI r1, 0    // length = 0
+    LDI r2, 0    // offset = 0
+
+:loop
+    ADD r3, r0, r2   // addr = string + offset
+    LOAD r4, r3       // char = *addr
+    
+    JZ r4, :done     // if char == 0, done
+    
+    ADD r1, r1, 1    // length++
+    ADD r2, r2, 1    // offset++
+    JMP :loop
+
+:done
+    HALT
