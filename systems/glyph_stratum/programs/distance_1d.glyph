@@ -1,0 +1,19 @@
+// Geometry OS - Distance 1D
+// Calculates distance between two points on line
+// Args: r0=a, r1=b
+// Output: r2=abs(a-b)
+
+:distance_1d
+    SUB r2, r0, r1
+    LDI r3, 0
+    SUB r3, r2, r3
+    JLT r3, :neg
+    JMP :done
+
+:neg
+    LDI r3, 0
+    SUB r3, r3, r2
+    MOV r2, r3
+
+:done
+    HALT
