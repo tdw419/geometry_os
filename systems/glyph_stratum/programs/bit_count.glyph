@@ -1,0 +1,25 @@
+// Geometry OS - Bit Count (Population Count)
+// Counts number of set bits in a value
+// Args: r0=value
+// Output: r1=count
+
+:bit_count
+    LDI r1, 0
+
+:count_loop
+    JZ r0, :done
+    
+    // count += value & 1
+    LDI r2, 1
+    AND r2, r0, r2
+    ADD r1, r1, r2
+    
+    // value >>= 1
+    LDI r2, 1
+    DIV r0, r0, r2
+    MUL r0, r0, r2
+    
+    JMP :count_loop
+
+:done
+    HALT
