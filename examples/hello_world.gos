@@ -1,0 +1,98 @@
+# hello_world.gos - Geometry OS Script
+# Phase 30: Spatial "Hello World"
+
+## Bytecode
+
+```
+0x01 0x48 0x65 0x6C 0x6C 0x6F  # LoadConst "Hello"
+0x01 0x20 0x57 0x6F 0x72 0x6C  # LoadConst " Worl"
+0x01 0x64 0x00 0x00 0x00 0x00  # LoadConst "d"
+0x40                            # Print
+0x3F                            # Halt
+```
+
+## Spatial Assembly
+
+```
+; Data Section (Layer 0)
+@data:0x00  "Hello"  ; DataPillar at (0,0)
+@data:0x18  " Worl"  ; DataPillar at (24,0)
+@data:0x30  "d"      ; DataPillar at (48,0)
+
+; Logic Section (Layer 1)
+@logic:0x48 CONCAT   ; LogicGate at (72,0)
+
+; Output Section (Layer 2)
+@io:0x60 PRINT       ; OutputBridge at (96,0)
+
+; Control Section (Layer 2)
+@ctrl:0x78 HALT      ; Terminator at (120,0)
+
+; Connections
+CONNECT @data:0x00 -> @data:0x18
+CONNECT @data:0x18 -> @data:0x30
+CONNECT @data:0x30 -> @logic:0x48
+CONNECT @logic:0x48 -> @io:0x60
+CONNECT @io:0x60 -> @ctrl:0x78
+```
+
+## Visual Map
+
+```
+     0    24   48   72   96   120
+  0  ┌────┬────┬────┬────┬────┬────┐
+     │    │    │    │    │    │    │
+ 24  │ D  │ D  │ D  │ L  │ O  │ T  │
+     │ A  │ A  │ A  │ O  │ U  │ E  │
+ 48  │ T  │ T  │ T  │ G  │ T  │ R  │
+     │ A  │ A  │ A  │ I  │ P  │ M  │
+ 72  └────┴────┴────┴────┴────┴────┘
+
+Legend:
+- DATA (Blue): String storage
+- LOGI (Cyan): Concatenation gate
+- OUTP (Green): Output bridge (hollow)
+- TERM (Red): Halt marker
+```
+
+## Execution Trace
+
+```
+T=0:   Load "Hello"    → DATA_PILLAR_0 activates (blue pulse)
+T=1:   Load " Worl"    → DATA_PILLAR_1 activates (blue pulse)
+T=2:   Load "d"        → DATA_PILLAR_2 activates (blue pulse)
+T=3:   Logic Path      → Signal travels through yellow path
+T=4:   Concat          → LOGIC_GATE combines strings
+T=5:   Output          → OUTPUT_BRIDGE fires (green flash)
+T=6:   Neural Gateway  → "[VOICE]: Hello World (Spatial Verification: 100%)"
+T=7:   Halt            → TERMINATOR marks end (red glow)
+```
+
+## GQR Seal (Optional)
+
+After successful execution, seal as single command:
+
+```
+SEAL "hello_world" AS GQR_EXECUTABLE
+  OPCODE: 0x61 (CallGqr)
+  PAYLOAD: <compressed bytecode>
+  COHERENCE: 1.00
+  SIGNATURE: <awaiting Z-pattern>
+```
+
+## Usage
+
+```bash
+# Transpile to spatial map
+cargo run --bin spatial-interpreter -- hello_world.gos --output map.png
+
+# Execute on GPU
+cargo run --bin gpu-executor -- map.png
+
+# Seal as GQR
+cargo run --bin gqr-seal -- hello_world.gos --name "hello_world"
+```
+
+---
+
+*The first words spoken by spatial geometry.*
