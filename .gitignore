@@ -159,3 +159,9 @@ systems/visual_shell/electron/dist/
 
 # Buildroot (7.2GB)
 buildroot/
+
+# Compiled binaries
+collective_demo
+dashboard
+geometry_os_runtime
+cognitive_demo
