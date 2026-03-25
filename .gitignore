@@ -168,3 +168,4 @@ cognitive_demo
 system_status
 full_demo.sh
 gpu_cognitive_runtime
+gpu-wgpu/target/

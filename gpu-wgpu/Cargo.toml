@@ -1,0 +1,12 @@
+[package]
+name = "geometry-os-gpu"
+version = "2.4.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+
+[[bin]]
+name = "wgpu-cognitive"
+path = "src/bin/wgpu_cognitive.rs"
