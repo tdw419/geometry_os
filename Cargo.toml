@@ -1,10 +1,29 @@
-[workspace]
-members = [
-    "systems/infinite_map_rs",
-    "systems/glyph_compiler",
-    "systems/glyph_framework_rs",
-    "kernel/boot",
-    "systems/glyph_boot",
-    "systems/sisyphus",
-    "systems/glyph_allocator",
-]
+[package]
+name = "pixels-move-pixels"
+version = "0.1.0"
+edition = "2021"
+description = "The GPU is the computer. Pixels are instructions. Programs write programs."
+
+[[bin]]
+name = "pmp"
+path = "src/main.rs"
+
+[[test]]
+name = "self_replication"
+path = "tests/self_replication.rs"
+
+[[test]]
+name = "copy_executes"
+path = "tests/copy_executes.rs"
+
+[[test]]
+name = "hello_pixels"
+path = "tests/hello_pixels.rs"
+
+[dependencies]
+wgpu = "0.19"
+pollster = "0.3"
+bytemuck = { version = "1.25", features = ["derive"] }
+image = "0.25"
+env_logger = "0.11"
+log = "0.4"
