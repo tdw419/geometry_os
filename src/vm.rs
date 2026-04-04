@@ -12,6 +12,7 @@
 // back to the same texture. The program IS the texture.
 
 use crate::substrate::{Substrate, TEXTURE_SIZE};
+use std::collections::HashSet;
 
 /// VM state constants (must match WGSL)
 pub mod vm_state {
@@ -435,6 +436,9 @@ impl GlyphVm {
 
         // Read back GPU texture to substrate
         self.sync_gpu_to_shadow();
+
+        // Read back VM states from GPU
+        self.sync_vm_states();
     }
 
     /// Read the GPU texture back to the CPU shadow
@@ -492,4 +496,183 @@ impl GlyphVm {
             self.substrate.update_from_gpu(&data);
         }
     }
+
+    /// Read back VM states from the GPU buffer into self.vm_states.
+    fn sync_vm_states(&mut self) {
+        let vm_buffer_size = std::mem::size_of::<VmState>() * 8;
+        let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("VM Readback Staging"),
+            size: vm_buffer_size as u64,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("VM→CPU Sync"),
+            });
+
+        encoder.copy_buffer_to_buffer(&self.vm_buffer, 0, &staging, 0, vm_buffer_size as u64);
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        let slice = staging.slice(..);
+        let (tx, rx) = std::sync::mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |res| {
+            tx.send(res).ok();
+        });
+        self.device.poll(wgpu::Maintain::Wait);
+
+        if let Ok(Ok(())) = rx.recv() {
+            let data = slice.get_mapped_range();
+            let vm_size = std::mem::size_of::<VmState>();
+            for i in 0..8 {
+                let offset = i * vm_size;
+                let vm_bytes: Vec<u8> = data[offset..offset + vm_size].to_vec();
+                let vm_state: VmState = unsafe { std::ptr::read(vm_bytes.as_ptr() as *const VmState) };
+                self.vm_states[i] = vm_state;
+            }
+        }
+    }
+
+    /// Get the current VM states (after execute_frame).
+    pub fn vm_states(&self) -> &[VmState; 8] {
+        &self.vm_states
+    }
+
+    /// Get a single VM's state.
+    pub fn vm_state(&self, id: usize) -> &VmState {
+        &self.vm_states[id]
+    }
+
+    /// Reset all VMs and substrate to initial state.
+    pub fn reset(&mut self) {
+        self.vm_states = [VmState::default(); 8];
+        self.substrate = Substrate::new();
+    }
+}
+
+/// Result of running a program on the GPU substrate with fitness metrics.
+#[derive(Debug, Clone)]
+pub struct ExecutionResult {
+    /// Did the VM halt cleanly?
+    pub halted: bool,
+    /// How many GPU cycles were executed.
+    pub cycles: u32,
+    /// Final program counter value.
+    pub final_pc: u32,
+    /// Number of non-zero registers after execution.
+    pub nonzero_regs: usize,
+    /// Number of unique addresses written to (non-zero pixels near program).
+    pub unique_writes: usize,
+    /// Number of pixels in the loaded program.
+    pub program_length: usize,
+    /// Load address of the program.
+    pub load_address: u32,
+    /// Opcodes seen in the program (byte values).
+    pub opcodes_used: Vec<u8>,
+    /// Aggregate fitness score (0.0 - 1.0).
+    pub fitness: f64,
+    /// Snapshot of VM state after execution.
+    pub vm: VmState,
+}
+
+impl ExecutionResult {
+    /// Compute fitness from execution metrics.
+    ///
+    /// Scoring:
+    ///   +0.3  halts cleanly
+    ///   +0.2  uses multiple registers (>= 3)
+    ///   +0.2  writes to memory (>= 1 unique writes)
+    ///   +0.15 uses diverse opcodes (>= 3 unique)
+    ///   +0.15 executes some cycles (>= 4, <= 800)
+    pub fn compute_fitness(&mut self) {
+        let mut score = 0.0f64;
+
+        // Halting is fundamental
+        if self.halted {
+            score += 0.3;
+        }
+
+        // Register usage (max at 3+)
+        let reg_score = (self.nonzero_regs as f64 / 3.0).min(1.0);
+        score += 0.2 * reg_score;
+
+        // Memory writes (max at 5+)
+        let write_score = (self.unique_writes as f64 / 5.0).min(1.0);
+        score += 0.2 * write_score;
+
+        // Opcode diversity (max at 3+)
+        let op_score = (self.opcodes_used.len() as f64 / 3.0).min(1.0);
+        score += 0.15 * op_score;
+
+        // Cycle count -- sweet spot around 4-800
+        if self.cycles >= 4 && self.cycles <= 800 {
+            score += 0.15;
+        } else if self.cycles > 0 {
+            score += 0.05;
+        }
+
+        self.fitness = score.min(1.0);
+    }
+}
+
+/// Run a single program on a fresh VM and return execution results with fitness.
+///
+/// This creates a new GlyphVm, loads the program at the given address,
+/// spawns VM 0, executes one frame, and reads back results.
+pub fn run_program(pixels: &[u32], load_address: u32) -> ExecutionResult {
+    let mut vm = GlyphVm::new();
+    let program_length = pixels.len();
+
+    // Track opcodes from the program pixels
+    let mut opcodes: HashSet<u8> = HashSet::new();
+    for &pixel in pixels {
+        opcodes.insert((pixel & 0xFF) as u8);
+    }
+
+    // Snapshot substrate before execution (all zeros except our program)
+    vm.substrate().load_program(load_address, pixels);
+    vm.spawn_vm(0, load_address);
+    vm.execute_frame();
+
+    // Read back VM state
+    let vm_state = vm.vm_state(0).clone();
+
+    // Count non-zero registers
+    let nonzero_regs = vm_state.regs.iter().filter(|&&r| r != 0).count();
+
+    // Count unique addresses written near the program region
+    // Scan a window around the program for non-zero pixels that weren't in the original
+    let scan_start = load_address;
+    let scan_end = load_address + (program_length as u32) * 4; // 4x program size
+    let mut unique_writes = 0;
+    for addr in scan_start..scan_end {
+        let val = vm.substrate().peek(addr);
+        if val != 0 {
+            // Check if this was part of the original program
+            let offset = addr - load_address;
+            let is_original = (offset as usize) < program_length && pixels[offset as usize] == val;
+            if !is_original {
+                unique_writes += 1;
+            }
+        }
+    }
+
+    let halted = vm_state.state == vm_state::HALTED || vm_state.halted != 0;
+
+    let mut result = ExecutionResult {
+        halted,
+        cycles: vm_state.cycles,
+        final_pc: vm_state.pc,
+        nonzero_regs,
+        unique_writes,
+        program_length,
+        load_address,
+        opcodes_used: opcodes.into_iter().collect(),
+        fitness: 0.0,
+        vm: vm_state,
+    };
+    result.compute_fitness();
+    result
 }

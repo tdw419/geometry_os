@@ -56,4 +56,9 @@ fn main() {
     vm.substrate().render_png(32, 4, 0, "substrate.png");
     vm.substrate().render_png(32, 4, 100, "substrate_copy.png");
     println!("[render] Wrote substrate.png and substrate_copy.png");
+
+    // Hilbert curve visualization: see programs as colored regions on the 2D texture
+    // Show addresses 0-119 (original + copy, addresses cluster due to Hilbert locality)
+    vm.substrate().render_hilbert_png(0, 120, 512, "hilbert_view.png");
+    println!("[render] Wrote hilbert_view.png (Hilbert curve view of addr 0-119)");
 }

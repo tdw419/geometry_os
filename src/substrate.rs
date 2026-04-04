@@ -132,6 +132,116 @@ impl Substrate {
             eprintln!("Failed to save substrate PNG: {e}");
         }
     }
+
+    /// Render a Hilbert-curve visualization of an address range.
+    ///
+    /// Takes a range of Hilbert linear addresses (start_addr..start_addr+count),
+    /// maps each to its (x,y) position on the 4096x4096 grid, and renders
+    /// the actual 2D texture pixels. Nearby addresses cluster visually because
+    /// the Hilbert curve preserves spatial locality.
+    ///
+    /// The output image is `img_size x img_size` pixels, centered on the
+    /// region of interest. Each pixel is colored by opcode.
+    pub fn render_hilbert_png(
+        &self,
+        start_addr: u32,
+        count: u32,
+        img_size: u32,
+        path: &str,
+    ) {
+        use image::{GenericImage, ImageBuffer, Rgb};
+
+        let opcode_color = |op: u8| -> Rgb<u8> {
+            match op {
+                0 => Rgb([10, 10, 10]),      // NOP - near-black
+                1 => Rgb([0, 80, 255]),      // LDI - blue
+                2 => Rgb([0, 200, 200]),     // MOV - cyan
+                3 => Rgb([0, 200, 0]),       // LOAD - green
+                4 => Rgb([200, 200, 0]),     // STORE - yellow
+                5 => Rgb([200, 100, 0]),     // ADD - orange
+                6 => Rgb([200, 0, 100]),     // SUB - magenta
+                7 => Rgb([150, 80, 255]),    // MUL - purple
+                8 => Rgb([80, 150, 255]),    // DIV - light blue
+                9 => Rgb([255, 128, 0]),     // JMP - bright orange
+                10 => Rgb([255, 0, 0]),      // BRANCH - red
+                11 => Rgb([255, 200, 0]),    // CALL - gold
+                12 => Rgb([200, 200, 200]),  // RET - silver
+                13 => Rgb([255, 255, 255]),  // HALT - white
+                14 => Rgb([100, 255, 100]),  // ENTRY - bright green
+                _ => Rgb([80, 80, 80]),      // unknown - gray
+            }
+        };
+
+        // Find bounding box of all Hilbert coordinates in the range
+        let mut min_x = u32::MAX;
+        let mut min_y = u32::MAX;
+        let mut max_x = 0u32;
+        let mut max_y = 0u32;
+
+        for d in start_addr..start_addr + count {
+            let (x, y) = hilbert::d2xy(d);
+            min_x = min_x.min(x);
+            min_y = min_y.min(y);
+            max_x = max_x.max(x);
+            max_y = max_y.max(y);
+        }
+
+        // Add padding
+        let pad = 8u32;
+        min_x = min_x.saturating_sub(pad);
+        min_y = min_y.saturating_sub(pad);
+        max_x = (max_x + pad).min(TEXTURE_SIZE - 1);
+        max_y = (max_y + pad).min(TEXTURE_SIZE - 1);
+
+        let region_w = max_x - min_x + 1;
+        let region_h = max_y - min_y + 1;
+
+        // Scale to fit img_size while preserving aspect ratio
+        let scale = (img_size as f64 / region_w.max(region_h) as f64).min(1.0);
+        let out_w = ((region_w as f64 * scale) as u32).max(1);
+        let out_h = ((region_h as f64 * scale) as u32).max(1);
+
+        let mut img: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(out_w, out_h);
+
+        // Fill with dark background
+        for pixel in img.pixels_mut() {
+            *pixel = Rgb([5, 5, 15]);
+        }
+
+        // Render the entire visible region from the texture
+        let shadow = self.shadow.lock().unwrap();
+        for py in 0..region_h {
+            for px in 0..region_w {
+                let tx = min_x + px;
+                let ty = min_y + py;
+                if tx >= TEXTURE_SIZE || ty >= TEXTURE_SIZE {
+                    continue;
+                }
+                let offset = ((ty * TEXTURE_SIZE + tx) * 4) as usize;
+                let r = shadow[offset];
+                let g = shadow[offset + 1];
+                let b = shadow[offset + 2];
+                let a = shadow[offset + 3];
+                // Only color non-zero pixels (skip empty memory)
+                if r == 0 && g == 0 && b == 0 && a == 0 {
+                    continue;
+                }
+                let value = u32::from_le_bytes([r, g, b, a]);
+                let opcode = (value & 0xFF) as u8;
+                let color = opcode_color(opcode);
+                let ox = (px as f64 * scale) as u32;
+                let oy = (py as f64 * scale) as u32;
+                if ox < out_w && oy < out_h {
+                    img.put_pixel(ox, oy, color);
+                }
+            }
+        }
+        drop(shadow);
+
+        if let Err(e) = img.save(path) {
+            eprintln!("Failed to save Hilbert PNG: {e}");
+        }
+    }
 }
 
 #[cfg(test)]

@@ -8,6 +8,10 @@ description = "The GPU is the computer. Pixels are instructions. Programs write 
 name = "pmp"
 path = "src/main.rs"
 
+[[bin]]
+name = "pmp-eval"
+path = "src/bin/pmp-eval.rs"
+
 [[test]]
 name = "self_replication"
 path = "tests/self_replication.rs"
@@ -20,6 +24,10 @@ path = "tests/copy_executes.rs"
 name = "hello_pixels"
 path = "tests/hello_pixels.rs"
 
+[[test]]
+name = "opcode_tests"
+path = "tests/opcode_tests.rs"
+
 [dependencies]
 wgpu = "0.19"
 pollster = "0.3"
@@ -27,3 +35,5 @@ bytemuck = { version = "1.25", features = ["derive"] }
 image = "0.25"
 env_logger = "0.11"
 log = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

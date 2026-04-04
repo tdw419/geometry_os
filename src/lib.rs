@@ -5,9 +5,12 @@
 // Programs write programs. Pixels move pixels.
 
 pub mod assembler;
+pub mod font_atlas;
 pub mod hilbert;
+pub mod software_vm;
 pub mod substrate;
 pub mod vm;
+pub mod visualization;
 
 pub const TEXTURE_SIZE: u32 = 4096;
 pub const MAX_VMS: u32 = 8;

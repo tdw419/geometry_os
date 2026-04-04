@@ -179,6 +179,30 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
             (*vm).regs[p1] = (*vm).regs[p1] - (*vm).regs[p2];
         }
 
+        // MUL - Multiply register: MUL rd, rs
+        case 7u: {
+            (*vm).regs[p1] = (*vm).regs[p1] * (*vm).regs[p2];
+        }
+
+        // DIV - Divide register: DIV rd, rs (unsigned, divide-by-zero = 0)
+        case 8u: {
+            if ((*vm).regs[p2] != 0u) {
+                (*vm).regs[p1] = (*vm).regs[p1] / (*vm).regs[p2];
+            } else {
+                (*vm).regs[p1] = 0u;
+            }
+        }
+
+        // JMP - Unconditional jump: JMP offset
+        // [9, 0, 0, 0] followed by [offset as i32]
+        case 9u: {
+            let offset = mem_read((pc + 1u) * 4u);
+            let signed_offset = i32(offset);
+            let new_pc = i32(pc) + signed_offset;
+            (*vm).pc = u32(new_pc);
+            return 1u; // Jumped
+        }
+
         // BNE - Branch if not equal: BNE r1, r2, offset
         // Note: Compiler emits BNE as [10, 1, r1, r2] followed by [offset]
         case 10u: {
@@ -227,6 +251,39 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
         // ENTRY - Read entry_point into register: ENTRY rd
         case 14u: {
             (*vm).regs[p1] = (*vm).entry_point;
+        }
+
+        // CHAR - Blit character from font atlas to texture
+        // CHAR r_ascii, r_dest
+        // r_ascii (p1) = ASCII value of character
+        // r_dest (p2) = Hilbert address where character bitmap rows will be written
+        // Reads 8 rows from FONT_BASE + (ascii * 8) and writes them starting at r_dest.
+        // After execution, r_dest contains the 8 row bitmasks of the character.
+        // The caller can then read them back for rendering.
+        case 15u: {
+            let ascii_val = (*vm).regs[p1];
+            let dest_addr = (*vm).regs[p2];
+            let font_base = 0x00F00000u; // Must match font_atlas::FONT_BASE
+            for (var row = 0u; row < 8u; row++) {
+                let src_addr = font_base + ascii_val * 8u + row;
+                let row_data = read_glyph(src_addr);
+                // Store the row bitmask as a single u32 at dest_addr + row
+                write_glyph(dest_addr + row, row_data);
+            }
+        }
+
+        // BLIT - Copy N pixels from source to destination
+        // BLIT r_src, r_dst  (followed by DATA count)
+        // Copies `count` pixels from Hilbert address r_src to r_dst.
+        case 16u: {
+            let src = (*vm).regs[p1];
+            let dst = (*vm).regs[p2];
+            let count = mem_read((pc + 1u) * 4u);
+            for (var i = 0u; i < count; i++) {
+                let pixel = read_glyph(src + i);
+                write_glyph(dst + i, pixel);
+            }
+            (*vm).pc = pc + 1u; // Consume count word
         }
 
         default: {

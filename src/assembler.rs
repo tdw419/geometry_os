@@ -34,6 +34,8 @@ pub mod op {
     pub const RET: u8 = 12;
     pub const HALT: u8 = 13;
     pub const ENTRY: u8 = 14; // Read entry_point into register
+    pub const CHAR: u8 = 15;  // Blit character from font atlas: CHAR r_ascii, r_target
+    pub const BLIT: u8 = 16;  // Copy N pixels: BLIT r_src, r_dst [count]
     pub const DRAW: u8 = 215;
     pub const SPAWN: u8 = 230;
     pub const YIELD: u8 = 227;
@@ -94,6 +96,24 @@ impl Program {
         self.instruction(op::SUB, 0, dst_reg, src_reg)
     }
 
+    /// Multiply: MUL dst_reg, src_reg  (dst *= src)
+    pub fn mul(&mut self, dst_reg: u8, src_reg: u8) -> &mut Self {
+        self.instruction(op::MUL, 0, dst_reg, src_reg)
+    }
+
+    /// Divide: DIV dst_reg, src_reg  (dst /= src)
+    pub fn div(&mut self, dst_reg: u8, src_reg: u8) -> &mut Self {
+        self.instruction(op::DIV, 0, dst_reg, src_reg)
+    }
+
+    /// Unconditional jump: JMP offset
+    /// Emits 2 pixels: [JMP instruction] [offset as i32]
+    pub fn jmp(&mut self, offset: i32) -> &mut Self {
+        self.instruction(op::JMP, 0, 0, 0);
+        self.pixels.push(offset as u32);
+        self
+    }
+
     /// Branch conditional: emit as [BRANCH cond r1 r2] [offset as i32]
     pub fn branch(&mut self, cond: u8, r1: u8, r2: u8, offset: i32) -> &mut Self {
         self.instruction(op::BRANCH, cond, r1, r2);
@@ -109,6 +129,21 @@ impl Program {
     /// Entry point: ENTRY rd -- load vm.entry_point into rd
     pub fn entry(&mut self, reg: u8) -> &mut Self {
         self.instruction(op::ENTRY, 0, reg, 0)
+    }
+
+    /// Blit character from font atlas: CHAR r_ascii, r_target
+    /// Copies 8 row bitmasks from the font atlas at FONT_BASE + (ascii * 8)
+    /// to the destination address in r_target.
+    pub fn char_blit(&mut self, ascii_reg: u8, target_reg: u8) -> &mut Self {
+        self.instruction(op::CHAR, 0, ascii_reg, target_reg)
+    }
+
+    /// Blit N pixels: BLIT r_src, r_dst, count
+    /// Copies `count` pixels from Hilbert address in r_src to r_dst.
+    pub fn blit(&mut self, src_reg: u8, dst_reg: u8, count: u32) -> &mut Self {
+        self.instruction(op::BLIT, 0, src_reg, dst_reg);
+        self.pixels.push(count);
+        self
     }
 
     /// Halt execution
@@ -206,6 +241,57 @@ pub fn chain_replicator() -> Program {
     p
 }
 
+/// Build a "HELLO" text rendering program using the CHAR opcode.
+///
+/// Uses the font atlas at FONT_BASE. Each CHAR instruction blits
+/// one character's 8 row bitmasks to a destination address.
+///
+/// Layout:
+///   LDI r0, 'H'     -- 2 pixels
+///   LDI r1, 5000    -- 2 pixels (screen address for H)
+///   CHAR r0, r1     -- 1 pixel
+///   LDI r0, 'E'     -- 2 pixels
+///   LDI r1, 5010    -- 2 pixels
+///   CHAR r0, r1     -- 1 pixel
+///   LDI r0, 'L'     -- 2 pixels
+///   LDI r1, 5020    -- 2 pixels
+///   CHAR r0, r1     -- 1 pixel
+///   LDI r0, 'L'     -- 2 pixels
+///   LDI r1, 5030    -- 2 pixels
+///   CHAR r0, r1     -- 1 pixel
+///   LDI r0, 'O'     -- 2 pixels
+///   LDI r1, 5040    -- 2 pixels
+///   CHAR r0, r1     -- 1 pixel
+///   HALT             -- 1 pixel
+/// Total: 22 pixels
+pub fn hello_world() -> Program {
+    let mut p = Program::new();
+
+    // H
+    p.ldi(0, b'H' as u32);
+    p.ldi(1, 5000);
+    p.char_blit(0, 1);
+    // E
+    p.ldi(0, b'E' as u32);
+    p.ldi(1, 5010);
+    p.char_blit(0, 1);
+    // L
+    p.ldi(0, b'L' as u32);
+    p.ldi(1, 5020);
+    p.char_blit(0, 1);
+    // L
+    p.ldi(0, b'L' as u32);
+    p.ldi(1, 5030);
+    p.char_blit(0, 1);
+    // O
+    p.ldi(0, b'O' as u32);
+    p.ldi(1, 5040);
+    p.char_blit(0, 1);
+
+    p.halt();
+    p
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -232,5 +318,16 @@ mod tests {
         assert_eq!(glyph(13, 0, 0, 0), 0x0000000D);
         // BRANCH BNE r2, r4 = opcode 10, stratum 1 (BNE), p1=2, p2=4
         assert_eq!(glyph(10, 1, 2, 4), 0x0402010A);
+    }
+
+    #[test]
+    fn hello_world_is_26_pixels() {
+        let p = hello_world();
+        // 5 chars: each has LDI ascii(2) + LDI addr(2) + CHAR(1) = 5 pixels
+        // Plus 1 HALT = 26 total
+        assert_eq!(p.len(), 26, "hello_world must be exactly 26 pixels");
+        // Should contain CHAR opcodes (opcode 15)
+        let char_count = p.pixels.iter().filter(|&&px| (px & 0xFF) == 15).count();
+        assert_eq!(char_count, 5, "hello_world should have 5 CHAR instructions");
     }
 }
