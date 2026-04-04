@@ -19,6 +19,8 @@ pub mod vm_state {
     pub const INACTIVE: u32 = 0;
     pub const RUNNING: u32 = 1;
     pub const HALTED: u32 = 2;
+    pub const WAITING: u32 = 3;
+    pub const FAULT: u32 = 0xFF;
 }
 
 /// Per-VM state matching the WGSL VmState struct.
@@ -106,15 +108,12 @@ impl GlyphVm {
         }))
         .expect("No GPU adapter found. Need a GPU for pixels to move pixels.");
 
-        let (device, queue) = pollster::block_on(adapter.request_device(
-            &wgpu::DeviceDescriptor {
-                label: Some("Pixels Move Pixels"),
-                required_features: wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
-                required_limits: wgpu::Limits::default(),
-            },
-            None,
-        ))
-        .expect("Failed to get GPU device");
+        let desc = wgpu::DeviceDescriptor {
+            label: Some("Pixels Move Pixels"),
+            required_features: wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+            required_limits: wgpu::Limits::default(),
+        };
+        let (device, queue) = Self::request_device_with_retry(&adapter, &desc);
 
         // Load the compute shader
         let shader_source = include_str!("../shaders/glyph_vm_scheduler.wgsl");
@@ -549,6 +548,33 @@ impl GlyphVm {
     pub fn reset(&mut self) {
         self.vm_states = [VmState::default(); 8];
         self.substrate = Substrate::new();
+    }
+
+    /// Request a GPU device with retry logic for robustness under load.
+    fn request_device_with_retry(
+        adapter: &wgpu::Adapter,
+        desc: &wgpu::DeviceDescriptor<'_>,
+    ) -> (wgpu::Device, wgpu::Queue) {
+        const MAX_ATTEMPTS: u32 = 5;
+        for attempt in 0..MAX_ATTEMPTS {
+            match pollster::block_on(adapter.request_device(desc, None)) {
+                Ok(pair) => return pair,
+                Err(e) => {
+                    eprintln!(
+                        "[PMP] GPU device request attempt {}/{} failed: {:?}",
+                        attempt + 1,
+                        MAX_ATTEMPTS,
+                        e
+                    );
+                    if attempt + 1 < MAX_ATTEMPTS {
+                        let delay = std::time::Duration::from_millis(500 * (attempt as u64 + 1));
+                        eprintln!("[PMP] Retrying in {:?}...", delay);
+                        std::thread::sleep(delay);
+                    }
+                }
+            }
+        }
+        panic!("Failed to get GPU device after {MAX_ATTEMPTS} attempts");
     }
 }
 

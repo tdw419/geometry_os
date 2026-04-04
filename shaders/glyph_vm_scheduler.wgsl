@@ -19,6 +19,18 @@ const VM_INACTIVE: u32 = 0u;
 const VM_RUNNING: u32 = 1u;
 const VM_HALTED: u32 = 2u;
 const VM_WAITING: u32 = 3u;
+const VM_FAULT: u32 = 0xFFu;
+
+// IPC message queue constants
+const MSGQ_BASE: u32 = 0x00E00000u;
+const MSGQ_MAX_DATA: u32 = 16u;
+const MSGQ_DATA_BASE: u32 = MSGQ_BASE + MAX_VMS * 2u;
+const MSG_HAS_MESSAGE: u32 = 1u;
+const MSG_WAS_READ: u32 = 2u;
+
+// Screen display region constants (must match lib.rs)
+const SCREEN_BASE: u32 = 0x00F30000u;
+const SCREEN_SIZE: u32 = 256u;
 
 struct VmState {
     regs: array<u32, 128>,    // 128 general-purpose registers (512 bytes)
@@ -286,6 +298,128 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
             (*vm).pc = pc + 1u; // Consume count word
         }
 
+        // SEND - Send message: SEND r_target_vm, r_data_addr (followed by DATA length)
+        case 17u: {
+            let target_vm = (*vm).regs[p1];
+            let data_addr = (*vm).regs[p2];
+            let length = mem_read((pc + 1u) * 4u);
+            if (target_vm < MAX_VMS && length <= MSGQ_MAX_DATA) {
+                let dest_base = MSGQ_DATA_BASE + target_vm * MSGQ_MAX_DATA;
+                for (var i = 0u; i < length; i++) {
+                    let pixel = read_glyph(data_addr + i);
+                    write_glyph(dest_base + i, pixel);
+                }
+                write_glyph(MSGQ_BASE + target_vm, vec4<u32>(MSG_HAS_MESSAGE, (*vm).vm_id, length, 0u));
+            }
+            (*vm).pc = pc + 1u;
+        }
+
+        // RECV - Receive message: RECV r_dest_addr, r_status
+        case 18u: {
+            let dest_addr = (*vm).regs[p1];
+            let header = read_glyph(MSGQ_BASE + (*vm).vm_id);
+            if ((header.r & MSG_HAS_MESSAGE) != 0u) {
+                let length = header.b;
+                let src_base = MSGQ_DATA_BASE + (*vm).vm_id * MSGQ_MAX_DATA;
+                for (var i = 0u; i < length; i++) {
+                    let pixel = read_glyph(src_base + i);
+                    write_glyph(dest_addr + i, pixel);
+                }
+                write_glyph(MSGQ_BASE + (*vm).vm_id, vec4<u32>(MSG_WAS_READ, header.g, header.b, 0u));
+                (*vm).regs[p2] = 1u;
+            } else {
+                (*vm).regs[p2] = 0u;
+            }
+        }
+
+        // SHR - Shift right: SHR rd, rs
+        case 19u: {
+            (*vm).regs[p1] = (*vm).regs[p1] >> (*vm).regs[p2];
+        }
+
+        // OR - Bitwise OR: OR rd, rs
+        case 20u: {
+            (*vm).regs[p1] = (*vm).regs[p1] | (*vm).regs[p2];
+        }
+
+        // CHAR_AT - Blit from arbitrary atlas: CHAR_AT r_ascii, r_target (atlas_base in stratum field)
+        case 21u: {
+            let ascii_val = (*vm).regs[p1];
+            let dest_addr = (*vm).regs[p2];
+            let atlas_base = (*vm).regs[stratum];
+            for (var row = 0u; row < 8u; row++) {
+                let src_addr = atlas_base + ascii_val * 8u + row;
+                let row_data = read_glyph(src_addr);
+                write_glyph(dest_addr + row, row_data);
+            }
+        }
+
+        // GLYPH_DEF - Define live glyph: GLYPH_DEF r_charcode, r_bitmap_addr
+        case 22u: {
+            let charcode = (*vm).regs[p1];
+            let bitmap_addr = (*vm).regs[p2];
+            if (charcode >= 128u) {
+                let live_base: u32 = 0x00F20000u;
+                let offset = (charcode - 128u) * 8u;
+                for (var row = 0u; row < 8u; row++) {
+                    let row_data = read_glyph(bitmap_addr + row);
+                    write_glyph(live_base + offset + row, row_data);
+                }
+            }
+        }
+
+        // PSET - Write pixel to screen: PSET r_x, r_y, r_color
+        // Encoding: glyph(23, r_color, r_x, r_y)
+        // stratum = color register, p1 = x register, p2 = y register
+        case 23u: {
+            let x = (*vm).regs[p1];
+            let y = (*vm).regs[p2];
+            let color = (*vm).regs[stratum];
+            if (x < SCREEN_SIZE && y < SCREEN_SIZE) {
+                let addr = SCREEN_BASE + y * SCREEN_SIZE + x;
+                mem_write(addr * 4u, color);
+            }
+        }
+
+        // PGET - Read pixel from screen: PGET r_dst, r_x, r_y
+        // Encoding: glyph(24, r_y, r_dst, r_x)
+        // stratum = y register, p1 = dst register, p2 = x register
+        case 24u: {
+            let x = (*vm).regs[p2];
+            let y = (*vm).regs[stratum];
+            if (x < SCREEN_SIZE && y < SCREEN_SIZE) {
+                let addr = SCREEN_BASE + y * SCREEN_SIZE + x;
+                (*vm).regs[p1] = mem_read(addr * 4u);
+            } else {
+                (*vm).regs[p1] = 0u;
+            }
+        }
+
+        // SPAWN - Request child VM spawn: SPAWN r_base_addr, r_entry_offset
+        // Returns child VM ID in r_base_addr, or 0xFF if no slot available.
+        // Deferred: stores spawn params in parent's registers. Rust host
+        // reads them after the frame and initializes the child VM.
+        case 230u: {
+            let child_base = (*vm).regs[p1];
+            let child_entry_offset = (*vm).regs[p2];
+            // Simple strategy: child = parent_id + 1 (max 7)
+            let candidate = (*vm).vm_id + 1u;
+            if (candidate < MAX_VMS) {
+                (*vm).regs[125] = candidate;
+                (*vm).regs[126] = child_base;
+                (*vm).regs[127] = child_entry_offset;
+                (*vm).regs[p1] = candidate;
+            } else {
+                (*vm).regs[p1] = 0xFFu;
+            }
+        }
+
+        // YIELD - Yield execution
+        case 227u: {
+            (*vm).state = VM_WAITING;
+            return 2u;
+        }
+
         default: {
             // Unknown opcode - skip
         }
@@ -304,6 +438,12 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 
     var vm = vm_states[vm_id];
 
+    // Auto-sandbox: VMs with uninitialized bounds get full user-space access
+    if (vm.bound_addr == 0u) {
+        vm.base_addr = 0u;
+        vm.bound_addr = MSGQ_BASE; // 0x00E00000 -- everything below system area
+    }
+
     // Only execute running VMs
     if (vm.state != VM_RUNNING || vm.halted != 0u) {
         return;
@@ -316,6 +456,11 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         }
 
         let jumped = execute_instruction(&vm);
+
+        // YIELD returns 2 -- exit frame early
+        if (jumped == 2u) {
+            break;
+        }
 
         // Only increment PC if we didn't jump
         if (jumped == 0u) {

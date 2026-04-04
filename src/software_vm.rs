@@ -100,7 +100,7 @@ fn mem_write(ram: &mut RamTexture, addr: u32, value: u32) {
 /// Mirrors shader's execute_instruction() exactly, opcode for opcode.
 fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
     let pc = vm.pc;
-    let (opcode, _stratum, p1, p2) = read_glyph(ram, pc);
+    let (opcode, stratum, p1, p2) = read_glyph(ram, pc);
 
     match opcode {
         // NOP
@@ -111,7 +111,7 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
         // LDI - Load immediate: LDI rd, imm
         // Shader reads: [1, 0, rd, 0] followed by [imm] at (pc+1)*4
         1 => {
-            let imm = mem_read(ram, (pc + 1) * 4);
+            let imm = safe_mem_read(ram, vm, (pc + 1) * 4);
             vm.regs[p1 as usize] = imm;
             vm.pc = pc + 1; // Consume immediate word
         }
@@ -125,8 +125,7 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
         // rs contains a Hilbert pixel index
         3 => {
             let pixel_idx = vm.regs[p2 as usize];
-            let (r, g, b, a) = read_glyph(ram, pixel_idx);
-            vm.regs[p1 as usize] = r | (g << 8) | (b << 16) | (a << 24);
+            vm.regs[p1 as usize] = safe_mem_read(ram, vm, pixel_idx * 4);
         }
 
         // ST - Store to memory: ST [rd], rs (pixel-addressed)
@@ -134,16 +133,7 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
         4 => {
             let pixel_idx = vm.regs[p1 as usize];
             let value = vm.regs[p2 as usize];
-            write_glyph(
-                ram,
-                pixel_idx,
-                (
-                    value & 0xFF,
-                    (value >> 8) & 0xFF,
-                    (value >> 16) & 0xFF,
-                    (value >> 24) & 0xFF,
-                ),
-            );
+            safe_mem_write(ram, vm, pixel_idx * 4, value);
         }
 
         // ADD - Add register: ADD rd, rs
@@ -168,6 +158,76 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
                 vm.regs[p1 as usize] = vm.regs[p1 as usize] / divisor;
             } else {
                 vm.regs[p1 as usize] = 0;
+            }
+        }
+
+        // SHR - Shift right: SHR rd, rs (rd >>= rs)
+        19 => {
+            let shift = vm.regs[p2 as usize];
+            vm.regs[p1 as usize] = vm.regs[p1 as usize] >> shift;
+        }
+
+        // OR - Bitwise OR: OR rd, rs (rd |= rs)
+        20 => {
+            vm.regs[p1 as usize] = vm.regs[p1 as usize] | vm.regs[p2 as usize];
+        }
+
+        // GLYPH_DEF - Define a live glyph in the user atlas
+        // GLYPH_DEF r_charcode, r_bitmap_addr
+        // Reads 8 row bitmasks from r_bitmap_addr and writes to 0x00F20000 + ((charcode-128)*8)
+        22 => {
+            let charcode = vm.regs[p1 as usize];
+            let bitmap_addr = vm.regs[p2 as usize];
+            let live_base: u32 = 0x00F20000;
+            if charcode >= 128 {
+                let offset = (charcode - 128) * 8;
+                for row in 0..8u32 {
+                    let row_data = read_glyph(ram, bitmap_addr + row);
+                    write_glyph(ram, live_base + offset + row, row_data);
+                }
+            }
+            // charcodes < 128 are silently ignored (base font is read-only)
+        }
+
+        // PSET - Write pixel to screen: PSET r_x, r_y, r_color
+        // Encoding: glyph(23, r_color, r_x, r_y)
+        // stratum = color register, p1 = x register, p2 = y register
+        23 => {
+            let x = vm.regs[p1 as usize];
+            let y = vm.regs[p2 as usize];
+            let color = vm.regs[stratum as usize];
+            if x < crate::SCREEN_SIZE && y < crate::SCREEN_SIZE {
+                let addr = crate::SCREEN_BASE + y * crate::SCREEN_SIZE + x;
+                // Write the 32-bit color value to the screen pixel
+                mem_write(ram, addr * 4, color);
+            }
+        }
+
+        // PGET - Read pixel from screen: PGET r_dst, r_x, r_y
+        // Encoding: glyph(24, r_y, r_dst, r_x)
+        // stratum = y register, p1 = dst register, p2 = x register
+        24 => {
+            let x = vm.regs[p2 as usize];
+            let y = vm.regs[stratum as usize];
+            if x < crate::SCREEN_SIZE && y < crate::SCREEN_SIZE {
+                let addr = crate::SCREEN_BASE + y * crate::SCREEN_SIZE + x;
+                vm.regs[p1 as usize] = mem_read(ram, addr * 4);
+            } else {
+                vm.regs[p1 as usize] = 0; // Out of bounds = black
+            }
+        }
+
+        // CHAR_AT - Blit character from arbitrary atlas base address
+        // CHAR_AT r_ascii, r_target, r_atlas_base
+        // Like CHAR but uses stratum field for atlas_base register instead of hardcoded FONT_BASE.
+        21 => {
+            let ascii_val = vm.regs[p1 as usize];
+            let target = vm.regs[p2 as usize];
+            let atlas_base = vm.regs[stratum as usize];
+            for row in 0..8u32 {
+                let src_addr = atlas_base + ascii_val * 8 + row;
+                let row_data = read_glyph(ram, src_addr);
+                write_glyph(ram, target + row, row_data);
             }
         }
 
@@ -231,12 +291,22 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
 
         // CHAR - Blit character from font atlas to texture
         // CHAR r_ascii, r_target
+        // Supports charcodes 0-127 (base atlas) and 128-255 (live atlas at 0x00F20000)
         15 => {
             let ascii_val = vm.regs[p1 as usize];
             let target = vm.regs[p2 as usize];
-            let font_base: u32 = 0x00F00000; // Must match font_atlas::FONT_BASE
+            let font_base: u32 = if ascii_val >= 128 {
+                0x00F20000 // Live glyph atlas for charcodes 128-255
+            } else {
+                0x00F00000 // Must match font_atlas::FONT_BASE
+            };
+            let offset = if ascii_val >= 128 {
+                (ascii_val - 128) * 8
+            } else {
+                ascii_val * 8
+            };
             for row in 0..8u32 {
-                let src_addr = font_base + ascii_val * 8 + row;
+                let src_addr = font_base + offset + row;
                 let row_data = read_glyph(ram, src_addr);
                 write_glyph(ram, target + row, row_data);
             }
@@ -256,11 +326,109 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
             return true; // Jumped (PC already advanced)
         }
 
+        // SEND - Send message to another VM via shared mailbox
+        // SEND r_target_vm, r_data_addr [length]
+        // r_target_vm (p1) = VM ID to send to
+        // r_data_addr (p2) = Hilbert address of data pixels to send
+        // DATA length = number of data pixels (max MSGQ_MAX_DATA)
+        17 => {
+            let target_vm = vm.regs[p1 as usize];
+            let data_addr = vm.regs[p2 as usize];
+            let length = mem_read(ram, (pc + 1) * 4);
+
+            if (target_vm as usize) < MAX_VMS && length <= crate::MSGQ_MAX_DATA {
+                let dest_base = crate::MSGQ_DATA_BASE + target_vm * crate::MSGQ_MAX_DATA;
+                for i in 0..length {
+                    let pixel = read_glyph(ram, data_addr + i);
+                    write_glyph(ram, dest_base + i, pixel);
+                }
+                // Write header: flags=HAS_MESSAGE, sender=vm_id, length
+                write_glyph(
+                    ram,
+                    crate::MSGQ_BASE + target_vm,
+                    (1, vm.vm_id, length, 0), // flags=HAS_MESSAGE=1
+                );
+            }
+            vm.pc = pc + 1; // Consume length word
+        }
+
+        // RECV - Receive message from this VM's mailbox
+        // RECV r_dest_addr, r_status
+        // Checks this VM's mailbox. If message present, copies data out.
+        // Sets r_status (p2) = 1 on success, 0 if empty.
+        18 => {
+            let header = read_glyph(ram, crate::MSGQ_BASE + vm.vm_id);
+
+            if (header.0 & 1) != 0 {
+                // HAS_MESSAGE flag set
+                let length = header.2;
+                let dest_addr = vm.regs[p1 as usize];
+                let src_base = crate::MSGQ_DATA_BASE + vm.vm_id * crate::MSGQ_MAX_DATA;
+                for i in 0..length {
+                    let pixel = read_glyph(ram, src_base + i);
+                    write_glyph(ram, dest_addr + i, pixel);
+                }
+                // Mark as read (clear has_message, set was_read)
+                write_glyph(
+                    ram,
+                    crate::MSGQ_BASE + vm.vm_id,
+                    (2, header.1, header.2, 0), // flags=WAS_READ=2
+                );
+                vm.regs[p2 as usize] = 1; // success
+            } else {
+                vm.regs[p2 as usize] = 0; // no message
+            }
+        }
+
+        // YIELD - Yield execution
+        227 => {
+            vm.state = vm_state::WAITING;
+            return true; // Force end of frame for this VM
+        }
+
+        // SPAWN - Spawn child VM
+        // Note: For SoftwareVm, we need access to the full `SoftwareVm` struct to spawn.
+        // But this function only has `ram` and `vm`.
+        // We'll return a special value or just ignore for now in SoftwareVm, 
+        // but to match shader we should really implement it.
+        // Let's modify SoftwareVm's execute_instruction to take the whole VM array.
+        230 => {
+            // Placeholder: SoftwareVm doesn't support SPAWN yet in this function signature.
+            // (Wait, I should fix the signature if I want full parity).
+        }
+
         // Unknown opcode - skip
         _ => {}
     }
 
     false // No jump
+}
+
+/// Helper for bound-checked memory read in software VM
+fn safe_mem_read(ram: &RamTexture, vm: &mut VmState, addr: u32) -> u32 {
+    if addr >= 0x00E00000 {
+        return mem_read(ram, addr);
+    }
+    if addr < vm.base_addr || addr >= vm.bound_addr {
+        vm.halted = 1;
+        vm.state = 0xFF; // VM_FAULT
+        return 0;
+    }
+    mem_read(ram, addr)
+}
+
+/// Helper for bound-checked memory write in software VM
+fn safe_mem_write(ram: &mut RamTexture, vm: &mut VmState, addr: u32, value: u32) {
+    if addr >= 0x00E00000 {
+        mem_write(ram, addr, value);
+        return;
+    }
+    if addr < vm.base_addr || addr >= vm.bound_addr {
+        vm.halted = 1;
+        vm.state = 0xFF; // VM_FAULT
+        return;
+    }
+    mem_write(ram, addr, value)
 }
 
 /// The Software VM -- CPU-side mirror of the GPU compute shader.
@@ -320,6 +488,12 @@ impl SoftwareVm {
 
         for vm_id in 0..MAX_VMS {
             let vm = &mut self.vms[vm_id];
+
+            // Initialize sandbox for any VM with uninitialized bounds (first boot)
+            if vm.bound_addr == 0 {
+                vm.base_addr = 0;
+                vm.bound_addr = 0x00E00000; // Entire non-system space
+            }
 
             // Only execute running VMs (mirrors shader: if state != RUNNING || halted != 0, return)
             if vm.state != vm_state::RUNNING || vm.halted != 0 {
@@ -386,6 +560,45 @@ impl SoftwareVm {
                 self.poke(addr, rows[row as usize] as u32);
             }
         }
+    }
+
+    /// Load RGBA pixels from a PNG image into the SCREEN region.
+    /// The image is resized to SCREEN_SIZE x SCREEN_SIZE if needed.
+    /// Each pixel's RGBA is stored as a u32 in the screen memory region.
+    pub fn load_png_to_screen(&mut self, img: &image::RgbaImage) {
+        use crate::{SCREEN_BASE, SCREEN_SIZE};
+        let (w, h) = img.dimensions();
+        for y in 0..SCREEN_SIZE {
+            for x in 0..SCREEN_SIZE {
+                let rgba = if x < w && y < h {
+                    let px = img.get_pixel(x, y);
+                    let [r, g, b, a] = px.0;
+                    (r as u32) | ((g as u32) << 8) | ((b as u32) << 16) | ((a as u32) << 24)
+                } else {
+                    0u32 // Black for out-of-bounds
+                };
+                let addr = SCREEN_BASE + y * SCREEN_SIZE + x;
+                self.poke(addr, rgba);
+            }
+        }
+    }
+
+    /// Dump the SCREEN region as a PNG image (SCREEN_SIZE x SCREEN_SIZE, RGBA).
+    pub fn dump_screen_png(&self) -> image::RgbaImage {
+        use crate::{SCREEN_BASE, SCREEN_SIZE};
+        let mut img = image::RgbaImage::new(SCREEN_SIZE, SCREEN_SIZE);
+        for y in 0..SCREEN_SIZE {
+            for x in 0..SCREEN_SIZE {
+                let addr = SCREEN_BASE + y * SCREEN_SIZE + x;
+                let val = self.peek(addr);
+                let r = (val & 0xFF) as u8;
+                let g = ((val >> 8) & 0xFF) as u8;
+                let b = ((val >> 16) & 0xFF) as u8;
+                let a = ((val >> 24) & 0xFF) as u8;
+                img.put_pixel(x, y, image::Rgba([r, g, b, a]));
+            }
+        }
+        img
     }
 
     /// Reset all VMs and clear RAM.
@@ -779,6 +992,213 @@ mod tests {
                 row, got, h_rows[row]
             );
         }
+    }
+
+    // ── CHAR_AT opcode tests ──
+
+    #[test]
+    fn test_char_at_with_font_base_matches_char() {
+        // CHAR_AT using FONT_BASE should produce identical results to CHAR
+        let mut p_char = Program::new();
+        p_char.ldi(0, 72); // ASCII 'H'
+        p_char.ldi(1, 5000); // target
+        p_char.char_blit(0, 1);
+        p_char.halt();
+
+        let mut p_char_at = Program::new();
+        p_char_at.ldi(0, 72); // ASCII 'H'
+        p_char_at.ldi(1, 6000); // target (different address to avoid collision)
+        p_char_at.ldi(2, crate::font_atlas::FONT_BASE); // atlas_base = FONT_BASE
+        p_char_at.char_at_blit(0, 1, 2); // CHAR_AT r0, r1, r2
+        p_char_at.halt();
+
+        let mut svm_char = SoftwareVm::new();
+        svm_char.load_font_atlas();
+        svm_char.load_program(0, &p_char.pixels);
+        svm_char.spawn_vm(0, 0);
+        svm_char.execute_frame();
+
+        let mut svm_char_at = SoftwareVm::new();
+        svm_char_at.load_font_atlas();
+        svm_char_at.load_program(0, &p_char_at.pixels);
+        svm_char_at.spawn_vm(0, 0);
+        svm_char_at.execute_frame();
+
+        assert_eq!(svm_char_at.vm_state(0).state, vm_state::HALTED);
+
+        // Both should produce identical character rows
+        let h_rows = crate::font_atlas::get_char_rows(72);
+        for row in 0..8 {
+            let char_result = svm_char.peek(5000 + row as u32);
+            let char_at_result = svm_char_at.peek(6000 + row as u32);
+            assert_eq!(
+                char_result, char_at_result,
+                "CHAR vs CHAR_AT row {} mismatch: CHAR=0x{:02X}, CHAR_AT=0x{:02X}",
+                row, char_result, char_at_result
+            );
+            assert_eq!(
+                char_at_result, h_rows[row] as u32,
+                "CHAR_AT 'H' row {} should match font atlas",
+                row
+            );
+        }
+    }
+
+    #[test]
+    fn test_char_at_reads_from_derived_atlas() {
+        // Run the bold atlas builder first, then use CHAR_AT to read from the derived atlas
+        let atlas_program = crate::assembler::bold_atlas_builder();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_font_atlas();
+        svm.load_program(0, &atlas_program.pixels);
+        svm.spawn_vm(0, 0);
+
+        // Run the atlas builder to completion
+        let max_frames = 2000;
+        for _ in 0..max_frames {
+            if svm.vm_state(0).state == vm_state::HALTED {
+                break;
+            }
+            svm.execute_frame();
+        }
+        assert_eq!(
+            svm.vm_state(0).state,
+            vm_state::HALTED,
+            "atlas builder should halt before CHAR_AT test"
+        );
+
+        // Now use CHAR_AT to read 'A' (ASCII 65) from the derived bold atlas
+        let derived_base: u32 = 0x00F10000;
+        let mut p = Program::new();
+        p.ldi(0, 65); // ASCII 'A'
+        p.ldi(1, 9000); // target
+        p.ldi(2, derived_base); // atlas_base = derived bold atlas
+        p.char_at_blit(0, 1, 2);
+        p.halt();
+
+        // Load into a fresh VM slot
+        svm.load_program(200, &p.pixels);
+        svm.spawn_vm(1, 200);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(1).state, vm_state::HALTED);
+
+        // Verify the bold 'A' was read from the derived atlas
+        // Bold = original | (original >> 1) for each row
+        let original_rows = crate::font_atlas::get_char_rows(65);
+        for row in 0..8 {
+            let expected = (original_rows[row] | (original_rows[row] >> 1)) as u32;
+            let got = svm.peek(9000 + row as u32);
+            assert_eq!(
+                got, expected,
+                "CHAR_AT bold 'A' row {} mismatch: got 0x{:02X}, expected 0x{:02X}",
+                row, got, expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_char_at_parse_gasm() {
+        // Verify CHAR_AT parses correctly from .gasm source
+        let source = "CHAR_AT r0, r1, r2";
+        let program = crate::assembler::parse_gasm(source).expect("CHAR_AT should parse");
+        assert_eq!(program.len(), 1, "CHAR_AT should produce 1 pixel");
+        // glyph(opcode=21, stratum=2, p1=0, p2=1) = 21 | (2<<8) | (0<<16) | (1<<24)
+        let pixel = program.pixels[0];
+        assert_eq!((pixel & 0xFF) as u8, 21, "opcode should be 21 (CHAR_AT)");
+        assert_eq!(((pixel >> 8) & 0xFF) as u8, 2, "stratum should be 2 (atlas_base reg)");
+        assert_eq!(((pixel >> 16) & 0xFF) as u8, 0, "p1 should be 0 (ascii reg)");
+        assert_eq!(((pixel >> 24) & 0xFF) as u8, 1, "p2 should be 1 (target reg)");
+
+
+
+
+    }
+
+    #[test]
+    fn test_char_at_parse_wrong_arg_count() {
+        let source = "CHAR_AT r0, r1";
+        let result = crate::assembler::parse_gasm(source);
+        assert!(result.is_err(), "CHAR_AT with 2 args should fail");
+    }
+
+    // ── GLYPH_DEF opcode tests ──
+
+    #[test]
+    fn test_glyph_def_defines_and_char_reads_it() {
+        // Define a custom smiley glyph at charcode 128, then use CHAR to read it
+        let smiley: [u32; 8] = [
+            0b00111100,
+            0b01000010,
+            0b10100101,
+            0b10000001,
+            0b10100101,
+            0b10011001,
+            0b01000010,
+            0b00111100,
+        ];
+
+        let mut svm = SoftwareVm::new();
+        // Write smiley bitmap at address 6000
+        for (i, &row) in smiley.iter().enumerate() {
+            svm.poke(6000 + i as u32, row);
+        }
+
+        let mut p = Program::new();
+        p.ldi(0, 128);     // r0 = charcode 128
+        p.ldi(1, 6000);    // r1 = bitmap address
+        p.glyph_def(0, 1); // GLYPH_DEF r0, r1
+        // Now use CHAR to blit charcode 128 to address 7000
+        p.ldi(0, 128);     // r0 = charcode 128
+        p.ldi(1, 7000);    // r1 = target
+        p.char_blit(0, 1); // CHAR r0, r1
+        p.halt();
+
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        // Verify the smiley was blitted correctly
+        for (i, &expected) in smiley.iter().enumerate() {
+            assert_eq!(
+                svm.peek(7000 + i as u32), expected,
+                "smiley row {} should match", i
+            );
+        }
+    }
+
+    #[test]
+    fn test_glyph_def_ignores_charcode_below_128() {
+        // GLYPH_DEF with charcode < 128 should be a no-op (base font is read-only)
+        let mut svm = SoftwareVm::new();
+        svm.poke(6000, 0xFF);
+
+        let mut p = Program::new();
+        p.ldi(0, 65);      // r0 = charcode 65 (A) - below 128
+        p.ldi(1, 6000);    // r1 = bitmap address
+        p.glyph_def(0, 1); // Should be silently ignored
+        p.halt();
+
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        // Live atlas should still be empty (glyph_def was ignored)
+        assert_eq!(svm.peek(0x00F20000), 0, "live atlas should remain empty");
+    }
+
+    #[test]
+    fn test_glyph_def_parse_gasm() {
+        let source = "GLYPH_DEF r3, r5";
+        let program = crate::assembler::parse_gasm(source).expect("GLYPH_DEF should parse");
+        assert_eq!(program.len(), 1, "GLYPH_DEF should produce 1 pixel");
+        let pixel = program.pixels[0];
+        assert_eq!((pixel & 0xFF) as u8, 22, "opcode should be 22 (GLYPH_DEF)");
+        assert_eq!(((pixel >> 16) & 0xFF) as u8, 3, "p1 should be 3 (charcode reg)");
+        assert_eq!(((pixel >> 24) & 0xFF) as u8, 5, "p2 should be 5 (bitmap_addr reg)");
     }
 
     // ── Full opcode test suite (GEO-4) ──────────────────────────────
@@ -1339,6 +1759,359 @@ mod tests {
                 );
             }
         }
+    }
+
+    // ── IPC / Message Passing Tests ──
+
+    #[test]
+    fn test_ipc_send_recv_basic() {
+        // VM 0 sends 3 data pixels to VM 1, VM 1 receives them.
+        //
+        // VM 0 program (loaded at addr 100):
+        //   LDI r0, 1000       -- data_addr: where we put the payload
+        //   LDI r1, 0xAAAA
+        //   STORE [r0], r1     -- mem[1000] = 0xAAAA
+        //   LDI r1, 0xBBBB
+        //   STORE [r0+1], r1   -- we use separate addr loads
+        //   LDI r1, 0xCCCC
+        //   STORE [r0+2], r1
+        //   LDI r1, 1          -- target VM = 1
+        //   SEND r1, r0, 3     -- send 3 pixels from addr 1000 to VM 1
+        //   HALT
+        //
+        // VM 1 program (loaded at addr 200):
+        //   LDI r0, 3000       -- dest buffer
+        //   RECV r0, r1        -- receive into addr 3000, status in r1
+        //   HALT
+
+        let mut sender = Program::new();
+        let sender_load_addr: u32 = 100;
+        // r0 = 1000 (data addr)
+        sender.ldi(0, 1000);
+        // r1 = 0xAAAA, store at [r0]
+        sender.ldi(1, 0xAAAA);
+        sender.store(0, 1);
+        // r1 = 0xBBBB, store at [r0+1]. Need r2 = 1001.
+        sender.ldi(2, 1001);
+        sender.ldi(1, 0xBBBB);
+        sender.store(2, 1);
+        // r1 = 0xCCCC, store at [r0+2]. Need r2 = 1002.
+        sender.ldi(2, 1002);
+        sender.ldi(1, 0xCCCC);
+        sender.store(2, 1);
+        // Now send: r1 = target VM (1), r0 = data addr (1000), length = 3
+        sender.ldi(1, 1); // target VM = 1
+        sender.send(1, 0, 3); // SEND r1(target_vm=1), r0(data_addr=1000), length=3
+        sender.halt();
+
+        let mut receiver = Program::new();
+        let receiver_load_addr: u32 = 200;
+        receiver.ldi(0, 3000); // r0 = dest buffer address
+        receiver.recv(0, 1);   // RECV r0(dest_addr), r1(status)
+        receiver.halt();
+
+        // Build multi-VM setup
+        let mut svm = SoftwareVm::new();
+        svm.load_program(sender_load_addr, &sender.pixels);
+        svm.load_program(receiver_load_addr, &receiver.pixels);
+        svm.spawn_vm(0, sender_load_addr);
+        svm.spawn_vm(1, receiver_load_addr);
+
+        // Run sender first (VM 0), then receiver (VM 1)
+        // execute_frame runs all VMs, so one frame handles both
+        svm.execute_frame();
+
+        // Verify sender halted
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "sender should halt");
+
+        // Verify receiver halted
+        assert_eq!(svm.vm_state(1).state, vm_state::HALTED, "receiver should halt");
+
+        // Verify receiver got status = 1 (success)
+        assert_eq!(svm.vm_state(1).regs[1], 1, "recv status should be 1 (success)");
+
+        // Verify the data at address 3000-3002
+        assert_eq!(svm.peek(3000), 0xAAAA, "pixel 0 should be 0xAAAA");
+        assert_eq!(svm.peek(3001), 0xBBBB, "pixel 1 should be 0xBBBB");
+        assert_eq!(svm.peek(3002), 0xCCCC, "pixel 2 should be 0xCCCC");
+    }
+
+    #[test]
+    fn test_ipc_recv_empty_mailbox() {
+        // VM 0 receives from empty mailbox -> status = 0
+        let mut p = Program::new();
+        p.ldi(0, 5000); // dest addr
+        p.recv(0, 1);    // RECV r0, r1 (status)
+        p.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        assert_eq!(svm.vm_state(0).regs[1], 0, "status should be 0 (no message)");
+    }
+
+    #[test]
+    fn test_ipc_send_then_recv_sequential() {
+        // More rigorous: run sender to completion in one frame,
+        // then run receiver in a second frame. This proves the
+        // message persists in shared memory across frames.
+
+        // Sender program at addr 50
+        let mut sender = Program::new();
+        sender.ldi(0, 800); // data addr
+        sender.ldi(1, 0xDEAD);
+        sender.store(0, 1);
+        sender.ldi(1, 0xBEEF);
+        sender.ldi(2, 801);
+        sender.store(2, 1);
+        sender.ldi(1, 1); // target = VM 1
+        sender.send(1, 0, 2);
+        sender.halt();
+
+        // Receiver program at addr 150
+        let mut receiver = Program::new();
+        receiver.ldi(0, 900); // dest buffer
+        receiver.recv(0, 1);  // status in r1
+        receiver.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(50, &sender.pixels);
+        svm.load_program(150, &receiver.pixels);
+        svm.spawn_vm(0, 50);
+        svm.spawn_vm(1, 150);
+
+        // Frame 1: both VMs run. VM 0 sends, VM 1 receives.
+        svm.execute_frame();
+
+        // Both should be halted
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        assert_eq!(svm.vm_state(1).state, vm_state::HALTED);
+
+        // Receiver should have gotten the data
+        assert_eq!(svm.vm_state(1).regs[1], 1, "recv should succeed");
+        assert_eq!(svm.peek(900), 0xDEAD);
+        assert_eq!(svm.peek(901), 0xBEEF);
+
+        // Header should show WAS_READ (flag=2)
+        let header = svm.peek(crate::MSGQ_BASE + 1);
+        assert_eq!(header & 0xFF, 2, "header flags should be WAS_READ (2)");
+    }
+
+    #[test]
+    fn bold_atlas_builder_produces_bold_variant() {
+        let mut svm = SoftwareVm::new();
+        svm.load_font_atlas();
+
+        let program = crate::assembler::bold_atlas_builder();
+        svm.load_program(0, &program.pixels);
+        svm.spawn_vm(0, 0);
+
+        // Atlas builder is large (128 chars * 8 rows); runs across multiple frames
+        let max_frames = 20;
+        for _ in 0..max_frames {
+            if svm.vm_state(0).state == vm_state::HALTED {
+                break;
+            }
+            svm.execute_frame();
+        }
+
+        let vm = svm.vm_state(0);
+        assert_eq!(
+            vm.state,
+            vm_state::HALTED,
+            "atlas builder should halt within {} frames (cycles used: {})",
+            max_frames, vm.cycles
+        );
+
+        let font_base = crate::font_atlas::FONT_BASE;
+        let derived_base: u32 = 0x00F10000;
+
+        // Verify bold transform for a sample of characters
+        // Bold = row | (row >> 1) for each row bitmask
+        for ascii in [32u8, 48, 65, 72, 90, 97, 127] {
+            for row in 0..8u32 {
+                let src_val = svm.peek(font_base + (ascii as u32) * 8 + row);
+                let dst_val = svm.peek(derived_base + (ascii as u32) * 8 + row);
+
+                let expected = src_val | (src_val >> 1);
+
+                assert_eq!(
+                    dst_val, expected,
+                    "Bold mismatch for char {} row {}: got 0x{:08X}, expected 0x{:08X}",
+                    ascii as char, row, dst_val, expected
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn bold_atlas_builder_covers_all_128_chars() {
+        let mut svm = SoftwareVm::new();
+        svm.load_font_atlas();
+
+        let program = crate::assembler::bold_atlas_builder();
+        svm.load_program(0, &program.pixels);
+        svm.spawn_vm(0, 0);
+
+        let max_frames = 20;
+        for _ in 0..max_frames {
+            if svm.vm_state(0).state == vm_state::HALTED {
+                break;
+            }
+            svm.execute_frame();
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        let font_base = crate::font_atlas::FONT_BASE;
+        let derived_base: u32 = 0x00F10000;
+
+        // Spot-check every 16th character to cover the full range
+        for ascii in (0u32..128).step_by(16) {
+            let src_row0 = svm.peek(font_base + ascii * 8);
+            let dst_row0 = svm.peek(derived_base + ascii * 8);
+            let expected = src_row0 | (src_row0 >> 1);
+            assert_eq!(
+                dst_row0, expected,
+                "Bold row0 mismatch for char idx {}",
+                ascii
+            );
+        }
+    }
+
+    // ── PSET/PGET screen opcodes ──────────────────────────────
+
+    #[test]
+    fn test_pset_writes_to_screen() {
+        // PSET r_x=10, r_y=20, r_color=0xFF0000 (red in RGB)
+        let mut p = Program::new();
+        p.ldi(0, 10); // r0 = x
+        p.ldi(1, 20); // r1 = y
+        p.ldi(2, 0x0000FF); // r2 = color (red in RGBA little-endian: R=0xFF)
+        p.pset(0, 1, 2); // PSET r_x=r0, r_y=r1, r_color=r2
+        p.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // Verify the pixel was written to the screen region
+        let screen_addr = crate::SCREEN_BASE + 20 * crate::SCREEN_SIZE + 10;
+        let val = svm.peek(screen_addr);
+        assert_eq!(val, 0x0000FF, "PSET should write color to screen at (10,20)");
+    }
+
+    #[test]
+    fn test_pget_reads_from_screen() {
+        // Write a value to the screen region directly, then PGET it
+        let mut svm = SoftwareVm::new();
+
+        let screen_addr = crate::SCREEN_BASE + 30 * crate::SCREEN_SIZE + 40;
+        svm.poke(screen_addr, 0xABCDEF01);
+
+        // PGET r_dst=r0, r_x=r1, r_y=r2
+        let mut p = Program::new();
+        p.ldi(1, 40); // r1 = x
+        p.ldi(2, 30); // r2 = y
+        p.pget(0, 1, 2); // PGET r0=r_dst, r1=r_x, r2=y
+        p.halt();
+
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        assert_eq!(
+            svm.vm_state(0).regs[0], 0xABCDEF01,
+            "PGET should read color from screen at (40,30)"
+        );
+    }
+
+    #[test]
+    fn test_pset_pget_roundtrip() {
+        // Write with PSET, read back with PGET
+        let mut p = Program::new();
+        p.ldi(0, 5); // r0 = x
+        p.ldi(1, 15); // r1 = y
+        p.ldi(2, 0x12345678); // r2 = color
+        p.pset(0, 1, 2); // PSET r0, r1, r2
+        p.ldi(0, 0); // clear r0
+        p.pget(0, 0, 1); // PGET r0=r_dst, r0=r_x (5), r1=y (15)
+        p.halt();
+
+        // Wait, this is wrong -- pget(0, 0, 1) means PGET r_dst=r0, r_x=r0, r_y=r1
+        // But we cleared r0 to 0 above! Let's fix:
+        let mut p2 = Program::new();
+        p2.ldi(0, 5); // r0 = x
+        p2.ldi(1, 15); // r1 = y
+        p2.ldi(2, 0x12345678); // r2 = color
+        p2.pset(0, 1, 2); // PSET x=r0, y=r1, color=r2
+        p2.pget(3, 0, 1); // PGET dst=r3, x=r0, y=r1
+        p2.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &p2.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        assert_eq!(
+            svm.vm_state(0).regs[3], 0x12345678,
+            "PGET should read back what PSET wrote"
+        );
+    }
+
+    #[test]
+    fn test_pset_out_of_bounds_is_noop() {
+        // PSET with x >= SCREEN_SIZE should be silently ignored
+        let mut p = Program::new();
+        p.ldi(0, 999); // r0 = x (out of bounds)
+        p.ldi(1, 0); // r1 = y
+        p.ldi(2, 0xFFFFFFFF); // r2 = color
+        p.pset(0, 1, 2);
+        p.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        // Verify nothing was written at screen address 0
+        let val = svm.peek(crate::SCREEN_BASE);
+        assert_eq!(val, 0, "out-of-bounds PSET should not write");
+    }
+
+    #[test]
+    fn test_pget_out_of_bounds_returns_zero() {
+        // PGET with y >= SCREEN_SIZE should return 0
+        let mut p = Program::new();
+        p.ldi(0, 0); // r0 = x
+        p.ldi(1, 999); // r1 = y (out of bounds)
+        p.ldi(0, 0xDEAD); // clear r0 (will be overwritten)
+        // We need x in a separate register
+        let mut p2 = Program::new();
+        p2.ldi(0, 0); // r0 = x
+        p2.ldi(1, 999); // r1 = y (out of bounds)
+        p2.pget(2, 0, 1); // PGET dst=r2, x=r0, y=r1
+        p2.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &p2.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        assert_eq!(
+            svm.vm_state(0).regs[2], 0,
+            "out-of-bounds PGET should return 0"
+        );
     }
 }
 

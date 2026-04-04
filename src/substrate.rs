@@ -70,6 +70,19 @@ impl Substrate {
         }
     }
 
+    /// Load the font atlas into the substrate at FONT_BASE.
+    /// Required for the CHAR opcode to work on the GPU path.
+    pub fn load_font_atlas(&self) {
+        use crate::font_atlas;
+        for ascii in 0..font_atlas::FONT_CHARS {
+            let rows = font_atlas::get_char_rows(ascii as u8);
+            for row in 0..8u32 {
+                let addr = font_atlas::FONT_BASE + (ascii as u32) * 8 + row;
+                self.poke(addr, rows[row as usize] as u32);
+            }
+        }
+    }
+
     /// Verify that a range of pixels matches expected values.
     /// Returns (matched_count, total_count).
     pub fn verify(&self, start_addr: u32, expected: &[u32]) -> (usize, usize) {

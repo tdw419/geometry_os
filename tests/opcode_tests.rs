@@ -4,35 +4,59 @@
 // Edge cases: register overflow, nested CALL/RET, cycle budget.
 // Comparison: software VM result == GPU VM result for every opcode.
 
+mod gpu_test_helpers;
+
 use pixels_move_pixels::{
     assembler::{self, op, Program},
     software_vm::SoftwareVm,
-    vm::{self, GlyphVm},
+    vm::VmState,
 };
+use std::collections::HashMap;
 
 // ─── Helpers ───
 
-/// Run a program on both software and GPU VMs, return both states for comparison.
-fn run_both(pixels: &[u32], load_addr: u32) -> (SoftwareVm, GlyphVm) {
-    // Software VM
+/// Snapshot of GPU VM execution results for comparison after the shared VM is reused.
+struct GpuSnapshot {
+    vm_state: VmState,
+    substrate_peeks: HashMap<u32, u32>,
+}
+
+/// Run a program on both software and GPU VMs, return snapshots for comparison.
+fn run_both(pixels: &[u32], load_addr: u32) -> (SoftwareVm, GpuSnapshot) {
+    // Software VM (fresh each time -- cheap, no GPU)
     let mut svm = SoftwareVm::new();
     svm.load_program(load_addr, pixels);
     svm.spawn_vm(0, load_addr);
     svm.execute_frame();
 
-    // GPU VM
-    let mut gvm = GlyphVm::new();
-    gvm.substrate().load_program(load_addr, pixels);
-    gvm.spawn_vm(0, load_addr);
-    gvm.execute_frame();
+    // GPU VM (shared device, reset between uses)
+    let gpu_snap = gpu_test_helpers::with_gpu_vm(|gvm| {
+        gvm.substrate().load_program(load_addr, pixels);
+        gvm.spawn_vm(0, load_addr);
+        gvm.execute_frame();
 
-    (svm, gvm)
+        let vm_state = gvm.vm_state(0).clone();
+        let mut substrate_peeks = HashMap::new();
+        // Peek all addresses the program might have written to
+        // Range must cover load_addr + program size + replicator offset
+        let peek_end = load_addr + pixels.len() as u32 + 300;
+        for addr in 0..peek_end {
+            substrate_peeks.insert(addr, gvm.substrate().peek(addr));
+        }
+
+        GpuSnapshot {
+            vm_state,
+            substrate_peeks,
+        }
+    });
+
+    (svm, gpu_snap)
 }
 
-/// Assert that the VM state from software VM matches GPU VM for a single VM.
-fn assert_vm_match(svm: &SoftwareVm, gvm: &GlyphVm) {
+/// Assert that the VM state from software VM matches GPU snapshot for VM 0.
+fn assert_vm_match(svm: &SoftwareVm, gpu: &GpuSnapshot) {
     let s = svm.vm_state(0);
-    let g = gvm.vm_state(0);
+    let g = &gpu.vm_state;
     assert_eq!(s.halted, g.halted, "halted mismatch");
     assert_eq!(s.state, g.state, "state mismatch");
     assert_eq!(s.pc, g.pc, "pc mismatch: sw={}, gpu={}", s.pc, g.pc);
@@ -59,7 +83,6 @@ fn assert_vm_match(svm: &SoftwareVm, gvm: &GlyphVm) {
 // ─── Per-opcode comparison tests ───
 
 #[test]
-#[ignore]
 fn cmp_nop() {
     let mut p = Program::new();
     p.instruction(op::NOP, 0, 0, 0);
@@ -69,7 +92,6 @@ fn cmp_nop() {
 }
 
 #[test]
-#[ignore]
 fn cmp_ldi() {
     let mut p = Program::new();
     p.ldi(0, 42);
@@ -81,7 +103,6 @@ fn cmp_ldi() {
 }
 
 #[test]
-#[ignore]
 fn cmp_mov() {
     let mut p = Program::new();
     p.ldi(0, 77);
@@ -93,7 +114,6 @@ fn cmp_mov() {
 }
 
 #[test]
-#[ignore]
 fn cmp_ld_st() {
     // Load from address 500, store to address 600
     let mut p = Program::new();
@@ -109,7 +129,6 @@ fn cmp_ld_st() {
 }
 
 #[test]
-#[ignore]
 fn cmp_add() {
     let mut p = Program::new();
     p.ldi(0, 100);
@@ -121,7 +140,6 @@ fn cmp_add() {
 }
 
 #[test]
-#[ignore]
 fn cmp_sub() {
     let mut p = Program::new();
     p.ldi(0, 500);
@@ -133,7 +151,6 @@ fn cmp_sub() {
 }
 
 #[test]
-#[ignore]
 fn cmp_bne_taken() {
     let mut p = Program::new();
     p.ldi(0, 5);
@@ -147,7 +164,6 @@ fn cmp_bne_taken() {
 }
 
 #[test]
-#[ignore]
 fn cmp_bne_not_taken() {
     let mut p = Program::new();
     p.ldi(0, 5);
@@ -159,7 +175,6 @@ fn cmp_bne_not_taken() {
 }
 
 #[test]
-#[ignore]
 fn cmp_call_ret() {
     let mut p = Program::new();
     // addr 0: CALL 4
@@ -178,7 +193,6 @@ fn cmp_call_ret() {
 }
 
 #[test]
-#[ignore]
 fn cmp_halt() {
     let mut p = Program::new();
     p.halt();
@@ -187,7 +201,6 @@ fn cmp_halt() {
 }
 
 #[test]
-#[ignore]
 fn cmp_entry() {
     let mut p = Program::new();
     p.entry(0); // r0 = entry_point
@@ -199,7 +212,6 @@ fn cmp_entry() {
 // ─── Self-replicator comparison ───
 
 #[test]
-#[ignore]
 fn cmp_self_replicator() {
     let program = assembler::self_replicator();
     let (svm, gvm) = run_both(&program.pixels, 0);
@@ -208,7 +220,7 @@ fn cmp_self_replicator() {
     // Verify copy at address 100 matches
     for i in 0..program.pixels.len() as u32 {
         let sw_val = svm.peek(100 + i);
-        let gpu_val = gvm.substrate().peek(100 + i);
+        let gpu_val = gvm.substrate_peeks[&(100 + i)];
         assert_eq!(
             sw_val, gpu_val,
             "self-replicator copy pixel {} mismatch: sw=0x{:08X}, gpu=0x{:08X}",
@@ -218,7 +230,6 @@ fn cmp_self_replicator() {
 }
 
 #[test]
-#[ignore]
 fn cmp_chain_replicator() {
     let program = assembler::chain_replicator();
     let (svm, gvm) = run_both(&program.pixels, 0);
@@ -227,7 +238,7 @@ fn cmp_chain_replicator() {
     // Verify copy at address 100
     for i in 0..program.pixels.len() as u32 {
         let sw_val = svm.peek(100 + i);
-        let gpu_val = gvm.substrate().peek(100 + i);
+        let gpu_val = gvm.substrate_peeks[&(100 + i)];
         assert_eq!(
             sw_val, gpu_val,
             "chain-replicator copy pixel {} mismatch: sw=0x{:08X}, gpu=0x{:08X}",
@@ -237,7 +248,6 @@ fn cmp_chain_replicator() {
 }
 
 #[test]
-#[ignore]
 fn cmp_chain_replicator_at_offset() {
     let program = assembler::chain_replicator();
     let (svm, gvm) = run_both(&program.pixels, 200);
@@ -246,7 +256,7 @@ fn cmp_chain_replicator_at_offset() {
     // Copy should be at 200 + 100 = 300
     for i in 0..program.pixels.len() as u32 {
         let sw_val = svm.peek(300 + i);
-        let gpu_val = gvm.substrate().peek(300 + i);
+        let gpu_val = gvm.substrate_peeks[&(300 + i)];
         assert_eq!(
             sw_val, gpu_val,
             "chain-replicator@200 copy pixel {} mismatch: sw=0x{:08X}, gpu=0x{:08X}",
@@ -258,7 +268,6 @@ fn cmp_chain_replicator_at_offset() {
 // ─── Edge cases ───
 
 #[test]
-#[ignore]
 fn edge_add_overflow() {
     // r0 = 0xFFFFFFFF, r1 = 1 -> r0 + r1 should wrap to 0
     let mut p = Program::new();
@@ -272,7 +281,6 @@ fn edge_add_overflow() {
 }
 
 #[test]
-#[ignore]
 fn edge_sub_underflow() {
     // r0 = 0, r1 = 1 -> r0 - r1 should wrap to 0xFFFFFFFF
     let mut p = Program::new();
@@ -290,7 +298,6 @@ fn edge_sub_underflow() {
 }
 
 #[test]
-#[ignore]
 fn edge_nested_call_ret() {
     // main: CALL func_a (addr 4)
     // func_a: CALL func_b (addr 8)
@@ -374,7 +381,6 @@ fn edge_nested_call_ret() {
 }
 
 #[test]
-#[ignore]
 fn edge_deep_call_stack() {
     // Push 10 frames, then pop them all
     let mut p = Program::new();
@@ -472,7 +478,6 @@ fn edge_deep_call_stack() {
 }
 
 #[test]
-#[ignore]
 fn edge_cycle_budget_exhaustion() {
     // Program that loops forever: BNE r0, r1, 0 (branch to self)
     let mut p = Program::new();
@@ -558,102 +563,92 @@ fn sw_unknown_opcode_is_nop() {
 
 // ─── GPU-only opcode tests (verifying GPU execution) ───
 
+fn gpu_run(pixels: &[u32], load_addr: u32) -> GpuSnapshot {
+    gpu_test_helpers::with_gpu_vm(|gvm| {
+        gvm.substrate().load_program(load_addr, pixels);
+        gvm.spawn_vm(0, load_addr);
+        gvm.execute_frame();
+
+        let vm_state = gvm.vm_state(0).clone();
+        let mut substrate_peeks = HashMap::new();
+        for addr in 0..(pixels.len() as u32 + 600) {
+            substrate_peeks.insert(addr, gvm.substrate().peek(addr));
+        }
+        GpuSnapshot {
+            vm_state,
+            substrate_peeks,
+        }
+    })
+}
+
 #[test]
-#[ignore]
 fn gpu_ldi_halt() {
-    let mut gvm = GlyphVm::new();
     let mut p = Program::new();
     p.ldi(0, 42);
     p.ldi(1, 0xDEAD);
     p.halt();
-    gvm.substrate().load_program(0, &p.pixels);
-    gvm.spawn_vm(0, 0);
-    gvm.execute_frame();
-    let vm = gvm.vm_state(0);
-    assert_eq!(vm.state, 2); // HALTED
-    assert_eq!(vm.regs[0], 42);
-    assert_eq!(vm.regs[1], 0xDEAD);
+    let gpu = gpu_run(&p.pixels, 0);
+    assert_eq!(gpu.vm_state.state, 2); // HALTED
+    assert_eq!(gpu.vm_state.regs[0], 42);
+    assert_eq!(gpu.vm_state.regs[1], 0xDEAD);
 }
 
 #[test]
-#[ignore]
 fn gpu_add_sub() {
-    let mut gvm = GlyphVm::new();
     let mut p = Program::new();
     p.ldi(0, 100);
     p.ldi(1, 50);
     p.add(0, 1); // r0 = 150
     p.sub(0, 1); // r0 = 100
     p.halt();
-    gvm.substrate().load_program(0, &p.pixels);
-    gvm.spawn_vm(0, 0);
-    gvm.execute_frame();
-    assert_eq!(gvm.vm_state(0).regs[0], 100);
+    let gpu = gpu_run(&p.pixels, 0);
+    assert_eq!(gpu.vm_state.regs[0], 100);
 }
 
 #[test]
-#[ignore]
 fn gpu_mov() {
-    let mut gvm = GlyphVm::new();
     let mut p = Program::new();
     p.ldi(0, 0xCAFE);
     p.instruction(op::MOV, 0, 1, 0);
     p.instruction(op::MOV, 0, 2, 1);
     p.halt();
-    gvm.substrate().load_program(0, &p.pixels);
-    gvm.spawn_vm(0, 0);
-    gvm.execute_frame();
-    assert_eq!(gvm.vm_state(0).regs[1], 0xCAFE);
-    assert_eq!(gvm.vm_state(0).regs[2], 0xCAFE);
+    let gpu = gpu_run(&p.pixels, 0);
+    assert_eq!(gpu.vm_state.regs[1], 0xCAFE);
+    assert_eq!(gpu.vm_state.regs[2], 0xCAFE);
 }
 
 #[test]
-#[ignore]
 fn gpu_store_load_roundtrip() {
-    let mut gvm = GlyphVm::new();
     let mut p = Program::new();
     p.ldi(0, 500); // addr
     p.ldi(1, 0xF00D); // value
     p.store(0, 1); // mem[500] = 0xF00D
     p.load(2, 0); // r2 = mem[500]
     p.halt();
-    gvm.substrate().load_program(0, &p.pixels);
-    gvm.spawn_vm(0, 0);
-    gvm.execute_frame();
-    assert_eq!(gvm.vm_state(0).regs[2], 0xF00D);
-    // Also verify via substrate
-    assert_eq!(gvm.substrate().peek(500), 0xF00D);
+    let gpu = gpu_run(&p.pixels, 0);
+    assert_eq!(gpu.vm_state.regs[2], 0xF00D);
+    assert_eq!(gpu.substrate_peeks[&500], 0xF00D);
 }
 
 #[test]
-#[ignore]
 fn gpu_entry_discovers_address() {
-    let mut gvm = GlyphVm::new();
     let mut p = Program::new();
     p.entry(0);
     p.halt();
-    gvm.substrate().load_program(77, &p.pixels);
-    gvm.spawn_vm(0, 77);
-    gvm.execute_frame();
-    assert_eq!(gvm.vm_state(0).regs[0], 77);
+    let gpu = gpu_run(&p.pixels, 77);
+    assert_eq!(gpu.vm_state.regs[0], 77);
 }
 
 #[test]
-#[ignore]
 fn gpu_branch_loop() {
-    // Count from 0 to 10 in r0, then halt
-    let mut gvm = GlyphVm::new();
     let mut p = Program::new();
-    p.ldi(0, 0); // counter
-    p.ldi(1, 10); // limit
-    p.ldi(2, 1); // increment
-    // Loop at addr 6: ADD r0, r2; BNE r0, r1, -1
-    p.add(0, 2); // addr 6
-    p.bne(0, 1, -1); // addr 7: if r0 != r1, jump to 7+(-1)=6
+    p.ldi(0, 0);
+    p.ldi(1, 10);
+    p.ldi(2, 1);
+    p.add(0, 2);
+    p.bne(0, 1, -1);
     p.halt();
-    gvm.substrate().load_program(0, &p.pixels);
-    gvm.spawn_vm(0, 0);
-    gvm.execute_frame();
-    assert_eq!(gvm.vm_state(0).state, 2); // HALTED
-    assert_eq!(gvm.vm_state(0).regs[0], 10);
+    let gpu = gpu_run(&p.pixels, 0);
+    assert_eq!(gpu.vm_state.state, 2); // HALTED
+    assert_eq!(gpu.vm_state.regs[0], 10);
 }

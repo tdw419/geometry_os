@@ -12,6 +12,10 @@ path = "src/main.rs"
 name = "pmp-eval"
 path = "src/bin/pmp-eval.rs"
 
+[[bin]]
+name = "pmp-repl"
+path = "src/bin/pmp-repl.rs"
+
 [[test]]
 name = "self_replication"
 path = "tests/self_replication.rs"
@@ -31,6 +35,10 @@ path = "tests/opcode_tests.rs"
 [[test]]
 name = "opcode_full_suite"
 path = "tests/opcode_full_suite.rs"
+
+[[test]]
+name = "bold_atlas"
+path = "tests/bold_atlas.rs"
 
 [dependencies]
 wgpu = "0.19"
