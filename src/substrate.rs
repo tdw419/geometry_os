@@ -101,21 +101,21 @@ impl Substrate {
     pub fn render_png(&self, width: u32, height: u32, start_addr: u32, path: &str) {
         use image::{ImageBuffer, Rgb};
 
-        let mut img: ImageBuffer<Rgb<u8>, Vec<u8>> =
-            ImageBuffer::new(width, height);
+        let mut img: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::new(width, height);
 
         let opcode_color = |op: u8| -> Rgb<u8> {
             match op {
-                0 => Rgb([0, 0, 0]),         // NOP - black
-                1 => Rgb([0, 80, 255]),       // LDI - blue
-                2 => Rgb([0, 200, 200]),      // MOV - cyan
-                3 => Rgb([0, 200, 0]),        // LOAD - green
-                4 => Rgb([200, 200, 0]),      // STORE - yellow
-                5 => Rgb([200, 100, 0]),      // ADD - orange
-                6 => Rgb([200, 0, 100]),      // SUB - magenta
-                10 => Rgb([255, 0, 0]),       // BRANCH - red
-                13 => Rgb([255, 255, 255]),   // HALT - white
-                _ => Rgb([80, 80, 80]),       // unknown - gray
+                0 => Rgb([0, 0, 0]),        // NOP - black
+                1 => Rgb([0, 80, 255]),     // LDI - blue
+                2 => Rgb([0, 200, 200]),    // MOV - cyan
+                3 => Rgb([0, 200, 0]),      // LOAD - green
+                4 => Rgb([200, 200, 0]),    // STORE - yellow
+                5 => Rgb([200, 100, 0]),    // ADD - orange
+                6 => Rgb([200, 0, 100]),    // SUB - magenta
+                10 => Rgb([255, 0, 0]),     // BRANCH - red
+                13 => Rgb([255, 255, 255]), // HALT - white
+                14 => Rgb([100, 255, 100]), // ENTRY - bright green
+                _ => Rgb([80, 80, 80]),     // unknown - gray
             }
         };
 

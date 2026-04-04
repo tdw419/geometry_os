@@ -6,27 +6,23 @@
 
 ---
 
-## Phase 0: Foundation (CURRENT)
+## Phase 0: Foundation (COMPLETE)
 
-The VM boots. Pixels execute. Self-replication is proven.
+The VM boots. Pixels execute. Self-replication is proven. Chain replication works.
 
 **Completed:**
 - [x] GPU compute shader scheduler (`glyph_vm_scheduler.wgsl`)
 - [x] Hilbert curve memory mapping (Rust + WGSL, verified roundtrip)
-- [x] Instruction set: NOP, LDI, MOV, LOAD, STORE, ADD, SUB, JMP, BRANCH, CALL, RET, HALT, DRAW, SPAWN, YIELD
+- [x] Instruction set: NOP, LDI, MOV, LOAD, STORE, ADD, SUB, JMP, BRANCH, CALL, RET, HALT, DRAW, SPAWN, YIELD, ENTRY
 - [x] Assembler: text-to-pixel compiler with `Program` builder API
 - [x] Self-replicator: 18 pixels that copy themselves to address 100
+- [x] Chain replicator: 19 position-independent pixels that copy from entry_point to entry_point+100 (0->100->200->...)
 - [x] Multi-VM state: 8 concurrent VMs, 128 registers each, call stack, PC, stratum
-
-**In Progress:**
-- [ ] `substrate.rs` module (GPU texture management, wgpu initialization)
-- [ ] `vm.rs` module (software VM for testing without GPU)
-- [ ] Daemon binary: wgpu init -> shader dispatch -> frame loop
-
-**Success Criteria:**
-- `cargo test` passes all unit tests
-- Self-replicator executes correctly in software VM
-- GPU shader writes marker pixel to verify compute dispatch
+- [x] `substrate.rs` module (GPU texture management, wgpu initialization)
+- [x] `vm.rs` module (GPU VM with compute pipeline)
+- [x] Daemon binary: wgpu init -> shader dispatch -> frame loop
+- [x] All tests passing: 11/11 (unit + integration + GPU)
+- [x] Zero compiler warnings
 
 ---
 

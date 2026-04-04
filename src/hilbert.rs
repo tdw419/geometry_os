@@ -78,7 +78,10 @@ mod tests {
         for d in [0, 1, 2, 3, 4, 100, 1000, 10000, 1_000_000] {
             let (x, y) = d2xy(d);
             let d2 = xy2d(x, y);
-            assert_eq!(d, d2, "roundtrip failed for d={d}: d2xy=({x},{y}), xy2d={d2}");
+            assert_eq!(
+                d, d2,
+                "roundtrip failed for d={d}: d2xy=({x},{y}), xy2d={d2}"
+            );
         }
     }
 

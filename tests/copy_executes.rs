@@ -1,20 +1,19 @@
-// Copy Executes Test
+// Chain Replication Test
 //
-// After self-replication, verify the COPY is itself a valid program.
-// Spawn VM 1 at address 100. It should copy to address 200.
-// Chain: 0 -> 100 -> 200. Three generations of self-replication.
+// The position-independent self-replicator: a program that discovers
+// its own address via the ENTRY instruction, copies itself +100 pixels
+// forward. Each copy can do the same. Chain: 0 -> 100 -> 200.
 //
-// NOTE: Currently ignored. The self-replicator hardcodes r0=0, r1=100.
-// A copy at address 100 would copy from 0 to 100 again (not 100 to 200).
-// This requires a position-independent self-replicator, which is Phase 1.
+// This is the transition from "a program copies itself once" to
+// "a program can spread." Mitosis becomes chain replication.
 
 use pixels_move_pixels::{assembler, vm::GlyphVm};
 
 #[test]
-#[ignore]
 fn copy_executes() {
     let mut vm = GlyphVm::new();
-    let program = assembler::self_replicator();
+    let program = assembler::chain_replicator();
+    let prog_len = program.len() as u32;
 
     // Load at address 0, spawn VM 0, run
     vm.substrate().load_program(0, &program.pixels);
@@ -22,7 +21,7 @@ fn copy_executes() {
     vm.execute_frame();
 
     // Verify first copy at 100
-    for i in 0..18 {
+    for i in 0..prog_len {
         assert_eq!(
             vm.substrate().peek(i),
             vm.substrate().peek(100 + i),
@@ -30,13 +29,14 @@ fn copy_executes() {
         );
     }
 
-    // The copy at 100 has LDI r1=100, so it will copy to address 200
-    // (100 + 100 = 200). Spawn VM 1 at address 100.
+    // The copy at 100 uses ENTRY to discover it's at address 100.
+    // It copies from 100 to 200 (entry_point + 100).
+    // Spawn VM 1 at address 100.
     vm.spawn_vm(1, 100);
     vm.execute_frame();
 
     // Verify second generation at 200
-    for i in 0..18 {
+    for i in 0..prog_len {
         assert_eq!(
             vm.substrate().peek(100 + i),
             vm.substrate().peek(200 + i),
@@ -45,5 +45,6 @@ fn copy_executes() {
     }
 
     println!("\n  Three generations: 0 -> 100 -> 200");
+    println!("  {} pixels each. Chain replication works.", prog_len);
     println!("  Pixels keep moving pixels.\n");
 }

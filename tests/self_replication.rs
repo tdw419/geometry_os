@@ -37,7 +37,13 @@ fn self_replication() {
         if ok {
             println!("  [ok] addr {:>3} -> addr {:>3}: 0x{:08X}", i, 100 + i, src);
         } else {
-            println!("  [!!] addr {:>3} -> addr {:>3}: expected 0x{:08X}, got 0x{:08X}", i, 100 + i, src, dst);
+            println!(
+                "  [!!] addr {:>3} -> addr {:>3}: expected 0x{:08X}, got 0x{:08X}",
+                i,
+                100 + i,
+                src,
+                dst
+            );
             all_match = false;
         }
     }
@@ -45,7 +51,10 @@ fn self_replication() {
     // Source must be intact (non-destructive copy)
     assert_eq!(vm.substrate().peek(0), 0x00000001, "source pixel 0 intact");
 
-    assert!(all_match, "All 18 pixels must match between source and copy");
+    assert!(
+        all_match,
+        "All 18 pixels must match between source and copy"
+    );
 
     println!("\n  PIXELS MOVED PIXELS.");
     println!("  18 glyphs copied themselves on GPU.");

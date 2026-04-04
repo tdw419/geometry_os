@@ -10,9 +10,9 @@ fn hello_pixels() {
     let mut vm = GlyphVm::new();
 
     let mut p = assembler::Program::new();
-    p.ldi(0, 200);   // r0 = pixel address 200
-    p.ldi(1, 42);    // r1 = 42
-    p.store(0, 1);   // pixel[200] = 42
+    p.ldi(0, 200); // r0 = pixel address 200
+    p.ldi(1, 42); // r1 = 42
+    p.store(0, 1); // pixel[200] = 42
     p.halt();
 
     vm.substrate().load_program(0, &p.pixels);

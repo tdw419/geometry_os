@@ -14,10 +14,7 @@
 
 /// Encode an instruction pixel from components
 pub fn glyph(opcode: u8, stratum: u8, p1: u8, p2: u8) -> u32 {
-    (opcode as u32)
-        | ((stratum as u32) << 8)
-        | ((p1 as u32) << 16)
-        | ((p2 as u32) << 24)
+    (opcode as u32) | ((stratum as u32) << 8) | ((p1 as u32) << 16) | ((p2 as u32) << 24)
 }
 
 /// Opcodes matching glyph_vm_scheduler.wgsl
@@ -36,6 +33,7 @@ pub mod op {
     pub const CALL: u8 = 11;
     pub const RET: u8 = 12;
     pub const HALT: u8 = 13;
+    pub const ENTRY: u8 = 14; // Read entry_point into register
     pub const DRAW: u8 = 215;
     pub const SPAWN: u8 = 230;
     pub const YIELD: u8 = 227;
@@ -108,6 +106,11 @@ impl Program {
         self.branch(bcond::BNE, r1, r2, offset)
     }
 
+    /// Entry point: ENTRY rd -- load vm.entry_point into rd
+    pub fn entry(&mut self, reg: u8) -> &mut Self {
+        self.instruction(op::ENTRY, 0, reg, 0)
+    }
+
     /// Halt execution
     pub fn halt(&mut self) -> &mut Self {
         self.instruction(op::HALT, 0, 0, 0)
@@ -127,20 +130,79 @@ impl Program {
 pub fn self_replicator() -> Program {
     let mut p = Program::new();
     // Setup: load constants into registers
-    p.ldi(0, 0);     // r0 = 0  (source start address)
-    p.ldi(1, 100);   // r1 = 100 (destination address)
-    p.ldi(2, 0);     // r2 = 0 (loop counter)
-    p.ldi(3, 1);     // r3 = 1 (increment constant)
-    p.ldi(4, 18);    // r4 = 18 (program length)
-    // Copy loop: addresses 10-16
-    p.load(5, 0);    // r5 = mem[r0]
-    p.store(1, 5);   // mem[r1] = r5
-    p.add(0, 3);     // r0 += 1
-    p.add(1, 3);     // r1 += 1
-    p.add(2, 3);     // r2 += 1
+    p.ldi(0, 0); // r0 = 0  (source start address)
+    p.ldi(1, 100); // r1 = 100 (destination address)
+    p.ldi(2, 0); // r2 = 0 (loop counter)
+    p.ldi(3, 1); // r3 = 1 (increment constant)
+    p.ldi(4, 18); // r4 = 18 (program length)
+                  // Copy loop: addresses 10-16
+    p.load(5, 0); // r5 = mem[r0]
+    p.store(1, 5); // mem[r1] = r5
+    p.add(0, 3); // r0 += 1
+    p.add(1, 3); // r1 += 1
+    p.add(2, 3); // r2 += 1
     p.bne(2, 4, -7); // if r2 != r4, jump back to load (offset = -7)
+                     // Done
+    p.halt();
+    p
+}
+
+/// Build a position-independent self-replicator.
+/// Uses ENTRY instruction to discover its own address, then copies
+/// itself to entry_point + 100. Chain: 0 -> 100 -> 200 -> 300...
+///
+/// Layout (19 pixels):
+///   addr 0:  ENTRY r0        -- r0 = entry_point (where we are)
+///   addr 1:  MOV r1, r0      -- r1 = r0 (copy of base)
+///   addr 2:  LDI r6, 100     -- r6 = 100 (offset)
+///   addr 3:  DATA 100
+///   addr 4:  ADD r1, r6      -- r1 = entry_point + 100 (destination)
+///   addr 5:  LDI r2, 0       -- r2 = 0 (loop counter)
+///   addr 6:  DATA 0
+///   addr 7:  LDI r3, 1       -- r3 = 1 (increment)
+///   addr 8:  DATA 1
+///   addr 9:  LDI r4, 19      -- r4 = 19 (program length in pixels)
+///   addr 10: DATA 19
+///   addr 11: LOAD r5, r0     -- r5 = mem[r0]
+///   addr 12: STORE r1, r5    -- mem[r1] = r5
+///   addr 13: ADD r0, r3      -- r0 += 1
+///   addr 14: ADD r1, r3      -- r1 += 1
+///   addr 15: ADD r2, r3      -- r2 += 1
+///   addr 16: BNE r2, r4, -5  -- if r2 != r4, loop back to LOAD at addr 11
+///   addr 17: DATA -5
+///   addr 18: HALT
+///
+/// Total: 19 pixels. The program copies all 19 pixels (including itself).
+pub fn chain_replicator() -> Program {
+    let mut p = Program::new();
+    let prog_len = 19u32; // Must match actual pixel count
+
+    // Setup
+    p.entry(0); // r0 = entry_point (source start)
+    p.instruction(op::MOV, 0, 1, 0); // MOV r1, r0 (dest = source)
+    p.ldi(6, 100); // r6 = 100 (replication offset)
+    p.add(1, 6); // r1 += 100 (destination = entry_point + 100)
+    p.ldi(2, 0); // r2 = 0 (loop counter)
+    p.ldi(3, 1); // r3 = 1 (increment)
+    p.ldi(4, prog_len); // r4 = program length
+
+    // Copy loop (starts at address 11)
+    p.load(5, 0); // r5 = mem[r0]
+    p.store(1, 5); // mem[r1] = r5
+    p.add(0, 3); // r0 += 1
+    p.add(1, 3); // r1 += 1
+    p.add(2, 3); // r2 += 1
+    p.bne(2, 4, -5); // if r2 != r4, jump back to LOAD at addr 11
+
     // Done
     p.halt();
+
+    // Verify length
+    assert_eq!(
+        p.len(),
+        prog_len as usize,
+        "chain_replicator must be exactly {prog_len} pixels"
+    );
     p
 }
 
@@ -152,6 +214,14 @@ mod tests {
     fn self_replicator_is_18_pixels() {
         let p = self_replicator();
         assert_eq!(p.len(), 18, "self-replicator must be exactly 18 pixels");
+    }
+
+    #[test]
+    fn chain_replicator_is_19_pixels() {
+        let p = chain_replicator();
+        assert_eq!(p.len(), 19, "chain-replicator must be exactly 19 pixels");
+        // First pixel should be ENTRY r0 (opcode 14, p1=0)
+        assert_eq!(p.pixels[0] & 0xFF, 14, "first instruction must be ENTRY");
     }
 
     #[test]

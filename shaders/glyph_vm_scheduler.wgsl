@@ -224,6 +224,11 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
             (*vm).state = VM_HALTED;
         }
 
+        // ENTRY - Read entry_point into register: ENTRY rd
+        case 14u: {
+            (*vm).regs[p1] = (*vm).entry_point;
+        }
+
         default: {
             // Unknown opcode - skip
         }

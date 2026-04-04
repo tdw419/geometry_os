@@ -25,7 +25,7 @@ pub mod vm_state {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct VmState {
-    pub regs: [u32; 128],   // 512 bytes
+    pub regs: [u32; 128],    // 512 bytes
     pub pc: u32,             // offset 512
     pub halted: u32,         // offset 516
     pub stratum: u32,        // offset 520
@@ -88,6 +88,7 @@ pub struct GlyphVm {
     ram_texture: wgpu::Texture,
     vm_buffer: wgpu::Buffer,
     scheduler_buffer: wgpu::Buffer,
+    #[allow(dead_code)]
     message_buffer: wgpu::Buffer,
     vm_states: [VmState; 8],
     substrate: Substrate,
@@ -97,13 +98,12 @@ impl GlyphVm {
     /// Initialize the GPU, create the texture and pipeline.
     pub fn new() -> Self {
         let instance = wgpu::Instance::default();
-        let adapter = pollster::block_on(instance.request_adapter(
-            &wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::HighPerformance,
-                compatible_surface: None,
-                force_fallback_adapter: false,
-            },
-        )).expect("No GPU adapter found. Need a GPU for pixels to move pixels.");
+        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::HighPerformance,
+            compatible_surface: None,
+            force_fallback_adapter: false,
+        }))
+        .expect("No GPU adapter found. Need a GPU for pixels to move pixels.");
 
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
@@ -112,7 +112,8 @@ impl GlyphVm {
                 required_limits: wgpu::Limits::default(),
             },
             None,
-        )).expect("Failed to get GPU device");
+        ))
+        .expect("Failed to get GPU device");
 
         // Load the compute shader
         let shader_source = include_str!("../shaders/glyph_vm_scheduler.wgsl");
@@ -280,18 +281,35 @@ impl GlyphVm {
             label: Some("Glyph VM Bind Group"),
             layout: &bind_group_layout,
             entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&ram_view) },
-                wgpu::BindGroupEntry { binding: 1, resource: vm_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 2, resource: scheduler_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 3, resource: message_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 4, resource: event_header_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 5, resource: event_queue_buffer.as_entire_binding() },
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&ram_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: vm_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: scheduler_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: message_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: event_header_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: event_queue_buffer.as_entire_binding(),
+                },
             ],
         });
 
-        let vm_states = {
-            let mut states = vec![VmState::default(); 8];
-            // Encode VM states into bytes and upload
+        let _vm_states = {
+            let states = vec![VmState::default(); 8];
             states
         };
 
@@ -310,8 +328,16 @@ impl GlyphVm {
             vm_buffer,
             scheduler_buffer,
             message_buffer,
-            vm_states: [VmState::default(), VmState::default(), VmState::default(), VmState::default(),
-                        VmState::default(), VmState::default(), VmState::default(), VmState::default()],
+            vm_states: [
+                VmState::default(),
+                VmState::default(),
+                VmState::default(),
+                VmState::default(),
+                VmState::default(),
+                VmState::default(),
+                VmState::default(),
+                VmState::default(),
+            ],
             substrate: Substrate::new(),
         }
     }
@@ -359,7 +385,9 @@ impl GlyphVm {
         );
 
         // Upload VM states
-        let vm_bytes: Vec<u8> = self.vm_states.iter()
+        let vm_bytes: Vec<u8> = self
+            .vm_states
+            .iter()
             .flat_map(|vm| unsafe {
                 let ptr = vm as *const VmState as *const u8;
                 std::slice::from_raw_parts(ptr, std::mem::size_of::<VmState>())
@@ -370,7 +398,11 @@ impl GlyphVm {
 
         // Upload scheduler state
         let scheduler = SchedulerState {
-            active_count: self.vm_states.iter().filter(|vm| vm.state == vm_state::RUNNING).count() as u32,
+            active_count: self
+                .vm_states
+                .iter()
+                .filter(|vm| vm.state == vm_state::RUNNING)
+                .count() as u32,
             frame: 0,
             spawn_count: 1,
             padding: 0,
@@ -379,12 +411,15 @@ impl GlyphVm {
             let ptr = &scheduler as *const SchedulerState as *const u8;
             std::slice::from_raw_parts(ptr, std::mem::size_of::<SchedulerState>())
         };
-        self.queue.write_buffer(&self.scheduler_buffer, 0, sched_bytes);
+        self.queue
+            .write_buffer(&self.scheduler_buffer, 0, sched_bytes);
 
         // Dispatch compute shader
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("PMP Execute Frame"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("PMP Execute Frame"),
+            });
 
         {
             let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -414,9 +449,11 @@ impl GlyphVm {
             mapped_at_creation: false,
         });
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("GPU→CPU Sync"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("GPU→CPU Sync"),
+            });
 
         encoder.copy_texture_to_buffer(
             wgpu::ImageCopyTexture {
@@ -445,7 +482,9 @@ impl GlyphVm {
         // Map and copy
         let slice = staging.slice(..);
         let (tx, rx) = std::sync::mpsc::channel();
-        slice.map_async(wgpu::MapMode::Read, move |res| { tx.send(res).ok(); });
+        slice.map_async(wgpu::MapMode::Read, move |res| {
+            tx.send(res).ok();
+        });
         self.device.poll(wgpu::Maintain::Wait);
 
         if let Ok(Ok(())) = rx.recv() {

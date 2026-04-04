@@ -55,6 +55,7 @@ CPU Daemon (Rust / wgpu) ── The loader
 | 11 | CALL | Call subroutine |
 | 12 | RET | Return from subroutine |
 | 13 | HALT | Halt execution |
+| 14 | ENTRY | Read entry_point into register |
 | 215 | DRAW | Draw to framebuffer |
 | 230 | SPAWN | Spawn child VM |
 | 227 | YIELD | Yield execution |

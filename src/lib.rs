@@ -4,9 +4,9 @@
 // Programs read from the texture, execute, and write back to the texture.
 // Programs write programs. Pixels move pixels.
 
+pub mod assembler;
 pub mod hilbert;
 pub mod substrate;
-pub mod assembler;
 pub mod vm;
 
 pub const TEXTURE_SIZE: u32 = 4096;
