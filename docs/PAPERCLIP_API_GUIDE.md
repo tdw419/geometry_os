@@ -966,3 +966,132 @@ curl -s -X POST http://localhost:3100/api/plugins/paperclip.geometry-os/actions/
 5. **Auto-dispatch only for Geometry OS company.** The `issue.updated` event
    handler filters on `companyId === COMPANY_ID`. Issues in other companies
    won't trigger auto-CI or auto-dispatch.
+
+---
+
+## Company: AIPM
+
+Autonomous AI Project Management company. Mission: extract the best ideas from
+AIPM v5 (`/home/jericho/zion/projects/aipm-v5`) and build them into Paperclip
+as plugins, skills, and agent capabilities. The goal is not maintaining AIPM as
+a standalone tool -- it's making Paperclip better at automation.
+
+### Company Identity
+
+| Field | Value |
+|-------|-------|
+| Company ID | `2b005468-996b-4b71-88eb-41970af8d63a` |
+| Name | AIPM |
+| Issue prefix | `AIP` |
+| Status | active |
+| Source repo | `/home/jericho/zion/projects/aipm-v5/` |
+| API Base | `http://localhost:3100/api` |
+
+### Agents
+
+| Name | ID | Role | Model | Status |
+|------|----|------|-------|--------|
+| CEO | `5b8a3714-4cdd-4190-9204-eedb4a46f2f0` | ceo | glm-5.1 | running |
+| Engineer | `f556ba06-a961-4a46-9af8-66cf53f96cee` | engineer | glm-5.1 | running |
+
+Both agents use `hermes_local` adapter with 300s (CEO) / 600s (Engineer) timeout
+and persistent sessions. Hermes command at
+`/home/jericho/zion/projects/aipm/bin/aipm_hermes_generic.sh`.
+
+### Projects
+
+| Project | ID | Focus |
+|---------|----|-------|
+| AIPM Core | `2cef6984-d537-41e1-9346-61e4316c4dca` | Self-driving loop engine |
+| Paperclip Integration | `3d458021-8165-4cc5-b2be-4fff4cb4dc60` | Bridge AIPM into Paperclip plugins |
+| Automation Skills | `818ba713-eace-4803-892e-fb963ee0ef46` | Reusable Hermes agent skills |
+
+### Issues
+
+| ID | Priority | Title | Project |
+|----|----------|-------|---------|
+| AIP-1 | high | Audit AIPM v5 capabilities vs Paperclip primitives | Paperclip Integration |
+| AIP-2 | medium | Outcome feedback loop as Paperclip plugin action | Paperclip Integration |
+| AIP-3 | high | Keep-or-revert as a Paperclip agent skill | Automation Skills |
+| AIP-4 | medium | Self-repair canary: agent detects and fixes own failures | Automation Skills |
+| AIP-5 | medium | Codebase auditor: LOC counts, test ratios, untested modules | Automation Skills |
+| AIP-6 | high | Strategist: LLM-driven task generation from audit data | AIPM Core |
+
+### Audit Results (AIP-1, completed by CEO)
+
+Full audit at `/home/jericho/zion/projects/aipm-v5/docs/aipm-v5-vs-paperclip-audit.md`.
+
+Key findings:
+- **6 of 10** AIPM features can be fully replicated as a Paperclip plugin using
+  native primitives (state, issues, agents, events, scheduled jobs)
+- **3 features** need custom plugin logic: OutcomeDetector tool, Strategist job,
+  keep-or-revert action
+- **1 feature** needs a Paperclip core enhancement: per-invocation agent timeout
+
+Feature mapping:
+
+| AIPM Feature | Paperclip Equivalent | Gap? |
+|--------------|---------------------|------|
+| Keep-or-revert | None native | Plugin action needed |
+| OutcomeDetector | None native | Plugin tool needed |
+| Self-feeding loop | Issues + scheduled job | Strategist job needed |
+| Outcome history | ctx.state + issue comments | Schema needed |
+| Learnings accumulation | ctx.state or issue documents | Storage logic needed |
+| Implementation planner | Agent prompt template | Template needed |
+| Retry with modified approach | Agent re-invocation | Retry logic needed |
+| Sandbox mode | Workspace isolation | Workspace CWD config |
+| Step-level state tracking | Issue status + ctx.state | Mapping needed |
+| Per-step timeout | None native | Core enhancement needed |
+
+Recommended architecture: single `@paperclipai/aipm` plugin with:
+1. Scheduled job (strategist-cycle) replacing the self-feeding loop
+2. Scheduled job (health-check) replacing heartbeat monitoring
+3. Agent tool (verify-outcome) for test pass/fail detection
+4. Plugin action (keep-or-revert) for git rollback semantics
+5. Event handler (issue.updated) for outcome tracking
+
+### Codebase Auditor (AIP-5, completed by Engineer)
+
+Delivered `codebase_audit.py` + `SKILL.md`. Scans any repo for:
+- LOC per language (tokei for Rust, pygount for Python)
+- Runtime vs test file classification
+- Test ratio, module-level stats, untested modules
+- Output as text (human) or JSON (strategist consumption)
+
+Tested on:
+- **geometry_os** (Rust): 6,708 LOC, 27.6% test ratio, 2 untested modules
+- **ascii_world** (Python/JS): 52,800+ LOC
+
+### Quick Reference
+
+```bash
+CID="2b005468-996b-4b71-88eb-41970af8d63a"
+CEO="5b8a3714-4cdd-4190-9204-eedb4a46f2f0"
+ENG="f556ba06-a961-4a46-9af8-66cf53f96cee"
+
+# Dashboard
+curl -s http://localhost:3100/api/companies/$CID/dashboard | python3 -m json.tool
+
+# Open issues
+curl -s http://localhost:3100/api/companies/$CID/issues | \
+  python3 -c "import sys,json
+for i in json.load(sys.stdin):
+  if i['status'] not in ('done','cancelled'):
+    print(f'{i[\"identifier\"]:8s} {i[\"priority\"]:8s} {i[\"status\"]:12s} {i[\"title\"]}')"
+
+# Agent status
+curl -s http://localhost:3100/api/companies/$CID/agents | \
+  python3 -c "import sys,json
+for a in json.load(sys.stdin):
+  print(f'{a[\"name\"]:20s} {a[\"role\"]:10s} {a[\"status\"]}')"
+
+# Invoke CEO
+curl -s -X POST http://localhost:3100/api/agents/$CEO/invoke \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"Check on your open issues and report status"}'
+
+# Create a new automation issue
+curl -s -X POST http://localhost:3100/api/companies/$CID/issues \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"New automation feature","description":"...","priority":"medium","projectId":"818ba713-eace-4803-892e-fb963ee0ef46"}'
+```

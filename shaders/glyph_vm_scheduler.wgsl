@@ -47,8 +47,8 @@ struct VmState {
     bound_addr: u32,           // Memory bound address - offset 552
     eap_coord: u32,            // EAP mission context - offset 556
     generation: u32,           // VM generation - offset 560
-    attention_mask: u32,       // AI focus mask - offset 564
-    _pad: array<u32, 2>,       // Padding to match Rust's struct (576 bytes before stack)
+    attention_mask: u32,       // AI focus mask / film strip frame_ptr - offset 564
+    _pad: array<u32, 2>,       // _pad[0]=frame_count, _pad[1]=reserved - offset 568
     stack: array<u32, 64>,     // Call stack (256 bytes) - offset 576
     // Total: 576 + 256 = 832 bytes
 }
@@ -254,10 +254,20 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
             }
         }
 
-        // HALT
+        // HALT - or projector auto-advance if film strip has more frames
         case 13u: {
-            (*vm).halted = 1u;
-            (*vm).state = VM_HALTED;
+            let frame_count = (*vm)._pad[0];
+            let frame_ptr = (*vm).attention_mask;
+            if (frame_count > 0u && frame_ptr < frame_count - 1u) {
+                let next_frame = frame_ptr + 1u;
+                (*vm).attention_mask = next_frame;
+                let frame_size: u32 = 65536u; // 256 * 256
+                (*vm).pc = (*vm).entry_point + next_frame * frame_size;
+                // Stay RUNNING -- don't halt
+            } else {
+                (*vm).halted = 1u;
+                (*vm).state = VM_HALTED;
+            }
         }
 
         // ENTRY - Read entry_point into register: ENTRY rd
@@ -404,6 +414,26 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
         case 26u: {
             let shift = (*vm).regs[p2];
             (*vm).regs[p1] = (*vm).regs[p1] << shift;
+        }
+
+        // FRAME - Film strip frame jump: FRAME r_target
+        // Sets frame_ptr (attention_mask) to r_target and jumps PC to start of that frame.
+        // Each frame = 65536 pixels (256*256). Frame base = entry_point + frame_ptr * 65536.
+        case 27u: {
+            let target_frame = (*vm).regs[p1];
+            let frame_count = (*vm)._pad[0];
+            if (frame_count == 0u) {
+                (*vm).halted = 1u;
+                (*vm).state = VM_FAULT;
+            } else if (target_frame >= frame_count) {
+                (*vm).halted = 1u;
+                (*vm).state = VM_FAULT;
+            } else {
+                (*vm).attention_mask = target_frame;
+                let frame_size: u32 = 65536u; // 256 * 256
+                (*vm).pc = (*vm).entry_point + target_frame * frame_size;
+                return 1u; // Jumped
+            }
         }
 
         // SPAWN - Request child VM spawn: SPAWN r_base_addr, r_entry_offset

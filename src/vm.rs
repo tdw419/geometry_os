@@ -42,8 +42,9 @@ pub struct VmState {
     pub bound_addr: u32,     // offset 552
     pub eap_coord: u32,      // offset 556
     pub generation: u32,     // offset 560
-    pub attention_mask: u32, // offset 564
-    pub _pad: [u32; 2],      // offset 568-575
+    pub attention_mask: u32, // offset 564 -- legacy name kept for ABI compat, semantically: frame_ptr (current frame index in film strip)
+    pub frame_count: u32,    // offset 568 -- total frames in film strip (0 = no film strip, normal program)
+    pub _pad: [u32; 1],      // offset 572
     pub stack: [u32; 64],    // offset 576-831
 }
 // Total: 832 bytes
@@ -65,8 +66,9 @@ impl Default for VmState {
             bound_addr: 0,
             eap_coord: 0,
             generation: 0,
-            attention_mask: 0,
-            _pad: [0; 2],
+            attention_mask: 0, // frame_ptr
+            frame_count: 0,
+            _pad: [0; 1],
             stack: [0; 64],
         }
     }
@@ -542,6 +544,11 @@ impl GlyphVm {
     /// Get a single VM's state.
     pub fn vm_state(&self, id: usize) -> &VmState {
         &self.vm_states[id]
+    }
+
+    /// Get a mutable reference to a single VM's state.
+    pub fn vm_state_mut(&mut self, id: usize) -> &mut VmState {
+        &mut self.vm_states[id]
     }
 
     /// Reset all VMs and substrate to initial state.

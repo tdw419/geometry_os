@@ -257,6 +257,136 @@ impl Substrate {
     }
 }
 
+/// Bitmap-based region allocator for the substrate.
+///
+/// Divides the 16M-pixel texture into fixed-size blocks (REGION_BLOCK_SIZE pixels each).
+/// A bitmap tracks which blocks are allocated. `allocate_region(count)` finds
+/// contiguous free blocks and marks them allocated.
+///
+/// Reserved regions (system areas that should never be allocated):
+///   - 0x00000000 .. 0x0000FFFF : bootstrap programs (first 64K pixels)
+///   - 0x00E00000 .. 0x00FFFFFF : IPC, font atlas, screen
+///
+/// Dynamic allocation starts after the bootstrap region and ends before the IPC region.
+
+/// Block size for the allocator (in pixels). 64 pixels = 256 bytes per block.
+pub const REGION_BLOCK_SIZE: u32 = 64;
+
+/// First allocatable Hilbert address (after bootstrap region).
+pub const ALLOC_START: u32 = 0x00010000; // 64K pixels reserved for bootstrap
+/// Last allocatable Hilbert address + 1 (before IPC/screen region).
+pub const ALLOC_END: u32 = 0x00E00000; // IPC starts here
+
+/// Number of blocks in the allocatable range.
+const NUM_BLOCKS: u32 = (ALLOC_END - ALLOC_START) / REGION_BLOCK_SIZE;
+
+pub struct RegionAllocator {
+    /// Bitmap: bit i is 1 if block i is allocated, 0 if free.
+    /// Block i covers Hilbert addresses [ALLOC_START + i*BLOCK_SIZE, ALLOC_START + (i+1)*BLOCK_SIZE)
+    bitmap: Vec<u64>,
+}
+
+impl RegionAllocator {
+    pub fn new() -> Self {
+        let words = (NUM_BLOCKS as usize + 63) / 64;
+        Self {
+            bitmap: vec![0u64; words],
+        }
+    }
+
+    /// Allocate `pixel_count` contiguous pixels. Returns the starting Hilbert address
+    /// on success, or None if no contiguous region is large enough.
+    pub fn allocate_region(&mut self, pixel_count: u32) -> Option<u32> {
+        let blocks_needed = (pixel_count + REGION_BLOCK_SIZE - 1) / REGION_BLOCK_SIZE;
+        if blocks_needed > NUM_BLOCKS {
+            return None;
+        }
+
+        // Linear scan for contiguous free blocks
+        let mut free_run = 0u32;
+        let mut run_start = 0u32;
+
+        for block in 0..NUM_BLOCKS {
+            if !self.is_allocated(block) {
+                if free_run == 0 {
+                    run_start = block;
+                }
+                free_run += 1;
+                if free_run >= blocks_needed {
+                    // Found enough contiguous blocks
+                    for b in run_start..run_start + blocks_needed {
+                        self.set_allocated(b);
+                    }
+                    let addr = ALLOC_START + run_start * REGION_BLOCK_SIZE;
+                    return Some(addr);
+                }
+            } else {
+                free_run = 0;
+            }
+        }
+
+        None
+    }
+
+    /// Free a previously allocated region.
+    /// `start_addr` must be the address returned by `allocate_region`.
+    /// `pixel_count` must match the original allocation size.
+    pub fn free_region(&mut self, start_addr: u32, pixel_count: u32) {
+        if start_addr < ALLOC_START || start_addr >= ALLOC_END {
+            return;
+        }
+        let start_block = (start_addr - ALLOC_START) / REGION_BLOCK_SIZE;
+        let blocks = (pixel_count + REGION_BLOCK_SIZE - 1) / REGION_BLOCK_SIZE;
+        for b in start_block..start_block + blocks {
+            if b < NUM_BLOCKS {
+                self.clear_allocated(b);
+            }
+        }
+    }
+
+    fn is_allocated(&self, block: u32) -> bool {
+        let word = block as usize / 64;
+        let bit = block as usize % 64;
+        (self.bitmap[word] >> bit) & 1 == 1
+    }
+
+    fn set_allocated(&mut self, block: u32) {
+        let word = block as usize / 64;
+        let bit = block as usize % 64;
+        self.bitmap[word] |= 1u64 << bit;
+    }
+
+    fn clear_allocated(&mut self, block: u32) {
+        let word = block as usize / 64;
+        let bit = block as usize % 64;
+        self.bitmap[word] &= !(1u64 << bit);
+    }
+
+    /// Mark a region as allocated (for pre-existing programs loaded outside the allocator).
+    pub fn mark_allocated(&mut self, start_addr: u32, pixel_count: u32) {
+        if start_addr < ALLOC_START || start_addr >= ALLOC_END {
+            return;
+        }
+        let start_block = (start_addr - ALLOC_START) / REGION_BLOCK_SIZE;
+        let blocks = (pixel_count + REGION_BLOCK_SIZE - 1) / REGION_BLOCK_SIZE;
+        for b in start_block..start_block + blocks {
+            if b < NUM_BLOCKS {
+                self.set_allocated(b);
+            }
+        }
+    }
+
+    /// Total number of allocated blocks.
+    #[allow(dead_code)]
+    pub fn allocated_blocks(&self) -> u32 {
+        let mut count = 0u32;
+        for &word in &self.bitmap {
+            count += word.count_ones();
+        }
+        count
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -280,5 +410,34 @@ mod tests {
         s.load_program(0, &pixels);
         let (matched, total) = s.verify(0, &pixels);
         assert_eq!(matched, total);
+    }
+
+    #[test]
+    fn allocator_basic() {
+        let mut alloc = RegionAllocator::new();
+        // Allocate 128 pixels (2 blocks)
+        let addr1 = alloc.allocate_region(128).unwrap();
+        assert_eq!(addr1, ALLOC_START);
+
+        // Allocate another 64 pixels (1 block)
+        let addr2 = alloc.allocate_region(64).unwrap();
+        assert_eq!(addr2, ALLOC_START + 128); // right after first allocation
+
+        // Free first allocation
+        alloc.free_region(addr1, 128);
+
+        // Allocate again -- should get the freed space
+        let addr3 = alloc.allocate_region(128).unwrap();
+        assert_eq!(addr3, ALLOC_START);
+    }
+
+    #[test]
+    fn allocator_no_overlap() {
+        let mut alloc = RegionAllocator::new();
+        let a = alloc.allocate_region(100).unwrap();
+        let b = alloc.allocate_region(100).unwrap();
+        assert!(a != b);
+        // They should not overlap
+        assert!(b >= a + 100 || a >= b + 100);
     }
 }

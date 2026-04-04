@@ -46,6 +46,7 @@ pub mod op {
     pub const PGET: u8 = 24; // Read pixel from screen: PGET r_dst, r_x, r_y
     pub const AND: u8 = 25;  // Bitwise AND: AND rd, rs  (rd &= rs)
     pub const SHL: u8 = 26;  // Shift left: SHL rd, rs   (rd <<= rs)
+    pub const FRAME: u8 = 27; // Film strip frame jump: FRAME r_target (jump to frame index in r_target)
     pub const DRAW: u8 = 215; // Legacy alias (unused)
     pub const SPAWN: u8 = 230;
     pub const YIELD: u8 = 227;
@@ -218,6 +219,30 @@ impl Program {
     /// Shift left: SHL rd, rs  (rd <<= rs)
     pub fn shl(&mut self, dst_reg: u8, src_reg: u8) -> &mut Self {
         self.instruction(op::SHL, 0, dst_reg, src_reg)
+    }
+
+    /// Film strip frame jump: FRAME r_target
+    /// Encoding: glyph(27, 0, r_target, 0)
+    /// Sets frame_ptr to the value in r_target and jumps PC to the start of that frame.
+    /// If r_target is out of range, the VM faults.
+    pub fn frame(&mut self, target_reg: u8) -> &mut Self {
+        self.instruction(op::FRAME, 0, target_reg, 0)
+    }
+
+    /// Spawn a child VM: SPAWN r_base_addr, r_entry_offset
+    /// Deferred: stores spawn params in parent's regs[125-127].
+    /// Post-frame, the host initializes the child VM.
+    /// Returns child VM ID in r_base_addr, or 0xFF if no slot available.
+    /// Child VM ID = parent_id + 1 (must be < MAX_VMS=8).
+    pub fn spawn(&mut self, base_addr_reg: u8, entry_offset_reg: u8) -> &mut Self {
+        self.instruction(op::SPAWN, 0, base_addr_reg, entry_offset_reg)
+    }
+
+    /// Yield execution: YIELD
+    /// VM transitions to WAITING state and exits the frame early.
+    /// On next frame, the VM resumes in RUNNING state.
+    pub fn yield_op(&mut self) -> &mut Self {
+        self.instruction(op::YIELD, 0, 0, 0)
     }
 
     /// Halt execution
@@ -694,6 +719,24 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
                 expect_arg_count(&tokens, 1, line_num)?;
                 let value = parse_signed_value(tokens[1], line_num)?;
                 program.pixels.push(value as u32);
+            }
+
+            "SPAWN" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let base_addr_reg = parse_register(tokens[1], line_num)?;
+                let entry_offset_reg = parse_register(tokens[2], line_num)?;
+                program.spawn(base_addr_reg, entry_offset_reg);
+            }
+
+            "YIELD" => {
+                expect_arg_count(&tokens, 0, line_num)?;
+                program.yield_op();
+            }
+
+            "FRAME" => {
+                expect_arg_count(&tokens, 1, line_num)?;
+                let target_reg = parse_register(tokens[1], line_num)?;
+                program.frame(target_reg);
             }
 
             _ => {

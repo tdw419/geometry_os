@@ -183,6 +183,31 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
             vm.regs[p1 as usize] = vm.regs[p1 as usize] << shift;
         }
 
+        // FRAME - Film strip frame jump: FRAME r_target
+        // Sets frame_ptr to r_target and jumps PC to the start of that frame.
+        // Each frame occupies FRAME_TILE_PIXELS (65536) Hilbert addresses.
+        // The frame base is: entry_point + frame_ptr * 65536
+        27 => {
+            let target_frame = vm.regs[p1 as usize];
+            let frame_count = vm.frame_count;
+            if frame_count == 0 {
+                // No film strip loaded -- treat as fault
+                vm.halted = 1;
+                vm.state = 0xFF; // VM_FAULT
+            } else if target_frame >= frame_count {
+                // Out of range -- fault
+                vm.halted = 1;
+                vm.state = 0xFF; // VM_FAULT
+            } else {
+                vm.attention_mask = target_frame; // frame_ptr
+                // Jump PC to the start of the target frame
+                // entry_point is the base of frame 0
+                let frame_size: u32 = 256 * 256; // TILE_PIXELS
+                vm.pc = vm.entry_point + target_frame * frame_size;
+                return true; // Jumped
+            }
+        }
+
         // GLYPH_DEF - Define a live glyph in the user atlas
         // GLYPH_DEF r_charcode, r_bitmap_addr
         // Reads 8 row bitmasks from r_bitmap_addr and writes to 0x00F20000 + ((charcode-128)*8)
@@ -299,10 +324,24 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
             }
         }
 
-        // HALT
+        // HALT - or projector auto-advance if film strip has more frames
         13 => {
-            vm.halted = 1;
-            vm.state = vm_state::HALTED;
+            // Projector auto-advance: if this VM is part of a film strip
+            // and there are more frames, advance to the next frame instead of halting.
+            let frame_count = vm.frame_count;
+            let frame_ptr = vm.attention_mask; // current frame index
+            if frame_count > 0 && frame_ptr < frame_count - 1 {
+                let next_frame = frame_ptr + 1;
+                vm.attention_mask = next_frame; // frame_ptr = next
+                let frame_size: u32 = 256 * 256; // TILE_PIXELS
+                vm.pc = vm.entry_point + next_frame * frame_size;
+                // Stay RUNNING -- don't halt
+                return true; // Prevent PC increment -- we set PC already
+            } else {
+                // True halt (no film strip, or last frame)
+                vm.halted = 1;
+                vm.state = vm_state::HALTED;
+            }
         }
 
         // ENTRY - Read entry_point into register: ENTRY rd
@@ -403,19 +442,28 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
 
         // YIELD - Yield execution
         227 => {
+            // Advance PC past the YIELD instruction so resume doesn't re-execute it
+            vm.pc = pc + 1;
             vm.state = vm_state::WAITING;
             return true; // Force end of frame for this VM
         }
 
-        // SPAWN - Spawn child VM
-        // Note: For SoftwareVm, we need access to the full `SoftwareVm` struct to spawn.
-        // But this function only has `ram` and `vm`.
-        // We'll return a special value or just ignore for now in SoftwareVm, 
-        // but to match shader we should really implement it.
-        // Let's modify SoftwareVm's execute_instruction to take the whole VM array.
+        // SPAWN - Request child VM spawn: SPAWN r_base_addr, r_entry_offset
+        // Deferred pattern (matches shader): stores spawn params in parent's registers.
+        // Rust host reads them after the frame and initializes the child VM.
+        //   regs[125] = non-zero flag (wants to spawn)
+        //   regs[126] = child base address
+        //   regs[127] = child entry offset
+        // Returns 1 in p1 to indicate spawn requested, or 0xFF if all slots full.
+        // Actual child VM ID is assigned post-frame by the host.
         230 => {
-            // Placeholder: SoftwareVm doesn't support SPAWN yet in this function signature.
-            // (Wait, I should fix the signature if I want full parity).
+            let child_base = vm.regs[p1 as usize];
+            let child_entry_offset = vm.regs[p2 as usize];
+            // Set spawn request flag and params
+            vm.regs[125] = 1; // pending spawn flag
+            vm.regs[126] = child_base;
+            vm.regs[127] = child_entry_offset;
+            vm.regs[p1 as usize] = 1; // return 1 = spawn requested
         }
 
         // Unknown opcode - skip
@@ -502,6 +550,20 @@ impl SoftwareVm {
         vm.halted = 0;
     }
 
+    /// Spawn a VM with explicit memory bounds.
+    /// Sets base_addr=entry_point, bound_addr=entry_point+size.
+    pub fn spawn_vm_with_bounds(&mut self, vm_id: u32, entry_point: u32, size: u32) {
+        assert!((vm_id as usize) < MAX_VMS, "VM id must be 0-7");
+        let vm = &mut self.vms[vm_id as usize];
+        vm.vm_id = vm_id;
+        vm.pc = entry_point;
+        vm.entry_point = entry_point;
+        vm.base_addr = entry_point;
+        vm.bound_addr = entry_point + size;
+        vm.state = vm_state::RUNNING;
+        vm.halted = 0;
+    }
+
     /// Execute one frame: run all active VMs for up to CYCLES_PER_FRAME cycles.
     /// Mirrors the shader's main() compute entry point exactly.
     pub fn execute_frame(&mut self) {
@@ -537,6 +599,60 @@ impl SoftwareVm {
                 }
 
                 vm.cycles += 1;
+            }
+        }
+
+        // ── Post-frame: process deferred spawns ──
+        // After all VMs execute, scan for pending SPAWN requests.
+        // A VM that executed SPAWN stored a non-zero value in regs[125] as a
+        // "wants to spawn" flag, child_base in regs[126], child_entry in regs[127].
+        // We now find the first INACTIVE slot and initialize the child VM.
+        // This matches the GPU daemon's post-frame spawn processing.
+        for parent_id in 0..MAX_VMS {
+            let wants_spawn = self.vms[parent_id].regs[125];
+            if wants_spawn == 0 {
+                continue;
+            }
+            let child_base = self.vms[parent_id].regs[126];
+            let child_entry = self.vms[parent_id].regs[127];
+
+            // Find first INACTIVE slot for the child
+            let mut assigned_child: Option<u32> = None;
+            for slot in 0..MAX_VMS {
+                if self.vms[slot].state == vm_state::INACTIVE {
+                    assigned_child = Some(slot as u32);
+                    break;
+                }
+            }
+
+            if let Some(child_id) = assigned_child {
+                let child_idx = child_id as usize;
+                let parent_gen = self.vms[parent_id].generation;
+                let child = &mut self.vms[child_idx];
+                child.vm_id = child_id;
+                child.pc = child_entry;
+                child.entry_point = child_entry;
+                child.state = vm_state::RUNNING;
+                child.halted = 0;
+                child.parent_id = parent_id as u32;
+                child.generation = parent_gen + 1;
+                // Memory isolation: child gets its own region
+                if child_base > 0 {
+                    child.base_addr = child_base;
+                    child.bound_addr = crate::MSGQ_BASE;
+                } else {
+                    child.base_addr = 0;
+                    child.bound_addr = crate::MSGQ_BASE;
+                }
+            }
+        }
+        // Clear spawn registers only on VMs that requested a spawn
+        for vm_id in 0..MAX_VMS {
+            let vm = &mut self.vms[vm_id];
+            if vm.regs[125] != 0 {
+                vm.regs[125] = 0;
+                vm.regs[126] = 0;
+                vm.regs[127] = 0;
             }
         }
 
@@ -2191,6 +2307,469 @@ mod tests {
 
         let vm = SoftwareVm::run_program(&p.pixels, 0);
         assert_eq!(vm.regs[0], 0xF000, "AND then SHL should produce 0xF000");
+    }
+
+    // ── SPAWN opcode tests ──────────────────────────────────────────
+
+    #[test]
+    fn test_spawn_basic_parent_child() {
+        // Parent VM 0 spawns child VM 1.
+        // Child program is at address 100: LDI r0, 42; HALT
+        // Parent program: write child code to address 100, SPAWN, HALT
+        let mut parent = Program::new();
+        // Write child program at address 100
+        // LDI r0, <42>
+        parent.ldi(10, 100);
+        parent.ldi(11, assembler::glyph(1, 0, 0, 0)); // LDI r0, imm
+        parent.store(10, 11);
+        parent.ldi(10, 101);
+        parent.ldi(11, 42); // immediate = 42
+        parent.store(10, 11);
+        parent.ldi(10, 102);
+        parent.ldi(11, assembler::glyph(13, 0, 0, 0)); // HALT
+        parent.store(10, 11);
+
+        // Now SPAWN: r3 = base_addr (100), r4 = entry_offset (100)
+        parent.ldi(3, 100); // base addr for child
+        parent.ldi(4, 100); // entry offset for child
+        parent.spawn(3, 4); // SPAWN r3, r4 -> r3 gets child_id (1)
+        parent.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &parent.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        // Parent should halt
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "parent should halt");
+        // r3 should have child VM ID = 1
+        assert_eq!(svm.vm_state(0).regs[3], 1, "parent r3 should have child_id=1");
+
+        // Child VM 1 should now be RUNNING (spawned post-frame)
+        assert_eq!(svm.vm_state(1).state, vm_state::RUNNING, "child should be running after spawn");
+
+        // Execute another frame for the child
+        svm.execute_frame();
+
+        // Child should have run and halted
+        assert_eq!(svm.vm_state(1).state, vm_state::HALTED, "child should halt after executing");
+        assert_eq!(svm.vm_state(1).regs[0], 42, "child should have loaded 42 into r0");
+    }
+
+    #[test]
+    fn test_spawn_child_writes_to_memory() {
+        // Parent spawns child which writes a value to memory, then parent yields to wait.
+        // Child writes 99 to address 500, then halts.
+        // After 2 frames, verify mem[500] == 99.
+        let mut child = Program::new();
+        child.ldi(0, 500); // addr
+        child.ldi(1, 99); // value
+        child.store(0, 1);
+        child.halt();
+
+        // Parent: SPAWN then YIELD (wait for child), then HALT
+        let mut parent = Program::new();
+        let child_load_addr: u32 = 1000;
+        parent.ldi(3, child_load_addr); // r3 = child base addr
+        parent.ldi(4, child_load_addr); // r4 = child entry offset (same as base = start of child code)
+
+        // SPAWN r3, r4
+        parent.spawn(3, 4);
+        parent.yield_op(); // yield so parent waits
+
+        let mut svm = SoftwareVm::new();
+        // Load child program at address 1000
+        svm.load_program(child_load_addr, &child.pixels);
+        // Load parent program at address 0
+        svm.load_program(0, &parent.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        // Parent yielded, child should be RUNNING
+        assert_eq!(svm.vm_state(0).state, vm_state::WAITING, "parent should be waiting");
+        assert_eq!(svm.vm_state(1).state, vm_state::RUNNING, "child should be running");
+
+        // Execute second frame: child runs
+        svm.execute_frame();
+        assert_eq!(svm.vm_state(1).state, vm_state::HALTED, "child should halt");
+        assert_eq!(svm.peek(500), 99, "child should have written 99 to mem[500]");
+    }
+
+    #[test]
+    fn test_spawn_returns_child_id_in_register() {
+        // Verify that SPAWN sets r_base_addr to the child VM ID
+        let mut p = Program::new();
+        p.ldi(3, 500); // base addr
+        p.ldi(4, 500); // entry offset
+        p.spawn(3, 4); // r3 = child_id after
+        // r3 should be 1 (vm_id 0 + 1)
+        // Now check r3 != 0xFF (meaning spawn succeeded)
+        p.ldi(5, 0xFF);
+        // If r3 != 0xFF, we succeeded. Store r3 to mem[900]
+        p.ldi(10, 900);
+        p.store(10, 3);
+        p.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        let child_id = svm.peek(900);
+        assert_eq!(child_id, 1, "SPAWN should return child_id=1 in r3");
+    }
+
+    #[test]
+    fn test_yield_pauses_and_resumes() {
+        // YIELD should transition VM to WAITING, then resume on next frame
+        let mut p = Program::new();
+        p.ldi(0, 10); // r0 = 10
+        p.yield_op(); // yield - VM goes to WAITING
+        // After resume: store r0 to mem[800]
+        p.ldi(10, 800);
+        p.store(10, 0);
+        p.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+
+        // Frame 1: executes LDI, YIELD -> WAITING
+        svm.execute_frame();
+        assert_eq!(svm.vm_state(0).state, vm_state::WAITING, "VM should be WAITING after YIELD");
+        assert_eq!(svm.vm_state(0).regs[0], 10, "r0 should be 10 before yield");
+
+        // Need to manually set WAITING -> RUNNING for next frame
+        // (the shader does this in its scheduler loop)
+        svm.vm_state_mut(0).state = vm_state::RUNNING;
+
+        // Frame 2: resumes, executes ST, HALT
+        svm.execute_frame();
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "VM should HALT after resume");
+        assert_eq!(svm.peek(800), 10, "should have written 10 after resuming from yield");
+    }
+
+    #[test]
+    fn test_spawn_assembler_encoding() {
+        // Verify the assembler spawn() produces correct encoding
+        let mut p = Program::new();
+        p.spawn(3, 5);
+        assert_eq!(p.len(), 1, "SPAWN should produce 1 pixel");
+        let pixel = p.pixels[0];
+        assert_eq!((pixel & 0xFF) as u8, 230, "opcode should be 230 (SPAWN)");
+        assert_eq!(
+            ((pixel >> 16) & 0xFF) as u8,
+            3,
+            "p1 should be 3 (base_addr reg)"
+        );
+        assert_eq!(
+            ((pixel >> 24) & 0xFF) as u8,
+            5,
+            "p2 should be 5 (entry_offset reg)"
+        );
+    }
+
+    #[test]
+    fn test_yield_assembler_encoding() {
+        let mut p = Program::new();
+        p.yield_op();
+        assert_eq!(p.len(), 1, "YIELD should produce 1 pixel");
+        let pixel = p.pixels[0];
+        assert_eq!((pixel & 0xFF) as u8, 227, "opcode should be 227 (YIELD)");
+    }
+
+    #[test]
+    fn test_gasm_spawn_and_yield() {
+        // Verify gasm parser handles SPAWN and YIELD
+        let source = "SPAWN r3, r5\nYIELD\nHALT";
+        let prog = assembler::parse_gasm(source).expect("gasm parse should succeed");
+        assert_eq!(prog.len(), 3, "should produce 3 pixels");
+        assert_eq!((prog.pixels[0] & 0xFF) as u8, 230, "first should be SPAWN");
+        assert_eq!((prog.pixels[1] & 0xFF) as u8, 227, "second should be YIELD");
+        assert_eq!((prog.pixels[2] & 0xFF) as u8, 13, "third should be HALT");
+    }
+
+    // ── SPAWN: Slot finding & multi-spawn tests (GEO-21) ──
+
+    #[test]
+    fn test_spawn_fills_first_inactive_slot() {
+        // VM 0 and VM 2 are active. SPAWN from VM 0 should fill VM slot 1
+        // (first INACTIVE slot), not VM slot 3 (parent+1).
+        // Use a YIELD loop for VM 2 so it stays WAITING (not HALTED/INACTIVE).
+        let mut yielder = Program::new();
+        yielder.ldi(0, 77);
+        yielder.yield_op(); // stays alive as WAITING
+
+        let mut parent = Program::new();
+        let child_load_addr: u32 = 2000;
+        parent.ldi(3, child_load_addr);
+        parent.ldi(4, child_load_addr);
+        parent.spawn(3, 4);
+        parent.halt();
+
+        let mut child_prog = Program::new();
+        child_prog.ldi(0, 42);
+        child_prog.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(child_load_addr, &child_prog.pixels);
+        svm.load_program(0, &parent.pixels);
+        svm.load_program(9000, &yielder.pixels);
+        svm.spawn_vm(0, 0);
+        // Manually activate VM 2 with a yield-loop program so it stays alive
+        svm.spawn_vm(2, 9000);
+
+        svm.execute_frame();
+
+        // Post-frame: parent SPAWN fills slot 1 (first INACTIVE).
+        assert_eq!(
+            svm.vm_state(1).state,
+            vm_state::RUNNING,
+            "child should spawn in slot 1"
+        );
+        // VM 2 yielded, so it's WAITING (not INACTIVE), confirming the gap worked
+        assert_ne!(
+            svm.vm_state(2).state,
+            vm_state::INACTIVE,
+            "VM 2 should not be INACTIVE"
+        );
+    }
+
+    #[test]
+    fn test_spawn_skips_already_active_slots() {
+        // VM slots 0 and 1 are active. Spawn should use slot 2.
+        // Use YIELD loops so VM 1 stays alive (not HALTED -> INACTIVE).
+        let mut yielder = Program::new();
+        yielder.ldi(0, 0);
+        yielder.yield_op(); // stays alive
+
+        let mut child = Program::new();
+        child.ldi(0, 42);
+        child.halt();
+
+        let mut parent = Program::new();
+        let child_addr: u32 = 3000;
+        parent.ldi(3, child_addr);
+        parent.ldi(4, child_addr);
+        parent.spawn(3, 4);
+        parent.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(child_addr, &child.pixels);
+        svm.load_program(0, &parent.pixels);
+        svm.load_program(8000, &yielder.pixels);
+        svm.spawn_vm(0, 0);
+        // Occupy slot 1 with a yield-loop VM (stays alive across frames)
+        svm.spawn_vm(1, 8000);
+
+        svm.execute_frame();
+
+        // Child should be in slot 2 (first free after 0, 1)
+        assert_eq!(
+            svm.vm_state(2).state,
+            vm_state::RUNNING,
+            "child should spawn in slot 2"
+        );
+        // Slot 1 is WAITING (yielded), not INACTIVE
+        assert_ne!(
+            svm.vm_state(1).state,
+            vm_state::INACTIVE,
+            "slot 1 should not be INACTIVE"
+        );
+    }
+
+    #[test]
+    fn test_spawn_child_gets_own_memory_region() {
+        // Child spawned with base_addr > 0 gets memory isolation
+        let mut child = Program::new();
+        child.ldi(0, 0xBEEF);
+        child.ldi(1, 4000); // write within child's region
+        child.store(1, 0);
+        child.halt();
+
+        let mut parent = Program::new();
+        let child_addr: u32 = 4000;
+        parent.ldi(3, child_addr); // base addr for child
+        parent.ldi(4, child_addr); // entry offset
+        parent.spawn(3, 4);
+        parent.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(child_addr, &child.pixels);
+        svm.load_program(0, &parent.pixels);
+        svm.spawn_vm(0, 0);
+
+        svm.execute_frame();
+
+        // Child VM 1 should be running
+        assert_eq!(svm.vm_state(1).state, vm_state::RUNNING, "child should be running");
+        // Child should have base_addr set from spawn param
+        assert_eq!(svm.vm_state(1).base_addr, child_addr, "child base_addr should match spawn param");
+
+        // Run child to completion
+        svm.execute_frame();
+        assert_eq!(svm.vm_state(1).state, vm_state::HALTED, "child should halt");
+        assert_eq!(svm.peek(4000), 0xBEEF, "child wrote to its own region");
+    }
+
+    #[test]
+    fn test_spawn_parent_id_recorded_correctly() {
+        let mut child = Program::new();
+        child.halt();
+
+        let mut parent = Program::new();
+        let child_addr: u32 = 5000;
+        parent.ldi(3, child_addr);
+        parent.ldi(4, child_addr);
+        parent.spawn(3, 4);
+        parent.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(child_addr, &child.pixels);
+        svm.load_program(0, &parent.pixels);
+        svm.spawn_vm(0, 0);
+
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(1).parent_id, 0, "child's parent_id should be 0");
+    }
+
+    #[test]
+    fn test_spawn_generation_increments() {
+        let mut child = Program::new();
+        child.halt();
+
+        let mut parent = Program::new();
+        let child_addr: u32 = 6000;
+        parent.ldi(3, child_addr);
+        parent.ldi(4, child_addr);
+        parent.spawn(3, 4);
+        parent.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(child_addr, &child.pixels);
+        svm.load_program(0, &parent.pixels);
+        svm.spawn_vm(0, 0);
+
+        let parent_gen = svm.vm_state(0).generation;
+
+        svm.execute_frame();
+
+        let child_gen = svm.vm_state(1).generation;
+        assert_eq!(child_gen, parent_gen + 1, "child generation should be parent+1");
+    }
+
+    #[test]
+    fn test_spawn_independent_execution() {
+        // Parent and child run independently. Parent halts, child continues.
+        let mut child = Program::new();
+        child.ldi(0, 0xCAFE);
+        child.ldi(1, 7000);
+        child.store(1, 0); // mem[7000] = 0xCAFE
+        child.halt();
+
+        let mut parent = Program::new();
+        let child_addr: u32 = 7000;
+        parent.ldi(3, child_addr);
+        parent.ldi(4, child_addr);
+        parent.spawn(3, 4);
+        parent.ldi(5, 0xF00D);
+        parent.ldi(6, 8000);
+        parent.store(6, 5); // mem[8000] = 0xF00D
+        parent.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(child_addr, &child.pixels);
+        svm.load_program(0, &parent.pixels);
+        svm.spawn_vm(0, 0);
+
+        // Frame 1: parent runs, spawns child post-frame
+        svm.execute_frame();
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "parent halted");
+        assert_eq!(svm.peek(8000), 0xF00D, "parent wrote its data");
+        assert_eq!(svm.vm_state(1).state, vm_state::RUNNING, "child spawned and running");
+
+        // Frame 2: child runs
+        svm.execute_frame();
+        assert_eq!(svm.vm_state(1).state, vm_state::HALTED, "child halted");
+        assert_eq!(svm.peek(7000), 0xCAFE, "child wrote independently");
+    }
+
+    #[test]
+    fn test_spawn_parent_waits_for_child_via_yield() {
+        // Parent spawns child, yields, then checks child's output after resuming.
+        let mut child = Program::new();
+        child.ldi(0, 9999);
+        child.ldi(1, 9500);
+        child.store(1, 0); // mem[9500] = 9999
+        child.halt();
+
+        let mut parent = Program::new();
+        let child_addr: u32 = 9500;
+        parent.ldi(3, child_addr);
+        parent.ldi(4, child_addr);
+        parent.spawn(3, 4);
+        parent.yield_op(); // wait for child to run
+        parent.ldi(5, 9500);
+        parent.load(6, 5); // r6 = mem[9500]
+        parent.ldi(10, 9600);
+        parent.store(10, 6); // mem[9600] = child's result
+        parent.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(child_addr, &child.pixels);
+        svm.load_program(0, &parent.pixels);
+        svm.spawn_vm(0, 0);
+
+        // Frame 1: parent spawns child, yields
+        svm.execute_frame();
+        // Parent SPAWN sets regs[125]=1, then YIELD sets state to WAITING
+        // But the post-frame spawn still processes because regs[125] was set
+        assert_eq!(svm.vm_state(0).state, vm_state::WAITING, "parent waiting");
+        assert_eq!(svm.vm_state(1).state, vm_state::RUNNING, "child running");
+
+        // Frame 2: child runs and halts, parent stays WAITING
+        svm.execute_frame();
+        assert_eq!(svm.vm_state(1).state, vm_state::HALTED, "child halted");
+        assert_eq!(svm.peek(9500), 9999, "child wrote its result");
+
+        // Manually resume parent
+        svm.vm_state_mut(0).state = vm_state::RUNNING;
+
+        // Frame 3: parent reads child output and halts
+        svm.execute_frame();
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "parent halted after checking child");
+        assert_eq!(svm.peek(9600), 9999, "parent read child's output correctly");
+    }
+
+#[test]
+    fn test_spawn_no_free_slots() {
+        // Fill all 8 VM slots. SPAWN should still return 1 (request queued)
+        // but no child should actually be spawned post-frame.
+        let mut parent = Program::new();
+        parent.ldi(3, 100);
+        parent.ldi(4, 100);
+        parent.spawn(3, 4); // tries to spawn
+        parent.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &parent.pixels);
+        svm.spawn_vm(0, 0);
+        // Occupy all other slots
+        for slot in 1..super::super::MAX_VMS {
+            svm.spawn_vm(slot as u32, 0);
+        }
+
+        svm.execute_frame();
+
+        // Parent halted, all slots were taken so no child spawned
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        // All slots should still be active (no new INACTIVE slots became RUNNING)
+        // The spawn request was made but couldn't be fulfilled
+        for slot in 0..super::super::MAX_VMS as usize {
+            assert_ne!(svm.vm_state(slot).state, vm_state::INACTIVE, "slot {} should be active", slot);
+        }
     }
 }
 

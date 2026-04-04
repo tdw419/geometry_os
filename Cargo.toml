@@ -16,6 +16,10 @@ path = "src/bin/pmp-eval.rs"
 name = "pmp-repl"
 path = "src/bin/pmp-repl.rs"
 
+[[bin]]
+name = "pmp-trace"
+path = "src/bin/pmp-trace.rs"
+
 [[test]]
 name = "self_replication"
 path = "tests/self_replication.rs"

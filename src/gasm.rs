@@ -49,6 +49,25 @@ pub fn assemble(source: &str) -> Result<Program, String> {
     pass2_emit(&lines, &labels)
 }
 
+/// Assemble a multi-frame .gasm source string into a vector of Programs.
+///
+/// Frames are separated by a `---` line (three dashes). Each segment is
+/// assembled independently (labels are local to each frame).
+///
+/// Returns a Vec of Programs, one per frame, on success.
+pub fn assemble_filmstrip(source: &str) -> Result<Vec<Program>, String> {
+    let segments: Vec<&str> = source.split("\n---\n").collect();
+    if segments.len() < 2 {
+        return Err("Filmstrip source must contain at least 2 frames separated by '---'".into());
+    }
+    let mut programs = Vec::with_capacity(segments.len());
+    for (i, seg) in segments.iter().enumerate() {
+        let prog = assemble(seg).map_err(|e| format!("Frame {}: {}", i, e))?;
+        programs.push(prog);
+    }
+    Ok(programs)
+}
+
 /// A parsed line (after stripping comments and blank lines).
 #[derive(Debug, Clone)]
 enum Line {
@@ -195,6 +214,7 @@ fn is_valid_mnemonic(m: &str) -> bool {
             | "SHR"
             | "OR"
             | "GLYPH_DEF"
+            | "FRAME"
             | "DATA"
     )
 }
@@ -397,6 +417,11 @@ fn emit_instruction(
             let bitmap_addr = parse_reg(&operands[1], line_num, "bitmap_addr")?;
             prog.glyph_def(charcode, bitmap_addr);
         }
+        "FRAME" => {
+            expect_ops(mnemonic, operands, 1, line_num)?;
+            let target = parse_reg(&operands[0], line_num, "frame_target")?;
+            prog.frame(target);
+        }
         "DATA" => {
             expect_ops(mnemonic, operands, 1, line_num)?;
             let val = parse_imm(&operands[0], line_num)?;
@@ -559,6 +584,7 @@ pub fn disassemble(pixels: &[u32]) -> Vec<String> {
             op::SHR => format!("{:4}: SHR r{}, r{}", i, p1, p2),
             op::OR => format!("{:4}: OR r{}, r{}", i, p1, p2),
             op::GLYPH_DEF => format!("{:4}: GLYPH_DEF r{}, r{}", i, p1, p2),
+            op::FRAME => format!("{:4}: FRAME r{}", i, p1),
             _ => format!("{:4}: ??? opcode={} raw=0x{:08X}", i, opcode, pixel),
         };
 
