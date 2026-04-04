@@ -395,6 +395,17 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
             }
         }
 
+        // AND - Bitwise AND: AND rd, rs (rd &= rs)
+        case 25u: {
+            (*vm).regs[p1] = (*vm).regs[p1] & (*vm).regs[p2];
+        }
+
+        // SHL - Shift left: SHL rd, rs (rd <<= rs)
+        case 26u: {
+            let shift = (*vm).regs[p2];
+            (*vm).regs[p1] = (*vm).regs[p1] << shift;
+        }
+
         // SPAWN - Request child VM spawn: SPAWN r_base_addr, r_entry_offset
         // Returns child VM ID in r_base_addr, or 0xFF if no slot available.
         // Deferred: stores spawn params in parent's registers. Rust host

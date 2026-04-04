@@ -44,6 +44,8 @@ pub mod op {
     pub const GLYPH_DEF: u8 = 22; // Define live glyph: GLYPH_DEF r_charcode, r_bitmap_addr
     pub const PSET: u8 = 23; // Write pixel to screen: PSET r_x, r_y, r_color
     pub const PGET: u8 = 24; // Read pixel from screen: PGET r_dst, r_x, r_y
+    pub const AND: u8 = 25;  // Bitwise AND: AND rd, rs  (rd &= rs)
+    pub const SHL: u8 = 26;  // Shift left: SHL rd, rs   (rd <<= rs)
     pub const DRAW: u8 = 215; // Legacy alias (unused)
     pub const SPAWN: u8 = 230;
     pub const YIELD: u8 = 227;
@@ -203,9 +205,19 @@ impl Program {
     }
 
     /// Read pixel from screen: PGET r_dst, r_x, r_y
-    /// Encoding: glyph(24, r_y, r_dst, r_x) -- stratum = y register
+    /// Encoding: glyph(24, r_y, r_dst, r_x)
     pub fn pget(&mut self, dst_reg: u8, x_reg: u8, y_reg: u8) -> &mut Self {
         self.instruction(op::PGET, y_reg, dst_reg, x_reg)
+    }
+
+    /// Bitwise AND: AND rd, rs  (rd &= rs)
+    pub fn and(&mut self, dst_reg: u8, src_reg: u8) -> &mut Self {
+        self.instruction(op::AND, 0, dst_reg, src_reg)
+    }
+
+    /// Shift left: SHL rd, rs  (rd <<= rs)
+    pub fn shl(&mut self, dst_reg: u8, src_reg: u8) -> &mut Self {
+        self.instruction(op::SHL, 0, dst_reg, src_reg)
     }
 
     /// Halt execution

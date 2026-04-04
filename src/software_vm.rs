@@ -172,6 +172,17 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
             vm.regs[p1 as usize] = vm.regs[p1 as usize] | vm.regs[p2 as usize];
         }
 
+        // AND - Bitwise AND: AND rd, rs (rd &= rs)
+        25 => {
+            vm.regs[p1 as usize] = vm.regs[p1 as usize] & vm.regs[p2 as usize];
+        }
+
+        // SHL - Shift left: SHL rd, rs (rd <<= rs)
+        26 => {
+            let shift = vm.regs[p2 as usize];
+            vm.regs[p1 as usize] = vm.regs[p1 as usize] << shift;
+        }
+
         // GLYPH_DEF - Define a live glyph in the user atlas
         // GLYPH_DEF r_charcode, r_bitmap_addr
         // Reads 8 row bitmasks from r_bitmap_addr and writes to 0x00F20000 + ((charcode-128)*8)
@@ -241,12 +252,22 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
             return true; // Jumped
         }
 
-        // BNE - Branch if not equal: BNE r1, r2, offset
-        // Shader emits: [10, 1, r1, r2] followed by [offset]
+        // BRANCH - Conditional branch: BRANCH cond, r1, r2, offset
+        // Shader emits: [10, cond, r1, r2] followed by [offset]
         10 => {
             let offset = mem_read(ram, (pc + 1) * 4);
-            if vm.regs[p1 as usize] != vm.regs[p2 as usize] {
-                // offset is signed i32 stored as u32
+            let a = vm.regs[p1 as usize];
+            let b = vm.regs[p2 as usize];
+            let take = match stratum {
+                0 => a == b,                                    // BEQ
+                1 => a != b,                                    // BNE
+                2 => (a as i32) < (b as i32),                   // BLT (signed)
+                3 => (a as i32) >= (b as i32),                  // BGE (signed)
+                4 => a < b,                                     // BLTU (unsigned)
+                5 => a >= b,                                    // BGEU (unsigned)
+                _ => false,
+            };
+            if take {
                 let signed_offset = offset as i32;
                 let new_pc = (pc as i32).wrapping_add(signed_offset);
                 vm.pc = new_pc as u32;
@@ -1264,45 +1285,39 @@ mod tests {
     }
 
     #[test]
-    fn opcode_branch_beq_actually_bne_taken() {
-        // NOTE: The VM only implements opcode 10 = BNE (branch if not equal).
-        // The stratum field (BEQ/BNE/BLT/BGE/BLTU/BGEU) is NOT checked.
-        // All branches behave as BNE regardless of the condition code.
-        // This test documents that behavior: BEQ with unequal values branches (BNE semantics).
+    fn opcode_branch_beq_taken() {
+        // BEQ: branch taken when r0 == r1
         let mut p = Program::new();
-        p.ldi(0, 5);   // addr 0-1
-        p.ldi(1, 5);   // addr 2-3
-        // addr 4: BRANCH(BEQ) r0, r1 -- r0 == r1, so BNE NOT taken
+        p.ldi(0, 5); // addr 0-1
+        p.ldi(1, 5); // addr 2-3
+        // addr 4: BRANCH(BEQ) r0, r1 -- r0 == r1, so BEQ IS taken
         p.instruction(op::BRANCH, bcond::BEQ, 0, 1);
         p.pixels.push(4);
-        // addr 6-7: reached because branch NOT taken (r0 == r1, BNE not satisfied)
+        // addr 6-7: SKIPPED because BEQ taken
         p.ldi(2, 999);
-        // addr 8-9: would be target if branch taken
-        p.ldi(2, 77);
-        p.halt();
-
-        let vm = SoftwareVm::run_program(&p.pixels, 0);
-        // BEQ with equal values: BNE NOT taken -> executes LDI 999 then LDI 77
-        assert_eq!(vm.regs[2], 77, "BEQ with equal values: BNE not taken, r2=77");
-    }
-
-    #[test]
-    fn opcode_branch_beq_actually_bne_not_taken() {
-        // BEQ with unequal values: BNE taken (r0 != r1)
-        let mut p = Program::new();
-        p.ldi(0, 5);
-        p.ldi(1, 10);
-        // addr 4: BRANCH(BEQ) r0, r1 -- r0 != r1, so BNE IS taken
-        p.instruction(op::BRANCH, bcond::BEQ, 0, 1);
-        p.pixels.push(4);
-        // addr 6-7: SKIPPED because BNE taken
-        p.ldi(2, 88);
         // addr 8-9: target of branch
         p.ldi(2, 77);
         p.halt();
 
         let vm = SoftwareVm::run_program(&p.pixels, 0);
-        assert_eq!(vm.regs[2], 77, "BEQ with unequal values: BNE taken, r2=77");
+        assert_eq!(vm.regs[2], 77, "BEQ with equal values should branch, r2=77");
+    }
+
+    #[test]
+    fn opcode_branch_beq_not_taken() {
+        // BEQ: branch NOT taken when r0 != r1
+        let mut p = Program::new();
+        p.ldi(0, 5);
+        p.ldi(1, 10);
+        // addr 4: BRANCH(BEQ) r0, r1 -- r0 != r1, so BEQ NOT taken
+        p.instruction(op::BRANCH, bcond::BEQ, 0, 1);
+        p.pixels.push(4);
+        // addr 6-7: reached because branch NOT taken
+        p.ldi(2, 88);
+        p.halt();
+
+        let vm = SoftwareVm::run_program(&p.pixels, 0);
+        assert_eq!(vm.regs[2], 88, "BEQ with unequal values should not branch, r2=88");
     }
 
     #[test]
@@ -2112,6 +2127,70 @@ mod tests {
             svm.vm_state(0).regs[2], 0,
             "out-of-bounds PGET should return 0"
         );
+    }
+
+    // ── Self-modifying code: pixels write pixels ──────────────────
+
+    #[test]
+    fn test_program_writes_program_and_jumps_to_it() {
+        // Phase 1: Program A writes Program B into memory using STORE.
+        // Phase 2: Program A JMPs to Program B.
+        // Program B: LDI r0, 42; HALT.
+        //
+        // This proves pixels can write pixels -- the foundational
+        // self-hosting mechanism.
+
+        let mut svm = SoftwareVm::new();
+
+        // Program A: writes child at address 500, then JMPs there.
+        let mut parent = Program::new();
+        // Write child instruction 1: LDI r0, imm (opcode=1, p1=r0)
+        parent.ldi(10, 500); // r10 = target address
+        parent.ldi(11, assembler::glyph(1, 0, 0, 0)); // LDI r0, <imm>
+        parent.store(10, 11); // mem[500] = LDI r0
+        // Write child instruction 2: immediate value 42
+        parent.ldi(10, 501); // r10 = next address
+        parent.ldi(11, 42); // immediate = 42
+        parent.store(10, 11); // mem[501] = 42
+        // Write child instruction 3: HALT (opcode=13)
+        parent.ldi(10, 502); // r10 = next address
+        parent.ldi(11, assembler::glyph(13, 0, 0, 0)); // HALT
+        parent.store(10, 11); // mem[502] = HALT
+        // Jump to child at address 500
+        // CALL uses absolute addressing (unlike JMP which is relative)
+        parent.instruction(op::CALL, 0, 0, 0);
+        parent.pixels.push(500); // absolute address of child
+
+        // Load parent at address 0, with sandbox [0, 0x100000)
+        svm.load_program(0, &parent.pixels);
+        svm.spawn_vm(0, 0);
+        {
+            let vm = svm.vm_state_mut(0);
+            vm.base_addr = 0;
+            vm.bound_addr = 0x100000;
+        }
+        svm.execute_frame();
+
+        // Child should have executed: LDI r0, 42 -> r0 = 42, then HALT
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        assert_eq!(
+            svm.vm_state(0).regs[0], 42,
+            "child program should have loaded 42 into r0"
+        );
+    }
+
+    #[test]
+    fn test_and_shl_bitwise_ops() {
+        let mut p = Program::new();
+        p.ldi(0, 0xFF00); // r0 = 0x0000FF00
+        p.ldi(1, 0x0F0F); // r1 = 0x00000F0F
+        p.and(0, 1); // r0 = 0xFF00 & 0x0F0F = 0x0F00
+        p.ldi(1, 4); // r1 = 4
+        p.shl(0, 1); // r0 = 0x0F00 << 4 = 0xF000
+        p.halt();
+
+        let vm = SoftwareVm::run_program(&p.pixels, 0);
+        assert_eq!(vm.regs[0], 0xF000, "AND then SHL should produce 0xF000");
     }
 }
 
