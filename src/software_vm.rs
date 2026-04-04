@@ -986,6 +986,220 @@ mod tests {
     }
 
     #[test]
+    fn opcode_mul_basic() {
+        let mut p = Program::new();
+        p.ldi(0, 6);
+        p.ldi(1, 7);
+        p.mul(0, 1); // r0 = 6 * 7 = 42
+        p.halt();
+
+        let vm = SoftwareVm::run_program(&p.pixels, 0);
+        assert_eq!(vm.regs[0], 42, "6 * 7 = 42");
+    }
+
+    #[test]
+    fn opcode_mul_wrapping() {
+        let mut p = Program::new();
+        p.ldi(0, 0x10000);
+        p.ldi(1, 0x10000);
+        p.mul(0, 1); // r0 = 0x10000 * 0x10000 = 0x100000000 which wraps to 0 in u32
+        p.halt();
+
+        let vm = SoftwareVm::run_program(&p.pixels, 0);
+        assert_eq!(vm.regs[0], 0, "0x10000 * 0x10000 should wrap to 0");
+    }
+
+    #[test]
+    fn opcode_mul_by_zero() {
+        let mut p = Program::new();
+        p.ldi(0, 999);
+        p.ldi(1, 0);
+        p.mul(0, 1); // r0 = 999 * 0 = 0
+        p.halt();
+
+        let vm = SoftwareVm::run_program(&p.pixels, 0);
+        assert_eq!(vm.regs[0], 0, "999 * 0 = 0");
+    }
+
+    #[test]
+    fn opcode_div_normal() {
+        let mut p = Program::new();
+        p.ldi(0, 42);
+        p.ldi(1, 6);
+        p.div(0, 1); // r0 = 42 / 6 = 7
+        p.halt();
+
+        let vm = SoftwareVm::run_program(&p.pixels, 0);
+        assert_eq!(vm.regs[0], 7, "42 / 6 = 7");
+    }
+
+    #[test]
+    fn opcode_div_truncation() {
+        let mut p = Program::new();
+        p.ldi(0, 7);
+        p.ldi(1, 2);
+        p.div(0, 1); // r0 = 7 / 2 = 3 (truncated)
+        p.halt();
+
+        let vm = SoftwareVm::run_program(&p.pixels, 0);
+        assert_eq!(vm.regs[0], 3, "7 / 2 = 3 (unsigned truncation)");
+    }
+
+    #[test]
+    fn opcode_blit_copies_pixels() {
+        let mut svm = SoftwareVm::new();
+        // Write some test data at addresses 1000..1003
+        svm.poke(1000, 0xAAAAAAAA);
+        svm.poke(1001, 0xBBBBBBBB);
+        svm.poke(1002, 0xCCCCCCCC);
+        svm.poke(1003, 0xDDDDDDDD);
+
+        let mut p = Program::new();
+        p.ldi(0, 1000);  // src
+        p.ldi(1, 2000);  // dst
+        // BLIT r0, r1, count=4
+        p.blit(0, 1, 4);
+        p.halt();
+
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).halted, 1);
+        assert_eq!(svm.peek(2000), 0xAAAAAAAA, "blit pixel 0");
+        assert_eq!(svm.peek(2001), 0xBBBBBBBB, "blit pixel 1");
+        assert_eq!(svm.peek(2002), 0xCCCCCCCC, "blit pixel 2");
+        assert_eq!(svm.peek(2003), 0xDDDDDDDD, "blit pixel 3");
+    }
+
+    #[test]
+    fn opcode_jmp_forward_and_back() {
+        // JMP forward over a LDI, then halt
+        let mut p = Program::new();
+        // addr 0: JMP +3 (to addr 3)
+        p.jmp(3);
+        // addr 2: skipped
+        p.ldi(0, 999);
+        // addr 4: target
+        p.ldi(0, 42);
+        p.halt();
+
+        let vm = SoftwareVm::run_program(&p.pixels, 0);
+        assert_eq!(vm.regs[0], 42, "JMP should skip over instruction");
+    }
+
+    #[test]
+    fn edge_register_boundary() {
+        // Test r0 and r127 (boundary registers)
+        let mut p = Program::new();
+        p.ldi(0, 100);
+        p.ldi(127, 200);
+        p.add(0, 127); // r0 += r127 = 300
+        p.halt();
+
+        let vm = SoftwareVm::run_program(&p.pixels, 0);
+        assert_eq!(vm.regs[0], 300, "r0 + r127 = 300");
+    }
+
+    #[test]
+    fn edge_call_stack_depth() {
+        // Test nested CALL/RET 5 levels deep
+        // NOTE: CALL return lands on data word, so we use addresses > 16
+        // to avoid data being interpreted as valid opcodes.
+        let mut svm = SoftwareVm::new();
+        let mut p = Program::new();
+
+        // Level 0 (addr 0): CALL addr 100
+        p.instruction(op::CALL, 0, 0, 0);
+        p.pixels.push(100);
+        p.ldi(0, 99); // addr 2-3: after return
+        p.halt();
+
+        // Pad to addr 100
+        while p.len() < 100 {
+            p.pixels.push(0);
+        }
+
+        // Level 1 (addr 100): CALL addr 200
+        p.instruction(op::CALL, 0, 0, 0);
+        p.pixels.push(200);
+        p.ldi(1, 10);
+        p.store(1, 1); // mem[10] = 10
+        p.instruction(op::RET, 0, 0, 0);
+
+        // Pad to addr 200
+        while p.len() < 200 {
+            p.pixels.push(0);
+        }
+
+        // Level 2 (addr 200): CALL addr 300
+        p.instruction(op::CALL, 0, 0, 0);
+        p.pixels.push(300);
+        p.ldi(1, 20);
+        p.store(1, 1); // mem[20] = 20
+        p.instruction(op::RET, 0, 0, 0);
+
+        // Pad to addr 300
+        while p.len() < 300 {
+            p.pixels.push(0);
+        }
+
+        // Level 3 (addr 300): CALL addr 400
+        p.instruction(op::CALL, 0, 0, 0);
+        p.pixels.push(400);
+        p.ldi(1, 30);
+        p.store(1, 1); // mem[30] = 30
+        p.instruction(op::RET, 0, 0, 0);
+
+        // Pad to addr 400
+        while p.len() < 400 {
+            p.pixels.push(0);
+        }
+
+        // Level 4 (addr 400): write and return
+        p.ldi(1, 40);
+        p.store(1, 1); // mem[40] = 40
+        p.instruction(op::RET, 0, 0, 0);
+
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).halted, 1, "should halt after 5-level nesting");
+        assert_eq!(svm.peek(10), 10, "level 1 wrote mem[10]");
+        assert_eq!(svm.peek(20), 20, "level 2 wrote mem[20]");
+        assert_eq!(svm.peek(30), 30, "level 3 wrote mem[30]");
+        assert_eq!(svm.peek(40), 40, "level 4 wrote mem[40]");
+        assert_eq!(svm.vm_state(0).regs[0], 99, "main resumes after deep calls");
+    }
+
+    #[test]
+    fn edge_unknown_opcode_noop() {
+        // Unknown opcodes (e.g. 99) should be silently ignored
+        let mut p = Program::new();
+        p.ldi(0, 42);
+        // Emit an unknown opcode (99)
+        p.instruction(99, 0, 0, 0);
+        p.halt();
+
+        let vm = SoftwareVm::run_program(&p.pixels, 0);
+        assert_eq!(vm.regs[0], 42, "unknown opcode should be a no-op");
+    }
+
+    #[test]
+    fn edge_mov_self() {
+        // MOV r5, r5 should be a no-op
+        let mut p = Program::new();
+        p.ldi(5, 77);
+        // instruction(opcode, stratum, p1=dst, p2=src)
+        p.instruction(op::MOV, 0, 5, 5); // MOV r5, r5
+        p.halt();
+
+        let vm = SoftwareVm::run_program(&p.pixels, 0);
+        assert_eq!(vm.regs[5], 77, "MOV r5, r5 should preserve value");
+    }
+
+    #[test]
     fn opcode_halt_stops_execution() {
         let mut p = Program::new();
         p.ldi(0, 11);
