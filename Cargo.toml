@@ -28,6 +28,10 @@ path = "tests/hello_pixels.rs"
 name = "opcode_tests"
 path = "tests/opcode_tests.rs"
 
+[[test]]
+name = "opcode_full_suite"
+path = "tests/opcode_full_suite.rs"
+
 [dependencies]
 wgpu = "0.19"
 pollster = "0.3"

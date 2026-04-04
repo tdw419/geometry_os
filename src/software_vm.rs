@@ -200,7 +200,7 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
         11 => {
             let sp = vm.stack_ptr;
             if sp < 64 {
-                vm.stack[sp as usize] = pc + 1;
+                vm.stack[sp as usize] = pc + 2; // Return past the DATA word
                 vm.stack_ptr = sp + 1;
                 let addr = mem_read(ram, (pc + 1) * 4);
                 vm.pc = addr;

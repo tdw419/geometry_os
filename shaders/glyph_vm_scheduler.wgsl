@@ -222,7 +222,7 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
         case 11u: {
             let sp = (*vm).stack_ptr;
             if (sp < 64u) {
-                (*vm).stack[sp] = pc + 1u;
+                (*vm).stack[sp] = pc + 2u;  // Return past the DATA word
                 (*vm).stack_ptr = sp + 1u;
                 (*vm).pc = p1; // p1 is target address in some formats, or read from next word
                 // For ASCII compiler, CALL is [11, 0, 0, 0] followed by [addr]
