@@ -5,6 +5,7 @@
 // Programs write programs. Pixels move pixels.
 
 pub mod assembler;
+pub mod cpu_stub;
 pub mod filmstrip;
 pub mod fitness;
 pub mod font_atlas;
