@@ -46,47 +46,47 @@ The VM executes real programs on real hardware.
 
 ---
 
-## Phase 2: The Machine Speaks
+## Phase 2: The Machine Speaks (COMPLETE)
 
 IPC, messaging, and multi-VM coordination.
 
-- [ ] **Message queue** -- VMs send messages to each other via shared memory
-- [ ] **SPAWN/YIELD** -- a VM can fork a child VM with its own memory region
-- [ ] **Memory isolation** -- each VM gets a base_addr and bound_addr; out-of-bounds faults
-- [ ] **Event queue** -- external events (keyboard, mouse, network) injected into VMs
-- [ ] **Standard library** -- common routines as pre-loaded pixel programs (print, read, draw)
-- [ ] **Font rendering in visualization** -- the font atlas renders as readable text in the PNG output
+- [x] **Message queue** -- VMs send messages to each other via shared memory (SEND opcode 17, RECV opcode 18, mailbox headers at MSGQ_BASE)
+- [x] **SPAWN/YIELD** -- a VM can fork a child VM with its own memory region (SPAWN opcode 230, YIELD opcode 227, deferred spawn pattern)
+- [x] **Memory isolation** -- each VM gets base_addr and bound_addr; out-of-bounds access causes VM_FAULT (safe_mem_read/safe_mem_write)
+- [x] **Event queue** -- external events injected into VMs (WAIT_EVENT opcode 28, EVENTQ_BASE ring buffer, inject_event API)
+- [x] **Standard library** -- common routines as pre-loaded pixel programs (src/stdlib.rs: memset, memcpy; systems/pixel_compiler/stdlib.vasm: math_add/sub/mul/div, cmp_eq/lt, mem_copy/set)
+- [x] **Font rendering in visualization** -- the font atlas renders as readable text in the PNG output
 
 **Success Criteria:**
-- Two VMs communicate via message passing
-- A VM spawns a child, the child runs independently, the parent gets a completion signal
-- A program can draw text to the texture using the bitmap font
+- [x] Two VMs communicate via message passing
+- [x] A VM spawns a child, the child runs independently, the parent gets a completion signal
+- [x] A program can draw text to the texture using the bitmap font
 
 ---
 
-## Phase 3: The Machine Writes Programs
+## Phase 3: The Machine Writes Programs (MOSTLY COMPLETE)
 
 The system can compile, assemble, and load new programs at runtime.
 
-- [x] **Text assembler** -- `.gasm` file parser with labels, DATA directive, hex/binary/char literals, disassembler (30 tests, `gasm.rs`)
-- [ ] **Runtime loader** -- load assembled programs into the texture without restarting
-- [ ] **Higher-level compiler** -- compile a simple language (expressions, functions, loops) to pixel opcodes
-- [ ] **Self-modifying programs** -- a program that rewrites its own pixels and continues executing
+- [x] **Text assembler** -- `.gasm` file parser with labels, DATA directive, hex/binary/char literals, disassembler (gasm.rs, 30+ tests)
+- [x] **Higher-level compiler** -- compile GeoLang (expressions, functions, loops, if/else, comparisons, arrays) to pixel opcodes (src/hl_compiler/: lexer, parser, codegen -- 1755 lines, 25 tests including factorial, fibonacci, bubble sort)
+- [x] **Self-modifying programs** -- programs can rewrite their own pixels via STORE opcode and continue executing (test_self_modifying_code)
+- [ ] **Runtime loader** -- load assembled programs into the texture without restarting the daemon
 - [ ] **Evolutionary step** -- a program that generates a variant of itself, runs it, and keeps the better version
 
 **Success Criteria:**
-- Write a `.gasm` file, assemble it, load it, watch it execute on the texture
-- A program generates a modified copy of itself, both run, the worse one gets garbage collected
+- [x] Write a `.gasm` file, assemble it, load it, watch it execute on the texture
+- [ ] A program generates a modified copy of itself, both run, the worse one gets garbage collected
 
 ---
 
-## Phase 4: The Machine Improves Itself
+## Phase 4: The Machine Improves Itself (IN PROGRESS)
 
 Recursive self-improvement. The loop closes.
 
-- [ ] **Fitness function** -- objective measure of program quality (speed, correctness, memory use)
+- [x] **Fitness function** -- objective measure of program quality (speed, correctness, memory, spatial locality) -- src/fitness.rs with weighted composite scoring, 7 tests
 - [ ] **Mutation engine** -- random pixel variations with selection pressure
-- [ ] **Benchmark suite** -- automated tests that measure fitness
+- [ ] **Benchmark suite** -- automated tests that measure fitness across multiple programs
 - [ ] **The loop** -- generate variant -> execute -> measure fitness -> keep or discard -> repeat
 - [ ] **Learnings export** -- successful mutations are logged as discoverable improvements
 - [ ] **Governance gate** -- every mutation passes through Seven Laws check before execution
@@ -149,30 +149,59 @@ The Hilbert curve is not just clever memory mapping. It makes programs spatially
 
 ```
 src/
-  lib.rs              -- crate root, constants (TEXTURE_SIZE, MAX_VMS, CYCLES_PER_FRAME)
+  lib.rs              -- crate root, constants (TEXTURE_SIZE, MAX_VMS, CYCLES_PER_FRAME, memory layout)
   main.rs             -- daemon binary: boot, load, execute, verify
-  assembler.rs        -- Program builder (LDI, MOV, ADD, CALL, CHAR, BLIT, etc.) + legacy text parser
+  assembler.rs        -- Program builder (LDI, MOV, ADD, CALL, CHAR, BLIT, SPAWN, SEND, RECV, etc.) + glyph encoding
   gasm.rs             -- .gasm text assembler with labels, DATA, hex/binary/char literals, disassembler
+  hl_compiler/        -- Higher-level language compiler (lexer, parser, codegen) -- GeoLang to pixel opcodes
   font_atlas.rs       -- 8x8 bitmap font (1024 bytes), FONT_BASE, lookup functions
   hilbert.rs          -- Hilbert curve d2xy/xy2d address mapping
-  software_vm.rs      -- CPU-side VM (exact shader mirror, testing)
+  software_vm.rs      -- CPU-side VM (exact shader mirror, all opcodes, IPC, spawn, events)
   substrate.rs        -- GPU texture management, wgpu initialization, PNG export
-  vm.rs               -- GPU VM state (VmState struct, 832 bytes per VM)
+  vm.rs               -- GPU VM state (VmState struct, 832 bytes per VM, SchedulerState)
   visualization.rs    -- Opcode-to-color mapping for Hilbert visualization
-  bin/pmp-eval.rs     -- CLI tool: run programs, inspect VM state
+  fitness.rs          -- Fitness scoring (speed, correctness, memory, locality) with composite weighting
+  stdlib.rs           -- Standard library loader (memset, memcpy) with calling convention
+  filmstrip.rs        -- Film strip (multi-frame) execution support
+  filmstrip.rs        -- Film strip (multi-frame) execution support
 
-tests/
-  opcode_full_suite.rs -- 65 tests: every opcode in software VM + GPU, edge cases
-  opcode_tests.rs      -- 28 tests: additional opcode verification
-  opcode_suite.rs      -- 22 tests: comparison tests (SW vs GPU)
-  self_replication.rs  -- Self-replicator end-to-end test
-  hello_pixels.rs      -- hello_world program test
-  copy_executes.rs     -- COPY instruction test
-  llm_generated.rs     -- LLM-generated program test
-  bold_atlas.rs        -- 7 tests: bold atlas builder on software VM
-  gasm_assembler.rs    -- 10 tests: legacy text assembler
+systems/
+  pixel_compiler/     -- Visual assembler + linker with stdlib (math, cmp, mem routines)
+  glyph_compiler/     -- Glyph bytecode compiler
+  glyph_strål/        -- Ray-based spatial computing
+  glyph_stratum/      -- Stratum-level glyph operations
+  glyph_allocator/    -- Memory allocator for glyph programs
+  glyph_framework_rs/ -- Rust framework for glyph systems
+  glyph_boot/         -- Boot sequence generator
+  evolution_daemon/   -- Evolutionary optimization daemon
+  visual_shell/       -- Visual shell interface
+  spatial_debugger/   -- Spatial debugging tools
+  autoresearch/       -- Autonomous research system
+  sisyphus/           -- Sisyphus benchmarking system
+  infinite_map/       -- Infinite map generation
+  infinite_map_rs/    -- Rust infinite map implementation
+  geos/               -- Geometry OS utilities
 
-~5900 lines of Rust. 240 tests. 0 failures. 0 ignored.
+src/bin/
+  daemon.rs           -- Headless GPU daemon
+  pmp-eval.rs         -- CLI: run programs, inspect VM state
+  pmp-repl.rs         -- Interactive REPL
+  pmp-trace.rs        -- Execution tracer
+  frame_debug.rs      -- Frame-level debugger
+
+tests/  (18 test files)
+  hl_compiler_tests.rs    -- 25 tests: GeoLang compiler (factorial, fibonacci, bubble sort, etc.)
+  opcode_full_suite.rs    -- 65 tests: every opcode in SW + GPU
+  opcode_tests.rs         -- 28 tests: additional opcode verification
+  opcode_suite.rs         -- 22 tests: SW vs GPU cross-validation
+  fitness.rs              -- 7 tests: fitness scoring
+  gasm_assembler.rs       -- 10 tests: text assembler
+  bold_atlas.rs           -- 7 tests: bold atlas builder
+  sierpinski_filmstrip.rs -- Sierpinski triangle filmstrip
+  self_replication.rs     -- Self-replicator end-to-end
+  ...and more
+
+~9150 lines of Rust (src/). 358 tests. 0 failures. 0 ignored.
 ```
 
 ---

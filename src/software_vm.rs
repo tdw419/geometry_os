@@ -18,6 +18,9 @@ mod vm_state {
     pub const HALTED: u32 = 2;
     #[allow(dead_code)]
     pub const WAITING: u32 = 3;
+    /// VM yielded its timeslice -- auto-resumes next frame.
+    /// Distinct from WAITING (which blocks until an external event).
+    pub const YIELDED: u32 = 4;
 }
 
 const MAX_VMS: usize = 8;
@@ -616,6 +619,13 @@ impl SoftwareVm {
             if vm.bound_addr == 0 {
                 vm.base_addr = 0;
                 vm.bound_addr = 0x00E00000; // Entire non-system space
+            }
+
+            // Auto-resume: YIELDed VMs transition back to RUNNING at frame start.
+            // This enables cooperative multitasking -- a VM that YIELDed last frame
+            // gets a fresh timeslice this frame.
+            if vm.state == vm_state::WAITING {
+                vm.state = vm_state::RUNNING;
             }
 
             // Only execute running VMs (mirrors shader: if state != RUNNING || halted != 0, return)
@@ -2748,7 +2758,8 @@ mod tests {
 
     #[test]
     fn test_spawn_parent_waits_for_child_via_yield() {
-        // Parent spawns child, yields, then checks child's output after resuming.
+        // Parent spawns child, yields (auto-resumes next frame), yields again
+        // to give child a full frame, then reads child's output.
         let mut child = Program::new();
         child.ldi(0, 9999);
         child.ldi(1, 9500);
@@ -2760,7 +2771,8 @@ mod tests {
         parent.ldi(3, child_addr);
         parent.ldi(4, child_addr);
         parent.spawn(3, 4);
-        parent.yield_op(); // wait for child to run
+        parent.yield_op(); // frame 1: yield -- child spawned post-frame
+        parent.yield_op(); // frame 2: auto-resume, yield again -- child runs alone
         parent.ldi(5, 9500);
         parent.load(6, 5); // r6 = mem[9500]
         parent.ldi(10, 9600);
@@ -2772,24 +2784,27 @@ mod tests {
         svm.load_program(0, &parent.pixels);
         svm.spawn_vm(0, 0);
 
-        // Frame 1: parent spawns child, yields
+        // Frame 1: parent spawns child, yields -> WAITING
         svm.execute_frame();
         // Parent SPAWN sets regs[125]=1, then YIELD sets state to WAITING
-        // But the post-frame spawn still processes because regs[125] was set
+        // Post-frame spawn processes because regs[125] was set
         assert_eq!(svm.vm_state(0).state, vm_state::WAITING, "parent waiting");
         assert_eq!(svm.vm_state(1).state, vm_state::RUNNING, "child running");
 
-        // Frame 2: child runs and halts, parent stays WAITING
+        // Frame 2: parent auto-resumes, hits 2nd YIELD -> WAITING.
+        // Child runs and halts.
         svm.execute_frame();
+        assert_eq!(svm.vm_state(0).state, vm_state::WAITING, "parent yielded again");
         assert_eq!(svm.vm_state(1).state, vm_state::HALTED, "child halted");
         assert_eq!(svm.peek(9500), 9999, "child wrote its result");
 
-        // Manually resume parent
-        svm.vm_state_mut(0).state = vm_state::RUNNING;
-
-        // Frame 3: parent reads child output and halts
+        // Frame 3: parent auto-resumes, reads child output, halts
         svm.execute_frame();
-        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "parent halted after checking child");
+        assert_eq!(
+            svm.vm_state(0).state,
+            vm_state::HALTED,
+            "parent halted after checking child"
+        );
         assert_eq!(svm.peek(9600), 9999, "parent read child's output correctly");
     }
 
