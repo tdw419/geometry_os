@@ -227,31 +227,67 @@ The VM speaks C. Programs transpiled from real C run as .glyph bytecode.
 
 ---
 
-## Phase 6: GPU Parity + Visual Runtime (IN PROGRESS)
+## Phase 6: GPU Parity + Visual Runtime (COMPLETE)
 
 The GPU is the computer again. All opcodes run on real hardware. You can see it.
 
-The software VM pulled ahead during Phase 5 -- MOD, LDB, STB only work on CPU. Phase 6 brings
-the GPU shader up to parity and adds the visual runtime so the machine is observable.
+The software VM pulled ahead during Phase 5 -- MOD, LDB, STB only work on CPU. Phase 6 brought
+the GPU shader up to parity and added the visual runtime so the machine is observable.
 
-- [ ] **GPU shader: MOD, LDB, STB** -- opcodes 31-33 in glyph_vm_scheduler.wgsl (GEO-50)
-- [ ] **GPU shader parity test suite** -- automated CPU-vs-GPU validation for every opcode (GEO-51)
-- [ ] **Windowed runtime** -- live 4096x4096 texture display at 30fps (GEO-52)
-- [ ] **GPU execution of C-transpiled programs** -- Minix FS on real GPU, not just CPU emulator (GEO-53)
-- [ ] **Visual shell** -- interactive VM overlay with debugging HUD (GEO-54)
-- [ ] **GPU evolution** -- fitness loop dispatches mutations on real hardware (GEO-55)
+- [x] **GPU shader: MOD, LDB, STB** -- opcodes 31-33 in glyph_vm_scheduler.wgsl (GEO-50)
+- [x] **GPU shader parity test suite** -- automated CPU-vs-GPU validation for every opcode (GEO-51)
+- [x] **Windowed runtime** -- live 4096x4096 texture display at 30fps (GEO-52)
+- [x] **GPU execution of C-transpiled programs** -- Minix FS on real GPU, not just CPU emulator (GEO-53)
+- [x] **Visual shell** -- interactive VM overlay with debugging HUD (GEO-54)
+- [x] **GPU evolution** -- fitness loop dispatches mutations on real hardware (GEO-55)
+- [x] **Flaky test fix** -- state isolation for GPU cross-validation tests (GEO-56)
 
 **Success Criteria:**
-- [ ] Every opcode in the assembler runs identically on software VM and GPU shader
-- [ ] A C-transpiled .glyph program runs on GPU and produces correct results
-- [ ] The daemon can display the texture in a window, updating in real-time
-- [ ] The evolution loop benchmarks mutants on GPU, not CPU
+- [x] Every opcode in the assembler runs identically on software VM and GPU shader
+- [x] A C-transpiled .glyph program runs on GPU and produces correct results
+- [x] The daemon can display the texture in a window, updating in real-time
+- [x] The evolution loop benchmarks mutants on GPU, not CPU
 
 **Dependency chain:**
 ```
 GEO-50 (shader opcodes) ──> GEO-51 (parity tests) ──> GEO-53 (GPU C programs) ──> GEO-55 (GPU evolution)
                           └──> GEO-52 (windowed runtime) ──> GEO-54 (visual shell)
 ```
+
+---
+
+## Phase 7: The Machine Thinks -- Agent-Driven VM (PLANNED)
+
+An autonomous agent loop runs on the GPU VM as .glyph bytecode. When it needs an
+LLM call, a SQL query, or a status write, it issues a CPU stub command through the
+existing 3-layer IPC stack. The host executes and writes the response back to substrate
+memory. The agent resumes.
+
+**What we're adding (no new opcodes, no new runtime):**
+
+- [ ] **Extended CPU stub commands** (GEO-60) -- CMD_SQL_QUERY(6), CMD_MODEL_CALL(7), CMD_STATUS_READ(8), CMD_STATUS_WRITE(9). Same 8-word command slot format. Same polling pattern.
+- [ ] **SqliteExecutor + StatusExecutor** (GEO-61) -- rusqlite-backed executor for SQL queries, HashMap-backed executor for status read/write.
+- [ ] **ModelExecutor** (GEO-62/63) -- HTTP LLM client executor. VM writes prompt, host calls model, response appears in substrate.
+- [ ] **Device proxy extension** (GEO-64) -- 4 new dispatch paths in the Layer 2 shim. Same pattern as READ_BLOCK.
+- [ ] **agent_loop.c** (GEO-65) -- C program transpiled to .glyph. Observe state, query LLM, apply mutation, track fitness, loop.
+- [ ] **GPU end-to-end** (GEO-66) -- Full pipeline on real GPU. Agent runs 10+ iterations, calls LLM + DB, no crash.
+- [ ] **LLM beats random** (GEO-67) -- Over 100 iterations, LLM-guided mutations outperform Phase 4 random engine.
+
+**Dependency chain:**
+```
+GEO-60 (stub commands) -> GEO-61 (sql+status) -> GEO-62/63 (model)
+-> GEO-64 (proxy) -> GEO-65 (agent_loop.c) -> GEO-66 (GPU e2e) -> GEO-67 (beats random)
+```
+
+**Success Criteria:**
+- [ ] A .glyph program issues CMD_SQL_QUERY and reads back query results from substrate
+- [ ] A .glyph program issues CMD_MODEL_CALL and reads back an LLM response
+- [ ] Device proxy routes all 9 command types (old 5 + new 4) without breakage
+- [ ] agent_loop.c transpiles and runs on the software VM through 3-layer IPC
+- [ ] Agent loop runs on GPU for 10+ iterations with live LLM + DB calls
+- [ ] LLM-guided mutations beat random mutations over 100 iterations
+
+**Full spec:** [docs/PHASE7_SPEC.md](PHASE7_SPEC.md)
 
 ---
 

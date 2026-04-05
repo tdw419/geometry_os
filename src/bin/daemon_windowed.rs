@@ -412,7 +412,7 @@ fn main() {
                         visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Texture {
                             sample_type: wgpu::TextureSampleType::Float {
-                                sampler_filterable: true,
+                                filterable: true,
                             },
                             view_dimension: wgpu::TextureViewDimension::D2,
                             multisampled: false,
@@ -530,7 +530,7 @@ fn main() {
                     }
                     WindowEvent::KeyboardInput {
                         event:
-                            KeyboardInput {
+                            winit::event::KeyEvent {
                                 physical_key: PhysicalKey::Code(keycode),
                                 state: ElementState::Pressed,
                                 ..
@@ -836,7 +836,6 @@ fn keycode_to_char(keycode: winit::keyboard::KeyCode) -> Option<char> {
         KeyCode::Period => Some('.'),
         KeyCode::Slash => Some('/'),
         KeyCode::Minus => Some('-'),
-        KeyCode::Underline => Some('_'),
         KeyCode::Space => Some(' '),
         _ => None,
     }

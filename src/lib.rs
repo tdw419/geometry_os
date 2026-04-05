@@ -117,3 +117,25 @@ pub const DASHBOARD_WIDTH: u32 = 480;
 pub const DASHBOARD_HEIGHT: u32 = 240;
 /// Total dashboard region size in pixels (115,200).
 pub const DASHBOARD_PIXELS: u32 = DASHBOARD_WIDTH * DASHBOARD_HEIGHT;
+
+// ── System Input Bus ──
+//
+// Read-only region updated by the host every frame with hardware state.
+// VMs read via LOAD instructions. Written by the daemon/window manager
+// before each frame tick.
+//
+//   SYS_INPUT_BASE + 0 : MOUSE_X  (i32, pixel coordinate)
+//   SYS_INPUT_BASE + 1 : MOUSE_Y  (i32, pixel coordinate)
+//   SYS_INPUT_BASE + 2 : MOUSE_BTN (u32 bitmask: bit0=left, bit1=right, bit2=middle)
+//
+// The GASP compiler generates LOAD instructions that read these addresses
+// for hit-test dispatch (onPress, onRollOver, etc).
+
+/// Base address of the system input bus (Hilbert pixel index).
+pub const SYS_INPUT_BASE: u32 = 0x00E2_0000;
+/// Offset from SYS_INPUT_BASE for mouse X coordinate.
+pub const SYS_MOUSE_X: u32 = SYS_INPUT_BASE;
+/// Offset from SYS_INPUT_BASE for mouse Y coordinate.
+pub const SYS_MOUSE_Y: u32 = SYS_INPUT_BASE + 1;
+/// Offset from SYS_INPUT_BASE for mouse button bitmask.
+pub const SYS_MOUSE_BTN: u32 = SYS_INPUT_BASE + 2;

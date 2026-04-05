@@ -533,6 +533,119 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
             }
         }
 
+        // RECTF - Filled rectangle: RECTF r_x, r_y, packed_params
+        // Encoding: glyph(34, r_x, r_y, 0) followed by [packed (w<<16|h)]
+        // Color from r2 (R_COLOR convention)
+        case 34u: {
+            let x = (*vm).regs[p1];
+            let y = (*vm).regs[p2];
+            let data_word = mem_read((*vm).pc * 4u + 4u);
+            let w = (data_word >> 16u) & 0xFFFFu;
+            let h = data_word & 0xFFFFu;
+            let color = (*vm).regs[2u];
+            for (var dy = 0u; dy < h; dy = dy + 1u) {
+                for (var dx = 0u; dx < w; dx = dx + 1u) {
+                    let px = x + dx;
+                    let py = y + dy;
+                    if (px < SCREEN_SIZE && py < SCREEN_SIZE) {
+                        let addr = SCREEN_BASE + py * SCREEN_SIZE + px;
+                        mem_write(addr * 4u, color);
+                    }
+                }
+            }
+            (*vm).pc = (*vm).pc + 1u;
+        }
+
+        // LINE - Bresenham line: LINE r_x0, r_y0, packed_endpoints
+        // Encoding: glyph(35, r_x0, r_y0, 0) followed by [packed (x1<<16)|(y1&0xFFFF)]
+        // Color from r2 (R_COLOR convention)
+        case 35u: {
+            let x0_i = i32((*vm).regs[p1]);
+            let y0_i = i32((*vm).regs[p2]);
+            let data_word = mem_read((*vm).pc * 4u + 4u);
+            let x1_i = i32(data_word >> 16u);
+            let y1_i = i32(data_word & 0xFFFFu);
+            let color = (*vm).regs[2u];
+            var dx_b = select(-(x1_i - x0_i), x1_i - x0_i, x0_i < x1_i);
+            var dy_b = select(-(y1_i - y0_i), y1_i - y0_i, y0_i < y1_i);
+            if (dx_b < 0i) { dx_b = -dx_b; }
+            if (dy_b > 0i) { dy_b = -dy_b; }
+            var err = dx_b + dy_b;
+            var cx = x0_i;
+            var cy = y0_i;
+            let sx = select(-1i, 1i, x0_i < x1_i);
+            let sy = select(-1i, 1i, y0_i < y1_i);
+            for (var steps = 0u; steps < 1024u; steps = steps + 1u) {
+                let px = u32(cx);
+                let py = u32(cy);
+                if (px < SCREEN_SIZE && py < SCREEN_SIZE) {
+                    let addr = SCREEN_BASE + py * SCREEN_SIZE + px;
+                    mem_write(addr * 4u, color);
+                }
+                if (cx == x1_i && cy == y1_i) { break; }
+                let e2 = 2i * err;
+                if (e2 >= dy_b) { err = err + dy_b; cx = cx + sx; }
+                if (e2 <= dx_b) { err = err + dx_b; cy = cy + sy; }
+            }
+            (*vm).pc = (*vm).pc + 1u;
+        }
+
+        // TEXT_STR - Draw null-terminated string: TEXT_STR r_addr, r_x, r_y
+        // Reads a null-terminated string from address in r_addr,
+        // renders via font atlas at screen position (r_x, r_y).
+        // Color from r2 (R_COLOR convention). Max 64 chars.
+        case 36u: {
+            let base_addr = (*vm).regs[p1];
+            var x_pos = (*vm).regs[p2];
+            let y_pos = (*vm).regs[stratum];
+            let color = (*vm).regs[2u];
+            for (var offset = 0u; offset < 64u; offset = offset + 1u) {
+                let ch = mem_read((base_addr + offset) * 4u);
+                if (ch == 0u) { break; }
+                let ascii = ch & 0xFFu;
+                // Blit 8x8 glyph from font atlas at FONT_BASE + ascii * 8
+                let FONT_BASE = 0x00F00000u;
+                let glyph_base = FONT_BASE + ascii * 8u;
+                for (var row = 0u; row < 8u; row = row + 1u) {
+                    let font_byte = mem_read((glyph_base + row) * 4u) & 0xFFu;
+                    for (var col = 0u; col < 8u; col = col + 1u) {
+                        if ((font_byte & (0x80u >> col)) != 0u) {
+                            let px = x_pos + col;
+                            let py = y_pos + row;
+                            if (px < SCREEN_SIZE && py < SCREEN_SIZE) {
+                                let addr = SCREEN_BASE + py * SCREEN_SIZE + px;
+                                mem_write(addr * 4u, color);
+                            }
+                        }
+                    }
+                }
+                x_pos = x_pos + 8u;
+            }
+        }
+
+        // CIRCLEF - Filled circle: CIRCLEF r_cx, r_cy, r_radius
+        // Color from r2 (R_COLOR convention)
+        case 37u: {
+            let cx = i32((*vm).regs[p1]);
+            let cy = i32((*vm).regs[p2]);
+            let r = i32((*vm).regs[stratum]);
+            let color = (*vm).regs[2u];
+            if (r > 0i) {
+                for (var dy = -r; dy <= r; dy = dy + 1i) {
+                    for (var dx = -r; dx <= r; dx = dx + 1i) {
+                        if (dx * dx + dy * dy <= r * r) {
+                            let px = u32(cx + dx);
+                            let py = u32(cy + dy);
+                            if (px < SCREEN_SIZE && py < SCREEN_SIZE) {
+                                let addr = SCREEN_BASE + py * SCREEN_SIZE + px;
+                                mem_write(addr * 4u, color);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // SPAWN - Request child VM spawn: SPAWN r_base_addr, r_entry_offset
         // Returns child VM ID in r_base_addr, or 0xFF if no slot available.
         // Deferred: stores spawn params in parent's registers. Rust host

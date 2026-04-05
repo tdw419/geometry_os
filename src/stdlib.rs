@@ -499,7 +499,7 @@ mod tests {
         caller.pixels.push(memset_addr);
         caller.halt();
 
-        let state = run_caller(&mut svm, &stdlib, Routine::Memset, &caller);
+        let _state = run_caller(&mut svm, &stdlib, Routine::Memset, &caller);
 
         // Verify all 10 pixels are 42
         for i in 0..10 {

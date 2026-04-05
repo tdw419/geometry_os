@@ -23,6 +23,10 @@ pub struct GaspDoc {
     #[serde(default = "default_canvas")]
     pub canvas: Canvas,
     #[serde(default)]
+    pub fps: u32,
+    #[serde(default)]
+    pub globals: Vec<GlobalVar>,
+    #[serde(default)]
     pub symbols: HashMap<String, Symbol>,
     #[serde(default)]
     pub timeline: Timeline,
@@ -32,6 +36,20 @@ fn default_canvas() -> Canvas {
     Canvas {
         width: 256,
         height: 256,
+    }
+}
+
+impl Default for GaspDoc {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            version: 0,
+            canvas: default_canvas(),
+            fps: 12,
+            globals: Vec::new(),
+            symbols: HashMap::new(),
+            timeline: Timeline::default(),
+        }
     }
 }
 
@@ -80,6 +98,11 @@ pub struct Layer {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Keyframe {
     pub frame: u32,
+    /// Optional name for this frame (e.g. "Menu", "Settings").
+    /// Maps to a `.frame "Name"` label in the compiled .gasm filmstrip,
+    /// allowing `LDI r0, @Settings; FRAME r0` to jump here.
+    #[serde(default)]
+    pub name: Option<String>,
     /// Optional tween to the NEXT keyframe: "linear", "ease-in", "ease-out", "ease-in-out"
     #[serde(default)]
     pub tween: Option<String>,
@@ -147,7 +170,10 @@ pub enum Draw {
         #[serde(default = "default_color")]
         color: String,
     },
-    /// Instance of a symbol at position with optional transform
+    /// Instance of a symbol at position with optional transform.
+    /// AS2 parallel: like placing a MovieClip on stage.
+    /// `name` is the instance name (e.g. "submit_btn") -- the compiler
+    /// reserves a memory slot for its state so scripts can target it.
     #[serde(rename = "instance")]
     Instance {
         symbol: String,
@@ -157,6 +183,10 @@ pub enum Draw {
         frame: Option<u32>,
         #[serde(default = "default_scale")]
         scale: f32,
+        #[serde(default)]
+        name: Option<String>,
+        #[serde(default)]
+        events: Vec<EventBinding>,
     },
 }
 
@@ -166,6 +196,55 @@ fn default_color() -> String {
 
 fn default_scale() -> f32 {
     1.0
+}
+
+// ── AS2-Style Event Bindings ─────────────────────────────────
+
+/// An event handler attached to an instance.
+/// AS2 parallel: on(press) { gotoAndPlay(5); }
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct EventBinding {
+    /// Event trigger: "press", "release", "rollOver", "rollOut", "enterFrame"
+    pub on: String,
+    /// .gasm code to execute when the event fires
+    pub code: String,
+}
+
+// ── Symbol Property Block (AS2 MovieClip Properties) ─────────
+
+/// Properties tracked per named instance, stored in a reserved
+/// memory region so scripts can read/write them by name.
+///
+/// AS2 parallel: ball_mc._x, ball_mc._y, ball_mc._alpha, etc.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct InstanceProps {
+    pub name: String,
+    pub symbol: String,
+    pub x: i32,
+    pub y: i32,
+    #[serde(default = "default_scale")]
+    pub scale: f32,
+    #[serde(default = "default_alpha")]
+    pub alpha: u8,
+    #[serde(default)]
+    pub visible: bool,
+    #[serde(default)]
+    pub frame: u32,
+}
+
+fn default_alpha() -> u8 {
+    255
+}
+
+// ── Global Variable Declarations ─────────────────────────────
+
+/// A global variable declaration (AS2 parallel: _global.myVar = 10).
+/// The compiler allocates a fixed address in GPU memory.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct GlobalVar {
+    pub name: String,
+    #[serde(default)]
+    pub value: i32,
 }
 
 // ── Parsing ───────────────────────────────────────────────────

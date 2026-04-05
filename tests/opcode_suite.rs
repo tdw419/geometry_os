@@ -4,10 +4,49 @@
 // Cross-validation: software VM result == GPU VM result for every opcode.
 // Success criterion: cargo test runs all opcode tests in both modes, all pass.
 
+use std::ops::{Deref, DerefMut};
+use std::sync::{Mutex, MutexGuard, OnceLock};
 use pixels_move_pixels::assembler::{self, op, Program};
 use pixels_move_pixels::software_vm::SoftwareVm;
-use pixels_move_pixels::substrate::Substrate;
 use pixels_move_pixels::vm::GlyphVm;
+
+/// Process-wide shared GPU VM. Created once, reused across all tests.
+/// Each test acquires the mutex via gpu_vm_guard(), which resets the VM
+/// and returns a guard that deref-mut's to &mut GlyphVm.
+/// This avoids creating/destroying wgpu Device/Queue per test, which causes
+/// QueueId invalidation errors when tests run in parallel.
+static SHARED_GPU_VM: OnceLock<Mutex<GlyphVm>> = OnceLock::new();
+
+/// RAII guard that holds the shared GPU VM mutex lock.
+/// Derefs to &mut GlyphVm so existing test code works unchanged.
+struct GpuVmGuard<'a> {
+    _guard: MutexGuard<'a, GlyphVm>,
+}
+
+impl<'a> Deref for GpuVmGuard<'a> {
+    type Target = GlyphVm;
+    fn deref(&self) -> &Self::Target {
+        &self._guard
+    }
+}
+
+impl<'a> DerefMut for GpuVmGuard<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self._guard
+    }
+}
+
+/// Acquire exclusive access to the shared GPU VM.
+/// The VM is reset to a clean state before returning.
+fn gpu_vm_guard() -> GpuVmGuard<'static> {
+    let vm_mutex = SHARED_GPU_VM.get_or_init(|| {
+        eprintln!("[test] Initializing shared GPU device (once per process)...");
+        Mutex::new(GlyphVm::new())
+    });
+    let mut guard = vm_mutex.lock().unwrap_or_else(|e| e.into_inner());
+    guard.reset();
+    GpuVmGuard { _guard: guard }
+}
 
 // ---- Software VM opcode tests (comprehensive) ----
 
@@ -214,7 +253,7 @@ fn sv_chain_replication() {
 
 #[test]
 fn gpu_hello_pixels() {
-    let mut vm = GlyphVm::new();
+    let mut vm = gpu_vm_guard();
     let mut p = Program::new();
     p.ldi(0, 200);
     p.ldi(1, 42);
@@ -228,7 +267,7 @@ fn gpu_hello_pixels() {
 
 #[test]
 fn gpu_ldi_add() {
-    let mut vm = GlyphVm::new();
+    let mut vm = gpu_vm_guard();
     let mut p = Program::new();
     p.ldi(0, 100);
     p.ldi(1, 250);
@@ -243,7 +282,7 @@ fn gpu_ldi_add() {
 
 #[test]
 fn gpu_load_store_roundtrip() {
-    let mut vm = GlyphVm::new();
+    let mut vm = gpu_vm_guard();
     let mut p = Program::new();
     p.ldi(0, 500);
     p.ldi(1, 0xBEEF);
@@ -261,7 +300,7 @@ fn gpu_load_store_roundtrip() {
 
 #[test]
 fn gpu_self_replication() {
-    let mut vm = GlyphVm::new();
+    let mut vm = gpu_vm_guard();
     let program = assembler::self_replicator();
     vm.substrate().load_program(0, &program.pixels);
     vm.spawn_vm(0, 0);
@@ -278,7 +317,7 @@ fn gpu_self_replication() {
 
 #[test]
 fn gpu_chain_replication() {
-    let mut vm = GlyphVm::new();
+    let mut vm = gpu_vm_guard();
     let program = assembler::chain_replicator();
     let len = program.len() as u32;
 
@@ -318,7 +357,7 @@ fn cross_validate_self_replication() {
     svm.execute_frame();
 
     // GPU VM
-    let mut gpu_vm = GlyphVm::new();
+    let mut gpu_vm = gpu_vm_guard();
     gpu_vm.substrate().load_program(0, &program.pixels);
     gpu_vm.spawn_vm(0, 0);
     gpu_vm.execute_frame();
@@ -355,7 +394,7 @@ fn cross_validate_hello_pixels() {
     svm.execute_frame();
 
     // GPU
-    let mut gpu_vm = GlyphVm::new();
+    let mut gpu_vm = gpu_vm_guard();
     gpu_vm.substrate().load_program(0, &p.pixels);
     gpu_vm.spawn_vm(0, 0);
     gpu_vm.execute_frame();
@@ -400,7 +439,7 @@ fn cross_validate_mod() {
     let sv = SoftwareVm::run_program(&p.pixels, 0);
 
     // GPU VM
-    let mut gpu_vm = GlyphVm::new();
+    let mut gpu_vm = gpu_vm_guard();
     gpu_vm.substrate().load_program(0, &p.pixels);
     gpu_vm.spawn_vm(0, 0);
     gpu_vm.execute_frame();
@@ -422,7 +461,7 @@ fn cross_validate_mod_zero_divisor() {
     let sv = SoftwareVm::run_program(&p.pixels, 0);
 
     // GPU VM
-    let mut gpu_vm = GlyphVm::new();
+    let mut gpu_vm = gpu_vm_guard();
     gpu_vm.substrate().load_program(0, &p.pixels);
     gpu_vm.spawn_vm(0, 0);
     gpu_vm.execute_frame();
@@ -486,7 +525,7 @@ fn cross_validate_ldb() {
     svm.execute_frame();
 
     // GPU VM -- need to set up the same memory
-    let mut gpu_vm = GlyphVm::new();
+    let mut gpu_vm = gpu_vm_guard();
     gpu_vm.substrate().load_program(0, &p.pixels);
     gpu_vm.substrate().poke(500, 0x12345678); // seed the same data
     gpu_vm.spawn_vm(0, 0);
@@ -552,7 +591,7 @@ fn cross_validate_stb() {
     svm.execute_frame();
 
     // GPU VM
-    let mut gpu_vm = GlyphVm::new();
+    let mut gpu_vm = gpu_vm_guard();
     gpu_vm.substrate().load_program(0, &p.pixels);
     gpu_vm.substrate().poke(700, 0xFFFFFFFF); // same initial state
     gpu_vm.spawn_vm(0, 0);
@@ -588,7 +627,7 @@ fn cross_validate_stb_ldb_roundtrip() {
     svm.execute_frame();
 
     // GPU VM
-    let mut gpu_vm = GlyphVm::new();
+    let mut gpu_vm = gpu_vm_guard();
     gpu_vm.substrate().load_program(0, &p.pixels);
     gpu_vm.spawn_vm(0, 0);
     gpu_vm.execute_frame();

@@ -535,6 +535,121 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
             }
         }
 
+        // RECTF - Filled rectangle: RECTF r_x, r_y, packed_params
+        // Encoding: glyph(34, r_x, r_y, 0) followed by [packed (w<<16|h)]
+        // Color from r2 (R_COLOR convention)
+        34 => {
+            let data_word = safe_mem_read(ram, vm, (pc + 1) * 4);
+            let x = vm.regs[p1 as usize];
+            let y = vm.regs[p2 as usize];
+            let w = (data_word >> 16) & 0xFFFF;
+            let h = data_word & 0xFFFF;
+            let color = vm.regs[2]; // R_COLOR convention
+            for dy in 0..h {
+                for dx in 0..w {
+                    let px = x + dx;
+                    let py = y + dy;
+                    if px < crate::SCREEN_SIZE && py < crate::SCREEN_SIZE {
+                        let addr = crate::SCREEN_BASE + py * crate::SCREEN_SIZE + px;
+                        mem_write(ram, addr * 4, color);
+                    }
+                }
+            }
+            vm.pc += 1; // Consume data word
+        }
+
+        // LINE - Bresenham line: LINE r_x0, r_y0, packed_endpoints
+        // Encoding: glyph(35, r_x0, r_y0, 0) followed by [packed (x1<<16)|(y1&0xFFFF)]
+        // Color from r2 (R_COLOR convention)
+        35 => {
+            let data_word = safe_mem_read(ram, vm, (pc + 1) * 4);
+            let x0 = vm.regs[p1 as usize] as i32;
+            let y0 = vm.regs[p2 as usize] as i32;
+            let x1 = (data_word >> 16) as i32;
+            let y1 = (data_word & 0xFFFF) as i32;
+            let color = vm.regs[2];
+            // Bresenham
+            let dx = (x1 - x0).abs();
+            let dy = -(y1 - y0).abs();
+            let sx = if x0 < x1 { 1 } else { -1 };
+            let sy = if y0 < y1 { 1 } else { -1 };
+            let mut err = dx + dy;
+            let mut cx = x0;
+            let mut cy = y0;
+            loop {
+                let px = cx as u32;
+                let py = cy as u32;
+                if px < crate::SCREEN_SIZE && py < crate::SCREEN_SIZE {
+                    let addr = crate::SCREEN_BASE + py * crate::SCREEN_SIZE + px;
+                    mem_write(ram, addr * 4, color);
+                }
+                if cx == x1 && cy == y1 { break; }
+                let e2 = 2 * err;
+                if e2 >= dy { err += dy; cx += sx; }
+                if e2 <= dx { err += dx; cy += sy; }
+            }
+            vm.pc += 1;
+        }
+
+        // TEXT_STR - Draw null-terminated string: TEXT_STR r_addr, r_x, r_y
+        36 => {
+            let addr_reg = p1 as usize;
+            let mut x = vm.regs[p2 as usize];
+            let y = vm.regs[stratum as usize];
+            let color = vm.regs[2];
+            let base_addr = vm.regs[addr_reg];
+            let mut offset = 0u32;
+            loop {
+                let ch = safe_mem_read(ram, vm, (base_addr + offset) * 4);
+                if ch == 0 { break; }
+                // Simple 8x8 character rendering using font atlas
+                let ascii = (ch & 0xFF) as u8;
+                if ascii >= 128 { offset += 1; x += 8; continue; }
+                let rows = crate::font_atlas::get_char_rows(ascii);
+                for row in 0..8u32 {
+                    let font_byte = rows[row as usize];
+                    for col in 0..8u32 {
+                        if font_byte & (0x80 >> col) != 0 {
+                            let px = x + col;
+                            let py = y + row;
+                            if px < crate::SCREEN_SIZE && py < crate::SCREEN_SIZE {
+                                let addr = crate::SCREEN_BASE + py * crate::SCREEN_SIZE + px;
+                                mem_write(ram, addr * 4, color);
+                            }
+                        }
+                    }
+                }
+                x += 8;
+                offset += 1;
+                if offset > 256 { break; } // safety limit
+            }
+        }
+
+        // CIRCLEF - Filled circle: CIRCLEF r_cx, r_cy, r_radius
+        37 => {
+            let cx = vm.regs[p1 as usize];
+            let cy = vm.regs[p2 as usize];
+            let r = vm.regs[stratum as usize];
+            let color = vm.regs[2];
+            if r > 0 {
+                let r = r as i32;
+                let cy_i = cy as i32;
+                let cx_i = cx as i32;
+                for dy in -r..=r {
+                    for dx in -r..=r {
+                        if dx * dx + dy * dy <= r * r {
+                            let px = (cx_i + dx) as u32;
+                            let py = (cy_i + dy) as u32;
+                            if px < crate::SCREEN_SIZE && py < crate::SCREEN_SIZE {
+                                let addr = crate::SCREEN_BASE + py * crate::SCREEN_SIZE + px;
+                                mem_write(ram, addr * 4, color);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Unknown opcode - skip
         _ => {}
     }
@@ -4292,13 +4407,13 @@ HALT
 
         // RECV with polling loop: spin until status != 0
         // Layout: LDI r0 -> RECV -> LDI r3 -> BNE(skip_jmp) -> JMP(recv) -> HALT
-        let recv_addr = worker.pixels.len() as u32;
+        let _recv_addr = worker.pixels.len() as u32;
         worker.ldi(0, resp_addr);       // +2 pixels
         let recv_instr_addr = worker.pixels.len() as u32;
         worker.recv(0, 1);              // +1 pixel
         worker.ldi(3, 0);               // +2 pixels
         // BNE: if r1 != 0 (got message), jump over JMP-back to HALT
-        let bne_addr = worker.pixels.len() as u32;
+        let _bne_addr = worker.pixels.len() as u32;
         worker.instruction(op::BRANCH, bcond::BNE, 1, 3);
         // offset: from bne_addr (the BRANCH instruction), skip +3 pixels (offset word + JMP + its offset)
         worker.pixels.push(3);

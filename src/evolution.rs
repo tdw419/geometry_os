@@ -423,6 +423,478 @@ impl EvolutionLoop {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// GPU Evolution Loop — fitness measured on real GPU hardware
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// "The CPU emulator was the prototype. The GPU is the product."
+//
+// This is the real "programs write programs" loop. Each mutant is dispatched
+// to the GPU as a compute shader. Cycle counts come from actual hardware.
+// Batch mode runs up to 8 individuals in parallel per dispatch.
+//
+// Key differences from CPU EvolutionLoop:
+//   - Uses `fitness::gpu_benchmark_batch()` instead of `safe_benchmark()`
+//   - Individuals are placed at spaced GPU addresses (one per VM slot)
+//   - Up to 8 individuals benchmarked simultaneously (one compute pass)
+//   - Real GPU cycles, not simulated
+
+/// Address stride between individuals on the GPU substrate.
+/// Each individual gets 4096 Hilbert addresses (16KB) of space.
+const GPU_INDIVIDUAL_STRIDE: u32 = 4096;
+
+/// Configuration for the GPU evolution loop.
+#[derive(Debug, Clone)]
+pub struct GpuEvolutionConfig {
+    /// Number of individuals in the population (default: 20).
+    pub population_size: usize,
+    /// Number of top performers to keep each generation (default: 5).
+    pub elite_count: usize,
+    /// Maximum generations to run (default: 1000).
+    pub max_generations: u32,
+    /// Bit-flip mutation rate (default: 0.05 = 5%).
+    pub mutation_rate: f64,
+    /// Maximum frames per fitness benchmark (default: 10).
+    pub benchmark_frames: u32,
+    /// Seed program to initialize the population from.
+    pub seed: Program,
+}
+
+impl Default for GpuEvolutionConfig {
+    fn default() -> Self {
+        Self {
+            population_size: 20,
+            elite_count: 5,
+            max_generations: 1000,
+            mutation_rate: 0.05,
+            benchmark_frames: 10,
+            seed: assembler::self_replicator(),
+        }
+    }
+}
+
+/// A comparison result between CPU and GPU evolution runs.
+#[derive(Debug, Clone)]
+pub struct CpuGpuComparison {
+    pub cpu_best_fitness: f64,
+    pub gpu_best_fitness: f64,
+    pub cpu_best_cycles: u32,
+    pub gpu_best_cycles: u32,
+    pub generations_run: u32,
+    pub gpu_converged_faster: bool,
+    pub gpu_found_different_optimum: bool,
+}
+
+/// The GPU evolution loop state machine.
+///
+/// Owns a `GlyphVm` instance and dispatches mutants to real GPU hardware.
+/// Uses batched benchmarking (up to 8 VMs in parallel) for throughput.
+pub struct GpuEvolutionLoop {
+    config: GpuEvolutionConfig,
+    gpu: crate::vm::GlyphVm,
+    population: Vec<Individual>,
+    log: Vec<LogRow>,
+    stats: Vec<GenerationStats>,
+    next_id: u64,
+    generation: u32,
+    last_good_population: Vec<Individual>,
+}
+
+impl GpuEvolutionLoop {
+    /// Create a new GPU evolution loop. Initializes the GPU on construction.
+    pub fn new(config: GpuEvolutionConfig) -> Self {
+        let mut gpu = crate::vm::GlyphVm::new();
+
+        // Benchmark the seed program on real GPU hardware
+        let seed_fitness = fitness::gpu_benchmark(
+            &mut gpu,
+            &config.seed.pixels,
+            &BenchmarkConfig::default().with_max_frames(config.benchmark_frames),
+        );
+        let seed_hash = mutation::hash_program(&config.seed.pixels);
+
+        let seed_individual = Individual {
+            id: 0,
+            pixels: config.seed.pixels.clone(),
+            fitness: seed_fitness,
+            method: MutationMethod::Seed,
+            parent_hash: 0,
+            hash: seed_hash,
+            generation: 0,
+            governed: true,
+        };
+
+        let mut population = Vec::with_capacity(config.population_size);
+        let mut next_id = 1u64;
+        population.push(seed_individual.clone());
+        for _ in 1..config.population_size {
+            population.push(Individual {
+                id: next_id,
+                pixels: config.seed.pixels.clone(),
+                fitness: population[0].fitness.clone(),
+                method: MutationMethod::Seed,
+                parent_hash: 0,
+                hash: seed_hash,
+                generation: 0,
+                governed: true,
+            });
+            next_id += 1;
+        }
+
+        let last_good = population.clone();
+
+        Self {
+            config,
+            gpu,
+            population,
+            log: Vec::new(),
+            stats: Vec::new(),
+            next_id,
+            generation: 0,
+            last_good_population: last_good,
+        }
+    }
+
+    /// Run the evolution loop for max_generations.
+    pub fn run(&mut self) -> Vec<Individual> {
+        for _ in 0..self.config.max_generations {
+            self.step();
+        }
+        self.population.sort_by(|a, b| {
+            b.fitness
+                .composite
+                .partial_cmp(&a.fitness.composite)
+                .unwrap()
+        });
+        self.population.clone()
+    }
+
+    /// Run a single generation step using GPU batched benchmarking.
+    pub fn step(&mut self) -> GenerationStats {
+        let generation = self.generation;
+        let mut rng = SmallRng::from_entropy();
+
+        // ── Phase 1: Mutate each individual (placeholder fitness) ──
+        let mut offspring: Vec<Individual> = Vec::with_capacity(self.population.len());
+        // We defer logging until after Phase 2 so fitness values come from real GPU.
+
+        for parent in &self.population {
+            let method = MutationMethod::BitFlip {
+                rate: self.config.mutation_rate,
+            };
+            let mutant = mutation::evolve_one(&parent.pixels, generation + 1, method);
+
+            // Placeholder fitness -- will be replaced by real GPU benchmark
+            // for governed individuals in Phase 2.
+            let fitness = zero_fitness(mutant.pixels.len());
+
+            let individual = Individual {
+                id: self.next_id,
+                pixels: mutant.pixels.clone(),
+                fitness,
+                method: mutant.lineage.method,
+                parent_hash: mutant.lineage.parent_hash,
+                hash: mutant.lineage.hash,
+                generation: generation + 1,
+                governed: mutant.governed,
+            };
+            self.next_id += 1;
+            offspring.push(individual);
+        }
+
+        // ── Phase 2: Batch GPU benchmark all governed offspring ──
+        let governed_indices: Vec<usize> = offspring
+            .iter()
+            .enumerate()
+            .filter(|(_, i)| i.governed)
+            .map(|(idx, _)| idx)
+            .collect();
+
+        // Prepare batch: up to 8 individuals at spaced addresses
+        for chunk in governed_indices.chunks(8) {
+            let batch: Vec<(u32, &[u32])> = chunk
+                .iter()
+                .enumerate()
+                .map(|(slot, &idx)| {
+                    let addr = (slot as u32) * GPU_INDIVIDUAL_STRIDE;
+                    (addr, offspring[idx].pixels.as_slice())
+                })
+                .collect();
+
+            let scores = fitness::gpu_benchmark_batch(
+                &mut self.gpu,
+                &batch,
+                self.config.benchmark_frames,
+            );
+
+            for (i, &idx) in chunk.iter().enumerate() {
+                offspring[idx].fitness = scores[i].clone();
+            }
+        }
+
+        // ── Phase 2.5: Log all offspring with real fitness from GPU ──
+        for ind in &offspring {
+            let gov_summary = if ind.governed {
+                "approved".to_string()
+            } else {
+                "rejected".to_string()
+            };
+
+            let method_str = format!("{:?}", ind.method);
+
+            self.log.push(LogRow {
+                generation: generation + 1,
+                individual_id: ind.id,
+                parent_hash: ind.parent_hash,
+                fitness_composite: ind.fitness.composite,
+                fitness_speed: ind.fitness.speed,
+                fitness_correctness: ind.fitness.correctness,
+                fitness_memory: ind.fitness.memory,
+                fitness_locality: ind.fitness.locality,
+                governance_result: gov_summary,
+                mutation_type: method_str,
+            });
+        }
+
+        // ── Phase 3: Check if any offspring passed governance ──
+        let any_governed = offspring.iter().any(|i| i.governed);
+
+        if !any_governed {
+            offspring = self.last_good_population.clone();
+            for ind in &mut offspring {
+                ind.generation = generation + 1;
+            }
+        }
+
+        // ── Phase 4: Rank by composite fitness ──
+        offspring.sort_by(|a, b| {
+            b.fitness
+                .composite
+                .partial_cmp(&a.fitness.composite)
+                .unwrap()
+        });
+
+        // ── Phase 5: Keep top K (elite) ──
+        let mut candidates: Vec<Individual> = offspring;
+        candidates.extend(self.population.iter().cloned());
+        candidates.sort_by(|a, b| {
+            b.fitness
+                .composite
+                .partial_cmp(&a.fitness.composite)
+                .unwrap()
+        });
+
+        let elite_count = self.config.elite_count.min(candidates.len());
+        let mut survivors: Vec<Individual> = candidates[..elite_count].to_vec();
+
+        if survivors.iter().any(|i| i.governed) {
+            self.last_good_population = survivors.clone();
+        }
+
+        // ── Phase 6: Refill population via crossover + mutation ──
+        while survivors.len() < self.config.population_size {
+            let parent_a_idx = rng.gen_range(0..elite_count);
+            let parent_b_idx = rng.gen_range(0..elite_count);
+
+            let child_pixels = mutation::crossover(
+                &survivors[parent_a_idx].pixels,
+                &survivors[parent_b_idx].pixels,
+            );
+
+            let mutated = mutation::mutate(&child_pixels, self.config.mutation_rate);
+            let gov_result = crate::governance::check(&mutated);
+
+            // GPU-benchmark the crossover child
+            let fitness = if gov_result.approved {
+                let cfg = BenchmarkConfig::default().with_max_frames(self.config.benchmark_frames);
+                fitness::gpu_benchmark(&mut self.gpu, &mutated, &cfg)
+            } else {
+                zero_fitness(mutated.len())
+            };
+
+            let gov_summary = if gov_result.approved {
+                "approved".to_string()
+            } else {
+                format!("rejected: {}", gov_result.reason)
+            };
+
+            self.log.push(LogRow {
+                generation: generation + 1,
+                individual_id: self.next_id,
+                parent_hash: mutation::hash_program(&child_pixels),
+                fitness_composite: fitness.composite,
+                fitness_speed: fitness.speed,
+                fitness_correctness: fitness.correctness,
+                fitness_memory: fitness.memory,
+                fitness_locality: fitness.locality,
+                governance_result: gov_summary,
+                mutation_type: "Crossover+BitFlip".to_string(),
+            });
+
+            survivors.push(Individual {
+                id: self.next_id,
+                pixels: mutated,
+                fitness,
+                method: MutationMethod::Crossover { cut_point: 0 },
+                parent_hash: mutation::hash_program(&survivors[parent_a_idx].pixels),
+                hash: 0,
+                generation: generation + 1,
+                governed: gov_result.approved,
+            });
+            self.next_id += 1;
+        }
+
+        // ── Phase 7: Compute generation stats ──
+        let composites: Vec<f64> = survivors.iter().map(|i| i.fitness.composite).collect();
+        let best = composites.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let worst = composites.iter().cloned().fold(f64::INFINITY, f64::min);
+        let avg = composites.iter().sum::<f64>() / composites.len() as f64;
+        let violations = survivors.iter().filter(|i| !i.governed).count();
+
+        let mut hashes: Vec<u64> = survivors.iter().map(|i| i.hash).collect();
+        hashes.sort();
+        hashes.dedup();
+        let diversity = hashes.len() as f64 / survivors.len() as f64;
+
+        let stat = GenerationStats {
+            generation: generation + 1,
+            best_fitness: best,
+            avg_fitness: avg,
+            worst_fitness: worst,
+            diversity,
+            governance_violations: violations,
+            population_size: survivors.len(),
+        };
+
+        self.population = survivors;
+        self.generation = generation + 1;
+        self.stats.push(stat.clone());
+
+        stat
+    }
+
+    /// Get the best individual seen so far.
+    pub fn best(&self) -> &Individual {
+        self.population
+            .iter()
+            .max_by(|a, b| {
+                a.fitness
+                    .composite
+                    .partial_cmp(&b.fitness.composite)
+                    .unwrap()
+            })
+            .unwrap()
+    }
+
+    /// Get all generation stats.
+    pub fn stats(&self) -> &[GenerationStats] {
+        &self.stats
+    }
+
+    /// Get the CSV log.
+    pub fn log(&self) -> &[LogRow] {
+        &self.log
+    }
+
+    /// Export the log as CSV string.
+    pub fn csv(&self) -> String {
+        let mut csv = String::from(
+            "generation,individual_id,parent_id,fitness_composite,fitness_speed,\
+             fitness_correctness,fitness_memory,fitness_locality,governance_result,mutation_type\n",
+        );
+        for row in &self.log {
+            csv.push_str(&format!(
+                "{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{},{}\n",
+                row.generation,
+                row.individual_id,
+                row.parent_hash,
+                row.fitness_composite,
+                row.fitness_speed,
+                row.fitness_correctness,
+                row.fitness_memory,
+                row.fitness_locality,
+                row.governance_result,
+                row.mutation_type,
+            ));
+        }
+        csv
+    }
+
+    /// Compare CPU vs GPU evolution: run both side by side and return a comparison.
+    /// This answers the question: "does GPU evolution converge faster or find
+    /// different optima than CPU evolution?"
+    pub fn compare_with_cpu(
+        gpu_config: GpuEvolutionConfig,
+        generations: u32,
+    ) -> CpuGpuComparison {
+        // CPU run
+        let cpu_config = EvolutionConfig {
+            population_size: gpu_config.population_size,
+            elite_count: gpu_config.elite_count,
+            max_generations: generations,
+            mutation_rate: gpu_config.mutation_rate,
+            benchmark_frames: gpu_config.benchmark_frames,
+            seed: gpu_config.seed.clone(),
+        };
+        let mut cpu_loop = EvolutionLoop::new(cpu_config);
+        let _cpu_pop = cpu_loop.run();
+
+        // GPU run
+        let mut gpu_config = gpu_config;
+        gpu_config.max_generations = generations;
+        let mut gpu_loop = GpuEvolutionLoop::new(gpu_config);
+        let _gpu_pop = gpu_loop.run();
+
+        let cpu_best = cpu_loop.best();
+        let gpu_best = gpu_loop.best();
+
+        let cpu_fitness = cpu_best.fitness.composite;
+        let gpu_fitness = gpu_best.fitness.composite;
+
+        // Check if GPU converged faster: did GPU reach CPU's final fitness
+        // in fewer generations?
+        let gpu_converged_faster = {
+            let cpu_target = cpu_fitness;
+            let gpu_stats = gpu_loop.stats();
+            let cpu_stats = cpu_loop.stats();
+
+            // Did GPU reach CPU's fitness level?
+            let gpu_reached = gpu_stats.iter().any(|s| s.best_fitness >= cpu_target - 1e-9);
+            let cpu_reached = cpu_stats.iter().any(|s| s.best_fitness >= gpu_fitness - 1e-9);
+
+            // GPU converged faster if it reached CPU's level, and either
+            // CPU didn't reach GPU's level or GPU got there in fewer gens
+            if gpu_reached {
+                let gpu_gen = gpu_stats
+                    .iter()
+                    .position(|s| s.best_fitness >= cpu_target - 1e-9)
+                    .unwrap_or(usize::MAX);
+                if cpu_reached {
+                    let cpu_gen = cpu_stats
+                        .iter()
+                        .position(|s| s.best_fitness >= gpu_fitness - 1e-9)
+                        .unwrap_or(usize::MAX);
+                    gpu_gen <= cpu_gen
+                } else {
+                    true
+                }
+            } else {
+                false
+            }
+        };
+
+        CpuGpuComparison {
+            cpu_best_fitness: cpu_fitness,
+            gpu_best_fitness: gpu_fitness,
+            cpu_best_cycles: cpu_best.fitness.cycles,
+            gpu_best_cycles: gpu_best.fitness.cycles,
+            generations_run: generations,
+            gpu_converged_faster,
+            gpu_found_different_optimum: (gpu_fitness - cpu_fitness).abs() > 0.01,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -488,6 +960,76 @@ mod tests {
 
         eprintln!("\n=== Evolution Loop Results ===");
         for stat in stats {
+            eprintln!(
+                "Gen {:3}: best={:.4} avg={:.4} diversity={:.2} violations={}",
+                stat.generation,
+                stat.best_fitness,
+                stat.avg_fitness,
+                stat.diversity,
+                stat.governance_violations,
+            );
+        }
+        eprintln!("Initial best: {:.4}", initial_best);
+        eprintln!("Final best:   {:.4}", final_best);
+    }
+
+    #[ignore] // Requires exclusive GPU access
+    #[test]
+    fn gpu_evolution_loop() {
+        // Run 3 generations of GPU evolution on the self-replicator seed.
+        // This test requires a GPU. It validates the full hardware path:
+        //   mutate -> load to GPU -> dispatch compute shader -> read back -> score
+        let config = GpuEvolutionConfig {
+            population_size: 6,
+            elite_count: 2,
+            max_generations: 3,
+            mutation_rate: 0.05,
+            benchmark_frames: 5,
+            seed: assembler::self_replicator(),
+        };
+
+        let mut loop_ = GpuEvolutionLoop::new(config);
+        let initial_best = loop_.best().fitness.composite;
+
+        // Run the loop
+        let final_population = loop_.run();
+
+        // Verify: 3 generations completed without crash
+        assert_eq!(
+            loop_.stats().len(),
+            3,
+            "GPU evolution should have 3 generation stats"
+        );
+
+        // Verify: final population has correct size
+        assert_eq!(
+            final_population.len(),
+            6,
+            "GPU population should be 6"
+        );
+
+        // Verify: best fitness >= initial (elitism preserves best)
+        let final_best = final_population
+            .iter()
+            .map(|i| i.fitness.composite)
+            .fold(f64::NEG_INFINITY, f64::max);
+        assert!(
+            final_best >= initial_best - 1e-9,
+            "GPU best fitness ({}) should be >= initial ({})",
+            final_best,
+            initial_best,
+        );
+
+        // Verify: CSV log is valid
+        let csv = loop_.csv();
+        let lines: Vec<&str> = csv.lines().collect();
+        assert!(lines.len() > 1, "GPU CSV should have header + data rows");
+
+        // Verify: log was populated
+        assert!(!loop_.log().is_empty(), "GPU log should not be empty");
+
+        eprintln!("\n=== GPU Evolution Loop Results ===");
+        for stat in loop_.stats() {
             eprintln!(
                 "Gen {:3}: best={:.4} avg={:.4} diversity={:.2} violations={}",
                 stat.generation,

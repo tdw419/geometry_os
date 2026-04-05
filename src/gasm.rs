@@ -611,22 +611,22 @@ fn emit_instruction(
             emit_alu(op::MOD, mnemonic, operands, prog, line_num)?;
         }
         "RECTF" => {
-            // RECTF r_x, r_y, r_params -- 2 pixels: instruction + packed params
+            // RECTF r_x, r_y, packed_params -- 2 pixels: instruction + packed (w<<16|h) immediate
             expect_ops(mnemonic, operands, 3, line_num)?;
             let x = parse_reg(&operands[0], line_num, "x")?;
             let y = parse_reg(&operands[1], line_num, "y")?;
-            let params = parse_reg(&operands[2], line_num, "params")?;
+            let packed = parse_imm(&operands[2], line_num)?;
             prog.instruction(op::RECTF, x, y, 0);
-            prog.pixels.push(params as u32);
+            prog.pixels.push(packed);
         }
         "LINE" => {
-            // LINE r_x0, r_y0, r_params -- 2 pixels: instruction + packed endpoints
+            // LINE r_x0, r_y0, packed_endpoints -- 2 pixels: instruction + packed (x1<<16|y1) immediate
             expect_ops(mnemonic, operands, 3, line_num)?;
             let x0 = parse_reg(&operands[0], line_num, "x0")?;
             let y0 = parse_reg(&operands[1], line_num, "y0")?;
-            let params = parse_reg(&operands[2], line_num, "endpoints")?;
+            let packed = parse_imm(&operands[2], line_num)?;
             prog.instruction(op::LINE, x0, y0, 0);
-            prog.pixels.push(params as u32);
+            prog.pixels.push(packed);
         }
         "TEXT_STR" => {
             // TEXT_STR r_addr, r_x, r_y

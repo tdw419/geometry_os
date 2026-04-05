@@ -59,6 +59,14 @@ pub const CMD_OPEN: u32 = 3;
 pub const CMD_CLOSE: u32 = 4;
 /// Device control operation.
 pub const CMD_IOCTL: u32 = 5;
+/// Execute a SQL query. param1=addr of SQL string, param2=addr of result buffer, param3=buffer size.
+pub const CMD_SQL_QUERY: u32 = 6;
+/// Call an LLM model. param1=addr of prompt string, param2=addr of response buffer, param3=buffer size, param4=model flags.
+pub const CMD_MODEL_CALL: u32 = 7;
+/// Read a status value. param1=addr of key string, param2=addr for value (u32).
+pub const CMD_STATUS_READ: u32 = 8;
+/// Write a status value. param1=addr of key string, param2=value (u32).
+pub const CMD_STATUS_WRITE: u32 = 9;
 
 // ── Status Values ──
 
@@ -306,6 +314,121 @@ impl FileExecutor {
         }
     }
 }
+
+// ── Agent Executor ──
+
+/// Read a null-terminated string from substrate memory starting at byte address `addr`.
+/// Reads up to `max_len` bytes. Returns the string without the null terminator.
+pub fn read_substrate_string(substrate: &Substrate, addr: u32, max_len: usize) -> String {
+    let mut bytes = Vec::with_capacity(max_len);
+    for i in 0..max_len {
+        let b = substrate.peek_byte(addr + i as u32);
+        if b == 0 {
+            break;
+        }
+        bytes.push(b);
+    }
+    String::from_utf8_lossy(&bytes).into_owned()
+}
+
+/// Write a string as null-terminated bytes into substrate memory at byte address `addr`.
+/// Returns the number of bytes written (including null terminator).
+pub fn write_substrate_string(substrate: &Substrate, addr: u32, s: &str, max_len: usize) -> usize {
+    let bytes = s.as_bytes();
+    let write_len = bytes.len().min(max_len - 1); // leave room for null
+    for (i, &b) in bytes.iter().take(write_len).enumerate() {
+        substrate.poke_byte(addr + i as u32, b);
+    }
+    substrate.poke_byte(addr + write_len as u32, 0); // null terminator
+    write_len + 1
+}
+
+/// In-memory status store for CMD_STATUS_READ / CMD_STATUS_WRITE.
+/// Maps string keys to u32 values. Used by the agent loop to persist state
+/// across iterations (mutation count, best fitness, explore/exploit mode).
+pub type StatusStore = std::collections::HashMap<String, u32>;
+
+/// Agent-capable command executor.
+///
+/// Handles all 9 command types:
+/// - Commands 1-5 (READ_BLOCK through IOCTL): delegated to FileExecutor
+/// - Command 6 (SQL_QUERY): returns NOT_IMPLEMENTED (implement in GEO-61)
+/// - Command 7 (MODEL_CALL): returns NOT_IMPLEMENTED (implement in GEO-62/63)
+/// - Command 8 (STATUS_READ): reads from the in-memory status store
+/// - Command 9 (STATUS_WRITE): writes to the in-memory status store
+///
+/// The status store is shared via `Rc<RefCell<>>` so tests can inspect it.
+pub struct AgentExecutor {
+    file_executor: FileExecutor,
+    status: Rc<RefCell<StatusStore>>,
+}
+
+impl AgentExecutor {
+    pub fn new() -> Self {
+        Self {
+            file_executor: FileExecutor,
+            status: Rc::new(RefCell::new(StatusStore::new())),
+        }
+    }
+
+    /// Get a clone of the status store handle for inspection in tests.
+    pub fn status_handle(&self) -> Rc<RefCell<StatusStore>> {
+        Rc::clone(&self.status)
+    }
+
+    fn handle_status_read(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
+        let key = read_substrate_string(substrate, cmd.param1, 256);
+        let store = self.status.borrow();
+        match store.get(&key) {
+            Some(&value) => {
+                substrate.poke(cmd.param2, value);
+                CommandResult {
+                    status: STATUS_COMPLETE,
+                    result: 1, // key found
+                }
+            }
+            None => CommandResult {
+                status: STATUS_COMPLETE,
+                result: 0, // key not found
+            },
+        }
+    }
+
+    fn handle_status_write(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
+        let key = read_substrate_string(substrate, cmd.param1, 256);
+        let mut store = self.status.borrow_mut();
+        store.insert(key, cmd.param2);
+        CommandResult {
+            status: STATUS_COMPLETE,
+            result: 0,
+        }
+    }
+}
+
+impl CommandExecutor for AgentExecutor {
+    fn execute(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
+        match cmd.cmd_type {
+            1..=5 => self.file_executor.execute(cmd, substrate),
+            CMD_SQL_QUERY => CommandResult {
+                status: STATUS_ERROR,
+                result: 0xFFFF_FFFB, // Not yet implemented (GEO-61)
+            },
+            CMD_MODEL_CALL => CommandResult {
+                status: STATUS_ERROR,
+                result: 0xFFFF_FFFA, // Not yet implemented (GEO-62)
+            },
+            CMD_STATUS_READ => self.handle_status_read(cmd, substrate),
+            CMD_STATUS_WRITE => self.handle_status_write(cmd, substrate),
+            _ => CommandResult {
+                status: STATUS_ERROR,
+                result: 0xFFFF_FFFE, // Unknown command
+            },
+        }
+    }
+}
+
+use std::cell::RefCell;
+use std::rc::Rc;
 
 // Safety: We use from_raw_fd which is unsafe, and we carefully reclaim the fd
 // with into_raw_fd to avoid double-close. This is correct as long as we never
