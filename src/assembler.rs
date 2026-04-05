@@ -53,6 +53,10 @@ pub mod op {
     pub const MOD: u8 = 31;  // Modulo: MOD rd, rs       (rd %= rs)
     pub const LDB: u8 = 32;  // Load byte: LDB rd, [rs]  (rd = byte at byte addr rs)
     pub const STB: u8 = 33;  // Store byte: STB [rd], rs (store low byte of rs to byte addr rd)
+    pub const RECTF: u8 = 34;  // Filled rectangle: RECTF r_x, r_y, r_params (params = w<<16|h, color from color reg)
+    pub const LINE: u8 = 35;   // Line: LINE r_x0, r_y0, r_params (params = x1<<16|y1, color from color reg)
+    pub const TEXT_STR: u8 = 36; // Text string: TEXT_STR r_addr, r_x, r_y (null-terminated string at addr)
+    pub const CIRCLEF: u8 = 37; // Filled circle: CIRCLEF r_cx, r_cy, r_radius (color from color reg)
     pub const DRAW: u8 = 215; // Legacy alias (unused)
     pub const SPAWN: u8 = 230;
     pub const YIELD: u8 = 227;
@@ -279,6 +283,40 @@ impl Program {
     /// WAIT_EVENT: Block until event arrives. r_event_type, r_param1
     pub fn wait_event(&mut self, event_type_reg: u8, param1_reg: u8) -> &mut Self {
         self.instruction(op::WAIT_EVENT, event_type_reg, param1_reg, 0)
+    }
+
+    /// Filled rectangle: RECTF r_x, r_y, r_params
+    /// r_params packed: (w << 16) | h
+    /// Color comes from a preceding LDI into a "color register" (convention: r100).
+    /// Emits 2 pixels: [RECTF instruction] [packed params]
+    pub fn rectf(&mut self, x_reg: u8, y_reg: u8, packed_params: u32) -> &mut Self {
+        self.instruction(op::RECTF, x_reg, y_reg, 0);
+        self.pixels.push(packed_params);
+        self
+    }
+
+    /// Line: LINE r_x0, r_y0, r_params
+    /// r_params packed: (x1 << 16) | (y1 & 0xFFFF) -- signed coords as u16
+    /// Color from color register (r100).
+    /// Emits 2 pixels: [LINE instruction] [packed params]
+    pub fn line(&mut self, x0_reg: u8, y0_reg: u8, packed_endpoints: u32) -> &mut Self {
+        self.instruction(op::LINE, x0_reg, y0_reg, 0);
+        self.pixels.push(packed_endpoints);
+        self
+    }
+
+    /// Text string: TEXT_STR r_addr, r_x, r_y
+    /// Reads a null-terminated string from the address in r_addr,
+    /// renders it starting at screen position (r_x, r_y).
+    /// Color from color register (r100).
+    pub fn text_str(&mut self, addr_reg: u8, x_reg: u8, y_reg: u8) -> &mut Self {
+        self.instruction(op::TEXT_STR, addr_reg, x_reg, y_reg)
+    }
+
+    /// Filled circle: CIRCLEF r_cx, r_cy, r_radius
+    /// Color from color register (r100).
+    pub fn circlef(&mut self, cx_reg: u8, cy_reg: u8, radius_reg: u8) -> &mut Self {
+        self.instruction(op::CIRCLEF, cx_reg, cy_reg, radius_reg)
     }
 
     /// Halt execution

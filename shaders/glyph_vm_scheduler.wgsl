@@ -244,16 +244,24 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
             return 1u; // Jumped
         }
 
-        // BNE - Branch if not equal: BNE r1, r2, offset
-        // Note: Compiler emits BNE as [10, 1, r1, r2] followed by [offset]
+        // BRANCH - Conditional branch: BRANCH cond, r1, r2, offset
+        // cond (stratum): 0=BEQ, 1=BNE, 2=BLT(signed), 3=BGE(signed), 4=BLTU(unsigned), 5=BGEU(unsigned)
         case 10u: {
             let offset = mem_read((pc + 1u) * 4u);
-            if ((*vm).regs[p1] != (*vm).regs[p2]) {
-                // offset is signed, but we store it as u32
-                // We'll treat it as i32 for the jump
-                let signed_offset = i32(offset);
-                let new_pc = i32(pc) + signed_offset;
-                (*vm).pc = u32(new_pc);
+            let a = (*vm).regs[p1];
+            let b = (*vm).regs[p2];
+            let take = false
+                || (stratum == 0u && a == b)                                    // BEQ
+                || (stratum == 1u && a != b)                                   // BNE
+                || (stratum == 2u && bitcast<i32>(a) < bitcast<i32>(b))       // BLT (signed)
+                || (stratum == 3u && bitcast<i32>(a) >= bitcast<i32>(b))      // BGE (signed)
+                || (stratum == 4u && a < b)                                    // BLTU (unsigned)
+                || (stratum == 5u && a >= b)                                   // BGEU (unsigned)
+                || (stratum > 5u && a != b);                                   // fallback: BNE
+            if (take) {
+                let signed_offset = bitcast<i32>(offset);
+                let new_pc = bitcast<i32>(pc) + signed_offset;
+                (*vm).pc = bitcast<u32>(new_pc);
                 return 1u; // Jumped
             }
             (*vm).pc = pc + 1u; // Skip offset word

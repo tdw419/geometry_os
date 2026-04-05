@@ -204,10 +204,11 @@ fn split_operands(s: &str) -> Vec<String> {
 }
 
 /// How many pixels an instruction emits.
-/// Most are 1 pixel, but LDI/JMP/BRANCH/CALL/BLIT are 2 (instruction + data word).
+/// Most are 1 pixel, but LDI/JMP/BRANCH/CALL/BLIT/RECTF/LINE are 2 (instruction + data word).
 fn instruction_size(mnemonic: &str) -> usize {
     match mnemonic {
-        "LDI" | "JMP" | "BNE" | "BEQ" | "BLT" | "BGE" | "BLTU" | "BGEU" | "CALL" | "BLIT" | "SEND" => 2,
+        "LDI" | "JMP" | "BNE" | "BEQ" | "BLT" | "BGE" | "BLTU" | "BGEU" | "CALL" | "BLIT"
+        | "SEND" | "RECTF" | "LINE" => 2,
         _ => 1,
     }
 }
@@ -310,12 +311,16 @@ fn is_valid_mnemonic(m: &str) -> bool {
             | "NOT"
             | "PSET"
             | "PGET"
-            |        "LDB"
+            | "LDB"
             | "STB"
             | "MOD"
             | "YIELD"
             | "GLYPH_DEF"
             | "FRAME"
+            | "RECTF"
+            | "LINE"
+            | "TEXT_STR"
+            | "CIRCLEF"
             | "DATA"
     )
 }
@@ -604,6 +609,40 @@ fn emit_instruction(
         }
         "MOD" => {
             emit_alu(op::MOD, mnemonic, operands, prog, line_num)?;
+        }
+        "RECTF" => {
+            // RECTF r_x, r_y, r_params -- 2 pixels: instruction + packed params
+            expect_ops(mnemonic, operands, 3, line_num)?;
+            let x = parse_reg(&operands[0], line_num, "x")?;
+            let y = parse_reg(&operands[1], line_num, "y")?;
+            let params = parse_reg(&operands[2], line_num, "params")?;
+            prog.instruction(op::RECTF, x, y, 0);
+            prog.pixels.push(params as u32);
+        }
+        "LINE" => {
+            // LINE r_x0, r_y0, r_params -- 2 pixels: instruction + packed endpoints
+            expect_ops(mnemonic, operands, 3, line_num)?;
+            let x0 = parse_reg(&operands[0], line_num, "x0")?;
+            let y0 = parse_reg(&operands[1], line_num, "y0")?;
+            let params = parse_reg(&operands[2], line_num, "endpoints")?;
+            prog.instruction(op::LINE, x0, y0, 0);
+            prog.pixels.push(params as u32);
+        }
+        "TEXT_STR" => {
+            // TEXT_STR r_addr, r_x, r_y
+            expect_ops(mnemonic, operands, 3, line_num)?;
+            let addr = parse_reg(&operands[0], line_num, "addr")?;
+            let x = parse_reg(&operands[1], line_num, "x")?;
+            let y = parse_reg(&operands[2], line_num, "y")?;
+            prog.instruction(op::TEXT_STR, addr, x, y);
+        }
+        "CIRCLEF" => {
+            // CIRCLEF r_cx, r_cy, r_radius
+            expect_ops(mnemonic, operands, 3, line_num)?;
+            let cx = parse_reg(&operands[0], line_num, "cx")?;
+            let cy = parse_reg(&operands[1], line_num, "cy")?;
+            let r = parse_reg(&operands[2], line_num, "radius")?;
+            prog.instruction(op::CIRCLEF, cx, cy, r);
         }
         "DATA" => {
             expect_ops(mnemonic, operands, 1, line_num)?;

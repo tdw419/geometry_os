@@ -63,7 +63,43 @@ impl Substrate {
         u32::from_le_bytes(bytes)
     }
 
-    /// Write an entire program starting at a given Hilbert address.
+    /// Write a single byte at a byte address.
+    /// Pixel index = byte_addr / 4, byte offset within pixel = byte_addr % 4.
+    /// Matches the LDB/STB addressing mode used by the VM.
+    pub fn poke_byte(&self, byte_addr: u32, value: u8) {
+        let pixel_idx = byte_addr / 4;
+        let byte_off = (byte_addr % 4) as usize;
+        let (x, y) = hilbert::d2xy(pixel_idx);
+        let offset = ((y * TEXTURE_SIZE + x) * 4) as usize;
+        let mut shadow = self.shadow.lock().unwrap();
+        shadow[offset + byte_off] = value;
+    }
+
+    /// Read a single byte from a byte address.
+    /// Matches LDB/STB byte addressing.
+    pub fn peek_byte(&self, byte_addr: u32) -> u8 {
+        let pixel_idx = byte_addr / 4;
+        let byte_off = (byte_addr % 4) as usize;
+        let (x, y) = hilbert::d2xy(pixel_idx);
+        let offset = ((y * TEXTURE_SIZE + x) * 4) as usize;
+        let shadow = self.shadow.lock().unwrap();
+        shadow[offset + byte_off]
+    }
+
+    /// Write a 32-bit word at a byte-aligned address (little-endian).
+    /// Pixel index = byte_addr / 4. Must be 4-byte aligned.
+    pub fn poke_word(&self, byte_addr: u32, value: u32) {
+        debug_assert_eq!(byte_addr % 4, 0, "poke_word requires 4-byte alignment");
+        self.poke(byte_addr / 4, value);
+    }
+
+    /// Read a 32-bit word from a byte-aligned address (little-endian).
+    pub fn peek_word(&self, byte_addr: u32) -> u32 {
+        debug_assert_eq!(byte_addr % 4, 0, "peek_word requires 4-byte alignment");
+        self.peek(byte_addr / 4)
+    }
+
+    /// Load an entire program starting at a given Hilbert address.
     pub fn load_program(&self, start_addr: u32, pixels: &[u32]) {
         for (i, &pixel) in pixels.iter().enumerate() {
             self.poke(start_addr + i as u32, pixel);
