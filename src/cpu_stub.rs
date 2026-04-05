@@ -348,12 +348,42 @@ pub fn write_substrate_string(substrate: &Substrate, addr: u32, s: &str, max_len
 /// across iterations (mutation count, best fitness, explore/exploit mode).
 pub type StatusStore = std::collections::HashMap<String, u32>;
 
+/// Configuration for CMD_MODEL_CALL (LLM inference).
+///
+/// Supports Ollama (default: http://localhost:11434/api/generate) or any
+/// OpenAI-compatible endpoint. Set via env vars or `with_model_config()`.
+///
+/// Env vars:
+///   GEO_MODEL_URL  - full API URL (default: http://localhost:11434/api/generate)
+///   GEO_MODEL_NAME - model identifier (default: "llama3")
+///   GEO_MODEL_KEY  - API key (default: "", used for OpenAI-compatible endpoints)
+#[derive(Clone, Debug)]
+pub struct ModelConfig {
+    pub endpoint: String,
+    pub model: String,
+    pub api_key: String,
+    pub timeout_secs: u64,
+}
+
+impl Default for ModelConfig {
+    fn default() -> Self {
+        Self {
+            endpoint: std::env::var("GEO_MODEL_URL")
+                .unwrap_or_else(|_| "http://localhost:11434/api/generate".into()),
+            model: std::env::var("GEO_MODEL_NAME")
+                .unwrap_or_else(|_| "llama3".into()),
+            api_key: std::env::var("GEO_MODEL_KEY").unwrap_or_default(),
+            timeout_secs: 30,
+        }
+    }
+}
+
 /// Agent-capable command executor.
 ///
 /// Handles all 9 command types:
 /// - Commands 1-5 (READ_BLOCK through IOCTL): delegated to FileExecutor
-/// - Command 6 (SQL_QUERY): returns NOT_IMPLEMENTED (implement in GEO-61)
-/// - Command 7 (MODEL_CALL): returns NOT_IMPLEMENTED (implement in GEO-62/63)
+/// - Command 6 (SQL_QUERY): executes SQL via in-memory SQLite, writes TSV results to substrate
+/// - Command 7 (MODEL_CALL): calls an LLM via HTTP, writes response to substrate
 /// - Command 8 (STATUS_READ): reads from the in-memory status store
 /// - Command 9 (STATUS_WRITE): writes to the in-memory status store
 ///
@@ -361,19 +391,136 @@ pub type StatusStore = std::collections::HashMap<String, u32>;
 pub struct AgentExecutor {
     file_executor: FileExecutor,
     status: Rc<RefCell<StatusStore>>,
+    db: RefCell<rusqlite::Connection>,
+    model_config: ModelConfig,
 }
 
 impl AgentExecutor {
     pub fn new() -> Self {
+        let conn = rusqlite::Connection::open_in_memory()
+            .expect("failed to open in-memory SQLite database");
         Self {
             file_executor: FileExecutor,
             status: Rc::new(RefCell::new(StatusStore::new())),
+            db: RefCell::new(conn),
+            model_config: ModelConfig::default(),
+        }
+    }
+
+    /// Create with a reference to an existing database connection (for sharing).
+    pub fn with_db(db: RefCell<rusqlite::Connection>) -> Self {
+        Self {
+            file_executor: FileExecutor,
+            status: Rc::new(RefCell::new(StatusStore::new())),
+            db,
+            model_config: ModelConfig::default(),
+        }
+    }
+
+    /// Create with a custom model config for LLM calls.
+    pub fn with_model_config(model_config: ModelConfig) -> Self {
+        let conn = rusqlite::Connection::open_in_memory()
+            .expect("failed to open in-memory SQLite database");
+        Self {
+            file_executor: FileExecutor,
+            status: Rc::new(RefCell::new(StatusStore::new())),
+            db: RefCell::new(conn),
+            model_config,
         }
     }
 
     /// Get a clone of the status store handle for inspection in tests.
     pub fn status_handle(&self) -> Rc<RefCell<StatusStore>> {
         Rc::clone(&self.status)
+    }
+
+    fn handle_sql_query(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
+        let sql = read_substrate_string(substrate, cmd.param1, 4096);
+        let result_addr = cmd.param2;
+        let buf_size = cmd.param3 as usize;
+
+        if buf_size == 0 {
+            return CommandResult {
+                status: STATUS_ERROR,
+                result: 0xFFFF_FFFC, // buffer too small
+            };
+        }
+
+        let db = self.db.borrow();
+        let mut result_text = String::new();
+
+        // Check if it's a SELECT (returns rows) or a mutation (returns affected rows)
+        let sql_trimmed = sql.trim().to_uppercase();
+        if sql_trimmed.starts_with("SELECT") || sql_trimmed.starts_with("PRAGMA") {
+            match db.prepare(&sql) {
+                Ok(mut stmt) => {
+                    let col_count = stmt.column_count();
+                    // Write header
+                    for i in 0..col_count {
+                        if i > 0 {
+                            result_text.push('\t');
+                        }
+                        let name = stmt.column_name(i).unwrap_or("?");
+                        result_text.push_str(name);
+                    }
+                    result_text.push('\n');
+
+                    // Write rows (limit to prevent overflow)
+                    let mut rows = stmt.query([]).unwrap();
+                    let mut _row_count = 0u32;
+                    while let Ok(Some(row)) = rows.next() {
+                        for i in 0..col_count {
+                            if i > 0 {
+                                result_text.push('\t');
+                            }
+                            // Try String first, then fall back to i64 -> string
+                            let val: String = row
+                                .get(i)
+                                .unwrap_or_else(|_| {
+                                    row.get::<_, i64>(i)
+                                        .map(|v| v.to_string())
+                                        .unwrap_or_else(|_| "NULL".into())
+                                });
+                            result_text.push_str(&val);
+                        }
+                        result_text.push('\n');
+                        _row_count += 1;
+                        if result_text.len() > buf_size - 1 {
+                            break;
+                        }
+                    }
+                }
+                Err(e) => {
+                    let err = format!("SQL error: {}\n", e);
+                    let written = write_substrate_string(substrate, result_addr, &err, buf_size);
+                    return CommandResult {
+                        status: STATUS_ERROR,
+                        result: written as u32,
+                    };
+                }
+            }
+        } else {
+            // Mutation: INSERT, UPDATE, DELETE, CREATE TABLE, etc.
+            match db.execute(&sql, []) {
+                Ok(affected) => {
+                    result_text = format!("OK\t{}\n", affected);
+                }
+                Err(e) => {
+                    let err = format!("SQL error: {}\n", e);
+                    let written = write_substrate_string(substrate, result_addr, &err, buf_size);
+                    return CommandResult {
+                        status: STATUS_ERROR,
+                        result: written as u32,
+                    };
+                }
+            }
+        }
+
+        let written = write_substrate_string(substrate, result_addr, &result_text, buf_size);
+        CommandResult {
+            status: STATUS_COMPLETE,
+            result: written as u32,
+        }
     }
 
     fn handle_status_read(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
@@ -403,20 +550,118 @@ impl AgentExecutor {
             result: 0,
         }
     }
+
+    /// Handle CMD_MODEL_CALL: send prompt to LLM, write response to substrate.
+    ///
+    /// Protocol:
+    ///   param1 = prompt address (null-terminated string in substrate)
+    ///   param2 = response buffer address
+    ///   param3 = response buffer size (bytes)
+    ///   param4 = max_tokens for generation (0 = use default)
+    ///
+    /// Supports Ollama (/api/generate) and OpenAI-compatible (/v1/chat/completions).
+    /// Auto-detects based on endpoint URL containing "/v1/" or "/chat/".
+    fn handle_model_call(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
+        let prompt = read_substrate_string(substrate, cmd.param1, 8192);
+        let response_addr = cmd.param2;
+        let buf_size = cmd.param3 as usize;
+        let max_tokens = if cmd.param4 > 0 { cmd.param4 } else { 512 };
+
+        let is_ollama = !self.model_config.endpoint.contains("/v1/");
+        let response_text = if is_ollama {
+            self.call_ollama(&prompt, max_tokens)
+        } else {
+            self.call_openai_compatible(&prompt, max_tokens)
+        };
+
+        match response_text {
+            Ok(text) => {
+                let written = write_substrate_string(substrate, response_addr, &text, buf_size);
+                CommandResult {
+                    status: STATUS_COMPLETE,
+                    result: written as u32,
+                }
+            }
+            Err(e) => {
+                let err = format!("MODEL_ERROR: {}\n", e);
+                let written = write_substrate_string(substrate, response_addr, &err, buf_size);
+                CommandResult {
+                    status: STATUS_ERROR,
+                    result: written as u32,
+                }
+            }
+        }
+    }
+
+    fn call_ollama(&self, prompt: &str, max_tokens: u32) -> Result<String, String> {
+        let body = serde_json::json!({
+            "model": self.model_config.model,
+            "prompt": prompt,
+            "stream": false,
+            "options": { "num_predict": max_tokens }
+        });
+
+        let agent: ureq::Agent = ureq::Agent::config_builder()
+            .timeout_global(Some(std::time::Duration::from_secs(self.model_config.timeout_secs)))
+            .build()
+            .into();
+
+        let mut response = agent
+            .post(&self.model_config.endpoint)
+            .send_json(&body)
+            .map_err(|e| format!("ollama request failed: {}", e))?;
+
+        let json: serde_json::Value = response
+            .body_mut()
+            .read_json()
+            .map_err(|e| format!("ollama parse failed: {}", e))?;
+
+        json.get("response")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .ok_or_else(|| "ollama: missing 'response' field".into())
+    }
+
+    fn call_openai_compatible(&self, prompt: &str, max_tokens: u32) -> Result<String, String> {
+        let body = serde_json::json!({
+            "model": self.model_config.model,
+            "messages": [{ "role": "user", "content": prompt }],
+            "max_tokens": max_tokens
+        });
+
+        let agent: ureq::Agent = ureq::Agent::config_builder()
+            .timeout_global(Some(std::time::Duration::from_secs(self.model_config.timeout_secs)))
+            .build()
+            .into();
+
+        let mut req = agent.post(&self.model_config.endpoint);
+
+        if !self.model_config.api_key.is_empty() {
+            req = req.header("Authorization", &format!("Bearer {}", self.model_config.api_key));
+        }
+
+        let mut response = req
+            .send_json(&body)
+            .map_err(|e| format!("openai request failed: {}", e))?;
+
+        let json: serde_json::Value = response
+            .body_mut()
+            .read_json()
+            .map_err(|e| format!("openai parse failed: {}", e))?;
+
+        json.pointer("/choices/0/message/content")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .ok_or_else(|| "openai: missing response content".into())
+    }
 }
 
 impl CommandExecutor for AgentExecutor {
     fn execute(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
         match cmd.cmd_type {
             1..=5 => self.file_executor.execute(cmd, substrate),
-            CMD_SQL_QUERY => CommandResult {
-                status: STATUS_ERROR,
-                result: 0xFFFF_FFFB, // Not yet implemented (GEO-61)
-            },
-            CMD_MODEL_CALL => CommandResult {
-                status: STATUS_ERROR,
-                result: 0xFFFF_FFFA, // Not yet implemented (GEO-62)
-            },
+            CMD_SQL_QUERY => self.handle_sql_query(cmd, substrate),
+            CMD_MODEL_CALL => self.handle_model_call(cmd, substrate),
             CMD_STATUS_READ => self.handle_status_read(cmd, substrate),
             CMD_STATUS_WRITE => self.handle_status_write(cmd, substrate),
             _ => CommandResult {
@@ -787,5 +1032,432 @@ mod tests {
         assert_eq!(CMD_WORDS, 8);
         assert_eq!(CMD_BYTES, 32);
         assert_eq!(CMD_BUFFER_PIXELS, CMD_SLOTS * CMD_WORDS as u32);
+
+        // Verify new command type constants are distinct from existing
+        assert_ne!(CMD_SQL_QUERY, CMD_MODEL_CALL);
+        assert_ne!(CMD_STATUS_READ, CMD_STATUS_WRITE);
+        assert_ne!(CMD_SQL_QUERY, CMD_READ_BLOCK);
+        assert_eq!(CMD_SQL_QUERY, 6);
+        assert_eq!(CMD_MODEL_CALL, 7);
+        assert_eq!(CMD_STATUS_READ, 8);
+        assert_eq!(CMD_STATUS_WRITE, 9);
+    }
+
+    // ── GEO-60: AgentExecutor Tests ──
+
+    #[test]
+    fn test_agent_executor_status_write_and_read() {
+        let substrate = Substrate::new();
+        let executor = AgentExecutor::new();
+        let status = executor.status_handle();
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        // Write a key "iteration" with value 42 into substrate at a known address
+        let key_addr: u32 = 0x0004_0000;
+        write_substrate_string(&substrate, key_addr, "iteration", 256);
+
+        // Issue CMD_STATUS_WRITE
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_STATUS_WRITE,
+                vm_id: 0,
+                param1: key_addr,
+                param2: 42,
+                param3: 0,
+                param4: 0,
+            },
+        );
+
+        let count = stub.poll_once(&substrate);
+        assert_eq!(count, 1);
+        assert_eq!(
+            read_slot_status(&substrate, TEST_CMD_BASE, 0),
+            STATUS_COMPLETE
+        );
+        assert_eq!(read_slot_result(&substrate, TEST_CMD_BASE, 0), 0);
+
+        // Verify the status store has the value
+        assert_eq!(*status.borrow().get("iteration").unwrap(), 42);
+
+        // Now read it back via CMD_STATUS_READ
+        let val_addr: u32 = 0x0004_0100;
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            1,
+            &Command {
+                cmd_type: CMD_STATUS_READ,
+                vm_id: 0,
+                param1: key_addr,
+                param2: val_addr,
+                param3: 0,
+                param4: 0,
+            },
+        );
+
+        let count2 = stub.poll_once(&substrate);
+        assert_eq!(count2, 1);
+        assert_eq!(
+            read_slot_status(&substrate, TEST_CMD_BASE, 1),
+            STATUS_COMPLETE
+        );
+        assert_eq!(read_slot_result(&substrate, TEST_CMD_BASE, 1), 1); // key found
+
+        // Verify the value was written to substrate
+        assert_eq!(substrate.peek(val_addr), 42);
+    }
+
+    #[test]
+    fn test_agent_executor_status_read_missing_key() {
+        let substrate = Substrate::new();
+        let executor = AgentExecutor::new();
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        let key_addr: u32 = 0x0004_0000;
+        write_substrate_string(&substrate, key_addr, "nonexistent", 256);
+
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_STATUS_READ,
+                vm_id: 0,
+                param1: key_addr,
+                param2: 0x0004_0100,
+                param3: 0,
+                param4: 0,
+            },
+        );
+
+        stub.poll_once(&substrate);
+        assert_eq!(
+            read_slot_status(&substrate, TEST_CMD_BASE, 0),
+            STATUS_COMPLETE
+        );
+        assert_eq!(read_slot_result(&substrate, TEST_CMD_BASE, 0), 0); // key not found
+    }
+
+    #[test]
+    fn test_agent_executor_status_overwrite() {
+        let substrate = Substrate::new();
+        let executor = AgentExecutor::new();
+        let status = executor.status_handle();
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        let key_addr: u32 = 0x0004_0000;
+        write_substrate_string(&substrate, key_addr, "counter", 256);
+
+        // Write counter = 10
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_STATUS_WRITE,
+                vm_id: 0,
+                param1: key_addr,
+                param2: 10,
+                param3: 0,
+                param4: 0,
+            },
+        );
+        stub.poll_once(&substrate);
+        assert_eq!(*status.borrow().get("counter").unwrap(), 10);
+
+        // Overwrite counter = 99
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            1,
+            &Command {
+                cmd_type: CMD_STATUS_WRITE,
+                vm_id: 0,
+                param1: key_addr,
+                param2: 99,
+                param3: 0,
+                param4: 0,
+            },
+        );
+        stub.poll_once(&substrate);
+        assert_eq!(*status.borrow().get("counter").unwrap(), 99);
+    }
+
+    #[test]
+    fn test_agent_executor_sql_create_and_select() {
+        let substrate = Substrate::new();
+        let executor = AgentExecutor::new();
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        let sql_addr: u32 = 0x0004_0000;
+        let result_addr: u32 = 0x0004_1000;
+        let buf_size: u32 = 4096;
+
+        // CREATE TABLE
+        write_substrate_string(&substrate, sql_addr, "CREATE TABLE mutations (id INTEGER PRIMARY KEY, fitness INTEGER)", 256);
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_SQL_QUERY,
+                vm_id: 0,
+                param1: sql_addr,
+                param2: result_addr,
+                param3: buf_size,
+                param4: 0,
+            },
+        );
+        assert_eq!(stub.poll_once(&substrate), 1);
+        assert_eq!(read_slot_status(&substrate, TEST_CMD_BASE, 0), STATUS_COMPLETE);
+
+        // INSERT
+        write_substrate_string(&substrate, sql_addr, "INSERT INTO mutations (fitness) VALUES (85)", 256);
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            1,
+            &Command {
+                cmd_type: CMD_SQL_QUERY,
+                vm_id: 0,
+                param1: sql_addr,
+                param2: result_addr,
+                param3: buf_size,
+                param4: 0,
+            },
+        );
+        assert_eq!(stub.poll_once(&substrate), 1);
+        assert_eq!(read_slot_status(&substrate, TEST_CMD_BASE, 1), STATUS_COMPLETE);
+        let insert_result = read_substrate_string(&substrate, result_addr, 256);
+        assert!(insert_result.starts_with("OK\t"));
+
+        // SELECT
+        write_substrate_string(&substrate, sql_addr, "SELECT fitness FROM mutations", 256);
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            2,
+            &Command {
+                cmd_type: CMD_SQL_QUERY,
+                vm_id: 0,
+                param1: sql_addr,
+                param2: result_addr,
+                param3: buf_size,
+                param4: 0,
+            },
+        );
+        assert_eq!(stub.poll_once(&substrate), 1);
+        assert_eq!(read_slot_status(&substrate, TEST_CMD_BASE, 2), STATUS_COMPLETE);
+
+        let select_result = read_substrate_string(&substrate, result_addr, 256);
+        assert!(select_result.contains("fitness"));
+        assert!(select_result.contains("85"));
+    }
+
+    #[test]
+    fn test_agent_executor_sql_error() {
+        let substrate = Substrate::new();
+        let executor = AgentExecutor::new();
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        let sql_addr: u32 = 0x0004_0000;
+        let result_addr: u32 = 0x0004_1000;
+
+        // Invalid SQL should return error
+        write_substrate_string(&substrate, sql_addr, "SELECTT broken", 256);
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_SQL_QUERY,
+                vm_id: 0,
+                param1: sql_addr,
+                param2: result_addr,
+                param3: 4096,
+                param4: 0,
+            },
+        );
+        stub.poll_once(&substrate);
+        assert_eq!(read_slot_status(&substrate, TEST_CMD_BASE, 0), STATUS_ERROR);
+        let err_msg = read_substrate_string(&substrate, result_addr, 256);
+        assert!(err_msg.contains("SQL error"));
+    }
+
+    #[test]
+    fn test_agent_executor_model_call_connection_refused() {
+        // With a non-existent endpoint, MODEL_CALL should return error with message.
+        let substrate = Substrate::new();
+        let config = ModelConfig {
+            endpoint: "http://127.0.0.1:1/api/generate".into(), // port 1 = guaranteed refused
+            model: "test".into(),
+            api_key: String::new(),
+            timeout_secs: 1,
+        };
+        let executor = AgentExecutor::with_model_config(config);
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        let prompt_addr: u32 = 0x0004_0000;
+        let response_addr: u32 = 0x0004_1000;
+        write_substrate_string(&substrate, prompt_addr, "What is 2+2?", 256);
+
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_MODEL_CALL,
+                vm_id: 0,
+                param1: prompt_addr,
+                param2: response_addr,
+                param3: 4096,
+                param4: 64,
+            },
+        );
+        stub.poll_once(&substrate);
+        assert_eq!(read_slot_status(&substrate, TEST_CMD_BASE, 0), STATUS_ERROR);
+        let err = read_substrate_string(&substrate, response_addr, 256);
+        assert!(
+            err.contains("MODEL_ERROR"),
+            "expected MODEL_ERROR, got: {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_agent_executor_model_config_custom() {
+        let substrate = Substrate::new();
+        let config = ModelConfig {
+            endpoint: "http://example.com/v1/chat/completions".into(),
+            model: "gpt-4".into(),
+            api_key: "sk-test".into(),
+            timeout_secs: 10,
+        };
+        let executor = AgentExecutor::with_model_config(config);
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+        let substrate = Substrate::new();
+
+        let prompt_addr: u32 = 0x0004_0000;
+        let response_addr: u32 = 0x0004_1000;
+        write_substrate_string(&substrate, prompt_addr, "hello", 256);
+
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_MODEL_CALL,
+                vm_id: 0,
+                param1: prompt_addr,
+                param2: response_addr,
+                param3: 4096,
+                param4: 0, // use default max_tokens
+            },
+        );
+        stub.poll_once(&substrate);
+        // Will fail (no server) but should use OpenAI-compatible path
+        assert_eq!(read_slot_status(&substrate, TEST_CMD_BASE, 0), STATUS_ERROR);
+        let err = read_substrate_string(&substrate, response_addr, 256);
+        assert!(
+            err.contains("openai"),
+            "expected openai error path, got: {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_agent_executor_delegates_file_commands() {
+        // AgentExecutor should delegate commands 1-5 to FileExecutor.
+        // We test by sending an unknown file command (CMD_IOCTL returns error from FileExecutor)
+        // and verifying we get the IOCTL-not-implemented error, not the unknown-command error.
+        let substrate = Substrate::new();
+        let executor = AgentExecutor::new();
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_IOCTL,
+                vm_id: 0,
+                param1: 0,
+                param2: 0,
+                param3: 0,
+                param4: 0,
+            },
+        );
+        stub.poll_once(&substrate);
+        assert_eq!(
+            read_slot_status(&substrate, TEST_CMD_BASE, 0),
+            STATUS_ERROR
+        );
+        assert_eq!(read_slot_result(&substrate, TEST_CMD_BASE, 0), 0xFFFF_FFFF);
+        // FileExecutor returns 0xFFFFFFFF for IOCTL, AgentExecutor returns 0xFFFFFFFE for unknown.
+        // Getting 0xFFFFFFFF proves delegation happened.
+    }
+
+    #[test]
+    fn test_substrate_string_roundtrip() {
+        let substrate = Substrate::new();
+        let addr: u32 = 0x0005_0000;
+
+        // Write and read back
+        let written = write_substrate_string(&substrate, addr, "hello world", 256);
+        assert_eq!(written, 12); // 11 chars + null
+
+        let read = read_substrate_string(&substrate, addr, 256);
+        assert_eq!(read, "hello world");
+    }
+
+    #[test]
+    fn test_substrate_string_truncation() {
+        let substrate = Substrate::new();
+        let addr: u32 = 0x0005_0000;
+
+        // Write a string into a buffer too small for it
+        let written = write_substrate_string(&substrate, addr, "abcdefghij", 5);
+        assert_eq!(written, 5); // 4 chars + null
+
+        let read = read_substrate_string(&substrate, addr, 5);
+        assert_eq!(read, "abcd");
+    }
+
+    #[test]
+    fn test_agent_executor_multiple_status_keys() {
+        let substrate = Substrate::new();
+        let executor = AgentExecutor::new();
+        let status = executor.status_handle();
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        // Write three different keys
+        let keys = [("iteration", 7u32, 0x0004_0000u32), ("best_fitness", 85, 0x0004_0100), ("mode", 1, 0x0004_0200)];
+        for (i, (key, value, addr)) in keys.iter().enumerate() {
+            write_substrate_string(&substrate, *addr, key, 256);
+            write_command(
+                &substrate,
+                TEST_CMD_BASE,
+                i as u32,
+                &Command {
+                    cmd_type: CMD_STATUS_WRITE,
+                    vm_id: 0,
+                    param1: *addr,
+                    param2: *value,
+                    param3: 0,
+                    param4: 0,
+                },
+            );
+        }
+
+        assert_eq!(stub.poll_once(&substrate), 3);
+
+        // Verify all three in the store
+        let store = status.borrow();
+        assert_eq!(*store.get("iteration").unwrap(), 7);
+        assert_eq!(*store.get("best_fitness").unwrap(), 85);
+        assert_eq!(*store.get("mode").unwrap(), 1);
     }
 }
