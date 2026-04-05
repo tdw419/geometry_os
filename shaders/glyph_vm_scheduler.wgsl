@@ -477,6 +477,54 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
             (*vm).regs[p1] = (*vm).regs[p1] ^ 0xFFFFFFFFu;
         }
 
+        // MOD - Modulo: MOD rd, rs (rd %= rs, div-by-zero = 0)
+        case 31u: {
+            let divisor = (*vm).regs[p2];
+            if (divisor != 0u) {
+                (*vm).regs[p1] = (*vm).regs[p1] % divisor;
+            } else {
+                (*vm).regs[p1] = 0u;
+            }
+        }
+
+        // LDB - Load byte: LDB rd, [rs] (rd = byte at byte address rs)
+        // byte_addr / 4 gives pixel index, byte_addr % 4 selects channel
+        case 32u: {
+            let byte_addr = (*vm).regs[p2];
+            let pixel_idx = byte_addr / 4u;
+            let byte_offset = byte_addr % 4u;
+            let glyph = read_glyph(pixel_idx);
+            // RGBA channels: byte 0=R, 1=G, 2=B, 3=A
+            if (byte_offset == 0u) {
+                (*vm).regs[p1] = glyph.r;
+            } else if (byte_offset == 1u) {
+                (*vm).regs[p1] = glyph.g;
+            } else if (byte_offset == 2u) {
+                (*vm).regs[p1] = glyph.b;
+            } else {
+                (*vm).regs[p1] = glyph.a;
+            }
+        }
+
+        // STB - Store byte: STB [rd], rs (store low byte of rs to byte address rd)
+        // Read-modify-write: load the pixel, replace one channel, write back
+        case 33u: {
+            let byte_addr = (*vm).regs[p1];
+            let pixel_idx = byte_addr / 4u;
+            let byte_offset = byte_addr % 4u;
+            let byte_val = (*vm).regs[p2] & 0xFFu;
+            let glyph = read_glyph(pixel_idx);
+            if (byte_offset == 0u) {
+                write_glyph(pixel_idx, vec4<u32>(byte_val, glyph.g, glyph.b, glyph.a));
+            } else if (byte_offset == 1u) {
+                write_glyph(pixel_idx, vec4<u32>(glyph.r, byte_val, glyph.b, glyph.a));
+            } else if (byte_offset == 2u) {
+                write_glyph(pixel_idx, vec4<u32>(glyph.r, glyph.g, byte_val, glyph.a));
+            } else {
+                write_glyph(pixel_idx, vec4<u32>(glyph.r, glyph.g, glyph.b, byte_val));
+            }
+        }
+
         // SPAWN - Request child VM spawn: SPAWN r_base_addr, r_entry_offset
         // Returns child VM ID in r_base_addr, or 0xFF if no slot available.
         // Deferred: stores spawn params in parent's registers. Rust host

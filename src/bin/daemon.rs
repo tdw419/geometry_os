@@ -19,7 +19,7 @@ use pixels_move_pixels::gasm;
 use pixels_move_pixels::software_vm::SoftwareVm;
 use pixels_move_pixels::substrate::RegionAllocator;
 use pixels_move_pixels::vm::{vm_state, GlyphVm};
-use pixels_move_pixels::{font_atlas, MAX_VMS};
+use pixels_move_pixels::{font_atlas, DASHBOARD_BASE, DASHBOARD_PIXELS, MAX_VMS};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -88,6 +88,27 @@ struct VmStatus {
     jump_log: Vec<FrameTransition>,
     /// Symbolic frame labels for this VM's loaded filmstrip (empty if no labels).
     frame_labels: HashMap<String, usize>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct BlitRequest {
+    /// Hilbert address to start writing at. Defaults to DASHBOARD_BASE (0x00F40000).
+    #[serde(default)]
+    addr: Option<String>,
+    /// Raw pixel data as array of u32 integers (RGBA8 packed).
+    #[serde(rename = "pixelsRaw")]
+    pixels_raw: Option<Vec<u32>>,
+    /// Raw pixel data as hex string (space-separated 8-char hex words).
+    #[serde(rename = "pixels")]
+    pixels_hex: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct BlitResponse {
+    success: bool,
+    addr: u32,
+    count: usize,
+    message: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -993,6 +1014,79 @@ fn handle_request(state: &Arc<Mutex<DaemonState>>, req: HttpRequest) -> (u16, St
             })))
         }
 
+        // POST /api/v1/blit - Bulk-write pixels into the substrate
+        //
+        // Accepts a JSON body with optional addr (defaults to DASHBOARD_BASE)
+        // and either pixelsRaw (u32 array) or pixels (hex string).
+        // Writes all pixels sequentially starting at the given Hilbert address.
+        //
+        // This is the fast path for external renderers (formula engines, web UIs)
+        // to push framebuffers into the GPU substrate in a single HTTP call.
+        ("POST", "/api/v1/blit") => {
+            let body_str = String::from_utf8_lossy(&req.body);
+            let blit_req: BlitRequest = match serde_json::from_str(&body_str) {
+                Ok(r) => r,
+                Err(e) => return (400, json_error(&format!("Invalid JSON: {e}"))),
+            };
+
+            // Parse pixels
+            let pixels: Vec<u32> = if let Some(ref raw) = blit_req.pixels_raw {
+                raw.clone()
+            } else if let Some(ref hex) = blit_req.pixels_hex {
+                match parse_hex_pixels(hex) {
+                    Ok(p) => p,
+                    Err(e) => return (400, json_error(&format!("Hex parse error: {e}"))),
+                }
+            } else {
+                return (400, json_error("Must provide pixelsRaw or pixels"));
+            };
+
+            if pixels.is_empty() {
+                return (400, json_error("No pixels provided"));
+            }
+
+            // Resolve target address (default: DASHBOARD_BASE)
+            let addr: u32 = match blit_req.addr {
+                Some(ref a) => match parse_addr(a) {
+                    Some(v) => v,
+                    None => return (400, json_error("Invalid addr value")),
+                },
+                None => DASHBOARD_BASE,
+            };
+
+            // Safety: refuse to write into allocatable region (programs live there)
+            if addr >= pixels_move_pixels::substrate::ALLOC_START
+                && addr < pixels_move_pixels::substrate::ALLOC_END
+            {
+                return (
+                    400,
+                    json_error(&format!(
+                        "Refusing to blit into allocatable region [{:#X}, {:#X}). \
+                         Use DASHBOARD_BASE or other reserved region.",
+                        pixels_move_pixels::substrate::ALLOC_START,
+                        pixels_move_pixels::substrate::ALLOC_END,
+                    )),
+                );
+            }
+
+            let count = pixels.len();
+            let s = state.lock().unwrap();
+            s.vm.substrate().load_program(addr, &pixels);
+
+            eprintln!(
+                "[daemon] Blit: {} pixels at address 0x{:08X}",
+                count, addr
+            );
+
+            let resp = BlitResponse {
+                success: true,
+                addr,
+                count,
+                message: format!("Blit {} pixels at 0x{:08X}", count, addr),
+            };
+            (200, json_ok(&resp))
+        }
+
         _ => (404, json_error("Not found")),
     }
 }
@@ -1190,6 +1284,7 @@ fn main() {
     println!("  GET  /api/v1/status     VM states and daemon info");
     println!("  GET  /api/v1/programs   List loaded programs");
     println!("  GET  /api/v1/substrate/{{addr}}/{{count}}  Read substrate pixels");
+    println!("  POST /api/v1/blit  Bulk-write pixels (JSON: {{addr, pixelsRaw, pixels}})");
     println!();
     println!("Stdin / Unix socket commands:");
     println!("  LOAD <file.gasm>        Assemble and hot-load a .gasm program");

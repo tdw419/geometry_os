@@ -769,6 +769,221 @@ fn cmp_hello_world() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// PART 3b: MOD, LDB, STB opcodes (Phase 2, GEO-50)
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn sv_mod() {
+    let mut p = Program::new();
+    p.ldi(0, 17);
+    p.ldi(1, 5);
+    p.modulo(0, 1); // r0 = 17 % 5 = 2
+    p.halt();
+    let vm = run_sw(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 2, "17 % 5 = 2");
+}
+
+#[test]
+fn sv_mod_by_zero() {
+    let mut p = Program::new();
+    p.ldi(0, 42);
+    p.ldi(1, 0);
+    p.modulo(0, 1); // r0 = 42 % 0 = 0 (guard)
+    p.halt();
+    let vm = run_sw(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0, "MOD by zero should set dst to 0");
+}
+
+#[test]
+fn gpu_mod() {
+    let mut p = Program::new();
+    p.ldi(0, 17);
+    p.ldi(1, 5);
+    p.modulo(0, 1);
+    p.halt();
+    let vm = run_gpu(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 2, "17 % 5 = 2");
+}
+
+#[test]
+fn gpu_mod_by_zero() {
+    let mut p = Program::new();
+    p.ldi(0, 42);
+    p.ldi(1, 0);
+    p.modulo(0, 1);
+    p.halt();
+    let vm = run_gpu(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0, "MOD by zero should set dst to 0");
+}
+
+#[test]
+fn cmp_mod() {
+    let mut p = Program::new();
+    p.ldi(0, 100);
+    p.ldi(1, 7);
+    p.modulo(0, 1); // 100 % 7 = 2
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "MOD");
+    assert_eq!(sw.regs[0], 2);
+}
+
+#[test]
+fn cmp_mod_by_zero() {
+    let mut p = Program::new();
+    p.ldi(0, 42);
+    p.ldi(1, 0);
+    p.modulo(0, 1);
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "MOD-by-zero");
+}
+
+#[test]
+fn sv_ldb() {
+    // Write 0xAABBCCDD at pixel 100, then load individual bytes back
+    let mut p = Program::new();
+    p.ldi(0, 100);       // r0 = pixel address 100
+    p.ldi(1, 0xAABBCCDD);
+    p.store(0, 1);        // pixel[100] = 0xAABBCCDD
+    // Now load each byte from byte address 400..403 (pixel 100 * 4)
+    p.ldi(1, 400);        // byte addr 400 -> byte 0
+    p.ldb(2, 1);          // r2 = byte at addr 400
+    p.ldi(1, 401);        // byte addr 401 -> byte 1
+    p.ldb(3, 1);          // r3 = byte at addr 401
+    p.ldi(1, 402);        // byte addr 402 -> byte 2
+    p.ldb(4, 1);          // r4 = byte at addr 402
+    p.ldi(1, 403);        // byte addr 403 -> byte 3
+    p.ldb(5, 1);          // r5 = byte at addr 403
+    p.halt();
+    let vm = run_sw(&p.pixels, 0);
+    // Software VM stores in little-endian: byte 0=DD, byte 1=CC, byte 2=BB, byte 3=AA
+    assert_eq!(vm.regs[2] & 0xFF, 0xDD, "LDB byte 0 should be 0xDD");
+    assert_eq!(vm.regs[3] & 0xFF, 0xCC, "LDB byte 1 should be 0xCC");
+    assert_eq!(vm.regs[4] & 0xFF, 0xBB, "LDB byte 2 should be 0xBB");
+    assert_eq!(vm.regs[5] & 0xFF, 0xAA, "LDB byte 3 should be 0xAA");
+}
+
+#[test]
+fn gpu_ldb() {
+    let mut p = Program::new();
+    p.ldi(0, 100);
+    p.ldi(1, 0xAABBCCDD);
+    p.store(0, 1);
+    p.ldi(1, 400);
+    p.ldb(2, 1);
+    p.ldi(1, 401);
+    p.ldb(3, 1);
+    p.ldi(1, 402);
+    p.ldb(4, 1);
+    p.ldi(1, 403);
+    p.ldb(5, 1);
+    p.halt();
+    let vm = run_gpu(&p.pixels, 0);
+    // GPU uses RGBA channel mapping
+    assert_eq!(vm.regs[2] & 0xFF, 0xDD, "GPU LDB byte 0");
+    assert_eq!(vm.regs[3] & 0xFF, 0xCC, "GPU LDB byte 1");
+    assert_eq!(vm.regs[4] & 0xFF, 0xBB, "GPU LDB byte 2");
+    assert_eq!(vm.regs[5] & 0xFF, 0xAA, "GPU LDB byte 3");
+}
+
+#[test]
+fn cmp_ldb() {
+    let mut p = Program::new();
+    p.ldi(0, 100);
+    p.ldi(1, 0x12345678);
+    p.store(0, 1);
+    p.ldi(1, 400);
+    p.ldb(2, 1);
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "LDB");
+}
+
+#[test]
+fn sv_stb() {
+    // Write individual bytes into a word using STB
+    let mut p = Program::new();
+    // Clear pixel 500: r3=500, r0=0, STORE [r3], r0
+    p.ldi(3, 500); // r3 = pixel address 500 (far from program area)
+    p.ldi(0, 0);
+    p.store(3, 0); // pixel[500] = 0
+    // Write 0xAB to byte addr 2000 (pixel 500, byte 0)
+    p.ldi(1, 2000); // byte addr 2000 = pixel 500 * 4 + 0
+    p.ldi(2, 0xAB);
+    p.stb(1, 2);
+    // Write 0xCD to byte addr 2001 (pixel 500, byte 1)
+    p.ldi(1, 2001);
+    p.ldi(2, 0xCD);
+    p.stb(1, 2);
+    // Read back the full word from pixel 500
+    p.load(4, 3); // r4 = pixel[r3=500]
+    p.halt();
+    let vm = run_sw(&p.pixels, 0);
+    // After two STBs: byte 0 = 0xAB, byte 1 = 0xCD, bytes 2&3 = 0
+    let word = vm.regs[4];
+    assert_eq!(word & 0xFF, 0xAB, "STB byte 0");
+    assert_eq!((word >> 8) & 0xFF, 0xCD, "STB byte 1");
+}
+
+#[test]
+fn gpu_stb() {
+    // Use pixel address 500 (byte addr 2000) -- far from program code at pixels 0-20
+    let mut p = Program::new();
+    p.ldi(3, 500);       // r3 = 500 (pixel address, safe distance from code)
+    p.ldi(0, 0);
+    p.store(3, 0);        // pixel[500] = 0
+    p.ldi(1, 2000);       // r1 = 2000 (byte addr = pixel 500 * 4)
+    p.ldi(2, 0xAB);
+    p.stb(1, 2);          // byte[2000] = 0xAB (pixel 500, byte offset 0)
+    p.ldi(1, 2001);
+    p.ldi(2, 0xCD);
+    p.stb(1, 2);          // byte[2001] = 0xCD (pixel 500, byte offset 1)
+    p.load(4, 3);         // r4 = pixel[500]
+    p.halt();
+    let vm = run_gpu(&p.pixels, 0);
+    let word = vm.regs[4];
+    assert_eq!(word & 0xFF, 0xAB, "GPU STB byte 0");
+    assert_eq!((word >> 8) & 0xFF, 0xCD, "GPU STB byte 1");
+}
+
+#[test]
+fn cmp_stb() {
+    let mut p = Program::new();
+    p.ldi(3, 10);
+    p.ldi(0, 0);
+    p.store(3, 0);
+    p.ldi(1, 40);
+    p.ldi(2, 0xEF);
+    p.stb(1, 2);
+    p.ldi(1, 42);
+    p.ldi(2, 0xBE);
+    p.stb(1, 2);
+    p.load(4, 3);
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "STB");
+}
+
+#[test]
+fn cmp_stb_readback() {
+    // Round-trip: STB a byte, then LDB it back -- both VMs must agree
+    let mut p = Program::new();
+    p.ldi(3, 20);
+    p.ldi(0, 0);
+    p.store(3, 0);     // pixel[20] = 0
+    p.ldi(1, 81);      // byte addr 81 = pixel 20, byte offset 1
+    p.ldi(2, 0x42);
+    p.stb(1, 2);        // store 0x42 to byte addr 81
+    p.ldi(1, 81);
+    p.ldb(4, 1);        // read byte back -> r4 = 0x42
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "STB+LDB round-trip");
+    assert_eq!(sw.regs[4] & 0xFF, 0x42, "round-trip byte should be 0x42");
+}
+
+// ═══════════════════════════════════════════════════════════════
 // PART 4: Edge cases
 // ═══════════════════════════════════════════════════════════════
 
@@ -1016,4 +1231,303 @@ fn vm_state_field_offsets() {
     assert_eq!(&vm.state as *const u32 as usize - base, 536, "state offset");
     assert_eq!(&vm.entry_point as *const u32 as usize - base, 544, "entry_point offset");
     assert_eq!(&vm.stack as *const [u32; 64] as usize - base, 576, "stack offset");
+}
+
+// ── Phase 2 parity tests: bitwise & shift opcodes ──────────────────
+// GEO-51: These opcodes existed in both VMs but had no cross-validation.
+
+#[test]
+fn sv_shr() {
+    let mut p = Program::new();
+    p.ldi(0, 0xFF00);     // r0 = 0x0000FF00
+    p.ldi(1, 4);          // r1 = 4
+    p.shr(0, 1);          // r0 >>= 4 = 0x00000FF0
+    p.halt();
+    let vm = run_sw(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0x0FF0, "SHR: 0xFF00 >> 4 = 0x0FF0");
+}
+
+#[test]
+fn gpu_shr() {
+    let mut p = Program::new();
+    p.ldi(0, 0xFF00);
+    p.ldi(1, 4);
+    p.shr(0, 1);
+    p.halt();
+    let vm = run_gpu(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0x0FF0, "SHR: 0xFF00 >> 4 = 0x0FF0");
+}
+
+#[test]
+fn cmp_shr() {
+    let mut p = Program::new();
+    p.ldi(0, 0xFF00);
+    p.ldi(1, 4);
+    p.shr(0, 1);
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "SHR");
+}
+
+#[test]
+fn sv_or() {
+    let mut p = Program::new();
+    p.ldi(0, 0xF0F0);
+    p.ldi(1, 0x0F0F);
+    p.or(0, 1);           // r0 |= r1 = 0xFFFF
+    p.halt();
+    let vm = run_sw(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0xFFFF, "OR: 0xF0F0 | 0x0F0F = 0xFFFF");
+}
+
+#[test]
+fn gpu_or() {
+    let mut p = Program::new();
+    p.ldi(0, 0xF0F0);
+    p.ldi(1, 0x0F0F);
+    p.or(0, 1);
+    p.halt();
+    let vm = run_gpu(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0xFFFF, "OR: 0xF0F0 | 0x0F0F = 0xFFFF");
+}
+
+#[test]
+fn cmp_or() {
+    let mut p = Program::new();
+    p.ldi(0, 0xF0F0);
+    p.ldi(1, 0x0F0F);
+    p.or(0, 1);
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "OR");
+}
+
+#[test]
+fn sv_and() {
+    let mut p = Program::new();
+    p.ldi(0, 0xFF00);
+    p.ldi(1, 0x0FF0);
+    p.and(0, 1);          // r0 &= r1 = 0x0F00
+    p.halt();
+    let vm = run_sw(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0x0F00, "AND: 0xFF00 & 0x0FF0 = 0x0F00");
+}
+
+#[test]
+fn gpu_and() {
+    let mut p = Program::new();
+    p.ldi(0, 0xFF00);
+    p.ldi(1, 0x0FF0);
+    p.and(0, 1);
+    p.halt();
+    let vm = run_gpu(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0x0F00, "AND: 0xFF00 & 0x0FF0 = 0x0F00");
+}
+
+#[test]
+fn cmp_and() {
+    let mut p = Program::new();
+    p.ldi(0, 0xFF00);
+    p.ldi(1, 0x0FF0);
+    p.and(0, 1);
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "AND");
+}
+
+#[test]
+fn sv_shl() {
+    let mut p = Program::new();
+    p.ldi(0, 0x00FF);
+    p.ldi(1, 4);
+    p.shl(0, 1);          // r0 <<= 4 = 0x0FF0
+    p.halt();
+    let vm = run_sw(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0x0FF0, "SHL: 0x00FF << 4 = 0x0FF0");
+}
+
+#[test]
+fn gpu_shl() {
+    let mut p = Program::new();
+    p.ldi(0, 0x00FF);
+    p.ldi(1, 4);
+    p.shl(0, 1);
+    p.halt();
+    let vm = run_gpu(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0x0FF0, "SHL: 0x00FF << 4 = 0x0FF0");
+}
+
+#[test]
+fn cmp_shl() {
+    let mut p = Program::new();
+    p.ldi(0, 0x00FF);
+    p.ldi(1, 4);
+    p.shl(0, 1);
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "SHL");
+}
+
+#[test]
+fn sv_xor() {
+    let mut p = Program::new();
+    p.ldi(0, 0xFF00);
+    p.ldi(1, 0xFF00);
+    p.xor(0, 1);          // r0 ^= r1 = 0x0000
+    p.halt();
+    let vm = run_sw(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0, "XOR: 0xFF00 ^ 0xFF00 = 0");
+}
+
+#[test]
+fn gpu_xor() {
+    let mut p = Program::new();
+    p.ldi(0, 0xFF00);
+    p.ldi(1, 0xFF00);
+    p.xor(0, 1);
+    p.halt();
+    let vm = run_gpu(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0, "XOR: 0xFF00 ^ 0xFF00 = 0");
+}
+
+#[test]
+fn cmp_xor() {
+    let mut p = Program::new();
+    p.ldi(0, 0xFF00);
+    p.ldi(1, 0xFF00);
+    p.xor(0, 1);
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "XOR");
+}
+
+#[test]
+fn sv_xor_different() {
+    let mut p = Program::new();
+    p.ldi(0, 0xF0F0);
+    p.ldi(1, 0x0FF0);
+    p.xor(0, 1);          // r0 ^= r1 = 0xFF00
+    p.halt();
+    let vm = run_sw(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0xFF00, "XOR: 0xF0F0 ^ 0x0FF0 = 0xFF00");
+}
+
+#[test]
+fn gpu_xor_different() {
+    let mut p = Program::new();
+    p.ldi(0, 0xF0F0);
+    p.ldi(1, 0x0FF0);
+    p.xor(0, 1);
+    p.halt();
+    let vm = run_gpu(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0xFF00, "XOR: 0xF0F0 ^ 0x0FF0 = 0xFF00");
+}
+
+#[test]
+fn cmp_xor_different() {
+    let mut p = Program::new();
+    p.ldi(0, 0xF0F0);
+    p.ldi(1, 0x0FF0);
+    p.xor(0, 1);
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "XOR different");
+}
+
+#[test]
+fn sv_not() {
+    let mut p = Program::new();
+    p.ldi(0, 0x0000FFFF);
+    p.not(0);             // r0 = !r0 = 0xFFFF0000
+    p.halt();
+    let vm = run_sw(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0xFFFF0000, "NOT: !0x0000FFFF = 0xFFFF0000");
+}
+
+#[test]
+fn gpu_not() {
+    let mut p = Program::new();
+    p.ldi(0, 0x0000FFFF);
+    p.not(0);
+    p.halt();
+    let vm = run_gpu(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0xFFFF0000, "NOT: !0x0000FFFF = 0xFFFF0000");
+}
+
+#[test]
+fn cmp_not() {
+    let mut p = Program::new();
+    p.ldi(0, 0x0000FFFF);
+    p.not(0);
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "NOT");
+}
+
+#[test]
+fn sv_not_zero() {
+    let mut p = Program::new();
+    p.ldi(0, 0);
+    p.not(0);             // r0 = !0 = 0xFFFFFFFF
+    p.halt();
+    let vm = run_sw(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0xFFFFFFFF, "NOT: !0 = 0xFFFFFFFF");
+}
+
+#[test]
+fn gpu_not_zero() {
+    let mut p = Program::new();
+    p.ldi(0, 0);
+    p.not(0);
+    p.halt();
+    let vm = run_gpu(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0xFFFFFFFF, "NOT: !0 = 0xFFFFFFFF");
+}
+
+#[test]
+fn cmp_not_zero() {
+    let mut p = Program::new();
+    p.ldi(0, 0);
+    p.not(0);
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "NOT zero");
+}
+
+// ── Bitwise combo: shift + mask + or pattern ────────────────────────
+
+#[test]
+fn cmp_bitwise_combo() {
+    // Extract high byte, low byte, recombine with OR
+    let mut p = Program::new();
+    p.ldi(0, 0xABCD);     // r0 = 0xABCD
+    p.ldi(1, 8);
+    p.shr(0, 1);          // r0 >>= 8 = 0xAB
+    p.ldi(2, 0xABCD);     // r2 = 0xABCD
+    p.ldi(3, 0xFF);
+    p.and(2, 3);          // r2 &= 0xFF = 0xCD
+    p.ldi(4, 8);
+    p.shl(2, 4);          // r2 <<= 8 = 0xCD00
+    p.or(0, 2);           // r0 |= r2 = 0xAB | 0xCD00 = 0xCDAB
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "bitwise combo");
+    assert_eq!(sw.regs[0], 0xCDAB, "sw byte swap");
+    assert_eq!(gpu.regs[0], 0xCDAB, "gpu byte swap");
+}
+
+#[test]
+fn cmp_xor_swap() {
+    // XOR-swap: a ^= b; b ^= a; a ^= b
+    let mut p = Program::new();
+    p.ldi(0, 0xAAAA);     // r0 = a
+    p.ldi(1, 0x5555);     // r1 = b
+    p.xor(0, 1);          // a ^= b
+    p.xor(1, 0);          // b ^= a
+    p.xor(0, 1);          // a ^= b
+    p.halt();
+    let (sw, gpu) = run_both(&p.pixels, 0);
+    assert_vm_match(&sw, &gpu, "XOR swap");
+    assert_eq!(sw.regs[0], 0x5555, "sw: a should be 0x5555");
+    assert_eq!(sw.regs[1], 0xAAAA, "sw: b should be 0xAAAA");
 }

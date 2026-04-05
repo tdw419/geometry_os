@@ -1,0 +1,89 @@
+; strategist.gasm -- Decision-making VM program
+; Runs on VM 4. Reads fitness history from historian's ring buffer,
+; analyzes trends, and sends work orders to engineer (VM 3).
+;
+; Register allocation:
+;   r0  = ring_base (0x00D00000)
+;   r1  = temp address / scratch
+;   r2  = previous fitness score (entry 14)
+;   r3  = latest fitness score (entry 15)
+;   r4  = engineer VM id (constant 3)
+;   r5  = message buffer address (0x00C00200)
+;   r6  = diff = latest - previous
+;   r7  = msg_type result (3=improving, 4=declining)
+;   r8  = program_base_addr for work order (0x00B00000)
+;   r9  = entry_offset for work order (0x00B00000)
+;   r10 = child_vm_slot for work order (5)
+;   r11 = temp / zero constant
+;
+; Ring buffer layout (at 0x00D00000):
+;   Entry N at offset N*4: [msg_type, sender_vm_id, fitness_score, cycles]
+;   fitness_score for entry N is at ring_base + N*4 + 2
+;
+; Decision logic:
+;   Read entry 15 fitness (latest) and entry 14 fitness (previous)
+;   diff = latest - previous
+;   If high bit of diff is 0: improving => msg_type 3 (keep going)
+;   If high bit of diff is 1: declining => msg_type 4 (try different)
+
+; === Setup constants ===
+LDI r0, 0x00D00000
+LDI r4, 3
+LDI r5, 0x00C00200
+LDI r8, 0x00B00000
+LDI r9, 0x00B00000
+LDI r10, 5
+
+main_loop:
+; Read latest fitness from entry 0: ring_base + 0*4 + 2 = ring_base + 2
+LDI r11, 2
+ADD r11, r0
+LOAD r3, r11
+
+; Read previous fitness from entry 1: ring_base + 1*4 + 2 = ring_base + 6
+LDI r11, 6
+ADD r11, r0
+LOAD r2, r11
+
+; diff = latest - previous
+MOV r6, r3
+SUB r6, r2
+
+; Check high bit of diff: SHR r6 by 31
+LDI r11, 31
+SHR r6, r11
+
+; If high bit is set (r6 != 0), it's declining
+LDI r11, 0
+BNE r6, r11, declining
+
+improving:
+LDI r7, 3
+JMP build_msg
+
+declining:
+LDI r7, 4
+
+build_msg:
+; Build work order in message buffer at 0x00C00200:
+;   [0] = msg_type, [1] = base_addr, [2] = entry_offset, [3] = child_slot
+LDI r1, 0x00C00200
+STORE r1, r7
+
+LDI r1, 0x00C00201
+STORE r1, r8
+
+LDI r1, 0x00C00202
+STORE r1, r9
+
+LDI r1, 0x00C00203
+STORE r1, r10
+
+send_msg:
+SEND r4, r5, 4
+
+done_cycle:
+YIELD
+JMP main_loop
+
+HALT

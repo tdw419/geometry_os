@@ -20,6 +20,10 @@ path = "src/bin/pmp-repl.rs"
 name = "pmp-trace"
 path = "src/bin/pmp-trace.rs"
 
+[[bin]]
+name = "pmp-windowed"
+path = "src/bin/daemon_windowed.rs"
+
 [[test]]
 name = "self_replication"
 path = "tests/self_replication.rs"
@@ -54,3 +58,4 @@ log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rand = { version = "0.8", features = ["small_rng"] }
+winit = "0.29"

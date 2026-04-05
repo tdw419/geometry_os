@@ -113,7 +113,7 @@ pub struct GlyphVm {
 }
 
 impl GlyphVm {
-    /// Initialize the GPU, create the texture and pipeline.
+    /// Initialize the GPU, create the texture and pipeline (headless, no surface).
     pub fn new() -> Self {
         let instance = wgpu::Instance::default();
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -130,6 +130,33 @@ impl GlyphVm {
         };
         let (device, queue) = Self::request_device_with_retry(&adapter, &desc);
 
+        Self::init_gpu(device, queue)
+    }
+
+    /// Initialize with a pre-created device and queue (for windowed rendering).
+    /// The caller creates the wgpu Instance, Surface, Adapter, Device, and Queue
+    /// externally (typically from a winit window), then passes them in here.
+    pub fn from_device_queue(device: wgpu::Device, queue: wgpu::Queue) -> Self {
+        Self::init_gpu(device, queue)
+    }
+
+    /// Access the GPU device (for creating render pipelines in windowed mode).
+    pub fn device(&self) -> &wgpu::Device {
+        &self.device
+    }
+
+    /// Access the GPU queue (for submitting render commands in windowed mode).
+    pub fn queue(&self) -> &wgpu::Queue {
+        &self.queue
+    }
+
+    /// Access the RAM texture (for creating a texture view to render in windowed mode).
+    pub fn ram_texture(&self) -> &wgpu::Texture {
+        &self.ram_texture
+    }
+
+    /// Common GPU initialization: create compute pipeline, textures, buffers.
+    fn init_gpu(device: wgpu::Device, queue: wgpu::Queue) -> Self {
         // Load the compute shader
         let shader_source = include_str!("../shaders/glyph_vm_scheduler.wgsl");
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -715,7 +742,7 @@ impl GlyphVm {
     }
 
     /// Request a GPU device with retry logic for robustness under load.
-    fn request_device_with_retry(
+    pub fn request_device_with_retry(
         adapter: &wgpu::Adapter,
         desc: &wgpu::DeviceDescriptor<'_>,
     ) -> (wgpu::Device, wgpu::Queue) {

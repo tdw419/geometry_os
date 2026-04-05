@@ -363,3 +363,239 @@ fn cross_validate_hello_pixels() {
     assert_eq!(svm.peek(300), gpu_vm.substrate().peek(300));
     assert_eq!(svm.peek(300), 0x1337);
 }
+
+// ---- MOD opcode tests ----
+
+#[test]
+fn sv_mod() {
+    let mut p = Program::new();
+    p.ldi(0, 17);
+    p.ldi(1, 5);
+    p.modulo(0, 1); // r0 = 17 % 5 = 2
+    p.halt();
+    let vm = SoftwareVm::run_program(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 2);
+}
+
+#[test]
+fn sv_mod_zero_divisor() {
+    let mut p = Program::new();
+    p.ldi(0, 42);
+    p.ldi(1, 0);
+    p.modulo(0, 1); // r0 = 42 % 0 = 0 (div-by-zero = 0)
+    p.halt();
+    let vm = SoftwareVm::run_program(&p.pixels, 0);
+    assert_eq!(vm.regs[0], 0);
+}
+
+#[test]
+fn cross_validate_mod() {
+    let mut p = Program::new();
+    p.ldi(0, 255);
+    p.ldi(1, 16);
+    p.modulo(0, 1); // r0 = 255 % 16 = 15
+    p.halt();
+
+    // Software VM
+    let sv = SoftwareVm::run_program(&p.pixels, 0);
+
+    // GPU VM
+    let mut gpu_vm = GlyphVm::new();
+    gpu_vm.substrate().load_program(0, &p.pixels);
+    gpu_vm.spawn_vm(0, 0);
+    gpu_vm.execute_frame();
+
+    assert_eq!(sv.regs[0], 15);
+    assert_eq!(gpu_vm.vm_state(0).regs[0], 15);
+    assert_eq!(sv.regs[0], gpu_vm.vm_state(0).regs[0], "MOD cross-validation failed");
+}
+
+#[test]
+fn cross_validate_mod_zero_divisor() {
+    let mut p = Program::new();
+    p.ldi(0, 100);
+    p.ldi(1, 0);
+    p.modulo(0, 1); // r0 = 100 % 0 = 0
+    p.halt();
+
+    // Software VM
+    let sv = SoftwareVm::run_program(&p.pixels, 0);
+
+    // GPU VM
+    let mut gpu_vm = GlyphVm::new();
+    gpu_vm.substrate().load_program(0, &p.pixels);
+    gpu_vm.spawn_vm(0, 0);
+    gpu_vm.execute_frame();
+
+    assert_eq!(sv.regs[0], 0);
+    assert_eq!(gpu_vm.vm_state(0).regs[0], 0);
+    assert_eq!(sv.regs[0], gpu_vm.vm_state(0).regs[0], "MOD div-by-zero cross-validation failed");
+}
+
+// ---- LDB opcode tests ----
+
+#[test]
+fn sv_ldb_all_channels() {
+    let mut svm = SoftwareVm::new();
+    // Write a known 32-bit word to pixel 500
+    // 0xAABBCCDD in little-endian bytes: [0xDD, 0xCC, 0xBB, 0xAA]
+    // pixel channels: R=0xDD, G=0xCC, B=0xBB, A=0xAA
+    svm.poke(500, 0xAABBCCDD);
+
+    let mut p = Program::new();
+    // Load byte from byte address 500*4+0, +1, +2, +3
+    p.ldi(1, 500 * 4 + 0); // byte addr for R channel
+    p.ldb(10, 1);           // r10 = byte at byte_addr 2000 = R = 0xDD
+    p.ldi(1, 500 * 4 + 1); // byte addr for G channel
+    p.ldb(11, 1);           // r11 = byte at byte_addr 2001 = G = 0xCC
+    p.ldi(1, 500 * 4 + 2); // byte addr for B channel
+    p.ldb(12, 1);           // r12 = byte at byte_addr 2002 = B = 0xBB
+    p.ldi(1, 500 * 4 + 3); // byte addr for A channel
+    p.ldb(13, 1);           // r13 = byte at byte_addr 2003 = A = 0xAA
+    p.halt();
+
+    svm.load_program(0, &p.pixels);
+    svm.spawn_vm(0, 0);
+    svm.execute_frame();
+
+    assert_eq!(svm.vm_state(0).regs[10], 0xDD, "LDB byte 0 (R channel)");
+    assert_eq!(svm.vm_state(0).regs[11], 0xCC, "LDB byte 1 (G channel)");
+    assert_eq!(svm.vm_state(0).regs[12], 0xBB, "LDB byte 2 (B channel)");
+    assert_eq!(svm.vm_state(0).regs[13], 0xAA, "LDB byte 3 (A channel)");
+}
+
+#[test]
+fn cross_validate_ldb() {
+    let mut svm = SoftwareVm::new();
+    svm.poke(500, 0x12345678);
+
+    let mut p = Program::new();
+    p.ldi(1, 500 * 4 + 0); // byte 0
+    p.ldb(10, 1);
+    p.ldi(1, 500 * 4 + 1); // byte 1
+    p.ldb(11, 1);
+    p.ldi(1, 500 * 4 + 2); // byte 2
+    p.ldb(12, 1);
+    p.ldi(1, 500 * 4 + 3); // byte 3
+    p.ldb(13, 1);
+    p.halt();
+
+    // Software VM
+    svm.load_program(0, &p.pixels);
+    svm.spawn_vm(0, 0);
+    svm.execute_frame();
+
+    // GPU VM -- need to set up the same memory
+    let mut gpu_vm = GlyphVm::new();
+    gpu_vm.substrate().load_program(0, &p.pixels);
+    gpu_vm.substrate().poke(500, 0x12345678); // seed the same data
+    gpu_vm.spawn_vm(0, 0);
+    gpu_vm.execute_frame();
+
+    for ch in 10u8..=13 {
+        let sv_reg = svm.vm_state(0).regs[ch as usize];
+        let gpu_reg = gpu_vm.vm_state(0).regs[ch as usize];
+        assert_eq!(sv_reg, gpu_reg, "LDB cross-val channel r{ch}: soft=0x{sv_reg:02X} gpu=0x{gpu_reg:02X}");
+    }
+    println!("LDB cross-validation PASSED for all 4 byte channels");
+}
+
+// ---- STB opcode tests ----
+
+#[test]
+fn sv_stb_all_channels() {
+    let mut svm = SoftwareVm::new();
+    // Start with a known word
+    svm.poke(600, 0x00000000);
+
+    let mut p = Program::new();
+    // Store 0xAB to byte offset 0 (R channel)
+    p.ldi(0, 600 * 4 + 0); // byte address
+    p.ldi(2, 0xAB);         // byte value
+    p.stb(0, 2);
+    // Store 0xCD to byte offset 1 (G channel)
+    p.ldi(0, 600 * 4 + 1);
+    p.ldi(2, 0xCD);
+    p.stb(0, 2);
+    // Store 0xEF to byte offset 2 (B channel)
+    p.ldi(0, 600 * 4 + 2);
+    p.ldi(2, 0xEF);
+    p.stb(0, 2);
+    // Store 0x55 to byte offset 3 (A channel)
+    p.ldi(0, 600 * 4 + 3);
+    p.ldi(2, 0x55);
+    p.stb(0, 2);
+    p.halt();
+
+    svm.load_program(0, &p.pixels);
+    svm.spawn_vm(0, 0);
+    svm.execute_frame();
+
+    assert_eq!(svm.peek(600), 0x55EFCDAB, "STB should compose bytes into 0x55EFCDAB");
+}
+
+#[test]
+fn cross_validate_stb() {
+    let mut svm = SoftwareVm::new();
+    svm.poke(700, 0xFFFFFFFF); // start with all FFs
+
+    let mut p = Program::new();
+    // Write 0x42 to byte offset 1 (G channel) -- should leave other bytes intact
+    p.ldi(0, 700 * 4 + 1); // byte address for G channel
+    p.ldi(2, 0x42);
+    p.stb(0, 2);
+    p.halt();
+
+    // Software VM
+    svm.load_program(0, &p.pixels);
+    svm.spawn_vm(0, 0);
+    svm.execute_frame();
+
+    // GPU VM
+    let mut gpu_vm = GlyphVm::new();
+    gpu_vm.substrate().load_program(0, &p.pixels);
+    gpu_vm.substrate().poke(700, 0xFFFFFFFF); // same initial state
+    gpu_vm.spawn_vm(0, 0);
+    gpu_vm.execute_frame();
+
+    let soft_val = svm.peek(700);
+    let gpu_val = gpu_vm.substrate().peek(700);
+    assert_eq!(soft_val, gpu_val, "STB cross-val: soft=0x{soft_val:08X} gpu=0x{gpu_val:08X}");
+
+    // After writing 0x42 to byte 1, the word should be 0xFFFF42FF
+    // byte 0 = FF (R), byte 1 = 42 (G), byte 2 = FF (B), byte 3 = FF (A)
+    // little-endian: 0xFF_FF_42_FF
+    assert_eq!(soft_val, 0xFFFF42FF, "STB should replace only byte 1");
+}
+
+#[test]
+fn cross_validate_stb_ldb_roundtrip() {
+    // Write a byte with STB, read it back with LDB -- full round-trip
+    let mut p = Program::new();
+    // Store 0x77 to byte offset 2 of pixel 800
+    p.ldi(0, 800 * 4 + 2);
+    p.ldi(2, 0x77);
+    p.stb(0, 2);
+    // Read it back
+    p.ldi(1, 800 * 4 + 2);
+    p.ldb(3, 1); // r3 = byte at offset 2 = 0x77
+    p.halt();
+
+    // Software VM
+    let mut svm = SoftwareVm::new();
+    svm.load_program(0, &p.pixels);
+    svm.spawn_vm(0, 0);
+    svm.execute_frame();
+
+    // GPU VM
+    let mut gpu_vm = GlyphVm::new();
+    gpu_vm.substrate().load_program(0, &p.pixels);
+    gpu_vm.spawn_vm(0, 0);
+    gpu_vm.execute_frame();
+
+    let sv_reg = svm.vm_state(0).regs[3];
+    let gpu_reg = gpu_vm.vm_state(0).regs[3];
+    assert_eq!(sv_reg, 0x77, "Software VM STB->LDB roundtrip");
+    assert_eq!(gpu_reg, 0x77, "GPU VM STB->LDB roundtrip");
+    assert_eq!(sv_reg, gpu_reg, "STB->LDB cross-validation");
+}

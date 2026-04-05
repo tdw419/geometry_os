@@ -6,6 +6,7 @@
 
 pub mod assembler;
 pub mod cpu_stub;
+pub mod evolution;
 pub mod filmstrip;
 pub mod fitness;
 pub mod font_atlas;
@@ -95,3 +96,21 @@ pub const EVENT_CUSTOM: u32 = 4;
 pub const SCREEN_BASE: u32 = 0x00F30000;
 /// Screen dimensions (256x256 = 64K pixels = 256KB).
 pub const SCREEN_SIZE: u32 = 256;
+
+// ── Dashboard Region ──
+//
+// A 480x240 pixel region for external dashboard/overlay content.
+// External clients (web UIs, formula engines, tools) blit RGBA frames here
+// via the POST /api/v1/blit endpoint. The GPU render pipeline can then
+// display this region as an overlay or texture.
+//
+//   DASHBOARD_BASE .. DASHBOARD_BASE + 480*240 - 1 : 480x240 RGBA8 frame
+
+/// Base address of the dashboard region (Hilbert pixel index).
+pub const DASHBOARD_BASE: u32 = 0x00F40000;
+/// Dashboard frame width in pixels.
+pub const DASHBOARD_WIDTH: u32 = 480;
+/// Dashboard frame height in pixels.
+pub const DASHBOARD_HEIGHT: u32 = 240;
+/// Total dashboard region size in pixels (115,200).
+pub const DASHBOARD_PIXELS: u32 = DASHBOARD_WIDTH * DASHBOARD_HEIGHT;
