@@ -2991,6 +2991,147 @@ mod tests {
         assert_eq!(svm.vm_state(1).regs[0], crate::EVENT_TIMER, "VM 1 should have timer event");
         assert_eq!(svm.vm_state(1).regs[1], 1000, "VM 1 param1 should be 1000");
     }
+
+    // ── Historian VM tests (GEO-37) ────────────────────────────────
+
+    /// Helper: load historian.gasm from disk into the given VM at the given address.
+    fn load_historian(svm: &mut SoftwareVm, vm_id: u32, load_addr: u32) {
+        let historian_src = std::fs::read_to_string("programs/historian.gasm")
+            .expect("programs/historian.gasm should exist");
+        let historian_prog = crate::assembler::parse_gasm(&historian_src)
+            .expect("historian.gasm should parse");
+        svm.load_program(load_addr, &historian_prog.pixels);
+        svm.spawn_vm(vm_id, load_addr);
+    }
+
+    /// Helper: build a sender program that constructs a 4-pixel fitness report and
+    /// sends it to a target VM, then halts.
+    fn build_fitness_sender(target_vm: u32, msg_type: u32, sender_id: u32, fitness: u32, cycles: u32) -> Program {
+        let mut sender = Program::new();
+        // r0 = data_addr (where we build the message)
+        sender.ldi(0, 1000);
+        // pixel 0: msg_type
+        sender.ldi(1, msg_type);
+        sender.store(0, 1);
+        // pixel 1: sender_id
+        sender.ldi(2, 1001);
+        sender.ldi(1, sender_id);
+        sender.store(2, 1);
+        // pixel 2: fitness
+        sender.ldi(2, 1002);
+        sender.ldi(1, fitness);
+        sender.store(2, 1);
+        // pixel 3: cycles
+        sender.ldi(2, 1003);
+        sender.ldi(1, cycles);
+        sender.store(2, 1);
+        // Send to target VM
+        sender.ldi(1, target_vm);
+        sender.send(1, 0, 4); // SEND r1(target_vm), r0(data_addr=1000), length=4
+        sender.halt();
+        sender
+    }
+
+    #[test]
+    fn test_historian_receives_fitness_report() {
+        // VM 0: sender sends a 4-pixel fitness report to VM 2
+        // VM 2: historian.gasm loaded at addr 100
+        // After sender sends and historian processes, verify ring buffer at 0x00D00000.
+
+        let sender = build_fitness_sender(2, 1, 0, 7500, 120);
+        let sender_load_addr: u32 = 200;
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(sender_load_addr, &sender.pixels);
+        svm.spawn_vm(0, sender_load_addr);
+
+        load_historian(&mut svm, 2, 100);
+
+        // Frame 1: sender sends, historian receives and processes
+        svm.execute_frame();
+
+        // Sender should halt
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "sender should halt");
+
+        // Historian should be yielded (will auto-resume next frame) or still running
+        assert_ne!(svm.vm_state(2).state, vm_state::HALTED, "historian should not halt");
+
+        // Verify ring buffer at 0x00D00000
+        let ring_base = 0x00D00000u32;
+        assert_eq!(svm.peek(ring_base + 0), 1, "ring[0] msg_type should be 1 (fitness_report)");
+        assert_eq!(svm.peek(ring_base + 1), 0, "ring[1] sender_vm_id should be 0");
+        assert_eq!(svm.peek(ring_base + 2), 7500, "ring[2] fitness_score should be 7500");
+        assert_eq!(svm.peek(ring_base + 3), 120, "ring[3] cycles should be 120");
+
+        // Ring slots 1-15 should still be zero
+        for i in 1..16 {
+            for j in 0..4 {
+                assert_eq!(svm.peek(ring_base + i * 4 + j), 0, "ring slot {} pixel {} should be 0", i, j);
+            }
+        }
+    }
+
+    #[test]
+    fn test_historian_ring_buffer_wraps() {
+        // Send 17 messages (ring size = 16). The 17th should overwrite the 1st.
+        // We do this by running sender+historian frame by frame.
+
+        let mut svm = SoftwareVm::new();
+        load_historian(&mut svm, 2, 100);
+
+        let ring_base = 0x00D00000u32;
+
+        // Send 16 messages, each with fitness = slot_index * 100
+        for i in 0..16u32 {
+            let sender = build_fitness_sender(2, 1, 0, i * 100, i * 10);
+            let sender_load_addr: u32 = 200;
+            svm.load_program(sender_load_addr, &sender.pixels);
+            svm.spawn_vm(0, sender_load_addr);
+
+            // Execute frame: sender sends, historian receives
+            svm.execute_frame();
+        }
+
+        // Verify slots 0..16 are filled
+        for i in 0..16u32 {
+            assert_eq!(svm.peek(ring_base + i * 4 + 2), i * 100,
+                "slot {} fitness should be {}", i, i * 100);
+        }
+
+        // Now send the 17th message with fitness = 9999
+        let sender17 = build_fitness_sender(2, 1, 5, 9999, 77);
+        svm.load_program(200, &sender17.pixels);
+        // VM 0 is halted from last run; respawn it
+        svm.spawn_vm(0, 200);
+        svm.execute_frame();
+
+        // Slot 0 should now have the 17th message (fitness=9999)
+        assert_eq!(svm.peek(ring_base + 0), 1, "slot 0 msg_type after wrap should be 1");
+        assert_eq!(svm.peek(ring_base + 1), 5, "slot 0 sender after wrap should be 5");
+        assert_eq!(svm.peek(ring_base + 2), 9999, "slot 0 fitness after wrap should be 9999");
+        assert_eq!(svm.peek(ring_base + 3), 77, "slot 0 cycles after wrap should be 77");
+
+        // Slot 1 should still have message from the 2nd send (fitness=100)
+        assert_eq!(svm.peek(ring_base + 4 + 2), 100, "slot 1 fitness should be unchanged");
+    }
+
+    #[test]
+    fn test_historian_yields_when_no_messages() {
+        // Run historian with empty mailbox. It should YIELD each frame and never HALT.
+        let mut svm = SoftwareVm::new();
+        load_historian(&mut svm, 2, 100);
+
+        // Run 5 frames with no messages
+        for frame in 0..5 {
+            svm.execute_frame();
+            assert_ne!(svm.vm_state(2).state, vm_state::HALTED,
+                "historian should not halt on frame {}", frame);
+            // After execute_frame, yielded VMs have state YIELDED (set during execution)
+            // but will be auto-resumed at the start of the next frame
+            assert_ne!(svm.vm_state(2).state, vm_state::INACTIVE,
+                "historian should not be inactive on frame {}", frame);
+        }
+    }
 }
 
 impl SoftwareVm {
@@ -3004,4 +3145,6 @@ impl SoftwareVm {
         }
         (matched, expected.len())
     }
+
+
 }

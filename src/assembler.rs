@@ -739,6 +739,21 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
                 program.yield_op();
             }
 
+            "SEND" => {
+                expect_arg_count(&tokens, 3, line_num)?;
+                let target_vm_reg = parse_register(tokens[1], line_num)?;
+                let data_addr_reg = parse_register(tokens[2], line_num)?;
+                let length = parse_value(tokens[3], line_num)?;
+                program.send(target_vm_reg, data_addr_reg, length);
+            }
+
+            "RECV" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let dest_addr_reg = parse_register(tokens[1], line_num)?;
+                let status_reg = parse_register(tokens[2], line_num)?;
+                program.recv(dest_addr_reg, status_reg);
+            }
+
             "FRAME" => {
                 expect_arg_count(&tokens, 1, line_num)?;
                 let target_reg = parse_register(tokens[1], line_num)?;
