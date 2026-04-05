@@ -27,8 +27,8 @@ const EVENT_WINDOW_DRAG: u32  = 7u;
 
 // Opcodes (0-15) - Logic Stratum
 const OP_NOP: u32    = 0u;
-const OP_ALLOC: u32  = 1u;
-const OP_FREE: u32   = 2u;
+const OP_LDI: u32    = 1u;  // Load immediate (2-pixel)
+const OP_MOV: u32    = 2u;  // Move register
 const OP_LOAD: u32   = 3u;
 const OP_STORE: u32  = 4u;
 const OP_ADD: u32    = 5u;
@@ -42,6 +42,17 @@ const OP_RETURN: u32 = 12u;
 const OP_HALT: u32   = 13u;
 const OP_DATA: u32   = 14u;
 const OP_LOOP: u32   = 15u;
+
+// Opcodes (19-33) - ALU extensions + byte memory
+const OP_SHR: u32    = 19u; // Shift right
+const OP_OR: u32     = 20u; // Bitwise OR
+const OP_AND: u32    = 25u; // Bitwise AND
+const OP_SHL: u32    = 26u; // Shift left
+const OP_XOR: u32    = 29u; // Bitwise XOR
+const OP_NOT: u32    = 30u; // Bitwise NOT
+const OP_MOD: u32    = 31u; // Modulo
+const OP_LDB: u32    = 32u; // Load byte
+const OP_STB: u32    = 33u; // Store byte
 
 // AI-Native / Substrate Opcodes (220-227)
 const OP_SPATIAL_SPAWN: u32 = 225u;
@@ -218,6 +229,22 @@ fn f32_as_u32(val: f32) -> u32 {
     return bitcast<u32>(val);
 }
 
+/// Read a u32 word from RAM at Hilbert pixel index `pixel_idx`.
+/// Reconstructs R|G<<8|B<<16|A<<24 (matches CPU mem_read).
+fn mem_read_u32(pixel_idx: u32) -> u32 {
+    let coords = d2xy(GRID_SIZE, pixel_idx);
+    let px = textureLoad(ram, vec2<i32>(i32(coords.x), i32(coords.y)));
+    return px.r | (px.g << 8u) | (px.b << 16u) | (px.a << 24u);
+}
+
+/// Write a u32 word to RAM at Hilbert pixel index `pixel_idx`.
+/// Decomposes into R,G,B,A channels (matches CPU mem_write).
+fn mem_write_u32(pixel_idx: u32, value: u32) {
+    let coords = d2xy(GRID_SIZE, pixel_idx);
+    textureStore(ram, vec2<i32>(i32(coords.x), i32(coords.y)),
+        vec4<u32>(value & 0xFFu, (value >> 8u) & 0xFFu, (value >> 16u) & 0xFFu, (value >> 24u) & 0xFFu));
+}
+
 // ============================================================================
 // VM EXECUTION
 // ============================================================================
@@ -247,6 +274,22 @@ fn execute_instruction(vm_idx: u32) {
 
     switch (opcode) {
         case 0u: {
+            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
+        }
+        // LDI - Load immediate: LDI rd, imm (2-pixel instruction)
+        // Pixel 0: (1, 0, rd, 0), Pixel 1: immediate u32 value
+        case 1u: {
+            let imm = mem_read_u32(vms[vm_idx].pc + 1u);
+            if (p1 < REG_COUNT) {
+                vms[vm_idx].regs[p1] = imm;
+            }
+            vms[vm_idx].pc = vms[vm_idx].pc + 2u; // Skip instruction + immediate
+        }
+        // MOV - Move register: MOV rd, rs (regs[rd] = regs[rs])
+        case 2u: {
+            if (p1 < REG_COUNT && p2 < REG_COUNT) {
+                vms[vm_idx].regs[p1] = vms[vm_idx].regs[p2];
+            }
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         case 5u: {
@@ -481,6 +524,43 @@ fn execute_instruction(vm_idx: u32) {
             // regs[p1] = dx, regs[p2] = dy
             vms[vm_idx].regs[20] = vms[vm_idx].regs[20] + vms[vm_idx].regs[p1];
             vms[vm_idx].regs[21] = vms[vm_idx].regs[21] + vms[vm_idx].regs[p2];
+            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
+        }
+        // MOD - Modulo: MOD rd, rs (regs[rd] %= regs[rs], div-by-zero = 0)
+        case 31u: {
+            if (p1 < REG_COUNT && p2 < REG_COUNT) {
+                let divisor = vms[vm_idx].regs[p2];
+                if (divisor != 0u) {
+                    vms[vm_idx].regs[p1] = vms[vm_idx].regs[p1] % divisor;
+                } else {
+                    vms[vm_idx].regs[p1] = 0u;
+                }
+            }
+            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
+        }
+        // LDB - Load byte: LDB rd, [rs] (regs[rd] = byte at byte address regs[rs])
+        case 32u: {
+            if (p1 < REG_COUNT && p2 < REG_COUNT) {
+                let byte_addr = vms[vm_idx].regs[p2];
+                let pixel_idx = byte_addr / 4u;
+                let shift = (byte_addr % 4u) * 8u;
+                let word = mem_read_u32(pixel_idx);
+                vms[vm_idx].regs[p1] = (word >> shift) & 0xFFu;
+            }
+            vms[vm_idx].pc = vms[vm_idx].pc + 1u;
+        }
+        // STB - Store byte: STB [rd], rs (store low byte of regs[rs] to byte address regs[rd])
+        case 33u: {
+            if (p1 < REG_COUNT && p2 < REG_COUNT) {
+                let byte_addr = vms[vm_idx].regs[p1];
+                let pixel_idx = byte_addr / 4u;
+                let shift = (byte_addr % 4u) * 8u;
+                let old_word = mem_read_u32(pixel_idx);
+                let byte_val = vms[vm_idx].regs[p2] & 0xFFu;
+                let mask = ~(0xFFu << shift);
+                let new_word = (old_word & mask) | (byte_val << shift);
+                mem_write_u32(pixel_idx, new_word);
+            }
             vms[vm_idx].pc = vms[vm_idx].pc + 1u;
         }
         default: {
