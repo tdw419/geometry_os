@@ -67,6 +67,14 @@ pub const CMD_MODEL_CALL: u32 = 7;
 pub const CMD_STATUS_READ: u32 = 8;
 /// Write a status value. param1=addr of key string, param2=value (u32).
 pub const CMD_STATUS_WRITE: u32 = 9;
+/// Filesystem query. param3=query_addr (path string), param4=buf_size. Lists directory or stats file.
+pub const CMD_FS_QUERY: u32 = 10;
+/// Open a hardware device. param1=device_type (0=gpu,1=audio,2=net), param2=device_index. Returns fd.
+pub const CMD_DEVICE_OPEN: u32 = 11;
+/// Device control. param1=fd, param2=ioctl_cmd, param3=data_addr, param4=data_len.
+pub const CMD_DEVICE_IOCTL: u32 = 12;
+/// Spawn a new process/VM. param1=program_addr, param2=program_len, param3=args_addr. Returns VM ID.
+pub const CMD_SPAWN_PROCESS: u32 = 13;
 
 // ── Status Values ──
 
@@ -380,12 +388,16 @@ impl Default for ModelConfig {
 
 /// Agent-capable command executor.
 ///
-/// Handles all 9 command types:
+/// Handles all 13 command types:
 /// - Commands 1-5 (READ_BLOCK through IOCTL): delegated to FileExecutor
 /// - Command 6 (SQL_QUERY): executes SQL via in-memory SQLite, writes TSV results to substrate
 /// - Command 7 (MODEL_CALL): calls an LLM via HTTP, writes response to substrate
 /// - Command 8 (STATUS_READ): reads from the in-memory status store
 /// - Command 9 (STATUS_WRITE): writes to the in-memory status store
+/// - Command 10 (FS_QUERY): filesystem query -- lists directory or stats file
+/// - Command 11 (DEVICE_OPEN): open hardware device (stub: NOT_IMPLEMENTED)
+/// - Command 12 (DEVICE_IOCTL): device control (stub: NOT_IMPLEMENTED)
+/// - Command 13 (SPAWN_PROCESS): spawn new process/VM (stub: NOT_IMPLEMENTED)
 ///
 /// The status store is shared via `Rc<RefCell<>>` so tests can inspect it.
 pub struct AgentExecutor {
@@ -654,6 +666,139 @@ impl AgentExecutor {
             .map(|s| s.to_string())
             .ok_or_else(|| "openai: missing response content".into())
     }
+
+    /// Handle CMD_FS_QUERY (10): list directory or stat file.
+    /// param3 = query_addr (path string in substrate), param4 = buf_size.
+    /// Reads path from substrate, performs fs operation, writes result back at query_addr.
+    fn handle_fs_query(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
+        let path_addr = cmd.param3;
+        let buf_size = cmd.param4 as usize;
+
+        if buf_size == 0 {
+            return CommandResult {
+                status: STATUS_ERROR,
+                result: 0xFFFF_FFFC, // buffer too small
+            };
+        }
+
+        let path = read_substrate_string(substrate, path_addr, 4096);
+        let path = std::path::Path::new(&path);
+
+        let result_text = if path.is_dir() {
+            // List directory entries
+            match std::fs::read_dir(path) {
+                Ok(entries) => {
+                    let mut listing = String::new();
+                    for entry in entries.flatten() {
+                        if let Some(name) = entry.file_name().to_str() {
+                            let file_type = if entry.path().is_dir() {
+                                "d"
+                            } else {
+                                "f"
+                            };
+                            listing.push_str(file_type);
+                            listing.push('\t');
+                            listing.push_str(name);
+                            listing.push('\n');
+                        }
+                        if listing.len() > buf_size - 1 {
+                            break;
+                        }
+                    }
+                    listing
+                }
+                Err(e) => {
+                    let err = format!("FS_ERROR: {}\n", e);
+                    let written = write_substrate_string(substrate, path_addr, &err, buf_size);
+                    return CommandResult {
+                        status: STATUS_ERROR,
+                        result: written as u32,
+                    };
+                }
+            }
+        } else if path.exists() {
+            // Stat file
+            match std::fs::metadata(path) {
+                Ok(meta) => {
+                    let mut info = String::new();
+                    info.push_str("name\tsize\ttype\n");
+                    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                        info.push_str(name);
+                    }
+                    info.push('\t');
+                    info.push_str(&meta.len().to_string());
+                    info.push('\t');
+                    info.push_str(if meta.is_dir() { "dir" } else { "file" });
+                    info.push('\n');
+                    info
+                }
+                Err(e) => {
+                    let err = format!("FS_ERROR: {}\n", e);
+                    let written = write_substrate_string(substrate, path_addr, &err, buf_size);
+                    return CommandResult {
+                        status: STATUS_ERROR,
+                        result: written as u32,
+                    };
+                }
+            }
+        } else {
+            let err = "FS_ERROR: not found\n".to_string();
+            let written = write_substrate_string(substrate, path_addr, &err, buf_size);
+            return CommandResult {
+                status: STATUS_ERROR,
+                result: written as u32,
+            };
+        };
+
+        let written = write_substrate_string(substrate, path_addr, &result_text, buf_size);
+        CommandResult {
+            status: STATUS_COMPLETE,
+            result: written as u32,
+        }
+    }
+
+    /// Handle CMD_DEVICE_OPEN (11): open a hardware device (stub).
+    /// param1 = device_type (0=gpu, 1=audio, 2=net), param2 = device_index.
+    /// Returns NOT_IMPLEMENTED.
+    fn handle_device_open(&self, cmd: &Command, _substrate: &Substrate) -> CommandResult {
+        eprintln!(
+            "CMD_DEVICE_OPEN: device_type={} device_index={} (NOT_IMPLEMENTED)",
+            cmd.param1, cmd.param2
+        );
+        CommandResult {
+            status: STATUS_ERROR,
+            result: 0xFFFF_FFFF, // NOT_IMPLEMENTED
+        }
+    }
+
+    /// Handle CMD_DEVICE_IOCTL (12): device control (stub).
+    /// param1 = fd, param2 = ioctl_cmd, param3 = data_addr, param4 = data_len.
+    /// Returns NOT_IMPLEMENTED.
+    fn handle_device_ioctl(&self, cmd: &Command, _substrate: &Substrate) -> CommandResult {
+        eprintln!(
+            "CMD_DEVICE_IOCTL: fd={} ioctl_cmd={} data_addr={} data_len={} (NOT_IMPLEMENTED)",
+            cmd.param1, cmd.param2, cmd.param3, cmd.param4
+        );
+        CommandResult {
+            status: STATUS_ERROR,
+            result: 0xFFFF_FFFF, // NOT_IMPLEMENTED
+        }
+    }
+
+    /// Handle CMD_SPAWN_PROCESS (13): spawn a new process/VM (stub).
+    /// param1 = program_addr, param2 = program_len, param3 = args_addr.
+    /// Returns NOT_IMPLEMENTED.
+    fn handle_spawn_process(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
+        let program_name = read_substrate_string(substrate, cmd.param1, cmd.param2 as usize);
+        eprintln!(
+            "CMD_SPAWN_PROCESS: program={} program_len={} args_addr={} (NOT_IMPLEMENTED)",
+            program_name, cmd.param2, cmd.param3
+        );
+        CommandResult {
+            status: STATUS_ERROR,
+            result: 0xFFFF_FFFF, // NOT_IMPLEMENTED
+        }
+    }
 }
 
 impl CommandExecutor for AgentExecutor {
@@ -664,6 +809,10 @@ impl CommandExecutor for AgentExecutor {
             CMD_MODEL_CALL => self.handle_model_call(cmd, substrate),
             CMD_STATUS_READ => self.handle_status_read(cmd, substrate),
             CMD_STATUS_WRITE => self.handle_status_write(cmd, substrate),
+            CMD_FS_QUERY => self.handle_fs_query(cmd, substrate),
+            CMD_DEVICE_OPEN => self.handle_device_open(cmd, substrate),
+            CMD_DEVICE_IOCTL => self.handle_device_ioctl(cmd, substrate),
+            CMD_SPAWN_PROCESS => self.handle_spawn_process(cmd, substrate),
             _ => CommandResult {
                 status: STATUS_ERROR,
                 result: 0xFFFF_FFFE, // Unknown command
@@ -1459,5 +1608,198 @@ mod tests {
         assert_eq!(*store.get("iteration").unwrap(), 7);
         assert_eq!(*store.get("best_fitness").unwrap(), 85);
         assert_eq!(*store.get("mode").unwrap(), 1);
+    }
+
+    // ── GEO-57: Device Proxy Extension Tests ──
+
+    #[test]
+    fn test_fs_query_list_directory() {
+        let substrate = Substrate::new();
+        let executor = AgentExecutor::new();
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        // Use /tmp as a known-existing directory
+        let path_addr: u32 = 0x0006_0000;
+        write_substrate_string(&substrate, path_addr, "/tmp", 4096);
+
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_FS_QUERY,
+                vm_id: 0,
+                param1: 0,
+                param2: 0,
+                param3: path_addr,
+                param4: 4096,
+            },
+        );
+
+        assert_eq!(stub.poll_once(&substrate), 1);
+        assert_eq!(
+            read_slot_status(&substrate, TEST_CMD_BASE, 0),
+            STATUS_COMPLETE
+        );
+
+        // Result should contain tab-separated entries with d/f prefix
+        let result = read_substrate_string(&substrate, path_addr, 4096);
+        // /tmp should have at least one entry
+        assert!(!result.is_empty(), "directory listing should not be empty");
+    }
+
+    #[test]
+    fn test_fs_query_not_found() {
+        let substrate = Substrate::new();
+        let executor = AgentExecutor::new();
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        let path_addr: u32 = 0x0006_0000;
+        write_substrate_string(
+            &substrate,
+            path_addr,
+            "/no/such/path/ever/exists",
+            4096,
+        );
+
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_FS_QUERY,
+                vm_id: 0,
+                param1: 0,
+                param2: 0,
+                param3: path_addr,
+                param4: 4096,
+            },
+        );
+
+        assert_eq!(stub.poll_once(&substrate), 1);
+        assert_eq!(
+            read_slot_status(&substrate, TEST_CMD_BASE, 0),
+            STATUS_ERROR
+        );
+
+        let result = read_substrate_string(&substrate, path_addr, 4096);
+        assert!(
+            result.contains("FS_ERROR"),
+            "expected FS_ERROR, got: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_device_open_not_implemented() {
+        let substrate = Substrate::new();
+        let executor = AgentExecutor::new();
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_DEVICE_OPEN,
+                vm_id: 0,
+                param1: 0, // device_type = gpu
+                param2: 0, // device_index
+                param3: 0,
+                param4: 0,
+            },
+        );
+
+        assert_eq!(stub.poll_once(&substrate), 1);
+        assert_eq!(
+            read_slot_status(&substrate, TEST_CMD_BASE, 0),
+            STATUS_ERROR
+        );
+        assert_eq!(
+            read_slot_result(&substrate, TEST_CMD_BASE, 0),
+            0xFFFF_FFFF
+        ); // NOT_IMPLEMENTED
+    }
+
+    #[test]
+    fn test_device_ioctl_not_implemented() {
+        let substrate = Substrate::new();
+        let executor = AgentExecutor::new();
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_DEVICE_IOCTL,
+                vm_id: 0,
+                param1: 42, // fd
+                param2: 1,  // ioctl_cmd
+                param3: 0x1000,
+                param4: 256,
+            },
+        );
+
+        assert_eq!(stub.poll_once(&substrate), 1);
+        assert_eq!(
+            read_slot_status(&substrate, TEST_CMD_BASE, 0),
+            STATUS_ERROR
+        );
+        assert_eq!(
+            read_slot_result(&substrate, TEST_CMD_BASE, 0),
+            0xFFFF_FFFF
+        ); // NOT_IMPLEMENTED
+    }
+
+    #[test]
+    fn test_spawn_process_not_implemented() {
+        let substrate = Substrate::new();
+        let executor = AgentExecutor::new();
+        let stub = CpuStub::new(TEST_CMD_BASE, executor);
+
+        let prog_addr: u32 = 0x0006_0000;
+        write_substrate_string(&substrate, prog_addr, "test_program", 64);
+
+        write_command(
+            &substrate,
+            TEST_CMD_BASE,
+            0,
+            &Command {
+                cmd_type: CMD_SPAWN_PROCESS,
+                vm_id: 0,
+                param1: prog_addr,
+                param2: 64, // program_len
+                param3: 0,  // args_addr
+                param4: 0,
+            },
+        );
+
+        assert_eq!(stub.poll_once(&substrate), 1);
+        assert_eq!(
+            read_slot_status(&substrate, TEST_CMD_BASE, 0),
+            STATUS_ERROR
+        );
+        assert_eq!(
+            read_slot_result(&substrate, TEST_CMD_BASE, 0),
+            0xFFFF_FFFF
+        ); // NOT_IMPLEMENTED
+    }
+
+    #[test]
+    fn test_new_cmd_constants_distinct() {
+        // Verify new constants are distinct from each other and existing
+        assert_ne!(CMD_FS_QUERY, CMD_DEVICE_OPEN);
+        assert_ne!(CMD_DEVICE_OPEN, CMD_DEVICE_IOCTL);
+        assert_ne!(CMD_DEVICE_IOCTL, CMD_SPAWN_PROCESS);
+        assert_ne!(CMD_FS_QUERY, CMD_SPAWN_PROCESS);
+        // Verify they don't collide with existing
+        assert_ne!(CMD_FS_QUERY, CMD_STATUS_WRITE);
+        assert_ne!(CMD_FS_QUERY, CMD_READ_BLOCK);
+        // Verify values
+        assert_eq!(CMD_FS_QUERY, 10);
+        assert_eq!(CMD_DEVICE_OPEN, 11);
+        assert_eq!(CMD_DEVICE_IOCTL, 12);
+        assert_eq!(CMD_SPAWN_PROCESS, 13);
     }
 }

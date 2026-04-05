@@ -449,6 +449,175 @@ impl CodeGenerator {
                 }
             }
             Expr::Call(name, args) => {
+                // ── Intrinsic handling ──
+                // Memory and bitwise intrinsics compile directly to single opcodes.
+                // No calling convention overhead — they're not real function calls.
+                match name.as_str() {
+                    // ldb(addr) → LDB dst, [addr_reg]
+                    "ldb" => {
+                        if args.len() != 1 {
+                            return Err("ldb(addr) takes exactly 1 argument".to_string());
+                        }
+                        let addr_reg = self.alloc_reg();
+                        self.emit_expr_to_reg(prog, &args[0], addr_reg)?;
+                        prog.instruction(op::LDB, 0, dst_reg, addr_reg);
+                        self.next_reg -= 1;
+                        return Ok(());
+                    }
+                    // stb(addr, val) → STB [addr_reg], val_reg
+                    "stb" => {
+                        if args.len() != 2 {
+                            return Err("stb(addr, val) takes exactly 2 arguments".to_string());
+                        }
+                        let addr_reg = self.alloc_reg();
+                        let val_reg = self.alloc_reg();
+                        self.emit_expr_to_reg(prog, &args[0], addr_reg)?;
+                        self.emit_expr_to_reg(prog, &args[1], val_reg)?;
+                        prog.instruction(op::STB, 0, addr_reg, val_reg);
+                        self.next_reg -= 2;
+                        // stb returns the value written (in dst_reg)
+                        if dst_reg != val_reg {
+                            prog.instruction(op::MOV, 0, dst_reg, val_reg);
+                        }
+                        return Ok(());
+                    }
+                    // load(addr) → LOAD dst, [addr_reg]
+                    "load" => {
+                        if args.len() != 1 {
+                            return Err("load(addr) takes exactly 1 argument".to_string());
+                        }
+                        let addr_reg = self.alloc_reg();
+                        self.emit_expr_to_reg(prog, &args[0], addr_reg)?;
+                        prog.load(dst_reg, addr_reg);
+                        self.next_reg -= 1;
+                        return Ok(());
+                    }
+                    // store(addr, val) → STORE [addr_reg], val_reg
+                    "store" => {
+                        if args.len() != 2 {
+                            return Err("store(addr, val) takes exactly 2 arguments".to_string());
+                        }
+                        let addr_reg = self.alloc_reg();
+                        let val_reg = self.alloc_reg();
+                        self.emit_expr_to_reg(prog, &args[0], addr_reg)?;
+                        self.emit_expr_to_reg(prog, &args[1], val_reg)?;
+                        prog.store(addr_reg, val_reg);
+                        self.next_reg -= 2;
+                        // store returns the value written
+                        if dst_reg != val_reg {
+                            prog.instruction(op::MOV, 0, dst_reg, val_reg);
+                        }
+                        return Ok(());
+                    }
+                    // Bitwise intrinsics
+                    "and" => {
+                        if args.len() != 2 {
+                            return Err("and(a, b) takes exactly 2 arguments".to_string());
+                        }
+                        let a_reg = self.alloc_reg();
+                        let b_reg = self.alloc_reg();
+                        self.emit_expr_to_reg(prog, &args[0], a_reg)?;
+                        self.emit_expr_to_reg(prog, &args[1], b_reg)?;
+                        // AND rd, rs means rd &= rs
+                        if dst_reg != a_reg {
+                            prog.instruction(op::MOV, 0, dst_reg, a_reg);
+                        }
+                        prog.instruction(op::AND, 0, dst_reg, b_reg);
+                        self.next_reg -= 2;
+                        return Ok(());
+                    }
+                    "or" => {
+                        if args.len() != 2 {
+                            return Err("or(a, b) takes exactly 2 arguments".to_string());
+                        }
+                        let a_reg = self.alloc_reg();
+                        let b_reg = self.alloc_reg();
+                        self.emit_expr_to_reg(prog, &args[0], a_reg)?;
+                        self.emit_expr_to_reg(prog, &args[1], b_reg)?;
+                        if dst_reg != a_reg {
+                            prog.instruction(op::MOV, 0, dst_reg, a_reg);
+                        }
+                        prog.instruction(op::OR, 0, dst_reg, b_reg);
+                        self.next_reg -= 2;
+                        return Ok(());
+                    }
+                    "xor" => {
+                        if args.len() != 2 {
+                            return Err("xor(a, b) takes exactly 2 arguments".to_string());
+                        }
+                        let a_reg = self.alloc_reg();
+                        let b_reg = self.alloc_reg();
+                        self.emit_expr_to_reg(prog, &args[0], a_reg)?;
+                        self.emit_expr_to_reg(prog, &args[1], b_reg)?;
+                        if dst_reg != a_reg {
+                            prog.instruction(op::MOV, 0, dst_reg, a_reg);
+                        }
+                        prog.instruction(op::XOR, 0, dst_reg, b_reg);
+                        self.next_reg -= 2;
+                        return Ok(());
+                    }
+                    "not" => {
+                        if args.len() != 1 {
+                            return Err("not(a) takes exactly 1 argument".to_string());
+                        }
+                        let a_reg = self.alloc_reg();
+                        self.emit_expr_to_reg(prog, &args[0], a_reg)?;
+                        if dst_reg != a_reg {
+                            prog.instruction(op::MOV, 0, dst_reg, a_reg);
+                        }
+                        prog.instruction(op::NOT, 0, dst_reg, 0);
+                        self.next_reg -= 1;
+                        return Ok(());
+                    }
+                    "shl" => {
+                        if args.len() != 2 {
+                            return Err("shl(a, b) takes exactly 2 arguments".to_string());
+                        }
+                        let a_reg = self.alloc_reg();
+                        let b_reg = self.alloc_reg();
+                        self.emit_expr_to_reg(prog, &args[0], a_reg)?;
+                        self.emit_expr_to_reg(prog, &args[1], b_reg)?;
+                        if dst_reg != a_reg {
+                            prog.instruction(op::MOV, 0, dst_reg, a_reg);
+                        }
+                        prog.instruction(op::SHL, 0, dst_reg, b_reg);
+                        self.next_reg -= 2;
+                        return Ok(());
+                    }
+                    "shr" => {
+                        if args.len() != 2 {
+                            return Err("shr(a, b) takes exactly 2 arguments".to_string());
+                        }
+                        let a_reg = self.alloc_reg();
+                        let b_reg = self.alloc_reg();
+                        self.emit_expr_to_reg(prog, &args[0], a_reg)?;
+                        self.emit_expr_to_reg(prog, &args[1], b_reg)?;
+                        if dst_reg != a_reg {
+                            prog.instruction(op::MOV, 0, dst_reg, a_reg);
+                        }
+                        prog.instruction(op::SHR, 0, dst_reg, b_reg);
+                        self.next_reg -= 2;
+                        return Ok(());
+                    }
+                    "mod" => {
+                        if args.len() != 2 {
+                            return Err("mod(a, b) takes exactly 2 arguments".to_string());
+                        }
+                        let a_reg = self.alloc_reg();
+                        let b_reg = self.alloc_reg();
+                        self.emit_expr_to_reg(prog, &args[0], a_reg)?;
+                        self.emit_expr_to_reg(prog, &args[1], b_reg)?;
+                        if dst_reg != a_reg {
+                            prog.instruction(op::MOV, 0, dst_reg, a_reg);
+                        }
+                        prog.instruction(op::MOD, 0, dst_reg, b_reg);
+                        self.next_reg -= 2;
+                        return Ok(());
+                    }
+                    _ => {} // Fall through to normal function call
+                }
+
+                // ── Normal function call ──
                 // Calling convention: params in r10..r27, return in r1.
                 // Strategy: Use a dynamic data stack (r30=DSP, r29=ONE) to
                 // save/restore registers across calls.
@@ -875,6 +1044,161 @@ fn main() {
         let vm = compile_and_run(source);
         assert_eq!(vm.state, 2, "VM should be HALTED");
         assert_eq!(vm.regs[1], 12345, "sorted [5,3,1,4,2] should produce 12345 encoded");
+    }
+
+    // ── Test 9: store/load round-trip (word-level memory) ──
+
+    #[test]
+    fn test_store_load_word() {
+        let source = r#"
+fn main() {
+    let addr = 65536;
+    store(addr, 42);
+    return load(addr);
+}
+"#;
+        let vm = compile_and_run(source);
+        assert_eq!(vm.state, 2, "VM should be HALTED");
+        assert_eq!(vm.regs[1], 42, "load after store should return 42");
+    }
+
+    // ── Test 10: stb/ldb round-trip (byte-level memory) ──
+
+    #[test]
+    fn test_stb_ldb_byte() {
+        let source = r#"
+fn main() {
+    let addr = 65536;
+    stb(addr, 65);
+    return ldb(addr);
+}
+"#;
+        let vm = compile_and_run(source);
+        assert_eq!(vm.state, 2, "VM should be HALTED");
+        assert_eq!(vm.regs[1], 65, "ldb after stb should return 65");
+    }
+
+    // ── Test 11: Multiple byte writes/reads at different offsets ──
+
+    #[test]
+    fn test_stb_ldb_multi_byte() {
+        let source = r#"
+fn main() {
+    let base = 65536;
+    stb(base, 72);       // 'H'
+    stb(base + 1, 105);  // 'i'
+    stb(base + 2, 33);   // '!'
+    return ldb(base + 1);
+}
+"#;
+        let vm = compile_and_run(source);
+        assert_eq!(vm.state, 2, "VM should be HALTED");
+        assert_eq!(vm.regs[1], 105, "ldb(base+1) should return 105");
+    }
+
+    // ── Test 12: Bitwise AND/OR/XOR/NOT ──
+
+    #[test]
+    fn test_bitwise_ops() {
+        let source = r#"
+fn main() {
+    let a = and(255, 15);
+    let b = or(240, 15);
+    let c = xor(255, 15);
+    let d = not(0);
+    return a + b + c + d;
+}
+"#;
+        let vm = compile_and_run(source);
+        assert_eq!(vm.state, 2, "VM should be HALTED");
+        // and(255, 15) = 15
+        // or(240, 15) = 255
+        // xor(255, 15) = 240
+        // not(0) = 0xFFFFFFFF (u32::MAX = 4294967295)
+        // Sum: 15 + 255 + 240 = 510
+        // 510 + 4294967295 = 4294967805 % 2^32 = 509
+        assert_eq!(vm.regs[1], 509, "bitwise ops should compute correctly");
+    }
+
+    // ── Test 13: Shift left/right ──
+
+    #[test]
+    fn test_shift_ops() {
+        let source = r#"
+fn main() {
+    let a = shl(1, 8);
+    let b = shr(a, 4);
+    return b;
+}
+"#;
+        let vm = compile_and_run(source);
+        assert_eq!(vm.state, 2, "VM should be HALTED");
+        // shl(1, 8) = 256, shr(256, 4) = 16
+        assert_eq!(vm.regs[1], 16, "shl(1,8) then shr(_,4) should return 16");
+    }
+
+    // ── Test 14: Modulo ──
+
+    #[test]
+    fn test_mod_intrinsic() {
+        let source = r#"
+fn main() {
+    return mod(17, 5);
+}
+"#;
+        let vm = compile_and_run(source);
+        assert_eq!(vm.state, 2, "VM should be HALTED");
+        assert_eq!(vm.regs[1], 2, "17 mod 5 should return 2");
+    }
+
+    // ── Test 15: Memory-based computation (read-modify-write loop) ──
+
+    #[test]
+    fn test_memory_counter_loop() {
+        let source = r#"
+fn main() {
+    let addr = 65536;
+    store(addr, 0);
+    let i = 0;
+    while (i < 10) {
+        let val = load(addr);
+        store(addr, val + 1);
+        i += 1;
+    }
+    return load(addr);
+}
+"#;
+        let vm = compile_and_run(source);
+        assert_eq!(vm.state, 2, "VM should be HALTED");
+        assert_eq!(vm.regs[1], 10, "memory counter should reach 10");
+    }
+
+    // ── Test 16: Byte-level string comparison (core of self-hosting) ──
+
+    #[test]
+    fn test_byte_scan_loop() {
+        let source = r#"
+fn main() {
+    let base = 65536;
+    // Write bytes: 'N' 'O' 'P' 0x00
+    stb(base, 78);
+    stb(base + 1, 79);
+    stb(base + 2, 80);
+    stb(base + 3, 0);
+
+    // Scan for null terminator, counting bytes
+    let count = 0;
+    let ptr = base;
+    while (ldb(ptr) != 0) {
+        count += 1;
+        ptr += 1;
+    }
+    return count;
+}
+"#;
+        let vm = compile_and_run(source);
+        assert_eq!(vm.state, 2, "VM should be HALTED");
+        assert_eq!(vm.regs[1], 3, "string 'NOP' should be 3 bytes");
     }
 }
 

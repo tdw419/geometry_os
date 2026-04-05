@@ -1,0 +1,885 @@
+{
+  "random": {
+    "best": 0.6249999999999999,
+    "avg": 0.4583,
+    "history": [
+      {
+        "iter": 1,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 2,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 3,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 4,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 5,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 6,
+        "fitness": 0.525,
+        "halted": true,
+        "cycles": 5
+      },
+      {
+        "iter": 7,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 8,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 8
+      },
+      {
+        "iter": 9,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 10,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 11,
+        "fitness": 0.255,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 12,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 13,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 14,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 15,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 16,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 17,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 8
+      },
+      {
+        "iter": 18,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 19,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 20,
+        "fitness": 0.575,
+        "halted": true,
+        "cycles": 8
+      },
+      {
+        "iter": 21,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 8
+      },
+      {
+        "iter": 22,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 7
+      },
+      {
+        "iter": 23,
+        "fitness": 0.255,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 24,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 25,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 26,
+        "fitness": 0.255,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 27,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 62
+      },
+      {
+        "iter": 28,
+        "fitness": 0.455,
+        "halted": true,
+        "cycles": 2
+      },
+      {
+        "iter": 29,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 30,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 31,
+        "fitness": 0.255,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 32,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 33,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 34,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 35,
+        "fitness": 0.255,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 36,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 37,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 38,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 39,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 40,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 41,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 6
+      },
+      {
+        "iter": 42,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 43,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 44,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 45,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 46,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 47,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 48,
+        "fitness": 0.255,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 49,
+        "fitness": 0.575,
+        "halted": true,
+        "cycles": 62
+      },
+      {
+        "iter": 50,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 51,
+        "fitness": 0.255,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 52,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 53,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 54,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 55,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 56,
+        "fitness": 0.575,
+        "halted": true,
+        "cycles": 8
+      },
+      {
+        "iter": 57,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 58,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 59,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 60,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 61,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 62,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 63,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 8
+      },
+      {
+        "iter": 64,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 65,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 66,
+        "fitness": 0.525,
+        "halted": true,
+        "cycles": 8
+      },
+      {
+        "iter": 67,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 68,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 69,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 70,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 71,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 72,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 73,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 74,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 75,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 8
+      },
+      {
+        "iter": 76,
+        "fitness": 0.575,
+        "halted": true,
+        "cycles": 4
+      },
+      {
+        "iter": 77,
+        "fitness": 0.255,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 78,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 79,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 80,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 8
+      },
+      {
+        "iter": 81,
+        "fitness": 0.575,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 82,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 83,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 84,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 85,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 86,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 87,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 88,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 89,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 90,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 91,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 92,
+        "fitness": 0.455,
+        "halted": true,
+        "cycles": 3
+      },
+      {
+        "iter": 93,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 94,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 95,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 96,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 61
+      },
+      {
+        "iter": 97,
+        "fitness": 0.405,
+        "halted": true,
+        "cycles": 1
+      },
+      {
+        "iter": 98,
+        "fitness": 0.625,
+        "halted": true,
+        "cycles": 8
+      },
+      {
+        "iter": 99,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 100,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      }
+    ]
+  },
+  "llm": {
+    "best": 0.5249999999999999,
+    "avg": 0.4039473684210526,
+    "history": [
+      {
+        "iter": 1,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 2,
+        "fitness": 0.0,
+        "error": "llm_failed"
+      },
+      {
+        "iter": 3,
+        "fitness": 0.0,
+        "error": "llm_failed"
+      },
+      {
+        "iter": 4,
+        "fitness": 0.0,
+        "error": "llm_failed"
+      },
+      {
+        "iter": 5,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 6,
+        "fitness": 0.475,
+        "halted": true,
+        "cycles": 18
+      },
+      {
+        "iter": 7,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 8,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 9,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 10,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 11,
+        "fitness": 0.475,
+        "halted": true,
+        "cycles": 4
+      },
+      {
+        "iter": 12,
+        "fitness": 0.355,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 13,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 14,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 15,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 16,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 17,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 18,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 19,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 20,
+        "fitness": 0.475,
+        "halted": true,
+        "cycles": 4
+      },
+      {
+        "iter": 21,
+        "fitness": 0.475,
+        "halted": true,
+        "cycles": 7
+      },
+      {
+        "iter": 22,
+        "fitness": 0.475,
+        "halted": true,
+        "cycles": 4
+      },
+      {
+        "iter": 23,
+        "fitness": 0.525,
+        "halted": true,
+        "cycles": 4
+      },
+      {
+        "iter": 24,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 25,
+        "fitness": 0.405,
+        "halted": true,
+        "cycles": 2
+      },
+      {
+        "iter": 26,
+        "fitness": 0.405,
+        "halted": true,
+        "cycles": 2
+      },
+      {
+        "iter": 27,
+        "fitness": 0.205,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 28,
+        "fitness": 0.475,
+        "halted": true,
+        "cycles": 4
+      },
+      {
+        "iter": 29,
+        "fitness": 0.405,
+        "halted": true,
+        "cycles": 3
+      },
+      {
+        "iter": 30,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 31,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 32,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 33,
+        "fitness": 0.405,
+        "halted": true,
+        "cycles": 3
+      },
+      {
+        "iter": 34,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 35,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 36,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 37,
+        "fitness": 0.475,
+        "halted": true,
+        "cycles": 4
+      },
+      {
+        "iter": 38,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 39,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 40,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 41,
+        "fitness": 0.305,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 42,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 43,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 44,
+        "fitness": 0.525,
+        "halted": true,
+        "cycles": 4
+      },
+      {
+        "iter": 45,
+        "fitness": 0.205,
+        "halted": false,
+        "cycles": 1024
+      },
+      {
+        "iter": 46,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 47,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 48,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 49,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      },
+      {
+        "iter": 50,
+        "fitness": 0.0,
+        "error": "assembly_failed"
+      }
+    ],
+    "successes": 19
+  },
+  "llm_wins": false
+}
