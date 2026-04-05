@@ -25,6 +25,10 @@ const OP_HALT: u32 = 13u;
 const OP_DATA: u32 = 14u;
 const OP_LOOP: u32 = 15u;
 
+// IPC Opcodes
+const OP_SEND: u32 = 17u;
+const OP_RECV: u32 = 18u;
+
 // AI-Native / Substrate Opcodes
 const OP_SPATIAL_SPAWN: u32 = 225u;
 const OP_GLYPH_MUTATE: u32 = 226u;
@@ -63,7 +67,9 @@ pub fn parse_glyph_program(source: &str) -> Result<(Vec<u32>, VmConfig), String>
                 equs.insert(name, value);
             }
         } else {
-            pc += 4; // Each glyph is 4 u32s (RGBA)
+            // SEND emits 2 glyphs (instruction + data length word), others emit 1
+            let mnemonic = trimmed.split_whitespace().next().unwrap_or("").to_uppercase();
+            pc += if mnemonic == "SEND" { 8 } else { 4 };
         }
     }
 
@@ -98,6 +104,31 @@ pub fn parse_glyph_program(source: &str) -> Result<(Vec<u32>, VmConfig), String>
             "JNE" => (OP_BRANCH, resolve_operand(parts[1], &equs, &labels), 1, 2), // Simplified Branch if Not Zero
             "JLT" => (OP_BRANCH, resolve_operand(parts[1], &equs, &labels), 2, 2), // Simplified Branch if Less Than
             "JGT" => (OP_BRANCH, resolve_operand(parts[1], &equs, &labels), 3, 2), // Simplified Branch if Greater Than
+            // IPC: RECV r_dest_addr, r_status (opcode 18)
+            "RECV" => (OP_RECV, resolve_operand(parts[1], &equs, &labels), resolve_operand(parts[2], &equs, &labels), 2),
+            // IPC: SEND r_target_vm, r_data_addr, length  (opcode 17, length follows as DATA word)
+            "SEND" => {
+                let target = resolve_operand(parts[1], &equs, &labels);
+                let addr = resolve_operand(parts[2], &equs, &labels);
+                let len = if parts.len() > 3 {
+                    resolve_operand(parts[3], &equs, &labels)
+                } else {
+                    1 // default: send 1 pixel
+                };
+                // Emit SEND instruction
+                program.push(OP_SEND + 200);
+                program.push(2);
+                program.push(target);
+                program.push(addr);
+                pc += 4;
+                // Emit DATA word with length (software_vm reads this at pc+1)
+                program.push(OP_DATA + 200);
+                program.push(2);
+                program.push(len);
+                program.push(0);
+                pc += 4;
+                continue; // skip the default emit below
+            }
             _ => (OP_NOP, 0, 0, 0),
         };
         

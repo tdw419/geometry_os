@@ -1,0 +1,215 @@
+; minix_ipc_worker.gasm -- Worker VM that reads Minix FS via 3-layer IPC
+;
+; This worker reads a file from a Minix v2 disk image by sending block-read
+; requests through the device proxy VM. It does NOT have direct access to the
+; disk image -- all data comes through IPC.
+;
+; Protocol:
+;   1. Worker SENDs [cmd_type=READ_BLOCK(1), worker_vm_id=2, fd, block_num, dest_addr, block_size]
+;      to proxy VM (VM 1)
+;   2. Proxy formats command buffer, CPU stub executes, proxy SENDs back [result, cmd_type]
+;   3. Worker RECVs the response, then reads block data from dest_addr
+;
+; Register allocation:
+;   r0  = scratch / IPC data pointer
+;   r1  = scratch / recv status
+;   r2  = target_vm (proxy = VM 1) / also used as "1" constant
+;   r3  = IPC scratch base (0x00C10000 pixel addr)
+;   r4  = block data base (pixel addr 0x00C20000, byte addr 0x03080000)
+;   r5  = result buffer base (pixel addr 0x00C30000, byte addr 0x030C0000)
+;   r6  = fd (pre-opened, passed in at start)
+;   r7  = scratch address
+;   r8  = scratch / constants
+;   r9  = file size (from inode)
+;   r10 = data zone number (from inode)
+;   r11 = loop counter
+;   r12 = byte value
+;   r13 = IPC recv status
+;   r14 = byte address scratch
+;   r15 = byte address scratch 2
+
+; === Constants ===
+LDI r2, 1                ; target_vm = proxy VM (VM 1), also used as "1"
+LDI r3, 0x00C10000       ; IPC message scratch area (pixel addr)
+LDI r8, 0x03080000       ; block data byte addr base (= 0x00C20000 * 4)
+MOV r4, r8               ; r4 = byte addr base for block data
+LDI r8, 0x030C0000       ; result buffer byte addr base (= 0x00C30000 * 4)
+MOV r5, r8               ; r5 = byte addr base for result buffer
+
+; ============================================================
+; Step 1: Read blocks 0-1 (boot + superblock) with 1024-byte read
+; This gets bytes 0-1023, which includes magic at offset 526-527
+; Send READ_BLOCK(fd, block_num=0, dest=0x00C20000, size=1024)
+; ============================================================
+; Build IPC message at 0x00C10000 (pixel addr)
+LDI r7, 0x00C10000       ; msg[0]: cmd_type
+LDI r8, 1                ; CMD_READ_BLOCK = 1
+STORE r7, r8
+
+LDI r7, 0x00C10001       ; msg[1]: worker_vm_id
+LDI r8, 2                ; we are VM 2
+STORE r7, r8
+
+LDI r7, 0x00C10002       ; msg[2]: param1 = fd
+STORE r7, r6
+
+LDI r7, 0x00C10003       ; msg[3]: param2 = block_num = 0
+LDI r8, 0
+STORE r7, r8
+
+LDI r7, 0x00C10004       ; msg[4]: param3 = dest_addr (pixel addr)
+LDI r8, 0x00C20000
+STORE r7, r8
+
+LDI r7, 0x00C10005       ; msg[5]: param4 = block_size = 1024
+LDI r8, 1024
+STORE r7, r8
+
+; SEND to proxy (VM 1), 6 pixels from 0x00C10000
+LDI r0, 0x00C10000
+SEND r2, r0, 6
+
+; Wait for response from proxy
+LDI r0, 0x00C10000
+recv_block0:
+RECV r0, r13
+LDI r8, 1
+BEQ r13, r8, got_block0  ; if status == 1, we got the response
+YIELD
+JMP recv_block0
+
+got_block0:
+; Block 0 data is now at pixel addr 0x00C20000, byte addr 0x03080000
+; Verify superblock magic: byte 526 = 0x68 (104), byte 527 = 0x24 (36)
+MOV r14, r4              ; r14 = byte addr base (0x03080000)
+LDI r8, 526
+ADD r14, r8              ; byte addr of magic byte 0
+LDB r12, r14             ; r12 = magic[0]
+LDI r8, 104              ; expected: 0x68
+BNE r12, r8, fail_bad_magic
+
+MOV r14, r4              ; reset to base
+LDI r8, 527
+ADD r14, r8
+LDB r12, r14             ; r12 = magic[1]
+LDI r8, 36               ; expected: 0x24
+BNE r12, r8, fail_bad_magic
+
+; ============================================================
+; Step 2: Read block 4 (inode area, offset 2048 = block_num 4)
+; ============================================================
+LDI r7, 0x00C10000
+LDI r8, 1
+STORE r7, r8             ; cmd_type = READ_BLOCK
+
+LDI r7, 0x00C10001
+LDI r8, 2
+STORE r7, r8             ; worker_vm_id
+
+LDI r7, 0x00C10002
+STORE r7, r6             ; fd
+
+LDI r7, 0x00C10003
+LDI r8, 4                ; block_num = 4 (2048 / 512)
+STORE r7, r8
+
+LDI r7, 0x00C10004
+LDI r8, 0x00C20000       ; dest_addr (reuse same buffer)
+STORE r7, r8
+
+LDI r7, 0x00C10005
+LDI r8, 512
+STORE r7, r8             ; block_size
+
+LDI r0, 0x00C10000
+SEND r2, r0, 6
+
+LDI r0, 0x00C10000
+recv_block4:
+RECV r0, r13
+LDI r8, 1
+BEQ r13, r8, got_block4
+YIELD
+JMP recv_block4
+
+got_block4:
+; Block 4 data at byte addr 0x03080000
+; Inode starts at beginning of this block.
+; i_size: u32 at inode+4 => byte addr base+4
+; zone[0]: u16 at inode+28 => byte addr base+28
+;
+; To read a u32 at byte offset N: read pixel at (base+N)/4
+; Actually need LOAD which reads from pixel addr.
+; base pixel addr = 0x00C20000, byte base = 0x03080000
+; i_size at byte 0x03080004 => pixel_idx = 0x03080004 / 4 = 0x00C20001
+; zone[0] at byte 0x0308001C => pixel_idx = 0x0308001C / 4 = 0x00C20007
+
+; Read i_size (u32 at byte addr base+4, pixel 0x00C20001)
+LDI r7, 0x00C20001
+LOAD r9, r7              ; r9 = i_size (should be 5)
+
+; Read zone[0] (u16 at byte addr base+28, pixel 0x00C20007)
+; zone[0] is a u16 in the low 16 bits of the pixel
+LDI r7, 0x00C20007
+LOAD r10, r7             ; r10 = zone[0] in low bits (should be 5)
+
+; ============================================================
+; Step 3: Read the data block (zone[0] * 512)
+; ============================================================
+LDI r7, 0x00C10000
+LDI r8, 1
+STORE r7, r8             ; cmd_type = READ_BLOCK
+
+LDI r7, 0x00C10001
+LDI r8, 2
+STORE r7, r8             ; worker_vm_id
+
+LDI r7, 0x00C10002
+STORE r7, r6             ; fd
+
+LDI r7, 0x00C10003
+STORE r7, r10            ; block_num = zone[0]
+
+LDI r7, 0x00C10004
+LDI r8, 0x00C20000
+STORE r7, r8             ; dest_addr
+
+LDI r7, 0x00C10005
+LDI r8, 512
+STORE r7, r8             ; block_size
+
+LDI r0, 0x00C10000
+SEND r2, r0, 6
+
+LDI r0, 0x00C10000
+recv_data:
+RECV r0, r13
+LDI r8, 1
+BEQ r13, r8, got_data
+YIELD
+JMP recv_data
+
+got_data:
+; File data is at byte addr 0x03080000
+; Copy r9 bytes to result buffer at byte addr 0x030C0000
+LDI r11, 0               ; i = 0
+MOV r14, r4              ; src = block data byte base
+MOV r15, r5              ; dst = result buffer byte base
+
+copy_loop:
+BGE r11, r9, copy_done
+LDB r12, r14             ; r12 = src byte
+STB r15, r12             ; dst byte = r12
+LDI r8, 1
+ADD r14, r8              ; src++
+ADD r15, r8              ; dst++
+ADD r11, r8              ; i++
+JMP copy_loop
+
+copy_done:
+MOV r0, r9               ; return file_size
+HALT
+
+fail_bad_magic:
+LDI r0, 0                ; return 0 on magic failure
+HALT

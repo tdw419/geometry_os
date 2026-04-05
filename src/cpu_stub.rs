@@ -85,6 +85,24 @@ pub const CMD_BUFFER_PIXELS: u32 = CMD_SLOTS * CMD_WORDS as u32;
 /// Maximum block size for READ_BLOCK / WRITE_BLOCK (in bytes).
 pub const MAX_BLOCK_SIZE: u32 = 4096;
 
+/// Default command buffer base address in substrate (matches device_proxy.gasm).
+pub const CMD_BUF_BASE: u32 = 0x00E20000;
+
+/// Command slot size in pixels (alias for tests).
+pub const CMD_SLOT_SIZE: u32 = CMD_WORDS as u32;
+
+/// Public field offsets within a command slot (for tests and proxy integration).
+pub mod offsets {
+    pub const OFF_CMD_TYPE: u32 = 0;
+    pub const OFF_VM_ID: u32 = 1;
+    pub const OFF_PARAM1: u32 = 2;
+    pub const OFF_PARAM2: u32 = 3;
+    pub const OFF_PARAM3: u32 = 4;
+    pub const OFF_PARAM4: u32 = 5;
+    pub const OFF_STATUS: u32 = 6;
+    pub const OFF_RESULT: u32 = 7;
+}
+
 /// Field indices within a command slot.
 mod field {
     pub const CMD_TYPE: usize = 0;

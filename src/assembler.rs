@@ -48,6 +48,11 @@ pub mod op {
     pub const SHL: u8 = 26;  // Shift left: SHL rd, rs   (rd <<= rs)
     pub const FRAME: u8 = 27; // Film strip frame jump: FRAME r_target (jump to frame index in r_target)
     pub const WAIT_EVENT: u8 = 28; // Block until event arrives: WAIT_EVENT r_event_type, r_param1
+    pub const XOR: u8 = 29;  // Bitwise XOR: XOR rd, rs  (rd ^= rs)
+    pub const NOT: u8 = 30;  // Bitwise NOT: NOT rd      (rd = !rd)
+    pub const MOD: u8 = 31;  // Modulo: MOD rd, rs       (rd %= rs)
+    pub const LDB: u8 = 32;  // Load byte: LDB rd, [rs]  (rd = byte at byte addr rs)
+    pub const STB: u8 = 33;  // Store byte: STB [rd], rs (store low byte of rs to byte addr rd)
     pub const DRAW: u8 = 215; // Legacy alias (unused)
     pub const SPAWN: u8 = 230;
     pub const YIELD: u8 = 227;
@@ -220,6 +225,31 @@ impl Program {
     /// Shift left: SHL rd, rs  (rd <<= rs)
     pub fn shl(&mut self, dst_reg: u8, src_reg: u8) -> &mut Self {
         self.instruction(op::SHL, 0, dst_reg, src_reg)
+    }
+
+    /// Bitwise XOR: XOR rd, rs  (rd ^= rs)
+    pub fn xor(&mut self, dst_reg: u8, src_reg: u8) -> &mut Self {
+        self.instruction(op::XOR, 0, dst_reg, src_reg)
+    }
+
+    /// Bitwise NOT: NOT rd  (rd = !rd)
+    pub fn not(&mut self, dst_reg: u8) -> &mut Self {
+        self.instruction(op::NOT, 0, dst_reg, 0)
+    }
+
+    /// Modulo: MOD rd, rs  (rd %= rs, div-by-zero = 0)
+    pub fn modulo(&mut self, dst_reg: u8, src_reg: u8) -> &mut Self {
+        self.instruction(op::MOD, 0, dst_reg, src_reg)
+    }
+
+    /// Load byte: LDB rd, [rs]  (rd = byte at byte address in rs)
+    pub fn ldb(&mut self, dst_reg: u8, addr_reg: u8) -> &mut Self {
+        self.instruction(op::LDB, 0, dst_reg, addr_reg)
+    }
+
+    /// Store byte: STB [rd], rs  (store low byte of rs to byte address in rd)
+    pub fn stb(&mut self, addr_reg: u8, src_reg: u8) -> &mut Self {
+        self.instruction(op::STB, 0, addr_reg, src_reg)
     }
 
     /// Film strip frame jump: FRAME r_target
@@ -550,6 +580,62 @@ impl std::error::Error for ParseError {}
 pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
     let mut program = Program::new();
 
+    // ── Pass 1: collect label addresses ──
+    // Labels are lines like "name:" (optionally followed by a mnemonic).
+    // We track the pixel address each label points to.
+    let mut labels: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+    {
+        let mut addr: u32 = 0;
+        for raw_line in source.lines() {
+            let line = strip_comment(raw_line).trim();
+            if line.is_empty() {
+                continue;
+            }
+            // Check for label: either "label:" alone or "label: INSTR ..."
+            if let Some(colon_pos) = line.find(':') {
+                // Make sure it's not inside a char literal
+                let before = &line[..colon_pos];
+                let candidate = before.trim();
+                if !candidate.is_empty() && candidate.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                    labels.insert(candidate.to_string(), addr);
+                }
+                // Check if there's an instruction after the label
+                let after = line[colon_pos + 1..].trim();
+                if after.is_empty() {
+                    continue; // Label-only line, no instruction
+                }
+                // Fall through to count the instruction pixels
+                let tokens: Vec<&str> = tokenize(after);
+                if tokens.is_empty() {
+                    continue;
+                }
+                addr += instruction_size(&tokens);
+            } else {
+                let tokens: Vec<&str> = tokenize(line);
+                if tokens.is_empty() {
+                    continue;
+                }
+                addr += instruction_size(&tokens);
+            }
+        }
+    }
+
+    // ── Pass 2: parse instructions, resolve labels ──
+    let resolve_label = |name: &str, current_addr: u32, line_num: usize| -> Result<i32, ParseError> {
+        if let Some(&target_addr) = labels.get(name) {
+            Ok(target_addr as i32 - current_addr as i32)
+        } else {
+            // Try parsing as numeric
+            Err(ParseError {
+                line: line_num,
+                message: format!("unknown label: '{}'", name),
+            })
+        }
+    };
+
+    // Helper: resolve a value that might be a label or numeric
+    let mut current_addr: u32 = 0;
+
     for (line_num, raw_line) in source.lines().enumerate() {
         let line_num = line_num + 1; // 1-indexed
 
@@ -558,6 +644,24 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
         if line.is_empty() {
             continue;
         }
+
+        // Handle label prefix
+        let line = if let Some(colon_pos) = line.find(':') {
+            let before = &line[..colon_pos];
+            let candidate = before.trim();
+            if !candidate.is_empty() && candidate.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                // It's a label, skip it (already processed in pass 1)
+                let after = line[colon_pos + 1..].trim();
+                if after.is_empty() {
+                    continue;
+                }
+                after
+            } else {
+                line
+            }
+        } else {
+            line
+        };
 
         // Tokenize: split on whitespace and commas
         let tokens = tokenize(line);
@@ -643,10 +747,64 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
                 program.instruction(op::OR, 0, rd, rs);
             }
 
+            "AND" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let rd = parse_register(tokens[1], line_num)?;
+                let rs = parse_register(tokens[2], line_num)?;
+                program.instruction(op::AND, 0, rd, rs);
+            }
+
+            "SHL" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let rd = parse_register(tokens[1], line_num)?;
+                let rs = parse_register(tokens[2], line_num)?;
+                program.instruction(op::SHL, 0, rd, rs);
+            }
+
+            "XOR" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let rd = parse_register(tokens[1], line_num)?;
+                let rs = parse_register(tokens[2], line_num)?;
+                program.instruction(op::XOR, 0, rd, rs);
+            }
+
+            "NOT" => {
+                expect_arg_count(&tokens, 1, line_num)?;
+                let rd = parse_register(tokens[1], line_num)?;
+                program.instruction(op::NOT, 0, rd, 0);
+            }
+
+            "MOD" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let rd = parse_register(tokens[1], line_num)?;
+                let rs = parse_register(tokens[2], line_num)?;
+                program.instruction(op::MOD, 0, rd, rs);
+            }
+
+            "LDB" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let rd = parse_register(tokens[1], line_num)?;
+                let rs = parse_register(tokens[2], line_num)?;
+                program.instruction(op::LDB, 0, rd, rs);
+            }
+
+            "STB" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let addr_reg = parse_register(tokens[1], line_num)?;
+                let src_reg = parse_register(tokens[2], line_num)?;
+                program.instruction(op::STB, 0, addr_reg, src_reg);
+            }
+
             "JMP" => {
                 expect_arg_count(&tokens, 1, line_num)?;
-                let offset = parse_signed_value(tokens[1], line_num)?;
+                // Try label resolution, fall back to numeric offset
+                let offset = if let Some(&target) = labels.get(tokens[1]) {
+                    target as i32 - current_addr as i32
+                } else {
+                    parse_signed_value(tokens[1], line_num)?
+                };
                 program.jmp(offset);
+                current_addr += 2;
             }
 
             "BEQ" | "BNE" | "BLT" | "BGE" | "BLTU" | "BGEU" => {
@@ -654,8 +812,14 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
                 let cond = parse_branch_cond(&mnemonic, line_num)?;
                 let r1 = parse_register(tokens[1], line_num)?;
                 let r2 = parse_register(tokens[2], line_num)?;
-                let offset = parse_signed_value(tokens[3], line_num)?;
+                // Try label resolution for branch target
+                let offset = if let Some(&target) = labels.get(tokens[3]) {
+                    target as i32 - current_addr as i32
+                } else {
+                    parse_signed_value(tokens[3], line_num)?
+                };
                 program.branch(cond, r1, r2, offset);
+                current_addr += 2;
             }
 
             "BRANCH" => {
@@ -664,15 +828,27 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
                 let cond = parse_branch_cond(tokens[1], line_num)?;
                 let r1 = parse_register(tokens[2], line_num)?;
                 let r2 = parse_register(tokens[3], line_num)?;
-                let offset = parse_signed_value(tokens[4], line_num)?;
+                // Try label resolution for branch target
+                let offset = if let Some(&target) = labels.get(tokens[4]) {
+                    target as i32 - current_addr as i32
+                } else {
+                    parse_signed_value(tokens[4], line_num)?
+                };
                 program.branch(cond, r1, r2, offset);
+                current_addr += 2;
             }
 
             "CALL" => {
                 expect_arg_count(&tokens, 1, line_num)?;
-                let addr = parse_value(tokens[1], line_num)?;
+                // Try label resolution for call target (absolute address)
+                let addr = if let Some(&target) = labels.get(tokens[1]) {
+                    target
+                } else {
+                    parse_value(tokens[1], line_num)?
+                };
                 program.instruction(op::CALL, 0, 0, 0);
                 program.pixels.push(addr);
+                current_addr += 2;
             }
 
             "RET" => {
@@ -767,6 +943,12 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
                 });
             }
         }
+
+        // Track address for label resolution (skip JMP/BRANCH/CALL which already update)
+        let mnemonic_upper = tokens[0].to_uppercase();
+        if mnemonic_upper != "JMP" && !["BEQ","BNE","BLT","BGE","BLTU","BGEU"].contains(&mnemonic_upper.as_str()) && mnemonic_upper != "BRANCH" && mnemonic_upper != "CALL" {
+            current_addr += instruction_size(&tokens);
+        }
     }
 
     Ok(program)
@@ -783,6 +965,24 @@ pub fn parse_gasm_file(path: &str) -> Result<Program, ParseError> {
 }
 
 // ─── Internal helpers ───
+
+/// Return how many pixels (u32 words) an instruction produces.
+/// Most instructions are 1 pixel; LDI/CALL/JMP/BRANCH are 2.
+fn instruction_size(tokens: &[&str]) -> u32 {
+    if tokens.is_empty() {
+        return 0;
+    }
+    let mnemonic = tokens[0].to_uppercase();
+    match mnemonic.as_str() {
+        "LDI" => 2,                    // instruction + immediate
+        "CALL" => 2,                    // instruction + address
+        "JMP" => 2,                     // instruction + offset
+        "BEQ" | "BNE" | "BLT" | "BGE" | "BLTU" | "BGEU" => 2, // instruction + offset
+        "BRANCH" => 2,                  // instruction + offset
+        "DATA" => 1,                    // single data word
+        _ => 1,                         // most instructions are 1 pixel
+    }
+}
 
 /// Strip comments (// or ;) from a line.
 fn strip_comment(line: &str) -> &str {

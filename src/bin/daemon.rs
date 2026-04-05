@@ -23,8 +23,10 @@ use pixels_move_pixels::{font_atlas, MAX_VMS};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::{BufRead, Read, Write};
 use std::net::TcpListener;
+#[allow(unused_imports)]
+use std::os::unix::net::{UnixListener, UnixStream};
 use std::sync::{Arc, Mutex};
 
 // ── Data types ──
@@ -76,6 +78,12 @@ struct VmStatus {
     entry_point: u32,
     frame_ptr: u32,
     frame_count: u32,
+    /// First 16 registers (r0-r15) for lightweight status display.
+    regs: [u32; 16],
+    /// Base address of this VM's allocated region.
+    base_addr: u32,
+    /// Bound (end) address of this VM's allocated region.
+    bound_addr: u32,
     /// Recent frame transitions for this VM (max 64, ring buffer).
     jump_log: Vec<FrameTransition>,
     /// Symbolic frame labels for this VM's loaded filmstrip (empty if no labels).
@@ -231,6 +239,56 @@ impl DaemonState {
             jump_logs: core::array::from_fn(|_| JumpLog::new()),
             prev_frame_ptrs: [0u32; MAX_VMS as usize],
         }
+    }
+
+    /// Spawn a VM at an already-loaded address (no loading, just activation).
+    /// Returns the VM id assigned.
+    fn spawn_at(&mut self, addr: u32) -> Result<(u32, String), String> {
+        // Verify address doesn't overlap any active VM
+        for i in 0..MAX_VMS {
+            let s = self.vm.vm_state(i as usize);
+            if s.state == vm_state::RUNNING || s.state == vm_state::WAITING {
+                let vm_start = s.base_addr;
+                let vm_end = s.bound_addr;
+                if vm_start != vm_end && addr >= vm_start && addr < vm_end {
+                    return Err(format!(
+                        "Address {:#X} is inside active VM {} [{:#X}, {:#X})",
+                        addr, i, vm_start, vm_end
+                    ));
+                }
+            }
+        }
+
+        // Check that substrate is non-zero at the address (program was loaded)
+        let first_pixel = self.vm.substrate().peek(addr);
+        if first_pixel == 0 {
+            return Err(format!(
+                "Address {:#X} is empty (no program loaded there)",
+                addr
+            ));
+        }
+
+        // Find a free VM slot
+        let vm_id = self.find_free_vm().ok_or("No free VM slot available")?;
+
+        self.vm.spawn_vm(vm_id, addr);
+
+        let program_id = format!("spawn_{:04x}", self.programs.len());
+        let name = format!("spawned_{}", self.programs.len());
+
+        self.programs.push(LoadedProgram {
+            id: program_id.clone(),
+            name,
+            address: addr,
+            pixel_count: 0, // unknown -- substrate was pre-loaded
+            vm_id,
+            pixels: Vec::new(),
+            is_filmstrip: false,
+            frame_count: 0,
+            frame_labels: HashMap::new(),
+        });
+
+        Ok((vm_id, program_id))
     }
 
     fn find_free_vm(&self) -> Option<u32> {
@@ -480,10 +538,123 @@ impl DaemonState {
         }
     }
 
+    /// Hot-load a program into an unused substrate region without disturbing running VMs.
+    /// Allocates a fresh region, assembles the .gasm source, writes to GPU substrate,
+    /// and spawns a new VM. Returns the load response or an error.
+    fn load_hot(&mut self, req: &LoadProgramRequest) -> Result<LoadProgramResponse, String> {
+        // Parse pixels from one of the input formats
+        let pixels = if let Some(ref source) = req.gasm_source {
+            gasm::assemble(source)
+                .map(|p| p.pixels)
+                .map_err(|e| format!("Assembly error: {e}"))?
+        } else if let Some(ref raw) = req.pixels_raw {
+            raw.clone()
+        } else if let Some(ref hex) = req.pixels_hex {
+            parse_hex_pixels(hex)?
+        } else {
+            return Err("Must provide one of: gasm, pixelsRaw, or pixels".into());
+        };
+
+        if pixels.is_empty() {
+            return Err("Program is empty (0 pixels)".into());
+        }
+
+        // Verify target region doesn't overlap any active VM
+        let addr = self
+            .allocator
+            .allocate_region(pixels.len() as u32)
+            .ok_or("No contiguous free region available")?;
+
+        // Check against active VM bounds (GPU VMs)
+        for i in 0..MAX_VMS {
+            let s = self.vm.vm_state(i as usize);
+            if s.state == vm_state::RUNNING || s.state == vm_state::WAITING {
+                let vm_start = s.base_addr;
+                let vm_end = s.bound_addr;
+                if vm_start != vm_end && addr < vm_end && (addr + pixels.len() as u32) > vm_start {
+                    // Free the allocation and fail
+                    self.allocator.free_region(addr, pixels.len() as u32);
+                    return Err(format!(
+                        "Region [{:#X}, {:#X}) overlaps active VM {} [{:#X}, {:#X})",
+                        addr,
+                        addr + pixels.len() as u32,
+                        i,
+                        vm_start,
+                        vm_end
+                    ));
+                }
+            }
+        }
+
+        // Governance check
+        let gov_result = pixels_move_pixels::governance::check(&pixels);
+        if !gov_result.approved {
+            self.allocator.free_region(addr, pixels.len() as u32);
+            return Err(format!("Governance rejected: {}", gov_result.reason));
+        }
+
+        // Load into GPU substrate
+        self.vm.substrate().load_program(addr, &pixels);
+        eprintln!(
+            "[daemon] Hot-loaded {} pixels at address 0x{:08X}",
+            pixels.len(),
+            addr
+        );
+
+        // Find a free VM slot
+        let vm_id = match self.find_free_vm() {
+            Some(id) => id,
+            None => {
+                self.allocator.free_region(addr, pixels.len() as u32);
+                return Err("No free VM slot available".into());
+            }
+        };
+
+        // Spawn VM at the program address
+        self.vm.spawn_vm(vm_id, addr);
+
+        let program_id = format!("hot_{:04x}", self.programs.len());
+
+        let name = req
+            .name
+            .clone()
+            .unwrap_or_else(|| format!("hot_program_{}", self.programs.len()));
+
+        let resp = LoadProgramResponse {
+            success: true,
+            program_id: program_id.clone(),
+            address: addr,
+            pixel_count: pixels.len(),
+            vm_id,
+            message: format!(
+                "Hot-loaded {} pixels at 0x{:08X}, spawned VM {}",
+                pixels.len(),
+                addr,
+                vm_id
+            ),
+        };
+
+        self.programs.push(LoadedProgram {
+            id: program_id,
+            name,
+            address: addr,
+            pixel_count: pixels.len(),
+            vm_id,
+            pixels,
+            is_filmstrip: false,
+            frame_count: 0,
+            frame_labels: HashMap::new(),
+        });
+
+        Ok(resp)
+    }
+
     fn status(&self) -> StatusResponse {
         let vm_states: Vec<VmStatus> = (0..MAX_VMS)
             .map(|i| {
                 let s = self.vm.vm_state(i as usize);
+                let mut regs = [0u32; 16];
+                regs.copy_from_slice(&s.regs[..16]);
                 VmStatus {
                     vm_id: i,
                     state: match s.state {
@@ -500,7 +671,14 @@ impl DaemonState {
                     entry_point: s.entry_point,
                     frame_ptr: s.attention_mask,
                     frame_count: s.frame_count,
-                    jump_log: self.jump_logs[i as usize].recent().into_iter().cloned().collect(),
+                    regs,
+                    base_addr: s.base_addr,
+                    bound_addr: s.bound_addr,
+                    jump_log: self.jump_logs[i as usize]
+                        .recent()
+                        .into_iter()
+                        .cloned()
+                        .collect(),
                     frame_labels: self
                         .programs
                         .iter()
@@ -535,6 +713,16 @@ fn parse_hex_pixels(hex: &str) -> Result<Vec<u32>, String> {
         pixels.push(val);
     }
     Ok(pixels)
+}
+
+/// Parse a hex or decimal address string.
+fn parse_addr(s: &str) -> Option<u32> {
+    let s = s.trim();
+    if s.starts_with("0x") || s.starts_with("0X") {
+        u32::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
+    } else {
+        s.parse::<u32>().ok()
+    }
 }
 
 // ── Minimal HTTP server ──
@@ -706,6 +894,35 @@ fn handle_request(state: &Arc<Mutex<DaemonState>>, req: HttpRequest) -> (u16, St
             }
         }
 
+        // POST /api/v1/hot-load - Hot-load program without disturbing running VMs
+        ("POST", "/api/v1/hot-load") => {
+            let body_str = String::from_utf8_lossy(&req.body);
+
+            let load_req: LoadProgramRequest = if req.content_type.contains("text/plain")
+                || req.content_type.is_empty()
+            {
+                LoadProgramRequest {
+                    gasm_source: Some(body_str.to_string()),
+                    pixels_hex: None,
+                    pixels_raw: None,
+                    vm_id: None,
+                    name: None,
+                    filmstrip: None,
+                }
+            } else {
+                match serde_json::from_str(&body_str) {
+                    Ok(r) => r,
+                    Err(e) => return (400, json_error(&format!("Invalid JSON: {e}"))),
+                }
+            };
+
+            let mut s = state.lock().unwrap();
+            match s.load_hot(&load_req) {
+                Ok(resp) => (200, json_ok(&resp)),
+                Err(e) => (400, json_error(&e)),
+            }
+        }
+
         // POST /api/v1/dispatch - Execute one frame
         ("POST", "/api/v1/dispatch") => {
             let mut s = state.lock().unwrap();
@@ -780,6 +997,149 @@ fn handle_request(state: &Arc<Mutex<DaemonState>>, req: HttpRequest) -> (u16, St
     }
 }
 
+/// Process a single command line (shared by stdin and Unix socket).
+/// Returns a response string (for Unix socket clients) or empty (for stdin, which logs directly).
+fn handle_command_text(state: &Arc<Mutex<DaemonState>>, line: &str) -> String {
+    let line = line.trim();
+    if line.is_empty() {
+        return String::new();
+    }
+    let parts: Vec<&str> = line.splitn(3, char::is_whitespace).collect();
+    let cmd = parts[0].to_uppercase();
+
+    match cmd.as_str() {
+        "LOAD" => {
+            // LOAD <file.gasm>              -- auto-allocate address
+            // LOAD <addr> <file.gasm>       -- load at specific address
+            if parts.len() < 2 {
+                return "ERROR: Usage: LOAD <file.gasm> or LOAD <addr> <file.gasm>\n".into();
+            }
+
+            // Try to parse: if parts[1] looks like an address and parts[2] exists,
+            // treat as LOAD <addr> <file>; otherwise LOAD <file>
+            let (target_addr, file_path) = if parts.len() >= 3 {
+                if let Some(addr) = parse_addr(parts[1].trim()) {
+                    (Some(addr), parts[2].trim())
+                } else {
+                    (None, parts[1].trim())
+                }
+            } else {
+                (None, parts[1].trim())
+            };
+
+            if file_path.is_empty() {
+                return "ERROR: Usage: LOAD <file.gasm> or LOAD <addr> <file.gasm>\n".into();
+            }
+
+            let source = match std::fs::read_to_string(file_path) {
+                Ok(s) => s,
+                Err(e) => return format!("ERROR: Failed to read {}: {}\n", file_path, e),
+            };
+
+            let req = LoadProgramRequest {
+                gasm_source: Some(source),
+                pixels_hex: None,
+                pixels_raw: None,
+                vm_id: None,
+                name: Some(file_path.to_string()),
+                filmstrip: None,
+            };
+
+            let mut s = state.lock().unwrap();
+            match s.load_hot(&req) {
+                Ok(resp) => {
+                    if let Some(_addr) = target_addr {
+                        // TODO: Pass target address to allocator for address-pinned loading
+                    }
+                    let msg = format!(
+                        "OK: Loaded {} pixels at 0x{:08X}, vm_id={}\n",
+                        resp.pixel_count, resp.address, resp.vm_id
+                    );
+                    eprintln!("[daemon:cmd] {}", msg.trim());
+                    msg
+                }
+                Err(e) => {
+                    let msg = format!("FAILED: {}\n", e);
+                    eprintln!("[daemon:cmd] {}", msg.trim());
+                    msg
+                }
+            }
+        }
+
+        "SPAWN" => {
+            let addr_str = parts.get(1).map(|s| s.trim()).unwrap_or("");
+            if addr_str.is_empty() {
+                return "ERROR: Usage: SPAWN <addr_hex>\n".into();
+            }
+            let addr = match parse_addr(addr_str) {
+                Some(a) => a,
+                None => return format!("ERROR: Invalid address: {}\n", addr_str),
+            };
+            let mut s = state.lock().unwrap();
+            match s.spawn_at(addr) {
+                Ok((vm_id, prog_id)) => {
+                    let msg = format!(
+                        "OK: Spawned VM {} at 0x{:08X} ({})\n",
+                        vm_id, addr, prog_id
+                    );
+                    eprintln!("[daemon:cmd] {}", msg.trim());
+                    msg
+                }
+                Err(e) => {
+                    let msg = format!("FAILED: {}\n", e);
+                    eprintln!("[daemon:cmd] {}", msg.trim());
+                    msg
+                }
+            }
+        }
+
+        "STATUS" => {
+            let s = state.lock().unwrap();
+            let status = s.status();
+            let json = serde_json::to_string(&status).unwrap_or_else(|e| format!("{{\"error\":\"{}\"}}", e));
+            eprintln!(
+                "[daemon:cmd] Uptime: {}s, Programs: {}",
+                status.uptime_secs, status.programs_loaded
+            );
+            for vm in &status.vm_states {
+                if vm.state != "inactive" {
+                    eprintln!(
+                        "  VM {}: {} pc={} cycles={} halted={}",
+                        vm.vm_id, vm.state, vm.pc, vm.cycles, vm.halted
+                    );
+                }
+            }
+            format!("{}\n", json)
+        }
+
+        "DISPATCH" => {
+            let mut s = state.lock().unwrap();
+            let resp = s.dispatch_frame();
+            eprintln!(
+                "[daemon:cmd] Dispatched frame {} ({} VMs)",
+                resp.frame,
+                resp.vm_results
+                    .iter()
+                    .filter(|v| !v.halted || v.cycles > 0)
+                    .count()
+            );
+            let json =
+                serde_json::to_string(&resp).unwrap_or_else(|e| format!("{{\"error\":\"{}\"}}", e));
+            format!("{}\n", json)
+        }
+
+        "QUIT" | "EXIT" => {
+            eprintln!("[daemon:cmd] Shutting down...");
+            std::process::exit(0);
+        }
+
+        _ => format!(
+            "ERROR: Unknown command: {} (LOAD, SPAWN, STATUS, DISPATCH, QUIT)\n",
+            cmd
+        ),
+    }
+}
+
 fn main() {
     env_logger::init();
 
@@ -799,6 +1159,15 @@ fn main() {
     }
     .unwrap_or_else(|| "3101".into());
 
+    let socket_path = {
+        let args: Vec<String> = std::env::args().collect();
+        if let Some(idx) = args.iter().position(|a| a == "--socket") {
+            args.get(idx + 1).cloned()
+        } else {
+            None
+        }
+    };
+
     println!("Geometry OS Daemon");
     println!("==================");
     println!();
@@ -816,11 +1185,76 @@ fn main() {
     println!();
     println!("API:");
     println!("  POST /api/v1/programs   Load program (JSON: {{gasm, pixelsRaw, pixels_hex, vm_id, name}})");
+    println!("  POST /api/v1/hot-load   Hot-load program without disturbing running VMs");
     println!("  POST /api/v1/dispatch   Execute one frame of GPU compute");
     println!("  GET  /api/v1/status     VM states and daemon info");
     println!("  GET  /api/v1/programs   List loaded programs");
     println!("  GET  /api/v1/substrate/{{addr}}/{{count}}  Read substrate pixels");
     println!();
+    println!("Stdin / Unix socket commands:");
+    println!("  LOAD <file.gasm>        Assemble and hot-load a .gasm program");
+    println!("  LOAD <addr> <file.gasm> Assemble and hot-load at a specific address");
+    println!("  SPAWN <addr_hex>        Spawn a VM at an already-loaded address");
+    println!("  STATUS                  Print VM status summary");
+    println!("  DISPATCH                Execute one frame");
+    println!("  QUIT                    Shut down the daemon");
+    println!();
+
+    // Spawn stdin command processor thread
+    let cmd_state = Arc::clone(&state);
+    std::thread::spawn(move || {
+        let stdin = std::io::stdin();
+        let mut lines = stdin.lock().lines();
+        eprintln!("[daemon:cmd] Stdin command processor ready");
+        while let Some(Ok(line)) = lines.next() {
+            handle_command_text(&cmd_state, &line);
+        }
+    });
+
+    // Spawn Unix socket command processor (if --socket was provided)
+    if let Some(ref sock_path) = socket_path {
+        let sock_display = sock_path.clone();
+        let sock_state = Arc::clone(&state);
+        let sock_path = sock_path.clone();
+        // Clean up stale socket
+        let _ = std::fs::remove_file(&sock_path);
+        std::thread::spawn(move || {
+            let listener = match UnixListener::bind(&sock_path) {
+                Ok(l) => l,
+                Err(e) => {
+                    eprintln!("[daemon:sock] Failed to bind {}: {}", sock_path, e);
+                    return;
+                }
+            };
+            eprintln!("[daemon:sock] Unix socket listening on {}", sock_path);
+            for stream in listener.incoming() {
+                match stream {
+                    Ok(mut stream) => {
+                        let mut buf = String::new();
+                        if let Ok(_) = stream.read_to_string(&mut buf) {
+                            let line = buf.trim();
+                            if line.is_empty() {
+                                continue;
+                            }
+                            let resp = handle_command_text(&sock_state, line);
+                            let _ = stream.write_all(resp.as_bytes());
+                            let _ = stream.flush();
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[daemon:sock] Connection error: {}", e);
+                    }
+                }
+            }
+        });
+        println!("Unix socket: {}", sock_display);
+        println!("  LOAD <file.gasm>        Assemble and hot-load a .gasm program");
+        println!("  SPAWN <addr_hex>        Spawn a VM at an already-loaded address");
+        println!("  STATUS                  VM status as JSON");
+        println!("  DISPATCH                Execute one frame");
+        println!("  QUIT                    Shut down");
+        println!();
+    }
 
     for stream in listener.incoming() {
         match stream {
