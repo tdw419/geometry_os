@@ -47,6 +47,7 @@ pub mod op {
     pub const AND: u8 = 25;  // Bitwise AND: AND rd, rs  (rd &= rs)
     pub const SHL: u8 = 26;  // Shift left: SHL rd, rs   (rd <<= rs)
     pub const FRAME: u8 = 27; // Film strip frame jump: FRAME r_target (jump to frame index in r_target)
+    pub const WAIT_EVENT: u8 = 28; // Block until event arrives: WAIT_EVENT r_event_type, r_param1
     pub const DRAW: u8 = 215; // Legacy alias (unused)
     pub const SPAWN: u8 = 230;
     pub const YIELD: u8 = 227;
@@ -243,6 +244,11 @@ impl Program {
     /// On next frame, the VM resumes in RUNNING state.
     pub fn yield_op(&mut self) -> &mut Self {
         self.instruction(op::YIELD, 0, 0, 0)
+    }
+
+    /// WAIT_EVENT: Block until event arrives. r_event_type, r_param1
+    pub fn wait_event(&mut self, event_type_reg: u8, param1_reg: u8) -> &mut Self {
+        self.instruction(op::WAIT_EVENT, event_type_reg, param1_reg, 0)
     }
 
     /// Halt execution

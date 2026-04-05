@@ -44,9 +44,17 @@ use crate::assembler::{bcond, op, Program};
 ///
 /// Returns the assembled `Program` on success, or an error message.
 pub fn assemble(source: &str) -> Result<Program, String> {
+    assemble_with_frame_labels(source, &HashMap::new())
+}
+
+/// Assemble with frame labels for `@Name` resolution.
+pub fn assemble_with_frame_labels(
+    source: &str,
+    frame_labels: &HashMap<String, usize>,
+) -> Result<Program, String> {
     let lines = parse_lines(source)?;
     let labels = pass1_collect_labels(&lines)?;
-    pass2_emit(&lines, &labels)
+    pass2_emit(&lines, &labels, frame_labels)
 }
 
 /// Assemble a multi-frame .gasm source string into a vector of Programs.
@@ -54,18 +62,89 @@ pub fn assemble(source: &str) -> Result<Program, String> {
 /// Frames are separated by a `---` line (three dashes). Each segment is
 /// assembled independently (labels are local to each frame).
 ///
+/// Frame labels (`@Name`) can be used in LDI immediates to reference frames
+/// by name instead of index. Declare labels with `.frame "Name"` directives.
+///
 /// Returns a Vec of Programs, one per frame, on success.
 pub fn assemble_filmstrip(source: &str) -> Result<Vec<Program>, String> {
-    let segments: Vec<&str> = source.split("\n---\n").collect();
+    let (programs, _) = assemble_filmstrip_with_labels(source)?;
+    Ok(programs)
+}
+
+/// Assemble a filmstrip and also return the frame label map.
+///
+/// Returns `(Vec<Program>, HashMap<String, usize>)` where the map contains
+/// `.frame "Name"` directives mapped to their segment index. UI consumers
+/// can use this to render symbolic frame names instead of raw indices.
+pub fn assemble_filmstrip_with_labels(
+    source: &str,
+) -> Result<(Vec<Program>, HashMap<String, usize>), String> {
+    // Pass 0: extract .frame "Name" directives and build label map
+    let (cleaned, frame_labels) = pass0_frame_labels(source)?;
+
+    let segments: Vec<&str> = cleaned.split("\n---\n").collect();
     if segments.len() < 2 {
-        return Err("Filmstrip source must contain at least 2 frames separated by '---'".into());
+        return Err(
+            "Filmstrip source must contain at least 2 frames separated by '---'".into(),
+        );
     }
     let mut programs = Vec::with_capacity(segments.len());
     for (i, seg) in segments.iter().enumerate() {
-        let prog = assemble(seg).map_err(|e| format!("Frame {}: {}", i, e))?;
+        let prog = assemble_with_frame_labels(seg, &frame_labels)
+            .map_err(|e| format!("Frame {}: {}", i, e))?;
         programs.push(prog);
     }
-    Ok(programs)
+    Ok((programs, frame_labels))
+}
+
+/// Pass 0: Scan source for `.frame "Name"` directives.
+///
+/// Builds a HashMap<String, usize> mapping label names to segment indices
+/// (based on `---` separator positions). Returns the cleaned source with
+/// `.frame` directives stripped.
+fn pass0_frame_labels(source: &str) -> Result<(String, HashMap<String, usize>), String> {
+    let mut frame_labels = HashMap::new();
+    let mut cleaned_lines = Vec::new();
+    let mut segment_index = 0usize;
+
+    for (i, line) in source.lines().enumerate() {
+        let trimmed = line.trim();
+
+        // Check for .frame "Name" directive
+        if trimmed.starts_with(".frame") {
+            let rest = trimmed[6..].trim();
+            // Extract quoted name
+            if rest.starts_with('"') && rest.ends_with('"') && rest.len() >= 2 {
+                let name = &rest[1..rest.len() - 1];
+                if name.is_empty() {
+                    return Err(format!("line {}: empty frame label name", i + 1));
+                }
+                if frame_labels.contains_key(name) {
+                    return Err(format!(
+                        "line {}: duplicate frame label '{}'",
+                        i + 1,
+                        name
+                    ));
+                }
+                frame_labels.insert(name.to_string(), segment_index);
+            } else {
+                return Err(format!(
+                    "line {}: .frame expects a quoted name, e.g. .frame \"Boot\"",
+                    i + 1
+                ));
+            }
+            continue; // strip the directive from output
+        }
+
+        // Track segment boundaries
+        if trimmed == "---" {
+            segment_index += 1;
+        }
+
+        cleaned_lines.push(line);
+    }
+
+    Ok((cleaned_lines.join("\n"), frame_labels))
 }
 
 /// A parsed line (after stripping comments and blank lines).
@@ -160,7 +239,11 @@ fn pass1_collect_labels(lines: &[Line]) -> Result<HashMap<String, usize>, String
 }
 
 /// Pass 2: Emit pixel instructions, resolving labels.
-fn pass2_emit(lines: &[Line], labels: &HashMap<String, usize>) -> Result<Program, String> {
+fn pass2_emit(
+    lines: &[Line],
+    labels: &HashMap<String, usize>,
+    frame_labels: &HashMap<String, usize>,
+) -> Result<Program, String> {
     let mut prog = Program::new();
     let mut addr = 0usize;
 
@@ -171,7 +254,15 @@ fn pass2_emit(lines: &[Line], labels: &HashMap<String, usize>) -> Result<Program
             line_num,
         } = line
         {
-            emit_instruction(&mut prog, mnemonic, operands, addr, labels, *line_num)?;
+            emit_instruction(
+                &mut prog,
+                mnemonic,
+                operands,
+                addr,
+                labels,
+                frame_labels,
+                *line_num,
+            )?;
             if mnemonic == "DATA" {
                 addr += 1;
             } else {
@@ -213,6 +304,10 @@ fn is_valid_mnemonic(m: &str) -> bool {
             | "RECV"
             | "SHR"
             | "OR"
+            | "AND"
+            | "SHL"
+            | "PSET"
+            | "PGET"
             | "GLYPH_DEF"
             | "FRAME"
             | "DATA"
@@ -275,6 +370,26 @@ fn resolve_label_or_imm(
     parse_imm(s, line_num)
 }
 
+/// Resolve a frame label reference (@Name) to a frame index.
+fn resolve_frame_label(
+    s: &str,
+    line_num: usize,
+    frame_labels: &HashMap<String, usize>,
+) -> Option<Result<u32, String>> {
+    let s = s.trim();
+    if let Some(name) = s.strip_prefix('@') {
+        match frame_labels.get(name) {
+            Some(&idx) => Some(Ok(idx as u32)),
+            None => Some(Err(format!(
+                "line {}: unknown frame label '@{}'",
+                line_num, name
+            ))),
+        }
+    } else {
+        None
+    }
+}
+
 /// Emit a single instruction into the program.
 fn emit_instruction(
     prog: &mut Program,
@@ -282,6 +397,7 @@ fn emit_instruction(
     operands: &[String],
     current_addr: usize,
     labels: &HashMap<String, usize>,
+    frame_labels: &HashMap<String, usize>,
     line_num: usize,
 ) -> Result<(), String> {
     match mnemonic {
@@ -291,7 +407,13 @@ fn emit_instruction(
         "LDI" => {
             expect_ops(mnemonic, operands, 2, line_num)?;
             let reg = parse_reg(&operands[0], line_num, "register")?;
-            let val = parse_imm(&operands[1], line_num)?;
+            let val = if let Some(result) =
+                resolve_frame_label(&operands[1], line_num, frame_labels)
+            {
+                result?
+            } else {
+                parse_imm(&operands[1], line_num)?
+            };
             prog.ldi(reg, val);
         }
         "MOV" => {
@@ -410,6 +532,32 @@ fn emit_instruction(
             let dst = parse_reg(&operands[0], line_num, "destination")?;
             let src = parse_reg(&operands[1], line_num, "source")?;
             prog.or(dst, src);
+        }
+        "AND" => {
+            expect_ops(mnemonic, operands, 2, line_num)?;
+            let dst = parse_reg(&operands[0], line_num, "destination")?;
+            let src = parse_reg(&operands[1], line_num, "source")?;
+            prog.instruction(op::AND, 0, dst, src);
+        }
+        "SHL" => {
+            expect_ops(mnemonic, operands, 2, line_num)?;
+            let dst = parse_reg(&operands[0], line_num, "destination")?;
+            let src = parse_reg(&operands[1], line_num, "source")?;
+            prog.instruction(op::SHL, 0, dst, src);
+        }
+        "PSET" => {
+            expect_ops(mnemonic, operands, 3, line_num)?;
+            let x_reg = parse_reg(&operands[0], line_num, "x")?;
+            let y_reg = parse_reg(&operands[1], line_num, "y")?;
+            let color_reg = parse_reg(&operands[2], line_num, "color")?;
+            prog.pset(x_reg, y_reg, color_reg);
+        }
+        "PGET" => {
+            expect_ops(mnemonic, operands, 3, line_num)?;
+            let dst_reg = parse_reg(&operands[0], line_num, "destination")?;
+            let x_reg = parse_reg(&operands[1], line_num, "x")?;
+            let y_reg = parse_reg(&operands[2], line_num, "y")?;
+            prog.pget(dst_reg, x_reg, y_reg);
         }
         "GLYPH_DEF" => {
             expect_ops(mnemonic, operands, 2, line_num)?;
@@ -583,6 +731,10 @@ pub fn disassemble(pixels: &[u32]) -> Vec<String> {
             op::RECV => format!("{:4}: RECV r{}, r{}", i, p1, p2),
             op::SHR => format!("{:4}: SHR r{}, r{}", i, p1, p2),
             op::OR => format!("{:4}: OR r{}, r{}", i, p1, p2),
+            op::AND => format!("{:4}: AND r{}, r{}", i, p1, p2),
+            op::SHL => format!("{:4}: SHL r{}, r{}", i, p1, p2),
+            op::PSET => format!("{:4}: PSET r{}, r{}, r{}", i, p1, p2, stratum),
+            op::PGET => format!("{:4}: PGET r{}, r{}, r{}", i, p2, stratum, p1),
             op::GLYPH_DEF => format!("{:4}: GLYPH_DEF r{}, r{}", i, p1, p2),
             op::FRAME => format!("{:4}: FRAME r{}", i, p1),
             _ => format!("{:4}: ??? opcode={} raw=0x{:08X}", i, opcode, pixel),
@@ -883,5 +1035,189 @@ mod tests {
         assert_eq!(prog.pixels[1] & 0xFF, op::SUB as u32);
         assert_eq!(prog.pixels[2] & 0xFF, op::MUL as u32);
         assert_eq!(prog.pixels[3] & 0xFF, op::DIV as u32);
+    }
+
+    // --- Frame Label Tests ---
+
+    #[test]
+    fn assemble_filmstrip_with_frame_labels() {
+        let source = r#"
+.frame "Idle"
+LDI r0, 1
+HALT
+---
+.frame "Explosion"
+LDI r0, @Explosion
+FRAME r0
+HALT
+---
+.frame "Back"
+LDI r0, @Idle
+FRAME r0
+HALT
+"#;
+
+        let programs = assemble_filmstrip(source).expect("should assemble");
+        assert_eq!(programs.len(), 3);
+
+        // Frame 0 ("Idle"): LDI r0, 1 + HALT = 3 pixels
+        assert_eq!(programs[0].len(), 3);
+        assert_eq!(programs[0].pixels[1], 1); // LDI value = 1
+
+        // Frame 1 ("Explosion"): LDI r0, 1 + FRAME r0 + HALT = 4 pixels
+        // @Explosion resolves to index 1
+        assert_eq!(programs[1].len(), 4);
+        assert_eq!(programs[1].pixels[1], 1); // LDI value = 1 (index of "Explosion")
+
+        // Frame 2 ("Back"): LDI r0, 0 + FRAME r0 + HALT = 4 pixels
+        // @Idle resolves to index 0
+        assert_eq!(programs[2].len(), 4);
+        assert_eq!(programs[2].pixels[1], 0); // LDI value = 0 (index of "Idle")
+    }
+
+    #[test]
+    fn frame_label_self_reference() {
+        // The ActionScript-style self-jump pattern
+        let source = r#"
+.frame "Boot"
+LDI r0, @Loop
+FRAME r0
+HALT
+---
+.frame "Loop"
+LDI r3, 1
+ADD r1, r3
+LDI r2, @Loop
+FRAME r2
+HALT
+"#;
+
+        let programs = assemble_filmstrip(source).expect("should assemble");
+        assert_eq!(programs.len(), 2);
+
+        // Frame 0 ("Boot"): LDI r0, 1 + FRAME r0 + HALT = 4 pixels
+        // @Loop = index 1
+        assert_eq!(programs[0].pixels[1], 1);
+
+        // Frame 1 ("Loop"): LDI r3,1 + ADD r1,r3 + LDI r2,1 + FRAME r2 + HALT = 7 pixels
+        // @Loop = index 1 (self-reference)
+        assert_eq!(programs[1].pixels[4], 1); // LDI data word = 1
+    }
+
+    #[test]
+    fn frame_label_unknown_error() {
+        let source = r#"
+LDI r0, @NonExistent
+HALT
+---
+LDI r0, 0
+HALT
+"#;
+
+        let result = assemble_filmstrip(source);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.contains("unknown frame label"),
+            "expected frame label error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn frame_label_duplicate_error() {
+        let source = r#"
+.frame "Boot"
+LDI r0, 1
+HALT
+---
+.frame "Boot"
+LDI r0, 2
+HALT
+"#;
+
+        let result = assemble_filmstrip(source);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.contains("duplicate frame label"),
+            "expected duplicate error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn frame_label_without_quotes_error() {
+        let source = r#"
+.frame Boot
+LDI r0, 1
+HALT
+---
+LDI r0, 0
+HALT
+"#;
+
+        let result = assemble_filmstrip(source);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.contains(".frame expects a quoted name"),
+            "expected quote error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn filmstrip_without_labels_still_works() {
+        // Existing filmstrip syntax must continue working
+        let source = r#"
+LDI r0, 0
+HALT
+---
+LDI r0, 1
+HALT
+"#;
+
+        let programs = assemble_filmstrip(source).expect("should assemble");
+        assert_eq!(programs.len(), 2);
+        assert_eq!(programs[0].pixels[1], 0);
+        assert_eq!(programs[1].pixels[1], 1);
+    }
+
+    #[test]
+    fn frame_labels_with_insertion_resilience() {
+        // The "Flash Way" test: inserting a frame between Boot and Loop
+        // shouldn't break label references
+        let source = r#"
+.frame "Boot"
+LDI r0, @Prepare
+FRAME r0
+HALT
+---
+.frame "Prepare"
+LDI r1, 42
+LDI r0, @Loop
+FRAME r0
+HALT
+---
+.frame "Loop"
+LDI r3, 1
+ADD r1, r3
+LDI r2, @Loop
+FRAME r2
+HALT
+"#;
+
+        let programs = assemble_filmstrip(source).expect("should assemble");
+        assert_eq!(programs.len(), 3);
+
+        // Boot -> Prepare: @Prepare = 1
+        assert_eq!(programs[0].pixels[1], 1);
+
+        // Prepare -> Loop: @Loop = 2
+        assert_eq!(programs[1].pixels[3], 2);
+
+        // Loop -> Loop: @Loop = 2 (self-reference)
+        assert_eq!(programs[2].pixels[4], 2);
     }
 }

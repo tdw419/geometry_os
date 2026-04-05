@@ -969,6 +969,109 @@ curl -s -X POST http://localhost:3100/api/plugins/paperclip.geometry-os/actions/
 
 ---
 
+## Company: ASCII World
+
+ASCII World (pxOS) -- a pixel-based operating system where AI agents produce data
+and humans consume pixels. Cell Store -> Formula Engine -> Pixel Buffer -> PNG.
+
+### Company Identity
+
+| Field | Value |
+|-------|-------|
+| Company ID | `523529a2-a20e-4cdd-86f3-9407155422c2` |
+| Name | ASCII World |
+| Issue prefix | `ASC` |
+| Status | active |
+| Source repo | `/home/jericho/zion/projects/ascii_world/ascii_world/` |
+| API Base | `http://localhost:3100/api` |
+
+### Agents
+
+| Name | ID | Role | Model | Status |
+|------|----|------|-------|--------|
+| CEO | `202eac1d-c89b-4838-bda2-49b15eabcbfc` | ceo | glm-5.1 | idle |
+| Engineer | `b9719119-eee2-4cb3-9985-173043d98d64` | engineer | glm-5.1 | idle |
+
+Both agents use `hermes_local` adapter with 300s (CEO) / 600s (Engineer) timeout.
+Hermes command at `/home/jericho/zion/projects/aipm/bin/aipm_hermes_generic.sh`.
+
+### Projects
+
+| Project | ID | Status |
+|---------|----|--------|
+| pxOS Core | `9bcb7806-66fa-419f-84a8-cd0b6ce51b6a` | completed |
+| Paperclip Integration | `8d252a33-0df6-4da9-b5d2-7b81cda01229` | completed |
+| Visual Intelligence | `50f5adb8-c9e0-41f2-b220-7e57b341458e` | in_progress |
+| Agent Dashboard | `98646af5-abc8-4494-8619-efb16d02f8bc` | in_progress |
+| Compositions | `16047730-7cb3-4bbd-be96-b59cbf67704b` | backlog |
+| GPU Integration | `7425183c-5494-44ed-b222-8ccbff0488eb` | backlog |
+| Plugin Enhancement | `5a97f8d5-e8ab-4fd7-9a63-06c394dd670d` | backlog |
+
+### Open Issues
+
+| ID | Priority | Title | Project |
+|----|----------|-------|---------|
+| ASC-11 | critical | RGB animation mode: time-based shader parameters | Visual Intelligence |
+| ASC-12 | high | Achieve baseline visual scores (>25/40) for all shaders | Visual Intelligence |
+| ASC-14 | high | Formula composition for issue burndown chart | Compositions |
+| ASC-15 | high | WGSL shader bridge: pixel buffer to Geometry OS texture | GPU Integration |
+| ASC-16 | high | Plugin data provider: live cell-store state | Plugin Enhancement |
+| ASC-17 | medium | Plugin action: trigger composition run | Plugin Enhancement |
+| ASC-18 | medium | AGENT_HISTORY formula: time-series data hardening | Agent Dashboard |
+
+### Architecture
+
+```
+AI Agent --POST--> Cell Store --formula--> Pixel Buffer --render--> PNG
+                   (key=value)   =BAR(cpu,40)  (480x240 RGBA)
+```
+
+Key modules:
+- `sync/cell-store.js` -- Reactive key-value store (7 tests)
+- `sync/pixel-formula-engine.js` -- Evaluates =BAR, =TEXT, =STATUS, =SPARKLINE etc (28 tests)
+- `sync/pixel-buffer.js` -- RGBA drawing primitives (16 tests)
+- `sync/server.js` -- HTTP + WebSocket server (7 tests)
+- `compositions/agent-dashboard.js` -- Paperclip polling composition (14 tests)
+
+Total: 2028 tests, 0 failures.
+
+### Plugin: paperclip.ascii-world
+
+The `paperclip.ascii-world` plugin (v0.1.0) provides a terminal-style TUI dashboard
+embedded in Paperclip. Source at
+`~/zion/apps/linux/paperclip/paperclip/packages/plugins/examples/plugin-ascii-world/`.
+
+Has two UI slots: dashboardWidget (`ascii-world-dashboard`) and full page
+(route: `asciiworld`). Capabilities include companies/agents/issues read,
+issues create/update, plugin state read/write.
+
+### Quick Reference
+
+```bash
+CID="523529a2-a20e-4cdd-86f3-9407155422c2"
+CEO="202eac1d-c89b-4838-bda2-49b15eabcbfc"
+ENG="b9719119-eee2-4cb3-9985-173043d98d64"
+
+# Dashboard
+curl -s http://localhost:3100/api/companies/$CID/dashboard | python3 -m json.tool
+
+# Open issues
+curl -s http://localhost:3100/api/companies/$CID/issues | \
+  python3 -c "import sys,json
+for i in json.load(sys.stdin):
+  if i['status'] not in ('done','cancelled'):
+    print(f'{i[\"identifier\"]:8s} {i[\"priority\"]:8s} {i[\"status\"]:12s} {i[\"title\"]}')"
+
+# Run tests
+cd ~/zion/projects/ascii_world/ascii_world && npm test
+
+# Wake CEO
+curl -s -X POST http://localhost:3100/api/agents/$CEO/wakeup \
+  -H 'Content-Type: application/json' -d '{}'
+```
+
+---
+
 ## Company: AIPM
 
 Autonomous AI Project Management company. Mission: extract the best ideas from

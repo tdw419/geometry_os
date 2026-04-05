@@ -67,6 +67,35 @@ struct SchedulerState {
 @group(0) @binding(4) var<storage, read> event_header: atomic<u32>;
 @group(0) @binding(5) var<storage, read> event_queue: array<atomic<u32>>;
 
+// Frame transition trace buffer (binding 6).
+// Each FRAME opcode or HALT auto-advance writes one entry atomically.
+// The daemon reads this back after dispatch to reconstruct the full
+// transition path (since the GPU runs many cycles per dispatch).
+struct GpuFrameTrace {
+    vm_id: u32,
+    from_frame: u32,
+    to_frame: u32,
+    pc_at_transition: u32,
+    cause: u32,  // 0 = auto_advance, 1 = frame_opcode
+}
+
+const MAX_FRAME_TRACES: u32 = 256u;
+
+@group(0) @binding(6) var<storage, read_write> frame_trace_buf: array<u32>;
+@group(0) @binding(7) var<storage, read_write> frame_trace_cursor: atomic<u32>;
+
+fn record_frame_trace(vm_id: u32, from_frame: u32, to_frame: u32, pc: u32, cause: u32) {
+    let slot = atomicAdd(&frame_trace_cursor, 1u);
+    if (slot < MAX_FRAME_TRACES) {
+        let base = slot * 5u;
+        frame_trace_buf[base + 0u] = vm_id;
+        frame_trace_buf[base + 1u] = from_frame;
+        frame_trace_buf[base + 2u] = to_frame;
+        frame_trace_buf[base + 3u] = pc;
+        frame_trace_buf[base + 4u] = cause;
+    }
+}
+
 /// Convert Hilbert linear index to 2D coordinates
 fn hilbert_d2xy(d: u32) -> vec2<u32> {
     var x = 0u;
@@ -260,6 +289,7 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
             let frame_ptr = (*vm).attention_mask;
             if (frame_count > 0u && frame_ptr < frame_count - 1u) {
                 let next_frame = frame_ptr + 1u;
+                record_frame_trace((*vm).vm_id, frame_ptr, next_frame, pc, 0u);  // 0 = auto_advance
                 (*vm).attention_mask = next_frame;
                 let frame_size: u32 = 65536u; // 256 * 256
                 (*vm).pc = (*vm).entry_point + next_frame * frame_size;
@@ -429,6 +459,7 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
                 (*vm).halted = 1u;
                 (*vm).state = VM_FAULT;
             } else {
+                record_frame_trace((*vm).vm_id, (*vm).attention_mask, target_frame, pc, 1u);  // 1 = frame_opcode
                 (*vm).attention_mask = target_frame;
                 let frame_size: u32 = 65536u; // 256 * 256
                 (*vm).pc = (*vm).entry_point + target_frame * frame_size;

@@ -84,6 +84,17 @@ pub struct SchedulerState {
     pub padding: u32,
 }
 
+/// A single frame transition recorded by the GPU shader's trace buffer.
+#[derive(Debug, Clone, Copy)]
+pub struct GpuFrameTrace {
+    pub vm_id: u32,
+    pub from_frame: u32,
+    pub to_frame: u32,
+    pub pc_at_transition: u32,
+    /// 0 = auto_advance (HALT-driven), 1 = frame_opcode (explicit FRAME)
+    pub cause: u32,
+}
+
 /// The Glyph VM - owns the GPU pipeline and RAM texture.
 pub struct GlyphVm {
     device: wgpu::Device,
@@ -95,6 +106,8 @@ pub struct GlyphVm {
     scheduler_buffer: wgpu::Buffer,
     #[allow(dead_code)]
     message_buffer: wgpu::Buffer,
+    frame_trace_buffer: wgpu::Buffer,
+    frame_trace_cursor_buffer: wgpu::Buffer,
     vm_states: [VmState; 8],
     substrate: Substrate,
 }
@@ -219,6 +232,28 @@ impl GlyphVm {
                     },
                     count: None,
                 },
+                // Binding 6: Frame trace buffer (read_write)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 6,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // Binding 7: Frame trace cursor (read_write, atomic)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
         });
 
@@ -277,6 +312,26 @@ impl GlyphVm {
             mapped_at_creation: false,
         });
 
+        // Frame trace buffer: 256 entries * 5 u32s = 5120 bytes
+        let frame_trace_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Frame Trace Buffer"),
+            size: 256 * 5 * 4,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
+        // Frame trace cursor: single atomic u32
+        let frame_trace_cursor_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Frame Trace Cursor"),
+            size: 4,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
         // Create bind group
         let ram_view = ram_texture.create_view(&wgpu::TextureViewDescriptor::default());
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -307,6 +362,14 @@ impl GlyphVm {
                     binding: 5,
                     resource: event_queue_buffer.as_entire_binding(),
                 },
+                wgpu::BindGroupEntry {
+                    binding: 6,
+                    resource: frame_trace_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: frame_trace_cursor_buffer.as_entire_binding(),
+                },
             ],
         });
 
@@ -330,6 +393,8 @@ impl GlyphVm {
             vm_buffer,
             scheduler_buffer,
             message_buffer,
+            frame_trace_buffer,
+            frame_trace_cursor_buffer,
             vm_states: [
                 VmState::default(),
                 VmState::default(),
@@ -415,6 +480,9 @@ impl GlyphVm {
         };
         self.queue
             .write_buffer(&self.scheduler_buffer, 0, sched_bytes);
+
+        // Reset frame trace cursor to 0 (clear previous dispatch traces)
+        self.queue.write_buffer(&self.frame_trace_cursor_buffer, 0, &[0u8; 4]);
 
         // Dispatch compute shader
         let mut encoder = self
@@ -536,6 +604,95 @@ impl GlyphVm {
         }
     }
 
+    /// Read back frame traces from the GPU trace buffer.
+    /// Returns traces recorded during the last dispatch, in order.
+    pub fn read_frame_traces(&mut self) -> Vec<GpuFrameTrace> {
+        // Read the cursor first to know how many entries were written
+        let cursor_staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Trace Cursor Readback"),
+            size: 4,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Trace Cursor Sync"),
+            });
+
+        encoder.copy_buffer_to_buffer(
+            &self.frame_trace_cursor_buffer, 0,
+            &cursor_staging, 0, 4,
+        );
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        let slice = cursor_staging.slice(..);
+        let (tx, rx) = std::sync::mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |res| { tx.send(res).ok(); });
+        self.device.poll(wgpu::Maintain::Wait);
+
+        let count = if let Ok(Ok(())) = rx.recv() {
+            let data = slice.get_mapped_range();
+            let bytes: [u8; 4] = data[..4].try_into().unwrap_or([0; 4]);
+            u32::from_le_bytes(bytes).min(256)
+        } else {
+            0
+        };
+
+        if count == 0 {
+            return Vec::new();
+        }
+
+        // Read the trace buffer
+        let trace_size = (count * 5 * 4) as u64;
+        let trace_staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Trace Buffer Readback"),
+            size: trace_size,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Trace Buffer Sync"),
+            });
+
+        encoder.copy_buffer_to_buffer(
+            &self.frame_trace_buffer, 0,
+            &trace_staging, 0, trace_size,
+        );
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        let slice = trace_staging.slice(..);
+        let (tx, rx) = std::sync::mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |res| { tx.send(res).ok(); });
+        self.device.poll(wgpu::Maintain::Wait);
+
+        if let Ok(Ok(())) = rx.recv() {
+            let data = slice.get_mapped_range();
+            let mut traces = Vec::with_capacity(count as usize);
+            for i in 0..count as usize {
+                let base = i * 5 * 4;
+                let read_u32 = |offset: usize| -> u32 {
+                    let b: [u8; 4] = data[base + offset..base + offset + 4].try_into().unwrap_or([0; 4]);
+                    u32::from_le_bytes(b)
+                };
+                traces.push(GpuFrameTrace {
+                    vm_id: read_u32(0),
+                    from_frame: read_u32(4),
+                    to_frame: read_u32(8),
+                    pc_at_transition: read_u32(12),
+                    cause: read_u32(16),
+                });
+            }
+            return traces;
+        }
+
+        Vec::new()
+    }
+
     /// Get the current VM states (after execute_frame).
     pub fn vm_states(&self) -> &[VmState; 8] {
         &self.vm_states
@@ -604,6 +761,10 @@ pub struct ExecutionResult {
     pub load_address: u32,
     /// Opcodes seen in the program (byte values).
     pub opcodes_used: Vec<u8>,
+    /// Memory efficiency: fraction of written bytes that are meaningful (0.0-1.0).
+    pub memory_efficiency: f64,
+    /// Spatial locality: average Hilbert distance between consecutive ops (lower = better).
+    pub spatial_locality: f64,
     /// Aggregate fitness score (0.0 - 1.0).
     pub fitness: f64,
     /// Snapshot of VM state after execution.
@@ -614,37 +775,52 @@ impl ExecutionResult {
     /// Compute fitness from execution metrics.
     ///
     /// Scoring:
-    ///   +0.3  halts cleanly
-    ///   +0.2  uses multiple registers (>= 3)
-    ///   +0.2  writes to memory (>= 1 unique writes)
-    ///   +0.15 uses diverse opcodes (>= 3 unique)
-    ///   +0.15 executes some cycles (>= 4, <= 800)
+    ///   +0.20  halts cleanly
+    ///   +0.15  uses multiple registers (>= 3)
+    ///   +0.15  writes to memory (>= 1 unique writes)
+    ///   +0.10  uses diverse opcodes (>= 3 unique)
+    ///   +0.10  executes some cycles (>= 4, <= 800)
+    ///   +0.15  memory efficiency (writes relative to program size)
+    ///   +0.15  spatial locality (instructions are Hilbert-coherent)
     pub fn compute_fitness(&mut self) {
         let mut score = 0.0f64;
 
         // Halting is fundamental
         if self.halted {
-            score += 0.3;
+            score += 0.20;
         }
 
         // Register usage (max at 3+)
         let reg_score = (self.nonzero_regs as f64 / 3.0).min(1.0);
-        score += 0.2 * reg_score;
+        score += 0.15 * reg_score;
 
         // Memory writes (max at 5+)
         let write_score = (self.unique_writes as f64 / 5.0).min(1.0);
-        score += 0.2 * write_score;
+        score += 0.15 * write_score;
 
         // Opcode diversity (max at 3+)
         let op_score = (self.opcodes_used.len() as f64 / 3.0).min(1.0);
-        score += 0.15 * op_score;
+        score += 0.10 * op_score;
 
         // Cycle count -- sweet spot around 4-800
         if self.cycles >= 4 && self.cycles <= 800 {
-            score += 0.15;
+            score += 0.10;
         } else if self.cycles > 0 {
-            score += 0.05;
+            score += 0.03;
         }
+
+        // Memory efficiency: ratio of unique writes to program length.
+        // A program that does more with less scores higher.
+        if self.program_length > 0 {
+            let efficiency = (self.unique_writes as f64 / self.program_length as f64).min(1.0);
+            self.memory_efficiency = efficiency;
+            score += 0.15 * efficiency;
+        }
+
+        // Spatial locality: programs where consecutive instructions are
+        // Hilbert-adjacent score higher. Average distance of 1.0 = perfect.
+        let locality = (1.0 / (1.0 + self.spatial_locality)).min(1.0);
+        score += 0.15 * locality;
 
         self.fitness = score.min(1.0);
     }
@@ -654,6 +830,28 @@ impl ExecutionResult {
 ///
 /// This creates a new GlyphVm, loads the program at the given address,
 /// spawns VM 0, executes one frame, and reads back results.
+/// Compute the average Hilbert distance between consecutive program pixels.
+/// A program loaded at sequential Hilbert addresses has locality ~1.0.
+/// Scattered programs have higher locality values (worse).
+fn compute_spatial_locality(pixels: &[u32], load_address: u32) -> f64 {
+    use crate::hilbert;
+    if pixels.len() < 2 {
+        return 1.0; // perfect locality for single-instruction programs
+    }
+    let mut total_distance: f64 = 0.0;
+    for i in 0..pixels.len() - 1 {
+        let d1 = load_address + i as u32;
+        let d2 = load_address + i as u32 + 1;
+        let (x1, y1) = hilbert::d2xy(d1);
+        let (x2, y2) = hilbert::d2xy(d2);
+        // Euclidean distance in pixel space
+        let dx = (x1 as f64 - x2 as f64).abs();
+        let dy = (y1 as f64 - y2 as f64).abs();
+        total_distance += (dx * dx + dy * dy).sqrt();
+    }
+    total_distance / (pixels.len() - 1) as f64
+}
+
 pub fn run_program(pixels: &[u32], load_address: u32) -> ExecutionResult {
     let mut vm = GlyphVm::new();
     let program_length = pixels.len();
@@ -703,6 +901,8 @@ pub fn run_program(pixels: &[u32], load_address: u32) -> ExecutionResult {
         program_length,
         load_address,
         opcodes_used: opcodes.into_iter().collect(),
+        memory_efficiency: 0.0,
+        spatial_locality: compute_spatial_locality(pixels, load_address),
         fitness: 0.0,
         vm: vm_state,
     };

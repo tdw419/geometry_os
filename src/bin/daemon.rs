@@ -22,6 +22,7 @@ use pixels_move_pixels::vm::{vm_state, GlyphVm};
 use pixels_move_pixels::{font_atlas, MAX_VMS};
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::sync::{Arc, Mutex};
@@ -77,6 +78,8 @@ struct VmStatus {
     frame_count: u32,
     /// Recent frame transitions for this VM (max 64, ring buffer).
     jump_log: Vec<FrameTransition>,
+    /// Symbolic frame labels for this VM's loaded filmstrip (empty if no labels).
+    frame_labels: HashMap<String, usize>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -105,6 +108,8 @@ struct LoadedProgram {
     pixels: Vec<u32>,
     is_filmstrip: bool,
     frame_count: u32,
+    /// Symbolic frame labels (e.g. {"Boot": 0, "Loop": 1}) for UI display.
+    frame_labels: HashMap<String, usize>,
 }
 
 // ── Frame transition tracking ──
@@ -327,6 +332,7 @@ impl DaemonState {
             pixels,
             is_filmstrip: false,
             frame_count: 0,
+            frame_labels: HashMap::new(),
         });
 
         Ok(resp)
@@ -338,17 +344,18 @@ impl DaemonState {
     ///   1. `gasm_source` with `---` separators between frames
     ///   2. `pixelsRaw` or `pixels_hex` with concatenated 65536-pixel frames
     fn load_filmstrip(&mut self, req: &LoadProgramRequest) -> Result<LoadProgramResponse, String> {
-        let strip = if let Some(ref source) = req.gasm_source {
-            // Multi-frame gasm: assemble each segment independently
-            let programs = gasm::assemble_filmstrip(source)
+        let (strip, frame_labels) = if let Some(ref source) = req.gasm_source {
+            // Multi-frame gasm: assemble each segment independently, capture labels
+            let (programs, frame_labels) = gasm::assemble_filmstrip_with_labels(source)
                 .map_err(|e| format!("Filmstrip assembly error: {e}"))?;
             let segments: Vec<Vec<u32>> = programs.iter().map(|p| p.pixels.clone()).collect();
-            filmstrip::filmstrip_from_segments(&segments)
+            let strip = filmstrip::filmstrip_from_segments(&segments);
+            (strip, Some(frame_labels))
         } else if let Some(ref raw) = req.pixels_raw {
-            filmstrip::filmstrip_from_flat_pixels(raw)?
+            (filmstrip::filmstrip_from_flat_pixels(raw)?, None)
         } else if let Some(ref hex) = req.pixels_hex {
             let pixels = parse_hex_pixels(hex)?;
-            filmstrip::filmstrip_from_flat_pixels(&pixels)?
+            (filmstrip::filmstrip_from_flat_pixels(&pixels)?, None)
         } else {
             return Err("Filmstrip requires one of: gasm (with ---), pixelsRaw, or pixels".into());
         };
@@ -417,6 +424,7 @@ impl DaemonState {
             pixels: Vec::new(), // too large to store; omit
             is_filmstrip: true,
             frame_count: num_frames,
+            frame_labels: frame_labels.unwrap_or_default(),
         });
 
         Ok(resp)
@@ -426,32 +434,31 @@ impl DaemonState {
         self.vm.execute_frame();
         self.frame_count += 1;
 
-        // Diff each VM's frame_ptr against the previous snapshot.
-        // If it changed, record a FrameTransition in the jump log.
+        // Read GPU frame traces (records every intra-dispatch transition)
+        let gpu_traces = self.vm.read_frame_traces();
+
+        // Feed GPU traces into per-VM jump logs
+        for trace in gpu_traces {
+            let cause_str = if trace.cause == 0 {
+                "auto_advance"
+            } else {
+                "frame_opcode"
+            };
+            self.jump_logs[trace.vm_id as usize].push(FrameTransition {
+                vm_id: trace.vm_id,
+                from_frame: trace.from_frame,
+                to_frame: trace.to_frame,
+                pc_at_transition: trace.pc_at_transition,
+                cause: cause_str.to_string(),
+                dispatch_frame: self.frame_count,
+            });
+        }
+
+        // Update frame_ptr snapshots for any VMs without GPU traces
+        // (fallback for non-trace-generating scenarios)
         for i in 0..MAX_VMS {
             let s = self.vm.vm_state(i as usize);
-            let cur_ptr = s.attention_mask; // dual-use as frame_ptr
-            let prev_ptr = self.prev_frame_ptrs[i as usize];
-
-            // Only record for active VMs that are filmstrips (frame_count > 0)
-            if s.state != 0 && s.frame_count > 0 && cur_ptr != prev_ptr {
-                let cause = if cur_ptr == prev_ptr + 1 {
-                    "auto_advance".to_string()
-                } else {
-                    "frame_opcode".to_string()
-                };
-
-                self.jump_logs[i as usize].push(FrameTransition {
-                    vm_id: i,
-                    from_frame: prev_ptr,
-                    to_frame: cur_ptr,
-                    pc_at_transition: s.pc,
-                    cause,
-                    dispatch_frame: self.frame_count,
-                });
-            }
-
-            self.prev_frame_ptrs[i as usize] = cur_ptr;
+            self.prev_frame_ptrs[i as usize] = s.attention_mask;
         }
 
         let vm_results: Vec<VmResult> = (0..MAX_VMS)
@@ -494,6 +501,12 @@ impl DaemonState {
                     frame_ptr: s.attention_mask,
                     frame_count: s.frame_count,
                     jump_log: self.jump_logs[i as usize].recent().into_iter().cloned().collect(),
+                    frame_labels: self
+                        .programs
+                        .iter()
+                        .find(|p| p.vm_id == i)
+                        .map(|p| p.frame_labels.clone())
+                        .unwrap_or_default(),
                 }
             })
             .collect();

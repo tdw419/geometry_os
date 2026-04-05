@@ -7,10 +7,12 @@
 pub mod assembler;
 pub mod hl_compiler;
 pub mod filmstrip;
+pub mod fitness;
 pub mod font_atlas;
 pub mod gasm;
 pub mod hilbert;
 pub mod software_vm;
+pub mod stdlib;
 pub mod substrate;
 pub mod visualization;
 pub mod vm;

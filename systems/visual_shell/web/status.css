@@ -167,3 +167,129 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* Filmstrip Projector */
+
+#filmstrip-panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.vm-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.vm-tab {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    transition: all 0.15s ease;
+}
+
+.vm-tab:hover {
+    border-color: var(--accent-cyan);
+}
+
+.vm-tab.active {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    background: rgba(0, 255, 255, 0.1);
+}
+
+.projector-track {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    padding: 0.75rem 0.5rem;
+    margin-bottom: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.frame-cell {
+    min-width: 80px;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    text-align: center;
+    font-size: 0.7rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    background: var(--bg-tertiary);
+}
+
+.frame-cell .frame-index {
+    color: var(--text-secondary);
+    font-size: 0.6rem;
+}
+
+.frame-cell .frame-name {
+    color: var(--accent-cyan);
+    font-weight: bold;
+    margin-top: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 72px;
+}
+
+.frame-cell.active {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 12px rgba(0, 255, 0, 0.3);
+    background: rgba(0, 255, 0, 0.05);
+}
+
+.frame-cell.active .frame-name {
+    color: var(--accent-green);
+}
+
+.jump-log {
+    font-size: 0.7rem;
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.jump-log-title {
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+}
+
+.jump-entry {
+    padding: 0.2rem 0.5rem;
+    border-left: 2px solid var(--border-color);
+    margin-bottom: 0.15rem;
+    color: var(--text-secondary);
+}
+
+.jump-entry .arrow {
+    color: var(--accent-cyan);
+    font-weight: bold;
+}
+
+.jump-entry .frame-name {
+    color: var(--accent-cyan);
+}
+
+.jump-entry .cause-auto {
+    color: var(--text-secondary);
+    font-size: 0.6rem;
+}
+
+.jump-entry .cause-frame {
+    color: var(--accent-magenta);
+    font-size: 0.6rem;
+    font-weight: bold;
+}

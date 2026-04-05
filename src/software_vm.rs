@@ -466,6 +466,30 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
             vm.regs[p1 as usize] = 1; // return 1 = spawn requested
         }
 
+        // WAIT_EVENT (opcode 28): Block until event arrives.
+        // WAIT_EVENT r_event_type, r_param1
+        // If event pending: reads event into r_event_type, r_param1, clears the slot.
+        // If no event: VM transitions to WAITING state.
+        28 => {
+            let vm_id = vm.vm_id;
+            let header_base = crate::EVENTQ_BASE + vm_id * 2;
+            let event_type = safe_mem_read(ram, vm, header_base * 4);
+            if event_type != 0 {
+                // Event pending: read params into registers
+                let param1 = safe_mem_read(ram, vm, (header_base + 1) * 4);
+                vm.regs[stratum as usize] = event_type;
+                vm.regs[p1 as usize] = param1;
+                // Clear event header
+                safe_mem_write(ram, vm, header_base * 4, 0);
+                safe_mem_write(ram, vm, (header_base + 1) * 4, 0);
+            } else {
+                // No event: VM waits (will retry next frame)
+                vm.pc = pc; // Re-execute WAIT_EVENT next frame
+                vm.state = vm_state::WAITING;
+                return true; // Force end of frame
+            }
+        }
+
         // Unknown opcode - skip
         _ => {}
     }
@@ -509,7 +533,7 @@ fn safe_mem_write(ram: &mut RamTexture, vm: &mut VmState, addr: u32, value: u32)
 ///   - Same cycle budget (1024 per frame)
 ///   - Same VM state transitions
 pub struct SoftwareVm {
-    vms: [VmState; MAX_VMS],
+    pub vms: [VmState; MAX_VMS],
     ram: RamTexture,
     scheduler_active_count: u32,
     scheduler_frame: u32,
@@ -562,6 +586,22 @@ impl SoftwareVm {
         vm.bound_addr = entry_point + size;
         vm.state = vm_state::RUNNING;
         vm.halted = 0;
+    }
+
+    /// Inject an external event into a VM's event slot.
+    /// Writes event_type and param1 into the VM's event header region.
+    /// If the VM is in WAITING state, transitions it back to RUNNING.
+    pub fn inject_event(&mut self, vm_id: u32, event_type: u32, param1: u32) {
+        assert!((vm_id as usize) < MAX_VMS, "VM id must be 0-7");
+        let header_base = crate::EVENTQ_BASE + vm_id * 2;
+        // Write event header (type + param1)
+        self.poke(header_base, event_type);
+        self.poke(header_base + 1, param1);
+        // Wake the VM if it was waiting
+        let vm = &mut self.vms[vm_id as usize];
+        if vm.state == vm_state::WAITING {
+            vm.state = vm_state::RUNNING;
+        }
     }
 
     /// Execute one frame: run all active VMs for up to CYCLES_PER_FRAME cycles.
@@ -684,6 +724,16 @@ impl SoftwareVm {
         let (x, y) = hilbert::d2xy(addr);
         let offset = ((y * TEXTURE_SIZE + x) * 4) as usize;
         self.ram.data[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
+    }
+
+    /// Alias for peek() -- read a pixel from substrate memory.
+    pub fn read_pixel(&self, addr: u32) -> u32 {
+        self.peek(addr)
+    }
+
+    /// Alias for poke() -- write a pixel to substrate memory.
+    pub fn write_pixel(&mut self, addr: u32, value: u32) {
+        self.poke(addr, value)
     }
 
     /// Load the font atlas into RAM at FONT_BASE.
@@ -2769,7 +2819,129 @@ mod tests {
         // The spawn request was made but couldn't be fulfilled
         for slot in 0..super::super::MAX_VMS as usize {
             assert_ne!(svm.vm_state(slot).state, vm_state::INACTIVE, "slot {} should be active", slot);
-        }
+            }
+    }
+
+    // ── Event Queue Tests (GEO-23) ──────────────────────────────────
+
+    #[test]
+    fn test_wait_event_blocks_when_no_event() {
+        // VM calls WAIT_EVENT with no event pending -> should go to WAITING state
+        let mut p = Program::new();
+        p.wait_event(0, 1); // r0 = event_type, r1 = param1
+        p.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        // VM should be WAITING (not HALTED, not RUNNING)
+        assert_eq!(
+            svm.vm_state(0).state,
+            vm_state::WAITING,
+            "VM should be WAITING when no event"
+        );
+    }
+
+    #[test]
+    fn test_inject_event_wakes_vm() {
+        // VM waits for event, daemon injects keyboard event, VM reads it and halts
+        let mut p = Program::new();
+        p.wait_event(0, 1); // r0 = event_type, r1 = param1
+        p.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+
+        // Frame 1: VM hits WAIT_EVENT, no event -> WAITING
+        svm.execute_frame();
+        assert_eq!(svm.vm_state(0).state, vm_state::WAITING);
+
+        // Daemon injects keyboard event (type=1, param1=65 = 'A')
+        svm.inject_event(0, crate::EVENT_KEYBOARD, 65);
+
+        // Frame 2: VM re-executes WAIT_EVENT, finds event -> reads it, continues to HALT
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "VM should HALT after reading event");
+        assert_eq!(svm.vm_state(0).regs[0], crate::EVENT_KEYBOARD, "r0 should be event type (keyboard=1)");
+        assert_eq!(svm.vm_state(0).regs[1], 65, "r1 should be param1 (keycode 65='A')");
+
+        // Event header should be cleared
+        let header_base = crate::EVENTQ_BASE + 0 * 2;
+        assert_eq!(svm.peek(header_base), 0, "event header should be cleared after read");
+    }
+
+    #[test]
+    fn test_event_branch_on_type() {
+        // VM waits for event, then branches based on event type
+        let mut p = Program::new();
+        // addr 0-1: WAIT_EVENT r0, r1
+        p.wait_event(0, 1);
+        // addr 2-3: LDI r2, 0xFF (sentinel for "unknown event")
+        p.ldi(2, 0xFF);
+        // addr 4-5: BNE r0, <keyboard_const>, +3 (if keyboard, skip sentinel)
+        // We need keyboard constant in a register
+        p.ldi(3, crate::EVENT_KEYBOARD);
+        // addr 6: BNE r0, r3 -- but we want "if equal, branch" (BEQ semantics)
+        // Since VM only has BNE: if r0 != r3, skip (not keyboard)
+        // if r0 == r3 (keyboard), DON'T branch -> fall through to r2=42
+        // So we want: if NOT keyboard, skip to halt. If keyboard, set r2=42.
+        // BNE r0, r3, +3  -> if r0 != keyboard_type, jump over next 2 instrs
+        p.instruction(op::BRANCH, bcond::BNE, 0, 3);
+        p.pixels.push(4); // offset: skip LDI r2,42 and land on HALT
+        // addr 8-9: r2 = 42 (keyboard handler)
+        p.ldi(2, 42);
+        p.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+
+        // Frame 1: WAIT_EVENT blocks
+        svm.execute_frame();
+
+        // Inject keyboard event
+        svm.inject_event(0, crate::EVENT_KEYBOARD, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        assert_eq!(svm.vm_state(0).regs[2], 42, "keyboard handler should set r2=42");
+    }
+
+    #[test]
+    fn test_event_per_vm_isolation() {
+        // Events for VM 0 should not affect VM 1
+        let mut p0 = Program::new();
+        p0.wait_event(0, 1);
+        p0.halt();
+
+        let mut p1 = Program::new();
+        p1.wait_event(0, 1);
+        p1.halt();
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &p0.pixels);
+        svm.load_program(200, &p1.pixels);
+        svm.spawn_vm(0, 0);
+        svm.spawn_vm(1, 200);
+
+        // Both wait
+        svm.execute_frame();
+        assert_eq!(svm.vm_state(0).state, vm_state::WAITING);
+        assert_eq!(svm.vm_state(1).state, vm_state::WAITING);
+
+        // Inject event only for VM 1
+        svm.inject_event(1, crate::EVENT_TIMER, 1000);
+        svm.execute_frame();
+
+        // VM 0 should still be waiting, VM 1 should have read event and halted
+        assert_eq!(svm.vm_state(0).state, vm_state::WAITING, "VM 0 should still be waiting");
+        assert_eq!(svm.vm_state(1).state, vm_state::HALTED, "VM 1 should have halted");
+        assert_eq!(svm.vm_state(1).regs[0], crate::EVENT_TIMER, "VM 1 should have timer event");
+        assert_eq!(svm.vm_state(1).regs[1], 1000, "VM 1 param1 should be 1000");
     }
 }
 
