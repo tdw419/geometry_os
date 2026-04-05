@@ -10,6 +10,7 @@
 use crate::hilbert;
 use crate::substrate::TEXTURE_SIZE;
 use crate::vm::VmState;
+use crate::governance;
 
 /// VM state constants (must match WGSL and crate::vm)
 mod vm_state {
@@ -565,6 +566,21 @@ impl SoftwareVm {
         }
     }
 
+    /// Load a program into RAM, but ONLY if it passes the governance gate.
+    /// Returns the governance result. If rejected, the program is NOT loaded.
+    /// This is the non-negotiable gate -- every production code path must use this.
+    pub fn load_program_governed(
+        &mut self,
+        start_addr: u32,
+        pixels: &[u32],
+    ) -> governance::GovernanceResult {
+        let result = governance::check(pixels);
+        if result.approved {
+            self.load_program(start_addr, pixels);
+        }
+        result
+    }
+
     /// Spawn a VM at the given Hilbert address.
     /// Mirrors GlyphVm::spawn_vm() exactly.
     pub fn spawn_vm(&mut self, vm_id: u32, entry_point: u32) {
@@ -814,6 +830,23 @@ impl SoftwareVm {
         svm.spawn_vm(0, load_address);
         svm.execute_frame();
         svm.vm_state(0).clone()
+    }
+
+    /// Run a program through the governance gate first.
+    /// Returns None if the program fails governance (it never loads or executes).
+    /// Returns Some(VmState) if governance passes and the program completes.
+    pub fn run_program_governed(
+        pixels: &[u32],
+        load_address: u32,
+    ) -> Option<(VmState, governance::GovernanceResult)> {
+        let mut svm = Self::new();
+        let result = svm.load_program_governed(load_address, pixels);
+        if !result.approved {
+            return None;
+        }
+        svm.spawn_vm(0, load_address);
+        svm.execute_frame();
+        Some((svm.vm_state(0).clone(), result))
     }
 }
 

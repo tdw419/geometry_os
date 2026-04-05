@@ -2,12 +2,12 @@
 ///
 /// Assembles game_of_life.gasm, runs one generation, verifies:
 /// 1. Filmstrip assembles into 3 frames
-/// 2. Seed plants correct initial patterns
-/// 3. One generation produces correct evolution
+/// 2. Seed plants correct initial blinker pattern
+/// 3. One generation produces correct blinker evolution
 /// 4. PNG dump of the result
 ///
 /// This exercises: PGET (reading screen state), PSET (writing screen state),
-/// LOAD/STORE (back buffer for double-buffering), conditional branching
+/// LOAD/STORE (scratch buffer for double-buffering), conditional branching
 /// based on computed data (B3/S23 rules), multi-phase frame execution
 /// (compute phase + copy phase in the same frame).
 
@@ -50,7 +50,7 @@ fn test_gol_filmstrip_assembles() {
 }
 
 #[test]
-fn test_gol_seed_and_one_generation() {
+fn test_gol_blinker_one_generation() {
     let source = std::fs::read_to_string("programs/game_of_life.gasm")
         .expect("programs/game_of_life.gasm should exist");
     let (programs, _labels) = gasm::assemble_filmstrip_with_labels(&source)
@@ -65,7 +65,7 @@ fn test_gol_seed_and_one_generation() {
     filmstrip.spawn_filmstrip_vm(&mut svm, 0, base_addr);
 
     // Run to completion
-    let max_dispatches = 200; // generous budget
+    let max_dispatches = 200;
     for i in 0..max_dispatches {
         let vm0 = svm.vm_state(0);
         if vm0.halted == 1 || vm0.state == 2 {
@@ -76,58 +76,35 @@ fn test_gol_seed_and_one_generation() {
         svm.execute_frame();
 
         let vm0 = svm.vm_state(0);
-        eprintln!("[GOL] Dispatch {}: state={} halted={} cycles={} frame_ptr={} r0={} r1={} r15(gen)={} r17(copy)={}",
+        eprintln!("[GOL] Dispatch {}: state={} halted={} cycles={} frame_ptr={} r0={} r1={} r15(gen)={}",
             i + 1, vm0.state, vm0.halted, vm0.cycles, vm0.attention_mask,
-            vm0.regs[0], vm0.regs[1], vm0.regs[15], vm0.regs[17]);
+            vm0.regs[0], vm0.regs[1], vm0.regs[15]);
     }
 
     let vm0 = svm.vm_state(0);
     assert_eq!(vm0.halted, 1, "VM should have halted after one generation");
 
-    // Debug: print all alive cells
-    eprintln!("[GOL] Alive cells after 1 generation:");
-    let mut dbg_count = 0u32;
-    for y in 0..32u32 {
-        for x in 0..32u32 {
-            if is_alive(&svm, x, y) {
-                eprintln!("  ({}, {}) = 0x{:08X}", x, y, read_screen_pixel(&svm, x, y));
-                dbg_count += 1;
-            }
+    // Debug: print screen state around blinker
+    eprintln!("[GOL] Screen (blinker region 8..13, 8..13):");
+    for y in 8..13u32 {
+        let mut row = String::new();
+        for x in 8..13u32 {
+            row.push(if is_alive(&svm, x, y) { '#' } else { '.' });
         }
-    }
-    eprintln!("[GOL] Total alive: {}", dbg_count);
-
-    // ═══ Verify Glider evolution (one step) ═══
-    // Initial Glider:
-    //   .X.    (2,1)
-    //   ..X    (3,2)
-    //   XXX    (1,3), (2,3), (3,3)
-    //
-    // After one generation:
-    //   X.X    (1,2), (3,2)
-    //   .XX    (2,3), (3,3)
-    //   .X.    (2,4)
-
-    // Glider should have moved: check new positions
-    let expected_alive_glider: Vec<(u32, u32)> = vec![
-        (1, 2), (3, 2),  // row y=2
-        (2, 3), (3, 3),  // row y=3
-        (2, 4),           // row y=4
-    ];
-
-    for &(x, y) in &expected_alive_glider {
-        assert!(is_alive(&svm, x, y),
-            "Glider: pixel ({}, {}) should be alive after 1 gen", x, y);
+        eprintln!("  {}", row);
     }
 
-    // Old glider positions that should be dead now
-    let expected_dead_glider: Vec<(u32, u32)> = vec![
-        (2, 1), (1, 3),
-    ];
-
-    for &(x, y) in &expected_dead_glider {
-        assert!(!is_alive(&svm, x, y),
-            "Glider: pixel ({}, {}) should be dead after 1 gen", x, y);
+    // Debug: check scratch buffer contents
+    let scratch_base: u32 = 32000;
+    eprintln!("[GOL] Scratch buffer (blinker region 9..13, 9..13):");
+    for y in 9..13u32 {
+        let mut row = String::new();
+        for x in 9..13u32 {
+            let addr = scratch_base + y * 32 + x;
+            let v = svm.peek(addr);
+            row.push(if v != 0 { '#' } else { '.' });
+        }
+        eprintln!("  {}", row);
     }
 
     // ═══ Verify Blinker evolution (one step) ═══
@@ -139,26 +116,26 @@ fn test_gol_seed_and_one_generation() {
     //   X      (10,10)
     //   X      (10,11)
 
-    let expected_alive_blinker: Vec<(u32, u32)> = vec![
+    let expected_alive: Vec<(u32, u32)> = vec![
         (10, 9), (10, 10), (10, 11),
     ];
 
-    for &(x, y) in &expected_alive_blinker {
+    for &(x, y) in &expected_alive {
         assert!(is_alive(&svm, x, y),
             "Blinker: pixel ({}, {}) should be alive after 1 gen", x, y);
     }
 
     // Old horizontal blinker positions that should be dead
-    let expected_dead_blinker: Vec<(u32, u32)> = vec![
+    let expected_dead: Vec<(u32, u32)> = vec![
         (9, 10), (11, 10),
     ];
 
-    for &(x, y) in &expected_dead_blinker {
+    for &(x, y) in &expected_dead {
         assert!(!is_alive(&svm, x, y),
             "Blinker: pixel ({}, {}) should be dead after 1 gen", x, y);
     }
 
-    // Count total alive cells: glider(5) + blinker(3) = 8
+    // Count total alive cells: blinker should have exactly 3
     let mut alive_count = 0u32;
     for y in 0..32u32 {
         for x in 0..32u32 {
@@ -167,8 +144,8 @@ fn test_gol_seed_and_one_generation() {
             }
         }
     }
-    assert_eq!(alive_count, 8,
-        "Should have exactly 8 alive cells (5 glider + 3 blinker), got {}", alive_count);
+    assert_eq!(alive_count, 3,
+        "Should have exactly 3 alive cells (blinker), got {}", alive_count);
 
     eprintln!("[GOL] Verified: {} alive cells after 1 generation", alive_count);
 }

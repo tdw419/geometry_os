@@ -5,12 +5,14 @@
 // Programs write programs. Pixels move pixels.
 
 pub mod assembler;
-pub mod hl_compiler;
 pub mod filmstrip;
 pub mod fitness;
 pub mod font_atlas;
 pub mod gasm;
+pub mod governance;
 pub mod hilbert;
+pub mod hl_compiler;
+pub mod mutation;
 pub mod software_vm;
 pub mod stdlib;
 pub mod substrate;
