@@ -447,7 +447,7 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
         227 => {
             // Advance PC past the YIELD instruction so resume doesn't re-execute it
             vm.pc = pc + 1;
-            vm.state = vm_state::WAITING;
+            vm.state = vm_state::YIELDED;
             return true; // Force end of frame for this VM
         }
 
@@ -624,7 +624,7 @@ impl SoftwareVm {
             // Auto-resume: YIELDed VMs transition back to RUNNING at frame start.
             // This enables cooperative multitasking -- a VM that YIELDed last frame
             // gets a fresh timeslice this frame.
-            if vm.state == vm_state::WAITING {
+            if vm.state == vm_state::YIELDED {
                 vm.state = vm_state::RUNNING;
             }
 
@@ -2446,7 +2446,7 @@ mod tests {
         svm.execute_frame();
 
         // Parent yielded, child should be RUNNING
-        assert_eq!(svm.vm_state(0).state, vm_state::WAITING, "parent should be waiting");
+        assert_eq!(svm.vm_state(0).state, vm_state::YIELDED, "parent should be waiting");
         assert_eq!(svm.vm_state(1).state, vm_state::RUNNING, "child should be running");
 
         // Execute second frame: child runs
@@ -2497,7 +2497,7 @@ mod tests {
 
         // Frame 1: executes LDI, YIELD -> WAITING
         svm.execute_frame();
-        assert_eq!(svm.vm_state(0).state, vm_state::WAITING, "VM should be WAITING after YIELD");
+        assert_eq!(svm.vm_state(0).state, vm_state::YIELDED, "VM should be WAITING after YIELD");
         assert_eq!(svm.vm_state(0).regs[0], 10, "r0 should be 10 before yield");
 
         // Need to manually set WAITING -> RUNNING for next frame
@@ -2788,13 +2788,13 @@ mod tests {
         svm.execute_frame();
         // Parent SPAWN sets regs[125]=1, then YIELD sets state to WAITING
         // Post-frame spawn processes because regs[125] was set
-        assert_eq!(svm.vm_state(0).state, vm_state::WAITING, "parent waiting");
+        assert_eq!(svm.vm_state(0).state, vm_state::YIELDED, "parent waiting");
         assert_eq!(svm.vm_state(1).state, vm_state::RUNNING, "child running");
 
         // Frame 2: parent auto-resumes, hits 2nd YIELD -> WAITING.
         // Child runs and halts.
         svm.execute_frame();
-        assert_eq!(svm.vm_state(0).state, vm_state::WAITING, "parent yielded again");
+        assert_eq!(svm.vm_state(0).state, vm_state::YIELDED, "parent yielded again");
         assert_eq!(svm.vm_state(1).state, vm_state::HALTED, "child halted");
         assert_eq!(svm.peek(9500), 9999, "child wrote its result");
 
