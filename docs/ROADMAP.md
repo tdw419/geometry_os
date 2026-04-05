@@ -64,32 +64,34 @@ IPC, messaging, and multi-VM coordination.
 
 ---
 
-## Phase 3: The Machine Writes Programs (MOSTLY COMPLETE)
+## Phase 3: The Machine Writes Programs (COMPLETE)
 
 The system can compile, assemble, and load new programs at runtime.
 
 - [x] **Text assembler** -- `.gasm` file parser with labels, DATA directive, hex/binary/char literals, disassembler (gasm.rs, 30+ tests)
 - [x] **Higher-level compiler** -- compile GeoLang (expressions, functions, loops, if/else, comparisons, arrays) to pixel opcodes (src/hl_compiler/: lexer, parser, codegen -- 1755 lines, 25 tests including factorial, fibonacci, bubble sort)
 - [x] **Self-modifying programs** -- programs can rewrite their own pixels via STORE opcode and continue executing (test_self_modifying_code)
-- [ ] **Runtime loader** -- load assembled programs into the texture without restarting the daemon
-- [ ] **Evolutionary step** -- a program that generates a variant of itself, runs it, and keeps the better version
+- [x] **Runtime loader** -- load assembled programs into the texture without restarting the daemon (GEO-25, GEO-32)
+- [x] **Evolutionary step** -- a program that generates a variant of itself, runs it, and keeps the better version (GEO-36, src/evolution.rs)
+- [x] **C-to-.glyph transpiler** -- arithmetic, control flow, structs, pointers, arrays (GEO-43, GEO-44, GEO-47)
+- [x] **Device proxy VM** -- .glyph shim for IPC-to-command-buffer (GEO-46)
 
 **Success Criteria:**
 - [x] Write a `.gasm` file, assemble it, load it, watch it execute on the texture
-- [ ] A program generates a modified copy of itself, both run, the worse one gets garbage collected
+- [x] A program generates a modified copy of itself, both run, the worse one gets garbage collected
 
 ---
 
-## Phase 4: The Machine Improves Itself (IN PROGRESS)
+## Phase 4: The Machine Improves Itself (COMPLETE)
 
 Recursive self-improvement. The loop closes.
 
 - [x] **Fitness function** -- objective measure of program quality (speed, correctness, memory, spatial locality) -- src/fitness.rs with weighted composite scoring, 7 tests
-- [ ] **Mutation engine** -- random pixel variations with selection pressure
-- [ ] **Benchmark suite** -- automated tests that measure fitness across multiple programs
-- [ ] **The loop** -- generate variant -> execute -> measure fitness -> keep or discard -> repeat
-- [ ] **Learnings export** -- successful mutations are logged as discoverable improvements
-- [ ] **Governance gate** -- every mutation passes through Seven Laws check before execution
+- [x] **Mutation engine** -- pixel-level variations with selection pressure (src/mutation.rs, GEO-33)
+- [x] **Benchmark suite** -- automated tests that measure fitness across multiple programs (GEO-38, GEO-27)
+- [x] **The loop** -- generate variant -> execute -> measure fitness -> keep or discard -> repeat (src/evolution.rs, GEO-35)
+- [x] **Learnings export** -- successful mutations logged as discoverable improvements (GEO-37, GEO-39, GEO-40)
+- [x] **Governance gate** -- every mutation passes through Seven Laws check before execution (src/governance.rs, GEO-34, 26 tests)
 
 **Success Criteria:**
 - The system discovers a faster version of the self-replicator without human intervention
@@ -202,6 +204,53 @@ tests/  (18 test files)
   ...and more
 
 ~9150 lines of Rust (src/). 358 tests. 0 failures. 0 ignored.
+```
+
+---
+
+## Phase 5: Linux-Native Mode (COMPLETE)
+
+The VM speaks C. Programs transpiled from real C run as .glyph bytecode.
+
+- [x] **XOR and NOT opcodes** -- bitwise operations in assembler + VM (GEO-41)
+- [x] **MOD, LDB, STB opcodes** -- modulo and byte-level load/store (GEO-42)
+- [x] **C-to-.glyph transpiler: core** -- arithmetic, control flow, functions via pycparser (GEO-43)
+- [x] **C-to-.glyph transpiler: structs/pointers/arrays** -- memory layout, dereference, indexing (GEO-44)
+- [x] **CPU stub: IPC command bridge** -- host-side command buffer with file executor (GEO-45)
+- [x] **Device proxy VM** -- .glyph shim translating IPC to command buffer operations (GEO-46)
+- [x] **Minix FS read proof of concept** -- C transpiled to .glyph, reads Minix superblock (GEO-47)
+- [x] **End-to-end integration test** -- GPU VM + IPC + CPU stub pipeline verified (GEO-48)
+
+**Success Criteria:**
+- [x] A C function reading a Minix filesystem superblock is transpiled to .glyph and runs correctly on the software VM
+- [x] The CPU stub can execute file I/O commands from VM memory
+
+---
+
+## Phase 6: GPU Parity + Visual Runtime (IN PROGRESS)
+
+The GPU is the computer again. All opcodes run on real hardware. You can see it.
+
+The software VM pulled ahead during Phase 5 -- MOD, LDB, STB only work on CPU. Phase 6 brings
+the GPU shader up to parity and adds the visual runtime so the machine is observable.
+
+- [ ] **GPU shader: MOD, LDB, STB** -- opcodes 31-33 in glyph_vm_scheduler.wgsl (GEO-50)
+- [ ] **GPU shader parity test suite** -- automated CPU-vs-GPU validation for every opcode (GEO-51)
+- [ ] **Windowed runtime** -- live 4096x4096 texture display at 30fps (GEO-52)
+- [ ] **GPU execution of C-transpiled programs** -- Minix FS on real GPU, not just CPU emulator (GEO-53)
+- [ ] **Visual shell** -- interactive VM overlay with debugging HUD (GEO-54)
+- [ ] **GPU evolution** -- fitness loop dispatches mutations on real hardware (GEO-55)
+
+**Success Criteria:**
+- [ ] Every opcode in the assembler runs identically on software VM and GPU shader
+- [ ] A C-transpiled .glyph program runs on GPU and produces correct results
+- [ ] The daemon can display the texture in a window, updating in real-time
+- [ ] The evolution loop benchmarks mutants on GPU, not CPU
+
+**Dependency chain:**
+```
+GEO-50 (shader opcodes) ──> GEO-51 (parity tests) ──> GEO-53 (GPU C programs) ──> GEO-55 (GPU evolution)
+                          └──> GEO-52 (windowed runtime) ──> GEO-54 (visual shell)
 ```
 
 ---
