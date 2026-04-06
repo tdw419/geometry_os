@@ -3,7 +3,7 @@
 ## Overview
 GPU-native operating system written in Rust. Programs are pixels. The GPU is the CPU.
 
-**Status:** 384 tests passed, 0 failed, 1 ignored. Phases 0-9 complete. Phase 11 (self-hosting assembler) in progress. Phase 12 (Paperclip automation) complete.
+**Status:** 393 tests passed, 0 failed, 1 ignored. Phases 0-9 complete. Phase 11 (self-hosting assembler) in progress. Phase 12 (Paperclip automation) complete.
 
 ---
 
@@ -20,7 +20,7 @@ Boot a real RV64 Linux kernel on the GPU compute shader.
 - GEO-60: AMDGPU direct command submission via DRM ioctl (done)
 - GEO-61: DMA-BUF framebuffer sharing for zero-copy visualization (done)
 
-**Note:** All regressions resolved. 384/384 tests passing.
+**Note:** All regressions resolved. 393/393 tests passing.
 
 ## Phase 9: Probabilistic & Self-Modifying Code (COMPLETE)
 - GEO-64: Probabilistic execution opcodes (BRANCH_PROB, CONFIDENCE_MARK, ALTERNATIVE_SELECT) (done)
@@ -31,11 +31,11 @@ Boot a real RV64 Linux kernel on the GPU compute shader.
 - GEO-66: Design and implement pixel-native spatial filesystem
 
 ## Phase 11: Self-Hosting Assembler (IN PROGRESS)
-The assembler assembles itself. Phases 1-6 done. Phase 7 in progress.
+The assembler assembles itself. Phases 1-7 implemented. GEO-73 operator precedence fix in working tree.
 - GEO-92: SEND/RECV opcodes in mini-assembler (done)
 - GEO-93: SPAWN/YIELD/WAIT_EVENT opcodes in mini-assembler (done)
 - GEO-72: Phase 6 -- Resident assembler service (YIELD loop, interrupt-driven) (done)
-- GEO-73: Phase 7 -- Directives (.include, .define, .org) (in_progress)
+- GEO-73: Phase 7 -- Directives (.include, .define, .org) (in_progress -- fix pending commit)
 
 ---
 
