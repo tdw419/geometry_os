@@ -7,7 +7,8 @@
 //          SHL, SHR, MOD, LOAD, STORE, LDB, STB, NOP, RET,
 //          JMP (signed offset), BNE, BEQ, BLT, BGE (signed offset),
 //          CALL (unsigned address), SEND, RECV,
-//          SPAWN (reg-reg), YIELD (zero-operand), WAIT_EVENT (custom encoding)
+//          SPAWN (reg-reg), YIELD (zero-operand), WAIT_EVENT (custom encoding),
+//          .org directive (decimal and hex addresses, zero-padding)
 //
 // Encoding: (opcode | stratum<<8 | p1<<16 | p2<<24)
 // Reg-reg:  p1=dest reg, p2=src reg
@@ -80,6 +81,9 @@ scan:
     // Skip colon (label definitions like "scan:")
     LDI r6, 58
     BEQ r2, r6, skip_to_newline
+    // Check for directive: '.' starts a directive (.org, etc.)
+    LDI r6, 46
+    BEQ r2, r6, chk_dot
     // Unknown mnemonic first char -> error code 1
     JMP err_unknown_mnemonic
 scan_adv:
@@ -1319,6 +1323,148 @@ chk_Y:
     ADD r0, r6
     LDI r5, 227          // YIELD opcode
     JMP emit_zero
+
+// ── Directive handlers ──────────────────────────────────────────
+
+chk_dot:
+    // '.' matched, check 2nd char for 'o' (.org)
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 111          // 'o'
+    BNE r2, r6, scan     // unknown directive, skip line
+    // 'o' matched, check 3rd char for 'r'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 114          // 'r'
+    BNE r2, r6, scan
+    // 'r' matched, check 4th char for 'g'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 103          // 'g'
+    BNE r2, r6, scan
+    // .org matched. Advance past 'g'
+    LDI r6, 1
+    ADD r0, r6
+    JMP handle_org
+
+// ── .org handler ────────────────────────────────────────────────
+// Sets output pointer to the given address, padding with zeros.
+// r0 points past 'g' of ".org"
+handle_org:
+    // Skip space
+    LDI r6, 1
+    ADD r0, r6
+    // Parse target address into r4 (reuse immediate parsing logic)
+    LDI r4, 0
+    LDI r7, 0            // negate flag (unused for .org but needed by parse)
+    LDB r2, r0
+    // Check for hex prefix '0'
+    LDI r6, 48
+    BNE r2, r6, org_parse_dec
+    // First char is '0', peek at next for 'x'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 120          // 'x'
+    BEQ r2, r6, org_hex_start
+    LDI r6, 88           // 'X'
+    BEQ r2, r6, org_hex_start
+    // Not hex, just '0'. Value is 0.
+    LDI r4, 0
+    // Advance past the digit we just read
+    LDI r6, 1
+    ADD r0, r6
+    JMP org_pad
+org_parse_dec:
+    LDI r4, 0
+org_dec_loop:
+    LDB r2, r0
+    LDI r6, 48
+    BLT r2, r6, org_pad
+    LDI r6, 58
+    BGE r2, r6, org_pad
+    LDI r6, 10
+    MUL r4, r6
+    LDI r6, 48
+    SUB r2, r6
+    ADD r4, r2
+    LDI r6, 1
+    ADD r0, r6
+    JMP org_dec_loop
+org_hex_start:
+    // r0 is on 'x'/'X'. Advance past it.
+    LDI r6, 1
+    ADD r0, r6
+    LDI r4, 0
+org_hex_loop:
+    LDB r2, r0
+    LDI r6, 48
+    BLT r2, r6, org_pad
+    LDI r6, 58
+    BLT r2, r6, org_hex_dec
+    LDI r6, 65
+    BLT r2, r6, org_hex_lower
+    LDI r6, 71
+    BLT r2, r6, org_hex_upper
+    JMP org_pad
+org_hex_lower:
+    LDI r6, 97
+    BLT r2, r6, org_pad
+    LDI r6, 103
+    BGE r2, r6, org_pad
+    // a-f: value = byte - 87
+    LDI r6, 16
+    MUL r4, r6
+    LDI r6, 87
+    SUB r2, r6
+    ADD r4, r2
+    LDI r6, 1
+    ADD r0, r6
+    JMP org_hex_loop
+org_hex_upper:
+    // A-F: value = byte - 55
+    LDI r6, 16
+    MUL r4, r6
+    LDI r6, 55
+    SUB r2, r6
+    ADD r4, r2
+    LDI r6, 1
+    ADD r0, r6
+    JMP org_hex_loop
+org_hex_dec:
+    // 0-9: value = byte - 48
+    LDI r6, 16
+    MUL r4, r6
+    LDI r6, 48
+    SUB r2, r6
+    ADD r4, r2
+    LDI r6, 1
+    ADD r0, r6
+    JMP org_hex_loop
+org_pad:
+    // r4 = target address. Pad from current r1 to r4 with zeros.
+    // Note: r1 is in pixel-address space (absolute). The .org argument
+    // is a relative offset from output base, so target = output_base + r4.
+    // But our output starts at pixel 0x10000 and r1 is already absolute.
+    // We need to set r1 = 0x10000 + r4.
+    // Load output base into r6
+    LDI r6, 0x10000
+    ADD r4, r6           // r4 = 0x10000 + target_offset (absolute pixel addr)
+org_pad_loop:
+    // If r1 >= r4, done padding
+    LDI r6, 0
+    BGE r1, r4, org_done
+    // Write zero at current output position
+    STORE r1, r6
+    LDI r6, 1
+    ADD r1, r6
+    JMP org_pad_loop
+org_done:
+    // r1 is now at the target address
+    JMP scan
 
 // ── Done ────────────────────────────────────────────────────────
 done:

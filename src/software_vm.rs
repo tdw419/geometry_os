@@ -6029,6 +6029,115 @@ HALT
         assert_eq!(byte_offset, 4, "error should be at source byte 4 (after NOP\\n)");
     }
 
+    /// GEO-73: Test .org directive in the mini-assembler.
+    /// The mini-assembler should pad with zeros and place subsequent
+    /// instructions at the .org address.
+    #[test]
+    fn test_self_hosting_org_directive() {
+        use crate::assembler::{op, parse_gasm, Program};
+        use crate::geoasm_mem;
+
+        // Source with .org: pad to position 4, then LDI r0,1 then HALT
+        let source_text = ".org 4\nLDI r0, 1\nHALT\n";
+        let expected = parse_gasm(source_text).expect("source should parse");
+
+        // Verify Rust assembler expectations
+        assert_eq!(expected.pixels.len(), 7, "should have 7 pixels (4 zeros + LDI instr + imm + HALT)");
+        for i in 0..4 {
+            assert_eq!(expected.pixels[i], 0, "pixel {} should be zero-padded", i);
+        }
+        assert_eq!((expected.pixels[4] & 0xFF), op::LDI as u32, "pixel 4 should be LDI");
+        assert_eq!(expected.pixels[5], 1, "pixel 5 should be immediate 1");
+        assert_eq!((expected.pixels[6] & 0xFF), op::HALT as u32, "pixel 6 should be HALT");
+
+        // Load mini-assembler
+        let asm_source = include_str!("../programs/mini_assembler.gasm");
+        let asm_prog = parse_gasm(asm_source).expect("mini_assembler.gasm should assemble");
+        let asm_addr: u32 = 0x20000;
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(asm_addr, &asm_prog.pixels);
+        svm.spawn_vm(0, asm_addr);
+
+        // Write source text
+        let src_bytes = source_text.as_bytes();
+        for (i, &byte) in src_bytes.iter().enumerate() {
+            svm.poke_byte(geoasm_mem::src_byte_addr(i as u32), byte);
+        }
+        svm.poke_byte(geoasm_mem::src_byte_addr(src_bytes.len() as u32), 0);
+
+        // Run the VM assembler
+        for frame in 0..100 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                eprintln!("Assembler halted at frame {}", frame);
+                break;
+            }
+        }
+        assert_eq!(svm.vm_state(0).halted, 1, "assembler should halt");
+
+        // Verify output matches expected
+        let output_base = geoasm_mem::output_pixel(0);
+        for (i, &expected_px) in expected.pixels.iter().enumerate() {
+            let actual = svm.peek(output_base + i as u32);
+            assert_eq!(
+                actual, expected_px,
+                "output pixel {} mismatch: got {:#010x}, expected {:#010x}",
+                i, actual, expected_px
+            );
+        }
+
+        eprintln!("GEO-73 .org directive test passed! Output matches parse_gasm.");
+    }
+
+    /// GEO-73: Test .org with hex address in the mini-assembler.
+    #[test]
+    fn test_self_hosting_org_hex() {
+        use crate::assembler::{op, parse_gasm, Program};
+        use crate::geoasm_mem;
+
+        let source_text = ".org 0x10\nNOP\nHALT\n";
+        let expected = parse_gasm(source_text).expect("source should parse");
+
+        assert_eq!(expected.pixels.len(), 0x12, "should have 18 pixels (16 zeros + NOP + HALT)");
+        assert_eq!((expected.pixels[0x10] & 0xFF), op::NOP as u32, "pixel 0x10 should be NOP");
+        assert_eq!((expected.pixels[0x11] & 0xFF), op::HALT as u32, "pixel 0x11 should be HALT");
+
+        let asm_source = include_str!("../programs/mini_assembler.gasm");
+        let asm_prog = parse_gasm(asm_source).expect("mini_assembler.gasm should assemble");
+        let asm_addr: u32 = 0x20000;
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(asm_addr, &asm_prog.pixels);
+        svm.spawn_vm(0, asm_addr);
+
+        let src_bytes = source_text.as_bytes();
+        for (i, &byte) in src_bytes.iter().enumerate() {
+            svm.poke_byte(geoasm_mem::src_byte_addr(i as u32), byte);
+        }
+        svm.poke_byte(geoasm_mem::src_byte_addr(src_bytes.len() as u32), 0);
+
+        for frame in 0..200 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+        assert_eq!(svm.vm_state(0).halted, 1, "assembler should halt");
+
+        let output_base = geoasm_mem::output_pixel(0);
+        for (i, &expected_px) in expected.pixels.iter().enumerate() {
+            let actual = svm.peek(output_base + i as u32);
+            assert_eq!(
+                actual, expected_px,
+                "hex org output pixel {} mismatch: got {:#010x}, expected {:#010x}",
+                i, actual, expected_px
+            );
+        }
+
+        eprintln!("GEO-73 .org hex directive test passed!");
+    }
+
 }
 
 impl SoftwareVm {
@@ -6268,5 +6377,14 @@ mod geo92_tier2 {
         let vm = self_hosted_assemble_and_run(src);
         assert_eq!(vm.halted, 1, "should halt");
         assert_eq!(vm.regs[0], 65, "'A' = 65");
+    }
+
+    #[test]
+    fn pixel_forge_assembles() {
+        let src = std::fs::read_to_string("programs/pixel_forge.gasm")
+            .expect("programs/pixel_forge.gasm should exist");
+        let prog = crate::gasm::assemble(&src)
+            .expect("pixel_forge.gasm should assemble cleanly");
+        assert!(prog.pixels.len() > 100, "pixel_forge should be >100 pixels, got {}", prog.pixels.len());
     }
 }
