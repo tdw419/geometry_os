@@ -23,6 +23,7 @@ pub mod stdlib;
 pub mod substrate;
 pub mod visualization;
 pub mod vm;
+pub mod rv64;
 pub mod vm_hud;
 pub const TEXTURE_SIZE: u32 = 4096;
 pub const MAX_VMS: u32 = 8;
