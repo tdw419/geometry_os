@@ -120,7 +120,7 @@ The Geometry OS VM runs its own orchestration layer. Agents are VM processes. Th
 ### P13A: Issue Queue as Pixel Region (GEO-212, in_progress)
 Task queue that lives entirely in VM texture memory. Stdlib routines for CREATE, PICK, UPDATE, LIST.
 
-### P13B: Agent VM Program (GEO-213, todo)
+### P13B: Agent VM Program (GEO-213, backlog)
 A .gasm program that autonomously picks issues, executes work, and reports results. Uses SPAWN/SEND/RECV/YIELD.
 
 ### P13C: Self-Orchestrating Loop (GEO-214, backlog)
