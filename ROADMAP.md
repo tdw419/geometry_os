@@ -31,11 +31,11 @@ Boot a real RV64 Linux kernel on the GPU compute shader.
 - GEO-66: Design and implement pixel-native spatial filesystem
 
 ## Phase 11: Self-Hosting Assembler (IN PROGRESS)
-The assembler assembles itself. Phases 1-5 done.
+The assembler assembles itself. Phases 1-6 done. Phase 7 in progress.
 - GEO-92: SEND/RECV opcodes in mini-assembler (done)
 - GEO-93: SPAWN/YIELD/WAIT_EVENT opcodes in mini-assembler (done)
-- GEO-72: Phase 6 -- Resident assembler service (YIELD loop, interrupt-driven) (in_progress)
-- GEO-73: Phase 7 -- Directives (.include, .define, .org) (todo)
+- GEO-72: Phase 6 -- Resident assembler service (YIELD loop, interrupt-driven) (done)
+- GEO-73: Phase 7 -- Directives (.include, .define, .org) (in_progress)
 
 ---
 
