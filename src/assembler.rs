@@ -994,6 +994,140 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
 
 /// Parse a .gasm file from disk.
 #[allow(dead_code)]
+/// Resolve all label references in source text to numeric offsets/addresses.
+///
+/// Returns a new source string where:
+/// - Label-only lines (e.g. `scan:`) are removed
+/// - JMP/branch label operands are replaced with signed offsets
+/// - CALL label operands are replaced with absolute addresses
+/// - All other lines are preserved verbatim
+///
+/// This produces source that the self-hosting VM assembler can process,
+/// since the VM assembler only handles numeric operands.
+pub fn resolve_labels(source: &str) -> String {
+    // ── Pass 1: collect label pixel addresses (same logic as parse_gasm) ──
+    let mut labels: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+    {
+        let mut addr: u32 = 0;
+        for raw_line in source.lines() {
+            let line = strip_comment(raw_line).trim();
+            if line.is_empty() {
+                continue;
+            }
+            if let Some(colon_pos) = line.find(':') {
+                let before = &line[..colon_pos];
+                let candidate = before.trim();
+                if !candidate.is_empty() && candidate.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                    labels.insert(candidate.to_string(), addr);
+                }
+                let after = line[colon_pos + 1..].trim();
+                if after.is_empty() {
+                    continue;
+                }
+                let tokens: Vec<&str> = tokenize(after);
+                if tokens.is_empty() {
+                    continue;
+                }
+                addr += instruction_size(&tokens);
+            } else {
+                let tokens: Vec<&str> = tokenize(line);
+                if tokens.is_empty() {
+                    continue;
+                }
+                addr += instruction_size(&tokens);
+            }
+        }
+    }
+
+    // ── Pass 2: rewrite lines, replacing label refs with numeric values ──
+    let mut current_addr: u32 = 0;
+    let mut output_lines: Vec<String> = Vec::new();
+
+    for raw_line in source.lines() {
+        let line = strip_comment(raw_line).trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        // Check for label prefix
+        let instr_part = if let Some(colon_pos) = line.find(':') {
+            let before = &line[..colon_pos];
+            let candidate = before.trim();
+            if !candidate.is_empty() && candidate.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                // It's a label definition — skip it (don't emit)
+                let after = line[colon_pos + 1..].trim();
+                if after.is_empty() {
+                    continue;
+                }
+                after
+            } else {
+                line
+            }
+        } else {
+            line
+        };
+
+        let tokens: Vec<&str> = tokenize(instr_part);
+        if tokens.is_empty() {
+            continue;
+        }
+
+        let mnemonic = tokens[0].to_uppercase();
+        match mnemonic.as_str() {
+            "JMP" => {
+                if tokens.len() >= 2 {
+                    let offset = if let Some(&target) = labels.get(tokens[1]) {
+                        target as i32 - current_addr as i32
+                    } else {
+                        // Already numeric, parse it
+                        tokens[1].parse::<i32>().unwrap_or(0)
+                    };
+                    output_lines.push(format!("    JMP {}", offset));
+                } else {
+                    output_lines.push(raw_line.to_string());
+                }
+                current_addr += 2;
+            }
+            "BEQ" | "BNE" | "BLT" | "BGE" | "BLTU" | "BGEU" => {
+                if tokens.len() >= 4 {
+                    let offset = if let Some(&target) = labels.get(tokens[3]) {
+                        target as i32 - current_addr as i32
+                    } else {
+                        tokens[3].parse::<i32>().unwrap_or(0)
+                    };
+                    output_lines.push(format!("    {} {}, {}, {}", mnemonic, tokens[1], tokens[2], offset));
+                } else {
+                    output_lines.push(raw_line.to_string());
+                }
+                current_addr += 2;
+            }
+            "CALL" => {
+                if tokens.len() >= 2 {
+                    let addr_val = if let Some(&target) = labels.get(tokens[1]) {
+                        target
+                    } else {
+                        tokens[1].parse::<u32>().unwrap_or(0)
+                    };
+                    output_lines.push(format!("    CALL {}", addr_val));
+                } else {
+                    output_lines.push(raw_line.to_string());
+                }
+                current_addr += 2;
+            }
+            "LDI" => {
+                current_addr += 2;
+                output_lines.push(raw_line.to_string());
+            }
+            _ => {
+                current_addr += instruction_size(&tokens);
+                output_lines.push(raw_line.to_string());
+            }
+        }
+    }
+
+    output_lines.join("\n") + "\n"
+}
+
 pub fn parse_gasm_file(path: &str) -> Result<Program, ParseError> {
     let source = std::fs::read_to_string(path).map_err(|e| ParseError {
         line: 0,

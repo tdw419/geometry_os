@@ -5477,6 +5477,135 @@ HALT
         }
     }
 
+    // ── Phase 4: Error reporting tests ────────────────────────────
+
+    /// Helper: run the mini-assembler on source, check for error halt.
+    /// Returns (error_code, source_offset) if error detected.
+    fn run_assembler_expect_error(source_name: &str, source_text: &str) -> (u32, u32) {
+        use crate::assembler::parse_gasm;
+        use crate::geoasm_mem;
+
+        let asm_source = include_str!("../programs/mini_assembler.gasm");
+        let asm_prog = parse_gasm(asm_source).expect("mini_assembler.gasm should assemble");
+
+        let asm_addr: u32 = 0x20000;
+        let mut svm = SoftwareVm::new();
+        svm.load_program(asm_addr, &asm_prog.pixels);
+        svm.spawn_vm(0, asm_addr);
+
+        let src_bytes = source_text.as_bytes();
+        for (i, &byte) in src_bytes.iter().enumerate() {
+            svm.poke_byte(geoasm_mem::src_byte_addr(i as u32), byte);
+        }
+        svm.poke_byte(geoasm_mem::src_byte_addr(src_bytes.len() as u32), 0);
+
+        for frame in 0..200 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+        assert_eq!(svm.vm_state(0).halted, 1, "{}: assembler should halt", source_name);
+
+        // Check output pixel 0 for error magic
+        let output_base = geoasm_mem::output_pixel(0);
+        let magic = svm.peek(output_base);
+        assert_eq!(
+            magic, geoasm_mem::GEOASM_ERR_MAGIC,
+            "{}: expected error magic 0xDEAD at output pixel 0, got {:#010x}",
+            source_name, magic
+        );
+
+        // Read error diagnostic from scratch region
+        let err_code = svm.peek(geoasm_mem::GEOASM_ERR_SCRATCH);
+        let src_offset = svm.peek(geoasm_mem::GEOASM_ERR_SCRATCH + 1);
+
+        eprintln!(
+            "{}: error code={}, source offset={:#x}",
+            source_name, err_code, src_offset
+        );
+        (err_code, src_offset)
+    }
+
+    /// Test that unknown mnemonics produce error code 1 with correct source offset.
+    #[test]
+    fn test_self_hosting_assembler_error_detection() {
+        use crate::geoasm_mem;
+
+        // "ZZZ" is not a valid mnemonic -- first char 'Z' has no dispatch
+        let (err_code, src_offset) = run_assembler_expect_error(
+            "unknown_mnemonic",
+            "ZZZ r0, r1\n",
+        );
+        assert_eq!(err_code, geoasm_mem::ERR_UNKNOWN_MNEMONIC,
+            "expected error code 1 (unknown mnemonic), got {}", err_code);
+        // Source offset should point to the start of "ZZZ" (offset 0)
+        assert!(src_offset >= geoasm_mem::GEOASM_SRC_BASE_BYTE,
+            "source offset should be >= base address");
+        let byte_offset = src_offset - geoasm_mem::GEOASM_SRC_BASE_BYTE;
+        assert_eq!(byte_offset, 0, "error should be at source byte 0");
+    }
+
+    /// Test that valid programs still assemble correctly (no false positives).
+    #[test]
+    fn test_error_reporting_no_false_positive() {
+        use crate::assembler::parse_gasm;
+        use crate::geoasm_mem;
+
+        let source_text = "LDI r0, 42\nHALT\n";
+        let expected = parse_gasm(source_text).expect("source should parse");
+
+        let asm_source = include_str!("../programs/mini_assembler.gasm");
+        let asm_prog = parse_gasm(asm_source).expect("mini_assembler.gasm should assemble");
+
+        let asm_addr: u32 = 0x20000;
+        let mut svm = SoftwareVm::new();
+        svm.load_program(asm_addr, &asm_prog.pixels);
+        svm.spawn_vm(0, asm_addr);
+
+        let src_bytes = source_text.as_bytes();
+        for (i, &byte) in src_bytes.iter().enumerate() {
+            svm.poke_byte(geoasm_mem::src_byte_addr(i as u32), byte);
+        }
+        svm.poke_byte(geoasm_mem::src_byte_addr(src_bytes.len() as u32), 0);
+
+        for frame in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+        assert_eq!(svm.vm_state(0).halted, 1, "valid program should halt normally");
+
+        // Output pixel 0 should NOT be 0xDEAD
+        let output_base = geoasm_mem::output_pixel(0);
+        let first_px = svm.peek(output_base);
+        assert_ne!(first_px, geoasm_mem::GEOASM_ERR_MAGIC,
+            "valid program should not produce error magic");
+
+        // Output should match expected
+        for (i, &expected_px) in expected.pixels.iter().enumerate() {
+            let actual = svm.peek(output_base + i as u32);
+            assert_eq!(actual, expected_px, "pixel {} mismatch", i);
+        }
+    }
+
+    /// Test error detection after valid instructions.
+    #[test]
+    fn test_self_hosting_error_after_valid() {
+        use crate::geoasm_mem;
+
+        // Valid NOP followed by invalid "QQQ"
+        let (err_code, src_offset) = run_assembler_expect_error(
+            "error_after_valid",
+            "NOP\nQQQ\n",
+        );
+        assert_eq!(err_code, geoasm_mem::ERR_UNKNOWN_MNEMONIC);
+        let byte_offset = src_offset - geoasm_mem::GEOASM_SRC_BASE_BYTE;
+        // "NOP\n" is 4 bytes, so QQQ starts at offset 4
+        assert_eq!(byte_offset, 4, "error should be at source byte 4 (after NOP\\n)");
+    }
+
 }
 
 impl SoftwareVm {
@@ -5489,5 +5618,64 @@ impl SoftwareVm {
             }
         }
         (matched, expected.len())
+    }
+}
+
+// ── GEO-94: Tier 2 — execute assembled programs via Rust assembler ──
+
+#[cfg(test)]
+mod geo94_tests {
+    use super::*;
+    use crate::assembler;
+
+    fn assemble_and_run(source: &str) -> crate::vm::VmState {
+        let prog = crate::assembler::parse_gasm(source).expect("source should parse");
+        SoftwareVm::run_program(&prog.pixels, 0)
+    }
+
+    #[test]
+    fn geo94_factorial_5() {
+        // pixels: 0-1 LDI r0,1  2-3 LDI r1,5  4-5 LDI r2,0  6-7 LDI r3,1
+        // 8 MUL r0,r1  9 SUB r1,r3  10-11 BNE r1,r2,-2(→8)  12 HALT
+        let src = "LDI r0, 1\nLDI r1, 5\nLDI r2, 0\nLDI r3, 1\nMUL r0, r1\nSUB r1, r3\nBNE r1, r2, -2\nHALT\n";
+        let vm = assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "factorial should halt");
+        assert_eq!(vm.regs[0], 120, "5! = 120");
+    }
+
+    #[test]
+    fn geo94_sum_1_to_10() {
+        let src = "LDI r0, 0\nLDI r1, 10\nLDI r2, 0\nLDI r3, 1\nADD r0, r1\nSUB r1, r3\nBNE r1, r2, -2\nHALT\n";
+        let vm = assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "sum should halt");
+        assert_eq!(vm.regs[0], 55, "1+..+10 = 55");
+    }
+
+    #[test]
+    fn geo94_fibonacci_10() {
+        // addr 0-1 LDI r0,0  2-3 LDI r1,1  4-5 LDI r2,9  6-7 LDI r3,0  8-9 LDI r5,1
+        // 10 MOV r4,r1  11 ADD r4,r0  12 MOV r0,r1  13 MOV r1,r4  14 SUB r2,r5
+        // 15-16 BNE r2,r3,-5(→10)  17 HALT
+        // r5=1 for decrement; 9 iterations -> fib(10)=55
+        let src = "LDI r0, 0\nLDI r1, 1\nLDI r2, 9\nLDI r3, 0\nLDI r5, 1\nMOV r4, r1\nADD r4, r0\nMOV r0, r1\nMOV r1, r4\nSUB r2, r5\nBNE r2, r3, -5\nHALT\n";
+        let vm = assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "fib should halt");
+        assert_eq!(vm.regs[1], 55, "fib(10) = 55");
+    }
+
+    #[test]
+    fn geo94_memory_roundtrip() {
+        let src = "LDI r0, 9999\nLDI r1, 100\nSTORE r1, r0\nLDI r0, 0\nLOAD r2, r1\nHALT\n";
+        let vm = assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "roundtrip should halt");
+        assert_eq!(vm.regs[2], 9999, "LOAD should get 9999");
+    }
+
+    #[test]
+    fn geo94_multiply_via_add() {
+        let src = "LDI r0, 3\nLDI r1, 7\nLDI r2, 0\nLDI r3, 0\nLDI r4, 1\nADD r2, r0\nSUB r1, r4\nBNE r1, r3, -2\nMOV r0, r2\nHALT\n";
+        let vm = assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "mul should halt");
+        assert_eq!(vm.regs[0], 21, "3*7 = 21");
     }
 }

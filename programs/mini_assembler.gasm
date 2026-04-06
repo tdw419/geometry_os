@@ -69,10 +69,39 @@ scan:
     BEQ r2, r6, chk_S
     LDI r6, 88
     BEQ r2, r6, chk_X
-    // Unknown char, skip
+    // Skip comment lines: '/' starts a comment, skip to newline
+    LDI r6, 47
+    BEQ r2, r6, skip_comment
+    // Skip colon (label definitions like "scan:")
+    LDI r6, 58
+    BEQ r2, r6, skip_to_newline
+    // Unknown mnemonic first char -> error code 1
+    JMP err_unknown_mnemonic
 scan_adv:
     LDI r6, 1
     ADD r0, r6
+    JMP scan
+
+skip_to_newline:
+    // Skip to end of line (used for label definitions)
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 0
+    BEQ r2, r6, scan
+    LDI r6, 10
+    BNE r2, r6, skip_to_newline
+    JMP scan
+
+skip_comment:
+    // '/' found -- skip rest of line until newline or null
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 0
+    BEQ r2, r6, scan
+    LDI r6, 10
+    BNE r2, r6, skip_comment
     JMP scan
 
 // ── Shared emit routines ────────────────────────────────────────
@@ -192,10 +221,12 @@ handle_ldi:
     BNE r2, r6, imm_chk_neg
     // Char literal: skip opening quote, read char, skip closing quote
     LDI r6, 1
-    ADD r0, r6
-    LDB r4, r0
+    ADD r0, r6           // past opening '
+    LDB r4, r0           // read the char value
     LDI r6, 1
-    ADD r0, r6
+    ADD r0, r6           // past the char
+    LDI r6, 1
+    ADD r0, r6           // past closing '
     JMP imm_done
 imm_chk_neg:
     // ── Check for negative sign: - (45) ──
@@ -872,28 +903,50 @@ chk_O:
     JMP emit_reg_reg
 
 chk_R:
-    // 'R' matched, check for RET
+    // 'R' matched, check 2nd char
     LDI r6, 1
     ADD r0, r6
     LDB r2, r0
     LDI r6, 69           // 'E'
     BNE r2, r6, scan
+    // 'R','E' matched -- check 3rd char: 'T' -> RET, 'C' -> RECV
     LDI r6, 1
     ADD r0, r6
     LDB r2, r0
     LDI r6, 84           // 'T'
-    BNE r2, r6, scan
+    BEQ r2, r6, chk_RET
+    LDI r6, 67           // 'C'
+    BEQ r2, r6, chk_REC
+    JMP scan
+
+chk_RET:
     // RET matched. Advance past 'T'
     LDI r6, 1
     ADD r0, r6
     LDI r5, 12           // RET opcode
     JMP emit_zero
 
+chk_REC:
+    // 'R','E','C' matched, check 4th char for 'V' (RECV)
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 86           // 'V'
+    BNE r2, r6, scan
+    // RECV matched. Advance past 'V'
+    LDI r6, 1
+    ADD r0, r6
+    LDI r5, 18           // RECV opcode
+    JMP emit_reg_reg
+
 chk_S:
     // 'S' matched, check 2nd char
     LDI r6, 1
     ADD r0, r6
     LDB r2, r0
+    // 'E' -> SEND
+    LDI r6, 69
+    BEQ r2, r6, chk_SE
     // 'U' -> SUB
     LDI r6, 85
     BEQ r2, r6, chk_SU
@@ -917,6 +970,100 @@ chk_SU:
     ADD r0, r6
     LDI r5, 6            // SUB opcode
     JMP emit_reg_reg
+
+chk_SE:
+    // 'S','E' matched, check for SEND
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 78           // 'N'
+    BNE r2, r6, scan
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 68           // 'D'
+    BNE r2, r6, scan
+    // SEND matched. Advance past 'D'
+    LDI r6, 1
+    ADD r0, r6
+    // Parse: SEND r_target_vm, r_data_addr, length
+    JMP handle_send
+
+handle_send:
+    // r5 = SEND opcode (17)
+    LDI r5, 17
+    // Skip space
+    LDI r6, 1
+    ADD r0, r6
+    // Read 'r'
+    LDI r6, 1
+    ADD r0, r6
+    // Read first digit -> r3 (target_vm)
+    LDB r2, r0
+    LDI r6, 48
+    SUB r2, r6
+    MOV r3, r2
+    // Advance past digit
+    LDI r6, 1
+    ADD r0, r6
+    // Skip comma
+    LDI r6, 1
+    ADD r0, r6
+    // Skip space
+    LDI r6, 1
+    ADD r0, r6
+    // Read 'r'
+    LDI r6, 1
+    ADD r0, r6
+    // Read second digit -> r8 (data_addr)
+    LDB r2, r0
+    LDI r6, 48
+    SUB r2, r6
+    MOV r8, r2
+    // Advance past digit
+    LDI r6, 1
+    ADD r0, r6
+    // Skip comma
+    LDI r6, 1
+    ADD r0, r6
+    // Skip space
+    LDI r6, 1
+    ADD r0, r6
+    // Parse immediate length into r4
+    LDI r4, 0
+hs_len:
+    LDB r2, r0
+    LDI r6, 48
+    BLT r2, r6, hs_done
+    LDI r6, 58
+    BGE r2, r6, hs_done
+    LDI r6, 10
+    MUL r4, r6
+    LDI r6, 48
+    SUB r2, r6
+    ADD r4, r2
+    LDI r6, 1
+    ADD r0, r6
+    JMP hs_len
+hs_done:
+    // Build instruction: r5 | (r3 << 16) | (r8 << 24)
+    MOV r6, r3
+    LDI r7, 16
+    SHL r6, r7
+    OR r5, r6
+    MOV r6, r8
+    LDI r7, 24
+    SHL r6, r7
+    OR r5, r6
+    // Emit instruction pixel
+    STORE r1, r5
+    LDI r6, 1
+    ADD r1, r6
+    // Emit length pixel
+    STORE r1, r4
+    LDI r6, 1
+    ADD r1, r6
+    JMP scan
 
 chk_ST:
     // 'S','T' matched, check 3rd char
@@ -1003,4 +1150,60 @@ chk_X:
 
 // ── Done ────────────────────────────────────────────────────────
 done:
+    HALT
+
+// ── Error halt routines ─────────────────────────────────────────
+// On error: write error code + source offset to scratch (0x50000),
+// write 0xDEAD to output pixel 0, then HALT.
+
+err_unknown_mnemonic:
+    // Error code 1 = unknown mnemonic
+    LDI r6, 0x50000
+    LDI r7, 1
+    STORE r6, r7        // scratch[0] = error code 1
+    LDI r7, 1
+    ADD r6, r7
+    STORE r6, r0        // scratch[1] = source offset (r0)
+    LDI r6, 0x10000
+    LDI r7, 0xDEAD
+    STORE r6, r7        // output[0] = 0xDEAD (error magic)
+    HALT
+
+err_missing_operand:
+    // Error code 2 = missing operand
+    LDI r6, 0x50000
+    LDI r7, 2
+    STORE r6, r7
+    LDI r7, 1
+    ADD r6, r7
+    STORE r6, r0
+    LDI r6, 0x10000
+    LDI r7, 0xDEAD
+    STORE r6, r7
+    HALT
+
+err_bad_register:
+    // Error code 3 = bad register
+    LDI r6, 0x50000
+    LDI r7, 3
+    STORE r6, r7
+    LDI r7, 1
+    ADD r6, r7
+    STORE r6, r0
+    LDI r6, 0x10000
+    LDI r7, 0xDEAD
+    STORE r6, r7
+    HALT
+
+err_output_overflow:
+    // Error code 5 = output region full
+    LDI r6, 0x50000
+    LDI r7, 5
+    STORE r6, r7
+    LDI r7, 1
+    ADD r6, r7
+    STORE r6, r0
+    LDI r6, 0x10000
+    LDI r7, 0xDEAD
+    STORE r6, r7
     HALT
