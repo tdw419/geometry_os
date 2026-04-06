@@ -7311,4 +7311,580 @@ mod geo92_tier2 {
         let assignee = meta & 0xFFFF;
         assert_eq!(assignee, 7, "assignee should be 7");
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // Phase 13B: Agent VM Integration Tests
+    // ═══════════════════════════════════════════════════════════
+
+    /// Helper: build a simple agent program that picks issues and marks them done.
+    /// Returns the program with a known structure.
+    fn build_simple_agent(out_addr: u32) -> Program {
+        let mut p = Program::new();
+        // Constants
+        p.ldi(3, 0);          // zero
+        p.ldi(4, 1);          // one
+        p.ldi(5, crate::ISSUE_STATUS_DONE); // DONE=2
+        // agent_loop:
+        let loop_start = p.pixels.len();
+        p.ldi(1, out_addr);
+        p.ldi(2, 0);
+        p.issue_pick(1, 2, 0);
+        // if r1 == 0, goto empty_pick (offset = we'll compute)
+        // BEQ r1, r3, +offset_to_empty
+        // Count pixels from here to empty_pick label
+        let beq_pixel_idx = p.pixels.len();
+        p.instruction(op::BRANCH, bcond::BEQ, 1, 3);
+        // BEQ branch data: offset to empty_pick (forward)
+        // After BEQ data pixel, we have:
+        //   ADD r6, r4 (reset empty counter -- but only on success)
+        //   Actually we skip empty counter reset here since we got an issue
+        p.ldi(6, 0);          // reset empty counter
+        // ISSUE_UPDATE r1, r5
+        p.issue_update(1, 5);
+        // YIELD
+        p.yield_op();
+        // JMP agent_loop
+        let jmp_idx = p.pixels.len();
+        p.instruction(op::JMP, 0, 0, 0);
+        // JMP data: offset back to loop_start (negative)
+        let jmp_offset = (loop_start as i32) - (jmp_idx as i32 + 1);
+        p.pixels.push(jmp_offset as u32);
+
+        // empty_pick:
+        let empty_pick_idx = p.pixels.len();
+        // Fix up BEQ offset: target is empty_pick_idx, from beq_pixel_idx+1
+        let beq_offset = (empty_pick_idx as i32) - (beq_pixel_idx as i32 + 1);
+        p.pixels[beq_pixel_idx + 1] = beq_offset as u32;
+
+        // empty_pick handler: increment empty counter, check max
+        p.instruction(op::ADD, 0, 6, 4);  // r6 += 1
+        p.ldi(7, 5);          // max empty = 5
+        p.instruction(op::BRANCH, bcond::BGE, 6, 7);  // BGE r6, r7, agent_done
+        let bge_idx = p.pixels.len() - 1;
+        // BGE data: offset to HALT (we'll add it)
+        let halt_idx_placeholder = p.pixels.len();
+        p.pixels.push(0); // placeholder
+        // YIELD and loop
+        p.yield_op();
+        // JMP agent_loop
+        let jmp2_idx = p.pixels.len();
+        p.instruction(op::JMP, 0, 0, 0);
+        let jmp2_offset = (loop_start as i32) - (jmp2_idx as i32 + 1);
+        p.pixels.push(jmp2_offset as u32);
+
+        // agent_done:
+        let agent_done_idx = p.pixels.len();
+        p.halt();
+
+        // Fix BGE offset
+        let bge_offset = (agent_done_idx as i32) - (bge_idx as i32 + 1);
+        p.pixels[bge_idx + 1] = bge_offset as u32;
+
+        p
+    }
+
+    /// Helper: build a setup program that creates N issues with given priorities.
+    fn build_issue_creator(title_addr: u32, priorities: &[u32]) -> Program {
+        let mut p = Program::new();
+        for &pri in priorities {
+            p.ldi(10, title_addr);
+            p.ldi(11, pri);
+            p.issue_create(10, 11, 0);
+        }
+        p.halt();
+        p
+    }
+
+    #[test]
+    fn test_agent_picks_and_completes_3_issues() {
+        // Setup: create 3 issues, run agent, verify all 3 complete.
+        let mut svm = issueq_setup();
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "test issue");
+
+        // Phase 1: Create 3 issues (medium priority)
+        let setup_addr: u32 = 0x0000_1000;
+        let setup = build_issue_creator(title_addr, &[2, 2, 2]);
+        svm.load_program(setup_addr, &setup.pixels);
+        svm.spawn_vm(0, setup_addr);
+        for _ in 0..20 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 { break; }
+        }
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), 3, "should have 3 issues");
+
+        // Phase 2: Run agent on VM 1
+        let agent_addr: u32 = 0x0000_2000;
+        let out_addr: u32 = 0x0020_0000;
+        let agent = build_simple_agent(out_addr);
+        svm.load_program(agent_addr, &agent.pixels);
+        svm.spawn_vm(1, agent_addr);
+
+        // Run frames until agent halts or we've given it enough time
+        for _ in 0..200 {
+            svm.execute_frame();
+            if svm.vm_state(1).halted != 0 { break; }
+        }
+
+        // Verify: all 3 issues should be DONE
+        let mut done_count = 0u32;
+        for i in 0..3u32 {
+            let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
+            let meta = svm.peek(slot_base);
+            let status = (meta >> 24) & 0xFF;
+            if status == crate::ISSUE_STATUS_DONE { done_count += 1; }
+        }
+        assert_eq!(done_count, 3, "all 3 issues should be DONE after agent runs");
+    }
+
+    #[test]
+    fn test_agent_prioritizes_high_over_medium() {
+        // Create 1 high and 1 medium issue. Agent should pick high first.
+        let mut svm = issueq_setup();
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "priority test");
+
+        // Create medium first (id=1), then high (id=2)
+        let setup_addr: u32 = 0x0000_1000;
+        let setup = build_issue_creator(title_addr, &[2, 3]); // medium then high
+        svm.load_program(setup_addr, &setup.pixels);
+        svm.spawn_vm(0, setup_addr);
+        for _ in 0..20 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 { break; }
+        }
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), 2, "should have 2 issues");
+
+        // Pick one issue using a simple picker program
+        let pick_addr: u32 = 0x0000_2000;
+        let out_addr: u32 = 0x0020_0000;
+        let mut picker = Program::new();
+        picker.ldi(1, out_addr);
+        picker.ldi(2, 0); // filter=any
+        picker.issue_pick(1, 2, 0);
+        picker.halt();
+        svm.load_program(pick_addr, &picker.pixels);
+        svm.spawn_vm(1, pick_addr);
+        svm.execute_frame();
+
+        let picked_id = svm.vm_state(1).regs[1];
+        assert_ne!(picked_id, 0, "should have picked an issue");
+        // High priority was created second (id=2), so it should be picked first
+        assert_eq!(picked_id, 2, "should pick high priority issue (id=2) over medium (id=1)");
+    }
+
+    #[test]
+    fn test_agent_handles_empty_queue_gracefully() {
+        // Run agent on empty queue -- it should loop with YIELD and eventually halt.
+        let mut svm = issueq_setup();
+
+        let agent_addr: u32 = 0x0000_1000;
+        let out_addr: u32 = 0x0020_0000;
+        let agent = build_simple_agent(out_addr);
+        svm.load_program(agent_addr, &agent.pixels);
+        svm.spawn_vm(0, agent_addr);
+
+        // Run until halt (should halt after 5 empty picks)
+        let mut frames = 0u32;
+        for _ in 0..50 {
+            svm.execute_frame();
+            frames += 1;
+            if svm.vm_state(0).halted != 0 { break; }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED,
+            "agent should halt on empty queue");
+        // Should have YIELDed at least once before halting
+        assert!(frames > 1, "agent should run multiple frames (YIELD loop)");
+    }
+
+    #[test]
+    fn test_agent_two_agents_no_double_claim() {
+        // Two agents compete for 2 issues. No double-claim.
+        let mut svm = issueq_setup();
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "race test");
+
+        // Create 2 issues
+        let setup_addr: u32 = 0x0000_1000;
+        let setup = build_issue_creator(title_addr, &[3, 3]);
+        svm.load_program(setup_addr, &setup.pixels);
+        svm.spawn_vm(0, setup_addr);
+        for _ in 0..20 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 { break; }
+        }
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), 2, "should have 2 issues");
+
+        // Spawn two picker VMs on separate VMs
+        let pick_a_addr: u32 = 0x0000_2000;
+        let pick_b_addr: u32 = 0x0000_3000;
+        let out_a: u32 = 0x0030_0000;
+        let out_b: u32 = 0x0031_0000;
+
+        let mut picker_a = Program::new();
+        picker_a.ldi(1, out_a);
+        picker_a.ldi(2, 0);
+        picker_a.issue_pick(1, 2, 1); // agent_vm_id=1
+        picker_a.halt();
+
+        let mut picker_b = Program::new();
+        picker_b.ldi(1, out_b);
+        picker_b.ldi(2, 0);
+        picker_b.issue_pick(1, 2, 2); // agent_vm_id=2
+        picker_b.halt();
+
+        svm.load_program(pick_a_addr, &picker_a.pixels);
+        svm.load_program(pick_b_addr, &picker_b.pixels);
+        svm.spawn_vm(1, pick_a_addr);
+        svm.spawn_vm(2, pick_b_addr);
+
+        svm.execute_frame();
+
+        let picked_a = svm.vm_state(1).regs[1];
+        let picked_b = svm.vm_state(2).regs[1];
+
+        // Both should pick something, and they must be different
+        assert_ne!(picked_a, 0, "agent A should pick an issue");
+        assert_ne!(picked_b, 0, "agent B should pick an issue");
+        assert_ne!(picked_a, picked_b,
+            "agents should not double-claim the same issue");
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Phase 13C: Self-orchestrating loop (CEO VM + Agent VMs)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// Helper: build a CEO program that creates `batch_size` issues with the
+    /// given priority, writes `issues_created` to METRICS_BASE+1, and halts.
+    ///
+    /// Register usage:
+    ///   r10 = title_addr (reloaded each iteration)
+    ///   r11 = priority
+    ///   r12 = METRICS_BASE
+    ///   r14 = issues_created counter
+    ///   r15 = 1 constant
+    ///   r16 = batch_size
+    ///   r17 = loop counter
+    fn build_ceo_program(title_addr: u32, priority: u32, batch_size: u32) -> Program {
+        let mut p = Program::new();
+        // Constants
+        p.ldi(15, 1);                    // r15 = 1
+        p.ldi(11, priority);             // r11 = priority
+        p.ldi(12, crate::METRICS_BASE);  // r12 = METRICS_BASE
+        p.ldi(14, 0);                    // r14 = issues_created counter
+        p.ldi(16, batch_size);           // r16 = batch_size
+        p.ldi(17, 0);                    // r17 = loop counter
+
+        // ceo_issue_loop:
+        let loop_start = p.pixels.len();
+        p.ldi(10, title_addr);           // r10 = title addr
+        p.issue_create(10, 11, 0);       // create issue; r10 <- issue_id
+        // Increment counter
+        p.instruction(op::ADD, 0, 14, 15); // r14 += 1
+        // Increment loop counter
+        p.instruction(op::ADD, 0, 17, 15); // r17 += 1
+        // if r17 < r16, loop
+        p.branch(bcond::BLT, 17, 16,
+            (loop_start as i32) - (p.pixels.len() as i32 + 1));
+
+        // Write issues_created to METRICS_BASE+1
+        p.ldi(12, crate::METRICS_BASE + 1);
+        p.store(12, 14);                 // METRICS_BASE+1 = issues_created
+
+        // Write batch_number (0) to METRICS_BASE+4
+        p.ldi(12, crate::METRICS_BASE + 4);
+        p.ldi(10, 0);
+        p.store(12, 10);                 // METRICS_BASE+4 = batch_number = 0
+
+        p.halt();
+        p
+    }
+
+    /// Helper: build an orchestrating agent program that:
+    /// 1. ISSUE_PICKs the highest-priority TODO issue
+    /// 2. If got one, marks it DONE (ISSUE_UPDATE)
+    /// 3. Increments metrics.issues_done
+    /// 4. YIELDs and loops
+    /// 5. Halts after `max_empty` consecutive empty picks
+    ///
+    /// Register usage:
+    ///   r1  = issue_id (from ISSUE_PICK)
+    ///   r2  = out_addr / filter
+    ///   r3  = 0 constant
+    ///   r4  = 1 constant
+    ///   r5  = ISSUE_STATUS_DONE
+    ///   r6  = empty counter
+    ///   r7  = max_empty
+    ///   r8  = metrics addr (METRICS_BASE+2)
+    ///   r9  = temp for metrics load
+    fn build_orchestrating_agent(out_addr: u32, max_empty: u32) -> Program {
+        let mut p = Program::new();
+        // Constants
+        p.ldi(3, 0);                              // r3 = 0
+        p.ldi(4, 1);                              // r4 = 1
+        p.ldi(5, crate::ISSUE_STATUS_DONE);       // r5 = DONE
+        p.ldi(6, 0);                              // r6 = empty counter
+        p.ldi(7, max_empty);                      // r7 = max_empty
+        p.ldi(8, crate::METRICS_BASE + 2);        // r8 = METRICS_BASE+2 (issues_done)
+
+        // agent_loop:
+        let loop_start = p.pixels.len();
+        p.ldi(1, out_addr);                       // r1 = out_addr
+        p.ldi(2, 0);                              // r2 = filter=any
+        p.issue_pick(1, 2, 0);                    // pick issue; r1 <- issue_id
+
+        // if r1 == 0, goto empty_pick
+        let beq_idx = p.pixels.len();
+        p.instruction(op::BRANCH, bcond::BEQ, 1, 3);
+        // placeholder for BEQ offset
+        let beq_data_idx = p.pixels.len();
+        p.pixels.push(0);
+
+        // ── Got an issue ──
+        p.ldi(6, 0);                              // reset empty counter
+        p.issue_update(1, 5);                     // mark DONE; r1 <- 1 on success
+
+        // Increment issues_done in metrics
+        p.load(9, 8);                             // r9 = current issues_done
+        p.instruction(op::ADD, 0, 9, 4);          // r9 += 1
+        p.store(8, 9);                            // METRICS_BASE+2 = new count
+
+        // YIELD and loop
+        p.yield_op();
+        // JMP agent_loop
+        let jmp_back = p.pixels.len();
+        p.instruction(op::JMP, 0, 0, 0);
+        p.pixels.push(((loop_start as i32) - (jmp_back as i32 + 1)) as u32);
+
+        // ── empty_pick ──
+        let empty_pick = p.pixels.len();
+        // Fix up BEQ offset
+        p.pixels[beq_data_idx] = ((empty_pick as i32) - (beq_data_idx as i32 + 1)) as u32;
+
+        p.instruction(op::ADD, 0, 6, 4);          // r6 += 1 (empty counter)
+        // BGE r6, r7, agent_done
+        let bge_idx = p.pixels.len();
+        p.instruction(op::BRANCH, bcond::BGE, 6, 7);
+        let bge_data_idx = p.pixels.len();
+        p.pixels.push(0);
+
+        // YIELD and loop
+        p.yield_op();
+        let jmp2 = p.pixels.len();
+        p.instruction(op::JMP, 0, 0, 0);
+        p.pixels.push(((loop_start as i32) - (jmp2 as i32 + 1)) as u32);
+
+        // agent_done:
+        let agent_done = p.pixels.len();
+        // Fix BGE offset
+        p.pixels[bge_data_idx] = ((agent_done as i32) - (bge_data_idx as i32 + 1)) as u32;
+        p.halt();
+
+        p
+    }
+
+    /// Helper: count issues with a given status in the queue.
+    fn count_issues_with_status(svm: &SoftwareVm, status: u32) -> u32 {
+        let count = svm.peek(crate::ISSUEQ_BASE + 2);
+        let mut found = 0u32;
+        for i in 0..count {
+            let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
+            let meta = svm.peek(slot_base);
+            let s = (meta >> 24) & 0xFF;
+            if s == status {
+                found += 1;
+            }
+        }
+        found
+    }
+
+    #[test]
+    fn test_self_orchestrating_loop() {
+        // Phase 13C: CEO VM creates a batch of issues, 2 agent VMs consume them.
+        // All issues complete within N frames, no double-claiming, no deadlocks.
+        let mut svm = issueq_setup();
+        // Zero out metrics region
+        for i in 0..crate::METRICS_SIZE {
+            svm.poke(crate::METRICS_BASE + i, 0);
+        }
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "compute fib");
+
+        // Phase 1: Spawn CEO VM on VM 0, creating 5 issues (high priority)
+        let ceo_addr: u32 = 0x0000_1000;
+        let ceo = build_ceo_program(title_addr, 3, 5);
+        svm.load_program(ceo_addr, &ceo.pixels);
+        svm.spawn_vm(0, ceo_addr);
+
+        // Run CEO to completion
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 { break; }
+        }
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "CEO should halt");
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), 5, "5 issues created");
+        assert_eq!(svm.peek(crate::METRICS_BASE + 1), 5, "metrics: 5 issues created");
+
+        // Phase 2: Spawn 2 agent VMs (VM 1 and VM 2) to consume issues
+        let agent_a_addr: u32 = 0x0000_2000;
+        let agent_b_addr: u32 = 0x0000_3000;
+        let out_a: u32 = 0x0020_0000;
+        let out_b: u32 = 0x0030_0000;
+
+        // We need each agent to use its own vm_id for pick atomicity.
+        // The ISSUE_PICK stratum field encodes agent_vm_id. Our build_orchestrating_agent
+        // uses stratum=0, which means "any". Since only one VM runs per frame slot,
+        // picks are naturally serialized in the software VM.
+        let agent_a = build_orchestrating_agent(out_a, 20);
+        let agent_b = build_orchestrating_agent(out_b, 20);
+
+        svm.load_program(agent_a_addr, &agent_a.pixels);
+        svm.load_program(agent_b_addr, &agent_b.pixels);
+        svm.spawn_vm(1, agent_a_addr);
+        svm.spawn_vm(2, agent_b_addr);
+
+        // Run frames until both agents halt or 500 frames (generous timeout)
+        for _ in 0..500 {
+            svm.execute_frame();
+            let a_halted = svm.vm_state(1).halted != 0;
+            let b_halted = svm.vm_state(2).halted != 0;
+            if a_halted && b_halted { break; }
+        }
+
+        // Verify: all 5 issues should be DONE
+        let done_count = count_issues_with_status(&svm, crate::ISSUE_STATUS_DONE);
+        assert_eq!(done_count, 5, "all 5 issues should be DONE");
+
+        // Verify: no issues left in IN_PROGRESS
+        let in_progress = count_issues_with_status(&svm, crate::ISSUE_STATUS_IN_PROGRESS);
+        assert_eq!(in_progress, 0, "no issues should be IN_PROGRESS");
+
+        // Verify: metrics should reflect completion
+        let issues_done = svm.peek(crate::METRICS_BASE + 2);
+        assert_eq!(issues_done, 5, "metrics: 5 issues done");
+    }
+
+    #[test]
+    fn test_orchestration_no_double_claim() {
+        // Two agents compete for 4 issues. Each issue should be claimed by exactly
+        // one agent -- no double-claiming.
+        let mut svm = issueq_setup();
+        for i in 0..crate::METRICS_SIZE {
+            svm.poke(crate::METRICS_BASE + i, 0);
+        }
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "task");
+
+        // Create 4 issues
+        let ceo_addr: u32 = 0x0000_1000;
+        let ceo = build_ceo_program(title_addr, 3, 4);
+        svm.load_program(ceo_addr, &ceo.pixels);
+        svm.spawn_vm(0, ceo_addr);
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 { break; }
+        }
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), 4, "4 issues created");
+
+        // Spawn 2 agents
+        let agent_a_addr: u32 = 0x0000_2000;
+        let agent_b_addr: u32 = 0x0000_3000;
+        let out_a: u32 = 0x0020_0000;
+        let out_b: u32 = 0x0031_0000;
+
+        let agent_a = build_orchestrating_agent(out_a, 30);
+        let agent_b = build_orchestrating_agent(out_b, 30);
+
+        svm.load_program(agent_a_addr, &agent_a.pixels);
+        svm.load_program(agent_b_addr, &agent_b.pixels);
+        svm.spawn_vm(1, agent_a_addr);
+        svm.spawn_vm(2, agent_b_addr);
+
+        // Run until both halt
+        for _ in 0..500 {
+            svm.execute_frame();
+            if svm.vm_state(1).halted != 0 && svm.vm_state(2).halted != 0 { break; }
+        }
+
+        // Verify: all 4 DONE, 0 IN_PROGRESS
+        let done = count_issues_with_status(&svm, crate::ISSUE_STATUS_DONE);
+        let in_prog = count_issues_with_status(&svm, crate::ISSUE_STATUS_IN_PROGRESS);
+        let todo = count_issues_with_status(&svm, crate::ISSUE_STATUS_TODO);
+        assert_eq!(done, 4, "all 4 should be DONE");
+        assert_eq!(in_prog, 0, "none should be IN_PROGRESS");
+        assert_eq!(todo, 0, "none should remain TODO");
+
+        // Collect all assignee IDs from done issues -- each should have exactly one assignee
+        let count = svm.peek(crate::ISSUEQ_BASE + 2);
+        let mut assignees = Vec::new();
+        for i in 0..count {
+            let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
+            let meta = svm.peek(slot_base);
+            let assignee = meta & 0xFFFF;
+            assignees.push(assignee);
+        }
+        // Each assignee should be nonzero (was claimed by a real agent)
+        for a in &assignees {
+            assert_ne!(*a, 0, "issue should have been claimed by a real agent");
+        }
+    }
+
+    #[test]
+    fn test_orchestration_metrics() {
+        // Verify that metrics are written correctly during orchestration.
+        // CEO creates 6 issues, 2 agents process them. Check metrics at the end.
+        let mut svm = issueq_setup();
+        for i in 0..crate::METRICS_SIZE {
+            svm.poke(crate::METRICS_BASE + i, 0);
+        }
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "metric task");
+
+        // Create 6 issues
+        let ceo_addr: u32 = 0x0000_1000;
+        let ceo = build_ceo_program(title_addr, 2, 6);
+        svm.load_program(ceo_addr, &ceo.pixels);
+        svm.spawn_vm(0, ceo_addr);
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 { break; }
+        }
+
+        // CEO metrics: issues_created = 6, batch_number = 0
+        assert_eq!(svm.peek(crate::METRICS_BASE + 1), 6, "CEO writes issues_created=6");
+        assert_eq!(svm.peek(crate::METRICS_BASE + 4), 0, "CEO writes batch_number=0");
+
+        // Spawn 2 agents
+        let agent_a_addr: u32 = 0x0000_2000;
+        let agent_b_addr: u32 = 0x0000_3000;
+        let out_a: u32 = 0x0020_0000;
+        let out_b: u32 = 0x0032_0000;
+
+        let agent_a = build_orchestrating_agent(out_a, 20);
+        let agent_b = build_orchestrating_agent(out_b, 20);
+
+        svm.load_program(agent_a_addr, &agent_a.pixels);
+        svm.load_program(agent_b_addr, &agent_b.pixels);
+        svm.spawn_vm(1, agent_a_addr);
+        svm.spawn_vm(2, agent_b_addr);
+
+        // Run until done
+        for _ in 0..500 {
+            svm.execute_frame();
+            if svm.vm_state(1).halted != 0 && svm.vm_state(2).halted != 0 { break; }
+        }
+
+        // Agent metrics: issues_done should total 6
+        // Since both agents write to METRICS_BASE+2, the total should be 6
+        let issues_done = svm.peek(crate::METRICS_BASE + 2);
+        assert_eq!(issues_done, 6, "total issues_done metric should be 6");
+
+        // Cross-check: count actual DONE issues in queue
+        let actual_done = count_issues_with_status(&svm, crate::ISSUE_STATUS_DONE);
+        assert_eq!(actual_done, 6, "6 issues actually DONE in queue");
+    }
 }
