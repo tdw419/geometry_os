@@ -171,14 +171,22 @@ impl Rv64Cpu {
 
     /// Execute one instruction. Returns false if halted.
     pub fn step(&mut self) -> bool {
-        if self.halted { return false; }
+        if self.halted {
+            return false;
+        }
 
+        // Fetch 32-bit word (may contain a 16-bit compressed instruction)
         let inst_word = self.load_word(self.pc);
         let inst = decode_rv64(inst_word);
+
+        // Determine instruction length
+        let inst_len = if inst.compressed { 2u64 } else { 4u64 };
 
         // Check for SYSTEM instructions (ECALL/EBREAK/MRET/SRET/WFI/CSR*)
         if inst.opcode == 0x73 {
             let funct12 = (inst.raw >> 20) & 0xFFF;
+            // For compressed instructions, funct12 from raw won't be valid
+            // but compressed instructions shouldn't decode to opcode 0x73
             if funct12 == 0x000 {
                 // ECALL - handle based on privilege
                 return self.handle_ecall();
@@ -194,7 +202,7 @@ impl Rv64Cpu {
                 return self.handle_sret();
             } else if funct12 == 0x105 {
                 // WFI: wait for interrupt (nop for now)
-                self.pc += 4;
+                self.pc += inst_len;
                 self.instret += 1;
                 self.cycles += 1;
                 return true;
@@ -204,11 +212,11 @@ impl Rv64Cpu {
             }
         }
 
-        self.execute_instruction(&inst)
+        self.execute_instruction_with_len(&inst, inst_len)
     }
 
-    fn execute_instruction(&mut self, inst: &Rv64Instruction) -> bool {
-        let next_pc = self.pc + 4;
+    fn execute_instruction_with_len(&mut self, inst: &Rv64Instruction, inst_len: u64) -> bool {
+        let next_pc = self.pc + inst_len;
 
         match inst.opcode {
             // LUI
@@ -255,7 +263,7 @@ impl Rv64Cpu {
                 let val = match inst.funct3 {
                     0x0 => self.load_byte(addr) as u64,                            // LB (sign-ext)
                     0x1 => sign_ext_16(self.load_hword(addr)) as u64,             // LH
-                    0x2 => self.load_word(addr) as u64,                            // LW (sign-ext to 64)
+                    0x2 => (self.load_word(addr) as i32) as i64 as u64,             // LW (sign-ext to 64)
                     0x3 => self.load_dword(addr),                                  // LD
                     0x4 => (self.load_byte(addr) as u8) as u64,                   // LBU
                     0x5 => self.load_hword(addr) as u64,                          // LHU
@@ -427,7 +435,8 @@ impl Rv64Cpu {
     }
 
     fn execute_csr(&mut self, inst: &Rv64Instruction) -> bool {
-        let next_pc = self.pc + 4;
+        let inst_len = if inst.compressed { 2u64 } else { 4u64 };
+        let next_pc = self.pc + inst_len;
         let csr_addr = inst.imm as u16 as u32; // CSR is in the imm field (bits 31-20)
         // Re-extract CSR from raw instruction
         let csr = (inst.raw >> 20) & 0xFFF;
@@ -520,6 +529,14 @@ impl Rv64Cpu {
         match self.priv_level {
             3 => {
                 // M-mode ecall: SBI proxy
+                let result = self.handle_sbi(syscall_num);
+                self.x[10] = result;
+                self.pc += 4;
+            }
+            1 => {
+                // S-mode ecall: handle as SBI call directly (OpenSBI model)
+                // In a real system, this would trap to M-mode which handles SBI.
+                // We model this by dispatching SBI directly from S-mode ecall.
                 let result = self.handle_sbi(syscall_num);
                 self.x[10] = result;
                 self.pc += 4;

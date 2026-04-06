@@ -190,7 +190,8 @@ fn test_rv64_lw_sw() {
     cpu.pc = base;
     cpu.step(); // SW
     cpu.step(); // LW
-    assert_eq!(cpu.x[3], 0xDEADBEEFu64);
+    // LW sign-extends: 0xDEADBEEF (bit 31 set) -> 0xFFFFFFFFDEADBEEF
+    assert_eq!(cpu.x[3], 0xFFFFFFFFDEADBEEFu64);
 }
 
 #[test]
