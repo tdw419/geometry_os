@@ -58,8 +58,11 @@ pub mod op {
     pub const TEXT_STR: u8 = 36; // Text string: TEXT_STR r_addr, r_x, r_y (null-terminated string at addr)
     pub const CIRCLEF: u8 = 37; // Filled circle: CIRCLEF r_cx, r_cy, r_radius (color from color reg)
     pub const DRAW: u8 = 215; // Legacy alias (unused)
-    pub const SPAWN: u8 = 230;
+    pub const BRANCH_PROB: u8 = 220;   // Probabilistic branch: BRANCH_PROB r_prob, offset (coin flip)
+    pub const CONFIDENCE_MARK: u8 = 221; // Mark confidence: CONFIDENCE_MARK r_block_id (store score)
+    pub const ALTERNATE_PATH: u8 = 222; // Conditional path: ALTERNATE_PATH r_block_id, offset (jump if low confidence)
     pub const YIELD: u8 = 227;
+    pub const SPAWN: u8 = 230;
 }
 
 /// Branch condition types (encoded in stratum field)
@@ -283,6 +286,33 @@ impl Program {
     /// WAIT_EVENT: Block until event arrives. r_event_type, r_param1
     pub fn wait_event(&mut self, event_type_reg: u8, param1_reg: u8) -> &mut Self {
         self.instruction(op::WAIT_EVENT, event_type_reg, param1_reg, 0)
+    }
+
+    /// Probabilistic branch: BRANCH_PROB r_prob, offset
+    /// Coin-flip branch. r_prob holds probability 0-100.
+    /// If random() % 100 < r_prob, jump by offset (relative to next instruction).
+    /// Emits 2 pixels: [BRANCH_PROB instruction] [offset as i32]
+    pub fn branch_prob(&mut self, prob_reg: u8, offset: i32) -> &mut Self {
+        self.instruction(op::BRANCH_PROB, 0, prob_reg, 0);
+        self.pixels.push(offset as u32);
+        self
+    }
+
+    /// Mark confidence for a block: CONFIDENCE_MARK r_block_id
+    /// Reads the current confidence score from memory at CONFIDENCE_TABLE_BASE + block_id
+    /// and increments it by 1 (capped at 100). The VM uses its own ID to partition the table.
+    pub fn confidence_mark(&mut self, block_id_reg: u8) -> &mut Self {
+        self.instruction(op::CONFIDENCE_MARK, 0, block_id_reg, 0)
+    }
+
+    /// Alternate path: ALTERNATE_PATH r_block_id, offset
+    /// If the confidence score for block_id is below threshold (50),
+    /// jump by offset to the fallback path. Otherwise continue.
+    /// Emits 2 pixels: [ALTERNATE_PATH instruction] [offset as i32]
+    pub fn alternate_path(&mut self, block_id_reg: u8, offset: i32) -> &mut Self {
+        self.instruction(op::ALTERNATE_PATH, 0, block_id_reg, 0);
+        self.pixels.push(offset as u32);
+        self
     }
 
     /// Filled rectangle: RECTF r_x, r_y, r_params
@@ -981,6 +1011,45 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
                 program.frame(target_reg);
             }
 
+            "BRANCH_PROB" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let prob_reg = parse_register(tokens[1], line_num)?;
+                let offset = if tokens.len() > 2 {
+                    if let Some(&target) = labels.get(tokens[2]) {
+                        // current_addr is the instruction pixel; offset is relative to pixel after this 2-pixel instruction
+                        target as i32 - (current_addr as i32 + 2)
+                    } else {
+                        tokens[2].parse::<i32>().unwrap_or(0)
+                    }
+                } else {
+                    0
+                };
+                program.branch_prob(prob_reg, offset);
+                current_addr += 2;
+            }
+
+            "CONFIDENCE_MARK" => {
+                expect_arg_count(&tokens, 1, line_num)?;
+                let block_id_reg = parse_register(tokens[1], line_num)?;
+                program.confidence_mark(block_id_reg);
+            }
+
+            "ALTERNATE_PATH" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let block_id_reg = parse_register(tokens[1], line_num)?;
+                let offset = if tokens.len() > 2 {
+                    if let Some(&target) = labels.get(tokens[2]) {
+                        target as i32 - (current_addr as i32 + 2)
+                    } else {
+                        tokens[2].parse::<i32>().unwrap_or(0)
+                    }
+                } else {
+                    0
+                };
+                program.alternate_path(block_id_reg, offset);
+                current_addr += 2;
+            }
+
             _ => {
                 return Err(ParseError {
                     line: line_num,
@@ -1157,8 +1226,10 @@ fn instruction_size(tokens: &[&str]) -> u32 {
         "CALL" => 2,                    // instruction + address
         "JMP" => 2,                     // instruction + offset
         "BEQ" | "BNE" | "BLT" | "BGE" | "BLTU" | "BGEU" => 2, // instruction + offset
-        "BRANCH" => 2,                  // instruction + offset
-        "DATA" => 1,                    // single data word
+        "BRANCH" => 2,                                        // instruction + offset
+        "BRANCH_PROB" => 2,                                   // instruction + offset
+        "ALTERNATE_PATH" => 2,                                // instruction + offset
+        "DATA" => 1,                                          // single data word
         _ => 1,                         // most instructions are 1 pixel
     }
 }

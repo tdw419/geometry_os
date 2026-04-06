@@ -6,7 +6,8 @@
 // Handles: LDI, HALT, ADD, SUB, MUL, DIV, MOV, AND, OR, XOR, NOT,
 //          SHL, SHR, MOD, LOAD, STORE, LDB, STB, NOP, RET,
 //          JMP (signed offset), BNE, BEQ, BLT, BGE (signed offset),
-//          CALL (unsigned address)
+//          CALL (unsigned address), SEND, RECV,
+//          SPAWN (reg-reg), YIELD (zero-operand), WAIT_EVENT (custom encoding)
 //
 // Encoding: (opcode | stratum<<8 | p1<<16 | p2<<24)
 // Reg-reg:  p1=dest reg, p2=src reg
@@ -67,8 +68,12 @@ scan:
     BEQ r2, r6, chk_R
     LDI r6, 83
     BEQ r2, r6, chk_S
+    LDI r6, 87
+    BEQ r2, r6, chk_W
     LDI r6, 88
     BEQ r2, r6, chk_X
+    LDI r6, 89
+    BEQ r2, r6, chk_Y
     // Skip comment lines: '/' starts a comment, skip to newline
     LDI r6, 47
     BEQ r2, r6, skip_comment
@@ -956,6 +961,9 @@ chk_S:
     // 'H' -> SHL or SHR
     LDI r6, 72
     BEQ r2, r6, chk_SH
+    // 'P' -> SPAWN
+    LDI r6, 80
+    BEQ r2, r6, chk_SP
     JMP scan
 
 chk_SU:
@@ -1147,6 +1155,170 @@ chk_X:
     ADD r0, r6
     LDI r5, 29           // XOR opcode
     JMP emit_reg_reg
+
+chk_SP:
+    // 'S','P' matched, check 3rd char 'A'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 65           // 'A'
+    BNE r2, r6, scan
+    // 'S','P','A' matched, check 4th char 'W'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 87           // 'W'
+    BNE r2, r6, scan
+    // 'S','P','A','W' matched, check 5th char 'N'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 78           // 'N'
+    BNE r2, r6, scan
+    // SPAWN matched. Advance past 'N'
+    LDI r6, 1
+    ADD r0, r6
+    LDI r5, 230          // SPAWN opcode
+    JMP emit_reg_reg
+
+chk_W:
+    // 'W' matched, check 2nd char 'A'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 65           // 'A'
+    BNE r2, r6, scan
+    // 'W','A' matched, check 3rd char 'I'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 73           // 'I'
+    BNE r2, r6, scan
+    // 'W','A','I' matched, check 4th char 'T'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 84           // 'T'
+    BNE r2, r6, scan
+    // 'W','A','I','T' matched, check 5th char '_'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 95           // '_'
+    BNE r2, r6, scan
+    // 'W','A','I','T','_' matched, check 6th char 'E'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 69           // 'E'
+    BNE r2, r6, scan
+    // WAIT_E matched, check 7th char 'V'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 86           // 'V'
+    BNE r2, r6, scan
+    // WAIT_EV matched, check 8th char 'E'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 69           // 'E'
+    BNE r2, r6, scan
+    // WAIT_EVE matched, check 9th char 'N'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 78           // 'N'
+    BNE r2, r6, scan
+    // WAIT_EVEN matched, check 10th char 'T'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 84           // 'T'
+    BNE r2, r6, scan
+    // WAIT_EVENT matched. Advance past 'T'
+    LDI r6, 1
+    ADD r0, r6
+    // WAIT_EVENT uses custom encoding: opcode=28 | (r3 << 8) | (r8 << 16)
+    // (first reg goes in stratum/byte1, second reg in p1/byte2)
+    // Parse two registers inline
+    // Skip space
+    LDI r6, 1
+    ADD r0, r6
+    // Read 'r'
+    LDI r6, 1
+    ADD r0, r6
+    // Read first digit -> r3 (event_type reg)
+    LDB r2, r0
+    LDI r6, 48
+    SUB r2, r6
+    MOV r3, r2
+    // Advance past digit
+    LDI r6, 1
+    ADD r0, r6
+    // Skip comma
+    LDI r6, 1
+    ADD r0, r6
+    // Skip space
+    LDI r6, 1
+    ADD r0, r6
+    // Read 'r'
+    LDI r6, 1
+    ADD r0, r6
+    // Read second digit -> r8 (param1 reg)
+    LDB r2, r0
+    LDI r6, 48
+    SUB r2, r6
+    MOV r8, r2
+    // Advance past digit
+    LDI r6, 1
+    ADD r0, r6
+    // Build instruction: 28 | (r3 << 8) | (r8 << 16)
+    LDI r5, 28
+    MOV r6, r3
+    LDI r7, 8
+    SHL r6, r7           // r6 = r3 << 8
+    OR r5, r6
+    MOV r6, r8
+    LDI r7, 16
+    SHL r6, r7           // r6 = r8 << 16
+    OR r5, r6
+    // Write to output
+    STORE r1, r5
+    LDI r6, 1
+    ADD r1, r6
+    JMP scan
+
+chk_Y:
+    // 'Y' matched, check 2nd char 'I'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 73           // 'I'
+    BNE r2, r6, scan
+    // 'Y','I' matched, check 3rd char 'E'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 69           // 'E'
+    BNE r2, r6, scan
+    // 'Y','I','E' matched, check 4th char 'L'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 76           // 'L'
+    BNE r2, r6, scan
+    // 'Y','I','E','L' matched, check 5th char 'D'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 68           // 'D'
+    BNE r2, r6, scan
+    // YIELD matched. Advance past 'D'
+    LDI r6, 1
+    ADD r0, r6
+    LDI r5, 227          // YIELD opcode
+    JMP emit_zero
 
 // ── Done ────────────────────────────────────────────────────────
 done:
