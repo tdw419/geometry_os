@@ -5264,6 +5264,162 @@ HALT
             "    LDI r0, -1\n    LDI r1, 'A'\n    LDI r2, 0xFF\n    LDI r3, 42\n    HALT\n");
     }
 
+    /// GEO-71: Self-hosting bootstrap test.
+    /// The mini-assembler assembles its OWN source code.
+    /// Since the VM assembler doesn't handle labels, we first resolve labels
+    /// to numeric offsets, then feed the flattened source to the VM assembler.
+    /// The VM-assembled output must match the Rust-assembled output pixel-for-pixel.
+    #[test]
+    fn test_self_hosting_bootstrap() {
+        use crate::assembler::{parse_gasm, resolve_labels, Program};
+        use crate::geoasm_mem;
+
+        // ── Step 1: Load the assembler source ──
+        let asm_source = include_str!("../programs/mini_assembler.gasm");
+
+        // ── Step 2: Assemble with Rust parse_gasm (ground truth) ──
+        let expected = parse_gasm(asm_source).expect("mini_assembler.gasm should parse");
+        eprintln!("Ground truth: {} pixels from Rust assembler", expected.pixels.len());
+
+        // ── Step 3: Resolve labels to produce label-free source ──
+        let flat_source = resolve_labels(asm_source);
+        eprintln!("Flat source: {} bytes (was {} bytes)", flat_source.len(), asm_source.len());
+
+        // Verify the flat source assembles identically
+        let flat_expected = parse_gasm(&flat_source).expect("flat source should parse");
+        assert_eq!(
+            expected.pixels.len(),
+            flat_expected.pixels.len(),
+            "flat source should produce same pixel count as original"
+        );
+        for (i, (a, b)) in expected.pixels.iter().zip(flat_expected.pixels.iter()).enumerate() {
+            assert_eq!(a, b, "flat source pixel {} differs from original", i);
+        }
+        eprintln!("Verified: flat source assembles identically ({} pixels)", expected.pixels.len());
+
+        // ── Step 4: Load the mini-assembler program into the VM ──
+        let asm_prog = parse_gasm(asm_source).expect("mini_assembler.gasm should assemble");
+        let asm_addr: u32 = 0x20000;
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(asm_addr, &asm_prog.pixels);
+        svm.spawn_vm(0, asm_addr);
+
+        // ── Step 5: Write the FLAT source into the source region ──
+        let src_bytes = flat_source.as_bytes();
+        assert!(
+            src_bytes.len() < 0x10000_usize,
+            "flat source ({} bytes) must fit in 64KB region",
+            src_bytes.len()
+        );
+        for (i, &byte) in src_bytes.iter().enumerate() {
+            svm.poke_byte(geoasm_mem::src_byte_addr(i as u32), byte);
+        }
+        svm.poke_byte(geoasm_mem::src_byte_addr(src_bytes.len() as u32), 0);
+
+        // Verify source write
+        for (i, &byte) in src_bytes.iter().enumerate() {
+            assert_eq!(
+                svm.peek_byte(geoasm_mem::src_byte_addr(i as u32)),
+                byte,
+                "source byte {} mismatch after write",
+                i
+            );
+        }
+
+        // ── Step 6: Run the VM assembler ──
+        // The assembler processes ~700 instructions of source; give it plenty of frames.
+        let max_frames = 500;
+        for frame in 0..max_frames {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                eprintln!("Self-hosting assembler halted at frame {}", frame);
+                break;
+            }
+        }
+        let halted = svm.vm_state(0).halted;
+        if halted == 0 {
+            // Print diagnostics before failing
+            let vm = svm.vm_state(0);
+            eprintln!("VM did NOT halt after {} frames!", max_frames);
+            eprintln!("PC={:#010x}, regs: r0={:#010x} r1={:#010x} r2={:#010x} r3={:#010x}",
+                vm.pc, vm.regs[0], vm.regs[1], vm.regs[2], vm.regs[3]);
+            eprintln!("  r4={:#010x} r5={:#010x} r6={:#010x} r7={:#010x}",
+                vm.regs[4], vm.regs[5], vm.regs[6], vm.regs[7]);
+
+            // Dump first 20 output pixels
+            let ob = geoasm_mem::output_pixel(0);
+            for i in 0..20 {
+                eprintln!("  out[{}] = {:#010x}", i, svm.peek(ob + i));
+            }
+
+            // Check what source byte the assembler is stuck on
+            let src_ptr = vm.regs[0];
+            eprintln!("Source pointer r0 = {:#010x}", src_ptr);
+            if src_ptr >= geoasm_mem::GEOASM_SRC_BASE_BYTE {
+                let offset = src_ptr - geoasm_mem::GEOASM_SRC_BASE_BYTE;
+                eprintln!("Source offset = {:#x}", offset);
+                for i in 0..20 {
+                    let b = svm.peek_byte(src_ptr + i);
+                    eprintln!("  src[offset+{}] = {} ({:#04x}) = '{}'",
+                        i, b, b,
+                        if b >= 32 && b < 127 { b as char } else { '.' });
+                }
+            }
+        }
+        assert_eq!(halted, 1, "self-hosting assembler should halt");
+
+        // ── Step 7: Compare output pixel-by-pixel ──
+        let output_base = geoasm_mem::output_pixel(0);
+        let mut first_mismatch: Option<(usize, u32, u32)> = None;
+        let mut match_count = 0usize;
+
+        for (i, &expected_px) in expected.pixels.iter().enumerate() {
+            let actual = svm.peek(output_base + i as u32);
+            if actual == expected_px {
+                match_count += 1;
+            } else if first_mismatch.is_none() {
+                first_mismatch = Some((i, actual, expected_px));
+            }
+        }
+
+        // Also check there's no extra output beyond what we expect
+        let after_last = svm.peek(output_base + expected.pixels.len() as u32);
+
+        if let Some((idx, actual, expected_px)) = first_mismatch {
+            eprintln!("First mismatch at pixel {}: got {:#010x}, expected {:#010x}", idx, actual, expected_px);
+
+            // Dump context around the mismatch
+            let start = if idx > 5 { idx - 5 } else { 0 };
+            let end = std::cmp::min(idx + 10, expected.pixels.len());
+            for i in start..end {
+                let act = svm.peek(output_base + i as u32);
+                let exp = expected.pixels[i];
+                let marker = if i == idx { " <<<" } else { "" };
+                eprintln!("  pixel {}: got {:#010x}, expected {:#010x}{}", i, act, exp, marker);
+            }
+        }
+
+        assert!(
+            first_mismatch.is_none(),
+            "Self-hosting bootstrap: pixel mismatch at index {:?} ({} of {} pixels match)",
+            first_mismatch.map(|(i, _, _)| i),
+            match_count,
+            expected.pixels.len()
+        );
+
+        assert_eq!(
+            after_last, 0,
+            "output after expected pixels should be 0, got {:#010x}",
+            after_last
+        );
+
+        eprintln!(
+            "SELF-HOSTING BOOTSTRAP PASSED! VM assembler assembled itself: {} pixels match perfectly",
+            expected.pixels.len()
+        );
+    }
+
     // Debug: step through VM assembler execution, track register state
     #[test]
     fn test_debug_vm_assembler_step() {
@@ -5320,6 +5476,7 @@ HALT
             eprintln!("  r{} = {:#010x} ({})", i, vm.regs[i], vm.regs[i]);
         }
     }
+
 }
 
 impl SoftwareVm {
