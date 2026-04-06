@@ -76,8 +76,9 @@ fn expand_rvc_quadrant0(half: u16, funct3: u32) -> u32 {
         }
         2 => {
             // C.LD: ld rd', offset(rs1') (RV64 only)
-            let offset = (((half >> 5) & 0x3) << 3)
-                | (((half >> 10) & 0x7) << 6);
+            // offset[5:3] = bits[12:10], offset[7:6] = bits[6:5]
+            let offset = (((half >> 10) & 0x7) << 3)
+                | (((half >> 5) & 0x3) << 6);
             let rs1 = ((half >> 7) & 0x7) as u32 + 8;
             let rd = ((half >> 2) & 0x7) as u32 + 8;
             encode_i_type(offset, rs1, 3, rd, 0x03) // LD
@@ -97,8 +98,9 @@ fn expand_rvc_quadrant0(half: u16, funct3: u32) -> u32 {
         }
         7 => {
             // C.SD: sd rs2', offset(rs1') (RV64)
-            let offset = (((half >> 5) & 0x3) << 3)
-                | (((half >> 10) & 0x7) << 6);
+            // offset[5:3] = bits[12:10], offset[7:6] = bits[6:5]
+            let offset = (((half >> 10) & 0x7) << 3)
+                | (((half >> 5) & 0x3) << 6);
             let rs1 = ((half >> 7) & 0x7) as u32 + 8;
             let rs2 = ((half >> 2) & 0x7) as u32 + 8;
             encode_s_type(offset, rs2, rs1, 3, 0x23) // SD
@@ -112,16 +114,16 @@ fn expand_rvc_quadrant1(half: u16, funct3: u32) -> u32 {
     let half = half as u32;
     match funct3 {
         0 => {
-            // C.ADDI: addi rd, x0, imm (or C.NOP if rd=0)
+            // C.ADDI: addi rd, rd, imm (or C.NOP if rd=0)
             let rd = ((half >> 7) & 0x1F) as u32;
             let imm = sign_extend_5(((half >> 12) & 1) << 5 | ((half >> 2) & 0x1F));
-            encode_i_type(imm as u32, 0, 0, rd, 0x13) // ADDI
+            encode_i_type(imm as u32, rd, 0, rd, 0x13) // ADDI
         }
         1 => {
-            // C.ADDIW: addiw rd, x0, imm (RV64 only)
+            // C.ADDIW: addiw rd, rd, imm (RV64 only)
             let rd = ((half >> 7) & 0x1F) as u32;
             let imm = sign_extend_5(((half >> 12) & 1) << 5 | ((half >> 2) & 0x1F));
-            encode_i_type(imm as u32, 0, 0, rd, 0x1B) // ADDIW
+            encode_i_type(imm as u32, rd, 0, rd, 0x1B) // ADDIW
         }
         2 => {
             // C.LI: addi rd, x0, imm
@@ -221,12 +223,8 @@ fn expand_rvc_quadrant2(half: u16, funct3: u32) -> u32 {
             encode_i_type(shamt, rd, 1, rd, 0x13) // SLLI
         }
         1 => {
-            // C.LDSP: ld rd, offset(x2) (RV64)
-            let rd = ((half >> 7) & 0x1F) as u32;
-            let offset = (((half >> 5) & 0x3) << 3)
-                | (((half >> 10) & 0xF) << 6)
-                | (((half >> 12) & 1) << 5);
-            encode_i_type(offset, 2, 3, rd, 0x03) // LD
+            // C.FLDSP (float, unsupported) - NOP
+            0
         }
         2 => {
             // C.LWSP: lw rd, offset(x2)
@@ -235,6 +233,14 @@ fn expand_rvc_quadrant2(half: u16, funct3: u32) -> u32 {
                 | (((half >> 12) & 1) << 5)
                 | (((half >> 2) & 1) << 6);
             encode_i_type(offset, 2, 2, rd, 0x03) // LW
+        }
+        3 => {
+            // C.LDSP: ld rd, offset(x2) (RV64)
+            let rd = ((half >> 7) & 0x1F) as u32;
+            let offset = (((half >> 12) & 1) << 5)
+                | (((half >> 5) & 0x3) << 3)
+                | (((half >> 2) & 0x7) << 6);
+            encode_i_type(offset, 2, 3, rd, 0x03) // LD
         }
         4 => {
             // Multiple ops based on bit 12
@@ -264,18 +270,21 @@ fn expand_rvc_quadrant2(half: u16, funct3: u32) -> u32 {
             }
         }
         5 => {
-            // C.SDSP: sd rs2, offset(x2) (RV64)
-            let rs2 = ((half >> 2) & 0x1F) as u32;
-            let offset = (((half >> 5) & 0x3) << 3)
-                | (((half >> 10) & 0xF) << 6)
-                | (((half >> 12) & 1) << 5);
-            encode_s_type(offset, rs2, 2, 3, 0x23) // SD
+            // C.FSDSP (float, unsupported) - NOP
+            0
         }
         6 => {
             // C.SWSP: sw rs2, offset(x2)
             let rs2 = ((half >> 2) & 0x1F) as u32;
             let offset = (((half >> 9) & 0xF) << 2) | (((half >> 7) & 0x3) << 6);
             encode_s_type(offset, rs2, 2, 2, 0x23) // SW
+        }
+        7 => {
+            // C.SDSP: sd rs2, offset(x2) (RV64)
+            // offset[5:3] = bits[12:10], offset[8:6] = bits[9:7]
+            let rs2 = ((half >> 2) & 0x1F) as u32;
+            let offset = (((half >> 10) & 0x7) << 3) | (((half >> 7) & 0x7) << 6);
+            encode_s_type(offset, rs2, 2, 3, 0x23) // SD
         }
         _ => 0,
     }
