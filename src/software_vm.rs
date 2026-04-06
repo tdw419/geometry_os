@@ -4922,6 +4922,160 @@ HALT
         assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "parent halts");
         assert_eq!(svm.peek(8000), 200, "parent read child's output");
     }
+
+    /// Self-hosting assembler integration test.
+    ///
+    /// The mini-assembler program (programs/mini_assembler.gasm) runs ON the VM
+    /// and reads source text from GEOASM_SRC_BASE_BYTE (byte 0x10000). It parses
+    /// "LDI r0, 42\nHALT\n" character-by-character via LDB and writes assembled
+    /// pixel instructions to GEOASM_OUTPUT_BASE_PIXEL (pixel 0x10000) via STORE.
+    ///
+    /// This proves:
+    /// 1. Memory layout: source, output, and assembler program don't overlap
+    /// 2. LDB can read source text from the correct byte-addressed region
+    /// 3. STORE can write output to the correct pixel-indexed region
+    /// 4. The VM-assembled output matches what the Rust-side parse_gasm produces
+    #[test]
+    fn test_self_hosting_assembler_mini() {
+        use crate::assembler::{op, parse_gasm, Program};
+        use crate::geoasm_mem;
+
+        // ── Step 1: Assemble the expected output with the Rust assembler ──
+        let source_text = "LDI r0, 42\nHALT\n";
+        let expected = parse_gasm(source_text).expect("source should parse");
+        // Expected: [0x00000001 (LDI r0), 0x0000002A (42), 0x0000000D (HALT)]
+        assert_eq!(expected.pixels.len(), 3, "should produce 3 pixels");
+        assert_eq!(expected.pixels[0] & 0xFF, op::LDI as u32);
+        assert_eq!(expected.pixels[1], 42);
+        assert_eq!(expected.pixels[2] & 0xFF, op::HALT as u32);
+
+        // ── Step 2: Load the mini-assembler program ──
+        let asm_source = include_str!("../programs/mini_assembler.gasm");
+        let asm_prog = parse_gasm(asm_source).expect("mini_assembler.gasm should assemble");
+        eprintln!("Mini-assembler: {} pixels", asm_prog.pixels.len());
+
+        // Load the assembler at pixel 0x20000 (byte 0x80000) -- well clear of
+        // source text (0x10000-0x1FFFF), output (pixel 0x10000-0x13FFF), etc.
+        let asm_addr: u32 = 0x20000;
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(asm_addr, &asm_prog.pixels);
+        svm.spawn_vm(0, asm_addr);
+
+        // ── Step 3: Write source text into the source region ──
+        let src_bytes = source_text.as_bytes();
+        for (i, &byte) in src_bytes.iter().enumerate() {
+            svm.poke_byte(
+                geoasm_mem::src_byte_addr(i as u32),
+                byte,
+            );
+        }
+        // Write null terminator so the assembler knows where source ends
+        svm.poke_byte(
+            geoasm_mem::src_byte_addr(src_bytes.len() as u32),
+            0,
+        );
+
+        // Verify source was written correctly
+        for (i, &byte) in src_bytes.iter().enumerate() {
+            assert_eq!(
+                svm.peek_byte(geoasm_mem::src_byte_addr(i as u32)),
+                byte,
+                "source byte {} mismatch",
+                i
+            );
+        }
+
+        // ── Step 4: Run the VM ──
+        // The mini-assembler processes the source and writes to the output region.
+        // Give it up to 10 frames (should finish in 1).
+        for frame in 0..10 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                eprintln!("Assembler halted at frame {}", frame);
+                break;
+            }
+        }
+        assert_eq!(svm.vm_state(0).halted, 1, "assembler should halt");
+
+        // ── Step 5: Verify output matches Rust-assembled output ──
+        let output_base = geoasm_mem::output_pixel(0);
+        for (i, &expected_px) in expected.pixels.iter().enumerate() {
+            let actual = svm.peek(output_base + i as u32);
+            assert_eq!(
+                actual, expected_px,
+                "output pixel {} mismatch: got {:#010x}, expected {:#010x}",
+                i, actual, expected_px
+            );
+        }
+
+        eprintln!(
+            "Self-hosting assembler test passed! Output matches parse_gasm: {:?}",
+            expected.pixels
+                .iter()
+                .map(|&p| format!("{:#010x}", p))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn test_self_hosting_assembler_extended() {
+        use crate::assembler::{op, parse_gasm, Program};
+        use crate::geoasm_mem;
+
+        // Source that exercises many opcodes: reg-reg, zero-operand, LDI, HALT
+        let source_text = "ADD r2, r3\nSUB r4, r5\nMOV r1, r0\nNOP\nLDI r6, 42\nHALT\n";
+        let expected = parse_gasm(source_text).expect("source should parse");
+
+        // Verify expected encoding
+        assert_eq!(expected.pixels[0] & 0xFF, op::ADD as u32, "first instr should be ADD");
+        assert_eq!(expected.pixels[3] & 0xFF, op::NOP as u32, "fourth instr should be NOP");
+        assert_eq!(expected.pixels[4] & 0xFF, op::LDI as u32, "fifth instr should be LDI");
+        assert_eq!(expected.pixels[6] & 0xFF, op::HALT as u32, "last instr should be HALT");
+
+        // Load the extended mini-assembler
+        let asm_source = include_str!("../programs/mini_assembler.gasm");
+        let asm_prog = parse_gasm(asm_source).expect("mini_assembler.gasm should assemble");
+        eprintln!("Extended mini-assembler: {} pixels", asm_prog.pixels.len());
+
+        let asm_addr: u32 = 0x20000;
+        let mut svm = SoftwareVm::new();
+        svm.load_program(asm_addr, &asm_prog.pixels);
+        svm.spawn_vm(0, asm_addr);
+
+        // Write source text into source region
+        let src_bytes = source_text.as_bytes();
+        for (i, &byte) in src_bytes.iter().enumerate() {
+            svm.poke_byte(geoasm_mem::src_byte_addr(i as u32), byte);
+        }
+        svm.poke_byte(geoasm_mem::src_byte_addr(src_bytes.len() as u32), 0);
+
+        // Run the assembler VM
+        for frame in 0..20 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                eprintln!("Extended assembler halted at frame {}", frame);
+                break;
+            }
+        }
+        assert_eq!(svm.vm_state(0).halted, 1, "extended assembler should halt");
+
+        // Verify output matches Rust-assembled output
+        let output_base = geoasm_mem::output_pixel(0);
+        for (i, &expected_px) in expected.pixels.iter().enumerate() {
+            let actual = svm.peek(output_base + i as u32);
+            assert_eq!(
+                actual, expected_px,
+                "output pixel {} mismatch: got {:#010x}, expected {:#010x}",
+                i, actual, expected_px
+            );
+        }
+        eprintln!(
+            "Extended assembler test passed! {} pixels match: {:?}",
+            expected.pixels.len(),
+            expected.pixels.iter().map(|&p| format!("{:#010x}", p)).collect::<Vec<_>>()
+        );
+    }
 }
 
 impl SoftwareVm {
