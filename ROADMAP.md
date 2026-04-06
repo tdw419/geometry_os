@@ -114,8 +114,17 @@ Webhook-driven routines for GitHub, monitoring, and notifications.
 
 ---
 
-## Phase 13: Full Self-Hosting
-The Geometry OS VM runs the Paperclip orchestration layer. Agents are VM processes. The OS manages its own developers.
+## Phase 13: Full Self-Hosting (IN PROGRESS)
+The Geometry OS VM runs its own orchestration layer. Agents are VM processes. The OS manages its own developers.
+
+### P13A: Issue Queue as Pixel Region (GEO-212, in_progress)
+Task queue that lives entirely in VM texture memory. Stdlib routines for CREATE, PICK, UPDATE, LIST.
+
+### P13B: Agent VM Program (GEO-213, todo)
+A .gasm program that autonomously picks issues, executes work, and reports results. Uses SPAWN/SEND/RECV/YIELD.
+
+### P13C: Self-Orchestrating Loop (GEO-214, backlog)
+CEO VM creates work, Agent VMs execute it. Full autonomous loop with metrics. 2+ concurrent agents, no deadlocks.
 
 ---
 
