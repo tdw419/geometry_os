@@ -425,22 +425,246 @@ impl Default for ModelConfig {
     }
 }
 
+/// Pixel-native spatial filesystem executor.
+///
+/// Manages files as contiguous spatial regions in the substrate, with
+/// pixel-encoded headers and directory entries per the SPATIAL_FILESYSTEM_SPEC.
+pub struct FilesystemExecutor {
+    allocator: RefCell<crate::substrate::RegionAllocator>,
+    /// Map from file start address to (name, total_pixels, file_type).
+    files: RefCell<std::collections::HashMap<u32, (String, u32, u32)>>,
+    /// Map from directory addr to vec of (child_addr, child_name, child_type).
+    dirs: RefCell<std::collections::HashMap<u32, Vec<(u32, String, u32)>>>,
+}
+
+impl FilesystemExecutor {
+    pub fn new() -> Self {
+        let mut fs = Self {
+            allocator: RefCell::new(crate::substrate::RegionAllocator::new()),
+            files: RefCell::new(std::collections::HashMap::new()),
+            dirs: RefCell::new(std::collections::HashMap::new()),
+        };
+        // Initialize root directory
+        fs.init_root();
+        fs
+    }
+
+    fn init_root(&self) {
+        self.files.borrow_mut().insert(
+            FS_ROOT_ADDR,
+            ("/".to_string(), FS_HEADER_PIXELS, FS_TYPE_DIR),
+        );
+        self.dirs.borrow_mut().insert(FS_ROOT_ADDR, Vec::new());
+    }
+
+    pub fn handle_fs_command(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
+        match cmd.cmd_type {
+            CMD_FS_CREATE => self.fs_create(cmd, substrate),
+            CMD_FS_READ => self.fs_read(cmd, substrate),
+            CMD_FS_LIST => self.fs_list(cmd, substrate),
+            CMD_FS_DELETE => self.fs_delete(cmd, substrate),
+            _ => CommandResult {
+                status: STATUS_ERROR,
+                result: 0xFFFF_FFFE,
+            },
+        }
+    }
+
+    fn fs_create(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
+        let name = read_substrate_string(substrate, cmd.param1, cmd.param2 as usize);
+        let size_px = cmd.param3;
+        let file_type = cmd.param4;
+
+        if name.is_empty() || name.len() > FS_MAX_NAME_LEN {
+            return CommandResult {
+                status: STATUS_ERROR,
+                result: 0xFFFF_FFFB, // invalid name
+            };
+        }
+        if file_type != FS_TYPE_FILE && file_type != FS_TYPE_DIR {
+            return CommandResult {
+                status: STATUS_ERROR,
+                result: 0xFFFF_FFFA, // invalid type
+            };
+        }
+
+        let total_px = FS_HEADER_PIXELS + size_px;
+        let addr = match self.allocator.borrow_mut().allocate_region(total_px) {
+            Some(a) => a,
+            None => {
+                return CommandResult {
+                    status: STATUS_ERROR,
+                    result: 0xFFFF_FFF9, // allocation failed
+                }
+            }
+        };
+
+        // Write file header to substrate
+        substrate.poke(addr, FS_MAGIC);
+        // Pack filename into 4 pixels (16 bytes)
+        let name_bytes: Vec<u8> = name.bytes().chain(std::iter::repeat(0)).take(16).collect();
+        for i in 0..4 {
+            let packed = (name_bytes[i * 4] as u32)
+                | ((name_bytes[i * 4 + 1] as u32) << 8)
+                | ((name_bytes[i * 4 + 2] as u32) << 16)
+                | ((name_bytes[i * 4 + 3] as u32) << 24);
+            substrate.poke(addr + 1 + i as u32, packed);
+        }
+        substrate.poke(addr + 5, size_px); // data size in pixels
+        substrate.poke(addr + 6, file_type); // type + permissions
+        substrate.poke(addr + 7, 0); // checksum placeholder
+
+        // Register file
+        self.files.borrow_mut().insert(addr, (name.clone(), total_px, file_type));
+
+        // Add to root directory (or parent -- for now always root)
+        if file_type == FS_TYPE_DIR {
+            self.dirs.borrow_mut().insert(addr, Vec::new());
+        }
+        self.dirs
+            .borrow_mut()
+            .entry(FS_ROOT_ADDR)
+            .or_default()
+            .push((addr, name, file_type));
+
+        CommandResult {
+            status: STATUS_COMPLETE,
+            result: addr,
+        }
+    }
+
+    fn fs_read(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
+        let file_addr = cmd.param1;
+        let dest_addr = cmd.param2;
+        let offset_px = cmd.param3;
+        let len_px = cmd.param4;
+
+        let files = self.files.borrow();
+        if !files.contains_key(&file_addr) {
+            return CommandResult {
+                status: STATUS_ERROR,
+                result: 0xFFFF_FFF8, // file not found
+            };
+        }
+
+        // Verify magic
+        if substrate.peek(file_addr) != FS_MAGIC {
+            return CommandResult {
+                status: STATUS_ERROR,
+                result: 0xFFFF_FFF7, // bad header
+            };
+        }
+
+        let data_start = file_addr + FS_HEADER_PIXELS + offset_px;
+        let mut pixels_read = 0u32;
+        for i in 0..len_px {
+            let src = data_start + i;
+            let val = substrate.peek(src);
+            substrate.poke(dest_addr + i, val);
+            pixels_read += 1;
+        }
+
+        CommandResult {
+            status: STATUS_COMPLETE,
+            result: pixels_read,
+        }
+    }
+
+    fn fs_list(&self, cmd: &Command, substrate: &Substrate) -> CommandResult {
+        let dir_addr = if cmd.param1 == 0 { FS_ROOT_ADDR } else { cmd.param1 };
+        let buf_addr = cmd.param2;
+        let buf_size = cmd.param3;
+
+        let dirs = self.dirs.borrow();
+        let entries = match dirs.get(&dir_addr) {
+            Some(e) => e,
+            None => {
+                return CommandResult {
+                    status: STATUS_ERROR,
+                    result: 0xFFFF_FFF8, // dir not found
+                }
+            }
+        };
+
+        // Each directory entry is 4 pixels (16 bytes)
+        let max_entries = buf_size / 4;
+        let count = entries.len().min(max_entries as usize) as u32;
+
+        for (i, (child_addr, child_name, child_type)) in
+            entries.iter().take(count as usize).enumerate()
+        {
+            let entry_base = buf_addr + (i as u32) * 4;
+            substrate.poke(entry_base, *child_addr);
+            // Pack first 4 chars of name
+            let name_bytes: Vec<u8> = child_name.bytes().chain(std::iter::repeat(0)).take(4).collect();
+            let packed = (name_bytes[0] as u32)
+                | ((name_bytes[1] as u32) << 8)
+                | ((name_bytes[2] as u32) << 16)
+                | ((name_bytes[3] as u32) << 24);
+            substrate.poke(entry_base + 1, packed);
+            substrate.poke(entry_base + 3, *child_type);
+        }
+
+        CommandResult {
+            status: STATUS_COMPLETE,
+            result: count,
+        }
+    }
+
+    fn fs_delete(&self, cmd: &Command, _substrate: &Substrate) -> CommandResult {
+        let file_addr = cmd.param1;
+
+        let files = self.files.borrow();
+        let Some((_, total_px, file_type)) = files.get(&file_addr) else {
+            return CommandResult {
+                status: STATUS_ERROR,
+                result: 0xFFFF_FFF8, // file not found
+            };
+        };
+        let total_px = *total_px;
+
+        // Don't allow deleting root
+        if file_addr == FS_ROOT_ADDR {
+            return CommandResult {
+                status: STATUS_ERROR,
+                result: 0xFFFF_FFF6, // cannot delete root
+            };
+        }
+
+        // Remove from parent directory (always root for now)
+        self.dirs
+            .borrow_mut()
+            .entry(FS_ROOT_ADDR)
+            .or_default()
+            .retain(|(addr, _, _)| *addr != file_addr);
+
+        // If it was a directory, clean up its entry
+        if *file_type == FS_TYPE_DIR {
+            self.dirs.borrow_mut().remove(&file_addr);
+        }
+
+        drop(files); // release borrow before mutating
+        self.files.borrow_mut().remove(&file_addr);
+        self.allocator.borrow_mut().free_region(file_addr, total_px);
+
+        CommandResult {
+            status: STATUS_COMPLETE,
+            result: 0,
+        }
+    }
+}
+
 /// Agent-capable command executor.
 ///
-/// Handles all 13 command types:
-/// - Commands 1-5 (READ_BLOCK through IOCTL): delegated to FileExecutor
-/// - Command 6 (SQL_QUERY): executes SQL via in-memory SQLite, writes TSV results to substrate
-/// - Command 7 (MODEL_CALL): calls an LLM via HTTP, writes response to substrate
-/// - Command 8 (STATUS_READ): reads from the in-memory status store
-/// - Command 9 (STATUS_WRITE): writes to the in-memory status store
-/// - Command 10 (FS_QUERY): filesystem query -- lists directory or stats file
-/// - Command 11 (DEVICE_OPEN): open hardware device (stub: NOT_IMPLEMENTED)
-/// - Command 12 (DEVICE_IOCTL): device control (stub: NOT_IMPLEMENTED)
-/// - Command 13 (SPAWN_PROCESS): spawn new process/VM (stub: NOT_IMPLEMENTED)
+/// Handles all command types including spatial filesystem operations.
+/// Commands 1-5: delegated to FileExecutor
+/// Commands 6-13: handled directly (SQL, model, status, FS query, device, spawn)
+/// Commands 14-17: spatial filesystem (FS_CREATE, FS_READ, FS_LIST, FS_DELETE)
 ///
 /// The status store is shared via `Rc<RefCell<>>` so tests can inspect it.
 pub struct AgentExecutor {
     file_executor: FileExecutor,
+    fs_executor: FilesystemExecutor,
     status: Rc<RefCell<StatusStore>>,
     db: RefCell<rusqlite::Connection>,
     model_config: ModelConfig,
@@ -452,6 +676,7 @@ impl AgentExecutor {
             .expect("failed to open in-memory SQLite database");
         Self {
             file_executor: FileExecutor,
+            fs_executor: FilesystemExecutor::new(),
             status: Rc::new(RefCell::new(StatusStore::new())),
             db: RefCell::new(conn),
             model_config: ModelConfig::default(),
@@ -462,6 +687,7 @@ impl AgentExecutor {
     pub fn with_db(db: RefCell<rusqlite::Connection>) -> Self {
         Self {
             file_executor: FileExecutor,
+            fs_executor: FilesystemExecutor::new(),
             status: Rc::new(RefCell::new(StatusStore::new())),
             db,
             model_config: ModelConfig::default(),
@@ -474,6 +700,7 @@ impl AgentExecutor {
             .expect("failed to open in-memory SQLite database");
         Self {
             file_executor: FileExecutor,
+            fs_executor: FilesystemExecutor::new(),
             status: Rc::new(RefCell::new(StatusStore::new())),
             db: RefCell::new(conn),
             model_config,
@@ -852,6 +1079,9 @@ impl CommandExecutor for AgentExecutor {
             CMD_DEVICE_OPEN => self.handle_device_open(cmd, substrate),
             CMD_DEVICE_IOCTL => self.handle_device_ioctl(cmd, substrate),
             CMD_SPAWN_PROCESS => self.handle_spawn_process(cmd, substrate),
+            CMD_FS_CREATE | CMD_FS_READ | CMD_FS_LIST | CMD_FS_DELETE => {
+                self.fs_executor.handle_fs_command(cmd, substrate)
+            }
             _ => CommandResult {
                 status: STATUS_ERROR,
                 result: 0xFFFF_FFFE, // Unknown command

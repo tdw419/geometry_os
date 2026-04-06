@@ -156,12 +156,34 @@ enum Line {
         operands: Vec<String>,
         line_num: usize,
     },
+    Directive {
+        kind: DirectiveKind,
+        line_num: usize,
+    },
+}
+
+/// Assembler directives (GEO-73)
+#[derive(Debug, Clone)]
+enum DirectiveKind {
+    /// .org 0xADDR -- set output pixel pointer to given address
+    Org { addr: usize },
+    /// .define NAME VALUE -- constant substitution
+    Define { name: String, value: String },
+    /// .include "filename" -- host-protocol file inclusion
+    Include { filename: String },
 }
 
 /// Strip comments and blank lines, separate labels from instructions.
+/// Also handles assembler directives (.org, .define, .include).
 fn parse_lines(source: &str) -> Result<Vec<Line>, String> {
+    // Pre-pass: extract .define directives and substitute constants
+    let (defines, cleaned) = extract_defines(source)?;
+
+    // Apply constant substitutions to the cleaned source
+    let substituted = apply_defines(&cleaned, &defines);
+
     let mut result = Vec::new();
-    for (i, raw) in source.lines().enumerate() {
+    for (i, raw) in substituted.lines().enumerate() {
         let line_num = i + 1;
         // Strip inline comments (everything after ';')
         let line = match raw.find(';') {
@@ -181,6 +203,15 @@ fn parse_lines(source: &str) -> Result<Vec<Line>, String> {
             result.push(Line::Label { name });
             continue;
         }
+        // Check for directives (lines starting with '.')
+        if trimmed.starts_with('.') {
+            let directive = parse_directive(trimmed, line_num)?;
+            result.push(Line::Directive {
+                kind: directive,
+                line_num,
+            });
+            continue;
+        }
         // Parse instruction: first word is mnemonic, rest is operands
         let mut parts = trimmed.splitn(2, |c: char| c.is_whitespace());
         let mnemonic = parts.next().unwrap().to_uppercase();
@@ -193,6 +224,138 @@ fn parse_lines(source: &str) -> Result<Vec<Line>, String> {
         });
     }
     Ok(result)
+}
+
+/// Pre-pass: extract .define NAME VALUE directives from source.
+/// Returns the defines map and the source with .define lines stripped.
+fn extract_defines(source: &str) -> Result<(HashMap<String, String>, String), String> {
+    let mut defines = HashMap::new();
+    let mut cleaned = Vec::new();
+    for (i, line) in source.lines().enumerate() {
+        let line_num = i + 1;
+        let trimmed = line.trim();
+        // Strip comments first
+        let trimmed = match trimmed.find(';') {
+            Some(pos) => &trimmed[..pos],
+            None => trimmed,
+        };
+        let trimmed = trimmed.trim();
+        if trimmed.to_lowercase().starts_with(".define") {
+            // .define NAME VALUE
+            let rest = trimmed[7..].trim();
+            let mut parts = rest.splitn(2, |c: char| c.is_whitespace());
+            let name = parts.next().unwrap_or("").trim();
+            let value = parts.next().unwrap_or("").trim();
+            if name.is_empty() || value.is_empty() {
+                return Err(format!(
+                    "line {}: .define expects NAME and VALUE, e.g. .define FOO 42",
+                    line_num
+                ));
+            }
+            // Validate name: uppercase letters, digits, underscores
+            if !name.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
+                || name.starts_with(|c: char| c.is_ascii_digit())
+            {
+                return Err(format!(
+                    "line {}: .define name must be UPPER_CASE (letters, digits, underscores, not starting with digit), got '{}'",
+                    line_num, name
+                ));
+            }
+            if defines.contains_key(name) {
+                return Err(format!("line {}: duplicate .define '{}'", line_num, name));
+            }
+            defines.insert(name.to_string(), value.to_string());
+            continue; // strip the directive
+        }
+        cleaned.push(line);
+    }
+    Ok((defines, cleaned.join("\n")))
+}
+
+/// Apply .define substitutions to source text.
+/// Replaces all occurrences of defined names that appear as standalone tokens.
+fn apply_defines(source: &str, defines: &HashMap<String, String>) -> String {
+    if defines.is_empty() {
+        return source.to_string();
+    }
+    let mut result = source.to_string();
+    for (name, value) in defines {
+        // Replace whole-word occurrences only (not inside other tokens)
+        // We use a simple approach: split by word boundaries and replace
+        let mut output = String::with_capacity(result.len());
+        let mut i = 0;
+        let bytes = result.as_bytes();
+        while i < bytes.len() {
+            // Check if we're at the start of a word that matches a define name
+            let remaining = &result[i..];
+            if remaining.starts_with(name.as_str()) {
+                // Check word boundary: preceded by non-alphanumeric/underscore
+                let preceded_by_word = i > 0
+                    && {
+                        let prev = bytes[i - 1];
+                        prev.is_ascii_alphanumeric() || prev == b'_'
+                    };
+                // Check word boundary: followed by non-alphanumeric/underscore or end
+                let end_pos = i + name.len();
+                let followed_by_word = end_pos < bytes.len()
+                    && {
+                        let next = bytes[end_pos];
+                        next.is_ascii_alphanumeric() || next == b'_'
+                    };
+                if !preceded_by_word && !followed_by_word {
+                    output.push_str(value);
+                    i += name.len();
+                    continue;
+                }
+            }
+            output.push(bytes[i] as char);
+            i += 1;
+        }
+        result = output;
+    }
+    result
+}
+
+/// Parse a directive line (already trimmed, starts with '.').
+fn parse_directive(trimmed: &str, line_num: usize) -> Result<DirectiveKind, String> {
+    let mut parts = trimmed.splitn(2, |c: char| c.is_whitespace());
+    let directive = parts.next().unwrap().to_lowercase();
+    let rest = parts.next().unwrap_or("").trim();
+    match directive.as_str() {
+        ".org" => {
+            let addr = parse_imm(rest, line_num)? as usize;
+            Ok(DirectiveKind::Org { addr })
+        }
+        ".include" => {
+            // .include "filename"
+            if rest.starts_with('"') && rest.ends_with('"') && rest.len() >= 2 {
+                let filename = rest[1..rest.len() - 1].to_string();
+                if filename.is_empty() {
+                    return Err(format!(
+                        "line {}: .include expects a non-empty filename",
+                        line_num
+                    ));
+                }
+                Ok(DirectiveKind::Include { filename })
+            } else {
+                Err(format!(
+                    "line {}: .include expects quoted filename, e.g. .include \"helpers.gasm\"",
+                    line_num
+                ))
+            }
+        }
+        ".define" => {
+            // Already handled in pre-pass; should not reach here
+            Err(format!(
+                "line {}: .define should have been processed in pre-pass",
+                line_num
+            ))
+        }
+        _ => Err(format!(
+            "line {}: unknown directive '{}'",
+            line_num, directive
+        )),
+    }
 }
 
 /// Split operand string by commas, trimming whitespace.
@@ -232,6 +395,16 @@ fn pass1_collect_labels(lines: &[Line]) -> Result<HashMap<String, usize>, String
                     return Err(format!("line {}: unknown instruction '{}'", line_num, mnemonic));
                 } else {
                     addr += instruction_size(mnemonic);
+                }
+            }
+            Line::Directive { kind, .. } => {
+                match kind {
+                    DirectiveKind::Org { addr: new_addr } => {
+                        addr = *new_addr;
+                    }
+                    DirectiveKind::Define { .. } | DirectiveKind::Include { .. } => {
+                        // Preprocessor-like: no pixel output
+                    }
                 }
             }
         }
