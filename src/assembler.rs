@@ -731,7 +731,7 @@ fn preprocess_defines(source: &str) -> (String, std::collections::HashMap<String
                     let c = bytes[i] as char;
                     if c.is_alphanumeric() || c == '_' {
                         let start = i;
-                        while i < bytes.len() && (bytes[i] as char).is_alphanumeric() || bytes[i] as char == '_' {
+                        while i < bytes.len() && ((bytes[i] as char).is_alphanumeric() || bytes[i] as char == '_') {
                             i += 1;
                         }
                         let word = &substituted[start..i];
