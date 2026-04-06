@@ -668,7 +668,7 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
                 if filter != 0 && priority != filter {
                     continue;
                 }
-                if priority >= best_priority {
+                if priority > best_priority {
                     best_priority = priority;
                     best_slot = Some(slot_base);
                     best_issue_id = mem_read(ram, (slot_base + 1) * 4);

@@ -1052,6 +1052,18 @@ pub fn disassemble(pixels: &[u32]) -> Vec<String> {
             op::PGET => format!("{:4}: PGET r{}, r{}, r{}", i, p2, stratum, p1),
             op::GLYPH_DEF => format!("{:4}: GLYPH_DEF r{}, r{}", i, p1, p2),
             op::FRAME => format!("{:4}: FRAME r{}", i, p1),
+            op::ISSUE_CREATE => {
+                format!("{:4}: ISSUE_CREATE r{}, r{}, {}", i, p1, p2, stratum)
+            }
+            op::ISSUE_PICK => {
+                format!("{:4}: ISSUE_PICK r{}, r{}, agent={}", i, p1, p2, stratum)
+            }
+            op::ISSUE_UPDATE => {
+                format!("{:4}: ISSUE_UPDATE r{}, r{}", i, p1, p2)
+            }
+            op::ISSUE_LIST => {
+                format!("{:4}: ISSUE_LIST r{}, r{}, max={}", i, p1, p2, stratum)
+            }
             _ => format!("{:4}: ??? opcode={} raw=0x{:08X}", i, opcode, pixel),
         };
 
