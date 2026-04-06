@@ -75,6 +75,45 @@ pub const CMD_DEVICE_OPEN: u32 = 11;
 pub const CMD_DEVICE_IOCTL: u32 = 12;
 /// Spawn a new process/VM. param1=program_addr, param2=program_len, param3=args_addr. Returns VM ID.
 pub const CMD_SPAWN_PROCESS: u32 = 13;
+/// Create a spatial filesystem file. param1=name_addr, param2=name_len, param3=size_px, param4=type.
+pub const CMD_FS_CREATE: u32 = 14;
+/// Read from a spatial filesystem file. param1=file_addr, param2=dest_addr, param3=offset_px, param4=len_px.
+pub const CMD_FS_READ: u32 = 15;
+/// List spatial filesystem directory entries. param1=dir_addr(0=root), param2=buf_addr, param3=buf_size_px.
+pub const CMD_FS_LIST: u32 = 16;
+/// Delete a spatial filesystem file. param1=file_addr.
+pub const CMD_FS_DELETE: u32 = 17;
+
+// ── Spatial Filesystem Constants ──
+
+/// Magic number for file headers: "FSFL" as hex (0x4653464C).
+pub const FS_MAGIC: u32 = 0x4653_464C;
+/// File header size in pixels.
+pub const FS_HEADER_PIXELS: u32 = 8;
+/// Maximum filename length in bytes (4 pixels * 4 bytes = 16 chars).
+pub const FS_MAX_NAME_LEN: usize = 16;
+/// File type: regular file.
+pub const FS_TYPE_FILE: u32 = 0x01;
+/// File type: directory.
+pub const FS_TYPE_DIR: u32 = 0x02;
+/// Root directory address (fixed, in allocatable range).
+pub const FS_ROOT_ADDR: u32 = 0x000F_0000;
+/// Directory entry size in pixels.
+pub const FS_DIR_ENTRY_PIXELS: u32 = 4;
+/// Error: filesystem not initialized (root dir missing).
+pub const FS_ERR_NOT_INIT: u32 = 0xFFFF_FFF0;
+/// Error: file not found.
+pub const FS_ERR_NOT_FOUND: u32 = 0xFFFF_FFF1;
+/// Error: name too long.
+pub const FS_ERR_NAME_TOO_LONG: u32 = 0xFFFF_FFF2;
+/// Error: allocation failed (no space).
+pub const FS_ERR_NO_SPACE: u32 = 0xFFFF_FFF3;
+/// Error: invalid address.
+pub const FS_ERR_INVALID_ADDR: u32 = 0xFFFF_FFF4;
+/// Error: directory full.
+pub const FS_ERR_DIR_FULL: u32 = 0xFFFF_FFF5;
+/// Error: file already exists.
+pub const FS_ERR_EXISTS: u32 = 0xFFFF_FFF6;
 
 // ── Status Values ──
 
