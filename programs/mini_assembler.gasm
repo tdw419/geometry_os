@@ -183,9 +183,58 @@ handle_ldi:
     // Skip space
     LDI r6, 1
     ADD r0, r6
-    // Parse decimal immediate into r4
+    // Parse immediate into r4 (char 'A', negative -42, hex 0xFF, or decimal 99)
     LDI r4, 0
-parse_imm:
+    LDI r7, 0            // negate flag (0=positive, 1=negative)
+    LDB r2, r0
+    // ── Check for char literal: ' (39) ──
+    LDI r6, 39
+    BNE r2, r6, imm_chk_neg
+    // Char literal: skip opening quote, read char, skip closing quote
+    LDI r6, 1
+    ADD r0, r6
+    LDB r4, r0
+    LDI r6, 1
+    ADD r0, r6
+    JMP imm_done
+imm_chk_neg:
+    // ── Check for negative sign: - (45) ──
+    LDI r6, 45
+    BNE r2, r6, imm_chk_hex
+    LDI r7, 1            // set negate flag
+    LDI r6, 1
+    ADD r0, r6           // advance past '-'
+    LDB r2, r0           // re-read first char
+imm_chk_hex:
+    // Check if first char is '0' -> possible hex prefix
+    LDI r6, 48           // '0'
+    BNE r2, r6, parse_dec
+    // First char is '0'. Peek at next char for 'x' or 'X'
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 120          // 'x'
+    BEQ r2, r6, hex_start
+    LDI r6, 88           // 'X'
+    BEQ r2, r6, hex_start
+    // Not hex. The '0' is a valid decimal digit.
+    // r0 advanced past '0', r4 stays 0, fall through to decimal
+    // But we need to re-read current byte as potential next digit
+    LDI r6, 1
+    ADD r0, r6
+    LDB r2, r0
+    LDI r6, 48
+    BLT r2, r6, imm_done
+    LDI r6, 58
+    BGE r2, r6, imm_done
+    // r4=0, this is the second digit after lone '0', accumulate it
+    LDI r6, 48
+    SUB r2, r6
+    ADD r4, r2
+    LDI r6, 1
+    ADD r0, r6
+    // fall through to decimal loop
+parse_dec:
     LDB r2, r0
     LDI r6, 48
     BLT r2, r6, imm_done
@@ -198,8 +247,66 @@ parse_imm:
     ADD r4, r2
     LDI r6, 1
     ADD r0, r6
-    JMP parse_imm
+    JMP parse_dec
+hex_start:
+    // r0 is on 'x'/'X'. Advance past it to first hex digit.
+    LDI r6, 1
+    ADD r0, r6
+hex_loop:
+    LDB r2, r0
+    // Check 0-9 (48-57)
+    LDI r6, 48
+    BLT r2, r6, imm_done
+    LDI r6, 58
+    BLT r2, r6, hex_digit_dec
+    // Check A-F (65-70)
+    LDI r6, 65
+    BLT r2, r6, hex_check_lower
+    LDI r6, 71
+    BLT r2, r6, hex_digit_upper
+hex_check_lower:
+    // Check a-f (97-102)
+    LDI r6, 97
+    BLT r2, r6, imm_done
+    LDI r6, 103
+    BGE r2, r6, imm_done
+    // a-f: value = byte - 87
+    LDI r6, 16
+    MUL r4, r6
+    LDI r6, 87
+    SUB r2, r6
+    ADD r4, r2
+    LDI r6, 1
+    ADD r0, r6
+    JMP hex_loop
+hex_digit_upper:
+    // A-F: value = byte - 55
+    LDI r6, 16
+    MUL r4, r6
+    LDI r6, 55
+    SUB r2, r6
+    ADD r4, r2
+    LDI r6, 1
+    ADD r0, r6
+    JMP hex_loop
+hex_digit_dec:
+    // 0-9: value = byte - 48
+    LDI r6, 16
+    MUL r4, r6
+    LDI r6, 48
+    SUB r2, r6
+    ADD r4, r2
+    LDI r6, 1
+    ADD r0, r6
+    JMP hex_loop
 imm_done:
+    // ── Negate if flag set ──
+    LDI r6, 0
+    BEQ r7, r6, imm_build
+    NOT r4
+    LDI r6, 1
+    ADD r4, r6
+imm_build:
     // Build LDI instruction: opcode=1 | (r3 << 16)
     LDI r5, 1
     MOV r6, r3

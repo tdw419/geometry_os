@@ -718,8 +718,8 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
             "LDI" => {
                 expect_arg_count(&tokens, 2, line_num)?;
                 let reg = parse_register(tokens[1], line_num)?;
-                let value = parse_value(tokens[2], line_num)?;
-                program.ldi(reg, value);
+                let value = parse_signed_value(tokens[2], line_num)?;
+                program.ldi(reg, value as u32);
             }
 
             "MOV" => {
@@ -1189,6 +1189,14 @@ fn parse_signed_value(token: &str, line: usize) -> Result<i32, ParseError> {
     if token.starts_with('\'') {
         let uval = parse_value(token, line)?;
         return Ok(uval as i32);
+    }
+
+    // Handle negative hex/bin: -0xFF, -0b1010
+    if let Some(rest) = token.strip_prefix('-') {
+        if rest.starts_with("0x") || rest.starts_with("0X") || rest.starts_with("0b") || rest.starts_with("0B") {
+            let uval = parse_value(rest, line)?;
+            return Ok(-(uval as i32));
+        }
     }
 
     // Try signed decimal first

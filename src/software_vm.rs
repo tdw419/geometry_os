@@ -5199,6 +5199,71 @@ HALT
             "    LDI r0, 0\n    LDI r1, 1\n    LDI r2, 5\n    ADD r0, r1\n    BLT r0, r2, -2\n    HALT\n");
     }
 
+    // ── GEO-88: Hex immediate parsing (0x prefix) ──
+
+    #[test]
+    fn test_dual_assemble_ldi_hex_small() {
+        // LDI with small hex: 0xFF = 255
+        dual_assemble("ldi_hex_small",
+            "    LDI r0, 0xFF\n    HALT\n");
+    }
+
+    #[test]
+    fn test_dual_assemble_ldi_hex_addr() {
+        // LDI with hex address: 0x10000
+        dual_assemble("ldi_hex_addr",
+            "    LDI r0, 0x10000\n    HALT\n");
+    }
+
+    #[test]
+    fn test_dual_assemble_ldi_hex_upper() {
+        // Uppercase 0X prefix
+        dual_assemble("ldi_hex_upper",
+            "    LDI r0, 0XFF\n    HALT\n");
+    }
+
+    #[test]
+    fn test_dual_assemble_ldi_hex_mixed() {
+        // Mixed case hex digits
+        dual_assemble("ldi_hex_mixed",
+            "    LDI r0, 0xAb\n    HALT\n");
+    }
+
+    #[test]
+    fn test_dual_assemble_ldi_negative() {
+        // Negative immediate: -1 should produce 0xFFFFFFFF
+        dual_assemble("ldi_negative",
+            "    LDI r0, -1\n    HALT\n");
+    }
+
+    #[test]
+    fn test_dual_assemble_ldi_negative_offset() {
+        // Negative hex: -0xFF should produce two's complement of 255
+        dual_assemble("ldi_negative_hex",
+            "    LDI r0, -0xFF\n    HALT\n");
+    }
+
+    #[test]
+    fn test_dual_assemble_ldi_char_literal() {
+        // Character literal: 'A' = 65
+        dual_assemble("ldi_char_literal",
+            "    LDI r0, 'A'\n    HALT\n");
+    }
+
+    #[test]
+    fn test_dual_assemble_ldi_char_digit() {
+        // Character literal: '0' = 48
+        dual_assemble("ldi_char_digit",
+            "    LDI r1, '0'\n    HALT\n");
+    }
+
+    #[test]
+    fn test_dual_assemble_negative_and_char() {
+        // Mix of negative, char, hex, decimal
+        dual_assemble("negative_and_char",
+            "    LDI r0, -1\n    LDI r1, 'A'\n    LDI r2, 0xFF\n    LDI r3, 42\n    HALT\n");
+    }
+
     // Debug: step through VM assembler execution, track register state
     #[test]
     fn test_debug_vm_assembler_step() {
