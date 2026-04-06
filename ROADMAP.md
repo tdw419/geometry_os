@@ -3,7 +3,7 @@
 ## Overview
 GPU-native operating system written in Rust. Programs are pixels. The GPU is the CPU.
 
-**Status:** 393 tests passed, 0 failed, 1 ignored. Phases 0-12 ALL COMPLETE.
+**Status:** 396 tests passed, 0 failed, 1 ignored. Phases 0-12 ALL COMPLETE.
 
 ---
 
@@ -20,7 +20,7 @@ Boot a real RV64 Linux kernel on the GPU compute shader.
 - GEO-60: AMDGPU direct command submission via DRM ioctl (done)
 - GEO-61: DMA-BUF framebuffer sharing for zero-copy visualization (done)
 
-**Note:** All regressions resolved. 393/393 tests passing.
+**Note:** All regressions resolved. 396/396 tests passing.
 
 ## Phase 9: Probabilistic & Self-Modifying Code (COMPLETE)
 - GEO-64: Probabilistic execution opcodes (BRANCH_PROB, CONFIDENCE_MARK, ALTERNATIVE_SELECT) (done)
