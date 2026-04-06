@@ -135,6 +135,70 @@ pub const DASHBOARD_PIXELS: u32 = DASHBOARD_WIDTH * DASHBOARD_HEIGHT;
 
 /// Base address of the system input bus (Hilbert pixel index).
 pub const SYS_INPUT_BASE: u32 = 0x00E2_0000;
+
+// ── Issue Queue Region (Phase 13A) ──
+//
+// A VM-managed task queue that lives entirely in texture memory.
+// This is the foundation for self-hosting: the OS manages its own work.
+//
+// Address layout (Hilbert pixel indices):
+//
+//   ISSUEQ_BASE + 0 : head       (u32, index of next issue to pick)
+//   ISSUEQ_BASE + 1 : tail       (u32, index where next create goes)
+//   ISSUEQ_BASE + 2 : count      (u32, number of issues in queue)
+//   ISSUEQ_BASE + 3 : capacity   (u32, max issues = ISSUEQ_CAPACITY)
+//
+//   ISSUEQ_BASE + ISSUEQ_HEADER_SIZE .. end : Issue slots
+//     Each issue is ISSUEQ_SLOT_SIZE pixels:
+//       Pixel 0: metadata = (status << 24) | (priority << 16) | (assignee_id_low)
+//         status: 0=todo, 1=in_progress, 2=done
+//         priority: 0=none, 1=low, 2=medium, 3=high, 4=critical
+//         assignee_id: 0=unassigned, 1..8=VM ID
+//       Pixel 1: issue_id (auto-incremented, unique)
+//       Pixels 2-25: title (packed ASCII, 4 bytes/pixel = 96 chars max, null-terminated)
+//       Pixels 26-31: reserved (future: description, labels, etc.)
+
+/// Base address of the issue queue region (Hilbert pixel index).
+pub const ISSUEQ_BASE: u32 = 0x00E3_0000;
+/// Number of pixels in the queue header.
+pub const ISSUEQ_HEADER_SIZE: u32 = 4;
+/// Maximum number of issues in the queue.
+pub const ISSUEQ_CAPACITY: u32 = 64;
+/// Number of pixels per issue slot.
+pub const ISSUEQ_SLOT_SIZE: u32 = 32;
+/// Base address of the first issue slot.
+pub const ISSUEQ_SLOTS_BASE: u32 = ISSUEQ_BASE + ISSUEQ_HEADER_SIZE;
+/// Total issue queue region size in pixels.
+pub const ISSUEQ_REGION_SIZE: u32 = ISSUEQ_HEADER_SIZE + ISSUEQ_CAPACITY * ISSUEQ_SLOT_SIZE;
+
+/// Issue status values.
+pub const ISSUE_STATUS_TODO: u32 = 0;
+pub const ISSUE_STATUS_IN_PROGRESS: u32 = 1;
+pub const ISSUE_STATUS_DONE: u32 = 2;
+
+/// Issue priority values.
+pub const ISSUE_PRIORITY_NONE: u32 = 0;
+pub const ISSUE_PRIORITY_LOW: u32 = 1;
+pub const ISSUE_PRIORITY_MEDIUM: u32 = 2;
+pub const ISSUE_PRIORITY_HIGH: u32 = 3;
+pub const ISSUE_PRIORITY_CRITICAL: u32 = 4;
+
+// ── Metrics Region (Phase 13C) ──
+//
+// Performance counters for the self-orchestrating loop.
+// Written by VM programs, read by tests.
+//
+//   METRICS_BASE + 0 : cycles_completed   (u32, total scheduler frames)
+//   METRICS_BASE + 1 : issues_created     (u32, total issues pushed)
+//   METRICS_BASE + 2 : issues_done        (u32, total issues completed)
+//   METRICS_BASE + 3 : issues_in_progress (u32, currently being worked)
+//   METRICS_BASE + 4 : batch_number       (u32, current batch iteration)
+
+/// Base address of the metrics region.
+pub const METRICS_BASE: u32 = 0x00E4_0000;
+/// Metrics region size in pixels.
+pub const METRICS_SIZE: u32 = 8;
+
 /// Offset from SYS_INPUT_BASE for mouse X coordinate.
 pub const SYS_MOUSE_X: u32 = SYS_INPUT_BASE;
 /// Offset from SYS_INPUT_BASE for mouse Y coordinate.

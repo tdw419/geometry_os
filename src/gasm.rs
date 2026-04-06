@@ -525,6 +525,10 @@ fn is_valid_mnemonic(m: &str) -> bool {
             | "TEXT_STR"
             | "CIRCLEF"
             | "DATA"
+            | "ISSUE_CREATE"
+            | "ISSUE_PICK"
+            | "ISSUE_UPDATE"
+            | "ISSUE_LIST"
     )
 }
 
@@ -851,6 +855,37 @@ fn emit_instruction(
             expect_ops(mnemonic, operands, 1, line_num)?;
             let val = parse_imm(&operands[0], line_num)?;
             prog.pixels.push(val);
+        }
+        "ISSUE_CREATE" => {
+            // ISSUE_CREATE r_title_addr, r_priority, assignee_id
+            expect_ops(mnemonic, operands, 3, line_num)?;
+            let title_addr = parse_reg(&operands[0], line_num, "title_addr")?;
+            let priority = parse_reg(&operands[1], line_num, "priority")?;
+            let assignee_id = parse_imm(&operands[2], line_num)? as u8;
+            prog.issue_create(title_addr, priority, assignee_id);
+        }
+        "ISSUE_PICK" => {
+            // ISSUE_PICK r_out_addr, r_filter, agent_vm_id
+            expect_ops(mnemonic, operands, 3, line_num)?;
+            let out_addr = parse_reg(&operands[0], line_num, "out_addr")?;
+            let filter = parse_reg(&operands[1], line_num, "filter")?;
+            let agent_vm_id = parse_imm(&operands[2], line_num)? as u8;
+            prog.issue_pick(out_addr, filter, agent_vm_id);
+        }
+        "ISSUE_UPDATE" => {
+            // ISSUE_UPDATE r_issue_id, r_new_status
+            expect_ops(mnemonic, operands, 2, line_num)?;
+            let issue_id = parse_reg(&operands[0], line_num, "issue_id")?;
+            let new_status = parse_reg(&operands[1], line_num, "new_status")?;
+            prog.issue_update(issue_id, new_status);
+        }
+        "ISSUE_LIST" => {
+            // ISSUE_LIST r_out_addr, r_filter, max_results
+            expect_ops(mnemonic, operands, 3, line_num)?;
+            let out_addr = parse_reg(&operands[0], line_num, "out_addr")?;
+            let filter = parse_reg(&operands[1], line_num, "filter")?;
+            let max_results = parse_imm(&operands[2], line_num)? as u8;
+            prog.issue_list(out_addr, filter, max_results);
         }
         _ => {
             return Err(format!(

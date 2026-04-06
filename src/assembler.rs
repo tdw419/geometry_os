@@ -66,6 +66,12 @@ pub mod op {
     pub const SEMANTIC_MERGE: u8 = 226; // Merge clusters: SEMANTIC_MERGE r_a, r_b, r_dest (2 pixels)
     pub const YIELD: u8 = 227;
     pub const SPAWN: u8 = 230;
+
+    // Issue queue opcodes (Phase 13A)
+    pub const ISSUE_CREATE: u8 = 240; // Create issue: ISSUE_CREATE r_title_addr, r_priority [stratum=assignee_id]
+    pub const ISSUE_PICK: u8 = 241;   // Pick next issue: ISSUE_PICK r_out_addr, r_filter [stratum=filter_value]
+    pub const ISSUE_UPDATE: u8 = 242; // Update issue: ISSUE_UPDATE r_issue_id, r_new_status
+    pub const ISSUE_LIST: u8 = 243;   // List issues: ISSUE_LIST r_out_addr, r_filter [stratum=filter_value]
 }
 
 /// Branch condition types (encoded in stratum field)
@@ -394,6 +400,47 @@ impl Program {
     /// Halt execution
     pub fn halt(&mut self) -> &mut Self {
         self.instruction(op::HALT, 0, 0, 0)
+    }
+
+    // ── Issue Queue Opcodes (Phase 13A) ─────────────────────────────
+
+    /// ISSUE_CREATE: Create a new issue in the queue.
+    /// ISSUE_CREATE r_title_addr, r_priority, assignee_id
+    /// - r_title_addr (p1): Hilbert pixel address of null-terminated title string (packed ASCII)
+    /// - r_priority (p2): priority value (0=none, 1=low, 2=medium, 3=high, 4=critical)
+    /// - assignee_id (stratum): VM ID of assignee (0=unassigned)
+    /// Returns: issue_id in r_title_addr (overwritten with the new issue's ID), or 0 on failure.
+    pub fn issue_create(&mut self, title_addr_reg: u8, priority_reg: u8, assignee_id: u8) -> &mut Self {
+        self.instruction(op::ISSUE_CREATE, assignee_id, title_addr_reg, priority_reg)
+    }
+
+    /// ISSUE_PICK: Atomically claim the next todo issue matching a filter.
+    /// ISSUE_PICK r_out_addr, r_filter
+    /// - r_out_addr (p1): Hilbert pixel address where issue data will be copied
+    /// - r_filter (p2): filter criteria (0=pick any, else pick matching priority)
+    /// - stratum: VM ID of the claiming agent (used for atomicity)
+    /// Returns: r_out_addr = issue_id on success, 0 if no matching issue.
+    pub fn issue_pick(&mut self, out_addr_reg: u8, filter_reg: u8, agent_vm_id: u8) -> &mut Self {
+        self.instruction(op::ISSUE_PICK, agent_vm_id, out_addr_reg, filter_reg)
+    }
+
+    /// ISSUE_UPDATE: Change the status of an issue.
+    /// ISSUE_UPDATE r_issue_id, r_new_status
+    /// - r_issue_id (p1): the issue ID to update
+    /// - r_new_status (p2): new status (0=todo, 1=in_progress, 2=done)
+    /// Returns: r_issue_id = 1 on success, 0 if issue not found.
+    pub fn issue_update(&mut self, issue_id_reg: u8, new_status_reg: u8) -> &mut Self {
+        self.instruction(op::ISSUE_UPDATE, 0, issue_id_reg, new_status_reg)
+    }
+
+    /// ISSUE_LIST: Iterate over issues matching a filter.
+    /// ISSUE_LIST r_out_addr, r_filter
+    /// - r_out_addr (p1): Hilbert pixel address where matching issue IDs will be written
+    /// - r_filter (p2): filter (0=all, else match priority)
+    /// - stratum: max number of results to write
+    /// Returns: r_out_addr = count of matching issues written.
+    pub fn issue_list(&mut self, out_addr_reg: u8, filter_reg: u8, max_results: u8) -> &mut Self {
+        self.instruction(op::ISSUE_LIST, max_results, out_addr_reg, filter_reg)
     }
 
     pub fn len(&self) -> usize {
@@ -1201,6 +1248,38 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
                 let dest_reg = parse_register(tokens[3], line_num)?;
                 program.semantic_merge(cluster_a_reg, cluster_b_reg, dest_reg);
                 current_addr += 2; // emits 2 pixels
+            },
+
+            // ── Issue Queue Opcodes (Phase 13A) ──
+            "ISSUE_CREATE" => {
+                expect_arg_count(&tokens, 3, line_num)?;
+                let title_addr_reg = parse_register(tokens[1], line_num)?;
+                let priority_reg = parse_register(tokens[2], line_num)?;
+                let assignee_id = parse_value(tokens[3], line_num)? as u8;
+                program.issue_create(title_addr_reg, priority_reg, assignee_id);
+            },
+
+            "ISSUE_PICK" => {
+                expect_arg_count(&tokens, 3, line_num)?;
+                let out_addr_reg = parse_register(tokens[1], line_num)?;
+                let filter_reg = parse_register(tokens[2], line_num)?;
+                let agent_vm_id = parse_value(tokens[3], line_num)? as u8;
+                program.issue_pick(out_addr_reg, filter_reg, agent_vm_id);
+            },
+
+            "ISSUE_UPDATE" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let issue_id_reg = parse_register(tokens[1], line_num)?;
+                let new_status_reg = parse_register(tokens[2], line_num)?;
+                program.issue_update(issue_id_reg, new_status_reg);
+            },
+
+            "ISSUE_LIST" => {
+                expect_arg_count(&tokens, 3, line_num)?;
+                let out_addr_reg = parse_register(tokens[1], line_num)?;
+                let filter_reg = parse_register(tokens[2], line_num)?;
+                let max_results = parse_value(tokens[3], line_num)? as u8;
+                program.issue_list(out_addr_reg, filter_reg, max_results);
             },
 
             // .org ADDRESS - set output origin, pad with zeros

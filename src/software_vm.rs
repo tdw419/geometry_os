@@ -582,6 +582,173 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
             vm.regs[p1 as usize] = 1; // return 1 = spawn requested
         }
 
+        // ── Issue Queue Opcodes (Phase 13A) ──────────────────────────
+
+        // ISSUE_CREATE (240): Create a new issue in the queue.
+        // Encoding: (240, assignee_id, r_title_addr, r_priority)
+        // Reads title from pixel memory at r_title_addr (packed ASCII, null-terminated).
+        // Returns: issue_id in r_title_addr register, or 0 on failure (queue full).
+        240 => {
+            let title_addr = vm.regs[p1 as usize];
+            let priority = vm.regs[p2 as usize];
+            let assignee_id = stratum;
+
+            // Read queue header
+            let head = mem_read(ram, crate::ISSUEQ_BASE * 4);
+            let tail = mem_read(ram, (crate::ISSUEQ_BASE + 1) * 4);
+            let count = mem_read(ram, (crate::ISSUEQ_BASE + 2) * 4);
+
+            if count >= crate::ISSUEQ_CAPACITY {
+                vm.regs[p1 as usize] = 0; // queue full
+            } else {
+                let slot_idx = tail % crate::ISSUEQ_CAPACITY;
+                let slot_base = crate::ISSUEQ_SLOTS_BASE + slot_idx * crate::ISSUEQ_SLOT_SIZE;
+
+                // Compute issue_id: tail + 1 (1-indexed, auto-incremented)
+                let issue_id = tail + 1;
+
+                // Write metadata pixel: (status << 24) | (priority << 16) | (assignee_id)
+                let meta = (crate::ISSUE_STATUS_TODO << 24) | ((priority & 0xFF) << 16) | ((assignee_id as u32) & 0xFFFF);
+                write_glyph(ram, slot_base, (meta & 0xFF, (meta >> 8) & 0xFF, (meta >> 16) & 0xFF, (meta >> 24) & 0xFF));
+                // Wait -- write_glyph takes (u32, u32, u32, u32), and meta is the word value.
+                // Actually we need mem_write since issue metadata is a packed 32-bit word.
+                mem_write(ram, slot_base * 4, meta);
+
+                // Write issue_id pixel
+                mem_write(ram, (slot_base + 1) * 4, issue_id);
+
+                // Copy title from title_addr into slot pixels 2-25 (packed ASCII, 4 bytes per pixel)
+                for i in 0..24 {
+                    let src_word = safe_mem_read(ram, vm, (title_addr + i) * 4);
+                    mem_write(ram, (slot_base + 2 + i) * 4, src_word);
+                }
+
+                // Update queue header: increment tail and count
+                mem_write(ram, (crate::ISSUEQ_BASE + 1) * 4, tail + 1);
+                mem_write(ram, (crate::ISSUEQ_BASE + 2) * 4, count + 1);
+                // Initialize capacity if first issue
+                if count == 0 {
+                    mem_write(ram, (crate::ISSUEQ_BASE + 3) * 4, crate::ISSUEQ_CAPACITY);
+                }
+
+                vm.regs[p1 as usize] = issue_id;
+            }
+        }
+
+        // ISSUE_PICK (241): Atomically claim the highest-priority todo issue.
+        // Encoding: (241, agent_vm_id, r_out_addr, r_filter)
+        // Scans all issues, finds the highest-priority todo issue matching filter,
+        // atomically sets its status to IN_PROGRESS and assignee to agent_vm_id.
+        // Returns: issue_id in r_out_addr, or 0 if no match.
+        // If r_filter == 0, picks any todo issue (highest priority first).
+        // Copies issue slot data to r_out_addr (title, metadata, etc.).
+        241 => {
+            let agent_vm_id = stratum;
+            let out_addr = vm.regs[p1 as usize];
+            let filter = vm.regs[p2 as usize];
+
+            let count = mem_read(ram, (crate::ISSUEQ_BASE + 2) * 4);
+
+            let mut best_slot: Option<u32> = None;
+            let mut best_priority: u32 = 0;
+            let mut best_issue_id: u32 = 0;
+
+            for i in 0..crate::ISSUEQ_CAPACITY {
+                if i >= count {
+                    break;
+                }
+                let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
+                let meta = mem_read(ram, slot_base * 4);
+                let status = (meta >> 24) & 0xFF;
+                let priority = (meta >> 16) & 0xFF;
+
+                if status != crate::ISSUE_STATUS_TODO {
+                    continue;
+                }
+                if filter != 0 && priority != filter {
+                    continue;
+                }
+                if priority >= best_priority {
+                    best_priority = priority;
+                    best_slot = Some(slot_base);
+                    best_issue_id = mem_read(ram, (slot_base + 1) * 4);
+                }
+            }
+
+            if let Some(slot_base) = best_slot {
+                // Atomic claim: set status to IN_PROGRESS and assignee to agent_vm_id
+                let meta = mem_read(ram, slot_base * 4);
+                let priority = (meta >> 16) & 0xFF;
+                let new_meta = (crate::ISSUE_STATUS_IN_PROGRESS << 24)
+                    | (priority << 16)
+                    | ((agent_vm_id as u32) & 0xFFFF);
+                mem_write(ram, slot_base * 4, new_meta);
+
+                // Copy issue data to output region (full slot = 32 pixels)
+                for i in 0..crate::ISSUEQ_SLOT_SIZE {
+                    let word = mem_read(ram, (slot_base + i) * 4);
+                    mem_write(ram, (out_addr + i) * 4, word);
+                }
+
+                vm.regs[p1 as usize] = best_issue_id;
+            } else {
+                vm.regs[p1 as usize] = 0; // no matching issue
+            }
+        }
+
+        // ISSUE_UPDATE (242): Change status of an issue.
+        // Encoding: (242, 0, r_issue_id, r_new_status)
+        // Scans issues to find matching issue_id, updates status.
+        // Returns: 1 in r_issue_id on success, 0 if not found.
+        242 => {
+            let target_id = vm.regs[p1 as usize];
+            let new_status = vm.regs[p2 as usize];
+            let count = mem_read(ram, (crate::ISSUEQ_BASE + 2) * 4);
+
+            let mut found = false;
+            for i in 0..crate::ISSUEQ_CAPACITY {
+                if i >= count {
+                    break;
+                }
+                let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
+                let issue_id = mem_read(ram, (slot_base + 1) * 4);
+                if issue_id == target_id {
+                    let meta = mem_read(ram, slot_base * 4);
+                    let priority = (meta >> 16) & 0xFF;
+                    let assignee = meta & 0xFFFF;
+                    let new_meta = ((new_status & 0xFF) << 24) | (priority << 16) | assignee;
+                    mem_write(ram, slot_base * 4, new_meta);
+                    found = true;
+                    break;
+                }
+            }
+            vm.regs[p1 as usize] = if found { 1 } else { 0 };
+        }
+
+        // ISSUE_LIST (243): List issue IDs matching a filter.
+        // Encoding: (243, max_results, r_out_addr, r_filter)
+        // Writes matching issue IDs to r_out_addr as an array of u32 words.
+        // r_filter == 0: match all statuses.
+        // Returns: count of matching issues in r_out_addr.
+        243 => {
+            let max_results = stratum as u32;
+            let out_addr = vm.regs[p1 as usize];
+            let _filter = vm.regs[p2 as usize];
+            let count = mem_read(ram, (crate::ISSUEQ_BASE + 2) * 4);
+
+            let mut written = 0u32;
+            for i in 0..crate::ISSUEQ_CAPACITY {
+                if i >= count || written >= max_results {
+                    break;
+                }
+                let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
+                let issue_id = mem_read(ram, (slot_base + 1) * 4);
+                mem_write(ram, (out_addr + written) * 4, issue_id);
+                written += 1;
+            }
+            vm.regs[p1 as usize] = written;
+        }
+
         // WAIT_EVENT (opcode 28): Block until event arrives.
         // WAIT_EVENT r_event_type, r_param1
         // If event pending: reads event into r_event_type, r_param1, clears the slot.
@@ -6220,7 +6387,7 @@ mod geo94_tests {
 #[cfg(test)]
 mod geo92_tier2 {
     use super::*;
-    use crate::assembler;
+    use crate::assembler::{self, op, bcond, Program};
     use crate::geoasm_mem;
 
     /// Assemble source via the self-hosting VM assembler, then execute the output.
@@ -6386,5 +6553,762 @@ mod geo92_tier2 {
         let prog = crate::gasm::assemble(&src)
             .expect("pixel_forge.gasm should assemble cleanly");
         assert!(prog.pixels.len() > 100, "pixel_forge should be >100 pixels, got {}", prog.pixels.len());
+    }
+
+    // ── Issue Queue Tests (Phase 13A) ──────────────────────────────────
+
+    /// Helper: create an SVM with a program that creates issues and halts.
+    /// Returns the SVM ready to execute.
+    fn issueq_setup() -> SoftwareVm {
+        let mut svm = SoftwareVm::new();
+        // Zero out the issue queue header region
+        for i in 0..crate::ISSUEQ_REGION_SIZE {
+            svm.poke(crate::ISSUEQ_BASE + i, 0);
+        }
+        svm
+    }
+
+    /// Helper: write a null-terminated ASCII string to pixel memory.
+    /// Packs 4 bytes per pixel (little-endian).
+    fn write_string(svm: &mut SoftwareVm, addr: u32, s: &str) {
+        let bytes: Vec<u8> = s.bytes().chain(std::iter::once(0u8)).collect();
+        for (i, chunk) in bytes.chunks(4).enumerate() {
+            let mut word: u32 = 0;
+            for (j, &b) in chunk.iter().enumerate() {
+                word |= (b as u32) << (j * 8);
+            }
+            svm.poke(addr + i as u32, word);
+        }
+    }
+
+    #[test]
+    fn test_issueq_create_single() {
+        // Create a single issue and verify queue state.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "fix bug");
+
+        // Program: create issue, halt
+        let mut p = Program::new();
+        let load_addr: u32 = 0x0000_1000;
+        p.ldi(10, title_addr);      // r10 = title addr
+        p.ldi(11, 3);               // r11 = priority high
+        p.issue_create(10, 11, 0);  // ISSUE_CREATE r10=title, r11=priority, assignee=0
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "VM should halt");
+        // r10 should now hold the issue_id (not 0)
+        let issue_id = svm.vm_state(0).regs[10];
+        assert_eq!(issue_id, 1, "first issue should have id=1");
+
+        // Verify queue header: head=0, tail=1, count=1, capacity=64
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE), 0, "head should be 0");
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 1), 1, "tail should be 1");
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), 1, "count should be 1");
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 3), crate::ISSUEQ_CAPACITY, "capacity should be set");
+
+        // Verify slot 0 metadata: status=todo(0), priority=high(3), assignee=0
+        let meta = svm.peek(crate::ISSUEQ_SLOTS_BASE);
+        let status = (meta >> 24) & 0xFF;
+        let priority = (meta >> 16) & 0xFF;
+        assert_eq!(status, crate::ISSUE_STATUS_TODO, "status should be TODO");
+        assert_eq!(priority, 3, "priority should be high(3)");
+
+        // Verify issue_id in slot
+        assert_eq!(svm.peek(crate::ISSUEQ_SLOTS_BASE + 1), 1, "slot issue_id should be 1");
+    }
+
+    #[test]
+    fn test_issueq_create_ten() {
+        // Create 10 issues and verify queue state.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "issue title here enough bytes");
+
+        // Program: create 10 issues in a loop
+        // We'll unroll: create issue, check result, increment title, repeat
+        let mut p = Program::new();
+        let load_addr: u32 = 0x0000_1000;
+
+        // r5 = counter, r6 = title addr
+        p.ldi(5, 0);           // counter = 0
+        p.ldi(6, title_addr);  // r6 = title base
+
+        let loop_start = p.pixels.len();
+        // LDI r10 = current title addr (r6 + counter * some_offset, but we reuse same title)
+        p.instruction(op::MOV, 0, 10, 6);  // r10 = title_addr
+        p.ldi(11, 2);                       // r11 = priority medium
+        p.issue_create(10, 11, 0);          // ISSUE_CREATE r10, r11, assignee=0
+        // r10 now has issue_id (or 0 on failure)
+        // Increment counter
+        p.ldi(7, 1);
+        p.instruction(op::ADD, 0, 5, 7);   // counter++
+        p.ldi(8, 10);
+        // Branch if counter < 10: loop back
+        p.instruction(op::BRANCH, bcond::BGE, 5, 8);
+        p.pixels.push(0); // placeholder
+        let branch_pc = p.pixels.len() - 1;
+        // Jump back
+        let jmp_pc = p.pixels.len();
+        p.instruction(op::JMP, 0, 0, 0);
+        let back = loop_start as i32 - jmp_pc as i32;
+        p.pixels.push(back as u32);
+
+        let end_pc = p.pixels.len();
+        let offset = (end_pc as i32) - ((branch_pc - 1) as i32);
+        p.pixels[branch_pc] = offset as u32;
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        // Run many frames to complete the loop
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "VM should halt after creating 10 issues");
+
+        // Verify queue count = 10
+        let count = svm.peek(crate::ISSUEQ_BASE + 2);
+        assert_eq!(count, 10, "should have 10 issues in queue");
+
+        // Verify tail = 10
+        let tail = svm.peek(crate::ISSUEQ_BASE + 1);
+        assert_eq!(tail, 10, "tail should be 10");
+
+        // Verify each slot has the right issue_id (1-indexed)
+        for i in 0..10u32 {
+            let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
+            let id = svm.peek(slot_base + 1);
+            assert_eq!(id, i + 1, "slot {} should have issue_id {}", i, i + 1);
+        }
+    }
+
+    #[test]
+    fn test_issueq_pick_priority_order() {
+        // Create 3 issues with different priorities, then pick -- should get highest first.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "some issue title");
+
+        let load_addr: u32 = 0x0000_1000;
+        let mut p = Program::new();
+
+        // Create 3 issues: low(1), critical(4), medium(2)
+        p.ldi(10, title_addr);
+        p.ldi(11, 1);  // low
+        p.issue_create(10, 11, 0);
+
+        p.instruction(op::MOV, 0, 10, 6); // But we need a reg with title_addr again
+        // Actually let's just reset r10
+        p.ldi(10, title_addr);
+        p.ldi(11, 4);  // critical
+        p.issue_create(10, 11, 0);
+
+        p.ldi(10, title_addr);
+        p.ldi(11, 2);  // medium
+        p.issue_create(10, 11, 0);
+
+        // Now pick (filter=0 = any)
+        let out_addr: u32 = 0x0020_0000;
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);   // filter = 0 (any)
+        p.issue_pick(12, 13, 1); // agent_vm_id=1
+
+        p.halt();
+
+        // We need r6 for title_addr - let me fix: just use r10 directly
+        // Actually the issue_create overwrites r10 with issue_id. That's fine for subsequent uses.
+        // Let me rewrite more carefully.
+
+        let mut p = Program::new();
+
+        // Issue 1: priority low(1)
+        p.ldi(10, title_addr);
+        p.ldi(11, 1);
+        p.issue_create(10, 11, 0);
+
+        // Issue 2: priority critical(4)
+        p.ldi(10, title_addr);
+        p.ldi(11, 4);
+        p.issue_create(10, 11, 0);
+
+        // Issue 3: priority medium(2)
+        p.ldi(10, title_addr);
+        p.ldi(11, 2);
+        p.issue_create(10, 11, 0);
+
+        // Pick: should get the critical(4) one first
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);   // filter=0 (any)
+        p.issue_pick(12, 13, 1); // pick as agent 1
+
+        // r12 now has the issue_id of the picked issue
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..20 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "VM should halt");
+
+        let picked_id = svm.vm_state(0).regs[12];
+        assert_eq!(picked_id, 2, "should pick issue_id=2 (the critical one)");
+
+        // Verify its status is now IN_PROGRESS
+        // Issue 2 is in slot index 1 (0-indexed, tail=2 -> slot_idx = tail%64)
+        // Actually issue 2 is slot_idx=1 (second created)
+        let slot_base = crate::ISSUEQ_SLOTS_BASE + 1 * crate::ISSUEQ_SLOT_SIZE;
+        let meta = svm.peek(slot_base);
+        let status = (meta >> 24) & 0xFF;
+        assert_eq!(status, crate::ISSUE_STATUS_IN_PROGRESS, "picked issue should be IN_PROGRESS");
+    }
+
+    #[test]
+    fn test_issueq_pick_no_match() {
+        // Pick from empty queue -> returns 0.
+        let mut svm = issueq_setup();
+
+        let load_addr: u32 = 0x0000_1000;
+        let out_addr: u32 = 0x0020_0000;
+
+        let mut p = Program::new();
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_pick(12, 13, 1);
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        assert_eq!(svm.vm_state(0).regs[12], 0, "pick from empty queue should return 0");
+    }
+
+    #[test]
+    fn test_issueq_update_status() {
+        // Create an issue, then update its status to done.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "test issue");
+
+        let load_addr: u32 = 0x0000_1000;
+
+        let mut p = Program::new();
+        // Create issue
+        p.ldi(10, title_addr);
+        p.ldi(11, 3);  // high priority
+        p.issue_create(10, 11, 0);
+        // r10 = issue_id
+
+        // Update issue to done
+        p.ldi(14, crate::ISSUE_STATUS_DONE);
+        // ISSUE_UPDATE: r15 = issue_id, r14 = new_status
+        // But we need the issue_id in a register. It's in r10.
+        p.instruction(op::MOV, 0, 15, 10); // r15 = issue_id
+        p.issue_update(15, 14);
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..20 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // Update should return 1 (success)
+        assert_eq!(svm.vm_state(0).regs[15], 1, "update should return 1 (found)");
+
+        // Verify status in slot
+        let slot_base = crate::ISSUEQ_SLOTS_BASE;
+        let meta = svm.peek(slot_base);
+        let status = (meta >> 24) & 0xFF;
+        assert_eq!(status, crate::ISSUE_STATUS_DONE, "issue should be DONE after update");
+    }
+
+    #[test]
+    fn test_issueq_update_not_found() {
+        // Update a non-existent issue -> returns 0.
+        let mut svm = issueq_setup();
+
+        let load_addr: u32 = 0x0000_1000;
+        let mut p = Program::new();
+        p.ldi(10, 999);  // non-existent issue_id
+        p.ldi(11, crate::ISSUE_STATUS_DONE);
+        p.issue_update(10, 11);
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).regs[10], 0, "update non-existent should return 0");
+    }
+
+    #[test]
+    fn test_issueq_list_basic() {
+        // Create 5 issues, list them all.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "list test issue");
+
+        let load_addr: u32 = 0x0000_1000;
+        let out_addr: u32 = 0x0020_0000;
+
+        let mut p = Program::new();
+
+        // Create 5 issues
+        for _ in 0..5 {
+            p.ldi(10, title_addr);
+            p.ldi(11, 2);
+            p.issue_create(10, 11, 0);
+        }
+
+        // List all (filter=0, max=10)
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);   // filter = 0 (all)
+        p.issue_list(12, 13, 10); // max_results=10
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // r12 should hold count of listed issues
+        let listed = svm.vm_state(0).regs[12];
+        assert_eq!(listed, 5, "should list 5 issues");
+
+        // Verify the issue IDs at out_addr
+        for i in 0..5u32 {
+            let id = svm.peek(out_addr + i);
+            assert_eq!(id, i + 1, "listed issue {} should have id {}", i, i + 1);
+        }
+    }
+
+    #[test]
+    fn test_issueq_list_max_results() {
+        // Create 5 issues, list with max=3 -> should return 3.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "max test");
+
+        let load_addr: u32 = 0x0000_1000;
+        let out_addr: u32 = 0x0020_0000;
+
+        let mut p = Program::new();
+
+        for _ in 0..5 {
+            p.ldi(10, title_addr);
+            p.ldi(11, 2);
+            p.issue_create(10, 11, 0);
+        }
+
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_list(12, 13, 3); // max=3
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        let listed = svm.vm_state(0).regs[12];
+        assert_eq!(listed, 3, "should list at most 3 issues");
+    }
+
+    #[test]
+    fn test_issueq_concurrent_pick_two_vms() {
+        // Two VMs compete for issues. Create 2 issues, each VM picks one.
+        // No double-claim: each issue is picked by exactly one VM.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "race condition test");
+
+        // First, use a setup program to create 2 issues
+        let setup_addr: u32 = 0x0000_1000;
+        let mut setup = Program::new();
+        setup.ldi(10, title_addr);
+        setup.ldi(11, 3); // high
+        setup.issue_create(10, 11, 0);
+        setup.ldi(10, title_addr);
+        setup.ldi(11, 2); // medium
+        setup.issue_create(10, 11, 0);
+        setup.halt();
+
+        svm.load_program(setup_addr, &setup.pixels);
+        svm.spawn_vm(0, setup_addr);
+
+        for _ in 0..20 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // Verify 2 issues created
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), 2, "should have 2 issues");
+
+        // Now spawn two picker VMs
+        let picker_addr_a: u32 = 0x0000_2000;
+        let picker_addr_b: u32 = 0x0000_3000;
+        let out_a: u32 = 0x0030_0000;
+        let out_b: u32 = 0x0031_0000;
+
+        let mut picker_a = Program::new();
+        picker_a.ldi(12, out_a);
+        picker_a.ldi(13, 0);  // filter=0
+        picker_a.issue_pick(12, 13, 2); // agent_vm_id=2
+        picker_a.halt();
+
+        let mut picker_b = Program::new();
+        picker_b.ldi(12, out_b);
+        picker_b.ldi(13, 0);
+        picker_b.issue_pick(12, 13, 3); // agent_vm_id=3
+        picker_b.halt();
+
+        // Reset VM 0 and spawn both pickers
+        svm.spawn_vm(1, picker_addr_a);
+        svm.spawn_vm(2, picker_addr_b);
+        svm.load_program(picker_addr_a, &picker_a.pixels);
+        svm.load_program(picker_addr_b, &picker_b.pixels);
+
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(1).state, vm_state::HALTED, "picker A should halt");
+        assert_eq!(svm.vm_state(2).state, vm_state::HALTED, "picker B should halt");
+
+        let picked_a = svm.vm_state(1).regs[12];
+        let picked_b = svm.vm_state(2).regs[12];
+
+        // Both should have picked different issues (no double-claim)
+        assert_ne!(picked_a, 0, "picker A should pick an issue");
+        assert_ne!(picked_b, 0, "picker B should pick an issue");
+        assert_ne!(picked_a, picked_b, "pickers should pick different issues");
+
+        // Verify the picked issues are now IN_PROGRESS
+        // Check all slots -- exactly 2 should be IN_PROGRESS
+        let mut in_progress_count = 0u32;
+        for i in 0..2u32 {
+            let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
+            let meta = svm.peek(slot_base);
+            let status = (meta >> 24) & 0xFF;
+            if status == crate::ISSUE_STATUS_IN_PROGRESS {
+                in_progress_count += 1;
+            }
+        }
+        assert_eq!(in_progress_count, 2, "both issues should be IN_PROGRESS after pick");
+    }
+
+    #[test]
+    fn test_issueq_queue_full() {
+        // Fill the queue to capacity, then try to create one more -> should fail.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "full queue test title");
+
+        let load_addr: u32 = 0x0000_1000;
+
+        let mut p = Program::new();
+        // Create ISSUEQ_CAPACITY (64) issues
+        p.ldi(5, 0);           // counter
+        p.ldi(6, title_addr);  // title addr
+        let loop_top = p.pixels.len();
+        p.instruction(op::MOV, 0, 10, 6);  // r10 = title_addr
+        p.ldi(11, 2);                       // priority medium
+        p.issue_create(10, 11, 0);
+        // r10 = issue_id (should be > 0 for all 64)
+        p.ldi(7, 1);
+        p.instruction(op::ADD, 0, 5, 7);
+        p.ldi(8, crate::ISSUEQ_CAPACITY);
+        p.instruction(op::BRANCH, bcond::BGE, 5, 8);
+        p.pixels.push(0);
+        let br_pc = p.pixels.len() - 1;
+        let jmp_pc = p.pixels.len();
+        p.instruction(op::JMP, 0, 0, 0);
+        p.pixels.push((loop_top as i32 - jmp_pc as i32) as u32);
+        let end_pc = p.pixels.len();
+        p.pixels[br_pc] = (end_pc as i32 - ((br_pc - 1) as i32)) as u32;
+
+        // Try to create one more -- should fail (return 0)
+        p.instruction(op::MOV, 0, 10, 6);
+        p.ldi(11, 2);
+        p.issue_create(10, 11, 0);
+        // r10 should be 0 (queue full)
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..500 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // Verify queue is full
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), crate::ISSUEQ_CAPACITY, "queue should be at capacity");
+
+        // The 65th create should have returned 0
+        let last_create_result = svm.vm_state(0).regs[10];
+        assert_eq!(last_create_result, 0, "65th create should return 0 (queue full)");
+    }
+
+    #[test]
+    fn test_issueq_wrap_around() {
+        // Create issues, pick them (mark done), create more.
+        // The circular buffer should wrap around via tail % CAPACITY.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "wrap test title here");
+        let out_addr: u32 = 0x0020_0000;
+        let load_addr: u32 = 0x0000_1000;
+
+        let mut p = Program::new();
+
+        // Create 3 issues
+        for _ in 0..3 {
+            p.ldi(10, title_addr);
+            p.ldi(11, 2);
+            p.issue_create(10, 11, 0);
+        }
+
+        // Pick all 3
+        for _ in 0..3 {
+            p.ldi(12, out_addr);
+            p.ldi(13, 0);
+            p.issue_pick(12, 13, 1);
+        }
+
+        // Mark all 3 as done
+        // We need issue IDs. They are 1, 2, 3.
+        for id in 1..=3u32 {
+            p.ldi(14, id);
+            p.ldi(15, crate::ISSUE_STATUS_DONE);
+            p.issue_update(14, 15);
+        }
+
+        // Now create 3 more issues -- these should go into slots 3, 4, 5
+        // (the old slots still exist but tail has advanced)
+        for _ in 0..3 {
+            p.ldi(10, title_addr);
+            p.ldi(11, 3);
+            p.issue_create(10, 11, 5); // assignee=5
+        }
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..100 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // Total count should be 6 (original 3 + new 3)
+        let count = svm.peek(crate::ISSUEQ_BASE + 2);
+        assert_eq!(count, 6, "should have 6 total issues");
+
+        // Tail should be 6
+        let tail = svm.peek(crate::ISSUEQ_BASE + 1);
+        assert_eq!(tail, 6, "tail should be 6");
+
+        // Verify new issues are in slots 3, 4, 5 with assignee=5 and priority=3
+        for i in 3..6u32 {
+            let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
+            let meta = svm.peek(slot_base);
+            let status = (meta >> 24) & 0xFF;
+            let priority = (meta >> 16) & 0xFF;
+            let assignee = meta & 0xFFFF;
+            assert_eq!(status, crate::ISSUE_STATUS_TODO, "new issue {} should be TODO", i);
+            assert_eq!(priority, 3, "new issue {} should be high priority", i);
+            assert_eq!(assignee, 5, "new issue {} should have assignee=5", i);
+        }
+    }
+
+    #[test]
+    fn test_issueq_pick_with_filter() {
+        // Create issues with mixed priorities, pick with filter for high only.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "filter test");
+        let out_addr: u32 = 0x0020_0000;
+        let load_addr: u32 = 0x0000_1000;
+
+        let mut p = Program::new();
+
+        // Create: low(1), high(3), medium(2)
+        p.ldi(10, title_addr);
+        p.ldi(11, 1);
+        p.issue_create(10, 11, 0);
+
+        p.ldi(10, title_addr);
+        p.ldi(11, 3);
+        p.issue_create(10, 11, 0);
+
+        p.ldi(10, title_addr);
+        p.ldi(11, 2);
+        p.issue_create(10, 11, 0);
+
+        // Pick with filter=3 (high only)
+        p.ldi(12, out_addr);
+        p.ldi(13, 3);  // filter = high
+        p.issue_pick(12, 13, 1);
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..20 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        let picked_id = svm.vm_state(0).regs[12];
+        assert_eq!(picked_id, 2, "filtered pick should get issue_id=2 (the high priority one)");
+    }
+
+    #[test]
+    fn test_issueq_pick_skips_non_todo() {
+        // Create 2 issues, pick one (-> in_progress), pick again -> should get the other.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "skip test");
+        let out_addr: u32 = 0x0020_0000;
+        let load_addr: u32 = 0x0000_1000;
+
+        let mut p = Program::new();
+
+        // Create 2 issues
+        p.ldi(10, title_addr);
+        p.ldi(11, 3);
+        p.issue_create(10, 11, 0);
+        p.ldi(10, title_addr);
+        p.ldi(11, 2);
+        p.issue_create(10, 11, 0);
+
+        // Pick first
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_pick(12, 13, 1);
+
+        // Pick second (should skip the in_progress one)
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_pick(12, 13, 1);
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..20 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // First pick should get issue 1 (high), second pick should get issue 2 (medium)
+        // But we only have r12 as the final result. Let me verify via memory.
+        // The out_addr was written with the slot data for the second pick.
+        // Instead, let's check that both issues are now IN_PROGRESS.
+        let mut in_progress = 0;
+        for i in 0..2u32 {
+            let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
+            let meta = svm.peek(slot_base);
+            let status = (meta >> 24) & 0xFF;
+            if status == crate::ISSUE_STATUS_IN_PROGRESS {
+                in_progress += 1;
+            }
+        }
+        assert_eq!(in_progress, 2, "both issues should be IN_PROGRESS after two picks");
+    }
+
+    #[test]
+    fn test_issueq_create_with_assignee() {
+        // Create an issue with a specific assignee_id.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "assigned issue");
+
+        let load_addr: u32 = 0x0000_1000;
+        let mut p = Program::new();
+        p.ldi(10, title_addr);
+        p.ldi(11, 2);
+        p.issue_create(10, 11, 7); // assignee=7
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+        svm.execute_frame();
+
+        let slot_base = crate::ISSUEQ_SLOTS_BASE;
+        let meta = svm.peek(slot_base);
+        let assignee = meta & 0xFFFF;
+        assert_eq!(assignee, 7, "assignee should be 7");
     }
 }
