@@ -5264,6 +5264,20 @@ HALT
             "    LDI r0, -1\n    LDI r1, 'A'\n    LDI r2, 0xFF\n    LDI r3, 42\n    HALT\n");
     }
 
+    // GEO-92: SEND opcode (17) — reg-reg + immediate length
+    #[test]
+    fn test_dual_assemble_send() {
+        dual_assemble("send",
+            "    SEND r0, r1, 10\n    HALT\n");
+    }
+
+    // GEO-92: RECV opcode (18) — reg-reg
+    #[test]
+    fn test_dual_assemble_recv() {
+        dual_assemble("recv",
+            "    RECV r5, r2\n    HALT\n");
+    }
+
     /// GEO-71: Self-hosting bootstrap test.
     /// The mini-assembler assembles its OWN source code.
     /// Since the VM assembler doesn't handle labels, we first resolve labels
@@ -5677,5 +5691,173 @@ mod geo94_tests {
         let vm = assemble_and_run(src);
         assert_eq!(vm.halted, 1, "mul should halt");
         assert_eq!(vm.regs[0], 21, "3*7 = 21");
+    }
+}
+
+/// GEO-92: Tier 2 tests -- programs assembled by the self-hosting VM assembler
+/// are loaded and executed on the software VM, verifying correct results.
+///
+/// This proves the mini-assembler (mini_assembler.gasm) produces genuinely
+/// executable code, not just byte-matching output.
+#[cfg(test)]
+mod geo92_tier2 {
+    use super::*;
+    use crate::assembler;
+    use crate::geoasm_mem;
+
+    /// Assemble source via the self-hosting VM assembler, then execute the output.
+    /// Returns the VmState after execution.
+    fn self_hosted_assemble_and_run(source: &str) -> crate::vm::VmState {
+        // Step 1: Assemble source via mini_assembler.gasm running on the VM
+        let asm_source = include_str!("../programs/mini_assembler.gasm");
+        let asm_prog =
+            assembler::parse_gasm(asm_source).expect("mini_assembler.gasm should assemble");
+
+        let asm_addr: u32 = 0x20000;
+        let mut svm = SoftwareVm::new();
+        svm.load_program(asm_addr, &asm_prog.pixels);
+        svm.spawn_vm(0, asm_addr);
+
+        // Write source text into the source region
+        let src_bytes = source.as_bytes();
+        for (i, &byte) in src_bytes.iter().enumerate() {
+            svm.poke_byte(geoasm_mem::src_byte_addr(i as u32), byte);
+        }
+        svm.poke_byte(geoasm_mem::src_byte_addr(src_bytes.len() as u32), 0);
+
+        // Run the assembler VM until it halts
+        for _ in 0..200 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+        assert_eq!(svm.vm_state(0).halted, 1, "self-hosted assembler should halt");
+
+        // Check for error halt (0xDEAD in output pixel 0)
+        let output_base = geoasm_mem::output_pixel(0);
+        let first_pixel = svm.peek(output_base);
+        assert_ne!(
+            first_pixel, 0xDEAD,
+            "self-hosted assembler reported error for source:\n{}",
+            source
+        );
+
+        // Step 2: Read the assembled output pixels
+        let rust_expected = assembler::parse_gasm(source).expect("source should parse with Rust assembler");
+        let mut output_pixels = Vec::new();
+        for i in 0..rust_expected.pixels.len() {
+            output_pixels.push(svm.peek(output_base + i as u32));
+        }
+
+        // Step 3: Execute the assembled output in a fresh VM
+        let exec_addr: u32 = 0x40000; // well clear of assembler regions
+        let mut exec_vm = SoftwareVm::new();
+        exec_vm.load_program(exec_addr, &output_pixels);
+        exec_vm.spawn_vm(0, exec_addr);
+
+        // Run until halted (may need multiple frames for looping programs)
+        for _ in 0..50 {
+            exec_vm.execute_frame();
+            if exec_vm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        exec_vm.vm_state(0).clone()
+    }
+
+    #[test]
+    fn geo92_ldi_halt() {
+        let src = "LDI r0, 42\nHALT\n";
+        let vm = self_hosted_assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "should halt");
+        assert_eq!(vm.regs[0], 42, "r0 should be 42");
+    }
+
+    #[test]
+    fn geo92_add_two_numbers() {
+        let src = "LDI r0, 10\nLDI r1, 20\nADD r0, r1\nHALT\n";
+        let vm = self_hosted_assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "should halt");
+        assert_eq!(vm.regs[0], 30, "10 + 20 = 30");
+    }
+
+    #[test]
+    fn geo92_subtract() {
+        let src = "LDI r0, 100\nLDI r1, 37\nSUB r0, r1\nHALT\n";
+        let vm = self_hosted_assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "should halt");
+        assert_eq!(vm.regs[0], 63, "100 - 37 = 63");
+    }
+
+    #[test]
+    fn geo92_multiply() {
+        let src = "LDI r0, 6\nLDI r1, 7\nMUL r0, r1\nHALT\n";
+        let vm = self_hosted_assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "should halt");
+        assert_eq!(vm.regs[0], 42, "6 * 7 = 42");
+    }
+
+    #[test]
+    fn geo92_store_load_roundtrip() {
+        let src = "LDI r0, 9999\nLDI r1, 100\nSTORE r1, r0\nLDI r0, 0\nLOAD r2, r1\nHALT\n";
+        let vm = self_hosted_assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "should halt");
+        assert_eq!(vm.regs[2], 9999, "LOAD should recover 9999");
+    }
+
+    #[test]
+    fn geo92_factorial_5() {
+        // 5! = 120 via loop: r0 *= r1, r1--, loop while r1 != 0
+        let src = "LDI r0, 1\nLDI r1, 5\nLDI r2, 0\nLDI r3, 1\nMUL r0, r1\nSUB r1, r3\nBNE r1, r2, -2\nHALT\n";
+        let vm = self_hosted_assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "factorial should halt");
+        assert_eq!(vm.regs[0], 120, "5! = 120");
+    }
+
+    #[test]
+    fn geo92_sum_1_to_10() {
+        // sum += r1, r1--, loop while r1 != 0
+        let src = "LDI r0, 0\nLDI r1, 10\nLDI r2, 0\nLDI r3, 1\nADD r0, r1\nSUB r1, r3\nBNE r1, r2, -2\nHALT\n";
+        let vm = self_hosted_assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "sum should halt");
+        assert_eq!(vm.regs[0], 55, "1+..+10 = 55");
+    }
+
+    #[test]
+    fn geo92_fibonacci_10() {
+        // fib(10) = 55 via loop
+        let src = "LDI r0, 0\nLDI r1, 1\nLDI r2, 9\nLDI r3, 0\nLDI r5, 1\nMOV r4, r1\nADD r4, r0\nMOV r0, r1\nMOV r1, r4\nSUB r2, r5\nBNE r2, r3, -5\nHALT\n";
+        let vm = self_hosted_assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "fib should halt");
+        assert_eq!(vm.regs[1], 55, "fib(10) = 55");
+    }
+
+    #[test]
+    fn geo92_hex_immediate() {
+        // Verify hex immediates survive self-hosted assembly and execute correctly
+        let src = "LDI r0, 0xFF\nLDI r1, 1\nADD r0, r1\nHALT\n";
+        let vm = self_hosted_assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "should halt");
+        assert_eq!(vm.regs[0], 256, "0xFF + 1 = 256");
+    }
+
+    #[test]
+    fn geo92_negative_immediate() {
+        // LDI r0, -1 should produce 0xFFFFFFFF (two's complement)
+        let src = "LDI r0, -1\nLDI r1, 1\nADD r0, r1\nHALT\n";
+        let vm = self_hosted_assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "should halt");
+        assert_eq!(vm.regs[0], 0, "-1 + 1 = 0 (wrapping)");
+    }
+
+    #[test]
+    fn geo92_char_literal() {
+        // LDI r0, 'A' should load 65
+        let src = "LDI r0, 'A'\nHALT\n";
+        let vm = self_hosted_assemble_and_run(src);
+        assert_eq!(vm.halted, 1, "should halt");
+        assert_eq!(vm.regs[0], 65, "'A' = 65");
     }
 }

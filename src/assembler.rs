@@ -953,6 +953,13 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
                 program.yield_op();
             }
 
+            "WAIT_EVENT" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let event_type_reg = parse_register(tokens[1], line_num)?;
+                let param1_reg = parse_register(tokens[2], line_num)?;
+                program.wait_event(event_type_reg, param1_reg);
+            }
+
             "SEND" => {
                 expect_arg_count(&tokens, 3, line_num)?;
                 let target_vm_reg = parse_register(tokens[1], line_num)?;
@@ -1301,12 +1308,14 @@ fn parse_value(token: &str, line: usize) -> Result<u32, ParseError> {
         return Ok(ch as u32);
     }
 
-    // Numeric
+    // Numeric (supports negative values via two's complement)
     let val: u32 = if let Some(hex) = token.strip_prefix("0x").or_else(|| token.strip_prefix("0X"))
     {
         u32::from_str_radix(hex, 16)
     } else if let Some(bin) = token.strip_prefix("0b").or_else(|| token.strip_prefix("0B")) {
         u32::from_str_radix(bin, 2)
+    } else if token.starts_with('-') {
+        token.parse::<i32>().map(|v| v as u32)
     } else {
         token.parse()
     }
