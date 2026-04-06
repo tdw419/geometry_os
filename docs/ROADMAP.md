@@ -256,22 +256,22 @@ GEO-50 (shader opcodes) ──> GEO-51 (parity tests) ──> GEO-53 (GPU C prog
 
 ---
 
-## Phase 7: The Machine Thinks -- Agent-Driven VM (PLANNED)
+## Phase 7: The Machine Thinks -- Agent-Driven VM (COMPLETE)
 
 An autonomous agent loop runs on the GPU VM as .glyph bytecode. When it needs an
 LLM call, a SQL query, or a status write, it issues a CPU stub command through the
 existing 3-layer IPC stack. The host executes and writes the response back to substrate
 memory. The agent resumes.
 
-**What we're adding (no new opcodes, no new runtime):**
+**What we added (no new opcodes, no new runtime):**
 
-- [ ] **Extended CPU stub commands** (GEO-60) -- CMD_SQL_QUERY(6), CMD_MODEL_CALL(7), CMD_STATUS_READ(8), CMD_STATUS_WRITE(9). Same 8-word command slot format. Same polling pattern.
-- [ ] **SqliteExecutor + StatusExecutor** (GEO-61) -- rusqlite-backed executor for SQL queries, HashMap-backed executor for status read/write.
-- [ ] **ModelExecutor** (GEO-62/63) -- HTTP LLM client executor. VM writes prompt, host calls model, response appears in substrate.
-- [ ] **Device proxy extension** (GEO-64) -- 4 new dispatch paths in the Layer 2 shim. Same pattern as READ_BLOCK.
-- [ ] **agent_loop.c** (GEO-65) -- C program transpiled to .glyph. Observe state, query LLM, apply mutation, track fitness, loop.
-- [ ] **GPU end-to-end** (GEO-66) -- Full pipeline on real GPU. Agent runs 10+ iterations, calls LLM + DB, no crash.
-- [ ] **LLM beats random** (GEO-67) -- Over 100 iterations, LLM-guided mutations outperform Phase 4 random engine.
+- [x] **Extended CPU stub commands** (GEO-60) -- CMD_SQL_QUERY(6), CMD_MODEL_CALL(7), CMD_STATUS_READ(8), CMD_STATUS_WRITE(9). Same 8-word command slot format. Same polling pattern.
+- [x] **SqliteExecutor + StatusExecutor** (GEO-61) -- rusqlite-backed executor for SQL queries, HashMap-backed executor for status read/write.
+- [x] **ModelExecutor** (GEO-62/63) -- HTTP LLM client executor. VM writes prompt, host calls model, response appears in substrate.
+- [x] **Device proxy extension** (GEO-57/GEO-64) -- 4 new dispatch paths in the Layer 2 shim. Same pattern as READ_BLOCK.
+- [x] **agent_loop.c** (GEO-58/GEO-65) -- C program transpiled to .glyph. Observe state, query LLM, apply mutation, track fitness, loop.
+- [x] **GPU end-to-end** (GEO-66) -- Full pipeline on real GPU. Agent runs 10+ iterations, calls LLM + DB, no crash.
+- [x] **LLM beats random** (GEO-67) -- Over 100 iterations, LLM-guided mutations outperform Phase 4 random engine.
 
 **Dependency chain:**
 ```
@@ -280,14 +280,125 @@ GEO-60 (stub commands) -> GEO-61 (sql+status) -> GEO-62/63 (model)
 ```
 
 **Success Criteria:**
-- [ ] A .glyph program issues CMD_SQL_QUERY and reads back query results from substrate
-- [ ] A .glyph program issues CMD_MODEL_CALL and reads back an LLM response
-- [ ] Device proxy routes all 9 command types (old 5 + new 4) without breakage
-- [ ] agent_loop.c transpiles and runs on the software VM through 3-layer IPC
-- [ ] Agent loop runs on GPU for 10+ iterations with live LLM + DB calls
-- [ ] LLM-guided mutations beat random mutations over 100 iterations
+- [x] A .glyph program issues CMD_SQL_QUERY and reads back query results from substrate
+- [x] A .glyph program issues CMD_MODEL_CALL and reads back an LLM response
+- [x] Device proxy routes all 9 command types (old 5 + new 4) without breakage
+- [x] agent_loop.c transpiles and runs on the software VM through 3-layer IPC
+- [x] Agent loop runs on GPU for 10+ iterations with live LLM + DB calls
+- [x] LLM-guided mutations beat random mutations over 100 iterations
 
 **Full spec:** [docs/PHASE7_SPEC.md](PHASE7_SPEC.md)
+
+---
+
+## Phase 8: Bare-Metal RV64 GPU Execution (IN PROGRESS)
+
+The VM jumps from emulated GPU compute to native RISC-V 64-bit execution on real GPU
+hardware. SPIR-V kernels replace the WGSL compute shader. The GPU executes RV64
+instructions natively via AMDGPU command submission.
+
+- [x] **SPIR-V RV64 compute shader kernel** (GEO-59) -- Create a SPIR-V kernel that executes RV64 instructions, replacing the WGSL scheduler. Compute shader accepts RV64 instruction stream.
+- [x] **AMDGPU direct command submission** (GEO-60) -- DRM ioctl-based command buffer submission directly to AMD GPU hardware. Bypasses wgpu for native execution.
+- [ ] **DMA-BUF framebuffer sharing** (GEO-61) -- Zero-copy framebuffer sharing between GPU executor and visualization. DMA-BUF import/export for direct scanout.
+- [ ] **Boot minimal RV64 Linux kernel** (GEO-62) -- Boot a minimal Linux kernel on the native GPU executor. Proves the RV64 implementation handles real-world workloads.
+
+**Dependency chain:**
+```
+GEO-59 (SPIR-V kernel) -> GEO-60 (AMDGPU submission) -> GEO-61 (DMA-BUF) -> GEO-62 (boot Linux)
+```
+
+**Success Criteria:**
+- [x] SPIR-V kernel compiles and dispatches on real GPU
+- [x] AMDGPU DRM ioctl submits commands and reads back results
+- [ ] DMA-BUF enables zero-copy visualization without readback
+- [ ] Minimal Linux kernel boots on the native GPU executor
+
+---
+
+## Phase 9: AI-Native Opcodes (PLANNED)
+
+The instruction set gains opcodes for probabilistic reasoning and self-modification.
+The VM can branch on confidence, mutate its own instructions, and spawn spatial
+sub-programs.
+
+- [ ] **Probabilistic execution opcodes** (GEO-64) -- BRANCH_PROB, CONFIDENCE_MARK, BELIEF_UPDATE. The VM reasons about uncertainty natively.
+- [ ] **Self-modification opcodes** (GEO-65) -- GLYPH_MUTATE, SPATIAL_SPAWN, SEMANTIC_LINK. Programs rewrite programs at the opcode level.
+
+**Success Criteria:**
+- [ ] BRANCH_PROB branches based on a confidence value in a register
+- [ ] GLYPH_MUTATE rewrites a range of pixels according to a mutation template
+- [ ] SPATIAL_SPAWN creates a child VM with inherited memory
+
+---
+
+## Phase 10: Pixel-Native Spatial Filesystem (PLANNED)
+
+Files are pixel regions. Directories are Hilbert-indexed lookup tables. The filesystem
+IS the texture -- no translation layer between memory and storage.
+
+- [ ] **Spatial filesystem design and implementation** (GEO-66) -- File regions, directory tables, allocation bitmaps all live in the GPU texture. Read/write via opcodes.
+
+**Success Criteria:**
+- [ ] Create, read, write, delete files as pixel regions
+- [ ] Directory listing via Hilbert range scan
+- [ ] Filesystem survives VM restart (persistent regions)
+
+---
+
+## Phase 11: Self-Hosting Assembler (IN PROGRESS)
+
+The assembler compiles itself. Written in .gasm, assembled by the existing assembler,
+then the output assembles the next program. The bootstrap closes.
+
+- [x] **Phase 1: Full register-register opcodes** (GEO-67) -- Assembler handles all register-to-register instructions in self-hosting mode.
+- [x] **Phase 2: Label resolution** (GEO-68) -- Two-pass assembler with forward/backward label resolution.
+- [ ] **Phase 3: Hex, negative, and char immediates** (GEO-69) -- Extended immediate value encoding.
+- [ ] **Phase 4: Error reporting** (GEO-70) -- Parse errors with line numbers, context, and suggestions.
+- [ ] **Phase 5: Self-hosting bootstrap** (GEO-71) -- Assembler assembles itself. The output is byte-identical to the input.
+- [ ] **Phase 6: Resident assembler service** (GEO-72) -- Assembler runs as a YIELD-loop daemon, assembling programs on demand.
+- [ ] **Phase 7: Directives** (GEO-73) -- .include, .define, .org for modular assembly programs.
+
+**Dependency chain:**
+```
+GEO-67 (reg-reg) -> GEO-68 (labels) -> GEO-69 (immediates) -> GEO-70 (errors)
+-> GEO-71 (bootstrap) -> GEO-72 (resident) -> GEO-73 (directives)
+```
+
+**Success Criteria:**
+- [x] Self-hosting assembler handles register-register opcodes
+- [x] Two-pass label resolution works
+- [ ] Hex, negative, and char immediates parse correctly
+- [ ] Error messages include line numbers and context
+- [ ] Assembler assembles itself (bootstrap)
+- [ ] Assembler runs as resident daemon
+- [ ] .include, .define, .org work
+
+---
+
+## Phase 12: VM Assembler Verification (IN PROGRESS)
+
+Exhaustive correctness testing of the assembler + VM pipeline. Every instruction
+verified end-to-end. LLM-as-programmer validation.
+
+- [ ] **Exhaustive correctness + execution verification** (GEO-74) -- Every opcode tested for every valid operand combination. Execution verified on both software VM and GPU.
+- [ ] **LLM-as-programmer test** (GEO-76) -- An LLM writes novel .gasm programs, the system assembles and executes them, correctness is verified automatically.
+
+**Success Criteria:**
+- [ ] 100% opcode coverage with all valid operand combinations
+- [ ] Software VM and GPU produce identical results
+- [ ] LLM-generated programs assemble and execute correctly
+
+---
+
+## Phase 13: Infrastructure (PLANNED)
+
+HTTP API and tooling for external access to the assembler and VM.
+
+- [ ] **HTTP assemble endpoint** (GEO-75) -- POST .gasm source, get assembled pixels back. REST API for the assembler.
+
+**Success Criteria:**
+- [ ] curl -X POST with .gasm source returns assembled pixel data
+- [ ] Endpoint handles malformed input gracefully
 
 ---
 
