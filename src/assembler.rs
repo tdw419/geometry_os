@@ -61,6 +61,9 @@ pub mod op {
     pub const BRANCH_PROB: u8 = 220;   // Probabilistic branch: BRANCH_PROB r_prob, offset (coin flip)
     pub const CONFIDENCE_MARK: u8 = 221; // Mark confidence: CONFIDENCE_MARK r_block_id (store score)
     pub const ALTERNATE_PATH: u8 = 222; // Conditional path: ALTERNATE_PATH r_block_id, offset (jump if low confidence)
+    pub const GLYPH_MUTATE: u8 = 224;   // Self-modify: GLYPH_MUTATE r_target_addr, r_new_opcode
+    pub const SPATIAL_SPAWN: u8 = 225;  // Copy cluster: SPATIAL_SPAWN r_dest, r_size, r_source (2 pixels)
+    pub const SEMANTIC_MERGE: u8 = 226; // Merge clusters: SEMANTIC_MERGE r_a, r_b, r_dest (2 pixels)
     pub const YIELD: u8 = 227;
     pub const SPAWN: u8 = 230;
 }
@@ -317,6 +320,45 @@ impl Program {
 
     /// Filled rectangle: RECTF r_x, r_y, r_params
     /// r_params packed: (w << 16) | h
+    /// GLYPH_MUTATE: Self-modify pixel at target_addr to new_opcode.
+    /// GLYPH_MUTATE r_target_addr, r_new_opcode
+    /// Emits 1 pixel: [GLYPH_MUTATE instruction]
+    pub fn glyph_mutate(&mut self, target_addr_reg: u8, new_opcode_reg: u8) -> &mut Self {
+        self.instruction(op::GLYPH_MUTATE, 0, target_addr_reg, new_opcode_reg)
+    }
+
+    /// SPATIAL_SPAWN: Copy N pixels from source_addr to dest_addr.
+    /// SPATIAL_SPAWN r_dest_addr, r_size, r_source_addr
+    /// The third parameter (source_addr) is encoded in a second pixel.
+    /// Emits 2 pixels: [SPATIAL_SPAWN instruction] [source_addr_reg]
+    /// VM reads: p1=dest_addr, stratum=size, data_word=source_addr_reg
+    pub fn spatial_spawn(
+        &mut self,
+        dest_addr_reg: u8,
+        size_reg: u8,
+        source_addr_reg: u8,
+    ) -> &mut Self {
+        // VM expects: p1(B channel)=dest_addr, stratum(G channel)=size
+        self.instruction(op::SPATIAL_SPAWN, size_reg, dest_addr_reg, 0);
+        self.pixels.push(source_addr_reg as u32);
+        self
+    }
+
+    /// SEMANTIC_MERGE: Merge two clusters into dest, removing redundancy.
+    /// SEMANTIC_MERGE r_cluster_a, r_cluster_b, r_dest
+    /// The third parameter (dest) is encoded in a second pixel.
+    /// Emits 2 pixels: [SEMANTIC_MERGE instruction] [dest_reg]
+    pub fn semantic_merge(
+        &mut self,
+        cluster_a_reg: u8,
+        cluster_b_reg: u8,
+        dest_reg: u8,
+    ) -> &mut Self {
+        self.instruction(op::SEMANTIC_MERGE, 0, cluster_a_reg, cluster_b_reg);
+        self.pixels.push(dest_reg as u32);
+        self
+    }
+
     /// Color comes from a preceding LDI into a "color register" (convention: r100).
     /// Emits 2 pixels: [RECTF instruction] [packed params]
     pub fn rectf(&mut self, x_reg: u8, y_reg: u8, packed_params: u32) -> &mut Self {
@@ -1050,6 +1092,31 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
                 current_addr += 2;
             }
 
+            "GLYPH_MUTATE" => {
+                expect_arg_count(&tokens, 2, line_num)?;
+                let target_addr_reg = parse_register(tokens[1], line_num)?;
+                let new_opcode_reg = parse_register(tokens[2], line_num)?;
+                program.glyph_mutate(target_addr_reg, new_opcode_reg);
+            }
+
+            "SPATIAL_SPAWN" => {
+                expect_arg_count(&tokens, 3, line_num)?;
+                let dest_addr_reg = parse_register(tokens[1], line_num)?;
+                let size_reg = parse_register(tokens[2], line_num)?;
+                let source_addr_reg = parse_register(tokens[3], line_num)?;
+                program.spatial_spawn(dest_addr_reg, size_reg, source_addr_reg);
+                current_addr += 2; // emits 2 pixels
+            }
+
+            "SEMANTIC_MERGE" => {
+                expect_arg_count(&tokens, 3, line_num)?;
+                let cluster_a_reg = parse_register(tokens[1], line_num)?;
+                let cluster_b_reg = parse_register(tokens[2], line_num)?;
+                let dest_reg = parse_register(tokens[3], line_num)?;
+                program.semantic_merge(cluster_a_reg, cluster_b_reg, dest_reg);
+                current_addr += 2; // emits 2 pixels
+            }
+
             _ => {
                 return Err(ParseError {
                     line: line_num,
@@ -1229,8 +1296,10 @@ fn instruction_size(tokens: &[&str]) -> u32 {
         "BRANCH" => 2,                                        // instruction + offset
         "BRANCH_PROB" => 2,                                   // instruction + offset
         "ALTERNATE_PATH" => 2,                                // instruction + offset
+        "SPATIAL_SPAWN" => 2,                                 // instruction + data pixel
+        "SEMANTIC_MERGE" => 2,                                // instruction + data pixel
         "DATA" => 1,                                          // single data word
-        _ => 1,                         // most instructions are 1 pixel
+        _ => 1,                                               // most instructions are 1 pixel
     }
 }
 
