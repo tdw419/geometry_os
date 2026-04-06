@@ -21,7 +21,6 @@ impl SparseMemory {
     }
 
     fn page(&mut self, addr: u64) -> &mut [u8] {
-        let page_key = (addr >> 12) & (PAGE_MASK >> 12);
         let page_key = addr & PAGE_MASK;
         self.pages.entry(page_key).or_insert_with(|| vec![0u8; PAGE_SIZE])
     }
@@ -131,28 +130,32 @@ impl Rv64Cpu {
         self.mem.write_bytes(offset, data);
     }
 
-    /// Load a single 32-bit instruction word at address
+    /// Load a single 32-bit instruction word at virtual address
     pub fn load_word(&self, addr: u64) -> u32 {
+        let pa = self.translate_addr(addr).unwrap_or(addr);
         let mut buf = [0u8; 4];
-        self.mem.read_bytes(addr, &mut buf);
+        self.mem.read_bytes(pa, &mut buf);
         u32::from_le_bytes(buf)
     }
 
-    /// Store a 32-bit word at address
+    /// Store a 32-bit word at virtual address
     pub fn store_word(&mut self, addr: u64, val: u32) {
-        self.mem.write_bytes(addr, &val.to_le_bytes());
+        let pa = self.translate_addr(addr).unwrap_or(addr);
+        self.mem.write_bytes(pa, &val.to_le_bytes());
     }
 
-    /// Load 64-bit from address
+    /// Load 64-bit from virtual address
     pub fn load_dword(&self, addr: u64) -> u64 {
+        let pa = self.translate_addr(addr).unwrap_or(addr);
         let mut buf = [0u8; 8];
-        self.mem.read_bytes(addr, &mut buf);
+        self.mem.read_bytes(pa, &mut buf);
         u64::from_le_bytes(buf)
     }
 
-    /// Store 64-bit to address
+    /// Store 64-bit to virtual address
     pub fn store_dword(&mut self, addr: u64, val: u64) {
-        self.mem.write_bytes(addr, &val.to_le_bytes());
+        let pa = self.translate_addr(addr).unwrap_or(addr);
+        self.mem.write_bytes(pa, &val.to_le_bytes());
     }
 
     /// Read register (x0 is always 0)
@@ -614,27 +617,117 @@ impl Rv64Cpu {
         true
     }
 
-    /// Load byte (sign-extended) from address
+    // ── Sv39 Virtual Memory ──────────────────────────────────────────
+    // M-mode: bare (physical), no translation.
+    // S/U-mode with satp.MODE=0: bare.
+    // S/U-mode with satp.MODE=8: Sv39 3-level page table walk.
+
+    /// Read 64-bit from physical memory (bypasses translation).
+    /// Used by the page table walker itself.
+    fn phys_read_u64(&self, pa: u64) -> u64 {
+        let mut buf = [0u8; 8];
+        self.mem.read_bytes(pa, &mut buf);
+        u64::from_le_bytes(buf)
+    }
+
+    /// Translate virtual address to physical address.
+    /// Returns None on page fault.
+    fn translate_addr(&self, va: u64) -> Option<u64> {
+        if self.priv_level == 3 {
+            return Some(va); // M-mode: always bare
+        }
+        let mode = (self.satp >> 60) & 0xF;
+        if mode == 0 {
+            return Some(va); // bare mode
+        }
+        if mode == 8 {
+            return self.sv39_translate(va);
+        }
+        Some(va) // unknown mode: passthrough
+    }
+
+    /// Sv39 3-level page table walk.
+    /// VPN[2]=va[38:30], VPN[1]=va[29:21], VPN[0]=va[20:12], offset=va[11:0]
+    /// PTE[53:10]=PPN(44 bits), PTE[0]=V, PTE[1]=R, PTE[2]=W, PTE[3]=X
+    fn sv39_translate(&self, va: u64) -> Option<u64> {
+        let vpn = [
+            (va >> 12) & 0x1FF,
+            (va >> 21) & 0x1FF,
+            (va >> 30) & 0x1FF,
+        ];
+        let offset = va & 0xFFF;
+
+        let root_ppn = self.satp & 0xFFF_FFFF_FFFF;
+        let mut table_base = root_ppn << 12;
+
+        // Walk levels 2, 1, 0
+        for level in (0..3usize).rev() {
+            let pte_addr = table_base + vpn[level] * 8;
+            let pte = self.phys_read_u64(pte_addr);
+
+            // Check valid
+            if pte & 1 == 0 {
+                return None;
+            }
+
+            let r = (pte >> 1) & 1;
+            let x = (pte >> 3) & 1;
+
+            if r == 0 && x == 0 {
+                // Non-leaf: follow pointer to next level
+                let ppn = (pte >> 10) & 0xFFF_FFFF_FFFF;
+                table_base = ppn << 12;
+                continue;
+            }
+
+            // Leaf PTE at this level
+            let ppn = (pte >> 10) & 0xFFF_FFFF_FFFF;
+
+            // Misaligned superpage: low PPN bits below this level must be 0
+            let low_mask = (1u64 << (level * 9)) - 1;
+            if ppn & low_mask != 0 {
+                return None;
+            }
+
+            // Construct physical address.
+            // Level 0 (4KB):    PA = PPN << 12 | offset
+            // Level 1 (2MB):    PA = PPN << 12 | VPN[0] << 12 | offset
+            // Level 2 (1GB):    PA = PPN << 12 | VPN[1] << 21 | VPN[0] << 12 | offset
+            let pa = (ppn << 12)
+                | if level >= 1 { vpn[0] << 12 } else { 0 }
+                | if level >= 2 { vpn[1] << 21 } else { 0 }
+                | offset;
+            return Some(pa);
+        }
+
+        None
+    }
+
+    /// Load byte (sign-extended) from virtual address
     pub fn load_byte(&self, addr: u64) -> u64 {
-        self.mem.read_byte(addr) as u64
+        let pa = self.translate_addr(addr).unwrap_or(addr);
+        self.mem.read_byte(pa) as u64
     }
 
     pub fn store_byte(&mut self, addr: u64, val: u8) {
-        self.mem.write_byte(addr, val);
+        let pa = self.translate_addr(addr).unwrap_or(addr);
+        self.mem.write_byte(pa, val);
         // UART at 0x10000000
-        if addr == 0x1000_0000 {
+        if pa == 0x1000_0000 {
             self.console.push(val);
         }
     }
 
     pub fn load_hword(&self, addr: u64) -> u64 {
+        let pa = self.translate_addr(addr).unwrap_or(addr);
         let mut buf = [0u8; 2];
-        self.mem.read_bytes(addr, &mut buf);
+        self.mem.read_bytes(pa, &mut buf);
         u16::from_le_bytes(buf) as u64
     }
 
     pub fn store_hword(&mut self, addr: u64, val: u16) {
-        self.mem.write_bytes(addr, &val.to_le_bytes());
+        let pa = self.translate_addr(addr).unwrap_or(addr);
+        self.mem.write_bytes(pa, &val.to_le_bytes());
     }
 
     /// Run for N instructions or until halt
