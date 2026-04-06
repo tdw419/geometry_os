@@ -3,7 +3,7 @@
 ## Overview
 GPU-native operating system written in Rust. Programs are pixels. The GPU is the CPU.
 
-**Status:** 393 tests passed, 0 failed, 1 ignored. Phases 0-9 complete. Phase 11 (self-hosting assembler) in progress. Phase 12 (Paperclip automation) complete.
+**Status:** 704 tests passed, 0 failed, 1 ignored. Phases 0-9, 11, 12 complete. Phase 10 (pixel filesystem) next up.
 
 ---
 
@@ -27,15 +27,15 @@ Boot a real RV64 Linux kernel on the GPU compute shader.
 - GEO-65: Self-modification opcodes (GLYPH_MUTATE, SPATIAL_SPAWN, SEMANTIC_MERGE) (done)
 - Sv39 virtual memory: page table walk, VA translation (done)
 
-## Phase 10: Pixel-Native Filesystem (TODO)
-- GEO-66: Design and implement pixel-native spatial filesystem
+## Phase 10: Pixel-Native Filesystem (IN PROGRESS)
+- GEO-66: Design and implement pixel-native spatial filesystem (assigned to Engineer, priority bumped to high)
 
-## Phase 11: Self-Hosting Assembler (IN PROGRESS)
-The assembler assembles itself. Phases 1-7 implemented. GEO-73 operator precedence fix in working tree.
+## Phase 11: Self-Hosting Assembler (COMPLETE)
+The assembler assembles itself. All 7 phases implemented.
 - GEO-92: SEND/RECV opcodes in mini-assembler (done)
 - GEO-93: SPAWN/YIELD/WAIT_EVENT opcodes in mini-assembler (done)
 - GEO-72: Phase 6 -- Resident assembler service (YIELD loop, interrupt-driven) (done)
-- GEO-73: Phase 7 -- Directives (.include, .define, .org) (in_progress -- fix pending commit)
+- GEO-73: Phase 7 -- Directives (.include, .define, .org) (done -- merged in commit 9c824903)
 
 ---
 
