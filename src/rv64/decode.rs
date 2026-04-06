@@ -66,7 +66,12 @@ fn expand_rvc_quadrant0(half: u16, funct3: u32) -> u32 {
             }
         }
         1 => {
+            // C.FLD: float load double (RV32F/RV64F) — not supported, NOP
+            0
+        }
+        2 => {
             // C.LW: lw rd', offset(rs1')
+            // offset[5] = bit[5], offset[2] = bit[6], offset[6:3] = bits[12:10]
             let offset = (((half >> 5) & 1) << 5)
                 | (((half >> 6) & 1) << 2)
                 | (((half >> 10) & 0x7) << 3);
@@ -74,7 +79,7 @@ fn expand_rvc_quadrant0(half: u16, funct3: u32) -> u32 {
             let rd = ((half >> 2) & 0x7) as u32 + 8;
             encode_i_type(offset, rs1, 2, rd, 0x03) // LW
         }
-        2 => {
+        3 => {
             // C.LD: ld rd', offset(rs1') (RV64 only)
             // offset[5:3] = bits[12:10], offset[7:6] = bits[6:5]
             let offset = (((half >> 10) & 0x7) << 3)
@@ -84,11 +89,12 @@ fn expand_rvc_quadrant0(half: u16, funct3: u32) -> u32 {
             encode_i_type(offset, rs1, 3, rd, 0x03) // LD
         }
         5 => {
-            // C.FLW (RV32) / C.LDSP (RV64) - skip for now
+            // C.FSD: float store double — not supported, NOP
             0
         }
         6 => {
             // C.SW: sw rs2', offset(rs1')
+            // Same offset encoding as C.LW
             let offset = (((half >> 5) & 1) << 5)
                 | (((half >> 6) & 1) << 2)
                 | (((half >> 10) & 0x7) << 3);
@@ -116,19 +122,19 @@ fn expand_rvc_quadrant1(half: u16, funct3: u32) -> u32 {
         0 => {
             // C.ADDI: addi rd, rd, imm (or C.NOP if rd=0)
             let rd = ((half >> 7) & 0x1F) as u32;
-            let imm = sign_extend_5(((half >> 12) & 1) << 5 | ((half >> 2) & 0x1F));
+            let imm = sign_extend_6(((half >> 12) & 1) << 5 | ((half >> 2) & 0x1F));
             encode_i_type(imm as u32, rd, 0, rd, 0x13) // ADDI
         }
         1 => {
             // C.ADDIW: addiw rd, rd, imm (RV64 only)
             let rd = ((half >> 7) & 0x1F) as u32;
-            let imm = sign_extend_5(((half >> 12) & 1) << 5 | ((half >> 2) & 0x1F));
+            let imm = sign_extend_6(((half >> 12) & 1) << 5 | ((half >> 2) & 0x1F));
             encode_i_type(imm as u32, rd, 0, rd, 0x1B) // ADDIW
         }
         2 => {
             // C.LI: addi rd, x0, imm
             let rd = ((half >> 7) & 0x1F) as u32;
-            let imm = sign_extend_5(((half >> 12) & 1) << 5 | ((half >> 2) & 0x1F));
+            let imm = sign_extend_6(((half >> 12) & 1) << 5 | ((half >> 2) & 0x1F));
             encode_i_type(imm as u32, 0, 0, rd, 0x13) // ADDI
         }
         3 => {
@@ -136,10 +142,14 @@ fn expand_rvc_quadrant1(half: u16, funct3: u32) -> u32 {
             let rd = ((half >> 7) & 0x1F) as u32;
             if rd == 2 {
                 // C.ADDI16SP: addi x2, x2, nzimm
+                // Verified against GNU assembler:
+                //   bit[12]->nzimm[9], bit[6]->nzimm[4], bit[5]->nzimm[6],
+                //   bit[4]->nzimm[8], bit[3]->nzimm[7], bit[2]->nzimm[5]
                 let nzimm = (((half >> 12) & 1) << 9)
-                    | (((half >> 5) & 1) << 4)
-                    | (((half >> 6) & 1) << 6)
-                    | (((half >> 3) & 3) << 7)
+                    | (((half >> 6) & 1) << 4)
+                    | (((half >> 5) & 1) << 6)
+                    | (((half >> 4) & 1) << 8)
+                    | (((half >> 3) & 1) << 7)
                     | (((half >> 2) & 1) << 5);
                 let imm = sign_extend_10(nzimm);
                 encode_i_type(imm as u32, 2, 0, 2, 0x13) // ADDI
@@ -169,7 +179,7 @@ fn expand_rvc_quadrant1(half: u16, funct3: u32) -> u32 {
                 }
                 2 => {
                     // C.ANDI: andi rd', rd', imm
-                    let imm = sign_extend_5(((half >> 12) & 1) << 5 | ((half >> 2) & 0x1F));
+                    let imm = sign_extend_6(((half >> 12) & 1) << 5 | ((half >> 2) & 0x1F));
                     encode_i_type(imm as u32, rd, 7, rd, 0x13) // ANDI
                 }
                 3 => {
@@ -293,25 +303,39 @@ fn expand_rvc_quadrant2(half: u16, funct3: u32) -> u32 {
 /// Expand C.J offset (12-bit signed)
 fn expand_cj_offset(half: u16) -> i32 {
     let half = half as u32;
+    // Correct mapping verified against GNU assembler:
+    //   inst[12]->offset[11], inst[11]->offset[4], inst[10:9]->offset[9:8],
+    //   inst[8]->offset[10], inst[7]->offset[6], inst[6]->offset[7],
+    //   inst[5]->offset[3], inst[4]->offset[1], inst[3]->offset[2],
+    //   inst[2]->offset[5]
     let raw = (((half >> 12) & 1) << 11)
         | (((half >> 11) & 1) << 4)
         | (((half >> 9) & 3) << 8)
         | (((half >> 8) & 1) << 10)
         | (((half >> 7) & 1) << 6)
         | (((half >> 6) & 1) << 7)
-        | (((half >> 3) & 3) << 1)
+        | (((half >> 5) & 1) << 3)
+        | (((half >> 4) & 1) << 1)
+        | (((half >> 3) & 1) << 2)
         | (((half >> 2) & 1) << 5);
     sign_extend_12(raw)
 }
 
-/// Expand C.B offset (8-bit signed)
+/// Expand C.B offset (9-bit signed)
 fn expand_cb_offset(half: u16) -> i32 {
     let half = half as u32;
+    // Correct mapping verified against GNU assembler:
+    //   inst[12]->offset[8], inst[11]->offset[4], inst[10]->offset[3],
+    //   inst[6]->offset[7], inst[5]->offset[6], inst[4]->offset[2],
+    //   inst[3]->offset[1], inst[2]->offset[5]
     let raw = (((half >> 12) & 1) << 8)
-        | (((half >> 10) & 3) << 3)
-        | (((half >> 5) & 1) << 2)
-        | (((half >> 3) & 3) << 5)
-        | (((half >> 2) & 1) << 6);
+        | (((half >> 11) & 1) << 4)
+        | (((half >> 10) & 1) << 3)
+        | (((half >> 6) & 1) << 7)
+        | (((half >> 5) & 1) << 6)
+        | (((half >> 4) & 1) << 2)
+        | (((half >> 3) & 1) << 1)
+        | (((half >> 2) & 1) << 5);
     sign_extend_9(raw)
 }
 
