@@ -77,6 +77,35 @@ impl AmdgpuCommandBuffer {
         self
     }
 
+    /// Set the shader program address (COMPUTE_PGM_LO/HI).
+    ///
+    /// Sets the GPU virtual address of the compute shader binary.
+    pub fn set_shader_address(&mut self, addr_lo: u32, addr_hi: u32) -> &mut Self {
+        // COMPUTE_PGM_LO = 0x02, COMPUTE_PGM_HI = 0x03
+        self.set_registers(0x02, &[addr_lo, addr_hi]);
+        self
+    }
+
+    /// Set shader resource registers (PGM_RSRC1/RSRC2).
+    ///
+    /// Configures compute shader resource limits and features.
+    pub fn set_shader_resources(&mut self, rsrc1: u32, rsrc2: u32) -> &mut Self {
+        // COMPUTE_PGM_RSRC1 = 0x04, COMPUTE_PGM_RSRC2 = 0x05
+        self.set_registers(0x04, &[rsrc1, rsrc2]);
+        self
+    }
+
+    /// Set user data registers (compute shader arguments).
+    ///
+    /// User data registers carry buffer addresses and push constants
+    /// to the compute shader. Up to 16 user data registers (64 bytes).
+    pub fn set_user_data(&mut self, start_reg: u32, data: &[u32]) -> &mut Self {
+        // COMPUTE_USER_DATA_0 offset = 0x10
+        let reg_offset = 0x10 + start_reg;
+        self.set_registers(reg_offset, data);
+        self
+    }
+
     /// Dispatch compute workgroups.
     pub fn dispatch(&mut self, x: u32, y: u32, z: u32) -> &mut Self {
         // COMPUTE_DISPATCH_INIT state registers
@@ -129,10 +158,34 @@ impl AmdgpuCommandBuffer {
         // 3. Create CSA (command stream area)
         // 4. Submit via DRM_IOCTL_AMDGPU_CS
 
-        // For now, we log the submission
         log::debug!("Command buffer ready for submission (scaffold)");
-
         Ok(())
+    }
+
+    /// Submit a pre-built command buffer at a GPU address.
+    ///
+    /// Low-level submission interface used by NativeRiscvExecutor.
+    /// Returns a fence handle for synchronization.
+    pub fn submit_raw(
+        drm_fd: RawFd,
+        ctx_id: u32,
+        cb_gpu_addr: u64,
+        cb_size_dwords: u32,
+        ring: u32,
+    ) -> Result<u64> {
+        log::info!(
+            "Raw CS submit: fd={}, ctx={}, addr={:#x}, size={} dwords, ring={}",
+            drm_fd, ctx_id, cb_gpu_addr, cb_size_dwords, ring
+        );
+
+        // In a full implementation, this would:
+        // 1. Build drm_amdgpu_cs_chunk array (IB + FENCE)
+        // 2. Build drm_amdgpu_cs_in with ctx_id, chunks
+        // 3. ioctl(drm_fd, DRM_IOCTL_AMDGPU_CS, &cs_args)
+        // 4. Return cs_args.out.handle (fence)
+
+        // Scaffold: return a mock fence
+        Ok(1u64)
     }
 }
 

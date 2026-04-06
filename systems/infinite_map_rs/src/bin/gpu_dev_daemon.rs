@@ -537,7 +537,7 @@ fn handle_hal_request(
                 }
 
                 // Now spawn VM
-                let mut regs = [0u32; 128];
+                let mut regs = [0u32; 32];
                 regs[0] = 0x18000; // Guest entry point for emulator
                 let config = VmConfig {
                     entry_point: 0,
