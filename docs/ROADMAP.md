@@ -202,7 +202,7 @@ tests/  (18 test files)
   self_replication.rs     -- Self-replicator end-to-end
   ...and more
 
-~29,700 lines of Rust (src/). 418 tests (416 passing, 1 failing, 1 ignored).
+~29,700 lines of Rust (src/). 784 tests (all passing, 1 ignored).
 ```
 
 ---
@@ -389,15 +389,15 @@ verified end-to-end. LLM-as-programmer validation.
 
 ---
 
-## Phase 13: Full Self-Hosting (IN PROGRESS)
+## Phase 13: Full Self-Hosting (COMPLETE)
 
 The OS manages its own task queue, runs autonomous agents as pixel programs,
 and orchestrates work without human intervention. The machine runs itself.
 
 - [x] **HTTP assemble endpoint** (GEO-75) -- POST .gasm source, get assembled pixels back. REST API for the assembler.
 - [x] **Phase 13A: Issue queue as pixel region** (GEO-212) -- VM-managed task queue stored as pixel regions in the GPU texture.
-- [ ] **Phase 13B: Agent VM program** (GEO-213) -- Autonomous worker program that runs in pixel space, pulls tasks from the issue queue, and executes them.
-- [ ] **Phase 13C: Self-orchestrating loop** (GEO-214) -- CEO VM dispatches work to Agent VMs. Full autonomous loop without human intervention.
+- [x] **Phase 13B: Agent VM program** (GEO-213) -- Autonomous worker program that runs in pixel space, pulls tasks from the issue queue, and executes them.
+- [x] **Phase 13C: Self-orchestrating loop** (GEO-214) -- CEO VM dispatches work to Agent VMs. Full autonomous loop without human intervention.
 
 **Dependency chain:**
 ```
@@ -408,8 +408,8 @@ GEO-75 (HTTP endpoint) -> GEO-212 (issue queue) -> GEO-213 (agent VM) -> GEO-214
 - [x] curl -X POST with .gasm source returns assembled pixel data
 - [x] Endpoint handles malformed input gracefully
 - [x] Issue queue lives as a pixel region in GPU texture
-- [ ] Agent VM pulls tasks, executes, and reports results autonomously
-- [ ] CEO VM + Agent VMs run a full work cycle without human input
+- [x] Agent VM pulls tasks, executes, and reports results autonomously
+- [x] CEO VM + Agent VMs run a full work cycle without human input
 
 ---
 

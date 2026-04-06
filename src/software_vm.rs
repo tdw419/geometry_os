@@ -1177,6 +1177,23 @@ impl SoftwareVm {
                     break;
                 }
 
+                // DEBUG: bounds check before execute
+                let (opcode, stratum, p1, p2) = {
+                    let (x, y) = hilbert::d2xy(vm.pc);
+                    let offset = ((y * TEXTURE_SIZE + x) * 4) as usize;
+                    let r = self.ram.data[offset] as u32;
+                    let g = self.ram.data[offset + 1] as u32;
+                    let b = self.ram.data[offset + 2] as u32;
+                    let a = self.ram.data[offset + 3] as u32;
+                    (r, g, b, a)
+                };
+                if (p1 as usize) >= 128 || (p2 as usize) >= 128 {
+                    eprintln!("BUG: vm_id={} pc={:#010x} op={} stratum={} p1={} p2={} -> out of bounds reg access!", vm.vm_id, vm.pc, opcode, stratum, p1, p2);
+                    vm.halted = 1;
+                    vm.state = vm_state::HALTED;
+                    break;
+                }
+
                 let jumped = execute_instruction(&mut self.ram, vm);
 
                 // Only increment PC if we didn't jump
@@ -7347,13 +7364,13 @@ mod geo92_tier2 {
         let jmp_idx = p.pixels.len();
         p.instruction(op::JMP, 0, 0, 0);
         // JMP data: offset back to loop_start (negative)
-        let jmp_offset = (loop_start as i32) - (jmp_idx as i32 + 1);
+        let jmp_offset = (loop_start as i32) - (jmp_idx as i32);
         p.pixels.push(jmp_offset as u32);
 
         // empty_pick:
         let empty_pick_idx = p.pixels.len();
-        // Fix up BEQ offset: target is empty_pick_idx, from beq_pixel_idx+1
-        let beq_offset = (empty_pick_idx as i32) - (beq_pixel_idx as i32 + 1);
+        // Fix up BEQ offset: relative to the BEQ instruction pixel itself
+        let beq_offset = (empty_pick_idx as i32) - (beq_pixel_idx as i32);
         p.pixels[beq_pixel_idx + 1] = beq_offset as u32;
 
         // empty_pick handler: increment empty counter, check max
@@ -7369,15 +7386,15 @@ mod geo92_tier2 {
         // JMP agent_loop
         let jmp2_idx = p.pixels.len();
         p.instruction(op::JMP, 0, 0, 0);
-        let jmp2_offset = (loop_start as i32) - (jmp2_idx as i32 + 1);
+        let jmp2_offset = (loop_start as i32) - (jmp2_idx as i32);
         p.pixels.push(jmp2_offset as u32);
 
         // agent_done:
         let agent_done_idx = p.pixels.len();
         p.halt();
 
-        // Fix BGE offset
-        let bge_offset = (agent_done_idx as i32) - (bge_idx as i32 + 1);
+        // Fix BGE offset: relative to the BGE instruction pixel itself
+        let bge_offset = (agent_done_idx as i32) - (bge_idx as i32);
         p.pixels[bge_idx + 1] = bge_offset as u32;
 
         p
@@ -7586,7 +7603,7 @@ mod geo92_tier2 {
         p.instruction(op::ADD, 0, 17, 15); // r17 += 1
         // if r17 < r16, loop
         p.branch(bcond::BLT, 17, 16,
-            (loop_start as i32) - (p.pixels.len() as i32 + 1));
+            (loop_start as i32) - (p.pixels.len() as i32));
 
         // Write issues_created to METRICS_BASE+1
         p.ldi(12, crate::METRICS_BASE + 1);
@@ -7618,7 +7635,7 @@ mod geo92_tier2 {
     ///   r7  = max_empty
     ///   r8  = metrics addr (METRICS_BASE+2)
     ///   r9  = temp for metrics load
-    fn build_orchestrating_agent(out_addr: u32, max_empty: u32) -> Program {
+    fn build_orchestrating_agent(out_addr: u32, max_empty: u32, agent_vm_id: u8) -> Program {
         let mut p = Program::new();
         // Constants
         p.ldi(3, 0);                              // r3 = 0
@@ -7632,7 +7649,7 @@ mod geo92_tier2 {
         let loop_start = p.pixels.len();
         p.ldi(1, out_addr);                       // r1 = out_addr
         p.ldi(2, 0);                              // r2 = filter=any
-        p.issue_pick(1, 2, 0);                    // pick issue; r1 <- issue_id
+        p.issue_pick(1, 2, agent_vm_id);          // pick issue; r1 <- issue_id
 
         // if r1 == 0, goto empty_pick
         let beq_idx = p.pixels.len();
@@ -7655,12 +7672,12 @@ mod geo92_tier2 {
         // JMP agent_loop
         let jmp_back = p.pixels.len();
         p.instruction(op::JMP, 0, 0, 0);
-        p.pixels.push(((loop_start as i32) - (jmp_back as i32 + 1)) as u32);
+        p.pixels.push(((loop_start as i32) - (jmp_back as i32)) as u32);
 
         // ── empty_pick ──
         let empty_pick = p.pixels.len();
-        // Fix up BEQ offset
-        p.pixels[beq_data_idx] = ((empty_pick as i32) - (beq_data_idx as i32 + 1)) as u32;
+        // Fix up BEQ offset: relative to the BEQ instruction (beq_idx), not the data pixel
+        p.pixels[beq_data_idx] = ((empty_pick as i32) - (beq_idx as i32)) as u32;
 
         p.instruction(op::ADD, 0, 6, 4);          // r6 += 1 (empty counter)
         // BGE r6, r7, agent_done
@@ -7673,12 +7690,12 @@ mod geo92_tier2 {
         p.yield_op();
         let jmp2 = p.pixels.len();
         p.instruction(op::JMP, 0, 0, 0);
-        p.pixels.push(((loop_start as i32) - (jmp2 as i32 + 1)) as u32);
+        p.pixels.push(((loop_start as i32) - (jmp2 as i32)) as u32);
 
         // agent_done:
         let agent_done = p.pixels.len();
-        // Fix BGE offset
-        p.pixels[bge_data_idx] = ((agent_done as i32) - (bge_data_idx as i32 + 1)) as u32;
+        // Fix BGE offset: relative to the BGE instruction (bge_idx), not the data pixel
+        p.pixels[bge_data_idx] = ((agent_done as i32) - (bge_idx as i32)) as u32;
         p.halt();
 
         p
@@ -7737,8 +7754,8 @@ mod geo92_tier2 {
         // The ISSUE_PICK stratum field encodes agent_vm_id. Our build_orchestrating_agent
         // uses stratum=0, which means "any". Since only one VM runs per frame slot,
         // picks are naturally serialized in the software VM.
-        let agent_a = build_orchestrating_agent(out_a, 20);
-        let agent_b = build_orchestrating_agent(out_b, 20);
+        let agent_a = build_orchestrating_agent(out_a, 20, 1);
+        let agent_b = build_orchestrating_agent(out_b, 20, 2);
 
         svm.load_program(agent_a_addr, &agent_a.pixels);
         svm.load_program(agent_b_addr, &agent_b.pixels);
@@ -7795,8 +7812,8 @@ mod geo92_tier2 {
         let out_a: u32 = 0x0020_0000;
         let out_b: u32 = 0x0031_0000;
 
-        let agent_a = build_orchestrating_agent(out_a, 30);
-        let agent_b = build_orchestrating_agent(out_b, 30);
+        let agent_a = build_orchestrating_agent(out_a, 30, 1);
+        let agent_b = build_orchestrating_agent(out_b, 30, 2);
 
         svm.load_program(agent_a_addr, &agent_a.pixels);
         svm.load_program(agent_b_addr, &agent_b.pixels);
@@ -7864,8 +7881,8 @@ mod geo92_tier2 {
         let out_a: u32 = 0x0020_0000;
         let out_b: u32 = 0x0032_0000;
 
-        let agent_a = build_orchestrating_agent(out_a, 20);
-        let agent_b = build_orchestrating_agent(out_b, 20);
+        let agent_a = build_orchestrating_agent(out_a, 20, 1);
+        let agent_b = build_orchestrating_agent(out_b, 20, 2);
 
         svm.load_program(agent_a_addr, &agent_a.pixels);
         svm.load_program(agent_b_addr, &agent_b.pixels);
