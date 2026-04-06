@@ -3,7 +3,7 @@
 ## Overview
 GPU-native operating system written in Rust. Programs are pixels. The GPU is the CPU.
 
-**Status:** 704 tests passed, 0 failed, 1 ignored. Phases 0-9, 11, 12 complete. Phase 10 (pixel filesystem) next up.
+**Status:** 393 tests passed, 0 failed, 1 ignored. Phases 0-9, 11, 12 complete. Phase 10 (pixel filesystem) in progress.
 
 ---
 
@@ -28,7 +28,7 @@ Boot a real RV64 Linux kernel on the GPU compute shader.
 - Sv39 virtual memory: page table walk, VA translation (done)
 
 ## Phase 10: Pixel-Native Filesystem (IN PROGRESS)
-- GEO-66: Design and implement pixel-native spatial filesystem (assigned to Engineer, priority bumped to high)
+- GEO-66: Design and implement pixel-native spatial filesystem (assigned to Engineer, execution in progress)
 
 ## Phase 11: Self-Hosting Assembler (COMPLETE)
 The assembler assembles itself. All 7 phases implemented.
