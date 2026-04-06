@@ -165,7 +165,6 @@ src/
   fitness.rs          -- Fitness scoring (speed, correctness, memory, locality) with composite weighting
   stdlib.rs           -- Standard library loader (memset, memcpy) with calling convention
   filmstrip.rs        -- Film strip (multi-frame) execution support
-  filmstrip.rs        -- Film strip (multi-frame) execution support
 
 systems/
   pixel_compiler/     -- Visual assembler + linker with stdlib (math, cmp, mem routines)
@@ -203,7 +202,7 @@ tests/  (18 test files)
   self_replication.rs     -- Self-replicator end-to-end
   ...and more
 
-~29,700 lines of Rust (src/). 1,136 tests (411 unit + 725 integration).
+~29,700 lines of Rust (src/). 418 tests (414 passing, 3 failing in Phase 13C, 1 ignored).
 ```
 
 ---
