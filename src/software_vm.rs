@@ -485,6 +485,77 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
             }
         }
 
+        // GLYPH_MUTATE (224): Transform glyph at target_addr to new_opcode.
+        // GLYPH_MUTATE r_target_addr, r_new_opcode
+        // Reads the pixel at the Hilbert index in r_target_addr, replaces its
+        // opcode byte (R channel) with the value in r_new_opcode.
+        // This IS self-modification -- the texture IS memory, each pixel IS an
+        // instruction, and programs write programs.
+        224 => {
+            let target_pixel_idx = vm.regs[p1 as usize];
+            let new_opcode = vm.regs[p2 as usize] & 0xFF;
+            let (_, g, b, a) = read_glyph(ram, target_pixel_idx);
+            write_glyph(ram, target_pixel_idx, (new_opcode as u32, g, b, a));
+            vm.regs[p1 as usize] = 1; // success
+        }
+
+        // SPATIAL_SPAWN (225): Copy N pixels from source_addr to dest_addr.
+        // SPATIAL_SPAWN r_dest_addr, r_size, r_source_addr
+        // Source address is packed in a second pixel (data word).
+        // Creates a new cluster of glyphs by copying `size` pixels.
+        225 => {
+            let dest_addr = vm.regs[p1 as usize]; // dest pixel index
+            let size = vm.regs[stratum as usize];  // number of pixels to copy
+            // Source address is in the data word (second pixel)
+            let data_word = safe_mem_read(ram, vm, (pc + 1) * 4);
+            let source_addr = vm.regs[data_word as usize];
+            for i in 0..size {
+                let pixel = read_glyph(ram, source_addr + i);
+                write_glyph(ram, dest_addr + i, pixel);
+            }
+            vm.pc = pc + 1; // Consume data word
+            vm.regs[p1 as usize] = size; // return bytes copied
+        }
+
+        // SEMANTIC_MERGE (226): Merge two clusters into dest, removing redundancy.
+        // SEMANTIC_MERGE r_cluster_a, r_cluster_b, r_dest
+        // Compares clusters pixel by pixel. For identical pixels, writes to dest.
+        // For differing pixels, keeps the one with the higher opcode value
+        // (heuristic: more complex = more likely intentional).
+        // Dest register is packed in a second pixel (data word).
+        226 => {
+            let cluster_a = vm.regs[p1 as usize]; // pixel index of cluster A
+            let cluster_b = vm.regs[p2 as usize]; // pixel index of cluster B
+            // Dest register is in the data word (second pixel)
+            let data_word = safe_mem_read(ram, vm, (pc + 1) * 4);
+            let dest_addr = vm.regs[data_word as usize];
+            // Merge: compare up to a fixed max of 256 pixels
+            let max_merge = 256u32;
+            let mut merged_count = 0u32;
+            for i in 0..max_merge {
+                let pa = read_glyph(ram, cluster_a + i);
+                let pb = read_glyph(ram, cluster_b + i);
+                // Stop at double-zero (both clusters exhausted)
+                if pa.0 == 0 && pa.1 == 0 && pa.2 == 0 && pa.3 == 0
+                    && pb.0 == 0 && pb.1 == 0 && pb.2 == 0 && pb.3 == 0
+                {
+                    break;
+                }
+                // For identical pixels, write as-is. For differing, keep higher opcode.
+                let merged = if pa == pb {
+                    pa
+                } else if pa.0 >= pb.0 {
+                    pa
+                } else {
+                    pb
+                };
+                write_glyph(ram, dest_addr + i, merged);
+                merged_count += 1;
+            }
+            vm.pc = pc + 1; // Consume data word
+            vm.regs[p1 as usize] = merged_count; // return count of merged pixels
+        }
+
         // YIELD - Yield execution
         227 => {
             // Advance PC past the YIELD instruction so resume doesn't re-execute it
@@ -648,6 +719,49 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
                     }
                 }
             }
+        }
+
+        // BRANCH_PROB (220) - Probabilistic branch: BRANCH_PROB r_prob, offset
+        // Coin flip: if (prob & 0xFFFF) > random_value, branch by offset
+        220 => {
+            let prob = vm.regs[p1 as usize];
+            let offset = safe_mem_read(ram, vm, (pc + 1) * 4) as i32;
+            // Use low 16 bits as probability threshold (0-65535)
+            let threshold = prob & 0xFFFF;
+            // Simple deterministic PRNG from pc for reproducibility
+            let hash = (pc.wrapping_mul(2654435761)) & 0xFFFF;
+            if threshold > hash {
+                vm.pc = ((vm.pc as i64) + offset as i64 - 1) as u32; // -1 because we'll +1 below
+            }
+            vm.pc += 1; // Consume offset word
+        }
+
+        // CONFIDENCE_MARK (221) - Mark confidence: CONFIDENCE_MARK r_block_id
+        // Records confidence score for a code block (stored in confidence register)
+        221 => {
+            let block_id = vm.regs[p1 as usize];
+            // Store confidence score: high bits of block_id as score, low bits as id
+            let score = (block_id >> 16) & 0xFFFF;
+            let id = block_id & 0xFFFF;
+            // Write to confidence memory region (0x00F0_0000 + id)
+            let conf_addr = 0x00F0_0000 + id;
+            mem_write(ram, conf_addr * 4, score);
+        }
+
+        // ALTERNATE_PATH (222) - Conditional path: ALTERNATE_PATH r_block_id, offset
+        // Jump if confidence for block_id is below threshold
+        222 => {
+            let block_id = vm.regs[p1 as usize];
+            let offset = safe_mem_read(ram, vm, (pc + 1) * 4) as i32;
+            let id = block_id & 0xFFFF;
+            let threshold = (block_id >> 16) & 0xFFFF;
+            // Read confidence from memory
+            let conf_addr = 0x00F0_0000 + id;
+            let current_score = mem_read(ram, conf_addr * 4);
+            if current_score < threshold {
+                vm.pc = ((vm.pc as i64) + offset as i64 - 1) as u32;
+            }
+            vm.pc += 1; // Consume offset word
         }
 
         // Unknown opcode - skip
@@ -2807,6 +2921,280 @@ mod tests {
         let p = crate::assembler::parse_gasm(src).expect("parse should succeed");
         let vm = SoftwareVm::run_program(&p.pixels, 0);
         assert_eq!(vm.regs[0], 0xFFFFFFFF, "parsed NOT should work");
+    }
+
+    // ── Phase 9B: Self-modification opcodes (GEO-65) ───────────────
+
+    #[test]
+    fn test_glyph_mutate_changes_opcode() {
+        // Write a program at address 0, then mutate the ADD (opcode 5) to SUB (opcode 6).
+        let mut svm = SoftwareVm::new();
+
+        // Write a target instruction at pixel 500: ADD r0, r1 (opcode 5)
+        svm.poke(500, assembler::glyph(5, 0, 0, 1));
+
+        // Program: GLYPH_MUTATE r3, r4, HALT
+        // r3 = 500 (target pixel index), r4 = 6 (new opcode = SUB)
+        let mut p = Program::new();
+        p.ldi(3, 500);
+        p.ldi(4, 6); // SUB opcode
+        p.glyph_mutate(3, 4);
+        p.halt();
+
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "should halt");
+
+        // Verify the pixel at address 500 now has opcode 6 (SUB) instead of 5 (ADD)
+        let mutated = svm.peek(500);
+        assert_eq!((mutated & 0xFF) as u8, 6, "opcode at pixel 500 should now be 6 (SUB)");
+
+        // Verify the other channels are preserved
+        assert_eq!(((mutated >> 8) & 0xFF) as u8, 0, "stratum preserved");
+        assert_eq!(((mutated >> 16) & 0xFF) as u8, 0, "p1 preserved");
+        assert_eq!(((mutated >> 24) & 0xFF) as u8, 1, "p2 preserved");
+
+        // Verify success flag in r3
+        assert_eq!(svm.vm_state(0).regs[3], 1, "r3 should be 1 (success)");
+    }
+
+    #[test]
+    fn test_glyph_mutate_self_modifying_program() {
+        // A program that mutates its own next instruction from NOP to HALT.
+        let mut svm = SoftwareVm::new();
+
+        // addr 0: LDI r3, 3     (target = pixel 3, which is the NOP at addr 3)
+        // addr 2: LDI r4, 13    (new opcode = HALT)
+        // addr 4: GLYPH_MUTATE r3, r4
+        // addr 5: NOP            (will be mutated to HALT)
+        // addr 6: LDI r0, 999   (should never execute)
+        // addr 8: HALT
+        let mut p = Program::new();
+        p.ldi(3, 5); // target pixel index = 5 (the NOP)
+        p.ldi(4, 13); // HALT opcode
+        p.glyph_mutate(3, 4);
+        p.instruction(op::NOP, 0, 0, 0); // addr 5 - will be mutated
+        p.ldi(0, 999); // should never execute
+        p.halt();
+
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        // Program should have halted (NOP was mutated to HALT)
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "should halt via self-modification");
+        // r0 should NOT be 999 (the LDI after the mutated NOP never ran)
+        assert_ne!(svm.vm_state(0).regs[0], 999, "code after mutated instruction should not execute");
+    }
+
+    #[test]
+    fn test_spatial_spawn_copies_cluster() {
+        // Write source cluster at pixel 500-504, copy to pixel 1000-1004.
+        let mut svm = SoftwareVm::new();
+
+        // Source cluster: 3 pixels at address 500
+        svm.poke(500, assembler::glyph(5, 0, 0, 1)); // ADD r0, r1
+        svm.poke(501, assembler::glyph(6, 0, 0, 1)); // SUB r0, r1
+        svm.poke(502, assembler::glyph(13, 0, 0, 0)); // HALT
+
+        // Program: LDI r1, 1000 (dest), LDI r2, 3 (size), LDI r3, 500 (source)
+        // SPATIAL_SPAWN r1, r2, r3, HALT
+        let mut p = Program::new();
+        p.ldi(1, 1000); // dest pixel index
+        p.ldi(2, 3); // size = 3 pixels
+        p.ldi(3, 500); // source pixel index
+        p.spatial_spawn(1, 2, 3);
+        p.halt();
+
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "should halt");
+
+        // Verify the copied cluster at address 1000
+        assert_eq!(svm.peek(1000), assembler::glyph(5, 0, 0, 1), "pixel 1000 should match source");
+        assert_eq!(svm.peek(1001), assembler::glyph(6, 0, 0, 1), "pixel 1001 should match source");
+        assert_eq!(svm.peek(1002), assembler::glyph(13, 0, 0, 0), "pixel 1002 should match source");
+
+        // Verify return value
+        assert_eq!(svm.vm_state(0).regs[1], 3, "r1 should be 3 (pixels copied)");
+    }
+
+    #[test]
+    fn test_spatial_spawn_creates_executable_copy() {
+        // Copy a working program to a new location, then jump to it.
+        let mut svm = SoftwareVm::new();
+
+        // Source program at pixel 500: LDI r0, 42; HALT
+        let mut src = Program::new();
+        src.ldi(0, 42);
+        src.halt();
+        for (i, &pixel) in src.pixels.iter().enumerate() {
+            svm.poke(500 + i as u32, pixel);
+        }
+
+        // Main program: SPATIAL_SPAWN the program to addr 1000, then CALL 1000
+        let mut p = Program::new();
+        p.ldi(1, 1000); // dest
+        p.ldi(2, 3); // size (LDI=2 pixels + HALT=1 = 3)
+        p.ldi(3, 500); // source
+        p.spatial_spawn(1, 2, 3);
+        // Now jump to the copied program
+        p.instruction(op::CALL, 0, 0, 0);
+        p.pixels.push(1000); // absolute address
+        p.halt();
+
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "should halt");
+        assert_eq!(svm.vm_state(0).regs[0], 42, "copied program should execute and set r0=42");
+    }
+
+    #[test]
+    fn test_semantic_merge_identical_clusters() {
+        // Merge two identical clusters -- result should be identical.
+        let mut svm = SoftwareVm::new();
+
+        // Cluster A at pixel 500
+        svm.poke(500, assembler::glyph(5, 0, 0, 1)); // ADD
+        svm.poke(501, assembler::glyph(13, 0, 0, 0)); // HALT
+
+        // Cluster B at pixel 600 (identical)
+        svm.poke(600, assembler::glyph(5, 0, 0, 1)); // ADD
+        svm.poke(601, assembler::glyph(13, 0, 0, 0)); // HALT
+
+        // Program: SEMANTIC_MERGE r1, r2, r3 (dest in data pixel)
+        let mut p = Program::new();
+        p.ldi(1, 500); // cluster A
+        p.ldi(2, 600); // cluster B
+        p.ldi(3, 700); // dest
+        p.semantic_merge(1, 2, 3);
+        p.halt();
+
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "should halt");
+
+        // Dest should match both sources
+        assert_eq!(svm.peek(700), assembler::glyph(5, 0, 0, 1), "dest pixel 0 should match");
+        assert_eq!(svm.peek(701), assembler::glyph(13, 0, 0, 0), "dest pixel 1 should match");
+
+        // Return value = merged count
+        assert_eq!(svm.vm_state(0).regs[1], 2, "should have merged 2 pixels");
+    }
+
+    #[test]
+    fn test_semantic_merge_differing_clusters_keeps_higher_opcode() {
+        // Merge two clusters with differing opcodes -- higher opcode wins.
+        let mut svm = SoftwareVm::new();
+
+        // Cluster A at pixel 500: ADD (opcode 5)
+        svm.poke(500, assembler::glyph(5, 0, 0, 1));
+
+        // Cluster B at pixel 600: SUB (opcode 6, higher)
+        svm.poke(600, assembler::glyph(6, 0, 0, 1));
+
+        let mut p = Program::new();
+        p.ldi(1, 500); // cluster A
+        p.ldi(2, 600); // cluster B
+        p.ldi(3, 700); // dest
+        p.semantic_merge(1, 2, 3);
+        p.halt();
+
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "should halt");
+
+        // SUB (opcode 6) > ADD (opcode 5), so SUB wins
+        let merged = svm.peek(700);
+        assert_eq!(
+            (merged & 0xFF) as u8,
+            6,
+            "merged pixel should keep higher opcode (SUB=6)"
+        );
+    }
+
+    #[test]
+    fn test_spatial_spawn_pixel_encoding() {
+        // Verify that SPATIAL_SPAWN emits 2 pixels and the opcode is 225
+        let mut p = Program::new();
+        p.ldi(1, 100); // dest
+        p.ldi(2, 5); // size
+        p.ldi(3, 200); // source
+        p.spatial_spawn(1, 2, 3);
+        p.halt();
+
+        // Find the SPATIAL_SPAWN pixel (after LDI r1, LDI r2, LDI r3 = 6 pixels)
+        let spawn_pixel = p.pixels[6];
+        assert_eq!((spawn_pixel & 0xFF) as u8, 225, "opcode should be 225 (SPATIAL_SPAWN)");
+        // Second pixel encodes source_addr_reg
+        let data_pixel = p.pixels[7];
+        assert_eq!(data_pixel, 3, "data pixel should encode source_addr_reg=3");
+    }
+
+    #[test]
+    fn test_semantic_merge_pixel_encoding() {
+        // Verify that SEMANTIC_MERGE emits 2 pixels and the opcode is 226
+        let mut p = Program::new();
+        p.ldi(1, 100); // cluster_a
+        p.ldi(2, 200); // cluster_b
+        p.ldi(3, 300); // dest
+        p.semantic_merge(1, 2, 3);
+        p.halt();
+
+        // Find the SEMANTIC_MERGE pixel (after LDI r1, LDI r2, LDI r3 = 6 pixels)
+        let merge_pixel = p.pixels[6];
+        assert_eq!((merge_pixel & 0xFF) as u8, 226, "opcode should be 226 (SEMANTIC_MERGE)");
+        // Second pixel encodes dest_reg
+        let data_pixel = p.pixels[7];
+        assert_eq!(data_pixel, 3, "data pixel should encode dest_reg=3");
+    }
+
+    #[test]
+    fn test_glyph_mutate_pixel_encoding() {
+        // Verify GLYPH_MUTATE emits 1 pixel with opcode 224
+        let mut p = Program::new();
+        p.glyph_mutate(3, 5);
+        p.halt();
+
+        let pixel = p.pixels[0];
+        assert_eq!((pixel & 0xFF) as u8, 224, "opcode should be 224 (GLYPH_MUTATE)");
+    }
+
+    #[test]
+    fn test_glyph_mutate_via_gasm() {
+        // Verify gasm parser handles GLYPH_MUTATE
+        let src = "LDI r3, 500\nLDI r4, 6\nGLYPH_MUTATE r3, r4\nHALT";
+        let prog = assembler::parse_gasm(src).unwrap();
+        // pixels: [LDI r3], [500], [LDI r4], [6], [GLYPH_MUTATE r3, r4], [HALT]
+        assert_eq!((prog.pixels[4] & 0xFF) as u8, 224, "pixel 4 should be GLYPH_MUTATE");
+    }
+
+    #[test]
+    fn test_spatial_spawn_via_gasm() {
+        // Verify gasm parser handles SPATIAL_SPAWN
+        let src = "LDI r1, 1000\nLDI r2, 3\nLDI r3, 500\nSPATIAL_SPAWN r1, r2, r3\nHALT";
+        let prog = assembler::parse_gasm(src).unwrap();
+        // pixels: [LDI r1], [1000], [LDI r2], [3], [LDI r3], [500], [SPATIAL_SPAWN], [source_reg], [HALT]
+        assert_eq!((prog.pixels[6] & 0xFF) as u8, 225, "pixel 6 should be SPATIAL_SPAWN");
+    }
+
+    #[test]
+    fn test_semantic_merge_via_gasm() {
+        // Verify gasm parser handles SEMANTIC_MERGE
+        let src = "LDI r1, 500\nLDI r2, 600\nLDI r3, 700\nSEMANTIC_MERGE r1, r2, r3\nHALT";
+        let prog = assembler::parse_gasm(src).unwrap();
+        // pixels: [LDI r1], [500], [LDI r2], [600], [LDI r3], [700], [SEMANTIC_MERGE], [dest_reg], [HALT]
+        assert_eq!((prog.pixels[6] & 0xFF) as u8, 226, "pixel 6 should be SEMANTIC_MERGE");
     }
 
     // ── SPAWN opcode tests ──────────────────────────────────────────
@@ -5276,6 +5664,27 @@ HALT
     fn test_dual_assemble_recv() {
         dual_assemble("recv",
             "    RECV r5, r2\n    HALT\n");
+    }
+
+    // GEO-93: SPAWN opcode (230) — reg-reg
+    #[test]
+    fn test_dual_assemble_spawn() {
+        dual_assemble("spawn",
+            "    LDI r0, 100\n    LDI r1, 200\n    SPAWN r0, r1\n    HALT\n");
+    }
+
+    // GEO-93: YIELD opcode (227) — zero-operand
+    #[test]
+    fn test_dual_assemble_yield() {
+        dual_assemble("yield",
+            "    LDI r0, 42\n    YIELD\n    HALT\n");
+    }
+
+    // GEO-93: WAIT_EVENT opcode (28) — custom two-reg encoding
+    #[test]
+    fn test_dual_assemble_wait_event() {
+        dual_assemble("wait_event",
+            "    LDI r0, 1\n    LDI r1, 0\n    WAIT_EVENT r0, r1\n    HALT\n");
     }
 
     /// GEO-71: Self-hosting bootstrap test.
