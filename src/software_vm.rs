@@ -5076,6 +5076,185 @@ HALT
             expected.pixels.iter().map(|&p| format!("{:#010x}", p)).collect::<Vec<_>>()
         );
     }
+
+    /// GEO-74 Tier 1: Dual-assemble helper. Runs mini-assembler on source,
+    /// compares pixel-for-pixel against Rust parse_gasm output.
+    fn dual_assemble(source_name: &str, source_text: &str) {
+        use crate::assembler::{parse_gasm, Program};
+        use crate::geoasm_mem;
+
+        let expected = parse_gasm(source_text).unwrap_or_else(|e| {
+            panic!("{}: Rust parse_gasm failed: {:?}", source_name, e)
+        });
+
+        let asm_source = include_str!("../programs/mini_assembler.gasm");
+        let asm_prog = parse_gasm(asm_source).expect("mini_assembler.gasm should assemble");
+
+        let asm_addr: u32 = 0x20000;
+        let mut svm = SoftwareVm::new();
+        svm.load_program(asm_addr, &asm_prog.pixels);
+        svm.spawn_vm(0, asm_addr);
+
+        let src_bytes = source_text.as_bytes();
+        for (i, &byte) in src_bytes.iter().enumerate() {
+            svm.poke_byte(geoasm_mem::src_byte_addr(i as u32), byte);
+        }
+        svm.poke_byte(geoasm_mem::src_byte_addr(src_bytes.len() as u32), 0);
+
+        for frame in 0..200 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+        assert_eq!(svm.vm_state(0).halted, 1, "{}: assembler should halt", source_name);
+
+        let output_base = geoasm_mem::output_pixel(0);
+        assert_eq!(
+            expected.pixels.len(),
+            {
+                let mut count = 0usize;
+                while svm.peek(output_base + count as u32) != 0 || count < expected.pixels.len() {
+                    count += 1;
+                    if count > expected.pixels.len() + 100 { break; }
+                }
+                count
+            },
+            "{}: output length mismatch",
+            source_name
+        );
+
+        for (i, &expected_px) in expected.pixels.iter().enumerate() {
+            let actual = svm.peek(output_base + i as u32);
+            assert_eq!(
+                actual, expected_px,
+                "{}: pixel {} mismatch: got {:#010x}, expected {:#010x}",
+                source_name, i, actual, expected_px
+            );
+        }
+        eprintln!(
+            "GEO-74: {} passed dual-assemble ({} pixels match)",
+            source_name,
+            expected.pixels.len()
+        );
+    }
+
+    // JMP with numeric offset (skip 3 pixels: LDI=2px + HALT=1px, offset=+3)
+    #[test]
+    fn test_dual_assemble_jmp_offset() {
+        dual_assemble("jmp_offset",
+            "    JMP 3\n    LDI r0, 99\n    LDI r0, 42\n    HALT\n");
+    }
+
+    // JMP with negative offset (backward jump)
+    #[test]
+    fn test_dual_assemble_jmp_negative() {
+        dual_assemble("jmp_negative",
+            "    LDI r0, 1\n    LDI r1, 0\n    ADD r1, r0\n    JMP -2\n    HALT\n");
+    }
+
+    #[test]
+    fn test_dual_assemble_ldi_halt() {
+        dual_assemble("ldi_halt",
+            "    LDI r0, 42\n    HALT\n");
+    }
+
+    // BNE with negative offset (backward branch)
+    #[test]
+    fn test_dual_assemble_bne_backward() {
+        dual_assemble("bne_backward",
+            "    LDI r0, 0\n    LDI r1, 1\n    LDI r2, 10\n    ADD r0, r1\n    BNE r0, r2, -2\n    HALT\n");
+    }
+
+    #[test]
+    fn test_dual_assemble_store_load() {
+        dual_assemble("store_load",
+            "    LDI r0, 100\n    LDI r1, 200\n    STORE r0, r1\n    LOAD r2, r0\n    HALT\n");
+    }
+
+    #[test]
+    fn test_dual_assemble_arithmetic() {
+        dual_assemble("arithmetic",
+            "    LDI r0, 100\n    LDI r1, 30\n    ADD r2, r0\n    SUB r3, r0\n    MUL r4, r1\n    HALT\n");
+    }
+
+    // CALL with absolute address
+    #[test]
+    fn test_dual_assemble_call_addr() {
+        dual_assemble("call_addr",
+            "    CALL 5\n    LDI r0, 42\n    HALT\n    LDI r1, 99\n    RET\n");
+    }
+
+    // BEQ with positive forward offset
+    #[test]
+    fn test_dual_assemble_beq_forward() {
+        dual_assemble("beq_forward",
+            "    LDI r0, 5\n    LDI r1, 5\n    BEQ r0, r1, 3\n    LDI r2, 99\n    LDI r2, 42\n    HALT\n");
+    }
+
+    // BLT with negative backward offset
+    #[test]
+    fn test_dual_assemble_blt_backward() {
+        dual_assemble("blt_backward",
+            "    LDI r0, 0\n    LDI r1, 1\n    LDI r2, 5\n    ADD r0, r1\n    BLT r0, r2, -2\n    HALT\n");
+    }
+
+    // Debug: step through VM assembler execution, track register state
+    #[test]
+    fn test_debug_vm_assembler_step() {
+        use crate::assembler::parse_gasm;
+        use crate::geoasm_mem;
+
+        // Simplest failing case: just "LDI r0, 99\nHALT\n"
+        let src = "    LDI r0, 99\n    HALT\n";
+        let expected = parse_gasm(src).unwrap();
+        eprintln!("Expected: {:?}", expected.pixels);
+
+        let asm_source = include_str!("../programs/mini_assembler.gasm");
+        let asm_prog = parse_gasm(asm_source).expect("mini_assembler.gasm should assemble");
+        let asm_addr: u32 = 0x20000;
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(asm_addr, &asm_prog.pixels);
+        svm.spawn_vm(0, asm_addr);
+
+        let src_bytes = src.as_bytes();
+        for (i, &byte) in src_bytes.iter().enumerate() {
+            svm.poke_byte(geoasm_mem::src_byte_addr(i as u32), byte);
+        }
+        svm.poke_byte(geoasm_mem::src_byte_addr(src_bytes.len() as u32), 0);
+
+        // Run frame by frame and check r4 (immediate accumulator) and output
+        for frame in 0..1000 {
+            svm.execute_frame();
+            let vm = svm.vm_state(0);
+            if vm.halted != 0 {
+                eprintln!("Halted at frame {}", frame);
+                break;
+            }
+        }
+
+        let output_base = geoasm_mem::output_pixel(0);
+        for i in 0..10 {
+            let v = svm.peek(output_base + i as u32);
+            eprintln!("  V[{}] = {:#010x}", i, v);
+        }
+
+        // Also check: what are the source bytes at the key positions?
+        eprintln!("\nSource bytes:");
+        for i in 0..src_bytes.len() + 5 {
+            let b = svm.peek_byte(geoasm_mem::src_byte_addr(i as u32));
+            eprintln!("  src[{}] = {} ({:#04x}) = '{}'", i, b, b,
+                if b >= 32 && b < 127 { b as char } else { '.' });
+        }
+
+        // Check registers
+        let vm = svm.vm_state(0);
+        eprintln!("\nFinal registers:");
+        for i in 0..16 {
+            eprintln!("  r{} = {:#010x} ({})", i, vm.regs[i], vm.regs[i]);
+        }
+    }
 }
 
 impl SoftwareVm {

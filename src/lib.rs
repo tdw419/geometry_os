@@ -12,6 +12,7 @@ pub mod fitness;
 pub mod font_atlas;
 pub mod gasm;
 pub mod gasp;
+pub mod geoasm_mem;
 pub mod gasp_compiler;
 pub mod governance;
 pub mod hilbert;
