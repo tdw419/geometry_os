@@ -422,25 +422,55 @@ fn pass2_emit(
     let mut addr = 0usize;
 
     for line in lines {
-        if let Line::Instruction {
-            mnemonic,
-            operands,
-            line_num,
-        } = line
-        {
-            emit_instruction(
-                &mut prog,
+        match line {
+            Line::Instruction {
                 mnemonic,
                 operands,
-                addr,
-                labels,
-                frame_labels,
-                *line_num,
-            )?;
-            if mnemonic == "DATA" {
-                addr += 1;
-            } else {
-                addr += instruction_size(mnemonic);
+                line_num,
+            } => {
+                emit_instruction(
+                    &mut prog,
+                    mnemonic,
+                    operands,
+                    addr,
+                    labels,
+                    frame_labels,
+                    *line_num,
+                )?;
+                if mnemonic == "DATA" {
+                    addr += 1;
+                } else {
+                    addr += instruction_size(mnemonic);
+                }
+            }
+            Line::Directive { kind, line_num } => {
+                match kind {
+                    DirectiveKind::Org { addr: target_addr } => {
+                        if *target_addr < addr {
+                            return Err(format!(
+                                "line {}: .org address {} is behind current address {} (backward .org not supported)",
+                                line_num, target_addr, addr
+                            ));
+                        }
+                        // Emit NOP padding pixels to reach target address
+                        while addr < *target_addr {
+                            prog.instruction(op::NOP, 0, 0, 0);
+                            addr += 1;
+                        }
+                    }
+                    DirectiveKind::Include { filename } => {
+                        return Err(format!(
+                            "line {}: .include '{}' requires host file resolution (not yet supported in standalone assembly)",
+                            line_num, filename
+                        ));
+                    }
+                    DirectiveKind::Define { .. } => {
+                        // Already processed in pre-pass; no pixel output
+                    }
+                }
+            }
+            Line::Label { .. } => {
+                // Labels don't emit pixels; pass
             }
         }
     }
