@@ -1719,4 +1719,24 @@ HALT
         let result = svm.vm_state(0).regs[0];
         assert_eq!(result, 15, "sum_to(6) should be 15, got {}", result);
     }
+
+    #[test]
+    fn assemble_fibonacci() {
+        let source = include_str!("../programs/fibonacci.gasm");
+        let program = assemble(source).expect("fibonacci.gasm should assemble");
+
+        use crate::software_vm::SoftwareVm;
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &program.pixels);
+        svm.spawn_vm(0, 0);
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).halted, 1, "fibonacci should halt");
+
+        let expected = [0u32, 1, 1, 2, 3, 5, 8, 13, 21, 34];
+        for (i, &val) in expected.iter().enumerate() {
+            let mem_val = svm.peek((500 + i) as u32);
+            assert_eq!(mem_val, val, "Fib({}) should be {}, got {}", i, val, mem_val);
+        }
+    }
 }
