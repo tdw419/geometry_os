@@ -202,7 +202,7 @@ tests/  (45 test files)
   self_replication.rs     -- Self-replicator end-to-end
   ...and more
 
-~33,000 lines of Rust (src/). 760 tests passing (437 lib + 323 integration), 1 ignored, 0 failures. Build clean (cargo check passes, warnings only).
+~33,000 lines of Rust (src/). 762 tests passing (439 lib + 323 integration), 4 ignored, 0 failures. Build clean (cargo check passes, warnings only).
 ```
 
 ---
