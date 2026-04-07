@@ -9124,4 +9124,63 @@ mod geo92_tier2 {
         assert_eq!(ids, vec![1, 2, 3], "listed IDs should be [1,2,3], got {:?}", ids);
     }
 
+
+    /// Verify that ISSUE_PICK skips DONE issues and picks the highest-priority TODO one.
+    #[test]
+    fn test_issueq_pick_skips_done_picks_highest() {
+        let mut svm = issueq_setup();
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "mixed-status");
+        let out_addr: u32 = 0x0020_0000;
+        let load_addr: u32 = 0x0000_1000;
+        let mut p = Program::new();
+
+        // Issue 1: priority low(1)
+        p.ldi(10, title_addr);
+        p.ldi(11, 1);
+        p.issue_create(10, 11, 0);
+
+        // Issue 2: priority critical(4)
+        p.ldi(10, title_addr);
+        p.ldi(11, 4);
+        p.issue_create(10, 11, 0);
+
+        // Issue 3: priority medium(2)
+        p.ldi(10, title_addr);
+        p.ldi(11, 2);
+        p.issue_create(10, 11, 0);
+
+        // Mark issue 2 (critical) as DONE via update
+        p.ldi(14, 2);
+        p.ldi(15, crate::ISSUE_STATUS_DONE);
+        p.issue_update(14, 15);
+
+        // Now pick -- should skip issue 2 (DONE) and pick issue 3 (prio=2, highest TODO)
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_pick(12, 13, 1);
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..100 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // r10 after pick should hold the picked issue ID = 3
+        let picked_id = svm.vm_state(0).regs[10];
+        assert_eq!(picked_id, 3, "should pick issue 3 (highest TODO priority), got {}", picked_id);
+
+        // Verify the output region has issue 3's data
+        let out_id = svm.peek(out_addr + 1);
+        assert_eq!(out_id, 3, "output region pixel 1 should contain issue 3's ID");
+    }
+
 }
