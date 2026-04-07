@@ -740,7 +740,7 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
         243 => {
             let max_results = stratum as u32;
             let out_addr = vm.regs[p1 as usize];
-            let _filter = vm.regs[p2 as usize];
+            let filter = vm.regs[p2 as usize];
             let count = mem_read(ram, (crate::ISSUEQ_BASE + 2) * 4);
 
             let mut written = 0u32;
@@ -749,6 +749,11 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
                     break;
                 }
                 let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
+                let meta = mem_read(ram, slot_base * 4);
+                let status = (meta >> 24) & 0xFF;
+                if filter != 0 && status != filter {
+                    continue;
+                }
                 let issue_id = mem_read(ram, (slot_base + 1) * 4);
                 mem_write(ram, (out_addr + written) * 4, issue_id);
                 written += 1;
@@ -9024,5 +9029,62 @@ mod geo92_tier2 {
         assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "VM should halt");
         let picked_id = svm.vm_state(0).regs[12];
         assert_eq!(picked_id, 1, "same-priority pick should return first issue (FIFO), got {}", picked_id);
+    }
+
+    #[test]
+    fn test_issueq_list_filter_by_status() {
+        // Create 3 issues, pick 1 (-> IN_PROGRESS), mark 1 DONE, then list only DONE.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "filter test");
+
+        let load_addr: u32 = 0x0000_1000;
+        let out_addr: u32 = 0x0020_0000;
+
+        let mut p = Program::new();
+
+        // Create 3 issues (all medium priority)
+        for _ in 0..3 {
+            p.ldi(10, title_addr);
+            p.ldi(11, 2);
+            p.issue_create(10, 11, 0);
+        }
+
+        // Pick issue 1 -> sets it to IN_PROGRESS
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_pick(12, 13, 1); // agent_vm_id=1
+
+        // Mark issue at out_addr as DONE (simulate completing it)
+        p.ldi(14, crate::ISSUE_STATUS_DONE);
+        p.issue_update(12, 14);
+
+        // List only DONE issues (filter = ISSUE_STATUS_DONE = 2)
+        p.ldi(12, out_addr);
+        p.ldi(13, crate::ISSUE_STATUS_DONE);
+        p.issue_list(12, 13, 10);
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // r12 should hold count of DONE issues = 1
+        let listed = svm.vm_state(0).regs[12];
+        assert_eq!(listed, 1, "should list 1 DONE issue, got {}", listed);
+
+        // The listed issue ID should be the one we marked DONE
+        let listed_id = svm.peek(out_addr);
+        assert_eq!(listed_id, 1, "listed DONE issue should be id=1, got {}", listed_id);
     }
 }
