@@ -202,7 +202,7 @@ tests/  (45 test files)
   self_replication.rs     -- Self-replicator end-to-end
   ...and more
 
-~31,000 lines of Rust (src/). 759 tests (434 unit + 325 integration), 3 ignored.
+~31,800 lines of Rust (src/). 745 tests passing, 4 ignored.
 ```
 
 ---
@@ -464,7 +464,7 @@ The LLM executor from Phase 7 connects so agents can reason about their work.
 - [x] **Agent computes Fibonacci** -- agent.gasm extended: after ISSUE_PICK, agent
       reads the title data ("fib N"), computes fib(N) iteratively, writes result to the issue's
       result region, marks DONE. No more toy create/mark-done cycles.
-- [ ] **CEO assigns varied work** -- ceo.gasm creates different task types: Fibonacci,
+- [x] **CEO assigns varied work** -- ceo.gasm creates different task types: Fibonacci,
       factorial, prime check. Each type has a different title format. Agents dispatch based on
       type. Tests verify correct results for each.
 - [ ] **LLM executor integration** -- The Phase 7 ModelExecutor connects to the
@@ -482,11 +482,11 @@ The LLM executor from Phase 7 connects so agents can reason about their work.
 (LLM in loop)     ──────────────────────> (self-improvement)
 ```
 
-Paperclip issues: Phase 15A (76c91595-d7ef-4e27-893f-31b8424a09e6, done), Phase 15B (d2d86166-e5b4-4e49-8cb1-5797b852db57, in_progress), Phase 15C (44b2a9eb-8b71-438d-a0f0-dc51906804a1, in_progress), Phase 15D (3e0c81c0-90e2-4ca2-9b10-0cd9bb3f4d2c, backlog).
+Paperclip issues: Phase 15A (76c91595-d7ef-4e27-893f-31b8424a09e6, done), Phase 15B (d2d86166-e5b4-4e49-8cb1-5797b852db57, done), Phase 15C (44b2a9eb-8b71-438d-a0f0-dc51906804a1, in_progress), Phase 15D (3e0c81c0-90e2-4ca2-9b10-0cd9bb3f4d2c, backlog).
 
 **Success Criteria:**
 - [x] Agent computes fib(10) = 55 and writes it to the issue result region
-- [ ] Three different task types execute correctly in one orchestration run
+- [x] Three different task types execute correctly in one orchestration run
 - [ ] Agent successfully calls LLM and uses the response
 - [ ] Machine proposes and applies a mutation that improves fitness, autonomously
 
