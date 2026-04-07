@@ -177,6 +177,9 @@ pub const ISSUE_STATUS_TODO: u32 = 0;
 pub const ISSUE_STATUS_IN_PROGRESS: u32 = 1;
 pub const ISSUE_STATUS_DONE: u32 = 2;
 
+/// Issue list filter sentinel: 0xFF means "match all statuses".
+pub const ISSUE_FILTER_ALL: u32 = 0xFF;
+
 /// Issue priority values.
 pub const ISSUE_PRIORITY_NONE: u32 = 0;
 pub const ISSUE_PRIORITY_LOW: u32 = 1;
