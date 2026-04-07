@@ -456,7 +456,7 @@ GEO-225 (daemon mode)         ────────────────�
 
 ---
 
-## Phase 15: Real Work (NEXT)
+## Phase 15: Real Work (COMPLETE)
 
 Agents do real computation. The CEO assigns Fibonacci tasks. Agents actually compute them.
 The LLM executor from Phase 7 connects so agents can reason about their work.
@@ -467,7 +467,7 @@ The LLM executor from Phase 7 connects so agents can reason about their work.
 - [x] **CEO assigns varied work** -- ceo.gasm creates different task types: Fibonacci,
       factorial, prime check. Each type has a different title format. Agents dispatch based on
       type. Tests verify correct results for each.
-- [ ] **LLM executor integration** -- The Phase 7 ModelExecutor connects to the
+- [x] **LLM executor integration** -- The Phase 7 ModelExecutor connects to the
       orchestration loop. An agent can issue CMD_MODEL_CALL via the device proxy, get an LLM
       response in substrate, and act on it. Test: agent asks LLM "what is fib(10)?", writes
       the parsed answer as the issue result.
@@ -487,7 +487,7 @@ Paperclip issues: Phase 15A (76c91595-d7ef-4e27-893f-31b8424a09e6, done), Phase 
 **Success Criteria:**
 - [x] Agent computes fib(10) = 55 and writes it to the issue result region
 - [x] Three different task types execute correctly in one orchestration run
-- [ ] Agent successfully calls LLM and uses the response
+- [x] Agent successfully calls LLM and uses the response
 - [x] Machine proposes and applies a mutation that improves fitness, autonomously
 
 ---
