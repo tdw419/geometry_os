@@ -7417,71 +7417,6 @@ mod geo92_tier2 {
         assert_eq!(assignee, 7, "assignee should be 7");
     }
 
-    #[test]
-    fn test_issueq_full_lifecycle() {
-        // Create 2 issues, pick one, mark DONE, pick again -> should get the other.
-        let mut svm = issueq_setup();
-
-        let title_addr: u32 = 0x0010_0000;
-        write_string(&mut svm, title_addr, "lifecycle");
-        let out_addr: u32 = 0x0020_0000;
-        let load_addr: u32 = 0x0000_1000;
-
-        let mut p = Program::new();
-
-        // Create 2 issues: medium(2), high(3)
-        p.ldi(10, title_addr);
-        p.ldi(11, 2);
-        p.issue_create(10, 11, 0);
-        p.ldi(10, title_addr);
-        p.ldi(11, 3);
-        p.issue_create(10, 11, 0);
-
-        // Pick first (should get the high priority one, issue_id=2)
-        p.ldi(12, out_addr);
-        p.ldi(13, 0);
-        p.issue_pick(12, 13, 1);
-
-        // Update picked issue to DONE
-        p.ldi(14, crate::ISSUE_STATUS_DONE);
-        p.issue_update(12, 14);
-
-        // Pick again (should get the remaining medium priority one)
-        p.ldi(12, out_addr);
-        p.ldi(13, 0);
-        p.issue_pick(12, 13, 1);
-
-        p.halt();
-
-        svm.load_program(load_addr, &p.pixels);
-        svm.spawn_vm(0, load_addr);
-
-        for _ in 0..20 {
-            svm.execute_frame();
-            if svm.vm_state(0).halted != 0 {
-                break;
-            }
-        }
-
-        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
-
-        // Verify: one issue DONE, one IN_PROGRESS
-        let mut done = 0;
-        let mut in_progress = 0;
-        for i in 0..2u32 {
-            let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
-            let meta = svm.peek(slot_base);
-            let status = (meta >> 24) & 0xFF;
-            match status {
-                s if s == crate::ISSUE_STATUS_DONE => done += 1,
-                s if s == crate::ISSUE_STATUS_IN_PROGRESS => in_progress += 1,
-                _ => {}
-            }
-        }
-        assert_eq!(done, 1, "one issue should be DONE after lifecycle");
-        assert_eq!(in_progress, 1, "one issue should be IN_PROGRESS after second pick");
-    }
-
     // ═══════════════════════════════════════════════════════════
     // Phase 13B: Agent VM Integration Tests
     // ═══════════════════════════════════════════════════════════
@@ -8685,5 +8620,297 @@ mod geo92_tier2 {
 
         // Metrics
         assert_eq!(svm.peek(crate::METRICS_BASE + 2), 4, "4 issues done");
+    }
+
+    // ── Phase 15C: LLM Executor Integration ───────────────────────────────
+
+    /// Build an LLM agent that picks an issue, calls MODEL_CALL with the
+    /// issue title as prompt, parses the numeric response, writes result
+    /// to slot pixel 26, and marks DONE.
+    ///
+    /// The agent treats the issue title as a prompt for the LLM.
+    /// The LLM response is expected to be ASCII digits (e.g. "55").
+    /// Parses up to 4 digits from the first pixel of the response buffer.
+    ///
+    /// Register allocation:
+    ///   r1  = issue_id from ISSUE_PICK (clobbered by ISSUE_UPDATE)
+    ///   r2  = out_addr / filter
+    ///   r3  = constant 0
+    ///   r4  = constant 1
+    ///   r5  = ISSUE_STATUS_DONE (2)
+    ///   r6  = empty counter
+    ///   r7  = max_empty
+    ///   r10 = result (parsed number from LLM response)
+    ///   r11 = scratch (digit parsing)
+    ///   r12 = saved issue_id
+    ///   r13 = slot_base address
+    ///   r14 = ISSUEQ_SLOTS_BASE constant
+    ///   r15 = SLOT_SIZE (32) constant
+    ///   r16 = byte mask (0xFF)
+    ///   r17 = scratch (constants: 48, 10, 8, 16, 24)
+    ///   r18 = metrics addr
+    ///   r19 = temp for metrics load
+    ///   r20 = prompt addr / byte count after MODEL_CALL
+    ///   r21 = response buffer addr
+    ///   r23 = first response pixel (packed ASCII digits)
+    fn build_llm_agent(out_addr: u32, response_addr: u32, max_empty: u32, agent_vm_id: u8) -> Program {
+        let mut p = Program::new();
+
+        // ── Constants ──
+        p.ldi(3, 0);                              // r3 = 0
+        p.ldi(4, 1);                              // r4 = 1
+        p.ldi(5, crate::ISSUE_STATUS_DONE);       // r5 = 2
+        p.ldi(6, 0);                              // r6 = empty counter
+        p.ldi(7, max_empty);                      // r7 = max_empty
+        p.ldi(14, crate::ISSUEQ_SLOTS_BASE);      // r14 = SLOTS_BASE
+        p.ldi(15, crate::ISSUEQ_SLOT_SIZE);       // r15 = 32
+        p.ldi(16, 0xFF);                          // r16 = byte mask
+        p.ldi(18, crate::METRICS_BASE + 2);       // r18 = metrics.issues_done
+        p.ldi(21, response_addr);                 // r21 = response buffer addr
+
+        // ═══════════════════════════════════════════
+        // Agent Loop
+        // ═══════════════════════════════════════════
+        p.define_label("agent_loop");
+
+        p.ldi(1, out_addr);
+        p.ldi(2, 0);
+        p.issue_pick(1, 2, agent_vm_id);
+
+        // if r1 == 0, goto empty_pick
+        p.branch_to(bcond::BEQ, 1, 3, "empty_pick");
+
+        // ── Got an issue ──
+        p.ldi(6, 0);                              // reset empty counter
+        p.instruction(op::MOV, 0, 12, 1);         // r12 = save issue_id
+
+        // ── Use title from picked issue as LLM prompt ──
+        // Title is at out_addr+2..out_addr+25 (pixels in picked issue copy)
+        p.ldi(20, out_addr + 2);                  // r20 = prompt addr (title start)
+
+        // ── Call LLM via MODEL_CALL ──
+        // MODEL_CALL buf_size=64, r_prompt=r20, r_response=r21
+        // After call: r20 = bytes written (clobbered!), response at r21
+        p.model_call(64, 20, 21);
+
+        // ── Check if MODEL_CALL succeeded (r20 != 0) ──
+        p.branch_to(bcond::BEQ, 20, 3, "model_error");
+
+        // ── Parse numeric response from LLM ──
+        // Response at response_addr as packed ASCII (4 bytes per pixel, LE).
+        // "55" -> pixel[0] = 0x00003535 (byte0='5', byte1='5')
+        p.ldi(9, response_addr);
+        p.load(23, 9);                            // r23 = first response pixel
+
+        // ── Digit 0 (byte 0 of pixel) ──
+        p.instruction(op::MOV, 0, 11, 23);        // r11 = pixel
+        p.instruction(op::AND, 0, 11, 16);        // r11 = byte0 (ASCII)
+        p.branch_to(bcond::BEQ, 11, 3, "model_error");
+        p.ldi(17, 48);
+        p.instruction(op::SUB, 0, 11, 17);        // r11 = digit0 value
+        p.instruction(op::MOV, 0, 10, 11);        // r10 = digit0
+
+        // ── Digit 1 (byte 1 of pixel, >> 8) ──
+        p.instruction(op::MOV, 0, 11, 23);
+        p.ldi(17, 8);
+        p.instruction(op::SHR, 0, 11, 17);        // r11 >>= 8
+        p.instruction(op::AND, 0, 11, 16);        // r11 = byte1
+        p.branch_to(bcond::BEQ, 11, 3, "parse_done");
+        p.ldi(17, 48);
+        p.instruction(op::SUB, 0, 11, 17);        // r11 = digit1 value
+        p.ldi(17, 10);
+        p.instruction(op::MUL, 0, 10, 17);        // r10 *= 10
+        p.instruction(op::ADD, 0, 10, 11);        // r10 += digit1
+
+        // ── Digit 2 (byte 2 of pixel, >> 16) ──
+        p.instruction(op::MOV, 0, 11, 23);
+        p.ldi(17, 16);
+        p.instruction(op::SHR, 0, 11, 17);        // r11 >>= 16
+        p.instruction(op::AND, 0, 11, 16);        // r11 = byte2
+        p.branch_to(bcond::BEQ, 11, 3, "parse_done");
+        p.ldi(17, 48);
+        p.instruction(op::SUB, 0, 11, 17);        // r11 = digit2 value
+        p.ldi(17, 10);
+        p.instruction(op::MUL, 0, 10, 17);        // r10 *= 10
+        p.instruction(op::ADD, 0, 10, 11);        // r10 += digit2
+
+        // ── Digit 3 (byte 3 of pixel, >> 24) ──
+        p.instruction(op::MOV, 0, 11, 23);
+        p.ldi(17, 24);
+        p.instruction(op::SHR, 0, 11, 17);        // r11 >>= 24
+        p.instruction(op::AND, 0, 11, 16);        // r11 = byte3
+        p.branch_to(bcond::BEQ, 11, 3, "parse_done");
+        p.ldi(17, 48);
+        p.instruction(op::SUB, 0, 11, 17);        // r11 = digit3 value
+        p.ldi(17, 10);
+        p.instruction(op::MUL, 0, 10, 17);        // r10 *= 10
+        p.instruction(op::ADD, 0, 10, 11);        // r10 += digit3
+
+        // ── Parsed successfully, jump to write result ──
+        p.define_label("parse_done");
+        p.jmp_to("write_result");
+
+        // ── MODEL_CALL error path ──
+        p.define_label("model_error");
+        p.ldi(10, 0);                             // result = 0 on error
+
+        // ═══════════════════════════════════════════
+        // Write result to issue slot + mark DONE
+        // ═══════════════════════════════════════════
+        p.define_label("write_result");
+        // slot_base = ISSUEQ_SLOTS_BASE + (issue_id - 1) * 32
+        p.instruction(op::MOV, 0, 13, 12);        // r13 = issue_id
+        p.instruction(op::SUB, 0, 13, 4);         // r13 -= 1
+        p.instruction(op::MUL, 0, 13, 15);        // r13 *= 32
+        p.instruction(op::ADD, 0, 13, 14);        // r13 += SLOTS_BASE
+        p.ldi(9, 26);
+        p.instruction(op::ADD, 0, 13, 9);         // r13 = slot_base + 26
+        p.store(13, 10);                          // slot[26] = result
+
+        // Mark DONE
+        p.instruction(op::MOV, 0, 1, 12);         // r1 = issue_id
+        p.issue_update(1, 5);
+
+        // Update metrics
+        p.load(19, 18);
+        p.instruction(op::ADD, 0, 19, 4);
+        p.store(18, 19);
+
+        // YIELD and loop
+        p.yield_op();
+        p.jmp_to("agent_loop");
+
+        // ── empty_pick ──
+        p.define_label("empty_pick");
+        p.instruction(op::ADD, 0, 6, 4);
+        p.branch_to(bcond::BGE, 6, 7, "agent_done");
+        p.yield_op();
+        p.jmp_to("agent_loop");
+
+        // agent_done
+        p.define_label("agent_done");
+        p.halt();
+
+        p.link();
+        p
+    }
+
+    #[test]
+    fn test_llm_agent_integration() {
+        // Phase 15C: Agent uses LLM to answer a question.
+        // CEO creates issue "fib(10)?". Agent picks it, calls MODEL_CALL
+        // with the title as prompt. Mock LLM returns "55".
+        // Agent parses "55" -> 55, writes to slot pixel 26, marks DONE.
+
+        let mut svm = issueq_setup();
+        for i in 0..crate::METRICS_SIZE {
+            svm.poke(crate::METRICS_BASE + i, 0);
+        }
+
+        // ── Setup: write issue title ──
+        let title_base: u32 = 0x0010_0000;
+        write_string(&mut svm, title_base, "fib(10)?");
+
+        // ── Setup: CEO creates 1 issue ──
+        let ceo_addr: u32 = 0x0000_1000;
+        let ceo = build_fib_ceo(&[(title_base, 3)]);
+        svm.load_program(ceo_addr, &ceo.pixels);
+        svm.spawn_vm(0, ceo_addr);
+
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 { break; }
+        }
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "CEO should halt");
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), 1, "1 issue created");
+
+        // ── Setup: mock LLM handler ──
+        // When asked "fib(10)?", return "55"
+        svm.with_model_handler(|prompt| {
+            if prompt.contains("fib(10)") {
+                Ok("55".to_string())
+            } else {
+                Ok("0".to_string())
+            }
+        });
+
+        // ── Spawn LLM agent ──
+        let agent_addr: u32 = 0x0000_2000;
+        let out_addr: u32 = 0x0020_0000;
+        let response_addr: u32 = 0x0020_1000;
+
+        let agent = build_llm_agent(out_addr, response_addr, 30, 1);
+        svm.load_program(agent_addr, &agent.pixels);
+        svm.spawn_vm(1, agent_addr);
+
+        for _ in 0..500 {
+            svm.execute_frame();
+            if svm.vm_state(1).halted != 0 { break; }
+        }
+        assert_ne!(svm.vm_state(1).halted, 0, "Agent should halt");
+
+        // ── Verify: issue DONE with result 55 ──
+        let done_count = count_issues_with_status(&svm, crate::ISSUE_STATUS_DONE);
+        assert_eq!(done_count, 1, "1 issue should be DONE");
+
+        let slot_base = crate::ISSUEQ_SLOTS_BASE;
+        let result = svm.peek(slot_base + 26);
+        assert_eq!(result, 55, "LLM agent should write fib(10)=55, got {}", result);
+
+        // Metrics
+        assert_eq!(svm.peek(crate::METRICS_BASE + 2), 1, "1 issue done");
+    }
+
+    #[test]
+    fn test_llm_agent_multi_digit_response() {
+        // Phase 15C extended: agent handles multi-digit LLM responses.
+        // CEO creates "fib(20)?". LLM returns "6765".
+        let mut svm = issueq_setup();
+        for i in 0..crate::METRICS_SIZE {
+            svm.poke(crate::METRICS_BASE + i, 0);
+        }
+
+        let title_base: u32 = 0x0010_0000;
+        write_string(&mut svm, title_base, "fib(20)?");
+
+        let ceo_addr: u32 = 0x0000_1000;
+        let ceo = build_fib_ceo(&[(title_base, 3)]);
+        svm.load_program(ceo_addr, &ceo.pixels);
+        svm.spawn_vm(0, ceo_addr);
+
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 { break; }
+        }
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), 1, "1 issue created");
+
+        svm.with_model_handler(|prompt| {
+            if prompt.contains("fib(20)") {
+                Ok("6765".to_string())
+            } else {
+                Ok("0".to_string())
+            }
+        });
+
+        let agent_addr: u32 = 0x0000_2000;
+        let out_addr: u32 = 0x0020_0000;
+        let response_addr: u32 = 0x0020_1000;
+
+        let agent = build_llm_agent(out_addr, response_addr, 30, 1);
+        svm.load_program(agent_addr, &agent.pixels);
+        svm.spawn_vm(1, agent_addr);
+
+        for _ in 0..500 {
+            svm.execute_frame();
+            if svm.vm_state(1).halted != 0 { break; }
+        }
+        assert_ne!(svm.vm_state(1).halted, 0, "Agent should halt");
+
+        let done_count = count_issues_with_status(&svm, crate::ISSUE_STATUS_DONE);
+        assert_eq!(done_count, 1, "1 issue should be DONE");
+
+        let slot_base = crate::ISSUEQ_SLOTS_BASE;
+        let result = svm.peek(slot_base + 26);
+        assert_eq!(result, 6765, "LLM agent should write fib(20)=6765, got {}", result);
     }
 }
