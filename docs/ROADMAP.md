@@ -482,7 +482,7 @@ The LLM executor from Phase 7 connects so agents can reason about their work.
 (LLM in loop)     ──────────────────────> (self-improvement)
 ```
 
-Paperclip issues: Phase 15A (76c91595-d7ef-4e27-893f-31b8424a09e6, done), Phase 15B (d2d86166-e5b4-4e49-8cb1-5797b852db57, done), Phase 15C (44b2a9eb-8b71-438d-a0f0-dc51906804a1, in_progress -- unassigned, not locked), Phase 15D (3e0c81c0-90e2-4ca2-9b10-0cd9bb3f4d2c, done).
+Paperclip issues: Phase 15A (76c91595-d7ef-4e27-893f-31b8424a09e6, done), Phase 15B (d2d86166-e5b4-4e49-8cb1-5797b852db57, done), Phase 15C (44b2a9eb-8b71-438d-a0f0-dc51906804a1, done), Phase 15D (3e0c81c0-90e2-4ca2-9b10-0cd9bb3f4d2c, done).
 
 **Success Criteria:**
 - [x] Agent computes fib(10) = 55 and writes it to the issue result region
@@ -492,7 +492,7 @@ Paperclip issues: Phase 15A (76c91595-d7ef-4e27-893f-31b8424a09e6, done), Phase 
 
 ---
 
-## Phase 16: The Machine Ships
+## Phase 16: The Machine Ships (NEXT)
 
 Real daemon, real workflows, real documentation. Someone else can run it.
 
@@ -508,7 +508,7 @@ Real daemon, real workflows, real documentation. Someone else can run it.
       Memory layout, opcode table, VM lifecycle, how to write a .gasm program, how the
       scheduler works. The document you'd wish existed when you started.
 
-Note: Paperclip issues not yet created for Phase 16.
+Note: Paperclip issues: Phase 16A (f85d7f23-7989-4db2-946d-d7953ac260ef), Phase 16B (e3e604ea-161f-43ad-a51a-4eb01f560cfc), Phase 16C (fc76c143-6642-4011-b8cf-292049e46ba4).
 
 **Success Criteria:**
 - [ ] `systemctl start geo-daemon` boots and serves the orchestration loop
