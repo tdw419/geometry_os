@@ -464,9 +464,10 @@ The LLM executor from Phase 7 connects so agents can reason about their work.
 - [x] **Agent computes Fibonacci** -- agent.gasm extended: after ISSUE_PICK, agent
       reads the title data ("fib N"), computes fib(N) iteratively, writes result to the issue's
       result region, marks DONE. No more toy create/mark-done cycles.
-- [x] **CEO assigns varied work** -- ceo.gasm creates different task types: Fibonacci,
-      factorial, prime check. Each type has a different title format. Agents dispatch based on
-      type. Tests verify correct results for each.
+- [x] **CEO assigns varied work** -- `build_varied_agent` dispatches on title prefix via
+      XOR magic comparison: "fib " → fibonacci, "fac " → factorial, "pri " → prime check.
+      Test verifies fib(10)=55, fac(6)=720, pri(7)=1, pri(4)=0 across 2 concurrent agents.
+      9 label-based branches/jumps, ~240 lines.
 - [x] **LLM executor integration** -- The Phase 7 ModelExecutor connects to the
       orchestration loop. An agent can issue CMD_MODEL_CALL via the device proxy, get an LLM
       response in substrate, and act on it. Test: agent asks LLM "what is fib(10)?", writes
