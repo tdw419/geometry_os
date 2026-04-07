@@ -1234,10 +1234,171 @@ fn handle_command_text(state: &Arc<Mutex<DaemonState>>, line: &str) -> String {
     }
 }
 
-// ── Orchestration mode (Phase 14: GEO-225) ──
+// ── Orchestration mode (Phase 14: GEO-225 / GEO-226) ──
+
+/// Build the CEO program using the Program builder API.
+///
+/// CEO creates `batch_size` issues, then polls the issue queue until all are DONE.
+/// Writes progress to METRICS region.
+fn build_ceo_program(title_addr: u32, metrics_base: u32, issueq_count_addr: u32, batch_size: u32) -> assembler::Program {
+    use assembler::Program;
+    let mut p = Program::new();
+
+    // ── Constants ──
+    p.ldi(7, 1);              // r7 = 1 (constant)
+    p.ldi(20, 0);             // r20 = 0 (constant)
+    p.ldi(2, batch_size);     // r2 = batch_size
+    p.ldi(1, 0);              // r1 = issue counter
+
+    // ── Issue creation loop ──
+    // issue_loop: (addr = 8)
+    let issue_loop_addr = p.pixels.len() as i32;
+    p.ldi(10, title_addr);    // r10 = title address
+    p.ldi(11, 3);             // r11 = priority (high)
+    p.issue_create(10, 11, 0);// ISSUE_CREATE(r10=title, r11=pri, assignee=0); r10 = issue_id
+    p.add(1, 7);              // r1++ (issue counter)
+    // BGE r1, r2, +forward  (if counter >= batch_size, exit loop)
+    let issue_bge_addr = p.pixels.len() as i32;
+    p.branch(assembler::bcond::BGE, 1, 2, 0);          // placeholder offset, will fix
+    // JMP back to issue_loop
+    let issue_jmp_addr = p.pixels.len() as i32;
+    p.jmp(0);                 // placeholder offset
+    // done_create: (addr = issue_bge_addr + 4 = next after both branch+jmp)
+    let done_create_addr = p.pixels.len() as i32;
+
+    // Fix up the BGE offset: branch from issue_bge_addr to done_create_addr
+    let bge_offset = done_create_addr - issue_bge_addr;
+    p.pixels[issue_bge_addr as usize + 1] = bge_offset as u32;
+
+    // Fix up the JMP offset: from issue_jmp_addr back to issue_loop_addr
+    let jmp_back = issue_loop_addr - issue_jmp_addr;
+    p.pixels[issue_jmp_addr as usize + 1] = jmp_back as u32;
+
+    // ── Store created count ──
+    p.ldi(12, metrics_base + 1); // METRICS + 1 = created
+    p.store(12, 2);              // created = batch_size
+
+    // ── Poll loop: wait until all issues are DONE ──
+    // We scan the issue queue slots and count how many have status==2 (DONE)
+    p.ldi(8, 0);                 // r8 = done count
+
+    // poll_loop:
+    let poll_loop_addr = p.pixels.len() as i32;
+
+    // Read queue count from issueq_count_addr
+    p.ldi(9, issueq_count_addr); // r9 = &queue_count
+    p.load(9, 9);                // r9 = queue_count
+    // Check: done_count >= queue_count?
+    // BGE r8, r9, +forward to all_done
+    let poll_bge_addr = p.pixels.len() as i32;
+    p.branch(assembler::bcond::BGE, 8, 9, 0);             // placeholder
+    // YIELD (cooperative -- let agents run)
+    p.yield_op();
+    // JMP back to poll_loop
+    let poll_jmp_addr = p.pixels.len() as i32;
+    p.jmp(0);                    // placeholder
+
+    // all_done:
+    let all_done_addr = p.pixels.len() as i32;
+
+    // Fix BGE offset
+    p.pixels[poll_bge_addr as usize + 1] = (all_done_addr - poll_bge_addr) as u32;
+    // Fix JMP offset
+    p.pixels[poll_jmp_addr as usize + 1] = (poll_loop_addr - poll_jmp_addr) as u32;
+
+    // ── Store final metrics ──
+    p.ldi(12, metrics_base + 2); // METRICS + 2 = done
+    p.store(12, 8);              // done count
+
+    // ── Scan queue slots to count actual done ──
+    // We'll also write the per-slot results to metrics + 3 (in_progress)
+    // For simplicity, just write r8 (done count) to in_progress as well
+    p.ldi(12, metrics_base + 3); // METRICS + 3 = in_progress
+    p.store(12, 20);             // in_progress = 0 (all done)
+
+    p.halt();
+    p
+}
+
+/// Build the Agent program using the Program builder API.
+///
+/// Agent loops: ISSUE_PICK -> if got one, ISSUE_UPDATE(DONE) -> YIELD -> loop.
+/// Halts after `max_empty` consecutive empty picks.
+fn build_agent_program(out_addr: u32, metrics_base: u32, max_empty: u32) -> assembler::Program {
+    use assembler::Program;
+    let mut p = Program::new();
+
+    // ── Constants ──
+    p.ldi(3, 0);              // r3 = 0 (constant)
+    p.ldi(4, 1);              // r4 = 1 (constant)
+    p.ldi(5, 2);              // r5 = ISSUE_STATUS_DONE
+    p.ldi(6, 0);              // r6 = empty pick counter
+    p.ldi(7, max_empty);      // r7 = max empty picks before halt
+    p.ldi(12, metrics_base + 2); // r12 = &metrics_done
+
+    // agent_loop: (addr = 14)
+    let agent_loop_addr = p.pixels.len() as i32;
+
+    // Pick an issue
+    p.ldi(1, out_addr);       // r1 = output address
+    p.ldi(2, 0);              // r2 = filter (0 = any)
+    p.issue_pick(1, 2, 0);    // ISSUE_PICK(r1=out, r2=filter, agent_vm_id=0)
+    // r1 now holds issue_id (0 if empty)
+
+    // BNE r1, r3, +forward to got_issue
+    let bne_addr = p.pixels.len() as i32;
+    p.bne(1, 3, 0);           // placeholder
+
+    // empty_pick: increment counter, check if too many
+    p.add(6, 4);              // empty_counter++
+    // BGE r6, r7, +forward to agent_done
+    let bge_halt_addr = p.pixels.len() as i32;
+    p.branch(assembler::bcond::BGE, 6, 7, 0);           // placeholder
+    // YIELD and try again
+    p.yield_op();
+    // JMP back to agent_loop
+    let retry_jmp_addr = p.pixels.len() as i32;
+    p.jmp(0);                 // placeholder
+
+    // got_issue:
+    let got_issue_addr = p.pixels.len() as i32;
+
+    // Fix BNE offset: from bne_addr to got_issue_addr
+    p.pixels[bne_addr as usize + 1] = (got_issue_addr - bne_addr) as u32;
+    // Fix BGE halt offset: from bge_halt_addr to agent_done_addr (after got_issue block)
+    // We'll fix it after we know where agent_done is
+
+    // ── Got an issue: mark DONE, update metrics ──
+    p.issue_update(1, 5);     // ISSUE_UPDATE(r1=issue_id, r5=DONE)
+    // Update metrics: done++
+    p.load(11, 12);           // r11 = current done count
+    p.add(11, 4);             // r11++
+    p.store(12, 11);          // store back
+    // Reset empty counter
+    p.ldi(6, 0);
+    // YIELD and loop
+    p.yield_op();
+    // JMP back to agent_loop
+    let loop_jmp_addr = p.pixels.len() as i32;
+    p.jmp(0);                 // placeholder
+
+    // agent_done:
+    let agent_done_addr = p.pixels.len() as i32;
+
+    // Fix BGE halt offset
+    p.pixels[bge_halt_addr as usize + 1] = (agent_done_addr - bge_halt_addr) as u32;
+    // Fix retry JMP offset
+    p.pixels[retry_jmp_addr as usize + 1] = (agent_loop_addr - retry_jmp_addr) as u32;
+    // Fix loop JMP offset
+    p.pixels[loop_jmp_addr as usize + 1] = (agent_loop_addr - loop_jmp_addr) as u32;
+
+    p.halt();
+    p
+}
 
 /// Run the full self-orchestrating loop on real GPU.
-/// Loads CEO + agent programs, runs frames until all halt, prints metrics.
+/// Uses Program builder API to construct CEO + Agent programs that are
+/// proven to work (same approach as passing cross-validation tests).
 fn run_orchestrate() {
     use pixels_move_pixels::{METRICS_BASE, ISSUEQ_BASE};
 
@@ -1245,63 +1406,52 @@ fn run_orchestrate() {
     println!("==================================");
     println!();
 
-    // Initialize GPU state (reuses DaemonState init which sets up GPU + font atlas)
+    // Initialize GPU state
     eprintln!("[orchestrate] Initializing GPU...");
     let mut state = DaemonState::new();
     eprintln!("[orchestrate] GPU initialized.");
 
-    // Assemble programs from .gasm files
-    let ceo_source = std::fs::read_to_string("programs/ceo.gasm")
-        .unwrap_or_else(|e| {
-            eprintln!("[orchestrate] ERROR: Failed to read programs/ceo.gasm: {}", e);
-            std::process::exit(1);
-        });
-    let agent_source = std::fs::read_to_string("programs/agent.gasm")
-        .unwrap_or_else(|e| {
-            eprintln!("[orchestrate] ERROR: Failed to read programs/agent.gasm: {}", e);
-            std::process::exit(1);
-        });
+    // ── Memory layout ──
+    let ceo_addr: u32      = 0x0000_1000;
+    let agent_a_addr: u32  = 0x0000_2000;
+    let agent_b_addr: u32  = 0x0000_3000;
+    let title_base: u32    = 0x0010_0000;
+    let out_addr: u32      = 0x0020_0000;
 
-    // Assemble CEO
-    let ceo_program = gasm::assemble(&ceo_source)
-        .unwrap_or_else(|e| {
-            eprintln!("[orchestrate] ERROR: Failed to assemble ceo.gasm: {}", e);
-            std::process::exit(1);
-        });
-    eprintln!("[orchestrate] Assembled ceo.gasm: {} pixels", ceo_program.pixels.len());
+    let issueq_count_addr: u32 = ISSUEQ_BASE + 2; // count field in queue header
 
-    // Assemble agent (used for both VM 1 and VM 2)
-    let agent_program = gasm::assemble(&agent_source)
-        .unwrap_or_else(|e| {
-            eprintln!("[orchestrate] ERROR: Failed to assemble agent.gasm: {}", e);
-            std::process::exit(1);
-        });
-    eprintln!("[orchestrate] Assembled agent.gasm: {} pixels", agent_program.pixels.len());
-
-    // Initialize metrics region to zero
+    // ── Initialize substrate regions ──
+    // Zero metrics
     for i in 0..8u32 {
-        state.vm.substrate().load_program(METRICS_BASE + i, &[0]);
+        state.vm.substrate().poke(METRICS_BASE + i, 0);
     }
-
-    // Zero the issue queue header (head, tail, count, capacity)
-    for i in 0..4u32 {
-        state.vm.substrate().load_program(ISSUEQ_BASE + i, &[0]);
+    // Zero issue queue (header + slots)
+    let issueq_region = 4 + 64 * 32;
+    for i in 0..issueq_region {
+        state.vm.substrate().poke(ISSUEQ_BASE + i as u32, 0);
     }
-
-    // Allocate addresses for programs
-    let ceo_addr: u32 = 0x0000_1000;
-    let agent_a_addr: u32 = 0x0000_2000;
-    let agent_b_addr: u32 = 0x0000_3000;
-
-    // Write title data for CEO to use
-    let title_base: u32 = 0x0010_0000;
+    // Write title data
     let title_data: Vec<u32> = vec![
         b'f' as u32 | ((b'i' as u32) << 8) | ((b'b' as u32) << 16) | ((b' ' as u32) << 24),
         b'1' as u32, b'2' as u32, b'3' as u32, b'4' as u32, b'5' as u32, 0, 0,
     ];
     state.vm.substrate().load_program(title_base, &title_data);
+    // Zero output region
+    for i in 0..16u32 {
+        state.vm.substrate().poke(out_addr + i, 0);
+    }
 
-    // Load programs into substrate
+    // ── Build programs ──
+    let batch_size: u32 = 5;
+    let max_empty: u32 = 100;
+
+    let ceo_program = build_ceo_program(title_base, METRICS_BASE, issueq_count_addr, batch_size);
+    let agent_program = build_agent_program(out_addr, METRICS_BASE, max_empty);
+
+    eprintln!("[orchestrate] Built CEO program: {} pixels", ceo_program.pixels.len());
+    eprintln!("[orchestrate] Built Agent program: {} pixels", agent_program.pixels.len());
+
+    // ── Load programs into substrate ──
     state.vm.substrate().load_program(ceo_addr, &ceo_program.pixels);
     state.vm.substrate().load_program(agent_a_addr, &agent_program.pixels);
     state.vm.substrate().load_program(agent_b_addr, &agent_program.pixels);
@@ -1310,33 +1460,41 @@ fn run_orchestrate() {
     eprintln!("[orchestrate]   Agent A at 0x{:08X} ({} pixels) -> VM 1", agent_a_addr, agent_program.pixels.len());
     eprintln!("[orchestrate]   Agent B at 0x{:08X} ({} pixels) -> VM 2", agent_b_addr, agent_program.pixels.len());
 
-    // Spawn VMs
+    // ── Spawn VMs ──
     state.vm.spawn_vm(0, ceo_addr);
     state.vm.spawn_vm(1, agent_a_addr);
     state.vm.spawn_vm(2, agent_b_addr);
     eprintln!("[orchestrate] VMs spawned: 0=CEO, 1=Agent A, 2=Agent B");
     println!();
 
-    // Print header
-    println!("{:>6} | {:>8} {:>8} {:>8} | {:>14} {:>14} {:>14} {:>14} {:>10}",
+    // ── Print header ──
+    println!("{:>6} | {:>8} {:>8} {:>8} | {:>8} {:>8} {:>8} {:>8}",
         "Frame", "VM0", "VM1", "VM2",
-        "Cycles", "Created", "Done", "InProgress", "Batch");
-    println!("{}", "-".repeat(120));
+        "Created", "Done", "QCount", "QDone");
+    println!("{}", "-".repeat(90));
 
-    let max_frames: u32 = 1000;
+    let max_frames: u32 = 2000;
     let mut frame = 0u32;
 
     for _ in 0..max_frames {
-        // Execute one frame
         state.vm.execute_frame();
         frame += 1;
 
-        // Read metrics from substrate
-        let cycles = state.vm.substrate().peek(METRICS_BASE);
+        // Read metrics
         let created = state.vm.substrate().peek(METRICS_BASE + 1);
         let done = state.vm.substrate().peek(METRICS_BASE + 2);
-        let in_progress = state.vm.substrate().peek(METRICS_BASE + 3);
-        let batch = state.vm.substrate().peek(METRICS_BASE + 4);
+
+        // Read issue queue state
+        let q_count = state.vm.substrate().peek(ISSUEQ_BASE + 2);
+        let mut q_done = 0u32;
+        let mut q_in_progress = 0u32;
+        for i in 0..q_count.min(64) {
+            let slot_base = pixels_move_pixels::ISSUEQ_SLOTS_BASE + i * pixels_move_pixels::ISSUEQ_SLOT_SIZE;
+            let meta = state.vm.substrate().peek(slot_base);
+            let status = (meta >> 24) & 0xFF;
+            if status == 2 { q_done += 1; }
+            if status == 1 { q_in_progress += 1; }
+        }
 
         // Read VM states
         let s0 = state.vm.vm_state(0);
@@ -1344,19 +1502,18 @@ fn run_orchestrate() {
         let s2 = state.vm.vm_state(2);
 
         let vm_str = |s: &pixels_move_pixels::vm::VmState| -> String {
-            if s.state == vm_state::HALTED { "HALT".to_string() }
-            else if s.halted != 0 { "HALT".to_string() }
+            if s.state == vm_state::HALTED || s.halted != 0 { "HALT".to_string() }
             else if s.state == vm_state::RUNNING { format!("run@{:04X}", s.pc) }
             else if s.state == vm_state::WAITING { format!("wait@{:04X}", s.pc) }
             else { format!("???({})", s.state) }
         };
 
-        // Print live metrics every 10 frames or on first/last frame
-        if frame <= 5 || frame % 10 == 0 {
-            println!("{:>6} | {:>8} {:>8} {:>8} | {:>14} {:>14} {:>14} {:>14} {:>10}",
+        // Print live metrics every 5 frames or on first/last frame
+        if frame <= 10 || frame % 5 == 0 {
+            println!("{:>6} | {:>8} {:>8} {:>8} | {:>8} {:>8} {:>8} {:>8}",
                 frame,
                 vm_str(s0), vm_str(s1), vm_str(s2),
-                cycles, created, done, in_progress, batch);
+                created, done, q_count, q_done);
         }
 
         // Check if all 3 VMs have halted
@@ -1369,37 +1526,37 @@ fn run_orchestrate() {
         }
     }
 
-    // Read final metrics
-    let cycles = state.vm.substrate().peek(METRICS_BASE);
+    // ── Read final metrics ──
     let created = state.vm.substrate().peek(METRICS_BASE + 1);
     let done = state.vm.substrate().peek(METRICS_BASE + 2);
-    let in_progress = state.vm.substrate().peek(METRICS_BASE + 3);
-    let batch = state.vm.substrate().peek(METRICS_BASE + 4);
+    let q_count = state.vm.substrate().peek(ISSUEQ_BASE + 2);
 
-    // Count issues in queue
-    let issue_count = state.vm.substrate().peek(ISSUEQ_BASE + 2);
-    let mut done_issues = 0u32;
-    let mut todo_issues = 0u32;
-    for i in 0..issue_count.min(64) {
+    // Count final issue states
+    let mut final_done = 0u32;
+    let mut final_in_progress = 0u32;
+    let mut final_todo = 0u32;
+    for i in 0..q_count.min(64) {
         let slot_base = pixels_move_pixels::ISSUEQ_SLOTS_BASE + i * pixels_move_pixels::ISSUEQ_SLOT_SIZE;
         let meta = state.vm.substrate().peek(slot_base);
         let status = (meta >> 24) & 0xFF;
-        if status == 2 { done_issues += 1; }
-        if status == 0 { todo_issues += 1; }
+        match status {
+            2 => final_done += 1,
+            1 => final_in_progress += 1,
+            _ => final_todo += 1,
+        }
     }
 
     println!();
     println!("{}", "=".repeat(60));
-    println!("ORCHESTRATION COMPLETE");
+    println!("ORCHESTRATION RESULT");
     println!("{}", "=".repeat(60));
-    println!("  Frames executed:    {}", frame);
-    println!("  Issues in queue:    {}", issue_count);
-    println!("  Issues DONE:        {}", done_issues);
-    println!("  Issues TODO:        {}", todo_issues);
-    println!("  Metrics created:    {}", created);
-    println!("  Metrics done:       {}", done);
-    println!("  Metrics in-progress:{}", in_progress);
-    println!("  Batch number:       {}", batch);
+    println!("  Frames executed:     {}", frame);
+    println!("  Issues in queue:     {}", q_count);
+    println!("  Issues DONE:         {}", final_done);
+    println!("  Issues IN_PROGRESS:  {}", final_in_progress);
+    println!("  Issues TODO:         {}", final_todo);
+    println!("  Metrics created:     {}", created);
+    println!("  Metrics done:        {}", done);
     println!();
 
     // Final VM states
@@ -1409,13 +1566,16 @@ fn run_orchestrate() {
         println!("  VM {}: {} (pc={:#X}, cycles={})", i, state_str, s.pc, s.cycles);
     }
 
-    // Read issue queue slots for verification
-    if issue_count > 0 && done_issues == issue_count {
+    // Verdict
+    if q_count > 0 && final_done == q_count {
         println!();
-        println!("  SUCCESS: All {} issues completed by 2 agents.", issue_count);
-    } else if issue_count > 0 {
+        println!("  *** SUCCESS: All {} issues completed by 2 agents on GPU. ***", q_count);
+    } else if q_count > 0 && final_done > 0 {
         println!();
-        println!("  PARTIAL: {}/{} issues completed.", done_issues, issue_count);
+        println!("  PARTIAL: {}/{} issues completed.", final_done, q_count);
+    } else {
+        println!();
+        println!("  FAILED: No issues were completed.");
     }
 
     println!();

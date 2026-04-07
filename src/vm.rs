@@ -20,6 +20,7 @@ pub mod vm_state {
     pub const RUNNING: u32 = 1;
     pub const HALTED: u32 = 2;
     pub const WAITING: u32 = 3;
+    pub const YIELDED: u32 = 4;
     pub const FAULT: u32 = 0xFF;
 }
 
@@ -456,6 +457,14 @@ impl GlyphVm {
     /// Upload substrate to GPU texture and VM states to buffers,
     /// then dispatch one frame of compute.
     pub fn execute_frame(&mut self) {
+        // Auto-resume: YIELDed/WAITING VMs transition back to RUNNING at frame start.
+        // Mirrors software_vm behavior (line 1160-1164) for cooperative multitasking.
+        for vm in &mut self.vm_states {
+            if vm.state == vm_state::WAITING || vm.state == vm_state::YIELDED {
+                vm.state = vm_state::RUNNING;
+            }
+        }
+
         // Upload substrate shadow to GPU texture
         let shadow = self.substrate.shadow_clone();
         self.queue.write_texture(
