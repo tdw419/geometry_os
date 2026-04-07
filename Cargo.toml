@@ -24,6 +24,10 @@ path = "src/bin/pmp-trace.rs"
 name = "pmp-windowed"
 path = "src/bin/daemon_windowed.rs"
 
+[[bin]]
+name = "workbench"
+path = "src/bin/workbench.rs"
+
 [[test]]
 name = "self_replication"
 path = "tests/self_replication.rs"
@@ -62,3 +66,5 @@ winit = "0.29"
 serde_yaml = "0.9.34"
 rusqlite = { version = "0.39.0", features = ["bundled"] }
 ureq = { version = "3.3.0", features = ["json"] }
+ratatui = "0.29"
+crossterm = "0.28"
