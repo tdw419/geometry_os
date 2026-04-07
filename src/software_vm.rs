@@ -9183,4 +9183,46 @@ mod geo92_tier2 {
         assert_eq!(out_id, 3, "output region pixel 1 should contain issue 3's ID");
     }
 
+
+    /// GEO-218 regression test: ISSUE_PICK with equal-priority issues must pick the FIRST one (FIFO).
+    /// When priority comparison used >= instead of >, it would pick the LAST equal-priority issue instead.
+    #[test]
+    fn test_issueq_pick_equal_priority_fifo() {
+        let mut svm = issueq_setup();
+        let title_addr: u32 = 0x0010_0000;
+        let out_addr: u32 = 0x0020_0000;
+        let load_addr: u32 = 0x0000_1000;
+        let mut p = Program::new();
+
+        // Create 3 issues with the SAME priority (medium=2)
+        for _ in 0..3 {
+            p.ldi(10, title_addr);
+            p.ldi(11, 2);
+            p.issue_create(10, 11, 0);
+        }
+
+        // PICK should grab issue 1 (first-in, FIFO)
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_pick(12, 13, 1);
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..100 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // First pick must return issue ID 1 (FIFO for equal priority)
+        let out_id = svm.peek(out_addr + 1);
+        assert_eq!(out_id, 1, "GEO-218: first PICK should return issue 1 (FIFO), got {}", out_id);
+    }
+
 }
