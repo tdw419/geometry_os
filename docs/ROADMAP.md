@@ -202,7 +202,7 @@ tests/  (45 test files)
   self_replication.rs     -- Self-replicator end-to-end
   ...and more
 
-~31,800 lines of Rust (src/). 745 tests passing, 4 ignored.
+~32,600 lines of Rust (src/). 757 tests passing, 4 ignored.
 ```
 
 ---
