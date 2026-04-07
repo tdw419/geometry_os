@@ -209,3 +209,7 @@ pub const SYS_MOUSE_X: u32 = SYS_INPUT_BASE;
 pub const SYS_MOUSE_Y: u32 = SYS_INPUT_BASE + 1;
 /// Offset from SYS_INPUT_BASE for mouse button bitmask.
 pub const SYS_MOUSE_BTN: u32 = SYS_INPUT_BASE + 2;
+/// Last key pressed (ASCII code). Written by the host before each frame; 0 = no key.
+/// Programs poll this address; the host clears it to 0 after writing so edge detection
+/// happens naturally (value is non-zero for exactly one frame per keypress).
+pub const SYS_KEY: u32 = SYS_INPUT_BASE + 3;

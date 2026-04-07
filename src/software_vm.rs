@@ -3118,11 +3118,12 @@ mod tests {
             EXEC r10
         "#;
 
-        let parsed = gasm::parse_gasm(source);
-        assert!(parsed.is_ok(), "gasm parse failed: {:?}", parsed.err());
+            let parsed = crate::assembler::parse_gasm(source);
+            assert!(parsed.is_ok(), "gasm parse failed: {:?}", parsed.err());
+            let prog = parsed.unwrap();
 
-        let mut svm = SoftwareVm::new();
-        svm.load_program(0, &parsed.unwrap());
+            let mut svm = SoftwareVm::new();
+            svm.load_program(0, &prog.pixels);
         svm.spawn_vm(0, 0);
         {
             let vm = svm.vm_state_mut(0);
