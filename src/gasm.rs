@@ -371,7 +371,7 @@ fn split_operands(s: &str) -> Vec<String> {
 fn instruction_size(mnemonic: &str) -> usize {
     match mnemonic {
         "LDI" | "JMP" | "BNE" | "BEQ" | "BLT" | "BGE" | "BLTU" | "BGEU" | "CALL" | "BLIT"
-        | "SEND" | "RECTF" | "LINE" => 2,
+        | "SEND" | "RECTF" | "LINE" | "SPATIAL_SPAWN" | "SEMANTIC_MERGE" | "BRANCH_PROB" | "ALTERNATE_PATH" => 2,
         _ => 1,
     }
 }
@@ -529,6 +529,13 @@ fn is_valid_mnemonic(m: &str) -> bool {
             | "ISSUE_PICK"
             | "ISSUE_UPDATE"
             | "ISSUE_LIST"
+            | "SPAWN"
+            | "SPATIAL_SPAWN"
+            | "GLYPH_MUTATE"
+            | "SEMANTIC_MERGE"
+            | "BRANCH_PROB"
+            | "CONFIDENCE_MARK"
+            | "ALTERNATE_PATH"
     )
 }
 
@@ -886,7 +893,61 @@ fn emit_instruction(
             let filter = parse_reg(&operands[1], line_num, "filter")?;
             let max_results = parse_imm(&operands[2], line_num)? as u8;
             prog.issue_list(out_addr, filter, max_results);
-        }
+        },
+        "SPAWN" => {
+            // SPAWN r_base_addr, r_entry_offset
+            expect_ops(mnemonic, operands, 2, line_num)?;
+            let base = parse_reg(&operands[0], line_num, "base_addr")?;
+            let entry = parse_reg(&operands[1], line_num, "entry_offset")?;
+            prog.instruction(op::SPAWN, 0, base, entry);
+        },
+        "SPATIAL_SPAWN" => {
+            // SPATIAL_SPAWN r_dest_addr, r_size, r_source_addr -- 2 pixels
+            expect_ops(mnemonic, operands, 3, line_num)?;
+            let dest = parse_reg(&operands[0], line_num, "dest_addr")?;
+            let size = parse_reg(&operands[1], line_num, "size")?;
+            let source = parse_reg(&operands[2], line_num, "source_addr")?;
+            prog.instruction(op::SPATIAL_SPAWN, size, dest, source);
+            prog.pixels.push(source as u32); // data word: source register index
+        },
+        "GLYPH_MUTATE" => {
+            // GLYPH_MUTATE r_target_addr, r_new_opcode
+            expect_ops(mnemonic, operands, 2, line_num)?;
+            let target = parse_reg(&operands[0], line_num, "target_addr")?;
+            let new_opcode = parse_reg(&operands[1], line_num, "new_opcode")?;
+            prog.glyph_mutate(target, new_opcode);
+        },
+        "SEMANTIC_MERGE" => {
+            // SEMANTIC_MERGE r_cluster_a, r_cluster_b, r_dest -- 2 pixels
+            expect_ops(mnemonic, operands, 3, line_num)?;
+            let a = parse_reg(&operands[0], line_num, "cluster_a")?;
+            let b = parse_reg(&operands[1], line_num, "cluster_b")?;
+            let dest = parse_reg(&operands[2], line_num, "dest")?;
+            prog.instruction(op::SEMANTIC_MERGE, 0, a, b);
+            prog.pixels.push(dest as u32); // data word: dest register index
+        },
+        "BRANCH_PROB" => {
+            // BRANCH_PROB r_prob, offset -- 2 pixels
+            expect_ops(mnemonic, operands, 2, line_num)?;
+            let prob = parse_reg(&operands[0], line_num, "probability")?;
+            let offset = resolve_label_or_imm(&operands[1], line_num, labels)?;
+            let rel = (offset as i64) - (current_addr as i64);
+            prog.branch_prob(prob, rel as i32);
+        },
+        "CONFIDENCE_MARK" => {
+            // CONFIDENCE_MARK r_block_id
+            expect_ops(mnemonic, operands, 1, line_num)?;
+            let block_id = parse_reg(&operands[0], line_num, "block_id")?;
+            prog.confidence_mark(block_id);
+        },
+        "ALTERNATE_PATH" => {
+            // ALTERNATE_PATH r_block_id, offset -- 2 pixels
+            expect_ops(mnemonic, operands, 2, line_num)?;
+            let block_id = parse_reg(&operands[0], line_num, "block_id")?;
+            let offset = resolve_label_or_imm(&operands[1], line_num, labels)?;
+            let rel = (offset as i64) - (current_addr as i64);
+            prog.alternate_path(block_id, rel as i32);
+        },
         _ => {
             return Err(format!(
                 "line {}: unknown instruction '{}'",
