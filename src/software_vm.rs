@@ -12,6 +12,13 @@ use crate::substrate::TEXTURE_SIZE;
 use crate::vm::VmState;
 use crate::governance;
 
+/// Thread-local model call handler for the MODEL_CALL opcode (244).
+/// Set via SoftwareVm::with_model_handler() during execute_frame.
+/// If None, MODEL_CALL returns error status.
+std::thread_local! {
+    static MODEL_HANDLER: std::cell::RefCell<Option<Box<dyn Fn(&str) -> Result<String, String>>>> = std::cell::RefCell::new(None);
+}
+
 /// VM state constants (must match WGSL and crate::vm)
 mod vm_state {
     pub const INACTIVE: u32 = 0;
@@ -749,6 +756,75 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
             vm.regs[p1 as usize] = written;
         }
 
+        // MODEL_CALL (244): Call LLM with a prompt, write response to memory.
+        // Encoding: (244, buf_size_pixels, r_prompt_addr, r_response_addr)
+        // stratum = buffer size in pixels (each pixel = 4 bytes)
+        // r_prompt_addr = pixel address of null-terminated prompt string
+        // r_response_addr = pixel address of response buffer
+        // Returns: number of response bytes written in r_prompt_addr, or 0 on error.
+        // The response buffer is written as null-terminated packed ASCII.
+        244 => {
+            let prompt_pixel_addr = vm.regs[p1 as usize];
+            let response_pixel_addr = vm.regs[p2 as usize];
+            let buf_size_pixels = stratum as u32;
+            let buf_size_bytes = buf_size_pixels * 4;
+
+            // Read prompt string from pixel memory (packed ASCII, 4 bytes per pixel)
+            let mut prompt_bytes = Vec::new();
+            'prompt_read: for i in 0..2048u32 {
+                let word = mem_read(ram, (prompt_pixel_addr + i) * 4);
+                for shift in 0..4u32 {
+                    let b = ((word >> (shift * 8)) & 0xFF) as u8;
+                    if b == 0 {
+                        break 'prompt_read;
+                    }
+                    prompt_bytes.push(b);
+                }
+            }
+            let prompt_str = String::from_utf8_lossy(&prompt_bytes).into_owned();
+
+            // Call the model handler
+            let response_result = MODEL_HANDLER.with(|h| {
+                let handler = h.borrow();
+                if let Some(ref f) = *handler {
+                    Some(f(&prompt_str))
+                } else {
+                    None
+                }
+            });
+
+            match response_result {
+                Some(Ok(response_text)) => {
+                    // Write response to response buffer as packed ASCII
+                    let resp_bytes = response_text.as_bytes();
+                    let write_len = resp_bytes.len().min((buf_size_bytes - 1) as usize);
+                    // Write bytes in groups of 4 (one pixel per group)
+                    let mut byte_idx = 0;
+                    for pix_idx in 0..buf_size_pixels {
+                        let mut word: u32 = 0;
+                        for shift in 0..4u32 {
+                            if byte_idx < write_len {
+                                word |= (resp_bytes[byte_idx] as u32) << (shift * 8);
+                                byte_idx += 1;
+                            }
+                        }
+                        mem_write(ram, (response_pixel_addr + pix_idx) * 4, word);
+                        if byte_idx >= write_len {
+                            // Null-terminate: the remaining bytes of current word are 0,
+                            // and subsequent pixels are already 0 (or we write them as 0).
+                            break;
+                        }
+                    }
+                    vm.regs[p1 as usize] = write_len as u32; // bytes written
+                }
+                Some(Err(_)) | None => {
+                    // Error or no handler: write empty response
+                    mem_write(ram, response_pixel_addr * 4, 0);
+                    vm.regs[p1 as usize] = 0; // 0 = error
+                }
+            }
+        }
+
         // WAIT_EVENT (opcode 28): Block until event arrives.
         // WAIT_EVENT r_event_type, r_param1
         // If event pending: reads event into r_event_type, r_param1, clears the slot.
@@ -1141,6 +1217,18 @@ impl SoftwareVm {
             });
         }
         out
+    }
+
+    /// Set a model call handler for the MODEL_CALL opcode (244).
+    /// The handler receives a prompt string and returns Ok(response) or Err(message).
+    /// This is used for testing LLM integration without a real endpoint.
+    pub fn with_model_handler<F>(&self, f: F)
+    where
+        F: Fn(&str) -> Result<String, String> + 'static,
+    {
+        MODEL_HANDLER.with(|h| {
+            *h.borrow_mut() = Some(Box::new(f));
+        });
     }
 
     /// Execute one frame: run all active VMs for up to CYCLES_PER_FRAME cycles.
@@ -7903,5 +7991,634 @@ mod geo92_tier2 {
         // Cross-check: count actual DONE issues in queue
         let actual_done = count_issues_with_status(&svm, crate::ISSUE_STATUS_DONE);
         assert_eq!(actual_done, 6, "6 issues actually DONE in queue");
+    }
+
+    // ── Phase 15A: Agent Computes Fibonacci ─────────────────────────────────
+
+    /// Helper: build a CEO program that creates multiple issues with different titles.
+    /// Titles are pre-loaded in memory by the test harness.
+    fn build_fib_ceo(title_addrs: &[(u32, u32)]) -> Program {
+        let mut p = Program::new();
+        let one = 15;
+        let title_reg = 10;
+        let pri_reg = 11;
+        let counter = 14;
+        let metrics = 12;
+        p.ldi(one, 1);
+        p.ldi(counter, 0);
+        p.ldi(metrics, crate::METRICS_BASE + 1);
+
+        for &(addr, pri) in title_addrs {
+            p.ldi(title_reg, addr);
+            p.ldi(pri_reg, pri);
+            p.issue_create(title_reg, pri_reg, 0);
+            p.instruction(op::ADD, 0, counter, one);
+        }
+
+        p.store(metrics, counter);
+        p.halt();
+        p
+    }
+
+    /// Helper: build a fib-computing agent program (Phase 15A).
+    ///
+    /// The agent:
+    /// 1. ISSUE_PICKs the highest-priority TODO issue
+    /// 2. Parses N from the title "fib N" (digits at pixel offset 3 of the output)
+    /// 3. Computes fib(N) iteratively
+    /// 4. Writes the result to the issue queue slot's reserved pixel 26
+    /// 5. Marks DONE via ISSUE_UPDATE
+    /// 6. Increments metrics.issues_done
+    /// 7. YIELDs and loops; halts after max_empty consecutive empty picks
+    ///
+    /// Register allocation:
+    ///   r0  = fib_prev (init 0)
+    ///   r1  = issue_id from ISSUE_PICK (clobbered by ISSUE_UPDATE)
+    ///   r2  = out_addr / filter
+    ///   r3  = constant 0
+    ///   r4  = constant 1
+    ///   r5  = ISSUE_STATUS_DONE (2)
+    ///   r6  = empty counter
+    ///   r7  = max_empty
+    ///   r8  = N (parsed from title) / loop counter for fib
+    ///   r9  = scratch
+    ///   r10 = fib_curr (init 1)
+    ///   r11 = fib_next (temp) / second digit byte
+    ///   r12 = saved issue_id
+    ///   r13 = slot_base address
+    ///   r14 = ISSUEQ_SLOTS_BASE constant
+    ///   r15 = SLOT_SIZE (32) constant
+    ///   r16 = byte mask (0xFF)
+    ///   r17 = scratch (ASCII '0'=48, shift 8, multiply 10)
+    ///   r18 = metrics addr
+    ///   r19 = temp for metrics load
+    fn build_fib_agent(out_addr: u32, max_empty: u32, agent_vm_id: u8) -> Program {
+        let mut p = Program::new();
+
+        // ── Constants ──
+        p.ldi(3, 0);                              // r3 = 0
+        p.ldi(4, 1);                              // r4 = 1
+        p.ldi(5, crate::ISSUE_STATUS_DONE);       // r5 = 2
+        p.ldi(6, 0);                              // r6 = empty counter
+        p.ldi(7, max_empty);                      // r7 = max_empty
+        p.ldi(14, crate::ISSUEQ_SLOTS_BASE);      // r14 = SLOTS_BASE
+        p.ldi(15, crate::ISSUEQ_SLOT_SIZE);        // r15 = 32
+        p.ldi(16, 0xFF);                          // r16 = byte mask
+        p.ldi(18, crate::METRICS_BASE + 2);       // r18 = metrics.issues_done
+
+        // ═══════════════════════════════════════════
+        // Agent Loop
+        // ═══════════════════════════════════════════
+        p.define_label("agent_loop");
+
+        p.ldi(1, out_addr);
+        p.ldi(2, 0);
+        p.issue_pick(1, 2, agent_vm_id);
+
+        // if r1 == 0, goto empty_pick
+        p.branch_to(bcond::BEQ, 1, 3, "empty_pick");
+
+        // ── Got an issue ──
+        p.ldi(6, 0);                              // reset empty counter
+        p.instruction(op::MOV, 0, 12, 1);         // r12 = save issue_id
+
+        // ── Parse N from title ──
+        // Title is at out_addr+2..out_addr+25 (pixels).
+        // "fib " occupies 4 bytes -> pixel at out_addr+2.
+        // Digits start at out_addr+3 (the next pixel).
+        p.ldi(9, out_addr + 3);
+        p.load(9, 9);                             // r9 = digit pixel (packed ASCII)
+
+        // Extract byte0 = first digit
+        p.instruction(op::MOV, 0, 8, 9);
+        p.instruction(op::AND, 0, 8, 16);         // r8 = byte0 (ASCII)
+        p.ldi(17, 48);
+        p.instruction(op::SUB, 0, 8, 17);         // r8 = digit0 value
+
+        // Extract byte1 = second digit candidate
+        p.instruction(op::MOV, 0, 11, 9);
+        p.ldi(17, 8);
+        p.instruction(op::SHR, 0, 11, 17);        // r11 >>= 8
+        p.instruction(op::AND, 0, 11, 16);        // r11 = byte1
+
+        // if byte1 == 0 -> single digit (r8 already has N)
+        p.branch_to(bcond::BEQ, 11, 3, "single_digit");
+
+        // Two digits: N = digit0*10 + digit1
+        p.ldi(17, 10);
+        p.instruction(op::MUL, 0, 8, 17);         // r8 = digit0 * 10
+        p.ldi(17, 48);
+        p.instruction(op::SUB, 0, 11, 17);        // r11 = digit1 value
+        p.instruction(op::ADD, 0, 8, 11);         // r8 = N
+
+        p.jmp_to("after_parse");
+
+        // single_digit: r8 = N (already set)
+        p.define_label("single_digit");
+
+        p.define_label("after_parse");
+
+        // ── Compute fib(N) iteratively ──
+        // r0 = fib_prev = 0, r10 = fib_curr = 1
+        // Loop (N-1) times: temp=curr, curr+=prev, prev=temp
+        p.ldi(0, 0);
+        p.ldi(10, 1);
+
+        // Special case N==0: result = 0
+        p.branch_to(bcond::BEQ, 8, 3, "fib_done");
+
+        // r8 = N, decrement to get loop count
+        p.instruction(op::SUB, 0, 8, 4);          // r8 = N - 1
+
+        p.define_label("fib_loop");
+        p.instruction(op::MOV, 0, 11, 10);        // r11 = fib_curr
+        p.instruction(op::ADD, 0, 10, 0);         // fib_curr += fib_prev
+        p.instruction(op::MOV, 0, 0, 11);         // fib_prev = old curr
+        p.instruction(op::SUB, 0, 8, 4);          // r8--
+        p.branch_to(bcond::BNE, 8, 3, "fib_loop");
+
+        // fib_done: result in r10
+        p.define_label("fib_done");
+
+        // ── Write result to issue queue slot pixel 26 ──
+        // slot_base = ISSUEQ_SLOTS_BASE + (issue_id - 1) * 32
+        p.instruction(op::MOV, 0, 13, 12);        // r13 = issue_id
+        p.instruction(op::SUB, 0, 13, 4);         // r13 -= 1
+        p.instruction(op::MUL, 0, 13, 15);        // r13 *= 32
+        p.instruction(op::ADD, 0, 13, 14);        // r13 += SLOTS_BASE
+        p.ldi(9, 26);
+        p.instruction(op::ADD, 0, 13, 9);         // r13 = slot_base + 26
+        p.store(13, 10);                          // slot[26] = fib(N)
+
+        // ── Mark DONE ──
+        p.instruction(op::MOV, 0, 1, 12);         // r1 = issue_id
+        p.issue_update(1, 5);
+
+        // ── Update metrics ──
+        p.load(19, 18);
+        p.instruction(op::ADD, 0, 19, 4);
+        p.store(18, 19);
+
+        // ── YIELD and loop ──
+        p.yield_op();
+        p.jmp_to("agent_loop");
+
+        // ── empty_pick ──
+        p.define_label("empty_pick");
+
+        p.instruction(op::ADD, 0, 6, 4);
+        p.branch_to(bcond::BGE, 6, 7, "agent_done");
+
+        p.yield_op();
+        p.jmp_to("agent_loop");
+
+        // agent_done:
+        p.define_label("agent_done");
+        p.halt();
+
+        p.link();
+        p
+    }
+
+    #[test]
+    fn test_fib_agent_computes() {
+        // Phase 15A: Agent computes Fibonacci.
+        // CEO creates issues "fib 10", "fib 15", "fib 20".
+        // Agents pick each, parse N, compute fib(N), write result to slot pixel 26.
+        // Verify: fib(10)=55, fib(15)=610, fib(20)=6765.
+        let mut svm = issueq_setup();
+        for i in 0..crate::METRICS_SIZE {
+            svm.poke(crate::METRICS_BASE + i, 0);
+        }
+
+        let title_base: u32 = 0x0010_0000;
+        let title_10 = title_base;
+        let title_15 = title_base + 8;
+        let title_20 = title_base + 16;
+
+        write_string(&mut svm, title_10, "fib 10");
+        write_string(&mut svm, title_15, "fib 15");
+        write_string(&mut svm, title_20, "fib 20");
+
+        // CEO creates 3 issues
+        let ceo_addr: u32 = 0x0000_1000;
+        let ceo = build_fib_ceo(&[
+            (title_10, 3),
+            (title_15, 3),
+            (title_20, 3),
+        ]);
+        svm.load_program(ceo_addr, &ceo.pixels);
+        svm.spawn_vm(0, ceo_addr);
+
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 { break; }
+        }
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "CEO should halt");
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), 3, "3 issues created");
+
+        // Spawn 2 fib agents
+        let agent_a_addr: u32 = 0x0000_2000;
+        let agent_b_addr: u32 = 0x0000_3000;
+        let out_a: u32 = 0x0020_0000;
+        let out_b: u32 = 0x0030_0000;
+
+        let agent_a = build_fib_agent(out_a, 30, 1);
+        let agent_b = build_fib_agent(out_b, 30, 2);
+
+        svm.load_program(agent_a_addr, &agent_a.pixels);
+        svm.load_program(agent_b_addr, &agent_b.pixels);
+        svm.spawn_vm(1, agent_a_addr);
+        svm.spawn_vm(2, agent_b_addr);
+
+        for _ in 0..500 {
+            svm.execute_frame();
+            if svm.vm_state(1).halted != 0 && svm.vm_state(2).halted != 0 { break; }
+        }
+        assert_ne!(svm.vm_state(1).halted, 0, "Agent A should halt");
+        assert_ne!(svm.vm_state(2).halted, 0, "Agent B should halt");
+
+        // All 3 issues DONE
+        let done_count = count_issues_with_status(&svm, crate::ISSUE_STATUS_DONE);
+        assert_eq!(done_count, 3, "all 3 issues should be DONE");
+
+        // Verify fib results in slot pixel 26
+        let expected = [(1u32, 10u32, 55u32), (2, 15, 610), (3, 20, 6765)];
+        for (issue_id, n, exp) in &expected {
+            let slot_base = crate::ISSUEQ_SLOTS_BASE + (issue_id - 1) * crate::ISSUEQ_SLOT_SIZE;
+            let result = svm.peek(slot_base + 26);
+            assert_eq!(result, *exp,
+                "fib({}) in issue {} should be {}, got {}", n, issue_id, exp, result);
+        }
+
+        // Metrics
+        assert_eq!(svm.peek(crate::METRICS_BASE + 2), 3, "3 issues done");
+    }
+
+    #[test]
+    fn test_fib_agent_single_digit() {
+        // Verify agent handles single-digit N.
+        // "fib 5" -> fib(5) = 5, "fib 8" -> fib(8) = 21
+        let mut svm = issueq_setup();
+        for i in 0..crate::METRICS_SIZE {
+            svm.poke(crate::METRICS_BASE + i, 0);
+        }
+
+        let title_base: u32 = 0x0010_0000;
+        write_string(&mut svm, title_base, "fib 5");
+        write_string(&mut svm, title_base + 8, "fib 8");
+
+        let ceo_addr: u32 = 0x0000_1000;
+        let ceo = build_fib_ceo(&[(title_base, 3), (title_base + 8, 3)]);
+        svm.load_program(ceo_addr, &ceo.pixels);
+        svm.spawn_vm(0, ceo_addr);
+
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 { break; }
+        }
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), 2, "2 issues created");
+
+        let agent_addr: u32 = 0x0000_2000;
+        let out_addr: u32 = 0x0020_0000;
+        let agent = build_fib_agent(out_addr, 30, 1);
+        svm.load_program(agent_addr, &agent.pixels);
+        svm.spawn_vm(1, agent_addr);
+
+        for _ in 0..500 {
+            svm.execute_frame();
+            if svm.vm_state(1).halted != 0 { break; }
+        }
+        assert_ne!(svm.vm_state(1).halted, 0, "Agent should halt");
+
+        let slot0 = crate::ISSUEQ_SLOTS_BASE;
+        let slot1 = crate::ISSUEQ_SLOTS_BASE + crate::ISSUEQ_SLOT_SIZE;
+        assert_eq!(svm.peek(slot0 + 26), 5, "fib(5) should be 5");
+        assert_eq!(svm.peek(slot1 + 26), 21, "fib(8) should be 21");
+    }
+
+    // ── Phase 15B: CEO Assigns Varied Work ──────────────────────────────────
+
+    /// Helper: build a varied-task agent program (Phase 15B).
+    ///
+    /// Dispatches based on title prefix (4-char prefix + digit):
+    ///   "fib " -> compute fib(N) iteratively
+    ///   "fac " -> compute factorial(N)
+    ///   "pri " -> check if N is prime (result: 1=yes, 0=no)
+    ///
+    /// Register allocation:
+    ///   r0  = scratch (fib_prev)
+    ///   r1  = issue_id from ISSUE_PICK (clobbered by ISSUE_UPDATE)
+    ///   r2  = out_addr / filter
+    ///   r3  = constant 0
+    ///   r4  = constant 1
+    ///   r5  = ISSUE_STATUS_DONE (2)
+    ///   r6  = empty counter
+    ///   r7  = max_empty
+    ///   r8  = N (parsed from title)
+    ///   r9  = scratch
+    ///   r10 = computation result
+    ///   r11 = scratch / loop var
+    ///   r12 = saved issue_id
+    ///   r13 = slot_base address
+    ///   r14 = ISSUEQ_SLOTS_BASE constant
+    ///   r15 = SLOT_SIZE (32) constant
+    ///   r16 = byte mask (0xFF)
+    ///   r17 = scratch (constants)
+    ///   r18 = metrics addr
+    ///   r19 = temp for metrics load
+    ///   r20 = prefix comparison scratch
+    ///   r21 = FIB_MAGIC (0x20626966)
+    ///   r22 = FAC_MAGIC (0x20636166)
+    ///   r23 = PRI_MAGIC (0x20697270)
+    fn build_varied_agent(out_addr: u32, max_empty: u32, agent_vm_id: u8) -> Program {
+        let mut p = Program::new();
+
+        // ── Constants ──
+        p.ldi(3, 0);                              // r3 = 0
+        p.ldi(4, 1);                              // r4 = 1
+        p.ldi(5, crate::ISSUE_STATUS_DONE);       // r5 = 2
+        p.ldi(6, 0);                              // r6 = empty counter
+        p.ldi(7, max_empty);                      // r7 = max_empty
+        p.ldi(14, crate::ISSUEQ_SLOTS_BASE);      // r14 = SLOTS_BASE
+        p.ldi(15, crate::ISSUEQ_SLOT_SIZE);       // r15 = 32
+        p.ldi(16, 0xFF);                          // r16 = byte mask
+        p.ldi(18, crate::METRICS_BASE + 2);       // r18 = metrics.issues_done
+        p.ldi(21, 0x20626966);                    // r21 = "fib " magic
+        p.ldi(22, 0x20636166);                    // r22 = "fac " magic
+        p.ldi(23, 0x20697270);                    // r23 = "pri " magic
+
+        // ═══════════════════════════════════════════
+        // Agent Loop
+        // ═══════════════════════════════════════════
+        p.define_label("agent_loop");
+
+        p.ldi(1, out_addr);
+        p.ldi(2, 0);
+        p.issue_pick(1, 2, agent_vm_id);
+
+        // if r1 == 0, no issue available
+        p.branch_to(bcond::BEQ, 1, 3, "empty_pick");
+
+        // ── Got an issue ──
+        p.ldi(6, 0);                              // reset empty counter
+        p.instruction(op::MOV, 0, 12, 1);         // r12 = save issue_id
+
+        // ── Load prefix pixel ──
+        p.ldi(9, out_addr + 2);
+        p.load(9, 9);                             // r9 = title pixel 0 (prefix)
+
+        // ── Dispatch on prefix type ──
+        p.instruction(op::MOV, 0, 20, 9);         // r20 = prefix copy
+        p.xor(20, 21);                            // r20 ^= FIB_MAGIC
+        p.branch_to(bcond::BEQ, 20, 3, "do_fib");
+
+        p.instruction(op::MOV, 0, 20, 9);         // r20 = prefix copy
+        p.xor(20, 22);                            // r20 ^= FAC_MAGIC
+        p.branch_to(bcond::BEQ, 20, 3, "do_fac");
+
+        p.instruction(op::MOV, 0, 20, 9);         // r20 = prefix copy
+        p.xor(20, 23);                            // r20 ^= PRI_MAGIC
+        p.branch_to(bcond::BEQ, 20, 3, "do_pri");
+
+        // Unknown prefix -- skip with result 0
+        p.ldi(10, 0);
+        p.jmp_to("write_result");
+
+        // ── FIB path: parse N, compute fib(N) ──
+        p.define_label("do_fib");
+        // Parse digits from pixel out_addr+3
+        p.ldi(9, out_addr + 3);
+        p.load(9, 9);                             // r9 = digit pixel
+        p.instruction(op::MOV, 0, 8, 9);
+        p.instruction(op::AND, 0, 8, 16);         // r8 = byte0 (ASCII)
+        p.ldi(17, 48);
+        p.instruction(op::SUB, 0, 8, 17);         // r8 = digit0 value
+        // Check for second digit
+        p.instruction(op::MOV, 0, 11, 9);
+        p.ldi(17, 8);
+        p.instruction(op::SHR, 0, 11, 17);        // r11 >>= 8
+        p.instruction(op::AND, 0, 11, 16);        // r11 = byte1
+        p.branch_to(bcond::BEQ, 11, 3, "fib_got_n");
+        // Two digits
+        p.ldi(17, 10);
+        p.instruction(op::MUL, 0, 8, 17);         // r8 *= 10
+        p.ldi(17, 48);
+        p.instruction(op::SUB, 0, 11, 17);        // r11 -= 48
+        p.instruction(op::ADD, 0, 8, 11);         // r8 = N
+
+        // Compute fib(N): r0=prev, r10=curr
+        p.define_label("fib_got_n");
+        p.ldi(0, 0);                              // fib_prev = 0
+        p.ldi(10, 1);                             // fib_curr = 1
+        p.branch_to(bcond::BEQ, 8, 3, "fib_done"); // N==0 -> result 0
+        p.instruction(op::SUB, 0, 8, 4);          // r8 = N-1 (loop count)
+        p.define_label("fib_loop");
+        p.instruction(op::MOV, 0, 11, 10);        // r11 = curr
+        p.instruction(op::ADD, 0, 10, 0);         // curr += prev
+        p.instruction(op::MOV, 0, 0, 11);         // prev = old curr
+        p.instruction(op::SUB, 0, 8, 4);          // r8--
+        p.branch_to(bcond::BNE, 8, 3, "fib_loop");
+        p.define_label("fib_done");
+        // result in r10
+        p.jmp_to("write_result");
+
+        // ── FAC path: parse N, compute factorial(N) ──
+        p.define_label("do_fac");
+        // Parse digits
+        p.ldi(9, out_addr + 3);
+        p.load(9, 9);
+        p.instruction(op::MOV, 0, 8, 9);
+        p.instruction(op::AND, 0, 8, 16);
+        p.ldi(17, 48);
+        p.instruction(op::SUB, 0, 8, 17);
+        p.instruction(op::MOV, 0, 11, 9);
+        p.ldi(17, 8);
+        p.instruction(op::SHR, 0, 11, 17);
+        p.instruction(op::AND, 0, 11, 16);
+        p.branch_to(bcond::BEQ, 11, 3, "fac_got_n");
+        p.ldi(17, 10);
+        p.instruction(op::MUL, 0, 8, 17);
+        p.ldi(17, 48);
+        p.instruction(op::SUB, 0, 11, 17);
+        p.instruction(op::ADD, 0, 8, 11);
+
+        // Compute factorial(N): r10 = 1; while N>0: r10 *= N; N--
+        p.define_label("fac_got_n");
+        p.ldi(10, 1);                             // result = 1
+        p.define_label("fac_loop");
+        p.branch_to(bcond::BEQ, 8, 3, "fac_done"); // if N==0, done
+        p.instruction(op::MUL, 0, 10, 8);         // result *= N
+        p.instruction(op::SUB, 0, 8, 4);          // N--
+        p.jmp_to("fac_loop");
+        p.define_label("fac_done");
+        p.jmp_to("write_result");
+
+        // ── PRI path: parse N, check if prime ──
+        p.define_label("do_pri");
+        // Parse digits
+        p.ldi(9, out_addr + 3);
+        p.load(9, 9);
+        p.instruction(op::MOV, 0, 8, 9);
+        p.instruction(op::AND, 0, 8, 16);
+        p.ldi(17, 48);
+        p.instruction(op::SUB, 0, 8, 17);
+        p.instruction(op::MOV, 0, 11, 9);
+        p.ldi(17, 8);
+        p.instruction(op::SHR, 0, 11, 17);
+        p.instruction(op::AND, 0, 11, 16);
+        p.branch_to(bcond::BEQ, 11, 3, "pri_got_n");
+        p.ldi(17, 10);
+        p.instruction(op::MUL, 0, 8, 17);
+        p.ldi(17, 48);
+        p.instruction(op::SUB, 0, 11, 17);
+        p.instruction(op::ADD, 0, 8, 11);
+
+        // Prime check: r10 = 1 if prime, 0 if not.
+        // Trial division: d = 2, while d*d <= N, check N % d == 0.
+        p.define_label("pri_got_n");
+        p.ldi(10, 1);                             // assume prime
+        p.ldi(11, 2);                             // divisor d = 2
+        // if N < 2, not prime
+        p.branch_to(bcond::BLT, 8, 11, "not_prime"); // N < 2
+        p.define_label("pri_loop");
+        p.instruction(op::MOV, 0, 9, 11);         // r9 = d
+        p.instruction(op::MUL, 0, 9, 11);         // r9 = d*d
+        // if d*d > N, prime (N < d*d)
+        p.branch_to(bcond::BLT, 8, 9, "pri_done");
+        p.instruction(op::MOV, 0, 9, 8);          // r9 = N
+        p.instruction(op::MOD, 0, 9, 11);         // r9 = N % d
+        p.branch_to(bcond::BEQ, 9, 3, "not_prime"); // if N % d == 0
+        p.instruction(op::ADD, 0, 11, 4);         // d++
+        p.jmp_to("pri_loop");
+        p.define_label("not_prime");
+        p.ldi(10, 0);
+        p.define_label("pri_done");
+        p.jmp_to("write_result");
+
+        // ═══════════════════════════════════════════
+        // Write result to issue slot + mark DONE
+        // ═══════════════════════════════════════════
+        p.define_label("write_result");
+        // slot_base = ISSUEQ_SLOTS_BASE + (issue_id - 1) * 32
+        p.instruction(op::MOV, 0, 13, 12);        // r13 = issue_id
+        p.instruction(op::SUB, 0, 13, 4);         // r13 -= 1
+        p.instruction(op::MUL, 0, 13, 15);        // r13 *= 32
+        p.instruction(op::ADD, 0, 13, 14);        // r13 += SLOTS_BASE
+        p.ldi(9, 26);
+        p.instruction(op::ADD, 0, 13, 9);         // r13 = slot_base + 26
+        p.store(13, 10);                          // slot[26] = result
+
+        // Mark DONE
+        p.instruction(op::MOV, 0, 1, 12);         // r1 = issue_id
+        p.issue_update(1, 5);
+
+        // Update metrics
+        p.load(19, 18);
+        p.instruction(op::ADD, 0, 19, 4);
+        p.store(18, 19);
+
+        // YIELD and loop
+        p.yield_op();
+        p.jmp_to("agent_loop");
+
+        // ── empty_pick ──
+        p.define_label("empty_pick");
+        p.instruction(op::ADD, 0, 6, 4);
+        p.branch_to(bcond::BGE, 6, 7, "agent_done");
+        p.yield_op();
+        p.jmp_to("agent_loop");
+
+        // agent_done
+        p.define_label("agent_done");
+        p.halt();
+
+        p.link();
+        p
+    }
+
+    #[test]
+    fn test_varied_tasks() {
+        // Phase 15B: CEO creates varied tasks, agents compute each correctly.
+        // Tasks: fib(10)=55, fac(6)=720, pri(7)=1, pri(4)=0
+        let mut svm = issueq_setup();
+        for i in 0..crate::METRICS_SIZE {
+            svm.poke(crate::METRICS_BASE + i, 0);
+        }
+
+        let title_base: u32 = 0x0010_0000;
+        let titles = [
+            (title_base,       "fib 10"),  // fib(10) = 55
+            (title_base + 8,   "fac 6"),   // 6! = 720
+            (title_base + 16,  "pri 7"),   // 7 is prime = 1
+            (title_base + 24,  "pri 4"),   // 4 is not prime = 0
+        ];
+
+        for &(addr, s) in &titles {
+            write_string(&mut svm, addr, s);
+        }
+
+        // CEO creates 4 issues
+        let ceo_addr: u32 = 0x0000_1000;
+        let ceo = build_fib_ceo(&[
+            (titles[0].0, 3),
+            (titles[1].0, 3),
+            (titles[2].0, 3),
+            (titles[3].0, 3),
+        ]);
+        svm.load_program(ceo_addr, &ceo.pixels);
+        svm.spawn_vm(0, ceo_addr);
+
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 { break; }
+        }
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "CEO should halt");
+        assert_eq!(svm.peek(crate::ISSUEQ_BASE + 2), 4, "4 issues created");
+
+        // Spawn 2 varied agents
+        let agent_a_addr: u32 = 0x0000_2000;
+        let agent_b_addr: u32 = 0x0000_3000;
+        let out_a: u32 = 0x0020_0000;
+        let out_b: u32 = 0x0030_0000;
+
+        let agent_a = build_varied_agent(out_a, 30, 1);
+        let agent_b = build_varied_agent(out_b, 30, 2);
+
+        svm.load_program(agent_a_addr, &agent_a.pixels);
+        svm.load_program(agent_b_addr, &agent_b.pixels);
+        svm.spawn_vm(1, agent_a_addr);
+        svm.spawn_vm(2, agent_b_addr);
+
+        for _ in 0..500 {
+            svm.execute_frame();
+            if svm.vm_state(1).halted != 0 && svm.vm_state(2).halted != 0 { break; }
+        }
+        assert_ne!(svm.vm_state(1).halted, 0, "Agent A should halt");
+        assert_ne!(svm.vm_state(2).halted, 0, "Agent B should halt");
+
+        // All 4 issues DONE
+        let done_count = count_issues_with_status(&svm, crate::ISSUE_STATUS_DONE);
+        assert_eq!(done_count, 4, "all 4 issues should be DONE");
+
+        // Verify results in slot pixel 26
+        // Issue 1: fib(10) = 55
+        // Issue 2: fac(6) = 720
+        // Issue 3: pri(7) = 1
+        // Issue 4: pri(4) = 0
+        let expected = [
+            (1u32, "fib(10)", 55u32),
+            (2u32, "fac(6)",  720u32),
+            (3u32, "pri(7)",  1u32),
+            (4u32, "pri(4)",  0u32),
+        ];
+        for (issue_id, label, exp) in &expected {
+            let slot_base = crate::ISSUEQ_SLOTS_BASE + (issue_id - 1) * crate::ISSUEQ_SLOT_SIZE;
+            let result = svm.peek(slot_base + 26);
+            assert_eq!(result, *exp, "{} should be {}, got {}", label, exp, result);
+        }
+
+        // Metrics
+        assert_eq!(svm.peek(crate::METRICS_BASE + 2), 4, "4 issues done");
     }
 }
