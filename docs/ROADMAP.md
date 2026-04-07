@@ -471,10 +471,10 @@ The LLM executor from Phase 7 connects so agents can reason about their work.
       orchestration loop. An agent can issue CMD_MODEL_CALL via the device proxy, get an LLM
       response in substrate, and act on it. Test: agent asks LLM "what is fib(10)?", writes
       the parsed answer as the issue result.
-- [ ] **Autonomous self-improvement cycle** -- Close the loop from Phase 4 and Phase 7.
+- [x] **Autonomous self-improvement cycle** -- Close the loop from Phase 4 and Phase 7.
       CEO creates a "mutate program X" task. Agent picks it, calls LLM to propose a mutation,
       applies GLYPH_MUTATE, runs fitness test, keeps or discards. The machine improves its own
-      code without human input.
+      code without human input. (src/self_improvement.rs)
 
 **Dependency chain:**
 ```
@@ -482,13 +482,13 @@ The LLM executor from Phase 7 connects so agents can reason about their work.
 (LLM in loop)     ──────────────────────> (self-improvement)
 ```
 
-Paperclip issues: Phase 15A (76c91595-d7ef-4e27-893f-31b8424a09e6, done), Phase 15B (d2d86166-e5b4-4e49-8cb1-5797b852db57, done), Phase 15C (44b2a9eb-8b71-438d-a0f0-dc51906804a1, in_progress), Phase 15D (3e0c81c0-90e2-4ca2-9b10-0cd9bb3f4d2c, in_progress).
+Paperclip issues: Phase 15A (76c91595-d7ef-4e27-893f-31b8424a09e6, done), Phase 15B (d2d86166-e5b4-4e49-8cb1-5797b852db57, done), Phase 15C (44b2a9eb-8b71-438d-a0f0-dc51906804a1, in_progress), Phase 15D (3e0c81c0-90e2-4ca2-9b10-0cd9bb3f4d2c, done).
 
 **Success Criteria:**
 - [x] Agent computes fib(10) = 55 and writes it to the issue result region
 - [x] Three different task types execute correctly in one orchestration run
 - [ ] Agent successfully calls LLM and uses the response
-- [ ] Machine proposes and applies a mutation that improves fitness, autonomously
+- [x] Machine proposes and applies a mutation that improves fitness, autonomously
 
 ---
 
