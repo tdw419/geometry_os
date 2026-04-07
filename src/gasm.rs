@@ -1764,4 +1764,23 @@ HALT
             assert_eq!(mem_val, val, "sorted[{}] should be {}, got {}", i, val, mem_val);
         }
     }
+
+    #[test]
+    fn assemble_test_counter() {
+        let source = include_str!("../programs/test_counter.gasm");
+        let program = assemble(source).expect("test_counter.gasm should assemble");
+
+        use crate::software_vm::SoftwareVm;
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &program.pixels);
+        svm.spawn_vm(0, 0);
+
+        for _ in 0..20 {
+            svm.execute_frame();
+        }
+
+        assert_eq!(svm.vm_state(0).halted, 1, "test_counter should halt");
+        let last_count = svm.peek(5000);
+        assert_eq!(last_count, 9, "mem[5000] should be 9 (last counter value), got {}", last_count);
+    }
 }
