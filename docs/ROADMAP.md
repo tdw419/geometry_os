@@ -482,7 +482,7 @@ The LLM executor from Phase 7 connects so agents can reason about their work.
 (LLM in loop)     ──────────────────────> (self-improvement)
 ```
 
-Paperclip issues: Phase 15A (76c91595), Phase 15B (433c0227), Phase 15C (44b2a9eb), Phase 15D (0570eb61).
+Paperclip issues: Phase 15A (78d525af-4ba8-4338-822a-7bee0e7d455b), Phase 15B (d2d86166-e5b4-4e49-8cb1-5797b852db57), Phase 15C (18a07874-91fa-4abf-a60d-9ebd2b89650f), Phase 15D (3e0c81c0-90e2-4ca2-9b10-0cd9bb3f4d2c).
 
 **Success Criteria:**
 - [ ] Agent computes fib(10) = 55 and writes it to the issue result region
