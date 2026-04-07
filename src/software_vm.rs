@@ -571,6 +571,15 @@ fn execute_instruction(ram: &mut RamTexture, vm: &mut VmState) -> bool {
             return true; // Force end of frame for this VM
         }
 
+        // EXEC (228): Jump to arbitrary pixel address and begin executing.
+        // EXEC r_addr — sets PC to the pixel index in r_addr.
+        // Closes the pixel-programming loop: write code with PSET/GLYPH_MUTATE,
+        // then EXEC that address to run what you wrote.
+        228 => {
+            vm.pc = vm.regs[p1 as usize];
+            return true; // PC changed — signal jump
+        }
+
         // SPAWN - Request child VM spawn: SPAWN r_base_addr, r_entry_offset
         // Deferred pattern (matches shader): stores spawn params in parent's registers.
         // Rust host reads them after the frame and initializes the child VM.
@@ -3044,7 +3053,143 @@ mod tests {
             vm.base_addr = 0;
             vm.bound_addr = 0x100000;
         }
+
+    // -- EXEC opcode (228) tests -------------------------------------------
+
+    #[test]
+    fn test_exec_jumps_to_address() {
+        // EXEC r_addr: sets PC to the value in r_addr.
+        // Write a simple "LDI r0, 99; HALT" program at address 200,
+        // then EXEC r10 to jump there.
+
+        let mut svm = SoftwareVm::new();
+
+        // Parent program: write child code at address 200, then EXEC to it
+        let mut parent = Program::new();
+        // Write LDI r0, 99 at address 200
+        parent.ldi(10, 200);
+        parent.ldi(11, assembler::glyph(1, 0, 0, 0)); // LDI r0, <imm follows>
+        parent.store(10, 11);
+        // Write immediate 99 at address 201
+        parent.ldi(10, 201);
+        parent.ldi(11, 99);
+        parent.store(10, 11);
+        // Write HALT at address 202
+        parent.ldi(10, 202);
+        parent.ldi(11, assembler::glyph(13, 0, 0, 0));
+        parent.store(10, 11);
+        // Load destination address into r10 and EXEC there
+        parent.ldi(10, 200);
+        parent.exec(10); // EXEC r10 -> PC = 200
+
+        svm.load_program(0, &parent.pixels);
+        svm.spawn_vm(0, 0);
+        {
+            let vm = svm.vm_state_mut(0);
+            vm.base_addr = 0;
+            vm.bound_addr = 0x100000;
+        }
         svm.execute_frame();
+
+        // Child code ran: LDI r0, 99 -> r0 = 99, then HALT
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        assert_eq!(
+            svm.vm_state(0).regs[0], 99,
+            "EXEC should jump to address 200 and execute the child program"
+        );
+    }
+
+    #[test]
+    fn test_exec_via_gasm() {
+        // Same test but assembled from .gasm text -- proves the assembler
+        // parses EXEC correctly.
+
+        let source = r#"
+            LDI r10, 200
+            LDI r11, 0x01000000
+            STORE r10, r11
+            LDI r10, 201
+            LDI r11, 77
+            STORE r10, r11
+            LDI r10, 202
+            LDI r11, 0x0D000000
+            STORE r10, r11
+            LDI r10, 200
+            EXEC r10
+        "#;
+
+        let parsed = gasm::parse_gasm(source);
+        assert!(parsed.is_ok(), "gasm parse failed: {:?}", parsed.err());
+
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &parsed.unwrap());
+        svm.spawn_vm(0, 0);
+        {
+            let vm = svm.vm_state_mut(0);
+            vm.base_addr = 0;
+            vm.bound_addr = 0x100000;
+        }
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        assert_eq!(
+            svm.vm_state(0).regs[0], 77,
+            "EXEC via .gasm should jump to dynamically written code"
+        );
+    }
+
+    #[test]
+    fn test_exec_self_rewrite_and_run() {
+        // The core loop: program writes NEW code into an unused region,
+        // then EXECs it. This is the pattern Pixel Forge uses.
+        // Program computes 3*7=21 via dynamically-generated code.
+
+        let mut svm = SoftwareVm::new();
+
+        let mut parent = Program::new();
+        // Write "LDI r0, 3; LDI r1, 7; MUL r0, r1; HALT" starting at addr 300
+        let base = 300u32;
+        // LDI r0, 3
+        parent.ldi(10, base);
+        parent.ldi(11, assembler::glyph(1, 0, 0, 0));
+        parent.store(10, 11);
+        parent.ldi(10, base + 1);
+        parent.ldi(11, 3);
+        parent.store(10, 11);
+        // LDI r1, 7
+        parent.ldi(10, base + 2);
+        parent.ldi(11, assembler::glyph(1, 1, 0, 0));
+        parent.store(10, 11);
+        parent.ldi(10, base + 3);
+        parent.ldi(11, 7);
+        parent.store(10, 11);
+        // MUL r0, r1
+        parent.ldi(10, base + 4);
+        parent.ldi(11, assembler::glyph(5, 0, 1, 0));
+        parent.store(10, 11);
+        // HALT
+        parent.ldi(10, base + 5);
+        parent.ldi(11, assembler::glyph(13, 0, 0, 0));
+        parent.store(10, 11);
+        // Now EXEC to the generated code
+        parent.ldi(10, base);
+        parent.exec(10);
+
+        svm.load_program(0, &parent.pixels);
+        svm.spawn_vm(0, 0);
+        {
+            let vm = svm.vm_state_mut(0);
+            vm.base_addr = 0;
+            vm.bound_addr = 0x100000;
+        }
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        assert_eq!(
+            svm.vm_state(0).regs[0], 21,
+            "Dynamically-generated MUL program should compute 3*7=21"
+        );
+    }
 
         // Child should have executed: LDI r0, 42 -> r0 = 42, then HALT
         assert_eq!(svm.vm_state(0).state, vm_state::HALTED);

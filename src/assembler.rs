@@ -65,6 +65,7 @@ pub mod op {
     pub const SPATIAL_SPAWN: u8 = 225;  // Copy cluster: SPATIAL_SPAWN r_dest, r_size, r_source (2 pixels)
     pub const SEMANTIC_MERGE: u8 = 226; // Merge clusters: SEMANTIC_MERGE r_a, r_b, r_dest (2 pixels)
     pub const YIELD: u8 = 227;
+    pub const EXEC: u8 = 228;  // Jump to pixel address: EXEC r_addr (PC = r_addr; runs what's there)
     pub const SPAWN: u8 = 230;
 
     // Issue queue opcodes (Phase 13A)
@@ -379,6 +380,14 @@ impl Program {
     /// On next frame, the VM resumes in RUNNING state.
     pub fn yield_op(&mut self) -> &mut Self {
         self.instruction(op::YIELD, 0, 0, 0)
+    }
+
+    /// Execute at address: EXEC r_addr
+    /// Sets the PC to the pixel index in r_addr and begins executing there.
+    /// Closes the pixel-programming loop: write code with PSET/GLYPH_MUTATE,
+    /// then EXEC the address to run it.
+    pub fn exec(&mut self, addr_reg: u8) -> &mut Self {
+        self.instruction(op::EXEC, 0, addr_reg, 0)
     }
 
     /// WAIT_EVENT: Block until event arrives. r_event_type, r_param1
@@ -1255,6 +1264,12 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
             "YIELD" => {
                 expect_arg_count(&tokens, 0, line_num)?;
                 program.yield_op();
+            }
+
+            "EXEC" => {
+                expect_arg_count(&tokens, 1, line_num)?;
+                let addr_reg = parse_register(tokens[1], line_num)?;
+                program.exec(addr_reg);
             }
 
             "WAIT_EVENT" => {
