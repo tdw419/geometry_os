@@ -28,7 +28,7 @@ use pixels_move_pixels::software_vm::SoftwareVm;
 use pixels_move_pixels::substrate::RegionAllocator;
 use pixels_move_pixels::vm::{vm_state, GlyphVm};
 use pixels_move_pixels::vm::VmState;
-use pixels_move_pixels::{font_atlas, DASHBOARD_BASE, DASHBOARD_PIXELS, MAX_VMS};
+use pixels_move_pixels::{font_atlas, DASHBOARD_BASE, MAX_VMS};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -900,17 +900,83 @@ fn json_error(msg: &str) -> String {
 const DAEMON_VERSION: &str = "0.1.0";
 
 /// Write a structured JSON log line to stderr.
+/// Format: `{"ts":"2026-04-07T08:00:00Z","level":"info","target":"daemon","msg":"..."}`
 fn log_json(level: &str, msg: &str) {
+    let ts = chrono_now_iso();
+    eprintln!(
+        r#"{{"ts":"{}","level":"{}","target":"daemon","msg":"{}"}}"#,
+        ts,
+        level,
+        msg.replace('\\', "\\\\").replace('"', "\\\"")
+    );
+}
+
+/// Static version for use in signal handlers (no borrowed args).
+fn log_json_static(level: &'static str, msg: &'static str) {
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
     eprintln!(
-        r#"{{"ts":{},"level":"{}","msg":"{}"}}"#,
-        ts,
-        level,
-        msg.replace('\\', "\\\\").replace('"', "\\\"")
+        r#"{{"ts":{},"level":"{}","target":"daemon","msg":"{}"}}"#,
+        ts, level, msg
     );
+}
+
+/// Return current time as ISO 8601 string (or unix timestamp fallback).
+fn chrono_now_iso() -> String {
+    // Lightweight: use std only, produce a decent timestamp.
+    let dur = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default();
+    let secs = dur.as_secs();
+    // Manual ISO-ish formatting without chrono dependency
+    let days = secs / 86400;
+    let time_of_day = secs % 86400;
+    let hours = time_of_day / 3600;
+    let minutes = (time_of_day % 3600) / 60;
+    let seconds = time_of_day % 60;
+    // Days since epoch -> year/month/day (simplified, UTC)
+    let (year, month, day) = epoch_days_to_ymd(days);
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        year, month, day, hours, minutes, seconds
+    )
+}
+
+/// Convert days since Unix epoch to (year, month, day).
+fn epoch_days_to_ymd(mut days: u64) -> (u64, u64, u64) {
+    let mut year = 1970u64;
+    loop {
+        let days_in_year = if is_leap(year) { 366 } else { 365 };
+        if days < days_in_year {
+            break;
+        }
+        days -= days_in_year;
+        year += 1;
+    }
+    let leap = is_leap(year);
+    let month_days: [u64; 12] = if leap {
+        [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    } else {
+        [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    };
+    let mut month = 0u64;
+    for (i, &md) in month_days.iter().enumerate() {
+        if days < md {
+            month = i as u64 + 1;
+            break;
+        }
+        days -= md;
+    }
+    if month == 0 {
+        month = 12;
+    }
+    (year, month, days + 1)
+}
+
+fn is_leap(y: u64) -> bool {
+    (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
 }
 
 // ── Health check ──
@@ -1858,14 +1924,30 @@ fn main() {
         println!();
     }
 
-    for stream in listener.incoming() {
-        match stream {
-            Ok(mut stream) => {
+    // Shared shutdown flag for signal handlers and HTTP shutdown endpoint
+    let shutting_down = Arc::new(AtomicBool::new(false));
+
+    // Set up SIGINT (Ctrl+C) handler via ctrlc crate
+    let shutdown_flag = Arc::clone(&shutting_down);
+    ctrlc::set_handler(move || {
+        log_json_static("info", "SIGINT received, shutting down gracefully...");
+        shutdown_flag.store(true, Ordering::SeqCst);
+    }).expect("Failed to set SIGINT handler");
+
+    // Set listener to non-blocking so we can poll the shutdown flag
+    listener.set_nonblocking(true).expect("Failed to set non-blocking on listener");
+    log_json("info", &format!("Daemon listening on http://{}", addr));
+    log_json("info", "Signal handlers installed (SIGINT, SIGTERM via HTTP /api/v1/shutdown)");
+
+    // Main accept loop — checks shutdown flag between connection attempts
+    while !shutting_down.load(Ordering::SeqCst) {
+        match listener.accept() {
+            Ok((mut stream, _peer)) => {
                 // Handle CORS preflight
                 let req = match read_request(&mut stream) {
                     Ok(r) => r,
                     Err(e) => {
-                        eprintln!("[daemon] Bad request: {e}");
+                        log_json("error", &format!("Bad request: {e}"));
                         send_response(&mut stream, 400, &json_error(&e));
                         continue;
                     }
@@ -1876,12 +1958,18 @@ fn main() {
                     continue;
                 }
 
-                let (status, body) = handle_request(&state, &AtomicBool::new(false), req);
+                let (status, body) = handle_request(&state, &shutting_down, req);
                 send_response(&mut stream, status, &body);
             }
+            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                // No pending connection — brief sleep to avoid busy-wait, then re-check shutdown
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
             Err(e) => {
-                eprintln!("[daemon] Connection error: {e}");
+                log_json("error", &format!("Connection error: {e}"));
             }
         }
     }
+
+    log_json("info", "Graceful shutdown complete. Goodbye.");
 }
