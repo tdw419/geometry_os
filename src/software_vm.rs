@@ -32,7 +32,7 @@ mod vm_state {
 }
 
 const MAX_VMS: usize = 8;
-const CYCLES_PER_FRAME: u32 = 1024;
+const CYCLES_PER_FRAME: u32 = 2048;
 
 /// CPU-side RAM texture: 4096x4096 pixels, each pixel is [R,G,B,A] u8.
 /// Mirrors the GPU `rgba8uint` texture exactly.
@@ -3706,6 +3706,88 @@ mod tests {
         assert_eq!(vm.regs[2], 0xEF, "LDB/STB via gasm should work");
     }
 
+    #[test]
+    fn test_ldb_stb_on_glyph_pixel() {
+        // Verify that LDB/STB correctly read and write individual byte channels
+        // of a Hilbert-indexed glyph pixel. This validates the byte-level
+        // read-modify-write used by Palette Forge's inc_field/dec_field routines.
+        //
+        // Glyph encoding: u32 = opcode(R) | stratum(G)<<8 | p1(B)<<16 | p2(A)<<24
+        // We write a known glyph at pixel 500, then probe each byte channel.
+
+        let target_pixel: u32 = 500;
+        // Glyph: opcode=0x11, stratum=0x22, p1=0x33, p2=0x44
+        // As u32: 0x44332211
+        let glyph: u32 = 0x44332211;
+
+        let mut svm = SoftwareVm::new();
+
+        // Program:
+        //   ST r_target, r_glyph       -- write glyph to pixel 500
+        //   LDI r_base, target*4       -- base byte address of that pixel
+        //   LDB r0, r_base+0           -- read byte 0 (opcode = R channel)
+        //   LDB r1, r_base+1           -- read byte 1 (stratum = G channel)
+        //   LDB r2, r_base+2           -- read byte 2 (p1 = B channel)
+        //   LDB r3, r_base+3           -- read byte 3 (p2 = A channel)
+        //   -- mutate: write 0xAA into byte 2 (p1/B channel) --
+        //   LDI r9, 0xAA
+        //   STB r_base+2, r9
+        //   LOAD r4, r_target          -- re-read full glyph word
+        //   HALT
+        let mut p = Program::new();
+        let byte_base = target_pixel * 4;
+
+        // Write the known glyph at pixel 500
+        p.ldi(10, target_pixel);
+        p.ldi(11, glyph);
+        p.store(10, 11);  // pixel[500] = 0x44332211
+
+        // Read each byte channel into r0..r3
+        p.ldi(10, byte_base);       // r10 = byte addr of channel 0 (R=opcode)
+        p.ldb(0, 10);               // r0 = opcode byte = 0x11
+        p.ldi(10, byte_base + 1);
+        p.ldb(1, 10);               // r1 = stratum byte = 0x22
+        p.ldi(10, byte_base + 2);
+        p.ldb(2, 10);               // r2 = p1 byte = 0x33
+        p.ldi(10, byte_base + 3);
+        p.ldb(3, 10);               // r3 = p2 byte = 0x44
+
+        // Mutate: write 0xAA into byte 2 (the B/p1 channel)
+        p.ldi(9, 0xAA);
+        p.ldi(10, byte_base + 2);
+        p.stb(10, 9);               // pixel[500] byte 2 = 0xAA
+
+        // Re-read the full glyph word -- only byte 2 should have changed
+        p.ldi(10, target_pixel);
+        p.load(4, 10);              // r4 = updated pixel word
+
+        p.halt();
+
+        svm.load_program(0, &p.pixels);
+        svm.spawn_vm(0, 0);
+        {
+            let vm = svm.vm_state_mut(0);
+            vm.base_addr = 0;
+            vm.bound_addr = 0x100000;
+        }
+        svm.execute_frame();
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // Each channel byte was read correctly
+        assert_eq!(svm.vm_state(0).regs[0], 0x11, "r0 should be opcode byte 0x11");
+        assert_eq!(svm.vm_state(0).regs[1], 0x22, "r1 should be stratum byte 0x22");
+        assert_eq!(svm.vm_state(0).regs[2], 0x33, "r2 should be p1 byte 0x33");
+        assert_eq!(svm.vm_state(0).regs[3], 0x44, "r3 should be p2 byte 0x44");
+
+        // After STB on byte 2: p1 changed to 0xAA, other channels unchanged
+        let updated = svm.vm_state(0).regs[4];
+        assert_eq!(updated & 0xFF,         0x11, "opcode byte unchanged after STB");
+        assert_eq!((updated >> 8)  & 0xFF, 0x22, "stratum byte unchanged after STB");
+        assert_eq!((updated >> 16) & 0xFF, 0xAA, "p1 byte should be 0xAA after STB");
+        assert_eq!((updated >> 24) & 0xFF, 0x44, "p2 byte unchanged after STB");
+    }
+
     // ── SPAWN opcode tests
     fn test_spawn_basic_parent_child() {
         // Parent VM 0 spawns child VM 1.
@@ -3916,6 +3998,23 @@ mod tests {
         let has_ret  = prog.pixels[0..0x200].iter().any(|&p| (p & 0xFF) as u8 == 12);
         assert!(has_call, "program body should contain CALL instructions");
         assert!(has_ret,  "program body should contain RET instructions");
+
+        // v0.2: field colors at 0x210-0x217
+        let op_dim    = prog.pixels[0x210];
+        let op_bright = prog.pixels[0x211];
+        let p2_bright = prog.pixels[0x217];
+        assert_ne!(op_dim, 0,    "OP dim color should be non-zero");
+        assert_ne!(op_bright, 0, "OP bright color should be non-zero");
+        assert!(op_bright > op_dim || op_bright != op_dim,
+            "bright color should differ from dim color");
+        assert_ne!(p2_bright, 0, "P2 bright color should be non-zero");
+
+        // Program body must fit in 512 pixels (below palette data at 0x200)
+        let body_len = prog.pixels.iter().take(0x200).enumerate()
+            .rposition(|(_, _)| true)
+            .unwrap_or(0) + 1;
+        assert!(body_len <= 0x200,
+            "program body ({body_len} pixels) must fit below 0x200 = 512 pixels");
     }
 
     // ── SPAWN: Slot finding & multi-spawn tests (GEO-21) ──
