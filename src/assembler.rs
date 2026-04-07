@@ -1339,6 +1339,24 @@ pub fn parse_gasm(source: &str) -> Result<Program, ParseError> {
                 current_addr += 2;
             }
 
+            "PSET" => {
+                // PSET r_x, r_y, r_color
+                expect_arg_count(&tokens, 3, line_num)?;
+                let x_reg     = parse_register(tokens[1], line_num)?;
+                let y_reg     = parse_register(tokens[2], line_num)?;
+                let color_reg = parse_register(tokens[3], line_num)?;
+                program.pset(x_reg, y_reg, color_reg);
+            }
+
+            "PGET" => {
+                // PGET r_dst, r_x, r_y
+                expect_arg_count(&tokens, 3, line_num)?;
+                let dst_reg = parse_register(tokens[1], line_num)?;
+                let x_reg   = parse_register(tokens[2], line_num)?;
+                let y_reg   = parse_register(tokens[3], line_num)?;
+                program.pget(dst_reg, x_reg, y_reg);
+            }
+
             "GLYPH_MUTATE" => {
                 expect_arg_count(&tokens, 2, line_num)?;
                 let target_addr_reg = parse_register(tokens[1], line_num)?;

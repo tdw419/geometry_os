@@ -3053,8 +3053,14 @@ mod tests {
             vm.base_addr = 0;
             vm.bound_addr = 0x100000;
         }
+        svm.execute_frame();
 
-    // -- EXEC opcode (228) tests -------------------------------------------
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        assert_eq!(
+            svm.vm_state(0).regs[0], 42,
+            "child program should have loaded 42 into r0"
+        );
+    }
 
     #[test]
     fn test_exec_jumps_to_address() {
@@ -3104,15 +3110,18 @@ mod tests {
         // Same test but assembled from .gasm text -- proves the assembler
         // parses EXEC correctly.
 
+        // Glyph encoding: u32 = opcode | (stratum<<8) | (p1<<16) | (p2<<24)
+        // LDI r0 = opcode=1, p1=0 → 0x00000001 = 1
+        // HALT   = opcode=13      → 0x0000000D = 13
         let source = r#"
             LDI r10, 200
-            LDI r11, 0x01000000
+            LDI r11, 1
             STORE r10, r11
             LDI r10, 201
             LDI r11, 77
             STORE r10, r11
             LDI r10, 202
-            LDI r11, 0x0D000000
+            LDI r11, 13
             STORE r10, r11
             LDI r10, 200
             EXEC r10
@@ -3149,24 +3158,27 @@ mod tests {
 
         let mut parent = Program::new();
         // Write "LDI r0, 3; LDI r1, 7; MUL r0, r1; HALT" starting at addr 300
+        // Glyph encoding: u32 = opcode | (stratum<<8) | (p1<<16) | (p2<<24)
+        // LDI rd = glyph(1, 0, rd, 0): p1 is the destination register
+        // MUL rd, rs = glyph(7, 0, rd, rs): opcode=7, p1=rd, p2=rs
         let base = 300u32;
         // LDI r0, 3
         parent.ldi(10, base);
-        parent.ldi(11, assembler::glyph(1, 0, 0, 0));
+        parent.ldi(11, assembler::glyph(1, 0, 0, 0)); // LDI r0 (p1=0)
         parent.store(10, 11);
         parent.ldi(10, base + 1);
         parent.ldi(11, 3);
         parent.store(10, 11);
         // LDI r1, 7
         parent.ldi(10, base + 2);
-        parent.ldi(11, assembler::glyph(1, 1, 0, 0));
+        parent.ldi(11, assembler::glyph(1, 0, 1, 0)); // LDI r1 (p1=1)
         parent.store(10, 11);
         parent.ldi(10, base + 3);
         parent.ldi(11, 7);
         parent.store(10, 11);
-        // MUL r0, r1
+        // MUL r0, r1  (opcode=7, rd=r0, rs=r1)
         parent.ldi(10, base + 4);
-        parent.ldi(11, assembler::glyph(5, 0, 1, 0));
+        parent.ldi(11, assembler::glyph(7, 0, 0, 1)); // MUL r0, r1
         parent.store(10, 11);
         // HALT
         parent.ldi(10, base + 5);
@@ -3189,14 +3201,6 @@ mod tests {
         assert_eq!(
             svm.vm_state(0).regs[0], 21,
             "Dynamically-generated MUL program should compute 3*7=21"
-        );
-    }
-
-        // Child should have executed: LDI r0, 42 -> r0 = 42, then HALT
-        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
-        assert_eq!(
-            svm.vm_state(0).regs[0], 42,
-            "child program should have loaded 42 into r0"
         );
     }
 
@@ -3879,6 +3883,39 @@ mod tests {
         assert_eq!((prog.pixels[0] & 0xFF) as u8, 230, "first should be SPAWN");
         assert_eq!((prog.pixels[1] & 0xFF) as u8, 227, "second should be YIELD");
         assert_eq!((prog.pixels[2] & 0xFF) as u8, 13, "third should be HALT");
+    }
+
+    #[test]
+    fn test_palette_forge_assembles() {
+        // Verify palette_forge.gasm parses without error and has the key properties:
+        // 1. Palette data at pixel 0x200: first entry is NOP (0x00000000)
+        // 2. EXEC instruction present (opcode 228)
+        // 3. CALL/RET instructions present (for draw_palette/draw_status subroutines)
+        let source = include_str!("../programs/palette_forge.gasm");
+        let prog = assembler::parse_gasm(source).expect("palette_forge.gasm should parse without error");
+
+        // Palette data starts at pixel 0x200
+        let nop_instr  = prog.pixels[0x200];
+        let nop_color  = prog.pixels[0x201];
+        let ldi_instr  = prog.pixels[0x202];
+        let exec_instr = prog.pixels[0x20E];  // slot 7 instruction (EXEC, 0xE4=228)
+        let exec_color = prog.pixels[0x20F];
+
+        assert_eq!(nop_instr,  0x00000000, "palette slot 0 instr should be NOP");
+        assert_eq!(nop_color,  0xFF404040, "palette slot 0 color should be dark gray");
+        assert_eq!(ldi_instr & 0xFF, 1,    "palette slot 1 instr should be LDI (opcode=1)");
+        assert_eq!(exec_instr & 0xFF, 228, "palette slot 7 instr should be EXEC (opcode=228)");
+        assert_ne!(exec_color, 0,          "EXEC display color should be non-zero");
+
+        // EXEC opcode (228) must appear in the program body (not just in palette data)
+        let has_exec = prog.pixels[0..0x200].iter().any(|&p| (p & 0xFF) as u8 == 228);
+        assert!(has_exec, "program body should contain an EXEC instruction (for 'R' key handler)");
+
+        // CALL (11) and RET (12) must appear (subroutines)
+        let has_call = prog.pixels[0..0x200].iter().any(|&p| (p & 0xFF) as u8 == 11);
+        let has_ret  = prog.pixels[0..0x200].iter().any(|&p| (p & 0xFF) as u8 == 12);
+        assert!(has_call, "program body should contain CALL instructions");
+        assert!(has_ret,  "program body should contain RET instructions");
     }
 
     // ── SPAWN: Slot finding & multi-spawn tests (GEO-21) ──
