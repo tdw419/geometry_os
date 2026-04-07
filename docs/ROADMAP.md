@@ -429,11 +429,11 @@ and proves the full loop on hardware.
 - [x] **Shader parity: issue queue opcodes** (GEO-222) -- ISSUE_CREATE (240), ISSUE_PICK (241),
       ISSUE_UPDATE (242) in glyph_vm_scheduler.wgsl. Mirrors the software VM implementation
       exactly. Atomics for pick across workgroup threads. COMPLETE.
-- [ ] **Shader parity: AI-native opcodes** (GEO-223) -- BRANCH_PROB (220), GLYPH_MUTATE (224),
+- [x] **Shader parity: AI-native opcodes** (GEO-223) -- BRANCH_PROB (220), GLYPH_MUTATE (224),
       SPATIAL_SPAWN (225), SEMANTIC_MERGE (226) in the shader. Each mirrors the software VM
-      behavior with GPU-safe memory access.
-- [ ] **GPU parity test suite** (GEO-224) -- Every new opcode tested CPU-vs-GPU with identical
-      results. Extends the existing cross-validation pattern from Phase 6.
+      behavior with GPU-safe memory access. COMPLETE.
+- [x] **GPU parity test suite** (GEO-224) -- Every new opcode tested CPU-vs-GPU with identical
+      results. Extends the existing cross-validation pattern from Phase 6. COMPLETE.
 - [ ] **Daemon orchestration mode** (GEO-225) -- `cargo run --bin daemon` loads ceo.gasm +
       agent.gasm into VMs 0-2, runs frames in a loop, reads back metrics from the substrate.
       CLI output shows live progress: issues created, issues done, current batch.
