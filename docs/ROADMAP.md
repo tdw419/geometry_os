@@ -434,9 +434,9 @@ and proves the full loop on hardware.
       behavior with GPU-safe memory access. COMPLETE.
 - [x] **GPU parity test suite** (GEO-224) -- Every new opcode tested CPU-vs-GPU with identical
       results. Extends the existing cross-validation pattern from Phase 6. COMPLETE.
-- [ ] **Daemon orchestration mode** (GEO-225) -- `cargo run --bin daemon` loads ceo.gasm +
+- [x] **Daemon orchestration mode** (GEO-225) -- `cargo run --bin daemon` loads ceo.gasm +
       agent.gasm into VMs 0-2, runs frames in a loop, reads back metrics from the substrate.
-      CLI output shows live progress: issues created, issues done, current batch.
+      CLI output shows live progress: issues created, issues done, current batch. COMPLETE.
 - [ ] **Full loop on GPU** (GEO-226) -- End-to-end test: daemon boots, CEO creates issues,
       agents consume them, metrics match the software VM results. 5 issues, 2 agents, all
       complete within N frames. Verified on real GPU hardware.
