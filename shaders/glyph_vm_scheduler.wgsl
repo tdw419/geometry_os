@@ -32,6 +32,16 @@ const MSG_WAS_READ: u32 = 2u;
 const SCREEN_BASE: u32 = 0x00F30000u;
 const SCREEN_SIZE: u32 = 256u;
 
+// Issue queue constants (must match lib.rs)
+const ISSUEQ_BASE: u32 = 0x00E30000u;
+const ISSUEQ_HEADER_SIZE: u32 = 4u;
+const ISSUEQ_CAPACITY: u32 = 64u;
+const ISSUEQ_SLOT_SIZE: u32 = 32u;
+const ISSUEQ_SLOTS_BASE: u32 = ISSUEQ_BASE + ISSUEQ_HEADER_SIZE;
+const ISSUE_STATUS_TODO: u32 = 0u;
+const ISSUE_STATUS_IN_PROGRESS: u32 = 1u;
+const ISSUE_STATUS_DONE: u32 = 2u;
+
 struct VmState {
     regs: array<u32, 128>,    // 128 general-purpose registers (512 bytes)
     pc: u32,                   // Program counter (Hilbert pixel index) - offset 512
@@ -669,6 +679,148 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
         case 227u: {
             (*vm).state = VM_WAITING;
             return 2u;
+        }
+
+        // ── Issue Queue Opcodes (Phase 14 / GEO-218) ──────────────────
+
+        // ISSUE_CREATE (240): Create a new issue in the queue.
+        // Encoding: (240, assignee_id, r_title_addr, r_priority)
+        // Reads title from pixel memory at r_title_addr (packed ASCII, null-terminated).
+        // Returns: issue_id in r_title_addr register, or 0 on failure (queue full).
+        case 240u: {
+            let title_addr = (*vm).regs[p1];
+            let priority = (*vm).regs[p2];
+            let assignee_id = stratum;
+
+            // Read queue header
+            let head = mem_read(ISSUEQ_BASE * 4u);
+            let tail = mem_read((ISSUEQ_BASE + 1u) * 4u);
+            let count = mem_read((ISSUEQ_BASE + 2u) * 4u);
+
+            if (count >= ISSUEQ_CAPACITY) {
+                (*vm).regs[p1] = 0u; // queue full
+            } else {
+                let slot_idx = tail % ISSUEQ_CAPACITY;
+                let slot_base = ISSUEQ_SLOTS_BASE + slot_idx * ISSUEQ_SLOT_SIZE;
+
+                // Compute issue_id: tail + 1 (1-indexed, auto-incremented)
+                let issue_id = tail + 1u;
+
+                // Write metadata pixel: (status << 24) | (priority << 16) | (assignee_id)
+                let issue_meta = (ISSUE_STATUS_TODO << 24u) | ((priority & 0xFFu) << 16u) | (assignee_id & 0xFFFFu);
+                mem_write(slot_base * 4u, issue_meta);
+
+                // Write issue_id pixel
+                mem_write((slot_base + 1u) * 4u, issue_id);
+
+                // Copy title from title_addr into slot pixels 2-25 (packed ASCII, 4 bytes per pixel)
+                for (var i = 0u; i < 24u; i++) {
+                    let src_word = mem_read((title_addr + i) * 4u);
+                    mem_write((slot_base + 2u + i) * 4u, src_word);
+                }
+
+                // Update queue header: increment tail and count
+                mem_write((ISSUEQ_BASE + 1u) * 4u, tail + 1u);
+                mem_write((ISSUEQ_BASE + 2u) * 4u, count + 1u);
+                // Initialize capacity if first issue
+                if (count == 0u) {
+                    mem_write((ISSUEQ_BASE + 3u) * 4u, ISSUEQ_CAPACITY);
+                }
+
+                (*vm).regs[p1] = issue_id;
+            }
+        }
+
+        // ISSUE_PICK (241): Atomically claim the highest-priority todo issue.
+        // Encoding: (241, agent_vm_id, r_out_addr, r_filter)
+        // Scans all issues, finds the highest-priority todo issue matching filter,
+        // sets its status to IN_PROGRESS and assignee to agent_vm_id.
+        // Returns: issue_id in r_out_addr, or 0 if no match.
+        // If r_filter == 0, picks any todo issue (highest priority first).
+        // Copies issue slot data to r_out_addr (title, metadata, etc.).
+        case 241u: {
+            let agent_vm_id = stratum;
+            let out_addr = (*vm).regs[p1];
+            let priority_filter = (*vm).regs[p2];
+
+            let count = mem_read((ISSUEQ_BASE + 2u) * 4u);
+
+            var best_slot_base: u32 = 0u;
+            var best_priority: u32 = 0u;
+            var best_issue_id: u32 = 0u;
+            var found = false;
+
+            for (var i = 0u; i < ISSUEQ_CAPACITY; i++) {
+                if (i >= count) {
+                    break;
+                }
+                let slot_base = ISSUEQ_SLOTS_BASE + i * ISSUEQ_SLOT_SIZE;
+                let issue_meta = mem_read(slot_base * 4u);
+                let status = (issue_meta >> 24u) & 0xFFu;
+                let priority = (issue_meta >> 16u) & 0xFFu;
+
+                if (status != ISSUE_STATUS_TODO) {
+                    continue;
+                }
+                if (priority_filter != 0u && priority != priority_filter) {
+                    continue;
+                }
+                if (priority > best_priority) {
+                    best_priority = priority;
+                    best_slot_base = slot_base;
+                    best_issue_id = mem_read((slot_base + 1u) * 4u);
+                    found = true;
+                }
+            }
+
+            if (found) {
+                // Claim: set status to IN_PROGRESS and assignee to agent_vm_id
+                let issue_meta = mem_read(best_slot_base * 4u);
+                let priority = (issue_meta >> 16u) & 0xFFu;
+                let new_issue_meta = (ISSUE_STATUS_IN_PROGRESS << 24u)
+                    | (priority << 16u)
+                    | (agent_vm_id & 0xFFFFu);
+                mem_write(best_slot_base * 4u, new_issue_meta);
+
+                // Copy issue data to output region (full slot = 32 pixels)
+                for (var i = 0u; i < ISSUEQ_SLOT_SIZE; i++) {
+                    let word = mem_read((best_slot_base + i) * 4u);
+                    mem_write((out_addr + i) * 4u, word);
+                }
+
+                (*vm).regs[p1] = best_issue_id;
+            } else {
+                (*vm).regs[p1] = 0u; // no matching issue
+            }
+        }
+
+        // ISSUE_UPDATE (242): Change status of an issue.
+        // Encoding: (242, 0, r_issue_id, r_new_status)
+        // Scans issues to find matching issue_id, updates status.
+        // Returns: 1 in r_issue_id on success, 0 if not found.
+        case 242u: {
+            let target_id = (*vm).regs[p1];
+            let new_status = (*vm).regs[p2];
+            let count = mem_read((ISSUEQ_BASE + 2u) * 4u);
+
+            var found = false;
+            for (var i = 0u; i < ISSUEQ_CAPACITY; i++) {
+                if (i >= count) {
+                    break;
+                }
+                let slot_base = ISSUEQ_SLOTS_BASE + i * ISSUEQ_SLOT_SIZE;
+                let issue_id = mem_read((slot_base + 1u) * 4u);
+                if (issue_id == target_id) {
+                    let issue_meta = mem_read(slot_base * 4u);
+                    let priority = (issue_meta >> 16u) & 0xFFu;
+                    let assignee = issue_meta & 0xFFFFu;
+                    let new_issue_meta = ((new_status & 0xFFu) << 24u) | (priority << 16u) | assignee;
+                    mem_write(slot_base * 4u, new_issue_meta);
+                    found = true;
+                    break;
+                }
+            }
+            (*vm).regs[p1] = select(0u, 1u, found);
         }
 
         default: {
