@@ -190,7 +190,7 @@ src/bin/
   pmp-trace.rs        -- Execution tracer
   frame_debug.rs      -- Frame-level debugger
 
-tests/  (18 test files)
+tests/  (45 test files)
   hl_compiler_tests.rs    -- 25 tests: GeoLang compiler (factorial, fibonacci, bubble sort, etc.)
   opcode_full_suite.rs    -- 65 tests: every opcode in SW + GPU
   opcode_tests.rs         -- 28 tests: additional opcode verification
@@ -202,7 +202,7 @@ tests/  (18 test files)
   self_replication.rs     -- Self-replicator end-to-end
   ...and more
 
-~31,000 lines of Rust (src/). 1165 tests (420 unit + 745 integration).
+~31,000 lines of Rust (src/). 742 tests (419 unit + 323 integration), 3 ignored.
 ```
 
 ---
