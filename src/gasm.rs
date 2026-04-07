@@ -1739,4 +1739,29 @@ HALT
             assert_eq!(mem_val, val, "Fib({}) should be {}, got {}", i, val, mem_val);
         }
     }
+
+    #[test]
+    fn assemble_bubble_sort() {
+        let source = include_str!("../programs/bubble_sort.gasm");
+        let program = assemble(source).expect("bubble_sort.gasm should assemble");
+
+        use crate::software_vm::SoftwareVm;
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &program.pixels);
+        svm.spawn_vm(0, 0);
+
+        // Run enough frames for the sort to complete
+        for _ in 0..10 {
+            svm.execute_frame();
+        }
+
+        assert_eq!(svm.vm_state(0).halted, 1, "bubble_sort should halt");
+
+        // Array should be sorted: [1, 2, 3, 4, 5, 6, 7, 8]
+        let expected = [1u32, 2, 3, 4, 5, 6, 7, 8];
+        for (i, &val) in expected.iter().enumerate() {
+            let mem_val = svm.peek((500 + i) as u32);
+            assert_eq!(mem_val, val, "sorted[{}] should be {}, got {}", i, val, mem_val);
+        }
+    }
 }

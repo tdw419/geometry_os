@@ -1,0 +1,90 @@
+; Bubble Sort
+; Sorts 8 values in ascending order using bubble sort.
+; Demonstrates: LDI, LOAD, STORE, MOV, ADD, SUB, BNE, BLT, nested loops.
+;
+; Memory layout:
+;   addr 0-40:  program code
+;   addr 500-507:  data array (8 elements)
+;
+; Register allocation:
+;   r0  = i (outer loop counter, 0..6)
+;   r1  = j (inner loop counter)
+;   r2  = array[j]   (left value)
+;   r3  = array[j+1] (right value)
+;   r4  = 7 (constant: N-1, outer limit)
+;   r5  = 1 (constant increment)
+;   r6  = array base address (500)
+;   r7  = temp for swap
+;   r10 = address of array[j]
+;   r11 = address of array[j+1]
+;   r12 = inner loop limit (N-1 - i)
+
+; === Seed the array with unsorted data: 7, 3, 5, 1, 8, 2, 6, 4 ===
+LDI r6, 500             ; base address
+LDI r5, 1               ; constant 1
+
+LDI r0, 7
+STORE r6, r0            ; mem[500] = 7
+LDI r0, 3
+ADD r6, r5              ; addr 501
+STORE r6, r0            ; mem[501] = 3
+LDI r0, 5
+ADD r6, r5              ; addr 502
+STORE r6, r0            ; mem[502] = 5
+LDI r0, 1
+ADD r6, r5              ; addr 503
+STORE r6, r0            ; mem[503] = 1
+LDI r0, 8
+ADD r6, r5              ; addr 504
+STORE r6, r0            ; mem[504] = 8
+LDI r0, 2
+ADD r6, r5              ; addr 505
+STORE r6, r0            ; mem[505] = 2
+LDI r0, 6
+ADD r6, r5              ; addr 506
+STORE r6, r0            ; mem[506] = 6
+LDI r0, 4
+ADD r6, r5              ; addr 507
+STORE r6, r0            ; mem[507] = 4
+
+; === Bubble sort ===
+LDI r6, 500             ; reset base address
+LDI r4, 7               ; N-1
+LDI r5, 1               ; constant 1
+LDI r0, 0               ; i = 0 (RESET after seeding)
+
+outer_loop:
+    ; r12 = r4 - r0 (inner limit = N-1 - i)
+    MOV r12, r4
+    SUB r12, r0         ; r12 = 7 - i
+
+    ; j = 0
+    LDI r1, 0
+
+inner_loop:
+    ; compute addresses
+    MOV r10, r6         ; r10 = base (500)
+    ADD r10, r1         ; r10 = base + j
+    MOV r11, r10        ; r11 = base + j
+    ADD r11, r5         ; r11 = base + j + 1
+
+    ; load pair
+    LOAD r2, r10        ; r2 = array[j]
+    LOAD r3, r11        ; r3 = array[j+1]
+
+    ; if array[j] <= array[j+1], skip swap (branch if left < right)
+    BLT r2, r3, skip_swap
+
+    ; swap: array[j] = r3, array[j+1] = r2
+    STORE r10, r3
+    STORE r11, r2
+
+skip_swap:
+    ADD r1, r5          ; j++
+    BNE r1, r12, inner_loop
+
+    ; end outer iteration
+    ADD r0, r5          ; i++
+    BNE r0, r4, outer_loop
+
+HALT
