@@ -414,3 +414,103 @@ GEO-75 (HTTP endpoint) -> GEO-212 (issue queue) -> GEO-213 (agent VM) -> GEO-214
 ---
 
 *Soli Deo Gloria.* -- Glory to God alone. How Bach signed his compositions. How we sign ours.
+
+---
+
+## Phase 14: Boot on Metal (NEXT)
+
+The self-orchestrating loop runs on a real GPU. Not in a test. On the RTX 5090.
+
+The software VM has 40+ opcodes including issue queue operations. The GPU shader has 36.
+The gap is real: ISSUE_CREATE/PICK/UPDATE (240-242), BRANCH_PROB (220), GLYPH_MUTATE (224),
+SPATIAL_SPAWN (225), and SEMANTIC_MERGE (226) exist only in software. Phase 14 closes that gap
+and proves the full loop on hardware.
+
+- [ ] **Shader parity: issue queue opcodes** (GEO-218) -- ISSUE_CREATE (240), ISSUE_PICK (241),
+      ISSUE_UPDATE (242) in glyph_vm_scheduler.wgsl. Mirrors the software VM implementation
+      exactly. Atomics for pick across workgroup threads.
+- [ ] **Shader parity: AI-native opcodes** (GEO-219) -- BRANCH_PROB (220), GLYPH_MUTATE (224),
+      SPATIAL_SPAWN (225), SEMANTIC_MERGE (226) in the shader. Each mirrors the software VM
+      behavior with GPU-safe memory access.
+- [ ] **GPU parity test suite** (GEO-220) -- Every new opcode tested CPU-vs-GPU with identical
+      results. Extends the existing cross-validation pattern from Phase 6.
+- [ ] **Daemon orchestration mode** (GEO-221) -- `cargo run --bin daemon` loads ceo.gasm +
+      agent.gasm into VMs 0-2, runs frames in a loop, reads back metrics from the substrate.
+      CLI output shows live progress: issues created, issues done, current batch.
+- [ ] **Full loop on GPU** (GEO-222) -- End-to-end test: daemon boots, CEO creates issues,
+      agents consume them, metrics match the software VM results. 5 issues, 2 agents, all
+      complete within N frames. Verified on real GPU hardware.
+
+**Dependency chain:**
+```
+GEO-218 (shader issue queue) ──> GEO-220 (parity tests) ──> GEO-222 (full loop on GPU)
+GEO-219 (shader AI opcodes)   ──┘
+GEO-221 (daemon mode)         ────────────────────────────> GEO-222
+```
+
+**Success Criteria:**
+- [ ] `cargo run --bin daemon` executes CEO + 2 agents on real GPU, all issues complete
+- [ ] Every opcode in the assembler produces identical results on software VM and GPU shader
+- [ ] CLI shows live metrics: issues created, done, batch number, frame count
+
+---
+
+## Phase 15: Real Work
+
+Agents do real computation. The CEO assigns Fibonacci tasks. Agents actually compute them.
+The LLM executor from Phase 7 connects so agents can reason about their work.
+
+- [ ] **Agent computes Fibonacci** (GEO-223) -- agent.gasm extended: after ISSUE_PICK, agent
+      reads the title data ("fib N"), computes fib(N) iteratively, writes result to the issue's
+      result region, marks DONE. No more toy create/mark-done cycles.
+- [ ] **CEO assigns varied work** (GEO-224) -- ceo.gasm creates different task types: Fibonacci,
+      factorial, prime check. Each type has a different title format. Agents dispatch based on
+      type. Tests verify correct results for each.
+- [ ] **LLM executor integration** (GEO-225) -- The Phase 7 ModelExecutor connects to the
+      orchestration loop. An agent can issue CMD_MODEL_CALL via the device proxy, get an LLM
+      response in substrate, and act on it. Test: agent asks LLM "what is fib(10)?", writes
+      the parsed answer as the issue result.
+- [ ] **Autonomous self-improvement cycle** (GEO-226) -- Close the loop from Phase 4 and Phase 7.
+      CEO creates a "mutate program X" task. Agent picks it, calls LLM to propose a mutation,
+      applies GLYPH_MUTATE, runs fitness test, keeps or discards. The machine improves its own
+      code without human input.
+
+**Dependency chain:**
+```
+GEO-223 (fib computation) ──> GEO-224 (varied tasks) ──> GEO-226 (self-improvement)
+GEO-225 (LLM in loop)     ─────────────────────────────> GEO-226
+```
+
+**Success Criteria:**
+- [ ] Agent computes fib(10) = 55 and writes it to the issue result region
+- [ ] Three different task types execute correctly in one orchestration run
+- [ ] Agent successfully calls LLM and uses the response
+- [ ] Machine proposes and applies a mutation that improves fitness, autonomously
+
+---
+
+## Phase 16: The Machine Ships
+
+Real daemon, real workflows, real documentation. Someone else can run it.
+
+- [ ] **Daemon as a service** (GEO-227) -- systemd unit, health check endpoint, graceful shutdown.
+      `cargo run --bin daemon` is production-ready. Logs structured JSON. Restarts on crash.
+- [ ] **Workbench TUI** (GEO-228) -- Terminal UI (ratatui) that connects to the daemon.
+      Shows live VM states, issue queue, metrics. Keyboard shortcuts to load programs,
+      step frames, inspect registers. The developer experience for pixel programming.
+- [ ] **Example gallery** (GEO-229) -- 10+ .gasm programs that do interesting things: game of
+      life, fractals, sort algorithms, the self-replicator, the CEO+agent loop. Each with
+      comments and a README. Someone new to the project can read them and learn.
+- [ ] **Architecture guide** (GEO-230) -- Written for someone who's never seen the codebase.
+      Memory layout, opcode table, VM lifecycle, how to write a .gasm program, how the
+      scheduler works. The document you'd wish existed when you started.
+
+**Success Criteria:**
+- [ ] `systemctl start geo-daemon` boots and serves the orchestration loop
+- [ ] TUI shows real-time GPU execution state
+- [ ] A new developer can read the architecture guide, write a .gasm program, and run it
+      within 30 minutes
+
+---
+
+*The machine builds. The machine runs. The machine improves. Soli Deo Gloria.*
