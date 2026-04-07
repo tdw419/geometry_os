@@ -426,9 +426,9 @@ The gap is real: ISSUE_CREATE/PICK/UPDATE (240-242), BRANCH_PROB (220), GLYPH_MU
 SPATIAL_SPAWN (225), and SEMANTIC_MERGE (226) exist only in software. Phase 14 closes that gap
 and proves the full loop on hardware.
 
-- [ ] **Shader parity: issue queue opcodes** (GEO-222) -- ISSUE_CREATE (240), ISSUE_PICK (241),
+- [x] **Shader parity: issue queue opcodes** (GEO-222) -- ISSUE_CREATE (240), ISSUE_PICK (241),
       ISSUE_UPDATE (242) in glyph_vm_scheduler.wgsl. Mirrors the software VM implementation
-      exactly. Atomics for pick across workgroup threads. IN PROGRESS.
+      exactly. Atomics for pick across workgroup threads. COMPLETE.
 - [ ] **Shader parity: AI-native opcodes** (GEO-223) -- BRANCH_PROB (220), GLYPH_MUTATE (224),
       SPATIAL_SPAWN (225), SEMANTIC_MERGE (226) in the shader. Each mirrors the software VM
       behavior with GPU-safe memory access.
