@@ -656,6 +656,112 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
             }
         }
 
+        // ── AI-Native Opcodes (Phase 9 / Phase 14) ─────────────────────
+
+        // BRANCH_PROB (220) - Probabilistic branch: BRANCH_PROB r_prob, offset
+        // Coin flip: if (prob & 0xFFFF) > hash, branch by offset
+        case 220u: {
+            let prob = (*vm).regs[p1];
+            let offset = mem_read((pc + 1u) * 4u);
+            let threshold = prob & 0xFFFFu;
+            // Deterministic PRNG from PC for reproducibility
+            let hash = (pc * 2654435761u) & 0xFFFFu;
+            if (threshold > hash) {
+                let signed_offset = bitcast<i32>(offset);
+                let new_pc = bitcast<i32>(pc) + signed_offset;
+                (*vm).pc = bitcast<u32>(new_pc);
+                return 1u; // Jumped
+            }
+            (*vm).pc = pc + 1u; // Skip offset word
+        }
+
+        // CONFIDENCE_MARK (221) - Mark confidence: CONFIDENCE_MARK r_block_id
+        // Records confidence score for a code block
+        case 221u: {
+            let block_id = (*vm).regs[p1];
+            let score = (block_id >> 16u) & 0xFFFFu;
+            let id = block_id & 0xFFFFu;
+            // Write to confidence memory region (must match software VM)
+            let conf_addr = 0x00F00000u + id;
+            mem_write(conf_addr * 4u, score);
+        }
+
+        // ALTERNATE_PATH (222) - Conditional path: ALTERNATE_PATH r_block_id, offset
+        // Jump if confidence for block_id is below threshold
+        case 222u: {
+            let block_id = (*vm).regs[p1];
+            let offset = mem_read((pc + 1u) * 4u);
+            let id = block_id & 0xFFFFu;
+            let threshold = (block_id >> 16u) & 0xFFFFu;
+            let conf_addr = 0x00F00000u + id;
+            let current_score = mem_read(conf_addr * 4u);
+            if (current_score < threshold) {
+                let signed_offset = bitcast<i32>(offset);
+                let new_pc = bitcast<i32>(pc) + signed_offset;
+                (*vm).pc = bitcast<u32>(new_pc);
+                return 1u; // Jumped
+            }
+            (*vm).pc = pc + 1u; // Skip offset word
+        }
+
+        // GLYPH_MUTATE (224) - Transform glyph: GLYPH_MUTATE r_target_addr, r_new_opcode
+        // Replaces the opcode byte (R channel) of the pixel at r_target_addr
+        case 224u: {
+            let target_pixel_idx = (*vm).regs[p1];
+            let new_opcode = (*vm).regs[p2] & 0xFFu;
+            let glyph = read_glyph(target_pixel_idx);
+            write_glyph(target_pixel_idx, vec4<u32>(new_opcode, glyph.g, glyph.b, glyph.a));
+            (*vm).regs[p1] = 1u; // success
+        }
+
+        // SPATIAL_SPAWN (225) - Copy N pixels: SPATIAL_SPAWN r_dest_addr, r_size, r_source_addr
+        // Source address is packed in a second pixel (data word)
+        case 225u: {
+            let dest_addr = (*vm).regs[p1];
+            let size = (*vm).regs[stratum]; // size from stratum register index
+            let data_word = mem_read((pc + 1u) * 4u);
+            let source_addr = (*vm).regs[data_word];
+            for (var i = 0u; i < size; i++) {
+                let pixel = read_glyph(source_addr + i);
+                write_glyph(dest_addr + i, pixel);
+            }
+            (*vm).pc = pc + 1u; // Consume data word
+            (*vm).regs[p1] = size; // return bytes copied
+        }
+
+        // SEMANTIC_MERGE (226) - Merge two clusters: SEMANTIC_MERGE r_cluster_a, r_cluster_b, r_dest
+        // Dest register is in a second pixel (data word)
+        case 226u: {
+            let cluster_a = (*vm).regs[p1];
+            let cluster_b = (*vm).regs[p2];
+            let data_word = mem_read((pc + 1u) * 4u);
+            let dest_addr = (*vm).regs[data_word];
+            var merged_count = 0u;
+            let max_merge = 256u;
+            for (var i = 0u; i < max_merge; i++) {
+                let pa = read_glyph(cluster_a + i);
+                let pb = read_glyph(cluster_b + i);
+                // Stop at double-zero
+                if (pa.r == 0u && pa.g == 0u && pa.b == 0u && pa.a == 0u
+                    && pb.r == 0u && pb.g == 0u && pb.b == 0u && pb.a == 0u) {
+                    break;
+                }
+                // For identical pixels, write as-is. For differing, keep higher opcode
+                var merged: vec4<u32>;
+                if (pa.r == pb.r && pa.g == pb.g && pa.b == pb.b && pa.a == pb.a) {
+                    merged = pa;
+                } else if (pa.r >= pb.r) {
+                    merged = pa;
+                } else {
+                    merged = pb;
+                }
+                write_glyph(dest_addr + i, merged);
+                merged_count = merged_count + 1u;
+            }
+            (*vm).pc = pc + 1u; // Consume data word
+            (*vm).regs[p1] = merged_count;
+        }
+
         // SPAWN - Request child VM spawn: SPAWN r_base_addr, r_entry_offset
         // Returns child VM ID in r_base_addr, or 0xFF if no slot available.
         // Deferred: stores spawn params in parent's registers. Rust host
