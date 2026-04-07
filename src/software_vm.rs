@@ -7417,6 +7417,71 @@ mod geo92_tier2 {
         assert_eq!(assignee, 7, "assignee should be 7");
     }
 
+    #[test]
+    fn test_issueq_full_lifecycle() {
+        // Create 2 issues, pick one, mark DONE, pick again -> should get the other.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "lifecycle");
+        let out_addr: u32 = 0x0020_0000;
+        let load_addr: u32 = 0x0000_1000;
+
+        let mut p = Program::new();
+
+        // Create 2 issues: medium(2), high(3)
+        p.ldi(10, title_addr);
+        p.ldi(11, 2);
+        p.issue_create(10, 11, 0);
+        p.ldi(10, title_addr);
+        p.ldi(11, 3);
+        p.issue_create(10, 11, 0);
+
+        // Pick first (should get the high priority one, issue_id=2)
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_pick(12, 13, 1);
+
+        // Update picked issue to DONE
+        p.ldi(14, crate::ISSUE_STATUS_DONE);
+        p.issue_update(12, 14);
+
+        // Pick again (should get the remaining medium priority one)
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_pick(12, 13, 1);
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..20 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // Verify: one issue DONE, one IN_PROGRESS
+        let mut done = 0;
+        let mut in_progress = 0;
+        for i in 0..2u32 {
+            let slot_base = crate::ISSUEQ_SLOTS_BASE + i * crate::ISSUEQ_SLOT_SIZE;
+            let meta = svm.peek(slot_base);
+            let status = (meta >> 24) & 0xFF;
+            match status {
+                s if s == crate::ISSUE_STATUS_DONE => done += 1,
+                s if s == crate::ISSUE_STATUS_IN_PROGRESS => in_progress += 1,
+                _ => {}
+            }
+        }
+        assert_eq!(done, 1, "one issue should be DONE after lifecycle");
+        assert_eq!(in_progress, 1, "one issue should be IN_PROGRESS after second pick");
+    }
+
     // ═══════════════════════════════════════════════════════════
     // Phase 13B: Agent VM Integration Tests
     // ═══════════════════════════════════════════════════════════
