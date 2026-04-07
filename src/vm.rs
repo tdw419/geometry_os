@@ -945,3 +945,269 @@ pub fn run_program(pixels: &[u32], load_address: u32) -> ExecutionResult {
     result.compute_fitness();
     result
 }
+
+#[cfg(test)]
+mod gpu_integration_tests {
+    use super::*;
+    use crate::assembler::{op, bcond, Program};
+    use crate::{ISSUEQ_BASE, ISSUEQ_SLOTS_BASE, ISSUEQ_SLOT_SIZE, ISSUEQ_CAPACITY,
+                ISSUE_STATUS_TODO, ISSUE_STATUS_IN_PROGRESS, ISSUE_STATUS_DONE,
+                ISSUE_PRIORITY_HIGH, METRICS_BASE, METRICS_SIZE};
+
+    /// Write a packed-ASCII string to the substrate at a given Hilbert pixel address.
+    fn write_string(substrate: &Substrate, addr: u32, s: &str) {
+        let bytes: Vec<u8> = s.bytes().chain(std::iter::once(0u8)).collect();
+        for (i, chunk) in bytes.chunks(4).enumerate() {
+            let mut word: u32 = 0;
+            for (j, &b) in chunk.iter().enumerate() {
+                word |= (b as u32) << (j * 8);
+            }
+            substrate.poke(addr + i as u32, word);
+        }
+    }
+
+    /// Build a CEO program that creates `batch_size` issues with given priority,
+    /// writes issues_created to METRICS_BASE+1, and halts.
+    fn build_ceo_program(title_addr: u32, priority: u32, batch_size: u32) -> Program {
+        let mut p = Program::new();
+        p.ldi(15, 1);                    // r15 = 1
+        p.ldi(11, priority);             // r11 = priority
+        p.ldi(12, METRICS_BASE);         // r12 = METRICS_BASE
+        p.ldi(14, 0);                    // r14 = issues_created counter
+        p.ldi(16, batch_size);           // r16 = batch_size
+        p.ldi(17, 0);                    // r17 = loop counter
+
+        // ceo_issue_loop:
+        let loop_start = p.pixels.len();
+        p.ldi(10, title_addr);           // r10 = title addr
+        p.issue_create(10, 11, 0);       // create issue; r10 <- issue_id
+        p.instruction(op::ADD, 0, 14, 15); // r14 += 1
+        p.instruction(op::ADD, 0, 17, 15); // r17 += 1
+        p.branch(bcond::BLT, 17, 16,
+            (loop_start as i32) - (p.pixels.len() as i32));
+
+        // Write issues_created to METRICS_BASE+1
+        p.ldi(12, METRICS_BASE + 1);
+        p.store(12, 14);
+
+        // Write batch_number (0) to METRICS_BASE+4
+        p.ldi(12, METRICS_BASE + 4);
+        p.ldi(10, 0);
+        p.store(12, 10);
+
+        p.halt();
+        p
+    }
+
+    /// Build an orchestrating agent that picks issues, marks them DONE,
+    /// increments metrics, and halts after max_empty consecutive empty picks.
+    fn build_orchestrating_agent(out_addr: u32, max_empty: u32, agent_vm_id: u8) -> Program {
+        let mut p = Program::new();
+        p.ldi(3, 0);                              // r3 = 0
+        p.ldi(4, 1);                              // r4 = 1
+        p.ldi(5, ISSUE_STATUS_DONE);              // r5 = DONE
+        p.ldi(6, 0);                              // r6 = empty counter
+        p.ldi(7, max_empty);                      // r7 = max_empty
+        p.ldi(8, METRICS_BASE + 2);               // r8 = METRICS_BASE+2 (issues_done)
+
+        // agent_loop:
+        let loop_start = p.pixels.len();
+        p.ldi(1, out_addr);
+        p.ldi(2, 0);                              // filter=any
+        p.issue_pick(1, 2, agent_vm_id);
+
+        // if r1 == 0, goto empty_pick
+        let beq_idx = p.pixels.len();
+        p.instruction(op::BRANCH, bcond::BEQ, 1, 3);
+        let beq_data_idx = p.pixels.len();
+        p.pixels.push(0);
+
+        // Got an issue
+        p.ldi(6, 0);                              // reset empty counter
+        p.issue_update(1, 5);                     // mark DONE
+
+        // Increment issues_done in metrics
+        p.load(9, 8);                             // r9 = current issues_done
+        p.instruction(op::ADD, 0, 9, 4);          // r9 += 1
+        p.store(8, 9);
+
+        p.yield_op();
+        let jmp_back = p.pixels.len();
+        p.instruction(op::JMP, 0, 0, 0);
+        p.pixels.push(((loop_start as i32) - (jmp_back as i32)) as u32);
+
+        // empty_pick:
+        let empty_pick = p.pixels.len();
+        p.pixels[beq_data_idx] = ((empty_pick as i32) - (beq_idx as i32)) as u32;
+
+        p.instruction(op::ADD, 0, 6, 4);          // r6 += 1
+        let bge_idx = p.pixels.len();
+        p.instruction(op::BRANCH, bcond::BGE, 6, 7);
+        let bge_data_idx = p.pixels.len();
+        p.pixels.push(0);
+
+        p.yield_op();
+        let jmp2 = p.pixels.len();
+        p.instruction(op::JMP, 0, 0, 0);
+        p.pixels.push(((loop_start as i32) - (jmp2 as i32)) as u32);
+
+        // agent_done:
+        let agent_done = p.pixels.len();
+        p.pixels[bge_data_idx] = ((agent_done as i32) - (bge_idx as i32)) as u32;
+        p.halt();
+
+        p
+    }
+
+    /// Count issues with a given status in the queue.
+    fn count_issues_with_status(substrate: &Substrate, status: u32) -> u32 {
+        let count = substrate.peek(ISSUEQ_BASE + 2);
+        let mut found = 0u32;
+        for i in 0..count {
+            let slot_base = ISSUEQ_SLOTS_BASE + i * ISSUEQ_SLOT_SIZE;
+            let meta = substrate.peek(slot_base);
+            let s = (meta >> 24) & 0xFF;
+            if s == status {
+                found += 1;
+            }
+        }
+        found
+    }
+
+    /// Zero out the issue queue region in the substrate.
+    fn clear_issueq(substrate: &Substrate) {
+        let region = ISSUEQ_HEADER_SIZE + ISSUEQ_CAPACITY * ISSUEQ_SLOT_SIZE;
+        for i in 0..region {
+            substrate.poke(ISSUEQ_BASE + i, 0);
+        }
+    }
+
+    const ISSUEQ_HEADER_SIZE: u32 = 4;
+
+    /// GEO-226: Full self-orchestrating loop on real GPU.
+    /// Boots GlyphVm on real GPU (wgpu), CEO creates 5 issues,
+    /// 2 agents consume them, all issues DONE, no double-claiming.
+    #[test]
+    fn test_gpu_self_orchestrating_loop() {
+        // Initialize real GPU VM
+        let mut vm = GlyphVm::new();
+
+        // Zero out issue queue and metrics regions
+        clear_issueq(vm.substrate());
+        for i in 0..METRICS_SIZE {
+            vm.substrate().poke(METRICS_BASE + i, 0);
+        }
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(vm.substrate(), title_addr, "compute fib");
+
+        // Phase 1: Spawn CEO on VM 0, creating 5 issues (high priority)
+        let ceo_addr: u32 = 0x0000_1000;
+        let ceo = build_ceo_program(title_addr, ISSUE_PRIORITY_HIGH, 5);
+        vm.substrate().load_program(ceo_addr, &ceo.pixels);
+        vm.spawn_vm(0, ceo_addr);
+
+        // Run CEO to completion
+        for _ in 0..50 {
+            vm.execute_frame();
+            if vm.vm_state(0).halted != 0 { break; }
+        }
+        assert_eq!(vm.vm_state(0).state, vm_state::HALTED, "CEO should halt on GPU");
+        assert_eq!(vm.substrate().peek(ISSUEQ_BASE + 2), 5, "5 issues created on GPU");
+        assert_eq!(vm.substrate().peek(METRICS_BASE + 1), 5, "metrics: 5 issues created");
+
+        // Phase 2: Spawn 2 agent VMs (VM 1 and VM 2) to consume issues
+        let agent_a_addr: u32 = 0x0000_2000;
+        let agent_b_addr: u32 = 0x0000_3000;
+        let out_a: u32 = 0x0020_0000;
+        let out_b: u32 = 0x0030_0000;
+
+        let agent_a = build_orchestrating_agent(out_a, 20, 1);
+        let agent_b = build_orchestrating_agent(out_b, 20, 2);
+
+        vm.substrate().load_program(agent_a_addr, &agent_a.pixels);
+        vm.substrate().load_program(agent_b_addr, &agent_b.pixels);
+        vm.spawn_vm(1, agent_a_addr);
+        vm.spawn_vm(2, agent_b_addr);
+
+        // Run frames until both agents halt or 500 frames
+        for _ in 0..500 {
+            vm.execute_frame();
+            let a_halted = vm.vm_state(1).halted != 0;
+            let b_halted = vm.vm_state(2).halted != 0;
+            if a_halted && b_halted { break; }
+        }
+
+        // Verify: all 5 issues should be DONE
+        let done_count = count_issues_with_status(vm.substrate(), ISSUE_STATUS_DONE);
+        assert_eq!(done_count, 5, "all 5 issues should be DONE on GPU");
+
+        // Verify: no issues left in IN_PROGRESS
+        let in_progress = count_issues_with_status(vm.substrate(), ISSUE_STATUS_IN_PROGRESS);
+        assert_eq!(in_progress, 0, "no issues should be IN_PROGRESS on GPU");
+
+        // Verify: metrics reflect completion
+        let issues_done = vm.substrate().peek(METRICS_BASE + 2);
+        assert_eq!(issues_done, 5, "metrics: 5 issues done on GPU");
+    }
+
+    /// GEO-226: No double-claiming on GPU. Two agents compete for 4 issues.
+    #[test]
+    fn test_gpu_orchestration_no_double_claim() {
+        let mut vm = GlyphVm::new();
+
+        clear_issueq(vm.substrate());
+        for i in 0..METRICS_SIZE {
+            vm.substrate().poke(METRICS_BASE + i, 0);
+        }
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(vm.substrate(), title_addr, "task");
+
+        // Create 4 issues
+        let ceo_addr: u32 = 0x0000_1000;
+        let ceo = build_ceo_program(title_addr, ISSUE_PRIORITY_HIGH, 4);
+        vm.substrate().load_program(ceo_addr, &ceo.pixels);
+        vm.spawn_vm(0, ceo_addr);
+        for _ in 0..50 {
+            vm.execute_frame();
+            if vm.vm_state(0).halted != 0 { break; }
+        }
+        assert_eq!(vm.substrate().peek(ISSUEQ_BASE + 2), 4, "4 issues created on GPU");
+
+        // Spawn 2 agents
+        let agent_a_addr: u32 = 0x0000_2000;
+        let agent_b_addr: u32 = 0x0000_3000;
+        let out_a: u32 = 0x0020_0000;
+        let out_b: u32 = 0x0031_0000;
+
+        let agent_a = build_orchestrating_agent(out_a, 30, 1);
+        let agent_b = build_orchestrating_agent(out_b, 30, 2);
+
+        vm.substrate().load_program(agent_a_addr, &agent_a.pixels);
+        vm.substrate().load_program(agent_b_addr, &agent_b.pixels);
+        vm.spawn_vm(1, agent_a_addr);
+        vm.spawn_vm(2, agent_b_addr);
+
+        for _ in 0..500 {
+            vm.execute_frame();
+            if vm.vm_state(1).halted != 0 && vm.vm_state(2).halted != 0 { break; }
+        }
+
+        let done = count_issues_with_status(vm.substrate(), ISSUE_STATUS_DONE);
+        let in_prog = count_issues_with_status(vm.substrate(), ISSUE_STATUS_IN_PROGRESS);
+        let todo = count_issues_with_status(vm.substrate(), ISSUE_STATUS_TODO);
+        assert_eq!(done, 4, "all 4 should be DONE on GPU");
+        assert_eq!(in_prog, 0, "none should be IN_PROGRESS on GPU");
+        assert_eq!(todo, 0, "none should remain TODO on GPU");
+
+        // Verify each issue was claimed by a real agent (assignee != 0)
+        let count = vm.substrate().peek(ISSUEQ_BASE + 2);
+        for i in 0..count {
+            let slot_base = ISSUEQ_SLOTS_BASE + i * ISSUEQ_SLOT_SIZE;
+            let meta = vm.substrate().peek(slot_base);
+            let assignee = meta & 0xFFFF;
+            assert_ne!(assignee, 0, "issue should have been claimed by a real agent on GPU");
+        }
+    }
+}
