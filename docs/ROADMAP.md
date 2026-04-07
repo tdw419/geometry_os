@@ -461,7 +461,7 @@ GEO-225 (daemon mode)         ────────────────�
 Agents do real computation. The CEO assigns Fibonacci tasks. Agents actually compute them.
 The LLM executor from Phase 7 connects so agents can reason about their work.
 
-- [ ] **Agent computes Fibonacci** -- agent.gasm extended: after ISSUE_PICK, agent
+- [x] **Agent computes Fibonacci** -- agent.gasm extended: after ISSUE_PICK, agent
       reads the title data ("fib N"), computes fib(N) iteratively, writes result to the issue's
       result region, marks DONE. No more toy create/mark-done cycles.
 - [ ] **CEO assigns varied work** -- ceo.gasm creates different task types: Fibonacci,
@@ -482,10 +482,10 @@ The LLM executor from Phase 7 connects so agents can reason about their work.
 (LLM in loop)     ──────────────────────> (self-improvement)
 ```
 
-Paperclip issues: Phase 15A (78d525af-4ba8-4338-822a-7bee0e7d455b), Phase 15B (d2d86166-e5b4-4e49-8cb1-5797b852db57), Phase 15C (18a07874-91fa-4abf-a60d-9ebd2b89650f), Phase 15D (3e0c81c0-90e2-4ca2-9b10-0cd9bb3f4d2c).
+Paperclip issues: Phase 15A (76c91595-d7ef-4e27-893f-31b8424a09e6, done), Phase 15B (d2d86166-e5b4-4e49-8cb1-5797b852db57, in_progress), Phase 15C (44b2a9eb-8b71-438d-a0f0-dc51906804a1, backlog), Phase 15D (3e0c81c0-90e2-4ca2-9b10-0cd9bb3f4d2c, backlog).
 
 **Success Criteria:**
-- [ ] Agent computes fib(10) = 55 and writes it to the issue result region
+- [x] Agent computes fib(10) = 55 and writes it to the issue result region
 - [ ] Three different task types execute correctly in one orchestration run
 - [ ] Agent successfully calls LLM and uses the response
 - [ ] Machine proposes and applies a mutation that improves fitness, autonomously
