@@ -638,3 +638,213 @@ fn cross_validate_stb_ldb_roundtrip() {
     assert_eq!(gpu_reg, 0x77, "GPU VM STB->LDB roundtrip");
     assert_eq!(sv_reg, gpu_reg, "STB->LDB cross-validation");
 }
+
+// ---- Phase 14: GPU Parity Tests for AI-Native & Issue Queue Opcodes ----
+
+#[test]
+fn cross_validate_glyph_mutate() {
+    // GLYPH_MUTATE: replace opcode byte in a target pixel
+    let mut p = Program::new();
+    // Put a NOP at address 500 (opcode=0)
+    p.ldi(10, 500);        // r10 = target pixel index
+    p.ldi(11, 5);          // r11 = new opcode (ADD)
+    p.glyph_mutate(10, 11); // mutate pixel at 500 to have opcode 5
+    p.halt();
+
+    // Software VM
+    let mut svm = SoftwareVm::new();
+    svm.load_program(0, &p.pixels);
+    svm.spawn_vm(0, 0);
+    svm.execute_frame();
+
+    // GPU VM
+    let mut gpu_vm = gpu_vm_guard();
+    gpu_vm.substrate().load_program(0, &p.pixels);
+    gpu_vm.spawn_vm(0, 0);
+    gpu_vm.execute_frame();
+
+    // Check r10 == 1 (success)
+    assert_eq!(svm.vm_state(0).regs[10], 1, "SW: mutate should return 1");
+    assert_eq!(gpu_vm.vm_state(0).regs[10], 1, "GPU: mutate should return 1");
+
+    // Check pixel 500 has opcode byte (R channel) = 5
+    let sw_pixel = svm.peek(500);
+    let gpu_pixel = gpu_vm.substrate().peek(500);
+    assert_eq!(sw_pixel & 0xFF, 5, "SW: mutated pixel opcode should be 5");
+    assert_eq!(gpu_pixel & 0xFF, 5, "GPU: mutated pixel opcode should be 5");
+    assert_eq!(sw_pixel, gpu_pixel, "GLYPH_MUTATE cross-validation failed");
+}
+
+#[test]
+fn cross_validate_spatial_spawn() {
+    // SPATIAL_SPAWN: copy N pixels from source to dest
+    let mut svm = SoftwareVm::new();
+    // Write known data at pixel 200
+    svm.poke(200, 0x01020304);
+    svm.poke(201, 0x05060708);
+    svm.poke(202, 0x090A0B0C);
+
+    let mut p = Program::new();
+    p.ldi(10, 1000);       // r10 = dest
+    p.ldi(11, 3);          // r11 = size (via stratum register index)
+    p.ldi(12, 200);        // r12 = source
+    // SPATIAL_SPAWN uses stratum as size register index, data word as source register index
+    p.instruction(assembler::op::SPATIAL_SPAWN, 11, 10, 12); // stratum=r11, p1=r10(dest), p2=r12(source)
+    // Data word: register holding source address (r12)
+    p.pixels.push(12u32);
+    p.halt();
+
+    svm.load_program(0, &p.pixels);
+    svm.spawn_vm(0, 0);
+    svm.execute_frame();
+
+    // GPU VM
+    let mut gpu_vm = gpu_vm_guard();
+    gpu_vm.substrate().poke(200, 0x01020304);
+    gpu_vm.substrate().poke(201, 0x05060708);
+    gpu_vm.substrate().poke(202, 0x090A0B0C);
+    gpu_vm.substrate().load_program(0, &p.pixels);
+    gpu_vm.spawn_vm(0, 0);
+    gpu_vm.execute_frame();
+
+    // Check copied pixels
+    for offset in 0..3u32 {
+        let sw_val = svm.peek(1000 + offset);
+        let gpu_val = gpu_vm.substrate().peek(1000 + offset);
+        assert_eq!(sw_val, svm.peek(200 + offset), "SW: copy mismatch at offset {offset}");
+        assert_eq!(gpu_val, gpu_vm.substrate().peek(200 + offset), "GPU: copy mismatch at offset {offset}");
+        assert_eq!(sw_val, gpu_val, "SPATIAL_SPAWN cross-validation failed at offset {offset}");
+    }
+}
+
+#[test]
+fn cross_validate_issue_create() {
+    // ISSUE_CREATE: create an issue in the queue
+    let mut svm = SoftwareVm::new();
+    // Initialize issue queue
+    for i in 0..(4 + 64 * 32) { svm.poke(pixels_move_pixels::ISSUEQ_BASE + i as u32, 0); }
+    // Write title
+    let title_addr: u32 = 0x0010_0000;
+    for i in 0..24 { svm.poke(title_addr + i, 0); }
+    svm.poke(title_addr, 0x66696200); // "fib\0"
+
+    let mut p = Program::new();
+    p.ldi(10, title_addr);
+    p.ldi(11, 3);  // priority = high
+    p.issue_create(10, 11, 0); // assignee = 0
+    p.halt();
+
+    svm.load_program(0, &p.pixels);
+    svm.spawn_vm(0, 0);
+    svm.execute_frame();
+
+    // GPU VM
+    let mut gpu_vm = gpu_vm_guard();
+    for i in 0..(4 + 64 * 32) { gpu_vm.substrate().poke(pixels_move_pixels::ISSUEQ_BASE + i as u32, 0); }
+    for i in 0..24 { gpu_vm.substrate().poke(title_addr + i, 0); }
+    gpu_vm.substrate().poke(title_addr, 0x66696200);
+    gpu_vm.substrate().load_program(0, &p.pixels);
+    gpu_vm.spawn_vm(0, 0);
+    gpu_vm.execute_frame();
+
+    // Check issue_id returned in r10
+    let sv_id = svm.vm_state(0).regs[10];
+    let gpu_id = gpu_vm.vm_state(0).regs[10];
+    assert!(sv_id > 0, "SW: should return nonzero issue_id");
+    assert!(gpu_id > 0, "GPU: should return nonzero issue_id");
+    assert_eq!(sv_id, gpu_id, "ISSUE_CREATE issue_id cross-validation");
+
+    // Check queue count
+    let sv_count = svm.peek(pixels_move_pixels::ISSUEQ_BASE + 2);
+    let gpu_count = gpu_vm.substrate().peek(pixels_move_pixels::ISSUEQ_BASE + 2);
+    assert_eq!(sv_count, 1, "SW: queue count should be 1");
+    assert_eq!(gpu_count, 1, "GPU: queue count should be 1");
+}
+
+#[test]
+fn cross_validate_issue_pick() {
+    // ISSUE_CREATE + ISSUE_PICK: create then pick an issue
+    let mut svm = SoftwareVm::new();
+    for i in 0..(4 + 64 * 32) { svm.poke(pixels_move_pixels::ISSUEQ_BASE + i as u32, 0); }
+    let title_addr: u32 = 0x0010_0000;
+    for i in 0..24 { svm.poke(title_addr + i, 0); }
+
+    // Create 2 issues
+    let mut p = Program::new();
+    p.ldi(10, title_addr);
+    p.ldi(11, 3);
+    p.issue_create(10, 11, 0); // first issue
+    p.ldi(10, title_addr);
+    p.ldi(11, 2);
+    p.issue_create(10, 11, 0); // second issue
+    // Now pick
+    let out_addr: u32 = 0x0020_0000;
+    p.ldi(1, out_addr);
+    p.ldi(2, 0);
+    p.issue_pick(1, 2, 7); // agent_vm_id=7
+    p.halt();
+
+    svm.load_program(0, &p.pixels);
+    svm.spawn_vm(0, 0);
+    for _ in 0..20 { svm.execute_frame(); if svm.vm_state(0).halted != 0 { break; } }
+
+    // GPU VM
+    let mut gpu_vm = gpu_vm_guard();
+    for i in 0..(4 + 64 * 32) { gpu_vm.substrate().poke(pixels_move_pixels::ISSUEQ_BASE + i as u32, 0); }
+    for i in 0..24 { gpu_vm.substrate().poke(title_addr + i, 0); }
+    gpu_vm.substrate().load_program(0, &p.pixels);
+    gpu_vm.spawn_vm(0, 0);
+    for _ in 0..20 { gpu_vm.execute_frame(); if gpu_vm.vm_state(0).halted != 0 { break; } }
+
+    let sv_id = svm.vm_state(0).regs[1];
+    let gpu_id = gpu_vm.vm_state(0).regs[1];
+    assert!(sv_id > 0, "SW: should pick an issue");
+    assert!(gpu_id > 0, "GPU: should pick an issue");
+    // High priority issue (id=1, created first with pri=3) should be picked
+    // since we pick highest priority
+    assert_eq!(sv_id, gpu_id, "ISSUE_PICK cross-validation: same issue picked");
+}
+
+#[test]
+fn cross_validate_issue_update() {
+    // ISSUE_CREATE + ISSUE_UPDATE: create then mark done
+    let mut svm = SoftwareVm::new();
+    for i in 0..(4 + 64 * 32) { svm.poke(pixels_move_pixels::ISSUEQ_BASE + i as u32, 0); }
+    let title_addr: u32 = 0x0010_0000;
+    for i in 0..24 { svm.poke(title_addr + i, 0); }
+
+    let mut p = Program::new();
+    p.ldi(10, title_addr);
+    p.ldi(11, 3);
+    p.issue_create(10, 11, 0); // r10 now has issue_id
+    // Update to DONE
+    p.ldi(15, 2); // ISSUE_STATUS_DONE
+    p.issue_update(10, 15);
+    p.halt();
+
+    svm.load_program(0, &p.pixels);
+    svm.spawn_vm(0, 0);
+    for _ in 0..20 { svm.execute_frame(); if svm.vm_state(0).halted != 0 { break; } }
+
+    // GPU VM
+    let mut gpu_vm = gpu_vm_guard();
+    for i in 0..(4 + 64 * 32) { gpu_vm.substrate().poke(pixels_move_pixels::ISSUEQ_BASE + i as u32, 0); }
+    for i in 0..24 { gpu_vm.substrate().poke(title_addr + i, 0); }
+    gpu_vm.substrate().load_program(0, &p.pixels);
+    gpu_vm.spawn_vm(0, 0);
+    for _ in 0..20 { gpu_vm.execute_frame(); if gpu_vm.vm_state(0).halted != 0 { break; } }
+
+    // r10 should be 1 (success)
+    let sv_result = svm.vm_state(0).regs[10];
+    let gpu_result = gpu_vm.vm_state(0).regs[10];
+    assert_eq!(sv_result, 1, "SW: update should return 1");
+    assert_eq!(gpu_result, 1, "GPU: update should return 1");
+
+    // Check the slot metadata has DONE status
+    let slot_base = pixels_move_pixels::ISSUEQ_SLOTS_BASE;
+    let sv_meta = svm.peek(slot_base);
+    let gpu_meta = gpu_vm.substrate().peek(slot_base);
+    assert_eq!((sv_meta >> 24) & 0xFF, 2, "SW: status should be DONE(2)");
+    assert_eq!((gpu_meta >> 24) & 0xFF, 2, "GPU: status should be DONE(2)");
+    assert_eq!(sv_meta, gpu_meta, "ISSUE_UPDATE metadata cross-validation");
+}
