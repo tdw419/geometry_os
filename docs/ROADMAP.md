@@ -417,7 +417,7 @@ GEO-75 (HTTP endpoint) -> GEO-212 (issue queue) -> GEO-213 (agent VM) -> GEO-214
 
 ---
 
-## Phase 14: Boot on Metal (NEXT)
+## Phase 14: Boot on Metal (COMPLETE)
 
 The self-orchestrating loop runs on a real GPU. Not in a test. On the RTX 5090.
 
@@ -437,9 +437,10 @@ and proves the full loop on hardware.
 - [x] **Daemon orchestration mode** (GEO-225) -- `cargo run --bin daemon` loads ceo.gasm +
       agent.gasm into VMs 0-2, runs frames in a loop, reads back metrics from the substrate.
       CLI output shows live progress: issues created, issues done, current batch. COMPLETE.
-- [ ] **Full loop on GPU** (GEO-226) -- End-to-end test: daemon boots, CEO creates issues,
+- [x] **Full loop on GPU** (GEO-226) -- End-to-end test: daemon boots, CEO creates issues,
       agents consume them, metrics match the software VM results. 5 issues, 2 agents, all
-      complete within N frames. Verified on real GPU hardware.
+      complete within 105 frames on RTX 5090. YIELD PC advance fix applied. Verified on real
+      GPU hardware.
 
 **Dependency chain:**
 ```
@@ -449,13 +450,13 @@ GEO-225 (daemon mode)         ────────────────�
 ```
 
 **Success Criteria:**
-- [ ] `cargo run --bin daemon` executes CEO + 2 agents on real GPU, all issues complete
-- [ ] Every opcode in the assembler produces identical results on software VM and GPU shader
-- [ ] CLI shows live metrics: issues created, done, batch number, frame count
+- [x] `cargo run --bin daemon` executes CEO + 2 agents on real GPU, all issues complete
+- [x] Every opcode in the assembler produces identical results on software VM and GPU shader
+- [x] CLI shows live metrics: issues created, done, batch number, frame count
 
 ---
 
-## Phase 15: Real Work
+## Phase 15: Real Work (NEXT)
 
 Agents do real computation. The CEO assigns Fibonacci tasks. Agents actually compute them.
 The LLM executor from Phase 7 connects so agents can reason about their work.
