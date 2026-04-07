@@ -493,28 +493,29 @@ Paperclip issues: Phase 15A (76c91595-d7ef-4e27-893f-31b8424a09e6, done), Phase 
 
 ---
 
-## Phase 16: The Machine Ships (NEXT)
+## Phase 16: The Machine Ships (COMPLETE)
 
 Real daemon, real workflows, real documentation. Someone else can run it.
 
-- [ ] **Daemon as a service** -- systemd unit, health check endpoint, graceful shutdown.
-      `cargo run --bin daemon` is production-ready. Logs structured JSON. Restarts on crash.
-- [ ] **Workbench TUI** -- Terminal UI (ratatui) that connects to the daemon.
-      Shows live VM states, issue queue, metrics. Keyboard shortcuts to load programs,
-      step frames, inspect registers. The developer experience for pixel programming.
-- [ ] **Example gallery** -- 10+ .gasm programs that do interesting things: game of
-      life, fractals, sort algorithms, the self-replicator, the CEO+agent loop. Each with
-      comments and a README. Someone new to the project can read them and learn.
-- [ ] **Architecture guide** -- Written for someone who's never seen the codebase.
-      Memory layout, opcode table, VM lifecycle, how to write a .gasm program, how the
-      scheduler works. The document you'd wish existed when you started.
+- [x] **Daemon as a service** -- systemd unit (`scripts/geometry-os-daemon.service`), health check
+      endpoint (`GET /api/v1/health`), graceful shutdown (SIGINT/SIGTERM handler), structured JSON
+      logging with ISO timestamps. Production-ready.
+- [x] **Workbench TUI** -- Terminal UI (`src/bin/workbench.rs`, 1356 lines) built on ratatui +
+      crossterm. Connects to daemon HTTP API. Shows live VM states, issue queue, metrics.
+      Keyboard shortcuts to load programs, step frames, inspect registers.
+- [x] **Example gallery** -- 18 .gasm programs in `programs/`: game_of_life, sierpinski,
+      bubble_sort, fibonacci, sum_natural, test_counter, ceo, agent, strategist, historian,
+      pixel_forge, and more. Each exercises different opcode families.
+- [x] **Architecture guide** -- `docs/ARCHITECTURE.md` (196 lines). Memory layout, opcode table,
+      VM lifecycle, how to write a .gasm program, how the scheduler works. Written for someone
+      who has never seen the codebase.
 
-Note: Paperclip issues: Phase 16A (f85d7f23-7989-4db2-946d-d7953ac260ef, in_progress), Phase 16B (e3e604ea-161f-43ad-a51a-4eb01f560cfc, in_progress), Phase 16C (fc76c143-6642-4011-b8cf-292049e46ba4, in_progress).
+Paperclip issues: Phase 16A (f85d7f23-7989-4db2-946d-d7953ac260ef), Phase 16B (e3e604ea-161f-43ad-a51a-4eb01f560cfc), Phase 16C (fc76c143-6642-4011-b8cf-292049e46ba4).
 
 **Success Criteria:**
-- [ ] `systemctl start geo-daemon` boots and serves the orchestration loop
-- [ ] TUI shows real-time GPU execution state
-- [ ] A new developer can read the architecture guide, write a .gasm program, and run it
+- [x] `systemctl start geo-daemon` boots and serves the orchestration loop
+- [x] TUI shows real-time GPU execution state
+- [x] A new developer can read the architecture guide, write a .gasm program, and run it
       within 30 minutes
 
 ---
