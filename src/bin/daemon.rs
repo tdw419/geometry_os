@@ -1234,11 +1234,205 @@ fn handle_command_text(state: &Arc<Mutex<DaemonState>>, line: &str) -> String {
     }
 }
 
+// ── Orchestration mode (Phase 14: GEO-225) ──
+
+/// Run the full self-orchestrating loop on real GPU.
+/// Loads CEO + agent programs, runs frames until all halt, prints metrics.
+fn run_orchestrate() {
+    use pixels_move_pixels::{METRICS_BASE, ISSUEQ_BASE};
+
+    println!("Geometry OS -- Orchestration Mode");
+    println!("==================================");
+    println!();
+
+    // Initialize GPU state (reuses DaemonState init which sets up GPU + font atlas)
+    eprintln!("[orchestrate] Initializing GPU...");
+    let mut state = DaemonState::new();
+    eprintln!("[orchestrate] GPU initialized.");
+
+    // Assemble programs from .gasm files
+    let ceo_source = std::fs::read_to_string("programs/ceo.gasm")
+        .unwrap_or_else(|e| {
+            eprintln!("[orchestrate] ERROR: Failed to read programs/ceo.gasm: {}", e);
+            std::process::exit(1);
+        });
+    let agent_source = std::fs::read_to_string("programs/agent.gasm")
+        .unwrap_or_else(|e| {
+            eprintln!("[orchestrate] ERROR: Failed to read programs/agent.gasm: {}", e);
+            std::process::exit(1);
+        });
+
+    // Assemble CEO
+    let ceo_program = gasm::assemble(&ceo_source)
+        .unwrap_or_else(|e| {
+            eprintln!("[orchestrate] ERROR: Failed to assemble ceo.gasm: {}", e);
+            std::process::exit(1);
+        });
+    eprintln!("[orchestrate] Assembled ceo.gasm: {} pixels", ceo_program.pixels.len());
+
+    // Assemble agent (used for both VM 1 and VM 2)
+    let agent_program = gasm::assemble(&agent_source)
+        .unwrap_or_else(|e| {
+            eprintln!("[orchestrate] ERROR: Failed to assemble agent.gasm: {}", e);
+            std::process::exit(1);
+        });
+    eprintln!("[orchestrate] Assembled agent.gasm: {} pixels", agent_program.pixels.len());
+
+    // Initialize metrics region to zero
+    for i in 0..8u32 {
+        state.vm.substrate().load_program(METRICS_BASE + i, &[0]);
+    }
+
+    // Zero the issue queue header (head, tail, count, capacity)
+    for i in 0..4u32 {
+        state.vm.substrate().load_program(ISSUEQ_BASE + i, &[0]);
+    }
+
+    // Allocate addresses for programs
+    let ceo_addr: u32 = 0x0000_1000;
+    let agent_a_addr: u32 = 0x0000_2000;
+    let agent_b_addr: u32 = 0x0000_3000;
+
+    // Write title data for CEO to use
+    let title_base: u32 = 0x0010_0000;
+    let title_data: Vec<u32> = vec![
+        b'f' as u32 | ((b'i' as u32) << 8) | ((b'b' as u32) << 16) | ((b' ' as u32) << 24),
+        b'1' as u32, b'2' as u32, b'3' as u32, b'4' as u32, b'5' as u32, 0, 0,
+    ];
+    state.vm.substrate().load_program(title_base, &title_data);
+
+    // Load programs into substrate
+    state.vm.substrate().load_program(ceo_addr, &ceo_program.pixels);
+    state.vm.substrate().load_program(agent_a_addr, &agent_program.pixels);
+    state.vm.substrate().load_program(agent_b_addr, &agent_program.pixels);
+    eprintln!("[orchestrate] Programs loaded into substrate.");
+    eprintln!("[orchestrate]   CEO    at 0x{:08X} ({} pixels) -> VM 0", ceo_addr, ceo_program.pixels.len());
+    eprintln!("[orchestrate]   Agent A at 0x{:08X} ({} pixels) -> VM 1", agent_a_addr, agent_program.pixels.len());
+    eprintln!("[orchestrate]   Agent B at 0x{:08X} ({} pixels) -> VM 2", agent_b_addr, agent_program.pixels.len());
+
+    // Spawn VMs
+    state.vm.spawn_vm(0, ceo_addr);
+    state.vm.spawn_vm(1, agent_a_addr);
+    state.vm.spawn_vm(2, agent_b_addr);
+    eprintln!("[orchestrate] VMs spawned: 0=CEO, 1=Agent A, 2=Agent B");
+    println!();
+
+    // Print header
+    println!("{:>6} | {:>8} {:>8} {:>8} | {:>14} {:>14} {:>14} {:>14} {:>10}",
+        "Frame", "VM0", "VM1", "VM2",
+        "Cycles", "Created", "Done", "InProgress", "Batch");
+    println!("{}", "-".repeat(120));
+
+    let max_frames: u32 = 1000;
+    let mut frame = 0u32;
+
+    for _ in 0..max_frames {
+        // Execute one frame
+        state.vm.execute_frame();
+        frame += 1;
+
+        // Read metrics from substrate
+        let cycles = state.vm.substrate().peek(METRICS_BASE);
+        let created = state.vm.substrate().peek(METRICS_BASE + 1);
+        let done = state.vm.substrate().peek(METRICS_BASE + 2);
+        let in_progress = state.vm.substrate().peek(METRICS_BASE + 3);
+        let batch = state.vm.substrate().peek(METRICS_BASE + 4);
+
+        // Read VM states
+        let s0 = state.vm.vm_state(0);
+        let s1 = state.vm.vm_state(1);
+        let s2 = state.vm.vm_state(2);
+
+        let vm_str = |s: &pixels_move_pixels::vm::VmState| -> String {
+            if s.state == vm_state::HALTED { "HALT".to_string() }
+            else if s.halted != 0 { "HALT".to_string() }
+            else if s.state == vm_state::RUNNING { format!("run@{:04X}", s.pc) }
+            else if s.state == vm_state::WAITING { format!("wait@{:04X}", s.pc) }
+            else { format!("???({})", s.state) }
+        };
+
+        // Print live metrics every 10 frames or on first/last frame
+        if frame <= 5 || frame % 10 == 0 {
+            println!("{:>6} | {:>8} {:>8} {:>8} | {:>14} {:>14} {:>14} {:>14} {:>10}",
+                frame,
+                vm_str(s0), vm_str(s1), vm_str(s2),
+                cycles, created, done, in_progress, batch);
+        }
+
+        // Check if all 3 VMs have halted
+        let all_halted = (s0.state == vm_state::HALTED || s0.halted != 0)
+            && (s1.state == vm_state::HALTED || s1.halted != 0)
+            && (s2.state == vm_state::HALTED || s2.halted != 0);
+
+        if all_halted {
+            break;
+        }
+    }
+
+    // Read final metrics
+    let cycles = state.vm.substrate().peek(METRICS_BASE);
+    let created = state.vm.substrate().peek(METRICS_BASE + 1);
+    let done = state.vm.substrate().peek(METRICS_BASE + 2);
+    let in_progress = state.vm.substrate().peek(METRICS_BASE + 3);
+    let batch = state.vm.substrate().peek(METRICS_BASE + 4);
+
+    // Count issues in queue
+    let issue_count = state.vm.substrate().peek(ISSUEQ_BASE + 2);
+    let mut done_issues = 0u32;
+    let mut todo_issues = 0u32;
+    for i in 0..issue_count.min(64) {
+        let slot_base = pixels_move_pixels::ISSUEQ_SLOTS_BASE + i * pixels_move_pixels::ISSUEQ_SLOT_SIZE;
+        let meta = state.vm.substrate().peek(slot_base);
+        let status = (meta >> 24) & 0xFF;
+        if status == 2 { done_issues += 1; }
+        if status == 0 { todo_issues += 1; }
+    }
+
+    println!();
+    println!("{}", "=".repeat(60));
+    println!("ORCHESTRATION COMPLETE");
+    println!("{}", "=".repeat(60));
+    println!("  Frames executed:    {}", frame);
+    println!("  Issues in queue:    {}", issue_count);
+    println!("  Issues DONE:        {}", done_issues);
+    println!("  Issues TODO:        {}", todo_issues);
+    println!("  Metrics created:    {}", created);
+    println!("  Metrics done:       {}", done);
+    println!("  Metrics in-progress:{}", in_progress);
+    println!("  Batch number:       {}", batch);
+    println!();
+
+    // Final VM states
+    for i in 0..3 {
+        let s = state.vm.vm_state(i);
+        let state_str = if s.state == vm_state::HALTED || s.halted != 0 { "HALTED" } else { "RUNNING" };
+        println!("  VM {}: {} (pc={:#X}, cycles={})", i, state_str, s.pc, s.cycles);
+    }
+
+    // Read issue queue slots for verification
+    if issue_count > 0 && done_issues == issue_count {
+        println!();
+        println!("  SUCCESS: All {} issues completed by 2 agents.", issue_count);
+    } else if issue_count > 0 {
+        println!();
+        println!("  PARTIAL: {}/{} issues completed.", done_issues, issue_count);
+    }
+
+    println!();
+}
+
 fn main() {
     env_logger::init();
 
+    let args: Vec<String> = std::env::args().collect();
+
+    // Check for --orchestrate flag
+    if args.iter().any(|a| a == "--orchestrate") {
+        run_orchestrate();
+        return;
+    }
+
     let port = {
-        let args: Vec<String> = std::env::args().collect();
         if let Some(idx) = args.iter().position(|a| a == "--port") {
             args.get(idx + 1).cloned()
         } else if args.len() > 1 {
