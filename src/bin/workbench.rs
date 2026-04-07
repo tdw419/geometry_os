@@ -189,7 +189,7 @@ impl App {
 
         match self.agent.get(&self.api_url("/api/v1/status"))
             
-            .send(&[] as &[u8])
+            .call()
         {
             Ok(resp) => match resp.into_body().read_json::<StatusResponse>() {
                 Ok(status) => {
@@ -212,7 +212,7 @@ impl App {
     fn fetch_programs(&mut self) {
         match self.agent.get(&self.api_url("/api/v1/programs"))
             
-            .send(&[] as &[u8])
+            .call()
         {
             Ok(resp) => {
                 if let Ok(progs) = resp.into_body().read_json::<Vec<ProgramInfo>>() {
@@ -225,7 +225,7 @@ impl App {
 
     fn fetch_memory(&mut self, addr: u32, count: u32) {
         let url = self.api_url(&format!("/api/v1/substrate/{:#X}/{}", addr, count));
-        match self.agent.get(&url).send(&[] as &[u8]) {
+        match self.agent.get(&url).call() {
             Ok(resp) => {
                 if let Ok(read) = resp.into_body().read_json::<SubstrateRead>() {
                     self.memory_addr = read.address;
@@ -242,7 +242,7 @@ impl App {
     fn dispatch_frame(&mut self) {
         match self.agent.post(&self.api_url("/api/v1/dispatch"))
             
-            .send(&[] as &[u8])
+            .call()
         {
             Ok(resp) => {
                 if let Ok(dispatch) = resp.into_body().read_json::<DispatchResponse>() {

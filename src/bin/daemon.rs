@@ -1237,7 +1237,11 @@ fn handle_request(
 
 /// Process a single command line (shared by stdin and Unix socket).
 /// Returns a response string (for Unix socket clients) or empty (for stdin, which logs directly).
-fn handle_command_text(state: &Arc<Mutex<DaemonState>>, line: &str) -> String {
+fn handle_command_text(
+    state: &Arc<Mutex<DaemonState>>,
+    shutting_down: &AtomicBool,
+    line: &str,
+) -> String {
     let line = line.trim();
     if line.is_empty() {
         return String::new();
@@ -1367,9 +1371,10 @@ fn handle_command_text(state: &Arc<Mutex<DaemonState>>, line: &str) -> String {
         }
 
         "QUIT" | "EXIT" => {
-            eprintln!("[daemon:cmd] Shutting down...");
-            std::process::exit(0);
-        }
+            log_json("info", "Shutdown requested via QUIT command");
+            shutting_down.store(true, Ordering::SeqCst);
+            "Shutting down...\n".to_string()
+        },
 
         _ => format!(
             "ERROR: Unknown command: {} (LOAD, SPAWN, STATUS, DISPATCH, QUIT)\n",
@@ -1871,7 +1876,7 @@ fn main() {
                     continue;
                 }
 
-                let (status, body) = handle_request(&state, req);
+                let (status, body) = handle_request(&state, &AtomicBool::new(false), req);
                 send_response(&mut stream, status, &body);
             }
             Err(e) => {
