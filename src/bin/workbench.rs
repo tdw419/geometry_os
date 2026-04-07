@@ -240,9 +240,8 @@ impl App {
     }
 
     fn dispatch_frame(&mut self) {
-        match self.agent.post(&self.api_url("/api/v1/dispatch"))
-            
-            .call()
+        match self.agent.post(&self.api_url("/api/v1/dispatch")).content_type("application/json")
+            .send(&[] as &[u8])
         {
             Ok(resp) => {
                 if let Ok(dispatch) = resp.into_body().read_json::<DispatchResponse>() {

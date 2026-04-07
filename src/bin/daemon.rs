@@ -1809,7 +1809,7 @@ fn main() {
         let mut lines = stdin.lock().lines();
         eprintln!("[daemon:cmd] Stdin command processor ready");
         while let Some(Ok(line)) = lines.next() {
-            handle_command_text(&cmd_state, &line);
+            handle_command_text(&cmd_state, &AtomicBool::new(false), &line);
         }
     });
 
@@ -1838,7 +1838,7 @@ fn main() {
                             if line.is_empty() {
                                 continue;
                             }
-                            let resp = handle_command_text(&sock_state, line);
+                            let resp = handle_command_text(&sock_state, &AtomicBool::new(false), line);
                             let _ = stream.write_all(resp.as_bytes());
                             let _ = stream.flush();
                         }
