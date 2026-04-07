@@ -1,4 +1,4 @@
-// Geometry OS Workbench — Phase 16B
+// Geometry OS Workbench -- Phase 16B
 //
 // Interactive TUI that connects to the daemon's HTTP API and provides
 // a live view of VM states, registers, programs, and metrics.
@@ -13,14 +13,19 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use ratatui::{
-    prelude::*,
-    widgets::*,
-};
+use ratatui::{prelude::*, widgets::*};
 use std::io;
 use std::time::{Duration, Instant};
 
-// ── Daemon API types (mirrors daemon.rs) ──
+// ureq 3.x: timeout is configured on the Agent, not per-request
+fn make_agent() -> ureq::Agent {
+    let config = ureq::Agent::config_builder()
+        .timeout_global(Some(Duration::from_secs(5)))
+        .build();
+    config.into()
+}
+
+// -- Daemon API types (mirrors daemon.rs) --
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct StatusResponse {
@@ -84,42 +89,81 @@ struct ProgramInfo {
     frame_count: u32,
 }
 
-// ── App state ──
-
-enum Panel {
-    VmList,
-    VmDetail,
-    Programs,
-    Help,
+#[derive(Debug, Clone, serde::Deserialize)]
+struct SubstrateRead {
+    address: u32,
+    count: u32,
+    pixels: Vec<String>,
 }
+
+// -- View mode --
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum ViewMode {
+    VmList,
+    Programs,
+    Memory,
+}
+
+// -- Input mode for text entry --
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum InputMode {
+    Normal,
+    LoadFile,
+    MemoryAddr,
+}
+
+impl std::fmt::Display for InputMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InputMode::Normal => write!(f, "NORMAL"),
+            InputMode::LoadFile => write!(f, "LOAD"),
+            InputMode::MemoryAddr => write!(f, "MEM"),
+        }
+    }
+}
+
+// -- App state --
 
 struct App {
     daemon_url: String,
+    agent: ureq::Agent,
     connected: bool,
     last_error: Option<String>,
     status: Option<StatusResponse>,
     programs: Vec<ProgramInfo>,
     selected_vm: usize,
-    active_panel: Panel,
+    view_mode: ViewMode,
+    input_mode: InputMode,
+    input_buffer: String,
     auto_dispatch: bool,
     last_dispatch_frame: u32,
     dispatch_count: u32,
     last_poll: Instant,
     poll_interval: Duration,
     show_help: bool,
-    frame_log: Vec<String>,     // recent dispatch log messages
+    frame_log: Vec<String>,
+    // Memory viewer
+    memory_addr: u32,
+    memory_data: Vec<String>,
+    // Programs list scroll
+    program_scroll: usize,
 }
 
 impl App {
     fn new(daemon_url: String) -> Self {
         Self {
             daemon_url,
+            agent: make_agent(),
             connected: false,
             last_error: None,
             status: None,
             programs: Vec::new(),
             selected_vm: 0,
-            active_panel: Panel::VmList,
+            view_mode: ViewMode::VmList,
+            input_mode: InputMode::Normal,
+            input_buffer: String::new(),
             auto_dispatch: false,
             last_dispatch_frame: 0,
             dispatch_count: 0,
@@ -127,6 +171,9 @@ impl App {
             poll_interval: Duration::from_millis(500),
             show_help: false,
             frame_log: Vec::new(),
+            memory_addr: 0,
+            memory_data: Vec::new(),
+            program_scroll: 0,
         }
     }
 
@@ -140,23 +187,21 @@ impl App {
         }
         self.last_poll = Instant::now();
 
-        match ureq::get(&self.api_url("/api/v1/status"))
-            .timeout(Duration::from_secs(2))
-            .call()
+        match self.agent.get(&self.api_url("/api/v1/status"))
+            
+            .send(&[] as &[u8])
         {
-            Ok(resp) => {
-                match resp.into_body().read_json::<StatusResponse>() {
-                    Ok(status) => {
-                        self.connected = true;
-                        self.last_error = None;
-                        self.status = Some(status);
-                    }
-                    Err(e) => {
-                        self.connected = false;
-                        self.last_error = Some(format!("Parse error: {}", e));
-                    }
+            Ok(resp) => match resp.into_body().read_json::<StatusResponse>() {
+                Ok(status) => {
+                    self.connected = true;
+                    self.last_error = None;
+                    self.status = Some(status);
                 }
-            }
+                Err(e) => {
+                    self.connected = false;
+                    self.last_error = Some(format!("Parse error: {}", e));
+                }
+            },
             Err(e) => {
                 self.connected = false;
                 self.last_error = Some(format!("Connection: {}", e));
@@ -165,9 +210,9 @@ impl App {
     }
 
     fn fetch_programs(&mut self) {
-        match ureq::get(&self.api_url("/api/v1/programs"))
-            .timeout(Duration::from_secs(2))
-            .call()
+        match self.agent.get(&self.api_url("/api/v1/programs"))
+            
+            .send(&[] as &[u8])
         {
             Ok(resp) => {
                 if let Ok(progs) = resp.into_body().read_json::<Vec<ProgramInfo>>() {
@@ -178,10 +223,26 @@ impl App {
         }
     }
 
+    fn fetch_memory(&mut self, addr: u32, count: u32) {
+        let url = self.api_url(&format!("/api/v1/substrate/{:#X}/{}", addr, count));
+        match self.agent.get(&url).send(&[] as &[u8]) {
+            Ok(resp) => {
+                if let Ok(read) = resp.into_body().read_json::<SubstrateRead>() {
+                    self.memory_addr = read.address;
+                    self.memory_data = read.pixels;
+                }
+            }
+            Err(e) => {
+                self.frame_log
+                    .push(format!("Memory read error: {}", e));
+            }
+        }
+    }
+
     fn dispatch_frame(&mut self) {
-        match ureq::post(&self.api_url("/api/v1/dispatch"))
-            .timeout(Duration::from_secs(5))
-            .call()
+        match self.agent.post(&self.api_url("/api/v1/dispatch"))
+            
+            .send(&[] as &[u8])
         {
             Ok(resp) => {
                 if let Ok(dispatch) = resp.into_body().read_json::<DispatchResponse>() {
@@ -194,10 +255,11 @@ impl App {
                         }
                     }
                     if halted.is_empty() {
-                        self.frame_log.push(format!("Frame {} OK", dispatch.frame));
+                        self.frame_log
+                            .push(format!("Frame {} OK", dispatch.frame));
                     } else {
                         self.frame_log.push(format!(
-                            "Frame {} — halted: {:?}",
+                            "Frame {} -- halted: {:?}",
                             dispatch.frame, halted
                         ));
                     }
@@ -207,7 +269,8 @@ impl App {
                 }
             }
             Err(e) => {
-                self.frame_log.push(format!("Dispatch error: {}", e));
+                self.frame_log
+                    .push(format!("Dispatch error: {}", e));
             }
         }
         // Immediately re-poll status after dispatch
@@ -218,7 +281,8 @@ impl App {
         let source = match std::fs::read_to_string(path) {
             Ok(s) => s,
             Err(e) => {
-                self.frame_log.push(format!("File read error: {}", e));
+                self.frame_log
+                    .push(format!("File read error: {}", e));
                 return;
             }
         };
@@ -228,8 +292,8 @@ impl App {
             "name": path
         });
 
-        match ureq::post(&self.api_url("/api/v1/hot-load"))
-            .timeout(Duration::from_secs(5))
+        match self.agent.post(&self.api_url("/api/v1/hot-load"))
+            
             .content_type("application/json")
             .send_json(&body)
         {
@@ -237,7 +301,10 @@ impl App {
                 if let Ok(val) = resp.into_body().read_json::<serde_json::Value>() {
                     let addr = val.get("address").and_then(|v| v.as_u64()).unwrap_or(0);
                     let vm_id = val.get("vm_id").and_then(|v| v.as_u64()).unwrap_or(0);
-                    let pixels = val.get("pixel_count").and_then(|v| v.as_u64()).unwrap_or(0);
+                    let pixels = val
+                        .get("pixel_count")
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(0);
                     self.frame_log.push(format!(
                         "Loaded {} @ 0x{:08X} VM{} ({} px)",
                         path, addr, vm_id, pixels
@@ -245,7 +312,50 @@ impl App {
                 }
             }
             Err(e) => {
-                self.frame_log.push(format!("Load error: {}", e));
+                self.frame_log
+                    .push(format!("Load error: {}", e));
+            }
+        }
+        self.last_poll = Instant::now() - Duration::from_secs(10);
+    }
+
+    fn kill_vm(&mut self, vm_id: u32) {
+        let url = self.api_url(&format!("/api/v1/vm/{}/kill", vm_id));
+        match self.agent.post(&url).send(&[] as &[u8]) {
+            Ok(resp) => {
+                if let Ok(val) = resp.into_body().read_json::<serde_json::Value>() {
+                    let msg = val
+                        .get("message")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("done");
+                    self.frame_log
+                        .push(format!("Kill VM{}: {}", vm_id, msg));
+                }
+            }
+            Err(e) => {
+                self.frame_log
+                    .push(format!("Kill error: {}", e));
+            }
+        }
+        self.last_poll = Instant::now() - Duration::from_secs(10);
+    }
+
+    fn reset_vm(&mut self, vm_id: u32) {
+        let url = self.api_url(&format!("/api/v1/vm/{}/reset", vm_id));
+        match self.agent.post(&url).send(&[] as &[u8]) {
+            Ok(resp) => {
+                if let Ok(val) = resp.into_body().read_json::<serde_json::Value>() {
+                    let msg = val
+                        .get("message")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("done");
+                    self.frame_log
+                        .push(format!("Reset VM{}: {}", vm_id, msg));
+                }
+            }
+            Err(e) => {
+                self.frame_log
+                    .push(format!("Reset error: {}", e));
             }
         }
         self.last_poll = Instant::now() - Duration::from_secs(10);
@@ -256,9 +366,65 @@ impl App {
             .as_ref()
             .and_then(|s| s.vm_states.get(self.selected_vm))
     }
+
+    fn start_input(&mut self, mode: InputMode) {
+        self.input_mode = mode;
+        self.input_buffer.clear();
+    }
+
+    fn submit_input(&mut self) {
+        let input = self.input_buffer.clone();
+        match self.input_mode {
+            InputMode::LoadFile => {
+                if !input.is_empty() {
+                    self.frame_log
+                        .push(format!("Loading {}...", input));
+                    self.load_gasm_file(&input);
+                }
+            }
+            InputMode::MemoryAddr => {
+                let addr = if input.starts_with("0x") || input.starts_with("0X") {
+                    u32::from_str_radix(input.trim_start_matches("0x").trim_start_matches("0X"), 16)
+                        .unwrap_or(0)
+                } else {
+                    input.parse::<u32>().unwrap_or(0)
+                };
+                self.memory_addr = addr;
+                self.fetch_memory(addr, 64);
+                self.view_mode = ViewMode::Memory;
+            }
+            InputMode::Normal => {}
+        }
+        self.input_mode = InputMode::Normal;
+        self.input_buffer.clear();
+    }
+
+    fn cancel_input(&mut self) {
+        self.input_mode = InputMode::Normal;
+        self.input_buffer.clear();
+    }
+
+    fn auto_fetch_memory(&mut self) {
+        // If we're on the memory view and have a selected VM with a region,
+        // fetch memory around the VM's base address
+        if self.view_mode == ViewMode::Memory {
+            let addr = if self.memory_addr != 0 {
+                self.memory_addr
+            } else if let Some(vm) = self.selected_vm_status() {
+                if vm.base_addr != vm.bound_addr {
+                    vm.base_addr
+                } else {
+                    return;
+                }
+            } else {
+                return;
+            };
+            self.fetch_memory(addr, 64);
+        }
+    }
 }
 
-// ── UI rendering ──
+// -- UI rendering --
 
 fn render(app: &mut App, frame: &mut Frame) {
     let size = frame.area();
@@ -267,9 +433,9 @@ fn render(app: &mut App, frame: &mut Frame) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // top bar
-            Constraint::Min(10),    // body
-            Constraint::Length(3),  // bottom bar
+            Constraint::Length(3), // top bar
+            Constraint::Min(10),   // body
+            Constraint::Length(3), // bottom bar
         ])
         .split(size);
 
@@ -286,9 +452,19 @@ fn render(app: &mut App, frame: &mut Frame) {
 
 fn render_top_bar(app: &App, frame: &mut Frame, area: Rect) {
     let conn_status = if app.connected {
-        Span::styled(" ● CONNECTED ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD))
+        Span::styled(
+            " ● CONNECTED ",
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        )
     } else {
-        Span::styled(" ● DISCONNECTED ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))
+        Span::styled(
+            " ● DISCONNECTED ",
+            Style::default()
+                .fg(Color::Red)
+                .add_modifier(Modifier::BOLD),
+        )
     };
 
     let uptime = app.status.as_ref().map(|s| s.uptime_secs).unwrap_or(0);
@@ -300,49 +476,117 @@ fn render_top_bar(app: &App, frame: &mut Frame, area: Rect) {
         format!("{}s", uptime)
     };
 
-    let programs = app.status.as_ref().map(|s| s.programs_loaded).unwrap_or(0);
+    let programs = app
+        .status
+        .as_ref()
+        .map(|s| s.programs_loaded)
+        .unwrap_or(0);
+
+    let view_name = match app.view_mode {
+        ViewMode::VmList => "VMs",
+        ViewMode::Programs => "PROGRAMS",
+        ViewMode::Memory => "MEMORY",
+    };
 
     let title = Line::from(vec![
-        Span::styled(" GEOMETRY OS WORKBENCH ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            " GEOMETRY OS WORKBENCH ",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         conn_status,
-        Span::raw(format!("  Uptime: {}  Progs: {}  Dispatches: {}  Last frame: {}",
-            uptime_str, programs, app.dispatch_count, app.last_dispatch_frame)),
+        Span::raw(format!(
+            "  View:{} Uptime:{} Progs:{} Dispatches:{} Frame:{}",
+            view_name,
+            uptime_str,
+            programs,
+            app.dispatch_count,
+            app.last_dispatch_frame
+        )),
     ]);
 
     let paragraph = Paragraph::new(title)
         .style(Style::default().fg(Color::White))
-        .block(Block::default().borders(Borders::ALL).border_style(
-            Style::default().fg(Color::DarkGray)
-        ));
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::DarkGray)),
+        );
 
     frame.render_widget(paragraph, area);
 }
 
 fn render_body(app: &mut App, frame: &mut Frame, area: Rect) {
+    match app.view_mode {
+        ViewMode::VmList => render_vm_body(app, frame, area),
+        ViewMode::Programs => render_programs_body(app, frame, area),
+        ViewMode::Memory => render_memory_body(app, frame, area),
+    }
+}
+
+fn render_vm_body(app: &mut App, frame: &mut Frame, area: Rect) {
     // Split body: left (VM list) | right (detail)
     let body = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(55),
-            Constraint::Percentage(45),
-        ])
+        .constraints([Constraint::Percentage(55), Constraint::Percentage(45)])
         .split(area);
 
     render_vm_list(app, frame, body[0]);
     render_vm_detail(app, frame, body[1]);
 }
 
+fn render_programs_body(app: &mut App, frame: &mut Frame, area: Rect) {
+    // Split: left (programs list) | right (dispatch log)
+    let body = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+        .split(area);
+
+    render_programs_list(app, frame, body[0]);
+    render_logs(app, frame, body[1]);
+}
+
+fn render_memory_body(app: &mut App, frame: &mut Frame, area: Rect) {
+    // Split: left (hex dump) | right (VM summary + log)
+    let body = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(65), Constraint::Percentage(35)])
+        .split(area);
+
+    render_memory_hex(app, frame, body[0]);
+
+    // Right side: mini VM detail + dispatch log
+    let right = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
+        .split(body[1]);
+
+    render_registers_compact(app, frame, right[0]);
+    render_logs(app, frame, right[1]);
+}
+
 fn render_vm_list(app: &App, frame: &mut Frame, area: Rect) {
-    let vm_count = app.status.as_ref().map(|s| s.vm_states.len()).unwrap_or(8);
+    let vm_count = app
+        .status
+        .as_ref()
+        .map(|s| s.vm_states.len())
+        .unwrap_or(8);
 
     let header = Row::new(vec![
         Cell::from("ID").style(Style::default().add_modifier(Modifier::BOLD)),
-        Cell::from("State").style(Style::default().add_modifier(Modifier::BOLD)),
-        Cell::from("PC").style(Style::default().add_modifier(Modifier::BOLD)),
-        Cell::from("Cycles").style(Style::default().add_modifier(Modifier::BOLD)),
-        Cell::from("Frame").style(Style::default().add_modifier(Modifier::BOLD)),
-        Cell::from("Addr Range").style(Style::default().add_modifier(Modifier::BOLD)),
-    ]).style(Style::default().fg(Color::Yellow));
+        Cell::from("State")
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+        Cell::from("PC")
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+        Cell::from("Cycles")
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+        Cell::from("Frame")
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+        Cell::from("Addr Range")
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+    ])
+    .style(Style::default().fg(Color::Yellow));
 
     let mut rows: Vec<Row> = Vec::new();
 
@@ -394,7 +638,9 @@ fn render_vm_list(app: &App, frame: &mut Frame, area: Rect) {
         };
 
         let row_style = if is_selected {
-            Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD)
+            Style::default()
+                .bg(Color::DarkGray)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default()
         };
@@ -404,27 +650,34 @@ fn render_vm_list(app: &App, frame: &mut Frame, area: Rect) {
 
     let table = Table::new(
         rows,
-        &[Constraint::Length(3), Constraint::Length(6), Constraint::Length(14),
-          Constraint::Length(10), Constraint::Length(8), Constraint::Length(20)]
+        &[
+            Constraint::Length(3),
+            Constraint::Length(6),
+            Constraint::Length(14),
+            Constraint::Length(10),
+            Constraint::Length(8),
+            Constraint::Length(20),
+        ],
     )
     .header(header)
-    .block(Block::default()
-        .borders(Borders::ALL)
-        .title(" VM States (1-8 select) ")
-        .border_style(Style::default().fg(Color::Cyan))
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" VM States (1-8 select, x kill, R reset) ")
+            .border_style(Style::default().fg(Color::Cyan)),
     )
-    .highlight_style(Style::default().add_modifier(Modifier::REVERSED));
+    .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED));
 
     frame.render_widget(table, area);
 }
 
 fn render_vm_detail(app: &App, frame: &mut Frame, area: Rect) {
-    // Split detail into top (registers) and bottom (log / programs)
+    // Split detail into top (registers) and bottom (jump log + frame log)
     let detail_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Percentage(45),  // registers
-            Constraint::Percentage(55),  // jump log + frame log
+            Constraint::Percentage(45), // registers
+            Constraint::Percentage(55), // jump log + frame log
         ])
         .split(area);
 
@@ -440,22 +693,33 @@ fn render_registers(app: &App, frame: &mut Frame, area: Rect) {
 
         // Header line
         lines.push(Line::from(vec![
-            Span::styled(format!(" VM {} ", vm.vm_id), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("[{}] ", vm.state), Style::default().fg(
-                match vm.state.as_str() {
+            Span::styled(
+                format!(" VM {} ", vm.vm_id),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("[{}] ", vm.state),
+                Style::default().fg(match vm.state.as_str() {
                     "running" => Color::Green,
                     "halted" => Color::Red,
                     "waiting" => Color::Yellow,
                     _ => Color::White,
-                }
+                }),
+            ),
+            Span::raw(format!(
+                "Entry: {:#X}  PC: {:#X}  Cycles: {}",
+                vm.entry_point, vm.pc, vm.cycles
             )),
-            Span::raw(format!("Entry: {:#X}  PC: {:#X}  Cycles: {}", vm.entry_point, vm.pc, vm.cycles)),
         ]));
 
         if vm.frame_count > 0 {
             lines.push(Line::from(format!(
                 " Film strip: frame {}/{}  Labels: {}",
-                vm.frame_ptr, vm.frame_count, vm.frame_labels.len()
+                vm.frame_ptr,
+                vm.frame_count,
+                vm.frame_labels.len()
             )));
         }
 
@@ -466,9 +730,8 @@ fn render_registers(app: &App, frame: &mut Frame, area: Rect) {
             let r_lo = vm.regs[row];
             let r_hi = vm.regs[row + 8];
             lines.push(Line::from(format!(
-                "  r{:02} = {:#010X} ({:>10})  │  r{:02} = {:#10X} ({:>10})",
-                row, r_lo, r_lo,
-                row + 8, r_hi, r_hi,
+                "  r{:02} = {:#010X} ({:>10})  |  r{:02} = {:#10X} ({:>10})",
+                row, r_lo, r_lo, row + 8, r_hi, r_hi,
             )));
         }
 
@@ -480,7 +743,9 @@ fn render_registers(app: &App, frame: &mut Frame, area: Rect) {
 
         // Show recent frame labels
         if !vm.frame_labels.is_empty() {
-            let labels: Vec<String> = vm.frame_labels.iter()
+            let labels: Vec<String> = vm
+                .frame_labels
+                .iter()
                 .map(|(k, v)| format!("{}:{}", k, v))
                 .take(8)
                 .collect();
@@ -495,12 +760,171 @@ fn render_registers(app: &App, frame: &mut Frame, area: Rect) {
         ]
     };
 
-    let paragraph = Paragraph::new(lines)
-        .block(Block::default()
+    let paragraph = Paragraph::new(lines).block(
+        Block::default()
             .borders(Borders::ALL)
             .title(format!(" VM {} Detail ", app.selected_vm))
-            .border_style(Style::default().fg(Color::Cyan))
-        );
+            .border_style(Style::default().fg(Color::Cyan)),
+    );
+
+    frame.render_widget(paragraph, area);
+}
+
+fn render_registers_compact(app: &App, frame: &mut Frame, area: Rect) {
+    let vm = app.selected_vm_status();
+
+    let lines = if let Some(vm) = vm {
+        let mut lines = Vec::new();
+        lines.push(Line::from(format!(
+            " VM{} [{}] PC:{:#X} Cyc:{}",
+            vm.vm_id, vm.state, vm.pc, vm.cycles
+        )));
+        // Show first 8 registers only
+        for row in 0..4 {
+            let r1 = vm.regs[row * 2];
+            let r2 = vm.regs[row * 2 + 1];
+            lines.push(Line::from(format!(
+                "  r{:02}={:#08X} r{:02}={:#08X}",
+                row * 2, r1, row * 2 + 1, r2
+            )));
+        }
+        lines
+    } else {
+        vec![Line::from(" No VM selected")]
+    };
+
+    let paragraph = Paragraph::new(lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" VM Summary ")
+            .border_style(Style::default().fg(Color::DarkGray)),
+    );
+    frame.render_widget(paragraph, area);
+}
+
+fn render_programs_list(app: &App, frame: &mut Frame, area: Rect) {
+    let header = Row::new(vec![
+        Cell::from("ID")
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+        Cell::from("Name")
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+        Cell::from("Address")
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+        Cell::from("VM")
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+        Cell::from("Pixels")
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+        Cell::from("Type")
+            .style(Style::default().add_modifier(Modifier::BOLD)),
+    ])
+    .style(Style::default().fg(Color::Yellow));
+
+    let rows: Vec<Row> = app
+        .programs
+        .iter()
+        .skip(app.program_scroll)
+        .take(20)
+        .map(|p| {
+            let ptype = if p.is_filmstrip {
+                format!("film({})", p.frame_count)
+            } else {
+                "program".to_string()
+            };
+            Row::new(vec![
+                Cell::from(p.id.clone()),
+                Cell::from(p.name.clone()),
+                Cell::from(p.address_hex.clone()),
+                Cell::from(format!("{}", p.vm_id)),
+                Cell::from(format!("{}", p.pixel_count)),
+                Cell::from(ptype),
+            ])
+        })
+        .collect();
+
+    let total = app.programs.len();
+    let table = Table::new(
+        rows,
+        &[
+            Constraint::Length(12),
+            Constraint::Length(20),
+            Constraint::Length(14),
+            Constraint::Length(4),
+            Constraint::Length(8),
+            Constraint::Length(12),
+        ],
+    )
+    .header(header)
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(format!(
+                " Programs ({}) [pgup/pgdn scroll] ",
+                total
+            ))
+            .border_style(Style::default().fg(Color::Cyan)),
+    );
+
+    frame.render_widget(table, area);
+}
+
+fn render_memory_hex(app: &App, frame: &mut Frame, area: Rect) {
+    let mut lines = Vec::new();
+
+    lines.push(Line::from(format!(
+        " Address: {:#010X}  (m to jump, +/- page)",
+        app.memory_addr
+    )));
+    lines.push(Line::from(""));
+
+    // Render hex dump: 8 pixels per row
+    let mut offset = 0u32;
+    for chunk in app.memory_data.chunks(8) {
+        let addr = app.memory_addr + offset;
+        let mut hex_parts = Vec::new();
+        let mut ascii_parts = Vec::new();
+        for val_str in chunk {
+            // Parse the hex value
+            let val = u32::from_str_radix(
+                val_str.trim_start_matches("0x"),
+                16,
+            )
+            .unwrap_or(0);
+
+            hex_parts.push(format!("{:08X}", val));
+
+            // Extract ASCII from each byte of the u32 (little-endian)
+            let bytes = val.to_le_bytes();
+            for &b in &bytes {
+                let ch = if b >= 0x20 && b < 0x7F {
+                    b as char
+                } else {
+                    '.'
+                };
+                ascii_parts.push(ch);
+            }
+        }
+
+        let hex_line = hex_parts.join(" ");
+        let ascii_line: String = ascii_parts.into_iter().collect();
+        lines.push(Line::from(format!(
+            "  {:08X}: {}  |{}|",
+            addr, hex_line, ascii_line
+        )));
+        offset += chunk.len() as u32;
+    }
+
+    if app.memory_data.is_empty() {
+        lines.push(Line::from(""));
+        lines.push(Line::from("  No memory data loaded."));
+        lines.push(Line::from("  Press m to enter address."));
+    }
+
+    let paragraph = Paragraph::new(lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" Memory Viewer (64 words) ")
+            .border_style(Style::default().fg(Color::Cyan)),
+    );
 
     frame.render_widget(paragraph, area);
 }
@@ -521,28 +945,33 @@ fn render_logs(app: &App, frame: &mut Frame, area: Rect) {
         if vm.jump_log.is_empty() {
             vec![Line::from(" No frame transitions recorded")]
         } else {
-            vm.jump_log.iter().rev().take(10).map(|t| {
-                let cause_icon = match t.cause.as_str() {
-                    "auto_advance" => "↻",
-                    "frame_opcode" => "→",
-                    _ => "?",
-                };
-                Line::from(format!(
-                    " F{} {} F{}@PC:{:#X} (tick {})",
-                    t.from_frame, cause_icon, t.to_frame, t.pc_at_transition, t.dispatch_frame
-                ))
-            }).collect()
+            vm.jump_log
+                .iter()
+                .rev()
+                .take(10)
+                .map(|t| {
+                    let cause_icon = match t.cause.as_str() {
+                        "auto_advance" => "loop",
+                        "frame_opcode" => "->",
+                        _ => "?",
+                    };
+                    Line::from(format!(
+                        " F{} {} F{}@PC:{:#X} (tick {})",
+                        t.from_frame, cause_icon, t.to_frame, t.pc_at_transition, t.dispatch_frame
+                    ))
+                })
+                .collect()
         }
     } else {
         vec![Line::from(" -")]
     };
 
-    let jump_widget = Paragraph::new(jump_lines)
-        .block(Block::default()
+    let jump_widget = Paragraph::new(jump_lines).block(
+        Block::default()
             .borders(Borders::ALL)
             .title(" Frame Transitions ")
-            .border_style(Style::default().fg(Color::DarkGray))
-        );
+            .border_style(Style::default().fg(Color::DarkGray)),
+    );
 
     frame.render_widget(jump_widget, log_chunks[0]);
 
@@ -550,17 +979,20 @@ fn render_logs(app: &App, frame: &mut Frame, area: Rect) {
     let log_lines: Vec<Line> = if app.frame_log.is_empty() {
         vec![Line::from(" No dispatches yet")]
     } else {
-        app.frame_log.iter().rev().take(10).map(|msg| {
-            Line::from(format!(" {}", msg))
-        }).collect()
+        app.frame_log
+            .iter()
+            .rev()
+            .take(10)
+            .map(|msg| Line::from(format!(" {}", msg)))
+            .collect()
     };
 
-    let log_widget = Paragraph::new(log_lines)
-        .block(Block::default()
+    let log_widget = Paragraph::new(log_lines).block(
+        Block::default()
             .borders(Borders::ALL)
             .title(" Dispatch Log ")
-            .border_style(Style::default().fg(Color::DarkGray))
-        );
+            .border_style(Style::default().fg(Color::DarkGray)),
+    );
 
     frame.render_widget(log_widget, log_chunks[1]);
 }
@@ -568,41 +1000,104 @@ fn render_logs(app: &App, frame: &mut Frame, area: Rect) {
 fn render_help(app: &App, frame: &mut Frame, area: Rect) {
     let help_text = vec![
         Line::from(""),
-        Line::from(Span::styled("  GEOMETRY OS WORKBENCH — KEYBOARD REFERENCE", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(
+            "  GEOMETRY OS WORKBENCH -- KEYBOARD REFERENCE",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )),
         Line::from(""),
-        Line::from("  d          Dispatch one frame (step)"),
-        Line::from("  D          Toggle auto-dispatch (continuous)"),
+        Line::from(Span::styled(
+            "  Navigation",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::from("  Tab        Cycle view: VMs / Programs / Memory"),
         Line::from("  1-8        Select VM to inspect"),
-        Line::from("  l          Load .gasm file (path prompted in status bar)"),
-        Line::from("  p          Refresh program list"),
-        Line::from("  r          Refresh status now"),
         Line::from("  ?          Toggle this help"),
         Line::from("  q / Esc    Quit"),
         Line::from(""),
-        Line::from(Span::styled("  CONNECTING", Style::default().fg(Color::Yellow))),
+        Line::from(Span::styled(
+            "  Dispatch",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::from("  d          Dispatch one frame (step)"),
+        Line::from("  D          Toggle auto-dispatch (continuous)"),
+        Line::from(""),
+        Line::from(Span::styled(
+            "  VM Control",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::from("  x          Kill (deactivate) selected VM"),
+        Line::from("  R          Reset selected VM to entry point"),
+        Line::from(""),
+        Line::from(Span::styled(
+            "  Programs",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::from("  l          Load .gasm file (type path)"),
+        Line::from("  p          Refresh program list"),
+        Line::from("  PgUp/PgDn  Scroll program list"),
+        Line::from(""),
+        Line::from(Span::styled(
+            "  Memory",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::from("  m          Jump to memory address (type addr)"),
+        Line::from("  +/-        Page memory view forward/backward"),
+        Line::from("  r          Refresh status"),
+        Line::from(""),
+        Line::from(Span::styled(
+            "  CONNECTING",
+            Style::default().fg(Color::Yellow),
+        )),
         Line::from(format!("  Daemon URL: {}", app.daemon_url)),
         Line::from("  Start daemon: cargo run --bin daemon"),
-        Line::from(""),
-        Line::from("  The workbench polls the daemon's HTTP API every 500ms for"),
-        Line::from("  VM state. Dispatch sends a POST /api/v1/dispatch to tick"),
-        Line::from("  one frame of GPU compute across all active VMs."),
     ];
 
-    let paragraph = Paragraph::new(help_text)
-        .block(Block::default()
+    let paragraph = Paragraph::new(help_text).block(
+        Block::default()
             .borders(Borders::ALL)
             .title(" Help (? to close) ")
-            .border_style(Style::default().fg(Color::Yellow))
-        );
+            .border_style(Style::default().fg(Color::Yellow)),
+    );
 
     frame.render_widget(paragraph, area);
 }
 
 fn render_bottom_bar(app: &App, frame: &mut Frame, area: Rect) {
     let auto_str = if app.auto_dispatch {
-        Span::styled(" AUTO-DISPATCH ON ", Style::default().fg(Color::Black).bg(Color::Green).add_modifier(Modifier::BOLD))
+        Span::styled(
+            " AUTO-DISPATCH ON ",
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        )
     } else {
         Span::raw(" auto:off ")
+    };
+
+    // Input mode indicator
+    let mode_str = if app.input_mode != InputMode::Normal {
+        Span::styled(
+            format!(" [{}] {}_ ", app.input_mode, app.input_buffer),
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )
+    } else {
+        Span::raw("")
     };
 
     let error_span = if let Some(ref e) = app.last_error {
@@ -613,18 +1108,22 @@ fn render_bottom_bar(app: &App, frame: &mut Frame, area: Rect) {
 
     let help_line = Line::from(vec![
         auto_str,
+        mode_str,
+        Span::raw("  "),
         error_span,
         Span::raw("  "),
+        Span::styled("Tab", Style::default().add_modifier(Modifier::BOLD)),
+        Span::raw("view  "),
         Span::styled("d", Style::default().add_modifier(Modifier::BOLD)),
         Span::raw("step  "),
         Span::styled("D", Style::default().add_modifier(Modifier::BOLD)),
         Span::raw("auto  "),
-        Span::styled("1-8", Style::default().add_modifier(Modifier::BOLD)),
-        Span::raw("select VM  "),
         Span::styled("l", Style::default().add_modifier(Modifier::BOLD)),
         Span::raw("load  "),
-        Span::styled("p", Style::default().add_modifier(Modifier::BOLD)),
-        Span::raw("programs  "),
+        Span::styled("m", Style::default().add_modifier(Modifier::BOLD)),
+        Span::raw("mem  "),
+        Span::styled("x", Style::default().add_modifier(Modifier::BOLD)),
+        Span::raw("kill  "),
         Span::styled("?", Style::default().add_modifier(Modifier::BOLD)),
         Span::raw("help  "),
         Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
@@ -633,58 +1132,29 @@ fn render_bottom_bar(app: &App, frame: &mut Frame, area: Rect) {
 
     let paragraph = Paragraph::new(help_line)
         .style(Style::default().fg(Color::White))
-        .block(Block::default().borders(Borders::ALL).border_style(
-            Style::default().fg(Color::DarkGray)
-        ));
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::DarkGray)),
+        );
 
     frame.render_widget(paragraph, area);
 }
 
-// ── File loading mode (minimal input) ──
-
-fn prompt_load_file(app: &mut App) {
-    // We can't do true text input in raw mode easily.
-    // Instead, try loading from common example paths.
-    let candidates = [
-        "examples/",
-        "../examples/",
-        "./",
-    ];
-
-    // Look for .gasm files
-    let mut found: Vec<String> = Vec::new();
-    for dir in &candidates {
-        if let Ok(entries) = std::fs::read_dir(dir) {
-            for entry in entries.flatten() {
-                if let Some(name) = entry.file_name().to_str() {
-                    if name.ends_with(".gasm") {
-                        found.push(format!("{}{}", dir, name));
-                    }
-                }
-            }
-        }
-    }
-
-    if found.is_empty() {
-        app.frame_log.push("No .gasm files found in ./ or examples/".into());
-        return;
-    }
-
-    // Load the first found file (user can repeat for more)
-    let path = found[0].clone();
-    app.frame_log.push(format!("Loading {}...", path));
-    app.load_gasm_file(&path);
-}
-
-// ── Main loop ──
+// -- Main loop --
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse daemon URL from args
     let args: Vec<String> = std::env::args().collect();
     let daemon_url = if let Some(pos) = args.iter().position(|a| a == "--daemon-url") {
-        args.get(pos + 1).cloned().unwrap_or_else(|| "http://localhost:3000".into())
+        args.get(pos + 1)
+            .cloned()
+            .unwrap_or_else(|| "http://localhost:3000".into())
     } else if let Some(pos) = args.iter().position(|a| a == "--port") {
-        let port = args.get(pos + 1).cloned().unwrap_or_else(|| "3000".into());
+        let port = args
+            .get(pos + 1)
+            .cloned()
+            .unwrap_or_else(|| "3000".into());
         format!("http://localhost:{}", port)
     } else {
         "http://localhost:3000".into()
@@ -705,15 +1175,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let tick_rate = Duration::from_millis(100);
     let mut last_auto_dispatch = Instant::now();
+    let mut last_memory_fetch = Instant::now();
 
     loop {
         // Poll daemon status
         app.poll_status();
 
         // Auto-dispatch if enabled
-        if app.auto_dispatch && app.connected && last_auto_dispatch.elapsed() > Duration::from_millis(200) {
+        if app.auto_dispatch && app.connected
+            && last_auto_dispatch.elapsed() > Duration::from_millis(200)
+        {
             app.dispatch_frame();
             last_auto_dispatch = Instant::now();
+        }
+
+        // Refresh memory view periodically
+        if app.view_mode == ViewMode::Memory
+            && last_memory_fetch.elapsed() > Duration::from_secs(2)
+        {
+            app.auto_fetch_memory();
+            last_memory_fetch = Instant::now();
         }
 
         // Render
@@ -725,6 +1206,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if key.kind != KeyEventKind::Press {
                     continue;
                 }
+
+                // If in input mode, handle text entry first
+                if app.input_mode != InputMode::Normal {
+                    match key.code {
+                        KeyCode::Enter => {
+                            app.submit_input();
+                        }
+                        KeyCode::Esc => {
+                            app.cancel_input();
+                        }
+                        KeyCode::Backspace => {
+                            app.input_buffer.pop();
+                        }
+                        KeyCode::Char(c) => {
+                            app.input_buffer.push(c);
+                        }
+                        _ => {}
+                    }
+                    continue;
+                }
+
+                // Normal mode keybindings
                 match key.code {
                     KeyCode::Char('q') | KeyCode::Esc => {
                         break;
@@ -749,28 +1252,95 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     KeyCode::Char('7') => app.selected_vm = 6,
                     KeyCode::Char('8') => app.selected_vm = 7,
                     KeyCode::Char('l') => {
-                        prompt_load_file(&mut app);
+                        app.start_input(InputMode::LoadFile);
                     }
                     KeyCode::Char('p') => {
                         app.fetch_programs();
                         if !app.programs.is_empty() {
-                            let summary: Vec<String> = app.programs.iter()
+                            let summary: Vec<String> = app
+                                .programs
+                                .iter()
                                 .take(5)
-                                .map(|p| format!("{} @ {:#X} (VM{})", p.name, p.address, p.vm_id))
+                                .map(|p| {
+                                    format!(
+                                        "{} @ {:#X} (VM{})",
+                                        p.name, p.address, p.vm_id
+                                    )
+                                })
                                 .collect();
                             for s in summary {
                                 app.frame_log.push(s);
                             }
                         } else {
-                            app.frame_log.push("No programs loaded".into());
+                            app.frame_log
+                                .push("No programs loaded".into());
                         }
                     }
                     KeyCode::Char('r') => {
-                        app.last_poll = Instant::now() - Duration::from_secs(10);
+                        app.last_poll =
+                            Instant::now() - Duration::from_secs(10);
                         app.poll_status();
+                    }
+                    KeyCode::Char('x') => {
+                        if app.connected {
+                            app.kill_vm(app.selected_vm as u32);
+                        }
+                    }
+                    KeyCode::Char('R') => {
+                        if app.connected {
+                            app.reset_vm(app.selected_vm as u32);
+                        }
+                    }
+                    KeyCode::Char('m') => {
+                        app.start_input(InputMode::MemoryAddr);
                     }
                     KeyCode::Char('?') => {
                         app.show_help = !app.show_help;
+                    }
+                    KeyCode::Tab => {
+                        app.view_mode = match app.view_mode {
+                            ViewMode::VmList => ViewMode::Programs,
+                            ViewMode::Programs => ViewMode::Memory,
+                            ViewMode::Memory => ViewMode::VmList,
+                        };
+                        // Fetch data for the new view
+                        match app.view_mode {
+                            ViewMode::Programs => {
+                                app.fetch_programs();
+                            }
+                            ViewMode::Memory => {
+                                // Auto-load memory from selected VM region
+                                if let Some(vm) = app.selected_vm_status() {
+                                    if vm.base_addr != vm.bound_addr {
+                                        app.memory_addr = vm.base_addr;
+                                    }
+                                }
+                                app.fetch_memory(app.memory_addr, 64);
+                                last_memory_fetch = Instant::now();
+                            }
+                            _ => {}
+                        }
+                    }
+                    KeyCode::Char('+') | KeyCode::PageDown => {
+                        if app.view_mode == ViewMode::Memory {
+                            app.memory_addr = app.memory_addr.saturating_add(64);
+                            app.fetch_memory(app.memory_addr, 64);
+                        } else if app.view_mode == ViewMode::Programs {
+                            app.program_scroll =
+                                (app.program_scroll + 20).min(
+                                    app.programs.len().saturating_sub(1),
+                                );
+                        }
+                    }
+                    KeyCode::Char('-') | KeyCode::PageUp => {
+                        if app.view_mode == ViewMode::Memory {
+                            app.memory_addr =
+                                app.memory_addr.saturating_sub(64);
+                            app.fetch_memory(app.memory_addr, 64);
+                        } else if app.view_mode == ViewMode::Programs {
+                            app.program_scroll =
+                                app.program_scroll.saturating_sub(20);
+                        }
                     }
                     _ => {}
                 }

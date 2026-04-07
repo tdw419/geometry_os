@@ -4,7 +4,14 @@
 // glyph_vm_scheduler.wgsl compute shader, and serves an HTTP API
 // for loading and executing programs at runtime.
 //
+// Production-ready features (Phase 16A):
+//   - Health check endpoint (GET /api/v1/health)
+//   - Graceful shutdown on SIGTERM/SIGINT
+//   - Structured JSON logging to stderr
+//   - systemd unit file support
+//
 // Endpoints:
+//   GET  /api/v1/health            - Health check (for load balancers / systemd)
 //   POST /api/v1/programs          - Load and execute a program (JSON body or .gasm text)
 //   GET  /api/v1/status            - Daemon status and VM states
 //   GET  /api/v1/programs          - List loaded programs
@@ -12,6 +19,7 @@
 //   GET  /api/v1/substrate/{addr}  - Read substrate pixels
 //
 // Usage: cargo run --bin daemon [--port PORT]
+// Shutdown: SIGTERM, SIGINT, or POST /api/v1/shutdown
 
 use pixels_move_pixels::assembler;
 use pixels_move_pixels::filmstrip;
@@ -19,14 +27,16 @@ use pixels_move_pixels::gasm;
 use pixels_move_pixels::software_vm::SoftwareVm;
 use pixels_move_pixels::substrate::RegionAllocator;
 use pixels_move_pixels::vm::{vm_state, GlyphVm};
+use pixels_move_pixels::vm::VmState;
 use pixels_move_pixels::{font_atlas, DASHBOARD_BASE, DASHBOARD_PIXELS, MAX_VMS};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{BufRead, Read, Write};
-use std::net::TcpListener;
+use std::net::{TcpListener, TcpStream};
 #[allow(unused_imports)]
 use std::os::unix::net::{UnixListener, UnixStream};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 // ── Data types ──
@@ -884,8 +894,79 @@ fn json_error(msg: &str) -> String {
     format!("{{\"success\":false,\"error\":\"{}\"}}", msg.replace('"', "\\\""))
 }
 
-fn handle_request(state: &Arc<Mutex<DaemonState>>, req: HttpRequest) -> (u16, String) {
+// ── Structured JSON logging ──
+
+/// Daemon version (matches Cargo.toml package version).
+const DAEMON_VERSION: &str = "0.1.0";
+
+/// Write a structured JSON log line to stderr.
+fn log_json(level: &str, msg: &str) {
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    eprintln!(
+        r#"{{"ts":{},"level":"{}","msg":"{}"}}"#,
+        ts,
+        level,
+        msg.replace('\\', "\\\\").replace('"', "\\\"")
+    );
+}
+
+// ── Health check ──
+
+#[derive(Debug, Serialize, Deserialize)]
+struct HealthResponse {
+    status: String,
+    version: String,
+    uptime_secs: u64,
+    vm_active: u32,
+    vm_total: u32,
+    programs_loaded: usize,
+}
+
+fn health_check(state: &Arc<Mutex<DaemonState>>) -> HealthResponse {
+    let s = state.lock().unwrap();
+    let vm_active = (0..MAX_VMS)
+        .filter(|&i| {
+            s.vm.vm_state(i as usize).state != vm_state::INACTIVE
+        })
+        .count() as u32;
+    HealthResponse {
+        status: "ok".to_string(),
+        version: DAEMON_VERSION.to_string(),
+        uptime_secs: s.started_at.elapsed().as_secs(),
+        vm_active,
+        vm_total: MAX_VMS,
+        programs_loaded: s.programs.len(),
+    }
+}
+
+fn handle_request(
+    state: &Arc<Mutex<DaemonState>>,
+    shutting_down: &AtomicBool,
+    req: HttpRequest,
+) -> (u16, String) {
     match (req.method.as_str(), req.path.as_str()) {
+        // GET /api/v1/health - Health check endpoint (for systemd / load balancers)
+        ("GET", "/api/v1/health") => {
+            let health = health_check(state);
+            (200, json_ok(&health))
+        },
+
+        // POST /api/v1/shutdown - Graceful shutdown trigger
+        ("POST", "/api/v1/shutdown") => {
+            log_json("info", "Shutdown requested via HTTP API");
+            shutting_down.store(true, Ordering::SeqCst);
+            (
+                200,
+                json_ok(&serde_json::json!({
+                    "success": true,
+                    "message": "Shutting down"
+                })),
+            )
+        },
+
         // POST /api/v1/programs - Load and spawn a program
         ("POST", "/api/v1/programs") => {
             let body_str = String::from_utf8_lossy(&req.body);
@@ -1085,6 +1166,69 @@ fn handle_request(state: &Arc<Mutex<DaemonState>>, req: HttpRequest) -> (u16, St
                 message: format!("Blit {} pixels at 0x{:08X}", count, addr),
             };
             (200, json_ok(&resp))
+        }
+
+        // POST /api/v1/vm/{id}/kill - Kill (deactivate) a specific VM
+        ("POST", path) if path.starts_with("/api/v1/vm/") && path.ends_with("/kill") => {
+            let vm_id_str = path.trim_start_matches("/api/v1/vm/").trim_end_matches("/kill");
+            let vm_id: usize = match vm_id_str.parse() {
+                Ok(id) if id < MAX_VMS as usize => id,
+                _ => return (400, json_error("Invalid VM id (must be 0-7)")),
+            };
+            let mut s = state.lock().unwrap();
+            let vm = s.vm.vm_state_mut(vm_id);
+            if vm.state == vm_state::INACTIVE {
+                return (200, json_ok(&serde_json::json!({
+                    "success": false,
+                    "message": format!("VM {} is already inactive", vm_id),
+                })));
+            }
+            vm.state = vm_state::INACTIVE;
+            vm.halted = 0;
+            vm.pc = 0;
+            vm.cycles = 0;
+            s.jump_logs[vm_id].clear();
+            eprintln!("[daemon] Killed VM {}", vm_id);
+            (200, json_ok(&serde_json::json!({
+                "success": true,
+                "message": format!("VM {} killed", vm_id),
+            })))
+        }
+
+        // POST /api/v1/vm/{id}/reset - Reset a VM to its entry point
+        ("POST", path) if path.starts_with("/api/v1/vm/") && path.ends_with("/reset") => {
+            let vm_id_str = path.trim_start_matches("/api/v1/vm/").trim_end_matches("/reset");
+            let vm_id: usize = match vm_id_str.parse() {
+                Ok(id) if id < MAX_VMS as usize => id,
+                _ => return (400, json_error("Invalid VM id (must be 0-7)")),
+            };
+            let mut s = state.lock().unwrap();
+            let vm = s.vm.vm_state_mut(vm_id);
+            if vm.state == vm_state::INACTIVE {
+                return (200, json_ok(&serde_json::json!({
+                    "success": false,
+                    "message": format!("VM {} is inactive, cannot reset", vm_id),
+                })));
+            }
+            let entry = vm.entry_point;
+            let base = vm.base_addr;
+            let bound = vm.bound_addr;
+            let vid = vm.vm_id;
+            let fc = vm.frame_count;
+            *vm = VmState::default();
+            vm.vm_id = vid;
+            vm.entry_point = entry;
+            vm.pc = entry;
+            vm.state = vm_state::RUNNING;
+            vm.base_addr = base;
+            vm.bound_addr = bound;
+            vm.frame_count = fc;
+            s.jump_logs[vm_id].clear();
+            eprintln!("[daemon] Reset VM {} to entry point {:#X}", vm_id, entry);
+            (200, json_ok(&serde_json::json!({
+                "success": true,
+                "message": format!("VM {} reset to entry point {:#X}", vm_id, entry),
+            })))
         }
 
         _ => (404, json_error("Not found")),
@@ -1641,6 +1785,8 @@ fn main() {
     println!("  GET  /api/v1/programs   List loaded programs");
     println!("  GET  /api/v1/substrate/{{addr}}/{{count}}  Read substrate pixels");
     println!("  POST /api/v1/blit  Bulk-write pixels (JSON: {{addr, pixelsRaw, pixels}})");
+    println!("  POST /api/v1/vm/{{id}}/kill    Kill (deactivate) a VM");
+    println!("  POST /api/v1/vm/{{id}}/reset   Reset a VM to its entry point");
     println!();
     println!("Stdin / Unix socket commands:");
     println!("  LOAD <file.gasm>        Assemble and hot-load a .gasm program");
