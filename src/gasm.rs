@@ -1783,4 +1783,24 @@ HALT
         let last_count = svm.peek(5000);
         assert_eq!(last_count, 9, "mem[5000] should be 9 (last counter value), got {}", last_count);
     }
+
+    #[test]
+    fn assemble_sum_natural() {
+        let source = include_str!("../programs/sum_natural.gasm");
+        let program = assemble(source).expect("sum_natural.gasm should assemble");
+
+        use crate::software_vm::SoftwareVm;
+        let mut svm = SoftwareVm::new();
+        svm.load_program(0, &program.pixels);
+        svm.spawn_vm(0, 0);
+
+        for _ in 0..50 {
+            svm.execute_frame();
+        }
+
+        assert_eq!(svm.vm_state(0).halted, 1, "sum_natural should halt");
+        let sum = svm.peek(5000);
+        // 1+2+3+...+10 = 55
+        assert_eq!(sum, 55, "mem[5000] should be 55 (sum 1..10), got {}", sum);
+    }
 }
