@@ -9087,4 +9087,41 @@ mod geo92_tier2 {
         let listed_id = svm.peek(out_addr);
         assert_eq!(listed_id, 1, "listed DONE issue should be id=1, got {}", listed_id);
     }
+
+    #[test]
+    fn test_issueq_list_returns_all_ids() {
+        // Create 3 issues, list all -> should get 3 IDs.
+        let mut svm = issueq_setup();
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "list-test");
+        let out_addr: u32 = 0x0020_0000;
+        let load_addr: u32 = 0x0000_1000;
+        let mut p = Program::new();
+        for _ in 0..3 {
+            p.ldi(10, title_addr);
+            p.ldi(11, 2);
+            p.issue_create(10, 11, 0);
+        }
+        // List all issues (filter = 0 = match all)
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_list(12, 13, 10);
+        p.halt();
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+        let listed = svm.vm_state(0).regs[12];
+        assert_eq!(listed, 3, "should list 3 issues, got {}", listed);
+        // Verify IDs are 1, 2, 3
+        let mut ids: Vec<u32> = (0..3).map(|i| svm.peek(out_addr + i)).collect();
+        ids.sort();
+        assert_eq!(ids, vec![1, 2, 3], "listed IDs should be [1,2,3], got {:?}", ids);
+    }
+
 }
