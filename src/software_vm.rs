@@ -8978,4 +8978,51 @@ mod geo92_tier2 {
         let result = svm.peek(slot_base + 26);
         assert_eq!(result, 6765, "LLM agent should write fib(20)=6765, got {}", result);
     }
+    #[test]
+    fn test_issueq_pick_fifo_same_priority() {
+        // When multiple issues share the same priority, PICK should return the first one (FIFO).
+        // This verifies the > (not >=) comparison in ISSUE_PICK.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "fifo test");
+        let out_addr: u32 = 0x0020_0000;
+        let load_addr: u32 = 0x0000_1000;
+
+        let mut p = Program::new();
+
+        // Create 3 issues all with medium(2) priority
+        p.ldi(10, title_addr);
+        p.ldi(11, 2);
+        p.issue_create(10, 11, 0);
+
+        p.ldi(10, title_addr);
+        p.ldi(11, 2);
+        p.issue_create(10, 11, 0);
+
+        p.ldi(10, title_addr);
+        p.ldi(11, 2);
+        p.issue_create(10, 11, 0);
+
+        // Pick should get issue_id=1 (first created)
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_pick(12, 13, 1);
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..20 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED, "VM should halt");
+        let picked_id = svm.vm_state(0).regs[12];
+        assert_eq!(picked_id, 1, "same-priority pick should return first issue (FIFO), got {}", picked_id);
+    }
 }
