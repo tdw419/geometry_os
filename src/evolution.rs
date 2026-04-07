@@ -105,7 +105,7 @@ pub struct GenerationStats {
 
 /// Safely benchmark a program, catching panics from the software VM.
 fn safe_benchmark(pixels: &[u32], max_frames: u32) -> FitnessScore {
-    let prog = Program { pixels: pixels.to_vec() };
+    let prog = Program::from_pixels(pixels.to_vec());
     let cfg = BenchmarkConfig::default().with_max_frames(max_frames);
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         fitness::benchmark(&prog, &cfg)

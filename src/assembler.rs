@@ -72,6 +72,7 @@ pub mod op {
     pub const ISSUE_PICK: u8 = 241;   // Pick next issue: ISSUE_PICK r_out_addr, r_filter [stratum=filter_value]
     pub const ISSUE_UPDATE: u8 = 242; // Update issue: ISSUE_UPDATE r_issue_id, r_new_status
     pub const ISSUE_LIST: u8 = 243;   // List issues: ISSUE_LIST r_out_addr, r_filter [stratum=filter_value]
+    pub const MODEL_CALL: u8 = 244;  // LLM call: MODEL_CALL buf_size, r_prompt_addr, r_response_addr
 }
 
 /// Branch condition types (encoded in stratum field)
@@ -84,15 +85,103 @@ pub mod bcond {
     pub const BGEU: u8 = 5;
 }
 
-/// A compiled glyph program: a sequence of 32-bit pixels
+/// A compiled glyph program: a sequence of 32-bit pixels with label support.
+///
+/// Labels eliminate manual offset arithmetic for branches and jumps:
+/// ```ignore
+/// p.define_label("loop_start");
+/// p.ldi(1, 0);
+/// p.branch_to(bcond::BNE, 1, 2, "loop_start");
+/// // ^^^ resolves automatically at link time
+/// ```
 #[derive(Debug, Clone)]
 pub struct Program {
     pub pixels: Vec<u32>,
+    /// Named label -> pixel index mapping
+    labels: std::collections::HashMap<&'static str, usize>,
+    /// Forward references that need resolution: (label, instruction_pixel_idx, data_pixel_idx)
+    unresolved: Vec<(&'static str, usize, usize)>,
 }
 
 impl Program {
     pub fn new() -> Self {
-        Self { pixels: Vec::new() }
+        Self {
+            pixels: Vec::new(),
+            labels: std::collections::HashMap::new(),
+            unresolved: Vec::new(),
+        }
+    }
+
+    /// Create a Program from raw pixel data (no labels).
+    pub fn from_pixels(pixels: Vec<u32>) -> Self {
+        Self {
+            pixels,
+            labels: std::collections::HashMap::new(),
+            unresolved: Vec::new(),
+        }
+    }
+
+    /// Define a label at the current position and resolve pending forward references.
+    pub fn define_label(&mut self, name: &'static str) -> &mut Self {
+        let target = self.pixels.len();
+        self.labels.insert(name, target);
+        let remaining: Vec<_> = self.unresolved.drain(..)
+            .filter_map(|(lbl, inst_idx, data_idx)| {
+                if lbl == name {
+                    let offset = (target as i32) - (inst_idx as i32);
+                    self.pixels[data_idx] = offset as u32;
+                    None
+                } else {
+                    Some((lbl, inst_idx, data_idx))
+                }
+            })
+            .collect();
+        self.unresolved = remaining;
+        self
+    }
+
+    /// Branch to a named label. Offset resolved when the label is defined.
+    pub fn branch_to(&mut self, cond: u8, r1: u8, r2: u8, label: &'static str) -> &mut Self {
+        let inst_idx = self.pixels.len();
+        self.instruction(op::BRANCH, cond, r1, r2);
+        let data_idx = self.pixels.len();
+        self.pixels.push(0); // placeholder
+
+        if let Some(&target) = self.labels.get(label) {
+            let offset = (target as i32) - (inst_idx as i32);
+            self.pixels[data_idx] = offset as u32;
+        } else {
+            self.unresolved.push((label, inst_idx, data_idx));
+        }
+        self
+    }
+
+    /// Unconditional jump to a named label.
+    pub fn jmp_to(&mut self, label: &'static str) -> &mut Self {
+        let inst_idx = self.pixels.len();
+        self.instruction(op::JMP, 0, 0, 0);
+        let data_idx = self.pixels.len();
+        self.pixels.push(0); // placeholder
+
+        if let Some(&target) = self.labels.get(label) {
+            let offset = (target as i32) - (inst_idx as i32);
+            self.pixels[data_idx] = offset as u32;
+        } else {
+            self.unresolved.push((label, inst_idx, data_idx));
+        }
+        self
+    }
+
+    /// Resolve any remaining forward references. Call after all labels are defined.
+    /// Panics if any references are still unresolved.
+    pub fn link(&mut self) -> &mut Self {
+        for (label, inst_idx, data_idx) in self.unresolved.drain(..) {
+            let target = *self.labels.get(label)
+                .unwrap_or_else(|| panic!("unresolved label: '{}'", label));
+            let offset = (target as i32) - (inst_idx as i32);
+            self.pixels[data_idx] = offset as u32;
+        }
+        self
     }
 
     /// Add a raw instruction pixel
@@ -443,6 +532,15 @@ impl Program {
         self.instruction(op::ISSUE_LIST, max_results, out_addr_reg, filter_reg)
     }
 
+    /// MODEL_CALL: call LLM with prompt, write response to memory.
+    /// buf_size = response buffer size in pixels (each pixel = 4 bytes)
+    /// r_prompt = register containing prompt address (packed ASCII)
+    /// r_response = register containing response buffer address
+    /// Returns: number of response bytes written in r_prompt, or 0 on error.
+    pub fn model_call(&mut self, buf_size: u8, r_prompt: u8, r_response: u8) -> &mut Self {
+        self.instruction(op::MODEL_CALL, buf_size, r_prompt, r_response)
+    }
+
     pub fn len(&self) -> usize {
         self.pixels.len()
     }
@@ -450,6 +548,7 @@ impl Program {
     pub fn is_empty(&self) -> bool {
         self.pixels.is_empty()
     }
+
 }
 
 /// Build the self-replicating program from PIXELS_MOVE_PIXELS.md
