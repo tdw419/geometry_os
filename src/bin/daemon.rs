@@ -1279,8 +1279,7 @@ fn build_ceo_program(title_addr: u32, metrics_base: u32, issueq_count_addr: u32,
     p.store(12, 2);              // created = batch_size
 
     // ── Poll loop: wait until all issues are DONE ──
-    // We scan the issue queue slots and count how many have status==2 (DONE)
-    p.ldi(8, 0);                 // r8 = done count
+    // Read metrics_done (written by agents) and compare to queue_count.
 
     // poll_loop:
     let poll_loop_addr = p.pixels.len() as i32;
@@ -1288,6 +1287,9 @@ fn build_ceo_program(title_addr: u32, metrics_base: u32, issueq_count_addr: u32,
     // Read queue count from issueq_count_addr
     p.ldi(9, issueq_count_addr); // r9 = &queue_count
     p.load(9, 9);                // r9 = queue_count
+    // Read metrics_done (agents increment this as they complete issues)
+    p.ldi(8, metrics_base + 2);  // r8 = &metrics_done
+    p.load(8, 8);                // r8 = done count (from agents)
     // Check: done_count >= queue_count?
     // BGE r8, r9, +forward to all_done
     let poll_bge_addr = p.pixels.len() as i32;

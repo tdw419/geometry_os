@@ -781,8 +781,10 @@ fn execute_instruction(vm: ptr<function, VmState>) -> u32 {
             }
         }
 
-        // YIELD - Yield execution
+        // YIELD - Yield execution (cooperative multitasking).
+        // Advance PC so next frame resumes at the instruction after YIELD.
         case 227u: {
+            (*vm).pc = pc + 1u;
             (*vm).state = VM_WAITING;
             return 2u;
         }
