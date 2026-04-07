@@ -9225,4 +9225,60 @@ mod geo92_tier2 {
         assert_eq!(out_id, 1, "GEO-218: first PICK should return issue 1 (FIFO), got {}", out_id);
     }
 
+    #[test]
+    fn test_issueq_list_filter_zero_returns_all() {
+        // Verify filter=0 (match all statuses) returns TODO + IN_PROGRESS + DONE.
+        let mut svm = issueq_setup();
+
+        let title_addr: u32 = 0x0010_0000;
+        write_string(&mut svm, title_addr, "mixed");
+        let load_addr: u32 = 0x0000_1000;
+        let out_addr: u32 = 0x0020_0000;
+
+        let mut p = Program::new();
+
+        // Create 3 issues
+        for _ in 0..3 {
+            p.ldi(10, title_addr);
+            p.ldi(11, 2);
+            p.issue_create(10, 11, 0);
+        }
+
+        // Pick issue 1 -> IN_PROGRESS, then mark DONE
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_pick(12, 13, 1);
+        p.ldi(14, crate::ISSUE_STATUS_DONE);
+        p.issue_update(12, 14);
+
+        // Pick issue 2 -> IN_PROGRESS (leave it)
+        p.ldi(12, out_addr);
+        p.ldi(13, 0);
+        p.issue_pick(12, 13, 1);
+
+        // List ALL issues (filter=0)
+        p.ldi(12, out_addr);
+        p.ldi(13, 0); // filter=0 = match all
+        p.issue_list(12, 13, 10);
+
+        p.halt();
+
+        svm.load_program(load_addr, &p.pixels);
+        svm.spawn_vm(0, load_addr);
+
+        for _ in 0..50 {
+            svm.execute_frame();
+            if svm.vm_state(0).halted != 0 {
+                break;
+            }
+        }
+
+        assert_eq!(svm.vm_state(0).state, vm_state::HALTED);
+
+        // Should list all 3 issues regardless of status
+        let listed = svm.vm_state(0).regs[12];
+        assert_eq!(listed, 3, "filter=0 should list all 3 issues, got {}", listed);
+    }
+
+
 }
