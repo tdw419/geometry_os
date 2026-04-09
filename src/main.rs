@@ -1,3 +1,3 @@
 fn main() {
-    println!("Hello, world!");
+    println!("geometry os -- pixel composition vm");
 }
