@@ -54,6 +54,7 @@ pub mod op {
     // ── Lowercase: Secondary operations ───────────────────────────────
     pub const AND: u8 = 0x61;           // a  width 3: dst, src
     pub const MOD: u8 = 0x62;           // b  width 3: dst, src
+    pub const ISSUE_CREATE: u8 = 0x63;  // c  width 1: creates a forge issue from r0,r1,r2
     pub const LDB: u8 = 0x64;           // d  width 3: dst, addr
     pub const PGET: u8 = 0x67;          // g  width 3: x, y (result in r0)
     pub const INT: u8 = 0x69;           // i  width 2: vector
@@ -63,18 +64,27 @@ pub mod op {
     pub const PUSH: u8 = 0x70;          // p  width 2: value
     pub const POP: u8 = 0x72;           // r  width 2: dst
     pub const STB: u8 = 0x73;           // s  width 3: addr, src
+
+    // ── Editor opcodes (self-authoring) ────────────────────────────────
+    // These let a running program modify its own RAM — the core of the
+    // self-authoring loop described in editor.rs.
+    pub const EDIT_OVERWRITE: u8 = 0x65; // e  width 3: addr_reg, src_reg
+    pub const EDIT_INSERT: u8 = 0x66;    // f  width 3: addr_reg, src_reg
+    pub const EDIT_DELETE: u8 = 0x6A;    // j  width 2: addr_reg
+    pub const EDIT_BLIT: u8 = 0x6C;      // l  width 4: dst_reg, src_reg, count_reg
 }
 
 /// How many pixels does this opcode consume (including the opcode pixel itself)?
 pub fn width(opcode: u8) -> usize {
     match opcode {
-        op::HALT | op::NOP | op::RET | op::YIELD => 1,
+        op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE => 1,
         op::CALL | op::JMP | op::INT | op::NOT | op::PUSH | op::POP => 2,
         op::ADD | op::BRANCH | op::DIV | op::EXEC | op::LDI | op::SHL
         | op::LOAD | op::MOV | op::OR | op::SPAWN | op::STORE | op::SUB
-        | op::XOR | op::AND | op::MOD | op::LDB | op::PGET | op::SHR
-        | op::MUL | op::STB => 3,
-        op::PSET | op::TEXT | op::BLIT | op::CIRCLEF | op::SPATIAL_SPAWN => 4,
+        | op::AND | op::MOD | op::LDB | op::PGET | op::SHR
+        | op::MUL | op::STB | op::EDIT_OVERWRITE | op::EDIT_INSERT => 3,
+        op::PSET | op::TEXT | op::BLIT | op::CIRCLEF | op::SPATIAL_SPAWN
+        | op::EDIT_BLIT => 4,
         op::RECTF | op::LINE => 5,
         _ => 1, // unknown = skip 1 pixel
     }
@@ -92,10 +102,13 @@ pub fn name(opcode: u8) -> &'static str {
         op::STORE => "STORE", op::TEXT => "TEXT", op::SUB => "SUB",
         op::LINE => "LINE", op::BLIT => "BLIT", op::XOR => "XOR",
         op::YIELD => "YIELD", op::SPATIAL_SPAWN => "SPAWN+",
-        op::AND => "AND", op::MOD => "MOD", op::LDB => "LDB",
+        op::AND => "AND", op::MOD => "MOD", op::ISSUE_CREATE => "ISSUE_CREATE",
+        op::LDB => "LDB",
         op::PGET => "PGET", op::INT => "INT", op::SHR => "SHR",
         op::MUL => "MUL", op::NOT => "NOT", op::PUSH => "PUSH",
         op::POP => "POP", op::STB => "STB",
+        op::EDIT_OVERWRITE => "EDIT_OVW", op::EDIT_INSERT => "EDIT_INS",
+        op::EDIT_DELETE => "EDIT_DEL", op::EDIT_BLIT => "EDIT_BLIT",
         _ => "???",
     }
 }
@@ -104,7 +117,8 @@ pub fn name(opcode: u8) -> &'static str {
 pub fn is_valid(b: u8) -> bool {
     matches!(b,
         0x41..=0x5A |  // A-Z
-        0x61 | 0x62 | 0x64 | 0x67 | 0x69 | 0x6B | 0x6D | 0x6E | 0x70 | 0x72 | 0x73
+        0x61 | 0x62 | 0x63 | 0x64 | 0x65 | 0x66 | 0x67 | 0x69 | 0x6A | 0x6B
+        | 0x6C | 0x6D | 0x6E | 0x70 | 0x72 | 0x73
     )
 }
 
@@ -142,5 +156,15 @@ mod tests {
         assert_eq!(op::HALT, b'H');
         assert_eq!(op::LDI, b'I');
         assert_eq!(op::MUL, b'm');
+    }
+
+    #[test]
+    fn issue_create_is_width_1() {
+        assert_eq!(width(op::ISSUE_CREATE), 1);
+    }
+
+    #[test]
+    fn issue_create_is_lowercase_c() {
+        assert_eq!(op::ISSUE_CREATE, b'c');
     }
 }

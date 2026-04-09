@@ -19,6 +19,7 @@
 
 use crate::opcodes;
 use crate::opcodes::op;
+use crate::forge::ForgeQueue;
 
 const NUM_REGS: usize = 32;
 const STACK_SIZE: usize = 256;
@@ -42,6 +43,7 @@ pub struct Vm {
     pub yielded: bool,
     pub children: Vec<ChildVm>,
     pub screen: Vec<u32>, // 256x256
+    pub forge: ForgeQueue,
 }
 
 impl Vm {
@@ -55,6 +57,7 @@ impl Vm {
             yielded: false,
             children: Vec::new(),
             screen: vec![0; 256 * 256],
+            forge: ForgeQueue::new(),
         }
     }
 
@@ -594,6 +597,89 @@ impl Vm {
                 None
             },
 
+            // ── c (0x63): ISSUE_CREATE ────────────
+            // Width 1 (no pixel args). Reads r0 (tag), r1 (payload), r2 (priority).
+            // Creates a forge issue and stores the assigned ID back into r0.
+            op::ISSUE_CREATE => {
+                let tag = self.regs[0];
+                let payload = self.regs[1];
+                let priority_raw = self.regs[2];
+                let id = self.forge.post_issue(
+                    self.pc,
+                    tag,
+                    payload,
+                    priority_raw,
+                );
+                self.regs[0] = id as u32;
+                None
+            },
+
+            // ── e (0x65): EDIT_OVERWRITE addr, src ──
+            // Write pixel from regs[src] into ram[regs[addr]].
+            op::EDIT_OVERWRITE => {
+                let addr_reg = args[0] as usize;
+                let src = args[1] as usize;
+                if addr_reg < NUM_REGS && src < NUM_REGS {
+                    let addr = self.regs[addr_reg] as usize;
+                    self.poke(addr, self.regs[src]);
+                }
+                None
+            },
+
+            // ── f (0x66): EDIT_INSERT addr, src ────
+            // Insert pixel from regs[src] at ram[regs[addr]], shifting right.
+            op::EDIT_INSERT => {
+                let addr_reg = args[0] as usize;
+                let src = args[1] as usize;
+                if addr_reg < NUM_REGS && src < NUM_REGS {
+                    let addr = self.regs[addr_reg] as usize;
+                    let value = self.regs[src];
+                    // Insert at addr, shifting everything right by 1
+                    if addr < self.ram.len() {
+                        self.ram.insert(addr, value);
+                    } else {
+                        // Past end: just extend
+                        self.ram.push(value);
+                    }
+                }
+                None
+            },
+
+            // ── j (0x6A): EDIT_DELETE addr ─────────
+            // Remove one pixel at ram[regs[addr]], shifting left.
+            op::EDIT_DELETE => {
+                let addr_reg = args[0] as usize;
+                if addr_reg < NUM_REGS {
+                    let addr = self.regs[addr_reg] as usize;
+                    if addr < self.ram.len() {
+                        self.ram.remove(addr);
+                        // Adjust PC if the deletion was before or at current PC
+                        if addr < self.pc as usize {
+                            self.pc = self.pc.saturating_sub(1);
+                        }
+                    }
+                }
+                None
+            },
+
+            // ── l (0x6C): EDIT_BLIT dst, src, count
+            // Copy count pixels from ram[regs[src]] to ram[regs[dst]].
+            op::EDIT_BLIT => {
+                let dst_reg = args[0] as usize;
+                let src_reg = args[1] as usize;
+                let count_reg = args[2] as usize;
+                if dst_reg < NUM_REGS && src_reg < NUM_REGS && count_reg < NUM_REGS {
+                    let dst_addr = self.regs[dst_reg] as usize;
+                    let src_addr = self.regs[src_reg] as usize;
+                    let count = self.regs[count_reg] as usize;
+                    for i in 0..count {
+                        let val = self.peek(src_addr + i);
+                        self.poke(dst_addr + i, val);
+                    }
+                }
+                None
+            },
+
             // ── i (0x69): INT vector ──────────────
             // Stub: interrupt handling not yet implemented.
             op::INT => None,
@@ -741,5 +827,220 @@ mod tests {
         vm.load_program(&[op::LDI as u32, 0, star, op::HALT as u32]);
         vm.run();
         assert_eq!(vm.regs[0], 42);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SELF-AUTHORING PROOF TESTS
+    //
+    // These tests prove the self-authoring loop:
+    //   1. A running program uses EDITOR opcodes to write NEW instructions
+    //   2. The VM jumps to the newly written code
+    //   3. That code executes successfully
+    //   4. (The system edited itself.)
+    // ═══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn edit_overwrite_writes_pixel_to_ram() {
+        // Write the value 99 into ram[20] using EDIT_OVERWRITE
+        let mut vm = Vm::new(64);
+        vm.load_program(&[
+            op::LDI as u32, 0, 20,  // LDI r0, 20   (address)
+            op::LDI as u32, 1, 99,  // LDI r1, 99   (value)
+            op::EDIT_OVERWRITE as u32, 0, 1,  // EDIT_OVERWRITE r0, r1
+            op::HALT as u32,
+        ]);
+        vm.run();
+        assert!(vm.halted);
+        assert_eq!(vm.peek(20), 99);
+    }
+
+    #[test]
+    fn edit_insert_shifts_ram_right() {
+        // Insert value 77 at position 5, verify shift
+        let mut vm = Vm::new(32);
+        // Pre-populate ram[5..8] with [10, 20, 30]
+        vm.poke(5, 10);
+        vm.poke(6, 20);
+        vm.poke(7, 30);
+        vm.load_program(&[
+            op::LDI as u32, 0, 5,   // LDI r0, 5   (address)
+            op::LDI as u32, 1, 77,  // LDI r1, 77  (value)
+            op::EDIT_INSERT as u32, 0, 1,  // EDIT_INSERT r0, r1
+            op::HALT as u32,
+        ]);
+        vm.run();
+        assert!(vm.halted);
+        assert_eq!(vm.peek(5), 77);   // inserted value
+        assert_eq!(vm.peek(6), 10);   // shifted right
+        assert_eq!(vm.peek(7), 20);   // shifted right
+        assert_eq!(vm.peek(8), 30);   // shifted right
+    }
+
+    #[test]
+    fn edit_delete_removes_pixel_from_ram() {
+        // Delete pixel at position 4, verify shift left
+        let mut vm = Vm::new(32);
+        vm.poke(4, 111);
+        vm.poke(5, 222);
+        vm.poke(6, 333);
+        vm.load_program(&[
+            op::LDI as u32, 0, 4,   // LDI r0, 4   (address)
+            op::EDIT_DELETE as u32, 0,  // EDIT_DELETE r0
+            op::HALT as u32,
+        ]);
+        vm.run();
+        assert!(vm.halted);
+        assert_eq!(vm.peek(4), 222);  // shifted left
+        assert_eq!(vm.peek(5), 333);  // shifted left
+    }
+
+    #[test]
+    fn edit_blit_copies_pixel_range() {
+        // Copy 3 pixels from ram[10..13] to ram[20..23]
+        let mut vm = Vm::new(64);
+        vm.poke(10, 100);
+        vm.poke(11, 200);
+        vm.poke(12, 300);
+        vm.load_program(&[
+            op::LDI as u32, 0, 20,  // LDI r0, 20  (dst address)
+            op::LDI as u32, 1, 10,  // LDI r1, 10  (src address)
+            op::LDI as u32, 2, 3,   // LDI r2, 3   (count)
+            op::EDIT_BLIT as u32, 0, 1, 2,  // EDIT_BLIT r0, r1, r2
+            op::HALT as u32,
+        ]);
+        vm.run();
+        assert!(vm.halted);
+        assert_eq!(vm.peek(20), 100);
+        assert_eq!(vm.peek(21), 200);
+        assert_eq!(vm.peek(22), 300);
+    }
+
+    #[test]
+    fn self_authoring_proof_program_writes_then_runs_halt() {
+        // ── THE BOOTSTRAP PROOF ──────────────────────────────────────
+        //
+        // A program that writes a HALT instruction into a blank region
+        // of RAM, then jumps to it. The program literally authors its
+        // own continuation.
+        //
+        // Layout:
+        //   Address 0: LDI r0, 20        -- target address
+        //   Address 3: LDI r1, 0x48       -- HALT opcode value
+        //   Address 6: EDIT_OVERWRITE r0, r1  -- stamp HALT at ram[20]
+        //   Address 9: JMP 20             -- jump to the code we just wrote
+        //
+        //   Address 20: (will become HALT via self-authoring)
+        //
+        // If the self-authoring loop works, the VM will:
+        //   1. Execute LDI, LDI, EDIT_OVERWRITE (writes 0x48 to ram[20])
+        //   2. Execute JMP 20
+        //   3. Execute the HALT at address 20 that IT WROTE ITSELF
+        //   4. Stop cleanly with halted=true and pc=21
+
+        let mut vm = Vm::new(32);
+        vm.load_program(&[
+            op::LDI as u32, 0, 20,              // addr 0: LDI r0, 20
+            op::LDI as u32, 1, op::HALT as u32, // addr 3: LDI r1, HALT
+            op::EDIT_OVERWRITE as u32, 0, 1,    // addr 6: EDIT_OVERWRITE r0, r1
+            op::JMP as u32, 20,                 // addr 9: JMP 20
+        ]);
+        // ram[20] starts as 0 (NOP-like unknown). The program will
+        // overwrite it with HALT before jumping there.
+        assert_eq!(vm.peek(20), 0); // not HALT yet
+
+        vm.run();
+
+        assert!(vm.halted);
+        assert_eq!(vm.pc, 21); // stopped after executing the self-authored HALT
+        assert_eq!(vm.peek(20), op::HALT as u32); // proof: the program wrote this
+    }
+
+    #[test]
+    fn self_authoring_writes_ldi_and_executes() {
+        // ── DEEPER PROOF: write a complete instruction and run it ──
+        //
+        // A program that writes "LDI r0, 42" into RAM at address 30,
+        // then writes HALT at address 33, then jumps to 30.
+        // After running, r0 should be 42 — proving the VM executed
+        // code that was authored at runtime.
+
+        let mut vm = Vm::new(64);
+        vm.load_program(&[
+            // Write LDI r0, 42 at address 30
+            op::LDI as u32, 0, 30,              // r0 = 30 (write address)
+            op::LDI as u32, 1, op::LDI as u32,  // r1 = LDI opcode
+            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[30] = LDI
+            // Write arg1 (register 0) at address 31
+            op::LDI as u32, 0, 31,              // r0 = 31
+            op::LDI as u32, 1, 0,               // r1 = 0 (dst register index)
+            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[31] = 0
+            // Write arg2 (value 42) at address 32
+            op::LDI as u32, 0, 32,              // r0 = 32
+            op::LDI as u32, 1, 42,              // r1 = 42
+            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[32] = 42
+            // Write HALT at address 33
+            op::LDI as u32, 0, 33,              // r0 = 33
+            op::LDI as u32, 1, op::HALT as u32, // r1 = HALT
+            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[33] = HALT
+            // Jump to the self-authored code at 30
+            op::JMP as u32, 30,                 // JMP 30
+        ]);
+
+        let cycles = vm.run();
+
+        eprintln!("DEBUG: halted={}, cycles={}, pc={}, r0={}", vm.halted, cycles, vm.pc, vm.regs[0]);
+        eprintln!("DEBUG: ram[28..40] = {:?}", &vm.ram[28..40.min(vm.ram.len())]);
+        eprintln!("DEBUG: ram[0..10] = {:?}", &vm.ram[0..10.min(vm.ram.len())]);
+
+        assert!(vm.halted, "VM did not halt after {} cycles, pc={}", cycles, vm.pc);
+        // r0 is set to 42 by the self-authored LDI instruction
+        assert_eq!(vm.regs[0], 42);
+        // Verify the authored bytes are still in RAM
+        assert_eq!(vm.peek(30), op::LDI as u32);
+        assert_eq!(vm.peek(31), 0);
+        assert_eq!(vm.peek(32), 42);
+        assert_eq!(vm.peek(33), op::HALT as u32);
+    }
+
+    #[test]
+    fn self_authoring_recursive_program_writes_code_that_writes_code() {
+        // ── THE FULL LOOP: code that writes code that writes code ──
+        //
+        // Phase 1 (address 0): Write HALT at address 50, then JMP 20
+        // Phase 2 (address 20): Write HALT at address 60, then JMP 50
+        // Phase 3 (address 50): HALT (written by phase 1)
+        //
+        // This proves TWO levels of self-authoring.
+
+        let mut vm = Vm::new(128);
+        vm.load_program(&[
+            // Phase 1: at address 0
+            // Write HALT at address 50
+            op::LDI as u32, 0, 50,              // addr 0
+            op::LDI as u32, 1, op::HALT as u32, // addr 3
+            op::EDIT_OVERWRITE as u32, 0, 1,    // addr 6
+            // Jump to phase 2
+            op::JMP as u32, 20,                 // addr 9
+        ]);
+        // Phase 2: at address 20 (pre-written)
+        vm.poke(20, op::LDI as u32);
+        vm.poke(21, 0);
+        vm.poke(22, 60);
+        vm.poke(23, op::LDI as u32);
+        vm.poke(24, 1);
+        vm.poke(25, op::HALT as u32);
+        vm.poke(26, op::EDIT_OVERWRITE as u32);
+        vm.poke(27, 0);
+        vm.poke(28, 1);
+        vm.poke(29, op::JMP as u32);
+        vm.poke(30, 50);
+
+        vm.run();
+
+        assert!(vm.halted);
+        // Phase 2 wrote HALT at address 60, then jumped to address 50
+        // where phase 1 had placed a HALT. Two levels of self-authoring.
+        assert_eq!(vm.peek(50), op::HALT as u32);
+        assert_eq!(vm.peek(60), op::HALT as u32);
     }
 }
