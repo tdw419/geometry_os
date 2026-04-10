@@ -137,6 +137,17 @@ fn main() {
     let mut asm_mode = false;
     let mut asm_input = String::new();
 
+    // ── Inline code editor (F9 to open) ─────────────────────────────
+    // Full-screen overlay. Arrow keys navigate, Enter adds a line,
+    // Backspace deletes, F8 assembles+loads, Escape cancels.
+    let mut editor_mode = false;
+    let mut editor_lines: Vec<String> = vec![String::new()];
+    let mut editor_cursor_line: usize = 0;
+    let mut editor_cursor_col: usize = 0;
+    let mut editor_scroll: usize = 0;
+    const EDITOR_VISIBLE_LINES: usize = 38;
+    const EDITOR_MAX_COL: usize = 90;
+
     // ── Persistent child VMs ────────────────────────────────────────
     // Children spawned by the parent VM persist across frames.
     // Each frame: parent runs → children collected → new children created →
@@ -157,6 +168,142 @@ fn main() {
         // ── Input ────────────────────────────────────────────────────
         let keys = window.get_keys_pressed(KeyRepeat::Yes);
         for key in keys {
+            // ── Code editor mode: intercepts all input ───────────────
+            if editor_mode {
+                let shift = window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift);
+                let ctrl  = window.is_key_down(Key::LeftCtrl)  || window.is_key_down(Key::RightCtrl);
+                match key {
+                    Key::Escape => {
+                        editor_mode = false;
+                        needs_redraw = true;
+                    }
+                    Key::F8 => {
+                        // Assemble editor buffer and load into RAM
+                        let src = editor_lines.join("\n");
+                        match assembler::assemble(&src) {
+                            Ok(asm_result) => {
+                                for v in vm.ram.iter_mut() { *v = 0; }
+                                for (i, &pixel) in asm_result.pixels.iter().enumerate() {
+                                    if i < vm.ram.len() { vm.ram[i] = pixel; }
+                                }
+                                vm.pc = 0;
+                                vm.halted = false;
+                                is_running = false;
+                                child_vms.clear();
+                                cursor_col = 0;
+                                cursor_row = 0;
+                                editor_mode = false;
+                            }
+                            Err(e) => {
+                                // Show error by inserting a comment line at top
+                                let msg = format!("; ERROR line {}: {}", e.line, e.message);
+                                editor_lines.insert(0, msg);
+                                editor_cursor_line = 0;
+                                editor_scroll = 0;
+                            }
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::V if ctrl => {
+                        if let Some(text) = read_clipboard() {
+                            for line in text.lines() {
+                                if editor_lines[editor_cursor_line].len() + line.len() <= EDITOR_MAX_COL {
+                                    editor_lines[editor_cursor_line].push_str(line);
+                                } else {
+                                    editor_lines[editor_cursor_line].push_str(line);
+                                }
+                                editor_cursor_col = editor_lines[editor_cursor_line].len();
+                                let next = editor_cursor_line + 1;
+                                editor_lines.insert(next, String::new());
+                                editor_cursor_line = next;
+                            }
+                            // Remove trailing empty line from paste
+                            if editor_cursor_line > 0 && editor_lines[editor_cursor_line].is_empty() {
+                                editor_lines.remove(editor_cursor_line);
+                                editor_cursor_line -= 1;
+                            }
+                            editor_cursor_col = editor_lines[editor_cursor_line].len();
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::Enter => {
+                        let rest = editor_lines[editor_cursor_line].split_off(editor_cursor_col);
+                        let next = editor_cursor_line + 1;
+                        editor_lines.insert(next, rest);
+                        editor_cursor_line = next;
+                        editor_cursor_col = 0;
+                        if editor_cursor_line >= editor_scroll + EDITOR_VISIBLE_LINES {
+                            editor_scroll += 1;
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::Backspace => {
+                        if editor_cursor_col > 0 {
+                            editor_cursor_col -= 1;
+                            editor_lines[editor_cursor_line].remove(editor_cursor_col);
+                        } else if editor_cursor_line > 0 {
+                            let line = editor_lines.remove(editor_cursor_line);
+                            editor_cursor_line -= 1;
+                            editor_cursor_col = editor_lines[editor_cursor_line].len();
+                            editor_lines[editor_cursor_line].push_str(&line);
+                            if editor_cursor_line < editor_scroll { editor_scroll = editor_cursor_line; }
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::Up => {
+                        if editor_cursor_line > 0 {
+                            editor_cursor_line -= 1;
+                            editor_cursor_col = editor_cursor_col.min(editor_lines[editor_cursor_line].len());
+                            if editor_cursor_line < editor_scroll { editor_scroll = editor_cursor_line; }
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::Down => {
+                        if editor_cursor_line + 1 < editor_lines.len() {
+                            editor_cursor_line += 1;
+                            editor_cursor_col = editor_cursor_col.min(editor_lines[editor_cursor_line].len());
+                            if editor_cursor_line >= editor_scroll + EDITOR_VISIBLE_LINES {
+                                editor_scroll += 1;
+                            }
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::Left => {
+                        if editor_cursor_col > 0 { editor_cursor_col -= 1; }
+                        else if editor_cursor_line > 0 {
+                            editor_cursor_line -= 1;
+                            editor_cursor_col = editor_lines[editor_cursor_line].len();
+                            if editor_cursor_line < editor_scroll { editor_scroll = editor_cursor_line; }
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::Right => {
+                        if editor_cursor_col < editor_lines[editor_cursor_line].len() {
+                            editor_cursor_col += 1;
+                        } else if editor_cursor_line + 1 < editor_lines.len() {
+                            editor_cursor_line += 1;
+                            editor_cursor_col = 0;
+                            if editor_cursor_line >= editor_scroll + EDITOR_VISIBLE_LINES {
+                                editor_scroll += 1;
+                            }
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::Home => { editor_cursor_col = 0; needs_redraw = true; }
+                    Key::End  => { editor_cursor_col = editor_lines[editor_cursor_line].len(); needs_redraw = true; }
+                    _ => {
+                        if let Some(ch) = key_to_ascii_shifted(key, shift) {
+                            if editor_lines[editor_cursor_line].len() < EDITOR_MAX_COL {
+                                editor_lines[editor_cursor_line].insert(editor_cursor_col, ch as char);
+                                editor_cursor_col += 1;
+                                needs_redraw = true;
+                            }
+                        }
+                    }
+                }
+                continue; // consume key — don't fall through to paint/ASM handlers
+            }
+
             // Painting mode: only when VM is idle (prevents program corruption)
             if !is_running {
                 if let Some(ch) = key_to_pixel(key, hex_mode) {
@@ -278,6 +425,21 @@ fn main() {
                 Key::Backquote => {
                     asm_mode = true;
                     asm_input.clear();
+                    needs_redraw = true;
+                }
+                Key::F9 => {
+                    editor_mode = true;
+                    // Pre-populate editor with current program disassembly as comments
+                    // so the screen isn't blank on first open.
+                    if editor_lines.iter().all(|l| l.is_empty()) {
+                        editor_lines = vec![
+                            String::from("; Geometry OS inline assembler"),
+                            String::from("; F8: assemble + load   Escape: cancel   Ctrl+V: paste"),
+                            String::new(),
+                        ];
+                        editor_cursor_line = 2;
+                        editor_cursor_col = 0;
+                    }
                     needs_redraw = true;
                 }
                 Key::F5 => {
@@ -427,6 +589,87 @@ fn main() {
         // ── Render ───────────────────────────────────────────────────
         if needs_redraw {
             buffer.fill(BG);
+
+            // ── Code editor overlay (F9) ─────────────────────────────
+            if editor_mode {
+                // Dark overlay
+                for px in buffer.iter_mut() { *px = 0x03030A; }
+
+                // Header
+                font::render_str(&mut buffer, WIDTH, HEIGHT,
+                    "GEOMETRY OS ASSEMBLER   F8:ASSEMBLE+LOAD   Escape:CANCEL   Ctrl+V:PASTE",
+                    8, 4, 1, 0x00FFBB, None);
+
+                // Line count info
+                let info = format!("Line {}/{}  Col {}", editor_cursor_line + 1, editor_lines.len(), editor_cursor_col + 1);
+                font::render_str(&mut buffer, WIDTH, HEIGHT, &info, WIDTH - 200, 4, 1, 0x888899, None);
+
+                // Code lines
+                let line_h = 11;
+                let gutter_w = 36; // space for 3-digit line number + gap
+                let code_x = 8 + gutter_w;
+                let first_y = 18;
+
+                for vis_idx in 0..EDITOR_VISIBLE_LINES {
+                    let abs_line = editor_scroll + vis_idx;
+                    if abs_line >= editor_lines.len() { break; }
+
+                    let y = first_y + vis_idx * line_h;
+                    let is_current = abs_line == editor_cursor_line;
+
+                    // Highlight current line background
+                    if is_current {
+                        for dy in 0..line_h {
+                            for dx in 0..(WIDTH - 16) {
+                                let idx = (y + dy) * WIDTH + 8 + dx;
+                                if idx < buffer.len() { buffer[idx] = 0x0A0A1E; }
+                            }
+                        }
+                    }
+
+                    // Gutter: line number
+                    let num_str = format!("{:3}", abs_line + 1);
+                    let num_color = if is_current { 0x555577 } else { 0x333344 };
+                    font::render_str(&mut buffer, WIDTH, HEIGHT, &num_str, 8, y, 1, num_color, None);
+
+                    // Code text
+                    let line = &editor_lines[abs_line];
+                    let text_color = if line.trim_start().starts_with(';') {
+                        0x447744 // comments: green
+                    } else if is_current {
+                        0xFFFFFF
+                    } else {
+                        0xCCCCDD
+                    };
+                    font::render_str(&mut buffer, WIDTH, HEIGHT, line, code_x, y, 1, text_color, None);
+
+                    // Cursor
+                    if is_current && cursor_visible {
+                        let cx = code_x + editor_cursor_col * 6;
+                        if cx + 1 < WIDTH {
+                            for dy in 0..line_h {
+                                let idx = (y + dy) * WIDTH + cx;
+                                if idx < buffer.len() { buffer[idx] = 0x00FFFF; }
+                            }
+                        }
+                    }
+                }
+
+                // Scroll indicator
+                if editor_lines.len() > EDITOR_VISIBLE_LINES {
+                    let bar_h = HEIGHT - 24;
+                    let thumb_frac = editor_scroll as f32 / (editor_lines.len() - EDITOR_VISIBLE_LINES).max(1) as f32;
+                    let thumb_y = 18 + (thumb_frac * bar_h as f32) as usize;
+                    for dy in 0..4 {
+                        let idx = (thumb_y + dy).min(HEIGHT - 1) * WIDTH + WIDTH - 4;
+                        if idx < buffer.len() { buffer[idx] = 0x444466; }
+                    }
+                }
+
+                window.update_with_buffer(&buffer, WIDTH, HEIGHT).unwrap();
+                needs_redraw = false;
+                continue;
+            }
 
             // Status
             let status = if vm.halted { "HALTED" } else if is_running { "YIELDED/RUNNING" } else { "IDLE" };
@@ -654,6 +897,56 @@ fn key_to_ascii(key: Key) -> Option<u8> {
         Key::Semicolon => Some(b';'), Key::Apostrophe => Some(b'\''), Key::Slash => Some(b'/'),
         Key::Backslash => Some(b'\\'), Key::LeftBracket => Some(b'['), Key::RightBracket => Some(b']'),
         Key::Minus => Some(b'-'), Key::Equal => Some(b'='),
+        _ => None,
+    }
+}
+
+/// Like key_to_ascii but handles Shift for lowercase/symbols in the editor.
+fn key_to_ascii_shifted(key: Key, shift: bool) -> Option<u8> {
+    // Letters: shift → uppercase, no shift → lowercase
+    let letter = match key {
+        Key::A => Some((b'a', b'A')), Key::B => Some((b'b', b'B')),
+        Key::C => Some((b'c', b'C')), Key::D => Some((b'd', b'D')),
+        Key::E => Some((b'e', b'E')), Key::F => Some((b'f', b'F')),
+        Key::G => Some((b'g', b'G')), Key::H => Some((b'h', b'H')),
+        Key::I => Some((b'i', b'I')), Key::J => Some((b'j', b'J')),
+        Key::K => Some((b'k', b'K')), Key::L => Some((b'l', b'L')),
+        Key::M => Some((b'm', b'M')), Key::N => Some((b'n', b'N')),
+        Key::O => Some((b'o', b'O')), Key::P => Some((b'p', b'P')),
+        Key::Q => Some((b'q', b'Q')), Key::R => Some((b'r', b'R')),
+        Key::S => Some((b's', b'S')), Key::T => Some((b't', b'T')),
+        Key::U => Some((b'u', b'U')), Key::V => Some((b'v', b'V')),
+        Key::W => Some((b'w', b'W')), Key::X => Some((b'x', b'X')),
+        Key::Y => Some((b'y', b'Y')), Key::Z => Some((b'z', b'Z')),
+        _ => None,
+    };
+    if let Some((lo, hi)) = letter {
+        return Some(if shift { hi } else { lo });
+    }
+
+    // Numbers and their shifted symbols
+    match key {
+        Key::Key0 => Some(if shift { b')' } else { b'0' }),
+        Key::Key1 => Some(if shift { b'!' } else { b'1' }),
+        Key::Key2 => Some(if shift { b'@' } else { b'2' }),
+        Key::Key3 => Some(if shift { b'#' } else { b'3' }),
+        Key::Key4 => Some(if shift { b'$' } else { b'4' }),
+        Key::Key5 => Some(if shift { b'%' } else { b'5' }),
+        Key::Key6 => Some(if shift { b'^' } else { b'6' }),
+        Key::Key7 => Some(if shift { b'&' } else { b'7' }),
+        Key::Key8 => Some(if shift { b'*' } else { b'8' }),
+        Key::Key9 => Some(if shift { b'(' } else { b'9' }),
+        Key::Space     => Some(b' '),
+        Key::Period    => Some(if shift { b'>' } else { b'.' }),
+        Key::Comma     => Some(if shift { b'<' } else { b',' }),
+        Key::Semicolon => Some(if shift { b':' } else { b';' }),
+        Key::Apostrophe => Some(if shift { b'"' } else { b'\'' }),
+        Key::Slash     => Some(if shift { b'?' } else { b'/' }),
+        Key::Backslash => Some(if shift { b'|' } else { b'\\' }),
+        Key::LeftBracket  => Some(if shift { b'{' } else { b'[' }),
+        Key::RightBracket => Some(if shift { b'}' } else { b']' }),
+        Key::Minus     => Some(if shift { b'_' } else { b'-' }),
+        Key::Equal     => Some(if shift { b'+' } else { b'=' }),
         _ => None,
     }
 }
