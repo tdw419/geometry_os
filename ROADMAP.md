@@ -32,7 +32,7 @@
 ### 1.3 Standard Library
 - [x] `lib/math.gasm` -- multiply, divide, modulo (if not native)
 - [x] `lib/string.gasm` -- strlen, strcpy, strcmp, print_string
-- [ ] `lib/screen.gasm` -- clear_screen, draw_rect, draw_circle, fill
+- [x] `lib/screen.gasm` -- clear_screen, draw_line (Bresenham), draw_rect_border
 - [ ] `lib/input.gasm` -- read_key, wait_key, key_to_hex
 
 ## Phase 2: Self-Hosting Toolchain
@@ -86,8 +86,8 @@
 **Batch 1 -- Quick Wins (test the chain, high value, low risk):**
 - [x] `lib/math.gasm` -- multiply via repeated add, divide via subtraction, modulo
 - [x] `lib/string.gasm` -- strlen, strcpy, strcmp, print_string
-- [ ] `lib/screen.gasm` -- clear_screen, draw_line (Bresenham), draw_rect_border
-- [ ] Demo: counter that increments and displays on screen
+- [x] `lib/screen.gasm` -- clear_screen, draw_line (Bresenham), draw_rect_border
+- [x] Demo: counter that increments and displays on screen
 - [ ] Demo: simple animation (bouncing pixel)
 
 **Batch 2 -- Assembler Improvements:**
