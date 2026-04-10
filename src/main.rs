@@ -310,6 +310,34 @@ fn main() {
                     }
                     let _ = std::fs::write("programs/save.rts", data);
                 }
+                Key::F8 => {
+                    // Assemble programs/boot.asm and load to RAM
+                    match std::fs::read_to_string("programs/boot.asm") {
+                        Ok(src) => {
+                            match assembler::assemble(&src) {
+                                Ok(asm_result) => {
+                                    for v in vm.ram.iter_mut() { *v = 0; }
+                                    for (i, &pixel) in asm_result.pixels.iter().enumerate() {
+                                        if i < vm.ram.len() { vm.ram[i] = pixel; }
+                                    }
+                                    vm.pc = 0;
+                                    vm.halted = false;
+                                    is_running = false;
+                                    child_vms.clear();
+                                    cursor_col = 0;
+                                    cursor_row = 0;
+                                }
+                                Err(e) => {
+                                    eprintln!("[F8 ASM ERROR] line {}: {}", e.line, e.message);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("[F8] could not read programs/boot.asm: {}", e);
+                        }
+                    }
+                    needs_redraw = true;
+                }
                 Key::Backspace => {
                     if cursor_col > 0 { cursor_col -= 1; }
                     else if cursor_row > 0 { cursor_row -= 1; cursor_col = CANVAS_COLS - 1; }
@@ -402,7 +430,7 @@ fn main() {
 
             // Status
             let status = if vm.halted { "HALTED" } else if is_running { "YIELDED/RUNNING" } else { "IDLE" };
-            let header = format!("PC: {:04} | Status: {} | Cycles: {} | F5: RUN", vm.pc, status, cycles_last_run);
+            let header = format!("PC: {:04} | Status: {} | Cycles: {} | F5:RUN  F6:LOAD.rts  F7:SAVE  F8:LOAD.asm", vm.pc, status, cycles_last_run);
             font::render_str(&mut buffer, WIDTH, HEIGHT, &header, 16, 16, 2, 0x00FFBB, None);
 
             // Labels
