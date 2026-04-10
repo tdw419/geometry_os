@@ -108,9 +108,6 @@ fn mnemonic_to_opcode(name: &str) -> Option<u8> {
 /// Parse a single argument token.
 /// - r0..r31 → register index
 /// - 0xNN → hex literal
-/// - 'c' → ASCII char value
-/// - plain number → decimal literal
-/// - label name → resolved later
 fn parse_arg(token: &str) -> Result<ArgToken, String> {
     // Register: r0, r1, ..., r31
     if let Some(rest) = token.strip_prefix('r') {
@@ -128,8 +125,25 @@ fn parse_arg(token: &str) -> Result<ArgToken, String> {
         return Ok(ArgToken::Immediate(ch as u32));
     }
 
-    // Hex literal: 0xNN or 0xNNNN
-    if let Some(hex) = token.strip_prefix("0x").or_else(|| token.strip_prefix("0X")) {
+    // Expression: try before hex/decimal in case token like "0x10+0x20"
+    // Labels are purely alphanumeric+underscore, so any operator char means expression
+    let has_operator = token.contains('+')
+        || token.contains('-')
+        || token.contains('*')
+        || token.contains('/')
+        || token.contains('(')
+        || token.contains(')');
+    if has_operator {
+        if let Ok(val) = eval_expression(token) {
+            return Ok(ArgToken::Immediate(val));
+        }
+    }
+
+    // Hex literal: 0xNN or 0xNNNN (only if no expression operators)
+    if let Some(hex) = token
+        .strip_prefix("0x")
+        .or_else(|| token.strip_prefix("0X"))
+    {
         if let Ok(val) = u32::from_str_radix(hex, 16) {
             return Ok(ArgToken::Immediate(val));
         }
@@ -147,6 +161,176 @@ fn parse_arg(token: &str) -> Result<ArgToken, String> {
     }
 
     Err(format!("invalid argument: {}", token))
+}
+
+/// Evaluate a simple arithmetic expression with +, -, *, / and parentheses.
+/// All arithmetic is unsigned u32. Division by zero returns an error.
+fn eval_expression(expr: &str) -> Result<u32, String> {
+    let tokens = tokenize_expr(expr)?;
+    let (result, pos) = parse_add_sub(&tokens, 0)?;
+    if pos != tokens.len() {
+        return Err(format!("unexpected token at position {} in '{}'", pos, expr));
+    }
+    Ok(result)
+}
+
+/// Expression token types for recursive-descent parsing.
+#[derive(Debug, Clone, PartialEq)]
+enum ExprToken {
+    Number(u32),
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    LParen,
+    RParen,
+}
+
+/// Tokenize an expression string into ExprTokens.
+fn tokenize_expr(expr: &str) -> Result<Vec<ExprToken>, String> {
+    let mut tokens = Vec::new();
+    let mut chars = expr.chars().peekable();
+
+    while let Some(&ch) = chars.peek() {
+        match ch {
+            ' ' | '\t' => {
+                chars.next();
+            }
+            '0'..='9' => {
+                let mut num_str = String::new();
+                while let Some(&d) = chars.peek() {
+                    if d.is_ascii_digit() {
+                        num_str.push(d);
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                // Check for hex prefix: "0" followed by 'x'/'X'
+                if num_str == "0"
+                    && (chars.peek() == Some(&'x') || chars.peek() == Some(&'X'))
+                {
+                    chars.next(); // consume 'x'
+                    let mut hex_str = String::new();
+                    while let Some(&d) = chars.peek() {
+                        if d.is_ascii_hexdigit() {
+                            hex_str.push(d);
+                            chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+                    let val = u32::from_str_radix(&hex_str, 16)
+                        .map_err(|e| format!("bad hex '0x{}' in expression: {}", hex_str, e))?;
+                    tokens.push(ExprToken::Number(val));
+                } else {
+                    let val = num_str.parse::<u32>().map_err(|e| {
+                        format!("bad number '{}' in expression '{}': {}", num_str, expr, e)
+                    })?;
+                    tokens.push(ExprToken::Number(val));
+                }
+            }
+            '+' => {
+                chars.next();
+                tokens.push(ExprToken::Plus);
+            }
+            '-' => {
+                chars.next();
+                tokens.push(ExprToken::Minus);
+            }
+            '*' => {
+                chars.next();
+                tokens.push(ExprToken::Star);
+            }
+            '/' => {
+                chars.next();
+                tokens.push(ExprToken::Slash);
+            }
+            '(' => {
+                chars.next();
+                tokens.push(ExprToken::LParen);
+            }
+            ')' => {
+                chars.next();
+                tokens.push(ExprToken::RParen);
+            }
+            _ => {
+                return Err(format!(
+                    "unexpected character '{}' in expression '{}'",
+                    ch, expr
+                ))
+            }
+        }
+    }
+    Ok(tokens)
+}
+
+/// Parse addition and subtraction (lowest precedence).
+/// Grammar: add_sub = mul_div (('+' | '-') mul_div)*
+fn parse_add_sub(tokens: &[ExprToken], pos: usize) -> Result<(u32, usize), String> {
+    let (mut result, mut pos) = parse_mul_div(tokens, pos)?;
+    while pos < tokens.len() {
+        match tokens[pos] {
+            ExprToken::Plus => {
+                let (right, new_pos) = parse_mul_div(tokens, pos + 1)?;
+                result = result.wrapping_add(right);
+                pos = new_pos;
+            }
+            ExprToken::Minus => {
+                let (right, new_pos) = parse_mul_div(tokens, pos + 1)?;
+                result = result.wrapping_sub(right);
+                pos = new_pos;
+            }
+            _ => break,
+        }
+    }
+    Ok((result, pos))
+}
+
+/// Parse multiplication and division (higher precedence).
+/// Grammar: mul_div = primary (('*' | '/') primary)*
+fn parse_mul_div(tokens: &[ExprToken], pos: usize) -> Result<(u32, usize), String> {
+    let (mut result, mut pos) = parse_primary(tokens, pos)?;
+    while pos < tokens.len() {
+        match tokens[pos] {
+            ExprToken::Star => {
+                let (right, new_pos) = parse_primary(tokens, pos + 1)?;
+                result = result.wrapping_mul(right);
+                pos = new_pos;
+            }
+            ExprToken::Slash => {
+                let (right, new_pos) = parse_primary(tokens, pos + 1)?;
+                if right == 0 {
+                    return Err("division by zero in expression".into());
+                }
+                result = result / right;
+                pos = new_pos;
+            }
+            _ => break,
+        }
+    }
+    Ok((result, pos))
+}
+
+/// Parse primary: number or parenthesized expression.
+fn parse_primary(tokens: &[ExprToken], pos: usize) -> Result<(u32, usize), String> {
+    if pos >= tokens.len() {
+        return Err("unexpected end of expression".into());
+    }
+    match &tokens[pos] {
+        ExprToken::Number(n) => Ok((*n, pos + 1)),
+        ExprToken::LParen => {
+            let (result, new_pos) = parse_add_sub(tokens, pos + 1)?;
+            if new_pos >= tokens.len() || tokens[new_pos] != ExprToken::RParen {
+                return Err("missing closing ')' in expression".into());
+            }
+            Ok((result, new_pos + 1))
+        }
+        _ => Err(format!(
+            "expected number or '(' at position {} in expression",
+            pos
+        )),
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -594,5 +778,96 @@ target:
     fn register_r31() {
         let asm = assemble("LDI r31, 99").unwrap();
         assert_eq!(asm.pixels, vec![op::LDI as u32, 31, 99]);
+    }
+
+    // ── Expression evaluation tests ────────────────────────────────
+
+    #[test]
+    fn expr_simple_addition() {
+        let asm = assemble("LDI r0, 2+3").unwrap();
+        assert_eq!(asm.pixels, vec![op::LDI as u32, 0, 5]);
+    }
+
+    #[test]
+    fn expr_subtraction() {
+        let asm = assemble("LDI r0, 10-3").unwrap();
+        assert_eq!(asm.pixels, vec![op::LDI as u32, 0, 7]);
+    }
+
+    #[test]
+    fn expr_multiplication() {
+        let asm = assemble("LDI r0, 4*8").unwrap();
+        assert_eq!(asm.pixels, vec![op::LDI as u32, 0, 32]);
+    }
+
+    #[test]
+    fn expr_division() {
+        let asm = assemble("LDI r0, 100/4").unwrap();
+        assert_eq!(asm.pixels, vec![op::LDI as u32, 0, 25]);
+    }
+
+    #[test]
+    fn expr_precedence_mul_before_add() {
+        // 2 + 3 * 4 = 2 + 12 = 14 (not 20)
+        let asm = assemble("LDI r0, 2+3*4").unwrap();
+        assert_eq!(asm.pixels, vec![op::LDI as u32, 0, 14]);
+    }
+
+    #[test]
+    fn expr_parentheses_override_precedence() {
+        // (2 + 3) * 4 = 20
+        let asm = assemble("LDI r0, (2+3)*4").unwrap();
+        assert_eq!(asm.pixels, vec![op::LDI as u32, 0, 20]);
+    }
+
+    #[test]
+    fn expr_complex() {
+        // (10 - 2) * (3 + 4) = 8 * 7 = 56
+        let asm = assemble("LDI r0, (10-2)*(3+4)").unwrap();
+        assert_eq!(asm.pixels, vec![op::LDI as u32, 0, 56]);
+    }
+
+    #[test]
+    fn expr_spaces_around_operators() {
+        let asm = assemble("LDI r0, 2 + 3").unwrap();
+        assert_eq!(asm.pixels, vec![op::LDI as u32, 0, 5]);
+    }
+
+    #[test]
+    fn expr_chained_additions() {
+        // 1 + 2 + 3 + 4 = 10
+        let asm = assemble("LDI r0, 1+2+3+4").unwrap();
+        assert_eq!(asm.pixels, vec![op::LDI as u32, 0, 10]);
+    }
+
+    #[test]
+    fn expr_with_hex_in_addition() {
+        // 0x10 + 0x20 = 48
+        let asm = assemble("LDI r0, 0x10+0x20").unwrap();
+        assert_eq!(asm.pixels, vec![op::LDI as u32, 0, 48]);
+    }
+
+    #[test]
+    fn expr_in_rectf() {
+        // Expression should work in any immediate argument
+        // RECTF has width 5: opcode, x, y, w, h
+        let asm = assemble("RECTF r0, r1, 10+5, 20+3").unwrap();
+        assert_eq!(asm.pixels[3], 15); // w = 10+5 = 15
+        assert_eq!(asm.pixels[4], 23); // h = 20+3 = 23
+    }
+
+    #[test]
+    fn expr_in_ldi_runs_correctly() {
+        // LDI r0, 2+3 should produce r0=5 when executed
+        let src = "\
+            LDI r0, 2+3\n\
+            HALT\n\
+        ";
+        let asm = assemble(src).unwrap();
+        let mut vm = crate::vm::Vm::new(4096);
+        vm.load_program(&asm.pixels);
+        vm.run();
+        assert!(vm.halted);
+        assert_eq!(vm.regs[0], 5);
     }
 }

@@ -91,7 +91,7 @@
 - [x] Demo: simple animation (bouncing pixel)
 
 **Batch 2 -- Assembler Improvements:**
-- [ ] Expression evaluation in immediates (`LDI r0, 2+3`)
+- [x] Expression evaluation in immediates (`LDI r0, 2+3`)
 - [ ] String constants (`.asciz "hello"`) for TEXT opcode
 - [ ] `.data` / `.text` section directives
 - [ ] `.include "lib.gasm"` directive
