@@ -32,7 +32,7 @@ impl From<u32> for Priority {
 }
 
 /// A work item created by a VM program.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Issue {
     /// Monotonically increasing ID assigned by the forge.
     pub id: u64,
@@ -47,7 +47,7 @@ pub struct Issue {
 }
 
 /// The forge issue queue. Collects issues created by VM programs.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ForgeQueue {
     issues: Vec<Issue>,
     next_id: u64,

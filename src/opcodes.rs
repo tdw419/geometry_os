@@ -78,7 +78,8 @@ pub mod op {
 pub fn width(opcode: u8) -> usize {
     match opcode {
         op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE => 1,
-        op::CALL | op::JMP | op::INT | op::NOT | op::PUSH | op::POP => 2,
+        op::CALL | op::JMP | op::INT | op::NOT | op::PUSH | op::POP
+        | op::EDIT_DELETE => 2,
         op::ADD | op::BRANCH | op::DIV | op::EXEC | op::LDI | op::SHL
         | op::LOAD | op::MOV | op::OR | op::SPAWN | op::STORE | op::SUB
         | op::AND | op::MOD | op::LDB | op::PGET | op::SHR

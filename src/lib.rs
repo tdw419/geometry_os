@@ -1,6 +1,11 @@
 pub mod opcodes;
+pub mod pixel;
+pub mod color_map;
+pub mod font;
 pub mod vm;
 pub mod forge;
 pub mod editor;
 pub mod assembler;
 pub mod agent;
+pub mod shell;
+pub mod window_manager;

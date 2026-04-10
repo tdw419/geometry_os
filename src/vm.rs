@@ -25,11 +25,115 @@ const NUM_REGS: usize = 32;
 const STACK_SIZE: usize = 256;
 pub const MAX_CYCLES: u32 = 4096;
 
+// ═══════════════════════════════════════════════════════════════════════
+// VM ERROR TYPES
+//
+// Distinguishable error variants for VM execution failures.
+// Each variant captures enough context to diagnose the root cause.
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Errors that can occur during VM execution.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VmError {
+    /// The register index exceeds NUM_REGS (32).
+    /// Fields: (instruction_address, register_index)
+    RegisterOutOfRange(u32, u32),
+
+    /// An unknown/invalid opcode byte was encountered.
+    /// Fields: (instruction_address, opcode_byte)
+    UnknownOpcode(u32, u8),
+
+    /// The instruction stream is truncated — the opcode was present but
+    /// not enough operand pixels followed.
+    /// Fields: (instruction_address, opcode_byte, expected_width, available_pixels)
+    TruncatedInstruction(u32, u8, usize, usize),
+
+    /// An EDIT_OVW (or similar) targeted an address beyond a reasonable bound.
+    /// Fields: (instruction_address, target_address, ram_size)
+    AddressOutOfBounds(u32, usize, usize),
+
+    /// RECTF was called with a zero or negative dimension (width or height = 0).
+    /// Fields: (instruction_address, width, height)
+    InvalidRectDimensions(u32, i32, i32),
+
+    /// Stack overflow: push/CALL exceeded the stack limit.
+    StackOverflow(u32),
+
+    /// Division by zero was attempted.
+    /// Fields: (instruction_address)
+    DivisionByZero(u32),
+}
+
+impl std::fmt::Display for VmError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VmError::RegisterOutOfRange(pc, reg) => {
+                write!(f, "register r{} out of range at PC={}", reg, pc)
+            }
+            VmError::UnknownOpcode(pc, op_byte) => {
+                write!(f, "unknown opcode 0x{:02X} at PC={}", op_byte, pc)
+            }
+            VmError::TruncatedInstruction(pc, op_byte, expected, available) => {
+                write!(
+                    f,
+                    "truncated instruction: opcode 0x{:02X} needs {} pixels but only {} available at PC={}",
+                    op_byte, expected, available, pc
+                )
+            }
+            VmError::AddressOutOfBounds(pc, addr, ram_size) => {
+                write!(
+                    f,
+                    "address {} out of bounds (RAM size {}) at PC={}",
+                    addr, ram_size, pc
+                )
+            }
+            VmError::InvalidRectDimensions(pc, w, h) => {
+                write!(
+                    f,
+                    "invalid RECTF dimensions {}x{} at PC={}",
+                    w, h, pc
+                )
+            }
+            VmError::StackOverflow(pc) => {
+                write!(f, "stack overflow at PC={}", pc)
+            }
+            VmError::DivisionByZero(pc) => {
+                write!(f, "division by zero at PC={}", pc)
+            }
+        }
+    }
+}
+
+impl std::error::Error for VmError {}
+
 /// A child VM spawned by Q (SPAWN) or Z (SPATIAL_SPAWN).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ChildVm {
     pub start_addr: u32,
     pub arg: u32,
+}
+
+/// A complete snapshot of VM state for serialization and restoration.
+#[derive(Debug, Clone, PartialEq)]
+pub struct VmSnapshot {
+    /// All 32 general-purpose registers
+    pub regs: [u32; NUM_REGS],
+    /// Program counter
+    pub pc: u32,
+    /// Stack contents
+    pub stack: Vec<u32>,
+    /// Full memory contents
+    pub ram: Vec<u32>,
+    /// Halt flag
+    pub halted: bool,
+    /// Yield flag
+    pub yielded: bool,
+    /// Screen buffer (256x256)
+    pub screen: Vec<u32>,
+    /// Children VMs
+    pub children: Vec<ChildVm>,
+    /// Forge queue state
+    pub forge: ForgeQueue,
 }
 
 /// The VM.
@@ -89,29 +193,133 @@ impl Vm {
         self.ram.get(addr).copied().unwrap_or(0)
     }
 
+    // ── Public accessors for testing ──────────────────────────────────
+
+    /// Get the value of a register by index.
+    pub fn get_reg(&self, idx: usize) -> u32 {
+        if idx < NUM_REGS {
+            self.regs[idx]
+        } else {
+            0
+        }
+    }
+
+    /// Get the current program counter value.
+    pub fn get_pc(&self) -> u32 {
+        self.pc
+    }
+
+    /// Check if the VM is halted.
+    pub fn is_halted(&self) -> bool {
+        self.halted
+    }
+
+    /// Check if the VM has yielded.
+    pub fn is_yielded(&self) -> bool {
+        self.yielded
+    }
+
+    /// Get a reference to the registers array.
+    pub fn regs(&self) -> &[u32; NUM_REGS] {
+        &self.regs
+    }
+
+    /// Create a child VM from a ChildVm request.
+    ///
+    /// The child gets a clone of the parent's RAM (shared state snapshot),
+    /// its own registers, PC set to `start_addr`, r0 set to `arg`,
+    /// and its own screen buffer (initially transparent/black).
+    pub fn spawn_child(&self, child: &ChildVm) -> Self {
+        let mut vm = Self {
+            ram: self.ram.clone(),
+            regs: [0; NUM_REGS],
+            pc: child.start_addr,
+            stack: Vec::with_capacity(STACK_SIZE),
+            halted: false,
+            yielded: false,
+            children: Vec::new(),
+            screen: vec![0; 256 * 256],
+            forge: ForgeQueue::new(),
+        };
+        // Pass the arg to the child in r0
+        vm.regs[0] = child.arg;
+        vm
+    }
+
+    /// Composite another VM's screen onto this VM's screen.
+    /// Non-black pixels from the source overwrite this screen.
+    pub fn composite_screen(&mut self, source: &Vm) {
+        for i in 0..(256 * 256) {
+            if source.screen[i] != 0 {
+                self.screen[i] = source.screen[i];
+            }
+        }
+    }
+
+    /// Drain children produced during the last run cycle.
+    /// The host calls this after `run()` to collect child spawn requests.
+    pub fn drain_children(&mut self) -> Vec<ChildVm> {
+        std::mem::take(&mut self.children)
+    }
+
+    /// Create a complete snapshot of the VM state.
+    /// Captures all registers, PC, stack, memory, flags, screen, children, and forge queue.
+    pub fn snapshot(&self) -> VmSnapshot {
+        VmSnapshot {
+            regs: self.regs,
+            pc: self.pc,
+            stack: self.stack.clone(),
+            ram: self.ram.clone(),
+            halted: self.halted,
+            yielded: self.yielded,
+            screen: self.screen.clone(),
+            children: self.children.clone(),
+            forge: self.forge.clone(),
+        }
+    }
+
+    /// Restore the VM state from a snapshot.
+    /// Replaces all registers, PC, stack, memory, flags, screen, children, and forge queue.
+    pub fn restore(&mut self, snapshot: &VmSnapshot) {
+        self.regs = snapshot.regs;
+        self.pc = snapshot.pc;
+        self.stack = snapshot.stack.clone();
+        self.ram = snapshot.ram.clone();
+        self.halted = snapshot.halted;
+        self.yielded = snapshot.yielded;
+        self.screen = snapshot.screen.clone();
+        self.children = snapshot.children.clone();
+        self.forge = snapshot.forge.clone();
+    }
+
     /// Run until halted, yielded, or MAX_CYCLES. Returns cycles executed.
+    /// Only counts actual instructions executed — PC-out-of-bounds halts
+    /// are not counted.
     pub fn run(&mut self) -> u32 {
         let mut cycles = 0u32;
         self.yielded = false;
         self.children.clear();
 
         while !self.halted && !self.yielded && cycles < MAX_CYCLES {
-            self.step();
-            cycles += 1;
+            if self.step() {
+                cycles += 1;
+            }
         }
         cycles
     }
 
     /// Execute one instruction at the current PC.
-    pub fn step(&mut self) {
+    /// Returns `true` if an instruction was executed, `false` if the VM
+    /// was already halted or PC was out of bounds (no instruction executed).
+    pub fn step(&mut self) -> bool {
         if self.halted {
-            return;
+            return false;
         }
 
         let pc = self.pc as usize;
         if pc >= self.ram.len() {
             self.halted = true;
-            return;
+            return false;
         }
 
         let opcode = (self.ram[pc] & 0xFF) as u8;
@@ -125,6 +333,748 @@ impl Vm {
 
         // Advance PC: if execute returned None, advance by instruction width
         self.pc = new_pc.unwrap_or_else(|| (self.pc as usize + w) as u32);
+        true
+    }
+
+    /// Run until halted, yielded, MAX_CYCLES, or an error.
+    /// Returns Ok(cycles) on normal termination, or Err(VmError) on the
+    /// first validation failure.
+    pub fn run_checked(&mut self) -> Result<u32, VmError> {
+        let mut cycles = 0u32;
+        self.yielded = false;
+        self.children.clear();
+
+        while !self.halted && !self.yielded && cycles < MAX_CYCLES {
+            self.step_checked()?;
+            cycles += 1;
+        }
+        Ok(cycles)
+    }
+
+    /// Execute one instruction with full argument validation.
+    /// Returns Err(VmError) instead of silently ignoring bad inputs.
+    /// The original step() is preserved for backward compatibility.
+    pub fn step_checked(&mut self) -> Result<(), VmError> {
+        if self.halted {
+            return Ok(());
+        }
+
+        let pc = self.pc as usize;
+        if pc >= self.ram.len() {
+            self.halted = true;
+            return Ok(());
+        }
+
+        let opcode = (self.ram[pc] & 0xFF) as u8;
+        let w = opcodes::width(opcode);
+
+        // ── Truncated instruction check ──────────────────────────────
+        let available = if self.ram.len() > pc {
+            self.ram.len() - pc
+        } else {
+            0
+        };
+        if available < w {
+            return Err(VmError::TruncatedInstruction(
+                self.pc, opcode, w, available,
+            ));
+        }
+
+        // Collect argument pixels
+        let args = self.read_args(pc, w);
+
+        // ── Unknown opcode check ─────────────────────────────────────
+        if !opcodes::is_valid(opcode) {
+            // Still advance PC so the VM doesn't loop forever
+            self.pc = (self.pc as usize + w) as u32;
+            return Err(VmError::UnknownOpcode(self.pc, opcode));
+        }
+
+        // ── Per-opcode validation + execution ────────────────────────
+        let result = self.execute_checked(opcode, &args)?;
+
+        // Advance PC: if execute returned None, advance by instruction width
+        self.pc = result.unwrap_or_else(|| (self.pc as usize + w) as u32);
+        Ok(())
+    }
+
+    /// Validated execution.  Checks register ranges, addresses, and other
+    /// constraints before performing the operation.
+    fn execute_checked(&mut self, opcode: u8, args: &[u32]) -> Result<Option<u32>, VmError> {
+        let pc = self.pc;
+
+        match opcode {
+            // ── N (0x4E): NOP ─────────────────────
+            op::NOP => Ok(None),
+
+            // ── H (0x48): HALT ────────────────────
+            op::HALT => {
+                self.halted = true;
+                Ok(None)
+            },
+
+            // ── Y (0x59): YIELD ───────────────────
+            op::YIELD => {
+                self.yielded = true;
+                Ok(None)
+            },
+
+            // ── R (0x52): RET ─────────────────────
+            op::RET => {
+                match self.stack.pop() {
+                    Some(addr) => Ok(Some(addr)),
+                    None => {
+                        self.halted = true;
+                        Ok(None)
+                    }
+                }
+            },
+
+            // ── I (0x49): LDI dst, value ──────────
+            op::LDI => {
+                let dst = self.reg_idx(args[0]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                self.regs[dst] = args[1];
+                Ok(None)
+            },
+
+            // ── M (0x4D): MOV dst, src ────────────
+            op::MOV => {
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                self.regs[dst] = self.regs[src];
+                Ok(None)
+            },
+
+            // ── L (0x4C): LOAD dst, addr ──────────
+            op::LOAD => {
+                let dst = self.reg_idx(args[0]);
+                let addr_reg = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if addr_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, addr_reg as u32));
+                }
+                let src_addr = self.regs[addr_reg] as usize;
+                self.regs[dst] = self.peek(src_addr);
+                Ok(None)
+            },
+
+            // ── S (0x53): STORE addr, src ──────────
+            op::STORE => {
+                let addr_reg = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if addr_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, addr_reg as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                let dst_addr = self.regs[addr_reg] as usize;
+                self.poke(dst_addr, self.regs[src]);
+                Ok(None)
+            },
+
+            // ── A (0x41): ADD dst, src ────────────
+            op::ADD => {
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                self.regs[dst] = self.regs[dst].wrapping_add(self.regs[src]);
+                Ok(None)
+            },
+
+            // ── U (0x55): SUB dst, src ────────────
+            op::SUB => {
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                self.regs[dst] = self.regs[dst].wrapping_sub(self.regs[src]);
+                Ok(None)
+            },
+
+            // ── m (0x6D): MUL dst, src ────────────
+            op::MUL => {
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                self.regs[dst] = self.regs[dst].wrapping_mul(self.regs[src]);
+                Ok(None)
+            },
+
+            // ── D (0x44): DIV dst, src ────────────
+            op::DIV => {
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                let divisor = self.regs[src];
+                if divisor == 0 {
+                    return Err(VmError::DivisionByZero(pc));
+                }
+                self.regs[dst] /= divisor;
+                Ok(None)
+            },
+
+            // ── b (0x62): MOD dst, src ────────────
+            op::MOD => {
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                let divisor = self.regs[src];
+                if divisor == 0 {
+                    return Err(VmError::DivisionByZero(pc));
+                }
+                self.regs[dst] %= divisor;
+                Ok(None)
+            },
+
+            // ── O (0x4F): OR dst, src ─────────────
+            op::OR => {
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                self.regs[dst] |= self.regs[src];
+                Ok(None)
+            },
+
+            // ── a (0x61): AND dst, src ────────────
+            op::AND => {
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                self.regs[dst] &= self.regs[src];
+                Ok(None)
+            },
+
+            // ── X (0x58): XOR dst, src ────────────
+            op::XOR => {
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                self.regs[dst] ^= self.regs[src];
+                Ok(None)
+            },
+
+            // ── n (0x6E): NOT dst ─────────────────
+            op::NOT => {
+                let dst = self.reg_idx(args[0]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                self.regs[dst] = !self.regs[dst];
+                Ok(None)
+            },
+
+            // ── K (0x4B): SHL dst, amount ─────────
+            op::SHL => {
+                let dst = self.reg_idx(args[0]);
+                let amt_reg = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if amt_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, amt_reg as u32));
+                }
+                self.regs[dst] <<= self.regs[amt_reg];
+                Ok(None)
+            },
+
+            // ── k (0x6B): SHR dst, amount ─────────
+            op::SHR => {
+                let dst = self.reg_idx(args[0]);
+                let amt_reg = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if amt_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, amt_reg as u32));
+                }
+                self.regs[dst] >>= self.regs[amt_reg];
+                Ok(None)
+            },
+
+            // ── J (0x4A): JMP addr ────────────────
+            op::JMP => Ok(Some(args[0])),
+
+            // ── B (0x42): BRANCH cond, addr ───────
+            op::BRANCH => {
+                let cond_pixel = args[0];
+                let target = args[1];
+                let cond = (cond_pixel & 0xFF) as u8;
+                let r1 = self.reg_idx((cond_pixel >> 16) & 0xFF);
+                let r2 = self.reg_idx((cond_pixel >> 24) & 0xFF);
+
+                if r1 >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, r1 as u32));
+                }
+                if r2 >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, r2 as u32));
+                }
+
+                let a = self.regs[r1];
+                let b = self.regs[r2];
+
+                let taken = match cond {
+                    0 => a == b,                    // BEQ
+                    1 => a != b,                    // BNE
+                    2 => (a as i32) < (b as i32),   // BLT
+                    3 => (a as i32) >= (b as i32),  // BGE
+                    4 => a < b,                     // BLTU
+                    5 => a >= b,                    // BGEU
+                    _ => false,
+                };
+
+                if taken {
+                    Ok(Some(target))
+                } else {
+                    Ok(None)
+                }
+            },
+
+            // ── C (0x43): CALL addr ───────────────
+            op::CALL => {
+                let target = args[0];
+                let w = opcodes::width(op::CALL) as u32;
+                if self.stack.len() >= STACK_SIZE {
+                    return Err(VmError::StackOverflow(pc));
+                }
+                self.stack.push(self.pc + w);
+                Ok(Some(target))
+            },
+
+            // ── E (0x45): EXEC addr, arg ──────────
+            op::EXEC => {
+                let addr_reg = self.reg_idx(args[0]);
+                let _arg = args[1];
+                if addr_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, addr_reg as u32));
+                }
+                let target = self.regs[addr_reg];
+                Ok(Some(target))
+            },
+
+            // ── F (0x46): RECTF x, y, w, h ────────
+            op::RECTF => {
+                let x_reg = self.reg_idx(args[0]);
+                let y_reg = self.reg_idx(args[1]);
+                let w_val = args[2];
+                let h_val = args[3];
+                if x_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, x_reg as u32));
+                }
+                if y_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, y_reg as u32));
+                }
+                // Validate dimensions: zero or "negative" (high-bit set) counts
+                let w_signed = w_val as i32;
+                let h_signed = h_val as i32;
+                if w_signed <= 0 || h_signed <= 0 {
+                    return Err(VmError::InvalidRectDimensions(pc, w_signed, h_signed));
+                }
+                let x0 = self.regs[x_reg] as usize;
+                let y0 = self.regs[y_reg] as usize;
+                let color = self.regs[0];
+                for dy in 0..h_val as usize {
+                    for dx in 0..w_val as usize {
+                        let px = x0 + dx;
+                        let py = y0 + dy;
+                        if px < 256 && py < 256 {
+                            self.screen[py * 256 + px] = color;
+                        }
+                    }
+                }
+                Ok(None)
+            },
+
+            // ── G (0x47): CIRCLEF cx, cy, r ───────
+            op::CIRCLEF => {
+                let cx_reg = self.reg_idx(args[0]);
+                let cy_reg = self.reg_idx(args[1]);
+                let r = args[2] as i32;
+                if cx_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, cx_reg as u32));
+                }
+                if cy_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, cy_reg as u32));
+                }
+                let cx = self.regs[cx_reg] as i32;
+                let cy = self.regs[cy_reg] as i32;
+                let color = self.regs[0];
+                for dy in -r..=r {
+                    for dx in -r..=r {
+                        if dx * dx + dy * dy <= r * r {
+                            let px = cx + dx;
+                            let py = cy + dy;
+                            if px >= 0 && px < 256 && py >= 0 && py < 256 {
+                                self.screen[(py as usize) * 256 + (px as usize)] = color;
+                            }
+                        }
+                    }
+                }
+                Ok(None)
+            },
+
+            // ── V (0x56): LINE x1, y1, x2, y2 ────
+            op::LINE => {
+                let x1_reg = self.reg_idx(args[0]);
+                let y1_reg = self.reg_idx(args[1]);
+                let x2_val = args[2] as i32;
+                let y2_val = args[3] as i32;
+                if x1_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, x1_reg as u32));
+                }
+                if y1_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, y1_reg as u32));
+                }
+                let x0 = self.regs[x1_reg] as i32;
+                let y0 = self.regs[y1_reg] as i32;
+                let color = self.regs[0];
+                let dx = (x2_val - x0).abs();
+                let dy = -(y2_val - y0).abs();
+                let sx = if x0 < x2_val { 1 } else { -1 };
+                let sy = if y0 < y2_val { 1 } else { -1 };
+                let mut err = dx + dy;
+                let mut cx = x0;
+                let mut cy = y0;
+                loop {
+                    if cx >= 0 && cx < 256 && cy >= 0 && cy < 256 {
+                        self.screen[(cy as usize) * 256 + (cx as usize)] = color;
+                    }
+                    if cx == x2_val && cy == y2_val { break; }
+                    let e2 = 2 * err;
+                    if e2 >= dy { err += dy; cx += sx; }
+                    if e2 <= dx { err += dx; cy += sy; }
+                }
+                Ok(None)
+            },
+
+            // ── W (0x57): BLIT dst, src, count ────
+            op::BLIT => {
+                let dst_reg = self.reg_idx(args[0]);
+                let src_reg = self.reg_idx(args[1]);
+                let count = args[2] as usize;
+                if dst_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst_reg as u32));
+                }
+                if src_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src_reg as u32));
+                }
+                let dst = self.regs[dst_reg] as usize;
+                let src = self.regs[src_reg] as usize;
+                for i in 0..count {
+                    self.poke(dst + i, self.peek(src + i));
+                }
+                Ok(None)
+            },
+
+            // ── T (0x54): TEXT x_reg, y_reg, str_addr_reg ─────
+            op::TEXT => {
+                let x_reg = self.reg_idx(args[0]);
+                let y_reg = self.reg_idx(args[1]);
+                let str_addr_reg = self.reg_idx(args[2]);
+                if x_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, x_reg as u32));
+                }
+                if y_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, y_reg as u32));
+                }
+                if str_addr_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, str_addr_reg as u32));
+                }
+                // Delegate to the existing text rendering logic
+                let x0 = self.regs[x_reg] as usize;
+                let y0 = self.regs[y_reg] as usize;
+                let str_start = self.regs[str_addr_reg] as usize;
+                let color = self.regs[0];
+                // Render null-terminated string from RAM using the font module
+                let mut pos = str_start;
+                let mut screen_x = x0;
+                loop {
+                    let ch = self.peek(pos);
+                    if ch == 0 { break; }
+                    crate::font::render_char(
+                        &mut self.screen, 256, 256,
+                        (ch & 0xFF) as u8,
+                        screen_x, y0,
+                        1,       // 1x scale (native 5x7)
+                        color,
+                        None,    // transparent background
+                    );
+                    screen_x += crate::font::GLYPH_W + 1; // advance by glyph width + 1px gap
+                    pos += 1;
+                }
+                Ok(None)
+            },
+
+            // ── P (0x50): PSET x, y, color ────────
+            op::PSET => {
+                let x_reg = self.reg_idx(args[0]);
+                let y_reg = self.reg_idx(args[1]);
+                let color = args[2];
+                if x_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, x_reg as u32));
+                }
+                if y_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, y_reg as u32));
+                }
+                let x0 = self.regs[x_reg] as usize;
+                let y0 = self.regs[y_reg] as usize;
+                if x0 < 256 && y0 < 256 {
+                    self.screen[y0 * 256 + x0] = color;
+                }
+                Ok(None)
+            },
+
+            // ── g (0x67): PGET x, y ───────────────
+            op::PGET => {
+                let x_reg = self.reg_idx(args[0]);
+                let y_reg = self.reg_idx(args[1]);
+                if x_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, x_reg as u32));
+                }
+                if y_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, y_reg as u32));
+                }
+                let x0 = self.regs[x_reg] as usize;
+                let y0 = self.regs[y_reg] as usize;
+                if x0 < 256 && y0 < 256 {
+                    self.regs[0] = self.screen[y0 * 256 + x0];
+                } else {
+                    self.regs[0] = 0;
+                }
+                Ok(None)
+            },
+
+            // ── Q (0x51): SPAWN addr, arg ──────────
+            op::SPAWN => {
+                let addr = args[0];
+                let arg = args[1];
+                self.children.push(ChildVm { start_addr: addr, arg });
+                Ok(None)
+            },
+
+            // ── Z (0x5A): SPATIAL_SPAWN x, y, addr ─
+            op::SPATIAL_SPAWN => {
+                let x = args[0];
+                let y = args[1];
+                let addr = args[2];
+                self.children.push(ChildVm { start_addr: addr, arg: (y << 16) | (x & 0xFFFF) });
+                Ok(None)
+            },
+
+            // ── p (0x70): PUSH value ───────────────
+            op::PUSH => {
+                let val_reg = self.reg_idx(args[0]);
+                if val_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, val_reg as u32));
+                }
+                if self.stack.len() >= STACK_SIZE {
+                    return Err(VmError::StackOverflow(pc));
+                }
+                self.stack.push(self.regs[val_reg]);
+                Ok(None)
+            },
+
+            // ── r (0x72): POP dst ─────────────────
+            op::POP => {
+                let dst = self.reg_idx(args[0]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if let Some(val) = self.stack.pop() {
+                    self.regs[dst] = val;
+                }
+                Ok(None)
+            },
+
+            // ── c (0x63): ISSUE_CREATE ────────────
+            op::ISSUE_CREATE => {
+                let tag = self.regs[0];
+                let payload = self.regs[1];
+                let priority_raw = self.regs[2];
+                let id = self.forge.post_issue(
+                    self.pc,
+                    tag,
+                    payload,
+                    priority_raw,
+                );
+                self.regs[0] = id as u32;
+                Ok(None)
+            },
+
+            // ── e (0x65): EDIT_OVERWRITE addr, src ──
+            op::EDIT_OVERWRITE => {
+                let addr_reg = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if addr_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, addr_reg as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                let addr = self.regs[addr_reg] as usize;
+                // Validate that the target address is within current RAM bounds
+                if addr >= self.ram.len() {
+                    return Err(VmError::AddressOutOfBounds(pc, addr, self.ram.len()));
+                }
+                self.poke(addr, self.regs[src]);
+                Ok(None)
+            },
+
+            // ── f (0x66): EDIT_INSERT addr, src ────
+            op::EDIT_INSERT => {
+                let addr_reg = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if addr_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, addr_reg as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                let addr = self.regs[addr_reg] as usize;
+                let value = self.regs[src];
+                if addr < self.ram.len() {
+                    self.ram.insert(addr, value);
+                } else {
+                    self.ram.push(value);
+                }
+                Ok(None)
+            },
+
+            // ── j (0x6A): EDIT_DELETE addr ─────────
+            op::EDIT_DELETE => {
+                let addr_reg = self.reg_idx(args[0]);
+                if addr_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, addr_reg as u32));
+                }
+                let addr = self.regs[addr_reg] as usize;
+                if addr < self.ram.len() {
+                    self.ram.remove(addr);
+                    if addr < self.pc as usize {
+                        self.pc = self.pc.saturating_sub(1);
+                    }
+                }
+                Ok(None)
+            },
+
+            // ── l (0x6C): EDIT_BLIT dst, src, count
+            op::EDIT_BLIT => {
+                let dst_reg = self.reg_idx(args[0]);
+                let src_reg = self.reg_idx(args[1]);
+                let count_reg = self.reg_idx(args[2]);
+                if dst_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst_reg as u32));
+                }
+                if src_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src_reg as u32));
+                }
+                if count_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, count_reg as u32));
+                }
+                let dst_addr = self.regs[dst_reg] as usize;
+                let src_addr = self.regs[src_reg] as usize;
+                let count = self.regs[count_reg] as usize;
+                for i in 0..count {
+                    let val = self.peek(src_addr + i);
+                    self.poke(dst_addr + i, val);
+                }
+                Ok(None)
+            },
+
+            // ── d (0x64): LDB dst, addr ───────────
+            op::LDB => {
+                let dst = self.reg_idx(args[0]);
+                let addr_reg = self.reg_idx(args[1]);
+                if dst >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, dst as u32));
+                }
+                if addr_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, addr_reg as u32));
+                }
+                let byte_addr = self.regs[addr_reg] as usize;
+                let pixel_idx = byte_addr / 4;
+                let byte_off = byte_addr % 4;
+                let pixel = self.peek(pixel_idx);
+                self.regs[dst] = (pixel >> (byte_off * 8)) & 0xFF;
+                Ok(None)
+            },
+
+            // ── s (0x73): STB addr, src ───────────
+            op::STB => {
+                let addr_reg = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
+                if addr_reg >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, addr_reg as u32));
+                }
+                if src >= NUM_REGS {
+                    return Err(VmError::RegisterOutOfRange(pc, src as u32));
+                }
+                let byte_addr = self.regs[addr_reg] as usize;
+                let pixel_idx = byte_addr / 4;
+                let byte_off = byte_addr % 4;
+                let byte_val = self.regs[src] & 0xFF;
+                let mut pixel = self.peek(pixel_idx);
+                let mask = !(0xFFu32 << (byte_off * 8));
+                pixel = (pixel & mask) | (byte_val << (byte_off * 8));
+                self.poke(pixel_idx, pixel);
+                Ok(None)
+            },
+
+            // ── i (0x69): INT vector ──────────────
+            op::INT => Ok(None),
+
+            // ── Unknown: error ────────────────────
+            _ => Err(VmError::UnknownOpcode(pc, opcode)),
+        }
     }
 
     /// Read (width - 1) argument pixels after the opcode pixel.
@@ -135,6 +1085,17 @@ impl Vm {
             args.push(self.peek(addr));
         }
         args
+    }
+
+    /// Map a pixel value to a register index (0..31).
+    /// Following the spec: 0x30 ('0') maps to r0.
+    fn reg_idx(&self, pixel: u32) -> usize {
+        let val = (pixel & 0xFF) as usize;
+        if val >= 0x30 {
+            val.saturating_sub(0x30)
+        } else {
+            val
+        }
     }
 
     /// Execute an opcode with its argument pixels. Returns Some(new_pc) if a jump occurred.
@@ -169,7 +1130,7 @@ impl Vm {
             // ── I (0x49): LDI dst, value ──────────
             // width 3: args[0]=dst_reg, args[1]=immediate_value
             op::LDI => {
-                let dst = args[0] as usize;
+                let dst = self.reg_idx(args[0]);
                 let val = args[1];
                 if dst < NUM_REGS {
                     self.regs[dst] = val;
@@ -179,8 +1140,8 @@ impl Vm {
 
             // ── M (0x4D): MOV dst, src ────────────
             op::MOV => {
-                let dst = args[0] as usize;
-                let src = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if dst < NUM_REGS && src < NUM_REGS {
                     self.regs[dst] = self.regs[src];
                 }
@@ -190,8 +1151,8 @@ impl Vm {
             // ── L (0x4C): LOAD dst, addr ──────────
             // args[0]=dst_reg, args[1]=addr_reg → load from ram[regs[addr_reg]]
             op::LOAD => {
-                let dst = args[0] as usize;
-                let addr_reg = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let addr_reg = self.reg_idx(args[1]);
                 if dst < NUM_REGS && addr_reg < NUM_REGS {
                     let src_addr = self.regs[addr_reg] as usize;
                     self.regs[dst] = self.peek(src_addr);
@@ -201,8 +1162,8 @@ impl Vm {
 
             // ── S (0x53): STORE addr, src ──────────
             op::STORE => {
-                let addr_reg = args[0] as usize;
-                let src = args[1] as usize;
+                let addr_reg = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if addr_reg < NUM_REGS && src < NUM_REGS {
                     let dst_addr = self.regs[addr_reg] as usize;
                     self.poke(dst_addr, self.regs[src]);
@@ -212,8 +1173,8 @@ impl Vm {
 
             // ── A (0x41): ADD dst, src ────────────
             op::ADD => {
-                let dst = args[0] as usize;
-                let src = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if dst < NUM_REGS && src < NUM_REGS {
                     self.regs[dst] = self.regs[dst].wrapping_add(self.regs[src]);
                 }
@@ -222,8 +1183,8 @@ impl Vm {
 
             // ── U (0x55): SUB dst, src ────────────
             op::SUB => {
-                let dst = args[0] as usize;
-                let src = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if dst < NUM_REGS && src < NUM_REGS {
                     self.regs[dst] = self.regs[dst].wrapping_sub(self.regs[src]);
                 }
@@ -232,8 +1193,8 @@ impl Vm {
 
             // ── m (0x6D): MUL dst, src ────────────
             op::MUL => {
-                let dst = args[0] as usize;
-                let src = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if dst < NUM_REGS && src < NUM_REGS {
                     self.regs[dst] = self.regs[dst].wrapping_mul(self.regs[src]);
                 }
@@ -242,8 +1203,8 @@ impl Vm {
 
             // ── D (0x44): DIV dst, src ────────────
             op::DIV => {
-                let dst = args[0] as usize;
-                let src = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if dst < NUM_REGS && src < NUM_REGS {
                     let divisor = self.regs[src];
                     if divisor != 0 {
@@ -257,8 +1218,8 @@ impl Vm {
 
             // ── b (0x62): MOD dst, src ────────────
             op::MOD => {
-                let dst = args[0] as usize;
-                let src = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if dst < NUM_REGS && src < NUM_REGS {
                     let divisor = self.regs[src];
                     if divisor != 0 {
@@ -272,8 +1233,8 @@ impl Vm {
 
             // ── O (0x4F): OR dst, src ─────────────
             op::OR => {
-                let dst = args[0] as usize;
-                let src = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if dst < NUM_REGS && src < NUM_REGS {
                     self.regs[dst] |= self.regs[src];
                 }
@@ -282,8 +1243,8 @@ impl Vm {
 
             // ── a (0x61): AND dst, src ────────────
             op::AND => {
-                let dst = args[0] as usize;
-                let src = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if dst < NUM_REGS && src < NUM_REGS {
                     self.regs[dst] &= self.regs[src];
                 }
@@ -292,8 +1253,8 @@ impl Vm {
 
             // ── X (0x58): XOR dst, src ────────────
             op::XOR => {
-                let dst = args[0] as usize;
-                let src = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if dst < NUM_REGS && src < NUM_REGS {
                     self.regs[dst] ^= self.regs[src];
                 }
@@ -302,7 +1263,7 @@ impl Vm {
 
             // ── n (0x6E): NOT dst ─────────────────
             op::NOT => {
-                let dst = args[0] as usize;
+                let dst = self.reg_idx(args[0]);
                 if dst < NUM_REGS {
                     self.regs[dst] = !self.regs[dst];
                 }
@@ -311,8 +1272,8 @@ impl Vm {
 
             // ── K (0x4B): SHL dst, amount ─────────
             op::SHL => {
-                let dst = args[0] as usize;
-                let amt_reg = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let amt_reg = self.reg_idx(args[1]);
                 if dst < NUM_REGS && amt_reg < NUM_REGS {
                     self.regs[dst] <<= self.regs[amt_reg];
                 }
@@ -321,8 +1282,8 @@ impl Vm {
 
             // ── k (0x6B): SHR dst, amount ─────────
             op::SHR => {
-                let dst = args[0] as usize;
-                let amt_reg = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let amt_reg = self.reg_idx(args[1]);
                 if dst < NUM_REGS && amt_reg < NUM_REGS {
                     self.regs[dst] >>= self.regs[amt_reg];
                 }
@@ -343,8 +1304,8 @@ impl Vm {
                 let cond_pixel = args[0];
                 let target = args[1];
                 let cond = (cond_pixel & 0xFF) as u8;
-                let r1 = ((cond_pixel >> 16) & 0xFF) as usize;
-                let r2 = ((cond_pixel >> 24) & 0xFF) as usize;
+                let r1 = self.reg_idx((cond_pixel >> 16) & 0xFF);
+                let r2 = self.reg_idx((cond_pixel >> 24) & 0xFF);
 
                 if r1 >= NUM_REGS || r2 >= NUM_REGS {
                     return None;
@@ -381,7 +1342,7 @@ impl Vm {
             // ── E (0x45): EXEC addr, arg ──────────
             // Jump to address in register. arg pixel is unused for now.
             op::EXEC => {
-                let addr_reg = args[0] as usize;
+                let addr_reg = self.reg_idx(args[0]);
                 if addr_reg < NUM_REGS {
                     Some(self.regs[addr_reg])
                 } else {
@@ -391,8 +1352,8 @@ impl Vm {
 
             // ── Q (0x51): SPAWN addr, arg ─────────
             op::SPAWN => {
-                let addr_reg = args[0] as usize;
-                let arg_reg = args[1] as usize;
+                let addr_reg = self.reg_idx(args[0]);
+                let arg_reg = self.reg_idx(args[1]);
                 if addr_reg < NUM_REGS && arg_reg < NUM_REGS {
                     self.children.push(ChildVm {
                         start_addr: self.regs[addr_reg],
@@ -404,9 +1365,9 @@ impl Vm {
 
             // ── Z (0x5A): SPATIAL_SPAWN x, y, addr
             op::SPATIAL_SPAWN => {
-                let x_reg = args[0] as usize;
-                let y_reg = args[1] as usize;
-                let addr_reg = args[2] as usize;
+                let x_reg = self.reg_idx(args[0]);
+                let y_reg = self.reg_idx(args[1]);
+                let addr_reg = self.reg_idx(args[2]);
                 if x_reg < NUM_REGS && y_reg < NUM_REGS && addr_reg < NUM_REGS {
                     self.children.push(ChildVm {
                         start_addr: self.regs[addr_reg],
@@ -419,9 +1380,9 @@ impl Vm {
             // ── P (0x50): PSET x, y, color ────────
             // args are register indices
             op::PSET => {
-                let x_reg = args[0] as usize;
-                let y_reg = args[1] as usize;
-                let c_reg = args[2] as usize;
+                let x_reg = self.reg_idx(args[0]);
+                let y_reg = self.reg_idx(args[1]);
+                let c_reg = self.reg_idx(args[2]);
                 if x_reg < NUM_REGS && y_reg < NUM_REGS && c_reg < NUM_REGS {
                     let x = self.regs[x_reg] as usize;
                     let y = self.regs[y_reg] as usize;
@@ -435,9 +1396,9 @@ impl Vm {
 
             // ── g (0x67): PGET dst, x, y ──────────
             op::PGET => {
-                let dst = args[0] as usize;
-                let x_reg = args[1] as usize;
-                let y_reg = args[2] as usize;
+                let dst = self.reg_idx(args[0]);
+                let x_reg = self.reg_idx(args[1]);
+                let y_reg = self.reg_idx(args[2]);
                 if dst < NUM_REGS && x_reg < NUM_REGS && y_reg < NUM_REGS {
                     let x = self.regs[x_reg] as usize;
                     let y = self.regs[y_reg] as usize;
@@ -452,8 +1413,8 @@ impl Vm {
 
             // ── F (0x46): RECTF x, y, w, h ────────
             op::RECTF => {
-                let x_reg = args[0] as usize;
-                let y_reg = args[1] as usize;
+                let x_reg = self.reg_idx(args[0]);
+                let y_reg = self.reg_idx(args[1]);
                 let w_val = args[2];
                 let h_val = args[3];
                 if x_reg < NUM_REGS && y_reg < NUM_REGS {
@@ -475,8 +1436,8 @@ impl Vm {
 
             // ── V (0x56): LINE x1, y1, x2, y2 ────
             op::LINE => {
-                let x1_reg = args[0] as usize;
-                let y1_reg = args[1] as usize;
+                let x1_reg = self.reg_idx(args[0]);
+                let y1_reg = self.reg_idx(args[1]);
                 let x2_val = args[2] as i32;
                 let y2_val = args[3] as i32;
                 if x1_reg < NUM_REGS && y1_reg < NUM_REGS {
@@ -505,8 +1466,8 @@ impl Vm {
 
             // ── G (0x47): CIRCLEF cx, cy, r ───────
             op::CIRCLEF => {
-                let cx_reg = args[0] as usize;
-                let cy_reg = args[1] as usize;
+                let cx_reg = self.reg_idx(args[0]);
+                let cy_reg = self.reg_idx(args[1]);
                 let r = args[2] as i32;
                 if cx_reg < NUM_REGS && cy_reg < NUM_REGS {
                     let cx = self.regs[cx_reg] as i32;
@@ -529,8 +1490,8 @@ impl Vm {
 
             // ── W (0x57): BLIT dst, src, count ────
             op::BLIT => {
-                let dst_reg = args[0] as usize;
-                let src_reg = args[1] as usize;
+                let dst_reg = self.reg_idx(args[0]);
+                let src_reg = self.reg_idx(args[1]);
                 let count = args[2] as usize;
                 if dst_reg < NUM_REGS && src_reg < NUM_REGS {
                     let dst = self.regs[dst_reg] as usize;
@@ -542,14 +1503,52 @@ impl Vm {
                 None
             },
 
-            // ── T (0x54): TEXT x, y, str_addr ─────
-            // Stub: just a NOP for now, text rendering needs font data.
-            op::TEXT => None,
+            // ── T (0x54): TEXT x_reg, y_reg, str_addr_reg ─────
+            // width 4: args[0]=x_reg, args[1]=y_reg, args[2]=str_addr_reg
+            // Color comes from r0
+            op::TEXT => {
+                let x_reg = self.reg_idx(args[0]);
+                let y_reg = self.reg_idx(args[1]);
+                let str_addr_reg = self.reg_idx(args[2]);
+                if x_reg < NUM_REGS && y_reg < NUM_REGS && str_addr_reg < NUM_REGS {
+                    let x = self.regs[x_reg] as usize;
+                    let y = self.regs[y_reg] as usize;
+                    let str_addr = self.regs[str_addr_reg] as usize;
+                    let color = self.regs[0]; // r0 holds the color
+                    
+                    // Read null-terminated string from RAM
+                    let mut chars = Vec::new();
+                    let mut addr = str_addr;
+                    loop {
+                        let byte_val = self.peek(addr) as u8;
+                        if byte_val == 0 {
+                            break;
+                        }
+                        chars.push(byte_val);
+                        addr += 1;
+                    }
+                    
+                    // Convert to string and render
+                    let s = String::from_utf8_lossy(&chars);
+                    crate::font::render_str(
+                        &mut self.screen,
+                        256,
+                        256,
+                        &s,
+                        x,
+                        y,
+                        1, // scale = 1 (native 5x7)
+                        color,
+                        None, // no background
+                    );
+                }
+                None
+            },
 
             // ── d (0x64): LDB dst, addr ───────────
             op::LDB => {
-                let dst = args[0] as usize;
-                let addr_reg = args[1] as usize;
+                let dst = self.reg_idx(args[0]);
+                let addr_reg = self.reg_idx(args[1]);
                 if dst < NUM_REGS && addr_reg < NUM_REGS {
                     let byte_addr = self.regs[addr_reg] as usize;
                     let pixel_idx = byte_addr / 4;
@@ -562,8 +1561,8 @@ impl Vm {
 
             // ── s (0x73): STB addr, src ───────────
             op::STB => {
-                let addr_reg = args[0] as usize;
-                let src = args[1] as usize;
+                let addr_reg = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if addr_reg < NUM_REGS && src < NUM_REGS {
                     let byte_addr = self.regs[addr_reg] as usize;
                     let pixel_idx = byte_addr / 4;
@@ -579,7 +1578,7 @@ impl Vm {
 
             // ── p (0x70): PUSH value ──────────────
             op::PUSH => {
-                let val_reg = args[0] as usize;
+                let val_reg = self.reg_idx(args[0]);
                 if val_reg < NUM_REGS {
                     self.stack.push(self.regs[val_reg]);
                 }
@@ -588,7 +1587,7 @@ impl Vm {
 
             // ── r (0x72): POP dst ─────────────────
             op::POP => {
-                let dst = args[0] as usize;
+                let dst = self.reg_idx(args[0]);
                 if dst < NUM_REGS {
                     if let Some(val) = self.stack.pop() {
                         self.regs[dst] = val;
@@ -617,8 +1616,8 @@ impl Vm {
             // ── e (0x65): EDIT_OVERWRITE addr, src ──
             // Write pixel from regs[src] into ram[regs[addr]].
             op::EDIT_OVERWRITE => {
-                let addr_reg = args[0] as usize;
-                let src = args[1] as usize;
+                let addr_reg = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if addr_reg < NUM_REGS && src < NUM_REGS {
                     let addr = self.regs[addr_reg] as usize;
                     self.poke(addr, self.regs[src]);
@@ -629,8 +1628,8 @@ impl Vm {
             // ── f (0x66): EDIT_INSERT addr, src ────
             // Insert pixel from regs[src] at ram[regs[addr]], shifting right.
             op::EDIT_INSERT => {
-                let addr_reg = args[0] as usize;
-                let src = args[1] as usize;
+                let addr_reg = self.reg_idx(args[0]);
+                let src = self.reg_idx(args[1]);
                 if addr_reg < NUM_REGS && src < NUM_REGS {
                     let addr = self.regs[addr_reg] as usize;
                     let value = self.regs[src];
@@ -648,7 +1647,7 @@ impl Vm {
             // ── j (0x6A): EDIT_DELETE addr ─────────
             // Remove one pixel at ram[regs[addr]], shifting left.
             op::EDIT_DELETE => {
-                let addr_reg = args[0] as usize;
+                let addr_reg = self.reg_idx(args[0]);
                 if addr_reg < NUM_REGS {
                     let addr = self.regs[addr_reg] as usize;
                     if addr < self.ram.len() {
@@ -665,9 +1664,9 @@ impl Vm {
             // ── l (0x6C): EDIT_BLIT dst, src, count
             // Copy count pixels from ram[regs[src]] to ram[regs[dst]].
             op::EDIT_BLIT => {
-                let dst_reg = args[0] as usize;
-                let src_reg = args[1] as usize;
-                let count_reg = args[2] as usize;
+                let dst_reg = self.reg_idx(args[0]);
+                let src_reg = self.reg_idx(args[1]);
+                let count_reg = self.reg_idx(args[2]);
                 if dst_reg < NUM_REGS && src_reg < NUM_REGS && count_reg < NUM_REGS {
                     let dst_addr = self.regs[dst_reg] as usize;
                     let src_addr = self.regs[src_reg] as usize;
@@ -856,63 +1855,69 @@ mod tests {
 
     #[test]
     fn edit_insert_shifts_ram_right() {
-        // Insert value 77 at position 5, verify shift
+        // Insert value 77 at position 15, verify shift.
+        // Program is 10 pixels (LDI+LDI+EDIT_INSERT+HALT), so data must
+        // start past address 9 to survive load_program.
         let mut vm = Vm::new(32);
-        // Pre-populate ram[5..8] with [10, 20, 30]
-        vm.poke(5, 10);
-        vm.poke(6, 20);
-        vm.poke(7, 30);
+        // Pre-populate ram[15..18] with [10, 20, 30]
+        vm.poke(15, 10);
+        vm.poke(16, 20);
+        vm.poke(17, 30);
         vm.load_program(&[
-            op::LDI as u32, 0, 5,   // LDI r0, 5   (address)
+            op::LDI as u32, 0, 15,  // LDI r0, 15  (address)
             op::LDI as u32, 1, 77,  // LDI r1, 77  (value)
             op::EDIT_INSERT as u32, 0, 1,  // EDIT_INSERT r0, r1
             op::HALT as u32,
         ]);
         vm.run();
         assert!(vm.halted);
-        assert_eq!(vm.peek(5), 77);   // inserted value
-        assert_eq!(vm.peek(6), 10);   // shifted right
-        assert_eq!(vm.peek(7), 20);   // shifted right
-        assert_eq!(vm.peek(8), 30);   // shifted right
+        assert_eq!(vm.peek(15), 77);  // inserted value
+        assert_eq!(vm.peek(16), 10);  // shifted right
+        assert_eq!(vm.peek(17), 20);  // shifted right
+        assert_eq!(vm.peek(18), 30);  // shifted right
     }
 
     #[test]
     fn edit_delete_removes_pixel_from_ram() {
-        // Delete pixel at position 4, verify shift left
+        // Delete pixel at position 15, verify shift left.
+        // Program is 6 pixels (LDI+EDIT_DELETE+HALT), so data must
+        // start past address 5 to survive load_program.
         let mut vm = Vm::new(32);
-        vm.poke(4, 111);
-        vm.poke(5, 222);
-        vm.poke(6, 333);
+        vm.poke(15, 111);
+        vm.poke(16, 222);
+        vm.poke(17, 333);
         vm.load_program(&[
-            op::LDI as u32, 0, 4,   // LDI r0, 4   (address)
+            op::LDI as u32, 0, 15,  // LDI r0, 15  (address)
             op::EDIT_DELETE as u32, 0,  // EDIT_DELETE r0
             op::HALT as u32,
         ]);
         vm.run();
         assert!(vm.halted);
-        assert_eq!(vm.peek(4), 222);  // shifted left
-        assert_eq!(vm.peek(5), 333);  // shifted left
+        assert_eq!(vm.peek(15), 222);  // shifted left
+        assert_eq!(vm.peek(16), 333);  // shifted left
     }
 
     #[test]
     fn edit_blit_copies_pixel_range() {
-        // Copy 3 pixels from ram[10..13] to ram[20..23]
+        // Copy 3 pixels from ram[30..33] to ram[40..43].
+        // Program is 14 pixels (3*LDI + EDIT_BLIT + HALT), so src data
+        // must start past address 13 to survive load_program.
         let mut vm = Vm::new(64);
-        vm.poke(10, 100);
-        vm.poke(11, 200);
-        vm.poke(12, 300);
+        vm.poke(30, 100);
+        vm.poke(31, 200);
+        vm.poke(32, 300);
         vm.load_program(&[
-            op::LDI as u32, 0, 20,  // LDI r0, 20  (dst address)
-            op::LDI as u32, 1, 10,  // LDI r1, 10  (src address)
+            op::LDI as u32, 0, 40,  // LDI r0, 40  (dst address)
+            op::LDI as u32, 1, 30,  // LDI r1, 30  (src address)
             op::LDI as u32, 2, 3,   // LDI r2, 3   (count)
             op::EDIT_BLIT as u32, 0, 1, 2,  // EDIT_BLIT r0, r1, r2
             op::HALT as u32,
         ]);
         vm.run();
         assert!(vm.halted);
-        assert_eq!(vm.peek(20), 100);
-        assert_eq!(vm.peek(21), 200);
-        assert_eq!(vm.peek(22), 300);
+        assert_eq!(vm.peek(40), 100);
+        assert_eq!(vm.peek(41), 200);
+        assert_eq!(vm.peek(42), 300);
     }
 
     #[test]
@@ -959,47 +1964,49 @@ mod tests {
     fn self_authoring_writes_ldi_and_executes() {
         // ── DEEPER PROOF: write a complete instruction and run it ──
         //
-        // A program that writes "LDI r0, 42" into RAM at address 30,
-        // then writes HALT at address 33, then jumps to 30.
+        // A program that writes "LDI r0, 42" into RAM at address 50
+        // (well past the program's own 38 pixels), then writes HALT at
+        // address 53, then jumps to 50.
         // After running, r0 should be 42 — proving the VM executed
         // code that was authored at runtime.
+        //
+        // IMPORTANT: The self-authored region (50-53) must NOT overlap
+        // with the program's own code (0-37). Previous version used
+        // address 30, which caused the program to execute its own
+        // overwritten tail in an infinite loop.
 
         let mut vm = Vm::new(64);
         vm.load_program(&[
-            // Write LDI r0, 42 at address 30
-            op::LDI as u32, 0, 30,              // r0 = 30 (write address)
+            // Write LDI r0, 42 at address 50
+            op::LDI as u32, 0, 50,              // r0 = 50 (write address)
             op::LDI as u32, 1, op::LDI as u32,  // r1 = LDI opcode
-            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[30] = LDI
-            // Write arg1 (register 0) at address 31
-            op::LDI as u32, 0, 31,              // r0 = 31
+            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[50] = LDI
+            // Write arg1 (register 0) at address 51
+            op::LDI as u32, 0, 51,              // r0 = 51
             op::LDI as u32, 1, 0,               // r1 = 0 (dst register index)
-            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[31] = 0
-            // Write arg2 (value 42) at address 32
-            op::LDI as u32, 0, 32,              // r0 = 32
+            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[51] = 0
+            // Write arg2 (value 42) at address 52
+            op::LDI as u32, 0, 52,              // r0 = 52
             op::LDI as u32, 1, 42,              // r1 = 42
-            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[32] = 42
-            // Write HALT at address 33
-            op::LDI as u32, 0, 33,              // r0 = 33
+            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[52] = 42
+            // Write HALT at address 53
+            op::LDI as u32, 0, 53,              // r0 = 53
             op::LDI as u32, 1, op::HALT as u32, // r1 = HALT
-            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[33] = HALT
-            // Jump to the self-authored code at 30
-            op::JMP as u32, 30,                 // JMP 30
+            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[53] = HALT
+            // Jump to the self-authored code at 50
+            op::JMP as u32, 50,                 // JMP 50
         ]);
 
         let cycles = vm.run();
-
-        eprintln!("DEBUG: halted={}, cycles={}, pc={}, r0={}", vm.halted, cycles, vm.pc, vm.regs[0]);
-        eprintln!("DEBUG: ram[28..40] = {:?}", &vm.ram[28..40.min(vm.ram.len())]);
-        eprintln!("DEBUG: ram[0..10] = {:?}", &vm.ram[0..10.min(vm.ram.len())]);
 
         assert!(vm.halted, "VM did not halt after {} cycles, pc={}", cycles, vm.pc);
         // r0 is set to 42 by the self-authored LDI instruction
         assert_eq!(vm.regs[0], 42);
         // Verify the authored bytes are still in RAM
-        assert_eq!(vm.peek(30), op::LDI as u32);
-        assert_eq!(vm.peek(31), 0);
-        assert_eq!(vm.peek(32), 42);
-        assert_eq!(vm.peek(33), op::HALT as u32);
+        assert_eq!(vm.peek(50), op::LDI as u32);
+        assert_eq!(vm.peek(51), 0);
+        assert_eq!(vm.peek(52), 42);
+        assert_eq!(vm.peek(53), op::HALT as u32);
     }
 
     #[test]
