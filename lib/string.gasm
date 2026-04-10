@@ -1,0 +1,154 @@
+; ═══════════════════════════════════════════════════════════════════════
+; lib/string.gasm -- String routines for Geometry OS
+;
+; Implements strlen, strcpy, strcmp, and print_string using LOAD, STORE,
+; LDI, ADD, SUB, BEQ, BNE, BLT, JMP, CALL, and RET.
+;
+; Strings in Geometry OS are stored one character per RAM word (u32),
+; null-terminated (a word with value 0 marks the end).
+;
+; CALLING CONVENTION:
+;   r0 = first argument (src/dest pointer) / return value
+;   r1 = second argument
+;   r2-r7 = temporaries (clobbered by routines)
+;   CALL <routine> / RET to invoke
+;
+; ROUTINES:
+;   strlen       -- r0 = length of null-terminated string at r0
+;   strcpy       -- copy string from r0 (src) to r1 (dst), returns dst in r0
+;   strcmp       -- compare strings at r0 and r1; r0 = 0 if equal,
+;                   r0 = 1 if s1 > s2, r0 = -1 (0xFFFFFFFF) if s1 < s2
+;   print_string -- render string at r0 at screen position (r1=x, r2=y),
+;                   using color in r3; returns length in r0
+;
+; NOTES:
+;   - All pointers are word-addressed RAM indices.
+;   - strcpy does NOT check for overlap; caller must ensure safe buffers.
+;   - strcmp compares characters as unsigned values.
+; ═══════════════════════════════════════════════════════════════════════
+
+
+; ── strlen: return length of null-terminated string ────────────────────
+;
+; Input:  r0 = address of string (word-indexed)
+; Output: r0 = length (number of words until null word)
+; Clobbers: r2 (walk pointer), r3 (zero), r4 (counter), r5 (one)
+;
+
+strlen:
+    MOV r2, r0        ; r2 = walk pointer
+    LDI r4, 0         ; r4 = counter
+    LDI r3, 0         ; r3 = zero for comparison
+    LDI r5, 1         ; r5 = one for incrementing
+
+strlen_loop:
+    LOAD r0, r2       ; r0 = RAM[r2] (current char)
+    BEQ r0, r3, strlen_done  ; if null terminator, done
+    ADD r4, r5        ; counter += 1
+    ADD r2, r5        ; walk pointer += 1
+    JMP strlen_loop
+
+strlen_done:
+    MOV r0, r4        ; return length in r0
+    RET
+
+
+; ── strcpy: copy null-terminated string from src to dst ────────────────
+;
+; Input:  r0 = source address, r1 = destination address
+; Output: r0 = destination address (original r1)
+; Clobbers: r2 (src walk), r3 (dst walk), r4 (char), r5 (zero), r6 (one)
+;
+; Copies words one at a time including the null terminator.
+
+strcpy:
+    MOV r2, r0        ; r2 = src walk pointer
+    MOV r3, r1        ; r3 = dst walk pointer
+    PUSH r1           ; save original dst for return
+    LDI r5, 0         ; r5 = zero for comparison
+    LDI r6, 1         ; r6 = one for incrementing
+
+strcpy_loop:
+    LOAD r4, r2       ; r4 = *src
+    STORE r3, r4      ; *dst = r4
+    BEQ r4, r5, strcpy_done  ; if copied null terminator, done
+    ADD r2, r6        ; src++
+    ADD r3, r6        ; dst++
+    JMP strcpy_loop
+
+strcpy_done:
+    POP r0            ; r0 = original destination address
+    RET
+
+
+; ── strcmp: compare two null-terminated strings ────────────────────────
+;
+; Input:  r0 = address of string 1, r1 = address of string 2
+; Output: r0 = 0 if equal, 1 if s1 > s2, 0xFFFFFFFF (-1) if s1 < s2
+; Clobbers: r2 (s1 walk), r3 (s2 walk), r4 (char1), r5 (char2), r6, r7
+;
+
+strcmp:
+    MOV r2, r0        ; r2 = s1 walk pointer
+    MOV r3, r1        ; r3 = s2 walk pointer
+    LDI r7, 0         ; r7 = zero for comparison
+    LDI r6, 1         ; r6 = one for incrementing
+
+strcmp_loop:
+    LOAD r4, r2       ; r4 = *s1
+    LOAD r5, r3       ; r5 = *s2
+
+    ; If chars are equal, advance or return
+    BEQ r4, r5, strcmp_same_char
+
+    ; Chars differ: determine ordering
+    BLT r4, r5, strcmp_less    ; s1_char < s2_char
+    JMP strcmp_greater          ; s1_char > s2_char
+
+strcmp_same_char:
+    ; Both chars are the same. If both are null, strings are equal.
+    BEQ r4, r7, strcmp_equal
+    ; Both are same non-null char, advance
+    ADD r2, r6
+    ADD r3, r6
+    JMP strcmp_loop
+
+strcmp_equal:
+    LDI r0, 0
+    RET
+
+strcmp_greater:
+    LDI r0, 1
+    RET
+
+strcmp_less:
+    LDI r0, 0xFFFFFFFF
+    RET
+
+
+; ── print_string: render string on screen via TEXT opcode ──────────────
+;
+; Input:  r0 = string address, r1 = screen x, r2 = screen y, r3 = color
+; Output: r0 = length of string rendered
+; Clobbers: r4, r5
+;
+; The TEXT opcode reads: r0=color, then takes register args for x, y,
+; and str_addr. We shuffle args so TEXT sees the right registers.
+;
+; Strategy: save str_addr, set r0=color, then TEXT r1, r2, r4 where
+; r4 holds the original string address. Then call strlen for the return.
+
+print_string:
+    MOV r4, r0        ; r4 = str_addr (preserve)
+    MOV r0, r3        ; r0 = color (TEXT reads color from r0)
+    ; r1 = x (unchanged)
+    ; r2 = y (unchanged)
+    ; r4 = str_addr
+
+    TEXT r1, r2, r4   ; render: TEXT(x, y, str_addr)
+
+    ; Return length: move str_addr back to r0 and call strlen
+    MOV r0, r4        ; r0 = str_addr for strlen
+    CALL strlen       ; r0 = length (overwrites r2-r5)
+
+    RET
