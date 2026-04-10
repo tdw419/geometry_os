@@ -159,7 +159,7 @@ fn main() {
         for key in keys {
             // Painting mode: only when VM is idle (prevents program corruption)
             if !is_running {
-                if let Some(ch) = key_to_ascii(key) {
+                if let Some(ch) = key_to_pixel(key, hex_mode) {
                     let idx = cursor_row * CANVAS_COLS + cursor_col;
                     vm.ram[idx] = ch as u32;
                     
@@ -175,7 +175,45 @@ fn main() {
 
             // ASM mode input: intercept all typing keys
             if asm_mode {
+                let ctrl = window.is_key_down(Key::LeftCtrl) || window.is_key_down(Key::RightCtrl);
                 match key {
+                    Key::V if ctrl => {
+                        if let Some(text) = read_clipboard() {
+                            let trimmed = text.trim_end_matches('\n');
+                            if trimmed.contains('\n') {
+                                // Multi-line: assemble the whole program and commit at cursor
+                                match assembler::assemble(trimmed) {
+                                    Ok(asm_result) => {
+                                        let start = cursor_row * CANVAS_COLS + cursor_col;
+                                        for (i, &pixel) in asm_result.pixels.iter().enumerate() {
+                                            let addr = start + i;
+                                            if addr < vm.ram.len() { vm.ram[addr] = pixel; }
+                                        }
+                                        let advance = asm_result.pixels.len();
+                                        cursor_col += advance;
+                                        while cursor_col >= CANVAS_COLS {
+                                            cursor_col -= CANVAS_COLS;
+                                            cursor_row += 1;
+                                            if cursor_row >= CANVAS_ROWS { cursor_row = 0; }
+                                        }
+                                        asm_mode = false;
+                                        asm_input = format!("[OK: {} bytes]", advance);
+                                    }
+                                    Err(e) => {
+                                        asm_input = format!("[ERR: {}]", e.message);
+                                    }
+                                }
+                            } else {
+                                // Single line: append printable chars to asm_input
+                                for ch in trimmed.chars() {
+                                    if (ch.is_ascii_graphic() || ch == ' ') && asm_input.len() < 60 {
+                                        asm_input.push(ch);
+                                    }
+                                }
+                            }
+                        }
+                        needs_redraw = true;
+                    }
                     Key::Enter => {
                         // Assemble and commit to RAM at cursor
                         if !asm_input.is_empty() {
@@ -590,6 +628,24 @@ fn key_to_ascii(key: Key) -> Option<u8> {
         Key::Minus => Some(b'-'), Key::Equal => Some(b'='),
         _ => None,
     }
+}
+
+/// Read text from the system clipboard (Linux: tries xclip then xsel).
+fn read_clipboard() -> Option<String> {
+    std::process::Command::new("xclip")
+        .args(["-selection", "clipboard", "-o"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .or_else(|| {
+            std::process::Command::new("xsel")
+                .args(["--clipboard", "--output"])
+                .output()
+                .ok()
+                .filter(|o| o.status.success())
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+        })
 }
 
 /// Convert key to pixel value. In HEX mode, number keys produce raw values
