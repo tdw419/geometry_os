@@ -72,6 +72,9 @@ const REGS_Y: usize = 340;
 const RAM_SIZE:       usize = 4096;
 const TEXT_BUF_ADDR:  usize = 0x400; // 1024 — text input buffer for micro-asm
 const MICRO_ASM_ADDR: usize = 0x800; // 2048 — VM-resident assembler lives here
+const KEY_PORT:       usize = 0xFFF; // 4095 — memory-mapped keyboard register
+                                     //   host writes ASCII keycode on each keypress
+                                     //   program reads it; write 0 to acknowledge
 
 const BG: u32 = 0x050508;
 const GRID_BG: u32 = 0x0A0A14;
@@ -573,9 +576,8 @@ fn main() {
             let input_keys = window.get_keys_pressed(KeyRepeat::No);
             for k in input_keys {
                 if let Some(ch) = key_to_ascii(k) {
-                    // Write to keyboard port for VM programs
-                    let last_idx = vm.ram.len() - 1;
-                    vm.ram[last_idx] = ch as u32;
+                    // Write to keyboard port (RAM[KEY_PORT]) for VM programs
+                    vm.ram[KEY_PORT] = ch as u32;
 
                     // Render the character on the VM screen directly
                     font::render_char(
@@ -729,7 +731,9 @@ fn main() {
             // Status
             let status = if vm.halted { "HALTED" } else if is_running { "RUNNING" } else if single_stepping { "STEPPING" } else { "IDLE" };
             let asm_tag = if micro_asm_loaded { "uASM:OK" } else { "uASM:--" };
-            let header = format!("PC:{:04} | {} | {} | Cyc:{} | F5:run Space:step F6:rts F7:save F8:asm F9:edit", vm.pc, status, asm_tag, cycles_last_run);
+            let key_val = vm.ram[KEY_PORT];
+            let key_str = if key_val > 0 { format!("KEY:{:02X}", key_val) } else { "KEY:--".into() };
+            let header = format!("PC:{:04} | {} | {} | {} | Cyc:{} | F5:run Spc:step F8:asm F9:edit", vm.pc, status, asm_tag, key_str, cycles_last_run);
             font::render_str(&mut buffer, WIDTH, HEIGHT, &header, 16, 16, 2, 0x00FFBB, None);
 
             // Labels
@@ -953,6 +957,8 @@ fn key_to_ascii(key: Key) -> Option<u8> {
         Key::Semicolon => Some(b';'), Key::Apostrophe => Some(b'\''), Key::Slash => Some(b'/'),
         Key::Backslash => Some(b'\\'), Key::LeftBracket => Some(b'['), Key::RightBracket => Some(b']'),
         Key::Minus => Some(b'-'), Key::Equal => Some(b'='),
+        Key::Enter => Some(0x0D),      // carriage return
+        Key::Backspace => Some(0x08),  // backspace
         _ => None,
     }
 }
