@@ -88,7 +88,7 @@
 - [x] `lib/string.gasm` -- strlen, strcpy, strcmp, print_string
 - [x] `lib/screen.gasm` -- clear_screen, draw_line (Bresenham), draw_rect_border
 - [x] Demo: counter that increments and displays on screen
-- [ ] Demo: simple animation (bouncing pixel)
+- [x] Demo: simple animation (bouncing pixel)
 
 **Batch 2 -- Assembler Improvements:**
 - [ ] Expression evaluation in immediates (`LDI r0, 2+3`)
