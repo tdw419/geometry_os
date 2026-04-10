@@ -66,6 +66,13 @@ const VM_SCREEN_SCALE: usize = 1; // 256x256 at 1:1
 const REGS_X: usize = 640;
 const REGS_Y: usize = 340;
 
+// ── Self-hosting memory map ──────────────────────────────────────────
+// RAM is 4096 cells. The canvas renders the first 1024 (32×32 grid).
+// High memory is invisible on canvas but fully addressable by the VM.
+const RAM_SIZE:       usize = 4096;
+const TEXT_BUF_ADDR:  usize = 0x400; // 1024 — text input buffer for micro-asm
+const MICRO_ASM_ADDR: usize = 0x800; // 2048 — VM-resident assembler lives here
+
 const BG: u32 = 0x050508;
 const GRID_BG: u32 = 0x0A0A14;
 const GRID_LINE: u32 = 0x141420;
@@ -92,8 +99,21 @@ fn main() {
 
     let mut buffer = vec![BG; WIDTH * HEIGHT];
 
-    // Initialize VM
-    let mut vm = Vm::new(CANVAS_COLS * CANVAS_ROWS);
+    // Initialize VM with expanded RAM (canvas = first 1024 cells)
+    let mut vm = Vm::new(RAM_SIZE);
+
+    // Auto-load micro-assembler into RAM[0x800..] at startup
+    let mut micro_asm_loaded = false;
+    if let Ok(src) = std::fs::read_to_string("programs/micro-asm.asm") {
+        if let Ok(result) = assembler::assemble(&src) {
+            for (i, &pixel) in result.pixels.iter().enumerate() {
+                if i >= MICRO_ASM_ADDR && i < vm.ram.len() {
+                    vm.ram[i] = pixel;
+                }
+            }
+            micro_asm_loaded = true;
+        }
+    }
     
     // ── Shell for keyboard input to TEXT rendering ─────────────────────
     let mut shell = Shell::new();
@@ -178,13 +198,15 @@ fn main() {
                         needs_redraw = true;
                     }
                     Key::F8 => {
-                        // Assemble editor buffer and load into RAM
+                        // Rust assembler: full mnemonic syntax, labels, etc.
                         let src = editor_lines.join("\n");
                         match assembler::assemble(&src) {
                             Ok(asm_result) => {
-                                for v in vm.ram.iter_mut() { *v = 0; }
+                                // Clear canvas area only (preserve high RAM / micro-asm)
+                                let ram_len = vm.ram.len();
+                                for v in vm.ram[..MICRO_ASM_ADDR.min(ram_len)].iter_mut() { *v = 0; }
                                 for (i, &pixel) in asm_result.pixels.iter().enumerate() {
-                                    if i < vm.ram.len() { vm.ram[i] = pixel; }
+                                    if i < MICRO_ASM_ADDR && i < ram_len { vm.ram[i] = pixel; }
                                 }
                                 vm.pc = 0;
                                 vm.halted = false;
@@ -195,13 +217,34 @@ fn main() {
                                 editor_mode = false;
                             }
                             Err(e) => {
-                                // Show error by inserting a comment line at top
                                 let msg = format!("; ERROR line {}: {}", e.line, e.message);
                                 editor_lines.insert(0, msg);
                                 editor_cursor_line = 0;
                                 editor_scroll = 0;
                             }
                         }
+                        needs_redraw = true;
+                    }
+                    Key::F5 if micro_asm_loaded => {
+                        // VM micro-assembler: single-char syntax ($XX hex escapes)
+                        let src = editor_lines.join("\n");
+                        // Clear text buffer and write source text
+                        let ram_len = vm.ram.len();
+                        for v in vm.ram[TEXT_BUF_ADDR..MICRO_ASM_ADDR.min(ram_len)].iter_mut() { *v = 0; }
+                        for (i, byte) in src.bytes().enumerate() {
+                            let addr = TEXT_BUF_ADDR + i;
+                            if addr < MICRO_ASM_ADDR && addr < ram_len {
+                                vm.ram[addr] = byte as u32;
+                            }
+                        }
+                        // Clear canvas/output area
+                        for v in vm.ram[..TEXT_BUF_ADDR.min(ram_len)].iter_mut() { *v = 0; }
+                        // Run micro-assembler
+                        vm.pc = MICRO_ASM_ADDR as u32;
+                        vm.halted = false;
+                        is_running = true;
+                        child_vms.clear();
+                        editor_mode = false;
                         needs_redraw = true;
                     }
                     Key::V if ctrl => {
@@ -596,9 +639,12 @@ fn main() {
                 for px in buffer.iter_mut() { *px = 0x03030A; }
 
                 // Header
-                font::render_str(&mut buffer, WIDTH, HEIGHT,
-                    "GEOMETRY OS ASSEMBLER   F8:ASSEMBLE+LOAD   Escape:CANCEL   Ctrl+V:PASTE",
-                    8, 4, 1, 0x00FFBB, None);
+                let ed_hdr = if micro_asm_loaded {
+                    "EDITOR  F8:Rust-asm+load   F5:VM-asm+run   Ctrl+V:paste   Esc:cancel"
+                } else {
+                    "EDITOR  F8:assemble+load   Ctrl+V:paste   Esc:cancel"
+                };
+                font::render_str(&mut buffer, WIDTH, HEIGHT, ed_hdr, 8, 4, 1, 0x00FFBB, None);
 
                 // Line count info
                 let info = format!("Line {}/{}  Col {}", editor_cursor_line + 1, editor_lines.len(), editor_cursor_col + 1);
@@ -673,7 +719,8 @@ fn main() {
 
             // Status
             let status = if vm.halted { "HALTED" } else if is_running { "YIELDED/RUNNING" } else { "IDLE" };
-            let header = format!("PC: {:04} | Status: {} | Cycles: {} | F5:RUN  F6:LOAD.rts  F7:SAVE  F8:LOAD.asm", vm.pc, status, cycles_last_run);
+            let asm_tag = if micro_asm_loaded { "uASM:OK" } else { "uASM:--" };
+            let header = format!("PC:{:04} | {} | {} | Cyc:{} | F5:RUN  F6:rts  F7:save  F8:asm  F9:editor", vm.pc, status, asm_tag, cycles_last_run);
             font::render_str(&mut buffer, WIDTH, HEIGHT, &header, 16, 16, 2, 0x00FFBB, None);
 
             // Labels
