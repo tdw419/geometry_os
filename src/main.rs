@@ -1,6 +1,8 @@
 use minifb::{Key, KeyRepeat, Window, WindowOptions};
 use geometry_os::vm::Vm;
 use geometry_os::shell::{Shell, ShellAction};
+use geometry_os::opcodes;
+use geometry_os::assembler;
 
 mod font;
 
@@ -123,6 +125,18 @@ fn main() {
     let mut cycles_last_run: u32 = 0;
     let mut is_running = false;
 
+    // ── View mode (disasm / spreadsheet) ────────────────────────────
+    #[derive(PartialEq, Clone, Copy)]
+    enum PanelView { Disassembly, Spreadsheet }
+    let mut panel_view = PanelView::Disassembly;
+
+    // -- HEX input mode (Tab to toggle) --
+    let mut hex_mode = false;
+
+    // -- ASM input mode (backtick to toggle) --
+    let mut asm_mode = false;
+    let mut asm_input = String::new();
+
     // ── Persistent child VMs ────────────────────────────────────────
     // Children spawned by the parent VM persist across frames.
     // Each frame: parent runs → children collected → new children created →
@@ -159,7 +173,75 @@ fn main() {
                 }
             }
 
+            // ASM mode input: intercept all typing keys
+            if asm_mode {
+                match key {
+                    Key::Enter => {
+                        // Assemble and commit to RAM at cursor
+                        if !asm_input.is_empty() {
+                            match assembler::assemble(&asm_input) {
+                                Ok(asm_result) => {
+                                    let start = cursor_row * CANVAS_COLS + cursor_col;
+                                    for (i, &pixel) in asm_result.pixels.iter().enumerate() {
+                                        let addr = start + i;
+                                        if addr < vm.ram.len() {
+                                            vm.ram[addr] = pixel;
+                                        }
+                                    }
+                                    // Advance cursor by instruction width
+                                    let advance = asm_result.pixels.len();
+                                    cursor_col += advance;
+                                    while cursor_col >= CANVAS_COLS {
+                                        cursor_col -= CANVAS_COLS;
+                                        cursor_row += 1;
+                                        if cursor_row >= CANVAS_ROWS { cursor_row = 0; }
+                                    }
+                                    asm_input.clear();
+                                }
+                                Err(_e) => {
+                                    // Show error briefly - for now just don't commit
+                                    // Could flash the input red
+                                }
+                            }
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::Escape => {
+                        asm_mode = false;
+                        asm_input.clear();
+                        needs_redraw = true;
+                    }
+                    Key::Backspace => {
+                        asm_input.pop();
+                        needs_redraw = true;
+                    }
+                    _ => {
+                        if let Some(ch) = key_to_ascii(key) {
+                            if asm_input.len() < 60 {
+                                asm_input.push(ch as char);
+                                needs_redraw = true;
+                            }
+                        }
+                    }
+                }
+            } else {
             match key {
+                Key::Tab => {
+                    hex_mode = !hex_mode;
+                    needs_redraw = true;
+                }
+                Key::F2 => {
+                    panel_view = match panel_view {
+                        PanelView::Disassembly => PanelView::Spreadsheet,
+                        PanelView::Spreadsheet => PanelView::Disassembly,
+                    };
+                    needs_redraw = true;
+                }
+                Key::Backquote => {
+                    asm_mode = true;
+                    asm_input.clear();
+                    needs_redraw = true;
+                }
                 Key::F5 => {
                     // Toggle execution mode
                     if !is_running {
@@ -202,6 +284,7 @@ fn main() {
                 Key::Down => { if cursor_row < CANVAS_ROWS - 1 { cursor_row += 1; } needs_redraw = true; }
                 _ => {}
             }
+            } // end else (non-asm mode)
         }
 
         // ── Runtime Execution & Input ────────────────────────────────
@@ -348,6 +431,107 @@ fn main() {
                 font::render_str(&mut buffer, WIDTH, HEIGHT, &reg_str2, REGS_X + 160, REGS_Y + i * 14, 1, 0xAAAAAA, None);
             }
 
+            // -- Bottom Panel (Disassembly, Spreadsheet, or ASM input) --
+            {
+                let panel_x = CANVAS_X;
+                let panel_y = CANVAS_Y + CANVAS_ROWS * CANVAS_SCALE + 16;
+                let cursor_idx = cursor_row * CANVAS_COLS + cursor_col;
+
+                if asm_mode {
+                    // ASM input mode: show prompt + live preview
+                    font::render_str(&mut buffer, WIDTH, HEIGHT, "ASM  [Esc=CANCEL]", panel_x, panel_y, 1, 0xFFAA00, None);
+                    let prompt = format!("ASM> {}", asm_input);
+                    font::render_str(&mut buffer, WIDTH, HEIGHT, &prompt, panel_x, panel_y + 12, 1, 0xFFFFFF, None);
+                    // Cursor blink
+                    if cursor_visible {
+                        let cx = panel_x + 5 * (asm_input.len() + 5);
+                        for dy in 0..7 { buffer[(panel_y + 12 + dy) * WIDTH + cx] = 0x00FFFF; }
+                    }
+                    // Live byte preview
+                    if !asm_input.is_empty() {
+                        match assembler::assemble(&asm_input) {
+                            Ok(asm_result) => {
+                                let preview: Vec<String> = asm_result.pixels.iter()
+                                    .map(|p| format!("{:02X}", p & 0xFF))
+                                    .collect();
+                                let preview_str = format!("-> {}", preview.join(" "));
+                                font::render_str(&mut buffer, WIDTH, HEIGHT, &preview_str, panel_x + 400, panel_y + 12, 1, 0x44FF44, None);
+                                let addr_str = format!("@ addr {}", cursor_row * CANVAS_COLS + cursor_col);
+                                font::render_str(&mut buffer, WIDTH, HEIGHT, &addr_str, panel_x + 400, panel_y + 22, 1, 0x888888, None);
+                            }
+                            Err(e) => {
+                                font::render_str(&mut buffer, WIDTH, HEIGHT, &format!("ERR: {}", e.message), panel_x + 400, panel_y + 12, 1, 0xFF4444, None);
+                            }
+                        }
+                    }
+                } else {
+                    let mode_str = if hex_mode { "[HEX: 0-9=raw]" } else { "[Tab=HEX]" };
+                    match panel_view {
+                        PanelView::Disassembly => {
+                            font::render_str(&mut buffer, WIDTH, HEIGHT, "DISASSEMBLY  [F2:SPREADSHEET]  [`:ASM]", panel_x, panel_y, 1, 0x555566, None);
+                            font::render_str(&mut buffer, WIDTH, HEIGHT, mode_str, panel_x + 250, panel_y, 1, 0x888800, None);
+                            let mut addr: usize = 0;
+                            let max_lines = 14;
+                            let mut lines_shown = 0;
+                            while addr < vm.ram.len() && lines_shown < max_lines {
+                                let val = vm.ram[addr];
+                                let byte = (val & 0xFF) as u8;
+                                if byte == 0 { addr += 1; continue; }
+                                let w = opcodes::width(byte);
+                                let name = opcodes::name(byte);
+                                let is_at_cursor = addr == cursor_idx;
+                                let mut disasm = format!("{:03}: {}", addr, name);
+                                for a in 1..w {
+                                    if addr + a < vm.ram.len() {
+                                        let arg_byte = (vm.ram[addr + a] & 0xFF) as u8;
+                                        if arg_byte >= 0x30 && arg_byte <= 0x39 {
+                                            disasm.push_str(&format!(" r{}", arg_byte - 0x30));
+                                        } else {
+                                            disasm.push_str(&format!(" {:02X}", arg_byte));
+                                        }
+                                    }
+                                }
+                                let color = if is_at_cursor { 0x00FFFF } else if opcodes::is_valid(byte) { 0xAAAACC } else { 0x664444 };
+                                font::render_str(&mut buffer, WIDTH, HEIGHT, &disasm, panel_x, panel_y + 10 + lines_shown * 9, 1, color, None);
+                                lines_shown += 1;
+                                addr += w;
+                            }
+                        }
+                        PanelView::Spreadsheet => {
+                            let cursor_val = (vm.ram[cursor_idx] & 0xFF) as u8;
+                            let cell_name = cell_addr_name(cursor_col, cursor_row);
+                            let cell_info = if cursor_val >= 32 && cursor_val < 127 {
+                                format!("CELL [{}] = 0x{:02X} ({})", cell_name, cursor_val, cursor_val as char)
+                            } else {
+                                format!("CELL [{}] = 0x{:02X}", cell_name, cursor_val)
+                            };
+                            font::render_str(&mut buffer, WIDTH, HEIGHT, "SPREADSHEET  [F2:DISASM]  [`:ASM]", panel_x, panel_y, 1, 0x555566, None);
+                            font::render_str(&mut buffer, WIDTH, HEIGHT, mode_str, panel_x + 260, panel_y, 1, 0x888800, None);
+                            font::render_str(&mut buffer, WIDTH, HEIGHT, &cell_info, panel_x, panel_y + 10, 1, 0x00FFFF, None);
+                            let max_lines = 12;
+                            let mut lines_shown = 0;
+                            for idx in 0..vm.ram.len() {
+                                if lines_shown >= max_lines { break; }
+                                let val = (vm.ram[idx] & 0xFF) as u8;
+                                if val == 0 { continue; }
+                                let col = idx % CANVAS_COLS;
+                                let row = idx / CANVAS_COLS;
+                                let name = cell_addr_name(col, row);
+                                let cell_str = if val >= 32 && val < 127 {
+                                    format!("{} = 0x{:02X} ({})", name, val, val as char)
+                                } else {
+                                    format!("{} = 0x{:02X}", name, val)
+                                };
+                                let is_cursor = idx == cursor_idx;
+                                let color = if is_cursor { 0x00FFFF } else { 0xAAAACC };
+                                font::render_str(&mut buffer, WIDTH, HEIGHT, &cell_str, panel_x, panel_y + 20 + lines_shown * 9, 1, color, None);
+                                lines_shown += 1;
+                            }
+                        }
+                    }
+                }
+            }
+
             // Opcode Reference
             let ref_x = REGS_X;
             let ref_y = REGS_Y + 240;
@@ -374,6 +558,20 @@ fn main() {
     }
 }
 
+/// Spreadsheet-style column name: 0->A, 1->B, ..., 25->Z, 26->AA, 27->AB, ..., 31->AF
+fn col_name(col: usize) -> String {
+    if col < 26 {
+        format!("{}", (b'A' + col as u8) as char)
+    } else {
+        format!("A{}", (b'A' + (col as u8 - 26)) as char)
+    }
+}
+
+/// Full cell address like "A0", "B3", "AF31"
+fn cell_addr_name(col: usize, row: usize) -> String {
+    format!("{}{}", col_name(col), row)
+}
+
 fn key_to_ascii(key: Key) -> Option<u8> {
     match key {
         Key::A => Some(b'A'), Key::B => Some(b'B'), Key::C => Some(b'C'), Key::D => Some(b'D'),
@@ -391,5 +589,27 @@ fn key_to_ascii(key: Key) -> Option<u8> {
         Key::Backslash => Some(b'\\'), Key::LeftBracket => Some(b'['), Key::RightBracket => Some(b']'),
         Key::Minus => Some(b'-'), Key::Equal => Some(b'='),
         _ => None,
+    }
+}
+
+/// Convert key to pixel value. In HEX mode, number keys produce raw values
+/// (0x00-0x09) instead of ASCII digits (0x30-0x39).
+fn key_to_pixel(key: Key, hex_mode: bool) -> Option<u8> {
+    if hex_mode {
+        match key {
+            Key::Key0 => Some(0x00),
+            Key::Key1 => Some(0x01),
+            Key::Key2 => Some(0x02),
+            Key::Key3 => Some(0x03),
+            Key::Key4 => Some(0x04),
+            Key::Key5 => Some(0x05),
+            Key::Key6 => Some(0x06),
+            Key::Key7 => Some(0x07),
+            Key::Key8 => Some(0x08),
+            Key::Key9 => Some(0x09),
+            _ => key_to_ascii(key),
+        }
+    } else {
+        key_to_ascii(key)
     }
 }
