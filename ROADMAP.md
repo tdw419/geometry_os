@@ -30,7 +30,7 @@
 - [ ] Debug registers (breakpoint, watchpoint support)
 
 ### 1.3 Standard Library
-- [ ] `lib/math.gasm` -- multiply, divide, modulo (if not native)
+- [x] `lib/math.gasm` -- multiply, divide, modulo (if not native)
 - [ ] `lib/string.gasm` -- strlen, strcpy, strcmp, print_string
 - [ ] `lib/screen.gasm` -- clear_screen, draw_rect, draw_circle, fill
 - [ ] `lib/input.gasm` -- read_key, wait_key, key_to_hex
@@ -84,7 +84,7 @@
 ## Priority Order for Automated Development
 
 **Batch 1 -- Quick Wins (test the chain, high value, low risk):**
-- [ ] `lib/math.gasm` -- multiply via repeated add, divide via subtraction, modulo
+- [x] `lib/math.gasm` -- multiply via repeated add, divide via subtraction, modulo
 - [ ] `lib/string.gasm` -- strlen, strcpy, strcmp, print_string
 - [ ] `lib/screen.gasm` -- clear_screen, draw_line (Bresenham), draw_rect_border
 - [ ] Demo: counter that increments and displays on screen
