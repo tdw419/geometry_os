@@ -83,17 +83,33 @@
 
 ## Priority Order for Automated Development
 
-**Batch 1 (high value, low risk):**
-1. Standard library routines (lib/math, lib/string)
-2. Demo programs (snake, paint) -- tests the full stack
-3. More integration tests for edge cases
+**Batch 1 -- Quick Wins (test the chain, high value, low risk):**
+1. `lib/math.gasm` -- multiply via repeated add, divide via subtraction, modulo
+2. `lib/string.gasm` -- strlen, strcpy, strcmp, print_string
+3. `lib/screen.gasm` -- clear_screen, draw_line (Bresenham), draw_rect_border
+4. Demo: counter that increments and displays on screen
+5. Demo: simple animation (bouncing pixel)
 
-**Batch 2 (medium complexity):**
-4. Assembler improvements (expressions, macros)
-5. Mini-debugger inside the VM
-6. Timer interrupts
+**Batch 2 -- Assembler Improvements:**
+6. Expression evaluation in immediates (`LDI r0, 2+3`)
+7. String constants (`.asciz "hello"`) for TEXT opcode
+8. `.data` / `.text` section directives
+9. `.include "lib.gasm"` directive
+10. Macro support (`.macro ADD3 ... .endm`)
 
-**Batch 3 (ambitious):**
-7. REST API bridge
-8. Self-hosting full bootstrap
-9. Mouse/audio support
+**Batch 3 -- VM Hardening:**
+11. Stack overflow protection (configurable stack limit)
+12. Memory protection (read/write/execute regions)
+13. Timer interrupt (configurable tick rate)
+14. Debug registers (breakpoint, watchpoint)
+
+**Batch 4 -- Demo Programs:**
+15. Snake game
+16. Paint program
+17. Text adventure
+18. Screensaver
+
+**Batch 5 -- Advanced:**
+19. REST API bridge
+20. Self-hosting full bootstrap
+21. Mouse/audio support
