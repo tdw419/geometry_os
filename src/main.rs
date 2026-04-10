@@ -273,6 +273,21 @@ fn main() {
                         }
                         needs_redraw = true;
                     }
+                    Key::L if ctrl => {
+                        // Load programs/boot.asm into the editor
+                        // (symlink or copy your target file to boot.asm)
+                        if let Ok(src) = std::fs::read_to_string("programs/boot.asm") {
+                            editor_lines = src.lines().map(|l| l.to_string()).collect();
+                            if editor_lines.is_empty() { editor_lines.push(String::new()); }
+                            editor_cursor_line = 0;
+                            editor_cursor_col = 0;
+                            editor_scroll = 0;
+                        } else {
+                            editor_lines = vec!["; programs/boot.asm not found".to_string()];
+                            editor_cursor_line = 0;
+                        }
+                        needs_redraw = true;
+                    }
                     Key::Enter => {
                         let rest = editor_lines[editor_cursor_line].split_off(editor_cursor_col);
                         let next = editor_cursor_line + 1;
@@ -651,7 +666,7 @@ fn main() {
 
                 // Header
                 let ed_hdr = if micro_asm_loaded {
-                    "EDITOR  F8:Rust-asm+load   F5:VM-asm+run   Ctrl+V:paste   Esc:cancel"
+                    "EDITOR  F8:asm+load  F5:VM-asm+run  Ctrl+V:paste  Ctrl+L:load  Esc:cancel"
                 } else {
                     "EDITOR  F8:assemble+load   Ctrl+V:paste   Esc:cancel"
                 };
