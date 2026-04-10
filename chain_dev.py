@@ -165,14 +165,64 @@ def run_cycle(task_override=None, dry_run=False):
     )
 
     exit_code = result.returncode
-    duration = "unknown"
 
     if exit_code == 0:
         print(f"\nCycle completed successfully")
     else:
         print(f"\nCycle exited with code {exit_code}")
 
-    return exit_code
+    # 6. Post-cycle cleanup: verify tests pass, stash or revert if broken
+    print("\nPost-cycle: verifying tests...")
+    test_result = subprocess.run(
+        ["cargo", "test", "--quiet"],
+        cwd=PROJECT_DIR,
+        capture_output=True, text=True, timeout=120
+    )
+    test_output = test_result.stdout + test_result.stderr
+
+    if "FAILED" in test_output:
+        print("WARNING: Tests failing after cycle. Checking if work is committed...")
+        # If there are uncommitted changes, check if they're the problem
+        status = subprocess.run(
+            ["git", "status", "--short"],
+            cwd=PROJECT_DIR, capture_output=True, text=True
+        )
+        if status.stdout.strip():
+            print(f"Dirty files:\n{status.stdout}")
+            # Revert uncommitted changes to restore green state
+            subprocess.run(["git", "checkout", "--", "."], cwd=PROJECT_DIR)
+            subprocess.run(
+                ["git", "clean", "-fd", "--", "lib/", "tests/"],
+                cwd=PROJECT_DIR, capture_output=True
+            )
+            print("Reverted uncommitted changes to restore green state.")
+            # Re-verify
+            test_result2 = subprocess.run(
+                ["cargo", "test", "--quiet"],
+                cwd=PROJECT_DIR, capture_output=True, text=True, timeout=120
+            )
+            if "FAILED" not in (test_result2.stdout + test_result2.stderr):
+                print("Tests green after revert.")
+                return 0
+            else:
+                print("Tests STILL failing after revert -- last commit may be broken!")
+                return 2
+        else:
+            print("No dirty files but tests fail -- last commit broke something.")
+            return 2
+
+    # Count tests
+    import re
+    total = sum(int(m) for m in re.findall(r'(\d+) passed', test_output))
+    print(f"Tests green: {total} passing")
+
+    # Record git heads for progress tracking
+    subprocess.run(
+        ["python3", CARRY_FORWARD, "record-git-heads", "chain-cycle"],
+        capture_output=True, timeout=30
+    )
+
+    return 0
 
 
 def main():
