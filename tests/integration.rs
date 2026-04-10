@@ -167,3 +167,99 @@ start:
     assert!(vm.halted);
     assert_eq!(vm.regs[0], 30);
 }
+
+// ── .ASCIZ integration tests ──────────────────────────────────────
+
+#[test]
+fn asciz_string_in_ram_readable_by_vm() {
+    // Assemble a string, load into VM, verify VM can read it back
+    let src = "\
+    HALT
+msg:
+    .asciz \"Hello\"
+";
+    let asm = assembler::assemble(src).unwrap();
+    let msg_addr = *asm.labels.get("msg").unwrap();
+    assert_eq!(msg_addr, 1); // after HALT (width 1)
+
+    let mut vm = Vm::new(256);
+    vm.load_program(&asm.pixels);
+    vm.run();
+
+    // Verify the string is in RAM
+    assert_eq!(vm.ram[msg_addr], b'H' as u32);
+    assert_eq!(vm.ram[msg_addr + 1], b'e' as u32);
+    assert_eq!(vm.ram[msg_addr + 2], b'l' as u32);
+    assert_eq!(vm.ram[msg_addr + 3], b'l' as u32);
+    assert_eq!(vm.ram[msg_addr + 4], b'o' as u32);
+    assert_eq!(vm.ram[msg_addr + 5], 0); // null terminator
+}
+
+#[test]
+fn asciz_with_text_opcode_renders() {
+    // Assemble a program that uses .asciz with TEXT opcode and run it
+    let src = "\
+    LDI r0, 0xFFFFFF    ; white text color
+    LDI r1, 10          ; x
+    LDI r2, 20          ; y
+    LDI r3, greeting    ; string address
+    TEXT r1, r2, r3     ; render
+    HALT
+greeting:
+    .asciz \"Hi\"
+";
+    let asm = assembler::assemble(src).unwrap();
+    let greeting_addr = *asm.labels.get("greeting").unwrap();
+    // LDI(3)+LDI(3)+LDI(3)+LDI(3)+TEXT(4)+HALT(1) = 17
+    assert_eq!(greeting_addr, 17);
+
+    let mut vm = Vm::new(4096);
+    vm.load_program(&asm.pixels);
+    vm.run();
+
+    assert!(vm.halted);
+    // String should be in RAM at greeting_addr
+    assert_eq!(vm.ram[greeting_addr], b'H' as u32);
+    assert_eq!(vm.ram[greeting_addr + 1], b'i' as u32);
+    assert_eq!(vm.ram[greeting_addr + 2], 0);
+}
+
+#[test]
+fn asciz_multiple_strings_with_label_refs() {
+    // Multiple strings, program loads one of them by label
+    let src = "\
+    LDI r0, 0xFFFFFF
+    LDI r1, 5
+    LDI r2, 5
+    LDI r3, msg2
+    TEXT r1, r2, r3
+    HALT
+msg1:
+    .asciz \"First\"
+msg2:
+    .asciz \"Second\"
+msg3:
+    .asciz \"Third\"
+";
+    let asm = assembler::assemble(src).unwrap();
+
+    let mut vm = Vm::new(4096);
+    vm.load_program(&asm.pixels);
+    vm.run();
+
+    assert!(vm.halted);
+
+    // Verify all three strings are correctly placed in RAM
+    let msg1 = *asm.labels.get("msg1").unwrap();
+    let msg2 = *asm.labels.get("msg2").unwrap();
+    let msg3 = *asm.labels.get("msg3").unwrap();
+
+    // msg1 = "First\0" = 6 pixels
+    assert_eq!(msg2, msg1 + 6);
+    // msg2 = "Second\0" = 7 pixels
+    assert_eq!(msg3, msg2 + 7);
+
+    assert_eq!(vm.ram[msg1], b'F' as u32);
+    assert_eq!(vm.ram[msg2], b'S' as u32);
+    assert_eq!(vm.ram[msg3], b'T' as u32);
+}

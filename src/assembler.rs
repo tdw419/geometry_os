@@ -365,11 +365,81 @@ struct RawInstr {
     args: Vec<ArgToken>,
 }
 
+/// A data directive that emits raw pixel values (not an instruction).
+#[derive(Debug, Clone)]
+struct RawData {
+    line: usize,
+    /// Pixel values to emit verbatim.
+    pixels: Vec<u32>,
+}
+
+/// Either an instruction or a data directive at a given address.
+#[derive(Debug, Clone)]
+enum EmitItem {
+    Instr(RawInstr),
+    Data(RawData),
+}
+
 /// Assemble source text into pixel values.
+/// Parse a quoted string literal with escape sequences.
+/// Input should start with `"` and end with `"`.
+/// Supports: `\\`, `\"`, `\n`, `\0`, `\t`, `\xNN` (hex byte).
+/// Returns the string as a Vec<u8>.
+fn parse_string_literal(s: &str, line: usize) -> Result<Vec<u8>, AsmError> {
+    let s = s.trim();
+    if !s.starts_with('"') || !s.ends_with('"') || s.len() < 2 {
+        return Err(AsmError {
+            line,
+            message: "expected quoted string literal".into(),
+        });
+    }
+    let inner = &s[1..s.len() - 1];
+    let mut bytes = Vec::new();
+    let mut chars = inner.chars().peekable();
+    while let Some(&ch) = chars.peek() {
+        if ch == '\\' {
+            chars.next(); // consume backslash
+            match chars.next() {
+                Some('\\') => bytes.push(b'\\'),
+                Some('"') => bytes.push(b'"'),
+                Some('n') => bytes.push(b'\n'),
+                Some('0') => bytes.push(0),
+                Some('t') => bytes.push(b'\t'),
+                Some('r') => bytes.push(b'\r'),
+                Some('x') => {
+                    // \xNN hex escape
+                    let hex: String = chars.by_ref().take(2).collect();
+                    let val = u8::from_str_radix(&hex, 16).map_err(|e| AsmError {
+                        line,
+                        message: format!("invalid hex escape \\x{}: {}", hex, e),
+                    })?;
+                    bytes.push(val);
+                }
+                Some(other) => {
+                    return Err(AsmError {
+                        line,
+                        message: format!("unknown escape sequence: \\{}", other),
+                    })
+                }
+                None => {
+                    return Err(AsmError {
+                        line,
+                        message: "unexpected end of string after \\".into(),
+                    })
+                }
+            }
+        } else {
+            bytes.push(ch as u8);
+            chars.next();
+        }
+    }
+    Ok(bytes)
+}
+
 /// Returns the assembled program or the first error.
 pub fn assemble(source: &str) -> Result<Assembled, AsmError> {
     let mut labels: HashMap<String, usize> = HashMap::new();
-    let mut instrs: Vec<(usize, RawInstr)> = Vec::new(); // (emit_addr, instr)
+    let mut items: Vec<(usize, EmitItem)> = Vec::new(); // (emit_addr, item)
     let mut current_addr: usize = 0;
 
     // ── Pass 1: Parse lines, collect labels, compute addresses ──────
@@ -389,6 +459,24 @@ pub fn assemble(source: &str) -> Result<Assembled, AsmError> {
                 message: e,
             })?;
             current_addr = addr as usize;
+            continue;
+        }
+
+        // .ASCIZ directive: .asciz "hello" → emits ASCII bytes + null terminator
+        // Each character becomes one u32 pixel value.
+        if let Some(rest) = line
+            .strip_prefix(".asciz")
+            .or_else(|| line.strip_prefix(".ASCIZ"))
+        {
+            let bytes = parse_string_literal(rest.trim(), line_num)?;
+            let mut pixels: Vec<u32> = bytes.iter().map(|&b| b as u32).collect();
+            pixels.push(0); // null terminator
+            let data_len = pixels.len();
+            items.push((current_addr, EmitItem::Data(RawData {
+                line: line_num,
+                pixels,
+            })));
+            current_addr += data_len;
             continue;
         }
 
@@ -432,11 +520,11 @@ pub fn assemble(source: &str) -> Result<Assembled, AsmError> {
             let r1 = parse_arg(arg_tokens[0]).map_err(|e| AsmError { line: line_num, message: e })?;
             let r2 = parse_arg(arg_tokens[1]).map_err(|e| AsmError { line: line_num, message: e })?;
             let target = parse_arg(arg_tokens[2]).map_err(|e| AsmError { line: line_num, message: e })?;
-            instrs.push((current_addr, RawInstr {
+            items.push((current_addr, EmitItem::Instr(RawInstr {
                 line: line_num,
                 opcode: crate::opcodes::op::BRANCH,
                 args: vec![ArgToken::BranchCond(cond_code, Box::new(r1), Box::new(r2)), target],
-            }));
+            })));
             current_addr += crate::opcodes::width(crate::opcodes::op::BRANCH);
             continue;
         }
@@ -469,66 +557,97 @@ pub fn assemble(source: &str) -> Result<Assembled, AsmError> {
                 message: e,
             })?;
 
-        instrs.push((
+        items.push((
             current_addr,
-            RawInstr {
+            EmitItem::Instr(RawInstr {
                 line: line_num,
                 opcode,
                 args,
-            },
+            }),
         ));
 
         current_addr += width;
     }
 
     // ── Pass 2: Emit pixels, resolve labels ─────────────────────────
-    let end_addr = instrs
+    let item_size = |item: &EmitItem| -> usize {
+        match item {
+            EmitItem::Instr(instr) => crate::opcodes::width(instr.opcode),
+            EmitItem::Data(data) => data.pixels.len(),
+        }
+    };
+
+    let end_addr = items
         .last()
-        .map(|(addr, instr)| *addr + crate::opcodes::width(instr.opcode))
+        .map(|(addr, item)| *addr + item_size(item))
         .unwrap_or(0);
 
     let mut pixels = vec![0u32; end_addr];
 
-    for (addr, instr) in &instrs {
-        pixels[*addr] = instr.opcode as u32;
-
-        for (i, arg) in instr.args.iter().enumerate() {
-            let pixel_addr = addr + 1 + i;
-            let is_addr_arg = matches!(
-                instr.opcode,
-                crate::opcodes::op::JMP | crate::opcodes::op::BRANCH | crate::opcodes::op::CALL,
-            ) && i == instr.args.len() - 1;
-
-            let value = match arg {
-                ArgToken::Register(n) => *n,
-                ArgToken::Immediate(v) => {
-                    // Mark address args as absolute for JMP/BRANCH/CALL.
-                    if is_addr_arg { *v | 0x80000000 } else { *v }
+    for (addr, item) in &items {
+        match item {
+            EmitItem::Data(data) => {
+                for (i, &val) in data.pixels.iter().enumerate() {
+                    let pa = *addr + i;
+                    if pa < pixels.len() {
+                        pixels[pa] = val;
+                    }
                 }
-                ArgToken::Label(name) => {
-                    let addr = *labels.get(name).ok_or_else(|| AsmError {
-                        line: instr.line,
-                        message: format!("undefined label: {}", name),
-                    })? as u32;
-                    // Set bit 31 for address args so VM treats them as absolute,
-                    // not relative (canvas-typed bytes never have bit 31 set).
-                    if is_addr_arg { addr | 0x80000000 } else { addr }
-                }
-                ArgToken::BranchCond(cond, r1_tok, r2_tok) => {
-                    let resolve = |tok: &ArgToken| -> Result<u32, AsmError> {
-                        match tok {
-                            ArgToken::Register(n) => Ok(*n),
-                            ArgToken::Immediate(v) => Ok(*v),
-                            _ => Err(AsmError { line: instr.line, message: "branch condition register must be r0-r31".into() }),
+            }
+            EmitItem::Instr(instr) => {
+                pixels[*addr] = instr.opcode as u32;
+
+                for (i, arg) in instr.args.iter().enumerate() {
+                    let pixel_addr = addr + 1 + i;
+                    let is_addr_arg = matches!(
+                        instr.opcode,
+                        crate::opcodes::op::JMP
+                            | crate::opcodes::op::BRANCH
+                            | crate::opcodes::op::CALL,
+                    ) && i == instr.args.len() - 1;
+
+                    let value = match arg {
+                        ArgToken::Register(n) => *n,
+                        ArgToken::Immediate(v) => {
+                            if is_addr_arg {
+                                *v | 0x80000000
+                            } else {
+                                *v
+                            }
+                        }
+                        ArgToken::Label(name) => {
+                            let label_addr =
+                                *labels.get(name).ok_or_else(|| AsmError {
+                                    line: instr.line,
+                                    message: format!("undefined label: {}", name),
+                                })? as u32;
+                            if is_addr_arg {
+                                label_addr | 0x80000000
+                            } else {
+                                label_addr
+                            }
+                        }
+                        ArgToken::BranchCond(cond, r1_tok, r2_tok) => {
+                            let resolve = |tok: &ArgToken| -> Result<u32, AsmError> {
+                                match tok {
+                                    ArgToken::Register(n) => Ok(*n),
+                                    ArgToken::Immediate(v) => Ok(*v),
+                                    _ => Err(AsmError {
+                                        line: instr.line,
+                                        message: "branch condition register must be r0-r31"
+                                            .into(),
+                                    }),
+                                }
+                            };
+                            let r1 = resolve(r1_tok)?;
+                            let r2 = resolve(r2_tok)?;
+                            (*cond as u32) | (r1 << 16) | (r2 << 24)
                         }
                     };
-                    let r1 = resolve(r1_tok)?;
-                    let r2 = resolve(r2_tok)?;
-                    (*cond as u32) | (r1 << 16) | (r2 << 24)
+                    if pixel_addr < pixels.len() {
+                        pixels[pixel_addr] = value;
+                    }
                 }
-            };
-            if pixel_addr < pixels.len() {
-                pixels[pixel_addr] = value;
             }
         }
     }
@@ -869,5 +988,140 @@ target:
         vm.run();
         assert!(vm.halted);
         assert_eq!(vm.regs[0], 5);
+    }
+
+    // ── .ASCIZ directive tests ────────────────────────────────────
+
+    #[test]
+    fn asciz_simple_string() {
+        let asm = assemble(".asciz \"Hi\"").unwrap();
+        assert_eq!(asm.pixels, vec![b'H' as u32, b'i' as u32, 0]);
+    }
+
+    #[test]
+    fn asciz_empty_string() {
+        // Empty string → just a null terminator
+        let asm = assemble(".asciz \"\"").unwrap();
+        assert_eq!(asm.pixels, vec![0]);
+    }
+
+    #[test]
+    fn asciz_with_label() {
+        let src = "\
+msg:
+    .asciz \"Hello\"
+";
+        let asm = assemble(src).unwrap();
+        assert_eq!(asm.labels.get("msg"), Some(&0));
+        assert_eq!(
+            asm.pixels,
+            vec![
+                b'H' as u32,
+                b'e' as u32,
+                b'l' as u32,
+                b'l' as u32,
+                b'o' as u32,
+                0,
+            ]
+        );
+    }
+
+    #[test]
+    fn asciz_after_code() {
+        let src = "\
+    HALT
+msg:
+    .asciz \"OK\"
+";
+        let asm = assemble(src).unwrap();
+        assert_eq!(asm.labels.get("msg"), Some(&1)); // HALT is width 1
+        assert_eq!(asm.pixels[0], op::HALT as u32);
+        assert_eq!(asm.pixels[1], b'O' as u32);
+        assert_eq!(asm.pixels[2], b'K' as u32);
+        assert_eq!(asm.pixels[3], 0);
+    }
+
+    #[test]
+    fn asciz_with_org() {
+        let src = "\
+    HALT
+    .ORG 0x100
+msg:
+    .asciz \"Hi\"
+";
+        let asm = assemble(src).unwrap();
+        assert_eq!(asm.labels.get("msg"), Some(&0x100));
+        assert_eq!(asm.end_addr, 0x103); // 0x100 + 3 bytes (H, i, \0)
+        assert_eq!(asm.pixels[0x100], b'H' as u32);
+        assert_eq!(asm.pixels[0x101], b'i' as u32);
+        assert_eq!(asm.pixels[0x102], 0);
+    }
+
+    #[test]
+    fn asciz_escape_sequences() {
+        let src = r#".asciz "A\nB""#;
+        let asm = assemble(src).unwrap();
+        assert_eq!(
+            asm.pixels,
+            vec![b'A' as u32, b'\n' as u32, b'B' as u32, 0]
+        );
+    }
+
+    #[test]
+    fn asciz_escape_null() {
+        let src = r#".asciz "A\0B""#;
+        let asm = assemble(src).unwrap();
+        assert_eq!(asm.pixels, vec![b'A' as u32, 0, b'B' as u32, 0]);
+    }
+
+    #[test]
+    fn asciz_escape_backslash_and_quote() {
+        let src = r#".asciz "a\\b\"c""#;
+        let asm = assemble(src).unwrap();
+        assert_eq!(
+            asm.pixels,
+            vec![b'a' as u32, b'\\' as u32, b'b' as u32, b'"' as u32, b'c' as u32, 0]
+        );
+    }
+
+    #[test]
+    fn asciz_case_insensitive() {
+        let asm1 = assemble(".asciz \"X\"").unwrap();
+        let asm2 = assemble(".ASCIZ \"X\"").unwrap();
+        assert_eq!(asm1.pixels, asm2.pixels);
+    }
+
+    #[test]
+    fn asciz_with_text_opcode_and_label_ref() {
+        // Load address of string label into register, then use TEXT
+        let src = "\
+    LDI r1, 10
+    LDI r2, 20
+    LDI r3, msg
+    TEXT r1, r2, r3
+    HALT
+msg:
+    .asciz \"Hi\"
+";
+        let asm = assemble(src).unwrap();
+        // msg should be at addr: LDI(3) + LDI(3) + LDI(3) + TEXT(4) + HALT(1) = 14
+        assert_eq!(asm.labels.get("msg"), Some(&14));
+        // LDI r3, msg → loads address 14 as immediate
+        // addr 6-8 is LDI r3, msg
+        assert_eq!(asm.pixels[6], op::LDI as u32); // opcode
+        assert_eq!(asm.pixels[7], 3); // r3
+        assert_eq!(asm.pixels[8], 14); // msg address
+    }
+
+    #[test]
+    fn asciz_error_unterminated_string() {
+        let err = assemble(".asciz \"hello").unwrap_err();
+        assert!(err.message.contains("quoted string"));
+    }
+
+    #[test]
+    fn asciz_error_unknown_escape() {
+        let err = assemble(r#".asciz "\q""#).unwrap_err();
+        assert!(err.message.contains("unknown escape"));
     }
 }
