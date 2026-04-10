@@ -360,3 +360,120 @@ B $0F @start
     assert_eq!(out[7], 0,    "@start = 0");
 }
 
+#[test]
+fn echo_s_assembles_correctly() {
+    let src = std::fs::read_to_string("programs/echo-s.asm")
+        .expect("programs/echo-s.asm not found");
+    let mut vm = vm_with_micro_asm();
+    let out = run_micro_asm(&mut vm, &src);
+
+    // addr  0-2: I 0 $FFF
+    assert_eq!(out[0], 0x49, "LDI");
+    assert_eq!(out[1], 0x30, "r0");
+    assert_eq!(out[2], 0x0FFF, "$FFF = 4095");
+
+    // addr  3-5: I 1 $00
+    assert_eq!(out[3], 0x49);
+    assert_eq!(out[4], 0x31);
+    assert_eq!(out[5], 0x00);
+
+    // addr  6-8: I 2 $00
+    assert_eq!(out[6], 0x49);
+    assert_eq!(out[7], 0x32);
+    assert_eq!(out[8], 0x00);
+
+    // addr  9-11: I 3 $01
+    assert_eq!(out[9], 0x49);
+    assert_eq!(out[10], 0x33);
+    assert_eq!(out[11], 0x01);
+
+    // addr 12-14: I 5 $400
+    assert_eq!(out[12], 0x49);
+    assert_eq!(out[13], 0x35);
+    assert_eq!(out[14], 0x0400, "$400 = 1024");
+
+    // #poll = label at addr 15
+
+    // addr 15-17: L 4 0
+    assert_eq!(out[15], 0x4C, "LOAD");
+    assert_eq!(out[16], 0x34, "r4");
+    assert_eq!(out[17], 0x30, "r0 (addr)");
+
+    // addr 18-20: B $31340000 @poll
+    assert_eq!(out[18], 0x42, "BRANCH");
+    assert_eq!(out[19], 0x31340000, "BEQ r4,r1 condition");
+    assert_eq!(out[20], 15, "@poll = 15");
+
+    // addr 21-23: S 0 1 (ack)
+    assert_eq!(out[21], 0x53, "STORE");
+    assert_eq!(out[22], 0x30, "r0 (0xFFF)");
+    assert_eq!(out[23], 0x31, "r1 (0)");
+
+    // addr 24-26: S 2 4 (write key to canvas)
+    assert_eq!(out[24], 0x53);
+    assert_eq!(out[25], 0x32);
+    assert_eq!(out[26], 0x34);
+
+    // addr 27-29: A 2 3
+    assert_eq!(out[27], 0x41, "ADD");
+    assert_eq!(out[28], 0x32);
+    assert_eq!(out[29], 0x33);
+
+    // addr 30-32: B $35320001 @poll
+    assert_eq!(out[30], 0x42, "BRANCH");
+    assert_eq!(out[31], 0x35320001, "BNE r2,r5 condition");
+    assert_eq!(out[32], 15, "@poll = 15");
+
+    // addr 33-35: I 2 $00 (reset ptr)
+    assert_eq!(out[33], 0x49);
+    assert_eq!(out[34], 0x32);
+    assert_eq!(out[35], 0x00);
+
+    // addr 36-38: B $0F @poll
+    assert_eq!(out[36], 0x42, "BRANCH");
+    assert_eq!(out[37], 0x0F, "BAL");
+    assert_eq!(out[38], 15, "@poll = 15");
+
+    // addr 39: null terminator
+    assert_eq!(out[39], 0, "null terminator");
+}
+
+#[test]
+fn echo_s_simulated_keypress() {
+    // Assemble echo, then simulate a keypress and verify the program reads it
+    let src = "I 0 $FFF
+I 1 $00
+I 2 $00
+I 3 $01
+I 5 $400
+#poll
+L 4 0
+B $31340000 @poll
+S 0 1
+S 2 4
+A 2 3
+B $35320001 @poll
+I 2 $00
+B $0F @poll
+";
+    let mut vm = vm_with_micro_asm();
+    run_micro_asm(&mut vm, &src);
+
+    // Simulate: write a key to KEY_PORT
+    vm.ram[0xFFF] = 0x41; // 'A'
+
+    // Run the assembled program (it will poll, read 'A', ack, write to canvas)
+    vm.pc = 0;
+    vm.halted = false;
+    vm.yielded = false;
+    
+    // Run for a limited number of cycles (it's an infinite loop)
+    for _ in 0..200 {
+        vm.step();
+    }
+
+    // Verify: KEY_PORT should be 0 (acknowledged)
+    assert_eq!(vm.ram[0xFFF], 0, "KEY_PORT should be cleared (acked)");
+    // Verify: canvas[0] should have the key code 'A' = 0x41 = 65
+    assert_eq!(vm.ram[0], 0x41, "canvas[0] should be 'A' (0x41)");
+}
