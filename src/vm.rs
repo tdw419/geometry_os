@@ -2158,4 +2158,298 @@ mod tests {
         assert_eq!(vm.peek(50), op::HALT as u32);
         assert_eq!(vm.peek(60), op::HALT as u32);
     }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // MICRO-ASSEMBLER END-TO-END TESTS (F5 pipeline)
+    //
+    // Tests the full self-hosting loop:
+    //   Rust asm → compiles micro-asm.asm → RAM[0x800]
+    //   Source text → RAM[0x400]
+    //   VM runs micro-asm → bytecodes to RAM[0x000]
+    // ═══════════════════════════════════════════════════════════════════
+
+    use crate::assembler;
+
+    const TEXT_BUF: usize = 0x400;
+    const MICRO_ASM: usize = 0x800;
+
+    /// Load micro-asm.asm into a VM, place source text at TEXT_BUF,
+    /// run the assembler, and return the VM for inspection.
+    fn run_micro_asm(source: &str) -> Vm {
+        let asm_src = std::fs::read_to_string("programs/micro-asm.asm")
+            .expect("programs/micro-asm.asm not found — run from project root");
+        let compiled = assembler::assemble(&asm_src)
+            .expect("micro-asm.asm failed to assemble");
+
+        let mut vm = Vm::new(4096);
+        // Load assembled code — pixels Vec is indexed by address (0x800+ has the code)
+        for (i, &pixel) in compiled.pixels.iter().enumerate() {
+            if i >= MICRO_ASM && i < vm.ram.len() {
+                vm.ram[i] = pixel;
+            }
+        }
+
+        // Clear output area
+        for v in vm.ram[..TEXT_BUF].iter_mut() { *v = 0; }
+        // Clear text buffer and write source
+        for v in vm.ram[TEXT_BUF..MICRO_ASM].iter_mut() { *v = 0; }
+        for (i, byte) in source.bytes().enumerate() {
+            let addr = TEXT_BUF + i;
+            if addr < MICRO_ASM {
+                vm.ram[addr] = byte as u32;
+            }
+        }
+
+        // Run micro-assembler (two-pass, needs more than default 4096 cycles)
+        vm.pc = MICRO_ASM as u32;
+        vm.halted = false;
+        let mut cycles = 0u32;
+        while !vm.halted && cycles < 500_000 {
+            vm.step();
+            cycles += 1;
+        }
+        assert!(vm.halted, "micro-asm did not halt after {cycles} cycles, pc={}", vm.pc);
+        vm
+    }
+
+    #[test]
+    fn micro_asm_single_halt() {
+        // Simplest program: 'H' → HALT (0x48)
+        let vm = run_micro_asm("H");
+        assert_eq!(vm.peek(0), 0x48); // HALT opcode
+        assert_eq!(vm.peek(1), 0);    // null terminator
+    }
+
+    #[test]
+    fn micro_asm_ldi_with_printable_arg() {
+        // I 0 ! → LDI r0, 33  ('!' = 0x21 = 33)
+        let vm = run_micro_asm("I 0 !");
+        assert_eq!(vm.peek(0), 0x49); // 'I' = LDI
+        assert_eq!(vm.peek(1), 0x30); // '0' = register index 0
+        assert_eq!(vm.peek(2), 0x21); // '!' = value 33
+        assert_eq!(vm.peek(3), 0);    // null terminator
+    }
+
+    #[test]
+    fn micro_asm_hex_escape() {
+        // I 0 $01 → LDI r0, 1
+        let vm = run_micro_asm("I 0 $01");
+        assert_eq!(vm.peek(0), 0x49);
+        assert_eq!(vm.peek(1), 0x30);
+        assert_eq!(vm.peek(2), 0x01);
+        assert_eq!(vm.peek(3), 0);
+    }
+
+    #[test]
+    fn micro_asm_strips_comments() {
+        // Comments after ; should be ignored
+        let vm = run_micro_asm("I 0 ! ; set r0 to 33");
+        assert_eq!(vm.peek(0), 0x49);
+        assert_eq!(vm.peek(1), 0x30);
+        assert_eq!(vm.peek(2), 0x21);
+        assert_eq!(vm.peek(3), 0);
+    }
+
+    #[test]
+    fn micro_asm_multiline_program() {
+        // Three instructions on separate lines
+        let vm = run_micro_asm("I 0 !\nI 1 $01\nH");
+        // I 0 !
+        assert_eq!(vm.peek(0), 0x49);
+        assert_eq!(vm.peek(1), 0x30);
+        assert_eq!(vm.peek(2), 0x21);
+        // I 1 $01
+        assert_eq!(vm.peek(3), 0x49);
+        assert_eq!(vm.peek(4), 0x31);
+        assert_eq!(vm.peek(5), 0x01);
+        // H
+        assert_eq!(vm.peek(6), 0x48);
+        assert_eq!(vm.peek(7), 0);
+    }
+
+    #[test]
+    fn micro_asm_counter_without_labels() {
+        // counter-s.asm logic (manual addresses):
+        //   I 0 !      → LDI r0, 33     @ 0
+        //   I 1 $01    → LDI r1, 1      @ 3
+        //   I 2 $20    → LDI r2, 32     @ 6
+        //   S 2 0      → STORE r2, r0   @ 9
+        //   A 0 1      → ADD r0, r1     @ 12
+        //   B $00 $09  → BRANCH → addr 9 @ 15
+        let vm = run_micro_asm("I 0 !\nI 1 $01\nI 2 $20\nS 2 0\nA 0 1\nB $00 $09");
+
+        assert_eq!(vm.peek(0), 0x49); assert_eq!(vm.peek(1), 0x30); assert_eq!(vm.peek(2), 0x21);
+        assert_eq!(vm.peek(3), 0x49); assert_eq!(vm.peek(4), 0x31); assert_eq!(vm.peek(5), 0x01);
+        assert_eq!(vm.peek(6), 0x49); assert_eq!(vm.peek(7), 0x32); assert_eq!(vm.peek(8), 0x20);
+        assert_eq!(vm.peek(9), 0x53); assert_eq!(vm.peek(10), 0x32); assert_eq!(vm.peek(11), 0x30);
+        assert_eq!(vm.peek(12), 0x41); assert_eq!(vm.peek(13), 0x30); assert_eq!(vm.peek(14), 0x31);
+        assert_eq!(vm.peek(15), 0x42); assert_eq!(vm.peek(16), 0x00); assert_eq!(vm.peek(17), 0x09);
+        assert_eq!(vm.peek(18), 0); // null terminator
+    }
+
+    #[test]
+    fn micro_asm_label_backward_jump() {
+        // #loop defines label at position 0
+        // @loop resolves to 0
+        //   #loop       → label "loop" = 0
+        //   S 2 0       → @ 0: [0x53, 0x32, 0x30]
+        //   A 0 1       → @ 3: [0x41, 0x30, 0x31]
+        //   B $00 @loop → @ 6: [0x42, 0x00, 0x00]
+        let vm = run_micro_asm("#loop\nS 2 0\nA 0 1\nB $00 @loop");
+
+        assert_eq!(vm.peek(0), 0x53); // S
+        assert_eq!(vm.peek(1), 0x32); // 2
+        assert_eq!(vm.peek(2), 0x30); // 0
+        assert_eq!(vm.peek(3), 0x41); // A
+        assert_eq!(vm.peek(4), 0x30); // 0
+        assert_eq!(vm.peek(5), 0x31); // 1
+        assert_eq!(vm.peek(6), 0x42); // B
+        assert_eq!(vm.peek(7), 0x00); // $00
+        assert_eq!(vm.peek(8), 0x00); // @loop → 0
+        assert_eq!(vm.peek(9), 0);    // null terminator
+    }
+
+    #[test]
+    fn micro_asm_label_forward_jump() {
+        //   I 0 !       → @ 0: [0x49, 0x30, 0x21]
+        //   B $00 @done → @ 3: [0x42, 0x00, 0x09]
+        //   I 1 $07     → @ 6: [0x49, 0x31, 0x07]
+        //   #done       → label "done" = 9
+        //   H           → @ 9: [0x48]
+        let vm = run_micro_asm("I 0 !\nB $00 @done\nI 1 $07\n#done\nH");
+
+        assert_eq!(vm.peek(0), 0x49); assert_eq!(vm.peek(1), 0x30); assert_eq!(vm.peek(2), 0x21);
+        assert_eq!(vm.peek(3), 0x42); assert_eq!(vm.peek(4), 0x00); assert_eq!(vm.peek(5), 0x09);
+        assert_eq!(vm.peek(6), 0x49); assert_eq!(vm.peek(7), 0x31); assert_eq!(vm.peek(8), 0x07);
+        assert_eq!(vm.peek(9), 0x48); // H at the "done" label address
+        assert_eq!(vm.peek(10), 0);
+    }
+
+    #[test]
+    fn micro_asm_unknown_label_emits_error() {
+        // Referencing a label that was never defined → 0xFF error marker
+        let vm = run_micro_asm("@missing");
+        assert_eq!(vm.peek(0), 0xFF);
+        assert_eq!(vm.peek(1), 0);
+    }
+
+    #[test]
+    fn micro_asm_empty_input() {
+        // Empty source → just a null terminator
+        let vm = run_micro_asm("");
+        assert_eq!(vm.peek(0), 0);
+    }
+
+    #[test]
+    fn micro_asm_comment_only() {
+        // Only comments → just a null terminator
+        let vm = run_micro_asm("; just a comment\n; another");
+        assert_eq!(vm.peek(0), 0);
+    }
+
+    #[test]
+    fn micro_asm_counter_s_with_labels() {
+        // Load counter-s.asm source and verify it produces the right bytecodes
+        let source = std::fs::read_to_string("programs/counter-s.asm")
+            .expect("programs/counter-s.asm not found");
+        // Strip comment lines for the source (micro-asm handles ; comments)
+        let vm = run_micro_asm(&source);
+
+        // I 0 ! → LDI r0, 33
+        assert_eq!(vm.peek(0), 0x49); // I (LDI)
+        assert_eq!(vm.peek(1), 0x30); // 0 (r0)
+        assert_eq!(vm.peek(2), 0x21); // ! (33)
+
+        // I 1 $01 → LDI r1, 1
+        assert_eq!(vm.peek(3), 0x49); // I
+        assert_eq!(vm.peek(4), 0x31); // 1 (r1)
+        assert_eq!(vm.peek(5), 0x01); // $01
+
+        // I 2 $20 → LDI r2, 32
+        assert_eq!(vm.peek(6), 0x49); // I
+        assert_eq!(vm.peek(7), 0x32); // 2 (r2)
+        assert_eq!(vm.peek(8), 0x20); // $20 (32)
+
+        // #loop at addr 9
+        // S 2 0 → STORE r2, r0
+        assert_eq!(vm.peek(9),  0x53); // S (STORE)
+        assert_eq!(vm.peek(10), 0x32); // 2 (r2)
+        assert_eq!(vm.peek(11), 0x30); // 0 (r0)
+
+        // A 0 1 → ADD r0, r1
+        assert_eq!(vm.peek(12), 0x41); // A (ADD)
+        assert_eq!(vm.peek(13), 0x30); // 0 (r0)
+        assert_eq!(vm.peek(14), 0x31); // 1 (r1)
+
+        // B $00 @loop → BRANCH cond=0, target=9
+        assert_eq!(vm.peek(15), 0x42); // B (BRANCH)
+        assert_eq!(vm.peek(16), 0x00); // $00 (cond)
+        assert_eq!(vm.peek(17), 0x09); // @loop → 9
+
+        assert_eq!(vm.peek(18), 0); // null terminator
+    }
+
+    #[test]
+    fn micro_asm_fill_s_program() {
+        let source = std::fs::read_to_string("programs/fill-s.asm")
+            .expect("programs/fill-s.asm not found");
+        let vm = run_micro_asm(&source);
+
+        // I 0 $21
+        assert_eq!(vm.peek(0), 0x49); // I (LDI)
+        assert_eq!(vm.peek(1), 0x30); // 0 (r0)
+        assert_eq!(vm.peek(2), 0x21); // $21 (33)
+        // I 1 $01
+        assert_eq!(vm.peek(3), 0x49);
+        assert_eq!(vm.peek(4), 0x31);
+        assert_eq!(vm.peek(5), 0x01);
+        // I 2 $00
+        assert_eq!(vm.peek(6), 0x49);
+        assert_eq!(vm.peek(7), 0x32);
+        assert_eq!(vm.peek(8), 0x00);
+        // #loop = label at addr 9
+        // S 2 0
+        assert_eq!(vm.peek(9),  0x53); // S (STORE)
+        assert_eq!(vm.peek(10), 0x32); // 2 (r2)
+        assert_eq!(vm.peek(11), 0x30); // 0 (r0)
+        // A 0 1
+        assert_eq!(vm.peek(12), 0x41); // A (ADD)
+        assert_eq!(vm.peek(13), 0x30); // 0
+        assert_eq!(vm.peek(14), 0x31); // 1
+        // A 2 1
+        assert_eq!(vm.peek(15), 0x41); // A
+        assert_eq!(vm.peek(16), 0x32); // 2
+        assert_eq!(vm.peek(17), 0x31); // 1
+        // B $00 @loop
+        assert_eq!(vm.peek(18), 0x42); // B (BRANCH)
+        assert_eq!(vm.peek(19), 0x00); // $00 (cond)
+        assert_eq!(vm.peek(20), 0x09); // @loop -> 9
+        // H
+        assert_eq!(vm.peek(21), 0x48); // H (HALT)
+        assert_eq!(vm.peek(22), 0);    // null terminator
+    }
+
+    #[test]
+    fn micro_asm_selfwrite_program() {
+        let source = std::fs::read_to_string("programs/selfwrite-s.asm")
+            .expect("programs/selfwrite-s.asm not found");
+        let vm = run_micro_asm(&source);
+
+        // I 0 $20
+        assert_eq!(vm.peek(0), 0x49); // I
+        assert_eq!(vm.peek(1), 0x30); // 0
+        assert_eq!(vm.peek(2), 0x20); // $20 (32)
+        // I 1 $48
+        assert_eq!(vm.peek(3), 0x49); // I
+        assert_eq!(vm.peek(4), 0x31); // 1
+        assert_eq!(vm.peek(5), 0x48); // $48 (72 = HALT opcode)
+        // E 0 1 (EDIT_OVERWRITE)
+        assert_eq!(vm.peek(6), 0x45); // E (EXEC/EDIT_OVERWRITE)
+        assert_eq!(vm.peek(7), 0x30); // 0
+        assert_eq!(vm.peek(8), 0x31); // 1
+        // J $20 (JMP 32)
+        assert_eq!(vm.peek(9), 0x4A);  // J (JMP)
+        assert_eq!(vm.peek(10), 0x20); // $20 (32)
+        assert_eq!(vm.peek(11), 0);    // null terminator
+    }
 }
