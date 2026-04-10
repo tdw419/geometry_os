@@ -1,0 +1,299 @@
+; ═══════════════════════════════════════════════════════════════════════
+; lib/screen.gasm -- Screen drawing routines for Geometry OS
+;
+; Implements clear_screen, draw_line (Bresenham), and draw_rect_border
+; using PSET, RECTF, ADD, SUB, BRANCH, and CALL/RET.
+;
+; CALLING CONVENTION:
+;   r0 = first argument / return value / color (for drawing ops)
+;   r1-r4 = additional arguments
+;   r5-r15 = temporaries (clobbered by routines)
+;   CALL <routine> / RET to invoke
+;
+; ROUTINES:
+;   clear_screen    -- fill entire 256x256 screen with color in r0
+;   draw_line       -- Bresenham line from (r1,r2) to (r3,r4) in color r0
+;   draw_rect_border -- draw hollow rectangle at (r1,r2) size (r3,r4) in color r0
+;
+; NOTES:
+;   - Screen is 256x256 pixels, coordinates 0-255.
+;   - draw_line handles all octants (any direction).
+;   - draw_rect_border draws 1-pixel-wide border edges.
+; ═══════════════════════════════════════════════════════════════════════
+
+
+; ── clear_screen: fill entire screen with color ────────────────────────
+;
+; Input:  r0 = fill color
+; Output: none (r0 preserved)
+; Clobbers: r1, r2
+;
+; Uses RECTF to fill 256x256 starting at (0,0).
+; We save r0 (color) because RECTF reads color from r0.
+
+clear_screen:
+    PUSH r0           ; save color
+    LDI r1, 0         ; x = 0
+    LDI r2, 0         ; y = 0
+    RECTF r1, r2, 256, 256
+    POP r0            ; restore color
+    RET
+
+
+; ── draw_line: Bresenham line algorithm ────────────────────────────────
+;
+; Input:  r0 = color, r1 = x1, r2 = y1, r3 = x2, r4 = y2
+; Output: none (clobbers most registers)
+; Clobbers: r1-r15
+;
+; Algorithm:
+;   dx = |x2 - x1|, dy = |y2 - y1|
+;   sx = +1 if x1 < x2, else -1 (0xFFFFFFFF)
+;   sy = +1 if y1 < y2, else -1 (0xFFFFFFFF)
+;   err = dx - dy
+;   loop:
+;     PSET(cx, cy, color)
+;     if cx == x2 and cy == y2: done
+;     e2 = 2 * err
+;     if e2 > -dy: err -= dy; cx += sx
+;     if e2 < dx:  err += dx; cy += sy
+;
+; Register allocation:
+;   r0  = color (preserved)
+;   r1  = cx (current x)
+;   r2  = cy (current y)
+;   r3  = x2 (target x)
+;   r4  = y2 (target y)
+;   r5  = dx (|x2 - x1|)
+;   r6  = dy (|y2 - y1|, stored positive, negated when used)
+;   r7  = sx (step x: 1 or 0xFFFFFFFF)
+;   r8  = sy (step y: 1 or 0xFFFFFFFF)
+;   r9  = err
+;   r10 = e2 (2 * err)
+;   r11 = zero constant
+;   r12 = one constant
+;   r13 = temp for comparisons
+;   r14 = negative dy for comparison (-dy in u32)
+
+draw_line:
+    LDI r11, 0         ; r11 = 0 constant
+    LDI r12, 1         ; r12 = 1 constant
+
+    ; ── Compute dx = |x2 - x1| ──
+    ; r5 = dx, r7 = sx
+    BLT r1, r3, draw_line_sx_pos    ; if x1 < x2, dx = x2 - x1, sx = 1
+
+    ; x1 >= x2: dx = x1 - x2, sx = -1
+    MOV r5, r1            ; r5 = x1
+    SUB r5, r3            ; r5 = x1 - x2
+    LDI r7, 0xFFFFFFFF    ; r7 = -1 (step left)
+    JMP draw_line_dy_setup
+
+draw_line_sx_pos:
+    ; x1 < x2: dx = x2 - x1, sx = 1
+    MOV r5, r3            ; r5 = x2
+    SUB r5, r1            ; r5 = x2 - x1
+    LDI r7, 1             ; r7 = 1 (step right)
+
+draw_line_dy_setup:
+    ; ── Compute dy = |y2 - y1| ──
+    ; r6 = dy, r8 = sy
+    BLT r2, r4, draw_line_sy_pos    ; if y1 < y2, dy = y2 - y1, sy = 1
+
+    ; y1 >= y2: dy = y1 - y2, sy = -1
+    MOV r6, r2            ; r6 = y1
+    SUB r6, r4            ; r6 = y1 - y2
+    LDI r8, 0xFFFFFFFF    ; r8 = -1 (step up)
+    JMP draw_line_err_init
+
+draw_line_sy_pos:
+    ; y1 < y2: dy = y2 - y1, sy = 1
+    MOV r6, r4            ; r6 = y2
+    SUB r6, r2            ; r6 = y2 - y1
+    LDI r8, 1             ; r8 = 1 (step down)
+
+draw_line_err_init:
+    ; ── err = dx - dy ──
+    ; r9 = err = dx - dy
+    MOV r9, r5            ; r9 = dx
+    SUB r9, r6            ; r9 = dx - dy
+
+    ; ── Main Bresenham loop ──
+draw_line_loop:
+    ; PSET(cx, cy, color)
+    ; Draw single pixel using RECTF (reads color from r0)
+    RECTF r1, r2, 1, 1
+
+    ; ── Check if we reached endpoint ──
+    ; if cx == x2 and cy == y2: done
+    BNE r1, r3, draw_line_not_done_x
+    BEQ r2, r4, draw_line_done
+draw_line_not_done_x:
+
+    ; ── e2 = 2 * err ──
+    ; r10 = 2 * r9
+    MOV r10, r9
+    ADD r10, r9           ; r10 = err * 2
+
+    ; ── if e2 > -dy: err -= dy; cx += sx ──
+    ; e2 > -dy  ⟺  e2 + dy > 0
+    ; Compute -dy as (0 - dy) in u32 = 0 - r6
+    MOV r13, r11          ; r13 = 0
+    SUB r13, r6           ; r13 = -dy (wrapping)
+    ; Compare: e2 > -dy  ⟺  e2 as signed > -dy as signed
+    ; But e2 and -dy are both potentially large unsigned. Use signed BLT.
+    ; if -dy < e2  (i.e., -dy is strictly less than e2, meaning e2 > -dy)
+    BLT r13, r10, draw_line_step_x
+    JMP draw_line_check_y
+draw_line_step_x:
+    SUB r9, r6            ; err -= dy
+    ADD r1, r7            ; cx += sx
+draw_line_check_y:
+    ; ── if e2 < dx: err += dx; cy += sy ──
+    ; Recompute e2 because err may have changed
+    MOV r10, r9
+    ADD r10, r9           ; r10 = 2 * err (recomputed)
+
+    BLT r10, r5, draw_line_step_y
+    JMP draw_line_loop
+draw_line_step_y:
+    ADD r9, r5            ; err += dx
+    ADD r2, r8            ; cy += sy
+    JMP draw_line_loop
+
+draw_line_done:
+    RET
+
+
+; ── draw_rect_border: draw hollow rectangle ────────────────────────────
+;
+; Input:  r0 = color, r1 = x, r2 = y, r3 = width, r4 = height
+; Output: none
+; Clobbers: r5-r15
+;
+; Draws a 1-pixel border rectangle by drawing 4 horizontal/vertical lines
+; using draw_line (which handles direction automatically).
+;
+; Register usage:
+;   r5  = x + width - 1 (right edge)
+;   r6  = y + height - 1 (bottom edge)
+;   r7-r10 = saved args for draw_line calls
+;   r11 = 1 constant
+;   r12-r15 = temp
+
+draw_rect_border:
+    ; Save inputs on stack (draw_line clobbers r1-r15)
+    PUSH r0           ; color
+    PUSH r1           ; x
+    PUSH r2           ; y
+    PUSH r3           ; width
+    PUSH r4           ; height
+
+    LDI r11, 1
+
+    ; Compute right edge: r5 = x + width - 1
+    MOV r5, r1
+    ADD r5, r3
+    SUB r5, r11
+
+    ; Compute bottom edge: r6 = y + height - 1
+    MOV r6, r2
+    ADD r6, r4
+    SUB r6, r11
+
+    ; ── Top edge: (x, y) to (x+w-1, y) ──
+    ; r0=color, r1=x1, r2=y1, r3=x2, r4=y2
+    ; color is already in r0, x in r1, y in r2
+    MOV r3, r5        ; x2 = right edge
+    MOV r4, r2        ; y2 = y (same as y1)
+    CALL draw_line
+
+    ; ── Restore args for next line ──
+    ; After draw_line, r1-r15 are clobbered. Restore from stack.
+    ; Stack: [height, width, y, x, color] (top to bottom since PUSH goes in order)
+    POP r4            ; height
+    POP r3            ; width
+    POP r2            ; y
+    POP r1            ; x
+    POP r0            ; color
+
+    ; draw_line clobbered r11 (set it to 0), restore the constant
+    LDI r11, 1
+
+    ; Recompute edges
+    MOV r5, r1
+    ADD r5, r3
+    SUB r5, r11       ; right edge
+    MOV r6, r2
+    ADD r6, r4
+    SUB r6, r11       ; bottom edge
+
+    ; ── Bottom edge: (x, y+h-1) to (x+w-1, y+h-1) ──
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r4
+    PUSH r5
+    PUSH r6
+    PUSH r11
+    MOV r3, r5        ; x2 = right edge
+    MOV r4, r6        ; y2 = bottom edge
+    MOV r2, r6        ; y1 = bottom edge
+    ; r0=color, r1=x unchanged
+    CALL draw_line
+    POP r11
+    POP r6
+    POP r5
+    POP r4
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    ; ── Left edge: (x, y) to (x, y+h-1) ──
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r4
+    PUSH r5
+    PUSH r6
+    PUSH r11
+    MOV r3, r1        ; x2 = x (same as x1)
+    MOV r4, r6        ; y2 = bottom edge
+    ; r0=color, r1=x, r2=y unchanged
+    CALL draw_line
+    POP r11
+    POP r6
+    POP r5
+    POP r4
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    ; ── Right edge: (x+w-1, y) to (x+w-1, y+h-1) ──
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r4
+    PUSH r5
+    PUSH r6
+    PUSH r11
+    MOV r1, r5        ; x1 = right edge
+    MOV r3, r5        ; x2 = right edge
+    MOV r4, r6        ; y2 = bottom edge
+    ; r0=color, r2=y unchanged
+    CALL draw_line
+    POP r11
+    POP r6
+    POP r5
+    POP r4
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    RET
