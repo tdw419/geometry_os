@@ -670,6 +670,7 @@ impl Vm {
                     3 => (a as i32) >= (b as i32),  // BGE
                     4 => a < b,                     // BLTU
                     5 => a >= b,                    // BGEU
+                    15 => true,                     // BAL (unconditional)
                     _ => false,
                 };
 
@@ -1321,6 +1322,7 @@ impl Vm {
                     3 => (a as i32) >= (b as i32),  // BGE
                     4 => a < b,                     // BLTU
                     5 => a >= b,                    // BGEU
+                    15 => true,                     // BAL (unconditional)
                     _ => false,
                 };
 
@@ -1706,6 +1708,112 @@ mod tests {
         vm.run();
         assert!(vm.halted);
         assert_eq!(vm.pc, 1);
+    }
+
+    // ── Branch behavior tests ──────────────────────────────────────────
+    // cond_pixel format: cond_code | (r1_idx << 16) | (r2_idx << 24)
+
+    fn pack_cond(cond: u8, r1: u8, r2: u8) -> Vec<u32> {
+        vec![op::BRANCH as u32, (cond as u32) | ((r1 as u32) << 16) | ((r2 as u32) << 24)]
+    }
+
+    #[test]
+    fn beq_taken_when_equal() {
+        // r0=5, r1=5, BEQ r0,r1 → should jump to target=99
+        let mut vm = Vm::new(128);
+        // addr 0: LDI r0, 5
+        vm.load_program(&[
+            op::LDI as u32, 0x30, 5,
+            op::LDI as u32, 0x31, 5,
+            op::BRANCH as u32, 0 | (0x30 << 16) | (0x31 << 24), 99,
+        ]);
+        vm.pc = 0;
+        vm.step(); // LDI r0, 5
+        vm.step(); // LDI r1, 5
+        vm.step(); // BEQ r0, r1, 99
+        assert_eq!(vm.pc, 99); // jumped
+    }
+
+    #[test]
+    fn beq_not_taken_when_unequal() {
+        // r0=5, r1=7, BEQ r0,r1 → should fall through (pc = 3+3+3 = 9)
+        let mut vm = Vm::new(128);
+        vm.load_program(&[
+            op::LDI as u32, 0x30, 5,       // 0-2
+            op::LDI as u32, 0x31, 7,       // 3-5
+            op::BRANCH as u32, 0 | (0x30 << 16) | (0x31 << 24), 99, // 6-8
+            op::HALT as u32,               // 9
+        ]);
+        vm.run();
+        assert_eq!(vm.pc, 10); // fell through to HALT, advanced past it
+        assert!(vm.halted);
+    }
+
+    #[test]
+    fn bne_taken_when_unequal() {
+        let mut vm = Vm::new(128);
+        vm.load_program(&[
+            op::LDI as u32, 0x30, 5,
+            op::LDI as u32, 0x31, 7,
+            op::BRANCH as u32, 1 | (0x30 << 16) | (0x31 << 24), 99, // BNE r0,r1
+        ]);
+        vm.pc = 0;
+        vm.step(); vm.step(); vm.step();
+        assert_eq!(vm.pc, 99);
+    }
+
+    #[test]
+    fn blt_taken_when_less() {
+        // r0=3, r1=10, BLT should jump
+        let mut vm = Vm::new(128);
+        vm.load_program(&[
+            op::LDI as u32, 0x30, 3,
+            op::LDI as u32, 0x31, 10,
+            op::BRANCH as u32, 2 | (0x30 << 16) | (0x31 << 24), 50, // BLT r0,r1
+        ]);
+        vm.pc = 0;
+        vm.step(); vm.step(); vm.step();
+        assert_eq!(vm.pc, 50);
+    }
+
+    #[test]
+    fn bge_taken_when_greater_or_equal() {
+        // r0=10, r1=3, BGE should jump
+        let mut vm = Vm::new(128);
+        vm.load_program(&[
+            op::LDI as u32, 0x30, 10,
+            op::LDI as u32, 0x31, 3,
+            op::BRANCH as u32, 3 | (0x30 << 16) | (0x31 << 24), 50, // BGE r0,r1
+        ]);
+        vm.pc = 0;
+        vm.step(); vm.step(); vm.step();
+        assert_eq!(vm.pc, 50);
+    }
+
+    #[test]
+    fn bal_unconditional_always_jumps() {
+        // BAL ignores register values, always jumps
+        let mut vm = Vm::new(128);
+        vm.load_program(&[
+            op::LDI as u32, 0x30, 99,
+            op::LDI as u32, 0x31, 1,
+            op::BRANCH as u32, 15 | (0x30 << 16) | (0x31 << 24), 77, // BAL
+        ]);
+        vm.pc = 0;
+        vm.step(); vm.step(); vm.step();
+        assert_eq!(vm.pc, 77);
+    }
+
+    #[test]
+    fn bal_unconditional_with_zero_regs() {
+        // Even with r0=r0 (same reg), BAL still jumps (doesn't depend on values)
+        let mut vm = Vm::new(128);
+        vm.load_program(&[
+            op::BRANCH as u32, 15 | (0x30 << 16) | (0x30 << 24), 42, // BAL r0,r0 → 42
+        ]);
+        vm.pc = 0;
+        vm.step();
+        assert_eq!(vm.pc, 42);
     }
 
     #[test]

@@ -168,6 +168,7 @@ fn branch_alias_cond(mnemonic: &str) -> Option<u8> {
         "BGE"  => Some(3),
         "BLTU" => Some(4),
         "BGEU" => Some(5),
+        "BAL"  => Some(15),  // unconditional branch
         _ => None,
     }
 }
@@ -537,6 +538,20 @@ loop:
         assert!(assemble("BGE r0, r1, end\nend:\nHALT").is_ok());
         assert!(assemble("BLTU r0, r1, end\nend:\nHALT").is_ok());
         assert!(assemble("BGEU r0, r1, end\nend:\nHALT").is_ok());
+    }
+
+    #[test]
+    fn bal_unconditional_assembles() {
+        let src = "
+target:
+    NOP
+    BAL r0, r0, target
+";
+        let asm = assemble(src).unwrap();
+        assert_eq!(asm.pixels[1], op::BRANCH as u32);
+        let cond_pixel = asm.pixels[2];
+        assert_eq!(cond_pixel & 0xFF, 15); // BAL = 15
+        assert_eq!(asm.pixels[3], 0);       // target = addr 0
     }
 
     #[test]
