@@ -169,6 +169,10 @@ pub trait Agent {
     /// Returns a vector of (address, formatted_string) pairs.
     /// Walks instruction boundaries using opcode widths.
     fn disassemble(&self, start: usize, count: usize) -> Vec<(usize, String)>;
+
+    /// Convenience: disassemble and return as a single formatted string.
+    /// One instruction per line, addresses prefixed.
+    fn disasm(&self, start: usize, count: usize) -> String;
 }
 
 /// Errors that can occur during agent execution.
@@ -469,6 +473,14 @@ impl Agent for GasmAgent {
         }
 
         result
+    }
+
+    fn disasm(&self, start: usize, count: usize) -> String {
+        self.disassemble(start, count)
+            .iter()
+            .map(|(addr, instr)| format!("{:04X}: {}", addr, instr))
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
 
@@ -1527,5 +1539,17 @@ mod tests {
         let result = agent.execute_from(500);
         assert!(result.halted);
         assert_eq!(result.reg(0), 40);
+    }
+
+    #[test]
+    fn disasm_convenience_formatting() {
+        let mut agent = GasmAgent::new(256);
+        agent.load_gasm("LDI r0, 42\nADD r0, r1\nHALT").unwrap();
+        let output = agent.disasm(0, 7);
+        assert!(output.contains("0000: LDI r0, 42"));
+        assert!(output.contains("0003: ADD r0, r1"));
+        assert!(output.contains("0006: HALT"));
+        // Should be multi-line
+        assert_eq!(output.lines().count(), 3);
     }
 }
