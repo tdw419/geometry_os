@@ -16,9 +16,12 @@
 ;
 ; SOURCE SYNTAX (extends level 0 with label support)
 ;   Any printable char 0x21-0x7E except ;,$,#,@,,,: → written verbatim
-;   $XX (dollar + 2 hex digits, uppercase or decimal) → decoded byte
+;   $XX       (2 hex digits) → 1-byte value, e.g. $FF → 0xFF
+;   $XXXXXXXX (8 hex digits) → full u32 cell, e.g. $02010000 → 0x02010000
+;   Any number of hex digits is accepted; all digits shift into one u32 cell.
+;   Use 8-digit form for BRANCH condition pixels (encodes cond|r1<<16|r2<<24).
 ;   #name → define label "name" at current output position (emits 0 bytes)
-;   @name → emit 1-byte resolved address of label "name"
+;   @name → emit 1-cell resolved address of label "name"
 ;   ; → rest of line is a comment, skipped
 ;   space, tab, newline, comma, colon → skipped (whitespace / separators)
 ;   0x00 (null) → end of input
@@ -123,11 +126,30 @@ p1_comment:
     BEQ r2, r15, p1_end
     JMP p1_comment
 
-; Pass 1: $XX hex escape → 1 output byte, skip 3 input chars
+; Pass 1: $[hex...] → 1 output cell, skip all hex digit chars
+; Accepts 2-digit ($FF) or 8-digit ($AABBCCDD) — variable length
 p1_hex:
-    LDI r5, 3
-    ADD r0, r5
-    ADD r8, r14
+    ADD r0, r14                  ; skip '$'
+p1_hex_skip:
+    LOAD r2, r0
+    LDI r5, 0x30
+    BLTU r2, r5, p1_hex_done     ; < '0'
+    LDI r5, 0x3A
+    BLTU r2, r5, p1_hex_next     ; '0'-'9' → hex digit
+    LDI r5, 0x41
+    BLTU r2, r5, p1_hex_done     ; 0x3A-0x40 → not hex
+    LDI r5, 0x47
+    BLTU r2, r5, p1_hex_next     ; 'A'-'F' → hex digit
+    LDI r5, 0x61
+    BLTU r2, r5, p1_hex_done     ; 0x47-0x60 → not hex
+    LDI r5, 0x67
+    BLTU r2, r5, p1_hex_next     ; 'a'-'f' → hex digit
+    JMP p1_hex_done              ; > 'f' → not hex
+p1_hex_next:
+    ADD r0, r14
+    JMP p1_hex_skip
+p1_hex_done:
+    ADD r8, r14                  ; 1 output cell regardless of digit count
     JMP pass1
 
 ; Pass 1: @name → 1 output byte, skip name chars
@@ -243,37 +265,47 @@ p2_skip_def_name:
     ADD r0, r14
     JMP p2_skip_def_name
 
-; Pass 2: $XX hex escape
+; Pass 2: $[hex...] — accumulate all consecutive hex digits into one u32 cell
+; $FF → 0xFF  |  $02010000 → 0x02010000  (full 32-bit BRANCH condition)
 p2_hex:
     ADD r0, r14                  ; skip '$'
-    LOAD r3, r0                  ; high nibble char
-    ADD r0, r14
-    LOAD r4, r0                  ; low nibble char
-    ADD r0, r14
-
-    LDI r5, 58
-    BLTU r3, r5, p2_hi_dec
-    LDI r5, 55                   ; 'A'-10
-    SUB r3, r5
-    JMP p2_hi_done
-p2_hi_dec:
-    LDI r5, 48
-    SUB r3, r5
-p2_hi_done:
-
-    LDI r5, 58
-    BLTU r4, r5, p2_lo_dec
-    LDI r5, 55
+    LDI r3, 0                    ; accumulator
+p2_hex_loop:
+    LOAD r4, r0
+    ; '0'-'9'
+    LDI r5, 0x30
+    BLTU r4, r5, p2_hex_emit
+    LDI r5, 0x3A
+    BLTU r4, r5, p2_hex_dec
+    ; 'A'-'F'
+    LDI r5, 0x41
+    BLTU r4, r5, p2_hex_emit
+    LDI r5, 0x47
+    BLTU r4, r5, p2_hex_upper
+    ; 'a'-'f'
+    LDI r5, 0x61
+    BLTU r4, r5, p2_hex_emit
+    LDI r5, 0x67
+    BLTU r4, r5, p2_hex_lower
+    JMP p2_hex_emit
+p2_hex_dec:
+    LDI r5, 0x30
     SUB r4, r5
-    JMP p2_lo_done
-p2_lo_dec:
-    LDI r5, 48
+    JMP p2_hex_shift
+p2_hex_upper:
+    LDI r5, 55                   ; 'A'(65) - 10
     SUB r4, r5
-p2_lo_done:
-
+    JMP p2_hex_shift
+p2_hex_lower:
+    LDI r5, 87                   ; 'a'(97) - 10
+    SUB r4, r5
+p2_hex_shift:
     LDI r5, 4
     SHL r3, r5
     OR r3, r4
+    ADD r0, r14
+    JMP p2_hex_loop
+p2_hex_emit:
     STORE r1, r3
     ADD r1, r14
     JMP pass2

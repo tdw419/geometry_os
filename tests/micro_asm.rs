@@ -46,11 +46,16 @@ fn run_micro_asm(vm: &mut Vm, source: &str) -> Vec<u32> {
         let addr = TEXT_BUF_ADDR + i;
         if addr < MICRO_ASM_ADDR { vm.ram[addr] = byte as u32; }
     }
-    // Run from micro-asm start
+    // Run from micro-asm start.
+    // Two-pass over up to 1024 bytes of source requires many cycles.
+    // Loop until HALT rather than relying on a single MAX_CYCLES burst.
     vm.pc = MICRO_ASM_ADDR as u32;
     vm.halted = false;
-    vm.run();
-    // Collect non-zero output (output area is 0..TEXT_BUF_ADDR)
+    vm.yielded = false;
+    while !vm.halted && !vm.yielded {
+        vm.run();
+    }
+    // Collect output (output area is 0..TEXT_BUF_ADDR)
     vm.ram[..TEXT_BUF_ADDR].to_vec()
 }
 
@@ -217,3 +222,141 @@ B $00 $09
     // After running, RAM[32] should be non-zero (counter incremented from 33)
     assert_ne!(vm.ram[32], 0, "counter should have written to RAM[32]");
 }
+
+// ── Extended hex ($XXXXXXXX) tests ────────────────────────────────────────────
+
+#[test]
+fn hex_8digit_deadbeef() {
+    // $DEADBEEF should accumulate all 8 digits into one u32 cell
+    let mut vm = vm_with_micro_asm();
+    let out = run_micro_asm(&mut vm, "$DEADBEEF");
+    assert_eq!(out[0], 0xDEADBEEF, "$DEADBEEF should produce 0xDEADBEEF");
+}
+
+#[test]
+fn hex_4digit() {
+    // $1234 — 4 hex digits, produces 0x1234
+    let mut vm = vm_with_micro_asm();
+    let out = run_micro_asm(&mut vm, "$1234");
+    assert_eq!(out[0], 0x1234);
+}
+
+#[test]
+fn hex_8digit_branch_cond_bne_r1_r2() {
+    // The BNE r1,r2 condition pixel: cond=1 | (0x31<<16) | (0x32<<24) = 0x32310001
+    let mut vm = vm_with_micro_asm();
+    let out = run_micro_asm(&mut vm, "$32310001");
+    assert_eq!(out[0], 0x32310001, "BNE r1,r2 condition pixel");
+}
+
+#[test]
+fn hex_backwards_compat_2digit() {
+    // Existing 2-digit $XX forms still work
+    let mut vm = vm_with_micro_asm();
+    let out = run_micro_asm(&mut vm, "$FF $00 $2A");
+    assert_eq!(out[0], 0xFF);
+    assert_eq!(out[1], 0x00);
+    assert_eq!(out[2], 0x2A);
+}
+
+#[test]
+fn fill_bounded_assembles_and_runs() {
+    // fill-bounded-s.asm: writes 'A' (65) to RAM[64..127] then HALTs.
+    // Uses BNE r1, r2 via $32310001 — the first real conditional branch
+    // in single-char syntax with non-r0 registers.
+    let src = std::fs::read_to_string("programs/fill-bounded-s.asm")
+        .expect("programs/fill-bounded-s.asm not found");
+    let mut vm = vm_with_micro_asm();
+    run_micro_asm(&mut vm, &src);
+
+    // Run the assembled program to completion
+    vm.pc = 0;
+    vm.halted = false;
+    vm.yielded = false;
+    while !vm.halted && !vm.yielded { vm.run(); }
+
+    // Should have halted (not infinite loop)
+    assert!(vm.halted, "program should HALT after 64 iterations");
+
+    // RAM[64..128] should all be 65 ('A').
+    // (Program itself occupies cells 0-27; starting output at 64 avoids overlap.)
+    for i in 64..128 {
+        assert_eq!(vm.ram[i], 65, "RAM[{i}] should be 'A' (65)");
+    }
+    // RAM[128] should be untouched (0)
+    assert_eq!(vm.ram[128], 0, "RAM[128] should be untouched");
+}
+
+// ── Label resolution tests ─────────────────────────────────────────────────────
+
+#[test]
+fn label_backward_reference() {
+    // #loop defined before the branch that targets it — backward reference
+    // Program: write 'A' once, then infinite loop with BAL
+    // #loop is at output position 0
+    // B $0F @loop → BAL to addr 0
+    let src = "\
+#loop
+H
+B $0F @loop
+";
+    // Expected: HALT(0x48), BRANCH(0x42), 0x0F, 0x00 (addr of loop = 0)
+    let mut vm = vm_with_micro_asm();
+    let out = run_micro_asm(&mut vm, src);
+    assert_eq!(out[0], 0x48, "HALT at addr 0");
+    assert_eq!(out[1], 0x42, "BRANCH opcode");
+    assert_eq!(out[2], 0x0F, "BAL condition");
+    assert_eq!(out[3], 0x00, "@loop resolved to 0");
+}
+
+#[test]
+fn label_forward_reference() {
+    // @done appears before #done is defined — forward reference
+    // B $0F @done  → BAL to addr 6 (past the LDI)
+    // I 0 !        → 3 bytes (addrs 3,4,5)
+    // #done
+    // H            → addr 6
+    let src = "\
+B $0F @done
+I 0 !
+#done
+H
+";
+    let mut vm = vm_with_micro_asm();
+    let out = run_micro_asm(&mut vm, src);
+    assert_eq!(out[0], 0x42, "BRANCH");
+    assert_eq!(out[1], 0x0F, "BAL");
+    assert_eq!(out[2], 6,    "@done resolved to 6 (addr of H)");
+    assert_eq!(out[3], 0x49, "LDI");
+    assert_eq!(out[4], 0x30, "r0");
+    assert_eq!(out[5], 0x21, "33");
+    assert_eq!(out[6], 0x48, "HALT at addr 6");
+}
+
+#[test]
+fn multiple_labels() {
+    // Two labels in one program, both resolved correctly
+    // #start (addr 0): H
+    // #end (addr 1): N (NOP = 0x4E)
+    // B $0F @end   → BAL → addr 1
+    // B $0F @start → BAL → addr 0
+    let src = "\
+#start
+H
+#end
+N
+B $0F @end
+B $0F @start
+";
+    let mut vm = vm_with_micro_asm();
+    let out = run_micro_asm(&mut vm, src);
+    assert_eq!(out[0], 0x48, "HALT at 0 (#start)");
+    assert_eq!(out[1], 0x4E, "NOP at 1 (#end)");
+    assert_eq!(out[2], 0x42, "BRANCH");
+    assert_eq!(out[3], 0x0F, "BAL");
+    assert_eq!(out[4], 1,    "@end = 1");
+    assert_eq!(out[5], 0x42, "BRANCH");
+    assert_eq!(out[6], 0x0F, "BAL");
+    assert_eq!(out[7], 0,    "@start = 0");
+}
+
