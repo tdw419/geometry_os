@@ -85,12 +85,24 @@ def should_continue():
 
 
 def get_unchecked_roadmap_items():
-    """Parse ROADMAP.md for unchecked items."""
+    """Parse ROADMAP.md Priority Order section for unchecked items."""
     items = []
+    in_priority = False
     with open(ROADMAP) as f:
         for line in f:
-            if line.strip().startswith("- [ ] "):
+            if "Priority Order" in line:
+                in_priority = True
+                continue
+            if in_priority and line.startswith("##"):
+                break  # end of priority section
+            if in_priority and line.strip().startswith("- [ ] "):
                 items.append(line.strip().lstrip("- [ ] "))
+    # Fallback: if priority section empty, grab all unchecked
+    if not items:
+        with open(ROADMAP) as f:
+            for line in f:
+                if line.strip().startswith("- [ ] "):
+                    items.append(line.strip().lstrip("- [ ] "))
     return items
 
 
