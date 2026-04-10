@@ -306,7 +306,7 @@ B $0F @loop
     assert_eq!(out[0], 0x48, "HALT at addr 0");
     assert_eq!(out[1], 0x42, "BRANCH opcode");
     assert_eq!(out[2], 0x0F, "BAL condition");
-    assert_eq!(out[3], 0x00, "@loop resolved to 0");
+    assert_eq!(out[3], 0x00 | 0x80000000, "@loop resolved to 0 (absolute)");
 }
 
 #[test]
@@ -326,7 +326,7 @@ H
     let out = run_micro_asm(&mut vm, src);
     assert_eq!(out[0], 0x42, "BRANCH");
     assert_eq!(out[1], 0x0F, "BAL");
-    assert_eq!(out[2], 6,    "@done resolved to 6 (addr of H)");
+    assert_eq!(out[2], 6 | 0x80000000, "@done resolved to 6 (absolute)");
     assert_eq!(out[3], 0x49, "LDI");
     assert_eq!(out[4], 0x30, "r0");
     assert_eq!(out[5], 0x21, "33");
@@ -354,10 +354,10 @@ B $0F @start
     assert_eq!(out[1], 0x4E, "NOP at 1 (#end)");
     assert_eq!(out[2], 0x42, "BRANCH");
     assert_eq!(out[3], 0x0F, "BAL");
-    assert_eq!(out[4], 1,    "@end = 1");
+    assert_eq!(out[4], 1 | 0x80000000, "@end = 1 (absolute)");
     assert_eq!(out[5], 0x42, "BRANCH");
     assert_eq!(out[6], 0x0F, "BAL");
-    assert_eq!(out[7], 0,    "@start = 0");
+    assert_eq!(out[7], 0 | 0x80000000, "@start = 0 (absolute)");
 }
 
 #[test]
@@ -402,7 +402,7 @@ fn echo_s_assembles_correctly() {
     // addr 18-20: B $31340000 @poll
     assert_eq!(out[18], 0x42, "BRANCH");
     assert_eq!(out[19], 0x31340000, "BEQ r4,r1 condition");
-    assert_eq!(out[20], 15, "@poll = 15");
+    assert_eq!(out[20], 15 | 0x80000000, "@poll = 15 (absolute)");
 
     // addr 21-23: S 0 1 (ack)
     assert_eq!(out[21], 0x53, "STORE");
@@ -422,7 +422,7 @@ fn echo_s_assembles_correctly() {
     // addr 30-32: B $35320001 @poll
     assert_eq!(out[30], 0x42, "BRANCH");
     assert_eq!(out[31], 0x35320001, "BNE r2,r5 condition");
-    assert_eq!(out[32], 15, "@poll = 15");
+    assert_eq!(out[32], 15 | 0x80000000, "@poll = 15 (absolute)");
 
     // addr 33-35: I 2 $00 (reset ptr)
     assert_eq!(out[33], 0x49);
@@ -432,7 +432,7 @@ fn echo_s_assembles_correctly() {
     // addr 36-38: B $0F @poll
     assert_eq!(out[36], 0x42, "BRANCH");
     assert_eq!(out[37], 0x0F, "BAL");
-    assert_eq!(out[38], 15, "@poll = 15");
+    assert_eq!(out[38], 15 | 0x80000000, "@poll = 15 (absolute)");
 
     // addr 39: null terminator
     assert_eq!(out[39], 0, "null terminator");

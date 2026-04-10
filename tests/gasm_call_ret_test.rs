@@ -51,7 +51,7 @@ fn test_simple_call_ret() {
     // Main at 0: CALL subroutine(10), HALT
     // CALL width 2: [op, addr]
     vm.poke(0, op::CALL as u32);
-    vm.poke(1, 10);
+    vm.poke(1, 10 | 0x80000000);
     vm.poke(2, op::HALT as u32);
     
     // Subroutine at 10: LDI r0, 42, RET
@@ -92,12 +92,12 @@ fn test_nested_call_ret() {
     
     // Main at 0: CALL sub_a(10), HALT
     vm.poke(0, op::CALL as u32);
-    vm.poke(1, 10);
+    vm.poke(1, 10 | 0x80000000);
     vm.poke(2, op::HALT as u32);
 
     // sub_a at 10: CALL sub_b(20), RET
     vm.poke(10, op::CALL as u32);
-    vm.poke(11, 20);
+    vm.poke(11, 20 | 0x80000000);
     vm.poke(12, op::RET as u32);
 
     // sub_b at 20: LDI r1, 7, RET
@@ -143,7 +143,7 @@ fn test_call_no_matching_ret_falloff() {
     
     // CALL 10, then just run. RAM at 10+ is all 0 (unknown opcodes, treated as NOPs until end)
     vm.poke(0, op::CALL as u32);
-    vm.poke(1, 10);
+    vm.poke(1, 10 | 0x80000000);
     
     vm.pc = 0;
     vm.run(); // Will execute CALL, then step through RAM until PC >= 32
@@ -179,9 +179,9 @@ fn test_complex_stack_behavior() {
     // sub: PUSH r0, RET
     
     vm.poke(0, op::CALL as u32);
-    vm.poke(1, 10);
+    vm.poke(1, 10 | 0x80000000);
     vm.poke(2, op::CALL as u32);
-    vm.poke(3, 10);
+    vm.poke(3, 10 | 0x80000000);
     vm.poke(4, op::HALT as u32);
     
     vm.poke(10, op::PUSH as u32);

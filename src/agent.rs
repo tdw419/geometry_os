@@ -528,8 +528,8 @@ fn format_instruction(name: &str, opcode: u8, pc: usize, ram: &[u32]) -> String 
         ("ISSUE_CREATE", 1) => "ISSUE_CREATE".to_string(),
 
         // Width-2: 1 arg
-        ("JMP", 2) => format!("JMP {}", arg(1)),
-        ("CALL", 2) => format!("CALL {}", arg(1)),
+        ("JMP", 2) => format!("JMP {}", arg(1) & 0x7FFFFFFF),
+        ("CALL", 2) => format!("CALL {}", arg(1) & 0x7FFFFFFF),
         ("INT", 2) => format!("INT {}", arg(1)),
         ("NOT", 2) => format!("NOT {}", reg(1)),
         ("PUSH", 2) => format!("PUSH {}", arg(1)),
@@ -552,7 +552,7 @@ fn format_instruction(name: &str, opcode: u8, pc: usize, ram: &[u32]) -> String 
         ("LOAD", 3) => format!("LOAD {}, [{}]", reg(1), reg(2)),
         ("LDB", 3) => format!("LDB {}, [{}]", reg(1), reg(2)),
         ("STB", 3) => format!("STB [{}], {}", reg(1), reg(2)),
-        ("BRANCH", 3) => format!("BRANCH {}, {}", reg(1), arg(2)),
+        ("BRANCH", 3) => format!("BRANCH {}, {}", reg(1), arg(2) & 0x7FFFFFFF),
         ("SPAWN", 3) => format!("SPAWN {}, {}", arg(1), arg(2)),
         ("EXEC", 3) => format!("EXEC {}, {}", arg(1), arg(2)),
         ("PGET", 3) => format!("PGET {}, {}", reg(1), reg(2)),

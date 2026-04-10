@@ -381,6 +381,8 @@ p2_char_ok:
 p2_matched:
     ; r7 now points to the addr byte (all name chars consumed)
     LOAD r10, r7                 ; r10 = resolved address
+    LDI r3, 0x80000000           ; absolute address flag
+    OR r10, r3                   ; mark as absolute so VM treats it correctly
     STORE r1, r10
     ADD r1, r14
     JMP pass2

@@ -66,7 +66,7 @@ fn test_stack_overflow_via_nested_calls() {
     // At address 0: CALL 0  (calls itself, pushing return addr each time)
     let mut vm = Vm::new(64);
     vm.poke(0, op::CALL as u32);
-    vm.poke(1, 0); // target = address 0 (self)
+    vm.poke(1, 0 | 0x80000000); // target = address 0 (self, absolute)
     vm.pc = 0;
     vm.halted = false;
 
@@ -97,7 +97,7 @@ fn test_stack_overflow_via_push() {
     vm.poke(4, 0); // r0
     // JMP back to PUSH
     vm.poke(5, op::JMP as u32);
-    vm.poke(6, 3);
+    vm.poke(6, 3 | 0x80000000); // JMP back to PUSH (absolute)
 
     vm.pc = 0;
     vm.halted = false;

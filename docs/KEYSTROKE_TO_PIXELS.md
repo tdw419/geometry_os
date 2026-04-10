@@ -22,6 +22,30 @@ VM executes `LDI r0, 33`.
 Three keystrokes. Three pixels. One instruction. Programs are paintings first
 and code second.
 
+**You see it as you type.** The Live Decode panel below the canvas shows the
+instruction being composed in real time. After typing `I`, you see:
+
+```
+000: LDI ???   need: reg val
+```
+
+After `I 0`:
+
+```
+000: LDI r0 ???   need: val
+```
+
+After `I 0 !`:
+
+```
+000: LDI r0 33   complete
+```
+
+Each cell in the instruction gets a colored marker at its bottom edge:
+white = opcode, green = filled argument, red = pending argument. The panel
+turns green when the instruction is complete. This makes canvas painting
+feel like programming, not like guessing.
+
 ---
 
 ## Architecture Overview
@@ -77,20 +101,23 @@ The 32x32 spreadsheet grid renders addresses 0x000-0x3FF only. High memory
 ## Path 1: Canvas Painting (Pixel-by-Pixel Programming)
 
 **When:** VM is stopped, not in editor/REPL/ASM mode.
-**Where it lives:** main.rs lines ~443-457.
+**Where it lives:** main.rs painting block + hex compose logic.
 
 ```
 Keypress
   │
-  ▼
-key_to_pixel(key, hex_mode)
-  │
-  ├── Normal mode: returns ASCII value
+  ├── Normal mode: key_to_ascii(key)
   │     'A' -> 0x41, '0' -> 0x30, '!' -> 0x21
+  │     One keystroke = one cell. ASCII byte value goes directly to RAM.
   │
-  └── Hex mode (Tab toggled): number keys return raw values
-        '1' -> 0x01, '2' -> 0x02, ... '9' -> 0x09, '0' -> 0x00
-        Letters still return ASCII: 'A' -> 0x41
+  └── Hex mode (Tab toggled): two-keystroke hex compose
+        Type two hex digits -> one byte -> one cell.
+        '4' then '1' -> 0x41 (ADD opcode)
+        '0' then 'A' -> 0x0A (register r10)
+        'F' then 'F' -> 0xFF (max immediate)
+        First digit: cursor turns orange, shows pending nibble.
+        Second digit: byte committed to RAM, cursor advances.
+        Esc cancels a partial nibble.
   │
   ▼
 vm.ram[cursor_row * 32 + cursor_col] = value as u32
@@ -101,11 +128,14 @@ cursor_col += 1 (wraps to next row at col 32)
   ▼
 Rendering: palette_color(value) -> HSV hue -> RGB cell color
            + font glyph overlay if printable ASCII
+           + orange tint + pending digit if hex nibble is pending
 ```
 
 ### How to Write a Program by Typing
 
-To type `LDI r0, 33` (`I 0 !` in single-char syntax) directly into RAM:
+**Method A: Normal mode (printable bytes only)**
+
+To type `LDI r0, 33` directly into RAM:
 
 1. Ensure VM is stopped (F5 toggles)
 2. Navigate to starting cell with arrow keys
@@ -115,11 +145,34 @@ To type `LDI r0, 33` (`I 0 !` in single-char syntax) directly into RAM:
 6. Continue typing next instruction...
 7. Press F5 to run
 
-In hex mode (press Tab), you can type raw byte values for immediate
-arguments that don't have a printable ASCII character. For example,
-to write value 0x0A (linefeed, not on keyboard), toggle hex mode and
-press `1` then toggle back -- but this writes 0x01 not 0x0A. For
-non-printable values, use the assembler or editor instead.
+This works because opcodes A-Z map to ASCII 0x41-0x5A and registers
+r0-r9 map to ASCII '0'-'9'. But r10-r31 and values > 0x7E are not
+typeable in normal mode.
+
+**Method B: Hex mode (any byte 0x00-0xFF)**
+
+Press Tab to enter hex mode. Each cell now takes two keystrokes:
+
+1. Type `4` `1` -> writes 0x41 = ADD opcode
+2. Type `0` `A` -> writes 0x0A = register r10
+3. Type `F` `F` -> writes 0xFF = value 255
+
+After the first digit, the cursor cell turns orange and shows the
+pending hex digit. Press Esc to cancel without writing.
+
+This covers the full instruction set: every register (r0-r31 = bytes
+0x00-0x1F), every small immediate, and every opcode.
+
+**Method C: Mixed mode**
+
+Normal and hex modes can be freely mixed. Type opcodes and low registers
+in normal mode (faster — one key per cell), then Tab into hex mode for
+r10+ or non-printable values, then Tab back.
+
+Example: `LDI r10, 200` (opcode 0x49, register 0x0A, value 0xC8):
+- Normal: `I` `0`  (LDI, then... wait, r10 is 0x0A not 0x30)
+- Actually: Tab, `0` `A` (r10), Tab, `I`, Tab, `C` `8`
+- Or just: Tab, `4` `9`, `0` `A`, `C` `8` — four keystrokes, three cells
 
 ### Why This Works
 
@@ -143,6 +196,23 @@ JMP       0x4A    J
 Register arguments follow the same pattern: registers r0-r9 use bytes
 0x30-0x39, which are the ASCII digits '0'-'9'. So `A 0 1` (three
 keystrokes) is `ADD r0, r1`. The typing IS the bytecode.
+
+ALL 32 registers are typeable in normal mode (no hex needed):
+
+```
+r0-r9:   '0'-'9'      (0x30-0x39)
+r10-r15: ':' ';' '<' '=' '>' '?'  (0x3A-0x3F)
+r16-r31: '@' 'A'-'O'  (0x40-0x4F)
+```
+
+The same byte value means different things depending on position:
+pixel 0 = opcode, pixels 1+ = arguments. So `A : 1` = ADD r10, r1.
+`A` as opcode means ADD, `A` as argument means r17.
+
+Hex mode (Tab) is only needed for:
+- Immediate values > 0x7E (above printable ASCII range)
+- Raw values 0x00-0x1F (control characters, not on keyboard)
+- Precise byte-level control when the mnemonic mapping isn't obvious
 
 ---
 
@@ -340,7 +410,8 @@ The echo-s.asm demo program demonstrates this: it reads keycodes from
 | A-Z, 0-9   | Write ASCII value to RAM at cursor        |
 | symbols    | Write ASCII value to RAM at cursor        |
 | Arrow keys | Move cursor on 32x32 grid                 |
-| Tab        | Toggle hex mode (number keys = raw values) |
+| Tab        | Toggle hex mode (two-keystroke hex compose)|
+| Esc        | Cancel pending hex nibble                 |
 | Backtick   | Enter inline ASM mode                     |
 | F2         | Toggle panel view (disassembly/spreadsheet)|
 | F5         | Toggle VM execution on/off                |
@@ -349,6 +420,9 @@ The echo-s.asm demo program demonstrates this: it reads keycodes from
 | F8         | Assemble programs/boot.asm, load to RAM   |
 | F9         | Open editor                               |
 | Space      | Single-step (when paused, not halted)     |
+
+**Hex mode (Tab):** 0-9 and A-F become hex digits. Two keystrokes compose
+one byte (0x00-0xFF). Pending nibble shown as orange cursor. Esc cancels.
 
 ### Editor Mode (F9)
 
@@ -372,6 +446,13 @@ The echo-s.asm demo program demonstrates this: it reads keycodes from
 | Letters    | Type assembly instruction                 |
 | Enter      | Assemble + execute one instruction        |
 | Backspace  | Delete last char from input               |
+| ? r5       | Inspect register value                    |
+| ? 0x1A     | Inspect RAM at address                    |
+| ??         | Hex dump near write address               |
+| @name      | Bookmark current write address            |
+| ! N        | Run N cycles (default 256)                |
+| Ctrl+R     | Zero all registers                        |
+| Ctrl+N     | New session (wipe RAM + registers)        |
 | F6         | Exit REPL mode                            |
 | Escape     | Clear input / exit if already empty       |
 
@@ -388,6 +469,23 @@ The echo-s.asm demo program demonstrates this: it reads keycodes from
 ---
 
 ## Rendering Pipeline
+
+### Live Decode Panel (below canvas)
+
+```
+When VM is idle and cursor is within a partially-composed instruction:
+  1. live_decode_at(ram, cursor_addr) scans forward from 0 to find
+     the instruction boundary containing the cursor
+  2. Decodes the opcode and as many arguments as have been written
+  3. Renders at CANVAS_Y + CANVAS_ROWS * CANVAS_SCALE + 4:
+     - Address label: "000:" in gray
+     - Decoded text: "LDI r0 33" in green (complete) or orange (partial)
+     - Hint: "complete" in green or "need: reg val" in gold
+  4. Colored markers on canvas cells:
+     white bar = opcode cell
+     green bar = filled argument cell
+     red bar = pending (unwritten) argument cell
+```
 
 ### Spreadsheet Grid (RAM view)
 
@@ -456,8 +554,11 @@ small immediate values directly. Letters and symbols always use ASCII.
 ## How Programs Get Into RAM: Four Methods
 
 ### Method 1: Direct Pixel Painting
-Type on canvas. Each keystroke writes one u32 cell. Fastest, most direct,
-but no labels/comments/hex-escapes. You need to know the exact byte values.
+Type on canvas. Each keystroke writes one u32 cell.
+In normal mode: one key = one ASCII byte (opcodes A-Z, registers r0-r9).
+In hex mode (Tab): two hex digits = any byte 0x00-0xFF.
+Covers the full instruction set. No assembler, no labels, no comments.
+For jump addresses > 0xFF, use the assembler or compose multi-byte values.
 
 ### Method 2: Inline ASM (backtick)
 Type a line of assembler syntax, press Enter, bytecode appears at cursor.
@@ -578,13 +679,28 @@ H
 
 ## Quick Start: Writing Your First Program
 
-### Method A: Paint it directly
+### Method A: Paint it directly (normal mode)
 ```
 1. cargo run --release
 2. Type: I 0 ! S 0 0 H
    (that's LDI r0, 33 / STORE [r0], r0 / HALT)
 3. Press F5 to run
 4. Watch the canvas — cell 33 should get value 33
+```
+
+### Method A2: Paint it in hex mode (any byte)
+```
+1. cargo run --release
+2. Press Tab (enter hex mode)
+3. Type: 4 9  → 0x49 = LDI opcode
+4. Type: 0 0  → 0x00 = r0
+5. Type: 2 1  → 0x21 = value 33
+6. Type: 5 3  → 0x53 = STORE opcode
+7. Type: 0 0  → 0x00 = r0 (address register)
+8. Type: 0 0  → 0x00 = r0 (source register)
+9. Type: 4 8  → 0x48 = HALT
+10. Press Tab (exit hex mode)
+11. Press F5 to run
 ```
 
 ### Method B: Use the editor
@@ -612,6 +728,10 @@ H
    (see: r1=14)
 5. Type: ADD r0, r1    -> Enter
    (see: r0=2E which is 46 = 10+20+6... check your math!)
+6. Type: ? r0          -> Enter
+   (inspect: r0 = 0000002E)
+7. Type: ??            -> Enter
+   (hex dump of RAM near write address)
 ```
 
 ### Method D: Programmatic

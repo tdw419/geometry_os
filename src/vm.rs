@@ -398,6 +398,23 @@ impl Vm {
         Ok(())
     }
 
+    /// Resolve a jump/branch/call address.
+    /// - Bit 31 set: assembler-generated absolute address (mask off flag).
+    /// - Value < 256 (canvas-typed byte): relative backward offset from
+    ///   after this instruction.  offset = byte - 0x20, so Space=0 (noop),
+    ///   '!'=1, '0'=16, 'A'=33, etc.
+    /// - Otherwise: absolute (backward compat for large raw values).
+    fn resolve_addr(&self, raw: u32) -> u32 {
+        if raw & 0x80000000 != 0 {
+            raw & 0x7FFFFFFF
+        } else if raw < 0x100 {
+            let offset = raw.saturating_sub(0x20) as u32;
+            (self.pc as i64 + 2 - offset as i64).max(0) as u32
+        } else {
+            raw
+        }
+    }
+
     /// Validated execution.  Checks register ranges, addresses, and other
     /// constraints before performing the operation.
     fn execute_checked(&mut self, opcode: u8, args: &[u32]) -> Result<Option<u32>, VmError> {
@@ -643,12 +660,16 @@ impl Vm {
             },
 
             // ── J (0x4A): JMP addr ────────────────
-            op::JMP => Ok(Some(args[0])),
+            // Canvas-typed (byte < 256): relative backward via resolve_addr.
+            // Assembler-generated (bit 31 set): absolute, mask off flag.
+            op::JMP => {
+                Ok(Some(self.resolve_addr(args[0])))
+            }
 
             // ── B (0x42): BRANCH cond, addr ───────
             op::BRANCH => {
                 let cond_pixel = args[0];
-                let target = args[1];
+                let target = self.resolve_addr(args[1]);
                 let cond = (cond_pixel & 0xFF) as u8;
                 let r1 = self.reg_idx((cond_pixel >> 16) & 0xFF);
                 let r2 = self.reg_idx((cond_pixel >> 24) & 0xFF);
@@ -664,13 +685,13 @@ impl Vm {
                 let b = self.regs[r2];
 
                 let taken = match cond {
-                    0 => a == b,                    // BEQ
-                    1 => a != b,                    // BNE
-                    2 => (a as i32) < (b as i32),   // BLT
-                    3 => (a as i32) >= (b as i32),  // BGE
-                    4 => a < b,                     // BLTU
-                    5 => a >= b,                    // BGEU
-                    15 => true,                     // BAL (unconditional)
+                    0 => a == b,                   // BEQ
+                    1 => a != b,                   // BNE
+                    2 => (a as i32) < (b as i32),  // BLT
+                    3 => (a as i32) >= (b as i32), // BGE
+                    4 => a < b,                    // BLTU
+                    5 => a >= b,                   // BGEU
+                    15 => true,                    // BAL (unconditional)
                     _ => false,
                 };
 
@@ -683,7 +704,7 @@ impl Vm {
 
             // ── C (0x43): CALL addr ───────────────
             op::CALL => {
-                let target = args[0];
+                let target = self.resolve_addr(args[0]);
                 let w = opcodes::width(op::CALL) as u32;
                 if self.stack.len() >= STACK_SIZE {
                     return Err(VmError::StackOverflow(pc));
@@ -1292,10 +1313,7 @@ impl Vm {
             },
 
             // ── J (0x4A): JMP addr ────────────────
-            // args[0] = absolute address
-            op::JMP => {
-                Some(args[0])
-            },
+            op::JMP => Some(self.resolve_addr(args[0])),
 
             // ── B (0x42): BRANCH cond, addr ───────
             // width 3: args[0]=condition_pixel, args[1]=target_addr
@@ -1303,7 +1321,7 @@ impl Vm {
             //           high bytes encode r1, r2 register indices
             op::BRANCH => {
                 let cond_pixel = args[0];
-                let target = args[1];
+                let target = self.resolve_addr(args[1]);
                 let cond = (cond_pixel & 0xFF) as u8;
                 let r1 = self.reg_idx((cond_pixel >> 16) & 0xFF);
                 let r2 = self.reg_idx((cond_pixel >> 24) & 0xFF);
@@ -1316,13 +1334,13 @@ impl Vm {
                 let b = self.regs[r2];
 
                 let taken = match cond {
-                    0 => a == b,                    // BEQ
-                    1 => a != b,                    // BNE
-                    2 => (a as i32) < (b as i32),   // BLT
-                    3 => (a as i32) >= (b as i32),  // BGE
-                    4 => a < b,                     // BLTU
-                    5 => a >= b,                    // BGEU
-                    15 => true,                     // BAL (unconditional)
+                    0 => a == b,                   // BEQ
+                    1 => a != b,                   // BNE
+                    2 => (a as i32) < (b as i32),  // BLT
+                    3 => (a as i32) >= (b as i32), // BGE
+                    4 => a < b,                    // BLTU
+                    5 => a >= b,                   // BGEU
+                    15 => true,                    // BAL (unconditional)
                     _ => false,
                 };
 
@@ -1335,7 +1353,7 @@ impl Vm {
 
             // ── C (0x43): CALL addr ───────────────
             op::CALL => {
-                let target = args[0];
+                let target = self.resolve_addr(args[0]);
                 let w = opcodes::width(op::CALL) as u32;
                 self.stack.push(self.pc + w);
                 Some(target)
@@ -1725,7 +1743,7 @@ mod tests {
         vm.load_program(&[
             op::LDI as u32, 0x30, 5,
             op::LDI as u32, 0x31, 5,
-            op::BRANCH as u32, 0 | (0x30 << 16) | (0x31 << 24), 99,
+            op::BRANCH as u32, 0 | (0x30 << 16) | (0x31 << 24), 99 | 0x80000000,
         ]);
         vm.pc = 0;
         vm.step(); // LDI r0, 5
@@ -1741,8 +1759,8 @@ mod tests {
         vm.load_program(&[
             op::LDI as u32, 0x30, 5,       // 0-2
             op::LDI as u32, 0x31, 7,       // 3-5
-            op::BRANCH as u32, 0 | (0x30 << 16) | (0x31 << 24), 99, // 6-8
-            op::HALT as u32,               // 9
+            op::BRANCH as u32, 0 | (0x30 << 16) | (0x31 << 24),            99 | 0x80000000,              // 6-8 (absolute)
+op::HALT as u32,               // 9
         ]);
         vm.run();
         assert_eq!(vm.pc, 10); // fell through to HALT, advanced past it
@@ -1755,8 +1773,8 @@ mod tests {
         vm.load_program(&[
             op::LDI as u32, 0x30, 5,
             op::LDI as u32, 0x31, 7,
-            op::BRANCH as u32, 1 | (0x30 << 16) | (0x31 << 24), 99, // BNE r0,r1
-        ]);
+            op::BRANCH as u32, 1 | (0x30 << 16) | (0x31 << 24),            99 | 0x80000000, // BNE r0,r1 (absolute)
+]);
         vm.pc = 0;
         vm.step(); vm.step(); vm.step();
         assert_eq!(vm.pc, 99);
@@ -1769,8 +1787,8 @@ mod tests {
         vm.load_program(&[
             op::LDI as u32, 0x30, 3,
             op::LDI as u32, 0x31, 10,
-            op::BRANCH as u32, 2 | (0x30 << 16) | (0x31 << 24), 50, // BLT r0,r1
-        ]);
+            op::BRANCH as u32, 2 | (0x30 << 16) | (0x31 << 24),            50 | 0x80000000, // BLT r0,r1 (absolute)
+]);
         vm.pc = 0;
         vm.step(); vm.step(); vm.step();
         assert_eq!(vm.pc, 50);
@@ -1783,8 +1801,8 @@ mod tests {
         vm.load_program(&[
             op::LDI as u32, 0x30, 10,
             op::LDI as u32, 0x31, 3,
-            op::BRANCH as u32, 3 | (0x30 << 16) | (0x31 << 24), 50, // BGE r0,r1
-        ]);
+            op::BRANCH as u32, 3 | (0x30 << 16) | (0x31 << 24),            50 | 0x80000000, // BGE r0,r1 (absolute)
+]);
         vm.pc = 0;
         vm.step(); vm.step(); vm.step();
         assert_eq!(vm.pc, 50);
@@ -1797,8 +1815,8 @@ mod tests {
         vm.load_program(&[
             op::LDI as u32, 0x30, 99,
             op::LDI as u32, 0x31, 1,
-            op::BRANCH as u32, 15 | (0x30 << 16) | (0x31 << 24), 77, // BAL
-        ]);
+            op::BRANCH as u32, 15 | (0x30 << 16) | (0x31 << 24),            77 | 0x80000000, // BAL (absolute)
+]);
         vm.pc = 0;
         vm.step(); vm.step(); vm.step();
         assert_eq!(vm.pc, 77);
@@ -1809,8 +1827,8 @@ mod tests {
         // Even with r0=r0 (same reg), BAL still jumps (doesn't depend on values)
         let mut vm = Vm::new(128);
         vm.load_program(&[
-            op::BRANCH as u32, 15 | (0x30 << 16) | (0x30 << 24), 42, // BAL r0,r0 → 42
-        ]);
+            op::BRANCH as u32, 15 | (0x30 << 16) | (0x30 << 24),            42 | 0x80000000, // BAL r0,r0 → 42 (absolute)
+]);
         vm.pc = 0;
         vm.step();
         assert_eq!(vm.pc, 42);
@@ -1894,7 +1912,7 @@ mod tests {
         // 13: R      = RET
         let mut vm = Vm::new(32);
         vm.poke(0, op::CALL as u32);
-        vm.poke(1, 10);
+        vm.poke(1, 10 | 0x80000000);
         vm.poke(2, op::HALT as u32);
         // subroutine
         vm.poke(10, op::LDI as u32);
@@ -2055,7 +2073,7 @@ mod tests {
             op::LDI as u32, 0, 20,              // addr 0: LDI r0, 20
             op::LDI as u32, 1, op::HALT as u32, // addr 3: LDI r1, HALT
             op::EDIT_OVERWRITE as u32, 0, 1,    // addr 6: EDIT_OVERWRITE r0, r1
-            op::JMP as u32, 20,                 // addr 9: JMP 20
+            op::JMP as u32, 20 | 0x80000000,      // addr 9: JMP 20 (absolute)
         ]);
         // ram[20] starts as 0 (NOP-like unknown). The program will
         // overwrite it with HALT before jumping there.
@@ -2102,8 +2120,8 @@ mod tests {
             op::LDI as u32, 1, op::HALT as u32, // r1 = HALT
             op::EDIT_OVERWRITE as u32, 0, 1,    // ram[53] = HALT
             // Jump to the self-authored code at 50
-            op::JMP as u32, 50,                 // JMP 50
-        ]);
+            op::JMP as u32,            50 | 0x80000000, // JMP 50 (absolute)
+]);
 
         let cycles = vm.run();
 
@@ -2135,8 +2153,8 @@ mod tests {
             op::LDI as u32, 1, op::HALT as u32, // addr 3
             op::EDIT_OVERWRITE as u32, 0, 1,    // addr 6
             // Jump to phase 2
-            op::JMP as u32, 20,                 // addr 9
-        ]);
+            op::JMP as u32,            20 | 0x80000000, // addr 9 (absolute)
+]);
         // Phase 2: at address 20 (pre-written)
         vm.poke(20, op::LDI as u32);
         vm.poke(21, 0);
@@ -2148,7 +2166,7 @@ mod tests {
         vm.poke(27, 0);
         vm.poke(28, 1);
         vm.poke(29, op::JMP as u32);
-        vm.poke(30, 50);
+        vm.poke(30, 50 | 0x80000000);
 
         vm.run();
 
@@ -2305,21 +2323,21 @@ mod tests {
         assert_eq!(vm.peek(5), 0x31); // 1
         assert_eq!(vm.peek(6), 0x42); // B
         assert_eq!(vm.peek(7), 0x00); // $00
-        assert_eq!(vm.peek(8), 0x00); // @loop → 0
+        assert_eq!(vm.peek(8), 0x00 | 0x80000000); // @loop → 0 (absolute)
         assert_eq!(vm.peek(9), 0);    // null terminator
     }
 
     #[test]
     fn micro_asm_label_forward_jump() {
         //   I 0 !       → @ 0: [0x49, 0x30, 0x21]
-        //   B $00 @done → @ 3: [0x42, 0x00, 0x09]
+        //   B $00 @done → @ 3: [0x42, 0x00, 0x09 | 0x80000000]
         //   I 1 $07     → @ 6: [0x49, 0x31, 0x07]
         //   #done       → label "done" = 9
         //   H           → @ 9: [0x48]
         let vm = run_micro_asm("I 0 !\nB $00 @done\nI 1 $07\n#done\nH");
 
         assert_eq!(vm.peek(0), 0x49); assert_eq!(vm.peek(1), 0x30); assert_eq!(vm.peek(2), 0x21);
-        assert_eq!(vm.peek(3), 0x42); assert_eq!(vm.peek(4), 0x00); assert_eq!(vm.peek(5), 0x09);
+        assert_eq!(vm.peek(3), 0x42); assert_eq!(vm.peek(4), 0x00); assert_eq!(vm.peek(5), 0x09 | 0x80000000);
         assert_eq!(vm.peek(6), 0x49); assert_eq!(vm.peek(7), 0x31); assert_eq!(vm.peek(8), 0x07);
         assert_eq!(vm.peek(9), 0x48); // H at the "done" label address
         assert_eq!(vm.peek(10), 0);
@@ -2381,10 +2399,10 @@ mod tests {
         assert_eq!(vm.peek(13), 0x30); // 0 (r0)
         assert_eq!(vm.peek(14), 0x31); // 1 (r1)
 
-        // B $00 @loop → BRANCH cond=0, target=9
+        // B $00 @loop → BRANCH cond=0, target=0x80000009
         assert_eq!(vm.peek(15), 0x42); // B (BRANCH)
         assert_eq!(vm.peek(16), 0x00); // $00 (cond)
-        assert_eq!(vm.peek(17), 0x09); // @loop → 9
+        assert_eq!(vm.peek(17), 0x09 | 0x80000000); // @loop → 9 (absolute)
 
         assert_eq!(vm.peek(18), 0); // null terminator
     }
@@ -2423,7 +2441,7 @@ mod tests {
         // B $00 @loop
         assert_eq!(vm.peek(18), 0x42); // B (BRANCH)
         assert_eq!(vm.peek(19), 0x00); // $00 (cond)
-        assert_eq!(vm.peek(20), 0x09); // @loop -> 9
+        assert_eq!(vm.peek(20), 0x09 | 0x80000000); // @loop -> 9 (absolute)
         // H
         assert_eq!(vm.peek(21), 0x48); // H (HALT)
         assert_eq!(vm.peek(22), 0);    // null terminator
@@ -2451,5 +2469,95 @@ mod tests {
         assert_eq!(vm.peek(9), 0x4A);  // J (JMP)
         assert_eq!(vm.peek(10), 0x20); // $20 (32)
         assert_eq!(vm.peek(11), 0);    // null terminator
+    }
+
+    // ── Canvas-typable program tests ────────────────────────────────
+    // These test programs composed entirely of printable ASCII bytes,
+    // the same bytes you'd type on the canvas in normal mode.
+
+    #[test]
+    fn canvas_draw_pixel_pure_typing() {
+        // Program: draw a pixel at (50, 50) with color 126
+        // Typed on canvas as: I 0 2 I 1 2 I 2 ~ P 0 1 2 H
+        // All bytes are printable ASCII — no hex mode needed.
+        //
+        // LDI r0, 50     → I(0x49) 0(0x30) 2(0x32)
+        // LDI r1, 50     → I(0x49) 1(0x31) 2(0x32)
+        // LDI r2, 126    → I(0x49) 2(0x32) ~(0x7E)
+        // PSET r0,r1,r2  → P(0x50) 0(0x30) 1(0x31) 2(0x32)
+        // HALT            → H(0x48)
+        let mut vm = Vm::new(1024);
+        vm.load_program(&[
+            b'I' as u32, b'0' as u32, b'2' as u32,   // LDI r0, 50
+            b'I' as u32, b'1' as u32, b'2' as u32,   // LDI r1, 50
+            b'I' as u32, b'2' as u32, b'~' as u32,   // LDI r2, 126
+            b'P' as u32, b'0' as u32, b'1' as u32, b'2' as u32, // PSET r0,r1,r2
+            b'H' as u32,                              // HALT
+        ]);
+        vm.run();
+        assert!(vm.halted);
+        assert_eq!(vm.pc, 14); // 3+3+3+4+1 = 14
+        assert_eq!(vm.regs[0], 50);  // x
+        assert_eq!(vm.regs[1], 50);  // y
+        assert_eq!(vm.regs[2], 126); // color
+        // Check the pixel was drawn on the VM screen
+        assert_eq!(vm.screen[50 * 256 + 50], 126);
+    }
+
+    #[test]
+    fn canvas_all_registers_typeable() {
+        // Verify that every register r0-r31 can be addressed via
+        // printable ASCII argument bytes.
+        // reg_idx maps: 0x30+i → i for i=0..15, and 0x40+i-16 → i for i=16..31
+        // But actually reg_idx(val) = val-0x30 if val >= 0x30, else val
+        // So: r0='0'(0x30), r10=':'(0x3A), r16='@'(0x40), r17='A'(0x41), r31='O'(0x4F)
+
+        // Test r10 (0x3A = ':') — load value 42 into r10
+        let mut vm = Vm::new(256);
+        vm.load_program(&[
+            b'I' as u32, b':' as u32, 42,  // LDI r10, 42
+            b'H' as u32,
+        ]);
+        vm.run();
+        assert!(vm.halted);
+        assert_eq!(vm.regs[10], 42);
+
+        // Test r17 (0x41 = 'A') — but 'A' is also ADD opcode!
+        // In argument position, 'A' = r17. Position matters.
+        let mut vm2 = Vm::new(256);
+        vm2.load_program(&[
+            b'I' as u32, b'A' as u32, 99,  // LDI r17, 99
+            b'H' as u32,
+        ]);
+        vm2.run();
+        assert!(vm2.halted);
+        assert_eq!(vm2.regs[17], 99);
+
+        // Test r31 (0x4F = 'O')
+        let mut vm3 = Vm::new(256);
+        vm3.load_program(&[
+            b'I' as u32, b'O' as u32, 77,  // LDI r31, 77
+            b'H' as u32,
+        ]);
+        vm3.run();
+        assert!(vm3.halted);
+        assert_eq!(vm3.regs[31], 77);
+    }
+
+    #[test]
+    fn canvas_add_high_registers() {
+        // ADD r17, r10 — typed as 'A' 'A' ':'
+        // First A = ADD opcode, second A = r17, : = r10
+        let mut vm = Vm::new(256);
+        vm.load_program(&[
+            b'I' as u32, b'A' as u32, 30,   // LDI r17, 30
+            b'I' as u32, b':' as u32, 12,   // LDI r10, 12
+            b'A' as u32, b'A' as u32, b':' as u32, // ADD r17, r10
+            b'H' as u32,
+        ]);
+        vm.run();
+        assert!(vm.halted);
+        assert_eq!(vm.regs[17], 42); // 30 + 12
+        assert_eq!(vm.regs[10], 12); // unchanged
     }
 }

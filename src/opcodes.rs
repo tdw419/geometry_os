@@ -114,6 +114,91 @@ pub fn name(opcode: u8) -> &'static str {
     }
 }
 
+/// What kind of argument does each slot expect?
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ArgKind {
+    Reg,      // register index (0x30+0..15 or 0x00..31)
+    Imm,      // immediate value (any byte)
+    Addr,     // jump/call address (any byte)
+    Cond,     // branch condition (packed u32)
+}
+
+/// Return the argument kinds for an opcode, NOT including the opcode pixel itself.
+/// Returns a slice of ArgKind with len = width(opcode) - 1.
+pub fn arg_kinds(opcode: u8) -> &'static [ArgKind] {
+    // Order matches the opcode definitions above.
+    use ArgKind::*;
+    match opcode {
+        // width 1 — no arguments
+        op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE => &[],
+        // width 2
+        op::CALL | op::JMP => &[Addr],
+        op::INT => &[Imm],
+        op::NOT => &[Reg],
+        op::PUSH => &[Reg],
+        op::POP => &[Reg],
+        op::EDIT_DELETE => &[Reg],
+        // width 3
+        op::ADD | op::SUB | op::MUL | op::DIV | op::MOD
+        | op::AND | op::OR | op::XOR | op::MOV => &[Reg, Reg],
+        op::LDI => &[Reg, Imm],
+        op::SHL | op::SHR => &[Reg, Imm],
+        op::LOAD | op::LDB => &[Reg, Reg],
+        op::STORE | op::STB => &[Reg, Reg],
+        op::SPAWN | op::EXEC => &[Addr, Imm],
+        op::BRANCH => &[Cond, Addr],
+        op::PGET => &[Reg, Reg],
+        op::EDIT_OVERWRITE | op::EDIT_INSERT => &[Reg, Reg],
+        // width 4
+        op::PSET => &[Reg, Reg, Reg],
+        op::TEXT => &[Reg, Reg, Imm],
+        op::BLIT | op::EDIT_BLIT => &[Reg, Reg, Reg],
+        op::CIRCLEF => &[Reg, Reg, Reg],
+        op::SPATIAL_SPAWN => &[Reg, Reg, Addr],
+        // width 5
+        op::RECTF | op::LINE => &[Reg, Reg, Reg, Reg],
+        _ => &[],
+    }
+}
+
+/// Format an argument value based on its kind.
+pub fn format_arg(kind: ArgKind, val: u32) -> String {
+    match kind {
+        ArgKind::Reg => {
+            let b = (val & 0xFF) as u8;
+            if b >= 0x30 && b < 0x50 {
+                format!("r{}", b.wrapping_sub(0x30))
+            } else {
+                format!("r{}", b)
+            }
+        }
+        ArgKind::Imm => {
+            let b = val & 0xFF;
+            if b >= 0x20 && b < 0x7F {
+                format!("{}", b)
+            } else {
+                format!("0x{:02X}", b)
+            }
+        }
+        ArgKind::Addr => {
+            format!("0x{:04X}", val)
+        }
+        ArgKind::Cond => {
+            format!("0x{:08X}", val)
+        }
+    }
+}
+
+/// Human-readable label for each argument kind (for hints).
+pub fn arg_label(kind: ArgKind) -> &'static str {
+    match kind {
+        ArgKind::Reg => "reg",
+        ArgKind::Imm => "val",
+        ArgKind::Addr => "addr",
+        ArgKind::Cond => "cond",
+    }
+}
+
 /// Is this byte a valid opcode?
 pub fn is_valid(b: u8) -> bool {
     matches!(b,

@@ -310,14 +310,25 @@ pub fn assemble(source: &str) -> Result<Assembled, AsmError> {
 
         for (i, arg) in instr.args.iter().enumerate() {
             let pixel_addr = addr + 1 + i;
+            let is_addr_arg = matches!(
+                instr.opcode,
+                crate::opcodes::op::JMP | crate::opcodes::op::BRANCH | crate::opcodes::op::CALL,
+            ) && i == instr.args.len() - 1;
+
             let value = match arg {
                 ArgToken::Register(n) => *n,
-                ArgToken::Immediate(v) => *v,
+                ArgToken::Immediate(v) => {
+                    // Mark address args as absolute for JMP/BRANCH/CALL.
+                    if is_addr_arg { *v | 0x80000000 } else { *v }
+                }
                 ArgToken::Label(name) => {
-                    *labels.get(name).ok_or_else(|| AsmError {
+                    let addr = *labels.get(name).ok_or_else(|| AsmError {
                         line: instr.line,
                         message: format!("undefined label: {}", name),
-                    })? as u32
+                    })? as u32;
+                    // Set bit 31 for address args so VM treats them as absolute,
+                    // not relative (canvas-typed bytes never have bit 31 set).
+                    if is_addr_arg { addr | 0x80000000 } else { addr }
                 }
                 ArgToken::BranchCond(cond, r1_tok, r2_tok) => {
                     let resolve = |tok: &ArgToken| -> Result<u32, AsmError> {
@@ -429,7 +440,7 @@ loop:
             asm.pixels,
             vec![
                 op::NOP as u32,
-                op::JMP as u32, 0,
+                op::JMP as u32, 0 | 0x80000000,
                 op::HALT as u32,
             ]
         );
@@ -495,7 +506,7 @@ loop:
         // HALT → addr 12
         assert_eq!(asm.labels.get("start"), Some(&0));
         assert_eq!(asm.labels.get("loop"), Some(&6));
-        assert_eq!(asm.pixels[11], 6); // BRANCH target = loop = 6
+        assert_eq!(asm.pixels[11], 6 | 0x80000000); // BRANCH target = loop = 6 (absolute)
     }
 
     #[test]
@@ -512,7 +523,7 @@ loop:
         assert_eq!(cond_pixel & 0xFF, 0);          // BEQ = 0
         assert_eq!((cond_pixel >> 16) & 0xFF, 0);  // r1 = r0 = index 0
         assert_eq!((cond_pixel >> 24) & 0xFF, 1);  // r2 = r1 = index 1
-        assert_eq!(asm.pixels[2], 0);              // target = loop = addr 0
+        assert_eq!(asm.pixels[2], 0 | 0x80000000);              // target = loop = addr 0 (absolute)
     }
 
     #[test]
@@ -529,7 +540,7 @@ loop:
         assert_eq!(cond_pixel & 0xFF, 1);          // BNE = 1
         assert_eq!((cond_pixel >> 16) & 0xFF, 2);  // r2
         assert_eq!((cond_pixel >> 24) & 0xFF, 3);  // r3
-        assert_eq!(asm.pixels[3], 0);              // target = loop = addr 0
+        assert_eq!(asm.pixels[3], 0 | 0x80000000);              // target = loop = addr 0 (absolute)
     }
 
     #[test]
@@ -551,7 +562,7 @@ target:
         assert_eq!(asm.pixels[1], op::BRANCH as u32);
         let cond_pixel = asm.pixels[2];
         assert_eq!(cond_pixel & 0xFF, 15); // BAL = 15
-        assert_eq!(asm.pixels[3], 0);       // target = addr 0
+        assert_eq!(asm.pixels[3], 0 | 0x80000000);       // target = addr 0 (absolute)
     }
 
     #[test]
