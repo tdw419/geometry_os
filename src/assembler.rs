@@ -154,6 +154,22 @@ enum ArgToken {
     Register(u32),
     Immediate(u32),
     Label(String),
+    /// Packed BRANCH condition: (cond_code, r1_token, r2_token).
+    /// Emitted as a single pixel: cond | (r1 << 16) | (r2 << 24).
+    BranchCond(u8, Box<ArgToken>, Box<ArgToken>),
+}
+
+/// Return the condition code for a branch-alias mnemonic, or None.
+fn branch_alias_cond(mnemonic: &str) -> Option<u8> {
+    match mnemonic.to_uppercase().as_str() {
+        "BEQ"  => Some(0),
+        "BNE"  => Some(1),
+        "BLT"  => Some(2),
+        "BGE"  => Some(3),
+        "BLTU" => Some(4),
+        "BGEU" => Some(5),
+        _ => None,
+    }
 }
 
 /// A parsed but not yet resolved instruction.
@@ -211,25 +227,41 @@ pub fn assemble(source: &str) -> Result<Assembled, AsmError> {
         }
 
         let mnemonic = parts[0];
+
+        // Parse comma-separated arguments (shared by all paths below)
+        let arg_str = if parts.len() > 1 { parts[1..].join("") } else { String::new() };
+        let arg_tokens: Vec<&str> = if arg_str.is_empty() {
+            vec![]
+        } else {
+            arg_str.split(',').map(|s| s.trim()).filter(|s| !s.is_empty()).collect()
+        };
+
+        // ── Branch aliases: BEQ r0, r1, label → BRANCH packed_cond, label ──
+        if let Some(cond_code) = branch_alias_cond(mnemonic) {
+            if arg_tokens.len() != 3 {
+                return Err(AsmError {
+                    line: line_num,
+                    message: format!("{} expects 3 args (r1, r2, label), got {}", mnemonic, arg_tokens.len()),
+                });
+            }
+            let r1 = parse_arg(arg_tokens[0]).map_err(|e| AsmError { line: line_num, message: e })?;
+            let r2 = parse_arg(arg_tokens[1]).map_err(|e| AsmError { line: line_num, message: e })?;
+            let target = parse_arg(arg_tokens[2]).map_err(|e| AsmError { line: line_num, message: e })?;
+            instrs.push((current_addr, RawInstr {
+                line: line_num,
+                opcode: crate::opcodes::op::BRANCH,
+                args: vec![ArgToken::BranchCond(cond_code, Box::new(r1), Box::new(r2)), target],
+            }));
+            current_addr += crate::opcodes::width(crate::opcodes::op::BRANCH);
+            continue;
+        }
+
         let opcode = mnemonic_to_opcode(mnemonic).ok_or_else(|| AsmError {
             line: line_num,
             message: format!("unknown mnemonic: {}", mnemonic),
         })?;
 
         let width = crate::opcodes::width(opcode);
-
-        // Parse comma-separated arguments
-        let arg_str = if parts.len() > 1 {
-            parts[1..].join("")
-        } else {
-            String::new()
-        };
-
-        let arg_tokens: Vec<&str> = if arg_str.is_empty() {
-            vec![]
-        } else {
-            arg_str.split(',').map(|s| s.trim()).filter(|s| !s.is_empty()).collect()
-        };
 
         // Validate argument count
         let expected_args = width - 1;
@@ -285,6 +317,18 @@ pub fn assemble(source: &str) -> Result<Assembled, AsmError> {
                         line: instr.line,
                         message: format!("undefined label: {}", name),
                     })? as u32
+                }
+                ArgToken::BranchCond(cond, r1_tok, r2_tok) => {
+                    let resolve = |tok: &ArgToken| -> Result<u32, AsmError> {
+                        match tok {
+                            ArgToken::Register(n) => Ok(*n),
+                            ArgToken::Immediate(v) => Ok(*v),
+                            _ => Err(AsmError { line: instr.line, message: "branch condition register must be r0-r31".into() }),
+                        }
+                    };
+                    let r1 = resolve(r1_tok)?;
+                    let r2 = resolve(r2_tok)?;
+                    (*cond as u32) | (r1 << 16) | (r2 << 24)
                 }
             };
             if pixel_addr < pixels.len() {
@@ -451,6 +495,54 @@ loop:
         assert_eq!(asm.labels.get("start"), Some(&0));
         assert_eq!(asm.labels.get("loop"), Some(&6));
         assert_eq!(asm.pixels[11], 6); // BRANCH target = loop = 6
+    }
+
+    #[test]
+    fn beq_alias() {
+        // BEQ r0, r1, loop — branch if r0 == r1
+        // packed cond_pixel: cond=0, r1=0, r2=1 → 0x01000000
+        let src = "\
+loop:
+    BEQ r0, r1, loop
+";
+        let asm = assemble(src).unwrap();
+        assert_eq!(asm.pixels[0], op::BRANCH as u32);
+        let cond_pixel = asm.pixels[1];
+        assert_eq!(cond_pixel & 0xFF, 0);          // BEQ = 0
+        assert_eq!((cond_pixel >> 16) & 0xFF, 0);  // r1 = r0 = index 0
+        assert_eq!((cond_pixel >> 24) & 0xFF, 1);  // r2 = r1 = index 1
+        assert_eq!(asm.pixels[2], 0);              // target = loop = addr 0
+    }
+
+    #[test]
+    fn bne_alias() {
+        let src = "\
+loop:
+    NOP
+    BNE r2, r3, loop
+";
+        let asm = assemble(src).unwrap();
+        // NOP at 0, BRANCH at 1
+        assert_eq!(asm.pixels[1], op::BRANCH as u32);
+        let cond_pixel = asm.pixels[2];
+        assert_eq!(cond_pixel & 0xFF, 1);          // BNE = 1
+        assert_eq!((cond_pixel >> 16) & 0xFF, 2);  // r2
+        assert_eq!((cond_pixel >> 24) & 0xFF, 3);  // r3
+        assert_eq!(asm.pixels[3], 0);              // target = loop = addr 0
+    }
+
+    #[test]
+    fn blt_bge_blt_bgeu_aliases_parse() {
+        assert!(assemble("BLT r0, r1, end\nend:\nHALT").is_ok());
+        assert!(assemble("BGE r0, r1, end\nend:\nHALT").is_ok());
+        assert!(assemble("BLTU r0, r1, end\nend:\nHALT").is_ok());
+        assert!(assemble("BGEU r0, r1, end\nend:\nHALT").is_ok());
+    }
+
+    #[test]
+    fn branch_alias_wrong_arg_count() {
+        let err = assemble("BEQ r0, loop").unwrap_err();
+        assert!(err.message.contains("3 args"));
     }
 
     #[test]
