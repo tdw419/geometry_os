@@ -144,6 +144,7 @@ fn main() {
 
     let mut cycles_last_run: u32 = 0;
     let mut is_running = false;
+    let mut single_stepping = false;
 
     // ── View mode (disasm / spreadsheet) ────────────────────────────
     #[derive(PartialEq, Clone, Copy)]
@@ -485,6 +486,14 @@ fn main() {
                     }
                     needs_redraw = true;
                 }
+                Key::Space => {
+                    // Single-step: execute one instruction while paused
+                    if !is_running && !vm.halted {
+                        vm.step();
+                        single_stepping = true;
+                        needs_redraw = true;
+                    }
+                }
                 Key::F5 => {
                     // Toggle execution mode
                     if !is_running {
@@ -718,9 +727,9 @@ fn main() {
             }
 
             // Status
-            let status = if vm.halted { "HALTED" } else if is_running { "YIELDED/RUNNING" } else { "IDLE" };
+            let status = if vm.halted { "HALTED" } else if is_running { "RUNNING" } else if single_stepping { "STEPPING" } else { "IDLE" };
             let asm_tag = if micro_asm_loaded { "uASM:OK" } else { "uASM:--" };
-            let header = format!("PC:{:04} | {} | {} | Cyc:{} | F5:RUN  F6:rts  F7:save  F8:asm  F9:editor", vm.pc, status, asm_tag, cycles_last_run);
+            let header = format!("PC:{:04} | {} | {} | Cyc:{} | F5:run Space:step F6:rts F7:save F8:asm F9:edit", vm.pc, status, asm_tag, cycles_last_run);
             font::render_str(&mut buffer, WIDTH, HEIGHT, &header, 16, 16, 2, 0x00FFBB, None);
 
             // Labels
