@@ -161,7 +161,7 @@ def run_cycle(task_override=None, dry_run=False):
             "-s", "rust-safe-edits",
         ],
         cwd=PROJECT_DIR,
-        timeout=600,  # 10 minute max
+        timeout=1200,  # 20 minute max
     )
 
     exit_code = result.returncode
