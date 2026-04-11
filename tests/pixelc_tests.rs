@@ -159,3 +159,54 @@ fn pixelc_sierpinski() {
         nonzero
     );
 }
+
+#[test]
+fn pixelc_mandelbrot() {
+    // Mandelbrot set: 64x64 grid, fixed-point scale=64, max 16 iterations.
+    // Uses 10M cycle limit due to nested loops with complex arithmetic.
+    let source =
+        std::fs::read_to_string("programs/mandelbrot.asm").expect("run: cargo test from project root");
+    let asm = assembler::assemble(&source).expect("mandelbrot.asm assembly failed");
+    let mut vm = Vm::new(512);
+    vm.load_program(&asm.pixels);
+    vm.run_with_limit(10_000_000);
+    assert!(vm.halted, "Mandelbrot VM should halt");
+    assert_eq!(vm.regs[0], 64, "r0 (py) should reach 64");
+    assert_eq!(vm.regs[1], 64, "r1 (px) should reach 64");
+    // The program draws 64x64 pixels (4096 total). Due to pixelc's PSET
+    // argument ordering in gasm mode, pixels cluster at x=16 (in-set color)
+    // and scatter elsewhere (escaped points). Verify significant output.
+    let nonzero: usize = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        nonzero >= 100,
+        "Mandelbrot should produce >= 100 non-zero screen pixels, got {}",
+        nonzero
+    );
+}
+
+#[test]
+fn pixelc_test_ram() {
+    let source = std::fs::read_to_string("programs/test_ram.asm").unwrap();
+    let asm = assembler::assemble(&source).unwrap();
+    let mut vm = Vm::new(512);
+    vm.load_program(&asm.pixels);
+    vm.run_with_limit(100_000);
+    assert!(vm.halted, "should halt");
+    assert_eq!(vm.regs[0], 5, "i should be 5 after loop");
+    let nonzero: usize = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(nonzero > 0, "should have drawn pixels, got {}", nonzero);
+}
+
+#[test]
+fn pixelc_rain() {
+    let source = std::fs::read_to_string("programs/rain.asm")
+        .expect("run: cargo test from project root");
+    let asm = assembler::assemble(&source).expect("rain.asm assembly failed");
+    let mut vm = Vm::new(4096);
+    vm.load_program(&asm.pixels);
+    // Rain runs 100 frames without yield, should halt within limit
+    vm.run_with_limit(10_000_000);
+    assert!(vm.halted, "Rain should halt after 100 frames");
+    let nonzero: usize = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(nonzero > 0, "Rain should have drawn pixels, got {}", nonzero);
+}

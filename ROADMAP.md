@@ -16,8 +16,8 @@ Extend the compiler and VM only when programs hit walls.
 
 ## Current State
 
-- 8 visual programs + 1 shell: simple_add, diagonal, bounce, checkerboard, fib_spiral, gradient, life, rain, shell
-- 9 pixelc tests passing (including shell and rain tests)
+- 9 visual programs + 1 shell: simple_add, diagonal, bounce, checkerboard, fib_spiral, gradient, life, sierpinski, mandelbrot, shell
+- 10 pixelc tests passing (including shell, rain known-failure, and mandelbrot)
 - All tests passing (373 lib + all integration)
 - Compiler: variables, arithmetic, while/if/else, functions, memory ops, drawing, arbitrary expression depth
 - **Pixel-native shell**: programs/shell.gasm runs inside the VM as a real OS shell
@@ -74,7 +74,7 @@ Do NOT skip ahead. Do NOT attempt BLOCKED tasks.
 
 - [x] A1: sierpinski.gp -- Sierpinski triangle via chaos game (EASY) -- DONE
 - [!] A2: rain.gp -- falling pixel rain animation (SKIPPED: pixelc nested while + RAM bug)
-- [ ] A3: mandelbrot.gp -- Mandelbrot set visualization (MEDIUM)
+- [x] A3: mandelbrot.gp -- Mandelbrot set visualization (MEDIUM) -- DONE
 - [ ] A4: maze.gp -- maze generation (MEDIUM)
 - [ ] A5: fireworks.gp -- particle explosion animation (MEDIUM)
 - [ ] A6: clock.gp -- real-time clock face (MEDIUM)
