@@ -2070,6 +2070,10 @@ fn key_to_ascii(key: Key) -> Option<u8> {
         Key::Equal => Some(b'='),
         Key::Enter => Some(0x0D),     // carriage return
         Key::Backspace => Some(0x08), // backspace
+        Key::Left => Some(0x01),      // custom: left arrow
+        Key::Right => Some(0x02),     // custom: right arrow
+        Key::Up => Some(0x03),        // custom: up arrow
+        Key::Down => Some(0x04),      // custom: down arrow
         _ => None,
     }
 }

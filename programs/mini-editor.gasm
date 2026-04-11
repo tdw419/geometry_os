@@ -9,6 +9,8 @@
 ;   Type any printable character to insert at cursor
 ;   Backspace (0x08) to delete character before cursor
 ;   Enter (0x0D) to start a new line (inserts 0x0A newline)
+;   Left arrow (0x01) to move cursor left
+;   Right arrow (0x02) to move cursor right
 ;   All letters come in as uppercase from the host
 ;
 ; DISPLAY:
@@ -26,6 +28,8 @@
 ;   0x1304: scratch word (keycode save, single char render)
 ;   0x1305: scratch null terminator
 ;   0x1306: status text buffer (32 words)
+;   0x1307: left arrow key constant (0x01)
+;   0x1308: right arrow key constant (0x02)
 ;
 ; REGISTER USAGE (constants set in main, preserved across calls):
 ;   r6  = constant: one (1)
@@ -53,6 +57,14 @@ main:
     LDI r13, 0x1300
     LDI r14, 0x1301
     LDI r15, 0x1302
+
+    ; ── Additional key constants (stored in high memory) ──
+    LDI r0, 0x1307
+    LDI r1, 0x01
+    STORE r0, r1             ; [0x1307] = left arrow key code
+    LDI r0, 0x1308
+    LDI r1, 0x02
+    STORE r0, r1             ; [0x1308] = right arrow key code
 
     ; ── Init state ──
     STORE r13, r7            ; cursor index = 0
@@ -118,6 +130,13 @@ editor_loop:
 
     BEQ r0, r11, handle_backspace
     BEQ r0, r12, handle_enter
+
+    ; Check arrow keys (0x01=left, 0x02=right)
+    LDI r1, 0x01
+    BEQ r0, r1, handle_left
+    LDI r1, 0x02
+    BEQ r0, r1, handle_right
+
     JMP handle_printable
 
 el_after_handle:
@@ -354,6 +373,27 @@ he_write:
     ADD r1, r6
     STORE r13, r1
 
+    JMP el_after_handle
+
+
+; ── handle_left: move cursor left ──────────────────────────────────
+
+handle_left:
+    LOAD r1, r13             ; r1 = cursor
+    BEQ r1, r7, el_after_handle  ; already at 0
+    SUB r1, r6
+    STORE r13, r1
+    JMP el_after_handle
+
+
+; ── handle_right: move cursor right ────────────────────────────────
+
+handle_right:
+    CALL get_buf_len          ; r0 = buffer length
+    LOAD r1, r13             ; r1 = cursor
+    BEQ r1, r0, el_after_handle  ; already at end
+    ADD r1, r6
+    STORE r13, r1
     JMP el_after_handle
 
 

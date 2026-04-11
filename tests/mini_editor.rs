@@ -136,8 +136,8 @@ fn mini_editor_ignores_non_printable_chars() {
 
     run_vm(&mut vm);
 
-    // Press a control character (0x01)
-    press_key(&mut vm, 0x01);
+    // Press a control character (0x05) -- not an arrow key, not printable
+    press_key(&mut vm, 0x05);
     assert_eq!(vm.ram[0x1300], 0, "cursor should not move for non-printable");
 
     // Press DEL (0x7F) -- above 0x7E range
@@ -202,6 +202,104 @@ fn mini_editor_enter_inserts_newline() {
         "buffer should contain 'A' followed by newline (0x0A)"
     );
     assert_eq!(vm.ram[0x1300], 2, "cursor should be at 2");
+}
+
+// ── ARROW KEY TESTS ───────────────────────────────────────────────────
+
+#[test]
+fn mini_editor_left_arrow_moves_cursor() {
+    let asm = assemble_editor();
+    let mut vm = Vm::new(8192);
+    vm.load_program(&asm.pixels);
+
+    run_vm(&mut vm);
+
+    // Type "AB"
+    press_key(&mut vm, 0x41); // 'A'
+    press_key(&mut vm, 0x42); // 'B'
+    assert_eq!(vm.ram[0x1300], 2, "cursor at 2 after AB");
+
+    // Left arrow (0x01)
+    press_key(&mut vm, 0x01);
+    assert_eq!(vm.ram[0x1300], 1, "cursor should move to 1");
+
+    // Left arrow again
+    press_key(&mut vm, 0x01);
+    assert_eq!(vm.ram[0x1300], 0, "cursor should move to 0");
+
+    // Left arrow at start -- should not go negative
+    press_key(&mut vm, 0x01);
+    assert_eq!(vm.ram[0x1300], 0, "cursor should stay at 0");
+}
+
+#[test]
+fn mini_editor_right_arrow_moves_cursor() {
+    let asm = assemble_editor();
+    let mut vm = Vm::new(8192);
+    vm.load_program(&asm.pixels);
+
+    run_vm(&mut vm);
+
+    // Type "AB"
+    press_key(&mut vm, 0x41);
+    press_key(&mut vm, 0x42);
+    assert_eq!(vm.ram[0x1300], 2, "cursor at 2");
+
+    // Left then right
+    press_key(&mut vm, 0x01); // left -> 1
+    press_key(&mut vm, 0x02); // right -> 2
+    assert_eq!(vm.ram[0x1300], 2, "cursor back at 2");
+
+    // Right at end -- should not go past
+    press_key(&mut vm, 0x02);
+    assert_eq!(vm.ram[0x1300], 2, "cursor stays at end");
+}
+
+#[test]
+fn mini_editor_insert_at_cursor_position() {
+    let asm = assemble_editor();
+    let mut vm = Vm::new(8192);
+    vm.load_program(&asm.pixels);
+
+    run_vm(&mut vm);
+
+    // Type "AC"
+    press_key(&mut vm, 0x41); // 'A'
+    press_key(&mut vm, 0x43); // 'C'
+
+    // Move left (cursor now at 1, between A and C)
+    press_key(&mut vm, 0x01);
+
+    // Insert 'B' at cursor position
+    press_key(&mut vm, 0x42); // 'B'
+
+    let buf = read_buffer(&vm, 10);
+    assert_eq!(buf, vec![0x41, 0x42, 0x43], "buffer should be 'ABC' after inserting B in middle");
+}
+
+#[test]
+fn mini_editor_delete_in_middle() {
+    let asm = assemble_editor();
+    let mut vm = Vm::new(8192);
+    vm.load_program(&asm.pixels);
+
+    run_vm(&mut vm);
+
+    // Type "ABC"
+    press_key(&mut vm, 0x41); // 'A'
+    press_key(&mut vm, 0x42); // 'B'
+    press_key(&mut vm, 0x43); // 'C'
+
+    // Move left twice (cursor at 1)
+    press_key(&mut vm, 0x01);
+    press_key(&mut vm, 0x01);
+
+    // Backspace deletes 'A', shifts rest left
+    press_key(&mut vm, 0x08);
+
+    let buf = read_buffer(&vm, 10);
+    assert_eq!(buf, vec![0x42, 0x43], "buffer should be 'BC' after deleting 'A'");
+    assert_eq!(vm.ram[0x1300], 0, "cursor at 0 after deleting first char");
 }
 
 // ── COMBINED TESTS ───────────────────────────────────────────────────
