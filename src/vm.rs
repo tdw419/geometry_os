@@ -138,10 +138,60 @@ impl std::fmt::Display for VmError {
 impl std::error::Error for VmError {}
 
 /// A child VM spawned by Q (SPAWN) or Z (SPATIAL_SPAWN).
+///
+/// Sprites are child VMs with a position (x, y) and size (w, h) on the
+/// parent's screen. The host GUI runs each child for a limited number of
+/// cycles per frame and composites the child's screen at (x, y).
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChildVm {
     pub start_addr: u32,
     pub arg: u32,
+    /// Sprite X position on parent screen (0–255).
+    pub x: u32,
+    /// Sprite Y position on parent screen (0–255).
+    pub y: u32,
+    /// Sprite width in pixels (0 = use full 256).
+    pub w: u32,
+    /// Sprite height in pixels (0 = use full 256).
+    pub h: u32,
+}
+
+impl ChildVm {
+    /// Legacy constructor for backward compatibility.
+    pub fn new(start_addr: u32, arg: u32) -> Self {
+        Self {
+            start_addr,
+            arg,
+            x: 0,
+            y: 0,
+            w: 0,
+            h: 0,
+        }
+    }
+
+    /// Spatial constructor with position.
+    pub fn at(start_addr: u32, arg: u32, x: u32, y: u32) -> Self {
+        Self {
+            start_addr,
+            arg,
+            x,
+            y,
+            w: 0,
+            h: 0,
+        }
+    }
+
+    /// Full constructor with position and size.
+    pub fn sized(start_addr: u32, arg: u32, x: u32, y: u32, w: u32, h: u32) -> Self {
+        Self {
+            start_addr,
+            arg,
+            x,
+            y,
+            w,
+            h,
+        }
+    }
 }
 
 // ── Process scheduler types ──────────────────────────────────────────
@@ -1995,10 +2045,7 @@ impl Vm {
             op::SPAWN => {
                 let addr = args[0];
                 let arg = args[1];
-                self.children.push(ChildVm {
-                    start_addr: addr,
-                    arg,
-                });
+                self.children.push(ChildVm::new(addr, arg));
                 Ok(None)
             }
 
@@ -2007,10 +2054,8 @@ impl Vm {
                 let x = args[0];
                 let y = args[1];
                 let addr = args[2];
-                self.children.push(ChildVm {
-                    start_addr: addr,
-                    arg: (y << 16) | (x & 0xFFFF),
-                });
+                // Pass position to child via r0 (packed) and store x,y on ChildVm
+                self.children.push(ChildVm::at(addr, (y << 16) | (x & 0xFFFF), x, y));
                 Ok(None)
             }
 
@@ -2551,10 +2596,8 @@ impl Vm {
                 let addr_reg = self.reg_idx(args[0]);
                 let arg_reg = self.reg_idx(args[1]);
                 if addr_reg < NUM_REGS && arg_reg < NUM_REGS {
-                    self.children.push(ChildVm {
-                        start_addr: self.regs[addr_reg],
-                        arg: self.regs[arg_reg],
-                    });
+                    self.children
+                        .push(ChildVm::new(self.regs[addr_reg], self.regs[arg_reg]));
                 }
                 None
             }
@@ -2565,10 +2608,11 @@ impl Vm {
                 let y_reg = self.reg_idx(args[1]);
                 let addr_reg = self.reg_idx(args[2]);
                 if x_reg < NUM_REGS && y_reg < NUM_REGS && addr_reg < NUM_REGS {
-                    self.children.push(ChildVm {
-                        start_addr: self.regs[addr_reg],
-                        arg: self.regs[x_reg],
-                    });
+                    let x = self.regs[x_reg];
+                    let y = self.regs[y_reg];
+                    let addr = self.regs[addr_reg];
+                    self.children
+                        .push(ChildVm::at(addr, (y << 16) | (x & 0xFFFF), x, y));
                 }
                 None
             }
@@ -4129,7 +4173,7 @@ mod tests {
         vm.timer_period = 100;
         vm.timer_counter = 50;
 
-        let child = vm.spawn_child(&ChildVm { start_addr: 0, arg: 0 });
+        let child = vm.spawn_child(&ChildVm::new(0, 0));
         assert_eq!(child.timer_period, 0);
         assert_eq!(child.timer_counter, 0);
     }
@@ -4356,7 +4400,7 @@ mod tests {
         vm.dbg_cycle_count = 500;
         vm.dbg_breakpoint = 10;
 
-        let child = vm.spawn_child(&ChildVm { start_addr: 0, arg: 0 });
+        let child = vm.spawn_child(&ChildVm::new(0, 0));
         assert_eq!(child.dbg_cycle_count, 0, "child should start with cycle count 0");
         assert_eq!(child.dbg_breakpoint, 0, "child should not inherit breakpoint");
     }
