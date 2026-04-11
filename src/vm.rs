@@ -799,7 +799,7 @@ pub struct Vm {
     /// Filesystem: word count for save, or words loaded after load.
     fs_count: u32,
     /// Filesystem: status of last operation (0=OK, 1=not found, 2=disk full, 3=bad name, 4=too large).
-    fs_status: u32,
+    pub fs_status: u32,
 }
 
 impl Vm {
@@ -1213,7 +1213,7 @@ impl Vm {
 
     /// Read a memory-mapped filesystem register.
     /// Returns `Some(value)` if `addr` is an FS register, `None` otherwise.
-    fn read_fs_reg(&self, addr: usize) -> Option<u32> {
+    pub fn read_fs_reg(&self, addr: usize) -> Option<u32> {
         match addr {
             FS_STATUS_ADDR => Some(self.fs_status),
             FS_FILECOUNT_ADDR => Some(self.disk.files.len() as u32),
@@ -1225,7 +1225,7 @@ impl Vm {
     /// Write a memory-mapped filesystem register.
     /// Returns `true` if `addr` is an FS register (write consumed), `false` otherwise.
     /// Writing to FS_CMD triggers the actual filesystem operation.
-    fn write_fs_reg(&mut self, addr: usize, value: u32) -> bool {
+    pub fn write_fs_reg(&mut self, addr: usize, value: u32) -> bool {
         match addr {
             FS_NAME_ADDR => {
                 self.fs_name_addr = value;

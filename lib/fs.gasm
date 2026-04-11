@@ -1,0 +1,188 @@
+; ═══════════════════════════════════════════════════════════════════════
+; lib/fs.gasm -- Filesystem routines for Geometry OS
+;
+; Provides convenience wrappers around the memory-mapped filesystem
+; registers at 0xFFB0-0xFFB5. Programs use these to save and load
+; named blocks of data (like high scores, settings, or small programs).
+;
+; FILESYSTEM PROTOCOL:
+;   Registers (memory-mapped at high addresses):
+;     0xFFB0 (FS_CMD)      -- Write: trigger command (1=SAVE, 2=LOAD, 3=DELETE, 4=EXISTS)
+;     0xFFB1 (FS_NAME)     -- Write: address of null-terminated filename in RAM
+;     0xFFB2 (FS_DATA)     -- Write: address of data buffer in RAM
+;     0xFFB3 (FS_COUNT)    -- Write: word count for SAVE. Read: words loaded after LOAD.
+;     0xFFB4 (FS_STATUS)   -- Read: result of last operation
+;     0xFFB5 (FS_FILECOUNT)-- Read: number of files on disk
+;
+; STATUS CODES:
+;   0 = OK
+;   1 = file not found
+;   2 = disk full
+;   3 = bad name (empty or too long)
+;   4 = buffer too large / unknown command
+;
+; CALLING CONVENTION:
+;   r0 = first argument / return value
+;   r1 = second argument
+;   r2-r7 = temporaries (clobbered by routines)
+;   CALL <routine> / RET to invoke
+;
+; ROUTINES:
+;   fs_save     -- save r1 words from RAM[r0] as filename at r8
+;                  Returns status in r0 (0 = OK)
+;   fs_load     -- load named file into RAM[r0], max r1 words
+;                  Returns status in r0, words loaded in r9
+;   fs_delete   -- delete named file. Returns status in r0
+;   fs_exists   -- check if file exists. r0 = 0 if found, 1 if not
+;   fs_filecount-- r0 = number of files on disk
+;   fs_status   -- r0 = status of last operation (0 = OK)
+;
+; NOTES:
+;   - Filenames are null-terminated strings (one u32 char per word).
+;     Use .asciz in .data section or build them manually.
+;   - Max filename: 31 chars. Max file size: 256 words. Max files: 16.
+;   - Disk capacity: 4096 words total across all files.
+; ═══════════════════════════════════════════════════════════════════════
+
+
+; ── fs_save: save data to a named file ─────────────────────────────
+;
+; Input:  r8 = address of null-terminated filename
+;         r0 = address of data buffer in RAM
+;         r1 = number of words to save
+; Output: r0 = status (0 = OK)
+; Clobbers: r2-r5
+;
+; Sets up FS_NAME, FS_DATA, FS_COUNT, then triggers FS_CMD=1 (SAVE).
+
+fs_save:
+    PUSH r3
+    PUSH r4
+    PUSH r5
+    LDI r3, 0xFFB1       ; FS_NAME register
+    STORE r3, r8         ; FS_NAME = filename address
+    LDI r3, 0xFFB2       ; FS_DATA register
+    STORE r3, r0         ; FS_DATA = data buffer address
+    LDI r3, 0xFFB3       ; FS_COUNT register
+    STORE r3, r1         ; FS_COUNT = word count
+    LDI r3, 0xFFB0       ; FS_CMD register
+    LDI r4, 1            ; SAVE command
+    STORE r3, r4         ; trigger SAVE
+    ; Read status
+    LDI r3, 0xFFB4       ; FS_STATUS register
+    LOAD r0, r3          ; r0 = status
+    POP r5
+    POP r4
+    POP r3
+    RET
+
+
+; ── fs_load: load data from a named file ───────────────────────────
+;
+; Input:  r8 = address of null-terminated filename
+;         r0 = address of data buffer in RAM (destination)
+;         r1 = max words to load (buffer size)
+; Output: r0 = status (0 = OK)
+;         r9 = words actually loaded
+; Clobbers: r2-r5
+;
+; Sets up FS_NAME, FS_DATA, then triggers FS_CMD=2 (LOAD).
+; After load, reads FS_COUNT to get words loaded.
+
+fs_load:
+    PUSH r3
+    PUSH r4
+    PUSH r5
+    LDI r3, 0xFFB1       ; FS_NAME register
+    STORE r3, r8         ; FS_NAME = filename address
+    LDI r3, 0xFFB2       ; FS_DATA register
+    STORE r3, r0         ; FS_DATA = buffer address
+    LDI r3, 0xFFB0       ; FS_CMD register
+    LDI r4, 2            ; LOAD command
+    STORE r3, r4         ; trigger LOAD
+    ; Read status
+    LDI r3, 0xFFB4       ; FS_STATUS register
+    LOAD r0, r3          ; r0 = status
+    ; Read words loaded
+    LDI r3, 0xFFB3       ; FS_COUNT register
+    LOAD r9, r3          ; r9 = words loaded
+    POP r5
+    POP r4
+    POP r3
+    RET
+
+
+; ── fs_delete: delete a named file ─────────────────────────────────
+;
+; Input:  r8 = address of null-terminated filename
+; Output: r0 = status (0 = OK, 1 = not found)
+; Clobbers: r3, r4
+;
+
+fs_delete:
+    PUSH r3
+    PUSH r4
+    LDI r3, 0xFFB1       ; FS_NAME register
+    STORE r3, r8         ; FS_NAME = filename address
+    LDI r3, 0xFFB0       ; FS_CMD register
+    LDI r4, 3            ; DELETE command
+    STORE r3, r4         ; trigger DELETE
+    ; Read status
+    LDI r3, 0xFFB4       ; FS_STATUS register
+    LOAD r0, r3          ; r0 = status
+    POP r4
+    POP r3
+    RET
+
+
+; ── fs_exists: check if a named file exists ────────────────────────
+;
+; Input:  r8 = address of null-terminated filename
+; Output: r0 = 0 if file exists, 1 if not found
+; Clobbers: r3, r4
+;
+
+fs_exists:
+    PUSH r3
+    PUSH r4
+    LDI r3, 0xFFB1       ; FS_NAME register
+    STORE r3, r8         ; FS_NAME = filename address
+    LDI r3, 0xFFB0       ; FS_CMD register
+    LDI r4, 4            ; EXISTS command
+    STORE r3, r4         ; trigger EXISTS
+    ; Read status
+    LDI r3, 0xFFB4       ; FS_STATUS register
+    LOAD r0, r3          ; r0 = 0 (found) or 1 (not found)
+    POP r4
+    POP r3
+    RET
+
+
+; ── fs_filecount: get number of files on disk ──────────────────────
+;
+; Input:  none
+; Output: r0 = number of files on disk
+; Clobbers: r3
+;
+
+fs_filecount:
+    PUSH r3
+    LDI r3, 0xFFB5       ; FS_FILECOUNT register
+    LOAD r0, r3          ; r0 = file count
+    POP r3
+    RET
+
+
+; ── fs_status: get status of last filesystem operation ─────────────
+;
+; Input:  none
+; Output: r0 = status (0 = OK, 1 = not found, 2 = disk full, 3 = bad name, 4 = too large)
+; Clobbers: r3
+;
+
+fs_status:
+    PUSH r3
+    LDI r3, 0xFFB4       ; FS_STATUS register
+    LOAD r0, r3          ; r0 = status
+    POP r3
+    RET

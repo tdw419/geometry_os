@@ -845,6 +845,10 @@ fn assemble_inner(
         let upper_line = line.to_uppercase();
         if upper_line == ".TEXT" {
             section = Section::Text;
+            // If data was already emitted, advance text past it to avoid overlap
+            if data_initialized && current_addr < data_addr {
+                current_addr = data_addr;
+            }
             continue;
         }
 
@@ -891,6 +895,42 @@ fn assemble_inner(
             let bytes = parse_string_literal(rest.trim(), line_num)?;
             let mut pixels: Vec<u32> = bytes.iter().map(|&b| b as u32).collect();
             pixels.push(0); // null terminator
+            let data_len = pixels.len();
+            items.push((
+                emit_addr,
+                EmitItem::Data(RawData {
+                    line: line_num,
+                    pixels,
+                }),
+            ));
+            match section {
+                Section::Text => current_addr += data_len,
+                Section::Data => data_addr += data_len,
+            }
+            continue;
+        }
+
+        // .WORD directive: .word 42 or .word 1,2,3 → emits one or more u32 values
+        if let Some(rest) = line
+            .strip_prefix(".word")
+            .or_else(|| line.strip_prefix(".WORD"))
+        {
+            let mut pixels: Vec<u32> = Vec::new();
+            for token in rest.split(',') {
+                let token = token.trim();
+                if token.is_empty() {
+                    continue;
+                }
+                match parse_number(token) {
+                    Ok(val) => pixels.push(val),
+                    Err(_) => {
+                        return Err(AsmError {
+                            line: line_num,
+                            message: format!("invalid .word value: '{}'", token),
+                        })
+                    }
+                }
+            }
             let data_len = pixels.len();
             items.push((
                 emit_addr,
@@ -1657,16 +1697,13 @@ msg:
         // LDI r0, 1 at addr 0-2 (width 3)
         // .data: msg at addr 3 (follows code)
         //   'A' at 3, 'B' at 4, null at 5
-        // .text resumes: HALT at addr 3? No -- current_addr was 3 before .data
-        // .text resumes from where code left off, so HALT at addr 3
-        // This means HALT and 'A' overlap at addr 3 -- that's a user error
-        // but the assembler doesn't prevent it (flat memory)
+        // .text resumes PAST data, so HALT at addr 6
         assert_eq!(asm.labels.get("msg"), Some(&3));
         assert_eq!(asm.pixels[0], op::LDI as u32);
         assert_eq!(asm.pixels[1], 0); // r0
         assert_eq!(asm.pixels[2], 1); // immediate
-        // HALT at text addr 3
-        assert_eq!(asm.pixels[3], op::HALT as u32);
+        // HALT at text addr 6 (after data at 3-5)
+        assert_eq!(asm.pixels[6], op::HALT as u32);
     }
 
     #[test]

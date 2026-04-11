@@ -1,5 +1,7 @@
 pub mod agent;
 pub mod assembler;
+#[cfg(feature = "audio")]
+pub mod audio;
 pub mod color_map;
 pub mod editor;
 pub mod font;
