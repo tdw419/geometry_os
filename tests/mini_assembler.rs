@@ -67,6 +67,8 @@ fn run_assembler(vm: &mut Vm, source: &str) {
     // Clear status flags
     vm.ram[STATUS_ADDR] = 0;
     vm.ram[LENGTH_ADDR] = 0;
+    // Set dirty flag so assembler knows there is new source
+    vm.ram[0x1FFE] = 1;
 
     // Run from assembler start
     vm.pc = ASM_ADDR as u32;
@@ -580,4 +582,47 @@ fn full_pipeline_editor_assemble_spawn() {
     let mut child = vm.spawn_child(&children[0]);
     child.run();
     assert!(child.halted, "child should halt (executed HALT bytecode)");
+}
+
+// ── DIRTY FLAG TESTS ──────────────────────────────────────────────
+
+#[test]
+fn assembler_skips_when_dirty_flag_clear() {
+    // If dirty flag is 0, assembler should exit early without assembling
+    let mut vm = vm_with_mini_assembler();
+
+    // Write source but do NOT set dirty flag
+    let source = "H";
+    let src_end = (SOURCE_ADDR + source.len() + 1).min(RAM_SIZE);
+    for v in vm.ram[SOURCE_ADDR..src_end].iter_mut() {
+        *v = 0;
+    }
+    for (i, byte) in source.bytes().enumerate() {
+        let addr = SOURCE_ADDR + i;
+        if addr < vm.ram.len() {
+            vm.ram[addr] = byte as u32;
+        }
+    }
+    vm.ram[0x1FFE] = 0; // dirty flag = 0 (no new source)
+
+    // Run assembler
+    vm.pc = ASM_ADDR as u32;
+    vm.halted = false;
+    vm.yielded = false;
+    while !vm.halted && !vm.yielded {
+        vm.run();
+    }
+
+    // Assembler should have skipped (status = 1 = early exit)
+    assert_eq!(vm.ram[STATUS_ADDR], 1, "status should be 1 (early exit)");
+    assert_eq!(vm.ram[LENGTH_ADDR], 0, "output length should be 0 (no assembly)");
+}
+
+#[test]
+fn dirty_flag_cleared_after_assembly() {
+    // After assembly, dirty flag should be cleared
+    let mut vm = vm_with_mini_assembler();
+    run_assembler(&mut vm, "H");
+    assert_eq!(vm.ram[STATUS_ADDR], 0, "compilation should succeed");
+    assert_eq!(vm.ram[0x1FFE], 0, "dirty flag should be cleared after assembly");
 }

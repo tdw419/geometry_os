@@ -62,6 +62,11 @@ main:
     LDI r17, 0x3800          ; label table base
     LDI r7,  0x3800          ; label table write ptr
     LDI r8,  0               ; output byte counter (pass 1)
+    LDI r0,  0x1FFE          ; dirty flag address
+    LOAD r2, r0              ; r2 = dirty flag
+    BEQ r2, r15, done_early  ; if dirty == 0, nothing to compile
+    ; Clear dirty flag
+    STORE r0, r15            ; dirty = 0
     LDI r0,  0x2000          ; input ptr (source file from editor)
 
     ; Clear status flags
@@ -387,7 +392,16 @@ p2_not_found:
     ADD r1, r14
     JMP pass2
 
-; ── Done ─────────────────────────────────────────────────────────────
+; ── Done (early exit: no dirty flag) ──────────────────────────────────
+done_early:
+    ; Set status = 2 (no source) and length = 0
+    LDI r3, 0x3FFE
+    STORE r3, r14            ; status = 1 (no work done)
+    LDI r3, 0x3FFF
+    STORE r3, r15            ; length = 0
+    HALT
+
+; ── Done (normal) ────────────────────────────────────────────────────
 done:
     STORE r1, r15                ; null terminator on output
 
