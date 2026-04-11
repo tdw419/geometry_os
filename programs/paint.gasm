@@ -1,0 +1,538 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/paint.gasm -- Keyboard-driven paint program for Geometry OS
+;
+; A simple drawing program where you move a cursor with arrow keys
+; and paint pixels. Uses PSET for drawing and the keyboard port at
+; 0xFFF for input.
+;
+; CONTROLS:
+;   Arrow keys (W/A/S/D): move cursor
+;   Space (0x20): toggle pen down/up
+;   1-8: select color from palette
+;   C: clear screen
+;   Q: quit (HALT)
+;
+; MEMORY LAYOUT:
+;   0x1000: cursor_x (0-255)
+;   0x1001: cursor_y (0-255)
+;   0x1002: pen_down (0=up, 1=down)
+;   0x1003: current color index (0-7)
+;   0x1004: previous cursor x (for erasing old cursor)
+;   0x1005: previous cursor y
+;
+; COLOR PALETTE (8 colors):
+;   0=black, 1=white, 2=red, 3=green, 4=blue, 5=yellow, 6=cyan, 7=magenta
+;
+; ═══════════════════════════════════════════════════════════════════════
+
+; ── Key constants ──
+KEY_W = 0x77
+KEY_A = 0x61
+KEY_S = 0x73
+KEY_D = 0x64
+KEY_SPACE = 0x20
+KEY_C = 0x63
+KEY_Q = 0x71
+KEY_1 = 0x31
+KEY_2 = 0x32
+KEY_3 = 0x33
+KEY_4 = 0x34
+KEY_5 = 0x35
+KEY_6 = 0x36
+KEY_7 = 0x37
+KEY_8 = 0x38
+
+; ── Memory addresses ──
+CUR_X = 0x1000
+CUR_Y = 0x1001
+PEN = 0x1002
+COL_IDX = 0x1003
+PREV_X = 0x1004
+PREV_Y = 0x1005
+
+; ── Color palette stored in memory ──
+; At 0x1010: 8 color values
+PAL_ADDR = 0x1010
+
+
+main:
+    ; ── Initialize state ──
+    LDI r0, 128
+    LDI r1, CUR_X
+    STORE r1, r0          ; cursor_x = 128 (center)
+    LDI r0, 128
+    LDI r1, CUR_Y
+    STORE r1, r0          ; cursor_y = 128 (center)
+    LDI r0, 0
+    LDI r1, PEN
+    STORE r1, r0          ; pen_down = 0
+    LDI r0, 1
+    LDI r1, COL_IDX
+    STORE r1, r0          ; color_index = 1 (white)
+    LDI r0, 128
+    LDI r1, PREV_X
+    STORE r1, r0
+    LDI r0, 128
+    LDI r1, PREV_Y
+    STORE r1, r0
+
+    ; ── Initialize color palette ──
+    ; Palette: black, white, red, green, blue, yellow, cyan, magenta
+    LDI r1, PAL_ADDR
+    LDI r0, 0x000000
+    STORE r1, r0           ; [0] black
+    LDI r0, 1
+    ADD r1, r0
+    LDI r0, 0xFFFFFF
+    STORE r1, r0           ; [1] white
+    LDI r0, 1
+    ADD r1, r0
+    LDI r0, 0xFF2020
+    STORE r1, r0           ; [2] red
+    LDI r0, 1
+    ADD r1, r0
+    LDI r0, 0x20FF20
+    STORE r1, r0           ; [3] green
+    LDI r0, 1
+    ADD r1, r0
+    LDI r0, 0x2020FF
+    STORE r1, r0           ; [4] blue
+    LDI r0, 1
+    ADD r1, r0
+    LDI r0, 0xFFFF20
+    STORE r1, r0           ; [5] yellow
+    LDI r0, 1
+    ADD r1, r0
+    LDI r0, 0x20FFFF
+    STORE r1, r0           ; [6] cyan
+    LDI r0, 1
+    ADD r1, r0
+    LDI r0, 0xFF20FF
+    STORE r1, r0           ; [7] magenta
+
+    ; ── Clear screen ──
+    LDI r0, 0x111122       ; dark blue background
+    CALL clear_screen
+
+    ; ── Draw initial UI ──
+    CALL draw_palette
+    CALL draw_cursor
+
+    JMP paint_loop
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; MAIN LOOP
+; ═══════════════════════════════════════════════════════════════════════
+
+paint_loop:
+    ; ── Poll keyboard ──
+    CALL read_key          ; r0 = keycode or 0
+    LDI r1, 0
+    BEQ r0, r1, pl_yield   ; no key
+
+    ; ── Dispatch key ──
+    LDI r1, KEY_W
+    BEQ r0, r1, pl_up
+    LDI r1, KEY_A
+    BEQ r0, r1, pl_left
+    LDI r1, KEY_S
+    BEQ r0, r1, pl_down
+    LDI r1, KEY_D
+    BEQ r0, r1, pl_right
+    LDI r1, KEY_SPACE
+    BEQ r0, r1, pl_toggle_pen
+    LDI r1, KEY_C
+    BEQ r0, r1, pl_clear
+    LDI r1, KEY_Q
+    BEQ r0, r1, pl_quit
+    JMP pl_check_colors
+
+pl_check_colors:
+    LDI r1, KEY_1
+    BEQ r0, r1, pl_col1
+    LDI r1, KEY_2
+    BEQ r0, r1, pl_col2
+    LDI r1, KEY_3
+    BEQ r0, r1, pl_col3
+    LDI r1, KEY_4
+    BEQ r0, r1, pl_col4
+    LDI r1, KEY_5
+    BEQ r0, r1, pl_col5
+    LDI r1, KEY_6
+    BEQ r0, r1, pl_col6
+    LDI r1, KEY_7
+    BEQ r0, r1, pl_col7
+    LDI r1, KEY_8
+    BEQ r0, r1, pl_col8
+    JMP pl_yield
+
+; ── Movement: erase old cursor, move, draw new cursor ──
+pl_up:
+    CALL save_prev
+    CALL erase_cursor
+    LDI r1, CUR_Y
+    LOAD r0, r1
+    LDI r2, 4
+    SUB r0, r2            ; y -= 4
+    ; Clamp to 0
+    LDI r2, 0
+    BLT r0, r2, pl_up_clamp
+    JMP pl_up_store
+pl_up_clamp:
+    LDI r0, 0
+pl_up_store:
+    STORE r1, r0
+    CALL maybe_paint
+    CALL draw_cursor
+    JMP pl_yield
+
+pl_down:
+    CALL save_prev
+    CALL erase_cursor
+    LDI r1, CUR_Y
+    LOAD r0, r1
+    LDI r2, 4
+    ADD r0, r2            ; y += 4
+    ; Clamp to 252
+    LDI r2, 252
+    BLT r2, r0, pl_down_clamp
+    JMP pl_down_store
+pl_down_clamp:
+    LDI r0, 252
+pl_down_store:
+    STORE r1, r0
+    CALL maybe_paint
+    CALL draw_cursor
+    JMP pl_yield
+
+pl_left:
+    CALL save_prev
+    CALL erase_cursor
+    LDI r1, CUR_X
+    LOAD r0, r1
+    LDI r2, 4
+    SUB r0, r2            ; x -= 4
+    LDI r2, 0
+    BLT r0, r2, pl_left_clamp
+    JMP pl_left_store
+pl_left_clamp:
+    LDI r0, 0
+pl_left_store:
+    STORE r1, r0
+    CALL maybe_paint
+    CALL draw_cursor
+    JMP pl_yield
+
+pl_right:
+    CALL save_prev
+    CALL erase_cursor
+    LDI r1, CUR_X
+    LOAD r0, r1
+    LDI r2, 4
+    ADD r0, r2            ; x += 4
+    LDI r2, 252
+    BLT r2, r0, pl_right_clamp
+    JMP pl_right_store
+pl_right_clamp:
+    LDI r0, 252
+pl_right_store:
+    STORE r1, r0
+    CALL maybe_paint
+    CALL draw_cursor
+    JMP pl_yield
+
+pl_toggle_pen:
+    LDI r1, PEN
+    LOAD r0, r1
+    LDI r2, 1
+    BEQ r0, r2, pl_pen_off
+    ; Turn pen on
+    LDI r0, 1
+    STORE r1, r0
+    JMP pl_yield
+pl_pen_off:
+    LDI r0, 0
+    STORE r1, r0
+    JMP pl_yield
+
+pl_clear:
+    PUSH r0
+    LDI r0, 0x111122
+    CALL clear_screen
+    POP r0
+    CALL draw_palette
+    CALL draw_cursor
+    JMP pl_yield
+
+pl_quit:
+    HALT
+
+; ── Color selection ──
+pl_col1:
+    LDI r0, 0
+    LDI r1, COL_IDX
+    STORE r1, r0
+    CALL draw_palette
+    JMP pl_yield
+pl_col2:
+    LDI r0, 1
+    LDI r1, COL_IDX
+    STORE r1, r0
+    CALL draw_palette
+    JMP pl_yield
+pl_col3:
+    LDI r0, 2
+    LDI r1, COL_IDX
+    STORE r1, r0
+    CALL draw_palette
+    JMP pl_yield
+pl_col4:
+    LDI r0, 3
+    LDI r1, COL_IDX
+    STORE r1, r0
+    CALL draw_palette
+    JMP pl_yield
+pl_col5:
+    LDI r0, 4
+    LDI r1, COL_IDX
+    STORE r1, r0
+    CALL draw_palette
+    JMP pl_yield
+pl_col6:
+    LDI r0, 5
+    LDI r1, COL_IDX
+    STORE r1, r0
+    CALL draw_palette
+    JMP pl_yield
+pl_col7:
+    LDI r0, 6
+    LDI r1, COL_IDX
+    STORE r1, r0
+    CALL draw_palette
+    JMP pl_yield
+pl_col8:
+    LDI r0, 7
+    LDI r1, COL_IDX
+    STORE r1, r0
+    CALL draw_palette
+    JMP pl_yield
+
+pl_yield:
+    YIELD
+    JMP paint_loop
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; HELPER ROUTINES
+; ═══════════════════════════════════════════════════════════════════════
+
+; ── save_prev: save current cursor position as previous ──
+save_prev:
+    PUSH r0
+    PUSH r1
+    LDI r1, CUR_X
+    LOAD r0, r1
+    LDI r1, PREV_X
+    STORE r1, r0
+    LDI r1, CUR_Y
+    LOAD r0, r1
+    LDI r1, PREV_Y
+    STORE r1, r0
+    POP r1
+    POP r0
+    RET
+
+
+; ── maybe_paint: if pen is down, paint at current cursor position ──
+maybe_paint:
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    LDI r1, PEN
+    LOAD r0, r1
+    LDI r2, 0
+    BEQ r0, r2, mp_done   ; pen is up, skip
+
+    ; Pen is down -- get color and draw
+    CALL get_color         ; r0 = color
+    LDI r1, CUR_X
+    LOAD r1, r1
+    LDI r2, CUR_Y
+    LOAD r2, r2
+    ; Draw a 4x4 block at cursor position
+    LDI r3, 4
+    RECTF r1, r2, r3, r3
+
+mp_done:
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+    RET
+
+
+; ── get_color: look up current color from palette ──
+; Returns: r0 = color value
+; Clobbers: r0, r1, r2
+get_color:
+    LDI r1, COL_IDX
+    LOAD r0, r1           ; r0 = color index
+    LDI r1, PAL_ADDR
+    ADD r1, r0            ; r1 = &palette[index]
+    LOAD r0, r1           ; r0 = color value
+    RET
+
+
+; ── draw_cursor: draw cursor as a 4x4 inverted-color block ──
+draw_cursor:
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+
+    ; Draw cursor as a bright cross pattern
+    LDI r1, CUR_X
+    LOAD r1, r1
+    LDI r2, CUR_Y
+    LOAD r2, r2
+
+    ; Outer rectangle in white
+    LDI r0, 0xFFFFFF
+    LDI r3, 4
+    RECTF r1, r2, r3, r3
+
+    ; Inner pixel in black (2x2 at center)
+    LDI r0, 0x000000
+    ADD r1, r3            ; r1 = x+4 ... no, we want center
+    ; Actually just draw 2x2 at (x+1, y+1)
+    LDI r1, CUR_X
+    LOAD r1, r1
+    LDI r0, 1
+    ADD r1, r0
+    LDI r2, CUR_Y
+    LOAD r2, r2
+    ADD r2, r0
+    LDI r3, 2
+    LDI r0, 0x000000
+    RECTF r1, r2, r3, r3
+
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+    RET
+
+
+; ── erase_cursor: restore pixel at cursor position using saved prev ──
+; Redraws the 4x4 area at prev position with background color
+erase_cursor:
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+
+    LDI r0, 0x111122     ; background color
+    LDI r1, PREV_X
+    LOAD r1, r1
+    LDI r2, PREV_Y
+    LOAD r2, r2
+    LDI r3, 4
+    RECTF r1, r2, r3, r3
+
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+    RET
+
+
+; ── draw_palette: draw color swatches at top of screen ──
+draw_palette:
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r4
+    PUSH r5
+    PUSH r6
+
+    ; Draw 8 color swatches (8x8 each) starting at (0, 0)
+    LDI r5, 0             ; i = 0
+dp_loop:
+    ; Color = palette[i]
+    MOV r6, r5
+    LDI r1, PAL_ADDR
+    ADD r1, r6
+    LOAD r0, r1
+
+    ; x = i * 8, y = 0
+    MOV r1, r5
+    ADD r1, r1
+    ADD r1, r1
+    ADD r1, r1            ; x = i * 8
+    LDI r2, 0             ; y = 0
+    LDI r3, 8
+    LDI r4, 8
+    RECTF r1, r2, r3, r4
+
+    ; If this is the selected color, draw a white border
+    LDI r1, COL_IDX
+    LOAD r6, r1
+    BNE r5, r6, dp_next
+
+    ; Draw selection indicator: 2px white bar under the swatch
+    LDI r0, 0xFFFFFF
+    MOV r1, r5
+    ADD r1, r1
+    ADD r1, r1
+    ADD r1, r1            ; x = i * 8
+    LDI r2, 8             ; y = 8
+    LDI r3, 8
+    LDI r4, 2
+    RECTF r1, r2, r3, r4
+
+dp_next:
+    LDI r6, 1
+    ADD r5, r6
+    LDI r6, 8
+    BLT r5, r6, dp_loop
+
+    ; Draw pen status indicator at x=72
+    LDI r1, PEN
+    LOAD r0, r1
+    LDI r1, 0
+    BEQ r0, r1, dp_pen_up
+
+    ; Pen down: green dot
+    LDI r0, 0x00FF00
+    LDI r1, 72
+    LDI r2, 2
+    LDI r3, 6
+    LDI r4, 6
+    RECTF r1, r2, r3, r4
+    JMP dp_done
+
+dp_pen_up:
+    ; Pen up: red dot
+    LDI r0, 0xFF0000
+    LDI r1, 72
+    LDI r2, 2
+    LDI r3, 6
+    LDI r4, 6
+    RECTF r1, r2, r3, r4
+
+dp_done:
+    POP r6
+    POP r5
+    POP r4
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+    RET
+
+
+    .include "../lib/input.gasm"
+    .include "../lib/screen.gasm"
