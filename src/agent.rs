@@ -46,7 +46,7 @@ use crate::forge::{ForgeQueue, Issue};
 use crate::vm::{MAX_CYCLES, Vm};
 
 /// Snapshot of VM state for inspection without ownership.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct VmState {
     pub pc: u32,
     pub regs: [u32; 32],
@@ -56,7 +56,7 @@ pub struct VmState {
 }
 
 /// Outcome of an agent execution run.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct AgentResult {
     /// Issues drained from the forge queue after execution.
     pub issues: Vec<Issue>,

@@ -1,4 +1,5 @@
 pub mod agent;
+pub mod api;
 pub mod assembler;
 #[cfg(feature = "audio")]
 pub mod audio;

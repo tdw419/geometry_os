@@ -12,7 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Priority levels for forge issues.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum Priority {
     Low = 0,
     Medium = 1,
@@ -32,7 +32,7 @@ impl From<u32> for Priority {
 }
 
 /// A work item created by a VM program.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct Issue {
     /// Monotonically increasing ID assigned by the forge.
     pub id: u64,

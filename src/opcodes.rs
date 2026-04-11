@@ -72,6 +72,10 @@ pub mod op {
     pub const EXIT: u8 = 0x75; // u  width 1: terminate current process
     pub const GETPID: u8 = 0x76; // v  width 1: r0 = current process ID
 
+    // ── IPC opcodes (inter-process communication) ─────────────────────
+    pub const SEND: u8 = 0x77; // w  width 1: send r0 to PID in r1. r2=1 if sent, 0 if fail
+    pub const RECV: u8 = 0x79; // y  width 1: receive next message. r0=value, r1=sender_pid, r2=1 if got, 0 if empty
+
     // ── Editor opcodes (self-authoring) ────────────────────────────────
     // These let a running program modify its own RAM — the core of the
     // self-authoring loop described in editor.rs.
@@ -85,7 +89,7 @@ pub mod op {
 pub fn width(opcode: u8) -> usize {
     match opcode {
         op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE | op::IRET
-        | op::FORK | op::EXIT | op::GETPID => 1,
+        | op::FORK | op::EXIT | op::GETPID | op::SEND | op::RECV => 1,
         op::CALL | op::JMP | op::INT | op::NOT | op::PUSH | op::POP | op::EDIT_DELETE => 2,
         op::ADD
         | op::BRANCH
@@ -165,6 +169,8 @@ pub fn name(opcode: u8) -> &'static str {
         op::FORK => "FORK",
         op::EXIT => "EXIT",
         op::GETPID => "GETPID",
+        op::SEND => "SEND",
+        op::RECV => "RECV",
         _ => "???",
     }
 }
@@ -186,7 +192,7 @@ pub fn arg_kinds(opcode: u8) -> &'static [ArgKind] {
     match opcode {
         // width 1 — no arguments
         op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE | op::IRET
-        | op::FORK | op::EXIT | op::GETPID => &[],
+        | op::FORK | op::EXIT | op::GETPID | op::SEND | op::RECV => &[],
         // width 2
         op::CALL | op::JMP => &[Addr],
         op::INT => &[Imm],
@@ -264,6 +270,7 @@ pub fn is_valid(b: u8) -> bool {
         0x41..=0x5A |  // A-Z
         0x61 | 0x62 | 0x63 | 0x64 | 0x65 | 0x66 | 0x67 | 0x68 | 0x69 | 0x6A | 0x6B
         | 0x6C | 0x6D | 0x6E | 0x6F | 0x70 | 0x72 | 0x73 | 0x74 | 0x75 | 0x76
+        | 0x77 | 0x79
     )
 }
 

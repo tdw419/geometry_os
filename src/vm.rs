@@ -19,6 +19,7 @@
 
 use crate::forge::ForgeQueue;
 use crate::heap::{Heap, HEAP_ALLOC_ADDR, HEAP_BLOCKS_ADDR, HEAP_FREE_ADDR, HEAP_FREE_WORDS_ADDR, HEAP_SIZE_ADDR, HEAP_START_ADDR};
+use std::collections::VecDeque;
 use crate::opcodes;
 use crate::opcodes::op;
 
@@ -514,7 +515,12 @@ pub struct VmSnapshot {
     pub heap: Heap,
     /// Heap: result of last alloc (0 = fail).
     pub heap_alloc_result: u32,
+    /// IPC: incoming message queue for this process.
+    pub mailbox: VecDeque<(u32, u32)>, // (sender_pid, value)
 }
+
+/// Maximum messages per process mailbox.
+pub const IPC_MAILBOX_SIZE: usize = 16;
 pub const IVT_SIZE: usize = 16;
 
 /// Timer interrupt vector number (IVT slot 0).
@@ -1077,6 +1083,8 @@ pub struct Vm {
     pub heap_alloc_result: u32,
     /// Scrollable text buffer (terminal output).
     pub term: TextBuffer,
+    /// IPC: incoming message queue for this process.
+    pub mailbox: VecDeque<(u32, u32)>, // (sender_pid, value)
 }
 
 impl Vm {
@@ -1117,6 +1125,7 @@ impl Vm {
             heap: Heap::new(),
             heap_alloc_result: 0,
             term: TextBuffer::new(),
+            mailbox: VecDeque::new(),
         }
     }
 
@@ -1217,6 +1226,7 @@ impl Vm {
             heap: Heap::new(), // children get a fresh heap
             heap_alloc_result: 0,
             term: TextBuffer::new(),
+            mailbox: VecDeque::new(),
         };
         // Pass the arg to the child in r0
         vm.regs[0] = child.arg;
@@ -1344,6 +1354,7 @@ impl Vm {
             fs_status: self.fs_status,
             heap: self.heap.clone(),
             heap_alloc_result: self.heap_alloc_result,
+            mailbox: self.mailbox.clone(),
         }
     }
 
@@ -1382,6 +1393,7 @@ impl Vm {
         self.fs_status = snapshot.fs_status;
         self.heap = snapshot.heap.clone();
         self.heap_alloc_result = snapshot.heap_alloc_result;
+        self.mailbox = snapshot.mailbox.clone();
     }
 
     /// Tick the hardware timer. Called once per instruction cycle by run()/run_checked().
