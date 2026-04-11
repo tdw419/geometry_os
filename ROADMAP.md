@@ -25,7 +25,28 @@ Extend the compiler and VM only when programs hit walls.
   - Keyboard input via KEY_PORT (0xFFF) with YIELD-based polling
   - Commands: CLS, HELP, VER, ECHO
 
-## Phase 1: Visual Programs (DONE -- 7/12)
+## Phase 1: Pixel-Native OS -- Shell Essentials (ACTIVE)
+
+The OS IS the shell. Build the shell into a real operating system interface.
+
+- [ ] DIR command -- list programs in virtual filesystem (lib/fs.gasm)
+- [ ] RUN command -- load and execute programs from within the shell (EXEC opcode)
+- [ ] Shell auto-start -- boot sequence loads shell.gasm on F5 instead of requiring manual assembly
+- [ ] Command history -- up/down arrow to recall previous commands
+- [ ] TYPE command -- view file contents in terminal
+- [ ] EDIT command -- inline text editor (modify ram[] via terminal I/O)
+- [ ] DEBUG command -- show registers, memory, PC (read debug registers 0xFFE0+)
+
+## Phase 2: Pixel-Native OS -- Shell as Platform
+
+- [ ] Compile command -- invoke pixelc from within the OS (self-hosting bridge)
+- [ ] PS command -- list running processes (FORK'd children)
+- [ ] KILL command -- terminate a child process
+- [ ] BG command -- run a program in background (FORK + continue shell)
+- [ ] Shell scripts -- batch command files
+- [ ] Split screen -- shell on top half, program output on bottom half
+
+## Phase 3: Visual Programs
 
 Build programs that create interesting pixel patterns. Each program tests compiler features.
 
@@ -43,30 +64,7 @@ Build programs that create interesting pixel patterns. Each program tests compil
 - [ ] fireworks.gp -- particle explosion animation
 - [ ] clock.gp -- real-time clock face using timer registers
 
-## Phase 2: Pixel-Native OS (ACTIVE)
-
-The OS IS the shell. Build the shell into a real operating system interface.
-
-### 2a: Shell Essentials (NEXT)
-- [ ] DIR command -- list programs in virtual filesystem
-- [ ] RUN command -- load and execute programs from within the shell (EXEC opcode)
-- [ ] Shell auto-start -- boot.gasm loads shell.gasm on F5 instead of requiring manual assembly
-- [ ] Command history -- up/down arrow to recall previous commands
-
-### 2b: Shell as Platform
-- [ ] Type command -- view file contents in terminal
-- [ ] Edit command -- inline text editor (modify ram[] via terminal I/O)
-- [ ] Compile command -- invoke pixelc from within the OS (self-hosting bridge)
-- [ ] Debug command -- show registers, memory, PC (read debug registers 0xFFE0+)
-- [ ] Shell scripts -- batch command files (TYPE script.gp | SHELL)
-
-### 2c: Multiprocessing Visible
-- [ ] PS command -- list running processes (FORK'd children)
-- [ ] KILL command -- terminate a child process
-- [ ] BG command -- run a program in background (FORK + continue shell)
-- [ ] Split screen -- shell on top half, program output on bottom half
-
-## Phase 3: Interactive Programs
+## Phase 4: Interactive Programs
 
 Programs that respond to keyboard/mouse input. Uses memory-mapped I/O registers.
 
@@ -76,7 +74,7 @@ Programs that respond to keyboard/mouse input. Uses memory-mapped I/O registers.
 - [ ] piano.gp -- keyboard piano (map keys to audio frequencies at 0xFFC0-0xFFC3)
 - [ ] reaction.gp -- reaction time tester (wait for stimulus, measure response)
 
-## Phase 4: Compiler Improvements (When Programs Hit Walls)
+## Phase 5: Compiler Improvements (When Programs Hit Walls)
 
 Extend pixelc based on what the programs need. Not speculative.
 
@@ -88,7 +86,7 @@ Extend pixelc based on what the programs need. Not speculative.
 - [ ] Multiple return values: functions returning tuples
 - [ ] Constants: `const SIZE = 64` at top level
 
-## Phase 5: The Standard Library
+## Phase 6: The Standard Library
 
 Reusable .gp modules that other programs can include.
 
@@ -100,15 +98,12 @@ Reusable .gp modules that other programs can include.
 
 ## Priority Order
 
-The phases flow in order but Phase 2 (the OS) is now the priority.
-The shell is the center -- every feature makes the OS more self-sufficient.
+The OS shell is the priority. Visual programs and interactive programs are picked up
+when they're needed to test a feature or when there's a natural break.
 
 ```
-Phase 1 (visual) -> Phase 2 (OS shell) -> Phase 3 (interactive) -> Phase 4 (compiler) -> Phase 5 (stdlib)
+Phase 1 (OS essentials) -> Phase 2 (OS platform) -> Phase 3 (visual) -> Phase 4 (interactive) -> Phase 5 (compiler) -> Phase 6 (stdlib)
 ```
-
-If a program needs a feature from a later phase, implement that feature first, then write the program.
-Log what features were missing so we know what to build next.
 
 ## Definition of Done
 
