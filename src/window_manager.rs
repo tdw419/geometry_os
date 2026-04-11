@@ -433,6 +433,8 @@ impl WindowEntry {
 #[derive(Debug, Clone)]
 pub struct WindowTable {
     entries: Vec<WindowEntry>,
+    /// PID of the VM that currently has keyboard focus (receives key events).
+    focus: Option<u32>,
 }
 
 impl WindowTable {
@@ -440,10 +442,12 @@ impl WindowTable {
     pub fn new() -> Self {
         WindowTable {
             entries: Vec::with_capacity(WINDOW_TABLE_MAX),
+            focus: None,
         }
     }
 
     /// Add a window entry. Returns the index, or None if the table is full.
+    /// The first window added automatically gets focus.
     pub fn add(&mut self, entry: WindowEntry) -> Option<usize> {
         if self.entries.len() >= WINDOW_TABLE_MAX {
             return None;
@@ -453,14 +457,29 @@ impl WindowTable {
             return None;
         }
         let idx = self.entries.len();
+        // Auto-focus the first window
+        if self.focus.is_none() {
+            self.focus = Some(entry.vm_id);
+        }
         self.entries.push(entry);
         Some(idx)
     }
 
     /// Remove an entry by vm_id. Returns true if found and removed.
+    /// If the removed window had focus, transfers focus to the next visible window.
     pub fn remove(&mut self, vm_id: u32) -> bool {
         if let Some(pos) = self.entries.iter().position(|e| e.vm_id == vm_id) {
             self.entries.remove(pos);
+            // If we removed the focused window, transfer focus
+            if self.focus == Some(vm_id) {
+                let new_focus = self
+                    .entries
+                    .iter()
+                    .filter(|e| e.visible)
+                    .max_by_key(|e| e.z_order)
+                    .map(|e| e.vm_id);
+                self.focus = new_focus;
+            }
             true
         } else {
             false
@@ -548,15 +567,43 @@ impl WindowTable {
     }
 
     /// Bring a window to front by giving it the highest z_order + 1.
+    /// Also sets keyboard focus to this window.
     /// Returns the new z_order, or None if not found.
     pub fn bring_to_front(&mut self, vm_id: u32) -> Option<u32> {
         let max_z = self.entries.iter().map(|e| e.z_order).max().unwrap_or(0);
         if let Some(entry) = self.get_mut(vm_id) {
             entry.z_order = max_z + 1;
-            Some(entry.z_order)
         } else {
-            None
+            return None;
         }
+        self.focus = Some(vm_id);
+        Some(self.get(vm_id).unwrap().z_order)
+    }
+
+    /// Get the VM that currently has keyboard focus.
+    pub fn focused_vm_id(&self) -> Option<u32> {
+        self.focus
+    }
+
+    /// Set focus to a specific VM. Returns true if found.
+    pub fn set_focus(&mut self, vm_id: u32) -> bool {
+        if self.entries.iter().any(|e| e.vm_id == vm_id && e.visible) {
+            self.focus = Some(vm_id);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Handle a click: hit-test at (px, py), bring the hit window to front
+    /// and focus it. Returns the routed mouse event, or None if desktop hit.
+    pub fn click_focus(&mut self, px: u32, py: u32) -> Option<RoutedMouse> {
+        let entry = self.hit_test(px, py)?;
+        let vm_id = entry.vm_id;
+        // Bring to front + focus
+        let _ = self.bring_to_front(vm_id);
+        // Now route the mouse coordinates
+        route_mouse(self, px, py)
     }
 
     /// Return all entries as a slice.
@@ -1372,5 +1419,105 @@ mod tests {
         assert_eq!(routed.target_vm_id, 1);
         assert_eq!(routed.vm_mouse_x, 0);
         assert_eq!(routed.vm_mouse_y, 0);
+    }
+
+    // ---- Focus tracking tests ----
+
+    #[test]
+    fn focus_auto_set_on_first_window() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        assert_eq!(t.focused_vm_id(), Some(1));
+    }
+
+    #[test]
+    fn focus_not_changed_by_second_window() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        t.add(WindowEntry::new(2, 32, 0, 32, 32, 1));
+        assert_eq!(t.focused_vm_id(), Some(1)); // first still focused
+    }
+
+    #[test]
+    fn focus_transfers_on_remove() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0)); // focused
+        t.add(WindowEntry::new(2, 32, 0, 32, 32, 1)); // higher z
+        t.remove(1); // remove focused -> transfer to highest z visible
+        assert_eq!(t.focused_vm_id(), Some(2));
+    }
+
+    #[test]
+    fn focus_clears_when_last_removed() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        t.remove(1);
+        assert_eq!(t.focused_vm_id(), None);
+    }
+
+    #[test]
+    fn set_focus_to_visible_window() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        t.add(WindowEntry::new(2, 32, 0, 32, 32, 1));
+        assert!(t.set_focus(2));
+        assert_eq!(t.focused_vm_id(), Some(2));
+    }
+
+    #[test]
+    fn set_focus_rejects_hidden_window() {
+        let mut t = WindowTable::new();
+        let mut hidden = WindowEntry::new(2, 32, 0, 32, 32, 1);
+        hidden.visible = false;
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        t.add(hidden);
+        assert!(!t.set_focus(2));
+        assert_eq!(t.focused_vm_id(), Some(1)); // unchanged
+    }
+
+    #[test]
+    fn set_focus_rejects_nonexistent() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        assert!(!t.set_focus(999));
+    }
+
+    #[test]
+    fn bring_to_front_sets_focus() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        t.add(WindowEntry::new(2, 0, 0, 32, 32, 1));
+        // Initially focused on first
+        assert_eq!(t.focused_vm_id(), Some(1));
+        // Bring window 2 to front
+        t.bring_to_front(2);
+        assert_eq!(t.focused_vm_id(), Some(2));
+    }
+
+    #[test]
+    fn click_focus_combines_hit_and_focus() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 64, 64, 0));
+        t.add(WindowEntry::new(2, 64, 0, 64, 64, 1));
+
+        // Focus starts on 1
+        assert_eq!(t.focused_vm_id(), Some(1));
+
+        // Click in window 2's area
+        let routed = t.click_focus(100, 32).unwrap();
+        assert_eq!(routed.target_vm_id, 2);
+        assert_eq!(t.focused_vm_id(), Some(2));
+
+        // Click in window 1's area
+        let routed = t.click_focus(32, 32).unwrap();
+        assert_eq!(routed.target_vm_id, 1);
+        assert_eq!(t.focused_vm_id(), Some(1));
+    }
+
+    #[test]
+    fn click_focus_desktop_returns_none() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        assert!(t.click_focus(100, 100).is_none());
     }
 }

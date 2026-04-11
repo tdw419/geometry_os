@@ -20,7 +20,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 845 tests (all passing)
+- 855 tests (all passing)
 - 49 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
@@ -195,9 +195,9 @@ AI-written demos      AI-written OS that humans use
 - [x] VM 0 acts as compositor: reads Window Table, blits each VM's screen region to correct position -- composite() + blit_window() in window_manager.rs, 7 tests
 - [x] Mouse hit testing: compositor reads mouse x/y, determines which window was clicked -- route_mouse() + RoutedMouse struct, 7 tests
 - [ ] Route mouse/key events to the VM that owns the hit window (via IPC mailbox)
-- [ ] Window focus tracking: only forward keyboard events to focused window
+- [x] Window focus tracking: only forward keyboard events to focused window -- focused_vm_id + set_focus + click_focus + auto-focus on add, 10 tests
 - [ ] Window dragging: click title bar region, update x/y in Window Table on mouse move
-- [ ] Overlapping windows: z-order determines blit sequence (painter's algorithm)
+- [x] Overlapping windows: z-order determines blit sequence (painter's algorithm) -- composite() uses visible_sorted() which sorts by z_order ascending
 - [ ] Demo: editor in window 1, assembler output in window 2, shell in window 3
 
 ## Phase 12: User Sessions & Permissions
