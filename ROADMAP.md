@@ -16,7 +16,7 @@
 ## Phase 1: Language Completeness (current → self-hosting)
 
 ### 1.1 Assembler Improvements
-- [ ] Support `.data` / `.text` section directives
+- [x] Support `.data` / `.text` section directives
 - [x] String constants (`.asciz "hello"`) for TEXT opcode
 - [x] Expression evaluation in immediates (`LDI r0, 2+3`)
 - [ ] Include directive (`.include "lib.gasm"`)
@@ -93,7 +93,7 @@
 **Batch 2 -- Assembler Improvements:**
 - [x] Expression evaluation in immediates (`LDI r0, 2+3`)
 - [x] String constants (`.asciz "hello"`) for TEXT opcode
-- [ ] `.data` / `.text` section directives
+- [x] `.data` / `.text` section directives
 - [ ] `.include "lib.gasm"` directive
 - [ ] Macro support (`.macro ADD3 ... .endm`)
 
