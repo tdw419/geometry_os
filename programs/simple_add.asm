@@ -3,9 +3,10 @@
 main:
 LDI r0, 10
 LDI r1, 20
-MOV r2, r0
-MOV r28, r1
-ADD r2, r28
+MOV r28, r0
+MOV r29, r1
+ADD r28, r29
+MOV r2, r28
 LDI r28, 100
 MOV r29, r2
 STORE r28, r29

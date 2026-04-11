@@ -663,3 +663,160 @@ fn compile_on_save_edit_sequence() {
     assert_eq!(source, vec![0x41, 0x58, 0x59], "after retype: AXY");
     assert_eq!(vm.ram[0x1FFE], 1, "dirty flag should be set throughout");
 }
+
+// ── ERROR DISPLAY TESTS ──────────────────────────────────────────
+
+/// Create an editor VM with enough RAM to reach assembler status (0x3FFE).
+fn make_editor_vm_big() -> Vm {
+    let asm = assemble_editor();
+    let mut vm = Vm::new(0x4000); // enough for editor + assembler status region
+    vm.load_program(&asm.pixels);
+    vm
+}
+
+#[test]
+fn editor_shows_err_when_assembler_status_is_error() {
+    // When assembler status (0x3FFE) = 1, editor should show "ERR" on screen
+    let mut vm = make_editor_vm_big();
+    run_vm(&mut vm);
+
+    // Set assembler status to error
+    vm.ram[0x3FFE] = 1;
+
+    // Type a character to trigger redraw with compile status check
+    press_key(&mut vm, 0x48); // 'H'
+
+    // Check that screen has some non-black pixels in the status bar area
+    // (x=170..190, y=2..9) -- where "ERR" would be rendered
+    let mut has_err_pixels = false;
+    for y in 2..10 {
+        for x in 170..190 {
+            if vm.screen[y * 256 + x] != 0 {
+                has_err_pixels = true;
+                break;
+            }
+        }
+        if has_err_pixels {
+            break;
+        }
+    }
+    assert!(
+        has_err_pixels,
+        "screen should have non-black pixels in ERR area when assembler status=1"
+    );
+}
+
+#[test]
+fn editor_shows_ok_when_assembler_status_is_success() {
+    // When assembler status (0x3FFE) = 0, editor should show "OK" on screen
+    let mut vm = make_editor_vm_big();
+    run_vm(&mut vm);
+
+    // Set assembler status to success
+    vm.ram[0x3FFE] = 0;
+
+    // Type a character to trigger redraw with compile status check
+    press_key(&mut vm, 0x48); // 'H'
+
+    // Check that screen has some non-black pixels in the status bar area
+    // where "OK" would be rendered (x=170..185, y=2..9)
+    let mut has_ok_pixels = false;
+    for y in 2..10 {
+        for x in 170..185 {
+            if vm.screen[y * 256 + x] != 0 {
+                has_ok_pixels = true;
+                break;
+            }
+        }
+        if has_ok_pixels {
+            break;
+        }
+    }
+    assert!(
+        has_ok_pixels,
+        "screen should have non-black pixels in OK area when assembler status=0"
+    );
+}
+
+#[test]
+fn editor_error_display_full_pipeline() {
+    // Full pipeline: editor types bad source → assembler errors → editor shows ERR
+    use geometry_os::assembler;
+
+    let mut vm = make_editor_vm_big();
+    run_vm(&mut vm);
+
+    // Type "@bad" -- a label reference that doesn't exist → assembler will error
+    press_key(&mut vm, 0x40); // @
+    press_key(&mut vm, 0x62); // b
+    press_key(&mut vm, 0x61); // a
+    press_key(&mut vm, 0x64); // d
+
+    // Source should be auto-saved via compile-on-save
+    assert_eq!(vm.ram[0x1FFE], 1, "dirty flag should be set");
+    let source = read_buffer_from(&vm, 0x2000, 10);
+    assert_eq!(source, vec![0x40, 0x62, 0x61, 0x64], "source should be '@bad'");
+
+    // Now run the assembler
+    let asm_path = std::path::Path::new("programs/mini-assembler.gasm");
+    let asm_result = assembler::assemble_file(asm_path, &[])
+        .expect("mini-assembler should assemble");
+    for (i, &pixel) in asm_result.pixels.iter().enumerate() {
+        if i >= 0x3B00 && i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    // Clear label table + scratch
+    for v in vm.ram[0x3800..0x3B00].iter_mut() {
+        *v = 0;
+    }
+
+    vm.pc = 0x3B00;
+    vm.halted = false;
+    vm.yielded = false;
+    while !vm.halted && !vm.yielded {
+        vm.run();
+    }
+
+    // Assembler should have reported an error
+    assert_eq!(vm.ram[0x3FFE], 1, "assembler status should be error (1)");
+
+    // Now re-run the editor loop (type another char) to trigger compile status display
+    // First, reload the editor code into RAM (assembler overwrote some of it)
+    let editor_asm = assembler::assemble_file(
+        std::path::Path::new("programs/mini-editor.gasm"),
+        &[],
+    ).expect("editor should assemble");
+    for (i, &pixel) in editor_asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    // Re-init constants
+    vm.pc = 0;
+    vm.halted = false;
+    vm.yielded = false;
+    // Run editor init (sets up constants)
+    vm.run();
+
+    // Type a character to trigger the editor loop with compile status check
+    press_key(&mut vm, 0x48); // 'H'
+
+    // Verify error is displayed on screen
+    let mut has_err_pixels = false;
+    for y in 2..10 {
+        for x in 170..190 {
+            if vm.screen[y * 256 + x] != 0 {
+                has_err_pixels = true;
+                break;
+            }
+        }
+        if has_err_pixels {
+            break;
+        }
+    }
+    assert!(
+        has_err_pixels,
+        "screen should show ERR indicator after assembler error"
+    );
+}

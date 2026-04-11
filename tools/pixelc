@@ -539,23 +539,32 @@ class CodeGen:
 
     def stmt(self, s):
         if isinstance(s, VarAssign):
+            # Evaluate into variable register directly.
+            # expr_to guarantees it won't clobber the target until the end.
             tr = self.alloc(s.name)
-            # Evaluate into scratch first to avoid clobbering if target
-            # register is also a source variable (e.g. dx = 0 - dx)
-            S = self.SCRATCH
-            self.expr_to(s.value, S)
-            self.emit(f"MOV {self.r(tr)}, {self.r(S)}")
+            self.expr_to(s.value, tr)
 
         elif isinstance(s, VarModify):
             tr = self.var(s.name)
             op = s.op[0]  # += -> +
-            self.binop(op, Var(s.name), s.value, tr)
+            # left is current value of the var, right is the increment
+            # Must evaluate right BEFORE modifying target.
+            sr = self.scratch_push()
+            self.expr_to(s.value, sr)
+            # Now: target has old value, sr has increment
+            # Apply op: target = target op sr
+            OP = {'+':'ADD','-':'SUB','*':'MUL','/':'DIV','%':'MOD',
+                  '&':'AND','|':'OR','^':'XOR','<':'SHL','>':'SHR'}
+            self.emit(f"{OP[op]} {self.r(tr)}, {self.r(sr)}")
+            self.scratch_pop()
 
         elif isinstance(s, MemStore):
-            S = self.SCRATCH
-            self.expr_to(s.addr, S)
-            self.expr_to(s.value, S+1)
-            self.emit(f"STORE {self.r(S)}, {self.r(S+1)}")
+            ar = self.scratch_push()
+            vr = self.scratch_push()
+            self.expr_to(s.addr, ar)
+            self.expr_to(s.value, vr)
+            self.emit(f"STORE {self.r(ar)}, {self.r(vr)}")
+            self.scratch_pop(2)
 
         elif isinstance(s, IfStmt):
             else_l = self.lbl("else")
@@ -601,15 +610,22 @@ class CodeGen:
     # ── Expressions ──
 
     def expr_to(self, e, target):
-        """Evaluate e into target register."""
+        """Evaluate e into target register.
+        
+        target is always a var register (r0-r27) or explicitly r0 for returns.
+        scratch_push/pop manages r28-r30. These never overlap.
+        """
         if isinstance(e, Num):
             self.emit(f"LDI {self.r(target)}, {e.value}")
+
         elif isinstance(e, Var):
             sr = self.var(e.name)
             if sr != target:
                 self.emit(f"MOV {self.r(target)}, {self.r(sr)}")
+
         elif isinstance(e, BinOp):
-            self.binop(e.op, e.left, e.right, target)
+            self._binop(e.op, e.left, e.right, target)
+
         elif isinstance(e, UnOp):
             if e.op == '-':
                 self.expr_to(e.right, target)
@@ -619,12 +635,15 @@ class CodeGen:
             elif e.op == '~':
                 self.expr_to(e.right, target)
                 self.emit(f"NOT {self.r(target)}")
+
         elif isinstance(e, IndexExpr):
-            S = self.SCRATCH
-            self.expr_to(e.index, S)
-            self.emit(f"LOAD {self.r(target)}, {self.r(S)}")
+            sr = self.scratch_push()
+            self.expr_to(e.index, sr)
+            self.emit(f"LOAD {self.r(target)}, {self.r(sr)}")
+            self.scratch_pop()
+
         elif isinstance(e, Call):
-            if not self.builtin(e.name, e.args, target):
+            if not self._builtin(e.name, e.args, target):
                 if e.name in self.fn_labels:
                     for i, a in enumerate(e.args):
                         self.expr_to(a, i)
@@ -634,17 +653,27 @@ class CodeGen:
                 else:
                     raise RuntimeError(f"Unknown function: {e.name}")
 
-    def binop(self, op, left, right, target):
+    def _binop(self, op, left, right, target):
+        """target = left op right.
+        
+        If target appears in the right operand, evaluating left into target
+        would clobber it. So we always evaluate left into a scratch register,
+        right into another scratch, then MOV result to target.
+        """
         OP = {'+':'ADD','-':'SUB','*':'MUL','/':'DIV','%':'MOD',
               '&':'AND','|':'OR','^':'XOR','<<':'SHL','>>':'SHR'}
-        self.expr_to(left, target)
-        S = self.SCRATCH
-        self.expr_to(right, S)
-        self.emit(f"{OP[op]} {self.r(target)}, {self.r(S)}")
+        sl = self.scratch_push()
+        sr = self.scratch_push()
+        self.expr_to(left, sl)
+        self.expr_to(right, sr)
+        self.emit(f"{OP[op]} {self.r(sl)}, {self.r(sr)}")
+        self.emit(f"MOV {self.r(target)}, {self.r(sl)}")
+        self.scratch_pop(2)
 
     def expr_discard(self, e):
+        """Evaluate expression, discard result."""
         if isinstance(e, Call):
-            if not self.builtin(e.name, e.args, self.SCRATCH):
+            if not self._builtin(e.name, e.args, self.SCRATCH_BASE):
                 if e.name in self.fn_labels:
                     for i, a in enumerate(e.args):
                         self.expr_to(a, i)
@@ -652,27 +681,33 @@ class CodeGen:
                 else:
                     raise RuntimeError(f"Unknown function: {e.name}")
         else:
-            self.expr_to(e, self.SCRATCH)
+            sr = self.scratch_push()
+            self.expr_to(e, sr)
+            self.scratch_pop()
 
     def branch_false(self, cond, label):
-        """Branch to label if cond is FALSE."""
+        """Branch to label if condition is FALSE."""
         if not isinstance(cond, CondExpr):
-            self.expr_to(cond, self.SCRATCH)
+            sr = self.scratch_push()
+            self.expr_to(cond, sr)
             self.zero()
-            self.emit(f"BEQ {self.r(self.SCRATCH)}, {self.r(31)}, {label}")
+            self.emit(f"BEQ {self.r(sr)}, {self.r(31)}, {label}")
+            self.scratch_pop()
             return
 
-        S = self.SCRATCH
-        self.expr_to(cond.left, S)
-        self.expr_to(cond.right, S+1)
+        sl = self.scratch_push()
+        sr = self.scratch_push()
+        self.expr_to(cond.left, sl)
+        self.expr_to(cond.right, sr)
 
         INV = {'==':'BNE','!=':'BEQ','<':'BGE','>':'BLE','<=':'BGT','>=':'BLT'}
         bop = INV.get(cond.op)
         if not bop:
             raise RuntimeError(f"Unknown comparison: {cond.op}")
-        self.emit(f"{bop} {self.r(S)}, {self.r(S+1)}, {label}")
+        self.emit(f"{bop} {self.r(sl)}, {self.r(sr)}, {label}")
+        self.scratch_pop(2)
 
-    def builtin(self, name, args, target):
+    def _builtin(self, name, args, target):
         """Handle builtins. Returns True if handled."""
 
         # Zero-arg
@@ -689,34 +724,43 @@ class CodeGen:
                 'line':('LINE',4)}
         if name in DRAW:
             opname, nargs = DRAW[name]
-            S = self.SCRATCH
-            for i in range(min(nargs, len(args))):
-                self.expr_to(args[i], S+i)
-            regs = ", ".join(self.r(S+i) for i in range(nargs))
-            self.emit(f"{opname} {regs}")
+            if len(args) < nargs:
+                raise RuntimeError(f"{name}() needs {nargs} args, got {len(args)}")
+            regs = []
+            for i in range(nargs):
+                sr = self.scratch_push()
+                self.expr_to(args[i], sr)
+                regs.append(sr)
+            self.emit(f"{opname} {', '.join(self.r(r) for r in regs)}")
+            self.scratch_pop(nargs)
             return True
 
         if name == 'text':
-            S = self.SCRATCH
-            self.expr_to(args[0], S)
-            self.expr_to(args[1], S+1)
-            self.expr_to(args[2], S+2)
-            self.emit(f"TEXT {self.r(S)}, {self.r(S+1)}, {self.r(S+2)}")
+            srs = []
+            for i in range(3):
+                srs.append(self.scratch_push())
+                self.expr_to(args[i], srs[-1])
+            self.emit(f"TEXT {', '.join(self.r(r) for r in srs)}")
+            self.scratch_pop(3)
             return True
 
         if name == 'spawn':
-            S = self.SCRATCH
-            self.expr_to(args[0], S)
+            s0 = self.scratch_push()
+            s1 = self.scratch_push()
+            self.expr_to(args[0], s0)
             if len(args) > 1:
-                self.expr_to(args[1], S+1)
+                self.expr_to(args[1], s1)
             else:
-                self.emit(f"LDI {self.r(S+1)}, 0")
-            self.emit(f"SPAWN {self.r(S)}, {self.r(S+1)}")
+                self.emit(f"LDI {self.r(s1)}, 0")
+            self.emit(f"SPAWN {self.r(s0)}, {self.r(s1)}")
+            self.scratch_pop(2)
             return True
 
         if name == 'push':
-            self.expr_to(args[0], self.SCRATCH)
-            self.emit(f"PUSH {self.r(self.SCRATCH)}")
+            sr = self.scratch_push()
+            self.expr_to(args[0], sr)
+            self.emit(f"PUSH {self.r(sr)}")
+            self.scratch_pop()
             return True
 
         if name == 'pop':

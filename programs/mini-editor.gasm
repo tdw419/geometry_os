@@ -168,6 +168,7 @@ el_after_handle:
     ; Redraw after edit
     CALL update_scroll
     CALL draw_status_bar
+    CALL show_compile_status
     CALL draw_text_area
     CALL draw_cursor
 
@@ -911,6 +912,41 @@ show_saved_status:
     RET
 
 
+; ── show_compile_status: display assembler status (ERR/OK) ────────
+;
+; Reads the assembler status register at 0x3FFE.
+; If status=1 (error): shows "ERR" in red on status bar.
+; If status=0 (success): shows "OK" in green on status bar.
+;
+; Clobbers: r0-r3
+;
+
+show_compile_status:
+    LDI r1, 0x3FFE           ; assembler status register
+    LOAD r2, r1              ; r2 = status (0=ok, 1=error)
+
+    ; Draw at x=170, y=2 (status bar area, left of "SAVED")
+    LDI r1, 170
+
+    ; Check if error
+    BEQ r2, r7, scs_ok       ; status == 0 → OK
+
+    ; Error: red "ERR"
+    LDI r0, 0xFF0000         ; red
+    LDI r2, 2                ; y
+    LDI r3, err_str
+    TEXT r1, r2, r3           ; x, y, str
+    RET
+
+scs_ok:
+    ; Success: green "OK"
+    LDI r0, 0x00FF00         ; green
+    LDI r2, 2                ; y
+    LDI r3, ok_str
+    TEXT r1, r2, r3           ; x, y, str
+    RET
+
+
 ; ═══════════════════════════════════════════════════════════════════════
 ; STRING CONSTANTS
 ; ═══════════════════════════════════════════════════════════════════════
@@ -920,6 +956,12 @@ title_str:
 
 saved_str:
     .asciz "SAVED"
+
+err_str:
+    .asciz "ERR"
+
+ok_str:
+    .asciz "OK"
 
 
     .include "../lib/input.gasm"

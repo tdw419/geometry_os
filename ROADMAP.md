@@ -20,7 +20,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 794 tests (all passing)
+- 809 tests (all passing)
 - 49 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
@@ -185,7 +185,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Shared flag region: editor sets "dirty" flag, assembler polls it
 - [x] Compile-on-save: editor signals assembler after each buffer change
 - [x] Full loop test: edit source -> compile -> run -> see output on screen
-- [ ] Error display: assembler errors routed back to editor screen region
+- [x] Error display: assembler errors routed back to editor screen region
 
 ## Phase 11: Window Manager 2.0
 

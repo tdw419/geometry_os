@@ -10,8 +10,10 @@ MOV r28, r0
 MOV r29, r0
 LDI r30, 65
 PSET r28, r29, r30
-LDI r28, 1
-ADD r0, r28
+MOV r28, r0
+LDI r29, 1
+ADD r28, r29
+MOV r0, r28
 JMP while_1
 endw_2:
 HALT
