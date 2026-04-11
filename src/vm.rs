@@ -1244,6 +1244,28 @@ impl Vm {
                 Ok(Some(handler))
             }
 
+            // ── h (0x68): IRET ────────────────────
+            // Return from interrupt handler. Pops return address from stack.
+            op::IRET => match self.stack.pop() {
+                Some(addr) => Ok(Some(addr)),
+                None => {
+                    self.halted = true;
+                    Ok(None)
+                }
+            },
+
+            // ── t (0x74): STI vector, handler_addr ──
+            // Set interrupt vector: stores handler_addr into ivt[vector].
+            op::STI => {
+                let vector = (args[0] & 0xFF) as usize;
+                let handler = self.resolve_addr(args[1]);
+                if vector >= IVT_SIZE {
+                    return Err(VmError::UnknownOpcode(pc, opcode));
+                }
+                self.ivt[vector] = handler;
+                Ok(None)
+            }
+
             // ── Unknown: error ────────────────────
             _ => Err(VmError::UnknownOpcode(pc, opcode)),
         }
@@ -1865,6 +1887,27 @@ impl Vm {
                         self.stack.push(self.pc + w);
                         return Some(handler);
                     }
+                }
+                None
+            }
+
+            // ── h (0x68): IRET ────────────────────
+            // Return from interrupt handler. Pops return address from stack.
+            op::IRET => match self.stack.pop() {
+                Some(addr) => Some(addr),
+                None => {
+                    self.halted = true;
+                    None
+                }
+            },
+
+            // ── t (0x74): STI vector, handler_addr ──
+            // Set interrupt vector: stores handler_addr into ivt[vector].
+            op::STI => {
+                let vector = (args[0] & 0xFF) as usize;
+                if vector < IVT_SIZE {
+                    let handler = self.resolve_addr(args[1]);
+                    self.ivt[vector] = handler;
                 }
                 None
             }

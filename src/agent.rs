@@ -542,6 +542,8 @@ fn format_instruction(name: &str, opcode: u8, pc: usize, ram: &[u32]) -> String 
         ("JMP", 2) => format!("JMP {}", arg(1) & 0x7FFFFFFF),
         ("CALL", 2) => format!("CALL {}", arg(1) & 0x7FFFFFFF),
         ("INT", 2) => format!("INT {}", arg(1)),
+        ("IRET", 1) => "IRET".to_string(),
+        ("STI", 3) => format!("STI {}, {}", arg(1), arg(2) & 0x7FFFFFFF),
         ("NOT", 2) => format!("NOT {}", reg(1)),
         ("PUSH", 2) => format!("PUSH {}", arg(1)),
         ("POP", 2) => format!("POP {}", reg(1)),

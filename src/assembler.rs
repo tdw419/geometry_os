@@ -95,6 +95,8 @@ fn mnemonic_to_opcode(name: &str) -> Option<u8> {
         "EDIT_INSERT" | "EDITINS" => 0x66,
         "PGET" => 0x67,
         "INT" => 0x69,
+        "IRET" => 0x68,
+        "STI" => 0x74,
         "EDIT_DELETE" | "EDITDEL" => 0x6A,
         "SHR" => 0x6B,
         "EDIT_BLIT" | "EDITBLT" => 0x6C,
