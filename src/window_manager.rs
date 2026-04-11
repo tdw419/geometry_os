@@ -568,6 +568,40 @@ impl WindowTable {
 /// Size of VM screen buffers (width and height in pixels).
 pub const VM_SCREEN_SIZE: usize = 256;
 
+/// Result of routing a mouse event to a window.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RoutedMouse {
+    /// The VM process that should receive this event.
+    pub target_vm_id: u32,
+    /// Mouse X in the target VM's 256x256 screen coordinate space.
+    pub vm_mouse_x: u32,
+    /// Mouse Y in the target VM's 256x256 screen coordinate space.
+    pub vm_mouse_y: u32,
+}
+
+/// Route a mouse event (global screen coordinates) to the topmost window.
+///
+/// Returns None if no visible window contains the point.
+/// Maps global (px, py) to the VM's 256x256 coordinate space based on
+/// the window's position and size in the WindowTable.
+pub fn route_mouse(table: &WindowTable, px: u32, py: u32) -> Option<RoutedMouse> {
+    let entry = table.hit_test(px, py)?;
+    // Convert global coords to window-local coords
+    let local_x = px.saturating_sub(entry.x);
+    let local_y = py.saturating_sub(entry.y);
+    // Scale from window size to VM 256x256 screen space
+    let vm_x = (local_x as u64 * VM_SCREEN_SIZE as u64 / entry.w as u64) as u32;
+    let vm_y = (local_y as u64 * VM_SCREEN_SIZE as u64 / entry.h as u64) as u32;
+    // Clamp to screen bounds
+    let vm_x = vm_x.min((VM_SCREEN_SIZE - 1) as u32);
+    let vm_y = vm_y.min((VM_SCREEN_SIZE - 1) as u32);
+    Some(RoutedMouse {
+        target_vm_id: entry.vm_id,
+        vm_mouse_x: vm_x,
+        vm_mouse_y: vm_y,
+    })
+}
+
 /// Composite all visible windows onto an output buffer using painter's algorithm.
 ///
 /// For each visible entry in `table` (sorted by z_order ascending), blits the
@@ -1257,5 +1291,86 @@ mod tests {
 
         // Since foreground is all 0 (transparent), background shows through
         assert!(output.iter().all(|&p| p == 0x0000FF));
+    }
+
+    // ---- route_mouse tests ----
+
+    #[test]
+    fn route_mouse_hits_window() {
+        let mut table = WindowTable::new();
+        // 64x64 window at (0,0)
+        table.add(WindowEntry::new(1, 0, 0, 64, 64, 0));
+
+        let routed = route_mouse(&table, 32, 32).unwrap();
+        assert_eq!(routed.target_vm_id, 1);
+        // 32/64 * 256 = 128
+        assert_eq!(routed.vm_mouse_x, 128);
+        assert_eq!(routed.vm_mouse_y, 128);
+    }
+
+    #[test]
+    fn route_mouse_miss() {
+        let mut table = WindowTable::new();
+        table.add(WindowEntry::new(1, 0, 0, 64, 64, 0));
+
+        assert!(route_mouse(&table, 100, 100).is_none());
+    }
+
+    #[test]
+    fn route_mouse_offset_window() {
+        let mut table = WindowTable::new();
+        // 32x32 window at (100, 50)
+        table.add(WindowEntry::new(2, 100, 50, 32, 32, 0));
+
+        // Click at global (116, 66) -> local (16, 16) -> VM (128, 128)
+        let routed = route_mouse(&table, 116, 66).unwrap();
+        assert_eq!(routed.target_vm_id, 2);
+        assert_eq!(routed.vm_mouse_x, 128);
+        assert_eq!(routed.vm_mouse_y, 128);
+    }
+
+    #[test]
+    fn route_mouse_overlapping_picks_topmost() {
+        let mut table = WindowTable::new();
+        table.add(WindowEntry::new(1, 0, 0, 100, 100, 0)); // background
+        table.add(WindowEntry::new(2, 0, 0, 100, 100, 1)); // foreground
+
+        let routed = route_mouse(&table, 50, 50).unwrap();
+        assert_eq!(routed.target_vm_id, 2); // topmost
+    }
+
+    #[test]
+    fn route_mouse_hidden_window_skipped() {
+        let mut table = WindowTable::new();
+        let mut hidden = WindowEntry::new(1, 0, 0, 100, 100, 1);
+        hidden.visible = false;
+        table.add(hidden);
+        table.add(WindowEntry::new(2, 0, 0, 100, 100, 0));
+
+        let routed = route_mouse(&table, 50, 50).unwrap();
+        assert_eq!(routed.target_vm_id, 2);
+    }
+
+    #[test]
+    fn route_mouse_edge_pixel() {
+        let mut table = WindowTable::new();
+        // 256x256 window at (0,0) -- 1:1 mapping
+        table.add(WindowEntry::new(1, 0, 0, 256, 256, 0));
+
+        let routed = route_mouse(&table, 255, 255).unwrap();
+        assert_eq!(routed.vm_mouse_x, 255);
+        assert_eq!(routed.vm_mouse_y, 255);
+    }
+
+    #[test]
+    fn route_mouse_top_left_corner() {
+        let mut table = WindowTable::new();
+        table.add(WindowEntry::new(1, 10, 20, 64, 64, 0));
+
+        // Click at exact top-left of window
+        let routed = route_mouse(&table, 10, 20).unwrap();
+        assert_eq!(routed.target_vm_id, 1);
+        assert_eq!(routed.vm_mouse_x, 0);
+        assert_eq!(routed.vm_mouse_y, 0);
     }
 }

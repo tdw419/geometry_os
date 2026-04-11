@@ -20,7 +20,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 838 tests (all passing)
+- 845 tests (all passing)
 - 49 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
@@ -193,7 +193,7 @@ AI-written demos      AI-written OS that humans use
 
 - [x] Define Window Table struct: array of (vm_id, x, y, w, h, z_order, visible) -- WindowEntry + WindowTable in window_manager.rs, 22 tests
 - [x] VM 0 acts as compositor: reads Window Table, blits each VM's screen region to correct position -- composite() + blit_window() in window_manager.rs, 7 tests
-- [ ] Mouse hit testing: compositor reads mouse x/y, determines which window was clicked
+- [x] Mouse hit testing: compositor reads mouse x/y, determines which window was clicked -- route_mouse() + RoutedMouse struct, 7 tests
 - [ ] Route mouse/key events to the VM that owns the hit window (via IPC mailbox)
 - [ ] Window focus tracking: only forward keyboard events to focused window
 - [ ] Window dragging: click title bar region, update x/y in Window Table on mouse move
