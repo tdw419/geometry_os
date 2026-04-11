@@ -20,7 +20,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 619 tests (all passing)
+- 788 tests (all passing)
 - 49 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
@@ -180,7 +180,7 @@ AI-written demos      AI-written OS that humans use
 *Bridge to Sovereignty Ladder Milestones 10d-10e (Sovereignty Event Horizon)*
 
 - [x] Editor VM writes buffer to a known memory region as "source file" — Ctrl+S copies text buffer to 0x2000, dirty flag at 0x1FFE, length at 0x1FFF, 5 tests
-- [ ] Assembler VM reads from that region, emits bytecode to another region
+- [x] Assembler VM reads from that region, emits bytecode to another region — programs/mini-assembler.gasm (reads 0x2000, emits to 0x3000, status at 0x3FFE, length at 0x3FFF, 19 tests including editor→assembler pipeline)
 - [ ] Parent VM spawns child from assembled bytecode using process spawn
 - [ ] Shared flag region: editor sets "dirty" flag, assembler polls it
 - [ ] Compile-on-save: editor signals assembler after each buffer change
