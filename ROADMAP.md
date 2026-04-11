@@ -113,7 +113,7 @@ AI-written demos      AI-written OS that humans use
 ### 6.3 Input Injection
 - [x] `POST /input/key` -- inject key press/release event into VM keyboard port (0xFFF)
 - [x] `POST /input/mouse` -- set mouse x, y, button state via memory-mapped registers
-- [ ] WebSocket endpoint `/ws/input` for streaming key/mouse events (low-latency interaction)
+- [x] WebSocket endpoint `/ws/input` for streaming key/mouse events (low-latency interaction)
 
 ### 6.4 Multi-Agent Sandbox
 - [ ] Refactor VM to support multiple independent instances (VM pool)
