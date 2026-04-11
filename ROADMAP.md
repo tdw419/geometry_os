@@ -20,8 +20,8 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 409+ tests passing
-- 42 opcodes, self-hosting micro-assembler
+- 480+ tests passing
+- 44 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
 - lib/math.gasm, lib/string.gasm, lib/screen.gasm
@@ -44,7 +44,7 @@ AI-written demos      AI-written OS that humans use
 ### 1.3 VM Enhancements (only when programs need them)
 - [x] Stack overflow protection
 - [x] Memory protection
-- [ ] Interrupt vector table
+- [x] Interrupt vector table
 - [ ] Timer interrupt
 - [ ] Debug registers
 
@@ -113,6 +113,7 @@ AI-written demos      AI-written OS that humans use
 **Batch 7 -- VM Hardening (only when programs hit walls):**
 - [x] Stack overflow protection (if recursion hits limit)
 - [x] Memory protection (if programs corrupt each other)
+- [x] Interrupt vector table (needed for event-driven programs)
 - [ ] Timer interrupt (if frame timing is needed)
 - [ ] Debug registers (if complex programs can't be debugged)
 

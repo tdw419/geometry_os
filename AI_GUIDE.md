@@ -76,9 +76,9 @@ This is not a lookup -- the keypress IS the instruction byte.
 
 ### Instruction Width
 Each opcode has a fixed width (1-5 pixels/words):
-- Width 1: NOP, HALT, RET, YIELD
+- Width 1: NOP, HALT, RET, YIELD, IRET
 - Width 2: JMP, CALL, LDI, INT, PUSH, POP
-- Width 3: ADD, SUB, MOV, LOAD, STORE, BRANCH, ...
+- Width 3: ADD, SUB, MOV, LOAD, STORE, BRANCH, STI, ...
 - Width 4: PSET, SPAWN, TEXT, BLIT, ...
 - Width 5: RECTF, LINE
 
@@ -87,6 +87,14 @@ Each opcode has a fixed width (1-5 pixels/words):
 - pc: program counter
 - sp: stack pointer (grows down from top of RAM)
 - halted: execution flag
+
+### Interrupt Vector Table (IVT)
+- 16 entries (vectors 0-15), stored in VM state (not program RAM)
+- `STI vector, handler_addr` -- register a handler address for a vector
+- `INT vector` -- push return address, jump to IVT[vector]; NOP if handler is 0
+- `IRET` -- pop return address from stack, return from interrupt handler
+- Nested interrupts supported (handler can call INT)
+- Example: `STI 0, my_handler` then `INT 0` calls `my_handler`
 
 ### Memory Layout
 - RAM[0..N]: program + data (configurable, typically 4096 or 64K words)
