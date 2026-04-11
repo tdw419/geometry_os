@@ -185,6 +185,29 @@ fn pixelc_mandelbrot() {
 }
 
 #[test]
+fn pixelc_maze() {
+    let source =
+        std::fs::read_to_string("programs/maze.asm").expect("run: cargo test from project root");
+    let asm = assembler::assemble(&source).expect("maze.asm assembly failed");
+    let mut vm = Vm::new(512);
+    vm.load_program(&asm.pixels);
+    // Maze draws ~12K pixels (grid lines + wall removals), needs generous limit
+    vm.run_with_limit(5_000_000);
+    assert!(vm.halted, "Maze should halt after drawing");
+    // Maze should have both wall pixels (green) and passage pixels (black)
+    let nonzero: usize = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        nonzero > 1000,
+        "Maze should have wall pixels (got {} non-zero)",
+        nonzero
+    );
+    assert!(
+        nonzero < 256 * 256,
+        "Maze should have passage pixels (black) too"
+    );
+}
+
+#[test]
 fn pixelc_rain() {
     let source = std::fs::read_to_string("programs/rain.asm")
         .expect("run: cargo test from project root");
@@ -196,4 +219,17 @@ fn pixelc_rain() {
     assert!(vm.halted, "Rain should halt after 100 frames");
     let nonzero: usize = vm.screen.iter().filter(|&&p| p != 0).count();
     assert!(nonzero > 0, "Rain should have drawn pixels, got {}", nonzero);
+}
+
+#[test]
+fn pixelc_fireworks() {
+    let source = std::fs::read_to_string("programs/fireworks.asm")
+        .expect("run: cargo test from project root");
+    let asm = assembler::assemble(&source).expect("fireworks.asm assembly failed");
+    let mut vm = Vm::new(4096);
+    vm.load_program(&asm.pixels);
+    vm.run_with_limit(50_000_000);
+    assert!(vm.halted, "Fireworks should halt after 8 bursts");
+    let nonzero: usize = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(nonzero > 0, "Fireworks should have drawn pixels, got {}", nonzero);
 }
