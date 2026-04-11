@@ -3,7 +3,7 @@
 // Tests that two FORKed processes can exchange messages using the
 // IPC mailbox registers (0xFE00-0xFE09) through the ProcessTable scheduler.
 
-use geometry_os::assembler::assemble;
+use geometry_os::assembler::{assemble, assemble_file};
 use geometry_os::vm::{ProcessTable, Vm};
 
 /// Helper: assemble a .gasm source string into a VM loaded with the program.
@@ -284,8 +284,14 @@ fn ipc_gasm_ping_pong() {
 
 /// Helper: load a .gasm program file, assemble it, create a VM.
 fn asm_file(path: &str, ram_size: usize) -> Vm {
-    let src = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("Failed to read {}: {}", path, e));
-    asm_vm(&src, ram_size)
+    let assembled = assemble_file(
+        std::path::Path::new(path),
+        &[std::path::Path::new("lib")],
+    )
+    .unwrap_or_else(|e| panic!("Failed to assemble {}: {:?}", path, e));
+    let mut vm = Vm::new(ram_size);
+    vm.load_program(&assembled.pixels);
+    vm
 }
 
 #[test]
@@ -303,7 +309,7 @@ fn ipc_pixel_coords_demo() {
     //                   (120,120), (140,140), (160,160)
     // Color is GREEN = 0x00FF00
     let child = table.get(2).expect("child process should exist");
-    let green: u32 = 0x00FF00;
+    let _green: u32 = 0x00FF00;
 
     // Check a few screen pixels. Screen is a separate buffer, not RAM.
     // But we can verify the child process ran and halted by checking
@@ -334,5 +340,35 @@ fn ipc_ping_pong_demo() {
     assert_eq!(
         parent.state.ram[0x2000], 6,
         "parent should have received final pong value 6"
+    );
+}
+
+#[test]
+fn ipc_lib_send_recv() {
+    // Tests lib/ipc.gasm library routines via ipc-lib-test.gasm.
+    // Parent sends 100, 200, 300 to child using library calls.
+    // Child receives via ipc_wait_recv and stores in RAM.
+    let vm = asm_file("programs/ipc-lib-test.gasm", 8192);
+    let mut table = ProcessTable::with_time_slice(vm, 500);
+
+    table.run_all();
+
+    let child = table.get(2).expect("child process should exist");
+    assert!(child.state.halted, "child should have halted");
+
+    let parent = table.get(1).expect("parent process should exist");
+    assert!(parent.state.halted, "parent should have halted");
+
+    assert_eq!(
+        child.state.ram[0x2000], 100,
+        "child should have received 100 via library"
+    );
+    assert_eq!(
+        child.state.ram[0x2001], 200,
+        "child should have received 200 via library"
+    );
+    assert_eq!(
+        child.state.ram[0x2002], 300,
+        "child should have received 300 via library"
     );
 }

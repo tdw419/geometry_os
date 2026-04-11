@@ -1,0 +1,174 @@
+; ═══════════════════════════════════════════════════════════════════════
+; lib/ipc.gasm -- Inter-Process Communication routines for Geometry OS
+;
+; Provides convenience routines for using the IPC mailbox registers
+; (0xFE00-0xFE09) for inter-process message passing.
+;
+; IPC PROTOCOL:
+;   Programs must enable IPC before sending/receiving (ipc_enable).
+;   Messages are single u32 values delivered to a per-process mailbox.
+;   Maximum 16 messages per mailbox. Use YIELD between send and check
+;   to let the scheduler route messages.
+;
+; CALLING CONVENTION:
+;   r0 = first argument / return value
+;   r1 = second argument / return value
+;   r2-r5 = temporaries (clobbered by routines)
+;   CALL <routine> / RET to invoke
+;
+; ROUTINES:
+;   ipc_enable      -- Enable IPC for this process (write 1 to IPC_STATUS)
+;   ipc_disable     -- Disable IPC (write 0 to IPC_STATUS)
+;   ipc_my_pid      -- Returns current PID in r0
+;   ipc_msg_count   -- Returns number of messages in mailbox in r0
+;   ipc_send        -- Send message: r0=target PID, r1=value. r0=1 on success.
+;   ipc_recv        -- Receive next message. r0=value, r1=sender PID.
+;                      Returns r0=0 if mailbox empty.
+;   ipc_peek        -- Peek at next message without removing. r0=value.
+;                      Returns r0=0 if empty.
+;   ipc_send_self   -- Send value in r0 to self (PID from ipc_my_pid).
+;                      Returns r0=1 on success.
+;   ipc_wait_recv   -- Blocking receive: YIELDs until a message arrives.
+;                      r0=value, r1=sender PID.
+;
+; REGISTER USAGE:
+;   r5 = scratch for IPC register addresses
+;
+; ═══════════════════════════════════════════════════════════════════════
+
+; ── Constants ──
+IPC_STATUS   = 0xFE00
+IPC_MY_PID   = 0xFE01
+IPC_COUNT    = 0xFE02
+IPC_SEND     = 0xFE03
+IPC_TARGET   = 0xFE04
+IPC_VALUE    = 0xFE05
+IPC_RECV     = 0xFE06
+IPC_SENDER   = 0xFE07
+IPC_PEEK     = 0xFE08
+
+; ── ipc_enable: enable IPC for this process ──────────────────────
+
+ipc_enable:
+    LDI r5, IPC_STATUS
+    LDI r2, 1
+    STORE r5, r2
+    RET
+
+; ── ipc_disable: disable IPC for this process ────────────────────
+
+ipc_disable:
+    LDI r5, IPC_STATUS
+    LDI r2, 0
+    STORE r5, r2
+    RET
+
+; ── ipc_my_pid: return current PID ──────────────────────────────
+
+ipc_my_pid:
+    LDI r5, IPC_MY_PID
+    LOAD r0, r5
+    RET
+
+; ── ipc_msg_count: return number of pending messages ────────────
+
+ipc_msg_count:
+    LDI r5, IPC_COUNT
+    LOAD r0, r5
+    RET
+
+; ── ipc_send: send message to target ────────────────────────────
+;
+; Input:  r0 = target PID, r1 = value
+; Output: r0 = 1 on success, 0 on failure
+
+ipc_send:
+    ; Set target
+    LDI r5, IPC_TARGET
+    STORE r5, r0
+    ; Set value
+    LDI r5, IPC_VALUE
+    STORE r5, r1
+    ; Trigger send
+    LDI r5, IPC_SEND
+    LDI r2, 1
+    STORE r5, r2
+    ; Read result
+    LOAD r0, r5              ; r0 = 1 if success
+    RET
+
+; ── ipc_recv: receive next message ──────────────────────────────
+;
+; Output: r0 = value (0 if empty), r1 = sender PID
+
+ipc_recv:
+    ; Trigger receive
+    LDI r5, IPC_RECV
+    LDI r2, 1
+    STORE r5, r2
+    ; Read value
+    LDI r5, IPC_VALUE
+    LOAD r0, r5
+    ; Read sender
+    LDI r5, IPC_SENDER
+    LOAD r1, r5
+    RET
+
+; ── ipc_peek: peek at next message without consuming ────────────
+;
+; Output: r0 = value (0 if empty)
+
+ipc_peek:
+    LDI r5, IPC_PEEK
+    LOAD r0, r5
+    RET
+
+; ── ipc_send_self: send value to own process ────────────────────
+;
+; Input:  r0 = value to send
+; Output: r0 = 1 on success
+
+ipc_send_self:
+    ; Get own PID
+    LDI r5, IPC_MY_PID
+    LOAD r2, r5
+    ; Set target to self
+    LDI r5, IPC_TARGET
+    STORE r5, r2
+    ; Set value
+    LDI r5, IPC_VALUE
+    STORE r5, r0
+    ; Trigger send
+    LDI r5, IPC_SEND
+    LDI r3, 1
+    STORE r5, r3
+    ; Read result
+    LOAD r0, r5
+    RET
+
+; ── ipc_wait_recv: blocking receive with YIELD loop ─────────────
+;
+; Output: r0 = value, r1 = sender PID
+
+ipc_wait_recv:
+    ; Check message count
+    LDI r5, IPC_COUNT
+    LOAD r2, r5
+    LDI r3, 0
+    BNE r2, r3, iwr_got
+    ; No message yet, yield and retry
+    YIELD
+    JMP ipc_wait_recv
+
+iwr_got:
+    ; Receive the message
+    LDI r5, IPC_RECV
+    LDI r2, 1
+    STORE r5, r2
+    ; Read value
+    LDI r5, IPC_VALUE
+    LOAD r0, r5
+    ; Read sender
+    LDI r5, IPC_SENDER
+    LOAD r1, r5
+    RET

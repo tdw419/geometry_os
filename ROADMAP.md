@@ -24,7 +24,7 @@ AI-written demos      AI-written OS that humans use
 - 49 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
-- lib/math.gasm, lib/string.gasm, lib/screen.gasm, lib/audio.gasm, lib/sprite.gasm, lib/alloc.gasm, lib/input.gasm, lib/mouse.gasm, lib/fs.gasm, lib/terminal.gasm
+- lib/math.gasm, lib/string.gasm, lib/screen.gasm, lib/audio.gasm, lib/sprite.gasm, lib/alloc.gasm, lib/input.gasm, lib/mouse.gasm, lib/fs.gasm, lib/terminal.gasm, lib/ipc.gasm
 - Debug registers (cycle count, stack depth, breakpoints)
 - Audio output (square wave, memory-mapped registers 0xFFC0-0xFFC3)
 - Heap allocator (first-fit, coalescing, memory-mapped registers 0xFFD0-0xFFD5)
@@ -33,7 +33,7 @@ AI-written demos      AI-written OS that humans use
 - Scrollable terminal (memory-mapped at 0xFFD8-0xFFDF, lib/terminal.gasm)
 - Process scheduler with FORK/YIELD/EXIT/GETPID
 - Multi-agent sandbox (VmPool, isolated VMs, resource caps, 13 sandbox API endpoints)
-- IPC registers (mailbox send/recv/peek via MMIO at 0xFE00-0xFEFF, 7 tests)
+- IPC registers (mailbox send/recv/peek via MMIO at 0xFE00-0xFEFF, lib/ipc.gasm, 6 tests, 3 demo programs)
 
 ## Phase 1: Language Completeness
 
