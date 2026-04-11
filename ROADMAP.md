@@ -20,7 +20,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 809 tests (all passing)
+- 831 tests (all passing)
 - 49 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
@@ -191,7 +191,7 @@ AI-written demos      AI-written OS that humans use
 
 *Bridge to Sovereignty Ladder Milestone 9 (Spatial Router)*
 
-- [ ] Define Window Table struct: array of (vm_id, x, y, w, h, z_order, visible)
+- [x] Define Window Table struct: array of (vm_id, x, y, w, h, z_order, visible) -- WindowEntry + WindowTable in window_manager.rs, 22 tests
 - [ ] VM 0 acts as compositor: reads Window Table, blits each VM's screen region to correct position
 - [ ] Mouse hit testing: compositor reads mouse x/y, determines which window was clicked
 - [ ] Route mouse/key events to the VM that owns the hit window (via IPC mailbox)

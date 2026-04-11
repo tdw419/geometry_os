@@ -362,6 +362,209 @@ impl WindowManager {
     }
 }
 
+/// Maximum number of entries in a WindowTable.
+pub const WINDOW_TABLE_MAX: usize = 16;
+
+/// A single entry in the VM-aware Window Table.
+///
+/// Maps a VM process (by pid) to a rectangular screen region with z-ordering.
+/// This is the data structure the compositor reads to blit each VM's screen
+/// to the correct position on the display.
+///
+/// The WindowTable is the bridge between the process scheduler (which owns VMs)
+/// and the compositor (which paints pixels). Each VM process that should be
+/// visible on screen gets a WindowEntry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WindowEntry {
+    /// Process ID of the VM that owns this window.
+    pub vm_id: u32,
+    /// Left edge X coordinate in pixels.
+    pub x: u32,
+    /// Top edge Y coordinate in pixels.
+    pub y: u32,
+    /// Width in pixels.
+    pub w: u32,
+    /// Height in pixels.
+    pub h: u32,
+    /// Z-order: lower = drawn first (background), higher = drawn on top.
+    /// Entries with equal z_order are drawn in insertion order.
+    pub z_order: u32,
+    /// Whether this window is visible (true) or hidden (false).
+    pub visible: bool,
+}
+
+impl WindowEntry {
+    /// Create a new visible window entry.
+    pub fn new(vm_id: u32, x: u32, y: u32, w: u32, h: u32, z_order: u32) -> Self {
+        WindowEntry {
+            vm_id,
+            x,
+            y,
+            w,
+            h,
+            z_order,
+            visible: true,
+        }
+    }
+
+    /// Check if a point (px, py) is inside this window's bounds.
+    pub fn contains_point(&self, px: u32, py: u32) -> bool {
+        px >= self.x && px < self.x + self.w && py >= self.y && py < self.y + self.h
+    }
+
+    /// Right edge X coordinate.
+    pub fn right(&self) -> u32 {
+        self.x + self.w
+    }
+
+    /// Bottom edge Y coordinate.
+    pub fn bottom(&self) -> u32 {
+        self.y + self.h
+    }
+}
+
+/// A fixed-capacity table mapping VM processes to screen regions.
+///
+/// The compositor reads this table to know where to blit each VM's
+/// pixel buffer. Entries can be added, removed, and re-ordered by z_order.
+///
+/// Design: fixed-size array (WINDOW_TABLE_MAX entries) to keep it simple
+/// and deterministic -- no heap allocation pressure during compositing.
+#[derive(Debug, Clone)]
+pub struct WindowTable {
+    entries: Vec<WindowEntry>,
+}
+
+impl WindowTable {
+    /// Create an empty window table.
+    pub fn new() -> Self {
+        WindowTable {
+            entries: Vec::with_capacity(WINDOW_TABLE_MAX),
+        }
+    }
+
+    /// Add a window entry. Returns the index, or None if the table is full.
+    pub fn add(&mut self, entry: WindowEntry) -> Option<usize> {
+        if self.entries.len() >= WINDOW_TABLE_MAX {
+            return None;
+        }
+        // Reject duplicate vm_id
+        if self.entries.iter().any(|e| e.vm_id == entry.vm_id) {
+            return None;
+        }
+        let idx = self.entries.len();
+        self.entries.push(entry);
+        Some(idx)
+    }
+
+    /// Remove an entry by vm_id. Returns true if found and removed.
+    pub fn remove(&mut self, vm_id: u32) -> bool {
+        if let Some(pos) = self.entries.iter().position(|e| e.vm_id == vm_id) {
+            self.entries.remove(pos);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Look up an entry by vm_id.
+    pub fn get(&self, vm_id: u32) -> Option<&WindowEntry> {
+        self.entries.iter().find(|e| e.vm_id == vm_id)
+    }
+
+    /// Look up an entry by vm_id, mutably.
+    pub fn get_mut(&mut self, vm_id: u32) -> Option<&mut WindowEntry> {
+        self.entries.iter_mut().find(|e| e.vm_id == vm_id)
+    }
+
+    /// Return all entries sorted by z_order (ascending: background first).
+    /// Entries with equal z_order retain their insertion order (stable sort).
+    pub fn sorted_by_z(&self) -> Vec<&WindowEntry> {
+        let mut refs: Vec<&WindowEntry> = self.entries.iter().collect();
+        refs.sort_by_key(|e| e.z_order);
+        refs
+    }
+
+    /// Return only visible entries, sorted by z_order (ascending).
+    pub fn visible_sorted(&self) -> Vec<&WindowEntry> {
+        let mut refs: Vec<&WindowEntry> = self.entries.iter().filter(|e| e.visible).collect();
+        refs.sort_by_key(|e| e.z_order);
+        refs
+    }
+
+    /// Find the topmost visible window at screen point (px, py).
+    /// Iterates sorted by z_order descending (highest first).
+    pub fn hit_test(&self, px: u32, py: u32) -> Option<&WindowEntry> {
+        let mut visible: Vec<&WindowEntry> = self.entries.iter().filter(|e| e.visible).collect();
+        visible.sort_by_key(|e| e.z_order);
+        // Check highest z_order first
+        for entry in visible.into_iter().rev() {
+            if entry.contains_point(px, py) {
+                return Some(entry);
+            }
+        }
+        None
+    }
+
+    /// Number of entries in the table.
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    /// Whether the table is empty.
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    /// Set visibility of a window by vm_id. Returns true if found.
+    pub fn set_visible(&mut self, vm_id: u32, visible: bool) -> bool {
+        if let Some(entry) = self.get_mut(vm_id) {
+            entry.visible = visible;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Move a window to a new position. Returns true if found.
+    pub fn move_window(&mut self, vm_id: u32, new_x: u32, new_y: u32) -> bool {
+        if let Some(entry) = self.get_mut(vm_id) {
+            entry.x = new_x;
+            entry.y = new_y;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Update a window's z_order. Returns true if found.
+    pub fn set_z_order(&mut self, vm_id: u32, z_order: u32) -> bool {
+        if let Some(entry) = self.get_mut(vm_id) {
+            entry.z_order = z_order;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Bring a window to front by giving it the highest z_order + 1.
+    /// Returns the new z_order, or None if not found.
+    pub fn bring_to_front(&mut self, vm_id: u32) -> Option<u32> {
+        let max_z = self.entries.iter().map(|e| e.z_order).max().unwrap_or(0);
+        if let Some(entry) = self.get_mut(vm_id) {
+            entry.z_order = max_z + 1;
+            Some(entry.z_order)
+        } else {
+            None
+        }
+    }
+
+    /// Return all entries as a slice.
+    pub fn entries(&self) -> &[WindowEntry] {
+        &self.entries
+    }
+}
+
 /// Event returned by the window manager on mouse interactions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClickEvent {
@@ -594,5 +797,253 @@ mod tests {
         // Hit test should find id1 instead
         let hit = wm.hit_test(50, 50);
         assert_eq!(hit, ClickTarget::Content(id1));
+    }
+
+    // ---- WindowEntry tests ----
+
+    #[test]
+    fn window_entry_new_visible() {
+        let e = WindowEntry::new(1, 10, 20, 100, 80, 0);
+        assert_eq!(e.vm_id, 1);
+        assert_eq!(e.x, 10);
+        assert_eq!(e.y, 20);
+        assert_eq!(e.w, 100);
+        assert_eq!(e.h, 80);
+        assert_eq!(e.z_order, 0);
+        assert!(e.visible);
+    }
+
+    #[test]
+    fn window_entry_contains_point() {
+        let e = WindowEntry::new(1, 10, 20, 100, 80, 0);
+        assert!(e.contains_point(10, 20)); // top-left
+        assert!(e.contains_point(109, 99)); // bottom-right (exclusive)
+        assert!(!e.contains_point(9, 20)); // left of window
+        assert!(!e.contains_point(10, 19)); // above window
+        assert!(!e.contains_point(110, 20)); // right edge exclusive
+        assert!(!e.contains_point(10, 100)); // bottom edge exclusive
+    }
+
+    #[test]
+    fn window_entry_edges() {
+        let e = WindowEntry::new(1, 5, 10, 30, 40, 0);
+        assert_eq!(e.right(), 35);
+        assert_eq!(e.bottom(), 50);
+    }
+
+    // ---- WindowTable tests ----
+
+    #[test]
+    fn window_table_new_empty() {
+        let t = WindowTable::new();
+        assert!(t.is_empty());
+        assert_eq!(t.len(), 0);
+    }
+
+    #[test]
+    fn window_table_add_entry() {
+        let mut t = WindowTable::new();
+        let idx = t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        assert_eq!(idx, Some(0));
+        assert_eq!(t.len(), 1);
+        assert!(!t.is_empty());
+    }
+
+    #[test]
+    fn window_table_add_returns_index() {
+        let mut t = WindowTable::new();
+        assert_eq!(t.add(WindowEntry::new(1, 0, 0, 32, 32, 0)), Some(0));
+        assert_eq!(t.add(WindowEntry::new(2, 32, 0, 32, 32, 1)), Some(1));
+        assert_eq!(t.add(WindowEntry::new(3, 0, 32, 32, 32, 2)), Some(2));
+    }
+
+    #[test]
+    fn window_table_reject_duplicate_vm_id() {
+        let mut t = WindowTable::new();
+        assert!(t.add(WindowEntry::new(1, 0, 0, 32, 32, 0)).is_some());
+        assert_eq!(t.add(WindowEntry::new(1, 64, 64, 32, 32, 1)), None);
+        assert_eq!(t.len(), 1);
+    }
+
+    #[test]
+    fn window_table_max_capacity() {
+        let mut t = WindowTable::new();
+        for i in 0..WINDOW_TABLE_MAX {
+            assert!(t.add(WindowEntry::new(i as u32 + 1, 0, 0, 32, 32, i as u32)).is_some());
+        }
+        // 17th entry should fail
+        assert_eq!(
+            t.add(WindowEntry::new(99, 0, 0, 32, 32, 0)),
+            None
+        );
+        assert_eq!(t.len(), WINDOW_TABLE_MAX);
+    }
+
+    #[test]
+    fn window_table_get() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 10, 20, 30, 40, 0));
+        let e = t.get(1).unwrap();
+        assert_eq!(e.x, 10);
+        assert_eq!(e.y, 20);
+        assert_eq!(e.w, 30);
+        assert_eq!(e.h, 40);
+        assert!(t.get(999).is_none());
+    }
+
+    #[test]
+    fn window_table_get_mut() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 10, 20, 30, 40, 0));
+        t.get_mut(1).unwrap().x = 100;
+        assert_eq!(t.get(1).unwrap().x, 100);
+    }
+
+    #[test]
+    fn window_table_remove() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        t.add(WindowEntry::new(2, 32, 0, 32, 32, 1));
+        assert_eq!(t.len(), 2);
+
+        assert!(t.remove(1));
+        assert_eq!(t.len(), 1);
+        assert!(t.get(1).is_none());
+        assert!(t.get(2).is_some());
+
+        // Remove non-existent
+        assert!(!t.remove(999));
+    }
+
+    #[test]
+    fn window_table_sorted_by_z() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 2)); // background
+        t.add(WindowEntry::new(2, 0, 0, 32, 32, 0)); // foreground
+        t.add(WindowEntry::new(3, 0, 0, 32, 32, 1)); // middle
+
+        let sorted: Vec<u32> = t.sorted_by_z().iter().map(|e| e.vm_id).collect();
+        assert_eq!(sorted, vec![2, 3, 1]); // z_order 0, 1, 2
+    }
+
+    #[test]
+    fn window_table_visible_sorted_skips_hidden() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        let mut hidden = WindowEntry::new(2, 0, 0, 32, 32, 1);
+        hidden.visible = false;
+        t.add(hidden);
+        t.add(WindowEntry::new(3, 0, 0, 32, 32, 2));
+
+        let vis: Vec<u32> = t.visible_sorted().iter().map(|e| e.vm_id).collect();
+        assert_eq!(vis, vec![1, 3]);
+    }
+
+    #[test]
+    fn window_table_hit_test_topmost() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 100, 100, 0)); // background
+        t.add(WindowEntry::new(2, 0, 0, 100, 100, 1)); // foreground
+
+        // Point at (50,50) is in both windows; topmost (z=1) wins
+        let hit = t.hit_test(50, 50).unwrap();
+        assert_eq!(hit.vm_id, 2);
+    }
+
+    #[test]
+    fn window_table_hit_test_nothing() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        assert!(t.hit_test(100, 100).is_none());
+    }
+
+    #[test]
+    fn window_table_hit_test_skips_hidden() {
+        let mut t = WindowTable::new();
+        let mut hidden = WindowEntry::new(1, 0, 0, 100, 100, 1);
+        hidden.visible = false;
+        t.add(hidden);
+        t.add(WindowEntry::new(2, 0, 0, 100, 100, 0)); // visible background
+
+        let hit = t.hit_test(50, 50).unwrap();
+        assert_eq!(hit.vm_id, 2);
+    }
+
+    #[test]
+    fn window_table_set_visible() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        assert!(t.get(1).unwrap().visible);
+
+        assert!(t.set_visible(1, false));
+        assert!(!t.get(1).unwrap().visible);
+
+        assert!(!t.set_visible(999, false)); // non-existent
+    }
+
+    #[test]
+    fn window_table_move_window() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 10, 20, 32, 32, 0));
+        assert!(t.move_window(1, 100, 200));
+        assert_eq!(t.get(1).unwrap().x, 100);
+        assert_eq!(t.get(1).unwrap().y, 200);
+
+        assert!(!t.move_window(999, 0, 0));
+    }
+
+    #[test]
+    fn window_table_set_z_order() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        assert!(t.set_z_order(1, 5));
+        assert_eq!(t.get(1).unwrap().z_order, 5);
+
+        assert!(!t.set_z_order(999, 5));
+    }
+
+    #[test]
+    fn window_table_bring_to_front() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        t.add(WindowEntry::new(2, 0, 0, 32, 32, 1));
+
+        // Bring vm_id=1 to front; it should get z_order=2 (max+1)
+        let new_z = t.bring_to_front(1);
+        assert_eq!(new_z, Some(2));
+        assert_eq!(t.get(1).unwrap().z_order, 2);
+
+        assert!(t.bring_to_front(999).is_none());
+    }
+
+    #[test]
+    fn window_table_entries() {
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 32, 32, 0));
+        t.add(WindowEntry::new(2, 32, 0, 32, 32, 1));
+        assert_eq!(t.entries().len(), 2);
+        assert_eq!(t.entries()[0].vm_id, 1);
+        assert_eq!(t.entries()[1].vm_id, 2);
+    }
+
+    #[test]
+    fn window_table_three_windows_compositor_order() {
+        // Simulate a real layout: editor left, shell right, assembler top-right
+        let mut t = WindowTable::new();
+        t.add(WindowEntry::new(1, 0, 0, 128, 128, 0)); // editor (background)
+        t.add(WindowEntry::new(2, 128, 0, 128, 64, 1)); // shell (middle)
+        t.add(WindowEntry::new(3, 128, 64, 128, 64, 2)); // assembler (topmost)
+
+        let vis: Vec<u32> = t.visible_sorted().iter().map(|e| e.vm_id).collect();
+        assert_eq!(vis, vec![1, 2, 3]);
+
+        // Click at (64, 64) -- only editor
+        assert_eq!(t.hit_test(64, 64).unwrap().vm_id, 1);
+
+        // Click at (192, 32) -- shell overlaps nothing, wins
+        assert_eq!(t.hit_test(192, 32).unwrap().vm_id, 2);
+
+        // Click at (192, 96) -- assembler area
+        assert_eq!(t.hit_test(192, 96).unwrap().vm_id, 3);
     }
 }
