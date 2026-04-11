@@ -1,4 +1,5 @@
 pub mod agent;
+#[cfg(feature = "rest-api")]
 pub mod api;
 pub mod assembler;
 #[cfg(feature = "audio")]

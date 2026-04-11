@@ -161,6 +161,18 @@ impl ApiServer {
             // POST /reset -- reset VM
             (tiny_http::Method::Post, "/reset") => self.handle_reset(&request),
 
+            // GET /stack -- stack contents with depth
+            (tiny_http::Method::Get, "/stack") => self.handle_stack(&request),
+
+            // GET /memory -- hex dump of memory range (?addr=0x0000&len=256)
+            (tiny_http::Method::Get, "/memory") => self.handle_memory(&request),
+
+            // POST /input/key -- inject key press into keyboard port
+            (tiny_http::Method::Post, "/input/key") => self.handle_input_key(&mut request),
+
+            // POST /input/mouse -- set mouse position and buttons
+            (tiny_http::Method::Post, "/input/mouse") => self.handle_input_mouse(&mut request),
+
             // POST /ram -- write to RAM
             (tiny_http::Method::Post, "/ram") => self.handle_write_ram(&mut request),
 
@@ -373,7 +385,114 @@ impl ApiServer {
         };
 
         let ram = agent.read_ram(start, count);
-        self.json_response(200, &serde_json::json!({ "start": start, "count": ram.len(), "data": ram }))
+        self.json_response(
+            200,
+            &serde_json::json!({ "start": start, "count": ram.len(), "data": ram }),
+        )
+    }
+
+    // ── Stack endpoint ──
+
+    fn handle_stack(&self, _request: &tiny_http::Request) -> tiny_http::ResponseBox {
+        let agent = match self.agent.lock() {
+            Ok(a) => a,
+            Err(_) => return self.error_response(500, "Agent lock poisoned"),
+        };
+
+        let stack = agent.read_stack();
+        let depth = agent.stack_depth();
+        self.json_response(
+            200,
+            &serde_json::json!({
+                "depth": depth,
+                "data": stack,
+            }),
+        )
+    }
+
+    // ── Memory hex dump endpoint ──
+
+    fn handle_memory(&self, request: &tiny_http::Request) -> tiny_http::ResponseBox {
+        let (start, count) = Self::parse_range_params(request, 0, 256);
+
+        let agent = match self.agent.lock() {
+            Ok(a) => a,
+            Err(_) => return self.error_response(500, "Agent lock poisoned"),
+        };
+
+        let ram = agent.read_ram(start, count);
+        // Format as hex dump: one line per 16 words, showing address + hex values
+        let mut lines = Vec::new();
+        for (i, chunk) in ram.chunks(16).enumerate() {
+            let addr = start + i * 16;
+            let hex: Vec<String> = chunk.iter().map(|v| format!("{:08X}", v)).collect();
+            lines.push(format!("{:04X}: {}", addr, hex.join(" ")));
+        }
+        self.text_response(200, &lines.join("\n"))
+    }
+
+    // ── Input injection endpoints ──
+
+    fn handle_input_key(&self, request: &mut tiny_http::Request) -> tiny_http::ResponseBox {
+        let body = match Self::read_body(request) {
+            Ok(b) => b,
+            Err(e) => return self.error_response(400, &format!("Failed to read body: {}", e)),
+        };
+
+        let req: serde_json::Value = match serde_json::from_str(&body) {
+            Ok(v) => v,
+            Err(e) => {
+                return self.error_response(
+                    400,
+                    &format!("Invalid JSON: {}. Expected {{\"keycode\": N}}", e),
+                );
+            }
+        };
+
+        let keycode = req["keycode"].as_u64().unwrap_or(0) as u32;
+
+        let mut agent = match self.agent.lock() {
+            Ok(a) => a,
+            Err(_) => return self.error_response(500, "Agent lock poisoned"),
+        };
+
+        agent.inject_key(keycode);
+        self.json_response(200, &serde_json::json!({ "injected": true, "keycode": keycode }))
+    }
+
+    fn handle_input_mouse(&self, request: &mut tiny_http::Request) -> tiny_http::ResponseBox {
+        let body = match Self::read_body(request) {
+            Ok(b) => b,
+            Err(e) => return self.error_response(400, &format!("Failed to read body: {}", e)),
+        };
+
+        let req: serde_json::Value = match serde_json::from_str(&body) {
+            Ok(v) => v,
+            Err(e) => {
+                return self.error_response(
+                    400,
+                    &format!(
+                        "Invalid JSON: {}. Expected {{\"x\": N, \"y\": N, \"buttons\": N}}",
+                        e
+                    ),
+                );
+            }
+        };
+
+        let x = req["x"].as_u64().unwrap_or(0) as u32;
+        let y = req["y"].as_u64().unwrap_or(0) as u32;
+        let buttons = req["buttons"].as_u64().unwrap_or(0) as u32;
+
+        let mut agent = match self.agent.lock() {
+            Ok(a) => a,
+            Err(_) => return self.error_response(500, "Agent lock poisoned"),
+        };
+
+        agent.inject_mouse(x, y, buttons);
+        self.json_response(
+            200,
+            &serde_json::json!({ "injected": true, "x": x, "y": y, "buttons": buttons }),
+        )
     }
 
     fn handle_info(&self, _request: &tiny_http::Request) -> tiny_http::ResponseBox {
@@ -383,17 +502,21 @@ impl ApiServer {
                 "name": "Geometry OS API",
                 "version": env!("CARGO_PKG_VERSION"),
                 "endpoints": [
-                    "POST /run      -- assemble and execute .gasm source",
-                    "GET  /state    -- current VM state (registers, pc, halted)",
-                    "GET  /screen   -- screen buffer as JSON pixel array",
-                    "GET  /screen/ppm -- screen as PPM image",
-                    "GET  /disasm   -- disassemble RAM (?start=0&count=32)",
-                    "POST /load     -- load .gasm without running",
-                    "POST /step     -- execute one instruction",
-                    "POST /resume   -- continue yielded VM",
-                    "POST /reset    -- reset VM to clean state",
-                    "POST /ram      -- write to RAM ({addr, data})",
-                    "GET  /ram      -- read RAM (?start=0&count=64)",
+                    "POST /run            -- assemble and execute .gasm source",
+                    "GET  /state          -- current VM state (registers, pc, halted)",
+                    "GET  /screen         -- screen buffer as JSON pixel array",
+                    "GET  /screen/ppm     -- screen as PPM image",
+                    "GET  /disasm         -- disassemble RAM (?start=0&count=32)",
+                    "POST /load           -- load .gasm without running",
+                    "POST /step           -- execute one instruction",
+                    "POST /resume         -- continue yielded VM",
+                    "POST /reset          -- reset VM to clean state",
+                    "POST /ram            -- write to RAM ({addr, data})",
+                    "GET  /ram            -- read RAM (?start=0&count=64)",
+                    "GET  /stack          -- stack contents with depth",
+                    "GET  /memory         -- hex dump of memory (?start=0&count=256)",
+                    "POST /input/key      -- inject key press ({keycode})",
+                    "POST /input/mouse    -- set mouse ({x, y, buttons})",
                 ]
             }),
         )

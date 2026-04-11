@@ -179,6 +179,19 @@ pub trait Agent {
     /// Convenience: disassemble and return as a single formatted string.
     /// One instruction per line, addresses prefixed.
     fn disasm(&self, start: usize, count: usize) -> String;
+
+    /// Read the current stack contents (top-first order).
+    fn read_stack(&self) -> Vec<u32>;
+
+    /// Get the current stack depth.
+    fn stack_depth(&self) -> usize;
+
+    /// Inject a key press into the VM keyboard port (0xFFF).
+    /// The value should be an ASCII keycode.
+    fn inject_key(&mut self, keycode: u32);
+
+    /// Set mouse position and button state via memory-mapped registers.
+    fn inject_mouse(&mut self, x: u32, y: u32, buttons: u32);
 }
 
 /// Errors that can occur during agent execution.
@@ -494,6 +507,25 @@ impl Agent for GasmAgent {
             .map(|(addr, instr)| format!("{:04X}: {}", addr, instr))
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    fn read_stack(&self) -> Vec<u32> {
+        self.vm.stack.iter().copied().collect()
+    }
+
+    fn stack_depth(&self) -> usize {
+        self.vm.stack.len()
+    }
+
+    fn inject_key(&mut self, keycode: u32) {
+        self.poke_ram(0xFFF, keycode);
+    }
+
+    fn inject_mouse(&mut self, x: u32, y: u32, buttons: u32) {
+        // Ensure RAM is large enough to cover mouse registers
+        self.poke_ram(0xFFA0, x);
+        self.poke_ram(0xFFA1, y);
+        self.poke_ram(0xFFA2, buttons);
     }
 }
 
