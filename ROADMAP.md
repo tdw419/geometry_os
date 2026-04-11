@@ -37,7 +37,7 @@ AI-written demos      AI-written OS that humans use
 
 ### 1.1 Assembler (DONE)
 - [x] `.data` / `.text` section directives
-- [x] String constants (`.asciz "hello"`)
+- [x] String constants (`.asciz "hello"`) — programs/hello_asciz.gasm
 - [x] Expression evaluation in immediates
 - [x] `.include` directive
 - [x] Macro support (`.macro ADD3 ... .endm`)
@@ -54,6 +54,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Interrupt vector table
 - [x] Timer interrupt
 - [x] Debug registers
+- [x] Interrupt demo (STI/INT/IRET) -- programs/int-demo.gasm
 
 ## Phase 2: Self-Hosting Toolchain
 
@@ -73,6 +74,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Bouncing pixel animation -- programs/bouncing_pixel.gasm
 - [x] Calculator (keyboard input, +, -, *) -- programs/calculator.gasm
 - [x] Counter demo (decimal display) -- programs/counter_demo.gasm
+- [x] Boot screen (GEOS startup screen) -- programs/boot_screen.gasm
 
 ## Phase 4: I/O Expansion (the device driver layer)
 
@@ -86,7 +88,7 @@ AI-written demos      AI-written OS that humans use
 ## Phase 5: The OS Layer
 
 - [x] Process scheduler (round-robin, context switching)
-- [x] Filesystem (save/load named programs, directories)
+- [x] Filesystem (save/load named programs, directories) — programs/save_score_demo.gasm
 - [x] Memory management (alloc/free within VM, heap registers 0xFFD0-0xFFD5, lib/alloc.gasm)
 - [x] Inter-process communication — mailbox struct in VM, SEND/RECV opcodes defined but not yet wired into execute loop (see Phase 7)
 - [x] User sessions / permissions (see Phase 12 for full implementation)
