@@ -968,6 +968,27 @@ fn main() {
                 }
             }
 
+            // ── Update mouse registers from host ─────────────────────
+            if let Some((mx, my)) = window.get_mouse_pos(minifb::MouseMode::Clamp) {
+                // Map window pixel coords to 256x256 screen coords
+                // The VM screen area starts at VM_SCREEN_X (640), VM_SCREEN_Y (64)
+                let sx = (mx as i32 - VM_SCREEN_X as i32).max(0).min(255) as u32;
+                let sy = (my as i32 - VM_SCREEN_Y as i32).max(0).min(255) as u32;
+                vm.mouse_x = sx;
+                vm.mouse_y = sy;
+            }
+            let mut btns = 0u32;
+            if window.get_mouse_down(minifb::MouseButton::Left) {
+                btns |= 1;
+            }
+            if window.get_mouse_down(minifb::MouseButton::Right) {
+                btns |= 2;
+            }
+            if window.get_mouse_down(minifb::MouseButton::Middle) {
+                btns |= 4;
+            }
+            vm.mouse_buttons = btns;
+
             // Run a burst of cycles for this frame
             cycles_last_run = vm.run();
 
