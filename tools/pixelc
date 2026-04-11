@@ -559,10 +559,15 @@ class CodeGen:
             self.scratch_pop()
 
         elif isinstance(s, MemStore):
+            # Use PUSH/POP to avoid holding 2 scratch while evaluating sub-exprs
             ar = self.scratch_push()
-            vr = self.scratch_push()
             self.expr_to(s.addr, ar)
+            self.emit(f"PUSH {self.r(ar)}")
+            self.scratch_pop()
+            vr = self.scratch_push()
             self.expr_to(s.value, vr)
+            ar = self.scratch_push()
+            self.emit(f"POP {self.r(ar)}")
             self.emit(f"STORE {self.r(ar)}, {self.r(vr)}")
             self.scratch_pop(2)
 
@@ -656,17 +661,29 @@ class CodeGen:
     def _binop(self, op, left, right, target):
         """target = left op right.
         
-        If target appears in the right operand, evaluating left into target
-        would clobber it. So we always evaluate left into a scratch register,
-        right into another scratch, then MOV result to target.
+        Evaluates left and right using ONLY the target register as temp,
+        PUSHing each to the VM stack immediately. The POP phase uses 2
+        scratch registers but only after all recursion returns.
+        
+        Stack order: PUSH left, PUSH right.
+        POP order: first POP = right, second POP = left.
         """
         OP = {'+':'ADD','-':'SUB','*':'MUL','/':'DIV','%':'MOD',
               '&':'AND','|':'OR','^':'XOR','<<':'SHL','>>':'SHR'}
-        sl = self.scratch_push()
-        sr = self.scratch_push()
-        self.expr_to(left, sl)
-        self.expr_to(right, sr)
-        self.emit(f"{OP[op]} {self.r(sl)}, {self.r(sr)}")
+        # Evaluate left into target, PUSH to stack
+        self.expr_to(left, target)
+        self.emit(f"PUSH {self.r(target)}")
+        
+        # Evaluate right into target, PUSH to stack
+        self.expr_to(right, target)
+        self.emit(f"PUSH {self.r(target)}")
+        
+        # POP: first pop = right (last pushed), second pop = left
+        sr = self.scratch_push()    # will hold right (first POP)
+        sl = self.scratch_push()    # will hold left (second POP)
+        self.emit(f"POP {self.r(sr)}")    # right
+        self.emit(f"POP {self.r(sl)}")    # left
+        self.emit(f"{OP[op]} {self.r(sl)}, {self.r(sr)}")  # left op= right
         self.emit(f"MOV {self.r(target)}, {self.r(sl)}")
         self.scratch_pop(2)
 
@@ -695,10 +712,15 @@ class CodeGen:
             self.scratch_pop()
             return
 
+        # Use PUSH/POP to avoid holding 2 scratch while evaluating sub-exprs
         sl = self.scratch_push()
-        sr = self.scratch_push()
         self.expr_to(cond.left, sl)
+        self.emit(f"PUSH {self.r(sl)}")
+        self.scratch_pop()
+        sr = self.scratch_push()
         self.expr_to(cond.right, sr)
+        sl = self.scratch_push()
+        self.emit(f"POP {self.r(sl)}")
 
         INV = {'==':'BNE','!=':'BEQ','<':'BGE','>':'BLE','<=':'BGT','>=':'BLT'}
         bop = INV.get(cond.op)
@@ -717,7 +739,7 @@ class CodeGen:
             self.emit(ZEROS[name])
             return True
 
-        # Drawing
+        # Drawing -- evaluate args one at a time, PUSH each to VM stack, then POP all back
         DRAW = {'pixel':('PSET',3),'pset':('PSET',3),
                 'rect':('RECTF',4),'rectf':('RECTF',4),
                 'circle':('CIRCLEF',3),'circlef':('CIRCLEF',3),
@@ -726,32 +748,50 @@ class CodeGen:
             opname, nargs = DRAW[name]
             if len(args) < nargs:
                 raise RuntimeError(f"{name}() needs {nargs} args, got {len(args)}")
-            regs = []
+            # Evaluate each arg into scratch, PUSH to stack to free scratch for next arg
             for i in range(nargs):
                 sr = self.scratch_push()
                 self.expr_to(args[i], sr)
+                self.emit(f"PUSH {self.r(sr)}")
+                self.scratch_pop()
+            # POP all args back into scratch registers
+            regs = []
+            for i in range(nargs):
+                sr = self.scratch_push()
+                self.emit(f"POP {self.r(sr)}")
                 regs.append(sr)
             self.emit(f"{opname} {', '.join(self.r(r) for r in regs)}")
             self.scratch_pop(nargs)
             return True
 
         if name == 'text':
+            # Same pattern: evaluate + PUSH, then POP all
+            for i in range(3):
+                sr = self.scratch_push()
+                self.expr_to(args[i], sr)
+                self.emit(f"PUSH {self.r(sr)}")
+                self.scratch_pop()
             srs = []
             for i in range(3):
-                srs.append(self.scratch_push())
-                self.expr_to(args[i], srs[-1])
+                sr = self.scratch_push()
+                self.emit(f"POP {self.r(sr)}")
+                srs.append(sr)
             self.emit(f"TEXT {', '.join(self.r(r) for r in srs)}")
             self.scratch_pop(3)
             return True
 
         if name == 'spawn':
             s0 = self.scratch_push()
-            s1 = self.scratch_push()
             self.expr_to(args[0], s0)
+            self.emit(f"PUSH {self.r(s0)}")
+            self.scratch_pop()
+            s1 = self.scratch_push()
             if len(args) > 1:
                 self.expr_to(args[1], s1)
             else:
                 self.emit(f"LDI {self.r(s1)}, 0")
+            s0 = self.scratch_push()
+            self.emit(f"POP {self.r(s0)}")
             self.emit(f"SPAWN {self.r(s0)}, {self.r(s1)}")
             self.scratch_pop(2)
             return True

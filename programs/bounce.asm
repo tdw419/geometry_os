@@ -8,76 +8,131 @@ LDI r3, 2
 LDI r4, 0
 while_1:
 MOV r28, r4
-LDI r29, 200
-BGE r28, r29, endw_2
+PUSH r28
+LDI r28, 200
+POP r29
+BGE r29, r28, endw_2
 MOV r28, r0
-MOV r29, r1
-LDI r30, 0
-PSET r28, r29, r30
-MOV r28, r0
-MOV r29, r2
-ADD r28, r29
-MOV r0, r28
+PUSH r28
 MOV r28, r1
-MOV r29, r3
-ADD r28, r29
-MOV r1, r28
-MOV r28, r0
-LDI r29, 200
-BLT r28, r29, else_3
+PUSH r28
 LDI r28, 0
-MOV r29, r2
-SUB r28, r29
-MOV r2, r28
+PUSH r28
+POP r28
+POP r29
+POP r30
+PSET r28, r29, r30
+PUSH r0
+MOV r0, r2
+PUSH r0
+POP r28
+POP r29
+ADD r29, r28
+MOV r0, r29
+PUSH r1
+MOV r1, r3
+PUSH r1
+POP r28
+POP r29
+ADD r29, r28
+MOV r1, r29
 MOV r28, r0
-MOV r29, r2
-ADD r28, r29
-MOV r0, r28
+PUSH r28
+LDI r28, 200
+POP r29
+BLT r29, r28, else_3
+LDI r2, 0
+PUSH r2
+PUSH r2
+POP r28
+POP r29
+SUB r29, r28
+MOV r2, r29
+PUSH r0
+MOV r0, r2
+PUSH r0
+POP r28
+POP r29
+ADD r29, r28
+MOV r0, r29
 else_3:
 MOV r28, r1
-LDI r29, 200
-BLT r28, r29, else_5
-LDI r28, 0
-MOV r29, r3
-SUB r28, r29
-MOV r3, r28
-MOV r28, r1
-MOV r29, r3
-ADD r28, r29
-MOV r1, r28
+PUSH r28
+LDI r28, 200
+POP r29
+BLT r29, r28, else_5
+LDI r3, 0
+PUSH r3
+PUSH r3
+POP r28
+POP r29
+SUB r29, r28
+MOV r3, r29
+PUSH r1
+MOV r1, r3
+PUSH r1
+POP r28
+POP r29
+ADD r29, r28
+MOV r1, r29
 else_5:
 MOV r28, r0
-LDI r29, 3
-BGE r28, r29, else_7
-LDI r28, 0
-MOV r29, r2
-SUB r28, r29
-MOV r2, r28
-MOV r28, r0
-MOV r29, r2
-ADD r28, r29
-MOV r0, r28
+PUSH r28
+LDI r28, 3
+POP r29
+BGE r29, r28, else_7
+LDI r2, 0
+PUSH r2
+PUSH r2
+POP r28
+POP r29
+SUB r29, r28
+MOV r2, r29
+PUSH r0
+MOV r0, r2
+PUSH r0
+POP r28
+POP r29
+ADD r29, r28
+MOV r0, r29
 else_7:
 MOV r28, r1
-LDI r29, 3
-BGE r28, r29, else_9
-LDI r28, 0
-MOV r29, r3
-SUB r28, r29
-MOV r3, r28
-MOV r28, r1
-MOV r29, r3
-ADD r28, r29
-MOV r1, r28
+PUSH r28
+LDI r28, 3
+POP r29
+BGE r29, r28, else_9
+LDI r3, 0
+PUSH r3
+PUSH r3
+POP r28
+POP r29
+SUB r29, r28
+MOV r3, r29
+PUSH r1
+MOV r1, r3
+PUSH r1
+POP r28
+POP r29
+ADD r29, r28
+MOV r1, r29
 else_9:
 MOV r28, r0
-MOV r29, r1
-LDI r30, 65
+PUSH r28
+MOV r28, r1
+PUSH r28
+LDI r28, 65
+PUSH r28
+POP r28
+POP r29
+POP r30
 PSET r28, r29, r30
-MOV r28, r4
-LDI r29, 1
-ADD r28, r29
-MOV r4, r28
+PUSH r4
+LDI r4, 1
+PUSH r4
+POP r28
+POP r29
+ADD r29, r28
+MOV r4, r29
 JMP while_1
 endw_2:
 HALT

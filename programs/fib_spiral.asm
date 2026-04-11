@@ -6,22 +6,37 @@ LDI r1, 1
 LDI r2, 0
 while_1:
 MOV r28, r2
-LDI r29, 20
-BGE r28, r29, endw_2
+PUSH r28
+LDI r28, 20
+POP r29
+BGE r29, r28, endw_2
 MOV r28, r0
-MOV r29, r2
-LDI r30, 65
+PUSH r28
+MOV r28, r2
+PUSH r28
+LDI r28, 65
+PUSH r28
+POP r28
+POP r29
+POP r30
 PSET r28, r29, r30
-MOV r28, r0
-MOV r29, r1
-ADD r28, r29
-MOV r3, r28
+MOV r3, r0
+PUSH r3
+MOV r3, r1
+PUSH r3
+POP r28
+POP r29
+ADD r29, r28
+MOV r3, r29
 MOV r0, r1
 MOV r1, r3
-MOV r28, r2
-LDI r29, 1
-ADD r28, r29
-MOV r2, r28
+PUSH r2
+LDI r2, 1
+PUSH r2
+POP r28
+POP r29
+ADD r29, r28
+MOV r2, r29
 JMP while_1
 endw_2:
 HALT

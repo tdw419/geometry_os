@@ -16,9 +16,10 @@ Extend the compiler and VM only when programs hit walls.
 
 ## Current State
 
-- 5 programs: simple_add, diagonal, bounce, checkerboard, fib_spiral
-- 5 pixelc tests passing
+- 7 programs: simple_add, diagonal, bounce, checkerboard, fib_spiral, gradient, life
+- 7 pixelc tests passing
 - Compiler supports: variables, arithmetic, while/if/else, functions, memory ops, drawing
+- Compiler fix: arbitrary expression depth via PUSH/POP on VM stack (was limited to 2 levels)
 
 ## Phase 1: Visual Programs (Proving the Compiler Works)
 
@@ -33,7 +34,7 @@ Build programs that create interesting pixel patterns. Each program tests compil
 - [ ] sierpinski.gp -- Sierpinski triangle using chaos game
 - [ ] mandelbrot.gp -- Mandelbrot set visualization (nested loops, arithmetic)
 - [ ] rain.gp -- falling pixel rain (array of positions, animation)
-- [ ] life.gp -- Conway's Game of Life (cellular automata)
+- [x] life.gp -- Conway's Game of Life (cellular automata, double-buffered grid)
 - [ ] maze.gp -- maze generation (random walks or recursive division)
 - [ ] fireworks.gp -- particle explosion animation
 - [ ] clock.gp -- real-time clock face using timer registers

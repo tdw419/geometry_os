@@ -81,22 +81,3 @@ fn pixelc_life() {
         .sum();
     assert!(alive > 0, "should have alive cells after 10 gens, got {}", alive);
 }
-
-#[test]
-fn pixelc_life_debug() {
-    use geometry_os::agent::GasmAgent;
-    let source = std::fs::read_to_string("programs/life.asm").unwrap();
-    let asm = assembler::assemble(&source).unwrap();
-    let mut vm = Vm::new(65536);
-    vm.load_program(&asm.pixels);
-    // Run to first yield (seed phase complete)
-    vm.run_with_limit(500_000);
-    // Check grid A at 8192
-    let alive: u32 = vm.ram[8192..12288].iter().map(|&v| if v != 0 { 1u32 } else { 0u32 }).sum();
-    eprintln!("DEBUG: after first run: halted={}, yielded={}, alive={}", vm.halted, vm.yielded, alive);
-    // Also check the first few addresses
-    for i in 8192..8200 {
-        eprintln!("  ram[{}] = {}", i, vm.ram[i]);
-    }
-    assert!(alive > 0, "seed should have alive cells, got {}", alive);
-}

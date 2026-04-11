@@ -4,45 +4,77 @@ main:
 LDI r0, 0
 while_1:
 MOV r28, r0
-LDI r29, 64
-BGE r28, r29, endw_2
+PUSH r28
+LDI r28, 64
+POP r29
+BGE r29, r28, endw_2
 LDI r1, 0
 while_3:
 MOV r28, r1
-LDI r29, 64
-BGE r28, r29, endw_4
-MOV r28, r1
-MOV r29, r0
-ADD r28, r29
-MOV r2, r28
-MOV r28, r2
-LDI r29, 2
-MOD r28, r29
-MOV r3, r28
+PUSH r28
+LDI r28, 64
+POP r29
+BGE r29, r28, endw_4
+MOV r2, r1
+PUSH r2
+MOV r2, r0
+PUSH r2
+POP r28
+POP r29
+ADD r29, r28
+MOV r2, r29
+MOV r3, r2
+PUSH r3
+LDI r3, 2
+PUSH r3
+POP r28
+POP r29
+MOD r29, r28
+MOV r3, r29
 MOV r28, r3
-LDI r29, 0
-BNE r28, r29, else_5
+PUSH r28
+LDI r28, 0
+POP r29
+BNE r29, r28, else_5
 MOV r28, r1
-MOV r29, r0
-LDI r30, 65
+PUSH r28
+MOV r28, r0
+PUSH r28
+LDI r28, 65
+PUSH r28
+POP r28
+POP r29
+POP r30
 PSET r28, r29, r30
 JMP endif_6
 else_5:
 MOV r28, r1
-MOV r29, r0
-LDI r30, 32
+PUSH r28
+MOV r28, r0
+PUSH r28
+LDI r28, 32
+PUSH r28
+POP r28
+POP r29
+POP r30
 PSET r28, r29, r30
 endif_6:
-MOV r28, r1
-LDI r29, 1
-ADD r28, r29
-MOV r1, r28
+PUSH r1
+LDI r1, 1
+PUSH r1
+POP r28
+POP r29
+ADD r29, r28
+MOV r1, r29
 JMP while_3
 endw_4:
-MOV r28, r0
-LDI r29, 1
-ADD r28, r29
-MOV r0, r28
+PUSH r0
+LDI r0, 1
+PUSH r0
+POP r28
+POP r29
+ADD r29, r28
+MOV r0, r29
 JMP while_1
 endw_2:
 HALT
