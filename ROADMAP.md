@@ -20,7 +20,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 738 tests (425 integration + 313 inline) — build currently broken (4 compile errors in API module)
+- 745 tests (425 integration + 320 inline) — build passing, all tests green
 - 49 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
@@ -94,21 +94,23 @@ AI-written demos      AI-written OS that humans use
 ## Phase 6: Agent Integration (The Bridge Outward)
 
 ### 6.1 REST API Core
-- [ ] Add `actix-web` or `axum` HTTP server to the Rust binary (behind a feature flag)
-- [ ] `POST /api/programs` -- accept `.gasm` source, assemble, return program ID
-- [ ] `POST /api/programs/:id/run` -- load program into VM, begin execution
-- [ ] `GET /api/programs/:id/status` -- running/halted/error, exit code
-- [ ] `POST /api/programs/:id/stop` -- halt a running program
+- [x] Add `tiny_http` HTTP server to the Rust binary (behind `rest-api` feature flag)
+- [x] `POST /run` -- accept `.gasm` source, assemble, execute, return full result
+- [x] `POST /load` + `POST /step` + `POST /resume` -- step-debugging workflow
+- [x] `GET /state` -- running/halted/yielded, registers, PC, SP, cycle count
+- [x] `POST /reset` -- halt and reset VM to clean state
 
 ### 6.2 Visual & State Endpoints
-- [ ] `GET /api/screen` -- return canvas as base64-encoded PNG (add `image` crate dependency)
-- [ ] `GET /api/state` -- JSON dump of all registers, flags, PC, SP, cycle count
-- [ ] `GET /api/memory?addr=0x0000&len=256` -- hex dump of memory range
-- [ ] `GET /api/stack` -- stack contents with depth info
+- [x] `GET /screen` -- screen buffer as JSON array of pixel values
+- [x] `GET /screen/ppm` -- screen as PPM image (binary)
+- [x] `GET /memory` -- hex dump of memory range (?start=0&count=256)
+- [x] `GET /stack` -- stack contents with depth info
+- [x] `GET /disasm` -- disassemble RAM range (?start=0&count=32)
+- [x] `GET /ram` / `POST /ram` -- read/write raw RAM words
 
 ### 6.3 Input Injection
-- [ ] `POST /api/input/key` -- inject key press/release event into VM keyboard port (0xFFF)
-- [ ] `POST /api/input/mouse` -- set mouse x, y, button state via memory-mapped registers
+- [x] `POST /input/key` -- inject key press/release event into VM keyboard port (0xFFF)
+- [x] `POST /input/mouse` -- set mouse x, y, button state via memory-mapped registers
 - [ ] WebSocket endpoint `/ws/input` for streaming key/mouse events (low-latency interaction)
 
 ### 6.4 Multi-Agent Sandbox
@@ -264,6 +266,6 @@ AI-written demos      AI-written OS that humans use
 - [x] Debug registers (if complex programs can't be debugged)
 
 **Batch 8 -- The World Outside (see Phase 6 for detailed decomposition):**
-- [ ] REST API bridge
+- [x] REST API bridge (tiny_http, 15 endpoints, 16 tests)
 - [x] Audio support
 - [ ] Multi-agent execution
