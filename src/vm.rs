@@ -18,6 +18,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 use crate::forge::ForgeQueue;
+use crate::heap::{Heap, HEAP_ALLOC_ADDR, HEAP_BLOCKS_ADDR, HEAP_FREE_ADDR, HEAP_FREE_WORDS_ADDR, HEAP_SIZE_ADDR, HEAP_START_ADDR};
 use crate::opcodes;
 use crate::opcodes::op;
 
@@ -509,6 +510,10 @@ pub struct VmSnapshot {
     pub fs_count: u32,
     /// Filesystem: status register.
     pub fs_status: u32,
+    /// Heap allocator state.
+    pub heap: Heap,
+    /// Heap: result of last alloc (0 = fail).
+    pub heap_alloc_result: u32,
 }
 pub const IVT_SIZE: usize = 16;
 
@@ -850,6 +855,10 @@ pub struct Vm {
     fs_count: u32,
     /// Filesystem: status of last operation (0=OK, 1=not found, 2=disk full, 3=bad name, 4=too large).
     pub fs_status: u32,
+    /// Heap allocator for dynamic memory management.
+    pub heap: Heap,
+    /// Heap: result of the last alloc operation (address, or 0 if failed).
+    pub heap_alloc_result: u32,
 }
 
 impl Vm {
@@ -887,6 +896,8 @@ impl Vm {
             fs_data_addr: 0,
             fs_count: 0,
             fs_status: 0,
+            heap: Heap::new(),
+            heap_alloc_result: 0,
         }
     }
 
@@ -1109,6 +1120,8 @@ impl Vm {
             fs_data_addr: self.fs_data_addr,
             fs_count: self.fs_count,
             fs_status: self.fs_status,
+            heap: self.heap.clone(),
+            heap_alloc_result: self.heap_alloc_result,
         }
     }
 

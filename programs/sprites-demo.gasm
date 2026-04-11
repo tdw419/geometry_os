@@ -1,0 +1,203 @@
+; ═══════════════════════════════════════════════════════════════════════
+; sprites-demo.gasm -- Sprite system demo: bouncing colored sprites
+;
+; Demonstrates the sprite system by spawning multiple child VMs that
+; each run a simple bouncing animation. Uses SPAWNAT to position sprites
+; at different screen locations.
+;
+; MEMORY LAYOUT:
+;   0x0000-0x003F: main program (parent)
+;   0x0040-0x00FF: child sprite program (shared RAM)
+;   0x1000-0x1007: child state (x, y, dx, dy, color, frame_count)
+;
+; REGISTER USAGE (parent):
+;   r0-r4 = temporaries for spawn setup
+;   r5    = loop counter
+;
+; REGISTER USAGE (child):
+;   r0  = x position
+;   r1  = y position
+;   r2  = dx velocity
+;   r3  = dy velocity
+;   r4  = pixel color
+;   r5  = address constant
+;   r6  = screen boundary (15 for small area)
+;   r7  = zero
+;   r8  = temp
+;   r9  = frame counter
+; ═══════════════════════════════════════════════════════════════════════
+
+.data
+child_color:
+    .word 0x00FF00      ; green
+child_x:
+    .word 5
+child_y:
+    .word 5
+child_dx:
+    .word 1
+child_dy:
+    .word 1
+
+.text
+
+; ═══════════════════════════════════════════════════════════════════════
+; PARENT PROGRAM: Initialize child state, spawn sprite, then halt.
+; ═══════════════════════════════════════════════════════════════════════
+main:
+    ; ── Set up child state in shared RAM at 0x1000 ──
+    ; Child reads its initial state from 0x1000-0x1007
+
+    ; x = 5
+    LDI r5, 0x1000
+    LDI r0, 5
+    STORE r5, r0
+
+    ; y = 5
+    LDI r5, 0x1001
+    LDI r0, 5
+    STORE r5, r0
+
+    ; dx = 1
+    LDI r5, 0x1002
+    LDI r0, 1
+    STORE r5, r0
+
+    ; dy = 1
+    LDI r5, 0x1003
+    LDI r0, 1
+    STORE r5, r0
+
+    ; color = green (0x00FF00)
+    LDI r5, 0x1004
+    LDI r0, 0x00FF00
+    STORE r5, r0
+
+    ; Spawn child at position (10, 10) starting at child_start
+    LDI r0, 10           ; x position on parent screen
+    LDI r1, 10           ; y position on parent screen
+    LDI r2, 0x0040       ; child program starts at address 0x40
+    SPAWNAT r0, r1, r2
+
+    ; Spawn a second child at (100, 50) with a different address
+    LDI r5, 0x1004
+    LDI r0, 0x0000FF     ; blue
+    STORE r5, r0
+
+    LDI r5, 0x1000
+    LDI r0, 10
+    STORE r5, r0
+    LDI r5, 0x1001
+    LDI r0, 8
+    STORE r5, r0
+
+    LDI r0, 100
+    LDI r1, 50
+    LDI r2, 0x0040
+    SPAWNAT r0, r1, r2
+
+    ; Parent halts — children continue running frame by frame
+    HALT
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; CHILD PROGRAM: Bouncing sprite that runs in a child VM
+;
+; The child reads its state from shared RAM at 0x1000, updates position,
+; draws a pixel, and YIELDs. The host GUI re-runs it each frame.
+; ═══════════════════════════════════════════════════════════════════════
+
+.org 0x0040
+
+child_start:
+    ; ── Load initial state from shared RAM ──
+    LDI r5, 0x1000
+    LOAD r0, r5           ; r0 = x
+    LDI r5, 0x1001
+    LOAD r1, r5           ; r1 = y
+    LDI r5, 0x1002
+    LOAD r2, r5           ; r2 = dx
+    LDI r5, 0x1003
+    LOAD r3, r5           ; r3 = dy
+    LDI r5, 0x1004
+    LOAD r4, r5           ; r4 = color
+
+    ; Screen boundary for the child's local area
+    LDI r6, 15            ; bounce in a 16x16 area
+    LDI r7, 0             ; zero
+    LDI r9, 0             ; frame counter
+
+child_loop:
+    ; ── Erase old pixel ──
+    PSET r0, r1, r7       ; draw black at current position
+
+    ; ── Update position ──
+    ADD r0, r2             ; x += dx
+    ADD r1, r3             ; y += dy
+
+    ; ── Bounce off walls ──
+    ; Check x bounds
+    BGE r0, r6, child_bounce_x
+    BEQ r0, r7, child_bounce_x
+
+child_after_x:
+    ; Check y bounds
+    BGE r1, r6, child_bounce_y
+    BEQ r1, r7, child_bounce_y
+
+child_after_y:
+    ; ── Save state back to RAM ──
+    LDI r5, 0x1000
+    STORE r5, r0           ; save x
+    LDI r5, 0x1001
+    STORE r5, r1           ; save y
+    LDI r5, 0x1002
+    STORE r5, r2           ; save dx
+    LDI r5, 0x1003
+    STORE r5, r3           ; save dy
+
+    ; ── Draw new pixel ──
+    PSET r0, r1, r4
+
+    ; ── Increment frame counter ──
+    ADD r9, r2             ; just increment by dx (it's 1)
+
+    ; ── Yield — host will re-run us next frame ──
+    YIELD
+
+    ; ── Loop back ──
+    JMP child_loop
+
+child_bounce_x:
+    ; Negate dx: dx = 0 - dx = -dx
+    LDI r8, 0
+    SUB r8, r2
+    MOV r2, r8
+    ; Fix position back to boundary
+    BGE r0, r6, fix_x_high
+    BEQ r0, r7, fix_x_low
+    JMP child_after_x
+fix_x_high:
+    MOV r0, r6
+    SUB r0, r2
+    JMP child_after_x
+fix_x_low:
+    LDI r0, 1
+    JMP child_after_x
+
+child_bounce_y:
+    ; Negate dy
+    LDI r8, 0
+    SUB r8, r3
+    MOV r3, r8
+    ; Fix position
+    BGE r1, r6, fix_y_high
+    BEQ r1, r7, fix_y_low
+    JMP child_after_y
+fix_y_high:
+    MOV r1, r6
+    SUB r1, r3
+    JMP child_after_y
+fix_y_low:
+    LDI r1, 1
+    JMP child_after_y
