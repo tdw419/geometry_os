@@ -3,6 +3,7 @@
 //
 // HTTP bridge for external agents to interact with the Geometry OS VM.
 // Uses tiny_http for lightweight HTTP handling.
+// Uses tungstenite for WebSocket support (streaming input).
 //
 // Endpoints:
 //   POST /run         -- assemble + execute .gasm source, return full result
@@ -16,6 +17,7 @@
 //   POST /reset       -- reset VM to clean state
 //   POST /ram         -- write values into RAM (?addr=N, body = JSON array)
 //   GET  /ram         -- read RAM range (?start=0&count=32)
+//   WS   /ws/input    -- streaming key/mouse input (WebSocket, low-latency)
 //
 // Usage:
 //   let server = ApiServer::new(7070);
@@ -27,7 +29,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 use crate::agent::{Agent, GasmAgent};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 /// The REST API server wrapping a GasmAgent.
 pub struct ApiServer {
@@ -132,6 +134,12 @@ impl ApiServer {
 
         // Strip query string for routing
         let path_clean = path.split('?').next().unwrap_or(&path);
+
+        // WebSocket upgrade for /ws/input
+        if path_clean == "/ws/input" && Self::is_websocket_upgrade(&request) {
+            self.handle_ws_input(request);
+            return;
+        }
 
         let response = match (method, &*path_clean) {
             // POST /run -- assemble and execute .gasm source
@@ -523,9 +531,136 @@ impl ApiServer {
                     "GET  /memory         -- hex dump of memory (?start=0&count=256)",
                     "POST /input/key      -- inject key press ({key})",
                     "POST /input/mouse    -- set mouse ({x, y, buttons})",
+                    "WS   /ws/input       -- streaming key/mouse input (WebSocket)",
                 ]
             }),
         )
+    }
+
+    // ── WebSocket input streaming ──
+
+    /// Check if the request is a WebSocket upgrade.
+    fn is_websocket_upgrade(request: &tiny_http::Request) -> bool {
+        // Check for Upgrade: websocket header
+        request
+            .headers()
+            .iter()
+            .any(|h| {
+                h.field.equiv("Upgrade")
+                    && h.value.as_str().eq_ignore_ascii_case("websocket")
+            })
+    }
+
+    /// Handle a WebSocket upgrade on /ws/input.
+    /// Performs the WS handshake, then loops reading JSON input events
+    /// and injecting them into the VM.
+    fn handle_ws_input(&self, request: tiny_http::Request) {
+        // Build the 101 Switching Protocols response
+        let response = tiny_http::Response::new(
+            tiny_http::StatusCode(101),
+            vec![
+                tiny_http::Header::from_bytes("Upgrade", "websocket").unwrap(),
+                tiny_http::Header::from_bytes("Connection", "Upgrade").unwrap(),
+            ],
+            &b""[..],
+            None,
+            None,
+        );
+
+        // Upgrade the connection: tiny_http sends the 101 response and returns
+        // the raw TCP stream as a Read+Write trait object.
+        let stream = request.upgrade("websocket", response);
+
+        // Perform the WebSocket handshake using tungstenite
+        let mut ws = match tungstenite::accept(stream) {
+            Ok(ws) => ws,
+            Err(e) => {
+                eprintln!("[api] WebSocket handshake failed: {}", e);
+                return;
+            }
+        };
+
+        eprintln!("[api] WebSocket /ws/input connected");
+
+        // Read messages in a loop and inject input events into the VM.
+        // JSON message formats:
+        //   {"type": "key", "key": <u32>}
+        //   {"type": "mouse", "x": <u32>, "y": <u32>, "buttons": <u32>}
+        loop {
+            let msg = match ws.read() {
+                Ok(tungstenite::Message::Text(text)) => text,
+                Ok(tungstenite::Message::Ping(data)) => {
+                    // Respond to ping with pong
+                    let _ = ws.send(tungstenite::Message::Pong(data));
+                    continue;
+                }
+                Ok(tungstenite::Message::Close(_)) => {
+                    eprintln!("[api] WebSocket /ws/input closed by client");
+                    break;
+                }
+                Ok(_) => continue, // binary, pong — ignore
+                Err(tungstenite::Error::ConnectionClosed) => {
+                    eprintln!("[api] WebSocket /ws/input connection closed");
+                    break;
+                }
+                Err(e) => {
+                    eprintln!("[api] WebSocket /ws/input error: {}", e);
+                    break;
+                }
+            };
+
+            // Parse JSON message
+            let event: serde_json::Value = match serde_json::from_str(&msg) {
+                Ok(v) => v,
+                Err(e) => {
+                    eprintln!("[api] WebSocket invalid JSON: {} — message: {}", e, msg);
+                    // Send error back to client
+                    let err = serde_json::json!({"error": "invalid json", "detail": e.to_string()});
+                    let _ = ws.send(tungstenite::Message::Text(err.to_string().into()));
+                    continue;
+                }
+            };
+
+            let event_type = event["type"].as_str().unwrap_or("");
+
+            match event_type {
+                "key" => {
+                    if let Some(key) = event["key"].as_u64() {
+                        let keycode = key as u32;
+                        if let Ok(mut agent) = self.agent.lock() {
+                            agent.inject_key(keycode);
+                        }
+                        let _ = ws.send(tungstenite::Message::Text(
+                            serde_json::json!({"ok": true, "type": "key", "key": keycode}).to_string(),
+                        ));
+                    } else {
+                        let _ = ws.send(tungstenite::Message::Text(
+                            serde_json::json!({"error": "missing key field"}).to_string(),
+                        ));
+                    }
+                }
+                "mouse" => {
+                    let x = event["x"].as_u64().unwrap_or(0) as u32;
+                    let y = event["y"].as_u64().unwrap_or(0) as u32;
+                    let buttons = event["buttons"].as_u64().unwrap_or(0) as u32;
+                    if let Ok(mut agent) = self.agent.lock() {
+                        agent.inject_mouse(x, y, buttons);
+                    }
+                        let _ = ws.send(tungstenite::Message::Text(
+                            serde_json::json!({"ok": true, "type": "key", "key": keycode})
+                                .to_string()
+                                .into(),
+                        ));
+                }
+                _ => {
+                    let _ = ws.send(tungstenite::Message::Text(
+                        serde_json::json!({"error": "unknown type", "type": event_type}).to_string(),
+                    ));
+                }
+            }
+        }
+
+        eprintln!("[api] WebSocket /ws/input disconnected");
     }
 
     // ── Helpers ──
@@ -784,7 +919,6 @@ mod tests {
         assert_eq!(status, 200);
 
         // Step once (first instruction)
-        let (server2, _) = start_server();
         // We need to share state between requests -- but each test has a fresh server.
         // For a proper step/resume test, we'd need a persistent server.
         // The individual endpoints are tested; the flow is tested in integration.
@@ -892,4 +1026,5 @@ mod tests {
         assert_eq!(json["y"], 0);
         assert_eq!(json["buttons"], 0);
     }
+
 }
