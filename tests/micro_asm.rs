@@ -704,3 +704,88 @@ fn bootstrap_assembles_counter_program() {
     assert_eq!(original_output[5], bootstrap_result[5], "immediate mismatch (2nd)");
     assert_eq!(original_output[6], bootstrap_result[6], "HALT mismatch");
 }
+
+#[test]
+fn bootstrap_self_hosting_full() {
+    // The real self-hosting test: bootstrap assembler assembles ITS OWN SOURCE.
+    // Step 1: Original micro-asm assembles the bootstrap source → output A
+    // Step 2: Load output A at 0x800 as a new assembler
+    // Step 3: Feed the SAME bootstrap source to the new assembler → output B
+    // Step 4: output A == output B (identical self-reproduction)
+    let bootstrap_src = std::fs::read_to_string("programs/micro-asm-bootstrap.asm")
+        .expect("programs/micro-asm-bootstrap.asm not found");
+
+    // Step 1: Original micro-asm assembles bootstrap source
+    let mut vm1 = vm_with_micro_asm();
+    vm1.ram[0xBFC] = 0x800; // set origin so label addresses include 0x800 base
+    let output_a = run_micro_asm(&mut vm1, &bootstrap_src);
+    let len_a = output_len(&output_a);
+
+    // Step 2: Load output A as a new assembler at 0x800
+    let mut vm2 = Vm::new(65536);
+    for i in 0..len_a {
+        let dst = MICRO_ASM_ADDR + i;
+        if dst < vm2.ram.len() {
+            vm2.ram[dst] = output_a[i];
+        }
+    }
+
+    // Step 3: Feed the SAME bootstrap source to the new assembler
+    // Clear output area (0..0x800)
+    for v in vm2.ram[..MICRO_ASM_ADDR].iter_mut() {
+        *v = 0;
+    }
+    // Clear label table area (0xC00..0x1000) — critical for clean pass 1
+    for v in vm2.ram[0xC00..0x1000].iter_mut() {
+        *v = 0;
+    }
+    // Clear name buffer (0xB00..0xBFC)
+    for v in vm2.ram[0xB00..0xBFC].iter_mut() {
+        *v = 0;
+    }
+    // Clear error area
+    vm2.ram[0xBFE] = 0;
+    vm2.ram[0xBFF] = 0;
+    // Write source text
+    let text_end = (TEXT_BUF_ADDR + bootstrap_src.len() + 1).min(vm2.ram.len());
+    for v in vm2.ram[TEXT_BUF_ADDR..text_end].iter_mut() {
+        *v = 0;
+    }
+    for (i, byte) in bootstrap_src.bytes().enumerate() {
+        let addr = TEXT_BUF_ADDR + i;
+        if addr < vm2.ram.len() {
+            vm2.ram[addr] = byte as u32;
+        }
+    }
+    vm2.ram[0xBFC] = 0x800; // set origin
+
+    // Run the bootstrap assembler on its own source
+    vm2.pc = MICRO_ASM_ADDR as u32;
+    vm2.halted = false;
+    vm2.yielded = false;
+    while !vm2.halted && !vm2.yielded {
+        vm2.run();
+    }
+
+    let output_b = &vm2.ram[..MICRO_ASM_ADDR];
+    let len_b = output_len(output_b);
+
+    // Self-hosting invariant: output A == output B
+    assert!(
+        vm2.halted,
+        "bootstrap self-assembly must halt (yielded={})",
+        vm2.yielded
+    );
+    assert_eq!(
+        len_b, len_a,
+        "output length must match: original={} self={}",
+        len_a, len_b
+    );
+    for i in 0..len_a {
+        assert_eq!(
+            output_a[i], output_b[i],
+            "cell mismatch at index {}: orig=0x{:08X} self=0x{:08X}",
+            i, output_a[i], output_b[i]
+        );
+    }
+}
