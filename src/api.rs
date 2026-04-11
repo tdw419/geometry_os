@@ -1407,4 +1407,228 @@ mod tests {
         assert_eq!(json["buttons"], 0);
     }
 
+    // ── Sandbox API tests ──
+
+    #[test]
+    fn sandbox_create_and_list() {
+        let server = tiny_http::Server::http("0.0.0.0:0").expect("bind");
+        let port = match server.server_addr() {
+            tiny_http::ListenAddr::IP(addr) => addr.port(),
+            #[cfg(unix)]
+            tiny_http::ListenAddr::Unix(_) => 0,
+        };
+        let api = ApiServer {
+            server,
+            agent: Mutex::new(GasmAgent::new(4096)),
+            pool: VmPool::new(4096),
+        };
+
+        // Serve 2 requests: create + list
+        let handle = std::thread::spawn(move || {
+            for _ in 0..2 {
+                api.serve_one();
+            }
+        });
+
+        // Create a sandbox
+        let (status, resp) = http_request("POST", port, "/api/sandbox/create", None);
+        assert_eq!(status, 201);
+        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        assert_eq!(json["created"], true);
+        let id = json["id"].as_str().unwrap().to_string();
+        assert!(id.starts_with("sb-"));
+
+        // List sandboxes
+        let (status, resp) = http_request("GET", port, "/api/sandbox", None);
+        assert_eq!(status, 200);
+        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        assert_eq!(json["count"], 1);
+
+        handle.join().unwrap();
+    }
+
+    #[test]
+    fn sandbox_full_lifecycle() {
+        // Start server in a thread that serves multiple requests
+        let server = tiny_http::Server::http("0.0.0.0:0").expect("bind");
+        let port = match server.server_addr() {
+            tiny_http::ListenAddr::IP(addr) => addr.port(),
+            #[cfg(unix)]
+            tiny_http::ListenAddr::Unix(_) => 0,
+        };
+        let api = ApiServer {
+            server,
+            agent: Mutex::new(GasmAgent::new(4096)),
+            pool: VmPool::new(4096),
+        };
+
+        // Spawn server thread serving 6 requests
+        let handle = std::thread::spawn(move || {
+            for _ in 0..6 {
+                api.serve_one();
+            }
+        });
+
+        // 1. Create sandbox
+        let (status, resp) = http_request("POST", port, "/api/sandbox/create", None);
+        assert_eq!(status, 201);
+        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        let id = json["id"].as_str().unwrap().to_string();
+
+        // 2. Run code in sandbox
+        let body = format!(r#"{{"source": "LDI r0, 42\nHALT"}}"#);
+        let (status, resp) = http_request("POST", port, &format!("/api/sandbox/{}/run", id), Some(&body));
+        assert_eq!(status, 200);
+        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        assert_eq!(json["halted"], true);
+        assert_eq!(json["regs"][0], 42);
+
+        // 3. Get sandbox state
+        let (status, _resp) = http_request("GET", port, &format!("/api/sandbox/{}/state", id), None);
+        assert_eq!(status, 200);
+
+        // 4. Get sandbox info
+        let (status, resp) = http_request("GET", port, &format!("/api/sandbox/{}", id), None);
+        assert_eq!(status, 200);
+        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        assert_eq!(json["id"], id);
+
+        // 5. Destroy sandbox
+        let (status, resp) = http_request("DELETE", port, &format!("/api/sandbox/{}", id), None);
+        assert_eq!(status, 200);
+        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        assert_eq!(json["destroyed"], true);
+
+        // 6. Verify destroyed (404)
+        let (status, _) = http_request("GET", port, &format!("/api/sandbox/{}", id), None);
+        assert_eq!(status, 404);
+
+        handle.join().unwrap();
+    }
+
+    #[test]
+    fn sandbox_isolation() {
+        let server = tiny_http::Server::http("0.0.0.0:0").expect("bind");
+        let port = match server.server_addr() {
+            tiny_http::ListenAddr::IP(addr) => addr.port(),
+            #[cfg(unix)]
+            tiny_http::ListenAddr::Unix(_) => 0,
+        };
+        let api = ApiServer {
+            server,
+            agent: Mutex::new(GasmAgent::new(4096)),
+            pool: VmPool::new(4096),
+        };
+
+        let handle = std::thread::spawn(move || {
+            for _ in 0..4 {
+                api.serve_one();
+            }
+        });
+
+        // Create two sandboxes
+        let (s1, r1) = http_request("POST", port, "/api/sandbox/create", None);
+        assert_eq!(s1, 201);
+        let id1 = serde_json::from_str::<serde_json::Value>(&r1).unwrap()["id"]
+            .as_str()
+            .unwrap()
+            .to_string();
+
+        let (s2, r2) = http_request("POST", port, "/api/sandbox/create", None);
+        assert_eq!(s2, 201);
+        let id2 = serde_json::from_str::<serde_json::Value>(&r2).unwrap()["id"]
+            .as_str()
+            .unwrap()
+            .to_string();
+
+        assert_ne!(id1, id2, "Sandboxes should have unique IDs");
+
+        // Run different programs in each
+        let body1 = r#"{"source": "LDI r0, 111\nHALT"}"#;
+        let (status, _) = http_request("POST", port, &format!("/api/sandbox/{}/run", id1), Some(body1));
+        assert_eq!(status, 200);
+
+        let body2 = r#"{"source": "LDI r0, 222\nHALT"}"#;
+        let (status, _) = http_request("POST", port, &format!("/api/sandbox/{}/run", id2), Some(body2));
+        assert_eq!(status, 200);
+
+        handle.join().unwrap();
+    }
+
+    #[test]
+    fn sandbox_create_with_caps() {
+        let server = tiny_http::Server::http("0.0.0.0:0").expect("bind");
+        let port = match server.server_addr() {
+            tiny_http::ListenAddr::IP(addr) => addr.port(),
+            #[cfg(unix)]
+            tiny_http::ListenAddr::Unix(_) => 0,
+        };
+        let api = ApiServer {
+            server,
+            agent: Mutex::new(GasmAgent::new(4096)),
+            pool: VmPool::new(4096),
+        };
+
+        let handle = std::thread::spawn(move || {
+            for _ in 0..2 {
+                api.serve_one();
+            }
+        });
+
+        // Create with caps
+        let body = r#"{"caps": {"max_cycles": 100, "max_memory": 2048}}"#;
+        let (status, resp) = http_request("POST", port, "/api/sandbox/create", Some(body));
+        assert_eq!(status, 201);
+        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        assert_eq!(json["info"]["max_cycles"], 100);
+        assert_eq!(json["info"]["max_memory"], 2048);
+
+        // List sandboxes
+        let (status, resp) = http_request("GET", port, "/api/sandbox", None);
+        assert_eq!(status, 200);
+        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        assert_eq!(json["count"], 1);
+
+        handle.join().unwrap();
+    }
+
+    #[test]
+    fn sandbox_404_for_nonexistent() {
+        let server = tiny_http::Server::http("0.0.0.0:0").expect("bind");
+        let port = match server.server_addr() {
+            tiny_http::ListenAddr::IP(addr) => addr.port(),
+            #[cfg(unix)]
+            tiny_http::ListenAddr::Unix(_) => 0,
+        };
+        let api = ApiServer {
+            server,
+            agent: Mutex::new(GasmAgent::new(4096)),
+            pool: VmPool::new(4096),
+        };
+
+        let handle = std::thread::spawn(move || {
+            for _ in 0..4 {
+                api.serve_one();
+            }
+        });
+
+        // GET nonexistent sandbox
+        let (status, _) = http_request("GET", port, "/api/sandbox/sb-999", None);
+        assert_eq!(status, 404);
+
+        // DELETE nonexistent sandbox
+        let (status, _) = http_request("DELETE", port, "/api/sandbox/sb-999", None);
+        assert_eq!(status, 404);
+
+        // RUN in nonexistent sandbox
+        let body = r#"{"source": "LDI r0, 1\nHALT"}"#;
+        let (status, _) = http_request("POST", port, "/api/sandbox/sb-999/run", Some(body));
+        assert_eq!(status, 404);
+
+        // STATE for nonexistent sandbox
+        let (status, _) = http_request("GET", port, "/api/sandbox/sb-999/state", None);
+        assert_eq!(status, 404);
+
+        handle.join().unwrap();
+    }
 }
