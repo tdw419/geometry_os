@@ -11,6 +11,9 @@
 //   ; comment
 //   LABEL:
 //   .ORG 0x100
+//   .macro NAME param1, param2, ...   (define macro)
+//   .endm                              (end macro)
+//   NAME arg1, arg2                    (invoke macro)
 //   LDI r0, 42
 //   ADD r0, r1
 //   JMP loop
