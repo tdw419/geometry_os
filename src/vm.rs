@@ -384,6 +384,25 @@ impl ProcessTable {
             vm.regs[0] = child_pid;
         }
 
+        // Handle IPC outbox: route cross-process messages to target mailboxes.
+        if !vm.ipc_outbox.is_empty() {
+            let sender_pid = pid;
+            let outbox: Vec<(u32, u32)> = vm.ipc_outbox.drain(..).collect();
+            for (target_pid, value) in outbox {
+                if let Some(target) = self.processes.iter_mut().find(|p| p.pid == target_pid) {
+                    if target.state.mailbox.len() < IPC_MAILBOX_SIZE {
+                        target.state.mailbox.push_back((sender_pid, value));
+                    } else {
+                        // Target mailbox full — report failure
+                        vm.ipc_status = 2;
+                    }
+                } else {
+                    // Target not found — report failure
+                    vm.ipc_status = 3;
+                }
+            }
+        }
+
         // Save state back
         let new_state = vm.snapshot();
         if let Some(p) = self.processes.iter_mut().find(|p| p.pid == pid) {
@@ -529,6 +548,8 @@ pub struct VmSnapshot {
     pub ipc_status: u32,
     /// IPC: shared memory window.
     pub ipc_shared: [u32; IPC_SHARED_WORDS],
+    /// IPC: outgoing messages for other processes (target_pid, value).
+    pub ipc_outbox: VecDeque<(u32, u32)>,
 }
 
 /// Maximum messages per process mailbox.
@@ -1153,6 +1174,9 @@ pub struct Vm {
     /// IPC: shared memory window (240 words, mapped at 0xFE10–0xFEFF).
     /// All processes with IPC enabled share this buffer for bulk data transfer.
     pub ipc_shared: [u32; IPC_SHARED_WORDS],
+    /// IPC: outgoing messages destined for other processes (not self).
+    /// The scheduler routes these to target mailboxes after each tick.
+    pub ipc_outbox: VecDeque<(u32, u32)>, // (target_pid, value)
 }
 
 impl Vm {
@@ -1200,6 +1224,7 @@ impl Vm {
             ipc_msg_sender: 0,
             ipc_status: 0,
             ipc_shared: [0; IPC_SHARED_WORDS],
+            ipc_outbox: VecDeque::new(),
         }
     }
 
@@ -1307,6 +1332,7 @@ impl Vm {
             ipc_msg_sender: 0,
             ipc_status: 0,
             ipc_shared: [0; IPC_SHARED_WORDS],
+            ipc_outbox: VecDeque::new(),
         };
         // Pass the arg to the child in r0
         vm.regs[0] = child.arg;
@@ -1441,6 +1467,7 @@ impl Vm {
             ipc_msg_sender: self.ipc_msg_sender,
             ipc_status: self.ipc_status,
             ipc_shared: self.ipc_shared,
+            ipc_outbox: self.ipc_outbox.clone(),
         }
     }
 
@@ -1480,6 +1507,13 @@ impl Vm {
         self.heap = snapshot.heap.clone();
         self.heap_alloc_result = snapshot.heap_alloc_result;
         self.mailbox = snapshot.mailbox.clone();
+        self.ipc_enabled = snapshot.ipc_enabled;
+        self.ipc_msg_target = snapshot.ipc_msg_target;
+        self.ipc_msg_value = snapshot.ipc_msg_value;
+        self.ipc_msg_sender = snapshot.ipc_msg_sender;
+        self.ipc_status = snapshot.ipc_status;
+        self.ipc_shared = snapshot.ipc_shared;
+        self.ipc_outbox = snapshot.ipc_outbox.clone();
     }
 
     /// Tick the hardware timer. Called once per instruction cycle by run()/run_checked().
@@ -1738,14 +1772,20 @@ impl Vm {
             }
             IPC_MSG_SEND_ADDR => {
                 // Writing to SEND triggers a mailbox send.
-                // In single-VM context (no scheduler), we enqueue to our own mailbox.
-                // The scheduler will override this for multi-process routing.
                 if self.ipc_enabled {
-                    if self.mailbox.len() < IPC_MAILBOX_SIZE {
-                        self.mailbox.push_back((self.pid, self.ipc_msg_value));
-                        self.ipc_status = 1; // success
+                    let target = self.ipc_msg_target;
+                    if target != 0 && target != self.pid {
+                        // Cross-process send: queue in outbox for scheduler routing.
+                        self.ipc_outbox.push_back((target, self.ipc_msg_value));
+                        self.ipc_status = 1; // success (scheduler may override)
                     } else {
-                        self.ipc_status = 2; // mailbox full
+                        // Self-send: enqueue to own mailbox.
+                        if self.mailbox.len() < IPC_MAILBOX_SIZE {
+                            self.mailbox.push_back((self.pid, self.ipc_msg_value));
+                            self.ipc_status = 1; // success
+                        } else {
+                            self.ipc_status = 2; // mailbox full
+                        }
                     }
                 }
                 true
@@ -5614,4 +5654,454 @@ mod tests {
         assert!(vm.write_ipc_reg(0xFE0A, 123)); // accepted but ignored
         assert_eq!(vm.read_ipc_reg(0xFE0A), Some(0)); // still 0
     }
+
+    // ── Cross-process IPC message queue tests ──────────────────────
+
+    #[test]
+    fn ipc_outbox_cross_process_send() {
+        // Test that cross-process SEND queues to outbox, not self-mailbox
+        let mut vm = Vm::new(1024);
+        vm.pid = 1;
+        vm.write_ipc_reg(IPC_STATUS_ADDR, 1); // enable IPC
+        vm.write_ipc_reg(IPC_MSG_TARGET_ADDR, 2); // target = PID 2
+        vm.write_ipc_reg(IPC_MSG_VALUE_ADDR, 42);
+        vm.write_ipc_reg(IPC_MSG_SEND_ADDR, 1); // send
+
+        // Message should be in outbox, NOT in mailbox
+        assert_eq!(vm.mailbox.len(), 0, "cross-process send should not go to self mailbox");
+        assert_eq!(vm.ipc_outbox.len(), 1);
+        assert_eq!(vm.ipc_outbox[0], (2, 42));
+        assert_eq!(vm.ipc_status, 1); // success
+    }
+
+    #[test]
+    fn ipc_self_send_goes_to_mailbox() {
+        // Test that self-send (target=0 or target=self) goes to mailbox
+        let mut vm = Vm::new(1024);
+        vm.pid = 1;
+        vm.write_ipc_reg(IPC_STATUS_ADDR, 1); // enable IPC
+        vm.write_ipc_reg(IPC_MSG_VALUE_ADDR, 99);
+        vm.write_ipc_reg(IPC_MSG_SEND_ADDR, 1); // send with target=0 (default)
+
+        assert_eq!(vm.mailbox.len(), 1, "self-send should go to mailbox");
+        assert_eq!(vm.ipc_outbox.len(), 0, "self-send should not go to outbox");
+        assert_eq!(vm.mailbox[0], (1, 99));
+    }
+
+    #[test]
+    fn ipc_self_send_explicit_target() {
+        // Test that explicit target=self also goes to mailbox
+        let mut vm = Vm::new(1024);
+        vm.pid = 5;
+        vm.write_ipc_reg(IPC_STATUS_ADDR, 1);
+        vm.write_ipc_reg(IPC_MSG_TARGET_ADDR, 5); // target = self
+        vm.write_ipc_reg(IPC_MSG_VALUE_ADDR, 77);
+        vm.write_ipc_reg(IPC_MSG_SEND_ADDR, 1);
+
+        assert_eq!(vm.mailbox.len(), 1);
+        assert_eq!(vm.ipc_outbox.len(), 0);
+        assert_eq!(vm.mailbox[0], (5, 77));
+    }
+
+    #[test]
+    fn ipc_scheduler_routes_outbox_to_target() {
+        // Two processes: PID 1 sends to PID 2 via scheduler
+        // Producer (PID 1): enable IPC, set target=2, set value=100, SEND, YIELD, HALT
+        let producer_program: Vec<u32> = vec![
+            0x49, 0x35, 0xFE00, // 0: LDI r5, 0xFE00 (IPC_STATUS)
+            0x49, 0x36, 0x01,   // 3: LDI r6, 1
+            0x53, 0x35, 0x36,   // 6: STORE r5, r6 (enable IPC)
+            0x49, 0x35, 0xFE04, // 9: LDI r5, 0xFE04 (IPC_MSG_TARGET)
+            0x49, 0x36, 0x02,   // 12: LDI r6, 2 (PID 2)
+            0x53, 0x35, 0x36,   // 15: STORE r5, r6 (set target)
+            0x49, 0x35, 0xFE05, // 18: LDI r5, 0xFE05 (IPC_MSG_VALUE)
+            0x49, 0x36, 100,    // 21: LDI r6, 100
+            0x53, 0x35, 0x36,   // 24: STORE r5, r6 (set value)
+            0x49, 0x35, 0xFE03, // 27: LDI r5, 0xFE03 (IPC_MSG_SEND)
+            0x49, 0x36, 0x01,   // 30: LDI r6, 1
+            0x53, 0x35, 0x36,   // 33: STORE r5, r6 (trigger send)
+            0x59,               // 36: YIELD (let scheduler route the message)
+            0x48,               // 37: HALT
+        ];
+
+        let mut vm = Vm::new(1024);
+        vm.pid = 1;
+        vm.load_program(&producer_program);
+
+        let mut table = ProcessTable::with_time_slice(vm, 1000);
+
+        // Run one tick for the producer
+        let (pid, _cycles, reason) = table.tick();
+        assert_eq!(pid, 1);
+        // The producer YIELDs after sending, so reason should be Yielded
+        assert_eq!(reason, TickReason::Yielded);
+
+        // Check that the message was routed to PID 2's mailbox
+        // But PID 2 doesn't exist yet! The outbox message should have failed
+        // because target PID 2 was not found.
+        let producer = table.get(1).unwrap();
+        assert_eq!(producer.state.ipc_status, 3, "target not found should set status=3");
+
+        // Now add PID 2 and try again
+        let consumer_program: Vec<u32> = vec![
+            0x49, 0x35, 0xFE00, // 0: LDI r5, 0xFE00 (IPC_STATUS)
+            0x49, 0x36, 0x01,   // 3: LDI r6, 1
+            0x53, 0x35, 0x36,   // 6: STORE r5, r6 (enable IPC)
+            0x49, 0x35, 0xFE02, // 9: LDI r5, 0xFE02 (IPC_MSG_COUNT)
+            0x4C, 0x30, 0x35,   // 12: LOAD r0, r5 (read count)
+            0x48,               // 15: HALT
+        ];
+
+        // Fresh test with both processes
+        let mut vm1 = Vm::new(1024);
+        vm1.pid = 1;
+        vm1.load_program(&producer_program);
+
+        let mut table2 = ProcessTable::with_time_slice(vm1, 1000);
+
+        // Manually add a second process (PID 2) as consumer
+        let mut vm2 = Vm::new(1024);
+        vm2.pid = 2;
+        vm2.load_program(&consumer_program);
+        table2.processes.push(crate::vm::Process {
+            pid: 2,
+            state: vm2.snapshot(),
+            status: crate::vm::ProcessStatus::Ready,
+        });
+
+        // Run producer tick
+        let (pid1, _, reason1) = table2.tick();
+        assert_eq!(pid1, 1);
+        assert_eq!(reason1, TickReason::Yielded);
+
+        // Check consumer (PID 2) got the message
+        let consumer = table2.get(2).unwrap();
+        assert_eq!(consumer.state.mailbox.len(), 1, "PID 2 should have received 1 message");
+        assert_eq!(consumer.state.mailbox[0], (1, 100), "message should be (sender=1, value=100)");
+
+        // Producer's mailbox should be empty (cross-process send goes to outbox, not self)
+        let producer = table2.get(1).unwrap();
+        assert_eq!(producer.state.mailbox.len(), 0, "producer should not have the message in own mailbox");
+
+        // Run consumer tick — it should read the message count
+        table2.advance_to_next(); // advance to PID 2
+        let (pid2, _, reason2) = table2.tick();
+        assert_eq!(pid2, 2);
+        // Consumer enables IPC, reads count, HALTs
+        // Note: it reads count from its own state which had 1 message when tick started
+        let consumer_vm = table2.get_vm(2).unwrap();
+        assert_eq!(consumer_vm.regs[0], 1, "consumer should see 1 message in mailbox");
+    }
+
+    #[test]
+    fn ipc_producer_consumer_full_cycle() {
+        // Full cycle: producer sends 3 values, consumer receives them all.
+        //
+        // Producer (PID 1):
+        //   enable IPC, set target=2
+        //   loop: send value, increment value, repeat 3 times, HALT
+        //
+        // Consumer (PID 2):
+        //   enable IPC, YIELD (wait for messages)
+        //   loop: recv, store result, YIELD, repeat, HALT
+
+        // Producer: sends values 10, 11, 12 to PID 2
+        // Enable IPC (addr 0-8), set target PID 2 (addr 9-17)
+        // LDI r1, 10  (counter, addr 18-20)
+        // LDI r2, 3   (remaining, addr 21-23)
+        // loop (addr 24):
+        //   STORE value (addr 24-26)
+        //   SEND (addr 27-32)
+        //   YIELD (addr 33)
+        //   ADD r1, r_imm? -- we need LDI r6, 1; ADD r1, r6
+        //   SUB r2, r_imm? -- same pattern
+        //   BNE r2, 0 loop
+        //   HALT
+        //
+        // Actually this is getting complex in bytecode. Let me use a simpler approach:
+        // Just send 3 separate messages inline, yielding between each.
+
+        let producer_program: Vec<u32> = vec![
+            // Enable IPC
+            0x49, 0x35, 0xFE00, // 0: LDI r5, 0xFE00 (IPC_STATUS)
+            0x49, 0x36, 0x01,   // 3: LDI r6, 1
+            0x53, 0x35, 0x36,   // 6: STORE r5, r6 (enable)
+            // Set target to PID 2
+            0x49, 0x35, 0xFE04, // 9: LDI r5, 0xFE04 (IPC_MSG_TARGET)
+            0x49, 0x36, 0x02,   // 12: LDI r6, 2
+            0x53, 0x35, 0x36,   // 15: STORE r5, r6
+
+            // --- Send value 10 ---
+            0x49, 0x35, 0xFE05, // 18: LDI r5, 0xFE05 (IPC_MSG_VALUE)
+            0x49, 0x36, 10,     // 21: LDI r6, 10
+            0x53, 0x35, 0x36,   // 24: STORE r5, r6
+            0x49, 0x35, 0xFE03, // 27: LDI r5, 0xFE03 (SEND)
+            0x49, 0x36, 0x01,   // 30: LDI r6, 1
+            0x53, 0x35, 0x36,   // 33: STORE r5, r6 (send)
+            0x59,               // 36: YIELD
+
+            // --- Send value 20 ---
+            0x49, 0x35, 0xFE05, // 37: LDI r5, 0xFE05
+            0x49, 0x36, 20,     // 40: LDI r6, 20
+            0x53, 0x35, 0x36,   // 43: STORE r5, r6
+            0x49, 0x35, 0xFE03, // 46: LDI r5, 0xFE03
+            0x49, 0x36, 0x01,   // 49: LDI r6, 1
+            0x53, 0x35, 0x36,   // 52: STORE r5, r6 (send)
+            0x59,               // 55: YIELD
+
+            // --- Send value 30 ---
+            0x49, 0x35, 0xFE05, // 56: LDI r5, 0xFE05
+            0x49, 0x36, 30,     // 59: LDI r6, 30
+            0x53, 0x35, 0x36,   // 62: STORE r5, r6
+            0x49, 0x35, 0xFE03, // 65: LDI r5, 0xFE03
+            0x49, 0x36, 0x01,   // 68: LDI r6, 1
+            0x53, 0x35, 0x36,   // 71: STORE r5, r6 (send)
+            0x59,               // 74: YIELD
+
+            0x48,               // 75: HALT
+        ];
+
+        let mut vm1 = Vm::new(1024);
+        vm1.pid = 1;
+        vm1.load_program(&producer_program);
+
+        let mut table = ProcessTable::with_time_slice(vm1, 1000);
+
+        // Add consumer PID 2 (just YIELDs and HALTs, doesn't need to do anything for this test)
+        let mut vm2 = Vm::new(1024);
+        vm2.pid = 2;
+        // Consumer: just enable IPC and YIELD in a loop, then HALT
+        let consumer_program: Vec<u32> = vec![
+            0x49, 0x35, 0xFE00, // 0: LDI r5, 0xFE00 (IPC_STATUS)
+            0x49, 0x36, 0x01,   // 3: LDI r6, 1
+            0x53, 0x35, 0x36,   // 6: STORE r5, r6 (enable IPC)
+            0x59,               // 9: YIELD
+            0x59,               // 10: YIELD
+            0x59,               // 11: YIELD
+            0x59,               // 12: YIELD
+            0x48,               // 13: HALT
+        ];
+        vm2.load_program(&consumer_program);
+        table.processes.push(crate::vm::Process {
+            pid: 2,
+            state: vm2.snapshot(),
+            status: crate::vm::ProcessStatus::Ready,
+        });
+
+        // Run producer tick 1 (sends 10, yields)
+        let (p, _, r) = table.tick();
+        assert_eq!(p, 1);
+        assert_eq!(r, TickReason::Yielded);
+
+        // Consumer should have 1 message
+        let consumer = table.get(2).unwrap();
+        assert_eq!(consumer.state.mailbox.len(), 1);
+        assert_eq!(consumer.state.mailbox[0], (1, 10));
+
+        // Advance and run consumer (just yields)
+        table.advance_to_next();
+        table.tick(); // consumer yields
+
+        // Run producer tick 2 (sends 20, yields)
+        table.advance_to_next();
+        let (p, _, r) = table.tick();
+        assert_eq!(p, 1);
+        assert_eq!(r, TickReason::Yielded);
+
+        // Consumer should have 2 messages now
+        let consumer = table.get(2).unwrap();
+        assert_eq!(consumer.state.mailbox.len(), 2);
+        assert_eq!(consumer.state.mailbox[0], (1, 10));
+        assert_eq!(consumer.state.mailbox[1], (1, 20));
+
+        // Advance and run consumer (yields)
+        table.advance_to_next();
+        table.tick();
+
+        // Run producer tick 3 (sends 30, yields)
+        table.advance_to_next();
+        let (p, _, r) = table.tick();
+        assert_eq!(p, 1);
+        assert_eq!(r, TickReason::Yielded);
+
+        // Consumer should have 3 messages
+        let consumer = table.get(2).unwrap();
+        assert_eq!(consumer.state.mailbox.len(), 3);
+        assert_eq!(consumer.state.mailbox[0], (1, 10));
+        assert_eq!(consumer.state.mailbox[1], (1, 20));
+        assert_eq!(consumer.state.mailbox[2], (1, 30));
+    }
+
+    #[test]
+    fn ipc_consumer_receives_and_reads_values() {
+        // Producer sends one message, consumer receives it via RECV opcode
+        let producer_program: Vec<u32> = vec![
+            // Enable IPC
+            0x49, 0x35, 0xFE00, // 0: LDI r5, 0xFE00
+            0x49, 0x36, 0x01,   // 3: LDI r6, 1
+            0x53, 0x35, 0x36,   // 6: STORE r5, r6 (enable)
+            // Set target to PID 2
+            0x49, 0x35, 0xFE04, // 9: LDI r5, 0xFE04
+            0x49, 0x36, 0x02,   // 12: LDI r6, 2
+            0x53, 0x35, 0x36,   // 15: STORE r5, r6
+            // Send value 42
+            0x49, 0x35, 0xFE05, // 18: LDI r5, 0xFE05
+            0x49, 0x36, 42,     // 21: LDI r6, 42
+            0x53, 0x35, 0x36,   // 24: STORE r5, r6
+            0x49, 0x35, 0xFE03, // 27: LDI r5, 0xFE03
+            0x49, 0x36, 0x01,   // 30: LDI r6, 1
+            0x53, 0x35, 0x36,   // 33: STORE r5, r6 (send)
+            0x59,               // 36: YIELD
+            0x48,               // 37: HALT
+        ];
+
+        // Consumer: enable IPC, YIELD (wait for msg), RECV, read value, read sender, HALT
+        let consumer_program: Vec<u32> = vec![
+            0x49, 0x35, 0xFE00, // 0: LDI r5, 0xFE00 (IPC_STATUS)
+            0x49, 0x36, 0x01,   // 3: LDI r6, 1
+            0x53, 0x35, 0x36,   // 6: STORE r5, r6 (enable IPC)
+            0x59,               // 9: YIELD (wait for producer to send)
+            // Trigger receive
+            0x49, 0x35, 0xFE06, // 10: LDI r5, 0xFE06 (IPC_MSG_RECV)
+            0x49, 0x36, 0x01,   // 13: LDI r6, 1
+            0x53, 0x35, 0x36,   // 16: STORE r5, r6 (trigger recv)
+            // Read received value
+            0x49, 0x35, 0xFE05, // 19: LDI r5, 0xFE05 (IPC_MSG_VALUE)
+            0x4C, 0x30, 0x35,   // 22: LOAD r0, r5 (r0 = received value)
+            // Read sender PID
+            0x49, 0x35, 0xFE07, // 25: LDI r5, 0xFE07 (IPC_MSG_SENDER)
+            0x4C, 0x31, 0x35,   // 28: LOAD r1, r5 (r1 = sender PID)
+            0x48,               // 31: HALT
+        ];
+
+        let mut vm1 = Vm::new(1024);
+        vm1.pid = 1;
+        vm1.load_program(&producer_program);
+
+        let mut table = ProcessTable::with_time_slice(vm1, 1000);
+
+        let mut vm2 = Vm::new(1024);
+        vm2.pid = 2;
+        vm2.load_program(&consumer_program);
+        table.processes.push(crate::vm::Process {
+            pid: 2,
+            state: vm2.snapshot(),
+            status: crate::vm::ProcessStatus::Ready,
+        });
+
+        // Tick 1: producer sends and yields
+        table.tick();
+        // Verify message delivered to PID 2
+        let consumer = table.get(2).unwrap();
+        assert_eq!(consumer.state.mailbox.len(), 1);
+        assert_eq!(consumer.state.mailbox[0], (1, 42));
+
+        // Tick 2: consumer yields (waits)
+        table.advance_to_next();
+        table.tick();
+
+        // Tick 3: producer halts
+        table.advance_to_next();
+        table.tick();
+
+        // Tick 4: consumer receives, reads value, halts
+        table.advance_to_next();
+        let (pid, _, reason) = table.tick();
+        assert_eq!(pid, 2);
+
+        let consumer_vm = table.get_vm(2).unwrap();
+        assert_eq!(consumer_vm.regs[0], 42, "consumer r0 should be the received value 42");
+        assert_eq!(consumer_vm.regs[1], 1, "consumer r1 should be sender PID 1");
+        assert_eq!(consumer_vm.ipc_msg_value, 42);
+        assert_eq!(consumer_vm.ipc_msg_sender, 1);
+    }
+
+    #[test]
+    fn ipc_mailbox_overflow_cross_process() {
+        // Test that sending to a full mailbox reports failure
+        // Create producer with a program that sends to PID 2
+        let producer_program: Vec<u32> = vec![
+            // Enable IPC
+            0x49, 0x35, 0xFE00, // 0: LDI r5, 0xFE00
+            0x49, 0x36, 0x01,   // 3: LDI r6, 1
+            0x53, 0x35, 0x36,   // 6: STORE r5, r6 (enable)
+            // Set target to PID 2
+            0x49, 0x35, 0xFE04, // 9: LDI r5, 0xFE04
+            0x49, 0x36, 0x02,   // 12: LDI r6, 2
+            0x53, 0x35, 0x36,   // 15: STORE r5, r6
+            // Send value
+            0x49, 0x35, 0xFE05, // 18: LDI r5, 0xFE05 (VALUE)
+            0x49, 0x36, 999,    // 21: LDI r6, 999
+            0x53, 0x35, 0x36,   // 24: STORE r5, r6
+            0x49, 0x35, 0xFE03, // 27: LDI r5, 0xFE03 (SEND)
+            0x49, 0x36, 0x01,   // 30: LDI r6, 1
+            0x53, 0x35, 0x36,   // 33: STORE r5, r6 (send)
+            0x59,               // 36: YIELD
+            0x48,               // 37: HALT
+        ];
+
+        let mut vm1 = Vm::new(1024);
+        vm1.pid = 1;
+        vm1.load_program(&producer_program);
+
+        // Create target with a full mailbox
+        let mut vm2 = Vm::new(1024);
+        vm2.pid = 2;
+        for i in 0..IPC_MAILBOX_SIZE {
+            vm2.mailbox.push_back((99, i as u32));
+        }
+
+        let mut table = ProcessTable::with_time_slice(vm1, 1000);
+        table.processes.push(crate::vm::Process {
+            pid: 2,
+            state: vm2.snapshot(),
+            status: crate::vm::ProcessStatus::Ready,
+        });
+
+        // Run producer — it sends to PID 2 whose mailbox is full
+        table.tick();
+
+        // The outbox routing should detect the full mailbox and set status=2
+        let producer = table.get(1).unwrap();
+        assert_eq!(producer.state.ipc_status, 2, "should report mailbox full (status=2)");
+
+        // Consumer mailbox should still be at max capacity
+        let consumer = table.get(2).unwrap();
+        assert_eq!(consumer.state.mailbox.len(), IPC_MAILBOX_SIZE);
+        // The message that was there before should not have been replaced
+        assert_eq!(consumer.state.mailbox[0], (99, 0));
+    }
+
+    #[test]
+    fn ipc_restore_preserves_ipc_state() {
+        // Verify that snapshot/restore correctly preserves all IPC fields
+        let mut vm = Vm::new(1024);
+        vm.pid = 1;
+        vm.write_ipc_reg(IPC_STATUS_ADDR, 1); // enable
+        // Self-send (target=0 defaults to self)
+        vm.write_ipc_reg(IPC_MSG_VALUE_ADDR, 42);
+        vm.write_ipc_reg(IPC_MSG_SEND_ADDR, 1); // self-send
+        vm.write_ipc_reg(IPC_MSG_SEND_ADDR, 1); // another self-send
+        // Cross-process send to PID 5
+        vm.write_ipc_reg(IPC_MSG_TARGET_ADDR, 5);
+        vm.write_ipc_reg(IPC_MSG_VALUE_ADDR, 99);
+        vm.write_ipc_reg(IPC_MSG_SEND_ADDR, 1); // goes to outbox
+
+        let snap = vm.snapshot();
+
+        // Create fresh VM and restore
+        let mut vm2 = Vm::new(1024);
+        vm2.restore(&snap);
+
+        assert_eq!(vm2.ipc_enabled, true);
+        assert_eq!(vm2.ipc_msg_target, 5);
+        assert_eq!(vm2.ipc_msg_value, 99);
+        assert_eq!(vm2.mailbox.len(), 2, "two self-sends should produce 2 mailbox messages");
+        assert_eq!(vm2.mailbox[0], (1, 42));
+        assert_eq!(vm2.mailbox[1], (1, 42));
+        assert_eq!(vm2.ipc_status, 1);
+        assert_eq!(vm2.ipc_outbox.len(), 1, "one cross-process send should be in outbox");
+        assert_eq!(vm2.ipc_outbox[0], (5, 99));
+    }
 }
+
