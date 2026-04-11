@@ -21,24 +21,22 @@ MOUSE_X = 0xFFA0
 MOUSE_Y = 0xFFA1
 MOUSE_BTN = 0xFFA2
 
-; ── Drawing color (cyan = 0x00FFFF) ──
-COLOR = 0x00FFFF
+; ── Colors ──
+COLOR_CYAN = 0x00FFFF
 COLOR_RED = 0xFF0000
 COLOR_BLACK = 0x000000
 
 ; ── State variables in high memory ──
 PREV_X = 0x1000
 PREV_Y = 0x1001
-WAS_DOWN = 0x1002
 
 main:
-    ; Initialize state
+    ; Initialize previous position
     LDI r0, 0
     STI r0, PREV_X
     STI r0, PREV_Y
-    STI r0, WAS_DOWN
 
-    ; Draw initial crosshair at center
+    ; Draw initial crosshair at center (128, 128)
     LDI r0, 128
     LDI r1, 128
     LDI r2, COLOR_RED
@@ -58,86 +56,57 @@ loop:
     ; ── Check left button (bit 0) ──
     LDI r3, 1
     AND r3, r2               ; r3 = buttons & 1
+    LDI r6, 0
+    BNE r3, r6, draw_pixel   ; if button down, draw
 
-    ; Load previous button state
-    LDI r5, WAS_DOWN
-    LOAD r4, r5              ; r4 = was_down
+    JMP check_right
 
-    ; If currently down AND wasn't down before → new click
-    ; Simple: if left button is down, draw
-    BNE r3, #done_draw       ; if no button, skip drawing
-
-    ; ── Draw at mouse position ──
-    LDI r6, COLOR
+draw_pixel:
+    ; Draw a pixel at mouse position
+    LDI r6, COLOR_CYAN
     PSET r0, r1, r6
 
-done_draw:
+check_right:
     ; ── Check right button (bit 1) → clear screen ──
     LDI r3, 2
     AND r3, r2               ; r3 = buttons & 2
-    BEQ r3, #done_clear      ; if not right button, skip
+    LDI r6, 0
+    BNE r3, r6, clear_screen ; if right button, clear
+    JMP draw_cursor
 
-    ; Clear the screen: draw black over the entire 256x256 area
-    ; Use RECTF to fill screen with black
-    LDI r0, 0                ; x
-    LDI r1, 0                ; y
-    LDI r2, 255              ; w
-    LDI r3, 255              ; h
-    LDI r6, COLOR_BLACK
-    RECTF r0, r1, r2, r3, r6
+clear_screen:
+    ; Fill screen with black using RECTF (color comes from r0)
+    LDI r0, COLOR_BLACK
+    LDI r1, 0
+    LDI r2, 0
+    LDI r3, 256
+    LDI r4, 256
+    RECTF r1, r2, r3, r4
 
-done_clear:
+draw_cursor:
     ; ── Draw crosshair cursor at mouse position ──
-    ; Erase old crosshair (draw black)
+    ; Re-read mouse (in case clear_screen clobbered r0/r1)
+    LDI r5, MOUSE_X
+    LOAD r0, r5
+    LDI r5, MOUSE_Y
+    LOAD r1, r5
+
+    ; Erase old cursor position
     LDI r5, PREV_X
     LOAD r3, r5
     LDI r5, PREV_Y
     LOAD r4, r5
-
-    ; Only erase if old position is different from new
-    LDI r5, PREV_X
-    LOAD r6, r5
-    SUB r6, r0
-    BNE r6, #erase_old
-    LDI r5, PREV_Y
-    LOAD r6, r5
-    SUB r6, r1
-    BEQ r6, #skip_erase
-
-erase_old:
-    ; Erase old cursor: draw black pixels around old pos
     LDI r6, COLOR_BLACK
-    ; Horizontal line (3 pixels)
-    LDI r5, PREV_X
-    LOAD r3, r5
-    LDI r5, PREV_Y
-    LOAD r4, r5
-    PSET r3, r4, r6          ; center
-    LDI r7, 1
-    ADD r3, r7
-    PSET r3, r4, r6          ; center+1
-    LDI r5, PREV_X
-    LOAD r3, r5
-    LDI r7, 1
-    SUB r3, r7
-    PSET r3, r4, r6          ; center-1
+    PSET r3, r4, r6          ; erase old center
 
-skip_erase:
-    ; Draw new crosshair
+    ; Draw new cursor
     LDI r6, COLOR_RED
-    PSET r0, r1, r6          ; center
+    PSET r0, r1, r6
 
-    ; Save current position as previous
-    LDI r5, PREV_X
+    ; Save current position
     STI r0, PREV_X
-    LDI r5, PREV_Y
     STI r1, PREV_Y
-
-    ; Save button state
-    LDI r3, 1
-    AND r3, r2
-    STI r3, WAS_DOWN
 
     ; ── Loop ──
     YIELD
-    JMP #loop
+    JMP loop

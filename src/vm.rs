@@ -310,10 +310,18 @@ impl ProcessTable {
 
         // Handle FORK: if the VM requested a fork, create a child process.
         if vm.fork_requested {
+            let child_resume_pc = vm.fork_pc;
+            vm.fork_requested = false; // clear before snapshot
+            vm.fork_pc = 0;
             let child_pid = self.alloc_pid();
             let mut child_state = vm.snapshot();
-            // Child gets r0 = 0
+            // Child gets r0 = 0, resumes at fork_pc, not halted, not yielded
             child_state.regs[0] = 0;
+            child_state.pc = child_resume_pc;
+            child_state.halted = false;
+            child_state.yielded = false;
+            child_state.fork_requested = false;
+            child_state.fork_pc = 0;
             child_state.pid = child_pid;
             self.processes.push(Process {
                 pid: child_pid,
@@ -426,7 +434,8 @@ pub struct VmSnapshot {
     pub pid: u32,
     /// Fork request flag.
     pub fork_requested: bool,
-    /// Mouse X coordinate.
+    /// PC at the moment FORK was executed (child should resume here).
+    pub fork_pc: u32,
     pub mouse_x: u32,
     /// Mouse Y coordinate.
     pub mouse_y: u32,
@@ -521,6 +530,8 @@ pub struct Vm {
     pub pid: u32,
     /// Set to true when FORK opcode is executed; scheduler reads and clears this.
     pub fork_requested: bool,
+    /// PC at the moment FORK was executed (child should resume here).
+    pub fork_pc: u32,
     /// Mouse X coordinate (0–255). Updated by host GUI each frame.
     pub mouse_x: u32,
     /// Mouse Y coordinate (0–255). Updated by host GUI each frame.
@@ -551,6 +562,7 @@ impl Vm {
             dbg_breakpt_hit: 0,
             pid: 0,
             fork_requested: false,
+            fork_pc: 0,
             mouse_x: 0,
             mouse_y: 0,
             mouse_buttons: 0,
@@ -638,6 +650,7 @@ impl Vm {
             dbg_breakpt_hit: 0,
             pid: 0,
             fork_requested: false,
+            fork_pc: 0,
             mouse_x: 0,
             mouse_y: 0,
             mouse_buttons: 0,
@@ -753,6 +766,7 @@ impl Vm {
             dbg_breakpt_hit: self.dbg_breakpt_hit,
             pid: self.pid,
             fork_requested: self.fork_requested,
+            fork_pc: self.fork_pc,
             mouse_x: self.mouse_x,
             mouse_y: self.mouse_y,
             mouse_buttons: self.mouse_buttons,
@@ -779,6 +793,7 @@ impl Vm {
         self.dbg_breakpt_hit = snapshot.dbg_breakpt_hit;
         self.pid = snapshot.pid;
         self.fork_requested = snapshot.fork_requested;
+        self.fork_pc = snapshot.fork_pc;
         self.mouse_x = snapshot.mouse_x;
         self.mouse_y = snapshot.mouse_y;
         self.mouse_buttons = snapshot.mouse_buttons;
@@ -1594,8 +1609,11 @@ impl Vm {
             // r0 = child_pid (parent), r0 = 0 (child).
             op::FORK => {
                 // Mark fork request -- the scheduler picks this up.
-                // Standalone: just set r0 to a sentinel so tests can verify.
+                // Save the PC that the child should resume at (next instruction).
+                // Note: execute() hasn't advanced PC yet, but step() will add width=1 after this.
+                // So the child's fork_pc will be set to pc+1 by the scheduler.
                 self.fork_requested = true;
+                self.fork_pc = self.pc + 1; // next instruction after FORK
                 Ok(None)
             }
 
@@ -2347,6 +2365,7 @@ impl Vm {
             // ── o (0x6F): FORK ──────────────────────
             op::FORK => {
                 self.fork_requested = true;
+                self.fork_pc = self.pc + 1;
                 None
             }
 
@@ -3906,5 +3925,374 @@ mod tests {
         assert!(!vm.write_debug_reg(DBG_CYCLE_COUNT_ADDR, 999));
         assert!(!vm.write_debug_reg(DBG_STACK_DEPTH_ADDR, 10));
         assert!(!vm.write_debug_reg(DBG_BREAKPT_HIT_ADDR, 1));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // PROCESS SCHEDULER TESTS
+    // ═══════════════════════════════════════════════════════════════════
+
+    fn make_simple_vm() -> Vm {
+        // LDI r0, 1; HALT
+        let program: Vec<u32> = vec![0x49, 0x30, 0x01, 0x48];
+        let mut vm = Vm::new(256);
+        vm.load_program(&program);
+        vm
+    }
+
+    fn make_yielding_vm() -> Vm {
+        // LDI r0, 10; YIELD; LDI r0, 20; HALT
+        let program: Vec<u32> = vec![
+            0x49,
+            0x30,
+            10, // LDI r0, 10
+            0x59, // YIELD
+            0x49,
+            0x30,
+            20, // LDI r0, 20
+            0x48, // HALT
+        ];
+        let mut vm = Vm::new(256);
+        vm.load_program(&program);
+        vm
+    }
+
+    fn make_looping_vm(count_addr: u32) -> Vm {
+        // A program that increments r1 in a loop, stores to count_addr, yields each iteration.
+        // LDI r5, count_addr
+        // LDI r1, 0
+        // loop:
+        // ADD r1, r0       (r0=1 from init)
+        // STORE r5, r1
+        // YIELD
+        // JMP #loop
+        let program: Vec<u32> = vec![
+            0x49, 0x35, count_addr, // 0: LDI r5, count_addr
+            0x49, 0x30, 1, // 3: LDI r0, 1
+            0x49, 0x31, 0, // 6: LDI r1, 0
+            // loop at addr 9:
+            0x41, 0x31, 0x30, // 9: ADD r1, r0
+            0x53, 0x35, 0x31, // 12: STORE r5, r1
+            0x59, // 15: YIELD
+            0x4A, 9 | 0x80000000, // 16: JMP #loop (absolute)
+        ];
+        let mut vm = Vm::new(256);
+        vm.load_program(&program);
+        vm
+    }
+
+    fn make_fork_vm() -> Vm {
+        // LDI r0, 0
+        // FORK
+        // ; After fork: parent r0=child_pid, child r0=0
+        // HALT
+        let program: Vec<u32> = vec![
+            0x49, 0x30, 0, // 0: LDI r0, 0
+            0x6F, // 3: FORK
+            0x48, // 4: HALT
+        ];
+        let mut vm = Vm::new(256);
+        vm.load_program(&program);
+        vm
+    }
+
+    #[test]
+    fn scheduler_new_has_one_process() {
+        let vm = make_simple_vm();
+        let table = ProcessTable::new(vm);
+        assert_eq!(table.processes.len(), 1);
+        assert_eq!(table.current_pid, 1);
+        assert_eq!(table.active_count(), 1);
+    }
+
+    #[test]
+    fn scheduler_default_time_slice() {
+        let vm = make_simple_vm();
+        let table = ProcessTable::new(vm);
+        assert_eq!(table.time_slice, 100);
+    }
+
+    #[test]
+    fn scheduler_custom_time_slice() {
+        let vm = make_simple_vm();
+        let table = ProcessTable::with_time_slice(vm, 50);
+        assert_eq!(table.time_slice, 50);
+    }
+
+    #[test]
+    fn scheduler_tick_simple_halts() {
+        let vm = make_simple_vm();
+        let mut table = ProcessTable::new(vm);
+        let (pid, cycles, reason) = table.tick();
+        assert_eq!(pid, 1);
+        assert!(cycles > 0);
+        assert_eq!(reason, TickReason::Halted);
+        assert_eq!(table.active_count(), 0);
+    }
+
+    #[test]
+    fn scheduler_tick_stops_at_yield() {
+        let vm = make_yielding_vm();
+        let mut table = ProcessTable::new(vm);
+        let (_, _, reason) = table.tick();
+        assert_eq!(reason, TickReason::Yielded);
+        // The VM should have stopped at YIELD with r0=10
+        let proc = table.current().unwrap();
+        assert_eq!(proc.state.regs[0], 10);
+        assert_eq!(proc.status, ProcessStatus::Ready);
+    }
+
+    #[test]
+    fn scheduler_tick_resumes_after_yield() {
+        let vm = make_yielding_vm();
+        let mut table = ProcessTable::new(vm);
+        // First tick: stops at YIELD
+        let (pid1, _, reason1) = table.tick();
+        assert_eq!(reason1, TickReason::Yielded);
+        assert_eq!(pid1, 1);
+
+        // Second tick: same process continues to HALT
+        let (pid2, _, reason2) = table.tick();
+        assert_eq!(reason2, TickReason::Halted);
+        assert_eq!(pid2, 1);
+    }
+
+    #[test]
+    fn scheduler_run_all_single_process() {
+        let vm = make_yielding_vm();
+        let mut table = ProcessTable::new(vm);
+        let total = table.run_all();
+        assert!(total > 0);
+        assert_eq!(table.active_count(), 0);
+    }
+
+    #[test]
+    fn scheduler_fork_creates_child() {
+        let vm = make_fork_vm();
+        let mut table = ProcessTable::new(vm);
+        let (pid, _, reason) = table.tick();
+        assert_eq!(pid, 1);
+        assert_eq!(reason, TickReason::Halted);
+        // FORK should have created a child process
+        assert_eq!(table.processes.len(), 2);
+        // Parent should have child PID in r0
+        let parent = table.get(1).unwrap();
+        assert_eq!(parent.state.regs[0], 2, "parent r0 should be child pid 2");
+        // Child should have r0=0
+        let child = table.get(2).unwrap();
+        assert_eq!(child.state.regs[0], 0, "child r0 should be 0");
+    }
+
+    #[test]
+    fn scheduler_fork_child_runs() {
+        let vm = make_fork_vm();
+        let mut table = ProcessTable::new(vm);
+        // Parent runs: FORK then HALT -> child created
+        table.tick();
+        assert_eq!(table.processes.len(), 2);
+
+        // Parent halted. Child should be Ready.
+        let child = table.get(2).unwrap();
+        assert_eq!(child.status, ProcessStatus::Ready);
+
+        // Run child: it continues from after FORK and hits HALT
+        // advance_to_next should pick up child
+        let (pid, _, reason) = table.tick();
+        assert_eq!(pid, 2);
+        assert_eq!(reason, TickReason::Halted);
+    }
+
+    #[test]
+    fn scheduler_run_all_with_fork() {
+        let vm = make_fork_vm();
+        let mut table = ProcessTable::new(vm);
+        let total = table.run_all();
+        assert!(total > 0);
+        // Both processes should have exited
+        assert_eq!(table.active_count(), 0);
+        assert_eq!(table.processes.len(), 2);
+    }
+
+    #[test]
+    fn scheduler_round_robin_two_processes() {
+        // Two processes that each yield once then halt
+        let vm1 = make_yielding_vm();
+        let mut table = ProcessTable::new(vm1);
+        // Manually add a second process (same program at a different offset)
+        let mut vm2 = make_yielding_vm();
+        vm2.pid = 0; // will be overwritten by alloc_pid
+        let pid2 = table.alloc_pid();
+        let mut snap2 = vm2.snapshot();
+        snap2.pid = pid2;
+        table.processes.push(Process {
+            pid: pid2,
+            state: snap2,
+            status: ProcessStatus::Ready,
+        });
+
+        assert_eq!(table.processes.len(), 2);
+
+        // Tick 1: process 1 yields
+        let (p1, _, r1) = table.tick();
+        assert_eq!(p1, 1);
+        assert_eq!(r1, TickReason::Yielded);
+
+        // run_all advances to next, so tick again should get process 2
+        table.advance_to_next();
+        let (p2, _, r2) = table.tick();
+        assert_eq!(p2, 2);
+        assert_eq!(r2, TickReason::Yielded);
+
+        // Continue: process 1 halts
+        table.advance_to_next();
+        let (p3, _, r3) = table.tick();
+        assert_eq!(p3, 1);
+        assert_eq!(r3, TickReason::Halted);
+
+        // Process 2 halts
+        table.advance_to_next();
+        let (p4, _, r4) = table.tick();
+        assert_eq!(p4, 2);
+        assert_eq!(r4, TickReason::Halted);
+
+        assert_eq!(table.active_count(), 0);
+    }
+
+    #[test]
+    fn scheduler_time_slice_preemption() {
+        // A program that never yields or halts (infinite NOP loop)
+        // NOP at 0, JMP back to 0
+        let program: Vec<u32> = vec![
+            0x4E, // 0: NOP
+            0x4A, 0 | 0x80000000, // 1: JMP #0 (absolute)
+        ];
+        let mut vm = Vm::new(256);
+        vm.load_program(&program);
+        let mut table = ProcessTable::with_time_slice(vm, 10);
+
+        let (_, cycles, reason) = table.tick();
+        assert_eq!(cycles, 10, "should run exactly time_slice cycles");
+        assert_eq!(reason, TickReason::TimeSlice);
+        // Process should still be Ready (not halted or yielded)
+        assert_eq!(
+            table.current().unwrap().status,
+            ProcessStatus::Ready
+        );
+    }
+
+    #[test]
+    fn scheduler_get_vm_reconstructs() {
+        let vm = make_simple_vm();
+        let mut table = ProcessTable::new(vm);
+        // Run to halt
+        table.tick();
+        // Reconstruct VM for process 1
+        let vm = table.get_vm(1).unwrap();
+        assert!(vm.halted);
+        assert_eq!(vm.regs[0], 1);
+    }
+
+    #[test]
+    fn scheduler_get_nonexistent_pid() {
+        let vm = make_simple_vm();
+        let table = ProcessTable::new(vm);
+        assert!(table.get(999).is_none());
+        assert!(table.get_vm(999).is_none());
+    }
+
+    #[test]
+    fn scheduler_no_runnable_returns_no_runnable() {
+        let vm = make_simple_vm();
+        let mut table = ProcessTable::new(vm);
+        // Run to halt
+        table.tick();
+        // All halted, tick should return NoRunnable
+        let (_, cycles, reason) = table.tick();
+        assert_eq!(cycles, 0);
+        assert_eq!(reason, TickReason::NoRunnable);
+    }
+
+    #[test]
+    fn scheduler_getpid_in_process() {
+        // GETPID sets r0 = process ID
+        // LDI r0, 0; GETPID; HALT
+        let program: Vec<u32> = vec![0x49, 0x30, 0, 0x76, 0x48];
+        let mut vm = Vm::new(256);
+        vm.load_program(&program);
+        vm.pid = 7; // simulate being assigned PID 7
+        let mut table = ProcessTable::new(vm);
+        // Override the pid in the process table entry
+        table.processes[0].state.pid = 7;
+        table.processes[0].pid = 7;
+        table.current_pid = 7;
+
+        let (_, _, reason) = table.tick();
+        assert_eq!(reason, TickReason::Halted);
+        let proc = table.get(7).unwrap();
+        assert_eq!(proc.state.regs[0], 7, "GETPID should return pid 7");
+    }
+
+    #[test]
+    fn scheduler_exit_terminates_process() {
+        // EXIT opcode (0x75) halts the current process
+        // LDI r0, 42; EXIT
+        let program: Vec<u32> = vec![0x49, 0x30, 42, 0x75];
+        let mut vm = Vm::new(256);
+        vm.load_program(&program);
+        let mut table = ProcessTable::new(vm);
+        let (_, _, reason) = table.tick();
+        assert_eq!(reason, TickReason::Halted);
+        assert_eq!(table.active_count(), 0);
+    }
+
+    #[test]
+    fn scheduler_run_all_two_yielding_processes() {
+        // Two processes that yield 3 times each then halt
+        // YIELD; YIELD; YIELD; HALT
+        let program: Vec<u32> = vec![0x59, 0x59, 0x59, 0x48];
+        let mut vm1 = Vm::new(256);
+        vm1.load_program(&program);
+        let mut table = ProcessTable::with_time_slice(vm1, 1000);
+
+        // Add second process
+        let mut vm2 = Vm::new(256);
+        vm2.load_program(&program);
+        let pid2 = table.alloc_pid();
+        let mut snap = vm2.snapshot();
+        snap.pid = pid2;
+        table.processes.push(Process {
+            pid: pid2,
+            state: snap,
+            status: ProcessStatus::Ready,
+        });
+
+        let total = table.run_all();
+        assert!(total > 0);
+        assert_eq!(table.active_count(), 0, "all processes should have exited");
+    }
+
+    #[test]
+    fn scheduler_fork_child_gets_unique_pid() {
+        let vm = make_fork_vm();
+        let mut table = ProcessTable::new(vm);
+        table.tick();
+        assert_eq!(table.processes.len(), 2);
+        // PIDs should be unique
+        let pids: Vec<u32> = table.processes.iter().map(|p| p.pid).collect();
+        assert_eq!(pids.len(), 2);
+        assert_ne!(pids[0], pids[1]);
+    }
+
+    #[test]
+    fn scheduler_fork_child_inherits_memory() {
+        // LDI r1, 42; FORK; HALT
+        let program: Vec<u32> = vec![0x49, 0x31, 42, 0x6F, 0x48];
+        let mut vm = Vm::new(256);
+        vm.load_program(&program);
+        let mut table = ProcessTable::new(vm);
+        table.tick();
+
+        // Child should have the same memory as parent (at time of fork)
+        let child = table.get(2).unwrap();
+        assert_eq!(child.state.regs[1], 42, "child should inherit r1=42 from parent");
     }
 }
