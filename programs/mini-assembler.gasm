@@ -1,0 +1,413 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/mini-assembler.gasm -- VM-resident assembler for Edit-Compile-Execute
+;
+; Reads source text from 0x2000 (written by mini-editor Ctrl+S).
+; Emits pixel bytecodes to 0x3000.
+; Sets status flags so the parent VM can check success/failure.
+;
+; This is the assembler half of the Edit-Compile-Execute loop:
+;   1. User edits source in mini-editor
+;   2. User presses Ctrl+S → source saved to 0x2000
+;   3. Parent VM spawns this assembler (or it polls the dirty flag)
+;   4. Assembler reads 0x2000, writes bytecode to 0x3000
+;   5. Parent VM spawns a child from the bytecode at 0x3000
+;
+; SOURCE SYNTAX (same as micro-asm.asm):
+;   Printable chars (0x21-0x7E) except ;,$,#,@ → written verbatim as bytecode
+;   $XX       → 1-byte hex value
+;   $XXXXXXXX → full u32 cell
+;   #name     → define label at current output position
+;   @name     → emit resolved address of label (with 0x80000000 flag)
+;   ;         → comment (skip to end of line)
+;   space/tab/newline/comma/colon → whitespace/separators (skipped)
+;   0x00 (null) → end of input
+;
+; MEMORY MAP:
+;   0x2000-0x22FF  input source (from editor, null-terminated)
+;   0x3000-0x37FF  output bytecode (null-terminated)
+;   0x3FFE         compile status (0=success, 1=error)
+;   0x3FFF         output length (bytecode word count)
+;   0x3800-0x39FF  label table
+;   0x3A00-0x3AFF  scratch buffer (name comparison)
+;   0x3B00-0x3BFF  this assembler's code
+;
+; REGISTER MAP:
+;   r0   input pointer
+;   r1   output pointer (pass 2)
+;   r2   current character
+;   r3   hex accumulator / temp
+;   r4   hex digit value
+;   r5   comparison threshold
+;   r6   name length
+;   r7   label table pointer
+;   r8   pass-1 output byte counter
+;   r9   temp char (table reads)
+;   r10  resolved address
+;   r11  table comparison pointer
+;   r12  loop counter
+;   r13  query name pointer
+;   r14  constant 1
+;   r15  constant 0
+;   r16  name buffer pointer (0x3A00)
+;   r17  label table base (0x3800)
+;   r18  source line counter
+; ═══════════════════════════════════════════════════════════════════════
+
+.ORG 0x3B00
+
+; ── Setup ─────────────────────────────────────────────────────────────
+main:
+    LDI r14, 1
+    LDI r15, 0
+    LDI r17, 0x3800          ; label table base
+    LDI r7,  0x3800          ; label table write ptr
+    LDI r8,  0               ; output byte counter (pass 1)
+    LDI r0,  0x1FFE          ; dirty flag address
+    LOAD r2, r0              ; r2 = dirty flag
+    BEQ r2, r15, done_early  ; if dirty == 0, nothing to compile
+    ; Clear dirty flag
+    STORE r0, r15            ; dirty = 0
+    LDI r0,  0x2000          ; input ptr (source file from editor)
+
+    ; Clear status flags
+    LDI r3,  0x3FFE
+    STORE r3, r15            ; status = 0 (success)
+    LDI r3,  0x3FFF
+    STORE r3, r15            ; length = 0
+
+; ══════════════════════════════════════════════════════════════════════
+; Pass 1 — scan source, record label definitions
+; ══════════════════════════════════════════════════════════════════════
+pass1:
+    LOAD r2, r0
+    BEQ r2, r15, p1_end          ; null → done
+
+    LDI r3, 59                   ; ';'
+    BEQ r2, r3, p1_comment
+
+    LDI r3, 35                   ; '#' label definition
+    BEQ r2, r3, p1_label_def
+
+    LDI r3, 64                   ; '@' label reference (1 output cell)
+    BEQ r2, r3, p1_label_ref
+
+    LDI r3, 36                   ; '$' hex escape (1 output cell)
+    BEQ r2, r3, p1_hex
+
+    LDI r3, 44                   ; ',' separator
+    BEQ r2, r3, p1_skip
+    LDI r3, 58                   ; ':' separator
+    BEQ r2, r3, p1_skip
+    LDI r3, 33                   ; chars < 33 are whitespace
+    BLTU r2, r3, p1_skip
+
+    ; Printable, non-special: 1 output cell
+    ADD r8, r14
+    ADD r0, r14
+    JMP pass1
+
+p1_skip:
+    ADD r0, r14
+    JMP pass1
+
+; Pass 1: skip comment to end of line
+p1_comment:
+    ADD r0, r14
+    LOAD r2, r0
+    LDI r3, 10                   ; '\n'
+    BEQ r2, r3, pass1
+    BEQ r2, r15, p1_end
+    JMP p1_comment
+
+; Pass 1: $[hex...] → 1 output cell, skip hex digits
+p1_hex:
+    ADD r0, r14                  ; skip '$'
+p1_hex_skip:
+    LOAD r2, r0
+    LDI r5, 0x30
+    BLTU r2, r5, p1_hex_done     ; < '0'
+    LDI r5, 0x3A
+    BLTU r2, r5, p1_hex_next     ; '0'-'9'
+    LDI r5, 0x41
+    BLTU r2, r5, p1_hex_done     ; 0x3A-0x40 → not hex
+    LDI r5, 0x47
+    BLTU r2, r5, p1_hex_next     ; 'A'-'F'
+    LDI r5, 0x61
+    BLTU r2, r5, p1_hex_done     ; 0x47-0x60 → not hex
+    LDI r5, 0x67
+    BLTU r2, r5, p1_hex_next     ; 'a'-'f'
+    JMP p1_hex_done              ; > 'f' → not hex
+p1_hex_next:
+    ADD r0, r14
+    JMP p1_hex_skip
+p1_hex_done:
+    ADD r8, r14                  ; 1 output cell
+    JMP pass1
+
+; Pass 1: @name → 1 output cell, skip name chars
+p1_label_ref:
+    ADD r0, r14                  ; skip '@'
+    ADD r8, r14                  ; 1 output cell
+p1_ref_name_skip:
+    LOAD r2, r0
+    LDI r5, 0x30
+    BLTU r2, r5, pass1           ; < '0' → end of name
+    LDI r5, 0x7B
+    BGEU r2, r5, pass1           ; > 'z' → end of name
+    ADD r0, r14
+    JMP p1_ref_name_skip
+
+; Pass 1: #name → record label definition
+p1_label_def:
+    ADD r0, r14                  ; skip '#'
+    LDI r16, 0x3A00              ; name buffer
+    LDI r6, 0                    ; name length = 0
+p1_collect_name:
+    LOAD r2, r0
+    LDI r5, 0x30
+    BLTU r2, r5, p1_store_label  ; end of name
+    LDI r5, 0x7B
+    BGEU r2, r5, p1_store_label  ; end of name
+    STORE r16, r2
+    ADD r16, r14
+    ADD r6, r14
+    ADD r0, r14
+    JMP p1_collect_name
+
+p1_store_label:
+    ; Write table entry: [len, c0..c(len-1), addr]
+    STORE r7, r6                 ; write name length
+    ADD r7, r14
+    LDI r11, 0x3A00              ; name read ptr
+    MOV r12, r6                  ; char count
+p1_write_name:
+    BEQ r12, r15, p1_write_addr
+    LOAD r9, r11
+    STORE r7, r9
+    ADD r11, r14
+    ADD r7, r14
+    SUB r12, r14
+    JMP p1_write_name
+p1_write_addr:
+    STORE r7, r8                 ; write current output position as address
+    ADD r7, r14
+    JMP pass1
+
+p1_end:
+    STORE r7, r15                ; end-of-table marker (len=0)
+
+; ══════════════════════════════════════════════════════════════════════
+; Pass 2 — emit bytecodes with label resolution
+; ══════════════════════════════════════════════════════════════════════
+    LDI r0, 0x2000               ; reset input ptr to source region
+    LDI r1, 0x3000               ; output ptr = bytecode region
+    LDI r18, 1                   ; source line counter (1-indexed)
+
+pass2:
+    LOAD r2, r0
+    BEQ r2, r15, done
+
+    LDI r3, 10                   ; '\n' — increment line counter
+    BEQ r2, r3, p2_newline
+
+    LDI r3, 59                   ; ';'
+    BEQ r2, r3, p2_comment
+
+    LDI r3, 35                   ; '#' label definition — skip
+    BEQ r2, r3, p2_skip_def
+
+    LDI r3, 64                   ; '@' label reference — resolve
+    BEQ r2, r3, p2_label_ref
+
+    LDI r3, 36                   ; '$' hex escape
+    BEQ r2, r3, p2_hex
+
+    LDI r3, 44                   ; ',' separator
+    BEQ r2, r3, p2_skip
+    LDI r3, 58                   ; ':' separator
+    BEQ r2, r3, p2_skip
+    LDI r3, 33                   ; whitespace
+    BLTU r2, r3, p2_skip
+
+    ; Printable, non-special: write verbatim as bytecode
+    STORE r1, r2
+    ADD r1, r14
+    ADD r0, r14
+    JMP pass2
+
+p2_skip:
+    ADD r0, r14
+    JMP pass2
+
+p2_newline:
+    ADD r18, r14
+    ADD r0, r14
+    JMP pass2
+
+p2_comment:
+    ADD r0, r14
+    LOAD r2, r0
+    LDI r3, 10
+    BEQ r2, r3, pass2
+    BEQ r2, r15, done
+    JMP p2_comment
+
+; Pass 2: skip #name definition
+p2_skip_def:
+    ADD r0, r14                  ; skip '#'
+p2_skip_def_name:
+    LOAD r2, r0
+    LDI r5, 0x30
+    BLTU r2, r5, pass2
+    LDI r5, 0x7B
+    BGEU r2, r5, pass2
+    ADD r0, r14
+    JMP p2_skip_def_name
+
+; Pass 2: $[hex...] — accumulate hex digits into one u32 cell
+p2_hex:
+    ADD r0, r14                  ; skip '$'
+    LDI r3, 0                    ; accumulator
+p2_hex_loop:
+    LOAD r4, r0
+    LDI r5, 0x30
+    BLTU r4, r5, p2_hex_emit
+    LDI r5, 0x3A
+    BLTU r4, r5, p2_hex_dec
+    LDI r5, 0x41
+    BLTU r4, r5, p2_hex_emit
+    LDI r5, 0x47
+    BLTU r4, r5, p2_hex_upper
+    LDI r5, 0x61
+    BLTU r4, r5, p2_hex_emit
+    LDI r5, 0x67
+    BLTU r4, r5, p2_hex_lower
+    JMP p2_hex_emit
+p2_hex_dec:
+    LDI r5, 0x30
+    SUB r4, r5
+    JMP p2_hex_shift
+p2_hex_upper:
+    LDI r5, 55                   ; 'A'(65) - 10
+    SUB r4, r5
+    JMP p2_hex_shift
+p2_hex_lower:
+    LDI r5, 87                   ; 'a'(97) - 10
+    SUB r4, r5
+p2_hex_shift:
+    LDI r5, 4
+    SHL r3, r5
+    OR r3, r4
+    ADD r0, r14
+    JMP p2_hex_loop
+p2_hex_emit:
+    STORE r1, r3
+    ADD r1, r14
+    JMP pass2
+
+; Pass 2: @name — collect name, look up in table, emit address
+p2_label_ref:
+    ADD r0, r14                  ; skip '@'
+    LDI r16, 0x3A00              ; name buffer
+    LDI r6, 0                    ; name length
+p2_collect_ref:
+    LOAD r2, r0
+    LDI r5, 0x30
+    BLTU r2, r5, p2_lookup
+    LDI r5, 0x7B
+    BGEU r2, r5, p2_lookup
+    STORE r16, r2
+    ADD r16, r14
+    ADD r6, r14
+    ADD r0, r14
+    JMP p2_collect_ref
+
+; Scan label table for name in 0x3A00 (length in r6)
+p2_lookup:
+    MOV r7, r17                  ; r7 = table scan ptr (0x3800)
+
+p2_next_entry:
+    LOAD r9, r7                  ; r9 = entry name length
+    BEQ r9, r15, p2_not_found    ; len=0 → end of table
+
+    ; Compare lengths
+    MOV r12, r6
+    SUB r12, r9                  ; r12 = r6 - r9
+    BEQ r12, r15, p2_maybe_match
+
+    ; Lengths differ — skip entry
+    ADD r7, r14                  ; skip length byte
+    MOV r12, r9
+p2_skip_entry:
+    BEQ r12, r15, p2_skip_entry_addr
+    ADD r7, r14
+    SUB r12, r14
+    JMP p2_skip_entry
+p2_skip_entry_addr:
+    ADD r7, r14                  ; skip addr
+    JMP p2_next_entry
+
+p2_maybe_match:
+    ; Lengths match. Compare chars.
+    ADD r7, r14                  ; skip length byte
+    LDI r13, 0x3A00              ; query name ptr
+    MOV r12, r6                  ; chars remaining
+p2_compare:
+    BEQ r12, r15, p2_matched     ; all matched!
+    LOAD r9,  r7                 ; entry char
+    LOAD r10, r13                ; query char
+    BEQ r9, r10, p2_char_ok
+    ; Mismatch — skip remaining + addr
+p2_mismatch_skip:
+    BEQ r12, r15, p2_mismatch_addr
+    ADD r7, r14
+    SUB r12, r14
+    JMP p2_mismatch_skip
+p2_mismatch_addr:
+    ADD r7, r14                  ; skip addr
+    JMP p2_next_entry
+p2_char_ok:
+    ADD r7, r14
+    ADD r13, r14
+    SUB r12, r14
+    JMP p2_compare
+
+p2_matched:
+    ; r7 now points to addr byte
+    LOAD r10, r7                 ; r10 = resolved address
+    LDI r3, 0x80000000           ; absolute address flag
+    OR r10, r3
+    STORE r1, r10
+    ADD r1, r14
+    JMP pass2
+
+p2_not_found:
+    ; Set error status
+    LDI r9,  0x3FFE
+    LDI r3,  1
+    STORE r9, r3                 ; status = 1 (error)
+    ; Emit 0xFF error marker
+    LDI r10, 0xFF
+    STORE r1, r10
+    ADD r1, r14
+    JMP pass2
+
+; ── Done (early exit: no dirty flag) ──────────────────────────────────
+done_early:
+    ; Set status = 2 (no source) and length = 0
+    LDI r3, 0x3FFE
+    STORE r3, r14            ; status = 1 (no work done)
+    LDI r3, 0x3FFF
+    STORE r3, r15            ; length = 0
+    HALT
+
+; ── Done (normal) ────────────────────────────────────────────────────
+done:
+    STORE r1, r15                ; null terminator on output
+
+    ; Calculate and store output length
+    LDI r3, 0x3000
+    SUB r1, r3                   ; r1 - 0x3000 = length
+    LDI r3, 0x3FFF
+    STORE r3, r1                 ; store output length
+    HALT

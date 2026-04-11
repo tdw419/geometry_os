@@ -1,0 +1,212 @@
+; ═══════════════════════════════════════════════════════════════════════
+; GEOS Boot Screen
+; Renders a dark blue background with centered "GEOS v1.0" title text.
+; Uses RECTF for background fill and TEXT opcode for string rendering.
+; ═══════════════════════════════════════════════════════════════════════
+
+:main
+    ; ── Step 1: Clear screen to dark blue ────────────────────────────
+    LDI r0, 20              ; Color: dark blue
+    LDI r1, 0               ; x = 0
+    LDI r2, 0               ; y = 0
+    LDI r3, 255             ; w = 255 (full screen)
+    LDI r4, 255             ; h = 255 (full screen)
+    RECTF r1, r2, r3, r4    ; Fill entire screen with dark blue
+
+    ; ── Step 2: Store "GEOS v1.0\0" string into RAM ────────────────
+    ; We store the string starting at address 512 (0x200).
+    ; Each STORE writes one u32 pixel whose value is the ASCII char code.
+    ; TEXT opcode reads bytes via peek(), which returns u32, then casts to u8.
+
+    ; Store 'G' at address 512
+    LDI r5, 512
+    LDI r6, 71
+    ST r5, r6
+
+    ; Store 'E' at address 513
+    LDI r5, 513
+    LDI r6, 69
+    ST r5, r6
+
+    ; Store 'O' at address 514
+    LDI r5, 514
+    LDI r6, 79
+    ST r5, r6
+
+    ; Store 'S' at address 515
+    LDI r5, 515
+    LDI r6, 83
+    ST r5, r6
+
+    ; Store ' ' at address 516
+    LDI r5, 516
+    LDI r6, 32
+    ST r5, r6
+
+    ; Store 'v' at address 517
+    LDI r5, 517
+    LDI r6, 118
+    ST r5, r6
+
+    ; Store '1' at address 518
+    LDI r5, 518
+    LDI r6, 49
+    ST r5, r6
+
+    ; Store '.' at address 519
+    LDI r5, 519
+    LDI r6, 46
+    ST r5, r6
+
+    ; Store '0' at address 520
+    LDI r5, 520
+    LDI r6, 48
+    ST r5, r6
+
+    ; Store null terminator at address 521
+    LDI r5, 521
+    LDI r6, 0
+    ST r5, r6
+
+    ; ── Step 3: Draw window frame ──────────────────────────────────
+    ; Window positioned with margins from screen edges
+    ; Window: x=20, y=50, w=216, h=180
+    ; Title bar: top 20px of window, light blue color
+    ; Border: thin gray lines
+
+    ; Draw title bar (filled rectangle at top of window)
+    LDI r0, 85              ; Color: light blue (title bar)
+    LDI r1, 20              ; x = 20 (left margin)
+    LDI r2, 50              ; y = 50 (top margin)
+    LDI r3, 216             ; w = 216 (window width)
+    LDI r4, 20              ; h = 20 (title bar height)
+    RECTF r1, r2, r3, r4    ; Fill title bar with light blue
+
+    ; Draw window content area (filled rectangle below title bar)
+    ; Adjusted to leave space for taskbar at bottom (18px)
+    LDI r0, 20              ; Color: dark blue (content area)
+    LDI r1, 20              ; x = 20
+    LDI r2, 70              ; y = 70 (below title bar)
+    LDI r3, 216             ; w = 216
+    LDI r4, 150             ; h = 150 (reduced to leave room for taskbar)
+    RECTF r1, r2, r3, r4    ; Fill content area with dark blue
+
+    ; Draw window border (outline rectangle)
+    ; Adjusted height to account for taskbar
+    LDI r0, 128             ; Color: gray (border)
+    LDI r1, 19              ; x = 19 (1px outside window)
+    LDI r2, 49              ; y = 49 (1px outside window)
+    LDI r3, 218             ; w = 218 (window + 2px border)
+    LDI r4, 172             ; h = 172 (title bar 20 + content 150 + 2px border)
+    RECT r1, r2, r3, r4     ; Draw window border outline
+
+    ; ── Step 4: Render "GEOS v1.0" title in title bar ──────────────
+    ; Screen is 256x256. Title "GEOS v1.0" is ~9 chars.
+    ; At scale 1, each char is ~5px wide + 1px gap = 6px → ~54px total.
+    ; Center horizontally in window: (216 - 54) / 2 + 20 ≈ 101
+    ; Place vertically in title bar: y = 60 (centered in 20px bar)
+
+    LDI r0, 255             ; Color: white (r0 used by TEXT for color)
+    LDI r1, 101             ; x position (centered in window)
+    LDI r2, 60              ; y position (centered in title bar)
+    LDI r3, 512             ; Address of string in RAM
+    TEXT r1, r2, r3         ; Render the string
+
+    ; ── Step 5: Draw taskbar at bottom ─────────────────────────────
+    ; Taskbar: 18 pixels high, across bottom of screen
+    ; Color: medium gray/blue
+
+    ; Draw taskbar background
+    LDI r0, 100             ; Color: medium gray-blue
+    LDI r1, 0               ; x = 0 (full width)
+    LDI r2, 238             ; y = 238 (256 - 18)
+    LDI r3, 256             ; w = 256 (full screen width)
+    LDI r4, 18              ; h = 18 (taskbar height)
+    RECTF r1, r2, r3, r4    ; Fill taskbar
+
+    ; ── Step 6: Store "Start" string into RAM ───────────────────────
+    ; Store "Start" starting at address 600
+
+    ; Store 'S' at address 600
+    LDI r5, 600
+    LDI r6, 83
+    ST r5, r6
+
+    ; Store 't' at address 601
+    LDI r5, 601
+    LDI r6, 116
+    ST r5, r6
+
+    ; Store 'a' at address 602
+    LDI r5, 602
+    LDI r6, 97
+    ST r5, r6
+
+    ; Store 'r' at address 603
+    LDI r5, 603
+    LDI r6, 114
+    ST r5, r6
+
+    ; Store 't' at address 604
+    LDI r5, 604
+    LDI r6, 116
+    ST r5, r6
+
+    ; Store null terminator at address 605
+    LDI r5, 605
+    LDI r6, 0
+    ST r5, r6
+
+    ; ── Step 7: Render "Start" text on left of taskbar ─────────────
+    ; Position: x=10, y=244 (centered vertically in 18px taskbar)
+
+    LDI r0, 255             ; Color: white
+    LDI r1, 10              ; x position (left side)
+    LDI r2, 244             ; y position (centered in taskbar)
+    LDI r3, 600             ; Address of "Start" string
+    TEXT r1, r2, r3         ; Render "Start"
+
+    ; ── Step 8: Store "00:00" string into RAM ───────────────────────
+    ; Store "00:00" starting at address 610
+
+    ; Store '0' at address 610
+    LDI r5, 610
+    LDI r6, 48
+    ST r5, r6
+
+    ; Store '0' at address 611
+    LDI r5, 611
+    LDI r6, 48
+    ST r5, r6
+
+    ; Store ':' at address 612
+    LDI r5, 612
+    LDI r6, 58
+    ST r5, r6
+
+    ; Store '0' at address 613
+    LDI r5, 613
+    LDI r6, 48
+    ST r5, r6
+
+    ; Store '0' at address 614
+    LDI r5, 614
+    LDI r6, 48
+    ST r5, r6
+
+    ; Store null terminator at address 615
+    LDI r5, 615
+    LDI r6, 0
+    ST r5, r6
+
+    ; ── Step 9: Render "00:00" clock on right of taskbar ───────────
+    ; Position: x=210, y=244 (right side, centered vertically)
+
+    LDI r0, 255             ; Color: white
+    LDI r1, 210             ; x position (right side)
+    LDI r2, 244             ; y position (centered in taskbar)
+    LDI r3, 610             ; Address of "00:00" string
+    TEXT r1, r2, r3         ; Render clock
+
+    ; ── Step 10: Halt ────────────────────────────────────────────────
+    HALT

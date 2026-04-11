@@ -1,0 +1,145 @@
+; ═══════════════════════════════════════════════════════════════════════
+; lib/input.gasm -- Keyboard input routines for Geometry OS
+;
+; Provides read_key, wait_key, and key_to_hex for programs that need
+; interactive keyboard input via the memory-mapped keyboard port at 0xFFF.
+;
+; KEYBOARD PROTOCOL:
+;   Host writes ASCII keycode to RAM[0xFFF] when a key is pressed.
+;   Program reads it via LOAD, then acknowledges by writing 0 (STORE).
+;   If RAM[0xFFF] is 0, no key is pending.
+;
+; CALLING CONVENTION:
+;   r0 = first argument / return value
+;   r1 = second argument
+;   r2-r7 = temporaries (clobbered by routines)
+;   CALL <routine> / RET to invoke
+;
+; ROUTINES:
+;   read_key    -- non-blocking: returns keycode in r0, or 0 if no key
+;                  Acknowledges (clears) the key if one was pending.
+;   wait_key    -- blocking: spins until a key is pressed, returns
+;                  keycode in r0. Acknowledges the key.
+;   key_to_hex  -- converts keycode (0x00-0xFF) in r0 to two hex digit
+;                  words at address in r1. Returns pointer past end in r0.
+;
+; CONSTANTS:
+;   KEY_PORT = 0xFFF (memory-mapped keyboard register)
+;
+; NOTES:
+;   - Keycodes are ASCII values: 'A'=0x41, '0'=0x30, Enter=0x0D, etc.
+;   - wait_key burns cycles polling; consider YIELD in the loop if the
+;     host supports it.
+;   - key_to_hex writes two u32 words (high nibble first, then low nibble).
+;     Each word contains the ASCII hex character ('0'-'9' or 'A'-'F').
+; ═══════════════════════════════════════════════════════════════════════
+
+
+; ── read_key: non-blocking key read ─────────────────────────────────
+;
+; Input:  none
+; Output: r0 = keycode (ASCII value), or 0 if no key pending
+; Clobbers: r0, r2, r3
+;
+; Loads RAM[0xFFF]. If nonzero, acknowledges by writing 0 back.
+; Returns the keycode in r0 either way.
+
+read_key:
+    LDI r2, 0xFFF       ; r2 = keyboard port address (0xFFF)
+    LDI r3, 0           ; r3 = zero (for comparison and ack)
+    LOAD r0, r2         ; r0 = RAM[0xFFF] (read keycode)
+    BEQ r0, r3, read_key_empty  ; if 0, no key pending
+    STORE r2, r3        ; acknowledge: RAM[0xFFF] = 0
+    RET
+
+read_key_empty:
+    ; r0 is already 0
+    RET
+
+
+; ── wait_key: blocking key read (spin until key pressed) ─────────────
+;
+; Input:  none
+; Output: r0 = keycode (ASCII value, always nonzero)
+; Clobbers: r0, r4, r5
+;
+; Loops calling read_key until a key is returned.
+; Preserves r4 and r5 across read_key calls (read_key clobbers r0,r2,r3).
+
+wait_key:
+    PUSH r4             ; save r4 across read_key calls
+    PUSH r5
+
+wait_key_loop:
+    CALL read_key       ; r0 = keycode (0 if none)
+    LDI r4, 0           ; r4 = zero for comparison
+    BNE r0, r4, wait_key_got  ; if nonzero, we have a key
+    JMP wait_key_loop   ; else keep polling
+
+wait_key_got:
+    POP r5              ; restore saved registers
+    POP r4
+    RET                 ; r0 = keycode
+
+
+; ── key_to_hex: convert byte to two ASCII hex characters ──────────────
+;
+; Input:  r0 = byte value (0x00-0xFF), r1 = destination address
+; Output: r0 = pointer past end (r1 + 2)
+; Clobbers: r2-r7
+;
+; Writes two words at destination: high nibble first, then low nibble.
+; Each word is an ASCII hex character ('0'-'9' = 0x30-0x39,
+; 'A'-'F' = 0x41-0x46).
+
+key_to_hex:
+    PUSH r1            ; save original pointer
+    LDI r6, 1          ; increment constant
+
+    ; ── Process high nibble (bits 7-4) ──
+    MOV r2, r0         ; r2 = byte
+    LDI r4, 4          ; shift amount
+    SHR r2, r4         ; r2 = high nibble (0-15)
+    CALL _nibble_to_ascii  ; r2 = ASCII hex char
+    STORE r1, r2       ; dest[0] = high nibble ASCII
+    ADD r1, r6         ; r1++ (advance pointer)
+
+    ; ── Process low nibble (bits 3-0) ──
+    MOV r2, r0         ; r2 = byte again
+    LDI r7, 0x0F       ; r7 = 0x0F mask
+    AND r2, r7         ; r2 = byte & 0x0F = low nibble
+    CALL _nibble_to_ascii  ; r2 = ASCII hex char
+    STORE r1, r2       ; dest[1] = low nibble ASCII
+    ADD r1, r6         ; r1++ (advance pointer)
+
+    MOV r0, r1         ; return pointer past end
+    POP r1             ; restore original pointer
+    RET
+
+
+; ── _nibble_to_ascii: convert nibble (0-15) to ASCII hex ──────────────
+;
+; Internal helper for key_to_hex.
+; Input:  r2 = nibble (0-15)
+; Output: r2 = ASCII hex character ('0'-'9' or 'A'-'F')
+; Clobbers: r3, r4
+;
+; If nibble < 10: ASCII = nibble + 0x30 ('0')
+; If nibble >= 10: ASCII = nibble - 10 + 0x41 ('A')
+
+_nibble_to_ascii:
+    LDI r3, 10         ; threshold
+    LDI r4, 0x30       ; ASCII '0'
+    BLT r2, r3, _nibble_digit  ; if nibble < 10, it's 0-9
+    JMP _nibble_alpha         ; else it's A-F
+
+_nibble_digit:
+    ADD r2, r4         ; r2 = nibble + '0'
+    RET
+
+_nibble_alpha:
+    LDI r3, 10
+    SUB r2, r3         ; r2 = nibble - 10
+    LDI r4, 0x41       ; ASCII 'A'
+    ADD r2, r4         ; r2 = (nibble - 10) + 'A'
+    RET

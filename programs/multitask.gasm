@@ -1,0 +1,101 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/multitask.gasm -- Multi-process demo
+;
+; Demonstrates the process scheduler:
+;   1. Main process FORKs into parent + child
+;   2. YIELD lets the scheduler resolve fork (sets r0)
+;   3. Parent draws cyan pixels in the LEFT half (x=10..41)
+;   4. Child draws pink pixels in the RIGHT half (x=138..169)
+;   5. Each process YIELDs after drawing a row, cooperating
+;   6. Both processes EXIT when done (16 rows each)
+;
+; After FORK + YIELD:
+;   r0 = child_pid (parent, > 0) or 0 (child)
+;
+; Opcodes used:
+;   FORK (o)  -- clone current process
+;   YIELD (Y) -- cooperative context switch
+;   EXIT (u)  -- terminate current process
+; ═══════════════════════════════════════════════════════════════════════
+
+.include "lib/screen.gasm"
+
+.text
+main:
+    CALL clear_screen
+
+    ; Set up loop counter
+    LDI r1, 0           ; r1 = row counter (0..15)
+
+    ; Fork! After scheduler resolves:
+    ;   parent r0 = child_pid (> 0)
+    ;   child r0 = 0
+    FORK
+    YIELD               ; Let scheduler resolve fork
+
+    ; Now r0 distinguishes parent from child
+    ; r0 == 0 means child, r0 != 0 means parent
+    LDI r10, 0
+    BEQ r0, r10, child_code
+
+parent_code:
+    ; Parent: draw vertical stripe on the LEFT side
+    ; x = 10, y = r1 * 16, color = 160 (cyan)
+parent_loop:
+    LDI r2, 10          ; x = 10
+    MOV r3, r1          ; y base = row
+    LDI r4, 16
+    MUL r3, r4          ; y = row * 16
+    LDI r5, 160         ; color = cyan
+
+    ; Draw a 32-pixel wide bar
+    LDI r6, 0
+parent_pixel:
+    MOV r7, r2
+    ADD r7, r6          ; x + offset
+    PSET r7, r3, r5     ; draw pixel
+    LDI r8, 1
+    ADD r6, r8          ; offset++
+    LDI r8, 32
+    BLT r6, r8, parent_pixel  ; while offset < 32
+
+    ; Next row
+    LDI r2, 1
+    ADD r1, r2
+    YIELD               ; Let child run
+
+    LDI r2, 16
+    BLT r1, r2, parent_loop  ; while row < 16
+
+    EXIT
+
+child_code:
+    ; Child: draw vertical stripe on the RIGHT side
+    ; x = 138, y = r1 * 16, color = 224 (pink)
+child_loop:
+    LDI r2, 138         ; x = 138
+    MOV r3, r1          ; y base = row
+    LDI r4, 16
+    MUL r3, r4          ; y = row * 16
+    LDI r5, 224         ; color = pink
+
+    ; Draw a 32-pixel wide bar
+    LDI r6, 0
+child_pixel:
+    MOV r7, r2
+    ADD r7, r6
+    PSET r7, r3, r5
+    LDI r8, 1
+    ADD r6, r8
+    LDI r8, 32
+    BLT r6, r8, child_pixel
+
+    ; Next row
+    LDI r2, 1
+    ADD r1, r2
+    YIELD               ; Let parent run
+
+    LDI r2, 16
+    BLT r1, r2, child_loop
+
+    EXIT

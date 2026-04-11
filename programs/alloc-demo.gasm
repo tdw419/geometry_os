@@ -1,0 +1,104 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/alloc-demo.gasm -- Dynamic memory allocation demo
+;
+; Demonstrates the heap allocator:
+;   1. Initialize a 200-word heap at RAM address 500
+;   2. Allocate two buffers
+;   3. Fill buffer 1 with ascending values, draw as colored pixels
+;   4. Free buffer 2, show free space as a green bar
+;   5. Re-allocate from freed space, show with different color
+;
+; Uses: lib/alloc.gasm (heap_init, heap_alloc, heap_free, heap_free_words)
+; ═══════════════════════════════════════════════════════════════════════
+
+    JMP main
+
+.include "lib/alloc.gasm"
+
+.data
+buf1:
+    .word 0
+buf2:
+    .word 0
+one:
+    .word 1
+ten:
+    .word 10
+twenty:
+    .word 20
+
+.text
+main:
+    ; ── Step 1: Initialize heap at RAM 500, size 200 ──
+    LDI r0, 500
+    LDI r1, 200
+    CALL heap_init
+
+    ; ── Step 2: Allocate two buffers ──
+    ; Buffer 1: 30 words
+    LDI r0, 30
+    CALL heap_alloc
+    LDI r5, buf1
+    STORE r5, r0             ; save buf1 address
+
+    ; Buffer 2: 40 words
+    LDI r0, 40
+    CALL heap_alloc
+    LDI r5, buf2
+    STORE r5, r0             ; save buf2 address
+
+    ; ── Step 3: Fill buffer 1 with values 1-20 and draw as pixels ──
+    LDI r5, buf1
+    LOAD r8, r5              ; r8 = buf1 base address
+    LDI r1, 0                ; i = 0
+    LDI r2, 20               ; limit
+
+fill_loop:
+    ; Store i+1 at buf1[i]
+    LDI r5, 1
+    MOV r3, r1
+    ADD r3, r5               ; r3 = i + 1
+    MOV r9, r8
+    ADD r9, r1               ; r9 = buf1 + i
+    STORE r9, r3             ; RAM[buf1+i] = i+1
+
+    ; Draw pixel at (5+i, 10) with color = i+1
+    LDI r5, 5
+    ADD r5, r1               ; x = 5 + i
+    LDI r6, 10               ; y = 10
+    PSET r5, r6, r3          ; pixel color = i+1
+
+    ; Increment and check
+    LDI r5, 1
+    ADD r1, r5               ; i++
+    LDI r5, 20
+    BLT r1, r5, fill_loop   ; if i < 20, loop
+
+    ; ── Step 4: Free buffer 2, show free space as green bar ──
+    LDI r5, buf2
+    LOAD r0, r5              ; r0 = buf2 address
+    CALL heap_free
+
+    CALL heap_free_words      ; r0 = free words
+    ; Draw green bar at row 20: one pixel per 2 free words
+    LDI r1, 0
+bar_loop:
+    LDI r5, 2
+    ADD r1, r5               ; i += 2
+    LDI r5, 100              ; green color
+    LDI r6, 20               ; y = 20
+    PSET r1, r6, r5          ; draw green pixel at (i, 20)
+
+    SUB r0, r1               ; r0 = free - i
+    LDI r5, 0
+    BGE r0, r5, bar_loop    ; if free >= i, continue
+
+    ; ── Step 5: Re-allocate from freed space ──
+    LDI r0, 20
+    CALL heap_alloc           ; should reuse part of freed buf2 space
+    ; Mark the new allocation with a different color
+    LDI r5, 200              ; different color (reddish)
+    LDI r6, 30               ; y = 30
+    PSET r0, r6, r5          ; draw at (addr, 30) to show where it landed
+
+    HALT

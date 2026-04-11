@@ -1,0 +1,128 @@
+; ═══════════════════════════════════════════════════════════════════
+; AUDIO DEMO -- Square wave audio output via memory-mapped registers
+;
+; Demonstrates the audio device driver:
+;   - Memory-mapped registers at 0xFFC0–0xFFC3
+;   - 0xFFC0 (AUDIO_FREQ): write frequency in Hz (0 = silence)
+;   - 0xFFC1 (AUDIO_VOLUME): write volume 0–255
+;   - 0xFFC2 (AUDIO_DURATION): write duration in ms (0 = indefinite)
+;   - 0xFFC3 (AUDIO_STATUS): read-only, 1 = playing, 0 = idle
+;
+; Plays a C major scale (C4-C5) using the timer interrupt to
+; advance through notes. Each note plays for ~2000 VM cycles.
+;
+; Run with: cargo run -- programs/audio-demo.gasm
+; ═══════════════════════════════════════════════════════════════════
+
+.text
+    ; ── Register timer handler for note advancement ─────────────
+    STI 0, timer_handler       ; Vector 0 = hardware timer
+
+    ; ── Build AUDIO_FREQ address (0xFFC0) in r10 ───────────────
+    LDI r10, 0xC0              ; Low byte
+    LDI r11, 0xFF              ; High byte
+    SHL r11, 8                 ; r11 = 0xFF00
+    OR  r10, r11               ; r10 = 0xFFC0 (AUDIO_FREQ)
+
+    ; ── Build AUDIO_VOLUME address (0xFFC1) in r11 ─────────────
+    LDI r11, 0xC1
+    LDI r12, 0xFF
+    SHL r12, 8
+    OR  r11, r12               ; r11 = 0xFFC1 (AUDIO_VOLUME)
+
+    ; ── Set volume to 128 (mid-level) ───────────────────────────
+    LDI r5, 128
+    STORE r11, r5              ; audio_volume = 128
+
+    ; ── Build TIMER_PERIOD address (0xFFF0) in r12 ─────────────
+    LDI r12, 0xF0
+    LDI r13, 0xFF
+    SHL r13, 8
+    OR  r12, r13               ; r12 = 0xFFF0
+
+    LDI r5, 2000               ; Period = 2000 cycles per note
+    STORE r12, r5              ; Enable timer
+
+    ; ── Initialize state ────────────────────────────────────────
+    LDI r0, 0                  ; r0 = current note index (0–7)
+
+    ; ── Play first note: C4 = 262 Hz ────────────────────────────
+    LDI r4, 262
+    STORE r10, r4              ; audio_freq = 262 → starts playing
+
+    ; ── Main loop: idle while timer handles notes ───────────────
+idle:
+    NOP
+    JMP idle
+
+    HALT                       ; Should never reach
+
+; ── Timer Handler ───────────────────────────────────────────────
+;
+; Called every 2000 instruction cycles.
+; Advances to the next note in the C major scale.
+;
+timer_handler:
+    ; Increment and wrap note index
+    LDI r1, 1
+    ADD r0, r1                 ; r0 += 1
+    LDI r2, 8
+    MOD r0, r2                 ; r0 %= 8
+
+    ; Select frequency based on note index
+    ; r0=0→C4(262), 1→D4(294), 2→E4(330), 3→F4(349),
+    ; r0=4→G4(392), 5→A4(440), 6→B4(494), 7→C5(523)
+
+    LDI r3, 262                ; Default: C4
+    LDI r4, 1
+    BEQ r0, r4, note_d
+    LDI r4, 2
+    BEQ r0, r4, note_e
+    LDI r4, 3
+    BEQ r0, r4, note_f
+    LDI r4, 4
+    BEQ r0, r4, note_g
+    LDI r4, 5
+    BEQ r0, r4, note_a
+    LDI r4, 6
+    BEQ r0, r4, note_b
+    LDI r4, 7
+    BEQ r0, r4, note_c5
+    ; r0=0: C4 (already loaded in r3)
+    STORE r10, r3
+    IRET
+
+note_d:
+    LDI r3, 294
+    STORE r10, r3
+    IRET
+
+note_e:
+    LDI r3, 330
+    STORE r10, r3
+    IRET
+
+note_f:
+    LDI r3, 349
+    STORE r10, r3
+    IRET
+
+note_g:
+    LDI r3, 392
+    STORE r10, r3
+    IRET
+
+note_a:
+    LDI r3, 440
+    STORE r10, r3
+    IRET
+
+note_b:
+    LDI r3, 494
+    STORE r10, r3
+    IRET
+
+note_c5:
+    LDI r3, 523
+    STORE r10, r3
+    IRET

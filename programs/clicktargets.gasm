@@ -1,0 +1,323 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/clicktargets.gasm -- Click Target Game for Geometry OS
+;
+; A reflex game: colored targets appear on screen, click them before
+; they disappear. Score increases per hit. Miss 5 targets = game over.
+;
+; Uses lib/mouse.gasm for mouse input and lib/screen.gasm for drawing.
+; Proves the mouse input layer works end-to-end with a real game.
+;
+; MOUSE REGISTERS:
+;   0xFFA0: mouse_x (0-255)
+;   0xFFA1: mouse_y (0-255)
+;   0xFFA2: mouse_buttons (bit 0=left)
+;
+; CONTROLS:
+;   Left click: hit the target
+;   The game auto-advances targets on a timer
+;
+; ═══════════════════════════════════════════════════════════════════════
+
+; ── Game constants ──
+TARGET_HALF = 8
+MAX_MISSES  = 5
+COLOR_BG        = 0x111122
+COLOR_TARGET    = 0x00FF00
+COLOR_TARGET2   = 0xFFFF00
+COLOR_HIT       = 0xFF0000
+COLOR_SCORE_G   = 0x00FF00
+COLOR_X         = 0xFF4444
+COLOR_WHITE     = 0xFFFFFF
+
+; ── State in high memory ──
+SCORE       = 0x2000
+MISSES      = 0x2001
+TARGET_X    = 0x2002
+TARGET_Y    = 0x2003
+TICKS       = 0x2004
+TICK_LIMIT  = 0x2005
+PREV_CLICK  = 0x2006
+
+; ── Entry point ──
+main:
+    ; Initialize state
+    LDI r0, 0
+    LDI r5, SCORE
+    STORE r5, r0
+    LDI r5, MISSES
+    STORE r5, r0
+    LDI r5, TICKS
+    STORE r5, r0
+    LDI r5, PREV_CLICK
+    STORE r5, r0
+    LDI r0, 200              ; tick limit (frames before target moves)
+    LDI r5, TICK_LIMIT
+    STORE r5, r0
+
+    ; Clear screen
+    LDI r0, COLOR_BG
+    CALL clear_screen
+
+    ; Spawn first target
+    CALL spawn_target
+
+game_loop:
+    ; ── Draw score as green bar at top ──
+    CALL draw_score_display
+
+    ; ── Read mouse ──
+    CALL read_mouse           ; r0=mx, r1=my, r2=buttons
+
+    ; ── Detect new click (rising edge) ──
+    LDI r3, 1
+    AND r3, r2                ; r3 = buttons & 1 (left only)
+    LDI r5, PREV_CLICK
+    LOAD r6, r5               ; r6 = previous click state
+    LDI r5, PREV_CLICK
+    STORE r5, r3              ; save current state
+
+    ; Rising edge: current=1 and prev=0
+    LDI r5, 0
+    BEQ r3, r5, no_click      ; not pressed → skip
+    LDI r5, 1
+    BNE r6, r5, no_click      ; was already pressed → skip
+
+    ; ── Fresh click detected! Check hit ──
+    ; r0=mouse_x, r1=mouse_y from read_mouse
+    LDI r5, TARGET_X
+    LOAD r3, r5               ; r3 = target_x
+    LDI r5, TARGET_Y
+    LOAD r4, r5               ; r4 = target_y
+
+    ; Compute |mx - tx|
+    MOV r5, r0                ; r5 = mx
+    MOV r6, r3                ; r6 = tx
+    BLT r5, r6, _dx_swap
+    SUB r5, r6                ; r5 = mx - tx (positive)
+    JMP _dx_done
+_dx_swap:
+    SUB r6, r5                ; r6 = tx - mx
+    MOV r5, r6                ; r5 = |dx|
+_dx_done:
+
+    ; Compute |my - ty|
+    MOV r6, r1                ; r6 = my
+    MOV r7, r4                ; r7 = ty
+    BLT r6, r7, _dy_swap
+    SUB r6, r7                ; r6 = my - ty
+    JMP _dy_done
+_dy_swap:
+    SUB r7, r6                ; r7 = ty - my
+    MOV r6, r7                ; r6 = |dy|
+_dy_done:
+
+    LDI r7, TARGET_HALF
+    BGE r5, r7, miss          ; |dx| >= 8 → miss
+    BGE r6, r7, miss          ; |dy| >= 8 → miss
+
+    ; ── HIT! ──
+    ; Flash target red
+    LDI r0, COLOR_HIT
+    LDI r5, TARGET_X
+    LOAD r1, r5
+    LDI r7, TARGET_HALF
+    SUB r1, r7                ; r1 = tx - 8
+    LDI r5, TARGET_Y
+    LOAD r2, r5
+    SUB r2, r7                ; r2 = ty - 8
+    LDI r3, 16
+    LDI r4, 16
+    RECTF r1, r2, r3, r4
+    YIELD
+
+    ; Increment score
+    LDI r5, SCORE
+    LOAD r0, r5
+    LDI r6, 1
+    ADD r0, r6
+    LDI r5, SCORE
+    STORE r5, r0
+
+    ; Reset ticks, spawn new target
+    LDI r0, 0
+    LDI r5, TICKS
+    STORE r5, r0
+    CALL spawn_target
+    JMP game_loop
+
+miss:
+    ; Misclick -- no penalty
+    JMP no_click
+
+no_click:
+    ; ── Tick timer: advance target if time runs out ──
+    LDI r5, TICKS
+    LOAD r0, r5
+    LDI r6, 1
+    ADD r0, r6
+    LDI r5, TICKS
+    STORE r5, r0
+
+    LDI r5, TICK_LIMIT
+    LOAD r6, r5
+    BLT r0, r6, game_loop     ; ticks < limit → keep going
+
+    ; ── Target expired (miss!) ──
+    LDI r0, COLOR_BG
+    CALL clear_screen
+    YIELD
+
+    ; Increment misses
+    LDI r5, MISSES
+    LOAD r0, r5
+    LDI r6, 1
+    ADD r0, r6
+    LDI r5, MISSES
+    STORE r5, r0
+
+    ; Check game over
+    LDI r5, MAX_MISSES
+    BGE r0, r5, game_over
+
+    ; Reset ticks, spawn new target
+    LDI r0, 0
+    LDI r5, TICKS
+    STORE r5, r0
+    CALL spawn_target
+    JMP game_loop
+
+game_over:
+    ; Fill screen red
+    LDI r0, COLOR_X
+    CALL clear_screen
+    ; Draw a big X
+    LDI r0, COLOR_WHITE
+    LDI r1, 32
+    LDI r2, 32
+    LDI r3, 224
+    LDI r4, 224
+    CALL draw_line
+    LDI r0, COLOR_WHITE
+    LDI r1, 224
+    LDI r2, 32
+    LDI r3, 32
+    LDI r4, 224
+    CALL draw_line
+    HALT
+
+
+; ── spawn_target: place a new target at a pseudo-random position ──
+;
+; Uses cycle count as entropy. Stores in TARGET_X, TARGET_Y.
+; Draws the target on screen.
+;
+spawn_target:
+    ; Use cycle count as entropy
+    LDI r5, 0xFFE0           ; DBG_CYCLE_COUNT
+    LOAD r0, r5              ; r0 = cycle count
+
+    ; LCG: x = x * 1103515245 + 12345
+    LDI r5, 1103515245
+    MUL r0, r5
+    LDI r5, 12345
+    ADD r0, r5
+
+    ; target_x: low byte mapped to [24, 232]
+    MOV r1, r0
+    LDI r5, 0xFF
+    AND r1, r5
+    LDI r5, 24
+    ADD r1, r5
+    LDI r5, 232
+    BLT r1, r5, _stx_ok
+    SUB r1, r5
+    LDI r5, 24
+    ADD r1, r5
+_stx_ok:
+    LDI r5, TARGET_X
+    STORE r5, r1
+
+    ; target_y: shifted byte mapped to [24, 232]
+    MOV r2, r0
+    LDI r5, 8
+    SHR r2, r5
+    LDI r5, 0xFF
+    AND r2, r5
+    LDI r5, 24
+    ADD r2, r5
+    LDI r5, 232
+    BLT r2, r5, _sty_ok
+    SUB r2, r5
+    LDI r5, 24
+    ADD r2, r5
+_sty_ok:
+    LDI r5, TARGET_Y
+    STORE r5, r2
+
+    ; Draw outer yellow border
+    LDI r0, COLOR_TARGET2
+    LDI r5, TARGET_X
+    LOAD r1, r5
+    LDI r7, TARGET_HALF
+    SUB r1, r7
+    LDI r5, TARGET_Y
+    LOAD r2, r5
+    SUB r2, r7
+    LDI r3, 16
+    LDI r4, 16
+    RECTF r1, r2, r3, r4
+
+    ; Draw inner green
+    LDI r0, COLOR_TARGET
+    LDI r5, TARGET_X
+    LOAD r1, r5
+    LDI r5, 2
+    ADD r1, r5
+    LDI r5, TARGET_Y
+    LOAD r2, r5
+    LDI r5, 2
+    ADD r2, r5
+    LDI r3, 12
+    LDI r4, 12
+    RECTF r1, r2, r3, r4
+
+    RET
+
+
+; ── draw_score_display: show score bar and miss markers ───────────
+;
+draw_score_display:
+    ; Score bar: green pixels along top-left
+    LDI r5, SCORE
+    LOAD r6, r5
+    LDI r7, 0
+_score_bar_loop:
+    BEQ r6, r7, _score_bar_done
+    MOV r0, r7
+    LDI r1, 0
+    LDI r2, COLOR_SCORE_G
+    PSET r0, r1, r2
+    LDI r5, 1
+    ADD r7, r5
+    JMP _score_bar_loop
+_score_bar_done:
+
+    ; Miss markers: red pixels at bottom-left
+    LDI r5, MISSES
+    LOAD r6, r5
+    LDI r7, 0
+_miss_bar_loop:
+    BEQ r6, r7, _miss_bar_done
+    MOV r0, r7
+    LDI r1, 255
+    LDI r2, COLOR_X
+    PSET r0, r1, r2
+    LDI r5, 1
+    ADD r7, r5
+    JMP _miss_bar_loop
+_miss_bar_done:
+    RET
+
+; ── Library includes (at end so main code is at PC=0) ──
+    .include "lib/screen.gasm"
+    .include "lib/mouse.gasm"

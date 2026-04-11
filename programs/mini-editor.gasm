@@ -1,0 +1,967 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/mini-editor.gasm -- Mini text editor for Geometry OS
+;
+; A text editor running entirely inside the VM. Uses the memory-mapped
+; keyboard port at 0xFFF for input. Demonstrates that useful tools can
+; be built as .gasm programs.
+;
+; CONTROLS:
+;   Type any printable character to insert at cursor
+;   Backspace (0x08) to delete character before cursor
+;   Enter (0x0D) to start a new line (inserts 0x0A newline)
+;   Left arrow (0x01) to move cursor left
+;   Right arrow (0x02) to move cursor right
+;   All letters come in as uppercase from the host
+;
+; DISPLAY:
+;   Top bar: editor title "EDIT"
+;   Main area: text buffer contents, auto-wrapping at right margin
+;   Cursor: shown as blinking cyan underline
+;
+; MEMORY LAYOUT:
+;   0x1000: text buffer (768 words, one char per u32 word)
+;           Stored as flat sequence of characters; 0x0A = newline.
+;           Null-terminated (word value 0 = end of text).
+;   0x1300: cursor index (1 word: 0..len)
+;   0x1301: blink counter (1 word)
+;   0x1302: scroll offset (1 word, reserved)
+;   0x1304: scratch word (keycode save, single char render)
+;   0x1305: scratch null terminator
+;   0x1306: status text buffer (32 words)
+;   0x1307: left arrow key constant (0x01)
+;   0x1308: right arrow key constant (0x02)
+;
+; SOURCE FILE REGION (for Edit-Compile-Execute loop):
+;   0x1FFE: source dirty flag (0=clean, 1=new source available)
+;   0x1FFF: source length (number of chars in source)
+;   0x2000: source file data (768 words, null-terminated text)
+;           Written when user presses Ctrl+S (0x13).
+;           The assembler VM reads from here.
+;
+; REGISTER USAGE (constants set in main, preserved across calls):
+;   r6  = constant: one (1)
+;   r7  = constant: zero (0)
+;   r8  = newline char (0x0A)
+;   r9  = buffer start (0x1000)
+;   r10 = buffer max (0x1300, = 0x1000 + 768)
+;   r11 = backspace (0x08)
+;   r12 = enter (0x0D)
+;   r13 = cursor index addr (0x1300)
+;   r14 = blink counter addr (0x1301)
+;   r15 = scroll offset addr (0x1302)
+; ═══════════════════════════════════════════════════════════════════════
+
+
+main:
+    ; ── Set constants ──
+    LDI r6, 1
+    LDI r7, 0
+    LDI r8, 0x0A
+    LDI r9, 0x1000
+    LDI r10, 0x1300
+    LDI r11, 0x08
+    LDI r12, 0x0D
+    LDI r13, 0x1300
+    LDI r14, 0x1301
+    LDI r15, 0x1302
+
+    ; ── Additional key constants (stored in high memory) ──
+    LDI r0, 0x1307
+    LDI r1, 0x01
+    STORE r0, r1             ; [0x1307] = left arrow key code
+    LDI r0, 0x1308
+    LDI r1, 0x02
+    STORE r0, r1             ; [0x1308] = right arrow key code
+
+    ; ── Init state ──
+    STORE r13, r7            ; cursor index = 0
+    STORE r14, r7            ; blink counter = 0
+    STORE r15, r7            ; scroll offset = 0
+
+    ; ── Clear text buffer (768 words) ──
+    MOV r0, r9               ; start address
+    CALL clear_768
+
+    ; ── Draw initial screen ──
+    CALL draw_status_bar
+    CALL draw_text_area
+
+    JMP editor_loop
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; MAIN LOOP
+; ═══════════════════════════════════════════════════════════════════════
+
+editor_loop:
+    ; Save all constants across read_key call
+    PUSH r6
+    PUSH r7
+    PUSH r8
+    PUSH r9
+    PUSH r10
+    PUSH r11
+    PUSH r12
+    PUSH r13
+    PUSH r14
+    PUSH r15
+
+    CALL read_key
+
+    ; Restore all constants
+    POP r15
+    POP r14
+    POP r13
+    POP r12
+    POP r11
+    POP r10
+    POP r9
+    POP r8
+    POP r7
+    POP r6
+
+    ; r0 = keycode (or 0)
+    BEQ r0, r7, el_no_key
+
+    ; ── Dispatch key ──
+    PUSH r6
+    PUSH r7
+    PUSH r8
+    PUSH r9
+    PUSH r10
+    PUSH r11
+    PUSH r12
+    PUSH r13
+    PUSH r14
+    PUSH r15
+
+    BEQ r0, r11, handle_backspace
+    BEQ r0, r12, handle_enter
+
+    ; Check arrow keys (0x01=left, 0x02=right)
+    LDI r1, 0x01
+    BEQ r0, r1, handle_left
+    LDI r1, 0x02
+    BEQ r0, r1, handle_right
+
+    ; Check Ctrl+S (0x13) -- save source
+    LDI r1, 0x13
+    BEQ r0, r1, handle_save_source
+
+    JMP handle_printable
+
+el_after_handle:
+    ; ── Compile-on-save: auto-copy buffer to source region after every edit ──
+    CALL auto_save_source
+
+    POP r15
+    POP r14
+    POP r13
+    POP r12
+    POP r11
+    POP r10
+    POP r9
+    POP r8
+    POP r7
+    POP r6
+
+    ; Redraw after edit
+    CALL update_scroll
+    CALL draw_status_bar
+    CALL show_compile_status
+    CALL draw_text_area
+    CALL draw_cursor
+
+el_no_key:
+    ; Advance blink counter
+    LOAD r0, r14
+    ADD r0, r6
+    STORE r14, r0
+    LDI r1, 60
+    BLT r0, r1, el_blink_ok
+    STORE r14, r7            ; reset counter
+
+el_blink_ok:
+    CALL draw_cursor
+    YIELD
+    JMP editor_loop
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; KEY HANDLERS
+; ═══════════════════════════════════════════════════════════════════════
+
+
+; ── handle_printable: insert char at cursor ────────────────────────
+;
+; r0 = keycode (printable ASCII 0x20-0x7E)
+; Uses constants r6..r15 (already pushed by caller)
+;
+handle_printable:
+    ; Filter: only printable ASCII
+    LDI r1, 0x20
+    BLT r0, r1, el_after_handle
+    LDI r1, 0x7E
+    BLT r1, r0, el_after_handle
+
+    ; Save keycode
+    LDI r1, 0x1304
+    STORE r1, r0
+
+    ; Get buffer length
+    CALL get_buf_len          ; r0 = length
+
+    ; Check buffer full (len >= 767)
+    LDI r1, 767
+    BLT r0, r1, hp_ok
+    JMP el_after_handle
+
+hp_ok:
+    ; Load cursor index
+    LOAD r1, r13             ; r1 = cursor
+
+    ; If cursor == length, no shift needed
+    BEQ r1, r0, hp_write
+
+    ; ── Shift right: move chars [cursor..length-1] right by 1 ──
+    ; r0 = length, r1 = cursor
+    ; Start from index (length-1), work down to cursor
+    MOV r2, r0               ; r2 = length
+    SUB r2, r6               ; r2 = length - 1
+
+hp_shift:
+    BLT r2, r1, hp_write     ; done when index < cursor
+
+    ; Read buffer[index]
+    MOV r3, r9
+    ADD r3, r2               ; r3 = &buffer[index]
+    LOAD r4, r3              ; r4 = buffer[index]
+
+    ; Write to buffer[index+1]
+    ADD r3, r6               ; r3 = &buffer[index+1]
+    STORE r3, r4
+
+    ; index--
+    SUB r2, r6
+    JMP hp_shift
+
+hp_write:
+    ; Write the new char at cursor
+    LOAD r1, r13             ; r1 = cursor
+    MOV r3, r9
+    ADD r3, r1               ; r3 = &buffer[cursor]
+    LDI r4, 0x1304
+    LOAD r4, r4              ; r4 = saved keycode
+    STORE r3, r4
+
+    ; Update null terminator at new end
+    CALL get_buf_len          ; r0 = new length (shifted but char written)
+    MOV r3, r9
+    ADD r3, r0               ; r3 = &buffer[length]
+    STORE r3, r7             ; null terminator
+
+    ; Advance cursor
+    LOAD r1, r13
+    ADD r1, r6
+    STORE r13, r1
+
+    JMP el_after_handle
+
+
+; ── handle_backspace: delete char before cursor ────────────────────
+;
+; Shifts chars left, decrements cursor.
+;
+handle_backspace:
+    ; Load cursor
+    LOAD r1, r13             ; r1 = cursor
+    BEQ r1, r7, el_after_handle  ; cursor at 0, nothing to delete
+
+    ; Save cursor before get_buf_len clobbers r1
+    LDI r5, 0x1304
+    STORE r5, r1             ; save cursor to scratch
+
+    ; Get buffer length
+    CALL get_buf_len          ; r0 = length (clobbers r0, r1, r2)
+
+    ; Restore cursor
+    LOAD r1, r5              ; r1 = cursor
+
+    ; Shift left: copy chars from [cursor..length] to [cursor-1..length-1]
+    ; Source starts at cursor index, dest at cursor-1
+    MOV r2, r1               ; r2 = cursor (source index)
+
+hb_shift:
+    ; Read buffer[cursor + offset]
+    MOV r3, r9
+    ADD r3, r2               ; r3 = &buffer[r2]
+    LOAD r4, r3              ; r4 = buffer[r2]
+
+    ; If we hit null terminator, we're done reading
+    BEQ r4, r7, hb_done_shift
+
+    ; Write to buffer[r2 - 1]
+    SUB r3, r6               ; r3 = &buffer[r2 - 1]
+    STORE r3, r4
+
+    ; Next source
+    ADD r2, r6
+    JMP hb_shift
+
+hb_done_shift:
+    ; Write null at new end (r2 - 1)
+    MOV r3, r9
+    ADD r3, r2
+    SUB r3, r6               ; r3 = &buffer[r2 - 1]
+    STORE r3, r7             ; null terminator
+
+    ; Decrement cursor
+    LOAD r1, r13
+    SUB r1, r6
+    STORE r13, r1
+
+    JMP el_after_handle
+
+
+; ── handle_enter: insert newline (0x0A) at cursor ─────────────────
+
+handle_enter:
+    ; Insert newline directly (bypass printable filter since 0x0A < 0x20)
+    LDI r0, 0x0A
+
+    ; Save keycode to scratch
+    LDI r1, 0x1304
+    STORE r1, r0
+
+    ; Get buffer length
+    CALL get_buf_len          ; r0 = length
+
+    ; Check buffer full (len >= 767)
+    LDI r1, 767
+    BLT r0, r1, he_ok
+    JMP el_after_handle
+
+he_ok:
+    ; Load cursor index
+    LOAD r1, r13             ; r1 = cursor
+
+    ; If cursor == length, no shift needed
+    CALL get_buf_len          ; r0 = length (r1 may be clobbered)
+    LOAD r1, r13             ; restore cursor
+    BEQ r1, r0, he_write
+
+    ; ── Shift right: move chars [cursor..length-1] right by 1 ──
+    MOV r2, r0               ; r2 = length
+    SUB r2, r6               ; r2 = length - 1
+
+he_shift:
+    BLT r2, r1, he_write     ; done when index < cursor
+
+    ; Read buffer[index]
+    MOV r3, r9
+    ADD r3, r2               ; r3 = &buffer[index]
+    LOAD r4, r3              ; r4 = buffer[index]
+
+    ; Write to buffer[index+1]
+    ADD r3, r6               ; r3 = &buffer[index+1]
+    STORE r3, r4
+
+    ; index--
+    SUB r2, r6
+    JMP he_shift
+
+he_write:
+    ; Write the newline at cursor
+    LOAD r1, r13             ; r1 = cursor
+    MOV r3, r9
+    ADD r3, r1               ; r3 = &buffer[cursor]
+    LDI r4, 0x0A
+    STORE r3, r4
+
+    ; Update null terminator at new end
+    CALL get_buf_len          ; r0 = new length
+    MOV r3, r9
+    ADD r3, r0               ; r3 = &buffer[length]
+    STORE r3, r7             ; null terminator
+
+    ; Advance cursor
+    LOAD r1, r13
+    ADD r1, r6
+    STORE r13, r1
+
+    JMP el_after_handle
+
+
+; ── handle_left: move cursor left ──────────────────────────────────
+
+handle_left:
+    LOAD r1, r13             ; r1 = cursor
+    BEQ r1, r7, el_after_handle  ; already at 0
+    SUB r1, r6
+    STORE r13, r1
+    JMP el_after_handle
+
+
+; ── handle_right: move cursor right ────────────────────────────────
+
+handle_right:
+    CALL get_buf_len          ; r0 = buffer length
+    LOAD r1, r13             ; r1 = cursor
+    BEQ r1, r0, el_after_handle  ; already at end
+    ADD r1, r6
+    STORE r13, r1
+    JMP el_after_handle
+
+
+; ── handle_save_source: Ctrl+S -- copy buffer to source file region ─
+;
+; Copies the text buffer (0x1000..0x12FF) to the source file region
+; (0x2000..0x22FF), sets the dirty flag (0x1FFE=1) and source length
+; (0x1FFF=length).
+;
+; Uses constants r6..r15 (already pushed by caller).
+;
+
+handle_save_source:
+    ; Get buffer length
+    CALL get_buf_len          ; r0 = length
+
+    ; Save length to source length register
+    LDI r1, 0x1FFF
+    STORE r1, r0
+
+    ; Copy buffer[0..length] to source[0..length] (include null terminator)
+    ; r0 = length, copy length+1 words (chars + null)
+    ADD r0, r6               ; r0 = length + 1 (include null)
+    LDI r1, 0                ; r1 = index
+    MOV r2, r9               ; r2 = src base (0x1000)
+    LDI r3, 0x2000           ; r3 = dst base (0x2000)
+
+hss_copy:
+    BEQ r1, r0, hss_done     ; copied all words
+
+    ; Read buffer[index]
+    MOV r4, r2
+    ADD r4, r1
+    LOAD r5, r4              ; r5 = buffer[index]
+
+    ; Write to source[index]
+    MOV r4, r3
+    ADD r4, r1
+    STORE r4, r5
+
+    ADD r1, r6
+    JMP hss_copy
+
+hss_done:
+    ; Set dirty flag
+    LDI r1, 0x1FFE
+    STORE r1, r6             ; dirty = 1
+
+    ; Show "SAVED" status
+    CALL show_saved_status
+
+    JMP el_after_handle
+
+
+; ── auto_save_source: compile-on-save — copy buffer to source after each edit ─
+;
+; Called from el_after_handle after every character insertion, deletion,
+; or newline. Copies the text buffer (0x1000..0x12FF) to the source file
+; region (0x2000..0x22FF), sets the dirty flag (0x1FFE=1) and source
+; length (0x1FFF=length).
+;
+; The assembler VM polls the dirty flag and recompiles when it sees it set.
+; This creates the compile-on-save loop: every keystroke triggers a recompile.
+;
+; Preserves ALL registers (saves r6..r15 on stack, restores after).
+; Uses r0-r5 as scratch.
+;
+
+auto_save_source:
+    ; Save all constants (we call get_buf_len which clobbers r0-r2)
+    PUSH r6
+    PUSH r7
+    PUSH r8
+    PUSH r9
+    PUSH r10
+    PUSH r11
+    PUSH r12
+    PUSH r13
+    PUSH r14
+    PUSH r15
+
+    ; Restore constants (they were pushed by the editor loop caller,
+    ; so we need to read them back from where they were stored)
+    ; Actually: at this point r6..r15 still hold the constants
+    ; (we just pushed copies). Get buffer length.
+    CALL get_buf_len          ; r0 = length
+
+    ; Save length to source length register
+    LDI r1, 0x1FFF
+    STORE r1, r0
+
+    ; Copy buffer[0..length] to source[0..length] (include null terminator)
+    ADD r0, r6               ; r0 = length + 1 (include null)
+    LDI r1, 0                ; r1 = index
+    MOV r2, r9               ; r2 = src base (0x1000)
+    LDI r3, 0x2000           ; r3 = dst base (0x2000)
+
+ass_copy:
+    BEQ r1, r0, ass_done     ; copied all words
+
+    ; Read buffer[index]
+    MOV r4, r2
+    ADD r4, r1
+    LOAD r5, r4              ; r5 = buffer[index]
+
+    ; Write to source[index]
+    MOV r4, r3
+    ADD r4, r1
+    STORE r4, r5
+
+    ADD r1, r6
+    JMP ass_copy
+
+ass_done:
+    ; Set dirty flag
+    LDI r1, 0x1FFE
+    STORE r1, r6             ; dirty = 1
+
+    ; Restore all constants
+    POP r15
+    POP r14
+    POP r13
+    POP r12
+    POP r11
+    POP r10
+    POP r9
+    POP r8
+    POP r7
+    POP r6
+
+    RET
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; UTILITY ROUTINES
+; ═══════════════════════════════════════════════════════════════════════
+
+
+; ── get_buf_len: count chars before null terminator ───────────────
+;
+; Input:  r9 = buffer base
+; Output: r0 = length
+; Clobbers: r0, r1, r2
+;
+get_buf_len:
+    MOV r1, r9
+    LDI r2, 0
+
+gbl_loop:
+    LOAD r0, r1
+    BEQ r0, r7, gbl_done
+    ADD r2, r6
+    ADD r1, r6
+    JMP gbl_loop
+
+gbl_done:
+    MOV r0, r2
+    RET
+
+
+; ── clear_768: zero 768 words starting at address in r0 ───────────
+;
+; Input:  r0 = start address
+; Clobbers: r0, r1
+;
+clear_768:
+    MOV r1, r0
+    LDI r0, 768
+
+cl_loop:
+    STORE r1, r7
+    ADD r1, r6
+    SUB r0, r6
+    BNE r0, r7, cl_loop
+    RET
+
+
+; ── draw_status_bar: render title bar ─────────────────────────────
+;
+; Clobbers: r0-r3
+;
+draw_status_bar:
+    ; Background
+    LDI r0, 0x1A1A3E
+    LDI r1, 0
+    LDI r2, 0
+    RECTF r1, r2, 256, 10
+
+    ; Title text
+    LDI r0, 0x00FFFF
+    LDI r1, 2
+    LDI r2, 2
+    LDI r3, title_str
+    TEXT r1, r2, r3
+
+    ; Separator
+    LDI r0, 0x333355
+    LDI r1, 0
+    LDI r2, 9
+    RECTF r1, r2, 256, 1
+
+    RET
+
+
+; ── draw_text_area: render buffer contents ─────────────────────────
+;
+; Walks buffer, draws each char. Handles newlines and wrapping.
+; Respects scroll offset (0x1302): skips rows above scroll offset.
+;
+; Clobbers: r0-r5
+;
+VISIBLE_ROWS = 29
+ROW_HEIGHT   = 8
+
+draw_text_area:
+    ; Clear text area
+    LDI r0, 0x0A0A1E
+    LDI r1, 0
+    LDI r2, 10
+    RECTF r1, r2, 256, 246
+
+    ; Read scroll offset
+    LOAD r5, r15             ; r5 = scroll_offset (rows to skip)
+
+    ; Screen position (start rendering at Y=12)
+    LDI r3, 2                ; X
+    LDI r4, 12               ; Y
+
+    ; Buffer pointer and row counter
+    MOV r1, r9               ; r1 = &buffer[0]
+    LDI r2, 0                ; r2 = current row
+
+dta_loop:
+    ; Check Y boundary
+    LDI r0, 248
+    BLT r0, r4, dta_done     ; past bottom
+
+    ; Read char
+    LOAD r0, r1              ; r0 = char
+    BEQ r0, r7, dta_done     ; null = end
+
+    ; Newline?
+    BEQ r0, r8, dta_newline
+
+    ; Skip rendering if current row < scroll_offset
+    BLT r2, r5, dta_skip
+
+    ; ── Render single char ──
+    ; Save state
+    PUSH r1
+    PUSH r3
+    PUSH r4
+    PUSH r5
+
+    ; Store char + null in scratch
+    LDI r2, 0x1304
+    STORE r2, r0             ; char
+    LDI r2, 0x1305
+    STORE r2, r7             ; null
+
+    ; TEXT: r0=color, r1=x, r2=y, r3=str_addr
+    LDI r0, 0xCCCCCC         ; light gray
+    MOV r1, r3               ; x from saved
+    MOV r2, r4               ; y from saved
+    LDI r3, 0x1304
+    TEXT r1, r2, r3
+
+    ; Restore state
+    POP r5
+    POP r4
+    POP r3
+    POP r1
+
+    ; Advance X
+    LDI r0, 6
+    ADD r3, r0
+
+    ; Wrap check
+    LDI r0, 250
+    BLT r3, r0, dta_next
+    LDI r3, 2
+    LDI r0, ROW_HEIGHT
+    ADD r4, r0
+    ; Advance row on wrap
+    LDI r0, 1
+    ADD r2, r0
+
+    JMP dta_next
+
+dta_newline:
+    LDI r3, 2
+    LDI r0, ROW_HEIGHT
+    ; Only advance screen Y if row >= scroll_offset
+    BLT r2, r5, dta_nl_skip
+    ADD r4, r0
+dta_nl_skip:
+    LDI r0, 1
+    ADD r2, r0
+    JMP dta_next
+
+dta_skip:
+    ; Still advance X/Y tracking for row calculation
+    LDI r0, 6
+    ADD r3, r0
+    LDI r0, 250
+    BLT r3, r0, dta_next
+    LDI r3, 2
+    LDI r0, 1
+    ADD r2, r0
+
+dta_next:
+    ADD r1, r6
+    JMP dta_loop
+
+dta_done:
+    RET
+
+
+; ── count_cursor_row: compute which row the cursor is on ──────────
+;
+; Walks buffer from start to cursor index, counting newlines and wraps.
+;
+; Output: r0 = cursor row (0-indexed)
+; Clobbers: r0-r3
+;
+
+count_cursor_row:
+    LOAD r0, r13             ; r0 = cursor index
+    MOV r1, r9               ; r1 = buffer pointer
+    LDI r2, 0                ; r2 = chars walked
+    LDI r3, 0                ; r3 = current row
+
+ccr_loop:
+    BEQ r2, r0, ccr_done     ; reached cursor
+
+    LOAD r5, r1              ; r5 = char
+    BEQ r5, r8, ccr_newline  ; newline
+
+    ; Check wrap (every ~41 chars per row: (250-2)/6 = 41)
+    ; Actually we need to track X position too, which is complex.
+    ; Simpler: count newlines only. Wrapping adds visual rows but
+    ; for scroll purposes we count logical lines (newline-separated).
+    JMP ccr_next
+
+ccr_newline:
+    LDI r5, 1
+    ADD r3, r5
+
+ccr_next:
+    ADD r1, r6
+    ADD r2, r6
+    JMP ccr_loop
+
+ccr_done:
+    MOV r0, r3
+    RET
+
+
+; ── update_scroll: adjust scroll_offset to keep cursor visible ────
+;
+; Computes cursor row and adjusts scroll_offset so the cursor stays
+; within the visible area (rows 0..VISIBLE_ROWS-1 relative to scroll).
+;
+; Clobbers: r0-r3
+;
+
+update_scroll:
+    ; Save r6 (one constant)
+    PUSH r6
+
+    CALL count_cursor_row     ; r0 = cursor row
+
+    ; Get current scroll offset
+    LOAD r1, r15              ; r1 = scroll_offset
+
+    ; If cursor_row < scroll_offset, scroll up
+    BLT r0, r1, us_scroll_up
+
+    ; If cursor_row >= scroll_offset + VISIBLE_ROWS, scroll down
+    LDI r2, VISIBLE_ROWS
+    ADD r2, r1                ; r2 = scroll_offset + VISIBLE_ROWS
+    BLT r0, r2, us_done      ; cursor is visible, no change
+
+    ; Scroll down: scroll_offset = cursor_row - VISIBLE_ROWS + 1
+    LDI r2, VISIBLE_ROWS
+    SUB r0, r2
+    LDI r2, 1
+    ADD r0, r2
+    STORE r15, r0
+    JMP us_done
+
+us_scroll_up:
+    ; Scroll up: scroll_offset = cursor_row
+    STORE r15, r0
+
+us_done:
+    POP r6
+    RET
+
+
+; ── draw_cursor: compute position and draw blinking cursor ────────
+;
+; Respects scroll offset (0x1302): adjusts Y by scroll_offset * ROW_HEIGHT.
+;
+; Clobbers: r0-r5
+;
+draw_cursor:
+    ; Blink check
+    LOAD r0, r14
+    LDI r1, 30
+    BLT r0, r1, dc_show      ; first half of blink: show
+    LDI r1, 60
+    BLT r0, r1, dc_hide      ; second half: hide
+    JMP dc_show
+
+dc_hide:
+    RET
+
+dc_show:
+    ; Compute screen X,Y from cursor index
+    LOAD r0, r13             ; r0 = target cursor index
+    MOV r1, r9               ; r1 = buffer walk pointer
+    LDI r2, 0                ; r2 = counter (chars walked)
+    LDI r3, 2                ; r3 = screen X
+    LDI r4, 12               ; r4 = screen Y (will adjust for scroll)
+
+dc_walk:
+    BEQ r2, r0, dc_draw      ; reached cursor
+
+    LOAD r5, r1              ; r5 = char at position
+    BEQ r5, r8, dc_walk_nl   ; newline
+
+    ; Advance X
+    LDI r5, 6
+    ADD r3, r5
+    LDI r5, 250
+    BLT r3, r5, dc_walk_next
+    LDI r3, 2
+    LDI r5, 8
+    ADD r4, r5
+    JMP dc_walk_next
+
+dc_walk_nl:
+    LDI r3, 2
+    LDI r5, 8
+    ADD r4, r5
+
+dc_walk_next:
+    ADD r1, r6
+    ADD r2, r6
+    JMP dc_walk
+
+dc_draw:
+    ; Adjust Y for scroll offset: Y -= scroll_offset * ROW_HEIGHT
+    LOAD r5, r15             ; r5 = scroll_offset
+    LDI r0, ROW_HEIGHT
+    MUL r5, r0               ; r5 = scroll_offset * 8
+    ; r4 = absolute Y, subtract scroll pixels
+    ; But we need to be careful: r4 started at 12, so it's absolute screen Y
+    ; Actually we need: screen_y = absolute_y - scroll_offset * 8
+    ; But r4 was already computed starting from Y=12 with no scroll.
+    ; We need to subtract scroll_offset * ROW_HEIGHT from r4.
+    ; However, if scroll is 0, no change. If cursor is scrolled off, Y will be negative.
+    SUB r4, r5
+
+    ; Don't draw if cursor is off-screen (Y < 12 or Y > 248)
+    LDI r5, 12
+    BLT r4, r5, dc_offscreen
+    LDI r5, 248
+    BLT r5, r4, dc_offscreen
+
+    ; Draw underline cursor: 6px wide, 1px tall at bottom of char line
+    LDI r0, 0x00FFFF         ; cyan
+    MOV r1, r3               ; x
+    MOV r2, r4
+    LDI r5, 7                ; offset to bottom of char row
+    ADD r2, r5
+    RECTF r1, r2, 6, 1
+
+dc_offscreen:
+
+    RET
+
+
+; ── show_saved_status: display "SAVED" in status bar ──────────────
+;
+; Briefly shows a "SAVED" indicator on the right side of the status bar.
+; Uses a simple direct draw -- no timer, just draws it.
+;
+; Clobbers: r0-r3
+;
+
+show_saved_status:
+    ; Draw "SAVED" text on status bar (right-aligned at x=210)
+    LDI r0, 0x00FF00         ; green
+    LDI r1, 210
+    LDI r2, 2
+    LDI r3, saved_str
+    TEXT r1, r2, r3
+    RET
+
+
+; ── show_compile_status: display assembler status (ERR/OK) ────────
+;
+; Reads the assembler status register at 0x3FFE.
+; If status=1 (error): shows "ERR" in red on status bar.
+; If status=0 (success): shows "OK" in green on status bar.
+;
+; Clobbers: r0-r3
+;
+
+show_compile_status:
+    LDI r1, 0x3FFE           ; assembler status register
+    LOAD r2, r1              ; r2 = status (0=ok, 1=error)
+
+    ; Draw at x=170, y=2 (status bar area, left of "SAVED")
+    LDI r1, 170
+
+    ; Check if error
+    BEQ r2, r7, scs_ok       ; status == 0 → OK
+
+    ; Error: red "ERR"
+    LDI r0, 0xFF0000         ; red
+    LDI r2, 2                ; y
+    LDI r3, err_str
+    TEXT r1, r2, r3           ; x, y, str
+    RET
+
+scs_ok:
+    ; Success: green "OK"
+    LDI r0, 0x00FF00         ; green
+    LDI r2, 2                ; y
+    LDI r3, ok_str
+    TEXT r1, r2, r3           ; x, y, str
+    RET
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; STRING CONSTANTS
+; ═══════════════════════════════════════════════════════════════════════
+
+title_str:
+    .asciz "EDIT"
+
+saved_str:
+    .asciz "SAVED"
+
+err_str:
+    .asciz "ERR"
+
+ok_str:
+    .asciz "OK"
+
+
+    .include "../lib/input.gasm"

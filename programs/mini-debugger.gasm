@@ -1,0 +1,297 @@
+.text
+
+main:
+    LDI r3, 0
+    LDI r4, 1
+    LDI r6, 0xFFF
+    LDI r5, 0xB80
+    STORE r5, r3
+    LDI r0, 0x0A0A1E
+    CALL clear_screen
+    LDI r0, 0
+    LDI r1, 0
+    LDI r2, 0x00FFFF
+    TEXT r0, r1, title_s
+    LDI r0, 0
+    LDI r1, 2
+    LDI r2, 0x00FF00
+    TEXT r0, r1, cyc_s
+    LDI r0, 0
+    LDI r1, 4
+    LDI r2, 0xFFFF00
+    TEXT r0, r1, bp_s
+    LDI r0, 0
+    LDI r1, 7
+    LDI r2, 0x8080FF
+    TEXT r0, r1, mem_at_s
+    LDI r0, 0
+    LDI r1, 19
+    LDI r2, 0x808080
+    TEXT r0, r1, help_s
+    CALL update_regs
+    CALL draw_mem_dump
+
+main_loop:
+    CALL wait_key
+    LDI r5, 0xB81
+    STORE r5, r0
+    LDI r1, 0x44
+    SUB r0, r1
+    BEQ r0, r3, cmd_refresh
+    LOAD r0, r5
+    LDI r1, 0x2B
+    SUB r0, r1
+    BEQ r0, r3, cmd_next
+    LOAD r0, r5
+    LDI r1, 0x3D
+    SUB r0, r1
+    BEQ r0, r3, cmd_next
+    LOAD r0, r5
+    LDI r1, 0x2D
+    SUB r0, r1
+    BEQ r0, r3, cmd_prev
+    LOAD r0, r5
+    LDI r1, 0x42
+    SUB r0, r1
+    BEQ r0, r3, cmd_set_bp
+    LOAD r0, r5
+    LDI r1, 0x30
+    SUB r0, r1
+    BEQ r0, r3, cmd_clear_bp
+    LOAD r0, r5
+    LDI r1, 0x51
+    SUB r0, r1
+    BEQ r0, r3, cmd_quit
+    JMP main_loop
+
+cmd_refresh:
+    CALL update_regs
+    CALL draw_mem_dump
+    JMP main_loop
+
+cmd_next:
+    LDI r5, 0xB80
+    LOAD r0, r5
+    LDI r1, 8
+    ADD r0, r1
+    STORE r5, r0
+    CALL draw_mem_dump
+    JMP main_loop
+
+cmd_prev:
+    LDI r5, 0xB80
+    LOAD r0, r5
+    LDI r1, 8
+    SUB r0, r1
+    STORE r5, r0
+    CALL draw_mem_dump
+    JMP main_loop
+
+cmd_set_bp:
+    LDI r5, 0xFFE2
+    LDI r7, 0xB80
+    LOAD r0, r7
+    STORE r5, r0
+    CALL update_regs
+    JMP main_loop
+
+cmd_clear_bp:
+    LDI r5, 0xFFE2
+    STORE r5, r3
+    CALL update_regs
+    JMP main_loop
+
+cmd_quit:
+    HALT
+
+update_regs:
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r5
+    PUSH r7
+    LDI r5, 0xFFE0
+    LOAD r0, r5
+    LDI r7, 0xB82
+    CALL word_to_hex
+    LDI r0, 0x00FF00
+    LDI r1, 4
+    LDI r2, 2
+    TEXT r1, r2, r7
+    LDI r5, 0xFFE1
+    LOAD r0, r5
+    LDI r7, 0xB82
+    CALL word_to_hex
+    LDI r0, 0x00FFFF
+    LDI r1, 16
+    LDI r2, 2
+    TEXT r1, r2, r7
+    LDI r5, 0xFFE2
+    LOAD r0, r5
+    LDI r7, 0xB82
+    CALL word_to_hex
+    LDI r0, 0xFFFF00
+    LDI r1, 3
+    LDI r2, 4
+    TEXT r1, r2, r7
+    LDI r5, 0xFFE3
+    LOAD r0, r5
+    BEQ r0, r3, ur_hit_off
+    LDI r0, 0xFF0000
+    LDI r1, 16
+    LDI r2, 4
+    TEXT r1, r2, on_s
+    JMP ur_addr
+ur_hit_off:
+    LDI r0, 0x808080
+    LDI r1, 16
+    LDI r2, 4
+    TEXT r1, r2, off_s
+ur_addr:
+    LDI r5, 0xB80
+    LOAD r0, r5
+    LDI r7, 0xB82
+    CALL word_to_hex
+    LDI r0, 0x8080FF
+    LDI r1, 5
+    LDI r2, 7
+    TEXT r1, r2, r7
+    POP r7
+    POP r5
+    POP r2
+    POP r1
+    POP r0
+    RET
+
+draw_mem_dump:
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r5
+    PUSH r7
+    PUSH r8
+    PUSH r9
+    PUSH r10
+    LDI r5, 0xB80
+    LOAD r8, r5
+    LDI r9, 8
+    LDI r10, 9
+dmd_row:
+    BEQ r9, r3, dmd_done
+    MOV r0, r8
+    LDI r7, 0xB82
+    CALL word_to_hex
+    LDI r0, 0x606080
+    LDI r1, 0
+    MOV r2, r10
+    TEXT r1, r2, r7
+    LDI r0, 0x606080
+    LDI r1, 8
+    MOV r2, r10
+    TEXT r1, r2, colon_s
+    LOAD r0, r8
+    LDI r7, 0xB8B
+    CALL word_to_hex
+    LDI r0, 0x00FF00
+    LDI r1, 10
+    MOV r2, r10
+    TEXT r1, r2, r7
+    ADD r8, r4
+    SUB r9, r4
+    ADD r10, r4
+    JMP dmd_row
+dmd_done:
+    POP r10
+    POP r9
+    POP r8
+    POP r7
+    POP r5
+    POP r2
+    POP r1
+    POP r0
+    RET
+
+word_to_hex:
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r5
+    PUSH r7
+    MOV r1, r7
+    LDI r2, 8
+wth_loop:
+    BEQ r2, r3, wth_done
+    MOV r5, r0
+    LDI r7, 0x0F
+    AND r5, r7
+    CALL _wth_nibble_ascii
+    PUSH r1
+    ADD r1, r2
+    SUB r1, r4
+    STORE r1, r5
+    POP r1
+    SHR r0, r4
+    SHR r0, r4
+    SHR r0, r4
+    SHR r0, r4
+    SUB r2, r4
+    JMP wth_loop
+wth_done:
+    ADD r1, r2
+    ADD r1, r4
+    ADD r1, r4
+    ADD r1, r4
+    ADD r1, r4
+    ADD r1, r4
+    ADD r1, r4
+    ADD r1, r4
+    ADD r1, r4
+    STORE r1, r3
+    POP r7
+    POP r5
+    POP r2
+    POP r1
+    POP r0
+    RET
+
+_wth_nibble_ascii:
+    PUSH r7
+    PUSH r8
+    LDI r7, 10
+    BLT r5, r7, _wth_digit
+    LDI r8, 10
+    SUB r5, r8
+    LDI r8, 0x41
+    ADD r5, r8
+    JMP _wth_ret
+_wth_digit:
+    LDI r8, 0x30
+    ADD r5, r8
+_wth_ret:
+    POP r8
+    POP r7
+    RET
+
+title_s:
+    .asciz "GEO-DEBUG v2"
+cyc_s:
+    .asciz "CYC:"
+stk_s:
+    .asciz " STK:"
+bp_s:
+    .asciz "BP:"
+hit_s:
+    .asciz " HIT:"
+mem_at_s:
+    .asciz "MEM @"
+colon_s:
+    .asciz ":"
+help_s:
+    .asciz "D=ref +=next -=prev B=BP 0=clr Q=X"
+off_s:
+    .asciz "off"
+on_s:
+    .asciz "ON!"
+
+.include "../lib/input.gasm"
+.include "../lib/screen.gasm"

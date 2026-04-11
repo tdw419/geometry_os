@@ -1,0 +1,143 @@
+; IPC Producer-Consumer Demo
+; 
+; Demonstrates inter-process communication using FORK and IPC mailboxes.
+; Parent (producer) sends values 1-5 to child (consumer) via IPC.
+; Consumer receives each value and draws a pixel at (value*10, value*10).
+;
+; Usage: Load and run. Parent sends messages, child receives and draws.
+; Both processes use YIELD for cooperative multitasking.
+;
+; Memory layout:
+;   r0  - scratch / child PID / received value
+;   r1  - sender PID / loop counter
+;   r5  - IPC register address scratch
+;   r6  - IPC register value scratch
+;   r10 - zero for comparisons
+
+; ── Constants ──
+IPC_STATUS   = 0xFE00
+IPC_MY_PID   = 0xFE01
+IPC_COUNT    = 0xFE02
+IPC_SEND     = 0xFE03
+IPC_TARGET   = 0xFE04
+IPC_VALUE    = 0xFE05
+IPC_RECV     = 0xFE06
+IPC_SENDER   = 0xFE07
+
+COLOR_GREEN  = 0x00FF00
+COLOR_RED    = 0xFF0000
+COLOR_BLUE   = 0x0000FF
+COLOR_WHITE  = 0xFFFFFF
+COLOR_YELLOW = 0xFFFF00
+
+NUM_MESSAGES = 5
+RESULT_ADDR  = 0x2000
+
+; ── Entry point ──
+; Skip past the consumer code, which is loaded at a known address
+    JMP main
+
+; ── Consumer code (child process runs from here) ──
+; After FORK, child has r0=0 and PC=start of consumer section
+consumer:
+    ; Enable IPC
+    LDI r5, IPC_STATUS
+    LDI r6, 1
+    STORE r5, r6
+
+    ; r1 = messages received counter
+    LDI r1, 0
+    LDI r10, 0
+
+consumer_loop:
+    ; Check message count
+    LDI r5, IPC_COUNT
+    LOAD r0, r5
+    BEQ r0, r10, consumer_wait
+    ; Have a message — receive it
+    LDI r5, IPC_RECV
+    LDI r6, 1
+    STORE r5, r6
+    ; Read received value
+    LDI r5, IPC_VALUE
+    LOAD r0, r5
+    ; Draw pixel at (value*10, value*10) to show receipt
+    ; r0 = value (1-5), compute x = value * 10
+    LDI r5, 10
+    MUL r5, r0
+    ; Draw at (x, x) with yellow color
+    LDI r1, COLOR_YELLOW
+    PSET r5, r5, r1
+    ; Increment counter
+    LDI r1, 0          ; reset r1 for count check
+    ; Store received value to result area
+    LDI r5, RESULT_ADDR
+    ADD r5, r0
+    STORE r5, r0       ; store value as marker
+
+consumer_wait:
+    ; Check if we got all messages
+    LDI r5, NUM_MESSAGES
+    ; Actually just check message count again; if 0, yield and loop
+    LDI r5, IPC_COUNT
+    LOAD r0, r5
+    BEQ r0, r10, consumer_yield
+    ; Still have messages, loop back to receive
+    JMP consumer_loop
+
+consumer_yield:
+    YIELD
+    JMP consumer_loop
+
+; ── Main (parent = producer) ──
+main:
+    ; Enable IPC
+    LDI r5, IPC_STATUS
+    LDI r6, 1
+    STORE r5, r6
+
+    ; FORK to create child process
+    FORK
+    YIELD                   ; let scheduler resolve fork
+
+    ; Check if we're the child (r0=0) or parent (r0=child_pid)
+    LDI r10, 0
+    BEQ r0, r10, consumer
+
+    ; ── Parent (producer) ──
+    ; r0 = child PID (target for messages)
+    ; Save child PID
+    MOV r7, r0
+
+    ; Set target to child PID
+    LDI r5, IPC_TARGET
+    STORE r5, r7
+
+    ; Send NUM_MESSAGES values (1, 2, 3, 4, 5)
+    LDI r1, 1              ; value to send
+
+send_loop:
+    ; Set message value
+    LDI r5, IPC_VALUE
+    STORE r5, r1
+    ; Trigger send
+    LDI r5, IPC_SEND
+    LDI r6, 1
+    STORE r5, r6
+    ; Draw a blue pixel to show we sent
+    LDI r5, 10
+    MUL r5, r1
+    LDI r6, COLOR_BLUE
+    PSET r5, r5, r6
+    ; Yield to let scheduler route message and let consumer run
+    YIELD
+    ; Increment value
+    LDI r5, 1
+    ADD r1, r5
+    ; Check if we've sent enough
+    LDI r5, NUM_MESSAGES
+    ADD r5, r1             ; r5 = NUM_MESSAGES + r1
+    ; If r1 <= NUM_MESSAGES, continue
+    BLT r1, r5, send_loop  ; r1 < NUM_MESSAGES+1 means r1 <= NUM_MESSAGES
+    ; Done sending — halt
+    HALT

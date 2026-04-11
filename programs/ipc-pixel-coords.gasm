@@ -1,0 +1,182 @@
+; IPC Pixel Coordinate Exchange Demo
+;
+; Two processes collaborate to draw on screen via IPC.
+; Process A (sender) sends a series of (x,y) coordinate pairs encoded as
+; single values: value = x * 256 + y. Process B (receiver) decodes and draws.
+;
+; Visual result: a diagonal line of green pixels drawn by the receiver
+; process using coordinates sent by the sender process.
+;
+; Memory layout:
+;   r0  - scratch / child PID / received value
+;   r1  - loop counter / y coordinate
+;   r5  - IPC register address scratch
+;   r6  - IPC register value scratch
+;   r7  - child PID / x coordinate
+;   r10 - zero for comparisons
+
+; ── Constants ──
+IPC_STATUS   = 0xFE00
+IPC_COUNT    = 0xFE02
+IPC_SEND     = 0xFE03
+IPC_TARGET   = 0xFE04
+IPC_VALUE    = 0xFE05
+IPC_RECV     = 0xFE06
+IPC_SENDER   = 0xFE07
+
+COLOR_GREEN  = 0x00FF00
+COLOR_RED    = 0xFF0000
+NUM_COORDS   = 8
+SCREEN_SIZE  = 256
+
+; ── Entry point ──
+    JMP main
+
+; ── Receiver (child process) ──
+receiver:
+    ; Enable IPC
+    LDI r5, IPC_STATUS
+    LDI r6, 1
+    STORE r5, r6
+
+    LDI r1, 0           ; messages received
+    LDI r10, 0
+
+recv_loop:
+    ; Check message count
+    LDI r5, IPC_COUNT
+    LOAD r0, r5
+    BEQ r0, r10, recv_wait
+
+    ; Receive message
+    LDI r5, IPC_RECV
+    LDI r6, 1
+    STORE r5, r6
+    ; Read value (encoded as x*256 + y)
+    LDI r5, IPC_VALUE
+    LOAD r0, r5
+
+    ; Decode: y = value & 0xFF, x = value >> 8
+    MOV r7, r0
+    LDI r5, 255
+    AND r7, r5           ; r7 = y
+    LDI r5, 8
+    SHR r0, r5           ; r0 = x
+
+    ; Draw green pixel at (x, y)
+    LDI r5, COLOR_GREEN
+    PSET r0, r7, r5
+
+    ; Increment counter
+    LDI r5, 1
+    ADD r1, r5
+
+    ; Check if we got all coords
+    LDI r5, NUM_COORDS
+    BGE r1, r5, recv_done
+    JMP recv_loop
+
+recv_wait:
+    YIELD
+    JMP recv_loop
+
+recv_done:
+    HALT
+
+; ── Main (parent = sender) ──
+main:
+    ; Enable IPC
+    LDI r5, IPC_STATUS
+    LDI r6, 1
+    STORE r5, r6
+
+    ; FORK
+    FORK
+    YIELD
+
+    ; Check if child
+    LDI r10, 0
+    BEQ r0, r10, receiver
+
+    ; ── Parent: send coordinate pairs ──
+    MOV r7, r0            ; r7 = child PID
+
+    ; Set target
+    LDI r5, IPC_TARGET
+    STORE r5, r7
+
+    ; Send 8 coordinates along diagonal: (20,20), (40,40), ..., (160,160)
+    ; Encode as x*256+y
+    ; Send coord 1: x=20, y=20 => 20*256+20 = 5140
+    LDI r5, IPC_VALUE
+    LDI r6, 5140
+    STORE r5, r6
+    LDI r5, IPC_SEND
+    LDI r6, 1
+    STORE r5, r6
+    YIELD
+
+    ; Send coord 2: x=40, y=40 => 40*256+40 = 10280
+    LDI r5, IPC_VALUE
+    LDI r6, 10280
+    STORE r5, r6
+    LDI r5, IPC_SEND
+    LDI r6, 1
+    STORE r5, r6
+    YIELD
+
+    ; Send coord 3: x=60, y=60 => 60*256+60 = 15420
+    LDI r5, IPC_VALUE
+    LDI r6, 15420
+    STORE r5, r6
+    LDI r5, IPC_SEND
+    LDI r6, 1
+    STORE r5, r6
+    YIELD
+
+    ; Send coord 4: x=80, y=80 => 80*256+80 = 20560
+    LDI r5, IPC_VALUE
+    LDI r6, 20560
+    STORE r5, r6
+    LDI r5, IPC_SEND
+    LDI r6, 1
+    STORE r5, r6
+    YIELD
+
+    ; Send coord 5: x=100, y=100 => 25700
+    LDI r5, IPC_VALUE
+    LDI r6, 25700
+    STORE r5, r6
+    LDI r5, IPC_SEND
+    LDI r6, 1
+    STORE r5, r6
+    YIELD
+
+    ; Send coord 6: x=120, y=120 => 30840
+    LDI r5, IPC_VALUE
+    LDI r6, 30840
+    STORE r5, r6
+    LDI r5, IPC_SEND
+    LDI r6, 1
+    STORE r5, r6
+    YIELD
+
+    ; Send coord 7: x=140, y=140 => 35980
+    LDI r5, IPC_VALUE
+    LDI r6, 35980
+    STORE r5, r6
+    LDI r5, IPC_SEND
+    LDI r6, 1
+    STORE r5, r6
+    YIELD
+
+    ; Send coord 8: x=160, y=160 => 41120
+    LDI r5, IPC_VALUE
+    LDI r6, 41120
+    STORE r5, r6
+    LDI r5, IPC_SEND
+    LDI r6, 1
+    STORE r5, r6
+    YIELD
+
+    HALT

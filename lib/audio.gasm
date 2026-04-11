@@ -1,0 +1,177 @@
+; ═══════════════════════════════════════════════════════════════════════
+; lib/audio.gasm -- Audio output routines for Geometry OS
+;
+; Provides helpers for the memory-mapped audio registers at
+; 0xFFC0-0xFFC3. Generates square wave tones.
+;
+; AUDIO REGISTERS:
+;   0xFFC0: AUDIO_FREQ    (R/W) frequency in Hz, 0 = silence
+;   0xFFC1: AUDIO_VOLUME  (R/W) volume 0-255
+;   0xFFC2: AUDIO_DURATION (R/W) duration in ms, 0 = indefinite
+;   0xFFC3: AUDIO_STATUS  (R)   1 = playing, 0 = idle
+;
+; CALLING CONVENTION:
+;   r0 = first argument / return value
+;   r1 = second argument / return value
+;   r2-r7 = temporaries (clobbered by routines)
+;   CALL <routine> / RET to invoke
+;
+; ROUTINES:
+;   play_note     -- play a tone: r0=freq(Hz), r1=volume(0-255)
+;   stop_audio    -- silence output (sets freq=0)
+;   set_volume    -- change volume: r0=volume(0-255)
+;   audio_playing -- returns r0=1 if playing, r0=0 if idle
+;   play_c4       -- convenience: play middle C (262 Hz) at volume r0
+;   play_e4       -- convenience: play E4 (330 Hz) at volume r0
+;   play_g4       -- convenience: play G4 (392 Hz) at volume r0
+;   play_a4       -- convenience: play A4 (440 Hz) at volume r0
+;
+; CONSTANTS:
+;   NOTE_C4 = 262   NOTE_D4 = 294   NOTE_E4 = 330   NOTE_F4 = 349
+;   NOTE_G4 = 392   NOTE_A4 = 440   NOTE_B4 = 494   NOTE_C5 = 523
+; ═══════════════════════════════════════════════════════════════════════
+
+
+; ── play_note: play a tone at given frequency and volume ──────────
+;
+; Input:  r0 = frequency in Hz (0 = silence)
+;         r1 = volume (0-255)
+; Output: none
+; Clobbers: r5, r6
+;
+; Sets volume first, then frequency. When freq is written with
+; non-zero volume, the VM automatically sets status=1 (playing).
+;
+play_note:
+    ; Set volume
+    LDI r5, 0xFFC1
+    STORE r5, r1              ; audio_volume = r1
+    ; Set frequency (triggers playback if vol > 0 and freq > 0)
+    LDI r5, 0xFFC0
+    STORE r5, r0              ; audio_freq = r0
+    RET
+
+
+; ── stop_audio: silence audio output ──────────────────────────────
+;
+; Input:  none
+; Output: none
+; Clobbers: r5, r6
+;
+stop_audio:
+    LDI r5, 0xFFC0
+    LDI r6, 0
+    STORE r5, r6              ; audio_freq = 0 → stops playback
+    RET
+
+
+; ── set_volume: change volume of currently playing tone ───────────
+;
+; Input:  r0 = volume (0-255)
+; Output: none
+; Clobbers: r5
+;
+set_volume:
+    LDI r5, 0xFFC1
+    STORE r5, r0              ; audio_volume = r0
+    RET
+
+
+; ── audio_playing: check if audio is currently playing ────────────
+;
+; Input:  none
+; Output: r0 = 1 if playing, 0 if idle
+; Clobbers: r0, r5
+;
+audio_playing:
+    LDI r5, 0xFFC3
+    LOAD r0, r5               ; r0 = audio_status
+    RET
+
+
+; ── set_duration: set note duration ───────────────────────────────
+;
+; Input:  r0 = duration in milliseconds (0 = indefinite)
+; Output: none
+; Clobbers: r5
+;
+set_duration:
+    LDI r5, 0xFFC2
+    STORE r5, r0              ; audio_duration = r0
+    RET
+
+
+; ── play_c4: convenience routine for middle C ─────────────────────
+;
+; Input:  r0 = volume (0-255)
+; Output: none
+; Clobbers: r0, r1, r5, r6
+;
+play_c4:
+    MOV r1, r0                ; r1 = volume
+    LDI r0, 262               ; C4 = 262 Hz
+    CALL play_note
+    RET
+
+
+; ── play_d4: convenience routine for D4 ───────────────────────────
+;
+play_d4:
+    MOV r1, r0
+    LDI r0, 294               ; D4 = 294 Hz
+    CALL play_note
+    RET
+
+
+; ── play_e4: convenience routine for E4 ───────────────────────────
+;
+play_e4:
+    MOV r1, r0
+    LDI r0, 330               ; E4 = 330 Hz
+    CALL play_note
+    RET
+
+
+; ── play_f4: convenience routine for F4 ───────────────────────────
+;
+play_f4:
+    MOV r1, r0
+    LDI r0, 349               ; F4 = 349 Hz
+    CALL play_note
+    RET
+
+
+; ── play_g4: convenience routine for G4 ───────────────────────────
+;
+play_g4:
+    MOV r1, r0
+    LDI r0, 392               ; G4 = 392 Hz
+    CALL play_note
+    RET
+
+
+; ── play_a4: convenience routine for A4 (concert pitch) ───────────
+;
+play_a4:
+    MOV r1, r0
+    LDI r0, 440               ; A4 = 440 Hz
+    CALL play_note
+    RET
+
+
+; ── play_b4: convenience routine for B4 ───────────────────────────
+;
+play_b4:
+    MOV r1, r0
+    LDI r0, 494               ; B4 = 494 Hz
+    CALL play_note
+    RET
+
+
+; ── play_c5: convenience routine for C5 ───────────────────────────
+;
+play_c5:
+    MOV r1, r0
+    LDI r0, 523               ; C5 = 523 Hz
+    CALL play_note
+    RET

@@ -1,0 +1,243 @@
+; ═══════════════════════════════════════════════════════════════════════
+; counter_demo.gasm -- Counter that increments and displays on screen
+;
+; Counts from 0 to 99, displaying each value as a decimal string
+; at screen position (10, 10) in white text on a black background.
+;
+; Memory layout:
+;   0x0000 - 0x0FFF: program code
+;   0x1000 - 0x100F: counter variable (single word)
+;   0x1010 - 0x102F: digit buffer (up to 10 digits + null)
+;
+; ROUTINES:
+;   uint_to_str -- convert u32 in r0 to decimal string at buffer
+;   main        -- counter loop with display
+;
+; CALLING CONVENTION:
+;   r0 = first argument / return value
+;   r1-r7 = temporaries (clobbered)
+; ═══════════════════════════════════════════════════════════════════════
+
+
+; ── Constants ────────────────────────────────────────────────────────
+; Counter variable address
+COUNTER_ADDR = 0x1000
+; Digit buffer address (must have room for ~10 digits + null)
+DIGIT_BUF = 0x1010
+; Screen position for counter display
+DISPLAY_X = 10
+DISPLAY_Y = 10
+; Display color (white)
+WHITE = 0xFFFFFF
+; Background color (black)
+BLACK = 0x000000
+; Max count value
+MAX_COUNT = 99
+
+
+; ── uint_to_str: convert u32 to null-terminated decimal string ──────
+;
+; Input:  r0 = number to convert
+; Output: r8 = address of first digit (within buffer)
+;         String is null-terminated at DIGIT_BUF onwards
+;
+; Writes digits backwards from DIGIT_BUF+10, then returns ptr to first.
+; Clobbers: r1-r7
+;
+; Algorithm:
+;   pos = DIGIT_BUF + 10  (write position, backwards)
+;   if number == 0: write '0' at pos, return
+;   while number != 0:
+;     digit = number % 10
+;     number = number / 10
+;     pos -= 1
+;     RAM[pos] = digit + '0'
+;   RAM[pos + len] = 0  (null terminator)
+;   return pos
+
+uint_to_str:
+    LDI r1, 10              ; r1 = 10 (divisor)
+    LDI r2, 0               ; r2 = 0 constant
+    LDI r3, 0               ; r3 = character '0' = 48 -- will set below
+    LDI r3, 48              ; r3 = '0' = 48
+    LDI r4, DIGIT_BUF       ; r4 = DIGIT_BUF base
+    LDI r5, 10              ; r5 = 10 (offset for end of buffer)
+    ADD r4, r5              ; r4 = DIGIT_BUF + 10 (write start position)
+    LDI r5, 1               ; r5 = 1 constant
+    LDI r8, 0               ; r8 = 0 (will track number of digits)
+
+    ; Special case: number == 0
+    BNE r0, r2, uint_to_str_positive
+    LDI r6, 48              ; '0'
+    STORE r4, r6            ; write '0' at DIGIT_BUF+10
+    LDI r6, 0               ; null
+    LDI r7, 1
+    ADD r7, r4              ; r7 = DIGIT_BUF+11
+    STORE r7, r6            ; null terminator
+    MOV r8, r4              ; r8 = ptr to the '0'
+    RET
+
+uint_to_str_positive:
+    ; r0 = remaining number
+    ; r4 = current write position (starts at DIGIT_BUF+10, decrements)
+    ; r1 = 10 (divisor)
+    PUSH r4                 ; save end position for null terminator
+
+uint_to_str_loop:
+    ; Check if number is 0
+    BEQ r0, r2, uint_to_str_done
+
+    ; digit = number % 10
+    MOV r6, r0              ; r6 = number (save for div)
+    MOD r0, r1              ; r0 = number % 10 = digit
+    ADD r0, r3              ; r0 = digit + '0'
+    SUB r4, r5              ; r4 -= 1 (move write position left)
+    STORE r4, r0            ; write digit character
+
+    ; number = number / 10 (use saved value)
+    MOV r0, r6              ; restore original number
+    DIV r0, r1              ; r0 = number / 10
+
+    JMP uint_to_str_loop
+
+uint_to_str_done:
+    ; Write null terminator after last digit
+    POP r6                  ; r6 = DIGIT_BUF + 10 (end position)
+    LDI r7, 0               ; null value
+    STORE r6, r7            ; null terminator at DIGIT_BUF+10
+    MOV r8, r4              ; r8 = pointer to first digit
+    RET
+
+
+; ── main: counter loop ──────────────────────────────────────────────
+;
+; Counts from 0 to MAX_COUNT, displaying each value on screen.
+; Uses uint_to_str to convert, then TEXT to display.
+;
+; Register usage in main loop:
+;   r0  = counter value / temp
+;   r1  = 1 (increment)
+;   r2  = MAX_COUNT (limit)
+;   r3  = 0 (for comparison)
+;   r4  = display x
+;   r5  = display y
+;   r6  = color
+;   r7  = temp
+;   r8  = string pointer (from uint_to_str)
+;   r9  = COUNTER_ADDR
+
+main:
+    LDI r0, 0               ; counter = 0
+    LDI r1, 1               ; increment = 1
+    LDI r2, MAX_COUNT       ; max = 99
+    LDI r3, 0               ; zero for comparison
+    LDI r9, COUNTER_ADDR    ; counter storage address
+
+counter_loop:
+    ; Store counter to RAM (for uint_to_str to read indirectly if needed)
+    STORE r9, r0
+
+    ; Clear display area (black rectangle behind text)
+    ; RECTF reads color from r0, but we need black
+    PUSH r0                 ; save counter
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r9
+    LDI r0, BLACK           ; r0 = black (RECTF color)
+    LDI r4, DISPLAY_X       ; x
+    LDI r5, DISPLAY_Y       ; y
+    RECTF r4, r5, 48, 10    ; clear 48x10 area at display position
+    POP r9
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    ; Convert counter to string
+    PUSH r0                 ; save counter
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r9
+    CALL uint_to_str        ; r8 = string pointer, r0 clobbered
+    POP r9
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    ; Display the string using TEXT opcode
+    ; TEXT reads color from r0, takes x_reg, y_reg, str_addr_reg
+    PUSH r0                 ; save counter
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r9
+    LDI r0, WHITE           ; r0 = text color (white)
+    LDI r1, DISPLAY_X       ; x = 10
+    LDI r2, DISPLAY_Y       ; y = 10
+    MOV r3, r8              ; r3 = string pointer from uint_to_str
+    TEXT r1, r2, r3         ; render string on screen
+    POP r9
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    ; Increment counter
+    ADD r0, r1              ; counter += 1
+
+    ; Check if we've reached max
+    ; BLT r0, r2 = branch if counter < max+1 (i.e., counter <= max)
+    BGE r0, r2, counter_done
+    JMP counter_loop
+
+counter_done:
+    ; One final display of the last value
+    STORE r9, r0
+
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r9
+    LDI r0, BLACK
+    LDI r4, DISPLAY_X
+    LDI r5, DISPLAY_Y
+    RECTF r4, r5, 48, 10
+    POP r9
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r9
+    CALL uint_to_str
+    POP r9
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r9
+    LDI r0, WHITE
+    LDI r1, DISPLAY_X
+    LDI r2, DISPLAY_Y
+    MOV r3, r8
+    TEXT r1, r2, r3
+    POP r9
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    HALT
