@@ -1,0 +1,115 @@
+; ═══════════════════════════════════════════════════════════════════════
+; lib/alloc.gasm -- Dynamic memory allocation for Geometry OS
+;
+; Provides convenience wrappers around the memory-mapped heap registers
+; at 0xFFD0-0xFFD5. Programs use these to allocate and free blocks of
+; RAM dynamically, like malloc/free in C.
+;
+; HEAP REGISTERS (memory-mapped):
+;   0xFFD0 (HEAP_START)      -- R/W: base address of heap region in RAM
+;   0xFFD1 (HEAP_SIZE)       -- R/W: size in words (write to initialize)
+;   0xFFD2 (HEAP_ALLOC)      -- W: request N words, R: address of last alloc (0=fail)
+;   0xFFD3 (HEAP_FREE)       -- W: address of block to free
+;   0xFFD4 (HEAP_BLOCKS)     -- R: number of allocated blocks
+;   0xFFD5 (HEAP_FREE_WORDS) -- R: free words remaining
+;
+; CALLING CONVENTION:
+;   r0 = first argument / return value
+;   r1 = second argument
+;   r5-r7 = temporaries (clobbered by routines)
+;   CALL <routine> / RET to invoke
+;
+; ROUTINES:
+;   heap_init   -- initialize heap at address r0, size r1 words
+;                  (sets HEAP_START then HEAP_SIZE to trigger init)
+;   heap_alloc  -- allocate r0 words, returns address in r0 (0 = fail)
+;   heap_free   -- free block at address r0
+;   heap_free_words -- returns free words in r0
+;   heap_blocks -- returns number of allocated blocks in r0
+;   heap_avail  -- check if r0 words can be allocated. r0 = 1 if yes, 0 if no
+;
+; EXAMPLE:
+;   .include "lib/alloc.gasm"
+;
+;   ; Set up a 200-word heap starting at RAM address 500
+;   LDI r0, 500
+;   LDI r1, 200
+;   CALL heap_init
+;
+;   ; Allocate 20 words for a buffer
+;   LDI r0, 20
+;   CALL heap_alloc
+;   ; r0 now holds the address of the allocated block (or 0 if fail)
+;   MOV r8, r0          ; save buffer address in r8
+;
+;   ; ... use the buffer (STORE/LOAD at r8+offset) ...
+;
+;   ; Free it when done
+;   MOV r0, r8
+;   CALL heap_free
+;
+; NOTES:
+;   - You MUST call heap_init before any alloc/free
+;   - Maximum 64 blocks can be tracked simultaneously
+;   - First-fit allocation strategy
+;   - Free blocks are automatically coalesced with neighbors
+; ═══════════════════════════════════════════════════════════════════════
+
+; ── heap_init: Initialize heap at address r0, size r1 ──────────────
+; Sets HEAP_START then HEAP_SIZE (which triggers initialization).
+; Clobbers: r5, r6
+heap_init:
+    LDI r5, 0xFFD0          ; HEAP_START register
+    STORE r5, r0            ; set heap start address
+    LDI r5, 0xFFD1          ; HEAP_SIZE register
+    MOV r6, r1
+    STORE r5, r6            ; write size -> triggers heap init
+    RET
+
+; ── heap_alloc: Allocate r0 words from the heap ────────────────────
+; Returns: r0 = address of allocated block (0 if failed)
+; Clobbers: r5, r6
+heap_alloc:
+    LDI r5, 0xFFD2          ; HEAP_ALLOC register
+    MOV r6, r0
+    STORE r5, r6            ; request allocation
+    LOAD r0, r5             ; read back result address
+    RET
+
+; ── heap_free: Free block at address r0 ────────────────────────────
+; Clobbers: r5
+heap_free:
+    LDI r5, 0xFFD3          ; HEAP_FREE register
+    STORE r5, r0            ; free the block
+    RET
+
+; ── heap_free_words: Get number of free words ──────────────────────
+; Returns: r0 = free words remaining
+; Clobbers: r5
+heap_free_words:
+    LDI r5, 0xFFD5          ; HEAP_FREE_WORDS register
+    LOAD r0, r5
+    RET
+
+; ── heap_blocks: Get number of allocated blocks ────────────────────
+; Returns: r0 = allocated block count
+; Clobbers: r5
+heap_blocks:
+    LDI r5, 0xFFD4          ; HEAP_BLOCKS register
+    LOAD r0, r5
+    RET
+
+; ── heap_avail: Check if r0 words can be allocated ─────────────────
+; Returns: r0 = 1 if enough space, 0 if not
+; Clobbers: r5, r6
+heap_avail:
+    LDI r5, 0xFFD5          ; HEAP_FREE_WORDS register
+    LOAD r6, r5             ; r6 = free words
+    LDI r5, 0
+    SUB r6, r0              ; r6 = free - requested
+    BGT r6, r5, @heap_avail_yes
+    LDI r0, 0               ; not enough space
+    RET
+heap_avail_yes:
+    LDI r0, 1               ; enough space
+    RET
