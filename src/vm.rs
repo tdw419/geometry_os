@@ -26,6 +26,29 @@ const DEFAULT_STACK_LIMIT: usize = 256;
 pub const MAX_CYCLES: u32 = 4096;
 
 // ═══════════════════════════════════════════════════════════════════════
+// MEMORY PROTECTION
+// ═══════════════════════════════════════════════════════════════════════
+
+/// A named region of VM memory with access permissions.
+///
+/// When memory protection is enabled, every LOAD/STORE/LDB/STB is checked
+/// against the configured regions. If no region covers the address, or
+/// the region doesn't grant the required permission, a `MemoryFault` is raised.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MemoryRegion {
+    /// Human-readable name (e.g. "code", "data", "stack", "io")
+    pub name: &'static str,
+    /// Inclusive start address
+    pub start: u32,
+    /// Exclusive end address
+    pub end: u32,
+    /// Whether reading (LOAD/LDB) is allowed
+    pub readable: bool,
+    /// Whether writing (STORE/STB) is allowed
+    pub writable: bool,
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // VM ERROR TYPES
 //
 // Distinguishable error variants for VM execution failures.
@@ -62,6 +85,11 @@ pub enum VmError {
     /// Division by zero was attempted.
     /// Fields: (instruction_address)
     DivisionByZero(u32),
+
+    /// Memory protection fault: access violated a region's permissions.
+    /// Fields: (instruction_address, faulting_address, access_type)
+    /// access_type: "read" or "write"
+    MemoryFault(u32, u32, &'static str),
 }
 
 impl std::fmt::Display for VmError {
@@ -95,6 +123,13 @@ impl std::fmt::Display for VmError {
             }
             VmError::DivisionByZero(pc) => {
                 write!(f, "division by zero at PC={}", pc)
+            }
+            VmError::MemoryFault(pc, addr, access_type) => {
+                write!(
+                    f,
+                    "memory {} fault at address 0x{:X} (PC={})",
+                    access_type, addr, pc
+                )
             }
         }
     }
