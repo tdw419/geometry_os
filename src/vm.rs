@@ -308,6 +308,22 @@ impl ProcessTable {
             TickReason::TimeSlice
         };
 
+        // Handle FORK: if the VM requested a fork, create a child process.
+        if vm.fork_requested {
+            let child_pid = self.alloc_pid();
+            let mut child_state = vm.snapshot();
+            // Child gets r0 = 0
+            child_state.regs[0] = 0;
+            child_state.pid = child_pid;
+            self.processes.push(Process {
+                pid: child_pid,
+                state: child_state,
+                status: ProcessStatus::Ready,
+            });
+            // Parent gets r0 = child_pid
+            vm.regs[0] = child_pid;
+        }
+
         // Save state back
         let new_state = vm.snapshot();
         if let Some(p) = self.processes.iter_mut().find(|p| p.pid == pid) {
