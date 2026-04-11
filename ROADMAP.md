@@ -69,7 +69,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Mouse input (memory-mapped x, y, buttons)
 - [x] Audio output (square wave, memory-mapped)
 - [x] Sprite system (SPAWN entities, auto-update) — ChildVm with x/y/w/h, positional compositing, frame-limited execution, lib/sprite.gasm, programs/sprites-demo.gasm
-- [ ] Scrollable text buffer (terminal output)
+- [x] Scrollable text buffer (terminal output) — TextBuffer struct with memory-mapped I/O registers (0xFFD8–0xFFDF), auto-wrap at 51 cols, auto-scroll past 36 rows, lib/terminal.gasm, programs/terminal-demo.gasm, 19 tests
 
 ## Phase 5: The OS Layer
 
