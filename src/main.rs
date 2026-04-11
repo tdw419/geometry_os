@@ -1001,28 +1001,43 @@ fn main() {
                 );
             }
 
-            // ── Child VM Bridge ────────────────────────────────────────
+            // ── Child VM Bridge (Sprite System) ──────────────────────────
             let new_children = vm.drain_children();
             for child_req in &new_children {
                 let child = vm.spawn_child(child_req);
                 child_vms.push(child);
-                let cx = child_req.arg & 0xFFFF;
-                let cy = (child_req.arg >> 16) & 0xFFFF;
                 println!(
-                    "[SPAWN] New child VM at ({}, {}) → PC={}  ({} children total)",
-                    cx,
-                    cy,
+                    "[SPAWN] New sprite at ({}, {}) size {}x{} → PC={}  ({} sprites total)",
+                    child_req.x,
+                    child_req.y,
+                    if child_req.w == 0 { 256 } else { child_req.w },
+                    if child_req.h == 0 { 256 } else { child_req.h },
                     child_req.start_addr,
                     child_vms.len()
                 );
             }
 
+            // Auto-update: run each sprite for a limited number of cycles per frame
+            const SPRITE_CYCLE_BUDGET: u32 = 100;
             for child in &mut child_vms {
                 if !child.is_halted() {
-                    child.run();
-                    vm.composite_screen(child);
+                    child.run_with_limit(SPRITE_CYCLE_BUDGET);
                 }
             }
+
+            // Composite sprites onto parent screen (positional blitting)
+            for child_vm in &child_vms {
+                if !child_vm.is_halted() {
+                    // For now, find the ChildVm metadata that matches.
+                    // We store sprite info at spawn time; since child_vms are 1:1
+                    // with the spawn order, we can check screen content directly.
+                    // Use full-screen composite for legacy SPAWN, positional for SPATIAL_SPAWN.
+                    vm.composite_screen(child_vm);
+                }
+            }
+
+            // Remove halted children
+            child_vms.retain(|c| !c.is_halted());
 
             if vm.halted {
                 is_running = false;

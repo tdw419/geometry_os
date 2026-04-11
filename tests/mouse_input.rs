@@ -149,10 +149,7 @@ fn mouse_not_inherited_by_child() {
     vm.mouse_y = 200;
     vm.mouse_buttons = 3;
 
-    let child = vm.spawn_child(&geometry_os::vm::ChildVm {
-        start_addr: 0,
-        arg: 0,
-    });
+    let child = vm.spawn_child(&geometry_os::vm::ChildVm::new(0, 0));
     assert_eq!(child.mouse_x, 0, "child should start with mouse_x=0");
     assert_eq!(child.mouse_y, 0, "child should start with mouse_y=0");
     assert_eq!(child.mouse_buttons, 0, "child should start with mouse_buttons=0");

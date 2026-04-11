@@ -258,10 +258,7 @@ fn audio_not_inherited_by_child() {
     vm.audio_duration = 500;
     vm.audio_status = 1;
 
-    let child = vm.spawn_child(&geometry_os::vm::ChildVm {
-        start_addr: 0,
-        arg: 0,
-    });
+    let child = vm.spawn_child(&geometry_os::vm::ChildVm::new(0, 0));
     assert_eq!(child.audio_freq, 0, "child should start with audio_freq=0");
     assert_eq!(child.audio_volume, 0, "child should start with audio_volume=0");
     assert_eq!(child.audio_duration, 0, "child should start with audio_duration=0");

@@ -406,7 +406,7 @@ fn test_spawn_child_inherits_protection() {
     vm.enable_memory_protection(vec![
         MemoryRegion { name: "code", start: 0, end: 256, readable: true, writable: false },
     ]);
-    let child_req = ChildVm { start_addr: 0, arg: 0 };
+    let child_req = ChildVm::new(0, 0);
     let child = vm.spawn_child(&child_req);
     assert!(child.memory_protection);
     assert_eq!(child.memory_regions.len(), 1);
