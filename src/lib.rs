@@ -13,4 +13,5 @@ pub mod opcodes;
 pub mod pixel;
 pub mod shell;
 pub mod vm;
+pub mod vm_pool;
 pub mod window_manager;
