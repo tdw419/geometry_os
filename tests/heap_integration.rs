@@ -355,3 +355,21 @@ done:
         "200 words should NOT be available in 100-word heap"
     );
 }
+
+#[test]
+fn alloc_stress_assembles_and_runs() {
+    // Load and assemble the alloc-stress.gasm program file
+    let path = std::path::Path::new("programs/alloc-stress.gasm");
+    let asm = assembler::assemble_file(path, &[std::path::Path::new(".")])
+        .expect("alloc-stress.gasm should assemble");
+    let mut vm = Vm::new(4096);
+    vm.load_program(&asm.pixels);
+    vm.run();
+
+    assert!(vm.halted, "alloc-stress should halt cleanly");
+    assert!(vm.heap.initialized, "heap should be initialized");
+
+    // After freeing everything, all 500 words should be free
+    assert_eq!(vm.heap.free_words(), 500, "all 500 heap words should be free after cleanup");
+    assert_eq!(vm.heap.alloc_count(), 0, "no blocks should remain allocated");
+}

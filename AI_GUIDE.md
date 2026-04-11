@@ -258,6 +258,43 @@ Library: `lib/audio.gasm` provides `play_note`, `stop_audio`, `set_volume`,
 `audio_playing`, `set_duration`, and convenience routines `play_c4`–`play_c5`.
 Demo: `programs/audio-demo.gasm` plays a C major scale using timer interrupts.
 
+### Heap Allocator (0xFFD0–0xFFD5)
+Memory-mapped I/O for dynamic memory allocation. Programs allocate/free blocks of RAM via LOAD/STORE to these registers.
+
+| Address  | Name             | R/W | Description |
+|----------|------------------|-----|-------------|
+| `0xFFD0` | HEAP_START       | R/W | Base address of heap region in RAM |
+| `0xFFD1` | HEAP_SIZE        | R/W | Size in words (write triggers initialization) |
+| `0xFFD2` | HEAP_ALLOC       | R/W | Write N to allocate N words; read to get address (0 = fail) |
+| `0xFFD3` | HEAP_FREE        | W   | Write address of block to free |
+| `0xFFD4` | HEAP_BLOCKS      | R   | Number of currently allocated blocks |
+| `0xFFD5` | HEAP_FREE_WORDS  | R   | Free words remaining in heap |
+
+Protocol: write HEAP_START with the base address, then write HEAP_SIZE to initialize. Allocate by writing count to HEAP_ALLOC, then reading back the address. Free by writing the address to HEAP_FREE. First-fit allocation, automatic coalescing on free. Maximum 64 blocks. Children do NOT inherit parent's heap.
+
+Example (raw registers):
+```
+LDI r5, 0xFFD0          ; HEAP_START
+LDI r6, 500             ; heap at RAM address 500
+STORE r5, r6
+LDI r5, 0xFFD1          ; HEAP_SIZE
+LDI r6, 200             ; 200 words
+STORE r5, r6            ; initializes heap
+
+; Allocate 50 words
+LDI r5, 0xFFD2          ; HEAP_ALLOC
+LDI r6, 50
+STORE r5, r6            ; request
+LOAD r0, r5             ; r0 = address (0 = fail)
+
+; Free the block
+LDI r5, 0xFFD3          ; HEAP_FREE
+STORE r5, r0            ; free it
+```
+
+Library: `lib/alloc.gasm` provides `heap_init`, `heap_alloc`, `heap_free`, `heap_free_words`, `heap_blocks`, `heap_avail` routines.
+Demos: `programs/alloc-demo.gasm`, `programs/alloc-stress.gasm`.
+
 ## Development Rules
 
 ### Testing

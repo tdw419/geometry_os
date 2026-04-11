@@ -75,7 +75,7 @@ AI-written demos      AI-written OS that humans use
 
 - [x] Process scheduler (round-robin, context switching)
 - [x] Filesystem (save/load named programs, directories)
-- [ ] Memory management (alloc/free within VM)
+- [x] Memory management (alloc/free within VM, heap registers 0xFFD0-0xFFD5, lib/alloc.gasm)
 - [ ] Inter-process communication
 - [ ] User sessions / permissions
 
@@ -110,7 +110,7 @@ AI-written demos      AI-written OS that humans use
 **Batch 6 -- The OS Layer (when games prove the foundation):**
 - [x] Process scheduler (needed when snake + editor run together)
 - [x] Filesystem (needed when you want to save your snake high score)
-- [ ] Memory management (needed when programs compete for RAM)
+- [x] Memory management (alloc/free within VM, heap registers 0xFFD0-0xFFD5, lib/alloc.gasm, alloc-demo, alloc-stress)
 
 **Batch 7 -- VM Hardening (only when programs hit walls):**
 - [x] Stack overflow protection (if recursion hits limit)
