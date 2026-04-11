@@ -171,6 +171,12 @@ pub struct VmSnapshot {
     pub timer_period: u32,
     /// Timer counter (current countdown)
     pub timer_counter: u32,
+    /// Debug: instruction cycle count
+    pub dbg_cycle_count: u32,
+    /// Debug: breakpoint address (0 = disabled)
+    pub dbg_breakpoint: u32,
+    /// Debug: breakpoint-hit flag
+    pub dbg_breakpt_hit: u32,
 }
 
 /// Number of interrupt vectors in the IVT.
@@ -188,6 +194,24 @@ pub const TIMER_PERIOD_ADDR: usize = 0xFFF0;
 /// Memory-mapped address for the timer counter (read-only).
 /// Reading returns the current countdown value (0 if timer is disabled).
 pub const TIMER_COUNTER_ADDR: usize = 0xFFF1;
+
+// ── Debug registers (0xFFE0–0xFFEF) ──────────────────────────────────
+// Memory-mapped I/O for VM introspection and debugging.
+// Programs read these via LOAD, write via STORE.
+
+/// Total instruction cycles executed since VM creation or last reset (read-only).
+pub const DBG_CYCLE_COUNT_ADDR: usize = 0xFFE0;
+
+/// Current stack depth: number of u32 values on the stack (read-only).
+pub const DBG_STACK_DEPTH_ADDR: usize = 0xFFE1;
+
+/// Breakpoint address. Write an address to set a breakpoint; write 0 to clear.
+/// When PC matches this address, the VM sets the breakpoint-hit flag (read-write).
+pub const DBG_BREAKPOINT_ADDR: usize = 0xFFE2;
+
+/// Breakpoint-hit flag (read-only, auto-clears on read).
+/// Returns 1 if the PC matched DBG_BREAKPOINT_ADDR since the last read; 0 otherwise.
+pub const DBG_BREAKPT_HIT_ADDR: usize = 0xFFE3;
 
 /// The VM.
 #[derive(Debug)]
@@ -217,6 +241,12 @@ pub struct Vm {
     /// Timer counter: counts down from timer_period to 0 each cycle.
     /// When it reaches 0, fires interrupt vector 0 and resets.
     pub timer_counter: u32,
+    /// Total instruction cycles executed (debug register backing store).
+    pub dbg_cycle_count: u32,
+    /// Breakpoint address (0 = disabled). When PC matches, sets dbg_breakpt_hit.
+    pub dbg_breakpoint: u32,
+    /// Breakpoint-hit flag: set to 1 when PC matches dbg_breakpoint, auto-clears on read.
+    pub dbg_breakpt_hit: u32,
 }
 
 impl Vm {
@@ -236,6 +266,9 @@ impl Vm {
             ivt: [0; IVT_SIZE],
             timer_period: 0,
             timer_counter: 0,
+            dbg_cycle_count: 0,
+            dbg_breakpoint: 0,
+            dbg_breakpt_hit: 0,
         }
     }
 
@@ -315,6 +348,9 @@ impl Vm {
             ivt: self.ivt,
             timer_period: 0,
             timer_counter: 0,
+            dbg_cycle_count: 0,
+            dbg_breakpoint: 0,
+            dbg_breakpt_hit: 0,
         };
         // Pass the arg to the child in r0
         vm.regs[0] = child.arg;
@@ -420,6 +456,9 @@ impl Vm {
             ivt: self.ivt,
             timer_period: self.timer_period,
             timer_counter: self.timer_counter,
+            dbg_cycle_count: self.dbg_cycle_count,
+            dbg_breakpoint: self.dbg_breakpoint,
+            dbg_breakpt_hit: self.dbg_breakpt_hit,
         }
     }
 
@@ -438,6 +477,9 @@ impl Vm {
         self.ivt = snapshot.ivt;
         self.timer_period = snapshot.timer_period;
         self.timer_counter = snapshot.timer_counter;
+        self.dbg_cycle_count = snapshot.dbg_cycle_count;
+        self.dbg_breakpoint = snapshot.dbg_breakpoint;
+        self.dbg_breakpt_hit = snapshot.dbg_breakpt_hit;
     }
 
     /// Tick the hardware timer. Called once per instruction cycle by run()/run_checked().
@@ -478,6 +520,11 @@ impl Vm {
         while !self.halted && !self.yielded && cycles < MAX_CYCLES {
             if self.step() {
                 cycles += 1;
+                self.dbg_cycle_count = self.dbg_cycle_count.wrapping_add(1);
+                // Check breakpoint
+                if self.dbg_breakpoint != 0 && self.pc == self.dbg_breakpoint {
+                    self.dbg_breakpt_hit = 1;
+                }
                 // Tick hardware timer after each instruction
                 if let Some(handler) = self.tick_timer() {
                     self.pc = handler;
@@ -526,6 +573,11 @@ impl Vm {
         while !self.halted && !self.yielded && cycles < MAX_CYCLES {
             self.step_checked()?;
             cycles += 1;
+            self.dbg_cycle_count = self.dbg_cycle_count.wrapping_add(1);
+            // Check breakpoint
+            if self.dbg_breakpoint != 0 && self.pc == self.dbg_breakpoint {
+                self.dbg_breakpt_hit = 1;
+            }
             // Tick hardware timer after each instruction
             if let Some(handler) = self.tick_timer() {
                 self.pc = handler;
@@ -670,6 +722,8 @@ impl Vm {
                 } else {
                     self.regs[dst] = self.peek(src_addr as usize);
                 }
+                // Memory-mapped debug registers (checked after normal load)
+                self.regs[dst] = self.read_debug_reg(src_addr as usize, self.regs[dst]);
                 Ok(None)
             }
 
