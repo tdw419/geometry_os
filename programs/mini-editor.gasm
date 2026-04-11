@@ -242,8 +242,15 @@ handle_backspace:
     LOAD r1, r13             ; r1 = cursor
     BEQ r1, r7, el_after_handle  ; cursor at 0, nothing to delete
 
+    ; Save cursor before get_buf_len clobbers r1
+    LDI r5, 0x1304
+    STORE r5, r1             ; save cursor to scratch
+
     ; Get buffer length
-    CALL get_buf_len          ; r0 = length
+    CALL get_buf_len          ; r0 = length (clobbers r0, r1, r2)
+
+    ; Restore cursor
+    LOAD r1, r5              ; r1 = cursor
 
     ; Shift left: copy chars from [cursor..length] to [cursor-1..length-1]
     ; Source starts at cursor index, dest at cursor-1
@@ -284,8 +291,70 @@ hb_done_shift:
 ; ── handle_enter: insert newline (0x0A) at cursor ─────────────────
 
 handle_enter:
+    ; Insert newline directly (bypass printable filter since 0x0A < 0x20)
     LDI r0, 0x0A
-    JMP handle_printable
+
+    ; Save keycode to scratch
+    LDI r1, 0x1304
+    STORE r1, r0
+
+    ; Get buffer length
+    CALL get_buf_len          ; r0 = length
+
+    ; Check buffer full (len >= 767)
+    LDI r1, 767
+    BLT r0, r1, he_ok
+    JMP el_after_handle
+
+he_ok:
+    ; Load cursor index
+    LOAD r1, r13             ; r1 = cursor
+
+    ; If cursor == length, no shift needed
+    CALL get_buf_len          ; r0 = length (r1 may be clobbered)
+    LOAD r1, r13             ; restore cursor
+    BEQ r1, r0, he_write
+
+    ; ── Shift right: move chars [cursor..length-1] right by 1 ──
+    MOV r2, r0               ; r2 = length
+    SUB r2, r6               ; r2 = length - 1
+
+he_shift:
+    BLT r2, r1, he_write     ; done when index < cursor
+
+    ; Read buffer[index]
+    MOV r3, r9
+    ADD r3, r2               ; r3 = &buffer[index]
+    LOAD r4, r3              ; r4 = buffer[index]
+
+    ; Write to buffer[index+1]
+    ADD r3, r6               ; r3 = &buffer[index+1]
+    STORE r3, r4
+
+    ; index--
+    SUB r2, r6
+    JMP he_shift
+
+he_write:
+    ; Write the newline at cursor
+    LOAD r1, r13             ; r1 = cursor
+    MOV r3, r9
+    ADD r3, r1               ; r3 = &buffer[cursor]
+    LDI r4, 0x0A
+    STORE r3, r4
+
+    ; Update null terminator at new end
+    CALL get_buf_len          ; r0 = new length
+    MOV r3, r9
+    ADD r3, r0               ; r3 = &buffer[length]
+    STORE r3, r7             ; null terminator
+
+    ; Advance cursor
+    LOAD r1, r13
+    ADD r1, r6
+    STORE r13, r1
+
+    JMP el_after_handle
 
 
 ; ═══════════════════════════════════════════════════════════════════════
