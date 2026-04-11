@@ -441,6 +441,24 @@ pub struct VmSnapshot {
     pub mouse_y: u32,
     /// Mouse button bitmask.
     pub mouse_buttons: u32,
+    /// Audio: frequency in Hz (0 = silence).
+    pub audio_freq: u32,
+    /// Audio: volume 0-255.
+    pub audio_volume: u32,
+    /// Audio: duration in ms (0 = indefinite).
+    pub audio_duration: u32,
+    /// Audio: status (0 = idle, 1 = playing).
+    pub audio_status: u32,
+    /// Virtual disk (filesystem).
+    pub disk: Disk,
+    /// Filesystem: name address register.
+    pub fs_name_addr: u32,
+    /// Filesystem: data address register.
+    pub fs_data_addr: u32,
+    /// Filesystem: word count register.
+    pub fs_count: u32,
+    /// Filesystem: status register.
+    pub fs_status: u32,
 }
 pub const IVT_SIZE: usize = 16;
 
@@ -492,6 +510,232 @@ pub const MOUSE_Y_ADDR: usize = 0xFFA1;
 /// Updated by the host GUI each frame.
 pub const MOUSE_BUTTONS_ADDR: usize = 0xFFA2;
 
+// ── Audio registers (0xFFC0–0xFFC3) ────────────────────────────────
+// Memory-mapped I/O for square-wave audio output.
+// Programs write frequency/volume/duration to play tones.
+// The host reads these registers and produces actual audio.
+
+/// Audio frequency register (read-write).
+/// Write a frequency in Hz (e.g. 440 = A4). Write 0 to stop playback.
+pub const AUDIO_FREQ_ADDR: usize = 0xFFC0;
+
+/// Audio volume register (read-write).
+/// Write a value 0–255. 0 = mute, 255 = maximum volume.
+pub const AUDIO_VOLUME_ADDR: usize = 0xFFC1;
+
+/// Audio duration register (read-write).
+/// Write a duration in milliseconds. 0 = play indefinitely (until freq set to 0).
+/// Non-zero: the tone plays for that many ms, then status returns to idle.
+pub const AUDIO_DURATION_ADDR: usize = 0xFFC2;
+
+/// Audio status register (read-only).
+/// Returns 1 if a tone is currently playing, 0 if idle.
+/// The host sets this to 0 when duration expires.
+pub const AUDIO_STATUS_ADDR: usize = 0xFFC3;
+
+// ── Filesystem registers (0xFFB0–0xFFB9) ─────────────────────────────
+// Memory-mapped I/O for a simple block-storage filesystem.
+// Programs use these to save/load named blocks of data.
+//
+// Protocol:
+//   1. Write FS_NAME with address of null-terminated name string in RAM
+//   2. Write FS_DATA with address of data buffer in RAM
+//   3. Write FS_COUNT with number of words to save
+//   4. Write FS_CMD with the operation code (triggers the operation):
+//        1 = SAVE (writes data to named file, overwrites if exists)
+//        2 = LOAD (reads named file into data buffer, FS_COUNT = words loaded)
+//        3 = DELETE (deletes named file)
+//        4 = EXISTS (check if named file exists, FS_STATUS = 0 if found)
+//   5. Read FS_STATUS to check result:
+//        0 = OK
+//        1 = file not found
+//        2 = disk full
+//        3 = bad name (empty or too long)
+//        4 = buffer too large
+//   6. Read FS_FILECOUNT for total files on disk
+//   7. Read FS_COUNT after LOAD to get actual words loaded
+
+/// Write: trigger filesystem command (1=SAVE, 2=LOAD, 3=DELETE, 4=EXISTS).
+pub const FS_CMD_ADDR: usize = 0xFFB0;
+
+/// Write: address of null-terminated filename in RAM (max 31 chars).
+pub const FS_NAME_ADDR: usize = 0xFFB1;
+
+/// Write: address of data buffer in RAM (source for SAVE, dest for LOAD).
+pub const FS_DATA_ADDR: usize = 0xFFB2;
+
+/// Write: word count for SAVE. Read: words loaded after LOAD.
+pub const FS_COUNT_ADDR: usize = 0xFFB3;
+
+/// Read: status of last operation (0=OK, 1=not found, 2=disk full, 3=bad name, 4=too large).
+pub const FS_STATUS_ADDR: usize = 0xFFB4;
+
+/// Read: number of files currently on disk.
+pub const FS_FILECOUNT_ADDR: usize = 0xFFB5;
+
+/// Maximum filename length in words (including null terminator).
+const FS_MAX_NAME: usize = 32;
+
+/// Maximum words per file.
+const FS_MAX_FILE_SIZE: usize = 256;
+
+/// Maximum number of files on disk.
+const FS_MAX_FILES: usize = 16;
+
+/// Maximum total disk capacity in words (across all files).
+const FS_DISK_CAPACITY: usize = 4096;
+
+/// A file on the virtual disk.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FsFile {
+    /// Null-terminated name (stored as u32 words).
+    pub name: Vec<u32>,
+    /// File data (u32 words).
+    pub data: Vec<u32>,
+}
+
+/// Virtual disk backing store for the filesystem.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Disk {
+    pub files: Vec<FsFile>,
+}
+
+impl Disk {
+    pub fn new() -> Self {
+        Self {
+            files: Vec::with_capacity(FS_MAX_FILES),
+        }
+    }
+
+    /// Total words used across all files.
+    fn total_used(&self) -> usize {
+        self.files.iter().map(|f| f.data.len()).sum()
+    }
+
+    /// Find a file by name (name is a slice of u32 words, null-terminated).
+    fn find(&self, name: &[u32]) -> Option<usize> {
+        let name_str: String = name
+            .iter()
+            .take_while(|&&w| w != 0)
+            .filter_map(|&w| char::from_u32(w & 0xFF))
+            .collect();
+        self.files
+            .iter()
+            .position(|f| {
+                let f_str: String = f
+                    .name
+                    .iter()
+                    .take_while(|&&w| w != 0)
+                    .filter_map(|&w| char::from_u32(w & 0xFF))
+                    .collect();
+                f_str == name_str
+            })
+    }
+
+    /// Validate a filename. Returns the name as String if valid, or a status code.
+    fn validate_name(name: &[u32]) -> Result<String, u32> {
+        let s: String = name
+            .iter()
+            .take_while(|&&w| w != 0)
+            .filter_map(|&w| char::from_u32(w & 0xFF))
+            .collect();
+        if s.is_empty() {
+            return Err(3); // bad name
+        }
+        if s.len() > FS_MAX_NAME - 1 {
+            return Err(3); // bad name (too long)
+        }
+        Ok(s)
+    }
+
+    /// Save data to a named file. Overwrites if exists.
+    /// Returns status code (0 = OK).
+    pub fn save(&mut self, name: &[u32], data: &[u32]) -> u32 {
+        if let Err(status) = Self::validate_name(name) {
+            return status;
+        }
+        if data.len() > FS_MAX_FILE_SIZE {
+            return 4; // too large
+        }
+
+        // Check if file exists — if so, replace
+        if let Some(idx) = self.find(name) {
+            let old_len = self.files[idx].data.len();
+            // Check if new size fits in capacity
+            if self.total_used() - old_len + data.len() > FS_DISK_CAPACITY {
+                return 2; // disk full
+            }
+            self.files[idx].data = data.to_vec();
+            return 0;
+        }
+
+        // New file
+        if self.files.len() >= FS_MAX_FILES {
+            return 2; // disk full (max files)
+        }
+        if self.total_used() + data.len() > FS_DISK_CAPACITY {
+            return 2; // disk full
+        }
+
+        // Copy name (up to null terminator + the null itself)
+        let name_copy: Vec<u32> = name
+            .iter()
+            .take_while(|&&w| w != 0)
+            .copied()
+            .chain(std::iter::once(0))
+            .collect();
+
+        self.files.push(FsFile {
+            name: name_copy,
+            data: data.to_vec(),
+        });
+        0
+    }
+
+    /// Load data from a named file into a buffer.
+    /// Returns (status, words_loaded).
+    pub fn load(&self, name: &[u32], buf: &mut [u32]) -> (u32, u32) {
+        if let Err(status) = Self::validate_name(name) {
+            return (status, 0);
+        }
+        match self.find(name) {
+            None => (1, 0), // not found
+            Some(idx) => {
+                let data = &self.files[idx].data;
+                let to_copy = data.len().min(buf.len());
+                buf[..to_copy].copy_from_slice(&data[..to_copy]);
+                (0, to_copy as u32)
+            }
+        }
+    }
+
+    /// Delete a named file. Returns status.
+    pub fn delete(&mut self, name: &[u32]) -> u32 {
+        if let Err(status) = Self::validate_name(name) {
+            return status;
+        }
+        match self.find(name) {
+            None => 1, // not found
+            Some(idx) => {
+                self.files.remove(idx);
+                0
+            }
+        }
+    }
+
+    /// Check if a file exists. Returns 0 if found, 1 if not found.
+    pub fn exists(&self, name: &[u32]) -> u32 {
+        if let Err(status) = Self::validate_name(name) {
+            return status;
+        }
+        if self.find(name).is_some() {
+            0
+        } else {
+            1
+        }
+    }
+}
+
 /// The VM.
 #[derive(Debug)]
 pub struct Vm {
@@ -538,6 +782,24 @@ pub struct Vm {
     pub mouse_y: u32,
     /// Mouse button bitmask. Bit 0=left, bit 1=right, bit 2=middle.
     pub mouse_buttons: u32,
+    /// Audio: frequency in Hz (0 = silence). Written by program, read by host.
+    pub audio_freq: u32,
+    /// Audio: volume 0-255.
+    pub audio_volume: u32,
+    /// Audio: duration in ms (0 = play indefinitely until freq set to 0).
+    pub audio_duration: u32,
+    /// Audio: status (0 = idle, 1 = playing). Set by VM, cleared by host.
+    pub audio_status: u32,
+    /// Virtual disk for the filesystem.
+    pub disk: Disk,
+    /// Filesystem: address of filename in RAM (set by writing FS_NAME register).
+    fs_name_addr: u32,
+    /// Filesystem: address of data buffer in RAM (set by writing FS_DATA register).
+    fs_data_addr: u32,
+    /// Filesystem: word count for save, or words loaded after load.
+    fs_count: u32,
+    /// Filesystem: status of last operation (0=OK, 1=not found, 2=disk full, 3=bad name, 4=too large).
+    fs_status: u32,
 }
 
 impl Vm {
@@ -566,6 +828,15 @@ impl Vm {
             mouse_x: 0,
             mouse_y: 0,
             mouse_buttons: 0,
+            audio_freq: 0,
+            audio_volume: 0,
+            audio_duration: 0,
+            audio_status: 0,
+            disk: Disk::new(),
+            fs_name_addr: 0,
+            fs_data_addr: 0,
+            fs_count: 0,
+            fs_status: 0,
         }
     }
 
@@ -654,6 +925,15 @@ impl Vm {
             mouse_x: 0,
             mouse_y: 0,
             mouse_buttons: 0,
+            audio_freq: 0,
+            audio_volume: 0,
+            audio_duration: 0,
+            audio_status: 0,
+            disk: Disk::new(), // children get a fresh disk
+            fs_name_addr: 0,
+            fs_data_addr: 0,
+            fs_count: 0,
+            fs_status: 0,
         };
         // Pass the arg to the child in r0
         vm.regs[0] = child.arg;
@@ -770,6 +1050,15 @@ impl Vm {
             mouse_x: self.mouse_x,
             mouse_y: self.mouse_y,
             mouse_buttons: self.mouse_buttons,
+            audio_freq: self.audio_freq,
+            audio_volume: self.audio_volume,
+            audio_duration: self.audio_duration,
+            audio_status: self.audio_status,
+            disk: self.disk.clone(),
+            fs_name_addr: self.fs_name_addr,
+            fs_data_addr: self.fs_data_addr,
+            fs_count: self.fs_count,
+            fs_status: self.fs_status,
         }
     }
 
@@ -797,6 +1086,15 @@ impl Vm {
         self.mouse_x = snapshot.mouse_x;
         self.mouse_y = snapshot.mouse_y;
         self.mouse_buttons = snapshot.mouse_buttons;
+        self.audio_freq = snapshot.audio_freq;
+        self.audio_volume = snapshot.audio_volume;
+        self.audio_duration = snapshot.audio_duration;
+        self.audio_status = snapshot.audio_status;
+        self.disk = snapshot.disk.clone();
+        self.fs_name_addr = snapshot.fs_name_addr;
+        self.fs_data_addr = snapshot.fs_data_addr;
+        self.fs_count = snapshot.fs_count;
+        self.fs_status = snapshot.fs_status;
     }
 
     /// Tick the hardware timer. Called once per instruction cycle by run()/run_checked().
@@ -864,6 +1162,146 @@ impl Vm {
             MOUSE_Y_ADDR => Some(self.mouse_y),
             MOUSE_BUTTONS_ADDR => Some(self.mouse_buttons),
             _ => None,
+        }
+    }
+
+    /// Read a memory-mapped audio register.
+    /// Returns `Some(value)` if `addr` is an audio register, `None` otherwise.
+    fn read_audio_reg(&self, addr: usize) -> Option<u32> {
+        match addr {
+            AUDIO_FREQ_ADDR => Some(self.audio_freq),
+            AUDIO_VOLUME_ADDR => Some(self.audio_volume),
+            AUDIO_DURATION_ADDR => Some(self.audio_duration),
+            AUDIO_STATUS_ADDR => Some(self.audio_status),
+            _ => None,
+        }
+    }
+
+    /// Write a memory-mapped audio register.
+    /// Returns `true` if `addr` is an audio register (write consumed), `false` otherwise.
+    /// Writing a non-zero frequency sets status to 1 (playing). Writing 0 clears it.
+    fn write_audio_reg(&mut self, addr: usize, value: u32) -> bool {
+        match addr {
+            AUDIO_FREQ_ADDR => {
+                self.audio_freq = value;
+                if value == 0 {
+                    self.audio_status = 0; // stop playback
+                } else if self.audio_volume > 0 {
+                    self.audio_status = 1; // start playback
+                }
+                true
+            }
+            AUDIO_VOLUME_ADDR => {
+                self.audio_volume = value;
+                // If volume set to 0 while playing, stop
+                if value == 0 {
+                    self.audio_status = 0;
+                } else if self.audio_freq > 0 {
+                    self.audio_status = 1;
+                }
+                true
+            }
+            AUDIO_DURATION_ADDR => {
+                self.audio_duration = value;
+                true
+            }
+            // AUDIO_STATUS is read-only; writes are ignored but consumed
+            AUDIO_STATUS_ADDR => true,
+            _ => false,
+        }
+    }
+
+    /// Read a memory-mapped filesystem register.
+    /// Returns `Some(value)` if `addr` is an FS register, `None` otherwise.
+    fn read_fs_reg(&self, addr: usize) -> Option<u32> {
+        match addr {
+            FS_STATUS_ADDR => Some(self.fs_status),
+            FS_FILECOUNT_ADDR => Some(self.disk.files.len() as u32),
+            FS_COUNT_ADDR => Some(self.fs_count),
+            _ => None,
+        }
+    }
+
+    /// Write a memory-mapped filesystem register.
+    /// Returns `true` if `addr` is an FS register (write consumed), `false` otherwise.
+    /// Writing to FS_CMD triggers the actual filesystem operation.
+    fn write_fs_reg(&mut self, addr: usize, value: u32) -> bool {
+        match addr {
+            FS_NAME_ADDR => {
+                self.fs_name_addr = value;
+                true
+            }
+            FS_DATA_ADDR => {
+                self.fs_data_addr = value;
+                true
+            }
+            FS_COUNT_ADDR => {
+                self.fs_count = value;
+                true
+            }
+            FS_CMD_ADDR => {
+                self.execute_fs_cmd(value);
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// Execute a filesystem command triggered by writing to FS_CMD.
+    fn execute_fs_cmd(&mut self, cmd: u32) {
+        // Read filename from RAM at fs_name_addr
+        let name_start = self.fs_name_addr as usize;
+        let name: Vec<u32> = self.ram[name_start..]
+            .iter()
+            .take(FS_MAX_NAME)
+            .take_while(|&&w| w != 0)
+            .copied()
+            .chain(std::iter::once(0))
+            .collect();
+
+        match cmd {
+            1 => {
+                // SAVE: read `fs_count` words from RAM at fs_data_addr
+                let data_start = self.fs_data_addr as usize;
+                let count = self.fs_count as usize;
+                if data_start + count > self.ram.len() {
+                    self.fs_status = 4;
+                    return;
+                }
+                let data = self.ram[data_start..data_start + count].to_vec();
+                self.fs_status = self.disk.save(&name, &data);
+            }
+            2 => {
+                // LOAD: read file into RAM at fs_data_addr
+                let data_start = self.fs_data_addr as usize;
+                // Use a temporary buffer sized to what's available in RAM
+                let avail = if data_start < self.ram.len() {
+                    self.ram.len() - data_start
+                } else {
+                    0
+                };
+                let mut buf = vec![0u32; avail.min(FS_MAX_FILE_SIZE)];
+                let (status, loaded) = self.disk.load(&name, &mut buf);
+                self.fs_status = status;
+                self.fs_count = loaded;
+                if status == 0 && loaded > 0 {
+                    let end = data_start + loaded as usize;
+                    if end <= self.ram.len() {
+                        self.ram[data_start..end].copy_from_slice(&buf[..loaded as usize]);
+                    }
+                }
+            }
+            3 => {
+                // DELETE
+                self.fs_status = self.disk.delete(&name);
+            }
+            4 => {
+                // EXISTS
+                self.fs_status = self.disk.exists(&name);
+            }
+            _ => {
+                self.fs_status = 4; // unknown command → error
+            }
         }
     }
 
@@ -1086,6 +1524,10 @@ impl Vm {
                     self.regs[dst] = self.timer_period;
                 } else if let Some(val) = self.read_mouse_reg(src_addr as usize) {
                     self.regs[dst] = val;
+                } else if let Some(val) = self.read_audio_reg(src_addr as usize) {
+                    self.regs[dst] = val;
+                } else if let Some(val) = self.read_fs_reg(src_addr as usize) {
+                    self.regs[dst] = val;
                 } else if let Some(val) = self.read_debug_reg(src_addr as usize) {
                     self.regs[dst] = val;
                 } else {
@@ -1111,6 +1553,10 @@ impl Vm {
                     let period = self.regs[src];
                     self.timer_period = period;
                     self.timer_counter = period; // reset counter to period
+                } else if self.write_audio_reg(dst_addr as usize, self.regs[src]) {
+                    // handled by audio register
+                } else if self.write_fs_reg(dst_addr as usize, self.regs[src]) {
+                    // handled by filesystem register
                 } else if self.write_debug_reg(dst_addr as usize, self.regs[src]) {
                     // handled by debug register
                 } else {
@@ -1886,6 +2332,10 @@ impl Vm {
                         self.regs[dst] = self.timer_period;
                     } else if let Some(val) = self.read_mouse_reg(src_addr) {
                         self.regs[dst] = val;
+                    } else if let Some(val) = self.read_audio_reg(src_addr) {
+                        self.regs[dst] = val;
+                    } else if let Some(val) = self.read_fs_reg(src_addr) {
+                        self.regs[dst] = val;
                     } else if let Some(val) = self.read_debug_reg(src_addr) {
                         self.regs[dst] = val;
                     } else {
@@ -1906,6 +2356,10 @@ impl Vm {
                         let period = self.regs[src];
                         self.timer_period = period;
                         self.timer_counter = period;
+                    } else if self.write_audio_reg(dst_addr, self.regs[src]) {
+                        // handled by audio register
+                    } else if self.write_fs_reg(dst_addr, self.regs[src]) {
+                        // handled by filesystem register
                     } else if self.write_debug_reg(dst_addr, self.regs[src]) {
                         // handled by debug register
                     } else {
