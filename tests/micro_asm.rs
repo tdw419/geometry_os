@@ -14,8 +14,8 @@
 use geometry_os::assembler;
 use geometry_os::vm::Vm;
 
-const RAM_SIZE: usize = 4096;
-const TEXT_BUF_ADDR: usize = 0x400;
+const RAM_SIZE: usize = 65536;
+const TEXT_BUF_ADDR: usize = 0x1000;
 const MICRO_ASM_ADDR: usize = 0x800;
 
 /// Compile micro-asm.asm with the Rust assembler and load into a fresh VM.
@@ -34,25 +34,26 @@ fn vm_with_micro_asm() -> Vm {
     vm
 }
 
-/// Write source text to RAM[0x400], run micro-asm from 0x800, return output.
+/// Write source text to RAM[0x1000], run micro-asm from 0x800, return output.
 fn run_micro_asm(vm: &mut Vm, source: &str) -> Vec<u32> {
-    // Clear output area
-    for v in vm.ram[..TEXT_BUF_ADDR].iter_mut() {
+    // Clear output area (0x000-0x7FF, below the code at 0x800)
+    for v in vm.ram[..MICRO_ASM_ADDR].iter_mut() {
         *v = 0;
     }
-    // Clear text buffer
-    for v in vm.ram[TEXT_BUF_ADDR..MICRO_ASM_ADDR].iter_mut() {
+    // Clear text buffer (from 0x1000, enough for the source)
+    let text_end = (TEXT_BUF_ADDR + source.len() + 1).min(vm.ram.len());
+    for v in vm.ram[TEXT_BUF_ADDR..text_end].iter_mut() {
         *v = 0;
     }
     // Write source text (one byte per cell, null-terminated by the cleared RAM)
     for (i, byte) in source.bytes().enumerate() {
         let addr = TEXT_BUF_ADDR + i;
-        if addr < MICRO_ASM_ADDR {
+        if addr < vm.ram.len() {
             vm.ram[addr] = byte as u32;
         }
     }
     // Run from micro-asm start.
-    // Two-pass over up to 1024 bytes of source requires many cycles.
+    // Two-pass over up to 64K bytes of source requires many cycles.
     // Loop until HALT rather than relying on a single MAX_CYCLES burst.
     vm.pc = MICRO_ASM_ADDR as u32;
     vm.halted = false;
@@ -60,8 +61,8 @@ fn run_micro_asm(vm: &mut Vm, source: &str) -> Vec<u32> {
     while !vm.halted && !vm.yielded {
         vm.run();
     }
-    // Collect output (output area is 0..TEXT_BUF_ADDR)
-    vm.ram[..TEXT_BUF_ADDR].to_vec()
+    // Collect output (output area is 0..MICRO_ASM_ADDR)
+    vm.ram[..MICRO_ASM_ADDR].to_vec()
 }
 
 /// Opcode shortcuts for readability in expected output

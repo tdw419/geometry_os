@@ -1,7 +1,7 @@
 ; micro-asm.asm — VM-resident pixel assembler (level 1)
 ;
 ; WHAT IT DOES
-;   Reads ASCII text from RAM[0x400] (the text input buffer).
+;   Reads ASCII text from RAM[0x1000] (the text input buffer).
 ;   Writes pixel bytecodes to RAM[0x000] (the canvas / program area).
 ;   Assembled by the Rust assembler ONCE at bootstrap; after that it runs
 ;   on the VM itself, closing the self-hosting loop.
@@ -42,18 +42,19 @@
 ;   A 0 1     ; ADD r0, r1 (bug: overwrites; real usage would separate regs)
 ;   B $0F @loop   ; BAL always → loop (addr 0)
 ;
-; ALGORITHM: two-pass over RAM[0x400]
+; ALGORITHM: two-pass over RAM[0x1000]
 ;   Pass 1: scan for #name definitions, build label table at 0xC00
 ;   Pass 2: emit bytecodes, resolving @name references via table
 ;
 ; MEMORY MAP
 ;   0x000-0x3FF  output buffer (program area)
-;   0x400-0x7FF  text input buffer
+;   0x400-0x7FF  output buffer continuation
 ;   0x800-0xAFF  this assembler (code)
 ;   0xB00-0xBFD  temporary name buffer (for label lookup)
 ;   0xBFE        error_line (source line of first error, 0 = none)
 ;   0xBFF        error_code (0 = none, 1 = unknown label)
 ;   0xC00-0xFFF  label table
+;   0x1000-0xFFFF  text input buffer
 ;
 ; LABEL TABLE FORMAT at 0xC00
 ;   [entry]: len, c0, c1, ..., c(len-1), addr
@@ -88,7 +89,7 @@
     LDI r17, 0xC00          ; label table base (constant throughout)
     LDI r7,  0xC00          ; label table write ptr (pass 1)
     LDI r8,  0              ; output byte counter (pass 1)
-    LDI r0,  0x400          ; input ptr
+    LDI r0,  0x1000         ; input ptr
     ; Initialize error reporting area
     LDI r3,  0xBFE
     STORE r3, r15           ; error_line = 0 (no error)
@@ -221,7 +222,7 @@ p1_end:
 ; ══════════════════════════════════════════════════════════════════════
 ; Pass 2 — emit bytecodes with label resolution
 ; ══════════════════════════════════════════════════════════════════════
-    LDI r0, 0x400                ; reset input ptr
+    LDI r0, 0x1000               ; reset input ptr
     LDI r1, 0                    ; output ptr = start of canvas
     LDI r18, 1                   ; source line counter (1-indexed)
 

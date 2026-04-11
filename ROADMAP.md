@@ -20,11 +20,12 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 480+ tests passing
+- 510+ tests passing
 - 44 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
 - lib/math.gasm, lib/string.gasm, lib/screen.gasm
+- Debug registers (cycle count, stack depth, breakpoints)
 
 ## Phase 1: Language Completeness
 
@@ -46,7 +47,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Memory protection
 - [x] Interrupt vector table
 - [x] Timer interrupt
-- [ ] Debug registers
+- [x] Debug registers
 
 ## Phase 2: Self-Hosting Toolchain
 
@@ -115,7 +116,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Memory protection (if programs corrupt each other)
 - [x] Interrupt vector table (needed for event-driven programs)
 - [x] Timer interrupt (if frame timing is needed)
-- [ ] Debug registers (if complex programs can't be debugged)
+- [x] Debug registers (if complex programs can't be debugged)
 
 **Batch 8 -- The World Outside:**
 - [ ] REST API bridge

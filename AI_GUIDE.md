@@ -96,6 +96,42 @@ Each opcode has a fixed width (1-5 pixels/words):
 - Nested interrupts supported (handler can call INT)
 - Example: `STI 0, my_handler` then `INT 0` calls `my_handler`
 
+### Debug Registers (0xFFE0–0xFFEF)
+Memory-mapped I/O registers for VM introspection and debugging.
+Programs read/write these via LOAD/STORE.
+
+| Address  | Name             | R/W | Description |
+|----------|------------------|-----|-------------|
+| `0xFFE0` | DBG_CYCLE_COUNT  | R   | Total instruction cycles executed (wrapping u32) |
+| `0xFFE1` | DBG_STACK_DEPTH  | R   | Current stack depth (number of values on stack) |
+| `0xFFE2` | DBG_BREAKPOINT   | R/W | Breakpoint address; 0 = disabled. Fires when PC reaches this address |
+| `0xFFE3` | DBG_BREAKPT_HIT  | R   | 1 if breakpoint was hit since last read, auto-clears on read |
+
+Children do NOT inherit parent's debug state (cycle count, breakpoint).
+
+Example:
+```
+; Set a breakpoint at address 20
+LDI r5, 0xFFE2          ; breakpoint register
+LDI r6, 20              ; target address
+STORE r5, r6            ; enable breakpoint
+
+; ... run code ...
+
+; Check if breakpoint fired
+LDI r5, 0xFFE3          ; breakpoint-hit register
+LOAD r0, r5             ; read (auto-clears)
+; r0 = 1 if hit, 0 if not
+
+; Read cycle count for profiling
+LDI r5, 0xFFE0          ; cycle count register
+LOAD r1, r5             ; r1 = total cycles so far
+
+; Read stack depth
+LDI r5, 0xFFE1          ; stack depth register
+LOAD r2, r5             ; r2 = current stack depth
+```
+
 ### Hardware Timer Interrupt
 - **Vector 0** is reserved for the hardware timer interrupt
 - Memory-mapped registers (high addresses to avoid RAM collision):
