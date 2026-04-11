@@ -1,0 +1,468 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/calculator.gasm -- Simple interactive calculator
+;
+; Reads numbers and operators from keyboard, computes and displays
+; the result on screen. Supports +, -, and * on small positive integers.
+;
+; USAGE:
+;   Type a number (0-99), then an operator (+, -, *), then another number.
+;   Press Enter (=) to see the result. Press C to clear.
+;
+; DISPLAY:
+;   Top line shows input, bottom line shows result.
+;
+; REGISTER USAGE:
+;   r0  = keycode / color / temp
+;   r1  = cursor X / address
+;   r2  = cursor Y
+;   r3  = char buffer address
+;   r4  = accumulator (first number)
+;   r5  = second number
+;   r6  = operator ('+' = 0x2B, '-' = 0x2D, '*' = 0x2A)
+;   r7  = temp
+;   r8  = zero constant
+;   r9  = one constant
+;   r10 = parsing state (0=first num, 1=op, 2=second num, 3=result)
+;
+; MEMORY LAYOUT:
+;   0x0600: input display buffer (32 words, null-terminated string)
+;   0x0620: result display buffer (32 words)
+;   0x0640: number string buffer (for int_to_str output)
+; ═══════════════════════════════════════════════════════════════════════
+
+
+main:
+    LDI r8, 0
+    LDI r9, 1
+
+    ; Init parsing state
+    LDI r10, 0              ; state = parsing first number
+    LDI r4, 0               ; first number = 0
+    LDI r5, 0               ; second number = 0
+    LDI r6, 0               ; operator = none
+
+    ; Clear display buffers
+    LDI r0, 0x0600
+    CALL clear_buf
+    LDI r0, 0x0620
+    CALL clear_buf
+    LDI r0, 0x0640
+    CALL clear_buf
+
+    ; Draw initial prompt
+    LDI r0, 0xFFFFFF        ; white
+    LDI r1, 10              ; x
+    LDI r2, 10              ; y
+    LDI r3, prompt_str
+    TEXT r1, r2, r3
+
+    JMP calc_loop
+
+
+; ── Main input loop ────────────────────────────────────────────────
+calc_loop:
+    CALL read_key
+    BEQ r0, r8, calc_loop   ; no key, keep polling
+
+    ; r0 = keycode
+    ; Check for special keys
+    LDI r3, 0x0D            ; Enter
+    BEQ r0, r3, do_compute
+    LDI r3, 0x63            ; 'c' (clear)
+    BEQ r0, r3, do_clear
+    LDI r3, 0x43            ; 'C' (clear)
+    BEQ r0, r3, do_clear
+
+    ; Check state for input handling
+    BEQ r10, r8, handle_digit1
+    LDI r3, 1
+    BEQ r10, r3, handle_op
+    LDI r3, 2
+    BEQ r10, r3, handle_digit2
+    ; State 3 (result shown): any key clears and starts over
+    JMP do_clear
+
+
+; ── Handle digit for first number (state 0) ────────────────────────
+; In state 0, accept both digits AND operators.
+; Digits accumulate into r4. Operators save to r6 and transition to state 2.
+handle_digit1:
+    ; Check if keycode is an operator first
+    LDI r3, 0x2B            ; '+'
+    BEQ r0, r3, got_op_from_s0
+    LDI r3, 0x2D            ; '-'
+    BEQ r0, r3, got_op_from_s0
+    LDI r3, 0x2A            ; '*'
+    BEQ r0, r3, got_op_from_s0
+
+    ; Check if keycode is '0'-'9' (0x30-0x39)
+    LDI r3, 0x30
+    BLT r0, r3, calc_loop   ; below '0', ignore
+    LDI r3, 0x39
+    BLT r3, r0, calc_loop   ; above '9', ignore (using unsigned: if 0x39 < r0)
+
+    ; Save keycode for echo before conversion
+    PUSH r0
+
+    ; Accumulate: num = num * 10 + (key - '0')
+    ; r4 = r4 * 10
+    MOV r3, r4              ; r3 = original
+    LDI r7, 9
+hd1_mul:
+    ADD r4, r3              ; r4 += original
+    SUB r7, r9
+    BNE r7, r8, hd1_mul
+    ; r4 = original * 10
+
+    ; Add digit value
+    POP r0                  ; r0 = original keycode
+    PUSH r0                 ; save again for echo
+    LDI r3, 0x30
+    SUB r0, r3              ; r0 = digit value (0-9)
+    ADD r4, r0              ; first_num = first_num * 10 + digit
+
+    ; Echo the digit character to display buffer
+    POP r0                  ; r0 = ASCII keycode for echo
+    CALL echo_input
+
+    JMP calc_loop
+
+got_op_from_s0:
+    ; Operator pressed while entering first number.
+    ; Save operator and transition to state 2 (second number).
+    MOV r6, r0              ; save operator
+    LDI r10, 2              ; state = parsing second number
+    LDI r5, 0               ; reset second number
+
+    ; Echo operator to display
+    CALL echo_input
+
+    JMP calc_loop
+
+
+; ── Handle operator ────────────────────────────────────────────────
+handle_op:
+    ; Accept '+', '-', '*'
+    LDI r3, 0x2B            ; '+'
+    BEQ r0, r3, got_op
+    LDI r3, 0x2D            ; '-'
+    BEQ r0, r3, got_op
+    LDI r3, 0x2A            ; '*'
+    BEQ r0, r3, got_op
+    JMP calc_loop           ; not a valid operator
+
+got_op:
+    MOV r6, r0              ; save operator
+    LDI r10, 2              ; state = parsing second number
+    LDI r5, 0               ; reset second number
+
+    ; Echo operator to display
+    CALL echo_input
+
+    JMP calc_loop
+
+
+; ── Handle digit for second number ─────────────────────────────────
+handle_digit2:
+    ; Same as handle_digit1 but for r5
+    LDI r3, 0x30
+    BLT r0, r3, calc_loop
+    LDI r3, 0x39
+    BLT r3, r0, calc_loop
+
+    ; Save keycode for echo
+    PUSH r0
+
+    ; r5 = r5 * 10 + digit
+    MOV r3, r5
+    LDI r7, 9
+hd2_mul:
+    ADD r5, r3
+    SUB r7, r9
+    BNE r7, r8, hd2_mul
+
+    ; Add digit value
+    POP r0
+    PUSH r0                 ; save for echo
+    LDI r3, 0x30
+    SUB r0, r3
+    ADD r5, r0
+
+    ; Echo
+    POP r0                  ; r0 = ASCII keycode
+    CALL echo_input
+    JMP calc_loop
+
+
+; ── Compute result ─────────────────────────────────────────────────
+do_compute:
+    ; Only compute if state >= 2 (have both numbers and operator)
+    LDI r3, 2
+    BLT r10, r3, calc_loop
+
+    ; Perform operation based on r6
+    LDI r3, 0x2B            ; '+'
+    BEQ r6, r3, do_add
+    LDI r3, 0x2D            ; '-'
+    BEQ r6, r3, do_sub
+    LDI r3, 0x2A            ; '*'
+    BEQ r6, r3, do_mul
+    JMP calc_loop
+
+do_add:
+    ADD r4, r5              ; result = a + b
+    JMP show_result
+
+do_sub:
+    SUB r4, r5              ; result = a - b
+    JMP show_result
+
+do_mul:
+    ; r4 = r4 * r5 (repeated addition)
+    PUSH r5
+    MOV r0, r4              ; r0 = a
+    LDI r4, 0               ; accumulator
+    POP r5                  ; r5 = b (counter)
+    BEQ r5, r8, show_result ; if b == 0, result is 0
+dmul_loop:
+    ADD r4, r0              ; acc += a
+    SUB r5, r9
+    BNE r5, r8, dmul_loop
+    JMP show_result
+
+
+; ── Show result on screen ──────────────────────────────────────────
+show_result:
+    ; r4 = result. Convert to string and display.
+    ; Save result
+    PUSH r4
+
+    ; Draw "= " label
+    LDI r0, 0xFFFFFF
+    LDI r1, 10
+    LDI r2, 30
+    LDI r3, result_label
+    TEXT r1, r2, r3
+
+    ; Convert result to string
+    POP r4
+    MOV r0, r4              ; number to convert
+    LDI r1, 0x0640          ; output buffer
+    CALL int_to_str
+
+    ; Display the result string
+    LDI r0, 0x00FF00        ; green for result
+    LDI r1, 40              ; x (after "= ")
+    LDI r2, 30              ; y
+    LDI r3, 0x0640
+    TEXT r1, r2, r3
+
+    LDI r10, 3              ; state = result shown
+    JMP calc_loop
+
+
+; ── Clear and reset ────────────────────────────────────────────────
+do_clear:
+    LDI r10, 0
+    LDI r4, 0
+    LDI r5, 0
+    LDI r6, 0
+
+    ; Clear buffers
+    LDI r0, 0x0600
+    CALL clear_buf
+    LDI r0, 0x0620
+    CALL clear_buf
+
+    ; Clear screen
+    LDI r0, 0
+    CALL clear_screen
+
+    ; Redraw prompt
+    LDI r0, 0xFFFFFF
+    LDI r1, 10
+    LDI r2, 10
+    LDI r3, prompt_str
+    TEXT r1, r2, r3
+
+    JMP calc_loop
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; UTILITY ROUTINES
+; ═══════════════════════════════════════════════════════════════════════
+
+
+; ── echo_input: display the key character at end of input buffer ───
+;
+; Input: r0 = keycode to echo
+; Clobbers: r1-r3, r7
+;
+; Appends character to input buffer at 0x0600, then redraws the
+; input line.
+
+echo_input:
+    ; Find end of input buffer (null terminator)
+    LDI r1, 0x0600
+    LDI r3, 0
+ei_find_end:
+    LOAD r7, r1
+    BEQ r7, r3, ei_found_end
+    ADD r1, r9
+    JMP ei_find_end
+
+ei_found_end:
+    ; r1 points to null terminator. Write the char there.
+    STORE r1, r0
+    ADD r1, r9
+    LDI r3, 0
+    STORE r1, r3            ; new null terminator
+
+    ; Redraw input line
+    PUSH r0
+    PUSH r4
+    PUSH r5
+    PUSH r6
+    PUSH r10
+
+    ; Clear the input line area (y=10..20)
+    LDI r0, 0
+    LDI r1, 10
+    LDI r2, 20
+    RECTF r1, r2, 236, 10
+
+    ; Redraw prompt
+    LDI r0, 0xFFFFFF
+    LDI r1, 10
+    LDI r2, 10
+    LDI r3, prompt_str
+    TEXT r1, r2, r3
+
+    ; Draw input buffer after prompt
+    LDI r0, 0xFFFFFF
+    LDI r1, 22              ; x (after "> ")
+    LDI r2, 10
+    LDI r3, 0x0600
+    TEXT r1, r2, r3
+
+    POP r10
+    POP r6
+    POP r5
+    POP r4
+    POP r0
+
+    RET
+
+
+; ── clear_buf: zero out a 32-word buffer ───────────────────────────
+;
+; Input: r0 = buffer start address
+; Clobbers: r0, r1, r2
+
+clear_buf:
+    MOV r1, r0              ; r1 = address
+    LDI r2, 0
+    LDI r0, 32
+cb_loop:
+    STORE r1, r2
+    ADD r1, r9
+    SUB r0, r9
+    BNE r0, r8, cb_loop
+    RET
+
+
+; ── int_to_str: convert unsigned integer to decimal string ─────────
+;
+; Input: r0 = number, r1 = output buffer address
+; Output: writes null-terminated decimal string at buffer
+; Clobbers: r0-r7
+;
+; Handles 0 and numbers up to at least 9999.
+; Writes digits in reverse, then reverses the string.
+
+int_to_str:
+    ; Special case: 0
+    PUSH r1                 ; save original buffer start
+    BEQ r0, r8, its_zero
+
+    ; Extract digits (least significant first) by repeated /10
+    MOV r2, r1              ; r2 = write pointer
+    LDI r3, 10              ; divisor
+
+its_digit_loop:
+    BEQ r0, r8, its_reverse
+
+    ; r0 mod 10 -> digit
+    PUSH r0                 ; save remaining number
+its_mod:
+    BLT r0, r3, its_got_digit
+    SUB r0, r3
+    JMP its_mod
+
+its_got_digit:
+    ; r0 = remainder (digit 0-9)
+    LDI r4, 0x30
+    ADD r0, r4              ; ASCII digit
+    STORE r2, r0            ; write digit
+    ADD r2, r9              ; advance write pointer
+
+    ; remaining = original / 10
+    POP r0                  ; restore number
+its_div:
+    ; Divide r0 by 10: subtract 10 until < 10, counting
+    PUSH r2
+    LDI r2, 0               ; quotient
+its_div_loop:
+    BLT r0, r3, its_div_done
+    SUB r0, r3
+    ADD r2, r9
+    JMP its_div_loop
+its_div_done:
+    MOV r0, r2              ; r0 = quotient (new number to process)
+    POP r2
+    JMP its_digit_loop
+
+its_zero:
+    LDI r0, 0x30            ; '0'
+    STORE r1, r0
+    ADD r1, r9
+    LDI r0, 0
+    STORE r1, r0            ; null terminator
+    POP r1
+    RET
+
+its_reverse:
+    ; Null-terminate
+    LDI r4, 0
+    STORE r2, r4
+
+    ; Reverse the string from original buf start to r2
+    POP r1                  ; r1 = original buf start
+    ; r2 points past the last digit (at null terminator)
+    ; Swap: r1 start, r2 end-1
+    SUB r2, r9              ; r2 = last digit position
+its_rev_loop:
+    BGE r1, r2, its_done    ; if start >= end, done
+    ; Swap *r1 and *r2
+    LOAD r4, r1             ; r4 = *start
+    LOAD r5, r2             ; r5 = *end
+    STORE r1, r5            ; *start = *end
+    STORE r2, r4            ; *end = *start
+    ADD r1, r9              ; start++
+    SUB r2, r9              ; end--
+    JMP its_rev_loop
+
+its_done:
+    RET
+
+
+; ── String constants ───────────────────────────────────────────────
+prompt_str:
+    .asciz "> "
+
+result_label:
+    .asciz "= "
+
+
+    .include "../lib/input.gasm"
+    .include "../lib/screen.gasm"

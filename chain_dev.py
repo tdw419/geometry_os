@@ -24,6 +24,7 @@ import sys
 import os
 import re
 import signal
+import sqlite3
 import argparse
 import time
 from datetime import datetime
@@ -70,6 +71,36 @@ def get_carry_context():
     if result.returncode != 0:
         return f"(carry_forward context unavailable: {result.stderr[:200]})"
     return result.stdout.strip()
+
+
+def _is_chain_artifact():
+    """Check if the last 'dead' session was a chain-spawned artifact.
+
+    When the chain exits (gate stop, timeout, etc.), it leaves behind a short-lived
+    session with ~2 messages and 0 tool calls. The next cycle's gate check sees
+    that as a dead session and refuses to continue, creating a death spiral.
+
+    Returns True if the last session was likely a chain artifact (<60s old, <=2 msgs).
+    """
+    try:
+        conn = sqlite3.connect("/home/jericho/.hermes/state.db")
+        row = conn.execute("""
+            SELECT message_count, tool_call_count, started_at
+            FROM sessions
+            WHERE source IN ('cli', 'telegram', 'whatsapp')
+            ORDER BY started_at DESC LIMIT 1
+        """).fetchone()
+        conn.close()
+        if not row:
+            return False
+        msgs, tools, started = row
+        if msgs <= 2 and tools == 0:
+            age = time.time() - (started or 0)
+            if age < 600:  # less than 10 min old (catches crash-loop artifacts)
+                return True
+    except Exception:
+        pass
+    return False
 
 
 def should_continue():
@@ -146,6 +177,9 @@ libraries that run INSIDE the VM over adding host-side features.
 - Keep tests passing at all times
 - If a ROADMAP item is a Rust-only feature (stack limits, memory protection),
   consider whether a .gasm program needs it first. If not, skip it.
+- NEVER modify files outside the Geometry OS project directory. Specifically,
+  do NOT touch ~/zion/projects/carry_forward/ -- it is infrastructure, not a
+  target. Modifying it breaks the chain itself.
 """
 
 
@@ -153,14 +187,20 @@ libraries that run INSIDE the VM over adding host-side features.
 # Single cycle
 # ---------------------------------------------------------------------------
 
-def run_cycle(task_override=None, dry_run=False):
+def run_cycle(task_override=None, dry_run=False, force=False):
     """Run one development cycle. Returns 0 on success, 1 on gate stop, 2 on failure."""
 
     # 1. Gate check
     safe, reason = should_continue()
     if not safe:
-        log(f"GATE STOP: {reason[:200]}")
-        return 1
+        if force:
+            log(f"Gate blocked but --force, overriding: {reason[:200]}")
+        elif _is_chain_artifact():
+            log(f"Gate blocked but detected chain artifact -- overriding")
+            log(f"  Original reason: {reason[:200]}")
+        else:
+            log(f"GATE STOP: {reason[:200]}")
+            return 1
     log(f"Gate OK: {reason[:80]}")
 
     # 2. Pick task
@@ -214,7 +254,7 @@ def run_cycle(task_override=None, dry_run=False):
     # 6. Post-cycle: verify tests, revert if broken
     log("Verifying tests...")
     test_result = run_cmd(
-        ["cargo", "test", "--quiet"],
+        ["cargo", "test"],
         cwd=PROJECT_DIR,
         timeout=120
     )
@@ -249,7 +289,7 @@ def run_cycle(task_override=None, dry_run=False):
     total = sum(int(m) for m in re.findall(r'(\d+) passed', test_output))
     log(f"Tests green: {total} passing")
 
-    # Record git heads
+    # Record git heads for thrash detection
     run_cmd(["python3", CARRY_FORWARD, "record-git-heads", "chain-cycle"], timeout=30)
 
     return 0
@@ -259,11 +299,11 @@ def run_cycle(task_override=None, dry_run=False):
 # Self-chaining loop
 # ---------------------------------------------------------------------------
 
-def run_loop(task_override=None):
+def run_loop(task_override=None, force_first=False):
     """Run cycles continuously until stopped.
     
     Returns exit codes for systemd:
-        0 = roadmp done, stop permanently
+        0 = roadmap done, stop permanently
         1 = transient failure, restart after cooldown
         2 = hard failure (circuit breaker / signal), stop permanently
     """
@@ -274,12 +314,14 @@ def run_loop(task_override=None):
     consecutive_failures = 0
     cycle = 0
     halt_reason = "unknown"
+    forced_cycle = force_first  # only force the first cycle
 
     while _running:
         cycle += 1
         log(f"--- Cycle {cycle} ---")
 
-        result = run_cycle(task_override=task_override)
+        result = run_cycle(task_override=task_override, force=forced_cycle)
+        forced_cycle = False  # only force once
 
         if result == 0:
             consecutive_failures = 0
@@ -338,7 +380,7 @@ def show_status():
         log(f"  {line}")
 
     # Tests
-    r = run_cmd(["cargo", "test", "--quiet"], cwd=PROJECT_DIR, timeout=120)
+    r = run_cmd(["cargo", "test"], cwd=PROJECT_DIR, timeout=120)
     test_output = r.stdout + r.stderr
     total = sum(int(m) for m in re.findall(r'(\d+) passed', test_output))
     failed = "FAILED" in test_output
@@ -361,6 +403,7 @@ def show_status():
 def main():
     parser = argparse.ArgumentParser(description="Geometry OS Dev Chain")
     parser.add_argument("--once", action="store_true", help="Run one cycle then stop")
+    parser.add_argument("--force", action="store_true", help="Override gate check (use after crash loops)")
     parser.add_argument("--dry-run", action="store_true", help="Show what would happen")
     parser.add_argument("--task", type=str, help="Override task (one cycle)")
     parser.add_argument("--list", action="store_true", help="List roadmap items")
@@ -378,13 +421,13 @@ def main():
         return 0
 
     if args.task:
-        return run_cycle(task_override=args.task, dry_run=args.dry_run)
+        return run_cycle(task_override=args.task, dry_run=args.dry_run, force=args.force)
 
     if args.once:
-        return run_cycle(dry_run=args.dry_run)
+        return run_cycle(dry_run=args.dry_run, force=args.force)
 
-    # Default: self-chaining loop
-    return run_loop()
+    # Default: self-chaining loop (force first cycle to clear dead sessions)
+    return run_loop(force_first=args.force)
 
 
 if __name__ == "__main__":

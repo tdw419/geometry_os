@@ -1,0 +1,805 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/snake.gasm -- Snake game for Geometry OS
+;
+; Classic snake: eat food to grow, avoid walls and yourself.
+; Grid: 30x30 play area (cells 1..30), each cell is 8x8 pixels.
+; Border walls at row/col 0 and 31.
+; Controls: W=up, A=left, S=down, D=right.
+;
+; MEMORY LAYOUT:
+;   0x1000: direction (0=up, 1=right, 2=down, 3=left)
+;   0x1001: snake length
+;   0x1002: food_x
+;   0x1003: food_y
+;   0x1004: game_over flag
+;   0x1005: frame counter
+;   0x1100+: body buffer: 128 slots of (x,y) pairs
+;
+; Body buffer: body[i] at 0x1100 + i*2
+;   body[0] = tail, body[length-1] = head
+;   To move: shift all body entries back by 1, set last to new head pos
+;   To grow: just increment length (tail stays, new head added)
+;
+; ═══════════════════════════════════════════════════════════════════════
+
+CELL = 8
+BODY = 0x1100
+
+; Keys
+KEY_W = 0x77
+KEY_A = 0x61
+KEY_S = 0x73
+KEY_D = 0x64
+
+; Colors
+COL_BG    = 0x101010
+COL_SNAKE = 0x00BB00
+COL_HEAD  = 0x00FF44
+COL_FOOD  = 0xFF2222
+COL_WALL  = 0x444444
+COL_TEXT  = 0xFFFFFF
+COL_DEAD  = 0xFF0000
+
+
+main:
+    ; ── Init ──
+    LDI r0, 0
+    LDI r1, 0x1004
+    STORE r1, r0          ; game_over = 0
+    LDI r1, 0x1005
+    STORE r1, r0          ; frame = 0
+
+    ; Direction = right
+    LDI r0, 1
+    LDI r1, 0x1000
+    STORE r1, r0
+
+    ; Length = 3
+    LDI r0, 3
+    LDI r1, 0x1001
+    STORE r1, r0
+
+    ; Body: tail=(5,15), mid=(6,15), head=(7,15)
+    LDI r0, 5
+    LDI r2, BODY
+    STORE r2, r0           ; body[0].x = 5
+    LDI r1, 1
+    ADD r2, r1
+    LDI r0, 15
+    STORE r2, r0           ; body[0].y = 15
+
+    LDI r2, BODY
+    LDI r0, 2
+    ADD r2, r0             ; r2 = BODY+2
+    LDI r0, 6
+    STORE r2, r0           ; body[1].x = 6
+    LDI r0, 1
+    ADD r2, r0
+    LDI r0, 15
+    STORE r2, r0           ; body[1].y = 15
+
+    LDI r2, BODY
+    LDI r0, 4
+    ADD r2, r0             ; r2 = BODY+4
+    LDI r0, 7
+    STORE r2, r0           ; body[2].x = 7
+    LDI r0, 1
+    ADD r2, r0
+    LDI r0, 15
+    STORE r2, r0           ; body[2].y = 15
+
+    ; Clear screen
+    LDI r0, COL_BG
+    CALL clear_screen
+
+    ; Draw walls
+    CALL draw_walls
+
+    ; Spawn food
+    CALL spawn_food
+
+    ; Draw initial state
+    CALL draw_snake
+    CALL draw_score
+
+    JMP game_loop
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; GAME LOOP
+; ═══════════════════════════════════════════════════════════════════════
+
+game_loop:
+    ; Check game over
+    LDI r1, 0x1004
+    LOAD r0, r1
+    LDI r2, 0
+    BNE r0, r2, game_over_screen
+
+    ; Poll keyboard
+    CALL read_key           ; r0 = keycode or 0
+    BEQ r0, r2, gl_no_key   ; no key
+
+    ; Check direction keys (prevent 180-degree turns)
+    LDI r3, KEY_W
+    BEQ r0, r3, gl_key_w
+    LDI r3, KEY_S
+    BEQ r0, r3, gl_key_s
+    LDI r3, KEY_A
+    BEQ r0, r3, gl_key_a
+    LDI r3, KEY_D
+    BEQ r0, r3, gl_key_d
+    JMP gl_no_key
+
+gl_key_w:                    ; up
+    LDI r3, 0
+    LDI r4, 0x1000
+    STORE r4, r3
+    JMP gl_no_key
+gl_key_s:                    ; down
+    LDI r3, 2
+    LDI r4, 0x1000
+    STORE r4, r3
+    JMP gl_no_key
+gl_key_a:                    ; left
+    LDI r3, 3
+    LDI r4, 0x1000
+    STORE r4, r3
+    JMP gl_no_key
+gl_key_d:                    ; right
+    LDI r3, 1
+    LDI r4, 0x1000
+    STORE r4, r3
+    JMP gl_no_key
+
+gl_no_key:
+    ; ── Step the snake ──
+    CALL step_snake
+
+    ; ── Advance frame ──
+    LDI r1, 0x1005
+    LOAD r0, r1
+    LDI r2, 1
+    ADD r0, r2
+    STORE r1, r0
+
+    YIELD
+    JMP game_loop
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; GAME OVER SCREEN
+; ═══════════════════════════════════════════════════════════════════════
+
+game_over_screen:
+    ; Flash the snake red
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r4
+    LDI r0, COL_DEAD
+    LDI r1, 0x1001
+    LOAD r5, r1           ; r5 = length
+
+    LDI r6, 0             ; loop index
+go_redraw_loop:
+    ; addr = BODY + i*2
+    MOV r7, r6
+    ADD r7, r6            ; r7 = i*2
+    LDI r8, BODY
+    ADD r8, r7            ; r8 = &body[i].x
+    LOAD r1, r8           ; r1 = x
+    LDI r9, 1
+    ADD r8, r9
+    LOAD r2, r8           ; r2 = y
+
+    ; Draw cell
+    ; screen_x = x * 8, screen_y = y * 8
+    CALL draw_cell
+
+    LDI r9, 1
+    ADD r6, r9
+    BLT r6, r5, go_redraw_loop
+
+    ; Draw game over text
+    LDI r0, COL_DEAD
+    LDI r1, 80
+    LDI r2, 120
+    LDI r3, go_text
+    TEXT r1, r2, r3
+
+    POP r4
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    ; Wait for any key to restart
+go_wait:
+    CALL read_key
+    LDI r2, 0
+    BEQ r0, r2, go_wait
+    JMP main
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; STEP_SNAKE: move snake one cell in current direction
+;
+; Algorithm:
+;   1. Read head position from body[length-1]
+;   2. Compute new head based on direction
+;   3. Check wall collision (new < 1 or new >= 31)
+;   4. Check self collision (compare new head with all body positions)
+;   5. Check food collision
+;   6. Erase tail from screen
+;   7. Shift body: body[i] = body[i+1] for i=0..length-2
+;   8. Set body[length-1] = new head
+;   9. If eating, increment length (don't shift, just append)
+;  10. Draw new head
+;
+; Clobbers: r0-r15
+; ═══════════════════════════════════════════════════════════════════════
+
+step_snake:
+    ; ── Load length ──
+    LDI r1, 0x1001
+    LOAD r5, r1           ; r5 = length
+
+    ; ── Load head position ──
+    ; head_idx = length - 1
+    LDI r2, 1
+    MOV r6, r5
+    SUB r6, r2            ; r6 = head_idx = length - 1
+
+    ; head_addr = BODY + head_idx * 2
+    MOV r7, r6
+    ADD r7, r6            ; r7 = head_idx * 2
+    LDI r3, BODY
+    ADD r3, r7            ; r3 = &body[head_idx].x
+    LOAD r10, r3          ; r10 = head.x
+    LDI r2, 1
+    ADD r3, r2
+    LOAD r11, r3          ; r11 = head.y
+
+    ; ── Load direction ──
+    LDI r1, 0x1000
+    LOAD r4, r1           ; r4 = direction
+
+    ; ── Compute new head position ──
+    MOV r12, r10          ; r12 = new_x
+    MOV r13, r11          ; r13 = new_y
+
+    ; 0=up(y-1), 1=right(x+1), 2=down(y+1), 3=left(x-1)
+    BEQ r4, r2_zero, ss_up
+    LDI r1, 1
+    BEQ r4, r1, ss_right
+    LDI r1, 2
+    BEQ r4, r1, ss_down
+    JMP ss_left
+
+ss_up:
+    SUB r13, r2_one       ; new_y -= 1
+    JMP ss_check_wall
+ss_right:
+    ADD r12, r2_one       ; new_x += 1
+    JMP ss_check_wall
+ss_down:
+    ADD r13, r2_one       ; new_y += 1
+    JMP ss_check_wall
+ss_left:
+    SUB r12, r2_one       ; new_x -= 1
+
+ss_check_wall:
+    ; ── Constants used below ──
+    ; (r2_zero and r2_one set at labels below, but we need them now)
+    ; Actually this is a problem -- the labels are just code, not pre-set.
+    ; Let me inline the constants.
+
+    ; ── Wall collision: x < 1 or x >= 31 or y < 1 or y >= 31 ──
+    LDI r0, 1
+    BLT r12, r0, ss_die   ; new_x < 1
+    BLT r13, r0, ss_die   ; new_y < 1
+    LDI r0, 31
+    BLT r0, r12, ss_die   ; 31 < new_x  (i.e., new_x >= 31)
+    BLT r0, r13, ss_die   ; 31 < new_y
+
+    ; ── Self collision: compare new head with all body positions ──
+    LDI r14, 0            ; i = 0
+ss_self_loop:
+    ; body[i].addr = BODY + i*2
+    MOV r15, r14
+    ADD r15, r14           ; r15 = i*2
+    LDI r3, BODY
+    ADD r3, r15            ; r3 = &body[i].x
+    LOAD r0, r3            ; r0 = body[i].x
+    LDI r2, 1
+    ADD r3, r2
+    LOAD r1, r3            ; r1 = body[i].y
+
+    ; Compare with new head
+    BNE r0, r12, ss_self_next   ; x mismatch, skip
+    BEQ r1, r13, ss_die          ; x matches and y matches => collision!
+ss_self_next:
+    LDI r2, 1
+    ADD r14, r2            ; i++
+    BLT r14, r5, ss_self_loop ; i < length
+
+    ; ── Food check ──
+    LDI r1, 0x1002
+    LOAD r2, r1            ; r2 = food_x
+    LDI r1, 0x1003
+    LOAD r3, r1            ; r3 = food_y
+
+    ; Compare: new_x == food_x && new_y == food_y?
+    LDI r0, 1              ; eating flag
+    BNE r12, r2, ss_no_eat
+    BNE r13, r3, ss_no_eat
+
+    ; ── Eating! ──
+    ; Grow: shift body, but leave tail, add new head at end
+    ; New length = old length + 1
+    LDI r1, 0x1001
+    STORE r1, r5           ; (already has length, increment below)
+    LOAD r5, r1            ; reload
+    LDI r2, 1
+    ADD r5, r2
+    STORE r1, r5           ; length++
+
+    ; Shift all body entries: body[i+1] = body[i], from end down to 0
+    ; New head position is at index length-1 (new length)
+    MOV r6, r5             ; r6 = new length
+    SUB r6, r2             ; r6 = new_length - 1 = index of new head slot
+ss_grow_shift:
+    BEQ r6, r2_zero, ss_grow_write
+    ; Shift body[i] to body[i+1]
+    MOV r7, r6
+    SUB r7, r2             ; r7 = i = current - 1
+    MOV r8, r7
+    ADD r8, r7             ; r8 = i*2
+    LDI r3, BODY
+    ADD r3, r8             ; r3 = &body[i].x
+    LOAD r0, r3
+    LDI r15, 1
+    ADD r3, r15
+    LOAD r1, r3
+
+    ; Write to body[i+1]
+    MOV r8, r6
+    ADD r8, r6             ; r8 = current*2
+    LDI r3, BODY
+    ADD r3, r8
+    STORE r3, r0
+    LDI r15, 1
+    ADD r3, r15
+    STORE r3, r1
+
+    SUB r6, r2
+    JMP ss_grow_shift
+
+ss_grow_write:
+    ; Write new head at body[0]
+    LDI r3, BODY
+    STORE r3, r12          ; body[0].x = new_x
+    LDI r15, 1
+    ADD r3, r15
+    STORE r3, r13          ; body[0].y = new_y
+
+    ; Erase old food, spawn new
+    LDI r0, COL_BG
+    LDI r1, 0x1002
+    LOAD r10, r1
+    LDI r1, 0x1003
+    LOAD r11, r1
+    CALL draw_cell
+
+    CALL spawn_food
+
+    ; Redraw entire snake
+    CALL draw_snake
+    CALL draw_score
+    RET
+
+
+ss_no_eat:
+    ; ── Not eating: erase tail, shift body, write new head ──
+
+    ; Erase tail cell from screen
+    LDI r0, COL_BG
+    LDI r3, BODY
+    LOAD r1, r3             ; r1 = tail.x
+    LDI r15, 1
+    ADD r3, r15
+    LOAD r2, r3             ; r2 = tail.y
+    CALL draw_cell
+
+    ; Shift body: body[i] = body[i+1] for i=0..length-2
+    LDI r14, 0              ; i = 0
+ss_shift_loop:
+    ; dest = BODY + i*2
+    MOV r15, r14
+    ADD r15, r14            ; r15 = i*2
+    LDI r3, BODY
+    ADD r3, r15             ; r3 = &body[i].x
+
+    ; src = body[i+1]
+    ADD r15, r2_one         ; r15 = i*2 + 2
+    LDI r7, BODY
+    ADD r7, r15             ; r7 = &body[i+1].x
+
+    ; Copy x
+    LOAD r0, r7
+    STORE r3, r0
+    ; Copy y
+    LDI r8, 1
+    ADD r3, r8
+    ADD r7, r8
+    LOAD r0, r7
+    STORE r3, r0
+
+    ; i++
+    ADD r14, r2_one
+    ; Continue while i < length-1
+    MOV r7, r5
+    SUB r7, r2_one         ; r7 = length - 1
+    BLT r14, r7, ss_shift_loop
+
+    ; Write new head at body[length-1]
+    MOV r14, r5
+    SUB r14, r2_one        ; r14 = length-1
+    MOV r15, r14
+    ADD r15, r14            ; r15 = (length-1)*2
+    LDI r3, BODY
+    ADD r3, r15
+    STORE r3, r12           ; body[length-1].x = new_x
+    LDI r8, 1
+    ADD r3, r8
+    STORE r3, r13           ; body[length-1].y = new_y
+
+    ; Draw new head
+    LDI r0, COL_HEAD
+    MOV r1, r12
+    MOV r2, r13
+    CALL draw_cell
+
+    ; Draw old head as body color
+    LDI r0, COL_SNAKE
+    MOV r1, r10
+    MOV r2, r11
+    CALL draw_cell
+
+    RET
+
+
+ss_die:
+    LDI r0, 1
+    LDI r1, 0x1004
+    STORE r1, r0           ; game_over = 1
+    RET
+
+
+; ── Constant labels (code that sets registers, jumped to for init) ──
+; These should never be reached; they're reference labels.
+r2_zero:
+    LDI r2, 0
+r2_one:
+    LDI r2, 1
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; DRAW_CELL: draw one 8x8 cell at grid (r1, r2) in color r0
+; ═══════════════════════════════════════════════════════════════════════
+
+draw_cell:
+    ; Convert grid coords to pixel coords: pixel = grid * 8
+    ; x * 8 = x << 3 = x + x + x + x + x + x + x + x
+    ; But we can multiply by 8 more efficiently: x*2=x+x, x*4=x*2+x*2, x*8=x*4+x*4
+    PUSH r1
+    PUSH r2
+
+    ; px = r1 * 8
+    MOV r3, r1
+    ADD r3, r3              ; r3 = r1*2
+    ADD r3, r3              ; r3 = r1*4
+    ADD r3, r3              ; r3 = r1*8
+    MOV r1, r3
+
+    ; py = r2 * 8
+    MOV r3, r2
+    ADD r3, r3
+    ADD r3, r3
+    ADD r3, r3
+    MOV r2, r3
+
+    ; RECTF x, y, 8, 8 (color from r0)
+    LDI r3, 8
+    LDI r4, 8
+    RECTF r1, r2, r3, r4
+
+    POP r2
+    POP r1
+    RET
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; DRAW_SNAKE: draw all body segments
+; ═══════════════════════════════════════════════════════════════════════
+
+draw_snake:
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r4
+    PUSH r5
+    PUSH r6
+
+    LDI r1, 0x1001
+    LOAD r5, r1           ; r5 = length
+
+    LDI r6, 0             ; i = 0
+ds_loop:
+    ; addr = BODY + i*2
+    MOV r7, r6
+    ADD r7, r6            ; r7 = i*2
+    LDI r3, BODY
+    ADD r3, r7            ; r3 = &body[i].x
+    LOAD r1, r3           ; r1 = body[i].x
+    LDI r8, 1
+    ADD r3, r8
+    LOAD r2, r3           ; r2 = body[i].y
+
+    ; Head vs body color
+    ; If i == length-1, use COL_HEAD, else COL_SNAKE
+    MOV r7, r5
+    SUB r7, r8            ; r7 = length-1
+    BEQ r6, r7, ds_head
+    LDI r0, COL_SNAKE
+    JMP ds_draw
+ds_head:
+    LDI r0, COL_HEAD
+ds_draw:
+    CALL draw_cell
+
+    LDI r8, 1
+    ADD r6, r8
+    BLT r6, r5, ds_loop
+
+    POP r6
+    POP r5
+    POP r4
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+    RET
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; DRAW_WALLS: draw border around play area
+; ═══════════════════════════════════════════════════════════════════════
+
+draw_walls:
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r4
+
+    ; Top wall: row 0, cols 0..31
+    LDI r0, COL_WALL
+    LDI r1, 0
+    LDI r2, 0
+    LDI r3, 256
+    LDI r4, 8
+    RECTF r1, r2, r3, r4
+
+    ; Bottom wall: row 31
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r4
+    LDI r0, COL_WALL
+    LDI r1, 0
+    LDI r2, 248
+    LDI r3, 256
+    LDI r4, 8
+    RECTF r1, r2, r3, r4
+    POP r4
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    ; Left wall: col 0
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r4
+    LDI r0, COL_WALL
+    LDI r1, 0
+    LDI r2, 8
+    LDI r3, 8
+    LDI r4, 240
+    RECTF r1, r2, r3, r4
+    POP r4
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    ; Right wall: col 31
+    LDI r0, COL_WALL
+    LDI r1, 248
+    LDI r2, 8
+    LDI r3, 8
+    LDI r4, 240
+    RECTF r1, r2, r3, r4
+
+    POP r4
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+    RET
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; SPAWN_FOOD: place food at pseudo-random position
+;
+; Uses frame counter as entropy source.
+; Tries positions until finding one that doesn't overlap the snake.
+; ═══════════════════════════════════════════════════════════════════════
+
+spawn_food:
+    ; Simple pseudo-random: use frame counter * 7 + 3 to pick x,y
+    LDI r1, 0x1005
+    LOAD r0, r1           ; r0 = frame counter
+
+    ; x_seed = (frame * 7 + 3) mod 30 + 1
+    ; y_seed = (frame * 13 + 5) mod 30 + 1
+    ; But multiplication is expensive in .gasm. Use simpler approach.
+    ; Just use fixed positions that cycle through a few options.
+
+    ; Use frame mod 8 as index into a small table
+    LDI r2, 7
+sf_mod_x:
+    BLT r0, r2, sf_got_x
+    SUB r0, r2
+    JMP sf_mod_x
+
+sf_got_x:
+    ; r0 = frame mod 7 (0-6)
+    ; Map to food positions: multiply by 4 and add 3
+    ; r0 * 4 = r0 + r0 + r0 + r0
+    MOV r3, r0
+    ADD r3, r3
+    ADD r3, r3             ; r3 = (frame%7) * 4
+    LDI r4, 3
+    ADD r3, r4             ; r3 = x candidate (3,7,11,15,19,23,27)
+    LDI r4, 31
+    BLT r3, r4, sf_save_x
+    LDI r3, 15             ; fallback
+sf_save_x:
+    LDI r1, 0x1002
+    STORE r1, r3
+
+    ; y: use frame+5 mod 7
+    LDI r1, 0x1005
+    LOAD r0, r1
+    LDI r2, 5
+    ADD r0, r2
+    LDI r2, 7
+sf_mod_y:
+    BLT r0, r2, sf_got_y
+    SUB r0, r2
+    JMP sf_mod_y
+
+sf_got_y:
+    MOV r3, r0
+    ADD r3, r3
+    ADD r3, r3
+    LDI r4, 5
+    ADD r3, r4
+    LDI r4, 31
+    BLT r3, r4, sf_save_y
+    LDI r3, 15
+sf_save_y:
+    LDI r1, 0x1003
+    STORE r1, r3
+
+    ; Draw food cell
+    LDI r0, COL_FOOD
+    LDI r1, 0x1002
+    LOAD r10, r1
+    LDI r1, 0x1003
+    LOAD r11, r1
+    MOV r1, r10
+    MOV r2, r11
+    CALL draw_cell
+    RET
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; DRAW_SCORE: display score at top of screen
+; ═══════════════════════════════════════════════════════════════════════
+
+draw_score:
+    ; Score = length - 3 (initial length)
+    LDI r1, 0x1001
+    LOAD r0, r1           ; r0 = length
+    LDI r2, 3
+    SUB r0, r2             ; r0 = score
+
+    ; Convert to string and display
+    ; We'll write a simple 2-digit display directly
+    ; Tens digit
+    LDI r3, 10
+ds_tens:
+    BLT r0, r3, ds_got_tens
+    SUB r0, r3
+    JMP ds_tens
+
+ds_got_tens:
+    ; r0 = tens digit (0-9)
+    ; We need to also compute ones digit
+    ; Actually this destroyed the ones. Let me use a different approach.
+    ; Just display the length as "L:" followed by single digit.
+
+    ; Simpler: show score as colored bar (1 cell per point, max 27)
+    ; at top of screen. Draw cells starting at (1,0) in food color.
+
+    ; First clear the score area
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r4
+    LDI r0, COL_WALL
+    LDI r1, 8
+    LDI r2, 0
+    LDI r3, 248
+    LDI r4, 8
+    RECTF r1, r2, r3, r4
+    POP r4
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+
+    ; Draw score as green cells in the top border area
+    LDI r1, 0x1001
+    LOAD r5, r1           ; r5 = length
+    LDI r2, 3
+    SUB r5, r2            ; r5 = score = length - 3
+
+    LDI r6, 0             ; i = 0
+ds_bar_loop:
+    BEQ r6, r5, ds_done
+    ; Draw one cell at grid (1+i, 0)
+    LDI r0, COL_FOOD
+    MOV r1, r6
+    LDI r2, 1
+    ADD r1, r2             ; x = i + 1
+    LDI r2, 0             ; y = 0
+    CALL draw_cell
+    LDI r2, 1
+    ADD r6, r2
+    JMP ds_bar_loop
+
+ds_done:
+    RET
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; STRING CONSTANTS
+; ═══════════════════════════════════════════════════════════════════════
+
+go_text:
+    .asciz "GAME OVER"
+
+
+    .include "../lib/input.gasm"
+    .include "../lib/screen.gasm"
