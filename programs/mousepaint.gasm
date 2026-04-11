@@ -7,7 +7,7 @@
 ;
 ; MOUSE REGISTERS:
 ;   0xFFA0: mouse_x (0-255)
-;   0xFFA1: mouse_y (0-255)
+;   xFFA1: mouse_y (0-255)
 ;   0xFFA2: mouse_buttons (bit 0 = left, bit 1 = right, bit 2 = middle)
 ;
 ; CONTROLS:
@@ -31,10 +31,12 @@ PREV_X = 0x1000
 PREV_Y = 0x1001
 
 main:
-    ; Initialize previous position
+    ; Initialize previous position to 0
+    LDI r5, PREV_X
     LDI r0, 0
-    STI r0, PREV_X
-    STI r0, PREV_Y
+    STORE r5, r0
+    LDI r5, PREV_Y
+    STORE r5, r0
 
     ; Draw initial crosshair at center (128, 128)
     LDI r0, 128
@@ -104,8 +106,10 @@ draw_cursor:
     PSET r0, r1, r6
 
     ; Save current position
-    STI r0, PREV_X
-    STI r1, PREV_Y
+    LDI r5, PREV_X
+    STORE r5, r0
+    LDI r5, PREV_Y
+    STORE r5, r1
 
     ; ── Loop ──
     YIELD
