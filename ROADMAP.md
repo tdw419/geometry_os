@@ -65,14 +65,14 @@ AI-written demos      AI-written OS that humans use
 
 ## Phase 4: I/O Expansion (the device driver layer)
 
-- [ ] Mouse input (memory-mapped x, y, buttons)
+- [x] Mouse input (memory-mapped x, y, buttons)
 - [ ] Audio output (square wave, memory-mapped)
 - [ ] Sprite system (SPAWN entities, auto-update)
 - [ ] Scrollable text buffer (terminal output)
 
 ## Phase 5: The OS Layer
 
-- [ ] Process scheduler (round-robin, context switching)
+- [x] Process scheduler (round-robin, context switching)
 - [ ] Filesystem (save/load named programs, directories)
 - [ ] Memory management (alloc/free within VM)
 - [ ] Inter-process communication
@@ -107,7 +107,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Text adventure
 
 **Batch 6 -- The OS Layer (when games prove the foundation):**
-- [ ] Process scheduler (needed when snake + editor run together)
+- [x] Process scheduler (needed when snake + editor run together)
 - [ ] Filesystem (needed when you want to save your snake high score)
 - [ ] Memory management (needed when programs compete for RAM)
 
@@ -120,5 +120,5 @@ AI-written demos      AI-written OS that humans use
 
 **Batch 8 -- The World Outside:**
 - [ ] REST API bridge
-- [ ] Mouse/audio support
+- [ ] Audio support
 - [ ] Multi-agent execution

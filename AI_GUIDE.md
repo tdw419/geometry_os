@@ -154,10 +154,71 @@ LOAD r2, r5             ; r2 = current stack depth
       IRET
   ```
 
+### Process Scheduler (Round-Robin Multi-Tasking)
+The `ProcessTable` manages multiple VM processes with cooperative and preemptive scheduling.
+
+**Opcodes:**
+| Opcode | Byte | Width | Description |
+|--------|------|-------|-------------|
+| `FORK` | `0x6F` (o) | 1 | Clone current process. Parent r0=child_pid, child r0=0 |
+| `YIELD` | `0x59` (Y) | 1 | Cooperative context switch to next process |
+| `EXIT` | `0x75` (u) | 1 | Terminate current process (like HALT but semantic) |
+| `GETPID` | `0x76` (v) | 1 | r0 = current process ID |
+
+**Key behavior:**
+- FORK is resolved by the scheduler AFTER `run_with_limit` returns. The parent's r0 is set to child_pid in the snapshot, NOT during execution.
+- Always follow FORK with YIELD to let the scheduler resolve the fork before checking r0.
+- `ProcessTable::new(vm)` creates a scheduler with one process (PID 1).
+- `ProcessTable::with_time_slice(vm, n)` sets cycles per process before preemption.
+- `tick()` runs one process for up to `time_slice` cycles, returns `(pid, cycles, TickReason)`.
+- `run_all()` runs all processes until none are runnable.
+- Processes have independent RAM snapshots (fork clones memory).
+
+**Correct FORK pattern:**
+```
+FORK
+YIELD               ; CRITICAL: let scheduler resolve fork
+; Now r0 = child_pid (parent) or 0 (child)
+LDI r10, 0
+BEQ r0, r10, child_code
+; ... parent code ...
+EXIT
+child_code:
+; ... child code ...
+EXIT
+```
+
+**Demo:** `programs/multitask.gasm` -- two processes drawing on left/right halves of the screen.
+
 ### Memory Layout
 - RAM[0..N]: program + data (configurable, typically 4096 or 64K words)
 - Screen: 32-bit pixels, memory-mapped or separate buffer
-- Keyboard: memory-mapped register at fixed address
+- Keyboard: memory-mapped register at fixed address (0xFFF)
+
+### Mouse Registers (0xFFA0–0xFFA2)
+Memory-mapped I/O for mouse input. Read-only. Updated by the host GUI each frame.
+Programs read these via LOAD from the following addresses:
+
+| Address  | Name             | R/W | Description |
+|----------|------------------|-----|-------------|
+| `0xFFA0` | MOUSE_X          | R   | Mouse X coordinate (0–255) |
+| `0xFFA1` | MOUSE_Y          | R   | Mouse Y coordinate (0–255) |
+| `0xFFA2` | MOUSE_BUTTONS    | R   | Button bitmask (bit 0=left, bit 1=right, bit 2=middle) |
+
+Example:
+```
+LDI r5, 0xFFA0          ; mouse X register
+LOAD r0, r5             ; r0 = mouse_x (0-255)
+LDI r5, 0xFFA1          ; mouse Y register
+LOAD r1, r5             ; r1 = mouse_y
+LDI r5, 0xFFA2          ; mouse buttons
+LOAD r2, r5             ; r2 = button bitmask
+LDI r3, 1
+AND r3, r2              ; r3 = 1 if left button down
+```
+
+Library: `lib/mouse.gasm` provides `read_mouse`, `mouse_left`, `mouse_right`,
+`mouse_middle`, `wait_click` routines.
 
 ## Development Rules
 
