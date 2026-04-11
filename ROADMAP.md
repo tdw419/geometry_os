@@ -20,7 +20,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 1028 tests (729 integration + 299 inline) — build passing, all tests green
+- 1052 tests — build passing, all tests green
 - 49 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
@@ -32,6 +32,7 @@ AI-written demos      AI-written OS that humans use
 - Filesystem (memory-mapped save/load at 0xFFB0-0xFFB5, lib/fs.gasm)
 - Scrollable terminal (memory-mapped at 0xFFD8-0xFFDF, lib/terminal.gasm)
 - Process scheduler with FORK/YIELD/EXIT/GETPID
+- Multi-agent sandbox (VmPool, isolated VMs, resource caps, 13 sandbox API endpoints)
 
 ## Phase 1: Language Completeness
 
@@ -116,11 +117,11 @@ AI-written demos      AI-written OS that humans use
 - [x] WebSocket endpoint `/ws/input` for streaming key/mouse events (low-latency interaction)
 
 ### 6.4 Multi-Agent Sandbox
-- [ ] Refactor VM to support multiple independent instances (VM pool)
-- [ ] Each agent gets isolated memory space, own registers, own screen region
-- [ ] `POST /api/sandbox/create` -- allocate a new sandboxed VM
-- [ ] `DELETE /api/sandbox/:id` -- tear down a sandbox
-- [ ] Rate limiting and resource caps per sandbox (max cycles, max memory)
+- [x] Refactor VM to support multiple independent instances (VM pool) — `src/vm_pool.rs`, VmPool struct with HashMap of isolated sandboxes, 12 tests
+- [x] Each agent gets isolated memory space, own registers, own screen region — each Sandbox wraps independent GasmAgent/VM
+- [x] `POST /api/sandbox/create` -- allocate a new sandboxed VM
+- [x] `DELETE /api/sandbox/:id` -- tear down a sandbox
+- [x] Rate limiting and resource caps per sandbox (max cycles, max memory) — SandboxCaps struct
 
 ## Phase 7: Inter-Process Communication
 
@@ -268,6 +269,6 @@ AI-written demos      AI-written OS that humans use
 - [x] Debug registers (if complex programs can't be debugged)
 
 **Batch 8 -- The World Outside (see Phase 6 for detailed decomposition):**
-- [x] REST API bridge (tiny_http, 15 endpoints, 16 tests)
+- [x] REST API bridge (tiny_http, 31 endpoints: 18 core + 13 sandbox, sandbox integration tests)
 - [x] Audio support
-- [ ] Multi-agent execution
+- [x] Multi-agent execution (VmPool, sandbox API with create/destroy/run/state/screen/reset/load/step/resume/input)
