@@ -77,8 +77,8 @@ This is not a lookup -- the keypress IS the instruction byte.
 ### Instruction Width
 Each opcode has a fixed width (1-5 pixels/words):
 - Width 1: NOP, HALT, RET, YIELD, IRET
-- Width 2: JMP, CALL, LDI, INT, PUSH, POP
-- Width 3: ADD, SUB, MOV, LOAD, STORE, BRANCH, STI, ...
+- Width 2: JMP, CALL, INT, PUSH, POP
+- Width 3: ADD, SUB, MOV, LOAD, STORE, LDI, BRANCH, STI, ...
 - Width 4: PSET, SPAWN, TEXT, BLIT, ...
 - Width 5: RECTF, LINE
 
