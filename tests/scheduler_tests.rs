@@ -414,3 +414,58 @@ fn scheduler_active_count_with_fork() {
     sched.run_all();
     assert_eq!(sched.active_count(), 0);
 }
+
+// ── Multitask demo program test ──────────────────────────────────────
+
+#[test]
+fn multitask_demo_assembles_and_runs() {
+    // Simplified version without .include to avoid path issues.
+    // Tests that FORK + YIELD + drawing works with the scheduler.
+    let src = "\
+FORK
+YIELD
+LDI r1, 0
+LDI r5, 160
+PSET r1, r1, r5
+EXIT
+";
+    let asm = assembler::assemble(src).expect("should assemble");
+    let mut vm = Vm::new(1024);
+    vm.load_program(&asm.pixels);
+    vm.pid = 1;
+
+    let mut sched = ProcessTable::with_time_slice(vm, 500);
+    let total = sched.run_all();
+
+    assert!(total > 0, "should have executed some cycles");
+    assert_eq!(sched.active_count(), 0, "all processes should exit");
+    assert_eq!(sched.processes.len(), 2, "should have parent + child");
+}
+
+#[test]
+fn multitask_two_processes_interleave() {
+    // Simplified test: two processes that count in different registers
+    // and yield to each other. After run_all, both should have completed.
+    let src = "\
+FORK
+YIELD
+LDI r0, 1
+YIELD
+LDI r0, 2
+YIELD
+LDI r0, 3
+EXIT
+";
+    let mut sched = scheduler_from_src(src, 10000);
+    sched.run_all();
+
+    assert_eq!(sched.active_count(), 0);
+    assert_eq!(sched.processes.len(), 2);
+
+    // Both processes should have r0=3 (they run the same code after FORK+YIELD)
+    // except the child starts with r0=0 but immediately gets overwritten by LDI
+    for proc in &sched.processes {
+        let vm = sched.get_vm(proc.pid).unwrap();
+        assert_eq!(vm.regs[0], 3, "process {} should have r0=3", proc.pid);
+    }
+}

@@ -3,90 +3,83 @@
 ;
 ; Demonstrates the process scheduler:
 ;   1. Main process FORKs into parent + child
-;   2. Parent draws pixels in the LEFT half (x=0..127)
-;   3. Child draws pixels in the RIGHT half (x=128..255)
-;   4. Each process YIELDs after drawing a row, cooperating
-;   5. Both processes EXIT when done
+;   2. YIELD lets the scheduler resolve fork (sets r0)
+;   3. Parent draws cyan pixels in the LEFT half (x=10..41)
+;   4. Child draws pink pixels in the RIGHT half (x=138..169)
+;   5. Each process YIELDs after drawing a row, cooperating
+;   6. Both processes EXIT when done (16 rows each)
 ;
-; After fork:
-;   r0 = child_pid (parent) or 0 (child)
-;   r1 = row counter (shared setup)
-;   r5 = color
+; After FORK + YIELD:
+;   r0 = child_pid (parent, > 0) or 0 (child)
 ;
 ; Opcodes used:
 ;   FORK (o)  -- clone current process
 ;   YIELD (Y) -- cooperative context switch
 ;   EXIT (u)  -- terminate current process
-;   GETPID (v)-- get current process ID
 ; ═══════════════════════════════════════════════════════════════════════
 
 .include "lib/screen.gasm"
 
+.text
 main:
     CALL clear_screen
 
-    ; Set up shared state before fork
-    LDI r1, 0           ; r1 = row counter (0..15 for demo)
-    LDI r5, 160         ; r5 = color (cyan-ish)
+    ; Set up loop counter
+    LDI r1, 0           ; r1 = row counter (0..15)
 
-    ; Fork! r0 = child_pid (parent), r0 = 0 (child)
+    ; Fork! After scheduler resolves:
+    ;   parent r0 = child_pid (> 0)
+    ;   child r0 = 0
     FORK
+    YIELD               ; Let scheduler resolve fork
 
-    ; Check if we are parent or child
-    LDI r2, 0
-    SUB r2, r0           ; r2 = 0 - r0 (set flags based on r0)
-    BEQ r2, child_loop   ; if r0 == 0, we are the child
+    ; Now r0 distinguishes parent from child
+    ; r0 == 0 means child, r0 != 0 means parent
+    LDI r10, 0
+    BEQ r0, r10, child_code
 
+parent_code:
+    ; Parent: draw vertical stripe on the LEFT side
+    ; x = 10, y = r1 * 16, color = 160 (cyan)
 parent_loop:
-    ; Draw a horizontal line on the LEFT side
-    ; x = r1 * 8, y = r1 * 16
-    MOV r2, r1           ; r2 = row
-    LDI r3, 8
-    MUL r2, r3           ; r2 = row * 8 (x)
-    MOV r3, r1           ; r3 = row
+    LDI r2, 10          ; x = 10
+    MOV r3, r1          ; y base = row
     LDI r4, 16
-    MUL r3, r4           ; r3 = row * 16 (y)
+    MUL r3, r4          ; y = row * 16
+    LDI r5, 160         ; color = cyan
 
-    ; Draw 8 pixels across using PSET
-    LDI r6, 0            ; column offset
+    ; Draw a 32-pixel wide bar
+    LDI r6, 0
 parent_pixel:
     MOV r7, r2
-    ADD r7, r6           ; x + offset
-    PSET r7, r3, r5      ; draw pixel at (x+offset, y)
+    ADD r7, r6          ; x + offset
+    PSET r7, r3, r5     ; draw pixel
     LDI r8, 1
-    ADD r6, r8
+    ADD r6, r8          ; offset++
     LDI r8, 32
-    BLT r6, r8, parent_pixel ; while col < 32
+    BLT r6, r8, parent_pixel  ; while offset < 32
 
     ; Next row
     LDI r2, 1
     ADD r1, r2
+    YIELD               ; Let child run
 
-    ; Yield to let child run
-    YIELD
-
-    ; Check if done (16 rows)
     LDI r2, 16
-    BLT r1, r2, parent_loop
+    BLT r1, r2, parent_loop  ; while row < 16
 
-    ; Parent done
     EXIT
 
+child_code:
+    ; Child: draw vertical stripe on the RIGHT side
+    ; x = 138, y = r1 * 16, color = 224 (pink)
 child_loop:
-    ; Child draws on the RIGHT side (x += 128)
-    MOV r2, r1           ; r2 = row
-    LDI r3, 8
-    MUL r2, r3           ; r2 = row * 8 (base x)
-    LDI r3, 128
-    ADD r2, r3           ; r2 = row * 8 + 128 (offset to right)
-    MOV r3, r1           ; r3 = row
+    LDI r2, 138         ; x = 138
+    MOV r3, r1          ; y base = row
     LDI r4, 16
-    MUL r3, r4           ; r3 = row * 16 (y)
+    MUL r3, r4          ; y = row * 16
+    LDI r5, 224         ; color = pink
 
-    ; Different color for child
-    LDI r5, 192          ; child uses a different color
-
-    ; Draw 8 pixels across
+    ; Draw a 32-pixel wide bar
     LDI r6, 0
 child_pixel:
     MOV r7, r2
@@ -100,13 +93,9 @@ child_pixel:
     ; Next row
     LDI r2, 1
     ADD r1, r2
+    YIELD               ; Let parent run
 
-    ; Yield to let parent run
-    YIELD
-
-    ; Check if done
     LDI r2, 16
     BLT r1, r2, child_loop
 
-    ; Child done
     EXIT

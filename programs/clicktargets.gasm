@@ -18,9 +18,6 @@
 ;
 ; ═══════════════════════════════════════════════════════════════════════
 
-.include "lib/screen.gasm"
-.include "lib/mouse.gasm"
-
 ; ── Game constants ──
 TARGET_HALF = 8
 MAX_MISSES  = 5
@@ -92,7 +89,7 @@ game_loop:
     LDI r5, TARGET_Y
     LOAD r4, r5               ; r4 = target_y
 
-    ; Compute |mx - tx|: if mx < tx, swap and sub
+    ; Compute |mx - tx|
     MOV r5, r0                ; r5 = mx
     MOV r6, r3                ; r6 = tx
     BLT r5, r6, _dx_swap
@@ -149,7 +146,7 @@ _dy_done:
     JMP game_loop
 
 miss:
-    ; Misclick -- no penalty, just continue
+    ; Misclick -- no penalty
     JMP no_click
 
 no_click:
@@ -193,7 +190,7 @@ game_over:
     ; Fill screen red
     LDI r0, COLOR_X
     CALL clear_screen
-    ; Draw a big X using lines
+    ; Draw a big X
     LDI r0, COLOR_WHITE
     LDI r1, 32
     LDI r2, 32
@@ -206,7 +203,6 @@ game_over:
     LDI r3, 32
     LDI r4, 224
     CALL draw_line
-halt_loop:
     HALT
 
 
@@ -321,3 +317,7 @@ _miss_bar_loop:
     JMP _miss_bar_loop
 _miss_bar_done:
     RET
+
+; ── Library includes (at end so main code is at PC=0) ──
+    .include "lib/screen.gasm"
+    .include "lib/mouse.gasm"
