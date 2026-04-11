@@ -20,7 +20,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 745 tests (425 integration + 320 inline) — build passing, all tests green
+- 729 tests (430 integration + 299 inline) — build passing, all tests green
 - 49 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
