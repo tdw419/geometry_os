@@ -1,0 +1,252 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/mini-debugger.gasm -- Mini debugger for Geometry OS
+;
+; A visual debugging tool running inside the VM. Reads the debug registers
+; at 0xFFE0-0xFFE3 and displays them as bar graphs on the pixel canvas.
+; Uses keyboard port at 0xFFF for interactive commands.
+;
+; DISPLAY (bar graph visualization):
+;   Row 0: title
+;   Row 1: CYC (cycle count) -- green bar, scaled to fit 28px wide
+;   Row 2: STK (stack depth) -- cyan bar
+;   Row 3: BP  (breakpoint addr) -- yellow bar (or "OFF" if 0)
+;   Row 4: HIT (breakpoint hit) -- red bar (1 pixel = hit, empty = no)
+;   Row 5: (command prompt area)
+;
+; COMMANDS:
+;   D -- refresh display (re-read all debug registers)
+;   0 -- clear breakpoint
+;   Q -- quit (HALT)
+;
+; DEBUG REGISTERS (memory-mapped I/O):
+;   0xFFE0 = DBG_CYCLE_COUNT (R): total cycles
+;   0xFFE1 = DBG_STACK_DEPTH  (R): stack depth
+;   0xFFE2 = DBG_BREAKPOINT   (R/W): breakpoint addr
+;   0xFFE3 = DBG_BREAKPT_HIT  (R): hit flag (auto-clears)
+;
+; REGISTER USAGE:
+;   r0  = scratch
+;   r1  = scratch
+;   r2  = scratch
+;   r3  = constant: zero (0)
+;   r4  = constant: one (1)
+;   r5  = scratch / address pointer
+;   r6  = key port (0xFFF)
+;   r7  = loop counter / bar length
+;   r8  = scratch
+;   r9  = scratch
+; ═══════════════════════════════════════════════════════════════════════
+
+.include "../lib/input.gasm"
+.include "../lib/screen.gasm"
+
+; ── String constants ─────────────────────────────────────────────────
+title_s:
+    .asciz "DEBUGGER"
+cyc_s:
+    .asciz "CYC"
+stk_s:
+    .asciz "STK"
+bp_s:
+    .asciz "BP"
+hit_s:
+    .asciz "HIT"
+cmd_s:
+    .asciz "D=refresh 0=clrBP Q=quit"
+off_s:
+    .asciz "OFF"
+on_s:
+    .asciz "ON!"
+
+.text
+
+main:
+    ; ── Set constants ──
+    LDI r3, 0
+    LDI r4, 1
+    LDI r6, 0xFFF
+
+    ; ── Draw static labels ──
+    LDI r0, 0
+    LDI r1, 0
+    LDI r2, 0xFFFFFF
+    TEXT r0, r1, title_s
+
+    LDI r0, 0
+    LDI r1, 2
+    LDI r2, 0x00FF00
+    TEXT r0, r1, cyc_s
+
+    LDI r0, 0
+    LDI r1, 5
+    LDI r2, 0x00FFFF
+    TEXT r0, r1, stk_s
+
+    LDI r0, 0
+    LDI r1, 8
+    LDI r2, 0xFFFF00
+    TEXT r0, r1, bp_s
+
+    LDI r0, 0
+    LDI r1, 11
+    LDI r2, 0xFF0000
+    TEXT r0, r1, hit_s
+
+    LDI r0, 0
+    LDI r1, 14
+    LDI r2, 0x808080
+    TEXT r0, r1, cmd_s
+
+    ; ── Initial display update ──
+    CALL update_display
+
+main_loop:
+    ; ── Wait for key ──
+    CALL wait_key         ; r0 = keycode
+
+    ; 'D' = 0x44 -- refresh
+    LDI r1, 0x44
+    SUB r0, r1
+    B $01, @cmd_refresh
+
+    ; '0' = 0x30 -- clear breakpoint
+    LDI r0, 0x30
+    LDI r1, 0x30
+    SUB r0, r1
+    B $01, @cmd_clear_bp
+
+    ; 'Q' = 0x51 -- quit
+    LDI r0, 0x51
+    LDI r1, 0x51
+    SUB r0, r1
+    B $01, @cmd_quit
+
+    B $00, @main_loop
+
+cmd_refresh:
+    CALL update_display
+    B $00, @main_loop
+
+cmd_clear_bp:
+    LDI r5, 0xFFE2
+    STORE r5, r3          ; write 0 to clear breakpoint
+    CALL update_display
+    B $00, @main_loop
+
+cmd_quit:
+    HALT
+
+; ── update_display: re-read all debug registers and draw bars ───────
+; Clobbers: r0, r1, r2, r5, r7, r8
+update_display:
+    ; ── Cycle count bar (row 3, green) ──
+    LDI r5, 0xFFE0       ; DBG_CYCLE_COUNT
+    LOAD r0, r5
+    ; Scale: use value mod 28 for bar length
+    LDI r7, 28
+ud_cyc_mod:
+    LDI r5, 28
+    SUB r0, r5
+    B $05, @ud_cyc_done  ; underflow = done
+    B $00, @ud_cyc_mod
+ud_cyc_done:
+    ADD r0, r5            ; undo underflow, r0 = value % 28
+    LDI r1, 3             ; y = row 3
+    LDI r2, 0x00FF00      ; green
+    CALL draw_bar
+
+    ; ── Stack depth bar (row 6, cyan) ──
+    LDI r5, 0xFFE1       ; DBG_STACK_DEPTH
+    LOAD r0, r5
+    ; Stack depth is usually small, use directly (cap at 28)
+    LDI r7, 28
+ud_stk_cap:
+    LDI r5, 28
+    SUB r0, r5
+    B $05, @ud_stk_ok
+    B $00, @ud_stk_ok
+ud_stk_ok:
+    ADD r0, r5
+    LDI r1, 6             ; y = row 6
+    LDI r2, 0x00FFFF      ; cyan
+    CALL draw_bar
+
+    ; ── Breakpoint bar (row 9, yellow) ──
+    LDI r5, 0xFFE2       ; DBG_BREAKPOINT
+    LOAD r0, r5
+    ; If 0, show "OFF"
+    LDI r5, 0
+    SUB r0, r5
+    B $01, @ud_bp_off
+    ; Show bar for breakpoint address (mod 28)
+    LDI r7, 28
+ud_bp_mod:
+    LDI r5, 28
+    SUB r0, r5
+    B $05, @ud_bp_done
+    B $00, @ud_bp_mod
+ud_bp_done:
+    ADD r0, r5
+    LDI r1, 9             ; y = row 9
+    LDI r2, 0xFFFF00      ; yellow
+    CALL draw_bar
+    B $00, @ud_hit
+ud_bp_off:
+    LDI r0, 4             ; x
+    LDI r1, 9             ; y
+    LDI r2, 0x808080      ; gray
+    TEXT r0, r1, off_s
+
+    ; ── Hit flag (row 12, red) ──
+ud_hit:
+    LDI r5, 0xFFE3       ; DBG_BREAKPT_HIT (auto-clears)
+    LOAD r0, r5
+    LDI r1, 12            ; y = row 12
+    LDI r5, 0
+    SUB r0, r5
+    B $01, @ud_hit_off
+    ; Hit! Show "ON!"
+    LDI r0, 4
+    LDI r1, 12
+    LDI r2, 0xFF0000
+    TEXT r0, r1, on_s
+    RET
+ud_hit_off:
+    LDI r0, 4
+    LDI r1, 12
+    LDI r2, 0x808080
+    TEXT r0, r1, off_s
+    RET
+
+; ── draw_bar: draw a horizontal bar starting at x=4 ────────────────
+; Input: r0 = length (0-28), r1 = y row, r2 = color
+; Clobbers: r5, r7
+draw_bar:
+    ; r0 = number of pixels to draw
+    LDI r7, 0             ; x counter = 0
+    ADD r7, r4             ; start at x=4... no, r4=1
+    LDI r5, 4
+    ADD r7, r5             ; r7 = 4 (start x)
+
+db_loop:
+    ; Check if we've drawn enough pixels
+    LDI r5, 0
+    SUB r0, r5
+    B $01, @db_done       ; if length == 0, done
+    LDI r5, 1
+    SUB r0, r5            ; length--
+    ; Draw pixel at (r7, r1*2) with color r2
+    ; y is a text row, multiply by 2 for pixel coords
+    LDI r8, 2
+    ; r1 * 2 = r1 + r1
+    MOV r9, r1
+    ADD r9, r1
+    ; Actually we want pixel y = r1 * 8 or so for text rows
+    ; Let's use r1 directly as pixel y (small values for a 32x32 screen)
+    PSET r7, r1, r2
+    LDI r5, 1
+    ADD r7, r5            ; x++
+    B $00, @db_loop
+
+db_done:
+    RET

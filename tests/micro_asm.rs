@@ -591,3 +591,98 @@ N
     assert_eq!(out[3], 0xFF, "error marker for @bad");
     assert_eq!(out[4], NOP, "NOP at addr 4 (after error, assembly continued)");
 }
+
+// ── Bootstrap (self-hosting) tests ──────────────────────────────────────────
+
+/// Load the bootstrap source into the micro-asm VM and return the assembled output.
+/// The bootstrap source (micro-asm-bootstrap.asm) is written in the micro-asm's
+/// own single-char syntax. When fed to the VM-resident assembler, it should
+/// produce a functionally equivalent copy.
+fn assemble_bootstrap() -> Vec<u32> {
+    let bootstrap_src =
+        std::fs::read_to_string("programs/micro-asm-bootstrap.asm")
+            .expect("programs/micro-asm-bootstrap.asm not found");
+
+    let mut vm = vm_with_micro_asm();
+    run_micro_asm(&mut vm, &bootstrap_src)
+}
+
+#[test]
+fn bootstrap_produces_output() {
+    let out = assemble_bootstrap();
+    let output_len = out.iter().position(|&v| v == 0).unwrap_or(out.len());
+    eprintln!("Bootstrap output length: {} cells", output_len);
+    for i in 0..output_len.min(50) {
+        eprintln!("  out[{:3}] = 0x{:08X}", i, out[i]);
+    }
+    assert!(output_len > 100, "bootstrap should produce > 100 output cells, got {}", output_len);
+}
+
+#[test]
+fn bootstrap_starts_with_ldi_r14_1() {
+    let out = assemble_bootstrap();
+    // The assembler starts with: LDI r14, 1
+    // In pixel encoding: LDI='I'=0x49, r14='>'=0x3E, 1=0x01
+    assert_eq!(out[0], 0x49, "first opcode should be LDI (0x49)");
+    assert_eq!(out[1], 0x3E, "first dst should be r14 ('>'=0x3E)");
+    assert_eq!(out[2], 0x01, "first imm should be 1");
+}
+
+#[test]
+fn bootstrap_assembles_counter_program() {
+    // The real test: assemble the same source with both the Rust assembler
+    // and the bootstrap assembler, and compare outputs.
+    let test_src = "I 0 !\nI 1 $01\nH\n";
+
+    // 1. What the original micro-asm produces
+    let mut vm1 = vm_with_micro_asm();
+    let original_output = run_micro_asm(&mut vm1, test_src);
+
+    // 2. Assemble the bootstrap source to get the bootstrap assembler
+    let bootstrap_out = assemble_bootstrap();
+
+    // 3. Load the bootstrap assembler into a new VM at 0x800
+    let mut vm2 = Vm::new(65536);
+    for (i, &pixel) in bootstrap_out.iter().enumerate() {
+        if i >= MICRO_ASM_ADDR && i < vm2.ram.len() {
+            vm2.ram[i] = pixel;
+        }
+    }
+
+    // 4. Feed the same test source to the bootstrap assembler
+    // Clear output area
+    for v in vm2.ram[..MICRO_ASM_ADDR].iter_mut() {
+        *v = 0;
+    }
+    // Clear text buffer and write source
+    let text_end = (TEXT_BUF_ADDR + test_src.len() + 1).min(vm2.ram.len());
+    for v in vm2.ram[TEXT_BUF_ADDR..text_end].iter_mut() {
+        *v = 0;
+    }
+    for (i, byte) in test_src.bytes().enumerate() {
+        let addr = TEXT_BUF_ADDR + i;
+        if addr < vm2.ram.len() {
+            vm2.ram[addr] = byte as u32;
+        }
+    }
+
+    // 5. Run the bootstrap assembler
+    vm2.pc = MICRO_ASM_ADDR as u32;
+    vm2.halted = false;
+    vm2.yielded = false;
+    while !vm2.halted && !vm2.yielded {
+        vm2.run();
+    }
+
+    // 6. Compare outputs
+    let bootstrap_result = vm2.ram[..MICRO_ASM_ADDR].to_vec();
+
+    // Both should produce identical bytecodes for the test program
+    assert_eq!(original_output[0], bootstrap_result[0], "LDI opcode mismatch");
+    assert_eq!(original_output[1], bootstrap_result[1], "r0 mismatch");
+    assert_eq!(original_output[2], bootstrap_result[2], "immediate mismatch");
+    assert_eq!(original_output[3], bootstrap_result[3], "LDI opcode mismatch (2nd)");
+    assert_eq!(original_output[4], bootstrap_result[4], "r1 mismatch");
+    assert_eq!(original_output[5], bootstrap_result[5], "immediate mismatch (2nd)");
+    assert_eq!(original_output[6], bootstrap_result[6], "HALT mismatch");
+}
