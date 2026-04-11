@@ -383,3 +383,58 @@ fn test_int_with_max_vector() {
     assert!(vm.halted);
     assert_eq!(vm.regs[0], 255);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Demo program tests
+// ═══════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_int_demo_program() {
+    // The int-demo.gasm program:
+    // 1. Registers handlers for INT 0 (increment) and INT 1 (double)
+    // 2. Calls INT 0 three times (counter: 0 -> 1 -> 2 -> 3)
+    // 3. Calls INT 1 once (counter: 3 -> 6)
+    // 4. Stores result at RAM[0x100]
+    let src = "\
+        STI 0, inc_handler\n\
+        STI 1, double_handler\n\
+        LDI r0, 0\n\
+        INT 0\n\
+        INT 0\n\
+        INT 0\n\
+        INT 1\n\
+        LDI r5, 0x100\n\
+        STORE r5, r0\n\
+        HALT\n\
+    inc_handler:\n\
+        LDI r10, 1\n\
+        ADD r0, r10\n\
+        IRET\n\
+    double_handler:\n\
+        ADD r0, r0\n\
+        IRET\n\
+    ";
+    let asm = assembler::assemble(src).unwrap();
+    let mut vm = Vm::new(512);
+    vm.load_program(&asm.pixels);
+    vm.run();
+
+    assert!(vm.halted);
+    assert_eq!(vm.regs[0], 6, "counter should be 6: 0+1+1+1=3, 3*2=6");
+    // Verify result stored at RAM[0x100]
+    assert_eq!(vm.peek(0x100), 6, "RAM[0x100] should hold the result");
+}
+
+#[test]
+fn test_int_demo_from_file() {
+    // Load and run the actual int-demo.gasm program file
+    let path = std::path::Path::new("programs/int-demo.gasm");
+    let asm = assembler::assemble_file(path, &[]).unwrap();
+    let mut vm = Vm::new(512);
+    vm.load_program(&asm.pixels);
+    vm.run();
+
+    assert!(vm.halted);
+    assert_eq!(vm.regs[0], 6, "counter should be 6");
+    assert_eq!(vm.peek(0x100), 6, "RAM[0x100] should hold the result");
+}
