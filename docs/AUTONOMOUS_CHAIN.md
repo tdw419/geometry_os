@@ -176,6 +176,26 @@ the agent automatically falls back to the local Ollama instance
 | `/tmp/geo-chain.lock`                  | Session lock file                    |
 | `~/.hermes/config.yaml`                | Hermes config (model, fallbacks)     |
 
+### 6. Roadmap Auditor (every 30m)
+
+A separate cron job that periodically audits ROADMAP.md against the actual
+codebase state. It uses the prompt compiler's `roadmap-audit` recipe to pull:
+
+- Current ROADMAP.md content
+- All lib/*.gasm and programs/*.gasm (what actually exists)
+- Rust code skeletons (what's implemented)
+- Recent git history
+- RAG context
+
+The auditor then:
+- Fixes stale counts (test count, opcode count, library list)
+- Checks off items that exist in the codebase but are still marked `[ ]`
+- Removes duplicate entries across batches
+- Adds features found in the codebase that aren't in the ROADMAP
+- Does NOT add aspirational items -- only reflects what EXISTS
+
+Recipe: `prompt_compiler/recipes/roadmap-audit.yaml`
+
 ## What Can Go Wrong
 
 | Symptom                      | Cause                          | Fix                                  |
