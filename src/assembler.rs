@@ -559,8 +559,172 @@ fn resolve_includes(
     Ok(result)
 }
 
+/// A macro definition collected from source.
+#[derive(Debug, Clone)]
+struct MacroDef {
+    name: String,
+    params: Vec<String>,
+    body_lines: Vec<String>,
+}
+
+/// Expand `.macro`/`.endm` definitions and invocations in the source.
+/// Returns the expanded source with all macros inlined.
+fn expand_macros(source: &str) -> Result<String, AsmError> {
+    let mut macros: HashMap<String, MacroDef> = HashMap::new();
+    let mut result_lines: Vec<String> = Vec::new();
+    let mut current_macro: Option<MacroDef> = None;
+    let mut macro_start_line: usize = 0;
+
+    for (line_num, raw_line) in source.lines().enumerate() {
+        let line_num = line_num + 1;
+        let stripped = raw_line.trim();
+
+        // If we're inside a macro definition, collect body lines
+        if current_macro.is_some() {
+            let upper = stripped.to_uppercase();
+            if upper == ".ENDM" {
+                // End of macro definition
+                let def = current_macro.take().unwrap();
+                if macros.contains_key(&def.name) {
+                    return Err(AsmError {
+                        line: macro_start_line,
+                        message: format!("duplicate macro definition: {}", def.name),
+                    });
+                }
+                macros.insert(def.name.clone(), def);
+                continue;
+            }
+            // Add body line (preserve original indentation relative to macro)
+            current_macro.as_mut().unwrap().body_lines.push(raw_line.to_string());
+            continue;
+        }
+
+        // Check for .macro directive
+        let upper = stripped.to_uppercase();
+        if upper.starts_with(".MACRO") {
+            let rest = stripped
+                .strip_prefix(".macro")
+                .or_else(|| stripped.strip_prefix(".MACRO"))
+                .unwrap_or("")
+                .trim();
+            if rest.is_empty() {
+                return Err(AsmError {
+                    line: line_num,
+                    message: ".macro requires a name".into(),
+                });
+            }
+            let parts: Vec<&str> = rest.split_whitespace().collect();
+            let name = parts[0].to_string();
+            // Parameters come after the name, comma-separated
+            let params: Vec<String> = if parts.len() > 1 {
+                parts[1..]
+                    .join("")
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect()
+            } else {
+                vec![]
+            };
+
+            // Validate param names: no duplicates, must be identifiers
+            let mut seen_params: HashSet<String> = HashSet::new();
+            for p in &params {
+                if !p.chars().all(|c| c.is_alphanumeric() || c == '_') || p.is_empty() {
+                    return Err(AsmError {
+                        line: line_num,
+                        message: format!("invalid macro parameter name: '{}'", p),
+                    });
+                }
+                if seen_params.contains(p) {
+                    return Err(AsmError {
+                        line: line_num,
+                        message: format!("duplicate macro parameter: '{}'", p),
+                    });
+                }
+                seen_params.insert(p.clone());
+            }
+
+            macro_start_line = line_num;
+            current_macro = Some(MacroDef {
+                name,
+                params,
+                body_lines: vec![],
+            });
+            continue;
+        }
+
+        // Not a directive -- check if this line is a macro invocation
+        // A macro invocation starts with the macro name as the first token
+        let first_token = stripped.split_whitespace().next().unwrap_or("");
+        if let Some(def) = macros.get(first_token.to_uppercase().as_str())
+            .or_else(|| macros.get(first_token))
+        {
+            // Parse invocation arguments (comma-separated, after the name)
+            let after_name = stripped.strip_prefix(&def.name).unwrap_or("").trim();
+            // Also try case-insensitive strip
+            let after_name = if after_name.is_empty() && !stripped.starts_with(&def.name) {
+                stripped.strip_prefix(first_token).unwrap_or("").trim()
+            } else {
+                after_name
+            };
+
+            let invoke_args: Vec<&str> = if after_name.is_empty() {
+                vec![]
+            } else {
+                after_name
+                    .split(',')
+                    .map(|s| s.trim())
+                    .filter(|s| !s.is_empty())
+                    .collect()
+            };
+
+            if invoke_args.len() != def.params.len() {
+                return Err(AsmError {
+                    line: line_num,
+                    message: format!(
+                        "macro '{}' expects {} args, got {}",
+                        def.name,
+                        def.params.len(),
+                        invoke_args.len()
+                    ),
+                });
+            }
+
+            // Expand the body: substitute \param with arg value
+            for body_line in &def.body_lines {
+                let mut expanded = body_line.clone();
+                for (i, param) in def.params.iter().enumerate() {
+                    let placeholder = format!("\\{}", param);
+                    expanded = expanded.replace(&placeholder, invoke_args[i]);
+                    // Also support \N (positional) syntax
+                    let pos_placeholder = format!("\\{}", i + 1);
+                    expanded = expanded.replace(&pos_placeholder, invoke_args[i]);
+                }
+                result_lines.push(expanded);
+            }
+            continue;
+        }
+
+        // Regular line -- pass through
+        result_lines.push(raw_line.to_string());
+    }
+
+    // Check for unterminated macro
+    if current_macro.is_some() {
+        return Err(AsmError {
+            line: macro_start_line,
+            message: "unterminated .macro (missing .endm)".into(),
+        });
+    }
+
+    Ok(result_lines.join("\n"))
+}
+
 /// Inner assembly implementation. Takes optional base_dir for error context.
 fn assemble_inner(source: &str, _base_dir: Option<&std::path::Path>) -> Result<Assembled, AsmError> {
+    // Expand macros before assembly
+    let source = expand_macros(source)?;
     let mut labels: HashMap<String, usize> = HashMap::new();
     let mut items: Vec<(usize, EmitItem)> = Vec::new(); // (emit_addr, item)
     let mut current_addr: usize = 0;
@@ -1594,5 +1758,287 @@ greeting:
         assert_eq!(asm.pixels, vec![op::HALT as u32]);
 
         let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+
+    // ── Macro directive tests ──────────────────────────────────────────
+
+    #[test]
+    fn macro_simple_no_params() {
+        // A parameterless macro that just expands to HALT
+        let src = "\
+.macro STOP
+HALT
+.endm
+STOP
+";
+        let asm = assemble(src).unwrap();
+        assert_eq!(asm.pixels, vec![op::HALT as u32]);
+    }
+
+    #[test]
+    fn macro_with_one_param() {
+        // LDI_REG r0 → LDI r0, 42  (hardcoded value in body)
+        let src = "\
+.macro SET42 reg
+LDI \\reg, 42
+.endm
+SET42 r0
+HALT
+";
+        let asm = assemble(src).unwrap();
+        assert_eq!(
+            asm.pixels,
+            vec![op::LDI as u32, 0, 42, op::HALT as u32]
+        );
+    }
+
+    #[test]
+    fn macro_with_two_params() {
+        // ADD3 a, b → LDI r0, a  /  LDI r1, b  /  ADD r0, r1
+        let src = "\
+.macro ADD3 a, b
+LDI r0, \\a
+LDI r1, \\b
+ADD r0, r1
+.endm
+ADD3 10, 20
+HALT
+";
+        let asm = assemble(src).unwrap();
+        // LDI r0, 10 → [LDI, 0, 10]
+        // LDI r1, 20 → [LDI, 1, 20]
+        // ADD r0, r1  → [ADD, 0, 1]
+        // HALT
+        assert_eq!(
+            asm.pixels,
+            vec![
+                op::LDI as u32,
+                0,
+                10,
+                op::LDI as u32,
+                1,
+                20,
+                op::ADD as u32,
+                0,
+                1,
+                op::HALT as u32,
+            ]
+        );
+    }
+
+    #[test]
+    fn macro_invoked_multiple_times() {
+        let src = "\
+.macro LOAD_VAL reg, val
+LDI \\reg, \\val
+.endm
+LOAD_VAL r0, 5
+LOAD_VAL r1, 10
+LOAD_VAL r2, 15
+HALT
+";
+        let asm = assemble(src).unwrap();
+        // 3 × LDI (3 wide each) + HALT (1) = 10 pixels
+        assert_eq!(asm.pixels[0], op::LDI as u32);
+        assert_eq!(asm.pixels[2], 5);
+        assert_eq!(asm.pixels[3], op::LDI as u32);
+        assert_eq!(asm.pixels[5], 10);
+        assert_eq!(asm.pixels[6], op::LDI as u32);
+        assert_eq!(asm.pixels[8], 15);
+        assert_eq!(asm.pixels[9], op::HALT as u32);
+    }
+
+    #[test]
+    fn macro_positional_params() {
+        // \1 and \2 should work as positional aliases
+        let src = "\
+.macro PAIR first, second
+LDI r0, \\1
+LDI r1, \\2
+.endm
+PAIR 100, 200
+HALT
+";
+        let asm = assemble(src).unwrap();
+        assert_eq!(asm.pixels[2], 100);
+        assert_eq!(asm.pixels[5], 200);
+    }
+
+    #[test]
+    fn macro_runs_in_vm() {
+        // Macro that loads two values and adds them, result should be in r0
+        let src = "\
+.macro LOAD_ADD a, b
+LDI r0, \\a
+LDI r1, \\b
+ADD r0, r1
+.endm
+LOAD_ADD 7, 3
+HALT
+";
+        let asm = assemble(src).unwrap();
+        let mut vm = crate::vm::Vm::new(4096);
+        vm.load_program(&asm.pixels);
+        vm.run();
+        assert!(vm.halted);
+        assert_eq!(vm.regs[0], 10); // 7 + 3 = 10
+    }
+
+    #[test]
+    fn macro_with_label_in_body() {
+        // Macro body uses a label -- each invocation expands it
+        let src = "\
+.macro LOAD_LOOP val
+LDI r0, \\val
+loop:
+NOP
+.endm
+LOAD_LOOP 42
+HALT
+";
+        let asm = assemble(src).unwrap();
+        // LDI r0, 42 (3) + NOP (1) + HALT (1) = 5
+        assert_eq!(asm.pixels[0], op::LDI as u32);
+        assert_eq!(asm.pixels[2], 42);
+        assert_eq!(asm.pixels[3], op::NOP as u32);
+        assert_eq!(asm.pixels[4], op::HALT as u32);
+        // Label "loop" should be at addr 3
+        assert_eq!(asm.labels.get("loop"), Some(&3));
+    }
+
+    #[test]
+    fn macro_case_insensitive_directive() {
+        let src1 = ".macro M1\nHALT\n.endm\nM1\n";
+        let src2 = ".MACRO M1\nHALT\n.ENDM\nM1\n";
+        let asm1 = assemble(src1).unwrap();
+        let asm2 = assemble(src2).unwrap();
+        assert_eq!(asm1.pixels, asm2.pixels);
+    }
+
+    #[test]
+    fn macro_before_and_after_code() {
+        let src = "\
+.macro INC reg
+LDI r15, 1
+ADD \\reg, r15
+.endm
+LDI r0, 10
+INC r0
+HALT
+";
+        let asm = assemble(src).unwrap();
+        let mut vm = crate::vm::Vm::new(4096);
+        vm.load_program(&asm.pixels);
+        vm.run();
+        assert!(vm.halted);
+        assert_eq!(vm.regs[0], 11); // 10 + 1 = 11
+    }
+
+    #[test]
+    fn macro_error_no_name() {
+        let err = assemble(".macro\nHALT\n.endm\n").unwrap_err();
+        assert!(err.message.contains("requires a name"));
+    }
+
+    #[test]
+    fn macro_error_unterminated() {
+        let err = assemble(".macro FOO\nHALT\n").unwrap_err();
+        assert!(err.message.contains("unterminated"));
+    }
+
+    #[test]
+    fn macro_error_wrong_arg_count() {
+        let src = "\
+.macro PAIR a, b
+LDI r0, \\a
+LDI r1, \\b
+.endm
+PAIR 1
+";
+        let err = assemble(src).unwrap_err();
+        assert!(err.message.contains("expects 2 args, got 1"));
+    }
+
+    #[test]
+    fn macro_error_duplicate_definition() {
+        let src = "\
+.macro FOO
+HALT
+.endm
+.macro FOO
+NOP
+.endm
+FOO
+";
+        let err = assemble(src).unwrap_err();
+        assert!(err.message.contains("duplicate macro"));
+    }
+
+    #[test]
+    fn macro_error_duplicate_param() {
+        let src = "\
+.macro FOO x, x
+HALT
+.endm
+FOO 1, 2
+";
+        let err = assemble(src).unwrap_err();
+        assert!(err.message.contains("duplicate macro parameter"));
+    }
+
+    #[test]
+    fn macro_with_comment_in_body() {
+        let src = "\
+.macro LOAD reg, val
+; load value into register
+LDI \\reg, \\val
+.endm
+LOAD r0, 99
+HALT
+";
+        let asm = assemble(src).unwrap();
+        assert_eq!(asm.pixels[0], op::LDI as u32);
+        assert_eq!(asm.pixels[1], 0);
+        assert_eq!(asm.pixels[2], 99);
+    }
+
+    #[test]
+    fn macro_empty_body() {
+        // Macro with no body lines -- invocation expands to nothing
+        let src = "\
+.macro NOTHING
+.endm
+HALT
+NOTHING
+NOP
+";
+        let asm = assemble(src).unwrap();
+        // HALT at 0, then NOP at 1 (NOTHING expanded to nothing)
+        assert_eq!(asm.pixels[0], op::HALT as u32);
+        assert_eq!(asm.pixels[1], op::NOP as u32);
+    }
+
+    #[test]
+    fn macro_does_not_shadow_opcodes() {
+        // A macro name should NOT shadow an opcode name since macro expansion
+        // is purely textual. But if someone names a macro "ADD", it WILL match
+        // because macro lookup happens before opcode parsing.
+        // This is by design -- assembler macros are textual.
+        // Test that a uniquely-named macro works alongside real opcodes.
+        let src = "\
+.macro MYADD rd, rs
+ADD \\rd, \\rs
+.endm
+LDI r0, 5
+LDI r1, 3
+MYADD r0, r1
+HALT
+";
+        let asm = assemble(src).unwrap();
+        let mut vm = crate::vm::Vm::new(4096);
+        vm.load_program(&asm.pixels);
+        vm.run();
+        assert!(vm.halted);
+        assert_eq!(vm.regs[0], 8);
     }
 }
