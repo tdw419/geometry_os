@@ -637,6 +637,46 @@ const FS_MAX_FILE_SIZE: usize = 256;
 /// Maximum number of files on disk.
 const FS_MAX_FILES: usize = 16;
 
+// ── Terminal registers (0xFFD8–0xFFDF) ──────────────────────────────
+// Memory-mapped I/O for scrollable text buffer (terminal output).
+// Programs write characters to the terminal and the host renders them.
+//
+// The terminal maintains a virtual text buffer that grows as lines are added.
+// Characters wrap at TERM_COLS columns. Newlines start a new line.
+// The visible window is TERM_COLS × TERM_ROWS, starting at scroll offset.
+
+/// Write: output a character (ASCII). Auto-advances cursor, wraps, scrolls.
+/// Special: 10 ('\n') = newline, 13 ('\r') = carriage return, 8 ('\b') = backspace.
+/// Read: returns the character at the current cursor position (0 if empty).
+pub const TERM_CHAR_ADDR: usize = 0xFFD8;
+
+/// Read/write: cursor X position (column, 0-based). Clamped to [0, TERM_COLS-1].
+pub const TERM_CURSOR_X_ADDR: usize = 0xFFD9;
+
+/// Read/write: cursor Y position (row, 0-based). Clamped to [0, total_lines-1].
+pub const TERM_CURSOR_Y_ADDR: usize = 0xFFDA;
+
+/// Read/write: scroll offset (number of lines scrolled up from top).
+pub const TERM_SCROLL_ADDR: usize = 0xFFDB;
+
+/// Read-only: number of columns in the terminal (51 = 256 / (5+1)).
+pub const TERM_COLS_ADDR: usize = 0xFFDC;
+
+/// Read-only: number of visible rows in the terminal (36 = 256 / 7).
+pub const TERM_ROWS_ADDR: usize = 0xFFDD;
+
+/// Read-only: total number of lines in the buffer (virtual height).
+pub const TERM_LINES_ADDR: usize = 0xFFDE;
+
+/// Write: any value clears the terminal buffer and resets cursor.
+pub const TERM_CLEAR_ADDR: usize = 0xFFDF;
+
+/// Number of columns in the terminal (51 chars per line at 5x7 font + 1px gap).
+pub const TERM_COLS: usize = 51;
+
+/// Number of visible rows in the terminal (256 / 7 = 36 rows).
+pub const TERM_ROWS: usize = 36;
+
 /// Maximum total disk capacity in words (across all files).
 const FS_DISK_CAPACITY: usize = 4096;
 
@@ -791,6 +831,182 @@ impl Disk {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// SCROLLABLE TEXT BUFFER (TERMINAL OUTPUT)
+//
+// A virtual terminal that programs write to via memory-mapped registers.
+// Maintains a line buffer with auto-wrapping, scrolling, and cursor tracking.
+// The host (GUI) reads the buffer to render the visible portion on screen.
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Scrollable text buffer for terminal output.
+///
+/// Programs write characters via the TERM_CHAR memory-mapped register.
+/// The buffer grows as lines are added. Characters wrap at TERM_COLS.
+/// Newlines start a new line. The visible window is TERM_COLS × TERM_ROWS.
+#[derive(Debug, Clone)]
+pub struct TextBuffer {
+    /// Lines of text, each a Vec of ASCII characters (u8 values).
+    lines: Vec<Vec<u8>>,
+    /// Cursor column (0-based).
+    cursor_x: usize,
+    /// Cursor row (0-based, indexes into `lines`).
+    cursor_y: usize,
+    /// Scroll offset: first visible line index.
+    scroll: usize,
+}
+
+impl Default for TextBuffer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TextBuffer {
+    /// Create an empty text buffer with one blank line.
+    pub fn new() -> Self {
+        Self {
+            lines: vec![Vec::new()],
+            cursor_x: 0,
+            cursor_y: 0,
+            scroll: 0,
+        }
+    }
+
+    /// Clear the buffer and reset cursor.
+    pub fn clear(&mut self) {
+        self.lines.clear();
+        self.lines.push(Vec::new());
+        self.cursor_x = 0;
+        self.cursor_y = 0;
+        self.scroll = 0;
+    }
+
+    /// Write a character at the cursor position and advance the cursor.
+    /// Handles newline (10), carriage return (13), and backspace (8).
+    /// Auto-wraps at TERM_COLS columns. Auto-scrolls to keep cursor visible.
+    pub fn put_char(&mut self, ch: u8) {
+        match ch {
+            10 => {
+                // Newline: move to next line
+                self.cursor_y += 1;
+                if self.cursor_y >= self.lines.len() {
+                    self.lines.push(Vec::new());
+                }
+                self.cursor_x = 0;
+            }
+            13 => {
+                // Carriage return: move to start of line
+                self.cursor_x = 0;
+            }
+            8 => {
+                // Backspace: move back one column
+                if self.cursor_x > 0 {
+                    self.cursor_x -= 1;
+                    let line = &mut self.lines[self.cursor_y];
+                    if self.cursor_x < line.len() {
+                        line.remove(self.cursor_x);
+                    }
+                }
+            }
+            _ => {
+                // Printable character
+                // Ensure cursor_y is valid
+                while self.cursor_y >= self.lines.len() {
+                    self.lines.push(Vec::new());
+                }
+                let line = &mut self.lines[self.cursor_y];
+                // Extend line if needed (fill gaps with spaces)
+                while line.len() <= self.cursor_x {
+                    line.push(b' ');
+                }
+                line[self.cursor_x] = ch;
+                self.cursor_x += 1;
+                // Auto-wrap
+                if self.cursor_x >= TERM_COLS {
+                    self.cursor_x = 0;
+                    self.cursor_y += 1;
+                    if self.cursor_y >= self.lines.len() {
+                        self.lines.push(Vec::new());
+                    }
+                }
+            }
+        }
+        // Auto-scroll to keep cursor visible
+        self.auto_scroll();
+    }
+
+    /// Get the character at the current cursor position.
+    /// Returns 0 if past end of line or empty.
+    pub fn char_at_cursor(&self) -> u8 {
+        if self.cursor_y < self.lines.len() && self.cursor_x < self.lines[self.cursor_y].len() {
+            self.lines[self.cursor_y][self.cursor_x]
+        } else {
+            0
+        }
+    }
+
+    /// Auto-scroll to keep the cursor visible in the viewport.
+    fn auto_scroll(&mut self) {
+        // If cursor is below viewport, scroll down
+        if self.cursor_y >= self.scroll + TERM_ROWS {
+            self.scroll = self.cursor_y - TERM_ROWS + 1;
+        }
+        // If cursor is above viewport (shouldn't happen normally, but be safe)
+        if self.cursor_y < self.scroll {
+            self.scroll = self.cursor_y;
+        }
+    }
+
+    /// Total number of lines in the buffer.
+    pub fn line_count(&self) -> usize {
+        self.lines.len()
+    }
+
+    /// Get a line by index. Returns empty slice if out of bounds.
+    pub fn get_line(&self, idx: usize) -> &[u8] {
+        self.lines.get(idx).map(|l| l.as_slice()).unwrap_or(&[])
+    }
+
+    /// Get the visible lines (from scroll offset, up to TERM_ROWS).
+    pub fn visible_lines(&self) -> Vec<&[u8]> {
+        let end = (self.scroll + TERM_ROWS).min(self.lines.len());
+        (self.scroll..end).map(|i| self.get_line(i)).collect()
+    }
+
+    /// Set cursor X, clamped to [0, TERM_COLS-1].
+    pub fn set_cursor_x(&mut self, x: usize) {
+        self.cursor_x = x.min(TERM_COLS - 1);
+    }
+
+    /// Set cursor Y, clamped to [0, line_count-1].
+    pub fn set_cursor_y(&mut self, y: usize) {
+        self.cursor_y = y.min(self.lines.len().saturating_sub(1));
+        self.auto_scroll();
+    }
+
+    /// Get cursor X.
+    pub fn cursor_x(&self) -> usize {
+        self.cursor_x
+    }
+
+    /// Get cursor Y.
+    pub fn cursor_y(&self) -> usize {
+        self.cursor_y
+    }
+
+    /// Get scroll offset.
+    pub fn scroll(&self) -> usize {
+        self.scroll
+    }
+
+    /// Set scroll offset, clamped to [0, max_scroll].
+    pub fn set_scroll(&mut self, offset: usize) {
+        let max_scroll = self.lines.len().saturating_sub(TERM_ROWS);
+        self.scroll = offset.min(max_scroll);
+    }
+}
+
 /// The VM.
 #[derive(Debug)]
 pub struct Vm {
@@ -859,6 +1075,8 @@ pub struct Vm {
     pub heap: Heap,
     /// Heap: result of the last alloc operation (address, or 0 if failed).
     pub heap_alloc_result: u32,
+    /// Scrollable text buffer (terminal output).
+    pub term: TextBuffer,
 }
 
 impl Vm {
@@ -898,6 +1116,7 @@ impl Vm {
             fs_status: 0,
             heap: Heap::new(),
             heap_alloc_result: 0,
+            term: TextBuffer::new(),
         }
     }
 
@@ -997,6 +1216,7 @@ impl Vm {
             fs_status: 0,
             heap: Heap::new(), // children get a fresh heap
             heap_alloc_result: 0,
+            term: TextBuffer::new(),
         };
         // Pass the arg to the child in r0
         vm.regs[0] = child.arg;
@@ -1215,6 +1435,51 @@ impl Vm {
             DBG_BREAKPOINT_ADDR => {
                 self.dbg_breakpoint = value;
                 self.dbg_breakpt_hit = 0; // clear hit flag when breakpoint changes
+                true
+            }
+            _ => false,
+        }
+    }
+
+    // ── Terminal registers ──────────────────────────────────────────
+
+    /// Read a memory-mapped terminal register.
+    /// Returns `Some(value)` if `addr` is a terminal register, `None` otherwise.
+    fn read_term_reg(&self, addr: usize) -> Option<u32> {
+        match addr {
+            TERM_CHAR_ADDR => Some(self.term.char_at_cursor() as u32),
+            TERM_CURSOR_X_ADDR => Some(self.term.cursor_x() as u32),
+            TERM_CURSOR_Y_ADDR => Some(self.term.cursor_y() as u32),
+            TERM_SCROLL_ADDR => Some(self.term.scroll() as u32),
+            TERM_COLS_ADDR => Some(TERM_COLS as u32),
+            TERM_ROWS_ADDR => Some(TERM_ROWS as u32),
+            TERM_LINES_ADDR => Some(self.term.line_count() as u32),
+            _ => None,
+        }
+    }
+
+    /// Write a memory-mapped terminal register.
+    /// Returns `true` if `addr` is a terminal register (write consumed), `false` otherwise.
+    fn write_term_reg(&mut self, addr: usize, value: u32) -> bool {
+        match addr {
+            TERM_CHAR_ADDR => {
+                self.term.put_char((value & 0xFF) as u8);
+                true
+            }
+            TERM_CURSOR_X_ADDR => {
+                self.term.set_cursor_x(value as usize);
+                true
+            }
+            TERM_CURSOR_Y_ADDR => {
+                self.term.set_cursor_y(value as usize);
+                true
+            }
+            TERM_SCROLL_ADDR => {
+                self.term.set_scroll(value as usize);
+                true
+            }
+            TERM_CLEAR_ADDR => {
+                self.term.clear();
                 true
             }
             _ => false,
@@ -1642,6 +1907,8 @@ impl Vm {
                     self.regs[dst] = val;
                 } else if let Some(val) = self.read_debug_reg(src_addr as usize) {
                     self.regs[dst] = val;
+                } else if let Some(val) = self.read_term_reg(src_addr as usize) {
+                    self.regs[dst] = val;
                 } else {
                     self.regs[dst] = self.peek(src_addr as usize);
                 }
@@ -1673,6 +1940,8 @@ impl Vm {
                     // handled by heap register
                 } else if self.write_debug_reg(dst_addr as usize, self.regs[src]) {
                     // handled by debug register
+                } else if self.write_term_reg(dst_addr as usize, self.regs[src]) {
+                    // handled by terminal register
                 } else {
                     self.poke(dst_addr as usize, self.regs[src]);
                 }
@@ -2449,6 +2718,8 @@ impl Vm {
                         self.regs[dst] = val;
                     } else if let Some(val) = self.read_debug_reg(src_addr) {
                         self.regs[dst] = val;
+                    } else if let Some(val) = self.read_term_reg(src_addr) {
+                        self.regs[dst] = val;
                     } else {
                         self.regs[dst] = self.peek(src_addr);
                     }
@@ -2475,6 +2746,8 @@ impl Vm {
                         // handled by heap register
                     } else if self.write_debug_reg(dst_addr, self.regs[src]) {
                         // handled by debug register
+                    } else if self.write_term_reg(dst_addr, self.regs[src]) {
+                        // handled by terminal register
                     } else {
                         self.poke(dst_addr, self.regs[src]);
                     }

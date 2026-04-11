@@ -5,6 +5,7 @@
 //   1. Assembler converts .gasm heap operations to bytecode
 //   2. VM executes LOAD/STORE to heap registers at 0xFFD0-0xFFD5
 //   3. We verify heap state, allocated addresses, free space
+//   4. Program file tests verify .include resolution works
 // ═══════════════════════════════════════════════════════════════════════
 
 use geometry_os::assembler;
@@ -273,4 +274,84 @@ fn heap_alloc_reuses_freed_space() {
     assert_eq!(vm.regs[8], 100, "A allocated at heap start");
     assert_eq!(vm.regs[9], 140, "B allocated after A (100+40)");
     assert_eq!(vm.regs[10], 100, "C reuses freed A's space (first-fit)");
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Program file tests (assemble .gasm files with .include resolution)
+// ═══════════════════════════════════════════════════════════════════════
+
+#[test]
+fn alloc_demo_assembles_and_runs() {
+    // Load and assemble the alloc-demo.gasm program file
+    let path = std::path::Path::new("programs/alloc-demo.gasm");
+    let asm = assembler::assemble_file(path, &[std::path::Path::new(".")])
+        .expect("alloc-demo.gasm should assemble");
+    let mut vm = Vm::new(4096);
+    vm.load_program(&asm.pixels);
+    vm.run();
+
+    assert!(vm.halted, "alloc-demo should halt cleanly");
+
+    // Verify heap was initialized and used
+    assert!(vm.heap.initialized, "heap should be initialized");
+    assert_eq!(
+        vm.heap.start, 500,
+        "heap should start at address 500"
+    );
+    assert_eq!(vm.heap.size, 200, "heap should be 200 words");
+
+    // After alloc+free+realloc: 2 allocated blocks (buf1=30 + realloc=20)
+    assert_eq!(
+        vm.heap.alloc_count(), 2,
+        "should have 2 allocated blocks after demo runs"
+    );
+}
+
+#[test]
+fn lib_alloc_heap_avail_check() {
+    // Test the heap_avail logic inline (same as lib/alloc.gasm but without .include)
+    let src = "\
+    ; Init heap at 200, size 100
+    LDI r5, 0xFFD0
+    LDI r6, 200
+    STORE r5, r6          ; HEAP_START = 200
+    LDI r5, 0xFFD1
+    LDI r6, 100
+    STORE r5, r6          ; HEAP_SIZE = 100 (triggers init)
+
+    ; Check if 50 words available: load free_words, compare with BGE
+    LDI r5, 0xFFD5
+    LOAD r6, r5           ; r6 = free words (100)
+    LDI r5, 50
+    BGE r6, r5, @avail_yes
+    LDI r8, 0
+    BAL @check2
+avail_yes:
+    LDI r8, 1             ; 50 words available
+
+check2:
+    ; Check if 200 words available (should be no)
+    LDI r5, 0xFFD5
+    LOAD r6, r5           ; r6 = free words (100)
+    LDI r5, 200
+    BGE r6, r5, @avail_yes2
+    LDI r9, 0
+    BAL @done
+avail_yes2:
+    LDI r9, 1             ; 200 words available
+
+done:
+    HALT
+";
+    let asm = assembler::assemble(src).expect("should assemble");
+    let mut vm = Vm::new(4096);
+    vm.load_program(&asm.pixels);
+    vm.run();
+
+    assert!(vm.halted);
+    assert_eq!(vm.regs[8], 1, "50 words should be available in 100-word heap");
+    assert_eq!(
+        vm.regs[9], 0,
+        "200 words should NOT be available in 100-word heap"
+    );
 }

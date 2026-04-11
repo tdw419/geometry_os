@@ -64,9 +64,7 @@ fill_loop:
     LDI r5, 1
     ADD r1, r5               ; i++
     LDI r5, 20
-    SUB r5, r1               ; 20 - i
-    LDI r6, 0
-    BGT r5, r6, @fill_loop   ; if (20-i) > 0, loop
+    BLT r1, r5, @fill_loop   ; if i < 20, loop
 
     ; ── Step 4: Free buffer 2, show free space as green bar ──
     LDI r5, buf2
@@ -85,7 +83,7 @@ bar_loop:
 
     SUB r0, r1               ; r0 = free - i
     LDI r5, 0
-    BGT r0, r5, @bar_loop    ; if free > i, continue
+    BGE r0, r5, @bar_loop    ; if free >= i, continue
 
     ; ── Step 5: Re-allocate from freed space ──
     LDI r0, 20
