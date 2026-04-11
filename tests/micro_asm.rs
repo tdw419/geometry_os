@@ -598,24 +598,38 @@ N
 /// The bootstrap source (micro-asm-bootstrap.asm) is written in the micro-asm's
 /// own single-char syntax. When fed to the VM-resident assembler, it should
 /// produce a functionally equivalent copy.
+///
+/// Sets origin to 0x800 so the assembled code has correct addresses when loaded at 0x800.
 fn assemble_bootstrap() -> Vec<u32> {
-    let bootstrap_src =
-        std::fs::read_to_string("programs/micro-asm-bootstrap.asm")
-            .expect("programs/micro-asm-bootstrap.asm not found");
+    let bootstrap_src = std::fs::read_to_string("programs/micro-asm-bootstrap.asm")
+        .expect("programs/micro-asm-bootstrap.asm not found");
 
     let mut vm = vm_with_micro_asm();
+    // Set origin to 0x800 so label addresses are relative to 0x800
+    vm.ram[0xBFC] = 0x800;
     run_micro_asm(&mut vm, &bootstrap_src)
+}
+
+/// Return the actual output length (up to last non-zero cell).
+/// Can't use position(|&v| v == 0) because assembled code contains legitimate
+/// zero-value cells (e.g., LDI r15, 0 → I ? 0x00).
+fn output_len(out: &[u32]) -> usize {
+    out.iter().rposition(|&v| v != 0).map(|i| i + 1).unwrap_or(0)
 }
 
 #[test]
 fn bootstrap_produces_output() {
     let out = assemble_bootstrap();
-    let output_len = out.iter().position(|&v| v == 0).unwrap_or(out.len());
-    eprintln!("Bootstrap output length: {} cells", output_len);
-    for i in 0..output_len.min(50) {
+    let len = output_len(&out);
+    eprintln!("Bootstrap output length: {} cells", len);
+    for i in 0..len.min(50) {
         eprintln!("  out[{:3}] = 0x{:08X}", i, out[i]);
     }
-    assert!(output_len > 100, "bootstrap should produce > 100 output cells, got {}", output_len);
+    assert!(
+        len > 100,
+        "bootstrap should produce > 100 output cells, got {}",
+        len
+    );
 }
 
 #[test]
@@ -640,12 +654,16 @@ fn bootstrap_assembles_counter_program() {
 
     // 2. Assemble the bootstrap source to get the bootstrap assembler
     let bootstrap_out = assemble_bootstrap();
+    let bootstrap_len = output_len(&bootstrap_out);
 
-    // 3. Load the bootstrap assembler into a new VM at 0x800
+    // 3. Load the bootstrap assembler into a new VM at 0x800.
+    //    bootstrap_out contains the assembled code in positions 0..bootstrap_len.
+    //    We copy it to RAM[0x800..0x800+bootstrap_len].
     let mut vm2 = Vm::new(65536);
-    for (i, &pixel) in bootstrap_out.iter().enumerate() {
-        if i >= MICRO_ASM_ADDR && i < vm2.ram.len() {
-            vm2.ram[i] = pixel;
+    for i in 0..bootstrap_len {
+        let dst = MICRO_ASM_ADDR + i;
+        if dst < vm2.ram.len() {
+            vm2.ram[dst] = bootstrap_out[i];
         }
     }
 

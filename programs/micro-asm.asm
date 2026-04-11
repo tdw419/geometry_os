@@ -50,7 +50,8 @@
 ;   0x000-0x3FF  output buffer (program area)
 ;   0x400-0x7FF  output buffer continuation
 ;   0x800-0xAFF  this assembler (code)
-;   0xB00-0xBFD  temporary name buffer (for label lookup)
+;   0xB00-0xBFC  temporary name buffer (for label lookup)
+;   0xBFC        origin address (loaded into r8 before pass 1; default 0)
 ;   0xBFE        error_line (source line of first error, 0 = none)
 ;   0xBFF        error_code (0 = none, 1 = unknown label)
 ;   0xC00-0xFFF  label table
@@ -88,7 +89,11 @@
     LDI r15, 0
     LDI r17, 0xC00          ; label table base (constant throughout)
     LDI r7,  0xC00          ; label table write ptr (pass 1)
-    LDI r8,  0              ; output byte counter (pass 1)
+    ; Origin: load from RAM[0xBFC]. Default 0 if not set.
+    ; Caller can write origin to 0xBFC before running assembler.
+    ; This makes addresses in the output relocatable.
+    LDI r8,  0xBFC
+    LOAD r8, r8              ; r8 = origin address (0 = no relocation)
     LDI r0,  0x1000         ; input ptr
     ; Initialize error reporting area
     LDI r3,  0xBFE
