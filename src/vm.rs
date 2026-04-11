@@ -165,7 +165,12 @@ pub struct VmSnapshot {
     pub children: Vec<ChildVm>,
     /// Forge queue state
     pub forge: ForgeQueue,
+    /// Interrupt Vector Table
+    pub ivt: [u32; IVT_SIZE],
 }
+
+/// Number of interrupt vectors in the IVT.
+pub const IVT_SIZE: usize = 16;
 
 /// The VM.
 #[derive(Debug)]
@@ -186,6 +191,9 @@ pub struct Vm {
     /// When `memory_protection` is enabled, each memory access must
     /// fall within a region that grants the required permission.
     pub memory_regions: Vec<MemoryRegion>,
+    /// Interrupt Vector Table: 16 entries, each a handler address (0 = unset).
+    /// INT <n> pushes return address and jumps to ivt[n].
+    pub ivt: [u32; IVT_SIZE],
 }
 
 impl Vm {
@@ -202,6 +210,7 @@ impl Vm {
             forge: ForgeQueue::new(),
             memory_protection: false,
             memory_regions: Vec::new(),
+            ivt: [0; IVT_SIZE],
         }
     }
 
@@ -278,6 +287,7 @@ impl Vm {
             forge: ForgeQueue::new(),
             memory_protection: self.memory_protection,
             memory_regions: self.memory_regions.clone(),
+            ivt: self.ivt,
         };
         // Pass the arg to the child in r0
         vm.regs[0] = child.arg;
@@ -380,6 +390,7 @@ impl Vm {
             screen: self.screen.clone(),
             children: self.children.clone(),
             forge: self.forge.clone(),
+            ivt: self.ivt,
         }
     }
 
@@ -395,6 +406,7 @@ impl Vm {
         self.screen = snapshot.screen.clone();
         self.children = snapshot.children.clone();
         self.forge = snapshot.forge.clone();
+        self.ivt = snapshot.ivt;
     }
 
     /// Run until halted, yielded, or MAX_CYCLES. Returns cycles executed.
@@ -1213,7 +1225,24 @@ impl Vm {
             }
 
             // ── i (0x69): INT vector ──────────────
-            op::INT => Ok(None),
+            // Software interrupt: push return address, jump to handler in IVT.
+            op::INT => {
+                let vector = (args[0] & 0xFF) as usize;
+                if vector >= IVT_SIZE {
+                    return Err(VmError::UnknownOpcode(pc, opcode));
+                }
+                let handler = self.ivt[vector];
+                if handler == 0 {
+                    // No handler registered; treat as NOP.
+                    return Ok(None);
+                }
+                let w = opcodes::width(op::INT) as u32;
+                if self.stack.len() >= DEFAULT_STACK_LIMIT {
+                    return Err(VmError::StackOverflow(pc));
+                }
+                self.stack.push(self.pc + w);
+                Ok(Some(handler))
+            }
 
             // ── Unknown: error ────────────────────
             _ => Err(VmError::UnknownOpcode(pc, opcode)),
@@ -1826,8 +1855,19 @@ impl Vm {
             }
 
             // ── i (0x69): INT vector ──────────────
-            // Stub: interrupt handling not yet implemented.
-            op::INT => None,
+            // Software interrupt: push return address, jump to handler in IVT.
+            op::INT => {
+                let vector = (args[0] & 0xFF) as usize;
+                if vector < IVT_SIZE {
+                    let handler = self.ivt[vector];
+                    if handler != 0 {
+                        let w = opcodes::width(op::INT) as u32;
+                        self.stack.push(self.pc + w);
+                        return Some(handler);
+                    }
+                }
+                None
+            }
 
             // ── Unknown: skip 1 pixel ─────────────
             _ => None,

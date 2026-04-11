@@ -58,6 +58,8 @@ pub mod op {
     pub const LDB: u8 = 0x64; // d  width 3: dst, addr
     pub const PGET: u8 = 0x67; // g  width 3: x, y (result in r0)
     pub const INT: u8 = 0x69; // i  width 2: vector
+    pub const IRET: u8 = 0x68; // h  width 1: return from interrupt handler
+    pub const STI: u8 = 0x74; // t  width 3: vector, handler_addr
     pub const SHR: u8 = 0x6B; // k  width 3: dst, amount
     pub const MUL: u8 = 0x6D; // m  width 3: dst, src
     pub const NOT: u8 = 0x6E; // n  width 2: dst
@@ -77,7 +79,7 @@ pub mod op {
 /// How many pixels does this opcode consume (including the opcode pixel itself)?
 pub fn width(opcode: u8) -> usize {
     match opcode {
-        op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE => 1,
+        op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE | op::IRET => 1,
         op::CALL | op::JMP | op::INT | op::NOT | op::PUSH | op::POP | op::EDIT_DELETE => 2,
         op::ADD
         | op::BRANCH
@@ -98,6 +100,7 @@ pub fn width(opcode: u8) -> usize {
         | op::SHR
         | op::MUL
         | op::STB
+        | op::STI
         | op::EDIT_OVERWRITE
         | op::EDIT_INSERT => 3,
         op::PSET | op::TEXT | op::BLIT | op::CIRCLEF | op::SPATIAL_SPAWN | op::EDIT_BLIT => 4,
@@ -141,6 +144,8 @@ pub fn name(opcode: u8) -> &'static str {
         op::LDB => "LDB",
         op::PGET => "PGET",
         op::INT => "INT",
+        op::IRET => "IRET",
+        op::STI => "STI",
         op::SHR => "SHR",
         op::MUL => "MUL",
         op::NOT => "NOT",
@@ -171,7 +176,7 @@ pub fn arg_kinds(opcode: u8) -> &'static [ArgKind] {
     use ArgKind::*;
     match opcode {
         // width 1 — no arguments
-        op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE => &[],
+        op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE | op::IRET => &[],
         // width 2
         op::CALL | op::JMP => &[Addr],
         op::INT => &[Imm],
@@ -190,6 +195,7 @@ pub fn arg_kinds(opcode: u8) -> &'static [ArgKind] {
         op::SPAWN | op::EXEC => &[Addr, Imm],
         op::BRANCH => &[Cond, Addr],
         op::PGET => &[Reg, Reg],
+        op::STI => &[Imm, Addr],
         op::EDIT_OVERWRITE | op::EDIT_INSERT => &[Reg, Reg],
         // width 4
         op::PSET => &[Reg, Reg, Reg],
@@ -246,8 +252,8 @@ pub fn is_valid(b: u8) -> bool {
     matches!(
         b,
         0x41..=0x5A |  // A-Z
-        0x61 | 0x62 | 0x63 | 0x64 | 0x65 | 0x66 | 0x67 | 0x69 | 0x6A | 0x6B
-        | 0x6C | 0x6D | 0x6E | 0x70 | 0x72 | 0x73
+        0x61 | 0x62 | 0x63 | 0x64 | 0x65 | 0x66 | 0x67 | 0x68 | 0x69 | 0x6A | 0x6B
+        | 0x6C | 0x6D | 0x6E | 0x70 | 0x72 | 0x73 | 0x74
     )
 }
 
