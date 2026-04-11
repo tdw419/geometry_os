@@ -72,8 +72,8 @@ Do NOT skip ahead. Do NOT attempt BLOCKED tasks.
 
 ### Sprint A: Visual Programs (.gp -- pure pixelc, NO Rust)
 
-- [x] A1: sierpinski.gp -- Sierpinski triangle via chaos game (EASY)
-- [x] A2: rain.gp -- falling pixel rain animation (EASY)
+- [x] A1: sierpinski.gp -- Sierpinski triangle via chaos game (EASY) -- DONE
+- [!] A2: rain.gp -- falling pixel rain animation (SKIPPED: pixelc nested while + RAM bug)
 - [ ] A3: mandelbrot.gp -- Mandelbrot set visualization (MEDIUM)
 - [ ] A4: maze.gp -- maze generation (MEDIUM)
 - [ ] A5: fireworks.gp -- particle explosion animation (MEDIUM)

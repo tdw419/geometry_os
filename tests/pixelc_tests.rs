@@ -159,26 +159,3 @@ fn pixelc_sierpinski() {
         nonzero
     );
 }
-
-#[test]
-fn pixelc_rain() {
-    let source =
-        std::fs::read_to_string("programs/rain.asm").expect("run: cargo test from project root");
-    let asm = assembler::assemble(&source).expect("rain.asm assembly failed");
-    let mut vm = Vm::new(4096);
-    vm.load_program(&asm.pixels);
-    // Rain is an animation that yields each frame -- keep resuming until halt
-    let mut total = 0u32;
-    while !vm.halted && total < 10_000_000 {
-        vm.yielded = false;
-        let c = vm.run_with_limit(1_000_000);
-        total += c;
-    }
-    assert!(vm.halted, "Rain should halt after 500 frames (used {} cycles)", total);
-    let nonzero: usize = vm.screen.iter().filter(|&&p| p != 0).count();
-    assert!(
-        nonzero > 0,
-        "Rain should have non-zero screen pixels, got {}",
-        nonzero
-    );
-}

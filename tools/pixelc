@@ -722,11 +722,15 @@ class CodeGen:
         sl = self.scratch_push()
         self.emit(f"POP {self.r(sl)}")
 
-        INV = {'==':'BNE','!=':'BEQ','<':'BGE','>':'BLE','<=':'BGT','>=':'BLT'}
+        INV = {'==':'BNE','!=':'BEQ','<':'BGE','>':'BGE','<=':'BLT','>=':'BLT'}
         bop = INV.get(cond.op)
         if not bop:
             raise RuntimeError(f"Unknown comparison: {cond.op}")
-        self.emit(f"{bop} {self.r(sl)}, {self.r(sr)}, {label}")
+        # BLE and BGT don't exist in the assembler, so for > and <= we swap operands
+        if cond.op in ('>', '<='):
+            self.emit(f"{bop} {self.r(sr)}, {self.r(sl)}, {label}")
+        else:
+            self.emit(f"{bop} {self.r(sl)}, {self.r(sr)}, {label}")
         self.scratch_pop(2)
 
     def _builtin(self, name, args, target):

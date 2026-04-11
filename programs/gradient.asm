@@ -19,16 +19,16 @@ MOV r2, r0
 PUSH r2
 LDI r2, 4
 PUSH r2
-POP r29
 POP r28
+POP r29
 MUL r29, r28
 MOV r2, r29
 MOV r3, r2
 PUSH r3
 MOV r3, r1
 PUSH r3
-POP r29
 POP r28
+POP r29
 ADD r29, r28
 MOV r3, r29
 MOV r28, r1
@@ -44,8 +44,8 @@ PSET r28, r29, r30
 PUSH r1
 LDI r1, 1
 PUSH r1
-POP r29
 POP r28
+POP r29
 ADD r29, r28
 MOV r1, r29
 JMP while_3
@@ -53,8 +53,8 @@ endw_4:
 PUSH r0
 LDI r0, 1
 PUSH r0
-POP r29
 POP r28
+POP r29
 ADD r29, r28
 MOV r0, r29
 JMP while_1
