@@ -1,24 +1,24 @@
 ; ═══════════════════════════════════════════════════════════════════════
 ; programs/alloc-demo.gasm -- Dynamic memory allocation demo
 ;
-; Demonstrates the heap allocator by:
-;   1. Initializing a heap at RAM address 500, size 200 words
-;   2. Allocating three buffers of different sizes
-;   3. Writing values into the buffers
-;   4. Reading values back and drawing pixels based on the data
-;   5. Freeing a buffer and re-allocating to show reuse
+; Demonstrates the heap allocator:
+;   1. Initialize a 200-word heap at RAM address 500
+;   2. Allocate two buffers
+;   3. Fill buffer 1 with ascending values, draw as colored pixels
+;   4. Free buffer 2, show free space as a green bar
+;   5. Re-allocate from freed space, show with different color
 ;
-; Uses: lib/alloc.gasm
+; Uses: lib/alloc.gasm (heap_init, heap_alloc, heap_free, heap_free_words)
 ; ═══════════════════════════════════════════════════════════════════════
 
 .include "lib/alloc.gasm"
-.include "lib/screen.gasm"
 
 .data
-    ; Store heap addresses in data section for easy reference
-    buf1_addr: .word 0
-    buf2_addr: .word 0
-    buf3_addr: .word 0
+    buf1: .word 0
+    buf2: .word 0
+    one:  .word 1
+    ten:  .word 10
+    twenty: .word 20
 
 .text
 main:
@@ -27,107 +27,72 @@ main:
     LDI r1, 200
     CALL heap_init
 
-    ; ── Step 2: Allocate 3 buffers ──
+    ; ── Step 2: Allocate two buffers ──
     ; Buffer 1: 30 words
     LDI r0, 30
     CALL heap_alloc
-    ; Store buf1 address (use LDI + STORE to data section)
-    LDI r5, buf1_addr
-    STORE r5, r0
+    LDI r5, buf1
+    STORE r5, r0             ; save buf1 address
 
     ; Buffer 2: 40 words
     LDI r0, 40
     CALL heap_alloc
-    LDI r5, buf2_addr
-    STORE r5, r0
+    LDI r5, buf2
+    STORE r5, r0             ; save buf2 address
 
-    ; Buffer 3: 50 words
-    LDI r0, 50
-    CALL heap_alloc
-    LDI r5, buf3_addr
-    STORE r5, r0
+    ; ── Step 3: Fill buffer 1 with values 1-20 and draw as pixels ──
+    LDI r5, buf1
+    LOAD r8, r5              ; r8 = buf1 base address
+    LDI r1, 0                ; i = 0
+    LDI r2, 20               ; limit
 
-    ; ── Step 3: Write values into buffer 1 ──
-    ; Fill buf1 with ascending values (1, 2, 3, ...)
-    LDI r5, buf1_addr
-    LOAD r8, r5             ; r8 = buf1 address
-    LDI r1, 0               ; counter
-    LDI r2, 30              ; limit
 fill_loop:
-    ADD r1, r1              ; bump? No, we need ADD r1, r0 where r0=1
-    ; Actually: increment r1 by 1 using ADD with a register holding 1
-    ; We'll use r0 = 1 as increment
-    LDI r0, 1
-    ADD r1, r0              ; r1 += 1... wait, ADD dst, src means dst += src
-    ; Hmm, ADD r1, r0 means r1 = r1 + r0. That's right if r0=1.
-    ; But we also need r0 for the store value.
-    MOV r3, r1              ; r3 = counter value to store
-    ADD r9, r8, r1          ; r9 = buf1 + counter (address)
-    SUB r9, r0              ; r9 = buf1 + counter - 1 (0-indexed)
-    STORE r9, r3            ; RAM[buf1 + i] = i + 1
-    ; Check limit
-    LDI r0, 30
-    SUB r0, r1
-    BGT r0, r1, @fill_loop  ; if 30 > counter, keep going
-
-    ; ── Step 4: Read from buffer 1 and draw colored pixels ──
-    ; Read first 10 values, draw them as pixel colors across top row
-    LDI r1, 0               ; index
-draw_loop:
-    LDI r0, 1
-    ADD r1, r0              ; i++
+    ; Store i+1 at buf1[i]
+    LDI r5, 1
     MOV r3, r1
-    SUB r3, r0              ; r3 = i - 1 (0-indexed)
-    ADD r9, r8, r3          ; r9 = buf1 + i - 1
-    LOAD r4, r9             ; r4 = value at buf1[i-1]
-    ; Draw pixel at (10+i*3, 10) with color from buffer
-    ; x = 10 + (i-1)*3, but multiply isn't easy... just use i+10 for x
-    LDI r5, 10
-    ADD r5, r3              ; x = 10 + (i-1)
-    LDI r6, 10              ; y = 10
-    PSET r5, r6, r4         ; draw pixel
-    ; Check if we've drawn 10
-    LDI r0, 10
-    SUB r0, r1
-    BGT r0, r1, @draw_loop  ; if 10 > i, continue
+    ADD r3, r5               ; r3 = i + 1
+    ADD r9, r8, r1           ; r9 = buf1 + i
+    STORE r9, r3             ; RAM[buf1+i] = i+1
 
-    ; ── Step 5: Free buffer 2 and show free words ──
-    LDI r5, buf2_addr
-    LOAD r0, r5             ; r0 = buf2 address
+    ; Draw pixel at (5+i, 10) with color = i+1
+    LDI r5, 5
+    ADD r5, r1               ; x = 5 + i
+    LDI r6, 10               ; y = 10
+    PSET r5, r6, r3          ; pixel color = i+1
+
+    ; Increment and check
+    LDI r5, 1
+    ADD r1, r5               ; i++
+    LDI r5, 20
+    SUB r5, r1               ; 20 - i
+    LDI r6, 0
+    BGT r5, r6, @fill_loop   ; if (20-i) > 0, loop
+
+    ; ── Step 4: Free buffer 2, show free space as green bar ──
+    LDI r5, buf2
+    LOAD r0, r5              ; r0 = buf2 address
     CALL heap_free
 
-    ; Read free words and draw a green indicator bar
-    CALL heap_free_words    ; r0 = free words
-    ; Draw a green bar at row 20 proportional to free space
-    ; Each pixel = 1 word of free space
+    CALL heap_free_words      ; r0 = free words
+    ; Draw green bar at row 20: one pixel per 2 free words
     LDI r1, 0
 bar_loop:
-    LDI r3, 1
-    ADD r1, r3              ; i++
-    SUB r3, r3              ; r3 = 0
-    ; x = i, y = 20, color = green (0x00FF00)
-    LDI r5, 100             ; green-ish color
-    LDI r6, 20              ; y = 20
-    MOV r7, r1
-    SUB r7, r3              ; r7 = i - 1
-    ADD r6, r7              ; ... actually just use i as x
-    LDI r6, 20
-    ADD r6, r7              ; y = 20 + (i-1)? No, want x to vary
-    ; Simpler: PSET x=i-1, y=20, green
-    LDI r6, 20
-    PSET r1, r6, r5
-    ; Check if i < free_words
-    SUB r0, r1              ; r0 = free - i
-    LDI r3, 0
-    BGT r0, r3, @bar_loop   ; if free > i, continue
+    LDI r5, 2
+    ADD r1, r5               ; i += 2
+    LDI r5, 100              ; green color
+    LDI r6, 20               ; y = 20
+    PSET r1, r6, r5          ; draw green pixel at (i, 20)
 
-    ; ── Step 6: Re-allocate from freed space ──
+    SUB r0, r1               ; r0 = free - i
+    LDI r5, 0
+    BGT r0, r5, @bar_loop    ; if free > i, continue
+
+    ; ── Step 5: Re-allocate from freed space ──
     LDI r0, 20
-    CALL heap_alloc          ; should reuse freed buf2 space
-    ; Draw a different color indicator for the new allocation
-    LDI r5, 200             ; different color
-    LDI r6, 30              ; row 30
-    PSET r0, r6, r5         ; just mark where it was allocated
+    CALL heap_alloc           ; should reuse part of freed buf2 space
+    ; Mark the new allocation with a different color
+    LDI r5, 200              ; different color (reddish)
+    LDI r6, 30               ; y = 30
+    PSET r0, r6, r5          ; draw at (addr, 30) to show where it landed
 
-    ; Done
     HALT
