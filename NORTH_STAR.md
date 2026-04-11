@@ -29,9 +29,10 @@ VM (executes pixel bytes, renders to 200x200 grid)
 ## Current State
 
 - pixelc compiler: variables, arithmetic, control flow, functions, memory ops, drawing
-- 5 example programs (simple_add, diagonal, bounce, checkerboard, fib_spiral)
+- 7 example programs (simple_add, diagonal, bounce, checkerboard, fib_spiral, gradient, life)
 - 51 test lines in pixelc_tests.rs, 5 tests passing
 - Full Rust build (VM + assembler + window manager + API)
+- **Pixel-native shell** (programs/shell.gasm) running inside the VM
 
 ## Success Metric
 

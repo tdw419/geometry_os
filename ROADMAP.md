@@ -17,9 +17,13 @@ Extend the compiler and VM only when programs hit walls.
 ## Current State
 
 - 7 programs: simple_add, diagonal, bounce, checkerboard, fib_spiral, gradient, life
-- 7 pixelc tests passing
+- 8 pixelc tests passing (including shell test)
 - Compiler supports: variables, arithmetic, while/if/else, functions, memory ops, drawing
 - Compiler fix: arbitrary expression depth via PUSH/POP on VM stack (was limited to 2 levels)
+- **Pixel-native shell**: programs/shell.gasm runs inside the VM as a real OS shell
+  - Terminal I/O (0xFFD8+) renders to VM screen via Vm::render_terminal()
+  - Keyboard input via KEY_PORT (0xFFF) with YIELD-based polling
+  - Commands: CLS, HELP, VER, ECHO
 
 ## Phase 1: Visual Programs (Proving the Compiler Works)
 
