@@ -318,9 +318,10 @@ Demos: `programs/alloc-demo.gasm`, `programs/alloc-stress.gasm`.
 6. Run `cargo test`
 
 ### Adding a New Program
-1. Create `.asm` file in `programs/`
-2. Use labels: `#label` for definition, `@label` for reference
-3. Test via `GasmAgent` in integration tests or via micro-assembler tests
+1. Create `.gasm` file in `programs/`
+2. Use labels: `label:` for definition, plain `label` for reference
+3. When `.include`ing library code, put `JMP main` before the include so execution jumps past library functions
+4. Test via `GasmAgent` in integration tests or via micro-assembler tests
 
 ## File Locations
 

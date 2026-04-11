@@ -24,9 +24,10 @@ AI-written demos      AI-written OS that humans use
 - 44 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
-- lib/math.gasm, lib/string.gasm, lib/screen.gasm, lib/audio.gasm, lib/sprite.gasm
+- lib/math.gasm, lib/string.gasm, lib/screen.gasm, lib/audio.gasm, lib/sprite.gasm, lib/alloc.gasm
 - Debug registers (cycle count, stack depth, breakpoints)
 - Audio output (square wave, memory-mapped registers 0xFFC0-0xFFC3)
+- Heap allocator (first-fit, coalescing, memory-mapped registers 0xFFD0-0xFFD5)
 
 ## Phase 1: Language Completeness
 
