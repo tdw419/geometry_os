@@ -330,6 +330,39 @@ Demos: `programs/alloc-demo.gasm`, `programs/alloc-stress.gasm`.
 - Hermes state DB: `~/.hermes/state.db`
 - Carry Forward DB: `~/.hermes/carry_forward.db`
 
+## CRITICAL: Opcode Anti-Hallucination Rules
+
+The assembler only accepts these mnemonics. Using ANYTHING ELSE is a compile error.
+
+### Valid Mnemonics (complete list -- do NOT invent new ones)
+
+**Arithmetic/Logic:** ADD, SUB, MUL, DIV, MOD, AND, OR, XOR, NOT, SHL, SHR
+**Data:** MOV, LDI, LOAD, STORE, LDB, STB, PUSH, POP, BLIT
+**Control:** JMP, CALL, RET, HALT, NOP, YIELD, BRANCH
+**Branch aliases:** BEQ, BNE, BLT, BGE, BLTU, BGEU, BAL (all map to BRANCH)
+**Graphics:** PSET, PGET, RECTF, CIRCLEF, LINE, TEXT
+**Process:** SPAWN, SPATIAL_SPAWN (alias SPAWNAT), FORK, EXIT, GETPID, EXEC
+**IPC:** SEND, RECV
+**Interrupt:** INT, IRET, STI
+**Editor:** EDIT_OVERWRITE (alias EDITOVW), EDIT_INSERT (alias EDITINS), EDIT_DELETE (alias EDITDEL), EDIT_BLIT (alias EDITBLT)
+**Special:** ISSUE_CREATE (alias ISSUE)
+
+### Instructions That Do NOT Exist
+
+These are hallucinated mnemonics that will cause compile errors. NEVER use them:
+BGT, BLE, BHI, BLO, CMP, TEST, INC, DEC, NEG, CLR, SWAP, ROL, ROR, ADC, SBC,
+LSL, ASR, ROR, SEQ, SNE, SLT, SGT, SLE, SGE, LI, LA, SB, LB, JAL, JR, BEQZ,
+BNEZ, MOVZ, MOVN, NOP2, WAIT, SLEEP, PAUSE, YIELD2
+
+### Pre-Commit Opcode Verification
+
+Before committing any .gasm or .asm file, run:
+```bash
+# Check for unknown mnemonics (anything that's not a label, directive, or valid opcode)
+grep -rn '^\s*[A-Z][A-Z_0-9]*\s' programs/ lib/ | grep -v -E '(ADD|SUB|MUL|DIV|MOD|AND|OR|XOR|NOT|SHL|SHR|MOV|LDI|LOAD|STORE|LDB|STB|PUSH|POP|BLIT|JMP|CALL|RET|HALT|NOP|YIELD|BRANCH|BEQ|BNE|BLT|BGE|BLTU|BGEU|BAL|PSET|PGET|RECTF|CIRCLEF|LINE|TEXT|SPAWN|SPAWNAT|SPATIAL_SPAWN|FORK|EXIT|GETPID|EXEC|SEND|RECV|INT|IRET|STI|EDIT_OVERWRITE|EDITOVW|EDIT_INSERT|EDITINS|EDIT_DELETE|EDITDEL|EDIT_BLIT|EDITBLT|ISSUE_CREATE|ISSUE)\b'
+# If this prints anything, you have an invalid mnemonic -- fix it before committing
+```
+
 ## Common Gotchas
 
 1. **Bit 31 flag** -- forgetting this on addresses causes mysterious relative jumps
@@ -337,3 +370,4 @@ Demos: `programs/alloc-demo.gasm`, `programs/alloc-stress.gasm`.
 3. **Micro-assembler** -- runs INSIDE the VM, has limited register space (r0-r14)
 4. **Stack grows downward** -- SP starts at top of RAM
 5. **BRANCH condition** -- cond field encodes comparison type, not a register value
+6. **Invented opcodes** -- models sometimes hallucinate mnemonics like BGT that don't exist. If cargo test or the assembler fails with "unknown mnemonic", check against the valid list above.
