@@ -51,9 +51,9 @@ AI-written demos      AI-written OS that humans use
 
 ## Phase 2: Self-Hosting Toolchain
 
-- [x] Micro-asm v2: forward references, error reporting with line numbers
 - [x] Mini-editor: text editing inside the VM
-- [ ] Mini-debugger: breakpoints, register inspection, memory dump
+- [x] Micro-asm v2 (forward references, error reporting with line numbers)
+- [ ] Mini-debugger: full register/memory inspection (basic version done: bar-graph display using debug registers)
 - [ ] Full bootstrap: micro-asm.asm compiles itself
 
 ## Phase 3: Interactive Programs (proving the OS works)
