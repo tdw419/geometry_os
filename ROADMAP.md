@@ -53,7 +53,7 @@ AI-written demos      AI-written OS that humans use
 
 - [x] Mini-editor: text editing inside the VM
 - [x] Micro-asm v2 (forward references, error reporting with line numbers)
-- [ ] Mini-debugger: full register/memory inspection (basic version done: bar-graph display using debug registers)
+- [x] Mini-debugger: full register/memory inspection (hex display, memory dump, breakpoint control)
 - [ ] Full bootstrap: micro-asm.asm compiles itself
 
 ## Phase 3: Interactive Programs (proving the OS works)
