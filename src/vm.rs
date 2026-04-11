@@ -144,6 +144,235 @@ pub struct ChildVm {
     pub arg: u32,
 }
 
+// ── Process scheduler types ──────────────────────────────────────────
+
+/// Process status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProcessStatus {
+    Ready,
+    Running,
+    Blocked,
+    Exited,
+}
+
+/// A single process in the scheduler's process table.
+#[derive(Debug, Clone)]
+pub struct Process {
+    pub pid: u32,
+    pub state: VmSnapshot,
+    pub status: ProcessStatus,
+}
+
+/// Round-robin process scheduler.
+/// Manages multiple VM processes, switching between them on YIELD, EXIT,
+/// or after a configurable time-slice (cycle budget per run).
+#[derive(Debug, Clone)]
+pub struct ProcessTable {
+    pub processes: Vec<Process>,
+    pub current_pid: u32,
+    pub next_pid: u32,
+    /// Cycles to run each process before switching (0 = run until YIELD/HALT).
+    pub time_slice: u32,
+}
+
+impl ProcessTable {
+    /// Create a new scheduler with a single initial process.
+    pub fn new(initial_vm: Vm) -> Self {
+        let pid = 1;
+        Self {
+            processes: vec![Process {
+                pid,
+                state: initial_vm.snapshot(),
+                status: ProcessStatus::Ready,
+            }],
+            current_pid: pid,
+            next_pid: pid + 1,
+            time_slice: 100,
+        }
+    }
+
+    /// Create a scheduler with a custom time-slice.
+    pub fn with_time_slice(initial_vm: Vm, time_slice: u32) -> Self {
+        let mut s = Self::new(initial_vm);
+        s.time_slice = time_slice;
+        s
+    }
+
+    /// Allocate a new PID.
+    fn alloc_pid(&mut self) -> u32 {
+        let pid = self.next_pid;
+        self.next_pid += 1;
+        pid
+    }
+
+    /// Get the current process.
+    pub fn current(&self) -> Option<&Process> {
+        self.processes.iter().find(|p| p.pid == self.current_pid)
+    }
+
+    /// Get the current process mutably.
+    pub fn current_mut(&mut self) -> Option<&mut Process> {
+        self.processes
+            .iter_mut()
+            .find(|p| p.pid == self.current_pid)
+    }
+
+    /// Fork: clone the current process. Returns child PID.
+    /// The child's r0 is set to 0; the parent's r0 is set to the child PID.
+    pub fn fork(&mut self) -> Option<u32> {
+        let child_pid = self.alloc_pid();
+        let current = self.current()?;
+        let mut child_state = current.state.clone();
+        // Child gets r0 = 0
+        child_state.regs[0] = 0;
+        self.processes.push(Process {
+            pid: child_pid,
+            state: child_state,
+            status: ProcessStatus::Ready,
+        });
+        // Parent gets r0 = child_pid
+        if let Some(parent) = self
+            .processes
+            .iter_mut()
+            .find(|p| p.pid == self.current_pid)
+        {
+            parent.state.regs[0] = child_pid;
+        }
+        Some(child_pid)
+    }
+
+    /// Exit: mark the current process as exited.
+    /// Returns true if there are still runnable processes.
+    pub fn exit_current(&mut self) -> bool {
+        if let Some(proc) = self
+            .processes
+            .iter_mut()
+            .find(|p| p.pid == self.current_pid)
+        {
+            proc.status = ProcessStatus::Exited;
+        }
+        self.advance_to_next()
+    }
+
+    /// Find the next runnable process (round-robin after current).
+    fn advance_to_next(&mut self) -> bool {
+        let n = self.processes.len();
+        if n == 0 {
+            return false;
+        }
+        let start_idx = self
+            .processes
+            .iter()
+            .position(|p| p.pid == self.current_pid)
+            .unwrap_or(0);
+        for i in 1..=n {
+            let idx = (start_idx + i) % n;
+            if self.processes[idx].status == ProcessStatus::Ready {
+                self.current_pid = self.processes[idx].pid;
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Run one round-robin tick: execute the current process for
+    /// up to `time_slice` cycles (or until YIELD/HALT/EXIT).
+    /// Returns (pid, cycles_executed, reason).
+    pub fn tick(&mut self) -> (u32, u32, TickReason) {
+        let pid = self.current_pid;
+
+        // Find and run the current process
+        let proc = match self.processes.iter_mut().find(|p| p.pid == pid) {
+            Some(p) if p.status == ProcessStatus::Ready => p,
+            _ => {
+                // Current is not runnable, try to find next
+                if self.advance_to_next() {
+                    return self.tick();
+                }
+                return (pid, 0, TickReason::NoRunnable);
+            }
+        };
+
+        // Reconstruct VM from snapshot
+        let mut vm = Vm::new(proc.state.ram.len());
+        vm.restore(&proc.state);
+
+        // Run for time_slice cycles
+        let cycles = vm.run_with_limit(self.time_slice);
+
+        let reason = if vm.halted {
+            TickReason::Halted
+        } else if vm.yielded {
+            TickReason::Yielded
+        } else {
+            TickReason::TimeSlice
+        };
+
+        // Save state back
+        let new_state = vm.snapshot();
+        if let Some(p) = self.processes.iter_mut().find(|p| p.pid == pid) {
+            p.state = new_state;
+            if matches!(reason, TickReason::Halted) {
+                p.status = ProcessStatus::Exited;
+            }
+        }
+
+        (pid, cycles, reason)
+    }
+
+    /// Run the full round-robin loop until all processes exit.
+    /// Returns total cycles executed across all processes.
+    pub fn run_all(&mut self) -> u32 {
+        let mut total = 0u32;
+        loop {
+            let (_pid, cycles, reason) = self.tick();
+            total = total.wrapping_add(cycles);
+            match reason {
+                TickReason::NoRunnable => break,
+                TickReason::Halted => {
+                    if !self.advance_to_next() {
+                        break;
+                    }
+                }
+                TickReason::Yielded | TickReason::TimeSlice => {
+                    self.advance_to_next();
+                }
+            }
+        }
+        total
+    }
+
+    /// Number of active (non-exited) processes.
+    pub fn active_count(&self) -> usize {
+        self.processes
+            .iter()
+            .filter(|p| p.status != ProcessStatus::Exited)
+            .count()
+    }
+
+    /// Get a process by PID.
+    pub fn get(&self, pid: u32) -> Option<&Process> {
+        self.processes.iter().find(|p| p.pid == pid)
+    }
+
+    /// Reconstruct a VM for the given PID (for inspection).
+    pub fn get_vm(&self, pid: u32) -> Option<Vm> {
+        let proc = self.get(pid)?;
+        let mut vm = Vm::new(proc.state.ram.len());
+        vm.restore(&proc.state);
+        Some(vm)
+    }
+}
+
+/// Why a scheduler tick stopped.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TickReason {
+    Yielded,
+    Halted,
+    TimeSlice,
+    NoRunnable,
+}
+
 /// A complete snapshot of VM state for serialization and restoration.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VmSnapshot {
@@ -177,9 +406,17 @@ pub struct VmSnapshot {
     pub dbg_breakpoint: u32,
     /// Debug: breakpoint-hit flag
     pub dbg_breakpt_hit: u32,
+    /// Process ID (0 = standalone).
+    pub pid: u32,
+    /// Fork request flag.
+    pub fork_requested: bool,
+    /// Mouse X coordinate.
+    pub mouse_x: u32,
+    /// Mouse Y coordinate.
+    pub mouse_y: u32,
+    /// Mouse button bitmask.
+    pub mouse_buttons: u32,
 }
-
-/// Number of interrupt vectors in the IVT.
 pub const IVT_SIZE: usize = 16;
 
 /// Timer interrupt vector number (IVT slot 0).
@@ -212,6 +449,23 @@ pub const DBG_BREAKPOINT_ADDR: usize = 0xFFE2;
 /// Breakpoint-hit flag (read-only, auto-clears on read).
 /// Returns 1 if the PC matched DBG_BREAKPOINT_ADDR since the last read; 0 otherwise.
 pub const DBG_BREAKPT_HIT_ADDR: usize = 0xFFE3;
+
+// ── Mouse registers (0xFFA0–0xFFA2) ─────────────────────────────────
+// Memory-mapped I/O for mouse input. Updated by the host each frame.
+// Programs read these via LOAD. All three are read-only.
+
+/// Mouse X coordinate (0–255, maps to screen buffer width).
+/// Updated by the host GUI each frame.
+pub const MOUSE_X_ADDR: usize = 0xFFA0;
+
+/// Mouse Y coordinate (0–255, maps to screen buffer height).
+/// Updated by the host GUI each frame.
+pub const MOUSE_Y_ADDR: usize = 0xFFA1;
+
+/// Mouse button state (bitmask, read-only).
+/// Bit 0 = left button, bit 1 = right button, bit 2 = middle button.
+/// Updated by the host GUI each frame.
+pub const MOUSE_BUTTONS_ADDR: usize = 0xFFA2;
 
 /// The VM.
 #[derive(Debug)]
@@ -247,6 +501,16 @@ pub struct Vm {
     pub dbg_breakpoint: u32,
     /// Breakpoint-hit flag: set to 1 when PC matches dbg_breakpoint, auto-clears on read.
     pub dbg_breakpt_hit: u32,
+    /// Process ID for the scheduler (0 = standalone, no scheduler).
+    pub pid: u32,
+    /// Set to true when FORK opcode is executed; scheduler reads and clears this.
+    pub fork_requested: bool,
+    /// Mouse X coordinate (0–255). Updated by host GUI each frame.
+    pub mouse_x: u32,
+    /// Mouse Y coordinate (0–255). Updated by host GUI each frame.
+    pub mouse_y: u32,
+    /// Mouse button bitmask. Bit 0=left, bit 1=right, bit 2=middle.
+    pub mouse_buttons: u32,
 }
 
 impl Vm {
@@ -269,6 +533,11 @@ impl Vm {
             dbg_cycle_count: 0,
             dbg_breakpoint: 0,
             dbg_breakpt_hit: 0,
+            pid: 0,
+            fork_requested: false,
+            mouse_x: 0,
+            mouse_y: 0,
+            mouse_buttons: 0,
         }
     }
 
@@ -351,11 +620,18 @@ impl Vm {
             dbg_cycle_count: 0,
             dbg_breakpoint: 0,
             dbg_breakpt_hit: 0,
+            pid: 0,
+            fork_requested: false,
+            mouse_x: 0,
+            mouse_y: 0,
+            mouse_buttons: 0,
         };
         // Pass the arg to the child in r0
         vm.regs[0] = child.arg;
         vm
     }
+
+    /// Reset the VM to a clean state, preserving RAM size.
 
     // ── Memory Protection ─────────────────────────────────────────────
 
@@ -459,6 +735,11 @@ impl Vm {
             dbg_cycle_count: self.dbg_cycle_count,
             dbg_breakpoint: self.dbg_breakpoint,
             dbg_breakpt_hit: self.dbg_breakpt_hit,
+            pid: self.pid,
+            fork_requested: self.fork_requested,
+            mouse_x: self.mouse_x,
+            mouse_y: self.mouse_y,
+            mouse_buttons: self.mouse_buttons,
         }
     }
 
@@ -480,6 +761,11 @@ impl Vm {
         self.dbg_cycle_count = snapshot.dbg_cycle_count;
         self.dbg_breakpoint = snapshot.dbg_breakpoint;
         self.dbg_breakpt_hit = snapshot.dbg_breakpt_hit;
+        self.pid = snapshot.pid;
+        self.fork_requested = snapshot.fork_requested;
+        self.mouse_x = snapshot.mouse_x;
+        self.mouse_y = snapshot.mouse_y;
+        self.mouse_buttons = snapshot.mouse_buttons;
     }
 
     /// Tick the hardware timer. Called once per instruction cycle by run()/run_checked().
@@ -539,15 +825,33 @@ impl Vm {
         }
     }
 
+    /// Read a memory-mapped mouse register.
+    /// Returns `Some(value)` if `addr` is a mouse register, `None` otherwise.
+    fn read_mouse_reg(&self, addr: usize) -> Option<u32> {
+        match addr {
+            MOUSE_X_ADDR => Some(self.mouse_x),
+            MOUSE_Y_ADDR => Some(self.mouse_y),
+            MOUSE_BUTTONS_ADDR => Some(self.mouse_buttons),
+            _ => None,
+        }
+    }
+
     /// Run until halted, yielded, or MAX_CYCLES. Returns cycles executed.
     /// Only counts actual instructions executed — PC-out-of-bounds halts
     /// are not counted.
     pub fn run(&mut self) -> u32 {
+        self.run_with_limit(MAX_CYCLES)
+    }
+
+    /// Run until halted, yielded, or `limit` cycles. Returns cycles executed.
+    /// Only counts actual instructions executed — PC-out-of-bounds halts
+    /// are not counted.
+    pub fn run_with_limit(&mut self, limit: u32) -> u32 {
         let mut cycles = 0u32;
         self.yielded = false;
         self.children.clear();
 
-        while !self.halted && !self.yielded && cycles < MAX_CYCLES {
+        while !self.halted && !self.yielded && cycles < limit {
             if self.step() {
                 cycles += 1;
                 self.dbg_cycle_count = self.dbg_cycle_count.wrapping_add(1);
@@ -749,6 +1053,8 @@ impl Vm {
                     self.regs[dst] = self.timer_counter;
                 } else if src_addr as usize == TIMER_PERIOD_ADDR {
                     self.regs[dst] = self.timer_period;
+                } else if let Some(val) = self.read_mouse_reg(src_addr as usize) {
+                    self.regs[dst] = val;
                 } else if let Some(val) = self.read_debug_reg(src_addr as usize) {
                     self.regs[dst] = val;
                 } else {
@@ -1266,6 +1572,32 @@ impl Vm {
                 Ok(None)
             }
 
+            // ── o (0x6F): FORK ──────────────────────
+            // Signals the host scheduler to clone this process.
+            // In standalone mode, sets a fork_request flag.
+            // r0 = child_pid (parent), r0 = 0 (child).
+            op::FORK => {
+                // Mark fork request -- the scheduler picks this up.
+                // Standalone: just set r0 to a sentinel so tests can verify.
+                self.fork_requested = true;
+                Ok(None)
+            }
+
+            // ── u (0x75): EXIT ──────────────────────
+            // Terminate the current process. Equivalent to HALT in
+            // standalone mode, but semantically distinct for the scheduler.
+            op::EXIT => {
+                self.halted = true;
+                Ok(None)
+            }
+
+            // ── v (0x76): GETPID ────────────────────
+            // r0 = current process ID (0 if no scheduler).
+            op::GETPID => {
+                self.regs[0] = self.pid;
+                Ok(None)
+            }
+
             // ── e (0x65): EDIT_OVERWRITE addr, src ──
             op::EDIT_OVERWRITE => {
                 let addr_reg = self.reg_idx(args[0]);
@@ -1518,6 +1850,8 @@ impl Vm {
                         self.regs[dst] = self.timer_counter;
                     } else if src_addr == TIMER_PERIOD_ADDR {
                         self.regs[dst] = self.timer_period;
+                    } else if let Some(val) = self.read_mouse_reg(src_addr) {
+                        self.regs[dst] = val;
                     } else if let Some(val) = self.read_debug_reg(src_addr) {
                         self.regs[dst] = val;
                     } else {
@@ -1991,6 +2325,24 @@ impl Vm {
                 let priority_raw = self.regs[2];
                 let id = self.forge.post_issue(self.pc, tag, payload, priority_raw);
                 self.regs[0] = id as u32;
+                None
+            }
+
+            // ── o (0x6F): FORK ──────────────────────
+            op::FORK => {
+                self.fork_requested = true;
+                None
+            }
+
+            // ── u (0x75): EXIT ──────────────────────
+            op::EXIT => {
+                self.halted = true;
+                None
+            }
+
+            // ── v (0x76): GETPID ────────────────────
+            op::GETPID => {
+                self.regs[0] = self.pid;
                 None
             }
 

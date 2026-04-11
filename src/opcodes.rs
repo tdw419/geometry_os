@@ -67,6 +67,11 @@ pub mod op {
     pub const POP: u8 = 0x72; // r  width 2: dst
     pub const STB: u8 = 0x73; // s  width 3: addr, src
 
+    // ── Process opcodes (multi-tasking) ─────────────────────────────────
+    pub const FORK: u8 = 0x6F; // o  width 1: clone current process, child r0=0, parent r0=child_pid
+    pub const EXIT: u8 = 0x75; // u  width 1: terminate current process
+    pub const GETPID: u8 = 0x76; // v  width 1: r0 = current process ID
+
     // ── Editor opcodes (self-authoring) ────────────────────────────────
     // These let a running program modify its own RAM — the core of the
     // self-authoring loop described in editor.rs.
@@ -79,7 +84,8 @@ pub mod op {
 /// How many pixels does this opcode consume (including the opcode pixel itself)?
 pub fn width(opcode: u8) -> usize {
     match opcode {
-        op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE | op::IRET => 1,
+        op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE | op::IRET
+        | op::FORK | op::EXIT | op::GETPID => 1,
         op::CALL | op::JMP | op::INT | op::NOT | op::PUSH | op::POP | op::EDIT_DELETE => 2,
         op::ADD
         | op::BRANCH
@@ -156,6 +162,9 @@ pub fn name(opcode: u8) -> &'static str {
         op::EDIT_INSERT => "EDIT_INS",
         op::EDIT_DELETE => "EDIT_DEL",
         op::EDIT_BLIT => "EDIT_BLIT",
+        op::FORK => "FORK",
+        op::EXIT => "EXIT",
+        op::GETPID => "GETPID",
         _ => "???",
     }
 }
@@ -176,7 +185,8 @@ pub fn arg_kinds(opcode: u8) -> &'static [ArgKind] {
     use ArgKind::*;
     match opcode {
         // width 1 — no arguments
-        op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE | op::IRET => &[],
+        op::HALT | op::NOP | op::RET | op::YIELD | op::ISSUE_CREATE | op::IRET
+        | op::FORK | op::EXIT | op::GETPID => &[],
         // width 2
         op::CALL | op::JMP => &[Addr],
         op::INT => &[Imm],
@@ -253,7 +263,7 @@ pub fn is_valid(b: u8) -> bool {
         b,
         0x41..=0x5A |  // A-Z
         0x61 | 0x62 | 0x63 | 0x64 | 0x65 | 0x66 | 0x67 | 0x68 | 0x69 | 0x6A | 0x6B
-        | 0x6C | 0x6D | 0x6E | 0x70 | 0x72 | 0x73 | 0x74
+        | 0x6C | 0x6D | 0x6E | 0x6F | 0x70 | 0x72 | 0x73 | 0x74 | 0x75 | 0x76
     )
 }
 

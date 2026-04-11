@@ -106,6 +106,11 @@ fn mnemonic_to_opcode(name: &str) -> Option<u8> {
         "PUSH" => 0x70,
         "POP" => 0x72,
         "STB" => 0x73,
+
+        // Process opcodes
+        "FORK" => 0x6F,
+        "EXIT" => 0x75,
+        "GETPID" => 0x76,
         _ => return None,
     };
     Some(byte)
