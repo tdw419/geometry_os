@@ -50,7 +50,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Phase 2: Self-Hosting Toolchain
 
-- [ ] Micro-asm v2: forward references, error reporting, all opcodes
+- [x] Micro-asm v2: forward references, error reporting with line numbers
 - [x] Mini-editor: text editing inside the VM
 - [ ] Mini-debugger: breakpoints, register inspection, memory dump
 - [ ] Full bootstrap: micro-asm.asm compiles itself
@@ -97,7 +97,7 @@ AI-written demos      AI-written OS that humans use
 
 **Batch 4 -- Self-Hosting Toolchain:**
 - [x] Mini-editor written in .gasm (uses keyboard port for input)
-- [ ] Micro-asm v2 (forward references, line numbers)
+- [x] Micro-asm v2 (forward references, error reporting with line numbers)
 - [ ] Full bootstrap (micro-asm.asm compiles itself)
 
 **Batch 5 -- Games (proof the system works end-to-end):**

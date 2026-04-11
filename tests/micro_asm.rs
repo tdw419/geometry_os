@@ -486,3 +486,107 @@ B $0F @poll
     // Verify: canvas[0] should have the key code 'A' = 0x41 = 65
     assert_eq!(vm.ram[0], 0x41, "canvas[0] should be 'A' (0x41)");
 }
+
+// -- Error reporting (v2) tests -----------------------------------------------
+
+const ERROR_LINE_ADDR: usize = 0xBFE;
+const ERROR_CODE_ADDR: usize = 0xBFF;
+const ERROR_NONE: u32 = 0;
+const ERROR_UNKNOWN_LABEL: u32 = 1;
+
+#[test]
+fn error_area_zero_on_success() {
+    // Successful assembly should leave error area at 0
+    let mut vm = vm_with_micro_asm();
+    let _ = run_micro_asm(&mut vm, "H N H");
+    assert_eq!(
+        vm.ram[ERROR_LINE_ADDR], ERROR_NONE,
+        "error_line should be 0 on success"
+    );
+    assert_eq!(
+        vm.ram[ERROR_CODE_ADDR], ERROR_NONE,
+        "error_code should be 0 on success"
+    );
+}
+
+#[test]
+fn error_area_zero_on_label_success() {
+    // Assembly with valid labels should leave error area at 0
+    let src = "#start
+H
+#end
+N
+B $0F @end
+B $0F @start
+";
+    let mut vm = vm_with_micro_asm();
+    let _ = run_micro_asm(&mut vm, src);
+    assert_eq!(vm.ram[ERROR_LINE_ADDR], ERROR_NONE);
+    assert_eq!(vm.ram[ERROR_CODE_ADDR], ERROR_NONE);
+}
+
+#[test]
+fn error_unknown_label_reports_line() {
+    // Unknown label on line 2 should report line 2
+    let src = "H
+B $0F @nonexistent
+H
+";
+    let mut vm = vm_with_micro_asm();
+    let out = run_micro_asm(&mut vm, src);
+
+    // Output: H=0x48 at addr 0, then B=0x42, $0F=0x0F, @nonexistent=0xFF
+    assert_eq!(out[0], HALT, "HALT at addr 0");
+    assert_eq!(out[1], BRANCH, "BRANCH at addr 1");
+    assert_eq!(out[2], 0x0F, "BAL condition at addr 2");
+    assert_eq!(out[3], 0xFF, "unknown label produces 0xFF error marker");
+
+    // Error reporting
+    assert_eq!(
+        vm.ram[ERROR_LINE_ADDR], 2,
+        "error should be on line 2 (where @nonexistent is)"
+    );
+    assert_eq!(
+        vm.ram[ERROR_CODE_ADDR], ERROR_UNKNOWN_LABEL,
+        "error code should be 1 (unknown label)"
+    );
+}
+
+#[test]
+fn error_unknown_label_line_3() {
+    // Unknown label on line 3 should report line 3
+    let src = "H
+N
+B $0F @missing
+";
+    let mut vm = vm_with_micro_asm();
+    let _ = run_micro_asm(&mut vm, src);
+    assert_eq!(vm.ram[ERROR_LINE_ADDR], 3, "error on line 3");
+    assert_eq!(vm.ram[ERROR_CODE_ADDR], ERROR_UNKNOWN_LABEL);
+}
+
+#[test]
+fn error_unknown_label_single_line() {
+    // Unknown label on line 1 (only line) should report line 1
+    let src = "B $0F @oops";
+    let mut vm = vm_with_micro_asm();
+    let _ = run_micro_asm(&mut vm, src);
+    assert_eq!(vm.ram[ERROR_LINE_ADDR], 1, "error on line 1");
+    assert_eq!(vm.ram[ERROR_CODE_ADDR], ERROR_UNKNOWN_LABEL);
+}
+
+#[test]
+fn error_still_produces_output() {
+    // After an error, the assembler should continue and produce output
+    let src = "H
+B $0F @bad
+N
+";
+    let mut vm = vm_with_micro_asm();
+    let out = run_micro_asm(&mut vm, src);
+    assert_eq!(out[0], HALT, "HALT at addr 0");
+    assert_eq!(out[1], BRANCH, "BRANCH at addr 1");
+    assert_eq!(out[2], 0x0F, "BAL condition");
+    assert_eq!(out[3], 0xFF, "error marker for @bad");
+    assert_eq!(out[4], NOP, "NOP at addr 4 (after error, assembly continued)");
+}

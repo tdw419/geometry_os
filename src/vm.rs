@@ -179,6 +179,13 @@ pub struct Vm {
     pub children: Vec<ChildVm>,
     pub screen: Vec<u32>, // 256x256
     pub forge: ForgeQueue,
+    /// When true, LOAD/STORE/LDB/STB check region permissions.
+    /// Off by default for backward compatibility.
+    pub memory_protection: bool,
+    /// Memory regions defining access permissions.
+    /// When `memory_protection` is enabled, each memory access must
+    /// fall within a region that grants the required permission.
+    pub memory_regions: Vec<MemoryRegion>,
 }
 
 impl Vm {
@@ -193,6 +200,8 @@ impl Vm {
             children: Vec::new(),
             screen: vec![0; 256 * 256],
             forge: ForgeQueue::new(),
+            memory_protection: false,
+            memory_regions: Vec::new(),
         }
     }
 
@@ -267,10 +276,79 @@ impl Vm {
             children: Vec::new(),
             screen: vec![0; 256 * 256],
             forge: ForgeQueue::new(),
+            memory_protection: self.memory_protection,
+            memory_regions: self.memory_regions.clone(),
         };
         // Pass the arg to the child in r0
         vm.regs[0] = child.arg;
         vm
+    }
+
+    // ── Memory Protection ─────────────────────────────────────────────
+
+    /// Enable memory protection with the given regions.
+    ///
+    /// When enabled, every LOAD/LDB (read) and STORE/STB (write) is checked
+    /// against the configured regions. If no region covers the target address,
+    /// or the region doesn't grant the required permission, a `MemoryFault`
+    /// error is raised and the VM halts.
+    ///
+    /// Regions are checked in order; the first matching region wins.
+    /// To set up a simple code/data split:
+    /// ```ignore
+    /// vm.memory_regions = vec![
+    ///     MemoryRegion { name: "code", start: 0, end: 256, readable: true, writable: false },
+    ///     MemoryRegion { name: "data", start: 256, end: 4096, readable: true, writable: true },
+    /// ];
+    /// vm.memory_protection = true;
+    /// ```
+    pub fn enable_memory_protection(&mut self, regions: Vec<MemoryRegion>) {
+        self.memory_regions = regions;
+        self.memory_protection = true;
+    }
+
+    /// Disable memory protection. All memory accesses proceed unchecked.
+    pub fn disable_memory_protection(&mut self) {
+        self.memory_protection = false;
+        self.memory_regions.clear();
+    }
+
+    /// Check if a read access to `addr` is allowed.
+    /// Returns Ok(()) if allowed, Err(MemoryFault) if denied.
+    fn check_read(&self, addr: u32, pc: u32) -> Result<(), VmError> {
+        if !self.memory_protection {
+            return Ok(());
+        }
+        for region in &self.memory_regions {
+            if addr >= region.start && addr < region.end {
+                if region.readable {
+                    return Ok(());
+                } else {
+                    return Err(VmError::MemoryFault(pc, addr, "read"));
+                }
+            }
+        }
+        // No region covers this address
+        Err(VmError::MemoryFault(pc, addr, "read"))
+    }
+
+    /// Check if a write access to `addr` is allowed.
+    /// Returns Ok(()) if allowed, Err(MemoryFault) if denied.
+    fn check_write(&self, addr: u32, pc: u32) -> Result<(), VmError> {
+        if !self.memory_protection {
+            return Ok(());
+        }
+        for region in &self.memory_regions {
+            if addr >= region.start && addr < region.end {
+                if region.writable {
+                    return Ok(());
+                } else {
+                    return Err(VmError::MemoryFault(pc, addr, "write"));
+                }
+            }
+        }
+        // No region covers this address
+        Err(VmError::MemoryFault(pc, addr, "write"))
     }
 
     /// Composite another VM's screen onto this VM's screen.
@@ -504,8 +582,9 @@ impl Vm {
                 if addr_reg >= NUM_REGS {
                     return Err(VmError::RegisterOutOfRange(pc, addr_reg as u32));
                 }
-                let src_addr = self.regs[addr_reg] as usize;
-                self.regs[dst] = self.peek(src_addr);
+                let src_addr = self.regs[addr_reg];
+                self.check_read(src_addr, pc)?;
+                self.regs[dst] = self.peek(src_addr as usize);
                 Ok(None)
             }
 
@@ -519,8 +598,9 @@ impl Vm {
                 if src >= NUM_REGS {
                     return Err(VmError::RegisterOutOfRange(pc, src as u32));
                 }
-                let dst_addr = self.regs[addr_reg] as usize;
-                self.poke(dst_addr, self.regs[src]);
+                let dst_addr = self.regs[addr_reg];
+                self.check_write(dst_addr, pc)?;
+                self.poke(dst_addr as usize, self.regs[src]);
                 Ok(None)
             }
 
@@ -855,10 +935,14 @@ impl Vm {
                 if src_reg >= NUM_REGS {
                     return Err(VmError::RegisterOutOfRange(pc, src_reg as u32));
                 }
-                let dst = self.regs[dst_reg] as usize;
-                let src = self.regs[src_reg] as usize;
+                let dst = self.regs[dst_reg];
+                let src = self.regs[src_reg];
+                for i in 0..count as u32 {
+                    self.check_read(src + i, pc)?;
+                    self.check_write(dst + i, pc)?;
+                }
                 for i in 0..count {
-                    self.poke(dst + i, self.peek(src + i));
+                    self.poke((dst as usize) + i, self.peek((src as usize) + i));
                 }
                 Ok(None)
             }
@@ -1073,12 +1157,16 @@ impl Vm {
                 if count_reg >= NUM_REGS {
                     return Err(VmError::RegisterOutOfRange(pc, count_reg as u32));
                 }
-                let dst_addr = self.regs[dst_reg] as usize;
-                let src_addr = self.regs[src_reg] as usize;
+                let dst_addr = self.regs[dst_reg];
+                let src_addr = self.regs[src_reg];
                 let count = self.regs[count_reg] as usize;
+                for i in 0..count as u32 {
+                    self.check_read(src_addr + i, pc)?;
+                    self.check_write(dst_addr + i, pc)?;
+                }
                 for i in 0..count {
-                    let val = self.peek(src_addr + i);
-                    self.poke(dst_addr + i, val);
+                    let val = self.peek((src_addr as usize) + i);
+                    self.poke((dst_addr as usize) + i, val);
                 }
                 Ok(None)
             }
@@ -1093,9 +1181,10 @@ impl Vm {
                 if addr_reg >= NUM_REGS {
                     return Err(VmError::RegisterOutOfRange(pc, addr_reg as u32));
                 }
-                let byte_addr = self.regs[addr_reg] as usize;
-                let pixel_idx = byte_addr / 4;
-                let byte_off = byte_addr % 4;
+                let byte_addr = self.regs[addr_reg];
+                let pixel_idx = byte_addr as usize / 4;
+                self.check_read(pixel_idx as u32, pc)?;
+                let byte_off = byte_addr as usize % 4;
                 let pixel = self.peek(pixel_idx);
                 self.regs[dst] = (pixel >> (byte_off * 8)) & 0xFF;
                 Ok(None)
@@ -1111,9 +1200,10 @@ impl Vm {
                 if src >= NUM_REGS {
                     return Err(VmError::RegisterOutOfRange(pc, src as u32));
                 }
-                let byte_addr = self.regs[addr_reg] as usize;
-                let pixel_idx = byte_addr / 4;
-                let byte_off = byte_addr % 4;
+                let byte_addr = self.regs[addr_reg];
+                let pixel_idx = byte_addr as usize / 4;
+                self.check_write(pixel_idx as u32, pc)?;
+                let byte_off = byte_addr as usize % 4;
                 let byte_val = self.regs[src] & 0xFF;
                 let mut pixel = self.peek(pixel_idx);
                 let mask = !(0xFFu32 << (byte_off * 8));

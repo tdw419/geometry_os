@@ -27,7 +27,12 @@
 ;   0x00 (null) → end of input
 ;
 ;   Label name chars: 0x30 ('0') through 0x7A ('z') inclusive
-;   Label not found: emits 0xFF as error marker
+;   Label not found: emits 0xFF as error marker, records error at 0xBFE-0xBFF
+;
+; ERROR REPORTING (v2)
+;   RAM[0xBFE] = source line number of first error (0 = no error)
+;   RAM[0xBFF] = error code (0 = no error, 1 = unknown label)
+;   These are set during pass 2. After assembly, check 0xBFE: if 0, success.
 ;
 ; EXAMPLE (counter with labels)
 ;   #loop
@@ -45,7 +50,9 @@
 ;   0x000-0x3FF  output buffer (program area)
 ;   0x400-0x7FF  text input buffer
 ;   0x800-0xAFF  this assembler (code)
-;   0xB00-0xBFF  temporary name buffer (for label lookup)
+;   0xB00-0xBFD  temporary name buffer (for label lookup)
+;   0xBFE        error_line (source line of first error, 0 = none)
+;   0xBFF        error_code (0 = none, 1 = unknown label)
 ;   0xC00-0xFFF  label table
 ;
 ; LABEL TABLE FORMAT at 0xC00
@@ -71,6 +78,7 @@
 ;   r15  constant 0
 ;   r16  name buffer write pointer (0xB00)
 ;   r17  label table base (0xC00)
+;   r18  source line counter (pass 2 only, 1-indexed)
 
 .ORG 0x800
 
@@ -81,6 +89,11 @@
     LDI r7,  0xC00          ; label table write ptr (pass 1)
     LDI r8,  0              ; output byte counter (pass 1)
     LDI r0,  0x400          ; input ptr
+    ; Initialize error reporting area
+    LDI r3,  0xBFE
+    STORE r3, r15           ; error_line = 0 (no error)
+    LDI r3,  0xBFF
+    STORE r3, r15           ; error_code = 0 (no error)
 
 ; ══════════════════════════════════════════════════════════════════════
 ; Pass 1 — scan source, record label definitions
@@ -210,10 +223,14 @@ p1_end:
 ; ══════════════════════════════════════════════════════════════════════
     LDI r0, 0x400                ; reset input ptr
     LDI r1, 0                    ; output ptr = start of canvas
+    LDI r18, 1                   ; source line counter (1-indexed)
 
 pass2:
     LOAD r2, r0
     BEQ r2, r15, done
+
+    LDI r3, 10                   ; '\n' — increment line counter
+    BEQ r2, r3, p2_newline
 
     LDI r3, 59
     BEQ r2, r3, p2_comment
@@ -241,6 +258,12 @@ pass2:
     JMP pass2
 
 p2_skip:
+    ADD r0, r14
+    JMP pass2
+
+; Pass 2: newline — increment source line counter
+p2_newline:
+    ADD r18, r14
     ADD r0, r14
     JMP pass2
 
@@ -388,7 +411,14 @@ p2_matched:
     JMP pass2
 
 p2_not_found:
-    LDI r10, 0xFF                ; error marker
+    ; Record error: line number and error code
+    LDI r9,  0xBFE
+    STORE r9, r18           ; error_line = current line number
+    LDI r9,  0xBFF
+    LDI r3,  1
+    STORE r9, r3            ; error_code = 1 (unknown label)
+    ; Emit 0xFF error marker
+    LDI r10, 0xFF
     STORE r1, r10
     ADD r1, r14
     JMP pass2
