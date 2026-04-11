@@ -118,6 +118,12 @@ def pick_task(specific=None):
 
 PROMPT_TEMPLATE = """You are continuing automated development of Geometry OS.
 
+## NORTH STAR -- READ THIS FIRST
+Read docs/NORTH_STAR.md. Every decision you make must serve the keystroke-to-pixel
+pipeline. If you're adding Rust code but no new program can be typed on the keyboard
+as a result, you're on the wrong track. Prefer writing .gasm programs, demos, and
+libraries that run INSIDE the VM over adding host-side features.
+
 ## Context from Last Session
 {context}
 
@@ -126,17 +132,20 @@ PROMPT_TEMPLATE = """You are continuing automated development of Geometry OS.
 
 ## Rules
 1. Read AI_GUIDE.md first for architecture and conventions
-2. Run `cargo test` before and after every change
-3. Commit after each logical unit of work (with descriptive message)
-4. If tests fail, fix them before moving on
-5. If you get stuck on something for >3 attempts, skip it and try the next item
-6. When done, record git heads: `python3 {carry_forward} record-git-heads $SESSION_ID`
+2. Read docs/KEYSTROKE_TO_PIXELS.md if you're touching input/rendering
+3. Run `cargo test` before and after every change
+4. Commit after each logical unit of work (with descriptive message)
+5. If tests fail, fix them before moving on
+6. If you get stuck on something for >3 attempts, skip it and try the next item
+7. When done, record git heads: `python3 {carry_forward} record-git-heads $SESSION_ID`
 
 ## How to Work
 - Use the `patch` tool for Rust edits (it auto-formats, that's fine)
 - NEVER do read_file then write_file on Rust files (corrupts with line numbers)
 - Commit before risky edits so you can revert
 - Keep tests passing at all times
+- If a ROADMAP item is a Rust-only feature (stack limits, memory protection),
+  consider whether a .gasm program needs it first. If not, skip it.
 """
 
 

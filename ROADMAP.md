@@ -1,115 +1,122 @@
 # Geometry OS Roadmap
 
-## Current State (as of ebbf080)
+## Direction
 
-- **11,449 LOC** across 16 source files + 6 test files + programs
-- **285 tests passing** (186 lib, 5 boundary, 34 call/ret, 19 micro-asm, 6 text, 8 geo, 21 integration, 6 wasm)
-- **42 opcodes** all implemented in the VM
-- **Self-hosting micro-assembler** (micro-asm.asm runs inside the VM)
-- **Interactive GUI** with pixel editor, ASM input mode, hex mode, disassembly panel
-- **Window manager** with click-to-focus, drag, z-ordering
-- **Agent substrate** (GasmAgent) for headless program execution
-- **Forge queue** for ISSUE_CREATE opcode
-- **Shell** with CLS, PRINT, RUN, HELP, VER commands
-- **Text I/O** via memory-mapped keyboard register
+See `docs/NORTH_STAR.md` -- an OS for AIs by AIs, eventually for humans.
+Programs first, Rust features only when programs need them.
 
-## Phase 1: Language Completeness (current → self-hosting)
+## The Long Arc
 
-### 1.1 Assembler Improvements
-- [x] Support `.data` / `.text` section directives
-- [x] String constants (`.asciz "hello"`) for TEXT opcode
-- [x] Expression evaluation in immediates (`LDI r0, 2+3`)
-- [x] Include directive (`.include "lib.gasm"`)
+```
+Where we are          Where we're going
+─────────────         ─────────────────
+.gasm programs        Full applications
+Micro-assembler       Self-hosting compiler
+Single process        Multi-tasking OS
+Keyboard input        Mouse, audio, network
+32x32 canvas          Full windowed desktop
+AI-written demos      AI-written OS that humans use
+```
+
+## Current State
+
+- 409+ tests passing
+- 42 opcodes, self-hosting micro-assembler
+- Interactive GUI with pixel editor, hex mode, disassembly
+- Window manager, shell, agent substrate
+- lib/math.gasm, lib/string.gasm, lib/screen.gasm
+
+## Phase 1: Language Completeness
+
+### 1.1 Assembler (DONE)
+- [x] `.data` / `.text` section directives
+- [x] String constants (`.asciz "hello"`)
+- [x] Expression evaluation in immediates
+- [x] `.include` directive
 - [x] Macro support (`.macro ADD3 ... .endm`)
 
-### 1.2 VM Enhancements
-- [ ] Stack overflow protection (configurable stack limit)
-- [ ] Memory protection (read/write/execute regions)
-- [ ] Interrupt vector table (INT opcode dispatch)
-- [ ] Timer interrupt (configurable tick rate)
-- [ ] Debug registers (breakpoint, watchpoint support)
+### 1.2 Standard Library
+- [x] `lib/math.gasm`
+- [x] `lib/string.gasm`
+- [x] `lib/screen.gasm`
+- [x] `lib/input.gasm` -- read_key, wait_key, key_to_hex (uses keyboard port 0xFFF)
 
-### 1.3 Standard Library
-- [x] `lib/math.gasm` -- multiply, divide, modulo (if not native)
-- [x] `lib/string.gasm` -- strlen, strcpy, strcmp, print_string
-- [x] `lib/screen.gasm` -- clear_screen, draw_line (Bresenham), draw_rect_border
-- [ ] `lib/input.gasm` -- read_key, wait_key, key_to_hex
+### 1.3 VM Enhancements (only when programs need them)
+- [ ] Stack overflow protection
+- [ ] Memory protection
+- [ ] Interrupt vector table
+- [ ] Timer interrupt
+- [ ] Debug registers
 
 ## Phase 2: Self-Hosting Toolchain
 
-### 2.1 Micro-Assembler v2
-- [ ] Handle forward references (multi-pass)
-- [ ] Error reporting with line numbers
-- [ ] Support all opcodes (not just subset)
-- [ ] Compile micro-asm.asm with itself (full bootstrap)
+- [ ] Micro-asm v2: forward references, error reporting, all opcodes
+- [ ] Mini-editor: text editing inside the VM
+- [ ] Mini-debugger: breakpoints, register inspection, memory dump
+- [ ] Full bootstrap: micro-asm.asm compiles itself
 
-### 2.2 Mini-Editor
-- [ ] Text editing inside the VM (cursor movement, insert/delete)
-- [ ] Load/save programs to VM memory
-- [ ] Syntax highlighting via color
+## Phase 3: Interactive Programs (proving the OS works)
 
-### 2.3 Mini-Debugger
-- [ ] Breakpoints (set/clear/continue)
-- [ ] Register inspection panel
-- [ ] Memory dump viewer
-- [ ] Step-over, step-out
-
-## Phase 3: Interactive Programs
-
-### 3.1 Demo Programs
-- [ ] Snake game (arrow key input, grid collision)
-- [ ] Paint program (PSET-based, color picker)
+- [ ] Snake game (arrow keys, collision, score)
+- [ ] Paint program (PSET, color picker, keyboard driven)
 - [ ] Text adventure (room descriptions, parser)
-- [ ] Screensaver (moving patterns, animation loop)
+- [ ] Screensaver (animation loop)
 
-### 3.2 I/O Expansion
-- [ ] Mouse input (memory-mapped registers for x, y, buttons)
-- [ ] Audio output (square wave generator, memory-mapped)
-- [ ] Sprite system (SPAWN-based entities with auto-update)
-- [ ] Scrollable text buffer (terminal-style output)
+## Phase 4: I/O Expansion (the device driver layer)
 
-## Phase 4: Agent Integration
+- [ ] Mouse input (memory-mapped x, y, buttons)
+- [ ] Audio output (square wave, memory-mapped)
+- [ ] Sprite system (SPAWN entities, auto-update)
+- [ ] Scrollable text buffer (terminal output)
 
-### 4.1 Harness Bridge
-- [ ] REST API for agent-driven program submission
-- [ ] Screenshot endpoint (render canvas to PNG)
-- [ ] Input injection (simulate key/mouse from API)
+## Phase 5: The OS Layer
+
+- [ ] Process scheduler (round-robin, context switching)
+- [ ] Filesystem (save/load named programs, directories)
+- [ ] Memory management (alloc/free within VM)
+- [ ] Inter-process communication
+- [ ] User sessions / permissions
+
+## Phase 6: Agent Integration
+
+- [ ] REST API for program submission
+- [ ] Screenshot endpoint (canvas to PNG)
+- [ ] Input injection (key/mouse from API)
 - [ ] State snapshot (registers, RAM, screen as JSON)
-
-### 4.2 Multi-Agent
-- [ ] Agent-to-agent messaging via shared memory
-- [ ] Sandboxed execution (per-agent VM instances)
-- [ ] Resource limits (cycles, memory, screen regions)
+- [ ] Multi-agent sandboxed execution
 
 ## Priority Order for Automated Development
 
-**Batch 1 -- Quick Wins (test the chain, high value, low risk):**
-- [x] `lib/math.gasm` -- multiply via repeated add, divide via subtraction, modulo
-- [x] `lib/string.gasm` -- strlen, strcpy, strcmp, print_string
-- [x] `lib/screen.gasm` -- clear_screen, draw_line (Bresenham), draw_rect_border
-- [x] Demo: counter that increments and displays on screen
-- [x] Demo: simple animation (bouncing pixel)
+**Batch 1-2 (DONE):** Libraries, assembler improvements, demos
 
-**Batch 2 -- Assembler Improvements:**
-- [x] Expression evaluation in immediates (`LDI r0, 2+3`)
-- [x] String constants (`.asciz "hello"`) for TEXT opcode
-- [x] `.data` / `.text` section directives
-- [x] `.include "lib.gasm"` directive
-- [x] Macro support (`.macro ADD3 ... .endm`)
+**Batch 3 -- Input and Interaction:**
+- [x] `lib/input.gasm` -- read_key, wait_key, key_to_hex (uses keyboard port 0xFFF)
+- [x] Interactive echo program -- type on keyboard, see characters on VM screen (echo-interactive.asm)
+- [ ] Screensaver demo -- animated patterns with lib/screen.gasm
+- [ ] Simple calculator -- reads numbers from keyboard, displays result
 
-**Batch 3 -- VM Hardening:**
-- [ ] Stack overflow protection (configurable stack limit)
-- [ ] Memory protection (read/write/execute regions)
-- [ ] Timer interrupt (configurable tick rate)
-- [ ] Debug registers (breakpoint, watchpoint)
+**Batch 4 -- Self-Hosting Toolchain:**
+- [ ] Mini-editor written in .gasm (uses keyboard port for input)
+- [ ] Micro-asm v2 (forward references, line numbers)
+- [ ] Full bootstrap (micro-asm.asm compiles itself)
 
-**Batch 4 -- Demo Programs:**
+**Batch 5 -- Games (proof the system works end-to-end):**
 - [ ] Snake game
 - [ ] Paint program
 - [ ] Text adventure
-- [ ] Screensaver
 
-**Batch 5 -- Advanced:**
+**Batch 6 -- The OS Layer (when games prove the foundation):**
+- [ ] Process scheduler (needed when snake + editor run together)
+- [ ] Filesystem (needed when you want to save your snake high score)
+- [ ] Memory management (needed when programs compete for RAM)
+
+**Batch 7 -- VM Hardening (only when programs hit walls):**
+- [ ] Stack overflow protection (if recursion hits limit)
+- [ ] Memory protection (if programs corrupt each other)
+- [ ] Timer interrupt (if frame timing is needed)
+- [ ] Debug registers (if complex programs can't be debugged)
+
+**Batch 8 -- The World Outside:**
 - [ ] REST API bridge
-- [ ] Self-hosting full bootstrap
 - [ ] Mouse/audio support
+- [ ] Multi-agent execution

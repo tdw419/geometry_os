@@ -22,7 +22,7 @@ use crate::opcodes::op;
 use crate::forge::ForgeQueue;
 
 const NUM_REGS: usize = 32;
-const STACK_SIZE: usize = 256;
+const DEFAULT_STACK_LIMIT: usize = 256;
 pub const MAX_CYCLES: u32 = 4096;
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -156,7 +156,7 @@ impl Vm {
             ram: vec![0; ram_size],
             regs: [0; NUM_REGS],
             pc: 0,
-            stack: Vec::with_capacity(STACK_SIZE),
+            stack: Vec::with_capacity(DEFAULT_STACK_LIMIT),
             halted: false,
             yielded: false,
             children: Vec::new(),
@@ -234,7 +234,7 @@ impl Vm {
             ram: self.ram.clone(),
             regs: [0; NUM_REGS],
             pc: child.start_addr,
-            stack: Vec::with_capacity(STACK_SIZE),
+            stack: Vec::with_capacity(DEFAULT_STACK_LIMIT),
             halted: false,
             yielded: false,
             children: Vec::new(),
@@ -706,7 +706,7 @@ impl Vm {
             op::CALL => {
                 let target = self.resolve_addr(args[0]);
                 let w = opcodes::width(op::CALL) as u32;
-                if self.stack.len() >= STACK_SIZE {
+                if self.stack.len() >= DEFAULT_STACK_LIMIT {
                     return Err(VmError::StackOverflow(pc));
                 }
                 self.stack.push(self.pc + w);
@@ -939,7 +939,7 @@ impl Vm {
                 if val_reg >= NUM_REGS {
                     return Err(VmError::RegisterOutOfRange(pc, val_reg as u32));
                 }
-                if self.stack.len() >= STACK_SIZE {
+                if self.stack.len() >= DEFAULT_STACK_LIMIT {
                     return Err(VmError::StackOverflow(pc));
                 }
                 self.stack.push(self.regs[val_reg]);

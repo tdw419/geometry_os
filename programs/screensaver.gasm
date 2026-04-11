@@ -1,0 +1,505 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/screensaver.gasm -- Animated screensaver demo
+;
+; Cycles through visual effects on the 256x256 screen:
+;   1. Plasma bars -- scrolling horizontal color bands
+;   2. Bouncing pixel -- pixel bouncing off walls, leaving a trail
+;   3. Diagonal sweep -- diagonal lines sweeping across
+;   4. Box tunnel -- nested rectangles shrinking to center
+;
+; Each effect runs for 60 frames then transitions. Loops forever.
+; Uses lib/screen.gasm for clear_screen.
+;
+; IMPORTANT: RECTF reads color from r0 (hardwired).
+;            PSET reads color from the third register arg.
+; ═══════════════════════════════════════════════════════════════════════
+
+
+main:
+    LDI r7, 255
+    LDI r8, 0
+    LDI r9, 1
+
+    ; Init state
+    LDI r0, 0
+    LDI r1, 0x1000
+    STORE r1, r0
+    LDI r1, 0x1001
+    STORE r1, r0
+
+    LDI r0, 120
+    LDI r1, 0x1002
+    STORE r1, r0
+    LDI r0, 80
+    LDI r1, 0x1003
+    STORE r1, r0
+    LDI r0, 3
+    LDI r1, 0x1004
+    STORE r1, r0
+    LDI r0, 2
+    LDI r1, 0x1005
+    STORE r1, r0
+
+    LDI r0, 0
+    LDI r1, 0x1006
+    STORE r1, r0
+
+    LDI r0, 0
+    CALL clear_screen
+
+    JMP dispatch
+
+
+; ── Dispatch to current effect ──
+dispatch:
+    LDI r1, 0x1000
+    LOAD r3, r1
+    LDI r1, 0x1001
+    LOAD r4, r1
+
+    BEQ r3, r8, effect_plasma
+    LDI r0, 1
+    BEQ r3, r0, effect_bounce
+    LDI r0, 2
+    BEQ r3, r0, effect_sweep
+    LDI r0, 3
+    BEQ r3, r0, effect_tunnel
+    LDI r3, 0
+    LDI r1, 0x1000
+    STORE r1, r3
+    JMP effect_plasma
+
+
+; ── Advance frame, rotate effect every 60 frames ──
+advance:
+    LDI r1, 0x1001
+    LOAD r4, r1
+    ADD r4, r9
+    STORE r1, r4
+
+    LDI r0, 60
+    BLT r4, r0, adv_yield
+
+    ; Next effect
+    LDI r1, 0x1000
+    LOAD r3, r1
+    ADD r3, r9
+    LDI r0, 4
+    BLT r3, r0, adv_save
+    LDI r3, 0
+adv_save:
+    LDI r1, 0x1000
+    STORE r1, r3
+    LDI r4, 0
+    LDI r1, 0x1001
+    STORE r1, r4
+
+    LDI r0, 0
+    CALL clear_screen
+
+adv_yield:
+    YIELD
+    JMP dispatch
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; EFFECT 1: Plasma bars
+;   16 horizontal bars, 16px each, colors cycle each frame.
+; ═══════════════════════════════════════════════════════════════════════
+
+effect_plasma:
+    LDI r0, 0
+    CALL clear_screen
+
+    LDI r1, 0x1001
+    LOAD r4, r1
+
+    LDI r5, 0
+
+plasma_bar:
+    ; Color = (frame + bar*3) mod 6
+    MOV r0, r4
+    LDI r2, 3
+    PUSH r4
+    PUSH r5
+    MOV r4, r5
+    LDI r5, 0
+pbar_mul:
+    BEQ r4, r8, pbar_mul_done
+    ADD r5, r2
+    SUB r4, r9
+    JMP pbar_mul
+pbar_mul_done:
+    ; r5 = bar*3
+    ADD r0, r5
+    POP r5
+    POP r4
+
+    ; mod 6
+pbar_mod:
+    LDI r2, 6
+    BLT r0, r2, pbar_got_color
+    SUB r0, r2
+    JMP pbar_mod
+
+pbar_got_color:
+    BEQ r0, r8, pc_red
+    LDI r2, 1
+    BEQ r0, r2, pc_green
+    LDI r2, 2
+    BEQ r0, r2, pc_blue
+    LDI r2, 3
+    BEQ r0, r2, pc_yellow
+    LDI r2, 4
+    BEQ r0, r2, pc_cyan
+    JMP pc_magenta
+
+pc_red:
+    LDI r0, 0xFF2020
+    JMP plasma_draw
+pc_green:
+    LDI r0, 0x20FF20
+    JMP plasma_draw
+pc_blue:
+    LDI r0, 0x2020FF
+    JMP plasma_draw
+pc_yellow:
+    LDI r0, 0xFFFF20
+    JMP plasma_draw
+pc_cyan:
+    LDI r0, 0x20FFFF
+    JMP plasma_draw
+pc_magenta:
+    LDI r0, 0xFF20FF
+    JMP plasma_draw
+
+plasma_draw:
+    ; r0 = color, compute y = bar * 16
+    MOV r2, r5
+    ADD r2, r2
+    ADD r2, r2
+    ADD r2, r2
+    ADD r2, r2
+
+    LDI r1, 0
+    RECTF r1, r2, 256, 16
+
+    ADD r5, r9
+    LDI r2, 16
+    BLT r5, r2, plasma_bar
+
+    JMP advance
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; EFFECT 2: Bouncing pixel with trail
+; ═══════════════════════════════════════════════════════════════════════
+
+effect_bounce:
+    LDI r1, 0x1002
+    LOAD r10, r1
+    LDI r1, 0x1003
+    LOAD r11, r1
+    LDI r1, 0x1004
+    LOAD r12, r1
+    LDI r1, 0x1005
+    LOAD r13, r1
+
+    ; Color from frame & 3
+    LDI r1, 0x1001
+    LOAD r4, r1
+    LDI r5, 3
+    AND r4, r5
+
+    BEQ r4, r8, bc_red
+    LDI r5, 1
+    BEQ r4, r5, bc_green
+    LDI r5, 2
+    BEQ r4, r5, bc_blue
+    JMP bc_yellow
+
+bc_red:
+    LDI r14, 0xFF4444
+    JMP bc_draw
+bc_green:
+    LDI r14, 0x44FF44
+    JMP bc_draw
+bc_blue:
+    LDI r14, 0x4444FF
+    JMP bc_draw
+bc_yellow:
+    LDI r14, 0xFFFF44
+    JMP bc_draw
+
+bc_draw:
+    ; Draw 3x3 block (RECTF reads color from r0)
+    MOV r0, r14
+    MOV r1, r10
+    MOV r2, r11
+    RECTF r1, r2, 3, 3
+
+    ; Update position
+    ADD r10, r12
+    ADD r11, r13
+
+    ; Bounce right (x >= 254)
+    LDI r1, 253
+    BLT r10, r1, bn_right
+    LDI r10, 253
+    NOT r12
+    ADD r12, r9
+bn_right:
+
+    ; Bounce left (x < 1, signed underflow)
+    LDI r1, 1
+    BLT r10, r1, bn_left
+    JMP bn_left_skip
+bn_left:
+    LDI r10, 1
+    NOT r12
+    ADD r12, r9
+bn_left_skip:
+
+    ; Bounce bottom (y >= 254)
+    LDI r1, 253
+    BLT r11, r1, bn_bottom
+    LDI r11, 253
+    NOT r13
+    ADD r13, r9
+bn_bottom:
+
+    ; Bounce top (y < 1)
+    LDI r1, 1
+    BLT r11, r1, bn_top
+    JMP bn_top_skip
+bn_top:
+    LDI r11, 1
+    NOT r13
+    ADD r13, r9
+bn_top_skip:
+
+    ; Save state
+    LDI r1, 0x1002
+    STORE r1, r10
+    LDI r1, 0x1003
+    STORE r1, r11
+    LDI r1, 0x1004
+    STORE r1, r12
+    LDI r1, 0x1005
+    STORE r1, r13
+
+    JMP advance
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; EFFECT 3: Diagonal sweep
+;   Lines sweep diagonally across the screen.
+; ═══════════════════════════════════════════════════════════════════════
+
+effect_sweep:
+    LDI r0, 0
+    CALL clear_screen
+
+    LDI r1, 0x1006
+    LOAD r10, r1
+
+    LDI r5, 0
+
+sw_line:
+    ; x = (offset + line*32) mod 256
+    MOV r1, r10
+    PUSH r5
+    PUSH r10
+    LDI r3, 0
+sw_mul:
+    BEQ r5, r8, sw_mul_done
+    LDI r2, 32
+    ADD r3, r2
+    SUB r5, r9
+    JMP sw_mul
+sw_mul_done:
+    ADD r1, r3
+    POP r10
+    POP r5
+
+    ; mod 256
+sw_mod:
+    LDI r2, 256
+    BLT r1, r2, sw_got_x
+    SUB r1, r2
+    JMP sw_mod
+
+sw_got_x:
+    ; Line from (x, 0) to (255, 255-x)
+    MOV r2, r8
+    MOV r3, r7
+    MOV r4, r7
+    SUB r4, r1
+
+    ; Color based on line index
+    BEQ r5, r8, sc_cyan
+    LDI r6, 1
+    BEQ r5, r6, sc_green
+    LDI r6, 2
+    BEQ r5, r6, sc_yellow
+    JMP sc_white
+
+sc_cyan:
+    LDI r0, 0x00FFFF
+    JMP sc_draw
+sc_green:
+    LDI r0, 0x00FF00
+    JMP sc_draw
+sc_yellow:
+    LDI r0, 0xFFFF00
+    JMP sc_draw
+sc_white:
+    LDI r0, 0xFFFFFF
+    JMP sc_draw
+
+sc_draw:
+    CALL draw_line
+
+    ADD r5, r9
+    LDI r6, 8
+    BLT r5, r6, sw_line
+
+    ; Advance sweep offset
+    LDI r1, 0x1006
+    LOAD r10, r1
+    LDI r2, 4
+    ADD r10, r2
+    LDI r2, 256
+    BLT r10, r2, sw_save
+    LDI r10, 0
+sw_save:
+    LDI r1, 0x1006
+    STORE r1, r10
+
+    JMP advance
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; EFFECT 4: Box tunnel
+;   Nested rectangles shrinking toward center.
+; ═══════════════════════════════════════════════════════════════════════
+
+effect_tunnel:
+    LDI r0, 0
+    CALL clear_screen
+
+    LDI r1, 0x1001
+    LOAD r4, r1
+
+    ; Offset = (frame * 2) mod 16
+    PUSH r4
+    LDI r3, 0
+    LDI r2, 2
+tun_mul:
+    BEQ r4, r8, tun_mul_done
+    ADD r3, r2
+    SUB r4, r9
+    JMP tun_mul
+tun_mul_done:
+    POP r4
+tun_mod:
+    LDI r2, 16
+    BLT r3, r2, tun_got
+    SUB r3, r2
+    JMP tun_mod
+tun_got:
+    MOV r10, r3
+
+    LDI r5, 0
+
+tun_box:
+    ; Compute box*20 for x/y offset
+    PUSH r4
+    PUSH r5
+    PUSH r10
+    MOV r4, r5
+    LDI r3, 0
+    LDI r6, 20
+tbx_mul:
+    BEQ r4, r8, tbx_mul_done
+    ADD r3, r6
+    SUB r4, r9
+    JMP tbx_mul
+tbx_mul_done:
+    POP r10
+    POP r5
+    POP r4
+
+    ; x = y = box*20 + offset
+    MOV r1, r3
+    ADD r1, r10
+    MOV r2, r1
+
+    ; w = 256 - box*40
+    PUSH r4
+    PUSH r5
+    PUSH r10
+    PUSH r1
+    PUSH r2
+    MOV r4, r5
+    LDI r6, 0
+tbw_mul:
+    BEQ r4, r8, tbw_mul_done
+    LDI r7, 40
+    ADD r6, r7
+    SUB r4, r9
+    JMP tbw_mul
+tbw_mul_done:
+    POP r2
+    POP r1
+    POP r10
+    POP r5
+    POP r4
+
+    LDI r3, 256
+    SUB r3, r6
+
+    ; Skip if w < 1
+    LDI r6, 1
+    BLT r3, r6, tun_skip
+
+    MOV r4, r3
+
+    ; Color based on box index
+    BEQ r5, r8, tc_red
+    LDI r6, 1
+    BEQ r5, r6, tc_green
+    LDI r6, 2
+    BEQ r5, r6, tc_blue
+    LDI r6, 3
+    BEQ r5, r6, tc_yellow
+    JMP tc_purple
+
+tc_red:
+    LDI r0, 0xFF4040
+    JMP tc_draw
+tc_green:
+    LDI r0, 0x40FF40
+    JMP tc_draw
+tc_blue:
+    LDI r0, 0x4040FF
+    JMP tc_draw
+tc_yellow:
+    LDI r0, 0xFFFF40
+    JMP tc_draw
+tc_purple:
+    LDI r0, 0xFF40FF
+    JMP tc_draw
+
+tc_draw:
+    CALL draw_rect_border
+
+tun_skip:
+    ADD r5, r9
+    LDI r6, 6
+    BLT r5, r6, tun_box
+
+    JMP advance
+
+
+    .include "../lib/screen.gasm"
