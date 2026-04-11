@@ -1,0 +1,934 @@
+#!/usr/bin/env python3
+"""
+pixelc -- Pixel Compiler for Geometry OS
+=========================================
+
+Compiles a familiar Python-like syntax into .gasm assembly that the
+Geometry OS assembler turns into pixel bytecode.
+
+The point: AI models write Python fluently. This compiler turns that
+Python into pixels. The keystroke-to-pixel chain is preserved:
+    familiar code (keystrokes) -> pixelc -> .gasm -> assembler -> pixels -> VM
+
+Usage:
+    pixelc program.gp                    # emit .gasm to stdout
+    pixelc program.gp -o program.asm     # write .gasm to file
+    pixelc program.gp --run              # compile, assemble, and run on VM
+
+Syntax (.gp files):
+    x = 42               ->  LDI rN, 42
+    y = x + 8            ->  LDI rTemp, 8; ADD rX, rTemp
+    z = x * y            ->  MUL rX, rY  (result in rX)
+    ram[addr] = val      ->  STORE addrReg, valReg
+    v = ram[addr]        ->  LOAD dstReg, addrReg
+    pixel(x, y, color)   ->  PSET xReg, yReg, colorReg
+    rect(x, y, w, h)     ->  RECTF xReg, yReg, wReg, hReg
+    circle(cx, cy, r)    ->  CIRCLEF cxReg, cyReg, rReg
+    line(x1,y1,x2,y2)    ->  LINE x1Reg, y1Reg, x2Reg, y2Reg
+    text(x, y, str)      ->  TEXT xReg, yReg, str_addr
+    if x > 5:            ->  BGE/BGT/BLT/BLE/BEQ/BNE
+    while x > 0:         ->  backward branch
+    fn name(args):        ->  label + CALL convention
+    halt()               ->  HALT
+    yield()              ->  YIELD
+    nop()                ->  NOP
+
+Registers r0-r31. Variables map to registers with a simple allocator.
+r28-r31 are reserved (r28=frame, r29=stack, r30=temp, r31=zero).
+"""
+
+import sys
+import re
+import argparse
+from dataclasses import dataclass, field
+from typing import Optional
+
+
+# ═══════════════════════════════════════════════════════════════
+# TOKENIZER
+# ═══════════════════════════════════════════════════════════════
+
+class Token:
+    def __init__(self, kind, value, line):
+        self.kind = kind
+        self.value = value
+        self.line = line
+    def __repr__(self):
+        return f"Token({self.kind}, {self.value!r}, L{self.line})"
+
+TOKEN_PATTERNS = [
+    ('NUMBER',  r'0x[0-9A-Fa-f]+|\d+'),
+    ('STRING',  r'"[^"]*"'),
+    ('IDENT',   r'[a-zA-Z_][a-zA-Z0-9_]*'),
+    ('OP',      r'==|!=|>=|<=|>>|<<|>|<|[+\-*/%&|^~(),:=\[\]]'),
+    ('NEWLINE', r'\n'),
+    ('SKIP',    r'[ \t]+'),
+    ('COMMENT', r'#[^\n]*'),
+]
+
+def tokenize(source):
+    tokens = []
+    pos = 0
+    line = 1
+    pat = re.compile('|'.join(f'(?P<{n}>{p})' for n, p in TOKEN_PATTERNS))
+    while pos < len(source):
+        m = pat.match(source, pos)
+        if not m:
+            raise SyntaxError(f"Unexpected char {source[pos]!r} at line {line}")
+        kind = m.lastgroup
+        value = m.group()
+        if kind == 'NEWLINE':
+            tokens.append(Token('NEWLINE', '\n', line))
+            line += 1
+        elif kind == 'COMMENT':
+            pass  # skip
+        elif kind == 'SKIP':
+            pass  # skip
+        elif kind == 'NUMBER':
+            if value.startswith('0x'):
+                tokens.append(Token('NUMBER', int(value, 16), line))
+            else:
+                tokens.append(Token('NUMBER', int(value), line))
+        else:
+            tokens.append(Token(kind, value, line))
+        pos = m.end()
+    return tokens
+
+
+# ═══════════════════════════════════════════════════════════════
+# AST NODES
+# ═══════════════════════════════════════════════════════════════
+
+@dataclass
+class VarAssign:
+    name: str
+    value: object  # Expr
+
+@dataclass
+class VarModify:
+    name: str
+    op: str   # +=, -=, etc.
+    value: object
+
+@dataclass
+class MemStore:
+    addr: object  # Expr
+    value: object
+
+@dataclass
+class MemLoad:
+    name: str
+    addr: object
+
+@dataclass
+class BuiltinCall:
+    name: str
+    args: list
+
+@dataclass
+class IfStmt:
+    cond: object
+    body: list
+    else_body: list
+
+@dataclass
+class WhileStmt:
+    cond: object
+    body: list
+
+@dataclass
+class FnDef:
+    name: str
+    params: list
+    body: list
+
+@dataclass
+class ReturnStmt:
+    value: object  # Expr or None
+
+@dataclass
+class ExprStmt:
+    expr: object
+
+# Expressions
+@dataclass
+class BinOp:
+    left: object
+    op: str
+    right: object
+
+@dataclass
+class UnOp:
+    op: str
+    right: object
+
+@dataclass
+class Var:
+    name: str
+
+@dataclass
+class Num:
+    value: int
+
+@dataclass
+class Call:
+    name: str
+    args: list
+
+@dataclass
+class IndexExpr:
+    obj: str   # always "ram" for now
+    index: object
+
+@dataclass
+class CondExpr:
+    left: object
+    op: str
+    right: object
+
+
+# ═══════════════════════════════════════════════════════════════
+# PARSER
+# ═══════════════════════════════════════════════════════════════
+
+class Parser:
+    def __init__(self, tokens):
+        self.tokens = tokens
+        self.pos = 0
+
+    def peek(self):
+        if self.pos < len(self.tokens):
+            return self.tokens[self.pos]
+        return Token('EOF', '', -1)
+
+    def advance(self):
+        t = self.tokens[self.pos]
+        self.pos += 1
+        return t
+
+    def expect(self, kind, value=None):
+        t = self.advance()
+        if t.kind != kind or (value is not None and t.value != value):
+            raise SyntaxError(f"Expected {kind} {value!r}, got {t} at line {t.line}")
+        return t
+
+    def match(self, kind, value=None):
+        t = self.peek()
+        if t.kind == kind and (value is None or t.value == value):
+            return self.advance()
+        return None
+
+    def skip_newlines(self):
+        while self.peek().kind == 'NEWLINE':
+            self.advance()
+
+    def parse(self):
+        stmts = []
+        self.skip_newlines()
+        while self.peek().kind != 'EOF':
+            stmts.append(self.parse_stmt())
+            self.skip_newlines()
+        return stmts
+
+    def parse_stmt(self):
+        t = self.peek()
+
+        if t.kind == 'IDENT' and t.value == 'fn':
+            return self.parse_fndef()
+        if t.kind == 'IDENT' and t.value == 'return':
+            return self.parse_return()
+        if t.kind == 'IDENT' and t.value == 'if':
+            return self.parse_if()
+        if t.kind == 'IDENT' and t.value == 'while':
+            return self.parse_while()
+
+        # Assignment: name = expr  OR  name op= expr  OR  ram[expr] = expr
+        if t.kind == 'IDENT':
+            # Look ahead for = or op= or [
+            saved = self.pos
+            name_tok = self.advance()
+
+            # ram[expr] = expr
+            if self.peek().kind == 'OP' and self.peek().value == '[':
+                self.advance()  # [
+                addr = self.parse_expr()
+                self.expect('OP', ']')
+                self.expect('OP', '=')
+                val = self.parse_expr()
+                self.expect('NEWLINE')
+                return MemStore(addr, val)
+
+            # name = expr
+            if self.peek().kind == 'OP' and self.peek().value == '=':
+                self.advance()
+                val = self.parse_expr()
+                # Check for ram[expr] on left... no, already past name
+                # Check if val is a MemLoad: ram[expr]
+                self.expect('NEWLINE')
+                return VarAssign(name_tok.value, val)
+
+            # name op= expr (+=, -=, *=, etc.)
+            if self.peek().kind == 'OP' and self.peek().value in ('+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>='):
+                op = self.advance().value
+                val = self.parse_expr()
+                self.expect('NEWLINE')
+                return VarModify(name_tok.value, op, val)
+
+            # Not assignment -- backtrack and parse as expression statement
+            self.pos = saved
+
+        # Expression statement (function call, etc.)
+        expr = self.parse_expr()
+        self.expect('NEWLINE')
+        return ExprStmt(expr)
+
+    def parse_fndef(self):
+        self.expect('IDENT', 'fn')
+        name = self.expect('IDENT').value
+        self.expect('OP', '(')
+        params = []
+        if not (self.peek().kind == 'OP' and self.peek().value == ')'):
+            params.append(self.expect('IDENT').value)
+            while self.match('OP', ','):
+                params.append(self.expect('IDENT').value)
+        self.expect('OP', ')')
+        self.expect('OP', ':')
+        self.expect('NEWLINE')
+        body = self.parse_block()
+        return FnDef(name, params, body)
+
+    def parse_return(self):
+        self.expect('IDENT', 'return')
+        if self.peek().kind == 'NEWLINE':
+            self.expect('NEWLINE')
+            return ReturnStmt(None)
+        val = self.parse_expr()
+        self.expect('NEWLINE')
+        return ReturnStmt(val)
+
+    def parse_if(self):
+        self.expect('IDENT', 'if')
+        cond = self.parse_cond()
+        self.expect('OP', ':')
+        self.expect('NEWLINE')
+        body = self.parse_block()
+        else_body = []
+        self.skip_newlines()
+        if self.peek().kind == 'IDENT' and self.peek().value == 'else':
+            self.advance()
+            if self.peek().kind == 'IDENT' and self.peek().value == 'if':
+                # elif -> parse as else { if ... }
+                elif_stmt = self.parse_if()
+                else_body = [elif_stmt]
+            else:
+                self.expect('OP', ':')
+                self.expect('NEWLINE')
+                else_body = self.parse_block()
+        return IfStmt(cond, body, else_body)
+
+    def parse_while(self):
+        self.expect('IDENT', 'while')
+        cond = self.parse_cond()
+        self.expect('OP', ':')
+        self.expect('NEWLINE')
+        body = self.parse_block()
+        return WhileStmt(cond, body)
+
+    def parse_block(self):
+        stmts = []
+        self.skip_newlines()
+        while True:
+            t = self.peek()
+            if t.kind == 'EOF':
+                break
+            if t.kind == 'IDENT' and t.value in ('else',):
+                break
+            # Stop if we hit a dedent-like condition (line with same or less indent)
+            # For simplicity: parse until EOF or a keyword that ends blocks
+            stmts.append(self.parse_stmt())
+            self.skip_newlines()
+        return stmts
+
+    def parse_cond(self):
+        left = self.parse_expr()
+        if self.peek().kind == 'OP' and self.peek().value in ('==', '!=', '<', '>', '<=', '>='):
+            op = self.advance().value
+            right = self.parse_expr()
+            return CondExpr(left, op, right)
+        return CondExpr(left, '!=', Num(0))  # truthy check
+
+    def parse_expr(self):
+        return self.parse_or()
+
+    def parse_or(self):
+        left = self.parse_and()
+        while self.peek().kind == 'OP' and self.peek().value == '|':
+            self.advance()
+            right = self.parse_and()
+            left = BinOp(left, '|', right)
+        return left
+
+    def parse_and(self):
+        left = self.parse_bitor()
+        while self.peek().kind == 'OP' and self.peek().value == '&':
+            self.advance()
+            right = self.parse_bitor()
+            left = BinOp(left, '&', right)
+        return left
+
+    def parse_bitor(self):
+        left = self.parse_xor()
+        while self.peek().kind == 'OP' and self.peek().value == '^':
+            self.advance()
+            right = self.parse_xor()
+            left = BinOp(left, '^', right)
+        return left
+
+    def parse_xor(self):
+        left = self.parse_shift()
+        return left
+
+    def parse_shift(self):
+        left = self.parse_add()
+        while self.peek().kind == 'OP' and self.peek().value in ('<<', '>>'):
+            op = self.advance().value
+            right = self.parse_add()
+            left = BinOp(left, op, right)
+        return left
+
+    def parse_add(self):
+        left = self.parse_mul()
+        while self.peek().kind == 'OP' and self.peek().value in ('+', '-'):
+            op = self.advance().value
+            right = self.parse_mul()
+            left = BinOp(left, op, right)
+        return left
+
+    def parse_mul(self):
+        left = self.parse_unary()
+        while self.peek().kind == 'OP' and self.peek().value in ('*', '/', '%'):
+            op = self.advance().value
+            right = self.parse_unary()
+            left = BinOp(left, op, right)
+        return left
+
+    def parse_unary(self):
+        if self.peek().kind == 'OP' and self.peek().value in ('-', '~'):
+            op = self.advance().value
+            right = self.parse_unary()
+            return UnOp(op, right)
+        return self.parse_primary()
+
+    def parse_primary(self):
+        t = self.peek()
+
+        if t.kind == 'NUMBER':
+            self.advance()
+            return Num(t.value)
+
+        if t.kind == 'STRING':
+            self.advance()
+            return Num(0)  # strings handled specially in builtin calls
+
+        if t.kind == 'IDENT' and t.value == 'ram':
+            self.advance()
+            self.expect('OP', '[')
+            addr = self.parse_expr()
+            self.expect('OP', ']')
+            return IndexExpr('ram', addr)
+
+        if t.kind == 'IDENT':
+            name = self.advance().value
+            # Function call?
+            if self.peek().kind == 'OP' and self.peek().value == '(':
+                self.advance()
+                args = []
+                if not (self.peek().kind == 'OP' and self.peek().value == ')'):
+                    args.append(self.parse_expr())
+                    while self.match('OP', ','):
+                        args.append(self.parse_expr())
+                self.expect('OP', ')')
+                return Call(name, args)
+            return Var(name)
+
+        if t.kind == 'OP' and t.value == '(':
+            self.advance()
+            expr = self.parse_expr()
+            self.expect('OP', ')')
+            return expr
+
+        raise SyntaxError(f"Unexpected token {t} at line {t.line}")
+
+
+# ═══════════════════════════════════════════════════════════════
+# CODE GENERATOR
+# ═══════════════════════════════════════════════════════════════
+
+class CodeGen:
+    """Generates .gasm from AST."""
+
+    def __init__(self):
+        self.output = []
+        self.reg_alloc = {}   # var name -> register index
+        self.next_reg = 0     # next free register (0-27, r28-31 reserved)
+        self.label_counter = 0
+        self.string_data = {}  # label -> string content
+        self.string_counter = 0
+        self.fn_labels = {}    # fn name -> label
+        self.zero_reg = 31     # r31 is always 0
+
+    def fresh_label(self, hint="L"):
+        self.label_counter += 1
+        return f"{hint}_{self.label_counter}"
+
+    def alloc_reg(self, var_name):
+        """Allocate a register for a variable."""
+        if var_name in self.reg_alloc:
+            return self.reg_alloc[var_name]
+        if self.next_reg >= 28:
+            raise RuntimeError(f"Out of registers (max r27). Variables: {list(self.reg_alloc.keys())}")
+        reg = self.next_reg
+        self.next_reg += 1
+        self.reg_alloc[var_name] = reg
+        return reg
+
+    def get_reg(self, var_name):
+        if var_name not in self.reg_alloc:
+            return self.alloc_reg(var_name)
+        return self.reg_alloc[var_name]
+
+    def reg_name(self, idx):
+        return f"r{idx}"
+
+    def emit(self, line):
+        self.output.append(line)
+
+    def emit_comment(self, text):
+        self.output.append(f"; {text}")
+
+    def emit_label(self, name):
+        self.output.append(f"{name}:")
+
+    def ensure_zero(self):
+        """Make sure r31 = 0. Call before any comparison."""
+        self.emit(f"LDI {self.reg_name(self.zero_reg)}, 0  ; zero register")
+
+    def generate(self, stmts):
+        self.emit_comment("Generated by pixelc -- Pixel Compiler for Geometry OS")
+        self.emit("")
+
+        # First pass: collect function definitions
+        fn_stmts = []
+        main_stmts = []
+        for s in stmts:
+            if isinstance(s, FnDef):
+                label = f"fn_{s.name}"
+                self.fn_labels[s.name] = label
+                # Allocate registers for params
+                for p in s.params:
+                    self.alloc_reg(p)
+                fn_stmts.append(s)
+            else:
+                main_stmts.append(s)
+
+        # Generate functions
+        for fn in fn_stmts:
+            self.emit_label(self.fn_labels[fn.name])
+            for s in fn.body:
+                self.gen_stmt(s)
+            self.emit("RET")
+            self.emit("")
+
+        # Generate main
+        self.emit_label("main")
+        for s in main_stmts:
+            self.gen_stmt(s)
+        self.emit("HALT")
+
+        # Generate string data at end
+        if self.string_data:
+            self.emit("")
+            self.emit_comment("String data")
+            for label, content in self.string_data.items():
+                self.emit(f"{label}:")
+                for ch in content:
+                    self.emit(f"    ${ord(ch):02X}")
+                self.emit(f"    $00  ; null terminator")
+
+        return "\n".join(self.output)
+
+    def gen_stmt(self, stmt):
+        if isinstance(stmt, VarAssign):
+            self.gen_assign(stmt)
+        elif isinstance(stmt, VarModify):
+            self.gen_modify(stmt)
+        elif isinstance(stmt, MemStore):
+            self.gen_memstore(stmt)
+        elif isinstance(stmt, MemLoad):
+            self.gen_memload(stmt)
+        elif isinstance(stmt, BuiltinCall):
+            self.gen_builtin(stmt)
+        elif isinstance(stmt, IfStmt):
+            self.gen_if(stmt)
+        elif isinstance(stmt, WhileStmt):
+            self.gen_while(stmt)
+        elif isinstance(stmt, FnDef):
+            # Already handled in first pass, but handle nested
+            label = f"fn_{stmt.name}"
+            self.fn_labels[stmt.name] = label
+            self.emit_label(label)
+            for s in stmt.body:
+                self.gen_stmt(s)
+            self.emit("RET")
+        elif isinstance(stmt, ReturnStmt):
+            self.gen_return(stmt)
+        elif isinstance(stmt, ExprStmt):
+            self.gen_expr(stmt.expr)  # result discarded
+        else:
+            raise RuntimeError(f"Unknown stmt: {type(stmt).__name__}")
+
+    def gen_assign(self, stmt):
+        self.emit_comment(f"{stmt.name} = ...")
+        target_reg = self.alloc_reg(stmt.name)
+        self.gen_expr_to_reg(stmt.value, target_reg)
+
+    def gen_modify(self, stmt):
+        """Handle x += y, x -= y, etc."""
+        self.emit_comment(f"{stmt.name} {stmt.op} ...")
+        target_reg = self.get_reg(stmt.name)
+        self.gen_binop_to_reg(stmt.op[:-1], Var(stmt.name), stmt.value, target_reg)
+
+    def gen_memstore(self, stmt):
+        """ram[addr] = val"""
+        self.emit_comment("ram[addr] = val")
+        # We need addr in a register and val in a register
+        addr_reg = self.next_reg
+        self.next_reg += 1
+        val_reg = self.next_reg
+        self.next_reg += 1
+
+        if self.next_reg > 30:
+            raise RuntimeError("Out of registers for memstore")
+
+        self.gen_expr_to_reg(stmt.addr, addr_reg)
+        self.gen_expr_to_reg(stmt.value, val_reg)
+        self.emit(f"STORE {self.reg_name(addr_reg)}, {self.reg_name(val_reg)}")
+
+        # Free temp regs
+        self.next_reg -= 2
+
+    def gen_memload(self, stmt):
+        """name = ram[addr]"""
+        self.emit_comment(f"{stmt.name} = ram[addr]")
+        dst_reg = self.alloc_reg(stmt.name)
+        addr_reg = self.next_reg
+        self.next_reg += 1
+
+        if self.next_reg > 30:
+            raise RuntimeError("Out of registers for memload")
+
+        self.gen_expr_to_reg(stmt.addr, addr_reg)
+        self.emit(f"LOAD {self.reg_name(dst_reg)}, {self.reg_name(addr_reg)}")
+
+        self.next_reg -= 1
+
+    def gen_if(self, stmt):
+        else_label = self.fresh_label("else")
+        end_label = self.fresh_label("endif")
+
+        self.emit_comment("if ...")
+        self.gen_branch_if_false(stmt.cond, else_label)
+
+        for s in stmt.body:
+            self.gen_stmt(s)
+
+        if stmt.else_body:
+            self.emit(f"JMP {end_label}")
+            self.emit_label(else_label)
+            for s in stmt.else_body:
+                self.gen_stmt(s)
+            self.emit_label(end_label)
+        else:
+            self.emit_label(else_label)
+
+    def gen_while(self, stmt):
+        loop_label = self.fresh_label("while")
+        end_label = self.fresh_label("endwhile")
+
+        self.emit_label(loop_label)
+        self.emit_comment("while ...")
+        self.gen_branch_if_false(stmt.cond, end_label)
+
+        for s in stmt.body:
+            self.gen_stmt(s)
+
+        self.emit(f"JMP {loop_label}")
+        self.emit_label(end_label)
+
+    def gen_return(self, stmt):
+        if stmt.value is not None:
+            self.gen_expr_to_reg(stmt.value, 0)  # return value in r0
+        self.emit("RET")
+
+    def gen_branch_if_false(self, cond, label):
+        """Emit a branch to `label` if condition is FALSE."""
+        if not isinstance(cond, CondExpr):
+            # Treat as truthy: branch if == 0
+            temp_reg = self.next_reg
+            self.next_reg += 1
+            self.gen_expr_to_reg(cond, temp_reg)
+            self.ensure_zero()
+            self.emit(f"BEQ {self.reg_name(temp_reg)}, {self.reg_name(self.zero_reg)}, {label}")
+            self.next_reg -= 1
+            return
+
+        left_reg = self.next_reg
+        self.next_reg += 1
+        right_reg = self.next_reg
+        self.next_reg += 1
+
+        if self.next_reg > 30:
+            raise RuntimeError("Out of registers for branch")
+
+        self.gen_expr_to_reg(cond.left, left_reg)
+        self.gen_expr_to_reg(cond.right, right_reg)
+
+        # Branch to label if condition is FALSE (inverted)
+        inverted = {
+            '==': 'BNE',   '!=': 'BEQ',
+            '<':  'BGE',   '>':  'BLE',
+            '<=': 'BGT',   '>=': 'BLT',
+        }
+        branch_op = inverted.get(cond.op)
+        if branch_op is None:
+            raise RuntimeError(f"Unknown comparison operator: {cond.op}")
+
+        self.emit(f"{branch_op} {self.reg_name(left_reg)}, {self.reg_name(right_reg)}, {label}")
+        self.next_reg -= 2
+
+    def gen_expr_to_reg(self, expr, target_reg):
+        """Generate code to evaluate expr and put result in target_reg."""
+        if isinstance(expr, Num):
+            self.emit(f"LDI {self.reg_name(target_reg)}, {expr.value}")
+        elif isinstance(expr, Var):
+            src = self.get_reg(expr.name)
+            if src != target_reg:
+                self.emit(f"MOV {self.reg_name(target_reg)}, {self.reg_name(src)}")
+        elif isinstance(expr, BinOp):
+            self.gen_binop_to_reg(expr.op, expr.left, expr.right, target_reg)
+        elif isinstance(expr, UnOp):
+            if expr.op == '-':
+                self.gen_expr_to_reg(expr.right, target_reg)
+                self.ensure_zero()
+                self.emit(f"SUB {self.reg_name(self.zero_reg)}, {self.reg_name(target_reg)}")
+                self.emit(f"MOV {self.reg_name(target_reg)}, {self.reg_name(self.zero_reg)}")
+            elif expr.op == '~':
+                self.gen_expr_to_reg(expr.right, target_reg)
+                self.emit(f"NOT {self.reg_name(target_reg)}")
+        elif isinstance(expr, IndexExpr):
+            if expr.obj == 'ram':
+                addr_reg = self.next_reg
+                self.next_reg += 1
+                self.gen_expr_to_reg(expr.index, addr_reg)
+                self.emit(f"LOAD {self.reg_name(target_reg)}, {self.reg_name(addr_reg)}")
+                self.next_reg -= 1
+        elif isinstance(expr, Call):
+            # Check builtins first
+            builtin = self.gen_builtin_call(expr.name, expr.args, target_reg)
+            if not builtin:
+                # User function call
+                if expr.name in self.fn_labels:
+                    # Put args in r0, r1, etc.
+                    for i, arg in enumerate(expr.args):
+                        self.gen_expr_to_reg(arg, i)
+                    self.emit(f"CALL {self.fn_labels[expr.name]}")
+                    # Return value in r0, move to target
+                    if target_reg != 0:
+                        self.emit(f"MOV {self.reg_name(target_reg)}, r0")
+                else:
+                    raise RuntimeError(f"Unknown function: {expr.name}")
+        else:
+            raise RuntimeError(f"Cannot generate code for: {type(expr).__name__}")
+
+    def gen_binop_to_reg(self, op, left, right, target_reg):
+        """Generate binary operation: left op right -> target_reg"""
+        # Handle left side
+        self.gen_expr_to_reg(left, target_reg)
+
+        # Need a temp reg for right side
+        right_reg = self.next_reg
+        self.next_reg += 1
+
+        if self.next_reg > 30:
+            raise RuntimeError("Out of registers for binop")
+
+        # If right is a simple number, use LDI + op directly
+        if isinstance(right, Num):
+            self.emit(f"LDI {self.reg_name(right_reg)}, {right.value}")
+        else:
+            self.gen_expr_to_reg(right, right_reg)
+
+        op_map = {
+            '+': 'ADD', '-': 'SUB', '*': 'MUL', '/': 'DIV', '%': 'MOD',
+            '&': 'AND', '|': 'OR', '^': 'XOR',
+            '<<': 'SHL', '>>': 'SHR',
+        }
+        gasm_op = op_map.get(op)
+        if gasm_op is None:
+            raise RuntimeError(f"Unknown operator: {op}")
+
+        self.emit(f"{gasm_op} {self.reg_name(target_reg)}, {self.reg_name(right_reg)}")
+        self.next_reg -= 1
+
+    def gen_builtin_call(self, name, args, target_reg):
+        """Generate code for builtin functions. Returns True if handled."""
+        if name == 'halt':
+            self.emit("HALT")
+            return True
+        if name == 'nop':
+            self.emit("NOP")
+            return True
+        if name == 'yield':
+            self.emit("YIELD")
+            return True
+        if name == 'pixel' or name == 'pset':
+            # pixel(x, y, color) -> PSET xReg, yReg, colorReg
+            regs = []
+            for i, arg in enumerate(args):
+                r = self.next_reg + i
+                self.gen_expr_to_reg(arg, r)
+                regs.append(self.reg_name(r))
+            self.emit(f"PSET {', '.join(regs)}")
+            self.next_reg += len(args)
+            self.next_reg -= len(args)
+            return True
+        if name == 'rect' or name == 'rectf':
+            regs = []
+            for i, arg in enumerate(args):
+                r = self.next_reg + i
+                self.gen_expr_to_reg(arg, r)
+                regs.append(self.reg_name(r))
+            self.emit(f"RECTF {', '.join(regs)}")
+            return True
+        if name == 'circle' or name == 'circlef':
+            regs = []
+            for i, arg in enumerate(args):
+                r = self.next_reg + i
+                self.gen_expr_to_reg(arg, r)
+                regs.append(self.reg_name(r))
+            self.emit(f"CIRCLEF {', '.join(regs)}")
+            return True
+        if name == 'line':
+            regs = []
+            for i, arg in enumerate(args):
+                r = self.next_reg + i
+                self.gen_expr_to_reg(arg, r)
+                regs.append(self.reg_name(r))
+            self.emit(f"LINE {', '.join(regs)}")
+            return True
+        if name == 'text':
+            if len(args) < 3:
+                raise RuntimeError("text(x, y, str) needs 3 args")
+            x_reg = self.next_reg
+            y_reg = self.next_reg + 1
+            self.gen_expr_to_reg(args[0], x_reg)
+            self.gen_expr_to_reg(args[1], y_reg)
+            # String arg -> data label
+            if isinstance(args[2], Num) or isinstance(args[2], Var):
+                str_reg = self.next_reg + 2
+                self.gen_expr_to_reg(args[2], str_reg)
+                self.emit(f"TEXT {self.reg_name(x_reg)}, {self.reg_name(y_reg)}, {self.reg_name(str_reg)}")
+            else:
+                raise RuntimeError("text() string arg must be a variable or address")
+            return True
+        if name == 'spawn':
+            if len(args) < 1:
+                raise RuntimeError("spawn(addr) needs at least 1 arg")
+            addr_reg = self.next_reg
+            arg_reg = self.next_reg + 1
+            self.gen_expr_to_reg(args[0], addr_reg)
+            if len(args) > 1:
+                self.gen_expr_to_reg(args[1], arg_reg)
+            else:
+                self.emit(f"LDI {self.reg_name(arg_reg)}, 0")
+            self.emit(f"SPAWN {self.reg_name(addr_reg)}, {self.reg_name(arg_reg)}")
+            return True
+        if name == 'fork':
+            self.emit("FORK")
+            return True
+        if name == 'send':
+            self.emit("SEND")
+            return True
+        if name == 'recv':
+            self.emit("RECV")
+            return True
+        if name == 'push':
+            if len(args) < 1:
+                raise RuntimeError("push(val) needs 1 arg")
+            r = self.next_reg
+            self.gen_expr_to_reg(args[0], r)
+            self.emit(f"PUSH {self.reg_name(r)}")
+            return True
+        if name == 'pop':
+            self.emit(f"POP {self.reg_name(target_reg)}")
+            return True
+        return False
+
+    def gen_expr(self, expr):
+        """Evaluate expression, discarding result (for expression statements)."""
+        if isinstance(expr, Call):
+            if not self.gen_builtin_call(expr.name, expr.args, 0):
+                # User function call
+                if expr.name in self.fn_labels:
+                    for i, arg in enumerate(expr.args):
+                        self.gen_expr_to_reg(arg, i)
+                    self.emit(f"CALL {self.fn_labels[expr.name]}")
+                else:
+                    raise RuntimeError(f"Unknown function: {expr.name}")
+        else:
+            # Just evaluate, discard
+            r = self.next_reg
+            self.next_reg += 1
+            self.gen_expr_to_reg(expr, r)
+            self.next_reg -= 1
+
+
+# ═══════════════════════════════════════════════════════════════
+# MAIN
+# ═══════════════════════════════════════════════════════════════
+
+def main():
+    parser = argparse.ArgumentParser(description="Pixel Compiler for Geometry OS")
+    parser.add_argument("input", help="Input .gp file")
+    parser.add_argument("-o", "--output", help="Output .gasm file (default: stdout)")
+    parser.add_argument("--run", action="store_true", help="Compile, assemble, and run")
+    args = parser.parse_args()
+
+    with open(args.input, "r") as f:
+        source = f.read()
+
+    tokens = tokenize(source)
+    p = Parser(tokens)
+    ast = p.parse()
+
+    gen = CodeGen()
+    gasm = gen.generate(ast)
+
+    if args.output:
+        with open(args.output, "w") as f:
+            f.write(gasm + "\n")
+        print(f"Wrote {args.output}", file=sys.stderr)
+    else:
+        print(gasm)
+
+    if args.run:
+        import subprocess
+        asm_file = args.output or args.input.replace('.gp', '.asm')
+        if not args.output:
+            with open(asm_file, "w") as f:
+                f.write(gasm + "\n")
+        # TODO: invoke cargo run with the assembled file
+        print("Run mode not yet implemented -- use F8 in the editor to load the .gasm file")
+
+if __name__ == "__main__":
+    main()
