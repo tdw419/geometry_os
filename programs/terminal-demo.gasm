@@ -1,0 +1,145 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/terminal-demo.gasm -- Terminal scrolling demo
+;
+; Demonstrates the scrollable text buffer by printing a series of
+; numbered lines that exceed the 36-row viewport, triggering auto-scroll.
+; Then shows cursor positioning and character output.
+;
+; Terminal registers (0xFFD8-0xFFDF):
+;   0xFFD8 = TERM_CHAR (write to output, read for char at cursor)
+;   0xFFD9 = TERM_CURSOR_X
+;   0xFFDA = TERM_CURSOR_Y
+;   0xFFDB = TERM_SCROLL
+;   0xFFDC = TERM_COLS (51)
+;   0xFFDD = TERM_ROWS (36)
+;   0xFFDE = TERM_LINES (total)
+;   0xFFDF = TERM_CLEAR
+; ═══════════════════════════════════════════════════════════════════════
+
+; ── Code section ─────────────────────────────────────────────────────
+.TEXT
+
+; Phase 1: Print banner "Hello, Terminal!"
+    LDI r5, 0xFFD8        ; TERM_CHAR_ADDR
+    LDI r0, 'H'
+    STORE r5, r0
+    LDI r0, 'e'
+    STORE r5, r0
+    LDI r0, 'l'
+    STORE r5, r0
+    LDI r0, 'l'
+    STORE r5, r0
+    LDI r0, 'o'
+    STORE r5, r0
+    LDI r0, ','
+    STORE r5, r0
+    LDI r0, ' '
+    STORE r5, r0
+    LDI r0, 'T'
+    STORE r5, r0
+    LDI r0, 'e'
+    STORE r5, r0
+    LDI r0, 'r'
+    STORE r5, r0
+    LDI r0, 'm'
+    STORE r5, r0
+    LDI r0, 'i'
+    STORE r5, r0
+    LDI r0, 'n'
+    STORE r5, r0
+    LDI r0, 'a'
+    STORE r5, r0
+    LDI r0, 'l'
+    STORE r5, r0
+    LDI r0, '!'
+    STORE r5, r0
+    LDI r0, 10            ; newline
+    STORE r5, r0
+    LDI r0, 10            ; blank line
+    STORE r5, r0
+
+; Phase 2: Print 40 numbered lines to trigger scrolling
+; Format: "Line N" where N is 0-39
+    LDI r6, 0              ; r6 = line counter (0-39)
+    LDI r7, 40             ; r7 = target
+
+print_loop:
+    ; Print "Line "
+    LDI r0, 'L'
+    STORE r5, r0
+    LDI r0, 'i'
+    STORE r5, r0
+    LDI r0, 'n'
+    STORE r5, r0
+    LDI r0, 'e'
+    STORE r5, r0
+    LDI r0, ' '
+    STORE r5, r0
+
+    ; Print line number (r6) as decimal
+    ; Handle tens digit
+    PUSH r6
+    PUSH r7
+    MOV r0, r6
+    LDI r1, 10
+    DIV r0, r1             ; r0 = tens digit
+    LDI r2, 0
+    BEQ r0, r2, skip_tens
+    LDI r2, 48             ; '0'
+    ADD r0, r2             ; ASCII tens digit
+    STORE r5, r0
+
+skip_tens:
+    ; Handle ones digit: r6 mod 10
+    POP r7
+    POP r6
+    MOV r0, r6
+    LDI r1, 10
+    DIV r0, r1             ; r0 = r6 / 10
+    MUL r0, r1             ; r0 = (r6/10)*10
+    MOV r3, r6
+    SUB r3, r0             ; r3 = r6 mod 10
+    LDI r0, 48             ; '0'
+    ADD r3, r0             ; ASCII ones digit
+    STORE r5, r3
+
+    ; Newline
+    LDI r0, 10
+    STORE r5, r0
+
+    ; Increment and loop
+    LDI r0, 1
+    ADD r6, r0
+    BNE r6, r7, print_loop
+
+; Phase 3: Print blank line and done message
+    LDI r0, 10
+    STORE r5, r0           ; blank line
+    LDI r0, '='
+    STORE r5, r0
+    LDI r0, '='
+    STORE r5, r0
+    LDI r0, '='
+    STORE r5, r0
+    LDI r0, ' '
+    STORE r5, r0
+    LDI r0, 'D'
+    STORE r5, r0
+    LDI r0, 'O'
+    STORE r5, r0
+    LDI r0, 'N'
+    STORE r5, r0
+    LDI r0, 'E'
+    STORE r5, r0
+    LDI r0, ' '
+    STORE r5, r0
+    LDI r0, '='
+    STORE r5, r0
+    LDI r0, '='
+    STORE r5, r0
+    LDI r0, '='
+    STORE r5, r0
+    LDI r0, 10
+    STORE r5, r0
+
+    HALT
