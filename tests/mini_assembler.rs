@@ -405,3 +405,179 @@ fn editor_save_then_assemble() {
     assert_eq!(vm.ram[STATUS_ADDR], 0, "compilation should succeed");
     assert_eq!(vm.ram[LENGTH_ADDR], 1, "output length should be 1");
 }
+
+// ── SPAWN FROM ASSEMBLED BYTECODE ──────────────────────────────────
+
+/// Load the run-compiled orchestrator into a VM's RAM at 0x3C00.
+fn load_orchestrator(vm: &mut Vm) {
+    let path = std::path::Path::new("programs/run-compiled.gasm");
+    let orch = assembler::assemble_file(path, &[]).expect("run-compiled.gasm should assemble");
+    // The orchestrator uses .ORG 0x3C00, so pixels[0x3C00..] have the code.
+    // Copy only from 0x3C00 onward to preserve earlier regions.
+    for (i, &pixel) in orch.pixels.iter().enumerate() {
+        if i >= 0x3C00 && i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+}
+
+#[test]
+fn spawn_from_compiled_bytecode() {
+    // Full pipeline: assemble source → orchestrator SPAWNs child → child runs
+    let mut vm = vm_with_mini_assembler();
+
+    // Compile "LDI r0, 42; HALT" via mini-assembler
+    // Syntax: I (LDI) 0 (r0) $2A (42) newline H (HALT)
+    run_assembler(&mut vm, "I 0 $2A\nH");
+    assert_eq!(vm.ram[STATUS_ADDR], 0, "compilation should succeed");
+
+    // Verify bytecode is correct at 0x3000
+    // Mini-assembler emits: I(0x49), '0'(0x30=r0), $2A(42), H(0x48) = 4 words
+    let out = read_output(&vm);
+    assert_eq!(out.len(), 4, "should have 4 words: LDI, r0, 42, HALT");
+    assert_eq!(out[0], LDI, "first word should be LDI opcode");
+    assert_eq!(out[1], 0x30, "second word should be '0' (r0 via ASCII)");
+    assert_eq!(out[2], 0x2A, "third word should be 42");
+    assert_eq!(out[3], HALT, "fourth word should be HALT");
+
+    // Load orchestrator at 0x3C00
+    load_orchestrator(&mut vm);
+
+    // Run orchestrator using checked execution (uses resolve_addr for SPAWN)
+    vm.pc = 0x3C00;
+    vm.halted = false;
+    vm.yielded = false;
+    vm.run_checked().expect("orchestrator should execute cleanly");
+
+    // Orchestrator should have halted
+    assert!(vm.halted, "orchestrator should halt after spawn");
+
+    // Verify no error flag at 0x3FFD
+    assert_eq!(vm.ram.get(0x3FFD).copied().unwrap_or(0), 0, "no error flag should be set");
+
+    // Drain children -- orchestrator should have spawned exactly one
+    let children = vm.drain_children();
+    assert_eq!(children.len(), 1, "orchestrator should spawn exactly 1 child");
+    assert_eq!(children[0].start_addr, OUTPUT_ADDR as u32, "child should start at 0x3000");
+
+    // Create child VM and run it
+    let mut child = vm.spawn_child(&children[0]);
+    child.run();
+
+    // Verify child executed the bytecode correctly
+    assert!(child.halted, "child should halt after running compiled bytecode");
+    assert_eq!(child.regs[0], 0x2A, "child r0 should be 42 (LDI r0, 42)");
+}
+
+#[test]
+fn spawn_from_compiled_counter() {
+    // Compile: LDI r0 0; LDI r1 1; ADD r0 r1; HALT → spawn child → verify
+    let mut vm = vm_with_mini_assembler();
+    run_assembler(&mut vm, "I 0 $00\nI 1 $01\nA 0 1\nH");
+    assert_eq!(vm.ram[STATUS_ADDR], 0, "compilation should succeed");
+
+    load_orchestrator(&mut vm);
+    vm.pc = 0x3C00;
+    vm.halted = false;
+    vm.yielded = false;
+    vm.run_checked().expect("orchestrator should execute cleanly");
+
+    let children = vm.drain_children();
+    assert_eq!(children.len(), 1);
+
+    let mut child = vm.spawn_child(&children[0]);
+    child.run();
+
+    assert!(child.halted, "child should halt");
+    assert_eq!(child.regs[0], 1, "child r0 should be 1 (0+1)");
+}
+
+#[test]
+fn spawn_skips_on_assembler_error() {
+    // If assembler had an error, orchestrator should NOT spawn
+    let mut vm = vm_with_mini_assembler();
+
+    // Use a source with an undefined label reference (will error)
+    run_assembler(&mut vm, "@undefined\nH");
+    assert_eq!(vm.ram[STATUS_ADDR], 1, "compilation should fail");
+
+    load_orchestrator(&mut vm);
+    vm.pc = 0x3C00;
+    vm.halted = false;
+    vm.yielded = false;
+    vm.run_checked().expect("orchestrator should execute cleanly");
+
+    assert!(vm.halted, "orchestrator should halt");
+    // Should NOT have spawned any children
+    let children = vm.drain_children();
+    assert_eq!(children.len(), 0, "should not spawn child on assembler error");
+
+    // Error flag should be set
+    assert_eq!(vm.ram.get(0x3FFD).copied().unwrap_or(0), 1, "error flag should be set");
+}
+
+#[test]
+fn full_pipeline_editor_assemble_spawn() {
+    // End-to-end: editor saves source → assembler compiles → orchestrator spawns child
+    use geometry_os::assembler;
+
+    // Step 1: Assemble and run the editor, type "H" (HALT), save
+    let editor_path = std::path::Path::new("programs/mini-editor.gasm");
+    let editor_asm = assembler::assemble_file(editor_path, &[]).expect("editor should assemble");
+    let mut vm = Vm::new(RAM_SIZE);
+    for (i, &pixel) in editor_asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.run();
+
+    // Type 'H'
+    vm.ram[0xFFF] = 0x48;
+    vm.halted = false;
+    vm.yielded = false;
+    vm.run();
+
+    // Ctrl+S
+    vm.ram[0xFFF] = 0x13;
+    vm.halted = false;
+    vm.yielded = false;
+    vm.run();
+
+    // Verify source saved
+    assert_eq!(vm.ram[0x2000], 0x48, "source should contain 'H'");
+
+    // Step 2: Load mini-assembler and compile
+    let asm_path = std::path::Path::new("programs/mini-assembler.gasm");
+    let asm_result = assembler::assemble_file(asm_path, &[]).expect("mini-assembler should assemble");
+    for (i, &pixel) in asm_result.pixels.iter().enumerate() {
+        if i >= ASM_ADDR && i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    for v in vm.ram[LABEL_TABLE..0x3B00].iter_mut() {
+        *v = 0;
+    }
+    vm.pc = ASM_ADDR as u32;
+    vm.halted = false;
+    vm.yielded = false;
+    while !vm.halted && !vm.yielded {
+        vm.run();
+    }
+
+    assert_eq!(vm.ram[STATUS_ADDR], 0, "compilation should succeed");
+    assert_eq!(vm.ram[LENGTH_ADDR], 1, "output length should be 1 (just HALT)");
+
+    // Step 3: Load orchestrator and run it
+    load_orchestrator(&mut vm);
+    vm.pc = 0x3C00;
+    vm.halted = false;
+    vm.yielded = false;
+    vm.run_checked().expect("orchestrator should execute cleanly");
+    let children = vm.drain_children();
+    assert_eq!(children.len(), 1, "orchestrator should spawn 1 child");
+
+    let mut child = vm.spawn_child(&children[0]);
+    child.run();
+    assert!(child.halted, "child should halt (executed HALT bytecode)");
+}

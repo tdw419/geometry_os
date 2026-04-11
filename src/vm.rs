@@ -2615,7 +2615,7 @@ impl Vm {
 
             // ── Q (0x51): SPAWN addr, arg ──────────
             op::SPAWN => {
-                let addr = args[0];
+                let addr = self.resolve_addr(args[0]);
                 let arg = args[1];
                 self.children.push(ChildVm::new(addr, arg));
                 Ok(None)
@@ -2625,7 +2625,7 @@ impl Vm {
             op::SPATIAL_SPAWN => {
                 let x = args[0];
                 let y = args[1];
-                let addr = args[2];
+                let addr = self.resolve_addr(args[2]);
                 // Pass position to child via r0 (packed) and store x,y on ChildVm
                 self.children.push(ChildVm::at(addr, (y << 16) | (x & 0xFFFF), x, y));
                 Ok(None)
