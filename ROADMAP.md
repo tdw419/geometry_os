@@ -20,7 +20,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 729 tests (430 integration + 299 inline) — build passing, all tests green
+- 1028 tests (729 integration + 299 inline) — build passing, all tests green
 - 49 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
@@ -79,7 +79,7 @@ AI-written demos      AI-written OS that humans use
 ## Phase 4: I/O Expansion (the device driver layer)
 
 - [x] Mouse input (memory-mapped x, y, buttons)
-- [x] Audio output (square wave, memory-mapped)
+- [x] Audio output (square wave, memory-mapped) — programs/audio-demo.gasm
 - [x] Sprite system (SPAWN entities, auto-update) — ChildVm with x/y/w/h, positional compositing, frame-limited execution, lib/sprite.gasm, programs/sprites-demo.gasm
 - [x] Scrollable text buffer (terminal output) — TextBuffer struct with memory-mapped I/O registers (0xFFD8–0xFFDF), auto-wrap at 51 cols, auto-scroll past 36 rows, lib/terminal.gasm, programs/terminal-demo.gasm, 19 tests
 - [x] Timer demo (interrupt-driven timer) — programs/timer-demo.gasm
