@@ -565,6 +565,77 @@ impl WindowTable {
     }
 }
 
+/// Size of VM screen buffers (width and height in pixels).
+pub const VM_SCREEN_SIZE: usize = 256;
+
+/// Composite all visible windows onto an output buffer using painter's algorithm.
+///
+/// For each visible entry in `table` (sorted by z_order ascending), blits the
+/// corresponding VM's screen buffer onto `output`. The output buffer is
+/// `out_width x out_height` pixels. Each VM screen is 256x256.
+///
+/// The `screens` map provides the screen buffer for each VM (keyed by pid).
+/// Pixels with value 0 are treated as transparent (not drawn), allowing
+/// overlapping windows to layer correctly.
+///
+/// Returns the number of windows composited.
+pub fn composite(
+    table: &WindowTable,
+    screens: &std::collections::HashMap<u32, &[u32]>,
+    output: &mut [u32],
+    out_width: usize,
+    out_height: usize,
+) -> usize {
+    // Clear output to black
+    output.fill(0);
+
+    let mut count = 0;
+    for entry in table.visible_sorted() {
+        if let Some(screen) = screens.get(&entry.vm_id) {
+            blit_window(screen, entry, output, out_width, out_height);
+            count += 1;
+        }
+    }
+    count
+}
+
+/// Blit a single VM's screen buffer onto the output at the window's position.
+///
+/// Reads from the VM's 256x256 screen buffer, writing non-zero pixels to the
+/// output at (entry.x, entry.y) through (entry.x + entry.w, entry.y + entry.h).
+fn blit_window(
+    screen: &[u32],
+    entry: &WindowEntry,
+    output: &mut [u32],
+    out_width: usize,
+    out_height: usize,
+) {
+    let ew = entry.w as usize;
+    let eh = entry.h as usize;
+    let ex = entry.x as usize;
+    let ey = entry.y as usize;
+
+    for row in 0..eh {
+        let out_y = ey + row;
+        if out_y >= out_height {
+            break;
+        }
+        for col in 0..ew {
+            let out_x = ex + col;
+            if out_x >= out_width {
+                break;
+            }
+            // Scale from window coords to VM screen coords
+            let src_x = (col * VM_SCREEN_SIZE) / ew;
+            let src_y = (row * VM_SCREEN_SIZE) / eh;
+            let pixel = screen[src_y * VM_SCREEN_SIZE + src_x];
+            if pixel != 0 {
+                output[out_y * out_width + out_x] = pixel;
+            }
+        }
+    }
+}
+
 /// Event returned by the window manager on mouse interactions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClickEvent {
@@ -1045,5 +1116,146 @@ mod tests {
 
         // Click at (192, 96) -- assembler area
         assert_eq!(t.hit_test(192, 96).unwrap().vm_id, 3);
+    }
+
+    // ---- Compositor tests ----
+
+    use std::collections::HashMap;
+
+    /// Helper: create a 256x256 screen with a single colored pixel at (sx, sy).
+    fn make_screen_with_pixel(sx: usize, sy: usize, color: u32) -> Vec<u32> {
+        let mut screen = vec![0u32; VM_SCREEN_SIZE * VM_SCREEN_SIZE];
+        screen[sy * VM_SCREEN_SIZE + sx] = color;
+        screen
+    }
+
+    /// Helper: create a 256x256 screen filled with a solid color.
+    fn make_solid_screen(color: u32) -> Vec<u32> {
+        vec![color; VM_SCREEN_SIZE * VM_SCREEN_SIZE]
+    }
+
+    #[test]
+    fn composite_single_window_blits_pixel() {
+        let mut table = WindowTable::new();
+        table.add(WindowEntry::new(1, 0, 0, 64, 64, 0));
+
+        let screen = make_screen_with_pixel(0, 0, 0xFF0000); // red pixel at (0,0)
+        let mut screens = HashMap::new();
+        screens.insert(1u32, screen.as_slice());
+
+        let mut output = vec![0u32; 256 * 256];
+        let count = composite(&table, &screens, &mut output, 256, 256);
+
+        assert_eq!(count, 1);
+        // The 64x64 window maps VM (0,0) to output (0,0)
+        assert_eq!(output[0], 0xFF0000);
+    }
+
+    #[test]
+    fn composite_clears_output_first() {
+        let table = WindowTable::new(); // empty table
+
+        let mut output = vec![0xFFFFFFu32; 64 * 64]; // all white
+        let count = composite(&table, &HashMap::new(), &mut output, 64, 64);
+
+        assert_eq!(count, 0);
+        assert!(output.iter().all(|&p| p == 0)); // all black
+    }
+
+    #[test]
+    fn composite_two_windows_z_order() {
+        let mut table = WindowTable::new();
+        // Window 1: full 64x64 background, z=0
+        table.add(WindowEntry::new(1, 0, 0, 64, 64, 0));
+        // Window 2: top-left 32x32, z=1 (on top)
+        table.add(WindowEntry::new(2, 0, 0, 32, 32, 1));
+
+        let bg_screen = make_solid_screen(0x0000FF); // blue
+        let fg_screen = make_solid_screen(0xFF0000); // red
+
+        let mut screens = HashMap::new();
+        screens.insert(1u32, bg_screen.as_slice());
+        screens.insert(2u32, fg_screen.as_slice());
+
+        let mut output = vec![0u32; 64 * 64];
+        let count = composite(&table, &screens, &mut output, 64, 64);
+
+        assert_eq!(count, 2);
+        // Top-left 32x32 should be red (foreground)
+        assert_eq!(output[0], 0xFF0000);
+        assert_eq!(output[31 * 64 + 31], 0xFF0000);
+        // Bottom-right should be blue (background only)
+        assert_eq!(output[63 * 64 + 63], 0x0000FF);
+    }
+
+    #[test]
+    fn composite_skips_hidden_window() {
+        let mut table = WindowTable::new();
+        let mut hidden = WindowEntry::new(1, 0, 0, 64, 64, 0);
+        hidden.visible = false;
+        table.add(hidden);
+
+        let screen = make_solid_screen(0xFFFFFF);
+        let mut screens = HashMap::new();
+        screens.insert(1u32, screen.as_slice());
+
+        let mut output = vec![0u32; 64 * 64];
+        let count = composite(&table, &screens, &mut output, 64, 64);
+
+        assert_eq!(count, 0);
+        assert!(output.iter().all(|&p| p == 0));
+    }
+
+    #[test]
+    fn composite_skips_missing_screen() {
+        let mut table = WindowTable::new();
+        table.add(WindowEntry::new(1, 0, 0, 64, 64, 0));
+        // No screen for vm_id=1 in the map
+
+        let mut output = vec![0u32; 64 * 64];
+        let count = composite(&table, &HashMap::new(), &mut output, 64, 64);
+
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn composite_position_offset() {
+        let mut table = WindowTable::new();
+        // Window at position (32, 16), size 4x4
+        table.add(WindowEntry::new(1, 32, 16, 4, 4, 0));
+
+        // Put a red pixel at VM (0,0)
+        let screen = make_screen_with_pixel(0, 0, 0xFF0000);
+        let mut screens = HashMap::new();
+        screens.insert(1u32, screen.as_slice());
+
+        let mut output = vec![0u32; 64 * 64];
+        composite(&table, &screens, &mut output, 64, 64);
+
+        // Should appear at output (32, 16)
+        assert_eq!(output[16 * 64 + 32], 0xFF0000);
+        // Should NOT appear at (0,0)
+        assert_eq!(output[0], 0);
+    }
+
+    #[test]
+    fn composite_transparency() {
+        let mut table = WindowTable::new();
+        // Two overlapping windows
+        table.add(WindowEntry::new(1, 0, 0, 8, 8, 0)); // background
+        table.add(WindowEntry::new(2, 0, 0, 8, 8, 1)); // foreground, transparent
+
+        let bg = make_solid_screen(0x0000FF); // blue everywhere
+        let fg = vec![0u32; VM_SCREEN_SIZE * VM_SCREEN_SIZE]; // all black (transparent)
+
+        let mut screens = HashMap::new();
+        screens.insert(1u32, bg.as_slice());
+        screens.insert(2u32, fg.as_slice());
+
+        let mut output = vec![0u32; 8 * 8];
+        composite(&table, &screens, &mut output, 8, 8);
+
+        // Since foreground is all 0 (transparent), background shows through
+        assert!(output.iter().all(|&p| p == 0x0000FF));
     }
 }
