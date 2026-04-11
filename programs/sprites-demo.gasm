@@ -107,7 +107,8 @@ main:
 ; draws a pixel, and YIELDs. The host GUI re-runs it each frame.
 ; ═══════════════════════════════════════════════════════════════════════
 
-.org 0x0040
+; child code starts after main program
+; (assembler lays this out sequentially)
 
 child_start:
     ; ── Load initial state from shared RAM ──

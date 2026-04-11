@@ -995,6 +995,8 @@ impl Vm {
             fs_data_addr: 0,
             fs_count: 0,
             fs_status: 0,
+            heap: Heap::new(), // children get a fresh heap
+            heap_alloc_result: 0,
         };
         // Pass the arg to the child in r0
         vm.regs[0] = child.arg;
@@ -1158,6 +1160,8 @@ impl Vm {
         self.fs_data_addr = snapshot.fs_data_addr;
         self.fs_count = snapshot.fs_count;
         self.fs_status = snapshot.fs_status;
+        self.heap = snapshot.heap.clone();
+        self.heap_alloc_result = snapshot.heap_alloc_result;
     }
 
     /// Tick the hardware timer. Called once per instruction cycle by run()/run_checked().
@@ -1304,6 +1308,49 @@ impl Vm {
             }
             FS_CMD_ADDR => {
                 self.execute_fs_cmd(value);
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// Read a heap register. Returns Some(value) if addr is a heap register.
+    pub fn read_heap_reg(&mut self, addr: usize) -> Option<u32> {
+        match addr {
+            HEAP_START_ADDR => Some(self.heap.start),
+            HEAP_SIZE_ADDR => Some(self.heap.size),
+            HEAP_ALLOC_ADDR => Some(self.heap_alloc_result),
+            HEAP_BLOCKS_ADDR => Some(self.heap.alloc_count()),
+            HEAP_FREE_WORDS_ADDR => Some(self.heap.free_words()),
+            _ => None,
+        }
+    }
+
+    /// Write a heap register. Returns true if addr is a heap register.
+    pub fn write_heap_reg(&mut self, addr: usize, value: u32) -> bool {
+        match addr {
+            HEAP_START_ADDR => {
+                self.heap.start = value;
+                true
+            }
+            HEAP_SIZE_ADDR => {
+                // Writing size initializes the heap with current start+size
+                let start = if self.heap.start > 0 {
+                    self.heap.start
+                } else {
+                    // Default: place heap at end of loaded RAM
+                    0
+                };
+                self.heap.init(start, value);
+                true
+            }
+            HEAP_ALLOC_ADDR => {
+                // Writing N allocates N words, result readable from HEAP_ALLOC_ADDR
+                self.heap_alloc_result = self.heap.alloc(value);
+                true
+            }
+            HEAP_FREE_ADDR => {
+                self.heap.free(value);
                 true
             }
             _ => false,
@@ -1591,6 +1638,8 @@ impl Vm {
                     self.regs[dst] = val;
                 } else if let Some(val) = self.read_fs_reg(src_addr as usize) {
                     self.regs[dst] = val;
+                } else if let Some(val) = self.read_heap_reg(src_addr as usize) {
+                    self.regs[dst] = val;
                 } else if let Some(val) = self.read_debug_reg(src_addr as usize) {
                     self.regs[dst] = val;
                 } else {
@@ -1620,6 +1669,8 @@ impl Vm {
                     // handled by audio register
                 } else if self.write_fs_reg(dst_addr as usize, self.regs[src]) {
                     // handled by filesystem register
+                } else if self.write_heap_reg(dst_addr as usize, self.regs[src]) {
+                    // handled by heap register
                 } else if self.write_debug_reg(dst_addr as usize, self.regs[src]) {
                     // handled by debug register
                 } else {
@@ -2394,6 +2445,8 @@ impl Vm {
                         self.regs[dst] = val;
                     } else if let Some(val) = self.read_fs_reg(src_addr) {
                         self.regs[dst] = val;
+                    } else if let Some(val) = self.read_heap_reg(src_addr) {
+                        self.regs[dst] = val;
                     } else if let Some(val) = self.read_debug_reg(src_addr) {
                         self.regs[dst] = val;
                     } else {
@@ -2418,6 +2471,8 @@ impl Vm {
                         // handled by audio register
                     } else if self.write_fs_reg(dst_addr, self.regs[src]) {
                         // handled by filesystem register
+                    } else if self.write_heap_reg(dst_addr, self.regs[src]) {
+                        // handled by heap register
                     } else if self.write_debug_reg(dst_addr, self.regs[src]) {
                         // handled by debug register
                     } else {
