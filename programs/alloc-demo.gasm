@@ -11,14 +11,21 @@
 ; Uses: lib/alloc.gasm (heap_init, heap_alloc, heap_free, heap_free_words)
 ; ═══════════════════════════════════════════════════════════════════════
 
+    JMP main
+
 .include "lib/alloc.gasm"
 
 .data
-    buf1: .word 0
-    buf2: .word 0
-    one:  .word 1
-    ten:  .word 10
-    twenty: .word 20
+buf1:
+    .word 0
+buf2:
+    .word 0
+one:
+    .word 1
+ten:
+    .word 10
+twenty:
+    .word 20
 
 .text
 main:
@@ -51,7 +58,8 @@ fill_loop:
     LDI r5, 1
     MOV r3, r1
     ADD r3, r5               ; r3 = i + 1
-    ADD r9, r8, r1           ; r9 = buf1 + i
+    MOV r9, r8
+    ADD r9, r1               ; r9 = buf1 + i
     STORE r9, r3             ; RAM[buf1+i] = i+1
 
     ; Draw pixel at (5+i, 10) with color = i+1
@@ -64,7 +72,7 @@ fill_loop:
     LDI r5, 1
     ADD r1, r5               ; i++
     LDI r5, 20
-    BLT r1, r5, @fill_loop   ; if i < 20, loop
+    BLT r1, r5, fill_loop   ; if i < 20, loop
 
     ; ── Step 4: Free buffer 2, show free space as green bar ──
     LDI r5, buf2
@@ -83,7 +91,7 @@ bar_loop:
 
     SUB r0, r1               ; r0 = free - i
     LDI r5, 0
-    BGE r0, r5, @bar_loop    ; if free >= i, continue
+    BGE r0, r5, bar_loop    ; if free >= i, continue
 
     ; ── Step 5: Re-allocate from freed space ──
     LDI r0, 20

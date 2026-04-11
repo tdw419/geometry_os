@@ -323,9 +323,9 @@ fn lib_alloc_heap_avail_check() {
     LDI r5, 0xFFD5
     LOAD r6, r5           ; r6 = free words (100)
     LDI r5, 50
-    BGE r6, r5, @avail_yes
+    BGE r6, r5, avail_yes
     LDI r8, 0
-    BAL @check2
+    BAL r0, r0, check2
 avail_yes:
     LDI r8, 1             ; 50 words available
 
@@ -334,9 +334,9 @@ check2:
     LDI r5, 0xFFD5
     LOAD r6, r5           ; r6 = free words (100)
     LDI r5, 200
-    BGE r6, r5, @avail_yes2
+    BGE r6, r5, avail_yes2
     LDI r9, 0
-    BAL @done
+    BAL r0, r0, done
 avail_yes2:
     LDI r9, 1             ; 200 words available
 

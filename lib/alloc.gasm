@@ -107,7 +107,7 @@ heap_avail:
     LOAD r6, r5             ; r6 = free words
     LDI r5, 0
     SUB r6, r0              ; r6 = free - requested
-    BGT r6, r5, @heap_avail_yes
+    BLT r5, r6, heap_avail_yes
     LDI r0, 0               ; not enough space
     RET
 heap_avail_yes:
