@@ -19,7 +19,7 @@
 - [x] Support `.data` / `.text` section directives
 - [x] String constants (`.asciz "hello"`) for TEXT opcode
 - [x] Expression evaluation in immediates (`LDI r0, 2+3`)
-- [ ] Include directive (`.include "lib.gasm"`)
+- [x] Include directive (`.include "lib.gasm"`)
 - [ ] Macro support (`.macro ADD3 ... .endm`)
 
 ### 1.2 VM Enhancements
@@ -94,7 +94,7 @@
 - [x] Expression evaluation in immediates (`LDI r0, 2+3`)
 - [x] String constants (`.asciz "hello"`) for TEXT opcode
 - [x] `.data` / `.text` section directives
-- [ ] `.include "lib.gasm"` directive
+- [x] `.include "lib.gasm"` directive
 - [ ] Macro support (`.macro ADD3 ... .endm`)
 
 **Batch 3 -- VM Hardening:**
