@@ -1,0 +1,112 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/multitask.gasm -- Multi-process demo
+;
+; Demonstrates the process scheduler:
+;   1. Main process FORKs into parent + child
+;   2. Parent draws pixels in the LEFT half (x=0..127)
+;   3. Child draws pixels in the RIGHT half (x=128..255)
+;   4. Each process YIELDs after drawing a row, cooperating
+;   5. Both processes EXIT when done
+;
+; After fork:
+;   r0 = child_pid (parent) or 0 (child)
+;   r1 = row counter (shared setup)
+;   r5 = color
+;
+; Opcodes used:
+;   FORK (o)  -- clone current process
+;   YIELD (Y) -- cooperative context switch
+;   EXIT (u)  -- terminate current process
+;   GETPID (v)-- get current process ID
+; ═══════════════════════════════════════════════════════════════════════
+
+.include "lib/screen.gasm"
+
+main:
+    CALL clear_screen
+
+    ; Set up shared state before fork
+    LDI r1, 0           ; r1 = row counter (0..15 for demo)
+    LDI r5, 160         ; r5 = color (cyan-ish)
+
+    ; Fork! r0 = child_pid (parent), r0 = 0 (child)
+    FORK
+
+    ; Check if we are parent or child
+    LDI r2, 0
+    SUB r2, r0           ; r2 = 0 - r0 (set flags based on r0)
+    BEQ r2, child_loop   ; if r0 == 0, we are the child
+
+parent_loop:
+    ; Draw a horizontal line on the LEFT side
+    ; x = r1 * 8, y = r1 * 16
+    MOV r2, r1           ; r2 = row
+    LDI r3, 8
+    MUL r2, r3           ; r2 = row * 8 (x)
+    MOV r3, r1           ; r3 = row
+    LDI r4, 16
+    MUL r3, r4           ; r3 = row * 16 (y)
+
+    ; Draw 8 pixels across using PSET
+    LDI r6, 0            ; column offset
+parent_pixel:
+    MOV r7, r2
+    ADD r7, r6           ; x + offset
+    PSET r7, r3, r5      ; draw pixel at (x+offset, y)
+    LDI r8, 1
+    ADD r6, r8
+    LDI r8, 32
+    BLT r6, r8, parent_pixel ; while col < 32
+
+    ; Next row
+    LDI r2, 1
+    ADD r1, r2
+
+    ; Yield to let child run
+    YIELD
+
+    ; Check if done (16 rows)
+    LDI r2, 16
+    BLT r1, r2, parent_loop
+
+    ; Parent done
+    EXIT
+
+child_loop:
+    ; Child draws on the RIGHT side (x += 128)
+    MOV r2, r1           ; r2 = row
+    LDI r3, 8
+    MUL r2, r3           ; r2 = row * 8 (base x)
+    LDI r3, 128
+    ADD r2, r3           ; r2 = row * 8 + 128 (offset to right)
+    MOV r3, r1           ; r3 = row
+    LDI r4, 16
+    MUL r3, r4           ; r3 = row * 16 (y)
+
+    ; Different color for child
+    LDI r5, 192          ; child uses a different color
+
+    ; Draw 8 pixels across
+    LDI r6, 0
+child_pixel:
+    MOV r7, r2
+    ADD r7, r6
+    PSET r7, r3, r5
+    LDI r8, 1
+    ADD r6, r8
+    LDI r8, 32
+    BLT r6, r8, child_pixel
+
+    ; Next row
+    LDI r2, 1
+    ADD r1, r2
+
+    ; Yield to let parent run
+    YIELD
+
+    ; Check if done
+    LDI r2, 16
+    BLT r1, r2, child_loop
+
+    ; Child done
+    EXIT
