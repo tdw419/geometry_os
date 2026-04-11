@@ -45,7 +45,7 @@ PUSH r28
 POP r28
 POP r29
 POP r30
-PSET r28, r29, r30
+PSET r30, r29, r28
 JMP endif_6
 else_5:
 MOV r28, r1
@@ -57,7 +57,7 @@ PUSH r28
 POP r28
 POP r29
 POP r30
-PSET r28, r29, r30
+PSET r30, r29, r28
 endif_6:
 PUSH r1
 LDI r1, 1

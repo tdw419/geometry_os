@@ -758,12 +758,13 @@ class CodeGen:
                 self.expr_to(args[i], sr)
                 self.emit(f"PUSH {self.r(sr)}")
                 self.scratch_pop()
-            # POP all args back into scratch registers
+            # POP all args back into scratch registers (LIFO: first POP = last pushed)
             regs = []
             for i in range(nargs):
                 sr = self.scratch_push()
                 self.emit(f"POP {self.r(sr)}")
                 regs.append(sr)
+            regs.reverse()  # undo LIFO so regs[0]=arg0, regs[1]=arg1, etc.
             self.emit(f"{opname} {', '.join(self.r(r) for r in regs)}")
             self.scratch_pop(nargs)
             return True
@@ -780,6 +781,7 @@ class CodeGen:
                 sr = self.scratch_push()
                 self.emit(f"POP {self.r(sr)}")
                 srs.append(sr)
+            srs.reverse()  # undo LIFO
             self.emit(f"TEXT {', '.join(self.r(r) for r in srs)}")
             self.scratch_pop(3)
             return True

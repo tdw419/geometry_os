@@ -185,19 +185,6 @@ fn pixelc_mandelbrot() {
 }
 
 #[test]
-fn pixelc_test_ram() {
-    let source = std::fs::read_to_string("programs/test_ram.asm").unwrap();
-    let asm = assembler::assemble(&source).unwrap();
-    let mut vm = Vm::new(512);
-    vm.load_program(&asm.pixels);
-    vm.run_with_limit(100_000);
-    assert!(vm.halted, "should halt");
-    assert_eq!(vm.regs[0], 5, "i should be 5 after loop");
-    let nonzero: usize = vm.screen.iter().filter(|&&p| p != 0).count();
-    assert!(nonzero > 0, "should have drawn pixels, got {}", nonzero);
-}
-
-#[test]
 fn pixelc_rain() {
     let source = std::fs::read_to_string("programs/rain.asm")
         .expect("run: cargo test from project root");

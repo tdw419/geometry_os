@@ -19,7 +19,7 @@ PUSH r28
 POP r28
 POP r29
 POP r30
-PSET r28, r29, r30
+PSET r30, r29, r28
 MOV r3, r0
 PUSH r3
 MOV r3, r1
