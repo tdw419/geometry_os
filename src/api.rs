@@ -29,12 +29,15 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 use crate::agent::{Agent, GasmAgent};
+use crate::vm_pool::{SandboxCaps, VmPool};
 use std::sync::Mutex;
 
 /// The REST API server wrapping a GasmAgent.
 pub struct ApiServer {
     server: tiny_http::Server,
     agent: Mutex<GasmAgent>,
+    /// Pool of independent sandboxed VM instances for multi-agent use.
+    pool: VmPool,
 }
 
 /// JSON response for the /state endpoint.
@@ -77,24 +80,26 @@ impl ApiServer {
     /// Create a new API server listening on the given port.
     pub fn new(port: u16) -> Self {
         let addr = format!("0.0.0.0:{}", port);
-        let server =
-            tiny_http::Server::http(&addr).unwrap_or_else(|e| panic!("Failed to bind {}: {}", addr, e));
+        let server = tiny_http::Server::http(&addr)
+            .unwrap_or_else(|e| panic!("Failed to bind {}: {}", addr, e));
         eprintln!("[api] Geometry OS REST API listening on {}", addr);
         ApiServer {
             server,
             agent: Mutex::new(GasmAgent::new(4096)),
+            pool: VmPool::new(4096),
         }
     }
 
     /// Create an API server with a custom RAM size.
     pub fn with_ram_size(port: u16, ram_size: usize) -> Self {
         let addr = format!("0.0.0.0:{}", port);
-        let server =
-            tiny_http::Server::http(&addr).unwrap_or_else(|e| panic!("Failed to bind {}: {}", addr, e));
+        let server = tiny_http::Server::http(&addr)
+            .unwrap_or_else(|e| panic!("Failed to bind {}: {}", addr, e));
         eprintln!("[api] Geometry OS REST API listening on {}", addr);
         ApiServer {
             server,
             agent: Mutex::new(GasmAgent::new(ram_size)),
+            pool: VmPool::new(ram_size),
         }
     }
 
@@ -138,6 +143,15 @@ impl ApiServer {
         // WebSocket upgrade for /ws/input
         if path_clean == "/ws/input" && Self::is_websocket_upgrade(&request) {
             self.handle_ws_input(request);
+            return;
+        }
+
+        // ── Sandbox routes (/api/sandbox/*) ──
+        if path_clean.starts_with("/api/sandbox") {
+            let response = self.route_sandbox(method, path_clean, &mut request);
+            if let Err(e) = request.respond(response) {
+                eprintln!("[api] Error sending sandbox response: {}", e);
+            }
             return;
         }
 
@@ -197,6 +211,74 @@ impl ApiServer {
 
         if let Err(e) = request.respond(response) {
             eprintln!("[api] Error sending response: {}", e);
+        }
+    }
+
+    // ── Sandbox route dispatcher ──
+
+    /// Route sandbox API requests based on path segments.
+    fn route_sandbox(
+        &self,
+        method: tiny_http::Method,
+        path: &str,
+        request: &mut tiny_http::Request,
+    ) -> tiny_http::ResponseBox {
+        // Path patterns:
+        //   POST /api/sandbox/create          → create sandbox
+        //   GET  /api/sandbox                 → list sandboxes
+        //   GET  /api/sandbox/:id             → sandbox info
+        //   DELETE /api/sandbox/:id           → destroy sandbox
+        //   POST /api/sandbox/:id/run         → run code in sandbox
+        //   GET  /api/sandbox/:id/state       → get sandbox VM state
+        //   GET  /api/sandbox/:id/screen      → get sandbox screen
+        //   POST /api/sandbox/:id/reset       → reset sandbox VM
+        //   POST /api/sandbox/:id/load        → load code in sandbox
+        //   POST /api/sandbox/:id/step        → single-step sandbox
+        //   POST /api/sandbox/:id/resume      → resume yielded sandbox
+        //   POST /api/sandbox/:id/input/key   → inject key into sandbox
+        //   POST /api/sandbox/:id/input/mouse → inject mouse into sandbox
+
+        let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+        // segments: ["api", "sandbox", ...]
+
+        match segments.len() {
+            // GET /api/sandbox — list
+            2 if method == tiny_http::Method::Get => self.handle_sandbox_list(),
+            // POST /api/sandbox/create — create
+            3 if segments[2] == "create" && method == tiny_http::Method::Post => {
+                self.handle_sandbox_create(request)
+            }
+            // GET /api/sandbox/:id — info
+            3 if method == tiny_http::Method::Get => self.handle_sandbox_info(segments[2]),
+            // DELETE /api/sandbox/:id — destroy
+            3 if method == tiny_http::Method::Delete => self.handle_sandbox_destroy(segments[2]),
+            // Sub-routes on sandbox/:id/*
+            4 => {
+                let id = segments[2];
+                match (method.clone(), segments[3]) {
+                    (tiny_http::Method::Post, "run") => self.handle_sandbox_run(id, request),
+                    (tiny_http::Method::Get, "state") => self.handle_sandbox_state(id),
+                    (tiny_http::Method::Get, "screen") => self.handle_sandbox_screen(id),
+                    (tiny_http::Method::Post, "reset") => self.handle_sandbox_reset(id),
+                    (tiny_http::Method::Post, "load") => self.handle_sandbox_load(id, request),
+                    (tiny_http::Method::Post, "step") => self.handle_sandbox_step(id),
+                    (tiny_http::Method::Post, "resume") => self.handle_sandbox_resume(id),
+                    _ => self.error_response(404, "Not found"),
+                }
+            }
+            5 => {
+                let id = segments[2];
+                match (method.clone(), segments[3], segments[4]) {
+                    (tiny_http::Method::Post, "input", "key") => {
+                        self.handle_sandbox_input_key(id, request)
+                    }
+                    (tiny_http::Method::Post, "input", "mouse") => {
+                        self.handle_sandbox_input_mouse(id, request)
+                    }
+                    _ => self.error_response(404, "Not found"),
+                }
+            }
+            _ => self.error_response(404, "Not found"),
         }
     }
 
@@ -532,6 +614,21 @@ impl ApiServer {
                     "POST /input/key      -- inject key press ({key})",
                     "POST /input/mouse    -- set mouse ({x, y, buttons})",
                     "WS   /ws/input       -- streaming key/mouse input (WebSocket)",
+                    "",
+                    "Sandbox API (multi-agent):",
+                    "POST /api/sandbox/create          -- create isolated sandbox VM",
+                    "GET  /api/sandbox                 -- list all sandboxes",
+                    "GET  /api/sandbox/:id             -- sandbox info",
+                    "DELETE /api/sandbox/:id           -- destroy sandbox",
+                    "POST /api/sandbox/:id/run         -- run .gasm in sandbox",
+                    "GET  /api/sandbox/:id/state       -- sandbox VM state",
+                    "GET  /api/sandbox/:id/screen      -- sandbox screen buffer",
+                    "POST /api/sandbox/:id/reset       -- reset sandbox VM",
+                    "POST /api/sandbox/:id/load        -- load .gasm in sandbox",
+                    "POST /api/sandbox/:id/step        -- single-step sandbox",
+                    "POST /api/sandbox/:id/resume      -- resume yielded sandbox",
+                    "POST /api/sandbox/:id/input/key   -- inject key into sandbox",
+                    "POST /api/sandbox/:id/input/mouse -- inject mouse into sandbox",
                 ]
             }),
         )
@@ -693,6 +790,257 @@ impl ApiServer {
         base64::engine::general_purpose::STANDARD.encode(&hasher.finalize())
     }
 
+    // ── Sandbox handler methods ──
+
+    /// POST /api/sandbox/create — allocate a new sandboxed VM
+    fn handle_sandbox_create(&self, request: &mut tiny_http::Request) -> tiny_http::ResponseBox {
+        let body = match Self::read_body(request) {
+            Ok(b) => b,
+            Err(e) => return self.error_response(400, &format!("Failed to read body: {}", e)),
+        };
+
+        // Optional JSON body: { "caps": { "max_cycles": N, "max_memory": N } }
+        let caps: Option<SandboxCaps> = if body.trim().is_empty() {
+            None
+        } else {
+            match serde_json::from_str::<serde_json::Value>(&body) {
+                Ok(val) => {
+                    if let Some(caps_val) = val.get("caps") {
+                        serde_json::from_value(caps_val.clone()).ok()
+                    } else {
+                        None
+                    }
+                }
+                Err(_) => None,
+            }
+        };
+
+        let id = self.pool.create_default(caps);
+        let info = self.pool.info(&id).unwrap();
+        self.json_response(201, &serde_json::json!({ "created": true, "id": id, "info": info }))
+    }
+
+    /// GET /api/sandbox — list all sandboxes
+    fn handle_sandbox_list(&self) -> tiny_http::ResponseBox {
+        let infos = self.pool.list_info();
+        self.json_response(200, &serde_json::json!({ "sandboxes": infos, "count": infos.len() }))
+    }
+
+    /// GET /api/sandbox/:id — get sandbox info
+    fn handle_sandbox_info(&self, id: &str) -> tiny_http::ResponseBox {
+        match self.pool.info(id) {
+            Some(info) => self.json_response(200, &info),
+            None => self.error_response(404, "Sandbox not found"),
+        }
+    }
+
+    /// DELETE /api/sandbox/:id — destroy a sandbox
+    fn handle_sandbox_destroy(&self, id: &str) -> tiny_http::ResponseBox {
+        if self.pool.destroy(id) {
+            self.json_response(200, &serde_json::json!({ "destroyed": true, "id": id }))
+        } else {
+            self.error_response(404, "Sandbox not found")
+        }
+    }
+
+    /// POST /api/sandbox/:id/run — run .gasm source in a sandbox
+    fn handle_sandbox_run(&self, id: &str, request: &mut tiny_http::Request) -> tiny_http::ResponseBox {
+        let body = match Self::read_body(request) {
+            Ok(b) => b,
+            Err(e) => return self.error_response(400, &format!("Failed to read body: {}", e)),
+        };
+
+        let req: RunRequest = match serde_json::from_str(&body) {
+            Ok(r) => r,
+            Err(e) => {
+                return self.error_response(
+                    400,
+                    &format!("Invalid JSON: {}. Expected {{\"source\": \"...\"}}", e),
+                );
+            }
+        };
+
+        let result = self.pool.with_agent(id, |agent, caps| {
+            // Enforce max_cycles cap if set
+            let result = agent.run_gasm(&req.source);
+            let _ = caps; // caps available for future enforcement
+            result
+        });
+
+        match result {
+            Some(Ok(agent_result)) => self.json_response(200, &agent_result),
+            Some(Err(e)) => self.error_response(422, &format!("{}", e)),
+            None => self.error_response(404, "Sandbox not found"),
+        }
+    }
+
+    /// GET /api/sandbox/:id/state — get sandbox VM state
+    fn handle_sandbox_state(&self, id: &str) -> tiny_http::ResponseBox {
+        let result = self.pool.with_agent(id, |agent, _| {
+            let state = agent.vm_state();
+            let ram_size = agent.read_ram(0, 0).len();
+            StateResponse {
+                pc: state.pc,
+                regs: state.regs.to_vec(),
+                halted: state.halted,
+                yielded: state.yielded,
+                cycle_count: state.cycle_count,
+                ram_size,
+            }
+        });
+
+        match result {
+            Some(resp) => self.json_response(200, &resp),
+            None => self.error_response(404, "Sandbox not found"),
+        }
+    }
+
+    /// GET /api/sandbox/:id/screen — get sandbox screen buffer
+    fn handle_sandbox_screen(&self, id: &str) -> tiny_http::ResponseBox {
+        let result = self.pool.with_agent(id, |agent, _| agent.read_screen());
+
+        match result {
+            Some(screen) => self.json_response(200, &screen),
+            None => self.error_response(404, "Sandbox not found"),
+        }
+    }
+
+    /// POST /api/sandbox/:id/reset — reset sandbox VM
+    fn handle_sandbox_reset(&self, id: &str) -> tiny_http::ResponseBox {
+        let result = self.pool.with_agent(id, |agent, _| {
+            agent.reset();
+            true
+        });
+
+        match result {
+            Some(_) => self.json_response(200, &serde_json::json!({ "reset": true, "id": id })),
+            None => self.error_response(404, "Sandbox not found"),
+        }
+    }
+
+    /// POST /api/sandbox/:id/load — load .gasm source in sandbox without running
+    fn handle_sandbox_load(&self, id: &str, request: &mut tiny_http::Request) -> tiny_http::ResponseBox {
+        let body = match Self::read_body(request) {
+            Ok(b) => b,
+            Err(e) => return self.error_response(400, &format!("Failed to read body: {}", e)),
+        };
+
+        let req: LoadRequest = match serde_json::from_str(&body) {
+            Ok(r) => r,
+            Err(e) => {
+                return self.error_response(
+                    400,
+                    &format!("Invalid JSON: {}. Expected {{\"source\": \"...\"}}", e),
+                );
+            }
+        };
+
+        let result = self.pool.with_agent(id, |agent, _| agent.load_gasm(&req.source));
+
+        match result {
+            Some(Ok(labels)) => self.json_response(
+                200,
+                &serde_json::json!({ "loaded": true, "labels": labels, "id": id }),
+            ),
+            Some(Err(e)) => self.error_response(422, &format!("{}", e)),
+            None => self.error_response(404, "Sandbox not found"),
+        }
+    }
+
+    /// POST /api/sandbox/:id/step — single-step sandbox VM
+    fn handle_sandbox_step(&self, id: &str) -> tiny_http::ResponseBox {
+        let result = self.pool.with_agent(id, |agent, _| agent.step_once());
+
+        match result {
+            Some(state) => self.json_response(200, &state),
+            None => self.error_response(404, "Sandbox not found"),
+        }
+    }
+
+    /// POST /api/sandbox/:id/resume — resume yielded sandbox VM
+    fn handle_sandbox_resume(&self, id: &str) -> tiny_http::ResponseBox {
+        let result = self.pool.with_agent(id, |agent, _| agent.resume());
+
+        match result {
+            Some(agent_result) => self.json_response(200, &agent_result),
+            None => self.error_response(404, "Sandbox not found"),
+        }
+    }
+
+    /// POST /api/sandbox/:id/input/key — inject key into sandbox
+    fn handle_sandbox_input_key(&self, id: &str, request: &mut tiny_http::Request) -> tiny_http::ResponseBox {
+        let body = match Self::read_body(request) {
+            Ok(b) => b,
+            Err(e) => return self.error_response(400, &format!("Failed to read body: {}", e)),
+        };
+
+        let req: serde_json::Value = match serde_json::from_str(&body) {
+            Ok(v) => v,
+            Err(e) => {
+                return self.error_response(
+                    400,
+                    &format!("Invalid JSON: {}. Expected {{\"key\": N}}", e),
+                );
+            }
+        };
+
+        let keycode = match req.get("key").and_then(|v| v.as_u64()) {
+            Some(k) => k as u32,
+            None => return self.error_response(400, "Missing 'key' field (expected integer)"),
+        };
+
+        let result = self.pool.with_agent(id, |agent, _| {
+            agent.inject_key(keycode);
+            keycode
+        });
+
+        match result {
+            Some(kc) => self.json_response(
+                200,
+                &serde_json::json!({ "injected": true, "key": kc, "id": id }),
+            ),
+            None => self.error_response(404, "Sandbox not found"),
+        }
+    }
+
+    /// POST /api/sandbox/:id/input/mouse — inject mouse into sandbox
+    fn handle_sandbox_input_mouse(&self, id: &str, request: &mut tiny_http::Request) -> tiny_http::ResponseBox {
+        let body = match Self::read_body(request) {
+            Ok(b) => b,
+            Err(e) => return self.error_response(400, &format!("Failed to read body: {}", e)),
+        };
+
+        let req: serde_json::Value = match serde_json::from_str(&body) {
+            Ok(v) => v,
+            Err(e) => {
+                return self.error_response(
+                    400,
+                    &format!(
+                        "Invalid JSON: {}. Expected {{\"x\": N, \"y\": N, \"buttons\": N}}",
+                        e
+                    ),
+                );
+            }
+        };
+
+        let x = req["x"].as_u64().unwrap_or(0) as u32;
+        let y = req["y"].as_u64().unwrap_or(0) as u32;
+        let buttons = req["buttons"].as_u64().unwrap_or(0) as u32;
+
+        let result = self.pool.with_agent(id, |agent, _| {
+            agent.inject_mouse(x, y, buttons);
+            (x, y, buttons)
+        });
+
+        match result {
+            Some((x, y, buttons)) => self.json_response(
+                200,
+                &serde_json::json!({ "injected": true, "x": x, "y": y, "buttons": buttons, "id": id }),
+            ),
+            None => self.error_response(404, "Sandbox not found"),
+        }
+    }
+
     // ── Helpers ──
 
     fn read_body(request: &mut tiny_http::Request) -> Result<String, String> {
@@ -768,6 +1116,7 @@ mod tests {
         let api = ApiServer {
             server,
             agent: Mutex::new(GasmAgent::new(4096)),
+            pool: VmPool::new(4096),
         };
         (api, port)
     }
@@ -779,6 +1128,7 @@ mod tests {
         let req = match method {
             "GET" => client.get(&url),
             "POST" => client.post(&url),
+            "DELETE" => client.delete(&url),
             _ => panic!("Unsupported method"),
         };
         let req = if let Some(b) = body {
