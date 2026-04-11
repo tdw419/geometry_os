@@ -20,7 +20,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 1052 tests — build passing, all tests green
+- 1068 tests — build passing, all tests green
 - 49 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
@@ -33,6 +33,7 @@ AI-written demos      AI-written OS that humans use
 - Scrollable terminal (memory-mapped at 0xFFD8-0xFFDF, lib/terminal.gasm)
 - Process scheduler with FORK/YIELD/EXIT/GETPID
 - Multi-agent sandbox (VmPool, isolated VMs, resource caps, 13 sandbox API endpoints)
+- IPC registers (mailbox send/recv/peek via MMIO at 0xFE00-0xFEFF, 7 tests)
 
 ## Phase 1: Language Completeness
 
@@ -91,7 +92,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Process scheduler (round-robin, context switching)
 - [x] Filesystem (save/load named programs, directories) — programs/save_score_demo.gasm
 - [x] Memory management (alloc/free within VM, heap registers 0xFFD0-0xFFD5, lib/alloc.gasm)
-- [x] Inter-process communication — mailbox struct in VM, SEND/RECV opcodes defined but not yet wired into execute loop (see Phase 7)
+- [x] Inter-process communication — mailbox struct in VM, SEND/RECV/PEEK via memory-mapped registers at 0xFE00-0xFEFF (see Phase 7 for process-to-process demos)
 - [x] User sessions / permissions (see Phase 12 for full implementation)
 
 ## Phase 6: Agent Integration (The Bridge Outward)
@@ -128,9 +129,9 @@ AI-written demos      AI-written OS that humans use
 *Bridge to Sovereignty Ladder Milestone 5 (Shared-Memory IPC)*
 
 - [x] Define IPC memory region in VM address space (e.g., 0xFE00-0xFEFF)
-- [ ] Implement SEND opcode: write message to target process's mailbox region
-- [ ] Implement RECV opcode: check own mailbox, block if empty (scheduler puts VM in Waiting state)
-- [ ] Implement PEEK opcode: non-blocking mailbox check (returns 0 if empty, msg if available)
+- [x] Implement SEND opcode: write message to target process's mailbox region — memory-mapped write to 0xFE03 triggers mailbox send
+- [x] Implement RECV opcode: check own mailbox, block if empty (scheduler puts VM in Waiting state) — memory-mapped write to 0xFE06 dequeues (non-blocking, returns status=4 if empty)
+- [x] Implement PEEK opcode: non-blocking mailbox check (returns 0 if empty, msg if available) — memory-mapped read at 0xFE08 peeks without consuming
 - [ ] Add process-to-process message queue tests (producer/consumer pattern)
 - [ ] Add IPC demo: two programs exchanging pixel coordinates via mailbox
 - [ ] Add PING/PONG demo: process A sends, process B echoes back
