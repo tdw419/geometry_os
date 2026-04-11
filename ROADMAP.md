@@ -45,7 +45,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Stack overflow protection
 - [x] Memory protection
 - [x] Interrupt vector table
-- [ ] Timer interrupt
+- [x] Timer interrupt
 - [ ] Debug registers
 
 ## Phase 2: Self-Hosting Toolchain
@@ -114,7 +114,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Stack overflow protection (if recursion hits limit)
 - [x] Memory protection (if programs corrupt each other)
 - [x] Interrupt vector table (needed for event-driven programs)
-- [ ] Timer interrupt (if frame timing is needed)
+- [x] Timer interrupt (if frame timing is needed)
 - [ ] Debug registers (if complex programs can't be debugged)
 
 **Batch 8 -- The World Outside:**

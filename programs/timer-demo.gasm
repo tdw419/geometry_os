@@ -1,0 +1,71 @@
+; ═══════════════════════════════════════════════════════════════════
+; TIMER DEMO -- Hardware timer interrupt demonstration
+;
+; Demonstrates the hardware timer interrupt:
+;   - Timer fires automatically every N instruction cycles
+;   - Uses IVT vector 0 (TIMER_VECTOR) for the handler
+;   - Handler increments a counter and draws a pixel
+;   - Main program is an idle loop
+;
+; Memory-mapped timer registers:
+;   - 0xFFF0 (TIMER_PERIOD_ADDR): write period to enable timer
+;   - 0xFFF1 (TIMER_COUNTER_ADDR): read current countdown
+;
+; Setup:
+;   1. Set timer period to 0xFFF0 via STORE (enables timer)
+;   2. Register timer handler via STI 0, handler
+;   3. Timer fires every N cycles, calling the handler
+;
+; Run with: cargo run -- programs/timer-demo.gasm
+;           (timer period must be set by host or via RAM poke)
+; ═══════════════════════════════════════════════════════════════════
+
+.text
+    ; ── Register timer handler ────────────────────────────────────
+    STI 0, timer_handler       ; Vector 0 = hardware timer
+
+    ; ── Initialize state ──────────────────────────────────────────
+    LDI r0, 0                  ; r0 = tick counter (starts at 0)
+    LDI r1, 1                  ; r1 = increment amount
+    LDI r2, 0                  ; r2 = pixel X position
+    LDI r3, 0                  ; r3 = pixel Y position
+    LDI r10, 0x50              ; r10 = PSET opcode byte (for later)
+
+    ; ── Configure timer: write period to 0xFFF0 ──────────────────
+    ; LDI only takes 8-bit immediates, so we build the address.
+    ; For this demo, the host should set vm.timer_period = 100
+    ; before running, or we use expression evaluation:
+    LDI r5, $F0                ; Low byte of timer period addr
+    LDI r6, $FF                ; High byte
+    SHL r6, 8                  ; r6 = 0xFF00
+    OR  r5, r6                 ; r5 = 0xFFF0 (timer period address)
+
+    LDI r7, 100                ; Period = 100 instruction cycles
+    STORE r5, r7               ; Write to TIMER_PERIOD_ADDR → enables timer
+
+    ; ── Main loop: idle, timer fires in background ────────────────
+idle:
+    NOP
+    JMP @idle                  ; Loop forever (timer handles everything)
+
+    HALT                       ; Should never reach here
+
+; ── Timer Handler ─────────────────────────────────────────────────
+;
+; Called every 100 instruction cycles by the hardware timer.
+; Increments tick counter and draws a pixel on screen.
+;
+timer_handler:
+    ; Increment tick counter
+    ADD r0, r1                 ; r0 += 1
+
+    ; Draw a pixel at current position
+    PSET r2, r2, r1            ; Draw at (x, x) with color 1 (white-ish)
+
+    ; Advance X position (wraps at 32)
+    ADD r2, r1                 ; r2 += 1
+    LDI r8, 32
+    MOD r2, r8                 ; r2 %= 32 (wrap around)
+
+    ; Return from interrupt
+    IRET

@@ -96,6 +96,28 @@ Each opcode has a fixed width (1-5 pixels/words):
 - Nested interrupts supported (handler can call INT)
 - Example: `STI 0, my_handler` then `INT 0` calls `my_handler`
 
+### Hardware Timer Interrupt
+- **Vector 0** is reserved for the hardware timer interrupt
+- Memory-mapped registers (high addresses to avoid RAM collision):
+  - `0xFFF0` (TIMER_PERIOD_ADDR): write a non-zero value to enable timer with that period (in instruction cycles); write 0 to disable
+  - `0xFFF1` (TIMER_COUNTER_ADDR): read-only, returns current countdown value
+- Timer decrements once per instruction cycle in `run()` / `run_checked()`
+- When counter reaches 0: fires IVT[0], pushes return PC, resets counter to period
+- Handler returns via `IRET`
+- Disabled by default (timer_period = 0)
+- Children do NOT inherit the parent's timer
+- Example:
+  ```
+  STI 0, tick_handler     ; Register timer handler
+  LDI r5, 0xFFF0          ; Timer period register address
+  LDI r6, 100             ; Period = 100 cycles
+  STORE r5, r6            ; Enable timer
+  ; ... main loop ...
+  tick_handler:
+      ADD r0, r1           ; Increment counter
+      IRET
+  ```
+
 ### Memory Layout
 - RAM[0..N]: program + data (configurable, typically 4096 or 64K words)
 - Screen: 32-bit pixels, memory-mapped or separate buffer

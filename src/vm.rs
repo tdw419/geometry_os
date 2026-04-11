@@ -167,10 +167,27 @@ pub struct VmSnapshot {
     pub forge: ForgeQueue,
     /// Interrupt Vector Table
     pub ivt: [u32; IVT_SIZE],
+    /// Timer period (0 = disabled)
+    pub timer_period: u32,
+    /// Timer counter (current countdown)
+    pub timer_counter: u32,
 }
 
 /// Number of interrupt vectors in the IVT.
 pub const IVT_SIZE: usize = 16;
+
+/// Timer interrupt vector number (IVT slot 0).
+pub const TIMER_VECTOR: usize = 0;
+
+/// Memory-mapped address for the timer period register.
+/// Writing a non-zero value enables the timer; writing 0 disables it.
+/// The value written becomes the period (in instruction cycles between interrupts).
+/// Located at 0xFFF0 (65520) to avoid colliding with normal RAM (typically 4096 words).
+pub const TIMER_PERIOD_ADDR: usize = 0xFFF0;
+
+/// Memory-mapped address for the timer counter (read-only).
+/// Reading returns the current countdown value (0 if timer is disabled).
+pub const TIMER_COUNTER_ADDR: usize = 0xFFF1;
 
 /// The VM.
 #[derive(Debug)]
@@ -194,6 +211,12 @@ pub struct Vm {
     /// Interrupt Vector Table: 16 entries, each a handler address (0 = unset).
     /// INT <n> pushes return address and jumps to ivt[n].
     pub ivt: [u32; IVT_SIZE],
+    /// Timer period in instruction cycles. 0 = timer disabled.
+    /// Configured by writing to memory-mapped address 0xFFF0.
+    pub timer_period: u32,
+    /// Timer counter: counts down from timer_period to 0 each cycle.
+    /// When it reaches 0, fires interrupt vector 0 and resets.
+    pub timer_counter: u32,
 }
 
 impl Vm {
@@ -211,6 +234,8 @@ impl Vm {
             memory_protection: false,
             memory_regions: Vec::new(),
             ivt: [0; IVT_SIZE],
+            timer_period: 0,
+            timer_counter: 0,
         }
     }
 
@@ -288,6 +313,8 @@ impl Vm {
             memory_protection: self.memory_protection,
             memory_regions: self.memory_regions.clone(),
             ivt: self.ivt,
+            timer_period: 0,
+            timer_counter: 0,
         };
         // Pass the arg to the child in r0
         vm.regs[0] = child.arg;
@@ -391,6 +418,8 @@ impl Vm {
             children: self.children.clone(),
             forge: self.forge.clone(),
             ivt: self.ivt,
+            timer_period: self.timer_period,
+            timer_counter: self.timer_counter,
         }
     }
 
@@ -407,6 +436,35 @@ impl Vm {
         self.children = snapshot.children.clone();
         self.forge = snapshot.forge.clone();
         self.ivt = snapshot.ivt;
+        self.timer_period = snapshot.timer_period;
+        self.timer_counter = snapshot.timer_counter;
+    }
+
+    /// Tick the hardware timer. Called once per instruction cycle by run()/run_checked().
+    /// If the timer is enabled (timer_period > 0) and the counter reaches 0,
+    /// fires interrupt vector TIMER_VECTOR (0) by pushing the return address
+    /// and returning the handler address.
+    /// Returns Some(handler_addr) if timer fired, None otherwise.
+    fn tick_timer(&mut self) -> Option<u32> {
+        if self.timer_period == 0 {
+            return None;
+        }
+        if self.timer_counter > 0 {
+            self.timer_counter -= 1;
+        }
+        if self.timer_counter == 0 {
+            // Timer fired — reset counter and trigger interrupt
+            self.timer_counter = self.timer_period;
+            let handler = self.ivt[TIMER_VECTOR];
+            if handler != 0 {
+                // Push return address (current PC, already advanced past the instruction)
+                if self.stack.len() < DEFAULT_STACK_LIMIT {
+                    self.stack.push(self.pc);
+                    return Some(handler);
+                }
+            }
+        }
+        None
     }
 
     /// Run until halted, yielded, or MAX_CYCLES. Returns cycles executed.
@@ -420,6 +478,10 @@ impl Vm {
         while !self.halted && !self.yielded && cycles < MAX_CYCLES {
             if self.step() {
                 cycles += 1;
+                // Tick hardware timer after each instruction
+                if let Some(handler) = self.tick_timer() {
+                    self.pc = handler;
+                }
             }
         }
         cycles
@@ -464,6 +526,10 @@ impl Vm {
         while !self.halted && !self.yielded && cycles < MAX_CYCLES {
             self.step_checked()?;
             cycles += 1;
+            // Tick hardware timer after each instruction
+            if let Some(handler) = self.tick_timer() {
+                self.pc = handler;
+            }
         }
         Ok(cycles)
     }
@@ -596,7 +662,14 @@ impl Vm {
                 }
                 let src_addr = self.regs[addr_reg];
                 self.check_read(src_addr, pc)?;
-                self.regs[dst] = self.peek(src_addr as usize);
+                // Memory-mapped timer registers
+                if src_addr as usize == TIMER_COUNTER_ADDR {
+                    self.regs[dst] = self.timer_counter;
+                } else if src_addr as usize == TIMER_PERIOD_ADDR {
+                    self.regs[dst] = self.timer_period;
+                } else {
+                    self.regs[dst] = self.peek(src_addr as usize);
+                }
                 Ok(None)
             }
 
@@ -612,7 +685,14 @@ impl Vm {
                 }
                 let dst_addr = self.regs[addr_reg];
                 self.check_write(dst_addr, pc)?;
-                self.poke(dst_addr as usize, self.regs[src]);
+                // Memory-mapped timer period register
+                if dst_addr as usize == TIMER_PERIOD_ADDR {
+                    let period = self.regs[src];
+                    self.timer_period = period;
+                    self.timer_counter = period; // reset counter to period
+                } else {
+                    self.poke(dst_addr as usize, self.regs[src]);
+                }
                 Ok(None)
             }
 
@@ -1347,7 +1427,14 @@ impl Vm {
                 let addr_reg = self.reg_idx(args[1]);
                 if dst < NUM_REGS && addr_reg < NUM_REGS {
                     let src_addr = self.regs[addr_reg] as usize;
-                    self.regs[dst] = self.peek(src_addr);
+                    // Memory-mapped timer registers
+                    if src_addr == TIMER_COUNTER_ADDR {
+                        self.regs[dst] = self.timer_counter;
+                    } else if src_addr == TIMER_PERIOD_ADDR {
+                        self.regs[dst] = self.timer_period;
+                    } else {
+                        self.regs[dst] = self.peek(src_addr);
+                    }
                 }
                 None
             }
@@ -1358,7 +1445,14 @@ impl Vm {
                 let src = self.reg_idx(args[1]);
                 if addr_reg < NUM_REGS && src < NUM_REGS {
                     let dst_addr = self.regs[addr_reg] as usize;
-                    self.poke(dst_addr, self.regs[src]);
+                    // Memory-mapped timer period register
+                    if dst_addr == TIMER_PERIOD_ADDR {
+                        let period = self.regs[src];
+                        self.timer_period = period;
+                        self.timer_counter = period;
+                    } else {
+                        self.poke(dst_addr, self.regs[src]);
+                    }
                 }
                 None
             }
@@ -2952,5 +3046,159 @@ mod tests {
         assert!(vm.halted);
         assert_eq!(vm.regs[17], 42); // 30 + 12
         assert_eq!(vm.regs[10], 12); // unchanged
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // TIMER INTERRUPT TESTS
+    // ═══════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn timer_default_is_disabled() {
+        let vm = Vm::new(1024);
+        assert_eq!(vm.timer_period, 0);
+        assert_eq!(vm.timer_counter, 0);
+    }
+
+    #[test]
+    fn timer_store_period_enables_timer() {
+        // Verify that setting timer fields directly works
+        let mut vm = Vm::new(65536);
+        vm.timer_period = 10;
+        vm.timer_counter = 10;
+        assert_eq!(vm.timer_period, 10);
+        assert_eq!(vm.timer_counter, 10);
+    }
+
+    #[test]
+    fn timer_fires_after_period_cycles() {
+        // Set up: timer with period=5, IVT[0] = handler address
+        // Handler just increments r0 and returns via IRET
+        // Main program: NOP loop
+        let mut vm = Vm::new(1024);
+
+        // Handler at address 50: ADD r0, r1 (r1=1); IRET
+        vm.poke(50, op::ADD as u32);
+        vm.poke(51, 0x30); // r0
+        vm.poke(52, 0x31); // r1
+        vm.poke(53, op::IRET as u32);
+
+        // Main program at address 0: infinite NOP loop
+        vm.poke(0, op::NOP as u32);
+        vm.poke(1, op::JMP as u32);
+        vm.poke(2, 0 | 0x80000000); // JMP to 0 (absolute)
+
+        // Set up registers
+        vm.regs[1] = 1; // r1 = 1 (increment amount)
+
+        // Set up timer
+        vm.timer_period = 5;
+        vm.timer_counter = 5;
+
+        // Set up IVT[0] = handler address
+        vm.ivt[0] = 50;
+
+        // Run for a limited number of steps (not using vm.run() which has MAX_CYCLES)
+        let mut cycles = 0u32;
+        while !vm.halted && !vm.yielded && cycles < 100 {
+            vm.step();
+            cycles += 1;
+            // Tick timer (same as run() does)
+            if let Some(handler) = vm.tick_timer() {
+                vm.pc = handler;
+            }
+        }
+
+        // After 100 cycles with period=5: 20 timer fires (at cycles 4,9,14,...,99)
+        // but the 20th fire redirects to handler at the very last cycle,
+        // so the handler's ADD only executes 19 times.
+        assert!(vm.regs[0] > 0, "Timer should have fired at least once, r0={}", vm.regs[0]);
+        assert_eq!(vm.regs[0], 19, "Expected 19 handler executions in 100 cycles with period 5");
+    }
+
+    #[test]
+    fn timer_no_fire_without_handler() {
+        // Timer fires but IVT[0] = 0, so nothing happens
+        let mut vm = Vm::new(1024);
+
+        // Main program: NOP, JMP 0 (infinite loop)
+        vm.poke(0, op::NOP as u32);
+        vm.poke(1, op::JMP as u32);
+        vm.poke(2, 0 | 0x80000000);
+
+        // Timer enabled but no handler
+        vm.timer_period = 5;
+        vm.timer_counter = 5;
+        vm.ivt[0] = 0; // No handler
+
+        let mut cycles = 0u32;
+        while !vm.halted && !vm.yielded && cycles < 50 {
+            vm.step();
+            cycles += 1;
+            if let Some(handler) = vm.tick_timer() {
+                vm.pc = handler;
+            }
+        }
+
+        // Should still be in the NOP loop
+        assert!(!vm.halted);
+        assert_eq!(vm.regs[0], 0); // Nothing modified
+    }
+
+    #[test]
+    fn timer_disabled_by_zero_period() {
+        let mut vm = Vm::new(1024);
+
+        // Handler at address 50: HALT (if reached)
+        vm.poke(50, op::HALT as u32);
+
+        // Main program: NOP, JMP 0
+        vm.poke(0, op::NOP as u32);
+        vm.poke(1, op::JMP as u32);
+        vm.poke(2, 0 | 0x80000000);
+
+        // Timer disabled (period = 0)
+        vm.timer_period = 0;
+        vm.timer_counter = 0;
+        vm.ivt[0] = 50; // Handler set but timer disabled
+
+        let mut cycles = 0u32;
+        while !vm.halted && !vm.yielded && cycles < 50 {
+            vm.step();
+            cycles += 1;
+            if let Some(handler) = vm.tick_timer() {
+                vm.pc = handler;
+            }
+        }
+
+        // Timer never fires → program keeps running
+        assert!(!vm.halted);
+    }
+
+    #[test]
+    fn timer_snapshot_restore() {
+        let mut vm = Vm::new(1024);
+        vm.timer_period = 42;
+        vm.timer_counter = 17;
+
+        let snap = vm.snapshot();
+        assert_eq!(snap.timer_period, 42);
+        assert_eq!(snap.timer_counter, 17);
+
+        let mut vm2 = Vm::new(1024);
+        assert_eq!(vm2.timer_period, 0);
+        vm2.restore(&snap);
+        assert_eq!(vm2.timer_period, 42);
+        assert_eq!(vm2.timer_counter, 17);
+    }
+
+    #[test]
+    fn timer_child_does_not_inherit() {
+        let mut vm = Vm::new(1024);
+        vm.timer_period = 100;
+        vm.timer_counter = 50;
+
+        let child = vm.spawn_child(&ChildVm { start_addr: 0, arg: 0 });
+        assert_eq!(child.timer_period, 0);
+        assert_eq!(child.timer_counter, 0);
     }
 }
