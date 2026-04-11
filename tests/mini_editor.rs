@@ -410,3 +410,126 @@ fn mini_editor_scroll_on_many_lines() {
         scroll_offset
     );
 }
+
+// ── SOURCE FILE SAVE TESTS ────────────────────────────────────────
+
+/// Helper: create a VM with enough RAM for the source file region (0x2000+768).
+fn make_editor_vm() -> Vm {
+    let asm = assemble_editor();
+    let mut vm = Vm::new(0x3000); // enough for buffer + source region
+    vm.load_program(&asm.pixels);
+    vm
+}
+
+#[test]
+fn mini_editor_save_source_empty_buffer() {
+    let mut vm = make_editor_vm();
+    run_vm(&mut vm);
+
+    // Press Ctrl+S on empty buffer
+    press_key(&mut vm, 0x13);
+
+    // Dirty flag should be set
+    assert_eq!(vm.ram[0x1FFE], 1, "dirty flag should be 1 after save");
+
+    // Source length should be 0
+    assert_eq!(vm.ram[0x1FFF], 0, "source length should be 0 for empty buffer");
+
+    // Source region should have null terminator at position 0
+    assert_eq!(vm.ram[0x2000], 0, "source[0] should be null terminator");
+}
+
+#[test]
+fn mini_editor_save_source_with_text() {
+    let mut vm = make_editor_vm();
+    run_vm(&mut vm);
+
+    // Type "HELLO"
+    press_key(&mut vm, 0x48); // H
+    press_key(&mut vm, 0x45); // E
+    press_key(&mut vm, 0x4C); // L
+    press_key(&mut vm, 0x4C); // L
+    press_key(&mut vm, 0x4F); // O
+
+    // Press Ctrl+S
+    press_key(&mut vm, 0x13);
+
+    // Dirty flag should be set
+    assert_eq!(vm.ram[0x1FFE], 1, "dirty flag should be 1 after save");
+
+    // Source length should be 5
+    assert_eq!(vm.ram[0x1FFF], 5, "source length should be 5 for 'HELLO'");
+
+    // Source region should contain "HELLO" + null
+    let source = read_buffer_from(&vm, 0x2000, 10);
+    assert_eq!(source, vec![0x48, 0x45, 0x4C, 0x4C, 0x4F], "source should contain 'HELLO'");
+    assert_eq!(vm.ram[0x2005], 0, "source should be null-terminated after text");
+}
+
+#[test]
+fn mini_editor_save_source_multiline() {
+    let mut vm = make_editor_vm();
+    run_vm(&mut vm);
+
+    // Type "A<enter>B"
+    press_key(&mut vm, 0x41); // A
+    press_key(&mut vm, 0x0D); // Enter (inserts 0x0A)
+    press_key(&mut vm, 0x42); // B
+
+    // Press Ctrl+S
+    press_key(&mut vm, 0x13);
+
+    // Source length should be 3 (A, newline, B)
+    assert_eq!(vm.ram[0x1FFF], 3, "source length should be 3");
+
+    // Source should contain A, newline, B
+    let source = read_buffer_from(&vm, 0x2000, 10);
+    assert_eq!(source, vec![0x41, 0x0A, 0x42], "source should be 'A\\nB'");
+}
+
+#[test]
+fn mini_editor_save_source_updates_on_new_save() {
+    let mut vm = make_editor_vm();
+    run_vm(&mut vm);
+
+    // Type "AB" and save
+    press_key(&mut vm, 0x41); // A
+    press_key(&mut vm, 0x42); // B
+    press_key(&mut vm, 0x13); // Ctrl+S
+
+    assert_eq!(vm.ram[0x1FFF], 2, "first save: length 2");
+
+    // Backspace once, type "C", save again
+    press_key(&mut vm, 0x08); // backspace
+    press_key(&mut vm, 0x43); // C
+    press_key(&mut vm, 0x13); // Ctrl+S
+
+    assert_eq!(vm.ram[0x1FFE], 1, "dirty flag still 1 after second save");
+    assert_eq!(vm.ram[0x1FFF], 2, "second save: length 2");
+
+    let source = read_buffer_from(&vm, 0x2000, 10);
+    assert_eq!(source, vec![0x41, 0x43], "source should be 'AC' after edit and re-save");
+}
+
+#[test]
+fn mini_editor_dirty_flag_initially_zero() {
+    let mut vm = make_editor_vm();
+    run_vm(&mut vm);
+
+    // Don't press Ctrl+S -- dirty flag should be 0
+    assert_eq!(vm.ram[0x1FFE], 0, "dirty flag should be 0 before any save");
+    assert_eq!(vm.ram[0x1FFF], 0, "source length should be 0 before any save");
+}
+
+/// Read a null-terminated string from an arbitrary base address.
+fn read_buffer_from(vm: &Vm, base: usize, max_len: usize) -> Vec<u8> {
+    let mut result = Vec::new();
+    for i in 0..max_len {
+        let ch = vm.ram[base + i];
+        if ch == 0 {
+            break;
+        }
+        result.push(ch as u8);
+    }
+    result
+}

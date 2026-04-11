@@ -31,6 +31,13 @@
 ;   0x1307: left arrow key constant (0x01)
 ;   0x1308: right arrow key constant (0x02)
 ;
+; SOURCE FILE REGION (for Edit-Compile-Execute loop):
+;   0x1FFE: source dirty flag (0=clean, 1=new source available)
+;   0x1FFF: source length (number of chars in source)
+;   0x2000: source file data (768 words, null-terminated text)
+;           Written when user presses Ctrl+S (0x13).
+;           The assembler VM reads from here.
+;
 ; REGISTER USAGE (constants set in main, preserved across calls):
 ;   r6  = constant: one (1)
 ;   r7  = constant: zero (0)
@@ -136,6 +143,10 @@ editor_loop:
     BEQ r0, r1, handle_left
     LDI r1, 0x02
     BEQ r0, r1, handle_right
+
+    ; Check Ctrl+S (0x13) -- save source
+    LDI r1, 0x13
+    BEQ r0, r1, handle_save_source
 
     JMP handle_printable
 
@@ -395,6 +406,57 @@ handle_right:
     BEQ r1, r0, el_after_handle  ; already at end
     ADD r1, r6
     STORE r13, r1
+    JMP el_after_handle
+
+
+; ── handle_save_source: Ctrl+S -- copy buffer to source file region ─
+;
+; Copies the text buffer (0x1000..0x12FF) to the source file region
+; (0x2000..0x22FF), sets the dirty flag (0x1FFE=1) and source length
+; (0x1FFF=length).
+;
+; Uses constants r6..r15 (already pushed by caller).
+;
+
+handle_save_source:
+    ; Get buffer length
+    CALL get_buf_len          ; r0 = length
+
+    ; Save length to source length register
+    LDI r1, 0x1FFF
+    STORE r1, r0
+
+    ; Copy buffer[0..length] to source[0..length] (include null terminator)
+    ; r0 = length, copy length+1 words (chars + null)
+    ADD r0, r6               ; r0 = length + 1 (include null)
+    LDI r1, 0                ; r1 = index
+    MOV r2, r9               ; r2 = src base (0x1000)
+    LDI r3, 0x2000           ; r3 = dst base (0x2000)
+
+hss_copy:
+    BEQ r1, r0, hss_done     ; copied all words
+
+    ; Read buffer[index]
+    MOV r4, r2
+    ADD r4, r1
+    LOAD r5, r4              ; r5 = buffer[index]
+
+    ; Write to source[index]
+    MOV r4, r3
+    ADD r4, r1
+    STORE r4, r5
+
+    ADD r1, r6
+    JMP hss_copy
+
+hss_done:
+    ; Set dirty flag
+    LDI r1, 0x1FFE
+    STORE r1, r6             ; dirty = 1
+
+    ; Show "SAVED" status
+    CALL show_saved_status
+
     JMP el_after_handle
 
 
@@ -749,12 +811,33 @@ dc_offscreen:
     RET
 
 
+; ── show_saved_status: display "SAVED" in status bar ──────────────
+;
+; Briefly shows a "SAVED" indicator on the right side of the status bar.
+; Uses a simple direct draw -- no timer, just draws it.
+;
+; Clobbers: r0-r3
+;
+
+show_saved_status:
+    ; Draw "SAVED" text on status bar (right-aligned at x=210)
+    LDI r0, 0x00FF00         ; green
+    LDI r1, 210
+    LDI r2, 2
+    LDI r3, saved_str
+    TEXT r1, r2, r3
+    RET
+
+
 ; ═══════════════════════════════════════════════════════════════════════
 ; STRING CONSTANTS
 ; ═══════════════════════════════════════════════════════════════════════
 
 title_str:
     .asciz "EDIT"
+
+saved_str:
+    .asciz "SAVED"
 
 
     .include "../lib/input.gasm"
