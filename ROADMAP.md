@@ -54,7 +54,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Mini-editor: text editing inside the VM
 - [x] Micro-asm v2 (forward references, error reporting with line numbers)
 - [x] Mini-debugger: full register/memory inspection (hex display, memory dump, breakpoint control)
-- [ ] Full bootstrap: micro-asm.asm compiles itself
+- [x] Full bootstrap: micro-asm.asm compiles itself
 
 ## Phase 3: Interactive Programs (proving the OS works)
 
@@ -99,7 +99,7 @@ AI-written demos      AI-written OS that humans use
 **Batch 4 -- Self-Hosting Toolchain:**
 - [x] Mini-editor written in .gasm (uses keyboard port for input)
 - [x] Micro-asm v2 (forward references, error reporting with line numbers)
-- [ ] Full bootstrap (micro-asm.asm compiles itself)
+- [x] Full bootstrap (micro-asm.asm compiles itself)
 
 **Batch 5 -- Games (proof the system works end-to-end):**
 - [ ] Snake game
