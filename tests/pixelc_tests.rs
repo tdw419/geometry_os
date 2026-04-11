@@ -60,6 +60,71 @@ fn pixelc_gradient() {
 }
 
 #[test]
+fn shell_assembles_and_prints_banner() {
+    let source =
+        std::fs::read_to_string("programs/shell.gasm").expect("run: cargo test from project root");
+    let asm = assembler::assemble(&source).expect("shell.gasm assembly failed");
+    // Shell needs at least 0x1000 + 80 words for input buffer
+    let mut vm = Vm::new(16384);
+    vm.load_program(&asm.pixels);
+
+    // Run until first YIELD (welcome banner printed)
+    let mut cycles = 0u32;
+    while !vm.yielded && !vm.halted && cycles < 100_000 {
+        let c = vm.run_with_limit(1000);
+        cycles += c;
+        if vm.yielded || vm.halted {
+            break;
+        }
+    }
+    assert!(!vm.halted, "shell should not halt immediately");
+    assert!(vm.yielded, "shell should yield after printing banner ({} cycles)", cycles);
+
+    // Check terminal has welcome text
+    let line0: String = vm.term.get_line(0).iter().map(|&c| c as char).collect();
+    assert!(
+        line0.contains("GEOS"),
+        "first terminal line should contain 'GEOS', got: '{}'",
+        line0
+    );
+
+    // Inject "HELP" + Enter into keyboard port
+    // The shell reads from KEY_PORT (0xFFF) in a loop, YIELDing when no key
+    // We inject one key at a time, running between injections
+    let keys: Vec<u32> = vec![b'H' as u32, b'E' as u32, b'L' as u32, b'P' as u32, 10];
+    for &key in &keys {
+        vm.ram[0xFFF] = key;
+        vm.yielded = false;
+        let mut kc = 0u32;
+        while !vm.yielded && !vm.halted && kc < 50_000 {
+            let c = vm.run_with_limit(1000);
+            kc += c;
+        }
+    }
+
+    // After HELP + Enter, terminal should contain help text
+    let all_text: String = (0..vm.term.line_count())
+        .map(|i| {
+            vm.term
+                .get_line(i)
+                .iter()
+                .map(|&c| c as char)
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        all_text.contains("Commands:"),
+        "terminal should contain 'Commands:' after HELP, got:\n{}",
+        all_text
+    );
+    assert!(
+        all_text.contains("CLS"),
+        "help output should mention CLS"
+    );
+}
+
+#[test]
 fn pixelc_life() {
     // Conway's Game of Life -- grids at ram[8192] and ram[12288]
     let source =

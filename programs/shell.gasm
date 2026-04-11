@@ -1,0 +1,641 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/shell.gasm -- Pixel-native shell for Geometry OS
+;
+; The shell IS the OS. It runs inside the VM as a regular program.
+; Uses terminal I/O registers (0xFFD8+) for all text output.
+; Reads keyboard input from KEY_PORT (0xFFF).
+;
+; Commands:
+;   CLS           -- clear screen
+;   HELP          -- show available commands
+;   VER           -- show version
+;   ECHO <text>   -- print text back
+;   RUN <name>    -- load and run a program (via EXEC opcode)
+;   DIR           -- list available programs
+;
+; Input buffer at ram[0x1000] (word-addressed, one ASCII char per word).
+; Max input length: 80 chars.
+; ═══════════════════════════════════════════════════════════════════════
+
+.TEXT
+
+; ── CONSTANTS ────────────────────────────────────────────────────────
+; r10 = TERM_CHAR_ADDR (0xFFD8)
+; r11 = KEY_PORT (0xFFF)
+; r12 = input buffer base (0x1000)
+; r13 = max input length (80)
+; r14 = zero constant
+; r15 = one constant
+; r20 = scratch for comparisons
+
+main:
+    ; Load constants
+    LDI r10, 0xFFD8           ; TERM_CHAR_ADDR
+    LDI r11, 0xFFF            ; KEY_PORT
+    LDI r12, 0x1000           ; input buffer base
+    LDI r13, 80               ; max input length
+    LDI r14, 0                ; zero
+    LDI r15, 1                ; one
+
+    ; Clear terminal
+    LDI r5, 0xFFDF            ; TERM_CLEAR_ADDR
+    STORE r5, r15             ; write 1 to clear
+
+    ; Print welcome banner
+    ; "GEOS Shell v1.0"
+    LDI r0, 'G'
+    STORE r10, r0
+    LDI r0, 'E'
+    STORE r10, r0
+    LDI r0, 'O'
+    STORE r10, r0
+    LDI r0, 'S'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'S'
+    STORE r10, r0
+    LDI r0, 'h'
+    STORE r10, r0
+    LDI r0, 'e'
+    STORE r10, r0
+    LDI r0, 'l'
+    STORE r10, r0
+    LDI r0, 'l'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'v'
+    STORE r10, r0
+    LDI r0, '1'
+    STORE r10, r0
+    LDI r0, '.'
+    STORE r10, r0
+    LDI r0, '0'
+    STORE r10, r0
+    LDI r0, 10                ; newline
+    STORE r10, r0
+
+    ; Print "Type HELP for commands."
+    LDI r0, 'T'
+    STORE r10, r0
+    LDI r0, 'y'
+    STORE r10, r0
+    LDI r0, 'p'
+    STORE r10, r0
+    LDI r0, 'e'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'H'
+    STORE r10, r0
+    LDI r0, 'E'
+    STORE r10, r0
+    LDI r0, 'L'
+    STORE r10, r0
+    LDI r0, 'P'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'f'
+    STORE r10, r0
+    LDI r0, 'o'
+    STORE r10, r0
+    LDI r0, 'r'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'c'
+    STORE r10, r0
+    LDI r0, 'o'
+    STORE r10, r0
+    LDI r0, 'm'
+    STORE r10, r0
+    LDI r0, 'm'
+    STORE r10, r0
+    LDI r0, 'a'
+    STORE r10, r0
+    LDI r0, 'n'
+    STORE r10, r0
+    LDI r0, 'd'
+    STORE r10, r0
+    LDI r0, 's'
+    STORE r10, r0
+    LDI r0, '.'
+    STORE r10, r0
+    LDI r0, 10               ; newline
+    STORE r10, r0
+    LDI r0, 10               ; blank line
+    STORE r10, r0
+
+; ── MAIN LOOP ────────────────────────────────────────────────────────
+shell_loop:
+    ; Show prompt ">"
+    LDI r0, '>'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+
+    ; Clear input buffer
+    MOV r2, r12               ; r2 = buffer pointer
+    LDI r3, 80                ; count
+clear_buf:
+    STORE r2, r14             ; ram[ptr] = 0
+    ADD r2, r15               ; ptr++
+    SUB r3, r15               ; count--
+    BNE r3, r14, clear_buf
+
+    ; Reset input index
+    LDI r16, 0                ; r16 = input char index
+
+; ── READ KEY LOOP ────────────────────────────────────────────────────
+read_key:
+    ; Read KEY_PORT
+    LOAD r0, r11              ; r0 = ram[0xFFF]
+
+    ; No key? YIELD and try again
+    BEQ r0, r14, read_key_yield
+
+    ; Got a key - clear the port (acknowledge)
+    STORE r11, r14            ; ram[0xFFF] = 0
+
+    ; Check for Enter (10 = newline, 13 = carriage return)
+    LDI r20, 10
+    BEQ r0, r20, process_command
+    LDI r20, 13
+    BEQ r0, r20, process_command
+
+    ; Check for Backspace (8)
+    LDI r20, 8
+    BEQ r0, r20, handle_backspace
+
+    ; Printable char: echo to terminal and store in buffer
+    ; Check buffer full
+    LDI r20, 80
+    BGE r16, r20, read_key    ; buffer full, ignore
+
+    ; Store char in buffer
+    MOV r2, r12
+    ADD r2, r16               ; buf[index]
+    STORE r2, r0              ; buf[index] = char
+
+    ; Echo to terminal
+    STORE r10, r0             ; term output
+
+    ; Advance index
+    ADD r16, r15
+    JMP read_key
+
+handle_backspace:
+    ; If index > 0, go back one
+    BEQ r16, r14, read_key    ; can't backspace at start
+    SUB r16, r15              ; index--
+
+    ; Clear the char in buffer
+    MOV r2, r12
+    ADD r2, r16
+    STORE r2, r14             ; buf[index] = 0
+
+    ; Erase on terminal: backspace, space, backspace
+    LDI r0, 8
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 8
+    STORE r10, r0
+
+    JMP read_key
+
+read_key_yield:
+    YIELD
+    JMP read_key
+
+; ── PROCESS COMMAND ──────────────────────────────────────────────────
+process_command:
+    ; Null-terminate the buffer
+    MOV r2, r12
+    ADD r2, r16
+    STORE r2, r14             ; buf[index] = 0
+
+    ; Print newline
+    LDI r0, 10
+    STORE r10, r0
+
+    ; Check if empty input
+    BEQ r16, r14, shell_loop  ; empty line, new prompt
+
+    ; ── Parse command: compare first word ─────────────────────────────
+    ; We check character by character against known commands.
+    ; r16 = length of input, r12 = buffer base
+
+    ; Load first char (uppercase it by checking ranges)
+    LOAD r0, r12              ; r0 = first char
+
+    ; ── CLS ──
+    LDI r20, 'C'
+    BNE r0, r20, try_help
+    MOV r2, r12
+    LDI r3, 1
+    ADD r2, r3
+    LOAD r3, r2               ; second char
+    LDI r20, 'L'
+    BNE r3, r20, try_help
+    MOV r2, r12
+    LDI r3, 2
+    ADD r2, r3
+    LOAD r3, r2               ; third char
+    LDI r20, 'S'
+    BNE r3, r20, try_help
+    ; CLS matched!
+    LDI r5, 0xFFDF
+    STORE r5, r15             ; clear terminal
+    JMP shell_loop
+
+try_help:
+    ; ── HELP ──
+    LDI r20, 'H'
+    BNE r0, r20, try_ver
+    MOV r2, r12
+    LDI r3, 1
+    ADD r2, r3
+    LOAD r3, r2
+    LDI r20, 'E'
+    BNE r3, r20, try_ver
+    MOV r2, r12
+    LDI r3, 2
+    ADD r2, r3
+    LOAD r3, r2
+    LDI r20, 'L'
+    BNE r3, r20, try_ver
+    MOV r2, r12
+    LDI r3, 3
+    ADD r2, r3
+    LOAD r3, r2
+    LDI r20, 'P'
+    BNE r3, r20, try_ver
+
+    ; HELP matched - print help text
+    ; "Commands:"
+    LDI r0, 'C'
+    STORE r10, r0
+    LDI r0, 'o'
+    STORE r10, r0
+    LDI r0, 'm'
+    STORE r10, r0
+    LDI r0, 'm'
+    STORE r10, r0
+    LDI r0, 'a'
+    STORE r10, r0
+    LDI r0, 'n'
+    STORE r10, r0
+    LDI r0, 'd'
+    STORE r10, r0
+    LDI r0, 's'
+    STORE r10, r0
+    LDI r0, ':'
+    STORE r10, r0
+    LDI r0, 10
+    STORE r10, r0
+
+    ; " CLS    Clear screen"
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'C'
+    STORE r10, r0
+    LDI r0, 'L'
+    STORE r10, r0
+    LDI r0, 'S'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'C'
+    STORE r10, r0
+    LDI r0, 'l'
+    STORE r10, r0
+    LDI r0, 'e'
+    STORE r10, r0
+    LDI r0, 'a'
+    STORE r10, r0
+    LDI r0, 'r'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 's'
+    STORE r10, r0
+    LDI r0, 'c'
+    STORE r10, r0
+    LDI r0, 'r'
+    STORE r10, r0
+    LDI r0, 'e'
+    STORE r10, r0
+    LDI r0, 'e'
+    STORE r10, r0
+    LDI r0, 'n'
+    STORE r10, r0
+    LDI r0, 10
+    STORE r10, r0
+
+    ; " HELP   Show this help"
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'H'
+    STORE r10, r0
+    LDI r0, 'E'
+    STORE r10, r0
+    LDI r0, 'L'
+    STORE r10, r0
+    LDI r0, 'P'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'S'
+    STORE r10, r0
+    LDI r0, 'h'
+    STORE r10, r0
+    LDI r0, 'o'
+    STORE r10, r0
+    LDI r0, 'w'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'h'
+    STORE r10, r0
+    LDI r0, 'e'
+    STORE r10, r0
+    LDI r0, 'l'
+    STORE r10, r0
+    LDI r0, 'p'
+    STORE r10, r0
+    LDI r0, 10
+    STORE r10, r0
+
+    ; " VER    Show version"
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'V'
+    STORE r10, r0
+    LDI r0, 'E'
+    STORE r10, r0
+    LDI r0, 'R'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'S'
+    STORE r10, r0
+    LDI r0, 'h'
+    STORE r10, r0
+    LDI r0, 'o'
+    STORE r10, r0
+    LDI r0, 'w'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'v'
+    STORE r10, r0
+    LDI r0, 'e'
+    STORE r10, r0
+    LDI r0, 'r'
+    STORE r10, r0
+    LDI r0, 's'
+    STORE r10, r0
+    LDI r0, 'i'
+    STORE r10, r0
+    LDI r0, 'o'
+    STORE r10, r0
+    LDI r0, 'n'
+    STORE r10, r0
+    LDI r0, 10
+    STORE r10, r0
+
+    ; " ECHO   Echo text"
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'E'
+    STORE r10, r0
+    LDI r0, 'C'
+    STORE r10, r0
+    LDI r0, 'H'
+    STORE r10, r0
+    LDI r0, 'O'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'E'
+    STORE r10, r0
+    LDI r0, 'c'
+    STORE r10, r0
+    LDI r0, 'h'
+    STORE r10, r0
+    LDI r0, 'o'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 't'
+    STORE r10, r0
+    LDI r0, 'e'
+    STORE r10, r0
+    LDI r0, 'x'
+    STORE r10, r0
+    LDI r0, 't'
+    STORE r10, r0
+    LDI r0, 10
+    STORE r10, r0
+
+    JMP shell_loop
+
+try_ver:
+    ; ── VER ──
+    LDI r20, 'V'
+    BNE r0, r20, try_echo
+    MOV r2, r12
+    LDI r3, 1
+    ADD r2, r3
+    LOAD r3, r2
+    LDI r20, 'E'
+    BNE r3, r20, try_echo
+    MOV r2, r12
+    LDI r3, 2
+    ADD r2, r3
+    LOAD r3, r2
+    LDI r20, 'R'
+    BNE r3, r20, try_echo
+
+    ; "GEOS v1.0 pixel-native shell"
+    LDI r0, 'G'
+    STORE r10, r0
+    LDI r0, 'E'
+    STORE r10, r0
+    LDI r0, 'O'
+    STORE r10, r0
+    LDI r0, 'S'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'v'
+    STORE r10, r0
+    LDI r0, '1'
+    STORE r10, r0
+    LDI r0, '.'
+    STORE r10, r0
+    LDI r0, '0'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'p'
+    STORE r10, r0
+    LDI r0, 'i'
+    STORE r10, r0
+    LDI r0, 'x'
+    STORE r10, r0
+    LDI r0, 'e'
+    STORE r10, r0
+    LDI r0, 'l'
+    STORE r10, r0
+    LDI r0, '-'
+    STORE r10, r0
+    LDI r0, 'n'
+    STORE r10, r0
+    LDI r0, 'a'
+    STORE r10, r0
+    LDI r0, 't'
+    STORE r10, r0
+    LDI r0, 'i'
+    STORE r10, r0
+    LDI r0, 'v'
+    STORE r10, r0
+    LDI r0, 'e'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 's'
+    STORE r10, r0
+    LDI r0, 'h'
+    STORE r10, r0
+    LDI r0, 'e'
+    STORE r10, r0
+    LDI r0, 'l'
+    STORE r10, r0
+    LDI r0, 'l'
+    STORE r10, r0
+    LDI r0, 10
+    STORE r10, r0
+
+    JMP shell_loop
+
+try_echo:
+    ; ── ECHO ── check first 4 chars
+    LDI r20, 'E'
+    BNE r0, r20, unknown_cmd
+    MOV r2, r12
+    LDI r3, 1
+    ADD r2, r3
+    LOAD r3, r2
+    LDI r20, 'C'
+    BNE r3, r20, unknown_cmd
+    MOV r2, r12
+    LDI r3, 2
+    ADD r2, r3
+    LOAD r3, r2
+    LDI r20, 'H'
+    BNE r3, r20, unknown_cmd
+    MOV r2, r12
+    LDI r3, 3
+    ADD r2, r3
+    LOAD r3, r2
+    LDI r20, 'O'
+    BNE r3, r20, unknown_cmd
+
+    ; ECHO matched - print everything after "ECHO " (skip 5 chars)
+    ; First check if there's a space after ECHO
+    MOV r2, r12
+    LDI r3, 4
+    ADD r2, r3
+    LOAD r3, r2               ; char at position 4
+    LDI r20, 32
+    BNE r3, r20, echo_done    ; no space after ECHO
+
+    ; Print from position 5 onward
+    LDI r17, 5                ; start index
+echo_loop:
+    ; Check if index >= input length
+    BGE r17, r16, echo_done
+
+    ; Load char from buffer
+    MOV r2, r12
+    ADD r2, r17
+    LOAD r0, r2
+
+    ; Write to terminal
+    STORE r10, r0
+
+    ; Advance
+    ADD r17, r15
+    JMP echo_loop
+
+echo_done:
+    LDI r0, 10
+    STORE r10, r0
+    JMP shell_loop
+
+unknown_cmd:
+    ; Print "Unknown command"
+    LDI r0, 'U'
+    STORE r10, r0
+    LDI r0, 'n'
+    STORE r10, r0
+    LDI r0, 'k'
+    STORE r10, r0
+    LDI r0, 'n'
+    STORE r10, r0
+    LDI r0, 'o'
+    STORE r10, r0
+    LDI r0, 'w'
+    STORE r10, r0
+    LDI r0, 'n'
+    STORE r10, r0
+    LDI r0, ':'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+
+    ; Print first word of input (up to space or end)
+    LDI r17, 0
+print_cmd_loop:
+    BGE r17, r16, print_cmd_done
+    MOV r2, r12
+    ADD r2, r17
+    LOAD r0, r2
+    LDI r20, 32
+    BEQ r0, r20, print_cmd_done
+    STORE r10, r0
+    ADD r17, r15
+    JMP print_cmd_loop
+
+print_cmd_done:
+    LDI r0, 10
+    STORE r10, r0
+    JMP shell_loop

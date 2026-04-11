@@ -1418,6 +1418,41 @@ impl Vm {
         }
     }
 
+    /// Render the terminal text buffer to the VM screen (256x256).
+    /// Draws visible lines from `self.term` using a 5x7 font at 1x scale.
+    /// 51 columns × 36 rows fills the entire screen. Background is black.
+    /// Call this each frame before blitting vm.screen to the display.
+    pub fn render_terminal(&mut self) {
+        use crate::font;
+        // Clear screen to black first
+        for p in self.screen.iter_mut() {
+            *p = 0;
+        }
+        let visible = self.term.visible_lines();
+        for (row, line) in visible.iter().enumerate() {
+            let y = row * (font::GLYPH_H + 1); // +1 for 1px line spacing
+            for (col, &ch) in line.iter().enumerate() {
+                if col >= TERM_COLS {
+                    break;
+                }
+                let x = col * (font::GLYPH_W + 1); // +1 for 1px char spacing
+                if ch >= 32 {
+                    font::render_char(
+                        &mut self.screen,
+                        256,
+                        256,
+                        ch,
+                        x,
+                        y,
+                        1,
+                        0x00DDAA, // green-ish terminal text
+                        Some(0x0A0A14), // dark background per char
+                    );
+                }
+            }
+        }
+    }
+
     /// Drain children produced during the last run cycle.
     /// The host calls this after `run()` to collect child spawn requests.
     pub fn drain_children(&mut self) -> Vec<ChildVm> {

@@ -1695,6 +1695,11 @@ fn main() {
                 }
             }
 
+            // Render terminal text buffer to VM screen if program has written to it
+            if vm.term.line_count() > 1 || vm.term.cursor_x() > 0 {
+                vm.render_terminal();
+            }
+
             // VM Screen
             for y in 0..256 {
                 for x in 0..256 {
