@@ -335,3 +335,51 @@ fn input_nibble_boundary_0a() {
     assert_eq!(vm.ram[0x300], 0x30, "high nibble of 0x0A should be '0'");
     assert_eq!(vm.ram[0x301], 0x41, "low nibble of 0x0A should be 'A'");
 }
+
+// ── ECHO INTERACTIVE PROGRAM TESTS ────────────────────────────────────
+
+#[test]
+fn input_echo_interactive_assembles() {
+    // Verify the echo-interactive.asm program assembles without error
+    // Must use assemble_file (not assemble) to resolve .include directives
+    let path = std::path::Path::new("programs/echo-interactive.asm");
+    let lib_dir = std::path::Path::new("lib");
+    let root_dir = std::path::Path::new(".");
+    let result = assembler::assemble_file(path, &[lib_dir, root_dir]);
+    assert!(
+        result.is_ok(),
+        "echo-interactive.asm should assemble: {:?}",
+        result.err()
+    );
+    let asm = result.unwrap();
+    assert!(
+        asm.pixels.len() > 50,
+        "echo-interactive should produce substantial bytecode, got {}",
+        asm.pixels.len()
+    );
+}
+
+#[test]
+fn input_echo_interactive_reads_key() {
+    // Test that the echo program reads a key and stores it in char_buf
+    let path = std::path::Path::new("programs/echo-interactive.asm");
+    let lib_dir = std::path::Path::new("lib");
+    let root_dir = std::path::Path::new(".");
+    let asm = assembler::assemble_file(path, &[lib_dir, root_dir]).unwrap();
+    let mut vm = Vm::new(4096);
+    vm.load_program(&asm.pixels);
+    // Simulate 'X' key pressed
+    vm.ram[0xFFF] = 0x58; // 'X'
+                          // Run a limited number of cycles -- just enough for one iteration
+    let mut cycles = 0u32;
+    while !vm.halted && cycles < 200 {
+        if vm.step() {
+            cycles += 1;
+        }
+    }
+    // The program should have read the key, stored it in char_buf at 0x300
+    assert_eq!(
+        vm.ram[0x300], 0x58,
+        "char_buf should contain 'X' after keypress"
+    );
+}
