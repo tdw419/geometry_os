@@ -20,7 +20,7 @@
 - [x] String constants (`.asciz "hello"`) for TEXT opcode
 - [x] Expression evaluation in immediates (`LDI r0, 2+3`)
 - [x] Include directive (`.include "lib.gasm"`)
-- [ ] Macro support (`.macro ADD3 ... .endm`)
+- [x] Macro support (`.macro ADD3 ... .endm`)
 
 ### 1.2 VM Enhancements
 - [ ] Stack overflow protection (configurable stack limit)
@@ -95,7 +95,7 @@
 - [x] String constants (`.asciz "hello"`) for TEXT opcode
 - [x] `.data` / `.text` section directives
 - [x] `.include "lib.gasm"` directive
-- [ ] Macro support (`.macro ADD3 ... .endm`)
+- [x] Macro support (`.macro ADD3 ... .endm`)
 
 **Batch 3 -- VM Hardening:**
 - [ ] Stack overflow protection (configurable stack limit)
