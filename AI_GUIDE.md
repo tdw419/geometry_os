@@ -220,6 +220,44 @@ AND r3, r2              ; r3 = 1 if left button down
 Library: `lib/mouse.gasm` provides `read_mouse`, `mouse_left`, `mouse_right`,
 `mouse_middle`, `wait_click` routines.
 
+### Audio Registers (0xFFC0–0xFFC3)
+Memory-mapped I/O for square-wave audio output. Programs read/write these via LOAD/STORE.
+
+| Address  | Name             | R/W | Description |
+|----------|------------------|-----|-------------|
+| `0xFFC0` | AUDIO_FREQ       | R/W | Frequency in Hz (e.g. 440 = A4). Write 0 to stop. |
+| `0xFFC1` | AUDIO_VOLUME     | R/W | Volume 0–255. 0 = mute, 255 = max. |
+| `0xFFC2` | AUDIO_DURATION   | R/W | Duration in ms. 0 = play indefinitely. |
+| `0xFFC3` | AUDIO_STATUS     | R   | 1 = playing, 0 = idle. Read-only (writes ignored). |
+
+Playing a tone: set volume first, then set freq to non-zero. Status auto-set to 1.
+Stopping: set freq to 0 or volume to 0. Status auto-set to 0.
+Children do NOT inherit parent's audio state.
+
+Example:
+```
+; Play A4 at mid volume
+LDI r5, 0xFFC1          ; volume register
+LDI r6, 128             ; mid volume
+STORE r5, r6
+LDI r5, 0xFFC0          ; freq register
+LDI r6, 440             ; A4
+STORE r5, r6            ; starts playing (status → 1)
+
+; Check if playing
+LDI r5, 0xFFC3
+LOAD r0, r5             ; r0 = 1
+
+; Stop
+LDI r5, 0xFFC0
+LDI r6, 0
+STORE r5, r6            ; stops (status → 0)
+```
+
+Library: `lib/audio.gasm` provides `play_note`, `stop_audio`, `set_volume`,
+`audio_playing`, `set_duration`, and convenience routines `play_c4`–`play_c5`.
+Demo: `programs/audio-demo.gasm` plays a C major scale using timer interrupts.
+
 ## Development Rules
 
 ### Testing

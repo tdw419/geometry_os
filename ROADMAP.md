@@ -24,8 +24,9 @@ AI-written demos      AI-written OS that humans use
 - 44 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
-- lib/math.gasm, lib/string.gasm, lib/screen.gasm
+- lib/math.gasm, lib/string.gasm, lib/screen.gasm, lib/audio.gasm
 - Debug registers (cycle count, stack depth, breakpoints)
+- Audio output (square wave, memory-mapped registers 0xFFC0-0xFFC3)
 
 ## Phase 1: Language Completeness
 
@@ -66,14 +67,14 @@ AI-written demos      AI-written OS that humans use
 ## Phase 4: I/O Expansion (the device driver layer)
 
 - [x] Mouse input (memory-mapped x, y, buttons)
-- [ ] Audio output (square wave, memory-mapped)
+- [x] Audio output (square wave, memory-mapped)
 - [ ] Sprite system (SPAWN entities, auto-update)
 - [ ] Scrollable text buffer (terminal output)
 
 ## Phase 5: The OS Layer
 
 - [x] Process scheduler (round-robin, context switching)
-- [ ] Filesystem (save/load named programs, directories)
+- [x] Filesystem (save/load named programs, directories)
 - [ ] Memory management (alloc/free within VM)
 - [ ] Inter-process communication
 - [ ] User sessions / permissions
@@ -108,7 +109,7 @@ AI-written demos      AI-written OS that humans use
 
 **Batch 6 -- The OS Layer (when games prove the foundation):**
 - [x] Process scheduler (needed when snake + editor run together)
-- [ ] Filesystem (needed when you want to save your snake high score)
+- [x] Filesystem (needed when you want to save your snake high score)
 - [ ] Memory management (needed when programs compete for RAM)
 
 **Batch 7 -- VM Hardening (only when programs hit walls):**
