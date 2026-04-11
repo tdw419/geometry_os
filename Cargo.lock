@@ -515,11 +515,13 @@ dependencies = [
 name = "geometry-os"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "minifb",
  "reqwest",
  "rodio",
  "serde",
  "serde_json",
+ "sha1",
  "tiny_http",
  "tungstenite",
 ]

@@ -29,7 +29,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 use crate::agent::{Agent, GasmAgent};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 /// The REST API server wrapping a GasmAgent.
 pub struct ApiServer {
@@ -555,30 +555,43 @@ impl ApiServer {
     /// Performs the WS handshake, then loops reading JSON input events
     /// and injecting them into the VM.
     fn handle_ws_input(&self, request: tiny_http::Request) {
-        // Build the 101 Switching Protocols response
+        // Extract Sec-WebSocket-Key from the client's request headers
+        let ws_key = request
+            .headers()
+            .iter()
+            .find(|h| h.field.equiv("Sec-WebSocket-Key"))
+            .map(|h| h.value.as_str().to_string())
+            .unwrap_or_default();
+
+        // Compute Sec-WebSocket-Accept per RFC 6455:
+        // SHA-1(client_key + magic_guid), base64-encoded
+        let accept_key = Self::compute_ws_accept_key(&ws_key);
+
+        // Build the 101 response with the correct accept key.
+        // tiny_http's upgrade() will send this response, then return the raw stream.
         let response = tiny_http::Response::new(
             tiny_http::StatusCode(101),
             vec![
                 tiny_http::Header::from_bytes("Upgrade", "websocket").unwrap(),
                 tiny_http::Header::from_bytes("Connection", "Upgrade").unwrap(),
+                tiny_http::Header::from_bytes("Sec-WebSocket-Accept", accept_key.as_str()).unwrap(),
             ],
             &b""[..],
-            None,
+            Some(0),
             None,
         );
 
-        // Upgrade the connection: tiny_http sends the 101 response and returns
-        // the raw TCP stream as a Read+Write trait object.
+        // Upgrade: tiny_http sends our 101 response and returns raw TCP stream.
+        // The client validates the 101 (checking Sec-WebSocket-Accept).
+        // We then wrap the stream as an already-handshaken WebSocket.
         let stream = request.upgrade("websocket", response);
 
-        // Perform the WebSocket handshake using tungstenite
-        let mut ws = match tungstenite::accept(stream) {
-            Ok(ws) => ws,
-            Err(e) => {
-                eprintln!("[api] WebSocket handshake failed: {}", e);
-                return;
-            }
-        };
+        // Create WebSocket without re-doing the handshake (we already sent 101).
+        let mut ws = tungstenite::WebSocket::from_raw_socket(
+            stream,
+            tungstenite::protocol::Role::Server,
+            None,
+        );
 
         eprintln!("[api] WebSocket /ws/input connected");
 
@@ -631,11 +644,15 @@ impl ApiServer {
                             agent.inject_key(keycode);
                         }
                         let _ = ws.send(tungstenite::Message::Text(
-                            serde_json::json!({"ok": true, "type": "key", "key": keycode}).to_string(),
+                            serde_json::json!({"ok": true, "type": "key", "key": keycode})
+                                .to_string()
+                                .into(),
                         ));
                     } else {
                         let _ = ws.send(tungstenite::Message::Text(
-                            serde_json::json!({"error": "missing key field"}).to_string(),
+                            serde_json::json!({"error": "missing key field"})
+                                .to_string()
+                                .into(),
                         ));
                     }
                 }
@@ -646,21 +663,34 @@ impl ApiServer {
                     if let Ok(mut agent) = self.agent.lock() {
                         agent.inject_mouse(x, y, buttons);
                     }
-                        let _ = ws.send(tungstenite::Message::Text(
-                            serde_json::json!({"ok": true, "type": "key", "key": keycode})
-                                .to_string()
-                                .into(),
-                        ));
+                    let _ = ws.send(tungstenite::Message::Text(
+                        serde_json::json!({"ok": true, "type": "mouse", "x": x, "y": y, "buttons": buttons})
+                            .to_string()
+                            .into(),
+                    ));
                 }
                 _ => {
                     let _ = ws.send(tungstenite::Message::Text(
-                        serde_json::json!({"error": "unknown type", "type": event_type}).to_string(),
+                        serde_json::json!({"error": "unknown type", "type": event_type})
+                            .to_string()
+                            .into(),
                     ));
                 }
             }
         }
 
         eprintln!("[api] WebSocket /ws/input disconnected");
+    }
+
+    /// Compute the Sec-WebSocket-Accept key per RFC 6455.
+    fn compute_ws_accept_key(client_key: &str) -> String {
+        use base64::Engine;
+        use sha1::{Digest, Sha1};
+        const WS_MAGIC: &str = "258EAFA5-E914-47DA-95CA-5AB5AF16FD6B";
+        let mut hasher = Sha1::new();
+        hasher.update(client_key.as_bytes());
+        hasher.update(WS_MAGIC.as_bytes());
+        base64::engine::general_purpose::STANDARD.encode(&hasher.finalize())
     }
 
     // ── Helpers ──
