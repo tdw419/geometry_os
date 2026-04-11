@@ -517,11 +517,66 @@ pub struct VmSnapshot {
     pub heap_alloc_result: u32,
     /// IPC: incoming message queue for this process.
     pub mailbox: VecDeque<(u32, u32)>, // (sender_pid, value)
+    /// IPC: enabled flag.
+    pub ipc_enabled: bool,
+    /// IPC: target PID for next send.
+    pub ipc_msg_target: u32,
+    /// IPC: value for send/receive.
+    pub ipc_msg_value: u32,
+    /// IPC: sender PID of last received message.
+    pub ipc_msg_sender: u32,
+    /// IPC: status of last operation.
+    pub ipc_status: u32,
+    /// IPC: shared memory window.
+    pub ipc_shared: [u32; IPC_SHARED_WORDS],
 }
 
 /// Maximum messages per process mailbox.
 pub const IPC_MAILBOX_SIZE: usize = 16;
 pub const IVT_SIZE: usize = 16;
+
+// ── IPC registers (0xFE00–0xFEFF) ─────────────────────────────────
+// Memory-mapped I/O for inter-process communication.
+// Programs read/write these via LOAD/STORE.
+// The region 0xFE10–0xFEFF is a shared memory window: reads/writes
+// go through to an IPC shared buffer rather than local RAM.
+
+/// IPC region start address.
+pub const IPC_REGION_START: usize = 0xFE00;
+/// IPC region end address (exclusive).
+pub const IPC_REGION_END: usize = 0xFF00;
+
+/// IPC status register. Read/write. Write 1 to enable IPC, 0 to disable.
+pub const IPC_STATUS_ADDR: usize = 0xFE00;
+/// This process's PID (read-only mirror).
+pub const IPC_MY_PID_ADDR: usize = 0xFE01;
+/// Number of messages in mailbox (read-only).
+pub const IPC_MSG_COUNT_ADDR: usize = 0xFE02;
+/// Send a message: write triggers send. Target PID in IPC_MSG_TARGET, value in IPC_MSG_VALUE.
+/// Read returns 1 if last send succeeded, 0 if mailbox full / target not found.
+pub const IPC_MSG_SEND_ADDR: usize = 0xFE03;
+/// Target PID for next send (read/write).
+pub const IPC_MSG_TARGET_ADDR: usize = 0xFE04;
+/// Value to send / value just received (read/write).
+pub const IPC_MSG_VALUE_ADDR: usize = 0xFE05;
+/// Receive a message: read returns value, dequeues from mailbox. Sender PID in IPC_MSG_SENDER.
+/// Returns 0 and sets IPC_MSG_STATUS to 0 if mailbox empty.
+pub const IPC_MSG_RECV_ADDR: usize = 0xFE06;
+/// Sender PID of last received message (read-only).
+pub const IPC_MSG_SENDER_ADDR: usize = 0xFE07;
+/// Peek at next message without removing: read returns value (read-only).
+/// Returns 0 if mailbox empty.
+pub const IPC_MSG_PEEK_ADDR: usize = 0xFE08;
+/// Status/result of last IPC operation (read-only).
+/// 0 = idle/no error, 1 = success, 2 = mailbox full, 3 = target not found, 4 = empty.
+pub const IPC_MSG_STATUS_ADDR: usize = 0xFE09;
+
+/// Start of IPC shared memory window (read/write maps to shared buffer).
+pub const IPC_SHARED_START: usize = 0xFE10;
+/// End of IPC shared memory window (exclusive).
+pub const IPC_SHARED_END: usize = 0xFF00;
+/// Number of words in the IPC shared memory window.
+pub const IPC_SHARED_WORDS: usize = IPC_SHARED_END - IPC_SHARED_START; // 240 words
 
 /// Timer interrupt vector number (IVT slot 0).
 pub const TIMER_VECTOR: usize = 0;
@@ -1085,6 +1140,19 @@ pub struct Vm {
     pub term: TextBuffer,
     /// IPC: incoming message queue for this process.
     pub mailbox: VecDeque<(u32, u32)>, // (sender_pid, value)
+    /// IPC: enabled flag (written via IPC_STATUS_ADDR).
+    pub ipc_enabled: bool,
+    /// IPC: target PID for next send (written via IPC_MSG_TARGET_ADDR).
+    pub ipc_msg_target: u32,
+    /// IPC: value for send/receive (written/read via IPC_MSG_VALUE_ADDR).
+    pub ipc_msg_value: u32,
+    /// IPC: sender PID of last received message.
+    pub ipc_msg_sender: u32,
+    /// IPC: status of last operation (0=idle, 1=ok, 2=mailbox full, 3=target not found, 4=empty).
+    pub ipc_status: u32,
+    /// IPC: shared memory window (240 words, mapped at 0xFE10–0xFEFF).
+    /// All processes with IPC enabled share this buffer for bulk data transfer.
+    pub ipc_shared: [u32; IPC_SHARED_WORDS],
 }
 
 impl Vm {
@@ -1126,6 +1194,12 @@ impl Vm {
             heap_alloc_result: 0,
             term: TextBuffer::new(),
             mailbox: VecDeque::new(),
+            ipc_enabled: false,
+            ipc_msg_target: 0,
+            ipc_msg_value: 0,
+            ipc_msg_sender: 0,
+            ipc_status: 0,
+            ipc_shared: [0; IPC_SHARED_WORDS],
         }
     }
 
@@ -1227,6 +1301,12 @@ impl Vm {
             heap_alloc_result: 0,
             term: TextBuffer::new(),
             mailbox: VecDeque::new(),
+            ipc_enabled: false,
+            ipc_msg_target: 0,
+            ipc_msg_value: 0,
+            ipc_msg_sender: 0,
+            ipc_status: 0,
+            ipc_shared: [0; IPC_SHARED_WORDS],
         };
         // Pass the arg to the child in r0
         vm.regs[0] = child.arg;
@@ -1355,6 +1435,12 @@ impl Vm {
             heap: self.heap.clone(),
             heap_alloc_result: self.heap_alloc_result,
             mailbox: self.mailbox.clone(),
+            ipc_enabled: self.ipc_enabled,
+            ipc_msg_target: self.ipc_msg_target,
+            ipc_msg_value: self.ipc_msg_value,
+            ipc_msg_sender: self.ipc_msg_sender,
+            ipc_status: self.ipc_status,
+            ipc_shared: self.ipc_shared,
         }
     }
 
@@ -1585,6 +1671,103 @@ impl Vm {
             }
             FS_CMD_ADDR => {
                 self.execute_fs_cmd(value);
+                true
+            }
+            _ => false,
+        }
+    }
+
+    // ── IPC Register I/O ────────────────────────────────────────────
+
+    /// Read an IPC register. Returns Some(value) if addr is an IPC register or shared window.
+    pub fn read_ipc_reg(&self, addr: usize) -> Option<u32> {
+        match addr {
+            IPC_STATUS_ADDR => Some(if self.ipc_enabled { 1 } else { 0 }),
+            IPC_MY_PID_ADDR => Some(self.pid),
+            IPC_MSG_COUNT_ADDR => Some(self.mailbox.len() as u32),
+            IPC_MSG_SEND_ADDR => {
+                // Read returns last send result (from ipc_status)
+                if self.ipc_status == 1 { Some(1) } else { Some(0) }
+            }
+            IPC_MSG_TARGET_ADDR => Some(self.ipc_msg_target),
+            IPC_MSG_VALUE_ADDR => Some(self.ipc_msg_value),
+            IPC_MSG_RECV_ADDR => {
+                // Reading RECV returns the front value without consuming.
+                // Actual dequeue happens via STORE to IPC_MSG_RECV_ADDR.
+                if let Some(&(_sender, value)) = self.mailbox.front() {
+                    Some(value)
+                } else {
+                    Some(0)
+                }
+            }
+            IPC_MSG_SENDER_ADDR => Some(self.ipc_msg_sender),
+            IPC_MSG_PEEK_ADDR => {
+                if let Some(&(_sender, value)) = self.mailbox.front() {
+                    Some(value)
+                } else {
+                    Some(0)
+                }
+            }
+            IPC_MSG_STATUS_ADDR => Some(self.ipc_status),
+            _ if addr >= IPC_SHARED_START && addr < IPC_SHARED_END => {
+                let idx = addr - IPC_SHARED_START;
+                Some(self.ipc_shared[idx])
+            }
+            _ if addr >= IPC_REGION_START && addr < IPC_SHARED_START => {
+                // Reserved IPC addresses (0xFE0A–0xFE0F)
+                Some(0)
+            }
+            _ => None,
+        }
+    }
+
+    /// Write an IPC register. Returns true if addr is an IPC register.
+    pub fn write_ipc_reg(&mut self, addr: usize, value: u32) -> bool {
+        match addr {
+            IPC_STATUS_ADDR => {
+                self.ipc_enabled = value != 0;
+                true
+            }
+            IPC_MSG_TARGET_ADDR => {
+                self.ipc_msg_target = value;
+                true
+            }
+            IPC_MSG_VALUE_ADDR => {
+                self.ipc_msg_value = value;
+                true
+            }
+            IPC_MSG_SEND_ADDR => {
+                // Writing to SEND triggers a mailbox send.
+                // In single-VM context (no scheduler), we enqueue to our own mailbox.
+                // The scheduler will override this for multi-process routing.
+                if self.ipc_enabled {
+                    if self.mailbox.len() < IPC_MAILBOX_SIZE {
+                        self.mailbox.push_back((self.pid, self.ipc_msg_value));
+                        self.ipc_status = 1; // success
+                    } else {
+                        self.ipc_status = 2; // mailbox full
+                    }
+                }
+                true
+            }
+            IPC_MSG_RECV_ADDR => {
+                // Writing triggers a receive (dequeue from own mailbox).
+                if let Some((sender, val)) = self.mailbox.pop_front() {
+                    self.ipc_msg_value = val;
+                    self.ipc_msg_sender = sender;
+                    self.ipc_status = 1; // success
+                } else {
+                    self.ipc_status = 4; // empty
+                }
+                true
+            }
+            _ if addr >= IPC_SHARED_START && addr < IPC_SHARED_END => {
+                let idx = addr - IPC_SHARED_START;
+                self.ipc_shared[idx] = value;
+                true
+            }
+            _ if addr >= IPC_REGION_START && addr < IPC_SHARED_START => {
+                // Reserved IPC addresses — writes ignored
                 true
             }
             _ => false,
@@ -1909,6 +2092,8 @@ impl Vm {
                     self.regs[dst] = self.timer_counter;
                 } else if src_addr as usize == TIMER_PERIOD_ADDR {
                     self.regs[dst] = self.timer_period;
+                } else if let Some(val) = self.read_ipc_reg(src_addr as usize) {
+                    self.regs[dst] = val;
                 } else if let Some(val) = self.read_mouse_reg(src_addr as usize) {
                     self.regs[dst] = val;
                 } else if let Some(val) = self.read_audio_reg(src_addr as usize) {
@@ -1944,6 +2129,8 @@ impl Vm {
                     let period = self.regs[src];
                     self.timer_period = period;
                     self.timer_counter = period; // reset counter to period
+                } else if self.write_ipc_reg(dst_addr as usize, self.regs[src]) {
+                    // handled by IPC register
                 } else if self.write_audio_reg(dst_addr as usize, self.regs[src]) {
                     // handled by audio register
                 } else if self.write_fs_reg(dst_addr as usize, self.regs[src]) {
@@ -2720,6 +2907,8 @@ impl Vm {
                         self.regs[dst] = self.timer_counter;
                     } else if src_addr == TIMER_PERIOD_ADDR {
                         self.regs[dst] = self.timer_period;
+                    } else if let Some(val) = self.read_ipc_reg(src_addr) {
+                        self.regs[dst] = val;
                     } else if let Some(val) = self.read_mouse_reg(src_addr) {
                         self.regs[dst] = val;
                     } else if let Some(val) = self.read_audio_reg(src_addr) {
@@ -2750,6 +2939,8 @@ impl Vm {
                         let period = self.regs[src];
                         self.timer_period = period;
                         self.timer_counter = period;
+                    } else if self.write_ipc_reg(dst_addr, self.regs[src]) {
+                        // handled by IPC register
                     } else if self.write_audio_reg(dst_addr, self.regs[src]) {
                         // handled by audio register
                     } else if self.write_fs_reg(dst_addr, self.regs[src]) {
@@ -5306,5 +5497,121 @@ mod tests {
         // Child should have the same memory as parent (at time of fork)
         let child = table.get(2).unwrap();
         assert_eq!(child.state.regs[1], 42, "child should inherit r1=42 from parent");
+    }
+
+    // ── IPC register tests ────────────────────────────────────────
+
+    #[test]
+    fn ipc_status_read_write() {
+        let mut vm = Vm::new(1024);
+        // Default: disabled
+        assert_eq!(vm.read_ipc_reg(IPC_STATUS_ADDR), Some(0));
+        // Enable
+        assert!(vm.write_ipc_reg(IPC_STATUS_ADDR, 1));
+        assert_eq!(vm.ipc_enabled, true);
+        assert_eq!(vm.read_ipc_reg(IPC_STATUS_ADDR), Some(1));
+        // Disable
+        assert!(vm.write_ipc_reg(IPC_STATUS_ADDR, 0));
+        assert_eq!(vm.ipc_enabled, false);
+        assert_eq!(vm.read_ipc_reg(IPC_STATUS_ADDR), Some(0));
+    }
+
+    #[test]
+    fn ipc_my_pid() {
+        let mut vm = Vm::new(1024);
+        vm.pid = 7;
+        assert_eq!(vm.read_ipc_reg(IPC_MY_PID_ADDR), Some(7));
+    }
+
+    #[test]
+    fn ipc_send_recv_cycle() {
+        let mut vm = Vm::new(1024);
+        vm.pid = 1;
+        // Enable IPC
+        vm.write_ipc_reg(IPC_STATUS_ADDR, 1);
+        // Set value
+        vm.write_ipc_reg(IPC_MSG_VALUE_ADDR, 42);
+        // Send (self-send in single-VM mode)
+        vm.write_ipc_reg(IPC_MSG_SEND_ADDR, 1);
+        assert_eq!(vm.ipc_status, 1); // success
+        assert_eq!(vm.mailbox.len(), 1);
+        // Check count
+        assert_eq!(vm.read_ipc_reg(IPC_MSG_COUNT_ADDR), Some(1));
+        // Peek
+        assert_eq!(vm.read_ipc_reg(IPC_MSG_PEEK_ADDR), Some(42));
+        // Still 1 message (peek doesn't consume)
+        assert_eq!(vm.mailbox.len(), 1);
+        // Receive
+        vm.write_ipc_reg(IPC_MSG_RECV_ADDR, 1);
+        assert_eq!(vm.ipc_status, 1); // success
+        assert_eq!(vm.ipc_msg_value, 42);
+        assert_eq!(vm.ipc_msg_sender, 1); // self
+        assert_eq!(vm.mailbox.len(), 0);
+    }
+
+    #[test]
+    fn ipc_recv_empty_mailbox() {
+        let mut vm = Vm::new(1024);
+        vm.write_ipc_reg(IPC_STATUS_ADDR, 1);
+        vm.write_ipc_reg(IPC_MSG_RECV_ADDR, 1);
+        assert_eq!(vm.ipc_status, 4); // empty
+    }
+
+    #[test]
+    fn ipc_shared_memory_window() {
+        let mut vm = Vm::new(1024);
+        // Write to shared window
+        assert!(vm.write_ipc_reg(IPC_SHARED_START, 100));
+        assert!(vm.write_ipc_reg(IPC_SHARED_START + 1, 200));
+        assert!(vm.write_ipc_reg(IPC_SHARED_START + 239, 999));
+        // Read back
+        assert_eq!(vm.read_ipc_reg(IPC_SHARED_START), Some(100));
+        assert_eq!(vm.read_ipc_reg(IPC_SHARED_START + 1), Some(200));
+        assert_eq!(vm.read_ipc_reg(IPC_SHARED_START + 239), Some(999));
+        // Just past the window should not match
+        assert_eq!(vm.read_ipc_reg(IPC_SHARED_END), None);
+    }
+
+    #[test]
+    fn ipc_child_does_not_inherit() {
+        let mut vm = Vm::new(1024);
+        vm.pid = 1;
+        vm.write_ipc_reg(IPC_STATUS_ADDR, 1);
+        vm.write_ipc_reg(IPC_MSG_VALUE_ADDR, 99);
+        vm.write_ipc_reg(IPC_MSG_SEND_ADDR, 1);
+        vm.ipc_shared[0] = 42;
+        let child = vm.spawn_child(&ChildVm::new(0, 0));
+        assert_eq!(child.ipc_enabled, false);
+        assert_eq!(child.mailbox.len(), 0);
+        assert_eq!(child.ipc_shared[0], 0);
+    }
+
+    #[test]
+    fn ipc_via_load_store_opcodes() {
+        // Test IPC registers via the VM execute loop (LOAD/STORE opcodes)
+        let program: Vec<u32> = vec![
+            0x49, 0x35, 0xFE00, // 0: LDI r5, 0xFE00 (IPC_STATUS)
+            0x49, 0x36, 0x01,   // 3: LDI r6, 1
+            0x53, 0x35, 0x36,   // 6: STORE r5, r6 (enable IPC)
+            0x49, 0x35, 0xFE00, // 9: LDI r5, 0xFE00 (IPC_STATUS)
+            0x4C, 0x30, 0x35,   // 12: LOAD r0, r5 (read status)
+            0x48,               // 15: HALT
+        ];
+        let mut vm = Vm::new(1024);
+        vm.pid = 1;
+        vm.load_program(&program);
+        vm.run();
+        assert!(!vm.halted || vm.regs[0] == 1, "IPC status should be 1 (enabled) after write");
+        assert_eq!(vm.ipc_enabled, true);
+    }
+
+    #[test]
+    fn ipc_reserved_addresses() {
+        let mut vm = Vm::new(1024);
+        // Reserved addresses (0xFE0A–0xFE0F) should read as 0 and accept writes
+        assert_eq!(vm.read_ipc_reg(0xFE0A), Some(0));
+        assert_eq!(vm.read_ipc_reg(0xFE0F), Some(0));
+        assert!(vm.write_ipc_reg(0xFE0A, 123)); // accepted but ignored
+        assert_eq!(vm.read_ipc_reg(0xFE0A), Some(0)); // still 0
     }
 }

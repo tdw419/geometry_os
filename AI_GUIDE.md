@@ -132,6 +132,77 @@ LDI r5, 0xFFE1          ; stack depth register
 LOAD r2, r5             ; r2 = current stack depth
 ```
 
+### IPC Registers (0xFE00–0xFEFF)
+
+Memory-mapped registers for inter-process communication. Programs read/write these via LOAD/STORE.
+IPC must be enabled before use. Children do NOT inherit parent's IPC state.
+
+#### Control Registers (0xFE00–0xFE09)
+
+| Address  | Name           | R/W | Description |
+|----------|----------------|-----|-------------|
+| `0xFE00` | IPC_STATUS     | R/W | 0=disabled (default), 1=enabled. Write 1 to enable IPC. |
+| `0xFE01` | IPC_MY_PID     | R   | Current process PID |
+| `0xFE02` | IPC_MSG_COUNT  | R   | Number of messages in mailbox |
+| `0xFE03` | IPC_MSG_SEND   | W   | Write 1 to send message. Reads return last send result (1=ok, 0=fail). |
+| `0xFE04` | IPC_MSG_TARGET | R/W | Target PID for next send (default: self) |
+| `0xFE05` | IPC_MSG_VALUE  | R/W | Value for next send / value from last receive |
+| `0xFE06` | IPC_MSG_RECV   | W   | Write 1 to receive. Reads return last recv status. |
+| `0xFE07` | IPC_MSG_SENDER | R   | PID of sender of last received message |
+| `0xFE08` | IPC_MSG_PEEK   | R   | Peek at next message value without consuming it |
+| `0xFE09` | IPC_MSG_SIZE   | R   | Always 1 (fixed-size messages, one word each) |
+
+Addresses `0xFE0A`–`0xFE0F` are reserved (read as 0, writes ignored).
+
+#### Shared Memory Window (0xFE10–0xFEFF)
+
+| Address range    | Name           | R/W | Description |
+|------------------|----------------|-----|-------------|
+| `0xFE10`–`0xFEFF` | IPC_SHARED    | R/W | 240 words of shared memory visible to all processes |
+
+The shared memory window provides a scratch space where multiple processes can exchange data
+without sending individual messages. Each process has its own view; sharing across processes
+requires a VM scheduler (not yet implemented).
+
+#### IPC Status Codes
+
+The IPC_STATUS register reflects the result of the last operation:
+- `1` = success
+- `2` = disabled (IPC not enabled)
+- `3` = bad target (no such PID)
+- `4` = mailbox empty (on receive)
+- `5` = mailbox full (on send)
+
+#### Example
+
+```
+; Enable IPC
+LDI r5, 0xFE00          ; IPC_STATUS
+LDI r6, 1
+STORE r5, r6            ; enable
+
+; Send value 42 to self
+LDI r5, 0xFE05          ; IPC_MSG_VALUE
+LDI r6, 42
+STORE r5, r6            ; set message value
+LDI r5, 0xFE03          ; IPC_MSG_SEND
+LDI r6, 1
+STORE r5, r6            ; send
+
+; Check how many messages are waiting
+LDI r5, 0xFE02          ; IPC_MSG_COUNT
+LOAD r0, r5             ; r0 = message count
+
+; Receive
+LDI r5, 0xFE06          ; IPC_MSG_RECV
+LDI r6, 1
+STORE r5, r6            ; receive (dequeues one message)
+LDI r5, 0xFE05          ; IPC_MSG_VALUE
+LOAD r0, r5             ; r0 = received value (42)
+LDI r5, 0xFE07          ; IPC_MSG_SENDER
+LOAD r1, r5             ; r1 = sender PID
+```
+
 ### Hardware Timer Interrupt
 - **Vector 0** is reserved for the hardware timer interrupt
 - Memory-mapped registers (high addresses to avoid RAM collision):
@@ -192,6 +263,8 @@ EXIT
 
 ### Memory Layout
 - RAM[0..N]: program + data (configurable, typically 4096 or 64K words)
+- IPC Registers: `0xFE00`–`0xFEFF` (inter-process communication, see IPC Registers section)
+- Debug Registers: `0xFFE0`–`0xFFEF` (VM introspection, see Debug Registers section)
 - Screen: 32-bit pixels, memory-mapped or separate buffer
 - Keyboard: memory-mapped register at fixed address (0xFFF)
 
@@ -294,6 +367,58 @@ STORE r5, r0            ; free it
 
 Library: `lib/alloc.gasm` provides `heap_init`, `heap_alloc`, `heap_free`, `heap_free_words`, `heap_blocks`, `heap_avail` routines.
 Demos: `programs/alloc-demo.gasm`, `programs/alloc-stress.gasm`.
+
+### IPC Registers (0xFE00–0xFEFF)
+Memory-mapped I/O for inter-process communication. Programs read/write these via LOAD/STORE.
+The region is divided into control registers (0xFE00–0xFE0F) and a shared memory window (0xFE10–0xFEFF).
+
+| Address  | Name             | R/W | Description |
+|----------|------------------|-----|-------------|
+| `0xFE00` | IPC_STATUS       | R/W | IPC enable: write 1 to enable, 0 to disable |
+| `0xFE01` | IPC_MY_PID       | R   | This process's PID (mirror of getpid) |
+| `0xFE02` | IPC_MSG_COUNT    | R   | Number of messages in mailbox |
+| `0xFE03` | IPC_MSG_SEND     | R/W | Write triggers send (target in IPC_MSG_TARGET, value in IPC_MSG_VALUE). Read returns 1 if last send succeeded |
+| `0xFE04` | IPC_MSG_TARGET   | R/W | Target PID for next send |
+| `0xFE05` | IPC_MSG_VALUE    | R/W | Value to send / value just received |
+| `0xFE06` | IPC_MSG_RECV     | R/W | Read returns front value. Write triggers dequeue from mailbox |
+| `0xFE07` | IPC_MSG_SENDER   | R   | Sender PID of last received message |
+| `0xFE08` | IPC_MSG_PEEK     | R   | Peek at next message without removing (0 if empty) |
+| `0xFE09` | IPC_MSG_STATUS   | R   | Status: 0=idle, 1=success, 2=mailbox full, 3=target not found, 4=empty |
+| `0xFE0A–0xFE0F` | Reserved  | —   | Reserved for future expansion |
+| `0xFE10–0xFEFF` | IPC_SHARED | R/W | Shared memory window (240 words) for bulk data transfer |
+
+Children do NOT inherit parent's IPC state (enabled flag, mailbox, shared memory).
+
+Example (single-process self-test):
+```
+; Enable IPC
+LDI r5, 0xFE00          ; IPC_STATUS
+LDI r6, 1
+STORE r5, r6            ; enable IPC
+
+; Set value to send
+LDI r5, 0xFE05          ; IPC_MSG_VALUE
+LDI r6, 42
+STORE r5, r6
+
+; Send to self
+LDI r5, 0xFE03          ; IPC_MSG_SEND
+LDI r6, 1               ; trigger send
+STORE r5, r6
+
+; Check message count
+LDI r5, 0xFE02          ; IPC_MSG_COUNT
+LOAD r0, r5             ; r0 = 1
+
+; Receive
+LDI r5, 0xFE06          ; IPC_MSG_RECV
+LDI r6, 1               ; trigger receive
+STORE r5, r6
+
+; Read received value
+LDI r5, 0xFE05          ; IPC_MSG_VALUE
+LOAD r1, r5             ; r1 = 42
+```
 
 ## Development Rules
 

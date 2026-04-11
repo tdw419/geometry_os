@@ -127,7 +127,7 @@ AI-written demos      AI-written OS that humans use
 
 *Bridge to Sovereignty Ladder Milestone 5 (Shared-Memory IPC)*
 
-- [ ] Define IPC memory region in VM address space (e.g., 0xFE00-0xFEFF)
+- [x] Define IPC memory region in VM address space (e.g., 0xFE00-0xFEFF)
 - [ ] Implement SEND opcode: write message to target process's mailbox region
 - [ ] Implement RECV opcode: check own mailbox, block if empty (scheduler puts VM in Waiting state)
 - [ ] Implement PEEK opcode: non-blocking mailbox check (returns 0 if empty, msg if available)
