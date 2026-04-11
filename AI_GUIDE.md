@@ -387,7 +387,13 @@ The region is divided into control registers (0xFE00–0xFE0F) and a shared memo
 | `0xFE0A–0xFE0F` | Reserved  | —   | Reserved for future expansion |
 | `0xFE10–0xFEFF` | IPC_SHARED | R/W | Shared memory window (240 words) for bulk data transfer |
 
-Children do NOT inherit parent's IPC state (enabled flag, mailbox, shared memory).
+Children do NOT inherit parent's IPC state (enabled flag, mailbox, shared memory, outbox).
+
+The scheduler routes cross-process messages automatically: when a process writes to
+IPC_MSG_SEND with a target PID different from its own, the message goes to an outbox
+instead of the self-mailbox. The ProcessTable's tick() method drains the outbox after
+each time slice and delivers messages to the target process's mailbox. Self-sends
+(target=0 or target=self) go directly to the process's own mailbox.
 
 Example (single-process self-test):
 ```
