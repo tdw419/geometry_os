@@ -24,7 +24,7 @@
 // Labels: resolved to pixel address on pass 2.
 // ═══════════════════════════════════════════════════════════════════════
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Assembly error with context.
 #[derive(Debug, Clone)]
@@ -445,6 +445,122 @@ enum Section {
 
 /// Returns the assembled program or the first error.
 pub fn assemble(source: &str) -> Result<Assembled, AsmError> {
+    assemble_inner(source, None)
+}
+
+/// Assemble a source file, resolving `.include` directives relative to the file's directory.
+/// The `include_dirs` list provides additional search paths for included files.
+pub fn assemble_file(
+    path: &std::path::Path,
+    include_dirs: &[&std::path::Path],
+) -> Result<Assembled, AsmError> {
+    let content = std::fs::read_to_string(path).map_err(|e| AsmError {
+        line: 0,
+        message: format!("cannot read '{}': {}", path.display(), e),
+    })?;
+    let base_dir = path.parent().unwrap_or(std::path::Path::new("."));
+    let expanded = resolve_includes(&content, base_dir, include_dirs, &mut HashSet::new(), 0)?;
+    assemble_inner(&expanded, Some(base_dir))
+}
+
+/// Recursively expand `.include "file"` directives in source text.
+/// `base_dir` is where to resolve relative paths from.
+/// `include_dirs` are additional search paths.
+/// `seen` tracks already-included files to prevent circular includes.
+/// `depth` prevents infinite recursion.
+fn resolve_includes(
+    source: &str,
+    base_dir: &std::path::Path,
+    include_dirs: &[&std::path::Path],
+    seen: &mut HashSet<String>,
+    depth: usize,
+) -> Result<String, AsmError> {
+    if depth > 16 {
+        return Err(AsmError {
+            line: 0,
+            message: "include nesting too deep (>16)".into(),
+        });
+    }
+
+    let mut result = String::new();
+    for (line_num, raw_line) in source.lines().enumerate() {
+        let line_num = line_num + 1;
+        let trimmed = strip_comment(raw_line).trim();
+
+        // Check for .include directive
+        let upper = trimmed.to_uppercase();
+        if upper.starts_with(".INCLUDE") {
+            let rest = trimmed
+                .strip_prefix(".include")
+                .or_else(|| trimmed.strip_prefix(".INCLUDE"))
+                .unwrap_or("")
+                .trim();
+            let filename = parse_string_literal(rest, line_num)?;
+            let filename_str = String::from_utf8_lossy(&filename);
+
+            // Search for file in base_dir then include_dirs
+            let mut found_path: Option<std::path::PathBuf> = None;
+            let candidate = base_dir.join(&*filename_str);
+            if candidate.exists() {
+                found_path = Some(candidate);
+            } else {
+                for dir in include_dirs {
+                    let candidate = dir.join(&*filename_str);
+                    if candidate.exists() {
+                        found_path = Some(candidate);
+                        break;
+                    }
+                }
+            }
+
+            let abs_path =
+                found_path.ok_or_else(|| AsmError {
+                    line: line_num,
+                    message: format!("included file not found: {}", filename_str),
+                })?;
+
+            // Canonicalize for cycle detection
+            let canonical = abs_path
+                .canonicalize()
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_else(|_| abs_path.to_string_lossy().into_owned());
+
+            if seen.contains(&canonical) {
+                return Err(AsmError {
+                    line: line_num,
+                    message: format!("circular include: {}", filename_str),
+                });
+            }
+            seen.insert(canonical);
+
+            let included_content =
+                std::fs::read_to_string(&abs_path).map_err(|e| AsmError {
+                    line: line_num,
+                    message: format!("cannot read '{}': {}", abs_path.display(), e),
+                })?;
+
+            let include_dir = abs_path.parent().unwrap_or(std::path::Path::new("."));
+            let expanded = resolve_includes(
+                &included_content,
+                include_dir,
+                include_dirs,
+                seen,
+                depth + 1,
+            )?;
+
+            result.push_str(&expanded);
+            result.push('\n');
+        } else {
+            result.push_str(raw_line);
+            result.push('\n');
+        }
+    }
+
+    Ok(result)
+}
+
+/// Inner assembly implementation. Takes optional base_dir for error context.
+fn assemble_inner(source: &str, _base_dir: Option<&std::path::Path>) -> Result<Assembled, AsmError> {
     let mut labels: HashMap<String, usize> = HashMap::new();
     let mut items: Vec<(usize, EmitItem)> = Vec::new(); // (emit_addr, item)
     let mut current_addr: usize = 0;
@@ -1349,5 +1465,134 @@ greeting:
         // LDI r3, greeting: loads address 0x50
         assert_eq!(asm.labels.get("greeting"), Some(&0x50));
         assert_eq!(asm.pixels[2], 0x50); // LDI r3 immediate = greeting addr
+    }
+
+    // ── .include directive tests ─────────────────────────────────────
+
+    #[test]
+    fn include_simple_file() {
+        // Create temp files for include test
+        let tmp_dir = std::env::temp_dir().join("geo_os_include_test");
+        std::fs::create_dir_all(&tmp_dir).unwrap();
+
+        let lib_path = tmp_dir.join("lib.gasm");
+        std::fs::write(&lib_path, "HALT\n").unwrap();
+
+        let main_path = tmp_dir.join("main.gasm");
+        std::fs::write(&main_path, ".include \"lib.gasm\"\n").unwrap();
+
+        let asm = assemble_file(&main_path, &[]).unwrap();
+        assert_eq!(asm.pixels, vec![op::HALT as u32]);
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+
+    #[test]
+    fn include_inlines_before_rest() {
+        let tmp_dir = std::env::temp_dir().join("geo_os_include_order");
+        std::fs::create_dir_all(&tmp_dir).unwrap();
+
+        let lib_path = tmp_dir.join("lib.gasm");
+        std::fs::write(&lib_path, "LDI r0, 10\n").unwrap();
+
+        let main_path = tmp_dir.join("main.gasm");
+        std::fs::write(
+            &main_path,
+            ".include \"lib.gasm\"\nADD r0, r0\nHALT\n",
+        )
+        .unwrap();
+
+        let asm = assemble_file(&main_path, &[]).unwrap();
+        // LDI r0, 10 at 0-2 (width 3)
+        // ADD r0, r0 at 3-5 (width 3)
+        // HALT at 6 (width 1)
+        assert_eq!(asm.pixels[0], op::LDI as u32);
+        assert_eq!(asm.pixels[2], 10);
+        assert_eq!(asm.pixels[3], op::ADD as u32);
+        assert_eq!(asm.pixels[6], op::HALT as u32);
+
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+
+    #[test]
+    fn include_with_labels() {
+        // Included file defines a label that main file references
+        let tmp_dir = std::env::temp_dir().join("geo_os_include_labels");
+        std::fs::create_dir_all(&tmp_dir).unwrap();
+
+        let lib_path = tmp_dir.join("lib.gasm");
+        std::fs::write(&lib_path, "NOP\nstart:\n").unwrap();
+
+        let main_path = tmp_dir.join("main.gasm");
+        std::fs::write(
+            &main_path,
+            ".include \"lib.gasm\"\nJMP start\nHALT\n",
+        )
+        .unwrap();
+
+        let asm = assemble_file(&main_path, &[]).unwrap();
+        assert_eq!(asm.labels.get("start"), Some(&1)); // NOP at 0, start at 1
+        assert_eq!(asm.pixels[2], 1 | 0x80000000); // JMP start = addr 1 (absolute)
+
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+
+    #[test]
+    fn include_nested() {
+        // a.gasm includes b.gasm which has actual code
+        let tmp_dir = std::env::temp_dir().join("geo_os_include_nested");
+        std::fs::create_dir_all(&tmp_dir).unwrap();
+
+        let inner_path = tmp_dir.join("inner.gasm");
+        std::fs::write(&inner_path, "LDI r0, 42\n").unwrap();
+
+        let outer_path = tmp_dir.join("outer.gasm");
+        std::fs::write(&outer_path, ".include \"inner.gasm\"\n").unwrap();
+
+        let main_path = tmp_dir.join("main.gasm");
+        std::fs::write(
+            &main_path,
+            ".include \"outer.gasm\"\nHALT\n",
+        )
+        .unwrap();
+
+        let asm = assemble_file(&main_path, &[]).unwrap();
+        assert_eq!(asm.pixels[0], op::LDI as u32);
+        assert_eq!(asm.pixels[2], 42);
+        assert_eq!(asm.pixels[3], op::HALT as u32);
+
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+
+    #[test]
+    fn include_file_not_found() {
+        let tmp_dir = std::env::temp_dir().join("geo_os_include_notfound");
+        std::fs::create_dir_all(&tmp_dir).unwrap();
+
+        let main_path = tmp_dir.join("main.gasm");
+        std::fs::write(&main_path, ".include \"nonexistent.gasm\"\n").unwrap();
+
+        let err = assemble_file(&main_path, &[]).unwrap_err();
+        assert!(err.message.contains("not found"));
+
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+
+    #[test]
+    fn include_case_insensitive() {
+        let tmp_dir = std::env::temp_dir().join("geo_os_include_case");
+        std::fs::create_dir_all(&tmp_dir).unwrap();
+
+        let lib_path = tmp_dir.join("lib.gasm");
+        std::fs::write(&lib_path, "HALT\n").unwrap();
+
+        let main_path = tmp_dir.join("main.gasm");
+        std::fs::write(&main_path, ".INCLUDE \"lib.gasm\"\n").unwrap();
+
+        let asm = assemble_file(&main_path, &[]).unwrap();
+        assert_eq!(asm.pixels, vec![op::HALT as u32]);
+
+        let _ = std::fs::remove_dir_all(&tmp_dir);
     }
 }
