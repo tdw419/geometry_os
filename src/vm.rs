@@ -4739,10 +4739,7 @@ mod tests {
         assert_eq!(cycles, 10, "should run exactly time_slice cycles");
         assert_eq!(reason, TickReason::TimeSlice);
         // Process should still be Ready (not halted or yielded)
-        assert_eq!(
-            child.state.regs[1], 42,
-            "child should inherit r1=42 from parent"
-        );
+        assert_eq!(table.current().unwrap().status, ProcessStatus::Ready);
     }
 
     // ── Heap Allocator Tests ────────────────────────────────────────
@@ -4888,7 +4885,7 @@ mod tests {
     fn heap_snapshot_restore() {
         let mut vm = Vm::new(1024);
         vm.heap.init(200, 100);
-        vm.heap.alloc(20);
+        vm.heap_alloc_result = vm.heap.alloc(20);
 
         let snap = vm.snapshot();
         assert_eq!(snap.heap.initialized, true);
@@ -4896,12 +4893,16 @@ mod tests {
         assert_eq!(snap.heap_alloc_result, 200);
 
         // Mutate original
-        vm.heap.alloc(30);
+        vm.heap_alloc_result = vm.heap.alloc(30);
         assert_eq!(vm.heap.alloc_count(), 2);
 
         // Restore from snapshot
         vm.restore(&snap);
-        assert_eq!(vm.heap.alloc_count(), 1, "restored heap should have 1 block");
+        assert_eq!(
+            vm.heap.alloc_count(),
+            1,
+            "restored heap should have 1 block"
+        );
         assert_eq!(vm.heap_alloc_result, 200);
     }
 
