@@ -119,19 +119,23 @@ impl ApiServer {
 
     /// Get the port the server is listening on.
     pub fn port(&self) -> u16 {
-        self.server.server_addr().port()
+        match self.server.server_addr() {
+            tiny_http::ListenAddr::IP(addr) => addr.port(),
+            #[cfg(unix)]
+            tiny_http::ListenAddr::Unix(_) => 0,
+        }
     }
 
-    fn handle_request(&self, request: tiny_http::Request) {
+    fn handle_request(&self, mut request: tiny_http::Request) {
         let path = request.url().to_string();
         let method = request.method().clone();
 
         // Strip query string for routing
         let path_clean = path.split('?').next().unwrap_or(&path);
 
-        let response = match (method, path_clean) {
+        let response = match (method, &*path_clean) {
             // POST /run -- assemble and execute .gasm source
-            (tiny_http::Method::Post, "/run") => self.handle_run(&request),
+            (tiny_http::Method::Post, "/run") => self.handle_run(&mut request),
 
             // GET /state -- current VM state
             (tiny_http::Method::Get, "/state") => self.handle_state(&request),
@@ -146,7 +150,7 @@ impl ApiServer {
             (tiny_http::Method::Get, "/disasm") => self.handle_disasm(&request),
 
             // POST /load -- load .gasm without running
-            (tiny_http::Method::Post, "/load") => self.handle_load(&request),
+            (tiny_http::Method::Post, "/load") => self.handle_load(&mut request),
 
             // POST /step -- single-step execution
             (tiny_http::Method::Post, "/step") => self.handle_step(&request),
@@ -158,7 +162,7 @@ impl ApiServer {
             (tiny_http::Method::Post, "/reset") => self.handle_reset(&request),
 
             // POST /ram -- write to RAM
-            (tiny_http::Method::Post, "/ram") => self.handle_write_ram(&request),
+            (tiny_http::Method::Post, "/ram") => self.handle_write_ram(&mut request),
 
             // GET /ram -- read from RAM
             (tiny_http::Method::Get, "/ram") => self.handle_read_ram(&request),
@@ -176,7 +180,7 @@ impl ApiServer {
         }
     }
 
-    fn handle_run(&self, request: &tiny_http::Request) -> tiny_http::ResponseBox {
+    fn handle_run(&self, request: &mut tiny_http::Request) -> tiny_http::ResponseBox {
         let body = match Self::read_body(request) {
             Ok(b) => b,
             Err(e) => return self.error_response(400, &format!("Failed to read body: {}", e)),
@@ -273,7 +277,7 @@ impl ApiServer {
         self.text_response(200, &text)
     }
 
-    fn handle_load(&self, request: &tiny_http::Request) -> tiny_http::ResponseBox {
+    fn handle_load(&self, request: &mut tiny_http::Request) -> tiny_http::ResponseBox {
         let body = match Self::read_body(request) {
             Ok(b) => b,
             Err(e) => return self.error_response(400, &format!("Failed to read body: {}", e)),
@@ -332,7 +336,7 @@ impl ApiServer {
         self.json_response(200, &serde_json::json!({ "reset": true }))
     }
 
-    fn handle_write_ram(&self, request: &tiny_http::Request) -> tiny_http::ResponseBox {
+    fn handle_write_ram(&self, request: &mut tiny_http::Request) -> tiny_http::ResponseBox {
         let body = match Self::read_body(request) {
             Ok(b) => b,
             Err(e) => return self.error_response(400, &format!("Failed to read body: {}", e)),
@@ -397,7 +401,7 @@ impl ApiServer {
 
     // ── Helpers ──
 
-    fn read_body(request: &tiny_http::Request) -> Result<String, String> {
+    fn read_body(request: &mut tiny_http::Request) -> Result<String, String> {
         let mut body = String::new();
         request
             .as_reader()
@@ -462,7 +466,11 @@ mod tests {
     fn start_server() -> (ApiServer, u16) {
         // Bind to port 0 to get a random available port
         let server = tiny_http::Server::http("0.0.0.0:0").expect("Failed to bind test server");
-        let port = server.server_addr().port();
+        let port = match server.server_addr() {
+            tiny_http::ListenAddr::IP(addr) => addr.port(),
+            #[cfg(unix)]
+            tiny_http::ListenAddr::Unix(_) => 0,
+        };
         let api = ApiServer {
             server,
             agent: Mutex::new(GasmAgent::new(4096)),
