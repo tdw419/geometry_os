@@ -113,6 +113,48 @@ fn test_stack_overflow_via_push() {
     }
 }
 
+// ── 2b. Stack overflow via unchecked path (step/run) ────────────────
+
+#[test]
+fn test_stack_overflow_halt_via_call_unchecked() {
+    // Same as test_stack_overflow_via_nested_calls but via the unchecked
+    // step()/run() path. The VM should halt gracefully instead of panicking.
+    let mut vm = Vm::new(64);
+    vm.poke(0, op::CALL as u32);
+    vm.poke(1, 0 | 0x80000000); // target = address 0 (self, absolute)
+    vm.pc = 0;
+    vm.halted = false;
+
+    vm.run();
+    assert!(vm.halted, "VM should halt on stack overflow in unchecked path");
+    // Stack should be at the limit (256 entries)
+    assert!(vm.stack.len() >= 256, "stack should be at or near limit");
+}
+
+#[test]
+fn test_stack_overflow_halt_via_push_unchecked() {
+    // Same as test_stack_overflow_via_push but via the unchecked path.
+    // PUSH r0 in a loop until stack overflows — VM should halt gracefully.
+    let mut vm = Vm::new(64);
+    // LDI r0, 1
+    vm.poke(0, op::LDI as u32);
+    vm.poke(1, 0); // r0
+    vm.poke(2, 1); // value 1
+    // PUSH r0
+    vm.poke(3, op::PUSH as u32);
+    vm.poke(4, 0); // r0
+    // JMP back to PUSH
+    vm.poke(5, op::JMP as u32);
+    vm.poke(6, 3 | 0x80000000); // JMP back to PUSH (absolute)
+
+    vm.pc = 0;
+    vm.halted = false;
+
+    vm.run();
+    assert!(vm.halted, "VM should halt on stack overflow via PUSH in unchecked path");
+    assert!(vm.stack.len() >= 256, "stack should be at or near limit");
+}
+
 // ── 3. Division by zero ──────────────────────────────────────────────
 
 #[test]

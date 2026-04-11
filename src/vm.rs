@@ -1355,6 +1355,10 @@ impl Vm {
             op::CALL => {
                 let target = self.resolve_addr(args[0]);
                 let w = opcodes::width(op::CALL) as u32;
+                if self.stack.len() >= DEFAULT_STACK_LIMIT {
+                    self.halted = true;
+                    return None;
+                }
                 self.stack.push(self.pc + w);
                 Some(target)
             },
@@ -1600,6 +1604,10 @@ impl Vm {
             op::PUSH => {
                 let val_reg = self.reg_idx(args[0]);
                 if val_reg < NUM_REGS {
+                    if self.stack.len() >= DEFAULT_STACK_LIMIT {
+                        self.halted = true;
+                        return None;
+                    }
                     self.stack.push(self.regs[val_reg]);
                 }
                 None

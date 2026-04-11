@@ -42,7 +42,7 @@ AI-written demos      AI-written OS that humans use
 - [x] `lib/input.gasm` -- read_key, wait_key, key_to_hex (uses keyboard port 0xFFF)
 
 ### 1.3 VM Enhancements (only when programs need them)
-- [ ] Stack overflow protection
+- [x] Stack overflow protection
 - [ ] Memory protection
 - [ ] Interrupt vector table
 - [ ] Timer interrupt
@@ -111,7 +111,7 @@ AI-written demos      AI-written OS that humans use
 - [ ] Memory management (needed when programs compete for RAM)
 
 **Batch 7 -- VM Hardening (only when programs hit walls):**
-- [ ] Stack overflow protection (if recursion hits limit)
+- [x] Stack overflow protection (if recursion hits limit)
 - [ ] Memory protection (if programs corrupt each other)
 - [ ] Timer interrupt (if frame timing is needed)
 - [ ] Debug registers (if complex programs can't be debugged)
