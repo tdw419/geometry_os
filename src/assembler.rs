@@ -27,6 +27,7 @@
 // Labels: resolved to pixel address on pass 2.
 // ═══════════════════════════════════════════════════════════════════════
 
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
 /// Assembly error with context.
@@ -113,7 +114,68 @@ fn mnemonic_to_opcode(name: &str) -> Option<u8> {
 /// Parse a single argument token.
 /// - r0..r31 → register index
 /// - 0xNN → hex literal
+/// Resolve a token through the constants map.
+/// If the token (or parts of an expression) match a known constant, substitute.
+fn resolve_constant<'a>(token: &'a str, constants: &HashMap<String, u32>) -> Cow<'a, str> {
+    if constants.is_empty() {
+        return Cow::Borrowed(token);
+    }
+    // Fast path: exact match on whole token
+    if let Some(&val) = constants.get(token) {
+        return Cow::Owned(val.to_string());
+    }
+    // Check if token is an expression containing constant names
+    let has_operator = token.contains('+')
+        || token.contains('-')
+        || token.contains('*')
+        || token.contains('/')
+        || token.contains('(')
+        || token.contains(')');
+    if !has_operator {
+        return Cow::Borrowed(token);
+    }
+    // Substitute constant names within expressions
+    let mut result = token.to_string();
+    // Sort by length descending so longer names are replaced first
+    let mut names: Vec<&String> = constants.keys().collect();
+    names.sort_by(|a, b| b.len().cmp(&a.len()));
+    for name in names {
+        // Only replace whole-word matches (alphanumeric boundary)
+        let mut new_result = String::new();
+        let mut i = 0;
+        let bytes = result.as_bytes();
+        while i < bytes.len() {
+            // Check if we're at a word boundary before the constant name
+            if i + name.len() <= bytes.len()
+                && &result[i..i + name.len()] == name.as_str()
+                && (i == 0 || !bytes[i - 1].is_ascii_alphanumeric())
+                && (i + name.len() >= bytes.len()
+                    || !bytes[i + name.len()].is_ascii_alphanumeric())
+            {
+                new_result.push_str(&constants[name].to_string());
+                i += name.len();
+            } else {
+                new_result.push(bytes[i] as char);
+                i += 1;
+            }
+        }
+        result = new_result;
+    }
+    if result != token {
+        Cow::Owned(result)
+    } else {
+        Cow::Borrowed(token)
+    }
+}
+
 fn parse_arg(token: &str) -> Result<ArgToken, String> {
+    parse_arg_with_constants(token, &HashMap::new())
+}
+
+fn parse_arg_with_constants(token: &str, constants: &HashMap<String, u32>) -> Result<ArgToken, String> {
+    let resolved = resolve_constant(token, constants);
+    let token = resolved.as_ref();
+
     // Register: r0, r1, ..., r31
     if let Some(rest) = token.strip_prefix('r') {
         if let Ok(n) = rest.parse::<u32>() {
@@ -738,6 +800,7 @@ fn assemble_inner(
     // Expand macros before assembly
     let source = expand_macros(source)?;
     let mut labels: HashMap<String, usize> = HashMap::new();
+    let mut constants: HashMap<String, u32> = HashMap::new();
     let mut items: Vec<(usize, EmitItem)> = Vec::new(); // (emit_addr, item)
     let mut current_addr: usize = 0;
     let mut data_addr: usize = 0;
@@ -751,6 +814,26 @@ fn assemble_inner(
 
         if line.is_empty() {
             continue;
+        }
+
+        // ── Constant definition: NAME = value ──
+        // Must be uppercase, start with letter/underscore, contain only alphanumeric/underscore
+        if let Some(eq_pos) = line.find(" = ") {
+            let (name, value_str) = line.split_at(eq_pos);
+            let name = name.trim();
+            let value_str = value_str[3..].trim(); // skip " = "
+            // Validate: name must start with uppercase letter or underscore,
+            // contain only alphanumeric/underscore, and not be a register name
+            let valid_name = !name.is_empty()
+                && !name.starts_with('r')
+                && name.chars().next().map_or(false, |c| c.is_ascii_uppercase() || c == '_')
+                && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+            if valid_name {
+                if let Ok(val) = parse_number(value_str) {
+                    constants.insert(name.to_string(), val);
+                    continue;
+                }
+            }
         }
 
         // .TEXT directive -- switch to code section (default)
@@ -867,15 +950,15 @@ fn assemble_inner(
                     ),
                 });
             }
-            let r1 = parse_arg(arg_tokens[0]).map_err(|e| AsmError {
+            let r1 = parse_arg_with_constants(arg_tokens[0], &constants).map_err(|e| AsmError {
                 line: line_num,
                 message: e,
             })?;
-            let r2 = parse_arg(arg_tokens[1]).map_err(|e| AsmError {
+            let r2 = parse_arg_with_constants(arg_tokens[1], &constants).map_err(|e| AsmError {
                 line: line_num,
                 message: e,
             })?;
-            let target = parse_arg(arg_tokens[2]).map_err(|e| AsmError {
+            let target = parse_arg_with_constants(arg_tokens[2], &constants).map_err(|e| AsmError {
                 line: line_num,
                 message: e,
             })?;
@@ -921,7 +1004,7 @@ fn assemble_inner(
 
         let args: Vec<ArgToken> = arg_tokens
             .iter()
-            .map(|t| parse_arg(t))
+            .map(|t| parse_arg_with_constants(t, &constants))
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| AsmError {
                 line: line_num,
