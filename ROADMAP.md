@@ -133,8 +133,8 @@ AI-written demos      AI-written OS that humans use
 - [x] Implement RECV opcode: check own mailbox, block if empty (scheduler puts VM in Waiting state) — memory-mapped write to 0xFE06 dequeues (non-blocking, returns status=4 if empty)
 - [x] Implement PEEK opcode: non-blocking mailbox check (returns 0 if empty, msg if available) — memory-mapped read at 0xFE08 peeks without consuming
 - [x] Add process-to-process message queue tests (producer/consumer pattern)
-- [ ] Add IPC demo: two programs exchanging pixel coordinates via mailbox
-- [ ] Add PING/PONG demo: process A sends, process B echoes back
+- [x] Add IPC demo: two programs exchanging pixel coordinates via mailbox
+- [x] Add PING/PONG demo: process A sends, process B echoes back
 
 ## Phase 8: The Glyph Compiler (CPU-side)
 
