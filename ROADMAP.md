@@ -132,7 +132,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Implement SEND opcode: write message to target process's mailbox region — memory-mapped write to 0xFE03 triggers mailbox send
 - [x] Implement RECV opcode: check own mailbox, block if empty (scheduler puts VM in Waiting state) — memory-mapped write to 0xFE06 dequeues (non-blocking, returns status=4 if empty)
 - [x] Implement PEEK opcode: non-blocking mailbox check (returns 0 if empty, msg if available) — memory-mapped read at 0xFE08 peeks without consuming
-- [ ] Add process-to-process message queue tests (producer/consumer pattern)
+- [x] Add process-to-process message queue tests (producer/consumer pattern)
 - [ ] Add IPC demo: two programs exchanging pixel coordinates via mailbox
 - [ ] Add PING/PONG demo: process A sends, process B echoes back
 
