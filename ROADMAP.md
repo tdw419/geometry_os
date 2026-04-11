@@ -16,16 +16,16 @@ Extend the compiler and VM only when programs hit walls.
 
 ## Current State
 
-- 7 programs: simple_add, diagonal, bounce, checkerboard, fib_spiral, gradient, life
+- 7 visual programs + 1 shell: simple_add, diagonal, bounce, checkerboard, fib_spiral, gradient, life, shell
 - 8 pixelc tests passing (including shell test)
-- Compiler supports: variables, arithmetic, while/if/else, functions, memory ops, drawing
-- Compiler fix: arbitrary expression depth via PUSH/POP on VM stack (was limited to 2 levels)
+- 373 lib tests + all integration tests passing
+- Compiler: variables, arithmetic, while/if/else, functions, memory ops, drawing, arbitrary expression depth
 - **Pixel-native shell**: programs/shell.gasm runs inside the VM as a real OS shell
   - Terminal I/O (0xFFD8+) renders to VM screen via Vm::render_terminal()
   - Keyboard input via KEY_PORT (0xFFF) with YIELD-based polling
   - Commands: CLS, HELP, VER, ECHO
 
-## Phase 1: Visual Programs (Proving the Compiler Works)
+## Phase 1: Visual Programs (DONE -- 7/12)
 
 Build programs that create interesting pixel patterns. Each program tests compiler features.
 
@@ -35,15 +35,38 @@ Build programs that create interesting pixel patterns. Each program tests compil
 - [x] checkerboard -- conditional drawing (if/else + modulo)
 - [x] fib_spiral -- fibonacci with drawing
 - [x] gradient.gp -- smooth color gradient across the screen
+- [x] life.gp -- Conway's Game of Life (cellular automata, double-buffered grid)
 - [ ] sierpinski.gp -- Sierpinski triangle using chaos game
 - [ ] mandelbrot.gp -- Mandelbrot set visualization (nested loops, arithmetic)
 - [ ] rain.gp -- falling pixel rain (array of positions, animation)
-- [x] life.gp -- Conway's Game of Life (cellular automata, double-buffered grid)
 - [ ] maze.gp -- maze generation (random walks or recursive division)
 - [ ] fireworks.gp -- particle explosion animation
 - [ ] clock.gp -- real-time clock face using timer registers
 
-## Phase 2: Interactive Programs
+## Phase 2: Pixel-Native OS (ACTIVE)
+
+The OS IS the shell. Build the shell into a real operating system interface.
+
+### 2a: Shell Essentials (NEXT)
+- [ ] DIR command -- list programs in virtual filesystem
+- [ ] RUN command -- load and execute programs from within the shell (EXEC opcode)
+- [ ] Shell auto-start -- boot.gasm loads shell.gasm on F5 instead of requiring manual assembly
+- [ ] Command history -- up/down arrow to recall previous commands
+
+### 2b: Shell as Platform
+- [ ] Type command -- view file contents in terminal
+- [ ] Edit command -- inline text editor (modify ram[] via terminal I/O)
+- [ ] Compile command -- invoke pixelc from within the OS (self-hosting bridge)
+- [ ] Debug command -- show registers, memory, PC (read debug registers 0xFFE0+)
+- [ ] Shell scripts -- batch command files (TYPE script.gp | SHELL)
+
+### 2c: Multiprocessing Visible
+- [ ] PS command -- list running processes (FORK'd children)
+- [ ] KILL command -- terminate a child process
+- [ ] BG command -- run a program in background (FORK + continue shell)
+- [ ] Split screen -- shell on top half, program output on bottom half
+
+## Phase 3: Interactive Programs
 
 Programs that respond to keyboard/mouse input. Uses memory-mapped I/O registers.
 
@@ -53,7 +76,7 @@ Programs that respond to keyboard/mouse input. Uses memory-mapped I/O registers.
 - [ ] piano.gp -- keyboard piano (map keys to audio frequencies at 0xFFC0-0xFFC3)
 - [ ] reaction.gp -- reaction time tester (wait for stimulus, measure response)
 
-## Phase 3: Compiler Improvements (When Programs Hit Walls)
+## Phase 4: Compiler Improvements (When Programs Hit Walls)
 
 Extend pixelc based on what the programs need. Not speculative.
 
@@ -64,13 +87,6 @@ Extend pixelc based on what the programs need. Not speculative.
 - [ ] Negative numbers: proper sign handling in immediates
 - [ ] Multiple return values: functions returning tuples
 - [ ] Constants: `const SIZE = 64` at top level
-
-## Phase 4: VM Extensions (When Compiler Needs More)
-
-- [ ] Indexed addressing mode: `LDX r0, r1` (load from address in r1 + offset)
-- [ ] More registers: expand beyond 28 if complex programs need them
-- [ ] Timer interrupts: programs can set periodic callbacks
-- [ ] Serial output: text rendering via TEXT opcode improvements
 
 ## Phase 5: The Standard Library
 
@@ -84,11 +100,11 @@ Reusable .gp modules that other programs can include.
 
 ## Priority Order
 
-Work through phases in order. Within each phase, pick the most interesting program first.
-Every program must have a test. Every test must pass.
+The phases flow in order but Phase 2 (the OS) is now the priority.
+The shell is the center -- every feature makes the OS more self-sufficient.
 
 ```
-Phase 1 (visual programs) -> Phase 2 (interactive) -> Phase 3 (compiler) -> Phase 4 (VM) -> Phase 5 (stdlib)
+Phase 1 (visual) -> Phase 2 (OS shell) -> Phase 3 (interactive) -> Phase 4 (compiler) -> Phase 5 (stdlib)
 ```
 
 If a program needs a feature from a later phase, implement that feature first, then write the program.
@@ -97,8 +113,8 @@ Log what features were missing so we know what to build next.
 ## Definition of Done
 
 A task is done when:
-1. The .gp source is written and readable
-2. The compiled .asm exists and matches the source
+1. The .gp/.gasm source is written and readable
+2. The compiled .asm exists and matches the source (for .gp files)
 3. A test in pixelc_tests.rs verifies behavior
 4. `cargo test` passes
-5. Both .gp and .asm are committed
+5. Source files are committed
