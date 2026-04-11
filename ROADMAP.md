@@ -16,8 +16,8 @@ Extend the compiler and VM only when programs hit walls.
 
 ## Current State
 
-- 7 visual programs + 1 shell: simple_add, diagonal, bounce, checkerboard, fib_spiral, gradient, life, shell
-- 8 pixelc tests passing (including shell test)
+- 8 visual programs + 1 shell: simple_add, diagonal, bounce, checkerboard, fib_spiral, gradient, life, rain, shell
+- 9 pixelc tests passing (including shell and rain tests)
 - All tests passing (373 lib + all integration)
 - Compiler: variables, arithmetic, while/if/else, functions, memory ops, drawing, arbitrary expression depth
 - **Pixel-native shell**: programs/shell.gasm runs inside the VM as a real OS shell
@@ -73,7 +73,7 @@ Do NOT skip ahead. Do NOT attempt BLOCKED tasks.
 ### Sprint A: Visual Programs (.gp -- pure pixelc, NO Rust)
 
 - [x] A1: sierpinski.gp -- Sierpinski triangle via chaos game (EASY)
-- [ ] A2: rain.gp -- falling pixel rain animation (EASY)
+- [x] A2: rain.gp -- falling pixel rain animation (EASY)
 - [ ] A3: mandelbrot.gp -- Mandelbrot set visualization (MEDIUM)
 - [ ] A4: maze.gp -- maze generation (MEDIUM)
 - [ ] A5: fireworks.gp -- particle explosion animation (MEDIUM)
