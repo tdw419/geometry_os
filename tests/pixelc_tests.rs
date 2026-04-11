@@ -146,3 +146,16 @@ fn pixelc_life() {
         .sum();
     assert!(alive > 0, "should have alive cells after 10 gens, got {}", alive);
 }
+
+#[test]
+fn pixelc_sierpinski() {
+    let vm = compile_run("programs/sierpinski.asm");
+    assert!(vm.halted, "VM should halt");
+    // Sierpinski chaos game: 5000 points plotted, at least 100 unique pixels
+    let nonzero: usize = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        nonzero >= 100,
+        "Sierpinski should have >= 100 non-zero screen pixels, got {}",
+        nonzero
+    );
+}

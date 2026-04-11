@@ -72,7 +72,7 @@ Do NOT skip ahead. Do NOT attempt BLOCKED tasks.
 
 ### Sprint A: Visual Programs (.gp -- pure pixelc, NO Rust)
 
-- [ ] A1: sierpinski.gp -- Sierpinski triangle via chaos game (EASY)
+- [x] A1: sierpinski.gp -- Sierpinski triangle via chaos game (EASY)
 - [ ] A2: rain.gp -- falling pixel rain animation (EASY)
 - [ ] A3: mandelbrot.gp -- Mandelbrot set visualization (MEDIUM)
 - [ ] A4: maze.gp -- maze generation (MEDIUM)
