@@ -151,6 +151,9 @@ editor_loop:
     JMP handle_printable
 
 el_after_handle:
+    ; ── Compile-on-save: auto-copy buffer to source region after every edit ──
+    CALL auto_save_source
+
     POP r15
     POP r14
     POP r13
@@ -458,6 +461,85 @@ hss_done:
     CALL show_saved_status
 
     JMP el_after_handle
+
+
+; ── auto_save_source: compile-on-save — copy buffer to source after each edit ─
+;
+; Called from el_after_handle after every character insertion, deletion,
+; or newline. Copies the text buffer (0x1000..0x12FF) to the source file
+; region (0x2000..0x22FF), sets the dirty flag (0x1FFE=1) and source
+; length (0x1FFF=length).
+;
+; The assembler VM polls the dirty flag and recompiles when it sees it set.
+; This creates the compile-on-save loop: every keystroke triggers a recompile.
+;
+; Preserves ALL registers (saves r6..r15 on stack, restores after).
+; Uses r0-r5 as scratch.
+;
+
+auto_save_source:
+    ; Save all constants (we call get_buf_len which clobbers r0-r2)
+    PUSH r6
+    PUSH r7
+    PUSH r8
+    PUSH r9
+    PUSH r10
+    PUSH r11
+    PUSH r12
+    PUSH r13
+    PUSH r14
+    PUSH r15
+
+    ; Restore constants (they were pushed by the editor loop caller,
+    ; so we need to read them back from where they were stored)
+    ; Actually: at this point r6..r15 still hold the constants
+    ; (we just pushed copies). Get buffer length.
+    CALL get_buf_len          ; r0 = length
+
+    ; Save length to source length register
+    LDI r1, 0x1FFF
+    STORE r1, r0
+
+    ; Copy buffer[0..length] to source[0..length] (include null terminator)
+    ADD r0, r6               ; r0 = length + 1 (include null)
+    LDI r1, 0                ; r1 = index
+    MOV r2, r9               ; r2 = src base (0x1000)
+    LDI r3, 0x2000           ; r3 = dst base (0x2000)
+
+ass_copy:
+    BEQ r1, r0, ass_done     ; copied all words
+
+    ; Read buffer[index]
+    MOV r4, r2
+    ADD r4, r1
+    LOAD r5, r4              ; r5 = buffer[index]
+
+    ; Write to source[index]
+    MOV r4, r3
+    ADD r4, r1
+    STORE r4, r5
+
+    ADD r1, r6
+    JMP ass_copy
+
+ass_done:
+    ; Set dirty flag
+    LDI r1, 0x1FFE
+    STORE r1, r6             ; dirty = 1
+
+    ; Restore all constants
+    POP r15
+    POP r14
+    POP r13
+    POP r12
+    POP r11
+    POP r10
+    POP r9
+    POP r8
+    POP r7
+    POP r6
+
+    RET
 
 
 ; ═══════════════════════════════════════════════════════════════════════

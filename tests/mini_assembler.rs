@@ -584,6 +584,85 @@ fn full_pipeline_editor_assemble_spawn() {
     assert!(child.halted, "child should halt (executed HALT bytecode)");
 }
 
+// ── FULL LOOP: EDIT → COMPILE → RUN → SCREEN OUTPUT ─────────────
+
+#[test]
+fn full_loop_edit_compile_run_screen_output() {
+    // The complete Edit-Compile-Execute loop with visible screen output:
+    //   1. Type source in editor → source at 0x2000
+    //   2. Mini-assembler compiles → bytecode at 0x3000
+    //   3. Orchestrator spawns child from bytecode
+    //   4. Child runs and draws a pixel on screen
+    //   5. Verify the pixel is visible on child's screen
+    use geometry_os::assembler;
+
+    // Source program in mini-asm syntax:
+    //   I 0 $05   = LDI r0, 5     (x coordinate)
+    //   I 1 $0A   = LDI r1, 10    (y coordinate)
+    //   I 2 $07   = LDI r2, 7     (color)
+    //   P 0 1 2   = PSET r0, r1, r2 (draw pixel at (5,10) in color 7)
+    //   H         = HALT
+    let source = "I 0 $05\nI 1 $0A\nI 2 $07\nP 0 1 2\nH";
+
+    // Step 1: Compile source via mini-assembler
+    let mut vm = vm_with_mini_assembler();
+    run_assembler(&mut vm, source);
+    assert_eq!(vm.ram[STATUS_ADDR], 0, "compilation should succeed");
+
+    let out = read_output(&vm);
+    // Expected bytecode:
+    //   LDI(0x49), r0(0x30), 0x05,   -- x=5
+    //   LDI(0x49), r1(0x31), 0x0A,   -- y=10
+    //   LDI(0x49), r2(0x32), 0x07,   -- color=7
+    //   PSET(0x50), r0(0x30), r1(0x31), r2(0x32), -- draw pixel
+    //   HALT(0x48)
+    assert_eq!(out.len(), 14, "should produce 14 words of bytecode");
+    assert_eq!(out[0], LDI, "word 0: LDI");
+    assert_eq!(out[1], 0x30, "word 1: r0");
+    assert_eq!(out[2], 0x05, "word 2: 5 (x)");
+    assert_eq!(out[3], LDI, "word 3: LDI");
+    assert_eq!(out[4], 0x31, "word 4: r1");
+    assert_eq!(out[5], 0x0A, "word 5: 10 (y)");
+    assert_eq!(out[6], LDI, "word 6: LDI");
+    assert_eq!(out[7], 0x32, "word 7: r2");
+    assert_eq!(out[8], 0x07, "word 8: 7 (color)");
+    assert_eq!(out[9], 0x50, "word 9: PSET");
+    assert_eq!(out[10], 0x30, "word 10: r0 (x reg)");
+    assert_eq!(out[11], 0x31, "word 11: r1 (y reg)");
+    assert_eq!(out[12], 0x32, "word 12: r2 (color reg)");
+    assert_eq!(out[13], HALT, "word 13: HALT");
+
+    // Step 2: Orchestrator spawns child from compiled bytecode
+    load_orchestrator(&mut vm);
+    vm.pc = 0x3C00;
+    vm.halted = false;
+    vm.yielded = false;
+    vm.run_checked().expect("orchestrator should execute cleanly");
+
+    let children = vm.drain_children();
+    assert_eq!(children.len(), 1, "orchestrator should spawn 1 child");
+
+    // Step 3: Run the child VM
+    let mut child = vm.spawn_child(&children[0]);
+    child.run();
+
+    assert!(child.halted, "child should halt after executing compiled program");
+
+    // Step 4: Verify visible output on screen
+    // PSET at (5, 10) with color 7 → screen[10 * 256 + 5] = 7
+    let pixel_addr = 10 * 256 + 5;
+    assert_eq!(
+        child.screen[pixel_addr], 7,
+        "pixel at (5, 10) should be color 7 after running compiled PSET program"
+    );
+
+    // Verify surrounding pixels are still black (untouched)
+    assert_eq!(child.screen[0], 0, "pixel at (0,0) should still be black");
+    assert_eq!(child.screen[10 * 256 + 4], 0, "pixel at (4,10) should still be black");
+    assert_eq!(child.screen[10 * 256 + 6], 0, "pixel at (6,10) should still be black");
+    assert_eq!(child.screen[9 * 256 + 5], 0, "pixel at (5,9) should still be black");
+}
+
 // ── DIRTY FLAG TESTS ──────────────────────────────────────────────
 
 #[test]

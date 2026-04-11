@@ -533,3 +533,133 @@ fn read_buffer_from(vm: &Vm, base: usize, max_len: usize) -> Vec<u8> {
     }
     result
 }
+
+
+// ── COMPILE-ON-SAVE TESTS ──────────────────────────────────────────
+
+#[test]
+fn compile_on_save_after_insert() {
+    // After typing a character, the source region should auto-update
+    // without needing Ctrl+S.
+    let mut vm = make_editor_vm();
+    run_vm(&mut vm);
+
+    // Type 'H'
+    press_key(&mut vm, 0x48);
+
+    // Dirty flag should be auto-set
+    assert_eq!(vm.ram[0x1FFE], 1, "dirty flag should be 1 after typing");
+
+    // Source length should be 1
+    assert_eq!(vm.ram[0x1FFF], 1, "source length should be 1 after typing H");
+
+    // Source should contain 'H'
+    let source = read_buffer_from(&vm, 0x2000, 10);
+    assert_eq!(source, vec![0x48], "source should auto-update to 'H'");
+}
+
+#[test]
+fn compile_on_save_after_multiple_inserts() {
+    // After typing multiple characters, source updates each time.
+    let mut vm = make_editor_vm();
+    run_vm(&mut vm);
+
+    // Type "HI"
+    press_key(&mut vm, 0x48); // H
+    press_key(&mut vm, 0x49); // I
+
+    // Source should reflect the full buffer
+    let source = read_buffer_from(&vm, 0x2000, 10);
+    assert_eq!(source, vec![0x48, 0x49], "source should be 'HI' after typing");
+    assert_eq!(vm.ram[0x1FFF], 2, "source length should be 2");
+    assert_eq!(vm.ram[0x1FFE], 1, "dirty flag should be 1");
+}
+
+#[test]
+fn compile_on_save_after_backspace() {
+    // After backspace, source should auto-update.
+    let mut vm = make_editor_vm();
+    run_vm(&mut vm);
+
+    // Type "ABC"
+    press_key(&mut vm, 0x41); // A
+    press_key(&mut vm, 0x42); // B
+    press_key(&mut vm, 0x43); // C
+
+    // Backspace
+    press_key(&mut vm, 0x08);
+
+    // Source should be "AB" now
+    let source = read_buffer_from(&vm, 0x2000, 10);
+    assert_eq!(source, vec![0x41, 0x42], "source should be 'AB' after backspace");
+    assert_eq!(vm.ram[0x1FFF], 2, "source length should be 2 after backspace");
+}
+
+#[test]
+fn compile_on_save_after_enter() {
+    // After enter (newline), source should auto-update.
+    let mut vm = make_editor_vm();
+    run_vm(&mut vm);
+
+    // Type "A", Enter, "B"
+    press_key(&mut vm, 0x41); // A
+    press_key(&mut vm, 0x0D); // Enter
+    press_key(&mut vm, 0x42); // B
+
+    // Source should be "A\nB"
+    let source = read_buffer_from(&vm, 0x2000, 10);
+    assert_eq!(source, vec![0x41, 0x0A, 0x42], "source should be 'A\\nB'");
+    assert_eq!(vm.ram[0x1FFF], 3, "source length should be 3");
+}
+
+#[test]
+fn compile_on_save_arrow_keys_no_update() {
+    // Arrow keys should not trigger auto-save (no buffer change).
+    let mut vm = make_editor_vm();
+    run_vm(&mut vm);
+
+    // Type "A" to get some content
+    press_key(&mut vm, 0x41);
+
+    // Save state
+    let dirty_after_insert = vm.ram[0x1FFE];
+
+    // Now press arrow keys (left, right) -- these don't change the buffer
+    press_key(&mut vm, 0x01); // left
+    press_key(&mut vm, 0x02); // right
+
+    // Source should still be just "A" -- arrow keys don't change buffer
+    let source = read_buffer_from(&vm, 0x2000, 10);
+    assert_eq!(source, vec![0x41], "source should still be 'A' after arrow keys");
+    assert_eq!(vm.ram[0x1FFF], 1, "source length unchanged by arrow keys");
+}
+
+#[test]
+fn compile_on_save_edit_sequence() {
+    // Type, delete, retype -- verify source updates at each step.
+    let mut vm = make_editor_vm();
+    run_vm(&mut vm);
+
+    // Type "ABC"
+    press_key(&mut vm, 0x41); // A
+    press_key(&mut vm, 0x42); // B
+    press_key(&mut vm, 0x43); // C
+
+    let source = read_buffer_from(&vm, 0x2000, 10);
+    assert_eq!(source, vec![0x41, 0x42, 0x43], "after ABC");
+
+    // Backspace twice
+    press_key(&mut vm, 0x08);
+    press_key(&mut vm, 0x08);
+
+    let source = read_buffer_from(&vm, 0x2000, 10);
+    assert_eq!(source, vec![0x41], "after two backspaces");
+
+    // Type "XY"
+    press_key(&mut vm, 0x58); // X
+    press_key(&mut vm, 0x59); // Y
+
+    let source = read_buffer_from(&vm, 0x2000, 10);
+    assert_eq!(source, vec![0x41, 0x58, 0x59], "after retype: AXY");
+    assert_eq!(vm.ram[0x1FFE], 1, "dirty flag should be set throughout");
+}
