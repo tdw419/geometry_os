@@ -60,41 +60,55 @@ fn calculator_debug_trace() {
     // Press '6'
     vm.ram[0xFFF] = 0x36;
     vm.run();
-    eprintln!("After '6': r4={}, r5={}, r6={:#x}, r10={}", vm.regs[4], vm.regs[5], vm.regs[6], vm.regs[10]);
+    eprintln!(
+        "After '6': r4={}, r5={}, r6={:#x}, r10={}",
+        vm.regs[4], vm.regs[5], vm.regs[6], vm.regs[10]
+    );
 
     // Press '*'
     vm.ram[0xFFF] = 0x2A;
     vm.run();
-    eprintln!("After '*': r4={}, r5={}, r6={:#x}, r10={}", vm.regs[4], vm.regs[5], vm.regs[6], vm.regs[10]);
+    eprintln!(
+        "After '*': r4={}, r5={}, r6={:#x}, r10={}",
+        vm.regs[4], vm.regs[5], vm.regs[6], vm.regs[10]
+    );
 
     // Press '7'
     vm.ram[0xFFF] = 0x37;
     vm.run();
-    eprintln!("After '7': r4={}, r5={}, r6={:#x}, r10={}", vm.regs[4], vm.regs[5], vm.regs[6], vm.regs[10]);
+    eprintln!(
+        "After '7': r4={}, r5={}, r6={:#x}, r10={}",
+        vm.regs[4], vm.regs[5], vm.regs[6], vm.regs[10]
+    );
 
     // Now set up and trace the full Enter -> do_compute -> do_mul path
     let calc_loop_addr = *asm.labels.get("calc_loop").expect("calc_loop");
     let show_result_addr = *asm.labels.get("show_result").expect("show_result");
-    eprintln!("calc_loop={}, show_result={}", calc_loop_addr, show_result_addr);
-    
+    eprintln!(
+        "calc_loop={}, show_result={}",
+        calc_loop_addr, show_result_addr
+    );
+
     // Print all labels to understand the layout
     let mut labels: Vec<_> = asm.labels.iter().collect();
     labels.sort_by_key(|&(_, &addr)| addr);
     for &(ref name, &addr) in &labels {
         eprintln!("  {} @ {}", name, addr);
     }
-    
+
     // Inject Enter key
     vm.ram[0xFFF] = 0x0D;
     vm.pc = calc_loop_addr as u32;
     vm.halted = false;
-    
+
     // Single step through the full compute path
     for i in 0..300 {
         let pc_before = vm.pc;
         let executed = vm.step();
-        eprintln!("Step {}: pc={}->{} r4={} r5={} r6={:#x} r10={}", 
-            i, pc_before, vm.pc, vm.regs[4], vm.regs[5], vm.regs[6], vm.regs[10]);
+        eprintln!(
+            "Step {}: pc={}->{} r4={} r5={} r6={:#x} r10={}",
+            i, pc_before, vm.pc, vm.regs[4], vm.regs[5], vm.regs[6], vm.regs[10]
+        );
         if !executed || vm.halted {
             eprintln!("STOPPED: executed={}, halted={}", executed, vm.halted);
             break;
@@ -137,16 +151,10 @@ fn calculator_accepts_first_digit() {
     assert!(!vm.halted, "should not halt after digit input");
 
     // r4 should have accumulated: 5
-    assert_eq!(
-        vm.regs[4], 5,
-        "first number should be 5 after pressing '5'"
-    );
+    assert_eq!(vm.regs[4], 5, "first number should be 5 after pressing '5'");
 
     // State (r10) should still be 0 (parsing first number)
-    assert_eq!(
-        vm.regs[10], 0,
-        "state should be 0 (parsing first number)"
-    );
+    assert_eq!(vm.regs[10], 0, "state should be 0 (parsing first number)");
 }
 
 #[test]
@@ -222,11 +230,7 @@ fn read_result(vm: &Vm) -> Option<u32> {
         }
         i += 1;
     }
-    if i == base {
-        None
-    } else {
-        Some(val)
-    }
+    if i == base { None } else { Some(val) }
 }
 
 #[test]

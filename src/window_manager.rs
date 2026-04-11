@@ -91,10 +91,7 @@ impl WmWindow {
 
     /// Check if a point is on the title bar.
     pub fn is_on_title_bar(&self, px: usize, py: usize) -> bool {
-        px >= self.x
-            && px < self.x + self.width
-            && py >= self.y
-            && py < self.y + TITLE_BAR_HEIGHT
+        px >= self.x && px < self.x + self.width && py >= self.y && py < self.y + TITLE_BAR_HEIGHT
     }
 
     /// Check if a point is on the content area (below title bar).

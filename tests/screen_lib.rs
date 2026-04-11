@@ -57,8 +57,11 @@ fn screen_clear_to_white() {
          CALL clear_screen\n\
          HALT\n",
     ));
-    assert_eq!(count_pixels(&vm, 0xFFFFFF), 256 * 256,
-        "clear_screen should fill all pixels with white");
+    assert_eq!(
+        count_pixels(&vm, 0xFFFFFF),
+        256 * 256,
+        "clear_screen should fill all pixels with white"
+    );
 }
 
 #[test]
@@ -68,8 +71,11 @@ fn screen_clear_to_red() {
          CALL clear_screen\n\
          HALT\n",
     ));
-    assert_eq!(count_pixels(&vm, 0xFF0000), 256 * 256,
-        "clear_screen should fill all pixels with red");
+    assert_eq!(
+        count_pixels(&vm, 0xFF0000),
+        256 * 256,
+        "clear_screen should fill all pixels with red"
+    );
 }
 
 #[test]
@@ -81,10 +87,16 @@ fn screen_clear_overwrites_existing() {
          CALL clear_screen\n\
          HALT\n",
     ));
-    assert_eq!(count_pixels(&vm, 0xFF0000), 0,
-        "first clear should be fully overwritten");
-    assert_eq!(count_pixels(&vm, 0x00FF00), 256 * 256,
-        "second clear should fill all pixels");
+    assert_eq!(
+        count_pixels(&vm, 0xFF0000),
+        0,
+        "first clear should be fully overwritten"
+    );
+    assert_eq!(
+        count_pixels(&vm, 0x00FF00),
+        256 * 256,
+        "second clear should fill all pixels"
+    );
 }
 
 // ── DRAW_LINE TESTS ──────────────────────────────────────────────────
@@ -101,11 +113,16 @@ fn screen_draw_line_horizontal() {
          HALT\n",
     ));
     for x in 10..=20 {
-        assert!(check_pixel(&vm, x, 50, 0xFFFFFF),
-            "pixel at ({}, 50) should be white", x);
+        assert!(
+            check_pixel(&vm, x, 50, 0xFFFFFF),
+            "pixel at ({}, 50) should be white",
+            x
+        );
     }
-    assert!(!check_pixel(&vm, 10, 51, 0xFFFFFF),
-        "pixel at (10, 51) should NOT be white");
+    assert!(
+        !check_pixel(&vm, 10, 51, 0xFFFFFF),
+        "pixel at (10, 51) should NOT be white"
+    );
 }
 
 #[test]
@@ -120,11 +137,16 @@ fn screen_draw_line_vertical() {
          HALT\n",
     ));
     for y in 10..=20 {
-        assert!(check_pixel(&vm, 30, y, 0xFF0000),
-            "pixel at (30, {}) should be red", y);
+        assert!(
+            check_pixel(&vm, 30, y, 0xFF0000),
+            "pixel at (30, {}) should be red",
+            y
+        );
     }
-    assert!(!check_pixel(&vm, 31, 15, 0xFF0000),
-        "pixel at (31, 15) should NOT be red");
+    assert!(
+        !check_pixel(&vm, 31, 15, 0xFF0000),
+        "pixel at (31, 15) should NOT be red"
+    );
 }
 
 #[test]
@@ -139,8 +161,12 @@ fn screen_draw_line_diagonal() {
          HALT\n",
     ));
     for i in 0..=10 {
-        assert!(check_pixel(&vm, 5 + i, 5 + i, 0x00FF00),
-            "pixel at ({}, {}) should be green", 5 + i, 5 + i);
+        assert!(
+            check_pixel(&vm, 5 + i, 5 + i, 0x00FF00),
+            "pixel at ({}, {}) should be green",
+            5 + i,
+            5 + i
+        );
     }
 }
 
@@ -156,8 +182,11 @@ fn screen_draw_line_reverse_horizontal() {
          HALT\n",
     ));
     for x in 10..=20 {
-        assert!(check_pixel(&vm, x, 50, 0xFFFFFF),
-            "pixel at ({}, 50) should be white (reverse line)", x);
+        assert!(
+            check_pixel(&vm, x, 50, 0xFFFFFF),
+            "pixel at ({}, 50) should be white (reverse line)",
+            x
+        );
     }
 }
 
@@ -172,10 +201,15 @@ fn screen_draw_line_single_pixel() {
          CALL draw_line\n\
          HALT\n",
     ));
-    assert!(check_pixel(&vm, 42, 42, 0x0000FF),
-        "single-pixel line should draw at (42, 42)");
-    assert_eq!(count_pixels(&vm, 0x0000FF), 1,
-        "only 1 pixel should be colored");
+    assert!(
+        check_pixel(&vm, 42, 42, 0x0000FF),
+        "single-pixel line should draw at (42, 42)"
+    );
+    assert_eq!(
+        count_pixels(&vm, 0x0000FF),
+        1,
+        "only 1 pixel should be colored"
+    );
 }
 
 #[test]
@@ -190,8 +224,11 @@ fn screen_draw_line_reverse_vertical() {
          HALT\n",
     ));
     for y in 50..=60 {
-        assert!(check_pixel(&vm, 40, y, 0xFFFF00),
-            "pixel at (40, {}) should be yellow (reverse vertical)", y);
+        assert!(
+            check_pixel(&vm, 40, y, 0xFFFF00),
+            "pixel at (40, {}) should be yellow (reverse vertical)",
+            y
+        );
     }
 }
 
@@ -254,7 +291,11 @@ fn screen_draw_rect_border_minimal() {
     assert!(check_pixel(&vm, 6, 5, color), "(6,5)");
     assert!(check_pixel(&vm, 5, 6, color), "(5,6)");
     assert!(check_pixel(&vm, 6, 6, color), "(6,6)");
-    assert_eq!(count_pixels(&vm, color), 4, "2x2 rect should have exactly 4 border pixels");
+    assert_eq!(
+        count_pixels(&vm, color),
+        4,
+        "2x2 rect should have exactly 4 border pixels"
+    );
 }
 
 #[test]
@@ -274,10 +315,22 @@ fn screen_draw_rect_border_preserves_color() {
          CALL draw_rect_border\n\
          HALT\n",
     ));
-    assert!(check_pixel(&vm, 10, 10, 0xFF0000), "first rect corner should be red");
-    assert!(check_pixel(&vm, 14, 14, 0xFF0000), "first rect corner should be red");
-    assert!(check_pixel(&vm, 20, 20, 0x00FF00), "second rect corner should be green");
-    assert!(check_pixel(&vm, 24, 24, 0x00FF00), "second rect corner should be green");
+    assert!(
+        check_pixel(&vm, 10, 10, 0xFF0000),
+        "first rect corner should be red"
+    );
+    assert!(
+        check_pixel(&vm, 14, 14, 0xFF0000),
+        "first rect corner should be red"
+    );
+    assert!(
+        check_pixel(&vm, 20, 20, 0x00FF00),
+        "second rect corner should be green"
+    );
+    assert!(
+        check_pixel(&vm, 24, 24, 0x00FF00),
+        "second rect corner should be green"
+    );
 }
 
 #[test]

@@ -332,7 +332,8 @@ uts_done:\n\
 ";
 
     // Count to 3, display final value (3) on screen
-    let src = format!("\
+    let src = format!(
+        "\
         LDI r0, 0\n\
         LDI r1, 1\n\
         LDI r2, 3\n\
@@ -355,7 +356,10 @@ uts_done:\n\
     let vm = run_src(&src);
     assert!(vm.halted);
     // Screen should have rendered content (the digit "3")
-    assert!(screen_has_content(&vm), "screen should have rendered digits");
+    assert!(
+        screen_has_content(&vm),
+        "screen should have rendered digits"
+    );
     // Verify the digit string was created correctly
     let s = read_string(&vm, vm.regs[8] as usize);
     assert_eq!(s, "3", "final counter value string should be \"3\"");
@@ -406,7 +410,8 @@ uts_done:\n\
     RET\n\
 ";
 
-    let src = format!("\
+    let src = format!(
+        "\
         LDI r0, 0\n\
         LDI r1, 1\n\
         LDI r2, 10\n\
@@ -430,7 +435,10 @@ uts_done:\n\
     assert!(vm.halted);
     let s = read_string(&vm, vm.regs[8] as usize);
     assert_eq!(s, "10", "final counter value should be \"10\"");
-    assert!(screen_has_content(&vm), "screen should have rendered \"10\"");
+    assert!(
+        screen_has_content(&vm),
+        "screen should have rendered \"10\""
+    );
 }
 
 #[test]
@@ -533,7 +541,8 @@ uts_done:\n\
     RET\n\
 ";
 
-    let src = format!("\
+    let src = format!(
+        "\
         LDI r0, 42\n\
         CALL uint_to_str\n\
         LDI r0, 0xFFFFFF\n\

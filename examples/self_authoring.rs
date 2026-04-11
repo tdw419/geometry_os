@@ -41,29 +41,61 @@ fn demo_direct_authoring() {
 
     // The agent constructs Program B: draw 3 pixels, then halt.
     let program_b: Vec<u32> = vec![
-        op::LDI as u32, 0, 10,
-        op::LDI as u32, 1, 10,
-        op::LDI as u32, 2, 5,
-        op::PSET as u32, 0, 1, 2,
-        op::LDI as u32, 0, 20,
-        op::LDI as u32, 1, 20,
-        op::LDI as u32, 2, 8,
-        op::PSET as u32, 0, 1, 2,
-        op::LDI as u32, 0, 30,
-        op::LDI as u32, 1, 10,
-        op::LDI as u32, 2, 5,
-        op::PSET as u32, 0, 1, 2,
+        op::LDI as u32,
+        0,
+        10,
+        op::LDI as u32,
+        1,
+        10,
+        op::LDI as u32,
+        2,
+        5,
+        op::PSET as u32,
+        0,
+        1,
+        2,
+        op::LDI as u32,
+        0,
+        20,
+        op::LDI as u32,
+        1,
+        20,
+        op::LDI as u32,
+        2,
+        8,
+        op::PSET as u32,
+        0,
+        1,
+        2,
+        op::LDI as u32,
+        0,
+        30,
+        op::LDI as u32,
+        1,
+        10,
+        op::LDI as u32,
+        2,
+        5,
+        op::PSET as u32,
+        0,
+        1,
+        2,
         op::HALT as u32,
     ];
 
     // Step 1: Write Program B directly into RAM at address 500
-    println!("[1] Agent writes {} pixels of bytecode to RAM[500]",
-             program_b.len());
+    println!(
+        "[1] Agent writes {} pixels of bytecode to RAM[500]",
+        program_b.len()
+    );
     agent.write_ram(500, &program_b);
 
     // Verify it landed
     assert_eq!(agent.peek_ram(500), op::LDI as u32);
-    println!("    Verified: RAM[500] = 0x{:02X} (LDI)", agent.peek_ram(500));
+    println!(
+        "    Verified: RAM[500] = 0x{:02X} (LDI)",
+        agent.peek_ram(500)
+    );
 
     // Step 2: Execute from address 500 -- no assembly needed
     println!("[2] Agent calls execute_from(500)");
@@ -97,18 +129,45 @@ fn demo_runtime_authoring() {
 
     // Program B bytecode (what we want Program A to write into RAM):
     let program_b: Vec<u32> = vec![
-        op::LDI as u32, 0, 10,
-        op::LDI as u32, 1, 10,
-        op::LDI as u32, 2, 5,
-        op::PSET as u32, 0, 1, 2,
-        op::LDI as u32, 0, 20,
-        op::LDI as u32, 1, 20,
-        op::LDI as u32, 2, 8,
-        op::PSET as u32, 0, 1, 2,
-        op::LDI as u32, 0, 30,
-        op::LDI as u32, 1, 10,
-        op::LDI as u32, 2, 5,
-        op::PSET as u32, 0, 1, 2,
+        op::LDI as u32,
+        0,
+        10,
+        op::LDI as u32,
+        1,
+        10,
+        op::LDI as u32,
+        2,
+        5,
+        op::PSET as u32,
+        0,
+        1,
+        2,
+        op::LDI as u32,
+        0,
+        20,
+        op::LDI as u32,
+        1,
+        20,
+        op::LDI as u32,
+        2,
+        8,
+        op::PSET as u32,
+        0,
+        1,
+        2,
+        op::LDI as u32,
+        0,
+        30,
+        op::LDI as u32,
+        1,
+        10,
+        op::LDI as u32,
+        2,
+        5,
+        op::PSET as u32,
+        0,
+        1,
+        2,
         op::HALT as u32,
     ];
 
@@ -124,12 +183,21 @@ fn demo_runtime_authoring() {
 
     let program_a_source = program_a_parts.join("\n");
 
-    println!("[1] Program A: {} instructions to write {} bytes to RAM[{}]",
-             program_a_parts.len(), program_b.len(), base_addr);
+    println!(
+        "[1] Program A: {} instructions to write {} bytes to RAM[{}]",
+        program_a_parts.len(),
+        program_b.len(),
+        base_addr
+    );
     println!("[2] Running Program A (the writer)...");
 
-    let result_a = agent.run_gasm(&program_a_source).expect("Program A should run");
-    assert!(result_a.halted, "Program A should halt (via JMP into Program B which HALTs)");
+    let result_a = agent
+        .run_gasm(&program_a_source)
+        .expect("Program A should run");
+    assert!(
+        result_a.halted,
+        "Program A should halt (via JMP into Program B which HALTs)"
+    );
     println!("    Program A halted after {} cycles", result_a.cycles);
 
     // Verify RAM
@@ -138,12 +206,19 @@ fn demo_runtime_authoring() {
     let mut matches = true;
     for (i, (got, expected)) in authored.iter().zip(program_b.iter()).enumerate() {
         if got != expected {
-            println!("    MISMATCH at offset {}: got {} expected {}", i, got, expected);
+            println!(
+                "    MISMATCH at offset {}: got {} expected {}",
+                i, got, expected
+            );
             matches = false;
         }
     }
     assert!(matches, "Authored bytecode must match");
-    println!("    RAM[{}..{}] matches Program B!", base_addr, base_addr + program_b.len() as u32);
+    println!(
+        "    RAM[{}..{}] matches Program B!",
+        base_addr,
+        base_addr + program_b.len() as u32
+    );
 
     // Screen was already drawn (Program A jumped into Program B which ran)
     println!("[4] Screen verification (already drawn by JMP into Program B):");
@@ -171,18 +246,31 @@ fn demo_inspect_loop() {
     // Step 1: WRITE -- plant a program that computes 15 + 25 = 40
     println!("[1] WRITE: Planting add-and-store program at RAM[500]");
     let program: Vec<u32> = vec![
-        op::LDI as u32, 0, 15,        // LDI r0, 15
-        op::LDI as u32, 1, 25,        // LDI r1, 25
-        op::ADD as u32, 0, 1,         // ADD r0, r1  (r0 = 40)
-        op::LDI as u32, 2, 200,       // LDI r2, 200  (address)
-        op::STORE as u32, 2, 0,       // STORE [r2], r0  (RAM[200] = 40)
+        op::LDI as u32,
+        0,
+        15, // LDI r0, 15
+        op::LDI as u32,
+        1,
+        25, // LDI r1, 25
+        op::ADD as u32,
+        0,
+        1, // ADD r0, r1  (r0 = 40)
+        op::LDI as u32,
+        2,
+        200, // LDI r2, 200  (address)
+        op::STORE as u32,
+        2,
+        0, // STORE [r2], r0  (RAM[200] = 40)
         op::HALT as u32,
     ];
     agent.write_ram(500, &program);
     println!("    Wrote {} pixels", program.len());
 
     // Step 2: INSPECT -- disassemble the planted bytecode
-    println!("\n[2] INSPECT: Disassembling RAM[500..{}]", 500 + program.len());
+    println!(
+        "\n[2] INSPECT: Disassembling RAM[500..{}]",
+        500 + program.len()
+    );
     let listing = agent.disassemble(500, program.len());
     for (addr, text) in &listing {
         println!("    {:>4}: {}", addr, text);

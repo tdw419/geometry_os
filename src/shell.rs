@@ -46,7 +46,9 @@ impl Shell {
             max_output_lines: 256,
         };
         shell.output_lines.push("GEOS v1.0".to_string());
-        shell.output_lines.push("Type HELP for available commands.".to_string());
+        shell
+            .output_lines
+            .push("Type HELP for available commands.".to_string());
         shell.output_lines.push(String::new());
         shell
     }
@@ -145,13 +147,11 @@ impl Shell {
                         format!("{}.gasm", fname)
                     }
                 };
-                self.output_lines
-                    .push(format!("Loading {}...", filename));
+                self.output_lines.push(format!("Loading {}...", filename));
                 vec![ShellAction::Run { filename }]
             }
             "HELP" => {
-                self.output_lines
-                    .push("Available commands:".to_string());
+                self.output_lines.push("Available commands:".to_string());
                 self.output_lines
                     .push("  CLS           Clear screen".to_string());
                 self.output_lines
@@ -169,8 +169,7 @@ impl Shell {
                 Vec::new()
             }
             _ => {
-                self.output_lines
-                    .push(format!("Unknown command: {}", cmd));
+                self.output_lines.push(format!("Unknown command: {}", cmd));
                 Vec::new()
             }
         }
@@ -232,9 +231,12 @@ mod tests {
     fn print_outputs_text() {
         let mut shell = Shell::new();
         let actions = enter(&mut shell, "PRINT Hello World");
-        assert_eq!(actions, vec![ShellAction::Print {
-            text: "Hello World".to_string(),
-        }]);
+        assert_eq!(
+            actions,
+            vec![ShellAction::Print {
+                text: "Hello World".to_string(),
+            }]
+        );
         // The text should also appear in output_lines
         assert!(shell.output_lines().iter().any(|l| l == "Hello World"));
     }
@@ -243,18 +245,24 @@ mod tests {
     fn print_empty_just_outputs_blank() {
         let mut shell = Shell::new();
         let actions = enter(&mut shell, "PRINT");
-        assert_eq!(actions, vec![ShellAction::Print {
-            text: String::new(),
-        }]);
+        assert_eq!(
+            actions,
+            vec![ShellAction::Print {
+                text: String::new(),
+            }]
+        );
     }
 
     #[test]
     fn print_with_special_chars() {
         let mut shell = Shell::new();
         let actions = enter(&mut shell, "PRINT test 123!@#");
-        assert_eq!(actions, vec![ShellAction::Print {
-            text: "test 123!@#".to_string(),
-        }]);
+        assert_eq!(
+            actions,
+            vec![ShellAction::Print {
+                text: "test 123!@#".to_string(),
+            }]
+        );
     }
 
     // ── RUN ──────────────────────────────────────────────────────────
@@ -262,18 +270,24 @@ mod tests {
     fn run_with_program_name() {
         let mut shell = Shell::new();
         let actions = enter(&mut shell, "RUN myprogram");
-        assert_eq!(actions, vec![ShellAction::Run {
-            filename: "myprogram.gasm".to_string(),
-        }]);
+        assert_eq!(
+            actions,
+            vec![ShellAction::Run {
+                filename: "myprogram.gasm".to_string(),
+            }]
+        );
     }
 
     #[test]
     fn run_with_extension() {
         let mut shell = Shell::new();
         let actions = enter(&mut shell, "RUN hello.gasm");
-        assert_eq!(actions, vec![ShellAction::Run {
-            filename: "hello.gasm".to_string(),
-        }]);
+        assert_eq!(
+            actions,
+            vec![ShellAction::Run {
+                filename: "hello.gasm".to_string(),
+            }]
+        );
     }
 
     #[test]
@@ -281,10 +295,12 @@ mod tests {
         let mut shell = Shell::new();
         let actions = enter(&mut shell, "RUN");
         assert!(actions.is_empty());
-        assert!(shell
-            .output_lines()
-            .iter()
-            .any(|l| l.contains("RUN requires a program name")));
+        assert!(
+            shell
+                .output_lines()
+                .iter()
+                .any(|l| l.contains("RUN requires a program name"))
+        );
     }
 
     // ── HELP ─────────────────────────────────────────────────────────
@@ -306,10 +322,7 @@ mod tests {
     fn ver_shows_version() {
         let mut shell = Shell::new();
         enter(&mut shell, "VER");
-        assert!(shell
-            .output_lines()
-            .iter()
-            .any(|l| l == "GEOS v1.0"));
+        assert!(shell.output_lines().iter().any(|l| l == "GEOS v1.0"));
     }
 
     // ── Unknown command ──────────────────────────────────────────────
@@ -318,20 +331,19 @@ mod tests {
         let mut shell = Shell::new();
         let actions = enter(&mut shell, "FOOBAR");
         assert!(actions.is_empty());
-        assert!(shell
-            .output_lines()
-            .iter()
-            .any(|l| l.contains("Unknown command")));
+        assert!(
+            shell
+                .output_lines()
+                .iter()
+                .any(|l| l.contains("Unknown command"))
+        );
     }
 
     #[test]
     fn unknown_command_echoes_name() {
         let mut shell = Shell::new();
         enter(&mut shell, "GARBAGE");
-        assert!(shell
-            .output_lines()
-            .iter()
-            .any(|l| l.contains("GARBAGE")));
+        assert!(shell.output_lines().iter().any(|l| l.contains("GARBAGE")));
     }
 
     // ── Prompt / input handling ──────────────────────────────────────
@@ -408,7 +420,10 @@ mod tests {
 
     #[test]
     fn split_command_extra_spaces() {
-        assert_eq!(split_command("  PRINT   hello world  "), ("PRINT", "hello world"));
+        assert_eq!(
+            split_command("  PRINT   hello world  "),
+            ("PRINT", "hello world")
+        );
     }
 
     // ── Welcome message ──────────────────────────────────────────────

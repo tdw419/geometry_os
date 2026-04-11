@@ -6,9 +6,9 @@
 // back framebuffer pixels to verify correct rendering behavior.
 // ═══════════════════════════════════════════════════════════════════════
 
-use geometry_os::vm::Vm;
+use geometry_os::font::{GLYPH_H, GLYPH_W, GLYPHS};
 use geometry_os::opcodes::op;
-use geometry_os::font::{GLYPHS, GLYPH_W, GLYPH_H};
+use geometry_os::vm::Vm;
 
 const SCREEN_W: usize = 256;
 const SCREEN_H: usize = 256;
@@ -66,11 +66,11 @@ fn build_text_program(
     // Build the instruction: TEXT r1, r2, r3
     // reg_idx decodes pixel values: 0x30 + idx => idx, so register 1 = pixel 0x31 ('1')
     let program: Vec<u32> = vec![
-        op::TEXT as u32,  // opcode byte 'T' = 0x54
-        0x31,             // x_reg = r1 (pixel value for reg index 1)
-        0x32,             // y_reg = r2 (pixel value for reg index 2)
-        0x33,             // str_addr_reg = r3 (pixel value for reg index 3)
-        op::HALT as u32,  // Halt after TEXT
+        op::TEXT as u32, // opcode byte 'T' = 0x54
+        0x31,            // x_reg = r1 (pixel value for reg index 1)
+        0x32,            // y_reg = r2 (pixel value for reg index 2)
+        0x33,            // str_addr_reg = r3 (pixel value for reg index 3)
+        op::HALT as u32, // Halt after TEXT
     ];
     vm.load_program(&program);
 }
@@ -101,7 +101,11 @@ fn test_single_char_a_renders_nonzero_pixels() {
 
     // Verify non-zero pixels appear in the 5x7 area at (10, 20)
     let lit = count_lit_pixels(&vm, 10, 20, GLYPH_W, GLYPH_H);
-    assert!(lit > 0, "'A' should produce non-zero pixels, got {} lit", lit);
+    assert!(
+        lit > 0,
+        "'A' should produce non-zero pixels, got {} lit",
+        lit
+    );
 
     // Cross-check against the actual glyph bitmap for 'A'
     for row in 0..GLYPH_H {
@@ -111,15 +115,23 @@ fn test_single_char_a_renders_nonzero_pixels() {
             let actual = screen_pixel(&vm, 10 + col, 20 + row);
             if expected_on {
                 assert_eq!(
-                    actual, color,
+                    actual,
+                    color,
                     "Expected foreground color at ({}, {}) for 'A' row={} col={}",
-                    10 + col, 20 + row, row, col
+                    10 + col,
+                    20 + row,
+                    row,
+                    col
                 );
             } else {
                 assert_eq!(
-                    actual, 0,
+                    actual,
+                    0,
                     "Expected background (0) at ({}, {}) for 'A' row={} col={} (transparent)",
-                    10 + col, 20 + row, row, col
+                    10 + col,
+                    20 + row,
+                    row,
+                    col
                 );
             }
         }
@@ -145,15 +157,27 @@ fn test_multi_char_string_geo_advances_horizontally() {
 
     // Verify that 'G' area at (10, 20) has lit pixels
     let g_lit = count_lit_pixels(&vm, 10, 20, GLYPH_W, GLYPH_H);
-    assert!(g_lit > 0, "'G' at (10,20) should have lit pixels, got {}", g_lit);
+    assert!(
+        g_lit > 0,
+        "'G' at (10,20) should have lit pixels, got {}",
+        g_lit
+    );
 
     // Verify that 'E' area at (16, 20) has lit pixels
     let e_lit = count_lit_pixels(&vm, 10 + advance, 20, GLYPH_W, GLYPH_H);
-    assert!(e_lit > 0, "'E' at (16,20) should have lit pixels, got {}", e_lit);
+    assert!(
+        e_lit > 0,
+        "'E' at (16,20) should have lit pixels, got {}",
+        e_lit
+    );
 
     // Verify that 'O' area at (22, 20) has lit pixels
     let o_lit = count_lit_pixels(&vm, 10 + 2 * advance, 20, GLYPH_W, GLYPH_H);
-    assert!(o_lit > 0, "'O' at (22,20) should have lit pixels, got {}", o_lit);
+    assert!(
+        o_lit > 0,
+        "'O' at (22,20) should have lit pixels, got {}",
+        o_lit
+    );
 
     // Cross-check 'G' pixel pattern matches GLYPHS['G']
     let glyph_g = &GLYPHS[b'G' as usize];
@@ -164,9 +188,13 @@ fn test_multi_char_string_geo_advances_horizontally() {
             let actual = screen_pixel(&vm, 10 + col, 20 + row);
             if expected_on {
                 assert_eq!(
-                    actual, color,
+                    actual,
+                    color,
                     "'G' pixel at ({}, {}) row={} col={} should be foreground",
-                    10 + col, 20 + row, row, col
+                    10 + col,
+                    20 + row,
+                    row,
+                    col
                 );
             }
         }
@@ -220,11 +248,19 @@ fn test_newline_renders_blank_and_advances_x() {
 
     // 'C' at offset 3: x=28 — still on the SAME row (no newline advancement)
     let c_lit = count_lit_pixels(&vm, 10 + 3 * advance, 20, GLYPH_W, GLYPH_H);
-    assert!(c_lit > 0, "'C' at ({},20) should have lit pixels", 10 + 3 * advance);
+    assert!(
+        c_lit > 0,
+        "'C' at ({},20) should have lit pixels",
+        10 + 3 * advance
+    );
 
     // Verify 'D' at offset 4: x=34 — same row
     let d_lit = count_lit_pixels(&vm, 10 + 4 * advance, 20, GLYPH_W, GLYPH_H);
-    assert!(d_lit > 0, "'D' at ({},20) should have lit pixels", 10 + 4 * advance);
+    assert!(
+        d_lit > 0,
+        "'D' at ({},20) should have lit pixels",
+        10 + 4 * advance
+    );
 
     // Confirm nothing rendered on the next row (y=27 = 20+7) at the starting X
     let next_row_lit = count_lit_pixels(&vm, 10, 20 + GLYPH_H, GLYPH_W, GLYPH_H);
@@ -260,13 +296,20 @@ fn test_text_clips_at_right_edge_without_crash() {
     let first_char_lit = count_lit_pixels(&vm, 250, 20, 5, 1);
     // At least some pixels of 'A' should be in-bounds (the glyph has pixels
     // in columns 0-4, so x=250..254 are all in bounds)
-    assert!(first_char_lit > 0, "First char 'A' at x=250 should have lit pixels");
+    assert!(
+        first_char_lit > 0,
+        "First char 'A' at x=250 should have lit pixels"
+    );
 
     // Verify pixels beyond screen boundary are not written — check that the
     // pixel at (255, 20) is the last valid column, and check a known out-of-range
     // area. Since the screen buffer is exactly 256*256, we can check that
     // no writes leaked by verifying the buffer didn't grow.
-    assert_eq!(vm.screen.len(), SCREEN_W * SCREEN_H, "Screen buffer size unchanged");
+    assert_eq!(
+        vm.screen.len(),
+        SCREEN_W * SCREEN_H,
+        "Screen buffer size unchanged"
+    );
 
     // Characters starting at x=256 and beyond are entirely out of bounds.
     // The second char starts at x=256 (250 + 6), which is exactly at the edge.
@@ -290,7 +333,10 @@ fn test_text_clips_at_right_edge_without_crash() {
     // The char 'C' would start at x = 250 + 2*6 = 262, entirely out of bounds.
     // Ensure no stray writes appeared at the start of row 21 (y=21).
     let row_21_start = count_lit_pixels(&vm, 0, 21, 10, 1);
-    assert_eq!(row_21_start, 0, "No stray pixels at start of row 21 from clipping");
+    assert_eq!(
+        row_21_start, 0,
+        "No stray pixels at start of row 21 from clipping"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -339,9 +385,16 @@ fn test_text_clips_at_bottom_edge_without_crash() {
         }
     }
 
-    assert!(in_bounds_lit > 0, "Some in-bounds pixels should be rendered");
+    assert!(
+        in_bounds_lit > 0,
+        "Some in-bounds pixels should be rendered"
+    );
     // Verify screen buffer didn't grow
-    assert_eq!(vm.screen.len(), SCREEN_W * SCREEN_H, "Screen buffer unchanged after bottom clip");
+    assert_eq!(
+        vm.screen.len(),
+        SCREEN_W * SCREEN_H,
+        "Screen buffer unchanged after bottom clip"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -368,5 +421,8 @@ fn test_empty_string_no_pixels_change() {
     );
 
     // Also verify no crash — VM should have halted normally
-    assert!(vm.is_halted(), "VM should halt after processing empty string");
+    assert!(
+        vm.is_halted(),
+        "VM should halt after processing empty string"
+    );
 }

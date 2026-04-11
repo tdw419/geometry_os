@@ -19,7 +19,12 @@ use crate::pixel::Pixel;
 /// Default palette: identity mapping (each index maps to itself in the
 /// blue channel). Index 0..=255 maps to Pixel { r: 0, g: 0, b: index, a: 255 }.
 pub const DEFAULT_PALETTE: [Pixel; 256] = {
-    let mut table = [Pixel { r: 0, g: 0, b: 0, a: 0 }; 256];
+    let mut table = [Pixel {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 0,
+    }; 256];
     let mut i: usize = 0;
     while i < 256 {
         table[i] = Pixel {

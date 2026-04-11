@@ -5,8 +5,8 @@
 // unrecognized opcodes, PC out of bounds, and register overflow wrapping.
 // ═══════════════════════════════════════════════════════════════════════
 
-use geometry_os::vm::{Vm, VmError};
 use geometry_os::opcodes::op;
+use geometry_os::vm::{Vm, VmError};
 
 // ── 1. Empty / HALT-only program ─────────────────────────────────────
 
@@ -126,7 +126,10 @@ fn test_stack_overflow_halt_via_call_unchecked() {
     vm.halted = false;
 
     vm.run();
-    assert!(vm.halted, "VM should halt on stack overflow in unchecked path");
+    assert!(
+        vm.halted,
+        "VM should halt on stack overflow in unchecked path"
+    );
     // Stack should be at the limit (256 entries)
     assert!(vm.stack.len() >= 256, "stack should be at or near limit");
 }
@@ -151,7 +154,10 @@ fn test_stack_overflow_halt_via_push_unchecked() {
     vm.halted = false;
 
     vm.run();
-    assert!(vm.halted, "VM should halt on stack overflow via PUSH in unchecked path");
+    assert!(
+        vm.halted,
+        "VM should halt on stack overflow via PUSH in unchecked path"
+    );
     assert!(vm.stack.len() >= 256, "stack should be at or near limit");
 }
 
@@ -390,10 +396,7 @@ fn test_add_max_u32_wrapping() {
 
     assert!(vm.is_halted());
     // 0xFFFFFFFF + 1 wraps to 0 in wrapping_add
-    assert_eq!(
-        vm.get_reg(0), 0,
-        "max u32 + 1 should wrap to 0"
-    );
+    assert_eq!(vm.get_reg(0), 0, "max u32 + 1 should wrap to 0");
 }
 
 #[test]
@@ -423,7 +426,8 @@ fn test_sub_underflow_wrapping() {
     // 5u32 - 10u32 wrapping_sub = a very large number
     let expected = 5u32.wrapping_sub(10);
     assert_eq!(
-        vm.get_reg(0), expected,
+        vm.get_reg(0),
+        expected,
         "5 - 10 should wrap to {}",
         expected
     );
@@ -455,7 +459,8 @@ fn test_mul_overflow_wrapping() {
     assert!(vm.is_halted());
     let expected = 65536u32.wrapping_mul(65536);
     assert_eq!(
-        vm.get_reg(0), expected,
+        vm.get_reg(0),
+        expected,
         "65536 * 65536 should wrap to {}",
         expected
     );
@@ -480,7 +485,12 @@ fn test_truncated_instruction_checked() {
             assert_eq!(pc, 0);
             assert_eq!(opcode, op::ADD);
             assert_eq!(expected, 3);
-            assert!(available < 3, "available {} should be < expected {}", available, expected);
+            assert!(
+                available < 3,
+                "available {} should be < expected {}",
+                available,
+                expected
+            );
         }
         other => panic!("expected TruncatedInstruction, got {:?}", other),
     }

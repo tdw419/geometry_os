@@ -44,7 +44,10 @@ fn input_read_key_no_key_pending() {
     vm.run();
 
     assert!(vm.halted);
-    assert_eq!(vm.regs[0], 0, "read_key should return 0 when no key pending");
+    assert_eq!(
+        vm.regs[0], 0,
+        "read_key should return 0 when no key pending"
+    );
     // Port should still be 0 (no ack needed since there was nothing)
     assert_eq!(vm.ram[0xFFF], 0, "key port should still be 0");
 }
@@ -169,7 +172,10 @@ fn input_wait_key_no_key_times_out() {
     // No key in port -- run() exhausts its cycle limit
     vm.run();
 
-    assert!(!vm.halted, "wait_key should still be spinning with no key (hit cycle limit)");
+    assert!(
+        !vm.halted,
+        "wait_key should still be spinning with no key (hit cycle limit)"
+    );
 }
 
 // ── KEY_TO_HEX TESTS ──────────────────────────────────────────────────
@@ -189,8 +195,14 @@ fn input_key_to_hex_zero() {
     vm.run();
 
     assert!(vm.halted);
-    assert_eq!(vm.ram[0x300], 0x30, "high nibble of 0x00 should be '0' (0x30)");
-    assert_eq!(vm.ram[0x301], 0x30, "low nibble of 0x00 should be '0' (0x30)");
+    assert_eq!(
+        vm.ram[0x300], 0x30,
+        "high nibble of 0x00 should be '0' (0x30)"
+    );
+    assert_eq!(
+        vm.ram[0x301], 0x30,
+        "low nibble of 0x00 should be '0' (0x30)"
+    );
     assert_eq!(vm.regs[0], 0x302, "should return pointer past end");
 }
 
@@ -209,8 +221,14 @@ fn input_key_to_hex_ff() {
     vm.run();
 
     assert!(vm.halted);
-    assert_eq!(vm.ram[0x300], 0x46, "high nibble of 0xFF should be 'F' (0x46)");
-    assert_eq!(vm.ram[0x301], 0x46, "low nibble of 0xFF should be 'F' (0x46)");
+    assert_eq!(
+        vm.ram[0x300], 0x46,
+        "high nibble of 0xFF should be 'F' (0x46)"
+    );
+    assert_eq!(
+        vm.ram[0x301], 0x46,
+        "low nibble of 0xFF should be 'F' (0x46)"
+    );
 }
 
 #[test]
@@ -229,8 +247,14 @@ fn input_key_to_hex_41() {
     vm.run();
 
     assert!(vm.halted);
-    assert_eq!(vm.ram[0x300], 0x34, "high nibble of 0x41 should be '4' (0x34)");
-    assert_eq!(vm.ram[0x301], 0x31, "low nibble of 0x41 should be '1' (0x31)");
+    assert_eq!(
+        vm.ram[0x300], 0x34,
+        "high nibble of 0x41 should be '4' (0x34)"
+    );
+    assert_eq!(
+        vm.ram[0x301], 0x31,
+        "low nibble of 0x41 should be '1' (0x31)"
+    );
 }
 
 #[test]
@@ -249,8 +273,14 @@ fn input_key_to_hex_ab() {
     vm.run();
 
     assert!(vm.halted);
-    assert_eq!(vm.ram[0x300], 0x41, "high nibble of 0xAB should be 'A' (0x41)");
-    assert_eq!(vm.ram[0x301], 0x42, "low nibble of 0xAB should be 'B' (0x42)");
+    assert_eq!(
+        vm.ram[0x300], 0x41,
+        "high nibble of 0xAB should be 'A' (0x41)"
+    );
+    assert_eq!(
+        vm.ram[0x301], 0x42,
+        "low nibble of 0xAB should be 'B' (0x42)"
+    );
 }
 
 #[test]
@@ -269,8 +299,14 @@ fn input_key_to_hex_0d() {
     vm.run();
 
     assert!(vm.halted);
-    assert_eq!(vm.ram[0x300], 0x30, "high nibble of 0x0D should be '0' (0x30)");
-    assert_eq!(vm.ram[0x301], 0x44, "low nibble of 0x0D should be 'D' (0x44)");
+    assert_eq!(
+        vm.ram[0x300], 0x30,
+        "high nibble of 0x0D should be '0' (0x30)"
+    );
+    assert_eq!(
+        vm.ram[0x301], 0x44,
+        "low nibble of 0x0D should be 'D' (0x44)"
+    );
 }
 
 #[test]
@@ -370,7 +406,7 @@ fn input_echo_interactive_reads_key() {
     vm.load_program(&asm.pixels);
     // Simulate 'X' key pressed
     vm.ram[0xFFF] = 0x58; // 'X'
-                          // Run a limited number of cycles -- just enough for one iteration
+    // Run a limited number of cycles -- just enough for one iteration
     let mut cycles = 0u32;
     while !vm.halted && cycles < 200 {
         if vm.step() {

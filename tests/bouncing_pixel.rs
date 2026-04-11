@@ -89,7 +89,10 @@ fn bounce_double_negate_returns_original() {
     ";
     let vm = run_src(src);
     assert!(vm.halted);
-    assert_eq!(vm.regs[0], 5, "double negation should return original value");
+    assert_eq!(
+        vm.regs[0], 5,
+        "double negation should return original value"
+    );
 }
 
 // ── POSITION UPDATE TESTS ──────────────────────────────────────────
@@ -263,7 +266,11 @@ fn bounce_off_right_wall() {
     assert!(vm.halted);
     // After x=254+1=255, bounce: x clamped to 254, dx negated to -1
     assert_eq!(ram_read(&vm, 0x1000), 254, "x should be clamped to 254");
-    assert_eq!(ram_read(&vm, 0x1002), 0xFFFFFFFF, "dx should be negated to -1 (0xFFFFFFFF)");
+    assert_eq!(
+        ram_read(&vm, 0x1002),
+        0xFFFFFFFF,
+        "dx should be negated to -1 (0xFFFFFFFF)"
+    );
 }
 
 #[test]
@@ -339,7 +346,11 @@ fn bounce_pset_draws_pixel_on_screen() {
     ";
     let vm = run_src(src);
     assert!(vm.halted);
-    assert_eq!(screen_pixel(&vm, 50, 60), 0xFF0000, "pixel at (50,60) should be red");
+    assert_eq!(
+        screen_pixel(&vm, 50, 60),
+        0xFF0000,
+        "pixel at (50,60) should be red"
+    );
 }
 
 #[test]
@@ -356,7 +367,11 @@ fn bounce_pset_erase_sets_black() {
     ";
     let vm = run_src(src);
     assert!(vm.halted);
-    assert_eq!(screen_pixel(&vm, 50, 60), 0, "pixel at (50,60) should be black after erase");
+    assert_eq!(
+        screen_pixel(&vm, 50, 60),
+        0,
+        "pixel at (50,60) should be black after erase"
+    );
 }
 
 #[test]
@@ -370,10 +385,16 @@ fn bounce_animation_produces_screen_content() {
 
     // Run first frame
     vm.run();
-    assert!(vm.is_yielded() || vm.is_halted(), "should yield after first frame");
+    assert!(
+        vm.is_yielded() || vm.is_halted(),
+        "should yield after first frame"
+    );
 
     // Screen should have a green pixel somewhere
-    assert!(screen_has_content(&vm), "screen should have at least one pixel drawn");
+    assert!(
+        screen_has_content(&vm),
+        "screen should have at least one pixel drawn"
+    );
 
     // Run a few more frames
     for _ in 0..5 {
@@ -384,7 +405,10 @@ fn bounce_animation_produces_screen_content() {
         vm.run();
     }
     // Screen should still have content
-    assert!(screen_has_content(&vm), "screen should still have content after multiple frames");
+    assert!(
+        screen_has_content(&vm),
+        "screen should still have content after multiple frames"
+    );
 }
 
 // ── FULL PROGRAM TESTS ─────────────────────────────────────────────
@@ -412,12 +436,20 @@ fn bounce_full_program_runs_multiple_frames() {
     }
 
     // Program should have run some frames (max 100 bounces, but frames = bounces)
-    assert!(frames >= 10, "should run at least 10 frames, got {}", frames);
+    assert!(
+        frames >= 10,
+        "should run at least 10 frames, got {}",
+        frames
+    );
     assert!(vm.is_halted(), "should eventually halt after max bounces");
 
     // Frame counter should be >= 100
     let frame_count = ram_read(&vm, 0x1004);
-    assert!(frame_count >= 100, "frame counter should be >= 100, got {}", frame_count);
+    assert!(
+        frame_count >= 100,
+        "frame counter should be >= 100, got {}",
+        frame_count
+    );
 }
 
 #[test]
@@ -437,8 +469,18 @@ fn bounce_position_stays_in_bounds() {
         // Check position bounds
         let x = ram_read(&vm, 0x1000);
         let y = ram_read(&vm, 0x1001);
-        assert!(x <= 255, "x should be <= 255, got {} at frame {}", x, frames);
-        assert!(y <= 255, "y should be <= 255, got {} at frame {}", y, frames);
+        assert!(
+            x <= 255,
+            "x should be <= 255, got {} at frame {}",
+            x,
+            frames
+        );
+        assert!(
+            y <= 255,
+            "y should be <= 255, got {} at frame {}",
+            y,
+            frames
+        );
 
         if vm.is_halted() {
             break;
@@ -468,11 +510,15 @@ fn bounce_velocity_is_always_plus_or_minus_one() {
         let dy = ram_read(&vm, 0x1003);
         assert!(
             dx == 1 || dx == 0xFFFFFFFF,
-            "dx should be 1 or -1, got 0x{:08X} at frame {}", dx, frames
+            "dx should be 1 or -1, got 0x{:08X} at frame {}",
+            dx,
+            frames
         );
         assert!(
             dy == 1 || dy == 0xFFFFFFFF,
-            "dy should be 1 or -1, got 0x{:08X} at frame {}", dy, frames
+            "dy should be 1 or -1, got 0x{:08X} at frame {}",
+            dy,
+            frames
         );
 
         if vm.is_halted() {

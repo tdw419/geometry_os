@@ -22,10 +22,19 @@ fn assemble_screensaver() -> assembler::Assembled {
 #[test]
 fn screensaver_assembles() {
     let asm = assemble_screensaver();
-    assert!(asm.pixels.len() > 100, "screensaver should have substantial code");
+    assert!(
+        asm.pixels.len() > 100,
+        "screensaver should have substantial code"
+    );
     assert!(asm.labels.contains_key("main"), "should have 'main' label");
-    assert!(asm.labels.contains_key("dispatch"), "should have 'dispatch' label");
-    assert!(asm.labels.contains_key("advance"), "should have 'advance' label");
+    assert!(
+        asm.labels.contains_key("dispatch"),
+        "should have 'dispatch' label"
+    );
+    assert!(
+        asm.labels.contains_key("advance"),
+        "should have 'advance' label"
+    );
 }
 
 #[test]

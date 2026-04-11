@@ -43,7 +43,7 @@
 
 use crate::assembler::{self, Assembled};
 use crate::forge::{ForgeQueue, Issue};
-use crate::vm::{Vm, MAX_CYCLES};
+use crate::vm::{MAX_CYCLES, Vm};
 
 /// Snapshot of VM state for inspection without ownership.
 #[derive(Debug, Clone)]
@@ -97,7 +97,10 @@ impl AgentResult {
         if x >= 256 || y >= 256 {
             return 0;
         }
-        self.screen.get((y * 256 + x) as usize).copied().unwrap_or(0)
+        self.screen
+            .get((y * 256 + x) as usize)
+            .copied()
+            .unwrap_or(0)
     }
 
     /// Read a value from the RAM snapshot at the given address.
@@ -125,7 +128,10 @@ pub trait Agent {
     fn reset(&mut self);
 
     /// Load gasm source into the VM without running it. For step-by-step debugging.
-    fn load_gasm(&mut self, source: &str) -> Result<std::collections::HashMap<String, usize>, AgentError>;
+    fn load_gasm(
+        &mut self,
+        source: &str,
+    ) -> Result<std::collections::HashMap<String, usize>, AgentError>;
 
     /// Execute a single instruction on the loaded VM. Returns updated state.
     fn step_once(&mut self) -> VmState;
@@ -341,7 +347,10 @@ impl Agent for GasmAgent {
         self.program_loaded = false;
     }
 
-    fn load_gasm(&mut self, source: &str) -> Result<std::collections::HashMap<String, usize>, AgentError> {
+    fn load_gasm(
+        &mut self,
+        source: &str,
+    ) -> Result<std::collections::HashMap<String, usize>, AgentError> {
         let asm = self.assemble_only(source)?;
         let labels = asm.labels.clone();
 
@@ -410,7 +419,11 @@ impl Agent for GasmAgent {
         if x >= 256 || y >= 256 {
             return 0;
         }
-        self.vm.screen.get((y * 256 + x) as usize).copied().unwrap_or(0)
+        self.vm
+            .screen
+            .get((y * 256 + x) as usize)
+            .copied()
+            .unwrap_or(0)
     }
 
     fn read_ram(&self, start: usize, count: usize) -> Vec<u32> {
@@ -505,9 +518,7 @@ fn format_instruction(name: &str, opcode: u8, pc: usize, ram: &[u32]) -> String 
     let w = width(opcode);
 
     // Helper: read arg pixel safely (0 if out of bounds)
-    let arg = |offset: usize| -> u32 {
-        ram.get(pc + offset).copied().unwrap_or(0)
-    };
+    let arg = |offset: usize| -> u32 { ram.get(pc + offset).copied().unwrap_or(0) };
 
     // Helper: format a register argument
     let reg = |offset: usize| -> String {
@@ -1214,10 +1225,19 @@ mod tests {
         agent.write_ram(
             300,
             &[
-                op::LDI as u32, 0, 15,
-                op::LDI as u32, 1, 15,
-                op::LDI as u32, 2, 5,
-                op::PSET as u32, 0, 1, 2,
+                op::LDI as u32,
+                0,
+                15,
+                op::LDI as u32,
+                1,
+                15,
+                op::LDI as u32,
+                2,
+                5,
+                op::PSET as u32,
+                0,
+                1,
+                2,
                 op::HALT as u32,
             ],
         );
@@ -1235,10 +1255,19 @@ mod tests {
         // Step 1: Agent writes Program B directly into RAM at addr 500
         // Program B: LDI r0, 20 / LDI r1, 20 / LDI r2, 8 / PSET r0, r1, r2 / HALT
         let program_b: Vec<u32> = vec![
-            op::LDI as u32, 0, 20,
-            op::LDI as u32, 1, 20,
-            op::LDI as u32, 2, 8,
-            op::PSET as u32, 0, 1, 2,
+            op::LDI as u32,
+            0,
+            20,
+            op::LDI as u32,
+            1,
+            20,
+            op::LDI as u32,
+            2,
+            8,
+            op::PSET as u32,
+            0,
+            1,
+            2,
             op::HALT as u32,
         ];
         agent.write_ram(500, &program_b);
@@ -1309,7 +1338,9 @@ mod tests {
     #[test]
     fn disassemble_multiple_instructions() {
         let mut agent = GasmAgent::new(256);
-        agent.load_gasm("LDI r0, 5\nLDI r1, 10\nADD r0, r1\nHALT").unwrap();
+        agent
+            .load_gasm("LDI r0, 5\nLDI r1, 10\nADD r0, r1\nHALT")
+            .unwrap();
         // LDI(3)+LDI(3)+ADD(3)+HALT(1) = 10 pixels
         let lines = agent.disassemble(0, 10);
         assert_eq!(lines.len(), 4);
@@ -1333,7 +1364,9 @@ mod tests {
     #[test]
     fn disassemble_pset() {
         let mut agent = GasmAgent::new(4096);
-        agent.load_gasm("LDI r0, 10\nLDI r1, 20\nLDI r2, 5\nPSET r0, r1, r2\nHALT").unwrap();
+        agent
+            .load_gasm("LDI r0, 10\nLDI r1, 20\nLDI r2, 5\nPSET r0, r1, r2\nHALT")
+            .unwrap();
         // 3*LDI(9) + PSET(4) + HALT(1) = 14 pixels
         let lines = agent.disassemble(0, 14);
         assert_eq!(lines.len(), 5);
@@ -1383,11 +1416,19 @@ mod tests {
         agent.write_ram(
             500,
             &[
-                op::LDI as u32, 0, 20,       // 3 pixels
-                op::LDI as u32, 1, 30,       // 3 pixels
-                op::ADD as u32, 0, 1,        // 3 pixels
-                op::STORE as u32, 200, 0,    // 3 pixels
-                op::HALT as u32,             // 1 pixel
+                op::LDI as u32,
+                0,
+                20, // 3 pixels
+                op::LDI as u32,
+                1,
+                30, // 3 pixels
+                op::ADD as u32,
+                0,
+                1, // 3 pixels
+                op::STORE as u32,
+                200,
+                0,               // 3 pixels
+                op::HALT as u32, // 1 pixel
             ],
         );
         // Total = 13 pixels
@@ -1403,13 +1444,16 @@ mod tests {
     #[test]
     fn disassemble_all_width1_opcodes() {
         let mut agent = GasmAgent::new(256);
-        agent.write_ram(0, &[
-            op::HALT as u32,
-            op::NOP as u32,
-            op::YIELD as u32,
-            op::RET as u32,
-            op::ISSUE_CREATE as u32,
-        ]);
+        agent.write_ram(
+            0,
+            &[
+                op::HALT as u32,
+                op::NOP as u32,
+                op::YIELD as u32,
+                op::RET as u32,
+                op::ISSUE_CREATE as u32,
+            ],
+        );
         // 5 width-1 opcodes = 5 pixels
         let lines = agent.disassemble(0, 5);
         assert_eq!(lines.len(), 5);
@@ -1433,11 +1477,20 @@ mod tests {
     #[test]
     fn disassemble_mov_and_store() {
         let mut agent = GasmAgent::new(256);
-        agent.write_ram(0, &[
-            op::MOV as u32, 1, 0,    // MOV r1, r0  (3 pixels)
-            op::STORE as u32, 100, 1, // STORE [100], r1  (3 pixels)
-            op::LOAD as u32, 2, 100,  // LOAD r2, [100]  (3 pixels)
-        ]);
+        agent.write_ram(
+            0,
+            &[
+                op::MOV as u32,
+                1,
+                0, // MOV r1, r0  (3 pixels)
+                op::STORE as u32,
+                100,
+                1, // STORE [100], r1  (3 pixels)
+                op::LOAD as u32,
+                2,
+                100, // LOAD r2, [100]  (3 pixels)
+            ],
+        );
         // 3 instructions * 3 pixels = 9 pixels
         let lines = agent.disassemble(0, 9);
         assert_eq!(lines.len(), 3);
@@ -1471,10 +1524,15 @@ mod tests {
     #[test]
     fn disassemble_stack_ops() {
         let mut agent = GasmAgent::new(256);
-        agent.write_ram(0, &[
-            op::PUSH as u32, 42,      // PUSH 42 (width 2)
-            op::POP as u32, 0,        // POP r0 (width 2)
-        ]);
+        agent.write_ram(
+            0,
+            &[
+                op::PUSH as u32,
+                42, // PUSH 42 (width 2)
+                op::POP as u32,
+                0, // POP r0 (width 2)
+            ],
+        );
         // 2 + 2 = 4 pixels
         let lines = agent.disassemble(0, 4);
         assert_eq!(lines.len(), 2);
@@ -1485,10 +1543,14 @@ mod tests {
     #[test]
     fn disassemble_call_ret() {
         let mut agent = GasmAgent::new(256);
-        agent.write_ram(0, &[
-            op::CALL as u32, 10,      // CALL 10 (width 2)
-            op::HALT as u32,          // HALT (width 1)
-        ]);
+        agent.write_ram(
+            0,
+            &[
+                op::CALL as u32,
+                10,              // CALL 10 (width 2)
+                op::HALT as u32, // HALT (width 1)
+            ],
+        );
         let lines = agent.disassemble(0, 3);
         assert_eq!(lines.len(), 2);
         assert_eq!(lines[0].1, "CALL 10");
@@ -1498,12 +1560,23 @@ mod tests {
     #[test]
     fn disassemble_editor_ops() {
         let mut agent = GasmAgent::new(256);
-        agent.write_ram(0, &[
-            op::EDIT_OVERWRITE as u32, 0, 1,  // EDIT_OVW r0, r1 (width 3)
-            op::EDIT_INSERT as u32, 2, 3,      // EDIT_INS r2, r3 (width 3)
-            op::EDIT_DELETE as u32, 4,          // EDIT_DEL r4 (width 2)
-            op::EDIT_BLIT as u32, 0, 1, 2,     // EDIT_BLIT r0, r1, r2 (width 4)
-        ]);
+        agent.write_ram(
+            0,
+            &[
+                op::EDIT_OVERWRITE as u32,
+                0,
+                1, // EDIT_OVW r0, r1 (width 3)
+                op::EDIT_INSERT as u32,
+                2,
+                3, // EDIT_INS r2, r3 (width 3)
+                op::EDIT_DELETE as u32,
+                4, // EDIT_DEL r4 (width 2)
+                op::EDIT_BLIT as u32,
+                0,
+                1,
+                2, // EDIT_BLIT r0, r1, r2 (width 4)
+            ],
+        );
         // 3 + 3 + 2 + 4 = 12 pixels
         let lines = agent.disassemble(0, 12);
         assert_eq!(lines.len(), 4);
@@ -1519,13 +1592,25 @@ mod tests {
         let mut agent = GasmAgent::new(4096);
 
         // 1. WRITE: Plant a program at addr 500 that adds two numbers
-        agent.write_ram(500, &[
-            op::LDI as u32, 0, 15,       // LDI r0, 15
-            op::LDI as u32, 1, 25,       // LDI r1, 25
-            op::ADD as u32, 0, 1,        // ADD r0, r1  (r0 = 40)
-            op::PSET as u32, 5, 5, 7,    // PSET r5, r5, r7 -- coords from regs
-            op::HALT as u32,
-        ]);
+        agent.write_ram(
+            500,
+            &[
+                op::LDI as u32,
+                0,
+                15, // LDI r0, 15
+                op::LDI as u32,
+                1,
+                25, // LDI r1, 25
+                op::ADD as u32,
+                0,
+                1, // ADD r0, r1  (r0 = 40)
+                op::PSET as u32,
+                5,
+                5,
+                7, // PSET r5, r5, r7 -- coords from regs
+                op::HALT as u32,
+            ],
+        );
 
         // 2. INSPECT (before execution): verify the bytecode is correct
         let listing = agent.disassemble(500, 14);

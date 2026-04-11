@@ -14,8 +14,8 @@
 use geometry_os::assembler;
 use geometry_os::vm::Vm;
 
-const RAM_SIZE:       usize = 4096;
-const TEXT_BUF_ADDR:  usize = 0x400;
+const RAM_SIZE: usize = 4096;
+const TEXT_BUF_ADDR: usize = 0x400;
 const MICRO_ASM_ADDR: usize = 0x800;
 
 /// Compile micro-asm.asm with the Rust assembler and load into a fresh VM.
@@ -23,8 +23,7 @@ const MICRO_ASM_ADDR: usize = 0x800;
 fn vm_with_micro_asm() -> Vm {
     let src = std::fs::read_to_string("programs/micro-asm.asm")
         .expect("programs/micro-asm.asm not found");
-    let result = assembler::assemble(&src)
-        .expect("micro-asm.asm failed to assemble");
+    let result = assembler::assemble(&src).expect("micro-asm.asm failed to assemble");
 
     let mut vm = Vm::new(RAM_SIZE);
     for (i, &pixel) in result.pixels.iter().enumerate() {
@@ -38,13 +37,19 @@ fn vm_with_micro_asm() -> Vm {
 /// Write source text to RAM[0x400], run micro-asm from 0x800, return output.
 fn run_micro_asm(vm: &mut Vm, source: &str) -> Vec<u32> {
     // Clear output area
-    for v in vm.ram[..TEXT_BUF_ADDR].iter_mut() { *v = 0; }
+    for v in vm.ram[..TEXT_BUF_ADDR].iter_mut() {
+        *v = 0;
+    }
     // Clear text buffer
-    for v in vm.ram[TEXT_BUF_ADDR..MICRO_ASM_ADDR].iter_mut() { *v = 0; }
+    for v in vm.ram[TEXT_BUF_ADDR..MICRO_ASM_ADDR].iter_mut() {
+        *v = 0;
+    }
     // Write source text (one byte per cell, null-terminated by the cleared RAM)
     for (i, byte) in source.bytes().enumerate() {
         let addr = TEXT_BUF_ADDR + i;
-        if addr < MICRO_ASM_ADDR { vm.ram[addr] = byte as u32; }
+        if addr < MICRO_ASM_ADDR {
+            vm.ram[addr] = byte as u32;
+        }
     }
     // Run from micro-asm start.
     // Two-pass over up to 1024 bytes of source requires many cycles.
@@ -60,12 +65,12 @@ fn run_micro_asm(vm: &mut Vm, source: &str) -> Vec<u32> {
 }
 
 /// Opcode shortcuts for readability in expected output
-const LDI:    u32 = 0x49;
-const ADD:    u32 = 0x41;
-const STORE:  u32 = 0x53;
+const LDI: u32 = 0x49;
+const ADD: u32 = 0x41;
+const STORE: u32 = 0x53;
 const BRANCH: u32 = 0x42;
-const HALT:   u32 = 0x48;
-const NOP:    u32 = 0x4E;
+const HALT: u32 = 0x48;
+const NOP: u32 = 0x4E;
 
 #[test]
 fn single_halt() {
@@ -132,7 +137,7 @@ fn ldi_r0_33() {
     // 'I'=0x49=LDI, '0'=0x30=r0 (reg_idx: 0x30→0), '!'=0x21=33
     let mut vm = vm_with_micro_asm();
     let out = run_micro_asm(&mut vm, "I 0 !");
-    assert_eq!(out[0], LDI,  "opcode = LDI");
+    assert_eq!(out[0], LDI, "opcode = LDI");
     assert_eq!(out[1], 0x30, "dst = '0' = r0 encoding");
     assert_eq!(out[2], 0x21, "imm = '!' = 33");
 }
@@ -169,7 +174,7 @@ B $00 $09  ; BRANCH always, target=9
     let out = run_micro_asm(&mut vm, src);
 
     // LDI r0, 33
-    assert_eq!(out[0], LDI,  "addr 0: LDI");
+    assert_eq!(out[0], LDI, "addr 0: LDI");
     assert_eq!(out[1], 0x30, "addr 1: r0 encoding '0'");
     assert_eq!(out[2], 0x21, "addr 2: immediate 33 = '!'");
     // LDI r1, 1
@@ -181,7 +186,7 @@ B $00 $09  ; BRANCH always, target=9
     assert_eq!(out[7], 0x32); // '2' = r2
     assert_eq!(out[8], 0x20); // hex 32
     // STORE r2, r0
-    assert_eq!(out[9],  STORE);
+    assert_eq!(out[9], STORE);
     assert_eq!(out[10], 0x32); // '2' = r2
     assert_eq!(out[11], 0x30); // '0' = r0
     // ADD r0, r1
@@ -216,7 +221,9 @@ B $00 $09
     vm.halted = false;
     // Run manually for a few steps
     for _ in 0..20 {
-        if vm.halted { break; }
+        if vm.halted {
+            break;
+        }
         vm.run();
     }
     // After running, RAM[32] should be non-zero (counter incremented from 33)
@@ -273,7 +280,9 @@ fn fill_bounded_assembles_and_runs() {
     vm.pc = 0;
     vm.halted = false;
     vm.yielded = false;
-    while !vm.halted && !vm.yielded { vm.run(); }
+    while !vm.halted && !vm.yielded {
+        vm.run();
+    }
 
     // Should have halted (not infinite loop)
     assert!(vm.halted, "program should HALT after 64 iterations");
@@ -362,8 +371,8 @@ B $0F @start
 
 #[test]
 fn echo_s_assembles_correctly() {
-    let src = std::fs::read_to_string("programs/echo-s.asm")
-        .expect("programs/echo-s.asm not found");
+    let src =
+        std::fs::read_to_string("programs/echo-s.asm").expect("programs/echo-s.asm not found");
     let mut vm = vm_with_micro_asm();
     let out = run_micro_asm(&mut vm, &src);
 
@@ -466,7 +475,7 @@ B $0F @poll
     vm.pc = 0;
     vm.halted = false;
     vm.yielded = false;
-    
+
     // Run for a limited number of cycles (it's an infinite loop)
     for _ in 0..200 {
         vm.step();

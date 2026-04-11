@@ -1,8 +1,8 @@
-use minifb::{Key, KeyRepeat, Window, WindowOptions};
-use geometry_os::vm::Vm;
-use geometry_os::shell::{Shell, ShellAction};
-use geometry_os::opcodes;
 use geometry_os::assembler;
+use geometry_os::opcodes;
+use geometry_os::shell::{Shell, ShellAction};
+use geometry_os::vm::Vm;
+use minifb::{Key, KeyRepeat, Window, WindowOptions};
 
 mod font;
 
@@ -15,11 +15,13 @@ fn palette_color(val: u32) -> u32 {
     if ascii_val < 32 || ascii_val > 126 {
         // Not a printable ASCII char, but might be a raw color.
         // If it looks like a full 24-bit color, use it.
-        if val > 0xFF { return val; }
+        if val > 0xFF {
+            return val;
+        }
         // Otherwise, some default dark gray for "null" or non-char
         return 0x222233;
     }
-    
+
     let t = ((ascii_val as f32) - 32.0_f32) / (94.0_f32);
     let t = t.max(0.0).min(1.0);
 
@@ -56,8 +58,8 @@ fn hsv_to_rgb(h: f32, s: f32, v: f32) -> u32 {
 const CANVAS_X: usize = 16;
 const CANVAS_Y: usize = 64;
 const CANVAS_SCALE: usize = 16;
-const CANVAS_COLS: usize = 32; 
-const CANVAS_ROWS: usize = 32; 
+const CANVAS_COLS: usize = 32;
+const CANVAS_ROWS: usize = 32;
 
 const VM_SCREEN_X: usize = 640;
 const VM_SCREEN_Y: usize = 64;
@@ -69,12 +71,12 @@ const REGS_Y: usize = 340;
 // ── Self-hosting memory map ──────────────────────────────────────────
 // RAM is 4096 cells. The canvas renders the first 1024 (32×32 grid).
 // High memory is invisible on canvas but fully addressable by the VM.
-const RAM_SIZE:       usize = 4096;
-const TEXT_BUF_ADDR:  usize = 0x400; // 1024 — text input buffer for micro-asm
+const RAM_SIZE: usize = 4096;
+const TEXT_BUF_ADDR: usize = 0x400; // 1024 — text input buffer for micro-asm
 const MICRO_ASM_ADDR: usize = 0x800; // 2048 — VM-resident assembler lives here
-const KEY_PORT:       usize = 0xFFF; // 4095 — memory-mapped keyboard register
-                                     //   host writes ASCII keycode on each keypress
-                                     //   program reads it; write 0 to acknowledge
+const KEY_PORT: usize = 0xFFF; // 4095 — memory-mapped keyboard register
+//   host writes ASCII keycode on each keypress
+//   program reads it; write 0 to acknowledge
 
 const BG: u32 = 0x050508;
 const GRID_BG: u32 = 0x0A0A14;
@@ -88,17 +90,16 @@ const TEXT_BUFFER_SIZE: usize = 4096; // Configurable text buffer size
 const CURSOR_BLINK_INTERVAL: u64 = 500; // Cursor blink interval in milliseconds
 
 fn main() {
-    let mut window = Window
-        ::new(
-            "Geometry OS -- Pixel Painter & VM",
-            WIDTH,
-            HEIGHT,
-            WindowOptions {
-                resize: false,
-                ..Default::default()
-            },
-        )
-        .unwrap();
+    let mut window = Window::new(
+        "Geometry OS -- Pixel Painter & VM",
+        WIDTH,
+        HEIGHT,
+        WindowOptions {
+            resize: false,
+            ..Default::default()
+        },
+    )
+    .unwrap();
 
     let mut buffer = vec![BG; WIDTH * HEIGHT];
 
@@ -117,16 +118,16 @@ fn main() {
             micro_asm_loaded = true;
         }
     }
-    
+
     // ── Shell for keyboard input to TEXT rendering ─────────────────────
     let mut shell = Shell::new();
-    let mut shell_cursor_x: usize = 0;  // Cursor position on VM screen
-    let mut shell_cursor_y: usize = 0;  // Cursor position on VM screen
-    let mut shell_scroll: usize = 0;    // Scroll offset for VM screen
-    const CHAR_WIDTH: usize = 5;        // 5x7 font width
-    const CHAR_HEIGHT: usize = 7;       // 5x7 font height
-    const SCREEN_COLS: usize = 51;      // 256 / 5 = 51 columns
-    const SCREEN_ROWS: usize = 36;      // 256 / 7 = 36 rows
+    let mut shell_cursor_x: usize = 0; // Cursor position on VM screen
+    let mut shell_cursor_y: usize = 0; // Cursor position on VM screen
+    let mut shell_scroll: usize = 0; // Scroll offset for VM screen
+    const CHAR_WIDTH: usize = 5; // 5x7 font width
+    const CHAR_HEIGHT: usize = 7; // 5x7 font height
+    const SCREEN_COLS: usize = 51; // 256 / 5 = 51 columns
+    const SCREEN_ROWS: usize = 36; // 256 / 7 = 36 rows
 
     // Cursor blink state
     let mut cursor_visible = true;
@@ -151,7 +152,10 @@ fn main() {
 
     // ── View mode (disasm / spreadsheet) ────────────────────────────
     #[derive(PartialEq, Clone, Copy)]
-    enum PanelView { Disassembly, Spreadsheet }
+    enum PanelView {
+        Disassembly,
+        Spreadsheet,
+    }
     let mut panel_view = PanelView::Disassembly;
 
     // -- HEX input mode (Tab to toggle) --
@@ -184,7 +188,8 @@ fn main() {
     let mut repl_history: Vec<(String, [u32; 32], Option<String>)> = Vec::new();
     let mut repl_write_addr: usize = 0; // where next instruction goes in RAM
     // Bookmarks: @name → address. Type `@loop` to tag, then use @loop in JMP.
-    let mut repl_bookmarks: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut repl_bookmarks: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
 
     // ── Persistent child VMs ────────────────────────────────────────
     // Children spawned by the parent VM persist across frames.
@@ -208,8 +213,9 @@ fn main() {
         for key in keys {
             // ── Code editor mode: intercepts all input ───────────────
             if editor_mode {
-                let shift = window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift);
-                let ctrl  = window.is_key_down(Key::LeftCtrl)  || window.is_key_down(Key::RightCtrl);
+                let shift =
+                    window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift);
+                let ctrl = window.is_key_down(Key::LeftCtrl) || window.is_key_down(Key::RightCtrl);
                 match key {
                     Key::Escape => {
                         editor_mode = false;
@@ -222,9 +228,13 @@ fn main() {
                             Ok(asm_result) => {
                                 // Clear canvas area only (preserve high RAM / micro-asm)
                                 let ram_len = vm.ram.len();
-                                for v in vm.ram[..MICRO_ASM_ADDR.min(ram_len)].iter_mut() { *v = 0; }
+                                for v in vm.ram[..MICRO_ASM_ADDR.min(ram_len)].iter_mut() {
+                                    *v = 0;
+                                }
                                 for (i, &pixel) in asm_result.pixels.iter().enumerate() {
-                                    if i < MICRO_ASM_ADDR && i < ram_len { vm.ram[i] = pixel; }
+                                    if i < MICRO_ASM_ADDR && i < ram_len {
+                                        vm.ram[i] = pixel;
+                                    }
                                 }
                                 vm.pc = 0;
                                 vm.halted = false;
@@ -248,7 +258,9 @@ fn main() {
                         let src = editor_lines.join("\n");
                         // Clear text buffer and write source text
                         let ram_len = vm.ram.len();
-                        for v in vm.ram[TEXT_BUF_ADDR..MICRO_ASM_ADDR.min(ram_len)].iter_mut() { *v = 0; }
+                        for v in vm.ram[TEXT_BUF_ADDR..MICRO_ASM_ADDR.min(ram_len)].iter_mut() {
+                            *v = 0;
+                        }
                         for (i, byte) in src.bytes().enumerate() {
                             let addr = TEXT_BUF_ADDR + i;
                             if addr < MICRO_ASM_ADDR && addr < ram_len {
@@ -256,7 +268,9 @@ fn main() {
                             }
                         }
                         // Clear canvas/output area
-                        for v in vm.ram[..TEXT_BUF_ADDR.min(ram_len)].iter_mut() { *v = 0; }
+                        for v in vm.ram[..TEXT_BUF_ADDR.min(ram_len)].iter_mut() {
+                            *v = 0;
+                        }
                         // Run micro-assembler
                         vm.pc = MICRO_ASM_ADDR as u32;
                         vm.halted = false;
@@ -268,7 +282,9 @@ fn main() {
                     Key::V if ctrl => {
                         if let Some(text) = read_clipboard() {
                             for line in text.lines() {
-                                if editor_lines[editor_cursor_line].len() + line.len() <= EDITOR_MAX_COL {
+                                if editor_lines[editor_cursor_line].len() + line.len()
+                                    <= EDITOR_MAX_COL
+                                {
                                     editor_lines[editor_cursor_line].push_str(line);
                                 } else {
                                     editor_lines[editor_cursor_line].push_str(line);
@@ -279,7 +295,8 @@ fn main() {
                                 editor_cursor_line = next;
                             }
                             // Remove trailing empty line from paste
-                            if editor_cursor_line > 0 && editor_lines[editor_cursor_line].is_empty() {
+                            if editor_cursor_line > 0 && editor_lines[editor_cursor_line].is_empty()
+                            {
                                 editor_lines.remove(editor_cursor_line);
                                 editor_cursor_line -= 1;
                             }
@@ -292,7 +309,9 @@ fn main() {
                         // (symlink or copy your target file to boot.asm)
                         if let Ok(src) = std::fs::read_to_string("programs/boot.asm") {
                             editor_lines = src.lines().map(|l| l.to_string()).collect();
-                            if editor_lines.is_empty() { editor_lines.push(String::new()); }
+                            if editor_lines.is_empty() {
+                                editor_lines.push(String::new());
+                            }
                             editor_cursor_line = 0;
                             editor_cursor_col = 0;
                             editor_scroll = 0;
@@ -322,22 +341,28 @@ fn main() {
                             editor_cursor_line -= 1;
                             editor_cursor_col = editor_lines[editor_cursor_line].len();
                             editor_lines[editor_cursor_line].push_str(&line);
-                            if editor_cursor_line < editor_scroll { editor_scroll = editor_cursor_line; }
+                            if editor_cursor_line < editor_scroll {
+                                editor_scroll = editor_cursor_line;
+                            }
                         }
                         needs_redraw = true;
                     }
                     Key::Up => {
                         if editor_cursor_line > 0 {
                             editor_cursor_line -= 1;
-                            editor_cursor_col = editor_cursor_col.min(editor_lines[editor_cursor_line].len());
-                            if editor_cursor_line < editor_scroll { editor_scroll = editor_cursor_line; }
+                            editor_cursor_col =
+                                editor_cursor_col.min(editor_lines[editor_cursor_line].len());
+                            if editor_cursor_line < editor_scroll {
+                                editor_scroll = editor_cursor_line;
+                            }
                         }
                         needs_redraw = true;
                     }
                     Key::Down => {
                         if editor_cursor_line + 1 < editor_lines.len() {
                             editor_cursor_line += 1;
-                            editor_cursor_col = editor_cursor_col.min(editor_lines[editor_cursor_line].len());
+                            editor_cursor_col =
+                                editor_cursor_col.min(editor_lines[editor_cursor_line].len());
                             if editor_cursor_line >= editor_scroll + EDITOR_VISIBLE_LINES {
                                 editor_scroll += 1;
                             }
@@ -345,11 +370,14 @@ fn main() {
                         needs_redraw = true;
                     }
                     Key::Left => {
-                        if editor_cursor_col > 0 { editor_cursor_col -= 1; }
-                        else if editor_cursor_line > 0 {
+                        if editor_cursor_col > 0 {
+                            editor_cursor_col -= 1;
+                        } else if editor_cursor_line > 0 {
                             editor_cursor_line -= 1;
                             editor_cursor_col = editor_lines[editor_cursor_line].len();
-                            if editor_cursor_line < editor_scroll { editor_scroll = editor_cursor_line; }
+                            if editor_cursor_line < editor_scroll {
+                                editor_scroll = editor_cursor_line;
+                            }
                         }
                         needs_redraw = true;
                     }
@@ -365,12 +393,19 @@ fn main() {
                         }
                         needs_redraw = true;
                     }
-                    Key::Home => { editor_cursor_col = 0; needs_redraw = true; }
-                    Key::End  => { editor_cursor_col = editor_lines[editor_cursor_line].len(); needs_redraw = true; }
+                    Key::Home => {
+                        editor_cursor_col = 0;
+                        needs_redraw = true;
+                    }
+                    Key::End => {
+                        editor_cursor_col = editor_lines[editor_cursor_line].len();
+                        needs_redraw = true;
+                    }
                     _ => {
                         if let Some(ch) = key_to_ascii_shifted(key, shift) {
                             if editor_lines[editor_cursor_line].len() < EDITOR_MAX_COL {
-                                editor_lines[editor_cursor_line].insert(editor_cursor_col, ch as char);
+                                editor_lines[editor_cursor_line]
+                                    .insert(editor_cursor_col, ch as char);
                                 editor_cursor_col += 1;
                                 needs_redraw = true;
                             }
@@ -382,7 +417,8 @@ fn main() {
 
             // ── REPL mode: intercepts all input ─────────────────────
             if repl_mode {
-                let shift = window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift);
+                let shift =
+                    window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift);
                 match key {
                     Key::Escape => {
                         if repl_input.is_empty() {
@@ -425,14 +461,21 @@ fn main() {
                                 let mut lines = Vec::new();
                                 for row in 0..4usize {
                                     let row_addr = base + row * 16;
-                                    if row_addr >= vm.ram.len() { break; }
-                                    let bytes: Vec<String> = (0..16).map(|col| {
-                                        let a = row_addr + col;
-                                        if a < vm.ram.len() {
-                                            let mark = if a == repl_write_addr { ">" } else { " " };
-                                            format!("{}{:02X}", mark, vm.ram[a] & 0xFF)
-                                        } else { "   ".to_string() }
-                                    }).collect();
+                                    if row_addr >= vm.ram.len() {
+                                        break;
+                                    }
+                                    let bytes: Vec<String> = (0..16)
+                                        .map(|col| {
+                                            let a = row_addr + col;
+                                            if a < vm.ram.len() {
+                                                let mark =
+                                                    if a == repl_write_addr { ">" } else { " " };
+                                                format!("{}{:02X}", mark, vm.ram[a] & 0xFF)
+                                            } else {
+                                                "   ".to_string()
+                                            }
+                                        })
+                                        .collect();
                                     lines.push(format!("{:04X}: {}", row_addr, bytes.join(" ")));
                                 }
                                 let dump = lines.join(" | ");
@@ -448,14 +491,18 @@ fn main() {
                                         if ri < 32 {
                                             format!("r{} = {:08X}", ri, vm.regs[ri])
                                         } else {
-                                            format!("ERR: register index {} out of range (0-31)", ri)
+                                            format!(
+                                                "ERR: register index {} out of range (0-31)",
+                                                ri
+                                            )
                                         }
                                     } else {
                                         "ERR: usage: ? r<N>  (e.g. ? r5)".to_string()
                                     }
                                 } else {
                                     // RAM address inspect: ? 0x1A or ? 42
-                                    let addr_str = arg.trim_start_matches("0x").trim_start_matches("0X");
+                                    let addr_str =
+                                        arg.trim_start_matches("0x").trim_start_matches("0X");
                                     if let Ok(addr) = usize::from_str_radix(addr_str, 16)
                                         .or_else(|_| usize::from_str_radix(addr_str, 10))
                                         .or_else(|_| arg.parse::<usize>())
@@ -463,7 +510,11 @@ fn main() {
                                         if addr < vm.ram.len() {
                                             format!("ram[{:04X}] = {:08X}", addr, vm.ram[addr])
                                         } else {
-                                            format!("ERR: address {:04X} out of range (0-{:04X})", addr, vm.ram.len() - 1)
+                                            format!(
+                                                "ERR: address {:04X} out of range (0-{:04X})",
+                                                addr,
+                                                vm.ram.len() - 1
+                                            )
                                         }
                                     } else {
                                         "ERR: usage: ? <addr> or ? r<N>".to_string()
@@ -491,45 +542,49 @@ fn main() {
                                 let msg = if vm.halted {
                                     format!("ran {} steps (PC {:04X}→halted)", steps, start_pc)
                                 } else {
-                                    format!("ran {} steps (PC {:04X}→{:04X})", steps, start_pc, vm.pc)
+                                    format!(
+                                        "ran {} steps (PC {:04X}→{:04X})",
+                                        steps, start_pc, vm.pc
+                                    )
                                 };
                                 let mut snap = [0u32; 32];
                                 snap.copy_from_slice(&vm.regs[..32]);
                                 repl_history.push((format!("! {}", max_steps), snap, Some(msg)));
                             } else {
-                            // Expand @bookmark references before assembling
-                            let mut expanded = src.clone();
-                            for (name, addr) in &repl_bookmarks {
-                                let tag = format!("@{}", name);
-                                if expanded.contains(&tag) {
-                                    expanded = expanded.replace(&tag, &format!("0x{:04X}", addr));
-                                }
-                            }
-                            match assembler::assemble(&expanded) {
-                                Ok(asm_result) => {
-                                    // Write bytecode into RAM at current write address
-                                    let instr_len = asm_result.pixels.len();
-                                    for (i, &pixel) in asm_result.pixels.iter().enumerate() {
-                                        let addr = repl_write_addr + i;
-                                        if addr < vm.ram.len() {
-                                            vm.ram[addr] = pixel;
-                                        }
+                                // Expand @bookmark references before assembling
+                                let mut expanded = src.clone();
+                                for (name, addr) in &repl_bookmarks {
+                                    let tag = format!("@{}", name);
+                                    if expanded.contains(&tag) {
+                                        expanded =
+                                            expanded.replace(&tag, &format!("0x{:04X}", addr));
                                     }
-                                    // Point PC at just-written instruction and step
-                                    vm.pc = repl_write_addr as u32;
-                                    vm.halted = false;
-                                    vm.step();
-                                    repl_write_addr += instr_len;
-                                    // Snapshot register state
-                                    let mut snap = [0u32; 32];
-                                    snap.copy_from_slice(&vm.regs[..32]);
-                                    repl_history.push((src, snap, None));
                                 }
-                                Err(e) => {
-                                    let err_msg = format!("ERR: {}", e.message);
-                                    repl_history.push((src, [0u32; 32], Some(err_msg)));
+                                match assembler::assemble(&expanded) {
+                                    Ok(asm_result) => {
+                                        // Write bytecode into RAM at current write address
+                                        let instr_len = asm_result.pixels.len();
+                                        for (i, &pixel) in asm_result.pixels.iter().enumerate() {
+                                            let addr = repl_write_addr + i;
+                                            if addr < vm.ram.len() {
+                                                vm.ram[addr] = pixel;
+                                            }
+                                        }
+                                        // Point PC at just-written instruction and step
+                                        vm.pc = repl_write_addr as u32;
+                                        vm.halted = false;
+                                        vm.step();
+                                        repl_write_addr += instr_len;
+                                        // Snapshot register state
+                                        let mut snap = [0u32; 32];
+                                        snap.copy_from_slice(&vm.regs[..32]);
+                                        repl_history.push((src, snap, None));
+                                    }
+                                    Err(e) => {
+                                        let err_msg = format!("ERR: {}", e.message);
+                                        repl_history.push((src, [0u32; 32], Some(err_msg)));
+                                    }
                                 }
-                            }
                             } // close else (non-? path)
                             repl_input.clear();
                             needs_redraw = true;
@@ -540,16 +595,28 @@ fn main() {
                         repl_mode = false;
                         needs_redraw = true;
                     }
-                    Key::R if window.is_key_down(Key::LeftCtrl) || window.is_key_down(Key::RightCtrl) => {
+                    Key::R
+                        if window.is_key_down(Key::LeftCtrl)
+                            || window.is_key_down(Key::RightCtrl) =>
+                    {
                         // Ctrl+R: zero all registers (fresh register state)
                         vm.regs = [0u32; 32];
-                        repl_history.push(("[Ctrl+R: registers cleared]".to_string(), [0u32; 32], None));
+                        repl_history.push((
+                            "[Ctrl+R: registers cleared]".to_string(),
+                            [0u32; 32],
+                            None,
+                        ));
                         needs_redraw = true;
                     }
-                    Key::N if window.is_key_down(Key::LeftCtrl) || window.is_key_down(Key::RightCtrl) => {
+                    Key::N
+                        if window.is_key_down(Key::LeftCtrl)
+                            || window.is_key_down(Key::RightCtrl) =>
+                    {
                         // Ctrl+N: new session (wipe RAM + registers + bookmarks)
                         let ram_len = vm.ram.len();
-                        for v in vm.ram[..MICRO_ASM_ADDR.min(ram_len)].iter_mut() { *v = 0; }
+                        for v in vm.ram[..MICRO_ASM_ADDR.min(ram_len)].iter_mut() {
+                            *v = 0;
+                        }
                         repl_write_addr = 0;
                         vm.regs = [0u32; 32];
                         vm.pc = 0;
@@ -585,7 +652,9 @@ fn main() {
                             if cursor_col >= CANVAS_COLS {
                                 cursor_col = 0;
                                 cursor_row += 1;
-                                if cursor_row >= CANVAS_ROWS { cursor_row = 0; }
+                                if cursor_row >= CANVAS_ROWS {
+                                    cursor_row = 0;
+                                }
                             }
                         } else {
                             // First digit: store high nibble, wait
@@ -605,7 +674,9 @@ fn main() {
                     if cursor_col >= CANVAS_COLS {
                         cursor_col = 0;
                         cursor_row += 1;
-                        if cursor_row >= CANVAS_ROWS { cursor_row = 0; }
+                        if cursor_row >= CANVAS_ROWS {
+                            cursor_row = 0;
+                        }
                     }
                     needs_redraw = true;
                 }
@@ -625,14 +696,18 @@ fn main() {
                                         let start = cursor_row * CANVAS_COLS + cursor_col;
                                         for (i, &pixel) in asm_result.pixels.iter().enumerate() {
                                             let addr = start + i;
-                                            if addr < vm.ram.len() { vm.ram[addr] = pixel; }
+                                            if addr < vm.ram.len() {
+                                                vm.ram[addr] = pixel;
+                                            }
                                         }
                                         let advance = asm_result.pixels.len();
                                         cursor_col += advance;
                                         while cursor_col >= CANVAS_COLS {
                                             cursor_col -= CANVAS_COLS;
                                             cursor_row += 1;
-                                            if cursor_row >= CANVAS_ROWS { cursor_row = 0; }
+                                            if cursor_row >= CANVAS_ROWS {
+                                                cursor_row = 0;
+                                            }
                                         }
                                         asm_mode = false;
                                         asm_input = format!("[OK: {} bytes]", advance);
@@ -644,7 +719,8 @@ fn main() {
                             } else {
                                 // Single line: append printable chars to asm_input
                                 for ch in trimmed.chars() {
-                                    if (ch.is_ascii_graphic() || ch == ' ') && asm_input.len() < 60 {
+                                    if (ch.is_ascii_graphic() || ch == ' ') && asm_input.len() < 60
+                                    {
                                         asm_input.push(ch);
                                     }
                                 }
@@ -670,7 +746,9 @@ fn main() {
                                     while cursor_col >= CANVAS_COLS {
                                         cursor_col -= CANVAS_COLS;
                                         cursor_row += 1;
-                                        if cursor_row >= CANVAS_ROWS { cursor_row = 0; }
+                                        if cursor_row >= CANVAS_ROWS {
+                                            cursor_row = 0;
+                                        }
                                     }
                                     asm_input.clear();
                                 }
@@ -701,89 +779,99 @@ fn main() {
                     }
                 }
             } else {
-            match key {
-                Key::Tab => {
-                    hex_mode = !hex_mode;
-                    hex_nibble = None; // cancel any pending nibble on mode switch
-                    needs_redraw = true;
-                }
-                Key::F2 => {
-                    panel_view = match panel_view {
-                        PanelView::Disassembly => PanelView::Spreadsheet,
-                        PanelView::Spreadsheet => PanelView::Disassembly,
-                    };
-                    needs_redraw = true;
-                }
-                Key::Backquote => {
-                    asm_mode = true;
-                    asm_input.clear();
-                    needs_redraw = true;
-                }
-                Key::F9 => {
-                    editor_mode = true;
-                    // Pre-populate editor with current program disassembly as comments
-                    // so the screen isn't blank on first open.
-                    if editor_lines.iter().all(|l| l.is_empty()) {
-                        editor_lines = vec![
-                            String::from("; Geometry OS inline assembler"),
-                            String::from("; F8: assemble + load   Escape: cancel   Ctrl+V: paste"),
-                            String::new(),
-                        ];
-                        editor_cursor_line = 2;
-                        editor_cursor_col = 0;
-                    }
-                    needs_redraw = true;
-                }
-                Key::Space => {
-                    // Single-step: execute one instruction while paused
-                    if !is_running && !vm.halted {
-                        vm.step();
-                        single_stepping = true;
+                match key {
+                    Key::Tab => {
+                        hex_mode = !hex_mode;
+                        hex_nibble = None; // cancel any pending nibble on mode switch
                         needs_redraw = true;
                     }
-                }
-                Key::F5 => {
-                    // Toggle execution mode
-                    if !is_running {
-                        if vm.halted { vm.pc = 0; vm.halted = false; }
-                        is_running = true;
-                    } else {
+                    Key::F2 => {
+                        panel_view = match panel_view {
+                            PanelView::Disassembly => PanelView::Spreadsheet,
+                            PanelView::Spreadsheet => PanelView::Disassembly,
+                        };
+                        needs_redraw = true;
+                    }
+                    Key::Backquote => {
+                        asm_mode = true;
+                        asm_input.clear();
+                        needs_redraw = true;
+                    }
+                    Key::F9 => {
+                        editor_mode = true;
+                        // Pre-populate editor with current program disassembly as comments
+                        // so the screen isn't blank on first open.
+                        if editor_lines.iter().all(|l| l.is_empty()) {
+                            editor_lines = vec![
+                                String::from("; Geometry OS inline assembler"),
+                                String::from(
+                                    "; F8: assemble + load   Escape: cancel   Ctrl+V: paste",
+                                ),
+                                String::new(),
+                            ];
+                            editor_cursor_line = 2;
+                            editor_cursor_col = 0;
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::Space => {
+                        // Single-step: execute one instruction while paused
+                        if !is_running && !vm.halted {
+                            vm.step();
+                            single_stepping = true;
+                            needs_redraw = true;
+                        }
+                    }
+                    Key::F5 => {
+                        // Toggle execution mode
+                        if !is_running {
+                            if vm.halted {
+                                vm.pc = 0;
+                                vm.halted = false;
+                            }
+                            is_running = true;
+                        } else {
+                            is_running = false;
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::F6 => {
+                        // Enter REPL mode: pixel REPL for live instruction execution
+                        repl_mode = true;
+                        repl_input.clear();
+                        // Fresh REPL session: wipe canvas RAM, preserve micro-asm
+                        let ram_len = vm.ram.len();
+                        for v in vm.ram[..MICRO_ASM_ADDR.min(ram_len)].iter_mut() {
+                            *v = 0;
+                        }
+                        repl_write_addr = 0;
+                        repl_history.clear();
+                        vm.pc = 0;
+                        vm.halted = false;
+                        // Don't reset registers — let user bring state in
                         is_running = false;
+                        needs_redraw = true;
                     }
-                    needs_redraw = true;
-                }
-                Key::F6 => {
-                    // Enter REPL mode: pixel REPL for live instruction execution
-                    repl_mode = true;
-                    repl_input.clear();
-                    // Fresh REPL session: wipe canvas RAM, preserve micro-asm
-                    let ram_len = vm.ram.len();
-                    for v in vm.ram[..MICRO_ASM_ADDR.min(ram_len)].iter_mut() { *v = 0; }
-                    repl_write_addr = 0;
-                    repl_history.clear();
-                    vm.pc = 0;
-                    vm.halted = false;
-                    // Don't reset registers — let user bring state in
-                    is_running = false;
-                    needs_redraw = true;
-                }
-                Key::F7 => {
-                    // Save to programs/save.rts
-                    let mut data = Vec::new();
-                    for &p in &vm.ram {
-                        data.extend_from_slice(&p.to_le_bytes());
+                    Key::F7 => {
+                        // Save to programs/save.rts
+                        let mut data = Vec::new();
+                        for &p in &vm.ram {
+                            data.extend_from_slice(&p.to_le_bytes());
+                        }
+                        let _ = std::fs::write("programs/save.rts", data);
                     }
-                    let _ = std::fs::write("programs/save.rts", data);
-                }
-                Key::F8 => {
-                    // Assemble programs/boot.asm and load to RAM
-                    match std::fs::read_to_string("programs/boot.asm") {
-                        Ok(src) => {
-                            match assembler::assemble(&src) {
+                    Key::F8 => {
+                        // Assemble programs/boot.asm and load to RAM
+                        match std::fs::read_to_string("programs/boot.asm") {
+                            Ok(src) => match assembler::assemble(&src) {
                                 Ok(asm_result) => {
-                                    for v in vm.ram.iter_mut() { *v = 0; }
+                                    for v in vm.ram.iter_mut() {
+                                        *v = 0;
+                                    }
                                     for (i, &pixel) in asm_result.pixels.iter().enumerate() {
-                                        if i < vm.ram.len() { vm.ram[i] = pixel; }
+                                        if i < vm.ram.len() {
+                                            vm.ram[i] = pixel;
+                                        }
                                     }
                                     vm.pc = 0;
                                     vm.halted = false;
@@ -795,26 +883,49 @@ fn main() {
                                 Err(e) => {
                                     eprintln!("[F8 ASM ERROR] line {}: {}", e.line, e.message);
                                 }
+                            },
+                            Err(e) => {
+                                eprintln!("[F8] could not read programs/boot.asm: {}", e);
                             }
                         }
-                        Err(e) => {
-                            eprintln!("[F8] could not read programs/boot.asm: {}", e);
-                        }
+                        needs_redraw = true;
                     }
-                    needs_redraw = true;
+                    Key::Backspace => {
+                        if cursor_col > 0 {
+                            cursor_col -= 1;
+                        } else if cursor_row > 0 {
+                            cursor_row -= 1;
+                            cursor_col = CANVAS_COLS - 1;
+                        }
+                        vm.ram[cursor_row * CANVAS_COLS + cursor_col] = 0;
+                        needs_redraw = true;
+                    }
+                    Key::Left => {
+                        if cursor_col > 0 {
+                            cursor_col -= 1;
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::Right => {
+                        if cursor_col < CANVAS_COLS - 1 {
+                            cursor_col += 1;
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::Up => {
+                        if cursor_row > 0 {
+                            cursor_row -= 1;
+                        }
+                        needs_redraw = true;
+                    }
+                    Key::Down => {
+                        if cursor_row < CANVAS_ROWS - 1 {
+                            cursor_row += 1;
+                        }
+                        needs_redraw = true;
+                    }
+                    _ => {}
                 }
-                Key::Backspace => {
-                    if cursor_col > 0 { cursor_col -= 1; }
-                    else if cursor_row > 0 { cursor_row -= 1; cursor_col = CANVAS_COLS - 1; }
-                    vm.ram[cursor_row * CANVAS_COLS + cursor_col] = 0;
-                    needs_redraw = true;
-                }
-                Key::Left => { if cursor_col > 0 { cursor_col -= 1; } needs_redraw = true; }
-                Key::Right => { if cursor_col < CANVAS_COLS - 1 { cursor_col += 1; } needs_redraw = true; }
-                Key::Up => { if cursor_row > 0 { cursor_row -= 1; } needs_redraw = true; }
-                Key::Down => { if cursor_row < CANVAS_ROWS - 1 { cursor_row += 1; } needs_redraw = true; }
-                _ => {}
-            }
             } // end else (non-asm mode)
         }
 
@@ -829,11 +940,14 @@ fn main() {
 
                     // Render the character on the VM screen directly
                     font::render_char(
-                        &mut vm.screen, 256, 256,
+                        &mut vm.screen,
+                        256,
+                        256,
                         ch,
-                        text_x, text_y,
+                        text_x,
+                        text_y,
                         TEXT_SCALE,
-                        0xFFFFFF, // white text
+                        0xFFFFFF,       // white text
                         Some(0x0A0A1E), // dark background per char
                     );
                     text_x += TEXT_COL_ADVANCE;
@@ -843,9 +957,9 @@ fn main() {
                         if text_y > TEXT_MAX_Y {
                             // Scroll up: shift screen by one row
                             let shift = TEXT_ROW_ADVANCE * 256;
-                            vm.screen.copy_within(shift..256*256, 0);
+                            vm.screen.copy_within(shift..256 * 256, 0);
                             // Clear bottom row
-                            for i in (256*256 - shift)..(256*256) {
+                            for i in (256 * 256 - shift)..(256 * 256) {
                                 vm.screen[i] = 0;
                             }
                             text_y = TEXT_MAX_Y;
@@ -856,12 +970,14 @@ fn main() {
 
             // Run a burst of cycles for this frame
             cycles_last_run = vm.run();
-            
+
             // ── Forge Bridge ─────────────────────────────────────────
             let issues = vm.forge.drain();
             for issue in issues {
-                println!("[FORGE ISSUE #{} (PC:{})] Tag: 0x{:08X} Payload: 0x{:08X} Priority: {:?}", 
-                    issue.id, issue.origin_pc, issue.tag, issue.payload, issue.priority);
+                println!(
+                    "[FORGE ISSUE #{} (PC:{})] Tag: 0x{:08X} Payload: 0x{:08X} Priority: {:?}",
+                    issue.id, issue.origin_pc, issue.tag, issue.payload, issue.priority
+                );
             }
 
             // ── Child VM Bridge ────────────────────────────────────────
@@ -873,7 +989,10 @@ fn main() {
                 let cy = (child_req.arg >> 16) & 0xFFFF;
                 println!(
                     "[SPAWN] New child VM at ({}, {}) → PC={}  ({} children total)",
-                    cx, cy, child_req.start_addr, child_vms.len()
+                    cx,
+                    cy,
+                    child_req.start_addr,
+                    child_vms.len()
                 );
             }
 
@@ -884,7 +1003,9 @@ fn main() {
                 }
             }
 
-            if vm.halted { is_running = false; }
+            if vm.halted {
+                is_running = false;
+            }
             needs_redraw = true;
         }
 
@@ -895,7 +1016,9 @@ fn main() {
             // ── Code editor overlay (F9) ─────────────────────────────
             if editor_mode {
                 // Dark overlay
-                for px in buffer.iter_mut() { *px = 0x03030A; }
+                for px in buffer.iter_mut() {
+                    *px = 0x03030A;
+                }
 
                 // Header
                 let ed_hdr = if micro_asm_loaded {
@@ -906,8 +1029,23 @@ fn main() {
                 font::render_str(&mut buffer, WIDTH, HEIGHT, ed_hdr, 8, 4, 1, 0x00FFBB, None);
 
                 // Line count info
-                let info = format!("Line {}/{}  Col {}", editor_cursor_line + 1, editor_lines.len(), editor_cursor_col + 1);
-                font::render_str(&mut buffer, WIDTH, HEIGHT, &info, WIDTH - 200, 4, 1, 0x888899, None);
+                let info = format!(
+                    "Line {}/{}  Col {}",
+                    editor_cursor_line + 1,
+                    editor_lines.len(),
+                    editor_cursor_col + 1
+                );
+                font::render_str(
+                    &mut buffer,
+                    WIDTH,
+                    HEIGHT,
+                    &info,
+                    WIDTH - 200,
+                    4,
+                    1,
+                    0x888899,
+                    None,
+                );
 
                 // Code lines
                 let line_h = 11;
@@ -917,7 +1055,9 @@ fn main() {
 
                 for vis_idx in 0..EDITOR_VISIBLE_LINES {
                     let abs_line = editor_scroll + vis_idx;
-                    if abs_line >= editor_lines.len() { break; }
+                    if abs_line >= editor_lines.len() {
+                        break;
+                    }
 
                     let y = first_y + vis_idx * line_h;
                     let is_current = abs_line == editor_cursor_line;
@@ -927,7 +1067,9 @@ fn main() {
                         for dy in 0..line_h {
                             for dx in 0..(WIDTH - 16) {
                                 let idx = (y + dy) * WIDTH + 8 + dx;
-                                if idx < buffer.len() { buffer[idx] = 0x0A0A1E; }
+                                if idx < buffer.len() {
+                                    buffer[idx] = 0x0A0A1E;
+                                }
                             }
                         }
                     }
@@ -935,7 +1077,17 @@ fn main() {
                     // Gutter: line number
                     let num_str = format!("{:3}", abs_line + 1);
                     let num_color = if is_current { 0x555577 } else { 0x333344 };
-                    font::render_str(&mut buffer, WIDTH, HEIGHT, &num_str, 8, y, 1, num_color, None);
+                    font::render_str(
+                        &mut buffer,
+                        WIDTH,
+                        HEIGHT,
+                        &num_str,
+                        8,
+                        y,
+                        1,
+                        num_color,
+                        None,
+                    );
 
                     // Code text
                     let line = &editor_lines[abs_line];
@@ -946,7 +1098,17 @@ fn main() {
                     } else {
                         0xCCCCDD
                     };
-                    font::render_str(&mut buffer, WIDTH, HEIGHT, line, code_x, y, 1, text_color, None);
+                    font::render_str(
+                        &mut buffer,
+                        WIDTH,
+                        HEIGHT,
+                        line,
+                        code_x,
+                        y,
+                        1,
+                        text_color,
+                        None,
+                    );
 
                     // Cursor
                     if is_current && cursor_visible {
@@ -954,7 +1116,9 @@ fn main() {
                         if cx + 1 < WIDTH {
                             for dy in 0..line_h {
                                 let idx = (y + dy) * WIDTH + cx;
-                                if idx < buffer.len() { buffer[idx] = 0x00FFFF; }
+                                if idx < buffer.len() {
+                                    buffer[idx] = 0x00FFFF;
+                                }
                             }
                         }
                     }
@@ -963,11 +1127,14 @@ fn main() {
                 // Scroll indicator
                 if editor_lines.len() > EDITOR_VISIBLE_LINES {
                     let bar_h = HEIGHT - 24;
-                    let thumb_frac = editor_scroll as f32 / (editor_lines.len() - EDITOR_VISIBLE_LINES).max(1) as f32;
+                    let thumb_frac = editor_scroll as f32
+                        / (editor_lines.len() - EDITOR_VISIBLE_LINES).max(1) as f32;
                     let thumb_y = 18 + (thumb_frac * bar_h as f32) as usize;
                     for dy in 0..4 {
                         let idx = (thumb_y + dy).min(HEIGHT - 1) * WIDTH + WIDTH - 4;
-                        if idx < buffer.len() { buffer[idx] = 0x444466; }
+                        if idx < buffer.len() {
+                            buffer[idx] = 0x444466;
+                        }
                     }
                 }
 
@@ -979,19 +1146,41 @@ fn main() {
             // ── REPL overlay ─────────────────────────────────────────
             if repl_mode {
                 // Dark background
-                for px in buffer.iter_mut() { *px = 0x02020A; }
+                for px in buffer.iter_mut() {
+                    *px = 0x02020A;
+                }
 
                 // Header
                 let repl_hdr = format!(
                     "PIXEL REPL  addr:{:04X}  PC:{:04X}  Enter:exec  !N:run  ?:inspect  ??:dump  @name:bookmark  F6:exit",
                     repl_write_addr, vm.pc
                 );
-                font::render_str(&mut buffer, WIDTH, HEIGHT, &repl_hdr, 8, 4, 1, 0xFF8800, None);
+                font::render_str(
+                    &mut buffer,
+                    WIDTH,
+                    HEIGHT,
+                    &repl_hdr,
+                    8,
+                    4,
+                    1,
+                    0xFF8800,
+                    None,
+                );
 
                 // Register display — two columns of 16
                 let reg_panel_x = WIDTH - 340;
                 let reg_panel_y = 18;
-                font::render_str(&mut buffer, WIDTH, HEIGHT, "REGISTERS", reg_panel_x, reg_panel_y - 12, 1, 0x555566, None);
+                font::render_str(
+                    &mut buffer,
+                    WIDTH,
+                    HEIGHT,
+                    "REGISTERS",
+                    reg_panel_x,
+                    reg_panel_y - 12,
+                    1,
+                    0x555566,
+                    None,
+                );
                 for i in 0..16 {
                     let v0 = vm.regs[i];
                     let v1 = vm.regs[i + 16];
@@ -999,8 +1188,28 @@ fn main() {
                     let s1 = format!("r{:02}:{:08X}", i + 16, v1);
                     let c0 = if v0 != 0 { 0x00FF88 } else { 0x444455 };
                     let c1 = if v1 != 0 { 0x00FF88 } else { 0x444455 };
-                    font::render_str(&mut buffer, WIDTH, HEIGHT, &s0, reg_panel_x,       reg_panel_y + i * 12, 1, c0, None);
-                    font::render_str(&mut buffer, WIDTH, HEIGHT, &s1, reg_panel_x + 170, reg_panel_y + i * 12, 1, c1, None);
+                    font::render_str(
+                        &mut buffer,
+                        WIDTH,
+                        HEIGHT,
+                        &s0,
+                        reg_panel_x,
+                        reg_panel_y + i * 12,
+                        1,
+                        c0,
+                        None,
+                    );
+                    font::render_str(
+                        &mut buffer,
+                        WIDTH,
+                        HEIGHT,
+                        &s1,
+                        reg_panel_x + 170,
+                        reg_panel_y + i * 12,
+                        1,
+                        c1,
+                        None,
+                    );
                 }
 
                 // Canvas — still visible on left (shows bytecode appearing in RAM)
@@ -1012,20 +1221,38 @@ fn main() {
                         let y0 = 220 + row * (CANVAS_SCALE / 2);
                         let scale = CANVAS_SCALE / 2;
                         let is_repl_pc = idx == repl_write_addr;
-                        let cell_color = if val != 0 { palette_color(val) } else { 0x080810 };
+                        let cell_color = if val != 0 {
+                            palette_color(val)
+                        } else {
+                            0x080810
+                        };
                         for dy in 0..scale {
                             for dx in 0..scale {
                                 let px = x0 + dx;
                                 let py = y0 + dy;
                                 if px < WIDTH && py < HEIGHT {
-                                    let color = if is_repl_pc && (dx == 0 || dy == 0) { 0xFF8800 } else { cell_color };
+                                    let color = if is_repl_pc && (dx == 0 || dy == 0) {
+                                        0xFF8800
+                                    } else {
+                                        cell_color
+                                    };
                                     buffer[py * WIDTH + px] = color;
                                 }
                             }
                         }
                     }
                 }
-                font::render_str(&mut buffer, WIDTH, HEIGHT, "RAM (bytecode)", CANVAS_X, 208, 1, 0x333344, None);
+                font::render_str(
+                    &mut buffer,
+                    WIDTH,
+                    HEIGHT,
+                    "RAM (bytecode)",
+                    CANVAS_X,
+                    208,
+                    1,
+                    0x333344,
+                    None,
+                );
 
                 // History — most recent at bottom, scrollable in spirit
                 let hist_x = 8;
@@ -1034,7 +1261,9 @@ fn main() {
                 let max_hist_lines = 17;
                 let start = if repl_history.len() > max_hist_lines {
                     repl_history.len() - max_hist_lines
-                } else { 0 };
+                } else {
+                    0
+                };
                 for (i, (src, snap, err)) in repl_history[start..].iter().enumerate() {
                     let y = hist_bottom_y - (repl_history[start..].len() - 1 - i) * line_h;
                     if let Some(e) = err {
@@ -1049,14 +1278,30 @@ fn main() {
                         } else {
                             0xFF4444
                         };
-                        font::render_str(&mut buffer, WIDTH, HEIGHT, &line, hist_x, y, 1, color, None);
+                        font::render_str(
+                            &mut buffer,
+                            WIDTH,
+                            HEIGHT,
+                            &line,
+                            hist_x,
+                            y,
+                            1,
+                            color,
+                            None,
+                        );
                     } else {
                         // Show instruction + changed registers
                         let prev_snap: Option<&[u32; 32]> = if start + i > 0 {
                             Some(&repl_history[start + i - 1].1)
-                        } else { None };
-                        let changed: Vec<String> = snap.iter().enumerate()
-                            .filter(|(ri, v)| **v != 0 || prev_snap.map_or(false, |p| p[*ri] != **v))
+                        } else {
+                            None
+                        };
+                        let changed: Vec<String> = snap
+                            .iter()
+                            .enumerate()
+                            .filter(|(ri, v)| {
+                                **v != 0 || prev_snap.map_or(false, |p| p[*ri] != **v)
+                            })
                             .take(4)
                             .map(|(ri, v)| format!("r{}={:X}", ri, v))
                             .collect();
@@ -1066,7 +1311,17 @@ fn main() {
                             format!(" → {}", changed.join("  "))
                         };
                         let line = format!("> {}{}", src, reg_summary);
-                        font::render_str(&mut buffer, WIDTH, HEIGHT, &line, hist_x, y, 1, 0xCCCCDD, None);
+                        font::render_str(
+                            &mut buffer,
+                            WIDTH,
+                            HEIGHT,
+                            &line,
+                            hist_x,
+                            y,
+                            1,
+                            0xCCCCDD,
+                            None,
+                        );
                     }
                 }
 
@@ -1076,17 +1331,31 @@ fn main() {
                 for dy in 0..13 {
                     for dx in 0..(WIDTH / 2 - 16) {
                         let idx = (prompt_y + dy) * WIDTH + 8 + dx;
-                        if idx < buffer.len() { buffer[idx] = 0x0A0A20; }
+                        if idx < buffer.len() {
+                            buffer[idx] = 0x0A0A20;
+                        }
                     }
                 }
                 let prompt = format!("REPL> {}", repl_input);
-                font::render_str(&mut buffer, WIDTH, HEIGHT, &prompt, 8, prompt_y + 2, 1, 0xFFFFFF, None);
+                font::render_str(
+                    &mut buffer,
+                    WIDTH,
+                    HEIGHT,
+                    &prompt,
+                    8,
+                    prompt_y + 2,
+                    1,
+                    0xFFFFFF,
+                    None,
+                );
                 // Cursor
                 if cursor_visible {
                     let cx = 8 + (prompt.len()) * 6;
                     for dy in 0..9 {
                         let idx = (prompt_y + 2 + dy) * WIDTH + cx;
-                        if idx < buffer.len() { buffer[idx] = 0xFF8800; }
+                        if idx < buffer.len() {
+                            buffer[idx] = 0xFF8800;
+                        }
                     }
                 }
                 // Live preview (with @bookmark expansion)
@@ -1100,14 +1369,40 @@ fn main() {
                     }
                     match assembler::assemble(&preview_src) {
                         Ok(r) => {
-                            let preview: Vec<String> = r.pixels.iter()
+                            let preview: Vec<String> = r
+                                .pixels
+                                .iter()
                                 .map(|p| format!("{:02X}", p & 0xFF))
                                 .collect();
-                            let pstr = format!("bytes: {} @ addr {:04X}", preview.join(" "), repl_write_addr);
-                            font::render_str(&mut buffer, WIDTH, HEIGHT, &pstr, 8, prompt_y + 13, 1, 0x44FF88, None);
+                            let pstr = format!(
+                                "bytes: {} @ addr {:04X}",
+                                preview.join(" "),
+                                repl_write_addr
+                            );
+                            font::render_str(
+                                &mut buffer,
+                                WIDTH,
+                                HEIGHT,
+                                &pstr,
+                                8,
+                                prompt_y + 13,
+                                1,
+                                0x44FF88,
+                                None,
+                            );
                         }
                         Err(e) => {
-                            font::render_str(&mut buffer, WIDTH, HEIGHT, &format!("ERR: {}", e.message), 8, prompt_y + 13, 1, 0xFF4444, None);
+                            font::render_str(
+                                &mut buffer,
+                                WIDTH,
+                                HEIGHT,
+                                &format!("ERR: {}", e.message),
+                                8,
+                                prompt_y + 13,
+                                1,
+                                0xFF4444,
+                                None,
+                            );
                         }
                     }
                 }
@@ -1118,17 +1413,76 @@ fn main() {
             }
 
             // Status
-            let status = if vm.halted { "HALTED" } else if is_running { "RUNNING" } else if single_stepping { "STEPPING" } else { "IDLE" };
-            let asm_tag = if micro_asm_loaded { "uASM:OK" } else { "uASM:--" };
+            let status = if vm.halted {
+                "HALTED"
+            } else if is_running {
+                "RUNNING"
+            } else if single_stepping {
+                "STEPPING"
+            } else {
+                "IDLE"
+            };
+            let asm_tag = if micro_asm_loaded {
+                "uASM:OK"
+            } else {
+                "uASM:--"
+            };
             let key_val = vm.ram[KEY_PORT];
-            let key_str = if key_val > 0 { format!("KEY:{:02X}", key_val) } else { "KEY:--".into() };
-            let header = format!("PC:{:04} | {} | {} | {} | Cyc:{} | F5:run Spc:step F6:REPL F8:asm F9:edit", vm.pc, status, asm_tag, key_str, cycles_last_run);
-            font::render_str(&mut buffer, WIDTH, HEIGHT, &header, 16, 16, 2, 0x00FFBB, None);
+            let key_str = if key_val > 0 {
+                format!("KEY:{:02X}", key_val)
+            } else {
+                "KEY:--".into()
+            };
+            let header = format!(
+                "PC:{:04} | {} | {} | {} | Cyc:{} | F5:run Spc:step F6:REPL F8:asm F9:edit",
+                vm.pc, status, asm_tag, key_str, cycles_last_run
+            );
+            font::render_str(
+                &mut buffer,
+                WIDTH,
+                HEIGHT,
+                &header,
+                16,
+                16,
+                2,
+                0x00FFBB,
+                None,
+            );
 
             // Labels
-            font::render_str(&mut buffer, WIDTH, HEIGHT, "PIXEL RAM (PROGRAM)", CANVAS_X, CANVAS_Y - 20, 1, 0x555566, None);
-            font::render_str(&mut buffer, WIDTH, HEIGHT, "VM SCREEN", VM_SCREEN_X, VM_SCREEN_Y - 20, 1, 0x555566, None);
-            font::render_str(&mut buffer, WIDTH, HEIGHT, "REGISTERS", REGS_X, REGS_Y - 20, 1, 0x555566, None);
+            font::render_str(
+                &mut buffer,
+                WIDTH,
+                HEIGHT,
+                "PIXEL RAM (PROGRAM)",
+                CANVAS_X,
+                CANVAS_Y - 20,
+                1,
+                0x555566,
+                None,
+            );
+            font::render_str(
+                &mut buffer,
+                WIDTH,
+                HEIGHT,
+                "VM SCREEN",
+                VM_SCREEN_X,
+                VM_SCREEN_Y - 20,
+                1,
+                0x555566,
+                None,
+            );
+            font::render_str(
+                &mut buffer,
+                WIDTH,
+                HEIGHT,
+                "REGISTERS",
+                REGS_X,
+                REGS_Y - 20,
+                1,
+                0x555566,
+                None,
+            );
 
             // Canvas (VM RAM)
             for row in 0..CANVAS_ROWS {
@@ -1160,8 +1514,19 @@ fn main() {
                             let is_highlight = is_cursor || is_pc;
 
                             let mut color = if is_border { GRID_LINE } else { cell_color };
-                            if is_highlight && (dx == 0 || dy == 0 || dx == CANVAS_SCALE - 1 || dy == CANVAS_SCALE - 1) {
-                                color = if is_pc { 0xFF00FF } else if pending_here { 0xFF6600 } else { CURSOR_COL };
+                            if is_highlight
+                                && (dx == 0
+                                    || dy == 0
+                                    || dx == CANVAS_SCALE - 1
+                                    || dy == CANVAS_SCALE - 1)
+                            {
+                                color = if is_pc {
+                                    0xFF00FF
+                                } else if pending_here {
+                                    0xFF6600
+                                } else {
+                                    CURSOR_COL
+                                };
                             }
                             buffer[py * WIDTH + px] = color;
                         }
@@ -1170,10 +1535,30 @@ fn main() {
                     if pending_here {
                         if let Some(hi) = hex_nibble {
                             let ch = if hi < 10 { b'0' + hi } else { b'A' + hi - 10 };
-                            font::render_char(&mut buffer, WIDTH, HEIGHT, ch, x0 + 4, y0 + 4, 1, 0xFFFFFF, None);
+                            font::render_char(
+                                &mut buffer,
+                                WIDTH,
+                                HEIGHT,
+                                ch,
+                                x0 + 4,
+                                y0 + 4,
+                                1,
+                                0xFFFFFF,
+                                None,
+                            );
                         }
                     } else if val != 0 && val < 128 {
-                        font::render_char(&mut buffer, WIDTH, HEIGHT, val as u8, x0 + 4, y0 + 4, 1, 0x000000, None);
+                        font::render_char(
+                            &mut buffer,
+                            WIDTH,
+                            HEIGHT,
+                            val as u8,
+                            x0 + 4,
+                            y0 + 4,
+                            1,
+                            0x000000,
+                            None,
+                        );
                     }
                 }
             }
@@ -1200,15 +1585,53 @@ fn main() {
 
                     // Instruction address
                     let addr_str = format!("{:03}:", decode.start);
-                    font::render_str(&mut buffer, WIDTH, HEIGHT, &addr_str, CANVAS_X + 4, decode_y + 3, 1, 0x555566, None);
+                    font::render_str(
+                        &mut buffer,
+                        WIDTH,
+                        HEIGHT,
+                        &addr_str,
+                        CANVAS_X + 4,
+                        decode_y + 3,
+                        1,
+                        0x555566,
+                        None,
+                    );
 
                     // Decoded text — bright white for complete, orange for partial
-                    let decode_color = if decode.is_complete { 0x44FF88 } else { 0xFF8844 };
-                    font::render_str(&mut buffer, WIDTH, HEIGHT, &decode.text, CANVAS_X + 40, decode_y + 3, 1, decode_color, None);
+                    let decode_color = if decode.is_complete {
+                        0x44FF88
+                    } else {
+                        0xFF8844
+                    };
+                    font::render_str(
+                        &mut buffer,
+                        WIDTH,
+                        HEIGHT,
+                        &decode.text,
+                        CANVAS_X + 40,
+                        decode_y + 3,
+                        1,
+                        decode_color,
+                        None,
+                    );
 
                     // Hint — what to type next
-                    let hint_color = if decode.is_complete { 0x44FF88 } else { 0xFFCC44 };
-                    font::render_str(&mut buffer, WIDTH, HEIGHT, &decode.hint, CANVAS_X + 250, decode_y + 3, 1, hint_color, None);
+                    let hint_color = if decode.is_complete {
+                        0x44FF88
+                    } else {
+                        0xFFCC44
+                    };
+                    font::render_str(
+                        &mut buffer,
+                        WIDTH,
+                        HEIGHT,
+                        &decode.hint,
+                        CANVAS_X + 250,
+                        decode_y + 3,
+                        1,
+                        hint_color,
+                        None,
+                    );
 
                     // Cell-level highlighting on the canvas:
                     // dim the instruction's cells slightly to show they belong together
@@ -1257,10 +1680,30 @@ fn main() {
             for i in 0..16 {
                 let val = vm.regs[i];
                 let reg_str = format!("r{:02}: {:08X}", i, val);
-                font::render_str(&mut buffer, WIDTH, HEIGHT, &reg_str, REGS_X, REGS_Y + i * 14, 1, 0xAAAAAA, None);
-                let val2 = vm.regs[i+16];
-                let reg_str2 = format!("r{:02}: {:08X}", i+16, val2);
-                font::render_str(&mut buffer, WIDTH, HEIGHT, &reg_str2, REGS_X + 160, REGS_Y + i * 14, 1, 0xAAAAAA, None);
+                font::render_str(
+                    &mut buffer,
+                    WIDTH,
+                    HEIGHT,
+                    &reg_str,
+                    REGS_X,
+                    REGS_Y + i * 14,
+                    1,
+                    0xAAAAAA,
+                    None,
+                );
+                let val2 = vm.regs[i + 16];
+                let reg_str2 = format!("r{:02}: {:08X}", i + 16, val2);
+                font::render_str(
+                    &mut buffer,
+                    WIDTH,
+                    HEIGHT,
+                    &reg_str2,
+                    REGS_X + 160,
+                    REGS_Y + i * 14,
+                    1,
+                    0xAAAAAA,
+                    None,
+                );
             }
 
             // -- Bottom Panel (Disassembly, Spreadsheet, or ASM input) --
@@ -1271,28 +1714,83 @@ fn main() {
 
                 if asm_mode {
                     // ASM input mode: show prompt + live preview
-                    font::render_str(&mut buffer, WIDTH, HEIGHT, "ASM  [Esc=CANCEL]", panel_x, panel_y, 1, 0xFFAA00, None);
+                    font::render_str(
+                        &mut buffer,
+                        WIDTH,
+                        HEIGHT,
+                        "ASM  [Esc=CANCEL]",
+                        panel_x,
+                        panel_y,
+                        1,
+                        0xFFAA00,
+                        None,
+                    );
                     let prompt = format!("ASM> {}", asm_input);
-                    font::render_str(&mut buffer, WIDTH, HEIGHT, &prompt, panel_x, panel_y + 12, 1, 0xFFFFFF, None);
+                    font::render_str(
+                        &mut buffer,
+                        WIDTH,
+                        HEIGHT,
+                        &prompt,
+                        panel_x,
+                        panel_y + 12,
+                        1,
+                        0xFFFFFF,
+                        None,
+                    );
                     // Cursor blink
                     if cursor_visible {
                         let cx = panel_x + 5 * (asm_input.len() + 5);
-                        for dy in 0..7 { buffer[(panel_y + 12 + dy) * WIDTH + cx] = 0x00FFFF; }
+                        for dy in 0..7 {
+                            buffer[(panel_y + 12 + dy) * WIDTH + cx] = 0x00FFFF;
+                        }
                     }
                     // Live byte preview
                     if !asm_input.is_empty() {
                         match assembler::assemble(&asm_input) {
                             Ok(asm_result) => {
-                                let preview: Vec<String> = asm_result.pixels.iter()
+                                let preview: Vec<String> = asm_result
+                                    .pixels
+                                    .iter()
                                     .map(|p| format!("{:02X}", p & 0xFF))
                                     .collect();
                                 let preview_str = format!("-> {}", preview.join(" "));
-                                font::render_str(&mut buffer, WIDTH, HEIGHT, &preview_str, panel_x + 400, panel_y + 12, 1, 0x44FF44, None);
-                                let addr_str = format!("@ addr {}", cursor_row * CANVAS_COLS + cursor_col);
-                                font::render_str(&mut buffer, WIDTH, HEIGHT, &addr_str, panel_x + 400, panel_y + 22, 1, 0x888888, None);
+                                font::render_str(
+                                    &mut buffer,
+                                    WIDTH,
+                                    HEIGHT,
+                                    &preview_str,
+                                    panel_x + 400,
+                                    panel_y + 12,
+                                    1,
+                                    0x44FF44,
+                                    None,
+                                );
+                                let addr_str =
+                                    format!("@ addr {}", cursor_row * CANVAS_COLS + cursor_col);
+                                font::render_str(
+                                    &mut buffer,
+                                    WIDTH,
+                                    HEIGHT,
+                                    &addr_str,
+                                    panel_x + 400,
+                                    panel_y + 22,
+                                    1,
+                                    0x888888,
+                                    None,
+                                );
                             }
                             Err(e) => {
-                                font::render_str(&mut buffer, WIDTH, HEIGHT, &format!("ERR: {}", e.message), panel_x + 400, panel_y + 12, 1, 0xFF4444, None);
+                                font::render_str(
+                                    &mut buffer,
+                                    WIDTH,
+                                    HEIGHT,
+                                    &format!("ERR: {}", e.message),
+                                    panel_x + 400,
+                                    panel_y + 12,
+                                    1,
+                                    0xFF4444,
+                                    None,
+                                );
                             }
                         }
                     }
@@ -1303,19 +1801,44 @@ fn main() {
                         } else {
                             "[HEX: type 2 hex digits (0-9 A-F) per cell  Tab=exit]".to_string()
                         }
-                    } else { "[Tab=HEX full-byte mode]".to_string() };
+                    } else {
+                        "[Tab=HEX full-byte mode]".to_string()
+                    };
                     let mode_str = mode_str_owned.as_str();
                     match panel_view {
                         PanelView::Disassembly => {
-                            font::render_str(&mut buffer, WIDTH, HEIGHT, "DISASSEMBLY  [F2:SPREADSHEET]  [`:ASM]", panel_x, panel_y, 1, 0x555566, None);
-                            font::render_str(&mut buffer, WIDTH, HEIGHT, mode_str, panel_x + 250, panel_y, 1, 0x888800, None);
+                            font::render_str(
+                                &mut buffer,
+                                WIDTH,
+                                HEIGHT,
+                                "DISASSEMBLY  [F2:SPREADSHEET]  [`:ASM]",
+                                panel_x,
+                                panel_y,
+                                1,
+                                0x555566,
+                                None,
+                            );
+                            font::render_str(
+                                &mut buffer,
+                                WIDTH,
+                                HEIGHT,
+                                mode_str,
+                                panel_x + 250,
+                                panel_y,
+                                1,
+                                0x888800,
+                                None,
+                            );
                             let mut addr: usize = 0;
                             let max_lines = 14;
                             let mut lines_shown = 0;
                             while addr < vm.ram.len() && lines_shown < max_lines {
                                 let val = vm.ram[addr];
                                 let byte = (val & 0xFF) as u8;
-                                if byte == 0 { addr += 1; continue; }
+                                if byte == 0 {
+                                    addr += 1;
+                                    continue;
+                                }
                                 let w = opcodes::width(byte);
                                 let name = opcodes::name(byte);
                                 let is_at_cursor = addr == cursor_idx;
@@ -1330,8 +1853,24 @@ fn main() {
                                         }
                                     }
                                 }
-                                let color = if is_at_cursor { 0x00FFFF } else if opcodes::is_valid(byte) { 0xAAAACC } else { 0x664444 };
-                                font::render_str(&mut buffer, WIDTH, HEIGHT, &disasm, panel_x, panel_y + 10 + lines_shown * 9, 1, color, None);
+                                let color = if is_at_cursor {
+                                    0x00FFFF
+                                } else if opcodes::is_valid(byte) {
+                                    0xAAAACC
+                                } else {
+                                    0x664444
+                                };
+                                font::render_str(
+                                    &mut buffer,
+                                    WIDTH,
+                                    HEIGHT,
+                                    &disasm,
+                                    panel_x,
+                                    panel_y + 10 + lines_shown * 9,
+                                    1,
+                                    color,
+                                    None,
+                                );
                                 lines_shown += 1;
                                 addr += w;
                             }
@@ -1340,19 +1879,56 @@ fn main() {
                             let cursor_val = (vm.ram[cursor_idx] & 0xFF) as u8;
                             let cell_name = cell_addr_name(cursor_col, cursor_row);
                             let cell_info = if cursor_val >= 32 && cursor_val < 127 {
-                                format!("CELL [{}] = 0x{:02X} ({})", cell_name, cursor_val, cursor_val as char)
+                                format!(
+                                    "CELL [{}] = 0x{:02X} ({})",
+                                    cell_name, cursor_val, cursor_val as char
+                                )
                             } else {
                                 format!("CELL [{}] = 0x{:02X}", cell_name, cursor_val)
                             };
-                            font::render_str(&mut buffer, WIDTH, HEIGHT, "SPREADSHEET  [F2:DISASM]  [`:ASM]", panel_x, panel_y, 1, 0x555566, None);
-                            font::render_str(&mut buffer, WIDTH, HEIGHT, mode_str, panel_x + 260, panel_y, 1, 0x888800, None);
-                            font::render_str(&mut buffer, WIDTH, HEIGHT, &cell_info, panel_x, panel_y + 10, 1, 0x00FFFF, None);
+                            font::render_str(
+                                &mut buffer,
+                                WIDTH,
+                                HEIGHT,
+                                "SPREADSHEET  [F2:DISASM]  [`:ASM]",
+                                panel_x,
+                                panel_y,
+                                1,
+                                0x555566,
+                                None,
+                            );
+                            font::render_str(
+                                &mut buffer,
+                                WIDTH,
+                                HEIGHT,
+                                mode_str,
+                                panel_x + 260,
+                                panel_y,
+                                1,
+                                0x888800,
+                                None,
+                            );
+                            font::render_str(
+                                &mut buffer,
+                                WIDTH,
+                                HEIGHT,
+                                &cell_info,
+                                panel_x,
+                                panel_y + 10,
+                                1,
+                                0x00FFFF,
+                                None,
+                            );
                             let max_lines = 12;
                             let mut lines_shown = 0;
                             for idx in 0..vm.ram.len() {
-                                if lines_shown >= max_lines { break; }
+                                if lines_shown >= max_lines {
+                                    break;
+                                }
                                 let val = (vm.ram[idx] & 0xFF) as u8;
-                                if val == 0 { continue; }
+                                if val == 0 {
+                                    continue;
+                                }
                                 let col = idx % CANVAS_COLS;
                                 let row = idx / CANVAS_COLS;
                                 let name = cell_addr_name(col, row);
@@ -1363,7 +1939,17 @@ fn main() {
                                 };
                                 let is_cursor = idx == cursor_idx;
                                 let color = if is_cursor { 0x00FFFF } else { 0xAAAACC };
-                                font::render_str(&mut buffer, WIDTH, HEIGHT, &cell_str, panel_x, panel_y + 20 + lines_shown * 9, 1, color, None);
+                                font::render_str(
+                                    &mut buffer,
+                                    WIDTH,
+                                    HEIGHT,
+                                    &cell_str,
+                                    panel_x,
+                                    panel_y + 20 + lines_shown * 9,
+                                    1,
+                                    color,
+                                    None,
+                                );
                                 lines_shown += 1;
                             }
                         }
@@ -1374,12 +1960,34 @@ fn main() {
             // Opcode Reference
             let ref_x = REGS_X;
             let ref_y = REGS_Y + 240;
-            font::render_str(&mut buffer, WIDTH, HEIGHT, "OPCODE REF", ref_x, ref_y - 20, 1, 0x555566, None);
+            font::render_str(
+                &mut buffer,
+                WIDTH,
+                HEIGHT,
+                "OPCODE REF",
+                ref_x,
+                ref_y - 20,
+                1,
+                0x555566,
+                None,
+            );
             let opcodes_ref = [
-                ("I:LDI", b'I'), ("A:ADD", b'A'), ("U:SUB", b'U'), ("J:JMP", b'J'),
-                ("B:BRANCH", b'B'), ("C:CALL", b'C'), ("R:RET", b'R'), ("H:HALT", b'H'),
-                ("P:PSET", b'P'), ("F:RECTF", b'F'), ("G:CIRC", b'G'), ("L:LOAD", b'L'),
-                ("S:STOR", b'S'), ("M:MOV", b'M'), ("W:BLIT", b'W'), ("N:NOP", b'N'),
+                ("I:LDI", b'I'),
+                ("A:ADD", b'A'),
+                ("U:SUB", b'U'),
+                ("J:JMP", b'J'),
+                ("B:BRANCH", b'B'),
+                ("C:CALL", b'C'),
+                ("R:RET", b'R'),
+                ("H:HALT", b'H'),
+                ("P:PSET", b'P'),
+                ("F:RECTF", b'F'),
+                ("G:CIRC", b'G'),
+                ("L:LOAD", b'L'),
+                ("S:STOR", b'S'),
+                ("M:MOV", b'M'),
+                ("W:BLIT", b'W'),
+                ("N:NOP", b'N'),
             ];
             for (i, (name, ch)) in opcodes_ref.iter().enumerate() {
                 let ox = ref_x + (i % 4) * 80;
@@ -1413,22 +2021,55 @@ fn cell_addr_name(col: usize, row: usize) -> String {
 
 fn key_to_ascii(key: Key) -> Option<u8> {
     match key {
-        Key::A => Some(b'A'), Key::B => Some(b'B'), Key::C => Some(b'C'), Key::D => Some(b'D'),
-        Key::E => Some(b'E'), Key::F => Some(b'F'), Key::G => Some(b'G'), Key::H => Some(b'H'),
-        Key::I => Some(b'I'), Key::J => Some(b'J'), Key::K => Some(b'K'), Key::L => Some(b'L'),
-        Key::M => Some(b'M'), Key::N => Some(b'N'), Key::O => Some(b'O'), Key::P => Some(b'P'),
-        Key::Q => Some(b'Q'), Key::R => Some(b'R'), Key::S => Some(b'S'), Key::T => Some(b'T'),
-        Key::U => Some(b'U'), Key::V => Some(b'V'), Key::W => Some(b'W'), Key::X => Some(b'X'),
-        Key::Y => Some(b'Y'), Key::Z => Some(b'Z'),
-        Key::Key0 => Some(b'0'), Key::Key1 => Some(b'1'), Key::Key2 => Some(b'2'), Key::Key3 => Some(b'3'),
-        Key::Key4 => Some(b'4'), Key::Key5 => Some(b'5'), Key::Key6 => Some(b'6'), Key::Key7 => Some(b'7'),
-        Key::Key8 => Some(b'8'), Key::Key9 => Some(b'9'),
-        Key::Space => Some(b' '), Key::Period => Some(b'.'), Key::Comma => Some(b','),
-        Key::Semicolon => Some(b';'), Key::Apostrophe => Some(b'\''), Key::Slash => Some(b'/'),
-        Key::Backslash => Some(b'\\'), Key::LeftBracket => Some(b'['), Key::RightBracket => Some(b']'),
-        Key::Minus => Some(b'-'), Key::Equal => Some(b'='),
-        Key::Enter => Some(0x0D),      // carriage return
-        Key::Backspace => Some(0x08),  // backspace
+        Key::A => Some(b'A'),
+        Key::B => Some(b'B'),
+        Key::C => Some(b'C'),
+        Key::D => Some(b'D'),
+        Key::E => Some(b'E'),
+        Key::F => Some(b'F'),
+        Key::G => Some(b'G'),
+        Key::H => Some(b'H'),
+        Key::I => Some(b'I'),
+        Key::J => Some(b'J'),
+        Key::K => Some(b'K'),
+        Key::L => Some(b'L'),
+        Key::M => Some(b'M'),
+        Key::N => Some(b'N'),
+        Key::O => Some(b'O'),
+        Key::P => Some(b'P'),
+        Key::Q => Some(b'Q'),
+        Key::R => Some(b'R'),
+        Key::S => Some(b'S'),
+        Key::T => Some(b'T'),
+        Key::U => Some(b'U'),
+        Key::V => Some(b'V'),
+        Key::W => Some(b'W'),
+        Key::X => Some(b'X'),
+        Key::Y => Some(b'Y'),
+        Key::Z => Some(b'Z'),
+        Key::Key0 => Some(b'0'),
+        Key::Key1 => Some(b'1'),
+        Key::Key2 => Some(b'2'),
+        Key::Key3 => Some(b'3'),
+        Key::Key4 => Some(b'4'),
+        Key::Key5 => Some(b'5'),
+        Key::Key6 => Some(b'6'),
+        Key::Key7 => Some(b'7'),
+        Key::Key8 => Some(b'8'),
+        Key::Key9 => Some(b'9'),
+        Key::Space => Some(b' '),
+        Key::Period => Some(b'.'),
+        Key::Comma => Some(b','),
+        Key::Semicolon => Some(b';'),
+        Key::Apostrophe => Some(b'\''),
+        Key::Slash => Some(b'/'),
+        Key::Backslash => Some(b'\\'),
+        Key::LeftBracket => Some(b'['),
+        Key::RightBracket => Some(b']'),
+        Key::Minus => Some(b'-'),
+        Key::Equal => Some(b'='),
+        Key::Enter => Some(0x0D),     // carriage return
+        Key::Backspace => Some(0x08), // backspace
         _ => None,
     }
 }
@@ -1437,19 +2078,32 @@ fn key_to_ascii(key: Key) -> Option<u8> {
 fn key_to_ascii_shifted(key: Key, shift: bool) -> Option<u8> {
     // Letters: shift → uppercase, no shift → lowercase
     let letter = match key {
-        Key::A => Some((b'a', b'A')), Key::B => Some((b'b', b'B')),
-        Key::C => Some((b'c', b'C')), Key::D => Some((b'd', b'D')),
-        Key::E => Some((b'e', b'E')), Key::F => Some((b'f', b'F')),
-        Key::G => Some((b'g', b'G')), Key::H => Some((b'h', b'H')),
-        Key::I => Some((b'i', b'I')), Key::J => Some((b'j', b'J')),
-        Key::K => Some((b'k', b'K')), Key::L => Some((b'l', b'L')),
-        Key::M => Some((b'm', b'M')), Key::N => Some((b'n', b'N')),
-        Key::O => Some((b'o', b'O')), Key::P => Some((b'p', b'P')),
-        Key::Q => Some((b'q', b'Q')), Key::R => Some((b'r', b'R')),
-        Key::S => Some((b's', b'S')), Key::T => Some((b't', b'T')),
-        Key::U => Some((b'u', b'U')), Key::V => Some((b'v', b'V')),
-        Key::W => Some((b'w', b'W')), Key::X => Some((b'x', b'X')),
-        Key::Y => Some((b'y', b'Y')), Key::Z => Some((b'z', b'Z')),
+        Key::A => Some((b'a', b'A')),
+        Key::B => Some((b'b', b'B')),
+        Key::C => Some((b'c', b'C')),
+        Key::D => Some((b'd', b'D')),
+        Key::E => Some((b'e', b'E')),
+        Key::F => Some((b'f', b'F')),
+        Key::G => Some((b'g', b'G')),
+        Key::H => Some((b'h', b'H')),
+        Key::I => Some((b'i', b'I')),
+        Key::J => Some((b'j', b'J')),
+        Key::K => Some((b'k', b'K')),
+        Key::L => Some((b'l', b'L')),
+        Key::M => Some((b'm', b'M')),
+        Key::N => Some((b'n', b'N')),
+        Key::O => Some((b'o', b'O')),
+        Key::P => Some((b'p', b'P')),
+        Key::Q => Some((b'q', b'Q')),
+        Key::R => Some((b'r', b'R')),
+        Key::S => Some((b's', b'S')),
+        Key::T => Some((b't', b'T')),
+        Key::U => Some((b'u', b'U')),
+        Key::V => Some((b'v', b'V')),
+        Key::W => Some((b'w', b'W')),
+        Key::X => Some((b'x', b'X')),
+        Key::Y => Some((b'y', b'Y')),
+        Key::Z => Some((b'z', b'Z')),
         _ => None,
     };
     if let Some((lo, hi)) = letter {
@@ -1468,17 +2122,17 @@ fn key_to_ascii_shifted(key: Key, shift: bool) -> Option<u8> {
         Key::Key7 => Some(if shift { b'&' } else { b'7' }),
         Key::Key8 => Some(if shift { b'*' } else { b'8' }),
         Key::Key9 => Some(if shift { b'(' } else { b'9' }),
-        Key::Space     => Some(b' '),
-        Key::Period    => Some(if shift { b'>' } else { b'.' }),
-        Key::Comma     => Some(if shift { b'<' } else { b',' }),
+        Key::Space => Some(b' '),
+        Key::Period => Some(if shift { b'>' } else { b'.' }),
+        Key::Comma => Some(if shift { b'<' } else { b',' }),
         Key::Semicolon => Some(if shift { b':' } else { b';' }),
         Key::Apostrophe => Some(if shift { b'"' } else { b'\'' }),
-        Key::Slash     => Some(if shift { b'?' } else { b'/' }),
+        Key::Slash => Some(if shift { b'?' } else { b'/' }),
         Key::Backslash => Some(if shift { b'|' } else { b'\\' }),
-        Key::LeftBracket  => Some(if shift { b'{' } else { b'[' }),
+        Key::LeftBracket => Some(if shift { b'{' } else { b'[' }),
         Key::RightBracket => Some(if shift { b'}' } else { b']' }),
-        Key::Minus     => Some(if shift { b'_' } else { b'-' }),
-        Key::Equal     => Some(if shift { b'+' } else { b'=' }),
+        Key::Minus => Some(if shift { b'_' } else { b'-' }),
+        Key::Equal => Some(if shift { b'+' } else { b'=' }),
         _ => None,
     }
 }
@@ -1512,10 +2166,10 @@ fn key_to_pixel(key: Key, _hex_mode: bool) -> Option<u8> {
 // Returns (instruction_start_addr, formatted_decode_string, hint_string).
 
 struct LiveDecode {
-    start: usize,       // address of the opcode pixel
-    text: String,       // decoded text like "LDI r0, 33"
-    hint: String,       // what to type next, e.g. "need: reg val" or "complete"
-    is_complete: bool,  // all arguments filled
+    start: usize,      // address of the opcode pixel
+    text: String,      // decoded text like "LDI r0, 33"
+    hint: String,      // what to type next, e.g. "need: reg val" or "complete"
+    is_complete: bool, // all arguments filled
     // Byte-level breakdown for cell highlighting
     cells: Vec<DecodedCell>,
 }
@@ -1523,7 +2177,7 @@ struct LiveDecode {
 struct DecodedCell {
     addr: usize,
     role: CellRole,
-    text: String,       // short label for this cell
+    text: String, // short label for this cell
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -1574,7 +2228,9 @@ fn live_decode_at(ram: &[u32], cursor_addr: usize) -> Option<LiveDecode> {
                 return None;
             }
             scan += 1;
-            if scan > cursor_addr { return None; }
+            if scan > cursor_addr {
+                return None;
+            }
             instr_start = scan;
             continue;
         }
@@ -1598,7 +2254,9 @@ fn live_decode_at(ram: &[u32], cursor_addr: usize) -> Option<LiveDecode> {
         }
 
         scan = instr_end;
-        if scan > cursor_addr { return None; }
+        if scan > cursor_addr {
+            return None;
+        }
         instr_start = scan;
     }
 
@@ -1680,12 +2338,22 @@ fn live_decode_at(ram: &[u32], cursor_addr: usize) -> Option<LiveDecode> {
 /// 0-9 → 0-9, A-F (and a-f) → 10-15. Returns None for any non-hex key.
 fn key_to_hex_digit(key: Key) -> Option<u8> {
     match key {
-        Key::Key0 => Some(0x0), Key::Key1 => Some(0x1), Key::Key2 => Some(0x2),
-        Key::Key3 => Some(0x3), Key::Key4 => Some(0x4), Key::Key5 => Some(0x5),
-        Key::Key6 => Some(0x6), Key::Key7 => Some(0x7), Key::Key8 => Some(0x8),
+        Key::Key0 => Some(0x0),
+        Key::Key1 => Some(0x1),
+        Key::Key2 => Some(0x2),
+        Key::Key3 => Some(0x3),
+        Key::Key4 => Some(0x4),
+        Key::Key5 => Some(0x5),
+        Key::Key6 => Some(0x6),
+        Key::Key7 => Some(0x7),
+        Key::Key8 => Some(0x8),
         Key::Key9 => Some(0x9),
-        Key::A => Some(0xA), Key::B => Some(0xB), Key::C => Some(0xC),
-        Key::D => Some(0xD), Key::E => Some(0xE), Key::F => Some(0xF),
+        Key::A => Some(0xA),
+        Key::B => Some(0xB),
+        Key::C => Some(0xC),
+        Key::D => Some(0xD),
+        Key::E => Some(0xE),
+        Key::F => Some(0xF),
         _ => None,
     }
 }

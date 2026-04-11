@@ -63,13 +63,7 @@ impl ForgeQueue {
 
     /// Create a new issue from VM state. Called by the ISSUE_CREATE opcode.
     /// Returns the issue ID (assigned to r0 so the program can reference it).
-    pub fn post_issue(
-        &mut self,
-        origin_pc: u32,
-        tag: u32,
-        payload: u32,
-        priority_raw: u32,
-    ) -> u64 {
+    pub fn post_issue(&mut self, origin_pc: u32, tag: u32, payload: u32, priority_raw: u32) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         self.issues.push(Issue {

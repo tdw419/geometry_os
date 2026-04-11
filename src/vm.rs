@@ -17,9 +17,9 @@
 // values, addresses -- all are just the color value of the argument pixel.
 // ═══════════════════════════════════════════════════════════════════════
 
+use crate::forge::ForgeQueue;
 use crate::opcodes;
 use crate::opcodes::op;
-use crate::forge::ForgeQueue;
 
 const NUM_REGS: usize = 32;
 const DEFAULT_STACK_LIMIT: usize = 256;
@@ -88,11 +88,7 @@ impl std::fmt::Display for VmError {
                 )
             }
             VmError::InvalidRectDimensions(pc, w, h) => {
-                write!(
-                    f,
-                    "invalid RECTF dimensions {}x{} at PC={}",
-                    w, h, pc
-                )
+                write!(f, "invalid RECTF dimensions {}x{} at PC={}", w, h, pc)
             }
             VmError::StackOverflow(pc) => {
                 write!(f, "stack overflow at PC={}", pc)
@@ -197,11 +193,7 @@ impl Vm {
 
     /// Get the value of a register by index.
     pub fn get_reg(&self, idx: usize) -> u32 {
-        if idx < NUM_REGS {
-            self.regs[idx]
-        } else {
-            0
-        }
+        if idx < NUM_REGS { self.regs[idx] } else { 0 }
     }
 
     /// Get the current program counter value.
@@ -375,9 +367,7 @@ impl Vm {
             0
         };
         if available < w {
-            return Err(VmError::TruncatedInstruction(
-                self.pc, opcode, w, available,
-            ));
+            return Err(VmError::TruncatedInstruction(self.pc, opcode, w, available));
         }
 
         // Collect argument pixels
@@ -428,22 +418,20 @@ impl Vm {
             op::HALT => {
                 self.halted = true;
                 Ok(None)
-            },
+            }
 
             // ── Y (0x59): YIELD ───────────────────
             op::YIELD => {
                 self.yielded = true;
                 Ok(None)
-            },
+            }
 
             // ── R (0x52): RET ─────────────────────
-            op::RET => {
-                match self.stack.pop() {
-                    Some(addr) => Ok(Some(addr)),
-                    None => {
-                        self.halted = true;
-                        Ok(None)
-                    }
+            op::RET => match self.stack.pop() {
+                Some(addr) => Ok(Some(addr)),
+                None => {
+                    self.halted = true;
+                    Ok(None)
                 }
             },
 
@@ -455,7 +443,7 @@ impl Vm {
                 }
                 self.regs[dst] = args[1];
                 Ok(None)
-            },
+            }
 
             // ── M (0x4D): MOV dst, src ────────────
             op::MOV => {
@@ -469,7 +457,7 @@ impl Vm {
                 }
                 self.regs[dst] = self.regs[src];
                 Ok(None)
-            },
+            }
 
             // ── L (0x4C): LOAD dst, addr ──────────
             op::LOAD => {
@@ -484,7 +472,7 @@ impl Vm {
                 let src_addr = self.regs[addr_reg] as usize;
                 self.regs[dst] = self.peek(src_addr);
                 Ok(None)
-            },
+            }
 
             // ── S (0x53): STORE addr, src ──────────
             op::STORE => {
@@ -499,7 +487,7 @@ impl Vm {
                 let dst_addr = self.regs[addr_reg] as usize;
                 self.poke(dst_addr, self.regs[src]);
                 Ok(None)
-            },
+            }
 
             // ── A (0x41): ADD dst, src ────────────
             op::ADD => {
@@ -513,7 +501,7 @@ impl Vm {
                 }
                 self.regs[dst] = self.regs[dst].wrapping_add(self.regs[src]);
                 Ok(None)
-            },
+            }
 
             // ── U (0x55): SUB dst, src ────────────
             op::SUB => {
@@ -527,7 +515,7 @@ impl Vm {
                 }
                 self.regs[dst] = self.regs[dst].wrapping_sub(self.regs[src]);
                 Ok(None)
-            },
+            }
 
             // ── m (0x6D): MUL dst, src ────────────
             op::MUL => {
@@ -541,7 +529,7 @@ impl Vm {
                 }
                 self.regs[dst] = self.regs[dst].wrapping_mul(self.regs[src]);
                 Ok(None)
-            },
+            }
 
             // ── D (0x44): DIV dst, src ────────────
             op::DIV => {
@@ -559,7 +547,7 @@ impl Vm {
                 }
                 self.regs[dst] /= divisor;
                 Ok(None)
-            },
+            }
 
             // ── b (0x62): MOD dst, src ────────────
             op::MOD => {
@@ -577,7 +565,7 @@ impl Vm {
                 }
                 self.regs[dst] %= divisor;
                 Ok(None)
-            },
+            }
 
             // ── O (0x4F): OR dst, src ─────────────
             op::OR => {
@@ -591,7 +579,7 @@ impl Vm {
                 }
                 self.regs[dst] |= self.regs[src];
                 Ok(None)
-            },
+            }
 
             // ── a (0x61): AND dst, src ────────────
             op::AND => {
@@ -605,7 +593,7 @@ impl Vm {
                 }
                 self.regs[dst] &= self.regs[src];
                 Ok(None)
-            },
+            }
 
             // ── X (0x58): XOR dst, src ────────────
             op::XOR => {
@@ -619,7 +607,7 @@ impl Vm {
                 }
                 self.regs[dst] ^= self.regs[src];
                 Ok(None)
-            },
+            }
 
             // ── n (0x6E): NOT dst ─────────────────
             op::NOT => {
@@ -629,7 +617,7 @@ impl Vm {
                 }
                 self.regs[dst] = !self.regs[dst];
                 Ok(None)
-            },
+            }
 
             // ── K (0x4B): SHL dst, amount ─────────
             op::SHL => {
@@ -643,7 +631,7 @@ impl Vm {
                 }
                 self.regs[dst] <<= self.regs[amt_reg];
                 Ok(None)
-            },
+            }
 
             // ── k (0x6B): SHR dst, amount ─────────
             op::SHR => {
@@ -657,14 +645,12 @@ impl Vm {
                 }
                 self.regs[dst] >>= self.regs[amt_reg];
                 Ok(None)
-            },
+            }
 
             // ── J (0x4A): JMP addr ────────────────
             // Canvas-typed (byte < 256): relative backward via resolve_addr.
             // Assembler-generated (bit 31 set): absolute, mask off flag.
-            op::JMP => {
-                Ok(Some(self.resolve_addr(args[0])))
-            }
+            op::JMP => Ok(Some(self.resolve_addr(args[0]))),
 
             // ── B (0x42): BRANCH cond, addr ───────
             op::BRANCH => {
@@ -695,12 +681,8 @@ impl Vm {
                     _ => false,
                 };
 
-                if taken {
-                    Ok(Some(target))
-                } else {
-                    Ok(None)
-                }
-            },
+                if taken { Ok(Some(target)) } else { Ok(None) }
+            }
 
             // ── C (0x43): CALL addr ───────────────
             op::CALL => {
@@ -711,7 +693,7 @@ impl Vm {
                 }
                 self.stack.push(self.pc + w);
                 Ok(Some(target))
-            },
+            }
 
             // ── E (0x45): EXEC addr, arg ──────────
             op::EXEC => {
@@ -722,7 +704,7 @@ impl Vm {
                 }
                 let target = self.regs[addr_reg];
                 Ok(Some(target))
-            },
+            }
 
             // ── F (0x46): RECTF x, y, w, h ────────
             op::RECTF => {
@@ -755,7 +737,7 @@ impl Vm {
                     }
                 }
                 Ok(None)
-            },
+            }
 
             // ── G (0x47): CIRCLEF cx, cy, r ───────
             op::CIRCLEF => {
@@ -783,7 +765,7 @@ impl Vm {
                     }
                 }
                 Ok(None)
-            },
+            }
 
             // ── V (0x56): LINE x1, y1, x2, y2 ────
             op::LINE => {
@@ -811,13 +793,21 @@ impl Vm {
                     if cx >= 0 && cx < 256 && cy >= 0 && cy < 256 {
                         self.screen[(cy as usize) * 256 + (cx as usize)] = color;
                     }
-                    if cx == x2_val && cy == y2_val { break; }
+                    if cx == x2_val && cy == y2_val {
+                        break;
+                    }
                     let e2 = 2 * err;
-                    if e2 >= dy { err += dy; cx += sx; }
-                    if e2 <= dx { err += dx; cy += sy; }
+                    if e2 >= dy {
+                        err += dy;
+                        cx += sx;
+                    }
+                    if e2 <= dx {
+                        err += dx;
+                        cy += sy;
+                    }
                 }
                 Ok(None)
-            },
+            }
 
             // ── W (0x57): BLIT dst, src, count ────
             op::BLIT => {
@@ -836,7 +826,7 @@ impl Vm {
                     self.poke(dst + i, self.peek(src + i));
                 }
                 Ok(None)
-            },
+            }
 
             // ── T (0x54): TEXT x_reg, y_reg, str_addr_reg ─────
             op::TEXT => {
@@ -862,20 +852,25 @@ impl Vm {
                 let mut screen_x = x0;
                 loop {
                     let ch = self.peek(pos);
-                    if ch == 0 { break; }
+                    if ch == 0 {
+                        break;
+                    }
                     crate::font::render_char(
-                        &mut self.screen, 256, 256,
+                        &mut self.screen,
+                        256,
+                        256,
                         (ch & 0xFF) as u8,
-                        screen_x, y0,
-                        1,       // 1x scale (native 5x7)
+                        screen_x,
+                        y0,
+                        1, // 1x scale (native 5x7)
                         color,
-                        None,    // transparent background
+                        None, // transparent background
                     );
                     screen_x += crate::font::GLYPH_W + 1; // advance by glyph width + 1px gap
                     pos += 1;
                 }
                 Ok(None)
-            },
+            }
 
             // ── P (0x50): PSET x, y, color ────────
             op::PSET => {
@@ -894,7 +889,7 @@ impl Vm {
                     self.screen[y0 * 256 + x0] = color;
                 }
                 Ok(None)
-            },
+            }
 
             // ── g (0x67): PGET x, y ───────────────
             op::PGET => {
@@ -914,24 +909,30 @@ impl Vm {
                     self.regs[0] = 0;
                 }
                 Ok(None)
-            },
+            }
 
             // ── Q (0x51): SPAWN addr, arg ──────────
             op::SPAWN => {
                 let addr = args[0];
                 let arg = args[1];
-                self.children.push(ChildVm { start_addr: addr, arg });
+                self.children.push(ChildVm {
+                    start_addr: addr,
+                    arg,
+                });
                 Ok(None)
-            },
+            }
 
             // ── Z (0x5A): SPATIAL_SPAWN x, y, addr ─
             op::SPATIAL_SPAWN => {
                 let x = args[0];
                 let y = args[1];
                 let addr = args[2];
-                self.children.push(ChildVm { start_addr: addr, arg: (y << 16) | (x & 0xFFFF) });
+                self.children.push(ChildVm {
+                    start_addr: addr,
+                    arg: (y << 16) | (x & 0xFFFF),
+                });
                 Ok(None)
-            },
+            }
 
             // ── p (0x70): PUSH value ───────────────
             op::PUSH => {
@@ -944,7 +945,7 @@ impl Vm {
                 }
                 self.stack.push(self.regs[val_reg]);
                 Ok(None)
-            },
+            }
 
             // ── r (0x72): POP dst ─────────────────
             op::POP => {
@@ -956,22 +957,17 @@ impl Vm {
                     self.regs[dst] = val;
                 }
                 Ok(None)
-            },
+            }
 
             // ── c (0x63): ISSUE_CREATE ────────────
             op::ISSUE_CREATE => {
                 let tag = self.regs[0];
                 let payload = self.regs[1];
                 let priority_raw = self.regs[2];
-                let id = self.forge.post_issue(
-                    self.pc,
-                    tag,
-                    payload,
-                    priority_raw,
-                );
+                let id = self.forge.post_issue(self.pc, tag, payload, priority_raw);
                 self.regs[0] = id as u32;
                 Ok(None)
-            },
+            }
 
             // ── e (0x65): EDIT_OVERWRITE addr, src ──
             op::EDIT_OVERWRITE => {
@@ -990,7 +986,7 @@ impl Vm {
                 }
                 self.poke(addr, self.regs[src]);
                 Ok(None)
-            },
+            }
 
             // ── f (0x66): EDIT_INSERT addr, src ────
             op::EDIT_INSERT => {
@@ -1010,7 +1006,7 @@ impl Vm {
                     self.ram.push(value);
                 }
                 Ok(None)
-            },
+            }
 
             // ── j (0x6A): EDIT_DELETE addr ─────────
             op::EDIT_DELETE => {
@@ -1026,7 +1022,7 @@ impl Vm {
                     }
                 }
                 Ok(None)
-            },
+            }
 
             // ── l (0x6C): EDIT_BLIT dst, src, count
             op::EDIT_BLIT => {
@@ -1050,7 +1046,7 @@ impl Vm {
                     self.poke(dst_addr + i, val);
                 }
                 Ok(None)
-            },
+            }
 
             // ── d (0x64): LDB dst, addr ───────────
             op::LDB => {
@@ -1068,7 +1064,7 @@ impl Vm {
                 let pixel = self.peek(pixel_idx);
                 self.regs[dst] = (pixel >> (byte_off * 8)) & 0xFF;
                 Ok(None)
-            },
+            }
 
             // ── s (0x73): STB addr, src ───────────
             op::STB => {
@@ -1089,7 +1085,7 @@ impl Vm {
                 pixel = (pixel & mask) | (byte_val << (byte_off * 8));
                 self.poke(pixel_idx, pixel);
                 Ok(None)
-            },
+            }
 
             // ── i (0x69): INT vector ──────────────
             op::INT => Ok(None),
@@ -1130,22 +1126,20 @@ impl Vm {
             op::HALT => {
                 self.halted = true;
                 None
-            },
+            }
 
             // ── Y (0x59): YIELD ───────────────────
             op::YIELD => {
                 self.yielded = true;
                 None
-            },
+            }
 
             // ── R (0x52): RET ─────────────────────
-            op::RET => {
-                match self.stack.pop() {
-                    Some(addr) => Some(addr),
-                    None => {
-                        self.halted = true;
-                        None
-                    }
+            op::RET => match self.stack.pop() {
+                Some(addr) => Some(addr),
+                None => {
+                    self.halted = true;
+                    None
                 }
             },
 
@@ -1158,7 +1152,7 @@ impl Vm {
                     self.regs[dst] = val;
                 }
                 None
-            },
+            }
 
             // ── M (0x4D): MOV dst, src ────────────
             op::MOV => {
@@ -1168,7 +1162,7 @@ impl Vm {
                     self.regs[dst] = self.regs[src];
                 }
                 None
-            },
+            }
 
             // ── L (0x4C): LOAD dst, addr ──────────
             // args[0]=dst_reg, args[1]=addr_reg → load from ram[regs[addr_reg]]
@@ -1180,7 +1174,7 @@ impl Vm {
                     self.regs[dst] = self.peek(src_addr);
                 }
                 None
-            },
+            }
 
             // ── S (0x53): STORE addr, src ──────────
             op::STORE => {
@@ -1191,7 +1185,7 @@ impl Vm {
                     self.poke(dst_addr, self.regs[src]);
                 }
                 None
-            },
+            }
 
             // ── A (0x41): ADD dst, src ────────────
             op::ADD => {
@@ -1201,7 +1195,7 @@ impl Vm {
                     self.regs[dst] = self.regs[dst].wrapping_add(self.regs[src]);
                 }
                 None
-            },
+            }
 
             // ── U (0x55): SUB dst, src ────────────
             op::SUB => {
@@ -1211,7 +1205,7 @@ impl Vm {
                     self.regs[dst] = self.regs[dst].wrapping_sub(self.regs[src]);
                 }
                 None
-            },
+            }
 
             // ── m (0x6D): MUL dst, src ────────────
             op::MUL => {
@@ -1221,7 +1215,7 @@ impl Vm {
                     self.regs[dst] = self.regs[dst].wrapping_mul(self.regs[src]);
                 }
                 None
-            },
+            }
 
             // ── D (0x44): DIV dst, src ────────────
             op::DIV => {
@@ -1236,7 +1230,7 @@ impl Vm {
                     }
                 }
                 None
-            },
+            }
 
             // ── b (0x62): MOD dst, src ────────────
             op::MOD => {
@@ -1251,7 +1245,7 @@ impl Vm {
                     }
                 }
                 None
-            },
+            }
 
             // ── O (0x4F): OR dst, src ─────────────
             op::OR => {
@@ -1261,7 +1255,7 @@ impl Vm {
                     self.regs[dst] |= self.regs[src];
                 }
                 None
-            },
+            }
 
             // ── a (0x61): AND dst, src ────────────
             op::AND => {
@@ -1271,7 +1265,7 @@ impl Vm {
                     self.regs[dst] &= self.regs[src];
                 }
                 None
-            },
+            }
 
             // ── X (0x58): XOR dst, src ────────────
             op::XOR => {
@@ -1281,7 +1275,7 @@ impl Vm {
                     self.regs[dst] ^= self.regs[src];
                 }
                 None
-            },
+            }
 
             // ── n (0x6E): NOT dst ─────────────────
             op::NOT => {
@@ -1290,7 +1284,7 @@ impl Vm {
                     self.regs[dst] = !self.regs[dst];
                 }
                 None
-            },
+            }
 
             // ── K (0x4B): SHL dst, amount ─────────
             op::SHL => {
@@ -1300,7 +1294,7 @@ impl Vm {
                     self.regs[dst] <<= self.regs[amt_reg];
                 }
                 None
-            },
+            }
 
             // ── k (0x6B): SHR dst, amount ─────────
             op::SHR => {
@@ -1310,7 +1304,7 @@ impl Vm {
                     self.regs[dst] >>= self.regs[amt_reg];
                 }
                 None
-            },
+            }
 
             // ── J (0x4A): JMP addr ────────────────
             op::JMP => Some(self.resolve_addr(args[0])),
@@ -1344,12 +1338,8 @@ impl Vm {
                     _ => false,
                 };
 
-                if taken {
-                    Some(target)
-                } else {
-                    None
-                }
-            },
+                if taken { Some(target) } else { None }
+            }
 
             // ── C (0x43): CALL addr ───────────────
             op::CALL => {
@@ -1361,7 +1351,7 @@ impl Vm {
                 }
                 self.stack.push(self.pc + w);
                 Some(target)
-            },
+            }
 
             // ── E (0x45): EXEC addr, arg ──────────
             // Jump to address in register. arg pixel is unused for now.
@@ -1372,7 +1362,7 @@ impl Vm {
                 } else {
                     None
                 }
-            },
+            }
 
             // ── Q (0x51): SPAWN addr, arg ─────────
             op::SPAWN => {
@@ -1385,7 +1375,7 @@ impl Vm {
                     });
                 }
                 None
-            },
+            }
 
             // ── Z (0x5A): SPATIAL_SPAWN x, y, addr
             op::SPATIAL_SPAWN => {
@@ -1399,7 +1389,7 @@ impl Vm {
                     });
                 }
                 None
-            },
+            }
 
             // ── P (0x50): PSET x, y, color ────────
             // args are register indices
@@ -1416,7 +1406,7 @@ impl Vm {
                     }
                 }
                 None
-            },
+            }
 
             // ── g (0x67): PGET dst, x, y ──────────
             op::PGET => {
@@ -1433,7 +1423,7 @@ impl Vm {
                     };
                 }
                 None
-            },
+            }
 
             // ── F (0x46): RECTF x, y, w, h ────────
             op::RECTF => {
@@ -1456,7 +1446,7 @@ impl Vm {
                     }
                 }
                 None
-            },
+            }
 
             // ── V (0x56): LINE x1, y1, x2, y2 ────
             op::LINE => {
@@ -1479,14 +1469,22 @@ impl Vm {
                         if cx >= 0 && cx < 256 && cy >= 0 && cy < 256 {
                             self.screen[(cy as usize) * 256 + (cx as usize)] = color;
                         }
-                        if cx == x2_val && cy == y2_val { break; }
+                        if cx == x2_val && cy == y2_val {
+                            break;
+                        }
                         let e2 = 2 * err;
-                        if e2 >= dy { err += dy; cx += sx; }
-                        if e2 <= dx { err += dx; cy += sy; }
+                        if e2 >= dy {
+                            err += dy;
+                            cx += sx;
+                        }
+                        if e2 <= dx {
+                            err += dx;
+                            cy += sy;
+                        }
                     }
                 }
                 None
-            },
+            }
 
             // ── G (0x47): CIRCLEF cx, cy, r ───────
             op::CIRCLEF => {
@@ -1510,7 +1508,7 @@ impl Vm {
                     }
                 }
                 None
-            },
+            }
 
             // ── W (0x57): BLIT dst, src, count ────
             op::BLIT => {
@@ -1525,7 +1523,7 @@ impl Vm {
                     }
                 }
                 None
-            },
+            }
 
             // ── T (0x54): TEXT x_reg, y_reg, str_addr_reg ─────
             // width 4: args[0]=x_reg, args[1]=y_reg, args[2]=str_addr_reg
@@ -1539,7 +1537,7 @@ impl Vm {
                     let y = self.regs[y_reg] as usize;
                     let str_addr = self.regs[str_addr_reg] as usize;
                     let color = self.regs[0]; // r0 holds the color
-                    
+
                     // Read null-terminated string from RAM
                     let mut chars = Vec::new();
                     let mut addr = str_addr;
@@ -1551,7 +1549,7 @@ impl Vm {
                         chars.push(byte_val);
                         addr += 1;
                     }
-                    
+
                     // Convert to string and render
                     let s = String::from_utf8_lossy(&chars);
                     crate::font::render_str(
@@ -1567,7 +1565,7 @@ impl Vm {
                     );
                 }
                 None
-            },
+            }
 
             // ── d (0x64): LDB dst, addr ───────────
             op::LDB => {
@@ -1581,7 +1579,7 @@ impl Vm {
                     self.regs[dst] = (pixel >> (byte_off * 8)) & 0xFF;
                 }
                 None
-            },
+            }
 
             // ── s (0x73): STB addr, src ───────────
             op::STB => {
@@ -1598,7 +1596,7 @@ impl Vm {
                     self.poke(pixel_idx, pixel);
                 }
                 None
-            },
+            }
 
             // ── p (0x70): PUSH value ──────────────
             op::PUSH => {
@@ -1611,7 +1609,7 @@ impl Vm {
                     self.stack.push(self.regs[val_reg]);
                 }
                 None
-            },
+            }
 
             // ── r (0x72): POP dst ─────────────────
             op::POP => {
@@ -1622,7 +1620,7 @@ impl Vm {
                     }
                 }
                 None
-            },
+            }
 
             // ── c (0x63): ISSUE_CREATE ────────────
             // Width 1 (no pixel args). Reads r0 (tag), r1 (payload), r2 (priority).
@@ -1631,15 +1629,10 @@ impl Vm {
                 let tag = self.regs[0];
                 let payload = self.regs[1];
                 let priority_raw = self.regs[2];
-                let id = self.forge.post_issue(
-                    self.pc,
-                    tag,
-                    payload,
-                    priority_raw,
-                );
+                let id = self.forge.post_issue(self.pc, tag, payload, priority_raw);
                 self.regs[0] = id as u32;
                 None
-            },
+            }
 
             // ── e (0x65): EDIT_OVERWRITE addr, src ──
             // Write pixel from regs[src] into ram[regs[addr]].
@@ -1651,7 +1644,7 @@ impl Vm {
                     self.poke(addr, self.regs[src]);
                 }
                 None
-            },
+            }
 
             // ── f (0x66): EDIT_INSERT addr, src ────
             // Insert pixel from regs[src] at ram[regs[addr]], shifting right.
@@ -1670,7 +1663,7 @@ impl Vm {
                     }
                 }
                 None
-            },
+            }
 
             // ── j (0x6A): EDIT_DELETE addr ─────────
             // Remove one pixel at ram[regs[addr]], shifting left.
@@ -1687,7 +1680,7 @@ impl Vm {
                     }
                 }
                 None
-            },
+            }
 
             // ── l (0x6C): EDIT_BLIT dst, src, count
             // Copy count pixels from ram[regs[src]] to ram[regs[dst]].
@@ -1705,7 +1698,7 @@ impl Vm {
                     }
                 }
                 None
-            },
+            }
 
             // ── i (0x69): INT vector ──────────────
             // Stub: interrupt handling not yet implemented.
@@ -1740,7 +1733,10 @@ mod tests {
     // cond_pixel format: cond_code | (r1_idx << 16) | (r2_idx << 24)
 
     fn pack_cond(cond: u8, r1: u8, r2: u8) -> Vec<u32> {
-        vec![op::BRANCH as u32, (cond as u32) | ((r1 as u32) << 16) | ((r2 as u32) << 24)]
+        vec![
+            op::BRANCH as u32,
+            (cond as u32) | ((r1 as u32) << 16) | ((r2 as u32) << 24),
+        ]
     }
 
     #[test]
@@ -1749,9 +1745,15 @@ mod tests {
         let mut vm = Vm::new(128);
         // addr 0: LDI r0, 5
         vm.load_program(&[
-            op::LDI as u32, 0x30, 5,
-            op::LDI as u32, 0x31, 5,
-            op::BRANCH as u32, 0 | (0x30 << 16) | (0x31 << 24), 99 | 0x80000000,
+            op::LDI as u32,
+            0x30,
+            5,
+            op::LDI as u32,
+            0x31,
+            5,
+            op::BRANCH as u32,
+            0 | (0x30 << 16) | (0x31 << 24),
+            99 | 0x80000000,
         ]);
         vm.pc = 0;
         vm.step(); // LDI r0, 5
@@ -1765,10 +1767,16 @@ mod tests {
         // r0=5, r1=7, BEQ r0,r1 → should fall through (pc = 3+3+3 = 9)
         let mut vm = Vm::new(128);
         vm.load_program(&[
-            op::LDI as u32, 0x30, 5,       // 0-2
-            op::LDI as u32, 0x31, 7,       // 3-5
-            op::BRANCH as u32, 0 | (0x30 << 16) | (0x31 << 24),            99 | 0x80000000,              // 6-8 (absolute)
-op::HALT as u32,               // 9
+            op::LDI as u32,
+            0x30,
+            5, // 0-2
+            op::LDI as u32,
+            0x31,
+            7, // 3-5
+            op::BRANCH as u32,
+            0 | (0x30 << 16) | (0x31 << 24),
+            99 | 0x80000000, // 6-8 (absolute)
+            op::HALT as u32, // 9
         ]);
         vm.run();
         assert_eq!(vm.pc, 10); // fell through to HALT, advanced past it
@@ -1779,12 +1787,20 @@ op::HALT as u32,               // 9
     fn bne_taken_when_unequal() {
         let mut vm = Vm::new(128);
         vm.load_program(&[
-            op::LDI as u32, 0x30, 5,
-            op::LDI as u32, 0x31, 7,
-            op::BRANCH as u32, 1 | (0x30 << 16) | (0x31 << 24),            99 | 0x80000000, // BNE r0,r1 (absolute)
-]);
+            op::LDI as u32,
+            0x30,
+            5,
+            op::LDI as u32,
+            0x31,
+            7,
+            op::BRANCH as u32,
+            1 | (0x30 << 16) | (0x31 << 24),
+            99 | 0x80000000, // BNE r0,r1 (absolute)
+        ]);
         vm.pc = 0;
-        vm.step(); vm.step(); vm.step();
+        vm.step();
+        vm.step();
+        vm.step();
         assert_eq!(vm.pc, 99);
     }
 
@@ -1793,12 +1809,20 @@ op::HALT as u32,               // 9
         // r0=3, r1=10, BLT should jump
         let mut vm = Vm::new(128);
         vm.load_program(&[
-            op::LDI as u32, 0x30, 3,
-            op::LDI as u32, 0x31, 10,
-            op::BRANCH as u32, 2 | (0x30 << 16) | (0x31 << 24),            50 | 0x80000000, // BLT r0,r1 (absolute)
-]);
+            op::LDI as u32,
+            0x30,
+            3,
+            op::LDI as u32,
+            0x31,
+            10,
+            op::BRANCH as u32,
+            2 | (0x30 << 16) | (0x31 << 24),
+            50 | 0x80000000, // BLT r0,r1 (absolute)
+        ]);
         vm.pc = 0;
-        vm.step(); vm.step(); vm.step();
+        vm.step();
+        vm.step();
+        vm.step();
         assert_eq!(vm.pc, 50);
     }
 
@@ -1807,12 +1831,20 @@ op::HALT as u32,               // 9
         // r0=10, r1=3, BGE should jump
         let mut vm = Vm::new(128);
         vm.load_program(&[
-            op::LDI as u32, 0x30, 10,
-            op::LDI as u32, 0x31, 3,
-            op::BRANCH as u32, 3 | (0x30 << 16) | (0x31 << 24),            50 | 0x80000000, // BGE r0,r1 (absolute)
-]);
+            op::LDI as u32,
+            0x30,
+            10,
+            op::LDI as u32,
+            0x31,
+            3,
+            op::BRANCH as u32,
+            3 | (0x30 << 16) | (0x31 << 24),
+            50 | 0x80000000, // BGE r0,r1 (absolute)
+        ]);
         vm.pc = 0;
-        vm.step(); vm.step(); vm.step();
+        vm.step();
+        vm.step();
+        vm.step();
         assert_eq!(vm.pc, 50);
     }
 
@@ -1821,12 +1853,20 @@ op::HALT as u32,               // 9
         // BAL ignores register values, always jumps
         let mut vm = Vm::new(128);
         vm.load_program(&[
-            op::LDI as u32, 0x30, 99,
-            op::LDI as u32, 0x31, 1,
-            op::BRANCH as u32, 15 | (0x30 << 16) | (0x31 << 24),            77 | 0x80000000, // BAL (absolute)
-]);
+            op::LDI as u32,
+            0x30,
+            99,
+            op::LDI as u32,
+            0x31,
+            1,
+            op::BRANCH as u32,
+            15 | (0x30 << 16) | (0x31 << 24),
+            77 | 0x80000000, // BAL (absolute)
+        ]);
         vm.pc = 0;
-        vm.step(); vm.step(); vm.step();
+        vm.step();
+        vm.step();
+        vm.step();
         assert_eq!(vm.pc, 77);
     }
 
@@ -1835,8 +1875,10 @@ op::HALT as u32,               // 9
         // Even with r0=r0 (same reg), BAL still jumps (doesn't depend on values)
         let mut vm = Vm::new(128);
         vm.load_program(&[
-            op::BRANCH as u32, 15 | (0x30 << 16) | (0x30 << 24),            42 | 0x80000000, // BAL r0,r0 → 42 (absolute)
-]);
+            op::BRANCH as u32,
+            15 | (0x30 << 16) | (0x30 << 24),
+            42 | 0x80000000, // BAL r0,r0 → 42 (absolute)
+        ]);
         vm.pc = 0;
         vm.step();
         assert_eq!(vm.pc, 42);
@@ -1871,9 +1913,15 @@ op::HALT as u32,               // 9
         // H      = HALT
         let mut vm = Vm::new(64);
         vm.load_program(&[
-            op::LDI as u32, 0, 5,
-            op::LDI as u32, 1, 3,
-            op::ADD as u32, 0, 1,
+            op::LDI as u32,
+            0,
+            5,
+            op::LDI as u32,
+            1,
+            3,
+            op::ADD as u32,
+            0,
+            1,
             op::HALT as u32,
         ]);
         vm.run();
@@ -1892,11 +1940,21 @@ op::HALT as u32,               // 9
         // H
         let mut vm = Vm::new(64);
         vm.load_program(&[
-            op::LDI as u32, 0, 99,
-            op::LDI as u32, 1, 10,
-            op::STORE as u32, 1, 0,
-            op::LDI as u32, 2, 0,
-            op::LOAD as u32, 2, 1,
+            op::LDI as u32,
+            0,
+            99,
+            op::LDI as u32,
+            1,
+            10,
+            op::STORE as u32,
+            1,
+            0,
+            op::LDI as u32,
+            2,
+            0,
+            op::LOAD as u32,
+            2,
+            1,
             op::HALT as u32,
         ]);
         vm.run();
@@ -1937,9 +1995,15 @@ op::HALT as u32,               // 9
     fn spawn_creates_child() {
         let mut vm = Vm::new(64);
         vm.load_program(&[
-            op::LDI as u32, 0, 20, // LDI r0, 20
-            op::LDI as u32, 1, 42, // LDI r1, 42
-            op::SPAWN as u32, 0, 1, // SPAWN r0, r1
+            op::LDI as u32,
+            0,
+            20, // LDI r0, 20
+            op::LDI as u32,
+            1,
+            42, // LDI r1, 42
+            op::SPAWN as u32,
+            0,
+            1, // SPAWN r0, r1
             op::HALT as u32,
         ]);
         vm.run();
@@ -1977,9 +2041,15 @@ op::HALT as u32,               // 9
         // Write the value 99 into ram[20] using EDIT_OVERWRITE
         let mut vm = Vm::new(64);
         vm.load_program(&[
-            op::LDI as u32, 0, 20,  // LDI r0, 20   (address)
-            op::LDI as u32, 1, 99,  // LDI r1, 99   (value)
-            op::EDIT_OVERWRITE as u32, 0, 1,  // EDIT_OVERWRITE r0, r1
+            op::LDI as u32,
+            0,
+            20, // LDI r0, 20   (address)
+            op::LDI as u32,
+            1,
+            99, // LDI r1, 99   (value)
+            op::EDIT_OVERWRITE as u32,
+            0,
+            1, // EDIT_OVERWRITE r0, r1
             op::HALT as u32,
         ]);
         vm.run();
@@ -1998,17 +2068,23 @@ op::HALT as u32,               // 9
         vm.poke(16, 20);
         vm.poke(17, 30);
         vm.load_program(&[
-            op::LDI as u32, 0, 15,  // LDI r0, 15  (address)
-            op::LDI as u32, 1, 77,  // LDI r1, 77  (value)
-            op::EDIT_INSERT as u32, 0, 1,  // EDIT_INSERT r0, r1
+            op::LDI as u32,
+            0,
+            15, // LDI r0, 15  (address)
+            op::LDI as u32,
+            1,
+            77, // LDI r1, 77  (value)
+            op::EDIT_INSERT as u32,
+            0,
+            1, // EDIT_INSERT r0, r1
             op::HALT as u32,
         ]);
         vm.run();
         assert!(vm.halted);
-        assert_eq!(vm.peek(15), 77);  // inserted value
-        assert_eq!(vm.peek(16), 10);  // shifted right
-        assert_eq!(vm.peek(17), 20);  // shifted right
-        assert_eq!(vm.peek(18), 30);  // shifted right
+        assert_eq!(vm.peek(15), 77); // inserted value
+        assert_eq!(vm.peek(16), 10); // shifted right
+        assert_eq!(vm.peek(17), 20); // shifted right
+        assert_eq!(vm.peek(18), 30); // shifted right
     }
 
     #[test]
@@ -2021,14 +2097,17 @@ op::HALT as u32,               // 9
         vm.poke(16, 222);
         vm.poke(17, 333);
         vm.load_program(&[
-            op::LDI as u32, 0, 15,  // LDI r0, 15  (address)
-            op::EDIT_DELETE as u32, 0,  // EDIT_DELETE r0
+            op::LDI as u32,
+            0,
+            15, // LDI r0, 15  (address)
+            op::EDIT_DELETE as u32,
+            0, // EDIT_DELETE r0
             op::HALT as u32,
         ]);
         vm.run();
         assert!(vm.halted);
-        assert_eq!(vm.peek(15), 222);  // shifted left
-        assert_eq!(vm.peek(16), 333);  // shifted left
+        assert_eq!(vm.peek(15), 222); // shifted left
+        assert_eq!(vm.peek(16), 333); // shifted left
     }
 
     #[test]
@@ -2041,10 +2120,19 @@ op::HALT as u32,               // 9
         vm.poke(31, 200);
         vm.poke(32, 300);
         vm.load_program(&[
-            op::LDI as u32, 0, 40,  // LDI r0, 40  (dst address)
-            op::LDI as u32, 1, 30,  // LDI r1, 30  (src address)
-            op::LDI as u32, 2, 3,   // LDI r2, 3   (count)
-            op::EDIT_BLIT as u32, 0, 1, 2,  // EDIT_BLIT r0, r1, r2
+            op::LDI as u32,
+            0,
+            40, // LDI r0, 40  (dst address)
+            op::LDI as u32,
+            1,
+            30, // LDI r1, 30  (src address)
+            op::LDI as u32,
+            2,
+            3, // LDI r2, 3   (count)
+            op::EDIT_BLIT as u32,
+            0,
+            1,
+            2, // EDIT_BLIT r0, r1, r2
             op::HALT as u32,
         ]);
         vm.run();
@@ -2078,10 +2166,17 @@ op::HALT as u32,               // 9
 
         let mut vm = Vm::new(32);
         vm.load_program(&[
-            op::LDI as u32, 0, 20,              // addr 0: LDI r0, 20
-            op::LDI as u32, 1, op::HALT as u32, // addr 3: LDI r1, HALT
-            op::EDIT_OVERWRITE as u32, 0, 1,    // addr 6: EDIT_OVERWRITE r0, r1
-            op::JMP as u32, 20 | 0x80000000,      // addr 9: JMP 20 (absolute)
+            op::LDI as u32,
+            0,
+            20, // addr 0: LDI r0, 20
+            op::LDI as u32,
+            1,
+            op::HALT as u32, // addr 3: LDI r1, HALT
+            op::EDIT_OVERWRITE as u32,
+            0,
+            1, // addr 6: EDIT_OVERWRITE r0, r1
+            op::JMP as u32,
+            20 | 0x80000000, // addr 9: JMP 20 (absolute)
         ]);
         // ram[20] starts as 0 (NOP-like unknown). The program will
         // overwrite it with HALT before jumping there.
@@ -2112,28 +2207,57 @@ op::HALT as u32,               // 9
         let mut vm = Vm::new(64);
         vm.load_program(&[
             // Write LDI r0, 42 at address 50
-            op::LDI as u32, 0, 50,              // r0 = 50 (write address)
-            op::LDI as u32, 1, op::LDI as u32,  // r1 = LDI opcode
-            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[50] = LDI
+            op::LDI as u32,
+            0,
+            50, // r0 = 50 (write address)
+            op::LDI as u32,
+            1,
+            op::LDI as u32, // r1 = LDI opcode
+            op::EDIT_OVERWRITE as u32,
+            0,
+            1, // ram[50] = LDI
             // Write arg1 (register 0) at address 51
-            op::LDI as u32, 0, 51,              // r0 = 51
-            op::LDI as u32, 1, 0,               // r1 = 0 (dst register index)
-            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[51] = 0
+            op::LDI as u32,
+            0,
+            51, // r0 = 51
+            op::LDI as u32,
+            1,
+            0, // r1 = 0 (dst register index)
+            op::EDIT_OVERWRITE as u32,
+            0,
+            1, // ram[51] = 0
             // Write arg2 (value 42) at address 52
-            op::LDI as u32, 0, 52,              // r0 = 52
-            op::LDI as u32, 1, 42,              // r1 = 42
-            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[52] = 42
+            op::LDI as u32,
+            0,
+            52, // r0 = 52
+            op::LDI as u32,
+            1,
+            42, // r1 = 42
+            op::EDIT_OVERWRITE as u32,
+            0,
+            1, // ram[52] = 42
             // Write HALT at address 53
-            op::LDI as u32, 0, 53,              // r0 = 53
-            op::LDI as u32, 1, op::HALT as u32, // r1 = HALT
-            op::EDIT_OVERWRITE as u32, 0, 1,    // ram[53] = HALT
+            op::LDI as u32,
+            0,
+            53, // r0 = 53
+            op::LDI as u32,
+            1,
+            op::HALT as u32, // r1 = HALT
+            op::EDIT_OVERWRITE as u32,
+            0,
+            1, // ram[53] = HALT
             // Jump to the self-authored code at 50
-            op::JMP as u32,            50 | 0x80000000, // JMP 50 (absolute)
-]);
+            op::JMP as u32,
+            50 | 0x80000000, // JMP 50 (absolute)
+        ]);
 
         let cycles = vm.run();
 
-        assert!(vm.halted, "VM did not halt after {} cycles, pc={}", cycles, vm.pc);
+        assert!(
+            vm.halted,
+            "VM did not halt after {} cycles, pc={}",
+            cycles, vm.pc
+        );
         // r0 is set to 42 by the self-authored LDI instruction
         assert_eq!(vm.regs[0], 42);
         // Verify the authored bytes are still in RAM
@@ -2157,12 +2281,19 @@ op::HALT as u32,               // 9
         vm.load_program(&[
             // Phase 1: at address 0
             // Write HALT at address 50
-            op::LDI as u32, 0, 50,              // addr 0
-            op::LDI as u32, 1, op::HALT as u32, // addr 3
-            op::EDIT_OVERWRITE as u32, 0, 1,    // addr 6
+            op::LDI as u32,
+            0,
+            50, // addr 0
+            op::LDI as u32,
+            1,
+            op::HALT as u32, // addr 3
+            op::EDIT_OVERWRITE as u32,
+            0,
+            1, // addr 6
             // Jump to phase 2
-            op::JMP as u32,            20 | 0x80000000, // addr 9 (absolute)
-]);
+            op::JMP as u32,
+            20 | 0x80000000, // addr 9 (absolute)
+        ]);
         // Phase 2: at address 20 (pre-written)
         vm.poke(20, op::LDI as u32);
         vm.poke(21, 0);
@@ -2204,8 +2335,7 @@ op::HALT as u32,               // 9
     fn run_micro_asm(source: &str) -> Vm {
         let asm_src = std::fs::read_to_string("programs/micro-asm.asm")
             .expect("programs/micro-asm.asm not found — run from project root");
-        let compiled = assembler::assemble(&asm_src)
-            .expect("micro-asm.asm failed to assemble");
+        let compiled = assembler::assemble(&asm_src).expect("micro-asm.asm failed to assemble");
 
         let mut vm = Vm::new(4096);
         // Load assembled code — pixels Vec is indexed by address (0x800+ has the code)
@@ -2216,9 +2346,13 @@ op::HALT as u32,               // 9
         }
 
         // Clear output area
-        for v in vm.ram[..TEXT_BUF].iter_mut() { *v = 0; }
+        for v in vm.ram[..TEXT_BUF].iter_mut() {
+            *v = 0;
+        }
         // Clear text buffer and write source
-        for v in vm.ram[TEXT_BUF..MICRO_ASM].iter_mut() { *v = 0; }
+        for v in vm.ram[TEXT_BUF..MICRO_ASM].iter_mut() {
+            *v = 0;
+        }
         for (i, byte) in source.bytes().enumerate() {
             let addr = TEXT_BUF + i;
             if addr < MICRO_ASM {
@@ -2234,7 +2368,11 @@ op::HALT as u32,               // 9
             vm.step();
             cycles += 1;
         }
-        assert!(vm.halted, "micro-asm did not halt after {cycles} cycles, pc={}", vm.pc);
+        assert!(
+            vm.halted,
+            "micro-asm did not halt after {cycles} cycles, pc={}",
+            vm.pc
+        );
         vm
     }
 
@@ -2243,7 +2381,7 @@ op::HALT as u32,               // 9
         // Simplest program: 'H' → HALT (0x48)
         let vm = run_micro_asm("H");
         assert_eq!(vm.peek(0), 0x48); // HALT opcode
-        assert_eq!(vm.peek(1), 0);    // null terminator
+        assert_eq!(vm.peek(1), 0); // null terminator
     }
 
     #[test]
@@ -2253,7 +2391,7 @@ op::HALT as u32,               // 9
         assert_eq!(vm.peek(0), 0x49); // 'I' = LDI
         assert_eq!(vm.peek(1), 0x30); // '0' = register index 0
         assert_eq!(vm.peek(2), 0x21); // '!' = value 33
-        assert_eq!(vm.peek(3), 0);    // null terminator
+        assert_eq!(vm.peek(3), 0); // null terminator
     }
 
     #[test]
@@ -2304,12 +2442,24 @@ op::HALT as u32,               // 9
         //   B $00 $09  → BRANCH → addr 9 @ 15
         let vm = run_micro_asm("I 0 !\nI 1 $01\nI 2 $20\nS 2 0\nA 0 1\nB $00 $09");
 
-        assert_eq!(vm.peek(0), 0x49); assert_eq!(vm.peek(1), 0x30); assert_eq!(vm.peek(2), 0x21);
-        assert_eq!(vm.peek(3), 0x49); assert_eq!(vm.peek(4), 0x31); assert_eq!(vm.peek(5), 0x01);
-        assert_eq!(vm.peek(6), 0x49); assert_eq!(vm.peek(7), 0x32); assert_eq!(vm.peek(8), 0x20);
-        assert_eq!(vm.peek(9), 0x53); assert_eq!(vm.peek(10), 0x32); assert_eq!(vm.peek(11), 0x30);
-        assert_eq!(vm.peek(12), 0x41); assert_eq!(vm.peek(13), 0x30); assert_eq!(vm.peek(14), 0x31);
-        assert_eq!(vm.peek(15), 0x42); assert_eq!(vm.peek(16), 0x00); assert_eq!(vm.peek(17), 0x09);
+        assert_eq!(vm.peek(0), 0x49);
+        assert_eq!(vm.peek(1), 0x30);
+        assert_eq!(vm.peek(2), 0x21);
+        assert_eq!(vm.peek(3), 0x49);
+        assert_eq!(vm.peek(4), 0x31);
+        assert_eq!(vm.peek(5), 0x01);
+        assert_eq!(vm.peek(6), 0x49);
+        assert_eq!(vm.peek(7), 0x32);
+        assert_eq!(vm.peek(8), 0x20);
+        assert_eq!(vm.peek(9), 0x53);
+        assert_eq!(vm.peek(10), 0x32);
+        assert_eq!(vm.peek(11), 0x30);
+        assert_eq!(vm.peek(12), 0x41);
+        assert_eq!(vm.peek(13), 0x30);
+        assert_eq!(vm.peek(14), 0x31);
+        assert_eq!(vm.peek(15), 0x42);
+        assert_eq!(vm.peek(16), 0x00);
+        assert_eq!(vm.peek(17), 0x09);
         assert_eq!(vm.peek(18), 0); // null terminator
     }
 
@@ -2332,7 +2482,7 @@ op::HALT as u32,               // 9
         assert_eq!(vm.peek(6), 0x42); // B
         assert_eq!(vm.peek(7), 0x00); // $00
         assert_eq!(vm.peek(8), 0x00 | 0x80000000); // @loop → 0 (absolute)
-        assert_eq!(vm.peek(9), 0);    // null terminator
+        assert_eq!(vm.peek(9), 0); // null terminator
     }
 
     #[test]
@@ -2344,9 +2494,15 @@ op::HALT as u32,               // 9
         //   H           → @ 9: [0x48]
         let vm = run_micro_asm("I 0 !\nB $00 @done\nI 1 $07\n#done\nH");
 
-        assert_eq!(vm.peek(0), 0x49); assert_eq!(vm.peek(1), 0x30); assert_eq!(vm.peek(2), 0x21);
-        assert_eq!(vm.peek(3), 0x42); assert_eq!(vm.peek(4), 0x00); assert_eq!(vm.peek(5), 0x09 | 0x80000000);
-        assert_eq!(vm.peek(6), 0x49); assert_eq!(vm.peek(7), 0x31); assert_eq!(vm.peek(8), 0x07);
+        assert_eq!(vm.peek(0), 0x49);
+        assert_eq!(vm.peek(1), 0x30);
+        assert_eq!(vm.peek(2), 0x21);
+        assert_eq!(vm.peek(3), 0x42);
+        assert_eq!(vm.peek(4), 0x00);
+        assert_eq!(vm.peek(5), 0x09 | 0x80000000);
+        assert_eq!(vm.peek(6), 0x49);
+        assert_eq!(vm.peek(7), 0x31);
+        assert_eq!(vm.peek(8), 0x07);
         assert_eq!(vm.peek(9), 0x48); // H at the "done" label address
         assert_eq!(vm.peek(10), 0);
     }
@@ -2398,7 +2554,7 @@ op::HALT as u32,               // 9
 
         // #loop at addr 9
         // S 2 0 → STORE r2, r0
-        assert_eq!(vm.peek(9),  0x53); // S (STORE)
+        assert_eq!(vm.peek(9), 0x53); // S (STORE)
         assert_eq!(vm.peek(10), 0x32); // 2 (r2)
         assert_eq!(vm.peek(11), 0x30); // 0 (r0)
 
@@ -2417,8 +2573,8 @@ op::HALT as u32,               // 9
 
     #[test]
     fn micro_asm_fill_s_program() {
-        let source = std::fs::read_to_string("programs/fill-s.asm")
-            .expect("programs/fill-s.asm not found");
+        let source =
+            std::fs::read_to_string("programs/fill-s.asm").expect("programs/fill-s.asm not found");
         let vm = run_micro_asm(&source);
 
         // I 0 $21
@@ -2435,7 +2591,7 @@ op::HALT as u32,               // 9
         assert_eq!(vm.peek(8), 0x00);
         // #loop = label at addr 9
         // S 2 0
-        assert_eq!(vm.peek(9),  0x53); // S (STORE)
+        assert_eq!(vm.peek(9), 0x53); // S (STORE)
         assert_eq!(vm.peek(10), 0x32); // 2 (r2)
         assert_eq!(vm.peek(11), 0x30); // 0 (r0)
         // A 0 1
@@ -2452,7 +2608,7 @@ op::HALT as u32,               // 9
         assert_eq!(vm.peek(20), 0x09 | 0x80000000); // @loop -> 9 (absolute)
         // H
         assert_eq!(vm.peek(21), 0x48); // H (HALT)
-        assert_eq!(vm.peek(22), 0);    // null terminator
+        assert_eq!(vm.peek(22), 0); // null terminator
     }
 
     #[test]
@@ -2474,9 +2630,9 @@ op::HALT as u32,               // 9
         assert_eq!(vm.peek(7), 0x30); // 0
         assert_eq!(vm.peek(8), 0x31); // 1
         // J $20 (JMP 32)
-        assert_eq!(vm.peek(9), 0x4A);  // J (JMP)
+        assert_eq!(vm.peek(9), 0x4A); // J (JMP)
         assert_eq!(vm.peek(10), 0x20); // $20 (32)
-        assert_eq!(vm.peek(11), 0);    // null terminator
+        assert_eq!(vm.peek(11), 0); // null terminator
     }
 
     // ── Canvas-typable program tests ────────────────────────────────
@@ -2496,17 +2652,26 @@ op::HALT as u32,               // 9
         // HALT            → H(0x48)
         let mut vm = Vm::new(1024);
         vm.load_program(&[
-            b'I' as u32, b'0' as u32, b'2' as u32,   // LDI r0, 50
-            b'I' as u32, b'1' as u32, b'2' as u32,   // LDI r1, 50
-            b'I' as u32, b'2' as u32, b'~' as u32,   // LDI r2, 126
-            b'P' as u32, b'0' as u32, b'1' as u32, b'2' as u32, // PSET r0,r1,r2
-            b'H' as u32,                              // HALT
+            b'I' as u32,
+            b'0' as u32,
+            b'2' as u32, // LDI r0, 50
+            b'I' as u32,
+            b'1' as u32,
+            b'2' as u32, // LDI r1, 50
+            b'I' as u32,
+            b'2' as u32,
+            b'~' as u32, // LDI r2, 126
+            b'P' as u32,
+            b'0' as u32,
+            b'1' as u32,
+            b'2' as u32, // PSET r0,r1,r2
+            b'H' as u32, // HALT
         ]);
         vm.run();
         assert!(vm.halted);
         assert_eq!(vm.pc, 14); // 3+3+3+4+1 = 14
-        assert_eq!(vm.regs[0], 50);  // x
-        assert_eq!(vm.regs[1], 50);  // y
+        assert_eq!(vm.regs[0], 50); // x
+        assert_eq!(vm.regs[1], 50); // y
         assert_eq!(vm.regs[2], 126); // color
         // Check the pixel was drawn on the VM screen
         assert_eq!(vm.screen[50 * 256 + 50], 126);
@@ -2523,7 +2688,9 @@ op::HALT as u32,               // 9
         // Test r10 (0x3A = ':') — load value 42 into r10
         let mut vm = Vm::new(256);
         vm.load_program(&[
-            b'I' as u32, b':' as u32, 42,  // LDI r10, 42
+            b'I' as u32,
+            b':' as u32,
+            42, // LDI r10, 42
             b'H' as u32,
         ]);
         vm.run();
@@ -2534,7 +2701,9 @@ op::HALT as u32,               // 9
         // In argument position, 'A' = r17. Position matters.
         let mut vm2 = Vm::new(256);
         vm2.load_program(&[
-            b'I' as u32, b'A' as u32, 99,  // LDI r17, 99
+            b'I' as u32,
+            b'A' as u32,
+            99, // LDI r17, 99
             b'H' as u32,
         ]);
         vm2.run();
@@ -2544,7 +2713,9 @@ op::HALT as u32,               // 9
         // Test r31 (0x4F = 'O')
         let mut vm3 = Vm::new(256);
         vm3.load_program(&[
-            b'I' as u32, b'O' as u32, 77,  // LDI r31, 77
+            b'I' as u32,
+            b'O' as u32,
+            77, // LDI r31, 77
             b'H' as u32,
         ]);
         vm3.run();
@@ -2558,9 +2729,15 @@ op::HALT as u32,               // 9
         // First A = ADD opcode, second A = r17, : = r10
         let mut vm = Vm::new(256);
         vm.load_program(&[
-            b'I' as u32, b'A' as u32, 30,   // LDI r17, 30
-            b'I' as u32, b':' as u32, 12,   // LDI r10, 12
-            b'A' as u32, b'A' as u32, b':' as u32, // ADD r17, r10
+            b'I' as u32,
+            b'A' as u32,
+            30, // LDI r17, 30
+            b'I' as u32,
+            b':' as u32,
+            12, // LDI r10, 12
+            b'A' as u32,
+            b'A' as u32,
+            b':' as u32, // ADD r17, r10
             b'H' as u32,
         ]);
         vm.run();

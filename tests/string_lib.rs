@@ -150,7 +150,11 @@ fn string_strcpy_hello() {
 
     assert!(vm.halted);
     assert_eq!(vm.regs[0], 300, "strcpy should return destination address");
-    assert_eq!(read_string(&vm, 300), "Hello", "destination should contain \"Hello\"");
+    assert_eq!(
+        read_string(&vm, 300),
+        "Hello",
+        "destination should contain \"Hello\""
+    );
 }
 
 #[test]
@@ -191,7 +195,11 @@ fn string_strcpy_preserves_source() {
 
     assert!(vm.halted);
     assert_eq!(read_string(&vm, 200), "Test", "source should be preserved");
-    assert_eq!(read_string(&vm, 300), "Test", "destination should match source");
+    assert_eq!(
+        read_string(&vm, 300),
+        "Test",
+        "destination should match source"
+    );
 }
 
 // ── STRCMP TESTS ──────────────────────────────────────────────────────

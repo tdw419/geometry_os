@@ -172,7 +172,10 @@ fn eval_expression(expr: &str) -> Result<u32, String> {
     let tokens = tokenize_expr(expr)?;
     let (result, pos) = parse_add_sub(&tokens, 0)?;
     if pos != tokens.len() {
-        return Err(format!("unexpected token at position {} in '{}'", pos, expr));
+        return Err(format!(
+            "unexpected token at position {} in '{}'",
+            pos, expr
+        ));
     }
     Ok(result)
 }
@@ -210,9 +213,7 @@ fn tokenize_expr(expr: &str) -> Result<Vec<ExprToken>, String> {
                     }
                 }
                 // Check for hex prefix: "0" followed by 'x'/'X'
-                if num_str == "0"
-                    && (chars.peek() == Some(&'x') || chars.peek() == Some(&'X'))
-                {
+                if num_str == "0" && (chars.peek() == Some(&'x') || chars.peek() == Some(&'X')) {
                     chars.next(); // consume 'x'
                     let mut hex_str = String::new();
                     while let Some(&d) = chars.peek() {
@@ -261,7 +262,7 @@ fn tokenize_expr(expr: &str) -> Result<Vec<ExprToken>, String> {
                 return Err(format!(
                     "unexpected character '{}' in expression '{}'",
                     ch, expr
-                ))
+                ));
             }
         }
     }
@@ -349,13 +350,13 @@ enum ArgToken {
 /// Return the condition code for a branch-alias mnemonic, or None.
 fn branch_alias_cond(mnemonic: &str) -> Option<u8> {
     match mnemonic.to_uppercase().as_str() {
-        "BEQ"  => Some(0),
-        "BNE"  => Some(1),
-        "BLT"  => Some(2),
-        "BGE"  => Some(3),
+        "BEQ" => Some(0),
+        "BNE" => Some(1),
+        "BLT" => Some(2),
+        "BGE" => Some(3),
         "BLTU" => Some(4),
         "BGEU" => Some(5),
-        "BAL"  => Some(15),  // unconditional branch
+        "BAL" => Some(15), // unconditional branch
         _ => None,
     }
 }
@@ -422,13 +423,13 @@ fn parse_string_literal(s: &str, line: usize) -> Result<Vec<u8>, AsmError> {
                     return Err(AsmError {
                         line,
                         message: format!("unknown escape sequence: \\{}", other),
-                    })
+                    });
                 }
                 None => {
                     return Err(AsmError {
                         line,
                         message: "unexpected end of string after \\".into(),
-                    })
+                    });
                 }
             }
         } else {
@@ -516,11 +517,10 @@ fn resolve_includes(
                 }
             }
 
-            let abs_path =
-                found_path.ok_or_else(|| AsmError {
-                    line: line_num,
-                    message: format!("included file not found: {}", filename_str),
-                })?;
+            let abs_path = found_path.ok_or_else(|| AsmError {
+                line: line_num,
+                message: format!("included file not found: {}", filename_str),
+            })?;
 
             // Canonicalize for cycle detection
             let canonical = abs_path
@@ -536,11 +536,10 @@ fn resolve_includes(
             }
             seen.insert(canonical);
 
-            let included_content =
-                std::fs::read_to_string(&abs_path).map_err(|e| AsmError {
-                    line: line_num,
-                    message: format!("cannot read '{}': {}", abs_path.display(), e),
-                })?;
+            let included_content = std::fs::read_to_string(&abs_path).map_err(|e| AsmError {
+                line: line_num,
+                message: format!("cannot read '{}': {}", abs_path.display(), e),
+            })?;
 
             let include_dir = abs_path.parent().unwrap_or(std::path::Path::new("."));
             let expanded = resolve_includes(
@@ -598,7 +597,11 @@ fn expand_macros(source: &str) -> Result<String, AsmError> {
                 continue;
             }
             // Add body line (preserve original indentation relative to macro)
-            current_macro.as_mut().unwrap().body_lines.push(raw_line.to_string());
+            current_macro
+                .as_mut()
+                .unwrap()
+                .body_lines
+                .push(raw_line.to_string());
             continue;
         }
 
@@ -660,7 +663,8 @@ fn expand_macros(source: &str) -> Result<String, AsmError> {
         // Not a directive -- check if this line is a macro invocation
         // A macro invocation starts with the macro name as the first token
         let first_token = stripped.split_whitespace().next().unwrap_or("");
-        if let Some(def) = macros.get(first_token.to_uppercase().as_str())
+        if let Some(def) = macros
+            .get(first_token.to_uppercase().as_str())
             .or_else(|| macros.get(first_token))
         {
             // Parse invocation arguments (comma-separated, after the name)
@@ -725,7 +729,10 @@ fn expand_macros(source: &str) -> Result<String, AsmError> {
 }
 
 /// Inner assembly implementation. Takes optional base_dir for error context.
-fn assemble_inner(source: &str, _base_dir: Option<&std::path::Path>) -> Result<Assembled, AsmError> {
+fn assemble_inner(
+    source: &str,
+    _base_dir: Option<&std::path::Path>,
+) -> Result<Assembled, AsmError> {
     // Expand macros before assembly
     let source = expand_macros(source)?;
     let mut labels: HashMap<String, usize> = HashMap::new();
@@ -831,11 +838,19 @@ fn assemble_inner(source: &str, _base_dir: Option<&std::path::Path>) -> Result<A
         let mnemonic = parts[0];
 
         // Parse comma-separated arguments (shared by all paths below)
-        let arg_str = if parts.len() > 1 { parts[1..].join("") } else { String::new() };
+        let arg_str = if parts.len() > 1 {
+            parts[1..].join("")
+        } else {
+            String::new()
+        };
         let arg_tokens: Vec<&str> = if arg_str.is_empty() {
             vec![]
         } else {
-            arg_str.split(',').map(|s| s.trim()).filter(|s| !s.is_empty()).collect()
+            arg_str
+                .split(',')
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .collect()
         };
 
         // ── Branch aliases: BEQ r0, r1, label → BRANCH packed_cond, label ──
@@ -973,11 +988,10 @@ fn assemble_inner(source: &str, _base_dir: Option<&std::path::Path>) -> Result<A
                             }
                         }
                         ArgToken::Label(name) => {
-                            let label_addr =
-                                *labels.get(name).ok_or_else(|| AsmError {
-                                    line: instr.line,
-                                    message: format!("undefined label: {}", name),
-                                })? as u32;
+                            let label_addr = *labels.get(name).ok_or_else(|| AsmError {
+                                line: instr.line,
+                                message: format!("undefined label: {}", name),
+                            })? as u32;
                             if is_addr_arg {
                                 label_addr | 0x80000000
                             } else {
@@ -991,8 +1005,7 @@ fn assemble_inner(source: &str, _base_dir: Option<&std::path::Path>) -> Result<A
                                     ArgToken::Immediate(v) => Ok(*v),
                                     _ => Err(AsmError {
                                         line: instr.line,
-                                        message: "branch condition register must be r0-r31"
-                                            .into(),
+                                        message: "branch condition register must be r0-r31".into(),
                                     }),
                                 }
                             };
@@ -1031,7 +1044,8 @@ fn parse_number(s: &str) -> Result<u32, String> {
     if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
         u32::from_str_radix(hex, 16).map_err(|e| format!("bad hex '{}': {}", s, e))
     } else {
-        s.parse::<u32>().map_err(|e| format!("bad number '{}': {}", s, e))
+        s.parse::<u32>()
+            .map_err(|e| format!("bad number '{}': {}", s, e))
     }
 }
 
@@ -1100,7 +1114,8 @@ loop:
             asm.pixels,
             vec![
                 op::NOP as u32,
-                op::JMP as u32, 0 | 0x80000000,
+                op::JMP as u32,
+                0 | 0x80000000,
                 op::HALT as u32,
             ]
         );
@@ -1136,10 +1151,16 @@ HALT
         assert_eq!(
             asm.pixels,
             vec![
-                op::LDI as u32, 0, 5,       // addr 0-2
-                op::LDI as u32, 1, 3,       // addr 3-5
-                op::ADD as u32, 0, 1,       // addr 6-8
-                op::HALT as u32,            // addr 9
+                op::LDI as u32,
+                0,
+                5, // addr 0-2
+                op::LDI as u32,
+                1,
+                3, // addr 3-5
+                op::ADD as u32,
+                0,
+                1,               // addr 6-8
+                op::HALT as u32, // addr 9
             ]
         );
         assert_eq!(asm.end_addr, 10);
@@ -1180,10 +1201,10 @@ loop:
         let asm = assemble(src).unwrap();
         assert_eq!(asm.pixels[0], op::BRANCH as u32);
         let cond_pixel = asm.pixels[1];
-        assert_eq!(cond_pixel & 0xFF, 0);          // BEQ = 0
-        assert_eq!((cond_pixel >> 16) & 0xFF, 0);  // r1 = r0 = index 0
-        assert_eq!((cond_pixel >> 24) & 0xFF, 1);  // r2 = r1 = index 1
-        assert_eq!(asm.pixels[2], 0 | 0x80000000);              // target = loop = addr 0 (absolute)
+        assert_eq!(cond_pixel & 0xFF, 0); // BEQ = 0
+        assert_eq!((cond_pixel >> 16) & 0xFF, 0); // r1 = r0 = index 0
+        assert_eq!((cond_pixel >> 24) & 0xFF, 1); // r2 = r1 = index 1
+        assert_eq!(asm.pixels[2], 0 | 0x80000000); // target = loop = addr 0 (absolute)
     }
 
     #[test]
@@ -1197,10 +1218,10 @@ loop:
         // NOP at 0, BRANCH at 1
         assert_eq!(asm.pixels[1], op::BRANCH as u32);
         let cond_pixel = asm.pixels[2];
-        assert_eq!(cond_pixel & 0xFF, 1);          // BNE = 1
-        assert_eq!((cond_pixel >> 16) & 0xFF, 2);  // r2
-        assert_eq!((cond_pixel >> 24) & 0xFF, 3);  // r3
-        assert_eq!(asm.pixels[3], 0 | 0x80000000);              // target = loop = addr 0 (absolute)
+        assert_eq!(cond_pixel & 0xFF, 1); // BNE = 1
+        assert_eq!((cond_pixel >> 16) & 0xFF, 2); // r2
+        assert_eq!((cond_pixel >> 24) & 0xFF, 3); // r3
+        assert_eq!(asm.pixels[3], 0 | 0x80000000); // target = loop = addr 0 (absolute)
     }
 
     #[test]
@@ -1222,7 +1243,7 @@ target:
         assert_eq!(asm.pixels[1], op::BRANCH as u32);
         let cond_pixel = asm.pixels[2];
         assert_eq!(cond_pixel & 0xFF, 15); // BAL = 15
-        assert_eq!(asm.pixels[3], 0 | 0x80000000);       // target = addr 0 (absolute)
+        assert_eq!(asm.pixels[3], 0 | 0x80000000); // target = addr 0 (absolute)
     }
 
     #[test]
@@ -1418,10 +1439,7 @@ msg:
     fn asciz_escape_sequences() {
         let src = r#".asciz "A\nB""#;
         let asm = assemble(src).unwrap();
-        assert_eq!(
-            asm.pixels,
-            vec![b'A' as u32, b'\n' as u32, b'B' as u32, 0]
-        );
+        assert_eq!(asm.pixels, vec![b'A' as u32, b'\n' as u32, b'B' as u32, 0]);
     }
 
     #[test]
@@ -1437,7 +1455,14 @@ msg:
         let asm = assemble(src).unwrap();
         assert_eq!(
             asm.pixels,
-            vec![b'a' as u32, b'\\' as u32, b'b' as u32, b'"' as u32, b'c' as u32, 0]
+            vec![
+                b'a' as u32,
+                b'\\' as u32,
+                b'b' as u32,
+                b'"' as u32,
+                b'c' as u32,
+                0
+            ]
         );
     }
 
@@ -1664,11 +1689,7 @@ greeting:
         std::fs::write(&lib_path, "LDI r0, 10\n").unwrap();
 
         let main_path = tmp_dir.join("main.gasm");
-        std::fs::write(
-            &main_path,
-            ".include \"lib.gasm\"\nADD r0, r0\nHALT\n",
-        )
-        .unwrap();
+        std::fs::write(&main_path, ".include \"lib.gasm\"\nADD r0, r0\nHALT\n").unwrap();
 
         let asm = assemble_file(&main_path, &[]).unwrap();
         // LDI r0, 10 at 0-2 (width 3)
@@ -1692,11 +1713,7 @@ greeting:
         std::fs::write(&lib_path, "NOP\nstart:\n").unwrap();
 
         let main_path = tmp_dir.join("main.gasm");
-        std::fs::write(
-            &main_path,
-            ".include \"lib.gasm\"\nJMP start\nHALT\n",
-        )
-        .unwrap();
+        std::fs::write(&main_path, ".include \"lib.gasm\"\nJMP start\nHALT\n").unwrap();
 
         let asm = assemble_file(&main_path, &[]).unwrap();
         assert_eq!(asm.labels.get("start"), Some(&1)); // NOP at 0, start at 1
@@ -1718,11 +1735,7 @@ greeting:
         std::fs::write(&outer_path, ".include \"inner.gasm\"\n").unwrap();
 
         let main_path = tmp_dir.join("main.gasm");
-        std::fs::write(
-            &main_path,
-            ".include \"outer.gasm\"\nHALT\n",
-        )
-        .unwrap();
+        std::fs::write(&main_path, ".include \"outer.gasm\"\nHALT\n").unwrap();
 
         let asm = assemble_file(&main_path, &[]).unwrap();
         assert_eq!(asm.pixels[0], op::LDI as u32);
@@ -1789,10 +1802,7 @@ SET42 r0
 HALT
 ";
         let asm = assemble(src).unwrap();
-        assert_eq!(
-            asm.pixels,
-            vec![op::LDI as u32, 0, 42, op::HALT as u32]
-        );
+        assert_eq!(asm.pixels, vec![op::LDI as u32, 0, 42, op::HALT as u32]);
     }
 
     #[test]
