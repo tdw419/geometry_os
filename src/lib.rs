@@ -6,6 +6,7 @@ pub mod color_map;
 pub mod editor;
 pub mod font;
 pub mod forge;
+pub mod heap;
 pub mod opcodes;
 pub mod pixel;
 pub mod shell;
