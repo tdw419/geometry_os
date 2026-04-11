@@ -251,13 +251,20 @@ def run_cycle(task_override=None, dry_run=False):
 # ---------------------------------------------------------------------------
 
 def run_loop(task_override=None):
-    """Run cycles continuously until stopped."""
+    """Run cycles continuously until stopped.
+    
+    Returns exit codes for systemd:
+        0 = roadmp done, stop permanently
+        1 = transient failure, restart after cooldown
+        2 = hard failure (circuit breaker / signal), stop permanently
+    """
     log("=" * 60)
     log("Geometry OS Dev Chain -- self-chaining loop started")
     log("=" * 60)
 
     consecutive_failures = 0
     cycle = 0
+    halt_reason = "unknown"
 
     while _running:
         cycle += 1
@@ -269,12 +276,14 @@ def run_loop(task_override=None):
             consecutive_failures = 0
             log(f"Cycle {cycle} succeeded")
         elif result == 1:
+            halt_reason = "gate_stopped"
             log(f"Cycle {cycle} gate stopped -- chain halting")
             break
         else:
             consecutive_failures += 1
             log(f"Cycle {cycle} failed ({consecutive_failures} consecutive)")
             if consecutive_failures >= 2:
+                halt_reason = "circuit_breaker"
                 log("Circuit breaker: 2 consecutive failures, stopping.")
                 break
 
@@ -282,9 +291,26 @@ def run_loop(task_override=None):
         if _running:
             time.sleep(5)
 
-    log(f"Chain ended after {cycle} cycles ({consecutive_failures} failures)")
+    if not _running:
+        halt_reason = "signal"
+
     items = get_unchecked_roadmap_items()
+    log(f"Chain ended after {cycle} cycles ({consecutive_failures} failures)")
     log(f"Remaining roadmap items: {len(items)}")
+
+    # Exit codes for systemd Restart=on-failure
+    if halt_reason == "gate_stopped":
+        log("Exit 1 (transient) -- systemd will restart after cooldown")
+        return 1
+    elif halt_reason in ("circuit_breaker", "signal"):
+        log(f"Exit 2 (hard stop: {halt_reason}) -- no auto-restart")
+        return 2
+    elif not items:
+        log("Exit 0 (roadmap complete) -- no auto-restart")
+        return 0
+    else:
+        # Shouldn't reach here, but treat as transient
+        return 1
 
 
 # ---------------------------------------------------------------------------
@@ -349,8 +375,7 @@ def main():
         return run_cycle(dry_run=args.dry_run)
 
     # Default: self-chaining loop
-    run_loop()
-    return 0
+    return run_loop()
 
 
 if __name__ == "__main__":
