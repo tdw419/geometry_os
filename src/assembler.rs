@@ -977,7 +977,8 @@ fn assemble_inner(
                         instr.opcode,
                         crate::opcodes::op::JMP
                             | crate::opcodes::op::BRANCH
-                            | crate::opcodes::op::CALL,
+                            | crate::opcodes::op::CALL
+                            | crate::opcodes::op::STI,
                     ) && i == instr.args.len() - 1;
 
                     let value = match arg {
