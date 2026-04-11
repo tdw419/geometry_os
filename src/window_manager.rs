@@ -403,7 +403,7 @@ mod tests {
     #[test]
     fn test_z_order_hit_test_frontmost() {
         let mut wm = WindowManager::new();
-        let id1 = wm.create_window("Back", 10, 10, 200, 150);
+        let _id1 = wm.create_window("Back", 10, 10, 200, 150);
         let id2 = wm.create_window("Front", 10, 10, 200, 150);
 
         // Both at same position; frontmost (id2) should be hit
@@ -415,9 +415,9 @@ mod tests {
     fn test_click_title_bar_bring_to_front() {
         let mut wm = WindowManager::new();
         let id1 = wm.create_window("Win1", 10, 10, 200, 150);
-        let id2 = wm.create_window("Win2", 10, 10, 200, 150);
+        let _id2 = wm.create_window("Win2", 10, 10, 200, 150);
 
-        // id2 is in front. Move id1 so its title bar is visible but id2 overlaps.
+        // _id2 is in front. Move id1 so its title bar is visible but _id2 overlaps.
         wm.get_window_mut(id1).unwrap().move_to(10, 100);
         // Now id1 title bar is at y=100..120, content at 120..250
         // id2 is at y=10..160

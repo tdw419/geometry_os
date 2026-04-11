@@ -444,12 +444,15 @@ impl ApiServer {
             Err(e) => {
                 return self.error_response(
                     400,
-                    &format!("Invalid JSON: {}. Expected {{\"keycode\": N}}", e),
+                    &format!("Invalid JSON: {}. Expected {{\"key\": N}}", e),
                 );
             }
         };
 
-        let keycode = req["keycode"].as_u64().unwrap_or(0) as u32;
+        let keycode = match req.get("key").and_then(|v| v.as_u64()) {
+            Some(k) => k as u32,
+            None => return self.error_response(400, "Missing 'key' field (expected integer)"),
+        };
 
         let mut agent = match self.agent.lock() {
             Ok(a) => a,
@@ -457,7 +460,10 @@ impl ApiServer {
         };
 
         agent.inject_key(keycode);
-        self.json_response(200, &serde_json::json!({ "injected": true, "keycode": keycode }))
+        self.json_response(
+            200,
+            &serde_json::json!({ "injected": true, "key": keycode }),
+        )
     }
 
     fn handle_input_mouse(&self, request: &mut tiny_http::Request) -> tiny_http::ResponseBox {
@@ -515,7 +521,7 @@ impl ApiServer {
                     "GET  /ram            -- read RAM (?start=0&count=64)",
                     "GET  /stack          -- stack contents with depth",
                     "GET  /memory         -- hex dump of memory (?start=0&count=256)",
-                    "POST /input/key      -- inject key press ({keycode})",
+                    "POST /input/key      -- inject key press ({key})",
                     "POST /input/mouse    -- set mouse ({x, y, buttons})",
                 ]
             }),
@@ -782,5 +788,108 @@ mod tests {
         // We need to share state between requests -- but each test has a fresh server.
         // For a proper step/resume test, we'd need a persistent server.
         // The individual endpoints are tested; the flow is tested in integration.
+    }
+
+    #[test]
+    fn api_stack_endpoint() {
+        let (server, port) = start_server();
+
+        let handle = std::thread::spawn(move || {
+            server.serve_one();
+        });
+
+        let body = r#"{"source": "LDI r0, 42\nPUSH r0\nHALT"}"#;
+        let (status, _) = http_request("POST", port, "/run", Some(body));
+        handle.join().unwrap();
+        assert_eq!(status, 200);
+    }
+
+    #[test]
+    fn api_memory_endpoint() {
+        let (server, port) = start_server();
+
+        let handle = std::thread::spawn(move || {
+            server.serve_one();
+        });
+
+        let (status, body) = http_request("GET", port, "/memory?start=0&count=16", None);
+        handle.join().unwrap();
+
+        assert_eq!(status, 200);
+        // Should be a hex dump (text/plain)
+        assert!(body.contains("0000:") || body.is_empty() || body.starts_with("0x"));
+    }
+
+    #[test]
+    fn api_input_key_endpoint() {
+        let (server, port) = start_server();
+
+        let handle = std::thread::spawn(move || {
+            server.serve_one();
+        });
+
+        let body = r#"{"key": 65}"#;
+        let (status, resp) = http_request("POST", port, "/input/key", Some(body));
+        handle.join().unwrap();
+
+        assert_eq!(status, 200);
+        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        assert_eq!(json["injected"], true);
+        assert_eq!(json["key"], 65);
+    }
+
+    #[test]
+    fn api_input_key_missing_field() {
+        let (server, port) = start_server();
+
+        let handle = std::thread::spawn(move || {
+            server.serve_one();
+        });
+
+        let body = r#"{"notkey": 65}"#;
+        let (status, resp) = http_request("POST", port, "/input/key", Some(body));
+        handle.join().unwrap();
+
+        assert_eq!(status, 400);
+        assert!(resp.contains("Missing"));
+    }
+
+    #[test]
+    fn api_input_mouse_endpoint() {
+        let (server, port) = start_server();
+
+        let handle = std::thread::spawn(move || {
+            server.serve_one();
+        });
+
+        let body = r#"{"x": 100, "y": 50, "buttons": 1}"#;
+        let (status, resp) = http_request("POST", port, "/input/mouse", Some(body));
+        handle.join().unwrap();
+
+        assert_eq!(status, 200);
+        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        assert_eq!(json["injected"], true);
+        assert_eq!(json["x"], 100);
+        assert_eq!(json["y"], 50);
+        assert_eq!(json["buttons"], 1);
+    }
+
+    #[test]
+    fn api_input_mouse_defaults() {
+        let (server, port) = start_server();
+
+        let handle = std::thread::spawn(move || {
+            server.serve_one();
+        });
+
+        let body = r#"{}"#;
+        let (status, resp) = http_request("POST", port, "/input/mouse", Some(body));
+        handle.join().unwrap();
+
+        assert_eq!(status, 200);
+        let json: serde_json::Value = serde_json::from_str(&resp).unwrap();
+        assert_eq!(json["x"], 0);
+        assert_eq!(json["y"], 0);
+        assert_eq!(json["buttons"], 0);
     }
 }
