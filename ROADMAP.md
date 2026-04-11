@@ -29,7 +29,7 @@ Build programs that create interesting pixel patterns. Each program tests compil
 - [x] bounce -- animation with velocity (while loop)
 - [x] checkerboard -- conditional drawing (if/else + modulo)
 - [x] fib_spiral -- fibonacci with drawing
-- [ ] gradient.gp -- smooth color gradient across the screen
+- [x] gradient.gp -- smooth color gradient across the screen
 - [ ] sierpinski.gp -- Sierpinski triangle using chaos game
 - [ ] mandelbrot.gp -- Mandelbrot set visualization (nested loops, arithmetic)
 - [ ] rain.gp -- falling pixel rain (array of positions, animation)
