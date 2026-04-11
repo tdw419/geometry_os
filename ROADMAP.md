@@ -58,7 +58,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Phase 3: Interactive Programs (proving the OS works)
 
-- [ ] Snake game (arrow keys, collision, score)
+- [x] Snake game (arrow keys, collision, score) -- programs/snake.gasm
 - [ ] Paint program (PSET, color picker, keyboard driven)
 - [ ] Text adventure (room descriptions, parser)
 - [ ] Screensaver (animation loop)
@@ -102,7 +102,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Full bootstrap (micro-asm.asm compiles itself)
 
 **Batch 5 -- Games (proof the system works end-to-end):**
-- [ ] Snake game
+- [x] Snake game
 - [ ] Paint program
 - [ ] Text adventure
 
