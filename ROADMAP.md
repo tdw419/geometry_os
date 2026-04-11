@@ -61,7 +61,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Snake game (arrow keys, collision, score) -- programs/snake.gasm
 - [x] Paint program (PSET, color picker, keyboard driven) -- programs/paint.gasm
 - [x] Text adventure (room descriptions, parser)
-- [ ] Screensaver (animation loop)
+- [x] Screensaver (animation loop)
 
 ## Phase 4: I/O Expansion (the device driver layer)
 
