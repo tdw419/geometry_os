@@ -18,3 +18,5 @@
 {"type":"thought_journal","timestamp":1775935924,"source":"wordpress_plugin","data":{"agent_id":"guardian","thought_type":"inference","text":"WordPress Zone login detected: admin"}}
 {"type":"district_upgrade","timestamp":1775935924,"source":"wordpress_plugin","data":{"district_id":"wordpress_zone","upgrade_type":"heartbeat","status":"ACTIVE","url":"\/wp-admin\/"}}
 {"type":"evolution_event","timestamp":1775935924,"source":"wordpress_plugin","data":{"event_type":"CONTENT_MUTATION","district_id":"wordpress_zone","details":"Post #17569 updated: Auto Draft"}}
+{"type":"district_upgrade","timestamp":1775935952,"source":"wordpress_plugin","data":{"district_id":"wordpress_zone","upgrade_type":"heartbeat","status":"ACTIVE","url":"\/wp-admin\/admin.php?page=claude-conversations"}}
+{"type":"diagnostic_pulse","timestamp":1775936133,"source":"wordpress_plugin","data":{"district_id":"wordpress_zone","status":"CRITICAL","matched_pattern":"WP_ERROR: http_request_failed","error_message":"cURL error 7: Failed to connect to 127.0.0.1 port 8768 after 0 ms: Couldn't connect to server"}}

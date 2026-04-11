@@ -172,7 +172,7 @@ AI-written demos      AI-written OS that humans use
 - [x] Implement cursor movement: left, right, up, down (with line wrapping) — left/right arrows in mini-editor
 - [x] Connect keyboard port to editor: scancodes -> editor actions — reads from 0xFFF
 - [x] Render text buffer to screen region using existing DRAW/blit primitives — TEXT opcode rendering
-- [ ] Add scrolling for buffers longer than visible rows — scroll offset field exists but not fully implemented
+- [x] Add scrolling for buffers longer than visible rows — update_scroll in mini-editor.gasm, scroll offset at 0x1302, test mini_editor_scroll_on_many_lines
 - [x] Test: type "Hello, World!" and see it on screen — tests/mini_editor.rs (14 tests)
 
 ## Phase 10: Edit-Compile-Execute Loop

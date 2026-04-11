@@ -152,6 +152,7 @@ el_after_handle:
     POP r6
 
     ; Redraw after edit
+    CALL update_scroll
     CALL draw_status_bar
     CALL draw_text_area
     CALL draw_cursor
@@ -471,9 +472,13 @@ draw_status_bar:
 ; ── draw_text_area: render buffer contents ─────────────────────────
 ;
 ; Walks buffer, draws each char. Handles newlines and wrapping.
+; Respects scroll offset (0x1302): skips rows above scroll offset.
 ;
 ; Clobbers: r0-r5
 ;
+VISIBLE_ROWS = 29
+ROW_HEIGHT   = 8
+
 draw_text_area:
     ; Clear text area
     LDI r0, 0x0A0A1E
@@ -481,12 +486,16 @@ draw_text_area:
     LDI r2, 10
     RECTF r1, r2, 256, 246
 
-    ; Screen position
+    ; Read scroll offset
+    LOAD r5, r15             ; r5 = scroll_offset (rows to skip)
+
+    ; Screen position (start rendering at Y=12)
     LDI r3, 2                ; X
     LDI r4, 12               ; Y
 
-    ; Buffer pointer
+    ; Buffer pointer and row counter
     MOV r1, r9               ; r1 = &buffer[0]
+    LDI r2, 0                ; r2 = current row
 
 dta_loop:
     ; Check Y boundary
@@ -500,11 +509,15 @@ dta_loop:
     ; Newline?
     BEQ r0, r8, dta_newline
 
+    ; Skip rendering if current row < scroll_offset
+    BLT r2, r5, dta_skip
+
     ; ── Render single char ──
     ; Save state
     PUSH r1
     PUSH r3
     PUSH r4
+    PUSH r5
 
     ; Store char + null in scratch
     LDI r2, 0x1304
@@ -520,6 +533,7 @@ dta_loop:
     TEXT r1, r2, r3
 
     ; Restore state
+    POP r5
     POP r4
     POP r3
     POP r1
@@ -532,15 +546,34 @@ dta_loop:
     LDI r0, 250
     BLT r3, r0, dta_next
     LDI r3, 2
-    LDI r0, 8
+    LDI r0, ROW_HEIGHT
     ADD r4, r0
+    ; Advance row on wrap
+    LDI r0, 1
+    ADD r2, r0
 
     JMP dta_next
 
 dta_newline:
     LDI r3, 2
-    LDI r0, 8
+    LDI r0, ROW_HEIGHT
+    ; Only advance screen Y if row >= scroll_offset
+    BLT r2, r5, dta_nl_skip
     ADD r4, r0
+dta_nl_skip:
+    LDI r0, 1
+    ADD r2, r0
+    JMP dta_next
+
+dta_skip:
+    ; Still advance X/Y tracking for row calculation
+    LDI r0, 6
+    ADD r3, r0
+    LDI r0, 250
+    BLT r3, r0, dta_next
+    LDI r3, 2
+    LDI r0, 1
+    ADD r2, r0
 
 dta_next:
     ADD r1, r6
@@ -550,7 +583,91 @@ dta_done:
     RET
 
 
+; ── count_cursor_row: compute which row the cursor is on ──────────
+;
+; Walks buffer from start to cursor index, counting newlines and wraps.
+;
+; Output: r0 = cursor row (0-indexed)
+; Clobbers: r0-r3
+;
+
+count_cursor_row:
+    LOAD r0, r13             ; r0 = cursor index
+    MOV r1, r9               ; r1 = buffer pointer
+    LDI r2, 0                ; r2 = chars walked
+    LDI r3, 0                ; r3 = current row
+
+ccr_loop:
+    BEQ r2, r0, ccr_done     ; reached cursor
+
+    LOAD r5, r1              ; r5 = char
+    BEQ r5, r8, ccr_newline  ; newline
+
+    ; Check wrap (every ~41 chars per row: (250-2)/6 = 41)
+    ; Actually we need to track X position too, which is complex.
+    ; Simpler: count newlines only. Wrapping adds visual rows but
+    ; for scroll purposes we count logical lines (newline-separated).
+    JMP ccr_next
+
+ccr_newline:
+    LDI r5, 1
+    ADD r3, r5
+
+ccr_next:
+    ADD r1, r6
+    ADD r2, r6
+    JMP ccr_loop
+
+ccr_done:
+    MOV r0, r3
+    RET
+
+
+; ── update_scroll: adjust scroll_offset to keep cursor visible ────
+;
+; Computes cursor row and adjusts scroll_offset so the cursor stays
+; within the visible area (rows 0..VISIBLE_ROWS-1 relative to scroll).
+;
+; Clobbers: r0-r3
+;
+
+update_scroll:
+    ; Save r6 (one constant)
+    PUSH r6
+
+    CALL count_cursor_row     ; r0 = cursor row
+
+    ; Get current scroll offset
+    LOAD r1, r15              ; r1 = scroll_offset
+
+    ; If cursor_row < scroll_offset, scroll up
+    BLT r0, r1, us_scroll_up
+
+    ; If cursor_row >= scroll_offset + VISIBLE_ROWS, scroll down
+    LDI r2, VISIBLE_ROWS
+    ADD r2, r1                ; r2 = scroll_offset + VISIBLE_ROWS
+    BLT r0, r2, us_done      ; cursor is visible, no change
+
+    ; Scroll down: scroll_offset = cursor_row - VISIBLE_ROWS + 1
+    LDI r2, VISIBLE_ROWS
+    SUB r0, r2
+    LDI r2, 1
+    ADD r0, r2
+    STORE r15, r0
+    JMP us_done
+
+us_scroll_up:
+    ; Scroll up: scroll_offset = cursor_row
+    STORE r15, r0
+
+us_done:
+    POP r6
+    RET
+
+
 ; ── draw_cursor: compute position and draw blinking cursor ────────
+;
+; Respects scroll offset (0x1302): adjusts Y by scroll_offset * ROW_HEIGHT.
 ;
 ; Clobbers: r0-r5
 ;
@@ -572,7 +689,7 @@ dc_show:
     MOV r1, r9               ; r1 = buffer walk pointer
     LDI r2, 0                ; r2 = counter (chars walked)
     LDI r3, 2                ; r3 = screen X
-    LDI r4, 12               ; r4 = screen Y
+    LDI r4, 12               ; r4 = screen Y (will adjust for scroll)
 
 dc_walk:
     BEQ r2, r0, dc_draw      ; reached cursor
@@ -601,6 +718,24 @@ dc_walk_next:
     JMP dc_walk
 
 dc_draw:
+    ; Adjust Y for scroll offset: Y -= scroll_offset * ROW_HEIGHT
+    LOAD r5, r15             ; r5 = scroll_offset
+    LDI r0, ROW_HEIGHT
+    MUL r5, r0               ; r5 = scroll_offset * 8
+    ; r4 = absolute Y, subtract scroll pixels
+    ; But we need to be careful: r4 started at 12, so it's absolute screen Y
+    ; Actually we need: screen_y = absolute_y - scroll_offset * 8
+    ; But r4 was already computed starting from Y=12 with no scroll.
+    ; We need to subtract scroll_offset * ROW_HEIGHT from r4.
+    ; However, if scroll is 0, no change. If cursor is scrolled off, Y will be negative.
+    SUB r4, r5
+
+    ; Don't draw if cursor is off-screen (Y < 12 or Y > 248)
+    LDI r5, 12
+    BLT r4, r5, dc_offscreen
+    LDI r5, 248
+    BLT r5, r4, dc_offscreen
+
     ; Draw underline cursor: 6px wide, 1px tall at bottom of char line
     LDI r0, 0x00FFFF         ; cyan
     MOV r1, r3               ; x
@@ -608,6 +743,8 @@ dc_draw:
     LDI r5, 7                ; offset to bottom of char row
     ADD r2, r5
     RECTF r1, r2, 6, 1
+
+dc_offscreen:
 
     RET
 

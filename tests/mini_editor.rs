@@ -378,3 +378,35 @@ fn mini_editor_type_and_delete_sequence() {
     let buf = read_buffer(&vm, 10);
     assert_eq!(buf, vec![0x41, 0x58, 0x59], "buffer should be 'AXY'");
 }
+
+#[test]
+fn mini_editor_scroll_on_many_lines() {
+    // Type 35 lines of text (more than the 29 visible rows).
+    // Verify scroll_offset is updated to keep cursor visible.
+    let asm = assemble_editor();
+    let mut vm = Vm::new(8192);
+    vm.load_program(&asm.pixels);
+
+    run_vm(&mut vm);
+
+    // Type 35 lines: each line is one char + enter
+    for _ in 0..35 {
+        press_key(&mut vm, 0x41); // 'A'
+        press_key(&mut vm, 0x0D); // Enter
+    }
+
+    // Scroll offset should have been updated (cursor on line 35+)
+    let scroll_offset = vm.ram[0x1302];
+    assert!(
+        scroll_offset > 0,
+        "scroll_offset should be > 0 after 35+ lines, got {}",
+        scroll_offset
+    );
+
+    // Scroll offset should be at most cursor_row - VISIBLE_ROWS + 1 = 35 - 29 + 1 = 7
+    assert!(
+        scroll_offset >= 7,
+        "scroll_offset should be at least 7 to show cursor, got {}",
+        scroll_offset
+    );
+}
