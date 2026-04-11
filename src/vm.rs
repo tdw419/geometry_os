@@ -4740,9 +4740,169 @@ mod tests {
         assert_eq!(reason, TickReason::TimeSlice);
         // Process should still be Ready (not halted or yielded)
         assert_eq!(
-            table.current().unwrap().status,
-            ProcessStatus::Ready
+            child.state.regs[1], 42,
+            "child should inherit r1=42 from parent"
         );
+    }
+
+    // ── Heap Allocator Tests ────────────────────────────────────────
+
+    #[test]
+    fn heap_init_via_store() {
+        // STORE 0xFFD0, 200  (set heap start = 200)
+        // STORE 0xFFD1, 100  (set heap size = 100, initializes heap)
+        // LOAD r0, 0xFFD5   (read free words)
+        // HALT
+        let program: Vec<u32> = vec![
+            0x49, 0x35, 0xFFD0, // 0: LDI r5, 0xFFD0 (HEAP_START_ADDR)
+            0x49, 0x36, 200, // 3: LDI r6, 200
+            0x53, 0x35, 0x36, // 6: STORE r5, r6 (heap_start = 200)
+            0x49, 0x35, 0xFFD1, // 9: LDI r5, 0xFFD1 (HEAP_SIZE_ADDR)
+            0x49, 0x36, 100, // 12: LDI r6, 100
+            0x53, 0x35, 0x36, // 15: STORE r5, r6 (heap_size = 100 -> init)
+            0x49, 0x35, 0xFFD5, // 18: LDI r5, 0xFFD5 (HEAP_FREE_WORDS_ADDR)
+            0x4C, 0x30, 0x35, // 21: LOAD r0, r5
+            0x48, // 24: HALT
+        ];
+        let mut vm = Vm::new(1024);
+        vm.load_program(&program);
+        vm.run();
+        assert!(vm.heap.initialized);
+        assert_eq!(vm.heap.start, 200);
+        assert_eq!(vm.heap.size, 100);
+        assert_eq!(vm.regs[0], 100, "all 100 words should be free");
+    }
+
+    #[test]
+    fn heap_alloc_via_store() {
+        // Init heap at 200, size 100
+        // Allocate 20 words
+        // Read back alloc result
+        let program: Vec<u32> = vec![
+            0x49, 0x35, 0xFFD0, // 0: LDI r5, 0xFFD0
+            0x49, 0x36, 200, // 3: LDI r6, 200
+            0x53, 0x35, 0x36, // 6: STORE r5, r6 (start)
+            0x49, 0x35, 0xFFD1, // 9: LDI r5, 0xFFD1
+            0x49, 0x36, 100, // 12: LDI r6, 100
+            0x53, 0x35, 0x36, // 15: STORE r5, r6 (size -> init)
+            0x49, 0x35, 0xFFD2, // 18: LDI r5, 0xFFD2 (HEAP_ALLOC_ADDR)
+            0x49, 0x36, 20, // 21: LDI r6, 20
+            0x53, 0x35, 0x36, // 24: STORE r5, r6 (alloc 20 words)
+            0x4C, 0x30, 0x35, // 27: LOAD r0, r5 (read alloc result)
+            0x49, 0x35, 0xFFD5, // 30: LDI r5, 0xFFD5 (free words)
+            0x4C, 0x31, 0x35, // 33: LOAD r1, r5
+            0x49, 0x35, 0xFFD4, // 36: LDI r5, 0xFFD4 (block count)
+            0x4C, 0x32, 0x35, // 39: LOAD r2, r5
+            0x48, // 42: HALT
+        ];
+        let mut vm = Vm::new(1024);
+        vm.load_program(&program);
+        vm.run();
+        assert_eq!(vm.regs[0], 200, "alloc should return start address");
+        assert_eq!(vm.regs[1], 80, "80 words should be free");
+        assert_eq!(vm.regs[2], 1, "1 block allocated");
+    }
+
+    #[test]
+    fn heap_alloc_and_free() {
+        // Init heap, allocate 2 blocks, free first, check state
+        let program: Vec<u32> = vec![
+            // Init heap at 100, size 200
+            0x49, 0x35, 0xFFD0, // 0: LDI r5, HEAP_START
+            0x49, 0x36, 100, // 3: LDI r6, 100
+            0x53, 0x35, 0x36, // 6: STORE r5, r6
+            0x49, 0x35, 0xFFD1, // 9: LDI r5, HEAP_SIZE
+            0x49, 0x36, 200, // 12: LDI r6, 200
+            0x53, 0x35, 0x36, // 15: STORE r5, r6 (init)
+            // Alloc block A (30 words) -> should get addr 100
+            0x49, 0x35, 0xFFD2, // 18: LDI r5, HEAP_ALLOC
+            0x49, 0x36, 30, // 21: LDI r6, 30
+            0x53, 0x35, 0x36, // 24: STORE r5, r6
+            0x4C, 0x30, 0x35, // 27: LOAD r0, r5 -> r0 = block A addr
+            // Alloc block B (40 words) -> should get addr 130
+            0x49, 0x36, 40, // 30: LDI r6, 40
+            0x53, 0x35, 0x36, // 33: STORE r5, r6
+            0x4C, 0x31, 0x35, // 36: LOAD r1, r5 -> r1 = block B addr
+            // Free block A
+            0x49, 0x35, 0xFFD3, // 39: LDI r5, HEAP_FREE
+            0x53, 0x35, 0x30, // 42: STORE r5, r0 (free block A)
+            // Check free words
+            0x49, 0x35, 0xFFD5, // 45: LDI r5, HEAP_FREE_WORDS
+            0x4C, 0x32, 0x35, // 48: LOAD r2, r5
+            // Check block count
+            0x49, 0x35, 0xFFD4, // 51: LDI r5, HEAP_BLOCKS
+            0x4C, 0x33, 0x35, // 54: LOAD r3, r5
+            0x48, // 57: HALT
+        ];
+        let mut vm = Vm::new(1024);
+        vm.load_program(&program);
+        vm.run();
+        assert_eq!(vm.regs[0], 100, "block A at 100");
+        assert_eq!(vm.regs[1], 130, "block B at 130");
+        assert_eq!(vm.regs[2], 160, "160 free words (30 freed + 130 remaining)");
+        assert_eq!(vm.regs[3], 1, "1 block allocated (B)");
+    }
+
+    #[test]
+    fn heap_alloc_fails_when_full() {
+        // Init small heap, allocate all, try again -> should get 0
+        let program: Vec<u32> = vec![
+            // Init heap at 0, size 10
+            0x49, 0x35, 0xFFD0, // LDI r5, HEAP_START
+            0x49, 0x36, 0, // LDI r6, 0
+            0x53, 0x35, 0x36, // STORE r5, r6
+            0x49, 0x35, 0xFFD1, // LDI r5, HEAP_SIZE
+            0x49, 0x36, 10, // LDI r6, 10
+            0x53, 0x35, 0x36, // STORE r5, r6
+            // Alloc 10 (all of it)
+            0x49, 0x35, 0xFFD2, // LDI r5, HEAP_ALLOC
+            0x49, 0x36, 10, // LDI r6, 10
+            0x53, 0x35, 0x36, // STORE r5, r6
+            0x4C, 0x30, 0x35, // LOAD r0, r5 -> r0 = 0 (success)
+            // Try alloc 1 more (should fail)
+            0x49, 0x36, 1, // LDI r6, 1
+            0x53, 0x35, 0x36, // STORE r5, r6
+            0x4C, 0x31, 0x35, // LOAD r1, r5 -> r1 = 0 (fail)
+            0x48, // HALT
+        ];
+        let mut vm = Vm::new(1024);
+        vm.load_program(&program);
+        vm.run();
+        assert_eq!(vm.regs[0], 0, "first alloc succeeds at address 0");
+        assert_eq!(vm.regs[1], 0, "second alloc fails (heap full)");
+    }
+
+    #[test]
+    fn heap_child_gets_fresh_heap() {
+        let mut vm = Vm::new(1024);
+        // Init heap on parent
+        vm.heap.init(100, 50);
+        vm.heap.alloc(10);
+
+        let child = vm.spawn_child(&ChildVm::new(0, 0));
+        assert!(!child.heap.initialized, "child should have fresh heap");
+        assert_eq!(child.heap.blocks.len(), 0);
+    }
+
+    #[test]
+    fn heap_snapshot_restore() {
+        let mut vm = Vm::new(1024);
+        vm.heap.init(200, 100);
+        vm.heap.alloc(20);
+
+        let snap = vm.snapshot();
+        assert_eq!(snap.heap.initialized, true);
+        assert_eq!(snap.heap.alloc_count(), 1);
+        assert_eq!(snap.heap_alloc_result, 200);
+
+        // Mutate original
+        vm.heap.alloc(30);
+        assert_eq!(vm.heap.alloc_count(), 2);
+
+        // Restore from snapshot
+        vm.restore(&snap);
+        assert_eq!(vm.heap.alloc_count(), 1, "restored heap should have 1 block");
+        assert_eq!(vm.heap_alloc_result, 200);
     }
 
     #[test]

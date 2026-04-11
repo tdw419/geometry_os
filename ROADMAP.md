@@ -20,11 +20,11 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 542+ tests passing
+- 695+ tests passing
 - 44 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
-- lib/math.gasm, lib/string.gasm, lib/screen.gasm, lib/audio.gasm
+- lib/math.gasm, lib/string.gasm, lib/screen.gasm, lib/audio.gasm, lib/sprite.gasm
 - Debug registers (cycle count, stack depth, breakpoints)
 - Audio output (square wave, memory-mapped registers 0xFFC0-0xFFC3)
 
@@ -68,7 +68,7 @@ AI-written demos      AI-written OS that humans use
 
 - [x] Mouse input (memory-mapped x, y, buttons)
 - [x] Audio output (square wave, memory-mapped)
-- [ ] Sprite system (SPAWN entities, auto-update)
+- [x] Sprite system (SPAWN entities, auto-update) — ChildVm with x/y/w/h, positional compositing, frame-limited execution, lib/sprite.gasm, programs/sprites-demo.gasm
 - [ ] Scrollable text buffer (terminal output)
 
 ## Phase 5: The OS Layer
