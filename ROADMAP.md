@@ -20,7 +20,7 @@ AI-written demos      AI-written OS that humans use
 
 ## Current State
 
-- 510+ tests passing
+- 542+ tests passing
 - 44 opcodes, self-hosting micro-assembler
 - Interactive GUI with pixel editor, hex mode, disassembly
 - Window manager, shell, agent substrate
@@ -60,7 +60,7 @@ AI-written demos      AI-written OS that humans use
 
 - [x] Snake game (arrow keys, collision, score) -- programs/snake.gasm
 - [x] Paint program (PSET, color picker, keyboard driven) -- programs/paint.gasm
-- [ ] Text adventure (room descriptions, parser)
+- [x] Text adventure (room descriptions, parser)
 - [ ] Screensaver (animation loop)
 
 ## Phase 4: I/O Expansion (the device driver layer)
@@ -104,7 +104,7 @@ AI-written demos      AI-written OS that humans use
 **Batch 5 -- Games (proof the system works end-to-end):**
 - [x] Snake game
 - [x] Paint program
-- [ ] Text adventure
+- [x] Text adventure
 
 **Batch 6 -- The OS Layer (when games prove the foundation):**
 - [ ] Process scheduler (needed when snake + editor run together)

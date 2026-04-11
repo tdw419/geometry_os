@@ -1,0 +1,1222 @@
+; ═══════════════════════════════════════════════════════════════════════
+; programs/adventure.gasm -- Text adventure game for Geometry OS
+;
+; A dungeon crawler with room navigation, item collection, and a
+; win condition. Demonstrates that complex interactive fiction can
+; run entirely inside the VM.
+;
+; CONTROLS (single keypress per command):
+;   N = go North    S = go South
+;   E = go East     W = go West
+;   L = Look (redisplay room)
+;   T = Take item
+;   Q = Quit
+;
+; ROOMS:
+;   0: Dungeon Cell       (start, has a rusty key)
+;   1: Dark Corridor      (connects cell to junction)
+;   2: Junction           (hub: N=corridor, E=armory, W=library, S=exit)
+;   3: Armory             (has a sword)
+;   4: Library            (has a scroll with a clue)
+;   5: Exit Gate          (locked -- need key to win!)
+;
+; ITEMS (indexed 0-2):
+;   0: Rusty Key   (in room 0)
+;   1: Sword       (in room 3)
+;   2: Scroll      (in room 4)
+;
+; WIN CONDITION: Reach the Exit Gate (room 5) with the Rusty Key.
+;
+; MEMORY LAYOUT:
+;   0x1000: current room ID (u32)
+;   0x1001: inventory bitmask (bit 0=key, bit 1=sword, bit 2=scroll)
+;   0x1002: game state (0=playing, 1=won, 2=dead/quit)
+;   0x1003: items-in-room bitmask per room (only current room checked)
+;   0x1010: input line buffer (16 words, null-terminated)
+;
+; REGISTER USAGE:
+;   r0  = temp / keycode / return value
+;   r1  = temp / address
+;   r2  = temp
+;   r3  = temp
+;   r4  = temp
+;   r5  = temp
+;   r6  = one constant (1)
+;   r7  = zero constant (0)
+;   r8  = current room ID (cached)
+;   r9  = inventory bitmask (cached)
+;   r10 = game state (cached)
+; ═══════════════════════════════════════════════════════════════════════
+
+
+main:
+    ; ── Set constants ──
+    LDI r6, 1
+    LDI r7, 0
+
+    ; ── Init state ──
+    LDI r0, 0                ; room 0 (Dungeon Cell)
+    LDI r1, 0x1000
+    STORE r1, r0             ; current_room = 0
+
+    LDI r0, 0                ; no items
+    LDI r1, 0x1001
+    STORE r1, r0             ; inventory = 0
+
+    LDI r0, 0                ; playing
+    LDI r1, 0x1002
+    STORE r1, r0             ; game_state = 0
+
+    ; ── Initialize world data (exits, items) ──
+    CALL init_world
+
+    ; ── Clear input buffer ──
+    LDI r0, 0x1010
+    CALL clear_16
+
+    ; ── Clear screen ──
+    LDI r0, 0x0A0A1E         ; dark blue
+    CALL clear_screen
+
+    ; ── Show title ──
+    LDI r0, 0xFFAA00          ; orange
+    LDI r1, 40
+    LDI r2, 10
+    LDI r3, title_str
+    TEXT r1, r2, r3
+
+    LDI r0, 0xAAAAAA          ; gray
+    LDI r1, 30
+    LDI r2, 22
+    LDI r3, subtitle_str
+    TEXT r1, r2, r3
+
+    ; ── Wait for any key ──
+    CALL wait_key
+
+    ; ── Show initial room ──
+    CALL show_room
+
+    ; ── Main game loop ──
+    JMP game_loop
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; GAME LOOP
+; ═══════════════════════════════════════════════════════════════════════
+
+game_loop:
+    ; Load cached state
+    LDI r1, 0x1002
+    LOAD r10, r1             ; r10 = game state
+    LDI r1, 0
+    BNE r10, r1, gl_done     ; game over
+
+    ; Show prompt
+    CALL show_prompt
+
+    ; Wait for a keypress
+    CALL wait_key            ; r0 = keycode
+
+    ; ── Dispatch command ──
+    ; N = 0x4E, S = 0x53, E = 0x45, W = 0x57
+    ; L = 0x4C, T = 0x54, Q = 0x51
+    ; Lowercase also accepted: n=0x6E, s=0x73, e=0x65, w=0x77
+    ;                         l=0x6C, t=0x74, q=0x71
+
+    LDI r1, 0x4E             ; 'N'
+    BEQ r0, r1, cmd_north
+    LDI r1, 0x6E             ; 'n'
+    BEQ r0, r1, cmd_north
+
+    LDI r1, 0x53             ; 'S'
+    BEQ r0, r1, cmd_south
+    LDI r1, 0x73             ; 's'
+    BEQ r0, r1, cmd_south
+
+    LDI r1, 0x45             ; 'E'
+    BEQ r0, r1, cmd_east
+    LDI r1, 0x65             ; 'e'
+    BEQ r0, r1, cmd_east
+
+    LDI r1, 0x57             ; 'W'
+    BEQ r0, r1, cmd_west
+    LDI r1, 0x77             ; 'w'
+    BEQ r0, r1, cmd_west
+
+    LDI r1, 0x4C             ; 'L'
+    BEQ r0, r1, cmd_look
+    LDI r1, 0x6C             ; 'l'
+    BEQ r0, r1, cmd_look
+
+    LDI r1, 0x54             ; 'T'
+    BEQ r0, r1, cmd_take
+    LDI r1, 0x74             ; 't'
+    BEQ r0, r1, cmd_take
+
+    LDI r1, 0x51             ; 'Q'
+    BEQ r0, r1, cmd_quit
+    LDI r1, 0x71             ; 'q'
+    BEQ r0, r1, cmd_quit
+
+    ; Unknown command
+    CALL show_huh
+    JMP game_loop
+
+gl_done:
+    ; Game ended. Show final message and halt.
+    LDI r1, 0x1002
+    LOAD r10, r1
+    LDI r1, 1
+    BEQ r10, r1, gl_win
+    JMP gl_halt
+
+gl_win:
+    ; Show victory message
+    LDI r0, 0x00FF00
+    LDI r1, 20
+    LDI r2, 100
+    LDI r3, win_str
+    TEXT r1, r2, r3
+    LDI r0, 0xFFFF00
+    LDI r1, 30
+    LDI r2, 115
+    LDI r3, win_str2
+    TEXT r1, r2, r3
+    JMP gl_halt
+
+gl_halt:
+    CALL wait_key
+    HALT
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; COMMANDS
+; ═══════════════════════════════════════════════════════════════════════
+
+; ── Movement commands ───────────────────────────────────────────────
+; Each checks the exit table for the current room.
+; Exit data: exits are stored as a table in RAM.
+;   0x2000 + room*4 + 0: north_exit (room ID or 0xFF = wall)
+;   0x2000 + room*4 + 1: south_exit
+;   0x2000 + room*4 + 2: east_exit
+;   0x2000 + room*4 + 3: west_exit
+;
+; Room exit table:
+;   Room 0 (Cell):     N=0xFF, S=1,   E=0xFF, W=0xFF
+;   Room 1 (Corridor): N=0,   S=2,   E=0xFF, W=0xFF
+;   Room 2 (Junction): N=1,   S=5,   E=3,    W=4
+;   Room 3 (Armory):   N=0xFF, S=0xFF, E=0xFF, W=2
+;   Room 4 (Library):  N=0xFF, S=0xFF, E=2,    W=0xFF
+;   Room 5 (Exit):     N=0xFF, S=0xFF, E=0xFF, W=0xFF (one-way)
+
+cmd_north:
+    LDI r2, 0                ; direction index 0 = north
+    JMP try_move
+
+cmd_south:
+    LDI r2, 1                ; direction index 1 = south
+    JMP try_move
+
+cmd_east:
+    LDI r2, 2                ; direction index 2 = east
+    JMP try_move
+
+cmd_west:
+    LDI r2, 3                ; direction index 3 = west
+    JMP try_move
+
+
+; ── try_move: attempt to move in direction r2 ───────────────────────
+; Loads current room, looks up exit, moves if valid.
+; Room 5 (Exit Gate) requires the rusty key (bit 0 of inventory).
+try_move:
+    ; Save r2
+    PUSH r2
+    PUSH r6
+    PUSH r7
+
+    LDI r1, 0x1000
+    LOAD r8, r1             ; r8 = current room
+
+    ; Special case: moving south from Junction (room 2) to Exit (room 5)
+    ; requires the rusty key.
+    LDI r3, 2
+    BNE r8, r3, tm_not_locked
+    LDI r3, 1
+    BNE r2, r3, tm_not_locked  ; not going south
+    ; Going south from junction -- check for key
+    LDI r1, 0x1001
+    LOAD r3, r1
+    LDI r4, 1                ; bit 0 = key
+    AND r3, r4
+    BEQ r3, r7, tm_locked    ; no key!
+
+tm_not_locked:
+    ; Compute exit address: 0x2000 + room*4 + dir
+    POP r7
+    POP r6
+    POP r2
+
+    ; r8 = room, r2 = direction
+    MOV r1, r8
+    ADD r1, r1              ; r1 = room * 2
+    ADD r1, r1              ; r1 = room * 4
+    LDI r3, 0x2000
+    ADD r1, r3              ; r1 = exit table base + offset
+    ADD r1, r2              ; r1 = &exits[room*4 + dir]
+
+    LOAD r0, r1             ; r0 = destination room
+
+    ; Check if blocked (0xFF)
+    LDI r3, 0xFF
+    BEQ r0, r3, tm_blocked
+
+    ; Move to new room
+    LDI r1, 0x1000
+    STORE r1, r0             ; current_room = new room
+    MOV r8, r0               ; update cached room
+
+    ; Check if we reached the exit gate (room 5) -- WIN!
+    LDI r3, 5
+    BNE r8, r3, tm_show_room
+    ; Victory!
+    LDI r0, 1
+    LDI r1, 0x1002
+    STORE r1, r0             ; game_state = 1 (won)
+    JMP game_loop
+
+tm_show_room:
+    CALL show_room
+    JMP game_loop
+
+tm_blocked:
+    ; Can't go that way
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r6
+    PUSH r7
+    CALL show_cant_go
+    POP r7
+    POP r6
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+    JMP game_loop
+
+tm_locked:
+    ; Gate is locked, need key
+    POP r7
+    POP r6
+    POP r2
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r6
+    PUSH r7
+    CALL show_locked
+    POP r7
+    POP r6
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+    JMP game_loop
+
+
+; ── cmd_look: redisplay current room ────────────────────────────────
+
+cmd_look:
+    CALL show_room
+    JMP game_loop
+
+
+; ── cmd_take: pick up item in current room ──────────────────────────
+;
+; Item locations stored in a table:
+;   0x2100: item 0 room (Rusty Key) -- initially room 0
+;   0x2101: item 1 room (Sword)     -- initially room 3
+;   0x2102: item 2 room (Scroll)    -- initially room 4
+;   Value 0xFF = already taken (in inventory)
+;
+; Items-in-room bitmask for display:
+;   We check all 3 items to see if any are in the current room.
+
+cmd_take:
+    PUSH r6
+    PUSH r7
+
+    LDI r1, 0x1000
+    LOAD r8, r1             ; r8 = current room
+
+    ; Scan items for one in this room
+    LDI r2, 0               ; item index
+    LDI r4, 0x2100          ; item table base
+
+ct_scan:
+    LDI r3, 3
+    BLT r2, r3, ct_check_item  ; item index < 3? (we have 3 items)
+    ; No items found in this room
+    CALL show_nothing
+    POP r7
+    POP r6
+    JMP game_loop
+
+ct_check_item:
+    ; Load item's room
+    MOV r1, r4
+    ADD r1, r2              ; r1 = &item_table[item]
+    LOAD r3, r1             ; r3 = item room
+
+    ; Check if already taken
+    LDI r5, 0xFF
+    BEQ r3, r5, ct_next     ; already in inventory
+
+    ; Check if in current room
+    BNE r3, r8, ct_next     ; not here
+
+    ; Found an item! Take it.
+    LDI r5, 0xFF
+    STORE r1, r5            ; mark as taken (0xFF)
+
+    ; Set bit in inventory
+    LDI r1, 0x1001
+    LOAD r3, r1             ; r3 = inventory
+
+    ; Compute bit: 1 << item_index
+    ; Save inventory value before we clobber r3
+    PUSH r3
+    LDI r5, 1               ; start with bit 0 (for item 0)
+    BEQ r2, r7, ct_got_bit  ; item 0 -> bit 0 (r5=1, done)
+    LDI r5, 2
+    LDI r3, 1
+    BEQ r2, r3, ct_got_bit  ; item 1 -> bit 1 (r5=2, done)
+    LDI r5, 4               ; item 2 -> bit 2 (r5=4)
+
+ct_got_bit:
+    POP r3                   ; restore inventory value
+    OR r3, r5               ; set the bit
+    STORE r1, r3            ; update inventory
+
+    ; Show "taken" message for this item
+    BEQ r2, r7, ct_took_key
+    LDI r5, 1
+    BEQ r2, r5, ct_took_sword
+    JMP ct_took_scroll
+
+ct_took_key:
+    POP r7
+    POP r6
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r6
+    PUSH r7
+    CALL show_took_key
+    POP r7
+    POP r6
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+    JMP game_loop
+
+ct_took_sword:
+    POP r7
+    POP r6
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r6
+    PUSH r7
+    CALL show_took_sword
+    POP r7
+    POP r6
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+    JMP game_loop
+
+ct_took_scroll:
+    POP r7
+    POP r6
+    PUSH r0
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    PUSH r6
+    PUSH r7
+    CALL show_took_scroll
+    POP r7
+    POP r6
+    POP r3
+    POP r2
+    POP r1
+    POP r0
+    JMP game_loop
+
+ct_next:
+    ADD r2, r6              ; item index++
+    JMP ct_scan
+
+
+; ── cmd_quit ────────────────────────────────────────────────────────
+
+cmd_quit:
+    LDI r0, 2               ; game_state = 2 (quit)
+    LDI r1, 0x1002
+    STORE r1, r0
+    JMP game_loop
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; DISPLAY ROUTINES
+; ═══════════════════════════════════════════════════════════════════════
+
+; ── show_room: display current room description and items ───────────
+
+show_room:
+    PUSH r6
+    PUSH r7
+    PUSH r8
+
+    ; Clear screen
+    LDI r0, 0x0A0A1E
+    CALL clear_screen
+
+    ; Load room
+    LDI r1, 0x1000
+    LOAD r8, r1
+
+    ; Draw room border
+    LDI r0, 0x444466
+    LDI r1, 5
+    LDI r2, 5
+    LDI r3, 246
+    LDI r4, 246
+    CALL draw_rect_border
+
+    ; ── Room title ──
+    ; Map room ID to title string and color
+    BEQ r8, r7, sr_room0
+    LDI r3, 1
+    BEQ r8, r3, sr_room1
+    LDI r3, 2
+    BEQ r8, r3, sr_room2
+    LDI r3, 3
+    BEQ r8, r3, sr_room3
+    LDI r3, 4
+    BEQ r8, r3, sr_room4
+    LDI r3, 5
+    BEQ r8, r3, sr_room5
+    JMP sr_exits
+
+sr_room0:
+    LDI r0, 0xFF8844
+    LDI r3, title_room0
+    JMP sr_show_title
+
+sr_room1:
+    LDI r0, 0x8888FF
+    LDI r3, title_room1
+    JMP sr_show_title
+
+sr_room2:
+    LDI r0, 0x44FF44
+    LDI r3, title_room2
+    JMP sr_show_title
+
+sr_room3:
+    LDI r0, 0xFF4444
+    LDI r3, title_room3
+    JMP sr_show_title
+
+sr_room4:
+    LDI r0, 0xFFAA44
+    LDI r3, title_room4
+    JMP sr_show_title
+
+sr_room5:
+    LDI r0, 0xFFFF00
+    LDI r3, title_room5
+    JMP sr_show_title
+
+sr_show_title:
+    LDI r1, 12
+    LDI r2, 12
+    TEXT r1, r2, r3
+
+    ; ── Room description ──
+    BEQ r8, r7, sr_desc0
+    LDI r3, 1
+    BEQ r8, r3, sr_desc1
+    LDI r3, 2
+    BEQ r8, r3, sr_desc2
+    LDI r3, 3
+    BEQ r8, r3, sr_desc3
+    LDI r3, 4
+    BEQ r8, r3, sr_desc4
+    LDI r3, 5
+    BEQ r8, r3, sr_desc5
+    JMP sr_exits
+
+sr_desc0:
+    LDI r0, 0xCCCCCC
+    LDI r3, desc_room0
+    JMP sr_show_desc
+
+sr_desc1:
+    LDI r0, 0xCCCCCC
+    LDI r3, desc_room1
+    JMP sr_show_desc
+
+sr_desc2:
+    LDI r0, 0xCCCCCC
+    LDI r3, desc_room2
+    JMP sr_show_desc
+
+sr_desc3:
+    LDI r0, 0xCCCCCC
+    LDI r3, desc_room3
+    JMP sr_show_desc
+
+sr_desc4:
+    LDI r0, 0xCCCCCC
+    LDI r3, desc_room4
+    JMP sr_show_desc
+
+sr_desc5:
+    LDI r0, 0xCCCCCC
+    LDI r3, desc_room5
+    JMP sr_show_desc
+
+sr_show_desc:
+    LDI r1, 12
+    LDI r2, 24
+    TEXT r1, r2, r3
+
+    ; ── Description line 2 ──
+    BEQ r8, r7, sr_desc2_0
+    LDI r3, 1
+    BEQ r8, r3, sr_desc2_1
+    LDI r3, 2
+    BEQ r8, r3, sr_desc2_2
+    LDI r3, 3
+    BEQ r8, r3, sr_desc2_3
+    LDI r3, 4
+    BEQ r8, r3, sr_desc2_4
+    LDI r3, 5
+    BEQ r8, r3, sr_desc2_5
+    JMP sr_exits
+
+sr_desc2_0:
+    LDI r0, 0xCCCCCC
+    LDI r3, desc2_room0
+    JMP sr_show_desc2
+
+sr_desc2_1:
+    LDI r0, 0xCCCCCC
+    LDI r3, desc2_room1
+    JMP sr_show_desc2
+
+sr_desc2_2:
+    LDI r0, 0xCCCCCC
+    LDI r3, desc2_room2
+    JMP sr_show_desc2
+
+sr_desc2_3:
+    LDI r0, 0xCCCCCC
+    LDI r3, desc2_room3
+    JMP sr_show_desc2
+
+sr_desc2_4:
+    LDI r0, 0xCCCCCC
+    LDI r3, desc2_room4
+    JMP sr_show_desc2
+
+sr_desc2_5:
+    LDI r0, 0xCCCCCC
+    LDI r3, desc2_room5
+    JMP sr_show_desc2
+
+sr_show_desc2:
+    LDI r1, 12
+    LDI r2, 34
+    TEXT r1, r2, r3
+
+sr_exits:
+    ; ── Show exits ──
+    LDI r0, 0x88AACC
+    LDI r1, 12
+    LDI r2, 50
+    LDI r3, exits_label
+    TEXT r1, r2, r3
+
+    ; Build exits string showing available directions
+    ; We'll just show "Exits: " and then show direction chars
+    ; based on the exit table for this room.
+
+    ; Load exit addresses
+    MOV r1, r8
+    ADD r1, r1
+    ADD r1, r1              ; r1 = room * 4
+    LDI r3, 0x2000
+    ADD r1, r3              ; r1 = &exits[room*4]
+
+    ; Screen X for exit directions (after "Exits: ")
+    LDI r4, 72              ; x position after "Exits: "
+
+    ; North
+    LOAD r0, r1
+    LDI r2, 0xFF
+    BNE r0, r2, sr_show_n
+    JMP sr_skip_n
+sr_show_n:
+    PUSH r1
+    PUSH r3
+    LDI r0, 0x88CCFF
+    LDI r1, 12
+    LDI r2, 60
+    LDI r3, dir_n_str
+    TEXT r1, r2, r3
+    POP r3
+    POP r1
+sr_skip_n:
+
+    ; South
+    MOV r5, r1
+    ADD r5, r6              ; r5 = &exits[room*4 + 1]
+    LOAD r0, r5
+    LDI r2, 0xFF
+    BNE r0, r2, sr_show_s
+    JMP sr_skip_s
+sr_show_s:
+    PUSH r1
+    PUSH r3
+    LDI r0, 0x88CCFF
+    LDI r1, 12
+    LDI r2, 70
+    LDI r3, dir_s_str
+    TEXT r1, r2, r3
+    POP r3
+    POP r1
+sr_skip_s:
+
+    ; East
+    MOV r5, r1
+    ADD r5, r6
+    ADD r5, r6              ; r5 = &exits[room*4 + 2]
+    LOAD r0, r5
+    LDI r2, 0xFF
+    BNE r0, r2, sr_show_e
+    JMP sr_skip_e
+sr_show_e:
+    PUSH r1
+    PUSH r3
+    LDI r0, 0x88CCFF
+    LDI r1, 12
+    LDI r2, 80
+    LDI r3, dir_e_str
+    TEXT r1, r2, r3
+    POP r3
+    POP r1
+sr_skip_e:
+
+    ; West
+    MOV r5, r1
+    ADD r5, r6
+    ADD r5, r6
+    ADD r5, r6              ; r5 = &exits[room*4 + 3]
+    LOAD r0, r5
+    LDI r2, 0xFF
+    BNE r0, r2, sr_show_w
+    JMP sr_skip_w
+sr_show_w:
+    PUSH r1
+    PUSH r3
+    LDI r0, 0x88CCFF
+    LDI r1, 12
+    LDI r2, 90
+    LDI r3, dir_w_str
+    TEXT r1, r2, r3
+    POP r3
+    POP r1
+sr_skip_w:
+
+    ; ── Show items in room ──
+    ; Check item table for items in current room
+    LDI r2, 0               ; item index
+sr_item_loop:
+    LDI r5, 3
+    BLT r2, r5, sr_item_check  ; index < 3? check up to 3 items
+    JMP sr_done
+sr_item_check_goon:
+    ADD r2, r6
+    LDI r3, 3
+    BLT r2, r3, sr_item_loop
+    JMP sr_done
+
+sr_item_check:
+    LDI r4, 0x2100
+    ADD r4, r2              ; r4 = &item_table[item]
+    LOAD r0, r4             ; item room
+    LDI r3, 0xFF
+    BEQ r0, r3, sr_item_check_goon  ; taken
+    BNE r0, r8, sr_item_check_goon  ; not here
+
+    ; Item is in this room -- show it
+    BEQ r2, r7, sr_item_key
+    LDI r3, 1
+    BEQ r2, r3, sr_item_sword
+    JMP sr_item_scroll
+
+sr_item_key:
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    LDI r0, 0xFFFF00
+    LDI r1, 12
+    LDI r2, 110
+    LDI r3, item_key_str
+    TEXT r1, r2, r3
+    POP r3
+    POP r2
+    POP r1
+    JMP sr_item_check_goon
+
+sr_item_sword:
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    LDI r0, 0xFFFF00
+    LDI r1, 12
+    LDI r2, 110
+    LDI r3, item_sword_str
+    TEXT r1, r2, r3
+    POP r3
+    POP r2
+    POP r1
+    JMP sr_item_check_goon
+
+sr_item_scroll:
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    LDI r0, 0xFFFF00
+    LDI r1, 12
+    LDI r2, 110
+    LDI r3, item_scroll_str
+    TEXT r1, r2, r3
+    POP r3
+    POP r2
+    POP r1
+    JMP sr_item_check_goon
+
+sr_done:
+    ; ── Show inventory ──
+    LDI r1, 0x1001
+    LOAD r9, r1             ; r9 = inventory
+
+    LDI r0, 0xAAFFAA
+    LDI r1, 12
+    LDI r2, 130
+    LDI r3, inv_label
+    TEXT r1, r2, r3
+
+    ; Show items in inventory
+    LDI r3, 1
+    AND r3, r9              ; check bit 0 (key)
+    BEQ r3, r7, sr_inv_no_key
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    LDI r0, 0xFFFF00
+    LDI r1, 80
+    LDI r2, 130
+    LDI r3, inv_key_str
+    TEXT r1, r2, r3
+    POP r3
+    POP r2
+    POP r1
+sr_inv_no_key:
+
+    LDI r3, 2
+    AND r3, r9              ; check bit 1 (sword)
+    BEQ r3, r7, sr_inv_no_sword
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    LDI r0, 0xFFFF00
+    LDI r1, 120
+    LDI r2, 130
+    LDI r3, inv_sword_str
+    TEXT r1, r2, r3
+    POP r3
+    POP r2
+    POP r1
+sr_inv_no_sword:
+
+    LDI r3, 4
+    AND r3, r9              ; check bit 2 (scroll)
+    BEQ r3, r7, sr_inv_no_scroll
+    PUSH r1
+    PUSH r2
+    PUSH r3
+    LDI r0, 0xFFFF00
+    LDI r1, 160
+    LDI r2, 130
+    LDI r3, inv_scroll_str
+    TEXT r1, r2, r3
+    POP r3
+    POP r2
+    POP r1
+sr_inv_no_scroll:
+
+    POP r8
+    POP r7
+    POP r6
+    RET
+
+
+; ── show_prompt: display command prompt at bottom ───────────────────
+
+show_prompt:
+    ; Clear bottom area
+    LDI r0, 0x1A1A3E
+    LDI r1, 0
+    LDI r2, 230
+    RECTF r1, r2, 256, 26
+
+    ; Prompt text
+    LDI r0, 0x00FF88
+    LDI r1, 12
+    LDI r2, 240
+    LDI r3, prompt_str
+    TEXT r1, r2, r3
+
+    RET
+
+
+; ── Feedback messages ───────────────────────────────────────────────
+
+show_cant_go:
+    PUSH r6
+    PUSH r7
+    LDI r0, 0xFF6666
+    LDI r1, 12
+    LDI r2, 200
+    LDI r3, msg_cant_go
+    TEXT r1, r2, r3
+    POP r7
+    POP r6
+    RET
+
+show_locked:
+    PUSH r6
+    PUSH r7
+    LDI r0, 0xFF6666
+    LDI r1, 12
+    LDI r2, 200
+    LDI r3, msg_locked
+    TEXT r1, r2, r3
+    POP r7
+    POP r6
+    RET
+
+show_huh:
+    PUSH r6
+    PUSH r7
+    LDI r0, 0xFF6666
+    LDI r1, 12
+    LDI r2, 200
+    LDI r3, msg_huh
+    TEXT r1, r2, r3
+    POP r7
+    POP r6
+    RET
+
+show_nothing:
+    PUSH r6
+    PUSH r7
+    LDI r0, 0xFF6666
+    LDI r1, 12
+    LDI r2, 200
+    LDI r3, msg_nothing
+    TEXT r1, r2, r3
+    POP r7
+    POP r6
+    RET
+
+show_took_key:
+    PUSH r6
+    PUSH r7
+    CALL show_room
+    LDI r0, 0x00FF00
+    LDI r1, 12
+    LDI r2, 200
+    LDI r3, msg_took_key
+    TEXT r1, r2, r3
+    POP r7
+    POP r6
+    RET
+
+show_took_sword:
+    PUSH r6
+    PUSH r7
+    CALL show_room
+    LDI r0, 0x00FF00
+    LDI r1, 12
+    LDI r2, 200
+    LDI r3, msg_took_sword
+    TEXT r1, r2, r3
+    POP r7
+    POP r6
+    RET
+
+show_took_scroll:
+    PUSH r6
+    PUSH r7
+    CALL show_room
+    LDI r0, 0x00FF00
+    LDI r1, 12
+    LDI r2, 200
+    LDI r3, msg_took_scroll
+    TEXT r1, r2, r3
+    POP r7
+    POP r6
+    RET
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; DATA INITIALIZATION: exit table and item table
+; ═══════════════════════════════════════════════════════════════════════
+
+init_world:
+    ; Exit table at 0x2000 (6 rooms * 4 directions = 24 words)
+    ; Room 0 (Dungeon Cell): N=0xFF, S=1, E=0xFF, W=0xFF
+    LDI r0, 0xFF
+    LDI r1, 0x2000
+    STORE r1, r0             ; N = wall
+    LDI r0, 1
+    LDI r1, 0x2001
+    STORE r1, r0             ; S = room 1
+    LDI r0, 0xFF
+    LDI r1, 0x2002
+    STORE r1, r0             ; E = wall
+    LDI r1, 0x2003
+    STORE r1, r0             ; W = wall
+
+    ; Room 1 (Dark Corridor): N=0, S=2, E=0xFF, W=0xFF
+    LDI r0, 0
+    LDI r1, 0x2004
+    STORE r1, r0             ; N = room 0
+    LDI r0, 2
+    LDI r1, 0x2005
+    STORE r1, r0             ; S = room 2
+    LDI r0, 0xFF
+    LDI r1, 0x2006
+    STORE r1, r0             ; E = wall
+    LDI r1, 0x2007
+    STORE r1, r0             ; W = wall
+
+    ; Room 2 (Junction): N=1, S=5, E=3, W=4
+    LDI r0, 1
+    LDI r1, 0x2008
+    STORE r1, r0             ; N = room 1
+    LDI r0, 5
+    LDI r1, 0x2009
+    STORE r1, r0             ; S = room 5 (locked!)
+    LDI r0, 3
+    LDI r1, 0x200A
+    STORE r1, r0             ; E = room 3
+    LDI r0, 4
+    LDI r1, 0x200B
+    STORE r1, r0             ; W = room 4
+
+    ; Room 3 (Armory): N=0xFF, S=0xFF, E=0xFF, W=2
+    LDI r0, 0xFF
+    LDI r1, 0x200C
+    STORE r1, r0             ; N = wall
+    LDI r1, 0x200D
+    STORE r1, r0             ; S = wall
+    LDI r1, 0x200E
+    STORE r1, r0             ; E = wall
+    LDI r0, 2
+    LDI r1, 0x200F
+    STORE r1, r0             ; W = room 2
+
+    ; Room 4 (Library): N=0xFF, S=0xFF, E=2, W=0xFF
+    LDI r0, 0xFF
+    LDI r1, 0x2010
+    STORE r1, r0             ; N = wall
+    LDI r1, 0x2011
+    STORE r1, r0             ; S = wall
+    LDI r0, 2
+    LDI r1, 0x2012
+    STORE r1, r0             ; E = room 2
+    LDI r0, 0xFF
+    LDI r1, 0x2013
+    STORE r1, r0             ; W = wall
+
+    ; Room 5 (Exit Gate): all walls (one-way trip)
+    LDI r0, 0xFF
+    LDI r1, 0x2014
+    STORE r1, r0             ; N = wall
+    LDI r1, 0x2015
+    STORE r1, r0             ; S = wall
+    LDI r1, 0x2016
+    STORE r1, r0             ; E = wall
+    LDI r1, 0x2017
+    STORE r1, r0             ; W = wall
+
+    ; Item table at 0x2100 (3 items, each = room ID)
+    LDI r0, 0                ; Rusty Key in room 0
+    LDI r1, 0x2100
+    STORE r1, r0
+    LDI r0, 3                ; Sword in room 3
+    LDI r1, 0x2101
+    STORE r1, r0
+    LDI r0, 4                ; Scroll in room 4
+    LDI r1, 0x2102
+    STORE r1, r0
+
+    RET
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; UTILITY ROUTINES
+; ═══════════════════════════════════════════════════════════════════════
+
+; ── clear_16: zero 16 words starting at address in r0 ──────────────
+
+clear_16:
+    MOV r1, r0
+    LDI r0, 16
+cl16_loop:
+    STORE r1, r7
+    ADD r1, r6
+    SUB r0, r6
+    BNE r0, r7, cl16_loop
+    RET
+
+
+; ═══════════════════════════════════════════════════════════════════════
+; STRING DATA
+; ═══════════════════════════════════════════════════════════════════════
+
+; ── Title screen ──
+title_str:
+    .asciz "DUNGEON OF GEOMETRY"
+subtitle_str:
+    .asciz "Press any key to begin..."
+
+; ── Room titles ──
+title_room0:
+    .asciz "Dungeon Cell"
+title_room1:
+    .asciz "Dark Corridor"
+title_room2:
+    .asciz "Junction"
+title_room3:
+    .asciz "Armory"
+title_room4:
+    .asciz "Ancient Library"
+title_room5:
+    .asciz "Exit Gate"
+
+; ── Room descriptions (line 1) ──
+desc_room0:
+    .asciz "A damp stone cell. Water drips"
+desc_room1:
+    .asciz "A long dark corridor. Echoes"
+desc_room2:
+    .asciz "A four-way junction. Torchlight"
+desc_room3:
+    .asciz "Racks of old weapons. Most are"
+desc_room4:
+    .asciz "Dusty shelves of ancient books."
+desc_room5:
+    .asciz "A massive iron gate stands open!"
+
+; ── Room descriptions (line 2) ──
+desc2_room0:
+    .asciz "from cracked walls. South leads out."
+desc2_room1:
+    .asciz "fill the darkness. It leads south."
+desc2_room2:
+    .asciz "flickers from all directions."
+desc2_room3:
+    .asciz "rusted, but one blade still shines."
+desc2_room4:
+    .asciz "A parchment scroll lies on a desk."
+desc2_room5:
+    .asciz "Sunlight streams through. Freedom!"
+
+; ── Exits label ──
+exits_label:
+    .asciz "Exits:"
+
+; ── Direction strings ──
+dir_n_str:
+    .asciz "- North"
+dir_s_str:
+    .asciz "- South"
+dir_e_str:
+    .asciz "- East"
+dir_w_str:
+    .asciz "- West"
+
+; ── Item strings ──
+item_key_str:
+    .asciz "You see: a rusty key"
+item_sword_str:
+    .asciz "You see: a shining sword"
+item_scroll_str:
+    .asciz "You see: a parchment scroll"
+
+; ── Inventory strings ──
+inv_label:
+    .asciz "Inventory:"
+inv_key_str:
+    .asciz "Key "
+inv_sword_str:
+    .asciz "Sword "
+inv_scroll_str:
+    .asciz "Scroll"
+
+; ── Prompt ──
+prompt_str:
+    .asciz "N)orth S)outh E)ast W)est L)ook T)ake Q)uit"
+
+; ── Messages ──
+msg_cant_go:
+    .asciz "You can't go that way."
+msg_locked:
+    .asciz "The gate is locked. You need a key!"
+msg_huh:
+    .asciz "Unknown command."
+msg_nothing:
+    .asciz "Nothing to take here."
+msg_took_key:
+    .asciz "Taken: rusty key"
+msg_took_sword:
+    .asciz "Taken: shining sword"
+msg_took_scroll:
+    .asciz "Taken: parchment scroll"
+
+; ── Victory ──
+win_str:
+    .asciz "*** YOU ESCAPED! ***"
+win_str2:
+    .asciz "The geometry is conquered."
+
+
+    .include "../lib/input.gasm"
+    .include "../lib/screen.gasm"
