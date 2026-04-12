@@ -125,6 +125,73 @@ fn shell_assembles_and_prints_banner() {
 }
 
 #[test]
+fn shell_dir_lists_programs() {
+    let source =
+        std::fs::read_to_string("programs/shell.gasm").expect("run: cargo test from project root");
+    let asm = assembler::assemble(&source).expect("shell.gasm assembly failed");
+    let mut vm = Vm::new(16384);
+    vm.load_program(&asm.pixels);
+
+    // Run until first YIELD (welcome banner printed)
+    let mut cycles = 0u32;
+    while !vm.yielded && !vm.halted && cycles < 100_000 {
+        let c = vm.run_with_limit(1000);
+        cycles += c;
+        if vm.yielded || vm.halted {
+            break;
+        }
+    }
+    assert!(!vm.halted, "shell should not halt immediately");
+    assert!(vm.yielded, "shell should yield after printing banner ({} cycles)", cycles);
+
+    // Inject "DIR" + Enter into keyboard port
+    let keys: Vec<u32> = vec![b'D' as u32, b'I' as u32, b'R' as u32, 10];
+    for &key in &keys {
+        vm.ram[0xFFF] = key;
+        vm.yielded = false;
+        let mut kc = 0u32;
+        while !vm.yielded && !vm.halted && kc < 50_000 {
+            let c = vm.run_with_limit(1000);
+            kc += c;
+        }
+    }
+
+    // After DIR + Enter, terminal should contain program names
+    let all_text: String = (0..vm.term.line_count())
+        .map(|i| {
+            vm.term
+                .get_line(i)
+                .iter()
+                .map(|&c| c as char)
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    // Should list several known programs
+    assert!(
+        all_text.contains("bounce"),
+        "DIR output should contain 'bounce', got:\n{}",
+        all_text
+    );
+    assert!(
+        all_text.contains("shell"),
+        "DIR output should contain 'shell', got:\n{}",
+        all_text
+    );
+    assert!(
+        all_text.contains("gradient"),
+        "DIR output should contain 'gradient', got:\n{}",
+        all_text
+    );
+    assert!(
+        all_text.contains("mandelbrot"),
+        "DIR output should contain 'mandelbrot', got:\n{}",
+        all_text
+    );
+}
+
+#[test]
 fn pixelc_life() {
     // Conway's Game of Life -- grids at ram[8192] and ram[12288]
     let source =

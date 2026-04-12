@@ -81,7 +81,7 @@ Do NOT skip ahead. Do NOT attempt BLOCKED tasks.
 
 ### Sprint B: Shell Commands (.gasm -- extend shell.gasm, NO Rust)
 
-- [ ] B1: DIR command -- list programs in virtual filesystem (EASY-MEDIUM)
+- [x] B1: DIR command -- list programs in virtual filesystem (EASY-MEDIUM)
 - [ ] B2: TYPE command -- view file contents in terminal (EASY-MEDIUM)
 - [ ] B3: DEBUG command -- show registers and PC (MEDIUM)
 

@@ -465,6 +465,52 @@ try_help:
     LDI r0, 10
     STORE r10, r0
 
+    ; " DIR    List programs"
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'D'
+    STORE r10, r0
+    LDI r0, 'I'
+    STORE r10, r0
+    LDI r0, 'R'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'L'
+    STORE r10, r0
+    LDI r0, 'i'
+    STORE r10, r0
+    LDI r0, 's'
+    STORE r10, r0
+    LDI r0, 't'
+    STORE r10, r0
+    LDI r0, 32
+    STORE r10, r0
+    LDI r0, 'p'
+    STORE r10, r0
+    LDI r0, 'r'
+    STORE r10, r0
+    LDI r0, 'o'
+    STORE r10, r0
+    LDI r0, 'g'
+    STORE r10, r0
+    LDI r0, 'r'
+    STORE r10, r0
+    LDI r0, 'a'
+    STORE r10, r0
+    LDI r0, 'm'
+    STORE r10, r0
+    LDI r0, 's'
+    STORE r10, r0
+    LDI r0, 10
+    STORE r10, r0
+
     JMP shell_loop
 
 try_ver:
@@ -549,7 +595,7 @@ try_ver:
 try_echo:
     ; ── ECHO ── check first 4 chars
     LDI r20, 'E'
-    BNE r0, r20, unknown_cmd
+    BNE r0, r20, try_dir
     MOV r2, r12
     LDI r3, 1
     ADD r2, r3
@@ -601,6 +647,41 @@ echo_done:
     STORE r10, r0
     JMP shell_loop
 
+try_dir:
+    ; ── DIR ── list available programs
+    LDI r20, 'D'
+    BNE r0, r20, unknown_cmd
+    MOV r2, r12
+    LDI r3, 1
+    ADD r2, r3
+    LOAD r3, r2
+    LDI r20, 'I'
+    BNE r3, r20, unknown_cmd
+    MOV r2, r12
+    LDI r3, 2
+    ADD r2, r3
+    LOAD r3, r2
+    LDI r20, 'R'
+    BNE r3, r20, unknown_cmd
+
+    ; DIR matched - iterate through program list in .data section
+    LDI r17, prog_list
+dir_outer:
+    LOAD r0, r17             ; first char of current name
+    BEQ r0, r14, dir_done    ; null = end of list
+dir_inner:
+    STORE r10, r0            ; print char to terminal
+    ADD r17, r15             ; advance pointer
+    LOAD r0, r17             ; next char
+    BNE r0, r14, dir_inner   ; if not null, keep printing
+    ; End of this name - print newline
+    LDI r0, 10
+    STORE r10, r0
+    ADD r17, r15             ; advance past null terminator
+    JMP dir_outer
+dir_done:
+    JMP shell_loop
+
 unknown_cmd:
     ; Print "Unknown command"
     LDI r0, 'U'
@@ -639,3 +720,20 @@ print_cmd_done:
     LDI r0, 10
     STORE r10, r0
     JMP shell_loop
+
+.DATA
+prog_list:
+    .asciz "bounce"
+    .asciz "checkerboard"
+    .asciz "clock"
+    .asciz "diagonal"
+    .asciz "fib_spiral"
+    .asciz "fireworks"
+    .asciz "gradient"
+    .asciz "life"
+    .asciz "maze"
+    .asciz "mandelbrot"
+    .asciz "shell"
+    .asciz "sierpinski"
+    .asciz "simple_add"
+    .asciz ""
