@@ -77,7 +77,7 @@ Do NOT skip ahead. Do NOT attempt BLOCKED tasks.
 - [x] A3: mandelbrot.gp -- Mandelbrot set visualization (MEDIUM)
 - [x] A4: maze.gp -- maze generation (MEDIUM)
 - [x] A5: fireworks.gp -- particle explosion animation (MEDIUM)
-- [ ] A6: clock.gp -- real-time clock face (MEDIUM)
+- [x] A6: clock.gp -- real-time clock face (MEDIUM)
 
 ### Sprint B: Shell Commands (.gasm -- extend shell.gasm, NO Rust)
 

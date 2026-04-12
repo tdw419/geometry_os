@@ -233,3 +233,23 @@ fn pixelc_fireworks() {
     let nonzero: usize = vm.screen.iter().filter(|&&p| p != 0).count();
     assert!(nonzero > 0, "Fireworks should have drawn pixels, got {}", nonzero);
 }
+
+#[test]
+fn pixelc_clock() {
+    // Analog clock face showing 10:10:30 with hour markers and three hands.
+    // Program is ~1400 pixels (56 pixel() calls), needs 4096 RAM.
+    let source =
+        std::fs::read_to_string("programs/clock.asm").expect("run: cargo test from project root");
+    let asm = assembler::assemble(&source).expect("clock.asm assembly failed");
+    let mut vm = Vm::new(4096);
+    vm.load_program(&asm.pixels);
+    vm.run_with_limit(1_000_000);
+    assert!(vm.halted, "Clock should halt after drawing");
+    // Verify clock drew pixels on screen: markers (0x44), hands (0xFF, 0x41, 0xE0)
+    let nonzero: usize = vm.screen.iter().filter(|&&p| p != 0).count();
+    assert!(
+        nonzero >= 50,
+        "Clock should have >= 50 non-zero screen pixels, got {}",
+        nonzero
+    );
+}
