@@ -1,0 +1,311 @@
+{
+  "id": "root",
+  "title": "How to improve pixelpack encoding ratio from 7:1 to 20:1+",
+  "description": "Each 32-bit pixel expands to ~4-5 bytes. We need strategies that extract more entropy from the 28 param bits.",
+  "enables": [],
+  "risk": "",
+  "category": "foundational",
+  "depth": 0,
+  "fertility_score": 0,
+  "direct_fertility": 5,
+  "total_descendants": 0,
+  "explored": true,
+  "pruned": false,
+  "model_used": "hermes",
+  "children": [
+    {
+      "id": "ctx",
+      "title": "Context-Dependent Expansion",
+      "description": "Pixel N can reference pixel N-1 output. A pixel with strategy CTX_COPY copies the last K bytes from the previous expansion and appends new bytes. This means repeated patterns (indentation, variable names) cost 0 bits after first occurrence.",
+      "enables": [
+        "Back-references eliminate redundant bytes across pixels",
+        "Run-length patterns in code (indentation, repeated keywords) become nearly free",
+        "Enables fractal unfold: each pixels output feeds into next pixels context"
+      ],
+      "risk": "Breaks independent pixel decoding -- must decode sequentially. Makes PNG order matter.",
+      "category": "foundational",
+      "depth": 1,
+      "fertility_score": 4.0,
+      "direct_fertility": 4,
+      "total_descendants": 4,
+      "explored": true,
+      "pruned": false,
+      "model_used": "hermes",
+      "children": [
+        {
+          "id": "ctx1",
+          "title": "LZ77-style back-ref strategy",
+          "description": "Strategy bit=0xC means: params encode (offset, length) back-reference into the running output buffer. 14 bits offset + 14 bits length = copy up to 16KB back, 16KB length.",
+          "enables": [
+            "Replaces repeated substrings with 32-bit pixels",
+            "Could encode 200-byte programs with many repeated tokens in ~10 pixels"
+          ],
+          "risk": "Need a running buffer during decode. More complex state.",
+          "category": "obvious",
+          "depth": 2,
+          "fertility_score": 0,
+          "direct_fertility": 0,
+          "total_descendants": 0,
+          "explored": false,
+          "pruned": false,
+          "model_used": "hermes",
+          "children": []
+        },
+        {
+          "id": "ctx2",
+          "title": "Delta encoding between pixels",
+          "description": "Pixel N stores XOR deltas from pixel N-1 output. If consecutive code segments share prefixes (like \"    \" indentation), the delta is tiny and the pixel can store mostly literal new content.",
+          "enables": [
+            "Code with consistent indentation compresses very well",
+            "Natural for multi-line programs"
+          ],
+          "risk": "One corrupted pixel cascades. Need error detection.",
+          "category": "contrarian",
+          "depth": 2,
+          "fertility_score": 0,
+          "direct_fertility": 0,
+          "total_descendants": 0,
+          "explored": false,
+          "pruned": false,
+          "model_used": "hermes",
+          "children": []
+        },
+        {
+          "id": "ctx3",
+          "title": "Shared dictionary built during decode",
+          "description": "As each pixel expands, common byte sequences get added to a dynamic dictionary (like LZ78/LZW). Later pixels can reference dictionary entries by short index.",
+          "enables": [
+            "Dictionary adapts to the specific program being encoded",
+            "Common patterns like \"def \", \"return \", \"print(\" become single references after first use"
+          ],
+          "risk": "Dictionary state must be deterministic. Different programs build different dicts.",
+          "category": "foundational",
+          "depth": 2,
+          "fertility_score": 0,
+          "direct_fertility": 0,
+          "total_descendants": 0,
+          "explored": false,
+          "pruned": false,
+          "model_used": "hermes",
+          "children": []
+        },
+        {
+          "id": "ctx4",
+          "title": "Chained Huffman per-pixel",
+          "description": "Each pixel re-encodes its output using a Huffman table derived from the frequency distribution of all previous pixels output. Later pixels use shorter codes for bytes seen frequently so far.",
+          "enables": [
+            "Adaptive compression that learns the programs own patterns",
+            "Could approach entropy limit for repetitive code"
+          ],
+          "risk": "Complex. Huffman table itself needs encoding. May not fit in 28 param bits.",
+          "category": "wildcard",
+          "depth": 2,
+          "fertility_score": 0,
+          "direct_fertility": 0,
+          "total_descendants": 0,
+          "explored": false,
+          "pruned": false,
+          "model_used": "hermes",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "var",
+      "title": "Variable-Length Dictionary Indices",
+      "description": "Current strategies use fixed-width indices (4-bit or 5-bit) into dictionaries. Waste bits on common entries. Use variable-length: top 8 entries get 3-bit indices, next 16 get 5-bit, etc. Fits more dictionary lookups into the same 28 param bits.",
+      "enables": [
+        "More dictionary hits per pixel = more bytes per pixel",
+        "Common tokens (print, def, return, spaces) use fewer bits",
+        "Can pack 8-10 lookups instead of 5-7 into one pixel"
+      ],
+      "risk": "Parsing variable-length fields from a 28-bit word is tricky. Need unambiguous bit boundaries.",
+      "category": "obvious",
+      "depth": 1,
+      "fertility_score": 2.0,
+      "direct_fertility": 2,
+      "total_descendants": 2,
+      "explored": true,
+      "pruned": false,
+      "model_used": "hermes",
+      "children": [
+        {
+          "id": "var1",
+          "title": "Huffman-coded dictionary index",
+          "description": "Build a frequency table from corpus. Assign shorter bit codes to more common dictionary entries. 28 param bits become a Huffman-coded bitstream of dictionary lookups.",
+          "enables": [
+            "Near-optimal use of the 28 param bits",
+            "Could fit 10+ common tokens in one pixel"
+          ],
+          "risk": "Need to store or agree on the Huffman table. Slight decode complexity.",
+          "category": "obvious",
+          "depth": 2,
+          "fertility_score": 0,
+          "direct_fertility": 0,
+          "total_descendants": 0,
+          "explored": false,
+          "pruned": false,
+          "model_used": "hermes",
+          "children": []
+        },
+        {
+          "id": "var2",
+          "title": "Prefix code with escape",
+          "description": "First bit = 0 means 3-bit index into top-4 common entries. First bit = 1 means next 6 bits = index into 64-entry dictionary. Hybrid: common stuff is cheap, rare stuff is possible.",
+          "enables": [
+            "Common tokens cost 4 bits, rare ones cost 7 bits",
+            "Simple to decode, no table needed"
+          ],
+          "risk": "Still not as efficient as full Huffman. Fixed breakpoint may not match actual distribution.",
+          "category": "obvious",
+          "depth": 2,
+          "fertility_score": 0,
+          "direct_fertility": 0,
+          "total_descendants": 0,
+          "explored": false,
+          "pruned": false,
+          "model_used": "hermes",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "arith",
+      "title": "Arithmetic Coding Strategy",
+      "description": "Replace one strategy slot with arithmetic coding: the 28 param bits encode a fractional number that, decoded against a known symbol probability table, produces a variable-length sequence of bytes. Much denser than dictionary lookup.",
+      "enables": [
+        "28 bits can represent any sequence up to ~28 bits of entropy",
+        "Near Shannon limit for the given symbol distribution",
+        "Could encode 10-20 bytes per pixel for structured code"
+      ],
+      "risk": "Need a pre-agreed probability model. Slower decode. More complex implementation.",
+      "category": "wildcard",
+      "depth": 1,
+      "fertility_score": 2.0,
+      "direct_fertility": 2,
+      "total_descendants": 2,
+      "explored": true,
+      "pruned": false,
+      "model_used": "hermes",
+      "children": [
+        {
+          "id": "arith1",
+          "title": "Static model from corpus",
+          "description": "Build a byte-frequency model from the training corpus. 28 bits encode a range that decodes to the most likely byte sequence for that range.",
+          "enables": [
+            "Deterministic, no metadata needed in pixel",
+            "Good for programs in the same language as training corpus"
+          ],
+          "risk": "Static model is suboptimal for programs that deviate from corpus distribution.",
+          "category": "obvious",
+          "depth": 2,
+          "fertility_score": 0,
+          "direct_fertility": 0,
+          "total_descendants": 0,
+          "explored": false,
+          "pruned": false,
+          "model_used": "hermes",
+          "children": []
+        },
+        {
+          "id": "arith2",
+          "title": "Model-switching per strategy",
+          "description": "Strategy 0xD = Python model, 0xE = C model, 0xF = shell model. Each strategy uses a different arithmetic coding probability table optimized for that language.",
+          "enables": [
+            "Language-specific compression without metadata",
+            "Common Python tokens (def, import, class) get optimal encoding in 0xD, C tokens (int, void, return) in 0xE"
+          ],
+          "risk": "Uses 3 of 16 strategy slots. Limited to 3 languages unless we expand strategy bits.",
+          "category": "contrarian",
+          "depth": 2,
+          "fertility_score": 0,
+          "direct_fertility": 0,
+          "total_descendants": 0,
+          "explored": false,
+          "pruned": false,
+          "model_used": "hermes",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "nibble2",
+      "title": "Expand Nibble Table to Full Byte Map",
+      "description": "Current NIBBLE strategy (0x7) maps 7 nibbles to 7 bytes via a 16-entry common-symbol table. Expand: use ALL 28 param bits as 7 nibbles each selecting from a 256-entry table (using 8-bit indices packed differently). Or better: use the 28 bits to encode offsets into a larger frequency-sorted byte-pair table.",
+      "enables": [
+        "7 bytes per pixel using any byte, not just 16 common ones",
+        "Byte-pair table means each nibble emits 2 bytes = 14 bytes per pixel"
+      ],
+      "risk": "Nibble math constrains flexibility. 4 bits cant index 256 entries without multiplexing.",
+      "category": "obvious",
+      "depth": 1,
+      "fertility_score": 1.0,
+      "direct_fertility": 1,
+      "total_descendants": 1,
+      "explored": true,
+      "pruned": false,
+      "model_used": "hermes",
+      "children": [
+        {
+          "id": "nib1",
+          "title": "Byte-pair nibble strategy",
+          "description": "16-entry table of the most common 2-byte pairs in code. Each nibble selects a pair. 7 nibbles = 14 bytes. Ratio: 14*8/32 = 3.5:1 bits, much better than current.",
+          "enables": [
+            "Double the output per pixel",
+            "Common pairs like \\n\\t, ()\\n, \": \", \"= \" become single nibbles"
+          ],
+          "risk": "Need to identify the 16 most valuable byte pairs. May not cover all needed characters.",
+          "category": "obvious",
+          "depth": 2,
+          "fertility_score": 0,
+          "direct_fertility": 0,
+          "total_descendants": 0,
+          "explored": false,
+          "pruned": false,
+          "model_used": "hermes",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "meta",
+      "title": "Meta-Pixel: Strategy Selects Strategy",
+      "description": "A meta-strategy pixel that doesnt produce output directly but modifies how subsequent pixels are decoded. Example: pixel with strategy META sets the dictionary to Python-mode, and all following pixels use Python-optimized tables until another META pixel switches.",
+      "enables": [
+        "One pixel to configure the entire decoding context",
+        "Language-specific modes without wasting strategy slots",
+        "Future-proof: new modes dont need new strategies, just new META payloads"
+      ],
+      "risk": "Breaks the purity of each pixel being independent. Adds state machine to decoder.",
+      "category": "contrarian",
+      "depth": 1,
+      "fertility_score": 1.0,
+      "direct_fertility": 1,
+      "total_descendants": 1,
+      "explored": true,
+      "pruned": false,
+      "model_used": "hermes",
+      "children": [
+        {
+          "id": "meta1",
+          "title": "Mode-switch + dictionary swap",
+          "description": "META pixel payload selects one of N pre-built dictionaries. Following pixels use that dictionary. Switch dictionaries mid-program for polyglot code.",
+          "enables": [
+            "Optimal dictionary for each section of code",
+            "Python preamble + C inline in same image"
+          ],
+          "risk": "Must track current mode during decode. More state = more test surface.",
+          "category": "foundational",
+          "depth": 2,
+          "fertility_score": 0,
+          "direct_fertility": 0,
+          "total_descendants": 0,
+          "explored": false,
+          "pruned": false,
+          "model_used": "hermes",
+          "children": []
+        }
+      ]
+    }
+  ]
+}
