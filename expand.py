@@ -1,37 +1,31 @@
 """
-Boot Pixel Expander v3 - Expanded Dictionary + Nibble Encoding
+Boot Pixel Expander v4 - Dictionary-Dominant Encoding
 
 A single 32-bit value (one RGBA pixel) encodes a generative recipe
 that deterministically expands into a byte sequence.
 
-Core insight: The seed is DNA, the dictionary is the cellular machinery.
-The dictionary does the heavy lifting. The seed just selects which
-fragments to concatenate.
+Architecture:
+  0x0-0x6: DICT_N   - N entries from 16-entry base dictionary (4-bit indices)
+  0x7:      NIBBLE   - 7 nibbles indexing a byte table
+  0x8:      DICTX5   - 5 entries from 32-entry extended dictionary (5-bit indices)
+  0x9:      DICTX6   - 6 entries from extended dict entries 16-31 (4-bit indices)
+  0xA:      DICTX7   - 7 entries from extended dict entries 16-31 (4-bit indices)
+  0xB:      RLE      - run-length encoded pattern
+  0xC:      XOR_CHAIN - XOR chain from start byte
+  0xD:      LINEAR   - linear byte sequence (start + step)
+  0xE:      BYTEPACK - direct byte encoding (8 sub-modes)
+  0xF:      TEMPLATE - template + XOR substitution
 
-Strategy layout (top 4 bits of 32-bit seed):
-  0x0-0x6: DICT_N - concatenate N dictionary entries (4-bit indices)
-    N=1: 4 bits used, 24 spare
-    N=2: 8 bits used, 20 spare
-    ...
-    N=7: 28 bits used, 0 spare (perfect packing!)
-  0x7: NIBBLE - 28 bits encode 7 nibbles, each indexing a byte table
-  0x8: DICTX_5 - 5 entries from extended 32-entry dict (5-bit indices)
-  0x9: RLE - run-length encoded pattern
-  0xA: XOR_CHAIN - XOR chain from start byte
-  0xB: LINEAR - linear byte sequence (start + step)
-  0xC: FIBONACCI - Fibonacci-like byte sequence
-  0xD: LFSR - linear feedback shift register
-  0xE: BYTEPACK - direct byte encoding with XOR delta compression
-  0xF: TEMPLATE - template + XOR substitution
+The dictionary IS the cellular machinery that gives meaning to the seed.
 """
 
 import struct
 
-# The shared dictionary - 16 entries that compose into real programs.
-# This IS the cellular machinery that gives meaning to the seed.
-# Each entry can be a keyword, operator, literal, or common fragment.
+# === DICTIONARIES ===
+# The genome. Each entry is a fragment that composes into programs.
+
 DICTIONARY = [
-    b'print(',      # 0  - Python print+paren (6 bytes)
+    b'print(',      # 0  - Python print call (6 bytes)
     b')',           # 1  - close paren (1 byte)
     b'"',           # 2  - double quote (1 byte)
     b'Hello',       # 3  - Hello (5 bytes)
@@ -41,7 +35,7 @@ DICTIONARY = [
     b'def ',        # 7  - Python def (4 bytes)
     b'42',          # 8  - common value (2 bytes)
     b'main',        # 9  - main function name (4 bytes)
-    b'()',          # 10 - parens (2 bytes)
+    b'()',          # 10 - empty parens (2 bytes)
     b', ',          # 11 - comma space (2 bytes)
     b'!',           # 12 - exclamation (1 byte)
     b'void ',       # 13 - C keyword (5 bytes)
@@ -49,7 +43,6 @@ DICTIONARY = [
     b'}',           # 15 - close brace (1 byte)
 ]
 
-# Extended dictionary for DICTX strategy (5-bit indices, 32 entries)
 DICTIONARY_EXT = list(DICTIONARY) + [
     b'x',           # 16 - variable x (1 byte)
     b'=',           # 17 - assignment (1 byte)
@@ -58,50 +51,30 @@ DICTIONARY_EXT = list(DICTIONARY) + [
     b'*',           # 20 - multiply (1 byte)
     b';',           # 21 - semicolon (1 byte)
     b'1',           # 22 - literal 1 (1 byte)
-    b'2',           # 23 - literal 2 (1 byte)
-    b'0',           # 24 - literal 0 (1 byte)
-    b'if ',         # 25 - if keyword (3 bytes)
-    b'return ',     # 26 - return keyword (7 bytes)
-    b'int ',        # 27 - int type (4 bytes)
-    b'for ',        # 28 - for keyword (4 bytes)
-    b'while ',      # 29 - while keyword (6 bytes)
-    b'class ',      # 30 - class keyword (6 bytes)
-    b' ',           # 31 - space (1 byte)
+    b'0',           # 23 - literal 0 (1 byte)
+    b'if ',         # 24 - if keyword (3 bytes)
+    b'return ',     # 25 - return keyword (8 bytes)
+    b'int ',        # 26 - int type (4 bytes)
+    b'for ',        # 27 - for keyword (4 bytes)
+    b'while ',      # 28 - while keyword (6 bytes)
+    b'class ',      # 29 - class keyword (6 bytes)
+    b' ',           # 30 - space (1 byte)
+    b'fn ',         # 31 - fn keyword (3 bytes)
 ]
 
-# Nibble lookup table - 16 common bytes for arbitrary encoding.
-# Each nibble (4 bits) maps to one byte, giving 7 bytes from 28 bits.
+# DICTX6/7 sub-dictionary (entries 16-31 of DICTIONARY_EXT)
+SUB_DICT = DICTIONARY_EXT[16:]  # 16 entries, indices 0-15
+
 NIBBLE_TABLE = [
-    0x00,  # 0  - null
-    0x0A,  # 1  - newline
-    0x20,  # 2  - space
-    0x21,  # 3  - !
-    0x22,  # 4  - "
-    0x28,  # 5  - (
-    0x29,  # 6  - )
-    0x2C,  # 7  - ,
-    0x2F,  # 8  - /
-    0x3A,  # 9  - :
-    0x3B,  # A  - ;
-    0x3D,  # B  - =
-    0x41,  # C  - A (start of uppercase range)
-    0x61,  # D  - a (start of lowercase range)
-    0x7B,  # E  - {
-    0x7D,  # F  - }
+    0x00, 0x0A, 0x20, 0x21, 0x22, 0x28, 0x29, 0x2C,
+    0x2F, 0x3A, 0x3B, 0x3D, 0x41, 0x61, 0x7B, 0x7D,
 ]
 
+
+# === EXPANDER ===
 
 def expand(seed: int, max_output: int = 65536) -> bytes:
-    """
-    Expand a 32-bit seed into a byte sequence.
-
-    Args:
-        seed: 32-bit integer (0 to 0xFFFFFFFF)
-        max_output: Safety limit on output size
-
-    Returns:
-        Generated bytes
-    """
+    """Expand a 32-bit seed into a byte sequence."""
     if seed < 0 or seed > 0xFFFFFFFF:
         raise ValueError(f"Seed must be 0-0xFFFFFFFF, got {seed}")
 
@@ -118,11 +91,11 @@ def expand(seed: int, max_output: int = 65536) -> bytes:
         0x6: lambda p: _expand_dict(p, 7),
         0x7: _expand_nibble,
         0x8: _expand_dictx5,
-        0x9: _expand_rle,
-        0xA: _expand_xor_chain,
-        0xB: _expand_linear,
-        0xC: _expand_fibonacci,
-        0xD: _expand_lfsr,
+        0x9: _expand_dictx6,
+        0xA: _expand_dictx7,
+        0xB: _expand_rle,
+        0xC: _expand_xor_chain,
+        0xD: _expand_linear,
         0xE: _expand_bytepack,
         0xF: _expand_template,
     }
@@ -130,7 +103,6 @@ def expand(seed: int, max_output: int = 65536) -> bytes:
     result = handlers[strategy](params)
     if isinstance(result, bytes):
         return result[:max_output]
-    # Handle generators
     buf = bytearray()
     for b in result:
         if len(buf) >= max_output:
@@ -139,8 +111,10 @@ def expand(seed: int, max_output: int = 65536) -> bytes:
     return bytes(buf)
 
 
+# --- Dictionary strategies ---
+
 def _expand_dict(params, n_entries):
-    """Concatenate n_entries dictionary entries from 4-bit indices."""
+    """Concatenate n_entries from DICTIONARY using 4-bit indices."""
     result = bytearray()
     for i in range(n_entries):
         idx = (params >> (4 * i)) & 0xF
@@ -149,8 +123,7 @@ def _expand_dict(params, n_entries):
 
 
 def _expand_dictx5(params):
-    """Concatenate 5 entries from DICTIONARY_EXT using 5-bit indices.
-    5 entries x 5 bits = 25 bits, fits in 28 with 3 spare."""
+    """5 entries from DICTIONARY_EXT using 5-bit indices (25 bits)."""
     result = bytearray()
     for i in range(5):
         idx = (params >> (5 * i)) & 0x1F
@@ -158,8 +131,26 @@ def _expand_dictx5(params):
     return bytes(result)
 
 
+def _expand_dictx6(params):
+    """6 entries from SUB_DICT (entries 16-31) using 4-bit indices (24 bits)."""
+    result = bytearray()
+    for i in range(6):
+        idx = (params >> (4 * i)) & 0xF
+        result.extend(SUB_DICT[idx])
+    return bytes(result)
+
+
+def _expand_dictx7(params):
+    """7 entries from SUB_DICT (entries 16-31) using 4-bit indices (28 bits)."""
+    result = bytearray()
+    for i in range(7):
+        idx = (params >> (4 * i)) & 0xF
+        result.extend(SUB_DICT[idx])
+    return bytes(result)
+
+
 def _expand_nibble(params):
-    """Expand 28 bits as 7 nibbles, each indexing NIBBLE_TABLE."""
+    """7 nibbles each index NIBBLE_TABLE."""
     result = bytearray()
     for i in range(7):
         nibble = (params >> (4 * i)) & 0xF
@@ -167,16 +158,10 @@ def _expand_nibble(params):
     return bytes(result)
 
 
-def _expand_prng(params):
-    """PRNG byte stream from 28-bit seed."""
-    state = params | 1  # ensure non-zero
-    while True:
-        state = (state * 1103515245 + 12345) & 0x0FFFFFFF
-        yield (state >> 12) & 0xFF
-
+# --- Pattern strategies ---
 
 def _expand_rle(params):
-    """Run-length encoding: [byte_a]*count_a + [byte_b]*count_b, repeated."""
+    """Run-length: [byte_a]*count_a + [byte_b]*count_b repeated."""
     byte_a = params & 0xFF
     byte_b = (params >> 8) & 0xFF
     count_a = ((params >> 16) & 0xF) + 1
@@ -214,7 +199,7 @@ def _expand_linear(params):
     start = params & 0xFF
     step = (params >> 8) & 0xFF
     if step > 127:
-        step -= 256  # signed
+        step -= 256
     count = ((params >> 16) & 0xF) + 1
     modifier = (params >> 20) & 0xFF
 
@@ -228,74 +213,17 @@ def _expand_linear(params):
     return bytes(result)
 
 
-def _expand_fibonacci(params):
-    """Fibonacci-like sequence in byte space."""
-    a = params & 0xFF
-    b = (params >> 8) & 0xFF
-    mod = (params >> 16) & 0xFF
-    if mod == 0:
-        mod = 256
-    count = ((params >> 24) & 0xF) * 2 + 2
-
-    result = bytearray()
-    for _ in range(count):
-        result.append(a & 0xFF)
-        a, b = b, (a + b) % mod
-    return bytes(result)
-
-
-def _expand_lfsr(params):
-    """LFSR pseudo-random expansion."""
-    state = (params & 0xFFFF) | 1
-    tap_idx = (params >> 16) & 0xF
-    length = ((params >> 20) & 0xFF) + 1
-
-    taps = [
-        0xB400, 0xB800, 0x8016, 0x8003,
-        0x8029, 0xD295, 0xA605, 0xAC9C,
-        0xA006, 0x9001, 0xA007, 0xC001,
-        0xB2D8, 0xA609, 0xACDC, 0x9006,
-    ]
-    tap = taps[tap_idx % len(taps)]
-
-    result = bytearray()
-    for _ in range(length):
-        result.append(state & 0xFF)
-        for _ in range(8):
-            newbit = bin(state & tap).count('1') & 1
-            state = ((state << 1) | newbit) & 0xFFFF
-    return bytes(result)
-
+# --- Direct encoding ---
 
 def _expand_bytepack(params):
-    """BYTEPACK: Direct byte encoding with XOR delta.
-
-    params (28 bits):
-      [2:0]   mode (0-7)
-      [25:3]  packed data
-
-    Mode 0: 3 raw bytes (bits 3-10, 11-18, 19-26), [27] unused
-    Mode 1: 3 raw bytes + 1 shared high nibble trick:
-            base_nibble = bits[3:6], byte0=base|(bits[6:10]<<4), etc
-    Mode 2: XOR delta from base byte:
-            base = bits[3:10], deltas from bits[10:18, 18:26]
-            byte[0] = base, byte[i] = byte[i-1] ^ delta[i]
-    Mode 3: 4 raw nibbles + 2 shared bytes:
-            hi_table = bits[3:6], each nibble gives low 4 bits
-    Mode 4: Arithmetic: start + (step * i) for i in 0..3
-            start=bits[3:11], step=bits[11:19], count=bits[19:22]
-    Mode 5: 4 bytes, each = shared_base + nibble_offset
-            base=bits[3:11], nibs=bits[11:15,15:19,19:23,23:27]
-    Mode 6: 3 bytes via XOR chain: start, key, count
-            (same as strategy A but different encoding)
-    Mode 7: 5 bytes using 5-bit packed values
-            values are 5 bits each, reconstruct via lookup
+    """BYTEPACK: Direct byte encoding with 8 sub-modes.
+    params: [2:0] mode, [27:3] data
     """
     mode = params & 0x7
     data = (params >> 3) & 0x7FFFFFF
 
     if mode == 0:
-        # 3 raw bytes + 1 optional count byte
+        # 3 raw bytes + optional repeat of first byte
         b0 = data & 0xFF
         b1 = (data >> 8) & 0xFF
         b2 = (data >> 16) & 0xFF
@@ -303,27 +231,23 @@ def _expand_bytepack(params):
         return bytes([b0, b1, b2]) if extra == 0 else bytes([b0, b1, b2] + [b0] * extra)
 
     elif mode == 1:
-        # XOR delta: base byte + 2 delta bytes producing 3 bytes
+        # XOR delta: base + 2 deltas = 3 bytes + optional repeat
         base = data & 0xFF
         d1 = (data >> 8) & 0xFF
         d2 = (data >> 16) & 0xFF
         extra = (data >> 24) & 0xF
-        result = bytearray([base])
-        result.append(base ^ d1)
-        result.append((base ^ d1) ^ d2)
+        result = bytearray([base, base ^ d1, (base ^ d1) ^ d2])
         if extra:
             result.extend([result[-1]] * extra)
         return bytes(result)
 
     elif mode == 2:
-        # ADD delta: base + signed deltas
+        # ADD delta: base + signed deltas (3-4 bytes)
         base = data & 0xFF
         d1 = (data >> 8) & 0xFF
         d2 = (data >> 16) & 0xFF
         d3 = (data >> 24) & 0xF
-        result = bytearray([base])
-        result.append((base + d1) & 0xFF)
-        result.append((result[-1] + d2) & 0xFF)
+        result = bytearray([base, (base + d1) & 0xFF, (base + d1 + d2) & 0xFF])
         if d3:
             result.append((result[-1] + d3) & 0xFF)
         return bytes(result)
@@ -355,12 +279,8 @@ def _expand_bytepack(params):
         return bytes([base + n0, base + n1, base + n2, base + n3])
 
     elif mode == 6:
-        # 5 bytes via 5-bit packing (chars in common ASCII ranges)
-        # 5 bits -> 32 values, map to useful chars
-        table = (
-            'abcdefghijklmnopqrstuvwxyz'  # 0-25
-            '012345'                       # 26-31
-        )
+        # 5 bytes via 5-bit lowercase+digit table
+        table = 'abcdefghijklmnopqrstuvwxyz012345'
         result = bytearray()
         for i in range(5):
             idx = (data >> (5 * i)) & 0x1F
@@ -368,12 +288,8 @@ def _expand_bytepack(params):
         return bytes(result)
 
     elif mode == 7:
-        # 5 bytes via 5-bit packing (symbols/uppercase variant)
-        table = (
-            'ABCDEFGHIJKLMNOPQRSTUVWXYZ'  # 0-25
-            ' !,.('                         # 26-30
-            '\n'                            # 31
-        )
+        # 5 bytes via 5-bit uppercase+symbol table
+        table = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ !,.\n('
         result = bytearray()
         for i in range(5):
             idx = (data >> (5 * i)) & 0x1F
@@ -383,25 +299,15 @@ def _expand_bytepack(params):
     return b''
 
 
+# --- Template strategy ---
+
 def _expand_template(params):
-    """Template + XOR substitution."""
+    """Template + XOR substitution + 2 extra bytes."""
     templates = [
-        b'Hello, World!\n',
-        b'print("hi")\n',
-        b'echo hello\n',
-        b'int main(){}\n',
-        b'mov r0, #1\n',
-        b'AAAA',
-        b'BBBB',
-        b'CCCC',
-        b'ld a, 0\n',
-        b'push 42\n',
-        b'x = 1\n',
-        b'a = b\n',
-        b'fn f()\n',
-        b'pub fn\n',
-        b'val x\n',
-        b'let x\n',
+        b'Hello, World!\n', b'print("hi")\n', b'echo hello\n',
+        b'int main(){}\n', b'mov r0, #1\n', b'AAAA', b'BBBB', b'CCCC',
+        b'ld a, 0\n', b'push 42\n', b'x = 1\n', b'a = b\n',
+        b'fn f()\n', b'pub fn\n', b'val x\n', b'let x\n',
     ]
 
     idx = params & 0xF
@@ -414,13 +320,13 @@ def _expand_template(params):
     return result + bytes([extra1, extra2])
 
 
+# === Utility ===
+
 def seed_from_rgba(r: int, g: int, b: int, a: int = 0xFF) -> int:
-    """Convert RGBA pixel values to a 32-bit seed."""
     return (r << 24) | (g << 16) | (b << 8) | a
 
 
 def seed_to_rgba(seed: int) -> tuple:
-    """Convert a 32-bit seed to RGBA pixel values."""
     return (
         (seed >> 24) & 0xFF,
         (seed >> 16) & 0xFF,
@@ -429,16 +335,24 @@ def seed_to_rgba(seed: int) -> tuple:
     )
 
 
+def _STRATEGY_NAME(s):
+    names = {
+        0: 'DICT_1', 1: 'DICT_2', 2: 'DICT_3', 3: 'DICT_4',
+        4: 'DICT_5', 5: 'DICT_6', 6: 'DICT_7', 7: 'NIBBLE',
+        8: 'DICTX5', 9: 'DICTX6', 0xA: 'DICTX7', 0xB: 'RLE',
+        0xC: 'XOR_CHAIN', 0xD: 'LINEAR', 0xE: 'BYTEPACK', 0xF: 'TEMPLATE',
+    }
+    return names.get(s, 'UNKNOWN')
+
+
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 2:
-        print("Usage: python expand.py <seed_hex> [max_output]")
-        print("  seed_hex: 8-digit hex (e.g., 70423351)")
+        print("Usage: python3 expand.py <seed_hex> [max_output]")
         sys.exit(1)
 
     seed = int(sys.argv[1], 16)
     max_out = int(sys.argv[2]) if len(sys.argv) > 2 else 65536
-
     result = expand(seed, max_out)
     strategy = (seed >> 28) & 0xF
 
@@ -452,13 +366,3 @@ if __name__ == '__main__':
         print(f"ASCII:     {result.decode('ascii')!r}")
     except UnicodeDecodeError:
         print(f"ASCII:     {repr(result)}")
-
-
-def _STRATEGY_NAME(s):
-    names = {
-        0: 'DICT_1', 1: 'DICT_2', 2: 'DICT_3', 3: 'DICT_4',
-        4: 'DICT_5', 5: 'DICT_6', 6: 'DICT_7', 7: 'NIBBLE',
-        8: 'PRNG', 9: 'RLE', 0xA: 'XOR_CHAIN', 0xB: 'LINEAR',
-        0xC: 'FIBONACCI', 0xD: 'LFSR', 0xE: 'BYTEPACK', 0xF: 'TEMPLATE',
-    }
-    return names.get(s, 'UNKNOWN')
