@@ -2,44 +2,43 @@
 Pixelpack Phase 2 - Multi-Pixel PNG Encoder/Decoder
 
 Extends boot.py with:
-  - make_multipixel_png(): NxM RGBA PNG with N*M seeds
-  - read_multipixel_png(): extract all seeds from a multi-pixel PNG
+  - make_multipixel_png(): NxM RGBA PNG with N seeds (+ padding in square image)
+  - read_multipixel_png(): extract real seeds from a multi-pixel PNG
   - encode_multi(): encode a program into a multi-pixel PNG
-  - decode_multi(): decode a multi-pixel PNG back to bytes
-  - Backward compatible: 1x1 PNGs still work exactly as V1
+  - decode_png(): decode a multi-pixel PNG back to bytes
+  - DP-based segmentation for minimum pixel count
 
-The image dimensions are chosen automatically:
-  - For 1 seed: 1x1
-  - For 2 seeds: 1x2
-  - For 3-4 seeds: 2x2
-  - For 5-16 seeds: 4x4
-  - For 17+ seeds: sqrt(N) x sqrt(N) rounded up
+Backward compatible: 1x1 PNGs (no tEXt chunk) work exactly as V1.
+Multi-pixel PNGs include a tEXt chunk with seed count to separate real
+seeds from padding pixels.
 """
 
 import struct
 import zlib
-import sys
-from expand import seed_to_rgba, seed_from_rgba, expand
-from expand2 import expand_multi, extract_seeds_from_png, expand_from_png
-from find_seed import search
+import math
+import time
+from expand import (
+    seed_to_rgba, seed_from_rgba, expand, 
+    DICTIONARY, DICTIONARY_EXT, SUB_DICT, NIBBLE_TABLE,
+    _expand_nibble
+)
+from expand2 import expand_multi, expand_from_png, extract_seeds_from_png
+from find_seed import search, _decompose, _pack_dict_seed, _verify
 
+
+# ============================================================
+# PNG Construction
+# ============================================================
 
 def make_multipixel_png(seeds: list) -> bytes:
     """
     Create an NxM RGBA PNG containing the given seeds as pixel colors.
     
-    Automatically chooses dimensions:
-      1 seed  -> 1x1
-      2 seeds -> 2x1
-      3-4     -> 2x2
-      5-9     -> 3x3
-      10-16   -> 4x4
-      17-25   -> 5x5
-      etc.
+    Uses square-ish dimensions for visual appeal. Adds a tEXt chunk
+    with seed count so the decoder knows real vs padding pixels.
     """
     n = len(seeds)
     width, height = _auto_dimensions(n)
-    total_pixels = width * height
     
     # Build raw pixel data with filter byte 0 (none) per row
     raw_rows = bytearray()
@@ -50,13 +49,12 @@ def make_multipixel_png(seeds: list) -> bytes:
             if idx < n:
                 r, g, b, a = seed_to_rgba(seeds[idx])
             else:
-                # Padding pixels: use seed 0x00000000 (DICT_1, index 0)
+                # Padding: black transparent (won't be decoded as real seed)
                 r, g, b, a = 0, 0, 0, 0
             raw_rows.extend([r, g, b, a])
     
     compressed = zlib.compress(bytes(raw_rows))
-    
-    return _build_png(width, height, compressed)
+    return _build_png(width, height, compressed, n)
 
 
 def read_multipixel_png(png_data: bytes) -> tuple:
@@ -64,14 +62,17 @@ def read_multipixel_png(png_data: bytes) -> tuple:
     Read a multi-pixel PNG.
     
     Returns:
-        (width, height, seeds) where seeds is a list of 32-bit ints
+        (width, height, seeds) where seeds is ONLY the real seeds
+        (padding excluded via tEXt chunk metadata).
     """
-    seeds = extract_seeds_from_png(png_data)
+    all_seeds, real_count = extract_seeds_from_png(png_data)
     
-    # Get dimensions
+    # Get dimensions from IHDR
     width = height = 0
     pos = 8
     while pos < len(png_data):
+        if pos + 8 > len(png_data):
+            break
         length = struct.unpack('>I', png_data[pos:pos+4])[0]
         chunk_type = png_data[pos+4:pos+8]
         data = png_data[pos+8:pos+8+length]
@@ -80,29 +81,19 @@ def read_multipixel_png(png_data: bytes) -> tuple:
             break
         pos += 12 + length
     
-    return width, height, seeds
+    return width, height, all_seeds[:real_count]
 
 
 def encode_multi(target: bytes, output_png: str, timeout: float = 60.0,
-                 max_seeds: int = 16):
+                 max_seeds: int = 64):
     """
     Encode a target byte sequence into a multi-pixel PNG.
     
     Strategy:
     1. Try to find a single seed first (1x1 PNG)
-    2. If that fails, split target into segments and find seeds for each
-    3. Greedy split: find the longest prefix that has a seed, then recurse
-    
-    Args:
-        target: bytes to encode
-        output_png: path to write PNG
-        timeout: total search timeout in seconds
-        max_seeds: maximum number of pixels to use
-    
-    Returns:
-        True if successful, False otherwise
+    2. If that fails, use DP segmentation to find minimum-pixel encoding
+    3. Write the multi-pixel PNG with seed count metadata
     """
-    import time
     start_time = time.time()
     
     print(f"Encoding: {len(target)} bytes")
@@ -113,7 +104,7 @@ def encode_multi(target: bytes, output_png: str, timeout: float = 60.0,
     print()
     
     # Step 1: Try single seed
-    results = search(target, timeout=min(timeout, 15.0))
+    results = search(target, timeout=min(timeout, 10.0))
     if results:
         seed = results[0][0]
         png_data = make_multipixel_png([seed])
@@ -122,10 +113,10 @@ def encode_multi(target: bytes, output_png: str, timeout: float = 60.0,
         print(f"Encoded as 1x1 PNG ({len(png_data)} bytes)")
         return True
     
-    # Step 2: Multi-seed encoding
+    # Step 2: Multi-seed encoding via DP
     print("Single seed not found. Trying multi-pixel encoding...")
     remaining_time = timeout - (time.time() - start_time)
-    seeds = _find_multi_seeds(target, remaining_time, max_seeds)
+    seeds = _find_multi_seeds_dp(target, remaining_time, max_seeds)
     
     if not seeds:
         print("FAILED: Could not encode target")
@@ -138,180 +129,16 @@ def encode_multi(target: bytes, output_png: str, timeout: float = 60.0,
     width, height = _auto_dimensions(len(seeds))
     print(f"Encoded as {width}x{height} PNG ({len(seeds)} seeds, {len(png_data)} bytes)")
     
-    # Verify
-    decoded = expand_multi(seeds)
+    # Verify via actual PNG round-trip
+    decoded = expand_from_png(png_data)
     if decoded == target:
         print("Verification: PASS")
         return True
     else:
-        print(f"Verification: FAIL")
+        print("Verification: FAIL")
         print(f"  Expected: {target.hex()}")
         print(f"  Got:      {decoded.hex()}")
         return False
-
-
-def _find_multi_seeds(target: bytes, timeout: float, max_seeds: int) -> list:
-    """
-    Find multiple seeds whose concatenated expansions equal target.
-    
-    Strategy:
-    1. For each position, try to decompose a prefix into dict entries
-    2. Prefer longer segments to minimize total seed count
-    3. Fall back to full search for non-dict segments
-    """
-    import time
-    from expand import DICTIONARY, DICTIONARY_EXT
-    from find_seed import _decompose, _pack_dict_seed, _verify
-    
-    start_time = time.time()
-    seeds = []
-    pos = 0
-    
-    while pos < len(target) and len(seeds) < max_seeds:
-        if time.time() - start_time > timeout:
-            print(f"  Timeout after {len(seeds)} segments")
-            return []
-        
-        remaining = len(target) - pos
-        found = False
-        
-        # Strategy 1: Try dict decomposition on a prefix of the remaining target
-        # For each n (1-7 for base, 1-5 for ext), try to decompose a prefix
-        best_seed = None
-        best_len = 0
-        best_name = ""
-        
-        for n in range(7, 0, -1):
-            if best_len >= remaining:
-                break
-            # _decompose needs exact match: all of target must be consumed
-            # So we need to try different prefix lengths
-            # Better: try to decompose and see how far we get
-            prefix = target[pos:]
-            decomp = _try_prefix_decompose(prefix, n, DICTIONARY)
-            if decomp:
-                dlen = sum(len(DICTIONARY[i]) for i in decomp)
-                if dlen > best_len:
-                    seed = _pack_dict_seed(n, decomp)
-                    if _verify(seed, target[pos:pos+dlen]):
-                        best_seed = seed
-                        best_len = dlen
-                        best_name = f"DICT_{n}"
-        
-        # Also try DICTX5 (5-bit indices, DICTIONARY_EXT, 5 entries)
-        if best_len < remaining:
-            for n in range(5, 0, -1):
-                if best_len >= remaining:
-                    break
-                prefix = target[pos:]
-                decomp = _try_prefix_decompose(prefix, n, DICTIONARY_EXT)
-                if decomp:
-                    dlen = sum(len(DICTIONARY_EXT[i]) for i in decomp)
-                    if dlen > best_len and all(i < 32 for i in decomp):
-                        params = 0
-                        for i, idx in enumerate(decomp):
-                            params |= (idx & 0x1F) << (5 * i)
-                        seed = 0x80000000 | params
-                        if _verify(seed, target[pos:pos+dlen]):
-                            best_seed = seed
-                            best_len = dlen
-                            best_name = "DICTX5"
-        
-        if best_seed and best_len > 0:
-            seeds.append(best_seed)
-            print(f"  Segment {len(seeds)}: {best_len} bytes at offset {pos} -> seed 0x{best_seed:08X} ({best_name})")
-            pos += best_len
-            found = True
-            continue
-        
-        # Strategy 2: Full search for shorter segments
-        per_seg_timeout = min(0.5, (timeout - (time.time() - start_time)) / max(remaining, 1))
-        for seg_len in range(min(remaining, 20), 0, -1):
-            if time.time() - start_time > timeout:
-                break
-            segment = target[pos:pos + seg_len]
-            results = search(segment, timeout=per_seg_timeout)
-            if results:
-                seeds.append(results[0][0])
-                pos += seg_len
-                found = True
-                print(f"  Segment {len(seeds)}: {seg_len} bytes at offset {pos - seg_len} -> seed 0x{results[0][0]:08X} ({results[0][1]})")
-                break
-        
-        if not found:
-            print(f"  Cannot encode byte at offset {pos}: 0x{target[pos]:02X}")
-            return []
-    
-    if pos != len(target):
-        print(f"  Only encoded {pos}/{len(target)} bytes")
-        return []
-    
-    return seeds
-
-
-def _try_prefix_decompose(target, n_entries, dictionary):
-    """
-    Try to decompose a PREFIX of target into exactly n_entries dict entries.
-    
-    Unlike _decompose which requires exact match of the entire target,
-    this returns the first successful n_entries decomposition of a prefix.
-    
-    Returns list of indices or None.
-    """
-    return _prefix_decomp_rec(target, 0, n_entries, dictionary)
-
-
-def _prefix_decomp_rec(target, pos, remaining, dictionary):
-    """
-    Recursively try to match exactly `remaining` dict entries starting at pos.
-    Returns the index list if the first `remaining` entries match a prefix,
-    and there's nothing more to match (remaining == 0).
-    """
-    if remaining == 0:
-        return []  # matched all entries, prefix is target[:pos]
-    if pos >= len(target):
-        return None  # need more entries but out of data
-    
-    for i, entry in enumerate(dictionary):
-        elen = len(entry)
-        if pos + elen <= len(target) and target[pos:pos + elen] == entry:
-            rest = _prefix_decomp_rec(target, pos + elen, remaining - 1, dictionary)
-            if rest is not None:
-                return [i] + rest
-    return None
-
-
-def _auto_dimensions(n):
-    """Choose image dimensions for n seeds."""
-    if n <= 0:
-        return 1, 1
-    if n == 1:
-        return 1, 1
-    if n == 2:
-        return 2, 1
-    if n <= 4:
-        return 2, 2
-    
-    # Find smallest square that fits n
-    import math
-    side = math.ceil(math.sqrt(n))
-    return side, side
-
-
-def _build_png(width, height, compressed_data):
-    """Build a PNG file from dimensions and compressed IDAT data."""
-    def chunk(chunk_type, data):
-        c = chunk_type + data
-        crc = zlib.crc32(c) & 0xFFFFFFFF
-        return struct.pack('>I', len(data)) + c + struct.pack('>I', crc)
-    
-    signature = b'\x89PNG\r\n\x1a\n'
-    ihdr_data = struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0)
-    ihdr = chunk(b'IHDR', ihdr_data)
-    idat = chunk(b'IDAT', compressed_data)
-    iend = chunk(b'IEND', b'')
-    
-    return signature + ihdr + idat + iend
 
 
 def decode_png(png_path: str, output_path: str = None):
@@ -327,11 +154,7 @@ def decode_png(png_path: str, output_path: str = None):
     for i, s in enumerate(seeds):
         print(f"    [{i}] 0x{s:08X}")
     
-    if len(seeds) == 1:
-        result = expand(seeds[0])
-    else:
-        result = expand_multi(seeds)
-    
+    result = expand_multi(seeds)
     print(f"  Output: {len(result)} bytes")
     try:
         print(f"  Text: {result.decode('ascii')!r}")
@@ -341,14 +164,383 @@ def decode_png(png_path: str, output_path: str = None):
     if output_path:
         with open(output_path, 'wb') as f:
             f.write(result)
-        print(f"  Written to: {output_path}")
         import os
         os.chmod(output_path, 0o755)
+        print(f"  Written to: {output_path}")
     
     return result
 
 
+# ============================================================
+# DP Segmentation Engine
+# ============================================================
+
+def _find_multi_seeds_dp(target: bytes, timeout: float, max_seeds: int) -> list:
+    """
+    Find minimum-pixel encoding using dynamic programming.
+    
+    Phase 1: Build coverage table of all (pos, length) -> seed matches
+    Phase 2: DP to find shortest path from pos 0 to len(target)
+    Phase 3: Extract optimal segmentation
+    Phase 4: Fill any remaining gaps with search() fallback
+    """
+    start_time = time.time()
+    tlen = len(target)
+    
+    # Phase 1: Build comprehensive coverage table
+    # matches[pos] = list of (length, seed, strategy_name) 
+    # We want ALL valid matches at each position, not just the longest
+    matches = [[] for _ in range(tlen)]
+    
+    for pos in range(tlen):
+        remaining = tlen - pos
+        if time.time() - start_time > timeout * 0.7:
+            break
+        
+        suffix = target[pos:]
+        
+        # --- DICT_N (0x0-0x6): base dictionary, 1-7 entries ---
+        # Try all n values, collect all valid matches
+        for n in range(1, 8):
+            decomp = _try_prefix_decompose(suffix, n, DICTIONARY)
+            if decomp:
+                dlen = sum(len(DICTIONARY[i]) for i in decomp)
+                seed = _pack_dict_seed(n, decomp)
+                if _verify(seed, target[pos:pos+dlen]):
+                    matches[pos].append((dlen, seed, f"DICT_{n}"))
+        
+        # --- DICTX5 (0x8): 5 entries from DICTIONARY_EXT (5-bit indices) ---
+        decomp = _try_prefix_decompose(suffix, 5, DICTIONARY_EXT)
+        if decomp and all(i < 32 for i in decomp):
+            dlen = sum(len(DICTIONARY_EXT[i]) for i in decomp)
+            params = sum((idx & 0x1F) << (5 * i) for i, idx in enumerate(decomp))
+            seed = 0x80000000 | params
+            if _verify(seed, target[pos:pos+dlen]):
+                matches[pos].append((dlen, seed, "DICTX5"))
+        
+        # --- DICTX6 (0x9): 6 entries from SUB_DICT (4-bit indices) ---
+        decomp = _try_prefix_decompose(suffix, 6, SUB_DICT)
+        if decomp:
+            dlen = sum(len(SUB_DICT[i]) for i in decomp)
+            params = sum((idx & 0xF) << (4 * i) for i, idx in enumerate(decomp))
+            seed = 0x90000000 | params
+            if _verify(seed, target[pos:pos+dlen]):
+                matches[pos].append((dlen, seed, "DICTX6"))
+        
+        # --- DICTX7 (0xA): 7 entries from SUB_DICT (4-bit indices) ---
+        decomp = _try_prefix_decompose(suffix, 7, SUB_DICT)
+        if decomp:
+            dlen = sum(len(SUB_DICT[i]) for i in decomp)
+            params = sum((idx & 0xF) << (4 * i) for i, idx in enumerate(decomp))
+            seed = 0xA0000000 | params
+            if _verify(seed, target[pos:pos+dlen]):
+                matches[pos].append((dlen, seed, "DICTX7"))
+        
+        # --- NIBBLE (0x7): exactly 7 bytes from NIBBLE_TABLE ---
+        if remaining >= 7:
+            nibble_match = _try_nibble(suffix[:7])
+            if nibble_match is not None:
+                matches[pos].append((7, nibble_match, "NIBBLE"))
+        
+        # --- BYTEPACK (0xE): 3-5 byte segments ---
+        for seg_len in range(min(5, remaining), 2, -1):
+            seg = target[pos:pos + seg_len]
+            seed = _quick_bytepack(seg)
+            if seed is not None:
+                matches[pos].append((seg_len, seed, "BYTEPACK"))
+        
+        # Sort by length descending (prefer longer matches)
+        matches[pos].sort(key=lambda x: -x[0])
+    
+    # Phase 2: DP for minimum-pixel path
+    INF = float('inf')
+    dp = [INF] * (tlen + 1)
+    dp[tlen] = 0
+    parent = [None] * (tlen + 1)
+    
+    for pos in range(tlen - 1, -1, -1):
+        for length, seed, name in matches[pos]:
+            end = pos + length
+            if end <= tlen and dp[end] + 1 < dp[pos]:
+                dp[pos] = dp[end] + 1
+                parent[pos] = (length, seed, name)
+    
+    # Phase 3: Check if DP found a complete path
+    if dp[0] <= max_seeds and parent[0] is not None:
+        seeds = []
+        pos = 0
+        while pos < tlen:
+            if parent[pos] is None:
+                break
+            length, seed, name = parent[pos]
+            seeds.append(seed)
+            print(f"  Segment {len(seeds)}: {length}B @ offset {pos} -> 0x{seed:08X} ({name})")
+            pos += length
+        
+        if pos == tlen:
+            return seeds
+    
+    # Phase 4: Fill gaps with search() fallback
+    return _fill_gaps(target, matches, dp, parent, timeout, max_seeds, start_time, tlen)
+
+
+def _fill_gaps(target, matches, dp, parent, timeout, max_seeds, start_time, tlen):
+    """
+    Fill uncovered positions using full search() as fallback.
+    
+    Walk through the target, using DP matches where available,
+    calling search() for gap positions.
+    """
+    seeds = []
+    pos = 0
+    
+    while pos < tlen and len(seeds) < max_seeds:
+        elapsed = time.time() - start_time
+        if elapsed > timeout:
+            print(f"  Timeout after {len(seeds)} segments")
+            return []
+        
+        # Check if DP found a match here
+        if parent[pos] is not None:
+            length, seed, name = parent[pos]
+            seeds.append(seed)
+            print(f"  Segment {len(seeds)}: {length}B @ offset {pos} -> 0x{seed:08X} ({name})")
+            pos += length
+            continue
+        
+        # No DP match - try search() for decreasing segment lengths
+        remaining = tlen - pos
+        per_seg_timeout = min(0.5, (timeout - elapsed) / max(remaining, 1))
+        found = False
+        
+        for seg_len in range(min(20, remaining), 0, -1):
+            if time.time() - start_time > timeout:
+                break
+            segment = target[pos:pos + seg_len]
+            results = search(segment, timeout=per_seg_timeout)
+            if results:
+                seeds.append(results[0][0])
+                print(f"  Segment {len(seeds)}: {seg_len}B @ offset {pos} -> 0x{results[0][0]:08X} ({results[0][1]})")
+                pos += seg_len
+                found = True
+                break
+        
+        if not found:
+            print(f"  Cannot encode byte at offset {pos}: 0x{target[pos]:02X}")
+            return []
+    
+    if pos != tlen:
+        print(f"  Only encoded {pos}/{tlen} bytes")
+        return []
+    
+    return seeds
+
+
+# ============================================================
+# Decomposition Helpers
+# ============================================================
+
+def _try_prefix_decompose(target, n_entries, dictionary):
+    """
+    Decompose a PREFIX of target into exactly n_entries dict entries.
+    Returns list of indices or None.
+    """
+    return _prefix_decomp_rec(target, 0, n_entries, dictionary)
+
+
+def _prefix_decomp_rec(target, pos, remaining, dictionary):
+    if remaining == 0:
+        return []  # all entries matched, prefix is target[:pos]
+    if pos >= len(target):
+        return None
+    
+    for i, entry in enumerate(dictionary):
+        elen = len(entry)
+        if pos + elen <= len(target) and target[pos:pos + elen] == entry:
+            rest = _prefix_decomp_rec(target, pos + elen, remaining - 1, dictionary)
+            if rest is not None:
+                return [i] + rest
+    return None
+
+
+def _try_nibble(segment):
+    """Try to encode a 7-byte segment via NIBBLE strategy. Returns seed or None."""
+    if len(segment) != 7:
+        return None
+    byte_to_nibble = {}
+    for i, b in enumerate(NIBBLE_TABLE):
+        byte_to_nibble[b] = i
+    nibbles = []
+    for b in segment:
+        if b not in byte_to_nibble:
+            return None
+        nibbles.append(byte_to_nibble[b])
+    params = 0
+    for i, nib in enumerate(nibbles):
+        params |= (nib & 0xF) << (4 * i)
+    seed = 0x70000000 | params
+    if _verify(seed, segment):
+        return seed
+    return None
+
+
+def _quick_bytepack(target):
+    """
+    Fast BYTEPACK check without calling full search().
+    Checks multiple modes for 3-5 byte segments.
+    Returns seed or None.
+    """
+    tlen = len(target)
+    
+    # Mode 0: 3 raw bytes + optional repeat of first byte
+    if tlen >= 3:
+        b0, b1, b2 = target[0], target[1], target[2]
+        extra = tlen - 3
+        if extra <= 15:
+            if extra == 0 or all(target[3 + i] == b0 for i in range(extra)):
+                data = b0 | (b1 << 8) | (b2 << 16) | (extra << 24)
+                seed = 0xE0000000 | (0 << 0) | (data << 3)
+                if _verify(seed, target):
+                    return seed
+    
+    # Mode 1: XOR delta
+    if 3 <= tlen <= 18:
+        base = target[0]
+        d1 = target[0] ^ target[1]
+        d2 = (target[0] ^ target[1]) ^ target[2] if tlen > 2 else 0
+        check = [base, base ^ d1, (base ^ d1) ^ d2]
+        if check[:min(tlen,3)] == list(target[:min(tlen,3)]):
+            for extra in range(0, min(16, tlen - 3 + 1)):
+                if tlen == 3 + extra:
+                    if extra == 0 or all(target[3+i] == check[-1] for i in range(extra)):
+                        data = base | (d1 << 8) | (d2 << 16) | (extra << 24)
+                        seed = 0xE0000000 | (1 << 0) | (data << 3)
+                        if _verify(seed, target):
+                            return seed
+
+    # Mode 2: ADD delta (3-4 bytes)
+    if tlen == 3:
+        base = target[0]
+        d1 = (target[1] - base) & 0xFF
+        d2 = (target[2] - target[1]) & 0xFF
+        data = base | (d1 << 8) | (d2 << 16)
+        seed = 0xE0000000 | (2 << 0) | (data << 3)
+        if _verify(seed, target):
+            return seed
+    elif tlen == 4:
+        base = target[0]
+        d1 = (target[1] - base) & 0xFF
+        d2 = (target[2] - target[1]) & 0xFF
+        d3 = (target[3] - target[2]) & 0xF
+        data = base | (d1 << 8) | (d2 << 16) | (d3 << 24)
+        seed = 0xE0000000 | (2 << 0) | (data << 3)
+        if _verify(seed, target):
+            return seed
+    
+    # Mode 3: 4 nibbles with shared high nibble
+    if tlen == 4:
+        hi_nibble = target[0] >> 4
+        if all((b >> 4) == hi_nibble for b in target):
+            data = (hi_nibble & 0xF) | ((target[0] & 0xF) << 4) | \
+                   ((target[1] & 0xF) << 8) | ((target[2] & 0xF) << 12) | \
+                   ((target[3] & 0xF) << 16)
+            seed = 0xE0000000 | (3 << 0) | (data << 3)
+            if _verify(seed, target):
+                return seed
+    
+    # Mode 4: 4 bytes, 7 bits each
+    if tlen == 4 and all(b <= 127 for b in target):
+        data = (target[0] & 0x7F) | ((target[1] & 0x7F) << 7) | \
+               ((target[2] & 0x7F) << 14) | ((target[3] & 0x7F) << 21)
+        seed = 0xE0000000 | (4 << 0) | (data << 3)
+        if _verify(seed, target):
+            return seed
+    
+    # Mode 5: Shared base + 4 nibble offsets
+    if tlen == 4:
+        for base in range(256):
+            offsets = [(b - base) & 0xFF for b in target]
+            if all(0 <= o <= 15 for o in offsets):
+                data = base | (offsets[0] << 8) | (offsets[1] << 12) | \
+                       (offsets[2] << 16) | (offsets[3] << 20)
+                seed = 0xE0000000 | (5 << 0) | (data << 3)
+                if _verify(seed, target):
+                    return seed
+    
+    # Mode 6: 5 bytes via lowercase+digit table
+    if tlen == 5:
+        table = 'abcdefghijklmnopqrstuvwxyz012345'
+        try:
+            indices = [table.index(chr(b)) for b in target]
+            data = sum(idx << (5 * i) for i, idx in enumerate(indices))
+            seed = 0xE0000000 | (6 << 0) | (data << 3)
+            if _verify(seed, target):
+                return seed
+        except (ValueError, OverflowError):
+            pass
+    
+    # Mode 7: 5 bytes via uppercase+symbol table
+    if tlen == 5:
+        table = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ !,.\n('
+        try:
+            indices = [table.index(chr(b)) for b in target]
+            data = sum(idx << (5 * i) for i, idx in enumerate(indices))
+            seed = 0xE0000000 | (7 << 0) | (data << 3)
+            if _verify(seed, target):
+                return seed
+        except (ValueError, OverflowError):
+            pass
+    
+    return None
+
+
+# ============================================================
+# PNG Helpers
+# ============================================================
+
+def _auto_dimensions(n):
+    """Choose image dimensions for n seeds."""
+    if n <= 0:
+        return 1, 1
+    if n == 1:
+        return 1, 1
+    if n == 2:
+        return 2, 1
+    # Find smallest square that fits n
+    side = math.ceil(math.sqrt(n))
+    return side, side
+
+
+def _build_png(width, height, compressed_data, seed_count=None):
+    """Build a PNG file from dimensions and compressed IDAT data."""
+    def chunk(chunk_type, data):
+        c = chunk_type + data
+        crc = zlib.crc32(c) & 0xFFFFFFFF
+        return struct.pack('>I', len(data)) + c + struct.pack('>I', crc)
+    
+    signature = b'\x89PNG\r\n\x1a\n'
+    ihdr_data = struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0)
+    ihdr = chunk(b'IHDR', ihdr_data)
+    
+    # Add tEXt chunk with seed count (so decoder knows real vs padding)
+    chunks = [signature, ihdr]
+    if seed_count is not None and seed_count > 0:
+        text_data = b'seedcnt\x00' + str(seed_count).encode('ascii')
+        chunks.append(chunk(b'tEXt', text_data))
+    
+    idat = chunk(b'IDAT', compressed_data)
+    iend = chunk(b'IEND', b'')
+    chunks.extend([idat, iend])
+    
+    return b''.join(chunks)
+
+
+# ============================================================
+# CLI
+# ============================================================
+
 if __name__ == '__main__':
+    import sys
     if len(sys.argv) < 2:
         print("Pixelpack Phase 2 - Multi-Pixel PNG Encoder/Decoder")
         print()

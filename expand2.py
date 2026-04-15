@@ -2,104 +2,84 @@
 Pixelpack Phase 2 - Multi-Pixel Expansion
 
 Extends expand.py with:
-  - V2 dictionary (96 entries, backward compatible with V1)
-  - DICTX8 strategy: 4 entries from V2 dict using 7-bit indices (28 bits)
   - expand_multi(): chain multiple seeds into one output
-  - Backward compatible: all V1 seeds still expand identically
+  - expand_from_png(): decode a multi-pixel PNG to bytes
+  - extract_seeds_from_png(): read seeds from PNG pixels
 
-The key insight for scaling: a multi-pixel image gives N seeds.
-Each seed expands independently, outputs concatenate.
+Backward compatible: all V1 seeds still expand identically via expand_v1.
+The scaling mechanism is multi-pixel chaining: N seeds = N independent
+expansions concatenated.
 """
 
 import struct
-from expand import expand as expand_v1, seed_from_rgba, seed_to_rgba
-from dict_v2 import V2_DICTIONARY
+import zlib
+from expand import expand as expand_v1, seed_from_rgba
 
 
 def expand_multi(seeds: list, max_output: int = 65536) -> bytes:
     """
     Expand multiple seeds into one concatenated byte sequence.
     
-    This is the core of multi-pixel encoding:
-    - Each seed expands independently using its strategy
-    - Results concatenate left-to-right, top-to-bottom
-    - Total output is the concatenation of all individual expansions
-    
-    Args:
-        seeds: list of 32-bit integers
-        max_output: safety cap on total output size
-    
-    Returns:
-        Concatenated bytes from all seed expansions
+    Each seed expands independently, results concatenate left-to-right.
+    This is the core of multi-pixel encoding.
     """
     result = bytearray()
     for seed in seeds:
         if len(result) >= max_output:
             break
-        expanded = expand_single(seed, max_output - len(result))
+        expanded = expand_v1(seed, max_output - len(result))
         result.extend(expanded)
     return bytes(result)
-
-
-def expand_single(seed: int, max_output: int = 65536) -> bytes:
-    """
-    Expand a single seed using V2 strategies.
-    
-    Strategies 0x0-0xE: delegated to V1 expand() for backward compatibility
-    Strategy 0xF (TEMPLATE): delegated to V1 expand() for backward compatibility
-    
-    V2 does NOT add new strategies -- it uses V1 strategies with the V2
-    dictionary in find_seed. The scaling comes from multi-pixel chaining.
-    
-    For DICT_N strategies (0x0-0x6), the V1 base dictionary is always used
-    because 4-bit indices can only address 16 entries. The V2 dictionary
-    is used by DICTX5 (strategy 0x8) which has 5-bit indices (0-31).
-    
-    To use entries 32+ from V2, multi-pixel mode is needed: one pixel for
-    the part that uses V1 dictionary, another pixel for additional fragments.
-    """
-    # All V1 strategies are backward compatible
-    # V2 just adds more dictionary entries for multi-pixel composition
-    return expand_v1(seed, max_output)
 
 
 def expand_from_png(png_data: bytes) -> bytes:
     """
     Expand a PNG (1x1 or multi-pixel) into bytes.
     
-    For 1x1 PNG: behaves exactly like V1 (single seed)
-    For NxM PNG: extracts all seeds, calls expand_multi()
+    Reads the seed count from the tEXt chunk (if present) to know
+    how many pixels are real seeds vs padding.
     """
-    seeds = extract_seeds_from_png(png_data)
-    if len(seeds) == 1:
-        return expand_single(seeds[0])
-    return expand_multi(seeds)
+    seeds, real_count = extract_seeds_from_png(png_data)
+    # Only expand the real seeds, not padding
+    return expand_multi(seeds[:real_count])
 
 
-def extract_seeds_from_png(png_data: bytes) -> list:
-    """Extract all seed values from a PNG image's pixels."""
-    import zlib
+def extract_seeds_from_png(png_data: bytes) -> tuple:
+    """
+    Extract seeds from a multi-pixel PNG.
     
+    Returns:
+        (seeds_list, real_count) where real_count is the number of
+        actual seeds (from tEXt chunk), rest are padding.
+        If no tEXt chunk, real_count = len(seeds_list) (V1 compat).
+    """
     if png_data[:8] != b'\x89PNG\r\n\x1a\n':
         raise ValueError("Not a valid PNG file")
     
     pos = 8
     width = height = 0
-    bit_depth = 8
-    color_type = 6  # RGBA
     idat_data = b''
+    real_count = None
     
     while pos < len(png_data):
+        if pos + 8 > len(png_data):
+            break
         length = struct.unpack('>I', png_data[pos:pos+4])[0]
         chunk_type = png_data[pos+4:pos+8]
         data = png_data[pos+8:pos+8+length]
         
         if chunk_type == b'IHDR':
             width, height = struct.unpack('>II', data[:8])
-            bit_depth = data[8]
-            color_type = data[9]
         elif chunk_type == b'IDAT':
             idat_data += data
+        elif chunk_type == b'tEXt':
+            # tEXt format: keyword\0value
+            null_pos = data.find(b'\x00')
+            if null_pos >= 0:
+                keyword = data[:null_pos].decode('ascii', errors='ignore')
+                value = data[null_pos+1:].decode('ascii', errors='ignore')
+                if keyword == 'seedcnt':
+                    real_count = int(value)
         
         pos += 12 + length
     
@@ -110,55 +90,48 @@ def extract_seeds_from_png(png_data: bytes) -> list:
     
     # Parse pixel data (filter byte per row)
     bpp = 4  # RGBA
-    stride = 1 + width * bpp  # filter byte + pixel data
+    stride = 1 + width * bpp
     seeds = []
     
     for row in range(height):
         row_start = row * stride
+        if row_start >= len(decompressed):
+            break
         filter_byte = decompressed[row_start]
         if filter_byte != 0:
-            # For simplicity, only handle filter=0 (none)
-            # Other filters can be added later
             _apply_filter(decompressed, row_start, width, bpp, filter_byte, height, stride)
         
         for col in range(width):
             px = row_start + 1 + col * bpp
+            if px + 4 > len(decompressed):
+                break
             r, g, b, a = decompressed[px:px+4]
             seeds.append(seed_from_rgba(r, g, b, a))
     
-    return seeds
+    # If no tEXt chunk, all pixels are real (V1 compat)
+    if real_count is None:
+        real_count = len(seeds)
+    
+    return seeds, real_count
 
 
 def _apply_filter(data, row_start, width, bpp, filter_type, height, stride):
     """Apply PNG row filter to reconstruct raw pixel data (in-place)."""
     if filter_type == 0:
-        return  # None
+        return
     
     row_len = width * bpp
-    
     for i in range(row_len):
         pos = row_start + 1 + i
+        if pos >= len(data):
+            break
         x = data[pos]
         
-        # Get 'a' (previous byte in same row)
-        if i >= bpp:
-            a = data[pos - bpp]
-        else:
-            a = 0
+        a = data[pos - bpp] if i >= bpp else 0
+        b = data[pos - stride] if row_start > 0 else 0
+        c = data[pos - stride - bpp] if (row_start > 0 and i >= bpp) else 0
         
-        # Get 'b' (corresponding byte in previous row)
-        if row_start > 0:
-            b = data[pos - stride]
-        else:
-            b = 0
-        
-        # Get 'c' (corresponding byte in previous row, bpp bytes back)
-        if row_start > 0 and i >= bpp:
-            c = data[pos - stride - bpp]
-        else:
-            c = 0
-        
-        if filter_type == 1:  # Sub
+        if filter_type == 1:    # Sub
             data[pos] = (x + a) & 0xFF
         elif filter_type == 2:  # Up
             data[pos] = (x + b) & 0xFF
@@ -170,9 +143,7 @@ def _apply_filter(data, row_start, width, bpp, filter_type, height, stride):
 
 def _paeth_predictor(a, b, c):
     p = a + b - c
-    pa = abs(p - a)
-    pb = abs(p - b)
-    pc = abs(p - c)
+    pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
     if pa <= pb and pa <= pc:
         return a
     elif pb <= pc:
@@ -195,16 +166,13 @@ if __name__ == '__main__':
         with open(sys.argv[2], 'rb') as f:
             png_data = f.read()
         result = expand_from_png(png_data)
-        seeds = extract_seeds_from_png(png_data)
-        print(f"Seeds: {len(seeds)}")
-        for i, s in enumerate(seeds):
+        seeds, count = extract_seeds_from_png(png_data)
+        print(f"Seeds: {count} real / {len(seeds)} total")
+        for i, s in enumerate(seeds[:count]):
             print(f"  [{i}] 0x{s:08X}")
     else:
         seeds = [int(s, 16) for s in sys.argv[1:]]
-        if len(seeds) == 1:
-            result = expand_single(seeds[0])
-        else:
-            result = expand_multi(seeds)
+        result = expand_multi(seeds)
     
     print(f"Output: {len(result)} bytes")
     print(f"Hex: {result.hex()}")
