@@ -623,11 +623,17 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
                         if seed:
                             matches[pos].append((length, seed, "LZ77"))
 
-        # --- search() fallback for RLE, XOR_CHAIN, etc. ---
-        best_so_far = max((l for l, _, _ in matches[pos]), default=0)
-        if best_so_far < 5:
-            _add_search_matches_extended_fast(matches, target, pos, remaining,
-                                              best_so_far, timeout, global_start)
+        # --- search() fallback only at BYTEPACK length 1 (last resort) ---
+        # Don't call search() during enumeration -- it's too slow.
+        # The DP will find gaps and _dp_with_search_fallback fills them.
+        # Just ensure every position has at least a 1-byte BYTEPACK match.
+        if not matches[pos]:
+            for seg_len in range(min(5, remaining), 0, -1):
+                seg = target[pos:pos + seg_len]
+                seed = _quick_bytepack(seg)
+                if seed:
+                    matches[pos].append((seg_len, seed, "BYTEPACK"))
+                    break
 
         # Deduplicate by length (keep first/best seed per length)
         seen_lens = {}
