@@ -442,7 +442,7 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
 
 
 def _encode_with_context(target, setup_buffer, setup_ranges, timeout, global_start):
-    """Encode target using setup buffer + LZ77 + V1 strategies."""
+    """Encode target using setup buffer + LZ77 + V1 strategies + search fallback."""
     tlen = len(target)
     result_seeds = []
     emitted = bytearray(setup_buffer)  # Setup bytes are in the buffer
