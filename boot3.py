@@ -442,10 +442,394 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
 
 
 def _encode_with_context(target, setup_buffer, setup_ranges, timeout, global_start):
-    """Encode target using setup buffer + LZ77 + V1 strategies + search fallback."""
+    """Encode target using DP-based optimal parser (minimum seeds).
+
+    Three phases:
+      1. Build reference buffer via greedy parse (so LZ77 offsets are valid)
+      2. Enumerate ALL strategy matches at every position (V1 + LZ77 + search)
+      3. DP shortest-path from 0 to tlen (each edge = 1 seed), then replay
+
+    Key insight: the output buffer at position P is always
+    setup_buffer + target[0:P], regardless of which seeds produced it,
+    because seeds emit left-to-right and must cover the target exactly.
+    So LZ77 offsets from the greedy reference buffer remain valid.
+    """
+    tlen = len(target)
+    if tlen == 0:
+        return []
+
+    elapsed = time.time() - global_start
+    if elapsed > timeout * 0.9:
+        # Not enough time for DP, fall back to greedy
+        return _encode_greedy(target, setup_buffer, timeout, global_start)
+
+    # Phase 1: Build reference buffer via greedy parse
+    ref_buffer = _build_reference_buffer(target, setup_buffer, timeout, global_start)
+
+    # Phase 2: Enumerate all strategy matches at every position
+    match_time = timeout * 0.5
+    matches = _enumerate_all_matches(target, setup_buffer, ref_buffer,
+                                     match_time, global_start)
+
+    # Phase 3: DP shortest path (BFS)
+    seeds = _dp_shortest_path(target, matches, timeout, global_start)
+
+    if seeds is not None:
+        return seeds
+
+    # Fallback to greedy if DP failed
+    return _encode_greedy(target, setup_buffer, timeout, global_start)
+
+
+def _build_reference_buffer(target, setup_buffer, timeout, global_start):
+    """Build a reference output buffer via greedy left-to-right parse.
+
+    The buffer at position P = setup_buffer + target[0:P], so we just
+    concatenate. But we need to parse to identify valid LZ77 match points.
+    Returns the full buffer after greedy parse.
+    """
+    tlen = len(target)
+    emitted = bytearray(setup_buffer)
+    pos = 0
+
+    while pos < tlen:
+        if time.time() - global_start > timeout * 0.3:
+            break
+
+        remaining = tlen - pos
+        best_len = 0
+
+        # LZ77
+        if len(emitted) > 0:
+            lz77 = _find_lz77_at(target, pos, emitted)
+            if lz77:
+                best_len = lz77[0]
+
+        # V1
+        v1_match = _find_v1_match(target, pos)
+        if v1_match and v1_match[0] > best_len:
+            best_len = v1_match[0]
+
+        # search() fallback
+        if best_len == 0:
+            import io, sys
+            old_stdout = sys.stdout
+            sys.stdout = io.StringIO()
+            try:
+                for seg_len in range(min(20, remaining), 0, -1):
+                    if time.time() - global_start > timeout * 0.3:
+                        break
+                    seg = target[pos:pos + seg_len]
+                    results = seed_search(seg, timeout=0.1)
+                    if results:
+                        best_len = seg_len
+                        break
+            finally:
+                sys.stdout = old_stdout
+
+        if best_len == 0:
+            best_len = 1  # force progress
+
+        emitted.extend(target[pos:pos + best_len])
+        pos += best_len
+
+    return emitted
+
+
+def _add_search_matches(matches, target, pos, remaining, timeout, global_start):
+    """Use search() to find any strategy match at target[pos:].
+    
+    Only called when no long V1 match exists. Tries longest first.
+    Catches RLE, XOR_CHAIN, LINEAR, TEMPLATE, etc.
+    """
+    import io, sys
+    # Suppress search() verbose output
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()
+    try:
+        for seg_len in range(min(5, remaining), 0, -1):
+            if time.time() - global_start > timeout:
+                break
+            seg = target[pos:pos + seg_len]
+            results = seed_search(seg, timeout=0.02)
+            if results:
+                seed, name = results[0]
+                matches[pos].append((seg_len, seed, name))
+                break  # Found a match, stop
+    finally:
+        sys.stdout = old_stdout
+
+
+def _enumerate_all_matches(target, setup_buffer, ref_buffer, timeout, global_start):
+    """Enumerate all valid strategy matches at every position in target.
+
+    Returns matches[pos] = list of (length, seed, strategy_name)
+    sorted by length descending.
+    """
+    tlen = len(target)
+    matches = [[] for _ in range(tlen)]
+
+    for pos in range(tlen):
+        if time.time() - global_start > timeout:
+            break
+
+        remaining = tlen - pos
+        suffix = target[pos:]
+
+        # --- V1 strategies (stateless) ---
+        for n in range(1, 8):
+            decomp = _try_prefix_decompose(suffix, n, DICTIONARY)
+            if decomp:
+                dlen = sum(len(DICTIONARY[i]) for i in decomp)
+                from find_seed import _pack_dict_seed, _verify
+                seed = _pack_dict_seed(n, decomp)
+                if _verify(seed, target[pos:pos+dlen]):
+                    matches[pos].append((dlen, seed, f"DICT_{n}"))
+
+        # DICTX5
+        decomp = _try_prefix_decompose(suffix, 5, DICTIONARY_EXT)
+        if decomp and all(i < 32 for i in decomp):
+            dlen = sum(len(DICTIONARY_EXT[i]) for i in decomp)
+            params = sum((idx & 0x1F) << (5 * i) for i, idx in enumerate(decomp))
+            seed = 0x80000000 | params
+            from find_seed import _verify
+            if _verify(seed, target[pos:pos+dlen]):
+                matches[pos].append((dlen, seed, "DICTX5"))
+
+        # DICTX6
+        decomp = _try_prefix_decompose(suffix, 6, SUB_DICT)
+        if decomp:
+            dlen = sum(len(SUB_DICT[i]) for i in decomp)
+            params = sum((idx & 0xF) << (4 * i) for i, idx in enumerate(decomp))
+            seed = 0x90000000 | params
+            from find_seed import _verify
+            if _verify(seed, target[pos:pos+dlen]):
+                matches[pos].append((dlen, seed, "DICTX6"))
+
+        # DICTX7
+        decomp = _try_prefix_decompose(suffix, 7, SUB_DICT)
+        if decomp:
+            dlen = sum(len(SUB_DICT[i]) for i in decomp)
+            params = sum((idx & 0xF) << (4 * i) for i, idx in enumerate(decomp))
+            seed = 0xA0000000 | params
+            from find_seed import _verify
+            if _verify(seed, target[pos:pos+dlen]):
+                matches[pos].append((dlen, seed, "DICTX7"))
+
+        # NIBBLE
+        if remaining >= 7:
+            nib = _try_nibble(suffix[:7])
+            if nib:
+                matches[pos].append((7, nib, "NIBBLE"))
+
+        # BYTEPACK
+        for seg_len in range(min(5, remaining), 2, -1):
+            seg = target[pos:pos + seg_len]
+            seed = _quick_bytepack(seg)
+            if seed:
+                matches[pos].append((seg_len, seed, "BYTEPACK"))
+
+        # --- search() fallback for all strategies (RLE, XOR_CHAIN, LINEAR, etc.) ---
+        # Only call search() for positions where we don't already have a long match
+        best_so_far = max((l for l, _, _ in matches[pos]), default=0)
+        if best_so_far < 5:
+            _add_search_matches(matches, target, pos, remaining,
+                                timeout, global_start)
+
+        # --- LZ77 matches (against reference buffer at position pos) ---
+        # Buffer at position pos = setup_buffer + target[0:pos]
+        buf_at_pos = bytearray(setup_buffer) + target[:pos]
+        if len(buf_at_pos) > 0:
+            lz77 = _find_lz77_at(target, pos, buf_at_pos)
+            if lz77:
+                lz77_len, lz77_offset = lz77
+                seed = _make_lz77_seed(lz77_offset, lz77_len)
+                if seed:
+                    matches[pos].append((lz77_len, seed, "LZ77"))
+
+        # Deduplicate by length (keep best seed per length)
+        seen_lens = {}
+        for length, seed, name in matches[pos]:
+            if length not in seen_lens:
+                seen_lens[length] = (length, seed, name)
+        matches[pos] = sorted(seen_lens.values(), key=lambda x: -x[0])
+
+    return matches
+
+
+def _dp_shortest_path(target, matches, timeout, global_start, _retry_count=0):
+    """Find minimum-seed encoding using DP shortest path.
+
+    Each edge from pos -> pos+length has cost 1 (one seed).
+    BFS from 0 to len(target).
+    """
+    tlen = len(target)
+    INF = float('inf')
+
+    # dp[pos] = minimum seeds to cover target[0:pos]
+    dp = [INF] * (tlen + 1)
+    dp[0] = 0
+    parent = [None] * (tlen + 1)  # (length, seed, name)
+
+    # Forward DP: for each position, try all matches
+    for pos in range(tlen):
+        if dp[pos] == INF:
+            continue
+        if time.time() - global_start > timeout:
+            break
+
+        for length, seed, name in matches[pos]:
+            end = pos + length
+            if end <= tlen and dp[pos] + 1 < dp[end]:
+                dp[end] = dp[pos] + 1
+                parent[end] = (pos, length, seed, name)
+
+    # If DP didn't reach the end, try filling gaps with search()
+    if dp[tlen] == INF:
+        return _dp_with_search_fallback(target, matches, dp, parent,
+                                        timeout, global_start)
+
+    # Replay: walk backwards from tlen to 0
+    seeds = []
+    pos = tlen
+    while pos > 0:
+        if parent[pos] is None:
+            # Gap -- shouldn't happen if dp[tlen] is finite, but handle it
+            return _dp_with_search_fallback(target, matches, dp, parent,
+                                            timeout, global_start)
+        prev_pos, length, seed, name = parent[pos]
+        seeds.append((prev_pos, length, seed, name))
+        pos = prev_pos
+
+    seeds.reverse()
+
+    # Verify the replay produces correct bytes using context-aware expansion
+    result = []
+    for seg_pos, length, seed, name in seeds:
+        expected = target[seg_pos:seg_pos + length]
+        if name == 'LZ77':
+            # LZ77 seeds need context verification
+            ctx = ExpandContext()
+            ctx.output_buffer = bytearray(target[:seg_pos])
+            expanded = expand_with_context(seed, ctx)
+            if expanded != expected:
+                # Context mismatch -- remove bad LZ77 matches and retry
+                if _retry_count < 3:
+                    return _dp_retry_without_bad_lz77(
+                        target, matches, timeout, global_start, _retry_count)
+                return None
+        else:
+            if not _verify_v1(seed, expected):
+                return None
+        result.append(seed)
+
+    print(f"  DP optimal: {len(result)} seeds (vs greedy baseline)")
+    return result
+
+
+def _verify_v1(seed, expected):
+    """Verify a V1 (non-LZ77) seed produces the expected bytes."""
+    from find_seed import _verify
+    return _verify(seed, expected)
+
+
+def _dp_retry_without_bad_lz77(target, matches, timeout, global_start, retry_count):
+    """Retry DP after removing LZ77 matches that fail context verification."""
+    tlen = len(target)
+
+    # Filter out bad LZ77 matches
+    for pos in range(tlen):
+        good = []
+        for length, seed, name in matches[pos]:
+            if name == 'LZ77':
+                ctx = ExpandContext()
+                ctx.output_buffer = bytearray(target[:pos])
+                expanded = expand_with_context(seed, ctx)
+                if expanded == target[pos:pos + length]:
+                    good.append((length, seed, name))
+            else:
+                good.append((length, seed, name))
+        matches[pos] = good
+
+    # Re-run DP with incremented retry count
+    return _dp_shortest_path(target, matches, timeout, global_start,
+                             retry_count + 1)
+
+
+def _dp_with_search_fallback(target, matches, dp, parent, timeout, global_start):
+    """DP with search() fallback for uncovered positions.
+
+    First fill gaps in matches[] using search(), then re-run DP.
+    """
+    tlen = len(target)
+    INF = float('inf')
+
+    # Find positions with no matches and fill with search()
+    for pos in range(tlen):
+        if matches[pos]:
+            continue
+        if time.time() - global_start > timeout:
+            break
+
+        remaining = tlen - pos
+        for seg_len in range(min(20, remaining), 0, -1):
+            if time.time() - global_start > timeout:
+                break
+            seg = target[pos:pos + seg_len]
+            import io, sys
+            old_stdout = sys.stdout
+            sys.stdout = io.StringIO()
+            try:
+                results = seed_search(seg, timeout=0.3)
+            finally:
+                sys.stdout = old_stdout
+            if results:
+                matches[pos].append((seg_len, results[0][0], results[0][1]))
+                break
+
+    # Re-run DP
+    dp2 = [INF] * (tlen + 1)
+    dp2[0] = 0
+    parent2 = [None] * (tlen + 1)
+
+    for pos in range(tlen):
+        if dp2[pos] == INF:
+            continue
+        if time.time() - global_start > timeout:
+            break
+
+        if not matches[pos]:
+            continue
+
+        for length, seed, name in matches[pos]:
+            end = pos + length
+            if end <= tlen and dp2[pos] + 1 < dp2[end]:
+                dp2[end] = dp2[pos] + 1
+                parent2[end] = (pos, length, seed, name)
+
+    if dp2[tlen] == INF:
+        return None
+
+    # Replay
+    seeds = []
+    pos = tlen
+    while pos > 0:
+        if parent2[pos] is None:
+            return None
+        prev_pos, length, seed, name = parent2[pos]
+        seeds.append(seed)
+        pos = prev_pos
+
+    seeds.reverse()
+    print(f"  DP+search: {len(seeds)} seeds")
+    return seeds
+
+
+def _encode_greedy(target, setup_buffer, timeout, global_start):
+    """Original greedy left-to-right parser as fallback."""
     tlen = len(target)
     result_seeds = []
-    emitted = bytearray(setup_buffer)  # Setup bytes are in the buffer
+    emitted = bytearray(setup_buffer)
     pos = 0
 
     while pos < tlen:
@@ -457,7 +841,6 @@ def _encode_with_context(target, setup_buffer, setup_ranges, timeout, global_sta
         best_len = 0
         best_seed = None
 
-        # Try LZ77 match (min 2 bytes)
         if len(emitted) > 0:
             lz77 = _find_lz77_at(target, pos, emitted)
             if lz77:
@@ -467,22 +850,26 @@ def _encode_with_context(target, setup_buffer, setup_ranges, timeout, global_sta
                     best_len = lz77_len
                     best_seed = seed
 
-        # Try V1 strategies (only use if they produce more bytes than LZ77)
         v1_match = _find_v1_match(target, pos)
         if v1_match and v1_match[0] > best_len:
             best_len, best_seed, _ = v1_match
 
-        # Fallback: search() for small segments
         if best_len == 0:
-            for seg_len in range(min(20, remaining), 0, -1):
-                if time.time() - global_start > timeout:
-                    break
-                seg = target[pos:pos + seg_len]
-                results = seed_search(seg, timeout=0.3)
-                if results:
-                    best_len = seg_len
-                    best_seed = results[0][0]
-                    break
+            import io, sys
+            old_stdout = sys.stdout
+            sys.stdout = io.StringIO()
+            try:
+                for seg_len in range(min(20, remaining), 0, -1):
+                    if time.time() - global_start > timeout:
+                        break
+                    seg = target[pos:pos + seg_len]
+                    results = seed_search(seg, timeout=0.3)
+                    if results:
+                        best_len = seg_len
+                        best_seed = results[0][0]
+                        break
+            finally:
+                sys.stdout = old_stdout
 
         if best_seed is None or best_len == 0:
             print(f"  FAIL at offset {pos}: 0x{target[pos]:02X}")
