@@ -152,6 +152,62 @@ def _find_lz77_at(target, pos, emitted):
     return None
 
 
+def _find_lz77_all_lengths(target, pos, emitted):
+    """Find ALL valid LZ77 match lengths for target[pos:] in emitted buffer.
+    
+    Returns list of (length, seed) for every valid length >= 2.
+    Uses the same offset for all lengths (the offset from the longest match).
+    """
+    buf_len = len(emitted)
+    if buf_len == 0:
+        return []
+    remaining = len(target) - pos
+    max_len = min(remaining, 0xFFF)
+
+    best_len = 0
+    best_offset = 0
+
+    for start in range(buf_len):
+        match_len = 0
+        ei = start
+        while match_len < max_len:
+            if ei < buf_len:
+                if emitted[ei] == target[pos + match_len]:
+                    match_len += 1
+                    ei += 1
+                else:
+                    break
+            else:
+                wrap_pos = ei - buf_len
+                if wrap_pos < match_len and (pos + wrap_pos) < len(target):
+                    if target[pos + wrap_pos] == target[pos + match_len]:
+                        match_len += 1
+                        ei += 1
+                    else:
+                        break
+                else:
+                    break
+
+        if match_len > best_len:
+            best_len = match_len
+            best_offset = buf_len - 1 - start
+
+    if best_len < 2 or best_offset >= (1 << 16):
+        return []
+
+    # Verify the longest match, then all shorter lengths are valid too
+    if not _verify_lz77(best_offset, best_len, emitted, target[pos:pos+best_len]):
+        return []
+
+    # Generate seeds for all lengths from 2 to best_len
+    results = []
+    for length in range(2, best_len + 1):
+        seed = _make_lz77_seed(best_offset, length)
+        if seed:
+            results.append((length, seed))
+    return results
+
+
 # ============================================================
 # V1 Match Finding
 # ============================================================
@@ -622,30 +678,27 @@ def _enumerate_all_matches(target, setup_buffer, ref_buffer, timeout, global_sta
             if nib:
                 matches[pos].append((7, nib, "NIBBLE"))
 
-        # BYTEPACK
-        for seg_len in range(min(5, remaining), 2, -1):
+        # BYTEPACK -- try all lengths 1-5 for DP completeness
+        for seg_len in range(min(5, remaining), 0, -1):
             seg = target[pos:pos + seg_len]
             seed = _quick_bytepack(seg)
             if seed:
                 matches[pos].append((seg_len, seed, "BYTEPACK"))
 
         # --- search() fallback for all strategies (RLE, XOR_CHAIN, LINEAR, etc.) ---
-        # Only call search() for positions where we don't already have a long match
+        # Call search() when we don't have a good match yet
         best_so_far = max((l for l, _, _ in matches[pos]), default=0)
-        if best_so_far < 5:
+        if best_so_far < 3:
             _add_search_matches(matches, target, pos, remaining,
                                 timeout, global_start)
 
         # --- LZ77 matches (against reference buffer at position pos) ---
         # Buffer at position pos = setup_buffer + target[0:pos]
+        # Use ALL valid lengths (not just longest) for better DP paths
         buf_at_pos = bytearray(setup_buffer) + target[:pos]
         if len(buf_at_pos) > 0:
-            lz77 = _find_lz77_at(target, pos, buf_at_pos)
-            if lz77:
-                lz77_len, lz77_offset = lz77
-                seed = _make_lz77_seed(lz77_offset, lz77_len)
-                if seed:
-                    matches[pos].append((lz77_len, seed, "LZ77"))
+            for lz77_len, lz77_seed in _find_lz77_all_lengths(target, pos, buf_at_pos):
+                matches[pos].append((lz77_len, lz77_seed, "LZ77"))
 
         # Deduplicate by length (keep best seed per length)
         seen_lens = {}
