@@ -90,8 +90,8 @@ The strategies are the "genome" -- shared context that gives meaning to the seed
 Phase 2 adds multi-pixel support via two new files:
 
 - `expand2.py` -- `expand_multi()` chains multiple seeds into one output, `expand_from_png()` decodes any PNG
-- `boot2.py` -- `make_multipixel_png()` creates NxM RGBA PNGs, `encode_multi()` auto-segments and encodes
-- `verify2.py` -- 13 tests covering V1 backward compat + V2 multi-pixel targets
+- `boot2.py` -- `make_multipixel_png()` creates NxM RGBA PNGs, `encode_multi()` auto-segments and encodes. CLI: `encode`, `decode`, `demo`
+- `verify2.py` -- 20 tests covering V1 backward compat (6) + V2 multi-pixel (14)
 
 The image dimensions are chosen automatically:
 - 1 seed -> 1x1 (same as V1)
@@ -158,7 +158,7 @@ DECODE (multi-pixel PNG -> file):
 | `print(42)\n` | 1x1 | 0x30004180 | 10B from 32 bits |
 | `void main(){}\n` | 1x1 | 0x504FEA9D | 14B from 32 bits |
 
-### Phase 2 (multi-pixel, 7/7 pass)
+### Phase 2 (multi-pixel, 14/14 pass)
 
 | Target program | Pixels | Seeds | Size |
 |---------------|--------|-------|------|
@@ -169,8 +169,15 @@ DECODE (multi-pixel PNG -> file):
 | `PSET 10 20\nCOLOR 255 0 0\nDRAW\n` | 3x3 | 8 | 30B from 256 bits |
 | `def greet(name):\n    print(name)\n\n` | 4x4 | 10 | 34B from 320 bits |
 | `for i in range(10):\n    print(i)\n\n` | 4x4 | 10 | 34B from 320 bits |
+| `def add(a, b):\n    return a + b\n\nprint(add(1, 2))\n` | 4x4 | 12 | 50B from 384 bits |
+| `x = 1\ny = 2\nif x > 0:\n    print(y)\n` | 3x3 | 7 | 35B from 224 bits |
+| `def greet(name):\n    print("Hello, " + name)\n\ngreet("World")\n` | 4x4 | 12 | 61B from 384 bits |
+| `#!/bin/bash\nfor i in 1 2 3; do\n  echo "Number: $i"\ndone\n` | 4x4 | 13 | 73B from 416 bits |
+| `#include <stdio.h>\nint main(){...}\n` (C program) | 5x5 | 20 | 103B from 640 bits |
+| Python class with methods (175B) | 7x7 | 41 | 175B from 2624 bits |
+| Python fibonacci (254B) | 8x8 | 56 | 254B from 3584 bits |
 
-All Python programs run and produce correct output. Total: **13/13 tests passing**.
+All Python programs run and produce correct output after full encode/decode PNG round-trip. Total: **20/20 tests passing**.
 
 ## The Key Insight
 
@@ -193,12 +200,8 @@ pixelpack/
   verify.py       Phase 1 round-trip tests. 6 targets, all pass.
 
   expand2.py      Multi-pixel expansion. Chains multiple seeds, reads multi-pixel PNGs.
-  boot2.py        Multi-pixel PNG encoder/decoder. Auto-segments, creates NxM PNGs.
-  verify2.py      Phase 2 round-trip tests. 13 targets (6 V1 + 7 V2), all pass.
-  
-  dict_build.py   Dictionary builder. Analyzes corpus, builds V2 dictionary via BPE.
-  dict_v2.py      V2 dictionary (96 entries). Entries 0-31 frozen from V1.
-  corpus.py       Target programs corpus for dictionary building.
+  boot2.py        Multi-pixel PNG encoder/decoder. Auto-segments, creates NxM PNGs. CLI: encode/decode/demo.
+  verify2.py      Phase 2 round-trip tests. 20 targets (6 V1 + 14 V2), all pass.
 ```
 
 ## Usage
@@ -221,21 +224,16 @@ python3 boot2.py demo
 
 # Expand a seed directly
 python3 expand.py 50412320
-
-# Build dictionary from corpus
-python3 dict_build.py
 ```
 
 ## Limitations (Honest Assessment)
 
 1. **Multi-pixel efficiency varies.** Programs that decompose into dictionary fragments need few seeds. Programs with lots of non-dictionary characters need many (one BYTEPACK per 3-5 bytes). A 34-byte program with rare characters needs ~10 seeds.
 
-2. **The segmenter is greedy.** It picks the longest prefix match first, which is fast but not always optimal. A dynamic programming approach could find fewer seeds.
+2. **The dictionary is fixed.** The 16+16 entry dictionaries are hand-picked programming fragments. They work well for Python/C/shell but poorly for arbitrary text. Domain-specific dictionaries would improve efficiency.
 
-3. **The dictionary is still limited.** V2 has 96 entries but they're mostly programming keywords. Arbitrary text won't decompose well. A domain-specific dictionary would help for specialized programs.
-
-4. **Not a general-purpose encoder.** You can encode any bytes, but the pixel count scales linearly with non-dictionary content. This is a generative system, not a compressor.
+3. **Not a general-purpose encoder.** You can encode any bytes, but the pixel count scales linearly with non-dictionary content. This is a generative system, not a compressor.
 
 ## History
 
-Phase 1 was built with the Recursive Feedback Loop (RFL) -- 5 iterations over 71 minutes. Phase 2 adds multi-pixel support, auto-dictionary, and scales from 15-byte to 34-byte programs (and beyond with more pixels).
+Phase 1 was built with the Recursive Feedback Loop (RFL) -- 5 iterations over 71 minutes. Phase 2 adds multi-pixel support and scales from 15-byte single-pixel programs to 254-byte multi-pixel programs with full PNG round-trip verification.
