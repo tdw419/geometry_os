@@ -20,7 +20,7 @@ import math
 import time
 from expand import (
     seed_to_rgba, seed_from_rgba, expand,
-    DICTIONARY, DICTIONARY_EXT, SUB_DICT, NIBBLE_TABLE,
+    DICTIONARY, DICTIONARY_EXT, SUB_DICT, NIBBLE_TABLE, BPE_PAIR_TABLE,
 )
 from expand2 import expand_multi, expand_from_png, extract_seeds_from_png
 from expand3 import (
@@ -154,6 +154,62 @@ def _find_lz77_at(target, pos, emitted):
 
 
 # ============================================================
+# BPE Helpers
+# ============================================================
+
+# Cached reverse lookup for BPE pair -> index
+_bpe_pair_to_idx_cache = None
+
+def _bpe_pair_to_idx():
+    """Build and cache reverse lookup: byte pair -> BPE table index."""
+    global _bpe_pair_to_idx_cache
+    if _bpe_pair_to_idx_cache is None:
+        _bpe_pair_to_idx_cache = {}
+        for i, pair in enumerate(BPE_PAIR_TABLE):
+            if i > 0 and pair:
+                _bpe_pair_to_idx_cache[pair] = i
+    return _bpe_pair_to_idx_cache
+
+
+def _try_bpe(suffix):
+    """Try BPE encoding for suffix. Returns (length, seed, "BPE") or None.
+
+    Tries to cover 2-8 bytes with 1-4 byte-pair lookups.
+    Returns the longest valid match.
+    """
+    remaining = len(suffix)
+    pair_to_idx = _bpe_pair_to_idx()
+
+    # Find the longest BPE match (greedy on pairs from start)
+    for n_pairs in range(min(4, remaining // 2), 0, -1):
+        pair_len = n_pairs * 2
+        indices = []
+        valid = True
+        for pi in range(n_pairs):
+            pair = suffix[pi*2 : pi*2 + 2]
+            idx = pair_to_idx.get(pair)
+            if idx is None:
+                valid = False
+                break
+            indices.append(idx)
+        if not valid:
+            continue
+
+        # Pack 4 x 7-bit indices (unused = 0 = terminator)
+        params = 0
+        for i in range(4):
+            if i < n_pairs:
+                params |= (indices[i] & 0x7F) << (7 * i)
+
+        seed = 0x90000000 | params
+        from find_seed import _verify
+        if _verify(seed, suffix[:pair_len]):
+            return (pair_len, seed, "BPE")
+
+    return None
+
+
+# ============================================================
 # V1 Match Finding
 # ============================================================
 
@@ -186,15 +242,10 @@ def _find_v1_match(target, pos):
         if dlen > best[0] and _verify(seed, target[pos:pos+dlen]):
             best = (dlen, seed, "DICTX5")
 
-    # DICTX6
-    decomp = _try_prefix_decompose(suffix, 6, SUB_DICT)
-    if decomp:
-        dlen = sum(len(SUB_DICT[i]) for i in decomp)
-        params = sum((idx & 0xF) << (4 * i) for i, idx in enumerate(decomp))
-        seed = 0x90000000 | params
-        from find_seed import _verify
-        if dlen > best[0] and _verify(seed, target[pos:pos+dlen]):
-            best = (dlen, seed, "DICTX6")
+    # BPE (0x9): byte-pair encoding
+    bpe_match = _try_bpe(suffix)
+    if bpe_match and bpe_match[0] > best[0]:
+        best = bpe_match
 
     # DICTX7
     decomp = _try_prefix_decompose(suffix, 7, SUB_DICT)
@@ -529,15 +580,32 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
             if _verify(seed, target[pos:pos+dlen]):
                 matches[pos].append((dlen, seed, "DICTX5"))
 
-        # DICTX6
-        decomp = _try_prefix_decompose(suffix, 6, SUB_DICT)
-        if decomp:
-            dlen = sum(len(SUB_DICT[i]) for i in decomp)
-            params = sum((idx & 0xF) << (4 * i) for i, idx in enumerate(decomp))
+        # BPE (0x9): byte-pair encoding - try 2, 4, 6, 8 byte matches
+        pair_to_idx_local = _bpe_pair_to_idx()
+        for n_pairs in range(min(4, remaining // 2), 0, -1):
+            pair_len = n_pairs * 2
+            if pair_len > remaining:
+                continue
+            indices = []
+            valid = True
+            for pi in range(n_pairs):
+                pair = target[pos + pi*2 : pos + pi*2 + 2]
+                idx = pair_to_idx_local.get(pair)
+                if idx is None:
+                    valid = False
+                    break
+                indices.append(idx)
+            if not valid:
+                continue
+            # Pack 4 x 7-bit indices
+            params = 0
+            for i in range(4):
+                if i < n_pairs:
+                    params |= (indices[i] & 0x7F) << (7 * i)
             seed = 0x90000000 | params
             from find_seed import _verify
-            if _verify(seed, target[pos:pos+dlen]):
-                matches[pos].append((dlen, seed, "DICTX6"))
+            if _verify(seed, target[pos:pos+pair_len]):
+                matches[pos].append((pair_len, seed, "BPE"))
 
         # DICTX7
         decomp = _try_prefix_decompose(suffix, 7, SUB_DICT)
@@ -953,7 +1021,7 @@ def _diagnose_mismatch(expected, got, data_seeds, setup_seeds):
 def _show_strategy_breakdown(seeds, dict_only=0):
     names = {
         0:'DICT_1',1:'DICT_2',2:'DICT_3',3:'DICT_4',4:'DICT_5',
-        5:'DICT_6',6:'DICT_7',7:'NIBBLE',8:'DICTX5',9:'DICTX6',
+        5:'DICT_6',6:'DICT_7',7:'NIBBLE',8:'DICTX5',9:'BPE',
         0xA:'DICTX7',0xB:'RLE',0xC:'LZ77',0xD:'DYN_DICT',
         0xE:'BYTEPACK',0xF:'TEMPLATE'
     }

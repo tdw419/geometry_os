@@ -21,6 +21,7 @@ from expand3 import (
     ExpandContext, expand_with_context, expand_multi_v3, expand_from_png_v3,
     _expand_lz77, _expand_dyn_dict, emit_dict_seed,
 )
+from expand import BPE_PAIR_TABLE
 from boot import make_1x1_png, read_png_pixel
 from boot2 import (
     make_multipixel_png, read_multipixel_png,
@@ -318,6 +319,93 @@ def test_xor_channel_basic():
 
 
 # ============================================================
+# BPE Strategy Tests
+# ============================================================
+
+def test_bpe_single_pair():
+    """BPE can encode a single byte pair."""
+    # 'in' = index 5 in BPE_PAIR_TABLE
+    params = 5
+    seed = 0x90000000 | params
+    result = expand(seed)
+    assert result == b'in', f"Expected b'in', got {result!r}"
+    print("  [PASS] BPE single pair")
+    return True
+
+
+def test_bpe_two_pairs():
+    """BPE can encode two byte pairs (4 bytes)."""
+    # '  ' = 1, 'in' = 5
+    params = 1 | (5 << 7)
+    seed = 0x90000000 | params
+    result = expand(seed)
+    assert result == b'  in', f"Expected b'  in', got {result!r}"
+    print("  [PASS] BPE two pairs")
+    return True
+
+
+def test_bpe_four_pairs():
+    """BPE can encode four byte pairs (8 bytes, max)."""
+    # 'de'=31, 'fi'=78, 'bo'=121, '  '=1
+    params = 31 | (78 << 7) | (121 << 14) | (1 << 21)
+    seed = 0x90000000 | params
+    result = expand(seed)
+    assert result == b'defibo  ', f"Expected b'defibo  ', got {result!r}"
+    assert len(result) == 8
+    print("  [PASS] BPE four pairs (8 bytes)")
+    return True
+
+
+def test_bpe_terminator():
+    """BPE terminates on index 0 (unused pairs are 0)."""
+    # 2 pairs followed by 0 terminators
+    params = 1 | (5 << 7)  # pairs only, remaining = 0
+    seed = 0x90000000 | params
+    result = expand(seed)
+    assert result == b'  in', f"Expected b'  in', got {result!r}"
+    assert len(result) == 4
+    print("  [PASS] BPE terminator")
+    return True
+
+
+def test_bpe_roundtrip_via_search():
+    """BPE seeds found by search() decode correctly."""
+    from find_seed import _search_bpe
+    # 'de' + 'fi' = 'defi' (both in table)
+    target = b'defi'
+    seed = _search_bpe(target)
+    assert seed is not None, f"BPE search failed for {target!r}"
+    result = expand(seed)
+    assert result == target, f"Roundtrip failed: {result!r} != {target!r}"
+    print("  [PASS] BPE search roundtrip")
+    return True
+
+
+def test_bpe_in_v3_pipeline():
+    """BPE seeds work in V3 context pipeline."""
+    # Encode "return " using BPE: 're'=8, 'tu'=79, 'rn'=76, ' '=N/A
+    # Actually just test that strategy 0x9 works through expand_with_context
+    params = 1 | (5 << 7)  # '  ' + 'in'
+    seed = 0x90000000 | params
+    ctx = ExpandContext()
+    result = expand_with_context(seed, ctx)
+    assert result == b'  in', f"V3 BPE: expected b'  in', got {result!r}"
+    assert ctx.output_buffer == bytearray(b'  in')
+    print("  [PASS] BPE in V3 pipeline")
+    return True
+
+
+def test_bpe_table_completeness():
+    """BPE_PAIR_TABLE has 128 entries (index 0 = empty, 1-127 = pairs)."""
+    assert len(BPE_PAIR_TABLE) == 128, f"Expected 128 entries, got {len(BPE_PAIR_TABLE)}"
+    assert BPE_PAIR_TABLE[0] == b'', "Index 0 must be empty"
+    for i in range(1, 128):
+        assert len(BPE_PAIR_TABLE[i]) == 2, f"Entry {i} must be 2 bytes, got {len(BPE_PAIR_TABLE[i])}"
+    print("  [PASS] BPE table completeness")
+    return True
+
+
+# ============================================================
 # Helpers
 # ============================================================
 
@@ -412,6 +500,13 @@ def main():
         test_v3_png_seed_extraction,
         test_v3_fallback_to_v2,
         test_xor_channel_basic,
+        test_bpe_single_pair,
+        test_bpe_two_pairs,
+        test_bpe_four_pairs,
+        test_bpe_terminator,
+        test_bpe_roundtrip_via_search,
+        test_bpe_in_v3_pipeline,
+        test_bpe_table_completeness,
     ]
 
     for test_fn in unit_tests:

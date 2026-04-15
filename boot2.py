@@ -20,7 +20,7 @@ import time
 from expand import (
     seed_to_rgba, seed_from_rgba, expand, 
     DICTIONARY, DICTIONARY_EXT, SUB_DICT, NIBBLE_TABLE,
-    _expand_nibble
+    BPE_PAIR_TABLE, _expand_nibble
 )
 from expand2 import expand_multi, expand_from_png, extract_seeds_from_png
 from find_seed import search, _decompose, _pack_dict_seed, _verify
@@ -218,14 +218,33 @@ def _find_multi_seeds_dp(target: bytes, timeout: float, max_seeds: int) -> list:
             if _verify(seed, target[pos:pos+dlen]):
                 matches[pos].append((dlen, seed, "DICTX5"))
         
-        # --- DICTX6 (0x9): 6 entries from SUB_DICT (4-bit indices) ---
-        decomp = _try_prefix_decompose(suffix, 6, SUB_DICT)
-        if decomp:
-            dlen = sum(len(SUB_DICT[i]) for i in decomp)
-            params = sum((idx & 0xF) << (4 * i) for i, idx in enumerate(decomp))
-            seed = 0x90000000 | params
-            if _verify(seed, target[pos:pos+dlen]):
-                matches[pos].append((dlen, seed, "DICTX6"))
+        # --- BPE (0x9): 4 x 7-bit byte-pair indices ---
+        pair_to_idx_bpe = {}
+        for _bi, _bp in enumerate(BPE_PAIR_TABLE):
+            if _bi > 0 and _bp:
+                pair_to_idx_bpe[_bp] = _bi
+        for n_pairs_bpe in range(min(4, remaining // 2), 0, -1):
+            pair_len_bpe = n_pairs_bpe * 2
+            if pair_len_bpe > remaining:
+                continue
+            indices_bpe = []
+            valid_bpe = True
+            for pi in range(n_pairs_bpe):
+                pair_bpe = target[pos + pi*2 : pos + pi*2 + 2]
+                idx_bpe = pair_to_idx_bpe.get(pair_bpe)
+                if idx_bpe is None:
+                    valid_bpe = False
+                    break
+                indices_bpe.append(idx_bpe)
+            if not valid_bpe:
+                continue
+            params_bpe = 0
+            for i in range(4):
+                if i < n_pairs_bpe:
+                    params_bpe |= (indices_bpe[i] & 0x7F) << (7 * i)
+            seed_bpe = 0x90000000 | params_bpe
+            if _verify(seed_bpe, target[pos:pos+pair_len_bpe]):
+                matches[pos].append((pair_len_bpe, seed_bpe, "BPE"))
         
         # --- DICTX7 (0xA): 7 entries from SUB_DICT (4-bit indices) ---
         decomp = _try_prefix_decompose(suffix, 7, SUB_DICT)

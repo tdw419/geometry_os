@@ -8,7 +8,7 @@ Architecture:
   0x0-0x6: DICT_N   - N entries from 16-entry base dictionary (4-bit indices)
   0x7:      NIBBLE   - 7 nibbles indexing a byte table
   0x8:      DICTX5   - 5 entries from 32-entry extended dictionary (5-bit indices)
-  0x9:      DICTX6   - 6 entries from extended dict entries 16-31 (4-bit indices)
+  0x9:      BPE      - 4 x 7-bit indices into 128-entry byte-pair lookup table
   0xA:      DICTX7   - 7 entries from extended dict entries 16-31 (4-bit indices)
   0xB:      RLE      - run-length encoded pattern
   0xC:      XOR_CHAIN - XOR chain from start byte
@@ -70,6 +70,29 @@ NIBBLE_TABLE = [
     0x2F, 0x3A, 0x3B, 0x3D, 0x41, 0x61, 0x7B, 0x7D,
 ]
 
+# BPE byte-pair lookup table: 128 entries (index 0 = unused/escape).
+# Each entry is a 2-byte pair. Top pairs from Python source corpus,
+# tuned for common programming patterns.
+BPE_PAIR_TABLE = [
+    b'',  # 0 = unused
+    b'  ', b'\n ', b'se', b'e ', b'in', b', ', b' i', b're',  # 1-8
+    b' s', b's ', b'er', b' t', b'on', b'or', b'el', b't ',  # 9-16
+    b':\n', b'n ', b'th', b'at', b'= ', b' a', b'f ', b'en',  # 17-24
+    b'me', b'et', b'te', b' =', b'es', b')\n', b'de', b'le',  # 25-32
+    b'st', b' r', b'he', b' f', b'\n\n', b'al', b'is', b'ar',  # 33-40
+    b'ne', b'lf', b'ti', b'an', b'nt', b' c', b' o', b' d',  # 41-48
+    b'd ', b'r ', b'""', b'ta', b'co', b'if', b'ro', b'ra',  # 49-56
+    b' e', b'ed', b'==', b'am', b'nd', b'as', b'it', b'li',  # 57-64
+    b' b', b'f.', b' n', b'na', b'ur', b'ng', b'io', b'tr',  # 65-72
+    b'ss', b'to', b'il', b'rn', b'# ', b'fi', b'tu', b'__',  # 73-80
+    b'ex', b' m', b'):', b'ef', b'ge', b'ri', b'ce', b' p',  # 81-88
+    b'la', b' "', b'pe', b'e:', b'0\n', b'1\n', b'b\n', b'(n',  # 89-96
+    b'(i', b'i)', b'n)', b'b)', b'b,', b'a,', b'(1', b'(2',  # 97-104
+    b'0)', b'1)', b'2,', b'0:', b'1:', b'<=', b'+ ', b' {',  # 105-112
+    b'f"', b'"f', b'{i', b'{f', b'}"', b'})', b'ib', b'ci',  # 113-120
+    b'bo', b'i(', b'cc', b'nf', b'0,', b'++', b'b ',  # 121-127
+]
+
 
 # === EXPANDER ===
 
@@ -91,7 +114,7 @@ def expand(seed: int, max_output: int = 65536) -> bytes:
         0x6: lambda p: _expand_dict(p, 7),
         0x7: _expand_nibble,
         0x8: _expand_dictx5,
-        0x9: _expand_dictx6,
+        0x9: _expand_bpe,
         0xA: _expand_dictx7,
         0xB: _expand_rle,
         0xC: _expand_xor_chain,
@@ -131,12 +154,21 @@ def _expand_dictx5(params):
     return bytes(result)
 
 
-def _expand_dictx6(params):
-    """6 entries from SUB_DICT (entries 16-31) using 4-bit indices (24 bits)."""
+def _expand_bpe(params):
+    """BPE: 4 x 7-bit indices into BPE_PAIR_TABLE. Up to 8 bytes per seed.
+
+    Bit layout: [IIIIIII] [IIIIIII] [IIIIIII] [IIIIIII] (28 bits)
+    Index 0 = terminator (shorter outputs). Indices 1-127 = byte pairs.
+    """
     result = bytearray()
-    for i in range(6):
-        idx = (params >> (4 * i)) & 0xF
-        result.extend(SUB_DICT[idx])
+    for i in range(4):
+        idx = (params >> (7 * i)) & 0x7F
+        if idx == 0:
+            break  # terminator
+        if idx < len(BPE_PAIR_TABLE):
+            pair = BPE_PAIR_TABLE[idx]
+            if pair:
+                result.extend(pair)
     return bytes(result)
 
 
@@ -339,7 +371,7 @@ def _STRATEGY_NAME(s):
     names = {
         0: 'DICT_1', 1: 'DICT_2', 2: 'DICT_3', 3: 'DICT_4',
         4: 'DICT_5', 5: 'DICT_6', 6: 'DICT_7', 7: 'NIBBLE',
-        8: 'DICTX5', 9: 'DICTX6', 0xA: 'DICTX7', 0xB: 'RLE',
+        8: 'DICTX5', 9: 'BPE', 0xA: 'DICTX7', 0xB: 'RLE',
         0xC: 'XOR_CHAIN', 0xD: 'LINEAR', 0xE: 'BYTEPACK', 0xF: 'TEMPLATE',
     }
     return names.get(s, 'UNKNOWN')

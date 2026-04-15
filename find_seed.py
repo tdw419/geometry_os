@@ -6,7 +6,7 @@ Strategy priority:
 1. DICT_N (base 16-entry, up to 7 entries)
 2. NIBBLE (7-byte fixed table)
 3. DICTX5 (extended 32-entry, 5 entries)
-4. DICTX6 (sub-dict 16-31, 6 entries)
+4. BPE (4 x 7-bit byte-pair indices)
 5. DICTX7 (sub-dict 16-31, 7 entries)
 6. RLE
 7. BYTEPACK
@@ -18,6 +18,7 @@ import sys
 import time
 from expand import (
     expand, DICTIONARY, DICTIONARY_EXT, SUB_DICT, NIBBLE_TABLE,
+    BPE_PAIR_TABLE,
     seed_from_rgba, seed_to_rgba
 )
 
@@ -77,16 +78,11 @@ def search(target: bytes, timeout: float = 60.0) -> list:
         _print_results(results)
         return results
 
-    # --- DICTX6 (0x9): 6 entries from SUB_DICT ---
-    decomp = _decompose_sub(target, 6)
-    if decomp is not None:
-        params = 0
-        for i, idx in enumerate(decomp):
-            params |= (idx & 0xF) << (4 * i)
-        seed = 0x90000000 | params
-        if _verify(seed, target):
-            results.append((seed, "DICTX6"))
-            print(f"  FOUND via DICTX6: indices={decomp}")
+    # --- BPE (0x9): 4 x 7-bit byte-pair indices ---
+    r = _search_bpe(target)
+    if r is not None:
+        results.append((r, "BPE"))
+        print(f"  FOUND via BPE")
 
     if results:
         _print_results(results)
@@ -222,6 +218,38 @@ def _search_nibble(target):
     for i, nib in enumerate(nibbles):
         params |= (nib & 0xF) << (4 * i)
     seed = 0x70000000 | params
+    return seed if _verify(seed, target) else None
+
+
+def _search_bpe(target):
+    """Try to encode target as BPE byte-pair sequence (2, 4, 6, or 8 bytes)."""
+    tlen = len(target)
+    if tlen == 0 or tlen > 8 or tlen % 2 != 0:
+        return None
+
+    # Build reverse lookup
+    pair_to_idx = {}
+    for i, pair in enumerate(BPE_PAIR_TABLE):
+        if i > 0 and pair:
+            pair_to_idx[pair] = i
+
+    n_pairs = tlen // 2
+    indices = []
+    for i in range(n_pairs):
+        pair = target[i*2:i*2+2]
+        idx = pair_to_idx.get(pair)
+        if idx is None:
+            return None
+        indices.append(idx)
+
+    # Pack: 4 x 7-bit indices, unused slots = 0 (terminator)
+    params = 0
+    for i in range(4):
+        if i < n_pairs:
+            params |= (indices[i] & 0x7F) << (7 * i)
+        # else: 0 = terminator
+
+    seed = 0x90000000 | params
     return seed if _verify(seed, target) else None
 
 
