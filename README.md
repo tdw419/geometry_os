@@ -26,6 +26,32 @@ Bytes come out
 Those bytes ARE a working program
 ```
 
+## Phase 2: Multi-Pixel Encoding
+
+Phase 1 proved the mechanism: one pixel = one program (3-15 bytes). Phase 2 scales it up:
+
+**Multi-pixel images** encode programs from 3 to 200+ bytes. A 2x2 image gives 4 seeds (128 bits), a 4x4 gives 16 seeds (512 bits). Each pixel expands independently and results concatenate.
+
+**Auto-growing dictionary** builds entries from a corpus of real programs. V2 dictionary has 96 entries (V1 had 32). Entries 0-31 are frozen for backward compatibility.
+
+**Smart segmentation** splits a target program into segments, finds seeds for each, and packs them into a multi-pixel PNG.
+
+```
+Target program (34 bytes)
+    |
+    v
+Segmenter splits into N pieces
+    |
+    v
+Each piece -> 32-bit seed via strategies
+    |
+    v
+Seeds -> NxM PNG pixels
+    |
+    v
+Decoding: read PNG, extract seeds, expand each, concatenate
+```
+
 ## How It Works
 
 ### The Seed Format
@@ -59,6 +85,21 @@ The strategies are the "genome" -- shared context that gives meaning to the seed
 | E | BYTEPACK | Direct byte encoding with 8 sub-modes (raw, XOR delta, ADD delta, nibble, etc.) | 7 bytes |
 | F | TEMPLATE | XOR substitution on 16 built-in program templates + 2 extra bytes | ~16 bytes |
 
+### Multi-Pixel Encoding
+
+Phase 2 adds multi-pixel support via two new files:
+
+- `expand2.py` -- `expand_multi()` chains multiple seeds into one output, `expand_from_png()` decodes any PNG
+- `boot2.py` -- `make_multipixel_png()` creates NxM RGBA PNGs, `encode_multi()` auto-segments and encodes
+- `verify2.py` -- 13 tests covering V1 backward compat + V2 multi-pixel targets
+
+The image dimensions are chosen automatically:
+- 1 seed -> 1x1 (same as V1)
+- 2 seeds -> 2x1
+- 3-4 seeds -> 2x2
+- 5-9 seeds -> 3x3
+- 10-16 seeds -> 4x4
+
 ### The Dictionary
 
 The core strategies (0x0-0x6) use a shared 16-entry dictionary of programming fragments:
@@ -85,44 +126,51 @@ Index  Fragment   Length
 
 An extended dictionary adds 16 more entries (x, =, +, -, *, ;, 1, 0, if, return, int, for, while, class, space, fn) for strategies 8-A.
 
-The dictionary IS the shared context. A pixel that contains indices [0, 2, 3, 2, 1, 4] means: concatenate dictionary entries 0, 2, 3, 2, 1, 4 = `print(` + `"` + `Hello` + `"` + `)` + `\n` = `print("Hello")\n`. One pixel. Working Python program.
-
-### An Extended Dictionary Example
-
-Strategy 8 (DICTX5) uses 5-bit indices into the full 32-entry dictionary. With 25 bits for indices and 3 bits spare, this can build longer programs from richer fragments. For example, indices [0, 8, 1, 4] in the base dictionary give `print(` + `42` + `)` + `\n` = `print(42)\n`.
-
 ## The Pipeline
 
 ```
-ENCODE (file -> pixel):
+ENCODE (file -> multi-pixel PNG):
   1. Read target bytes
-  2. find_seed.py searches all 16 strategies analytically
-  3. Each strategy inverts its expansion: given target bytes, compute what parameters would produce them
-  4. First matching seed wins
-  5. boot.py writes the seed as a 1x1 RGBA PNG
+  2. Try single seed first (V1 path)
+  3. If no single seed, segment the target
+  4. For each segment, find a seed via strategy inversion
+  5. Pack all seeds into NxM RGBA PNG
+  6. PNG is a viewable image!
 
-DECODE (pixel -> file):
-  1. boot.py reads the 1x1 PNG, extracts RGBA -> 32-bit seed
-  2. expand.py runs the strategy selected by top 4 bits
-  3. Strategy generates bytes from the 28-bit parameter
-  4. Output bytes are the original program
-  5. Execute it
+DECODE (multi-pixel PNG -> file):
+  1. Read PNG dimensions and pixel data
+  2. Extract RGBA from each pixel -> 32-bit seeds
+  3. Expand each seed via its strategy
+  4. Concatenate all expansions
+  5. Output bytes are the original program
 ```
 
 ## Proven Examples
 
-All 6 targets pass full round-trip: encode to pixel, decode back, verify match, run the program.
+### Phase 1 (single pixel, 6/6 pass)
 
-| Target program | Pixel (RGBA) | Seed | Expansion |
-|---------------|-------------|------|-----------|
-| `print("Hello")\n` | (80, 65, 35, 32) | 0x50412320 | 15B from 32 bits (3.8x) |
-| `echo Hello\n` | (32, 0, 4, 53) | 0x20000435 | 11B from 32 bits (2.8x) |
-| `42\n` | (16, 0, 0, 72) | 0x10000048 | 3B from 32 bits (0.8x) |
-| `Hello, World!\n` | (64, 4, 198, 179) | 0x4004C6B3 | 14B from 32 bits (3.5x) |
-| `print(42)\n` | (48, 0, 65, 128) | 0x30004180 | 10B from 32 bits (2.5x) |
-| `void main(){}\n` | (80, 79, 234, 157) | 0x504FEA9D | 14B from 32 bits (3.5x) |
+| Target program | Pixels | Seed | Size |
+|---------------|--------|------|------|
+| `print("Hello")\n` | 1x1 | 0x50412320 | 15B from 32 bits |
+| `echo Hello\n` | 1x1 | 0x20000435 | 11B from 32 bits |
+| `42\n` | 1x1 | 0x10000048 | 3B from 32 bits |
+| `Hello, World!\n` | 1x1 | 0x4004C6B3 | 14B from 32 bits |
+| `print(42)\n` | 1x1 | 0x30004180 | 10B from 32 bits |
+| `void main(){}\n` | 1x1 | 0x504FEA9D | 14B from 32 bits |
 
-The Python programs actually run and produce correct output.
+### Phase 2 (multi-pixel, 7/7 pass)
+
+| Target program | Pixels | Seeds | Size |
+|---------------|--------|-------|------|
+| `x = "Hello"\nprint(x)\n` | 2x2 | 3 | 21B from 96 bits |
+| `print("Hello")\necho Hello\n` | 2x1 | 2 | 26B from 64 bits |
+| `print("Hello")\nprint(42)\n` | 2x1 | 2 | 25B from 64 bits |
+| `int main(){puts("Hello");}\n` | 3x3 | 8 | 27B from 256 bits |
+| `PSET 10 20\nCOLOR 255 0 0\nDRAW\n` | 3x3 | 8 | 30B from 256 bits |
+| `def greet(name):\n    print(name)\n\n` | 4x4 | 10 | 34B from 320 bits |
+| `for i in range(10):\n    print(i)\n\n` | 4x4 | 10 | 34B from 320 bits |
+
+All Python programs run and produce correct output. Total: **13/13 tests passing**.
 
 ## The Key Insight
 
@@ -139,52 +187,55 @@ This is the DNA analogy made literal:
 
 ```
 pixelpack/
-  expand.py      The SEED-VM. 16 expansion strategies. Takes a 32-bit seed, produces bytes.
-  find_seed.py   Analytical seed search. Inverts each strategy to find seeds for target bytes.
-  boot.py        PNG encoder/decoder. Writes a 1x1 RGBA PNG, reads it back.
-  verify.py      Round-trip test suite. 6 targets, all pass.
+  expand.py       The SEED-VM. 16 expansion strategies. Takes a 32-bit seed, produces bytes.
+  find_seed.py    Analytical seed search. Inverts each strategy to find seeds for target bytes.
+  boot.py         Single-pixel PNG encoder/decoder. Writes a 1x1 RGBA PNG, reads it back.
+  verify.py       Phase 1 round-trip tests. 6 targets, all pass.
+
+  expand2.py      Multi-pixel expansion. Chains multiple seeds, reads multi-pixel PNGs.
+  boot2.py        Multi-pixel PNG encoder/decoder. Auto-segments, creates NxM PNGs.
+  verify2.py      Phase 2 round-trip tests. 13 targets (6 V1 + 7 V2), all pass.
+  
+  dict_build.py   Dictionary builder. Analyzes corpus, builds V2 dictionary via BPE.
+  dict_v2.py      V2 dictionary (96 entries). Entries 0-31 frozen from V1.
+  corpus.py       Target programs corpus for dictionary building.
 ```
 
 ## Usage
 
 ```bash
-# Verify the proof
+# Phase 1: Verify the proof
 python3 verify.py
 
-# Encode a program into a pixel
-python3 boot.py encode program.py boot_pixel.png
+# Phase 2: Verify multi-pixel encoding
+python3 verify2.py
 
-# Decode a pixel back into a program
-python3 boot.py decode boot_pixel.png recovered.py
+# Encode a program into pixels (tries single, then multi)
+python3 boot2.py encode program.py output.png
 
-# Run the demo
-python3 boot.py demo
+# Decode pixels back into a program
+python3 boot2.py decode output.png recovered.py
+
+# Run the phase 2 demo
+python3 boot2.py demo
 
 # Expand a seed directly
 python3 expand.py 50412320
+
+# Build dictionary from corpus
+python3 dict_build.py
 ```
 
 ## Limitations (Honest Assessment)
 
-1. **The dictionary is hand-picked.** It knows about "print", "Hello", "void", "main". The proof works because we chose targets the dictionary can represent. Arbitrary programs won't work unless their byte sequences happen to decompose into dictionary entries.
+1. **Multi-pixel efficiency varies.** Programs that decompose into dictionary fragments need few seeds. Programs with lots of non-dictionary characters need many (one BYTEPACK per 3-5 bytes). A 34-byte program with rare characters needs ~10 seeds.
 
-2. **32 bits is 32 bits.** The maximum program we can encode depends on how well it decomposes into dictionary fragments. The best case is ~35 bytes (7 dictionary entries averaging 5 bytes each). Most real programs are much larger.
+2. **The segmenter is greedy.** It picks the longest prefix match first, which is fast but not always optimal. A dynamic programming approach could find fewer seeds.
 
-3. **The search is analytical, not brute-force.** Each strategy has a known parameter layout, so find_seed.py can compute the inverse. This is fast but means only programs that fit a strategy's output pattern can be encoded.
+3. **The dictionary is still limited.** V2 has 96 entries but they're mostly programming keywords. Arbitrary text won't decompose well. A domain-specific dictionary would help for specialized programs.
 
-4. **Not a general-purpose encoder.** You can't point this at an arbitrary file and expect it to work. It works on programs that are composed of dictionary fragments.
-
-## Where This Could Go
-
-The current proof shows the mechanism works. To scale up:
-
-- **Larger dictionary:** More entries = more programs representable with fewer indices
-- **Multi-pixel seeds:** A 2x2 image gives 128 bits, a 4x4 gives 512 bits. More bits = more complex recipes
-- **Chained expansion:** One pixel expands to a program that, when run, generates more pixels that expand further
-- **Geometry OS integration:** A boot pixel that expands into assembly code for the Geometry OS VM
+4. **Not a general-purpose encoder.** You can encode any bytes, but the pixel count scales linearly with non-dictionary content. This is a generative system, not a compressor.
 
 ## History
 
-This project sits on years of research. The original concept -- "boot pixels" that encode programs as pixel colors -- traces back to early PXOS design work. The pixelpack-dict project (0.9924x gzip) proved the dictionary mechanism works. This project proves the generative expansion mechanism works.
-
-Built with the Recursive Feedback Loop (RFL) -- 5 iterations over 71 minutes, each one refining the design, fixing bugs, and adding capabilities.
+Phase 1 was built with the Recursive Feedback Loop (RFL) -- 5 iterations over 71 minutes. Phase 2 adds multi-pixel support, auto-dictionary, and scales from 15-byte to 34-byte programs (and beyond with more pixels).
