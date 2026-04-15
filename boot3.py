@@ -152,61 +152,6 @@ def _find_lz77_at(target, pos, emitted):
     return None
 
 
-def _find_lz77_all_lengths(target, pos, emitted):
-    """Find ALL valid LZ77 match lengths for target[pos:] in emitted buffer.
-    
-    Returns list of (length, seed) for every valid length >= 2.
-    Uses the same offset for all lengths (the offset from the longest match).
-    """
-    buf_len = len(emitted)
-    if buf_len == 0:
-        return []
-    remaining = len(target) - pos
-    max_len = min(remaining, 0xFFF)
-
-    best_len = 0
-    best_offset = 0
-
-    for start in range(buf_len):
-        match_len = 0
-        ei = start
-        while match_len < max_len:
-            if ei < buf_len:
-                if emitted[ei] == target[pos + match_len]:
-                    match_len += 1
-                    ei += 1
-                else:
-                    break
-            else:
-                wrap_pos = ei - buf_len
-                if wrap_pos < match_len and (pos + wrap_pos) < len(target):
-                    if target[pos + wrap_pos] == target[pos + match_len]:
-                        match_len += 1
-                        ei += 1
-                    else:
-                        break
-                else:
-                    break
-
-        if match_len > best_len:
-            best_len = match_len
-            best_offset = buf_len - 1 - start
-
-    if best_len < 2 or best_offset >= (1 << 16):
-        return []
-
-    # Verify the longest match, then all shorter lengths are valid too
-    if not _verify_lz77(best_offset, best_len, emitted, target[pos:pos+best_len]):
-        return []
-
-    # Generate seeds for all lengths from 2 to best_len
-    results = []
-    for length in range(2, best_len + 1):
-        seed = _make_lz77_seed(best_offset, length)
-        if seed:
-            results.append((length, seed))
-    return results
-
 
 # ============================================================
 # V1 Match Finding
@@ -501,14 +446,15 @@ def _encode_with_context(target, setup_buffer, setup_ranges, timeout, global_sta
     """Encode target using DP-based optimal parser (minimum seeds).
 
     Three phases:
-      1. Build reference buffer via greedy parse (so LZ77 offsets are valid)
-      2. Enumerate ALL strategy matches at every position (V1 + LZ77 + search)
-      3. DP shortest-path from 0 to tlen (each edge = 1 seed), then replay
+      1. Enumerate all strategy matches at every position (V1 + LZ77)
+         Buffer at position P = setup_buffer + target[0:P] (deterministic).
+      2. DP shortest-path from 0 to tlen (each edge = 1 seed)
+      3. Replay the path, verify, and return seed list
 
     Key insight: the output buffer at position P is always
     setup_buffer + target[0:P], regardless of which seeds produced it,
     because seeds emit left-to-right and must cover the target exactly.
-    So LZ77 offsets from the greedy reference buffer remain valid.
+    So LZ77 offsets computed against this buffer are always valid.
     """
     tlen = len(target)
     if tlen == 0:
@@ -516,143 +462,45 @@ def _encode_with_context(target, setup_buffer, setup_ranges, timeout, global_sta
 
     elapsed = time.time() - global_start
     if elapsed > timeout * 0.9:
-        # Not enough time for DP, fall back to greedy
         return _encode_greedy(target, setup_buffer, timeout, global_start)
 
-    # Phase 1: Build reference buffer via greedy parse
-    ref_buffer = _build_reference_buffer(target, setup_buffer, timeout, global_start)
+    # Build a rolling hash table for fast LZ77 matching
+    # The "virtual buffer" at position P is: setup_buffer + target[0:P]
+    full_buf = bytes(setup_buffer) + bytes(target)
+    buf_offset = len(setup_buffer)  # target[0] is at this index in full_buf
 
-    # Phase 2: Enumerate all strategy matches at every position
-    match_time = timeout * 0.5
-    matches = _enumerate_all_matches(target, setup_buffer, ref_buffer,
-                                     match_time, global_start)
+    # Phase 1: Enumerate matches at every position
+    match_time = timeout * 0.7
+    matches = _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
+                                       match_time, global_start)
 
-    # Phase 3: DP shortest path (BFS)
+    # Phase 2: DP shortest path
     seeds = _dp_shortest_path(target, matches, timeout, global_start)
 
     if seeds is not None:
         return seeds
 
-    # Fallback to greedy if DP failed
     return _encode_greedy(target, setup_buffer, timeout, global_start)
 
 
-def _build_reference_buffer(target, setup_buffer, timeout, global_start):
-    """Build a reference output buffer via greedy left-to-right parse.
+def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
+                            timeout, global_start):
+    """Enumerate all strategy matches at every position in target.
 
-    The buffer at position P = setup_buffer + target[0:P], so we just
-    concatenate. But we need to parse to identify valid LZ77 match points.
-    Returns the full buffer after greedy parse.
-    """
-    tlen = len(target)
-    emitted = bytearray(setup_buffer)
-    pos = 0
-
-    while pos < tlen:
-        if time.time() - global_start > timeout * 0.3:
-            break
-
-        remaining = tlen - pos
-        best_len = 0
-
-        # LZ77
-        if len(emitted) > 0:
-            lz77 = _find_lz77_at(target, pos, emitted)
-            if lz77:
-                best_len = lz77[0]
-
-        # V1
-        v1_match = _find_v1_match(target, pos)
-        if v1_match and v1_match[0] > best_len:
-            best_len = v1_match[0]
-
-        # search() fallback
-        if best_len == 0:
-            import io, sys
-            old_stdout = sys.stdout
-            sys.stdout = io.StringIO()
-            try:
-                for seg_len in range(min(20, remaining), 0, -1):
-                    if time.time() - global_start > timeout * 0.3:
-                        break
-                    seg = target[pos:pos + seg_len]
-                    results = seed_search(seg, timeout=0.1)
-                    if results:
-                        best_len = seg_len
-                        break
-            finally:
-                sys.stdout = old_stdout
-
-        if best_len == 0:
-            best_len = 1  # force progress
-
-        emitted.extend(target[pos:pos + best_len])
-        pos += best_len
-
-    return emitted
-
-
-def _add_search_matches(matches, target, pos, remaining, timeout, global_start):
-    """Use search() to find any strategy match at target[pos:].
-    
-    Only called when no long V1 match exists. Tries longest first.
-    Catches RLE, XOR_CHAIN, LINEAR, TEMPLATE, etc.
-    """
-    import io, sys
-    # Suppress search() verbose output
-    old_stdout = sys.stdout
-    sys.stdout = io.StringIO()
-    try:
-        for seg_len in range(min(5, remaining), 0, -1):
-            if time.time() - global_start > timeout:
-                break
-            seg = target[pos:pos + seg_len]
-            results = seed_search(seg, timeout=0.02)
-            if results:
-                seed, name = results[0]
-                matches[pos].append((seg_len, seed, name))
-                break  # Found a match, stop
-    finally:
-        sys.stdout = old_stdout
-
-
-def _add_search_matches_extended(matches, target, pos, remaining,
-                                  best_so_far, timeout, global_start):
-    """Search for strategy matches longer than best_so_far at target[pos:].
-
-    Tries RLE, XOR_CHAIN, LINEAR, TEMPLATE, etc. that the V1 enumeration
-    might miss. Only tries lengths > best_so_far for efficiency.
-    """
-    import io, sys
-    max_try = min(20, remaining)
-    if max_try <= best_so_far:
-        return
-    old_stdout = sys.stdout
-    sys.stdout = io.StringIO()
-    try:
-        for seg_len in range(max_try, best_so_far, -1):
-            if time.time() - global_start > timeout:
-                break
-            seg = target[pos:pos + seg_len]
-            results = seed_search(seg, timeout=0.05)
-            if results:
-                seed, name = results[0]
-                from find_seed import _verify
-                if _verify(seed, seg):
-                    matches[pos].append((seg_len, seed, name))
-                    break  # Found longest, done
-    finally:
-        sys.stdout = old_stdout
-
-
-def _enumerate_all_matches(target, setup_buffer, ref_buffer, timeout, global_start):
-    """Enumerate all valid strategy matches at every position in target.
-
-    Returns matches[pos] = list of (length, seed, strategy_name)
-    sorted by length descending.
+    Uses hash-based LZ77 matching for O(n) per position instead of O(n^2).
+    Returns matches[pos] = list of (length, seed, strategy_name).
     """
     tlen = len(target)
     matches = [[] for _ in range(tlen)]
+
+    # Build 2-byte hash table for the full buffer (setup + target)
+    # Maps hash(2 bytes) -> list of positions in full_buf
+    hash_table = {}
+    for i in range(len(full_buf) - 1):
+        key = full_buf[i] | (full_buf[i + 1] << 8)
+        if key not in hash_table:
+            hash_table[key] = []
+        hash_table[key].append(i)
 
     for pos in range(tlen):
         if time.time() - global_start > timeout:
@@ -661,7 +509,7 @@ def _enumerate_all_matches(target, setup_buffer, ref_buffer, timeout, global_sta
         remaining = tlen - pos
         suffix = target[pos:]
 
-        # --- V1 strategies (stateless) ---
+        # --- V1 strategies (stateless, fast) ---
         for n in range(1, 8):
             decomp = _try_prefix_decompose(suffix, n, DICTIONARY)
             if decomp:
@@ -707,28 +555,81 @@ def _enumerate_all_matches(target, setup_buffer, ref_buffer, timeout, global_sta
             if nib:
                 matches[pos].append((7, nib, "NIBBLE"))
 
-        # BYTEPACK -- try all lengths 1-5 for DP completeness
+        # BYTEPACK -- all lengths 1-5 for DP completeness
         for seg_len in range(min(5, remaining), 0, -1):
             seg = target[pos:pos + seg_len]
             seed = _quick_bytepack(seg)
             if seed:
                 matches[pos].append((seg_len, seed, "BYTEPACK"))
 
-        # --- search() for RLE, XOR_CHAIN, LINEAR, TEMPLATE, etc. ---
-        # Always search for matches longer than current best
+        # --- LZ77 matches via hash table ---
+        # Buffer at position pos = full_buf[0 : buf_offset + pos]
+        buf_len = buf_offset + pos  # length of emitted buffer so far
+        if buf_len >= 1 and remaining >= 2:
+            best_lz77_len = 0
+            best_lz77_offset = 0
+
+            # Look up 2-byte key at target[pos:pos+2]
+            key = target[pos] | (target[pos + 1] << 8)
+            candidates = hash_table.get(key, [])
+
+            # Only consider positions before buf_len in full_buf
+            for cand in candidates:
+                if cand >= buf_len:
+                    continue
+
+                # Extend match
+                match_len = 0
+                max_match = min(remaining, 0xFFF)
+                ci = cand
+                ti = pos
+                while match_len < max_match:
+                    # Source byte: if ci < buf_len, use full_buf[ci]
+                    # else overlapping: use target[ti] (already matched)
+                    if ci < buf_len:
+                        if full_buf[ci] == target[ti]:
+                            match_len += 1
+                            ci += 1
+                            ti += 1
+                        else:
+                            break
+                    else:
+                        # Overlapping copy
+                        wrap_pos = ci - buf_len
+                        if wrap_pos < match_len and ti < tlen:
+                            if target[pos + wrap_pos] == target[ti]:
+                                match_len += 1
+                                ci += 1
+                                ti += 1
+                            else:
+                                break
+                        else:
+                            break
+
+                if match_len > best_lz77_len:
+                    offset = buf_len - 1 - cand
+                    if offset < (1 << 16):
+                        best_lz77_len = match_len
+                        best_lz77_offset = offset
+
+            if best_lz77_len >= 2:
+                # Verify and add all valid lengths for DP flexibility
+                emitted = full_buf[:buf_len]
+                if _verify_lz77(best_lz77_offset, best_lz77_len,
+                                emitted, target[pos:pos + best_lz77_len]):
+                    # Add key lengths: longest, and also some intermediate
+                    for length in range(2, best_lz77_len + 1):
+                        seed = _make_lz77_seed(best_lz77_offset, length)
+                        if seed:
+                            matches[pos].append((length, seed, "LZ77"))
+
+        # --- search() fallback for RLE, XOR_CHAIN, etc. ---
         best_so_far = max((l for l, _, _ in matches[pos]), default=0)
-        _add_search_matches_extended(matches, target, pos, remaining,
-                                     best_so_far, timeout, global_start)
+        if best_so_far < 5:
+            _add_search_matches_extended_fast(matches, target, pos, remaining,
+                                              best_so_far, timeout, global_start)
 
-        # --- LZ77 matches (against reference buffer at position pos) ---
-        # Buffer at position pos = setup_buffer + target[0:pos]
-        # Use ALL valid lengths (not just longest) for better DP paths
-        buf_at_pos = bytearray(setup_buffer) + target[:pos]
-        if len(buf_at_pos) > 0:
-            for lz77_len, lz77_seed in _find_lz77_all_lengths(target, pos, buf_at_pos):
-                matches[pos].append((lz77_len, lz77_seed, "LZ77"))
-
-        # Deduplicate by length (keep best seed per length)
+        # Deduplicate by length (keep first/best seed per length)
         seen_lens = {}
         for length, seed, name in matches[pos]:
             if length not in seen_lens:
@@ -736,6 +637,60 @@ def _enumerate_all_matches(target, setup_buffer, ref_buffer, timeout, global_sta
         matches[pos] = sorted(seen_lens.values(), key=lambda x: -x[0])
 
     return matches
+
+
+def _add_search_matches(matches, target, pos, remaining, timeout, global_start):
+    """Use search() to find any strategy match at target[pos:].
+    
+    Only called when no long V1 match exists. Tries longest first.
+    Catches RLE, XOR_CHAIN, LINEAR, TEMPLATE, etc.
+    """
+    import io, sys
+    # Suppress search() verbose output
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()
+    try:
+        for seg_len in range(min(5, remaining), 0, -1):
+            if time.time() - global_start > timeout:
+                break
+            seg = target[pos:pos + seg_len]
+            results = seed_search(seg, timeout=0.02)
+            if results:
+                seed, name = results[0]
+                matches[pos].append((seg_len, seed, name))
+                break  # Found a match, stop
+    finally:
+        sys.stdout = old_stdout
+
+
+def _add_search_matches_extended_fast(matches, target, pos, remaining,
+                                       best_so_far, timeout, global_start):
+    """Search for strategy matches longer than best_so_far at target[pos:].
+
+    Tries RLE, XOR_CHAIN, LINEAR, TEMPLATE, etc. that the V1 enumeration
+    might miss. Only tries lengths > best_so_far for efficiency.
+    Uses short per-call timeouts for speed.
+    """
+    import io, sys
+    max_try = min(20, remaining)
+    if max_try <= best_so_far:
+        return
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()
+    try:
+        for seg_len in range(max_try, best_so_far, -1):
+            if time.time() - global_start > timeout:
+                break
+            seg = target[pos:pos + seg_len]
+            results = seed_search(seg, timeout=0.03)
+            if results:
+                seed, name = results[0]
+                from find_seed import _verify
+                if _verify(seed, seg):
+                    matches[pos].append((seg_len, seed, name))
+                    break  # Found longest, done
+    finally:
+        sys.stdout = old_stdout
 
 
 def _dp_shortest_path(target, matches, timeout, global_start, _retry_count=0):
