@@ -616,6 +616,35 @@ def _add_search_matches(matches, target, pos, remaining, timeout, global_start):
         sys.stdout = old_stdout
 
 
+def _add_search_matches_extended(matches, target, pos, remaining,
+                                  best_so_far, timeout, global_start):
+    """Search for strategy matches longer than best_so_far at target[pos:].
+
+    Tries RLE, XOR_CHAIN, LINEAR, TEMPLATE, etc. that the V1 enumeration
+    might miss. Only tries lengths > best_so_far for efficiency.
+    """
+    import io, sys
+    max_try = min(20, remaining)
+    if max_try <= best_so_far:
+        return
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()
+    try:
+        for seg_len in range(max_try, best_so_far, -1):
+            if time.time() - global_start > timeout:
+                break
+            seg = target[pos:pos + seg_len]
+            results = seed_search(seg, timeout=0.05)
+            if results:
+                seed, name = results[0]
+                from find_seed import _verify
+                if _verify(seed, seg):
+                    matches[pos].append((seg_len, seed, name))
+                    break  # Found longest, done
+    finally:
+        sys.stdout = old_stdout
+
+
 def _enumerate_all_matches(target, setup_buffer, ref_buffer, timeout, global_start):
     """Enumerate all valid strategy matches at every position in target.
 
@@ -685,12 +714,11 @@ def _enumerate_all_matches(target, setup_buffer, ref_buffer, timeout, global_sta
             if seed:
                 matches[pos].append((seg_len, seed, "BYTEPACK"))
 
-        # --- search() fallback for all strategies (RLE, XOR_CHAIN, LINEAR, etc.) ---
-        # Call search() when we don't have a good match yet
+        # --- search() for RLE, XOR_CHAIN, LINEAR, TEMPLATE, etc. ---
+        # Always search for matches longer than current best
         best_so_far = max((l for l, _, _ in matches[pos]), default=0)
-        if best_so_far < 3:
-            _add_search_matches(matches, target, pos, remaining,
-                                timeout, global_start)
+        _add_search_matches_extended(matches, target, pos, remaining,
+                                     best_so_far, timeout, global_start)
 
         # --- LZ77 matches (against reference buffer at position pos) ---
         # Buffer at position pos = setup_buffer + target[0:pos]
