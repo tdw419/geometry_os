@@ -165,12 +165,15 @@ def _build_optimal_mode1_table(target: bytes, min_improvement: float = 0.02) -> 
 
 def make_v3_png(seeds: list, xor_mode: bool = False, dict_only: int = 0,
                 bp8table: str = None, bp_mode6_table: str = None,
-                bp_mode1_table: str = None) -> bytes:
+                bp_mode1_table: str = None,
+                freq_table: bytes = None, keyword_table: list = None) -> bytes:
     """Create a PNG with phase 3 metadata. dict_only = number of setup seeds.
     
     bp8table: optional 16-char string for file-specific BYTEPACK mode 3 table.
     bp_mode6_table: optional 32-char string for file-specific BYTEPACK mode 6 table.
     bp_mode1_table: optional 64-char string for file-specific BYTEPACK mode 1 table.
+    freq_table: optional 256-byte frequency-ranked table for FREQ_TABLE strategy.
+    keyword_table: optional list of bytes objects for KEYWORD_TABLE strategy.
     """
     n = len(seeds)
     width, height = _auto_dimensions(n)
@@ -186,11 +189,13 @@ def make_v3_png(seeds: list, xor_mode: bool = False, dict_only: int = 0,
             raw_rows.extend([r, g, b, a])
     compressed = zlib.compress(bytes(raw_rows))
     return _build_v3_png(width, height, compressed, n, xor_mode, dict_only,
-                         bp8table, bp_mode6_table, bp_mode1_table)
+                         bp8table, bp_mode6_table, bp_mode1_table,
+                         freq_table, keyword_table)
 
 
 def _build_v3_png(width, height, compressed_data, seed_count, xor_mode=False,
-                   dict_only=0, bp8table=None, bp_mode6_table=None, bp_mode1_table=None):
+                   dict_only=0, bp8table=None, bp_mode6_table=None, bp_mode1_table=None,
+                   freq_table=None, keyword_table=None):
     def chunk(chunk_type, data):
         c = chunk_type + data
         crc = zlib.crc32(c) & 0xFFFFFFFF
@@ -215,6 +220,12 @@ def _build_v3_png(width, height, compressed_data, seed_count, xor_mode=False,
     if bp_mode1_table is not None:
         table_hex = bp_mode1_table.encode('latin-1').hex()
         chunks.append(chunk(b'tEXt', b'bp_mode1_table\x00' + table_hex.encode()))
+    if freq_table is not None:
+        chunks.append(chunk(b'tEXt', b'freq_table\x00' + freq_table.hex().encode()))
+    if keyword_table is not None:
+        # Serialize: keywords joined by 0xFF sentinel
+        kw_bytes = b'\xff'.join(keyword_table)
+        chunks.append(chunk(b'tEXt', b'keyword_table\x00' + kw_bytes.hex().encode()))
     idat = chunk(b'IDAT', compressed_data)
     iend = chunk(b'IEND', b'')
     chunks.extend([idat, iend])
@@ -567,6 +578,210 @@ def _find_setup_candidates(target, max_setup_seeds=50, time_budget=12.0):
 # V3 Encoder
 # ============================================================
 
+# ============================================================
+# FREQ_TABLE and KEYWORD_TABLE
+# ============================================================
+
+def _build_freq_table(target: bytes) -> bytes:
+    """Build a 256-byte frequency-ranked table.
+    
+    Returns bytes where table[i] is the i-th most frequent byte value.
+    Indices 0-63 cover the top 64 bytes (used by FREQ_TABLE strategy).
+    """
+    freq = Counter(target)
+    # Sort by frequency descending, then by byte value for determinism
+    ranked = sorted(freq.keys(), key=lambda b: (-freq[b], b))
+    # Pad to 256 entries with unused byte values
+    table = bytearray(ranked)
+    used = set(ranked)
+    for b in range(256):
+        if b not in used:
+            table.append(b)
+    return bytes(table[:256])
+
+
+# Pre-built keyword tables for common file types
+_PYTHON_KEYWORDS = [
+    b'def ', b'class ', b'    ', b'return ', b'import ',
+    b'from ', b'self.', b'= ', b'    ', b'\n    ',
+    b'print(', b'.', b'if ', b'else:', b'elif ',
+    b'for ', b'while ', b'in ', b'not ', b'and ',
+    b'or ', b'is ', b'None', b'True', b'False',
+    b'raise ', b'try:', b'except', b'with ', b'as ',
+    b'pass', b'break', b'continue', b'yield ', b'lambda ',
+    b'global ', b'nonlocal ', b'assert ', b'del ', b'finally:',
+    b'"""', b"'''", b'# ', b'== ', b'!= ',
+    b'>= ', b'<= ', b'+ ', b'- ', b'* ',
+    b'/ ', b'% ', b'**', b'//', b'->',
+    b': ', b', ', b'()\n', b'[]', b'{}',
+]
+
+
+def _build_keyword_table(target: bytes) -> list:
+    """Build a keyword table from target bytes.
+    
+    Returns a list of up to 64 keyword byte strings, sorted by
+    (frequency * length) descending (best compression first).
+    Only includes keywords that actually appear in the target.
+    """
+    freq = Counter(target)
+    
+    # Score each keyword by how many bytes it would save
+    scored = []
+    for kw in _PYTHON_KEYWORDS:
+        count = 0
+        pos = 0
+        while True:
+            idx = target.find(kw, pos)
+            if idx == -1:
+                break
+            count += 1
+            pos = idx + 1
+        if count > 0:
+            # Bytes saved = keyword_bytes * occurrences - seed_cost (1 seed)
+            savings = len(kw) * count
+            scored.append((savings, count, kw))
+    
+    # Sort by savings descending
+    scored.sort(key=lambda x: -x[0])
+    
+    # Take top 64
+    keywords = [kw for _, _, kw in scored[:64]]
+    
+    # Also scan for high-value bigrams not already covered
+    bigram_freq = Counter()
+    for i in range(len(target) - 1):
+        bg = target[i:i+2]
+        bigram_freq[bg] += 1
+    
+    for bg, count in bigram_freq.most_common(200):
+        if len(keywords) >= 64:
+            break
+        if bg not in keywords and count >= 5:
+            # Check it's not already a prefix/suffix of an existing keyword
+            is_subsumed = False
+            for kw in keywords:
+                if bg in kw and len(kw) > len(bg):
+                    is_subsumed = True
+                    break
+            if not is_subsumed:
+                keywords.append(bytes(bg))
+    
+    return keywords if keywords else None
+
+
+def _try_freq_table_encode(segment: bytes, freq_table: bytes) -> tuple:
+    """Try to encode a segment using FREQ_TABLE strategy (0xB).
+    
+    Returns (seed, n_bytes_encoded) or None.
+    
+    Bit layout: [3:0] count (1-4), [27:4] up to 4 x 6-bit indices
+    into top 64 bytes from freq_table.
+    """
+    if len(segment) < 1 or len(segment) > 4:
+        return None
+    
+    # Build reverse lookup: byte_value -> index (in top 64)
+    lookup = {}
+    for i in range(min(64, len(freq_table))):
+        lookup[freq_table[i]] = i
+    
+    # Check all bytes are in the top 64
+    indices = []
+    for b in segment:
+        if b not in lookup:
+            return None
+        indices.append(lookup[b])
+    
+    # Pack: count (4 bits) + up to 4 x 6-bit indices (24 bits)
+    count = len(indices)
+    data = 0
+    for i, idx in enumerate(indices):
+        data |= (idx & 0x3F) << (6 * i)
+    params = count | (data << 4)
+    seed = 0xB0000000 | params
+    
+    # Verify roundtrip
+    from expand import expand_freq_table, set_freq_table, get_freq_table
+    old_table = get_freq_table()
+    set_freq_table(freq_table)
+    try:
+        result = expand_freq_table(params)
+        if result == segment:
+            return (seed, len(segment))
+    finally:
+        set_freq_table(old_table)
+    
+    return None
+
+
+def _try_keyword_table_encode(segment: bytes, keywords: list) -> tuple:
+    """Try to encode a segment using KEYWORD_TABLE strategy (0xD).
+    
+    Returns (seed, n_bytes_encoded) or None.
+    
+    Tries to match the start of segment against keyword combinations.
+    Bit layout: [3:0] count (1-4), [27:4] up to 4 x 6-bit indices.
+    """
+    if not keywords or len(segment) < 2:
+        return None
+    
+    # Build keyword -> index map
+    kw_to_idx = {}
+    for i, kw in enumerate(keywords):
+        if i >= 64:
+            break
+        kw_to_idx[kw] = i
+    
+    # Greedy: match as many keywords from the start as possible (max 4)
+    indices = []
+    pos = 0
+    while len(indices) < 4 and pos < len(segment):
+        matched = False
+        # Try longest keyword first
+        best_kw = None
+        best_idx = -1
+        for kw, idx in kw_to_idx.items():
+            if segment[pos:pos+len(kw)] == kw and len(kw) > 0:
+                if best_kw is None or len(kw) > len(best_kw):
+                    best_kw = kw
+                    best_idx = idx
+        if best_kw is not None:
+            indices.append(best_idx)
+            pos += len(best_kw)
+            matched = True
+        if not matched:
+            break
+    
+    if not indices:
+        return None
+    
+    total_bytes = pos
+    if total_bytes < 3:  # Not worth it for very short matches
+        return None
+    
+    # Pack: count (4 bits) + up to 4 x 6-bit indices (24 bits)
+    count = len(indices)
+    data = 0
+    for i, idx in enumerate(indices):
+        data |= (idx & 0x3F) << (6 * i)
+    params = count | (data << 4)
+    seed = 0xD0000000 | params
+    
+    # Verify roundtrip
+    from expand import expand_keyword_table, set_keyword_table, get_keyword_table
+    old_kws = get_keyword_table()
+    set_keyword_table(keywords)
+    try:
+        result = expand_keyword_table(params)
+        if result == segment[:total_bytes]:
+            return (seed, total_bytes)
+    finally:
+        set_keyword_table(old_kws)
+    
+    return None
+
+
 def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
               use_xor: bool = False) -> tuple:
     """Encode target bytes into a V3 PNG with context-dependent strategies.
@@ -649,6 +864,25 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
         from expand import set_file_specific_mode1_table
         set_file_specific_mode1_table(None)
 
+    # Build frequency-ranked byte table for FREQ_TABLE strategy
+    freq_table = _build_freq_table(target)
+    from expand import set_freq_table
+    set_freq_table(freq_table)
+    # Show top 64 coverage
+    ft_freq = Counter(target)
+    ft_top64 = sum(ft_freq.get(freq_table[i], 0) for i in range(min(64, len(freq_table))))
+    print(f"  FREQ_TABLE top-64 coverage: {ft_top64}/{tlen} ({ft_top64/tlen*100:.1f}%)")
+
+    # Build keyword table for KEYWORD_TABLE strategy
+    keyword_table = _build_keyword_table(target)
+    from expand import set_keyword_table
+    set_keyword_table(keyword_table)
+    if keyword_table:
+        kw_total_bytes = sum(len(kw) for kw in keyword_table[:10])
+        print(f"  KEYWORD_TABLE: {len(keyword_table)} keywords, top-10 total {kw_total_bytes}B")
+    else:
+        print(f"  KEYWORD_TABLE: no keywords found")
+
     # Get V2 baseline -- but verify it actually covers the full file
     v2_seeds = _find_multi_seeds_dp(target, timeout * 0.15, max_seeds=128)
     v2_count = len(v2_seeds) if v2_seeds else 999
@@ -683,7 +917,8 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
         if total_a <= best_total:
             png_a = make_v3_png(data_seeds_a, xor_mode=use_xor, dict_only=0,
                                 bp8table=bp8table, bp_mode6_table=bp_mode6_table,
-                                bp_mode1_table=bp_mode1_table)
+                                bp_mode1_table=bp_mode1_table,
+                                freq_table=freq_table, keyword_table=keyword_table)
             decoded_a = expand_from_png_v3(png_a)
             if decoded_a == target:
                 best_total = total_a
@@ -719,7 +954,8 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
             png_b = make_v3_png(all_setup_seeds + data_seeds_b,
                                 xor_mode=use_xor, dict_only=len(all_setup_seeds),
                                 bp8table=bp8table, bp_mode6_table=bp_mode6_table,
-                                bp_mode1_table=bp_mode1_table)
+                                bp_mode1_table=bp_mode1_table,
+                                freq_table=freq_table, keyword_table=keyword_table)
             decoded_b = expand_from_png_v3(png_b)
             if decoded_b == target:
                 print(f"  With-setup V3: {total_b} pixels ({len(all_setup_seeds)} setup + {len(data_seeds_b)} data)")
@@ -748,10 +984,13 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
     # Report results
     if best_data_seeds is None or best_png is None:
         print(f"  FAILED: Could not encode {tlen} bytes")
-        from expand import set_file_specific_table, set_file_specific_mode6_table, set_file_specific_mode1_table
+        from expand import (set_file_specific_table, set_file_specific_mode6_table,
+                            set_file_specific_mode1_table, set_freq_table, set_keyword_table)
         set_file_specific_table(None)
         set_file_specific_mode6_table(None)
         set_file_specific_mode1_table(None)
+        set_freq_table(None)
+        set_keyword_table(None)
         if output_png:
             return None, None
         return None, None
@@ -767,10 +1006,13 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
     _show_strategy_breakdown(all_seeds, dict_only)
 
     # Reset file-specific tables after encoding
-    from expand import set_file_specific_table, set_file_specific_mode6_table, set_file_specific_mode1_table
+    from expand import (set_file_specific_table, set_file_specific_mode6_table,
+                        set_file_specific_mode1_table, set_freq_table, set_keyword_table)
     set_file_specific_table(None)
     set_file_specific_mode6_table(None)
     set_file_specific_mode1_table(None)
+    set_freq_table(None)
+    set_keyword_table(None)
 
     if output_png:
         with open(output_png, 'wb') as f:
@@ -965,6 +1207,30 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
             seed = _quick_bytepack(seg)
             if seed:
                 matches[pos].append((seg_len, seed, "BYTEPACK"))
+
+        # --- FREQ_TABLE (strategy 0xB): frequency-ranked byte encoding ---
+        # Try 1-4 byte segments using top-64 frequency lookup
+        from expand import get_freq_table
+        ft = get_freq_table()
+        if ft is not None:
+            for seg_len in range(min(4, remaining), 0, -1):
+                seg = target[pos:pos + seg_len]
+                ft_result = _try_freq_table_encode(seg, ft)
+                if ft_result:
+                    seed, encoded_len = ft_result
+                    matches[pos].append((encoded_len, seed, "FREQ_TABLE"))
+                    break  # Found longest match
+
+        # --- KEYWORD_TABLE (strategy 0xD): keyword lookup encoding ---
+        from expand import get_keyword_table
+        kw_table = get_keyword_table()
+        if kw_table is not None and remaining >= 3:
+            # Try keyword matching at this position (up to remaining bytes)
+            seg = target[pos:pos + min(40, remaining)]
+            kw_result = _try_keyword_table_encode(seg, kw_table)
+            if kw_result:
+                seed, encoded_len = kw_result
+                matches[pos].append((encoded_len, seed, "KEYWORD_TABLE"))
 
         # --- LZ77 matches via trigram hash-chain ---
         buf_len = buf_offset + pos
@@ -1297,6 +1563,12 @@ def _dp_shortest_path(target, matches, timeout, global_start, _retry_count=0):
                 if _retry_count < 3:
                     return _dp_retry_without_bad_lz77(
                         target, matches, timeout, global_start, _retry_count)
+                return None
+        elif name in ('FREQ_TABLE', 'KEYWORD_TABLE'):
+            # FREQ_TABLE and KEYWORD_TABLE use global table state
+            ctx_verify = ExpandContext()
+            expanded = expand_with_context(seed, ctx_verify)
+            if expanded != expected:
                 return None
         else:
             if not _verify_v1(seed, expected):
@@ -1654,7 +1926,7 @@ def _show_strategy_breakdown(seeds, dict_only=0):
     names = {
         0:'DICT_1',1:'DICT_2',2:'DICT_3',3:'DICT_4',4:'DICT_5',
         5:'DICT_6',6:'DICT_7',7:'NIBBLE',8:'DICTX5',9:'BPE',
-        0xA:'DICTX7',0xB:'RLE',0xC:'LZ77',0xD:'DYN_DICT',
+        0xA:'DICTX7',0xB:'FREQ_TBL',0xC:'LZ77',0xD:'KWORD_TBL',
         0xE:'BYTEPACK',0xF:'TEMPLATE'
     }
     counts = {}

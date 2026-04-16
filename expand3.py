@@ -58,13 +58,25 @@ def expand_with_context(seed: int, ctx: ExpandContext) -> bytes:
     strategy = (seed >> 28) & 0xF
     params = seed & 0x0FFFFFFF
 
-    if strategy <= 0xB:
-        # V1 strategies -- no context needed, unchanged behavior
+    if strategy <= 0xA:
+        # V1 strategies 0x0-0xA -- no context needed, unchanged behavior
         result = expand_v1(seed)
+    elif strategy == 0xB:
+        # FREQ_TABLE: frequency-ranked byte encoding (V3 mode override)
+        from expand import expand_freq_table, get_freq_table
+        if get_freq_table() is not None:
+            result = expand_freq_table(params)
+        else:
+            result = expand_v1(seed)  # fallback to RLE
     elif strategy == 0xC:
         result = _expand_lz77(params, ctx)
     elif strategy == 0xD:
-        result = _expand_dyn_dict(params, ctx)
+        # KEYWORD_TABLE: keyword lookup encoding (V3 mode override)
+        from expand import expand_keyword_table, get_keyword_table
+        if get_keyword_table() is not None:
+            result = expand_keyword_table(params)
+        else:
+            result = _expand_dyn_dict(params, ctx)  # fallback to DYN_DICT
     elif strategy == 0xE:
         # In phase 3 mode, 0xE is still BYTEPACK (V1 behavior)
         result = expand_v1(seed)
@@ -173,6 +185,39 @@ def expand_from_png_v3(png_data: bytes) -> bytes:
         except (ValueError, UnicodeDecodeError):
             pass
     
+    # Handle frequency-ranked byte table (for FREQ_TABLE strategy 0xB)
+    freq_table_hex = _read_text_chunk(png_data, 'freq_table')
+    if freq_table_hex:
+        from expand import set_freq_table
+        try:
+            freq_bytes = bytes.fromhex(freq_table_hex)
+            set_freq_table(freq_bytes)
+        except (ValueError, UnicodeDecodeError):
+            pass
+    
+    # Handle keyword table (for KEYWORD_TABLE strategy 0xD)
+    keyword_table_hex = _read_text_chunk(png_data, 'keyword_table')
+    if keyword_table_hex:
+        from expand import set_keyword_table
+        try:
+            kw_data = bytes.fromhex(keyword_table_hex)
+            # Format: N bytes of keywords separated by 0xFF sentinel
+            # Each keyword is a sequence of non-0xFF bytes
+            keywords = []
+            current = bytearray()
+            for b in kw_data:
+                if b == 0xFF:
+                    if current:
+                        keywords.append(bytes(current))
+                        current = bytearray()
+                else:
+                    current.append(b)
+            if current:
+                keywords.append(bytes(current))
+            set_keyword_table(keywords if keywords else None)
+        except (ValueError, UnicodeDecodeError):
+            pass
+    
     try:
         ctx = ExpandContext(xor_mode=xor_mode)
         result = bytearray()
@@ -197,6 +242,12 @@ def expand_from_png_v3(png_data: bytes) -> bytes:
         if bp_mode1_hex:
             from expand import set_file_specific_mode1_table
             set_file_specific_mode1_table(None)
+        if freq_table_hex:
+            from expand import set_freq_table
+            set_freq_table(None)
+        if keyword_table_hex:
+            from expand import set_keyword_table
+            set_keyword_table(None)
 
 
 # ============================================================

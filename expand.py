@@ -144,6 +144,41 @@ def get_file_specific_mode1_table() -> str:
     return _FILE_SPECIFIC_MODE1_TABLE if _FILE_SPECIFIC_MODE1_TABLE is not None else _DEFAULT_MODE1_TABLE
 
 
+
+# === FREQ TABLE (Strategy 0xB in V3 mode) ===
+# Frequency-ranked byte table: 256 bytes ranked by frequency (most common first).
+# Transported via PNG tEXt chunk 'freq_table'.
+# When set, strategy 0xB decodes as FREQ_TABLE instead of RLE.
+_FREQ_TABLE = None  # None = not set (strategy 0xB falls back to RLE)
+
+def set_freq_table(table: bytes):
+    """Set the frequency-ranked byte table (256 bytes)."""
+    global _FREQ_TABLE
+    if table is not None and len(table) != 256:
+        raise ValueError(f"Freq table must be 256 bytes, got {len(table)}")
+    _FREQ_TABLE = table
+
+def get_freq_table() -> bytes:
+    """Get the current frequency table, or None if not set."""
+    return _FREQ_TABLE
+
+
+# === KEYWORD TABLE (Strategy 0xD in V3 mode) ===
+# Keyword table: list of byte strings (common tokens for the file type).
+# Transported via PNG tEXt chunk 'keyword_table'.
+# When set, strategy 0xD decodes as KEYWORD_TABLE instead of LINEAR/DYN_DICT.
+_KEYWORD_TABLE = None  # None = not set
+
+def set_keyword_table(keywords):
+    """Set the keyword table (list of bytes objects)."""
+    global _KEYWORD_TABLE
+    _KEYWORD_TABLE = keywords
+
+def get_keyword_table():
+    """Get the current keyword table, or None if not set."""
+    return _KEYWORD_TABLE
+
+
 # === EXPANDER ===
 
 def expand(seed: int, max_output: int = 65536) -> bytes:
@@ -409,6 +444,94 @@ def _expand_template(params):
     template = templates[idx]
     result = bytes((b + key) & 0xFF for b in template)
     return result + bytes([extra1, extra2])
+
+
+# === FREQ_TABLE Strategy (0xB in V3 mode) ===
+
+def expand_freq_table(params: int) -> bytes:
+    """FREQ_TABLE: encode bytes using frequency-ranked table.
+    
+    The 28-bit payload encodes up to 5 bytes using variable-width indices
+    into a 256-byte frequency-ranked table.
+    
+    Bit layout of params (28 bits):
+      [1:0]   count_minus1 (0-3 = 1-4 byte indices)
+      [27:2]  packed indices: count x 6-bit or 7-bit indices
+    
+    When count_minus1 < 3: each index is 7 bits (top 128 bytes).
+      4 x 7 = 28 bits, plus 0 count bits = 28 bits total.
+      But we use [1:0] for count, so: 26 bits / 7 = 3 full indices max
+      with 5 remaining bits for a partial 4th.
+      
+    Actually, simpler design:
+      [3:0]   n_indices (1-5 indices packed in remaining bits)
+      [27:4]  packed 6-bit indices into 64-entry frequency table
+      
+    For n=4: 4 x 6 = 24 bits, fits in bits [27:4] (24 bits). Each index
+    looks up a byte in a 64-entry table (top 64 bytes by frequency).
+    Output: 4 bytes per seed.
+    
+    For n=3: 3 x 6 = 18 bits, plus 6 unused bits. Could use 8-bit
+    indices for rare bytes: 2 x 6 + 1 x 8 = 20 bits.
+    
+    Simplest design for maximum impact:
+      [3:0]   count (1-4 = number of 6-bit indices that follow)
+      [27:4]  up to 4 x 6-bit indices into 64-entry freq-ranked table
+    """
+    table = get_freq_table()
+    if table is None:
+        # No table set, fall back to expanding as raw bytes from params
+        # This shouldn't happen in normal operation
+        return b''
+    
+    # Build lookup: index -> byte value (top 64 entries from the 256-byte table)
+    lookup = [table[i] for i in range(min(64, len(table)))]
+    
+    count = (params & 0xF)  # 1-4
+    if count == 0 or count > 4:
+        return b''
+    data = (params >> 4) & 0xFFFFFF  # 24 bits
+    
+    result = bytearray()
+    for i in range(count):
+        idx = (data >> (6 * i)) & 0x3F
+        if idx < len(lookup):
+            result.append(lookup[idx])
+    
+    return bytes(result)
+
+
+# === KEYWORD TABLE Strategy (0xD in V3 mode) ===
+
+def expand_keyword_table(params: int) -> bytes:
+    """KEYWORD_TABLE: encode using predefined keyword lookup.
+    
+    The 28-bit payload encodes up to 4 keyword indices.
+    
+    Bit layout of params (28 bits):
+      [3:0]   count (1-4 = number of 6-bit keyword indices)
+      [27:4]  up to 4 x 6-bit indices into keyword table (up to 64 keywords)
+    
+    Each index looks up a keyword (byte string) and concatenates them.
+    Keywords are typically 2-10 bytes each, so one seed can emit
+    4-40 bytes (avg ~20 for Python source).
+    """
+    keywords = get_keyword_table()
+    if keywords is None:
+        return b''
+    
+    count = (params & 0xF)  # 1-4
+    if count == 0 or count > 4:
+        return b''
+    data = (params >> 4) & 0xFFFFFF  # 24 bits
+    
+    result = bytearray()
+    for i in range(count):
+        idx = (data >> (6 * i)) & 0x3F
+        if idx < len(keywords):
+            result.extend(keywords[idx])
+    
+    return bytes(result)
 
 
 # === Utility ===
