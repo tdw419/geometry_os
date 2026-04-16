@@ -795,6 +795,89 @@ def _try_keyword_table_encode(segment: bytes, keywords: list) -> tuple:
     return None
 
 
+def _try_keyword_hybrid_encode(segment: bytes, keywords: list) -> tuple:
+    """Try hybrid KEYWORD_TABLE encoding: kw1 + literal_byte + kw2.
+    
+    Returns (seed, n_bytes_encoded) or None.
+    
+    Hybrid format (count=0):
+      [3:0]   = 0 (hybrid marker)
+      [9:4]   kw1 index (6 bits)
+      [15:10] kw2 index (6 bits)
+      [23:16] literal byte between kw1 and kw2
+      [27:24] gap_size (0 = no gap/2 keywords, 1 = 1 literal byte)
+    """
+    if not keywords or len(segment) < 3:
+        return None
+    
+    # Build keyword lookup (longest first for greedy matching)
+    kw_by_len = sorted([(kw, i) for i, kw in enumerate(keywords) if i < 64], 
+                        key=lambda x: -len(x[0]))
+    
+    best_seed = None
+    best_bytes = 0
+    
+    # Try matching kw1 at the start
+    for kw1, kw1_idx in kw_by_len:
+        if len(kw1) < 2:
+            continue
+        if segment[:len(kw1)] != kw1:
+            continue
+        
+        after_kw1 = len(kw1)
+        
+        # Try gap = 0 (just 2 keywords back-to-back)
+        for kw2, kw2_idx in kw_by_len:
+            if len(kw2) < 2:
+                continue
+            if segment[after_kw1:after_kw1+len(kw2)] != kw2:
+                continue
+            total = after_kw1 + len(kw2)
+            if total > best_bytes and total >= 5:
+                # Pack hybrid: count=0, kw1_idx, kw2_idx, literal=0, gap=0
+                params = (kw1_idx << 4) | (kw2_idx << 10) | (0 << 16) | (0 << 24)
+                seed = 0xD0000000 | params
+                best_seed = seed
+                best_bytes = total
+            break  # longest kw2 match
+        
+        # Try gap = 1 (1 literal byte between keywords)
+        if after_kw1 + 1 < len(segment):
+            literal = segment[after_kw1]
+            for kw2, kw2_idx in kw_by_len:
+                if len(kw2) < 2:
+                    continue
+                start2 = after_kw1 + 1
+                if segment[start2:start2+len(kw2)] != kw2:
+                    continue
+                total = start2 + len(kw2)
+                if total > best_bytes and total >= 5:
+                    # Pack hybrid: count=0, kw1_idx, kw2_idx, literal, gap=1
+                    params = (kw1_idx << 4) | (kw2_idx << 10) | (literal << 16) | (1 << 24)
+                    seed = 0xD0000000 | params
+                    best_seed = seed
+                    best_bytes = total
+                break  # longest kw2 match
+        
+        break  # longest kw1 match (greedy)
+    
+    if best_seed is None or best_bytes < 5:
+        return None
+    
+    # Verify roundtrip
+    from expand import expand_keyword_table, set_keyword_table, get_keyword_table
+    old_kws = get_keyword_table()
+    set_keyword_table(keywords)
+    try:
+        result = expand_keyword_table(best_seed & 0x0FFFFFFF)
+        if result == segment[:best_bytes]:
+            return (best_seed, best_bytes)
+    finally:
+        set_keyword_table(old_kws)
+    
+    return None
+
+
 def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
               use_xor: bool = False) -> tuple:
     """Encode target bytes into a V3 PNG with context-dependent strategies.
@@ -1260,6 +1343,11 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
             kw_result = _try_keyword_table_encode(seg, kw_table)
             if kw_result:
                 seed, encoded_len = kw_result
+                matches[pos].append((encoded_len, seed, "KEYWORD_TABLE"))
+            # Also try hybrid: kw1 + literal + kw2
+            hybrid_result = _try_keyword_hybrid_encode(seg, kw_table)
+            if hybrid_result:
+                seed, encoded_len = hybrid_result
                 matches[pos].append((encoded_len, seed, "KEYWORD_TABLE"))
 
         # --- LZ77 matches via trigram hash-chain ---

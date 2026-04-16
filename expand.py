@@ -488,22 +488,47 @@ def expand_freq_table(params: int) -> bytes:
 def expand_keyword_table(params: int) -> bytes:
     """KEYWORD_TABLE: encode using predefined keyword lookup.
     
-    The 28-bit payload encodes up to 4 keyword indices.
+    Two modes selected by count field:
     
-    Bit layout of params (28 bits):
+    Normal mode (count 1-4):
       [3:0]   count (1-4 = number of 6-bit keyword indices)
       [27:4]  up to 4 x 6-bit indices into keyword table (up to 64 keywords)
     
-    Each index looks up a keyword (byte string) and concatenates them.
-    Keywords are typically 2-10 bytes each, so one seed can emit
-    4-40 bytes (avg ~20 for Python source).
+    Hybrid mode (count == 0):
+      [9:4]   kw1 index (6 bits)
+      [15:10] kw2 index (6 bits)
+      [23:16] literal byte between kw1 and kw2 (8 bits)
+      [27:24] gap_size (0 = no gap, 1 = 1 literal byte between keywords)
+    
+    Hybrid encodes: kw1 + [literal_byte] + kw2 in one seed.
     """
     keywords = get_keyword_table()
     if keywords is None:
         return b''
     
-    count = (params & 0xF)  # 1-4
-    if count == 0 or count > 4:
+    count = (params & 0xF)  # 0-4
+    
+    if count == 0:
+        # Hybrid mode: kw1 + optional literal + kw2
+        kw1_idx = (params >> 4) & 0x3F
+        kw2_idx = (params >> 10) & 0x3F
+        literal = (params >> 16) & 0xFF
+        gap_size = (params >> 24) & 0xF
+        
+        result = bytearray()
+        if kw1_idx < len(keywords):
+            result.extend(keywords[kw1_idx])
+        else:
+            return b''
+        if gap_size >= 1:
+            result.append(literal)
+        if kw2_idx < len(keywords):
+            result.extend(keywords[kw2_idx])
+        else:
+            return b''
+        return bytes(result)
+    
+    if count > 4:
         return b''
     data = (params >> 4) & 0xFFFFFF  # 24 bits
     
