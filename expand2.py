@@ -45,13 +45,18 @@ def expand_from_png(png_data: bytes) -> bytes:
     
     # Set file-specific tables before expanding
     from expand import (set_file_specific_table, set_file_specific_mode6_table,
-                        set_file_specific_mode1_table)
+                        set_file_specific_mode1_table,
+                        set_freq_table, set_keyword_table)
     if tables.get('bp8table'):
         set_file_specific_table(tables['bp8table'])
     if tables.get('bp_mode6_table'):
         set_file_specific_mode6_table(tables['bp_mode6_table'])
     if tables.get('bp_mode1_table'):
         set_file_specific_mode1_table(tables['bp_mode1_table'])
+    if tables.get('freq_table'):
+        set_freq_table(tables['freq_table'])
+    if tables.get('keyword_table'):
+        set_keyword_table(tables['keyword_table'])
     
     try:
         result = expand_multi(seeds[:real_count])
@@ -60,6 +65,8 @@ def expand_from_png(png_data: bytes) -> bytes:
         set_file_specific_table(None)
         set_file_specific_mode6_table(None)
         set_file_specific_mode1_table(None)
+        set_freq_table(None)
+        set_keyword_table(None)
     
     return result
 
@@ -105,6 +112,13 @@ def extract_seeds_from_png(png_data: bytes) -> tuple:
                 elif keyword in ('bp8table', 'bp_mode6_table', 'bp_mode1_table'):
                     # Table values are hex-encoded latin-1 strings
                     tables[keyword] = bytes.fromhex(value.decode('ascii', errors='ignore')).decode('latin-1')
+                elif keyword == 'freq_table':
+                    # 256-byte frequency-ranked table, hex-encoded
+                    tables['freq_table'] = bytes.fromhex(value.decode('ascii', errors='ignore'))
+                elif keyword == 'keyword_table':
+                    # Keywords separated by 0xFF, hex-encoded
+                    kw_raw = bytes.fromhex(value.decode('ascii', errors='ignore'))
+                    tables['keyword_table'] = [kw for kw in kw_raw.split(b'\xff') if kw]
         
         pos += 12 + length
     

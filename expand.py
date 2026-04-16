@@ -196,6 +196,8 @@ def expand(seed: int, max_output: int = 65536) -> bytes:
     strategy = (seed >> 28) & 0xF
     params = seed & 0x0FFFFFFF
 
+    # 0xB: FREQ_TABLE when table is set, else RLE (legacy)
+    # 0xD: KEYWORD_TABLE when table is set, else LINEAR (legacy)
     handlers = {
         0x0: lambda p: _expand_dict(p, 1),
         0x1: lambda p: _expand_dict(p, 2),
@@ -208,9 +210,9 @@ def expand(seed: int, max_output: int = 65536) -> bytes:
         0x8: _expand_dictx5,
         0x9: _expand_bpe,
         0xA: _expand_dictx7,
-        0xB: _expand_rle,
+        0xB: lambda p: expand_freq_table(p) if get_freq_table() is not None else _expand_rle(p),
         0xC: _expand_xor_chain,
-        0xD: _expand_linear,
+        0xD: lambda p: expand_keyword_table(p) if get_keyword_table() is not None else _expand_linear(p),
         0xE: _expand_bytepack,
         0xF: _expand_template,
     }
@@ -533,8 +535,8 @@ def _STRATEGY_NAME(s):
     names = {
         0: 'DICT_1', 1: 'DICT_2', 2: 'DICT_3', 3: 'DICT_4',
         4: 'DICT_5', 5: 'DICT_6', 6: 'DICT_7', 7: 'NIBBLE',
-        8: 'DICTX5', 9: 'BPE', 0xA: 'DICTX7', 0xB: 'RLE',
-        0xC: 'XOR_CHAIN', 0xD: 'LINEAR', 0xE: 'BYTEPACK', 0xF: 'TEMPLATE',
+        8: 'DICTX5', 9: 'BPE', 0xA: 'DICTX7', 0xB: 'FREQ_TBL',
+        0xC: 'XOR_CHAIN', 0xD: 'KWORD_TBL', 0xE: 'BYTEPACK', 0xF: 'TEMPLATE',
     }
     return names.get(s, 'UNKNOWN')
 

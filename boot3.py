@@ -999,6 +999,23 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
     pct = (saved / v2_count * 100) if v2_count and v2_valid else 0
     print(f"  Saved: {saved} pixels ({pct:.0f}% reduction vs V2)")
 
+    # Re-set tables for accurate strategy breakdown (they were cleared by expand_from_png_v3 verify)
+    if bp8table:
+        from expand import set_file_specific_table
+        set_file_specific_table(bp8table)
+    if bp_mode6_table:
+        from expand import set_file_specific_mode6_table
+        set_file_specific_mode6_table(bp_mode6_table)
+    if bp_mode1_table:
+        from expand import set_file_specific_mode1_table
+        set_file_specific_mode1_table(bp_mode1_table)
+    if freq_table:
+        from expand import set_freq_table
+        set_freq_table(freq_table)
+    if keyword_table:
+        from expand import set_keyword_table
+        set_keyword_table(keyword_table)
+    
     _show_strategy_breakdown(all_seeds, dict_only)
 
     # Reset file-specific tables after encoding
