@@ -156,13 +156,15 @@ def get_file_specific_mode1_table() -> str:
 _FREQ_TABLE = None  # None = not set (strategy 0xB falls back to RLE)
 
 def set_freq_table(table: bytes):
-    """Set the frequency-ranked byte table (up to 256 bytes for backward compat).
+    """Set the frequency-ranked byte table (24 bytes for v3 variable-width encoding).
     
-    Internally uses only the top 15 entries for the v2 4-bit encoding.
+    v3 uses variable-width indices with 1-bit prefix:
+      0 + 3-bit index (0-7) -> table[0..7] (top-8 bytes)
+      1 + 4-bit index (0-15) -> table[8..23] (next 16 bytes)
     """
     global _FREQ_TABLE
-    if table is not None and len(table) < 15:
-        raise ValueError(f"Freq table must have at least 15 bytes, got {len(table)}")
+    if table is not None and len(table) < 24:
+        raise ValueError(f"Freq table must have at least 24 bytes, got {len(table)}")
     _FREQ_TABLE = table
 
 def get_freq_table() -> bytes:
@@ -458,27 +460,59 @@ def _expand_template(params):
 # === FREQ_TABLE Strategy (0xB in V3 mode) ===
 
 def expand_freq_table(params: int) -> bytes:
-    """FREQ_TABLE v2: encode bytes using frequency-ranked table.
+    """FREQ_TABLE v3: variable-width encoding using frequency-ranked table.
     
-    Bit layout of params (28 bits):
-      7 x 4-bit indices packed sequentially (LSB first).
-      Index 0 = terminator (shorter outputs, like BPE).
-      Indices 1-15 map to the top-15 most frequent bytes in the file.
-      
-    Max output: 7 bytes per seed.
-    Typical: 5-7 bytes for Python source (top-15 covers ~65-75% of bytes).
+    Bit layout of params (28 bits, read from LSB):
+      For each byte:
+        - Read 1 bit (prefix)
+        - If prefix=0: read 3 more bits -> index (0-7)
+            Index 0 = terminator. Indices 1-7 map to table[0..6].
+            Cost: 4 bits per byte.
+        - If prefix=1: read 4 more bits -> index (0-15)
+            Index 0 = terminator. Indices 1-15 map to table[7..21].
+            Cost: 5 bits per byte.
+      Continue until bits exhausted or terminator.
+    
+    Max output: 7 bytes (all top-8, 7x4=28 bits).
+    Typical: 5-7 bytes for Python source (top-24 covers ~87% of bytes).
     """
     table = get_freq_table()
     if table is None:
         return b''
     
     result = bytearray()
-    for i in range(7):
-        idx = (params >> (4 * i)) & 0xF
-        if idx == 0:
-            break  # terminator
-        if idx - 1 < len(table):
-            result.append(table[idx - 1])
+    bit_pos = 0
+    
+    while bit_pos < 28:
+        if bit_pos >= 28:
+            break
+        
+        # Read 1-bit prefix
+        prefix = (params >> bit_pos) & 1
+        bit_pos += 1
+        
+        if prefix == 0:
+            # Short form: 3-bit index into table[0..6]
+            if bit_pos + 3 > 28:
+                break
+            idx = (params >> bit_pos) & 0x7
+            bit_pos += 3
+            if idx == 0:
+                break  # terminator
+            table_idx = idx - 1  # 0-6
+            if table_idx < len(table):
+                result.append(table[table_idx])
+        else:
+            # Long form: 4-bit index into table[7..21]
+            if bit_pos + 4 > 28:
+                break
+            idx = (params >> bit_pos) & 0xF
+            bit_pos += 4
+            if idx == 0:
+                break  # terminator
+            table_idx = 7 + idx - 1  # 7-21
+            if table_idx < len(table):
+                result.append(table[table_idx])
     
     return bytes(result)
 

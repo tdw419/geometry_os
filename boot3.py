@@ -583,14 +583,15 @@ def _find_setup_candidates(target, max_setup_seeds=50, time_budget=12.0):
 # ============================================================
 
 def _build_freq_table(target: bytes) -> bytes:
-    """Build a frequency-ranked byte table for FREQ_TABLE strategy.
+    """Build a frequency-ranked byte table for FREQ_TABLE v3 strategy.
     
-    Returns the top 15 bytes ranked by frequency (most common first).
-    Used by FREQ_TABLE v2 encoding: 7 x 4-bit indices into this 15-entry table,
-    giving up to 7 bytes per seed.
+    Returns the top 24 bytes ranked by frequency (most common first).
+    The first 7 entries use short-form encoding (4 bits/byte, index 1-7).
+    Entries 8-24 use long-form encoding (5 bits/byte, index 1-15).
+    Max 7 bytes per seed (all short-form), typical 5-7 bytes.
     """
     freq = Counter(target)
-    ranked = sorted(freq.keys(), key=lambda b: (-freq[b], b))[:15]
+    ranked = sorted(freq.keys(), key=lambda b: (-freq[b], b))[:24]
     return bytes(ranked)
 
 
@@ -682,35 +683,57 @@ def _build_keyword_table(target: bytes) -> list:
 
 
 def _try_freq_table_encode(segment: bytes, freq_table: bytes) -> tuple:
-    """Try to encode a segment using FREQ_TABLE v2 strategy (0xB).
+    """Try to encode a segment using FREQ_TABLE v3 strategy (0xB).
     
     Returns (seed, n_bytes_encoded) or None.
     
-    V2 format: 7 x 4-bit indices into 15-entry table.
-    Index 0 = terminator. Indices 1-15 = byte values.
-    Max 7 bytes per seed.
+    V3 variable-width format:
+      For each byte, encode as:
+        - If in table[0..6]: 1-bit prefix (0) + 3-bit index (1-7), 4 bits total
+        - If in table[7..22]: 1-bit prefix (1) + 4-bit index (1-15), 5 bits total
+      Index 0 = terminator.
+      Must fit in 28 bits total.
+      Max 7 bytes (all short-form), typical 5-7.
     """
-    if len(segment) < 1 or len(segment) > 7:
+    if len(segment) < 1:
         return None
     
-    # Build reverse lookup: byte_value -> index (1-15)
+    # Build reverse lookup: byte_value -> (tier, index)
+    # tier 0: table[0..6] -> short form (4 bits)
+    # tier 1: table[7..22] -> long form (5 bits)
     lookup = {}
-    for i in range(len(freq_table)):
-        lookup[freq_table[i]] = i + 1  # 1-indexed (0 = terminator)
+    for i in range(min(7, len(freq_table))):
+        lookup[freq_table[i]] = (0, i + 1)  # short form, 1-indexed
+    for i in range(7, min(24, len(freq_table))):
+        lookup[freq_table[i]] = (1, i - 7 + 1)  # long form, 1-indexed
     
-    # Check all bytes are in the top 15
-    indices = []
+    # Encode bytes, tracking bit budget
+    params = 0
+    bit_pos = 0
+    encoded_len = 0
+    
     for b in segment:
         if b not in lookup:
-            return None
-        indices.append(lookup[b])
+            break  # Can't encode this byte
+        tier, idx = lookup[b]
+        if tier == 0:
+            # Short form: 0 + 3-bit index
+            if bit_pos + 4 > 28:
+                break  # Out of bits
+            params |= (0 << bit_pos)  # prefix 0
+            params |= ((idx & 0x7) << (bit_pos + 1))
+            bit_pos += 4
+        else:
+            # Long form: 1 + 4-bit index
+            if bit_pos + 5 > 28:
+                break  # Out of bits
+            params |= (1 << bit_pos)  # prefix 1
+            params |= ((idx & 0xF) << (bit_pos + 1))
+            bit_pos += 5
+        encoded_len += 1
     
-    # Pack: up to 7 x 4-bit indices (index 0 = terminator for unused slots)
-    params = 0
-    for i in range(7):
-        if i < len(indices):
-            params |= (indices[i] & 0xF) << (4 * i)
-        # else: 0 (terminator) -- already zero
+    if encoded_len == 0:
+        return None
     
     seed = 0xB0000000 | params
     
@@ -720,8 +743,8 @@ def _try_freq_table_encode(segment: bytes, freq_table: bytes) -> tuple:
     set_freq_table(freq_table)
     try:
         result = expand_freq_table(params)
-        if result == segment:
-            return (seed, len(segment))
+        if result == segment[:encoded_len]:
+            return (seed, encoded_len)
     finally:
         set_freq_table(old_table)
     
@@ -967,7 +990,7 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
     # Show top-15 coverage
     ft_freq = Counter(target)
     ft_top = sum(ft_freq.get(freq_table[i], 0) for i in range(len(freq_table)))
-    print(f"  FREQ_TABLE v2 top-{len(freq_table)} coverage: {ft_top}/{tlen} ({ft_top/tlen*100:.1f}%)")
+    print(f"  FREQ_TABLE v3 top-{len(freq_table)} coverage: {ft_top}/{tlen} ({ft_top/tlen*100:.1f}%)")
 
     # Build keyword table for KEYWORD_TABLE strategy
     keyword_table = _build_keyword_table(target)
@@ -1321,8 +1344,8 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
             if seed:
                 matches[pos].append((seg_len, seed, "BYTEPACK"))
 
-        # --- FREQ_TABLE (strategy 0xB): frequency-ranked byte encoding ---
-        # Try 1-7 byte segments using top-15 frequency lookup (4-bit indices)
+        # --- FREQ_TABLE (strategy 0xB): variable-width byte encoding ---
+        # Try longest segment first (max 7 bytes). Encoder handles bit budget.
         from expand import get_freq_table
         ft = get_freq_table()
         if ft is not None:
@@ -1331,8 +1354,14 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
                 ft_result = _try_freq_table_encode(seg, ft)
                 if ft_result:
                     seed, encoded_len = ft_result
-                    matches[pos].append((encoded_len, seed, "FREQ_TABLE"))
-                    break  # Found longest match
+                    # Only add if we encoded the full requested length
+                    if encoded_len == seg_len:
+                        matches[pos].append((encoded_len, seed, "FREQ_TABLE"))
+                        break  # Found longest match
+                    # Partial match -- try shorter segments
+                    if encoded_len >= 3:
+                        matches[pos].append((encoded_len, seed, "FREQ_TABLE"))
+                        break
 
         # --- KEYWORD_TABLE (strategy 0xD): keyword lookup encoding ---
         from expand import get_keyword_table
