@@ -20,6 +20,9 @@ Phase 6a opcodes:
 
 Phase 6b opcodes:
   0x5F: SET_BPE_TABLE -- PRNG seed generates custom 127-entry byte-pair table
+
+Phase 6c opcodes:
+  0x7F: SET_TRANSFORM -- post-expansion byte transform (XOR, ADD, REVERSE, ROTATE)
 """
 
 from dataclasses import dataclass, field
@@ -50,6 +53,8 @@ class BootContext:
     xor_mode: bool = False
     custom_bpe_table: list = None  # placeholder for phase 6b
     strategy_remap: dict = field(default_factory=dict)  # placeholder
+    transform_type: int = 0  # phase 6c: 0=XOR, 1=ADD, 2=REVERSE, 3=ROTATE
+    transform_param: int = 0  # phase 6c: transform parameter (0-255)
 
     def apply_profile(self, profile_id: int):
         """Load a preset profile. Resets to defaults then applies profile."""
@@ -69,6 +74,14 @@ class BootContext:
 BOOT_END = 0x0       # opcode 0
 BOOT_SET_PROFILE = 0x3  # opcode 3
 BOOT_SET_BPE_TABLE = 0x5  # opcode 5
+BOOT_SET_TRANSFORM = 0x7  # opcode 7
+
+# Transform types (stored in BootContext.transform_type)
+TRANSFORM_NONE = 0
+TRANSFORM_XOR_CONST = 0   # XOR each byte with a constant
+TRANSFORM_ADD_CONST = 1   # ADD a constant to each byte (mod 256)
+TRANSFORM_REVERSE = 2     # Reverse the entire output
+TRANSFORM_ROTATE = 3      # Circular shift output by N bytes
 
 
 # ============================================================
@@ -176,6 +189,16 @@ def _execute_boot_pixel(seed: int, boot_ctx: BootContext) -> str:
         boot_ctx.custom_bpe_table = generate_bpe_table(prng_seed)
         return 'continue'
 
+    elif opcode == 0x7:
+        # SET_TRANSFORM -- payload is [4:transform_type][8:param][12:reserved]
+        transform_type = (payload >> 20) & 0xF
+        transform_param = (payload >> 12) & 0xFF
+        if transform_type <= TRANSFORM_ROTATE:
+            boot_ctx.transform_type = transform_type
+            boot_ctx.transform_param = transform_param
+        # Unknown transform types: ignore silently (forward compat)
+        return 'continue'
+
     else:
         # Unknown opcode -- ignore silently (forward compat)
         return 'continue'
@@ -201,6 +224,41 @@ def _expand_bpe_with_table(seed: int, bpe_table: list) -> bytes:
             if pair:
                 result.extend(pair)
     return bytes(result)
+
+
+def apply_transform(data: bytes, transform_type: int, transform_param: int) -> bytes:
+    """
+    Apply a post-expansion transform to decoded output.
+    Called AFTER all display seeds have been expanded.
+    """
+    if transform_type == TRANSFORM_NONE or transform_type == TRANSFORM_XOR_CONST:
+        # XOR_CONST: XOR each byte with transform_param
+        if transform_param == 0:
+            return data  # XOR 0 is identity
+        return bytes([b ^ transform_param for b in data])
+
+    elif transform_type == TRANSFORM_ADD_CONST:
+        # ADD_CONST: add transform_param to each byte (mod 256)
+        if transform_param == 0:
+            return data
+        return bytes([(b + transform_param) & 0xFF for b in data])
+
+    elif transform_type == TRANSFORM_REVERSE:
+        # REVERSE: reverse the entire output
+        return data[::-1]
+
+    elif transform_type == TRANSFORM_ROTATE:
+        # ROTATE: circular left-shift by transform_param bytes
+        if len(data) == 0:
+            return data
+        n = transform_param % len(data)
+        if n == 0:
+            return data
+        return data[n:] + data[:n]
+
+    else:
+        # Unknown transform -- return data unchanged
+        return data
 
 
 def expand_multi_v4(seeds: list, max_output: int = 65536) -> bytes:
@@ -247,7 +305,13 @@ def expand_multi_v4(seeds: list, max_output: int = 65536) -> bytes:
             expanded = expand_with_context(seed, expand_ctx)
         result.extend(expanded)
 
-    return bytes(result[:max_output])
+    # Apply post-expansion transform
+    result = bytearray(apply_transform(
+        bytes(result[:max_output]),
+        boot_ctx.transform_type,
+        boot_ctx.transform_param,
+    ))
+    return bytes(result)
 
 
 def expand_from_png_v4(png_data: bytes) -> bytes:
@@ -293,7 +357,9 @@ def expand_from_png_v4(png_data: bytes) -> bytes:
             expanded = expand_with_context(seed, expand_ctx)
         result.extend(expanded)
 
-    return bytes(result)
+    # Apply post-expansion transform
+    result = apply_transform(bytes(result), boot_ctx.transform_type, boot_ctx.transform_param)
+    return result
 
 
 # ============================================================
@@ -329,6 +395,25 @@ def make_set_bpe_table_seed(prng_seed: int) -> int:
         raise ValueError(f"prng_seed must be 0-4095, got {prng_seed}")
     payload = prng_seed & 0xFFF
     return 0xF0000000 | (0x5 << 24) | payload
+
+
+def make_set_transform_seed(transform_type: int, transform_param: int = 0) -> int:
+    """
+    Construct a SET_TRANSFORM seed.
+
+    transform_type: 0-15 (4 bits)
+        0 = XOR_CONST  -- XOR each output byte with transform_param
+        1 = ADD_CONST   -- ADD transform_param to each output byte (mod 256)
+        2 = REVERSE     -- reverse entire output (param ignored)
+        3 = ROTATE      -- circular left-shift by transform_param bytes
+    transform_param: 0-255 (8 bits) -- parameter for the transform
+    """
+    if not (0 <= transform_type <= 15):
+        raise ValueError(f"transform_type must be 0-15, got {transform_type}")
+    if not (0 <= transform_param <= 255):
+        raise ValueError(f"transform_param must be 0-255, got {transform_param}")
+    payload = (transform_type << 20) | (transform_param << 12)
+    return 0xF0000000 | (0x7 << 24) | payload
 
 
 # ============================================================

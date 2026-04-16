@@ -22,9 +22,11 @@ from expand3 import (
 from expand4 import (
     BootContext, expand_multi_v4, expand_from_png_v4,
     make_boot_end_seed, make_set_profile_seed, make_set_bpe_table_seed,
+    make_set_transform_seed, apply_transform,
     generate_bpe_table, _expand_bpe_with_table,
     _decode_boot_opcode, _execute_boot_pixel,
-    PROFILES,
+    PROFILES, TRANSFORM_XOR_CONST, TRANSFORM_ADD_CONST,
+    TRANSFORM_REVERSE, TRANSFORM_ROTATE,
 )
 from boot import make_1x1_png, read_png_pixel
 from boot2 import make_multipixel_png, read_multipixel_png, encode_multi
@@ -505,6 +507,259 @@ def test_v4_mixed_strategies_with_custom_bpe():
 
 
 # ============================================================
+# SET_TRANSFORM Tests
+# ============================================================
+
+def test_set_transform_seed_construction():
+    """SET_TRANSFORM seed has correct bit layout."""
+    for tt in range(4):
+        for tp in [0, 1, 42, 128, 255]:
+            seed = make_set_transform_seed(tt, tp)
+            strategy = (seed >> 28) & 0xF
+            opcode = (seed >> 24) & 0xF
+            payload = seed & 0x00FFFFFF
+            extracted_type = (payload >> 20) & 0xF
+            extracted_param = (payload >> 12) & 0xFF
+            assert strategy == 0xF, f"Bad strategy for type={tt} param={tp}"
+            assert opcode == 0x7, f"Bad opcode for type={tt} param={tp}"
+            assert extracted_type == tt, f"Type mismatch: {extracted_type} != {tt}"
+            assert extracted_param == tp, f"Param mismatch: {extracted_param} != {tp}"
+    print("  [PASS] [V4] SET_TRANSFORM construction")
+    return True
+
+
+def test_set_transform_execution():
+    """SET_TRANSFORM opcode sets transform_type and transform_param on BootContext."""
+    ctx = BootContext()
+    assert ctx.transform_type == 0
+    assert ctx.transform_param == 0
+
+    # Set XOR transform with key 0x42
+    seed = make_set_transform_seed(TRANSFORM_XOR_CONST, 0x42)
+    action = _execute_boot_pixel(seed, ctx)
+    assert action == 'continue'
+    assert ctx.transform_type == TRANSFORM_XOR_CONST
+    assert ctx.transform_param == 0x42
+
+    # Set ADD transform with key 10
+    seed2 = make_set_transform_seed(TRANSFORM_ADD_CONST, 10)
+    _execute_boot_pixel(seed2, ctx)
+    assert ctx.transform_type == TRANSFORM_ADD_CONST
+    assert ctx.transform_param == 10
+
+    print("  [PASS] [V4] SET_TRANSFORM execution")
+    return True
+
+
+def test_apply_transform_xor():
+    """apply_transform XOR_CONST works correctly."""
+    data = bytes([0x00, 0x42, 0xFF, 0x80])
+    # XOR with 0x42
+    result = apply_transform(data, TRANSFORM_XOR_CONST, 0x42)
+    expected = bytes([0x42, 0x00, 0xBD, 0xC2])
+    assert result == expected, f"XOR failed: {result.hex()} != {expected.hex()}"
+    # Double-XOR = identity
+    result2 = apply_transform(result, TRANSFORM_XOR_CONST, 0x42)
+    assert result2 == data, "Double XOR should be identity"
+    # XOR with 0 = identity
+    assert apply_transform(data, TRANSFORM_XOR_CONST, 0) == data
+    print("  [PASS] [V4] apply_transform XOR_CONST")
+    return True
+
+
+def test_apply_transform_add():
+    """apply_transform ADD_CONST works correctly."""
+    data = bytes([0x00, 0x42, 0xFE, 0xFF])
+    # ADD 1
+    result = apply_transform(data, TRANSFORM_ADD_CONST, 1)
+    expected = bytes([0x01, 0x43, 0xFF, 0x00])
+    assert result == expected, f"ADD failed: {result.hex()} != {expected.hex()}"
+    # ADD 0 = identity
+    assert apply_transform(data, TRANSFORM_ADD_CONST, 0) == data
+    # Round trip: subtract (add 256-key)
+    key = 42
+    transformed = apply_transform(data, TRANSFORM_ADD_CONST, key)
+    recovered = apply_transform(transformed, TRANSFORM_ADD_CONST, (256 - key) & 0xFF)
+    assert recovered == data, "ADD round-trip failed"
+    print("  [PASS] [V4] apply_transform ADD_CONST")
+    return True
+
+
+def test_apply_transform_reverse():
+    """apply_transform REVERSE works correctly."""
+    data = b'Hello'
+    result = apply_transform(data, TRANSFORM_REVERSE, 0)
+    assert result == b'olleH', f"REVERSE failed: {result!r}"
+    # Double reverse = identity
+    assert apply_transform(result, TRANSFORM_REVERSE, 0) == data
+    # Empty
+    assert apply_transform(b'', TRANSFORM_REVERSE, 0) == b''
+    print("  [PASS] [V4] apply_transform REVERSE")
+    return True
+
+
+def test_apply_transform_rotate():
+    """apply_transform ROTATE works correctly."""
+    data = b'ABCDE'
+    # Rotate left by 2: CDEAB
+    result = apply_transform(data, TRANSFORM_ROTATE, 2)
+    assert result == b'CDEAB', f"ROTATE(2) failed: {result!r}"
+    # Rotate left by 0 = identity
+    assert apply_transform(data, TRANSFORM_ROTATE, 0) == data
+    # Rotate left by len = identity
+    assert apply_transform(data, TRANSFORM_ROTATE, 5) == data
+    # Round trip: rotate left by N, then rotate left by (len-N) = identity
+    for n in range(6):
+        rotated = apply_transform(data, TRANSFORM_ROTATE, n)
+        recovered = apply_transform(rotated, TRANSFORM_ROTATE, 5 - (n % 5) if n % 5 != 0 else 0)
+        assert recovered == data, f"ROTATE round-trip failed for n={n}"
+    print("  [PASS] [V4] apply_transform ROTATE")
+    return True
+
+
+def _find_seeds_for_target(target: bytes) -> list:
+    """Find display seeds that expand to exactly the target bytes.
+    
+    Uses find_seed.search for prefix matching, falls back to
+    BYTEPACK mode 0 (3-byte raw) for any remaining chunks.
+    """
+    import find_seed as fs
+    seeds_needed = []
+    remaining = target
+    
+    while remaining:
+        # Try finding a seed for progressively shorter prefixes
+        found = False
+        for try_len in range(len(remaining), 0, -1):
+            prefix = remaining[:try_len]
+            results = fs.search(prefix)
+            if results:
+                seed_val, _ = results[0]
+                output = expand(seed_val)
+                if output == prefix:
+                    seeds_needed.append(seed_val)
+                    remaining = remaining[try_len:]
+                    found = True
+                    break
+        if not found:
+            # Fallback: BYTEPACK mode 0 encodes 3 raw bytes minimum
+            if len(remaining) >= 3:
+                b0 = remaining[0]
+                b1 = remaining[1]
+                b2 = remaining[2]
+                # BYTEPACK mode 0: [2:0=mode] [8:b0] [8:b1] [8:b2] [4:extra=0]
+                params = b0 | (b1 << 8) | (b2 << 16)
+                seed_val = 0xE0000000 | (params << 3)
+                seeds_needed.append(seed_val)
+                remaining = remaining[3:]
+            else:
+                # Pad to 3 bytes with the last byte (we'll truncate later)
+                padded = remaining + bytes([remaining[-1]] * (3 - len(remaining)))
+                b0, b1, b2 = padded[0], padded[1], padded[2]
+                params = b0 | (b1 << 8) | (b2 << 16)
+                seed_val = 0xE0000000 | (params << 3)
+                seeds_needed.append(seed_val)
+                remaining = b''
+    return seeds_needed
+
+
+def test_v4_xor_transform_roundtrip():
+    """V4 with XOR transform: encode inverse-XOR target, decode with transform."""
+    target = b'Hello'
+    xor_key = 0x42
+
+    # Inverse-transform: what the display seeds should produce
+    inv_target = bytes([b ^ xor_key for b in target])
+
+    seeds_needed = _find_seeds_for_target(inv_target)
+
+    # Full V4: SET_TRANSFORM(XOR, 0x42) + BOOT_END + display seeds
+    xform_seed = make_set_transform_seed(TRANSFORM_XOR_CONST, xor_key)
+    boot_end = make_boot_end_seed()
+    all_seeds = [xform_seed, boot_end] + seeds_needed
+
+    result = expand_multi_v4(all_seeds)
+    assert result == target, f"XOR transform round-trip failed: {result!r} != {target!r}"
+    print("  [PASS] [V4] XOR transform round-trip")
+    return True
+
+
+def test_v4_xor_transform_png_roundtrip():
+    """V4 PNG with XOR transform round-trips correctly."""
+    target = b'Hello'
+    xor_key = 0x42
+    inv_target = bytes([b ^ xor_key for b in target])
+
+    seeds_needed = _find_seeds_for_target(inv_target)
+
+    xform_seed = make_set_transform_seed(TRANSFORM_XOR_CONST, xor_key)
+    boot_end = make_boot_end_seed()
+    all_seeds = [xform_seed, boot_end] + seeds_needed
+
+    png_data = _make_v4_png(all_seeds)
+    result = expand_from_png_v4(png_data)
+    assert result == target, f"XOR PNG round-trip failed: {result!r} != {target!r}"
+    print("  [PASS] [V4] XOR transform PNG round-trip")
+    return True
+
+
+def test_v4_reverse_transform_roundtrip():
+    """V4 with REVERSE transform: display seeds encode reversed target."""
+    # Use a target whose reverse can be found by find_seed.search
+    # b'tset' reverses to b'test' -- both are 4 bytes and findable
+    target = b'test'
+    inv_target = target[::-1]  # 'tset'
+
+    from find_seed import search as seed_search
+    results = seed_search(inv_target)
+    assert results, f"Could not find seed for {inv_target!r}"
+    seed_val, _ = results[0]
+    seeds_needed = [seed_val]
+
+    xform_seed = make_set_transform_seed(TRANSFORM_REVERSE, 0)
+    boot_end = make_boot_end_seed()
+    all_seeds = [xform_seed, boot_end] + seeds_needed
+
+    result = expand_multi_v4(all_seeds)
+    assert result == target, f"REVERSE round-trip failed: {result!r} != {target!r}"
+    print("  [PASS] [V4] REVERSE transform round-trip")
+    return True
+
+
+def test_v4_no_transform_backward_compat():
+    """V4 without SET_TRANSFORM behaves exactly as before."""
+    boot_end = make_boot_end_seed()
+    display_seeds = [0x00000000, 0x00000001]  # DICT_1 entries
+    result = expand_multi_v4([boot_end] + display_seeds)
+    expected = expand(display_seeds[0]) + expand(display_seeds[1])
+    assert result == expected
+    print("  [PASS] [V4] No-transform backward compat")
+    return True
+
+
+def test_v4_transform_with_bpe_table():
+    """V4 with both SET_BPE_TABLE and SET_TRANSFORM works together."""
+    # Use XOR transform with custom BPE table
+    custom_table = generate_bpe_table(42)
+    xor_key = 0x55
+
+    # Create a BPE seed that expands via custom table, then XOR transform
+    bpe_seed = 0x90000000 | (1) | (2 << 7) | (3 << 14) | (4 << 21)
+    raw_expansion = _expand_bpe_with_table(bpe_seed, custom_table)
+    # After XOR transform
+    expected = bytes([b ^ xor_key for b in raw_expansion])
+
+    set_bpe = make_set_bpe_table_seed(42)
+    xform = make_set_transform_seed(TRANSFORM_XOR_CONST, xor_key)
+    boot_end = make_boot_end_seed()
+    result = expand_multi_v4([set_bpe, xform, boot_end, bpe_seed])
+
+    assert result == expected, f"Combined BPE+transform failed: {result!r} != {expected!r}"
+    print("  [PASS] [V4] Transform with custom BPE table")
+    return True
+
+
+# ============================================================
 # Run All Tests
 # ============================================================
 
@@ -542,6 +797,18 @@ def run_all():
         test_v4_bpe_roundtrip,
         test_v4_bpe_png_roundtrip,
         test_v4_mixed_strategies_with_custom_bpe,
+        # SET_TRANSFORM
+        test_set_transform_seed_construction,
+        test_set_transform_execution,
+        test_apply_transform_xor,
+        test_apply_transform_add,
+        test_apply_transform_reverse,
+        test_apply_transform_rotate,
+        test_v4_xor_transform_roundtrip,
+        test_v4_xor_transform_png_roundtrip,
+        test_v4_reverse_transform_roundtrip,
+        test_v4_no_transform_backward_compat,
+        test_v4_transform_with_bpe_table,
     ]
 
     passed = 0
