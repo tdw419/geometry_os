@@ -605,7 +605,7 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
     # Hash: (data[i] << 10 ^ data[i+1] << 5 ^ data[i+2]) & 0x3FFF
     # Chain: head[hash] -> position -> prev[position] -> earlier position
     # Window: 32768 bytes (fits 16-bit offset field)
-    MAX_CHAIN_WALK = 32
+    MAX_CHAIN_WALK = 128
     HASH_SIZE = 16384  # 0x3FFF + 1
     WINDOW = 32768
 
@@ -613,10 +613,33 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
     head = [-1] * HASH_SIZE       # head[hash] = most recent position
     chain_prev = [-1] * full_len  # chain_prev[pos] = earlier pos with same hash
 
+    # Build chain AND save per-position head snapshot so queries start
+    # from the most recent valid entry (avoiding future-heavy chains)
+    pos_chain_head = [-1] * tlen  # head[h] snapshot for each target position
     for i in range(full_len - 2):
         h = ((full_buf[i] << 10) ^ (full_buf[i + 1] << 5) ^ full_buf[i + 2]) & 0x3FFF
         chain_prev[i] = head[h]
         head[h] = i
+        # If this position is in the target region, save the previous head
+        # as the starting point for queries at this target position.
+        # The chain head BEFORE inserting position i is the most recent
+        # earlier position with this hash -- exactly what LZ77 needs.
+        ti = i - buf_offset
+        if 0 <= ti < tlen:
+            pos_chain_head[ti] = chain_prev[i]  # head BEFORE this insertion
+
+    # --- Build bigram hash chain for 2-byte LZ77 fallback ---
+    BIGRAM_HASH_SIZE = 65536  # full 16-bit bigram keys
+    bigram_head = [-1] * BIGRAM_HASH_SIZE
+    bigram_chain = [-1] * full_len
+    bigram_pos_head = [-1] * tlen  # per-position bigram head snapshot
+    for i in range(full_len - 1):
+        bh = ((full_buf[i] << 8) | full_buf[i + 1]) & 0xFFFF
+        bigram_chain[i] = bigram_head[bh]
+        bigram_head[bh] = i
+        ti = i - buf_offset
+        if 0 <= ti < tlen:
+            bigram_pos_head[ti] = bigram_chain[i]
 
     # Pre-import verify to avoid repeated import overhead
     from find_seed import _pack_dict_seed, _verify as _seed_verify
@@ -695,19 +718,18 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
 
         # --- LZ77 matches via trigram hash-chain ---
         buf_len = buf_offset + pos
+        best_lz77_len = 0
+        best_lz77_offset = 0
         if buf_len >= 2 and remaining >= 3:
-            best_lz77_len = 0
-            best_lz77_offset = 0
 
-            # Compute trigram hash at target[pos:pos+3]
-            h = ((target[pos] << 10) ^ (target[pos + 1] << 5) ^ target[pos + 2]) & 0x3FFF
-            cand = head[h]
+            # Use per-position chain head (avoids walking through future entries)
+            cand = pos_chain_head[pos]
             steps = 0
 
             while cand >= 0 and steps < MAX_CHAIN_WALK:
                 steps += 1
 
-                # Only consider positions before buf_len (in the emitted buffer)
+                # Safety: skip positions at or after current (shouldn't happen with snapshot)
                 if cand >= buf_len:
                     cand = chain_prev[cand]
                     continue
@@ -766,17 +788,29 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
                         if seed:
                             matches[pos].append((length, seed, "LZ77"))
 
-        # Also try 2-byte LZ77 for positions with buf_len >= 1
-        elif buf_len >= 1 and remaining >= 2:
+        # Also try 2-byte LZ77 for positions where trigram didn't find good matches
+        # Use bigram hash chain for fast full-buffer lookup
+        if buf_len >= 1 and remaining >= 2 and best_lz77_len < 2:
+            bigram = (target[pos] << 8) | target[pos + 1]
+            bigram_h = bigram & 0xFFFF  # 16-bit bigram hash
+            cand = bigram_pos_head[pos]
             best_lz77_len = 0
             best_lz77_offset = 0
+            steps = 0
 
-            # Fall back to 2-byte scan for the first few positions
-            key2 = target[pos] | (target[pos + 1] << 8)
-            # Use a simplified scan of nearby positions
-            scan_start = max(0, buf_len - 512)  # last 512 bytes
-            for cand in range(scan_start, buf_len):
-                if full_buf[cand] == target[pos] and full_buf[cand + 1] == target[pos + 1]:
+            while cand >= 0 and steps < 64:
+                steps += 1
+                if cand >= buf_len:
+                    cand = bigram_chain[cand] if cand < len(bigram_chain) else -1
+                    continue
+
+                offset = buf_len - 1 - cand
+                if offset >= WINDOW:
+                    cand = bigram_chain[cand] if cand < len(bigram_chain) else -1
+                    continue
+
+                # Verify 2-byte match and extend
+                if full_buf[cand] == target[pos] and cand + 1 < len(full_buf) and full_buf[cand + 1] == target[pos + 1]:
                     match_len = 2
                     max_match = min(remaining, 0xFFF)
                     ci = cand + 2
@@ -802,10 +836,10 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
                                 break
 
                     if match_len > best_lz77_len:
-                        offset = buf_len - 1 - cand
-                        if offset < (1 << 16):
-                            best_lz77_len = match_len
-                            best_lz77_offset = offset
+                        best_lz77_len = match_len
+                        best_lz77_offset = offset
+
+                cand = bigram_chain[cand] if cand < len(bigram_chain) else -1
 
             if best_lz77_len >= 2:
                 emitted = full_buf[:buf_len]
@@ -956,7 +990,163 @@ def _dp_shortest_path(target, matches, timeout, global_start, _retry_count=0):
         result.append(seed)
 
     print(f"  DP optimal: {len(result)} seeds (vs greedy baseline)")
+
+    # Post-DP consolidation: merge adjacent short seeds into LZ77
+    result = _consolidate_seeds(target, result)
+    if result:
+        print(f"  After consolidation: {len(result)} seeds")
+
     return result
+
+
+def _consolidate_seeds(target, seeds):
+    """Post-DP pass: replace BYTEPACK seeds and short-seed runs with LZ77.
+
+    Three strategies:
+    1. Single-seed replacement: if a BYTEPACK seed's bytes appear earlier
+       in the emitted buffer, replace it with LZ77 (same cost, but populates
+       buffer for future matches).
+    2. Run merging: if a run of 2-6 short seeds' combined bytes appear
+       earlier, replace the entire run with one LZ77 seed.
+    3. Partial run merging: try sub-runs within a longer run.
+    """
+    if not seeds or len(seeds) < 2:
+        return seeds
+
+    tlen = len(target)
+
+    # Build position map: seed_idx -> (start_pos, end_pos, seed, strategy)
+    ctx = ExpandContext()
+    seed_map = []
+    pos = 0
+    for s in seeds:
+        result = expand_with_context(s, ctx)
+        strat = (s >> 28) & 0xF
+        seed_map.append((pos, pos + len(result), s, strat))
+        pos += len(result)
+
+    result_seeds = list(seeds)
+    savings = 0
+
+    # --- Phase 1: Replace individual BYTEPACK seeds with LZ77 where possible ---
+    for i in range(len(seed_map)):
+        sp, ep, s, st = seed_map[i]
+        if st == 0xC:  # Already LZ77
+            continue
+        seg_len = ep - sp
+        if seg_len > 5 or seg_len < 2:
+            continue
+        if sp < seg_len:  # Not enough buffer before this position
+            continue
+
+        data = target[sp:ep]
+        search_buf = target[:sp]
+
+        # Try to find these bytes earlier in the buffer
+        found_at = search_buf.rfind(data)
+        if found_at >= 0:
+            offset = sp - 1 - found_at
+            if offset < (1 << 16):
+                lz77_seed = _make_lz77_seed(offset, seg_len)
+                if lz77_seed:
+                    verify_ctx = ExpandContext()
+                    verify_ctx.output_buffer = bytearray(search_buf)
+                    expanded = expand_with_context(lz77_seed, verify_ctx)
+                    if expanded == data:
+                        result_seeds[i] = lz77_seed
+                        seed_map[i] = (sp, ep, lz77_seed, 0xC)
+                        # No seed savings, but this byte range is now "known"
+                        # and may help future consolidation
+
+    # --- Phase 2: Merge runs of short non-LZ77 seeds into single LZ77 ---
+    i = 0
+    while i < len(seed_map):
+        # Start a run at position i -- include seeds covering <= 5 bytes
+        # and not already LZ77
+        j = i
+        total_bytes = 0
+        while j < len(seed_map):
+            sp, ep, s, st = seed_map[j]
+            if st == 0xC:  # Already LZ77
+                break
+            if ep - sp > 5:  # Already efficient seed
+                break
+            total_bytes += ep - sp
+            j += 1
+
+        run_len = j - i
+        if run_len >= 2 and total_bytes >= 3:
+            start_pos = seed_map[i][0]
+            end_pos = seed_map[j - 1][1]
+            combined = target[start_pos:end_pos]
+            combined_len = len(combined)
+
+            # Try full run first
+            if start_pos >= combined_len and combined_len <= 0xFFF:
+                search_buf = target[:start_pos]
+                found_at = search_buf.rfind(combined)
+                if found_at >= 0:
+                    offset = start_pos - 1 - found_at
+                    if offset < (1 << 16):
+                        lz77_seed = _make_lz77_seed(offset, combined_len)
+                        if lz77_seed:
+                            verify_ctx = ExpandContext()
+                            verify_ctx.output_buffer = bytearray(search_buf)
+                            expanded = expand_with_context(lz77_seed, verify_ctx)
+                            if expanded == combined:
+                                result_seeds[i] = lz77_seed
+                                for k in range(i + 1, j):
+                                    result_seeds[k] = None
+                                savings += run_len - 1
+                                i = j
+                                continue
+
+            # Try partial sub-runs (shorter combinations)
+            if run_len >= 3:
+                best_sub_savings = 0
+                best_sub_i = -1
+                best_sub_j = -1
+                best_sub_seed = None
+
+                for si in range(i, j):
+                    for sj in range(si + 2, j + 1):
+                        sub_start = seed_map[si][0]
+                        sub_end = seed_map[sj - 1][1]
+                        sub_combined = target[sub_start:sub_end]
+                        sub_len = len(sub_combined)
+                        sub_seeds = sj - si
+
+                        if sub_start >= sub_len and sub_len <= 0xFFF:
+                            search_buf = target[:sub_start]
+                            found_at = search_buf.rfind(sub_combined)
+                            if found_at >= 0:
+                                offset = sub_start - 1 - found_at
+                                if offset < (1 << 16):
+                                    lz77_seed = _make_lz77_seed(offset, sub_len)
+                                    if lz77_seed:
+                                        verify_ctx = ExpandContext()
+                                        verify_ctx.output_buffer = bytearray(search_buf)
+                                        expanded = expand_with_context(lz77_seed, verify_ctx)
+                                        if expanded == sub_combined:
+                                            sub_savings = sub_seeds - 1
+                                            if sub_savings > best_sub_savings:
+                                                best_sub_savings = sub_savings
+                                                best_sub_i = si
+                                                best_sub_j = sj
+                                                best_sub_seed = lz77_seed
+
+                if best_sub_savings > 0 and best_sub_seed is not None:
+                    result_seeds[best_sub_i] = best_sub_seed
+                    for k in range(best_sub_i + 1, best_sub_j):
+                        result_seeds[k] = None
+                    savings += best_sub_savings
+
+        i += 1
+
+    if savings > 0:
+        result_seeds = [s for s in result_seeds if s is not None]
+
+    return result_seeds
 
 
 def _verify_v1(seed, expected):
