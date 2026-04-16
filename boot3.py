@@ -80,16 +80,14 @@ def _build_optimal_mode6_table(target: bytes, min_improvement: float = 0.05) -> 
     Returns the table as a 32-char string, or None if the default table
     is already good enough (improvement < min_improvement).
     
-    The table is ranked by byte frequency: index 0 = most frequent byte.
+    Improvement is measured by 5-byte run coverage (the actual metric that
+    determines how many mode-6 seeds the DP encoder can find), not individual
+    byte coverage.
     """
     DEFAULT_TABLE = ' etab\nr\'sni,d)(lxop=y0u_:Fc-fm1"'
     
     freq = Counter(target)
     total = len(target)
-    
-    # Compute default table coverage
-    default_covered = sum(freq.get(ord(c), 0) for c in DEFAULT_TABLE)
-    default_pct = default_covered / total if total > 0 else 0
     
     # Build optimal table: top 32 bytes by frequency
     optimal_chars = [chr(b) for b, _ in freq.most_common(32)]
@@ -98,11 +96,23 @@ def _build_optimal_mode6_table(target: bytes, min_improvement: float = 0.05) -> 
         optimal_chars.append('\x00')
     optimal_table = ''.join(optimal_chars)
     
-    # Compute optimal table coverage
-    optimal_covered = sum(freq.get(ord(c), 0) for c in optimal_table)
-    optimal_pct = optimal_covered / total if total > 0 else 0
+    # Measure improvement by 5-byte run coverage (what actually matters for mode-6)
+    def _count_5byte_runs(data, table_str):
+        table_set = set(ord(c) for c in table_str)
+        count = 0
+        for i in range(len(data) - 4):
+            if all(data[j] in table_set for j in range(i, i+5)):
+                count += 1
+        return count
     
-    improvement = optimal_pct - default_pct
+    default_runs = _count_5byte_runs(target, DEFAULT_TABLE)
+    optimal_runs = _count_5byte_runs(target, optimal_table)
+    
+    # Use absolute run count improvement; default min_improvement=0.05 means
+    # optimal needs at least 5% more runs (relative to total possible positions)
+    total_positions = max(total - 4, 1)
+    improvement = (optimal_runs - default_runs) / total_positions
+    
     if improvement < min_improvement:
         return None
     
@@ -562,7 +572,12 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
         default6_table = ' etab\nr\'sni,d)(lxop=y0u_:Fc-fm1"'
         default6_covered = sum(freq6.get(ord(c), 0) for c in default6_table)
         mode6_covered = sum(freq6.get(ord(c), 0) for c in bp_mode6_table)
-        print(f"  File-specific mode-6 table: {mode6_covered}/{total6} ({mode6_covered/total6*100:.1f}%) vs default {default6_covered}/{total6} ({default6_covered/total6*100:.1f}%)")
+        # Measure 5-byte run coverage (the real metric for mode-6)
+        default6_set = set(ord(c) for c in default6_table)
+        optimal6_set = set(ord(c) for c in bp_mode6_table)
+        default6_runs = sum(1 for i in range(total6 - 4) if all(target[j] in default6_set for j in range(i, i+5)))
+        optimal6_runs = sum(1 for i in range(total6 - 4) if all(target[j] in optimal6_set for j in range(i, i+5)))
+        print(f"  File-specific mode-6 table: {optimal6_runs} 5-byte runs vs default {default6_runs} ({(optimal6_runs-default6_runs)/(total6-4)*100:.1f}% more coverage)")
     else:
         from expand import set_file_specific_mode6_table
         set_file_specific_mode6_table(None)
