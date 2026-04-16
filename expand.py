@@ -94,6 +94,24 @@ BPE_PAIR_TABLE = [
 ]
 
 
+# === FILE-SPECIFIC BYTEPACK TABLE ===
+# Module-global: when set, BYTEPACK mode 3 uses this instead of the
+# hardcoded Python-source table. Set via set_file_specific_table()
+# before expanding seeds that use it. Transported via PNG tEXt chunk.
+_FILE_SPECIFIC_TABLE = None  # None = use default mode 3 table
+
+def set_file_specific_table(table: str):
+    """Set the file-specific BYTEPACK table (16 chars)."""
+    global _FILE_SPECIFIC_TABLE
+    if table is not None and len(table) != 16:
+        raise ValueError(f"Table must be 16 chars, got {len(table)}")
+    _FILE_SPECIFIC_TABLE = table
+
+def get_file_specific_table() -> str:
+    """Get the current file-specific table, or default if not set."""
+    return _FILE_SPECIFIC_TABLE if _FILE_SPECIFIC_TABLE is not None else ' \netnari=:s(,lfd'
+
+
 # === EXPANDER ===
 
 def expand(seed: int, max_output: int = 65536) -> bytes:
@@ -285,8 +303,10 @@ def _expand_bytepack(params):
         return bytes(result)
 
     elif mode == 3:
-        # Compact: 6 chars via 4-bit indices into 16-char Python-source table
-        table = ' \netnari=:s(,lfd'
+        # Compact: 6 chars via 4-bit indices into 16-char table
+        # Uses file-specific table when set (via set_file_specific_table),
+        # otherwise falls back to the default Python-source table.
+        table = get_file_specific_table()
         result = bytearray()
         for i in range(6):
             idx = (data >> (4 * i)) & 0xF

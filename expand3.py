@@ -128,6 +128,9 @@ def expand_from_png_v3(png_data: bytes) -> bytes:
     
     Seeds before dict_only count are "setup seeds": they populate
     the LZ77 reference buffer but don't appear in output.
+    
+    If a 'bp8table' tEXt chunk is present, sets the file-specific
+    BYTEPACK table before expanding seeds, and resets it after.
     """
     p3mode = _read_p3mode(png_data)
     xor_mode = _read_xor_mode(png_data)
@@ -140,18 +143,34 @@ def expand_from_png_v3(png_data: bytes) -> bytes:
     real_seeds = seeds[:real_count]
     dict_only = _read_dict_only_count(png_data)
     
-    ctx = ExpandContext(xor_mode=xor_mode)
-    result = bytearray()
+    # Handle file-specific BYTEPACK table
+    bp8table_hex = _read_text_chunk(png_data, 'bp8table')
+    if bp8table_hex:
+        from expand import set_file_specific_table
+        try:
+            table_str = bytes.fromhex(bp8table_hex).decode('latin-1')
+            set_file_specific_table(table_str)
+        except (ValueError, UnicodeDecodeError):
+            pass
     
-    for i, seed in enumerate(real_seeds):
-        if i < dict_only:
-            # Dict-only seed: populate reference buffer, no output
-            emit_dict_seed(seed, ctx)
-        else:
-            expanded = expand_with_context(seed, ctx)
-            result.extend(expanded)
-    
-    return bytes(result)
+    try:
+        ctx = ExpandContext(xor_mode=xor_mode)
+        result = bytearray()
+        
+        for i, seed in enumerate(real_seeds):
+            if i < dict_only:
+                # Dict-only seed: populate reference buffer, no output
+                emit_dict_seed(seed, ctx)
+            else:
+                expanded = expand_with_context(seed, ctx)
+                result.extend(expanded)
+        
+        return bytes(result)
+    finally:
+        # Always reset table to default after expansion
+        if bp8table_hex:
+            from expand import set_file_specific_table
+            set_file_specific_table(None)
 
 
 # ============================================================
