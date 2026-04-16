@@ -1,0 +1,188 @@
+{
+  "title": "Pixelpack architectural improvements",
+  "children": [
+    {
+      "title": "Hash-Chain LZ77",
+      "category": "obvious",
+      "description": "Implement a hash-chain based LZ77 algorithm, similar to zlib, to reduce the O(n^2) complexity to O(n). This would allow faster encoding and decoding of files.",
+      "children": [
+        {
+          "title": "Implement a Rolling Hash for Sliding Window",
+          "description": "Use a rolling hash function to efficiently compute hashes of the sliding window in LZ77. This allows for quick comparison between substrings and significantly reduces the time complexity from O(n^2) to O(n) by enabling faster lookups.",
+          "enables": [
+            "Fast substring search",
+            "Improved compression efficiency"
+          ],
+          "risk": "Low",
+          "category": "Algorithm Optimization"
+        },
+        {
+          "title": "Implement a Hash Table for Fast Lookup",
+          "description": "Use a hash table to store the start positions of previously seen substrings. This allows LZ77 to quickly find potential matches by looking up hashes, thus reducing the need for exhaustive substring comparisons.",
+          "enables": [
+            "Faster match finding",
+            "Reduced search time"
+          ],
+          "risk": "Medium",
+          "category": "Data Structure Enhancement"
+        },
+        {
+          "title": "Optimize Backreference Encoding and Storage",
+          "description": "Optimize the encoding and storage of backreferences by using variable-length codes. For example, use prefix codes (e.g., Huffman coding) to compress lengths and distances efficiently, further reducing the overall size of the encoded data.",
+          "enables": [
+            "Smaller compressed output",
+            "Improved compression ratio"
+          ],
+          "risk": "Low",
+          "category": "Compression Technique"
+        }
+      ]
+    },
+    {
+      "title": "Two-Pass Encoding",
+      "category": "contrarian",
+      "description": "Separate the encoding process into two passes. The first pass analyzes the file and determines optimal settings, while the second pass encodes using these settings.",
+      "children": [
+        {
+          "title": "First Pass - Data Analysis and Setting Determination",
+          "description": "The first pass of the encoding process involves analyzing the file to determine the optimal settings for encoding. This includes identifying the most frequent patterns and sequences within the data, which can inform the choice of encoding strategies such as BPE (Byte Pair Encoding), DICTX5, BYTEPACK, LZ77, and NIBBLE.",
+          "enables": [
+            "Optimal Strategy Selection",
+            "Efficient Use of Bit Budget"
+          ],
+          "risk": "High complexity in analysis may lead to longer processing times for the first pass.",
+          "category": "Analysis"
+        },
+        {
+          "title": "Second Pass - Encoding with Optimal Settings",
+          "description": "The second pass uses the settings determined during the first pass to encode the file. This involves applying the chosen encoding strategies in an optimal order, utilizing data structures that efficiently support the operations required by each strategy.",
+          "enables": [
+            "Improved Compression Ratio",
+            "Reduced Encoding Time"
+          ],
+          "risk": "Potential for suboptimal encoding if the first pass does not accurately reflect the true nature of the file's contents.",
+          "category": "Encoding"
+        },
+        {
+          "title": "Dynamic BPE Table Generation",
+          "description": "During the second pass, a dynamic approach to generating and updating the BPE table is employed. This allows for the inclusion of file-specific byte pairs without replacing the entire 128-entry table, thus improving the adaptability of the encoding process.",
+          "enables": [
+            "Enhanced Adaptability",
+            "Better Compression for Specific Files"
+          ],
+          "risk": "Increased complexity in managing multiple tables and ensuring consistency across passes.",
+          "category": "Encoding Strategy Optimization"
+        }
+      ]
+    },
+    {
+      "title": "Dynamic BPE Table Augmentation",
+      "category": "wildcard",
+      "description": "Allow incremental updates to the BPE table, adding file-specific pairs without replacing the entire table. This can improve compression by adapting to specific file characteristics.",
+      "children": [
+        {
+          "title": "Incremental BPE Table Update",
+          "description": "Implement a mechanism to dynamically update the BPE table by adding file-specific pairs without replacing the entire 128-entry table. This can be achieved by using a hash map to track infrequently used slots in the table and updating them as new pairs are discovered.",
+          "enables": [
+            "Improved compression for specific files",
+            "Reduced time complexity compared to brute-force search"
+          ],
+          "risk": "Increased memory usage due to additional data structures",
+          "category": "Algorithmic Enhancement"
+        },
+        {
+          "title": "Frequency-based Slot Replacement",
+          "description": "Develop a frequency analysis mechanism that identifies the least frequently used pairs in the BPE table. Replace these slots with more common or relevant pairs from the current file, thus adapting the table to better suit the specific characteristics of the encoded data.",
+          "enables": [
+            "More efficient use of the BPE table",
+            "Potential reduction in seed count"
+          ],
+          "risk": "Risk of overwriting useful patterns if not properly managed",
+          "category": "Dynamic Data Management"
+        },
+        {
+          "title": "Adaptive Table Resizing",
+          "description": "Introduce a mechanism to resize the BPE table dynamically. When infrequently used slots are filled, or when new pairs require additional space, the table can be expanded without replacing existing entries. Use linked lists or a balanced binary search tree to manage the table's growth efficiently.",
+          "enables": [
+            "Scalability in handling larger datasets",
+            "Flexibility in managing different file types"
+          ],
+          "risk": "Increased complexity in maintaining consistency and performance",
+          "category": "System Architecture"
+        }
+      ]
+    },
+    {
+      "title": "Hierarchical Encoding with Shared Dictionary",
+      "category": "foundational",
+      "description": "Divide files into blocks, each using a shared dictionary built from the file. This reduces redundancy and improves compression efficiency.",
+      "children": [
+        {
+          "title": "Block Segmentation",
+          "description": "Divide the file into non-overlapping blocks. The size of each block should be chosen to balance between reducing redundancy and maintaining dictionary efficiency.",
+          "enables": [
+            "Reduced redundancy within blocks",
+            "Improved compression for repetitive patterns"
+          ],
+          "risk": "Choosing an inappropriate block size may lead to suboptimal compression ratios.",
+          "category": "Preprocessing"
+        },
+        {
+          "title": "Shared Dictionary Construction",
+          "description": "For each block, build a dictionary that includes common substrings from both the current block and potentially neighboring blocks. Use algorithms like LZ77 or Lempel-Ziv-Welch (LZW) for dictionary construction.",
+          "enables": [
+            "Better compression by leveraging shared patterns across blocks"
+          ],
+          "risk": "Overly large dictionaries may increase memory usage without significant gains in compression efficiency.",
+          "category": "Dictionary Building"
+        },
+        {
+          "title": "Dynamic Dictionary Augmentation",
+          "description": "Dynamically update the dictionary with new patterns encountered during encoding. Use a sliding window approach to keep track of recently used substrings and add them to the dictionary if they are frequent enough.",
+          "enables": [
+            "Improved adaptability to varying file contents",
+            "Potential for better compression in files with evolving patterns"
+          ],
+          "risk": "The overhead of updating the dictionary may slow down the encoding process, especially for large files or high-frequency updates.",
+          "category": "Adaptive Compression"
+        }
+      ]
+    },
+    {
+      "title": "Parallel Processing for DP Parsing",
+      "category": "wildcard",
+      "description": "Utilize parallel processing to handle the DP optimal parsing, distributing tasks across multiple CPU cores to reduce encoding time.",
+      "children": [
+        {
+          "title": "Parallelize DP Table Construction",
+          "description": "Implement a parallel algorithm to construct the dynamic programming (DP) table for optimal parsing. Each CPU core can be responsible for calculating a segment of the DP table based on its position in the input data.",
+          "enables": [
+            "Reduced encoding time"
+          ],
+          "risk": "Increased complexity in managing concurrent access and synchronization between threads/cores",
+          "category": "Algorithm Optimization"
+        },
+        {
+          "title": "Use Work Queues for Dynamic Task Distribution",
+          "description": "Implement a work queue system where tasks (e.g., calculating DP table segments) are distributed dynamically among available CPU cores. This can help balance the workload and improve efficiency.",
+          "enables": [
+            "Improved load balancing",
+            "Better resource utilization"
+          ],
+          "risk": "Potential overhead in managing the work queue",
+          "category": "Concurrency Management"
+        },
+        {
+          "title": "Leverage SIMD Instructions for Byte Operations",
+          "description": "Utilize Single Instruction, Multiple Data (SIMD) instructions available on modern CPUs to perform byte-level operations more efficiently. This can speed up tasks such as BPE table lookups and nibble encoding.",
+          "enables": [
+            "Faster execution of byte-level operations",
+            "Potential performance improvements"
+          ],
+          "risk": "Requires specific hardware support and may introduce additional complexity in code",
+          "category": "Performance Optimization"
+        }
+      ]
+    }
+  ]
+}
