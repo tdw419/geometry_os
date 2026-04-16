@@ -568,5 +568,120 @@ def main():
     return 0 if passed == total else 1
 
 
+# ════════════════════════════════════════
+# BOUNDARY & ERROR HANDLING TESTS
+# (pytest-only, using assert style)
+# ════════════════════════════════════════
+
+def test_boundary_seed_zero():
+    """Seed 0x00000000 should not crash."""
+    result = expand(0x00000000)
+    assert isinstance(result, bytes)
+    assert len(result) > 0
+
+def test_boundary_seed_max():
+    """Seed 0xFFFFFFFF should not crash."""
+    result = expand(0xFFFFFFFF)
+    assert isinstance(result, bytes)
+    assert len(result) > 0
+
+def test_max_output_enforced():
+    """max_output=1 must truncate to exactly 1 byte."""
+    # DICT_1 index 0 = b'print(' (6 bytes) -- truncate to 1
+    result = expand(0x00000000, max_output=1)
+    assert len(result) == 1
+
+def test_max_output_zero():
+    """max_output=0 should return empty bytes."""
+    result = expand(0x00000000, max_output=0)
+    assert result == b''
+
+def test_seed_negative_raises():
+    """Negative seed must raise ValueError."""
+    import pytest
+    with pytest.raises(ValueError):
+        expand(-1)
+
+def test_seed_overflow_raises():
+    """Seed > 0xFFFFFFFF must raise ValueError."""
+    import pytest
+    with pytest.raises(ValueError):
+        expand(0x100000000)
+
+def test_file_specific_table_validation():
+    """Wrong-length table must raise ValueError."""
+    import pytest
+    from expand import set_file_specific_table, get_file_specific_table
+    with pytest.raises(ValueError):
+        set_file_specific_table("short")
+    # Valid length should work
+    set_file_specific_table("0123456789abcdef")
+    assert get_file_specific_table() == "0123456789abcdef"
+    # Reset
+    set_file_specific_table(None)
+    assert get_file_specific_table() == ' \netnari=:s(,lfd'
+
+def test_single_byte_null_roundtrip():
+    """Single null byte should roundtrip via V3 encode/decode."""
+    import tempfile, os
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        png_path = f.name
+    try:
+        seeds, png_data = encode_v3(b'\x00', png_path, timeout=30.0)
+        result = expand_from_png_v3(png_data)
+        assert result == b'\x00'
+    finally:
+        os.unlink(png_path)
+
+def test_single_byte_ff_roundtrip():
+    """Single 0xFF byte should roundtrip."""
+    import tempfile, os
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        png_path = f.name
+    try:
+        seeds, png_data = encode_v3(b'\xff', png_path, timeout=30.0)
+        result = expand_from_png_v3(png_data)
+        assert result == b'\xff'
+    finally:
+        os.unlink(png_path)
+
+def test_single_byte_ascii_roundtrip():
+    """Single ASCII byte 'A' should roundtrip."""
+    import tempfile, os
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        png_path = f.name
+    try:
+        seeds, png_data = encode_v3(b'A', png_path, timeout=30.0)
+        result = expand_from_png_v3(png_data)
+        assert result == b'A'
+    finally:
+        os.unlink(png_path)
+
+def test_corrupt_png_raises():
+    """Garbage bytes fed as PNG should raise an error, not crash silently."""
+    import pytest
+    with pytest.raises(Exception):
+        expand_from_png_v3(b'THIS IS NOT A PNG FILE AT ALL')
+
+def test_truncated_png_raises():
+    """Truncated valid PNG should raise an error."""
+    import pytest, tempfile, os
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        png_path = f.name
+    try:
+        seeds, png_data = encode_v3(b'test data for truncation', png_path, timeout=30.0)
+        # Truncate to half size
+        truncated = png_data[:len(png_data) // 2]
+        with pytest.raises(Exception):
+            expand_from_png_v3(truncated)
+    finally:
+        os.unlink(png_path)
+
+def test_seed_rgba_roundtrip_boundaries():
+    """Seed->RGBA->seed roundtrip for boundary values."""
+    for seed in [0x00000000, 0xFFFFFFFF, 0x80000000, 0x7FFFFFFF, 0x01020304]:
+        assert seed_from_rgba(*seed_to_rgba(seed)) == seed
+
+
 if __name__ == '__main__':
     sys.exit(main())
