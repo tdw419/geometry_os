@@ -19,12 +19,12 @@ import zlib
 import math
 import time
 from expand import (
-    seed_to_rgba, seed_from_rgba, expand,
-    DICTIONARY, DICTIONARY_EXT, SUB_DICT, NIBBLE_TABLE, BPE_PAIR_TABLE,
+    seed_to_rgba,
+    DICTIONARY, DICTIONARY_EXT, SUB_DICT, BPE_PAIR_TABLE,
 )
-from expand2 import expand_multi, expand_from_png, extract_seeds_from_png
+from expand2 import expand_multi, extract_seeds_from_png
 from expand3 import (
-    ExpandContext, expand_with_context, expand_multi_v3, expand_from_png_v3,
+    ExpandContext, expand_with_context, expand_from_png_v3,
     _expand_lz77, emit_dict_seed,
 )
 from find_seed import search as seed_search
@@ -36,7 +36,7 @@ from collections import Counter
 
 
 # ============================================================
-# PNG Construction
+# File-Specific BYTEPACK Table
 # ============================================================
 
 def _build_optimal_bytepack_table(target: bytes, min_improvement: float = 0.05) -> str:
@@ -73,6 +73,10 @@ def _build_optimal_bytepack_table(target: bytes, min_improvement: float = 0.05) 
     
     return optimal_table
 
+
+# ============================================================
+# PNG Construction
+# ============================================================
 
 def make_v3_png(seeds: list, xor_mode: bool = False, dict_only: int = 0,
                 bp8table: str = None) -> bytes:
@@ -326,19 +330,20 @@ def _find_v1_match(target, pos):
 
 def _find_setup_candidates(target, max_setup_seeds=50, time_budget=12.0):
     """
-    Find repeated substrings worth pre-emitting into the reference buffer.
-
-    For each repeated substring, compute:
-      - v1_cost: how many V1 pixels to encode one occurrence
-      - occurrences: how many times it appears in target
-      - setup_cost: how many V1 pixels to encode the pattern for setup
-      - net_savings: v1_cost * occurrences - setup_cost - occurrences
-
-    Returns list of (pattern, setup_seeds, v1_cost, occurrences, net_savings)
-    sorted by net_savings descending.
-
-    Performance: uses hash-based grouping + time budget to avoid O(n^2)
-    blowup on large files. Skips DP evaluation for unpromising candidates.
+    Find repeated substrings worth pre-emitting into the LZ77 reference buffer.
+    
+    Scans for repeated substrings of length 3-50 that appear at least twice.
+    Evaluates each using actual DP encoding cost, computing net savings:
+      savings = v1_cost_per_occurrence * occurrences - setup_cost - occurrences
+    
+    Args:
+        target: Bytes to analyze for repeated patterns
+        max_setup_seeds: Maximum number of setup seeds to allocate
+        time_budget: Seconds before giving up on analysis
+    
+    Returns:
+        List of (pattern, v1_seeds, occurrence_count, net_savings) tuples,
+        sorted by savings descending, with non-overlapping positions.
     """
     t_start = time.time()
     tlen = len(target)
@@ -469,7 +474,22 @@ def _find_setup_candidates(target, max_setup_seeds=50, time_budget=12.0):
 
 def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
               use_xor: bool = False) -> tuple:
-    """Encode target bytes into a V3 PNG."""
+    """Encode target bytes into a V3 PNG with context-dependent strategies.
+    
+    Uses a three-phase approach:
+      1. Build file-specific BYTEPACK table if beneficial
+      2. Try encoding with and without LZ77 setup seeds
+      3. Pick the encoding with fewest total pixels (never exceeds V2 baseline)
+    
+    Args:
+        target: Raw bytes to encode
+        output_png: If set, write PNG to this path
+        timeout: Maximum encoding time in seconds
+        use_xor: Enable XOR channel between seeds
+    
+    Returns:
+        (data_seeds, png_data) on success, (None, None) on failure
+    """
     start_time = time.time()
     tlen = len(target)
 
@@ -630,6 +650,18 @@ def _encode_with_context(target, setup_buffer, setup_ranges, timeout, global_sta
     setup_buffer + target[0:P], regardless of which seeds produced it,
     because seeds emit left-to-right and must cover the target exactly.
     So LZ77 offsets computed against this buffer are always valid.
+    
+    Falls back to greedy left-to-right parsing if DP times out.
+    
+    Args:
+        target: Bytes to encode
+        setup_buffer: Pre-emitted bytes from setup seeds (for LZ77 references)
+        setup_ranges: Dict of (start,end)->True for positions covered by setup
+        timeout: Maximum time in seconds
+        global_start: Encoding start time for timeout calculation
+    
+    Returns:
+        List of seeds on success, None on failure
     """
     tlen = len(target)
     if tlen == 0:
@@ -1050,9 +1082,24 @@ def _add_search_matches_extended_fast(matches, target, pos, remaining,
 
 def _dp_shortest_path(target, matches, timeout, global_start, _retry_count=0):
     """Find minimum-seed encoding using DP shortest path.
-
-    Each edge from pos -> pos+length has cost 1 (one seed).
-    BFS from 0 to len(target).
+    
+    Each edge from position pos -> pos+length has cost 1 (one seed).
+    BFS forward pass computes minimum seeds to reach each position,
+    then backtrace reconstructs the optimal seed sequence.
+    
+    After finding the path, verifies each LZ77 seed against the actual
+    expansion context. If verification fails, retries with bad LZ77
+    matches removed (up to 3 retries).
+    
+    Args:
+        target: Bytes to encode
+        matches: matches[pos] = list of (length, seed, strategy_name) at each position
+        timeout: Maximum time in seconds
+        global_start: Time of encoding start (for timeout calculation)
+        _retry_count: Internal retry counter for LZ77 verification failures
+    
+    Returns:
+        List of seeds on success, None if no valid path found
     """
     tlen = len(target)
     INF = float('inf')
@@ -1125,15 +1172,21 @@ def _dp_shortest_path(target, matches, timeout, global_start, _retry_count=0):
 
 
 def _consolidate_seeds(target, seeds):
-    """Post-DP pass: replace BYTEPACK seeds and short-seed runs with LZ77.
-
-    Three strategies:
-    1. Single-seed replacement: if a BYTEPACK seed's bytes appear earlier
-       in the emitted buffer, replace it with LZ77 (same cost, but populates
-       buffer for future matches).
-    2. Run merging: if a run of 2-6 short seeds' combined bytes appear
-       earlier, replace the entire run with one LZ77 seed.
-    3. Partial run merging: try sub-runs within a longer run.
+    """Post-DP optimization: replace short seed runs with LZ77 back-references.
+    
+    Three strategies applied in order:
+      1. Single-seed replacement: if a non-LZ77 seed's bytes appear earlier in
+         the emitted buffer, replace with LZ77 (same pixel cost, better for future refs)
+      2. Run merging: if a run of 2-6 short non-LZ77 seeds' combined bytes appear
+         earlier, replace entire run with one LZ77 seed (saves N-1 pixels)
+      3. Partial run merging: try sub-runs within longer runs for best savings
+    
+    Args:
+        target: The original bytes being encoded
+        seeds: List of seeds from DP shortest path
+    
+    Returns:
+        Optimized seed list (same or fewer seeds than input)
     """
     if not seeds or len(seeds) < 2:
         return seeds
