@@ -100,6 +100,7 @@ BPE_PAIR_TABLE = [
 # before expanding seeds that use it. Transported via PNG tEXt chunk.
 _FILE_SPECIFIC_TABLE = None  # None = use default mode 3 table
 _FILE_SPECIFIC_MODE6_TABLE = None  # None = use default mode 6 table
+_FILE_SPECIFIC_MODE1_TABLE = None  # None = use default mode 1 table (64 chars)
 
 def set_file_specific_table(table: str):
     """Set the file-specific BYTEPACK table (16 chars)."""
@@ -123,6 +124,24 @@ def set_file_specific_mode6_table(table: str):
 def get_file_specific_mode6_table() -> str:
     """Get the current file-specific mode-6 table, or default if not set."""
     return _FILE_SPECIFIC_MODE6_TABLE if _FILE_SPECIFIC_MODE6_TABLE is not None else ' etab\nr\'sni,d)(lxop=y0u_:Fc-fm1"'
+
+# Default mode-1 table: top 64 chars from Python source corpus.
+# Covers 98%+ of typical Python source bytes.
+_DEFAULT_MODE1_TABLE = (
+    ' etaoinsrlhdcu.mfpgwybvk\n"x,)(\']-=_:;<>{}[]!@#'
+    '0123456789/\\+*%&|?^~`$'
+)[:64]
+
+def set_file_specific_mode1_table(table: str):
+    """Set the file-specific BYTEPACK mode-1 table (64 chars)."""
+    global _FILE_SPECIFIC_MODE1_TABLE
+    if table is not None and len(table) != 64:
+        raise ValueError(f"Mode-1 table must be 64 chars, got {len(table)}")
+    _FILE_SPECIFIC_MODE1_TABLE = table
+
+def get_file_specific_mode1_table() -> str:
+    """Get the current file-specific mode-1 table, or default if not set."""
+    return _FILE_SPECIFIC_MODE1_TABLE if _FILE_SPECIFIC_MODE1_TABLE is not None else _DEFAULT_MODE1_TABLE
 
 
 # === EXPANDER ===
@@ -294,14 +313,19 @@ def _expand_bytepack(params):
         return bytes([b0, b1, b2]) if extra == 0 else bytes([b0, b1, b2] + [b0] * extra)
 
     elif mode == 1:
-        # XOR delta: base + 2 deltas = 3 bytes + optional repeat
-        base = data & 0xFF
-        d1 = (data >> 8) & 0xFF
-        d2 = (data >> 16) & 0xFF
-        extra = (data >> 24) & 0xF
-        result = bytearray([base, base ^ d1, (base ^ d1) ^ d2])
-        if extra:
-            result.extend([result[-1]] * extra)
+        # 4 bytes via 6-bit indices into 64-char table
+        # Uses file-specific table when set (via set_file_specific_mode1_table),
+        # otherwise falls back to the default Python-source table.
+        # Bit layout: [5:0] idx0, [11:6] idx1, [17:12] idx2, [23:18] idx3, [26:24] len_flag
+        # len_flag=0 → 4 bytes, len_flag=1-7 → 4+len_flag bytes (repeat last byte)
+        table = get_file_specific_mode1_table()
+        result = bytearray()
+        for i in range(4):
+            idx = (data >> (6 * i)) & 0x3F
+            result.append(ord(table[idx]))
+        len_flag = (data >> 24) & 0x7
+        if len_flag:
+            result.extend([result[-1]] * len_flag)
         return bytes(result)
 
     elif mode == 2:

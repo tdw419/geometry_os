@@ -411,87 +411,6 @@ def _quick_bytepack(target):
     """
     tlen = len(target)
     
-    # Mode 0: 3 raw bytes + optional repeat of first byte
-    if tlen >= 3:
-        b0, b1, b2 = target[0], target[1], target[2]
-        extra = tlen - 3
-        if extra <= 15:
-            if extra == 0 or all(target[3 + i] == b0 for i in range(extra)):
-                data = b0 | (b1 << 8) | (b2 << 16) | (extra << 24)
-                seed = 0xE0000000 | (0 << 0) | (data << 3)
-                if _verify(seed, target):
-                    return seed
-    
-    # Mode 1: XOR delta
-    if 3 <= tlen <= 18:
-        base = target[0]
-        d1 = target[0] ^ target[1]
-        d2 = (target[0] ^ target[1]) ^ target[2] if tlen > 2 else 0
-        check = [base, base ^ d1, (base ^ d1) ^ d2]
-        if check[:min(tlen,3)] == list(target[:min(tlen,3)]):
-            for extra in range(0, min(16, tlen - 3 + 1)):
-                if tlen == 3 + extra:
-                    if extra == 0 or all(target[3+i] == check[-1] for i in range(extra)):
-                        data = base | (d1 << 8) | (d2 << 16) | (extra << 24)
-                        seed = 0xE0000000 | (1 << 0) | (data << 3)
-                        if _verify(seed, target):
-                            return seed
-
-    # Mode 2: ADD delta (3-4 bytes)
-    if tlen == 3:
-        base = target[0]
-        d1 = (target[1] - base) & 0xFF
-        d2 = (target[2] - target[1]) & 0xFF
-        data = base | (d1 << 8) | (d2 << 16)
-        seed = 0xE0000000 | (2 << 0) | (data << 3)
-        if _verify(seed, target):
-            return seed
-    elif tlen == 4:
-        base = target[0]
-        d1 = (target[1] - base) & 0xFF
-        d2 = (target[2] - target[1]) & 0xFF
-        d3 = (target[3] - target[2]) & 0xF
-        data = base | (d1 << 8) | (d2 << 16) | (d3 << 24)
-        seed = 0xE0000000 | (2 << 0) | (data << 3)
-        if _verify(seed, target):
-            return seed
-    
-    # Mode 3: Compact 6-char via 4-bit indices into Python-source table
-    # Uses file-specific table when set, otherwise falls back to default.
-    if tlen == 6:
-        try:
-            from expand import get_file_specific_table
-            table = get_file_specific_table()
-        except ImportError:
-            table = ' \netnari=:s(,lfd'
-        try:
-            indices = [table.index(chr(b)) for b in target]
-            data = sum(idx << (4 * i) for i, idx in enumerate(indices))
-            seed = 0xE0000000 | (3 << 0) | (data << 3)
-            if _verify(seed, target):
-                return seed
-        except (ValueError, OverflowError):
-            pass
-    
-    # Mode 4: 4 bytes, 7 bits each
-    if tlen == 4 and all(b <= 127 for b in target):
-        data = (target[0] & 0x7F) | ((target[1] & 0x7F) << 7) | \
-               ((target[2] & 0x7F) << 14) | ((target[3] & 0x7F) << 21)
-        seed = 0xE0000000 | (4 << 0) | (data << 3)
-        if _verify(seed, target):
-            return seed
-    
-    # Mode 5: Shared base + 4 nibble offsets
-    if tlen == 4:
-        for base in range(256):
-            offsets = [(b - base) & 0xFF for b in target]
-            if all(0 <= o <= 15 for o in offsets):
-                data = base | (offsets[0] << 8) | (offsets[1] << 12) | \
-                       (offsets[2] << 16) | (offsets[3] << 20)
-                seed = 0xE0000000 | (5 << 0) | (data << 3)
-                if _verify(seed, target):
-                    return seed
-    
     # Mode 6: 5 bytes via Python-source table (top 32 chars by frequency)
     # Uses file-specific table when set, otherwise falls back to default.
     if tlen == 5:
@@ -511,7 +430,7 @@ def _quick_bytepack(target):
     
     # Mode 7: 5 bytes via extended Python-source table (chars ranked 33-64)
     if tlen == 5:
-        table = 'I>2#ETg&hAC.B43675[]DP8+NvLRk\\XS'
+        table = 'I>2#ETg&hAC.B43675[]DP8+NvLRk\\\\XS'
         try:
             indices = [table.index(chr(b)) for b in target]
             data = sum(idx << (5 * i) for i, idx in enumerate(indices))
@@ -520,6 +439,92 @@ def _quick_bytepack(target):
                 return seed
         except (ValueError, OverflowError):
             pass
+    
+    # Mode 1: 4 bytes via 6-bit indices into 64-char table
+    # Uses file-specific table when set, otherwise falls back to default.
+    if tlen == 4:
+        try:
+            from expand import get_file_specific_mode1_table
+            table = get_file_specific_mode1_table()
+        except ImportError:
+            table = (
+                ' etaoinsrlhdcu.mfpgwybvk\n"x,)(\']-=_:;<>{}[]!@#'
+                '0123456789/\\+*%&|?^~`$'
+            )[:64]
+        try:
+            indices = [table.index(chr(b)) for b in target]
+            data = sum(idx << (6 * i) for i, idx in enumerate(indices))
+            seed = 0xE0000000 | (1 << 0) | (data << 3)
+            if _verify(seed, target):
+                return seed
+        except (ValueError, OverflowError):
+            pass
+    
+    # Mode 3: Compact 6-char via 4-bit indices into Python-source table
+    # Uses file-specific table when set, otherwise falls back to default.
+    if tlen == 6:
+        try:
+            from expand import get_file_specific_table
+            table = get_file_specific_table()
+        except ImportError:
+            table = ' \netnari=:s(,lfd'
+        try:
+            indices = [table.index(chr(b)) for b in target]
+            data = sum(idx << (4 * i) for i, idx in enumerate(indices))
+            seed = 0xE0000000 | (3 << 0) | (data << 3)
+            if _verify(seed, target):
+                return seed
+        except (ValueError, OverflowError):
+            pass
+    
+    # Mode 0: 3 raw bytes + optional repeat of first byte
+    if tlen >= 3:
+        b0, b1, b2 = target[0], target[1], target[2]
+        extra = tlen - 3
+        if extra <= 15:
+            if extra == 0 or all(target[3 + i] == b0 for i in range(extra)):
+                data = b0 | (b1 << 8) | (b2 << 16) | (extra << 24)
+                seed = 0xE0000000 | (0 << 0) | (data << 3)
+                if _verify(seed, target):
+                    return seed
+    
+    # Mode 2: ADD delta (3-4 bytes)
+    if tlen == 3:
+        base = target[0]
+        d1 = (target[1] - base) & 0xFF
+        d2 = (target[2] - target[1]) & 0xFF
+        data = base | (d1 << 8) | (d2 << 16)
+        seed = 0xE0000000 | (2 << 0) | (data << 3)
+        if _verify(seed, target):
+            return seed
+    elif tlen == 4:
+        base = target[0]
+        d1 = (target[1] - base) & 0xFF
+        d2 = (target[2] - target[1]) & 0xFF
+        d3 = (target[3] - target[2]) & 0xF
+        data = base | (d1 << 8) | (d2 << 16) | (d3 << 24)
+        seed = 0xE0000000 | (2 << 0) | (data << 3)
+        if _verify(seed, target):
+            return seed
+    
+    # Mode 4: 4 bytes, 7 bits each
+    if tlen == 4 and all(b <= 127 for b in target):
+        data = (target[0] & 0x7F) | ((target[1] & 0x7F) << 7) | \
+               ((target[2] & 0x7F) << 14) | ((target[3] & 0x7F) << 21)
+        seed = 0xE0000000 | (4 << 0) | (data << 3)
+        if _verify(seed, target):
+            return seed
+    
+    # Mode 5: Shared base + 4 nibble offsets
+    if tlen == 4:
+        for base in range(256):
+            offsets = [(b - base) & 0xFF for b in target]
+            if all(0 <= o <= 15 for o in offsets):
+                data = base | (offsets[0] << 8) | (offsets[1] << 12) | \
+                       (offsets[2] << 16) | (offsets[3] << 20)
+                seed = 0xE0000000 | (5 << 0) | (data << 3)
+                if _verify(seed, target):
+                    return seed
     
     return None
 
