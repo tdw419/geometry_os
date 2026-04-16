@@ -146,16 +146,23 @@ def get_file_specific_mode1_table() -> str:
 
 
 # === FREQ TABLE (Strategy 0xB in V3 mode) ===
-# Frequency-ranked byte table: 256 bytes ranked by frequency (most common first).
+# Frequency-ranked byte table: up to 15 bytes ranked by frequency (most common first).
 # Transported via PNG tEXt chunk 'freq_table'.
 # When set, strategy 0xB decodes as FREQ_TABLE instead of RLE.
+# 
+# V2 format: 7 x 4-bit indices into 15-entry table (index 0 = terminator).
+# Each index (1-15) maps to a byte from the file-specific top-15 frequency table.
+# Max output: 7 bytes per seed.
 _FREQ_TABLE = None  # None = not set (strategy 0xB falls back to RLE)
 
 def set_freq_table(table: bytes):
-    """Set the frequency-ranked byte table (256 bytes)."""
+    """Set the frequency-ranked byte table (up to 256 bytes for backward compat).
+    
+    Internally uses only the top 15 entries for the v2 4-bit encoding.
+    """
     global _FREQ_TABLE
-    if table is not None and len(table) != 256:
-        raise ValueError(f"Freq table must be 256 bytes, got {len(table)}")
+    if table is not None and len(table) < 15:
+        raise ValueError(f"Freq table must have at least 15 bytes, got {len(table)}")
     _FREQ_TABLE = table
 
 def get_freq_table() -> bytes:
@@ -449,54 +456,27 @@ def _expand_template(params):
 # === FREQ_TABLE Strategy (0xB in V3 mode) ===
 
 def expand_freq_table(params: int) -> bytes:
-    """FREQ_TABLE: encode bytes using frequency-ranked table.
-    
-    The 28-bit payload encodes up to 5 bytes using variable-width indices
-    into a 256-byte frequency-ranked table.
+    """FREQ_TABLE v2: encode bytes using frequency-ranked table.
     
     Bit layout of params (28 bits):
-      [1:0]   count_minus1 (0-3 = 1-4 byte indices)
-      [27:2]  packed indices: count x 6-bit or 7-bit indices
-    
-    When count_minus1 < 3: each index is 7 bits (top 128 bytes).
-      4 x 7 = 28 bits, plus 0 count bits = 28 bits total.
-      But we use [1:0] for count, so: 26 bits / 7 = 3 full indices max
-      with 5 remaining bits for a partial 4th.
+      7 x 4-bit indices packed sequentially (LSB first).
+      Index 0 = terminator (shorter outputs, like BPE).
+      Indices 1-15 map to the top-15 most frequent bytes in the file.
       
-    Actually, simpler design:
-      [3:0]   n_indices (1-5 indices packed in remaining bits)
-      [27:4]  packed 6-bit indices into 64-entry frequency table
-      
-    For n=4: 4 x 6 = 24 bits, fits in bits [27:4] (24 bits). Each index
-    looks up a byte in a 64-entry table (top 64 bytes by frequency).
-    Output: 4 bytes per seed.
-    
-    For n=3: 3 x 6 = 18 bits, plus 6 unused bits. Could use 8-bit
-    indices for rare bytes: 2 x 6 + 1 x 8 = 20 bits.
-    
-    Simplest design for maximum impact:
-      [3:0]   count (1-4 = number of 6-bit indices that follow)
-      [27:4]  up to 4 x 6-bit indices into 64-entry freq-ranked table
+    Max output: 7 bytes per seed.
+    Typical: 5-7 bytes for Python source (top-15 covers ~77% of bytes).
     """
     table = get_freq_table()
     if table is None:
-        # No table set, fall back to expanding as raw bytes from params
-        # This shouldn't happen in normal operation
         return b''
-    
-    # Build lookup: index -> byte value (top 64 entries from the 256-byte table)
-    lookup = [table[i] for i in range(min(64, len(table)))]
-    
-    count = (params & 0xF)  # 1-4
-    if count == 0 or count > 4:
-        return b''
-    data = (params >> 4) & 0xFFFFFF  # 24 bits
     
     result = bytearray()
-    for i in range(count):
-        idx = (data >> (6 * i)) & 0x3F
-        if idx < len(lookup):
-            result.append(lookup[idx])
+    for i in range(7):
+        idx = (params >> (4 * i)) & 0xF
+        if idx == 0:
+            break  # terminator
+        if idx - 1 < len(table):
+            result.append(table[idx - 1])
     
     return bytes(result)
 

@@ -583,21 +583,15 @@ def _find_setup_candidates(target, max_setup_seeds=50, time_budget=12.0):
 # ============================================================
 
 def _build_freq_table(target: bytes) -> bytes:
-    """Build a 256-byte frequency-ranked table.
+    """Build a frequency-ranked byte table for FREQ_TABLE strategy.
     
-    Returns bytes where table[i] is the i-th most frequent byte value.
-    Indices 0-63 cover the top 64 bytes (used by FREQ_TABLE strategy).
+    Returns the top 15 bytes ranked by frequency (most common first).
+    Used by FREQ_TABLE v2 encoding: 7 x 4-bit indices into this 15-entry table,
+    giving up to 7 bytes per seed.
     """
     freq = Counter(target)
-    # Sort by frequency descending, then by byte value for determinism
-    ranked = sorted(freq.keys(), key=lambda b: (-freq[b], b))
-    # Pad to 256 entries with unused byte values
-    table = bytearray(ranked)
-    used = set(ranked)
-    for b in range(256):
-        if b not in used:
-            table.append(b)
-    return bytes(table[:256])
+    ranked = sorted(freq.keys(), key=lambda b: (-freq[b], b))[:15]
+    return bytes(ranked)
 
 
 # Pre-built keyword tables for common file types
@@ -671,34 +665,36 @@ def _build_keyword_table(target: bytes) -> list:
 
 
 def _try_freq_table_encode(segment: bytes, freq_table: bytes) -> tuple:
-    """Try to encode a segment using FREQ_TABLE strategy (0xB).
+    """Try to encode a segment using FREQ_TABLE v2 strategy (0xB).
     
     Returns (seed, n_bytes_encoded) or None.
     
-    Bit layout: [3:0] count (1-4), [27:4] up to 4 x 6-bit indices
-    into top 64 bytes from freq_table.
+    V2 format: 7 x 4-bit indices into 15-entry table.
+    Index 0 = terminator. Indices 1-15 = byte values.
+    Max 7 bytes per seed.
     """
-    if len(segment) < 1 or len(segment) > 4:
+    if len(segment) < 1 or len(segment) > 7:
         return None
     
-    # Build reverse lookup: byte_value -> index (in top 64)
+    # Build reverse lookup: byte_value -> index (1-15)
     lookup = {}
-    for i in range(min(64, len(freq_table))):
-        lookup[freq_table[i]] = i
+    for i in range(len(freq_table)):
+        lookup[freq_table[i]] = i + 1  # 1-indexed (0 = terminator)
     
-    # Check all bytes are in the top 64
+    # Check all bytes are in the top 15
     indices = []
     for b in segment:
         if b not in lookup:
             return None
         indices.append(lookup[b])
     
-    # Pack: count (4 bits) + up to 4 x 6-bit indices (24 bits)
-    count = len(indices)
-    data = 0
-    for i, idx in enumerate(indices):
-        data |= (idx & 0x3F) << (6 * i)
-    params = count | (data << 4)
+    # Pack: up to 7 x 4-bit indices (index 0 = terminator for unused slots)
+    params = 0
+    for i in range(7):
+        if i < len(indices):
+            params |= (indices[i] & 0xF) << (4 * i)
+        # else: 0 (terminator) -- already zero
+    
     seed = 0xB0000000 | params
     
     # Verify roundtrip
@@ -757,7 +753,7 @@ def _try_keyword_table_encode(segment: bytes, keywords: list) -> tuple:
         return None
     
     total_bytes = pos
-    if total_bytes < 3:  # Not worth it for very short matches
+    if total_bytes < 5:  # Not worth it for short matches (BYTEPACK/LZ77 better)
         return None
     
     # Pack: count (4 bits) + up to 4 x 6-bit indices (24 bits)
@@ -868,10 +864,10 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
     freq_table = _build_freq_table(target)
     from expand import set_freq_table
     set_freq_table(freq_table)
-    # Show top 64 coverage
+    # Show top-15 coverage
     ft_freq = Counter(target)
-    ft_top64 = sum(ft_freq.get(freq_table[i], 0) for i in range(min(64, len(freq_table))))
-    print(f"  FREQ_TABLE top-64 coverage: {ft_top64}/{tlen} ({ft_top64/tlen*100:.1f}%)")
+    ft_top15 = sum(ft_freq.get(freq_table[i], 0) for i in range(len(freq_table)))
+    print(f"  FREQ_TABLE v2 top-15 coverage: {ft_top15}/{tlen} ({ft_top15/tlen*100:.1f}%)")
 
     # Build keyword table for KEYWORD_TABLE strategy
     keyword_table = _build_keyword_table(target)
@@ -1209,11 +1205,11 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
                 matches[pos].append((seg_len, seed, "BYTEPACK"))
 
         # --- FREQ_TABLE (strategy 0xB): frequency-ranked byte encoding ---
-        # Try 1-4 byte segments using top-64 frequency lookup
+        # Try 1-7 byte segments using top-15 frequency lookup (4-bit indices)
         from expand import get_freq_table
         ft = get_freq_table()
         if ft is not None:
-            for seg_len in range(min(4, remaining), 0, -1):
+            for seg_len in range(min(7, remaining), 0, -1):
                 seg = target[pos:pos + seg_len]
                 ft_result = _try_freq_table_encode(seg, ft)
                 if ft_result:
@@ -1224,7 +1220,7 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
         # --- KEYWORD_TABLE (strategy 0xD): keyword lookup encoding ---
         from expand import get_keyword_table
         kw_table = get_keyword_table()
-        if kw_table is not None and remaining >= 3:
+        if kw_table is not None and remaining >= 5:
             # Try keyword matching at this position (up to remaining bytes)
             seg = target[pos:pos + min(40, remaining)]
             kw_result = _try_keyword_table_encode(seg, kw_table)
