@@ -153,6 +153,16 @@ def expand_from_png_v3(png_data: bytes) -> bytes:
         except (ValueError, UnicodeDecodeError):
             pass
     
+    # Handle file-specific mode-6 BYTEPACK table
+    bp_mode6_hex = _read_text_chunk(png_data, 'bp_mode6_table')
+    if bp_mode6_hex:
+        from expand import set_file_specific_mode6_table
+        try:
+            table_str = bytes.fromhex(bp_mode6_hex).decode('latin-1')
+            set_file_specific_mode6_table(table_str)
+        except (ValueError, UnicodeDecodeError):
+            pass
+    
     try:
         ctx = ExpandContext(xor_mode=xor_mode)
         result = bytearray()
@@ -167,10 +177,13 @@ def expand_from_png_v3(png_data: bytes) -> bytes:
         
         return bytes(result)
     finally:
-        # Always reset table to default after expansion
+        # Always reset tables to default after expansion
         if bp8table_hex:
             from expand import set_file_specific_table
             set_file_specific_table(None)
+        if bp_mode6_hex:
+            from expand import set_file_specific_mode6_table
+            set_file_specific_mode6_table(None)
 
 
 # ============================================================

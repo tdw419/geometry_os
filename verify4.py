@@ -193,8 +193,12 @@ def test_v4_multiple_display_seeds():
 # V4 PNG Round-Trip Tests
 # ============================================================
 
-def _make_v4_png(seeds: list, seed_count: int = None) -> bytes:
-    """Build a V4 PNG with t6mode metadata."""
+def _make_v4_png(seeds: list, seed_count: int = None, extra_text_chunks: dict = None) -> bytes:
+    """Build a V4 PNG with t6mode metadata.
+    
+    extra_text_chunks: optional dict of {key: bytes_value} for additional tEXt chunks
+    (e.g. bp8table, bp_mode6_table from a V3 PNG).
+    """
     n = seed_count if seed_count is not None else len(seeds)
     width = 1
     height = n
@@ -227,6 +231,9 @@ def _make_v4_png(seeds: list, seed_count: int = None) -> bytes:
     chunks = [signature, ihdr]
     chunks.append(chunk(b'tEXt', b'seedcnt\x00' + str(n).encode()))
     chunks.append(chunk(b'tEXt', b't6mode\x001'))
+    if extra_text_chunks:
+        for key, value in extra_text_chunks.items():
+            chunks.append(chunk(b'tEXt', key.encode() + b'\x00' + value))
     idat = chunk(b'IDAT', compressed)
     iend = chunk(b'IEND', b'')
     chunks.extend([idat, iend])
@@ -343,9 +350,17 @@ def test_v4_fibonacci_with_boot():
     v3_seeds, v3_count = extract_seeds_from_png(v3_png)
     real_seeds = v3_seeds[:v3_count]
 
+    # Extract file-specific tables from V3 PNG tEXt chunks
+    extra_chunks = {}
+    from expand3 import _read_text_chunk
+    for key in ['bp8table', 'bp_mode6_table']:
+        val = _read_text_chunk(v3_png, key)
+        if val:
+            extra_chunks[key] = val.encode()
+
     boot_end = make_boot_end_seed()
     all_seeds = [boot_end] + real_seeds
-    v4_png = _make_v4_png(all_seeds)
+    v4_png = _make_v4_png(all_seeds, extra_text_chunks=extra_chunks if extra_chunks else None)
 
     v4_result = expand_from_png_v4(v4_png)
     assert v4_result == target, f"V4 fib decode mismatch: got {len(v4_result)} bytes"

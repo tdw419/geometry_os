@@ -320,6 +320,9 @@ def expand_from_png_v4(png_data: bytes) -> bytes:
 
     Reads t6mode flag. If present and =1, uses V4 expansion.
     Otherwise falls back to V3 (which falls back to V2).
+    
+    When t6mode=1, also checks for bp8table and bp_mode6_table tEXt chunks
+    and sets them before expanding seeds (resets after).
     """
     t6mode = _read_text_chunk(png_data, 't6mode')
 
@@ -327,39 +330,67 @@ def expand_from_png_v4(png_data: bytes) -> bytes:
         # Not a phase 4 PNG -- use V3 expansion
         return expand_from_png_v3(png_data)
 
-    seeds, real_count = extract_seeds_from_png(png_data)
-    real_seeds = seeds[:real_count]
+    # Check for file-specific tables
+    bp8table_hex = _read_text_chunk(png_data, 'bp8table')
+    bp_mode6_hex = _read_text_chunk(png_data, 'bp_mode6_table')
+    
+    if bp8table_hex:
+        from expand import set_file_specific_table
+        try:
+            table_str = bytes.fromhex(bp8table_hex).decode('latin-1')
+            set_file_specific_table(table_str)
+        except (ValueError, UnicodeDecodeError):
+            pass
+    if bp_mode6_hex:
+        from expand import set_file_specific_mode6_table
+        try:
+            table_str = bytes.fromhex(bp_mode6_hex).decode('latin-1')
+            set_file_specific_mode6_table(table_str)
+        except (ValueError, UnicodeDecodeError):
+            pass
 
-    boot_ctx = BootContext()
-    expand_ctx = ExpandContext()
-    result = bytearray()
-    in_boot = True
+    try:
+        seeds, real_count = extract_seeds_from_png(png_data)
+        real_seeds = seeds[:real_count]
 
-    for seed in real_seeds:
-        if in_boot:
-            decoded = _decode_boot_opcode(seed)
-            if decoded is not None:
-                action = _execute_boot_pixel(seed, boot_ctx)
-                if action == 'boot_end':
+        boot_ctx = BootContext()
+        expand_ctx = ExpandContext()
+        result = bytearray()
+        in_boot = True
+
+        for seed in real_seeds:
+            if in_boot:
+                decoded = _decode_boot_opcode(seed)
+                if decoded is not None:
+                    action = _execute_boot_pixel(seed, boot_ctx)
+                    if action == 'boot_end':
+                        in_boot = False
+                        expand_ctx.xor_mode = boot_ctx.xor_mode
+                    continue
+                else:
                     in_boot = False
                     expand_ctx.xor_mode = boot_ctx.xor_mode
-                continue
+
+            strategy = (seed >> 28) & 0xF
+            if strategy == 0x9 and boot_ctx.custom_bpe_table is not None:
+                # BPE with custom table
+                expanded = _expand_bpe_with_table(seed, boot_ctx.custom_bpe_table)
+                expand_ctx.output_buffer.extend(expanded)
             else:
-                in_boot = False
-                expand_ctx.xor_mode = boot_ctx.xor_mode
+                expanded = expand_with_context(seed, expand_ctx)
+            result.extend(expanded)
 
-        strategy = (seed >> 28) & 0xF
-        if strategy == 0x9 and boot_ctx.custom_bpe_table is not None:
-            # BPE with custom table
-            expanded = _expand_bpe_with_table(seed, boot_ctx.custom_bpe_table)
-            expand_ctx.output_buffer.extend(expanded)
-        else:
-            expanded = expand_with_context(seed, expand_ctx)
-        result.extend(expanded)
-
-    # Apply post-expansion transform
-    result = apply_transform(bytes(result), boot_ctx.transform_type, boot_ctx.transform_param)
-    return result
+        # Apply post-expansion transform
+        result = apply_transform(bytes(result), boot_ctx.transform_type, boot_ctx.transform_param)
+        return result
+    finally:
+        # Reset file-specific tables
+        if bp8table_hex:
+            from expand import set_file_specific_table
+            set_file_specific_table(None)
+        if bp_mode6_hex:
+            from expand import set_file_specific_mode6_table
+            set_file_specific_mode6_table(None)
 
 
 # ============================================================

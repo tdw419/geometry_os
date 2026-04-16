@@ -99,6 +99,7 @@ BPE_PAIR_TABLE = [
 # hardcoded Python-source table. Set via set_file_specific_table()
 # before expanding seeds that use it. Transported via PNG tEXt chunk.
 _FILE_SPECIFIC_TABLE = None  # None = use default mode 3 table
+_FILE_SPECIFIC_MODE6_TABLE = None  # None = use default mode 6 table
 
 def set_file_specific_table(table: str):
     """Set the file-specific BYTEPACK table (16 chars)."""
@@ -110,6 +111,18 @@ def set_file_specific_table(table: str):
 def get_file_specific_table() -> str:
     """Get the current file-specific table, or default if not set."""
     return _FILE_SPECIFIC_TABLE if _FILE_SPECIFIC_TABLE is not None else ' \netnari=:s(,lfd'
+
+
+def set_file_specific_mode6_table(table: str):
+    """Set the file-specific BYTEPACK mode-6 table (32 chars)."""
+    global _FILE_SPECIFIC_MODE6_TABLE
+    if table is not None and len(table) != 32:
+        raise ValueError(f"Mode-6 table must be 32 chars, got {len(table)}")
+    _FILE_SPECIFIC_MODE6_TABLE = table
+
+def get_file_specific_mode6_table() -> str:
+    """Get the current file-specific mode-6 table, or default if not set."""
+    return _FILE_SPECIFIC_MODE6_TABLE if _FILE_SPECIFIC_MODE6_TABLE is not None else ' etab\nr\'sni,d)(lxop=y0u_:Fc-fm1"'
 
 
 # === EXPANDER ===
@@ -332,8 +345,9 @@ def _expand_bytepack(params):
 
     elif mode == 6:
         # 5 bytes via 5-bit Python-source table (top 32 chars by frequency)
-        # 86.6% coverage of Python source -- includes \n, ', digits, common letters
-        table = ' etab\nr\'sni,d)(lxop=y0u_:Fc-fm1"'
+        # Uses file-specific table when set (via set_file_specific_mode6_table),
+        # otherwise falls back to the default Python-source table.
+        table = get_file_specific_mode6_table()
         result = bytearray()
         for i in range(5):
             idx = (data >> (5 * i)) & 0x1F

@@ -74,15 +74,51 @@ def _build_optimal_bytepack_table(target: bytes, min_improvement: float = 0.05) 
     return optimal_table
 
 
+def _build_optimal_mode6_table(target: bytes, min_improvement: float = 0.05) -> str:
+    """Build an optimal 32-char BYTEPACK mode-6 table for the given target bytes.
+    
+    Returns the table as a 32-char string, or None if the default table
+    is already good enough (improvement < min_improvement).
+    
+    The table is ranked by byte frequency: index 0 = most frequent byte.
+    """
+    DEFAULT_TABLE = ' etab\nr\'sni,d)(lxop=y0u_:Fc-fm1"'
+    
+    freq = Counter(target)
+    total = len(target)
+    
+    # Compute default table coverage
+    default_covered = sum(freq.get(ord(c), 0) for c in DEFAULT_TABLE)
+    default_pct = default_covered / total if total > 0 else 0
+    
+    # Build optimal table: top 32 bytes by frequency
+    optimal_chars = [chr(b) for b, _ in freq.most_common(32)]
+    # Pad to 32 if fewer unique bytes
+    while len(optimal_chars) < 32:
+        optimal_chars.append('\x00')
+    optimal_table = ''.join(optimal_chars)
+    
+    # Compute optimal table coverage
+    optimal_covered = sum(freq.get(ord(c), 0) for c in optimal_table)
+    optimal_pct = optimal_covered / total if total > 0 else 0
+    
+    improvement = optimal_pct - default_pct
+    if improvement < min_improvement:
+        return None
+    
+    return optimal_table
+
+
 # ============================================================
 # PNG Construction
 # ============================================================
 
 def make_v3_png(seeds: list, xor_mode: bool = False, dict_only: int = 0,
-                bp8table: str = None) -> bytes:
+                bp8table: str = None, bp_mode6_table: str = None) -> bytes:
     """Create a PNG with phase 3 metadata. dict_only = number of setup seeds.
     
     bp8table: optional 16-char string for file-specific BYTEPACK mode 3 table.
+    bp_mode6_table: optional 32-char string for file-specific BYTEPACK mode 6 table.
     """
     n = len(seeds)
     width, height = _auto_dimensions(n)
@@ -97,11 +133,11 @@ def make_v3_png(seeds: list, xor_mode: bool = False, dict_only: int = 0,
                 r, g, b, a = 0, 0, 0, 0
             raw_rows.extend([r, g, b, a])
     compressed = zlib.compress(bytes(raw_rows))
-    return _build_v3_png(width, height, compressed, n, xor_mode, dict_only, bp8table)
+    return _build_v3_png(width, height, compressed, n, xor_mode, dict_only, bp8table, bp_mode6_table)
 
 
 def _build_v3_png(width, height, compressed_data, seed_count, xor_mode=False,
-                   dict_only=0, bp8table=None):
+                   dict_only=0, bp8table=None, bp_mode6_table=None):
     def chunk(chunk_type, data):
         c = chunk_type + data
         crc = zlib.crc32(c) & 0xFFFFFFFF
@@ -120,6 +156,9 @@ def _build_v3_png(width, height, compressed_data, seed_count, xor_mode=False,
     if bp8table is not None:
         table_hex = bp8table.encode('latin-1').hex()
         chunks.append(chunk(b'tEXt', b'bp8table\x00' + table_hex.encode()))
+    if bp_mode6_table is not None:
+        table_hex = bp_mode6_table.encode('latin-1').hex()
+        chunks.append(chunk(b'tEXt', b'bp_mode6_table\x00' + table_hex.encode()))
     idat = chunk(b'IDAT', compressed_data)
     iend = chunk(b'IEND', b'')
     chunks.extend([idat, iend])
@@ -513,6 +552,21 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
         from expand import set_file_specific_table
         set_file_specific_table(None)
 
+    # Build file-specific mode-6 table (32-char) if it helps
+    bp_mode6_table = _build_optimal_mode6_table(target, min_improvement=0.03)
+    if bp_mode6_table:
+        from expand import set_file_specific_mode6_table, get_file_specific_mode6_table
+        set_file_specific_mode6_table(bp_mode6_table)
+        freq6 = Counter(target)
+        total6 = len(target)
+        default6_table = ' etab\nr\'sni,d)(lxop=y0u_:Fc-fm1"'
+        default6_covered = sum(freq6.get(ord(c), 0) for c in default6_table)
+        mode6_covered = sum(freq6.get(ord(c), 0) for c in bp_mode6_table)
+        print(f"  File-specific mode-6 table: {mode6_covered}/{total6} ({mode6_covered/total6*100:.1f}%) vs default {default6_covered}/{total6} ({default6_covered/total6*100:.1f}%)")
+    else:
+        from expand import set_file_specific_mode6_table
+        set_file_specific_mode6_table(None)
+
     # Get V2 baseline -- but verify it actually covers the full file
     v2_seeds = _find_multi_seeds_dp(target, timeout * 0.15, max_seeds=128)
     v2_count = len(v2_seeds) if v2_seeds else 999
@@ -546,7 +600,7 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
         total_a = len(data_seeds_a)
         if total_a <= best_total:
             png_a = make_v3_png(data_seeds_a, xor_mode=use_xor, dict_only=0,
-                                bp8table=bp8table)
+                                bp8table=bp8table, bp_mode6_table=bp_mode6_table)
             decoded_a = expand_from_png_v3(png_a)
             if decoded_a == target:
                 best_total = total_a
@@ -581,7 +635,7 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
         if total_b <= best_total:
             png_b = make_v3_png(all_setup_seeds + data_seeds_b,
                                 xor_mode=use_xor, dict_only=len(all_setup_seeds),
-                                bp8table=bp8table)
+                                bp8table=bp8table, bp_mode6_table=bp_mode6_table)
             decoded_b = expand_from_png_v3(png_b)
             if decoded_b == target:
                 print(f"  With-setup V3: {total_b} pixels ({len(all_setup_seeds)} setup + {len(data_seeds_b)} data)")
@@ -610,8 +664,9 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
     # Report results
     if best_data_seeds is None or best_png is None:
         print(f"  FAILED: Could not encode {tlen} bytes")
-        from expand import set_file_specific_table
+        from expand import set_file_specific_table, set_file_specific_mode6_table
         set_file_specific_table(None)
+        set_file_specific_mode6_table(None)
         if output_png:
             return None, None
         return None, None
@@ -626,9 +681,10 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
 
     _show_strategy_breakdown(all_seeds, dict_only)
 
-    # Reset file-specific table after encoding
-    from expand import set_file_specific_table
+    # Reset file-specific tables after encoding
+    from expand import set_file_specific_table, set_file_specific_mode6_table
     set_file_specific_table(None)
+    set_file_specific_mode6_table(None)
 
     if output_png:
         with open(output_png, 'wb') as f:

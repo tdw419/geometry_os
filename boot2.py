@@ -457,8 +457,13 @@ def _quick_bytepack(target):
             return seed
     
     # Mode 3: Compact 6-char via 4-bit indices into Python-source table
+    # Uses file-specific table when set, otherwise falls back to default.
     if tlen == 6:
-        table = ' \netnari=:s(,lfd'
+        try:
+            from expand import get_file_specific_table
+            table = get_file_specific_table()
+        except ImportError:
+            table = ' \netnari=:s(,lfd'
         try:
             indices = [table.index(chr(b)) for b in target]
             data = sum(idx << (4 * i) for i, idx in enumerate(indices))
@@ -488,8 +493,13 @@ def _quick_bytepack(target):
                     return seed
     
     # Mode 6: 5 bytes via Python-source table (top 32 chars by frequency)
+    # Uses file-specific table when set, otherwise falls back to default.
     if tlen == 5:
-        table = ' etab\nr\'sni,d)(lxop=y0u_:Fc-fm1"'
+        try:
+            from expand import get_file_specific_mode6_table
+            table = get_file_specific_mode6_table()
+        except ImportError:
+            table = ' etab\nr\'sni,d)(lxop=y0u_:Fc-fm1"'
         try:
             indices = [table.index(chr(b)) for b in target]
             data = sum(idx << (5 * i) for i, idx in enumerate(indices))
