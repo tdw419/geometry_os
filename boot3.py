@@ -866,8 +866,8 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
     set_freq_table(freq_table)
     # Show top-15 coverage
     ft_freq = Counter(target)
-    ft_top15 = sum(ft_freq.get(freq_table[i], 0) for i in range(len(freq_table)))
-    print(f"  FREQ_TABLE v2 top-15 coverage: {ft_top15}/{tlen} ({ft_top15/tlen*100:.1f}%)")
+    ft_top = sum(ft_freq.get(freq_table[i], 0) for i in range(len(freq_table)))
+    print(f"  FREQ_TABLE v2 top-{len(freq_table)} coverage: {ft_top}/{tlen} ({ft_top/tlen*100:.1f}%)")
 
     # Build keyword table for KEYWORD_TABLE strategy
     keyword_table = _build_keyword_table(target)

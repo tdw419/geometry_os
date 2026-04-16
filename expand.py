@@ -466,7 +466,7 @@ def expand_freq_table(params: int) -> bytes:
       Indices 1-15 map to the top-15 most frequent bytes in the file.
       
     Max output: 7 bytes per seed.
-    Typical: 5-7 bytes for Python source (top-15 covers ~77% of bytes).
+    Typical: 5-7 bytes for Python source (top-15 covers ~65-75% of bytes).
     """
     table = get_freq_table()
     if table is None:
