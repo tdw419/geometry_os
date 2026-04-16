@@ -612,17 +612,41 @@ _PYTHON_KEYWORDS = [
 
 
 def _build_keyword_table(target: bytes) -> list:
-    """Build a keyword table from target bytes.
+    """Build a keyword table from target bytes using file-specific n-gram analysis.
     
-    Returns a list of up to 64 keyword byte strings, sorted by
-    (frequency * length) descending (best compression first).
-    Only includes keywords that actually appear in the target.
+    Returns a list of up to 64 keyword byte strings, ranked by
+    (frequency * length) -- the best compression candidates.
+    
+    Strategy: extract 3-6 byte n-grams from the file, rank by savings,
+    then deduplicate (remove substrings of longer keywords).
+    Also includes pre-built Python keywords as seeds.
     """
-    freq = Counter(target)
+    tlen = len(target)
+    if tlen < 10:
+        return None
     
-    # Score each keyword by how many bytes it would save
+    # Collect n-gram frequencies for n=3..6
+    ngram_freq = Counter()
+    for n in range(6, 2, -1):  # 6, 5, 4, 3
+        min_count = 3 if n <= 4 else 2
+        for i in range(tlen - n + 1):
+            ng = target[i:i+n]
+            ngram_freq[ng] += 1
+    
+    # Score by savings: (freq * length) -- bytes covered if used as keyword
     scored = []
+    for ng, count in ngram_freq.items():
+        if count < 2:  # Must appear at least twice
+            continue
+        if len(ng) < 3:  # Minimum 3 bytes per keyword
+            continue
+        savings = count * len(ng)
+        scored.append((savings, count, ng))
+    
+    # Also score pre-built Python keywords
     for kw in _PYTHON_KEYWORDS:
+        if len(kw) < 3:
+            continue
         count = 0
         pos = 0
         while True:
@@ -631,35 +655,28 @@ def _build_keyword_table(target: bytes) -> list:
                 break
             count += 1
             pos = idx + 1
-        if count > 0:
-            # Bytes saved = keyword_bytes * occurrences - seed_cost (1 seed)
-            savings = len(kw) * count
+        if count >= 2:
+            savings = count * len(kw)
             scored.append((savings, count, kw))
     
     # Sort by savings descending
     scored.sort(key=lambda x: -x[0])
     
-    # Take top 64
-    keywords = [kw for _, _, kw in scored[:64]]
-    
-    # Also scan for high-value bigrams not already covered
-    bigram_freq = Counter()
-    for i in range(len(target) - 1):
-        bg = target[i:i+2]
-        bigram_freq[bg] += 1
-    
-    for bg, count in bigram_freq.most_common(200):
+    # Deduplicate: remove n-grams that are substrings of longer, higher-ranked ones
+    # Process in order of savings (highest first)
+    keywords = []
+    keyword_bytes = set()  # Track byte ranges covered to avoid overlap
+    for savings, count, ng in scored:
         if len(keywords) >= 64:
             break
-        if bg not in keywords and count >= 5:
-            # Check it's not already a prefix/suffix of an existing keyword
-            is_subsumed = False
-            for kw in keywords:
-                if bg in kw and len(kw) > len(bg):
-                    is_subsumed = True
-                    break
-            if not is_subsumed:
-                keywords.append(bytes(bg))
+        # Skip if this n-gram is a substring of an already-selected keyword
+        is_substring = False
+        for existing in keywords:
+            if ng in existing and len(ng) < len(existing):
+                is_substring = True
+                break
+        if not is_substring:
+            keywords.append(ng)
     
     return keywords if keywords else None
 
@@ -753,7 +770,7 @@ def _try_keyword_table_encode(segment: bytes, keywords: list) -> tuple:
         return None
     
     total_bytes = pos
-    if total_bytes < 5:  # Not worth it for short matches (BYTEPACK/LZ77 better)
+    if total_bytes < 3:  # Minimum 3 bytes to be worth a keyword seed
         return None
     
     # Pack: count (4 bits) + up to 4 x 6-bit indices (24 bits)
@@ -1237,7 +1254,7 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
         # --- KEYWORD_TABLE (strategy 0xD): keyword lookup encoding ---
         from expand import get_keyword_table
         kw_table = get_keyword_table()
-        if kw_table is not None and remaining >= 5:
+        if kw_table is not None and remaining >= 3:
             # Try keyword matching at this position (up to remaining bytes)
             seg = target[pos:pos + min(40, remaining)]
             kw_result = _try_keyword_table_encode(seg, kw_table)
