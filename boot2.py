@@ -486,9 +486,9 @@ def _quick_bytepack(target):
                 if _verify(seed, target):
                     return seed
     
-    # Mode 6: 5 bytes via lowercase+digit table
+    # Mode 6: 5 bytes via Python-source table (top 32 chars)
     if tlen == 5:
-        table = 'abcdefghijklmnopqrstuvwxyz012345'
+        table = ' etnsa=riodp_lf()ubcmx:g,0hy"\'-.1[]vF2<E#TN>kP3+BwADRO4{}5L&'
         try:
             indices = [table.index(chr(b)) for b in target]
             data = sum(idx << (5 * i) for i, idx in enumerate(indices))
@@ -498,9 +498,9 @@ def _quick_bytepack(target):
         except (ValueError, OverflowError):
             pass
     
-    # Mode 7: 5 bytes via uppercase+symbol table
+    # Mode 7: 5 bytes via extended Python-source table (chars ranked 33-64)
     if tlen == 5:
-        table = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ !,.\n('
+        table = '.1[]vF27<E#TN>kP3CwBADO4{}5L&6S8GMjXzq9H;Y/!U*KWQ%JV\\@Z^~`|'[:32]
         try:
             indices = [table.index(chr(b)) for b in target]
             data = sum(idx << (5 * i) for i, idx in enumerate(indices))

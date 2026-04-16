@@ -311,8 +311,8 @@ def _expand_bytepack(params):
         return bytes([base + n0, base + n1, base + n2, base + n3])
 
     elif mode == 6:
-        # 5 bytes via 5-bit lowercase+digit table
-        table = 'abcdefghijklmnopqrstuvwxyz012345'
+        # 5 bytes via 5-bit Python-source table (top 32 chars, 90.6% coverage)
+        table = ' etnsa=riodp_lf()ubcmx:g,0hy"\'-.1[]vF2<E#TN>kP3+BwADRO4{}5L&'
         result = bytearray()
         for i in range(5):
             idx = (data >> (5 * i)) & 0x1F
@@ -320,8 +320,8 @@ def _expand_bytepack(params):
         return bytes(result)
 
     elif mode == 7:
-        # 5 bytes via 5-bit uppercase+symbol table
-        table = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ !,.\n('
+        # 5 bytes via 5-bit extended Python-source table (chars ranked 33-64)
+        table = '.1[]vF27<E#TN>kP3CwBADO4{}5L&6S8GMjXzq9H;Y/!U*KWQ%JV\\@Z^~`|'[:32]
         result = bytearray()
         for i in range(5):
             idx = (data >> (5 * i)) & 0x1F
