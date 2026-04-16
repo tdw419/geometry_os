@@ -350,7 +350,7 @@ def expand_from_png_v4(png_data: bytes) -> bytes:
             pass
 
     try:
-        seeds, real_count = extract_seeds_from_png(png_data)
+        seeds, real_count, _tables = extract_seeds_from_png(png_data)
         real_seeds = seeds[:real_count]
 
         boot_ctx = BootContext()

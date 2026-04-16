@@ -272,7 +272,7 @@ def test_v3_png_seed_extraction():
     seeds = [0x12345678, 0xABCDEF01, 0x00000003]
     png_data = make_v3_png(seeds, dict_only=1)
 
-    extracted_seeds, real_count = extract_seeds_from_png(png_data)
+    extracted_seeds, real_count, _tables = extract_seeds_from_png(png_data)
     # Extracted may include padding pixels; only compare real_count seeds
     assert real_count == 3, f"Expected real_count=3, got {real_count}"
     assert extracted_seeds[:real_count] == seeds, \

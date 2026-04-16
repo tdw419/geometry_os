@@ -139,7 +139,7 @@ def expand_from_png_v3(png_data: bytes) -> bytes:
         # Not a phase 3 PNG -- use V2 expansion
         return expand_from_png(png_data)
     
-    seeds, real_count = extract_seeds_from_png(png_data)
+    seeds, real_count, _tables = extract_seeds_from_png(png_data)
     real_seeds = seeds[:real_count]
     dict_only = _read_dict_only_count(png_data)
     

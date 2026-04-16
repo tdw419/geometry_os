@@ -325,7 +325,7 @@ def test_boot_pixel_as_image():
     png_data = _make_v4_png(all_seeds)
 
     # Extract seeds and verify they match
-    seeds, count = extract_seeds_from_png(png_data)
+    seeds, count, _tables = extract_seeds_from_png(png_data)
     assert count == 3
     assert seeds[0] == set_prof
     assert seeds[1] == boot_end
@@ -347,7 +347,7 @@ def test_v4_fibonacci_with_boot():
 
     # Manually build V4 PNG: add SET_PROFILE(0) + BOOT_END before V3 data seeds
     # First extract seeds from V3 PNG
-    v3_seeds, v3_count = extract_seeds_from_png(v3_png)
+    v3_seeds, v3_count, _tables = extract_seeds_from_png(v3_png)
     real_seeds = v3_seeds[:v3_count]
 
     # Extract file-specific tables from V3 PNG tEXt chunks

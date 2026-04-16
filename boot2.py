@@ -65,7 +65,7 @@ def read_multipixel_png(png_data: bytes) -> tuple:
         (width, height, seeds) where seeds is ONLY the real seeds
         (padding excluded via tEXt chunk metadata).
     """
-    all_seeds, real_count = extract_seeds_from_png(png_data)
+    all_seeds, real_count, _tables = extract_seeds_from_png(png_data)
     
     # Get dimensions from IHDR
     width = height = 0
