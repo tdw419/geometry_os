@@ -487,9 +487,9 @@ def _quick_bytepack(target):
                 if _verify(seed, target):
                     return seed
     
-    # Mode 6: 5 bytes via Python-source table (top 32 chars)
+    # Mode 6: 5 bytes via Python-source table (top 32 chars by frequency)
     if tlen == 5:
-        table = ' etnsa=riodp_lf()ubcmx:g,0hy"\'-.1[]vF2<E#TN>kP3+BwADRO4{}5L&'
+        table = ' etab\nr\'sni,d)(lxop=y0u_:Fc-fm1"'
         try:
             indices = [table.index(chr(b)) for b in target]
             data = sum(idx << (5 * i) for i, idx in enumerate(indices))
@@ -501,7 +501,7 @@ def _quick_bytepack(target):
     
     # Mode 7: 5 bytes via extended Python-source table (chars ranked 33-64)
     if tlen == 5:
-        table = '.1[]vF27<E#TN>kP3CwBADO4{}5L&6S8GMjXzq9H;Y/!U*KWQ%JV\\@Z^~`|'[:32]
+        table = 'I>2#ETg&hAC.B43675[]DP8+NvLRk\\XS'
         try:
             indices = [table.index(chr(b)) for b in target]
             data = sum(idx << (5 * i) for i, idx in enumerate(indices))
