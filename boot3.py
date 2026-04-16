@@ -277,7 +277,7 @@ def _find_v1_match(target, pos):
 # Setup Pattern Analysis
 # ============================================================
 
-def _find_setup_candidates(target, max_setup_seeds=10):
+def _find_setup_candidates(target, max_setup_seeds=10, time_budget=8.0):
     """
     Find repeated substrings worth pre-emitting into the reference buffer.
 
@@ -289,12 +289,29 @@ def _find_setup_candidates(target, max_setup_seeds=10):
 
     Returns list of (pattern, setup_seeds, v1_cost, occurrences, net_savings)
     sorted by net_savings descending.
+
+    Performance: uses hash-based grouping + time budget to avoid O(n^2)
+    blowup on large files. Skips DP evaluation for unpromising candidates.
     """
+    t_start = time.time()
     tlen = len(target)
+
+    # Fast path: skip setup entirely for very large files
+    # (LZ77 from natural output is sufficient when there's enough context)
+    if tlen > 20000:
+        return []
+
+    # Adjust pattern length range for larger files
+    max_pattern = 30 if tlen <= 4000 else (20 if tlen <= 8000 else 14)
+    min_pattern = 4
+
+    # Phase 1: Find repeated substrings using hash-based grouping.
+    # For efficiency, group by 4-byte prefix hash first, then deduplicate.
     candidates = {}
 
-    # Find all repeated substrings (4-30 bytes, appearing >= 2 times)
-    for length in range(30, 3, -1):
+    for length in range(max_pattern, min_pattern - 1, -1):
+        if time.time() - t_start > time_budget * 0.2:
+            break
         seen = {}
         for i in range(tlen - length + 1):
             sub = target[i:i+length]
@@ -306,42 +323,65 @@ def _find_setup_candidates(target, max_setup_seeds=10):
             else:
                 seen[sub] = i
 
-    # Filter to only patterns appearing >= 2 times
+    # Filter to patterns appearing >= 2 times
     candidates = {k: v for k, v in candidates.items() if len(v) >= 2}
 
-    # For each candidate, compute cost/benefit
-    scored = []
+    # Phase 2: Pre-sort by estimated savings (frequency * length) to evaluate
+    # the most promising candidates first. This lets us stop early when we've
+    # found enough good patterns or hit the time budget.
+    prelim = []
     for pattern, positions in candidates.items():
         occurrences = len(positions)
+        # Estimated V1 cost: ~1 seed per 3-5 bytes (rough heuristic)
+        est_v1_cost = max(1, (len(pattern) + 2) // 3)
+        est_savings = est_v1_cost * occurrences - est_v1_cost - occurrences
+        if est_savings > 0:
+            prelim.append((est_savings, pattern, positions))
 
-        # V1 cost to encode one occurrence (using multi-seed DP)
-        v1_seeds = _find_multi_seeds_dp(pattern, timeout=2.0, max_seeds=32)
+    prelim.sort(key=lambda x: -x[0])
+
+    # Phase 3: Evaluate top candidates with actual DP, time-budgeted.
+    # Stop after finding max_setup_seeds worth of patterns or running out of budget.
+    dp_time_per = 0.5 if tlen <= 4000 else 0.3
+    max_candidates = 20 if tlen <= 4000 else 12
+    evaluated = 0
+
+    scored = []
+    for est_sav, pattern, positions in prelim:
+        if evaluated >= max_candidates:
+            break
+        if time.time() - t_start > time_budget * 0.8:
+            break
+
+        occurrences = len(positions)
+
+        # Quick check: if pattern fits in 1 V1 seed, LZ77 can't save
+        # (1 seed either way). Skip the expensive DP call.
+        if len(pattern) <= 5:
+            # BYTEPACK covers up to 5 bytes in 1 seed
+            continue
+
+        v1_seeds = _find_multi_seeds_dp(pattern, timeout=dp_time_per, max_seeds=16)
+        evaluated += 1
         if not v1_seeds:
             continue
         v1_cost = len(v1_seeds)
 
-        # Setup cost = same as v1_cost (we need to encode it as dict_only seeds)
-        setup_cost = v1_cost
-
-        # Without setup: v1_cost * occurrences total pixels
-        # With setup: setup_cost + occurrences LZ77 pixels
-        # But wait - LZ77 is only useful when v1_cost > 1.
-        # If v1_cost == 1, LZ77 saves nothing (1 pixel either way).
         if v1_cost <= 1:
             continue
 
+        setup_cost = v1_cost
         net_savings = (v1_cost * occurrences) - (setup_cost + occurrences)
         if net_savings > 0:
             scored.append((pattern, v1_seeds, v1_cost, occurrences, positions, net_savings))
 
     scored.sort(key=lambda x: -x[5])
 
-    # Select non-overlapping patterns greedily by savings
+    # Phase 4: Select non-overlapping patterns greedily by savings
     selected = []
     covered_positions = set()
 
     for pattern, v1_seeds, v1_cost, occurrences, positions, net_savings in scored:
-        # Check how many occurrences don't overlap with already-selected patterns
         usable_positions = []
         for pos in positions:
             overlap = False
@@ -355,12 +395,10 @@ def _find_setup_candidates(target, max_setup_seeds=10):
         if len(usable_positions) < 2:
             continue
 
-        # Recalculate savings with actual usable positions
         actual_savings = (v1_cost * len(usable_positions)) - (len(v1_seeds) + len(usable_positions))
         if actual_savings <= 0:
             continue
 
-        # Mark positions as covered
         for pos in usable_positions:
             for j in range(len(pattern)):
                 covered_positions.add(pos + j)
@@ -395,14 +433,21 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
     except UnicodeDecodeError:
         pass
 
-    # Get V2 baseline
+    # Get V2 baseline -- but verify it actually covers the full file
     v2_seeds = _find_multi_seeds_dp(target, timeout * 0.15, max_seeds=128)
     v2_count = len(v2_seeds) if v2_seeds else 999
-    print(f"  V2 baseline: {v2_count} seeds")
+    v2_valid = False
+    if v2_seeds:
+        v2_decoded = expand_multi(v2_seeds)
+        v2_valid = (len(v2_decoded) >= tlen and v2_decoded[:tlen] == target)
+    print(f"  V2 baseline: {v2_count} seeds (covers file: {v2_valid})")
 
     # Strategy: try encoding with and without setup seeds, pick best.
     # Also compare to V2 baseline -- never use more pixels than V2.
-    best_total = v2_count  # V2 baseline as initial best
+    # V2 is only a valid baseline if it actually covers the full file.
+    # If V2 only covers a fraction (hit max_seeds cap), any full V3 encoding wins.
+    INF = float('inf')
+    best_total = v2_count if v2_valid else INF
     best_seeds_list = v2_seeds  # Store as a flat list for V2 fallback
     best_is_v3 = False
     best_setup_seeds = []
@@ -465,23 +510,34 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
                     best_png = png_b
                     best_is_v3 = True
 
-    # If no V3 option beat V2, use V2
+    # If no V3 option beat V2, use V2 (but only if V2 actually covers the file)
     if best_png is None or not best_is_v3:
-        print(f"  V2 fallback: {v2_count} pixels (V3 could not improve)")
-        # Build a simple V3 PNG from V2 seeds (no context needed)
-        from boot2 import make_multipixel_png
-        best_png = make_multipixel_png(v2_seeds)
-        best_setup_seeds = []
-        best_data_seeds = v2_seeds
-        best_total = v2_count
+        if v2_valid:
+            print(f"  V2 fallback: {v2_count} pixels (V3 could not improve)")
+            # Build a simple V3 PNG from V2 seeds (no context needed)
+            from boot2 import make_multipixel_png
+            best_png = make_multipixel_png(v2_seeds)
+            best_setup_seeds = []
+            best_data_seeds = v2_seeds
+            best_total = v2_count
+        else:
+            print(f"  ERROR: No valid encoding found (V2 partial, V3 failed)")
+            best_data_seeds = None
+            best_png = None
 
     # Report results
+    if best_data_seeds is None or best_png is None:
+        print(f"  FAILED: Could not encode {tlen} bytes")
+        if output_png:
+            return None, None
+        return None, None
+
     dict_only = len(best_setup_seeds)
     all_seeds = best_setup_seeds + best_data_seeds
     width, height = _auto_dimensions(len(all_seeds))
     print(f"  V3 result: {tlen}B -> {len(all_seeds)} pixels ({width}x{height}) [{dict_only} setup + {len(best_data_seeds)} data]")
-    saved = v2_count - len(all_seeds)
-    pct = (saved / v2_count * 100) if v2_count else 0
+    saved = v2_count - len(all_seeds) if v2_valid else 0
+    pct = (saved / v2_count * 100) if v2_count and v2_valid else 0
     print(f"  Saved: {saved} pixels ({pct:.0f}% reduction vs V2)")
 
     _show_strategy_breakdown(all_seeds, dict_only)
@@ -538,20 +594,32 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
                             timeout, global_start):
     """Enumerate all strategy matches at every position in target.
 
-    Uses hash-based LZ77 matching for O(n) per position instead of O(n^2).
-    Returns matches[pos] = list of (length, seed, strategy_name).
+    Uses trigram hash-chain LZ77 for fast back-reference matching with
+    bounded chain walks (max 32 steps per lookup). Returns
+    matches[pos] = list of (length, seed, strategy_name).
     """
     tlen = len(target)
     matches = [[] for _ in range(tlen)]
 
-    # Build 2-byte hash table for the full buffer (setup + target)
-    # Maps hash(2 bytes) -> list of positions in full_buf
-    hash_table = {}
-    for i in range(len(full_buf) - 1):
-        key = full_buf[i] | (full_buf[i + 1] << 8)
-        if key not in hash_table:
-            hash_table[key] = []
-        hash_table[key].append(i)
+    # --- Build trigram hash-chain for LZ77 ---
+    # Hash: (data[i] << 10 ^ data[i+1] << 5 ^ data[i+2]) & 0x3FFF
+    # Chain: head[hash] -> position -> prev[position] -> earlier position
+    # Window: 32768 bytes (fits 16-bit offset field)
+    MAX_CHAIN_WALK = 32
+    HASH_SIZE = 16384  # 0x3FFF + 1
+    WINDOW = 32768
+
+    full_len = len(full_buf)
+    head = [-1] * HASH_SIZE       # head[hash] = most recent position
+    chain_prev = [-1] * full_len  # chain_prev[pos] = earlier pos with same hash
+
+    for i in range(full_len - 2):
+        h = ((full_buf[i] << 10) ^ (full_buf[i + 1] << 5) ^ full_buf[i + 2]) & 0x3FFF
+        chain_prev[i] = head[h]
+        head[h] = i
+
+    # Pre-import verify to avoid repeated import overhead
+    from find_seed import _pack_dict_seed, _verify as _seed_verify
 
     for pos in range(tlen):
         if time.time() - global_start > timeout:
@@ -565,9 +633,8 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
             decomp = _try_prefix_decompose(suffix, n, DICTIONARY)
             if decomp:
                 dlen = sum(len(DICTIONARY[i]) for i in decomp)
-                from find_seed import _pack_dict_seed, _verify
                 seed = _pack_dict_seed(n, decomp)
-                if _verify(seed, target[pos:pos+dlen]):
+                if _seed_verify(seed, target[pos:pos+dlen]):
                     matches[pos].append((dlen, seed, f"DICT_{n}"))
 
         # DICTX5
@@ -576,11 +643,10 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
             dlen = sum(len(DICTIONARY_EXT[i]) for i in decomp)
             params = sum((idx & 0x1F) << (5 * i) for i, idx in enumerate(decomp))
             seed = 0x80000000 | params
-            from find_seed import _verify
-            if _verify(seed, target[pos:pos+dlen]):
+            if _seed_verify(seed, target[pos:pos+dlen]):
                 matches[pos].append((dlen, seed, "DICTX5"))
 
-        # BPE (0x9): byte-pair encoding - try 2, 4, 6, 8 byte matches
+        # BPE (0x9): byte-pair encoding
         pair_to_idx_local = _bpe_pair_to_idx()
         for n_pairs in range(min(4, remaining // 2), 0, -1):
             pair_len = n_pairs * 2
@@ -597,14 +663,12 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
                 indices.append(idx)
             if not valid:
                 continue
-            # Pack 4 x 7-bit indices
             params = 0
             for i in range(4):
                 if i < n_pairs:
                     params |= (indices[i] & 0x7F) << (7 * i)
             seed = 0x90000000 | params
-            from find_seed import _verify
-            if _verify(seed, target[pos:pos+pair_len]):
+            if _seed_verify(seed, target[pos:pos+pair_len]):
                 matches[pos].append((pair_len, seed, "BPE"))
 
         # DICTX7
@@ -613,8 +677,7 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
             dlen = sum(len(SUB_DICT[i]) for i in decomp)
             params = sum((idx & 0xF) << (4 * i) for i, idx in enumerate(decomp))
             seed = 0xA0000000 | params
-            from find_seed import _verify
-            if _verify(seed, target[pos:pos+dlen]):
+            if _seed_verify(seed, target[pos:pos+dlen]):
                 matches[pos].append((dlen, seed, "DICTX7"))
 
         # NIBBLE
@@ -630,71 +693,130 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
             if seed:
                 matches[pos].append((seg_len, seed, "BYTEPACK"))
 
-        # --- LZ77 matches via hash table ---
-        # Buffer at position pos = full_buf[0 : buf_offset + pos]
-        buf_len = buf_offset + pos  # length of emitted buffer so far
-        if buf_len >= 1 and remaining >= 2:
+        # --- LZ77 matches via trigram hash-chain ---
+        buf_len = buf_offset + pos
+        if buf_len >= 2 and remaining >= 3:
             best_lz77_len = 0
             best_lz77_offset = 0
 
-            # Look up 2-byte key at target[pos:pos+2]
-            key = target[pos] | (target[pos + 1] << 8)
-            candidates = hash_table.get(key, [])
+            # Compute trigram hash at target[pos:pos+3]
+            h = ((target[pos] << 10) ^ (target[pos + 1] << 5) ^ target[pos + 2]) & 0x3FFF
+            cand = head[h]
+            steps = 0
 
-            # Only consider positions before buf_len in full_buf
-            for cand in candidates:
+            while cand >= 0 and steps < MAX_CHAIN_WALK:
+                steps += 1
+
+                # Only consider positions before buf_len (in the emitted buffer)
                 if cand >= buf_len:
+                    cand = chain_prev[cand]
                     continue
 
-                # Extend match
-                match_len = 0
-                max_match = min(remaining, 0xFFF)
-                ci = cand
-                ti = pos
-                while match_len < max_match:
-                    # Source byte: if ci < buf_len, use full_buf[ci]
-                    # else overlapping: use target[ti] (already matched)
-                    if ci < buf_len:
-                        if full_buf[ci] == target[ti]:
-                            match_len += 1
-                            ci += 1
-                            ti += 1
-                        else:
-                            break
-                    else:
-                        # Overlapping copy
-                        wrap_pos = ci - buf_len
-                        if wrap_pos < match_len and ti < tlen:
-                            if target[pos + wrap_pos] == target[ti]:
+                # Enforce window distance
+                offset = buf_len - 1 - cand
+                if offset >= WINDOW:
+                    cand = chain_prev[cand]
+                    continue
+
+                # Verify trigram matches before extending
+                if (full_buf[cand] == target[pos] and
+                    full_buf[cand + 1] == target[pos + 1] and
+                    full_buf[cand + 2] == target[pos + 2]):
+
+                    # Extend match
+                    match_len = 3  # trigram already matched
+                    max_match = min(remaining, 0xFFF)
+                    ci = cand + 3
+                    ti = pos + 3
+                    while match_len < max_match:
+                        if ci < buf_len:
+                            if full_buf[ci] == target[ti]:
                                 match_len += 1
                                 ci += 1
                                 ti += 1
                             else:
                                 break
                         else:
-                            break
+                            # Overlapping copy
+                            wrap_pos = ci - buf_len
+                            if wrap_pos < match_len and ti < tlen:
+                                if target[pos + wrap_pos] == target[ti]:
+                                    match_len += 1
+                                    ci += 1
+                                    ti += 1
+                                else:
+                                    break
+                            else:
+                                break
 
-                if match_len > best_lz77_len:
-                    offset = buf_len - 1 - cand
-                    if offset < (1 << 16):
+                    if match_len > best_lz77_len:
                         best_lz77_len = match_len
                         best_lz77_offset = offset
 
+                cand = chain_prev[cand]
+
             if best_lz77_len >= 2:
-                # Verify and add all valid lengths for DP flexibility
+                # Verify and add lengths for DP flexibility
                 emitted = full_buf[:buf_len]
                 if _verify_lz77(best_lz77_offset, best_lz77_len,
                                 emitted, target[pos:pos + best_lz77_len]):
-                    # Add key lengths: longest, and also some intermediate
+                    # Add key lengths for DP: longest, and intermediates
                     for length in range(2, best_lz77_len + 1):
                         seed = _make_lz77_seed(best_lz77_offset, length)
                         if seed:
                             matches[pos].append((length, seed, "LZ77"))
 
-        # --- search() fallback only at BYTEPACK length 1 (last resort) ---
-        # Don't call search() during enumeration -- it's too slow.
-        # The DP will find gaps and _dp_with_search_fallback fills them.
-        # Just ensure every position has at least a 1-byte BYTEPACK match.
+        # Also try 2-byte LZ77 for positions with buf_len >= 1
+        elif buf_len >= 1 and remaining >= 2:
+            best_lz77_len = 0
+            best_lz77_offset = 0
+
+            # Fall back to 2-byte scan for the first few positions
+            key2 = target[pos] | (target[pos + 1] << 8)
+            # Use a simplified scan of nearby positions
+            scan_start = max(0, buf_len - 512)  # last 512 bytes
+            for cand in range(scan_start, buf_len):
+                if full_buf[cand] == target[pos] and full_buf[cand + 1] == target[pos + 1]:
+                    match_len = 2
+                    max_match = min(remaining, 0xFFF)
+                    ci = cand + 2
+                    ti = pos + 2
+                    while match_len < max_match:
+                        if ci < buf_len:
+                            if full_buf[ci] == target[ti]:
+                                match_len += 1
+                                ci += 1
+                                ti += 1
+                            else:
+                                break
+                        else:
+                            wrap_pos = ci - buf_len
+                            if wrap_pos < match_len and ti < tlen:
+                                if target[pos + wrap_pos] == target[ti]:
+                                    match_len += 1
+                                    ci += 1
+                                    ti += 1
+                                else:
+                                    break
+                            else:
+                                break
+
+                    if match_len > best_lz77_len:
+                        offset = buf_len - 1 - cand
+                        if offset < (1 << 16):
+                            best_lz77_len = match_len
+                            best_lz77_offset = offset
+
+            if best_lz77_len >= 2:
+                emitted = full_buf[:buf_len]
+                if _verify_lz77(best_lz77_offset, best_lz77_len,
+                                emitted, target[pos:pos + best_lz77_len]):
+                    for length in range(2, best_lz77_len + 1):
+                        seed = _make_lz77_seed(best_lz77_offset, length)
+                        if seed:
+                            matches[pos].append((length, seed, "LZ77"))
+
+        # Ensure every position has at least a 1-byte BYTEPACK match
         if not matches[pos]:
             for seg_len in range(min(5, remaining), 0, -1):
                 seg = target[pos:pos + seg_len]
