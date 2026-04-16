@@ -17,6 +17,9 @@ Backward compatibility: PNGs without t6mode decode via V3 path.
 Phase 6a opcodes:
   0x0F: BOOT_END      -- end boot section, begin display
   0x3F: SET_PROFILE   -- load preset encoding configuration
+
+Phase 6b opcodes:
+  0x5F: SET_BPE_TABLE -- PRNG seed generates custom 127-entry byte-pair table
 """
 
 from dataclasses import dataclass, field
@@ -63,8 +66,59 @@ class BootContext:
 # Boot Instruction Decoder
 # ============================================================
 
-BOOT_END = 0x0       # opcode 0, sub 0xF -> 0x0F
-BOOT_SET_PROFILE = 0x3  # opcode 3, sub 0xF -> 0x3F
+BOOT_END = 0x0       # opcode 0
+BOOT_SET_PROFILE = 0x3  # opcode 3
+BOOT_SET_BPE_TABLE = 0x5  # opcode 5
+
+
+# ============================================================
+# PRNG-Based BPE Table Generator
+# ============================================================
+
+# The "vocabulary" -- byte values that appear in programs.
+# Weighted toward common ASCII: space, newline, letters, digits, symbols.
+# The PRNG selects pairs from this pool.
+_BYTE_POOL = bytes(range(32, 127))  # printable ASCII (95 chars)
+
+
+def generate_bpe_table(prng_seed: int) -> list:
+    """
+    Deterministically generate a 128-entry BPE pair table from a PRNG seed.
+    
+    Index 0 = empty (terminator, same as fixed table).
+    Indices 1-127 = byte pairs generated from the seed.
+    
+    Uses an LCG (Linear Congruential Generator) to produce pairs.
+    Each pair is two bytes selected from the printable ASCII pool.
+    
+    The seed space is 12 bits (0-4095), giving 4096 possible tables.
+    """
+    # LCG parameters (same as Numerical Recipes)
+    a = 1664525
+    c = 1013904223
+    state = prng_seed & 0xFFF  # 12-bit seed
+    
+    table = [b'']  # index 0 = empty/terminator
+    
+    # Generate 127 unique byte pairs
+    seen = set()
+    for _ in range(127 * 3):  # try up to 3x to fill table
+        if len(table) >= 128:
+            break
+        state = (a * state + c) & 0xFFFFFFFF
+        b1 = _BYTE_POOL[state % len(_BYTE_POOL)]
+        state = (a * state + c) & 0xFFFFFFFF
+        b2 = _BYTE_POOL[state % len(_BYTE_POOL)]
+        pair = bytes([b1, b2])
+        if pair not in seen:
+            seen.add(pair)
+            table.append(pair)
+    
+    # Pad if needed (shouldn't happen with 95^2 possible pairs)
+    while len(table) < 128:
+        table.append(b'')
+    
+    return table
 
 
 def _decode_boot_opcode(seed: int) -> tuple:
@@ -116,6 +170,12 @@ def _execute_boot_pixel(seed: int, boot_ctx: BootContext) -> str:
         # Config bits reserved for future use
         return 'continue'
 
+    elif opcode == 0x5:
+        # SET_BPE_TABLE -- payload is 12-bit PRNG seed
+        prng_seed = payload & 0xFFF
+        boot_ctx.custom_bpe_table = generate_bpe_table(prng_seed)
+        return 'continue'
+
     else:
         # Unknown opcode -- ignore silently (forward compat)
         return 'continue'
@@ -124,6 +184,24 @@ def _execute_boot_pixel(seed: int, boot_ctx: BootContext) -> str:
 # ============================================================
 # V4 Expansion
 # ============================================================
+
+def _expand_bpe_with_table(seed: int, bpe_table: list) -> bytes:
+    """
+    Expand a BPE seed using a custom byte-pair table.
+    Same logic as expand._expand_bpe but with a different table.
+    """
+    params = seed & 0x0FFFFFFF
+    result = bytearray()
+    for i in range(4):
+        idx = (params >> (7 * i)) & 0x7F
+        if idx == 0:
+            break  # terminator
+        if idx < len(bpe_table):
+            pair = bpe_table[idx]
+            if pair:
+                result.extend(pair)
+    return bytes(result)
+
 
 def expand_multi_v4(seeds: list, max_output: int = 65536) -> bytes:
     """
@@ -160,7 +238,13 @@ def expand_multi_v4(seeds: list, max_output: int = 65536) -> bytes:
                 expand_ctx.xor_mode = boot_ctx.xor_mode
 
         # Display pixel -- expand with context
-        expanded = expand_with_context(seed, expand_ctx)
+        strategy = (seed >> 28) & 0xF
+        if strategy == 0x9 and boot_ctx.custom_bpe_table is not None:
+            # BPE with custom table
+            expanded = _expand_bpe_with_table(seed, boot_ctx.custom_bpe_table)
+            expand_ctx.output_buffer.extend(expanded)
+        else:
+            expanded = expand_with_context(seed, expand_ctx)
         result.extend(expanded)
 
     return bytes(result[:max_output])
@@ -200,7 +284,13 @@ def expand_from_png_v4(png_data: bytes) -> bytes:
                 in_boot = False
                 expand_ctx.xor_mode = boot_ctx.xor_mode
 
-        expanded = expand_with_context(seed, expand_ctx)
+        strategy = (seed >> 28) & 0xF
+        if strategy == 0x9 and boot_ctx.custom_bpe_table is not None:
+            # BPE with custom table
+            expanded = _expand_bpe_with_table(seed, boot_ctx.custom_bpe_table)
+            expand_ctx.output_buffer.extend(expanded)
+        else:
+            expanded = expand_with_context(seed, expand_ctx)
         result.extend(expanded)
 
     return bytes(result)
@@ -227,6 +317,18 @@ def make_set_profile_seed(profile_id: int, config_bits: int = 0) -> int:
     payload = (profile_id << 20) | (config_bits & 0x0FFFFF)
     # strategy=0xF, opcode=0x3, payload
     return 0xF0000000 | (0x3 << 24) | payload
+
+
+def make_set_bpe_table_seed(prng_seed: int) -> int:
+    """
+    Construct a SET_BPE_TABLE seed.
+
+    prng_seed: 0-4095 (12 bits) -- seed for deterministic BPE table generation
+    """
+    if not (0 <= prng_seed <= 4095):
+        raise ValueError(f"prng_seed must be 0-4095, got {prng_seed}")
+    payload = prng_seed & 0xFFF
+    return 0xF0000000 | (0x5 << 24) | payload
 
 
 # ============================================================

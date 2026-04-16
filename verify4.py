@@ -21,7 +21,8 @@ from expand3 import (
 )
 from expand4 import (
     BootContext, expand_multi_v4, expand_from_png_v4,
-    make_boot_end_seed, make_set_profile_seed,
+    make_boot_end_seed, make_set_profile_seed, make_set_bpe_table_seed,
+    generate_bpe_table, _expand_bpe_with_table,
     _decode_boot_opcode, _execute_boot_pixel,
     PROFILES,
 )
@@ -351,6 +352,159 @@ def test_v4_fibonacci_with_boot():
 
 
 # ============================================================
+# SET_BPE_TABLE Tests
+# ============================================================
+
+def test_bpe_table_generation():
+    """PRNG-based BPE table generation produces valid 128-entry table."""
+    for seed in [0, 1, 42, 100, 4095]:
+        table = generate_bpe_table(seed)
+        assert len(table) == 128, f"Table length {len(table)} for seed {seed}"
+        assert table[0] == b'', f"Index 0 should be empty, got {table[0]!r}"
+        # All entries should be 2-byte pairs (or empty)
+        for i, entry in enumerate(table):
+            assert len(entry) == 0 or len(entry) == 2, \
+                f"Entry {i} has length {len(entry)} for seed {seed}"
+    print("  [PASS] [V4] BPE table generation")
+    return True
+
+
+def test_bpe_table_deterministic():
+    """Same PRNG seed produces identical table."""
+    for seed in [0, 42, 4095]:
+        t1 = generate_bpe_table(seed)
+        t2 = generate_bpe_table(seed)
+        assert t1 == t2, f"Seed {seed} not deterministic"
+    print("  [PASS] [V4] BPE table deterministic")
+    return True
+
+
+def test_bpe_table_unique_entries():
+    """Each PRNG table has unique entries."""
+    table = generate_bpe_table(42)
+    entries = [e for e in table[1:] if e]
+    assert len(set(entries)) == len(entries), "Duplicate entries in table"
+    print("  [PASS] [V4] BPE table unique entries")
+    return True
+
+
+def test_set_bpe_table_seed_construction():
+    """SET_BPE_TABLE seed has correct bit layout."""
+    for prng in [0, 1, 42, 100, 4095]:
+        seed = make_set_bpe_table_seed(prng)
+        strategy = (seed >> 28) & 0xF
+        opcode = (seed >> 24) & 0xF
+        payload = seed & 0x00FFFFFF
+        assert strategy == 0xF
+        assert opcode == 0x5
+        assert payload == prng
+    print("  [PASS] [V4] SET_BPE_TABLE construction")
+    return True
+
+
+def test_set_bpe_table_execution():
+    """SET_BPE_TABLE opcode sets custom_bpe_table on BootContext."""
+    ctx = BootContext()
+    assert ctx.custom_bpe_table is None
+
+    seed = make_set_bpe_table_seed(42)
+    action = _execute_boot_pixel(seed, ctx)
+    assert action == 'continue'
+    assert ctx.custom_bpe_table is not None
+    assert len(ctx.custom_bpe_table) == 128
+    assert ctx.custom_bpe_table[0] == b''
+
+    # Different seed produces different table
+    seed2 = make_set_bpe_table_seed(100)
+    _execute_boot_pixel(seed2, ctx)
+    assert ctx.custom_bpe_table != generate_bpe_table(42)
+    assert ctx.custom_bpe_table == generate_bpe_table(100)
+
+    print("  [PASS] [V4] SET_BPE_TABLE execution")
+    return True
+
+
+def test_custom_bpe_expansion():
+    """BPE seed expands differently with custom table vs fixed table."""
+    from expand import expand as expand_v1
+
+    # Create a BPE seed that will produce different output
+    bpe_seed = 0x90000000 | (1) | (2 << 7) | (3 << 14) | (4 << 21)
+
+    fixed_result = expand_v1(bpe_seed)
+
+    # With custom table
+    custom_table = generate_bpe_table(42)
+    custom_result = _expand_bpe_with_table(bpe_seed, custom_table)
+
+    assert fixed_result != custom_result, "Custom table should produce different output"
+    assert len(fixed_result) == 8, "Fixed table: 4 pairs = 8 bytes"
+    assert len(custom_result) == 8, "Custom table: 4 pairs = 8 bytes"
+
+    print("  [PASS] [V4] Custom BPE expansion differs from fixed")
+    return True
+
+
+def test_v4_bpe_roundtrip():
+    """V4 with SET_BPE_TABLE round-trips: encode with table, decode with same table."""
+    custom_table = generate_bpe_table(7)
+    # Manually find a BPE seed that produces something useful with this table
+    # Pick indices 1-4 from the custom table
+    bpe_seed = 0x90000000 | (1) | (2 << 7) | (3 << 14) | (4 << 21)
+    expected = _expand_bpe_with_table(bpe_seed, custom_table)
+
+    # Full V4 expansion with boot section
+    set_bpe = make_set_bpe_table_seed(7)
+    boot_end = make_boot_end_seed()
+    result = expand_multi_v4([set_bpe, boot_end, bpe_seed])
+
+    assert result == expected, f"Expected {expected!r}, got {result!r}"
+    print("  [PASS] [V4] BPE round-trip with custom table")
+    return True
+
+
+def test_v4_bpe_png_roundtrip():
+    """V4 PNG with SET_BPE_TABLE round-trips correctly."""
+    custom_table = generate_bpe_table(7)
+    bpe_seed = 0x90000000 | (1) | (2 << 7) | (3 << 14) | (4 << 21)
+    expected = _expand_bpe_with_table(bpe_seed, custom_table)
+
+    set_bpe = make_set_bpe_table_seed(7)
+    boot_end = make_boot_end_seed()
+    all_seeds = [set_bpe, boot_end, bpe_seed]
+
+    png_data = _make_v4_png(all_seeds)
+    result = expand_from_png_v4(png_data)
+
+    assert result == expected, f"Expected {expected!r}, got {result!r}"
+    print("  [PASS] [V4] PNG round-trip with custom BPE table")
+    return True
+
+
+def test_v4_mixed_strategies_with_custom_bpe():
+    """V4 with custom BPE table: non-BPE seeds still use V3 expansion."""
+    from expand import expand as expand_v1
+
+    custom_table = generate_bpe_table(42)
+    bpe_seed = 0x90000000 | (1) | (2 << 7) | (3 << 14) | (4 << 21)
+    # A non-BPE seed (DICT_1, strategy 0x0)
+    dict_seed = 0x00000000  # DICT_1 entry 0 = "print("
+
+    set_bpe = make_set_bpe_table_seed(42)
+    boot_end = make_boot_end_seed()
+
+    result = expand_multi_v4([set_bpe, boot_end, bpe_seed, dict_seed])
+
+    bpe_result = _expand_bpe_with_table(bpe_seed, custom_table)
+    dict_result = expand_v1(dict_seed)
+
+    assert result == bpe_result + dict_result, \
+        f"Mixed expansion failed: {result!r} != {bpe_result + dict_result!r}"
+    print("  [PASS] [V4] Mixed strategies with custom BPE table")
+    return True
+
+
+# ============================================================
 # Run All Tests
 # ============================================================
 
@@ -378,6 +532,16 @@ def run_all():
         test_boot_pixel_as_image,
         # Full program
         test_v4_fibonacci_with_boot,
+        # SET_BPE_TABLE
+        test_bpe_table_generation,
+        test_bpe_table_deterministic,
+        test_bpe_table_unique_entries,
+        test_set_bpe_table_seed_construction,
+        test_set_bpe_table_execution,
+        test_custom_bpe_expansion,
+        test_v4_bpe_roundtrip,
+        test_v4_bpe_png_roundtrip,
+        test_v4_mixed_strategies_with_custom_bpe,
     ]
 
     passed = 0
