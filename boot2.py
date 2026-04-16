@@ -456,16 +456,17 @@ def _quick_bytepack(target):
         if _verify(seed, target):
             return seed
     
-    # Mode 3: 4 nibbles with shared high nibble
-    if tlen == 4:
-        hi_nibble = target[0] >> 4
-        if all((b >> 4) == hi_nibble for b in target):
-            data = (hi_nibble & 0xF) | ((target[0] & 0xF) << 4) | \
-                   ((target[1] & 0xF) << 8) | ((target[2] & 0xF) << 12) | \
-                   ((target[3] & 0xF) << 16)
+    # Mode 3: Compact 6-char via 4-bit indices into Python-source table
+    if tlen == 6:
+        table = ' \netnari=:s(,lfd'
+        try:
+            indices = [table.index(chr(b)) for b in target]
+            data = sum(idx << (4 * i) for i, idx in enumerate(indices))
             seed = 0xE0000000 | (3 << 0) | (data << 3)
             if _verify(seed, target):
                 return seed
+        except (ValueError, OverflowError):
+            pass
     
     # Mode 4: 4 bytes, 7 bits each
     if tlen == 4 and all(b <= 127 for b in target):

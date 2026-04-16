@@ -285,13 +285,13 @@ def _expand_bytepack(params):
         return bytes(result)
 
     elif mode == 3:
-        # 4 nibbles with shared high nibble
-        hi = (data & 0xF) << 4
-        n0 = (data >> 4) & 0xF
-        n1 = (data >> 8) & 0xF
-        n2 = (data >> 12) & 0xF
-        n3 = (data >> 16) & 0xF
-        return bytes([hi | n0, hi | n1, hi | n2, hi | n3])
+        # Compact: 6 chars via 4-bit indices into 16-char Python-source table
+        table = ' \netnari=:s(,lfd'
+        result = bytearray()
+        for i in range(6):
+            idx = (data >> (4 * i)) & 0xF
+            result.append(ord(table[idx]))
+        return bytes(result)
 
     elif mode == 4:
         # 4 bytes, 7 bits each (28 bits = 4x7)
