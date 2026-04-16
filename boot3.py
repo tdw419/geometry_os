@@ -264,7 +264,10 @@ def _find_v1_match(target, pos):
             best = (7, nib, "NIBBLE")
 
     # BYTEPACK
-    for seg_len in range(min(5, remaining), 2, -1):
+    max_bp = min(18, remaining)
+    for seg_len in range(max_bp, 2, -1):
+        if seg_len > 5 and seg_len > 3 and target[pos + 3] != target[pos]:
+            continue
         seg = target[pos:pos + seg_len]
         seed = _quick_bytepack(seg)
         if seed and seg_len > best[0]:
@@ -277,7 +280,7 @@ def _find_v1_match(target, pos):
 # Setup Pattern Analysis
 # ============================================================
 
-def _find_setup_candidates(target, max_setup_seeds=10, time_budget=8.0):
+def _find_setup_candidates(target, max_setup_seeds=50, time_budget=12.0):
     """
     Find repeated substrings worth pre-emitting into the reference buffer.
 
@@ -297,13 +300,12 @@ def _find_setup_candidates(target, max_setup_seeds=10, time_budget=8.0):
     tlen = len(target)
 
     # Fast path: skip setup entirely for very large files
-    # (LZ77 from natural output is sufficient when there's enough context)
-    if tlen > 20000:
+    if tlen > 50000:
         return []
 
     # Adjust pattern length range for larger files
-    max_pattern = 30 if tlen <= 4000 else (20 if tlen <= 8000 else 14)
-    min_pattern = 4
+    max_pattern = 50 if tlen <= 4000 else (40 if tlen <= 15000 else (25 if tlen <= 30000 else 14))
+    min_pattern = 3
 
     # Phase 1: Find repeated substrings using hash-based grouping.
     # For efficiency, group by 4-byte prefix hash first, then deduplicate.
@@ -342,8 +344,8 @@ def _find_setup_candidates(target, max_setup_seeds=10, time_budget=8.0):
 
     # Phase 3: Evaluate top candidates with actual DP, time-budgeted.
     # Stop after finding max_setup_seeds worth of patterns or running out of budget.
-    dp_time_per = 0.5 if tlen <= 4000 else 0.3
-    max_candidates = 20 if tlen <= 4000 else 12
+    dp_time_per = 0.5 if tlen <= 4000 else 0.4
+    max_candidates = 40 if tlen <= 4000 else 25
     evaluated = 0
 
     scored = []
@@ -357,7 +359,7 @@ def _find_setup_candidates(target, max_setup_seeds=10, time_budget=8.0):
 
         # Quick check: if pattern fits in 1 V1 seed, LZ77 can't save
         # (1 seed either way). Skip the expensive DP call.
-        if len(pattern) <= 5:
+        if len(pattern) <= 4:
             # BYTEPACK covers up to 5 bytes in 1 seed
             continue
 
@@ -476,7 +478,7 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
                 print(f"  No-setup V3: {total_a} pixels (chosen)")
 
     # --- Option B: With setup seeds ---
-    setup_patterns = _find_setup_candidates(target, max_setup_seeds=12)
+    setup_patterns = _find_setup_candidates(target, max_setup_seeds=50)
     all_setup_seeds = []
     setup_buffer = bytearray()
     setup_ranges = {}
@@ -605,7 +607,7 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
     # Hash: (data[i] << 10 ^ data[i+1] << 5 ^ data[i+2]) & 0x3FFF
     # Chain: head[hash] -> position -> prev[position] -> earlier position
     # Window: 32768 bytes (fits 16-bit offset field)
-    MAX_CHAIN_WALK = 128
+    MAX_CHAIN_WALK = 512
     HASH_SIZE = 16384  # 0x3FFF + 1
     WINDOW = 32768
 
@@ -709,8 +711,16 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
             if nib:
                 matches[pos].append((7, nib, "NIBBLE"))
 
-        # BYTEPACK -- all lengths 1-5 for DP completeness
-        for seg_len in range(min(5, remaining), 0, -1):
+        # BYTEPACK -- lengths 1-18 for DP (mode 0/1 support up to 18 bytes)
+        # Only try > 5 when first byte repeats (fast pre-check)
+        max_bp = min(18, remaining)
+        for seg_len in range(max_bp, 0, -1):
+            if seg_len > 5:
+                # Quick pre-check: mode 0 repeat requires 4th+ bytes = first byte
+                # mode 1 repeat requires specific XOR pattern
+                # Only try if first byte repeats at least once after position 2
+                if seg_len > 3 and target[pos + 3] != target[pos]:
+                    continue
             seg = target[pos:pos + seg_len]
             seed = _quick_bytepack(seg)
             if seed:
@@ -798,7 +808,7 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
             best_lz77_offset = 0
             steps = 0
 
-            while cand >= 0 and steps < 64:
+            while cand >= 0 and steps < 128:
                 steps += 1
                 if cand >= buf_len:
                     cand = bigram_chain[cand] if cand < len(bigram_chain) else -1
@@ -850,9 +860,58 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
                         if seed:
                             matches[pos].append((length, seed, "LZ77"))
 
+        # --- Explicit setup buffer search ---
+        # Hash chains may not reach setup buffer entries (they're oldest).
+        # Do a direct search of setup_buffer for LZ77 matches.
+        setup_len = len(setup_buffer)
+        if setup_len > 0 and buf_offset >= 2 and remaining >= 2 and best_lz77_len < remaining:
+            for si in range(setup_len):
+                if setup_buffer[si] != target[pos]:
+                    continue
+                # Extend match
+                match_len = 0
+                max_match = min(remaining, 0xFFF)
+                ci = si
+                ti = pos
+                while match_len < max_match:
+                    if ci < setup_len:
+                        if setup_buffer[ci] == target[ti]:
+                            match_len += 1
+                            ci += 1
+                            ti += 1
+                        else:
+                            break
+                    else:
+                        # Into target territory - use full_buf for extension
+                        fbi = buf_offset + (ci - setup_len)
+                        if fbi < buf_len and full_buf[fbi] == target[ti]:
+                            match_len += 1
+                            ci += 1
+                            ti += 1
+                        else:
+                            break
+
+                if match_len > best_lz77_len and match_len >= 2:
+                    offset = buf_len - 1 - si
+                    if offset < (1 << 16):
+                        emitted = full_buf[:buf_len]
+                        if _verify_lz77(offset, match_len,
+                                        emitted, target[pos:pos + match_len]):
+                            best_lz77_len = match_len
+                            best_lz77_offset = offset
+
+            if best_lz77_len >= 2:
+                for length in range(2, best_lz77_len + 1):
+                    seed = _make_lz77_seed(best_lz77_offset, length)
+                    if seed:
+                        matches[pos].append((length, seed, "LZ77_SETUP"))
+
         # Ensure every position has at least a 1-byte BYTEPACK match
         if not matches[pos]:
-            for seg_len in range(min(5, remaining), 0, -1):
+            max_bp_fb = min(18, remaining)
+            for seg_len in range(max_bp_fb, 0, -1):
+                if seg_len > 5 and seg_len > 3 and target[pos + 3] != target[pos]:
+                    continue
                 seg = target[pos:pos + seg_len]
                 seed = _quick_bytepack(seg)
                 if seed:
