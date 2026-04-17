@@ -440,23 +440,31 @@ def _quick_bytepack(target):
         except (ValueError, OverflowError):
             pass
     
-    # Mode 1: 4 bytes via 6-bit indices into 64-char table
+    # Mode 1: 4 bytes via 6-bit indices into 64-char table + optional repeats of last byte
     # Uses file-specific table when set, otherwise falls back to default.
-    if tlen == 4:
+    # Decoder supports 4 + len_flag bytes (len_flag 0-7), so we can encode 4-11 bytes.
+    if 4 <= tlen <= 11:
         try:
             from expand import get_file_specific_mode1_table
             table = get_file_specific_mode1_table()
         except ImportError:
             table = (
-                ' etaoinsrlhdcu.mfpgwybvk\n"x,)(\']-=_:;<>{}[]!@#'
+                ' etaoinsrlhdcu.mfpgwybvk\n"\',)(\']-=_:;<>{}[]!@#'
                 '0123456789/\\+*%&|?^~`$'
             )[:64]
         try:
-            indices = [table.index(chr(b)) for b in target]
-            data = sum(idx << (6 * i) for i, idx in enumerate(indices))
-            seed = 0xE0000000 | (1 << 0) | (data << 3)
-            if _verify(seed, target):
-                return seed
+            indices = [table.index(chr(b)) for b in target[:4]]
+            len_flag = tlen - 4
+            can_repeat = len_flag == 0 or all(
+                target[4 + i] == target[3] for i in range(len_flag)
+            )
+            if can_repeat:
+                data = sum(idx << (6 * i) for i, idx in enumerate(indices))
+                if len_flag > 0:
+                    data |= (len_flag << 24)
+                seed = 0xE0000000 | (1 << 0) | (data << 3)
+                if _verify(seed, target):
+                    return seed
         except (ValueError, OverflowError):
             pass
     
