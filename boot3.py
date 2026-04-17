@@ -166,7 +166,8 @@ def _build_optimal_mode1_table(target: bytes, min_improvement: float = 0.02) -> 
 def make_v3_png(seeds: list, xor_mode: bool = False, dict_only: int = 0,
                 bp8table: str = None, bp_mode6_table: str = None,
                 bp_mode1_table: str = None,
-                freq_table: bytes = None, keyword_table: list = None) -> bytes:
+                freq_table: bytes = None, keyword_table: list = None,
+                bpe_table: list = None) -> bytes:
     """Create a PNG with phase 3 metadata. dict_only = number of setup seeds.
     
     bp8table: optional 16-char string for file-specific BYTEPACK mode 3 table.
@@ -174,6 +175,7 @@ def make_v3_png(seeds: list, xor_mode: bool = False, dict_only: int = 0,
     bp_mode1_table: optional 64-char string for file-specific BYTEPACK mode 1 table.
     freq_table: optional 256-byte frequency-ranked table for FREQ_TABLE strategy.
     keyword_table: optional list of bytes objects for KEYWORD_TABLE strategy.
+    bpe_table: optional list of 128 byte-pair entries for custom BPE table.
     """
     n = len(seeds)
     width, height = _auto_dimensions(n)
@@ -190,12 +192,12 @@ def make_v3_png(seeds: list, xor_mode: bool = False, dict_only: int = 0,
     compressed = zlib.compress(bytes(raw_rows))
     return _build_v3_png(width, height, compressed, n, xor_mode, dict_only,
                          bp8table, bp_mode6_table, bp_mode1_table,
-                         freq_table, keyword_table)
+                         freq_table, keyword_table, bpe_table)
 
 
 def _build_v3_png(width, height, compressed_data, seed_count, xor_mode=False,
                    dict_only=0, bp8table=None, bp_mode6_table=None, bp_mode1_table=None,
-                   freq_table=None, keyword_table=None):
+                   freq_table=None, keyword_table=None, bpe_table=None):
     def chunk(chunk_type, data):
         c = chunk_type + data
         crc = zlib.crc32(c) & 0xFFFFFFFF
@@ -226,6 +228,10 @@ def _build_v3_png(width, height, compressed_data, seed_count, xor_mode=False,
         # Serialize: keywords joined by 0xFF sentinel
         kw_bytes = b'\xff'.join(keyword_table)
         chunks.append(chunk(b'tEXt', b'keyword_table\x00' + kw_bytes.hex().encode()))
+    if bpe_table is not None:
+        # Serialize: concat all 127 pairs (254 bytes), index 0 omitted
+        bpe_bytes = b''.join(p for p in bpe_table[1:] if p and len(p) == 2)
+        chunks.append(chunk(b'tEXt', b'bpe_table\x00' + bpe_bytes.hex().encode()))
     idat = chunk(b'IDAT', compressed_data)
     iend = chunk(b'IEND', b'')
     chunks.extend([idat, iend])
@@ -313,15 +319,23 @@ def _find_lz77_at(target, pos, emitted):
 
 # Cached reverse lookup for BPE pair -> index
 _bpe_pair_to_idx_cache = None
+_bpe_pair_to_idx_table_id = None  # track which table the cache was built from
 
 def _bpe_pair_to_idx():
-    """Build and cache reverse lookup: byte pair -> BPE table index."""
-    global _bpe_pair_to_idx_cache
-    if _bpe_pair_to_idx_cache is None:
+    """Build and cache reverse lookup: byte pair -> BPE table index.
+    Uses file-specific table when set, otherwise default BPE_PAIR_TABLE.
+    Cache is invalidated when the table changes.
+    """
+    global _bpe_pair_to_idx_cache, _bpe_pair_to_idx_table_id
+    from expand import get_file_specific_bpe_table
+    current_table = get_file_specific_bpe_table()
+    table_id = id(current_table)
+    if _bpe_pair_to_idx_cache is None or _bpe_pair_to_idx_table_id != table_id:
         _bpe_pair_to_idx_cache = {}
-        for i, pair in enumerate(BPE_PAIR_TABLE):
+        for i, pair in enumerate(current_table):
             if i > 0 and pair:
                 _bpe_pair_to_idx_cache[pair] = i
+        _bpe_pair_to_idx_table_id = table_id
     return _bpe_pair_to_idx_cache
 
 
@@ -682,6 +696,60 @@ def _build_keyword_table(target: bytes) -> list:
     return keywords if keywords else None
 
 
+def _build_optimal_bpe_table(target: bytes, min_improvement: float = 0.10) -> list:
+    """Build an optimal 127-entry BPE pair table for the given target bytes.
+    
+    Returns a list of 128 entries (index 0 = empty/terminator, 1-127 = byte pairs),
+    or None if the default table is already good enough.
+    
+    Strategy: count all byte pairs, rank by frequency, pick top 127.
+    Compare greedy coverage against default BPE_PAIR_TABLE.
+    """
+    from expand import BPE_PAIR_TABLE
+    
+    tlen = len(target)
+    if tlen < 20:
+        return None
+    
+    # Count byte pair frequencies
+    pair_freq = Counter()
+    for i in range(tlen - 1):
+        pair_freq[target[i:i+2]] += 1
+    
+    # Build custom table: top 127 pairs
+    top_pairs = [p for p, _ in pair_freq.most_common(127)]
+    custom_table = [b''] + list(top_pairs)  # index 0 = terminator
+    while len(custom_table) < 128:
+        custom_table.append(b'')
+    
+    # Measure greedy coverage (non-overlapping) for both tables
+    def greedy_coverage(data, table):
+        pair_set = {}
+        for i, pair in enumerate(table):
+            if pair and len(pair) == 2:
+                pair_set[pair] = i
+        covered = 0
+        i = 0
+        while i < len(data) - 1:
+            if data[i:i+2] in pair_set:
+                covered += 2
+                i += 2
+            else:
+                i += 1
+        return covered
+    
+    default_covered = greedy_coverage(target, BPE_PAIR_TABLE)
+    custom_covered = greedy_coverage(target, custom_table)
+    
+    improvement = (custom_covered - default_covered) / tlen
+    if improvement < min_improvement:
+        return None
+    
+    print(f"  Custom BPE table: {custom_covered}B vs default {default_covered}B "
+          f"(+{custom_covered - default_covered}B = {improvement*100:.1f}% improvement)")
+    return custom_table
+
+
 def _try_freq_table_encode(segment: bytes, freq_table: bytes) -> tuple:
     """Try to encode a segment using FREQ_TABLE v4 strategy (0xB).
     
@@ -1002,6 +1070,15 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
     else:
         print(f"  KEYWORD_TABLE: no keywords found")
 
+    # Build file-specific BPE pair table if it helps
+    bpe_table = _build_optimal_bpe_table(target, min_improvement=0.05)
+    if bpe_table:
+        from expand import set_file_specific_bpe_table
+        set_file_specific_bpe_table(bpe_table)
+    else:
+        from expand import set_file_specific_bpe_table
+        set_file_specific_bpe_table(None)
+
     # Get V2 baseline -- but verify it actually covers the full file
     # Skip V2 baseline for large files (>100KB) -- V2 is slow and V3 always wins
     v2_seeds = None
@@ -1048,7 +1125,8 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
             png_a = make_v3_png(data_seeds_a, xor_mode=use_xor, dict_only=0,
                                 bp8table=bp8table, bp_mode6_table=bp_mode6_table,
                                 bp_mode1_table=bp_mode1_table,
-                                freq_table=freq_table, keyword_table=keyword_table)
+                                freq_table=freq_table, keyword_table=keyword_table,
+                                bpe_table=bpe_table)
             decoded_a = expand_from_png_v3(png_a)
             if decoded_a == target:
                 best_total = total_a
@@ -1085,7 +1163,8 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
                                 xor_mode=use_xor, dict_only=len(all_setup_seeds),
                                 bp8table=bp8table, bp_mode6_table=bp_mode6_table,
                                 bp_mode1_table=bp_mode1_table,
-                                freq_table=freq_table, keyword_table=keyword_table)
+                                freq_table=freq_table, keyword_table=keyword_table,
+                                bpe_table=bpe_table)
             decoded_b = expand_from_png_v3(png_b)
             if decoded_b == target:
                 print(f"  With-setup V3: {total_b} pixels ({len(all_setup_seeds)} setup + {len(data_seeds_b)} data)")
@@ -1115,12 +1194,14 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
     if best_data_seeds is None or best_png is None:
         print(f"  FAILED: Could not encode {tlen} bytes")
         from expand import (set_file_specific_table, set_file_specific_mode6_table,
-                            set_file_specific_mode1_table, set_freq_table, set_keyword_table)
+                            set_file_specific_mode1_table, set_freq_table, set_keyword_table,
+                            set_file_specific_bpe_table)
         set_file_specific_table(None)
         set_file_specific_mode6_table(None)
         set_file_specific_mode1_table(None)
         set_freq_table(None)
         set_keyword_table(None)
+        set_file_specific_bpe_table(None)
         if output_png:
             return None, None
         return None, None
@@ -1154,12 +1235,14 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
 
     # Reset file-specific tables after encoding
     from expand import (set_file_specific_table, set_file_specific_mode6_table,
-                        set_file_specific_mode1_table, set_freq_table, set_keyword_table)
+                        set_file_specific_mode1_table, set_freq_table, set_keyword_table,
+                        set_file_specific_bpe_table)
     set_file_specific_table(None)
     set_file_specific_mode6_table(None)
     set_file_specific_mode1_table(None)
     set_freq_table(None)
     set_keyword_table(None)
+    set_file_specific_bpe_table(None)
 
     if output_png:
         with open(output_png, 'wb') as f:

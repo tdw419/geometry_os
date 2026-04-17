@@ -218,6 +218,22 @@ def expand_from_png_v3(png_data: bytes) -> bytes:
         except (ValueError, UnicodeDecodeError):
             pass
     
+    # Handle BPE pair table (for BPE strategy 0x9)
+    bpe_table_hex = _read_text_chunk(png_data, 'bpe_table')
+    if bpe_table_hex:
+        from expand import set_file_specific_bpe_table
+        try:
+            bpe_data = bytes.fromhex(bpe_table_hex)
+            # Format: pairs of bytes (2 bytes each), fill table indices 1..127
+            custom_bpe = [b'']  # index 0 = terminator
+            for i in range(0, len(bpe_data) - 1, 2):
+                custom_bpe.append(bpe_data[i:i+2])
+            while len(custom_bpe) < 128:
+                custom_bpe.append(b'')
+            set_file_specific_bpe_table(custom_bpe)
+        except (ValueError, UnicodeDecodeError):
+            pass
+    
     try:
         ctx = ExpandContext(xor_mode=xor_mode)
         result = bytearray()
@@ -248,6 +264,9 @@ def expand_from_png_v3(png_data: bytes) -> bytes:
         if keyword_table_hex:
             from expand import set_keyword_table
             set_keyword_table(None)
+        if bpe_table_hex:
+            from expand import set_file_specific_bpe_table
+            set_file_specific_bpe_table(None)
 
 
 # ============================================================

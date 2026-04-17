@@ -101,6 +101,7 @@ BPE_PAIR_TABLE = [
 _FILE_SPECIFIC_TABLE = None  # None = use default mode 3 table
 _FILE_SPECIFIC_MODE6_TABLE = None  # None = use default mode 6 table
 _FILE_SPECIFIC_MODE1_TABLE = None  # None = use default mode 1 table (64 chars)
+_FILE_SPECIFIC_BPE_TABLE = None  # None = use default BPE_PAIR_TABLE
 
 def set_file_specific_table(table: str):
     """Set the file-specific BYTEPACK table (16 chars)."""
@@ -143,6 +144,15 @@ def get_file_specific_mode1_table() -> str:
     """Get the current file-specific mode-1 table, or default if not set."""
     return _FILE_SPECIFIC_MODE1_TABLE if _FILE_SPECIFIC_MODE1_TABLE is not None else _DEFAULT_MODE1_TABLE
 
+
+def set_file_specific_bpe_table(table):
+    """Set the file-specific BPE pair table (list of byte-pair values)."""
+    global _FILE_SPECIFIC_BPE_TABLE
+    _FILE_SPECIFIC_BPE_TABLE = table  # list of bytes/bytearray, or None
+
+def get_file_specific_bpe_table():
+    """Get the current file-specific BPE table, or default if not set."""
+    return _FILE_SPECIFIC_BPE_TABLE if _FILE_SPECIFIC_BPE_TABLE is not None else BPE_PAIR_TABLE
 
 
 # === FREQ TABLE (Strategy 0xB in V3 mode) ===
@@ -251,18 +261,20 @@ def _expand_dictx5(params):
 
 
 def _expand_bpe(params):
-    """BPE: 4 x 7-bit indices into BPE_PAIR_TABLE. Up to 8 bytes per seed.
+    """BPE: 4 x 7-bit indices into BPE pair table. Up to 8 bytes per seed.
 
     Bit layout: [IIIIIII] [IIIIIII] [IIIIIII] [IIIIIII] (28 bits)
     Index 0 = terminator (shorter outputs). Indices 1-127 = byte pairs.
+    Uses file-specific table when set, otherwise default BPE_PAIR_TABLE.
     """
+    table = get_file_specific_bpe_table()
     result = bytearray()
     for i in range(4):
         idx = (params >> (7 * i)) & 0x7F
         if idx == 0:
             break  # terminator
-        if idx < len(BPE_PAIR_TABLE):
-            pair = BPE_PAIR_TABLE[idx]
+        if idx < len(table):
+            pair = table[idx]
             if pair:
                 result.extend(pair)
     return bytes(result)
