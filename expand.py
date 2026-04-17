@@ -156,15 +156,15 @@ def get_file_specific_mode1_table() -> str:
 _FREQ_TABLE = None  # None = not set (strategy 0xB falls back to RLE)
 
 def set_freq_table(table: bytes):
-    """Set the frequency-ranked byte table (24 bytes for v3 variable-width encoding).
+    """Set the frequency-ranked byte table (up to 38 bytes for v4 encoding).
     
-    v3 uses variable-width indices with 1-bit prefix:
-      0 + 3-bit index (0-7) -> table[0..7] (top-8 bytes)
-      1 + 4-bit index (0-15) -> table[8..23] (next 16 bytes)
+    v4 uses variable-width indices with 1-bit prefix:
+    - table[0..6]: short form (0+3bit = 4 bits/byte)
+    - table[7..37]: long form (1+5bit = 6 bits/byte)
     """
     global _FREQ_TABLE
-    if table is not None and len(table) < 24:
-        raise ValueError(f"Freq table must have at least 24 bytes, got {len(table)}")
+    if table is not None and len(table) < 7:
+        raise ValueError(f"Freq table must have at least 7 bytes, got {len(table)}")
     _FREQ_TABLE = table
 
 def get_freq_table() -> bytes:
@@ -460,7 +460,7 @@ def _expand_template(params):
 # === FREQ_TABLE Strategy (0xB in V3 mode) ===
 
 def expand_freq_table(params: int) -> bytes:
-    """FREQ_TABLE v3: variable-width encoding using frequency-ranked table.
+    """FREQ_TABLE v4: variable-width encoding using frequency-ranked table.
     
     Bit layout of params (28 bits, read from LSB):
       For each byte:
@@ -468,13 +468,13 @@ def expand_freq_table(params: int) -> bytes:
         - If prefix=0: read 3 more bits -> index (0-7)
             Index 0 = terminator. Indices 1-7 map to table[0..6].
             Cost: 4 bits per byte.
-        - If prefix=1: read 4 more bits -> index (0-15)
-            Index 0 = terminator. Indices 1-15 map to table[7..21].
-            Cost: 5 bits per byte.
+        - If prefix=1: read 5 more bits -> index (0-31)
+            Index 0 = terminator. Indices 1-31 map to table[7..37].
+            Cost: 6 bits per byte.
       Continue until bits exhausted or terminator.
     
-    Max output: 7 bytes (all top-8, 7x4=28 bits).
-    Typical: 5-7 bytes for Python source (top-24 covers ~87% of bytes).
+    Max output: 7 bytes (all short, 7x4=28 bits).
+    Typical: 4-7 bytes for Python source (top-38 covers ~94% of bytes).
     """
     table = get_freq_table()
     if table is None:
@@ -484,10 +484,9 @@ def expand_freq_table(params: int) -> bytes:
     bit_pos = 0
     
     while bit_pos < 28:
+        # Read 1-bit prefix
         if bit_pos >= 28:
             break
-        
-        # Read 1-bit prefix
         prefix = (params >> bit_pos) & 1
         bit_pos += 1
         
@@ -503,14 +502,14 @@ def expand_freq_table(params: int) -> bytes:
             if table_idx < len(table):
                 result.append(table[table_idx])
         else:
-            # Long form: 4-bit index into table[7..21]
-            if bit_pos + 4 > 28:
+            # Long form: 5-bit index into table[7..37]
+            if bit_pos + 5 > 28:
                 break
-            idx = (params >> bit_pos) & 0xF
-            bit_pos += 4
+            idx = (params >> bit_pos) & 0x1F
+            bit_pos += 5
             if idx == 0:
                 break  # terminator
-            table_idx = 7 + idx - 1  # 7-21
+            table_idx = 7 + idx - 1  # 7-37
             if table_idx < len(table):
                 result.append(table[table_idx])
     
