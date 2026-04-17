@@ -1003,12 +1003,16 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
         print(f"  KEYWORD_TABLE: no keywords found")
 
     # Get V2 baseline -- but verify it actually covers the full file
-    v2_seeds = _find_multi_seeds_dp(target, timeout * 0.15, max_seeds=128)
-    v2_count = len(v2_seeds) if v2_seeds else 999
+    # Skip V2 baseline for large files (>100KB) -- V2 is slow and V3 always wins
+    v2_seeds = None
+    v2_count = 999
     v2_valid = False
-    if v2_seeds:
-        v2_decoded = expand_multi(v2_seeds)
-        v2_valid = (len(v2_decoded) >= tlen and v2_decoded[:tlen] == target)
+    if tlen <= 100000:
+        v2_seeds = _find_multi_seeds_dp(target, timeout * 0.15, max_seeds=128)
+        v2_count = len(v2_seeds) if v2_seeds else 999
+        if v2_seeds:
+            v2_decoded = expand_multi(v2_seeds)
+            v2_valid = (len(v2_decoded) >= tlen and v2_decoded[:tlen] == target)
     print(f"  V2 baseline: {v2_count} seeds (covers file: {v2_valid})")
 
     # Strategy: try encoding with and without setup seeds, pick best.
@@ -1029,8 +1033,15 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
         return make_multipixel_png(seeds)
 
     # --- Option A: No setup seeds (pure LZ77 from natural output) ---
+    # Allocate more time for large files (match enumeration scales ~linearly with size)
+    if tlen > 500000:
+        context_timeout = timeout * 0.70  # 70% for files > 500KB
+    elif tlen > 100000:
+        context_timeout = timeout * 0.50  # 50% for files > 100KB
+    else:
+        context_timeout = timeout * 0.30
     data_seeds_a = _encode_with_context(target, bytearray(), {},
-                                         timeout * 0.30, start_time)
+                                         context_timeout, start_time)
     if data_seeds_a:
         total_a = len(data_seeds_a)
         if total_a <= best_total:
@@ -1066,7 +1077,7 @@ def encode_v3(target: bytes, output_png: str = None, timeout: float = 120.0,
             pos = idx + 1
 
     data_seeds_b = _encode_with_context(target, setup_buffer, setup_ranges,
-                                         timeout * 0.30, start_time)
+                                         context_timeout, start_time)
     if data_seeds_b:
         total_b = len(all_setup_seeds) + len(data_seeds_b)
         if total_b <= best_total:
@@ -1177,7 +1188,7 @@ def _encode_with_context(target, setup_buffer, setup_ranges, timeout, global_sta
         target: Bytes to encode
         setup_buffer: Pre-emitted bytes from setup seeds (for LZ77 references)
         setup_ranges: Dict of (start,end)->True for positions covered by setup
-        timeout: Maximum time in seconds
+        timeout: Maximum time in seconds for THIS encoding step
         global_start: Encoding start time for timeout calculation
     
     Returns:
@@ -1186,6 +1197,14 @@ def _encode_with_context(target, setup_buffer, setup_ranges, timeout, global_sta
     tlen = len(target)
     if tlen == 0:
         return []
+
+    # Reset timeout clock for large files -- the table building phase
+    # consumed time that shouldn't count against the DP budget
+    local_start = time.time()
+    elapsed = local_start - global_start
+    if elapsed > timeout * 0.5:
+        # Table building ate >50% of budget; reset with full timeout
+        global_start = local_start - (timeout * 0.05)  # Pretend 5% elapsed
 
     elapsed = time.time() - global_start
     if elapsed > timeout * 0.9:
