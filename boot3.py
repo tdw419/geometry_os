@@ -1571,10 +1571,14 @@ def _enumerate_matches_fast(target, setup_buffer, full_buf, buf_offset,
                     matches[pos].append((seg_len, seed, "BYTEPACK"))
                     break
 
-        # Deduplicate by length (keep first/best seed per length)
+        # Deduplicate by length -- prefer LZ77 over other strategies at same length
         seen_lens = {}
         for length, seed, name in matches[pos]:
             if length not in seen_lens:
+                seen_lens[length] = (length, seed, name)
+            elif name == 'LZ77' and seen_lens[length][2] != 'LZ77':
+                # LZ77 is preferred over BYTEPACK/BPE/etc at same length
+                # (same seed cost but better for future LZ77 references)
                 seen_lens[length] = (length, seed, name)
         matches[pos] = sorted(seen_lens.values(), key=lambda x: -x[0])
 
@@ -1724,15 +1728,22 @@ def _dp_shortest_path(target, matches, timeout, global_start, _retry_count=0):
 
     print(f"  DP optimal: {len(result)} seeds (vs greedy baseline)")
 
+    # Build correct seed_map from DP path data (before position info is lost)
+    _strat_nibble = {"LZ77": 0xC, "BYTEPACK": 0xE, "BPE": 0x9, "FREQ_TABLE": 0x8,
+                     "KEYWORD_TABLE": 0xA, "NIBBLE": 0x7, "RLE": 0xD, "DYN_DICT": 0xB,
+                     "DICTX5": 0x5, "DICTX7": 0x6, "DICT_1": 0x1, "DICT_4": 0x4, "DICT_5": 0x5}
+    dp_seed_map = [(seg_pos, seg_pos + length, seed, _strat_nibble.get(name, (seed >> 28) & 0xF))
+                    for seg_pos, length, seed, name in seeds]
+
     # Post-DP consolidation: merge adjacent short seeds into LZ77
-    result = _consolidate_seeds(target, result)
+    result = _consolidate_seeds(target, result, dp_seed_map)
     if result:
         print(f"  After consolidation: {len(result)} seeds")
 
     return result
 
 
-def _consolidate_seeds(target, seeds):
+def _consolidate_seeds(target, seeds, dp_seed_map=None):
     """Post-DP optimization: replace short seed runs with LZ77 back-references.
     
     Three strategies applied in order:
@@ -1743,11 +1754,10 @@ def _consolidate_seeds(target, seeds):
       3. Partial run merging: try sub-runs within longer runs for best savings
     
     Args:
-        target: The original bytes being encoded
-        seeds: List of seeds from DP shortest path
-    
-    Returns:
-        Optimized seed list (same or fewer seeds than input)
+        target: the original target bytes
+        seeds: list of seed values from DP
+        dp_seed_map: pre-built seed_map with correct positions from DP path.
+            If None, will attempt to rebuild (may be inaccurate for context-dependent seeds).
     """
     if not seeds or len(seeds) < 2:
         return seeds
@@ -1755,25 +1765,29 @@ def _consolidate_seeds(target, seeds):
     tlen = len(target)
 
     # Build position map: seed_idx -> (start_pos, end_pos, seed, strategy)
-    ctx = ExpandContext()
-    seed_map = []
-    pos = 0
-    for s in seeds:
-        result = expand_with_context(s, ctx)
-        strat = (s >> 28) & 0xF
-        seed_map.append((pos, pos + len(result), s, strat))
-        pos += len(result)
+    if dp_seed_map is not None:
+        seed_map = list(dp_seed_map)
+    else:
+        ctx = ExpandContext()
+        seed_map = []
+        pos = 0
+        for s in seeds:
+            result = expand_with_context(s, ctx)
+            strat = (s >> 28) & 0xF
+            seed_map.append((pos, pos + len(result), s, strat))
+            pos += len(result)
 
     result_seeds = list(seeds)
     savings = 0
 
-    # --- Phase 1: Replace individual BYTEPACK seeds with LZ77 where possible ---
+    # --- Phase 1: Replace individual non-LZ77 seeds with LZ77 where possible ---
+    # Extended: seeds covering 2-18 bytes (was 2-5) since LZ77 handles up to 4095
     for i in range(len(seed_map)):
         sp, ep, s, st = seed_map[i]
         if st == 0xC:  # Already LZ77
             continue
         seg_len = ep - sp
-        if seg_len > 5 or seg_len < 2:
+        if seg_len > 18 or seg_len < 2:
             continue
         if sp < seg_len:  # Not enough buffer before this position
             continue
@@ -1800,17 +1814,20 @@ def _consolidate_seeds(target, seeds):
     # --- Phase 2: Merge runs of short non-LZ77 seeds into single LZ77 ---
     i = 0
     while i < len(seed_map):
-        # Start a run at position i -- include seeds covering <= 5 bytes
-        # and not already LZ77
+        # Start a run at position i -- include seeds covering <= 18 bytes
+        # and not already LZ77. Cap total run to 256B for fast rfind.
         j = i
         total_bytes = 0
         while j < len(seed_map):
             sp, ep, s, st = seed_map[j]
             if st == 0xC:  # Already LZ77
                 break
-            if ep - sp > 5:  # Already efficient seed
+            seg_bytes = ep - sp
+            if seg_bytes > 18:  # Too long for run merging
                 break
-            total_bytes += ep - sp
+            if total_bytes + seg_bytes > 256:  # Cap run size for speed
+                break
+            total_bytes += seg_bytes
             j += 1
 
         run_len = j - i
