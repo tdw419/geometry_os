@@ -16,7 +16,7 @@ import zlib
 from expand import expand as expand_v1, seed_from_rgba
 
 
-def expand_multi(seeds: list, max_output: int = 65536) -> bytes:
+def expand_multi(seeds: list, max_output: int = 10_000_000) -> bytes:
     """
     Expand multiple seeds into one concatenated byte sequence.
     

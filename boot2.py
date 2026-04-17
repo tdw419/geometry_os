@@ -84,8 +84,8 @@ def read_multipixel_png(png_data: bytes) -> tuple:
     return width, height, all_seeds[:real_count]
 
 
-def encode_multi(target: bytes, output_png: str, timeout: float = 60.0,
-                 max_seeds: int = 64):
+def encode_multi(target: bytes, output_png: str, timeout: float = None,
+                 max_seeds: int = 0):
     """
     Encode a target byte sequence into a multi-pixel PNG.
     
@@ -93,14 +93,21 @@ def encode_multi(target: bytes, output_png: str, timeout: float = 60.0,
     1. Try to find a single seed first (1x1 PNG)
     2. If that fails, use DP segmentation to find minimum-pixel encoding
     3. Write the multi-pixel PNG with seed count metadata
+    
+    timeout: seconds. None or 0 = auto-scale (1s per 1KB of target).
+    max_seeds: 0 = unlimited.
     """
     start_time = time.time()
     
-    print(f"Encoding: {len(target)} bytes")
+    # Auto-scale timeout: 2 seconds per 1KB of target, minimum 10s, max 600s
+    if not timeout:
+        timeout = min(600.0, max(10.0, len(target) / 1024.0 * 2))
+    
+    print(f"Encoding: {len(target)} bytes (timeout={timeout:.0f}s)")
     try:
         print(f"  Text: {target.decode('ascii')!r}")
     except UnicodeDecodeError:
-        print(f"  Hex: {target.hex()}")
+        print(f"  Hex: {target.hex()[:80]}...")
     print()
     
     # Step 1: Try single seed
@@ -136,8 +143,12 @@ def encode_multi(target: bytes, output_png: str, timeout: float = 60.0,
         return True
     else:
         print("Verification: FAIL")
-        print(f"  Expected: {target.hex()}")
-        print(f"  Got:      {decoded.hex()}")
+        print(f"  Expected {len(target)} bytes, got {len(decoded)} bytes")
+        # Show first diff
+        for i in range(min(len(decoded), len(target))):
+            if decoded[i] != target[i]:
+                print(f"  First diff at byte {i}: expected 0x{target[i]:02X}, got 0x{decoded[i]:02X}")
+                break
         return False
 
 
@@ -285,7 +296,8 @@ def _find_multi_seeds_dp(target: bytes, timeout: float, max_seeds: int) -> list:
                 parent[pos] = (length, seed, name)
     
     # Phase 3: Check if DP found a complete path
-    if dp[0] <= max_seeds and parent[0] is not None:
+    effective_max = max_seeds if max_seeds > 0 else (tlen + 1)  # unlimited
+    if dp[0] <= effective_max and parent[0] is not None:
         seeds = []
         pos = 0
         while pos < tlen:
@@ -312,8 +324,9 @@ def _fill_gaps(target, matches, dp, parent, timeout, max_seeds, start_time, tlen
     """
     seeds = []
     pos = 0
+    effective_max = max_seeds if max_seeds > 0 else (tlen + 1)
     
-    while pos < tlen and len(seeds) < max_seeds:
+    while pos < tlen and len(seeds) < effective_max:
         elapsed = time.time() - start_time
         if elapsed > timeout:
             print(f"  Timeout after {len(seeds)} segments")
@@ -601,7 +614,8 @@ if __name__ == '__main__':
             sys.exit(1)
         success = encode_multi(
             open(sys.argv[2], 'rb').read(),
-            sys.argv[3]
+            sys.argv[3],
+            timeout=0  # auto-scale
         )
         sys.exit(0 if success else 1)
     
