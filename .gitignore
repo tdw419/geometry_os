@@ -1,0 +1,17 @@
+/target
+*.sav
+*.png
+Cargo.lock
+
+# Downloaded RISC-V Linux kernel + rootfs (large binaries)
+.geometry_os/fs/linux/Image
+.geometry_os/fs/linux/initrd.gz
+.geometry_os/fs/linux/rootfs/
+.geometry_os/fs/linux/rootfs.cpio.gz
+.geometry_os/build/
+.geometry_os/build-linux/
+# GPT-2 weight files (too large for GitHub)
+*.npy
+pixelflow/gpt2_weights/
+__pycache__/
+tools/hermes_bridge/target/

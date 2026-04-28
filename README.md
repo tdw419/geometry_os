@@ -1,0 +1,494 @@
+# Geometry OS
+
+A pixel-art virtual machine with a built-in assembler, text editor, debugger, and live GUI.
+
+Write assembly. Press F5. Watch it run.
+
+## What Is This?
+
+Geometry OS is a from-scratch virtual machine: 32 registers, 65536 words of RAM, a 256x256 pixel framebuffer, and 178 opcodes. It has its own two-pass assembler, a real-time animation loop at 60fps, keyboard input, sound, sprite blitting, multi-process scheduling with memory protection, virtual filesystem, in-memory inode filesystem, device drivers, TCP networking, a Unix-like shell, and an integrated text editor where you type assembly directly into the VM's memory and execute it live. It also includes a native RISC-V RV32I interpreter with SV32 virtual memory, capable of booting a real Linux kernel.
+
+There is no compiler. No runtime. No garbage collector. You write the opcodes, the VM runs them. It's a computer small enough to hold in your head.
+
+## Programs
+
+147 programs included -- static art, animations, interactive games, and system utilities:
+
+**Visual demos:** hello, gradient, diagonal, border, checkerboard, rainbow, rings, nested_rects, colors, circles, lines, fill_screen, stripes, plasma, starfield, wirecube
+
+**Animations:** fire (scrolling fire effect), scroll_demo, particles, game_of_life
+
+**Interactive:** blink, painter (freehand drawing), calculator (4-function)
+
+**Games:** snake, ball (bouncing ball), breakout (4 rows of bricks, 3 lives), tetris (7 tetrominoes, rotation, line clearing), maze (randomly generated, WASD to navigate), peek_bounce (collision detection demo), roguelike
+
+**Advanced:** window_manager (multi-process demo), sprite_demo, self_host (VM assembles and runs its own code), self_writer (program that writes new programs), multiproc (multi-process scheduling), mandelbrot (fractal renderer using fixed-point arithmetic), evolving_counter, code_evolution, living_map, infinite_map, infinite_map_pxpk, register_dashboard, canvas_counter, canvas_grid_writer, replay_demo, pixel_history_demo
+
+**System:** shell (Unix-like command shell), init (PID 1 init process), cat (file reader), pipe_test (IPC demo), pipe_demo (pipe communication), device_test (device driver demo), net_demo (TCP networking demo), stdlib_test, preprocessor_test, preprocessor_advanced_test, sprint_c_test, shift_test, push_pop_test, fork_demo, maze_gen
+
+**Audio:** music_demo, sfx_demo
+
+## Build & Run
+
+**Prerequisites:** Rust (1.70+), Linux with `libasound2-dev` for sound
+
+```bash
+git clone https://github.com/tdw419/geometry-os.git
+cd geometry-os
+cargo run --release
+```
+
+**CLI mode** (headless, no GUI):
+```bash
+cargo run --release -- --cli
+geo> load hello
+geo> run
+```
+
+**WASM** (browser):
+```bash
+cd wasm && wasm-pack build --target web
+```
+
+### First 5 Minutes
+
+Running `cargo run --release` drops you into the **pixel terminal** -- a fullscreen command-line interface rendered entirely in pixels. Type `help` to see all commands.
+
+1. **Try the built-in commands** -- `help`, `ls`, `ver`, `colors`, `whoami`, `uname`, `uptime`
+
+2. **Run a program** -- Type `run paint` to launch the pixel art editor, `run snake` for Snake, `run tetris` for Tetris. Press Escape or let the program halt to return to the terminal.
+
+3. **Read a file** -- Type `cat <filename>` to display VFS file contents.
+
+4. **Edit and rebuild** -- The self-hosting loop:
+   ```
+   $ edit terminal       -- opens terminal.asm in the canvas editor
+   ... make changes ...
+   F8                    -- assemble (in editor)
+   F5                    -- run (in editor)
+   ```
+   Or from the terminal directly:
+   ```
+   $ edit terminal       -- open in editor
+   ... make changes, save ...
+   $ build terminal      -- assemble from disk
+   $ reload              -- restart terminal with new code
+   ```
+
+5. **Quit** -- Type `quit` or close the window.
+
+**Canvas editor key bindings:** F8=assemble, F5=run, F6=step, F7=save, F9=screenshot, Escape=back to terminal
+
+**Desktop mode:** Run `cargo run --release -- --desktop` to start in the infinite map desktop instead of the terminal.
+
+**Going deeper:** Read `docs/CANVAS_TEXT_SURFACE.md` for the full specification, or browse `programs/` for 166+ example programs ranging from visual demos to games to a Unix-like shell.
+
+## The Instruction Set (178 opcodes)
+
+### Control
+| Opcode | Args | Description |
+|--------|------|-------------|
+| HALT   |      | Stop execution |
+| NOP    |      | No operation |
+| FRAME  |      | Yield to renderer (animation tick) |
+| BEEP   | freq_reg, dur_reg | Play sine-wave tone (20-20000 Hz, 1-5000 ms) |
+
+### Data
+| Opcode | Args | Description |
+|--------|------|-------------|
+| LDI    | reg, imm | Load immediate value into register |
+| LOAD   | reg, [reg] | Load from memory address |
+| STORE  | [reg], reg | Store to memory address |
+| MOV    | rd, rs | Register copy |
+
+### Arithmetic
+| Opcode | Args | Description |
+|--------|------|-------------|
+| ADD    | rd, rs | rd = rd + rs |
+| SUB    | rd, rs | rd = rd - rs |
+| MUL    | rd, rs | rd = rd * rs |
+| DIV    | rd, rs | rd = rd / rs |
+| MOD    | rd, rs | rd = rd % rs |
+| NEG    | rd     | rd = -rd (two's complement) |
+| SAR    | rd, rs | Arithmetic shift right (sign-preserving) |
+
+### Logic
+| Opcode | Args | Description |
+|--------|------|-------------|
+| AND    | rd, rs | Bitwise AND |
+| OR     | rd, rs | Bitwise OR |
+| XOR    | rd, rs | Bitwise XOR |
+| SHL    | rd, rs | Shift left |
+| SHR    | rd, rs | Shift right |
+
+### Branches
+| Opcode | Args | Description |
+|--------|------|-------------|
+| JMP    | addr  | Unconditional jump |
+| JZ     | reg, addr | Jump if zero |
+| JNZ    | reg, addr | Jump if not zero |
+| BLT    | reg, addr | Branch if r0 < 0 (after CMP) |
+| BGE    | reg, addr | Branch if r0 >= 0 (after CMP) |
+| CALL   | addr  | Call subroutine (return address in r31) |
+| RET    |       | Return from subroutine |
+
+### Graphics
+| Opcode | Args | Description |
+|--------|------|-------------|
+| PSET   | xr, yr, cr | Set pixel (from registers) |
+| PSETI  | x, y, c | Set pixel (immediates) |
+| FILL   | cr     | Fill entire screen with color |
+| RECTF  | xr,yr,wr,hr,cr | Filled rectangle |
+| TEXT   | xr, yr, ar | Draw null-terminated string from RAM |
+| LINE   | x0r,y0r,x1r,y1r,cr | Bresenham line |
+| CIRCLE | xr, yr, rr, cr | Midpoint circle |
+| SCROLL | nr     | Scroll screen up by N pixels |
+| SPRITE | xr,yr,ar,wr,hr | Blit NxM sprite from RAM (0=transparent) |
+| TILEMAP | xr,yr,mr,tr,gwr,ghr,twr,thr | Grid blit from tile index array |
+| PEEK   | rx, ry, rd | Read screen pixel at (rx,ry) into rd |
+
+### Stack & I/O
+| Opcode | Args | Description |
+|--------|------|-------------|
+| PUSH   | reg   | Push to stack (r30 = SP) |
+| POP    | reg   | Pop from stack |
+| CMP    | rd, rs | Compare: r0 = -1/0/1 (lt/eq/gt) |
+| IKEY   | reg   | Read keyboard port, clear it |
+| RAND   | reg   | Pseudo-random u32 into register |
+
+### Meta-Programming
+| Opcode | Args | Description |
+|--------|------|-------------|
+| ASM    | src_reg, dest_reg | Assemble source text from RAM, write bytecode to RAM |
+
+### Multi-Process
+| Opcode | Args | Description |
+|--------|------|-------------|
+| SPAWN  | addr_reg | Create child process (PID in RAM[0xFFA]) |
+| KILL   | pid_reg | Terminate child process |
+| YIELD  |         | Voluntary context switch |
+| SLEEP  | dur_reg | Sleep for N frames |
+| SETPRIORITY | prio_reg | Set current process priority (0-3) |
+
+### IPC
+| Opcode | Args | Description |
+|--------|------|-------------|
+| PIPE   | read_reg, write_reg | Create pipe, read fd in read_reg, write fd in write_reg |
+| MSGSND | pid_reg | Send 4-word message to target PID |
+| MSGRCV |         | Receive message, sender PID in r0 |
+
+### Kernel Boundary
+| Opcode | Args | Description |
+|--------|------|-------------|
+| SYSCALL | num | Trap to kernel mode, dispatch via RAM[0xFE00+num] |
+| RETK   |     | Return from kernel mode to user mode |
+
+### Filesystem
+| Opcode | Args | Description |
+|--------|------|-------------|
+| OPEN   | path_reg, mode_reg | Open file (mode: 0=read, 1=write, 2=append), fd in r0 |
+| READ   | fd_reg, buf_reg, len_reg | Read from file into RAM, bytes read in r0 |
+| WRITE  | fd_reg, buf_reg, len_reg | Write from RAM to file, bytes written in r0 |
+| CLOSE  | fd_reg | Close file descriptor, 0=ok, 0xFFFFFFFF=error in r0 |
+| SEEK   | fd_reg, offset_reg, whence_reg | Seek (0=SET, 1=CUR, 2=END), new pos in r0 |
+| LS     | buf_reg | List directory entries into RAM buffer, count in r0 |
+
+### Device Drivers
+
+Device files provide uniform access to hardware. OPEN `/dev/screen`, `/dev/keyboard`, `/dev/audio`, `/dev/net` returns device fds (0xE000-0xE003). READ/WRITE work on device fds. IOCTL provides device-specific control.
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| IOCTL  | fd_reg, cmd_reg, arg_reg | Device-specific control. Screen: get w/h. Keyboard: get/set echo. Audio: get/set volume. Net: get status. Result in r0 |
+
+### Screen Readback
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| PEEK   | rx, ry, rd | Read screen pixel at (rx,ry) into rd. 0 if out of bounds |
+| SCREENP | dr, xr, yr | Read screen pixel at (xr,yr) into dr (alternate argument order) |
+
+### Environment & Shell
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| GETENV | key_reg, val_reg | Look up env var, write value to RAM |
+| SETENV | key_reg, val_reg | Set env var from two RAM strings |
+| GETPID | | Returns current PID in r0 (0 in kernel mode) |
+| EXEC   | path_reg | Execute .asm program by name |
+| WRITESTR | fd_reg, str_reg | Write null-terminated string to fd |
+| READLN | buf_reg, max_reg, pos_reg | Read keyboard line into buffer |
+| WAITPID | pid_reg | Check if child is running (0=running, 1=halted) |
+| EXECP  | path_reg, stdin_reg, stdout_reg | Execute with fd redirection |
+| CHDIR  | path_reg | Change current working directory |
+| GETCWD | buf_reg | Write CWD path to RAM buffer |
+
+### Boot & Shutdown
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| SHUTDOWN | | Graceful shutdown: halt all processes, flush FS, close fds. Kernel mode only. User mode sets r0=error |
+| EXIT | status_reg | Exit process with status code (sets zombie flag for parent WAITPID) |
+
+### Signals
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| SIGNAL | pid_reg, sig_reg | Send signal to process (SIGTERM=0, SIGKILL=1, SIGUSR=2, SIGALRM=3) |
+| SIGSET | sig_reg, handler_reg | Set signal handler address for signal type |
+
+### Immediate Variants
+
+Short-form opcodes that take an immediate value instead of a register, saving an LDI+operation to two instructions.
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| ADDI   | rd, imm | rd = rd + imm |
+| SUBI   | rd, imm | rd = rd - imm |
+| ANDI   | rd, imm | rd = rd AND imm |
+| ORI    | rd, imm | rd = rd OR imm |
+| XORI   | rd, imm | rd = rd XOR imm |
+| SHLI   | rd, imm | Shift left by imm |
+| SHRI   | rd, imm | Shift right by imm |
+| SARI   | rd, imm | Arithmetic shift right by imm (sign-preserving) |
+| CMPI   | rd, imm | Compare register with immediate: r0 = -1/0/1 |
+| TEXTI  | x, y, str... | Draw inline string at (x,y), count follows as next word |
+| STRO   | addr_reg, str... | Store inline string to RAM at addr_reg |
+
+### Memory
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| MEMCPY | dest_reg, src_reg, len_reg | Copy len words from src to dest |
+| LOADS  | rd, offset | Load from stack: rd = RAM[SP + offset] (signed) |
+| STORES | offset, rs | Store to stack: RAM[SP + offset] = rs (signed) |
+
+### Extended Filesystem
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| FMKDIR  | path_reg | Create directory |
+| FUNLINK | path_reg | Delete file or empty directory |
+| FSTAT   | info_reg, path_reg | Get file info (size, type) into RAM at info_reg |
+
+### TCP Networking
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| CONNECT    | host_reg, port_lo, port_hi | Open TCP connection, fd in r0 |
+| SOCKSEND   | fd_reg, buf_reg, len_reg, timeout_reg | Send data on TCP socket, bytes sent in r0 |
+| SOCKRECV   | fd_reg, buf_reg, len_reg, timeout_reg | Receive data on TCP socket, bytes read in r0 |
+| DISCONNECT | fd_reg | Close TCP connection |
+
+### Self-Assembly & Execution
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| ASMSELF | | Assemble code from canvas text editor at current cursor, write bytecode to RAM[0x1000] |
+| RUNNEXT | | Execute assembled code (after ASMSELF), jumps to RAM[0x1000] |
+| FORK    | addr_reg | Create child process sharing parent's address space (no COW) |
+
+### Formula Engine
+
+Cell-based reactive computation. FORMULA defines a cell whose value is computed from dependencies. When any dependency changes, all downstream cells recompute automatically.
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| FORMULA      | tile, op, dep_count, dep1, dep2, ... | Define a formula cell (ops: ADD, SUB, MUL, DIV, AND, OR, XOR, NOT, COPY, MAX, MIN, MOD, SHL, SHR) |
+| FORMULACLEAR | | Clear all formula cells |
+| FORMULAREM   | tile_reg | Remove a formula cell |
+
+### Audio
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| NOTE | wave_reg, freq_reg, dur_reg | Play musical note (wave: 0=square, 1=sawtooth, 2=triangle, 3=noise; freq in Hz; dur in ms) |
+
+### Tracing & Time-Travel Debugging
+
+| Opcode | Args | Description |
+|--------|------|-------------|
+| SNAP_TRACE    | mode_reg | Snapshot execution trace (mode: 0=start recording, 1=stop) |
+| REPLAY        | frame_reg | Replay VM state to a previous snapshot frame |
+| TRACE_READ    | dest_reg | Read trace buffer: writes recent opcode history to RAM at dest_reg |
+| PIXEL_HISTORY | dest_reg | Read pixel write history: writes recent pixel changes to RAM at dest_reg |
+
+### Hypervisor
+
+|| Opcode | Args | Description |
+|--------|------|-------------|
+| HYPERVISOR | cmd_reg | RISC-V hypervisor control (boot, query status, etc.) |
+
+## RISC-V Bare-Metal Substrate
+
+Geometry OS doesn't just run its own bytecode -- it runs **real RISC-V machine code**, interpreted from ELF binaries on a bare-metal RV32IMAC virtual machine. No Linux, no kernel, no libc. Just your C program and the metal.
+
+**What it is.** A cycle-accurate RV32IMAC interpreter with:
+- Full SBI console I/O (putchar, getchar, shutdown)
+- UART at 0x1000_0000, CLINT timer at 0x0200_BFF8
+- 256x256 MMIO framebuffer at 0x6000_0000 (0xRRGGBBAA format)
+- VFS pixel surface at 0x7000_0000 (256KB, file system + raw storage)
+- Virtio-blk at 0x1000_1000 (1MB disk)
+- ~52 MIPS interpreted throughput
+- ELF loader (static, medany, freestanding)
+
+**Toolchain.** Standard `riscv64-linux-gnu-gcc` with `-march=rv32imac_zicsr -mabi=ilp32`. Link against `libgeos.a` (SBI wrappers, framebuffer helpers, timing, canvas save/load). Build any program in one command: `./build.sh my_program.c my_program.elf`.
+
+**Programs shipped:**
+
+| Program | Lines | What it demonstrates |
+|---------|-------|---------------------|
+| `hello.c` | 20 | SBI console output, shutdown |
+| `sh.c` | 418 | Interactive shell: peek, poke, hexdump, echo, clear |
+| `paint.c` | 210 | Pixel-art editor: WASD movement, 10-color palette, fill mode, save/load |
+| `life.c` | 120 | Conway's Game of Life at 53.6 fps |
+| `life64.c` | 150 | 64x64 Game of Life with extended neighborhood |
+| `cat.c` | 80 | File reader via VFS pixel surface |
+| `painter2.c` | 180 | Advanced painter with brush sizes |
+
+**The paint program.** `paint.c` is the capstone: keyboard input -> UART rx -> SBI getchar -> guest logic -> MMIO framebuffer writes -> fb_present -> live display. Full round-trip from human input to visible pixels, with no operating system in between. Supports in-session save/load (P/O keys) via the VFS pixel surface -- checkpoint your canvas and restore it later in the same session.
+
+**Verification.** Every RISC-V feature is tested with automated pixel assertions. The test harness (`tests/geos_test_lib.sh`) boots GeOS, loads an ELF, injects keyboard input, dumps the framebuffer to PNG, and asserts pixel values. Zero tolerance -- if a pixel is wrong by even one channel value, the test fails. 22 paint regression checks + 62,464-pixel round-trip persistence test, all passing.
+
+## Memory-Mapped I/O
+
+| Port  | Address | Description |
+|-------|---------|-------------|
+| WIN   | 0xF00-0xF03 | Window bounds (win_x, win_y, win_w, win_h) |
+| KEYS  | 0xFFB   | Key bitmask (bits 0-5, read-only) |
+| NET   | 0xFFC   | Network (UDP) |
+| ASM   | 0xFFD   | Assembler result (word count or error) |
+| TICKS | 0xFFE   | Frame counter (read-only, incremented each FRAME) |
+| KEY   | 0xFFF   | Keyboard input (read via IKEY) |
+
+## Writing Programs
+
+**Animation loop** -- any program can animate by replacing HALT with a FRAME loop:
+
+```
+loop:
+  FILL r_black       ; clear screen
+  ; ... draw scene ...
+  FRAME              ; display + yield
+  JMP loop
+```
+
+**Keyboard input** -- read keys with IKEY inside the loop:
+
+```
+loop:
+  FILL r_black
+  IKEY r10           ; read key press
+  ; ... handle input ...
+  FRAME
+  JMP loop
+```
+
+**Throttle game speed** with the TICKS port:
+
+```
+  LDI r4, 0xFFE
+  LOAD r8, r4        ; r8 = current frame count
+  LDI r9, 7
+  AND r8, r9         ; r8 = TICKS & 7
+  JNZ r8, skip_move  ; only move every 8th frame
+  ; ... update game state ...
+skip_move:
+  FRAME
+  JMP loop
+```
+
+**Multi-process** with SPAWN and .org:
+
+```
+  LDI r0, child
+  SPAWN r0           ; launch child process
+  ; ... primary loop ...
+
+.org 0x400
+child:
+  ; ... child code, shared RAM, own registers ...
+```
+
+**Collision detection** with PEEK:
+
+```
+  PEEK r1, r2, r3    ; r3 = pixel color at (r1, r2)
+  LDI r4, 0
+  CMP r3, r4         ; is it black (empty)?
+  JZ r0, no_wall     ; r0 < 0 means non-zero pixel = wall
+```
+
+## GUI Controls
+
+| Key | Action |
+|-----|--------|
+| F5  | Run / resume program |
+| F6  | Single-step (when paused) |
+| F7  | Save VM state |
+| F8  | Assemble canvas text |
+| Ctrl+F8 | Load .asm file |
+| F9  | Screenshot (PNG) |
+| F10 | Toggle frame capture |
+| Escape | Toggle editor / terminal |
+
+**Terminal commands:** `help`, `load <name>`, `run`, `step`, `regs`, `peek <addr>`, `poke <addr> <val>`, `bp [addr]`, `bpc`, `trace [n]`, `screenshot`, `save [slot]`, `load-slot [slot]`, `reset`, `quit`
+
+## Architecture
+
+```
+┌──────────────────────────────────────────────┐
+│                  GUI Window                  │
+│  ┌──────────────┐  ┌──────────────────┐     │
+│  │ Text Editor  │  │   256x256        │     │
+│  │ (32x128 grid)│  │   Screen         │     │
+│  │              │  │                  │     │
+│  └──────────────┘  └──────────────────┘     │
+│  ┌──────────────┐  ┌──────────────────┐     │
+│  │ Registers    │  │  Disassembly     │     │
+│  │ + RAM Inspector│ │  Panel          │     │
+│  └──────────────┘  └──────────────────┘     │
+└──────────────────────────────────────────────┘
+
+VM: 32 registers, 65536-word RAM, 178 opcodes, 8 concurrent processes
+Memory: 0x000 grid | 0x400 children | 0xF00 window | 0x1000 bytecode | 0xFFB-0xFFF ports
+```
+
+## Screenshot Gallery
+
+| ![Infinite Map](docs/screenshots/infinite_map.png) | ![Plasma](docs/screenshots/plasma.png) | ![Fire](docs/screenshots/fire.png) |
+|:--:|:--:|:--:|
+| Infinite procedural terrain | Plasma color waves | Scrolling fire |
+
+| ![Snake](docs/screenshots/snake.png) | ![Tetris](docs/screenshots/tetris.png) | ![Starfield](docs/screenshots/starfield.png) |
+|:--:|:--:|:--:|
+| Snake game | Tetris | 3D starfield |
+
+| ![Ball](docs/screenshots/ball.png) | ![Painter](docs/screenshots/painter.png) | ![Colors](docs/screenshots/colors.png) |
+|:--:|:--:|:--:|
+| Bouncing ball | Freehand painting | Color palette |
+
+| ![RISC-V Paint](docs/screenshots/paint_riscv.png) |
+|:--:|
+| **RISC-V bare-metal paint program** — interactive pixel art editor running on the RV32IMAC interpreter. No Linux, no OS, no libc. C program linked against libgeos.a, writing directly to the MMIO framebuffer. 10-color palette, fill mode, in-session save/load. |
+
+## Documentation
+
+- **docs/CANVAS_TEXT_SURFACE.md** -- The text editor, assembly pipeline, preprocessor macros
+- **docs/ARCHITECTURE.md** -- Full opcode reference, multi-process, instrumentation, WASM, network
+- **docs/SIGNED_ARITHMETIC.md** -- Two's-complement arithmetic semantics
+- **docs/MEMORY_PROTECTION.md** -- Page tables, address spaces, segfault handling
+- **docs/RISCV_HYPERVISOR.md** -- RISC-V interpreter, privilege modes, virtual memory
+- **programs/README.md** -- Per-program descriptions and controls
+
+## Stats
+
+- 68,622 lines of Rust
+- 178 opcodes
+- 141 programs
+- 3,055 tests
+- MIT licensed
+
+## License
+
+MIT
