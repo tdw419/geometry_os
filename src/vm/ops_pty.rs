@@ -74,7 +74,7 @@ fn read_string_from_ram(ram: &[u32], addr: u32) -> String {
 }
 
 /// Default terminal dimensions matching host_term_v4.asm display.
-pub const DEFAULT_COLS: u16 = 42;
+pub const DEFAULT_COLS: u16 = 80;
 pub const DEFAULT_ROWS: u16 = 30;
 
 /// Spawn `cmd` (or bash if empty) inside a fresh pty. Returns the populated
@@ -102,7 +102,7 @@ pub fn spawn(cmd_line: &str) -> Result<PtySlot, String> {
         c.env("TERM", "xterm");
         // Set COLUMNS/LINES to match the PTY size so bash line wrapping and
         // tab completion align with the actual terminal width from frame 1.
-        c.env("COLUMNS", "42");
+        c.env("COLUMNS", "80");
         c.env("LINES", "30");
         // Simple prompt so we can detect when bash is ready
         c.env("PS1", "$ ");
@@ -119,7 +119,7 @@ pub fn spawn(cmd_line: &str) -> Result<PtySlot, String> {
             c.arg(arg);
         }
         c.env("TERM", "xterm");
-        c.env("COLUMNS", "42");
+        c.env("COLUMNS", "80");
         c.env("LINES", "30");
         c.env("PS1", "$ ");
         c
@@ -688,8 +688,8 @@ mod tests {
     }
 
     /// Test PTYSIZE opcode resizes the PTY correctly.
-    /// Spawn bash at default size, resize to 42x30 via op_ptysize, then
-    /// verify bash reports $COLUMNS=42.
+    /// Spawn bash at default size, resize to 80x30 via op_ptysize, then
+    /// verify bash reports $COLUMNS=80.
     #[test]
     fn pty_resize_via_opcode() {
         use crate::vm::Vm;
@@ -722,14 +722,14 @@ mod tests {
         vm.pc = 100;
         vm.op_ptyread();
 
-        // PTYSIZE handle, rows=30, cols=42
+        // PTYSIZE handle, rows=30, cols=80
         let size_pc: usize = 200;
         vm.ram[size_pc] = 12; // handle_reg
         vm.ram[size_pc + 1] = 13; // rows_reg
         vm.ram[size_pc + 2] = 14; // cols_reg
         vm.regs[12] = handle;
         vm.regs[13] = 30; // rows
-        vm.regs[14] = 42; // cols
+        vm.regs[14] = 80; // cols
         vm.pc = size_pc as u32;
         vm.op_ptysize();
 
@@ -784,8 +784,8 @@ mod tests {
         }
         let text = String::from_utf8_lossy(&output);
         assert!(
-            text.contains("42"),
-            "expected '42' (new COLUMNS) in output, got: {:?}",
+            text.contains("80"),
+            "expected '80' (new COLUMNS) in output, got: {:?}",
             text
         );
 
@@ -864,7 +864,7 @@ mod tests {
             match slot.rx.try_recv() {
                 Ok(b) => output.push(b),
                 Err(_) => {
-                    if slot.is_closed() && output.contains(&b'4') {
+                    if slot.is_closed() && output.contains(&b'8') {
                         break;
                     }
                     thread::sleep(Duration::from_millis(20));
@@ -874,8 +874,8 @@ mod tests {
 
         let text = String::from_utf8_lossy(&output);
         assert!(
-            text.contains("42"),
-            "bash $COLUMNS should be 42 (matching initial spawn size), got: {:?}",
+            text.contains("80"),
+            "bash $COLUMNS should be 80 (matching initial spawn size), got: {:?}",
             text
         );
     }

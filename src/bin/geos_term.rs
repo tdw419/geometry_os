@@ -35,8 +35,8 @@ const VM_H: usize = 256;
 
 /// Text buffer layout in RAM (must match host_term.asm #defines).
 const BUF_BASE: usize = 0x4000;
-const BUF_COLS: usize = 85;
-const BUF_ROWS: usize = 40;
+const BUF_COLS: usize = 80;
+const BUF_ROWS: usize = 30;
 const CUR_COL: usize = 0x4E00;
 const CUR_ROW: usize = 0x4E01;
 const PTY_HANDLE: usize = 0x4E03;

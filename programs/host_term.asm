@@ -45,9 +45,9 @@
 ;   r30 stack pointer
 ;
 #define COLS 80
-#define ROWS 40
+#define ROWS 30
 #define BUF 0x4000
-#define BUF_END 0x77F0
+#define BUF_END 0x4960
 #define CUR_COL 0x4E00
 #define CUR_ROW 0x4E01
 #define BLINK 0x4E02
@@ -205,8 +205,8 @@ LDI r20, STATUS_CONNECTED
 LDI r0, 1
 STORE r20, r0
 
-; PTYSIZE -- tell the PTY we want 80 cols x 40 rows
-LDI r10, 40
+; PTYSIZE -- tell the PTY we want 80 cols x 30 rows
+LDI r10, 30
 LDI r11, 80
 PTYSIZE r28, r10, r11
 
