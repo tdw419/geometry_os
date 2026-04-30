@@ -49,6 +49,9 @@ meta:
   source_files: 92
   tests: 3656
   vfs_surface: 0x7000_0000 (256x256)
+project_url: https://github.com/tdw419/geometry-os
+title: Geometry OS Roadmap
+version: 1.0.0
 phases:
 - deliverables:
   - description: 'Control flow: stop, no-op, yield to renderer'
@@ -8298,9 +8301,6 @@ phases:
       scope_lines: 80
   scope_lines_total: 140
   test_target: 2
-project_url: https://github.com/tdw419/geometry-os
-title: Geometry OS Roadmap
-version: 1.0.0
 
 - id: phase-167
   title: "Fix Building-to-Program Filename Mismatch for linux and host"
@@ -8542,7 +8542,7 @@ version: 1.0.0
     description: EXEC+WAITPID for running external programs, HALT for clean exit
     status: done
   - name: edit, build, reload commands
-    description: Self-hosting loop: edit opens canvas, build assembles from VFS, reload restarts terminal
+    description: "Self-hosting loop: edit opens canvas, build assembles from VFS, reload restarts terminal"
     status: done
   - name: Dispatch chain bug fix
     description: try_cls now falls through to try_cat instead of jumping to try_unknown
@@ -8595,3 +8595,89 @@ version: 1.0.0
   deliverables:
   - name: "GPU-native glyph dispatcher"
     status: todo
+  scope_lines: 10
+  scope_lines_total: 10
+  test_target: 1
+
+- id: phase-183
+  title: ANSI Parser -- Erase Operations and Cursor Visibility
+  status: planned
+  goal: "Add CSI erase sequences (K/J) and cursor visibility (?25) to host_term.asm"
+  description: "prompt_toolkit and most terminal emitters rely heavily on erase operations to clear lines and screens during redraws. Cursor visibility toggling is used by prompt_toolkit during input processing. Without these, the terminal shows stale content from previous prompts bleeding through. The test harness (host_term_run_ansi) makes this headless-verifiable."
+  deliverables:
+  - name: "CSI K -- Erase in Line (0=cursor to end, 1=start to cursor, 2=full line)"
+    status: todo
+    tasks:
+    - id: p183.d1.t1
+      title: "Implement CSI 0K (erase from cursor to end of line)"
+      description: "In apply_sgr/handle_sgr_final, when final byte is 'K', check param: 0 (default) fills spaces from cursor col to end of row. Clear color to default."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 30
+    - id: p183.d1.t2
+      title: "Implement CSI 1K (erase from start of line to cursor)"
+      description: "Fill spaces from col 0 to cursor col inclusive."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 20
+    - id: p183.d1.t3
+      title: "Implement CSI 2K (erase entire line)"
+      description: "Fill entire current row with spaces, reset colors."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 15
+  - name: "CSI J -- Erase in Display (0=cursor to end, 1=start to cursor, 2=full screen)"
+    status: todo
+    tasks:
+    - id: p183.d2.t1
+      title: "Implement CSI 0J (erase from cursor to end of screen)"
+      description: "Clear from cursor position to end of current line, then clear all rows below. Similar to scroll_up logic but starting from cursor row."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 30
+    - id: p183.d2.t2
+      title: "Implement CSI 1J and CSI 2J"
+      description: "1J: clear from screen start to cursor. 2J: clear entire screen (same as FILL with background color)."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 25
+  - name: "CSI ?25h / CSI ?25l -- Cursor visibility toggle"
+    status: todo
+    tasks:
+    - id: p183.d3.t1
+      title: "Add cursor_visible flag and handle ?25h/?25l"
+      description: "In CSI private mode handler, add check for param 25: h=show cursor, l=hide cursor. Store in a flag byte. SMALLTEXT renderer checks this flag before drawing cursor cell. prompt_toolkit hides cursor during input processing."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 25
+  scope_lines: 145
+  scope_lines_total: 84585
+  test_target: 12
+
+- id: phase-184
+  title: ANSI Parser -- Bracketed Paste and Comprehensive Stress Test
+  status: planned
+  goal: "Add bracketed paste mode support and a prompt_toolkit-style stress test"
+  description: "Bracketed paste mode (?2004h/?2004l) wraps pasted text in escape sequences so the terminal can distinguish typed input from pasted input. prompt_toolkit enables this by default. Without it, multi-line pastes into the GeOS terminal will be garbled. Also adds a comprehensive integration test that drives a realistic prompt_toolkit rendering cycle (clear screen, render prompt with colors, handle input, redraw) through the parser."
+  deliverables:
+  - name: "Bracketed paste mode (?2004h/?2004l)"
+    status: todo
+    tasks:
+    - id: p184.d1.t1
+      title: "Accept ?2004h and ?2004l without crashing"
+      description: "In CSI private mode handler, add cases for 2004. For now, just ACK and discard (no actual paste processing needed at the ANSI parser level -- the PTY layer handles the wrapping). The key thing is the parser must not choke on these sequences."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 15
+  - name: "prompt_toolkit full rendering cycle stress test"
+    status: todo
+    tasks:
+    - id: p184.d2.t1
+      title: "Write integration test simulating prompt_toolkit redraw cycle"
+      description: "Drive a realistic prompt_toolkit frame through host_term_run_ansi: (1) CSI 2J clear screen, (2) CSI H cursor home, (3) CSI ?25l hide cursor, (4) render prompt line with 256-color SGR, (5) CSI K erase to end of line, (6) render output text, (7) CSI ?25h show cursor, (8) CSI 1G cursor to col 1. Assert screen state at each step. This is the definitive 'Hermes will work' test."
+      scope_files: ["src/vm/tests.rs"]
+      scope_lines: 80
+  - name: "Update existing Hermes integration test with erase sequences"
+    status: todo
+    tasks:
+    - id: p184.d3.t1
+      title: "Extend host_term_ansi_hermes_style_frame with CSI K and CSI J"
+      description: "Add CSI 2J at start and CSI K after prompt text to match what prompt_toolkit actually emits. Verify the test still passes with the added sequences."
+      scope_files: ["src/vm/tests.rs"]
+      scope_lines: 30
+  scope_lines: 125
+  scope_lines_total: 84710
+  test_target: 8
