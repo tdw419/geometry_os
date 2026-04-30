@@ -17,6 +17,7 @@
 //   Shift+PageDown    Scroll forward through terminal history
 //   Ctrl+Shift+C      Copy visible text to host clipboard
 //   Ctrl+Shift+V      Paste from host clipboard (types chars into PTY)
+//   Ctrl+Shift+D      Describe screen via local Ollama vision model (~2s)
 //   Ctrl+L            Send "clear" command to shell
 //   Ctrl+Shift+T      Open new terminal tab (PTY slot)
 //   Ctrl+Shift+W      Close current terminal tab
@@ -24,6 +25,7 @@
 use minifb::{Key, KeyRepeat, MouseButton, MouseMode, Window, WindowOptions};
 
 use std::io::Write;
+use std::sync::{Arc, Mutex};
 
 use geometry_os::assembler::assemble;
 use geometry_os::keys::{key_to_ascii, key_to_ascii_shifted};
@@ -1159,6 +1161,9 @@ fn main() {
     let mut status_msg = String::new();
     let mut status_ttl: usize = 0; // frames until status bar disappears
     let mut selection = TextSelection::new();
+    // Ctrl+Shift+D: vision describe -- shared state for async vision result
+    let vision_result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let mut vision_busy = false;
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
         let ctrl = window.is_key_down(Key::LeftCtrl) || window.is_key_down(Key::RightCtrl);
@@ -1279,6 +1284,34 @@ fn main() {
                 status_ttl = 120;
                 continue;
             }
+            // Ctrl+Shift+D: describe screen via local Ollama vision model
+            if key == Key::D && ctrl && shift {
+                if !vision_busy {
+                    vision_busy = true;
+                    // Clone what we need for the thread
+                    let screen_snapshot = vm.screen.clone();
+                    let result = Arc::clone(&vision_result);
+                    std::thread::spawn(move || {
+                        let prompt = "Describe what you see on this screen. Be concise: layout, colors, text, any visual anomalies.";
+                        let system = "You are a vision model describing a 256x256 pixel terminal framebuffer from Geometry OS. Be concise and factual.";
+                        let b64 = geometry_os::vision::encode_png_base64(&screen_snapshot);
+                        match geometry_os::hermes::call_ollama_vision(system, prompt, &b64) {
+                            Some(desc) => {
+                                *result.lock().unwrap() = Some(desc);
+                            }
+                            None => {
+                                *result.lock().unwrap() = Some("error: vision model unavailable".to_string());
+                            }
+                        }
+                    });
+                    status_msg = "vision: analyzing...".to_string();
+                    status_ttl = 300; // show for ~5s
+                } else {
+                    status_msg = "vision: already analyzing...".to_string();
+                    status_ttl = 60;
+                }
+                continue;
+            }
             // Ctrl+1..4: switch tabs
             if ctrl && !shift {
                 let tab = match key {
@@ -1370,6 +1403,21 @@ fn main() {
                 }
             }
             prev_top_row = current_top;
+        }
+
+        // ── Poll vision result (Ctrl+Shift+D) ──
+        if vision_busy {
+            let mut result = vision_result.lock().unwrap();
+            if let Some(desc) = result.take() {
+                vision_busy = false;
+                eprintln!("\n[vision] {}", desc);
+                // Update status bar with first line of description
+                let first_line = desc.lines().next().unwrap_or(&desc);
+                let truncated: String = first_line.chars().take(40).collect();
+                status_msg = format!("vision: {}", truncated);
+                status_ttl = 300;
+            }
+            drop(result);
         }
 
         // ── Render ──
