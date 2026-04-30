@@ -21416,6 +21416,49 @@ fn host_term_ansi_hermes_style_frame() {
     assert_eq!(ht_color_at(&vm, 2, 8), HT_DEFAULT_FG, "s after \\e[39m reset");
 }
 
+#[test]
+fn host_term_ansi_save_restore_cursor() {
+    // Sequence:
+    // 1. Write 'A' at (0,0)
+    // 2. Save cursor (\x1B7)
+    // 3. Move to (5,5), change color to red (\x1B[31m), write 'B'
+    // 4. Restore cursor (\x1B8)
+    // 5. Write 'C' (should be at (0,1) with default color)
+    // 6. Test CSI s/u too
+    //    a. Move to (10,10), save (\x1B[s)
+    //    b. Move to (20,20), write 'X'
+    //    c. Restore (\x1B[u), write 'Y' (should be at (10,10))
+    let input = b"A\x1B7\x1B[6;6H\x1B[31mB\x1B8C\
+                  \x1B[11;11H\x1B[s\x1B[21;21HX\x1B[uY";
+    let vm = host_term_run_ansi(input);
+
+    // Check 'A' at (0,0)
+    assert_eq!(ht_text_at(&vm, 0, 0), b'A');
+    // Check 'B' at (5,5) with red color (ANSI 31 = 0xCD0000)
+    assert_eq!(ht_text_at(&vm, 5, 5), b'B');
+    assert_eq!(ht_color_at(&vm, 5, 5), 0xCD0000);
+    // Check 'C' at (0,1) with default color (HT_DEFAULT_FG)
+    assert_eq!(ht_text_at(&vm, 0, 1), b'C');
+    assert_eq!(ht_color_at(&vm, 0, 1), HT_DEFAULT_FG);
+
+    // Check 'X' at (20,20)
+    assert_eq!(ht_text_at(&vm, 20, 20), b'X');
+    // Check 'Y' at (10,10)
+    assert_eq!(ht_text_at(&vm, 10, 10), b'Y');
+}
+
+#[test]
+fn host_term_ansi_esc_d_index() {
+    // Sequence:
+    // 1. Move to (0,0), write 'A'
+    // 2. ESC D (Index) -> should move down 1 line to (1,0)
+    // 3. Write ' ' then 'B' -> 'B' at (1,1)
+    let input = b"A\x1BD B";
+    let vm = host_term_run_ansi(input);
+    assert_eq!(ht_text_at(&vm, 0, 0), b'A');
+    assert_eq!(ht_text_at(&vm, 1, 1), b'B');
+}
+
 // ── Phase 137: Host Filesystem Bridge Tests ──────────────────────────────
 
 /// Helper: write a null-terminated string into RAM at given address

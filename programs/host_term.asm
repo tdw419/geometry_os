@@ -99,6 +99,9 @@
 #define CSI_PARAM2 0x4E0C
 ; Dirty flag for status bar (1 = needs redraw)
 #define DIRTY_STATUS 0x4E0D
+#define SAVED_ROW 0x4E13   ; ESC 7 saved cursor row
+#define SAVED_COL 0x4E14   ; ESC 7 saved cursor col
+#define SAVED_FG 0x4E15    ; ESC 7 saved FG color
 
 ; =========================================
 ; INIT
@@ -125,7 +128,15 @@ LDI r0, 0
 STORE r20, r0
 LDI r20, CUR_ROW
 STORE r20, r0
+LDI r20, SAVED_ROW
+STORE r20, r0
+LDI r20, SAVED_COL
+STORE r20, r0
+LDI r20, SAVED_FG
+LDI r0, 0xBBBBBB
+STORE r20, r0
 LDI r20, BLINK
+LDI r0, 0
 STORE r20, r0
 LDI r20, PTY_HANDLE
 LDI r0, 0xFFFF
@@ -462,10 +473,37 @@ pb_check_esc:
 
 pb_esc_check_osc:
     CMPI r5, 93
-    JNZ r0, pb_esc_other
+    JNZ r0, pb_esc_save_cursor
 
     LDI r20, ANSI_STATE
     LDI r0, ANS_OSC
+    STORE r20, r0
+    JMP pb_ret
+
+pb_esc_save_cursor:
+    CMPI r5, 55 ; '7' = DEC Save Cursor
+    JNZ r0, pb_esc_restore_cursor
+    CALL save_cursor
+    LDI r20, ANSI_STATE
+    LDI r0, ANS_NORMAL
+    STORE r20, r0
+    JMP pb_ret
+
+pb_esc_restore_cursor:
+    CMPI r5, 56 ; '8' = DEC Restore Cursor
+    JNZ r0, pb_esc_index
+    CALL restore_cursor
+    LDI r20, ANSI_STATE
+    LDI r0, ANS_NORMAL
+    STORE r20, r0
+    JMP pb_ret
+
+pb_esc_index:
+    CMPI r5, 68 ; 'D' = Index
+    JNZ r0, pb_esc_other
+    CALL do_newline
+    LDI r20, ANSI_STATE
+    LDI r0, ANS_NORMAL
     STORE r20, r0
     JMP pb_ret
 
@@ -564,7 +602,7 @@ pb_csi_h_mode:
 pb_csi_l_mode:
     ; 'l' (108) = reset mode (private: ?1049l = alt screen off)
     CMPI r5, 108
-    JNZ r0, pb_csi_unknown
+    JNZ r0, pb_csi_s
     LDI r20, CSI_PRIVATE
     LOAD r0, r20
     JZ r0, pb_ret         ; ignore non-private 'l'
@@ -573,6 +611,20 @@ pb_csi_l_mode:
     CMPI r0, 1049
     JNZ r0, pb_ret        ; only handle 1049
     CALL alt_screen_off
+    JMP pb_ret
+
+pb_csi_s:
+    ; 's' (115) = save cursor
+    CMPI r5, 115
+    JNZ r0, pb_csi_u
+    CALL save_cursor
+    JMP pb_ret
+
+pb_csi_u:
+    ; 'u' (117) = restore cursor
+    CMPI r5, 117
+    JNZ r0, pb_csi_unknown
+    CALL restore_cursor
     JMP pb_ret
 
 pb_csi_unknown:
@@ -2320,6 +2372,40 @@ ccl_move:
 ccl_ok:
     STORE r20, r7
     POP r31
+    RET
+
+; =========================================
+; SAVE/RESTORE CURSOR (ESC 7/8 and CSI s/u)
+; =========================================
+
+save_cursor:
+    LDI r20, CUR_ROW
+    LOAD r6, r20
+    LDI r21, SAVED_ROW
+    STORE r21, r6
+    LDI r20, CUR_COL
+    LOAD r6, r20
+    LDI r21, SAVED_COL
+    STORE r21, r6
+    LDI r20, FG_COLOR
+    LOAD r6, r20
+    LDI r21, SAVED_FG
+    STORE r21, r6
+    RET
+
+restore_cursor:
+    LDI r21, SAVED_ROW
+    LOAD r6, r21
+    LDI r20, CUR_ROW
+    STORE r20, r6
+    LDI r21, SAVED_COL
+    LOAD r6, r21
+    LDI r20, CUR_COL
+    STORE r20, r6
+    LDI r21, SAVED_FG
+    LOAD r6, r21
+    LDI r20, FG_COLOR
+    STORE r20, r6
     RET
 
 ; =========================================
