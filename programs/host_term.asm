@@ -499,8 +499,29 @@ pb_esc_restore_cursor:
     JMP pb_ret
 
 pb_esc_index:
-    CMPI r5, 68 ; 'D' = Index
+    CMPI r5, 68 ; 'D' = Index (move down, scroll if at bottom)
+    JNZ r0, pb_esc_rev_index
+    CALL do_newline
+    LDI r20, ANSI_STATE
+    LDI r0, ANS_NORMAL
+    STORE r20, r0
+    JMP pb_ret
+
+pb_esc_rev_index:
+    CMPI r5, 77 ; 'M' = Reverse Index (move up, scroll if at top)
+    JNZ r0, pb_esc_next_line
+    CALL do_reverse_index
+    LDI r20, ANSI_STATE
+    LDI r0, ANS_NORMAL
+    STORE r20, r0
+    JMP pb_ret
+
+pb_esc_next_line:
+    CMPI r5, 69 ; 'E' = Next Line (CR + Index)
     JNZ r0, pb_esc_other
+    LDI r20, CUR_COL
+    LDI r0, 0
+    STORE r20, r0
     CALL do_newline
     LDI r20, ANSI_STATE
     LDI r0, ANS_NORMAL
@@ -1448,6 +1469,102 @@ sc_color_loop:
     ADD r22, r1
     CMPI r22, COLS
     BLT r0, sc_color_loop
+
+    POP r31
+    RET
+
+; =========================================
+; DO_REVERSE_INDEX -- move cursor up one line, scroll down if at top
+; =========================================
+do_reverse_index:
+    PUSH r31
+    LDI r1, 1
+    LDI r20, CUR_ROW
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, dri_dec
+    ; At top of screen — scroll down (insert blank line at top)
+    CALL scroll_down
+    JMP dri_ret
+dri_dec:
+    SUB r6, r1
+    STORE r20, r6
+dri_ret:
+    POP r31
+    RET
+
+; =========================================
+; SCROLL_DOWN -- shift rows down, clear top row
+; =========================================
+scroll_down:
+    PUSH r31
+    LDI r1, 1
+    ; Copy rows from bottom to top (iterate 28..0)
+    LDI r10, 28
+sd_loop:
+    CMPI r10, 0
+    BLT r0, sd_clear
+
+    ; dst = BUF + (row+1) * COLS
+    LDI r21, BUF
+    MOV r0, r10
+    ADD r0, r1
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r21, r0
+
+    ; src = BUF + row * COLS
+    LDI r20, BUF
+    MOV r0, r10
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r20, r0
+
+    ; MEMCPY dst, src, COLS
+    MEMCPY r21, r20, r11
+
+    ; Same for color buffer
+    LDI r21, COLOR_BUF
+    MOV r0, r10
+    ADD r0, r1
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r21, r0
+
+    LDI r20, COLOR_BUF
+    MOV r0, r10
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r20, r0
+
+    MEMCPY r21, r20, r11
+
+    SUB r10, r1
+    JMP sd_loop
+
+sd_clear:
+    ; Clear top row (row 0) of text buffer
+    LDI r20, BUF
+    LDI r6, 32
+    LDI r22, 0
+sd_text_loop:
+    STORE r20, r6
+    ADD r20, r1
+    ADD r22, r1
+    CMPI r22, COLS
+    BLT r0, sd_text_loop
+
+    ; Clear top row of color buffer with default FG color
+    LDI r20, COLOR_BUF
+    LDI r6, FG_COLOR
+    LOAD r6, r6
+    LDI r22, 0
+sd_color_loop:
+    STORE r20, r6
+    ADD r20, r1
+    ADD r22, r1
+    CMPI r22, COLS
+    BLT r0, sd_color_loop
 
     POP r31
     RET

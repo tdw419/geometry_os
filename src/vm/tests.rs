@@ -21459,6 +21459,44 @@ fn host_term_ansi_esc_d_index() {
     assert_eq!(ht_text_at(&vm, 1, 1), b'B');
 }
 
+#[test]
+fn host_term_ansi_esc_m_reverse_index() {
+    // ESC M at row 1 should move cursor to row 0
+    let input = b"\x1B[2;1H\x1BMZ";
+    let vm = host_term_run_ansi(input);
+    // 'Z' should be at (0, 0) — moved up from row 1 to row 0
+    assert_eq!(ht_text_at(&vm, 0, 0), b'Z');
+}
+
+#[test]
+fn host_term_ansi_esc_m_scroll_at_top() {
+    // Fill rows 0-1 with data, then do ESC M at row 0 (should scroll down)
+    // Row 0 should become blank, row 1 should have old row 0's data
+    let input = b"AA\x1B[2;1HBB\x1B[1;1H\x1BMCC";
+    let vm = host_term_run_ansi(input);
+    // After scroll: old row 0 ("AA..") shifted to row 1
+    // old row 1 ("BB..") shifted to row 2
+    // new row 0 is blank, cursor at (0,0), then "CC" written there
+    assert_eq!(ht_text_at(&vm, 0, 0), b'C');
+    assert_eq!(ht_text_at(&vm, 0, 1), b'C');
+    // Row 1 should have old row 0 content ("AA")
+    assert_eq!(ht_text_at(&vm, 1, 0), b'A');
+    assert_eq!(ht_text_at(&vm, 1, 1), b'A');
+}
+
+#[test]
+fn host_term_ansi_esc_e_next_line() {
+    // ESC E = CR + LF in one escape
+    // Write "AB", then ESC E (should go to col 0 of next row), then "CD"
+    let input = b"AB\x1BECD";
+    let vm = host_term_run_ansi(input);
+    assert_eq!(ht_text_at(&vm, 0, 0), b'A');
+    assert_eq!(ht_text_at(&vm, 0, 1), b'B');
+    // CD should be at start of row 1
+    assert_eq!(ht_text_at(&vm, 1, 0), b'C');
+    assert_eq!(ht_text_at(&vm, 1, 1), b'D');
+}
+
 // ── Phase 137: Host Filesystem Bridge Tests ──────────────────────────────
 
 /// Helper: write a null-terminated string into RAM at given address
