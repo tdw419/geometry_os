@@ -1383,10 +1383,37 @@ pub fn call_vision_llm(
     user_message: &str,
     image_b64: &str, // raw base64, no data: prefix
 ) -> Option<String> {
-    // Determine which model to use. If it's a vision call, prefer config.vision_model.
-    let model = config.vision_model.as_ref().unwrap_or(&config.model);
+    // Resolve vision endpoint. The primary provider may not support vision
+    // (e.g. ZAI/glm-4.6 with an Ollama vision model in fallback). Pick the
+    // endpoint whose vision_model is set, preferring the primary if its
+    // base_url is Ollama, else the fallback.
+    let primary_is_ollama = config.base_url.contains("11434");
+    let (model, base_url, api_key) = if primary_is_ollama && config.vision_model.is_some() {
+        (
+            config.vision_model.as_ref().unwrap().clone(),
+            config.base_url.clone(),
+            config.api_key.clone(),
+        )
+    } else if let Some(fb) = config.fallback.as_ref() {
+        let vm = fb
+            .vision_model
+            .as_ref()
+            .or(config.vision_model.as_ref())
+            .unwrap_or(&fb.model)
+            .clone();
+        (vm, fb.base_url.clone(), fb.api_key.clone())
+    } else {
+        (
+            config
+                .vision_model
+                .as_ref()
+                .unwrap_or(&config.model)
+                .clone(),
+            config.base_url.clone(),
+            config.api_key.clone(),
+        )
+    };
 
-    // Escape strings for JSON
     let esc_sys = system_prompt
         .replace('\\', "\\\\")
         .replace('"', "\\\"")
@@ -1398,14 +1425,11 @@ pub fn call_vision_llm(
         .replace('\n', "\\n")
         .replace('\t', "\\t");
 
-    // Build Ollama-style vision payload
-    // Note: Ollama expects images at the message level
     let payload = format!(
         r#"{{"model":"{}","messages":[{{"role":"system","content":"{}"}},{{"role":"user","content":"{}","images":["{}"]}}],"stream":false,"max_tokens":{},"temperature":{}}}"#,
         model, esc_sys, esc_user, image_b64, config.max_tokens, config.temperature
     );
 
-    // Write payload to temp file to avoid shell escaping issues
     let tmp_path = "/tmp/geo_hermes_vision_payload.json";
     match std::fs::write(tmp_path, &payload) {
         Ok(()) => {}
@@ -1415,12 +1439,11 @@ pub fn call_vision_llm(
         }
     }
 
-    // Build curl args -- add Authorization header if API key present
     let mut curl_args = vec![
         "-s".to_string(),
         "-X".to_string(),
         "POST".to_string(),
-        config.base_url.clone(),
+        base_url,
         "-d".to_string(),
         format!("@{}", tmp_path),
         "-H".to_string(),
@@ -1428,9 +1451,9 @@ pub fn call_vision_llm(
         "--max-time".to_string(),
         "120".to_string(),
     ];
-    if !config.api_key.is_empty() {
+    if !api_key.is_empty() {
         curl_args.push("-H".to_string());
-        curl_args.push(format!("Authorization: Bearer {}", config.api_key));
+        curl_args.push(format!("Authorization: Bearer {}", api_key));
     }
 
     let output = match std::process::Command::new("curl").args(&curl_args).output() {
