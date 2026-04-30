@@ -1117,7 +1117,6 @@ phases:
       description: Run cargo test, confirm no regressions.
       scope_files:
       - src/glyph_backend.rs
-      scope_lines: 5
       scope_lines: 105
       scope_lines_total: 85170
   test_target: 2
@@ -1126,7 +1125,7 @@ phases:
   _completed_at: 1777558123
 - id: phase-189
   title: VFS Capability Enforcement on Process Creation
-  status: planned
+  status: in_progress
   goal: Wire up the existing Capability struct to Process so spawned programs get
     restricted VFS access
   description: src/vm/types.rs already has Capability, check_path_capability, and
@@ -1174,9 +1173,11 @@ phases:
   scope_lines: 125
   scope_lines_total: 85295
   test_target: 4
+  _claimed_by: worker-0
+  _claimed_at: 1777561159
 - id: phase-190
   title: Sync qemu/ansi.rs Feature Parity with host_term.asm
-  status: planned
+  status: in_progress
   goal: Ensure both ANSI parsers handle the same set of sequences, preventing behavioral
     drift
   description: 'There are two ANSI parsers: the Rust qemu/ansi.rs (1403 lines, 71
@@ -1220,9 +1221,11 @@ phases:
   scope_lines: 130
   scope_lines_total: 85425
   test_target: 8
+  _claimed_by: worker-0
+  _claimed_at: 1777563499
 - id: phase-191
   title: Roguelike Game Polish -- Save/Load and Win Condition
-  status: planned
+  status: in_progress
   goal: Add game state persistence and a proper win/lose loop to the roguelike
   description: The roguelike (2549 lines) is one of the largest programs but has no
     save/load and no win condition. When you find the stairs, there is no victory
@@ -1266,9 +1269,11 @@ phases:
   scope_lines: 135
   scope_lines_total: 85560
   test_target: 3
+  _claimed_by: worker-0
+  _claimed_at: 1777568986
 - id: phase-192
   title: Shell.asm Built-in Commands Expansion
-  status: planned
+  status: in_progress
   goal: Add more useful built-in commands to the shell (grep, head, tail, wc, date)
   description: The shell (2039 lines) handles basic command parsing and execution
     via EXEC. But common commands like grep, head, tail are missing as built-ins.
@@ -1308,9 +1313,11 @@ phases:
   scope_lines: 150
   scope_lines_total: 85710
   test_target: 5
+  _claimed_by: worker-0
+  _claimed_at: 1777571419
 - id: phase-193
   title: Nano Editor -- Search and Replace
-  status: planned
+  status: in_progress
   goal: Add search (Ctrl+S) and replace (Ctrl+R) to the nano editor
   description: The nano editor (2208 lines) supports basic editing but has no search/replace.
     These are essential for real editing work. Implement incremental search (highlight
@@ -1348,9 +1355,11 @@ phases:
   scope_lines: 130
   scope_lines_total: 85840
   test_target: 3
+  _claimed_by: worker-0
+  _claimed_at: 1777574721
 - id: phase-194
   title: Host Terminal Performance -- Dirty Rectangle Rendering
-  status: planned
+  status: in_progress
   goal: Only re-render changed rows instead of the full 30-row screen every frame
   description: Currently host_term.asm renders all 30 rows every frame via SMALLTEXT,
     even when only one line changed (like typing a character). This is wasteful. Track
@@ -1378,9 +1387,11 @@ phases:
   scope_lines: 60
   scope_lines_total: 85900
   test_target: 2
+  _claimed_by: worker-0
+  _claimed_at: 1777577516
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: planned
+  status: in_progress
   goal: Extend file browser to support directory traversal, file deletion, and file
     creation
   description: The file browser shows VFS files and displays content but cannot navigate
@@ -1408,9 +1419,11 @@ phases:
   scope_lines: 65
   scope_lines_total: 85965
   test_target: 2
+  _claimed_by: worker-0
+  _claimed_at: 1777583670
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
-  status: planned
+  status: in_progress
   goal: Add command history and conversation context tracking to ai_terminal.asm
   description: The AI terminal (2181 lines) sends prompts to the LLM opcode but has
     no command history (up/down arrows to recall previous prompts) and no context
@@ -1440,9 +1453,11 @@ phases:
   scope_lines: 60
   scope_lines_total: 86025
   test_target: 2
+  _claimed_by: worker-0
+  _claimed_at: 1777587013
 - id: phase-197
   title: Replace mmu.rs unwrap() Calls with Proper Error Paths
-  status: planned
+  status: done
   goal: Eliminate 14 unwrap() calls in the RISC-V MMU that can panic on page fault
     edge cases
   description: The MMU (src/riscv/mmu.rs) handles address translation for the RISC-V
@@ -1451,7 +1466,7 @@ phases:
     PageFault with fault address) so the interpreter can handle them gracefully.
   deliverables:
   - name: Replace MMU unwrap() calls
-    status: todo
+    status: done
     tasks:
     - id: p197.d1.t1
       title: Replace all 14 unwrap() in mmu.rs
@@ -1469,6 +1484,8 @@ phases:
   scope_lines: 85
   scope_lines_total: 86110
   test_target: 2
+  _claimed_by: worker-0
+  _claimed_at: 1777590104
 - id: phase-198
   title: Desktop Terminal Integration -- Launch Hermes from GeOS
   status: planned
