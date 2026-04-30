@@ -258,7 +258,7 @@ If the cloud is down, everything falls back to local (Ollama qwen3.5-tools), whi
 
 The vision pipeline works, but not everything is wired up:
 
-1. **Terminal hotkey** -- pressing Ctrl+Shift+V in geos-term to screenshot + describe is not built yet (the infrastructure is there, just needs a keybinding handler)
+1. **Terminal hotkey** -- ~~pressing Ctrl+Shift+V in geos-term to screenshot + describe is not built yet (the infrastructure is there, just needs a keybinding handler)~~ **CLOSED** -- Added Ctrl+Shift+D in geos-term (D=Describe, V was already paste). Spawns a background thread, sends screenshot to llama3.2-vision:11b, prints description to stderr, shows first line in status bar. Non-blocking, ~2s.
 
 2. **Script DSL vision assert** -- `assert:vision:PROMPT||EXPECTED` in --script mode would let you write visual regression tests. The checksum assert works today; the vision-LLM version doesn't yet.
 
