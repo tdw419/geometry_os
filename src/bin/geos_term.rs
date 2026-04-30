@@ -79,6 +79,9 @@ enum ScriptCmd {
     Assert { row: usize, text: String },
     /// Assert that the canvas FNV-1a checksum equals HEX (e.g. 0x12abcdef).
     AssertChecksum(u32),
+    /// Assert that the local Ollama vision model's description of the screen
+    /// contains EXPECTED (case-insensitive substring) when given PROMPT.
+    AssertVision { prompt: String, expected: String },
     /// Save current canvas as PNG to PATH.
     Snapshot(String),
     /// Dump diagnostics and text buffer to stderr.
@@ -120,6 +123,29 @@ fn parse_script(script: &str) -> Result<Vec<ScriptCmd>, String> {
                 let hash = u32::from_str_radix(trimmed, 16)
                     .map_err(|_| format!("bad checksum hex: {}", hex))?;
                 cmds.push(ScriptCmd::AssertChecksum(hash));
+            } else if let Some(spec) = rest.strip_prefix("vision:") {
+                // Format: assert:vision:PROMPT||EXPECTED
+                // `||` separator avoids colliding with colons in prompts.
+                let mut halves = spec.splitn(2, "||");
+                let prompt = halves
+                    .next()
+                    .ok_or_else(|| "assert:vision needs PROMPT||EXPECTED".to_string())?
+                    .trim()
+                    .to_string();
+                let expected = halves
+                    .next()
+                    .ok_or_else(|| {
+                        format!("assert:vision missing '||EXPECTED': {}", spec)
+                    })?
+                    .trim()
+                    .to_string();
+                if prompt.is_empty() || expected.is_empty() {
+                    return Err(format!(
+                        "assert:vision needs non-empty PROMPT and EXPECTED: {}",
+                        spec
+                    ));
+                }
+                cmds.push(ScriptCmd::AssertVision { prompt, expected });
             } else {
                 let mut parts = rest.splitn(2, ':');
                 let row: usize = parts
@@ -671,6 +697,29 @@ fn execute_script(vm: &mut Vm, cmds: &[ScriptCmd]) -> Result<(), String> {
                     ));
                 }
             }
+            ScriptCmd::AssertVision { prompt, expected } => {
+                let b64 = geometry_os::vision::encode_png_base64(&vm.screen);
+                let system = "You are a vision model describing a 256x256 pixel terminal framebuffer from Geometry OS. Be concise and factual.";
+                eprintln!("[script] vision query: '{}'", prompt);
+                let desc = geometry_os::hermes::call_ollama_vision(system, prompt, &b64)
+                    .ok_or_else(|| {
+                        "FAIL assert:vision -- Ollama vision model unavailable".to_string()
+                    })?;
+                let desc_lower = desc.to_lowercase();
+                let expected_lower = expected.to_lowercase();
+                if desc_lower.contains(&expected_lower) {
+                    eprintln!(
+                        "[script] PASS assert:vision contains '{}' (got: '{}')",
+                        expected,
+                        desc.lines().next().unwrap_or(&desc).chars().take(80).collect::<String>()
+                    );
+                } else {
+                    return Err(format!(
+                        "FAIL assert:vision expected '{}' in description, got: {}",
+                        expected, desc
+                    ));
+                }
+            }
             ScriptCmd::Snapshot(path) => {
                 let png = encode_png(&vm.screen);
                 match std::fs::write(path, &png) {
@@ -1027,6 +1076,8 @@ fn main() {
                 eprintln!("  sleep:MS            Host-level sleep");
                 eprintln!("  assert:ROW:TEXT     Assert text-buffer row contains substring");
                 eprintln!("  assert:checksum:HEX Assert canvas FNV-1a checksum (e.g. 0xDEADBEEF)");
+                eprintln!("  assert:vision:PROMPT||EXPECTED");
+                eprintln!("                      Ask Ollama vision model PROMPT, assert response contains EXPECTED (case-insensitive)");
                 eprintln!("  snapshot:PATH       Save current canvas as PNG to PATH");
                 eprintln!("  dump                Print diagnostics");
                 eprintln!();
