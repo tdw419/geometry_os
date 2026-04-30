@@ -998,7 +998,7 @@ phases:
   _claimed_at: 1777557905
 - id: phase-186
   title: ANSI Parser -- Tab Stops and Horizontal Scrolling
-  status: in_progress
+  status: done
   goal: Add proper tab stop handling so formatted output (ls, tables, code) aligns
     correctly
   description: Currently TAB advances to next 8-column boundary but there are no configurable
@@ -1008,7 +1008,7 @@ phases:
     and many CLI tools rely on 8-column tab alignment.
   deliverables:
   - name: Tab stop array and HTS (ESC H) support
-    status: todo
+    status: done
     tasks:
     - id: p186.d1.t1
       title: Add tab stop bitmap at known RAM address
@@ -1031,7 +1031,7 @@ phases:
       - programs/host_term.asm
       scope_lines: 15
   - name: Tests for tab stops
-    status: todo
+    status: done
     tasks:
     - id: p186.d2.t1
       title: Test default tab stops, custom tab stops, and clear
@@ -1096,14 +1096,14 @@ phases:
   _claimed_at: 1777555425
 - id: phase-188
   title: Replace glyph_backend.rs unwrap() with Error Propagation
-  status: in_progress
+  status: complete
   goal: Eliminate 36 unwrap() calls in glyph_backend.rs for robustness
   description: glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap()
     calls on font loading, pattern matching, and data extraction. Failures here crash
     the glyph system.
   deliverables:
   - name: Audit and replace unwrap() calls in glyph_backend.rs
-    status: todo
+    status: done
     tasks:
     - id: p188.d1.t1
       title: Replace all 36 unwrap() with proper error handling
@@ -1118,11 +1118,12 @@ phases:
       scope_files:
       - src/glyph_backend.rs
       scope_lines: 5
-  scope_lines: 105
-  scope_lines_total: 85170
+      scope_lines: 105
+      scope_lines_total: 85170
   test_target: 2
   _claimed_by: worker-0
   _claimed_at: 1777558123
+  _completed_at: 1777558123
 - id: phase-189
   title: VFS Capability Enforcement on Process Creation
   status: planned
