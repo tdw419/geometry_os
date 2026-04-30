@@ -21078,6 +21078,226 @@ fn test_host_term_assembles_with_utf8() {
     );
 }
 
+// ── host_term ANSI parser test harness ─────────────────────────────────
+//
+// Drives raw ANSI byte sequences through host_term.asm's process_byte
+// state machine and asserts on the resulting BUF / COLOR_BUF / FG_COLOR
+// state. The harness skips the PTY layer entirely: it appends a synthetic
+// driver routine to the host_term source that calls process_byte for each
+// input byte, then jumps directly to that driver after initializing the
+// minimum RAM state process_byte and append_byte depend on.
+//
+// This means SGR / cursor / UTF-8 changes to host_term.asm can be written
+// test-first, without spawning bash or relying on visual inspection.
+
+const HT_BUF: usize = 0x4000;
+const HT_CUR_COL: usize = 0x4E00;
+const HT_CUR_ROW: usize = 0x4E01;
+const HT_ANSI_STATE: usize = 0x4E04;
+const HT_FG_COLOR: usize = 0x4E09;
+const HT_CSI_PARAM: usize = 0x4E0A;
+const HT_CSI_PARAM2: usize = 0x4E0C;
+const HT_COLOR_BUF: usize = 0x7800;
+const HT_COLS: usize = 80;
+const HT_ROWS: usize = 30;
+const HT_DEFAULT_FG: u32 = 0xBBBBBB;
+
+/// Run a sequence of bytes through host_term's process_byte state machine
+/// and return the resulting VM state. The VM has only the minimum globals
+/// initialized (no PTY, no rendering, no main loop).
+fn host_term_run_ansi(input: &[u8]) -> crate::vm::Vm {
+    let host_term_src =
+        std::fs::read_to_string("programs/host_term.asm").expect("read host_term.asm");
+
+    // Synthesize a driver appended to host_term that calls process_byte
+    // once per input byte, then HALTs.
+    let mut driver = String::from("\n; ── INJECTED ANSI TEST DRIVER ──\n_ht_test_driver:\n");
+    for &b in input {
+        driver.push_str(&format!("    LDI r5, {}\n    CALL process_byte\n", b));
+    }
+    driver.push_str("    HALT\n");
+
+    let combined = format!("{}\n{}", host_term_src, driver);
+    let asm = crate::assembler::assemble(&combined, 0).expect("assemble combined source");
+    let driver_addr = *asm
+        .labels
+        .get("_ht_test_driver")
+        .expect("_ht_test_driver label missing in assembled output");
+
+    let mut vm = crate::vm::Vm::new();
+    for (i, &v) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = v;
+        }
+    }
+
+    // Mirror the parts of host_term's init phase that process_byte and
+    // append_byte depend on. (We skip PTYOPEN, render init, etc.)
+    vm.ram[HT_FG_COLOR] = HT_DEFAULT_FG;
+    vm.ram[HT_ANSI_STATE] = 0;
+    vm.ram[HT_CUR_COL] = 0;
+    vm.ram[HT_CUR_ROW] = 0;
+    vm.ram[HT_CSI_PARAM] = 0;
+    vm.ram[HT_CSI_PARAM2] = 0;
+    for i in 0..(HT_COLS * HT_ROWS) {
+        vm.ram[HT_COLOR_BUF + i] = HT_DEFAULT_FG;
+    }
+    // Stack pointer (r30) — host_term sets this to 0xFD00 in its init.
+    // Without it, PUSH/POP silently no-op and r31 (link reg) doesn't survive
+    // nested CALLs, so subroutines return to the wrong place.
+    vm.regs[30] = 0xFD00;
+
+    vm.pc = driver_addr as u32;
+    vm.halted = false;
+
+    for _ in 0..2_000_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(
+        vm.halted,
+        "test driver should reach HALT within step budget (input bytes={})",
+        input.len()
+    );
+
+    vm
+}
+
+fn ht_color_at(vm: &crate::vm::Vm, row: usize, col: usize) -> u32 {
+    vm.ram[HT_COLOR_BUF + row * HT_COLS + col]
+}
+
+fn ht_text_at(vm: &crate::vm::Vm, row: usize, col: usize) -> u8 {
+    (vm.ram[HT_BUF + row * HT_COLS + col] & 0xFF) as u8
+}
+
+#[test]
+fn host_term_ansi_plain_text_writes_to_buf() {
+    // Sanity: characters land in BUF at row 0, default fg color in COLOR_BUF.
+    let vm = host_term_run_ansi(b"hi");
+    assert_eq!(ht_text_at(&vm, 0, 0), b'h');
+    assert_eq!(ht_text_at(&vm, 0, 1), b'i');
+    assert_eq!(ht_color_at(&vm, 0, 0), HT_DEFAULT_FG);
+    assert_eq!(ht_color_at(&vm, 0, 1), HT_DEFAULT_FG);
+}
+
+#[test]
+fn host_term_ansi_sgr_red() {
+    // \e[31m sets FG to red (0xCD0000); a printed char gets that color.
+    let vm = host_term_run_ansi(b"\x1B[31mA");
+    assert_eq!(ht_text_at(&vm, 0, 0), b'A');
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xCD0000);
+}
+
+#[test]
+fn host_term_ansi_sgr_green() {
+    let vm = host_term_run_ansi(b"\x1B[32mG");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0x00CD00);
+}
+
+#[test]
+fn host_term_ansi_sgr_blue() {
+    let vm = host_term_run_ansi(b"\x1B[34mB");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0x0000EE);
+}
+
+#[test]
+fn host_term_ansi_sgr_yellow() {
+    let vm = host_term_run_ansi(b"\x1B[33mY");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xCDCD00);
+}
+
+#[test]
+fn host_term_ansi_sgr_magenta() {
+    let vm = host_term_run_ansi(b"\x1B[35mM");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xCD00CD);
+}
+
+#[test]
+fn host_term_ansi_sgr_cyan() {
+    let vm = host_term_run_ansi(b"\x1B[36mC");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0x00CDCD);
+}
+
+#[test]
+fn host_term_ansi_sgr_bright_red() {
+    let vm = host_term_run_ansi(b"\x1B[91mR");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xFF0000);
+}
+
+#[test]
+fn host_term_ansi_sgr_bright_green() {
+    let vm = host_term_run_ansi(b"\x1B[92mG");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0x00FF00);
+}
+
+#[test]
+fn host_term_ansi_sgr_bold() {
+    // \e[1m maps to bright white (0xFFFFFF) per host_term's palette.
+    let vm = host_term_run_ansi(b"\x1B[1mb");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xFFFFFF);
+}
+
+#[test]
+fn host_term_ansi_sgr_reset_returns_to_default() {
+    // After red, \e[0m restores default light gray.
+    let vm = host_term_run_ansi(b"\x1B[31mR\x1B[0mD");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xCD0000, "R should be red");
+    assert_eq!(ht_color_at(&vm, 0, 1), HT_DEFAULT_FG, "D should reset");
+    assert_eq!(ht_text_at(&vm, 0, 0), b'R');
+    assert_eq!(ht_text_at(&vm, 0, 1), b'D');
+}
+
+#[test]
+fn host_term_ansi_sgr_multiparam_bold_red() {
+    // \e[1;31m — bold then red. host_term applies each param on ';':
+    //   1 → bold (0xFFFFFF), then 31 → red (0xCD0000). Final char is red.
+    // This locks in current multi-param behavior; future 256-color work
+    // (\e[38;5;Nm) will need to extend this dispatch logic.
+    let vm = host_term_run_ansi(b"\x1B[1;31mX");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xCD0000);
+}
+
+#[test]
+fn host_term_ansi_sgr_unknown_codes_leave_color_unchanged() {
+    // \e[38;5;230m — Hermes-style 256-color SGR. Currently NOT supported:
+    // each param is dispatched independently and none match, so the FG
+    // stays at whatever it was (default). This test documents current
+    // behavior and will FAIL when 256-color support lands — at which
+    // point it should be replaced with the positive assertion that
+    // FG_COLOR matches the 256-palette entry for index 230.
+    let vm = host_term_run_ansi(b"\x1B[38;5;230mZ");
+    assert_eq!(
+        ht_color_at(&vm, 0, 0),
+        HT_DEFAULT_FG,
+        "256-color not yet supported; stays at default"
+    );
+}
+
+#[test]
+fn host_term_ansi_cursor_advances_per_character() {
+    let vm = host_term_run_ansi(b"abc");
+    assert_eq!(vm.ram[HT_CUR_COL], 3);
+    assert_eq!(vm.ram[HT_CUR_ROW], 0);
+}
+
+#[test]
+fn host_term_ansi_newline_advances_row() {
+    let vm = host_term_run_ansi(b"a\nb");
+    assert_eq!(ht_text_at(&vm, 0, 0), b'a');
+    assert_eq!(ht_text_at(&vm, 1, 0), b'b');
+}
+
+#[test]
+fn host_term_ansi_carriage_return_resets_col() {
+    let vm = host_term_run_ansi(b"abc\rX");
+    // CR alone resets col to 0 without moving row; X overwrites 'a'.
+    assert_eq!(ht_text_at(&vm, 0, 0), b'X');
+    assert_eq!(ht_text_at(&vm, 0, 1), b'b');
+    assert_eq!(ht_text_at(&vm, 0, 2), b'c');
+}
+
 // ── Phase 137: Host Filesystem Bridge Tests ──────────────────────────────
 
 /// Helper: write a null-terminated string into RAM at given address
@@ -22038,11 +22258,10 @@ fn test_patchw_vm_opcode() {
     // Write 0xDEADBEEF to address 100
     let vm = run_program(
         &[
-            0x10, 1, 100,     // LDI r1, 100
-            0x10, 2, 0xDEAD,  // LDI r2, 0xDEAD (low word)
+            0x10, 1, 100, // LDI r1, 100
+            0x10, 2, 0xDEAD, // LDI r2, 0xDEAD (low word)
             // PATCHW r1, r2
-            0xD3, 1, 2,
-            0x00,             // HALT
+            0xD3, 1, 2, 0x00, // HALT
         ],
         10,
     );
@@ -22057,15 +22276,15 @@ fn test_patch_vm_opcode() {
     // Set ram[50] = 0x12345678, then patch low byte to 0xAB
     let vm = run_program(
         &[
-            0x10, 0, 50,        // LDI r0, 50
-            0x12, 0, 4,         // STORE r0, r4 (ram[50] = 0 initially)
+            0x10, 0, 50, // LDI r0, 50
+            0x12, 0, 4, // STORE r0, r4 (ram[50] = 0 initially)
             0x10, 4, 0x12345678, // LDI r4, 0x12345678
-            0x12, 0, 4,         // STORE r0, r4 (ram[50] = 0x12345678)
-            0x10, 1, 50,        // LDI r1, 50 (addr)
-            0x10, 2, 0xAB,      // LDI r2, 0xAB (val)
-            0x10, 3, 0xFF,      // LDI r3, 0xFF (mask = low byte)
-            0xD2, 1, 2, 3,     // PATCH r1, r2, r3
-            0x00,              // HALT
+            0x12, 0, 4, // STORE r0, r4 (ram[50] = 0x12345678)
+            0x10, 1, 50, // LDI r1, 50 (addr)
+            0x10, 2, 0xAB, // LDI r2, 0xAB (val)
+            0x10, 3, 0xFF, // LDI r3, 0xFF (mask = low byte)
+            0xD2, 1, 2, 3,    // PATCH r1, r2, r3
+            0x00, // HALT
         ],
         20,
     );
@@ -22081,14 +22300,14 @@ fn test_patchw_self_modifying_code() {
     // Then jump back and re-execute: r0 should be 5+5=10
     let vm = run_program(
         &[
-            0x10, 0, 1,        // [0] LDI r0, 1
-            0x20, 0, 0,        // [3] ADD r0, r0
-            0x10, 1, 2,        // [6] LDI r1, 2 (address of the immediate)
-            0x10, 2, 5,        // [9] LDI r2, 5 (new value)
-            0xD3, 1, 2,        // [12] PATCHW r1, r2 (ram[2] = 5)
-            0x30, 0, 0,        // [15] JMP r0 (jump to address in r0... wait)
+            0x10, 0, 1, // [0] LDI r0, 1
+            0x20, 0, 0, // [3] ADD r0, r0
+            0x10, 1, 2, // [6] LDI r1, 2 (address of the immediate)
+            0x10, 2, 5, // [9] LDI r2, 5 (new value)
+            0xD3, 1, 2, // [12] PATCHW r1, r2 (ram[2] = 5)
+            0x30, 0, 0, // [15] JMP r0 (jump to address in r0... wait)
             // Actually, JMP takes an address register. Let me use literal.
-            0x00,              // HALT
+            0x00, // HALT
         ],
         20,
     );
@@ -22102,14 +22321,14 @@ fn test_patch_no_change_with_zero_mask() {
     // PATCH with mask=0 should leave ram unchanged
     let vm = run_program(
         &[
-            0x10, 0, 50,          // LDI r0, 50
-            0x10, 4, 0x12345678,  // LDI r4, 0x12345678
-            0x12, 0, 4,          // STORE r0, r4 (ram[50] = 0x12345678)
-            0x10, 1, 50,         // LDI r1, 50 (addr)
+            0x10, 0, 50, // LDI r0, 50
+            0x10, 4, 0x12345678, // LDI r4, 0x12345678
+            0x12, 0, 4, // STORE r0, r4 (ram[50] = 0x12345678)
+            0x10, 1, 50, // LDI r1, 50 (addr)
             0x10, 2, 0xFFFFFFFF, // LDI r2, 0xFFFFFFFF (val)
-            0x10, 3, 0,          // LDI r3, 0 (mask = 0, no bits selected)
-            0xD2, 1, 2, 3,      // PATCH r1, r2, r3
-            0x00,               // HALT
+            0x10, 3, 0, // LDI r3, 0 (mask = 0, no bits selected)
+            0xD2, 1, 2, 3,    // PATCH r1, r2, r3
+            0x00, // HALT
         ],
         20,
     );
@@ -22121,14 +22340,14 @@ fn test_patch_high_byte_only() {
     // Patch only the high byte of a word
     let vm = run_program(
         &[
-            0x10, 0, 50,         // LDI r0, 50
+            0x10, 0, 50, // LDI r0, 50
             0x10, 4, 0x12345678, // LDI r4, 0x12345678
-            0x12, 0, 4,         // STORE r0, r4 (ram[50] = 0x12345678)
-            0x10, 1, 50,        // LDI r1, 50 (addr)
+            0x12, 0, 4, // STORE r0, r4 (ram[50] = 0x12345678)
+            0x10, 1, 50, // LDI r1, 50 (addr)
             0x10, 2, 0xFF000000, // LDI r2, 0xFF000000 (val)
             0x10, 3, 0xFF000000, // LDI r3, 0xFF000000 (mask)
-            0xD2, 1, 2, 3,     // PATCH r1, r2, r3
-            0x00,              // HALT
+            0xD2, 1, 2, 3,    // PATCH r1, r2, r3
+            0x00, // HALT
         ],
         20,
     );
