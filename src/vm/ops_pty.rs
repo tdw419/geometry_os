@@ -9,6 +9,14 @@
 // changes its working dir, env vars and shell history persist, interactive
 // programs see a real tty. ANSI parsing is intentionally out of scope here;
 // guest programs are responsible for what they do with the byte stream.
+//
+// Terminal query interception: The reader thread detects outbound terminal
+// queries (DA1, DA2, DSR, XTVERSION, etc.) that child processes send to
+// probe terminal capabilities. Since GeOS is a minimal terminal emulator,
+// it doesn't respond to these queries. But programs like Hermes Agent (Ink-
+// based TUI) block indefinitely waiting for DA1 responses. The reader thread
+// intercepts these queries and writes canned responses back to the child,
+// preventing hangs.
 
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use std::io::{Read, Write};
@@ -26,6 +34,189 @@ pub const PTY_ERR_WRITE_FAILED: u32 = 3;
 pub const PTY_ERR_NO_SLOTS: u32 = 5;
 pub const PTY_ERR_CLOSED: u32 = 7;
 pub const PTY_ERR_RESIZE_FAILED: u32 = 8;
+
+// ── Terminal query interceptor ─────────────────────────────────────
+//
+// Scans the byte stream from the child process for terminal capability
+// queries and auto-responds. This prevents TUI apps from hanging when
+// they send queries that our minimal terminal emulator doesn't answer.
+//
+// Design: ALL bytes are forwarded to the VM unchanged. The interceptor
+// watches the stream in parallel and, when it detects a complete query
+// sequence, writes a canned response back to the child via the PTY
+// master writer. The VM's ANSI parser still sees the query bytes and
+// handles them (or ignores them) as before.
+//
+// Queries intercepted (responded to, NOT consumed):
+//   CSI c           → DA1 (Primary Device Attributes) → "\e[?1;0c"
+//   CSI > c         → DA2 (Secondary Device Attributes) → "\e[>0;0;0c"
+//   CSI ? 6 n       → DSR (DECXCPR cursor position) → "\e[?1;1R"
+//   CSI > 0 q       → XTVERSION → DCS > | GeOS ST
+//   ESC c           → RIS (Reset to Initial State) → silently consumed
+//                      (NOT forwarded — prevents VM from clearing screen)
+
+/// States for the query interceptor state machine.
+#[derive(Clone, Copy, PartialEq)]
+enum QiState {
+    /// Normal byte stream, no escape in progress.
+    Ground,
+    /// Saw ESC (0x1B), waiting for next byte.
+    Esc,
+    /// Saw ESC [, accumulating CSI parameters.
+    Csi,
+    /// Saw ESC [ >, accumulating DA2/XTVERSION parameters.
+    CsiGreater,
+    /// Saw ESC [ ?, accumulating DEC private mode parameters.
+    CsiQuestion,
+}
+
+/// Scans a byte stream for terminal queries and generates responses.
+/// Maintains state across calls (partial sequences span read() boundaries).
+struct QueryInterceptor {
+    state: QiState,
+    /// Buffer for collecting parameter digits between ';' or terminal byte.
+    param_buf: String,
+}
+
+impl QueryInterceptor {
+    fn new() -> Self {
+        QueryInterceptor {
+            state: QiState::Ground,
+            param_buf: String::new(),
+        }
+    }
+
+    /// Process a single byte from the child's stdout.
+    ///
+    /// Returns a tuple (forward, respond):
+    /// - forward: true if this byte should be sent to the VM channel
+    /// - respond: Some(response_bytes) if a query was detected and a
+    ///   response should be written back to the child
+    fn feed(&mut self, b: u8) -> (bool, Option<Vec<u8>>) {
+        match self.state {
+            QiState::Ground => {
+                if b == 0x1B {
+                    self.state = QiState::Esc;
+                    // Forward ESC — it might start a query or a normal sequence.
+                    // The VM parser will handle it either way.
+                    (true, None)
+                } else {
+                    (true, None)
+                }
+            }
+            QiState::Esc => {
+                if b == b'[' {
+                    self.state = QiState::Csi;
+                    self.param_buf.clear();
+                    (true, None) // forward '['
+                } else {
+                    // ESC + non-[. Unknown ESC sequence (ESC c = RIS, ESC 7, etc.)
+                    // The VM parser handles these in pb_esc_other (returns to normal).
+                    // Just forward both bytes — no harm done since the VM ignores
+                    // unrecognized ESC sequences.
+                    self.state = QiState::Ground;
+                    (true, None)
+                }
+            }
+            QiState::Csi => {
+                if b == b'>' {
+                    self.state = QiState::CsiGreater;
+                    self.param_buf.clear();
+                    (true, None)
+                } else if b == b'?' {
+                    self.state = QiState::CsiQuestion;
+                    self.param_buf.clear();
+                    (true, None)
+                } else if b == b'c' && (self.param_buf.is_empty() || self.param_buf == "0") {
+                    // CSI c or CSI 0 c = DA1 query.
+                    self.state = QiState::Ground;
+                    (true, Some(b"\x1B[?1;0c".to_vec()))
+                } else if b == b'n' {
+                    // CSI 5 n = DSR status → respond "\e[0n" (terminal OK).
+                    // CSI 6 n = DSR cursor position → respond "\e[1;1R".
+                    let resp: Option<Vec<u8>> = match self.param_buf.as_str() {
+                        "5" => Some(b"\x1B[0n".to_vec()),
+                        "6" => Some(b"\x1B[1;1R".to_vec()),
+                        _ => None,
+                    };
+                    self.state = QiState::Ground;
+                    (true, resp)
+                } else if b >= b'0' && b <= b'9' {
+                    self.param_buf.push(b as char);
+                    (true, None)
+                } else if b == b';' {
+                    self.param_buf.clear();
+                    (true, None)
+                } else if b >= 0x40 && b <= 0x7E {
+                    // CSI final byte for an unintercepted sequence.
+                    self.state = QiState::Ground;
+                    (true, None)
+                } else {
+                    (true, None)
+                }
+            }
+            QiState::CsiGreater => {
+                if b >= b'0' && b <= b'9' {
+                    self.param_buf.push(b as char);
+                    (true, None)
+                } else if b == b';' {
+                    self.param_buf.clear();
+                    (true, None)
+                } else if b == b'c' {
+                    // CSI > c or CSI > params ; c = DA2 query.
+                    self.state = QiState::Ground;
+                    (true, Some(b"\x1B[>0;0;0c".to_vec()))
+                } else if b == b'q' {
+                    // CSI > 0 q = XTVERSION query.
+                    self.state = QiState::Ground;
+                    let response = b"\x1BP>|GeOS\x1B\\".to_vec();
+                    (true, Some(response))
+                } else if b >= 0x40 && b <= 0x7E {
+                    self.state = QiState::Ground;
+                    (true, None)
+                } else {
+                    (true, None)
+                }
+            }
+            QiState::CsiQuestion => {
+                if b >= b'0' && b <= b'9' {
+                    self.param_buf.push(b as char);
+                    (true, None)
+                } else if b == b';' {
+                    self.param_buf.clear();
+                    (true, None)
+                } else if b == b'n' {
+                    // CSI ? 6 n = DECXCPR (cursor position with ? marker).
+                    self.state = QiState::Ground;
+                    (true, Some(b"\x1B[?1;1R".to_vec()))
+                } else if b >= 0x40 && b <= 0x7E {
+                    // Other CSI ? ... final bytes (mode settings, etc.)
+                    self.state = QiState::Ground;
+                    (true, None)
+                } else {
+                    (true, None)
+                }
+            }
+        }
+    }
+}
+
+/// Render a byte slice as a printable trace line: ESC → \e, control chars
+/// → \xHH, printable ASCII as-is. Used by GEOS_PTY_TRACE diagnostics.
+fn escape_for_trace(buf: &[u8]) -> String {
+    let mut out = String::with_capacity(buf.len() * 2);
+    for &b in buf {
+        match b {
+            0x1B => out.push_str("\\e"),
+            b'\n' => out.push_str("\\n"),
+            b'\r' => out.push_str("\\r"),
+            b'\t' => out.push_str("\\t"),
+            0x20..=0x7E => out.push(b as char),
+            _ => out.push_str(&format!("\\x{:02x}", b)),
+        }
+    }
+    out
+}
 
 pub struct PtySlot {
     master: Box<dyn MasterPty + Send>,
@@ -136,28 +327,81 @@ pub fn spawn(cmd_line: &str) -> Result<PtySlot, String> {
         .try_clone_reader()
         .map_err(|e| format!("clone_reader: {}", e))?;
 
+    // Duplicate the master fd for the query interceptor's response writer.
+    // portable_pty only allows take_writer() once, so we dup the fd here
+    // before taking the writer for PTYWRITE use.
+    #[cfg(unix)]
+    let responder: Option<Box<dyn std::io::Write + Send>> = pair
+        .master
+        .as_raw_fd()
+        .map(|fd| {
+            use std::os::unix::io::FromRawFd;
+            let duped = unsafe { libc::dup(fd) };
+            if duped < 0 {
+                eprintln!("[PTY] dup fd failed: {}", std::io::Error::last_os_error());
+                None
+            } else {
+                Some(Box::new(unsafe { std::fs::File::from_raw_fd(duped) }) as Box<dyn Write + Send>)
+            }
+        })
+        .flatten();
+    #[cfg(not(unix))]
+    let responder: Option<Box<dyn std::io::Write + Send>> = None;
+
     let (tx, rx) = channel::<u8>();
     let closed_flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let closed_flag_thread = closed_flag.clone();
+
+    // Optional byte-level tracing: set GEOS_PTY_TRACE=1 to log every chunk
+    // read from the child and every QI response written back. Useful for
+    // diagnosing TUI apps that hang waiting for an unhandled escape sequence.
+    let trace = std::env::var("GEOS_PTY_TRACE").is_ok();
 
     thread::Builder::new()
         .name("pty-reader".into())
         .spawn(move || {
             let mut buf = [0u8; 1024];
+            let mut qi = QueryInterceptor::new();
+            let mut responder = responder;
             loop {
                 match reader.read(&mut buf) {
                     Ok(0) => {
+                        if trace {
+                            eprintln!("[PTY-TRACE] EOF");
+                        }
                         closed_flag_thread.store(true, std::sync::atomic::Ordering::Relaxed);
                         break;
                     }
                     Ok(n) => {
+                        if trace {
+                            eprintln!("[PTY-TRACE] <- {}: {}", n, escape_for_trace(&buf[..n]));
+                        }
                         for &b in &buf[..n] {
-                            if tx.send(b).is_err() {
-                                return;
+                            let (forward, response) = qi.feed(b);
+                            if forward {
+                                if tx.send(b).is_err() {
+                                    return;
+                                }
+                            }
+                            if let Some(resp_bytes) = response {
+                                if trace {
+                                    eprintln!(
+                                        "[PTY-TRACE] -> {}: {}",
+                                        resp_bytes.len(),
+                                        escape_for_trace(&resp_bytes)
+                                    );
+                                }
+                                if let Some(ref mut w) = responder {
+                                    let _ = w.write_all(&resp_bytes);
+                                    let _ = w.flush();
+                                }
                             }
                         }
                     }
-                    Err(_) => {
+                    Err(e) => {
+                        if trace {
+                            eprintln!("[PTY-TRACE] read err: {}", e);
+                        }
                         closed_flag_thread.store(true, std::sync::atomic::Ordering::Relaxed);
                         break;
                     }
@@ -166,7 +410,7 @@ pub fn spawn(cmd_line: &str) -> Result<PtySlot, String> {
         })
         .map_err(|e| format!("spawn reader: {}", e))?;
 
-    // Take the writer once at creation time so PTYWRITE can reuse it.
+    // Take the writer for PTYWRITE to use.
     let mut writer = pair.master.take_writer().ok();
 
     // Write a newline to trigger bash prompt emission. Without this,
@@ -249,18 +493,37 @@ impl super::Vm {
             bytes.push((self.ram[idx] & 0xFF) as u8);
         }
 
+        eprintln!(
+            "[PTYWRITE] handle={} buf=0x{:04X} len={} bytes={:?}",
+            h,
+            buf_addr,
+            len,
+            &bytes
+                .iter()
+                .map(|&b| {
+                    if b >= 0x20 && b < 0x7F {
+                        b as char
+                    } else {
+                        '.'
+                    }
+                })
+                .collect::<String>()
+        );
         let slot = self.pty_slots[h].as_mut().unwrap();
         if let Some(ref mut w) = slot.writer {
             match w.write_all(&bytes) {
                 Ok(()) => {
                     let _ = w.flush();
+                    eprintln!("[PTYWRITE] wrote {} bytes OK", bytes.len());
                     self.regs[0] = PTY_OK;
                 }
-                Err(_) => {
+                Err(e) => {
+                    eprintln!("[PTYWRITE] write failed: {}", e);
                     self.regs[0] = PTY_ERR_WRITE_FAILED;
                 }
             }
         } else {
+            eprintln!("[PTYWRITE] no writer for handle {}", h);
             self.regs[0] = PTY_ERR_WRITE_FAILED;
         }
     }
@@ -305,8 +568,25 @@ impl super::Vm {
         }
 
         if written == 0 && slot.is_closed() {
+            eprintln!("[PTYREAD] slot closed, returning 0xFFFFFFFF");
             self.regs[0] = u32::MAX;
             return;
+        }
+        if written > 0 {
+            let preview: String = (0..written.min(80))
+                .map(|i| {
+                    let b = (self.ram[buf_addr + i] & 0xFF) as u8;
+                    if b >= 0x20 && b < 0x7F {
+                        b as char
+                    } else {
+                        '.'
+                    }
+                })
+                .collect();
+            eprintln!(
+                "[PTYREAD] read {} bytes into 0x{:04X}: {:?}",
+                written, buf_addr, preview
+            );
         }
         self.regs[0] = written as u32;
     }
@@ -878,5 +1158,261 @@ mod tests {
             "bash $COLUMNS should be 80 (matching initial spawn size), got: {:?}",
             text
         );
+    }
+
+    // ── QueryInterceptor unit tests ────────────────────────────────────
+
+    /// Helper: feed all bytes through a fresh interceptor and collect both
+    /// the forwarded byte stream and any responses generated.
+    fn run_qi(input: &[u8]) -> (Vec<u8>, Vec<Vec<u8>>) {
+        let mut qi = QueryInterceptor::new();
+        let mut forwarded = Vec::new();
+        let mut responses = Vec::new();
+        for &b in input {
+            let (forward, resp) = qi.feed(b);
+            if forward {
+                forwarded.push(b);
+            }
+            if let Some(r) = resp {
+                responses.push(r);
+            }
+        }
+        (forwarded, responses)
+    }
+
+    #[test]
+    fn qi_plain_text_passes_through_unchanged() {
+        let (fwd, resp) = run_qi(b"hello world\n");
+        assert_eq!(fwd, b"hello world\n");
+        assert!(resp.is_empty(), "no responses expected for plain text");
+    }
+
+    #[test]
+    fn qi_da1_query_responds() {
+        // \e[c = DA1 query → should respond \e[?1;0c
+        let (fwd, resp) = run_qi(b"\x1B[c");
+        assert_eq!(fwd, b"\x1B[c", "DA1 bytes should still be forwarded to VM");
+        assert_eq!(resp.len(), 1);
+        assert_eq!(resp[0], b"\x1B[?1;0c");
+    }
+
+    #[test]
+    fn qi_da1_with_zero_param_responds() {
+        // \e[0c is also DA1
+        let (_, resp) = run_qi(b"\x1B[0c");
+        assert_eq!(resp.len(), 1);
+        assert_eq!(resp[0], b"\x1B[?1;0c");
+    }
+
+    #[test]
+    fn qi_da2_query_responds() {
+        // \e[>c = DA2
+        let (_, resp) = run_qi(b"\x1B[>c");
+        assert_eq!(resp.len(), 1);
+        assert_eq!(resp[0], b"\x1B[>0;0;0c");
+    }
+
+    #[test]
+    fn qi_da2_with_param_responds() {
+        // \e[>0;0c is also DA2
+        let (_, resp) = run_qi(b"\x1B[>0;0c");
+        assert_eq!(resp.len(), 1);
+        assert_eq!(resp[0], b"\x1B[>0;0;0c");
+    }
+
+    #[test]
+    fn qi_dsr_status_responds() {
+        // \e[5n = DSR status query → \e[0n (terminal OK)
+        let (_, resp) = run_qi(b"\x1B[5n");
+        assert_eq!(resp.len(), 1);
+        assert_eq!(resp[0], b"\x1B[0n");
+    }
+
+    #[test]
+    fn qi_dsr_cursor_position_responds() {
+        // \e[6n = CPR → \e[1;1R
+        let (_, resp) = run_qi(b"\x1B[6n");
+        assert_eq!(resp.len(), 1);
+        assert_eq!(resp[0], b"\x1B[1;1R");
+    }
+
+    #[test]
+    fn qi_decxcpr_responds() {
+        // \e[?6n = DECXCPR → \e[?1;1R
+        let (_, resp) = run_qi(b"\x1B[?6n");
+        assert_eq!(resp.len(), 1);
+        assert_eq!(resp[0], b"\x1B[?1;1R");
+    }
+
+    #[test]
+    fn qi_xtversion_responds() {
+        // \e[>0q = XTVERSION → DCS > | GeOS ST
+        let (_, resp) = run_qi(b"\x1B[>0q");
+        assert_eq!(resp.len(), 1);
+        assert_eq!(resp[0], b"\x1BP>|GeOS\x1B\\");
+    }
+
+    #[test]
+    fn qi_normal_csi_sequences_pass_through_silently() {
+        // Common ANSI sequences that should NOT trigger responses.
+        for seq in [
+            &b"\x1B[2J"[..],            // erase display
+            &b"\x1B[H"[..],             // cursor home
+            &b"\x1B[1;1H"[..],          // cursor pos
+            &b"\x1B[31m"[..],           // SGR red
+            &b"\x1B[0;1;31m"[..],       // SGR multi-param
+            &b"\x1B[?1049h"[..],        // alt screen
+            &b"\x1B[?2004l"[..],        // bracket paste off
+            &b"\x1B[K"[..],             // erase line
+            &b"\x1B[A"[..],             // cursor up
+            &b"\x1B[2A"[..],            // cursor up 2 (Hermes redraw)
+            &b"\x1B[42C"[..],           // cursor right 42 (Hermes redraw)
+            &b"\x1B[?25l"[..],          // cursor hide (prompt_toolkit)
+            &b"\x1B[?25h"[..],          // cursor show (prompt_toolkit)
+            &b"\x1B[?7l"[..],           // auto-wrap off
+            &b"\x1B[?7h"[..],           // auto-wrap on
+            &b"\x1B[?12l"[..],          // local cursor blink off
+        ] {
+            let (fwd, resp) = run_qi(seq);
+            assert_eq!(fwd, seq, "sequence should pass through: {:?}", seq);
+            assert!(resp.is_empty(), "no response expected for: {:?}", seq);
+        }
+    }
+
+    #[test]
+    fn qi_256_color_sgr_passes_through_no_response() {
+        // \e[0;38;5;230;48;5;234m — Hermes uses these heavily.
+        // Each ';' clears param_buf, but the params are not queries; the 'm'
+        // terminator is unknown to QI's query handlers, so no response fires.
+        let seq = b"\x1B[0;38;5;230;48;5;234m";
+        let (fwd, resp) = run_qi(seq);
+        assert_eq!(fwd, seq);
+        assert!(
+            resp.is_empty(),
+            "256-color SGR should not trigger a response, got: {:?}",
+            resp
+        );
+    }
+
+    #[test]
+    fn qi_cursor_shape_with_space_intermediate() {
+        // \e[2 q = set cursor shape to steady block. The space (0x20) is a
+        // CSI intermediate byte. QI doesn't track intermediates; it should
+        // see space as "not a digit/semicolon/final" and silently keep state,
+        // then 'q' as a final byte that ends the sequence with no response.
+        let seq = b"\x1B[2 q";
+        let (fwd, resp) = run_qi(seq);
+        assert_eq!(fwd, seq);
+        assert!(resp.is_empty());
+    }
+
+    #[test]
+    fn qi_prompt_toolkit_startup_pattern() {
+        // Prompt_toolkit's typical startup writes: cursor hide, CPR query,
+        // then style changes. Only the CPR should trigger a response.
+        let seq = b"\x1B[?25l\x1B[6n\x1B[0m";
+        let (fwd, resp) = run_qi(seq);
+        assert_eq!(fwd, seq, "all bytes still flow to VM renderer");
+        assert_eq!(resp.len(), 1, "exactly one response (CPR)");
+        assert_eq!(resp[0], b"\x1B[1;1R");
+    }
+
+    #[test]
+    fn qi_ris_passes_through() {
+        // \e c = RIS — we forward both bytes; VM parser ignores unknown ESC
+        let (fwd, resp) = run_qi(b"\x1Bc");
+        assert_eq!(fwd, b"\x1Bc");
+        assert!(resp.is_empty());
+    }
+
+    #[test]
+    fn qi_split_query_across_feeds() {
+        // The state machine must work when bytes arrive one-at-a-time
+        // (or split across read() boundaries — same thing in this code).
+        let mut qi = QueryInterceptor::new();
+        let mut got_response = None;
+        for &b in b"\x1B[c" {
+            let (_, resp) = qi.feed(b);
+            if let Some(r) = resp {
+                got_response = Some(r);
+            }
+        }
+        assert_eq!(got_response.as_deref(), Some(&b"\x1B[?1;0c"[..]));
+    }
+
+    #[test]
+    fn qi_query_embedded_in_text() {
+        // Real streams interleave: greeting, query, more text.
+        let input = b"hi\x1B[cthere";
+        let (fwd, resp) = run_qi(input);
+        assert_eq!(fwd, input, "all bytes forwarded to VM");
+        assert_eq!(resp.len(), 1);
+        assert_eq!(resp[0], b"\x1B[?1;0c");
+    }
+
+    /// End-to-end: spawn a real shell, have it send a DA1 query to its stdout,
+    /// read the response back from its stdin, and echo the response. This
+    /// proves the dup'd fd → reader-thread → responder writer pipeline works
+    /// in a real PTY, not just the QueryInterceptor logic in isolation.
+    #[test]
+    fn pty_query_response_roundtrip() {
+        let mut slot = match spawn("") {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("skipping: pty spawn failed: {}", e);
+                return;
+            }
+        };
+
+        // Wait for shell prompt
+        thread::sleep(Duration::from_millis(300));
+        // Drain initial output
+        while slot.rx.try_recv().is_ok() {}
+
+        // Have bash:
+        //   1. Send DA1 query to its stdout (the PTY master sees it,
+        //      QueryInterceptor responds via dup'd fd back to bash's stdin)
+        //   2. Use dd to capture exactly 7 bytes from stdin (DA1 response length)
+        //   3. Print BEFORE:<bytes>:AFTER so we can extract the response
+        let script = b"printf '\\e[c'; printf 'BEFORE:'; dd bs=1 count=7 2>/dev/null; printf ':AFTER\\n'; exit\n";
+        {
+            let w = slot.writer.as_mut().expect("writer");
+            w.write_all(script).expect("write script");
+            let _ = w.flush();
+        }
+
+        // Collect output until we see MARK or timeout
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut output = Vec::new();
+        while Instant::now() < deadline {
+            match slot.rx.try_recv() {
+                Ok(b) => output.push(b),
+                Err(_) => {
+                    if output.windows(6).any(|w| w == b":AFTER") {
+                        break;
+                    }
+                    thread::sleep(Duration::from_millis(20));
+                }
+            }
+        }
+
+        let text = String::from_utf8_lossy(&output);
+        // dd echoes the 7 bytes of stdin between BEFORE: and :AFTER markers.
+        // The full DA1 response is "\e[?1;0c"; the printable suffix is "?1;0c".
+        assert!(
+            text.contains("?1;0c"),
+            "expected DA1 response '?1;0c' between BEFORE: and :AFTER, got:\n{}",
+            text
+        );
+    }
+
+    #[test]
+    fn qi_back_to_back_queries() {
+        // prompt_toolkit may issue several queries on startup.
+        let (_, resp) = run_qi(b"\x1B[c\x1B[6n\x1B[>c");
+        assert_eq!(resp.len(), 3);
+        assert_eq!(resp[0], b"\x1B[?1;0c"); // DA1
+        assert_eq!(resp[1], b"\x1B[1;1R");  // CPR
+        assert_eq!(resp[2], b"\x1B[>0;0;0c"); // DA2
     }
 }
