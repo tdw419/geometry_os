@@ -937,7 +937,7 @@ phases:
   _claimed_at: 1777317398
 - id: phase-185
   title: ANSI Parser -- Scroll Region (CSI r) and Origin Mode
-  status: planned
+  status: in_progress
   goal: Add scroll region support so full-screen apps (htop, nano, vim) can lock scrolling
     to a subset of rows
   description: CSI r (DECSTBM) sets the scroll region top and bottom margins. Within
@@ -994,9 +994,11 @@ phases:
   scope_lines: 150
   scope_lines_total: 84860
   test_target: 6
+  _claimed_by: worker-0
+  _claimed_at: 1777557905
 - id: phase-186
   title: ANSI Parser -- Tab Stops and Horizontal Scrolling
-  status: planned
+  status: in_progress
   goal: Add proper tab stop handling so formatted output (ls, tables, code) aligns
     correctly
   description: Currently TAB advances to next 8-column boundary but there are no configurable
@@ -1041,6 +1043,8 @@ phases:
   scope_lines: 85
   scope_lines_total: 84945
   test_target: 5
+  _claimed_by: worker-0
+  _claimed_at: 1777558123
 - id: phase-187
   title: Replace save.rs unwrap() with Proper Error Handling
   status: in_progress
@@ -1092,7 +1096,7 @@ phases:
   _claimed_at: 1777555425
 - id: phase-188
   title: Replace glyph_backend.rs unwrap() with Error Propagation
-  status: planned
+  status: in_progress
   goal: Eliminate 36 unwrap() calls in glyph_backend.rs for robustness
   description: glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap()
     calls on font loading, pattern matching, and data extraction. Failures here crash
@@ -1117,6 +1121,8 @@ phases:
   scope_lines: 105
   scope_lines_total: 85170
   test_target: 2
+  _claimed_by: worker-0
+  _claimed_at: 1777558123
 - id: phase-189
   title: VFS Capability Enforcement on Process Creation
   status: planned

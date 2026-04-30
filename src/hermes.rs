@@ -5,10 +5,10 @@ use crate::canvas::{
     ensure_scroll, handle_terminal_command, list_asm_files, read_canvas_line, source_from_canvas,
     write_line_to_canvas,
 };
+use crate::episode_log;
 use crate::preprocessor;
 use crate::save::save_screen_png;
 use crate::vm;
-use crate::episode_log;
 use std::collections::HashSet;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -1434,7 +1434,10 @@ pub fn call_vision_llm(
     match std::fs::write(tmp_path, &payload) {
         Ok(()) => {}
         Err(e) => {
-            println!("[hermes] Could not write vision payload to {}: {}", tmp_path, e);
+            println!(
+                "[hermes] Could not write vision payload to {}: {}",
+                tmp_path, e
+            );
             return None;
         }
     }
@@ -1516,7 +1519,11 @@ pub fn call_vision_llm(
 }
 
 /// Call local Ollama vision model.
-pub fn call_ollama_vision(system_prompt: &str, user_message: &str, image_b64: &str) -> Option<String> {
+pub fn call_ollama_vision(
+    system_prompt: &str,
+    user_message: &str,
+    image_b64: &str,
+) -> Option<String> {
     let config = ProviderConfig::load();
     call_vision_llm(&config, system_prompt, user_message, image_b64)
 }

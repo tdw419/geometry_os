@@ -331,20 +331,21 @@ pub fn spawn(cmd_line: &str) -> Result<PtySlot, String> {
     // portable_pty only allows take_writer() once, so we dup the fd here
     // before taking the writer for PTYWRITE use.
     #[cfg(unix)]
-    let responder: Option<Box<dyn std::io::Write + Send>> = pair
-        .master
-        .as_raw_fd()
-        .map(|fd| {
-            use std::os::unix::io::FromRawFd;
-            let duped = unsafe { libc::dup(fd) };
-            if duped < 0 {
-                eprintln!("[PTY] dup fd failed: {}", std::io::Error::last_os_error());
-                None
-            } else {
-                Some(Box::new(unsafe { std::fs::File::from_raw_fd(duped) }) as Box<dyn Write + Send>)
-            }
-        })
-        .flatten();
+    let responder: Option<Box<dyn std::io::Write + Send>> =
+        pair.master
+            .as_raw_fd()
+            .map(|fd| {
+                use std::os::unix::io::FromRawFd;
+                let duped = unsafe { libc::dup(fd) };
+                if duped < 0 {
+                    eprintln!("[PTY] dup fd failed: {}", std::io::Error::last_os_error());
+                    None
+                } else {
+                    Some(Box::new(unsafe { std::fs::File::from_raw_fd(duped) })
+                        as Box<dyn Write + Send>)
+                }
+            })
+            .flatten();
     #[cfg(not(unix))]
     let responder: Option<Box<dyn std::io::Write + Send>> = None;
 
@@ -1256,22 +1257,22 @@ mod tests {
     fn qi_normal_csi_sequences_pass_through_silently() {
         // Common ANSI sequences that should NOT trigger responses.
         for seq in [
-            &b"\x1B[2J"[..],            // erase display
-            &b"\x1B[H"[..],             // cursor home
-            &b"\x1B[1;1H"[..],          // cursor pos
-            &b"\x1B[31m"[..],           // SGR red
-            &b"\x1B[0;1;31m"[..],       // SGR multi-param
-            &b"\x1B[?1049h"[..],        // alt screen
-            &b"\x1B[?2004l"[..],        // bracket paste off
-            &b"\x1B[K"[..],             // erase line
-            &b"\x1B[A"[..],             // cursor up
-            &b"\x1B[2A"[..],            // cursor up 2 (Hermes redraw)
-            &b"\x1B[42C"[..],           // cursor right 42 (Hermes redraw)
-            &b"\x1B[?25l"[..],          // cursor hide (prompt_toolkit)
-            &b"\x1B[?25h"[..],          // cursor show (prompt_toolkit)
-            &b"\x1B[?7l"[..],           // auto-wrap off
-            &b"\x1B[?7h"[..],           // auto-wrap on
-            &b"\x1B[?12l"[..],          // local cursor blink off
+            &b"\x1B[2J"[..],      // erase display
+            &b"\x1B[H"[..],       // cursor home
+            &b"\x1B[1;1H"[..],    // cursor pos
+            &b"\x1B[31m"[..],     // SGR red
+            &b"\x1B[0;1;31m"[..], // SGR multi-param
+            &b"\x1B[?1049h"[..],  // alt screen
+            &b"\x1B[?2004l"[..],  // bracket paste off
+            &b"\x1B[K"[..],       // erase line
+            &b"\x1B[A"[..],       // cursor up
+            &b"\x1B[2A"[..],      // cursor up 2 (Hermes redraw)
+            &b"\x1B[42C"[..],     // cursor right 42 (Hermes redraw)
+            &b"\x1B[?25l"[..],    // cursor hide (prompt_toolkit)
+            &b"\x1B[?25h"[..],    // cursor show (prompt_toolkit)
+            &b"\x1B[?7l"[..],     // auto-wrap off
+            &b"\x1B[?7h"[..],     // auto-wrap on
+            &b"\x1B[?12l"[..],    // local cursor blink off
         ] {
             let (fwd, resp) = run_qi(seq);
             assert_eq!(fwd, seq, "sequence should pass through: {:?}", seq);
@@ -1412,7 +1413,7 @@ mod tests {
         let (_, resp) = run_qi(b"\x1B[c\x1B[6n\x1B[>c");
         assert_eq!(resp.len(), 3);
         assert_eq!(resp[0], b"\x1B[?1;0c"); // DA1
-        assert_eq!(resp[1], b"\x1B[1;1R");  // CPR
+        assert_eq!(resp[1], b"\x1B[1;1R"); // CPR
         assert_eq!(resp[2], b"\x1B[>0;0;0c"); // DA2
     }
 }

@@ -13346,8 +13346,8 @@ fn test_ai_agent_perception_op4_mock() {
         vm.screen[128 * 256 + 100 + i] = 0x00FFFFFF;
     }
     vm.llm_mock_response = Some("3".to_string());
-    vm.regs[10] = 4;  // op=4
-    vm.regs[11] = 0;  // mode=0: full screen
+    vm.regs[10] = 4; // op=4
+    vm.regs[11] = 0; // mode=0: full screen
     vm.ram[0] = 0xB0;
     vm.ram[1] = 10;
     vm.ram[2] = 0x00;
@@ -13365,8 +13365,8 @@ fn test_ai_agent_perception_op4_mock() {
 fn test_ai_agent_perception_op4_no_vlm() {
     // op=4 without mock and without Ollama should return 0xFFFFFFFF
     let mut vm = crate::vm::Vm::new();
-    vm.regs[10] = 4;  // op=4
-    vm.regs[11] = 0;  // mode=0
+    vm.regs[10] = 4; // op=4
+    vm.regs[11] = 0; // mode=0
     vm.ram[0] = 0xB0;
     vm.ram[1] = 10;
     vm.ram[2] = 0x00;
@@ -13395,8 +13395,8 @@ fn test_ai_agent_perception_op4_count_color_mode() {
         vm.screen[100 * 256 + 50 + i] = 0x00FF0000;
     }
     vm.llm_mock_response = Some("50".to_string());
-    vm.regs[10] = 4;  // op=4
-    vm.regs[11] = 2;  // mode=2: count_color
+    vm.regs[10] = 4; // op=4
+    vm.regs[11] = 2; // mode=2: count_color
     vm.ram[0] = 0xB0;
     vm.ram[1] = 10;
     vm.ram[2] = 0x00;
@@ -13413,7 +13413,11 @@ fn test_ai_agent_perception_op4_count_color_mode() {
 fn test_ai_perception_asm_assembles() {
     let source = std::fs::read_to_string("programs/ai_perception.asm").unwrap();
     let result = crate::assembler::assemble(&source, 0);
-    assert!(result.is_ok(), "assembly should succeed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "assembly should succeed: {:?}",
+        result.err()
+    );
     let bytecode = result.unwrap();
     assert!(!bytecode.is_empty(), "bytecode should not be empty");
 }
@@ -21384,7 +21388,11 @@ fn host_term_ansi_sgr_256_fg_standard_colors() {
 
     // Index 15 (bright white)
     let vm = host_term_run_ansi(b"\x1B[38;5;15mD");
-    assert_eq!(ht_color_at(&vm, 0, 0), 0xFFFFFF, "256 index 15 = bright white");
+    assert_eq!(
+        ht_color_at(&vm, 0, 0),
+        0xFFFFFF,
+        "256 index 15 = bright white"
+    );
 }
 
 #[test]
@@ -21416,8 +21424,16 @@ fn host_term_ansi_sgr_256_fg_grayscale() {
 fn host_term_ansi_sgr_256_reset_after() {
     // \e[38;5;196mX\e[0mY — X should be 256-color red, Y should be default
     let vm = host_term_run_ansi(b"\x1B[38;5;196mX\x1B[0mY");
-    assert_eq!(ht_color_at(&vm, 0, 0), 0xFF3737, "X should be 256-color red");
-    assert_eq!(ht_color_at(&vm, 0, 1), HT_DEFAULT_FG, "Y should reset to default");
+    assert_eq!(
+        ht_color_at(&vm, 0, 0),
+        0xFF3737,
+        "X should be 256-color red"
+    );
+    assert_eq!(
+        ht_color_at(&vm, 0, 1),
+        HT_DEFAULT_FG,
+        "Y should reset to default"
+    );
     assert_eq!(ht_text_at(&vm, 0, 0), b'X');
     assert_eq!(ht_text_at(&vm, 0, 1), b'Y');
 }
@@ -21426,7 +21442,11 @@ fn host_term_ansi_sgr_256_reset_after() {
 fn host_term_ansi_sgr_256_bg_does_not_crash() {
     // \e[48;5;17m — BG 256-color. No renderer support, should not affect FG.
     let vm = host_term_run_ansi(b"\x1B[48;5;17mA");
-    assert_eq!(ht_color_at(&vm, 0, 0), HT_DEFAULT_FG, "BG should not change FG");
+    assert_eq!(
+        ht_color_at(&vm, 0, 0),
+        HT_DEFAULT_FG,
+        "BG should not change FG"
+    );
     assert_eq!(ht_text_at(&vm, 0, 0), b'A');
 }
 
@@ -21506,8 +21526,16 @@ fn host_term_ansi_hermes_style_frame() {
     assert_eq!(ht_text_at(&vm, 2, 8), b's');
     assert_eq!(ht_color_at(&vm, 2, 0), 0xFF3737, "E in 256-color red");
     assert_eq!(ht_color_at(&vm, 2, 2), 0xFF3737, "R in 256-color red");
-    assert_eq!(ht_color_at(&vm, 2, 3), HT_DEFAULT_FG, ": after \\e[39m reset");
-    assert_eq!(ht_color_at(&vm, 2, 8), HT_DEFAULT_FG, "s after \\e[39m reset");
+    assert_eq!(
+        ht_color_at(&vm, 2, 3),
+        HT_DEFAULT_FG,
+        ": after \\e[39m reset"
+    );
+    assert_eq!(
+        ht_color_at(&vm, 2, 8),
+        HT_DEFAULT_FG,
+        "s after \\e[39m reset"
+    );
 }
 
 #[test]

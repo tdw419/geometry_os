@@ -27,6 +27,7 @@ use minifb::{Key, KeyRepeat, MouseButton, MouseMode, Window, WindowOptions};
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 
+use fontdue::Font;
 use geometry_os::assembler::assemble;
 use geometry_os::keys::{key_to_ascii, key_to_ascii_shifted};
 use geometry_os::preprocessor::Preprocessor;
@@ -134,9 +135,7 @@ fn parse_script(script: &str) -> Result<Vec<ScriptCmd>, String> {
                     .to_string();
                 let expected = halves
                     .next()
-                    .ok_or_else(|| {
-                        format!("assert:vision missing '||EXPECTED': {}", spec)
-                    })?
+                    .ok_or_else(|| format!("assert:vision missing '||EXPECTED': {}", spec))?
                     .trim()
                     .to_string();
                 if prompt.is_empty() || expected.is_empty() {
@@ -686,10 +685,7 @@ fn execute_script(vm: &mut Vm, cmds: &[ScriptCmd]) -> Result<(), String> {
             ScriptCmd::AssertChecksum(expected) => {
                 let actual = canvas_checksum(&vm.screen);
                 if actual == *expected {
-                    eprintln!(
-                        "[script] PASS assert checksum 0x{:08x}",
-                        actual
-                    );
+                    eprintln!("[script] PASS assert checksum 0x{:08x}", actual);
                 } else {
                     return Err(format!(
                         "FAIL assert checksum: expected 0x{:08x}, got 0x{:08x}",
@@ -711,7 +707,12 @@ fn execute_script(vm: &mut Vm, cmds: &[ScriptCmd]) -> Result<(), String> {
                     eprintln!(
                         "[script] PASS assert:vision contains '{}' (got: '{}')",
                         expected,
-                        desc.lines().next().unwrap_or(&desc).chars().take(80).collect::<String>()
+                        desc.lines()
+                            .next()
+                            .unwrap_or(&desc)
+                            .chars()
+                            .take(80)
+                            .collect::<String>()
                     );
                 } else {
                     return Err(format!(
@@ -1032,6 +1033,182 @@ fn test_ctrl_c(vm: &mut Vm) -> i32 {
     0
 }
 
+// ── Host Font Renderer ────────────────────────────────────────────
+//
+// Instead of upscaling the VM's 3x5 pixel font, we re-render the text buffer
+// using a real TrueType font (Ubuntu Mono) at the host window's resolution.
+// This gives crisp, readable text regardless of VM resolution.
+
+/// Find and load a monospace TTF font. Tries Ubuntu Mono, then Noto Mono,
+/// then Liberation Mono, then any monospace font from fontconfig.
+fn load_mono_font() -> Font {
+    // Prefer static TTF fonts (variable fonts may not work with fontdue)
+    let candidates = [
+        "/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+        // Variable fonts -- may fail with fontdue
+        "/usr/share/fonts/truetype/ubuntu/UbuntuMono[wght].ttf",
+    ];
+    for path in &candidates {
+        if let Ok(data) = std::fs::read(path) {
+            match Font::from_bytes(data, fontdue::FontSettings::default()) {
+                Ok(font) => {
+                    eprintln!("[geos-term] loaded font: {}", path);
+                    return font;
+                }
+                Err(e) => eprintln!("[geos-term] font load failed {}: {}", path, e),
+            }
+        }
+    }
+    // Fallback: probe fontconfig
+    let output = std::process::Command::new("fc-match")
+        .args(["-f", "%{file}", "monospace"])
+        .output();
+    if let Ok(out) = output {
+        if out.status.success() {
+            let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if let Ok(data) = std::fs::read(&path) {
+                match Font::from_bytes(data, fontdue::FontSettings::default()) {
+                    Ok(font) => {
+                        eprintln!("[geos-term] loaded font (fc-match): {}", path);
+                        return font;
+                    }
+                    Err(e) => eprintln!("[geos-term] font load failed {}: {}", path, e),
+                }
+            }
+        }
+    }
+    panic!("[geos-term] no monospace font found. Install fonts-ubuntu-mono or similar.");
+}
+
+/// Render the text buffer from VM RAM using a host TTF font at native resolution.
+/// Writes directly into the minifb framebuffer (fb_w x fb_h pixels).
+fn render_text_buffer_host(
+    vm: &Vm,
+    framebuffer: &mut [u32],
+    fb_w: usize,
+    fb_h: usize,
+    font: &Font,
+    scale: usize,
+) {
+    // Character dimensions in host pixels
+    // 80 VM columns map to the window. Each VM column = 3 VM pixels.
+    // At scale N, each VM pixel = N host pixels. So each column = 3*N host px.
+    // But for font rendering, we just want to fill the window evenly.
+    let char_w: usize = (fb_w / BUF_COLS).max(6); // at least 6px wide
+    let char_h: usize = char_w * 2; // roughly 2:1 for monospace
+    let font_size: f32 = char_h as f32 * 1.0; // fontdue uses font size ~= line height
+
+    // Background color
+    let bg_color: u32 = 0x0A0A0A;
+
+    // Clear the text area (below title bar)
+    let top_margin = 12 * scale; // match VM's title bar area
+    for y in top_margin..fb_h {
+        for x in 0..fb_w {
+            framebuffer[y * fb_w + x] = bg_color;
+        }
+    }
+
+    // Render each character
+    for row in 0..BUF_ROWS {
+        for col in 0..BUF_COLS {
+            let ch = vm.ram[BUF_BASE + row * BUF_COLS + col] as u8;
+            if ch < 32 {
+                continue;
+            }
+            if ch == 127 {
+                continue;
+            }
+            // Extended chars (128-157) -- box drawing etc
+            if ch >= 128 && ch > 157 {
+                continue;
+            }
+
+            // Get color from color buffer
+            let color_val = vm.ram[COLOR_BUF_BASE + row * BUF_COLS + col];
+            let fg_color: u32 = if color_val == 0 { 0xBBBBBB } else { color_val };
+
+            // Convert to RGB tuple for fontdue
+            let r = ((fg_color >> 16) & 0xFF) as u8;
+            let g = ((fg_color >> 8) & 0xFF) as u8;
+            let b = (fg_color & 0xFF) as u8;
+
+            let px_x = col * char_w;
+            let px_y = top_margin + row * char_h;
+
+            // Use fontdue to rasterize the glyph
+            let c = ch as char;
+            let (metrics, bitmap) = font.rasterize(c, font_size);
+            // fontdue gives us a bitmap with width/height from metrics
+            let glyph_w = metrics.width;
+            let glyph_h = metrics.height;
+            // Advance: use char_w as cell width (monospace alignment)
+            let offset_x = (char_w.saturating_sub(glyph_w)) / 2;
+            let offset_y = char_h.saturating_sub(glyph_h).saturating_sub(1);
+
+            for gy in 0..glyph_h {
+                for gx in 0..glyph_w {
+                    let coverage = bitmap[gy * glyph_w + gx];
+                    if coverage == 0 {
+                        continue;
+                    }
+                    let px = px_x + offset_x + gx;
+                    let py = px_y + offset_y + gy;
+                    if px < fb_w && py < fb_h {
+                        let idx = py * fb_w + px;
+                        if coverage >= 255 {
+                            framebuffer[idx] = fg_color;
+                        } else {
+                            // Alpha blend
+                            let alpha = coverage as f32 / 255.0;
+                            let bg_r = ((bg_color >> 16) & 0xFF) as f32;
+                            let bg_g = ((bg_color >> 8) & 0xFF) as f32;
+                            let bg_b = (bg_color & 0xFF) as f32;
+                            let br = (r as f32 * alpha + bg_r * (1.0 - alpha)) as u8;
+                            let bg2 = (g as f32 * alpha + bg_g * (1.0 - alpha)) as u8;
+                            let bb = (b as f32 * alpha + bg_b * (1.0 - alpha)) as u8;
+                            framebuffer[idx] = (br as u32) << 16 | (bg2 as u32) << 8 | bb as u32;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Draw cursor
+    let cur_col = vm.ram[CUR_COL] as usize;
+    let cur_row = vm.ram[CUR_ROW] as usize;
+    if cur_col < BUF_COLS && cur_row < BUF_ROWS {
+        let cx = cur_col * char_w;
+        let cy = top_margin + cur_row * char_h;
+        let cursor_w = std::cmp::min(2 * scale, char_w);
+        for dy in 0..char_h.saturating_sub(2) {
+            for dx in 0..cursor_w {
+                let px = cx + dx;
+                let py = cy + dy;
+                if px < fb_w && py < fb_h {
+                    framebuffer[py * fb_w + px] = 0x44FF44;
+                }
+            }
+        }
+    }
+}
+
+/// Fallback: draw 5x7 mini font glyph at scaled size (for chars TTF can't handle).
+fn draw_char_5x7_scaled(
+    framebuffer: &mut [u32],
+    fb_w: usize,
+    fb_h: usize,
+    x: usize,
+    y: usize,
+    ch: u8,
+    color: u32,
+    scale: usize,
+) {
+    draw_char_5x7(framebuffer, fb_w, fb_h, x, y, ch, color, scale);
+}
+
 // ── Main ─────────────────────────────────────────────────────────────
 
 fn main() {
@@ -1081,7 +1258,9 @@ fn main() {
                 eprintln!("  snapshot:PATH       Save current canvas as PNG to PATH");
                 eprintln!("  dump                Print diagnostics");
                 eprintln!();
-                eprintln!("On script/test failure a PNG is auto-dumped to /tmp/geos_term_fail_*.png");
+                eprintln!(
+                    "On script/test failure a PNG is auto-dumped to /tmp/geos_term_fail_*.png"
+                );
                 return;
             }
             other if !other.starts_with('-') => {
@@ -1215,6 +1394,12 @@ fn main() {
     // Ctrl+Shift+D: vision describe -- shared state for async vision result
     let vision_result: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
     let mut vision_busy = false;
+    // Load host TTF font for crisp text rendering
+    let host_font = load_mono_font();
+    eprintln!(
+        "[geos-term] host font rendering: {}x{} window, {} cols x {} rows",
+        win_w, win_h, BUF_COLS, BUF_ROWS
+    );
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
         let ctrl = window.is_key_down(Key::LeftCtrl) || window.is_key_down(Key::RightCtrl);
@@ -1351,7 +1536,8 @@ fn main() {
                                 *result.lock().unwrap() = Some(desc);
                             }
                             None => {
-                                *result.lock().unwrap() = Some("error: vision model unavailable".to_string());
+                                *result.lock().unwrap() =
+                                    Some("error: vision model unavailable".to_string());
                             }
                         }
                     });
@@ -1502,21 +1688,9 @@ fn main() {
             }
         }
 
-        // Blit vm.screen to framebuffer at integer scale
+        // Blit vm.screen to framebuffer using host TTF font (crisp text)
         if !scrollback.is_scrolled() {
-            for y in 0..VM_H {
-                for x in 0..VM_W {
-                    let pixel = vm.screen[y * VM_W + x];
-                    let dst_y0 = y * scale;
-                    let dst_x0 = x * scale;
-                    for dy in 0..scale {
-                        let row = (dst_y0 + dy) * win_w;
-                        for dx in 0..scale {
-                            framebuffer[row + dst_x0 + dx] = pixel;
-                        }
-                    }
-                }
-            }
+            render_text_buffer_host(&vm, &mut framebuffer, win_w, win_h, &host_font, scale);
         }
 
         // ── Status bar overlay ──

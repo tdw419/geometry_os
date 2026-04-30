@@ -2835,8 +2835,7 @@ impl Vm {
                                 }
 
                                 // Encode screenshot as base64 PNG
-                                let screenshot_b64 =
-                                    crate::vision::encode_png_base64(&self.screen);
+                                let screenshot_b64 = crate::vision::encode_png_base64(&self.screen);
 
                                 // Check for mock response (testing)
                                 let response = if let Some(ref mock) = self.llm_mock_response {
@@ -2848,7 +2847,7 @@ impl Vm {
                                     crate::hermes::call_ollama_vision(
                                         "You are a Geometry OS diagnostic assistant.",
                                         &prompt,
-                                        &screenshot_b64
+                                        &screenshot_b64,
                                     )
                                 };
 
@@ -2880,23 +2879,25 @@ impl Vm {
                                     2 => "Reply with one integer: how many pixels of the most dominant color do you see?",
                                     _ => "Reply with one integer: how many distinct objects do you see?",
                                 };
-                                
+
                                 let response = if let Some(ref mock) = self.llm_mock_response {
                                     let resp = mock.clone();
                                     self.llm_mock_response = None;
                                     Some(resp)
                                 } else {
-                                    let screenshot_b64 = crate::vision::encode_png_base64(&self.screen);
+                                    let screenshot_b64 =
+                                        crate::vision::encode_png_base64(&self.screen);
                                     crate::hermes::call_ollama_vision(
                                         "You are a Geometry OS diagnostic assistant.",
                                         prompt,
-                                        &screenshot_b64
+                                        &screenshot_b64,
                                     )
                                 };
-                                
+
                                 if let Some(resp) = response {
                                     // Parse leading integer
-                                    let count = resp.split_whitespace()
+                                    let count = resp
+                                        .split_whitespace()
                                         .filter_map(|s| s.parse::<u32>().ok())
                                         .next()
                                         .unwrap_or(0);

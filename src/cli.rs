@@ -4,9 +4,9 @@ use crate::assembler;
 use crate::canvas::list_asm_files;
 use crate::hermes::{run_build_loop, run_hermes_loop};
 use crate::preprocessor;
+use crate::qemu::QemuBridge;
 use crate::save::{load_state, save_state};
 use crate::vm;
-use crate::qemu::QemuBridge;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
@@ -75,11 +75,7 @@ pub fn cli_main(extra_args: &[String]) {
         // Phase 93: Auto-detect source PNG (geo_boot=source metadata)
         // Explicit --boot-src-png flag takes priority, then auto-detect by metadata
         if boot_src_png_mode || crate::pixel::is_source_png_file(path_str) {
-            match crate::pixel::boot_source_png_to_ram(
-                path_str,
-                &mut canvas_buffer,
-                &mut vm.ram,
-            ) {
+            match crate::pixel::boot_source_png_to_ram(path_str, &mut canvas_buffer, &mut vm.ram) {
                 Ok(result) => {
                     println!(
                         "[src-png-boot] Decoded {} chars ({} source bytes), assembled to {} bytecode words from {}",
@@ -372,11 +368,7 @@ pub fn cli_main(extra_args: &[String]) {
                         continue;
                     }
                 };
-                match crate::pixel::boot_source_png_to_ram(
-                    &path,
-                    &mut canvas_buffer,
-                    &mut vm.ram,
-                ) {
+                match crate::pixel::boot_source_png_to_ram(&path, &mut canvas_buffer, &mut vm.ram) {
                     Ok(result) => {
                         println!(
                             "[src-png-boot] Decoded {} chars ({} source bytes), assembled to {} bytecode words from {}",

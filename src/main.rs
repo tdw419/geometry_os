@@ -3340,7 +3340,11 @@ fn main() {
                                 };
                                 let screen_b64 = geometry_os::vision::encode_png_base64(&vm.screen);
                                 let system = "You are a vision model describing a 256x256 pixel terminal framebuffer from Geometry OS. Be concise and factual. Describe layout, visible text, colors, shapes, and any rendering issues.";
-                                match geometry_os::hermes::call_ollama_vision(system, &prompt, &screen_b64) {
+                                match geometry_os::hermes::call_ollama_vision(
+                                    system,
+                                    &prompt,
+                                    &screen_b64,
+                                ) {
                                     Some(desc) => {
                                         response.push_str(&desc);
                                         response.push('\n');

@@ -93,6 +93,8 @@ impl std::fmt::Display for GlyphLexError {
     }
 }
 
+impl std::error::Error for GlyphLexError {}
+
 // ── Lexer ──────────────────────────────────────────────────────
 
 /// Tokenize a .glyph source string into a Vec of GlyphTokens.
@@ -268,6 +270,8 @@ impl std::fmt::Display for GlyphCompileError {
         write!(f, "GlyphLang compile error: {}", self.message)
     }
 }
+
+impl std::error::Error for GlyphCompileError {}
 
 // ── Compiler (Token -> Assembly) ───────────────────────────────
 
@@ -572,17 +576,20 @@ pub fn compile_glyph_to_bytecode(
 mod tests {
     use super::*;
 
+    type TestResult = Result<(), Box<dyn std::error::Error>>;
+
     // ── Lexer Tests ─────────────────────────────────────────
 
     #[test]
-    fn test_lex_simple_numbers() {
-        let tokens = lex("3 4").unwrap();
+    fn test_lex_simple_numbers() -> TestResult {
+        let tokens = lex("3 4")?;
         assert_eq!(tokens, vec![GlyphToken::Number(3), GlyphToken::Number(4),]);
+        Ok(())
     }
 
     #[test]
-    fn test_lex_multi_digit_numbers() {
-        let tokens = lex("42 100 7").unwrap();
+    fn test_lex_multi_digit_numbers() -> TestResult {
+        let tokens = lex("42 100 7")?;
         assert_eq!(
             tokens,
             vec![
@@ -591,11 +598,12 @@ mod tests {
                 GlyphToken::Number(7),
             ]
         );
+        Ok(())
     }
 
     #[test]
-    fn test_lex_operators() {
-        let tokens = lex("+ - * /").unwrap();
+    fn test_lex_operators() -> TestResult {
+        let tokens = lex("+ - * /")?;
         assert_eq!(
             tokens,
             vec![
@@ -605,11 +613,12 @@ mod tests {
                 GlyphToken::Op('/'),
             ]
         );
+        Ok(())
     }
 
     #[test]
-    fn test_lex_comparisons() {
-        let tokens = lex("> < =").unwrap();
+    fn test_lex_comparisons() -> TestResult {
+        let tokens = lex("> < =")?;
         assert_eq!(
             tokens,
             vec![
@@ -618,17 +627,19 @@ mod tests {
                 GlyphToken::Cmp('='),
             ]
         );
+        Ok(())
     }
 
     #[test]
-    fn test_lex_control_flow() {
-        let tokens = lex("? L").unwrap();
+    fn test_lex_control_flow() -> TestResult {
+        let tokens = lex("? L")?;
         assert_eq!(tokens, vec![GlyphToken::Conditional, GlyphToken::Loop,]);
+        Ok(())
     }
 
     #[test]
-    fn test_lex_special() {
-        let tokens = lex("S M . @").unwrap();
+    fn test_lex_special() -> TestResult {
+        let tokens = lex("S M . @")?;
         assert_eq!(
             tokens,
             vec![
@@ -638,11 +649,12 @@ mod tests {
                 GlyphToken::Halt,
             ]
         );
+        Ok(())
     }
 
     #[test]
-    fn test_lex_registers() {
-        let tokens = lex("a B z A").unwrap();
+    fn test_lex_registers() -> TestResult {
+        let tokens = lex("a B z A")?;
         assert_eq!(
             tokens,
             vec![
@@ -652,11 +664,12 @@ mod tests {
                 GlyphToken::LoadReg(1),   // A -> r1
             ]
         );
+        Ok(())
     }
 
     #[test]
-    fn test_lex_comments_and_whitespace() {
-        let tokens = lex("# comment\n3 # inline\n4 # another\n+ @").unwrap();
+    fn test_lex_comments_and_whitespace() -> TestResult {
+        let tokens = lex("# comment\n3 # inline\n4 # another\n+ @")?;
         assert_eq!(
             tokens,
             vec![
@@ -666,11 +679,12 @@ mod tests {
                 GlyphToken::Halt,
             ]
         );
+        Ok(())
     }
 
     #[test]
-    fn test_lex_unknown_chars_ignored() {
-        let tokens = lex("3,4+").unwrap();
+    fn test_lex_unknown_chars_ignored() -> TestResult {
+        let tokens = lex("3,4+")?;
         // comma is ignored, so "3" then comma skipped, then "4", then "+"
         assert_eq!(
             tokens,
@@ -680,104 +694,119 @@ mod tests {
                 GlyphToken::Op('+'),
             ]
         );
+        Ok(())
     }
 
     #[test]
-    fn test_lex_empty_source() {
-        let tokens = lex("").unwrap();
+    fn test_lex_empty_source() -> TestResult {
+        let tokens = lex("")?;
         assert!(tokens.is_empty());
+        Ok(())
     }
 
     #[test]
-    fn test_lex_whitespace_only() {
-        let tokens = lex("   \n\t  ").unwrap();
+    fn test_lex_whitespace_only() -> TestResult {
+        let tokens = lex("   \n\t  ")?;
         assert!(tokens.is_empty());
+        Ok(())
     }
 
     #[test]
-    fn test_lex_comment_only() {
-        let tokens = lex("# just a comment").unwrap();
+    fn test_lex_comment_only() -> TestResult {
+        let tokens = lex("# just a comment")?;
         assert!(tokens.is_empty());
+        Ok(())
     }
 
     // ── Compiler Tests ──────────────────────────────────────
 
     #[test]
-    fn test_compile_simple_add() {
-        let asm = compile_glyph("3 4 + @").unwrap();
+    fn test_compile_simple_add() -> TestResult {
+        let asm = compile_glyph("3 4 + @")?;
         assert!(asm.contains("LDI r27, 3"));
         assert!(asm.contains("LDI r27, 4"));
         assert!(asm.contains("ADD r27, r28"));
         assert!(asm.contains("HALT"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_subtract() {
-        let asm = compile_glyph("10 3 - @").unwrap();
+    fn test_compile_subtract() -> TestResult {
+        let asm = compile_glyph("10 3 - @")?;
         assert!(asm.contains("SUB r27, r28"));
         assert!(asm.contains("HALT"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_multiply() {
-        let asm = compile_glyph("6 7 * @").unwrap();
+    fn test_compile_multiply() -> TestResult {
+        let asm = compile_glyph("6 7 * @")?;
         assert!(asm.contains("MUL r27, r28"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_divide() {
-        let asm = compile_glyph("20 4 / @").unwrap();
+    fn test_compile_divide() -> TestResult {
+        let asm = compile_glyph("20 4 / @")?;
         assert!(asm.contains("DIV r27, r28"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_comparison_equal() {
-        let asm = compile_glyph("5 5 = @").unwrap();
+    fn test_compile_comparison_equal() -> TestResult {
+        let asm = compile_glyph("5 5 = @")?;
         assert!(asm.contains("CMP r27, r28"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_comparison_greater() {
-        let asm = compile_glyph("5 3 > @").unwrap();
+    fn test_compile_comparison_greater() -> TestResult {
+        let asm = compile_glyph("5 3 > @")?;
         assert!(asm.contains("CMP r27, r28"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_comparison_less() {
-        let asm = compile_glyph("3 5 < @").unwrap();
+    fn test_compile_comparison_less() -> TestResult {
+        let asm = compile_glyph("3 5 < @")?;
         assert!(asm.contains("CMP r27, r28"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_conditional() {
-        let asm = compile_glyph("1 42 0 ? @").unwrap();
+    fn test_compile_conditional() -> TestResult {
+        let asm = compile_glyph("1 42 0 ? @")?;
         assert!(asm.contains("POP r28 ; f (false value)"));
         assert!(asm.contains("POP r27 ; t (true value)"));
         assert!(asm.contains("POP r29 ; c (condition)"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_output() {
-        let asm = compile_glyph("42 . @").unwrap();
+    fn test_compile_output() -> TestResult {
+        let asm = compile_glyph("42 . @")?;
         assert!(asm.contains("POP r27 ; value to output"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_register_store_load() {
-        let asm = compile_glyph("5 a A @").unwrap();
+    fn test_compile_register_store_load() -> TestResult {
+        let asm = compile_glyph("5 a A @")?;
         assert!(asm.contains("POP r1")); // store to register a=r1
         assert!(asm.contains("PUSH r1")); // load from register A=r1
+        Ok(())
     }
 
     #[test]
-    fn test_compile_halt_always_present() {
-        let asm = compile_glyph("3 4 +").unwrap();
+    fn test_compile_halt_always_present() -> TestResult {
+        let asm = compile_glyph("3 4 +")?;
         assert!(asm.contains("HALT")); // auto-added
+        Ok(())
     }
 
     #[test]
-    fn test_lex_new_opcodes() {
-        let tokens = lex("[ { ! ^ |").unwrap();
+    fn test_lex_new_opcodes() -> TestResult {
+        let tokens = lex("[ { ! ^ |")?;
         assert_eq!(
             tokens,
             vec![
@@ -788,118 +817,125 @@ mod tests {
                 GlyphToken::Fill,
             ]
         );
+        Ok(())
     }
 
     #[test]
-    fn test_lex_string_literal() {
-        let tokens = lex("\"hello world\"").unwrap();
+    fn test_lex_string_literal() -> TestResult {
+        let tokens = lex("\"hello world\"")?;
         assert_eq!(
             tokens,
             vec![GlyphToken::StringLiteral("hello world".to_string())]
         );
+        Ok(())
     }
 
     #[test]
-    fn test_compile_rectf() {
-        let asm = compile_glyph("0 0 10 10 0xFF [ @").unwrap();
+    fn test_compile_rectf() -> TestResult {
+        let asm = compile_glyph("0 0 10 10 0xFF [ @")?;
         assert!(asm.contains("RECTF r25, r26, r27, r28, r29"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_drawtext_with_string() {
-        let asm = compile_glyph("0 0 \"hi\" 0xFF 0 { @").unwrap();
+    fn test_compile_drawtext_with_string() -> TestResult {
+        let asm = compile_glyph("0 0 \"hi\" 0xFF 0 { @")?;
         assert!(asm.contains("DRAWTEXT r25, r26, r27, r28, r29"));
         assert!(asm.contains("_str0:"));
         assert!(asm.contains(".str \"hi\""));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_frame_ikey_fill() {
-        let asm = compile_glyph("! ^ | @").unwrap();
+    fn test_compile_frame_ikey_fill() -> TestResult {
+        let asm = compile_glyph("! ^ | @")?;
         assert!(asm.contains("FRAME"));
         assert!(asm.contains("IKEY r27"));
         assert!(asm.contains("FILL r27"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_ls() {
-        let asm = compile_glyph("0x4000 $ @").unwrap();
+    fn test_compile_ls() -> TestResult {
+        let asm = compile_glyph("0x4000 $ @")?;
         assert!(asm.contains("LS r27"));
         assert!(asm.contains("PUSH r0"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_labels_and_jumps() {
-        let asm = compile_glyph(":start 1 1 + ~start @").unwrap();
+    fn test_compile_labels_and_jumps() -> TestResult {
+        let asm = compile_glyph(":start 1 1 + ~start @")?;
         assert!(asm.contains("start:"));
         assert!(asm.contains("JMP start"));
+        Ok(())
     }
 
     #[test]
-    fn test_compile_exec() {
-        let asm = compile_glyph("\"shell\" & @").unwrap();
+    fn test_compile_exec() -> TestResult {
+        let asm = compile_glyph("\"shell\" & @")?;
         assert!(asm.contains("EXEC r27"));
+        Ok(())
     }
 
     // ── Full Pipeline Tests (Lexer -> Compiler -> Assembler -> VM) ─
 
     #[test]
-    fn test_pipeline_simple_arithmetic() {
+    fn test_pipeline_simple_arithmetic() -> TestResult {
         // 3 4 + . @ should compute 7 and draw a pixel
-        let result = compile_glyph_to_bytecode("3 4 + . @");
-        assert!(result.is_ok(), "Pipeline should succeed");
-        let asm = result.unwrap();
-        assert!(!asm.pixels.is_empty(), "Should produce bytecode");
+        let result = compile_glyph_to_bytecode("3 4 + . @")?;
+        assert!(!result.pixels.is_empty(), "Should produce bytecode");
+        Ok(())
     }
 
     #[test]
-    fn test_pipeline_add_and_halt() {
+    fn test_pipeline_add_and_halt() -> TestResult {
         // 3 4 + @ should compile and assemble cleanly
-        let result = compile_glyph_to_bytecode("3 4 + @");
-        assert!(result.is_ok());
+        let _result = compile_glyph_to_bytecode("3 4 + @")?;
+        Ok(())
     }
 
     #[test]
-    fn test_pipeline_complex_expression() {
+    fn test_pipeline_complex_expression() -> TestResult {
         // 3 4 + 2 * . @ = (3+4)*2 = 14
-        let result = compile_glyph_to_bytecode("3 4 + 2 * . @");
-        assert!(result.is_ok());
+        let _result = compile_glyph_to_bytecode("3 4 + 2 * . @")?;
+        Ok(())
     }
 
     #[test]
-    fn test_pipeline_comparison() {
+    fn test_pipeline_comparison() -> TestResult {
         // 5 5 = . @ should push 1 (equal) and output it
-        let result = compile_glyph_to_bytecode("5 5 = . @");
-        assert!(result.is_ok());
+        let _result = compile_glyph_to_bytecode("5 5 = . @")?;
+        Ok(())
     }
 
     #[test]
-    fn test_pipeline_conditional_true() {
+    fn test_pipeline_conditional_true() -> TestResult {
         // 1 42 0 ? . @ should output 42 (condition is true)
-        let result = compile_glyph_to_bytecode("1 42 0 ? . @");
-        assert!(result.is_ok());
+        let _result = compile_glyph_to_bytecode("1 42 0 ? . @")?;
+        Ok(())
     }
 
     #[test]
-    fn test_pipeline_conditional_false() {
+    fn test_pipeline_conditional_false() -> TestResult {
         // 0 42 99 ? . @ should output 99 (condition is false)
-        let result = compile_glyph_to_bytecode("0 42 99 ? . @");
-        assert!(result.is_ok());
+        let _result = compile_glyph_to_bytecode("0 42 99 ? . @")?;
+        Ok(())
     }
 
     #[test]
-    fn test_pipeline_register_roundtrip() {
+    fn test_pipeline_register_roundtrip() -> TestResult {
         // 42 a A . @ should store 42 in register a, load it, output it
-        let result = compile_glyph_to_bytecode("42 a A . @");
-        assert!(result.is_ok());
+        let _result = compile_glyph_to_bytecode("42 a A . @")?;
+        Ok(())
     }
 
     // ── VM Execution Tests ──────────────────────────────────
 
     #[test]
-    fn test_vm_runs_glyph_add() {
+    fn test_vm_runs_glyph_add() -> TestResult {
         // 3 4 + . @ should halt cleanly
-        let result = compile_glyph_to_bytecode("3 4 + . @").unwrap();
+        let result = compile_glyph_to_bytecode("3 4 + . @")?;
         let mut vm = crate::vm::Vm::new();
         for (i, &word) in result.pixels.iter().enumerate() {
             if i < vm.ram.len() {
@@ -914,12 +950,13 @@ mod tests {
             }
         }
         assert!(vm.halted, "GlyphLang program should halt");
+        Ok(())
     }
 
     #[test]
-    fn test_vm_runs_glyph_multi_op() {
+    fn test_vm_runs_glyph_multi_op() -> TestResult {
         // 3 4 + 2 * . @ = 14
-        let result = compile_glyph_to_bytecode("3 4 + 2 * . @").unwrap();
+        let result = compile_glyph_to_bytecode("3 4 + 2 * . @")?;
         let mut vm = crate::vm::Vm::new();
         for (i, &word) in result.pixels.iter().enumerate() {
             if i < vm.ram.len() {
@@ -934,12 +971,13 @@ mod tests {
             }
         }
         assert!(vm.halted, "Multi-op GlyphLang program should halt");
+        Ok(())
     }
 
     #[test]
-    fn test_vm_runs_glyph_conditional() {
+    fn test_vm_runs_glyph_conditional() -> TestResult {
         // 1 42 99 ? . @ should output 42
-        let result = compile_glyph_to_bytecode("1 42 99 ? . @").unwrap();
+        let result = compile_glyph_to_bytecode("1 42 99 ? . @")?;
         let mut vm = crate::vm::Vm::new();
         for (i, &word) in result.pixels.iter().enumerate() {
             if i < vm.ram.len() {
@@ -954,12 +992,13 @@ mod tests {
             }
         }
         assert!(vm.halted, "Conditional GlyphLang program should halt");
+        Ok(())
     }
 
     #[test]
-    fn test_vm_runs_glyph_comparison() {
+    fn test_vm_runs_glyph_comparison() -> TestResult {
         // 3 5 < . @ should output 1 (3 < 5 is true)
-        let result = compile_glyph_to_bytecode("3 5 < . @").unwrap();
+        let result = compile_glyph_to_bytecode("3 5 < . @")?;
         let mut vm = crate::vm::Vm::new();
         for (i, &word) in result.pixels.iter().enumerate() {
             if i < vm.ram.len() {
@@ -974,5 +1013,6 @@ mod tests {
             }
         }
         assert!(vm.halted, "Comparison GlyphLang program should halt");
+        Ok(())
     }
 }

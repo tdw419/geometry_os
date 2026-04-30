@@ -4,6 +4,8 @@
 // interprets ANSI escape sequences, and writes printable characters into
 // a canvas buffer (Vec<u32>).
 
+use std::collections::HashSet;
+
 use super::cursor::{Cursor, CANVAS_COLS, CANVAS_MAX_ROWS};
 
 /// States for the ANSI escape sequence parser.
@@ -33,6 +35,8 @@ pub struct AnsiHandler {
     scroll_top: usize,
     /// Scroll region bottom (inclusive).
     scroll_bottom: usize,
+    /// Set of columns that are tab stops.
+    tab_stops: HashSet<usize>,
 }
 
 impl Default for AnsiHandler {
@@ -45,6 +49,8 @@ impl Default for AnsiHandler {
 impl AnsiHandler {
     /// Create a new ANSI handler with default state.
     pub fn new() -> Self {
+        // Default tab stops every 8 columns (0, 8, 16, 24, ...)
+        let tab_stops: HashSet<usize> = (0..CANVAS_COLS).step_by(8).collect();
         AnsiHandler {
             state: AnsiState::Normal,
             cursor: Cursor::new(),
@@ -52,6 +58,7 @@ impl AnsiHandler {
             saved_cursor: Cursor::new(),
             scroll_top: 0,
             scroll_bottom: CANVAS_MAX_ROWS - 1,
+            tab_stops,
         }
     }
 
@@ -96,8 +103,15 @@ impl AnsiHandler {
                         }
                     }
                     0x09 => {
-                        let next_tab = ((self.cursor.col / 8) + 1) * 8;
-                        self.cursor.col = next_tab.min(CANVAS_COLS - 1);
+                        // Find next tab stop after current column
+                        let next = self
+                            .tab_stops
+                            .iter()
+                            .filter(|&&c| c > self.cursor.col)
+                            .min()
+                            .copied()
+                            .unwrap_or(CANVAS_COLS - 1);
+                        self.cursor.col = next.min(CANVAS_COLS - 1);
                     }
                     0x07 => {
                         // Bell -- ignore
@@ -151,6 +165,13 @@ impl AnsiHandler {
                     self.saved_cursor = Cursor::new();
                     self.scroll_top = 0;
                     self.scroll_bottom = CANVAS_MAX_ROWS - 1;
+                    // Reset tab stops to default every-8-columns
+                    self.tab_stops = (0..CANVAS_COLS).step_by(8).collect();
+                    self.state = AnsiState::Normal;
+                }
+                b'H' => {
+                    // HTS: Horizontal Tabulation Set -- set a tab stop at current column
+                    self.tab_stops.insert(self.cursor.col);
                     self.state = AnsiState::Normal;
                 }
                 _ => {
@@ -465,6 +486,21 @@ impl AnsiHandler {
             }
             b'u' => {
                 self.cursor = self.saved_cursor;
+            }
+            b'g' => {
+                // TBC (Tabulation Clear)
+                let params = self.parse_params(&[0]);
+                match params[0] {
+                    0 => {
+                        // Clear tab stop at current column
+                        self.tab_stops.remove(&self.cursor.col);
+                    }
+                    3 => {
+                        // Clear all tab stops
+                        self.tab_stops.clear();
+                    }
+                    _ => {}
+                }
             }
             _ => {
                 // Unknown CSI -- ignore
@@ -1399,5 +1435,165 @@ mod tests {
         assert_eq!(buf[1], b'B' as u32);
         assert_eq!(buf[2], b'C' as u32); // 0x7F, 0x80, 0xFF not in 0x20..0x7F range
         assert_eq!(buf[3], b'D' as u32);
+    }
+
+    #[test]
+    fn test_tab_stops_default_every_8() {
+        // Default tab stops at columns 0, 8, 16, 24, ...
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, 8);
+
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, 16);
+
+        handler.process_bytes(b"XX", &mut buf);
+        assert_eq!(handler.cursor().col, 18);
+
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, 24);
+    }
+
+    #[test]
+    fn test_tab_at_last_stop_clamps() {
+        // Tab when no more stops ahead should clamp to CANVAS_COLS-1
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.set_cursor(0, CANVAS_COLS - 2);
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, CANVAS_COLS - 1);
+    }
+
+    #[test]
+    fn test_hts_sets_tab_stop_at_cursor() {
+        // ESC H (HTS) sets a tab stop at current column
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.set_cursor(0, 5);
+        // ESC H sets tab stop at column 5
+        handler.process_bytes(b"\x1BH", &mut buf);
+        // Now tab from col 0 should go to 5
+        handler.set_cursor(0, 0);
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, 5);
+        // Tab from col 5 should go to 8 (next default stop)
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, 8);
+    }
+
+    #[test]
+    fn test_hts_custom_tab_stops() {
+        // Set custom tab stops at 3, 7, 11
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // Clear all defaults first
+        handler.process_bytes(b"\x1B[3g", &mut buf);
+
+        // Set tab stops at 3, 7, 11
+        handler.set_cursor(0, 3);
+        handler.process_bytes(b"\x1BH", &mut buf);
+        handler.set_cursor(0, 7);
+        handler.process_bytes(b"\x1BH", &mut buf);
+        handler.set_cursor(0, 11);
+        handler.process_bytes(b"\x1BH", &mut buf);
+
+        // Tab from col 0 -> 3
+        handler.set_cursor(0, 0);
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, 3);
+
+        // Tab from col 3 -> 7
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, 7);
+
+        // Tab from col 7 -> 11
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, 11);
+
+        // Tab from col 11 -> clamp to CANVAS_COLS-1 (no more stops)
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, CANVAS_COLS - 1);
+    }
+
+    #[test]
+    fn test_tbc_clear_single_tab_stop() {
+        // CSI 0g clears tab stop at current column
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // Clear tab stop at column 8
+        handler.set_cursor(0, 8);
+        handler.process_bytes(b"\x1B[0g", &mut buf);
+
+        // Tab from col 0 should skip 8 and go to 16
+        handler.set_cursor(0, 0);
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, 16);
+    }
+
+    #[test]
+    fn test_tbc_clear_all_tab_stops() {
+        // CSI 3g clears all tab stops
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        handler.process_bytes(b"\x1B[3g", &mut buf);
+
+        // With no tab stops, tab should clamp to CANVAS_COLS-1
+        handler.set_cursor(0, 0);
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, CANVAS_COLS - 1);
+    }
+
+    #[test]
+    fn test_ris_resets_tab_stops() {
+        // ESC c (RIS) resets tab stops to default
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // Clear all and set custom
+        handler.process_bytes(b"\x1B[3g", &mut buf);
+        handler.set_cursor(0, 5);
+        handler.process_bytes(b"\x1BH", &mut buf);
+
+        // Verify custom works
+        handler.set_cursor(0, 0);
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, 5); // custom stop
+
+        // Reset
+        handler.process_bytes(b"\x1Bc", &mut buf);
+
+        // Default every-8 stops should be restored
+        handler.set_cursor(0, 0);
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, 8);
+    }
+
+    #[test]
+    fn test_tab_with_text_alignment() {
+        // Simulate tabular output: name<TAB>value
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"abc\t123", &mut buf);
+        // 'a' at 0, 'b' at 1, 'c' at 2, tab -> 8, '1' at 8, '2' at 9, '3' at 10
+        assert_eq!(buf[0], b'a' as u32);
+        assert_eq!(buf[1], b'b' as u32);
+        assert_eq!(buf[2], b'c' as u32);
+        assert_eq!(buf[8], b'1' as u32);
+        assert_eq!(buf[9], b'2' as u32);
+        assert_eq!(buf[10], b'3' as u32);
+    }
+
+    #[test]
+    fn test_tab_already_at_stop() {
+        // Tab when cursor is exactly at a tab stop should advance to next one
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.set_cursor(0, 8);
+        handler.process_bytes(b"\t", &mut buf);
+        assert_eq!(handler.cursor().col, 16);
     }
 }
