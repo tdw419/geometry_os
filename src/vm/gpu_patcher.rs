@@ -99,7 +99,10 @@ impl GpuPatcher {
             .context("No GPU adapter found for glyph patcher")?;
 
         let info = adapter.get_info();
-        eprintln!("[gpu-patcher] Adapter: {} (backend: {:?})", info.name, info.backend);
+        eprintln!(
+            "[gpu-patcher] Adapter: {} (backend: {:?})",
+            info.name, info.backend
+        );
 
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
@@ -165,7 +168,9 @@ impl GpuPatcher {
         let bc_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Patcher Bytecode"),
             size: (bytecode.len() as u64) * 4,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
         self.queue.write_buffer(&bc_buffer, 0, bc_bytes);
@@ -179,7 +184,11 @@ impl GpuPatcher {
             let base = 1 + i * 3;
             patch_data[base + 0] = patch.addr;
             patch_data[base + 1] = patch.val;
-            let mode_bit = if patch.mode == PatchMode::Write { 1u32 } else { 0u32 };
+            let mode_bit = if patch.mode == PatchMode::Write {
+                1u32
+            } else {
+                0u32
+            };
             patch_data[base + 2] = (patch.mask << 1) | mode_bit;
         }
 
@@ -485,7 +494,7 @@ mod tests {
         // Should have: LDI r0, 42 | ADD r0, r1
         assert_eq!(buf[0], 0x10); // LDI
         assert_eq!(buf[1], 0x00); // r0
-        assert_eq!(buf[2], 42);   // imm
+        assert_eq!(buf[2], 42); // imm
         assert_eq!(buf[3], 0x20); // ADD
         assert_eq!(buf[4], 0x00); // r0
         assert_eq!(buf[5], 0x01); // r1
@@ -662,7 +671,9 @@ mod tests {
         ];
 
         cpu_apply_patches(&mut cpu_buf, &patches);
-        patcher.apply(&mut gpu_buf, &patches).expect("GPU patch failed");
+        patcher
+            .apply(&mut gpu_buf, &patches)
+            .expect("GPU patch failed");
 
         assert_eq!(cpu_buf, gpu_buf, "CPU/GPU patcher mismatch");
         eprintln!("[PASS] GPU patcher matches CPU reference");

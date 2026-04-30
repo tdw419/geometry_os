@@ -9,22 +9,25 @@ fn main() {
         .unwrap_or_else(|| "examples/riscv-hello/geos_kern.elf".into());
     let elf = fs::read(&elf_path).expect("read elf");
     let mut vm = RiscvVm::new(1024 * 1024);
-    
+
     // Run 5M instructions -- enough for initial program setup + some timer ticks
     let r = vm.boot_guest(&elf, 1, 5_000_000).expect("boot");
-    eprintln!("[clip_test] entry=0x{:08X} ran {} instructions", r.entry, r.instructions);
-    
+    eprintln!(
+        "[clip_test] entry=0x{:08X} ran {} instructions",
+        r.entry, r.instructions
+    );
+
     // Check console output for key messages
     let raw = &vm.bus.sbi.console_output;
     let s = String::from_utf8_lossy(raw);
-    
+
     let has_arbitration = s.contains("i.2.1 arbitration");
     let has_scheduler = s.contains("entering scheduler");
     let has_region_req = s.contains("requested region");
     let has_painted_a = s.contains("[A] painted left half red");
     let has_painted_b = s.contains("[B] painted right half blue");
     let has_clipped = s.contains("clipped");
-    
+
     eprintln!("\n=== Console Analysis ===");
     eprintln!("  arbitration msg:  {}", has_arbitration);
     eprintln!("  scheduler msg:    {}", has_scheduler);
@@ -32,7 +35,7 @@ fn main() {
     eprintln!("  A painted red:    {}", has_painted_a);
     eprintln!("  B painted blue:   {}", has_painted_b);
     eprintln!("  A clipped msg:    {}", has_clipped);
-    
+
     // Print non-T characters (filter out timer ticks)
     eprintln!("\n=== Non-tick console ===");
     for line in s.lines() {
@@ -40,7 +43,7 @@ fn main() {
             eprintln!("  {}", line);
         }
     }
-    
+
     // Check framebuffer for clipping: left half should be red, right half should NOT be white
     let fb_base = 0x6000_0000u64;
     let mut left_red_count = 0u32;
@@ -48,7 +51,7 @@ fn main() {
     let mut right_white_count = 0u32;
     let mut right_other_count = 0u32;
     let mut sample_count = 0u32;
-    
+
     // Sample 100 pixels from each half
     for i in 0..100u32 {
         // Left half (x=10, y=i*2+10)
@@ -65,7 +68,7 @@ fn main() {
         } else {
             left_other_count += 1;
         }
-        
+
         // Right half (x=140, y=i*2+10)
         let px2 = 140u64;
         let addr2 = fb_base + (py * 256 + px2) * 4;
@@ -80,11 +83,20 @@ fn main() {
         }
         sample_count += 1;
     }
-    
-    eprintln!("\n=== Framebuffer Analysis ({} samples/half) ===", sample_count);
-    eprintln!("  Left half:  red={} other={}", left_red_count, left_other_count);
-    eprintln!("  Right half: white={} other={}", right_white_count, right_other_count);
-    
+
+    eprintln!(
+        "\n=== Framebuffer Analysis ({} samples/half) ===",
+        sample_count
+    );
+    eprintln!(
+        "  Left half:  red={} other={}",
+        left_red_count, left_other_count
+    );
+    eprintln!(
+        "  Right half: white={} other={}",
+        right_white_count, right_other_count
+    );
+
     // Verdicts
     eprintln!("\n=== Verdicts ===");
     if has_region_req {
@@ -92,13 +104,13 @@ fn main() {
     } else {
         eprintln!("  [FAIL] Region requests NOT processed -- SBI handler issue?");
     }
-    
+
     if left_red_count > 50 {
         eprintln!("  [PASS] Left half is predominantly red (A painted correctly)");
     } else {
         eprintln!("  [FAIL] Left half is NOT red -- program A may not have run");
     }
-    
+
     // Clipping test: if A tried to paint right half white, it should have been blocked
     // (right_white_count should be 0 or very low)
     if right_white_count < 10 {

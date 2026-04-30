@@ -2,30 +2,42 @@
 
 ## Project Overview
 
-Geometry OS is a pixel-art virtual machine evolving into a real operating system. It's written in Rust with a minifb GUI, a custom assembler, and 36 programs. 185 tests (183 passing, 2 ignored), all green.
+Geometry OS is a pixel-art virtual machine evolving into a real operating system. It's written in Rust with a minifb GUI, a custom assembler, 131+ opcodes, and a built-in terminal emulator that runs real bash. Screen is 512x256 VM pixels.
 
 The goal: build toward modern OS standards (kernel boundary, memory protection, filesystem, scheduler, IPC, device drivers, shell).
+
+**Key docs:**
+- `docs/GEOS_TERM.md` -- Terminal emulator architecture (READ THIS for any terminal work)
+- `docs/NORTH_STAR.md` -- Read this FIRST. Defines what work matters.
+- `docs/VISION_MODEL_GUIDE.md` -- How AI vision works: text vs vision modality, AI_AGENT opcode, MCP tools, benchmarks
+- `roadmap.yaml` -- Single source of truth for project state and deliverables
 
 ## Architecture
 
 ```
 src/
-  main.rs       -- GUI (minifb), input handling, rendering (1024x768 host window)
-  vm.rs         -- VM core: 60 opcodes, 32 registers, 64K RAM, 256x256 screen, multi-process
-  assembler.rs  -- Two-pass assembler: labels, #define, .org, .db, .asciz
-  preprocessor.rs -- Abstraction layer: VAR/SET/GET/INC/DEC macros, shared tokenizer
-  font.rs       -- 8x8 VGA bitmap font for text rendering
-  lib.rs        -- Re-exports
-tests/
-  program_tests.rs -- 140 tests: assembly, execution, opcode behavior, multi-process, IPC
+  bin/
+    geos_term.rs  -- Terminal emulator host binary (window, PTY, socket, rendering)
+  vm/
+    mod.rs        -- VM core: 131+ opcodes, 32 registers, 64K RAM, 512x256 screen
+    ops_pty.rs    -- PTY opcodes: PTYOPEN/PTYWRITE/PTYREAD/PTYCLOSE/PTYSIZE
+    ops_memory.rs -- Memory opcodes including screen RAM mapping
+    types.rs      -- SCREEN_W=512, SCREEN_H=256, SCREEN_SIZE constants
+    assembler.rs  -- Two-pass assembler: labels, #define, .org, .db, .asciz
+    preprocessor.rs -- Abstraction layer: VAR/SET/GET/INC/DEC macros
+    pixel.rs      -- Font glyphs (mini_font_glyph), pixel drawing primitives
+    lib.rs        -- Re-exports
 programs/
-  *.asm         -- 36 programs: games, demos, self-hosting assembler, window manager
+  host_term.asm   -- Terminal emulator bytecode (PTY I/O, ANSI parsing, rendering)
+  *.asm           -- Other programs: games, demos, tools
+scripts/
+  geos-ctrl       -- Unix socket client for controlling geos-term
 docs/
-  NORTH_STAR.md -- Read this FIRST. Defines what work matters.
+  GEOS_TERM.md    -- Terminal architecture deep-dive
+  NORTH_STAR.md   -- Read this FIRST. Defines what work matters.
   CANVAS_TEXT_SURFACE.md -- How the text editor/assembler pipeline works
-  KEYSTROKE_TO_PIXELS.md -- Foundational keystroke handling
-roadmap.yaml    -- Single source of truth for project state and deliverables
-ROADMAP.md      -- Human-readable roadmap with priority checkboxes
+roadmap.yaml      -- Single source of truth for project state and deliverables
+ROADMAP.md        -- Human-readable roadmap with priority checkboxes
 ```
 
 ## Key Conventions
@@ -55,10 +67,12 @@ The grid acts as a text editor (TEXT mode) where "the letter IS the colored pixe
 
 - 32 registers (r0-r31), r30 = stack pointer, r31 = call return
 - 65536 u32 words of RAM
-- 256x256 u32 screen buffer
+- 512x256 u32 screen buffer (SCREEN_W=512, SCREEN_H=256 in `src/vm/types.rs`)
 - Multi-process: up to 8 spawned processes with own registers, shared RAM
+- PTY: up to 4 persistent PTY slots (PTYOPEN/PTYWRITE/PTYREAD/PTYCLOSE/PTYSIZE)
 - Hardware ports: 0xFFF (keyboard), 0xFFE (ticks), 0xFFB (multi-key bitmask), 0xFFC (network), 0xFFA (last PID)
 - Window Bounds Protocol: RAM[0xF00..0xF03] for spatial coordination between processes
+- Screen RAM: mapped at 0x10000, addressed as `0x10000 + y * SCREEN_W + x`
 
 ## Test Command
 
@@ -79,6 +93,12 @@ cargo build 2>&1 | grep -E "^error|^warning\["  # check for errors/warnings
 7. Update `roadmap.yaml` deliverable status
 8. Write a program that uses it
 
-## Current Phase: 63 (ABS + RECT Opcodes + Color Picker App)
+## Terminal Emulator
 
-Building the boot sequence and init process. Read docs/NORTH_STAR.md before starting.
+geos-term is a full terminal emulator running inside the VM. See `docs/GEOS_TERM.md` for architecture, RAM layout, ANSI support, editing workflow, and common pitfalls. Key facts:
+
+- ASM program (`programs/host_term.asm`) + Rust host (`src/bin/geos_term.rs`) + PTY backend (`src/vm/ops_pty.rs`)
+- 80x30 text buffer, 512x256 pixel screen, real bash PTY
+- Full ANSI support including alt screen, SGR colors, box drawing, UTF-8/CJK
+- Unix control socket at `/tmp/geos-term.sock` (use `scripts/geos-ctrl`)
+- **ASM edits need NO rebuild** — press F5 to hot-reload. Only Rust edits need `cargo build`.

@@ -1,5 +1,8 @@
 // kern_trace.rs -- Trace first N instructions
-use geometry_os::riscv::{RiscvVm, loader, cpu::{StepResult, Privilege}};
+use geometry_os::riscv::{
+    cpu::{Privilege, StepResult},
+    loader, RiscvVm,
+};
 use std::env;
 use std::fs;
 
@@ -42,16 +45,33 @@ fn main() {
         };
 
         // Print all instructions after BSS clear (after insn 312) and any interesting events
-        if i >= 310 || matches!(step, StepResult::FetchFault | StepResult::LoadFault | StepResult::StoreFault | StepResult::Ebreak | StepResult::Shutdown) {
+        if i >= 310
+            || matches!(
+                step,
+                StepResult::FetchFault
+                    | StepResult::LoadFault
+                    | StepResult::StoreFault
+                    | StepResult::Ebreak
+                    | StepResult::Shutdown
+            )
+        {
             if step == StepResult::Ecall {
                 ecalls += 1;
             }
-            eprintln!("[{:4}] PC=0x{:08X} a0=0x{:08X} a7=0x{:08X} sp=0x{:08X} mepc=0x{:08X} -> {}",
-                i, prev_pc, vm.cpu.x[10], vm.cpu.x[17], vm.cpu.x[2],
-                vm.cpu.csr.mepc, step_str);
+            eprintln!(
+                "[{:4}] PC=0x{:08X} a0=0x{:08X} a7=0x{:08X} sp=0x{:08X} mepc=0x{:08X} -> {}",
+                i, prev_pc, vm.cpu.x[10], vm.cpu.x[17], vm.cpu.x[2], vm.cpu.csr.mepc, step_str
+            );
         }
 
-        if matches!(step, StepResult::FetchFault | StepResult::LoadFault | StepResult::StoreFault | StepResult::Ebreak | StepResult::Shutdown) {
+        if matches!(
+            step,
+            StepResult::FetchFault
+                | StepResult::LoadFault
+                | StepResult::StoreFault
+                | StepResult::Ebreak
+                | StepResult::Shutdown
+        ) {
             break;
         }
     }

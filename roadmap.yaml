@@ -7839,10 +7839,10 @@ phases:
   title: Native RISC-V Linux Boot to Userspace
   status: research
   priority: 10
-  goal: "RESEARCH-ONLY: Boot Linux 6.14 natively in the RISC-V interpreter.
-    Demoted from priority 99 per SPEC.md — Geometry OS is pixel-native on bare-metal
-    RISC-V, not a Linux distribution. This phase stays as a research artifact.
-    New work targets the bare-metal mini-shell and Layer 3 tools."
+  goal: 'RESEARCH-ONLY: Boot Linux 6.14 natively in the RISC-V interpreter. Demoted
+    from priority 99 per SPEC.md — Geometry OS is pixel-native on bare-metal RISC-V,
+    not a Linux distribution. This phase stays as a research artifact. New work targets
+    the bare-metal mini-shell and Layer 3 tools.'
   description: 'Phase-40 ''Boot Linux'' is marked done but that was the QEMU bridge
     approach.
 
@@ -8213,336 +8213,572 @@ phases:
   scope_lines_total: 570
   test_target: 10
 - id: phase-163
-  title: "Status Bar Clock -- Local Timezone Fix"
+  title: Status Bar Clock -- Local Timezone Fix
   status: done
-  goal: "Display local time instead of UTC in the desktop status bar clock"
-  description: "The status bar clock (get_clock_string() in main.rs) hardcodes UTC offset (+0), showing UTC time instead of local time. For daily driver use, this should respect the system timezone. Use chrono crate or read TZ offset from environment."
+  goal: Display local time instead of UTC in the desktop status bar clock
+  description: The status bar clock (get_clock_string() in main.rs) hardcodes UTC
+    offset (+0), showing UTC time instead of local time. For daily driver use, this
+    should respect the system timezone. Use chrono crate or read TZ offset from environment.
   deliverables:
-  - name: "Local timezone clock"
-    description: "Replace get_clock_string() to use local timezone. Use chrono::Local or read TZ environment variable and compute offset manually. Keep the HH:MM format."
-    status: todo
+  - name: Local timezone clock
+    description: Replace get_clock_string() to use local timezone. Use chrono::Local
+      or read TZ environment variable and compute offset manually. Keep the HH:MM
+      format.
+    status: done
     tasks:
     - id: p163.d1.t1
-      title: "Replace UTC clock with local timezone clock"
+      title: Replace UTC clock with local timezone clock
       status: todo
-      description: "In main.rs get_clock_string(), replace the hardcoded +0 UTC offset with actual local timezone offset. Options: (a) add chrono dependency and use chrono::Local::now().format(), or (b) read TZ environment variable and compute offset. Test by verifying clock shows correct local time."
+      description: 'In main.rs get_clock_string(), replace the hardcoded +0 UTC offset
+        with actual local timezone offset. Options: (a) add chrono dependency and
+        use chrono::Local::now().format(), or (b) read TZ environment variable and
+        compute offset. Test by verifying clock shows correct local time.'
     scope_lines: 30
   scope_lines_total: 30
   test_target: 1
-
 - id: phase-164
-  title: "Fix Windowed Apps Halting Immediately After Launch"
+  title: Fix Windowed Apps Halting Immediately After Launch
   status: done
-  goal: "Windowed apps launched from the desktop (launch <app> --window) should stay open and render in their windows instead of halting instantly and being cleaned up"
-  description: "Dogfood QA found that all apps launched via 'launch <app> --window' halt within the first frame tick. The dashboard confirms: '[APP CLOSED: ball (PID 5)]'. The cleanup loop in main.rs (lines ~1742-1780) detects halted processes via is_halted() and destroys their windows. Root cause: programs loaded from programs/*.asm are standalone VM programs that hit HALT quickly in the windowed process context because they don't initialize WINSYS or enter a FRAME loop. The spawned processes need either: (a) a WINSYS stub that wraps the app in a FRAME loop, or (b) the programs need windowed-app entry points that set up the process state correctly. window_list always returns [] because windows are destroyed before any socket query can observe them."
+  goal: Windowed apps launched from the desktop (launch <app> --window) should stay
+    open and render in their windows instead of halting instantly and being cleaned
+    up
+  description: 'Dogfood QA found that all apps launched via ''launch <app> --window''
+    halt within the first frame tick. The dashboard confirms: ''[APP CLOSED: ball
+    (PID 5)]''. The cleanup loop in main.rs (lines ~1742-1780) detects halted processes
+    via is_halted() and destroys their windows. Root cause: programs loaded from programs/*.asm
+    are standalone VM programs that hit HALT quickly in the windowed process context
+    because they don''t initialize WINSYS or enter a FRAME loop. The spawned processes
+    need either: (a) a WINSYS stub that wraps the app in a FRAME loop, or (b) the
+    programs need windowed-app entry points that set up the process state correctly.
+    window_list always returns [] because windows are destroyed before any socket
+    query can observe them.'
   deliverables:
-  - name: "Windowed app process stays alive after launch"
-    description: "When launching an app with --window, the spawned process must not halt immediately. Either inject a WINSYS event loop wrapper that calls FRAME, or modify the app loading to set up a proper execution context. The process should run until explicitly closed via window_close or process_kill."
-    status: todo
+  - name: Windowed app process stays alive after launch
+    description: When launching an app with --window, the spawned process must not
+      halt immediately. Either inject a WINSYS event loop wrapper that calls FRAME,
+      or modify the app loading to set up a proper execution context. The process
+      should run until explicitly closed via window_close or process_kill.
+    status: done
     tasks:
     - id: p164.d1.t1
-      title: "Diagnose why spawned processes halt on first tick"
+      title: Diagnose why spawned processes halt on first tick
       status: todo
-      description: "Add debug logging to the process spawn path. Check if the loaded bytecode even reaches a FRAME opcode. The PC starts at app_base but the process may not have proper stack pointer, return address, or WINSYS context. Check SpawnedProcess::new() initialization."
+      description: Add debug logging to the process spawn path. Check if the loaded
+        bytecode even reaches a FRAME opcode. The PC starts at app_base but the process
+        may not have proper stack pointer, return address, or WINSYS context. Check
+        SpawnedProcess::new() initialization.
       scope_lines: 80
     - id: p164.d1.t2
-      title: "Add WINSYS event loop wrapper for windowed apps"
+      title: Add WINSYS event loop wrapper for windowed apps
       status: todo
-      description: "Before loading app bytecode, prepend a WINSYS init sequence: (1) read window dimensions from process RAM, (2) call FRAME to yield, (3) jump to app entry point. Alternatively, wrap the app in a loop that calls FRAME after each iteration. The wrapper lives at a lower address and the app entry point is adjusted."
+      description: 'Before loading app bytecode, prepend a WINSYS init sequence: (1)
+        read window dimensions from process RAM, (2) call FRAME to yield, (3) jump
+        to app entry point. Alternatively, wrap the app in a loop that calls FRAME
+        after each iteration. The wrapper lives at a lower address and the app entry
+        point is adjusted.'
       scope_lines: 120
     - id: p164.d1.t3
-      title: "Verify window_list returns active windows after launch"
+      title: Verify window_list returns active windows after launch
       status: todo
-      description: "After fix, launch tetris --window via socket, wait 1 second, query window_list. Expect non-empty JSON with window id, title, pid, position. Also test with snake, ball, painter. The dashboard should show active apps instead of '[APP CLOSED: ...]'"
+      description: 'After fix, launch tetris --window via socket, wait 1 second, query
+        window_list. Expect non-empty JSON with window id, title, pid, position. Also
+        test with snake, ball, painter. The dashboard should show active apps instead
+        of ''[APP CLOSED: ...]'''
       scope_lines: 40
   scope_lines_total: 240
   test_target: 3
 - id: phase-165
-  title: "Fix geo_mcp_server Zombie Instance Accumulation"
+  title: Fix geo_mcp_server Zombie Instance Accumulation
   status: done
-  goal: "Only one geo_mcp_server instance should be running at a time; stale instances must be cleaned up"
-  description: "Dogfood QA found 5 stale geo_mcp_server processes running simultaneously (PIDs: 10878 from Apr26, 431428, 457818, 660244, and one from 08:32). Each new agent session spawns a new geo_mcp_server via cargo run --bin geo_mcp_server, but previous instances are never killed. Since geo_mcp_server uses stdio (stdin/stdout for JSON-RPC), stale instances are zombies consuming PIDs and memory. The fix should either: (a) have the MCP server check for existing instances and kill them on startup, or (b) have the spawning agent/script kill old instances before launching new ones. Only the latest instance can connect to /tmp/geo_cmd.sock."
+  goal: Only one geo_mcp_server instance should be running at a time; stale instances
+    must be cleaned up
+  description: 'Dogfood QA found 5 stale geo_mcp_server processes running simultaneously
+    (PIDs: 10878 from Apr26, 431428, 457818, 660244, and one from 08:32). Each new
+    agent session spawns a new geo_mcp_server via cargo run --bin geo_mcp_server,
+    but previous instances are never killed. Since geo_mcp_server uses stdio (stdin/stdout
+    for JSON-RPC), stale instances are zombies consuming PIDs and memory. The fix
+    should either: (a) have the MCP server check for existing instances and kill them
+    on startup, or (b) have the spawning agent/script kill old instances before launching
+    new ones. Only the latest instance can connect to /tmp/geo_cmd.sock.'
   deliverables:
-  - name: "geo_mcp_server auto-cleanup on startup"
-    description: "When geo_mcp_server starts, it should check for and kill any existing geo_mcp_server processes before attempting to connect to the socket. Add a PID file at /tmp/geo_mcp_server.pid and kill the old PID on startup. Alternatively, add a lock file mechanism."
-    status: todo
+  - name: geo_mcp_server auto-cleanup on startup
+    description: When geo_mcp_server starts, it should check for and kill any existing
+      geo_mcp_server processes before attempting to connect to the socket. Add a PID
+      file at /tmp/geo_mcp_server.pid and kill the old PID on startup. Alternatively,
+      add a lock file mechanism.
+    status: done
     tasks:
     - id: p165.d1.t1
-      title: "Add stale instance cleanup to geo_mcp_server startup"
+      title: Add stale instance cleanup to geo_mcp_server startup
       status: todo
-      description: "In mcp_server.rs main(), before connecting to the Unix socket: (1) read /tmp/geo_mcp_server.pid if it exists, (2) check if that PID is still running and is a geo_mcp_server, (3) if so, kill it, (4) write own PID to the pidfile. Use nix::unistd::kill(0) to check liveness. This ensures only one instance runs at a time."
+      description: 'In mcp_server.rs main(), before connecting to the Unix socket:
+        (1) read /tmp/geo_mcp_server.pid if it exists, (2) check if that PID is still
+        running and is a geo_mcp_server, (3) if so, kill it, (4) write own PID to
+        the pidfile. Use nix::unistd::kill(0) to check liveness. This ensures only
+        one instance runs at a time.'
       scope_lines: 60
     - id: p165.d1.t2
-      title: "Add PID file cleanup on graceful exit"
+      title: Add PID file cleanup on graceful exit
       status: todo
-      description: "Register a Ctrl+C handler or use Drop to clean up /tmp/geo_mcp_server.pid when the server exits. This prevents stale PID files from interfering with future instances."
+      description: Register a Ctrl+C handler or use Drop to clean up /tmp/geo_mcp_server.pid
+        when the server exits. This prevents stale PID files from interfering with
+        future instances.
       scope_lines: 20
   scope_lines_total: 80
   test_target: 1
 - id: phase-166
-  title: "Fix Terminal Input Not Working in Desktop Mode"
+  title: Fix Terminal Input Not Working in Desktop Mode
   status: done
-  goal: "Terminal type and inject_text commands should produce visible output in the desktop terminal"
-  description: "Dogfood QA found that in desktop mode, 'type echo hello' and 'inject_text hello' are acknowledged by the socket but the scrollback never updates past 'Geometry OS v1.0.0'. The cursor moves (from 0,0 to 0,10) but no text appears in the scrollback buffer. This suggests the desktop.asm terminal handler isn't processing injected keystrokes correctly, or the injected keys go to the map movement handler instead of the terminal. The desktop has a command bar (/ to enter type mode) but inject_text doesn't activate it."
+  goal: Terminal type and inject_text commands should produce visible output in the
+    desktop terminal
+  description: Dogfood QA found that in desktop mode, 'type echo hello' and 'inject_text
+    hello' are acknowledged by the socket but the scrollback never updates past 'Geometry
+    OS v1.0.0'. The cursor moves (from 0,0 to 0,10) but no text appears in the scrollback
+    buffer. This suggests the desktop.asm terminal handler isn't processing injected
+    keystrokes correctly, or the injected keys go to the map movement handler instead
+    of the terminal. The desktop has a command bar (/ to enter type mode) but inject_text
+    doesn't activate it.
   deliverables:
-  - name: "inject_text routes to desktop terminal correctly"
-    description: "When in desktop/terminal mode, inject_text should type into the active terminal session. The desktop.asm command bar needs to be activated, or the terminal line editor needs to receive the injected characters. The scrollback should update with the typed text and any shell response."
-    status: todo
+  - name: inject_text routes to desktop terminal correctly
+    description: When in desktop/terminal mode, inject_text should type into the active
+      terminal session. The desktop.asm command bar needs to be activated, or the
+      terminal line editor needs to receive the injected characters. The scrollback
+      should update with the typed text and any shell response.
+    status: done
     tasks:
     - id: p166.d1.t1
-      title: "Investigate inject_text path in desktop mode"
+      title: Investigate inject_text path in desktop mode
       status: todo
-      description: "Trace the inject_text socket command through main.rs to the VM. Check if injected keys are being delivered to the desktop.asm input handler or to a different key buffer. The desktop.asm reads keyboard input from RAM[0xFFE] or similar -- verify inject_text writes there. Check if the desktop terminal (if any) has a separate input buffer from the map movement handler."
+      description: Trace the inject_text socket command through main.rs to the VM.
+        Check if injected keys are being delivered to the desktop.asm input handler
+        or to a different key buffer. The desktop.asm reads keyboard input from RAM[0xFFE]
+        or similar -- verify inject_text writes there. Check if the desktop terminal
+        (if any) has a separate input buffer from the map movement handler.
       scope_lines: 60
     - id: p166.d1.t2
-      title: "Add desktop terminal type mode activation via socket"
+      title: Add desktop terminal type mode activation via socket
       status: todo
-      description: "Add a socket command 'terminal_type <text>' that: (1) activates the desktop command bar (equivalent to pressing /), (2) types the text, (3) presses Enter. Alternatively, fix inject_text to auto-activate the terminal when in desktop mode. Verify with scrollback showing the typed text."
+      description: 'Add a socket command ''terminal_type <text>'' that: (1) activates
+        the desktop command bar (equivalent to pressing /), (2) types the text, (3)
+        presses Enter. Alternatively, fix inject_text to auto-activate the terminal
+        when in desktop mode. Verify with scrollback showing the typed text.'
       scope_lines: 80
   scope_lines_total: 140
   test_target: 2
-
 - id: phase-167
-  title: "Fix Building-to-Program Filename Mismatch for linux and host"
+  title: Fix Building-to-Program Filename Mismatch for linux and host
   status: done
-  goal: "All desktop buildings should launch their corresponding programs without file-not-found errors"
-  description: "Dogfood QA found that two buildings on the desktop reference non-existent program files: building 'linux' at (70,130) tries to load programs/linux.asm but the actual file is programs/linux_building.asm, and building 'host' at (140,80) tries to load programs/host.asm but the actual file is programs/host_term.asm. The launch command searches for programs/<building_name>.asm, so the building names must match the filenames. Either rename the buildings in world_desktop.asm to match the files, or create symlink/alias files. The error output is: '[no program file for linux: No such file or directory]' and '[no program file for host: No such file or directory]'."
+  goal: All desktop buildings should launch their corresponding programs without file-not-found
+    errors
+  description: 'Dogfood QA found that two buildings on the desktop reference non-existent
+    program files: building ''linux'' at (70,130) tries to load programs/linux.asm
+    but the actual file is programs/linux_building.asm, and building ''host'' at (140,80)
+    tries to load programs/host.asm but the actual file is programs/host_term.asm.
+    The launch command searches for programs/<building_name>.asm, so the building
+    names must match the filenames. Either rename the buildings in world_desktop.asm
+    to match the files, or create symlink/alias files. The error output is: ''[no
+    program file for linux: No such file or directory]'' and ''[no program file for
+    host: No such file or directory]''.'
   deliverables:
-  - name: "All 16 desktop buildings launch successfully"
+  - name: All 16 desktop buildings launch successfully
     status: done
-    description: "Ensure buildings 'linux' and 'host' resolve to their correct program files (linux_building.asm and host_term.asm). Options: (a) rename building entries in world_desktop.asm from 'linux' to 'linux_building' and 'host' to 'host_term', or (b) add launch alias mapping in main.rs so 'linux'->'linux_building' and 'host'->'host_term', or (c) create programs/linux.asm and programs/host.asm as symlinks/wrappers. Verify with 'launch linux' and 'launch host' via socket."
-    status: todo
+    description: 'Ensure buildings ''linux'' and ''host'' resolve to their correct
+      program files (linux_building.asm and host_term.asm). Options: (a) rename building
+      entries in world_desktop.asm from ''linux'' to ''linux_building'' and ''host''
+      to ''host_term'', or (b) add launch alias mapping in main.rs so ''linux''->''linux_building''
+      and ''host''->''host_term'', or (c) create programs/linux.asm and programs/host.asm
+      as symlinks/wrappers. Verify with ''launch linux'' and ''launch host'' via socket.'
     tasks:
     - id: p167.d1.t1
-      title: "Fix linux building program name mapping"
+      title: Fix linux building program name mapping
       status: todo
-      description: "In world_desktop.asm, the building at RAM slot 8 has name 'linux' but the file is programs/linux_building.asm. Either rename the building name to 'linux_building' in the desktop initialization code (around the app building setup), or add a fallback in the launch command handler in main.rs to try linux_building.asm when linux.asm is not found."
+      description: In world_desktop.asm, the building at RAM slot 8 has name 'linux'
+        but the file is programs/linux_building.asm. Either rename the building name
+        to 'linux_building' in the desktop initialization code (around the app building
+        setup), or add a fallback in the launch command handler in main.rs to try
+        linux_building.asm when linux.asm is not found.
       scope_lines: 30
     - id: p167.d1.t2
-      title: "Fix host building program name mapping"
+      title: Fix host building program name mapping
       status: todo
-      description: "In world_desktop.asm, the building at RAM slot 15 has name 'host' but the file is programs/host_term.asm. Either rename the building name to 'host_term' in the desktop initialization code, or add a fallback in the launch command handler to try host_term.asm when host.asm is not found."
+      description: In world_desktop.asm, the building at RAM slot 15 has name 'host'
+        but the file is programs/host_term.asm. Either rename the building name to
+        'host_term' in the desktop initialization code, or add a fallback in the launch
+        command handler to try host_term.asm when host.asm is not found.
       scope_lines: 30
     - id: p167.d1.t3
-      title: "Verify all 16 buildings launch correctly via socket"
+      title: Verify all 16 buildings launch correctly via socket
       status: todo
-      description: "After fix, test every building name from the buildings command output (snake, ball, plasma, painter, colors, fire, init, shell, linux, tetris, smart_term, oracle, ai_terminal, file_browser, hex_viewer, host) via 'launch <name>'. All should return '[launching: ...]' not '[app not found]' or '[no program file]'."
+      description: 'After fix, test every building name from the buildings command
+        output (snake, ball, plasma, painter, colors, fire, init, shell, linux, tetris,
+        smart_term, oracle, ai_terminal, file_browser, hex_viewer, host) via ''launch
+        <name>''. All should return ''[launching: ...]'' not ''[app not found]'' or
+        ''[no program file]''.'
       scope_lines: 20
   scope_lines_total: 80
   test_target: 1
-
 - id: phase-168
-  title: "Fix Stale cargo test Process Consuming CPU and Memory"
+  title: Fix Stale cargo test Process Consuming CPU and Memory
   status: done
-  goal: "The preflight QA script should not leave stale test runner processes that consume system resources"
-  description: "Dogfood QA found a stale cargo test process (target/debug/deps/geometry_os-ef6775d9a5d4fffc --test-threads=2) consuming 98.7% CPU and 29.3% memory (19GB) long after the preflight script completed. The preflight script (geo_dogfood_qa.py) runs 'cargo test' as part of its checks but the test runner appears to hang or loop indefinitely without being killed. This starves the actual GeOS desktop process and can cause socket disappearance and general system instability. The test runner was started at 13:35 and was still running at 13:39 using 4+ minutes of CPU time."
+  goal: The preflight QA script should not leave stale test runner processes that
+    consume system resources
+  description: Dogfood QA found a stale cargo test process (target/debug/deps/geometry_os-ef6775d9a5d4fffc
+    --test-threads=2) consuming 98.7% CPU and 29.3% memory (19GB) long after the preflight
+    script completed. The preflight script (geo_dogfood_qa.py) runs 'cargo test' as
+    part of its checks but the test runner appears to hang or loop indefinitely without
+    being killed. This starves the actual GeOS desktop process and can cause socket
+    disappearance and general system instability. The test runner was started at 13:35
+    and was still running at 13:39 using 4+ minutes of CPU time.
   deliverables:
-  - name: "Preflight script kills test runner after timeout"
-    description: "The geo_dogfood_qa.py script should add a timeout to the cargo test invocation and kill any lingering test processes before exiting. If tests complete with 0 passed/0 failed (indicating a possible hang), the script should explicitly kill the test runner. Also add cleanup at script start to kill any pre-existing test runners."
-    status: todo
+  - name: Preflight script kills test runner after timeout
+    description: The geo_dogfood_qa.py script should add a timeout to the cargo test
+      invocation and kill any lingering test processes before exiting. If tests complete
+      with 0 passed/0 failed (indicating a possible hang), the script should explicitly
+      kill the test runner. Also add cleanup at script start to kill any pre-existing
+      test runners.
+    status: done
     tasks:
     - id: p168.d1.t1
-      title: "Add timeout and cleanup to cargo test in preflight script"
+      title: Add timeout and cleanup to cargo test in preflight script
       status: todo
-      description: "In geo_dogfood_qa.py, wrap the cargo test subprocess call with a timeout (e.g., 120 seconds). Use subprocess.Popen with a kill-on-timeout pattern. Also add a cleanup function that runs at script exit (atexit or finally block) to kill any geometry_os test processes. At script start, kill any pre-existing stale test runners."
+      description: In geo_dogfood_qa.py, wrap the cargo test subprocess call with
+        a timeout (e.g., 120 seconds). Use subprocess.Popen with a kill-on-timeout
+        pattern. Also add a cleanup function that runs at script exit (atexit or finally
+        block) to kill any geometry_os test processes. At script start, kill any pre-existing
+        stale test runners.
       scope_lines: 40
     - id: p168.d1.t2
-      title: "Investigate why test runner reports 0 passed 0 failed"
+      title: Investigate why test runner reports 0 passed 0 failed
       status: todo
-      description: "The preflight output shows 'Tests: 0 passed, 0 failed' which means either no tests were collected or the test runner hung before running any tests. Check if there's a test that blocks on I/O (e.g., trying to open a display window or connect to a socket). The test runner should not require a display. Check for tests that depend on minifb/window creation."
+      description: 'The preflight output shows ''Tests: 0 passed, 0 failed'' which
+        means either no tests were collected or the test runner hung before running
+        any tests. Check if there''s a test that blocks on I/O (e.g., trying to open
+        a display window or connect to a socket). The test runner should not require
+        a display. Check for tests that depend on minifb/window creation.'
       scope_lines: 60
   scope_lines_total: 100
   test_target: 1
-
 - id: phase-169
-  title: "Fix Windowed Apps Crashing Due to Wrong Assembly Base Address"
+  title: Fix Windowed Apps Crashing Due to Wrong Assembly Base Address
   status: done
-  goal: "Windowed apps (launch <app> --window) should execute correctly with proper jump targets instead of crashing on the first instruction that uses a label address"
-  description: "Dogfood QA confirmed that ALL windowed apps crash within one frame tick. The root cause (not identified in phase-164) is an assembly base address mismatch. In main.rs around line 2627, the windowed launch code calls 'crate::assembler::assemble(&preprocessed, 0)' with base_addr=0, but then loads the bytecode at APP_CODE_BASE (0x4000). The assembler resolves JMP/CALL label targets as base_addr + offset (see assembler/mod.rs line 319: 'bytecode[*pos] = (base_addr + target) as u32'). So all jump targets point to addresses in the 0x0000-0x0FFF range (where the main VM code lives) instead of the 0x4000+ range where the app was actually loaded. The spawned process jumps to wrong code, executes garbage, and hits HALT or causes a fatal error within one tick. The fix is a single-line change: pass app_base as the second argument to assemble() instead of 0. This supersedes the incorrect diagnosis in phase-164 which suggested the programs 'don't initialize WINSYS' -- the real issue is purely an address relocation bug."
+  goal: Windowed apps (launch <app> --window) should execute correctly with proper
+    jump targets instead of crashing on the first instruction that uses a label address
+  description: 'Dogfood QA confirmed that ALL windowed apps crash within one frame
+    tick. The root cause (not identified in phase-164) is an assembly base address
+    mismatch. In main.rs around line 2627, the windowed launch code calls ''crate::assembler::assemble(&preprocessed,
+    0)'' with base_addr=0, but then loads the bytecode at APP_CODE_BASE (0x4000).
+    The assembler resolves JMP/CALL label targets as base_addr + offset (see assembler/mod.rs
+    line 319: ''bytecode[*pos] = (base_addr + target) as u32''). So all jump targets
+    point to addresses in the 0x0000-0x0FFF range (where the main VM code lives) instead
+    of the 0x4000+ range where the app was actually loaded. The spawned process jumps
+    to wrong code, executes garbage, and hits HALT or causes a fatal error within
+    one tick. The fix is a single-line change: pass app_base as the second argument
+    to assemble() instead of 0. This supersedes the incorrect diagnosis in phase-164
+    which suggested the programs ''don''t initialize WINSYS'' -- the real issue is
+    purely an address relocation bug.'
   deliverables:
-  - name: "Fix assembly base address in windowed launch path"
-    description: "In main.rs, the windowed launch code (around line 2627) must compute app_base BEFORE calling assemble(), then pass app_base as the base_addr argument instead of 0. The code currently computes app_base after assembly, but it should be computed first. The slot finding and app_base computation can be moved up before the assemble() call, or a two-pass approach can be used where the first free slot is determined, then assemble is called with the correct base address."
-    status: todo
+  - name: Fix assembly base address in windowed launch path
+    description: In main.rs, the windowed launch code (around line 2627) must compute
+      app_base BEFORE calling assemble(), then pass app_base as the base_addr argument
+      instead of 0. The code currently computes app_base after assembly, but it should
+      be computed first. The slot finding and app_base computation can be moved up
+      before the assemble() call, or a two-pass approach can be used where the first
+      free slot is determined, then assemble is called with the correct base address.
+    status: done
     tasks:
     - id: p169.d1.t1
-      title: "Move app_base computation before assemble() call in windowed launch"
+      title: Move app_base computation before assemble() call in windowed launch
       status: todo
-      description: "In main.rs around line 2627, the code calls 'crate::assembler::assemble(&preprocessed, 0)'. Change it to first find the free slot and compute app_base = APP_CODE_BASE + slot_idx * APP_CODE_SIZE, then call 'crate::assembler::assemble(&preprocessed, app_base)'. This may require restructuring the code to move the slot-finding logic (currently at lines 2631-2636) before the assemble call, and handling the 'no free slot' case appropriately."
+      description: In main.rs around line 2627, the code calls 'crate::assembler::assemble(&preprocessed,
+        0)'. Change it to first find the free slot and compute app_base = APP_CODE_BASE
+        + slot_idx * APP_CODE_SIZE, then call 'crate::assembler::assemble(&preprocessed,
+        app_base)'. This may require restructuring the code to move the slot-finding
+        logic (currently at lines 2631-2636) before the assemble call, and handling
+        the 'no free slot' case appropriately.
       scope_lines: 30
     - id: p169.d1.t2
-      title: "Verify window_list returns active windows after fix"
+      title: Verify window_list returns active windows after fix
       status: todo
-      description: "After fix, test: (1) launch plasma --window, (2) immediately query window_list, (3) expect non-empty JSON array with window id, title='plasma', pid, position. Also test with snake, fire, tetris, smart_term, painter. The dashboard should show the app running, not '[APP CLOSED: ...]'. Verify the window renders correctly by taking a screenshot after launch."
+      description: 'After fix, test: (1) launch plasma --window, (2) immediately query
+        window_list, (3) expect non-empty JSON array with window id, title=''plasma'',
+        pid, position. Also test with snake, fire, tetris, smart_term, painter. The
+        dashboard should show the app running, not ''[APP CLOSED: ...]''. Verify the
+        window renders correctly by taking a screenshot after launch.'
       scope_lines: 40
     - id: p169.d1.t3
-      title: "Check if non-windowed launch also has this base address issue"
+      title: Check if non-windowed launch also has this base address issue
       status: todo
-      description: "The regular (non-windowed) launch path loads programs at address 0 (the standard VM memory space), so base_addr=0 is correct there. But verify this is the case by checking the non-windowed launch code path in main.rs. If any non-windowed launch also loads at a non-zero base, it needs the same fix."
+      description: The regular (non-windowed) launch path loads programs at address
+        0 (the standard VM memory space), so base_addr=0 is correct there. But verify
+        this is the case by checking the non-windowed launch code path in main.rs.
+        If any non-windowed launch also loads at a non-zero base, it needs the same
+        fix.
       scope_lines: 30
   scope_lines_total: 100
   test_target: 3
-
 - id: phase-170
-  title: "Fix Windowed Apps Crashing After Phase-169 Base Address Fix"
+  title: Fix Windowed Apps Crashing After Phase-169 Base Address Fix
   status: done
-  goal: "All desktop apps should survive as windowed processes, not just 4 out of 10"
-  description: "After phase-169 fixed the assembly base address bug, some windowed apps now work (plasma, painter, fire, file_browser survive in window_list) but 6 apps still crash immediately: snake, ball, tetris, smart_term, oracle, hex_viewer all show empty window_list after launch. The crashing apps all launch fine non-windowed (running=true). The surviving apps tend to be simpler (plasma is just math/pixel ops, fire is a simple effect, painter is drawing, file_browser is UI). The crashing apps may use more complex features: snake uses keyboard input (IKEY) and STORE to 0x2000+ addresses, ball uses IKEY for WASD controls, tetris uses IKEY and memory-mapped I/O, smart_term uses terminal I/O syscalls, oracle uses AI interaction, hex_viewer uses file I/O. The scheduler runs one step() per process per scheduling round and marks the process as Zombie when step() returns false. Need to determine exactly which instruction in each crashing app causes the halt — likely a syscall or I/O opcode that returns false in the process context."
+  goal: All desktop apps should survive as windowed processes, not just 4 out of 10
+  description: 'After phase-169 fixed the assembly base address bug, some windowed
+    apps now work (plasma, painter, fire, file_browser survive in window_list) but
+    6 apps still crash immediately: snake, ball, tetris, smart_term, oracle, hex_viewer
+    all show empty window_list after launch. The crashing apps all launch fine non-windowed
+    (running=true). The surviving apps tend to be simpler (plasma is just math/pixel
+    ops, fire is a simple effect, painter is drawing, file_browser is UI). The crashing
+    apps may use more complex features: snake uses keyboard input (IKEY) and STORE
+    to 0x2000+ addresses, ball uses IKEY for WASD controls, tetris uses IKEY and memory-mapped
+    I/O, smart_term uses terminal I/O syscalls, oracle uses AI interaction, hex_viewer
+    uses file I/O. The scheduler runs one step() per process per scheduling round
+    and marks the process as Zombie when step() returns false. Need to determine exactly
+    which instruction in each crashing app causes the halt — likely a syscall or I/O
+    opcode that returns false in the process context.'
   deliverables:
-  - name: "All 10 tested windowed apps survive in window_list"
-    description: "snake, ball, plasma, painter, fire, tetris, smart_term, oracle, file_browser, hex_viewer should all appear in window_list after 'launch <app> --window' with a 1-second wait. Currently only plasma, painter, fire, file_browser survive."
-    status: todo
+  - name: All 10 tested windowed apps survive in window_list
+    description: snake, ball, plasma, painter, fire, tetris, smart_term, oracle, file_browser,
+      hex_viewer should all appear in window_list after 'launch <app> --window' with
+      a 1-second wait. Currently only plasma, painter, fire, file_browser survive.
+    status: done
     tasks:
     - id: p170.d1.t1
-      title: "Add debug logging to scheduler step for windowed app crashes"
+      title: Add debug logging to scheduler step for windowed app crashes
       status: todo
-      description: "In scheduler.rs step_all_processes(), when step() returns false and the process becomes Zombie, log the process name, PC, opcode at PC, and registers. This will reveal exactly which instruction causes each app to halt. Add this as a conditional log (behind a debug flag) so it doesn't spam in production."
+      description: In scheduler.rs step_all_processes(), when step() returns false
+        and the process becomes Zombie, log the process name, PC, opcode at PC, and
+        registers. This will reveal exactly which instruction causes each app to halt.
+        Add this as a conditional log (behind a debug flag) so it doesn't spam in
+        production.
       scope_lines: 30
     - id: p170.d1.t2
-      title: "Fix snake windowed crash — likely IKEY or STORE to high addresses"
+      title: Fix snake windowed crash — likely IKEY or STORE to high addresses
       status: todo
-      description: "Snake uses STORE to addresses 0x2000-0x2206 (body buffer, game state) and IKEY for WASD input. When running as a windowed process with page_dir=None (identity mapping), these should work. Check if IKEY returns a special value or if there's a RAM bounds check that fails. The process has no page_dir so translate_va uses identity mapping — all 64K RAM should be accessible. The crash likely happens when snake calls IKEY and the opcode handler returns false (causing step() to return false, causing the scheduler to mark the process as Zombie)."
+      description: Snake uses STORE to addresses 0x2000-0x2206 (body buffer, game
+        state) and IKEY for WASD input. When running as a windowed process with page_dir=None
+        (identity mapping), these should work. Check if IKEY returns a special value
+        or if there's a RAM bounds check that fails. The process has no page_dir so
+        translate_va uses identity mapping — all 64K RAM should be accessible. The
+        crash likely happens when snake calls IKEY and the opcode handler returns
+        false (causing step() to return false, causing the scheduler to mark the process
+        as Zombie).
       scope_lines: 60
     - id: p170.d1.t3
-      title: "Fix ball windowed crash — IKEY related"
+      title: Fix ball windowed crash — IKEY related
       status: todo
-      description: "Ball uses IKEY for WASD controls and runs fine non-windowed. As a windowed process, the IKEY opcode handler at ops_graphics.rs:197-215 reads from key_buffer or key_port. Check if IKEY returns false (halting the process) when the key buffer is empty in process context. The opcode comment says 'Returns false if halted (user-mode IKEY)' which suggests IKEY can cause a halt in user mode."
+      description: Ball uses IKEY for WASD controls and runs fine non-windowed. As
+        a windowed process, the IKEY opcode handler at ops_graphics.rs:197-215 reads
+        from key_buffer or key_port. Check if IKEY returns false (halting the process)
+        when the key buffer is empty in process context. The opcode comment says 'Returns
+        false if halted (user-mode IKEY)' which suggests IKEY can cause a halt in
+        user mode.
       scope_lines: 40
     - id: p170.d1.t4
-      title: "Fix tetris, smart_term, oracle, hex_viewer windowed crashes"
+      title: Fix tetris, smart_term, oracle, hex_viewer windowed crashes
       status: todo
-      description: "After fixing snake and ball, investigate the remaining crashing apps. These may use different opcodes (EXEC, SLEEP, WAITPID for init-like apps, or file I/O for hex_viewer). Each app's first few instructions should be traced to find the crash point."
+      description: After fixing snake and ball, investigate the remaining crashing
+        apps. These may use different opcodes (EXEC, SLEEP, WAITPID for init-like
+        apps, or file I/O for hex_viewer). Each app's first few instructions should
+        be traced to find the crash point.
       scope_lines: 80
   scope_lines_total: 210
   test_target: 4
-
 - id: phase-171
-  title: "Fix Window Title RAM Not Zeroed on First Windowed Launch"
+  title: Fix Window Title RAM Not Zeroed on First Windowed Launch
   status: done
-  goal: "Window titles should always show the clean app name, not stale bytes from previous sessions"
-  description: "Dogfood QA found that the first windowed launch of 'plasma' shows title 'plasmaX<' instead of 'plasma'. The second launch shows the correct 'plasma'. The title is stored at RAM address 0x7900 + slot*32, and the windowed launch code writes the app name bytes but does NOT null-terminate or zero-fill the 32-byte title region first. If the previous session left stale bytes at 0x7900+5 (where 'X' and '<' are), those get concatenated with the new title. The fix is to zero the 32-byte title region before writing the app name, or write a null terminator after the name."
+  goal: Window titles should always show the clean app name, not stale bytes from
+    previous sessions
+  description: Dogfood QA found that the first windowed launch of 'plasma' shows title
+    'plasmaX<' instead of 'plasma'. The second launch shows the correct 'plasma'.
+    The title is stored at RAM address 0x7900 + slot*32, and the windowed launch code
+    writes the app name bytes but does NOT null-terminate or zero-fill the 32-byte
+    title region first. If the previous session left stale bytes at 0x7900+5 (where
+    'X' and '<' are), those get concatenated with the new title. The fix is to zero
+    the 32-byte title region before writing the app name, or write a null terminator
+    after the name.
   deliverables:
-  - name: "Window titles always show clean app name"
-    description: "After fresh start, first windowed launch of any app should show the correct title in window_list. The 32-byte title region at 0x7900+slot*32 must be zeroed before writing the app name bytes."
-    status: todo
+  - name: Window titles always show clean app name
+    description: After fresh start, first windowed launch of any app should show the
+      correct title in window_list. The 32-byte title region at 0x7900+slot*32 must
+      be zeroed before writing the app name bytes.
+    status: done
     tasks:
     - id: p171.d1.t1
-      title: "Zero title RAM region before writing app name in windowed launch"
+      title: Zero title RAM region before writing app name in windowed launch
       status: todo
-      description: "In main.rs around line 2708 where title_base is computed and app_name bytes are written, add a loop to zero all 32 words at title_base..title_base+32 before writing the app name bytes. This ensures no stale bytes from previous sessions or other apps remain. Alternatively, add a null terminator write after the name bytes: vm.ram[title_base + app_name.len()] = 0."
+      description: 'In main.rs around line 2708 where title_base is computed and app_name
+        bytes are written, add a loop to zero all 32 words at title_base..title_base+32
+        before writing the app name bytes. This ensures no stale bytes from previous
+        sessions or other apps remain. Alternatively, add a null terminator write
+        after the name bytes: vm.ram[title_base + app_name.len()] = 0.'
       scope_lines: 20
     - id: p171.d1.t2
-      title: "Verify first-launch titles are clean for all apps"
+      title: Verify first-launch titles are clean for all apps
       status: todo
-      description: "After fix, test: (1) start fresh GeOS, (2) launch plasma --window, (3) check window_list shows title 'plasma' not 'plasmaX<' or any garbled text. Repeat for snake, ball, fire, painter, file_browser. Then close all windows and re-launch to ensure the fix doesn't break subsequent launches."
+      description: 'After fix, test: (1) start fresh GeOS, (2) launch plasma --window,
+        (3) check window_list shows title ''plasma'' not ''plasmaX<'' or any garbled
+        text. Repeat for snake, ball, fire, painter, file_browser. Then close all
+        windows and re-launch to ensure the fix doesn''t break subsequent launches.'
       scope_lines: 20
   scope_lines_total: 40
   test_target: 2
-
 - id: phase-172
-  title: "Fix riscv_tests Compilation: StepResult::Shutdown Not Covered"
+  title: 'Fix riscv_tests Compilation: StepResult::Shutdown Not Covered'
   status: done
-  goal: "riscv_tests should compile and all RISC-V tests should pass"
-  description: "Dogfood QA found that the test suite fails to compile due to a non-exhaustive pattern match. Commit acc2aa5 added a Shutdown variant to StepResult (enum in src/riscv/cpu/mod.rs:33) but the run_vm() helper in tests/riscv_tests/privilege.rs:733 doesn't handle it. This prevents ALL riscv_tests from running. The fix is trivial: add StepResult::Shutdown to the match arm in run_vm(). The program_tests (490 passed) and lib tests compile fine; only riscv_tests are broken."
+  goal: riscv_tests should compile and all RISC-V tests should pass
+  description: 'Dogfood QA found that the test suite fails to compile due to a non-exhaustive
+    pattern match. Commit acc2aa5 added a Shutdown variant to StepResult (enum in
+    src/riscv/cpu/mod.rs:33) but the run_vm() helper in tests/riscv_tests/privilege.rs:733
+    doesn''t handle it. This prevents ALL riscv_tests from running. The fix is trivial:
+    add StepResult::Shutdown to the match arm in run_vm(). The program_tests (490
+    passed) and lib tests compile fine; only riscv_tests are broken.'
   deliverables:
-  - name: "Fix non-exhaustive match in privilege.rs run_vm()"
-    description: "Add StepResult::Shutdown => break to the match in tests/riscv_tests/privilege.rs:733 run_vm() function, alongside the existing Ok/LoadFault/StoreFault arm. Shutdown should break the loop just like Ecall/Ebreak/FetchFault."
+  - name: Fix non-exhaustive match in privilege.rs run_vm()
+    description: Add StepResult::Shutdown => break to the match in tests/riscv_tests/privilege.rs:733
+      run_vm() function, alongside the existing Ok/LoadFault/StoreFault arm. Shutdown
+      should break the loop just like Ecall/Ebreak/FetchFault.
     status: done
     tasks:
     - id: p172.d1.t1
-      title: "Add StepResult::Shutdown arm to run_vm() match"
+      title: Add StepResult::Shutdown arm to run_vm() match
       status: done
-      description: "In tests/riscv_tests/privilege.rs line 733, changed the match to: StepResult::Ecall | StepResult::Ebreak | StepResult::FetchFault | StepResult::Shutdown => break, StepResult::Ok | StepResult::LoadFault | StepResult::StoreFault => {}"
+      description: 'In tests/riscv_tests/privilege.rs line 733, changed the match
+        to: StepResult::Ecall | StepResult::Ebreak | StepResult::FetchFault | StepResult::Shutdown
+        => break, StepResult::Ok | StepResult::LoadFault | StepResult::StoreFault
+        => {}'
       scope_lines: 10
     - id: p172.d1.t2
-      title: "Fix stale assertion in test_sbi_shutdown_from_smode"
+      title: Fix stale assertion in test_sbi_shutdown_from_smode
       status: done
-      description: "Test expected StepResult::Ebreak but SBI handler now correctly returns StepResult::Shutdown. Updated assertion. All 147 riscv_tests pass."
+      description: Test expected StepResult::Ebreak but SBI handler now correctly
+        returns StepResult::Shutdown. Updated assertion. All 147 riscv_tests pass.
       scope_lines: 10
   scope_lines_total: 20
   test_target: 2
-
 - id: phase-173
-  title: "Fix 3 Failing Lib Tests: SBI, Pause/Resume, Surface Direct Read"
+  title: 'Fix 3 Failing Lib Tests: SBI, Pause/Resume, Surface Direct Read'
   status: done
-  goal: "All 1581 lib tests should pass (currently 1578 pass, 3 fail)"
-  description: "Dogfood QA found 3 failing lib tests (1578 passed, 3 failed). All are untracked regressions. (1) test_sbi_v02_console_putchar (sbi.rs:450): assertion left=0xFFFFFFFF right=0 -- test passes SBI_CONSOLE_GETCHAR (2) as extension ID but should pass SBI_CONSOLE_PUTCHAR (1) since the test is for putchar. The GETCHAR path returns -1 (no char in UART). (2) test_pause_resume (live.rs:452): SendError when sending on a channel to the live VM thread -- likely a race condition where the thread hasn't started or already exited. (3) test_surface_direct_read (tests.rs:1177): expects VFS count=4 but gets count=6 -- the VFS pixel surface has accumulated extra entries from cross-session persistence (Phase H), stale test files in .geometry_os/fs/, or test contamination between runs."
+  goal: All 1581 lib tests should pass (currently 1578 pass, 3 fail)
+  description: 'Dogfood QA found 3 failing lib tests (1578 passed, 3 failed). All
+    are untracked regressions. (1) test_sbi_v02_console_putchar (sbi.rs:450): assertion
+    left=0xFFFFFFFF right=0 -- test passes SBI_CONSOLE_GETCHAR (2) as extension ID
+    but should pass SBI_CONSOLE_PUTCHAR (1) since the test is for putchar. The GETCHAR
+    path returns -1 (no char in UART). (2) test_pause_resume (live.rs:452): SendError
+    when sending on a channel to the live VM thread -- likely a race condition where
+    the thread hasn''t started or already exited. (3) test_surface_direct_read (tests.rs:1177):
+    expects VFS count=4 but gets count=6 -- the VFS pixel surface has accumulated
+    extra entries from cross-session persistence (Phase H), stale test files in .geometry_os/fs/,
+    or test contamination between runs.'
   deliverables:
-  - name: "Fix test_sbi_v02_console_putchar wrong extension ID"
-    description: "In src/riscv/sbi.rs test_sbi_v02_console_putchar() at line 438, change SBI_CONSOLE_GETCHAR to SBI_CONSOLE_PUTCHAR. The test is for putchar but accidentally uses the getchar extension ID (both are numeric 2 vs 1)."
+  - name: Fix test_sbi_v02_console_putchar wrong extension ID
+    description: In src/riscv/sbi.rs test_sbi_v02_console_putchar() at line 438, change
+      SBI_CONSOLE_GETCHAR to SBI_CONSOLE_PUTCHAR. The test is for putchar but accidentally
+      uses the getchar extension ID (both are numeric 2 vs 1).
     status: done
     tasks:
     - id: p173.d1.t1
-      title: "Change SBI_CONSOLE_GETCHAR to SBI_CONSOLE_PUTCHAR in test"
+      title: Change SBI_CONSOLE_GETCHAR to SBI_CONSOLE_PUTCHAR in test
       status: todo
-      description: "In sbi.rs line 438, replace SBI_CONSOLE_GETCHAR with SBI_CONSOLE_PUTCHAR so the test actually exercises the putchar path."
+      description: In sbi.rs line 438, replace SBI_CONSOLE_GETCHAR with SBI_CONSOLE_PUTCHAR
+        so the test actually exercises the putchar path.
       scope_lines: 5
-  - name: "Fix test_pause_resume SendError race condition"
-    description: "In src/riscv/live.rs test_pause_resume() at line 452, the mpsc::Sender::send() fails with SendError because the receiver (live VM thread) has been dropped. Either the thread panicked, or there's a race between thread start and the first send. Add retry logic or ensure the thread is confirmed running before sending."
+  - name: Fix test_pause_resume SendError race condition
+    description: In src/riscv/live.rs test_pause_resume() at line 452, the mpsc::Sender::send()
+      fails with SendError because the receiver (live VM thread) has been dropped.
+      Either the thread panicked, or there's a race between thread start and the first
+      send. Add retry logic or ensure the thread is confirmed running before sending.
     status: done
     tasks:
     - id: p173.d2.t1
-      title: "Investigate and fix SendError in test_pause_resume"
+      title: Investigate and fix SendError in test_pause_resume
       status: todo
-      description: "Check if the live VM thread is starting correctly. The SendError at line 452 means the receiver was dropped. Either add a small sleep after thread start, use a sync channel to confirm thread readiness, or handle the SendError gracefully. Also check if the test relies on display availability that's missing in headless environments."
+      description: Check if the live VM thread is starting correctly. The SendError
+        at line 452 means the receiver was dropped. Either add a small sleep after
+        thread start, use a sync channel to confirm thread readiness, or handle the
+        SendError gracefully. Also check if the test relies on display availability
+        that's missing in headless environments.
       scope_lines: 40
-  - name: "Fix test_surface_direct_read VFS count mismatch (expected 4, got 6)"
-    description: "In src/riscv/tests.rs test_surface_direct_read() at line 1177, the assertion expects exactly 4 VFS entries but finds 6. This is likely because Phase H cross-session persistence added files to the VFS surface that the test doesn't account for, or stale test files from previous runs. Either clean up the VFS before the test, or make the assertion more flexible (check >= 4 or check specific entries exist)."
+  - name: Fix test_surface_direct_read VFS count mismatch (expected 4, got 6)
+    description: In src/riscv/tests.rs test_surface_direct_read() at line 1177, the
+      assertion expects exactly 4 VFS entries but finds 6. This is likely because
+      Phase H cross-session persistence added files to the VFS surface that the test
+      doesn't account for, or stale test files from previous runs. Either clean up
+      the VFS before the test, or make the assertion more flexible (check >= 4 or
+      check specific entries exist).
     status: done
     tasks:
     - id: p173.d3.t1
-      title: "Fix VFS count assertion in test_surface_direct_read"
+      title: Fix VFS count assertion in test_surface_direct_read
       status: todo
-      description: "Either (a) reset/clear the VFS pixel surface before the test to ensure a clean state, (b) update the assertion to match the current entry count (6), or (c) change assertion to check for the presence of specific expected entries rather than exact count. The test should be resilient to cross-session persistence artifacts."
+      description: Either (a) reset/clear the VFS pixel surface before the test to
+        ensure a clean state, (b) update the assertion to match the current entry
+        count (6), or (c) change assertion to check for the presence of specific expected
+        entries rather than exact count. The test should be resilient to cross-session
+        persistence artifacts.
       scope_lines: 20
   scope_lines_total: 65
   test_target: 3
-
 - id: phase-174
-  title: "Fix geo_dogfood_qa.py Timeout: Script Exceeds 120s Cron Limit"
+  title: 'Fix geo_dogfood_qa.py Timeout: Script Exceeds 120s Cron Limit'
   status: done
-  goal: "The preflight script must complete within 120 seconds to avoid cron kill"
-  description: "The geo_dogfood_qa.py script timed out again (Apr 27 19:02) because cargo test --release takes 5+ minutes. The script has an internal 300s timeout for cargo test but the cron job kills the entire script at 120s. This means (a) the script never writes STATUS output, (b) a stale cargo test process is left running consuming 100% CPU and 32GB RAM, and (c) the cron agent has no data to work with. The fix: run 'cargo test --lib -- --test-threads=8' instead of 'cargo test --release -- --test-threads=8'. Lib tests are ~800 tests and complete in ~30s vs the full 3656 test suite. Also add atexit cleanup to kill test processes."
+  goal: The preflight script must complete within 120 seconds to avoid cron kill
+  description: 'The geo_dogfood_qa.py script timed out again (Apr 27 19:02) because
+    cargo test --release takes 5+ minutes. The script has an internal 300s timeout
+    for cargo test but the cron job kills the entire script at 120s. This means (a)
+    the script never writes STATUS output, (b) a stale cargo test process is left
+    running consuming 100% CPU and 32GB RAM, and (c) the cron agent has no data to
+    work with. The fix: run ''cargo test --lib -- --test-threads=8'' instead of ''cargo
+    test --release -- --test-threads=8''. Lib tests are ~800 tests and complete in
+    ~30s vs the full 3656 test suite. Also add atexit cleanup to kill test processes.'
   deliverables:
-  - name: "Preflight script completes in under 60 seconds"
-    description: "Change check_build_status() in geo_dogfood_qa.py to run 'cargo test --lib -- --test-threads=8' instead of 'cargo test --release -- --test-threads=8'. Reduce internal timeout from 300s to 90s. Add atexit handler that kills any geometry_os test runner processes. This ensures the script finishes well within the 120s cron limit."
+  - name: Preflight script completes in under 60 seconds
+    description: Change check_build_status() in geo_dogfood_qa.py to run 'cargo test
+      --lib -- --test-threads=8' instead of 'cargo test --release -- --test-threads=8'.
+      Reduce internal timeout from 300s to 90s. Add atexit handler that kills any
+      geometry_os test runner processes. This ensures the script finishes well within
+      the 120s cron limit.
     status: done
     tasks:
     - id: p174.d1.t1
-      title: "Change cargo test --release to cargo test --lib in preflight"
+      title: Change cargo test --release to cargo test --lib in preflight
       status: done
-      description: "In geo_dogfood_qa.py check_build_status(), change ['cargo', 'test', '--release', '--', '--test-threads=8'] to ['cargo', 'test', '--lib', '--', '--test-threads=8']. Also reduce timeout from 300 to 90 seconds."
+      description: In geo_dogfood_qa.py check_build_status(), change ['cargo', 'test',
+        '--release', '--', '--test-threads=8'] to ['cargo', 'test', '--lib', '--',
+        '--test-threads=8']. Also reduce timeout from 300 to 90 seconds.
       scope_lines: 5
     - id: p174.d1.t2
-      title: "Add atexit cleanup for stale test runners"
+      title: Add atexit cleanup for stale test runners
       status: done
-      description: "Add atexit handler at the top of main() that kills any target/debug/deps/geometry_os-* test runner processes. Also kill stale runners at script start."
+      description: Add atexit handler at the top of main() that kills any target/debug/deps/geometry_os-*
+        test runner processes. Also kill stale runners at script start.
       scope_lines: 10
   scope_lines_total: 15
   test_target: 1
-
 - id: phase-176
   title: Terminal-First Boot and Self-Hosting Evolution Pipeline
   status: done
-  goal: The OS boots into a pixel terminal by default and can modify and reassemble itself from within
-  description: 'Swapped the default boot from world_desktop.asm to terminal.asm. Added HOTRELOAD
-    protocol at RAM ports 0xFF5 (verb) and 0xFF6 (path pointer) so VM programs can signal the
-    host to open the canvas editor or reassemble programs from disk. Added 5 new terminal commands:
-    run <file>, quit, edit <file>, build <file>, reload. Fixed a pre-existing dispatch chain bug
-    where try_cls jumped to try_unknown, making cat/sys/colors/whoami/uname/uptime unreachable.
-    This enables the "Pixels Driving Pixels" workflow where the OS evolves itself from within.'
+  goal: The OS boots into a pixel terminal by default and can modify and reassemble
+    itself from within
+  description: 'Swapped the default boot from world_desktop.asm to terminal.asm. Added
+    HOTRELOAD protocol at RAM ports 0xFF5 (verb) and 0xFF6 (path pointer) so VM programs
+    can signal the host to open the canvas editor or reassemble programs from disk.
+    Added 5 new terminal commands: run <file>, quit, edit <file>, build <file>, reload.
+    Fixed a pre-existing dispatch chain bug where try_cls jumped to try_unknown, making
+    cat/sys/colors/whoami/uname/uptime unreachable. This enables the "Pixels Driving
+    Pixels" workflow where the OS evolves itself from within.'
   deliverables:
   - name: Default boot changed to terminal.asm
     description: src/main.rs line 617 now loads programs/terminal.asm instead of world_desktop.asm
     status: done
   - name: HOTRELOAD protocol in host
-    description: 76-line handler in main.rs checks RAM[0xFF5] each frame. Verb 1=edit (loads file
-      into canvas), Verb 2=reload (reassembles terminal.asm from disk and restarts VM).
+    description: 76-line handler in main.rs checks RAM[0xFF5] each frame. Verb 1=edit
+      (loads file into canvas), Verb 2=reload (reassembles terminal.asm from disk
+      and restarts VM).
     status: done
   - name: run and quit commands
     description: EXEC+WAITPID for running external programs, HALT for clean exit
     status: done
   - name: edit, build, reload commands
-    description: "Self-hosting loop: edit opens canvas, build assembles from VFS, reload restarts terminal"
+    description: 'Self-hosting loop: edit opens canvas, build assembles from VFS,
+      reload restarts terminal'
     status: done
   - name: Dispatch chain bug fix
     description: try_cls now falls through to try_cat instead of jumping to try_unknown
@@ -8550,631 +8786,908 @@ phases:
   scope_lines: 610
   scope_lines_total: 84446
   test_target: 18
-
 - id: phase-177
-  title: "Fix geo_dogfood_qa.py Script (Actually This Time)"
+  title: Fix geo_dogfood_qa.py Script (Actually This Time)
   status: done
-  goal: "The preflight script must reliably complete within 120s for cron jobs"
-  description: "The dogfood QA script was missing or broken. Recreated geo_dogfood_qa.py to use cargo test --lib with --skip test_linux_kernel_early_boot and a 90s timeout. Verified that it passes all 1581 VM tests in ~7 seconds."
+  goal: The preflight script must reliably complete within 120s for cron jobs
+  description: The dogfood QA script was missing or broken. Recreated geo_dogfood_qa.py
+    to use cargo test --lib with --skip test_linux_kernel_early_boot and a 90s timeout.
+    Verified that it passes all 1581 VM tests in ~7 seconds.
   deliverables:
-  - name: "geo_dogfood_qa.py uses cargo test --lib with 90s timeout"
-    description: "The script was rewritten to use cargo test --lib -- --test-threads=8 --skip test_linux_kernel_early_boot instead of cargo test --release, and timeout reduced from 300s to 90s. This completes in ~7s vs 300s+."
+  - name: geo_dogfood_qa.py uses cargo test --lib with 90s timeout
+    description: The script was rewritten to use cargo test --lib -- --test-threads=8
+      --skip test_linux_kernel_early_boot instead of cargo test --release, and timeout
+      reduced from 300s to 90s. This completes in ~7s vs 300s+.
     status: done
     tasks:
     - id: p175.d1.t1
-      title: "Verify fixed script completes within 120s cron limit"
+      title: Verify fixed script completes within 120s cron limit
       status: done
-      description: "Run the fixed geo_dogfood_qa.py and confirm it outputs 'QA Passed!' within 120 seconds."
+      description: Run the fixed geo_dogfood_qa.py and confirm it outputs 'QA Passed!'
+        within 120 seconds.
       scope_lines: 10
   scope_lines_total: 10
   test_target: 1
-
 - id: phase-180
-  title: "GPU-Native Glyph Lexer"
+  title: GPU-Native Glyph Lexer
   status: done
-  goal: "Implement a WGSL shader that identifies instruction boundaries in a pixel grid"
-  description: "Implemented GpuLexer and glyph_lexer.wgsl. The shader performs parallel spatial lexing of bytecode, handling fixed and variable-width opcodes. Verified with 20 CPU unit tests."
+  goal: Implement a WGSL shader that identifies instruction boundaries in a pixel
+    grid
+  description: Implemented GpuLexer and glyph_lexer.wgsl. The shader performs parallel
+    spatial lexing of bytecode, handling fixed and variable-width opcodes. Verified
+    with 20 CPU unit tests.
   deliverables:
-  - name: "GpuLexer implementation"
+  - name: GpuLexer implementation
     status: done
-
 - id: phase-181
-  title: "Spatial Instruction Patching"
+  title: Spatial Instruction Patching
   status: done
-  goal: "Implement multi-glyph 'Patch-and-Copy' for autonomous code modification"
-  description: "Implemented PATCH (0xD2) and PATCHW (0xD3) opcodes for self-modifying code. GPU shader (glyph_patcher.wgsl) applies patches in parallel. CPU reference with 14 unit tests. VM integration tests verify patching through the executor. Assembler support for both mnemonics."
+  goal: Implement multi-glyph 'Patch-and-Copy' for autonomous code modification
+  description: Implemented PATCH (0xD2) and PATCHW (0xD3) opcodes for self-modifying
+    code. GPU shader (glyph_patcher.wgsl) applies patches in parallel. CPU reference
+    with 14 unit tests. VM integration tests verify patching through the executor.
+    Assembler support for both mnemonics.
   deliverables:
-  - name: "Multi-glyph patch-and-copy shader"
+  - name: Multi-glyph patch-and-copy shader
     status: done
-
 - id: phase-182
-  title: "Autonomous Spatial Dispatcher"
+  title: Autonomous Spatial Dispatcher
   status: planned
-  goal: "GPU-side dispatcher for active glyph regions"
-  description: "Create a .glyph coordinator that identifies active regions and dispatches them to GPU workgroups without CPU scheduling."
+  goal: GPU-side dispatcher for active glyph regions
+  description: Create a .glyph coordinator that identifies active regions and dispatches
+    them to GPU workgroups without CPU scheduling.
   deliverables:
-  - name: "GPU-native glyph dispatcher"
+  - name: GPU-native glyph dispatcher
     status: todo
   scope_lines: 10
   scope_lines_total: 10
   test_target: 1
-
 - id: phase-183
   title: ANSI Parser -- Erase Operations and Cursor Visibility
   status: planned
-  goal: "Add CSI erase sequences (K/J) and cursor visibility (?25) to host_term.asm"
-  description: "prompt_toolkit and most terminal emitters rely heavily on erase operations to clear lines and screens during redraws. Cursor visibility toggling is used by prompt_toolkit during input processing. Without these, the terminal shows stale content from previous prompts bleeding through. The test harness (host_term_run_ansi) makes this headless-verifiable."
+  goal: Add CSI erase sequences (K/J) and cursor visibility (?25) to host_term.asm
+  description: prompt_toolkit and most terminal emitters rely heavily on erase operations
+    to clear lines and screens during redraws. Cursor visibility toggling is used
+    by prompt_toolkit during input processing. Without these, the terminal shows stale
+    content from previous prompts bleeding through. The test harness (host_term_run_ansi)
+    makes this headless-verifiable.
   deliverables:
-  - name: "CSI K -- Erase in Line (0=cursor to end, 1=start to cursor, 2=full line)"
+  - name: CSI K -- Erase in Line (0=cursor to end, 1=start to cursor, 2=full line)
     status: todo
     tasks:
     - id: p183.d1.t1
-      title: "Implement CSI 0K (erase from cursor to end of line)"
-      description: "In apply_sgr/handle_sgr_final, when final byte is 'K', check param: 0 (default) fills spaces from cursor col to end of row. Clear color to default."
-      scope_files: ["programs/host_term.asm"]
+      title: Implement CSI 0K (erase from cursor to end of line)
+      description: 'In apply_sgr/handle_sgr_final, when final byte is ''K'', check
+        param: 0 (default) fills spaces from cursor col to end of row. Clear color
+        to default.'
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 30
     - id: p183.d1.t2
-      title: "Implement CSI 1K (erase from start of line to cursor)"
-      description: "Fill spaces from col 0 to cursor col inclusive."
-      scope_files: ["programs/host_term.asm"]
+      title: Implement CSI 1K (erase from start of line to cursor)
+      description: Fill spaces from col 0 to cursor col inclusive.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 20
     - id: p183.d1.t3
-      title: "Implement CSI 2K (erase entire line)"
-      description: "Fill entire current row with spaces, reset colors."
-      scope_files: ["programs/host_term.asm"]
+      title: Implement CSI 2K (erase entire line)
+      description: Fill entire current row with spaces, reset colors.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 15
-  - name: "CSI J -- Erase in Display (0=cursor to end, 1=start to cursor, 2=full screen)"
+  - name: CSI J -- Erase in Display (0=cursor to end, 1=start to cursor, 2=full screen)
     status: todo
     tasks:
     - id: p183.d2.t1
-      title: "Implement CSI 0J (erase from cursor to end of screen)"
-      description: "Clear from cursor position to end of current line, then clear all rows below. Similar to scroll_up logic but starting from cursor row."
-      scope_files: ["programs/host_term.asm"]
+      title: Implement CSI 0J (erase from cursor to end of screen)
+      description: Clear from cursor position to end of current line, then clear all
+        rows below. Similar to scroll_up logic but starting from cursor row.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 30
     - id: p183.d2.t2
-      title: "Implement CSI 1J and CSI 2J"
-      description: "1J: clear from screen start to cursor. 2J: clear entire screen (same as FILL with background color)."
-      scope_files: ["programs/host_term.asm"]
+      title: Implement CSI 1J and CSI 2J
+      description: '1J: clear from screen start to cursor. 2J: clear entire screen
+        (same as FILL with background color).'
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 25
-  - name: "CSI ?25h / CSI ?25l -- Cursor visibility toggle"
+  - name: CSI ?25h / CSI ?25l -- Cursor visibility toggle
     status: todo
     tasks:
     - id: p183.d3.t1
-      title: "Add cursor_visible flag and handle ?25h/?25l"
-      description: "In CSI private mode handler, add check for param 25: h=show cursor, l=hide cursor. Store in a flag byte. SMALLTEXT renderer checks this flag before drawing cursor cell. prompt_toolkit hides cursor during input processing."
-      scope_files: ["programs/host_term.asm"]
+      title: Add cursor_visible flag and handle ?25h/?25l
+      description: 'In CSI private mode handler, add check for param 25: h=show cursor,
+        l=hide cursor. Store in a flag byte. SMALLTEXT renderer checks this flag before
+        drawing cursor cell. prompt_toolkit hides cursor during input processing.'
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 25
   scope_lines: 145
   scope_lines_total: 84585
   test_target: 12
-
 - id: phase-184
   title: ANSI Parser -- Bracketed Paste and Comprehensive Stress Test
   status: planned
-  goal: "Add bracketed paste mode support and a prompt_toolkit-style stress test"
-  description: "Bracketed paste mode (?2004h/?2004l) wraps pasted text in escape sequences so the terminal can distinguish typed input from pasted input. prompt_toolkit enables this by default. Without it, multi-line pastes into the GeOS terminal will be garbled. Also adds a comprehensive integration test that drives a realistic prompt_toolkit rendering cycle (clear screen, render prompt with colors, handle input, redraw) through the parser."
+  goal: Add bracketed paste mode support and a prompt_toolkit-style stress test
+  description: Bracketed paste mode (?2004h/?2004l) wraps pasted text in escape sequences
+    so the terminal can distinguish typed input from pasted input. prompt_toolkit
+    enables this by default. Without it, multi-line pastes into the GeOS terminal
+    will be garbled. Also adds a comprehensive integration test that drives a realistic
+    prompt_toolkit rendering cycle (clear screen, render prompt with colors, handle
+    input, redraw) through the parser.
   deliverables:
-  - name: "Bracketed paste mode (?2004h/?2004l)"
+  - name: Bracketed paste mode (?2004h/?2004l)
     status: todo
     tasks:
     - id: p184.d1.t1
-      title: "Accept ?2004h and ?2004l without crashing"
-      description: "In CSI private mode handler, add cases for 2004. For now, just ACK and discard (no actual paste processing needed at the ANSI parser level -- the PTY layer handles the wrapping). The key thing is the parser must not choke on these sequences."
-      scope_files: ["programs/host_term.asm"]
+      title: Accept ?2004h and ?2004l without crashing
+      description: In CSI private mode handler, add cases for 2004. For now, just
+        ACK and discard (no actual paste processing needed at the ANSI parser level
+        -- the PTY layer handles the wrapping). The key thing is the parser must not
+        choke on these sequences.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 15
-  - name: "prompt_toolkit full rendering cycle stress test"
+  - name: prompt_toolkit full rendering cycle stress test
     status: todo
     tasks:
     - id: p184.d2.t1
-      title: "Write integration test simulating prompt_toolkit redraw cycle"
-      description: "Drive a realistic prompt_toolkit frame through host_term_run_ansi: (1) CSI 2J clear screen, (2) CSI H cursor home, (3) CSI ?25l hide cursor, (4) render prompt line with 256-color SGR, (5) CSI K erase to end of line, (6) render output text, (7) CSI ?25h show cursor, (8) CSI 1G cursor to col 1. Assert screen state at each step. This is the definitive 'Hermes will work' test."
-      scope_files: ["src/vm/tests.rs"]
+      title: Write integration test simulating prompt_toolkit redraw cycle
+      description: 'Drive a realistic prompt_toolkit frame through host_term_run_ansi:
+        (1) CSI 2J clear screen, (2) CSI H cursor home, (3) CSI ?25l hide cursor,
+        (4) render prompt line with 256-color SGR, (5) CSI K erase to end of line,
+        (6) render output text, (7) CSI ?25h show cursor, (8) CSI 1G cursor to col
+        1. Assert screen state at each step. This is the definitive ''Hermes will
+        work'' test.'
+      scope_files:
+      - src/vm/tests.rs
       scope_lines: 80
-  - name: "Update existing Hermes integration test with erase sequences"
+  - name: Update existing Hermes integration test with erase sequences
     status: todo
     tasks:
     - id: p184.d3.t1
-      title: "Extend host_term_ansi_hermes_style_frame with CSI K and CSI J"
-      description: "Add CSI 2J at start and CSI K after prompt text to match what prompt_toolkit actually emits. Verify the test still passes with the added sequences."
-      scope_files: ["src/vm/tests.rs"]
+      title: Extend host_term_ansi_hermes_style_frame with CSI K and CSI J
+      description: Add CSI 2J at start and CSI K after prompt text to match what prompt_toolkit
+        actually emits. Verify the test still passes with the added sequences.
+      scope_files:
+      - src/vm/tests.rs
       scope_lines: 30
   scope_lines: 125
   scope_lines_total: 84710
   test_target: 8
-
 - id: phase-185
-  title: "ANSI Parser -- Scroll Region (CSI r) and Origin Mode"
+  title: ANSI Parser -- Scroll Region (CSI r) and Origin Mode
   status: planned
-  goal: "Add scroll region support so full-screen apps (htop, nano, vim) can lock scrolling to a subset of rows"
-  description: "CSI r (DECSTBM) sets the scroll region top and bottom margins. Within this region, scrolling only affects rows between top and bottom. Cursor movement outside the region is clamped. prompt_toolkit does NOT use scroll regions, but full-screen terminal apps (nano, htop) do. The qemu/ansi.rs Rust parser already handles this -- port the logic to host_term.asm. Also add CSI S and CSI T for scroll up/down by N lines."
+  goal: Add scroll region support so full-screen apps (htop, nano, vim) can lock scrolling
+    to a subset of rows
+  description: CSI r (DECSTBM) sets the scroll region top and bottom margins. Within
+    this region, scrolling only affects rows between top and bottom. Cursor movement
+    outside the region is clamped. prompt_toolkit does NOT use scroll regions, but
+    full-screen terminal apps (nano, htop) do. The qemu/ansi.rs Rust parser already
+    handles this -- port the logic to host_term.asm. Also add CSI S and CSI T for
+    scroll up/down by N lines.
   deliverables:
-  - name: "CSI r -- set scroll region (DECSTBM)"
+  - name: CSI r -- set scroll region (DECSTBM)
     status: todo
     tasks:
     - id: p185.d1.t1
-      title: "Add SCROLL_TOP and SCROLL_BOTTOM memory locations"
-      description: "Define SCROLL_TOP (default 0) and SCROLL_BOTTOM (default ROWS-1) at known RAM addresses. Initialize to full screen on startup and on CSI r with no params."
-      scope_files: ["programs/host_term.asm"]
+      title: Add SCROLL_TOP and SCROLL_BOTTOM memory locations
+      description: Define SCROLL_TOP (default 0) and SCROLL_BOTTOM (default ROWS-1)
+        at known RAM addresses. Initialize to full screen on startup and on CSI r
+        with no params.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 15
     - id: p185.d1.t2
-      title: "Parse CSI r in handle_sgr_final"
-      description: "When final byte is 'r', read CSI_PARAM as top and CSI_PARAM2 as bottom (1-indexed). Clamp to valid range. Update SCROLL_TOP/SCROLL_BOTTOM. Move cursor to home position."
-      scope_files: ["programs/host_term.asm"]
+      title: Parse CSI r in handle_sgr_final
+      description: When final byte is 'r', read CSI_PARAM as top and CSI_PARAM2 as
+        bottom (1-indexed). Clamp to valid range. Update SCROLL_TOP/SCROLL_BOTTOM.
+        Move cursor to home position.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 35
     - id: p185.d1.t3
-      title: "Modify scroll_up and scroll_down to respect scroll region"
-      description: "When cursor is on SCROLL_BOTTOM row and newline triggers scroll, only shift rows between SCROLL_TOP and SCROLL_BOTTOM. Clear SCROLL_BOTTOM row. Same for reverse scroll at SCROLL_TOP."
-      scope_files: ["programs/host_term.asm"]
+      title: Modify scroll_up and scroll_down to respect scroll region
+      description: When cursor is on SCROLL_BOTTOM row and newline triggers scroll,
+        only shift rows between SCROLL_TOP and SCROLL_BOTTOM. Clear SCROLL_BOTTOM
+        row. Same for reverse scroll at SCROLL_TOP.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 40
     - id: p185.d1.t4
-      title: "Clamp cursor movement within scroll region"
-      description: "CSI A/B (cursor up/down) should not move cursor above SCROLL_TOP or below SCROLL_BOTTOM. CSI H should clamp row to scroll region."
-      scope_files: ["programs/host_term.asm"]
+      title: Clamp cursor movement within scroll region
+      description: CSI A/B (cursor up/down) should not move cursor above SCROLL_TOP
+        or below SCROLL_BOTTOM. CSI H should clamp row to scroll region.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 20
-  - name: "Tests for scroll region"
+  - name: Tests for scroll region
     status: todo
     tasks:
     - id: p185.d2.t1
-      title: "Test CSI r sets scroll region and cursor goes home"
-      description: "Drive ESC[5;10r through host_term_run_ansi, verify cursor at (0,0). Write past bottom, verify only rows 5-9 scroll."
-      scope_files: ["src/vm/tests.rs"]
+      title: Test CSI r sets scroll region and cursor goes home
+      description: Drive ESC[5;10r through host_term_run_ansi, verify cursor at (0,0).
+        Write past bottom, verify only rows 5-9 scroll.
+      scope_files:
+      - src/vm/tests.rs
       scope_lines: 40
   scope_lines: 150
   scope_lines_total: 84860
   test_target: 6
-
 - id: phase-186
-  title: "ANSI Parser -- Tab Stops and Horizontal Scrolling"
+  title: ANSI Parser -- Tab Stops and Horizontal Scrolling
   status: planned
-  goal: "Add proper tab stop handling so formatted output (ls, tables, code) aligns correctly"
-  description: "Currently TAB advances to next 8-column boundary but there are no configurable tab stops. CSI sequences for setting/clearing tab stops exist (CSI 3g = clear all tabs, CSI 0g = clear tab at cursor, CSI 5g = set tab). Also need HTS (ESC H) to set a tab stop. While prompt_toolkit does not heavily use custom tabs, ls and many CLI tools rely on 8-column tab alignment."
+  goal: Add proper tab stop handling so formatted output (ls, tables, code) aligns
+    correctly
+  description: Currently TAB advances to next 8-column boundary but there are no configurable
+    tab stops. CSI sequences for setting/clearing tab stops exist (CSI 3g = clear
+    all tabs, CSI 0g = clear tab at cursor, CSI 5g = set tab). Also need HTS (ESC
+    H) to set a tab stop. While prompt_toolkit does not heavily use custom tabs, ls
+    and many CLI tools rely on 8-column tab alignment.
   deliverables:
-  - name: "Tab stop array and HTS (ESC H) support"
+  - name: Tab stop array and HTS (ESC H) support
     status: todo
     tasks:
     - id: p186.d1.t1
-      title: "Add tab stop bitmap at known RAM address"
-      description: "80 bits = 10 u32 words for 80-column tab stops. Initialize with default 8-column stops (bits 0,8,16,...,72 set). ESC H sets bit at cursor col."
-      scope_files: ["programs/host_term.asm"]
+      title: Add tab stop bitmap at known RAM address
+      description: 80 bits = 10 u32 words for 80-column tab stops. Initialize with
+        default 8-column stops (bits 0,8,16,...,72 set). ESC H sets bit at cursor
+        col.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 25
     - id: p186.d1.t2
-      title: "Implement CSI 3g (clear all tab stops)"
-      description: "Zero the tab stop bitmap."
-      scope_files: ["programs/host_term.asm"]
+      title: Implement CSI 3g (clear all tab stops)
+      description: Zero the tab stop bitmap.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 10
     - id: p186.d1.t3
-      title: "Implement CSI 0g and CSI 5g"
-      description: "0g clears tab at cursor col, 5g sets tab at cursor col."
-      scope_files: ["programs/host_term.asm"]
+      title: Implement CSI 0g and CSI 5g
+      description: 0g clears tab at cursor col, 5g sets tab at cursor col.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 15
-  - name: "Tests for tab stops"
+  - name: Tests for tab stops
     status: todo
     tasks:
     - id: p186.d2.t1
-      title: "Test default tab stops, custom tab stops, and clear"
-      description: "Verify TAB at col 0 goes to col 8. Set tab at col 5, TAB from col 3 goes to col 5. Clear all tabs, TAB goes nowhere."
-      scope_files: ["src/vm/tests.rs"]
+      title: Test default tab stops, custom tab stops, and clear
+      description: Verify TAB at col 0 goes to col 8. Set tab at col 5, TAB from col
+        3 goes to col 5. Clear all tabs, TAB goes nowhere.
+      scope_files:
+      - src/vm/tests.rs
       scope_lines: 35
   scope_lines: 85
   scope_lines_total: 84945
   test_target: 5
-
 - id: phase-187
-  title: "Replace save.rs unwrap() with Proper Error Handling"
+  title: Replace save.rs unwrap() with Proper Error Handling
   status: planned
-  goal: "Eliminate 27 unwrap() calls in save.rs that can panic on corrupt save files"
-  description: "save.rs handles PNG save/load for screenshots and VM state persistence. Currently has 27 unwrap() calls on file I/O, PNG decoding, and path conversion. Corrupt save files or permission errors will crash the entire OS. Replace with Result propagation and graceful fallback (return None, log warning, keep current state)."
+  goal: Eliminate 27 unwrap() calls in save.rs that can panic on corrupt save files
+  description: save.rs handles PNG save/load for screenshots and VM state persistence.
+    Currently has 27 unwrap() calls on file I/O, PNG decoding, and path conversion.
+    Corrupt save files or permission errors will crash the entire OS. Replace with
+    Result propagation and graceful fallback (return None, log warning, keep current
+    state).
   deliverables:
-  - name: "Replace file I/O unwraps in save.rs"
+  - name: Replace file I/O unwraps in save.rs
     status: todo
     tasks:
     - id: p187.d1.t1
-      title: "Replace File::open, File::create, to_str unwraps"
-      description: "Use if let Ok(_) or ? operator with Result return types. On failure, return None or Err(SaveError) instead of panicking."
-      scope_files: ["src/save.rs"]
+      title: Replace File::open, File::create, to_str unwraps
+      description: Use if let Ok(_) or ? operator with Result return types. On failure,
+        return None or Err(SaveError) instead of panicking.
+      scope_files:
+      - src/save.rs
       scope_lines: 60
     - id: p187.d1.t2
-      title: "Replace PNG decoder/encoder unwraps"
-      description: "png::Decoder::read_info and reader.next_frame can fail on corrupt PNGs. Wrap in match/Result."
-      scope_files: ["src/save.rs"]
+      title: Replace PNG decoder/encoder unwraps
+      description: png::Decoder::read_info and reader.next_frame can fail on corrupt
+        PNGs. Wrap in match/Result.
+      scope_files:
+      - src/save.rs
       scope_lines: 30
-  - name: "Tests for save error handling"
+  - name: Tests for save error handling
     status: todo
     tasks:
     - id: p187.d2.t1
-      title: "Test loading nonexistent save returns None"
-      description: "Attempt to load from nonexistent path, verify no panic, returns None."
-      scope_files: ["src/save.rs"]
+      title: Test loading nonexistent save returns None
+      description: Attempt to load from nonexistent path, verify no panic, returns
+        None.
+      scope_files:
+      - src/save.rs
       scope_lines: 15
     - id: p187.d2.t2
-      title: "Test loading corrupt PNG returns None"
-      description: "Write random bytes to a temp file, attempt to load as PNG, verify no panic."
-      scope_files: ["src/save.rs"]
+      title: Test loading corrupt PNG returns None
+      description: Write random bytes to a temp file, attempt to load as PNG, verify
+        no panic.
+      scope_files:
+      - src/save.rs
       scope_lines: 15
   scope_lines: 120
   scope_lines_total: 85065
   test_target: 4
-
 - id: phase-188
-  title: "Replace glyph_backend.rs unwrap() with Error Propagation"
+  title: Replace glyph_backend.rs unwrap() with Error Propagation
   status: planned
-  goal: "Eliminate 36 unwrap() calls in glyph_backend.rs for robustness"
-  description: "glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap() calls on font loading, pattern matching, and data extraction. Failures here crash the glyph system."
+  goal: Eliminate 36 unwrap() calls in glyph_backend.rs for robustness
+  description: glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap()
+    calls on font loading, pattern matching, and data extraction. Failures here crash
+    the glyph system.
   deliverables:
-  - name: "Audit and replace unwrap() calls in glyph_backend.rs"
+  - name: Audit and replace unwrap() calls in glyph_backend.rs
     status: todo
     tasks:
     - id: p188.d1.t1
-      title: "Replace all 36 unwrap() with proper error handling"
-      description: "Group by category (font loading, regex, data extraction). Use match, ok_or, or early return patterns."
-      scope_files: ["src/glyph_backend.rs"]
+      title: Replace all 36 unwrap() with proper error handling
+      description: Group by category (font loading, regex, data extraction). Use match,
+        ok_or, or early return patterns.
+      scope_files:
+      - src/glyph_backend.rs
       scope_lines: 100
     - id: p188.d1.t2
-      title: "Verify all 3656 tests still pass after changes"
-      description: "Run cargo test, confirm no regressions."
-      scope_files: ["src/glyph_backend.rs"]
+      title: Verify all 3656 tests still pass after changes
+      description: Run cargo test, confirm no regressions.
+      scope_files:
+      - src/glyph_backend.rs
       scope_lines: 5
   scope_lines: 105
   scope_lines_total: 85170
   test_target: 2
-
 - id: phase-189
-  title: "VFS Capability Enforcement on Process Creation"
+  title: VFS Capability Enforcement on Process Creation
   status: planned
-  goal: "Wire up the existing Capability struct to Process so spawned programs get restricted VFS access"
-  description: "src/vm/types.rs already has Capability, check_path_capability, and check_opcode_capability implemented. But src/vfs.rs has two TODOs saying capability checks are skipped because capabilities are not yet on Process. The Process struct (types.rs:492) needs a caps field, and SPAWN opcode needs to accept capability lists. This is the foundation for sandboxing."
+  goal: Wire up the existing Capability struct to Process so spawned programs get
+    restricted VFS access
+  description: src/vm/types.rs already has Capability, check_path_capability, and
+    check_opcode_capability implemented. But src/vfs.rs has two TODOs saying capability
+    checks are skipped because capabilities are not yet on Process. The Process struct
+    (types.rs:492) needs a caps field, and SPAWN opcode needs to accept capability
+    lists. This is the foundation for sandboxing.
   deliverables:
-  - name: "Add caps field to Process struct"
+  - name: Add caps field to Process struct
     status: todo
     tasks:
     - id: p189.d1.t1
-      title: "Add caps: Option<Vec<Capability>> to Process"
-      description: "Add field to Process struct in types.rs. Initialize to None (full access) for main process and existing processes. Add builder method to set caps on spawn."
-      scope_files: ["src/vm/types.rs"]
+      title: 'Add caps: Option<Vec<Capability>> to Process'
+      description: Add field to Process struct in types.rs. Initialize to None (full
+        access) for main process and existing processes. Add builder method to set
+        caps on spawn.
+      scope_files:
+      - src/vm/types.rs
       scope_lines: 20
     - id: p189.d1.t2
-      title: "Enable the two TODO capability checks in vfs.rs"
-      description: "Remove the TODO comments and call check_path_capability with the process caps from the syscall context."
-      scope_files: ["src/vfs.rs"]
+      title: Enable the two TODO capability checks in vfs.rs
+      description: Remove the TODO comments and call check_path_capability with the
+        process caps from the syscall context.
+      scope_files:
+      - src/vfs.rs
       scope_lines: 25
     - id: p189.d1.t3
-      title: "Add SPAWN capability parameter"
-      description: "Extend SPAWN opcode to accept an optional capability list address. If provided, child process gets restricted access. If not, child gets None (full access)."
-      scope_files: ["src/vm/ops_extended.rs"]
+      title: Add SPAWN capability parameter
+      description: Extend SPAWN opcode to accept an optional capability list address.
+        If provided, child process gets restricted access. If not, child gets None
+        (full access).
+      scope_files:
+      - src/vm/ops_extended.rs
       scope_lines: 40
-  - name: "Tests for capability enforcement"
+  - name: Tests for capability enforcement
     status: todo
     tasks:
     - id: p189.d2.t1
-      title: "Test that restricted process cannot open disallowed paths"
-      description: "Spawn a child with caps allowing only /tmp/*. Child tries to open /etc/passwd equivalent in VFS, verify it fails."
-      scope_files: ["src/vm/tests.rs"]
+      title: Test that restricted process cannot open disallowed paths
+      description: Spawn a child with caps allowing only /tmp/*. Child tries to open
+        /etc/passwd equivalent in VFS, verify it fails.
+      scope_files:
+      - src/vm/tests.rs
       scope_lines: 40
   scope_lines: 125
   scope_lines_total: 85295
   test_target: 4
-
 - id: phase-190
-  title: "Sync qemu/ansi.rs Feature Parity with host_term.asm"
+  title: Sync qemu/ansi.rs Feature Parity with host_term.asm
   status: planned
-  goal: "Ensure both ANSI parsers handle the same set of sequences, preventing behavioral drift"
-  description: "There are two ANSI parsers: the Rust qemu/ansi.rs (1403 lines, 71 tests) used by the RISC-V bridge, and the ASM host_term.asm (2765 lines, 32 tests) used by the host terminal. They have diverged -- qemu/ansi.rs supports erase (K/J), scroll region (r), and more private modes, while host_term.asm does not yet. Audit both parsers and create a shared feature matrix, then implement missing features in the ASM parser."
+  goal: Ensure both ANSI parsers handle the same set of sequences, preventing behavioral
+    drift
+  description: 'There are two ANSI parsers: the Rust qemu/ansi.rs (1403 lines, 71
+    tests) used by the RISC-V bridge, and the ASM host_term.asm (2765 lines, 32 tests)
+    used by the host terminal. They have diverged -- qemu/ansi.rs supports erase (K/J),
+    scroll region (r), and more private modes, while host_term.asm does not yet. Audit
+    both parsers and create a shared feature matrix, then implement missing features
+    in the ASM parser.'
   deliverables:
-  - name: "Feature matrix document"
+  - name: Feature matrix document
     status: todo
     tasks:
     - id: p190.d1.t1
-      title: "Audit both parsers and document differences"
-      description: "Grep for all handled final bytes in qemu/ansi.rs handle_csi and handle_csi_private. Compare with host_term.asm. Output a markdown table showing supported/missing for each parser."
-      scope_files: ["programs/host_term.asm", "src/qemu/ansi.rs"]
+      title: Audit both parsers and document differences
+      description: Grep for all handled final bytes in qemu/ansi.rs handle_csi and
+        handle_csi_private. Compare with host_term.asm. Output a markdown table showing
+        supported/missing for each parser.
+      scope_files:
+      - programs/host_term.asm
+      - src/qemu/ansi.rs
       scope_lines: 30
-  - name: "Port missing qemu/ansi.rs features to host_term.asm"
+  - name: Port missing qemu/ansi.rs features to host_term.asm
     status: todo
     tasks:
     - id: p190.d2.t1
-      title: "Implement any remaining CSI sequences not in phases 183-185"
-      description: "After phases 183-185 land, check what else qemu/ansi.rs has that host_term.asm lacks. Likely candidates: CSI S/T (scroll N lines), CSI L/M (insert/delete lines)."
-      scope_files: ["programs/host_term.asm"]
+      title: Implement any remaining CSI sequences not in phases 183-185
+      description: 'After phases 183-185 land, check what else qemu/ansi.rs has that
+        host_term.asm lacks. Likely candidates: CSI S/T (scroll N lines), CSI L/M
+        (insert/delete lines).'
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 60
     - id: p190.d2.t2
-      title: "Add parity tests"
-      description: "For each newly implemented sequence, add a test that drives the same input through both parsers (via host_term_run_ansi and qemu/ansi::AnsiState) and asserts identical screen output."
-      scope_files: ["src/vm/tests.rs"]
+      title: Add parity tests
+      description: For each newly implemented sequence, add a test that drives the
+        same input through both parsers (via host_term_run_ansi and qemu/ansi::AnsiState)
+        and asserts identical screen output.
+      scope_files:
+      - src/vm/tests.rs
       scope_lines: 40
   scope_lines: 130
   scope_lines_total: 85425
   test_target: 8
-
 - id: phase-191
-  title: "Roguelike Game Polish -- Save/Load and Win Condition"
+  title: Roguelike Game Polish -- Save/Load and Win Condition
   status: planned
-  goal: "Add game state persistence and a proper win/lose loop to the roguelike"
-  description: "The roguelike (2549 lines) is one of the largest programs but has no save/load and no win condition. When you find the stairs, there is no victory message or level progression. Adding save/load via the VFS WRITE/READ opcodes proves the VFS works for real app state. Adding level progression makes it a game."
+  goal: Add game state persistence and a proper win/lose loop to the roguelike
+  description: The roguelike (2549 lines) is one of the largest programs but has no
+    save/load and no win condition. When you find the stairs, there is no victory
+    message or level progression. Adding save/load via the VFS WRITE/READ opcodes
+    proves the VFS works for real app state. Adding level progression makes it a game.
   deliverables:
-  - name: "Save/load game state to VFS"
+  - name: Save/load game state to VFS
     status: todo
     tasks:
     - id: p191.d1.t1
-      title: "Add save command that writes player state to VFS file"
-      description: "On 'S' key press, serialize player HP, level, inventory, dungeon seed to a VFS file using WRITE opcode."
-      scope_files: ["programs/roguelike.asm"]
+      title: Add save command that writes player state to VFS file
+      description: On 'S' key press, serialize player HP, level, inventory, dungeon
+        seed to a VFS file using WRITE opcode.
+      scope_files:
+      - programs/roguelike.asm
       scope_lines: 40
     - id: p191.d1.t2
-      title: "Add load command that reads game state from VFS"
-      description: "On 'L' key press, read VFS file and restore state. Handle missing/corrupt file gracefully."
-      scope_files: ["programs/roguelike.asm"]
+      title: Add load command that reads game state from VFS
+      description: On 'L' key press, read VFS file and restore state. Handle missing/corrupt
+        file gracefully.
+      scope_files:
+      - programs/roguelike.asm
       scope_lines: 40
-  - name: "Win condition and level progression"
+  - name: Win condition and level progression
     status: todo
     tasks:
     - id: p191.d2.t1
-      title: "Add victory message when reaching stairs"
-      description: "When player steps on stairs, show 'Level Complete!' overlay. After 2 seconds, regenerate dungeon at next depth with harder enemies."
-      scope_files: ["programs/roguelike.asm"]
+      title: Add victory message when reaching stairs
+      description: When player steps on stairs, show 'Level Complete!' overlay. After
+        2 seconds, regenerate dungeon at next depth with harder enemies.
+      scope_files:
+      - programs/roguelike.asm
       scope_lines: 30
     - id: p191.d2.t2
-      title: "Death screen with score and restart option"
-      description: "When HP reaches 0, show 'Game Over' with floor reached and enemies killed. Press R to restart."
-      scope_files: ["programs/roguelike.asm"]
+      title: Death screen with score and restart option
+      description: When HP reaches 0, show 'Game Over' with floor reached and enemies
+        killed. Press R to restart.
+      scope_files:
+      - programs/roguelike.asm
       scope_lines: 25
   scope_lines: 135
   scope_lines_total: 85560
   test_target: 3
-
 - id: phase-192
-  title: "Shell.asm Built-in Commands Expansion"
+  title: Shell.asm Built-in Commands Expansion
   status: planned
-  goal: "Add more useful built-in commands to the shell (grep, head, tail, wc, date)"
-  description: "The shell (2039 lines) handles basic command parsing and execution via EXEC. But common commands like grep, head, tail are missing as built-ins. Users should not need external binaries for basic text operations. Implement these as shell built-in command handlers."
+  goal: Add more useful built-in commands to the shell (grep, head, tail, wc, date)
+  description: The shell (2039 lines) handles basic command parsing and execution
+    via EXEC. But common commands like grep, head, tail are missing as built-ins.
+    Users should not need external binaries for basic text operations. Implement these
+    as shell built-in command handlers.
   deliverables:
-  - name: "grep built-in command"
+  - name: grep built-in command
     status: todo
     tasks:
     - id: p192.d1.t1
-      title: "Add grep command that searches VFS file contents"
-      description: "Parse 'grep PATTERN FILE'. Open file via VFS, read lines, print matching lines with line numbers. Support case-insensitive flag -i."
-      scope_files: ["programs/shell.asm"]
+      title: Add grep command that searches VFS file contents
+      description: Parse 'grep PATTERN FILE'. Open file via VFS, read lines, print
+        matching lines with line numbers. Support case-insensitive flag -i.
+      scope_files:
+      - programs/shell.asm
       scope_lines: 60
-  - name: "head and tail built-in commands"
+  - name: head and tail built-in commands
     status: todo
     tasks:
     - id: p192.d2.t1
-      title: "Add head and tail commands"
-      description: "Parse 'head -N FILE' (default 10) and 'tail -N FILE'. Read VFS file, print first/last N lines."
-      scope_files: ["programs/shell.asm"]
+      title: Add head and tail commands
+      description: Parse 'head -N FILE' (default 10) and 'tail -N FILE'. Read VFS
+        file, print first/last N lines.
+      scope_files:
+      - programs/shell.asm
       scope_lines: 50
-  - name: "wc and date built-in commands"
+  - name: wc and date built-in commands
     status: todo
     tasks:
     - id: p192.d3.t1
-      title: "Add wc (word/line/char count) and date commands"
-      description: "wc reads VFS file and prints line/word/char counts. date reads the clock port and prints formatted time."
-      scope_files: ["programs/shell.asm"]
+      title: Add wc (word/line/char count) and date commands
+      description: wc reads VFS file and prints line/word/char counts. date reads
+        the clock port and prints formatted time.
+      scope_files:
+      - programs/shell.asm
       scope_lines: 40
   scope_lines: 150
   scope_lines_total: 85710
   test_target: 5
-
 - id: phase-193
-  title: "Nano Editor -- Search and Replace"
+  title: Nano Editor -- Search and Replace
   status: planned
-  goal: "Add search (Ctrl+S) and replace (Ctrl+R) to the nano editor"
-  description: "The nano editor (2208 lines) supports basic editing but has no search/replace. These are essential for real editing work. Implement incremental search (highlight matches as you type) and replace (with confirm). Uses only existing opcodes (STRING ops, HITSET for UI)."
+  goal: Add search (Ctrl+S) and replace (Ctrl+R) to the nano editor
+  description: The nano editor (2208 lines) supports basic editing but has no search/replace.
+    These are essential for real editing work. Implement incremental search (highlight
+    matches as you type) and replace (with confirm). Uses only existing opcodes (STRING
+    ops, HITSET for UI).
   deliverables:
-  - name: "Incremental search (Ctrl+S)"
+  - name: Incremental search (Ctrl+S)
     status: todo
     tasks:
     - id: p193.d1.t1
-      title: "Add search prompt and matching logic"
-      description: "Ctrl+S enters search mode at bottom of screen. Type search term, matches highlight in buffer. Enter confirms, Escape cancels. Use STRING_FIND or brute-force compare."
-      scope_files: ["programs/nano_editor.asm"]
+      title: Add search prompt and matching logic
+      description: Ctrl+S enters search mode at bottom of screen. Type search term,
+        matches highlight in buffer. Enter confirms, Escape cancels. Use STRING_FIND
+        or brute-force compare.
+      scope_files:
+      - programs/nano_editor.asm
       scope_lines: 60
     - id: p193.d1.t2
-      title: "Add match navigation (F3 next, Shift+F3 prev)"
-      description: "After search, F3 jumps to next match, Shift+F3 to previous. Highlight current match with inverse video."
-      scope_files: ["programs/nano_editor.asm"]
+      title: Add match navigation (F3 next, Shift+F3 prev)
+      description: After search, F3 jumps to next match, Shift+F3 to previous. Highlight
+        current match with inverse video.
+      scope_files:
+      - programs/nano_editor.asm
       scope_lines: 30
-  - name: "Replace (Ctrl+R)"
+  - name: Replace (Ctrl+R)
     status: todo
     tasks:
     - id: p193.d2.t1
-      title: "Add replace prompt and execution"
-      description: "Ctrl+R prompts for search and replacement text. Replace all or confirm each. Updates buffer and marks dirty."
-      scope_files: ["programs/nano_editor.asm"]
+      title: Add replace prompt and execution
+      description: Ctrl+R prompts for search and replacement text. Replace all or
+        confirm each. Updates buffer and marks dirty.
+      scope_files:
+      - programs/nano_editor.asm
       scope_lines: 40
   scope_lines: 130
   scope_lines_total: 85840
   test_target: 3
-
 - id: phase-194
-  title: "Host Terminal Performance -- Dirty Rectangle Rendering"
+  title: Host Terminal Performance -- Dirty Rectangle Rendering
   status: planned
-  goal: "Only re-render changed rows instead of the full 30-row screen every frame"
-  description: "Currently host_term.asm renders all 30 rows every frame via SMALLTEXT, even when only one line changed (like typing a character). This is wasteful. Track which rows changed since last render and only SMALLTEXT the dirty rows. With a status bar and scrollback already optimized, this is the last rendering bottleneck."
+  goal: Only re-render changed rows instead of the full 30-row screen every frame
+  description: Currently host_term.asm renders all 30 rows every frame via SMALLTEXT,
+    even when only one line changed (like typing a character). This is wasteful. Track
+    which rows changed since last render and only SMALLTEXT the dirty rows. With a
+    status bar and scrollback already optimized, this is the last rendering bottleneck.
   deliverables:
-  - name: "Row dirty bitmap"
+  - name: Row dirty bitmap
     status: todo
     tasks:
     - id: p194.d1.t1
-      title: "Add 32-bit dirty row bitmap (1 bit per row)"
-      description: "At render time, check bitmap. Only call SMALLTEXT for rows with bit set. Clear bits after rendering. Set bit on any text write, cursor move, or scroll."
-      scope_files: ["programs/host_term.asm"]
+      title: Add 32-bit dirty row bitmap (1 bit per row)
+      description: At render time, check bitmap. Only call SMALLTEXT for rows with
+        bit set. Clear bits after rendering. Set bit on any text write, cursor move,
+        or scroll.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 40
     - id: p194.d1.t2
-      title: "Benchmark frame time before and after"
-      description: "Add a frame counter that measures cycles between renders. Log or display in status bar when debug mode is on."
-      scope_files: ["programs/host_term.asm"]
+      title: Benchmark frame time before and after
+      description: Add a frame counter that measures cycles between renders. Log or
+        display in status bar when debug mode is on.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 20
   scope_lines: 60
   scope_lines_total: 85900
   test_target: 2
-
 - id: phase-195
-  title: "File Browser -- Directory Navigation and File Operations"
+  title: File Browser -- Directory Navigation and File Operations
   status: planned
-  goal: "Extend file browser to support directory traversal, file deletion, and file creation"
-  description: "The file browser shows VFS files and displays content but cannot navigate directories (VFS has a flat namespace currently) or perform file operations. Add mkdir, rm, and touch commands accessible from the file browser UI. Also add file size display and modification time if available from VFS metadata."
+  goal: Extend file browser to support directory traversal, file deletion, and file
+    creation
+  description: The file browser shows VFS files and displays content but cannot navigate
+    directories (VFS has a flat namespace currently) or perform file operations. Add
+    mkdir, rm, and touch commands accessible from the file browser UI. Also add file
+    size display and modification time if available from VFS metadata.
   deliverables:
-  - name: "File operations from file browser"
+  - name: File operations from file browser
     status: todo
     tasks:
     - id: p195.d1.t1
-      title: "Add delete confirmation dialog"
-      description: "Select a file, press D to delete. Show confirmation dialog (Y/N). On confirm, call VFS UNLINK. Refresh file list."
-      scope_files: ["programs/file_browser.asm"]
+      title: Add delete confirmation dialog
+      description: Select a file, press D to delete. Show confirmation dialog (Y/N).
+        On confirm, call VFS UNLINK. Refresh file list.
+      scope_files:
+      - programs/file_browser.asm
       scope_lines: 40
     - id: p195.d1.t2
-      title: "Add file size display in file list"
-      description: "After filename, show file size in bytes using STRO and integer-to-string conversion."
-      scope_files: ["programs/file_browser.asm"]
+      title: Add file size display in file list
+      description: After filename, show file size in bytes using STRO and integer-to-string
+        conversion.
+      scope_files:
+      - programs/file_browser.asm
       scope_lines: 25
   scope_lines: 65
   scope_lines_total: 85965
   test_target: 2
-
 - id: phase-196
-  title: "AI Terminal -- Session History and Context Window"
+  title: AI Terminal -- Session History and Context Window
   status: planned
-  goal: "Add command history and conversation context tracking to ai_terminal.asm"
-  description: "The AI terminal (2181 lines) sends prompts to the LLM opcode but has no command history (up/down arrows to recall previous prompts) and no context window showing token usage or conversation length. These are essential for practical use."
+  goal: Add command history and conversation context tracking to ai_terminal.asm
+  description: The AI terminal (2181 lines) sends prompts to the LLM opcode but has
+    no command history (up/down arrows to recall previous prompts) and no context
+    window showing token usage or conversation length. These are essential for practical
+    use.
   deliverables:
-  - name: "Command history with up/down arrow recall"
+  - name: Command history with up/down arrow recall
     status: todo
     tasks:
     - id: p196.d1.t1
-      title: "Add circular history buffer (16 entries)"
-      description: "Store each submitted prompt in a ring buffer at a known RAM address. Up arrow recalls previous, down arrow goes forward."
-      scope_files: ["programs/ai_terminal.asm"]
+      title: Add circular history buffer (16 entries)
+      description: Store each submitted prompt in a ring buffer at a known RAM address.
+        Up arrow recalls previous, down arrow goes forward.
+      scope_files:
+      - programs/ai_terminal.asm
       scope_lines: 40
-  - name: "Context window display"
+  - name: Context window display
     status: todo
     tasks:
     - id: p196.d2.t1
-      title: "Show token count and conversation turns in status bar"
-      description: "Track prompt + response lengths. Display 'Turns: N | Chars: M' in the status area."
-      scope_files: ["programs/ai_terminal.asm"]
+      title: Show token count and conversation turns in status bar
+      description: 'Track prompt + response lengths. Display ''Turns: N | Chars: M''
+        in the status area.'
+      scope_files:
+      - programs/ai_terminal.asm
       scope_lines: 20
   scope_lines: 60
   scope_lines_total: 86025
   test_target: 2
-
 - id: phase-197
-  title: "Replace mmu.rs unwrap() Calls with Proper Error Paths"
+  title: Replace mmu.rs unwrap() Calls with Proper Error Paths
   status: planned
-  goal: "Eliminate 14 unwrap() calls in the RISC-V MMU that can panic on page fault edge cases"
-  description: "The MMU (src/riscv/mmu.rs) handles address translation for the RISC-V interpreter. 14 unwrap() calls on page table lookups can panic when page table entries are malformed or missing. Replace with proper fault reporting (return PageFault with fault address) so the interpreter can handle them gracefully."
+  goal: Eliminate 14 unwrap() calls in the RISC-V MMU that can panic on page fault
+    edge cases
+  description: The MMU (src/riscv/mmu.rs) handles address translation for the RISC-V
+    interpreter. 14 unwrap() calls on page table lookups can panic when page table
+    entries are malformed or missing. Replace with proper fault reporting (return
+    PageFault with fault address) so the interpreter can handle them gracefully.
   deliverables:
-  - name: "Replace MMU unwrap() calls"
+  - name: Replace MMU unwrap() calls
     status: todo
     tasks:
     - id: p197.d1.t1
-      title: "Replace all 14 unwrap() in mmu.rs"
-      description: "Change translate() and related functions to return Result<T, PageFault> instead of panicking. Propagate errors to caller."
-      scope_files: ["src/riscv/mmu.rs"]
+      title: Replace all 14 unwrap() in mmu.rs
+      description: Change translate() and related functions to return Result<T, PageFault>
+        instead of panicking. Propagate errors to caller.
+      scope_files:
+      - src/riscv/mmu.rs
       scope_lines: 80
     - id: p197.d1.t2
-      title: "Verify all RISC-V tests still pass"
-      description: "Run cargo test --test riscv_tests, confirm 147 tests pass."
-      scope_files: ["src/riscv/mmu.rs"]
+      title: Verify all RISC-V tests still pass
+      description: Run cargo test --test riscv_tests, confirm 147 tests pass.
+      scope_files:
+      - src/riscv/mmu.rs
       scope_lines: 5
   scope_lines: 85
   scope_lines_total: 86110
   test_target: 2
-
 - id: phase-198
-  title: "Desktop Terminal Integration -- Launch Hermes from GeOS"
+  title: Desktop Terminal Integration -- Launch Hermes from GeOS
   status: planned
-  goal: "The GeOS terminal should be able to launch Hermes Agent as a subprocess and display its output"
-  description: "The terminal runs bash, which means you can type 'hermes chat' and get Hermes running inside GeOS. But this requires: (1) Hermes is in PATH or at a known location, (2) the PTY resize handling matches what Hermes expects, (3) 256-color output renders correctly (phase e3d90c8). This phase verifies the full chain works and fixes any issues found."
+  goal: The GeOS terminal should be able to launch Hermes Agent as a subprocess and
+    display its output
+  description: 'The terminal runs bash, which means you can type ''hermes chat'' and
+    get Hermes running inside GeOS. But this requires: (1) Hermes is in PATH or at
+    a known location, (2) the PTY resize handling matches what Hermes expects, (3)
+    256-color output renders correctly (phase e3d90c8). This phase verifies the full
+    chain works and fixes any issues found.'
   deliverables:
-  - name: "Verify Hermes launches and renders in GeOS terminal"
+  - name: Verify Hermes launches and renders in GeOS terminal
     status: todo
     tasks:
     - id: p198.d1.t1
-      title: "Test hermes chat in PTY and verify 256-color output"
-      description: "Spawn bash, type 'hermes chat', capture output. Verify 256-color SGR sequences render with correct colors. Check for any sequences that crash the parser."
-      scope_files: ["src/vm/tests.rs"]
+      title: Test hermes chat in PTY and verify 256-color output
+      description: Spawn bash, type 'hermes chat', capture output. Verify 256-color
+        SGR sequences render with correct colors. Check for any sequences that crash
+        the parser.
+      scope_files:
+      - src/vm/tests.rs
       scope_lines: 30
     - id: p198.d1.t2
-      title: "Fix any rendering issues found during Hermes session"
-      description: "If Hermes emits sequences not yet handled (erase, cursor style, etc.), add handlers or silently ignore them."
-      scope_files: ["programs/host_term.asm"]
+      title: Fix any rendering issues found during Hermes session
+      description: If Hermes emits sequences not yet handled (erase, cursor style,
+        etc.), add handlers or silently ignore them.
+      scope_files:
+      - programs/host_term.asm
       scope_lines: 40
   scope_lines: 70
   scope_lines_total: 86180
   test_target: 3
-
 - id: phase-199
-  title: "Code Evolution Program -- Fitness Function Improvements"
+  title: Code Evolution Program -- Fitness Function Improvements
   status: planned
-  goal: "Improve the self-modifying code evolution program to produce more interesting and stable results"
-  description: "code_evolution.asm (5705 lines, the largest program) implements genetic programming where code modifies itself. But the fitness function may be too simple, leading to degenerate solutions. Improve fitness evaluation to reward useful behaviors (drawing patterns, solving math, producing output) rather than just not crashing."
+  goal: Improve the self-modifying code evolution program to produce more interesting
+    and stable results
+  description: code_evolution.asm (5705 lines, the largest program) implements genetic
+    programming where code modifies itself. But the fitness function may be too simple,
+    leading to degenerate solutions. Improve fitness evaluation to reward useful behaviors
+    (drawing patterns, solving math, producing output) rather than just not crashing.
   deliverables:
-  - name: "Enhanced fitness function"
+  - name: Enhanced fitness function
     status: todo
     tasks:
     - id: p199.d1.t1
-      title: "Add pattern-matching fitness evaluation"
-      description: "After running evolved code, check canvas for specific patterns (symmetry, repetition, non-zero regions). Score based on visual complexity and structure."
-      scope_files: ["programs/code_evolution.asm"]
+      title: Add pattern-matching fitness evaluation
+      description: After running evolved code, check canvas for specific patterns
+        (symmetry, repetition, non-zero regions). Score based on visual complexity
+        and structure.
+      scope_files:
+      - programs/code_evolution.asm
       scope_lines: 60
     - id: p199.d1.t2
-      title: "Add diversity pressure to prevent convergence"
-      description: "Track opcode distribution across population. Penalize individuals too similar to current best. Encourage exploring different opcode combinations."
-      scope_files: ["programs/code_evolution.asm"]
+      title: Add diversity pressure to prevent convergence
+      description: Track opcode distribution across population. Penalize individuals
+        too similar to current best. Encourage exploring different opcode combinations.
+      scope_files:
+      - programs/code_evolution.asm
       scope_lines: 40
     scope_lines: 100
     scope_lines_total: 86280
   test_target: 2
-
 - id: phase-200
-  title: "Vision Benchmark v2 -- Executable Scenarios"
+  title: Vision Benchmark v2 -- Executable Scenarios
   status: planned
-  goal: "Rebuild vision_bench with scenarios that run real programs, giving both text and vision modalities actual screen content to evaluate"
-  description: "The initial vision_bench (Role 2) showed vision works (1.7s latency, 10x faster than text) but the accuracy comparison was inconclusive. Root cause: scenarios set up canvas pixels without running code, so text got a free shortcut (all registers zero, all halted). Vision was the only modality actually perceiving screen content. Fix: each scenario must assemble and run a real .asm program for N steps before snapshotting, so both modalities must reason about visual state rather than register defaults."
+  goal: Rebuild vision_bench with scenarios that run real programs, giving both text
+    and vision modalities actual screen content to evaluate
+  description: 'The initial vision_bench (Role 2) showed vision works (1.7s latency,
+    10x faster than text) but the accuracy comparison was inconclusive. Root cause:
+    scenarios set up canvas pixels without running code, so text got a free shortcut
+    (all registers zero, all halted). Vision was the only modality actually perceiving
+    screen content. Fix: each scenario must assemble and run a real .asm program for
+    N steps before snapshotting, so both modalities must reason about visual state
+    rather than register defaults.'
   deliverables:
-  - name: "Executable scenario runner"
+  - name: Executable scenario runner
     status: todo
     tasks:
     - id: p200.d1.t1
-      title: "Refactor vision_bench to assemble+run programs before snapshot"
-      description: "Replace the direct pixel-manipulation setup functions with a generic run_program(name, steps) that assembles a .asm, creates a Vm, runs N steps, then captures the screen state. Use the existing Vm + Assembler infrastructure. Each scenario becomes a .asm file under programs/bench/."
-      scope_files: ["src/bin/vision_bench.rs"]
+      title: Refactor vision_bench to assemble+run programs before snapshot
+      description: Replace the direct pixel-manipulation setup functions with a generic
+        run_program(name, steps) that assembles a .asm, creates a Vm, runs N steps,
+        then captures the screen state. Use the existing Vm + Assembler infrastructure.
+        Each scenario becomes a .asm file under programs/bench/.
+      scope_files:
+      - src/bin/vision_bench.rs
       scope_lines: 200
     - id: p200.d1.t2
-      title: "Create 6 executable benchmark scenarios"
-      description: "Write .asm programs: (1) life32 oscillator (healthy), (2) expanding rectangle allocator (memory leak), (3) rapid pixel scatter (runaway), (4) single blinking pixel (stuck), (5) clean halt (idle), (6) colorful pattern (healthy-complex). Each runs 200-500 steps before snapshot. Use existing programs as starting points."
-      scope_files: ["programs/bench/"]
+      title: Create 6 executable benchmark scenarios
+      description: 'Write .asm programs: (1) life32 oscillator (healthy), (2) expanding
+        rectangle allocator (memory leak), (3) rapid pixel scatter (runaway), (4)
+        single blinking pixel (stuck), (5) clean halt (idle), (6) colorful pattern
+        (healthy-complex). Each runs 200-500 steps before snapshot. Use existing programs
+        as starting points.'
+      scope_files:
+      - programs/bench/
       scope_lines: 300
     - id: p200.d1.t3
-      title: "Add CSV output and summary statistics"
-      description: "Output a CSV with columns: scenario, modality, latency_ms, response, verdict_correct. Add a summary section printing accuracy rate per modality, mean latency, and per-scenario breakdown. Save to episodic_memory/vision_bench_results.csv."
-      scope_files: ["src/bin/vision_bench.rs"]
+      title: Add CSV output and summary statistics
+      description: 'Output a CSV with columns: scenario, modality, latency_ms, response,
+        verdict_correct. Add a summary section printing accuracy rate per modality,
+        mean latency, and per-scenario breakdown. Save to episodic_memory/vision_bench_results.csv.'
+      scope_files:
+      - src/bin/vision_bench.rs
       scope_lines: 80
   test_target: 3
-
 - id: phase-201
-  title: "Hilbert RAM Mirror Opcode (HMIRROR)"
+  title: Hilbert RAM Mirror Opcode (HMIRROR)
   status: planned
-  goal: "Make memory layout visible via space-filling curves so anomalies are seen, not parsed"
-  description: "The research doc's strongest concrete claim: project a contiguous RAM range onto a canvas region using a Hilbert order-8 curve, one byte per pixel. This gives VLM agents spatial locality -- adjacent bytes map to adjacent pixels. A memory leak becomes a visibly expanding bright band. A repeating pattern becomes visible stripes. This is the cheapest feature in the pixel-system plan and produces the most striking demo."
+  goal: Make memory layout visible via space-filling curves so anomalies are seen,
+    not parsed
+  description: 'The research doc''s strongest concrete claim: project a contiguous
+    RAM range onto a canvas region using a Hilbert order-8 curve, one byte per pixel.
+    This gives VLM agents spatial locality -- adjacent bytes map to adjacent pixels.
+    A memory leak becomes a visibly expanding bright band. A repeating pattern becomes
+    visible stripes. This is the cheapest feature in the pixel-system plan and produces
+    the most striking demo.'
   deliverables:
-  - name: "Hilbert curve lookup table"
+  - name: Hilbert curve lookup table
     status: todo
     tasks:
     - id: p201.d1.t1
-      title: "Implement Hilbert order-8 d2xy in src/vm/hilbert.rs"
-      description: "Precompute a [(u8,u8); 65536] table mapping linear index to (x,y) via Hilbert curve. Order 8 = 256x256 covers full 64K RAM at 1px/byte. Also provide xy2d for reverse lookup. Include unit tests: known points (0,0), (65535,255,255), symmetry checks."
-      scope_files: ["src/vm/hilbert.rs"]
+      title: Implement Hilbert order-8 d2xy in src/vm/hilbert.rs
+      description: 'Precompute a [(u8,u8); 65536] table mapping linear index to (x,y)
+        via Hilbert curve. Order 8 = 256x256 covers full 64K RAM at 1px/byte. Also
+        provide xy2d for reverse lookup. Include unit tests: known points (0,0), (65535,255,255),
+        symmetry checks.'
+      scope_files:
+      - src/vm/hilbert.rs
       scope_lines: 120
     - id: p201.d1.t2
-      title: "Add HMIRROR opcode to assembler, preprocessor, and VM"
-      description: "New opcode HMIRROR Rsrc, Rdst, Rsize: projects RAM[src..src+size] onto a 256x256 canvas region using Hilbert order. Byte value maps to grayscale or palette color. Assign next available opcode number. Add to assembler.rs OPCODES list, preprocessor.rs, vm.rs executor, and disasm.rs. Add a test that writes DEADBEEF repeated every 256 bytes and verifies visually periodic stripes via pixel readback."
-      scope_files: ["src/assembler/system_ops.rs", "src/vm/mod.rs", "src/vm/disasm.rs", "src/preprocessor.rs"]
+      title: Add HMIRROR opcode to assembler, preprocessor, and VM
+      description: 'New opcode HMIRROR Rsrc, Rdst, Rsize: projects RAM[src..src+size]
+        onto a 256x256 canvas region using Hilbert order. Byte value maps to grayscale
+        or palette color. Assign next available opcode number. Add to assembler.rs
+        OPCODES list, preprocessor.rs, vm.rs executor, and disasm.rs. Add a test that
+        writes DEADBEEF repeated every 256 bytes and verifies visually periodic stripes
+        via pixel readback.'
+      scope_files:
+      - src/assembler/system_ops.rs
+      - src/vm/mod.rs
+      - src/vm/disasm.rs
+      - src/preprocessor.rs
       scope_lines: 150
     - id: p201.d1.t3
-      title: "Add peek view subcommand to shell and demo program"
-      description: "Add 'peek' command to the terminal that calls HMIRROR for a RAM range and displays the result. Create programs/hilbert_demo.asm that allocates memory, writes patterns, and shows the Hilbert mirror. Verify with a test PNG diff showing periodic stripes for repeating patterns and expanding bands for linear growth."
-      scope_files: ["programs/hilbert_demo.asm"]
+      title: Add peek view subcommand to shell and demo program
+      description: Add 'peek' command to the terminal that calls HMIRROR for a RAM
+        range and displays the result. Create programs/hilbert_demo.asm that allocates
+        memory, writes patterns, and shows the Hilbert mirror. Verify with a test
+        PNG diff showing periodic stripes for repeating patterns and expanding bands
+        for linear growth.
+      scope_files:
+      - programs/hilbert_demo.asm
       scope_lines: 100
   test_target: 4
+- id: phase-202
+  title: Fix Preflight Script TimeoutExpired Crash (phase-168 regression)
+  status: planned
+  goal: The preflight QA script must handle cargo test timeouts gracefully instead
+    of crashing with an uncaught exception
+  description: 'Dogfood QA preflight script (geo_dogfood_qa.py) crashed with uncaught
+    subprocess.TimeoutExpired at line 56. The script calls subprocess.run([''cargo'',
+    ''test'', ''--lib'', ...], timeout=90) but has no try/except around it. When cargo
+    test exceeds 90s, the exception propagates to main() and kills the entire script
+    — no JSON output, no STATUS line, no cleanup. Phase-168 was marked ''done'' for
+    this exact issue but the fix is incomplete: the timeout exists but the exception
+    handler doesn''t. Additionally, stale cargo test child processes (PID 109108)
+    lingered after the crash. The script needs: (1) try/except TimeoutExpired around
+    the cargo test call, (2) explicit kill of child processes on timeout, (3) atexit
+    cleanup for stale processes, (4) fallback JSON output even on failure so downstream
+    agents aren''t left without data.'
+  deliverables:
+  - name: Graceful timeout handling in geo_dogfood_qa.py
+    status: todo
+    tasks:
+    - id: p202.d1.t1
+      title: Wrap check_build_status() subprocess call in try/except TimeoutExpired
+      description: 'In geo_dogfood_qa.py line 56, wrap the subprocess.run call with
+        try/except subprocess.TimeoutExpired. On timeout: log a warning, kill the
+        process group (os.killpg), return a dict with build_ok=False, passed=0, failed=0,
+        failures=[], timeout=True. Also try reading partial stdout for any test results
+        that did complete before timeout.'
+      scope_files:
+      - /home/jericho/.hermes/scripts/geo_dogfood_qa.py
+      scope_lines: 30
+    - id: p202.d1.t2
+      title: Add atexit cleanup to kill stale cargo test processes
+      description: 'At script startup, kill any pre-existing cargo test or geometry_os
+        test runner processes. Register an atexit handler that does the same. Use
+        os.killpg to kill the process group, not just the parent, to catch rustc child
+        processes. Also add a pre-check: if cargo test is already running (from a
+        previous stuck invocation), skip the test run and report ''SKIPPED: stale
+        test runner detected and killed''.'
+      scope_files:
+      - /home/jericho/.hermes/scripts/geo_dogfood_qa.py
+      scope_lines: 30
+    - id: p202.d1.t3
+      title: Ensure JSON output is always written, even on failure
+      description: 'Wrap the entire main() body in try/except so that /tmp/geo_dogfood_qa.json
+        is always written with whatever data was collected. If the script crashes,
+        the JSON should still exist with geos_running=True, build={''timeout'': True,
+        ...}, and next_phase_num. This prevents downstream agents from having no data
+        to work with.'
+      scope_files:
+      - /home/jericho/.hermes/scripts/geo_dogfood_qa.py
+      scope_lines: 25
+    scope_lines: 85
+  scope_lines_total: 86365
+  test_target: 0

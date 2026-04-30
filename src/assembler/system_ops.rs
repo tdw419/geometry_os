@@ -986,7 +986,9 @@ pub(super) fn try_parse(
         // Spatial instruction patching -- self-modifying code primitives
         "PATCH" => {
             if tokens.len() < 4 {
-                return Err("PATCH requires 3 arguments: PATCH addr_reg, val_reg, mask_reg".to_string());
+                return Err(
+                    "PATCH requires 3 arguments: PATCH addr_reg, val_reg, mask_reg".to_string(),
+                );
             }
             bytecode.push(0xD2);
             bytecode.push(parse_reg(tokens[1])? as u32);

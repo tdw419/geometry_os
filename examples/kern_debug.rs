@@ -1,5 +1,8 @@
 // kern_debug.rs -- Debug verifier that stops on first fault
-use geometry_os::riscv::{RiscvVm, loader, cpu::{StepResult, Privilege}};
+use geometry_os::riscv::{
+    cpu::{Privilege, StepResult},
+    loader, RiscvVm,
+};
 use std::env;
 use std::fs;
 
@@ -36,15 +39,24 @@ fn main() {
 
         match step {
             StepResult::FetchFault => {
-                eprintln!("\n[FAULT] FetchFault at PC=0x{:08X} insn #{}", prev_pc, count);
+                eprintln!(
+                    "\n[FAULT] FetchFault at PC=0x{:08X} insn #{}",
+                    prev_pc, count
+                );
                 break;
             }
             StepResult::LoadFault => {
-                eprintln!("\n[FAULT] LoadFault at PC=0x{:08X} insn #{}", prev_pc, count);
+                eprintln!(
+                    "\n[FAULT] LoadFault at PC=0x{:08X} insn #{}",
+                    prev_pc, count
+                );
                 break;
             }
             StepResult::StoreFault => {
-                eprintln!("\n[FAULT] StoreFault at PC=0x{:08X} insn #{}", prev_pc, count);
+                eprintln!(
+                    "\n[FAULT] StoreFault at PC=0x{:08X} insn #{}",
+                    prev_pc, count
+                );
                 break;
             }
             StepResult::Ebreak => {

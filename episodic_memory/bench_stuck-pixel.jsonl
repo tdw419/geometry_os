@@ -1,0 +1,3 @@
+{"ts":"40573-40907","prog":"bench_stuck-pixel","ops":0,"pc":0,"halted":true,"screen":{"non_zero":1,"total":65536,"pct":0.0},"top_ops":[],"bk":"stuck-pixel","mo":"text","ve":"NO, processor is halted.","outcome":"success"}
+{"ts":"40573-41090","prog":"bench_stuck-pixel","ops":0,"pc":0,"halted":true,"screen":{"non_zero":1,"total":65536,"pct":0.0},"top_ops":[],"bk":"stuck-pixel","mo":"text","ve":"NO\nThe system is halted.","outcome":"success"}
+{"ts":"40573-41090","prog":"bench_stuck-pixel","ops":0,"pc":0,"halted":true,"screen":{"non_zero":1,"total":65536,"pct":0.0},"top_ops":[],"bk":"stuck-pixel","mo":"vision","ve":"YES, it is healthy because there are no errors in the system.","outcome":"success"}

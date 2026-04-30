@@ -3329,6 +3329,27 @@ fn main() {
                                     response.push_str(&format!("changed: {:08X}\n", current_hash));
                                 }
                             }
+                            "vision_describe" => {
+                                // vision_describe [PROMPT]
+                                // Screenshot + describe via local Ollama vision model.
+                                // Closes the External Hermes -> Ollama gap in the AI chain.
+                                let prompt = if parts.len() > 1 {
+                                    parts[1..].join(" ")
+                                } else {
+                                    "Describe what you see on this screen. Be concise: layout, colors, text, any visual anomalies.".to_string()
+                                };
+                                let screen_b64 = geometry_os::vision::encode_png_base64(&vm.screen);
+                                let system = "You are a vision model describing a 256x256 pixel terminal framebuffer from Geometry OS. Be concise and factual. Describe layout, visible text, colors, shapes, and any rendering issues.";
+                                match geometry_os::hermes::call_ollama_vision(system, &prompt, &screen_b64) {
+                                    Some(desc) => {
+                                        response.push_str(&desc);
+                                        response.push('\n');
+                                    }
+                                    None => {
+                                        response.push_str("error: vision model unavailable\n");
+                                    }
+                                }
+                            }
                             // ── Phase 89: AI Input Injection Socket Commands ──
                             "inject_key" => {
                                 // inject_key <keycode> [shift]

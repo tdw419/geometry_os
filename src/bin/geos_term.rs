@@ -28,6 +28,7 @@ use std::io::Write;
 use geometry_os::assembler::assemble;
 use geometry_os::keys::{key_to_ascii, key_to_ascii_shifted};
 use geometry_os::preprocessor::Preprocessor;
+use geometry_os::vision::{canvas_checksum, encode_png};
 use geometry_os::vm::Vm;
 
 const VM_W: usize = 256;
@@ -74,6 +75,10 @@ enum ScriptCmd {
     Sleep(u64),
     /// Assert that text buffer ROW contains TEXT (substring match).
     Assert { row: usize, text: String },
+    /// Assert that the canvas FNV-1a checksum equals HEX (e.g. 0x12abcdef).
+    AssertChecksum(u32),
+    /// Save current canvas as PNG to PATH.
+    Snapshot(String),
     /// Dump diagnostics and text buffer to stderr.
     Dump,
 }
@@ -107,15 +112,24 @@ fn parse_script(script: &str) -> Result<Vec<ScriptCmd>, String> {
             let ms: u64 = ms.parse().map_err(|_| format!("bad sleep: {}", ms))?;
             cmds.push(ScriptCmd::Sleep(ms));
         } else if let Some(rest) = part.strip_prefix("assert:") {
-            // Format: assert:ROW:TEXT
-            let mut parts = rest.splitn(2, ':');
-            let row: usize = parts
-                .next()
-                .ok_or_else(|| "assert needs ROW:TEXT".to_string())?
-                .parse()
-                .map_err(|_| format!("bad assert row: {}", rest))?;
-            let text = parts.next().unwrap_or("").to_string();
-            cmds.push(ScriptCmd::Assert { row, text });
+            // Format: assert:checksum:HEX  or  assert:ROW:TEXT
+            if let Some(hex) = rest.strip_prefix("checksum:") {
+                let trimmed = hex.trim_start_matches("0x").trim_start_matches("0X");
+                let hash = u32::from_str_radix(trimmed, 16)
+                    .map_err(|_| format!("bad checksum hex: {}", hex))?;
+                cmds.push(ScriptCmd::AssertChecksum(hash));
+            } else {
+                let mut parts = rest.splitn(2, ':');
+                let row: usize = parts
+                    .next()
+                    .ok_or_else(|| "assert needs ROW:TEXT".to_string())?
+                    .parse()
+                    .map_err(|_| format!("bad assert row: {}", rest))?;
+                let text = parts.next().unwrap_or("").to_string();
+                cmds.push(ScriptCmd::Assert { row, text });
+            }
+        } else if let Some(path) = part.strip_prefix("snapshot:") {
+            cmds.push(ScriptCmd::Snapshot(path.to_string()));
         } else if part == "dump" {
             cmds.push(ScriptCmd::Dump);
         } else {
@@ -641,12 +655,59 @@ fn execute_script(vm: &mut Vm, cmds: &[ScriptCmd]) -> Result<(), String> {
                     ));
                 }
             }
+            ScriptCmd::AssertChecksum(expected) => {
+                let actual = canvas_checksum(&vm.screen);
+                if actual == *expected {
+                    eprintln!(
+                        "[script] PASS assert checksum 0x{:08x}",
+                        actual
+                    );
+                } else {
+                    return Err(format!(
+                        "FAIL assert checksum: expected 0x{:08x}, got 0x{:08x}",
+                        expected, actual
+                    ));
+                }
+            }
+            ScriptCmd::Snapshot(path) => {
+                let png = encode_png(&vm.screen);
+                match std::fs::write(path, &png) {
+                    Ok(()) => eprintln!(
+                        "[script] snapshot {} bytes -> {} (checksum 0x{:08x})",
+                        png.len(),
+                        path,
+                        canvas_checksum(&vm.screen)
+                    ),
+                    Err(e) => return Err(format!("snapshot {} failed: {}", path, e)),
+                }
+            }
             ScriptCmd::Dump => {
                 dump_diagnostics(vm);
             }
         }
     }
     Ok(())
+}
+
+/// Auto-dump screen as PNG when a script/test fails. Returns the path written, or None.
+fn dump_failure_png(vm: &Vm, label: &str) -> Option<String> {
+    let path = format!("/tmp/geos_term_fail_{}.png", label);
+    let png = encode_png(&vm.screen);
+    match std::fs::write(&path, &png) {
+        Ok(()) => {
+            eprintln!(
+                "[fail-dump] wrote {} bytes -> {} (checksum 0x{:08x})",
+                png.len(),
+                path,
+                canvas_checksum(&vm.screen)
+            );
+            Some(path)
+        }
+        Err(e) => {
+            eprintln!("[fail-dump] could not write {}: {}", path, e);
+            None
+        }
+    }
 }
 
 // ── Built-in confidence tests ────────────────────────────────────────
@@ -958,12 +1019,16 @@ fn main() {
                 eprintln!("  --test NAME    Run built-in confidence test (echo_round_trip, line_wrap, ctrl_c, all)");
                 eprintln!();
                 eprintln!("Script commands:");
-                eprintln!("  frame:N        Advance N frames");
-                eprintln!("  key:BYTE       Inject keystroke (decimal or 0xNN)");
-                eprintln!("  type:TEXT      Type each character");
-                eprintln!("  sleep:MS       Host-level sleep");
-                eprintln!("  assert:ROW:TEXT  Assert row contains text substring");
-                eprintln!("  dump           Print diagnostics");
+                eprintln!("  frame:N             Advance N frames");
+                eprintln!("  key:BYTE            Inject keystroke (decimal or 0xNN)");
+                eprintln!("  type:TEXT           Type each character");
+                eprintln!("  sleep:MS            Host-level sleep");
+                eprintln!("  assert:ROW:TEXT     Assert text-buffer row contains substring");
+                eprintln!("  assert:checksum:HEX Assert canvas FNV-1a checksum (e.g. 0xDEADBEEF)");
+                eprintln!("  snapshot:PATH       Save current canvas as PNG to PATH");
+                eprintln!("  dump                Print diagnostics");
+                eprintln!();
+                eprintln!("On script/test failure a PNG is auto-dumped to /tmp/geos_term_fail_*.png");
                 return;
             }
             other if !other.starts_with('-') => {
@@ -1016,6 +1081,9 @@ fn main() {
     // --test mode: built-in confidence tests
     if let Some(name) = test_name {
         let code = run_test(&name, &mut vm);
+        if code != 0 {
+            dump_failure_png(&vm, &format!("test_{}", name.replace('/', "_")));
+        }
         std::process::exit(code);
     }
 
@@ -1028,11 +1096,15 @@ fn main() {
         eprintln!("[geos-term] script mode: {} commands", cmds.len());
         match execute_script(&mut vm, &cmds) {
             Ok(()) => {
-                eprintln!("[geos-term] script completed successfully");
+                eprintln!(
+                    "[geos-term] script completed successfully (final checksum 0x{:08x})",
+                    canvas_checksum(&vm.screen)
+                );
                 std::process::exit(0);
             }
             Err(msg) => {
                 eprintln!("[geos-term] script FAILED: {}", msg);
+                dump_failure_png(&vm, "script");
                 std::process::exit(1);
             }
         }

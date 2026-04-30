@@ -106,7 +106,9 @@ impl Framebuffer {
                 // Clip register: return current clip rect packed
                 // Format: (y << 24) | (x << 16) | (h << 8) | w, or 0xFFFFFFFF if none
                 return Some(match self.clip_rect {
-                    Some((x, y, w, h)) => ((y as u32) << 24) | ((x as u32) << 16) | ((h as u32) << 8) | (w as u32),
+                    Some((x, y, w, h)) => {
+                        ((y as u32) << 24) | ((x as u32) << 16) | ((h as u32) << 8) | (w as u32)
+                    }
                     None => 0xFFFF_FFFF,
                 });
             }

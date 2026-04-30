@@ -17,10 +17,14 @@ const SOCKET_PATH: &str = "/tmp/geo_cmd.sock";
 const PID_FILE: &str = "/tmp/geo_mcp_server.pid";
 
 fn send_socket_cmd(cmd: &str) -> Result<String, String> {
+    send_socket_cmd_with_timeout(cmd, std::time::Duration::from_secs(5))
+}
+
+fn send_socket_cmd_with_timeout(cmd: &str, timeout: std::time::Duration) -> Result<String, String> {
     let mut stream = UnixStream::connect(SOCKET_PATH)
         .map_err(|e| format!("Cannot connect to {}: {}", SOCKET_PATH, e))?;
     stream
-        .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+        .set_read_timeout(Some(timeout))
         .map_err(|e| format!("Set timeout failed: {}", e))?;
 
     // Send command
@@ -275,6 +279,17 @@ fn get_tool_list() -> Vec<serde_json::Value> {
                 true,
             )],
             vision_diff_schema(),
+        ),
+        tool(
+            "vision_describe",
+            "Take a screenshot and describe it using the local Ollama vision model (llama3.2-vision). Returns a text description of what's on screen. ~2s on local GPU.",
+            vec![param(
+                "prompt",
+                "string",
+                "Custom prompt for the vision model (optional, uses sensible default if omitted)",
+                false,
+            )],
+            vision_describe_schema(),
         ),
         // -- Phase 89: AI Input Injection Tools --
         tool(
@@ -551,6 +566,16 @@ fn vision_diff_schema() -> serde_json::Value {
             "changed": {"type": "boolean"},
             "checksum": {"type": "string", "description": "Current checksum (hex)"},
             "previous_checksum": {"type": "string", "description": "Previous checksum (hex)"}
+        }
+    })
+}
+
+fn vision_describe_schema() -> serde_json::Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "description": {"type": "string", "description": "Vision model's description of the current screen"},
+            "model": {"type": "string", "description": "Vision model used"}
         }
     })
 }
@@ -989,6 +1014,25 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
             }))
         }
 
+        "vision_describe" => {
+            let prompt = args["prompt"].as_str().unwrap_or("");
+            let cmd = if prompt.is_empty() {
+                "vision_describe".to_string()
+            } else {
+                format!("vision_describe {}", prompt)
+            };
+            // Extend timeout for vision model (~5s typical, 10s max)
+            let resp = send_socket_cmd_with_timeout(&cmd, std::time::Duration::from_secs(15))?;
+            if resp.starts_with("error:") {
+                Err(resp)
+            } else {
+                Ok(serde_json::json!({
+                    "description": resp,
+                    "model": "llama3.2-vision:11b (local Ollama)",
+                }))
+            }
+        }
+
         // ── Phase 89: AI Input Injection Tool Handlers ──
         "input_key" => {
             let key_str = args["key"].as_str().unwrap_or("0");
@@ -1335,10 +1379,7 @@ fn kill_stale_instance() {
             // Sending signal 0 doesn't kill but checks existence
             unsafe {
                 if libc::kill(pid as i32, 0) == 0 {
-                    eprintln!(
-                        "[geo_mcp_server] Killing stale instance (PID {})",
-                        pid
-                    );
+                    eprintln!("[geo_mcp_server] Killing stale instance (PID {})", pid);
                     libc::kill(pid as i32, libc::SIGTERM);
                     // Give it a moment to die gracefully
                     std::thread::sleep(std::time::Duration::from_millis(100));

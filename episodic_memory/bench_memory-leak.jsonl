@@ -1,0 +1,3 @@
+{"ts":"40573-40857","prog":"bench_memory-leak","ops":0,"pc":0,"halted":false,"screen":{"non_zero":7500,"total":65536,"pct":11.4},"top_ops":[],"bk":"memory-leak","mo":"text","ve":"NO. The Stack Pointer (SP) is 0.","outcome":"timeout"}
+{"ts":"40573-41031","prog":"bench_memory-leak","ops":0,"pc":0,"halted":false,"screen":{"non_zero":7500,"total":65536,"pct":11.4},"top_ops":[],"bk":"memory-leak","mo":"text","ve":"NO\nInconsistent state (pixels drawn but all registers zero/PC at 0).","outcome":"timeout"}
+{"ts":"40573-41031","prog":"bench_memory-leak","ops":0,"pc":0,"halted":false,"screen":{"non_zero":7500,"total":65536,"pct":11.4},"top_ops":[],"bk":"memory-leak","mo":"vision","ve":"NO, it is not healthy. The system is experiencing a memory leak.","outcome":"timeout"}

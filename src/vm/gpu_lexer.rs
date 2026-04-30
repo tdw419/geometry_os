@@ -77,7 +77,10 @@ impl GpuLexer {
             .context("No GPU adapter found for glyph lexer")?;
 
         let info = adapter.get_info();
-        eprintln!("[gpu-lexer] Adapter: {} (backend: {:?})", info.name, info.backend);
+        eprintln!(
+            "[gpu-lexer] Adapter: {} (backend: {:?})",
+            info.name, info.backend
+        );
 
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
@@ -116,12 +119,7 @@ impl GpuLexer {
     /// Returns a Vec of (offset, width) pairs for each instruction found.
     ///
     /// The `start` and `end` values are in u32 word offsets (byte_offset / 4).
-    pub fn lex(
-        &self,
-        input: &[u32],
-        start: u32,
-        end: u32,
-    ) -> Result<Vec<LexedInstruction>> {
+    pub fn lex(&self, input: &[u32], start: u32, end: u32) -> Result<Vec<LexedInstruction>> {
         let input_len = input.len() as u32;
         let scan_start = start.min(input_len);
         let scan_end = end.min(input_len);
@@ -142,15 +140,17 @@ impl GpuLexer {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: true,
         });
-        params_buffer.slice(..).get_mapped_range_mut().copy_from_slice(
-            unsafe { std::slice::from_raw_parts(params_data.as_ptr() as *const u8, 16) },
-        );
+        params_buffer
+            .slice(..)
+            .get_mapped_range_mut()
+            .copy_from_slice(unsafe {
+                std::slice::from_raw_parts(params_data.as_ptr() as *const u8, 16)
+            });
         params_buffer.unmap();
 
         // ── Input buffer ─────────────────────────────────────────
-        let input_bytes: &[u8] = unsafe {
-            std::slice::from_raw_parts(input.as_ptr() as *const u8, input.len() * 4)
-        };
+        let input_bytes: &[u8] =
+            unsafe { std::slice::from_raw_parts(input.as_ptr() as *const u8, input.len() * 4) };
         let input_buffer_size = (input.len() as u64) * 4;
 
         let input_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -284,28 +284,27 @@ impl GpuLexer {
 fn cpu_opcode_width(op: u32) -> u32 {
     match op {
         // 1-word
-        0x00 | 0x01 | 0x02 | 0x34 | 0x53 | 0x5A | 0x5F | 0x65 | 0x6E | 0x73 | 0x74
-        | 0x76 | 0x91 | 0x9E | 0xB5 | 0xB6 | 0xBE => 1,
+        0x00 | 0x01 | 0x02 | 0x34 | 0x53 | 0x5A | 0x5F | 0x65 | 0x6E | 0x73 | 0x74 | 0x76
+        | 0x91 | 0x9E | 0xB5 | 0xB6 | 0xBE => 1,
 
         // 2-word
-        0x2A | 0x30 | 0x33 | 0x38 | 0x42 | 0x47 | 0x48 | 0x49 | 0x4D | 0x4E | 0x52
-        | 0x57 | 0x59 | 0x5B | 0x5C | 0x5E | 0x66 | 0x69 | 0x6B | 0x6C | 0x6F | 0x77
-        | 0x78 | 0x7A | 0x7B | 0x7C | 0x7D | 0x82 | 0x83 | 0x84 | 0x85 | 0x87 | 0x90
-        | 0x93 | 0x94 | 0x98 | 0x9B | 0xA0 | 0xA1 | 0xA2 | 0xA3 | 0xA5 | 0xA6 | 0xAC
-        | 0xB0 | 0xB2 | 0xB3 | 0xB7 | 0xBA => 2,
+        0x2A | 0x30 | 0x33 | 0x38 | 0x42 | 0x47 | 0x48 | 0x49 | 0x4D | 0x4E | 0x52 | 0x57
+        | 0x59 | 0x5B | 0x5C | 0x5E | 0x66 | 0x69 | 0x6B | 0x6C | 0x6F | 0x77 | 0x78 | 0x7A
+        | 0x7B | 0x7C | 0x7D | 0x82 | 0x83 | 0x84 | 0x85 | 0x87 | 0x90 | 0x93 | 0x94 | 0x98
+        | 0x9B | 0xA0 | 0xA1 | 0xA2 | 0xA3 | 0xA5 | 0xA6 | 0xAC | 0xB0 | 0xB2 | 0xB3 | 0xB7
+        | 0xBA => 2,
 
         // 3-word
-        0x03 | 0x10 | 0x11 | 0x12 | 0x15 | 0x16 | 0x17 | 0x18 | 0x19 | 0x1A | 0x1B
-        | 0x1C | 0x1D | 0x1E | 0x1F | 0x20 | 0x21 | 0x22 | 0x23 | 0x24 | 0x25 | 0x26
-        | 0x27 | 0x28 | 0x29 | 0x2B | 0x31 | 0x32 | 0x35 | 0x36 | 0x4B | 0x50 | 0x51
-        | 0x54 | 0x5D | 0x63 | 0x64 | 0x67 | 0x70 | 0x71 | 0x72 | 0x79 | 0x86 | 0x89
-        | 0x8A | 0x8D | 0x8E | 0x8F | 0x9A | 0x9F | 0xA4 | 0xA7 | 0xA9 | 0xB1 | 0xB4
-        | 0xB8 | 0xB9 | 0xBF => 3,
+        0x03 | 0x10 | 0x11 | 0x12 | 0x15 | 0x16 | 0x17 | 0x18 | 0x19 | 0x1A | 0x1B | 0x1C
+        | 0x1D | 0x1E | 0x1F | 0x20 | 0x21 | 0x22 | 0x23 | 0x24 | 0x25 | 0x26 | 0x27 | 0x28
+        | 0x29 | 0x2B | 0x31 | 0x32 | 0x35 | 0x36 | 0x4B | 0x50 | 0x51 | 0x54 | 0x5D | 0x63
+        | 0x64 | 0x67 | 0x70 | 0x71 | 0x72 | 0x79 | 0x86 | 0x89 | 0x8A | 0x8D | 0x8E | 0x8F
+        | 0x9A | 0x9F | 0xA4 | 0xA7 | 0xA9 | 0xB1 | 0xB4 | 0xB8 | 0xB9 | 0xBF => 3,
 
         // 4-word
-        0x04 | 0x40 | 0x41 | 0x44 | 0x4F | 0x55 | 0x56 | 0x58 | 0x62 | 0x68 | 0x6A
-        | 0x6D | 0x7E | 0x7F | 0x8B | 0x99 | 0x9C | 0x9D | 0xA8 | 0xAA | 0xAB | 0xAD
-        | 0xBB | 0xBC | 0xBD => 4,
+        0x04 | 0x40 | 0x41 | 0x44 | 0x4F | 0x55 | 0x56 | 0x58 | 0x62 | 0x68 | 0x6A | 0x6D
+        | 0x7E | 0x7F | 0x8B | 0x99 | 0x9C | 0x9D | 0xA8 | 0xAA | 0xAB | 0xAD | 0xBB | 0xBC
+        | 0xBD => 4,
 
         // 5-word
         0x80 | 0x81 | 0x95 | 0x96 | 0x97 => 5,
@@ -314,10 +313,10 @@ fn cpu_opcode_width(op: u32) -> u32 {
         0x37 | 0x43 | 0x45 | 0x4A | 0x88 | 0x8C | 0x92 | 0xD0 | 0xD1 => 6,
 
         // 3-word
-        0xD3 => 3,  // PATCHW addr_reg, val_reg
+        0xD3 => 3, // PATCHW addr_reg, val_reg
 
         // 4-word
-        0xD2 => 4,  // PATCH addr_reg, val_reg, mask_reg
+        0xD2 => 4, // PATCH addr_reg, val_reg, mask_reg
 
         // 9-word
         0x4C => 9,
@@ -432,7 +431,13 @@ mod tests {
         let input = vec![0x00];
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 1 });
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 1
+            }
+        );
     }
 
     #[test]
@@ -441,9 +446,27 @@ mod tests {
         let input = vec![0x10, 0, 42, 0x20, 0, 1, 0x00];
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 3);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 3 }); // LDI
-        assert_eq!(result[1], LexedInstruction { offset: 3, width: 3 }); // ADD
-        assert_eq!(result[2], LexedInstruction { offset: 6, width: 1 }); // HALT
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 3
+            }
+        ); // LDI
+        assert_eq!(
+            result[1],
+            LexedInstruction {
+                offset: 3,
+                width: 3
+            }
+        ); // ADD
+        assert_eq!(
+            result[2],
+            LexedInstruction {
+                offset: 6,
+                width: 1
+            }
+        ); // HALT
     }
 
     #[test]
@@ -452,7 +475,13 @@ mod tests {
         let input = vec![0x12, 5, 3];
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 3 });
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 3
+            }
+        );
     }
 
     #[test]
@@ -461,9 +490,27 @@ mod tests {
         let input = vec![0x30, 5, 0x10, 0, 10, 0x00];
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 3);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 2 }); // JMP
-        assert_eq!(result[1], LexedInstruction { offset: 2, width: 3 }); // LDI
-        assert_eq!(result[2], LexedInstruction { offset: 5, width: 1 }); // HALT
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 2
+            }
+        ); // JMP
+        assert_eq!(
+            result[1],
+            LexedInstruction {
+                offset: 2,
+                width: 3
+            }
+        ); // LDI
+        assert_eq!(
+            result[2],
+            LexedInstruction {
+                offset: 5,
+                width: 1
+            }
+        ); // HALT
     }
 
     #[test]
@@ -472,7 +519,13 @@ mod tests {
         let input = vec![0x13, 10, 20, 2, 0x48, 0x69];
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 6 }); // 4 + 2 chars
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 6
+            }
+        ); // 4 + 2 chars
     }
 
     #[test]
@@ -481,7 +534,13 @@ mod tests {
         let input = vec![0x14, 5, 2, 0x41, 0x42];
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 5 }); // 3 + 2 chars
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 5
+            }
+        ); // 3 + 2 chars
     }
 
     #[test]
@@ -490,7 +549,13 @@ mod tests {
         let input = vec![0x75, 10, 0, 3, 100, 200, 300];
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 7 }); // 4 + 3 deps
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 7
+            }
+        ); // 4 + 3 deps
     }
 
     #[test]
@@ -508,7 +573,13 @@ mod tests {
         let input: Vec<u32> = (0..9).map(|i| if i == 0 { 0x4C } else { i }).collect();
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 9 });
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 9
+            }
+        );
     }
 
     #[test]
@@ -517,7 +588,13 @@ mod tests {
         let input = vec![0x41, 100, 200, 0xFF0000];
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 4 });
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 4
+            }
+        );
     }
 
     #[test]
@@ -526,7 +603,13 @@ mod tests {
         let input = vec![0x72, 1, 0];
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 3 });
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 3
+            }
+        );
     }
 
     #[test]
@@ -535,7 +618,13 @@ mod tests {
         let input = vec![0xA8, 1, 2, 3];
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 4 });
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 4
+            }
+        );
     }
 
     #[test]
@@ -557,43 +646,91 @@ mod tests {
     fn test_cpu_lex_realistic_program() {
         // A simple loop: LDI r0, 5 | loop: SUB r0, r1 | JNZ r0, loop | HALT
         let input = vec![
-            0x10, 0, 5,       // LDI r0, 5
-            0x21, 0, 1,       // SUB r0, r1
-            0x32, 0, 3,       // JNZ r0, 3 (-> SUB at offset 3)
-            0x00,             // HALT
+            0x10, 0, 5, // LDI r0, 5
+            0x21, 0, 1, // SUB r0, r1
+            0x32, 0, 3,    // JNZ r0, 3 (-> SUB at offset 3)
+            0x00, // HALT
         ];
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 4);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 3 }); // LDI
-        assert_eq!(result[1], LexedInstruction { offset: 3, width: 3 }); // SUB
-        assert_eq!(result[2], LexedInstruction { offset: 6, width: 3 }); // JNZ
-        assert_eq!(result[3], LexedInstruction { offset: 9, width: 1 }); // HALT
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 3
+            }
+        ); // LDI
+        assert_eq!(
+            result[1],
+            LexedInstruction {
+                offset: 3,
+                width: 3
+            }
+        ); // SUB
+        assert_eq!(
+            result[2],
+            LexedInstruction {
+                offset: 6,
+                width: 3
+            }
+        ); // JNZ
+        assert_eq!(
+            result[3],
+            LexedInstruction {
+                offset: 9,
+                width: 1
+            }
+        ); // HALT
     }
 
     #[test]
     fn test_cpu_lex_graphics_program() {
         // FILL 0xFF0000 | PSETI 10, 20, 0x00FF00 | FRAME | HALT
         let input = vec![
-            0x42, 0xFF0000,             // FILL
-            0x41, 10, 20, 0x00FF00,    // PSETI
-            0x02,                       // FRAME
-            0x00,                       // HALT
+            0x42, 0xFF0000, // FILL
+            0x41, 10, 20, 0x00FF00, // PSETI
+            0x02,     // FRAME
+            0x00,     // HALT
         ];
         let result = cpu_lex_all(&input);
         assert_eq!(result.len(), 4);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 2 }); // FILL
-        assert_eq!(result[1], LexedInstruction { offset: 2, width: 4 }); // PSETI
-        assert_eq!(result[2], LexedInstruction { offset: 6, width: 1 }); // FRAME
-        assert_eq!(result[3], LexedInstruction { offset: 7, width: 1 }); // HALT
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 2
+            }
+        ); // FILL
+        assert_eq!(
+            result[1],
+            LexedInstruction {
+                offset: 2,
+                width: 4
+            }
+        ); // PSETI
+        assert_eq!(
+            result[2],
+            LexedInstruction {
+                offset: 6,
+                width: 1
+            }
+        ); // FRAME
+        assert_eq!(
+            result[3],
+            LexedInstruction {
+                offset: 7,
+                width: 1
+            }
+        ); // HALT
     }
 
     #[test]
     fn test_cpu_lex_with_data_padding() {
         // Some data words followed by valid code
         let input = vec![
-            0xDEADBEEF, 0xCAFEBABE,    // data (unknown opcodes, skipped)
-            0x10, 0, 42,               // LDI r0, 42
-            0x00,                       // HALT
+            0xDEADBEEF, 0xCAFEBABE, // data (unknown opcodes, skipped)
+            0x10, 0, 42,   // LDI r0, 42
+            0x00, // HALT
         ];
         let result = cpu_lex_all(&input);
         // The deadbeef and cafebabe have unknown low bytes (0xEF, 0xBE)
@@ -604,7 +741,10 @@ mod tests {
 
     #[test]
     fn test_lexed_instruction_display() {
-        let inst = LexedInstruction { offset: 0x1000, width: 3 };
+        let inst = LexedInstruction {
+            offset: 0x1000,
+            width: 3,
+        };
         let s = format!("{}", inst);
         assert_eq!(s, "offset=0x1000 width=3");
     }
@@ -613,8 +753,8 @@ mod tests {
     fn test_cpu_lex_all_single_ops() {
         // Verify every 1-word opcode
         let one_word_ops: &[u32] = &[
-            0x00, 0x01, 0x02, 0x34, 0x53, 0x5A, 0x5F, 0x65, 0x6E, 0x73, 0x74, 0x76,
-            0x91, 0x9E, 0xB5, 0xB6, 0xBE,
+            0x00, 0x01, 0x02, 0x34, 0x53, 0x5A, 0x5F, 0x65, 0x6E, 0x73, 0x74, 0x76, 0x91, 0x9E,
+            0xB5, 0xB6, 0xBE,
         ];
         for &op in one_word_ops {
             let input = vec![op];
@@ -637,11 +777,10 @@ mod tests {
     #[test]
     fn test_cpu_lex_two_word_ops() {
         let two_word_ops: &[u32] = &[
-            0x2A, 0x30, 0x33, 0x38, 0x42, 0x47, 0x48, 0x49, 0x4D, 0x4E, 0x52, 0x57,
-            0x59, 0x5B, 0x5C, 0x5E, 0x66, 0x69, 0x6B, 0x6C, 0x6F, 0x77, 0x78, 0x7A,
-            0x7B, 0x7C, 0x7D, 0x82, 0x83, 0x84, 0x85, 0x87, 0x90, 0x93, 0x94, 0x98,
-            0x9B, 0xA0, 0xA1, 0xA2, 0xA3, 0xA5, 0xA6, 0xAC, 0xB0, 0xB2, 0xB3, 0xB7,
-            0xBA,
+            0x2A, 0x30, 0x33, 0x38, 0x42, 0x47, 0x48, 0x49, 0x4D, 0x4E, 0x52, 0x57, 0x59, 0x5B,
+            0x5C, 0x5E, 0x66, 0x69, 0x6B, 0x6C, 0x6F, 0x77, 0x78, 0x7A, 0x7B, 0x7C, 0x7D, 0x82,
+            0x83, 0x84, 0x85, 0x87, 0x90, 0x93, 0x94, 0x98, 0x9B, 0xA0, 0xA1, 0xA2, 0xA3, 0xA5,
+            0xA6, 0xAC, 0xB0, 0xB2, 0xB3, 0xB7, 0xBA,
         ];
         for &op in two_word_ops {
             let input = vec![op, 0];
@@ -672,9 +811,27 @@ mod tests {
         let result = lexer.lex_all(&input).expect("GPU lex failed");
 
         assert_eq!(result.len(), 3, "Expected 3 instructions");
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 3 });
-        assert_eq!(result[1], LexedInstruction { offset: 3, width: 3 });
-        assert_eq!(result[2], LexedInstruction { offset: 6, width: 1 });
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 3
+            }
+        );
+        assert_eq!(
+            result[1],
+            LexedInstruction {
+                offset: 3,
+                width: 3
+            }
+        );
+        assert_eq!(
+            result[2],
+            LexedInstruction {
+                offset: 6,
+                width: 1
+            }
+        );
     }
 
     #[cfg(feature = "gpu")]
@@ -684,13 +841,13 @@ mod tests {
 
         // Build a complex program with many instruction types
         let input: Vec<u32> = vec![
-            0x10, 0, 10,       // LDI r0, 10
-            0x10, 1, 20,       // LDI r1, 20
-            0x20, 0, 1,        // ADD r0, r1
-            0x42, 0xFF0000,    // FILL
+            0x10, 0, 10, // LDI r0, 10
+            0x10, 1, 20, // LDI r1, 20
+            0x20, 0, 1, // ADD r0, r1
+            0x42, 0xFF0000, // FILL
             0x41, 100, 200, 0x00FF00, // PSETI
-            0x02,              // FRAME
-            0x00,              // HALT
+            0x02,     // FRAME
+            0x00,     // HALT
         ];
 
         let cpu_result = cpu_lex_all(&input);
@@ -703,11 +860,7 @@ mod tests {
         );
 
         for (cpu, gpu) in cpu_result.iter().zip(gpu_result.iter()) {
-            assert_eq!(
-                cpu.offset, gpu.offset,
-                "Offset mismatch at index {:?}",
-                cpu
-            );
+            assert_eq!(cpu.offset, gpu.offset, "Offset mismatch at index {:?}", cpu);
             assert_eq!(
                 cpu.width, gpu.width,
                 "Width mismatch at offset 0x{:04X}",
@@ -731,7 +884,13 @@ mod tests {
         let result = lexer.lex_all(&input).expect("GPU lex failed");
 
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0], LexedInstruction { offset: 0, width: 6 });
+        assert_eq!(
+            result[0],
+            LexedInstruction {
+                offset: 0,
+                width: 6
+            }
+        );
     }
 
     #[cfg(feature = "gpu")]
