@@ -14,7 +14,7 @@ LDI r6, 20             ; y start
 LDI r7, 60             ; y end
 
 draw_white_y:
-  LDI r2, r4           ; x = x_start
+  MOV r2, r4           ; x = x_start
   draw_white_x:
     PSET r2, r6, r3
     ADD r2, r1
@@ -32,7 +32,7 @@ LDI r6, 100
 LDI r7, 140
 
 draw_red_y:
-  LDI r2, r4
+  MOV r2, r4
   draw_red_x:
     PSET r2, r6, r3
     ADD r2, r1
@@ -50,7 +50,7 @@ LDI r6, 180
 LDI r7, 220
 
 draw_green_y:
-  LDI r2, r4
+  MOV r2, r4
   draw_green_x:
     PSET r2, r6, r3
     ADD r2, r1

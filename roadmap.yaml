@@ -8681,3 +8681,500 @@ phases:
   scope_lines: 125
   scope_lines_total: 84710
   test_target: 8
+
+- id: phase-185
+  title: "ANSI Parser -- Scroll Region (CSI r) and Origin Mode"
+  status: planned
+  goal: "Add scroll region support so full-screen apps (htop, nano, vim) can lock scrolling to a subset of rows"
+  description: "CSI r (DECSTBM) sets the scroll region top and bottom margins. Within this region, scrolling only affects rows between top and bottom. Cursor movement outside the region is clamped. prompt_toolkit does NOT use scroll regions, but full-screen terminal apps (nano, htop) do. The qemu/ansi.rs Rust parser already handles this -- port the logic to host_term.asm. Also add CSI S and CSI T for scroll up/down by N lines."
+  deliverables:
+  - name: "CSI r -- set scroll region (DECSTBM)"
+    status: todo
+    tasks:
+    - id: p185.d1.t1
+      title: "Add SCROLL_TOP and SCROLL_BOTTOM memory locations"
+      description: "Define SCROLL_TOP (default 0) and SCROLL_BOTTOM (default ROWS-1) at known RAM addresses. Initialize to full screen on startup and on CSI r with no params."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 15
+    - id: p185.d1.t2
+      title: "Parse CSI r in handle_sgr_final"
+      description: "When final byte is 'r', read CSI_PARAM as top and CSI_PARAM2 as bottom (1-indexed). Clamp to valid range. Update SCROLL_TOP/SCROLL_BOTTOM. Move cursor to home position."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 35
+    - id: p185.d1.t3
+      title: "Modify scroll_up and scroll_down to respect scroll region"
+      description: "When cursor is on SCROLL_BOTTOM row and newline triggers scroll, only shift rows between SCROLL_TOP and SCROLL_BOTTOM. Clear SCROLL_BOTTOM row. Same for reverse scroll at SCROLL_TOP."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 40
+    - id: p185.d1.t4
+      title: "Clamp cursor movement within scroll region"
+      description: "CSI A/B (cursor up/down) should not move cursor above SCROLL_TOP or below SCROLL_BOTTOM. CSI H should clamp row to scroll region."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 20
+  - name: "Tests for scroll region"
+    status: todo
+    tasks:
+    - id: p185.d2.t1
+      title: "Test CSI r sets scroll region and cursor goes home"
+      description: "Drive ESC[5;10r through host_term_run_ansi, verify cursor at (0,0). Write past bottom, verify only rows 5-9 scroll."
+      scope_files: ["src/vm/tests.rs"]
+      scope_lines: 40
+  scope_lines: 150
+  scope_lines_total: 84860
+  test_target: 6
+
+- id: phase-186
+  title: "ANSI Parser -- Tab Stops and Horizontal Scrolling"
+  status: planned
+  goal: "Add proper tab stop handling so formatted output (ls, tables, code) aligns correctly"
+  description: "Currently TAB advances to next 8-column boundary but there are no configurable tab stops. CSI sequences for setting/clearing tab stops exist (CSI 3g = clear all tabs, CSI 0g = clear tab at cursor, CSI 5g = set tab). Also need HTS (ESC H) to set a tab stop. While prompt_toolkit does not heavily use custom tabs, ls and many CLI tools rely on 8-column tab alignment."
+  deliverables:
+  - name: "Tab stop array and HTS (ESC H) support"
+    status: todo
+    tasks:
+    - id: p186.d1.t1
+      title: "Add tab stop bitmap at known RAM address"
+      description: "80 bits = 10 u32 words for 80-column tab stops. Initialize with default 8-column stops (bits 0,8,16,...,72 set). ESC H sets bit at cursor col."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 25
+    - id: p186.d1.t2
+      title: "Implement CSI 3g (clear all tab stops)"
+      description: "Zero the tab stop bitmap."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 10
+    - id: p186.d1.t3
+      title: "Implement CSI 0g and CSI 5g"
+      description: "0g clears tab at cursor col, 5g sets tab at cursor col."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 15
+  - name: "Tests for tab stops"
+    status: todo
+    tasks:
+    - id: p186.d2.t1
+      title: "Test default tab stops, custom tab stops, and clear"
+      description: "Verify TAB at col 0 goes to col 8. Set tab at col 5, TAB from col 3 goes to col 5. Clear all tabs, TAB goes nowhere."
+      scope_files: ["src/vm/tests.rs"]
+      scope_lines: 35
+  scope_lines: 85
+  scope_lines_total: 84945
+  test_target: 5
+
+- id: phase-187
+  title: "Replace save.rs unwrap() with Proper Error Handling"
+  status: planned
+  goal: "Eliminate 27 unwrap() calls in save.rs that can panic on corrupt save files"
+  description: "save.rs handles PNG save/load for screenshots and VM state persistence. Currently has 27 unwrap() calls on file I/O, PNG decoding, and path conversion. Corrupt save files or permission errors will crash the entire OS. Replace with Result propagation and graceful fallback (return None, log warning, keep current state)."
+  deliverables:
+  - name: "Replace file I/O unwraps in save.rs"
+    status: todo
+    tasks:
+    - id: p187.d1.t1
+      title: "Replace File::open, File::create, to_str unwraps"
+      description: "Use if let Ok(_) or ? operator with Result return types. On failure, return None or Err(SaveError) instead of panicking."
+      scope_files: ["src/save.rs"]
+      scope_lines: 60
+    - id: p187.d1.t2
+      title: "Replace PNG decoder/encoder unwraps"
+      description: "png::Decoder::read_info and reader.next_frame can fail on corrupt PNGs. Wrap in match/Result."
+      scope_files: ["src/save.rs"]
+      scope_lines: 30
+  - name: "Tests for save error handling"
+    status: todo
+    tasks:
+    - id: p187.d2.t1
+      title: "Test loading nonexistent save returns None"
+      description: "Attempt to load from nonexistent path, verify no panic, returns None."
+      scope_files: ["src/save.rs"]
+      scope_lines: 15
+    - id: p187.d2.t2
+      title: "Test loading corrupt PNG returns None"
+      description: "Write random bytes to a temp file, attempt to load as PNG, verify no panic."
+      scope_files: ["src/save.rs"]
+      scope_lines: 15
+  scope_lines: 120
+  scope_lines_total: 85065
+  test_target: 4
+
+- id: phase-188
+  title: "Replace glyph_backend.rs unwrap() with Error Propagation"
+  status: planned
+  goal: "Eliminate 36 unwrap() calls in glyph_backend.rs for robustness"
+  description: "glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap() calls on font loading, pattern matching, and data extraction. Failures here crash the glyph system."
+  deliverables:
+  - name: "Audit and replace unwrap() calls in glyph_backend.rs"
+    status: todo
+    tasks:
+    - id: p188.d1.t1
+      title: "Replace all 36 unwrap() with proper error handling"
+      description: "Group by category (font loading, regex, data extraction). Use match, ok_or, or early return patterns."
+      scope_files: ["src/glyph_backend.rs"]
+      scope_lines: 100
+    - id: p188.d1.t2
+      title: "Verify all 3656 tests still pass after changes"
+      description: "Run cargo test, confirm no regressions."
+      scope_files: ["src/glyph_backend.rs"]
+      scope_lines: 5
+  scope_lines: 105
+  scope_lines_total: 85170
+  test_target: 2
+
+- id: phase-189
+  title: "VFS Capability Enforcement on Process Creation"
+  status: planned
+  goal: "Wire up the existing Capability struct to Process so spawned programs get restricted VFS access"
+  description: "src/vm/types.rs already has Capability, check_path_capability, and check_opcode_capability implemented. But src/vfs.rs has two TODOs saying capability checks are skipped because capabilities are not yet on Process. The Process struct (types.rs:492) needs a caps field, and SPAWN opcode needs to accept capability lists. This is the foundation for sandboxing."
+  deliverables:
+  - name: "Add caps field to Process struct"
+    status: todo
+    tasks:
+    - id: p189.d1.t1
+      title: "Add caps: Option<Vec<Capability>> to Process"
+      description: "Add field to Process struct in types.rs. Initialize to None (full access) for main process and existing processes. Add builder method to set caps on spawn."
+      scope_files: ["src/vm/types.rs"]
+      scope_lines: 20
+    - id: p189.d1.t2
+      title: "Enable the two TODO capability checks in vfs.rs"
+      description: "Remove the TODO comments and call check_path_capability with the process caps from the syscall context."
+      scope_files: ["src/vfs.rs"]
+      scope_lines: 25
+    - id: p189.d1.t3
+      title: "Add SPAWN capability parameter"
+      description: "Extend SPAWN opcode to accept an optional capability list address. If provided, child process gets restricted access. If not, child gets None (full access)."
+      scope_files: ["src/vm/ops_extended.rs"]
+      scope_lines: 40
+  - name: "Tests for capability enforcement"
+    status: todo
+    tasks:
+    - id: p189.d2.t1
+      title: "Test that restricted process cannot open disallowed paths"
+      description: "Spawn a child with caps allowing only /tmp/*. Child tries to open /etc/passwd equivalent in VFS, verify it fails."
+      scope_files: ["src/vm/tests.rs"]
+      scope_lines: 40
+  scope_lines: 125
+  scope_lines_total: 85295
+  test_target: 4
+
+- id: phase-190
+  title: "Sync qemu/ansi.rs Feature Parity with host_term.asm"
+  status: planned
+  goal: "Ensure both ANSI parsers handle the same set of sequences, preventing behavioral drift"
+  description: "There are two ANSI parsers: the Rust qemu/ansi.rs (1403 lines, 71 tests) used by the RISC-V bridge, and the ASM host_term.asm (2765 lines, 32 tests) used by the host terminal. They have diverged -- qemu/ansi.rs supports erase (K/J), scroll region (r), and more private modes, while host_term.asm does not yet. Audit both parsers and create a shared feature matrix, then implement missing features in the ASM parser."
+  deliverables:
+  - name: "Feature matrix document"
+    status: todo
+    tasks:
+    - id: p190.d1.t1
+      title: "Audit both parsers and document differences"
+      description: "Grep for all handled final bytes in qemu/ansi.rs handle_csi and handle_csi_private. Compare with host_term.asm. Output a markdown table showing supported/missing for each parser."
+      scope_files: ["programs/host_term.asm", "src/qemu/ansi.rs"]
+      scope_lines: 30
+  - name: "Port missing qemu/ansi.rs features to host_term.asm"
+    status: todo
+    tasks:
+    - id: p190.d2.t1
+      title: "Implement any remaining CSI sequences not in phases 183-185"
+      description: "After phases 183-185 land, check what else qemu/ansi.rs has that host_term.asm lacks. Likely candidates: CSI S/T (scroll N lines), CSI L/M (insert/delete lines)."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 60
+    - id: p190.d2.t2
+      title: "Add parity tests"
+      description: "For each newly implemented sequence, add a test that drives the same input through both parsers (via host_term_run_ansi and qemu/ansi::AnsiState) and asserts identical screen output."
+      scope_files: ["src/vm/tests.rs"]
+      scope_lines: 40
+  scope_lines: 130
+  scope_lines_total: 85425
+  test_target: 8
+
+- id: phase-191
+  title: "Roguelike Game Polish -- Save/Load and Win Condition"
+  status: planned
+  goal: "Add game state persistence and a proper win/lose loop to the roguelike"
+  description: "The roguelike (2549 lines) is one of the largest programs but has no save/load and no win condition. When you find the stairs, there is no victory message or level progression. Adding save/load via the VFS WRITE/READ opcodes proves the VFS works for real app state. Adding level progression makes it a game."
+  deliverables:
+  - name: "Save/load game state to VFS"
+    status: todo
+    tasks:
+    - id: p191.d1.t1
+      title: "Add save command that writes player state to VFS file"
+      description: "On 'S' key press, serialize player HP, level, inventory, dungeon seed to a VFS file using WRITE opcode."
+      scope_files: ["programs/roguelike.asm"]
+      scope_lines: 40
+    - id: p191.d1.t2
+      title: "Add load command that reads game state from VFS"
+      description: "On 'L' key press, read VFS file and restore state. Handle missing/corrupt file gracefully."
+      scope_files: ["programs/roguelike.asm"]
+      scope_lines: 40
+  - name: "Win condition and level progression"
+    status: todo
+    tasks:
+    - id: p191.d2.t1
+      title: "Add victory message when reaching stairs"
+      description: "When player steps on stairs, show 'Level Complete!' overlay. After 2 seconds, regenerate dungeon at next depth with harder enemies."
+      scope_files: ["programs/roguelike.asm"]
+      scope_lines: 30
+    - id: p191.d2.t2
+      title: "Death screen with score and restart option"
+      description: "When HP reaches 0, show 'Game Over' with floor reached and enemies killed. Press R to restart."
+      scope_files: ["programs/roguelike.asm"]
+      scope_lines: 25
+  scope_lines: 135
+  scope_lines_total: 85560
+  test_target: 3
+
+- id: phase-192
+  title: "Shell.asm Built-in Commands Expansion"
+  status: planned
+  goal: "Add more useful built-in commands to the shell (grep, head, tail, wc, date)"
+  description: "The shell (2039 lines) handles basic command parsing and execution via EXEC. But common commands like grep, head, tail are missing as built-ins. Users should not need external binaries for basic text operations. Implement these as shell built-in command handlers."
+  deliverables:
+  - name: "grep built-in command"
+    status: todo
+    tasks:
+    - id: p192.d1.t1
+      title: "Add grep command that searches VFS file contents"
+      description: "Parse 'grep PATTERN FILE'. Open file via VFS, read lines, print matching lines with line numbers. Support case-insensitive flag -i."
+      scope_files: ["programs/shell.asm"]
+      scope_lines: 60
+  - name: "head and tail built-in commands"
+    status: todo
+    tasks:
+    - id: p192.d2.t1
+      title: "Add head and tail commands"
+      description: "Parse 'head -N FILE' (default 10) and 'tail -N FILE'. Read VFS file, print first/last N lines."
+      scope_files: ["programs/shell.asm"]
+      scope_lines: 50
+  - name: "wc and date built-in commands"
+    status: todo
+    tasks:
+    - id: p192.d3.t1
+      title: "Add wc (word/line/char count) and date commands"
+      description: "wc reads VFS file and prints line/word/char counts. date reads the clock port and prints formatted time."
+      scope_files: ["programs/shell.asm"]
+      scope_lines: 40
+  scope_lines: 150
+  scope_lines_total: 85710
+  test_target: 5
+
+- id: phase-193
+  title: "Nano Editor -- Search and Replace"
+  status: planned
+  goal: "Add search (Ctrl+S) and replace (Ctrl+R) to the nano editor"
+  description: "The nano editor (2208 lines) supports basic editing but has no search/replace. These are essential for real editing work. Implement incremental search (highlight matches as you type) and replace (with confirm). Uses only existing opcodes (STRING ops, HITSET for UI)."
+  deliverables:
+  - name: "Incremental search (Ctrl+S)"
+    status: todo
+    tasks:
+    - id: p193.d1.t1
+      title: "Add search prompt and matching logic"
+      description: "Ctrl+S enters search mode at bottom of screen. Type search term, matches highlight in buffer. Enter confirms, Escape cancels. Use STRING_FIND or brute-force compare."
+      scope_files: ["programs/nano_editor.asm"]
+      scope_lines: 60
+    - id: p193.d1.t2
+      title: "Add match navigation (F3 next, Shift+F3 prev)"
+      description: "After search, F3 jumps to next match, Shift+F3 to previous. Highlight current match with inverse video."
+      scope_files: ["programs/nano_editor.asm"]
+      scope_lines: 30
+  - name: "Replace (Ctrl+R)"
+    status: todo
+    tasks:
+    - id: p193.d2.t1
+      title: "Add replace prompt and execution"
+      description: "Ctrl+R prompts for search and replacement text. Replace all or confirm each. Updates buffer and marks dirty."
+      scope_files: ["programs/nano_editor.asm"]
+      scope_lines: 40
+  scope_lines: 130
+  scope_lines_total: 85840
+  test_target: 3
+
+- id: phase-194
+  title: "Host Terminal Performance -- Dirty Rectangle Rendering"
+  status: planned
+  goal: "Only re-render changed rows instead of the full 30-row screen every frame"
+  description: "Currently host_term.asm renders all 30 rows every frame via SMALLTEXT, even when only one line changed (like typing a character). This is wasteful. Track which rows changed since last render and only SMALLTEXT the dirty rows. With a status bar and scrollback already optimized, this is the last rendering bottleneck."
+  deliverables:
+  - name: "Row dirty bitmap"
+    status: todo
+    tasks:
+    - id: p194.d1.t1
+      title: "Add 32-bit dirty row bitmap (1 bit per row)"
+      description: "At render time, check bitmap. Only call SMALLTEXT for rows with bit set. Clear bits after rendering. Set bit on any text write, cursor move, or scroll."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 40
+    - id: p194.d1.t2
+      title: "Benchmark frame time before and after"
+      description: "Add a frame counter that measures cycles between renders. Log or display in status bar when debug mode is on."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 20
+  scope_lines: 60
+  scope_lines_total: 85900
+  test_target: 2
+
+- id: phase-195
+  title: "File Browser -- Directory Navigation and File Operations"
+  status: planned
+  goal: "Extend file browser to support directory traversal, file deletion, and file creation"
+  description: "The file browser shows VFS files and displays content but cannot navigate directories (VFS has a flat namespace currently) or perform file operations. Add mkdir, rm, and touch commands accessible from the file browser UI. Also add file size display and modification time if available from VFS metadata."
+  deliverables:
+  - name: "File operations from file browser"
+    status: todo
+    tasks:
+    - id: p195.d1.t1
+      title: "Add delete confirmation dialog"
+      description: "Select a file, press D to delete. Show confirmation dialog (Y/N). On confirm, call VFS UNLINK. Refresh file list."
+      scope_files: ["programs/file_browser.asm"]
+      scope_lines: 40
+    - id: p195.d1.t2
+      title: "Add file size display in file list"
+      description: "After filename, show file size in bytes using STRO and integer-to-string conversion."
+      scope_files: ["programs/file_browser.asm"]
+      scope_lines: 25
+  scope_lines: 65
+  scope_lines_total: 85965
+  test_target: 2
+
+- id: phase-196
+  title: "AI Terminal -- Session History and Context Window"
+  status: planned
+  goal: "Add command history and conversation context tracking to ai_terminal.asm"
+  description: "The AI terminal (2181 lines) sends prompts to the LLM opcode but has no command history (up/down arrows to recall previous prompts) and no context window showing token usage or conversation length. These are essential for practical use."
+  deliverables:
+  - name: "Command history with up/down arrow recall"
+    status: todo
+    tasks:
+    - id: p196.d1.t1
+      title: "Add circular history buffer (16 entries)"
+      description: "Store each submitted prompt in a ring buffer at a known RAM address. Up arrow recalls previous, down arrow goes forward."
+      scope_files: ["programs/ai_terminal.asm"]
+      scope_lines: 40
+  - name: "Context window display"
+    status: todo
+    tasks:
+    - id: p196.d2.t1
+      title: "Show token count and conversation turns in status bar"
+      description: "Track prompt + response lengths. Display 'Turns: N | Chars: M' in the status area."
+      scope_files: ["programs/ai_terminal.asm"]
+      scope_lines: 20
+  scope_lines: 60
+  scope_lines_total: 86025
+  test_target: 2
+
+- id: phase-197
+  title: "Replace mmu.rs unwrap() Calls with Proper Error Paths"
+  status: planned
+  goal: "Eliminate 14 unwrap() calls in the RISC-V MMU that can panic on page fault edge cases"
+  description: "The MMU (src/riscv/mmu.rs) handles address translation for the RISC-V interpreter. 14 unwrap() calls on page table lookups can panic when page table entries are malformed or missing. Replace with proper fault reporting (return PageFault with fault address) so the interpreter can handle them gracefully."
+  deliverables:
+  - name: "Replace MMU unwrap() calls"
+    status: todo
+    tasks:
+    - id: p197.d1.t1
+      title: "Replace all 14 unwrap() in mmu.rs"
+      description: "Change translate() and related functions to return Result<T, PageFault> instead of panicking. Propagate errors to caller."
+      scope_files: ["src/riscv/mmu.rs"]
+      scope_lines: 80
+    - id: p197.d1.t2
+      title: "Verify all RISC-V tests still pass"
+      description: "Run cargo test --test riscv_tests, confirm 147 tests pass."
+      scope_files: ["src/riscv/mmu.rs"]
+      scope_lines: 5
+  scope_lines: 85
+  scope_lines_total: 86110
+  test_target: 2
+
+- id: phase-198
+  title: "Desktop Terminal Integration -- Launch Hermes from GeOS"
+  status: planned
+  goal: "The GeOS terminal should be able to launch Hermes Agent as a subprocess and display its output"
+  description: "The terminal runs bash, which means you can type 'hermes chat' and get Hermes running inside GeOS. But this requires: (1) Hermes is in PATH or at a known location, (2) the PTY resize handling matches what Hermes expects, (3) 256-color output renders correctly (phase e3d90c8). This phase verifies the full chain works and fixes any issues found."
+  deliverables:
+  - name: "Verify Hermes launches and renders in GeOS terminal"
+    status: todo
+    tasks:
+    - id: p198.d1.t1
+      title: "Test hermes chat in PTY and verify 256-color output"
+      description: "Spawn bash, type 'hermes chat', capture output. Verify 256-color SGR sequences render with correct colors. Check for any sequences that crash the parser."
+      scope_files: ["src/vm/tests.rs"]
+      scope_lines: 30
+    - id: p198.d1.t2
+      title: "Fix any rendering issues found during Hermes session"
+      description: "If Hermes emits sequences not yet handled (erase, cursor style, etc.), add handlers or silently ignore them."
+      scope_files: ["programs/host_term.asm"]
+      scope_lines: 40
+  scope_lines: 70
+  scope_lines_total: 86180
+  test_target: 3
+
+- id: phase-199
+  title: "Code Evolution Program -- Fitness Function Improvements"
+  status: planned
+  goal: "Improve the self-modifying code evolution program to produce more interesting and stable results"
+  description: "code_evolution.asm (5705 lines, the largest program) implements genetic programming where code modifies itself. But the fitness function may be too simple, leading to degenerate solutions. Improve fitness evaluation to reward useful behaviors (drawing patterns, solving math, producing output) rather than just not crashing."
+  deliverables:
+  - name: "Enhanced fitness function"
+    status: todo
+    tasks:
+    - id: p199.d1.t1
+      title: "Add pattern-matching fitness evaluation"
+      description: "After running evolved code, check canvas for specific patterns (symmetry, repetition, non-zero regions). Score based on visual complexity and structure."
+      scope_files: ["programs/code_evolution.asm"]
+      scope_lines: 60
+    - id: p199.d1.t2
+      title: "Add diversity pressure to prevent convergence"
+      description: "Track opcode distribution across population. Penalize individuals too similar to current best. Encourage exploring different opcode combinations."
+      scope_files: ["programs/code_evolution.asm"]
+      scope_lines: 40
+    scope_lines: 100
+    scope_lines_total: 86280
+  test_target: 2
+
+- id: phase-200
+  title: "Vision Benchmark v2 -- Executable Scenarios"
+  status: planned
+  goal: "Rebuild vision_bench with scenarios that run real programs, giving both text and vision modalities actual screen content to evaluate"
+  description: "The initial vision_bench (Role 2) showed vision works (1.7s latency, 10x faster than text) but the accuracy comparison was inconclusive. Root cause: scenarios set up canvas pixels without running code, so text got a free shortcut (all registers zero, all halted). Vision was the only modality actually perceiving screen content. Fix: each scenario must assemble and run a real .asm program for N steps before snapshotting, so both modalities must reason about visual state rather than register defaults."
+  deliverables:
+  - name: "Executable scenario runner"
+    status: todo
+    tasks:
+    - id: p200.d1.t1
+      title: "Refactor vision_bench to assemble+run programs before snapshot"
+      description: "Replace the direct pixel-manipulation setup functions with a generic run_program(name, steps) that assembles a .asm, creates a Vm, runs N steps, then captures the screen state. Use the existing Vm + Assembler infrastructure. Each scenario becomes a .asm file under programs/bench/."
+      scope_files: ["src/bin/vision_bench.rs"]
+      scope_lines: 200
+    - id: p200.d1.t2
+      title: "Create 6 executable benchmark scenarios"
+      description: "Write .asm programs: (1) life32 oscillator (healthy), (2) expanding rectangle allocator (memory leak), (3) rapid pixel scatter (runaway), (4) single blinking pixel (stuck), (5) clean halt (idle), (6) colorful pattern (healthy-complex). Each runs 200-500 steps before snapshot. Use existing programs as starting points."
+      scope_files: ["programs/bench/"]
+      scope_lines: 300
+    - id: p200.d1.t3
+      title: "Add CSV output and summary statistics"
+      description: "Output a CSV with columns: scenario, modality, latency_ms, response, verdict_correct. Add a summary section printing accuracy rate per modality, mean latency, and per-scenario breakdown. Save to episodic_memory/vision_bench_results.csv."
+      scope_files: ["src/bin/vision_bench.rs"]
+      scope_lines: 80
+  test_target: 3
+
+- id: phase-201
+  title: "Hilbert RAM Mirror Opcode (HMIRROR)"
+  status: planned
+  goal: "Make memory layout visible via space-filling curves so anomalies are seen, not parsed"
+  description: "The research doc's strongest concrete claim: project a contiguous RAM range onto a canvas region using a Hilbert order-8 curve, one byte per pixel. This gives VLM agents spatial locality -- adjacent bytes map to adjacent pixels. A memory leak becomes a visibly expanding bright band. A repeating pattern becomes visible stripes. This is the cheapest feature in the pixel-system plan and produces the most striking demo."
+  deliverables:
+  - name: "Hilbert curve lookup table"
+    status: todo
+    tasks:
+    - id: p201.d1.t1
+      title: "Implement Hilbert order-8 d2xy in src/vm/hilbert.rs"
+      description: "Precompute a [(u8,u8); 65536] table mapping linear index to (x,y) via Hilbert curve. Order 8 = 256x256 covers full 64K RAM at 1px/byte. Also provide xy2d for reverse lookup. Include unit tests: known points (0,0), (65535,255,255), symmetry checks."
+      scope_files: ["src/vm/hilbert.rs"]
+      scope_lines: 120
+    - id: p201.d1.t2
+      title: "Add HMIRROR opcode to assembler, preprocessor, and VM"
+      description: "New opcode HMIRROR Rsrc, Rdst, Rsize: projects RAM[src..src+size] onto a 256x256 canvas region using Hilbert order. Byte value maps to grayscale or palette color. Assign next available opcode number. Add to assembler.rs OPCODES list, preprocessor.rs, vm.rs executor, and disasm.rs. Add a test that writes DEADBEEF repeated every 256 bytes and verifies visually periodic stripes via pixel readback."
+      scope_files: ["src/assembler/system_ops.rs", "src/vm/mod.rs", "src/vm/disasm.rs", "src/preprocessor.rs"]
+      scope_lines: 150
+    - id: p201.d1.t3
+      title: "Add peek view subcommand to shell and demo program"
+      description: "Add 'peek' command to the terminal that calls HMIRROR for a RAM range and displays the result. Create programs/hilbert_demo.asm that allocates memory, writes patterns, and shows the Hilbert mirror. Verify with a test PNG diff showing periodic stripes for repeating patterns and expanding bands for linear growth."
+      scope_files: ["programs/hilbert_demo.asm"]
+      scope_lines: 100
+  test_target: 4
