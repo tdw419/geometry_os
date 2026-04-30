@@ -451,6 +451,13 @@ pb_check_esc:
     LDI r20, SGR_EXTENDED
     LDI r0, 0
     STORE r20, r0
+    ; Reset CSI params so stale values from previous sequences don't leak
+    LDI r20, CSI_PARAM
+    LDI r0, 0
+    STORE r20, r0
+    LDI r20, CSI_PARAM2
+    LDI r0, 0
+    STORE r20, r0
     JMP pb_ret
 
 pb_esc_check_osc:

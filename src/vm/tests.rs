@@ -21366,6 +21366,56 @@ fn host_term_ansi_carriage_return_resets_col() {
     assert_eq!(ht_text_at(&vm, 0, 2), b'c');
 }
 
+#[test]
+fn host_term_ansi_hermes_style_frame() {
+    // Realistic prompt_toolkit / Hermes frame in one pass:
+    //   - Enter alt screen (\e[?1049h)
+    //   - Cursor home (\e[H)
+    //   - 256-color SGR prompt with \e[0m reset
+    //   - CRLF
+    //   - Absolute cursor positioning (\e[3;1H — 1-indexed)
+    //   - 256-color SGR with mid-line \e[39m FG reset
+    // This is the headless equivalent of the GUI smoke test: if the parser
+    // handles this frame correctly, real Hermes output will render.
+    let input = b"\x1B[?1049h\
+                  \x1B[H\
+                  \x1B[38;5;230m> Hermes\x1B[0m\
+                  \r\n\
+                  \x1B[3;1H\
+                  \x1B[38;5;196mERR\x1B[39m: oops";
+    let vm = host_term_run_ansi(input);
+
+    // Row 0: "> Hermes" all in warm off-white (256 index 230 = 0xFFFFD7).
+    assert_eq!(ht_text_at(&vm, 0, 0), b'>');
+    assert_eq!(ht_text_at(&vm, 0, 1), b' ');
+    assert_eq!(ht_text_at(&vm, 0, 2), b'H');
+    assert_eq!(ht_text_at(&vm, 0, 3), b'e');
+    assert_eq!(ht_text_at(&vm, 0, 4), b'r');
+    assert_eq!(ht_text_at(&vm, 0, 5), b'm');
+    assert_eq!(ht_text_at(&vm, 0, 6), b'e');
+    assert_eq!(ht_text_at(&vm, 0, 7), b's');
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xFFFFD7, "> in warm off-white");
+    assert_eq!(ht_color_at(&vm, 0, 4), 0xFFFFD7, "r in warm off-white");
+    assert_eq!(ht_color_at(&vm, 0, 7), 0xFFFFD7, "s in warm off-white");
+
+    // \e[3;1H is 1-indexed so it lands on row 2, col 0 (0-indexed).
+    // "ERR" in 256-color red (index 196 = 0xFF3737), then \e[39m resets FG
+    // to default for ": oops".
+    assert_eq!(ht_text_at(&vm, 2, 0), b'E');
+    assert_eq!(ht_text_at(&vm, 2, 1), b'R');
+    assert_eq!(ht_text_at(&vm, 2, 2), b'R');
+    assert_eq!(ht_text_at(&vm, 2, 3), b':');
+    assert_eq!(ht_text_at(&vm, 2, 4), b' ');
+    assert_eq!(ht_text_at(&vm, 2, 5), b'o');
+    assert_eq!(ht_text_at(&vm, 2, 6), b'o');
+    assert_eq!(ht_text_at(&vm, 2, 7), b'p');
+    assert_eq!(ht_text_at(&vm, 2, 8), b's');
+    assert_eq!(ht_color_at(&vm, 2, 0), 0xFF3737, "E in 256-color red");
+    assert_eq!(ht_color_at(&vm, 2, 2), 0xFF3737, "R in 256-color red");
+    assert_eq!(ht_color_at(&vm, 2, 3), HT_DEFAULT_FG, ": after \\e[39m reset");
+    assert_eq!(ht_color_at(&vm, 2, 8), HT_DEFAULT_FG, "s after \\e[39m reset");
+}
+
 // ── Phase 137: Host Filesystem Bridge Tests ──────────────────────────────
 
 /// Helper: write a null-terminated string into RAM at given address
