@@ -59,6 +59,14 @@
 #define SCROLL_X 0x4E08
 #define FG_COLOR 0x4E09
 #define CSI_PARAM 0x4E0A
+#define UTF8_CP 0x4E0B
+#define CSI_PARAM2 0x4E0C
+#define DIRTY_STATUS 0x4E0D
+#define CSI_PRIVATE 0x4E0E    ; 1 if '?' seen in CSI sequence (private mode)
+#define SGR_EXTENDED 0x4E12   ; Extended SGR state: 0=normal, 38=fg pending, 48=bg pending, 0x85=fg256 waiting, 0x95=bg256 waiting
+#define ALT_ACTIVE 0x4E0F     ; 1 if alternate screen buffer active
+#define ALT_SAVE_ROW 0x4E10   ; saved cursor row for alt screen
+#define ALT_SAVE_COL 0x4E11   ; saved cursor col for alt screen
 #define STATUS_CWD 0x6100
 #define CMD_BUF 0x5000
 #define SEND_BUF 0x5400
@@ -66,6 +74,7 @@
 #define SCRATCH 0x6000
 #define OSC_BUF 0x6200
 #define COLOR_BUF 0x7800
+#define COLOR_END 0x8160      ; COLOR_BUF + 80*30 = 2400 cells
 
 ; ANSI states
 #define ANS_NORMAL 0
@@ -148,6 +157,11 @@ LDI r20, CSI_PARAM2
 LDI r0, 0
 STORE r20, r0
 
+; SGR_EXTENDED init
+LDI r20, SGR_EXTENDED
+LDI r0, 0
+STORE r20, r0
+
 ; DIRTY_STATUS init (start dirty so first frame draws)
 LDI r20, DIRTY_STATUS
 LDI r0, 1
@@ -159,7 +173,7 @@ LDI r6, 0xBBBBBB
 clr_color_init:
     STORE r20, r6
     ADD r20, r1
-    CMPI r20, 0x8480
+    CMPI r20, COLOR_END
     BLT r0, clr_color_init
 
 ; Title bar background
@@ -172,7 +186,7 @@ RECTF r1, r2, r3, r4, r5
 
 ; Title text (using SMALLTEXT for compact display)
 LDI r20, SCRATCH
-STRO r20, "shell 80x40"
+STRO r20, "shell 80x30"
 LDI r1, 2
 LDI r2, 2
 LDI r3, SCRATCH
@@ -433,6 +447,10 @@ pb_check_esc:
     LDI r20, ANSI_STATE
     LDI r0, ANS_CSI
     STORE r20, r0
+    ; Reset extended SGR state for new sequence
+    LDI r20, SGR_EXTENDED
+    LDI r0, 0
+    STORE r20, r0
     JMP pb_ret
 
 pb_esc_check_osc:
@@ -461,6 +479,10 @@ pb_check_csi:
     ; Final byte arrived -- dispatch based on letter
     LDI r20, ANSI_STATE
     LDI r0, ANS_NORMAL
+    STORE r20, r0
+    ; Clear private mode flag
+    LDI r20, CSI_PRIVATE
+    LDI r0, 0
     STORE r20, r0
 
     ; 'm' (109) = SGR color
@@ -514,8 +536,36 @@ pb_csi_c:
 pb_csi_d:
     ; 'D' (68) = cursor left
     CMPI r5, 68
-    JNZ r0, pb_csi_unknown
+    JNZ r0, pb_csi_h_mode
     CALL csi_cursor_left
+    JMP pb_ret
+
+pb_csi_h_mode:
+    ; 'h' (104) = set mode (private: ?1049h = alt screen on)
+    CMPI r5, 104
+    JNZ r0, pb_csi_l_mode
+    LDI r20, CSI_PRIVATE
+    LOAD r0, r20
+    JZ r0, pb_ret         ; ignore non-private 'h'
+    LDI r20, CSI_PARAM
+    LOAD r0, r20
+    CMPI r0, 1049
+    JNZ r0, pb_ret        ; only handle 1049
+    CALL alt_screen_on
+    JMP pb_ret
+
+pb_csi_l_mode:
+    ; 'l' (108) = reset mode (private: ?1049l = alt screen off)
+    CMPI r5, 108
+    JNZ r0, pb_csi_unknown
+    LDI r20, CSI_PRIVATE
+    LOAD r0, r20
+    JZ r0, pb_ret         ; ignore non-private 'l'
+    LDI r20, CSI_PARAM
+    LOAD r0, r20
+    CMPI r0, 1049
+    JNZ r0, pb_ret        ; only handle 1049
+    CALL alt_screen_off
     JMP pb_ret
 
 pb_csi_unknown:
@@ -523,6 +573,15 @@ pb_csi_unknown:
     JMP pb_ret
 
 pb_csi_param:
+    ; '?' (63) = private mode prefix
+    CMPI r5, 63
+    JNZ r0, pb_csi_digit
+    LDI r20, CSI_PRIVATE
+    LDI r0, 1
+    STORE r20, r0
+    JMP pb_ret
+
+pb_csi_digit:
     ; Check for digit (0x30-0x39)
     CMPI r5, 48
     BLT r0, pb_csi_semi
@@ -1240,7 +1299,7 @@ do_newline:
     BLT r0, dn_store
     CALL scroll_up
     LDI r20, CUR_ROW
-    LDI r6, 39
+    LDI r6, 29
 dn_store:
     STORE r20, r6
     POP r31
@@ -1255,7 +1314,7 @@ scroll_up:
     LDI r11, COLS
     LDI r10, 0
 scroll_loop:
-    CMPI r10, 39
+    CMPI r10, 29
     BGE r0, scroll_clear
 
     ; dst = BUF + row * COLS
@@ -1302,7 +1361,7 @@ scroll_clear:
     ; We use a trick: copy from a region we already cleared (row 0 after scroll is row 1's old data)
     ; Simpler: just use a STORE loop for the fill (MEMCPY can't fill)
     LDI r20, BUF
-    LDI r6, 39
+    LDI r6, 29
     LDI r11, COLS
     MUL r6, r11
     ADD r20, r6
@@ -1317,7 +1376,7 @@ sc_loop:
 
     ; Clear last row of color buffer with default FG color
     LDI r20, COLOR_BUF
-    LDI r6, 39
+    LDI r6, 29
     LDI r11, COLS
     MUL r6, r11
     ADD r20, r6
@@ -1534,6 +1593,7 @@ dsb_ret:
 ; APPLY_SGR -- apply SGR code from CSI_PARAM to FG_COLOR
 ; Reads CSI_PARAM from RAM, updates FG_COLOR in RAM.
 ; Preserves all registers except r0 (CMP clobbers it).
+; Supports extended SGR (256-color) via SGR_EXTENDED state.
 ; =========================================
 apply_sgr:
     PUSH r31
@@ -1541,6 +1601,107 @@ apply_sgr:
 
     LDI r20, CSI_PARAM
     LOAD r6, r20       ; r6 = SGR code
+
+    ; ── Extended SGR state machine ──
+    LDI r20, SGR_EXTENDED
+    LOAD r7, r20       ; r7 = extended state
+
+    ; State 0x85: waiting for 256-color FG index
+    CMPI r7, 0x85
+    JNZ r0, sgr_ext95
+    CALL sgr_256_to_rgb  ; r0 = RGB from r6 (color index)
+    LDI r20, FG_COLOR
+    STORE r20, r0
+    LDI r20, SGR_EXTENDED
+    LDI r0, 0
+    STORE r20, r0
+    JMP sgr_ret
+
+sgr_ext95:
+    ; State 0x95: waiting for 256-color BG index (not rendered yet)
+    CMPI r7, 0x95
+    JNZ r0, sgr_ext38
+    ; No BG support in renderer, just consume the index
+    LDI r20, SGR_EXTENDED
+    LDI r0, 0
+    STORE r20, r0
+    JMP sgr_ret
+
+sgr_ext38:
+    ; State 38: saw "38", waiting for sub-mode (5 or 2)
+    CMPI r7, 38
+    JNZ r0, sgr_ext48
+    CMPI r6, 5
+    JNZ r0, sgr_ext38_reset
+    ; 38;5 → enter waiting-for-index state (0x85)
+    LDI r20, SGR_EXTENDED
+    LDI r0, 0x85
+    STORE r20, r0
+    JMP sgr_ret
+
+sgr_ext38_reset:
+    ; 38;2 (24-bit) or unknown sub-mode — reset and fall through
+    LDI r20, SGR_EXTENDED
+    LDI r0, 0
+    STORE r20, r0
+    JMP sgr_normal
+
+sgr_ext48:
+    ; State 48: saw "48", waiting for sub-mode
+    CMPI r7, 48
+    JNZ r0, sgr_normal
+    CMPI r6, 5
+    JNZ r0, sgr_ext48_reset
+    ; 48;5 → enter waiting-for-index state (0x95)
+    LDI r20, SGR_EXTENDED
+    LDI r0, 0x95
+    STORE r20, r0
+    JMP sgr_ret
+
+sgr_ext48_reset:
+    LDI r20, SGR_EXTENDED
+    LDI r0, 0
+    STORE r20, r0
+    ; Fall through to normal dispatch
+
+sgr_normal:
+    ; ── Extended SGR entry points ──
+
+    ; Code 38 = extended FG color
+    CMPI r6, 38
+    JNZ r0, sgr_n48
+    LDI r20, SGR_EXTENDED
+    LDI r0, 38
+    STORE r20, r0
+    JMP sgr_ret
+
+sgr_n48:
+    ; Code 48 = extended BG color (accept but no renderer support)
+    CMPI r6, 48
+    JNZ r0, sgr_n39
+    LDI r20, SGR_EXTENDED
+    LDI r0, 48
+    STORE r20, r0
+    JMP sgr_ret
+
+sgr_n39:
+    ; Code 39 = reset FG to default
+    CMPI r6, 39
+    JNZ r0, sgr_n49
+    LDI r20, FG_COLOR
+    LDI r0, 0xBBBBBB
+    STORE r20, r0
+    JMP sgr_ret
+
+sgr_n49:
+    ; Code 49 = reset BG (no-op, no BG support)
+    CMPI r6, 49
+    JNZ r0, sgr_existing
+    JMP sgr_ret
+
+sgr_existing:
+    ; ── Standard SGR dispatch (16-color) ──
+    ; r6 already loaded with SGR code from above
 
     ; 0 = reset (default light gray)
     CMPI r6, 0
@@ -1697,6 +1858,186 @@ sgr_ret:
     RET
 
 ; =========================================
+; SGR_256_TO_RGB -- convert 256-color index to 0xRRGGBB
+; Input:  r6 = color index (0-255)
+; Output: r0 = RGB color value
+; Clobbers: r0, r1, r4, r5
+; Preserves: r6, r7, r20, r31
+; Palette:
+;   0-7:   standard colors (match SGR 30-37)
+;   8-15:  bright colors (match SGR 90-97)
+;   16-231: 6x6x6 RGB cube  R=(n/36)*40+55, G=((n%36)/6)*40+55, B=(n%6)*40+55
+;   232-255: grayscale ramp  v=(idx-232)*10+8
+; =========================================
+sgr_256_to_rgb:
+    PUSH r31
+
+    ; Check standard colors 0-15
+    CMPI r6, 16
+    BGE r0, sgr256_cube_check
+
+    ; Standard color lookup (0-15)
+    CMPI r6, 0
+    JNZ r0, s256_1
+    LDI r0, 0x555555
+    JMP sgr256_ret
+s256_1:
+    CMPI r6, 1
+    JNZ r0, s256_2
+    LDI r0, 0xCD0000
+    JMP sgr256_ret
+s256_2:
+    CMPI r6, 2
+    JNZ r0, s256_3
+    LDI r0, 0x00CD00
+    JMP sgr256_ret
+s256_3:
+    CMPI r6, 3
+    JNZ r0, s256_4
+    LDI r0, 0xCDCD00
+    JMP sgr256_ret
+s256_4:
+    CMPI r6, 4
+    JNZ r0, s256_5
+    LDI r0, 0x0000EE
+    JMP sgr256_ret
+s256_5:
+    CMPI r6, 5
+    JNZ r0, s256_6
+    LDI r0, 0xCD00CD
+    JMP sgr256_ret
+s256_6:
+    CMPI r6, 6
+    JNZ r0, s256_7
+    LDI r0, 0x00CDCD
+    JMP sgr256_ret
+s256_7:
+    CMPI r6, 7
+    JNZ r0, s256_8
+    LDI r0, 0xE5E5E5
+    JMP sgr256_ret
+s256_8:
+    CMPI r6, 8
+    JNZ r0, s256_9
+    LDI r0, 0x808080
+    JMP sgr256_ret
+s256_9:
+    CMPI r6, 9
+    JNZ r0, s256_10
+    LDI r0, 0xFF0000
+    JMP sgr256_ret
+s256_10:
+    CMPI r6, 10
+    JNZ r0, s256_11
+    LDI r0, 0x00FF00
+    JMP sgr256_ret
+s256_11:
+    CMPI r6, 11
+    JNZ r0, s256_12
+    LDI r0, 0xFFFF00
+    JMP sgr256_ret
+s256_12:
+    CMPI r6, 12
+    JNZ r0, s256_13
+    LDI r0, 0x5C5CFF
+    JMP sgr256_ret
+s256_13:
+    CMPI r6, 13
+    JNZ r0, s256_14
+    LDI r0, 0xFF00FF
+    JMP sgr256_ret
+s256_14:
+    CMPI r6, 14
+    JNZ r0, s256_15
+    LDI r0, 0x00FFFF
+    JMP sgr256_ret
+s256_15:
+    LDI r0, 0xFFFFFF
+    JMP sgr256_ret
+
+sgr256_cube_check:
+    CMPI r6, 232
+    BLT r0, sgr256_cube
+
+    ; Grayscale ramp: indices 232-255
+    ; v = (index - 232) * 10 + 8
+    LDI r0, 232
+    SUB r6, r0        ; r6 = index - 232
+    LDI r0, 10
+    MUL r6, r0        ; r6 = (index - 232) * 10
+    LDI r0, 8
+    ADD r6, r0        ; r6 = v
+    ; color = (v << 16) | (v << 8) | v
+    PUSH r6           ; save v
+    LDI r1, 16
+    MOV r0, r6
+    SHL r0, r1        ; r0 = v << 16
+    PUSH r0           ; save high bits
+    LDI r1, 8
+    MOV r0, r6
+    SHL r0, r1        ; r0 = v << 8
+    OR r0, r6         ; r0 = (v << 8) | v
+    POP r1            ; r1 = v << 16
+    OR r0, r1         ; r0 = (v << 16) | (v << 8) | v
+    POP r6            ; restore r6
+    JMP sgr256_ret
+
+sgr256_cube:
+    ; RGB cube: indices 16-231
+    ; n = index - 16
+    LDI r0, 16
+    SUB r6, r0        ; r6 = n = index - 16
+
+    ; r = n / 36
+    MOV r1, r6
+    LDI r0, 36
+    DIV r1, r0        ; r1 = r
+
+    ; g = (n % 36) / 6
+    MOV r4, r6
+    LDI r0, 36
+    MOD r4, r0        ; r4 = n % 36
+    LDI r0, 6
+    DIV r4, r0        ; r4 = g
+
+    ; b = n % 6
+    MOV r5, r6
+    LDI r0, 6
+    MOD r5, r0        ; r5 = b
+
+    ; R = r * 40 + 55
+    LDI r0, 40
+    MUL r1, r0
+    LDI r0, 55
+    ADD r1, r0        ; r1 = R
+
+    ; G = g * 40 + 55
+    LDI r0, 40
+    MUL r4, r0
+    LDI r0, 55
+    ADD r4, r0        ; r4 = G
+
+    ; B = b * 40 + 55
+    LDI r0, 40
+    MUL r5, r0
+    LDI r0, 55
+    ADD r5, r0        ; r5 = B
+
+    ; color = (R << 16) | (G << 8) | B
+    MOV r0, r1
+    LDI r6, 16
+    SHL r0, r6        ; r0 = R << 16
+    MOV r6, r4
+    LDI r1, 8
+    SHL r6, r1        ; r6 = G << 8
+    OR r0, r6         ; r0 = (R << 16) | (G << 8)
+    OR r0, r5         ; r0 = (R << 16) | (G << 8) | B
+
+sgr256_ret:
+    POP r31
+    RET
+
+; =========================================
 ; CSI_ERASE_LINE -- 'K' handler
 ; CSI_PARAM: 0=cursor to EOL (default), 1=BOL to cursor, 2=whole line
 ; =========================================
@@ -1782,33 +2123,7 @@ csi_erase_display:
     JNZ r0, ced_check0
 
     ; Mode 2: clear entire screen
-    LDI r20, BUF
-    LDI r6, 32
-    LDI r10, 0
-ced_full:
-    STORE r20, r6
-    ADD r20, r1
-    ADD r10, r1
-    LDI r7, ROWS
-    LDI r8, COLS
-    MUL r7, r8
-    CMP r10, r7
-    BLT r0, ced_full
-
-    ; Clear color buffer
-    LDI r20, COLOR_BUF
-    LDI r6, FG_COLOR
-    LOAD r6, r6
-    LDI r10, 0
-ced_full_color:
-    STORE r20, r6
-    ADD r20, r1
-    ADD r10, r1
-    LDI r7, ROWS
-    LDI r8, COLS
-    MUL r7, r8
-    CMP r10, r7
-    BLT r0, ced_full_color
+    CALL clear_entire_screen
 
     ; Reset cursor
     LDI r20, CUR_COL
@@ -2001,9 +2316,98 @@ ccl_ok:
     RET
 
 ; =========================================
+; CLEAR ENTIRE SCREEN -- clear text + color buffers
+; =========================================
+
+clear_entire_screen:
+    PUSH r31
+    LDI r1, 1
+    ; Clear text buffer
+    LDI r20, BUF
+    LDI r6, 32
+    LDI r10, 0
+ces_text:
+    STORE r20, r6
+    ADD r20, r1
+    ADD r10, r1
+    LDI r7, ROWS
+    LDI r8, COLS
+    MUL r7, r8
+    CMP r10, r7
+    BLT r0, ces_text
+    ; Clear color buffer
+    LDI r20, COLOR_BUF
+    LDI r6, FG_COLOR
+    LOAD r6, r6
+    LDI r10, 0
+ces_color:
+    STORE r20, r6
+    ADD r20, r1
+    ADD r10, r1
+    LDI r7, ROWS
+    LDI r8, COLS
+    MUL r7, r8
+    CMP r10, r7
+    BLT r0, ces_color
+    POP r31
+    RET
+
+; =========================================
+; ALT SCREEN -- fake alt screen buffer support
+; ESC[?1049h: save cursor, clear screen, set ALT_ACTIVE
+; ESC[?1049l: clear screen, restore cursor, clear ALT_ACTIVE
+; =========================================
+
+alt_screen_on:
+    PUSH r31
+    ; Save current cursor position
+    LDI r20, CUR_ROW
+    LOAD r0, r20
+    LDI r21, ALT_SAVE_ROW
+    STORE r21, r0
+    LDI r20, CUR_COL
+    LOAD r0, r20
+    LDI r21, ALT_SAVE_COL
+    STORE r21, r0
+    ; Clear the screen (same as ESC[2J)
+    CALL clear_entire_screen
+    ; Home cursor
+    LDI r20, CUR_ROW
+    LDI r0, 0
+    STORE r20, r0
+    LDI r20, CUR_COL
+    STORE r20, r0
+    ; Mark alt screen active
+    LDI r20, ALT_ACTIVE
+    LDI r0, 1
+    STORE r20, r0
+    POP r31
+    RET
+
+alt_screen_off:
+    PUSH r31
+    ; Clear the screen
+    CALL clear_entire_screen
+    ; Restore cursor position
+    LDI r20, ALT_SAVE_ROW
+    LOAD r0, r20
+    LDI r21, CUR_ROW
+    STORE r21, r0
+    LDI r20, ALT_SAVE_COL
+    LOAD r0, r20
+    LDI r21, CUR_COL
+    STORE r21, r0
+    ; Clear alt screen flag
+    LDI r20, ALT_ACTIVE
+    LDI r0, 0
+    STORE r20, r0
+    POP r31
+    RET
+
+; =========================================
 ; RENDER -- redraw text buffer using SMALLTEXT (3x5 font)
 ; Terminal area starts at y=10, 6px per row (5px glyph + 1px spacing)
-; 40 rows * 6px = 240px. Total: 10 + 240 = 250px (fits in 256px)
+; 30 rows * 6px = 180px. Total: 10 + 180 = 190px (fits in 256px)
 ; Now uses color-run rendering from COLOR_BUF
 ; =========================================
 render:

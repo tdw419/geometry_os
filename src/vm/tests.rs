@@ -21101,6 +21101,7 @@ const HT_COLOR_BUF: usize = 0x7800;
 const HT_COLS: usize = 80;
 const HT_ROWS: usize = 30;
 const HT_DEFAULT_FG: u32 = 0xBBBBBB;
+const HT_SGR_EXTENDED: usize = 0x4E12;
 
 /// Run a sequence of bytes through host_term's process_byte state machine
 /// and return the resulting VM state. The VM has only the minimum globals
@@ -21139,6 +21140,7 @@ fn host_term_run_ansi(input: &[u8]) -> crate::vm::Vm {
     vm.ram[HT_CUR_ROW] = 0;
     vm.ram[HT_CSI_PARAM] = 0;
     vm.ram[HT_CSI_PARAM2] = 0;
+    vm.ram[HT_SGR_EXTENDED] = 0;
     for i in 0..(HT_COLS * HT_ROWS) {
         vm.ram[HT_COLOR_BUF + i] = HT_DEFAULT_FG;
     }
@@ -21260,19 +21262,85 @@ fn host_term_ansi_sgr_multiparam_bold_red() {
 }
 
 #[test]
-fn host_term_ansi_sgr_unknown_codes_leave_color_unchanged() {
-    // \e[38;5;230m — Hermes-style 256-color SGR. Currently NOT supported:
-    // each param is dispatched independently and none match, so the FG
-    // stays at whatever it was (default). This test documents current
-    // behavior and will FAIL when 256-color support lands — at which
-    // point it should be replaced with the positive assertion that
-    // FG_COLOR matches the 256-palette entry for index 230.
+fn host_term_ansi_sgr_256_fg_index230() {
+    // \e[38;5;230m — Hermes-style 256-color SGR. Index 230 is warm off-white.
+    // n=214, r=5,g=5,b=4 → R=255,G=255,B=215 → 0xFFFFD7
     let vm = host_term_run_ansi(b"\x1B[38;5;230mZ");
     assert_eq!(
         ht_color_at(&vm, 0, 0),
-        HT_DEFAULT_FG,
-        "256-color not yet supported; stays at default"
+        0xFFFFD7,
+        "256-color index 230 should be warm off-white 0xFFFFD7"
     );
+    assert_eq!(ht_text_at(&vm, 0, 0), b'Z');
+}
+
+#[test]
+fn host_term_ansi_sgr_256_fg_standard_colors() {
+    // Index 0 (black) via 256-color path
+    let vm = host_term_run_ansi(b"\x1B[38;5;0mA");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0x555555, "256 index 0 = black");
+
+    // Index 1 (maroon/red)
+    let vm = host_term_run_ansi(b"\x1B[38;5;1mB");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xCD0000, "256 index 1 = maroon");
+
+    // Index 9 (bright red)
+    let vm = host_term_run_ansi(b"\x1B[38;5;9mC");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xFF0000, "256 index 9 = bright red");
+
+    // Index 15 (bright white)
+    let vm = host_term_run_ansi(b"\x1B[38;5;15mD");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xFFFFFF, "256 index 15 = bright white");
+}
+
+#[test]
+fn host_term_ansi_sgr_256_fg_cube_pure_red() {
+    // Index 196: n=180, r=5,g=0,b=0 → R=255,G=55,B=55 → 0xFF3737
+    let vm = host_term_run_ansi(b"\x1B[38;5;196mX");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xFF3737);
+}
+
+#[test]
+fn host_term_ansi_sgr_256_fg_cube_light_blue() {
+    // Index 21: n=5, r=0,g=0,b=5 → R=55,G=55,B=255 → 0x3737FF
+    let vm = host_term_run_ansi(b"\x1B[38;5;21mX");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0x3737FF);
+}
+
+#[test]
+fn host_term_ansi_sgr_256_fg_grayscale() {
+    // Index 232: v=8 → 0x080808
+    let vm = host_term_run_ansi(b"\x1B[38;5;232mA");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0x080808, "grayscale start");
+
+    // Index 255: v=238 → 0xEEEEEE
+    let vm = host_term_run_ansi(b"\x1B[38;5;255mB");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xEEEEEE, "grayscale end");
+}
+
+#[test]
+fn host_term_ansi_sgr_256_reset_after() {
+    // \e[38;5;196mX\e[0mY — X should be 256-color red, Y should be default
+    let vm = host_term_run_ansi(b"\x1B[38;5;196mX\x1B[0mY");
+    assert_eq!(ht_color_at(&vm, 0, 0), 0xFF3737, "X should be 256-color red");
+    assert_eq!(ht_color_at(&vm, 0, 1), HT_DEFAULT_FG, "Y should reset to default");
+    assert_eq!(ht_text_at(&vm, 0, 0), b'X');
+    assert_eq!(ht_text_at(&vm, 0, 1), b'Y');
+}
+
+#[test]
+fn host_term_ansi_sgr_256_bg_does_not_crash() {
+    // \e[48;5;17m — BG 256-color. No renderer support, should not affect FG.
+    let vm = host_term_run_ansi(b"\x1B[48;5;17mA");
+    assert_eq!(ht_color_at(&vm, 0, 0), HT_DEFAULT_FG, "BG should not change FG");
+    assert_eq!(ht_text_at(&vm, 0, 0), b'A');
+}
+
+#[test]
+fn host_term_ansi_sgr_code39_resets_fg() {
+    // \e[38;5;196m\e[39m — code 39 should reset FG to default
+    let vm = host_term_run_ansi(b"\x1B[38;5;196m\x1B[39mX");
+    assert_eq!(ht_color_at(&vm, 0, 0), HT_DEFAULT_FG, "code 39 resets FG");
 }
 
 #[test]
