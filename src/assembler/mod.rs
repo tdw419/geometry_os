@@ -43,6 +43,12 @@ pub struct AsmResult {
     pub labels: std::collections::HashMap<String, usize>,
 }
 
+impl AsmResult {
+    pub fn is_empty(&self) -> bool {
+        self.pixels.is_empty()
+    }
+}
+
 /// Assemble source with an optional library search path for .include directives.
 /// When `lib_dir` is Some, .include "file.asm" will look in that directory.
 pub fn assemble_with_lib(

@@ -2694,6 +2694,7 @@ impl Vm {
             // op=2: diff two screens. r1=addr of saved checksum (u32). Returns changed pixel count in r0.
             // op=3: call external vision API with screenshot + prompt from RAM.
             //       r1=prompt_addr, r2=response_addr, r3=max_len. Returns response length in r0.
+            // op=4: specialized perception. r1=mode (0=full, 1=region, 2=count). Returns integer in r0.
             0xB0 => {
                 let op_reg = self.fetch() as usize;
                 if op_reg >= NUM_REGS {
@@ -2812,11 +2813,11 @@ impl Vm {
                             // Vision API call: screenshot + prompt -> LLM response
                             // r1=prompt_addr (null-terminated string in RAM)
                             // r2=response_addr (where to write response in RAM)
-                            // r3=max_len (max response words)
+                            // r3=max_len (max response bytes)
                             // Returns response length in r0, or 0xFFFFFFFF on error
                             if op_reg + 3 < NUM_REGS {
                                 let prompt_addr = self.regs[op_reg + 1] as usize;
-                                let _response_addr = self.regs[op_reg + 2] as usize;
+                                let response_addr = self.regs[op_reg + 2] as usize;
                                 let max_len = self.regs[op_reg + 3] as usize;
 
                                 // Read prompt from RAM
@@ -2834,25 +2835,73 @@ impl Vm {
                                 }
 
                                 // Encode screenshot as base64 PNG
-                                let _screenshot_b64 =
+                                let screenshot_b64 =
                                     crate::vision::encode_png_base64(&self.screen);
 
                                 // Check for mock response (testing)
-                                if let Some(ref mock) = self.llm_mock_response {
-                                    let response = mock.clone();
-                                    let resp_bytes = response.as_bytes();
+                                let response = if let Some(ref mock) = self.llm_mock_response {
+                                    let resp = mock.clone();
+                                    self.llm_mock_response = None;
+                                    Some(resp)
+                                } else {
+                                    // Call real local Ollama vision model
+                                    crate::hermes::call_ollama_vision(
+                                        "You are a Geometry OS diagnostic assistant.",
+                                        &prompt,
+                                        &screenshot_b64
+                                    )
+                                };
+
+                                if let Some(resp) = response {
+                                    let resp_bytes = resp.as_bytes();
                                     let write_len = resp_bytes.len().min(max_len);
-                                    let wa = _response_addr;
                                     for i in 0..write_len {
-                                        if wa + i < self.ram.len() {
-                                            self.ram[wa + i] = resp_bytes[i] as u32;
+                                        if response_addr + i < self.ram.len() {
+                                            self.ram[response_addr + i] = resp_bytes[i] as u32;
                                         }
                                     }
                                     self.regs[0] = write_len as u32;
-                                    self.llm_mock_response = None;
                                 } else {
-                                    // No mock set -- would call external API
-                                    // For now, return error (API not available in VM)
+                                    self.regs[0] = 0xFFFFFFFF;
+                                }
+                            } else {
+                                self.regs[0] = 0xFFFFFFFF;
+                            }
+                        }
+                        4 => {
+                            // Specialized perception: count objects
+                            // r1 = mode (0=full screen, 1=region, 2=count_color)
+                            // Returns count in r0
+                            if op_reg + 1 < NUM_REGS {
+                                let mode = self.regs[op_reg + 1];
+                                let prompt = match mode {
+                                    0 => "Reply with one integer: how many distinct objects do you see in the full screen?",
+                                    1 => "Reply with one integer: how many distinct objects do you see in the highlighted region?",
+                                    2 => "Reply with one integer: how many pixels of the most dominant color do you see?",
+                                    _ => "Reply with one integer: how many distinct objects do you see?",
+                                };
+                                
+                                let response = if let Some(ref mock) = self.llm_mock_response {
+                                    let resp = mock.clone();
+                                    self.llm_mock_response = None;
+                                    Some(resp)
+                                } else {
+                                    let screenshot_b64 = crate::vision::encode_png_base64(&self.screen);
+                                    crate::hermes::call_ollama_vision(
+                                        "You are a Geometry OS diagnostic assistant.",
+                                        prompt,
+                                        &screenshot_b64
+                                    )
+                                };
+                                
+                                if let Some(resp) = response {
+                                    // Parse leading integer
+                                    let count = resp.split_whitespace()
+                                        .filter_map(|s| s.parse::<u32>().ok())
+                                        .next()
+                                        .unwrap_or(0);
+                                    self.regs[0] = count;
+                                } else {
                                     self.regs[0] = 0xFFFFFFFF;
                                 }
                             } else {
@@ -4227,13 +4276,17 @@ print(r if r else '')";
             if let Ok(contents) = std::fs::read_to_string(&config_path) {
                 let mut base_url = extract_json_str(&contents, "base_url")
                     .unwrap_or_else(|| "http://localhost:11434/api/chat".to_string());
-                
+
                 if !base_url.contains("/chat/completions") && !base_url.contains("/api/chat") {
                     if base_url.contains("11434") {
-                        if !base_url.ends_with('/') { base_url.push('/'); }
+                        if !base_url.ends_with('/') {
+                            base_url.push('/');
+                        }
                         base_url.push_str("api/chat");
                     } else {
-                        if !base_url.ends_with('/') { base_url.push('/'); }
+                        if !base_url.ends_with('/') {
+                            base_url.push('/');
+                        }
                         base_url.push_str("chat/completions");
                     }
                 }

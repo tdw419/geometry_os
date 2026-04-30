@@ -6,7 +6,7 @@ use crate::hermes::{run_build_loop, run_hermes_loop};
 use crate::preprocessor;
 use crate::save::{load_state, save_state};
 use crate::vm;
-use geometry_os::qemu::QemuBridge;
+use crate::qemu::QemuBridge;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
@@ -28,7 +28,7 @@ fn resolve_pixel_paths(config: &str) -> String {
             let value = &result[val_start..val_end];
 
             if value.to_lowercase().ends_with(".rts.png") {
-                match geometry_os::pixel::decode_rts_to_temp(value) {
+                match crate::pixel::decode_rts_to_temp(value) {
                     Ok(temp_path) => {
                         println!(
                             "[pixel] Decoded {} -> {} ({} bytes)",
@@ -74,8 +74,8 @@ pub fn cli_main(extra_args: &[String]) {
 
         // Phase 93: Auto-detect source PNG (geo_boot=source metadata)
         // Explicit --boot-src-png flag takes priority, then auto-detect by metadata
-        if boot_src_png_mode || geometry_os::pixel::is_source_png_file(path_str) {
-            match geometry_os::pixel::boot_source_png_to_ram(
+        if boot_src_png_mode || crate::pixel::is_source_png_file(path_str) {
+            match crate::pixel::boot_source_png_to_ram(
                 path_str,
                 &mut canvas_buffer,
                 &mut vm.ram,
@@ -105,9 +105,9 @@ pub fn cli_main(extra_args: &[String]) {
                     eprintln!("[src-png-boot] Error: {}", e);
                 }
             }
-        } else if boot_png_mode || geometry_os::pixel::is_pixelpack_png(path_str) {
+        } else if boot_png_mode || crate::pixel::is_pixelpack_png(path_str) {
             // Check for pixelpack PNG bytecode boot (Phase 92)
-            match geometry_os::pixel::boot_from_png(path_str, &mut vm.ram, 0x1000) {
+            match crate::pixel::boot_from_png(path_str, &mut vm.ram, 0x1000) {
                 Ok(result) => {
                     println!(
                         "[pixel-boot] Loaded {} bytes ({} RAM words) from {}",
@@ -337,7 +337,7 @@ pub fn cli_main(extra_args: &[String]) {
                         continue;
                     }
                 };
-                match geometry_os::pixel::boot_from_png(&path, &mut vm.ram, 0x1000) {
+                match crate::pixel::boot_from_png(&path, &mut vm.ram, 0x1000) {
                     Ok(result) => {
                         println!(
                             "[pixel-boot] Loaded {} bytes ({} RAM words) from {}",
@@ -372,7 +372,7 @@ pub fn cli_main(extra_args: &[String]) {
                         continue;
                     }
                 };
-                match geometry_os::pixel::boot_source_png_to_ram(
+                match crate::pixel::boot_source_png_to_ram(
                     &path,
                     &mut canvas_buffer,
                     &mut vm.ram,

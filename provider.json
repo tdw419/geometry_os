@@ -1,12 +1,14 @@
 {
   "base_url": "https://api.z.ai/api/coding/paas/v4",
   "model": "glm-4.6",
+  "vision_model": "llama3.2-vision:11b",
   "api_key": "47cc4bfe01ff495db6786c7c7593c451.3puCPtqfkyGGVxph",
   "max_tokens": 4096,
   "temperature": 0.3,
   "fallback": {
     "base_url": "http://localhost:11434/api/chat",
     "model": "qwen3.5-tools",
+    "vision_model": "llama3.2-vision:11b",
     "api_key": "",
     "max_tokens": 4096,
     "temperature": 0.3

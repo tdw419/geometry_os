@@ -8,7 +8,7 @@ use crate::canvas::{
 use crate::preprocessor;
 use crate::save::save_screen_png;
 use crate::vm;
-use geometry_os::episode_log;
+use crate::episode_log;
 use std::collections::HashSet;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -21,6 +21,7 @@ use std::path::{Path, PathBuf};
 pub struct ProviderConfig {
     pub base_url: String,
     pub model: String,
+    pub vision_model: Option<String>,
     pub api_key: String,
     pub max_tokens: u32,
     pub temperature: f32,
@@ -52,23 +53,28 @@ impl ProviderConfig {
     pub fn from_json(json: &str) -> Self {
         let mut base_url = extract_json_string(json, "base_url")
             .unwrap_or_else(|| "http://localhost:11434/api/chat".to_string());
-        
+
         // Ensure suffix for non-Ollama URLs if missing.
         // Standard OpenAI-compatible base URLs often omit the /chat/completions suffix.
         if !base_url.contains("/chat/completions") && !base_url.contains("/api/chat") {
             if base_url.contains("11434") {
                 // Ollama default
-                if !base_url.ends_with('/') { base_url.push('/'); }
+                if !base_url.ends_with('/') {
+                    base_url.push('/');
+                }
                 base_url.push_str("api/chat");
             } else {
                 // OpenAI / ZAI / Generic compatible
-                if !base_url.ends_with('/') { base_url.push('/'); }
+                if !base_url.ends_with('/') {
+                    base_url.push('/');
+                }
                 base_url.push_str("chat/completions");
             }
         }
 
         let model =
             extract_json_string(json, "model").unwrap_or_else(|| "qwen3.5-tools".to_string());
+        let vision_model = extract_json_string(json, "vision_model");
         let api_key = extract_json_string(json, "api_key").unwrap_or_default();
         let max_tokens = extract_json_number(json, "max_tokens").unwrap_or(8192);
         let temperature = extract_json_float(json, "temperature").unwrap_or(0.3);
@@ -78,13 +84,17 @@ impl ProviderConfig {
                 let fb_json = &json[fb_start + obj_start..];
                 let mut fb_url = extract_json_string(fb_json, "base_url")
                     .unwrap_or_else(|| "http://localhost:11434/api/chat".to_string());
-                
+
                 if !fb_url.contains("/chat/completions") && !fb_url.contains("/api/chat") {
                     if fb_url.contains("11434") {
-                        if !fb_url.ends_with('/') { fb_url.push('/'); }
+                        if !fb_url.ends_with('/') {
+                            fb_url.push('/');
+                        }
                         fb_url.push_str("api/chat");
                     } else {
-                        if !fb_url.ends_with('/') { fb_url.push('/'); }
+                        if !fb_url.ends_with('/') {
+                            fb_url.push('/');
+                        }
                         fb_url.push_str("chat/completions");
                     }
                 }
@@ -93,6 +103,7 @@ impl ProviderConfig {
                     base_url: fb_url,
                     model: extract_json_string(fb_json, "model")
                         .unwrap_or_else(|| "qwen3.5-tools".to_string()),
+                    vision_model: extract_json_string(fb_json, "vision_model"),
                     api_key: extract_json_string(fb_json, "api_key").unwrap_or_default(),
                     max_tokens: extract_json_number(fb_json, "max_tokens").unwrap_or(8192),
                     temperature: extract_json_float(fb_json, "temperature").unwrap_or(0.3),
@@ -109,6 +120,7 @@ impl ProviderConfig {
         ProviderConfig {
             base_url,
             model,
+            vision_model,
             api_key,
             max_tokens,
             temperature,
@@ -120,6 +132,7 @@ impl ProviderConfig {
         ProviderConfig {
             base_url: "http://localhost:11434/api/chat".to_string(),
             model: "qwen3.5-tools".to_string(),
+            vision_model: Some("llama3.2-vision:11b".to_string()),
             api_key: String::new(),
             max_tokens: 8192,
             temperature: 0.3,
@@ -1146,23 +1159,6 @@ fn screen_to_ascii(screen: &[u32]) -> String {
 fn build_build_context(vm: &vm::Vm) -> String {
     let mut ctx = String::new();
 
-    // Screen state -- let the AI see what it drew
-    ctx.push_str("## Current Screen (48x24 ASCII downsample of 256x256 framebuffer)\n");
-    if !vm.screen.is_empty() {
-        ctx.push_str("```\n");
-        ctx.push_str(&screen_to_ascii(&vm.screen));
-        ctx.push_str("```\n");
-        // Quick stats
-        let non_black = vm.screen.iter().filter(|&&p| p != 0).count();
-        let pct = (non_black as f64 / vm.screen.len() as f64 * 100.0) as u32;
-        ctx.push_str(&format!(
-            "  {}% pixels non-black, PC=0x{:04X}, halted={}\n",
-            pct, vm.pc, vm.halted
-        ));
-    } else {
-        ctx.push_str("  (screen not initialized)\n");
-    }
-
     // Pixel Provenance -- trace data for the agent to reason about
     if !vm.pixel_write_log.is_empty() {
         ctx.push_str("\n## Pixel Provenance\n");
@@ -1380,6 +1376,128 @@ pub fn call_llm(
     }
 }
 
+/// Call a multi-modal LLM with an image.
+pub fn call_vision_llm(
+    config: &ProviderConfig,
+    system_prompt: &str,
+    user_message: &str,
+    image_b64: &str, // raw base64, no data: prefix
+) -> Option<String> {
+    // Determine which model to use. If it's a vision call, prefer config.vision_model.
+    let model = config.vision_model.as_ref().unwrap_or(&config.model);
+
+    // Escape strings for JSON
+    let esc_sys = system_prompt
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\t', "\\t");
+    let esc_user = user_message
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\t', "\\t");
+
+    // Build Ollama-style vision payload
+    // Note: Ollama expects images at the message level
+    let payload = format!(
+        r#"{{"model":"{}","messages":[{{"role":"system","content":"{}"}},{{"role":"user","content":"{}","images":["{}"]}}],"stream":false,"max_tokens":{},"temperature":{}}}"#,
+        model, esc_sys, esc_user, image_b64, config.max_tokens, config.temperature
+    );
+
+    // Write payload to temp file to avoid shell escaping issues
+    let tmp_path = "/tmp/geo_hermes_vision_payload.json";
+    match std::fs::write(tmp_path, &payload) {
+        Ok(()) => {}
+        Err(e) => {
+            println!("[hermes] Could not write vision payload to {}: {}", tmp_path, e);
+            return None;
+        }
+    }
+
+    // Build curl args -- add Authorization header if API key present
+    let mut curl_args = vec![
+        "-s".to_string(),
+        "-X".to_string(),
+        "POST".to_string(),
+        config.base_url.clone(),
+        "-d".to_string(),
+        format!("@{}", tmp_path),
+        "-H".to_string(),
+        "Content-Type: application/json".to_string(),
+        "--max-time".to_string(),
+        "120".to_string(),
+    ];
+    if !config.api_key.is_empty() {
+        curl_args.push("-H".to_string());
+        curl_args.push(format!("Authorization: Bearer {}", config.api_key));
+    }
+
+    let output = match std::process::Command::new("curl").args(&curl_args).output() {
+        Ok(o) => o,
+        Err(e) => {
+            println!("[hermes] curl failed: {}", e);
+            return None;
+        }
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Check for HTTP errors
+    if !output.status.success() {
+        println!("[hermes] curl exit code: {}", output.status);
+    }
+    if stdout.contains("\"error\"") {
+        if let Some(e) = extract_json_string(&stdout, "message") {
+            println!("[hermes] API error: {}", e);
+        } else {
+            println!(
+                "[hermes] API error: {}...",
+                &stdout[..stdout.len().min(200)]
+            );
+        }
+        return None;
+    }
+
+    // Parse response -- extract message.content
+    if let Some(start) = stdout.find(r#""content":""#) {
+        let content_start = start + r#""content":""#.len();
+        let mut i = content_start;
+        let mut result = String::new();
+        let bytes = stdout.as_bytes();
+        while i < bytes.len() {
+            if bytes[i] == b'\\' && i + 1 < bytes.len() {
+                match bytes[i + 1] {
+                    b'n' => result.push('\n'),
+                    b't' => result.push('\t'),
+                    b'"' => result.push('"'),
+                    b'\\' => result.push('\\'),
+                    _ => {
+                        result.push(bytes[i] as char);
+                        result.push(bytes[i + 1] as char);
+                    }
+                }
+                i += 2;
+            } else if bytes[i] == b'"' {
+                break;
+            } else {
+                result.push(bytes[i] as char);
+                i += 1;
+            }
+        }
+        Some(result)
+    } else {
+        println!("[hermes] Could not parse LLM response");
+        None
+    }
+}
+
+/// Call local Ollama vision model.
+pub fn call_ollama_vision(system_prompt: &str, user_message: &str, image_b64: &str) -> Option<String> {
+    let config = ProviderConfig::load();
+    call_vision_llm(&config, system_prompt, user_message, image_b64)
+}
+
 /// Backward-compatible wrapper: load provider config and call LLM.
 pub fn call_ollama(system_prompt: &str, user_message: &str) -> Option<String> {
     let config = ProviderConfig::load();
@@ -1409,18 +1527,15 @@ pub fn run_hermes_loop(
             non_black,
             vm.screen.len()
         );
-        if ctx.contains("## Screen") {
-            println!("[hermes-vision] Screen dump included in context");
-        } else {
-            println!("[hermes-vision] No screen data in context");
-        }
+        println!("[hermes-vision] Sending framebuffer PNG to Ollama");
 
         let full_system = format!("{}\n\n{}", HERMES_SYSTEM_PROMPT, ctx);
 
         println!("[hermes] --- iteration {} ---", iteration + 1);
 
         // Call LLM
-        let response = match call_ollama(&full_system, &conversation_history) {
+        let screen_b64 = crate::vision::encode_png_base64(&vm.screen);
+        let response = match call_ollama_vision(&full_system, &conversation_history, &screen_b64) {
             Some(r) => r,
             None => {
                 println!("[hermes] LLM call failed. Stopping.");
@@ -1596,7 +1711,7 @@ pub fn execute_cli_command(
                 output.push('\n');
             } else {
                 for f in &files {
-                    let name = Path::new(f)
+                    let name = Path::new(f.as_str())
                         .file_name()
                         .map(|n| n.to_string_lossy().to_string())
                         .unwrap_or_else(|| f.clone());
@@ -1738,6 +1853,9 @@ pub fn execute_cli_command(
                         vm.pc,
                         vm.halted,
                         None, // fix is set later by the agent
+                        None, // bench_kind
+                        None, // modality
+                        None, // verdict
                     );
                     episode_log::log_episode(&episode);
                 }
@@ -2396,7 +2514,8 @@ pub fn run_build_loop(
 
         println!("[build] --- iteration {} ---", iteration + 1);
 
-        let response = match call_ollama(&full_system, &conversation_history) {
+        let screen_b64 = crate::vision::encode_png_base64(&vm.screen);
+        let response = match call_ollama_vision(&full_system, &conversation_history, &screen_b64) {
             Some(r) => r,
             None => {
                 println!("[build] LLM call failed. Stopping.");
@@ -2581,7 +2700,8 @@ pub fn run_build_canvas(
         );
         ensure_scroll(*output_row, scroll_offset);
 
-        let response = match call_ollama(&full_system, &conversation_history) {
+        let screen_b64 = crate::vision::encode_png_base64(&vm.screen);
+        let response = match call_ollama_vision(&full_system, &conversation_history, &screen_b64) {
             Some(r) => r,
             None => {
                 *output_row = write_line_to_canvas(

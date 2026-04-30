@@ -37,6 +37,12 @@ pub struct Episode {
     pub fix: Option<String>,
     /// Outcome classification
     pub outcome: Outcome,
+    /// Benchmark kind (e.g. "memory-leak")
+    pub bench_kind: Option<String>,
+    /// Modality used (e.g. "vision", "text")
+    pub modality: Option<String>,
+    /// Verdict from the agent
+    pub verdict: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -261,6 +267,15 @@ fn episode_to_json(ep: &Episode) -> String {
     if let Some(ref fix) = ep.fix {
         json.push_str(&format!(",\"fix\":\"{}\"", escape_json(fix)));
     }
+    if let Some(ref bk) = ep.bench_kind {
+        json.push_str(&format!(",\"bk\":\"{}\"", escape_json(bk)));
+    }
+    if let Some(ref mo) = ep.modality {
+        json.push_str(&format!(",\"mo\":\"{}\"", escape_json(mo)));
+    }
+    if let Some(ref ve) = ep.verdict {
+        json.push_str(&format!(",\"ve\":\"{}\"", escape_json(ve)));
+    }
     json.push_str(&format!(",\"outcome\":\"{}\"", ep.outcome.as_str()));
     json.push('}');
     json
@@ -331,6 +346,9 @@ fn json_to_episode(line: &str) -> Option<Episode> {
     let final_pc = extract_json_u64(line, "\"pc\"")? as u32;
     let halted = extract_json_bool(line, "\"halted\"");
     let fix = extract_json_string_val(line, "\"fix\"");
+    let bench_kind = extract_json_string_val(line, "\"bk\"");
+    let modality = extract_json_string_val(line, "\"mo\"");
+    let verdict = extract_json_string_val(line, "\"ve\"");
     let outcome_str = extract_json_string_val(line, "\"outcome\"")?;
     let outcome = Outcome::from_str(&outcome_str);
 
@@ -356,6 +374,9 @@ fn json_to_episode(line: &str) -> Option<Episode> {
         },
         fix,
         outcome,
+        bench_kind,
+        modality,
+        verdict,
     })
 }
 
@@ -463,6 +484,9 @@ pub fn build_episode_raw(
     final_pc: u32,
     halted: bool,
     fix: Option<String>,
+    bench_kind: Option<String>,
+    modality: Option<String>,
+    verdict: Option<String>,
 ) -> Episode {
     let drawn_pct = if screen_total > 0 {
         screen_non_black as f64 / screen_total as f64 * 100.0
@@ -494,6 +518,9 @@ pub fn build_episode_raw(
         halted,
         fix,
         outcome,
+        bench_kind,
+        modality,
+        verdict,
     }
 }
 
@@ -534,6 +561,9 @@ mod tests {
             halted: true,
             fix: Some("replaced wrong opcode 0x42 with FILL".to_string()),
             outcome: Outcome::Success,
+            bench_kind: None,
+            modality: None,
+            verdict: None,
         };
 
         let json = episode_to_json(&episode);
@@ -572,6 +602,9 @@ mod tests {
             halted: true,
             fix: None,
             outcome: Outcome::BlackScreen,
+            bench_kind: None,
+            modality: None,
+            verdict: None,
         };
 
         let json = episode_to_json(&episode);
@@ -675,6 +708,9 @@ mod tests {
             halted: true,
             fix: None,
             outcome: Outcome::Success,
+            bench_kind: None,
+            modality: None,
+            verdict: None,
         };
 
         let json = episode_to_json(&episode);

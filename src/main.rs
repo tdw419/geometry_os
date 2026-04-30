@@ -6,27 +6,25 @@
 // Build: cargo run
 // Test:  cargo test
 
-mod assembler;
-mod audio;
-mod canvas;
-mod cli;
-mod font;
-mod hermes;
-mod inode_fs;
-mod keys;
-#[allow(dead_code)]
-mod pixel;
-mod preprocessor;
-mod qemu;
-mod render;
-mod riscv;
-mod save;
-mod scrollback;
-mod vfs;
-mod viewport;
-#[allow(dead_code)]
-mod vision;
-mod vm;
+use geometry_os::assembler;
+use geometry_os::audio;
+use geometry_os::canvas;
+use geometry_os::cli;
+use geometry_os::font;
+use geometry_os::hermes;
+use geometry_os::inode_fs;
+use geometry_os::keys;
+use geometry_os::pixel;
+use geometry_os::preprocessor;
+use geometry_os::qemu;
+use geometry_os::render;
+use geometry_os::riscv;
+use geometry_os::save;
+use geometry_os::scrollback;
+use geometry_os::vfs;
+use geometry_os::viewport;
+use geometry_os::vision;
+use geometry_os::vm;
 
 use qemu::QemuBridge;
 
@@ -679,9 +677,8 @@ fn main() {
                     );
                     if canvas_assembled {
                         is_running = true;
-                        status_msg = String::from(
-                            "[Geometry OS Terminal — type 'help' for commands]",
-                        );
+                        status_msg =
+                            String::from("[Geometry OS Terminal — type 'help' for commands]");
                     }
                 }
             }
@@ -697,9 +694,9 @@ fn main() {
                 match assembler::assemble(&preprocessed, CANVAS_BYTECODE_ADDR) {
                     Ok(asm_result) => {
                         let ram_len = vm.ram.len();
-                        for v in
-                            vm.ram[CANVAS_BYTECODE_ADDR..ram_len.min(CANVAS_BYTECODE_ADDR + 8192)]
-                                .iter_mut()
+                        for v in vm.ram
+                            [CANVAS_BYTECODE_ADDR..ram_len.min(CANVAS_BYTECODE_ADDR + 8192)]
+                            .iter_mut()
                         {
                             *v = 0;
                         }
@@ -3404,11 +3401,7 @@ fn main() {
                                     let mut count = 0u32;
                                     if vm.focused_pid == 0 && riscv_handle.is_none() {
                                         // Desktop mode: check CMD_MODE at RAM[0x7830]
-                                        let cmd_mode = vm
-                                            .ram
-                                            .get(0x7830)
-                                            .copied()
-                                            .unwrap_or(0);
+                                        let cmd_mode = vm.ram.get(0x7830).copied().unwrap_or(0);
                                         if cmd_mode == 0 {
                                             // Enter TYPE mode first
                                             if vm.push_key('/' as u32) {
@@ -3881,12 +3874,18 @@ fn main() {
                     let mut a = path_addr;
                     while a < vm.ram.len() {
                         let byte = (vm.ram[a] & 0xFF) as u8;
-                        if byte == 0 { break; }
+                        if byte == 0 {
+                            break;
+                        }
                         chars.push(byte as char);
                         a += 1;
                     }
                     let name: String = chars.into_iter().collect();
-                    if name.is_empty() { None } else { Some(name) }
+                    if name.is_empty() {
+                        None
+                    } else {
+                        Some(name)
+                    }
                 } else {
                     None
                 };
