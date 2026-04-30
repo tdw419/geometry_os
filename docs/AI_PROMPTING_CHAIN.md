@@ -262,7 +262,7 @@ The vision pipeline works, but not everything is wired up:
 
 2. **Script DSL vision assert** -- `assert:vision:PROMPT||EXPECTED` in --script mode would let you write visual regression tests. The checksum assert works today; the vision-LLM version doesn't yet.
 
-3. **External Hermes -> Ollama vision** -- I (Hermes) can take screenshots via MCP, but I can't directly call your local Ollama vision model. I'd need to use the GeOS MCP server's vision tools, or you'd need to expose Ollama's API as a tool. Right now I see the terminal through the MCP screenshot tool and reason about it with my own vision capability.
+3. **External Hermes -> Ollama vision** -- ~~I (Hermes) can take screenshots via MCP, but I can't directly call your local Ollama vision model. I'd need to use the GeOS MCP server's vision tools, or you'd need to expose Ollama's API as a tool. Right now I see the terminal through the MCP screenshot tool and reason about it with my own vision capability.~~ **CLOSED** -- Added `mcp_geo_vision_describe` tool. Takes a screenshot, sends it to llama3.2-vision:11b via the GeOS MCP server's socket command `vision_describe`, returns a text description. ~2s on local GPU. One tool call, no cloud tokens burned.
 
 4. **Terminal programs calling vision** -- host_term.asm has no ANSI escape to trigger AI_AGENT. Adding `\e]AI:prompt\x07` would let any terminal program request vision analysis.
 
