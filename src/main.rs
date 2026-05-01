@@ -404,6 +404,9 @@ fn main() {
     let mut pc_history: VecDeque<u32> = VecDeque::with_capacity(64);
     let mut ram_view_base: usize = 0x2000;
 
+    // Phase 200: File watcher state (path, last modified time)
+    let mut watch_file: Option<(std::path::PathBuf, Option<std::time::SystemTime>)> = None;
+
     // Cursor position on canvas (logical coordinates, can exceed visible area)
     let mut cursor_row: usize;
     let mut cursor_col: usize;
@@ -2470,7 +2473,7 @@ fn main() {
                                 }
                             }
                             "help" => {
-                                response.push_str("Commands: status, canvas, assemble, run, type <text>, clear, save, save_asm <name>, load_source <asm>, screenshot [path], screenshot_b64, screenshot_annotated_b64, canvas_checksum, canvas_diff <hex>, screen, registers, disasm, vmscreen, ram [base] [rows], vm_state, dashboard, load <path>, loadasm <path>, loadbin <path>, step, halt, scrollback [offset] [count], buildings [radius], desktop_json, launch <app> [--window], player_pos, hypervisor_boot <config>, hypervisor_kill, riscv_run <elf_path>, riscv_kill, inject_key <keycode>, inject_mouse <move|click> <x> <y> [button], inject_text <text>, window_list, window_move <id> <x> <y>, window_close <id>, window_focus <id>, window_resize <id> <w> <h>, process_kill <pid>, launcher [cmd|close|status], clipboard [get|set <text>], font [small|normal|medium], cursorstyle [block|underline|bar], help\n");
+                                response.push_str("Commands: status, canvas, assemble, run, type <text>, clear, save, save_asm <name>, load_source <asm>, screenshot [path], screenshot_b64, screenshot_annotated_b64, canvas_checksum, canvas_diff <hex>, screen, registers, disasm, vmscreen, ram [base] [rows], vm_state, dashboard, load <path>, loadasm <path>, loadbin <path>, step, halt, scrollback [offset] [count], buildings [radius], desktop_json, launch <app> [--window], player_pos, hypervisor_boot <config>, hypervisor_kill, riscv_run <elf_path>, riscv_kill, inject_key <keycode>, inject_mouse <move|click> <x> <y> [button], inject_text <text>, window_list, window_move <id> <x> <y>, window_close <id>, window_focus <id>, window_resize <id> <w> <h>, process_kill <pid>, launcher [cmd|close|status], clipboard [get|set <text>], watch <path>, unwatch, font [small|normal|medium], cursorstyle [block|underline|bar], help\n");
                                 response.push_str("In 'type' command, use \\n for newlines.\n");
                             }
                             "scrollback" => {
@@ -3788,6 +3791,67 @@ fn main() {
                                     }
                                 }
                             }
+                            // ── Phase 200: File Watcher ───────────────────────────
+                            "watch" => {
+                                // watch <path> -- watch an .asm file for changes
+                                // On save: load -> assemble -> run automatically
+                                if let Some(path) = parts.get(1) {
+                                    let watch_path = std::path::PathBuf::from(path);
+                                    if watch_path.exists() {
+                                        let mtime = std::fs::metadata(&watch_path)
+                                            .ok()
+                                            .and_then(|m| m.modified().ok());
+                                        watch_file = Some((watch_path.clone(), mtime));
+                                        response.push_str(&format!(
+                                            "[watching: {}]\n",
+                                            watch_path.display()
+                                        ));
+                                        // Immediately load, assemble, and run
+                                        if let Ok(source) =
+                                            std::fs::read_to_string(&watch_path)
+                                        {
+                                            load_source_to_canvas(
+                                                &mut canvas_buffer,
+                                                &source,
+                                                &mut cursor_row,
+                                                &mut cursor_col,
+                                            );
+                                            canvas_assemble(
+                                                &canvas_buffer,
+                                                &mut vm,
+                                                &mut canvas_assembled,
+                                                &mut status_msg,
+                                            );
+                                            if canvas_assembled {
+                                                vm.pc = CANVAS_BYTECODE_ADDR as u32;
+                                                vm.halted = false;
+                                                is_running = true;
+                                                terminal_direct_mode = true;
+                                                fullscreen_map = false;
+                                            }
+                                        }
+                                    } else {
+                                        response.push_str(&format!(
+                                            "[watch: {} not found]\n",
+                                            path
+                                        ));
+                                    }
+                                } else {
+                                    // Report current watch state
+                                    if let Some((ref p, _)) = watch_file {
+                                        response.push_str(&format!(
+                                            "[watching: {}]\n",
+                                            p.display()
+                                        ));
+                                    } else {
+                                        response.push_str("[watch: no file being watched]\n");
+                                    }
+                                }
+                            }
+                            "unwatch" => {
+                                watch_file = None;
+                                response.push_str("[unwatched]\n");
+                            }
                             "font" => {
                                 // font [small|normal|medium] -- switch font mode (also resizes PTY)
                                 let subcmd = parts.get(1).copied().unwrap_or("");
@@ -3850,6 +3914,55 @@ fn main() {
                 }
                 if !response.is_empty() {
                     let _ = stream.write_all(response.as_bytes());
+                }
+            }
+        }
+
+        // ── Phase 200: File Watcher Polling ──────────────────────
+        // Check watched file for changes (poll every frame ~60fps)
+        if let Some((ref path, ref last_mtime)) = watch_file {
+            if let Ok(metadata) = std::fs::metadata(path) {
+                if let Ok(current_mtime) = metadata.modified() {
+                    let changed = match last_mtime {
+                        None => true,
+                        Some(prev) => current_mtime.duration_since(*prev).is_ok(),
+                    };
+                    if changed {
+                        // File changed -- reload, assemble, run
+                        if let Ok(source) = std::fs::read_to_string(path) {
+                            load_source_to_canvas(
+                                &mut canvas_buffer,
+                                &source,
+                                &mut cursor_row,
+                                &mut cursor_col,
+                            );
+                            canvas_assemble(
+                                &canvas_buffer,
+                                &mut vm,
+                                &mut canvas_assembled,
+                                &mut status_msg,
+                            );
+                            if canvas_assembled {
+                                vm.pc = CANVAS_BYTECODE_ADDR as u32;
+                                vm.halted = false;
+                                is_running = true;
+                                terminal_direct_mode = true;
+                                fullscreen_map = false;
+                                status_msg = format!(
+                                    "[watch: reloaded {}]",
+                                    path.display()
+                                );
+                            } else {
+                                status_msg = format!(
+                                    "[watch: assemble failed for {}]",
+                                    path.display()
+                                );
+                            }
+                        }
+                        // Update mtime
+                        watch_file =
+                            Some((path.clone(), Some(current_mtime)));
+                    }
                 }
             }
         }

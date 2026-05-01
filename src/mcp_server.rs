@@ -256,6 +256,24 @@ fn get_tool_list() -> Vec<serde_json::Value> {
             vec![],
             riscv_kill_schema(),
         ),
+        // -- Phase 200: File Watcher Tools --
+        tool(
+            "vm_watch",
+            "Watch an .asm file for changes. On every save, automatically reload, assemble, and run.",
+            vec![param(
+                "path",
+                "string",
+                "Path to .asm file to watch",
+                true,
+            )],
+            vm_watch_schema(),
+        ),
+        tool(
+            "vm_unwatch",
+            "Stop watching the currently watched file",
+            vec![],
+            vm_unwatch_schema(),
+        ),
         // -- Phase 88: AI Vision Bridge Tools --
         tool(
             "vision_screenshot",
@@ -534,6 +552,21 @@ fn riscv_run_schema() -> serde_json::Value {
     serde_json::json!({"type": "object", "properties": {"launched": {"type": "boolean"}, "elf_path": {"type": "string"}}})
 }
 fn riscv_kill_schema() -> serde_json::Value {
+    serde_json::json!({"type": "object", "properties": {"ok": {"type": "boolean"}}})
+}
+
+// Phase 200: File Watcher schemas
+fn vm_watch_schema() -> serde_json::Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "watching": {"type": "string", "description": "Path of the file being watched"},
+            "status": {"type": "string", "description": "Status message"}
+        }
+    })
+}
+
+fn vm_unwatch_schema() -> serde_json::Value {
     serde_json::json!({"type": "object", "properties": {"ok": {"type": "boolean"}}})
 }
 
@@ -981,6 +1014,36 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
             Ok(serde_json::json!({
                 "ok": resp.contains("killed"),
                 "response": resp,
+            }))
+        }
+
+        // Phase 200: File Watcher tools
+        "vm_watch" => {
+            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            if path.is_empty() {
+                return Ok(serde_json::json!({
+                    "watching": "",
+                    "status": "error: path parameter required"
+                }));
+            }
+            let cmd = format!("watch {}", path);
+            let resp = send_socket_cmd(&cmd)?;
+            let watching = if resp.contains("watching") {
+                path.to_string()
+            } else {
+                String::new()
+            };
+            Ok(serde_json::json!({
+                "watching": watching,
+                "status": resp.trim().to_string()
+            }))
+        }
+
+        "vm_unwatch" => {
+            let resp = send_socket_cmd("unwatch")?;
+            Ok(serde_json::json!({
+                "ok": resp.contains("stopped") || resp.contains("no watch"),
+                "status": resp.trim().to_string()
             }))
         }
 
