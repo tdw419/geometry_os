@@ -1616,6 +1616,557 @@ conventions:
 - 'Power-of-two constants: use bit masks (x & 0xFF) not modulo (x % 256)'
 - Present callback must be channel-based, never synchronous in bus write
 - SPEC = thesis. roadmap_v2 = arc. OpenSpec = per-change diff. Three docs, three jobs.
+- id: phase-201
+  title: RISC-V Guest Networking -- Socket Syscall Layer
+  status: todo
+  goal: Enable bare-metal RISC-V C programs to open TCP connections and exchange data
+  description: 'The GeOS VM has TCP opcodes (CONNECT, SOCKSEND, SOCKRECV) but the RISC-V
+    guest has no networking path. The syscall layer (src/riscv/syscall.rs) already lists
+    socket/syscall numbers but returns -ENOSYS. Wire these to real host sockets via a
+    simple proxy: guest writes a socket request to a shared MMIO buffer, host picks it
+    up and performs the real connect/send/recv. This gives paint.c and sh.c the ability
+    to fetch data from the network.'
+  deliverables:
+  - name: Socket syscall implementation for RISC-V guest
+    status: todo
+    tasks:
+    - id: p201.d1.t1
+      title: Implement socket() syscall returning guest fd
+      description: Map socket() syscall to a guest file descriptor table. Allocate
+        a host-side TCP stream on connect().
+      scope_files:
+      - src/riscv/syscall.rs
+      scope_lines: 60
+    - id: p201.d1.t2
+      title: Implement send/recv syscalls via host TCP proxy
+      description: Guest send() writes to a ring buffer, host thread reads and sends
+        via real TCP. Guest recv() polls the ring buffer. Non-blocking with timeout.
+      scope_files:
+      - src/riscv/syscall.rs
+      - src/riscv/bus.rs
+      scope_lines: 80
+    - id: p201.d1.t3
+      title: 'Test: guest fetches HTTP from host via sockets'
+      description: A C program calls socket+connect+send("GET / HTTP/1.0\r\n\r\n")+recv,
+        writes first 200 bytes of response to framebuffer. Verified via riscv_fb_dump.
+      scope_files:
+      - examples/riscv-hello/net_test.c
+      scope_lines: 40
+  test_target: 3
+  scope_lines_total: 180
+- id: phase-202
+  title: GeOS Audio System -- PCM Streaming via BEEP
+  status: todo
+  goal: Extend the single-tone BEEP opcode into a sample-streaming audio pipeline
+    for sound effects and music
+  description: 'The current BEEP opcode plays one sine-wave tone at a time via aplay.
+    For games and demos, we need PCM sample streaming: pre-load a waveform into RAM,
+    then play it back at a given sample rate. Add AUDIO_PLAY and AUDIO_STOP opcodes
+    that stream from a RAM buffer through aplay in a background thread. This enables
+    sound effects in snake.asm, background music in breakout.asm, and ambient audio
+    in screensaver.asm.'
+  deliverables:
+  - name: PCM sample streaming opcodes
+    status: todo
+    tasks:
+    - id: p202.d1.t1
+      title: Add AUDIO_PLAY opcode (addr_reg, len_reg, rate_reg)
+      description: 'Stream raw PCM samples from RAM through aplay in a background thread.
+        Non-blocking: VM continues while audio plays. Use existing aplay pipe pattern.'
+      scope_files:
+      - src/vm/mod.rs
+      - src/audio.rs
+      scope_lines: 80
+    - id: p202.d1.t2
+      title: Add AUDIO_STOP opcode and audio state query
+      description: AUDIO_STOP halts playback. AUDIO_STATUS (register) returns 1 if
+        playing, 0 if done. Allow one concurrent stream (stop previous before starting
+        new).
+      scope_files:
+      - src/vm/mod.rs
+      - src/audio.rs
+      scope_lines: 40
+    - id: p202.d1.t3
+      title: 'Demo: tetris with sound effects via PCM streaming'
+      description: Pre-generate click/line-clear/game-over waveforms at boot, play
+        them on events. Uses AUDIO_PLAY instead of BEEP for multi-sample effects.
+      scope_files:
+      - programs/tetris_clean.asm
+      scope_lines: 50
+  test_target: 3
+  scope_lines_total: 170
+- id: phase-203
+  title: RISC-V Fuzzer Coverage Expansion
+  status: todo
+  goal: Extend the oracle-based RISC-V fuzzer to cover compressed instructions, CSR
+    operations, and memory management
+  description: 'The current fuzzer (src/riscv_fuzzer.rs, 747 lines) generates random
+    RV32IM programs and checks against a reference oracle. It covers basic ALU, load/store,
+    and branches but misses compressed instructions (C extension), CSR reads/writes,
+    and atomic operations. Expanding coverage catches emulator bugs before they manifest
+    in real guest programs. The fuzzer has caught real bugs before -- this is high-value
+    defensive work.'
+  deliverables:
+  - name: Compressed instruction fuzzer coverage
+    status: todo
+    tasks:
+    - id: p203.d1.t1
+      title: Add C-extension instruction generation to fuzzer
+      description: Generate random C.ADDI, C.LI, C.LUI, C.MV, C.J, C.BEQZ, C.BNEZ,
+        C.LW, C.SW, C.LWSP, C.SWSP instructions with proper encoding. Mix with 32-bit
+        instructions at configurable ratio.
+      scope_files:
+      - src/riscv_fuzzer.rs
+      scope_lines: 100
+    - id: p203.d1.t2
+      title: Add CSR read/write fuzzer paths
+      description: Generate CSRRS/CSRRC/CSRRW for common CSRs (mstatus, mepc, mtvec,
+        sstatus, sepc, stvec). Verify oracle matches emulator state.
+      scope_files:
+      - src/riscv_fuzzer.rs
+      scope_lines: 60
+    - id: p203.d1.t3
+      title: Run extended fuzzer for 1M iterations, fix any divergences
+      description: Execute the expanded fuzzer with seed variation. Log and categorize
+        any oracle mismatches. Fix emulator bugs found.
+      scope_files:
+      - src/riscv_fuzzer.rs
+      - src/riscv/cpu/
+      scope_lines: 40
+  test_target: 3
+  scope_lines_total: 200
+- id: phase-204
+  title: GeOS Clipboard -- Cross-Program Pixel Copy/Paste
+  status: todo
+  goal: Allow programs to share pixel data via a clipboard buffer accessible through
+    new CLIP_COPY and CLIP_PASTE opcodes
+  description: 'Programs currently operate in isolation -- snake.asm draws its own
+    pixels and tetris.asm draws its own. A clipboard buffer lets programs export/import
+    rectangular pixel regions. Use case: a paint program exports a sprite, a game loads
+    it. Implementation: 256x256 pixel buffer (same size as screen), CLIP_COPY reads
+    from screen into buffer, CLIP_PASTE writes from buffer to screen. The buffer persists
+    across program runs within the same VM session.'
+  deliverables:
+  - name: Clipboard opcodes and buffer
+    status: todo
+    tasks:
+    - id: p204.d1.t1
+      title: Add CLIP_COPY opcode (x, y, w, h registers)
+      description: 'Copy a rectangular region from vm.screen into clipboard buffer.
+        Parameters: x, y, width, height in registers. Clip to screen bounds.'
+      scope_files:
+      - src/vm/mod.rs
+      scope_lines: 40
+    - id: p204.d1.t2
+      title: Add CLIP_PASTE opcode (x, y registers)
+      description: Paste clipboard buffer contents at (x, y) on screen. Supports
+        partial paste at screen edges.
+      scope_files:
+      - src/vm/mod.rs
+      scope_lines: 40
+    - id: p204.d1.t3
+      title: 'Demo: paint program with copy/paste functionality'
+      description: Extend painter.asm or write a new sprite editor that uses CLIP_COPY/CLIP_PASTE
+        to duplicate regions and build sprite sheets.
+      scope_files:
+      - programs/clipboard_demo.asm
+      scope_lines: 80
+  test_target: 3
+  scope_lines_total: 160
+- id: phase-205
+  title: GeOS Sprite Sheet Loader
+  status: todo
+  goal: Load sprite sheets from VFS files and render them with SPRITE opcode in programs
+  description: 'The SPRITE opcode already exists (0x4A) and blits NxM pixels from RAM
+    to screen. But there is no standard way to load sprite data from VFS into RAM at
+    a known address. Add a SPRITE_LOAD opcode that reads a VFS file into RAM at a given
+    address, formatted as a width x height pixel array. Programs can then use SPRITE
+    to render individual frames from the loaded sheet. This enables animated sprites
+    in games without manually encoding pixel data in assembly.'
+  deliverables:
+  - name: SPRITE_LOAD opcode for VFS-to-RAM sprite loading
+    status: todo
+    tasks:
+    - id: p205.d1.t1
+      title: Add SPRITE_LOAD opcode (filename_addr, dest_addr, width, height regs)
+      description: Open a VFS file by name (null-terminated string at filename_addr),
+        read pixel data into RAM starting at dest_addr. Each pixel is a u32 color value.
+        Return 0 on success, error code on failure.
+      scope_files:
+      - src/vm/mod.rs
+      - src/vm/ops_syscall.rs
+      scope_lines: 60
+    - id: p205.d1.t2
+      title: Add SPRITE_FRAME opcode for sheet animation
+      description: Given a loaded sheet base address, frame dimensions, and frame index,
+        compute the pixel offset for that frame. Write result to a register. Thin wrapper
+        around address arithmetic.
+      scope_files:
+      - src/vm/mod.rs
+      scope_lines: 30
+    - id: p205.d1.t3
+      title: 'Demo: animated character with sprite sheet'
+      description: Create a sprite sheet (4-8 frames of a walking character), load
+        via SPRITE_LOAD, animate via SPRITE_FRAME + SPRITE in a game loop.
+      scope_files:
+      - programs/sprite_anim.asm
+      scope_lines: 80
+  test_target: 3
+  scope_lines_total: 170
+- id: phase-206
+  title: RISC-V Virtio-Blk Filesystem
+  status: todo
+  goal: Complete the virtio-blk driver so bare-metal C programs can read/write persistent
+    files
+  description: 'VirtioBlk exists in src/riscv/virtio_blk.rs and is wired into the bus,
+    but the driver is a stub -- it returns zeros on read and accepts writes silently.
+    A real virtio-blk driver backed by a host file would give guest programs persistent
+    storage beyond the in-memory VFS surface. This is the next step toward a real bare-metal
+    OS: programs that save data across VM restarts.'
+  deliverables:
+  - name: Functional virtio-blk backed by host file
+    status: todo
+    tasks:
+    - id: p206.d1.t1
+      title: Implement virtio-blk read/write against a host backing file
+      description: On VM creation, open or create a backing file (e.g., 1MB). Virtio-blk
+        read returns file contents, write persists to file. Handle virtio descriptor
+        chains properly.
+      scope_files:
+      - src/riscv/virtio_blk.rs
+      - src/riscv/bus.rs
+      scope_lines: 120
+    - id: p206.d1.t2
+      title: Add GEOS_BLK_READ/WRITE helpers to libgeos
+      description: 'Add C functions that wrap virtio-blk MMIO reads/writes: geos_blk_read(sector,
+        buf, n), geos_blk_write(sector, buf, n). Add to libgeos.a.'
+      scope_files:
+      - examples/riscv-hello/libgeos.c
+      - examples/riscv-hello/libgeos.h
+      scope_lines: 60
+    - id: p206.d1.t3
+      title: 'Test: guest writes data, restarts VM, reads data back'
+      description: C program writes a known pattern to block 0, triggers shutdown, runner
+        restarts VM, program reads block 0 and verifies pattern. Proves persistence.
+      scope_files:
+      - examples/riscv-hello/blk_test.c
+      - examples/blk_persist_test.rs
+      scope_lines: 50
+  test_target: 3
+  scope_lines_total: 230
+- id: phase-207
+  title: GeOS Collision Detection Library
+  status: todo
+  goal: Build reusable collision detection primitives as assembly subroutines in
+    the standard library
+  description: 'Multiple game programs (snake, ball, breakout) implement their own collision
+    detection with PEEK and manual bounds checking. This is duplicated, error-prone
+    and wasteful. Create a collision detection library in lib/ with subroutines for
+    AABB rectangle overlap, point-in-rect, circle-rect intersection, and pixel-perfect
+    collision. Programs CALL these instead of inlining the logic.'
+  deliverables:
+  - name: Collision detection subroutine library
+    status: todo
+    tasks:
+    - id: p207.d1.t1
+      title: Implement AABB rectangle overlap subroutine
+      description: 'rect_overlap(x1,y1,w1,h1, x2,y2,w2,h2) -> r0=1 if overlap,
+        0 if not. All args in registers. Use CMP+BLT pattern. No RAM usage.'
+      scope_files:
+      - programs/lib/collision.asm
+      scope_lines: 40
+    - id: p207.d1.t2
+      title: Implement circle-rect and point-in-circle subroutines
+      description: circle_rect_intersect(cx,cy,cr, rx,ry,rw,rh) and point_in_circle(px,py,cx,cy,cr).
+        Use squared distance to avoid SQRT (which doesn't exist).
+      scope_files:
+      - programs/lib/collision.asm
+      scope_lines: 50
+    - id: p207.d1.t3
+      title: Refactor snake.asm to use collision library
+      description: Replace inline collision checks in snake.asm with CALL to library
+        subroutines. Verify behavior unchanged. Measure instruction savings.
+      scope_files:
+      - programs/snake.asm
+      scope_lines: 40
+  test_target: 3
+  scope_lines_total: 130
+- id: phase-208
+  title: MCP Server -- Programmatic Assembly and Execution
+  status: todo
+  goal: Add MCP tools for loading, assembling, and running .asm programs from external
+    agents
+  description: 'The MCP server (src/mcp_server.rs) exposes status/screenshot/registers
+    tools but cannot load and execute programs. An agent must type into the canvas via
+    vm_type, which is slow and fragile. Add asm_load, asm_assemble, asm_run, and asm_step
+    MCP tools so Hermes can programmatically test and develop GeOS programs. This unblocks
+    the hermes/build agent loop from inside MCP.'
+  deliverables:
+  - name: Assembly and execution MCP tools
+    status: todo
+    tasks:
+    - id: p208.d1.t1
+      title: Add asm_load tool -- load .asm file into canvas buffer
+      description: Takes file path, reads .asm source, writes to canvas buffer via
+        load_source_to_canvas. Returns line count and any parse warnings.
+      scope_files:
+      - src/mcp_server.rs
+      scope_lines: 40
+    - id: p208.d1.t2
+      title: Add asm_assemble and asm_run tools
+      description: asm_assemble triggers F8 (assemble canvas to bytecode). asm_run
+        starts execution from 0x1000 with optional step limit. Returns register state
+        and screen checksum after execution.
+      scope_files:
+      - src/mcp_server.rs
+      scope_lines: 60
+    - id: p208.d1.t3
+      title: 'Test: Hermes loads, assembles, runs hello.asm via MCP'
+      description: Integration test that calls the MCP tools in sequence and verifies
+        the output matches expected screen content.
+      scope_files:
+      - src/mcp_server.rs
+      scope_lines: 30
+  test_target: 2
+  scope_lines_total: 130
+- id: phase-209
+  title: RISC-V Multi-Process -- Cooperative Context Switching
+  status: todo
+  goal: Run multiple bare-metal C programs concurrently in the RISC-V interpreter
+    with cooperative yielding
+  description: 'The GeOS VM has SPAWN/KILL for multi-process but the RISC-V guest runs
+    a single ELF. Add a lightweight context switcher: the guest calls a yield SBI extension,
+    the host saves all registers and switches to a second guest context (separate register
+    file, separate PC, shared MMIO). This proves multi-programming on the RISC-V layer
+    without a full kernel -- just register save/restore and PC swap.'
+  deliverables:
+  - name: Cooperative multi-process for RISC-V guests
+    status: todo
+    tasks:
+    - id: p209.d1.t1
+      title: Add SBI_YIELD extension to sbi.rs
+      description: New SBI extension (0x4759 = "GY"). Guest calls ecall with a7=0x4759,
+        a0=context_id. Host saves current context, switches to target context. Return
+        to caller on next yield.
+      scope_files:
+      - src/riscv/sbi.rs
+      - src/riscv/mod.rs
+      scope_lines: 80
+    - id: p209.d1.t2
+      title: Add context management (create, switch, destroy)
+      description: RiscvVm holds a Vec of GuestContext (registers, PC, privilege).
+        SBI_YIELD with new context_id creates it. SBI_YIELD with existing ID switches.
+        SBI_KILL terminates a context.
+      scope_files:
+      - src/riscv/mod.rs
+      scope_lines: 60
+    - id: p209.d1.t3
+      title: 'Demo: two C programs alternating on framebuffer'
+      description: Program A draws a bouncing ball, yields every frame. Program B draws
+        a rotating pattern, yields every frame. Both share the framebuffer, producing
+        a composite display.
+      scope_files:
+      - examples/riscv-hello/multiproc_a.c
+      - examples/riscv-hello/multiproc_b.c
+      - examples/multiproc_run.rs
+      scope_lines: 80
+  test_target: 3
+  scope_lines_total: 220
+- id: phase-210
+  title: GeOS Text Rendering -- Variable-Width Font Support
+  status: todo
+  goal: Support variable-width fonts in the TEXT opcode for more readable text display
+  description: 'The TEXT opcode uses a fixed 8x8 pixel font (font.rs). For programs
+    that display paragraphs of text (notepad.asm, chatbot.asm, help.asm), variable-width
+    characters (like a real terminal font) look dramatically better. Add a FONT_SELECT
+    opcode that switches the active font, and implement a proportional 5x7 font (mini_font.in
+    already exists). The existing 8x8 font remains the default.'
+  deliverables:
+  - name: Variable-width font rendering
+    status: todo
+    tasks:
+    - id: p210.d1.t1
+      title: Implement proportional font rendering in TEXT opcode
+      description: Add font selection state to Vm. When proportional font is active,
+        TEXT uses character-width table from mini_font.in. Advance cursor by character
+        width instead of fixed 8 pixels.
+      scope_files:
+      - src/vm/mod.rs
+      - src/font.rs
+      scope_lines: 60
+    - id: p210.d1.t2
+      title: Add FONT_SELECT opcode (font_id register)
+      description: FONT_SELECT r -- 0 = 8x8 fixed, 1 = 5x7 proportional, 2 = 6x10
+        medium. Persists until changed. Validated range check.
+      scope_files:
+      - src/vm/mod.rs
+      - src/vm/ops_graphics.rs
+      - src/assembler/
+      scope_lines: 40
+    - id: p210.d1.t3
+      title: 'Demo: notepad with proportional font'
+      description: Modify notepad.asm to use proportional font for the text area while
+        keeping the fixed font for the UI border. Shows visual improvement.
+      scope_files:
+      - programs/notepad.asm
+      scope_lines: 30
+  test_target: 3
+  scope_lines_total: 130
+- id: phase-211
+  title: GeOS Performance -- Instruction Cache for Hot Loops
+  status: todo
+  goal: Add a decoded instruction cache to speed up tight loops by 3-5x
+  description: 'The VM currently decodes every instruction on every step() call, even
+    in tight loops that execute the same instructions millions of times. At 88 MIPS,
+    this decode overhead is the bottleneck. Add a small direct-mapped cache (256 entries)
+    that maps PC to decoded instruction. On cache hit, skip decode and execute directly.
+    Cache is invalidated on self-modifying code (STORE to code region). Expected speedup:
+    3-5x on loop-heavy programs like plasma, infinite_map, and the fuzzer.'
+  deliverables:
+  - name: Decoded instruction cache
+    status: todo
+    tasks:
+    - id: p211.d1.t1
+      title: Implement PC-indexed instruction cache in Vm
+      description: Add HashMap<u32, CachedInstruction> to Vm. On step(), check cache
+        before decoding. On cache miss, decode and insert. Invalidate on writes to code
+        pages.
+      scope_files:
+      - src/vm/mod.rs
+      scope_lines: 80
+    - id: p211.d1.t2
+      title: Add cache invalidation on self-modifying code
+      description: When STORE writes to the code region (0x1000-0x1FFF), invalidate
+        the cache entry for that address. When ASM/ASMSELF writes bytecode, invalidate
+        entire cache.
+      scope_files:
+      - src/vm/mod.rs
+      scope_lines: 30
+    - id: p211.d1.t3
+      title: 'Benchmark: measure speedup on plasma and infinite_map'
+      description: 'Run plasma and infinite_map with and without cache. Measure instructions/second.
+        Target: 3x speedup on plasma (heavy loop), no regression on branchy code.'
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 30
+  test_target: 3
+  scope_lines_total: 140
+- id: phase-212
+  title: GeOS Pixel Art Export -- PNG Screenshot to VFS
+  status: todo
+  goal: Save the current screen as a PNG file in the VFS, accessible from programs
+    and the host
+  description: 'The screenshot opcode exists (F9 key) but saves to a host file path.
+    Programs cannot programmatically save their visual output. Add a SCREENSHOT opcode
+    that encodes the current 256x256 screen as PNG and writes it to the VFS. This lets
+    paint.asm save artwork, maze_gen.asm export mazes, and code_evolution.asm archive
+    interesting generations -- all from within the program.'
+  deliverables:
+  - name: SCREENSHOT opcode for in-program PNG export
+    status: todo
+    tasks:
+    - id: p212.d1.t1
+      title: Add SCREENSHOT opcode (filename_addr register)
+      description: Encode vm.screen as PNG (using existing encode_png from vision.rs
+        logic) and write to VFS at the given filename. Return 0 on success.
+      scope_files:
+      - src/vm/mod.rs
+      - src/vision.rs
+      scope_lines: 60
+    - id: p212.d1.t2
+      title: Add SCREEN_LOAD opcode to load PNG into screen
+      description: Read a VFS file, decode as PNG, write pixels to vm.screen. Inverse
+        of SCREENSHOT. Uses existing PNG decode logic.
+      scope_files:
+      - src/vm/mod.rs
+      scope_lines: 40
+    - id: p212.d1.t3
+      title: 'Demo: paint program with save/load functionality'
+      description: Painter saves current canvas as "painting1.png" via SCREENSHOT.
+        On next run, loads it back via SCREEN_LOAD. Proves the round-trip.
+      scope_files:
+      - programs/painter.asm
+      scope_lines: 30
+  test_target: 3
+  scope_lines_total: 130
+- id: phase-213
+  title: GeOS Tilemap Editor -- Visual Map Building Tool
+  status: todo
+  goal: Build an interactive tilemap editor that lets users paint tile-based levels
+    for games
+  description: 'The TILEMAP opcode (0x4C) blits tile grids from RAM to screen, but
+    there is no tool to visually design tilemaps. Create a tilemap editor program with
+    a tile palette on the left (selectable tiles), a grid canvas on the right (click to
+    place tiles), and export to RAM format. This enables level design for roguelike.asm,
+    maze.asm, and future tile-based games.'
+  deliverables:
+  - name: Interactive tilemap editor program
+    status: todo
+    tasks:
+    - id: p213.d1.t1
+      title: Tile palette display and selection UI
+      description: Left panel shows 8x8 pixel tiles (8 across, scrollable). Arrow keys
+        move selection cursor. Selected tile highlights. Uses SPRITE or PSET for rendering.
+      scope_files:
+      - programs/tilemap_editor.asm
+      scope_lines: 100
+    - id: p213.d1.t2
+      title: Grid canvas with tile placement
+      description: Right panel is a 16x16 grid (each cell = 16x16 pixels = 4x4 tile).
+        Arrow keys + space to place selected tile. WASD to scroll. IKEY for input.
+      scope_files:
+      - programs/tilemap_editor.asm
+      scope_lines: 80
+    - id: p213.d1.t3
+      title: Export tilemap to RAM for use with TILEMAP opcode
+      description: Press S to save the tilemap as a flat index array in RAM at 0x7000.
+        Another program can then use TILEMAP to render the level. Include a demo game
+        that loads the saved map.
+      scope_files:
+      - programs/tilemap_editor.asm
+      - programs/tilemap_demo.asm
+      scope_lines: 60
+  test_target: 2
+  scope_lines_total: 240
+- id: phase-214
+  title: RISC-V GPU Compute -- WGSL Shader Integration
+  status: todo
+  goal: Enable the RISC-V guest to offload compute work to the host GPU via the existing
+    WGSL shader pipeline
+  description: 'src/riscv/gpu.rs already has a WGSL compute shader (riscv_executor.wgsl)
+    behind a feature flag. The GPU executor can run multiple RISC-V tiles in parallel
+    on the GPU. This phase wires the GPU executor into the normal boot path so compute-heavy
+    guest programs (life.c, mandelbrot) can use GPU acceleration transparently. The interpreter
+    remains the fallback for non-GPU environments.'
+  deliverables:
+  - name: GPU-accelerated RISC-V execution
+    status: todo
+    tasks:
+    - id: p214.d1.t1
+      title: Wire GPU executor into RiscvVm::step loop
+      description: When gpu feature is enabled and a GPU adapter is available, dispatch
+        tile execution to the GPU shader instead of the CPU interpreter. Fall back
+        to CPU on GPU errors.
+      scope_files:
+      - src/riscv/mod.rs
+      - src/riscv/gpu.rs
+      scope_lines: 80
+    - id: p214.d1.t2
+      title: Add GPU memory transfer (guest RAM <-> GPU buffer)
+      description: Upload guest RAM to GPU buffer before compute, download results
+        after. Handle dirty-page tracking to minimize transfers.
+      scope_files:
+      - src/riscv/gpu.rs
+      scope_lines: 60
+    - id: p214.d1.t3
+      title: 'Benchmark: life.c with and without GPU'
+      description: "Run Conway's life at 256x256 with CPU-only vs GPU-accelerated. Measure
+        frames per second. Target: 5x+ speedup on GPU."
+      scope_files:
+      - examples/riscv-hello/life.c
+      scope_lines: 30
+  test_target: 2
+  scope_lines_total: 170
 meta:
   interpreter_mips: 52
   framebuffer_size: 256x256
