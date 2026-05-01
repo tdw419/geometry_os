@@ -1180,18 +1180,17 @@ phases:
   _claimed_at: 1777634458
 - id: phase-190
   title: Sync qemu/ansi.rs Feature Parity with host_term.asm
-  status: in_progress
+  status: done
   goal: Ensure both ANSI parsers handle the same set of sequences, preventing behavioral
     drift
   description: 'There are two ANSI parsers: the Rust qemu/ansi.rs (1403 lines, 71
-    tests) used by the RISC-V bridge, and the ASM host_term.asm (2765 lines, 32 tests)
-    used by the host terminal. They have diverged -- qemu/ansi.rs supports erase (K/J),
-    scroll region (r), and more private modes, while host_term.asm does not yet. Audit
-    both parsers and create a shared feature matrix, then implement missing features
-    in the ASM parser.'
+    tests) used by the RISC-V bridge, and the ASM host_term.asm (3970 lines, 32 tests)
+    used by the host terminal. AUDIT RESULT: Full parity achieved. All CSI, ESC, private
+    mode, and OSC sequences are handled by both parsers. Feature matrix document at
+    docs/ansi-parity-matrix.md.'
   deliverables:
   - name: Feature matrix document
-    status: planned
+    status: done
     tasks:
     - id: p190.d1.t1
       title: Audit both parsers and document differences
@@ -1203,7 +1202,7 @@ phases:
       - src/qemu/ansi.rs
       scope_lines: 30
   - name: Port missing qemu/ansi.rs features to host_term.asm
-    status: planned
+    status: done
     tasks:
     - id: p190.d2.t1
       title: Implement any remaining CSI sequences not in phases 183-185
