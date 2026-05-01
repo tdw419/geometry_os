@@ -1,4 +1,3 @@
-
 // kern_diag.rs -- diagnostic for Phase I kernel boot
 use geometry_os::riscv::RiscvVm;
 use std::env;
@@ -14,13 +13,21 @@ fn main() {
     let mut vm = RiscvVm::new(2 * 1024 * 1024);
     let r = vm.boot_guest(&elf, 2, 100_000_000).expect("boot");
 
-    eprintln!("[kern_diag] entry=0x{:08X} ran {} instructions", r.entry, r.instructions);
+    eprintln!(
+        "[kern_diag] entry=0x{:08X} ran {} instructions",
+        r.entry, r.instructions
+    );
     eprintln!("[kern_diag] final pc=0x{:08X}", vm.cpu.pc);
     eprintln!("[kern_diag] privilege={:?}", vm.cpu.privilege);
-    eprintln!("[kern_diag] mscratch=0x{:08X} mtvec=0x{:08X}",
-        vm.cpu.csr.read(0x340), vm.cpu.csr.read(0x305));
-    eprintln!("[kern_diag] sp=0x{:08X} ra=0x{:08X} tp=0x{:08X}",
-        vm.cpu.x[2], vm.cpu.x[1], vm.cpu.x[4]);
+    eprintln!(
+        "[kern_diag] mscratch=0x{:08X} mtvec=0x{:08X}",
+        vm.cpu.csr.read(0x340),
+        vm.cpu.csr.read(0x305)
+    );
+    eprintln!(
+        "[kern_diag] sp=0x{:08X} ra=0x{:08X} tp=0x{:08X}",
+        vm.cpu.x[2], vm.cpu.x[1], vm.cpu.x[4]
+    );
 
     // Check console output
     let raw = &vm.bus.sbi.console_output;

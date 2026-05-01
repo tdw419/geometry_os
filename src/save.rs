@@ -5,6 +5,18 @@ use crate::vfs;
 use crate::vm;
 use std::path::Path;
 
+/// Read a little-endian u32 from a byte slice at the given offset.
+/// Returns InvalidData if the slice doesn't have 4 bytes available.
+fn read_u32_le(data: &[u8], offset: usize) -> std::io::Result<u32> {
+    if offset + 4 > data.len() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::UnexpectedEof,
+            format!("unexpected end of data at offset {} (need 4 bytes, have {})", offset, data.len()),
+        ));
+    }
+    Ok(u32::from_le_bytes([data[offset], data[offset + 1], data[offset + 2], data[offset + 3]]))
+}
+
 pub fn save_screen_png(path: &str, screen: &[u32]) -> std::io::Result<()> {
     let file = std::fs::File::create(path)?;
     let w = &mut std::io::BufWriter::new(file);
@@ -69,23 +81,28 @@ pub fn load_state(path: &str) -> std::io::Result<(vm::Vm, Vec<u32>, bool)> {
     let mut f = std::fs::File::open(path)?;
     f.read_to_end(&mut data)?;
 
-    // Read VM portion
-    let vm_min = 4 + 4 + 1 + 4 + vm::NUM_REGS * 4 + vm::RAM_SIZE * 4 + vm::SCREEN_SIZE * 4;
+    // Read VM portion -- includes rand_state (4) + frame_count (4) after screen
+    let vm_min = 4 + 4 + 1 + 4 + vm::NUM_REGS * 4 + vm::RAM_SIZE * 4 + vm::SCREEN_SIZE * 4
+        + 4 /* rand_state */ + 4; /* frame_count */
     if data.len() < vm_min + 4 {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            "save file too small for canvas trailer",
+            format!(
+                "save file too small: {} bytes (need at least {} for VM + canvas header)",
+                data.len(),
+                vm_min + 4
+            ),
         ));
     }
 
     // Parse VM from the raw bytes (same logic as Vm::load_from_file)
-    if &data[0..4] != vm::SAVE_MAGIC {
+    if data.len() < 4 || &data[0..4] != vm::SAVE_MAGIC {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             "invalid magic bytes",
         ));
     }
-    let version = u32::from_le_bytes([data[4], data[5], data[6], data[7]]);
+    let version = read_u32_le(&data, 4)?;
     if version != vm::SAVE_VERSION {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
@@ -94,30 +111,36 @@ pub fn load_state(path: &str) -> std::io::Result<(vm::Vm, Vec<u32>, bool)> {
     }
 
     let mut off = 8usize;
+    if off >= data.len() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "save file truncated at halted field",
+        ));
+    }
     let halted = data[off] != 0;
     off += 1;
-    let pc = u32::from_le_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]]);
+    let pc = read_u32_le(&data, off)?;
     off += 4;
 
     let mut regs = [0u32; vm::NUM_REGS];
     for r in regs.iter_mut() {
-        *r = u32::from_le_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]]);
+        *r = read_u32_le(&data, off)?;
         off += 4;
     }
     let mut ram = vec![0u32; vm::RAM_SIZE];
     for v in ram.iter_mut() {
-        *v = u32::from_le_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]]);
+        *v = read_u32_le(&data, off)?;
         off += 4;
     }
     let mut screen = vec![0u32; vm::SCREEN_SIZE];
     for v in screen.iter_mut() {
-        *v = u32::from_le_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]]);
+        *v = read_u32_le(&data, off)?;
         off += 4;
     }
 
-    let rand_state = u32::from_le_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]]);
+    let rand_state = read_u32_le(&data, off)?;
     off += 4;
-    let frame_count = u32::from_le_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]]);
+    let frame_count = read_u32_le(&data, off)?;
     off += 4;
 
     let vm = vm::Vm {
@@ -213,18 +236,21 @@ pub fn load_state(path: &str) -> std::io::Result<(vm::Vm, Vec<u32>, bool)> {
     };
 
     // Parse canvas trailer
-    let canvas_len =
-        u32::from_le_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]]) as usize;
+    let canvas_len = read_u32_le(&data, off)? as usize;
     off += 4;
     if off + canvas_len * 4 + 1 > data.len() {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            "save file truncated in canvas data",
+            format!(
+                "save file truncated in canvas data: need {} more bytes, have {}",
+                off + canvas_len * 4 + 1 - data.len(),
+                data.len() - off
+            ),
         ));
     }
     let mut canvas_buffer = vec![0u32; canvas_len];
     for v in canvas_buffer.iter_mut() {
-        *v = u32::from_le_bytes([data[off], data[off + 1], data[off + 2], data[off + 3]]);
+        *v = read_u32_le(&data, off)?;
         off += 4;
     }
     let canvas_assembled = data[off] != 0;
@@ -241,7 +267,7 @@ mod tests {
     fn test_save_screen_png_roundtrip() {
         let temp_dir = std::env::temp_dir();
         let path = temp_dir.join("test_save_screen.png");
-        let path_str = path.to_str().unwrap();
+        let path_str = path.to_str().expect("temp dir path should be valid UTF-8");
 
         // Create a known screen pattern
         let mut screen = vec![0u32; 256 * 256];
@@ -250,17 +276,17 @@ mod tests {
         screen[256] = 0x0000FF; // blue pixel at (0,1)
         screen[257] = 0xFFFFFF; // white pixel at (1,1)
 
-        save_screen_png(path_str, &screen).unwrap();
+        save_screen_png(path_str, &screen).expect("save_screen_png should succeed");
 
         // Read back and verify
-        let file = std::fs::File::open(&path).unwrap();
+        let file = std::fs::File::open(&path).expect("saved PNG should exist");
         let decoder = png::Decoder::new(std::io::BufReader::new(file));
-        let mut reader = decoder.read_info().unwrap();
+        let mut reader = decoder.read_info().expect("PNG header should be valid");
         assert_eq!(reader.info().width, 256);
         assert_eq!(reader.info().height, 256);
 
         let mut buf = vec![0u8; 256 * 256 * 3];
-        reader.next_frame(&mut buf).unwrap();
+        reader.next_frame(&mut buf).expect("PNG frame read should succeed");
 
         // Check pixel (0,0) = red
         assert_eq!(buf[0], 0xFF, "R channel of pixel (0,0)");
@@ -290,16 +316,16 @@ mod tests {
     fn test_save_screen_png_all_black() {
         let temp_dir = std::env::temp_dir();
         let path = temp_dir.join("test_save_black.png");
-        let path_str = path.to_str().unwrap();
+        let path_str = path.to_str().expect("temp dir path should be valid UTF-8");
 
         let screen = vec![0u32; 256 * 256];
-        save_screen_png(path_str, &screen).unwrap();
+        save_screen_png(path_str, &screen).expect("save_screen_png should succeed");
 
-        let file = std::fs::File::open(&path).unwrap();
+        let file = std::fs::File::open(&path).expect("saved PNG should exist");
         let decoder = png::Decoder::new(std::io::BufReader::new(file));
-        let mut reader = decoder.read_info().unwrap();
+        let mut reader = decoder.read_info().expect("PNG header should be valid");
         let mut buf = vec![0u8; 256 * 256 * 3];
-        reader.next_frame(&mut buf).unwrap();
+        reader.next_frame(&mut buf).expect("PNG frame read should succeed");
 
         assert!(
             buf.iter().all(|&b| b == 0),
@@ -313,16 +339,16 @@ mod tests {
     fn test_save_screen_png_all_white() {
         let temp_dir = std::env::temp_dir();
         let path = temp_dir.join("test_save_white.png");
-        let path_str = path.to_str().unwrap();
+        let path_str = path.to_str().expect("temp dir path should be valid UTF-8");
 
         let screen = vec![0xFFFFFFu32; 256 * 256];
-        save_screen_png(path_str, &screen).unwrap();
+        save_screen_png(path_str, &screen).expect("save_screen_png should succeed");
 
-        let file = std::fs::File::open(&path).unwrap();
+        let file = std::fs::File::open(&path).expect("saved PNG should exist");
         let decoder = png::Decoder::new(std::io::BufReader::new(file));
-        let mut reader = decoder.read_info().unwrap();
+        let mut reader = decoder.read_info().expect("PNG header should be valid");
         let mut buf = vec![0u8; 256 * 256 * 3];
-        reader.next_frame(&mut buf).unwrap();
+        reader.next_frame(&mut buf).expect("PNG frame read should succeed");
 
         assert!(
             buf.iter().all(|&b| b == 0xFF),
@@ -336,22 +362,22 @@ mod tests {
     fn test_save_full_buffer_png_custom_size() {
         let temp_dir = std::env::temp_dir();
         let path = temp_dir.join("test_save_custom.png");
-        let path_str = path.to_str().unwrap();
+        let path_str = path.to_str().expect("temp dir path should be valid UTF-8");
 
         let w = 64;
         let h = 32;
         let buffer = vec![0x12345678u32; w * h];
 
-        save_full_buffer_png(path_str, &buffer, w, h).unwrap();
+        save_full_buffer_png(path_str, &buffer, w, h).expect("save_full_buffer_png should succeed");
 
-        let file = std::fs::File::open(&path).unwrap();
+        let file = std::fs::File::open(&path).expect("saved PNG should exist");
         let decoder = png::Decoder::new(std::io::BufReader::new(file));
-        let mut reader = decoder.read_info().unwrap();
+        let mut reader = decoder.read_info().expect("PNG header should be valid");
         assert_eq!(reader.info().width, w as u32);
         assert_eq!(reader.info().height, h as u32);
 
         let mut buf = vec![0u8; w * h * 3];
-        reader.next_frame(&mut buf).unwrap();
+        reader.next_frame(&mut buf).expect("PNG frame read should succeed");
 
         // save_full_buffer_png extracts RGB from u32 as: R=(pixel>>16), G=(pixel>>8), B=pixel
         // So 0x12345678 -> R=0x34, G=0x56, B=0x78
@@ -366,7 +392,7 @@ mod tests {
     fn test_save_load_state_roundtrip() {
         let temp_dir = std::env::temp_dir();
         let path = temp_dir.join("test_save_state.bin");
-        let path_str = path.to_str().unwrap();
+        let path_str = path.to_str().expect("temp dir path should be valid UTF-8");
 
         // Create a VM with known state
         let mut vm = Vm::new();
@@ -380,10 +406,11 @@ mod tests {
         let canvas = vec![0x00FF00u32; 1024];
         let canvas_assembled = true;
 
-        save_state(path_str, &vm, &canvas, canvas_assembled).unwrap();
+        save_state(path_str, &vm, &canvas, canvas_assembled).expect("save_state should succeed");
 
         // Load back
-        let (loaded_vm, loaded_canvas, loaded_assembled) = load_state(path_str).unwrap();
+        let (loaded_vm, loaded_canvas, loaded_assembled) =
+            load_state(path_str).expect("load_state should succeed on valid save");
 
         assert_eq!(loaded_vm.pc, 42);
         assert_eq!(loaded_vm.regs[0], 100);
@@ -403,18 +430,19 @@ mod tests {
         let temp_dir = std::env::temp_dir();
         let path = temp_dir.join("test_invalid_magic.bin");
         // Create a file large enough to pass the size check but with wrong magic
-        let vm_min = 4 + 4 + 1 + 4 + vm::NUM_REGS * 4 + vm::RAM_SIZE * 4 + vm::SCREEN_SIZE * 4;
+        let vm_min = 4 + 4 + 1 + 4 + vm::NUM_REGS * 4 + vm::RAM_SIZE * 4 + vm::SCREEN_SIZE * 4
+            + 4 + 4; // +rand_state +frame_count
         let data_size = vm_min + 4 + 1; // vm_min + canvas_len (4) + canvas_assembled (1)
         let mut data = vec![0u8; data_size];
         data[0] = b'B';
         data[1] = b'A';
         data[2] = b'D';
         data[3] = b'!'; // wrong magic
-        std::fs::write(&path, &data).unwrap();
+        std::fs::write(&path, &data).expect("write test file should succeed");
 
-        let result = load_state(path.to_str().unwrap());
+        let result = load_state(path.to_str().expect("path should be valid UTF-8"));
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("invalid magic"));
+        assert!(result.expect_err("should be error").to_string().contains("invalid magic"));
 
         let _ = std::fs::remove_file(&path);
     }
@@ -438,11 +466,56 @@ mod tests {
                 0,
             ],
         )
-        .unwrap();
+        .expect("write test file should succeed");
 
-        let result = load_state(path.to_str().unwrap());
+        let result = load_state(path.to_str().expect("path should be valid UTF-8"));
         assert!(result.is_err());
 
         let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_load_state_truncated_at_canvas() {
+        let temp_dir = std::env::temp_dir();
+        let path = temp_dir.join("test_truncated_canvas.bin");
+        // Create a valid VM portion but with canvas_len claiming more data than exists
+        let vm_min = 4 + 4 + 1 + 4 + vm::NUM_REGS * 4 + vm::RAM_SIZE * 4 + vm::SCREEN_SIZE * 4
+            + 4 + 4; // +rand_state +frame_count
+        let data_size = vm_min + 4; // vm_min + canvas_len field, but no canvas data
+        let mut data = vec![0u8; data_size];
+        // Write valid magic and version
+        data[0..4].copy_from_slice(vm::SAVE_MAGIC);
+        data[4..8].copy_from_slice(&vm::SAVE_VERSION.to_le_bytes());
+        // Set canvas_len to 100 (but no canvas data follows)
+        let canvas_len_offset = vm_min;
+        data[canvas_len_offset..canvas_len_offset + 4].copy_from_slice(&100u32.to_le_bytes());
+        std::fs::write(&path, &data).expect("write test file should succeed");
+
+        let result = load_state(path.to_str().expect("path should be valid UTF-8"));
+        assert!(result.is_err());
+        let err = result.expect_err("should be error");
+        assert!(
+            err.to_string().contains("truncated in canvas data"),
+            "error should mention canvas truncation, got: {}",
+            err
+        );
+
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn test_read_u32_le_out_of_bounds() {
+        let data = vec![0u8; 2]; // too short for a u32
+        let result = read_u32_le(&data, 0);
+        assert!(result.is_err());
+        let err = result.expect_err("should be error");
+        assert!(err.to_string().contains("unexpected end of data"));
+    }
+
+    #[test]
+    fn test_read_u32_le_valid() {
+        let data = vec![0x78, 0x56, 0x34, 0x12]; // little-endian 0x12345678
+        let result = read_u32_le(&data, 0).expect("read should succeed");
+        assert_eq!(result, 0x12345678);
     }
 }

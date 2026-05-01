@@ -10,10 +10,10 @@
 // Build: bash examples/riscv-hello/build_kern.sh
 // ELF:   examples/riscv-hello/geos_kern.elf
 
-use geometry_os::riscv::RiscvVm;
 use geometry_os::riscv::cpu::StepResult;
-use geometry_os::riscv::framebuf::{FB_WIDTH, FB_HEIGHT};
+use geometry_os::riscv::framebuf::{FB_HEIGHT, FB_WIDTH};
 use geometry_os::riscv::loader;
+use geometry_os::riscv::RiscvVm;
 
 /// Helper: load geos_kern.elf, create VM, run N steps, return (vm, instructions).
 /// Panics if ELF not found (run build_kern.sh first).
@@ -44,7 +44,10 @@ fn boot_kernel(ram_size: usize) -> (RiscvVm, u64) {
         match vm.step() {
             StepResult::Ok => {}
             StepResult::Ebreak => {
-                eprintln!("[kern_verify] EBREAK at PC=0x{:08X} after {} instructions", vm.cpu.pc, instructions);
+                eprintln!(
+                    "[kern_verify] EBREAK at PC=0x{:08X} after {} instructions",
+                    vm.cpu.pc, instructions
+                );
                 break;
             }
             StepResult::Shutdown => {
@@ -86,7 +89,11 @@ fn test_kernel_boots_with_uart_output() {
     let (vm, instructions) = boot_kernel(2 * 1024 * 1024);
 
     let output = String::from_utf8_lossy(&vm.bus.sbi.console_output);
-    eprintln!("[kern_verify] UART output ({} bytes): {}", output.len(), output);
+    eprintln!(
+        "[kern_verify] UART output ({} bytes): {}",
+        output.len(),
+        output
+    );
 
     // Should have printed kernel init messages
     assert!(
@@ -108,7 +115,11 @@ fn test_both_guests_produce_uart() {
     let (vm, instructions) = boot_kernel(2 * 1024 * 1024);
 
     let output = String::from_utf8_lossy(&vm.bus.sbi.console_output);
-    eprintln!("[kern_verify] Full UART ({} bytes): {}", output.len(), output);
+    eprintln!(
+        "[kern_verify] Full UART ({} bytes): {}",
+        output.len(),
+        output
+    );
 
     // The painter program prints periodic markers like "PAINTER"
     // life32 prints "GEN" for generation count
@@ -187,7 +198,8 @@ fn test_kernel_sets_timer() {
     // If the kernel set mtimecmp, it should NOT be at MAX (the default)
     // After the kernel runs, mtimecmp should have been re-armed at least once
     assert_ne!(
-        mtimecmp, u64::MAX,
+        mtimecmp,
+        u64::MAX,
         "Kernel should set mtimecmp (currently at default MAX)"
     );
 }

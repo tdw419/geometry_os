@@ -3346,8 +3346,7 @@ impl Vm {
                         ) {
                             self.regs[0] = 0xFFFFFFFE; // EPERM
                         } else {
-                            self.regs[0] =
-                                self.vfs.fcopy(&self.ram, src_addr, dst_addr, pid);
+                            self.regs[0] = self.vfs.fcopy(&self.ram, src_addr, dst_addr, pid);
                         }
                     } else {
                         self.regs[0] = 0xFFFFFFFF;
@@ -3462,15 +3461,16 @@ impl Vm {
                 if ar < NUM_REGS {
                     let addr = self.regs[ar] as usize;
                     let path_str = Self::read_string_static(&self.ram, addr);
-                    let caps: Option<Vec<Capability>> = if path_str.is_none() || path_str.as_ref().map_or(true, |s| s.is_empty()) {
-                        None // Clear caps = full access
-                    } else {
-                        Some(vec![Capability {
-                            resource_type: 0, // VFS path
-                            pattern: path_str.unwrap(),
-                            permissions: Capability::PERM_READ | Capability::PERM_WRITE,
-                        }])
-                    };
+                    let caps: Option<Vec<Capability>> =
+                        if path_str.is_none() || path_str.as_ref().map_or(true, |s| s.is_empty()) {
+                            None // Clear caps = full access
+                        } else {
+                            Some(vec![Capability {
+                                resource_type: 0, // VFS path
+                                pattern: path_str.unwrap(),
+                                permissions: Capability::PERM_READ | Capability::PERM_WRITE,
+                            }])
+                        };
                     // Update both the process struct and current_capabilities cache
                     let pid = self.current_pid;
                     if let Some(proc) = self.processes.iter_mut().find(|p| p.pid == pid) {

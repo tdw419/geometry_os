@@ -5,13 +5,13 @@ use geometry_os::riscv::RiscvVm;
 use std::fs;
 
 fn main() {
-    let kernel_data = fs::read("examples/riscv-hello/geos_kern.elf")
-        .expect("geos_kern.elf not found");
+    let kernel_data =
+        fs::read("examples/riscv-hello/geos_kern.elf").expect("geos_kern.elf not found");
 
     let mut vm = RiscvVm::new_with_base(0x80000000u64, 16 * 1024 * 1024);
 
-    let load_info = geometry_os::riscv::loader::load_elf(&mut vm.bus, &kernel_data)
-        .expect("ELF load failed");
+    let load_info =
+        geometry_os::riscv::loader::load_elf(&mut vm.bus, &kernel_data).expect("ELF load failed");
 
     eprintln!("Entry: 0x{:08X}", load_info.entry);
 
@@ -38,9 +38,17 @@ fn main() {
             if mret_count <= 40 {
                 let mepc = vm.cpu.csr.mepc;
                 let target = if mepc >= 0x80050000 && mepc < 0x80090000 {
-                    if mepc == 0x80050000 { "B _start" } else { "B (life32 mid)" }
+                    if mepc == 0x80050000 {
+                        "B _start"
+                    } else {
+                        "B (life32 mid)"
+                    }
                 } else if mepc >= 0x80010000 && mepc < 0x80050000 {
-                    if mepc == 0x80010000 { "A _start" } else { "A (painter mid)" }
+                    if mepc == 0x80010000 {
+                        "A _start"
+                    } else {
+                        "A (painter mid)"
+                    }
                 } else if mepc >= 0x80000000 && mepc < 0x80010000 {
                     "KERNEL"
                 } else {

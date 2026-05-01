@@ -240,8 +240,8 @@ mod tests {
         let pres_clone = presents.clone();
 
         let cb: PresentCallback = Rc::new(RefCell::new(move |pixels: &[u32], clip| {
-            let p00 = pixels[0];       // top-left corner
-            let p128 = pixels[128];    // x=128, y=0 (right half)
+            let p00 = pixels[0]; // top-left corner
+            let p128 = pixels[128]; // x=128, y=0 (right half)
             pres_clone.borrow_mut().push((clip, p00, p128));
         }));
 
@@ -282,13 +282,13 @@ mod tests {
 
         // Program A's present: clip=(0,0,128,256), pixel at (0,0)=red, pixel at (128,0)=0
         assert_eq!(pres[0].0, Some((0, 0, 128, 256)));
-        assert_eq!(pres[0].1, red);       // A's pixel at (0,0) is red
-        assert_eq!(pres[0].2, 0);        // A couldn't write to (128,0)
+        assert_eq!(pres[0].1, red); // A's pixel at (0,0) is red
+        assert_eq!(pres[0].2, 0); // A couldn't write to (128,0)
 
         // Program B's present: clip=(128,0,128,256), pixel at (128,0)=blue
         assert_eq!(pres[1].0, Some((128, 0, 128, 256)));
-        assert_eq!(pres[1].1, red);       // (0,0) still has A's red (B couldn't overwrite)
-        assert_eq!(pres[1].2, blue);      // B's pixel at (128,0) is blue
+        assert_eq!(pres[1].1, red); // (0,0) still has A's red (B couldn't overwrite)
+        assert_eq!(pres[1].2, blue); // B's pixel at (128,0) is blue
     }
 
     /// Test that clip rect changes between presents are correctly tracked.

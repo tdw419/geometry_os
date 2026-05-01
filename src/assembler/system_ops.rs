@@ -1010,9 +1010,7 @@ pub(super) fn try_parse(
         // Capability management
         "SETCAPS" => {
             if tokens.len() != 2 {
-                return Err(
-                    "SETCAPS requires 1 argument: SETCAPS path_addr_reg".to_string(),
-                );
+                return Err("SETCAPS requires 1 argument: SETCAPS path_addr_reg".to_string());
             }
             bytecode.push(0xC0);
             bytecode.push(parse_reg(tokens[1])? as u32);

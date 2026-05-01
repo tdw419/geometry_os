@@ -5,13 +5,13 @@ use geometry_os::riscv::RiscvVm;
 use std::fs;
 
 fn main() {
-    let kernel_data = fs::read("examples/riscv-hello/geos_kern.elf")
-        .expect("geos_kern.elf not found");
+    let kernel_data =
+        fs::read("examples/riscv-hello/geos_kern.elf").expect("geos_kern.elf not found");
 
     let mut vm = RiscvVm::new_with_base(0x80000000u64, 16 * 1024 * 1024);
 
-    let load_info = geometry_os::riscv::loader::load_elf(&mut vm.bus, &kernel_data)
-        .expect("ELF load failed");
+    let load_info =
+        geometry_os::riscv::loader::load_elf(&mut vm.bus, &kernel_data).expect("ELF load failed");
 
     eprintln!("Entry: 0x{:08X}", load_info.entry);
 
@@ -67,8 +67,10 @@ fn main() {
             let ctx_b_mepc = vm.bus.read_word(ctx_b_addr + ctx_mepc_off).unwrap_or(0);
             let current = vm.bus.read_word(current_id_addr).unwrap_or(0);
             let mscratch = vm.cpu.csr.sscratch; // mscratch maps to sscratch in our CSR bank
-            eprintln!("ctx_a[32]=0x{:08X}, ctx_b[32]=0x{:08X}, current_id={}, mscratch=0x{:08X}",
-                ctx_a_mepc, ctx_b_mepc, current, mscratch);
+            eprintln!(
+                "ctx_a[32]=0x{:08X}, ctx_b[32]=0x{:08X}, current_id={}, mscratch=0x{:08X}",
+                ctx_a_mepc, ctx_b_mepc, current, mscratch
+            );
 
             // Show what mepc was before the crash step
             eprintln!("Last MEPC: 0x{:08X}", mepc_before);
@@ -78,13 +80,19 @@ fn main() {
         if count % 1_000_000 == 0 {
             let ctx_a_mepc = vm.bus.read_word(ctx_a_addr + ctx_mepc_off).unwrap_or(0);
             let ctx_b_mepc = vm.bus.read_word(ctx_b_addr + ctx_mepc_off).unwrap_or(0);
-            eprintln!("At {}: ctx_a_mepc=0x{:08X}, ctx_b_mepc=0x{:08X}", count, ctx_a_mepc, ctx_b_mepc);
+            eprintln!(
+                "At {}: ctx_a_mepc=0x{:08X}, ctx_b_mepc=0x{:08X}",
+                count, ctx_a_mepc, ctx_b_mepc
+            );
         }
     }
 
     // Final state
     let ctx_a_mepc = vm.bus.read_word(ctx_a_addr + ctx_mepc_off).unwrap_or(0);
     let ctx_b_mepc = vm.bus.read_word(ctx_b_addr + ctx_mepc_off).unwrap_or(0);
-    eprintln!("\nFinal: ctx_a_mepc=0x{:08X}, ctx_b_mepc=0x{:08X}", ctx_a_mepc, ctx_b_mepc);
+    eprintln!(
+        "\nFinal: ctx_a_mepc=0x{:08X}, ctx_b_mepc=0x{:08X}",
+        ctx_a_mepc, ctx_b_mepc
+    );
     eprintln!("Total MRETs: {}", mret_count);
 }

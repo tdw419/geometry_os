@@ -9758,13 +9758,11 @@ phases:
 - id: phase-205
   title: Host Terminal -- PTY Bash Prompt Regression (4 issues)
   status: planned
-  goal: 'Fix terminal QA regression: geos-term built-in tests hang waiting for bash
-    prompt (PTY regression from phases 135/136)'
-  description: 3 built-in terminal tests (echo_round_trip, line_wrap, ctrl_c) all
-    hang at Phase 1 waiting for a bash prompt that never appears. geos-term assembles
-    bytecode and starts but the PTY slave never emits a shell prompt. This was previously
-    fixed in phases 135 and 136 but has regressed. Additionally, terminal_qa.py itself
-    crashes with uncaught TimeoutExpired instead of handling the hang gracefully.
+  goal: PTY regression resolved for echo_round_trip and ctrl_c. line_wrap logic failure
+    tracked in phase-206.
+  description: PTY regression mostly resolved (2026-05-01 QA). echo_round_trip and
+    ctrl_c pass. line_wrap no longer hangs but fails assertion (tracked in phase-206).
+    terminal_qa.py timeout handling fixed.
   deliverables:
   - name: Fix 4 terminal issues (PTY regression + script crash)
     description: geos-term --test echo_round_trip hangs at bash prompt wait; geos-term
@@ -9775,26 +9773,164 @@ phases:
     - id: p205.d1.t1
       title: 'Fix: echo_round_trip (hang) -- geos-term --test echo_round_trip hangs
         at bash prompt wait'
-      status: todo
+      status: done
       description: 'Debug PTY setup: check if bash is actually spawned, check TERM/PS1
         env vars, check if PTY slave fd is properly connected. Previously fixed in
-        phases 135/136 but regressed.'
+        phases 135/136 but regressed. FIXED: test now passes (2026-05-01 QA run).'
     - id: p205.d1.t2
       title: 'Fix: line_wrap (hang) -- geos-term --test line_wrap hangs at bash prompt
         wait'
       status: todo
-      description: Same fix as echo_round_trip - PTY prompt regression.
+      description: 'Same fix as echo_round_trip - PTY prompt regression. NOTE: no
+        longer hangs (fixed by PTY regression fix). Now fails with logic error (line_wrap
+        assertion). Tracked in phase-206.'
     - id: p205.d1.t3
       title: 'Fix: ctrl_c (hang) -- geos-term --test ctrl_c hangs at bash prompt wait'
-      status: todo
-      description: Same fix as echo_round_trip - PTY prompt regression.
+      status: done
+      description: 'Same fix as echo_round_trip - PTY prompt regression. FIXED: test
+        now passes (2026-05-01 QA run).'
     - id: p205.d1.t4
       title: 'Fix: terminal_qa_script (bug) -- terminal_qa.py crashes with uncaught
         subprocess.TimeoutExpir'
-      status: todo
-      description: Wrap subprocess.run in run_geos_test() with try/except TimeoutExpired.
+      status: done
+      description: 'Wrap subprocess.run in run_geos_test() with try/except TimeoutExpired.
         On timeout, return a result dict with passed=False, stdout/stderr from partial
-        output, and a timeout flag.
+        output, and a timeout flag. FIXED: script now catches TimeoutExpired and returns
+        structured results.'
     scope_lines: 120
   scope_lines_total: 86500
   test_target: 3
+- id: phase-206
+  title: Host Terminal -- line_wrap Test Logic Failure
+  status: planned
+  goal: 'Fix the line_wrap built-in test: test runs but fails assertion (< 5 rows
+    with numeric output from ''seq 1 90'')'
+  description: 'The line_wrap test (geos-term --test line_wrap) no longer hangs (PTY
+    regression fixed) but fails its output assertion. It runs ''seq 1 90'' and expects
+    >= 5 buffer rows containing numbers, but finds fewer. The PTYREAD dispatches correctly
+    and reads 33 bytes of shell init data, but the seq output may not be rendering
+    enough rows. Possible causes: (1) insufficient frames to let seq complete and
+    render, (2) buffer row parsing issue in read_buf_row, (3) scroll not advancing
+    properly for multi-line output.'
+  deliverables:
+  - name: Fix line_wrap test output assertion
+    description: 'geos-term --test line_wrap fails: runs seq 1 90 but finds < 5 rows
+      with numeric output. PTYREAD works, shell prompt appears, but rendered output
+      rows are insufficient.'
+    status: todo
+    tasks:
+    - id: p206.d1.t1
+      title: 'Debug line_wrap: increase frame count or add PTY flush wait'
+      status: todo
+      description: 'In test_line_wrap (src/bin/geos_term.rs ~line 930), after queuing
+        ''seq 1 90'' + Enter, the test runs 200 frames. This may not be enough for
+        seq to produce all output. Add a PTY flush/drain loop: keep running frames
+        until PTYREAD hasn''t read new bytes for N consecutive frames, then check
+        output.'
+      scope_files:
+      - src/bin/geos_term.rs
+      scope_lines: 15
+    - id: p206.d1.t2
+      title: Verify read_buf_row correctly captures rendered text after scroll
+      status: todo
+      description: Check if read_buf_row properly reads the terminal buffer after
+        scrolling. If seq 1 90 produces 90 lines but the buffer only holds BUF_ROWS
+        (~36), earlier rows get scrolled away. The test looks for >= 5 rows with digits,
+        which should work if rendering is correct. Verify that scroll doesn't corrupt
+        or zero-out rows incorrectly.
+      scope_files:
+      - src/bin/geos_term.rs
+      scope_lines: 10
+    scope_lines: 25
+  scope_lines_total: 86525
+  test_target: 1
+- id: phase-207
+  title: Dogfood QA Script -- Timeout Infrastructure Fix
+  status: planned
+  goal: Fix geo_dogfood_qa.py outer timeout being too tight (120s) for terminal_qa.py
+    (8 tests x 60s each)
+  description: 'The preflight script geo_dogfood_qa.py has a 120s timeout wrapping
+    terminal_qa.py, but terminal_qa.py runs 8 tests each with 60s individual timeouts
+    plus a cargo build. This causes the outer wrapper to kill the script before all
+    results are written. The JSON output was produced (results are valid) but the
+    script exits with timeout error. Fix: increase outer timeout to 300s or make terminal_qa.py
+    write results incrementally.'
+  deliverables:
+  - name: Fix preflight script timeout handling
+    description: 'geo_dogfood_qa.py line 124: timeout=120 is too tight for 8 terminal
+      QA tests. Increase to 300s or switch to process-based timeout with result JSON
+      written incrementally.'
+    status: todo
+    tasks:
+    - id: p207.d1.t1
+      title: Increase geo_dogfood_qa.py terminal QA timeout from 120s to 300s
+      status: todo
+      description: In geo_dogfood_qa.py check_geos_term(), change subprocess.run timeout
+        from 120 to 300. This gives 8 tests at 60s each (480s theoretical max) some
+        breathing room, though in practice most tests complete in seconds.
+      scope_files:
+      - /home/jericho/.hermes/scripts/geo_dogfood_qa.py
+      scope_lines: 2
+    - id: p207.d1.t2
+      title: Fix terminal_qa.py internal cargo build timeout (120s too tight)
+      status: todo
+      description: 'terminal_qa.py line 315: cargo build --release --bin geos-term
+        has timeout=120s which is too tight for release builds. Either (a) increase
+        to 300s, (b) skip build if binary exists and is newer than source (check
+        mtime), or (c) use cargo build --release -p geos-term with check-only first.
+        Option (b) is best: compare mtime of target/release/geos-term vs src/bin/geos_term.rs
+        and skip build if binary is fresh.'
+      scope_files:
+      - /home/jericho/.hermes/scripts/terminal_qa.py
+      scope_lines: 10
+    scope_lines: 12
+  scope_lines_total: 86537
+  test_target: 0
+- id: phase-208
+  title: Host Terminal -- echo_round_trip Regression (last char dropped)
+  status: planned
+  goal: 'Fix echo_round_trip test: types "echo hello" but buffer shows "echo hell" (last
+    char ''o'' dropped). Shell output garbled (''h'' instead of ''hello''). Regression
+    from phase-205 fix.'
+  description: 'The echo_round_trip test (geos-term --test echo_round_trip) was fixed
+    in phase-205 but has regressed. The test pushes all 11 keys ("echo hello\n") into
+    the ring buffer at once, then runs 80 frames. The buffer shows only "echo hell"
+    on the command row (missing final ''o'') and ''h'' on the output row instead of
+    ''hello''. Root cause likely: (1) ring buffer overflow or key drop during IKEY processing,
+    (2) PTYREAD consuming frames before all keys are drained, (3) race between key
+    injection and VM frame processing. ctrl_c test passes fine (similar key injection
+    pattern), suggesting the issue is specific to longer key sequences or the Enter-after-text
+    timing.'
+  deliverables:
+  - name: Fix echo_round_trip key injection / rendering
+    description: 'geos-term --test echo_round_trip fails: types "echo hello" but only
+      "echo hell" appears, shell output is "h" instead of "hello". Last character dropped
+      before Enter is processed.'
+    status: todo
+    tasks:
+    - id: p208.d1.t1
+      title: Debug key ring buffer drain timing in echo_round_trip test
+      status: todo
+      description: 'In test_echo_round_trip (src/bin/geos_term.rs ~line 855), all
+        11 keys are pushed then 80 frames run. The VM does PTYREAD on every frame
+        which may consume frame budget before IKEY processes all keys. Add logging:
+        count how many IKEY calls happen in 80 frames, verify ring buffer has capacity
+        for 11 items (16 slots). Compare with ctrl_c test which works (only 2 keys:
+        "sleep 100\n").'
+      scope_files:
+      - src/bin/geos_term.rs
+      scope_lines: 20
+    - id: p208.d1.t2
+      title: Fix key processing order or increase frame count
+      status: todo
+      description: 'If the VM processes PTYREAD before IKEY in each frame, the frame
+        budget is consumed by PTY polls. Fix: either (a) increase frame count from
+        80 to 200+ to ensure all keys drain, (b) add a key-drain loop that runs frames
+        until the ring buffer is empty before proceeding, or (c) reorder the VM main
+        loop to process IKEY before PTYREAD.'
+      scope_files:
+      - src/bin/geos_term.rs
+      scope_lines: 10
+    scope_lines: 30
+  scope_lines_total: 86557
+  test_target: 1

@@ -6,13 +6,13 @@ use std::fs;
 use std::time::Instant;
 
 fn main() {
-    let kernel_data = fs::read("examples/riscv-hello/geos_kern.elf")
-        .expect("geos_kern.elf not found");
+    let kernel_data =
+        fs::read("examples/riscv-hello/geos_kern.elf").expect("geos_kern.elf not found");
 
     let mut vm = RiscvVm::new_with_base(0x80000000u64, 16 * 1024 * 1024);
 
-    let load_info = geometry_os::riscv::loader::load_elf(&mut vm.bus, &kernel_data)
-        .expect("ELF load failed");
+    let load_info =
+        geometry_os::riscv::loader::load_elf(&mut vm.bus, &kernel_data).expect("ELF load failed");
 
     eprintln!("Entry point: 0x{:08X}", load_info.entry);
 
@@ -54,9 +54,8 @@ fn main() {
         if count % 500_000 == 0 {
             let sbi_len = vm.bus.sbi.console_output.len();
             if sbi_len != prev_sbi_len {
-                let new_output = String::from_utf8_lossy(
-                    &vm.bus.sbi.console_output[prev_sbi_len..sbi_len]
-                );
+                let new_output =
+                    String::from_utf8_lossy(&vm.bus.sbi.console_output[prev_sbi_len..sbi_len]);
                 // Only print non-heartbeat output
                 for line in new_output.lines() {
                     if !line.starts_with('T') && !line.is_empty() {
@@ -89,11 +88,17 @@ fn main() {
     eprintln!("Life32 startup message count: {}", life32_count);
 
     if life32_count > 1 {
-        eprintln!("BUG CONFIRMED: life32 re-initializes {} times!", life32_count);
+        eprintln!(
+            "BUG CONFIRMED: life32 re-initializes {} times!",
+            life32_count
+        );
     } else if life32_count == 1 {
         eprintln!("OK: life32 starts exactly once");
     } else {
-        eprintln!("WARNING: life32 never started ({} chars output)", combined.len());
+        eprintln!(
+            "WARNING: life32 never started ({} chars output)",
+            combined.len()
+        );
     }
 
     // Count painter startup messages

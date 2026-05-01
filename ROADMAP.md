@@ -2,8 +2,8 @@
 
 Pixel-art virtual machine with built-in assembler, debugger, and live GUI. Write assembly in the built-in text editor, press F5, watch it run. 187 opcodes, 3656 tests, 156 programs, 83836 LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor. Infinite map desktop.
 
-**Progress:** 167/202 phases complete, 9 superseded, 2 deferred, 1 research, 23 planned
-**Deliverables:** 596/647 complete
+**Progress:** 167/206 phases complete, 9 superseded, 2 deferred, 1 research, 27 planned
+**Deliverables:** 585/641 complete
 **Tasks:** 298/428 complete
 
 | Phase | Status | Deliverables | LOC Target | Tests |
@@ -137,7 +137,7 @@ Pixel-art virtual machine with built-in assembler, debugger, and live GUI. Write
 | phase-127 Host Terminal -- ANSI Rendering and Visual Polish | COMPLETE | 3/3 | 72,830 | 2076 |
 | phase-128 Host Terminal -- Multi-Session and Shell Selection | COMPLETE | 3/3 | 73,140 | 2080 |
 | phase-129 Host Terminal -- Keyboard Shortcuts and Productivity | COMPLETE | 4/4 | 73,400 | 2085 |
-| phase-130 Host Terminal -- Test Suite and Desktop Integration | COMPLETE | - | 73,660 | 2095 |
+| phase-130 Host Terminal -- Test Suite and Desktop Integration | COMPLETE | 4/4 | 73,660 | 2095 |
 | phase-131 Host Terminal -- PTY Resize and Column Sync | COMPLETE | 3/3 | 73,800 | 2100 |
 | phase-132 Host Terminal -- ANSI Color Rendering | COMPLETE | 3/3 | 74,100 | 2108 |
 | phase-133 Host Terminal -- Wider Display and Horizontal Scroll | COMPLETE | 2/2 | 74,340 | 2114 |
@@ -210,6 +210,10 @@ Pixel-art virtual machine with built-in assembler, debugger, and live GUI. Write
 | phase-202 Fix Preflight Script TimeoutExpired Crash (phase-168 regression) | PLANNED | 0/1 | 86,365 | 0 |
 | phase-203 Fix WVIEWPORT Dead Code (unreachable match arm after wildcard) | PLANNED | 0/1 | 86,370 | 1 |
 | phase-204 Fix Stale test_user_mode_ikey_halts Test (behavior intentionally changed) | PLANNED | 0/1 | 86,400 | 1 |
+| phase-205 Host Terminal -- PTY Bash Prompt Regression (4 issues) | PLANNED | 0/1 | 86,430 | 0 |
+| phase-206 Host Terminal -- line_wrap Test Logic Failure | PLANNED | 0/1 | 86,460 | 0 |
+| phase-207 Dogfood QA Script -- Timeout Infrastructure Fix | PLANNED | 0/1 | 86,490 | 0 |
+| phase-208 Host Terminal -- echo_round_trip Regression (last char dropped) | PLANNED | 0/1 | 86,520 | 0 |
 
 
 ## Dependencies

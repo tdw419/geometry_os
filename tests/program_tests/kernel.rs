@@ -244,10 +244,7 @@ fn test_user_mode_ikey_halts() {
     let result = vm.step();
     assert!(result, "IKEY in user mode should succeed");
     assert!(!vm.halted, "IKEY in user mode should not halt");
-    assert_eq!(
-        vm.regs[0], 65,
-        "IKEY should read the key in user mode"
-    );
+    assert_eq!(vm.regs[0], 65, "IKEY should read the key in user mode");
 }
 
 #[test]

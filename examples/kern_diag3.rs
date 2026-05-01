@@ -1,7 +1,6 @@
-
 // kern_diag3.rs -- check CLINT state after kernel boot
-use geometry_os::riscv::RiscvVm;
 use geometry_os::riscv::cpu::StepResult;
+use geometry_os::riscv::RiscvVm;
 use std::env;
 use std::fs;
 
@@ -12,7 +11,8 @@ fn main() {
     let elf = fs::read(&elf_path).expect("read elf");
 
     let mut vm = RiscvVm::new(2 * 1024 * 1024);
-    let load_info = geometry_os::riscv::loader::load_auto(&mut vm.bus, &elf, 0x8000_0000).expect("load");
+    let load_info =
+        geometry_os::riscv::loader::load_auto(&mut vm.bus, &elf, 0x8000_0000).expect("load");
 
     vm.cpu.pc = load_info.entry;
     vm.cpu.x[10] = 0;
@@ -49,9 +49,14 @@ fn main() {
             timer_fired = true;
             first_fire_count = count;
             eprintln!("\n[DIAG] Timer FIRST FIRED at instruction {}", count);
-            eprintln!("[DIAG] mtime={}, mtimecmp={}", vm.bus.clint.mtime, vm.bus.clint.mtimecmp);
-            eprintln!("[DIAG] mip=0x{:08X} mie=0x{:08X} mstatus=0x{:08X}",
-                vm.cpu.csr.mip, vm.cpu.csr.mie, vm.cpu.csr.mstatus);
+            eprintln!(
+                "[DIAG] mtime={}, mtimecmp={}",
+                vm.bus.clint.mtime, vm.bus.clint.mtimecmp
+            );
+            eprintln!(
+                "[DIAG] mip=0x{:08X} mie=0x{:08X} mstatus=0x{:08X}",
+                vm.cpu.csr.mip, vm.cpu.csr.mie, vm.cpu.csr.mstatus
+            );
             break;
         }
 
@@ -67,10 +72,19 @@ fn main() {
 
     if !timer_fired {
         eprintln!("\n[DIAG] Timer NEVER fired in {} instructions", count);
-        eprintln!("[DIAG] mtime={}, mtimecmp={}", vm.bus.clint.mtime, vm.bus.clint.mtimecmp);
-        eprintln!("[DIAG] mip=0x{:08X} mie=0x{:08X} mstatus=0x{:08X}",
-            vm.cpu.csr.mip, vm.cpu.csr.mie, vm.cpu.csr.mstatus);
-        eprintln!("[DIAG] pc=0x{:08X} mscratch=0x{:08X} mtvec=0x{:08X}",
-            vm.cpu.pc, vm.cpu.csr.read(0x340), vm.cpu.csr.read(0x305));
+        eprintln!(
+            "[DIAG] mtime={}, mtimecmp={}",
+            vm.bus.clint.mtime, vm.bus.clint.mtimecmp
+        );
+        eprintln!(
+            "[DIAG] mip=0x{:08X} mie=0x{:08X} mstatus=0x{:08X}",
+            vm.cpu.csr.mip, vm.cpu.csr.mie, vm.cpu.csr.mstatus
+        );
+        eprintln!(
+            "[DIAG] pc=0x{:08X} mscratch=0x{:08X} mtvec=0x{:08X}",
+            vm.cpu.pc,
+            vm.cpu.csr.read(0x340),
+            vm.cpu.csr.read(0x305)
+        );
     }
 }

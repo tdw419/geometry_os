@@ -1,7 +1,6 @@
-
 // kern_diag4.rs -- track context switches and detect crashes
-use geometry_os::riscv::RiscvVm;
 use geometry_os::riscv::cpu::StepResult;
+use geometry_os::riscv::RiscvVm;
 use std::env;
 use std::fs;
 
@@ -12,7 +11,8 @@ fn main() {
     let elf = fs::read(&elf_path).expect("read elf");
 
     let mut vm = RiscvVm::new(2 * 1024 * 1024);
-    let load_info = geometry_os::riscv::loader::load_auto(&mut vm.bus, &elf, 0x8000_0000).expect("load");
+    let load_info =
+        geometry_os::riscv::loader::load_auto(&mut vm.bus, &elf, 0x8000_0000).expect("load");
 
     vm.cpu.pc = load_info.entry;
     vm.cpu.x[10] = 0;
@@ -33,8 +33,14 @@ fn main() {
         let old_tp = vm.cpu.x[4];
 
         match vm.step() {
-            StepResult::Shutdown => { eprintln!("[DIAG] Shutdown at {}", count); break; }
-            StepResult::Ebreak => { eprintln!("[DIAG] Ebreak at {}", count); break; }
+            StepResult::Shutdown => {
+                eprintln!("[DIAG] Shutdown at {}", count);
+                break;
+            }
+            StepResult::Ebreak => {
+                eprintln!("[DIAG] Ebreak at {}", count);
+                break;
+            }
             _ => {}
         }
 
@@ -42,8 +48,10 @@ fn main() {
         if vm.cpu.x[4] != old_tp && old_tp != 0 {
             switch_count += 1;
             if switch_count <= 10 {
-                eprintln!("[CTX] #{} at instr {}: tp 0x{:08X} -> 0x{:08X}, pc 0x{:08X} -> 0x{:08X}",
-                    switch_count, count, old_tp, vm.cpu.x[4], old_pc, vm.cpu.pc);
+                eprintln!(
+                    "[CTX] #{} at instr {}: tp 0x{:08X} -> 0x{:08X}, pc 0x{:08X} -> 0x{:08X}",
+                    switch_count, count, old_tp, vm.cpu.x[4], old_pc, vm.cpu.pc
+                );
             }
         }
 
@@ -51,7 +59,10 @@ fn main() {
         if vm.cpu.pc == last_pc {
             stall_count += 1;
             if stall_count == 1000 {
-                eprintln!("[STALL] PC stuck at 0x{:08X} for 1000 instructions (at instr {})", vm.cpu.pc, count);
+                eprintln!(
+                    "[STALL] PC stuck at 0x{:08X} for 1000 instructions (at instr {})",
+                    vm.cpu.pc, count
+                );
             }
         } else {
             stall_count = 0;
@@ -60,7 +71,10 @@ fn main() {
 
         // Detect out-of-range PC
         if vm.cpu.pc < 0x80000000 && vm.cpu.pc > 0x100 && count > 1000 {
-            eprintln!("[BAD PC] 0x{:08X} at instruction {} (prev was 0x{:08X})", vm.cpu.pc, count, old_pc);
+            eprintln!(
+                "[BAD PC] 0x{:08X} at instruction {} (prev was 0x{:08X})",
+                vm.cpu.pc, count, old_pc
+            );
             // Show last 10 console chars for context
             let prev_len = console_chars.len();
             if vm.bus.sbi.console_output.len() > prev_len {
@@ -88,11 +102,25 @@ fn main() {
             }
         }
     }
-    eprintln!("\n[DIAG] Ran {} instructions, {} context switches", count, switch_count);
-    eprintln!("[DIAG] Final PC=0x{:08X} mscratch=0x{:08X} tp=0x{:08X} sp=0x{:08X}",
-        vm.cpu.pc, vm.cpu.csr.read(0x340), vm.cpu.x[4], vm.cpu.x[2]);
-    eprintln!("[DIAG] mstatus=0x{:08X} mepc=0x{:08X} mtvec=0x{:08X}",
-        vm.cpu.csr.mstatus, vm.cpu.csr.read(0x341), vm.cpu.csr.read(0x305));
-    eprintln!("[DIAG] mtime={} mtimecmp={} mip=0x{:08X}",
-        vm.bus.clint.mtime, vm.bus.clint.mtimecmp, vm.cpu.csr.mip);
+    eprintln!(
+        "\n[DIAG] Ran {} instructions, {} context switches",
+        count, switch_count
+    );
+    eprintln!(
+        "[DIAG] Final PC=0x{:08X} mscratch=0x{:08X} tp=0x{:08X} sp=0x{:08X}",
+        vm.cpu.pc,
+        vm.cpu.csr.read(0x340),
+        vm.cpu.x[4],
+        vm.cpu.x[2]
+    );
+    eprintln!(
+        "[DIAG] mstatus=0x{:08X} mepc=0x{:08X} mtvec=0x{:08X}",
+        vm.cpu.csr.mstatus,
+        vm.cpu.csr.read(0x341),
+        vm.cpu.csr.read(0x305)
+    );
+    eprintln!(
+        "[DIAG] mtime={} mtimecmp={} mip=0x{:08X}",
+        vm.bus.clint.mtime, vm.bus.clint.mtimecmp, vm.cpu.csr.mip
+    );
 }
