@@ -22754,3 +22754,69 @@ msg: .ascii "HELLO PIXELS"
         white_count
     );
 }
+
+#[test]
+fn test_hello_pixels_pixelpack_round_trip() {
+    // Closes the full loop: ASM source -> pixelpack PNG -> decode -> assemble
+    // -> VM execute -> TEXT renders glyphs to framebuffer. Programs go in
+    // as pixels (PNG bytes) and come out as pixels (white glyphs on screen).
+    let original_src = r#"
+LDI r1, 80
+LDI r2, 120
+LDI r3, msg
+TEXT r1, r2, r3
+HALT
+
+msg: .ascii "HELLO PIXELS"
+     .byte 0
+"#;
+
+    // Step 1: encode the source as a pixelpack PNG.
+    let png_bytes = crate::pixel::encode_source_pixelpack_png(original_src);
+    assert!(!png_bytes.is_empty(), "PNG encoding produced empty output");
+
+    // Step 2: decode the PNG back to source text. The encoder pads with
+    // NUL bytes to fit 3-byte chunks; strip them.
+    let decoded_src_raw = crate::pixel::decode_pixelpack_source(&png_bytes)
+        .expect("pixelpack PNG must round-trip back to source");
+    let decoded_src = decoded_src_raw.trim_end_matches('\0');
+    assert!(
+        decoded_src.contains("HELLO PIXELS") && decoded_src.contains("TEXT"),
+        "decoded source missing expected content; got:\n{}",
+        decoded_src
+    );
+
+    // Step 3: assemble the decoded source.
+    let base = 0x1000usize;
+    let asm = crate::assembler::assemble(decoded_src, base)
+        .expect("decoded source must assemble");
+
+    // Step 4: load into VM and run.
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        vm.ram[base + i] = word;
+    }
+    vm.pc = base as u32;
+    vm.halted = false;
+    for _ in 0..10_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted, "VM should halt after the decoded program");
+
+    // Step 5: confirm pixels landed where TEXT was supposed to draw.
+    let mut white_count = 0usize;
+    for y in 120..(120 + 8) {
+        for x in 80..(80 + 12 * 6) {
+            if vm.screen[y * 256 + x] == 0xFFFFFF {
+                white_count += 1;
+            }
+        }
+    }
+    assert!(
+        white_count > 20,
+        "post-pixelpack execution should still write the glyph pixels; got {}",
+        white_count
+    );
+}
