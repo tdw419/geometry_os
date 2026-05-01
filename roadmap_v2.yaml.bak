@@ -981,8 +981,8 @@ phases:
     status: done
     note: 17 comprehensive tests in src/qemu/ansi.rs mod tests covering CSI r parsing,
       scroll region preservation, overflow scrolling, reverse index (ESC M), cursor
-      clamping (CUU/CUD), newline at bottom, RIS reset, CSI S/T region respect,
-      line wrap, and CUP outside region.
+      clamping (CUU/CUD), newline at bottom, RIS reset, CSI S/T region respect, line
+      wrap, and CUP outside region.
     tasks:
     - id: p185.d2.t1
       title: Test CSI r sets scroll region and cursor goes home
@@ -1047,7 +1047,7 @@ phases:
   _claimed_at: 1777558123
 - id: phase-187
   title: Replace save.rs unwrap() with Proper Error Handling
-  status: in_progress
+  status: done
   goal: Eliminate 27 unwrap() calls in save.rs that can panic on corrupt save files
   description: save.rs handles PNG save/load for screenshots and VM state persistence.
     Currently has 27 unwrap() calls on file I/O, PNG decoding, and path conversion.
@@ -1056,7 +1056,7 @@ phases:
     state).
   deliverables:
   - name: Replace file I/O unwraps in save.rs
-    status: todo
+    status: done
     tasks:
     - id: p187.d1.t1
       title: Replace File::open, File::create, to_str unwraps
@@ -1073,7 +1073,7 @@ phases:
       - src/save.rs
       scope_lines: 30
   - name: Tests for save error handling
-    status: todo
+    status: done
     tasks:
     - id: p187.d2.t1
       title: Test loading nonexistent save returns None
@@ -1093,7 +1093,7 @@ phases:
   scope_lines_total: 85065
   test_target: 4
   _claimed_by: worker-0
-  _claimed_at: 1777555425
+  _claimed_at: 1777632421
 - id: phase-188
   title: Replace glyph_backend.rs unwrap() with Error Propagation
   status: complete
