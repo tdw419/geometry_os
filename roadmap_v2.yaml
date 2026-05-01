@@ -1557,6 +1557,46 @@ phases:
       scope_files:
       - programs/code_evolution.asm
       scope_lines: 40
+- id: phase-200
+  title: Pixelpack Seamless Authoring Loop
+  status: planned
+  goal: Make the edit-run-visualize cycle for pixel programs seamless. Edit in neovim,
+    save, watch GeOS assemble and execute the program as colored pixels on the grid.
+  description: 'GeOS is a place you go to, not a place you live in. The editing happens
+    externally (neovim with real LSP, real keybindings), and the visualization/execution
+    happens natively in GeOS. This phase implements the bridge: a file watcher that monitors
+    .asm files, triggers assemble -> encode to pixels -> load into screen memory -> execute
+    on save. The user sees source in their editor, the encoded PNG, and live execution state
+    simultaneously. No canvas-as-editor needed -- the text editor is a solved problem. The
+    thing native to GeOS is execution and visualization. Dependency: multi-program kernel
+    (so the watcher and VM run simultaneously).'
+  deliverables:
+  - name: File watcher + assemble + execute pipeline
+    status: planned
+    tasks:
+    - id: p200.d1.t1
+      title: Add file watcher for .asm files in GeOS host
+      description: Watch a configurable directory for .asm file changes. On save, trigger
+        assemble -> encode -> execute pipeline. Use notify crate or similar.
+      scope_files:
+      - src/main.rs
+      scope_lines: 50
+    - id: p200.d1.t2
+      title: Assemble + encode + load into screen memory on file change
+      description: On file save, assemble the .asm source, encode bytecode as pixel
+        instructions into screen memory, reset pixel-VM PC, and start execution. Display
+        encoded PNG alongside live execution state.
+      scope_files:
+      - src/assembler.rs
+      - src/pixel.rs
+      scope_lines: 80
+    - id: p200.d1.t3
+      title: Split-view display: source PNG + live execution pixels
+      description: Show the encoded pixelpack PNG and the live execution state (registers
+        as colored pixels) side by side in the GeOS window. Source stays in neovim.
+      scope_files:
+      - src/main.rs
+      scope_lines: 60
   scope_lines: 100
   scope_lines_total: 86280
   test_target: 2
