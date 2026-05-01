@@ -22674,3 +22674,83 @@ fn test_patch_high_byte_only() {
     );
     assert_eq!(vm.ram[50], 0xFF345678); // high byte changed
 }
+
+// ── Pixel-to-CPU-to-Pixel round-trip (hello_pixels) ────────────────
+
+#[test]
+fn test_label_with_inline_ascii_directive() {
+    // Regression: `label: .ascii "..."` on one line should assemble.
+    // Previously the directive check ran before the label check, so the
+    // label was stripped and `.ascii "..."` got passed to parse_instruction
+    // as if it were a mnemonic.
+    let src = r#"msg: .ascii "HI"
+.byte 0
+HALT
+"#;
+    let asm = crate::assembler::assemble(src, 0).expect("inline label+.ascii must assemble");
+    assert_eq!(asm.pixels[0], b'H' as u32);
+    assert_eq!(asm.pixels[1], b'I' as u32);
+    assert_eq!(asm.pixels[2], 0);
+    assert_eq!(asm.pixels[3], 0x00); // HALT
+    assert_eq!(*asm.labels.get("msg").unwrap(), 0);
+}
+
+#[test]
+fn test_label_with_inline_byte_directive() {
+    // Same regression check for `label: .byte ...`.
+    let src = "tag: .byte 0xAB, 0xCD\nHALT\n";
+    let asm = crate::assembler::assemble(src, 0).expect("inline label+.byte must assemble");
+    assert_eq!(asm.pixels[0], 0xAB);
+    assert_eq!(asm.pixels[1], 0xCD);
+    assert_eq!(*asm.labels.get("tag").unwrap(), 0);
+}
+
+#[test]
+fn test_hello_pixels_round_trip() {
+    // Full pipeline: assemble hello_pixels.asm shape, run on VM, confirm
+    // TEXT (0x44) walked font::GLYPHS onto self.screen at (80, 120).
+    // The 5x7 mini font draws white (0xFFFFFF) pixels for set glyph bits.
+    let src = r#"
+LDI r1, 80
+LDI r2, 120
+LDI r3, msg
+TEXT r1, r2, r3
+HALT
+
+msg: .ascii "HELLO PIXELS"
+     .byte 0
+"#;
+    let base = 0x1000usize;
+    let asm = crate::assembler::assemble(src, base).expect("hello_pixels must assemble");
+
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        vm.ram[base + i] = word;
+    }
+    vm.pc = base as u32;
+    vm.halted = false;
+
+    // Plenty of headroom for ~12 chars × draw_char + setup.
+    for _ in 0..10_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted, "VM should halt after TEXT + HALT");
+
+    // Verify pixels landed in the (80, 120) region. The 5x7 font draws
+    // each glyph into a 5×7 box; 12 chars span ~72 pixels horizontally.
+    let mut white_count = 0usize;
+    for y in 120..(120 + 8) {
+        for x in 80..(80 + 12 * 6) {
+            if vm.screen[y * 256 + x] == 0xFFFFFF {
+                white_count += 1;
+            }
+        }
+    }
+    assert!(
+        white_count > 20,
+        "TEXT should have written many white pixels in the glyph region; got {}",
+        white_count
+    );
+}

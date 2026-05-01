@@ -74,6 +74,87 @@ fn find_colon_outside_quotes(line: &str) -> Option<usize> {
     }
     None
 }
+/// Emit data directives that may follow a label on the same line.
+/// Returns Ok(Some(())) if `rest` matched and was emitted, Ok(None) if
+/// it isn't a recognized directive (caller should fall through to
+/// instruction parsing).
+fn try_emit_directive(
+    rest: &str,
+    bytecode: &mut Vec<u32>,
+    constants: &std::collections::HashMap<String, u32>,
+    line_num: usize,
+) -> Result<Option<()>, AsmError> {
+    let lower = rest.to_lowercase();
+
+    // .ascii "text" -- emit chars without null terminator
+    if lower.starts_with(".ascii") && !lower.starts_with(".asciz") {
+        let body = rest[6..].trim();
+        if !((body.starts_with('"') && body.ends_with('"'))
+            || (body.starts_with('\'') && body.ends_with('\'')))
+        {
+            return Err(AsmError {
+                line: line_num,
+                message: ".ascii requires a quoted string: .ascii \"text\"".into(),
+            });
+        }
+        let s = &body[1..body.len() - 1];
+        for ch in s.bytes() {
+            bytecode.push(ch as u32);
+        }
+        return Ok(Some(()));
+    }
+
+    // .asciz "text" / .str "text" -- emit chars with null terminator
+    if lower.starts_with(".asciz") || lower.starts_with(".str") {
+        let prefix_len = if lower.starts_with(".asciz") { 6 } else { 4 };
+        let body = rest[prefix_len..].trim();
+        if !((body.starts_with('"') && body.ends_with('"'))
+            || (body.starts_with('\'') && body.ends_with('\'')))
+        {
+            return Err(AsmError {
+                line: line_num,
+                message: "string directive requires a quoted string".into(),
+            });
+        }
+        let s = &body[1..body.len() - 1];
+        for ch in s.bytes() {
+            bytecode.push(ch as u32);
+        }
+        bytecode.push(0);
+        return Ok(Some(()));
+    }
+
+    // .byte v1, v2, ... / .db v1, v2, ...
+    if lower.starts_with(".byte") || lower.starts_with(".db") {
+        let prefix_len = if lower.starts_with(".byte") { 5 } else { 3 };
+        let body = rest[prefix_len..].trim();
+        if body.is_empty() {
+            return Err(AsmError {
+                line: line_num,
+                message: "byte directive requires at least one value".into(),
+            });
+        }
+        for part in body.split(',') {
+            let val_str = part.trim();
+            if val_str.is_empty() {
+                continue;
+            }
+            match parse_imm(val_str, constants) {
+                Ok(v) => bytecode.push(v & 0xFF),
+                Err(e) => {
+                    return Err(AsmError {
+                        line: line_num,
+                        message: format!("invalid byte value '{}': {}", val_str, e),
+                    });
+                }
+            }
+        }
+        return Ok(Some(()));
+    }
+
+    Ok(None)
+}
+
 /// Backward-compatible assemble() with no library path.
 pub fn assemble(source: &str, base_addr: usize) -> Result<AsmResult, AsmError> {
     assemble_with_lib(source, base_addr, None)
@@ -287,6 +368,15 @@ fn assemble_inner(source: &str, base_addr: usize) -> Result<AsmResult, AsmError>
             labels.insert(label_name, bytecode.len());
             let rest = line[label_end + 1..].trim();
             if rest.is_empty() || rest.starts_with(';') {
+                continue;
+            }
+            // Allow directives after a label on the same line
+            // (e.g. `msg: .ascii "hi"`). Anything else falls through to
+            // instruction parsing.
+            if let Some(emitted) =
+                try_emit_directive(rest, &mut bytecode, &constants, line_num + 1)?
+            {
+                let _ = emitted;
                 continue;
             }
             // Parse instruction after label on same line
