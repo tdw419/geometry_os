@@ -1,10 +1,94 @@
-# GeOS Terminal (geos-term) — AI Developer Guide
+# GeOS Terminal (geos-term) — How It Works
+
+## The Big Picture
+
+A normal terminal emulator (gnome-terminal, Alacritty, kitty) is a C/Rust program that:
+1. Spawns a PTY and forks bash
+2. Reads bytes from the PTY master
+3. Parses ANSI escape sequences
+4. Renders characters into a pixel buffer
+5. Displays the pixel buffer in a window
+
+`geos-term` does all of the same things -- but steps 2-4 happen **inside a virtual machine running bytecode**, not in native code.
+
+The key insight: the terminal emulator logic (ANSI parsing, cursor tracking, scrolling, text buffer management) is written in **assembly language** and executes as a Geometry OS program. The Rust host is just the I/O bridge -- it shuffles bytes between the Linux PTY and the VM's RAM, and draws pixels from the VM's text buffer onto the screen. The "brain" of the terminal lives in the VM.
+
+This means you can modify the terminal's behavior by editing assembly, pressing F5, and seeing changes instantly -- no recompilation. The terminal emulator *is* a VM program.
 
 ## What It Is
 
-`geos-term` is a real terminal emulator built entirely inside Geometry OS. It runs bash (or any shell) inside a PTY, renders output as pixel art text on the VM's framebuffer, and supports ANSI escape sequences, alternate screen buffers, mouse input, tabs, and clipboard — all in bytecode.
+`geos-term` is a real terminal emulator built entirely inside Geometry OS. It runs bash (or any shell) inside a PTY, renders output as pixel art text on the VM's framebuffer, and supports ANSI escape sequences, alternate screen buffers, mouse input, tabs, and clipboard -- all in bytecode.
 
-There are two components that must stay in sync:
+### The Two Halves
+
+The system splits cleanly into two halves that talk through shared RAM:
+
+**The Rust host** (`geos_term.rs`) -- the I/O bridge. It:
+- Opens a window (minifb) and handles keyboard/mouse input
+- Spawns bash inside a real Linux PTY (via `forkpty`/`posix_openpt`)
+- Exposes PTY operations as VM opcodes (PTYOPEN, PTYREAD, PTYWRITE, etc.)
+- Reads the VM's text/color buffers from RAM each frame and draws font glyphs as pixels
+- Runs a Unix socket (`/tmp/geos-term.sock`) for external control
+
+**The ASM program** (`host_term.asm`) -- the terminal brain. It:
+- Runs as bytecode inside the VM, executing every frame
+- Calls PTYREAD to get bytes from bash, processes them one at a time
+- Implements the full ANSI state machine (cursor movement, colors, scrolling, alt screen)
+- Maintains an 80x30 text buffer and per-cell color buffer in VM RAM
+- Handles keyboard input (sends keystrokes to bash via PTYWRITE)
+- Renders a status bar showing active tab, cursor position, PTY count
+
+These two halves never call each other directly. All communication is through VM RAM addresses -- the Rust side writes PTY bytes into `RECV_BUF`, the ASM side reads them and writes results into `BUF` and `COLOR_BUF`, the Rust side reads those back out to draw pixels.
+
+### Data Flow: What Happens When You Type `ls`
+
+```
+You press 'l' 's' Enter
+        |
+        v
+  Rust host receives keypress from minifb
+        |
+        v
+  Rust writes "ls\n" into VM RAM at SEND_BUF (0x5400)
+        |
+        v
+  ASM program reads SEND_BUF, calls PTYWRITE to send bytes to bash's stdin
+        |
+        v
+  bash runs `ls`, writes directory listing to its stdout (PTY slave)
+        |
+        v
+  ASM program calls PTYREAD -- Rust copies PTY master bytes into RECV_BUF (0x5800)
+        |
+        v
+  ASM processes each byte through the ANSI state machine:
+    'D' 'o' 'c' 's' ... -> append_byte stores each char into text buffer
+    '\n'              -> advance cursor to next row
+    ESC [ 3 2 m       -> set foreground color to green (updates FG_COLOR)
+        |
+        v
+  Text buffer (0x4000) now contains: "Documents  Downloads  Pictures\n"
+  Color buffer (0x7800) has per-cell RGBA colors
+        |
+        v
+  Rust host reads text+color buffers from VM RAM every frame
+  Looks up 5x7 bitmap font for each character
+  Draws colored pixel rectangles into the minifb framebuffer
+        |
+        v
+  You see a green "Documents  Downloads  Pictures" on screen
+```
+
+### Why This Design
+
+- **The terminal is a VM program.** Any Geometry OS program can include terminal functionality. The same opcodes that power geos-term could power an in-game computer, a debug console, or an AI agent's text interface.
+- **Hot-reloadable.** Press F5 to re-read and re-assemble the ASM. The PTY (bash) stays alive, just the bytecode swaps. Iterate on terminal features in seconds.
+- **Observable.** The text buffer is just RAM. External tools can read it via the Unix socket or MCP tools. The AI can "see" what's on screen by reading memory addresses.
+- **Two-tier input.** Ctrl+O toggles between HOST mode (keystrokes go to bash) and GUEST mode (keystrokes go to whatever VM program is running). This lets you interact with both the terminal and VM programs from the same keyboard.
+
+## Components
+
+There are four components that must stay in sync:
 
 | Component | File | Role |
 |-----------|------|------|
@@ -63,33 +147,56 @@ pub const DEFAULT_ROWS: u16 = 30;
 
 **If these get out of sync, text renders at wrong positions or not at all.** This has happened multiple times. Always grep all three files when changing dimensions.
 
-## Architecture Overview
+## Architecture Diagram
 
 ```
-                    ┌──────────────────────────────────────┐
-                    │         geos-term (Rust binary)        │
-                    │                                       │
-  Keyboard/Mouse ──►│  minifb window ──► framebuffer       │
-                    │       │                    │          │
-                    │  Unix socket        VM execution     │
-                    │  /tmp/geos-term.sock  (Rust VM core)  │
-                    │       │                    │          │
-  geos-ctrl ───────►│  socket handler      bytecode step() │
-                    │                           │           │
-                    │                    ┌──────┴──────┐    │
-                    │                    │  ASM program │    │
-                    │                    │  host_term.asm│   │
-                    │                    │              │    │
-                    │                    │ PTYREAD ◄────┼──PTY─► bash/hermes/etc
-                    │                    │ PTYWRITE─────┤    │
-                    │                    │ process_byte │    │
-                    │                    │ append_byte  │    │
-                    │                    │ render ──────┼──► vm.screen[]
-                    │                    └──────────────┘    │
-                    └──────────────────────────────────────┘
+  Your keyboard
+       |
+       v
+  ┌─────────────────────────────────────────────────────────┐
+  │                 geos-term (Rust binary)                  │
+  │                                                          │
+  │   minifb window (2560x1280)          Unix socket         │
+  │       │                         /tmp/geos-term.sock      │
+  │       │                              │                   │
+  │       │    VM RAM (shared memory)     │                   │
+  │       │    ┌──────────────────┐      │                   │
+  │       │    │ 0x4000  text buf │◄─────┼── geos-ctrl       │
+  │       │    │ 0x7800  color buf│      │   (external tools) │
+  │       │    │ 0x5400  send buf │      │                   │
+  │       │    │ 0x5800  recv buf │      │                   │
+  │       │    └────────┬─────────┘      │                   │
+  │       │             │                │                   │
+  │       │             │  VM executes   │                   │
+  │       │             │  bytecode      │                   │
+  │       │             v                │                   │
+  │       │    ┌──────────────────┐      │                   │
+  │       │    │  host_term.asm   │      │                   │
+  │       │    │  (terminal brain)│      │                   │
+  │       │    │                  │      │                   │
+  │       │    │  PTYREAD ────────┼──PTY──┼──► bash          │
+  │       │    │  PTYWRITE ───────┼──PTY──┼──► bash          │
+  │       │    │  process_byte    │      │                   │
+  │       │    │  ANSI state mach.│      │                   │
+  │       │    │  append_byte     │      │                   │
+  │       │    │  render ─────────┼──────┼──► vm.screen[]    │
+  │       │    └──────────────────┘      │                   │
+  │       │             │                │                   │
+  │       ◄─────────────┘                │                   │
+  │   reads text+color buffers           │                   │
+  │   draws 5x7 font glyphs as pixels    │                   │
+  │                                                          │
+  └─────────────────────────────────────────────────────────┘
+       |
+       v
+  Your monitor
 ```
 
-## Data Flow: PTY Output → Screen
+The Rust host and ASM program are two separate processes in two separate worlds
+(native code vs VM bytecode) that communicate exclusively through shared RAM.
+No function calls cross the boundary -- just memory reads and writes.
+
+## Data Flow: Technical Details
 
 1. **PTYREAD** (opcode 0xAB): ASM calls `PTYREAD handle, buf, max_len`. The Rust VM reads bytes from the PTY master into `vm.ram[buf..buf+max_len]`. Returns byte count in r0.
 

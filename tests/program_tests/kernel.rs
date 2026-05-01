@@ -229,7 +229,9 @@ fn test_user_mode_store_to_normal_ram_allowed() {
 
 #[test]
 fn test_user_mode_ikey_halts() {
-    // User mode IKEY should halt
+    // User mode IKEY works (changed: user-mode halt was removed because
+    // windowed apps like snake/ball need IKEY for input in user mode).
+    // The test name is historical -- IKEY no longer halts in user mode.
     let mut vm = Vm::new();
     vm.mode = geometry_os::vm::CpuMode::User;
     vm.key_port = 65; // keyboard has a key
@@ -240,11 +242,11 @@ fn test_user_mode_ikey_halts() {
     vm.pc = 0;
 
     let result = vm.step();
-    assert!(!result, "IKEY in user mode should fail");
-    assert!(vm.halted, "IKEY in user mode should halt");
+    assert!(result, "IKEY in user mode should succeed");
+    assert!(!vm.halted, "IKEY in user mode should not halt");
     assert_eq!(
-        vm.regs[0], 0,
-        "IKEY should not have read the key in user mode"
+        vm.regs[0], 65,
+        "IKEY should read the key in user mode"
     );
 }
 

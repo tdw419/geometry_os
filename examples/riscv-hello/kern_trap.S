@@ -46,7 +46,7 @@ kern_trap_entry:
     csrr    t0, mcause
     li      t1, 0x80000007
     beq     t0, t1, handle_timer
-    li      t1, 8
+    li      t1, 11
     beq     t0, t1, handle_ecall
     j       panic_trap
 
@@ -77,17 +77,21 @@ handle_timer:
     sw      t1, 0(t0)
 
     /* Apply clip rect for new program (i.2.2) */
+    mv      s10, t1          /* save new current_id in callee-saved reg */
     mv      s11, tp
+    mv      a0, t1           /* pass new current_id as argument */
     jal     ra, kern_apply_clip
     mv      tp, s11
 
     /* Select context to restore */
-    la      t2, contexts
+    la      t2, ctx_a
+    mv      t1, s10          /* restore new current_id */
     beqz    t1, switch_0
-    addi    tp, t2, 136
+    la      t2, ctx_b
+    mv      tp, t2           /* tp = new context pointer for restore_context */
     j       restore_context
 switch_0:
-    mv      tp, t2
+    /* t2 already points to ctx_a, tp already points to ctx_a */
     j       restore_context
 
 handle_ecall:
@@ -98,8 +102,12 @@ handle_ecall:
     
     /* Check extension ID in a7 (offset 68) */
     lw      a7, 68(tp)
-    li      t1, 0x0ACE0500
+    li      t1, 0x47454F00
     beq     a7, t1, handle_geos_sbi
+    
+    /* Intercept console getchar (a7=2) for input focus routing */
+    li      t1, 2
+    beq     a7, t1, handle_getchar
     
     /* Proxy SBI call to host */
     mv      s11, tp
@@ -115,6 +123,17 @@ handle_ecall:
     mv      tp, s11
     sw      a0, 40(tp)
     sw      a1, 44(tp)
+    j       restore_context
+
+handle_getchar:
+    /* Input focus routing: call C handler which checks focused_id */
+    mv      s11, tp
+    /* Pass current_id as a1 so C knows which program is calling */
+    la      a1, current_id
+    lw      a1, 0(a1)
+    jal     ra, kern_handle_getchar
+    mv      tp, s11
+    sw      a0, 40(tp)
     j       restore_context
 
 handle_geos_sbi:

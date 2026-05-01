@@ -11,8 +11,8 @@ conventions:
 - ASMSELF and RUNNEXT take no operands (1-byte instructions)
 - Error reporting via RAM[0xFFD] (existing ASM result port)
 description: Pixel-art virtual machine with built-in assembler, debugger, and live
-  GUI. Write assembly in the built-in text editor, press F5, watch it run. 154 opcodes,
-  3656 tests, 147 programs, 76635 LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor.
+  GUI. Write assembly in the built-in text editor, press F5, watch it run. 187 opcodes,
+  3656 tests, 156 programs, 83836 LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor.
   Infinite map desktop.
 global_risks:
 - 'Opcode space: 154 of ~256 slots used, plenty of room'
@@ -9694,21 +9694,33 @@ phases:
 - id: phase-203
   title: Fix Roguelike Undefined Labels (save_game, load_game) -- 4 test failures
   status: planned
-  goal: All program tests pass, including test_all_programs_assemble and 3 roguelike tests
-  description: 'programs/roguelike.asm references CALL save_game (line 302) and CALL load_game (line 310) but neither label is defined anywhere in the file. This causes assembly to fail with "undefined label: save_game", which breaks: (1) test_roguelike_assembles, (2) test_roguelike_initializes, (3) test_roguelike_wall_collision_blocks, (4) test_all_programs_assemble (since roguelike is in the all-programs set). The fix is to add stub save_game and load_game labels that are no-ops for now. Phase-191 plans to add real save/load functionality, but the immediate issue is that stub CALLs were committed without targets, making the program un-assemblable. Current program_tests: 486 passed, 4 failed.'
+  goal: All program tests pass, including test_all_programs_assemble and 3 roguelike
+    tests
+  description: 'programs/roguelike.asm references CALL save_game (line 302) and CALL
+    load_game (line 310) but neither label is defined anywhere in the file. This causes
+    assembly to fail with "undefined label: save_game", which breaks: (1) test_roguelike_assembles,
+    (2) test_roguelike_initializes, (3) test_roguelike_wall_collision_blocks, (4)
+    test_all_programs_assemble (since roguelike is in the all-programs set). The fix
+    is to add stub save_game and load_game labels that are no-ops for now. Phase-191
+    plans to add real save/load functionality, but the immediate issue is that stub
+    CALLs were committed without targets, making the program un-assemblable. Current
+    program_tests: 486 passed, 4 failed.'
   deliverables:
   - name: Add save_game and load_game stub labels to roguelike.asm
     status: todo
     tasks:
     - id: p203.d1.t1
       title: Add save_game label with RET stub
-      description: Add a save_game: / RET block near the end of programs/roguelike.asm (before any existing labels that follow). This makes the CALL at line 302 succeed. Add a comment noting this is a stub pending phase-191 implementation.
+      description: 'Add a save_game: / RET block near the end of programs/roguelike.asm
+        (before any existing labels that follow). This makes the CALL at line 302
+        succeed. Add a comment noting this is a stub pending phase-191 implementation.'
       scope_files:
       - programs/roguelike.asm
       scope_lines: 5
     - id: p203.d1.t2
       title: Add load_game label with RET stub
-      description: Add a load_game: / RET block near save_game. Same rationale -- makes CALL at line 310 succeed. Comment noting stub pending phase-191.
+      description: 'Add a load_game: / RET block near save_game. Same rationale --
+        makes CALL at line 310 succeed. Comment noting stub pending phase-191.'
       scope_files:
       - programs/roguelike.asm
       scope_lines: 5
@@ -9718,18 +9730,71 @@ phases:
 - id: phase-204
   title: Fix WVIEWPORT Dead Code (unreachable match arm after wildcard)
   status: planned
-  goal: The WVIEWPORT window operation (op=10) actually works instead of silently returning error
-  description: 'In src/vm/mod.rs around line 1709, the match arm for window operations has `_ =>` (unknown op, returns r0=0) placed BEFORE `10 =>` (WVIEWPORT). Since `_` matches everything, the WVIEWPORT arm at line 1713 is dead code — unreachable. Any program calling WVIEWPORT gets r0=0 (error) instead of setting the viewport offset. This was introduced when the wildcard was added without considering existing numbered arms below it. The fix is to move `10 => { ... }` above the `_ => { ... }` arm.'
+  goal: The WVIEWPORT window operation (op=10) actually works instead of silently
+    returning error
+  description: In src/vm/mod.rs around line 1709, the match arm for window operations
+    has `_ =>` (unknown op, returns r0=0) placed BEFORE `10 =>` (WVIEWPORT). Since
+    `_` matches everything, the WVIEWPORT arm at line 1713 is dead code — unreachable.
+    Any program calling WVIEWPORT gets r0=0 (error) instead of setting the viewport
+    offset. This was introduced when the wildcard was added without considering existing
+    numbered arms below it. The fix is to move `10 => { ... }` above the `_ => { ...
+    }` arm.
   deliverables:
   - name: Move WVIEWPORT arm above wildcard in window op match
     status: todo
     tasks:
     - id: p204.d1.t1
       title: Move the 10 => WVIEWPORT block above the _ => wildcard arm
-      description: In src/vm/mod.rs, the match on window sub-operations (around line 1700-1730) has `_ =>` at ~line 1709 followed by `10 =>` at ~line 1713. Move the entire `10 => { ... WVIEWPORT ... }` block to just before the `_ =>` block. Verify no other numbered arms are similarly trapped after the wildcard.
+      description: In src/vm/mod.rs, the match on window sub-operations (around line
+        1700-1730) has `_ =>` at ~line 1709 followed by `10 =>` at ~line 1713. Move
+        the entire `10 => { ... WVIEWPORT ... }` block to just before the `_ =>` block.
+        Verify no other numbered arms are similarly trapped after the wildcard.
       scope_files:
       - src/vm/mod.rs
       scope_lines: 5
     scope_lines: 5
   scope_lines_total: 86380
   test_target: 1
+- id: phase-205
+  title: Host Terminal -- PTY Bash Prompt Regression (4 issues)
+  status: planned
+  goal: 'Fix terminal QA regression: geos-term built-in tests hang waiting for bash
+    prompt (PTY regression from phases 135/136)'
+  description: 3 built-in terminal tests (echo_round_trip, line_wrap, ctrl_c) all
+    hang at Phase 1 waiting for a bash prompt that never appears. geos-term assembles
+    bytecode and starts but the PTY slave never emits a shell prompt. This was previously
+    fixed in phases 135 and 136 but has regressed. Additionally, terminal_qa.py itself
+    crashes with uncaught TimeoutExpired instead of handling the hang gracefully.
+  deliverables:
+  - name: Fix 4 terminal issues (PTY regression + script crash)
+    description: geos-term --test echo_round_trip hangs at bash prompt wait; geos-term
+      --test line_wrap hangs at bash prompt wait; geos-term --test ctrl_c hangs at
+      bash prompt wait; terminal_qa.py crashes with uncaught subprocess.TimeoutExpired
+    status: todo
+    tasks:
+    - id: p205.d1.t1
+      title: 'Fix: echo_round_trip (hang) -- geos-term --test echo_round_trip hangs
+        at bash prompt wait'
+      status: todo
+      description: 'Debug PTY setup: check if bash is actually spawned, check TERM/PS1
+        env vars, check if PTY slave fd is properly connected. Previously fixed in
+        phases 135/136 but regressed.'
+    - id: p205.d1.t2
+      title: 'Fix: line_wrap (hang) -- geos-term --test line_wrap hangs at bash prompt
+        wait'
+      status: todo
+      description: Same fix as echo_round_trip - PTY prompt regression.
+    - id: p205.d1.t3
+      title: 'Fix: ctrl_c (hang) -- geos-term --test ctrl_c hangs at bash prompt wait'
+      status: todo
+      description: Same fix as echo_round_trip - PTY prompt regression.
+    - id: p205.d1.t4
+      title: 'Fix: terminal_qa_script (bug) -- terminal_qa.py crashes with uncaught
+        subprocess.TimeoutExpir'
+      status: todo
+      description: Wrap subprocess.run in run_geos_test() with try/except TimeoutExpired.
+        On timeout, return a result dict with passed=False, stdout/stderr from partial
+        output, and a timeout flag.
+    scope_lines: 120
+  scope_lines_total: 86500
+  test_target: 3

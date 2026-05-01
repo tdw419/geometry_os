@@ -12,6 +12,7 @@ pub const MTVEC: u32 = 0x305;
 pub const MEPC: u32 = 0x341;
 pub const MCAUSE: u32 = 0x342;
 pub const MTVAL: u32 = 0x343;
+pub const MSCRATCH: u32 = 0x340;
 
 pub const SSTATUS: u32 = 0x100;
 pub const STVEC: u32 = 0x105;

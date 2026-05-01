@@ -102,6 +102,7 @@
 #define SAVED_ROW 0x4E13   ; ESC 7 saved cursor row
 #define SAVED_COL 0x4E14   ; ESC 7 saved cursor col
 #define SAVED_FG 0x4E15    ; ESC 7 saved FG color
+#define DIRTY_ROWS 0x4E16  ; 32-bit dirty row bitmap (bit N = row N needs redraw)
 
 ; =========================================
 ; INIT
@@ -176,6 +177,11 @@ STORE r20, r0
 ; DIRTY_STATUS init (start dirty so first frame draws)
 LDI r20, DIRTY_STATUS
 LDI r0, 1
+STORE r20, r0
+
+; DIRTY_ROWS init (start all dirty so first frame draws everything)
+LDI r20, DIRTY_ROWS
+LDI r0, 0xFFFFFFFF
 STORE r20, r0
 
 ; Clear COLOR_BUF to default FG color
@@ -819,6 +825,44 @@ pb_ret:
     RET
 
 ; =========================================
+; DIRTY ROW HELPERS
+; =========================================
+; mark_row_dirty -- mark row in r0 as dirty
+; Sets bit (31 - row) in DIRTY_ROWS bitmap
+mark_row_dirty:
+    LDI r1, 31
+    SUB r1, r0          ; r1 = 31 - row
+    LDI r2, 1
+    SHL r2, r1          ; r2 = 1 << (31 - row)
+    LDI r3, DIRTY_ROWS
+    LOAD r4, r3         ; r4 = current bitmap
+    OR r4, r2           ; set the bit
+    STORE r3, r4
+    RET
+
+; mark_all_dirty -- mark all 30 rows as dirty
+mark_all_dirty:
+    LDI r1, DIRTY_ROWS
+    LDI r0, 0xFFFFFFFF
+    STORE r1, r0
+    RET
+
+; mark_row_dirty_check -- check if row in r0 is dirty
+; Returns r0 = bit value (0=clean, nonzero=dirty)
+mark_row_dirty_check:
+    PUSH r31
+    LDI r1, 31
+    SUB r1, r0          ; r1 = 31 - row
+    LDI r2, 1
+    SHL r2, r1          ; r2 = 1 << (31 - row)
+    LDI r3, DIRTY_ROWS
+    LOAD r4, r3         ; r4 = current bitmap
+    MOV r0, r4
+    AND r0, r2          ; r0 = bitmap & mask
+    POP r31
+    RET
+
+; =========================================
 ; APPEND_BYTE -- append r5 to text buffer
 ; =========================================
 append_byte:
@@ -877,8 +921,14 @@ ab_store:
     ADD r0, r1
     STORE r20, r0
     CMPI r0, COLS
-    JNZ r0, ab_ret
+    JNZ r0, ab_mark_dirty
     CALL do_newline
+
+ab_mark_dirty:
+    ; Mark current row as dirty for rendering
+    LDI r20, CUR_ROW
+    LOAD r0, r20
+    CALL mark_row_dirty
 
 ab_ret:
     POP r31
@@ -1470,6 +1520,7 @@ sc_color_loop:
     CMPI r22, COLS
     BLT r0, sc_color_loop
 
+    CALL mark_all_dirty
     POP r31
     RET
 
@@ -1673,7 +1724,7 @@ draw_status_bar:
     LDI r3, 256
     LDI r4, 10
     LDI r5, 0x1A1A2E
-    RECTF r1, r2, r3, r4, r5
+    RECTF r14, r2, r3, r4, r5
 
     LDI r1, 1
     LDI r20, SCRATCH
@@ -2280,6 +2331,12 @@ cel_done:
     LDI r20, DIRTY_STATUS
     LDI r0, 1
     STORE r20, r0
+    ; Mark current row as dirty (row is in r7 / COLS)
+    ; Re-derive row from saved value: r7 = row * COLS, row = r7 / COLS
+    ; Actually we saved CUR_ROW into r7 early, then multiplied. Re-read CUR_ROW.
+    LDI r20, CUR_ROW
+    LOAD r0, r20
+    CALL mark_row_dirty
 
     POP r31
     RET
@@ -2345,6 +2402,7 @@ ced_done:
     LDI r20, DIRTY_STATUS
     LDI r0, 1
     STORE r20, r0
+    CALL mark_all_dirty
 
     POP r31
     RET
@@ -2559,6 +2617,7 @@ ces_color:
     MUL r7, r8
     CMP r10, r7
     BLT r0, ces_color
+    CALL mark_all_dirty
     POP r31
     RET
 
@@ -2635,13 +2694,11 @@ render:
 
 render_skip_status:
 
-    ; Clear content area
-    LDI r1, 0
-    LDI r2, 10
-    LDI r3, 256
-    LDI r4, 246
-    LDI r5, 0x0A0A0A
-    RECTF r1, r2, r3, r4, r5
+    ; --- Dirty rectangle optimization ---
+    ; Check if any rows need redrawing
+    LDI r20, DIRTY_ROWS
+    LOAD r0, r20
+    JZ r0, render_cursor_blink  ; no dirty rows, skip to cursor
 
     LDI r1, 1
     LDI r10, 0
@@ -2649,6 +2706,20 @@ render_skip_status:
     LDI r7, COLS
 
 render_row:
+    ; --- Check if this row is dirty ---
+    MOV r0, r10
+    CALL mark_row_dirty_check
+    JZ r0, render_row_skip
+    LDI r1, 1           ; restore r1 (clobbered by mark_row_dirty_check)
+
+    ; Clear only this row's background (full width, 6px tall)
+    LDI r14, 0          ; x (use r14 to preserve r1)
+    MOV r2, r12         ; y = 10 + row*6
+    LDI r3, 256         ; w
+    LDI r4, 6           ; h
+    LDI r5, 0x0A0A0A    ; bg color
+    RECTF r14, r2, r3, r4, r5
+
     ; Compute row base addresses
     MOV r11, r10
     MUL r11, r7
@@ -2732,10 +2803,17 @@ end_row:
     LDI r6, 6
     ADD r12, r6
 
+render_row_skip:
     ADD r10, r1
     CMPI r10, ROWS
     BLT r0, render_row
 
+    ; Clear dirty bitmap after rendering
+    LDI r20, DIRTY_ROWS
+    LDI r0, 0
+    STORE r20, r0
+
+render_cursor_blink:
     ; Cursor blink
     LDI r20, BLINK
     LOAD r0, r20

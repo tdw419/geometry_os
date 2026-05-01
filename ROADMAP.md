@@ -2,154 +2,215 @@
 
 Pixel-art virtual machine with built-in assembler, debugger, and live GUI. Write assembly in the built-in text editor, press F5, watch it run. 187 opcodes, 3656 tests, 156 programs, 83836 LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor. Infinite map desktop.
 
-**Progress:** 167/200 phases complete, 9 superseded, 2 deferred, 1 research, 21 planned
-
-**Deliverables:** 596/645 complete
-
-**Tasks:** 196/254 complete
+**Progress:** 167/202 phases complete, 9 superseded, 2 deferred, 1 research, 23 planned
+**Deliverables:** 596/647 complete
+**Tasks:** 298/428 complete
 
 | Phase | Status | Deliverables | LOC Target | Tests |
 |-------|--------|-------------|-----------|-------|
-| phase-1 Core VM + Visual Programs | COMPLETE | 23/23 | 2,000 | 10 |
-| phase-2 Extended Opcodes | COMPLETE | 10/10 | 2,800 | 16 |
+| phase-1 Core VM + Visual Programs | COMPLETE | 10/10 | 2,000 | 10 |
+| phase-2 Extended Opcodes | COMPLETE | 4/4 | 2,800 | 16 |
 | phase-3 Interactive Programs | COMPLETE | 4/4 | 3,200 | 20 |
-| phase-4 Canvas & Editor | COMPLETE | 4/4 | 3,500 | 22 |
-| phase-5 Terminal Mode | COMPLETE | 2/2 | 3,800 | 24 |
+| phase-4 Canvas & Editor | COMPLETE | 2/2 | 3,500 | 22 |
+| phase-5 Terminal Mode | COMPLETE | 3/3 | 3,800 | 24 |
 | phase-6 Animation | COMPLETE | 3/3 | 4,000 | 24 |
-| phase-7 Random & Games | COMPLETE | 3/3 | 4,300 | 24 |
+| phase-7 Random & Games | COMPLETE | 5/5 | 4,300 | 24 |
 | phase-8 TICKS & Sound | COMPLETE | 5/5 | 4,322 | 46 |
-| phase-9 Debug Tools | COMPLETE | 5/5 | 4,500 | 48 |
-| phase-10 Extended Graphics | COMPLETE | 2/2 | 4,700 | 50 |
-| phase-11 Advanced Games | COMPLETE | 4/4 | 5,100 | 56 |
-| phase-12 Self-Hosting | COMPLETE | 2/2 | 5,500 | 54 |
-| phase-13 Close the Gaps | COMPLETE | 3/3 | - | - |
+| phase-9 Debug Tools | COMPLETE | 2/2 | 4,500 | 48 |
+| phase-10 Extended Graphics | COMPLETE | 4/4 | 4,700 | 50 |
+| phase-11 Advanced Games | COMPLETE | 2/2 | 5,100 | 56 |
+| phase-12 Self-Hosting | COMPLETE | 3/3 | 5,500 | 54 |
+| phase-13 Close the Gaps | COMPLETE | 4/4 | - | - |
 | phase-14 Developer Experience | COMPLETE | 4/4 | - | - |
 | phase-15 VM Capability Gaps | COMPLETE | 4/4 | - | - |
-| phase-16 Showcase Shipping | COMPLETE | 4/4 | - | - |
-| phase-17 Platform Growth | COMPLETE | 3/3 | - | - |
-| phase-18 VM Instrumentation | COMPLETE | 2/2 | - | - |
-| phase-19 Visual Debugger | COMPLETE | 3/3 | - | - |
-| phase-20 High RAM Visualization | COMPLETE | 2/2 | - | - |
+| phase-16 Showcase Shipping | COMPLETE | 3/3 | - | - |
+| phase-17 Platform Growth | COMPLETE | 2/2 | - | - |
+| phase-18 VM Instrumentation | COMPLETE | 3/3 | - | - |
+| phase-19 Visual Debugger | COMPLETE | 2/2 | - | - |
+| phase-20 High RAM Visualization | COMPLETE | 3/3 | - | - |
 | phase-21 Spatial Program Coordinator (Native Windowing) | COMPLETE | 3/3 | - | - |
-| phase-22 Screen Readback & Collision Detection | COMPLETE | 3/3 | - | - |
-| phase-23 Kernel Boundary (Syscall Mode) | COMPLETE | 5/5 | - | - |
-| phase-24 Memory Protection | COMPLETE | 6/6 | - | - |
-| phase-25 Filesystem | COMPLETE | 5/5 | - | - |
-| phase-26 Preemptive Scheduler | COMPLETE | 3/3 | - | - |
-| phase-27 Inter-Process Communication | COMPLETE | 4/4 | - | - |
-| phase-28 Device Driver Abstraction | COMPLETE | 3/3 | - | - |
-| phase-29 Shell | COMPLETE | 6/6 | - | - |
-| phase-30 Boot Sequence & Init | COMPLETE | 3/3 | - | - |
+| phase-22 Screen Readback & Collision Detection | COMPLETE | 5/5 | - | - |
+| phase-23 Kernel Boundary (Syscall Mode) | COMPLETE | 6/6 | - | - |
+| phase-24 Memory Protection | COMPLETE | 5/5 | - | - |
+| phase-25 Filesystem | COMPLETE | 3/3 | - | - |
+| phase-26 Preemptive Scheduler | COMPLETE | 4/4 | - | - |
+| phase-27 Inter-Process Communication | COMPLETE | 3/3 | - | - |
+| phase-28 Device Driver Abstraction | COMPLETE | 6/6 | - | - |
+| phase-29 Shell | COMPLETE | 3/3 | - | - |
+| phase-30 Boot Sequence & Init | COMPLETE | 4/4 | - | - |
 | phase-31 Standard Library | COMPLETE | 4/4 | - | - |
-| phase-32 Signals & Process Lifecycle | COMPLETE | 4/4 | - | - |
-| phase-33 QEMU Bridge | COMPLETE | 9/9 | - | - |
-| phase-34 RISC-V RV32I Core | COMPLETE | 6/6 | - | - |
-| phase-35 RISC-V Privilege Modes | COMPLETE | 5/5 | - | - |
-| phase-36 RISC-V Virtual Memory & Devices | COMPLETE | 8/8 | - | - |
-| phase-37 Guest OS Boot (Native RISC-V) | COMPLETE | 6/6 | - | - |
+| phase-32 Signals & Process Lifecycle | COMPLETE | 9/9 | - | - |
+| phase-33 QEMU Bridge | COMPLETE | 6/6 | - | - |
+| phase-34 RISC-V RV32I Core | COMPLETE | 5/5 | - | - |
+| phase-35 RISC-V Privilege Modes | COMPLETE | 8/8 | - | - |
+| phase-36 RISC-V Virtual Memory & Devices | COMPLETE | 6/6 | - | - |
+| phase-37 Guest OS Boot (Native RISC-V) | COMPLETE | 3/3 | - | - |
 | phase-38 RISC-V M/A/C Extensions | COMPLETE | 3/3 | - | - |
-| phase-39 Build Linux for RV32IMAC | COMPLETE | 3/3 | - | - |
-| phase-40 Boot Linux in Geometry OS | COMPLETE | 2/2 | - | - |
-| phase-41 Tracing and Instrumentation | COMPLETE | 4/4 | - | - |
-| phase-42 Geometry OS Process Manager | COMPLETE | 3/3 | - | - |
-| phase-43 Geometry OS VFS and Disk | COMPLETE | 2/2 | - | - |
-| phase-44 Geometry OS Memory Management | COMPLETE | 3/3 | - | - |
-| phase-45 RAM-Mapped Canvas Buffer | COMPLETE | 5/5 | 370 | 10 |
+| phase-39 Build Linux for RV32IMAC | COMPLETE | 2/2 | - | - |
+| phase-40 Boot Linux in Geometry OS | COMPLETE | 4/4 | - | - |
+| phase-41 Tracing and Instrumentation | COMPLETE | 3/3 | - | - |
+| phase-42 Geometry OS Process Manager | COMPLETE | 2/2 | - | - |
+| phase-43 Geometry OS VFS and Disk | COMPLETE | 3/3 | - | - |
+| phase-44 Geometry OS Memory Management | COMPLETE | 5/5 | - | - |
+| phase-45 RAM-Mapped Canvas Buffer | COMPLETE | 3/3 | 370 | 10 |
 | phase-46 RAM-Mapped Screen Buffer | COMPLETE | 3/3 | 220 | 8 |
-| phase-47 Self-Assembly Opcode (ASMSELF) | COMPLETE | 3/3 | 340 | 8 |
+| phase-47 Self-Assembly Opcode (ASMSELF) | COMPLETE | 2/2 | 340 | 8 |
 | phase-48 Self-Execution Opcode (RUNNEXT) | COMPLETE | 2/2 | 140 | 5 |
-| phase-49 Self-Modifying Programs: Demos and Patterns | COMPLETE | 2/2 | 400 | - |
-| phase-50 Reactive Canvas: Live Cell Formulas | COMPLETE | 3/3 | 800 | 10 |
-| phase-51 TCP Networking | COMPLETE | 6/6 | 563 | 12 |
-| phase-52 Episodic Memory | COMPLETE | 3/3 | 689 | 12 |
-| phase-53 Trace Query Opcodes | COMPLETE | 4/4 | 50 | 10 |
-| phase-54 Pixel Write History | COMPLETE | 6/6 | 200 | 13 |
-| phase-55 Mouse & GUI Hit Testing | COMPLETE | 4/4 | 120 | 2 |
-| phase-56 Musical Note Opcode | COMPLETE | 2/2 | 30 | 1 |
+| phase-49 'Self-Modifying Programs: Demos and Patterns' | COMPLETE | 3/3 | 400 | 0 |
+| phase-50 'Reactive Canvas: Live Cell Formulas' | COMPLETE | 6/6 | 800 | 10 |
+| phase-51 TCP Networking | COMPLETE | 3/3 | 563 | 12 |
+| phase-52 Episodic Memory | COMPLETE | 4/4 | 689 | 12 |
+| phase-53 Trace Query Opcodes | COMPLETE | 6/6 | 50 | 10 |
+| phase-54 Pixel Write History | COMPLETE | 4/4 | 200 | 13 |
+| phase-55 Mouse & GUI Hit Testing | COMPLETE | 2/2 | 120 | 2 |
+| phase-56 Musical Note Opcode | COMPLETE | 4/4 | 30 | 1 |
 | phase-57 Mouse Query Opcode | COMPLETE | 4/4 | 80 | 16 |
 | phase-58 Terminal v4 — Scroll + Shell Commands | COMPLETE | 4/4 | 620 | 13 |
-| phase-59 File Browser App + Bug Fixes | COMPLETE | 4/4 | 619 | - |
-| phase-60 STRCMP Opcode | COMPLETE | 1/1 | 50 | 13 |
+| phase-59 File Browser App + Bug Fixes | COMPLETE | 1/1 | 619 | 0 |
+| phase-60 STRCMP Opcode | COMPLETE | 2/2 | 50 | 13 |
 | phase-61 GUI Calculator App + Token-Pixel-GUI Doc | COMPLETE | 2/2 | 1,200 | 1 |
-| phase-62 Notepad Bug Fixes + Clock App | COMPLETE | 2/2 | 1,485 | 6 |
-| phase-63 ABS + RECT Opcodes + Color Picker App | COMPLETE | 7/7 | 800 | 10 |
-| phase-64 MIN/MAX + CLAMP Opcodes + Screensaver Demo | COMPLETE | 6/6 | 900 | 12 |
-| phase-65 DRAWTEXT (colored text) Opcode + Improved Terminal | COMPLETE | 4/4 | 1,000 | 10 |
-| phase-66 BITSET/BITCLR/BITTEST Opcodes + Game of Life Enhanced | COMPLETE | 6/6 | 700 | 15 |
+| phase-62 Notepad Bug Fixes + Clock App | COMPLETE | 7/7 | 1,485 | 6 |
+| phase-63 ABS + RECT Opcodes + Color Picker App | COMPLETE | 6/6 | 800 | 10 |
+| phase-64 MIN/MAX + CLAMP Opcodes + Screensaver Demo | COMPLETE | 4/4 | 900 | 12 |
+| phase-65 DRAWTEXT (colored text) Opcode + Improved Terminal | COMPLETE | 6/6 | 1,000 | 10 |
+| phase-66 BITSET/BITCLR/BITTEST Opcodes + Game of Life Enhanced | COMPLETE | 5/5 | 700 | 15 |
 | phase-67 NOT opcode + INV (invert) Screen Opcode + Invert Demo | COMPLETE | 5/5 | 500 | 8 |
-| phase-68 WINSYS Opcode | COMPLETE | 5/5 | 500 | 10 |
-| phase-68b Window Mouse Interaction + Desktop Demo | COMPLETE | 3/3 | 700 | 12 |
-| phase-69 Sprite Engine | COMPLETE | 7/7 | 800 | 12 |
-| phase-70 Self-Hosting Pixel Assembler | COMPLETE | 4/4 | 1,500 | 8 |
-| phase-71 Pixel Network Protocol | COMPLETE | 6/6 | 900 | 10 |
-| phase-72 Desktop Taskbar + App Launcher | COMPLETE | 3/3 | 800 | 8 |
-| phase-73 Core Utilities | COMPLETE | 5/5 | 1,000 | 10 |
+| phase-68 WINSYS Opcode | COMPLETE | 3/3 | 500 | 10 |
+| phase-68b Window Mouse Interaction + Desktop Demo | COMPLETE | 7/7 | 700 | 12 |
+| phase-69 Sprite Engine | COMPLETE | 4/4 | 800 | 12 |
+| phase-70 Self-Hosting Pixel Assembler | COMPLETE | 6/6 | 1,500 | 8 |
+| phase-71 Pixel Network Protocol | COMPLETE | 3/3 | 900 | 10 |
+| phase-72 Desktop Taskbar + App Launcher | COMPLETE | 5/5 | 800 | 8 |
+| phase-73 Core Utilities | COMPLETE | 4/4 | 1,000 | 10 |
 | phase-74 Image Viewer + Screenshot | COMPLETE | 4/4 | 600 | 8 |
 | phase-75 Stopwatch + Timer + Calculator (scientific) | COMPLETE | 4/4 | 1,200 | 10 |
 | phase-76 Debugger UI + Memory Inspector | COMPLETE | 4/4 | 1,500 | 10 |
 | phase-77 Settings + Wallpaper + Screensaver | COMPLETE | 4/4 | 1,000 | 11 |
-| phase-78 Calendar + About + Help System | COMPLETE | 4/4 | 800 | 8 |
+| phase-78 Calendar + About + Help System | COMPLETE | 5/5 | 800 | 8 |
 | phase-79 Neural Network Forward Pass (Pixel Neural Net) | COMPLETE | 5/5 | 1,500 | 10 |
-| phase-80 LLM Bridge Opcode (External AI) | COMPLETE | 5/5 | 1,200 | 8 |
-| phase-81 HTTP Client + Text Browser | COMPLETE | 4/4 | 1,500 | 10 |
-| phase-82 HTML Renderer + Interactive Browser | COMPLETE | 5/5 | 2,000 | 12 |
+| phase-80 LLM Bridge Opcode (External AI) | COMPLETE | 4/4 | 1,200 | 8 |
+| phase-81 HTTP Client + Text Browser | COMPLETE | 5/5 | 1,500 | 10 |
+| phase-82 HTML Renderer + Interactive Browser | COMPLETE | 7/7 | 2,000 | 12 |
 | phase-83 Infinite Map Desktop -- Camera + Player Avatar | COMPLETE | 7/7 | 1,000 | 12 |
-| phase-84 Infinite Map Desktop -- App Buildings + Entry Points | COMPLETE | 7/7 | 1,200 | 14 |
+| phase-84 Infinite Map Desktop -- App Buildings + Entry Points | COMPLETE | 6/6 | 1,200 | 14 |
 | phase-85 Infinite Map Desktop -- Full Desktop Integration | COMPLETE | 6/6 | 1,200 | 12 |
-| phase-86 Hypervisor Building -- Run Linux on the Map | COMPLETE | 6/6 | 900 | 10 |
-| phase-87 Multi-Hypervisor -- Multiple OS Instances on the Map | COMPLETE | 4/4 | 1,200 | 10 |
-| phase-88 AI Vision Bridge -- Screenshot + Canvas Analysis | COMPLETE | 7/7 | 800 | 10 |
-| phase-89 AI Agent Input -- Programmatic Keyboard + Mouse Injection | COMPLETE | 6/6 | 700 | 12 |
+| phase-86 Hypervisor Building -- Run Linux on the Map | COMPLETE | 4/4 | 900 | 10 |
+| phase-87 Multi-Hypervisor -- Multiple OS Instances on the Map | COMPLETE | 7/7 | 1,200 | 10 |
+| phase-88 AI Vision Bridge -- Screenshot + Canvas Analysis | COMPLETE | 6/6 | 800 | 10 |
+| phase-89 AI Agent Input -- Programmatic Keyboard + Mouse Injection | COMPLETE | 7/7 | 700 | 12 |
 | phase-90 AI Native Desktop -- Agents on the Map | COMPLETE | 7/7 | - | 14 |
-| phase-91 GlyphLang Frontend -- High-Level Language for the Pixel VM | COMPLETE | 7/7 | 2,000 | 12 |
+| phase-91 GlyphLang Frontend -- High-Level Language for the Pixel VM | COMPLETE | 4/4 | 2,000 | 12 |
 | phase-92 Pixel Boot - Bytecode from PNG | COMPLETE | 4/4 | 400 | 5 |
-| phase-93 Pixel Boot - Source from PNG (Self-Documenting Pixel Programs) | COMPLETE | 4/4 | 500 | 5 |
-| phase-94 Pixel Boot - Universal Pixel Executable | COMPLETE | 5/5 | 800 | 8 |
-| phase-95 Window Manager | COMPLETE | 4/4 | 600 | 4 |
+| phase-93 Pixel Boot - Source from PNG (Self-Documenting Pixel Programs) | COMPLETE | 5/5 | 500 | 5 |
+| phase-94 Pixel Boot - Universal Pixel Executable | COMPLETE | 4/4 | 800 | 8 |
+| phase-95 Window Manager | COMPLETE | 3/3 | 600 | 4 |
 | phase-96 System Clipboard | COMPLETE | 3/3 | 200 | 8 |
-| phase-97 Init System - Service Manager | COMPLETE | 3/3 | 500 | 5 |
+| phase-97 Init System - Service Manager | COMPLETE | 4/4 | 500 | 5 |
 | phase-98 Custom Bitmap Fonts | COMPLETE | 4/4 | 400 | 3 |
 | phase-99 Sound Mixer Daemon | COMPLETE | 4/4 | 500 | 3 |
-| phase-100 Shared Libraries and Dynamic Linking | COMPLETE | 4/4 | 600 | 3 |
-| phase-101 Cron Daemon - Scheduled Execution | COMPLETE | 3/3 | 400 | 4 |
-| phase-102 Permissions and Capability System | COMPLETE | 4/4 | 600 | 16 |
-| phase-103 Terminal Multiplexer | COMPLETE | 3/3 | 600 | 2 |
+| phase-100 Shared Libraries and Dynamic Linking | COMPLETE | 3/3 | 600 | 3 |
+| phase-101 Cron Daemon - Scheduled Execution | COMPLETE | 4/4 | 400 | 4 |
+| phase-102 Permissions and Capability System | COMPLETE | 3/3 | 600 | 16 |
+| phase-103 Terminal Multiplexer | COMPLETE | 5/5 | 600 | 2 |
 | phase-104 Dynamic Territory Competition and Digital Red Queen | COMPLETE | 5/5 | 1,200 | 8 |
-| phase-106 AI Desktop Control and Guided Demo | COMPLETE | 5/5 | 930 | 10 |
-| phase-107 Infinite Spatial Desktop | COMPLETE | 6/6 | 1,220 | 12 |
+| phase-106 AI Desktop Control and Guided Demo | COMPLETE | 6/6 | 930 | 10 |
+| phase-107 Infinite Spatial Desktop | COMPLETE | 3/3 | 1,220 | 12 |
 | phase-108 Sandboxed AI Execution | COMPLETE | 3/3 | 180 | 8 |
-| phase-109 Opcode Focus Filter | COMPLETE | 3/3 | 110 | 7 |
-| phase-110 Self-Analysis Program | COMPLETE | 4/4 | 200 | 4 |
-| phase-111 Enhanced Glyph Backend | COMPLETE | 2/2 | 362 | 4 |
-| phase-112 Tetris in GlyphLang | COMPLETE | 3/3 | 150 | 2 |
-| phase-113 BC4 Hardware Compression Thesis | COMPLETE | 2/2 | 265 | 2 |
-| phase-114 Project Hygiene and README Accuracy | COMPLETE | 1/1 | 60 | - |
-| phase-119 VFS Pixel Surface -- Pixels Move Pixels | COMPLETE | 4/4 | 70,000 | 2026 |
-| phase-125 Shell VFS Integration | COMPLETE | 2/2 | 72,300 | 2062 |
+| phase-109 Opcode Focus Filter | COMPLETE | 4/4 | 110 | 7 |
+| phase-110 Self-Analysis Program | COMPLETE | 2/2 | 200 | 4 |
+| phase-111 Enhanced Glyph Backend | COMPLETE | 3/3 | 362 | 4 |
+| phase-112 Tetris in GlyphLang | COMPLETE | 2/2 | 150 | 2 |
+| phase-113 BC4 Hardware Compression Thesis | COMPLETE | 1/1 | 265 | 2 |
+| phase-114 Project Hygiene and README Accuracy | COMPLETE | 1/1 | 60 | 0 |
 | phase-115 Self-Modification Showcase Demos | COMPLETE | 1/1 | 450 | 6 |
 | phase-116 Living Map Entities | COMPLETE | 1/1 | 500 | 8 |
 | phase-117 Performance Benchmarking and Profiling | COMPLETE | 1/1 | 300 | 4 |
-| phase-118 Showtime -- First Run Experience | COMPLETE | 1/1 | 400 | 5 |
-| phase-120 VFS File Manager Desktop App | COMPLETE | 2/2 | 70400 | 2036 |
-| phase-121 Area Agent System | COMPLETE | 2/2 | 71000 | 2046 |
-| phase-122 RISC-V Guest Write Path | COMPLETE | 2/2 | 71300 | 2048 |
-| phase-123 Alpine Linux Live Tile | COMPLETE | 2/2 | 71650 | 2051 |
-| phase-124 Window Pipeline Improvements | COMPLETE | 2/2 | 71900 | 2056 |
-| phase-126 Host Terminal -- PTY Read/Write Fix | COMPLETE | 3/3 | 72830 | 2076 |
-| phase-127 Host Terminal -- ANSI Rendering and Visual Polish | COMPLETE | 3/3 | 72830 | 2076 |
-| phase-128 Host Terminal -- Multi-Session and Shell Selection | COMPLETE | 3/3 | ~310 | 4 |
-| phase-129 Host Terminal -- Keyboard Shortcuts and Productivity | COMPLETE | 3/3 | ~260 | 5 |
-| phase-130 Host Terminal -- Test Suite and Desktop Integration | COMPLETE | 4/4 | ~260 | 8 |
-| phase-131 Host Terminal -- PTY Resize and Column Sync | COMPLETE | 3/3 | ~140 | 8 |
-| phase-132 Host Terminal -- ANSI Color Rendering | COMPLETE | 3/3 | ~300 | 9 |
-| phase-133 Host Terminal -- Wider Display and Horizontal Scroll | COMPLETE | 2/2 | ~240 | 9 |
-| phase-134 Host Terminal -- Extended Character Support | COMPLETE | 3/3 | ~260 | 8 |
-| phase-135 Host Terminal -- Test Failure Fixes | COMPLETE | 1/1 | - | - |
-| phase-136 Daily Driver -- Fix Test Regressions and Build Green | COMPLETE | 3/3 | ~170 | 10 |
-| phase-137 Daily Driver -- Host Filesystem Bridge | COMPLETE | 4/4 | 352 | 10 |
-| phase-138 Daily Driver -- Fullscreen Desktop as Display Manager | COMPLETE | 3/3 | ~240 | 5 |
-| phase-139 Daily Driver -- Text Editor App | COMPLETE | 2/2 | ~320 | 5 |
-| phase-140 Daily Driver -- Process Monitor and System Dashboard | COMPLETE | 2/2 | ~200 | 5 |
+| phase-118 Showtime -- First Run Experience | COMPLETE | 4/4 | 400 | 5 |
+| phase-119 VFS Pixel Surface -- Pixels Move Pixels | COMPLETE | 2/2 | 70,000 | 2026 |
+| phase-120 VFS File Manager Desktop App | COMPLETE | 2/2 | 70,400 | 2036 |
+| phase-121 Area Agent System | COMPLETE | 2/2 | 71,000 | 2046 |
+| phase-122 RISC-V Guest Write Path | COMPLETE | 2/2 | 71,300 | 2048 |
+| phase-123 Alpine Linux Live Tile | COMPLETE | 2/2 | 71,650 | 2051 |
+| phase-124 Window Pipeline Improvements | COMPLETE | 2/2 | 71,900 | 2056 |
+| phase-125 Shell VFS Integration | COMPLETE | 3/3 | 72,300 | 2062 |
+| phase-126 Host Terminal -- PTY Read/Write Fix | COMPLETE | 3/3 | 72,600 | 2070 |
+| phase-127 Host Terminal -- ANSI Rendering and Visual Polish | COMPLETE | 3/3 | 72,830 | 2076 |
+| phase-128 Host Terminal -- Multi-Session and Shell Selection | COMPLETE | 3/3 | 73,140 | 2080 |
+| phase-129 Host Terminal -- Keyboard Shortcuts and Productivity | COMPLETE | 4/4 | 73,400 | 2085 |
+| phase-130 Host Terminal -- Test Suite and Desktop Integration | COMPLETE | - | 73,660 | 2095 |
+| phase-131 Host Terminal -- PTY Resize and Column Sync | COMPLETE | 3/3 | 73,800 | 2100 |
+| phase-132 Host Terminal -- ANSI Color Rendering | COMPLETE | 3/3 | 74,100 | 2108 |
+| phase-133 Host Terminal -- Wider Display and Horizontal Scroll | COMPLETE | 2/2 | 74,340 | 2114 |
+| phase-134 Host Terminal -- Extended Character Support | COMPLETE | 3/3 | 74,560 | 2120 |
+| phase-135 Host Terminal -- Test Failure Fixes (3 issues) | COMPLETE | 1/1 | 74,650 | 0 |
+| phase-136 Daily Driver -- Fix Test Regressions and Build Green | COMPLETE | 3/3 | 74,700 | 465 |
+| phase-137 Daily Driver -- Host Filesystem Bridge | COMPLETE | 4/4 | 74,980 | 475 |
+| phase-138 Daily Driver -- Fullscreen Desktop as Display Manager | COMPLETE | 3/3 | 75,220 | 480 |
+| phase-139 Daily Driver -- Text Editor App | COMPLETE | 2/2 | 75,540 | 485 |
+| phase-140 Daily Driver -- Process Monitor and System Dashboard | COMPLETE | 2/2 | 75,740 | 490 |
+| phase-141 Network Packet Viewer | COMPLETE | 1/1 | 75,890 | 495 |
+| phase-142 Sprite Sheet Editor | SUPERSEDED | 0/1 | 76,090 | 500 |
+| phase-143 Sound Synthesizer | SUPERSEDED | 0/1 | 76,270 | 505 |
+| phase-144 Memory Hex Editor | SUPERSEDED | 0/1 | 76,470 | 510 |
+| phase-145 File Manager App | SUPERSEDED | 0/1 | 76,620 | 515 |
+| phase-146 Performance Benchmark Suite | DEFERRED | 0/1 | 76,800 | 520 |
+| phase-147 Paint Application | SUPERSEDED | 0/1 | 77,050 | 525 |
+| phase-148 Chat Bot Terminal | SUPERSEDED | 0/1 | 77,250 | 530 |
+| phase-149 RISC-V Assembly Viewer | DEFERRED | 0/1 | 77,430 | 535 |
+| phase-150 Screen Recorder | SUPERSEDED | 0/1 | 77,630 | 540 |
+| phase-151 Thread Pool Manager | SUPERSEDED | 0/1 | 77,830 | 545 |
+| phase-152 QR Code Generator | SUPERSEDED | 0/1 | 78,130 | 550 |
+| phase-153 Desktop Polish and Integration Testing | COMPLETE | 2/2 | 78,630 | 10 |
+| phase-153b Host Terminal Hardening -- Performance and ANSI Foundation | COMPLETE | 5/5 | 79,000 | 8 |
+| phase-154 Terminal Daily Driver -- Direct Boot to Terminal | COMPLETE | 2/2 | 76,200 | 5 |
+| phase-155 Terminal Daily Driver -- Terminal Multiplexer (tmux-like tabs) | COMPLETE | 1/1 | 76,500 | 8 |
+| phase-156 Terminal Daily Driver -- Scrollback Buffer | COMPLETE | 1/1 | 76,700 | 5 |
+| phase-157 Terminal Daily Driver -- Copy and Paste | COMPLETE | 1/1 | 76,900 | 5 |
+| phase-158 Terminal Daily Driver -- Quick Launch Bar | COMPLETE | 1/1 | 77,100 | 5 |
+| phase-159 Terminal Daily Driver -- Fullscreen Scaling and Font Sizes | COMPLETE | 1/1 | 77,300 | 5 |
+| phase-160 Native RISC-V Linux Boot to Userspace | RESEARCH | 2/5 | 540 | 1570 |
+| phase-161 Fix CLINT MTIP Regression in sync_mip (3 Failing Tests) | COMPLETE | 2/2 | 70 | 1574 |
+| phase-162 Terminal Polish -- Scrollback and Visual Refinements | COMPLETE | 2/2 | 570 | 10 |
+| phase-163 Status Bar Clock -- Local Timezone Fix | COMPLETE | 1/1 | 30 | 1 |
+| phase-164 Fix Windowed Apps Halting Immediately After Launch | COMPLETE | 1/1 | 240 | 3 |
+| phase-165 Fix geo_mcp_server Zombie Instance Accumulation | COMPLETE | 1/1 | 80 | 1 |
+| phase-166 Fix Terminal Input Not Working in Desktop Mode | COMPLETE | 1/1 | 140 | 2 |
+| phase-167 Fix Building-to-Program Filename Mismatch for linux and host | COMPLETE | 1/1 | 80 | 1 |
+| phase-168 Fix Stale cargo test Process Consuming CPU and Memory | COMPLETE | 1/1 | 100 | 1 |
+| phase-169 Fix Windowed Apps Crashing Due to Wrong Assembly Base Address | COMPLETE | 1/1 | 100 | 3 |
+| phase-170 Fix Windowed Apps Crashing After Phase-169 Base Address Fix | COMPLETE | 1/1 | 210 | 4 |
+| phase-171 Fix Window Title RAM Not Zeroed on First Windowed Launch | COMPLETE | 1/1 | 40 | 2 |
+| phase-172 'Fix riscv_tests Compilation: StepResult::Shutdown Not Covered' | COMPLETE | 1/1 | 20 | 2 |
+| phase-173 'Fix 3 Failing Lib Tests: SBI, Pause/Resume, Surface Direct Read' | COMPLETE | 3/3 | 65 | 3 |
+| phase-174 'Fix geo_dogfood_qa.py Timeout: Script Exceeds 120s Cron Limit' | COMPLETE | 1/1 | 15 | 1 |
+| phase-176 Terminal-First Boot and Self-Hosting Evolution Pipeline | COMPLETE | 5/5 | 84,446 | 18 |
+| phase-177 Fix geo_dogfood_qa.py Script (Actually This Time) | COMPLETE | 1/1 | 10 | 1 |
+| phase-180 GPU-Native Glyph Lexer | COMPLETE | 1/1 | - | - |
+| phase-181 Spatial Instruction Patching | COMPLETE | 1/1 | - | - |
+| phase-182 Autonomous Spatial Dispatcher | PLANNED | 0/1 | 10 | 1 |
+| phase-183 ANSI Parser -- Erase Operations and Cursor Visibility | PLANNED | 0/3 | 84,585 | 12 |
+| phase-184 ANSI Parser -- Bracketed Paste and Comprehensive Stress Test | PLANNED | 0/3 | 84,710 | 8 |
+| phase-185 ANSI Parser -- Scroll Region (CSI r) and Origin Mode | PLANNED | 0/2 | 84,860 | 6 |
+| phase-186 ANSI Parser -- Tab Stops and Horizontal Scrolling | PLANNED | 0/2 | 84,945 | 5 |
+| phase-187 Replace save.rs unwrap() with Proper Error Handling | PLANNED | 0/2 | 85,065 | 4 |
+| phase-188 Replace glyph_backend.rs unwrap() with Error Propagation | PLANNED | 0/1 | 85,170 | 2 |
+| phase-189 VFS Capability Enforcement on Process Creation | PLANNED | 0/2 | 85,295 | 4 |
+| phase-190 Sync qemu/ansi.rs Feature Parity with host_term.asm | PLANNED | 0/2 | 85,425 | 8 |
+| phase-191 Roguelike Game Polish -- Save/Load and Win Condition | PLANNED | 0/2 | 85,560 | 3 |
+| phase-192 Shell.asm Built-in Commands Expansion | PLANNED | 0/3 | 85,710 | 5 |
+| phase-193 Nano Editor -- Search and Replace | PLANNED | 0/2 | 85,840 | 3 |
+| phase-194 Host Terminal Performance -- Dirty Rectangle Rendering | PLANNED | 0/1 | 85,900 | 2 |
+| phase-195 File Browser -- Directory Navigation and File Operations | PLANNED | 0/1 | 85,965 | 2 |
+| phase-196 AI Terminal -- Session History and Context Window | PLANNED | 0/2 | 86,025 | 2 |
+| phase-197 Replace mmu.rs unwrap() Calls with Proper Error Paths | PLANNED | 0/1 | 86,110 | 2 |
+| phase-198 Desktop Terminal Integration -- Launch Hermes from GeOS | PLANNED | 0/1 | 86,180 | 3 |
+| phase-199 Code Evolution Program -- Fitness Function Improvements | PLANNED | 0/1 | - | 2 |
+| phase-200 Vision Benchmark v2 -- Executable Scenarios | PLANNED | 0/1 | - | 3 |
+| phase-201 Hilbert RAM Mirror Opcode (HMIRROR) | PLANNED | 0/1 | - | 4 |
+| phase-202 Fix Preflight Script TimeoutExpired Crash (phase-168 regression) | PLANNED | 0/1 | 86,365 | 0 |
+| phase-203 Fix WVIEWPORT Dead Code (unreachable match arm after wildcard) | PLANNED | 0/1 | 86,370 | 1 |
+| phase-204 Fix Stale test_user_mode_ikey_halts Test (behavior intentionally changed) | PLANNED | 0/1 | 86,400 | 1 |
+
 
 ## Dependencies
 

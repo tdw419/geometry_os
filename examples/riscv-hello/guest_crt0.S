@@ -1,8 +1,11 @@
     .section .text.entry
     .globl _start
 _start:
-    /* Set up stack pointer before anything else */
-    li      sp, 0x80100000
+    /* Set up stack pointer from STACK_TOP symbol (set via --defsym in linker) */
+    .option push
+    .option norelax
+    la      sp, STACK_TOP
+    .option pop
     /* Clear BSS */
     la      t0, __bss_start
     la      t1, __bss_end

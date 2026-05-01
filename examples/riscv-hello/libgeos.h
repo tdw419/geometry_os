@@ -114,15 +114,26 @@ static inline void geos_release_region(void) {
 }
 
 /*
- * Cooperative yield. SBI ecall into the GEOMETRY extension (function 1).
+ * Cooperative yield. SBI ecall into the GEOMETRY extension (function 0).
  * Returns control to the Layer 2 kernel scheduler.
  * When the kernel resumes this program, geos_yield() returns 0.
  */
 static inline long geos_yield(void) {
     register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
-    register long a6 __asm__("a6") = 1;            /* GEO_FN_YIELD */
-    register long a0 __asm__("a0") = 0;
-    __asm__ volatile("ecall" : "+r"(a0) : "r"(a6), "r"(a7) : "memory", "a1");
+    register long a0 __asm__("a0") = 0;           /* GEO_FN_YIELD */
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7) : "memory", "a1");
+    return a0;
+}
+
+/*
+ * Check if this program has input focus.
+ * SBI ecall into the GEOMETRY extension (function 1).
+ * Returns 1 if this program has focus, 0 if not.
+ */
+static inline long geos_has_focus(void) {
+    register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
+    register long a0 __asm__("a0") = 2;           /* GEO_FN_GET_FOCUS */
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7) : "memory", "a1");
     return a0;
 }
 

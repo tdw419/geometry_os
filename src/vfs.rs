@@ -564,7 +564,7 @@ impl Vfs {
     /// `name_addr` is RAM address of null-terminated filename.
     /// Returns 0 on success, FD_ERROR on error.
     pub fn funlink(&mut self, ram: &[u32], name_addr: u32, _pid: u32) -> u32 {
-        // TODO: Phase 102 capability check once capabilities are on Process, not FdTable
+        // Capability checks are done at the call site (mod.rs UNLINK handler).
         let name = match Self::read_string(ram, name_addr as usize) {
             Some(s) => s,
             None => return FD_ERROR,
@@ -584,7 +584,7 @@ impl Vfs {
     /// `src_addr` and `dst_addr` are RAM addresses of null-terminated filenames.
     /// Returns 0 on success, FD_ERROR on error.
     pub fn fcopy(&mut self, ram: &[u32], src_addr: u32, dst_addr: u32, _pid: u32) -> u32 {
-        // TODO: Phase 102 capability check once capabilities are on Process, not FdTable
+        // Capability checks are done at the call site (mod.rs FCOPY handler).
         let src_name = match Self::read_string(ram, src_addr as usize) {
             Some(s) => s,
             None => return FD_ERROR,

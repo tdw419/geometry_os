@@ -8,8 +8,8 @@ fn main() {
         .nth(1)
         .unwrap_or_else(|| "examples/riscv-hello/geos_kern.elf".into());
     let elf = fs::read(&elf_path).expect("read elf");
-    let mut vm = RiscvVm::new(1024 * 1024);
-    let r = vm.boot_guest(&elf, 1, 100_000_000).expect("boot");
+    let mut vm = RiscvVm::new(2 * 1024 * 1024);
+    let r = vm.boot_guest(&elf, 2, 100_000_000).expect("boot");
     eprintln!(
         "[kern_verify] entry=0x{:08X} ran {} instructions",
         r.entry, r.instructions

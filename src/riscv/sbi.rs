@@ -58,9 +58,11 @@ const SBI_DBCN_CONSOLE_WRITE_BYTE: u32 = 2;
 
 // Geometry OS-specific SBI extension. EID is ASCII "GEO\0".
 // Function 0: GEO_VFS_READ (DEPRECATED -- use Pixel VFS Surface at 0x7000_0000)
+// Function 1: GEO_YIELD -- cooperative yield to Layer 2 scheduler
 // Pixel access is via the MMIO framebuffer at 0x6000_0000 (256x256 RGBA).
 const SBI_EXT_GEOMETRY: u32 = 0x47454F00; // "GEO\0"
 const GEO_FN_VFS_READ: u32 = 0;
+const GEO_FN_YIELD: u32 = 1;
 
 /// Pending GEO_VFS_READ request: set by handle_ecall, fulfilled by the caller
 /// which has access to guest memory. The caller reads the filename bytes from
@@ -340,6 +342,12 @@ impl Sbi {
                          Use Pixel VFS Surface at 0x7000_0000 instead."
                     );
                     Some((SBI_ERR_NOT_SUPPORTED as u32, 0))
+                }
+                GEO_FN_YIELD => {
+                    // Cooperative yield to Layer 2 scheduler.
+                    // When no kernel is running, return success immediately.
+                    // When a kernel is present, it will handle the context switch.
+                    Some((SBI_SUCCESS as u32, 0))
                 }
                 _ => Some((SBI_ERR_NOT_SUPPORTED as u32, 0)),
             },

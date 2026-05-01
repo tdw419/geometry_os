@@ -9,12 +9,13 @@
 ;   Printable ASCII (32-126)    -- Insert character
 ;   Enter (10)                  -- Insert newline
 ;   Backspace (8)               -- Delete char before cursor
-;   Ctrl+S (19)                 -- Save file
+;   Ctrl+O (15)                 -- Save file
+;   Ctrl+S (19)                 -- Incremental search
+;   Ctrl+R (18)                 -- Search and replace
 ;   Ctrl+Q (17)                 -- Quit editor
-;   Ctrl+F (6)                  -- Search forward
-;   F3 (next match in search)   -- Find next
+;   Ctrl+F (6)                  -- Find next match
 ;   Ctrl+G (7)                  -- Goto line number
-;   Escape (27)                 -- Cancel prompt
+;   Escape (27)                 -- Cancel prompt/clear match
 ;
 ; Screen: 256x256, DRAWTEXT 8x8 font
 ;   Title bar: y=0..11 (filename, status)
@@ -34,11 +35,15 @@
 ;   0x7420-0x744F  Filename (null-terminated, max 48 chars)
 ;   0x7460-0x748A  Scratch buffer (43 cells for one line + null)
 ;   0x7490-0x74BF  Search string buffer (48 chars)
-;   0x74C0         Prompt mode (0=none, 1=search, 2=goto)
+;   0x74C0         Prompt mode (0=none, 1=search, 2=goto, 3=inc_search, 4=replace)
 ;   0x74C1         Search string length
 ;   0x74C2         Search match line (-1 if none)
 ;   0x74C3         Search match col
 ;   0x74C4         Goto number accumulator
+;   0x74C5-0x74F4  Replace string buffer (48 chars)
+;   0x74F5         Replace string length
+;   0x74F6         Replace sub-mode (0=search_input, 1=replace_input, 2=confirm)
+;   0x74F7         Replace match count (for "replace all")
 
 ; === Constants ===
 #define COLS     42
@@ -57,6 +62,7 @@
 #define C_SEL    0x335577
 #define C_MATCH  0x664400
 #define C_PROMPT 0x333355
+#define C_REPL   0x553333    ; replace highlight color
 
 ; RAM addresses
 #define LS       0x5000
@@ -78,6 +84,10 @@
 #define R_SML    0x74C2
 #define R_SMC    0x74C3
 #define R_GNUM   0x74C4
+#define R_REPL   0x74C5      ; replace string buffer
+#define R_RLEN   0x74F5      ; replace string length
+#define R_RSM    0x74F6      ; replace sub-mode (0=search, 1=replace, 2=confirm)
+#define R_RCNT   0x74F7      ; replace match count
 
 ; Multi-buffer state
 #define R_BACT   0xB500    ; active buffer index (0 or 1)
@@ -400,12 +410,22 @@ handle_input:
     CMP r11, r12
     JZ r0, hi_quit
 
-    ; Ctrl+S (19)?
-    LDI r12, 19
+    ; Ctrl+O (15)? -- Save file
+    LDI r12, 15
     CMP r11, r12
     JZ r0, hi_save
 
-    ; Ctrl+F (6)?
+    ; Ctrl+R (18)? -- Replace
+    LDI r12, 18
+    CMP r11, r12
+    JZ r0, hi_replace
+
+    ; Ctrl+S (19)? -- Incremental search
+    LDI r12, 19
+    CMP r11, r12
+    JZ r0, hi_incsearch
+
+    ; Ctrl+F (6)? -- Find next match
     LDI r12, 6
     CMP r11, r12
     JZ r0, hi_search
@@ -478,6 +498,12 @@ hi_enter:
 hi_search:
     CALL enter_search
     JMP hi_done
+hi_incsearch:
+    CALL enter_incsearch
+    JMP hi_done
+hi_replace:
+    CALL enter_replace
+    JMP hi_done
 hi_goto:
     CALL enter_goto
     JMP hi_done
@@ -532,6 +558,40 @@ hi_prompt:
     CMP r10, r12
     JZ r0, hp_add_search
 
+    ; Mode 3 (inc search) -- same as mode 1
+    LDI r12, 3
+    CMP r10, r12
+    JZ r0, hp_add_search
+
+    ; Mode 4 (replace) -- check sub-mode
+    LDI r12, 4
+    CMP r10, r12
+    JNZ r0, hp_add_goto
+
+    LDI r10, R_RSM
+    LOAD r10, r10
+    LDI r12, 1
+    CMP r10, r12
+    JNZ r0, hp_add_search
+
+    ; Replace sub-mode 1 -- add to replace string
+    LDI r1, 1
+    LDI r10, R_RLEN
+    LOAD r10, r10
+    LDI r12, 40
+    CMP r10, r12
+    BGE r0, hi_done
+
+    LDI r12, R_REPL
+    ADD r12, r10
+    STORE r12, r5
+    ADD r10, r1
+    LDI r12, R_RLEN
+    STORE r12, r10
+    JMP hi_done
+
+hp_add_goto:
+
     ; Goto mode -- accumulate digit
     LDI r11, 48                ; '0'
     SUB r5, r11                ; digit value (assumes 0-9 input)
@@ -553,7 +613,7 @@ hi_prompt:
     JMP hi_done
 
 hp_add_search:
-    ; Add char to search string
+    ; Add char to search string (modes 1, 3, and 4-sub0 share this)
     LDI r1, 1                  ; increment constant
     LDI r10, R_SLEN
     LOAD r10, r10
@@ -567,16 +627,82 @@ hp_add_search:
     ADD r10, r1
     LDI r12, R_SLEN
     STORE r12, r10             ; slen++
+
+    ; Incremental search -- auto-search on each keystroke
+    LDI r12, R_PM
+    LOAD r12, r12
+    LDI r13, 3
+    CMP r12, r13
+    JZ r0, hp_auto_search
+
+    ; Replace mode sub 0 -- also auto-search
+    LDI r13, 4
+    CMP r12, r13
+    JNZ r0, hi_done
+
+    ; Check replace sub-mode
+    LDI r12, R_RSM
+    LOAD r12, r12
+    LDI r13, 0
+    CMP r12, r13
+    JNZ r0, hi_done
+
+hp_auto_search:
+    CALL do_search
     JMP hi_done
 
 hp_bksp:
     LDI r10, R_PM
     LOAD r10, r10
+
+    ; Check for replace sub-mode 1 (replace input)
+    LDI r12, 4
+    CMP r10, r12
+    JNZ r0, hp_bksp_not_repl1
+    LDI r12, R_RSM
+    LOAD r12, r12
+    LDI r13, 1
+    CMP r12, r13
+    JNZ r0, hp_bksp_not_repl1
+
+    ; Replace string backspace
+    LDI r1, 1
+    LDI r10, R_RLEN
+    LOAD r10, r10
+    LDI r12, 0
+    CMP r10, r12
+    JZ r0, hi_done
+    SUB r10, r1
+    LDI r12, R_RLEN
+    STORE r12, r10
+    LDI r12, R_REPL
+    ADD r12, r10
+    LDI r13, 0
+    STORE r12, r13
+    JMP hi_done
+
+hp_bksp_not_repl1:
     LDI r12, 1
     CMP r10, r12
     JZ r0, hp_bksp_search
 
-    ; Goto backspace
+    ; Also handle inc search (mode 3) backspace same as search (mode 1)
+    LDI r12, 3
+    CMP r10, r12
+    JZ r0, hp_bksp_search
+
+    ; Replace mode sub 0 -- search input backspace
+    LDI r12, 4
+    CMP r10, r12
+    JNZ r0, hp_bksp_goto
+    LDI r12, R_RSM
+    LOAD r12, r12
+    LDI r13, 0
+    CMP r12, r13
+    JNZ r0, hp_bksp_goto
+    JMP hp_bksp_search
+
+hp_bksp_goto:
     LDI r10, R_GNUM
     LOAD r10, r10
     LDI r12, 10
@@ -607,6 +733,47 @@ hp_execute:
     LDI r12, 1
     CMP r10, r12
     JZ r0, hp_do_search
+
+    ; Mode 3 -- incremental search: exit prompt, keep highlights
+    LDI r12, 3
+    CMP r10, r12
+    JZ r0, hp_cancel
+
+    ; Mode 4 -- replace
+    LDI r12, 4
+    CMP r10, r12
+    JNZ r0, hp_do_goto
+
+    ; Handle replace sub-modes
+    LDI r10, R_RSM
+    LOAD r10, r10
+    LDI r12, 0
+    CMP r10, r12
+    JZ r0, hp_repl_to_replace
+    LDI r12, 1
+    CMP r10, r12
+    JZ r0, hp_repl_to_confirm
+    LDI r12, 2
+    CMP r10, r12
+    JNZ r0, hp_cancel
+
+    ; Confirm sub-mode -- execute replace
+    CALL do_replace
+    JMP hp_cancel
+
+hp_repl_to_replace:
+    ; Search input done -- move to replace input
+    LDI r10, R_RSM
+    LDI r11, 1
+    STORE r10, r11
+    JMP hi_done
+
+hp_repl_to_confirm:
+    ; Replace input done -- move to confirm
+    LDI r10, R_RSM
+    LDI r11, 2
+    STORE r10, r11
+    JMP hi_done
 
     ; Execute goto
     CALL do_goto
@@ -1490,6 +1657,194 @@ rh_scopy_done:
     DRAWTEXT r10, r11, r12, r13, r14
     JMP rh_ln
 
+rh_incsearch_prompt:
+    ; Incremental search prompt (mode 3)
+    LDI r10, R_SCR
+    STRO r10, "ISearch: "
+    LDI r10, 4
+    LDI r11, 242
+    LDI r12, R_SCR
+    LDI r13, C_GREEN
+    LDI r14, C_BAR
+    DRAWTEXT r10, r11, r12, r13, r14
+
+    ; Show search text (reuse rh_scopy pattern)
+    LDI r10, R_SLEN
+    LOAD r10, r10
+    LDI r11, 0
+    CMP r10, r11
+    JZ r0, rh_inc_status
+
+    LDI r10, R_SCR
+    STRO r10, "                                        "
+    LDI r15, R_SCR
+    LDI r16, 0
+
+rh_iscopy:
+    LDI r1, 1
+    LDI r17, R_SLEN
+    LOAD r17, r17
+    CMP r16, r17
+    BGE r0, rh_iscopy_done
+    LDI r17, R_SEARCH
+    ADD r17, r16
+    LOAD r17, r17
+    STORE r15, r17
+    ADD r15, r1
+    ADD r16, r1
+    JMP rh_iscopy
+
+rh_iscopy_done:
+    LDI r17, 0
+    STORE r15, r17
+    LDI r10, 52
+    LDI r11, 242
+    LDI r12, R_SCR
+    LDI r13, C_FG
+    LDI r14, C_BAR
+    DRAWTEXT r10, r11, r12, r13, r14
+
+rh_inc_status:
+    ; Show match count or "no match"
+    LDI r10, R_SML
+    LOAD r10, r10
+    LDI r11, 0
+    CMP r10, r11
+    JZ r0, rh_ln
+    LDI r11, 0xFFFFFFFF
+    CMP r10, r11
+    JNZ r0, rh_ln
+
+    ; No match found
+    LDI r10, R_SCR
+    STRO r10, " [no match]"
+    LDI r10, 150
+    LDI r11, 242
+    LDI r12, R_SCR
+    LDI r13, C_HINT
+    LDI r14, C_BAR
+    DRAWTEXT r10, r11, r12, r13, r14
+    JMP rh_ln
+
+rh_replace_prompt:
+    ; Replace prompt (mode 4) -- show different text per sub-mode
+    LDI r10, R_RSM
+    LOAD r10, r10
+    LDI r11, 0
+    CMP r10, r11
+    JZ r0, rh_repl_search
+
+    LDI r11, 1
+    CMP r10, r11
+    JZ r0, rh_repl_replace
+
+    ; Sub-mode 2: confirm
+    LDI r10, R_SCR
+    STRO r10, "Replace all? (y=yes, n=no) "
+    LDI r10, 4
+    LDI r11, 242
+    LDI r12, R_SCR
+    LDI r13, C_REPL
+    LDI r14, C_BAR
+    DRAWTEXT r10, r11, r12, r13, r14
+    JMP rh_ln
+
+rh_repl_search:
+    ; Sub-mode 0: search input
+    LDI r10, R_SCR
+    STRO r10, "Find: "
+    LDI r10, 4
+    LDI r11, 242
+    LDI r12, R_SCR
+    LDI r13, C_AMBER
+    LDI r14, C_BAR
+    DRAWTEXT r10, r11, r12, r13, r14
+
+    ; Show search text
+    LDI r10, R_SLEN
+    LOAD r10, r10
+    LDI r11, 0
+    CMP r10, r11
+    JZ r0, rh_ln
+
+    LDI r10, R_SCR
+    STRO r10, "                                        "
+    LDI r15, R_SCR
+    LDI r16, 0
+
+rh_rscopy:
+    LDI r1, 1
+    LDI r17, R_SLEN
+    LOAD r17, r17
+    CMP r16, r17
+    BGE r0, rh_rscopy_done
+    LDI r17, R_SEARCH
+    ADD r17, r16
+    LOAD r17, r17
+    STORE r15, r17
+    ADD r15, r1
+    ADD r16, r1
+    JMP rh_rscopy
+
+rh_rscopy_done:
+    LDI r17, 0
+    STORE r15, r17
+    LDI r10, 28
+    LDI r11, 242
+    LDI r12, R_SCR
+    LDI r13, C_FG
+    LDI r14, C_BAR
+    DRAWTEXT r10, r11, r12, r13, r14
+    JMP rh_ln
+
+rh_repl_replace:
+    ; Sub-mode 1: replace input
+    LDI r10, R_SCR
+    STRO r10, "Replace: "
+    LDI r10, 4
+    LDI r11, 242
+    LDI r12, R_SCR
+    LDI r13, C_REPL
+    LDI r14, C_BAR
+    DRAWTEXT r10, r11, r12, r13, r14
+
+    ; Show replace text
+    LDI r10, R_RLEN
+    LOAD r10, r10
+    LDI r11, 0
+    CMP r10, r11
+    JZ r0, rh_ln
+
+    LDI r10, R_SCR
+    STRO r10, "                                        "
+    LDI r15, R_SCR
+    LDI r16, 0
+
+rh_rrcopy:
+    LDI r1, 1
+    LDI r17, R_RLEN
+    LOAD r17, r17
+    CMP r16, r17
+    BGE r0, rh_rrcopy_done
+    LDI r17, R_REPL
+    ADD r17, r16
+    LOAD r17, r17
+    STORE r15, r17
+    ADD r15, r1
+    ADD r16, r1
+    JMP rh_rrcopy
+
+rh_rrcopy_done:
+    LDI r17, 0
+    STORE r15, r17
+    LDI r10, 52
+    LDI r11, 242
+    LDI r12, R_SCR
+    LDI r13, C_FG
+    LDI r14, C_BAR
+    DRAWTEXT r10, r11, r12, r13, r14
+    JMP rh_ln
+
 rh_goto_prompt:
     ; Goto prompt
     LDI r10, R_SCR
@@ -1629,6 +1984,52 @@ enter_search:
 es_next:
     ; Find next from current position
     CALL do_search
+    POP r31
+    RET
+
+enter_incsearch:
+    PUSH r31
+
+    ; Enter incremental search mode (prompt mode 3)
+    LDI r10, R_PM
+    LDI r11, 3
+    STORE r10, r11
+
+    ; Clear search string
+    LDI r10, R_SLEN
+    LDI r11, 0
+    STORE r10, r11
+    LDI r10, R_SEARCH
+    STORE r10, r11
+
+    POP r31
+    RET
+
+enter_replace:
+    PUSH r31
+
+    ; Enter replace mode (prompt mode 4, sub-mode 0 = search input)
+    LDI r10, R_PM
+    LDI r11, 4
+    STORE r10, r11
+
+    ; Clear search string
+    LDI r10, R_SLEN
+    LDI r11, 0
+    STORE r10, r11
+    LDI r10, R_SEARCH
+    STORE r10, r11
+
+    ; Clear replace string
+    LDI r10, R_RLEN
+    STORE r10, r11
+    LDI r10, R_REPL
+    STORE r10, r11
+
+    ; Reset sub-mode
+    LDI r10, R_RSM
+    STORE r10, r11
+
     POP r31
     RET
 
@@ -1810,6 +2211,329 @@ ds_done:
     POP r11
     POP r10
     POP r5
+    POP r1
+    POP r31
+    RET
+
+; =========================================
+; DO REPLACE -- replace all occurrences of search with replace
+; Uses: r1-r18, modifies buffer in-place
+; Strategy: scan buffer for matches, build new buffer with replacements
+; =========================================
+do_replace:
+    PUSH r31
+    PUSH r1
+    PUSH r5
+    PUSH r10
+    PUSH r11
+    PUSH r12
+    PUSH r13
+    PUSH r14
+    PUSH r15
+    PUSH r16
+    PUSH r17
+    PUSH r18
+    PUSH r19
+    PUSH r20
+    LDI r1, 1
+
+    ; Get search length
+    LDI r10, R_SLEN
+    LOAD r10, r10
+    LDI r11, 0
+    CMP r10, r11
+    JZ r0, dr_done          ; empty search, skip
+
+    ; Get replace length
+    LDI r11, R_RLEN
+    LOAD r11, r11
+
+    ; If replace == search, nothing to do
+    CMP r10, r11
+    JZ r0, dr_done
+
+    ; Get buffer size
+    LDI r13, R_BS
+    LOAD r13, r13
+
+    ; Start scanning from position 0
+    LDI r14, 0               ; scan position
+    LDI r19, 0               ; match count
+
+dr_scan:
+    ; Check if remaining buffer is long enough for search
+    MOV r15, r14
+    ADD r15, r10
+    CMP r15, r13
+    BGE r0, dr_scan_done
+
+    ; Try matching at position r14
+    LDI r16, 0               ; match offset
+
+dr_match:
+    CMP r16, r10
+    BGE r0, dr_found
+
+    ; Load buffer char
+    LDI r17, FB
+    ADD r17, r14
+    ADD r17, r16
+    LOAD r17, r17
+
+    ; Load search char
+    LDI r18, R_SEARCH
+    ADD r18, r16
+    LOAD r18, r18
+
+    CMP r17, r18
+    JNZ r0, dr_no_match
+
+    ADD r16, r1
+    JMP dr_match
+
+dr_no_match:
+    ADD r14, r1
+    JMP dr_scan
+
+dr_found:
+    ; Found match at r14
+    ADD r19, r1              ; match count++
+
+    ; Calculate size delta: replace_len - search_len
+    MOV r20, r11
+    SUB r20, r10             ; delta (signed)
+
+    ; Case 1: replace shorter or same -- shift left, overwrite
+    LDI r15, 0
+    CMP r20, r15
+    BGE r0, dr_grow
+
+    ; Shrink: move remainder left
+    ; Source: FB[r14+search_len] to FB[buf_size]
+    ; Dest: FB[r14+replace_len]
+    MOV r16, r14
+    ADD r16, r10             ; source start (after match)
+    MOV r17, r14
+    ADD r17, r11             ; dest start (after replace)
+    ; Copy from end to start to avoid overwrite
+    ; Remaining = buf_size - (r14 + search_len)
+    MOV r18, r13
+    SUB r18, r16             ; remaining count
+
+dr_shrink_loop:
+    CMP r18, r15
+    JZ r0, dr_shrink_done
+
+    ; Load from source end
+    MOV r15, r16
+    ADD r15, r18
+    SUB r15, r1
+    LDI r12, FB
+    ADD r12, r15
+    LOAD r12, r12
+
+    ; Store to dest end
+    MOV r15, r17
+    ADD r15, r18
+    SUB r15, r1
+    LDI r15, FB
+    ADD r15, r15
+    STORE r15, r12
+
+    SUB r18, r1
+    JMP dr_shrink_loop
+
+dr_shrink_done:
+    ; Write replace string
+    LDI r16, 0               ; i
+dr_write_shrink:
+    CMP r16, r11
+    BGE r0, dr_after_shrink
+    MOV r17, r14
+    ADD r17, r16
+    LDI r18, FB
+    ADD r18, r17
+    LDI r17, R_REPL
+    ADD r17, r16
+    LOAD r17, r17
+    STORE r18, r17
+    ADD r16, r1
+    JMP dr_write_shrink
+
+dr_after_shrink:
+    ; Update buffer size
+    LDI r16, R_BS
+    LOAD r17, r13
+    ADD r17, r20             ; buf_size + delta
+    STORE r16, r17
+    MOV r13, r17             ; update local
+
+    ; Update scan position (past the replacement)
+    MOV r14, r16
+    ADD r14, r11             ; skip past replace
+    JMP dr_scan
+
+dr_grow:
+    ; Replace is longer -- check if buffer has room
+    ; Max buffer is FB + 2000
+    LDI r15, 2000
+    CMP r13, r15
+    BGE r0, dr_scan_done     ; buffer full, stop
+
+    ; Move remainder right to make room
+    ; Source end: FB[buf_size-1], Dest end: FB[buf_size+delta-1]
+    MOV r18, r13             ; remaining count
+    LDI r15, 0
+
+dr_grow_loop:
+    CMP r18, r15
+    JZ r0, dr_grow_done
+
+    ; Load from source end (going backwards)
+    MOV r15, r13
+    ADD r15, r18
+    SUB r15, r1
+    SUB r15, r1
+    LDI r12, FB
+    ADD r12, r15
+    LOAD r12, r12
+
+    ; Store to dest end
+    MOV r15, r13
+    ADD r15, r18
+    SUB r15, r1
+    LDI r15, FB
+    ADD r15, r15
+    STORE r15, r12
+
+    SUB r18, r1
+    JMP dr_grow_loop
+
+dr_grow_done:
+    ; Write replace string
+    LDI r16, 0
+dr_write_grow:
+    CMP r16, r11
+    BGE r0, dr_after_grow
+    MOV r17, r14
+    ADD r17, r16
+    LDI r18, FB
+    ADD r18, r17
+    LDI r17, R_REPL
+    ADD r17, r16
+    LOAD r17, r17
+    STORE r18, r17
+    ADD r16, r1
+    JMP dr_write_grow
+
+dr_after_grow:
+    ; Update buffer size
+    LDI r16, R_BS
+    LOAD r17, r13
+    ADD r17, r20             ; buf_size + delta
+    STORE r16, r17
+    MOV r13, r17
+
+    ; Update scan position
+    MOV r14, r16
+    ADD r14, r11
+    JMP dr_scan
+
+dr_scan_done:
+    ; Rebuild line starts (call insert_newline which rebuilds)
+    ; Actually we need to rebuild the line structure
+    ; Set dirty flag
+    LDI r10, R_DIRTY
+    LDI r11, 1
+    STORE r10, r11
+
+    ; Rebuild line starts by scanning buffer for newlines
+    CALL rebuild_lines
+
+    ; Clamp cursor
+    CALL clamp_end
+    CALL scroll_adj
+
+dr_done:
+    POP r20
+    POP r19
+    POP r18
+    POP r17
+    POP r16
+    POP r15
+    POP r14
+    POP r13
+    POP r12
+    POP r11
+    POP r10
+    POP r5
+    POP r1
+    POP r31
+    RET
+
+; =========================================
+; REBUILD LINES -- rescan buffer for newlines to rebuild line_starts
+; Called after replace to fix line structure
+; =========================================
+rebuild_lines:
+    PUSH r31
+    PUSH r1
+    PUSH r10
+    PUSH r11
+    PUSH r12
+    PUSH r13
+    PUSH r14
+    LDI r1, 1
+
+    LDI r13, R_BS
+    LOAD r13, r13            ; buffer size
+    LDI r14, 0               ; position
+    LDI r10, 0               ; line count
+
+    ; First line always starts at 0
+    LDI r11, LS
+    LDI r12, 0
+    STORE r11, r12
+    ADD r10, r1              ; line count = 1
+
+rl_scan:
+    CMP r14, r13
+    BGE r0, rl_done
+
+    ; Load char
+    LDI r11, FB
+    ADD r11, r14
+    LOAD r11, r11
+
+    ; Check for newline (10)
+    LDI r12, 10
+    CMP r11, r12
+    JNZ r0, rl_next
+
+    ; Found newline -- next line starts at pos+1
+    ADD r14, r1
+    ; Store line start
+    LDI r11, LS
+    ADD r11, r10
+    STORE r11, r14
+    ADD r10, r1
+
+    JMP rl_scan
+
+rl_next:
+    ADD r14, r1
+    JMP rl_scan
+
+rl_done:
+    ; Store line count
+    LDI r11, R_NL
+    STORE r11, r10
+
+    POP r14
+    POP r13
+    POP r12
+    POP r11
+    POP r10
     POP r1
     POP r31
     RET

@@ -23,6 +23,8 @@ pub struct CsrBank {
     pub mcause: u32,
     /// Machine trap value (e.g., faulting address).
     pub mtval: u32,
+    /// Machine scratch register (per-hart scratch space for trap handlers).
+    pub mscratch: u32,
 
     /// Supervisor trap vector.
     pub stvec: u32,
@@ -75,6 +77,7 @@ impl CsrBank {
             mepc: 0,
             mcause: 0,
             mtval: 0,
+            mscratch: 0,
             stvec: 0,
             sepc: 0,
             sscratch: 0,
@@ -100,6 +103,7 @@ impl CsrBank {
             MEPC => self.mepc,
             MCAUSE => self.mcause,
             MTVAL => self.mtval,
+            MSCRATCH => self.mscratch,
             SSTATUS => self.mstatus & SSTATUS_MASK,
             STVEC => self.stvec,
             SEPC => self.sepc,
@@ -147,6 +151,10 @@ impl CsrBank {
             }
             MTVAL => {
                 self.mtval = val;
+                true
+            }
+            MSCRATCH => {
+                self.mscratch = val;
                 true
             }
             SSTATUS => {

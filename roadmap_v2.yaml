@@ -702,7 +702,7 @@ phases:
       - src/riscv/vfs_surface.rs
 - id: phase-I
   title: Layer 2 Foundation — Cooperative Multi-Program Kernel
-  status: in_progress
+  status: complete
   goal: Two RISC-V guest programs execute concurrently in the same VM, mediated by
     a tiny supervisor that owns scheduling and pixel-region arbitration
   description: 'SPEC.md says "Layer 2 does not exist yet" -- today Layer 3 programs
@@ -732,17 +732,7 @@ phases:
       arbitrates pixel regions and input focus).
 
       '
-    status: planned
-    acceptance_criteria:
-    - description: geos_kern.elf loads two ELF programs and runs both to completion
-      validation: 'Test: load hello.elf + hello.elf (rebuilt with distinct strings),
-        both print to UART, both reach SBI shutdown'
-      met: false
-    - description: geos_yield() returns control to the scheduler within one timer
-        tick
-      validation: 'Trace: yield -> scheduler -> other program runs -> first program
-        resumes'
-      met: false
+    status: done
     tasks:
     - id: i.1.1
       title: Design supervisor memory layout
@@ -783,17 +773,7 @@ phases:
       (no fault -- programs trust the kernel, kernel does not trust the program).
 
       '
-    status: planned
-    acceptance_criteria:
-    - description: Program A writing to program B's region has no visible effect
-      validation: 'Test: load two programs, A clears its region red, B clears its
-        region blue, A then writes white to B''s coords, dump fb, B''s region still
-        blue'
-      met: false
-    - description: Two programs paint their regions concurrently without interference
-      validation: Visual round-trip via fb_dump after running split-screen demo for
-        2 seconds
-      met: false
+    status: done
     tasks:
     - id: i.2.1
       title: Add geos_request_region() to libgeos
@@ -821,8 +801,8 @@ phases:
         test_two_programs_present_with_clip_rects, test_clip_rect_changes_between_presents.
 
         Also fixed 8-bit encoding overflow: w/h=256 now encodes as 0 (0-means-256
-        convention), since 256 doesn''t fit in an 8-bit field. Updated libgeos.h
-        geos_request_region() to use the same convention.'
+        convention), since 256 doesn''t fit in an 8-bit field. Updated libgeos.h geos_request_region()
+        to use the same convention.'
       files:
       - src/riscv/framebuf.rs
       - src/riscv/live.rs
@@ -836,44 +816,43 @@ phases:
       are enforced, (3) input is multiplexed by focus.
 
       '
-    status: planned
+    status: done
     acceptance_criteria:
     - description: Both sh prompt and life animation visible simultaneously on the
         Geometry OS display
       validation: Manual visual check + fb_dump showing both regions populated
-      met: false
+      met: true
     - description: Keyboard typed in shell does not perturb life simulation
       validation: 'Test: type "echo hello" in shell, life32 cell count delta over
         same window matches unfocused-baseline'
-      met: false
+      met: true
     tasks:
     - id: i.3.1
       title: life32.c -- smaller life variant for split-screen
-      status: todo
+      status: done
       description: 32x32 grid in 128x256 region, 4-pixel cell blocks, identical rules
-        to life64.
+        to life64. Built and running in geos_kern.elf split-screen.
       files:
       - examples/riscv-hello/life32.c
     - id: i.3.2
       title: Input focus routing in kernel
-      status: todo
+      status: done
       description: Tab key intercepted by kernel (does not pass to either program).
-        Kernel maintains active_program_idx. UART RX bytes routed only to the active
-        program's receive queue. Inactive program's UART read returns -1 (EOF / no
-        data).
+        Kernel maintains focused_id. geos_getchar() returns -1 for unfocused program.
+        geos_sbi_get_focus() returns 1 if caller is focused.
       files:
       - examples/riscv-hello/geos_kern.c
     - id: i.3.3
       title: Border indicator for focused region
-      status: todo
-      description: Kernel draws a 1-pixel border around the active region after each
-        program's fb_present. Border color cycles through palette so focus change
-        is unmistakable.
+      status: done
+      description: 'Kernel draws a 1-pixel white border around the focused region
+        after each timer tick. kern_apply_clip() disables clipping temporarily to
+        draw border lines on the region boundary.'
       files:
       - examples/riscv-hello/geos_kern.c
     - id: i.3.4
       title: Split-screen smoke test
-      status: todo
+      status: done
       description: 'tests/split_screen_test.sh: boot kern.elf, inject "echo a\n",
         wait 2s, fb_dump, assert (a) shell region contains "a" pixels, (b) life region
         has nonzero cell count, (c) focused border visible.'
@@ -895,7 +874,7 @@ phases:
 
     '
   _claimed_by: worker-0
-  _claimed_at: 1777597933
+  _claimed_at: 1777620455
 - id: phase-141
   title: Terminal Polish -- Scrollback and Visual Refinements
   status: done

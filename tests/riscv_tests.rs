@@ -16,6 +16,8 @@ pub mod clint;
 pub mod csr;
 #[path = "riscv_tests/integration.rs"]
 pub mod integration;
+#[path = "riscv_tests/kernel.rs"]
+pub mod kernel;
 #[path = "riscv_tests/privilege.rs"]
 pub mod privilege;
 #[path = "riscv_tests/sv32.rs"]

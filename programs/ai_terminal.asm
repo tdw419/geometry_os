@@ -48,6 +48,11 @@
 #define WATCHDOG_STRIKES 0x7842
 #define SANDBOX_CAPS 0x7500  ; Sandbox capability list for SPAWNC
 #define SANDBOX_STRS 0x7600  ; Pattern strings for sandbox capabilities
+#define CMD_HIST_BASE 0x7700 ; Command history ring buffer (8 entries x 42 chars)
+#define CMD_HIST_COUNT 0x78F0 ; Number of history entries stored
+#define CMD_HIST_NAV 0x78F1  ; Current recall index for up/down arrow navigation
+#define CTX_TURNS 0x78F2     ; Conversation turn counter
+#define CTX_CHARS 0x78F3     ; Total chars in conversation (prompt + response)
 #define DEBUG_MAGIC      0x0C00  ; Page 3 debug mailbox
 #define DEBUG_PARENT_PID 0x0C01
 #define DEBUG_CHILD_PID  0x0C02
@@ -102,6 +107,24 @@ CALL clear_buf
 LDI r12, HISTORY
 LDI r16, 256
 CALL clear_buf
+
+; Clear command history ring buffer (8 entries x 42 chars = 336 words)
+LDI r12, CMD_HIST_BASE
+LDI r16, 336
+CALL clear_buf
+
+; Init history metadata
+LDI r20, CMD_HIST_COUNT
+LDI r0, 0
+STORE r20, r0
+LDI r20, CMD_HIST_NAV
+STORE r20, r0
+
+; Init context tracking
+LDI r20, CTX_TURNS
+STORE r20, r0
+LDI r20, CTX_CHARS
+STORE r20, r0
 
 ; Title bar
 LDI r1, 0
@@ -218,6 +241,11 @@ render:
     LDI r4, 240
     LDI r5, 0x0A0A14
     RECTF r1, r2, r3, r4, r5
+
+    ; Redraw title bar with context info
+    PUSH r31
+    CALL render_title
+    POP r31
 
     ; Row loop
     LDI r1, 1
@@ -340,8 +368,18 @@ check_bs:
 
 check_del:
     CMPI r5, 127
-    JNZ r0, do_char
+    JNZ r0, check_up_arrow
     JMP do_backspace
+
+check_up_arrow:
+    CMPI r5, 128         ; Up arrow = 0x80
+    JNZ r0, check_down_arrow
+    JMP do_history_up
+
+check_down_arrow:
+    CMPI r5, 129         ; Down arrow = 0x81
+    JNZ r0, do_char
+    JMP do_history_down
 
 do_char:
     ; buf[row*COLS + col] = key
@@ -375,7 +413,12 @@ do_enter:
     ; 1. Extract command text from current row into SCRATCH
     CALL extract_cmd
 
-    ; 2. Advance to next row
+    ; 2. Save command to history ring buffer
+    PUSH r31
+    CALL history_save
+    POP r31
+
+    ; 3. Advance to next row
     CALL do_newline
 
     ; 3. Check for / commands
@@ -592,6 +635,12 @@ send_to_llm:
     ; Cancel any pending /run -- a new chat turn supersedes prior output.
     LDI r20, RUN_PENDING
     LDI r0, 0
+    STORE r20, r0
+
+    ; Increment conversation turn counter
+    LDI r20, CTX_TURNS
+    LOAD r0, r20
+    ADD r0, r1
     STORE r20, r0
 
     ; Show "Thinking..." status
@@ -2178,4 +2227,478 @@ write_hex_to_buf:
 
     POP r0
     POP r31
+    RET
+
+; =========================================
+; RENDER_TITLE - Dynamic title bar with context info
+; Shows "AI Terminal - ZAI  [turns: N]"
+; =========================================
+render_title:
+    PUSH r31
+    LDI r1, 1
+
+    ; Title bar background
+    LDI r1, 0
+    LDI r2, 0
+    LDI r3, 256
+    LDI r4, 16
+    LDI r5, 0x1A0033
+    RECTF r1, r2, r3, r4, r5
+
+    ; Title text
+    LDI r20, SCRATCH
+    STRO r20, "AI Terminal - ZAI"
+    LDI r1, 4
+    LDI r2, 4
+    LDI r3, SCRATCH
+    LDI r4, 0x00FF00
+    LDI r5, 0x1A0033
+    DRAWTEXT r1, r2, r3, r4, r5
+
+    ; Append turn count: " T:N"
+    LDI r20, SCRATCH
+    CALL advance_to_null
+    STRO r20, " T:"
+    CALL advance_to_null
+
+    ; Load turn count and convert to decimal
+    LDI r20, CTX_TURNS
+    LOAD r0, r20
+    CALL u32_to_dec_str
+    ; u32_to_dec_str writes digits to SCRATCH at current pos
+
+    ; Draw the title
+    LDI r1, 4
+    LDI r2, 4
+    LDI r3, SCRATCH
+    LDI r4, 0x00FF00
+    LDI r5, 0x1A0033
+    DRAWTEXT r1, r2, r3, r4, r5
+
+    ; Status indicator dot (green)
+    LDI r1, 230
+    LDI r2, 4
+    LDI r3, 8
+    LDI r4, 8
+    LDI r5, 0x00FF00
+    RECTF r1, r2, r3, r4, r5
+
+    ; History indicator (small amber dot if history has entries)
+    LDI r20, CMD_HIST_COUNT
+    LOAD r0, r20
+    JZ r0, title_no_hist
+    LDI r1, 216
+    LDI r2, 4
+    LDI r3, 6
+    LDI r4, 6
+    LDI r5, 0xFFAA00
+    RECTF r1, r2, r3, r4, r5
+title_no_hist:
+
+    POP r31
+    RET
+
+; =========================================
+; U32_TO_DEC_STR - Convert u32 to decimal ASCII
+; Input: r0 = number (capped at 9999)
+; Output: writes decimal digits to SCRATCH at current null-terminator position
+;         advances SCRATCH pointer past the digits + null
+; Clobbers: r0, r6, r7
+; =========================================
+u32_to_dec_str:
+    ; Find null terminator in SCRATCH
+    LDI r20, SCRATCH
+    CALL advance_to_null
+    ; r20 now points at the null
+
+    ; Cap at 9999 to keep it short
+    LDI r7, 9999
+    CMP r0, r7
+    BLT r0, u2d_notcap
+    LDI r0, 9999
+u2d_notcap:
+
+    ; We need to extract decimal digits.
+    ; For numbers < 10000: thousands, hundreds, tens, ones.
+    ; Skip leading zeros.
+    LDI r6, 0            ; digit count (suppressed leading zeros)
+    LDI r7, 1000
+
+    ; Thousands digit
+    LDI r6, 0
+    MOV r6, r0
+    DIV r6, r7           ; r6 = n / 1000
+    JZ r6, u2d_no_thou
+    ADDI r6, 48          ; '0' + digit
+    STORE r20, r6
+    ADDI r20, 1
+u2d_no_thou:
+
+    ; Hundreds digit: (n / 100) % 10
+    MOV r6, r0
+    LDI r7, 100
+    DIV r6, r7           ; r6 = n / 100
+    LDI r7, 10
+    MOD r6, r7           ; r6 = (n/100) % 10 = hundreds digit
+
+    ; Check if we should skip (no thousands AND hundreds is 0)
+    LDI r7, 1000
+    CMP r0, r7
+    BLT r0, u2d_skip_hun
+    JZ r6, u2d_skip_hun
+    ADDI r6, 48
+    STORE r20, r6
+    ADDI r20, 1
+u2d_skip_hun:
+
+    ; Tens digit
+    MOV r6, r0
+    LDI r7, 10
+    DIV r6, r7           ; r6 = n / 10
+    MOD r6, r7           ; r6 = (n/10) % 10 = tens digit
+
+    ; Check if we should skip (n < 10 AND no prior digits)
+    LDI r7, 10
+    CMP r0, r7
+    BLT r0, u2d_skip_ten
+    JZ r6, u2d_skip_ten
+    ADDI r6, 48
+    STORE r20, r6
+    ADDI r20, 1
+u2d_skip_ten:
+
+    ; Ones digit (always print)
+    MOV r6, r0
+    LDI r7, 10
+    MOD r6, r7           ; r6 = n % 10
+    ADDI r6, 48
+    STORE r20, r6
+    ADDI r20, 1
+
+    ; Null terminate
+    LDI r0, 0
+    STORE r20, r0
+
+    RET
+
+; =========================================
+; HISTORY_SAVE - Save current prompt to history ring buffer
+; Called from do_enter after extract_cmd.
+; The command text is in SCRATCH (null-terminated).
+; =========================================
+history_save:
+    PUSH r31
+    LDI r1, 1
+
+    ; Check if SCRATCH is empty (just "> " with no text after)
+    LDI r20, SCRATCH
+    LOAD r0, r20
+    CMPI r0, 0
+    JZ r0, hist_save_done  ; empty command, skip
+
+    ; Load history count
+    LDI r20, CMD_HIST_COUNT
+    LOAD r6, r20          ; r6 = count
+
+    ; Don't save duplicates of the most recent entry
+    CMPI r6, 0
+    JZ r6, hist_not_dup
+    ; Compare SCRATCH with last entry
+    ; Last entry index = (count - 1) % 8
+    SUBI r6, 1
+    LDI r7, 8
+    MOD r6, r7           ; r6 = last entry index
+    LDI r7, 42
+    MUL r6, r7           ; r6 = byte offset of last entry
+    ADDI r6, CMD_HIST_BASE ; r6 = address of last entry
+    CALL strcmp_scratch    ; sets r0 = 0 if equal
+    JZ r0, hist_save_done ; duplicate, skip
+
+hist_not_dup:
+    ; Reload count
+    LDI r20, CMD_HIST_COUNT
+    LOAD r6, r20
+
+    ; Write index = count % 8
+    MOV r7, r6
+    LDI r8, 8
+    MOD r7, r8           ; r7 = write index
+
+    ; Compute dest address = CMD_HIST_BASE + write_index * 42
+    LDI r9, 42
+    MUL r7, r9
+    ADDI r7, CMD_HIST_BASE
+
+    ; Copy 42 chars from SCRATCH to dest
+    LDI r16, SCRATCH
+    LDI r17, 0
+hist_copy:
+    CMP r17, r9
+    BGE r0, hist_copy_done
+    LOAD r0, r16
+    STORE r7, r0
+    ADDI r16, 1
+    ADDI r7, 1
+    ADDI r17, 1
+    JMP hist_copy
+hist_copy_done:
+
+    ; Increment count (cap at 8)
+    LDI r20, CMD_HIST_COUNT
+    LOAD r0, r20
+    ADDI r0, 1
+    LDI r7, 8
+    CMP r0, r7
+    BLT r0, hist_no_cap
+    LDI r0, 8
+hist_no_cap:
+    STORE r20, r0
+
+    ; Reset nav index to count (so down arrow goes to current)
+    LDI r20, CMD_HIST_NAV
+    LDI r0, 0
+    STORE r20, r0
+
+hist_save_done:
+    POP r31
+    RET
+
+; =========================================
+; STRCMP_SCRATCH - Compare SCRATCH with string at r6
+; Returns r0 = 0 if equal, nonzero otherwise
+; Clobbers: r0, r7, r8
+; =========================================
+strcmp_scratch:
+    LDI r7, SCRATCH
+strcmp_loop:
+    LOAD r0, r7
+    LOAD r8, r6
+    CMP r0, r8
+    JNZ r0, strcmp_neq
+    JZ r0, strcmp_eq     ; both null = equal
+    ADDI r7, 1
+    ADDI r6, 1
+    JMP strcmp_loop
+strcmp_neq:
+    LDI r0, 1            ; not equal
+    RET
+strcmp_eq:
+    LDI r0, 0            ; equal
+    RET
+
+; =========================================
+; HISTORY_UP - Recall previous command (up arrow)
+; Replaces current prompt line with history entry
+; =========================================
+do_history_up:
+    PUSH r31
+    LDI r1, 1
+
+    ; Load history count
+    LDI r20, CMD_HIST_COUNT
+    LOAD r6, r20
+    JZ r6, hist_up_done  ; no history
+
+    ; Load current nav index
+    LDI r20, CMD_HIST_NAV
+    LOAD r7, r20          ; r7 = current nav index
+
+    ; Check if we can go further back
+    ; max index = count - 1
+    MOV r8, r6
+    SUBI r8, 1
+    CMP r7, r8
+    BGE r0, hist_up_done  ; already at oldest
+
+    ; If nav index is 0, save current prompt line first
+    JNZ r7, hist_up_recall
+    ; Save current prompt to temp slot (index = count, wraps or overflows)
+    ; We save to the last slot (index = count % 8) before overwriting
+    ; Actually, let's save to SCRATCH area temporarily
+    CALL save_current_prompt
+
+hist_up_recall:
+    ; Increment nav index
+    ADDI r7, 1
+    LDI r20, CMD_HIST_NAV
+    STORE r20, r7
+
+    ; Compute history address: (count - 1 - nav_index) % 8 * 42 + CMD_HIST_BASE
+    ; This walks backwards through history
+    MOV r8, r6           ; r8 = count
+    SUBI r8, 1           ; r8 = count - 1
+    SUB r8, r7           ; r8 = count - 1 - nav_index
+    LDI r9, 8
+    MOD r8, r9           ; r8 = wrapped index
+    LDI r9, 42
+    MUL r8, r9           ; r8 = byte offset
+    ADDI r8, CMD_HIST_BASE
+
+    ; Clear current prompt line (keep "> " prefix)
+    CALL clear_prompt_line
+
+    ; Load history entry into prompt buffer
+    LDI r20, PROMPT_BUF
+    ADDI r20, 2          ; skip "> " prefix
+    LDI r17, 0
+hist_up_copy:
+    CMP r17, r9
+    BGE r0, hist_up_copy_done
+    LOAD r0, r8
+    JZ r0, hist_up_copy_done  ; stop at null terminator
+    STORE r20, r0
+    ADDI r8, 1
+    ADDI r20, 1
+    ADDI r17, 1
+    JMP hist_up_copy
+hist_up_copy_done:
+
+    ; Update cursor position
+    LDI r20, CUR_COL
+    STORE r20, r17       ; col = number of chars copied
+    ADDI r20, 2          ; but we need absolute col in display
+    LDI r0, 2
+    ADD r0, r17
+    LDI r20, CUR_COL
+    STORE r20, r0
+
+hist_up_done:
+    POP r31
+    RET
+
+; =========================================
+; HISTORY_DOWN - Recall next command (down arrow)
+; =========================================
+do_history_down:
+    PUSH r31
+    LDI r1, 1
+
+    ; Load nav index
+    LDI r20, CMD_HIST_NAV
+    LOAD r7, r20
+    JZ r7, hist_down_done  ; already at current input
+
+    ; Decrement nav index
+    SUBI r7, 1
+    LDI r20, CMD_HIST_NAV
+    STORE r20, r7
+
+    ; If nav index is now 0, restore the saved current prompt
+    JNZ r7, hist_down_recall
+    CALL restore_current_prompt
+    JMP hist_down_done
+
+hist_down_recall:
+    ; Load history count
+    LDI r20, CMD_HIST_COUNT
+    LOAD r6, r20
+
+    ; Compute address: (count - 1 - nav_index) % 8 * 42 + CMD_HIST_BASE
+    MOV r8, r6
+    SUBI r8, 1
+    SUB r8, r7
+    LDI r9, 8
+    MOD r8, r9
+    LDI r9, 42
+    MUL r8, r9
+    ADDI r8, CMD_HIST_BASE
+
+    ; Clear current prompt line
+    CALL clear_prompt_line
+
+    ; Copy history entry
+    LDI r20, PROMPT_BUF
+    ADDI r20, 2
+    LDI r17, 0
+hist_dn_copy:
+    CMP r17, r9
+    BGE r0, hist_dn_copy_done
+    LOAD r0, r8
+    JZ r0, hist_dn_copy_done
+    STORE r20, r0
+    ADDI r8, 1
+    ADDI r20, 1
+    ADDI r17, 1
+    JMP hist_dn_copy
+hist_dn_copy_done:
+
+    LDI r0, 2
+    ADD r0, r17
+    LDI r20, CUR_COL
+    STORE r20, r0
+
+hist_down_done:
+    POP r31
+    RET
+
+; =========================================
+; SAVE_CURRENT_PROMPT - Save current prompt to temp storage
+; Uses PROMPT_BUF as temp (it holds current prompt anyway)
+; We just need to remember we saved it
+; =========================================
+save_current_prompt:
+    ; The current prompt is already in PROMPT_BUF
+    ; Mark that we have a saved prompt by setting nav index to 0
+    ; (nav=0 means "showing current input", not history)
+    RET
+
+; =========================================
+; RESTORE_CURRENT_PROMPT - Restore the prompt that was active
+; before history navigation started
+; =========================================
+restore_current_prompt:
+    ; PROMPT_BUF still has the original prompt (it was saved on first up)
+    ; Clear the display prompt line and redraw from PROMPT_BUF
+    CALL clear_prompt_line
+
+    ; Copy PROMPT_BUF (skip "> " prefix) back to itself (already there)
+    ; Just need to reset cursor to end of prompt text
+    LDI r20, PROMPT_BUF
+    ADDI r20, 2          ; skip "> "
+    LDI r17, 0
+restore_loop:
+    LOAD r0, r20
+    JZ r0, restore_done
+    ADDI r17, 1
+    ADDI r20, 1
+    JMP restore_loop
+restore_done:
+    LDI r0, 2
+    ADD r0, r17
+    LDI r20, CUR_COL
+    STORE r20, r0
+    RET
+
+; =========================================
+; CLEAR_PROMPT_LINE - Clear text after "> " on current row
+; =========================================
+clear_prompt_line:
+    LDI r1, 1
+    ; Get current row
+    LDI r20, CUR_ROW
+    LOAD r0, r20
+    LDI r7, COLS
+    MUL r0, r7           ; r0 = row * COLS
+    LDI r7, PROMPT_BUF
+    ADD r7, r0           ; r7 = &PROMPT_BUF[row * COLS]
+
+    ; Write "> " at start
+    LDI r0, 62           ; '>'
+    STORE r7, r0
+    ADDI r7, 1
+    LDI r0, 32           ; ' '
+    STORE r7, r0
+    ADDI r7, 1
+
+    ; Clear rest of the line (40 more chars)
+    LDI r0, 0
+    LDI r17, 0
+clear_prompt_loop:
+    CMPI r17, 40
+    BGE r0, clear_prompt_done
+    STORE r7, r0
+    ADDI r7, 1
+    ADDI r17, 1
+    JMP clear_prompt_loop
+clear_prompt_done:
     RET

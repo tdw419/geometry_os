@@ -40,6 +40,13 @@
 #define ITEM_COUNT   0x6440
 #define VP_BASE      0x6500
 #define TEMP_BASE    0x6900
+#define SAVE_BUF     0x6908
+#define SAVE_PATH    0x6AC1
+#define MSG_SAVED    0x6ACE
+#define MSG_LOADED   0x6AD6
+#define MSG_LEVEL    0x6ADE
+#define MSG_WIN      0x6AEE
+#define MSG_WIN2     0x6AF6
 #define TILE_FLOOR   1
 #define TILE_WALL    2
 #define TILE_STAIR   3
@@ -141,6 +148,18 @@ gl_input:
   LDI r6, 117
   CMP r7, r6
   JZ r0, try_undo
+  LDI r6, 83
+  CMP r7, r6
+  JZ r0, try_save
+  LDI r6, 115
+  CMP r7, r6
+  JZ r0, try_save
+  LDI r6, 76
+  CMP r7, r6
+  JZ r0, try_load
+  LDI r6, 108
+  CMP r7, r6
+  JZ r0, try_load
   JMP idle
 
 try_up:
@@ -279,24 +298,105 @@ undo_do_restore:
   FRAME
   JMP game_loop
 
+try_save:
+  CALL save_game
+  LDI r4, MSG_TIMER
+  LDI r1, 60
+  STORE r4, r1
+  JMP idle
+
+try_load:
+  CALL load_game
+  LDI r4, MSG_TIMER
+  LDI r1, 60
+  STORE r4, r1
+  LDI r4, STATE
+  LOAD r1, r4
+  JZ r1, idle
+  CALL render
+  JMP idle
+
 descend_screen:
   LDI r1, 0x001a00
   FILL r1
-  LDI r10, 0x6A10
-  LDI r11, 50
-  LDI r12, 100
+  LDI r10, 0x6AD0
+  LDI r11, 30
+  LDI r12, 80
   TEXT r11, r12, r10
-  LDI r10, 0x6A30
-  LDI r11, 50
-  LDI r12, 140
-  TEXT r11, r12, r10
-  FRAME
-  IKEY r7
-  JZ r7, descend_screen
+  ; Show level number
   LDI r4, DLEVEL
   LOAD r1, r4
   LDI r9, 1
   ADD r1, r9
+  LDI r4, SAVE_BUF
+  STORE r4, r1
+  LDI r4, 0x6AE2
+  LDI r1, 0
+  STORE r4, r1
+  LDI r10, SAVE_BUF
+  LDI r11, 80
+  LDI r12, 110
+  TEXT r11, r12, r10
+  ; Show kills
+  LDI r4, KILLS
+  LOAD r1, r4
+  LDI r4, SAVE_BUF
+  STORE r4, r1
+  LDI r4, 0x6AE2
+  LDI r1, 0
+  STORE r4, r1
+  LDI r10, 0x6AF0
+  LDI r11, 80
+  LDI r12, 130
+  TEXT r11, r12, r10
+  ; Wait for key
+  FRAME
+  IKEY r7
+  JZ r7, descend_screen
+  ; Advance dungeon level
+  LDI r4, DLEVEL
+  LOAD r1, r4
+  LDI r9, 1
+  ADD r1, r9
+  STORE r4, r1
+  ; Check win condition -- beat level 10
+  LDI r9, 10
+  CMP r1, r9
+  BLT r0, descend_continue
+  JMP victory_screen
+descend_continue:
+  ; Heal player: restore half of missing HP
+  LDI r4, P_MAXHP
+  LOAD r20, r4
+  LDI r4, P_HP
+  LOAD r21, r4
+  SUB r20, r21
+  LDI r9, 2
+  DIV r20, r9
+  ADD r21, r20
+  LDI r4, P_HP
+  STORE r4, r21
+  JMP restart
+
+victory_screen:
+  LDI r1, 0x1a1a00
+  FILL r1
+  LDI r10, 0x6AF8
+  LDI r11, 20
+  LDI r12, 80
+  TEXT r11, r12, r10
+  LDI r10, 0x6B08
+  LDI r11, 40
+  LDI r12, 120
+  TEXT r11, r12, r10
+  LDI r5, 440
+  LDI r6, 300
+  BEEP r5, r6
+  FRAME
+  IKEY r7
+  JZ r7, victory_screen
+  LDI r1, 0
+  LDI r4, DLEVEL
   STORE r4, r1
   JMP restart
 

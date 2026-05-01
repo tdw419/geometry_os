@@ -3285,21 +3285,42 @@ impl Vm {
             }
 
             // UNLINK name_reg -- delete file from VFS
-            // Returns 0 on success, 0xFFFFFFFF on error
+            // Returns 0 on success, 0xFFFFFFFF on error, 0xFFFFFFFE if capability denied
             // Encoding: 1 word [0xB7] + 1 word [name_reg]
             0xB7 => {
                 let name_reg = self.fetch() as usize;
                 if name_reg < NUM_REGS {
                     let name_addr = self.regs[name_reg];
                     let pid = self.current_pid;
-                    self.regs[0] = self.vfs.funlink(&self.ram, name_addr, pid);
+                    // Phase 189: Capability enforcement on file delete
+                    let caps = if self.current_capabilities.is_some() {
+                        self.current_capabilities.clone()
+                    } else {
+                        self.processes
+                            .iter()
+                            .find(|p| p.pid == pid)
+                            .and_then(|p| p.capabilities.clone())
+                    };
+                    if let Some(name) = Self::read_string_static(&self.ram, name_addr as usize) {
+                        if !crate::vm::types::check_path_capability(
+                            &caps,
+                            &name,
+                            crate::vm::types::Capability::PERM_WRITE,
+                        ) {
+                            self.regs[0] = 0xFFFFFFFE; // EPERM
+                        } else {
+                            self.regs[0] = self.vfs.funlink(&self.ram, name_addr, pid);
+                        }
+                    } else {
+                        self.regs[0] = 0xFFFFFFFF;
+                    }
                 } else {
                     self.regs[0] = 0xFFFFFFFF;
                 }
             }
 
             // FCOPY src_reg, dst_reg -- copy file within VFS
-            // Returns 0 on success, 0xFFFFFFFF on error
+            // Returns 0 on success, 0xFFFFFFFF on error, 0xFFFFFFFE if capability denied
             // Encoding: 1 word [0xB8] + 1 word [src_name_reg] + 1 word [dst_name_reg]
             0xB8 => {
                 let src_reg = self.fetch() as usize;
@@ -3308,7 +3329,29 @@ impl Vm {
                     let src_addr = self.regs[src_reg];
                     let dst_addr = self.regs[dst_reg];
                     let pid = self.current_pid;
-                    self.regs[0] = self.vfs.fcopy(&self.ram, src_addr, dst_addr, pid);
+                    // Phase 189: Capability enforcement on file copy (need write on dst)
+                    let caps = if self.current_capabilities.is_some() {
+                        self.current_capabilities.clone()
+                    } else {
+                        self.processes
+                            .iter()
+                            .find(|p| p.pid == pid)
+                            .and_then(|p| p.capabilities.clone())
+                    };
+                    if let Some(dst_name) = Self::read_string_static(&self.ram, dst_addr as usize) {
+                        if !crate::vm::types::check_path_capability(
+                            &caps,
+                            &dst_name,
+                            crate::vm::types::Capability::PERM_WRITE,
+                        ) {
+                            self.regs[0] = 0xFFFFFFFE; // EPERM
+                        } else {
+                            self.regs[0] =
+                                self.vfs.fcopy(&self.ram, src_addr, dst_addr, pid);
+                        }
+                    } else {
+                        self.regs[0] = 0xFFFFFFFF;
+                    }
                 } else {
                     self.regs[0] = 0xFFFFFFFF;
                 }
@@ -3403,6 +3446,38 @@ impl Vm {
                             self.regs[0] = 0xFFFFFFFF;
                         }
                     }
+                } else {
+                    self.regs[0] = 0xFFFFFFFF;
+                }
+            }
+
+            // SETCAPS path_addr_reg  (0xC0) -- Set capability restriction on current process
+            // Reads a null-terminated path pattern from RAM at the address in path_addr_reg.
+            // Sets process capabilities to allow ONLY that path pattern with PERM_READ|PERM_WRITE.
+            // If path_addr_reg points to an empty string (first word is 0 or null), clears
+            // capabilities (restores full access).
+            // Returns 0 in r0 on success, 0xFFFFFFFF on error.
+            0xC0 => {
+                let ar = self.fetch() as usize;
+                if ar < NUM_REGS {
+                    let addr = self.regs[ar] as usize;
+                    let path_str = Self::read_string_static(&self.ram, addr);
+                    let caps: Option<Vec<Capability>> = if path_str.is_none() || path_str.as_ref().map_or(true, |s| s.is_empty()) {
+                        None // Clear caps = full access
+                    } else {
+                        Some(vec![Capability {
+                            resource_type: 0, // VFS path
+                            pattern: path_str.unwrap(),
+                            permissions: Capability::PERM_READ | Capability::PERM_WRITE,
+                        }])
+                    };
+                    // Update both the process struct and current_capabilities cache
+                    let pid = self.current_pid;
+                    if let Some(proc) = self.processes.iter_mut().find(|p| p.pid == pid) {
+                        proc.capabilities = caps.clone();
+                    }
+                    self.current_capabilities = caps;
+                    self.regs[0] = 0; // success
                 } else {
                     self.regs[0] = 0xFFFFFFFF;
                 }
