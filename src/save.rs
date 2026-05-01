@@ -11,10 +11,19 @@ fn read_u32_le(data: &[u8], offset: usize) -> std::io::Result<u32> {
     if offset + 4 > data.len() {
         return Err(std::io::Error::new(
             std::io::ErrorKind::UnexpectedEof,
-            format!("unexpected end of data at offset {} (need 4 bytes, have {})", offset, data.len()),
+            format!(
+                "unexpected end of data at offset {} (need 4 bytes, have {})",
+                offset,
+                data.len()
+            ),
         ));
     }
-    Ok(u32::from_le_bytes([data[offset], data[offset + 1], data[offset + 2], data[offset + 3]]))
+    Ok(u32::from_le_bytes([
+        data[offset],
+        data[offset + 1],
+        data[offset + 2],
+        data[offset + 3],
+    ]))
 }
 
 pub fn save_screen_png(path: &str, screen: &[u32]) -> std::io::Result<()> {
@@ -286,7 +295,9 @@ mod tests {
         assert_eq!(reader.info().height, 256);
 
         let mut buf = vec![0u8; 256 * 256 * 3];
-        reader.next_frame(&mut buf).expect("PNG frame read should succeed");
+        reader
+            .next_frame(&mut buf)
+            .expect("PNG frame read should succeed");
 
         // Check pixel (0,0) = red
         assert_eq!(buf[0], 0xFF, "R channel of pixel (0,0)");
@@ -325,7 +336,9 @@ mod tests {
         let decoder = png::Decoder::new(std::io::BufReader::new(file));
         let mut reader = decoder.read_info().expect("PNG header should be valid");
         let mut buf = vec![0u8; 256 * 256 * 3];
-        reader.next_frame(&mut buf).expect("PNG frame read should succeed");
+        reader
+            .next_frame(&mut buf)
+            .expect("PNG frame read should succeed");
 
         assert!(
             buf.iter().all(|&b| b == 0),
@@ -348,7 +361,9 @@ mod tests {
         let decoder = png::Decoder::new(std::io::BufReader::new(file));
         let mut reader = decoder.read_info().expect("PNG header should be valid");
         let mut buf = vec![0u8; 256 * 256 * 3];
-        reader.next_frame(&mut buf).expect("PNG frame read should succeed");
+        reader
+            .next_frame(&mut buf)
+            .expect("PNG frame read should succeed");
 
         assert!(
             buf.iter().all(|&b| b == 0xFF),
@@ -377,7 +392,9 @@ mod tests {
         assert_eq!(reader.info().height, h as u32);
 
         let mut buf = vec![0u8; w * h * 3];
-        reader.next_frame(&mut buf).expect("PNG frame read should succeed");
+        reader
+            .next_frame(&mut buf)
+            .expect("PNG frame read should succeed");
 
         // save_full_buffer_png extracts RGB from u32 as: R=(pixel>>16), G=(pixel>>8), B=pixel
         // So 0x12345678 -> R=0x34, G=0x56, B=0x78
@@ -430,8 +447,8 @@ mod tests {
         let temp_dir = std::env::temp_dir();
         let path = temp_dir.join("test_invalid_magic.bin");
         // Create a file large enough to pass the size check but with wrong magic
-        let vm_min = 4 + 4 + 1 + 4 + vm::NUM_REGS * 4 + vm::RAM_SIZE * 4 + vm::SCREEN_SIZE * 4
-            + 4 + 4; // +rand_state +frame_count
+        let vm_min =
+            4 + 4 + 1 + 4 + vm::NUM_REGS * 4 + vm::RAM_SIZE * 4 + vm::SCREEN_SIZE * 4 + 4 + 4; // +rand_state +frame_count
         let data_size = vm_min + 4 + 1; // vm_min + canvas_len (4) + canvas_assembled (1)
         let mut data = vec![0u8; data_size];
         data[0] = b'B';
@@ -442,7 +459,10 @@ mod tests {
 
         let result = load_state(path.to_str().expect("path should be valid UTF-8"));
         assert!(result.is_err());
-        assert!(result.expect_err("should be error").to_string().contains("invalid magic"));
+        assert!(result
+            .expect_err("should be error")
+            .to_string()
+            .contains("invalid magic"));
 
         let _ = std::fs::remove_file(&path);
     }
@@ -479,8 +499,8 @@ mod tests {
         let temp_dir = std::env::temp_dir();
         let path = temp_dir.join("test_truncated_canvas.bin");
         // Create a valid VM portion but with canvas_len claiming more data than exists
-        let vm_min = 4 + 4 + 1 + 4 + vm::NUM_REGS * 4 + vm::RAM_SIZE * 4 + vm::SCREEN_SIZE * 4
-            + 4 + 4; // +rand_state +frame_count
+        let vm_min =
+            4 + 4 + 1 + 4 + vm::NUM_REGS * 4 + vm::RAM_SIZE * 4 + vm::SCREEN_SIZE * 4 + 4 + 4; // +rand_state +frame_count
         let data_size = vm_min + 4; // vm_min + canvas_len field, but no canvas data
         let mut data = vec![0u8; data_size];
         // Write valid magic and version

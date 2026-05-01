@@ -1499,7 +1499,7 @@ phases:
   _claimed_at: 1777590104
 - id: phase-198
   title: Desktop Terminal Integration -- Launch Hermes from GeOS
-  status: planned
+  status: in_progress
   goal: The GeOS terminal should be able to launch Hermes Agent as a subprocess and
     display its output
   description: 'The terminal runs bash, which means you can type ''hermes chat'' and
@@ -1530,10 +1530,10 @@ phases:
   scope_lines_total: 86180
   test_target: 3
   _claimed_by: worker-0
-  _claimed_at: 1777593202
+  _claimed_at: 1777655865
 - id: phase-199
   title: Code Evolution Program -- Fitness Function Improvements
-  status: planned
+  status: done
   goal: Improve the self-modifying code evolution program to produce more interesting
     and stable results
   description: code_evolution.asm (5705 lines, the largest program) implements genetic
@@ -1542,7 +1542,7 @@ phases:
     (drawing patterns, solving math, producing output) rather than just not crashing.
   deliverables:
   - name: Enhanced fitness function
-    status: planned
+    status: done
     tasks:
     - id: p199.d1.t1
       title: Add pattern-matching fitness evaluation
@@ -1559,6 +1559,8 @@ phases:
       scope_files:
       - programs/code_evolution.asm
       scope_lines: 40
+  _claimed_by: worker-0
+  _claimed_at: 1777656998
 - id: phase-200
   title: Pixelpack Seamless Authoring Loop
   status: planned

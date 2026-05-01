@@ -649,8 +649,9 @@ pb_check_csi:
     LDI r20, ANSI_STATE
     LDI r0, ANS_NORMAL
     STORE r20, r0
-    ; Clear private mode flag
+    ; Save private mode flag before clearing (handlers need it)
     LDI r20, CSI_PRIVATE
+    LOAD r24, r20
     LDI r0, 0
     STORE r20, r0
 
@@ -818,8 +819,7 @@ pb_csi_h_mode:
     ; 'h' (104) = set mode (private: ?1049h = alt screen on)
     CMPI r5, 104
     JNZ r0, pb_csi_l_mode
-    LDI r20, CSI_PRIVATE
-    LOAD r0, r20
+    CMPI r24, 0
     JZ r0, pb_ret         ; ignore non-private 'h'
     LDI r20, CSI_PARAM
     LOAD r0, r20
@@ -832,8 +832,7 @@ pb_csi_l_mode:
     ; 'l' (108) = reset mode (private: ?1049l = alt screen off)
     CMPI r5, 108
     JNZ r0, pb_csi_s
-    LDI r20, CSI_PRIVATE
-    LOAD r0, r20
+    CMPI r24, 0
     JZ r0, pb_ret         ; ignore non-private 'l'
     LDI r20, CSI_PARAM
     LOAD r0, r20

@@ -1707,10 +1707,6 @@ impl Vm {
                                 self.regs[0] = 0; // window not found
                             }
                         }
-                        _ => {
-                            // Unknown op -- r0 = 0 (error)
-                            self.regs[0] = 0;
-                        }
                         10 => {
                             // WVIEWPORT: Set viewport (scroll) offset for a window.
                             // r0=win_id, r1=viewport_x, r2=viewport_y.
@@ -1729,6 +1725,10 @@ impl Vm {
                             } else {
                                 self.regs[0] = 0; // window not found
                             }
+                        }
+                        _ => {
+                            // Unknown op -- r0 = 0 (error)
+                            self.regs[0] = 0;
                         }
                     }
                 }
@@ -2698,7 +2698,16 @@ impl Vm {
             // op=4: specialized perception. r1=mode (0=full, 1=region, 2=count). Returns integer in r0.
             0xB0 => {
                 let op_reg = self.fetch() as usize;
-                if op_reg >= NUM_REGS {
+                // SCREENA sentinel: 0xFF means sub-op 5, mode from next word
+                if op_reg == 0xFF {
+                    let mode_reg = self.fetch() as usize;
+                    if mode_reg >= NUM_REGS {
+                        self.regs[0] = 0xFFFFFFFF;
+                    } else {
+                        let mode = self.regs[mode_reg];
+                        self.exec_screena(mode);
+                    }
+                } else if op_reg >= NUM_REGS {
                     self.regs[0] = 0xFFFFFFFF;
                 } else {
                     let op = self.regs[op_reg];
@@ -2906,6 +2915,15 @@ impl Vm {
                                 } else {
                                     self.regs[0] = 0xFFFFFFFF;
                                 }
+                            } else {
+                                self.regs[0] = 0xFFFFFFFF;
+                            }
+                        }
+                        5 => {
+                            // SCREENA: Screen Analysis / Fitness Evaluation
+                            if op_reg + 1 < NUM_REGS {
+                                let mode = self.regs[op_reg + 1];
+                                self.exec_screena(mode);
                             } else {
                                 self.regs[0] = 0xFFFFFFFF;
                             }
@@ -3492,6 +3510,410 @@ impl Vm {
         true
     }
 
+    /// Execute screen analysis / fitness evaluation.
+    /// Called by the SCREENA sub-opcode (0xB0 sub-op 5) and the 0xFF sentinel path.
+    /// mode determines which metric to compute; result goes to r0.
+    fn exec_screena(&mut self, mode: u32) {
+        match mode {
+            0 => {
+                // Non-zero pixel count (how much of the screen is drawn)
+                let mut count = 0u32;
+                for &px in &self.screen {
+                    if px != 0 {
+                        count += 1;
+                    }
+                }
+                self.regs[0] = count;
+            }
+            1 => {
+                // Unique color count (color diversity)
+                let mut colors = std::collections::HashSet::new();
+                for &px in &self.screen {
+                    if px != 0 {
+                        colors.insert(px);
+                    }
+                }
+                self.regs[0] = colors.len() as u32;
+            }
+            2 => {
+                // Horizontal symmetry: compare left half to mirrored right half
+                // Only count pixels where at least one side is non-zero
+                // Sample 32 rows x 128 columns (left half vs right half mirrored)
+                let mut matches = 0u32;
+                let mut total = 0u32;
+                for y in 0..32u32 {
+                    for x in 0..128u32 {
+                        let left = self.screen[(y * 256 + x) as usize];
+                        let right = self.screen[(y * 256 + (255 - x)) as usize];
+                        if left != 0 || right != 0 {
+                            total += 1;
+                            if left == right {
+                                matches += 1;
+                            }
+                        }
+                    }
+                }
+                self.regs[0] = if total > 0 {
+                    (matches * 10000) / total
+                } else {
+                    10000 // empty screen is trivially symmetric
+                };
+            }
+            3 => {
+                // Vertical symmetry: compare top half to mirrored bottom half
+                // Only count pixels where at least one side is non-zero
+                let mut matches = 0u32;
+                let mut total = 0u32;
+                for y in 0..128u32 {
+                    for x in 0..256u32 {
+                        let top = self.screen[(y * 256 + x) as usize];
+                        let bot = self.screen[((255 - y) * 256 + x) as usize];
+                        if top != 0 || bot != 0 {
+                            total += 1;
+                            if top == bot {
+                                matches += 1;
+                            }
+                        }
+                    }
+                }
+                self.regs[0] = if total > 0 {
+                    (matches * 10000) / total
+                } else {
+                    10000 // empty screen is trivially symmetric
+                };
+            }
+            4 => {
+                // Entropy estimate: count how many of 16 color buckets are used
+                let mut buckets = [0u32; 16];
+                for &px in &self.screen {
+                    if px != 0 {
+                        let bucket = ((px >> 20) & 0xF) as usize;
+                        if bucket < 16 {
+                            buckets[bucket] += 1;
+                        }
+                    }
+                }
+                let mut filled = 0u32;
+                for &b in &buckets {
+                    if b > 0 {
+                        filled += 1;
+                    }
+                }
+                self.regs[0] = filled * 625; // Scale: 16 buckets * 625 = 10000 max
+            }
+            5 => {
+                // Center of mass X (average x of non-zero pixels, 0-255)
+                let mut sum_x = 0u64;
+                let mut count = 0u64;
+                for (i, &px) in self.screen.iter().enumerate() {
+                    if px != 0 {
+                        sum_x += (i % 256) as u64;
+                        count += 1;
+                    }
+                }
+                self.regs[0] = if count > 0 {
+                    (sum_x / count) as u32
+                } else {
+                    128
+                };
+            }
+            6 => {
+                // Center of mass Y (average y of non-zero pixels, 0-255)
+                let mut sum_y = 0u64;
+                let mut count = 0u64;
+                for (i, &px) in self.screen.iter().enumerate() {
+                    if px != 0 {
+                        sum_y += (i / 256) as u64;
+                        count += 1;
+                    }
+                }
+                self.regs[0] = if count > 0 {
+                    (sum_y / count) as u32
+                } else {
+                    128
+                };
+            }
+            7 => {
+                // Combined fitness score (enhanced for evolution)
+                // Weight: nonzero_pixels*2 + unique_colors*10 + h_symmetry*5
+                let mut nonzero = 0u32;
+                let mut colors = std::collections::HashSet::new();
+                for &px in &self.screen {
+                    if px != 0 {
+                        nonzero += 1;
+                        colors.insert(px);
+                    }
+                }
+                let unique = colors.len() as u32;
+                // Quick horizontal symmetry (sampled, non-zero only)
+                let mut sym = 0u32;
+                let mut sym_total = 0u32;
+                for y in 0..32u32 {
+                    for x in 0..128u32 {
+                        let left = self.screen[(y * 256 + x) as usize];
+                        let right = self.screen[(y * 256 + (255 - x)) as usize];
+                        if left != 0 || right != 0 {
+                            sym_total += 1;
+                            if left == right {
+                                sym += 1;
+                            }
+                        }
+                    }
+                }
+                let sym_score = if sym_total > 0 {
+                    (sym * 10000) / sym_total
+                } else {
+                    10000
+                };
+                self.regs[0] = (nonzero.saturating_mul(2))
+                    .saturating_add(unique.saturating_mul(10))
+                    .saturating_add(sym_score.saturating_mul(5));
+            }
+            // ── Enhanced fitness modes (Phase 199) ──
+            8 => {
+                // Spatial coherence: fraction of non-zero pixels that have
+                // at least one non-zero neighbor (4-connected).
+                // Measures structural connectivity vs scattered noise.
+                let mut has_neighbor = 0u32;
+                let mut nonzero = 0u32;
+                for y in 0..256u32 {
+                    for x in 0..256u32 {
+                        let idx = (y * 256 + x) as usize;
+                        if self.screen[idx] != 0 {
+                            nonzero += 1;
+                            // Check 4-connected neighbors
+                            let mut found = false;
+                            if x > 0 && self.screen[idx - 1] != 0 {
+                                found = true;
+                            }
+                            if x < 255 && self.screen[idx + 1] != 0 {
+                                found = true;
+                            }
+                            if y > 0 && self.screen[idx - 256] != 0 {
+                                found = true;
+                            }
+                            if y < 255 && self.screen[idx + 256] != 0 {
+                                found = true;
+                            }
+                            if found {
+                                has_neighbor += 1;
+                            }
+                        }
+                    }
+                }
+                self.regs[0] = if nonzero > 0 {
+                    (has_neighbor * 10000) / nonzero
+                } else {
+                    0
+                };
+            }
+            9 => {
+                // Edge density: count pixel-to-pixel transitions (non-zero to zero
+                // or zero to non-zero) in a 64x64 downsampled grid.
+                // Measures how much outline/border structure exists.
+                let mut edges = 0u32;
+                let step = 4u32; // 256/64 = 4
+                for y in 0..63u32 {
+                    for x in 0..63u32 {
+                        let idx = ((y * step) * 256 + (x * step)) as usize;
+                        let cur = self.screen[idx] != 0;
+                        let right = self.screen[idx + (step as usize)] != 0;
+                        let below = self.screen[idx + (step as usize * 256)] != 0;
+                        if cur != right {
+                            edges += 1;
+                        }
+                        if cur != below {
+                            edges += 1;
+                        }
+                    }
+                }
+                // Normalize: max edges ~ 63*64*2 = 8064, scale to 0-10000
+                self.regs[0] = (edges * 10000) / 8064;
+            }
+            10 => {
+                // Region count: flood-fill based count of distinct connected
+                // components of non-zero pixels (8-connected), sampled on a
+                // 64x64 downsampled grid. Measures structural complexity.
+                let step = 4usize;
+                let mut visited = [false; 64 * 64];
+                let mut regions = 0u32;
+                for sy in 0..64usize {
+                    for sx in 0..64usize {
+                        let si = sy * 64 + sx;
+                        if visited[si] {
+                            continue;
+                        }
+                        let idx = (sy * step) * 256 + (sx * step);
+                        if self.screen[idx] == 0 {
+                            visited[si] = true;
+                            continue;
+                        }
+                        // BFS flood fill
+                        regions += 1;
+                        let mut queue = std::collections::VecDeque::new();
+                        queue.push_back((sx, sy));
+                        visited[si] = true;
+                        while let Some((cx, cy)) = queue.pop_front() {
+                            // 8-connected neighbors
+                            for (dx, dy) in &[
+                                (-1, 0),
+                                (1, 0),
+                                (0, -1),
+                                (0, 1),
+                                (-1, -1),
+                                (-1, 1),
+                                (1, -1),
+                                (1, 1),
+                            ] {
+                                let nx = cx as i32 + dx;
+                                let ny = cy as i32 + dy;
+                                if nx >= 0 && nx < 64 && ny >= 0 && ny < 64 {
+                                    let ni = ny as usize * 64 + nx as usize;
+                                    if !visited[ni] {
+                                        let nidx =
+                                            (ny as usize * step) * 256 + (nx as usize * step);
+                                        if self.screen[nidx] != 0 {
+                                            visited[ni] = true;
+                                            queue.push_back((nx as usize, ny as usize));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                self.regs[0] = regions;
+            }
+            11 => {
+                // Color harmony: measures how many non-zero pixels use colors
+                // from a restricted "pleasant" palette. Checks if R, G, B
+                // channels share similar brightness ranges (low std dev).
+                let mut r_vals: Vec<u32> = Vec::new();
+                let mut g_vals: Vec<u32> = Vec::new();
+                let mut b_vals: Vec<u32> = Vec::new();
+                for &px in &self.screen {
+                    if px != 0 {
+                        r_vals.push((px >> 16) & 0xFF);
+                        g_vals.push((px >> 8) & 0xFF);
+                        b_vals.push(px & 0xFF);
+                    }
+                }
+                if r_vals.is_empty() {
+                    self.regs[0] = 0;
+                    return;
+                }
+                // Compute average brightness per channel
+                let r_avg = r_vals.iter().sum::<u32>() / r_vals.len() as u32;
+                let g_avg = g_vals.iter().sum::<u32>() / g_vals.len() as u32;
+                let b_avg = b_vals.iter().sum::<u32>() / b_vals.len() as u32;
+                // Compute variance (simplified: mean absolute deviation)
+                let r_dev: u64 = r_vals
+                    .iter()
+                    .map(|&v| (v as i32 - r_avg as i32).unsigned_abs() as u64)
+                    .sum();
+                let g_dev: u64 = g_vals
+                    .iter()
+                    .map(|&v| (v as i32 - g_avg as i32).unsigned_abs() as u64)
+                    .sum();
+                let b_dev: u64 = b_vals
+                    .iter()
+                    .map(|&v| (v as i32 - b_avg as i32).unsigned_abs() as u64)
+                    .sum();
+                let n = r_vals.len() as u64;
+                let r_mad = (r_dev * 100) / (n * 255); // 0-100 per channel
+                let g_mad = (g_dev * 100) / (n * 255);
+                let b_mad = (b_dev * 100) / (n * 255);
+                // Harmony = 100 - average_mad (lower deviation = more harmonious)
+                let avg_mad = (r_mad + g_mad + b_mad) / 3;
+                self.regs[0] = if avg_mad > 100 {
+                    0
+                } else {
+                    (10000 - avg_mad * 100) as u32
+                };
+            }
+            12 => {
+                // Super combined fitness (Phase 199 enhanced):
+                // Weighted sum of multiple metrics for evolution selection.
+                // nonzero*1 + unique*8 + h_sym*3 + coherence*4 + edge_density*2 + harmony*3
+                let mut nonzero = 0u32;
+                let mut colors = std::collections::HashSet::new();
+                for &px in &self.screen {
+                    if px != 0 {
+                        nonzero += 1;
+                        colors.insert(px);
+                    }
+                }
+                let unique = colors.len() as u32;
+
+                // Spatial coherence (mode 8, simplified sampling)
+                let mut has_neighbor = 0u32;
+                let mut coh_nonzero = 0u32;
+                for y in (0..256u32).step_by(4) {
+                    for x in (0..256u32).step_by(4) {
+                        let idx = (y * 256 + x) as usize;
+                        if self.screen[idx] != 0 {
+                            coh_nonzero += 1;
+                            let mut found = false;
+                            if x > 0 && self.screen[idx - 1] != 0 {
+                                found = true;
+                            }
+                            if x < 255 && self.screen[idx + 1] != 0 {
+                                found = true;
+                            }
+                            if y > 0 && self.screen[idx - 256] != 0 {
+                                found = true;
+                            }
+                            if y < 255 && self.screen[idx + 256] != 0 {
+                                found = true;
+                            }
+                            if found {
+                                has_neighbor += 1;
+                            }
+                        }
+                    }
+                }
+                let coherence = if coh_nonzero > 0 {
+                    (has_neighbor * 10000) / coh_nonzero
+                } else {
+                    0
+                };
+
+                // Horizontal symmetry (mode 2, fast 16-row sample, non-zero only)
+                let mut sym = 0u32;
+                let mut sym_total = 0u32;
+                for y in 0..16u32 {
+                    for x in 0..64u32 {
+                        let sy = y * 16;
+                        let sx = x * 4;
+                        let left = self.screen[(sy * 256 + sx) as usize];
+                        let right = self.screen[(sy * 256 + (255 - sx)) as usize];
+                        if left != 0 || right != 0 {
+                            sym_total += 1;
+                            if left == right {
+                                sym += 1;
+                            }
+                        }
+                    }
+                }
+                let sym_score = if sym_total > 0 {
+                    (sym * 10000) / sym_total
+                } else {
+                    10000
+                };
+
+                // Combined (scaled to prevent overflow)
+                self.regs[0] = nonzero
+                    .saturating_mul(1)
+                    .saturating_add(unique.saturating_mul(8))
+                    .saturating_add(sym_score.saturating_mul(3))
+                    .saturating_add(coherence.saturating_mul(4));
+            }
+            _ => {
+                self.regs[0] = 0xFFFFFFFF;
+            }
+        }
+    }
+
     /// Blit all active windows to the screen in Z-order (lowest z first).
     /// Non-zero pixels in the offscreen buffer overwrite the screen.
     /// Zero pixels (0x00000000) are transparent -- they don't overwrite.
@@ -3504,8 +3926,17 @@ impl Vm {
             if w.active {
                 let nonzero: usize = w.offscreen_buffer.iter().filter(|&&p| p != 0).count();
                 if nonzero > 0 {
-                    eprintln!("[BLIT] win {} ({}x{}): {}/{} non-zero pixels, pos=({},{}), z={}",
-                        w.id, w.w, w.h, nonzero, w.offscreen_buffer.len(), w.x, w.y, w.z_order);
+                    eprintln!(
+                        "[BLIT] win {} ({}x{}): {}/{} non-zero pixels, pos=({},{}), z={}",
+                        w.id,
+                        w.w,
+                        w.h,
+                        nonzero,
+                        w.offscreen_buffer.len(),
+                        w.x,
+                        w.y,
+                        w.z_order
+                    );
                 }
             }
         }

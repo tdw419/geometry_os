@@ -720,10 +720,32 @@ pub(super) fn try_parse(
             //   1 = canvas checksum -> r0
             //   2 = canvas diff (prev screen addr in r[op_reg+1]) -> r0
             //   3 = vision API call (prompt_addr in r[op_reg+1], response_addr in r[op_reg+2], max_len in r[op_reg+3])
+            //   4 = specialized perception (mode in r[op_reg+1])
+            //   5 = screen analysis / fitness (mode in r[op_reg+1])
             if tokens.len() < 2 {
                 return Err("AI_AGENT requires 1 argument: AI_AGENT op_reg".to_string());
             }
             bytecode.push(0xB0);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
+        "SCREENA" => {
+            // SCREENA mode_reg -- screen analysis / fitness evaluation
+            // Always uses AI_AGENT sub-op 5. mode_reg should hold the analysis mode:
+            //   0=nonzero count, 1=unique colors, 2=h-symmetry, 3=v-symmetry,
+            //   4=entropy, 5=center_x, 6=center_y, 7=combined fitness
+            // The VM reads: op = 5 (hardcoded), mode = regs[mode_reg]
+            // Actually encodes as: LDI r28, 5 + AI_AGENT r28 + reads r[mode_reg]
+            // But since assembler can't emit multi-instruction sequences,
+            // we use a dedicated encoding: [0xB0, 0xFF, mode_reg]
+            // where 0xFF signals "sub-op 5, mode from the NEXT register"
+            if tokens.len() < 2 {
+                return Err("SCREENA requires 1 argument: SCREENA mode_reg".to_string());
+            }
+            // Emit: 0xB0, 0xFF (signals sub-op 5 + mode_from_next), mode_reg
+            bytecode.push(0xB0);
+            bytecode.push(0xFF); // sentinel: sub-op 5, mode from next word
             bytecode.push(parse_reg(tokens[1])? as u32);
             Ok(Some(()))
         }

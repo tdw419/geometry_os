@@ -22788,8 +22788,7 @@ msg: .ascii "HELLO PIXELS"
 
     // Step 3: assemble the decoded source.
     let base = 0x1000usize;
-    let asm = crate::assembler::assemble(decoded_src, base)
-        .expect("decoded source must assemble");
+    let asm = crate::assembler::assemble(decoded_src, base).expect("decoded source must assemble");
 
     // Step 4: load into VM and run.
     let mut vm = Vm::new();
@@ -22867,7 +22866,7 @@ fn test_pixel_vm_add_2_plus_3() {
     // PV_PROG_BASE = 0x10000 maps to screen[0], PV_REG_BASE = 0x10100 maps to screen[256].
     // The GeOS VM translates: LOAD from 0x10000+N -> screen[N].
     for (i, &instr) in pixel_program.iter().enumerate() {
-        vm.screen[i] = instr;  // program at screen[0..]
+        vm.screen[i] = instr; // program at screen[0..]
     }
 
     // Run with generous step limit (pixel-VM is an interpreter on an interpreter)
@@ -22879,7 +22878,7 @@ fn test_pixel_vm_add_2_plus_3() {
     assert!(vm.halted, "pixel-VM should halt after executing HALT");
 
     // PV_REG_BASE = 0x10100 -> screen offset 256
-    let reg0 = vm.screen[256];     // pv_regs[0] = result
+    let reg0 = vm.screen[256]; // pv_regs[0] = result
     let reg1 = vm.screen[256 + 1]; // pv_regs[1] = 3
 
     assert_eq!(
@@ -22961,14 +22960,14 @@ fn test_pixel_vm_loop_counter() {
     // Cleaner: add addr 6 = CMPI r0, 0 (always sets flag=1 since r0>0), addr 7 = JNZ 2
 
     let pixel_program = [
-        pixel_encode(0x01, 0, 1), // addr 0: LOADI r0, 1
-        pixel_encode(0x01, 1, 1), // addr 1: LOADI r1, 1
-        pixel_encode(0x07, 0, 10),// addr 2: CMPI r0, 10
-        pixel_encode(0x08, 0, 5), // addr 3: JNZ 5 (jump to ADD if not equal)
-        pixel_encode(0xFF, 0, 0), // addr 4: HALT
-        pixel_encode(0x02, 0, 1), // addr 5: ADD r0, r1
-        pixel_encode(0x07, 0, 0), // addr 6: CMPI r0, 0 (always sets flag=1 since r0>0)
-        pixel_encode(0x08, 0, 2), // addr 7: JNZ 2 (jump back to CMPI r0, 10)
+        pixel_encode(0x01, 0, 1),  // addr 0: LOADI r0, 1
+        pixel_encode(0x01, 1, 1),  // addr 1: LOADI r1, 1
+        pixel_encode(0x07, 0, 10), // addr 2: CMPI r0, 10
+        pixel_encode(0x08, 0, 5),  // addr 3: JNZ 5 (jump to ADD if not equal)
+        pixel_encode(0xFF, 0, 0),  // addr 4: HALT
+        pixel_encode(0x02, 0, 1),  // addr 5: ADD r0, r1
+        pixel_encode(0x07, 0, 0),  // addr 6: CMPI r0, 0 (always sets flag=1 since r0>0)
+        pixel_encode(0x08, 0, 2),  // addr 7: JNZ 2 (jump back to CMPI r0, 10)
     ];
 
     let src = include_str!("../../programs/pixel_vm.asm");
@@ -22992,7 +22991,10 @@ fn test_pixel_vm_loop_counter() {
             break;
         }
     }
-    assert!(vm.halted, "pixel-VM loop should halt when counter reaches 10");
+    assert!(
+        vm.halted,
+        "pixel-VM loop should halt when counter reaches 10"
+    );
 
     // PV_REG_BASE = 0x10100 -> screen offset 256
     let counter = vm.screen[256]; // pv_regs[0]
@@ -23038,8 +23040,7 @@ fn test_pixel_vm_from_pixelpack_png() {
 
     let mut png_buf = Vec::new();
     {
-        let mut encoder =
-            png::Encoder::new(std::io::Cursor::new(&mut png_buf), width, height);
+        let mut encoder = png::Encoder::new(std::io::Cursor::new(&mut png_buf), width, height);
         encoder.set_color(png::ColorType::Rgba);
         encoder.set_depth(png::BitDepth::Eight);
         encoder
@@ -23056,7 +23057,9 @@ fn test_pixel_vm_from_pixelpack_png() {
     let decoder = png::Decoder::new(std::io::Cursor::new(&png_buf));
     let mut reader = decoder.read_info().expect("PNG must decode");
     let mut pixel_buf = vec![0u8; (width * height * 4) as usize];
-    reader.next_frame(&mut pixel_buf).expect("PNG frame must read");
+    reader
+        .next_frame(&mut pixel_buf)
+        .expect("PNG frame must read");
 
     let decoded: Vec<u32> = (0..n as usize)
         .map(|i| {
@@ -23099,7 +23102,10 @@ fn test_pixel_vm_from_pixelpack_png() {
             break;
         }
     }
-    assert!(vm.halted, "pixel-VM should halt after executing HALT from PNG program");
+    assert!(
+        vm.halted,
+        "pixel-VM should halt after executing HALT from PNG program"
+    );
 
     // Step 5: Verify the result.
     let reg0 = vm.screen[256]; // PV_REG_BASE -> screen offset 256
@@ -23116,4 +23122,336 @@ fn test_pixel_vm_from_pixelpack_png() {
         "pixel-VM from PNG: r1 should still be 3; got {}",
         reg1
     );
+}
+
+// ── Phase 199: Enhanced SCREENA Fitness Function Tests ──
+
+#[test]
+fn test_screena_nonzero_count() {
+    let mut vm = Vm::new();
+    for y in 100..110u32 {
+        for x in 100..110u32 {
+            vm.screen[(y * 256 + x) as usize] = 0x00FF0000;
+        }
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 0;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 100);
+}
+
+#[test]
+fn test_screena_unique_colors() {
+    let mut vm = Vm::new();
+    for i in 0..5u32 {
+        vm.screen[i as usize] = (i + 1) * 0x010101;
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 1;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 5);
+}
+
+#[test]
+fn test_screena_horizontal_symmetry_perfect() {
+    let mut vm = Vm::new();
+    for y in 0..32u32 {
+        vm.screen[(y * 256 + 128) as usize] = 0x00FF0000;
+        vm.screen[(y * 256 + 127) as usize] = 0x00FF0000;
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 2;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 10000);
+}
+
+#[test]
+fn test_screena_horizontal_symmetry_asymmetric() {
+    let mut vm = Vm::new();
+    for y in 0..32u32 {
+        vm.screen[(y * 256 + 10) as usize] = 0x00FF0000;
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 2;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert!(vm.regs[0] < 1000);
+}
+
+#[test]
+fn test_screena_vertical_symmetry() {
+    let mut vm = Vm::new();
+    for x in 0..256u32 {
+        vm.screen[(127 * 256 + x) as usize] = 0x0000FF00;
+        vm.screen[(128 * 256 + x) as usize] = 0x0000FF00;
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 3;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 10000);
+}
+
+#[test]
+fn test_screena_entropy_estimate() {
+    let mut vm = Vm::new();
+    for i in 0..16u32 {
+        vm.screen[i as usize] = (i * 0x100000) | 0x00FF00;
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 4;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 10000);
+}
+
+#[test]
+fn test_screena_center_of_mass() {
+    let mut vm = Vm::new();
+    vm.screen[(50 * 256 + 200) as usize] = 0x00FFFFFF;
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 5;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 200);
+
+    vm.regs[1] = 6;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 50);
+}
+
+#[test]
+fn test_screena_center_of_mass_empty() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 5;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 128);
+}
+
+#[test]
+fn test_screena_combined_fitness() {
+    let mut vm = Vm::new();
+    for y in 118..138u32 {
+        for x in 118..138u32 {
+            vm.screen[(y * 256 + x) as usize] = 0x00FF0000;
+            vm.screen[(y * 256 + (255 - x)) as usize] = 0x00FF0000;
+        }
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 7;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert!(vm.regs[0] > 0);
+    assert!(vm.regs[0] < 0xFFFFFFFF);
+}
+
+#[test]
+fn test_screena_spatial_coherence_connected() {
+    let mut vm = Vm::new();
+    for y in 100..110u32 {
+        for x in 100..110u32 {
+            vm.screen[(y * 256 + x) as usize] = 0x00FF0000;
+        }
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 8;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert!(vm.regs[0] > 9000);
+}
+
+#[test]
+fn test_screena_spatial_coherence_scattered() {
+    let mut vm = Vm::new();
+    vm.screen[0] = 0x00FF0000;
+    vm.screen[256 * 10 + 10] = 0x00FF0000;
+    vm.screen[256 * 50 + 50] = 0x00FF0000;
+    vm.screen[256 * 100 + 100] = 0x00FF0000;
+    vm.screen[256 * 200 + 200] = 0x00FF0000;
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 8;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 0);
+}
+
+#[test]
+fn test_screena_edge_density() {
+    let mut vm = Vm::new();
+    for y in 64..192u32 {
+        for x in 64..192u32 {
+            vm.screen[(y * 256 + x) as usize] = 0x0000FF00;
+        }
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 9;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert!(vm.regs[0] > 0);
+    assert!(vm.regs[0] <= 10000);
+}
+
+#[test]
+fn test_screena_region_count() {
+    let mut vm = Vm::new();
+    for dy in 0..3u32 {
+        for y in 0..8u32 {
+            for x in 0..8u32 {
+                let sy = dy * 40;
+                vm.screen[((sy + y) * 256 + x) as usize] = 0x00FFFF00;
+            }
+        }
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 10;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 3);
+}
+
+#[test]
+fn test_screena_region_count_single() {
+    let mut vm = Vm::new();
+    for y in 50..150u32 {
+        for x in 50..150u32 {
+            vm.screen[(y * 256 + x) as usize] = 0x00FF00FF;
+        }
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 10;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 1);
+}
+
+#[test]
+fn test_screena_color_harmony_monochrome() {
+    let mut vm = Vm::new();
+    for y in 100..120u32 {
+        for x in 100..120u32 {
+            vm.screen[(y * 256 + x) as usize] = 0x00808080;
+        }
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 11;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 10000);
+}
+
+#[test]
+fn test_screena_color_harmony_empty() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 11;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 0);
+}
+
+#[test]
+fn test_screena_super_combined() {
+    let mut vm = Vm::new();
+    for y in 110..146u32 {
+        for x in 110..146u32 {
+            vm.screen[(y * 256 + x) as usize] = 0x00FF0000;
+            vm.screen[(y * 256 + (255 - x)) as usize] = 0x00FF0000;
+        }
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 12;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert!(vm.regs[0] > 0);
+    assert!(vm.regs[0] < 0xFFFFFFFF);
+}
+
+#[test]
+fn test_screena_invalid_mode() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 0xFF;
+    vm.ram[2] = 1;
+    vm.regs[1] = 99;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 0xFFFFFFFF);
+}
+
+#[test]
+fn test_screena_via_subop5() {
+    let mut vm = Vm::new();
+    for y in 100..110u32 {
+        for x in 100..110u32 {
+            vm.screen[(y * 256 + x) as usize] = 0x00FF0000;
+        }
+    }
+    vm.ram[0] = 0xB0;
+    vm.ram[1] = 1;
+    vm.regs[1] = 5;
+    vm.ram[2] = 2;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    assert_eq!(vm.regs[0], 100);
 }

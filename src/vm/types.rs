@@ -1271,11 +1271,7 @@ mod capability_tests {
             read_only_path_cap("/data"),
             write_only_path_cap("/data"),
         ]);
-        assert!(check_path_capability(
-            &caps,
-            "/data",
-            Capability::PERM_READ
-        ));
+        assert!(check_path_capability(&caps, "/data", Capability::PERM_READ));
         assert!(check_path_capability(
             &caps,
             "/data",
@@ -1315,11 +1311,7 @@ mod capability_tests {
     #[test]
     fn test_opcode_restriction_no_exec() {
         // Capability exists but doesn't grant EXEC
-        let caps = Some(vec![make_cap(
-            1,
-            "77",
-            Capability::PERM_READ
-        )]); // SPAWN restricted, READ only
+        let caps = Some(vec![make_cap(1, "77", Capability::PERM_READ)]); // SPAWN restricted, READ only
         assert!(!check_opcode_capability(&caps, 0x4D));
     }
 
@@ -1436,8 +1428,7 @@ mod capability_tests {
 
         // Should return EPERM (0xFFFFFFFE), not the device fd
         assert_eq!(
-            vm.regs[0],
-            0xFFFFFFFE,
+            vm.regs[0], 0xFFFFFFFE,
             "Should deny access to /dev/keyboard"
         );
     }
@@ -1537,8 +1528,7 @@ mod capability_tests {
 
         // Should deny write access
         assert_eq!(
-            vm.regs[0],
-            0xFFFFFFFE,
+            vm.regs[0], 0xFFFFFFFE,
             "Should deny write to /dev/screen with read-only cap"
         );
     }

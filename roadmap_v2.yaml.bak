@@ -930,7 +930,7 @@ phases:
   _claimed_at: 1777317398
 - id: phase-185
   title: ANSI Parser -- Scroll Region (CSI r) and Origin Mode
-  status: planned
+  status: done
   goal: Add scroll region support so full-screen apps (htop, nano, vim) can lock scrolling
     to a subset of rows
   description: CSI r (DECSTBM) sets the scroll region top and bottom margins. Within
@@ -998,7 +998,7 @@ phases:
   _claimed_at: 1777623016
 - id: phase-186
   title: ANSI Parser -- Tab Stops and Horizontal Scrolling
-  status: planned
+  status: done
   goal: Add proper tab stop handling so formatted output (ls, tables, code) aligns
     correctly
   description: Currently TAB advances to next 8-column boundary but there are no configurable
@@ -1047,7 +1047,7 @@ phases:
   _claimed_at: 1777558123
 - id: phase-187
   title: Replace save.rs unwrap() with Proper Error Handling
-  status: planned
+  status: done
   goal: Eliminate 27 unwrap() calls in save.rs that can panic on corrupt save files
   description: save.rs handles PNG save/load for screenshots and VM state persistence.
     Currently has 27 unwrap() calls on file I/O, PNG decoding, and path conversion.
@@ -1096,7 +1096,7 @@ phases:
   _claimed_at: 1777632421
 - id: phase-188
   title: Replace glyph_backend.rs unwrap() with Error Propagation
-  status: planned
+  status: done
   goal: Eliminate 36 unwrap() calls in glyph_backend.rs for robustness
   description: glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap()
     calls on font loading, pattern matching, and data extraction. Failures here crash
@@ -1125,7 +1125,7 @@ phases:
   _completed_at: 1777558123
 - id: phase-189
   title: VFS Capability Enforcement on Process Creation
-  status: planned
+  status: done
   goal: Wire up the existing Capability struct to Process so spawned programs get
     restricted VFS access
   description: src/vm/types.rs already has Capability, check_path_capability, and
@@ -1227,7 +1227,7 @@ phases:
   _claimed_at: 1777643541
 - id: phase-191
   title: Roguelike Game Polish -- Save/Load and Win Condition
-  status: planned
+  status: done
   goal: Add game state persistence and a proper win/lose loop to the roguelike
   description: The roguelike (2549 lines) is one of the largest programs but has no
     save/load and no win condition. When you find the stairs, there is no victory
@@ -1400,7 +1400,7 @@ phases:
   _claimed_at: 1777645710
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: planned
+  status: in_progress
   goal: Extend file browser to support directory traversal, file deletion, and file
     creation
   description: The file browser shows VFS files and displays content but cannot navigate
@@ -1429,10 +1429,10 @@ phases:
   scope_lines_total: 85965
   test_target: 2
   _claimed_by: worker-0
-  _claimed_at: 1777583670
+  _claimed_at: 1777650889
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
-  status: planned
+  status: done
   goal: Add command history and conversation context tracking to ai_terminal.asm
   description: The AI terminal (2181 lines) sends prompts to the LLM opcode but has
     no command history (up/down arrows to recall previous prompts) and no context
@@ -1440,7 +1440,7 @@ phases:
     use.
   deliverables:
   - name: Command history with up/down arrow recall
-    status: planned
+    status: done
     tasks:
     - id: p196.d1.t1
       title: Add circular history buffer (16 entries)
@@ -1449,8 +1449,9 @@ phases:
       scope_files:
       - programs/ai_terminal.asm
       scope_lines: 40
+      status: done
   - name: Context window display
-    status: planned
+    status: done
     tasks:
     - id: p196.d2.t1
       title: Show token count and conversation turns in status bar
@@ -1459,14 +1460,15 @@ phases:
       scope_files:
       - programs/ai_terminal.asm
       scope_lines: 20
+      status: done
   scope_lines: 60
   scope_lines_total: 86025
   test_target: 2
   _claimed_by: worker-0
-  _claimed_at: 1777587013
+  _claimed_at: 1777653464
 - id: phase-197
   title: Replace mmu.rs unwrap() Calls with Proper Error Paths
-  status: planned
+  status: done
   goal: Eliminate 14 unwrap() calls in the RISC-V MMU that can panic on page fault
     edge cases
   description: The MMU (src/riscv/mmu.rs) handles address translation for the RISC-V
@@ -1497,7 +1499,7 @@ phases:
   _claimed_at: 1777590104
 - id: phase-198
   title: Desktop Terminal Integration -- Launch Hermes from GeOS
-  status: planned
+  status: in_progress
   goal: The GeOS terminal should be able to launch Hermes Agent as a subprocess and
     display its output
   description: 'The terminal runs bash, which means you can type ''hermes chat'' and
@@ -1528,7 +1530,7 @@ phases:
   scope_lines_total: 86180
   test_target: 3
   _claimed_by: worker-0
-  _claimed_at: 1777593202
+  _claimed_at: 1777655865
 - id: phase-199
   title: Code Evolution Program -- Fitness Function Improvements
   status: planned
@@ -1564,20 +1566,20 @@ phases:
     save, watch GeOS assemble and execute the program as colored pixels on the grid.
   description: 'GeOS is a place you go to, not a place you live in. The editing happens
     externally (neovim with real LSP, real keybindings), and the visualization/execution
-    happens natively in GeOS. This phase implements the bridge: a file watcher that monitors
-    .asm files, triggers assemble -> encode to pixels -> load into screen memory -> execute
-    on save. The user sees source in their editor, the encoded PNG, and live execution state
-    simultaneously. No canvas-as-editor needed -- the text editor is a solved problem. The
-    thing native to GeOS is execution and visualization. Dependency: multi-program kernel
-    (so the watcher and VM run simultaneously).'
+    happens natively in GeOS. This phase implements the bridge: a file watcher that
+    monitors .asm files, triggers assemble -> encode to pixels -> load into screen
+    memory -> execute on save. The user sees source in their editor, the encoded PNG,
+    and live execution state simultaneously. No canvas-as-editor needed -- the text
+    editor is a solved problem. The thing native to GeOS is execution and visualization.
+    Dependency: multi-program kernel (so the watcher and VM run simultaneously).'
   deliverables:
   - name: File watcher + assemble + execute pipeline
     status: planned
     tasks:
     - id: p200.d1.t1
       title: Add file watcher for .asm files in GeOS host
-      description: Watch a configurable directory for .asm file changes. On save, trigger
-        assemble -> encode -> execute pipeline. Use notify crate or similar.
+      description: Watch a configurable directory for .asm file changes. On save,
+        trigger assemble -> encode -> execute pipeline. Use notify crate or similar.
       scope_files:
       - src/main.rs
       scope_lines: 50
