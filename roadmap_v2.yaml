@@ -806,14 +806,28 @@ phases:
       - examples/riscv-hello/libgeos.h
     - id: i.2.2
       title: Region clipping in fb_present path
-      status: todo
+      status: done
       description: 'When kernel handles fb_present (or the present interrupt), iterate
         only over the calling program''s rect. Pixels outside the rect are not touched
-        in vm.screen. Implementation note: simplest is to track a "current program"
-        rect and clip the composite step.'
+        in vm.screen.
+
+        Implemented (2026-04-30): PresentCallback now passes the current clip rect
+        alongside pixel data. Frame struct carries clip_rect: Option<(u32,u32,u32,u32)>.
+        The GUI composite step in main.rs only blits pixels within the clip rect,
+        leaving other programs'' regions untouched. Pixel-level write clipping was
+        already implemented via inside_clip().
+
+        Added 3 unit tests in framebuf.rs: test_present_callback_receives_clip_rect,
+        test_two_programs_present_with_clip_rects, test_clip_rect_changes_between_presents.
+
+        Also fixed 8-bit encoding overflow: w/h=256 now encodes as 0 (0-means-256
+        convention), since 256 doesn''t fit in an 8-bit field. Updated libgeos.h
+        geos_request_region() to use the same convention.'
       files:
       - src/riscv/framebuf.rs
-      - examples/riscv-hello/geos_kern.c
+      - src/riscv/live.rs
+      - src/main.rs
+      - examples/riscv-hello/libgeos.h
   - name: Capstone -- split-screen sh + life64
     description: 'The Layer 2 thesis demo. Left half (128x256) runs sh.c. Right half
       (128x256) runs a 32x32 life simulation (smaller variant of life64.c). Both visible
@@ -881,7 +895,7 @@ phases:
 
     '
   _claimed_by: worker-0
-  _claimed_at: 1777392666
+  _claimed_at: 1777597933
 - id: phase-141
   title: Terminal Polish -- Scrollback and Visual Refinements
   status: done
@@ -1488,7 +1502,7 @@ phases:
   _claimed_at: 1777590104
 - id: phase-198
   title: Desktop Terminal Integration -- Launch Hermes from GeOS
-  status: planned
+  status: in_progress
   goal: The GeOS terminal should be able to launch Hermes Agent as a subprocess and
     display its output
   description: 'The terminal runs bash, which means you can type ''hermes chat'' and
@@ -1518,9 +1532,11 @@ phases:
   scope_lines: 70
   scope_lines_total: 86180
   test_target: 3
+  _claimed_by: worker-0
+  _claimed_at: 1777593202
 - id: phase-199
   title: Code Evolution Program -- Fitness Function Improvements
-  status: planned
+  status: in_progress
   goal: Improve the self-modifying code evolution program to produce more interesting
     and stable results
   description: code_evolution.asm (5705 lines, the largest program) implements genetic
@@ -1549,6 +1565,8 @@ phases:
   scope_lines: 100
   scope_lines_total: 86280
   test_target: 2
+  _claimed_by: worker-0
+  _claimed_at: 1777595383
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'

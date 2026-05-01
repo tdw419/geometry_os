@@ -48,6 +48,7 @@ void geos_put_hex(uint32_t val);
 #define GEOS_FB_WIDTH       256
 #define GEOS_FB_HEIGHT      256
 #define GEOS_FB_CONTROL     (GEOS_FB_BASE + (GEOS_FB_WIDTH * GEOS_FB_HEIGHT) * 4)
+#define GEOS_FB_CLIP        (GEOS_FB_CONTROL + 4)  /* clip rect register */
 
 /* Pack RGB channels into framebuffer pixel format (0xRRGGBBAA, alpha=0xFF). */
 static inline uint32_t geos_rgb(uint8_t r, uint8_t g, uint8_t b) {
@@ -72,6 +73,57 @@ static inline uint32_t geos_fb_read(uint32_t x, uint32_t y) {
         return *(volatile uint32_t *)(GEOS_FB_BASE + (y * GEOS_FB_WIDTH + x) * 4);
     }
     return 0;
+}
+
+/* ---- Region clipping (Layer 2 multi-program) ---- */
+
+/*
+ * Set the framebuffer clip rectangle. After calling this, pixel writes
+ * outside (x, y, w, h) are silently dropped. This lets two programs
+ * share the framebuffer without clobbering each other's pixels.
+ *
+ * Format written to MMIO: (y << 24) | (x << 16) | (h << 8) | w
+ * Each field is 8 bits. A value of 0 for w or h means 256 (full extent),
+ * since the 8-bit field can't encode 256 directly.
+ * Pass 0xFFFFFFFF to disable clipping (full-screen access).
+ *
+ * Returns 0 on success.
+ */
+static inline int geos_request_region(uint32_t x, uint32_t y,
+                                       uint32_t w, uint32_t h) {
+    if (x >= GEOS_FB_WIDTH || y >= GEOS_FB_HEIGHT) return -1;
+    if (w == 0 || h == 0) return -1;
+    /* Clamp to framebuffer bounds */
+    if (x + w > GEOS_FB_WIDTH) w = GEOS_FB_WIDTH - x;
+    if (y + h > GEOS_FB_HEIGHT) h = GEOS_FB_HEIGHT - y;
+    /*
+     * Encode: 0 in w/h field means 256 (full extent) since 256
+     * doesn't fit in 8 bits. So w=256 -> w_field=0, h=256 -> h_field=0.
+     */
+    uint8_t wf = (w >= 256) ? 0 : (uint8_t)w;
+    uint8_t hf = (h >= 256) ? 0 : (uint8_t)h;
+    uint32_t packed = ((uint32_t)(y & 0xFF) << 24) | ((uint32_t)(x & 0xFF) << 16) |
+                      ((uint32_t)hf << 8)        | (uint32_t)wf;
+    *(volatile uint32_t *)GEOS_FB_CLIP = packed;
+    return 0;
+}
+
+/* Disable clipping -- full framebuffer access restored. */
+static inline void geos_release_region(void) {
+    *(volatile uint32_t *)GEOS_FB_CLIP = 0xFFFFFFFFu;
+}
+
+/*
+ * Cooperative yield. SBI ecall into the GEOMETRY extension (function 1).
+ * Returns control to the Layer 2 kernel scheduler.
+ * When the kernel resumes this program, geos_yield() returns 0.
+ */
+static inline long geos_yield(void) {
+    register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
+    register long a6 __asm__("a6") = 1;            /* GEO_FN_YIELD */
+    register long a0 __asm__("a0") = 0;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a6), "r"(a7) : "memory", "a1");
+    return a0;
 }
 
 /* ---- Timing helpers ---- */

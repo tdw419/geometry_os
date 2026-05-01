@@ -4269,13 +4269,34 @@ fn main() {
         if let Some(ref frame) = riscv_latest_frame {
             let fb_w = frame.width.min(256);
             let fb_h = frame.height.min(256);
-            for y in 0..fb_h {
-                for x in 0..fb_w {
-                    let rgba = frame.pixels[y * frame.width + x];
-                    // Alpha key: transparent pixels (alpha=0) don't overwrite
-                    if (rgba & 0xFF) != 0 {
-                        let color = riscv::framebuf::pixel_to_minifb(rgba);
-                        vm.screen[y * 256 + x] = color;
+            match frame.clip_rect {
+                Some((cx, cy, cw, ch)) => {
+                    // Region-clipped composite: only blit pixels within the clip rect.
+                    // This lets two programs share the framebuffer — each present only
+                    // touches its own region, so the other program's pixels are preserved.
+                    let x_end = (cx as usize + cw as usize).min(fb_w);
+                    let y_end = (cy as usize + ch as usize).min(fb_h);
+                    for y in (cy as usize)..y_end {
+                        for x in (cx as usize)..x_end {
+                            let rgba = frame.pixels[y * frame.width + x];
+                            // Alpha key: transparent pixels (alpha=0) don't overwrite
+                            if (rgba & 0xFF) != 0 {
+                                let color = riscv::framebuf::pixel_to_minifb(rgba);
+                                vm.screen[y * 256 + x] = color;
+                            }
+                        }
+                    }
+                }
+                None => {
+                    // No clip rect: full-buffer composite (single-program mode)
+                    for y in 0..fb_h {
+                        for x in 0..fb_w {
+                            let rgba = frame.pixels[y * frame.width + x];
+                            if (rgba & 0xFF) != 0 {
+                                let color = riscv::framebuf::pixel_to_minifb(rgba);
+                                vm.screen[y * 256 + x] = color;
+                            }
+                        }
                     }
                 }
             }

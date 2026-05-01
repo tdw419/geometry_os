@@ -44,9 +44,13 @@ pub const FB_WIDTH: usize = 256;
 /// Framebuffer height in pixels.
 pub const FB_HEIGHT: usize = 256;
 
+/// Clip rectangle: (x, y, width, height). None means no clipping.
+pub type ClipRect = Option<(u32, u32, u32, u32)>;
+
 /// Callback type fired when guest writes to the control register (fb_present).
-/// Receives a reference to the pixel buffer for display sync.
-pub type PresentCallback = Rc<RefCell<dyn FnMut(&[u32])>>;
+/// Receives a reference to the pixel buffer and the active clip rect.
+/// The clip rect lets the GUI composite only the program's region.
+pub type PresentCallback = Rc<RefCell<dyn FnMut(&[u32], ClipRect)>>;
 
 /// MMIO Framebuffer device.
 pub struct Framebuffer {
@@ -153,10 +157,14 @@ impl Framebuffer {
                 self.clip_rect = None;
             } else {
                 // Packed format: (y << 24) | (x << 16) | (h << 8) | w
+                // A value of 0 for w or h means 256 (full extent) since
+                // the 8-bit field can't encode 256 directly.
                 let w = (val & 0xFF) as u32;
                 let h = ((val >> 8) & 0xFF) as u32;
                 let x = ((val >> 16) & 0xFF) as u32;
                 let y = ((val >> 24) & 0xFF) as u32;
+                let w = if w == 0 { 256 } else { w };
+                let h = if h == 0 { 256 } else { h };
                 self.clip_rect = Some((x, y, w, h));
             }
             return;
@@ -167,7 +175,7 @@ impl Framebuffer {
                 self.present_flag = true;
                 // Fire the live display callback if registered
                 if let Some(ref cb) = self.on_present {
-                    cb.borrow_mut()(&self.pixels);
+                    cb.borrow_mut()(&self.pixels, self.clip_rect);
                 }
             }
             return;
@@ -183,5 +191,138 @@ impl Framebuffer {
         if pixel_idx < self.pixels.len() && self.inside_clip(pixel_idx) {
             self.pixels[pixel_idx] = val;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    /// Test that the present callback receives the current clip rect.
+    #[test]
+    fn test_present_callback_receives_clip_rect() {
+        let captured: Rc<RefCell<Option<ClipRect>>> = Rc::new(RefCell::new(None));
+        let cap_clone = captured.clone();
+
+        let cb: PresentCallback = Rc::new(RefCell::new(move |_pixels: &[u32], clip| {
+            *cap_clone.borrow_mut() = Some(clip);
+        }));
+
+        let mut fb = Framebuffer::with_callback(cb);
+
+        // No clip set — present should fire with None
+        fb.write(FB_CONTROL_ADDR, 1); // control = 1 (present)
+        assert_eq!(*captured.borrow(), Some(None));
+
+        // Set clip rect: x=10, y=20, w=30, h=40
+        let packed: u32 = (20u32 << 24) | (10u32 << 16) | (40u32 << 8) | 30u32;
+        fb.write(FB_CLIP_ADDR, packed);
+
+        // Present again — should fire with Some((10, 20, 30, 40))
+        fb.write(FB_CONTROL_ADDR, 1);
+        assert_eq!(*captured.borrow(), Some(Some((10, 20, 30, 40))));
+
+        // Release clip (0xFFFFFFFF) — present should fire with None
+        fb.write(FB_CLIP_ADDR, 0xFFFFFFFF);
+        fb.write(FB_CONTROL_ADDR, 1);
+        assert_eq!(*captured.borrow(), Some(None));
+    }
+
+    /// Test that two programs with different clip rects present independently.
+    /// Simulates the multi-program scenario: Program A paints left half,
+    /// Program B paints right half, each presents with their own clip rect.
+    #[test]
+    fn test_two_programs_present_with_clip_rects() {
+        // Track all presents: (clip_rect, pixel_at_0_0, pixel_at_128_0)
+        let presents: Rc<RefCell<Vec<(ClipRect, u32, u32)>>> = Rc::new(RefCell::new(Vec::new()));
+        let pres_clone = presents.clone();
+
+        let cb: PresentCallback = Rc::new(RefCell::new(move |pixels: &[u32], clip| {
+            let p00 = pixels[0];       // top-left corner
+            let p128 = pixels[128];    // x=128, y=0 (right half)
+            pres_clone.borrow_mut().push((clip, p00, p128));
+        }));
+
+        let mut fb = Framebuffer::with_callback(cb);
+
+        // --- Program A: left half (x=0, y=0, w=128, h=256) ---
+        // h=0 encodes as 256 (0 means full extent in 8-bit packed format)
+        let clip_a: u32 = (0u32 << 24) | (0u32 << 16) | (0u32 << 8) | 128u32;
+        fb.write(FB_CLIP_ADDR, clip_a);
+
+        // Paint red pixel at (0, 0) — inside A's clip
+        let red = 0xFF0000FFu32; // RGBA
+        fb.write(FB_BASE, red); // pixel at (0,0) = FB_BASE + 0*4
+
+        // Try to paint at (128, 0) — outside A's clip, should be dropped
+        let blue = 0x00FF00FFu32;
+        fb.write(FB_BASE + 128 * 4, blue);
+
+        // Program A presents
+        fb.write(FB_CONTROL_ADDR, 1);
+
+        // --- Program B: right half (x=128, y=0, w=128, h=256) ---
+        let clip_b: u32 = (0u32 << 24) | (128u32 << 16) | (0u32 << 8) | 128u32;
+        fb.write(FB_CLIP_ADDR, clip_b);
+
+        // Paint blue pixel at (128, 0) — inside B's clip
+        fb.write(FB_BASE + 128 * 4, blue);
+
+        // Try to paint at (0, 0) — outside B's clip, should be dropped
+        fb.write(FB_BASE, 0x00FF0000u32); // green — should NOT overwrite A's red
+
+        // Program B presents
+        fb.write(FB_CONTROL_ADDR, 1);
+
+        // Verify: 2 presents recorded
+        let pres = presents.borrow();
+        assert_eq!(pres.len(), 2);
+
+        // Program A's present: clip=(0,0,128,256), pixel at (0,0)=red, pixel at (128,0)=0
+        assert_eq!(pres[0].0, Some((0, 0, 128, 256)));
+        assert_eq!(pres[0].1, red);       // A's pixel at (0,0) is red
+        assert_eq!(pres[0].2, 0);        // A couldn't write to (128,0)
+
+        // Program B's present: clip=(128,0,128,256), pixel at (128,0)=blue
+        assert_eq!(pres[1].0, Some((128, 0, 128, 256)));
+        assert_eq!(pres[1].1, red);       // (0,0) still has A's red (B couldn't overwrite)
+        assert_eq!(pres[1].2, blue);      // B's pixel at (128,0) is blue
+    }
+
+    /// Test that clip rect changes between presents are correctly tracked.
+    #[test]
+    fn test_clip_rect_changes_between_presents() {
+        let rects: Rc<RefCell<Vec<ClipRect>>> = Rc::new(RefCell::new(Vec::new()));
+        let rects_clone = rects.clone();
+
+        let cb: PresentCallback = Rc::new(RefCell::new(move |_pixels: &[u32], clip| {
+            rects_clone.borrow_mut().push(clip);
+        }));
+
+        let mut fb = Framebuffer::with_callback(cb);
+
+        // Present with no clip
+        fb.write(FB_CONTROL_ADDR, 1);
+
+        // Set clip and present
+        fb.write(FB_CLIP_ADDR, (5 << 24) | (10 << 16) | (20 << 8) | 30);
+        fb.write(FB_CONTROL_ADDR, 1);
+
+        // Change clip and present
+        fb.write(FB_CLIP_ADDR, (50 << 24) | (60 << 16) | (40 << 8) | 40);
+        fb.write(FB_CONTROL_ADDR, 1);
+
+        // Disable clip and present
+        fb.write(FB_CLIP_ADDR, 0xFFFFFFFF);
+        fb.write(FB_CONTROL_ADDR, 1);
+
+        let r = rects.borrow();
+        assert_eq!(r.len(), 4);
+        assert_eq!(r[0], None);
+        assert_eq!(r[1], Some((10, 5, 30, 20))); // x=10, y=5, w=30, h=20
+        assert_eq!(r[2], Some((60, 50, 40, 40))); // x=60, y=50, w=40, h=40
+        assert_eq!(r[3], None);
     }
 }

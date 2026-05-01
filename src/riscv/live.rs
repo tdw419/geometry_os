@@ -34,6 +34,10 @@ pub struct Frame {
     pub height: usize,
     /// Instruction count at time of present.
     pub instructions: u64,
+    /// Clip rectangle active when present fired: (x, y, w, h).
+    /// None means the full framebuffer should be composited.
+    /// When Some, the GUI should only blit pixels within this rect.
+    pub clip_rect: super::framebuf::ClipRect,
 }
 
 /// Control messages sent from the GUI thread to the VM thread.
@@ -272,12 +276,13 @@ fn vm_thread_main(
     let instruction_count: Rc<RefCell<u64>> = Rc::new(RefCell::new(0));
     let ic_clone = instruction_count.clone();
     let present_cb: super::framebuf::PresentCallback =
-        Rc::new(RefCell::new(move |pixels: &[u32]| {
+        Rc::new(RefCell::new(move |pixels: &[u32], clip_rect| {
             let frame = Frame {
                 pixels: pixels.to_vec(),
                 width: FB_WIDTH,
                 height: FB_HEIGHT,
                 instructions: *ic_clone.borrow(),
+                clip_rect,
             };
             let _ = ft.send(frame);
         }));
@@ -318,12 +323,13 @@ fn vm_thread_main(
                 *instruction_count.borrow_mut() = 0;
                 let ic2 = instruction_count.clone();
                 let cb: super::framebuf::PresentCallback =
-                    Rc::new(RefCell::new(move |pixels: &[u32]| {
+                    Rc::new(RefCell::new(move |pixels: &[u32], clip_rect| {
                         let frame = Frame {
                             pixels: pixels.to_vec(),
                             width: FB_WIDTH,
                             height: FB_HEIGHT,
                             instructions: *ic2.borrow(),
+                            clip_rect,
                         };
                         let _ = ft2.send(frame);
                     }));
@@ -336,11 +342,13 @@ fn vm_thread_main(
             }
             Ok(ThreadControl::TriggerSnapshot) => {
                 // Clone current framebuffer and send as a Frame
+                // Snapshot always sends full buffer (no clip restriction)
                 let frame = Frame {
                     pixels: vm.bus.framebuf.pixels.clone(),
                     width: FB_WIDTH,
                     height: FB_HEIGHT,
                     instructions: *instruction_count.borrow(),
+                    clip_rect: None, // full buffer for snapshots
                 };
                 let _ = frame_tx.send(frame);
             }
