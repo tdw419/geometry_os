@@ -1368,7 +1368,7 @@ phases:
   _claimed_at: 1777644926
 - id: phase-194
   title: Host Terminal Performance -- Dirty Rectangle Rendering
-  status: in_progress
+  status: done
   goal: Only re-render changed rows instead of the full 30-row screen every frame
   description: Currently host_term.asm renders all 30 rows every frame via SMALLTEXT,
     even when only one line changed (like typing a character). This is wasteful. Track
@@ -1376,7 +1376,7 @@ phases:
     status bar and scrollback already optimized, this is the last rendering bottleneck.
   deliverables:
   - name: Row dirty bitmap
-    status: planned
+    status: done
     tasks:
     - id: p194.d1.t1
       title: Add 32-bit dirty row bitmap (1 bit per row)
