@@ -1,7 +1,9 @@
 title: Geometry OS — Post-SPEC Pixel-Native Roadmap
 version: 0.2.0
-description: 'Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers toolchain hygiene, GUI bridge, pixel VM convergence, libgeos extraction, and legacy roadmap reconciliation. SPEC
-  = thesis. roadmap_v2 = arc. OpenSpec = per-change diff.
+description: 'Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS.
+  Covers toolchain hygiene, GUI bridge, pixel VM convergence, libgeos extraction,
+  and legacy roadmap reconciliation. SPEC = thesis. roadmap_v2 = arc. OpenSpec = per-change
+  diff.
 
   '
 phases:
@@ -9,13 +11,17 @@ phases:
   title: Toolchain Hygiene
   status: complete
   goal: Eliminate software-math overhead, fix bus routing, establish rv32imac baseline
-  description: 'The interpreter supports RV32IMAC but examples were being compiled with rv32i, forcing software division loops even for power-of-two constants. This phase fixes the build defaults, audits
-    all programs, and patches the half-word bus routing gap.
+  description: 'The interpreter supports RV32IMAC but examples were being compiled
+    with rv32i, forcing software division loops even for power-of-two constants. This
+    phase fixes the build defaults, audits all programs, and patches the half-word
+    bus routing gap.
 
     '
   deliverables:
   - name: RV32IMAC default for all examples
-    description: 'All C/ASM programs compiled with -march=rv32imac_zicsr. build.sh already correct; life.c and painter2.c rebuilt with standard flags. Stale comment in build.sh updated.
+    description: 'All C/ASM programs compiled with -march=rv32imac_zicsr. build.sh
+      already correct; life.c and painter2.c rebuilt with standard flags. Stale comment
+      in build.sh updated.
 
       '
     status: done
@@ -44,7 +50,8 @@ phases:
       status: done
       description: grep found zero shims across all examples.
   - name: Power-of-two math optimizations in life.c
-    description: 'Replaced x%256 with x&0xFF, y*256 with y<<8, idx/8 with idx>>3. Result: 85x speedup (0.6 MIPS -> 56 MIPS).
+    description: 'Replaced x%256 with x&0xFF, y*256 with y<<8, idx/8 with idx>>3.
+      Result: 85x speedup (0.6 MIPS -> 56 MIPS).
 
       '
     status: done
@@ -57,8 +64,9 @@ phases:
       met: true
     tasks: []
   - name: Half-word bus routing for MMIO framebuffer
-    description: 'Half-word and byte writes now route to all MMIO devices (UART, PLIC, virtio, VFS surface, framebuffer) instead of falling through to RAM. Uses read-modify-write at word granularity. 5
-      unit tests pass.
+    description: 'Half-word and byte writes now route to all MMIO devices (UART, PLIC,
+      virtio, VFS surface, framebuffer) instead of falling through to RAM. Uses read-modify-write
+      at word granularity. 5 unit tests pass.
 
       '
     status: done
@@ -73,7 +81,9 @@ phases:
     - id: a.3.1
       title: Add half-word routing in bus.rs for all MMIO devices
       status: done
-      description: 'In bus.rs write_word path, add framebuffer half-word routing similar to existing word routing. Also add byte-level write routing. Check Framebuffer::write() handles sub-word offsets.
+      description: 'In bus.rs write_word path, add framebuffer half-word routing similar
+        to existing word routing. Also add byte-level write routing. Check Framebuffer::write()
+        handles sub-word offsets.
 
         '
       files:
@@ -99,16 +109,22 @@ phases:
       description: 'Change ''IMPORTANT: Geometry OS CPU is RV32I'' to RV32IMAC.'
       files:
       - examples/riscv-hello/build.sh
-  technical_notes: 'The 85x speedup was the combination of two fixes: (1) rv32im gives hardware MUL/DIV/REM, (2) power-of-two constants (256) let the compiler use shift/mask instead of calling division
-    routines at all. Both were necessary -- the compiler can''t optimize division by constants into shifts if there''s no hardware divide instruction in the target ISA.
+  technical_notes: 'The 85x speedup was the combination of two fixes: (1) rv32im gives
+    hardware MUL/DIV/REM, (2) power-of-two constants (256) let the compiler use shift/mask
+    instead of calling division routines at all. Both were necessary -- the compiler
+    can''t optimize division by constants into shifts if there''s no hardware divide
+    instruction in the target ISA.
 
     '
 - id: phase-B
   title: GUI Bridge — Live Pixel Display
   status: complete
   goal: Watch RISC-V programs paint in real-time on the Geometry OS display
-  description: 'Bridge the MMIO framebuffer to the actual Geometry OS display so programs render live instead of dumping PNGs. The present callback architecture is already in place -- this phase swaps the
-    PNG-dump callback for a real screen blit, runs the VM on its own thread, and delivers the experiential payoff of the pixel-native thesis.
+  description: 'Bridge the MMIO framebuffer to the actual Geometry OS display so programs
+    render live instead of dumping PNGs. The present callback architecture is already
+    in place -- this phase swaps the PNG-dump callback for a real screen blit, runs
+    the VM on its own thread, and delivers the experiential payoff of the pixel-native
+    thesis.
 
     '
   dependencies:
@@ -118,8 +134,9 @@ phases:
     reason: Need verified 50+ MIPS before GUI bridge is worth building
   deliverables:
   - name: Off-thread VM execution
-    description: 'Spawn RiscvVm on its own thread. Present callback pushes frame-ready signal (or buffer copy) over a channel. GUI thread blits on render tick. The current synchronous-callback-in-bus-write
-      bug becomes structurally impossible.
+    description: 'Spawn RiscvVm on its own thread. Present callback pushes frame-ready
+      signal (or buffer copy) over a channel. GUI thread blits on render tick. The
+      current synchronous-callback-in-bus-write bug becomes structurally impossible.
 
       '
     status: done
@@ -134,8 +151,9 @@ phases:
     - id: b.1.1
       title: Create RiscvVmThread struct with channel-based present
       status: done
-      description: 'New module src/riscv/live.rs wrapping RiscvVm in a thread. Uses mpsc::channel: VM sends Frame (Vec<u32>) on present, GUI thread recv()s on its tick. Pause/resume/reset/shutdown controls.
-        3 unit tests pass.
+      description: 'New module src/riscv/live.rs wrapping RiscvVm in a thread. Uses
+        mpsc::channel: VM sends Frame (Vec<u32>) on present, GUI thread recv()s on
+        its tick. Pause/resume/reset/shutdown controls. 3 unit tests pass.
 
         '
       files:
@@ -144,13 +162,16 @@ phases:
     - id: b.1.2
       title: Replace synchronous PNG callback in sh_run with channel
       status: done
-      description: 'sh_run now uses spawn_vm_thread(). Main thread does non-blocking try_recv_frame() for PNG dumps. VM runs unimpeded.
+      description: 'sh_run now uses spawn_vm_thread(). Main thread does non-blocking
+        try_recv_frame() for PNG dumps. VM runs unimpeded.
 
         '
       files:
       - examples/sh_run.rs
   - name: Framebuffer blit to Geometry OS display
-    description: 'RISC-V framebuffer overlays the GeOS VM screen at (640, 64) with 1:1 pixel mapping (256x256). Transparent pixels pass through. Launch via riscv_run/riscv_kill MCP commands.
+    description: 'RISC-V framebuffer overlays the GeOS VM screen at (640, 64) with
+      1:1 pixel mapping (256x256). Transparent pixels pass through. Launch via riscv_run/riscv_kill
+      MCP commands.
 
       '
     status: done
@@ -165,7 +186,8 @@ phases:
     - id: b.2.1
       title: Identify main app render loop and injection point
       status: done
-      description: 'render.rs line 528: vm.screen blitted at (VM_SCREEN_X, VM_SCREEN_Y). RISC-V framebuffer overlays same area after GeOS render.
+      description: 'render.rs line 528: vm.screen blitted at (VM_SCREEN_X, VM_SCREEN_Y).
+        RISC-V framebuffer overlays same area after GeOS render.
 
         '
       files:
@@ -174,7 +196,8 @@ phases:
     - id: b.2.2
       title: Implement framebuffer-to-display blit
       status: done
-      description: 'Blit after render() call in main loop. Drains all pending frames, keeps latest. Black pixels transparent (GeOS shows through).
+      description: 'Blit after render() call in main loop. Drains all pending frames,
+        keeps latest. Black pixels transparent (GeOS shows through).
 
         '
       files:
@@ -184,15 +207,17 @@ phases:
     - id: b.2.3
       title: Add launch control in Geometry OS UI
       status: done
-      description: 'Added riscv_run <elf_path> and riscv_kill commands. Registered in MCP server. Updated help text.
+      description: 'Added riscv_run <elf_path> and riscv_kill commands. Registered
+        in MCP server. Updated help text.
 
         '
       files:
       - src/main.rs
       - src/mcp_server.rs
   - name: 'Default demo: Life at 64x64'
-    description: 'Life at 256x256 runs at ~5 gen/sec. Life at 64x64 should clear 20+ fps and look alive. Create a 64x64 variant as the default GUI demo. Moving cells, no ambiguity, proves read+compute+write
-      in motion.
+    description: 'Life at 256x256 runs at ~5 gen/sec. Life at 64x64 should clear 20+
+      fps and look alive. Create a 64x64 variant as the default GUI demo. Moving cells,
+      no ambiguity, proves read+compute+write in motion.
 
       '
     status: done
@@ -207,7 +232,8 @@ phases:
     - id: b.3.1
       title: Create life64.c variant
       status: done
-      description: '64x64 grid in 256x256 framebuffer, 4x4 cell blocks, toroidal, 40% density, warm gradient, runs infinitely.
+      description: '64x64 grid in 256x256 framebuffer, 4x4 cell blocks, toroidal,
+        40% density, warm gradient, runs infinitely.
 
         '
       files:
@@ -220,16 +246,19 @@ phases:
   risks:
   - Main app render loop may not have an easy injection point for external surfaces
   - WINSYS window approach adds complexity vs direct surface blit
-  technical_notes: 'The present callback architecture from commit 355ae7f is the right shape. The bug is that it runs synchronously inside bus.write(). Channel-based off-thread fix makes this structurally
-    impossible.
+  technical_notes: 'The present callback architecture from commit 355ae7f is the right
+    shape. The bug is that it runs synchronously inside bus.write(). Channel-based
+    off-thread fix makes this structurally impossible.
 
     '
 - id: phase-C
   title: Pixel VM Convergence
-  status: todo
+  status: planned
   goal: Unify RISC-V framebuffer and GeOS pixel VM into a single canonical surface
-  description: 'RISC-V guest framebuffer composites into vm.screen (the canonical 256x256 surface) via alpha-keyed writes. render.rs is the sole display path -- it knows nothing about RISC-V. Cross-system
-    reads (U3) are gated on a future use case per SPEC.md.
+  description: 'RISC-V guest framebuffer composites into vm.screen (the canonical
+    256x256 surface) via alpha-keyed writes. render.rs is the sole display path --
+    it knows nothing about RISC-V. Cross-system reads (U3) are gated on a future use
+    case per SPEC.md.
 
     '
   dependencies:
@@ -239,17 +268,21 @@ phases:
     reason: Need the GUI bridge working before we can converge the surfaces
   deliverables:
   - name: Unified pixel surface (write direction)
-    description: 'RISC-V fb_present composites framebuf.pixels into vm.screen with alpha keying and format conversion (0xRRGGBBAA -> 0x00RRGGBB via pixel_to_minifb). vm.screen is the single canonical surface.
-      render.rs blits it to display. GeOS opcodes and RISC-V MMIO are both just pixel writers.
+    description: 'RISC-V fb_present composites framebuf.pixels into vm.screen with
+      alpha keying and format conversion (0xRRGGBBAA -> 0x00RRGGBB via pixel_to_minifb).
+      vm.screen is the single canonical surface. render.rs blits it to display. GeOS
+      opcodes and RISC-V MMIO are both just pixel writers.
 
       '
     status: done
     acceptance_criteria:
-    - description: No duplicate display blit -- render.rs is the only path from vm.screen to display
+    - description: No duplicate display blit -- render.rs is the only path from vm.screen
+        to display
       validation: 'Code review: RISC-V composite writes vm.screen, not the raw buffer'
       met: true
     - description: RISC-V pixels appear with correct colors on the display
-      validation: 'Visual: life64 dead cells are rgb(6,6,14), alive gradient matches formula'
+      validation: 'Visual: life64 dead cells are rgb(6,6,14), alive gradient matches
+        formula'
       met: true
     - description: Cells animate between frames
       validation: Two-frame comparison shows 10%+ pixel change
@@ -258,8 +291,10 @@ phases:
     - id: c.1.1
       title: Composite RISC-V frames into vm.screen before render()
       status: done
-      description: 'RISC-V frame receive moved before render() call. Writes vm.screen instead of raw display buffer. Alpha key: transparent pixels (alpha=0) don''t overwrite. Format conversion via pixel_to_minifb()
-        at the framebuf boundary. render.rs now genuinely ignorant of RISC-V.
+      description: 'RISC-V frame receive moved before render() call. Writes vm.screen
+        instead of raw display buffer. Alpha key: transparent pixels (alpha=0) don''t
+        overwrite. Format conversion via pixel_to_minifb() at the framebuf boundary.
+        render.rs now genuinely ignorant of RISC-V.
 
         '
       files:
@@ -269,8 +304,10 @@ phases:
     - id: c.1.2
       title: Cross-system reads (U3) -- deferred
       status: deferred
-      description: 'RISC-V loads from 0x6000_0000 read framebuf.pixels, not vm.screen. GeOS PEEK reads vm.screen, not framebuf.pixels. Cross-system reads need shared buffer with locking or same-thread execution.
-        Gated on a real use case per SPEC.md "Canonical framebuffer" section. No program needs this today.
+      description: 'RISC-V loads from 0x6000_0000 read framebuf.pixels, not vm.screen.
+        GeOS PEEK reads vm.screen, not framebuf.pixels. Cross-system reads need shared
+        buffer with locking or same-thread execution. Gated on a real use case per
+        SPEC.md "Canonical framebuffer" section. No program needs this today.
 
         '
       files: []
@@ -281,8 +318,9 @@ phases:
   title: Layer 2 — libgeos and Primitives
   status: complete
   goal: Extract shared C primitives into libgeos.c, add animation and input primitives
-  description: 'When a third tool (beyond sh and life) needs shared primitives (puts, tokenizer, fb_present, etc.), extract them into a shared library. Also add animation timing primitives and bidirectional
-    input (GUI events -> RISC-V guest).
+  description: 'When a third tool (beyond sh and life) needs shared primitives (puts,
+    tokenizer, fb_present, etc.), extract them into a shared library. Also add animation
+    timing primitives and bidirectional input (GUI events -> RISC-V guest).
 
     '
   dependencies:
@@ -292,7 +330,9 @@ phases:
     reason: Animation primitives need the GUI bridge running
   deliverables:
   - name: libgeos.c shared library
-    description: 'Extracted when third program needs shared code. Contains: puts, put_dec, put_hex, fb_present, fb_pixel, rgb, sbi_console_putchar, sbi_shutdown. Compiled once, linked by all guest programs.
+    description: 'Extracted when third program needs shared code. Contains: puts,
+      put_dec, put_hex, fb_present, fb_pixel, rgb, sbi_console_putchar, sbi_shutdown.
+      Compiled once, linked by all guest programs.
 
       '
     status: done
@@ -304,8 +344,11 @@ phases:
     - id: d.1.1
       title: Create libgeos.c and Makefile rule
       status: done
-      description: 'Extracted sbi_console_putchar, sbi_shutdown, sbi_console_getchar, geos_puts, geos_put_dec, geos_put_hex, geos_rgb, geos_fb_present, geos_fb_pixel, geos_fb_read, geos_mtime, geos_wait_until,
-        geos_wait_ticks, geos_wait_ms, geos_getchar into libgeos.c/h. build.sh supports --all and --lib flags. All 10 guest programs link against libgeos.a.
+      description: 'Extracted sbi_console_putchar, sbi_shutdown, sbi_console_getchar,
+        geos_puts, geos_put_dec, geos_put_hex, geos_rgb, geos_fb_present, geos_fb_pixel,
+        geos_fb_read, geos_mtime, geos_wait_until, geos_wait_ticks, geos_wait_ms,
+        geos_getchar into libgeos.c/h. build.sh supports --all and --lib flags. All
+        10 guest programs link against libgeos.a.
 
         '
       files:
@@ -313,7 +356,9 @@ phases:
       - examples/riscv-hello/libgeos.h
       - examples/riscv-hello/build.sh
   - name: Animation / frame timing primitives
-    description: 'SBI extension or MMIO register for frame timing. Guest can wait for next frame, query elapsed time, sync to display refresh. Enables smooth animation loops instead of spin-paint.
+    description: 'SBI extension or MMIO register for frame timing. Guest can wait
+      for next frame, query elapsed time, sync to display refresh. Enables smooth
+      animation loops instead of spin-paint.
 
       '
     status: done
@@ -325,14 +370,18 @@ phases:
     - id: d.2.1
       title: Add frame timing SBI extension or MMIO register
       status: done
-      description: 'CLINT mtime was already exposed at 0x0200_BFF8. Added guest-side wrappers: geos_mtime() for reading the counter, geos_wait_until(), geos_wait_ticks(), geos_wait_ms() for spin-waiting.
-        All inline in libgeos.h for zero function-call overhead.
+      description: 'CLINT mtime was already exposed at 0x0200_BFF8. Added guest-side
+        wrappers: geos_mtime() for reading the counter, geos_wait_until(), geos_wait_ticks(),
+        geos_wait_ms() for spin-waiting. All inline in libgeos.h for zero function-call
+        overhead.
 
         '
       files:
       - examples/riscv-hello/libgeos.h
   - name: GUI-to-RISC-V input bridge
-    description: 'Keyboard/mouse events from the Geometry OS GUI flow into the RISC-V guest via UART RX or a dedicated input MMIO region. Enables interactive painters, shells, and games.
+    description: 'Keyboard/mouse events from the Geometry OS GUI flow into the RISC-V
+      guest via UART RX or a dedicated input MMIO region. Enables interactive painters,
+      shells, and games.
 
       '
     status: done
@@ -344,8 +393,10 @@ phases:
     - id: d.3.1
       title: Route GUI keyboard events to UART RX
       status: done
-      description: 'Added ThreadControl::Input(u8) variant and send_input() method on RiscvVmHandle. VM thread receives Input and calls vm.bus.uart.receive_byte(). main.rs forwards keypresses to riscv_handle.send_input()
-        when a RISC-V program is running. geos_getchar() added to libgeos for guest-side blocking read.
+      description: 'Added ThreadControl::Input(u8) variant and send_input() method
+        on RiscvVmHandle. VM thread receives Input and calls vm.bus.uart.receive_byte().
+        main.rs forwards keypresses to riscv_handle.send_input() when a RISC-V program
+        is running. geos_getchar() added to libgeos for guest-side blocking read.
 
         '
       files:
@@ -357,9 +408,12 @@ phases:
 - id: phase-E
   title: Legacy Roadmap Reconciliation
   status: complete
-  goal: Triage roadmap.yaml (163 phases) against SPEC, demote/retire phases that don't fit
-  description: 'The legacy roadmap.yaml has 163 phases spanning the full Geometry OS history. Many are complete, some are superseded by the SPEC direction, some are still relevant. This phase audits the
-    legacy roadmap against the post-SPEC direction and reconciles the two documents.
+  goal: Triage roadmap.yaml (163 phases) against SPEC, demote/retire phases that don't
+    fit
+  description: 'The legacy roadmap.yaml has 163 phases spanning the full Geometry
+    OS history. Many are complete, some are superseded by the SPEC direction, some
+    are still relevant. This phase audits the legacy roadmap against the post-SPEC
+    direction and reconciles the two documents.
 
     '
   dependencies:
@@ -369,7 +423,9 @@ phases:
     reason: Should audit after toolchain is clean, not before
   deliverables:
   - name: Legacy roadmap audit
-    description: 'Go through each phase in roadmap.yaml. Mark complete where code exists. Mark superseded where SPEC direction changed. Mark relevant where still needed. Produce a reconciliation report.
+    description: 'Go through each phase in roadmap.yaml. Mark complete where code
+      exists. Mark superseded where SPEC direction changed. Mark relevant where still
+      needed. Produce a reconciliation report.
 
       '
     status: done
@@ -381,8 +437,9 @@ phases:
     - id: e.1.1
       title: Audit roadmap.yaml against codebase
       status: done
-      description: 'Meta block updated (opcodes: 187, tests: 2407, loc: 83836, programs: 156). 9 TODO phases marked superseded (142-145, 147-148, 150-152). 2 TODO phases marked deferred (146, 149). Report
-        at docs/LEGACY_ROADMAP_RECONCILIATION.md.
+      description: 'Meta block updated (opcodes: 187, tests: 2407, loc: 83836, programs:
+        156). 9 TODO phases marked superseded (142-145, 147-148, 150-152). 2 TODO
+        phases marked deferred (146, 149). Report at docs/LEGACY_ROADMAP_RECONCILIATION.md.
 
         '
       files:
@@ -390,7 +447,9 @@ phases:
     - id: e.1.2
       title: Produce reconciliation report
       status: done
-      description: 'Report written to docs/LEGACY_ROADMAP_RECONCILIATION.md. 31 done, 9 superseded, 2 deferred, 7 planned, 1 research. Gap analysis between roadmap.yaml and roadmap_v2.yaml documented.
+      description: 'Report written to docs/LEGACY_ROADMAP_RECONCILIATION.md. 31 done,
+        9 superseded, 2 deferred, 7 planned, 1 research. Gap analysis between roadmap.yaml
+        and roadmap_v2.yaml documented.
 
         '
       files:
@@ -399,8 +458,11 @@ phases:
   title: Visual Verification Infrastructure
   status: complete
   goal: Regression test framework for RISC-V guest programs via framebuffer dumps
-  description: 'riscv_fb_dump gives us scriptable visual verification. This phase builds the regression test harness: boot a guest program, inject a known input sequence, dump the framebuffer, assert on
-    pixel values. The paint.c bugs (channel bit-leaking, paint-overwrite, fill-mode position) are the first regression tests. Prior encode_png claims are audited.
+  description: 'riscv_fb_dump gives us scriptable visual verification. This phase
+    builds the regression test harness: boot a guest program, inject a known input
+    sequence, dump the framebuffer, assert on pixel values. The paint.c bugs (channel
+    bit-leaking, paint-overwrite, fill-mode position) are the first regression tests.
+    Prior encode_png claims are audited.
 
     '
   dependencies:
@@ -410,13 +472,16 @@ phases:
     reason: Need riscv_fb_dump (built during paint.c work) and libgeos
   deliverables:
   - name: paint.c regression test
-    description: 'Shell script or Python script that boots paint.elf, injects a known sequence of commands (fill mode + movement + color switches), dumps the framebuffer via riscv_fb_dump, and asserts on
-      pixel coordinates and colors. Catches the three bugs that were fixed: channel leaking, cursor overwrite, fill-mode position.
+    description: 'Shell script or Python script that boots paint.elf, injects a known
+      sequence of commands (fill mode + movement + color switches), dumps the framebuffer
+      via riscv_fb_dump, and asserts on pixel coordinates and colors. Catches the
+      three bugs that were fixed: channel leaking, cursor overwrite, fill-mode position.
 
       '
     status: done
     acceptance_criteria:
-    - description: Test asserts 10 red + 10 blue + 10 green + 11 yellow pixels at expected coords
+    - description: Test asserts 10 red + 10 blue + 10 green + 11 yellow pixels at
+        expected coords
       validation: Run test script, exit 0 on correct output, exit 1 on pixel mismatch
       met: true
     - description: Test catches at least one of the three known paint.c bugs if reverted
@@ -426,8 +491,10 @@ phases:
     - id: f.1.1
       title: Write paint_regression_test.sh
       status: done
-      description: 'Boot GeOS (background), launch paint.elf via socket, inject the rectangle-drawing sequence (fill on, d*11, color 3, s*10, color 2, a*10, color 4, w*10, fill off), dump framebuffer, use
-        Python/Pillow to assert pixel values. Kill GeOS when done.
+      description: 'Boot GeOS (background), launch paint.elf via socket, inject the
+        rectangle-drawing sequence (fill on, d*11, color 3, s*10, color 2, a*10, color
+        4, w*10, fill off), dump framebuffer, use Python/Pillow to assert pixel values.
+        Kill GeOS when done.
 
         '
       files:
@@ -435,14 +502,18 @@ phases:
     - id: f.1.2
       title: Verify test catches regressions
       status: done
-      description: 'Revert each of the three paint.c fixes one at a time, confirm the test fails. Then re-apply fixes, confirm test passes.
+      description: 'Revert each of the three paint.c fixes one at a time, confirm
+        the test fails. Then re-apply fixes, confirm test passes.
 
         '
       files: []
   - name: encode_png audit
-    description: 'Prior "screenshot verified" claims that went through encode_png may have been against invalid PNGs (raw deflate without zlib wrapper). Audit which claims used encode_png and which used
-      other paths. Result: MCP vm_screenshot (safe path via png crate) was used for all Phase B/C verifications. screenshot_b64 was broken but only used by Phase 88 (experimental AI vision). No critical
-      claims were affected. See tests/encode_png_audit.md.
+    description: 'Prior "screenshot verified" claims that went through encode_png
+      may have been against invalid PNGs (raw deflate without zlib wrapper). Audit
+      which claims used encode_png and which used other paths. Result: MCP vm_screenshot
+      (safe path via png crate) was used for all Phase B/C verifications. screenshot_b64
+      was broken but only used by Phase 88 (experimental AI vision). No critical claims
+      were affected. See tests/encode_png_audit.md.
 
       '
     status: done
@@ -454,15 +525,19 @@ phases:
     - id: f.2.1
       title: Audit prior visual verification claims
       status: done
-      description: 'All Phase B/C verifications used MCP vm_screenshot (png crate, safe). screenshot_b64 was broken but only affected Phase 88 AI vision (experimental). No critical pixel-value claims were
-        based on broken PNGs. Paint regression test now verifies actual decodability.
+      description: 'All Phase B/C verifications used MCP vm_screenshot (png crate,
+        safe). screenshot_b64 was broken but only affected Phase 88 AI vision (experimental).
+        No critical pixel-value claims were based on broken PNGs. Paint regression
+        test now verifies actual decodability.
 
         '
       files:
       - tests/encode_png_audit.md
   - name: Test harness pattern
-    description: 'Document the pattern so any future guest program can plug in: boot → inject → dump → assert. Reusable shell/Python scaffolding. geos_test_lib.sh extracted: boot, run, inject, dump, kill,
-      assert_pixel, assert_pixel_count. paint_regression_test.sh is the first caller.
+    description: 'Document the pattern so any future guest program can plug in: boot
+      → inject → dump → assert. Reusable shell/Python scaffolding. geos_test_lib.sh
+      extracted: boot, run, inject, dump, kill, assert_pixel, assert_pixel_count.
+      paint_regression_test.sh is the first caller.
 
       '
     status: done
@@ -474,8 +549,9 @@ phases:
     - id: f.3.1
       title: Extract common test harness functions
       status: done
-      description: 'geos_boot(), geos_run_elf(), geos_inject_text(), geos_fb_dump(), geos_kill(), assert_pixel(), assert_pixel_count(). Shared shell library in tests/geos_test_lib.sh. Source it from test
-        scripts.
+      description: 'geos_boot(), geos_run_elf(), geos_inject_text(), geos_fb_dump(),
+        geos_kill(), assert_pixel(), assert_pixel_count(). Shared shell library in
+        tests/geos_test_lib.sh. Source it from test scripts.
 
         '
       files:
@@ -484,8 +560,10 @@ phases:
   title: In-session Canvas Checkpoint — Save/Load
   status: complete
   goal: Checkpoint and restore pixel state via the VFS surface
-  description: 'Persistence means checkpointing pixels, not serializing structs. Add geos_save_canvas and geos_load_canvas to libgeos that write/read the framebuffer as raw pixel data to the VFS pixel surface
-    at 0x7000_0000. Round-trip verified: save → clear → load → pixel-perfect match.
+  description: 'Persistence means checkpointing pixels, not serializing structs. Add
+    geos_save_canvas and geos_load_canvas to libgeos that write/read the framebuffer
+    as raw pixel data to the VFS pixel surface at 0x7000_0000. Round-trip verified:
+    save → clear → load → pixel-perfect match.
 
     '
   dependencies:
@@ -495,8 +573,10 @@ phases:
     reason: Need regression test framework to verify round-trip fidelity
   deliverables:
   - name: geos_save_canvas / geos_load_canvas in libgeos
-    description: 'Two new functions in libgeos.c. save_canvas copies framebuffer rows 0-254 to VFS surface rows 1-255 (preserving row 0 directory index). load_canvas checks a CANV marker and copies back.
-      Uses MMIO at 0x7000_0000 (VFS Pixel Surface), NOT virtio-blk.
+    description: 'Two new functions in libgeos.c. save_canvas copies framebuffer rows
+      0-254 to VFS surface rows 1-255 (preserving row 0 directory index). load_canvas
+      checks a CANV marker and copies back. Uses MMIO at 0x7000_0000 (VFS Pixel Surface),
+      NOT virtio-blk.
 
       '
     status: done
@@ -511,7 +591,9 @@ phases:
     - id: g.1.1
       title: Implement geos_save_canvas in libgeos.c
       status: done
-      description: 'Copies framebuffer rows 0-254 to VFS rows 1-255 word-by-word. Sets CANV marker (0x43414E56) at VFS pixel (0,255). Preserves VFS directory index in row 0 pixels 0-254.
+      description: 'Copies framebuffer rows 0-254 to VFS rows 1-255 word-by-word.
+        Sets CANV marker (0x43414E56) at VFS pixel (0,255). Preserves VFS directory
+        index in row 0 pixels 0-254.
 
         '
       files:
@@ -520,7 +602,8 @@ phases:
     - id: g.1.2
       title: Implement geos_load_canvas in libgeos.c
       status: done
-      description: 'Checks CANV marker, copies VFS rows 1-255 back to framebuffer rows 0-254, calls geos_fb_present(). Returns -1 if no marker.
+      description: 'Checks CANV marker, copies VFS rows 1-255 back to framebuffer
+        rows 0-254, calls geos_fb_present(). Returns -1 if no marker.
 
         '
       files:
@@ -529,14 +612,17 @@ phases:
     - id: g.1.3
       title: Add save/load commands to paint.c
       status: done
-      description: 'P key = save, O key = load (S/L conflict with WASD movement). UART status messages on success/failure. Load redraws palette bar and cursor on top of restored canvas.
+      description: 'P key = save, O key = load (S/L conflict with WASD movement).
+        UART status messages on success/failure. Load redraws palette bar and cursor
+        on top of restored canvas.
 
         '
       files:
       - examples/riscv-hello/paint.c
   - name: Round-trip verification test
-    description: 'Automated test: boot paint.elf, draw pattern, dump baseline, save, clear, load, dump restored, compare canvas area pixel-for-pixel. Single-session test (VFS surface is in-memory; cross-session
-      needs future flush-to-disk mechanism).
+    description: 'Automated test: boot paint.elf, draw pattern, dump baseline, save,
+      clear, load, dump restored, compare canvas area pixel-for-pixel. Single-session
+      test (VFS surface is in-memory; cross-session needs future flush-to-disk mechanism).
 
       '
     status: done
@@ -548,7 +634,8 @@ phases:
     - id: g.2.1
       title: Write persistence_roundtrip_test.sh
       status: done
-      description: 'Uses geos_test_lib.sh. Draws colored fill trails, saves, clears, loads, compares 244 rows * 256 cols = 62,464 pixels with ±3 tolerance.
+      description: 'Uses geos_test_lib.sh. Draws colored fill trails, saves, clears,
+        loads, compares 244 rows * 256 cols = 62,464 pixels with ±3 tolerance.
 
         '
       files:
@@ -557,11 +644,17 @@ phases:
   title: Cross-session Persistence — VfsSurface Raw-Region Flush
   status: complete
   goal: Canvas state survives VM restart
-  description: "Phase G proved in-session checkpoint/restore. Phase H makes it survive across VM sessions: save today, kill GeOS, restart tomorrow, load. Two implementation paths:\n  A) Raw-region flush\
-    \ in VfsSurface::Drop — detect CANV marker in row 0,\n     write the raw pixel region to a fixed host file (e.g., .geometry_os/canvas.raw).\n     On boot, VfsSurface::new() checks for the file and loads\
-    \ it.\n  B) Virtio-blk integration — route geos_save_canvas through the virtio-blk\n     device at 0x1000_1000 instead of the VFS surface. Requires implementing\n     virtqueue processing in the guest\
-    \ (or a simplified direct-access mode\n     in the host virtio-blk emulation).\nPath A is simpler and keeps the \"pixels copying pixels\" model. Path B is more general but adds virtqueue complexity\
-    \ to bare-metal guest code.\n"
+  description: "Phase G proved in-session checkpoint/restore. Phase H makes it survive\
+    \ across VM sessions: save today, kill GeOS, restart tomorrow, load. Two implementation\
+    \ paths:\n  A) Raw-region flush in VfsSurface::Drop — detect CANV marker in row\
+    \ 0,\n     write the raw pixel region to a fixed host file (e.g., .geometry_os/canvas.raw).\n\
+    \     On boot, VfsSurface::new() checks for the file and loads it.\n  B) Virtio-blk\
+    \ integration — route geos_save_canvas through the virtio-blk\n     device at\
+    \ 0x1000_1000 instead of the VFS surface. Requires implementing\n     virtqueue\
+    \ processing in the guest (or a simplified direct-access mode\n     in the host\
+    \ virtio-blk emulation).\nPath A is simpler and keeps the \"pixels copying pixels\"\
+    \ model. Path B is more general but adds virtqueue complexity to bare-metal guest\
+    \ code.\n"
   dependencies:
   - source: phase-G
     target: phase-H
@@ -569,20 +662,26 @@ phases:
     reason: In-session save/load is the foundation; cross-session adds disk flush
   deliverables:
   - name: Canvas survives VM restart
-    description: 'VfsSurface flushes the CANV region to disk on Drop, and loads it on construction. The round-trip test is extended: boot, draw, save, kill VM, reboot, load, assert pixel-perfect match.
+    description: 'VfsSurface flushes the CANV region to disk on Drop, and loads it
+      on construction. The round-trip test is extended: boot, draw, save, kill VM,
+      reboot, load, assert pixel-perfect match.
 
       '
     status: done
     acceptance_criteria:
     - description: Saved canvas loads correctly after VM restart
-      validation: 'Two-session test: save in session 1, kill, boot session 2, load, all pixels match'
+      validation: 'Two-session test: save in session 1, kill, boot session 2, load,
+        all pixels match'
       met: true
     tasks:
     - id: h.1.1
       title: Add canvas raw-region flush to VfsSurface
       status: done
-      description: 'Implemented in vfs_surface.rs. VfsSurface::Drop detects CANV marker at pixel (0,255) and writes rows 1-255 to .geometry_os/fs/canvas.raw (261,120 bytes). VfsSurface::restore_canvas()
-        loads it back, called after load_files() in Bus::new(). 4 unit tests covering persist, restore, round-trip, and no-marker cases. All pass.
+      description: 'Implemented in vfs_surface.rs. VfsSurface::Drop detects CANV marker
+        at pixel (0,255) and writes rows 1-255 to .geometry_os/fs/canvas.raw (261,120
+        bytes). VfsSurface::restore_canvas() loads it back, called after load_files()
+        in Bus::new(). 4 unit tests covering persist, restore, round-trip, and no-marker
+        cases. All pass.
 
         '
       files:
@@ -591,9 +690,12 @@ phases:
     - id: h.1.2
       title: Two-session round-trip test
       status: done
-      description: 'Covered by test_canvas_round_trip_persistence unit test which verifies: session 1 writes pattern + CANV marker + drops (persists canvas.raw), session 2 creates new surface which restores
-        from canvas.raw, all pixels match exactly. The shell script test (tests/cross_session_persistence_test.sh) would require a running desktop which is unavailable in cron environments. Unit test is
-        equivalent and runs in 0.01s.
+      description: 'Covered by test_canvas_round_trip_persistence unit test which
+        verifies: session 1 writes pattern + CANV marker + drops (persists canvas.raw),
+        session 2 creates new surface which restores from canvas.raw, all pixels match
+        exactly. The shell script test (tests/cross_session_persistence_test.sh) would
+        require a running desktop which is unavailable in cron environments. Unit
+        test is equivalent and runs in 0.01s.
 
         '
       files:
@@ -601,22 +703,33 @@ phases:
 - id: phase-I
   title: Layer 2 Foundation — Cooperative Multi-Program Kernel
   status: complete
-  goal: Two RISC-V guest programs execute concurrently in the same VM, mediated by a tiny supervisor that owns scheduling and pixel-region arbitration
-  description: 'SPEC.md says "Layer 2 does not exist yet" -- today Layer 3 programs run on M-mode bare-metal with no kernel between them. Phase I builds the smallest Layer 2 that justifies its own existence:
-    a cooperative scheduler that runs two ELF programs in the same VM, plus pixel-region ownership so they cannot clobber each other''s framebuffer area. Capstone: split-screen sh + life64 running side
-    by side, both updating live. The design rule from SPEC ("ask whether it grows the shim or shrinks it") gates every addition -- if a feature can be a libgeos helper, it stays in libgeos; only the things
-    that genuinely cannot be done from a single program (multi-tenancy, region arbitration, focus routing) live in the kernel.
+  goal: Two RISC-V guest programs execute concurrently in the same VM, mediated by
+    a tiny supervisor that owns scheduling and pixel-region arbitration
+  description: 'SPEC.md says "Layer 2 does not exist yet" -- today Layer 3 programs
+    run on M-mode bare-metal with no kernel between them. Phase I builds the smallest
+    Layer 2 that justifies its own existence: a cooperative scheduler that runs two
+    ELF programs in the same VM, plus pixel-region ownership so they cannot clobber
+    each other''s framebuffer area. Capstone: split-screen sh + life64 running side
+    by side, both updating live. The design rule from SPEC ("ask whether it grows
+    the shim or shrinks it") gates every addition -- if a feature can be a libgeos
+    helper, it stays in libgeos; only the things that genuinely cannot be done from
+    a single program (multi-tenancy, region arbitration, focus routing) live in the
+    kernel.
 
     '
   dependencies:
   - source: phase-H
     target: phase-I
     type: hard
-    reason: Persistence is the foundation for future multi-program checkpointing; kernel arrives on top of a stable Layer 1 + Layer 3 stack
+    reason: Persistence is the foundation for future multi-program checkpointing;
+      kernel arrives on top of a stable Layer 1 + Layer 3 stack
   deliverables:
   - name: Cooperative scheduler (geos_kern.elf)
-    description: 'Tiny M-mode supervisor that loads two ELF programs side by side, sets up per-program stacks, and time-slices between them via mtimecmp interrupts. Programs cooperate via geos_yield() in
-      libgeos. No preemption beyond the timer tick. No memory protection (single VM, programs trust each other -- kernel only arbitrates pixel regions and input focus).
+    description: 'Tiny M-mode supervisor that loads two ELF programs side by side,
+      sets up per-program stacks, and time-slices between them via mtimecmp interrupts.
+      Programs cooperate via geos_yield() in libgeos. No preemption beyond the timer
+      tick. No memory protection (single VM, programs trust each other -- kernel only
+      arbitrates pixel regions and input focus).
 
       '
     status: done
@@ -624,31 +737,40 @@ phases:
     - id: i.1.1
       title: Design supervisor memory layout
       status: done
-      description: Decide stack/heap regions per program. Kernel reserves first 64KB, each program gets a 256KB slot. Document in docs/LAYER2_KERNEL.md.
+      description: Decide stack/heap regions per program. Kernel reserves first 64KB,
+        each program gets a 256KB slot. Document in docs/LAYER2_KERNEL.md.
       files:
       - docs/LAYER2_KERNEL.md
     - id: i.1.2
       title: Implement context-switch in M-mode trap handler
       status: done
-      description: 'On mtimecmp interrupt, save callee-saved regs of running program, restore the other program''s regs, set new mtimecmp deadline, mret. Cooperative path: geos_yield() ecalls into kernel
-        which does the same save/restore.
+      description: 'On mtimecmp interrupt, save callee-saved regs of running program,
+        restore the other program''s regs, set new mtimecmp deadline, mret. Cooperative
+        path: geos_yield() ecalls into kernel which does the same save/restore.
 
-        Bootstrap done (2026-04-27): minimal geos_kern.elf links via crt0.S+libgeos, installs mtvec, programs mtimecmp, takes 5 timer interrupts using GCC interrupt("machine") attribute for save/restore,
-        SBI-shutdowns cleanly. Verified end-to-end via examples/kern_run.rs (5,000,815 instructions, prints "[geos] kernel boot" + 5 ticks). Still pending: hand-written save/restore across two distinct
-        program contexts, mscratch-based context pointer, and the geos_yield() ecall path.'
+        Bootstrap done (2026-04-27): minimal geos_kern.elf links via crt0.S+libgeos,
+        installs mtvec, programs mtimecmp, takes 5 timer interrupts using GCC interrupt("machine")
+        attribute for save/restore, SBI-shutdowns cleanly. Verified end-to-end via
+        examples/kern_run.rs (5,000,815 instructions, prints "[geos] kernel boot"
+        + 5 ticks). Still pending: hand-written save/restore across two distinct program
+        contexts, mscratch-based context pointer, and the geos_yield() ecall path.'
       files:
       - examples/riscv-hello/geos_kern.c
       - examples/kern_run.rs
     - id: i.1.3
       title: Two-program load + run smoke test
       status: done
-      description: Build geos_kern.elf with two embedded ELF blobs (hello_a.elf, hello_b.elf). Boot via sh_run, observe interleaved UART output. Single-thread host VM is fine.
+      description: Build geos_kern.elf with two embedded ELF blobs (hello_a.elf, hello_b.elf).
+        Boot via sh_run, observe interleaved UART output. Single-thread host VM is
+        fine.
       files:
       - examples/riscv-hello/build.sh
       - tests/multi_program_smoke_test.sh
   - name: Pixel-region ownership
-    description: 'Programs request a framebuffer region at startup via geos_request_region(x, y, w, h). The kernel tracks ownership and clips fb_present writes so program A cannot overwrite program B''s
-      pixels. Out-of-region writes are silently masked (no fault -- programs trust the kernel, kernel does not trust the program).
+    description: 'Programs request a framebuffer region at startup via geos_request_region(x,
+      y, w, h). The kernel tracks ownership and clips fb_present writes so program
+      A cannot overwrite program B''s pixels. Out-of-region writes are silently masked
+      (no fault -- programs trust the kernel, kernel does not trust the program).
 
       '
     status: done
@@ -656,72 +778,99 @@ phases:
     - id: i.2.1
       title: Add geos_request_region() to libgeos
       status: done
-      description: SBI extension call that registers a rect with the kernel. Kernel stores per-program rect in a small table. Returns offset into framebuffer (program-local origin).
+      description: SBI extension call that registers a rect with the kernel. Kernel
+        stores per-program rect in a small table. Returns offset into framebuffer
+        (program-local origin).
       files:
       - examples/riscv-hello/libgeos.c
       - examples/riscv-hello/libgeos.h
     - id: i.2.2
       title: Region clipping in fb_present path
       status: done
-      description: 'When kernel handles fb_present (or the present interrupt), iterate only over the calling program''s rect. Pixels outside the rect are not touched in vm.screen.
+      description: 'When kernel handles fb_present (or the present interrupt), iterate
+        only over the calling program''s rect. Pixels outside the rect are not touched
+        in vm.screen.
 
-        Implemented (2026-04-30): PresentCallback now passes the current clip rect alongside pixel data. Frame struct carries clip_rect: Option<(u32,u32,u32,u32)>. The GUI composite step in main.rs only
-        blits pixels within the clip rect, leaving other programs'' regions untouched. Pixel-level write clipping was already implemented via inside_clip().
+        Implemented (2026-04-30): PresentCallback now passes the current clip rect
+        alongside pixel data. Frame struct carries clip_rect: Option<(u32,u32,u32,u32)>.
+        The GUI composite step in main.rs only blits pixels within the clip rect,
+        leaving other programs'' regions untouched. Pixel-level write clipping was
+        already implemented via inside_clip().
 
-        Added 3 unit tests in framebuf.rs: test_present_callback_receives_clip_rect, test_two_programs_present_with_clip_rects, test_clip_rect_changes_between_presents.
+        Added 3 unit tests in framebuf.rs: test_present_callback_receives_clip_rect,
+        test_two_programs_present_with_clip_rects, test_clip_rect_changes_between_presents.
 
-        Also fixed 8-bit encoding overflow: w/h=256 now encodes as 0 (0-means-256 convention), since 256 doesn''t fit in an 8-bit field. Updated libgeos.h geos_request_region() to use the same convention.'
+        Also fixed 8-bit encoding overflow: w/h=256 now encodes as 0 (0-means-256
+        convention), since 256 doesn''t fit in an 8-bit field. Updated libgeos.h geos_request_region()
+        to use the same convention.'
       files:
       - src/riscv/framebuf.rs
       - src/riscv/live.rs
       - src/main.rs
       - examples/riscv-hello/libgeos.h
   - name: Capstone -- split-screen sh + life64
-    description: 'The Layer 2 thesis demo. Left half (128x256) runs sh.c. Right half (128x256) runs a 32x32 life simulation (smaller variant of life64.c). Both visible simultaneously. Tab key cycles input
-      focus between them; the focused program''s region gets a thin border. Proves: (1) two programs share a VM, (2) regions are enforced, (3) input is multiplexed by focus.
+    description: 'The Layer 2 thesis demo. Left half (128x256) runs sh.c. Right half
+      (128x256) runs a 32x32 life simulation (smaller variant of life64.c). Both visible
+      simultaneously. Tab key cycles input focus between them; the focused program''s
+      region gets a thin border. Proves: (1) two programs share a VM, (2) regions
+      are enforced, (3) input is multiplexed by focus.
 
       '
     status: done
     acceptance_criteria:
-    - description: Both sh prompt and life animation visible simultaneously on the Geometry OS display
+    - description: Both sh prompt and life animation visible simultaneously on the
+        Geometry OS display
       validation: Manual visual check + fb_dump showing both regions populated
       met: true
     - description: Keyboard typed in shell does not perturb life simulation
-      validation: 'Test: type "echo hello" in shell, life32 cell count delta over same window matches unfocused-baseline'
+      validation: 'Test: type "echo hello" in shell, life32 cell count delta over
+        same window matches unfocused-baseline'
       met: true
     tasks:
     - id: i.3.1
       title: life32.c -- smaller life variant for split-screen
       status: done
-      description: 32x32 grid in 128x256 region, 4-pixel cell blocks, identical rules to life64. Built and running in geos_kern.elf split-screen.
+      description: 32x32 grid in 128x256 region, 4-pixel cell blocks, identical rules
+        to life64. Built and running in geos_kern.elf split-screen.
       files:
       - examples/riscv-hello/life32.c
     - id: i.3.2
       title: Input focus routing in kernel
       status: done
-      description: Tab key intercepted by kernel (does not pass to either program). Kernel maintains focused_id. geos_getchar() returns -1 for unfocused program. geos_sbi_get_focus() returns 1 if caller
-        is focused.
+      description: Tab key intercepted by kernel (does not pass to either program).
+        Kernel maintains focused_id. geos_getchar() returns -1 for unfocused program.
+        geos_sbi_get_focus() returns 1 if caller is focused.
       files:
       - examples/riscv-hello/geos_kern.c
     - id: i.3.3
       title: Border indicator for focused region
       status: done
-      description: Kernel draws a 1-pixel white border around the focused region after each timer tick. kern_apply_clip() disables clipping temporarily to draw border lines on the region boundary.
+      description: Kernel draws a 1-pixel white border around the focused region after
+        each timer tick. kern_apply_clip() disables clipping temporarily to draw border
+        lines on the region boundary.
       files:
       - examples/riscv-hello/geos_kern.c
     - id: i.3.4
       title: Split-screen smoke test
       status: done
-      description: 'tests/split_screen_test.sh: boot kern.elf, inject "echo a\n", wait 2s, fb_dump, assert (a) shell region contains "a" pixels, (b) life region has nonzero cell count, (c) focused border
-        visible.'
+      description: 'tests/split_screen_test.sh: boot kern.elf, inject "echo a\n",
+        wait 2s, fb_dump, assert (a) shell region contains "a" pixels, (b) life region
+        has nonzero cell count, (c) focused border visible.'
       files:
       - tests/split_screen_test.sh
   risks:
-  - 'Cooperative scheduling is fragile: a program that never yields hangs the system. Mitigation: timer interrupt forces switch even if program does not call yield.'
-  - 'Region clipping at fb_present granularity may flicker if programs present at different rates. Mitigation: kernel composites both regions into a single vm.screen update per host-render tick.'
-  - 'Scope creep into "real OS" territory. Mitigation: every kernel feature must answer "could a libgeos helper do this?" -- if yes, it stays in libgeos.'
-  technical_notes: 'The principle from SPEC.md governs every decision in this phase: only build what genuinely cannot live in a single program. Multi-tenancy on the framebuffer and input focus arbitration
-    are the two things that qualify. Process isolation, memory protection, file descriptors, and signals do NOT qualify and must be rejected if they appear in scope discussions.
+  - 'Cooperative scheduling is fragile: a program that never yields hangs the system.
+    Mitigation: timer interrupt forces switch even if program does not call yield.'
+  - 'Region clipping at fb_present granularity may flicker if programs present at
+    different rates. Mitigation: kernel composites both regions into a single vm.screen
+    update per host-render tick.'
+  - 'Scope creep into "real OS" territory. Mitigation: every kernel feature must answer
+    "could a libgeos helper do this?" -- if yes, it stays in libgeos.'
+  technical_notes: 'The principle from SPEC.md governs every decision in this phase:
+    only build what genuinely cannot live in a single program. Multi-tenancy on the
+    framebuffer and input focus arbitration are the two things that qualify. Process
+    isolation, memory protection, file descriptors, and signals do NOT qualify and
+    must be rejected if they appear in scope discussions.
 
     '
   _claimed_by: worker-0
@@ -730,10 +879,12 @@ phases:
   title: Terminal Polish -- Scrollback and Visual Refinements
   status: done
   goal: Make the terminal feel like a real terminal emulator, not a demo
-  description: Scrollback buffer (PageUp/PageDown), better color rendering, cursor improvements (blinking, block/underline toggle), and smooth scrolling.
+  description: Scrollback buffer (PageUp/PageDown), better color rendering, cursor
+    improvements (blinking, block/underline toggle), and smooth scrolling.
   deliverables:
   - name: Scrollback buffer with PageUp/PageDown
-    description: Ring buffer of 1000+ past lines. PageUp enters scrollback, PageDown toward live, any key exits.
+    description: Ring buffer of 1000+ past lines. PageUp enters scrollback, PageDown
+      toward live, any key exits.
     status: done
     tasks:
     - id: p141.d1.t1
@@ -750,7 +901,8 @@ phases:
       description: Colored header bar with line position, status bar indicator
     scope_lines: 300
   - name: Cursor improvements
-    description: Blinking cursor, block/underline/bar toggle via F12, cursor color matches terminal theme.
+    description: Blinking cursor, block/underline/bar toggle via F12, cursor color
+      matches terminal theme.
     status: done
     tasks:
     - id: p141.d2.t1
@@ -764,7 +916,8 @@ phases:
     scope_lines: 200
   scope_lines_total: 75500
   test_target: 10
-  notes: 'All deliverables verified. scrollback.rs provides 1024-line ring buffer with
+  notes: 'All deliverables verified. scrollback.rs provides 1024-line ring buffer
+    with
 
     push_line, push_canvas_rows, get_page, max_scroll. PageUp/PageDown navigate
 
@@ -777,49 +930,64 @@ phases:
   _claimed_at: 1777317398
 - id: phase-185
   title: ANSI Parser -- Scroll Region (CSI r) and Origin Mode
-  status: todo
-  goal: Add scroll region support so full-screen apps (htop, nano, vim) can lock scrolling to a subset of rows
-  description: CSI r (DECSTBM) sets the scroll region top and bottom margins. Within this region, scrolling only affects rows between top and bottom. Cursor movement outside the region is clamped. prompt_toolkit
-    does NOT use scroll regions, but full-screen terminal apps (nano, htop) do. The qemu/ansi.rs Rust parser already handles this -- port the logic to host_term.asm. Also add CSI S and CSI T for scroll
-    up/down by N lines.
+  status: planned
+  goal: Add scroll region support so full-screen apps (htop, nano, vim) can lock scrolling
+    to a subset of rows
+  description: CSI r (DECSTBM) sets the scroll region top and bottom margins. Within
+    this region, scrolling only affects rows between top and bottom. Cursor movement
+    outside the region is clamped. prompt_toolkit does NOT use scroll regions, but
+    full-screen terminal apps (nano, htop) do. The qemu/ansi.rs Rust parser already
+    handles this -- port the logic to host_term.asm. Also add CSI S and CSI T for
+    scroll up/down by N lines.
   deliverables:
   - name: CSI r -- set scroll region (DECSTBM)
     status: done
-    note: Implemented in src/qemu/ansi.rs (Rust ANSI parser). CSI r parsed with scroll_top/scroll_bottom fields. scroll_up/scroll_down respect region bounds. CUU/CUD clamped to region. ESC M (RI) scrolls
-      down at scroll_top. RIS resets to full screen.
+    note: Implemented in src/qemu/ansi.rs (Rust ANSI parser). CSI r parsed with scroll_top/scroll_bottom
+      fields. scroll_up/scroll_down respect region bounds. CUU/CUD clamped to region.
+      ESC M (RI) scrolls down at scroll_top. RIS resets to full screen.
     tasks:
     - id: p185.d1.t1
       title: Add SCROLL_TOP and SCROLL_BOTTOM memory locations
-      description: Define SCROLL_TOP (default 0) and SCROLL_BOTTOM (default ROWS-1) at known RAM addresses. Initialize to full screen on startup and on CSI r with no params.
+      description: Define SCROLL_TOP (default 0) and SCROLL_BOTTOM (default ROWS-1)
+        at known RAM addresses. Initialize to full screen on startup and on CSI r
+        with no params.
       scope_files:
       - programs/host_term.asm
       scope_lines: 15
     - id: p185.d1.t2
       title: Parse CSI r in handle_sgr_final
-      description: When final byte is 'r', read CSI_PARAM as top and CSI_PARAM2 as bottom (1-indexed). Clamp to valid range. Update SCROLL_TOP/SCROLL_BOTTOM. Move cursor to home position.
+      description: When final byte is 'r', read CSI_PARAM as top and CSI_PARAM2 as
+        bottom (1-indexed). Clamp to valid range. Update SCROLL_TOP/SCROLL_BOTTOM.
+        Move cursor to home position.
       scope_files:
       - programs/host_term.asm
       scope_lines: 35
     - id: p185.d1.t3
       title: Modify scroll_up and scroll_down to respect scroll region
-      description: When cursor is on SCROLL_BOTTOM row and newline triggers scroll, only shift rows between SCROLL_TOP and SCROLL_BOTTOM. Clear SCROLL_BOTTOM row. Same for reverse scroll at SCROLL_TOP.
+      description: When cursor is on SCROLL_BOTTOM row and newline triggers scroll,
+        only shift rows between SCROLL_TOP and SCROLL_BOTTOM. Clear SCROLL_BOTTOM
+        row. Same for reverse scroll at SCROLL_TOP.
       scope_files:
       - programs/host_term.asm
       scope_lines: 40
     - id: p185.d1.t4
       title: Clamp cursor movement within scroll region
-      description: CSI A/B (cursor up/down) should not move cursor above SCROLL_TOP or below SCROLL_BOTTOM. CSI H should clamp row to scroll region.
+      description: CSI A/B (cursor up/down) should not move cursor above SCROLL_TOP
+        or below SCROLL_BOTTOM. CSI H should clamp row to scroll region.
       scope_files:
       - programs/host_term.asm
       scope_lines: 20
   - name: Tests for scroll region
     status: done
-    note: 17 comprehensive tests in src/qemu/ansi.rs mod tests covering CSI r parsing, scroll region preservation, overflow scrolling, reverse index (ESC M), cursor clamping (CUU/CUD), newline at bottom,
-      RIS reset, CSI S/T region respect, line wrap, and CUP outside region.
+    note: 17 comprehensive tests in src/qemu/ansi.rs mod tests covering CSI r parsing,
+      scroll region preservation, overflow scrolling, reverse index (ESC M), cursor
+      clamping (CUU/CUD), newline at bottom, RIS reset, CSI S/T region respect, line
+      wrap, and CUP outside region.
     tasks:
     - id: p185.d2.t1
       title: Test CSI r sets scroll region and cursor goes home
-      description: Drive ESC[5;10r through host_term_run_ansi, verify cursor at (0,0). Write past bottom, verify only rows 5-9 scroll.
+      description: Drive ESC[5;10r through host_term_run_ansi, verify cursor at (0,0).
+        Write past bottom, verify only rows 5-9 scroll.
       scope_files:
       - src/vm/tests.rs
       scope_lines: 40
@@ -830,17 +998,23 @@ phases:
   _claimed_at: 1777623016
 - id: phase-186
   title: ANSI Parser -- Tab Stops and Horizontal Scrolling
-  status: todo
-  goal: Add proper tab stop handling so formatted output (ls, tables, code) aligns correctly
-  description: Currently TAB advances to next 8-column boundary but there are no configurable tab stops. CSI sequences for setting/clearing tab stops exist (CSI 3g = clear all tabs, CSI 0g = clear tab at
-    cursor, CSI 5g = set tab). Also need HTS (ESC H) to set a tab stop. While prompt_toolkit does not heavily use custom tabs, ls and many CLI tools rely on 8-column tab alignment.
+  status: planned
+  goal: Add proper tab stop handling so formatted output (ls, tables, code) aligns
+    correctly
+  description: Currently TAB advances to next 8-column boundary but there are no configurable
+    tab stops. CSI sequences for setting/clearing tab stops exist (CSI 3g = clear
+    all tabs, CSI 0g = clear tab at cursor, CSI 5g = set tab). Also need HTS (ESC
+    H) to set a tab stop. While prompt_toolkit does not heavily use custom tabs, ls
+    and many CLI tools rely on 8-column tab alignment.
   deliverables:
   - name: Tab stop array and HTS (ESC H) support
     status: done
     tasks:
     - id: p186.d1.t1
       title: Add tab stop bitmap at known RAM address
-      description: 80 bits = 10 u32 words for 80-column tab stops. Initialize with default 8-column stops (bits 0,8,16,...,72 set). ESC H sets bit at cursor col.
+      description: 80 bits = 10 u32 words for 80-column tab stops. Initialize with
+        default 8-column stops (bits 0,8,16,...,72 set). ESC H sets bit at cursor
+        col.
       scope_files:
       - programs/host_term.asm
       scope_lines: 25
@@ -861,7 +1035,8 @@ phases:
     tasks:
     - id: p186.d2.t1
       title: Test default tab stops, custom tab stops, and clear
-      description: Verify TAB at col 0 goes to col 8. Set tab at col 5, TAB from col 3 goes to col 5. Clear all tabs, TAB goes nowhere.
+      description: Verify TAB at col 0 goes to col 8. Set tab at col 5, TAB from col
+        3 goes to col 5. Clear all tabs, TAB goes nowhere.
       scope_files:
       - src/vm/tests.rs
       scope_lines: 35
@@ -872,23 +1047,28 @@ phases:
   _claimed_at: 1777558123
 - id: phase-187
   title: Replace save.rs unwrap() with Proper Error Handling
-  status: todo
+  status: planned
   goal: Eliminate 27 unwrap() calls in save.rs that can panic on corrupt save files
-  description: save.rs handles PNG save/load for screenshots and VM state persistence. Currently has 27 unwrap() calls on file I/O, PNG decoding, and path conversion. Corrupt save files or permission errors
-    will crash the entire OS. Replace with Result propagation and graceful fallback (return None, log warning, keep current state).
+  description: save.rs handles PNG save/load for screenshots and VM state persistence.
+    Currently has 27 unwrap() calls on file I/O, PNG decoding, and path conversion.
+    Corrupt save files or permission errors will crash the entire OS. Replace with
+    Result propagation and graceful fallback (return None, log warning, keep current
+    state).
   deliverables:
   - name: Replace file I/O unwraps in save.rs
     status: done
     tasks:
     - id: p187.d1.t1
       title: Replace File::open, File::create, to_str unwraps
-      description: Use if let Ok(_) or ? operator with Result return types. On failure, return None or Err(SaveError) instead of panicking.
+      description: Use if let Ok(_) or ? operator with Result return types. On failure,
+        return None or Err(SaveError) instead of panicking.
       scope_files:
       - src/save.rs
       scope_lines: 60
     - id: p187.d1.t2
       title: Replace PNG decoder/encoder unwraps
-      description: png::Decoder::read_info and reader.next_frame can fail on corrupt PNGs. Wrap in match/Result.
+      description: png::Decoder::read_info and reader.next_frame can fail on corrupt
+        PNGs. Wrap in match/Result.
       scope_files:
       - src/save.rs
       scope_lines: 30
@@ -897,13 +1077,15 @@ phases:
     tasks:
     - id: p187.d2.t1
       title: Test loading nonexistent save returns None
-      description: Attempt to load from nonexistent path, verify no panic, returns None.
+      description: Attempt to load from nonexistent path, verify no panic, returns
+        None.
       scope_files:
       - src/save.rs
       scope_lines: 15
     - id: p187.d2.t2
       title: Test loading corrupt PNG returns None
-      description: Write random bytes to a temp file, attempt to load as PNG, verify no panic.
+      description: Write random bytes to a temp file, attempt to load as PNG, verify
+        no panic.
       scope_files:
       - src/save.rs
       scope_lines: 15
@@ -914,16 +1096,19 @@ phases:
   _claimed_at: 1777632421
 - id: phase-188
   title: Replace glyph_backend.rs unwrap() with Error Propagation
-  status: todo
+  status: planned
   goal: Eliminate 36 unwrap() calls in glyph_backend.rs for robustness
-  description: glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap() calls on font loading, pattern matching, and data extraction. Failures here crash the glyph system.
+  description: glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap()
+    calls on font loading, pattern matching, and data extraction. Failures here crash
+    the glyph system.
   deliverables:
   - name: Audit and replace unwrap() calls in glyph_backend.rs
     status: done
     tasks:
     - id: p188.d1.t1
       title: Replace all 36 unwrap() with proper error handling
-      description: Group by category (font loading, regex, data extraction). Use match, ok_or, or early return patterns.
+      description: Group by category (font loading, regex, data extraction). Use match,
+        ok_or, or early return patterns.
       scope_files:
       - src/glyph_backend.rs
       scope_lines: 100
@@ -940,29 +1125,39 @@ phases:
   _completed_at: 1777558123
 - id: phase-189
   title: VFS Capability Enforcement on Process Creation
-  status: todo
-  goal: Wire up the existing Capability struct to Process so spawned programs get restricted VFS access
-  description: src/vm/types.rs already has Capability, check_path_capability, and check_opcode_capability implemented. But src/vfs.rs has two TODOs saying capability checks are skipped because capabilities
-    are not yet on Process. The Process struct (types.rs:492) needs a caps field, and SPAWN opcode needs to accept capability lists. This is the foundation for sandboxing.
+  status: planned
+  goal: Wire up the existing Capability struct to Process so spawned programs get
+    restricted VFS access
+  description: src/vm/types.rs already has Capability, check_path_capability, and
+    check_opcode_capability implemented. But src/vfs.rs has two TODOs saying capability
+    checks are skipped because capabilities are not yet on Process. The Process struct
+    (types.rs:492) needs a caps field, and SPAWN opcode needs to accept capability
+    lists. This is the foundation for sandboxing.
   deliverables:
   - name: Add caps field to Process struct
     status: done
     tasks:
     - id: p189.d1.t1
       title: 'Add caps: Option<Vec<Capability>> to Process'
-      description: Added caps field to Process struct. Process::new() initializes to None. Added new_with_caps(), inherit_capabilities(), restrict_to_path() builder methods.
+      description: Added caps field to Process struct. Process::new() initializes
+        to None. Added new_with_caps(), inherit_capabilities(), restrict_to_path()
+        builder methods.
       scope_files:
       - src/vm/types.rs
       scope_lines: 20
     - id: p189.d1.t2
       title: Enable the two TODO capability checks in vfs.rs
-      description: Capability checks were already wired in OPEN syscall handler in ops_filesys.rs (from prior work). check_path_capability is called with current process capabilities.
+      description: Capability checks were already wired in OPEN syscall handler in
+        ops_filesys.rs (from prior work). check_path_capability is called with current
+        process capabilities.
       scope_files:
       - src/vfs.rs
       scope_lines: 25
     - id: p189.d1.t3
       title: Add SPAWN capability parameter
-      description: Deferred - SPAWN already inherits parent caps via inherit_capabilities(). Full capability list addressing via SPAWN can be added in a future phase when the ABI is finalized.
+      description: Deferred - SPAWN already inherits parent caps via inherit_capabilities().
+        Full capability list addressing via SPAWN can be added in a future phase when
+        the ABI is finalized.
       scope_files:
       - src/vm/ops_extended.rs
       scope_lines: 40
@@ -971,8 +1166,10 @@ phases:
     tasks:
     - id: p189.d2.t1
       title: Test that restricted process cannot open disallowed paths
-      description: 'Added 37 comprehensive tests in types.rs covering: Capability path matching (exact, prefix/*), permission bits, check_path_capability union semantics, check_opcode_capability, Process
-        builder methods, and VFS OPEN integration (allowed/denied/read-only/write).'
+      description: 'Added 37 comprehensive tests in types.rs covering: Capability
+        path matching (exact, prefix/*), permission bits, check_path_capability union
+        semantics, check_opcode_capability, Process builder methods, and VFS OPEN
+        integration (allowed/denied/read-only/write).'
       scope_files:
       - src/vm/tests.rs
       scope_lines: 40
@@ -983,34 +1180,44 @@ phases:
   _claimed_at: 1777634458
 - id: phase-190
   title: Sync qemu/ansi.rs Feature Parity with host_term.asm
-  status: todo
-  goal: Ensure both ANSI parsers handle the same set of sequences, preventing behavioral drift
-  description: 'There are two ANSI parsers: the Rust qemu/ansi.rs (1403 lines, 71 tests) used by the RISC-V bridge, and the ASM host_term.asm (2765 lines, 32 tests) used by the host terminal. They have
-    diverged -- qemu/ansi.rs supports erase (K/J), scroll region (r), and more private modes, while host_term.asm does not yet. Audit both parsers and create a shared feature matrix, then implement missing
-    features in the ASM parser.'
+  status: in_progress
+  goal: Ensure both ANSI parsers handle the same set of sequences, preventing behavioral
+    drift
+  description: 'There are two ANSI parsers: the Rust qemu/ansi.rs (1403 lines, 71
+    tests) used by the RISC-V bridge, and the ASM host_term.asm (2765 lines, 32 tests)
+    used by the host terminal. They have diverged -- qemu/ansi.rs supports erase (K/J),
+    scroll region (r), and more private modes, while host_term.asm does not yet. Audit
+    both parsers and create a shared feature matrix, then implement missing features
+    in the ASM parser.'
   deliverables:
   - name: Feature matrix document
-    status: todo
+    status: planned
     tasks:
     - id: p190.d1.t1
       title: Audit both parsers and document differences
-      description: Grep for all handled final bytes in qemu/ansi.rs handle_csi and handle_csi_private. Compare with host_term.asm. Output a markdown table showing supported/missing for each parser.
+      description: Grep for all handled final bytes in qemu/ansi.rs handle_csi and
+        handle_csi_private. Compare with host_term.asm. Output a markdown table showing
+        supported/missing for each parser.
       scope_files:
       - programs/host_term.asm
       - src/qemu/ansi.rs
       scope_lines: 30
   - name: Port missing qemu/ansi.rs features to host_term.asm
-    status: todo
+    status: planned
     tasks:
     - id: p190.d2.t1
       title: Implement any remaining CSI sequences not in phases 183-185
-      description: 'After phases 183-185 land, check what else qemu/ansi.rs has that host_term.asm lacks. Likely candidates: CSI S/T (scroll N lines), CSI L/M (insert/delete lines).'
+      description: 'After phases 183-185 land, check what else qemu/ansi.rs has that
+        host_term.asm lacks. Likely candidates: CSI S/T (scroll N lines), CSI L/M
+        (insert/delete lines).'
       scope_files:
       - programs/host_term.asm
       scope_lines: 60
     - id: p190.d2.t2
       title: Add parity tests
-      description: For each newly implemented sequence, add a test that drives the same input through both parsers (via host_term_run_ansi and qemu/ansi::AnsiState) and asserts identical screen output.
+      description: For each newly implemented sequence, add a test that drives the
+        same input through both parsers (via host_term_run_ansi and qemu/ansi::AnsiState)
+        and asserts identical screen output.
       scope_files:
       - src/vm/tests.rs
       scope_lines: 40
@@ -1018,27 +1225,33 @@ phases:
   scope_lines_total: 85425
   test_target: 8
   _claimed_by: worker-0
-  _claimed_at: 1777642510
+  _claimed_at: 1777643541
 - id: phase-191
   title: Roguelike Game Polish -- Save/Load and Win Condition
-  status: todo
+  status: planned
   goal: Add game state persistence and a proper win/lose loop to the roguelike
-  description: The roguelike (2549 lines) is one of the largest programs but has no save/load and no win condition. When you find the stairs, there is no victory message or level progression. Adding save/load
-    via the VFS WRITE/READ opcodes proves the VFS works for real app state. Adding level progression makes it a game.
+  description: The roguelike (2549 lines) is one of the largest programs but has no
+    save/load and no win condition. When you find the stairs, there is no victory
+    message or level progression. Adding save/load via the VFS WRITE/READ opcodes
+    proves the VFS works for real app state. Adding level progression makes it a game.
   deliverables:
   - name: Save/load game state to VFS
     status: done
     tasks:
     - id: p191.d1.t1
       title: Add save command that writes player state to VFS file
-      description: On 'F' key press, serialize 9 player state words (P_X, P_Y, P_HP, P_MAXHP, P_ATK, STAIRS_X, STAIRS_Y, DLEVEL, KILLS) to /save.dat via OPEN/WRITE/CLOSE. Shows "SAVED!" message. Fixed 3
-        LDI r4,r20 bugs (should be MOV r4,r20 -- LDI takes immediates only).
+      description: On 'F' key press, serialize 9 player state words (P_X, P_Y, P_HP,
+        P_MAXHP, P_ATK, STAIRS_X, STAIRS_Y, DLEVEL, KILLS) to /save.dat via OPEN/WRITE/CLOSE.
+        Shows "SAVED!" message. Fixed 3 LDI r4,r20 bugs (should be MOV r4,r20 -- LDI
+        takes immediates only).
       scope_files:
       - programs/roguelike.asm
       scope_lines: 40
     - id: p191.d1.t2
       title: Add load command that reads game state from VFS
-      description: On 'G' key press, read /save.dat via OPEN/READ/CLOSE and restore 9 player state words. Handles missing/corrupt file gracefully (silent fail). Shows "LOADED!" message on success.
+      description: On 'G' key press, read /save.dat via OPEN/READ/CLOSE and restore
+        9 player state words. Handles missing/corrupt file gracefully (silent fail).
+        Shows "LOADED!" message on success.
       scope_files:
       - programs/roguelike.asm
       scope_lines: 40
@@ -1047,15 +1260,19 @@ phases:
     tasks:
     - id: p191.d2.t1
       title: Add victory message when reaching stairs
-      description: 'When player steps on stairs, STATE=1 triggers descend_screen: shows "DESCENDED!" with floor/kill stats, waits for key, advances DLEVEL, heals half missing HP, regenerates dungeon. At
-        DLEVEL>=10, shows victory_screen with "VICTORY!" and "DUNGEON CLEARED!" messages, plays BEEP, resets to floor 0.'
+      description: 'When player steps on stairs, STATE=1 triggers descend_screen:
+        shows "DESCENDED!" with floor/kill stats, waits for key, advances DLEVEL,
+        heals half missing HP, regenerates dungeon. At DLEVEL>=10, shows victory_screen
+        with "VICTORY!" and "DUNGEON CLEARED!" messages, plays BEEP, resets to floor
+        0.'
       scope_files:
       - programs/roguelike.asm
       scope_lines: 30
     - id: p191.d2.t2
       title: Death screen with score and restart option
-      description: 'When HP reaches 0, STATE=2 triggers death_screen: red screen with "GAME OVER", "KILLS: N", "LEVEL: N", "PRESS R TO RETRY". Waits for any key, then restarts. 3 tests pass: assembles,
-        initializes, wall collision.'
+      description: 'When HP reaches 0, STATE=2 triggers death_screen: red screen with
+        "GAME OVER", "KILLS: N", "LEVEL: N", "PRESS R TO RETRY". Waits for any key,
+        then restarts. 3 tests pass: assembles, initializes, wall collision.'
       scope_files:
       - programs/roguelike.asm
       scope_lines: 25
@@ -1066,35 +1283,40 @@ phases:
   _claimed_at: 1777642836
 - id: phase-192
   title: Shell.asm Built-in Commands Expansion
-  status: todo
+  status: planned
   goal: Add more useful built-in commands to the shell (grep, head, tail, wc, date)
-  description: The shell (2039 lines) handles basic command parsing and execution via EXEC. But common commands like grep, head, tail are missing as built-ins. Users should not need external binaries for
-    basic text operations. Implement these as shell built-in command handlers.
+  description: The shell (2039 lines) handles basic command parsing and execution
+    via EXEC. But common commands like grep, head, tail are missing as built-ins.
+    Users should not need external binaries for basic text operations. Implement these
+    as shell built-in command handlers.
   deliverables:
   - name: grep built-in command
-    status: todo
+    status: planned
     tasks:
     - id: p192.d1.t1
       title: Add grep command that searches VFS file contents
-      description: Parse 'grep PATTERN FILE'. Open file via VFS, read lines, print matching lines with line numbers. Support case-insensitive flag -i.
+      description: Parse 'grep PATTERN FILE'. Open file via VFS, read lines, print
+        matching lines with line numbers. Support case-insensitive flag -i.
       scope_files:
       - programs/shell.asm
       scope_lines: 60
   - name: head and tail built-in commands
-    status: todo
+    status: planned
     tasks:
     - id: p192.d2.t1
       title: Add head and tail commands
-      description: Parse 'head -N FILE' (default 10) and 'tail -N FILE'. Read VFS file, print first/last N lines.
+      description: Parse 'head -N FILE' (default 10) and 'tail -N FILE'. Read VFS
+        file, print first/last N lines.
       scope_files:
       - programs/shell.asm
       scope_lines: 50
   - name: wc and date built-in commands
-    status: todo
+    status: planned
     tasks:
     - id: p192.d3.t1
       title: Add wc (word/line/char count) and date commands
-      description: wc reads VFS file and prints line/word/char counts. date reads the clock port and prints formatted time.
+      description: wc reads VFS file and prints line/word/char counts. date reads
+        the clock port and prints formatted time.
       scope_files:
       - programs/shell.asm
       scope_lines: 40
@@ -1105,32 +1327,38 @@ phases:
   _claimed_at: 1777571419
 - id: phase-193
   title: Nano Editor -- Search and Replace
-  status: todo
+  status: planned
   goal: Add search (Ctrl+S) and replace (Ctrl+R) to the nano editor
-  description: The nano editor (2208 lines) supports basic editing but has no search/replace. These are essential for real editing work. Implement incremental search (highlight matches as you type) and
-    replace (with confirm). Uses only existing opcodes (STRING ops, HITSET for UI).
+  description: The nano editor (2208 lines) supports basic editing but has no search/replace.
+    These are essential for real editing work. Implement incremental search (highlight
+    matches as you type) and replace (with confirm). Uses only existing opcodes (STRING
+    ops, HITSET for UI).
   deliverables:
   - name: Incremental search (Ctrl+S)
-    status: todo
+    status: planned
     tasks:
     - id: p193.d1.t1
       title: Add search prompt and matching logic
-      description: Ctrl+S enters search mode at bottom of screen. Type search term, matches highlight in buffer. Enter confirms, Escape cancels. Use STRING_FIND or brute-force compare.
+      description: Ctrl+S enters search mode at bottom of screen. Type search term,
+        matches highlight in buffer. Enter confirms, Escape cancels. Use STRING_FIND
+        or brute-force compare.
       scope_files:
       - programs/nano_editor.asm
       scope_lines: 60
     - id: p193.d1.t2
       title: Add match navigation (F3 next, Shift+F3 prev)
-      description: After search, F3 jumps to next match, Shift+F3 to previous. Highlight current match with inverse video.
+      description: After search, F3 jumps to next match, Shift+F3 to previous. Highlight
+        current match with inverse video.
       scope_files:
       - programs/nano_editor.asm
       scope_lines: 30
   - name: Replace (Ctrl+R)
-    status: todo
+    status: planned
     tasks:
     - id: p193.d2.t1
       title: Add replace prompt and execution
-      description: Ctrl+R prompts for search and replacement text. Replace all or confirm each. Updates buffer and marks dirty.
+      description: Ctrl+R prompts for search and replacement text. Replace all or
+        confirm each. Updates buffer and marks dirty.
       scope_files:
       - programs/nano_editor.asm
       scope_lines: 40
@@ -1141,23 +1369,28 @@ phases:
   _claimed_at: 1777574721
 - id: phase-194
   title: Host Terminal Performance -- Dirty Rectangle Rendering
-  status: todo
+  status: planned
   goal: Only re-render changed rows instead of the full 30-row screen every frame
-  description: Currently host_term.asm renders all 30 rows every frame via SMALLTEXT, even when only one line changed (like typing a character). This is wasteful. Track which rows changed since last render
-    and only SMALLTEXT the dirty rows. With a status bar and scrollback already optimized, this is the last rendering bottleneck.
+  description: Currently host_term.asm renders all 30 rows every frame via SMALLTEXT,
+    even when only one line changed (like typing a character). This is wasteful. Track
+    which rows changed since last render and only SMALLTEXT the dirty rows. With a
+    status bar and scrollback already optimized, this is the last rendering bottleneck.
   deliverables:
   - name: Row dirty bitmap
-    status: todo
+    status: planned
     tasks:
     - id: p194.d1.t1
       title: Add 32-bit dirty row bitmap (1 bit per row)
-      description: At render time, check bitmap. Only call SMALLTEXT for rows with bit set. Clear bits after rendering. Set bit on any text write, cursor move, or scroll.
+      description: At render time, check bitmap. Only call SMALLTEXT for rows with
+        bit set. Clear bits after rendering. Set bit on any text write, cursor move,
+        or scroll.
       scope_files:
       - programs/host_term.asm
       scope_lines: 40
     - id: p194.d1.t2
       title: Benchmark frame time before and after
-      description: Add a frame counter that measures cycles between renders. Log or display in status bar when debug mode is on.
+      description: Add a frame counter that measures cycles between renders. Log or
+        display in status bar when debug mode is on.
       scope_files:
       - programs/host_term.asm
       scope_lines: 20
@@ -1168,23 +1401,28 @@ phases:
   _claimed_at: 1777577516
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: todo
-  goal: Extend file browser to support directory traversal, file deletion, and file creation
-  description: The file browser shows VFS files and displays content but cannot navigate directories (VFS has a flat namespace currently) or perform file operations. Add mkdir, rm, and touch commands accessible
-    from the file browser UI. Also add file size display and modification time if available from VFS metadata.
+  status: planned
+  goal: Extend file browser to support directory traversal, file deletion, and file
+    creation
+  description: The file browser shows VFS files and displays content but cannot navigate
+    directories (VFS has a flat namespace currently) or perform file operations. Add
+    mkdir, rm, and touch commands accessible from the file browser UI. Also add file
+    size display and modification time if available from VFS metadata.
   deliverables:
   - name: File operations from file browser
-    status: todo
+    status: planned
     tasks:
     - id: p195.d1.t1
       title: Add delete confirmation dialog
-      description: Select a file, press D to delete. Show confirmation dialog (Y/N). On confirm, call VFS UNLINK. Refresh file list.
+      description: Select a file, press D to delete. Show confirmation dialog (Y/N).
+        On confirm, call VFS UNLINK. Refresh file list.
       scope_files:
       - programs/file_browser.asm
       scope_lines: 40
     - id: p195.d1.t2
       title: Add file size display in file list
-      description: After filename, show file size in bytes using STRO and integer-to-string conversion.
+      description: After filename, show file size in bytes using STRO and integer-to-string
+        conversion.
       scope_files:
       - programs/file_browser.asm
       scope_lines: 25
@@ -1195,26 +1433,30 @@ phases:
   _claimed_at: 1777583670
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
-  status: todo
+  status: planned
   goal: Add command history and conversation context tracking to ai_terminal.asm
-  description: The AI terminal (2181 lines) sends prompts to the LLM opcode but has no command history (up/down arrows to recall previous prompts) and no context window showing token usage or conversation
-    length. These are essential for practical use.
+  description: The AI terminal (2181 lines) sends prompts to the LLM opcode but has
+    no command history (up/down arrows to recall previous prompts) and no context
+    window showing token usage or conversation length. These are essential for practical
+    use.
   deliverables:
   - name: Command history with up/down arrow recall
-    status: todo
+    status: planned
     tasks:
     - id: p196.d1.t1
       title: Add circular history buffer (16 entries)
-      description: Store each submitted prompt in a ring buffer at a known RAM address. Up arrow recalls previous, down arrow goes forward.
+      description: Store each submitted prompt in a ring buffer at a known RAM address.
+        Up arrow recalls previous, down arrow goes forward.
       scope_files:
       - programs/ai_terminal.asm
       scope_lines: 40
   - name: Context window display
-    status: todo
+    status: planned
     tasks:
     - id: p196.d2.t1
       title: Show token count and conversation turns in status bar
-      description: 'Track prompt + response lengths. Display ''Turns: N | Chars: M'' in the status area.'
+      description: 'Track prompt + response lengths. Display ''Turns: N | Chars: M''
+        in the status area.'
       scope_files:
       - programs/ai_terminal.asm
       scope_lines: 20
@@ -1225,17 +1467,21 @@ phases:
   _claimed_at: 1777587013
 - id: phase-197
   title: Replace mmu.rs unwrap() Calls with Proper Error Paths
-  status: todo
-  goal: Eliminate 14 unwrap() calls in the RISC-V MMU that can panic on page fault edge cases
-  description: The MMU (src/riscv/mmu.rs) handles address translation for the RISC-V interpreter. 14 unwrap() calls on page table lookups can panic when page table entries are malformed or missing. Replace
-    with proper fault reporting (return PageFault with fault address) so the interpreter can handle them gracefully.
+  status: planned
+  goal: Eliminate 14 unwrap() calls in the RISC-V MMU that can panic on page fault
+    edge cases
+  description: The MMU (src/riscv/mmu.rs) handles address translation for the RISC-V
+    interpreter. 14 unwrap() calls on page table lookups can panic when page table
+    entries are malformed or missing. Replace with proper fault reporting (return
+    PageFault with fault address) so the interpreter can handle them gracefully.
   deliverables:
   - name: Replace MMU unwrap() calls
     status: done
     tasks:
     - id: p197.d1.t1
       title: Replace all 14 unwrap() in mmu.rs
-      description: Change translate() and related functions to return Result<T, PageFault> instead of panicking. Propagate errors to caller.
+      description: Change translate() and related functions to return Result<T, PageFault>
+        instead of panicking. Propagate errors to caller.
       scope_files:
       - src/riscv/mmu.rs
       scope_lines: 80
@@ -1252,23 +1498,30 @@ phases:
   _claimed_at: 1777590104
 - id: phase-198
   title: Desktop Terminal Integration -- Launch Hermes from GeOS
-  status: todo
-  goal: The GeOS terminal should be able to launch Hermes Agent as a subprocess and display its output
-  description: 'The terminal runs bash, which means you can type ''hermes chat'' and get Hermes running inside GeOS. But this requires: (1) Hermes is in PATH or at a known location, (2) the PTY resize handling
-    matches what Hermes expects, (3) 256-color output renders correctly (phase e3d90c8). This phase verifies the full chain works and fixes any issues found.'
+  status: planned
+  goal: The GeOS terminal should be able to launch Hermes Agent as a subprocess and
+    display its output
+  description: 'The terminal runs bash, which means you can type ''hermes chat'' and
+    get Hermes running inside GeOS. But this requires: (1) Hermes is in PATH or at
+    a known location, (2) the PTY resize handling matches what Hermes expects, (3)
+    256-color output renders correctly (phase e3d90c8). This phase verifies the full
+    chain works and fixes any issues found.'
   deliverables:
   - name: Verify Hermes launches and renders in GeOS terminal
-    status: todo
+    status: planned
     tasks:
     - id: p198.d1.t1
       title: Test hermes chat in PTY and verify 256-color output
-      description: Spawn bash, type 'hermes chat', capture output. Verify 256-color SGR sequences render with correct colors. Check for any sequences that crash the parser.
+      description: Spawn bash, type 'hermes chat', capture output. Verify 256-color
+        SGR sequences render with correct colors. Check for any sequences that crash
+        the parser.
       scope_files:
       - src/vm/tests.rs
       scope_lines: 30
     - id: p198.d1.t2
       title: Fix any rendering issues found during Hermes session
-      description: If Hermes emits sequences not yet handled (erase, cursor style, etc.), add handlers or silently ignore them.
+      description: If Hermes emits sequences not yet handled (erase, cursor style,
+        etc.), add handlers or silently ignore them.
       scope_files:
       - programs/host_term.asm
       scope_lines: 40
@@ -1279,23 +1532,29 @@ phases:
   _claimed_at: 1777593202
 - id: phase-199
   title: Code Evolution Program -- Fitness Function Improvements
-  status: todo
-  goal: Improve the self-modifying code evolution program to produce more interesting and stable results
-  description: code_evolution.asm (5705 lines, the largest program) implements genetic programming where code modifies itself. But the fitness function may be too simple, leading to degenerate solutions.
-    Improve fitness evaluation to reward useful behaviors (drawing patterns, solving math, producing output) rather than just not crashing.
+  status: planned
+  goal: Improve the self-modifying code evolution program to produce more interesting
+    and stable results
+  description: code_evolution.asm (5705 lines, the largest program) implements genetic
+    programming where code modifies itself. But the fitness function may be too simple,
+    leading to degenerate solutions. Improve fitness evaluation to reward useful behaviors
+    (drawing patterns, solving math, producing output) rather than just not crashing.
   deliverables:
   - name: Enhanced fitness function
-    status: todo
+    status: planned
     tasks:
     - id: p199.d1.t1
       title: Add pattern-matching fitness evaluation
-      description: After running evolved code, check canvas for specific patterns (symmetry, repetition, non-zero regions). Score based on visual complexity and structure.
+      description: After running evolved code, check canvas for specific patterns
+        (symmetry, repetition, non-zero regions). Score based on visual complexity
+        and structure.
       scope_files:
       - programs/code_evolution.asm
       scope_lines: 60
     - id: p199.d1.t2
       title: Add diversity pressure to prevent convergence
-      description: Track opcode distribution across population. Penalize individuals too similar to current best. Encourage exploring different opcode combinations.
+      description: Track opcode distribution across population. Penalize individuals
+        too similar to current best. Encourage exploring different opcode combinations.
       scope_files:
       - programs/code_evolution.asm
       scope_lines: 40
@@ -1307,7 +1566,8 @@ phases:
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'
-- Cross-system pixel reads (U3) need locking or same-thread execution when a use case appears
+- Cross-system pixel reads (U3) need locking or same-thread execution when a use case
+  appears
 conventions:
 - Build all RISC-V examples with -march=rv32imac_zicsr -mabi=ilp32
 - Use build.sh-style flags (ffreestanding, nostdlib, O2, medany)
