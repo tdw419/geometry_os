@@ -1260,7 +1260,8 @@ phases:
     tasks:
     - id: p191.d2.t1
       title: Add victory message when reaching stairs
-      description: When player steps on stairs, STATE=1 triggers descend_screen:
+      description: >-
+        When player steps on stairs, STATE=1 triggers descend_screen:
         shows "DESCENDED!" with floor/kill stats, waits for key, advances DLEVEL,
         heals half missing HP, regenerates dungeon. At DLEVEL>=10, shows victory_screen
         with "VICTORY!" and "DUNGEON CLEARED!" messages, plays BEEP, resets to floor 0.
@@ -1269,7 +1270,8 @@ phases:
       scope_lines: 30
     - id: p191.d2.t2
       title: Death screen with score and restart option
-      description: When HP reaches 0, STATE=2 triggers death_screen: red screen with
+      description: >-
+        When HP reaches 0, STATE=2 triggers death_screen: red screen with
         "GAME OVER", "KILLS: N", "LEVEL: N", "PRESS R TO RETRY". Waits for any key,
         then restarts. 3 tests pass: assembles, initializes, wall collision.
       scope_files:
