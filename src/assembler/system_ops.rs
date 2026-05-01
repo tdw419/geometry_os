@@ -1039,6 +1039,16 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        // VFS file stat
+        "VSTAT" => {
+            if tokens.len() != 2 {
+                return Err("VSTAT requires 1 argument: VSTAT name_addr_reg".to_string());
+            }
+            bytecode.push(0xC1);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
         _ => Ok(None),
     }
 }

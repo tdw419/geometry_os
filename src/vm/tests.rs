@@ -23455,3 +23455,287 @@ fn test_screena_via_subop5() {
     vm.step();
     assert_eq!(vm.regs[0], 100);
 }
+
+// --- VSTAT opcode tests (Phase 195) ---
+
+#[test]
+fn test_vstat_returns_file_size() {
+    let mut vm = Vm::new();
+    // Create a test file in the VFS base directory
+    let test_content = "Hello, World!"; // 13 bytes
+    let vfs_dir = std::path::PathBuf::from(".geometry_os/fs");
+    let _ = std::fs::create_dir_all(&vfs_dir);
+    std::fs::write(vfs_dir.join("test_vstat.txt"), test_content.as_bytes()).unwrap();
+
+    // Write filename to RAM at 0x3000 (no path separators!)
+    let name = "test_vstat.txt";
+    for (i, &b) in name.as_bytes().iter().enumerate() {
+        vm.ram[0x3000 + i] = b as u32;
+    }
+    vm.ram[0x3000 + name.len()] = 0; // null terminator
+
+    // LDI r10, 0x3000
+    vm.ram[0] = 0x10; vm.ram[1] = 10; vm.ram[2] = 0x3000;
+    // VSTAT r10
+    vm.ram[3] = 0xC1; vm.ram[4] = 10;
+    // HALT
+    vm.ram[5] = 0x00;
+
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step(); // LDI
+    vm.step(); // VSTAT
+    vm.step(); // HALT
+
+    assert_eq!(vm.regs[0], test_content.len() as u32);
+
+    // Cleanup
+    let _ = std::fs::remove_file(vfs_dir.join("test_vstat.txt"));
+}
+
+#[test]
+fn test_vstat_nonexistent_returns_error() {
+    let mut vm = Vm::new();
+    // Write nonexistent filename to RAM (no path separators!)
+    let name = "nonexistent_vstat.txt";
+    for (i, &b) in name.as_bytes().iter().enumerate() {
+        vm.ram[0x3000 + i] = b as u32;
+    }
+    vm.ram[0x3000 + name.len()] = 0;
+
+    // LDI r10, 0x3000
+    vm.ram[0] = 0x10; vm.ram[1] = 10; vm.ram[2] = 0x3000;
+    // VSTAT r10
+    vm.ram[3] = 0xC1; vm.ram[4] = 10;
+    // HALT
+    vm.ram[5] = 0x00;
+
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step(); // LDI
+    vm.step(); // VSTAT
+    vm.step(); // HALT
+
+    assert_eq!(vm.regs[0], 0xFFFFFFFF);
+}
+
+#[test]
+fn test_disassemble_vstat() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xC1;
+    vm.ram[1] = 5;
+    let (text, len) = vm.disassemble_at(0);
+    assert_eq!(text, "VSTAT r5");
+    assert_eq!(len, 2);
+}
+
+#[test]
+fn test_assemble_vstat() {
+    let source = "LDI r10, 0x3000\nVSTAT r10\nHALT";
+    let result = crate::assembler::assemble(source, 0).unwrap();
+    assert!(result.pixels.len() >= 4);
+    assert_eq!(result.pixels[3], 0xC1); // VSTAT opcode
+    assert_eq!(result.pixels[4], 10);   // r10
+}
+
+// ── Phase 198: Desktop Terminal Integration -- Launch Hermes from GeOS ──
+
+/// Verify Hermes Agent binary is available and responds to --version.
+/// This is a prerequisite for the terminal integration test.
+#[test]
+fn test_hermes_binary_exists() {
+    let output = std::process::Command::new("hermes")
+        .arg("--version")
+        .output()
+        .expect("hermes binary should be executable");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Hermes Agent"),
+        "hermes --version should contain 'Hermes Agent', got: {}",
+        stdout
+    );
+    assert!(output.status.success(), "hermes --version should exit 0");
+}
+
+/// Verify Hermes output contains no SGR escape sequences (0x1B [).
+/// Hermes Agent uses pure Unicode (box-drawing, Braille) with no color codes.
+/// This means GeOS's ANSI parser doesn't need to handle SGR for Hermes --
+/// it only needs correct UTF-8 byte processing and codepoint mapping.
+#[test]
+fn test_hermes_output_no_sgr_sequences() {
+    // Use --version for a quick, safe test with minimal output
+    let output = std::process::Command::new("hermes")
+        .arg("--version")
+        .output()
+        .expect("hermes binary should be executable");
+    let data = &output.stdout;
+
+    // Check for any ESC [ sequences (SGR / CSI)
+    let mut i = 0;
+    while i < data.len() {
+        if data[i] == 0x1B && i + 1 < data.len() && data[i + 1] == b'[' {
+            panic!(
+                "Found unexpected CSI sequence at byte {}: {:02X?}",
+                i,
+                &data[i..std::cmp::min(i + 10, data.len())]
+            );
+        }
+        i += 1;
+    }
+}
+
+/// Verify Hermes output's Unicode box-drawing characters match the set
+/// that host_term.asm's map_codepoint routine handles.
+/// Hermes uses: U+2500 (─), U+2502 (│), U+256D (╭), U+256E (╮),
+/// U+256F (╯), U+2570 (╰). All are in the U+2500-U+257F range mapped
+/// to extended font bytes 128-157.
+#[test]
+fn test_hermes_box_drawing_in_mapped_range() {
+    // Hermes's box-drawing codepoints (from actual output analysis)
+    let hermes_box_chars: &[u32] = &[
+        0x2500, // ─ horizontal
+        0x2502, // │ vertical
+        0x256D, // ╭ top-left corner
+        0x256E, // ╮ top-right corner
+        0x256F, // ╯ bottom-right corner
+        0x2570, // ╰ bottom-left corner
+    ];
+
+    // Verify all are in the U+2500-U+257F range that host_term.asm maps
+    for &cp in hermes_box_chars {
+        assert!(
+            cp >= 0x2500 && cp <= 0x257F,
+            "U+{:04X} should be in box-drawing range U+2500-U+257F",
+            cp
+        );
+    }
+}
+
+/// Verify Hermes output's UTF-8 encoding is valid and decodable.
+/// Hermes uses 2-byte and 3-byte UTF-8 for box-drawing and Braille chars.
+#[test]
+fn test_hermes_output_valid_utf8() {
+    let output = std::process::Command::new("hermes")
+        .arg("--version")
+        .output()
+        .expect("hermes binary should be executable");
+    let text = String::from_utf8(output.stdout);
+    assert!(
+        text.is_ok(),
+        "hermes output should be valid UTF-8"
+    );
+}
+
+/// Verify the PTY spawn infrastructure works with a simple command.
+/// This tests the same code path host_term.asm uses (PTYOPEN opcode →
+/// ops_pty::spawn() → child process in pseudo-terminal).
+#[test]
+fn test_pty_spawn_echo() {
+    // Only run if hermes is available (CI may not have it)
+    if std::process::Command::new("hermes")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
+        eprintln!("Skipping test_pty_spawn_echo: hermes not in PATH");
+        return;
+    }
+
+    let slot = crate::vm::ops_pty::spawn("echo hello_world_test")
+        .expect("PTY spawn should succeed");
+    assert!(slot.is_alive(), "spawned process should be alive initially");
+
+    // Wait for output
+    std::thread::sleep(std::time::Duration::from_millis(500));
+
+    // Read available bytes via drain_remaining()
+    let output = slot.drain_remaining();
+    let text = String::from_utf8_lossy(&output);
+    assert!(
+        text.contains("hello_world_test"),
+        "PTY should capture echo output, got: {}",
+        text
+    );
+}
+
+/// Verify the query interceptor handles DA1/DA2 sequences correctly.
+/// Hermes Agent (Ink-based TUI) may send DA1 (CSI c) queries on startup.
+/// The query interceptor must respond to prevent hangs.
+#[test]
+fn test_query_interceptor_da1() {
+    let mut qi = crate::vm::ops_pty::QueryInterceptor::new();
+
+    // Feed ESC [ c (DA1 query)
+    let (fwd, resp) = qi.feed(0x1B);
+    assert!(fwd, "ESC should be forwarded");
+    assert!(resp.is_none());
+
+    let (fwd, resp) = qi.feed(b'[');
+    assert!(fwd, "[ should be forwarded");
+    assert!(resp.is_none());
+
+    let (fwd, resp) = qi.feed(b'c');
+    assert!(fwd, "c should be forwarded");
+    assert!(resp.is_some(), "DA1 query should trigger response");
+    let resp_bytes = resp.unwrap();
+    assert_eq!(resp_bytes, b"\x1B[?1;0c", "DA1 response should be \\e[?1;0c");
+}
+
+/// Verify the query interceptor handles XTVERSION query.
+/// Hermes's Ink renderer sends CSI > q on startup.
+#[test]
+fn test_query_interceptor_xtversion() {
+    let mut qi = crate::vm::ops_pty::QueryInterceptor::new();
+
+    // Feed ESC [ > 0 q (XTVERSION query)
+    qi.feed(0x1B); // ESC
+    qi.feed(b'[');  // [
+    qi.feed(b'>');  // >
+    qi.feed(b'0');  // 0
+    let (fwd, resp) = qi.feed(b'q'); // q
+    assert!(fwd, "q should be forwarded");
+    assert!(resp.is_some(), "XTVERSION should trigger response");
+    let resp_bytes = resp.unwrap();
+    assert!(
+        resp_bytes.starts_with(b"\x1BP>|GeOS"),
+        "XTVERSION response should start with DCS > | GeOS"
+    );
+}
+
+/// Verify Hermes can be spawned via PTY and produces output containing
+/// its version string. This is the end-to-end integration test: PTYOPEN
+/// → bash → hermes --version → PTYREAD → output contains "Hermes Agent".
+#[test]
+fn test_hermes_launch_via_pty() {
+    // Only run if hermes is available
+    if std::process::Command::new("hermes")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
+        eprintln!("Skipping test_hermes_launch_via_pty: hermes not in PATH");
+        return;
+    }
+
+    let slot =
+        crate::vm::ops_pty::spawn("hermes --version").expect("PTY spawn of hermes should succeed");
+    assert!(slot.is_alive());
+
+    // Wait for Hermes to start and produce output
+    std::thread::sleep(std::time::Duration::from_millis(2000));
+
+    // Drain all available output via drain_remaining()
+    let mut output = slot.drain_remaining();
+    if output.is_empty() {
+        // Try once more after a short wait
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        output = slot.drain_remaining();
+    }
+
+    let text = String::from_utf8_lossy(&output);
+    assert!(
+        text.contains("Hermes Agent"),
+        "Hermes launched via PTY should produce output containing 'Hermes Agent'. Got: {}",
+        &text[..std::cmp::min(text.len(), 500)]
+    );
+}

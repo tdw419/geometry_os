@@ -580,6 +580,23 @@ impl Vfs {
         }
     }
 
+    /// Get file size by name. `name_addr` is RAM address of null-terminated filename.
+    /// Returns file size in bytes on success, FD_ERROR on error.
+    pub fn fstat(&self, ram: &[u32], name_addr: u32) -> u32 {
+        let name = match Self::read_string(ram, name_addr as usize) {
+            Some(s) => s,
+            None => return FD_ERROR,
+        };
+        if name.contains('/') || name.contains('\\') || name.starts_with('.') {
+            return FD_ERROR;
+        }
+        let path = self.base_dir.join(&name);
+        match fs::metadata(&path) {
+            Ok(m) => m.len().min(u32::MAX as u64) as u32,
+            Err(_) => FD_ERROR,
+        }
+    }
+
     /// Copy a file within the VFS directory.
     /// `src_addr` and `dst_addr` are RAM addresses of null-terminated filenames.
     /// Returns 0 on success, FD_ERROR on error.

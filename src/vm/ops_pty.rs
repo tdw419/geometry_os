@@ -72,14 +72,14 @@ enum QiState {
 
 /// Scans a byte stream for terminal queries and generates responses.
 /// Maintains state across calls (partial sequences span read() boundaries).
-struct QueryInterceptor {
+pub(crate) struct QueryInterceptor {
     state: QiState,
     /// Buffer for collecting parameter digits between ';' or terminal byte.
     param_buf: String,
 }
 
 impl QueryInterceptor {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         QueryInterceptor {
             state: QiState::Ground,
             param_buf: String::new(),
@@ -92,7 +92,7 @@ impl QueryInterceptor {
     /// - forward: true if this byte should be sent to the VM channel
     /// - respond: Some(response_bytes) if a query was detected and a
     ///   response should be written back to the child
-    fn feed(&mut self, b: u8) -> (bool, Option<Vec<u8>>) {
+    pub(crate) fn feed(&mut self, b: u8) -> (bool, Option<Vec<u8>>) {
         match self.state {
             QiState::Ground => {
                 if b == 0x1B {

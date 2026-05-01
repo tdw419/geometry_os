@@ -3502,6 +3502,19 @@ impl Vm {
                 }
             }
 
+            // VSTAT name_addr_reg  (0xC1) -- Get VFS file size by name
+            // Reads null-terminated filename from RAM at address in register.
+            // Returns file size in bytes in r0, 0xFFFFFFFF on error.
+            0xC1 => {
+                let nr = self.fetch() as usize;
+                if nr < NUM_REGS {
+                    let name_addr = self.regs[nr];
+                    self.regs[0] = self.vfs.fstat(&self.ram, name_addr);
+                } else {
+                    self.regs[0] = 0xFFFFFFFF;
+                }
+            }
+
             _ => {
                 self.halted = true;
                 return false;
