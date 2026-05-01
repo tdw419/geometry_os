@@ -930,7 +930,7 @@ phases:
   _claimed_at: 1777317398
 - id: phase-185
   title: ANSI Parser -- Scroll Region (CSI r) and Origin Mode
-  status: planned
+  status: done
   goal: Add scroll region support so full-screen apps (htop, nano, vim) can lock scrolling
     to a subset of rows
   description: CSI r (DECSTBM) sets the scroll region top and bottom margins. Within
@@ -998,7 +998,7 @@ phases:
   _claimed_at: 1777623016
 - id: phase-186
   title: ANSI Parser -- Tab Stops and Horizontal Scrolling
-  status: planned
+  status: done
   goal: Add proper tab stop handling so formatted output (ls, tables, code) aligns
     correctly
   description: Currently TAB advances to next 8-column boundary but there are no configurable
@@ -1047,7 +1047,7 @@ phases:
   _claimed_at: 1777558123
 - id: phase-187
   title: Replace save.rs unwrap() with Proper Error Handling
-  status: planned
+  status: done
   goal: Eliminate 27 unwrap() calls in save.rs that can panic on corrupt save files
   description: save.rs handles PNG save/load for screenshots and VM state persistence.
     Currently has 27 unwrap() calls on file I/O, PNG decoding, and path conversion.
@@ -1096,7 +1096,7 @@ phases:
   _claimed_at: 1777632421
 - id: phase-188
   title: Replace glyph_backend.rs unwrap() with Error Propagation
-  status: planned
+  status: done
   goal: Eliminate 36 unwrap() calls in glyph_backend.rs for robustness
   description: glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap()
     calls on font loading, pattern matching, and data extraction. Failures here crash
@@ -1125,7 +1125,7 @@ phases:
   _completed_at: 1777558123
 - id: phase-189
   title: VFS Capability Enforcement on Process Creation
-  status: planned
+  status: done
   goal: Wire up the existing Capability struct to Process so spawned programs get
     restricted VFS access
   description: src/vm/types.rs already has Capability, check_path_capability, and
@@ -1227,7 +1227,7 @@ phases:
   _claimed_at: 1777643541
 - id: phase-191
   title: Roguelike Game Polish -- Save/Load and Win Condition
-  status: planned
+  status: done
   goal: Add game state persistence and a proper win/lose loop to the roguelike
   description: The roguelike (2549 lines) is one of the largest programs but has no
     save/load and no win condition. When you find the stairs, there is no victory
@@ -1468,7 +1468,7 @@ phases:
   _claimed_at: 1777653464
 - id: phase-197
   title: Replace mmu.rs unwrap() Calls with Proper Error Paths
-  status: planned
+  status: done
   goal: Eliminate 14 unwrap() calls in the RISC-V MMU that can panic on page fault
     edge cases
   description: The MMU (src/riscv/mmu.rs) handles address translation for the RISC-V
