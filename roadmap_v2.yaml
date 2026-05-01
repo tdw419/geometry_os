@@ -1282,7 +1282,7 @@ phases:
   _claimed_at: 1777642836
 - id: phase-192
   title: Shell.asm Built-in Commands Expansion
-  status: planned
+  status: in_progress
   goal: Add more useful built-in commands to the shell (grep, head, tail, wc, date)
   description: The shell (2039 lines) handles basic command parsing and execution
     via EXEC. But common commands like grep, head, tail are missing as built-ins.
@@ -1323,10 +1323,10 @@ phases:
   scope_lines_total: 85710
   test_target: 5
   _claimed_by: worker-0
-  _claimed_at: 1777571419
+  _claimed_at: 1777644925
 - id: phase-193
   title: Nano Editor -- Search and Replace
-  status: planned
+  status: in_progress
   goal: Add search (Ctrl+S) and replace (Ctrl+R) to the nano editor
   description: The nano editor (2208 lines) supports basic editing but has no search/replace.
     These are essential for real editing work. Implement incremental search (highlight
@@ -1365,10 +1365,10 @@ phases:
   scope_lines_total: 85840
   test_target: 3
   _claimed_by: worker-0
-  _claimed_at: 1777574721
+  _claimed_at: 1777644926
 - id: phase-194
   title: Host Terminal Performance -- Dirty Rectangle Rendering
-  status: planned
+  status: in_progress
   goal: Only re-render changed rows instead of the full 30-row screen every frame
   description: Currently host_term.asm renders all 30 rows every frame via SMALLTEXT,
     even when only one line changed (like typing a character). This is wasteful. Track
@@ -1397,7 +1397,7 @@ phases:
   scope_lines_total: 85900
   test_target: 2
   _claimed_by: worker-0
-  _claimed_at: 1777577516
+  _claimed_at: 1777645710
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
   status: planned

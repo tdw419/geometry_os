@@ -1605,10 +1605,25 @@ render_hints:
     JMP rh_ln
 
 rh_prompt:
-    ; Search prompt
+    ; Search prompt (mode 1)
     LDI r11, 1
     CMP r10, r11
-    JNZ r0, rh_goto_prompt
+    JZ r0, rh_do_search_prompt
+
+    ; Incremental search prompt (mode 3)
+    LDI r11, 3
+    CMP r10, r11
+    JZ r0, rh_incsearch_prompt
+
+    ; Replace prompt (mode 4)
+    LDI r11, 4
+    CMP r10, r11
+    JZ r0, rh_replace_prompt
+
+    ; Goto prompt (mode 2)
+    JMP rh_goto_prompt
+
+rh_do_search_prompt:
 
     LDI r10, R_SCR
     STRO r10, "Search: "
@@ -2311,6 +2326,7 @@ dr_found:
     ; Shrink: move remainder left
     ; Source: FB[r14+search_len] to FB[buf_size]
     ; Dest: FB[r14+replace_len]
+    PUSH r14                 ; save match position for write loop
     MOV r16, r14
     ADD r16, r10             ; source start (after match)
     MOV r17, r14
@@ -2321,29 +2337,33 @@ dr_found:
     SUB r18, r16             ; remaining count
 
 dr_shrink_loop:
+    LDI r15, 0
     CMP r18, r15
     JZ r0, dr_shrink_done
 
-    ; Load from source end
+    ; Source addr = FB + source_start + (remaining - 1)
+    ; i.e. FB + r16 + r18 - 1
     MOV r15, r16
     ADD r15, r18
     SUB r15, r1
     LDI r12, FB
     ADD r12, r15
-    LOAD r12, r12
+    LOAD r12, r12           ; r12 = char from source
 
-    ; Store to dest end
+    ; Dest addr = FB + dest_start + (remaining - 1)
+    ; i.e. FB + r17 + r18 - 1
     MOV r15, r17
     ADD r15, r18
     SUB r15, r1
-    LDI r15, FB
-    ADD r15, r15
-    STORE r15, r12
+    LDI r14, FB
+    ADD r15, r14            ; r15 = dest address
+    STORE r15, r12          ; store char
 
     SUB r18, r1
     JMP dr_shrink_loop
 
 dr_shrink_done:
+    POP r14                  ; restore match position
     ; Write replace string
     LDI r16, 0               ; i
 dr_write_shrink:
@@ -2382,34 +2402,37 @@ dr_grow:
 
     ; Move remainder right to make room
     ; Source end: FB[buf_size-1], Dest end: FB[buf_size+delta-1]
-    MOV r18, r13             ; remaining count
+    PUSH r14                 ; save match position for write loop
+    MOV r18, r13             ; remaining count = buf_size
     LDI r15, 0
 
 dr_grow_loop:
+    LDI r15, 0
     CMP r18, r15
     JZ r0, dr_grow_done
 
-    ; Load from source end (going backwards)
+    ; Source index = buf_size - remaining = r13 - r18
+    ; Source addr = FB + r13 - r18
     MOV r15, r13
-    ADD r15, r18
-    SUB r15, r1
-    SUB r15, r1
+    SUB r15, r18
     LDI r12, FB
     ADD r12, r15
-    LOAD r12, r12
+    LOAD r12, r12           ; r12 = char from source
 
-    ; Store to dest end
+    ; Dest index = source_index + delta = r13 - r18 + r20
+    ; Dest addr = FB + r13 - r18 + r20
     MOV r15, r13
-    ADD r15, r18
-    SUB r15, r1
-    LDI r15, FB
-    ADD r15, r15
-    STORE r15, r12
+    SUB r15, r18
+    ADD r15, r20
+    LDI r14, FB
+    ADD r15, r14            ; r15 = dest address
+    STORE r15, r12          ; store char
 
     SUB r18, r1
     JMP dr_grow_loop
 
 dr_grow_done:
+    POP r14                  ; restore match position
     ; Write replace string
     LDI r16, 0
 dr_write_grow:

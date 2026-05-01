@@ -106,6 +106,7 @@
 #define SCROLL_TOP 0x4E17  ; Scroll region top row (0-based, default 0)
 #define SCROLL_BOT 0x4E18  ; Scroll region bottom row (0-based, default ROWS-1)
 #define TAB_STOPS 0x4E19   ; Tab stop bitmap: 3 u32 words (80 bits, bit N = column N has tab stop)
+#define RENDERED_ROWS 0x4E1A ; Count of dirty rows rendered this frame (debug perf)
 
 ; =========================================
 ; INIT
@@ -194,6 +195,11 @@ STORE r20, r0
 LDI r20, SCROLL_BOT
 LDI r0, ROWS
 SUB r0, r1         ; ROWS - 1
+STORE r20, r0
+
+; RENDERED_ROWS init (debug perf counter)
+LDI r20, RENDERED_ROWS
+LDI r0, 0
 STORE r20, r0
 
 ; TAB_STOPS init -- default every-8 columns (0, 8, 16, 24, 32, 40, 48, 56, 64, 72)
@@ -2207,6 +2213,49 @@ dsb_disconnected:
     SMALLTEXT r1, r2, r3, r4, r5
 
 dsb_ret:
+    ; Draw dirty row count ("N/30" at right edge)
+    LDI r20, RENDERED_ROWS
+    LOAD r20, r20
+
+    ; Divide by 10: r20 = tens, r0 = ones
+    PUSH r20
+    LDI r21, 10
+    DIV r20, r21         ; r20 = count / 10
+    POP r0               ; r0 = original count
+    LDI r21, 10
+    MOD r0, r21          ; r0 = count % 10
+
+    ; Write "tens/30" to SCRATCH
+    LDI r19, 48
+    ADD r20, r19         ; tens + '0'
+    LDI r21, SCRATCH
+    STORE r21, r20
+    MOV r19, r0
+    LDI r0, 48
+    ADD r19, r0          ; ones + '0'
+    MOV r0, r19
+    ADD r21, r1
+    STORE r21, r0
+    ADD r21, r1
+    LDI r0, 47           ; '/'
+    STORE r21, r0
+    ADD r21, r1
+    LDI r0, 51           ; '3'
+    STORE r21, r0
+    ADD r21, r1
+    LDI r0, 48           ; '0'
+    STORE r21, r0
+    ADD r21, r1
+    LDI r0, 0
+    STORE r21, r0
+
+    LDI r1, 252
+    LDI r2, 2
+    LDI r3, SCRATCH
+    LDI r4, 0x8888FF
+    LDI r5, 0x1A1A2E
+    SMALLTEXT r1, r2, r3, r4, r5
+
     POP r31
     RET
 
@@ -3810,6 +3859,11 @@ render:
     PUSH r31
     LDI r1, 1
 
+    ; Reset dirty row render counter
+    LDI r20, RENDERED_ROWS
+    LDI r0, 0
+    STORE r20, r0
+
     ; Only redraw status bar when dirty
     LDI r20, DIRTY_STATUS
     LOAD r0, r20
@@ -3838,6 +3892,14 @@ render_row:
     CALL mark_row_dirty_check
     JZ r0, render_row_skip
     LDI r1, 1           ; restore r1 (clobbered by mark_row_dirty_check)
+
+    ; Increment rendered-rows counter
+    PUSH r1
+    LDI r20, RENDERED_ROWS
+    LOAD r0, r20
+    ADD r0, r1
+    STORE r20, r0
+    POP r1
 
     ; Clear only this row's background (full width, 6px tall)
     LDI r14, 0          ; x (use r14 to preserve r1)
