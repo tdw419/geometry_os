@@ -1591,14 +1591,13 @@ phases:
       - src/pixel.rs
       scope_lines: 80
     - id: p200.d1.t3
-      title: Split-view display: source PNG + live execution pixels
+      title: 'Split-view display: source PNG + live execution pixels'
       description: Show the encoded pixelpack PNG and the live execution state (registers
         as colored pixels) side by side in the GeOS window. Source stays in neovim.
       scope_files:
       - src/main.rs
       scope_lines: 60
-  scope_lines: 100
-  scope_lines_total: 86280
+    scope_lines_total: 86280
   test_target: 2
   _claimed_by: worker-0
   _claimed_at: 1777595383
