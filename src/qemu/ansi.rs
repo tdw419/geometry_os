@@ -169,6 +169,13 @@ impl AnsiHandler {
                     self.tab_stops = (0..CANVAS_COLS).step_by(8).collect();
                     self.state = AnsiState::Normal;
                 }
+                b'E' => {
+                    // NEL: Next Line -- CR + index (move to col 0, advance row)
+                    self.cursor.col = 0;
+                    self.cursor.newline();
+                    self.auto_scroll(canvas_buffer);
+                    self.state = AnsiState::Normal;
+                }
                 b'H' => {
                     // HTS: Horizontal Tabulation Set -- set a tab stop at current column
                     self.tab_stops.insert(self.cursor.col);
@@ -752,6 +759,20 @@ mod tests {
         handler.process_bytes(b"A\tB", &mut buf);
         let c = handler.cursor();
         assert_eq!(c.col, 9);
+    }
+
+    #[test]
+    fn test_ansi_nel() {
+        // ESC E (NEL): move to col 0, advance row
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"ABCDE\x1BEFGH", &mut buf);
+        let c = handler.cursor();
+        assert_eq!(c.row, 1);
+        assert_eq!(c.col, 3);
+        assert_eq!(buf[0], b'A' as u32);
+        assert_eq!(buf[CANVAS_COLS + 0], b'F' as u32);
+        assert_eq!(buf[CANVAS_COLS + 1], b'G' as u32);
     }
 
     #[test]

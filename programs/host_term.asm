@@ -103,6 +103,9 @@
 #define SAVED_COL 0x4E14   ; ESC 7 saved cursor col
 #define SAVED_FG 0x4E15    ; ESC 7 saved FG color
 #define DIRTY_ROWS 0x4E16  ; 32-bit dirty row bitmap (bit N = row N needs redraw)
+#define SCROLL_TOP 0x4E17  ; Scroll region top row (0-based, default 0)
+#define SCROLL_BOT 0x4E18  ; Scroll region bottom row (0-based, default ROWS-1)
+#define TAB_STOPS 0x4E19   ; Tab stop bitmap: 3 u32 words (80 bits, bit N = column N has tab stop)
 
 ; =========================================
 ; INIT
@@ -183,6 +186,27 @@ STORE r20, r0
 LDI r20, DIRTY_ROWS
 LDI r0, 0xFFFFFFFF
 STORE r20, r0
+
+; SCROLL_TOP/BOT init (default: full screen scroll region)
+LDI r20, SCROLL_TOP
+LDI r0, 0
+STORE r20, r0
+LDI r20, SCROLL_BOT
+LDI r0, ROWS
+SUB r0, r1         ; ROWS - 1
+STORE r20, r0
+
+; TAB_STOPS init -- default every-8 columns (0, 8, 16, 24, 32, 40, 48, 56, 64, 72)
+; 3 u32 words: word0=cols 0-31, word1=cols 32-63, word2=cols 64-79
+; Each 8-column boundary sets bit at position col%32 in the appropriate word
+; Pattern: 0x01010101 (bits 0,8,16,24 set)
+LDI r20, TAB_STOPS
+LDI r6, 0x01010101
+STORE r20, r6
+ADD r20, r1
+STORE r20, r6
+ADD r20, r1
+STORE r20, r6       ; word2 (cols 64-79): only bits 0,8 used (cols 64,72)
 
 ; Clear COLOR_BUF to default FG color
 LDI r20, COLOR_BUF
@@ -515,8 +539,75 @@ pb_esc_index:
 
 pb_esc_rev_index:
     CMPI r5, 77 ; 'M' = Reverse Index (move up, scroll if at top)
-    JNZ r0, pb_esc_next_line
+    JNZ r0, pb_esc_ris
     CALL do_reverse_index
+    LDI r20, ANSI_STATE
+    LDI r0, ANS_NORMAL
+    STORE r20, r0
+    JMP pb_ret
+
+pb_esc_ris:
+    ; 'c' (99) = RIS (Reset to Initial State)
+    CMPI r5, 99
+    JNZ r0, pb_esc_hts
+    ; Reset cursor to (0,0)
+    LDI r20, CUR_COL
+    LDI r0, 0
+    STORE r20, r0
+    LDI r20, CUR_ROW
+    STORE r20, r0
+    ; Reset saved cursor
+    LDI r20, SAVED_ROW
+    STORE r20, r0
+    LDI r20, SAVED_COL
+    STORE r20, r0
+    LDI r20, SAVED_FG
+    LDI r0, 0xBBBBBB
+    STORE r20, r0
+    ; Reset FG_COLOR to default
+    LDI r20, FG_COLOR
+    STORE r20, r0
+    ; Reset scroll region to full screen
+    LDI r20, SCROLL_TOP
+    LDI r0, 0
+    STORE r20, r0
+    LDI r20, SCROLL_BOT
+    LDI r0, ROWS
+    LDI r7, 1
+    SUB r0, r7
+    STORE r20, r0
+    ; Reset SGR extended state
+    LDI r20, SGR_EXTENDED
+    LDI r0, 0
+    STORE r20, r0
+    ; Clear text buffer
+    LDI r20, BUF
+    LDI r6, 32
+ris_clear_buf:
+    STORE r20, r6
+    ADD r20, r7
+    CMPI r20, BUF_END
+    BLT r0, ris_clear_buf
+    ; Clear color buffer to default FG
+    LDI r20, COLOR_BUF
+    LDI r6, 0xBBBBBB
+ris_clear_color:
+    STORE r20, r6
+    ADD r20, r7
+    CMPI r20, COLOR_END
+    BLT r0, ris_clear_color
+    ; Return to normal state
+    LDI r20, ANSI_STATE
+    LDI r0, ANS_NORMAL
+    STORE r20, r0
+    JMP pb_ret
+
+pb_esc_hts:
+    ; 'H' (72) = HTS (Horizontal Tabulation Set)
+    CMPI r5, 72
+    JNZ r0, pb_esc_next_line
+    ; Set tab stop at current column
+    CALL set_tab_stop
     LDI r20, ANSI_STATE
     LDI r0, ANS_NORMAL
     STORE r20, r0
@@ -608,8 +699,113 @@ pb_csi_c:
 pb_csi_d:
     ; 'D' (68) = cursor left
     CMPI r5, 68
-    JNZ r0, pb_csi_h_mode
+    JNZ r0, pb_csi_e
     CALL csi_cursor_left
+    JMP pb_ret
+
+pb_csi_e:
+    ; 'E' (69) = cursor next line (CNL) -- move N lines down, col=0
+    CMPI r5, 69
+    JNZ r0, pb_csi_f
+    CALL csi_cursor_next_line
+    JMP pb_ret
+
+pb_csi_f:
+    ; 'F' (70) = cursor previous line (CPL) -- move N lines up, col=0
+    CMPI r5, 70
+    JNZ r0, pb_csi_g
+    CALL csi_cursor_prev_line
+    JMP pb_ret
+
+pb_csi_g:
+    ; 'G' (71) = cursor horizontal absolute (CHA)
+    CMPI r5, 71
+    JNZ r0, pb_csi_f_pos
+    CALL csi_cursor_habsolute
+    JMP pb_ret
+
+pb_csi_f_pos:
+    ; 'f' (102) = horizontal and vertical position (same as H)
+    CMPI r5, 102
+    JNZ r0, pb_csi_d_lower
+    CALL csi_cursor_position
+    JMP pb_ret
+
+pb_csi_d_lower:
+    ; 'd' (100) = cursor vertical absolute (VPA)
+    CMPI r5, 100
+    JNZ r0, pb_csi_l
+    CALL csi_cursor_vabsolute
+    JMP pb_ret
+
+pb_csi_l:
+    ; 'L' (76) = insert lines
+    CMPI r5, 76
+    JNZ r0, pb_csi_m
+    CALL csi_insert_lines
+    JMP pb_ret
+
+pb_csi_m:
+    ; 'M' (77) = delete lines
+    CMPI r5, 77
+    JNZ r0, pb_csi_p
+    CALL csi_delete_lines
+    JMP pb_ret
+
+pb_csi_p:
+    ; 'P' (80) = delete characters
+    CMPI r5, 80
+    JNZ r0, pb_csi_at
+    CALL csi_delete_chars
+    JMP pb_ret
+
+pb_csi_at:
+    ; '@' (64) = insert characters (ICH)
+    CMPI r5, 64
+    JNZ r0, pb_csi_s_up
+    CALL csi_insert_chars
+    JMP pb_ret
+
+pb_csi_s_up:
+    ; 'S' (83) = scroll up N lines
+    CMPI r5, 83
+    JNZ r0, pb_csi_t_down
+    CALL csi_scroll_up
+    JMP pb_ret
+
+pb_csi_t_down:
+    ; 'T' (84) = scroll down N lines
+    CMPI r5, 84
+    JNZ r0, pb_csi_r
+    CALL csi_scroll_down
+    JMP pb_ret
+
+pb_csi_r:
+    ; 'r' (114) = set scrolling region (DECSTBM)
+    CMPI r5, 114
+    JNZ r0, pb_csi_g_tab
+    CALL csi_set_scroll_region
+    JMP pb_ret
+
+pb_csi_g_tab:
+    ; 'g' (103) = tab stop clear (TBC)
+    CMPI r5, 103
+    JNZ r0, pb_csi_h_mode
+    ; TBC: CSI_PARAM determines mode (default 0)
+    LDI r20, CSI_PARAM
+    LOAD r0, r20
+    CMPI r0, 3
+    JZ r0, tbc_clear_all
+    CMPI r0, 0
+    JZ r0, tbc_clear_one
+    JMP pb_ret        ; unsupported mode, ignore
+
+tbc_clear_one:
+    CALL clear_tab_at_cursor
+    JMP pb_ret
+
+tbc_clear_all:
+    CALL reset_tab_stops
     JMP pb_ret
 
 pb_csi_h_mode:
@@ -876,10 +1072,16 @@ append_byte:
 
 ab_check_cr:
     CMPI r5, 13
-    JNZ r0, ab_check_print
+    JNZ r0, ab_check_tab
     LDI r20, CUR_COL
     LDI r0, 0
     STORE r20, r0
+    JMP ab_ret
+
+ab_check_tab:
+    CMPI r5, 9
+    JNZ r0, ab_check_print
+    CALL advance_to_tab
     JMP ab_ret
 
 ab_check_print:
@@ -1617,6 +1819,198 @@ sd_color_loop:
     CMPI r22, COLS
     BLT r0, sd_color_loop
 
+    POP r31
+    RET
+
+; =========================================
+; TAB STOP SUBROUTINES
+; Tab stops stored as 3 u32 words at TAB_STOPS (0x4E19)
+; word0 = cols 0-31, word1 = cols 32-63, word2 = cols 64-79
+; Bit N set = column N has a tab stop
+; Default: every 8 columns (pattern 0x01010101 per word)
+; =========================================
+
+; set_tab_stop -- set tab stop at current cursor column
+; Clobbers: r0, r1, r2, r3
+set_tab_stop:
+    PUSH r31
+    PUSH r0
+    LDI r1, 1
+    ; Get current column
+    LDI r20, CUR_COL
+    LOAD r0, r20
+    ; word_index = col / 32
+    LDI r2, 32
+    LDI r3, 0
+sts_div_loop:
+    CMPI r0, 32
+    BLT r0, sts_div_done
+    SUB r0, r2
+    ADD r3, r1
+    JMP sts_div_loop
+sts_div_done:
+    ; r3 = word_index, r0 = bit position within word
+    PUSH r0              ; save bit position (CMP will clobber r0)
+    ; Load the word
+    LDI r20, TAB_STOPS
+    ADD r20, r3
+    LOAD r2, r20
+    POP r0               ; restore bit position
+    ; Set bit: r2 |= (1 << r0)
+    LDI r4, 1
+    LDI r5, 0
+sts_shift_loop:
+    CMP r5, r0
+    JZ r0, sts_shift_done
+    SHL r4, r1
+    ADD r5, r1
+    JMP sts_shift_loop
+sts_shift_done:
+    OR r2, r4
+    STORE r20, r2
+    POP r0
+    POP r31
+    RET
+
+; clear_tab_at_cursor -- clear tab stop at current cursor column
+; Clobbers: r0, r1, r2, r3
+clear_tab_at_cursor:
+    PUSH r31
+    PUSH r0
+    LDI r1, 1
+    ; Get current column
+    LDI r20, CUR_COL
+    LOAD r0, r20
+    ; word_index = col / 32
+    LDI r2, 32
+    LDI r3, 0
+ctc_div_loop:
+    CMPI r0, 32
+    BLT r0, ctc_div_done
+    SUB r0, r2
+    ADD r3, r1
+    JMP ctc_div_loop
+ctc_div_done:
+    ; r3 = word_index, r0 = bit position within word
+    PUSH r0              ; save bit position (CMP will clobber r0)
+    LDI r20, TAB_STOPS
+    ADD r20, r3
+    LOAD r2, r20
+    POP r0               ; restore bit position
+    ; Clear bit: r2 &= ~(1 << r0)
+    LDI r4, 1
+    LDI r5, 0
+ctc_shift_loop:
+    CMP r5, r0
+    JZ r0, ctc_shift_done
+    SHL r4, r1
+    ADD r5, r1
+    JMP ctc_shift_loop
+ctc_shift_done:
+    ; r4 = mask. Invert: r4 = ~r4 (all bits except the one to clear)
+    ; Geometry OS uses ! for bitwise NOT
+    LDI r6, 0xFFFFFFFF
+    XOR r4, r6
+    AND r2, r4
+    STORE r20, r2
+    POP r0
+    POP r31
+    RET
+
+; reset_tab_stops -- clear all tab stops, reset to default every-8
+; Clobbers: r0, r1
+reset_tab_stops:
+    PUSH r31
+    LDI r1, 1
+    ; Default pattern: 0x01010101 (bits 0, 8, 16, 24)
+    LDI r20, TAB_STOPS
+    LDI r0, 0x01010101
+    STORE r20, r0
+    ADD r20, r1
+    STORE r20, r0
+    ADD r20, r1
+    STORE r20, r0
+    POP r31
+    RET
+
+; advance_to_tab -- move cursor to next tab stop (for TAB / 0x09)
+; If no tab stop found, move to last column (COLS-1)
+; Clobbers: r0, r1, r2, r3, r4, r5
+advance_to_tab:
+    PUSH r31
+    PUSH r0
+    LDI r1, 1
+    ; Start searching from (col + 1)
+    LDI r20, CUR_COL
+    LOAD r0, r20
+    ADD r0, r1
+
+att_scan_loop:
+    ; Check if past last column
+    CMPI r0, COLS
+    BGE r0, att_clamp
+
+    ; Save scan column (CMP in div/shift loops clobbers r0)
+    PUSH r0
+
+    ; Compute word_index = col / 32 and bit_pos = col % 32
+    ; using repeated subtraction on a copy
+    MOV r2, r0           ; r2 = col (will become bit_pos after div)
+    LDI r3, 0            ; r3 = word_index
+    LDI r7, 32           ; r7 = divisor
+att_div_loop:
+    CMPI r2, 32
+    BLT r0, att_check_bit
+    SUB r2, r7           ; r2 -= 32
+    ADD r3, r1           ; word_index++
+    JMP att_div_loop
+
+att_check_bit:
+    ; Load the tab stop word
+    LDI r20, TAB_STOPS
+    ADD r20, r3
+    LOAD r4, r20
+    ; Check if bit r2 is set: shift 1 left by r2, AND
+    LDI r5, 1
+    LDI r6, 0
+att_shift_loop:
+    CMP r6, r2
+    JZ r0, att_test_bit
+    SHL r5, r1
+    ADD r6, r1
+    JMP att_shift_loop
+att_test_bit:
+    AND r4, r5
+    JNZ r4, att_found_pop
+
+    ; Not a tab stop -- restore column and try next
+    POP r0               ; restore scan column
+att_scan_next:
+    ADD r0, r1
+    JMP att_scan_loop
+
+att_found_pop:
+    POP r0               ; restore scan column (r0 = tab stop column)
+att_found:
+    ; Found tab stop at column r0 -- move cursor there
+    LDI r20, CUR_COL
+    STORE r20, r0
+    LDI r20, CUR_ROW
+    LOAD r0, r20         ; r0 = current row for mark_row_dirty
+    CALL mark_row_dirty
+    POP r0
+    POP r31
+    RET
+
+att_clamp:
+    ; Move to last column
+    LDI r20, CUR_COL
+    LDI r0, COLS
+    SUB r0, r1
+    STORE r20, r0
+    LDI r20, CUR_ROW
+    LOAD r0, r20         ; r0 = current row for mark_row_dirty
+    CALL mark_row_dirty
     POP r31
     RET
 
@@ -2546,6 +2940,739 @@ ccl_move:
     LDI r7, 0
 ccl_ok:
     STORE r20, r7
+    POP r31
+    RET
+
+; =========================================
+; CSI_CURSOR_NEXT_LINE -- 'E' handler (CNL)
+; Move cursor N lines down, column to start
+; CSI_PARAM = count (default 1)
+; =========================================
+csi_cursor_next_line:
+    PUSH r31
+    LDI r1, 1
+    LDI r20, CSI_PARAM
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, cnl_move
+    LDI r6, 1
+cnl_move:
+    LDI r20, CUR_ROW
+    LOAD r7, r20
+    ADD r7, r6
+    LDI r8, ROWS
+    SUB r8, r1
+    CMP r7, r8
+    BLT r0, cnl_ok
+    MOV r7, r8
+cnl_ok:
+    STORE r20, r7
+    ; Move column to 0
+    LDI r20, CUR_COL
+    LDI r0, 0
+    STORE r20, r0
+    POP r31
+    RET
+
+; =========================================
+; CSI_CURSOR_PREV_LINE -- 'F' handler (CPL)
+; Move cursor N lines up, column to start
+; CSI_PARAM = count (default 1)
+; =========================================
+csi_cursor_prev_line:
+    PUSH r31
+    LDI r1, 1
+    LDI r20, CSI_PARAM
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, cpl_move
+    LDI r6, 1
+cpl_move:
+    LDI r20, CUR_ROW
+    LOAD r7, r20
+    SUB r7, r6
+    CMPI r7, 0
+    BGE r0, cpl_ok
+    LDI r7, 0
+cpl_ok:
+    STORE r20, r7
+    ; Move column to 0
+    LDI r20, CUR_COL
+    LDI r0, 0
+    STORE r20, r0
+    POP r31
+    RET
+
+; =========================================
+; CSI_CURSOR_HABSOLUTE -- 'G' handler (CHA)
+; Set cursor column to N (1-based)
+; CSI_PARAM = column (default 1)
+; =========================================
+csi_cursor_habsolute:
+    PUSH r31
+    LDI r1, 1
+    LDI r20, CSI_PARAM
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, cha_set
+    LDI r6, 1
+cha_set:
+    SUB r6, r1         ; convert to 0-based
+    CMPI r6, 0
+    BGE r0, cha_clamp
+    LDI r6, 0
+cha_clamp:
+    LDI r7, COLS
+    SUB r7, r1
+    CMP r6, r7
+    BLT r0, cha_ok
+    MOV r6, r7
+cha_ok:
+    LDI r20, CUR_COL
+    STORE r20, r6
+    POP r31
+    RET
+
+; =========================================
+; CSI_CURSOR_VABSOLUTE -- 'd' handler (VPA)
+; Set cursor row to N (1-based)
+; CSI_PARAM = row (default 1)
+; =========================================
+csi_cursor_vabsolute:
+    PUSH r31
+    LDI r1, 1
+    LDI r20, CSI_PARAM
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, cva_set
+    LDI r6, 1
+cva_set:
+    SUB r6, r1         ; convert to 0-based
+    CMPI r6, 0
+    BGE r0, cva_clamp
+    LDI r6, 0
+cva_clamp:
+    LDI r7, ROWS
+    SUB r7, r1
+    CMP r6, r7
+    BLT r0, cva_ok
+    MOV r6, r7
+cva_ok:
+    LDI r20, CUR_ROW
+    STORE r20, r6
+    POP r31
+    RET
+
+; =========================================
+; CSI_INSERT_LINES -- 'L' handler
+; Insert N blank lines at cursor row, pushing lines down
+; CSI_PARAM = count (default 1)
+; =========================================
+csi_insert_lines:
+    PUSH r31
+    LDI r1, 1
+
+    ; Get count, default 1
+    LDI r20, CSI_PARAM
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, cil_count
+    LDI r6, 1
+cil_count:
+
+    ; Get cursor row
+    LDI r20, CUR_ROW
+    LOAD r7, r20       ; r7 = cursor row
+
+    ; Shift rows from bottom up: row N-1 -> row N (for N > cursor_row)
+    ; Iterate from ROWS-2 down to cursor_row
+    LDI r10, ROWS
+    SUB r10, r1        ; r10 = ROWS-1 (source row, start from bottom-1)
+cil_shift:
+    CMP r10, r7
+    BLT r0, cil_clear
+
+    ; dst = BUF + (r10+1) * COLS
+    LDI r21, BUF
+    MOV r0, r10
+    ADD r0, r1
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r21, r0
+
+    ; src = BUF + r10 * COLS
+    LDI r20, BUF
+    MOV r0, r10
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r20, r0
+
+    MEMCPY r21, r20, r11
+
+    ; Same for color buffer
+    LDI r21, COLOR_BUF
+    MOV r0, r10
+    ADD r0, r1
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r21, r0
+
+    LDI r20, COLOR_BUF
+    MOV r0, r10
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r20, r0
+
+    MEMCPY r21, r20, r11
+
+    SUB r10, r1
+    JMP cil_shift
+
+cil_clear:
+    ; Clear N lines starting at cursor row
+    MOV r10, r7        ; r10 = starting row
+    LDI r22, 0         ; r22 = lines cleared count
+cil_clear_loop:
+    CMP r22, r6
+    BGE r0, cil_done
+    CMP r10, r7
+    LDI r8, ROWS
+    SUB r8, r1
+    BGE r0, cil_skip   ; skip if past last row
+    ; Actually check r10 >= ROWS-1
+    ; Clear this row
+    LDI r20, BUF
+    MOV r0, r10
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r20, r0
+    LDI r0, 32
+    LDI r23, 0
+cil_clr_txt:
+    CMP r23, r11
+    BGE r0, cil_clr_color
+    STORE r20, r0
+    ADD r20, r1
+    ADD r23, r1
+    JMP cil_clr_txt
+
+cil_clr_color:
+    LDI r20, COLOR_BUF
+    MOV r0, r10
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r20, r0
+    LDI r6, FG_COLOR
+    LOAD r6, r6
+    LDI r23, 0
+cil_clr_col:
+    CMP r23, r11
+    BGE r0, cil_next_row
+    STORE r20, r6
+    ADD r20, r1
+    ADD r23, r1
+    JMP cil_clr_col
+
+cil_skip:
+    ; Past last row, skip
+cil_next_row:
+    ADD r10, r1
+    ADD r22, r1
+    JMP cil_clear_loop
+
+cil_done:
+    CALL mark_all_dirty
+    POP r31
+    RET
+
+; =========================================
+; CSI_DELETE_LINES -- 'M' handler
+; Delete N lines at cursor row, pulling lines up from below
+; CSI_PARAM = count (default 1)
+; =========================================
+csi_delete_lines:
+    PUSH r31
+    LDI r1, 1
+
+    ; Get count, default 1
+    LDI r20, CSI_PARAM
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, cdl_count
+    LDI r6, 1
+cdl_count:
+
+    ; Get cursor row
+    LDI r20, CUR_ROW
+    LOAD r7, r20       ; r7 = cursor row
+
+    ; Shift rows from cursor_row+N up: row+N -> row
+    ; Iterate from cursor_row to ROWS-2
+    MOV r10, r7        ; r10 = dst row
+cdl_shift:
+    LDI r8, ROWS
+    SUB r8, r1
+    CMP r10, r8
+    BGE r0, cdl_clear
+
+    ; src row = r10 + count
+    MOV r0, r10
+    ADD r0, r6
+    LDI r9, ROWS
+    SUB r9, r1
+    CMP r0, r9
+    BGE r0, cdl_clear_src  ; if src past last row, clear instead
+
+    ; dst = BUF + r10 * COLS
+    LDI r21, BUF
+    MOV r0, r10
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r21, r0
+
+    ; src = BUF + (r10 + count) * COLS
+    LDI r20, BUF
+    MOV r0, r10
+    ADD r0, r6
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r20, r0
+
+    MEMCPY r21, r20, r11
+
+    ; Same for color buffer
+    LDI r21, COLOR_BUF
+    MOV r0, r10
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r21, r0
+
+    LDI r20, COLOR_BUF
+    MOV r0, r10
+    ADD r0, r6
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r20, r0
+
+    MEMCPY r21, r20, r11
+
+    ADD r10, r1
+    JMP cdl_shift
+
+cdl_clear_src:
+    ; Source past last row -- clear this dst row instead
+    LDI r21, BUF
+    MOV r0, r10
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r21, r0
+    LDI r0, 32
+    LDI r23, 0
+cdl_cs_txt:
+    CMP r23, r11
+    BGE r0, cdl_cs_col
+    STORE r21, r0
+    ADD r21, r1
+    ADD r23, r1
+    JMP cdl_cs_txt
+cdl_cs_col:
+    LDI r21, COLOR_BUF
+    MOV r0, r10
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r21, r0
+    LDI r6, FG_COLOR
+    LOAD r6, r6
+    LDI r23, 0
+cdl_cs_c:
+    CMP r23, r11
+    BGE r0, cdl_cs_done
+    STORE r21, r6
+    ADD r21, r1
+    ADD r23, r1
+    JMP cdl_cs_c
+cdl_cs_done:
+    ADD r10, r1
+    JMP cdl_shift
+
+cdl_clear:
+    ; Clear N lines at the bottom
+    LDI r8, ROWS
+    SUB r8, r1         ; r8 = ROWS-1
+    MOV r10, r8
+    SUB r10, r6
+    ADD r10, r1        ; r10 = first row to clear (ROWS - count)
+    CMP r10, r7
+    BGE r0, cdl_done2  ; if nothing to clear, skip
+    LDI r22, 0
+cdl_clr_loop:
+    CMP r22, r6
+    BGE r0, cdl_done2
+    ; Clear row r10
+    LDI r21, BUF
+    MOV r0, r10
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r21, r0
+    LDI r0, 32
+    LDI r23, 0
+cdl_clr_t:
+    CMP r23, r11
+    BGE r0, cdl_clr_c2
+    STORE r21, r0
+    ADD r21, r1
+    ADD r23, r1
+    JMP cdl_clr_t
+cdl_clr_c2:
+    LDI r21, COLOR_BUF
+    MOV r0, r10
+    LDI r11, COLS
+    MUL r0, r11
+    ADD r21, r0
+    LDI r6, FG_COLOR
+    LOAD r6, r6
+    LDI r23, 0
+cdl_clr_cc:
+    CMP r23, r11
+    BGE r0, cdl_clr_next
+    STORE r21, r6
+    ADD r21, r1
+    ADD r23, r1
+    JMP cdl_clr_cc
+cdl_clr_next:
+    ADD r10, r1
+    ADD r22, r1
+    JMP cdl_clr_loop
+
+cdl_done2:
+    CALL mark_all_dirty
+    POP r31
+    RET
+
+; =========================================
+; CSI_DELETE_CHARS -- 'P' handler (DCH)
+; Delete N chars at cursor, shifting chars left
+; CSI_PARAM = count (default 1)
+; =========================================
+csi_delete_chars:
+    PUSH r31
+    LDI r1, 1
+
+    ; Get count, default 1
+    LDI r20, CSI_PARAM
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, cdc_count
+    LDI r6, 1
+cdc_count:
+
+    ; Get cursor position
+    LDI r20, CUR_ROW
+    LOAD r7, r20
+    LDI r20, CUR_COL
+    LOAD r8, r20       ; r8 = cursor col
+
+    ; Base offset = row * COLS
+    LDI r9, COLS
+    MOV r0, r7
+    MUL r0, r9
+    MOV r7, r0         ; r7 = row * COLS (base offset)
+
+    ; Shift chars left: col+N -> col, col+N+1 -> col+1, etc.
+    MOV r10, r8        ; r10 = dst col (starting at cursor)
+cdc_shift:
+    ADD r0, r10
+    ADD r0, r6         ; r10 + count = src col
+    LDI r9, COLS
+    CMP r0, r9
+    BGE r0, cdc_clear  ; if src >= COLS, clear instead
+
+    ; dst = BUF + base + dst_col
+    LDI r21, BUF
+    MOV r0, r7
+    ADD r21, r0
+    ADD r21, r10
+
+    ; src = BUF + base + dst_col + count
+    LDI r20, BUF
+    MOV r0, r7
+    ADD r20, r0
+    ADD r20, r10
+    ADD r20, r6
+
+    ; Copy one cell
+    LOAD r0, r20
+    STORE r21, r0
+
+    ; Same for color buffer
+    LDI r21, COLOR_BUF
+    MOV r0, r7
+    ADD r21, r0
+    ADD r21, r10
+
+    LDI r20, COLOR_BUF
+    MOV r0, r7
+    ADD r20, r0
+    ADD r20, r10
+    ADD r20, r6
+
+    LOAD r0, r20
+    STORE r21, r0
+
+    ADD r10, r1
+    JMP cdc_shift
+
+cdc_clear:
+    ; Clear N chars at end of line (COLS - count to COLS-1)
+    LDI r10, COLS
+    SUB r10, r6        ; r10 = first col to clear
+    LDI r9, COLS
+    CMP r10, r8
+    BGE r0, cdc_skip   ; if clear area starts after cursor, nothing to clear
+    ; r10 < r8 is guaranteed here (BGE above would have branched)
+    JMP cdc_do_clear
+cdc_do_clear:
+    LDI r22, 0         ; clear counter
+cdc_clr_loop:
+    CMP r22, r6
+    BGE r0, cdc_skip
+    ; Clear cell at (row, COLS - count + counter)
+    LDI r20, BUF
+    MOV r0, r7
+    ADD r20, r0
+    ADD r20, r10
+    LDI r0, 32
+    STORE r20, r0
+
+    LDI r20, COLOR_BUF
+    MOV r0, r7
+    ADD r20, r0
+    ADD r20, r10
+    LDI r0, FG_COLOR
+    LOAD r0, r0
+    STORE r20, r0
+
+    ADD r10, r1
+    ADD r22, r1
+    JMP cdc_clr_loop
+
+cdc_skip:
+    ; Mark current row dirty
+    LDI r20, CUR_ROW
+    LOAD r0, r20
+    CALL mark_row_dirty
+    POP r31
+    RET
+
+; =========================================
+; CSI_INSERT_CHARS -- '@' handler (ICH)
+; Insert N blank chars at cursor, shifting chars right
+; CSI_PARAM = count (default 1)
+; =========================================
+csi_insert_chars:
+    PUSH r31
+    LDI r1, 1
+
+    ; Get count, default 1
+    LDI r20, CSI_PARAM
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, cic_count
+    LDI r6, 1
+cic_count:
+
+    ; Get cursor position
+    LDI r20, CUR_ROW
+    LOAD r7, r20
+    LDI r20, CUR_COL
+    LOAD r8, r20       ; r8 = cursor col
+
+    ; Base offset = row * COLS
+    LDI r9, COLS
+    MOV r0, r7
+    MUL r0, r9
+    MOV r7, r0         ; r7 = row * COLS (base offset)
+
+    ; Shift chars right: from COLS-1-count down to cursor col
+    LDI r10, COLS
+    SUB r10, r1        ; r10 = COLS-1 (start from rightmost)
+    SUB r10, r6        ; r10 = COLS-1-count (first dst position)
+cic_shift:
+    CMP r10, r8
+    BLT r0, cic_clear
+
+    ; dst = BUF + base + r10 + count
+    LDI r21, BUF
+    MOV r0, r7
+    ADD r21, r0
+    ADD r21, r10
+    ADD r21, r6
+
+    ; src = BUF + base + r10
+    LDI r20, BUF
+    MOV r0, r7
+    ADD r20, r0
+    ADD r20, r10
+
+    ; Copy one cell
+    LOAD r0, r20
+    STORE r21, r0
+
+    ; Same for color buffer
+    LDI r21, COLOR_BUF
+    MOV r0, r7
+    ADD r21, r0
+    ADD r21, r10
+    ADD r21, r6
+
+    LDI r20, COLOR_BUF
+    MOV r0, r7
+    ADD r20, r0
+    ADD r20, r10
+
+    LOAD r0, r20
+    STORE r21, r0
+
+    SUB r10, r1
+    JMP cic_shift
+
+cic_clear:
+    ; Clear N chars starting at cursor col
+    MOV r10, r8        ; r10 = cursor col
+    LDI r22, 0
+cic_clr_loop:
+    CMP r22, r6
+    BGE r0, cic_done
+    LDI r20, BUF
+    MOV r0, r7
+    ADD r20, r0
+    ADD r20, r10
+    LDI r0, 32
+    STORE r20, r0
+
+    LDI r20, COLOR_BUF
+    MOV r0, r7
+    ADD r20, r0
+    ADD r20, r10
+    LDI r0, FG_COLOR
+    LOAD r0, r0
+    STORE r20, r0
+
+    ADD r10, r1
+    ADD r22, r1
+    JMP cic_clr_loop
+
+cic_done:
+    ; Mark current row dirty
+    LDI r20, CUR_ROW
+    LOAD r0, r20
+    CALL mark_row_dirty
+    POP r31
+    RET
+
+; =========================================
+; CSI_SCROLL_UP -- 'S' handler (SU)
+; Scroll entire screen up N lines (content moves up)
+; CSI_PARAM = count (default 1)
+; =========================================
+csi_scroll_up:
+    PUSH r31
+    LDI r1, 1
+
+    ; Get count, default 1
+    LDI r20, CSI_PARAM
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, csu_count
+    LDI r6, 1
+csu_count:
+csu_loop:
+    CMP r6, r1
+    BLT r0, csu_done
+    CALL scroll_up
+    SUB r6, r1
+    JMP csu_loop
+csu_done:
+    POP r31
+    RET
+
+; =========================================
+; CSI_SCROLL_DOWN -- 'T' handler (SD)
+; Scroll entire screen down N lines (content moves down)
+; CSI_PARAM = count (default 1)
+; =========================================
+csi_scroll_down:
+    PUSH r31
+    LDI r1, 1
+
+    ; Get count, default 1
+    LDI r20, CSI_PARAM
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, csd_count
+    LDI r6, 1
+csd_count:
+csd_loop:
+    CMP r6, r1
+    BLT r0, csd_done
+    CALL scroll_down
+    SUB r6, r1
+    JMP csd_loop
+csd_done:
+    POP r31
+    RET
+
+; =========================================
+; CSI_SET_SCROLL_REGION -- 'r' handler (DECSTBM)
+; CSI_PARAM2 = top (1-based, default 1)
+; CSI_PARAM  = bottom (1-based, default ROWS)
+; Cursor moves to home position (0,0)
+; Note: We don't actually use scroll regions for cursor
+; clamping, but we accept the sequence for compatibility.
+; =========================================
+csi_set_scroll_region:
+    PUSH r31
+    LDI r1, 1
+
+    ; Top: CSI_PARAM2 (1-based), default 1
+    LDI r20, CSI_PARAM2
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, csr_top
+    LDI r6, 1
+csr_top:
+    SUB r6, r1         ; convert to 0-based
+    CMPI r6, 0
+    BGE r0, csr_top_ok
+    LDI r6, 0
+csr_top_ok:
+    LDI r20, SCROLL_TOP
+    STORE r20, r6
+
+    ; Bottom: CSI_PARAM (1-based), default ROWS
+    LDI r20, CSI_PARAM
+    LOAD r6, r20
+    CMPI r6, 0
+    JNZ r0, csr_bot
+    LDI r6, ROWS
+csr_bot:
+    SUB r6, r1         ; convert to 0-based
+    LDI r7, ROWS
+    SUB r7, r1
+    CMP r6, r7
+    BLT r0, csr_bot_ok
+    MOV r6, r7
+csr_bot_ok:
+    LDI r20, SCROLL_BOT
+    STORE r20, r6
+
+    ; Move cursor to home position
+    LDI r20, CUR_ROW
+    LDI r0, 0
+    STORE r20, r0
+    LDI r20, CUR_COL
+    LDI r0, 0
+    STORE r20, r0
     POP r31
     RET
 

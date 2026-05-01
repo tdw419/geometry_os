@@ -9876,9 +9876,9 @@ phases:
       status: todo
       description: 'terminal_qa.py line 315: cargo build --release --bin geos-term
         has timeout=120s which is too tight for release builds. Either (a) increase
-        to 300s, (b) skip build if binary exists and is newer than source (check
-        mtime), or (c) use cargo build --release -p geos-term with check-only first.
-        Option (b) is best: compare mtime of target/release/geos-term vs src/bin/geos_term.rs
+        to 300s, (b) skip build if binary exists and is newer than source (check mtime),
+        or (c) use cargo build --release -p geos-term with check-only first. Option
+        (b) is best: compare mtime of target/release/geos-term vs src/bin/geos_term.rs
         and skip build if binary is fresh.'
       scope_files:
       - /home/jericho/.hermes/scripts/terminal_qa.py
@@ -9888,24 +9888,24 @@ phases:
   test_target: 0
 - id: phase-208
   title: Host Terminal -- echo_round_trip Regression (last char dropped)
-  status: planned
-  goal: 'Fix echo_round_trip test: types "echo hello" but buffer shows "echo hell" (last
-    char ''o'' dropped). Shell output garbled (''h'' instead of ''hello''). Regression
-    from phase-205 fix.'
+  status: done
+  goal: 'Fix echo_round_trip test: types "echo hello" but buffer shows "echo hell"
+    (last char ''o'' dropped). Shell output garbled (''h'' instead of ''hello'').
+    Regression from phase-205 fix.'
   description: 'The echo_round_trip test (geos-term --test echo_round_trip) was fixed
     in phase-205 but has regressed. The test pushes all 11 keys ("echo hello\n") into
     the ring buffer at once, then runs 80 frames. The buffer shows only "echo hell"
     on the command row (missing final ''o'') and ''h'' on the output row instead of
-    ''hello''. Root cause likely: (1) ring buffer overflow or key drop during IKEY processing,
-    (2) PTYREAD consuming frames before all keys are drained, (3) race between key
-    injection and VM frame processing. ctrl_c test passes fine (similar key injection
-    pattern), suggesting the issue is specific to longer key sequences or the Enter-after-text
-    timing.'
+    ''hello''. Root cause likely: (1) ring buffer overflow or key drop during IKEY
+    processing, (2) PTYREAD consuming frames before all keys are drained, (3) race
+    between key injection and VM frame processing. ctrl_c test passes fine (similar
+    key injection pattern), suggesting the issue is specific to longer key sequences
+    or the Enter-after-text timing.'
   deliverables:
   - name: Fix echo_round_trip key injection / rendering
     description: 'geos-term --test echo_round_trip fails: types "echo hello" but only
-      "echo hell" appears, shell output is "h" instead of "hello". Last character dropped
-      before Enter is processed.'
+      "echo hell" appears, shell output is "h" instead of "hello". Last character
+      dropped before Enter is processed.'
     status: todo
     tasks:
     - id: p208.d1.t1
@@ -9934,3 +9934,67 @@ phases:
     scope_lines: 30
   scope_lines_total: 86557
   test_target: 1
+- id: phase-209
+  title: Host Terminal -- Test Failure Fixes (8 issues)
+  status: planned
+  goal: Fix 8 non-blocking test failures from terminal QA
+  description: Automated terminal QA found functional issues.
+  deliverables:
+  - name: Fix 8 test failures
+    description: 'Test failed: echo_round_trip; Test failed: line_wrap; Test failed:
+      ctrl_c; Test failed: pwd_command; Test failed: tab_completion; Test failed:
+      backspace; Test failed: two_commands; Test failed: clear_screen'
+    status: todo
+    tasks:
+    - id: p209.d1.t1
+      title: 'Fix: echo_round_trip (logic) -- Test failed: echo_round_trip'
+      status: todo
+      description: Investigate test output for specific failure
+    - id: p209.d1.t2
+      title: 'Fix: line_wrap (logic) -- Test failed: line_wrap'
+      status: todo
+      description: Investigate test output for specific failure
+    - id: p209.d1.t3
+      title: 'Fix: ctrl_c (logic) -- Test failed: ctrl_c'
+      status: todo
+      description: Investigate test output for specific failure
+    - id: p209.d1.t4
+      title: 'Fix: pwd_command (logic) -- Test failed: pwd_command'
+      status: todo
+      description: Investigate test output for specific failure
+    - id: p209.d1.t5
+      title: 'Fix: tab_completion (logic) -- Test failed: tab_completion'
+      status: todo
+      description: Investigate test output for specific failure
+    - id: p209.d1.t6
+      title: 'Fix: backspace (logic) -- Test failed: backspace'
+      status: todo
+      description: Investigate test output for specific failure
+    - id: p209.d1.t7
+      title: 'Fix: two_commands (logic) -- Test failed: two_commands'
+      status: todo
+      description: Investigate test output for specific failure
+    - id: p209.d1.t8
+      title: 'Fix: clear_screen (logic) -- Test failed: clear_screen'
+      status: todo
+      description: Investigate test output for specific failure
+    scope_lines: 240
+  scope_lines_total: 86797
+  test_target: 0
+- id: phase-210
+  title: Host Terminal -- Test Failure Fixes (1 issues)
+  status: planned
+  goal: Fix 1 non-blocking test failures from terminal QA
+  description: Automated terminal QA found functional issues.
+  deliverables:
+  - name: Fix 1 test failures
+    description: 'Test failed: line_wrap'
+    status: todo
+    tasks:
+    - id: p210.d1.t1
+      title: 'Fix: line_wrap (logic) -- Test failed: line_wrap'
+      status: todo
+      description: Investigate test output for specific failure
+    scope_lines: 30
+  scope_lines_total: 86827
+  test_target: 0

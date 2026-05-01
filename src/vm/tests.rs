@@ -23002,3 +23002,118 @@ fn test_pixel_vm_loop_counter() {
         counter
     );
 }
+
+#[test]
+fn test_pixel_vm_from_pixelpack_png() {
+    // Capstone: PNG file -> pixels -> meta-CPU executes pixels -> result pixels.
+    //
+    // Full chain:
+    //   1. Define a pixel-VM program as u32 instructions (R=opcode, G=op1, B=op2, A=0)
+    //   2. Encode those u32s as RGBA pixels in a PNG
+    //   3. Decode the PNG to recover the u32 pixel-instructions
+    //   4. Load them into screen memory
+    //   5. Run the pixel-VM host program
+    //   6. Verify the result in screen memory
+    //
+    // Program: LOADI r0,7 / LOADI r1,3 / SUB r0,r1 / HALT  =>  reg0 = 4
+    // Using SUB to prove a different opcode works end-to-end.
+
+    let pixel_program = [
+        pixel_encode(0x01, 0, 7), // LOADI r0, 7
+        pixel_encode(0x01, 1, 3), // LOADI r1, 3
+        pixel_encode(0x03, 0, 1), // SUB r0, r1
+        pixel_encode(0xFF, 0, 0), // HALT
+    ];
+
+    // Step 1: Encode pixel-program u32s as a raw RGBA PNG.
+    // Each u32 instruction becomes one RGBA pixel. No pixelpack byte expansion --
+    // the u32 IS the pixel. A .png file carries a runnable program.
+    let n = pixel_program.len() as u32;
+    let width = n;
+    let height = 1u32;
+    let mut rgba_bytes = Vec::with_capacity(n as usize * 4);
+    for &instr in &pixel_program {
+        rgba_bytes.extend_from_slice(&instr.to_be_bytes());
+    }
+
+    let mut png_buf = Vec::new();
+    {
+        let mut encoder =
+            png::Encoder::new(std::io::Cursor::new(&mut png_buf), width, height);
+        encoder.set_color(png::ColorType::Rgba);
+        encoder.set_depth(png::BitDepth::Eight);
+        encoder
+            .add_text_chunk("geo_boot".to_string(), "pixel_program".to_string())
+            .unwrap();
+        encoder
+            .add_text_chunk("seedcnt".to_string(), n.to_string())
+            .unwrap();
+        let mut writer = encoder.write_header().unwrap();
+        writer.write_image_data(&rgba_bytes).unwrap();
+    }
+
+    // Step 2: Decode the PNG back to u32 pixel-instructions.
+    let decoder = png::Decoder::new(std::io::Cursor::new(&png_buf));
+    let mut reader = decoder.read_info().expect("PNG must decode");
+    let mut pixel_buf = vec![0u8; (width * height * 4) as usize];
+    reader.next_frame(&mut pixel_buf).expect("PNG frame must read");
+
+    let decoded: Vec<u32> = (0..n as usize)
+        .map(|i| {
+            let off = i * 4;
+            u32::from_be_bytes([
+                pixel_buf[off],
+                pixel_buf[off + 1],
+                pixel_buf[off + 2],
+                pixel_buf[off + 3],
+            ])
+        })
+        .collect();
+
+    // Verify the PNG round-trip preserved every instruction exactly.
+    assert_eq!(
+        decoded, pixel_program,
+        "PNG round-trip must preserve pixel-instruction u32s"
+    );
+
+    // Step 3: Load decoded pixel-program into screen memory and run the pixel-VM.
+    let src = include_str!("../../programs/pixel_vm.asm");
+    let base = 0x1000usize;
+    let asm = crate::assembler::assemble(src, base).expect("pixel_vm.asm must assemble");
+
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        vm.ram[base + i] = word;
+    }
+    vm.pc = base as u32;
+    vm.halted = false;
+
+    // The decoded instructions go into screen memory (the pixel-VM fetches from here).
+    for (i, &instr) in decoded.iter().enumerate() {
+        vm.screen[i] = instr;
+    }
+
+    // Step 4: Run the pixel-VM on the PNG-derived program.
+    for _ in 0..100_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted, "pixel-VM should halt after executing HALT from PNG program");
+
+    // Step 5: Verify the result.
+    let reg0 = vm.screen[256]; // PV_REG_BASE -> screen offset 256
+    assert_eq!(
+        reg0, 4,
+        "pixel-VM from PNG: 7 - 3 should be 4; got {}",
+        reg0
+    );
+
+    // Also verify r1 is still 3.
+    let reg1 = vm.screen[257];
+    assert_eq!(
+        reg1, 3,
+        "pixel-VM from PNG: r1 should still be 3; got {}",
+        reg1
+    );
+}

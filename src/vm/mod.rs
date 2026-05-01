@@ -1497,6 +1497,7 @@ impl Vm {
 
                                 // Check world-space flag: RAM[0x7810]
                                 let world_mode = self.ram.get(0x7810).copied().unwrap_or(0) == 1;
+                                eprintln!("[WINSYS CREATE] id={} pos=({},{}) size={}x{} title_addr=0x{:X} world={}", id, arg1, arg2, w, h, title_addr, world_mode);
                                 let mut win = if world_mode {
                                     // r1=world_x, r2=world_y (tile coords)
                                     Window::new_world(
@@ -3498,6 +3499,16 @@ impl Vm {
     /// Phase 107: World-space windows (is_world_space() == true) are skipped here
     /// and composited separately by the host renderer via blit_world_windows().
     pub fn blit_windows(&mut self) {
+        // DEBUG: count non-zero pixels in each window's offscreen buffer
+        for w in &self.windows {
+            if w.active {
+                let nonzero: usize = w.offscreen_buffer.iter().filter(|&&p| p != 0).count();
+                if nonzero > 0 {
+                    eprintln!("[BLIT] win {} ({}x{}): {}/{} non-zero pixels, pos=({},{}), z={}",
+                        w.id, w.w, w.h, nonzero, w.offscreen_buffer.len(), w.x, w.y, w.z_order);
+                }
+            }
+        }
         // Collect (id, x, y, w, h, z_order) for active SCREEN-SPACE windows, sorted by z_order ascending
         let mut wins: Vec<(u32, u32, u32, u32, u32, u32)> = self
             .windows

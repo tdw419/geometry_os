@@ -401,31 +401,59 @@ dp_loop:
     ADD r20, r9
     LOAD r5, r20
 
-    ; --- ANSI escape stripping ---
-    ; Check if we're already in an escape sequence
+    ; --- ANSI escape stripping (two-state) ---
+    ; State 0 = normal, State 1 = saw ESC, State 2 = saw ESC[ (CSI)
+    ; Check if we're in an escape sequence
     LDI r20, ANSI_ESCAPE
     LOAD r0, r20
-    CMPI r0, 1
-    JNZ r0, dp_check_esc
+    CMPI r0, 0
+    JNZ r0, dp_in_escape
 
-    ; In escape mode: look for terminator byte (0x40-0x7E)
+    ; State 0: normal mode, check for ESC
+dp_check_esc:
+    CMPI r5, 27
+    JNZ r0, dp_normal
+    ; Saw ESC -> state 1
+    LDI r20, ANSI_ESCAPE
+    LDI r0, 1
+    STORE r20, r0
+    JMP dp_next
+
+dp_in_escape:
+    ; State 1 or 2
+    CMPI r0, 2
+    JZ r0, dp_csi_mode
+
+    ; State 1: saw ESC, check for CSI introducer '['
+    CMPI r5, 0x5B
+    JZ r0, dp_enter_csi
+    ; Not '[', check for single-char escape terminator (0x40-0x7E)
     CMPI r5, 0x40
     BLT r0, dp_next
     CMPI r5, 0x7F
     BGE r0, dp_next
-    ; Terminator found: clear escape flag
+    ; Terminator found (e.g. ESC M), clear state
     LDI r20, ANSI_ESCAPE
     LDI r0, 0
     STORE r20, r0
     JMP dp_next
 
-dp_check_esc:
-    ; ESC (0x1B = 27)?
-    CMPI r5, 27
-    JNZ r0, dp_normal
-    ; Enter escape mode
+dp_enter_csi:
+    ; Saw ESC[, enter CSI mode (state 2)
     LDI r20, ANSI_ESCAPE
-    LDI r0, 1
+    LDI r0, 2
+    STORE r20, r0
+    JMP dp_next
+
+dp_csi_mode:
+    ; State 2: in CSI sequence, skip params until final byte (0x40-0x7E)
+    CMPI r5, 0x40
+    BLT r0, dp_next
+    CMPI r5, 0x7F
+    BGE r0, dp_next
+    ; Final byte found, clear escape state
+    LDI r20, ANSI_ESCAPE
+    LDI r0, 0
     STORE r20, r0
     JMP dp_next
 
