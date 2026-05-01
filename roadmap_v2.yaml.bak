@@ -1400,7 +1400,7 @@ phases:
   _claimed_at: 1777645710
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: in_progress
+  status: planned
   goal: Extend file browser to support directory traversal, file deletion, and file
     creation
   description: The file browser shows VFS files and displays content but cannot navigate
@@ -1428,8 +1428,6 @@ phases:
   scope_lines: 65
   scope_lines_total: 85965
   test_target: 2
-  _claimed_by: worker-0
-  _claimed_at: 1777664694
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
   status: done
@@ -1563,7 +1561,7 @@ phases:
   _claimed_at: 1777656998
 - id: phase-200
   title: Pixelpack Seamless Authoring Loop
-  status: planned
+  status: done
   goal: Make the edit-run-visualize cycle for pixel programs seamless. Edit in neovim,
     save, watch GeOS assemble and execute the program as colored pixels on the grid.
   description: 'GeOS is a place you go to, not a place you live in. The editing happens
@@ -1576,7 +1574,7 @@ phases:
     Dependency: multi-program kernel (so the watcher and VM run simultaneously).'
   deliverables:
   - name: File watcher + assemble + execute pipeline
-    status: planned
+    status: done
     tasks:
     - id: p200.d1.t1
       title: Add file watcher for .asm files in GeOS host
@@ -1603,6 +1601,8 @@ phases:
       scope_lines: 60
     scope_lines_total: 86280
   test_target: 2
+  _claimed_by: worker-0
+  _claimed_at: 1777669959
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'

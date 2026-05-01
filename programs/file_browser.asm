@@ -1,33 +1,37 @@
 ; file_browser.asm -- File Browser GUI App for Geometry OS
 ;
-; Proves: LS, OPEN, READ, CLOSE, UNLINK (VFS file operations),
+; Proves: LS, OPEN, READ, CLOSE, UNLINK, VSTAT (VFS file operations),
 ;         TEXT rendering, HITSET/HITQ (mouse), IKEY (keyboard), FRAME.
 ;
-; Three modes via MODE at 0x500:
-;   0 = list view (VFS files, click to open, D to delete)
+; Three modes via MODE at 0x640:
+;   0 = list view (VFS files, click to open, D to delete, shows file sizes)
 ;   1 = content view (file contents, BACK to return)
 ;   2 = delete confirm (Y to delete, N to cancel)
 ;
 ; RAM Layout:
-;   0x400-0x41F  filename address table (8 entries)
-;   0x500       mode
-;   0x504       file count
-;   0x508       temp fd
-;   0x50C       delete target row (0-7, 255=select mode)
-;   0x600-0x9FF  file list buffer (LS output)
-;   0xA00-0xDFF  content buffer (READ output)
+;   0x600-0x61F  filename address table (8 entries)
+;   0x620-0x63F  file size table (8 entries, u32 bytes per file)
+;   0x640       mode
+;   0x644       file count
+;   0x648       temp fd
+;   0x64C       delete target row (0-7, 255=select mode)
+;   0x700-0xAFF  file list buffer (LS output)
+;   0xC00-0xDFF  content buffer (READ output)
 ;   0xE00-0xE7F  string buffer for labels
+;   0xE80-0xEBF  size string buffer (int_to_str output)
 ;
 ; No colons in comments (assembler pitfall)
 
-#define FNAME_TABLE  0x400
-#define MODE         0x500
-#define FILE_COUNT   0x504
-#define TEMP_FD      0x508
-#define DEL_TARGET   0x50C
-#define FILE_BUF     0x600
-#define CONTENT_BUF  0xA00
+#define FNAME_TABLE  0x600
+#define SIZE_TABLE   0x620
+#define MODE         0x640
+#define FILE_COUNT   0x644
+#define TEMP_FD      0x648
+#define DEL_TARGET   0x64C
+#define FILE_BUF     0x700
+#define CONTENT_BUF  0xC00
 #define STR_BUF      0xE00
+#define SIZE_STR_BUF 0xE80
 #define TITLE_Y      6
 #define ROW_BASE_Y   30
 #define ROW_H        22
@@ -35,8 +39,10 @@
 #define ROW_W        236
 #define MAX_ROWS     6
 #define BACK_Y       240
+#define SIZE_X       195
 
 ; ── INIT ──────────────────────────────────────
+LDI r30, 0xFF00
 LDI r1, 1
 LDI r2, 0x1a1a2e
 FILL r2
@@ -54,7 +60,7 @@ PUSH r31
 CALL refresh_list
 POP r31
 
-; Register 8 hit regions for rows
+; Register 6 hit regions for rows
 LDI r1, ROW_X
 LDI r3, ROW_W
 LDI r4, ROW_H
@@ -161,11 +167,38 @@ row_bg:
     LDI r4, ROW_H
     RECTF r1, r2, r3, r4, r5
 
+    ; Filename
     LDI r1, ROW_X
     ADDI r1, 4
     MOV r2, r24
     ADDI r2, 4
     TEXT r1, r2, r20
+
+    ; File size display (right-aligned in row)
+    LDI r21, SIZE_TABLE
+    ADD r21, r22
+    LOAD r15, r21
+    CMPI r15, 0xFFFFFFFF
+    JZ r0, skip_size
+    CMPI r15, 0
+    JZ r0, skip_size
+    LDI r20, SIZE_STR_BUF
+    PUSH r31
+    CALL int_to_str
+    POP r31
+    ; Append "B" suffix
+    LDI r18, 66
+    STORE r20, r18
+    ADDI r20, 1
+    LDI r18, 0
+    STORE r20, r18
+    ; Draw size at right side of row
+    LDI r1, SIZE_X
+    MOV r2, r24
+    ADDI r2, 4
+    LDI r3, SIZE_STR_BUF
+    TEXT r1, r2, r3
+skip_size:
 
     ADDI r22, 1
     ADDI r23, 1
@@ -253,7 +286,7 @@ draw_delete:
     TEXT r1, r2, r20
 del_no_name:
 
-    ; [Y] green button (no text label, just color)
+    ; [Y] green button
     LDI r5, 0x225522
     LDI r1, 50
     LDI r2, 150
@@ -449,6 +482,12 @@ rl_scan:
     STORE r23, r20
     ADDI r23, 1
 
+    ; Get file size via VSTAT
+    VSTAT r20
+    LDI r21, SIZE_TABLE
+    ADD r21, r22
+    STORE r21, r0
+
 rl_skip:
     LOAD r2, r20
     CMPI r2, 0
@@ -462,4 +501,51 @@ rl_next:
     JMP rl_scan
 
 rl_done:
+    RET
+
+; ═══════════════════════════════════════════════
+; INT TO STRING SUBROUTINE
+; Converts r15 (u32) to decimal string at r20
+; Clobbers: r15-r19, r20
+; ═══════════════════════════════════════════════
+int_to_str:
+    PUSH r31
+    LDI r16, 0
+    JZ r15, its_zero
+
+its_loop:
+    MOV r18, r15
+    LDI r17, 10
+    MOD r18, r17
+    LDI r19, 48
+    ADD r18, r19
+    PUSH r18
+    LDI r17, 10
+    DIV r15, r17
+    LDI r19, 1
+    ADD r16, r19
+    JNZ r15, its_loop
+
+its_write:
+    POP r18
+    STORE r20, r18
+    LDI r19, 1
+    ADD r20, r19
+    LDI r19, 1
+    SUB r16, r19
+    JNZ r16, its_write
+
+    LDI r18, 0
+    STORE r20, r18
+    POP r31
+    RET
+
+its_zero:
+    LDI r18, 48
+    STORE r20, r18
+    LDI r19, 1
+    ADD r20, r19
+    LDI r18, 0
+    STORE r20, r18
+    POP r31
     RET

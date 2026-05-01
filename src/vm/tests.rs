@@ -5526,8 +5526,8 @@ fn test_file_browser_assembles() {
         "file browser should be substantial"
     );
     assert!(
-        bytecode.pixels.len() < 0x400,
-        "bytecode must fit below 0x400 for data safety"
+        bytecode.pixels.len() < 0x600,
+        "bytecode must fit below 0x600 for data safety"
     );
     // Verify key opcodes present
     assert!(
@@ -5568,15 +5568,15 @@ fn test_file_browser_draws_title() {
 #[test]
 fn test_file_browser_lists_files() {
     let vm = boot_file_browser(1);
-    let file_count = vm.ram[0x504];
+    let file_count = vm.ram[0x644];
     assert!(
         file_count >= 2,
         "should list at least 2 files, got {}",
         file_count
     );
-    let first_entry = vm.ram[0x400];
+    let first_entry = vm.ram[0x600];
     assert!(
-        first_entry >= 0x600,
+        first_entry >= 0x700,
         "first filename addr should be in FILE_BUF, got {:#x}",
         first_entry
     );
@@ -5607,7 +5607,7 @@ fn test_file_browser_click_opens_file() {
         }
     }
     assert_eq!(
-        vm.ram[0x500], 1,
+        vm.ram[0x640], 1,
         "mode should be 1 (content view) after clicking file"
     );
 }
@@ -5626,7 +5626,7 @@ fn test_file_browser_back_button_returns() {
             break;
         }
     }
-    assert_eq!(vm.ram[0x500], 1, "should be in content view");
+    assert_eq!(vm.ram[0x640], 1, "should be in content view");
     // Now click BACK button (at y=240, x=10, w=60)
     vm.push_mouse(40, 248);
     let start2 = vm.frame_count;
@@ -5639,7 +5639,7 @@ fn test_file_browser_back_button_returns() {
         }
     }
     assert_eq!(
-        vm.ram[0x500], 0,
+        vm.ram[0x640], 0,
         "mode should be 0 (list view) after clicking back"
     );
 }
@@ -5658,13 +5658,13 @@ fn test_file_browser_shows_content() {
             break;
         }
     }
-    eprintln!("MODE={}, TEMP_FD={}", vm.ram[0x500], vm.ram[0x50C]);
+    eprintln!("MODE={}, TEMP_FD={}", vm.ram[0x640], vm.ram[0x648]);
     eprintln!(
         "CONTENT_BUF[0..8]: {:?}",
-        (0..8).map(|i| vm.ram[0xA00 + i]).collect::<Vec<_>>()
+        (0..8).map(|i| vm.ram[0xC00 + i]).collect::<Vec<_>>()
     );
     // Content buffer should have data from the file
-    let content_start = vm.ram[0xA00];
+    let content_start = vm.ram[0xC00];
     assert!(content_start != 0, "content buffer should have file data");
 }
 
@@ -5681,9 +5681,9 @@ fn test_file_browser_alternating_row_colors() {
 fn test_file_browser_debug_click() {
     let mut vm = boot_file_browser(1);
     eprintln!("After boot: halted={}, frame={}", vm.halted, vm.frame_count);
-    eprintln!("  MODE={}", vm.ram[0x500]);
-    eprintln!("  FILE_COUNT={}", vm.ram[0x504]);
-    eprintln!("  FNAME_TABLE[0]={:#x}", vm.ram[0x400]);
+    eprintln!("  MODE={}", vm.ram[0x640]);
+    eprintln!("  FILE_COUNT={}", vm.ram[0x644]);
+    eprintln!("  FNAME_TABLE[0]={:#x}", vm.ram[0x600]);
     eprintln!("  hit_regions={}", vm.hit_regions.len());
     for (i, hr) in vm.hit_regions.iter().enumerate() {
         eprintln!(
@@ -5708,12 +5708,12 @@ fn test_file_browser_debug_click() {
         }
         eprintln!(
             "After frame {}: halted={}, MODE={}, pc={}, regs12={}",
-            frame, vm.halted, vm.ram[0x500], vm.pc, vm.regs[12]
+            frame, vm.halted, vm.ram[0x640], vm.pc, vm.regs[12]
         );
     }
 
     // Check what filename would be opened
-    let fname_addr = vm.ram[0x400] as usize;
+    let fname_addr = vm.ram[0x600] as usize;
     let mut s = String::new();
     for i in 0..32 {
         let v = vm.ram[fname_addr + i];
