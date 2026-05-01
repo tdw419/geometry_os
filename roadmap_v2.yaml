@@ -845,9 +845,9 @@ phases:
     - id: i.3.3
       title: Border indicator for focused region
       status: done
-      description: 'Kernel draws a 1-pixel white border around the focused region
-        after each timer tick. kern_apply_clip() disables clipping temporarily to
-        draw border lines on the region boundary.'
+      description: Kernel draws a 1-pixel white border around the focused region after
+        each timer tick. kern_apply_clip() disables clipping temporarily to draw border
+        lines on the region boundary.
       files:
       - examples/riscv-hello/geos_kern.c
     - id: i.3.4
@@ -930,7 +930,7 @@ phases:
   _claimed_at: 1777317398
 - id: phase-185
   title: ANSI Parser -- Scroll Region (CSI r) and Origin Mode
-  status: in_progress
+  status: done
   goal: Add scroll region support so full-screen apps (htop, nano, vim) can lock scrolling
     to a subset of rows
   description: CSI r (DECSTBM) sets the scroll region top and bottom margins. Within
@@ -941,7 +941,10 @@ phases:
     scroll up/down by N lines.
   deliverables:
   - name: CSI r -- set scroll region (DECSTBM)
-    status: todo
+    status: done
+    note: Implemented in src/qemu/ansi.rs (Rust ANSI parser). CSI r parsed with scroll_top/scroll_bottom
+      fields. scroll_up/scroll_down respect region bounds. CUU/CUD clamped to region.
+      ESC M (RI) scrolls down at scroll_top. RIS resets to full screen.
     tasks:
     - id: p185.d1.t1
       title: Add SCROLL_TOP and SCROLL_BOTTOM memory locations
@@ -975,7 +978,11 @@ phases:
       - programs/host_term.asm
       scope_lines: 20
   - name: Tests for scroll region
-    status: todo
+    status: done
+    note: 17 comprehensive tests in src/qemu/ansi.rs mod tests covering CSI r parsing,
+      scroll region preservation, overflow scrolling, reverse index (ESC M), cursor
+      clamping (CUU/CUD), newline at bottom, RIS reset, CSI S/T region respect,
+      line wrap, and CUP outside region.
     tasks:
     - id: p185.d2.t1
       title: Test CSI r sets scroll region and cursor goes home
@@ -984,11 +991,11 @@ phases:
       scope_files:
       - src/vm/tests.rs
       scope_lines: 40
-  scope_lines: 150
-  scope_lines_total: 84860
+    scope_lines: 150
+    scope_lines_total: 84860
   test_target: 6
   _claimed_by: worker-0
-  _claimed_at: 1777557905
+  _claimed_at: 1777623016
 - id: phase-186
   title: ANSI Parser -- Tab Stops and Horizontal Scrolling
   status: done

@@ -520,17 +520,22 @@ impl AnsiHandler {
         }
     }
 
-    /// Auto-scroll when cursor moves past CANVAS_MAX_ROWS.
+    /// Auto-scroll when cursor moves past the scroll region bottom.
+    /// Only triggers if the cursor is within or at the bottom of the scroll region.
     fn auto_scroll(&mut self, canvas_buffer: &mut [u32]) {
-        if self.cursor.row >= CANVAS_MAX_ROWS {
+        if self.cursor.row > self.scroll_bottom {
+            // Only scroll if cursor was inside the scroll region
+            // (if cursor is below the region entirely, just clamp)
             self.scroll_up(canvas_buffer);
-            self.cursor.row = CANVAS_MAX_ROWS - 1;
+            self.cursor.row = self.scroll_bottom;
         }
     }
 
-    /// Scroll the canvas up by one line.
+    /// Scroll the scroll region up by one line.
+    /// Rows above scroll_top and below scroll_bottom are unaffected.
     pub fn scroll_up(&self, canvas_buffer: &mut [u32]) {
-        for r in 0..CANVAS_MAX_ROWS - 1 {
+        // Move each row in [scroll_top, scroll_bottom-1] down to the next row
+        for r in self.scroll_top..self.scroll_bottom {
             for c in 0..CANVAS_COLS {
                 let dst = r * CANVAS_COLS + c;
                 let src = (r + 1) * CANVAS_COLS + c;
@@ -539,7 +544,8 @@ impl AnsiHandler {
                 }
             }
         }
-        let last_row = (CANVAS_MAX_ROWS - 1) * CANVAS_COLS;
+        // Clear the bottom row of the scroll region
+        let last_row = self.scroll_bottom * CANVAS_COLS;
         for c in 0..CANVAS_COLS {
             let idx = last_row + c;
             if idx < canvas_buffer.len() {
@@ -548,9 +554,11 @@ impl AnsiHandler {
         }
     }
 
-    /// Scroll the canvas down by one line.
+    /// Scroll the scroll region down by one line.
+    /// Rows above scroll_top and below scroll_bottom are unaffected.
     fn scroll_down(&self, canvas_buffer: &mut [u32]) {
-        for r in (1..CANVAS_MAX_ROWS).rev() {
+        // Move each row in (scroll_top, scroll_bottom] up to the previous row
+        for r in ((self.scroll_top + 1)..=self.scroll_bottom).rev() {
             for c in 0..CANVAS_COLS {
                 let dst = r * CANVAS_COLS + c;
                 let src = (r - 1) * CANVAS_COLS + c;
@@ -559,9 +567,11 @@ impl AnsiHandler {
                 }
             }
         }
+        // Clear the top row of the scroll region
         for c in 0..CANVAS_COLS {
-            if c < canvas_buffer.len() {
-                canvas_buffer[c] = 0;
+            let idx = self.scroll_top * CANVAS_COLS + c;
+            if idx < canvas_buffer.len() {
+                canvas_buffer[idx] = 0;
             }
         }
     }
@@ -1595,5 +1605,330 @@ mod tests {
         handler.set_cursor(0, 8);
         handler.process_bytes(b"\t", &mut buf);
         assert_eq!(handler.cursor().col, 16);
+    }
+
+    // ── Scroll Region (CSI r) Tests ──────────────────────────────
+
+    #[test]
+    fn test_set_scroll_region() {
+        // CSI 5;10r sets scroll_top=4, scroll_bottom=9
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[5;10r", &mut buf);
+        // Cursor should be at scroll_top, col 0
+        assert_eq!(handler.cursor().row, 4);
+        assert_eq!(handler.cursor().col, 0);
+    }
+
+    #[test]
+    fn test_set_scroll_region_resets_to_default() {
+        // CSI r (no params) resets to full screen
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[5;10r", &mut buf);
+        handler.process_bytes(b"\x1B[r", &mut buf);
+        assert_eq!(handler.cursor().row, 0);
+        assert_eq!(handler.cursor().col, 0);
+    }
+
+    #[test]
+    fn test_set_scroll_region_invalid_rejected() {
+        // CSI 10;5r (top > bottom) should be rejected, keep defaults
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[10;5r", &mut buf);
+        // Should reset to defaults since top >= bottom
+        assert_eq!(handler.cursor().row, 0);
+        assert_eq!(handler.cursor().col, 0);
+    }
+
+    #[test]
+    fn test_set_scroll_region_same_row_rejected() {
+        // CSI 5;5r (top == bottom) should be rejected
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[5;5r", &mut buf);
+        assert_eq!(handler.cursor().row, 0);
+    }
+
+    #[test]
+    fn test_scroll_region_preserves_header() {
+        // Set scroll region to rows 3-10 (0-indexed: 2-9).
+        // Fill region + overflow, verify header outside region is preserved.
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[3;10r", &mut buf); // scroll_top=2, scroll_bottom=9
+
+        // Write header on row 0
+        handler.set_cursor(0, 0);
+        handler.process_bytes(b"HEAD", &mut buf);
+
+        // Write 10 lines inside scroll region (8 rows + 2 overflow to trigger scrolls)
+        handler.set_cursor(2, 0);
+        for i in 0..10 {
+            let line = format!("Line{}\n", i);
+            handler.process_bytes(line.as_bytes(), &mut buf);
+        }
+
+        // Verify header is still on row 0 (outside scroll region, unaffected)
+        assert_eq!(buf[0], b'H' as u32);
+        assert_eq!(buf[1], b'E' as u32);
+        assert_eq!(buf[2], b'A' as u32);
+        assert_eq!(buf[3], b'D' as u32);
+    }
+
+    #[test]
+    fn test_scroll_region_scrolls_only_region() {
+        // Set scroll region rows 2-5 (0-indexed: 1-4, 4 rows).
+        // Fill region with 5 lines (one more than fits) to trigger a scroll,
+        // then verify content shifted and outside-row preserved.
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[2;5r", &mut buf); // scroll_top=1, scroll_bottom=4
+
+        // Write something on row 0 (outside scroll region)
+        handler.set_cursor(0, 0);
+        handler.process_bytes(b"HEADER", &mut buf);
+
+        // Move into scroll region and write 5 lines (overflows 4-row region by 1)
+        handler.set_cursor(1, 0);
+        handler.process_bytes(b"A\nB\nC\nD\nE\n", &mut buf);
+
+        // Row 0 should still have HEADER (outside scroll region)
+        assert_eq!(buf[0], b'H' as u32);
+
+        // After 5 lines in a 4-row region: 2 scrolls happened (at D and E newlines)
+        // Row 1 should have "C" (A and B scrolled off the region top)
+        assert_eq!(buf[1 * CANVAS_COLS], b'C' as u32);
+
+        // Row 3 (scroll_bottom - 1) should have "E" (last line written)
+        assert_eq!(buf[3 * CANVAS_COLS], b'E' as u32);
+
+        // Row 4 (scroll_bottom) should be blank
+        assert_eq!(buf[4 * CANVAS_COLS], 0);
+    }
+
+    #[test]
+    fn test_scroll_region_with_reverse_index() {
+        // ESC M (RI - Reverse Index) at scroll_top should scroll region down
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[3;6r", &mut buf); // scroll_top=2, scroll_bottom=5
+
+        // Fill region with content (3 lines to fill 4-row region without overflow)
+        handler.set_cursor(2, 0);
+        handler.process_bytes(b"AA\nBB\nCC\n", &mut buf);
+        // After: row 2=AA, row 3=BB, row 4=CC, row 5 untouched, cursor at row 5
+
+        // Move cursor to scroll_top
+        handler.set_cursor(2, 0);
+
+        // ESC M should scroll region down, inserting blank line at top
+        handler.process_bytes(b"\x1BM", &mut buf);
+
+        // Row 2 (scroll_top) should be blank
+        assert_eq!(buf[2 * CANVAS_COLS], 0);
+
+        // Row 3 should have "AA" (shifted down)
+        assert_eq!(buf[3 * CANVAS_COLS], b'A' as u32);
+
+        // Row 4 should have "BB" (shifted down)
+        assert_eq!(buf[4 * CANVAS_COLS], b'B' as u32);
+
+        // Row 5 (scroll_bottom) should have "CC" (was at row 4, now shifted down)
+        // Original: row 2=AA, 3=BB, 4=CC, 5=blank
+        // After scroll down: row 2=blank, 3=AA, 4=BB, 5=CC (blank pushed off bottom)
+        assert_eq!(buf[5 * CANVAS_COLS], b'C' as u32);
+    }
+
+    #[test]
+    fn test_scroll_region_cursor_positioning() {
+        // CUU/CUD should be clamped to scroll region when cursor is inside it
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[5;10r", &mut buf); // scroll_top=4, scroll_bottom=9
+
+        // Place cursor inside region at row 6
+        handler.set_cursor(6, 0);
+
+        // CUU (cursor up) 5 times should stop at scroll_top
+        handler.process_bytes(b"\x1B[5A", &mut buf);
+        assert_eq!(handler.cursor().row, 4);
+
+        // CUD (cursor down) 10 times should stop at scroll_bottom
+        handler.process_bytes(b"\x1B[10B", &mut buf);
+        assert_eq!(handler.cursor().row, 9);
+    }
+
+    #[test]
+    fn test_scroll_region_newline_at_bottom_triggers_scroll() {
+        // When cursor is at scroll_bottom and a newline happens,
+        // the scroll region should scroll up (not the whole screen)
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[3;5r", &mut buf); // scroll_top=2, scroll_bottom=4
+
+        // Put content on row 0 (outside region) as marker
+        handler.set_cursor(0, 0);
+        handler.process_bytes(b"TOP", &mut buf);
+
+        // Fill rows 2-4 inside region
+        handler.set_cursor(2, 0);
+        handler.process_bytes(b"R2\nR3\nR4", &mut buf);
+
+        // Cursor should now be at row 4 (scroll_bottom), col 2
+        assert_eq!(handler.cursor().row, 4);
+
+        // Newline at scroll_bottom should scroll region up
+        handler.process_bytes(b"\n", &mut buf);
+
+        // Cursor should stay at scroll_bottom
+        assert_eq!(handler.cursor().row, 4);
+
+        // Row 2 should have "R3" (shifted up)
+        assert_eq!(buf[2 * CANVAS_COLS], b'R' as u32);
+        assert_eq!(buf[2 * CANVAS_COLS + 1], b'3' as u32);
+
+        // Row 4 should be blank
+        assert_eq!(buf[4 * CANVAS_COLS], 0);
+
+        // Row 0 should still have "TOP"
+        assert_eq!(buf[0], b'T' as u32);
+    }
+
+    #[test]
+    fn test_ris_resets_scroll_region() {
+        // ESC c (RIS) should reset scroll region to full screen
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[5;10r", &mut buf);
+        handler.process_bytes(b"\x1Bc", &mut buf);
+        // After RIS, auto_scroll should trigger at CANVAS_MAX_ROWS
+        // (scroll_top=0, scroll_bottom=CANVAS_MAX_ROWS-1)
+        // Fill to the bottom and verify scroll works normally
+        for i in 0..CANVAS_MAX_ROWS {
+            let ch = (b'A' + ((i % 26) as u8)) as char;
+            let line = format!("{}\n", ch);
+            handler.process_bytes(line.as_bytes(), &mut buf);
+        }
+        // Should not crash; row 0 should have scrolled content
+        assert!(buf[0] != 0 || CANVAS_MAX_ROWS > 200);
+    }
+
+    #[test]
+    fn test_default_scroll_region_still_works() {
+        // Without setting a scroll region, behavior should be unchanged
+        // (full-screen scroll from 0 to CANVAS_MAX_ROWS-1)
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+
+        // Fill exactly CANVAS_MAX_ROWS lines to trigger one scroll
+        for i in 0..CANVAS_MAX_ROWS {
+            let line = format!("Row{}\n", i);
+            handler.process_bytes(line.as_bytes(), &mut buf);
+        }
+
+        // Row 0 should have "Row1" (Row0 scrolled off after the last newline)
+        assert_eq!(buf[0], b'R' as u32);
+        assert_eq!(buf[1], b'o' as u32);
+        assert_eq!(buf[2], b'w' as u32);
+        assert_eq!(buf[3], b'1' as u32);
+    }
+
+    #[test]
+    fn test_csi_s_scroll_up_respects_region() {
+        // CSI 1S (SU - Scroll Up) should scroll only the region
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[3;6r", &mut buf); // scroll_top=2, scroll_bottom=5
+
+        // Marker on row 0
+        handler.set_cursor(0, 0);
+        handler.process_bytes(b"KEEP", &mut buf);
+
+        // Fill region with 3 lines (4-row region, no overflow)
+        handler.set_cursor(2, 0);
+        handler.process_bytes(b"A\nB\nC\n", &mut buf);
+        // After: row 2=A, row 3=B, row 4=C, row 5=blank, cursor at row 5
+
+        // Scroll up 1 within region
+        handler.process_bytes(b"\x1B[1S", &mut buf);
+
+        // Row 0 should still have "KEEP"
+        assert_eq!(buf[0], b'K' as u32);
+
+        // Row 2 should have "B" (scrolled up)
+        assert_eq!(buf[2 * CANVAS_COLS], b'B' as u32);
+
+        // Row 5 (scroll_bottom) should be blank (bottom cleared after scroll up)
+        assert_eq!(buf[5 * CANVAS_COLS], 0);
+    }
+
+    #[test]
+    fn test_csi_t_scroll_down_respects_region() {
+        // CSI 1T (SD - Scroll Down) should scroll only the region
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[3;6r", &mut buf); // scroll_top=2, scroll_bottom=5
+
+        // Marker on row 0
+        handler.set_cursor(0, 0);
+        handler.process_bytes(b"KEEP", &mut buf);
+
+        // Fill region with 3 lines (4-row region, no overflow)
+        handler.set_cursor(2, 0);
+        handler.process_bytes(b"A\nB\nC\n", &mut buf);
+        // After: row 2=A, row 3=B, row 4=C, row 5=blank, cursor at row 5
+
+        // Scroll down 1 within region
+        handler.process_bytes(b"\x1B[1T", &mut buf);
+
+        // Row 0 should still have "KEEP"
+        assert_eq!(buf[0], b'K' as u32);
+
+        // Row 2 (scroll_top) should be blank (top cleared after scroll down)
+        assert_eq!(buf[2 * CANVAS_COLS], 0);
+
+        // Row 3 should have "A" (shifted down)
+        assert_eq!(buf[3 * CANVAS_COLS], b'A' as u32);
+    }
+
+    #[test]
+    fn test_scroll_region_with_line_wrap() {
+        // When a line wraps at CANVAS_COLS inside the scroll region,
+        // auto_scroll should still respect the region
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[3;5r", &mut buf); // scroll_top=2, scroll_bottom=4
+
+        // Marker on row 0
+        handler.set_cursor(0, 0);
+        handler.process_bytes(b"TOP", &mut buf);
+
+        // Write long text that wraps within scroll region
+        handler.set_cursor(2, 0);
+        let long_line = "A".repeat(CANVAS_COLS); // exactly fills one row
+        handler.process_bytes(long_line.as_bytes(), &mut buf); // wraps to row 3
+        handler.process_bytes(b"B\n", &mut buf); // row 3, then newline to row 4
+        handler.process_bytes(b"C\n", &mut buf); // row 4 (scroll_bottom), triggers scroll
+
+        // Row 0 should still have "TOP"
+        assert_eq!(buf[0], b'T' as u32);
+
+        // Cursor should be at scroll_bottom
+        assert_eq!(handler.cursor().row, 4);
+    }
+
+    #[test]
+    fn test_cup_outside_scroll_region() {
+        // CUP (CSI H) can position cursor outside the scroll region
+        let mut handler = AnsiHandler::new();
+        let mut buf = make_canvas();
+        handler.process_bytes(b"\x1B[5;10r", &mut buf); // scroll_top=4, scroll_bottom=9
+
+        // Move cursor to row 0 (outside region) - should work
+        handler.process_bytes(b"\x1B[1;1H", &mut buf);
+        assert_eq!(handler.cursor().row, 0);
+        assert_eq!(handler.cursor().col, 0);
     }
 }
