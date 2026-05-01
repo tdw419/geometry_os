@@ -9888,7 +9888,7 @@ phases:
   test_target: 0
 - id: phase-208
   title: Host Terminal -- echo_round_trip Regression (last char dropped)
-  status: done
+  status: planned
   goal: 'Fix echo_round_trip test: types "echo hello" but buffer shows "echo hell"
     (last char ''o'' dropped). Shell output garbled (''h'' instead of ''hello'').
     Regression from phase-205 fix.'

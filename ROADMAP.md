@@ -2,8 +2,8 @@
 
 Pixel-art virtual machine with built-in assembler, debugger, and live GUI. Write assembly in the built-in text editor, press F5, watch it run. 187 opcodes, 3656 tests, 156 programs, 83836 LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor. Infinite map desktop.
 
-**Progress:** 167/206 phases complete, 9 superseded, 2 deferred, 1 research, 27 planned
-**Deliverables:** 577/632 complete
+**Progress:** 167/208 phases complete, 9 superseded, 2 deferred, 1 research, 29 planned
+**Deliverables:** 577/634 complete
 **Tasks:** 298/428 complete
 
 | Phase | Status | Deliverables | LOC Target | Tests |
@@ -214,6 +214,8 @@ Pixel-art virtual machine with built-in assembler, debugger, and live GUI. Write
 | phase-206 Host Terminal -- line_wrap Test Logic Failure | PLANNED | 0/1 | 86,460 | 0 |
 | phase-207 Dogfood QA Script -- Timeout Infrastructure Fix | PLANNED | 0/1 | 86,490 | 0 |
 | phase-208 Host Terminal -- echo_round_trip Regression (last char dropped) | PLANNED | 0/1 | 86,520 | 0 |
+| phase-209 Host Terminal -- Test Failure Fixes (8 issues) | PLANNED | 0/1 | 86,540 | 0 |
+| phase-210 Host Terminal -- Test Failure Fixes (1 issue) | PLANNED | 0/1 | 86,550 | 0 |
 
 
 ## Dependencies

@@ -1400,7 +1400,7 @@ phases:
   _claimed_at: 1777645710
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: planned
+  status: in_progress
   goal: Extend file browser to support directory traversal, file deletion, and file
     creation
   description: The file browser shows VFS files and displays content but cannot navigate
@@ -1429,7 +1429,7 @@ phases:
   scope_lines_total: 85965
   test_target: 2
   _claimed_by: worker-0
-  _claimed_at: 1777583670
+  _claimed_at: 1777650889
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
   status: planned
@@ -1564,20 +1564,20 @@ phases:
     save, watch GeOS assemble and execute the program as colored pixels on the grid.
   description: 'GeOS is a place you go to, not a place you live in. The editing happens
     externally (neovim with real LSP, real keybindings), and the visualization/execution
-    happens natively in GeOS. This phase implements the bridge: a file watcher that monitors
-    .asm files, triggers assemble -> encode to pixels -> load into screen memory -> execute
-    on save. The user sees source in their editor, the encoded PNG, and live execution state
-    simultaneously. No canvas-as-editor needed -- the text editor is a solved problem. The
-    thing native to GeOS is execution and visualization. Dependency: multi-program kernel
-    (so the watcher and VM run simultaneously).'
+    happens natively in GeOS. This phase implements the bridge: a file watcher that
+    monitors .asm files, triggers assemble -> encode to pixels -> load into screen
+    memory -> execute on save. The user sees source in their editor, the encoded PNG,
+    and live execution state simultaneously. No canvas-as-editor needed -- the text
+    editor is a solved problem. The thing native to GeOS is execution and visualization.
+    Dependency: multi-program kernel (so the watcher and VM run simultaneously).'
   deliverables:
   - name: File watcher + assemble + execute pipeline
     status: planned
     tasks:
     - id: p200.d1.t1
       title: Add file watcher for .asm files in GeOS host
-      description: Watch a configurable directory for .asm file changes. On save, trigger
-        assemble -> encode -> execute pipeline. Use notify crate or similar.
+      description: Watch a configurable directory for .asm file changes. On save,
+        trigger assemble -> encode -> execute pipeline. Use notify crate or similar.
       scope_files:
       - src/main.rs
       scope_lines: 50

@@ -5587,8 +5587,8 @@ fn test_file_browser_registers_hit_regions() {
     let vm = boot_file_browser(1);
     assert_eq!(
         vm.hit_regions.len(),
-        13,
-        "should have 13 hit regions (12 rows + back)"
+        7,
+        "should have 7 hit regions (6 rows + back)"
     );
 }
 
