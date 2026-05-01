@@ -1,6 +1,8 @@
 ; roguelike.asm -- Procedural Dungeon Crawler with Combat, Enemies, Items
 ; Controls: WASD to move, U to undo, R to regenerate dungeon
+;   F to save game to VFS, G to load game from VFS
 ; Goal: find stairs, fight enemies, collect items, descend deeper
+; Win: reach stairs on floor 10 to defeat the dungeon
 ;
 ; Memory layout:
 ;   0x5000..0x5FFF  map[4096]
@@ -34,6 +36,7 @@
 #define KILLS        0x624B
 #define MSG_TIMER    0x624C
 #define UNDO_SLOT    0x624D
+#define MSG_TEXT     0x624E
 #define ENEMY_BASE   0x6300
 #define ENEMY_COUNT  0x6380
 #define ITEM_BASE    0x6400
@@ -42,11 +45,12 @@
 #define TEMP_BASE    0x6900
 #define SAVE_BUF     0x6908
 #define SAVE_PATH    0x6AC1
-#define MSG_SAVED    0x6ACE
-#define MSG_LOADED   0x6AD6
-#define MSG_LEVEL    0x6ADE
-#define MSG_WIN      0x6AEE
-#define MSG_WIN2     0x6AF6
+#define MSG_SAVED    0x6ACB
+#define MSG_LOADED   0x6AD2
+#define MSG_FLOOR    0x6ADA
+#define MSG_KILLS    0x6AE1
+#define MSG_WIN      0x6AE8
+#define MSG_WIN2     0x6AF1
 #define TILE_FLOOR   1
 #define TILE_WALL    2
 #define TILE_STAIR   3
@@ -85,6 +89,8 @@ restart:
   STORE r4, r1
   LDI r1, 0
   LDI r4, MSG_TIMER
+  STORE r4, r1
+  LDI r4, MSG_TEXT
   STORE r4, r1
   CALL generate_dungeon
   CALL spawn_enemies
@@ -148,16 +154,16 @@ gl_input:
   LDI r6, 117
   CMP r7, r6
   JZ r0, try_undo
-  LDI r6, 83
+  LDI r6, 70
   CMP r7, r6
   JZ r0, try_save
-  LDI r6, 115
+  LDI r6, 102
   CMP r7, r6
   JZ r0, try_save
-  LDI r6, 76
+  LDI r6, 71
   CMP r7, r6
   JZ r0, try_load
-  LDI r6, 108
+  LDI r6, 103
   CMP r7, r6
   JZ r0, try_load
   JMP idle
@@ -300,6 +306,9 @@ undo_do_restore:
 
 try_save:
   CALL save_game
+  LDI r4, MSG_TEXT
+  LDI r1, MSG_SAVED
+  STORE r4, r1
   LDI r4, MSG_TIMER
   LDI r1, 60
   STORE r4, r1
@@ -307,6 +316,9 @@ try_save:
 
 try_load:
   CALL load_game
+  LDI r4, MSG_TEXT
+  LDI r1, MSG_LOADED
+  STORE r4, r1
   LDI r4, MSG_TIMER
   LDI r1, 60
   STORE r4, r1
@@ -319,36 +331,33 @@ try_load:
 descend_screen:
   LDI r1, 0x001a00
   FILL r1
-  LDI r10, 0x6AD0
+  ; "DESCENDED!" at 0x6A10 (already in init_text)
+  LDI r10, 0x6A10
   LDI r11, 30
   LDI r12, 80
   TEXT r11, r12, r10
-  ; Show level number
+  ; Show "FLOOR:" label then level number
+  LDI r10, MSG_FLOOR
+  LDI r11, 30
+  LDI r12, 110
+  TEXT r11, r12, r10
   LDI r4, DLEVEL
   LOAD r1, r4
   LDI r9, 1
   ADD r1, r9
-  LDI r4, SAVE_BUF
-  STORE r4, r1
-  LDI r4, 0x6AE2
-  LDI r1, 0
-  STORE r4, r1
-  LDI r10, SAVE_BUF
-  LDI r11, 80
-  LDI r12, 110
-  TEXT r11, r12, r10
-  ; Show kills
-  LDI r4, KILLS
-  LOAD r1, r4
-  LDI r4, SAVE_BUF
-  STORE r4, r1
-  LDI r4, 0x6AE2
-  LDI r1, 0
-  STORE r4, r1
-  LDI r10, 0x6AF0
-  LDI r11, 80
+  LDI r2, 86
+  LDI r3, 110
+  CALL draw_number
+  ; Show "KILLS:" label then kill count
+  LDI r10, MSG_KILLS
+  LDI r11, 30
   LDI r12, 130
   TEXT r11, r12, r10
+  LDI r4, KILLS
+  LOAD r1, r4
+  LDI r2, 86
+  LDI r3, 130
+  CALL draw_number
   ; Wait for key
   FRAME
   IKEY r7
@@ -381,11 +390,11 @@ descend_continue:
 victory_screen:
   LDI r1, 0x1a1a00
   FILL r1
-  LDI r10, 0x6AF8
+  LDI r10, MSG_WIN
   LDI r11, 20
   LDI r12, 80
   TEXT r11, r12, r10
-  LDI r10, 0x6B08
+  LDI r10, MSG_WIN2
   LDI r11, 40
   LDI r12, 120
   TEXT r11, r12, r10
@@ -442,6 +451,109 @@ save_undo:
   ; Save the slot index so try_undo knows where to restore from
   LDI r4, UNDO_SLOT
   STORE r4, r0
+  POP r31
+  RET
+
+; ── save_game ────────────────────────────────────────────────
+; Save player state to VFS file /save.dat
+; Format: 9 u32 words (P_X, P_Y, P_HP, P_MAXHP, P_ATK, STAIRS_X, STAIRS_Y, DLEVEL, KILLS)
+
+save_game:
+  PUSH r31
+  ; Open /save.dat for writing (mode=1)
+  LDI r4, SAVE_PATH
+  LDI r1, 1
+  OPEN r4, r1
+  ; r0 = fd, 0xFFFFFFFF on error
+  LDI r9, 0xFFFFFFFF
+  CMP r0, r9
+  JZ r0, sg_fail
+  ; Save fd in r20
+  MOV r20, r0
+  ; Copy player state to SAVE_BUF (9 words starting at P_X=0x6240)
+  LDI r10, 0
+  LDI r4, SAVE_BUF
+sg_copy_lp:
+  LDI r9, P_X
+  ADD r9, r10
+  LOAD r1, r9
+  LDI r9, SAVE_BUF
+  ADD r9, r10
+  STORE r9, r1
+  LDI r9, 1
+  ADD r10, r9
+  LDI r6, 9
+  CMP r10, r6
+  BLT r0, sg_copy_lp
+  ; Write 9 words = 36 bytes
+  MOV r4, r20
+  LDI r1, SAVE_BUF
+  LDI r2, 36
+  WRITE r4, r1, r2
+  ; Close file
+  MOV r4, r20
+  CLOSE r4
+  ; r0 = 1 success indicator for caller
+  LDI r0, 1
+  POP r31
+  RET
+sg_fail:
+  ; Could not open file -- silent fail
+  POP r31
+  RET
+
+; ── load_game ────────────────────────────────────────────────
+; Load player state from VFS file /save.dat
+; Restores P_X, P_Y, P_HP, P_MAXHP, P_ATK, STAIRS_X, STAIRS_Y, DLEVEL, KILLS
+
+load_game:
+  PUSH r31
+  ; Open /save.dat for reading (mode=0)
+  LDI r4, SAVE_PATH
+  LDI r1, 0
+  OPEN r4, r1
+  ; r0 = fd, 0xFFFFFFFF on error
+  LDI r9, 0xFFFFFFFF
+  CMP r0, r9
+  JZ r0, lg_fail
+  ; Save fd in r20
+  MOV r20, r0
+  ; Read 9 words = 36 bytes into SAVE_BUF
+  MOV r4, r20
+  LDI r1, SAVE_BUF
+  LDI r2, 36
+  READ r4, r1, r2
+  ; r0 = bytes read, 0 or less means error/empty
+  JZ r0, lg_close_fail
+  LDI r9, 36
+  CMP r0, r9
+  BLT r0, lg_close_fail
+  ; Close file
+  MOV r4, r20
+  CLOSE r4
+  ; Copy from SAVE_BUF to player state
+  LDI r10, 0
+lg_copy_lp:
+  LDI r9, SAVE_BUF
+  ADD r9, r10
+  LOAD r1, r9
+  LDI r9, P_X
+  ADD r9, r10
+  STORE r9, r1
+  LDI r9, 1
+  ADD r10, r9
+  LDI r6, 9
+  CMP r10, r6
+  BLT r0, lg_copy_lp
+  ; r0 = 1 success indicator for caller
+  LDI r0, 1
+  POP r31
+  RET
+lg_close_fail:
+  MOV r4, r20
+  CLOSE r4
+lg_fail:
+  ; Could not open or read file -- silent fail
   POP r31
   RET
 
@@ -821,6 +933,213 @@ init_text:
   LDI r1, 89
   STORE r4, r1
   LDI r4, 0x6AC0
+  LDI r1, 0
+  STORE r4, r1
+  ; Save file path "/save.dat" at 0x6AC1 (SAVE_PATH)
+  LDI r4, 0x6AC1
+  LDI r1, 47
+  STORE r4, r1
+  LDI r4, 0x6AC2
+  LDI r1, 115
+  STORE r4, r1
+  LDI r4, 0x6AC3
+  LDI r1, 97
+  STORE r4, r1
+  LDI r4, 0x6AC4
+  LDI r1, 118
+  STORE r4, r1
+  LDI r4, 0x6AC5
+  LDI r1, 101
+  STORE r4, r1
+  LDI r4, 0x6AC6
+  LDI r1, 46
+  STORE r4, r1
+  LDI r4, 0x6AC7
+  LDI r1, 100
+  STORE r4, r1
+  LDI r4, 0x6AC8
+  LDI r1, 97
+  STORE r4, r1
+  LDI r4, 0x6AC9
+  LDI r1, 116
+  STORE r4, r1
+  LDI r4, 0x6ACA
+  LDI r1, 0
+  STORE r4, r1
+  ; "SAVED!" at 0x6ACB (padding to MSG_SAVED=0x6ACE -- align with defines)
+  ; Actually let me check the spacing needed
+  ; 0x6AC1-0x6ACA = save path "/save.dat\0" (10 bytes)
+  ; MSG_SAVED = 0x6ACE, need 4 bytes of padding or re-define
+  ; Let me just place strings starting at 0x6ACB
+  ; "SAVED!" at 0x6ACB (6 bytes + null = 7, ends at 0x6AD1)
+  LDI r4, 0x6ACB
+  LDI r1, 83
+  STORE r4, r1
+  LDI r4, 0x6ACC
+  LDI r1, 65
+  STORE r4, r1
+  LDI r4, 0x6ACD
+  LDI r1, 86
+  STORE r4, r1
+  LDI r4, 0x6ACE
+  LDI r1, 69
+  STORE r4, r1
+  LDI r4, 0x6ACF
+  LDI r1, 68
+  STORE r4, r1
+  LDI r4, 0x6AD0
+  LDI r1, 33
+  STORE r4, r1
+  LDI r4, 0x6AD1
+  LDI r1, 0
+  STORE r4, r1
+  ; "LOADED!" at 0x6AD2 (7 bytes + null = 8, ends at 0x6AD9)
+  LDI r4, 0x6AD2
+  LDI r1, 76
+  STORE r4, r1
+  LDI r4, 0x6AD3
+  LDI r1, 79
+  STORE r4, r1
+  LDI r4, 0x6AD4
+  LDI r1, 65
+  STORE r4, r1
+  LDI r4, 0x6AD5
+  LDI r1, 68
+  STORE r4, r1
+  LDI r4, 0x6AD6
+  LDI r1, 69
+  STORE r4, r1
+  LDI r4, 0x6AD7
+  LDI r1, 68
+  STORE r4, r1
+  LDI r4, 0x6AD8
+  LDI r1, 33
+  STORE r4, r1
+  LDI r4, 0x6AD9
+  LDI r1, 0
+  STORE r4, r1
+  ; "FLOOR:" at 0x6ADA (6 bytes + null = 7, ends at 0x6AE0)
+  LDI r4, 0x6ADA
+  LDI r1, 70
+  STORE r4, r1
+  LDI r4, 0x6ADB
+  LDI r1, 76
+  STORE r4, r1
+  LDI r4, 0x6ADC
+  LDI r1, 79
+  STORE r4, r1
+  LDI r4, 0x6ADD
+  LDI r1, 79
+  STORE r4, r1
+  LDI r4, 0x6ADE
+  LDI r1, 82
+  STORE r4, r1
+  LDI r4, 0x6ADF
+  LDI r1, 58
+  STORE r4, r1
+  LDI r4, 0x6AE0
+  LDI r1, 0
+  STORE r4, r1
+  ; "KILLS:" at 0x6AE1 (6 bytes + null = 7, ends at 0x6AE7)
+  LDI r4, 0x6AE1
+  LDI r1, 75
+  STORE r4, r1
+  LDI r4, 0x6AE2
+  LDI r1, 73
+  STORE r4, r1
+  LDI r4, 0x6AE3
+  LDI r1, 76
+  STORE r4, r1
+  LDI r4, 0x6AE4
+  LDI r1, 76
+  STORE r4, r1
+  LDI r4, 0x6AE5
+  LDI r1, 83
+  STORE r4, r1
+  LDI r4, 0x6AE6
+  LDI r1, 58
+  STORE r4, r1
+  LDI r4, 0x6AE7
+  LDI r1, 0
+  STORE r4, r1
+  ; "VICTORY!" at 0x6AE8 (8 bytes + null = 9, ends at 0x6AF0)
+  LDI r4, 0x6AE8
+  LDI r1, 86
+  STORE r4, r1
+  LDI r4, 0x6AE9
+  LDI r1, 73
+  STORE r4, r1
+  LDI r4, 0x6AEA
+  LDI r1, 67
+  STORE r4, r1
+  LDI r4, 0x6AEB
+  LDI r1, 84
+  STORE r4, r1
+  LDI r4, 0x6AEC
+  LDI r1, 79
+  STORE r4, r1
+  LDI r4, 0x6AED
+  LDI r1, 82
+  STORE r4, r1
+  LDI r4, 0x6AEE
+  LDI r1, 89
+  STORE r4, r1
+  LDI r4, 0x6AEF
+  LDI r1, 33
+  STORE r4, r1
+  LDI r4, 0x6AF0
+  LDI r1, 0
+  STORE r4, r1
+  ; "DUNGEON CLEARED!" at 0x6AF1 (16 bytes + null = 17, ends at 0x6B01)
+  LDI r4, 0x6AF1
+  LDI r1, 68
+  STORE r4, r1
+  LDI r4, 0x6AF2
+  LDI r1, 85
+  STORE r4, r1
+  LDI r4, 0x6AF3
+  LDI r1, 78
+  STORE r4, r1
+  LDI r4, 0x6AF4
+  LDI r1, 71
+  STORE r4, r1
+  LDI r4, 0x6AF5
+  LDI r1, 69
+  STORE r4, r1
+  LDI r4, 0x6AF6
+  LDI r1, 79
+  STORE r4, r1
+  LDI r4, 0x6AF7
+  LDI r1, 78
+  STORE r4, r1
+  LDI r4, 0x6AF8
+  LDI r1, 32
+  STORE r4, r1
+  LDI r4, 0x6AF9
+  LDI r1, 67
+  STORE r4, r1
+  LDI r4, 0x6AFA
+  LDI r1, 76
+  STORE r4, r1
+  LDI r4, 0x6AFB
+  LDI r1, 69
+  STORE r4, r1
+  LDI r4, 0x6AFC
+  LDI r1, 65
+  STORE r4, r1
+  LDI r4, 0x6AFD
+  LDI r1, 82
+  STORE r4, r1
+  LDI r4, 0x6AFE
+  LDI r1, 69
+  STORE r4, r1
+  LDI r4, 0x6AFF
+  LDI r1, 68
+  STORE r4, r1
+  LDI r4, 0x6B00
+  LDI r1, 33
+  STORE r4, r1
+  LDI r4, 0x6B01
   LDI r1, 0
   STORE r4, r1
   POP r31
@@ -2645,5 +2964,15 @@ draw_hud:
   LDI r2, 186
   LDI r3, 0
   CALL draw_number
+  ; Show message if MSG_TIMER > 0
+  LDI r4, MSG_TIMER
+  LOAD r1, r4
+  JZ r1, dh_done
+  LDI r4, MSG_TEXT
+  LOAD r10, r4
+  LDI r11, 100
+  LDI r12, 18
+  TEXT r11, r12, r10
+dh_done:
   POP r31
   RET

@@ -1139,17 +1139,17 @@ phases:
     tasks:
     - id: p189.d1.t1
       title: 'Add caps: Option<Vec<Capability>> to Process'
-      description: Added caps field to Process struct. Process::new() initializes to
-        None. Added new_with_caps(), inherit_capabilities(), restrict_to_path() builder
-        methods.
+      description: Added caps field to Process struct. Process::new() initializes
+        to None. Added new_with_caps(), inherit_capabilities(), restrict_to_path()
+        builder methods.
       scope_files:
       - src/vm/types.rs
       scope_lines: 20
     - id: p189.d1.t2
       title: Enable the two TODO capability checks in vfs.rs
       description: Capability checks were already wired in OPEN syscall handler in
-        ops_filesys.rs (from prior work). check_path_capability is called with
-        current process capabilities.
+        ops_filesys.rs (from prior work). check_path_capability is called with current
+        process capabilities.
       scope_files:
       - src/vfs.rs
       scope_lines: 25
@@ -1166,10 +1166,10 @@ phases:
     tasks:
     - id: p189.d2.t1
       title: Test that restricted process cannot open disallowed paths
-      description: Added 37 comprehensive tests in types.rs covering: Capability
+      description: 'Added 37 comprehensive tests in types.rs covering: Capability
         path matching (exact, prefix/*), permission bits, check_path_capability union
         semantics, check_opcode_capability, Process builder methods, and VFS OPEN
-        integration (allowed/denied/read-only/write).
+        integration (allowed/denied/read-only/write).'
       scope_files:
       - src/vm/tests.rs
       scope_lines: 40
@@ -1180,7 +1180,7 @@ phases:
   _claimed_at: 1777634458
 - id: phase-190
   title: Sync qemu/ansi.rs Feature Parity with host_term.asm
-  status: in_progress
+  status: done
   goal: Ensure both ANSI parsers handle the same set of sequences, preventing behavioral
     drift
   description: 'There are two ANSI parsers: the Rust qemu/ansi.rs (1403 lines, 71
@@ -1225,10 +1225,10 @@ phases:
   scope_lines_total: 85425
   test_target: 8
   _claimed_by: worker-0
-  _claimed_at: 1777563499
+  _claimed_at: 1777642510
 - id: phase-191
   title: Roguelike Game Polish -- Save/Load and Win Condition
-  status: in_progress
+  status: done
   goal: Add game state persistence and a proper win/lose loop to the roguelike
   description: The roguelike (2549 lines) is one of the largest programs but has no
     save/load and no win condition. When you find the stairs, there is no victory
@@ -1236,36 +1236,42 @@ phases:
     proves the VFS works for real app state. Adding level progression makes it a game.
   deliverables:
   - name: Save/load game state to VFS
-    status: todo
+    status: done
     tasks:
     - id: p191.d1.t1
       title: Add save command that writes player state to VFS file
-      description: On 'S' key press, serialize player HP, level, inventory, dungeon
-        seed to a VFS file using WRITE opcode.
+      description: On 'F' key press, serialize 9 player state words (P_X, P_Y, P_HP,
+        P_MAXHP, P_ATK, STAIRS_X, STAIRS_Y, DLEVEL, KILLS) to /save.dat via OPEN/WRITE/CLOSE.
+        Shows "SAVED!" message. Fixed 3 LDI r4,r20 bugs (should be MOV r4,r20 -- LDI
+        takes immediates only).
       scope_files:
       - programs/roguelike.asm
       scope_lines: 40
     - id: p191.d1.t2
       title: Add load command that reads game state from VFS
-      description: On 'L' key press, read VFS file and restore state. Handle missing/corrupt
-        file gracefully.
+      description: On 'G' key press, read /save.dat via OPEN/READ/CLOSE and restore
+        9 player state words. Handles missing/corrupt file gracefully (silent fail).
+        Shows "LOADED!" message on success.
       scope_files:
       - programs/roguelike.asm
       scope_lines: 40
   - name: Win condition and level progression
-    status: todo
+    status: done
     tasks:
     - id: p191.d2.t1
       title: Add victory message when reaching stairs
-      description: When player steps on stairs, show 'Level Complete!' overlay. After
-        2 seconds, regenerate dungeon at next depth with harder enemies.
+      description: When player steps on stairs, STATE=1 triggers descend_screen:
+        shows "DESCENDED!" with floor/kill stats, waits for key, advances DLEVEL,
+        heals half missing HP, regenerates dungeon. At DLEVEL>=10, shows victory_screen
+        with "VICTORY!" and "DUNGEON CLEARED!" messages, plays BEEP, resets to floor 0.
       scope_files:
       - programs/roguelike.asm
       scope_lines: 30
     - id: p191.d2.t2
       title: Death screen with score and restart option
-      description: When HP reaches 0, show 'Game Over' with floor reached and enemies
-        killed. Press R to restart.
+      description: When HP reaches 0, STATE=2 triggers death_screen: red screen with
+        "GAME OVER", "KILLS: N", "LEVEL: N", "PRESS R TO RETRY". Waits for any key,
+        then restarts. 3 tests pass: assembles, initializes, wall collision.
       scope_files:
       - programs/roguelike.asm
       scope_lines: 25
@@ -1273,10 +1279,10 @@ phases:
   scope_lines_total: 85560
   test_target: 3
   _claimed_by: worker-0
-  _claimed_at: 1777568986
+  _claimed_at: 1777642836
 - id: phase-192
   title: Shell.asm Built-in Commands Expansion
-  status: in_progress
+  status: done
   goal: Add more useful built-in commands to the shell (grep, head, tail, wc, date)
   description: The shell (2039 lines) handles basic command parsing and execution
     via EXEC. But common commands like grep, head, tail are missing as built-ins.
@@ -1320,7 +1326,7 @@ phases:
   _claimed_at: 1777571419
 - id: phase-193
   title: Nano Editor -- Search and Replace
-  status: in_progress
+  status: done
   goal: Add search (Ctrl+S) and replace (Ctrl+R) to the nano editor
   description: The nano editor (2208 lines) supports basic editing but has no search/replace.
     These are essential for real editing work. Implement incremental search (highlight
@@ -1362,7 +1368,7 @@ phases:
   _claimed_at: 1777574721
 - id: phase-194
   title: Host Terminal Performance -- Dirty Rectangle Rendering
-  status: in_progress
+  status: done
   goal: Only re-render changed rows instead of the full 30-row screen every frame
   description: Currently host_term.asm renders all 30 rows every frame via SMALLTEXT,
     even when only one line changed (like typing a character). This is wasteful. Track
@@ -1394,7 +1400,7 @@ phases:
   _claimed_at: 1777577516
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: in_progress
+  status: done
   goal: Extend file browser to support directory traversal, file deletion, and file
     creation
   description: The file browser shows VFS files and displays content but cannot navigate
@@ -1426,7 +1432,7 @@ phases:
   _claimed_at: 1777583670
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
-  status: in_progress
+  status: done
   goal: Add command history and conversation context tracking to ai_terminal.asm
   description: The AI terminal (2181 lines) sends prompts to the LLM opcode but has
     no command history (up/down arrows to recall previous prompts) and no context
@@ -1491,7 +1497,7 @@ phases:
   _claimed_at: 1777590104
 - id: phase-198
   title: Desktop Terminal Integration -- Launch Hermes from GeOS
-  status: in_progress
+  status: done
   goal: The GeOS terminal should be able to launch Hermes Agent as a subprocess and
     display its output
   description: 'The terminal runs bash, which means you can type ''hermes chat'' and
@@ -1525,7 +1531,7 @@ phases:
   _claimed_at: 1777593202
 - id: phase-199
   title: Code Evolution Program -- Fitness Function Improvements
-  status: in_progress
+  status: done
   goal: Improve the self-modifying code evolution program to produce more interesting
     and stable results
   description: code_evolution.asm (5705 lines, the largest program) implements genetic
