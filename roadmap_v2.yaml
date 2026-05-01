@@ -1282,7 +1282,7 @@ phases:
   _claimed_at: 1777642836
 - id: phase-192
   title: Shell.asm Built-in Commands Expansion
-  status: in_progress
+  status: done
   goal: Add more useful built-in commands to the shell (grep, head, tail, wc, date)
   description: The shell (2039 lines) handles basic command parsing and execution
     via EXEC. But common commands like grep, head, tail are missing as built-ins.
@@ -1290,7 +1290,7 @@ phases:
     as shell built-in command handlers.
   deliverables:
   - name: grep built-in command
-    status: planned
+    status: done
     tasks:
     - id: p192.d1.t1
       title: Add grep command that searches VFS file contents
@@ -1300,7 +1300,7 @@ phases:
       - programs/shell.asm
       scope_lines: 60
   - name: head and tail built-in commands
-    status: planned
+    status: done
     tasks:
     - id: p192.d2.t1
       title: Add head and tail commands
@@ -1310,7 +1310,7 @@ phases:
       - programs/shell.asm
       scope_lines: 50
   - name: wc and date built-in commands
-    status: planned
+    status: done
     tasks:
     - id: p192.d3.t1
       title: Add wc (word/line/char count) and date commands
@@ -1326,7 +1326,7 @@ phases:
   _claimed_at: 1777644925
 - id: phase-193
   title: Nano Editor -- Search and Replace
-  status: in_progress
+  status: done
   goal: Add search (Ctrl+S) and replace (Ctrl+R) to the nano editor
   description: The nano editor (2208 lines) supports basic editing but has no search/replace.
     These are essential for real editing work. Implement incremental search (highlight
@@ -1334,7 +1334,7 @@ phases:
     ops, HITSET for UI).
   deliverables:
   - name: Incremental search (Ctrl+S)
-    status: planned
+    status: done
     tasks:
     - id: p193.d1.t1
       title: Add search prompt and matching logic
@@ -1352,7 +1352,7 @@ phases:
       - programs/nano_editor.asm
       scope_lines: 30
   - name: Replace (Ctrl+R)
-    status: planned
+    status: done
     tasks:
     - id: p193.d2.t1
       title: Add replace prompt and execution
@@ -1429,7 +1429,7 @@ phases:
   scope_lines_total: 85965
   test_target: 2
   _claimed_by: worker-0
-  _claimed_at: 1777650889
+  _claimed_at: 1777664694
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
   status: done
@@ -1499,7 +1499,7 @@ phases:
   _claimed_at: 1777590104
 - id: phase-198
   title: Desktop Terminal Integration -- Launch Hermes from GeOS
-  status: in_progress
+  status: planned
   goal: The GeOS terminal should be able to launch Hermes Agent as a subprocess and
     display its output
   description: 'The terminal runs bash, which means you can type ''hermes chat'' and
@@ -1529,8 +1529,6 @@ phases:
   scope_lines: 70
   scope_lines_total: 86180
   test_target: 3
-  _claimed_by: worker-0
-  _claimed_at: 1777655865
 - id: phase-199
   title: Code Evolution Program -- Fitness Function Improvements
   status: done
@@ -1603,8 +1601,6 @@ phases:
       scope_lines: 60
     scope_lines_total: 86280
   test_target: 2
-  _claimed_by: worker-0
-  _claimed_at: 1777595383
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'
