@@ -9,24 +9,19 @@ fn main() {
     }
 
     let elf_data = std::fs::read(&args[1]).unwrap();
-    let ram_mb = 2u64 * 1024 * 1024;
+    let ram_mb = 2usize * 1024 * 1024;
     let mut vm = geometry_os::riscv::RiscvVm::new(ram_mb);
 
-    match vm.load_auto(&elf_data) {
-        Ok(info) => {
-            println!(
-                "[DIAG] Loaded: entry=0x{:08X}, size={}",
-                info.entry,
-                elf_data.len()
-            );
-        }
-        Err(e) => {
-            println!("[DIAG] Load error: {:?}", e);
-            return;
-        }
-    }
+    let load_info =
+        geometry_os::riscv::loader::load_auto(&mut vm.bus, &elf_data, 0x8000_0000).expect("load");
 
-    vm.cpu.csr.mepc = vm.load_info.as_ref().unwrap().entry;
+    println!(
+        "[DIAG] Loaded: entry=0x{:08X}, size={}",
+        load_info.entry,
+        elf_data.len()
+    );
+
+    vm.cpu.csr.mepc = load_info.entry;
     vm.cpu.csr.mstatus = (1u32 << 3) | (1u32 << 7) | (1u32 << 11) | (1u32 << 12);
     let _ = vm
         .cpu
