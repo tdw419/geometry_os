@@ -700,13 +700,26 @@ skip_history:
     LDI r12, 0
     STORE r19, r12
 
+    ; Count prompt chars and add to CTX_CHARS
+    LDI r20, PROMPT_BUF
+    CALL strlen_prompt_buf
+    ; r0 = prompt length
+    LDI r20, CTX_CHARS
+    LOAD r10, r20
+    ADD r10, r0
+    STORE r20, r10
+
     ; Call LLM: prompt at PROMPT_BUF, response at RESP_BUF, max 3840 chars
     LDI r3, PROMPT_BUF
     LDI r4, RESP_BUF
     LDI r5, 3840
     LLM r3, r4, r5
 
-    ; r0 = response length
+    ; r0 = response length -- add to CTX_CHARS
+    LDI r20, CTX_CHARS
+    LOAD r10, r20
+    ADD r10, r0
+    STORE r20, r10
     LDI r1, 1
 
     ; Write "AI: " prefix then response lines
@@ -865,6 +878,22 @@ cc_clear:
     LDI r12, HISTORY
     LDI r16, 256
     CALL clear_buf
+
+    ; Reset context tracking
+    LDI r20, CTX_TURNS
+    LDI r0, 0
+    STORE r20, r0
+    LDI r20, CTX_CHARS
+    LDI r0, 0
+    STORE r20, r0
+
+    ; Clear command history
+    LDI r20, CMD_HIST_COUNT
+    LDI r0, 0
+    STORE r20, r0
+    LDI r20, CMD_HIST_NAV
+    LDI r0, 0
+    STORE r20, r0
 
     LDI r1, 1
     LDI r20, SCRATCH
@@ -1758,6 +1787,28 @@ scroll_clr_loop:
     RET
 
 ; =========================================
+; UTILITY: strlen_prompt_buf
+; Counts chars in PROMPT_BUF until null terminator.
+; Input: r20 = PROMPT_BUF address
+; Output: r0 = length (does NOT clobber r20)
+; Clobbers: r0, r11, r12
+; =========================================
+strlen_prompt_buf:
+    PUSH r31
+    MOV r11, r20         ; save r20
+    LDI r0, 0
+sp_strlen_loop:
+    LOAD r12, r20
+    JZ r12, sp_strlen_done
+    ADDI r0, 1
+    ADDI r20, 1
+    JMP sp_strlen_loop
+sp_strlen_done:
+    MOV r20, r11         ; restore r20
+    POP r31
+    RET
+
+; =========================================
 ; UTILITY: advance_to_null (r19)
 ; =========================================
 advance_to_null:
@@ -2231,7 +2282,7 @@ write_hex_to_buf:
 
 ; =========================================
 ; RENDER_TITLE - Dynamic title bar with context info
-; Shows "AI Terminal - ZAI  [turns: N]"
+; Shows "AI Terminal - ZAI  T:N C:M"
 ; =========================================
 render_title:
     PUSH r31
@@ -2266,6 +2317,17 @@ render_title:
     LOAD r0, r20
     CALL u32_to_dec_str
     ; u32_to_dec_str writes digits to SCRATCH at current pos
+
+    ; Append chars count: " C:M"
+    LDI r20, SCRATCH
+    CALL advance_to_null
+    STRO r20, " C:"
+    CALL advance_to_null
+
+    ; Load chars count and convert to decimal
+    LDI r20, CTX_CHARS
+    LOAD r0, r20
+    CALL u32_to_dec_str
 
     ; Draw the title
     LDI r1, 4

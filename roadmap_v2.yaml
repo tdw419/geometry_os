@@ -1432,7 +1432,7 @@ phases:
   _claimed_at: 1777650889
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
-  status: planned
+  status: done
   goal: Add command history and conversation context tracking to ai_terminal.asm
   description: The AI terminal (2181 lines) sends prompts to the LLM opcode but has
     no command history (up/down arrows to recall previous prompts) and no context
@@ -1440,7 +1440,7 @@ phases:
     use.
   deliverables:
   - name: Command history with up/down arrow recall
-    status: planned
+    status: done
     tasks:
     - id: p196.d1.t1
       title: Add circular history buffer (16 entries)
@@ -1449,8 +1449,9 @@ phases:
       scope_files:
       - programs/ai_terminal.asm
       scope_lines: 40
+      status: done
   - name: Context window display
-    status: planned
+    status: done
     tasks:
     - id: p196.d2.t1
       title: Show token count and conversation turns in status bar
@@ -1459,11 +1460,12 @@ phases:
       scope_files:
       - programs/ai_terminal.asm
       scope_lines: 20
+      status: done
   scope_lines: 60
   scope_lines_total: 86025
   test_target: 2
   _claimed_by: worker-0
-  _claimed_at: 1777587013
+  _claimed_at: 1777653464
 - id: phase-197
   title: Replace mmu.rs unwrap() Calls with Proper Error Paths
   status: planned
