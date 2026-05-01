@@ -22820,3 +22820,185 @@ msg: .ascii "HELLO PIXELS"
         white_count
     );
 }
+
+// ── Pixel-VM: VM-inside-VM with visible register state ──────────
+
+/// Encode a pixel-ISA instruction as a u32 RGBA pixel value.
+/// R channel (bits 31-24) = opcode, G (23-16) = operand1, B (15-8) = operand2.
+fn pixel_encode(opcode: u8, operand1: u8, operand2: u8) -> u32 {
+    ((opcode as u32) << 24) | ((operand1 as u32) << 16) | ((operand2 as u32) << 8)
+}
+
+#[test]
+fn test_pixel_vm_add_2_plus_3() {
+    // A pixel-VM program that computes 2 + 3 = 5.
+    // All state lives in screen memory -- program, registers, and data
+    // are just colored pixels you can watch change.
+    //
+    // Pixel program:
+    //   LOADI r0, 2       ; pv_regs[0] = 2
+    //   LOADI r1, 3       ; pv_regs[1] = 3
+    //   ADD   r0, r1      ; pv_regs[0] += pv_regs[1]  => 5
+    //   HALT
+    //
+    // After execution, screen[PV_REG_BASE + 0] should contain 5.
+    // screen[PV_REG_BASE + 1] should still be 3.
+
+    let pixel_program = [
+        pixel_encode(0x01, 0, 2), // LOADI r0, 2
+        pixel_encode(0x01, 1, 3), // LOADI r1, 3
+        pixel_encode(0x02, 0, 1), // ADD r0, r1
+        pixel_encode(0xFF, 0, 0), // HALT
+    ];
+
+    // Assemble and load the pixel-VM host program
+    let src = include_str!("../../programs/pixel_vm.asm");
+    let base = 0x1000usize;
+    let asm = crate::assembler::assemble(src, base).expect("pixel_vm.asm must assemble");
+
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        vm.ram[base + i] = word;
+    }
+    vm.pc = base as u32;
+    vm.halted = false;
+
+    // Load pixel program into screen memory.
+    // PV_PROG_BASE = 0x10000 maps to screen[0], PV_REG_BASE = 0x10100 maps to screen[256].
+    // The GeOS VM translates: LOAD from 0x10000+N -> screen[N].
+    for (i, &instr) in pixel_program.iter().enumerate() {
+        vm.screen[i] = instr;  // program at screen[0..]
+    }
+
+    // Run with generous step limit (pixel-VM is an interpreter on an interpreter)
+    for _ in 0..100_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted, "pixel-VM should halt after executing HALT");
+
+    // PV_REG_BASE = 0x10100 -> screen offset 256
+    let reg0 = vm.screen[256];     // pv_regs[0] = result
+    let reg1 = vm.screen[256 + 1]; // pv_regs[1] = 3
+
+    assert_eq!(
+        reg0, 5,
+        "pixel-VM register 0 should be 5 (2+3); got {}",
+        reg0
+    );
+    assert_eq!(
+        reg1, 3,
+        "pixel-VM register 1 should still be 3; got {}",
+        reg1
+    );
+}
+
+#[test]
+fn test_pixel_vm_loop_counter() {
+    // Pixel program with a loop: count from 1 to 10 using CMPI/JNZ.
+    //   LOADI r0, 1        ; counter = 1
+    // loop:
+    //   CMPI  r0, 10       ; compare counter with 10
+    //   JNZ   end           ; if counter != 10, fall through... wait
+    //                        ; JNZ jumps if flag != 0 (not equal)
+    //   ADDI  r0, 1        ; counter++
+    //   JNZ   loop         ; unconditional jump (flag from CMPI is nonzero since counter < 10)
+    // end:
+    //   HALT
+    //
+    // Actually: CMPI sets flag=0 if equal, flag=1 if not.
+    // JNZ jumps if flag != 0.
+    // So: CMPI r0, 10 / JNZ loop would loop while r0 != 10. But after CMPI,
+    // if r0==10, flag=0, JNZ falls through to HALT. Perfect.
+    //
+    // We need the JNZ to jump BACK to the CMPI, not forward to HALT.
+    // Layout: addr 0=LOADI, addr 1=CMPI, addr 2=JNZ(halt), addr 3=ADDI, addr 4=JNZ(cmpi), addr 5=HALT
+    // Wait, that's wrong. Let me think again.
+    //
+    // Simpler: use JNZ as conditional + unconditional patterns.
+    //
+    // addr 0: LOADI r0, 1       ; counter = 1
+    // addr 1: CMPI  r0, 10      ; flag = (r0 == 10) ? 0 : 1
+    // addr 2: JNZ   4           ; if not equal, jump to addr 4 (ADDI)
+    // addr 3: HALT              ; equal, stop. counter should be 10.
+    // addr 4: ADD   r0, r0      ; r0 += r0 ... no, that doubles. We need ADDI.
+    //
+    // Hmm, we don't have ADDI in pixel-ISA. We have ADD (register-register).
+    // So we need a temp register with value 1.
+    //
+    // Revised program:
+    // addr 0: LOADI r0, 1       ; counter = 1
+    // addr 1: LOADI r1, 1       ; increment = 1
+    // addr 2: CMPI  r0, 10      ; flag = (r0 == 10) ? 0 : 1
+    // addr 3: JNZ   5           ; if not equal, jump to addr 5 (ADD)
+    // addr 4: HALT              ; counter == 10, done
+    // addr 5: ADD   r0, r1      ; counter += 1
+    // addr 6: JNZ   2           ; unconditional: flag is still nonzero from CMPI
+    //                           ; (we just did ADD, but CMPI flag from addr 2 persists)
+    //                           ; Actually wait -- after ADD, we didn't redo CMPI.
+    //                           ; The flag from addr 2's CMPI is still in r9.
+    //                           ; So JNZ at addr 6 checks the OLD flag.
+    //                           ; If r0 was 9 before CMPI, flag=1, we ADD to 10, then JNZ jumps.
+    //                           ; If r0 was 10, CMPI sets flag=0, JNZ at addr 3 falls through.
+    //                           ; But after ADD, r0=11, and JNZ still has flag=1... infinite loop!
+    //
+    // Fix: after ADD, jump back to CMPI (addr 2) so flag gets recalculated.
+    //
+    // addr 0: LOADI r0, 1       ; counter = 1
+    // addr 1: LOADI r1, 1       ; increment = 1
+    // addr 2: CMPI  r0, 10      ; flag = (r0 == 10) ? 0 : 1
+    // addr 3: JNZ   5           ; if not equal, jump to addr 5 (ADD)
+    // addr 4: HALT              ; counter == 10, done
+    // addr 5: ADD   r0, r1      ; counter += 1
+    // addr 6: LOADI r14, 2      ; but operand2 is a u8 max 255... LOADI takes reg, imm
+    //                           ; We need to jump to addr 2. But JNZ takes addr in operand2 (u8).
+    //                           ; We don't have a JMP (unconditional) opcode.
+    //                           ; Hack: do CMPI r14, 0 to set flag=1 (r14=anything nonzero? or 0?)
+    //                           ; Actually: after ADD, r0 is still nonzero (it was >=1 and we added 1).
+    //                           ; So CMPI r0, 0 would set flag=1 (not equal), then JNZ jumps.
+    //
+    // Cleaner: add addr 6 = CMPI r0, 0 (always sets flag=1 since r0>0), addr 7 = JNZ 2
+
+    let pixel_program = [
+        pixel_encode(0x01, 0, 1), // addr 0: LOADI r0, 1
+        pixel_encode(0x01, 1, 1), // addr 1: LOADI r1, 1
+        pixel_encode(0x07, 0, 10),// addr 2: CMPI r0, 10
+        pixel_encode(0x08, 0, 5), // addr 3: JNZ 5 (jump to ADD if not equal)
+        pixel_encode(0xFF, 0, 0), // addr 4: HALT
+        pixel_encode(0x02, 0, 1), // addr 5: ADD r0, r1
+        pixel_encode(0x07, 0, 0), // addr 6: CMPI r0, 0 (always sets flag=1 since r0>0)
+        pixel_encode(0x08, 0, 2), // addr 7: JNZ 2 (jump back to CMPI r0, 10)
+    ];
+
+    let src = include_str!("../../programs/pixel_vm.asm");
+    let base = 0x1000usize;
+    let asm = crate::assembler::assemble(src, base).expect("pixel_vm.asm must assemble");
+
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        vm.ram[base + i] = word;
+    }
+    vm.pc = base as u32;
+    vm.halted = false;
+
+    let screen_base: usize = 0x10000;
+    for (i, &instr) in pixel_program.iter().enumerate() {
+        vm.screen[i] = instr;
+    }
+
+    for _ in 0..500_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted, "pixel-VM loop should halt when counter reaches 10");
+
+    // PV_REG_BASE = 0x10100 -> screen offset 256
+    let counter = vm.screen[256]; // pv_regs[0]
+    assert_eq!(
+        counter, 10,
+        "pixel-VM loop counter should be 10; got {}",
+        counter
+    );
+}
