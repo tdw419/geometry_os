@@ -1499,7 +1499,7 @@ phases:
   _claimed_at: 1777590104
 - id: phase-198
   title: Desktop Terminal Integration -- Launch Hermes from GeOS
-  status: planned
+  status: done
   goal: The GeOS terminal should be able to launch Hermes Agent as a subprocess and
     display its output
   description: 'The terminal runs bash, which means you can type ''hermes chat'' and
@@ -1509,7 +1509,7 @@ phases:
     chain works and fixes any issues found.'
   deliverables:
   - name: Verify Hermes launches and renders in GeOS terminal
-    status: planned
+    status: done
     tasks:
     - id: p198.d1.t1
       title: Test hermes chat in PTY and verify 256-color output
@@ -1529,6 +1529,8 @@ phases:
   scope_lines: 70
   scope_lines_total: 86180
   test_target: 3
+  _claimed_by: worker-0
+  _claimed_at: 1777667685
 - id: phase-199
   title: Code Evolution Program -- Fitness Function Improvements
   status: done
