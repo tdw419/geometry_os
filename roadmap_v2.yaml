@@ -4104,7 +4104,7 @@ phases:
   scope_lines_total: 200
 - id: phase-264
   title: GeOS Program -- L-System Fractal Generator
-  status: planned
+  status: in_progress
   goal: Write an interactive L-system fractal renderer with rule editing
   description: L-systems generate complex fractal patterns from simple rewrite rules.
     This program implements turtle graphics with push/pop state for branching, supporting
@@ -4133,7 +4133,7 @@ phases:
   test_target: 2
   scope_lines_total: 270
   _claimed_by: worker-0
-  _claimed_at: 1777713408
+  _claimed_at: 1777747858
 - id: phase-265
   title: GeOS VM -- Canvas Clip Region Opcodes (CLIPSET, CLIPCLR)
   status: complete
@@ -4229,7 +4229,7 @@ phases:
   scope_lines_total: 330
 - id: phase-267
   title: GeOS VM -- Performance Profiling Opcode (PROFILE)
-  status: planned
+  status: in_progress
   goal: Add a profiling opcode to measure instruction counts per code region
   description: Optimizing VM programs is hard without profiling data. PROFILE start/stop
     records the instruction count between two points and stores it in a profile buffer.
@@ -4266,6 +4266,8 @@ phases:
       scope_lines: 100
   test_target: 6
   scope_lines_total: 210
+  _claimed_by: worker-0
+  _claimed_at: 1777751704
 - id: phase-268
   title: GeOS Program -- Tower Defense Game
   status: planned

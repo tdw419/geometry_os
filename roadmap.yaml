@@ -10023,6 +10023,7 @@ phases:
   test_target: 0
 
 - title: Clippy Warning Cleanup -- Range::contains and Cast Cleanup
+  status: todo
   deliverables:
   - name: Fix all manual Range::contains implementations
     description: 'Replace manual `x >= a && x <= b` patterns with `(a..=b).contains(&x)`. Clippy reports 15+ instances.'
@@ -10034,6 +10035,7 @@ phases:
   scope_lines_total: 100
 
 - title: Clippy Warning Cleanup -- div_ceil and Dead Code Removal
+  status: todo
   deliverables:
   - name: Replace manual div_ceil implementations
     description: 'Replace manual `(n + d - 1) / d` patterns with `n.div_ceil(d)`. Clippy reports 11 instances.'
@@ -10045,6 +10047,7 @@ phases:
   scope_lines_total: 200
 
 - title: Error Resilience -- pixel.rs unwrap() Elimination
+  status: todo
   deliverables:
   - name: Replace all 17 unwrap() calls in pixel.rs
     description: 'pixel.rs has the most production unwrap() calls. Replace with Result propagation or expect() with context messages.'
@@ -10053,6 +10056,7 @@ phases:
   scope_lines_total: 150
 
 - title: Error Resilience -- mmu.rs unwrap() Elimination
+  status: todo
   deliverables:
   - name: Replace all 14 unwrap() calls in riscv/mmu.rs
     description: 'MMU unwrap() calls can panic during page table walks. Replace with fault-generating error paths that deliver proper page fault exceptions.'
@@ -10061,6 +10065,7 @@ phases:
   scope_lines_total: 200
 
 - title: Error Resilience -- vfs_surface.rs unwrap() Elimination
+  status: todo
   deliverables:
   - name: Replace all 10 unwrap() calls in riscv/vfs_surface.rs
     description: 'VFS surface operations should not panic the host. Replace with graceful error returns.'
@@ -10069,6 +10074,7 @@ phases:
   scope_lines_total: 120
 
 - title: New Opcode -- SWAP (Exchange Two Registers)
+  status: todo
   deliverables:
   - name: Implement SWAP opcode (0xB1)
     description: 'SWAP rd, rs exchanges register values. 3-word encoding. Write swap_demo.asm.'
@@ -10077,6 +10083,7 @@ phases:
   scope_lines_total: 150
 
 - title: New Opcode -- CLZ/CTZ (Count Leading/Trailing Zeros)
+  status: todo
   deliverables:
   - name: Implement CLZ opcode (0xB2) and CTZ opcode (0xB3)
     description: 'CLZ rd counts leading zero bits. CTZ rd counts trailing zero bits. Essential for bit manipulation algorithms.'
@@ -10085,6 +10092,7 @@ phases:
   scope_lines_total: 180
 
 - title: New Opcode -- MIN/MAX (Conditional Select)
+  status: todo
   deliverables:
   - name: Implement MIN opcode (0xB4) and MAX opcode (0xB5)
     description: 'MIN rd, rs and MAX rd, rs for clamping coordinates, colors, physics. Write clamping_demo.asm.'
@@ -10093,6 +10101,7 @@ phases:
   scope_lines_total: 200
 
 - title: Program -- Maze Generator with DFS
+  status: todo
   deliverables:
   - name: Write maze_generator.asm
     description: 'Random maze using DFS with backtracking. Animate generation with FRAME. WASD player navigation.'
@@ -10101,6 +10110,7 @@ phases:
   scope_lines_total: 400
 
 - title: Program -- Particle System Demo
+  status: todo
   deliverables:
   - name: Write particles.asm
     description: 'Particle system with gravity, emission, fade-out, color transitions. TICKS throttle. IKEY interactive emission.'
@@ -10109,6 +10119,7 @@ phases:
   scope_lines_total: 500
 
 - title: RISC-V Guest -- Basic Shell with Command History
+  status: todo
   deliverables:
   - name: Write guest shell program in C
     description: 'Minimal shell for RISC-V guest: command parsing, basic I/O via SBI, command history with up/down arrows.'
@@ -10117,6 +10128,7 @@ phases:
   scope_lines_total: 400
 
 - title: VM Performance -- Step Budget Optimization
+  status: todo
   deliverables:
   - name: Profile and optimize hot instruction paths
     description: 'Profile step() dispatch loop. Optimize top 5 hottest instruction handlers. Target 10%+ MIPS improvement.'
@@ -10125,6 +10137,7 @@ phases:
   scope_lines_total: 300
 
 - title: Scrollback Buffer Improvements
+  status: todo
   deliverables:
   - name: Implement Default trait and fix unwrap() calls
     description: 'Add Default impl for ScrollbackBuffer. Replace 4 unwrap() calls. Add configurable max scrollback lines.'
@@ -10133,6 +10146,7 @@ phases:
   scope_lines_total: 200
 
 - title: Documentation and Meta Stats Update
+  status: todo
   deliverables:
   - name: Update README.md and roadmap.yaml meta
     description: 'Update stale counts: 177 opcodes, 161 programs, 91K LOC, 1797 tests.'
@@ -10141,6 +10155,7 @@ phases:
   scope_lines_total: 50
 
 - title: RISC-V Interpreter -- TLB Flush Correctness
+  status: todo
   deliverables:
   - name: Verify SATP write triggers TLB flush
     description: 'Write test that sets up TLB entry, changes SATP, verifies stale translations invalidated. Fix SFENCE.VMA if needed.'

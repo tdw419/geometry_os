@@ -785,3 +785,24 @@ fn test_vfs_viewer_exists() {
 fn test_test_vfs_pixel_exists() {
     assert_file_exists("programs/test_vfs_pixel.asm");
 }
+
+#[test]
+fn test_lsystem_bootstrap() {
+    let vm = compile_run_steps("programs/lsystem.asm", 5_000_000);
+    // After bootstrap, check axiom at 0x5000
+    assert_eq!(vm.ram[0x5000], 0x46, "axiom[0] should be 'F'");
+    assert_eq!(vm.ram[0x5001], 0x2D, "axiom[1] should be '-'");
+    // Check expanded string at 0x2000
+    let mut non_zero = 0;
+    for i in 0..4096 {
+        if vm.ram[0x2000 + i] != 0 { non_zero += 1; }
+    }
+    // Diagnostic: print what's in various RAM areas
+    eprintln!("Non-zero at 0x2000: {}", non_zero);
+    eprintln!("Non-zero at 0x3000: {}", (0..4096).filter(|&i| vm.ram[0x3000 + i] != 0).count());
+    eprintln!("Non-zero at 0x5100 (rule): {}", (0..256).filter(|&i| vm.ram[0x5100 + i] != 0).count());
+    eprintln!("Sin table: sin[0]={} sin[16]={}", vm.ram[0x7000], vm.ram[0x7010]);
+    eprintln!("Param preset={} iter={} len={} angle={} color=0x{:X}", 
+        vm.ram[0x5500], vm.ram[0x5501], vm.ram[0x5502], vm.ram[0x5503], vm.ram[0x5504]);
+    assert!(non_zero > 0, "expanded string at 0x2000 should not be empty");
+}

@@ -1398,7 +1398,7 @@ phases:
   test_target: 2
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: planned
+  status: complete
   goal: Extend file browser to support directory traversal, file deletion, and file
     creation
   description: The file browser shows VFS files and displays content but cannot navigate
@@ -1407,7 +1407,7 @@ phases:
     size display and modification time if available from VFS metadata.
   deliverables:
   - name: File operations from file browser
-    status: planned
+    status: complete
     tasks:
     - id: p195.d1.t1
       title: Add delete confirmation dialog
@@ -1426,8 +1426,6 @@ phases:
   scope_lines: 65
   scope_lines_total: 85965
   test_target: 2
-  _claimed_by: worker-0
-  _claimed_at: 1777691386
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
   status: done
@@ -1605,7 +1603,7 @@ phases:
   _claimed_at: 1777669959
 - id: phase-201
   title: RISC-V Guest Networking -- Socket Syscall Layer
-  status: todo
+  status: done
   goal: Enable bare-metal RISC-V C programs to open TCP connections and exchange data
   description: 'The GeOS VM has TCP opcodes (CONNECT, SOCKSEND, SOCKRECV) but the
     RISC-V guest has no networking path. The syscall layer (src/riscv/syscall.rs)
@@ -1615,22 +1613,23 @@ phases:
     sh.c the ability to fetch data from the network.'
   deliverables:
   - name: Socket syscall implementation for RISC-V guest
-    status: todo
+    status: done
     tasks:
     - id: p201.d1.t1
       title: Implement socket() syscall returning guest fd
       description: Map socket() syscall to a guest file descriptor table. Allocate
         a host-side TCP stream on connect().
       scope_files:
-      - src/riscv/syscall.rs
+      - src/riscv/socket.rs
       scope_lines: 60
     - id: p201.d1.t2
       title: Implement send/recv syscalls via host TCP proxy
       description: Guest send() writes to a ring buffer, host thread reads and sends
         via real TCP. Guest recv() polls the ring buffer. Non-blocking with timeout.
       scope_files:
-      - src/riscv/syscall.rs
+      - src/riscv/socket.rs
       - src/riscv/bus.rs
+      - src/riscv/cpu/system.rs
       scope_lines: 80
     - id: p201.d1.t3
       title: 'Test: guest fetches HTTP from host via sockets'
@@ -4105,7 +4104,7 @@ phases:
   scope_lines_total: 200
 - id: phase-264
   title: GeOS Program -- L-System Fractal Generator
-  status: planned
+  status: in_progress
   goal: Write an interactive L-system fractal renderer with rule editing
   description: L-systems generate complex fractal patterns from simple rewrite rules.
     This program implements turtle graphics with push/pop state for branching, supporting
@@ -4134,7 +4133,7 @@ phases:
   test_target: 2
   scope_lines_total: 270
   _claimed_by: worker-0
-  _claimed_at: 1777713408
+  _claimed_at: 1777747858
 - id: phase-265
   title: GeOS VM -- Canvas Clip Region Opcodes (CLIPSET, CLIPCLR)
   status: complete

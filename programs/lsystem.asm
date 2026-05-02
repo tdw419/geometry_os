@@ -1,478 +1,962 @@
-; ═══════════════════════════════════════════════════════════════
-; L-System Fractal Generator for Geometry OS
-; Koch Snowflake with turtle graphics
-; 12-entry sin table (30 degree resolution) for exact 60 degree angles
-; ═══════════════════════════════════════════════════════════════
+; lsystem.asm -- L-System Fractal Generator
+; Interactive fractal renderer with 5 presets
+; Keys: 1-5 switch preset, +/- adjust iterations
 ;
-; Memory Layout:
-; 0x2000-0x2FFF  Axiom and expansion buffer (4096 chars)
-; 0x3000-0x3FFF  Temp expansion buffer (4096 chars)
-; 0x4000-0x40FF  Production rule buffer (256 chars)
-; 0x5100        Turn angle (60)
-; 0x5104        Iterations (3)
-; 0x7000-0x700B  Sin lookup table (12 entries, signed fixed-point)
-;
-; Characters: F=70(draw)  +=43(turn left)  -=45(turn right)
-; Angle convention: 0=up 90=right 180=down 270=left
-; dx = sin(angle) * step / 256
-; dy = -cos(angle) * step / 256
+; RAM layout:
+;   0x2000-0x2FFF  source buffer (expansion input)
+;   0x3000-0x3FFF  expanded output buffer
+;   0x5000-0x50FF  axiom storage
+;   0x5100-0x51FF  rule F replacement
+;   0x5200-0x52FF  rule G replacement
+;   0x5300-0x53FF  rule X replacement
+;   0x5400-0x54FF  rule Y replacement
+;   0x5500  current preset (1-5)
+;   0x5501  iteration count (1-8)
+;   0x5502  line length
+;   0x5503  angle increment (fixed-point: degrees * 182)
+;   0x5504  draw color
+;   0x7000-0x7007  cos_table (8 entries, fixed-point *256)
+;   0x7010-0x7017  sin_table (8 entries, fixed-point *256)
 
-; ── Main Program ─────────────────────────────────────────────
-main:
-  LDI r30, 0xFF00          ; CRITICAL: init stack pointer
-  LDI r6, 1               ; r6 = increment constant
-  CALL init_sin_table
-  CALL setup_koch
-  CALL expand_lsystem
-  CALL render_fractal
-  HALT
+; ---- Bootstrap ----
+LDI r30, 0xFF00
+LDI r21, 0
 
-; ── Setup Koch Snowflake preset ──────────────────────────────
-; Axiom: F--F--F   Rule: F -> F+F--F+F
-; Turn angle: 60 degrees   Iterations: 3
-setup_koch:
-  ; Write axiom "F--F--F" at 0x2000 (7 chars + null = 8 words)
-  LDI r5, 0x2000
-  LDI r1, 70              ; F
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 45              ; -
-  STORE r5, r1
-  ADD r5, r6
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 70              ; F
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 45              ; -
-  STORE r5, r1
-  ADD r5, r6
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 70              ; F
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 0               ; null terminator
-  STORE r5, r1
+CALL build_trig_tables
+CALL init_koch
+CALL do_expand
 
-  ; Write rule: char F at 0x4000, production "F+F--F+F" at 0x4001
-  LDI r5, 0x4000
-  LDI r1, 70              ; rule predecessor: F
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 70              ; F
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 43              ; +
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 70              ; F
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 45              ; -
-  STORE r5, r1
-  ADD r5, r6
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 70              ; F
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 43              ; +
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 70              ; F
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 0               ; null terminator
-  STORE r5, r1
+; ---- Main Loop ----
+main_loop:
+  FILL r21
+  CALL do_render
+  CALL draw_info
+  FRAME
+  IKEY r10
+  JZ r10, main_loop
 
-  ; Drawing params: turn_angle at 0x5100, iterations at 0x5104
-  LDI r5, 0x5100
-  LDI r1, 60
-  STORE r5, r1            ; turn_angle = 60 degrees
-  LDI r5, 0x5104
-  LDI r1, 3
-  STORE r5, r1            ; iterations = 3
+  ; key 1
+  LDI r11, 49
+  CMP r10, r11
+  JZ r0, key_1
+  ; key 2
+  LDI r11, 50
+  CMP r10, r11
+  JZ r0, key_2
+  ; key 3
+  LDI r11, 51
+  CMP r10, r11
+  JZ r0, key_3
+  ; key 4
+  LDI r11, 52
+  CMP r10, r11
+  JZ r0, key_4
+  ; key 5
+  LDI r11, 53
+  CMP r10, r11
+  JZ r0, key_5
+  ; + or =
+  LDI r11, 43
+  CMP r10, r11
+  JZ r0, key_plus
+  LDI r11, 61
+  CMP r10, r11
+  JZ r0, key_plus
+  ; - or _
+  LDI r11, 45
+  CMP r10, r11
+  JZ r0, key_minus
+  LDI r11, 95
+  CMP r10, r11
+  JZ r0, key_minus
 
-  RET
+  JMP main_loop
 
-; ── Build 12-entry sin lookup table at 0x7000 ───────────────
-; 30 degree resolution: 0, 30, 60, 90, ..., 330
-; Signed fixed-point: -256..256 maps to -1.0..1.0 (two's complement)
-; sin(0)=0 sin(30)=128 sin(60)=222 sin(90)=256
-; sin(120)=222 sin(150)=128 sin(180)=0 sin(210)=-128
-; sin(240)=-222 sin(270)=-256 sin(300)=-222 sin(330)=-128
-init_sin_table:
+key_1:
   PUSH r31
-  LDI r5, 0x7000
-  LDI r1, 0               ; sin(0)
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 128             ; sin(30)
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 222             ; sin(60)
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 256             ; sin(90)
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 222             ; sin(120)
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 128             ; sin(150)
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 0               ; sin(180)
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 128
-  NEG r1                  ; sin(210) = -128
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 222
-  NEG r1                  ; sin(240) = -222
-  STORE r5, r1
-  ADD r5, r6
+  CALL init_koch
+  POP r31
+  JMP key_regen
+key_2:
+  PUSH r31
+  CALL init_sierpinski
+  POP r31
+  JMP key_regen
+key_3:
+  PUSH r31
+  CALL init_dragon
+  POP r31
+  JMP key_regen
+key_4:
+  PUSH r31
+  CALL init_fern
+  POP r31
+  JMP key_regen
+key_5:
+  PUSH r31
+  CALL init_tree
+  POP r31
+  JMP key_regen
+key_plus:
+  LDI r2, 0x5501
+  LOAD r3, r2
+  LDI r4, 8
+  CMP r3, r4
+  BGE r0, main_loop
+  LDI r4, 1
+  ADD r3, r4
+  STORE r2, r3
+  JMP key_regen
+key_minus:
+  LDI r2, 0x5501
+  LOAD r3, r2
+  LDI r4, 1
+  CMP r3, r4
+  BLT r0, main_loop
+  LDI r4, 1
+  SUB r3, r4
+  STORE r2, r3
+  JMP key_regen
+key_regen:
+  PUSH r31
+  CALL do_expand
+  POP r31
+  JMP main_loop
+
+; ==== Trig Tables ====
+; 8-sector cos/sin tables, fixed-point * 256
+; Sector: 0=E 1=NE 2=N 3=NW 4=W 5=SW 6=S 7=SE
+; cos:    256, 181, 0, -181(0xFFFF73), -256(0xFFFFFF00), -181, 0, 181
+; sin:    0, 181, 256, 181, 0, -181(0xFFFF73), -256(0xFFFFFF00), -181
+
+build_trig_tables:
+  ; cos_table at 0x7000
+  LDI r2, 0x7000
   LDI r1, 256
-  NEG r1                  ; sin(270) = -256
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 222
-  NEG r1                  ; sin(300) = -222
-  STORE r5, r1
-  ADD r5, r6
-  LDI r1, 128
-  NEG r1                  ; sin(330) = -128
-  STORE r5, r1
-  POP r31
+  STORE r2, r1
+  LDI r2, 0x7001
+  LDI r1, 181
+  STORE r2, r1
+  LDI r2, 0x7002
+  LDI r1, 0
+  STORE r2, r1
+  LDI r2, 0x7003
+  LDI r1, 0xFFFF73
+  STORE r2, r1
+  LDI r2, 0x7004
+  LDI r1, 0xFFFFFF00
+  STORE r2, r1
+  LDI r2, 0x7005
+  LDI r1, 0xFFFF73
+  STORE r2, r1
+  LDI r2, 0x7006
+  LDI r1, 0
+  STORE r2, r1
+  LDI r2, 0x7007
+  LDI r1, 181
+  STORE r2, r1
+  ; sin_table at 0x7010
+  LDI r2, 0x7010
+  LDI r1, 0
+  STORE r2, r1
+  LDI r2, 0x7011
+  LDI r1, 181
+  STORE r2, r1
+  LDI r2, 0x7012
+  LDI r1, 256
+  STORE r2, r1
+  LDI r2, 0x7013
+  LDI r1, 181
+  STORE r2, r1
+  LDI r2, 0x7014
+  LDI r1, 0
+  STORE r2, r1
+  LDI r2, 0x7015
+  LDI r1, 0xFFFF73
+  STORE r2, r1
+  LDI r2, 0x7016
+  LDI r1, 0xFFFFFF00
+  STORE r2, r1
+  LDI r2, 0x7017
+  LDI r1, 0xFFFF73
+  STORE r2, r1
   RET
 
-; ── Wrap angle (r1) to 0-359 ────────────────────────────────
-wrap_angle:
-  PUSH r31
-wa_loop:
-  LDI r4, 360
-  CMP r1, r4
-  BLT r0, wa_neg
-  SUB r1, r4
-  JMP wa_loop
-wa_neg:
-  LDI r4, 0
-  CMP r1, r4
-  BGE r0, wa_done
-  LDI r4, 360
-  ADD r1, r4
-  JMP wa_neg
-wa_done:
-  POP r31
+; ==== Preset: Koch Snowflake ====
+init_koch:
+  LDI r1, 1
+  LDI r2, 0x5500
+  STORE r2, r1
+  ; axiom: F--F--F (at 0x5000)
+  LDI r2, 0x5000
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5001
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5002
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5003
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5004
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5005
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5006
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5007
+  LDI r1, 0
+  STORE r2, r1
+  ; rule F -> F+F--F+F (at 0x5100)
+  CALL store_koch_f
+  ; params
+  LDI r1, 5
+  LDI r2, 0x5502
+  STORE r2, r1
+  LDI r1, 10920
+  LDI r2, 0x5503
+  STORE r2, r1
+  LDI r1, 0x00AAFF
+  LDI r2, 0x5504
+  STORE r2, r1
+  LDI r1, 3
+  LDI r2, 0x5501
+  STORE r2, r1
   RET
 
-; ── Expand L-System by N iterations ─────────────────────────
-; Reads axiom from 0x2000, rule from 0x4000, iteration count from 0x5104
-; Alternates between 0x2000 and 0x3000 as source/dest
-; Final result always placed at 0x3000
-expand_lsystem:
+store_koch_f:
+  LDI r2, 0x5100
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5101
+  LDI r1, 43
+  STORE r2, r1
+  LDI r2, 0x5102
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5103
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5104
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5105
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5106
+  LDI r1, 43
+  STORE r2, r1
+  LDI r2, 0x5107
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5108
+  LDI r1, 0
+  STORE r2, r1
+  RET
+
+; ==== Preset: Sierpinski Triangle ====
+init_sierpinski:
+  LDI r1, 2
+  LDI r2, 0x5500
+  STORE r2, r1
+  ; axiom: F-G-G
+  LDI r2, 0x5000
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5001
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5002
+  LDI r1, 71
+  STORE r2, r1
+  LDI r2, 0x5003
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5004
+  LDI r1, 71
+  STORE r2, r1
+  LDI r2, 0x5005
+  LDI r1, 0
+  STORE r2, r1
+  ; rule F -> F-G+F+G-F (at 0x5100)
+  LDI r2, 0x5100
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5101
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5102
+  LDI r1, 71
+  STORE r2, r1
+  LDI r2, 0x5103
+  LDI r1, 43
+  STORE r2, r1
+  LDI r2, 0x5104
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5105
+  LDI r1, 43
+  STORE r2, r1
+  LDI r2, 0x5106
+  LDI r1, 71
+  STORE r2, r1
+  LDI r2, 0x5107
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5108
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5109
+  LDI r1, 0
+  STORE r2, r1
+  ; rule G -> GG (at 0x5200)
+  LDI r2, 0x5200
+  LDI r1, 71
+  STORE r2, r1
+  LDI r2, 0x5201
+  LDI r1, 71
+  STORE r2, r1
+  LDI r2, 0x5202
+  LDI r1, 0
+  STORE r2, r1
+  ; params
+  LDI r1, 5
+  LDI r2, 0x5502
+  STORE r2, r1
+  LDI r1, 21840
+  LDI r2, 0x5503
+  STORE r2, r1
+  LDI r1, 0xFF6644
+  LDI r2, 0x5504
+  STORE r2, r1
+  LDI r1, 5
+  LDI r2, 0x5501
+  STORE r2, r1
+  RET
+
+; ==== Preset: Dragon Curve ====
+init_dragon:
+  LDI r1, 3
+  LDI r2, 0x5500
+  STORE r2, r1
+  ; axiom: FX
+  LDI r2, 0x5000
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5001
+  LDI r1, 88
+  STORE r2, r1
+  LDI r2, 0x5002
+  LDI r1, 0
+  STORE r2, r1
+  ; rule X -> X+YF+ (at 0x5300)
+  LDI r2, 0x5300
+  LDI r1, 88
+  STORE r2, r1
+  LDI r2, 0x5301
+  LDI r1, 43
+  STORE r2, r1
+  LDI r2, 0x5302
+  LDI r1, 89
+  STORE r2, r1
+  LDI r2, 0x5303
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5304
+  LDI r1, 43
+  STORE r2, r1
+  LDI r2, 0x5305
+  LDI r1, 0
+  STORE r2, r1
+  ; rule Y -> -FX-Y (at 0x5400)
+  LDI r2, 0x5400
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5401
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5402
+  LDI r1, 88
+  STORE r2, r1
+  LDI r2, 0x5403
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5404
+  LDI r1, 89
+  STORE r2, r1
+  LDI r2, 0x5405
+  LDI r1, 0
+  STORE r2, r1
+  ; params
+  LDI r1, 4
+  LDI r2, 0x5502
+  STORE r2, r1
+  LDI r1, 16380
+  LDI r2, 0x5503
+  STORE r2, r1
+  LDI r1, 0xFF2244
+  LDI r2, 0x5504
+  STORE r2, r1
+  LDI r1, 8
+  LDI r2, 0x5501
+  STORE r2, r1
+  RET
+
+; ==== Preset: Fern ====
+init_fern:
+  LDI r1, 4
+  LDI r2, 0x5500
+  STORE r2, r1
+  ; axiom: X
+  LDI r2, 0x5000
+  LDI r1, 88
+  STORE r2, r1
+  LDI r2, 0x5001
+  LDI r1, 0
+  STORE r2, r1
+  ; rule X -> F+[[X]-X]-F[-FX]+X (at 0x5300)
+  LDI r2, 0x5300
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5301
+  LDI r1, 43
+  STORE r2, r1
+  LDI r2, 0x5302
+  LDI r1, 91
+  STORE r2, r1
+  LDI r2, 0x5303
+  LDI r1, 91
+  STORE r2, r1
+  LDI r2, 0x5304
+  LDI r1, 88
+  STORE r2, r1
+  LDI r2, 0x5305
+  LDI r1, 93
+  STORE r2, r1
+  LDI r2, 0x5306
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5307
+  LDI r1, 88
+  STORE r2, r1
+  LDI r2, 0x5308
+  LDI r1, 93
+  STORE r2, r1
+  LDI r2, 0x5309
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x530A
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x530B
+  LDI r1, 91
+  STORE r2, r1
+  LDI r2, 0x530C
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x530D
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x530E
+  LDI r1, 88
+  STORE r2, r1
+  LDI r2, 0x530F
+  LDI r1, 93
+  STORE r2, r1
+  LDI r2, 0x5310
+  LDI r1, 43
+  STORE r2, r1
+  LDI r2, 0x5311
+  LDI r1, 88
+  STORE r2, r1
+  LDI r2, 0x5312
+  LDI r1, 0
+  STORE r2, r1
+  ; rule F -> FF (at 0x5100)
+  LDI r2, 0x5100
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5101
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5102
+  LDI r1, 0
+  STORE r2, r1
+  ; params
+  LDI r1, 3
+  LDI r2, 0x5502
+  STORE r2, r1
+  LDI r1, 4550
+  LDI r2, 0x5503
+  STORE r2, r1
+  LDI r1, 0x22CC44
+  LDI r2, 0x5504
+  STORE r2, r1
+  LDI r1, 4
+  LDI r2, 0x5501
+  STORE r2, r1
+  RET
+
+; ==== Preset: Tree ====
+init_tree:
+  LDI r1, 5
+  LDI r2, 0x5500
+  STORE r2, r1
+  ; axiom: X
+  LDI r2, 0x5000
+  LDI r1, 88
+  STORE r2, r1
+  LDI r2, 0x5001
+  LDI r1, 0
+  STORE r2, r1
+  ; rule X -> F[+X][-X] (at 0x5300)
+  LDI r2, 0x5300
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5301
+  LDI r1, 91
+  STORE r2, r1
+  LDI r2, 0x5302
+  LDI r1, 43
+  STORE r2, r1
+  LDI r2, 0x5303
+  LDI r1, 88
+  STORE r2, r1
+  LDI r2, 0x5304
+  LDI r1, 93
+  STORE r2, r1
+  LDI r2, 0x5305
+  LDI r1, 91
+  STORE r2, r1
+  LDI r2, 0x5306
+  LDI r1, 45
+  STORE r2, r1
+  LDI r2, 0x5307
+  LDI r1, 88
+  STORE r2, r1
+  LDI r2, 0x5308
+  LDI r1, 93
+  STORE r2, r1
+  LDI r2, 0x5309
+  LDI r1, 0
+  STORE r2, r1
+  ; rule F -> FF (at 0x5100)
+  LDI r2, 0x5100
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5101
+  LDI r1, 70
+  STORE r2, r1
+  LDI r2, 0x5102
+  LDI r1, 0
+  STORE r2, r1
+  ; params
+  LDI r1, 4
+  LDI r2, 0x5502
+  STORE r2, r1
+  LDI r1, 5460
+  LDI r2, 0x5503
+  STORE r2, r1
+  LDI r1, 0x44AA22
+  LDI r2, 0x5504
+  STORE r2, r1
+  LDI r1, 5
+  LDI r2, 0x5501
+  STORE r2, r1
+  RET
+
+; ==== String Expansion Engine ====
+; Expands axiom using L-system rules iteratively
+; Source at 0x2000, output at 0x3000
+do_expand:
   PUSH r31
-  PUSH r1
-  PUSH r2
-  LDI r5, 0x5104
-  LOAD r7, r5              ; r7 = remaining iterations
+  ; copy axiom (0x5000) to source buffer (0x2000)
+  LDI r10, 0x5000
+  LDI r11, 0x2000
+copy_axiom_lp:
+  LDI r12, 0
+  ADD r12, r10
+  LOAD r13, r12
+  JZ r13, axiom_copied
+  LDI r12, 0
+  ADD r12, r11
+  STORE r12, r13
+  LDI r13, 1
+  ADD r10, r13
+  ADD r11, r13
+  JMP copy_axiom_lp
+axiom_copied:
+  LDI r13, 0
+  LDI r12, 0
+  ADD r12, r11
+  STORE r12, r13
 
-exp_loop:
-  JZ r7, expand_done
+  ; get iteration count
+  LDI r14, 0
+  LDI r15, 0x5501
+  LOAD r15, r15
 
-  ; Load rule char from 0x4000
-  LDI r5, 0x4000
-  LOAD r4, r5              ; r4 = rule char (F=70)
+expand_iter_lp:
+  CMP r14, r15
+  BGE r0, expand_done
 
-  ; Alternate source/dest based on iteration number (0-indexed)
-  ; First iteration (r7=total): source=0x2000 (axiom), dest=0x3000
-  ; We compute which pass: pass_num = total - remaining
-  MOV r1, r7
-  LDI r5, 1
-  AND r1, r5
-  JZ r1, exp_odd_pass
-  ; r7 is odd: even pass number → source=0x2000, dest=0x3000
-  LDI r2, 0x2000
-  LDI r3, 0x3000
-  JMP exp_do
-exp_odd_pass:
-  ; r7 is even: odd pass number → source=0x3000, dest=0x2000
-  LDI r2, 0x3000
-  LDI r3, 0x2000
-exp_do:
-  CALL do_expansion
-  SUB r7, r6
-  JMP exp_loop
+  ; expand: read 0x2000, write 0x3000
+  LDI r10, 0x2000
+  LDI r11, 0x3000
+exp_char_lp:
+  LDI r12, 0
+  ADD r12, r10
+  LOAD r13, r12
+  JZ r13, exp_copy_back
+
+  ; check F
+  LDI r12, 70
+  CMP r13, r12
+  JZ r0, exp_f
+  ; check G
+  LDI r12, 71
+  CMP r13, r12
+  JZ r0, exp_g
+  ; check X
+  LDI r12, 88
+  CMP r13, r12
+  JZ r0, exp_x
+  ; check Y
+  LDI r12, 89
+  CMP r13, r12
+  JZ r0, exp_y
+
+  ; no rule -- copy char directly
+  LDI r12, 0
+  ADD r12, r11
+  STORE r12, r13
+  LDI r13, 1
+  ADD r11, r13
+  LDI r13, 1
+  ADD r10, r13
+  JMP exp_char_lp
+
+exp_f:
+  LDI r13, 1
+  ADD r10, r13
+  LDI r13, 0x5100
+  LDI r12, 0x5505
+  STORE r12, r13
+  CALL copy_rule
+  JMP exp_char_lp
+
+exp_g:
+  LDI r13, 1
+  ADD r10, r13
+  LDI r13, 0x5200
+  LDI r12, 0x5505
+  STORE r12, r13
+  CALL copy_rule
+  JMP exp_char_lp
+
+exp_x:
+  LDI r13, 1
+  ADD r10, r13
+  LDI r13, 0x5300
+  LDI r12, 0x5505
+  STORE r12, r13
+  CALL copy_rule
+  JMP exp_char_lp
+
+exp_y:
+  LDI r13, 1
+  ADD r10, r13
+  LDI r13, 0x5400
+  LDI r12, 0x5505
+  STORE r12, r13
+  CALL copy_rule
+  JMP exp_char_lp
+
+exp_copy_back:
+  ; null-terminate output
+  LDI r13, 0
+  LDI r12, 0
+  ADD r12, r11
+  STORE r12, r13
+  ; overflow check
+  LDI r12, 0x3FFF
+  CMP r11, r12
+  BGE r0, expand_done
+  ; copy 0x3000 back to 0x2000
+  LDI r10, 0x3000
+  LDI r11, 0x2000
+cp_back_lp:
+  LDI r12, 0
+  ADD r12, r10
+  LOAD r13, r12
+  JZ r13, cp_back_done
+  LDI r12, 0
+  ADD r12, r11
+  STORE r12, r13
+  LDI r13, 1
+  ADD r10, r13
+  ADD r11, r13
+  JMP cp_back_lp
+cp_back_done:
+  LDI r13, 0
+  LDI r12, 0
+  ADD r12, r11
+  STORE r12, r13
+  LDI r13, 1
+  ADD r14, r13
+  JMP expand_iter_lp
 
 expand_done:
-  ; After all iterations, if total was odd, result ended at 0x3000
-  ; If total was even, result ended at 0x2000 - copy to 0x3000
-  LDI r5, 0x5104
-  LOAD r7, r5
-  MOV r1, r7
-  LDI r5, 1
-  AND r1, r5
-  JNZ r1, expand_skip_copy
-  ; Even total: result is at 0x2000, copy to 0x3000
-  LDI r2, 0x2000
-  LDI r3, 0x3000
-  CALL copy_string
-expand_skip_copy:
-  POP r2
-  POP r1
   POP r31
   RET
 
-; ── Single expansion pass ───────────────────────────────────
-; r2 = source address, r3 = dest address, r4 = rule char
-do_expansion:
-  PUSH r31
-do_exp_loop:
-  LOAD r1, r2              ; r1 = current char from source
-  JZ r1, do_exp_done       ; null = end of string
-  CMP r1, r4               ; compare with rule char
-  JNZ r0, do_exp_copy      ; if not matching, just copy (use r0!)
-  ; Match found: copy production from 0x4001
-  CALL copy_production
-  JMP do_exp_next
-do_exp_copy:
-  STORE r3, r1             ; copy non-matching char to dest
-  ADD r3, r6
-do_exp_next:
-  ADD r2, r6               ; advance source pointer
-  JMP do_exp_loop
-do_exp_done:
-  LDI r1, 0
-  STORE r3, r1             ; null terminate dest
-  POP r31
+; Copy rule string from RAM[0x5505] to output at r11
+; Advances r11 past copied chars
+copy_rule:
+  LDI r12, 0x5505
+  LOAD r18, r12      ; r18 = rule base address
+cp_rule_lp:
+  LDI r12, 0
+  ADD r12, r18
+  LOAD r19, r12      ; r19 = rule char
+  JZ r19, cp_rule_done
+  LDI r12, 0
+  ADD r12, r11
+  STORE r12, r19
+  LDI r19, 1
+  ADD r11, r19
+  ADD r18, r19
+  JMP cp_rule_lp
+cp_rule_done:
   RET
 
-; ── Copy production string from 0x4001 to address in r3 ────
-copy_production:
+; ==== Turtle Graphics Renderer ====
+; Reads expanded string from 0x3000, draws with LINE
+do_render:
   PUSH r31
-  LDI r5, 0x4001
-cp_loop:
-  LOAD r1, r5
-  JZ r1, cp_done
-  STORE r3, r1
-  ADD r3, r6
-  ADD r5, r6
-  JMP cp_loop
-cp_done:
-  POP r31
-  RET
+  LDI r21, 0
+  FILL r21
 
-; ── Copy null-terminated string: r2=src, r3=dest ────────────
-copy_string:
-  PUSH r31
-cs_loop:
-  LOAD r1, r2
-  STORE r3, r1
-  JZ r1, cs_done
-  ADD r2, r6
-  ADD r3, r6
-  JMP cs_loop
-cs_done:
-  POP r31
-  RET
+  ; init turtle
+  LDI r10, 128
+  LDI r11, 128
+  LDI r12, 0
 
-; ── Render fractal with turtle graphics ──────────────────────
-; Reads expanded string from 0x3000, draws with LINE opcode
-render_fractal:
-  PUSH r31
-  PUSH r1
-  PUSH r2
+  ; load params
+  LDI r2, 0x5504
+  LOAD r14, r2       ; color
+  LDI r2, 0x5503
+  LOAD r15, r2       ; angle increment
+  LDI r2, 0x5502
+  LOAD r16, r2       ; line length
 
-  ; Clear screen to dark blue-black
-  LDI r1, 0x000011
-  FILL r1
+  ; position adjustments per preset
+  LDI r2, 0x5500
+  LOAD r17, r2
+  LDI r18, 1
+  CMP r17, r18
+  JZ r0, pos_koch
+  LDI r18, 2
+  CMP r17, r18
+  JZ r0, pos_sierp
+  LDI r18, 3
+  CMP r17, r18
+  JZ r0, pos_drag
+  LDI r18, 4
+  CMP r17, r18
+  JZ r0, pos_fern
+  ; preset 5 tree
+  LDI r11, 240
+  LDI r12, 54600
+  JMP pos_done
 
-  ; Load drawing params
-  LDI r5, 0x5100
-  LOAD r14, r5             ; r14 = turn_angle (60)
-  LDI r5, 0x5104
-  LOAD r7, r5              ; r7 = iterations (3)
+pos_koch:
+  LDI r10, 20
+  LDI r11, 180
+  LDI r12, 54600
+  JMP pos_done
+pos_sierp:
+  LDI r10, 30
+  LDI r11, 200
+  LDI r12, 0
+  JMP pos_done
+pos_drag:
+  LDI r10, 128
+  LDI r11, 128
+  LDI r12, 0
+  JMP pos_done
+pos_fern:
+  LDI r10, 128
+  LDI r11, 240
+  LDI r12, 54600
+  JMP pos_done
+pos_done:
 
-  ; Compute effective step = 100 / 3^iterations
-  ; Koch snowflake with 3 iterations: 100/27 = 3 pixels per segment
-  ; Snowflake side = 64 segments * 3px = 192px, fits in 256x256
-  LDI r13, 100             ; base step size
-  LDI r1, 0               ; division counter
-step_div_loop:
-  CMP r1, r7               ; compare counter with iterations
-  BGE r0, step_div_done    ; counter >= iterations means done
-  ; Divide r13 by 3 using repeated subtraction
-  LDI r4, 0
-  ADD r4, r13              ; r4 = copy of r13
-  LDI r5, 3
-  LDI r8, 0               ; quotient
-div_inner:
-  CMP r4, r5
-  BLT r0, div_inner_done
-  SUB r4, r5
-  ADD r8, r6
-  JMP div_inner
-div_inner_done:
-  MOV r13, r8              ; r13 = r13 / 3
-  ADD r1, r6               ; counter++
-  JMP step_div_loop
-step_div_done:
-  ; r13 is now the effective step (150/27 = 5)
+  ; iterate over expanded string at 0x2000
+  LDI r20, 0x2000
+turtle_lp:
+  LDI r2, 0
+  ADD r2, r20
+  LOAD r3, r2
+  JZ r3, turtle_done
 
-  ; Turtle starting state (centered)
-  LDI r10, 128             ; x start (center)
-  LDI r11, 200             ; y start (near bottom)
-  LDI r12, 0               ; angle = 0 (pointing up)
-
-  ; Line color: bright cyan
-  LDI r15, 0x00FFFF
-
-  ; Iterate over expanded string at 0x3000
-  LDI r5, 0x3000
-
-render_loop:
-  LOAD r1, r5              ; r1 = current character
-  JZ r1, render_done       ; null = end of string
-
-  ; Check for F (70) = draw forward
+  ; F = forward + draw
   LDI r2, 70
-  CMP r1, r2
-  JNZ r0, chk_plus          ; use r0 for CMP result!
-  ; Draw line from current to next position
-  MOV r8, r10              ; r8 = old x
-  MOV r9, r11              ; r9 = old y
-  CALL compute_step        ; updates r10, r11
-  LINE r8, r9, r10, r11, r15
-  JMP rend_next
-
-chk_plus:
-  ; Check for + (43) = turn left
+  CMP r3, r2
+  JZ r0, t_fwd
+  ; G = forward no draw
+  LDI r2, 71
+  CMP r3, r2
+  JZ r0, t_move
+  ; + = turn left
   LDI r2, 43
-  CMP r1, r2
-  JNZ r0, chk_minus         ; use r0 for CMP result!
-  ADD r12, r14             ; angle += turn_angle
-  CALL wrap_angle_reg
-  JMP rend_next
-
-chk_minus:
-  ; Check for - (45) = turn right
+  CMP r3, r2
+  JZ r0, t_left
+  ; - = turn right
   LDI r2, 45
-  CMP r1, r2
-  JNZ r0, rend_next         ; use r0 for CMP result!
-  SUB r12, r14             ; angle -= turn_angle
-  CALL wrap_angle_reg
+  CMP r3, r2
+  JZ r0, t_right
+  ; [ = push
+  LDI r2, 91
+  CMP r3, r2
+  JZ r0, t_push
+  ; ] = pop
+  LDI r2, 93
+  CMP r3, r2
+  JZ r0, t_pop
 
-rend_next:
-  ADD r5, r6               ; advance string pointer
-  JMP render_loop
+  LDI r2, 1
+  ADD r20, r2
+  JMP turtle_lp
 
-render_done:
-  POP r2
-  POP r1
+t_fwd:
+  CALL compute_end
+  LINE r10, r11, r21, r22, r14
+  MOV r10, r21
+  MOV r11, r22
+  LDI r2, 1
+  ADD r20, r2
+  JMP turtle_lp
+
+t_move:
+  CALL compute_end
+  MOV r10, r21
+  MOV r11, r22
+  LDI r2, 1
+  ADD r20, r2
+  JMP turtle_lp
+
+t_left:
+  ADD r12, r15
+  LDI r2, 65536
+  CMP r12, r2
+  BLT r0, t_left_done
+  SUB r12, r2
+t_left_done:
+  LDI r2, 1
+  ADD r20, r2
+  JMP turtle_lp
+
+t_right:
+  SUB r12, r15
+  ; If angle underflowed (bit 31 set), add 65536
+  LDI r2, 31
+  MOV r23, r12
+  SHR r23, r2       ; r23 = sign bit
+  JZ r23, t_right_done
+  LDI r2, 65536
+  ADD r12, r2
+t_right_done:
+  LDI r2, 1
+  ADD r20, r2
+  JMP turtle_lp
+
+t_push:
+  PUSH r10
+  PUSH r11
+  PUSH r12
+  PUSH r31
+  LDI r2, 1
+  ADD r20, r2
+  JMP turtle_lp
+
+t_pop:
+  POP r31
+  POP r12
+  POP r11
+  POP r10
+  LDI r2, 1
+  ADD r20, r2
+  JMP turtle_lp
+
+turtle_done:
   POP r31
   RET
 
-; ── Wrap angle register r12 to 0-359 ────────────────────────
-wrap_angle_reg:
+; ==== Compute Endpoint ====
+; r10=x, r11=y, r12=angle(0-65535), r16=line_length
+; Output: r21=x1, r22=y1
+compute_end:
   PUSH r31
-war_loop:
-  LDI r4, 360
-  CMP r12, r4
-  BLT r0, war_neg
-  SUB r12, r4
-  JMP war_loop
-war_neg:
-  LDI r4, 0
-  CMP r12, r4
-  BGE r0, war_done
-  LDI r4, 360
-  ADD r12, r4
-  JMP war_neg
-war_done:
+  ; sector = angle >> 13 (gives 0-7)
+  MOV r21, r12
+  LDI r22, 13
+  SHR r21, r22
+
+  ; load cos_table[sector]
+  LDI r23, 0x7000
+  ADD r23, r21
+  LOAD r24, r23
+  ; load sin_table[sector]
+  LDI r23, 0x7010
+  ADD r23, r21
+  LOAD r25, r23
+
+  ; x1 = x + (length * cos) / 256
+  MOV r21, r16
+  MUL r21, r24
+  LDI r23, 256
+  DIV r21, r23
+  ADD r21, r10
+
+  ; y1 = y - (length * sin) / 256 (y inverted)
+  MOV r22, r16
+  MUL r22, r25
+  LDI r23, 256
+  DIV r22, r23
+  SUB r22, r11
+
   POP r31
   RET
 
-; ── Compute turtle step from current angle ───────────────────
-; Input:  r12 = angle (degrees), r13 = step length
-; Output: r10 += dx, r11 += dy (updates turtle position)
-; Uses:   r1-r4 (scratch), r12, r13 (preserved)
-; NOTE: Signed multiply-divide using sign extraction
-compute_step:
+; ==== Info Overlay ====
+draw_info:
   PUSH r31
-
-  ; Look up sin(angle) from 12-entry table
-  ; sin_idx = angle * 12 / 360
-  MOV r1, r12
-  LDI r4, 12
-  MUL r1, r4              ; r1 = angle * 12
-  LDI r4, 360
-  DIV r1, r4              ; r1 = angle * 12 / 360
-  LDI r4, 11
-  CMP r1, r4
-  BLT r0, si_ok
-  MOV r1, r4              ; clamp to max index 11
-si_ok:
-  LDI r4, 0x7000
-  ADD r4, r1              ; r4 = table address
-  LOAD r2, r4              ; r2 = sin(angle) signed fixed-point
-
-  ; Look up cos(angle) = sin(angle + 90)
-  MOV r1, r12
-  LDI r4, 90
-  ADD r1, r4              ; r1 = angle + 90
-  CALL wrap_angle          ; wrap to 0-359
-  LDI r4, 12
-  MUL r1, r4
-  LDI r4, 360
-  DIV r1, r4
-  LDI r4, 11
-  CMP r1, r4
-  BLT r0, ci_ok
-  MOV r1, r4
-ci_ok:
-  LDI r4, 0x7000
-  ADD r4, r1
-  LOAD r3, r4              ; r3 = cos(angle) signed fixed-point
-
-  ; Signed multiply-divide: dx = signed(sin) * step / 256
-  ; Extract sign of sin, work with absolute value
-  PUSH r0                 ; save CMP result (not strictly needed)
-  MOV r1, r2              ; r1 = sin value
-  LDI r4, 31
-  SAR r1, r4              ; r1 = 0xFFFFFFFF if negative, 0 if positive
-  MOV r4, r1              ; r4 = sin sign
-  JZ r4, sin_pos
-  NEG r2                  ; negate sin to get absolute value
-sin_pos:
-  MUL r2, r13              ; r2 = |sin| * step (unsigned)
-  LDI r1, 256
-  DIV r2, r1              ; r2 = |sin| * step / 256
-  JZ r4, dx_done
-  NEG r2                  ; reapply sign
-dx_done:
-
-  ; Signed multiply-divide: dy = -signed(cos) * step / 256
-  MOV r1, r3              ; r1 = cos value
-  LDI r4, 31
-  SAR r1, r4              ; sign of cos
-  MOV r4, r1              ; r4 = cos sign
-  JZ r4, cos_pos
-  NEG r3                  ; absolute value of cos
-cos_pos:
-  MUL r3, r13              ; r3 = |cos| * step
-  LDI r1, 256
-  DIV r3, r1              ; r3 = |cos| * step / 256
-  JZ r4, dy_sign
-  NEG r3                  ; reapply cos sign
-dy_sign:
-  NEG r3                   ; negate for screen y inversion
-
-  ; Update turtle position
-  ADD r10, r2              ; x += dx
-  ADD r11, r3              ; y += dy
-
-  POP r0
+  ; colored bar at top
+  LDI r2, 0x5504
+  LOAD r3, r2
+  LDI r1, 0
+  LDI r2, 0
+  LDI r4, 256
+  LDI r5, 6
+  RECTF r1, r2, r4, r5, r3
+  ; iteration dots
+  LDI r2, 0x5501
+  LOAD r10, r2
+  LDI r1, 0
+  LDI r2, 12
+  LDI r4, 10
+info_lp:
+  CMP r1, r10
+  BGE r0, info_done
+  PSET r1, r2, r3
+  ADD r1, r4
+  JMP info_lp
+info_done:
   POP r31
   RET

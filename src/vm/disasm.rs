@@ -978,7 +978,11 @@ impl Vm {
 
             // CLIPCLR (0xC5) -- Clear clip rectangle
             0xC5 => ("CLIPCLR".to_string(), 1),
-
+            // PROFILE mode_reg, data_reg (0xC6) -- Performance profiling
+            0xC6 => (
+                format!("PROFILE {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
             // SMALLTEXT x, y, addr, fg, bg (0xD0) -- tiny 3x5 font, 85 cols in 256px
             0xD0 => (
                 format!(
@@ -1018,6 +1022,23 @@ impl Vm {
                 ),
                 7,
             ),
+
+            // AUDIO_PLAY addr_reg, len_reg, rate_reg (0xD4, 4 words)
+            0xD4 => (
+                format!(
+                    "AUDIO_PLAY {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3))
+                ),
+                4,
+            ),
+
+            // AUDIO_STOP (0xD5, 1 word)
+            0xD5 => ("AUDIO_STOP".to_string(), 1),
+
+            // AUDIO_STATUS reg (0xD6, 2 words)
+            0xD6 => (format!("AUDIO_STATUS {}", reg(ram(a + 1))), 2),
 
             _ => (format!("??? (0x{:02X})", op), 1),
         }

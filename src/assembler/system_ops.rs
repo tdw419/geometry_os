@@ -1029,6 +1029,32 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        // PCM audio streaming
+        "AUDIO_PLAY" => {
+            if tokens.len() < 4 {
+                return Err("AUDIO_PLAY requires 3 arguments: AUDIO_PLAY addr_reg, len_reg, rate_reg".to_string());
+            }
+            bytecode.push(0xD4);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
+        "AUDIO_STOP" => {
+            bytecode.push(0xD5);
+            Ok(Some(()))
+        }
+
+        "AUDIO_STATUS" => {
+            if tokens.len() < 2 {
+                return Err("AUDIO_STATUS requires 1 argument: AUDIO_STATUS reg".to_string());
+            }
+            bytecode.push(0xD6);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
         // Capability management
         "SETCAPS" => {
             if tokens.len() != 2 {
@@ -1112,6 +1138,21 @@ pub(super) fn try_parse(
         // Restores full 256x256 drawing area.
         "CLIPCLR" => {
             bytecode.push(0xC5);
+            Ok(Some(()))
+        }
+
+        // Performance profiling: PROFILE mode_reg, data_reg (0xC6, 3 words)
+        // mode=0 MARK: toggle region start/stop (data_reg=region_id 0-15)
+        // mode=1 READ: get accumulated count (data_reg=region_id) -> r0
+        // mode=2 RESET: clear all regions
+        // mode=3 DUMP: write non-zero entries to RAM (data_reg=base addr) -> r0=count
+        "PROFILE" => {
+            if tokens.len() < 3 {
+                return Err("PROFILE requires 2 arguments: PROFILE mode_reg, data_reg".to_string());
+            }
+            bytecode.push(0xC6);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
             Ok(Some(()))
         }
 

@@ -667,7 +667,7 @@ Pixel:    PSET xr, yr, cr | PSETI x, y, color | FILL cr
           RECTF xr, yr, wr, hr, cr | TEXT xr, yr, ar
           LINE x0r, y0r, x1r, y1r, cr | CIRCLE xr, yr, rr, cr
           SPRITE xr, yr, addr_r, wr, hr | PEEK xr, yr, dr
-Other:    SCROLL nr | IKEY reg | RAND reg | FRAME | BEEP freq_r, dur_r | NOTE wave_r, freq_r, dur_r
+Other:    SCROLL nr | IKEY reg | RAND reg | FRAME | BEEP freq_r, dur_r | NOTE wave_r, freq_r, dur_r | AUDIO_PLAY addr_r, len_r, rate_r | AUDIO_STOP | AUDIO_STATUS reg
           SPAWN reg | KILL reg | ASM src_r, dest_r | YIELD | SLEEP reg | GETPID reg
           SIGNAL sig_reg, pid_reg | SIGSET handler_reg | WAITPID pid_reg
           OPEN path_r, mode_r | READ fd_r, buf_r, len_r | WRITE fd_r, buf_r, len_r | CLOSE fd_r
@@ -758,7 +758,7 @@ pub const HERMES_BUILD_SYSTEM_PROMPT: &str = r#"You are an agent that modifies t
 - src/font.rs -- 8x8 VGA bitmaps
 - src/save.rs -- PNG/PPM save
 - src/render.rs -- Rendering pipeline
-- src/audio.rs -- Sound (BEEP/NOTE opcodes)
+- src/audio.rs -- Sound (BEEP/NOTE/AUDIO_PLAY/AUDIO_STOP/AUDIO_STATUS opcodes)
 - src/keys.rs -- Keyboard input
 - src/pixel.rs -- Pixel color utilities
 - src/fuzzer.rs -- VM fuzzer
@@ -994,10 +994,15 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         // Phase 265: Canvas clip region
         0xC4 => "CLIPSET",
         0xC5 => "CLIPCLR",
+        0xC6 => "PROFILE",
         // Phase 94: Tiny font text rendering
         0xD0 => "SMALLTEXT",
         // Phase 95: Medium font text rendering
         0xD1 => "MEDTEXT",
+        // PCM audio streaming
+        0xD4 => "AUDIO_PLAY",
+        0xD5 => "AUDIO_STOP",
+        0xD6 => "AUDIO_STATUS",
         // Phase 260: Matrix multiply (2D)
         0xDE => "MATMUL",
         _ => "???",
@@ -3021,6 +3026,9 @@ mod tests {
             (0x6E, "SHUTDOWN"), // was wrong: was SETENV
             (0x75, "FORMULA"),
             (0x7E, "NOTE"),
+            (0xD4, "AUDIO_PLAY"),
+            (0xD5, "AUDIO_STOP"),
+            (0xD6, "AUDIO_STATUS"),
         ];
         for &(op, _expected) in canaries {
             let name = opcode_name(op);

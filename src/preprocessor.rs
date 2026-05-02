@@ -196,8 +196,13 @@ pub const OPCODES: &[&str] = &[
     // Phase 265: Canvas clip region
     "CLIPSET",
     "CLIPCLR",
+    "PROFILE",
     // Phase 260: Matrix multiply (2D)
     "MATMUL",
+    // PCM audio streaming
+    "AUDIO_PLAY",
+    "AUDIO_STOP",
+    "AUDIO_STATUS",
     // Preprocessor macros (not real opcodes, but recognized as Opcode tokens)
     "VAR",
     "SET",

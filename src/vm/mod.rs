@@ -17,6 +17,13 @@ pub struct Vm {
     /// Set by NOTE opcode: (waveform, freq_hz, duration_ms). Consumed by host.
     /// waveform: 0=sine, 1=square, 2=triangle, 3=sawtooth, 4=noise.
     pub note: Option<(u32, u32, u32)>,
+    /// Set by AUDIO_PLAY opcode: (ram_addr, num_samples, sample_rate).
+    /// Consumed and cleared by host. Streams raw PCM from RAM buffer.
+    pub audio_play: Option<(u32, u32, u32)>,
+    /// Set by AUDIO_STOP opcode. Host stops any current PCM stream.
+    pub audio_stop: bool,
+    /// Set by AUDIO_STATUS opcode: host writes 1 (playing) or 0 (idle) to reg.
+    pub audio_status_query: bool,
     /// When true, log RAM accesses to access_log (off by default for performance)
     pub debug_mode: bool,
     /// Frame-scoped log of RAM accesses for the visual debugger
@@ -105,6 +112,16 @@ pub struct Vm {
     /// Opcode execution histogram: counts how many times each opcode (0x00-0xFF) was dispatched.
     /// Zero overhead -- just an array increment per step.
     pub opcode_histogram: [u64; 256],
+    /// Total instruction step counter (always-on, used by PROFILE opcode).
+    /// Incremented once per step() call regardless of tracing state.
+    pub total_steps: u64,
+    /// Profile regions: accumulated instruction counts per region (0-15).
+    /// Used by PROFILE opcode to measure code region performance.
+    pub profile_regions: [u64; 16],
+    /// Profile region active flags: true when a MARK is pending (waiting for stop).
+    pub profile_active: [bool; 16],
+    /// Profile region start step: the total_steps value when each region was last MARK-started.
+    pub profile_start: [u64; 16],
     /// Key ring buffer: host pushes keystrokes, IKEY reads them in order.
     /// Supports up to 16 queued keys so rapid typing doesn't drop inputs.
     pub key_buffer: Vec<u32>,
@@ -254,6 +271,9 @@ impl Vm {
             frame_count: 0,
             beep: None,
             note: None,
+            audio_play: None,
+            audio_stop: false,
+            audio_status_query: false,
             debug_mode: false,
             access_log: Vec::with_capacity(4096),
             processes: Vec::new(),
@@ -297,6 +317,10 @@ impl Vm {
             hypervisor_window_id: 0,
             focused_pid: 0,
             opcode_histogram: [0; 256],
+            total_steps: 0,
+            profile_regions: [0; 16],
+            profile_active: [false; 16],
+            profile_start: [0; 16],
             key_buffer: vec![0; 16],
             key_buffer_head: 0,
             key_buffer_tail: 0,
@@ -446,6 +470,9 @@ impl Vm {
         self.frame_count = 0;
         self.beep = None;
         self.note = None;
+        self.audio_play = None;
+        self.audio_stop = false;
+        self.audio_status_query = false;
         self.access_log.clear();
         self.processes.clear();
         self.mode = CpuMode::Kernel;
@@ -475,6 +502,10 @@ impl Vm {
         self.hypervisor_mode = HypervisorMode::default();
         self.hypervisor_window_id = 0;
         self.opcode_histogram = [0; 256];
+        self.total_steps = 0;
+        self.profile_regions = [0; 16];
+        self.profile_active = [false; 16];
+        self.profile_start = [0; 16];
         self.formulas.clear();
         for dep_list in self.formula_dep_index.values_mut() {
             dep_list.clear();
@@ -595,6 +626,9 @@ impl Vm {
         if (opcode as usize) < self.opcode_histogram.len() {
             self.opcode_histogram[opcode as usize] += 1;
         }
+
+        // Always-on step counter for PROFILE opcode.
+        self.total_steps += 1;
 
         // Execution trace: record (pc, regs, opcode) if recording is enabled.
         // Zero overhead when off (single bool check).
@@ -1392,6 +1426,42 @@ impl Vm {
                     if addr < self.ram.len() {
                         self.ram[addr] = val;
                     }
+                }
+            }
+
+            // AUDIO_PLAY addr_reg, len_reg, rate_reg  (0xD4, 4 words)
+            // Stream raw PCM samples from RAM[addr..addr+len] at given sample rate.
+            // Each u32 word = one signed 16-bit sample (low 16 bits, sign-extended).
+            // Non-blocking: sets audio_play flag, host streams via aplay in background.
+            // Only one concurrent stream: previous is stopped before starting new.
+            0xD4 => {
+                let ar = self.fetch() as usize;
+                let lr = self.fetch() as usize;
+                let rr = self.fetch() as usize;
+                if ar < NUM_REGS && lr < NUM_REGS && rr < NUM_REGS {
+                    let addr = self.regs[ar];
+                    let len = self.regs[lr].min(65536); // max 64K samples
+                    let rate = self.regs[rr].clamp(8000, 48000);
+                    if len > 0 {
+                        self.audio_play = Some((addr, len, rate));
+                    }
+                }
+            }
+
+            // AUDIO_STOP  (0xD5, 1 word)
+            // Stop any currently playing PCM stream.
+            0xD5 => {
+                self.audio_stop = true;
+            }
+
+            // AUDIO_STATUS reg  (0xD6, 2 words)
+            // Query PCM playback status: writes 1 (playing) or 0 (idle) to reg.
+            0xD6 => {
+                let dr = self.fetch() as usize;
+                if dr < NUM_REGS {
+                    self.audio_status_query = true;
+                    // For tests, we query directly since there's no host loop
+                    self.regs[dr] = if crate::audio::is_pcm_playing() { 1 } else { 0 };
                 }
             }
 
@@ -3659,6 +3729,83 @@ impl Vm {
             // Encoding: 1 word [0xC5]
             0xC5 => {
                 self.clip_rect = None;
+            }
+
+            // PROFILE mode_reg, data_reg (0xC6, 3 words)
+            // Performance profiling: measure instruction counts per code region.
+            // mode=0 (MARK): Toggle region. data_reg=region_id (0-15).
+            //   Start: records total_steps. Stop: accumulates delta into region.
+            // mode=1 (READ): data_reg=region_id. Returns count in r0.
+            // mode=2 (RESET): Clears all profile regions. data_reg ignored.
+            // mode=3 (DUMP): data_reg=base RAM addr. Writes [id, lo, hi] per active region.
+            //   Returns entry count in r0.
+            0xC6 => {
+                let mode_r = self.fetch() as usize;
+                let data_r = self.fetch() as usize;
+                if mode_r < NUM_REGS && data_r < NUM_REGS {
+                    let mode = self.regs[mode_r];
+                    let data = self.regs[data_r];
+                    match mode {
+                        0 => {
+                            // MARK: toggle profiling region
+                            let rid = (data & 0xF) as usize;
+                            if rid < 16 {
+                                if self.profile_active[rid] {
+                                    // Stop: accumulate delta
+                                    let delta = self.total_steps.saturating_sub(self.profile_start[rid]);
+                                    self.profile_regions[rid] = self.profile_regions[rid].saturating_add(delta);
+                                    self.profile_active[rid] = false;
+                                } else {
+                                    // Start: record current step
+                                    self.profile_start[rid] = self.total_steps;
+                                    self.profile_active[rid] = true;
+                                }
+                            }
+                        }
+                        1 => {
+                            // READ: get accumulated count for region
+                            let rid = (data & 0xF) as usize;
+                            if rid < 16 {
+                                let mut count = self.profile_regions[rid];
+                                if self.profile_active[rid] {
+                                    let delta = self.total_steps.saturating_sub(self.profile_start[rid]);
+                                    count = count.saturating_add(delta);
+                                }
+                                // Return as u32 (truncated to low 32 bits)
+                                self.regs[0] = count as u32;
+                            }
+                        }
+                        2 => {
+                            // RESET: clear all profile regions
+                            self.profile_regions = [0; 16];
+                            self.profile_active = [false; 16];
+                            self.profile_start = [0; 16];
+                        }
+                        3 => {
+                            // DUMP: write non-zero entries to RAM
+                            let base = data as usize;
+                            let mut count = 0u32;
+                            for i in 0..16u32 {
+                                let mut val = self.profile_regions[i as usize];
+                                if self.profile_active[i as usize] {
+                                    let delta = self.total_steps.saturating_sub(self.profile_start[i as usize]);
+                                    val = val.saturating_add(delta);
+                                }
+                                if val > 0 || self.profile_active[i as usize] {
+                                    // Write [region_id, count_lo, count_hi] (3 words per entry)
+                                    if base + (count as usize) * 3 + 2 < self.ram.len() {
+                                        self.ram[base + (count as usize) * 3] = i;
+                                        self.ram[base + (count as usize) * 3 + 1] = val as u32;
+                                        self.ram[base + (count as usize) * 3 + 2] = (val >> 32) as u32;
+                                        count += 1;
+                                    }
+                                }
+                            }
+                            self.regs[0] = count;
+                        }
+                        _ => {}
+                    }
+                }
             }
 
             _ => {

@@ -24578,3 +24578,230 @@ fn test_bitfield_demo_assembles() {
     let asm = result.unwrap();
     assert!(asm.pixels.len() > 50, "demo should produce substantial bytecode");
 }
+
+// === PROFILE opcode tests (0xC6) ===
+
+#[test]
+fn test_profile_mark_and_read() {
+    // PROFILE mode=0 MARK region 0, do some work, MARK again (stop), READ
+    // Encoding: PROFILE mode_reg, data_reg = [0xC6, mode_r, data_r]
+    let mut vm = Vm::new();
+    // LDI r1, 0       (mode=0 MARK)
+    vm.ram[0] = 0x10; vm.ram[1] = 1; vm.ram[2] = 0;
+    // LDI r2, 0       (region_id=0)
+    vm.ram[3] = 0x10; vm.ram[4] = 2; vm.ram[5] = 0;
+    // PROFILE r1, r2  (start region 0)
+    vm.ram[6] = 0xC6; vm.ram[7] = 1; vm.ram[8] = 2;
+    // NOP x5
+    for i in 0..5 { vm.ram[9 + i] = 0x01; }
+    // PROFILE r1, r2  (stop region 0)
+    vm.ram[14] = 0xC6; vm.ram[15] = 1; vm.ram[16] = 2;
+    // LDI r1, 1       (mode=1 READ)
+    vm.ram[17] = 0x10; vm.ram[18] = 1; vm.ram[19] = 1;
+    // PROFILE r1, r2  (read region 0)
+    vm.ram[20] = 0xC6; vm.ram[21] = 1; vm.ram[22] = 2;
+    // HALT
+    vm.ram[23] = 0x00;
+    vm.pc = 0;
+    for _ in 0..1000 { if !vm.step() { break; } }
+    // Region 0 should have accumulated some steps between the two MARKs.
+    // The two MARKs (start/stop) plus the 5 NOPs between them = at least 5 NOP steps.
+    // Plus the LDI instructions before the second MARK.
+    assert!(vm.regs[0] > 0, "PROFILE READ should return non-zero count, got {}", vm.regs[0]);
+    assert!(vm.regs[0] <= 20, "PROFILE READ should be reasonable, got {}", vm.regs[0]);
+}
+
+#[test]
+fn test_profile_read_mid_region() {
+    // READ while region is active should include running delta
+    let mut vm = Vm::new();
+    // LDI r1, 0; LDI r2, 1; PROFILE r1, r2 (start region 1)
+    vm.ram[0] = 0x10; vm.ram[1] = 1; vm.ram[2] = 0;
+    vm.ram[3] = 0x10; vm.ram[4] = 2; vm.ram[5] = 1;
+    vm.ram[6] = 0xC6; vm.ram[7] = 1; vm.ram[8] = 2;
+    // NOP x10
+    for i in 0..10 { vm.ram[9 + i] = 0x01; }
+    // LDI r1, 1; PROFILE r1, r2 (READ region 1 while active)
+    vm.ram[19] = 0x10; vm.ram[20] = 1; vm.ram[21] = 1;
+    vm.ram[22] = 0xC6; vm.ram[23] = 1; vm.ram[24] = 2;
+    // HALT
+    vm.ram[25] = 0x00;
+    vm.pc = 0;
+    for _ in 0..1000 { if !vm.step() { break; } }
+    // Should include the 10 NOPs + LDIs between MARK and READ
+    assert!(vm.regs[0] >= 10, "PROFILE READ mid-region should include running delta, got {}", vm.regs[0]);
+}
+
+#[test]
+fn test_profile_reset() {
+    // Start a region, do work, stop it, verify non-zero, RESET, verify zero
+    let mut vm = Vm::new();
+    // LDI r1, 0; LDI r2, 0; PROFILE r1, r2 (start region 0)
+    vm.ram[0] = 0x10; vm.ram[1] = 1; vm.ram[2] = 0;
+    vm.ram[3] = 0x10; vm.ram[4] = 2; vm.ram[5] = 0;
+    vm.ram[6] = 0xC6; vm.ram[7] = 1; vm.ram[8] = 2;
+    // NOP x5
+    for i in 0..5 { vm.ram[9 + i] = 0x01; }
+    // PROFILE r1, r2 (stop region 0)
+    vm.ram[14] = 0xC6; vm.ram[15] = 1; vm.ram[16] = 2;
+    // LDI r1, 2; PROFILE r1, r2 (RESET all)
+    vm.ram[17] = 0x10; vm.ram[18] = 1; vm.ram[19] = 2;
+    vm.ram[20] = 0xC6; vm.ram[21] = 1; vm.ram[22] = 2;
+    // LDI r1, 1; PROFILE r1, r2 (READ region 0)
+    vm.ram[23] = 0x10; vm.ram[24] = 1; vm.ram[25] = 1;
+    vm.ram[26] = 0xC6; vm.ram[27] = 1; vm.ram[28] = 2;
+    // HALT
+    vm.ram[29] = 0x00;
+    vm.pc = 0;
+    for _ in 0..1000 { if !vm.step() { break; } }
+    // After RESET, READ should return 0
+    assert_eq!(vm.regs[0], 0, "PROFILE READ after RESET should return 0");
+}
+
+#[test]
+fn test_profile_dump() {
+    // Start two regions, do work, stop them, DUMP to RAM
+    let mut vm = Vm::new();
+    // Region 0: LDI r1,0; LDI r2,0; PROFILE r1,r2 (start)
+    vm.ram[0] = 0x10; vm.ram[1] = 1; vm.ram[2] = 0;
+    vm.ram[3] = 0x10; vm.ram[4] = 2; vm.ram[5] = 0;
+    vm.ram[6] = 0xC6; vm.ram[7] = 1; vm.ram[8] = 2;
+    // NOP x5
+    for i in 0..5 { vm.ram[9 + i] = 0x01; }
+    // PROFILE r1,r2 (stop region 0)
+    vm.ram[14] = 0xC6; vm.ram[15] = 1; vm.ram[16] = 2;
+    // Region 1: LDI r2,1; PROFILE r1,r2 (start)
+    vm.ram[17] = 0x10; vm.ram[18] = 2; vm.ram[19] = 1;
+    vm.ram[20] = 0xC6; vm.ram[21] = 1; vm.ram[22] = 2;
+    // NOP x3
+    for i in 0..3 { vm.ram[23 + i] = 0x01; }
+    // PROFILE r1,r2 (stop region 1)
+    vm.ram[26] = 0xC6; vm.ram[27] = 1; vm.ram[28] = 2;
+    // DUMP: LDI r1,3; LDI r2,0x3000; PROFILE r1,r2
+    vm.ram[29] = 0x10; vm.ram[30] = 1; vm.ram[31] = 3;
+    vm.ram[32] = 0x10; vm.ram[33] = 2; vm.ram[34] = 0x3000;
+    vm.ram[35] = 0xC6; vm.ram[36] = 1; vm.ram[37] = 2;
+    // HALT
+    vm.ram[38] = 0x00;
+    vm.pc = 0;
+    for _ in 0..1000 { if !vm.step() { break; } }
+    // r0 = number of entries dumped (should be 2)
+    assert_eq!(vm.regs[0], 2, "DUMP should return 2 entries");
+    // First entry at 0x3000: region_id=0, count_lo, count_hi
+    assert_eq!(vm.ram[0x3000], 0, "First entry should be region 0");
+    assert!(vm.ram[0x3001] > 0, "Region 0 count should be non-zero");
+    // Second entry at 0x3003: region_id=1, count_lo, count_hi
+    assert_eq!(vm.ram[0x3003], 1, "Second entry should be region 1");
+    assert!(vm.ram[0x3004] > 0, "Region 1 count should be non-zero");
+}
+
+#[test]
+fn test_profile_multiple_regions_independent() {
+    // Two regions measured independently
+    let mut vm = Vm::new();
+    // Start region 0
+    vm.ram[0] = 0x10; vm.ram[1] = 1; vm.ram[2] = 0;  // LDI r1, 0
+    vm.ram[3] = 0x10; vm.ram[4] = 2; vm.ram[5] = 0;  // LDI r2, 0
+    vm.ram[6] = 0xC6; vm.ram[7] = 1; vm.ram[8] = 2;  // PROFILE MARK 0
+    // NOP x3 (region 0 only)
+    vm.ram[9] = 0x01; vm.ram[10] = 0x01; vm.ram[11] = 0x01;
+    // Stop region 0
+    vm.ram[12] = 0xC6; vm.ram[13] = 1; vm.ram[14] = 2;
+    // Start region 1
+    vm.ram[15] = 0x10; vm.ram[16] = 2; vm.ram[17] = 1; // LDI r2, 1
+    vm.ram[18] = 0xC6; vm.ram[19] = 1; vm.ram[20] = 2; // PROFILE MARK 1
+    // NOP x7 (region 1 only)
+    for i in 0..7 { vm.ram[21 + i] = 0x01; }
+    // Stop region 1
+    vm.ram[28] = 0xC6; vm.ram[29] = 1; vm.ram[30] = 2;
+    // READ region 0
+    vm.ram[31] = 0x10; vm.ram[32] = 1; vm.ram[33] = 1; // LDI r1, 1
+    vm.ram[34] = 0x10; vm.ram[35] = 2; vm.ram[36] = 0; // LDI r2, 0
+    vm.ram[37] = 0xC6; vm.ram[38] = 1; vm.ram[39] = 2; // PROFILE READ 0
+    // Save region 0 result
+    vm.ram[40] = 0x12; vm.ram[41] = 21; vm.ram[42] = 0; // STORE [0x15], r0
+    // READ region 1
+    vm.ram[43] = 0x10; vm.ram[44] = 2; vm.ram[45] = 1; // LDI r2, 1
+    vm.ram[46] = 0xC6; vm.ram[47] = 1; vm.ram[48] = 2; // PROFILE READ 1
+    // HALT
+    vm.ram[49] = 0x00;
+    vm.pc = 0;
+    for _ in 0..1000 { if !vm.step() { break; } }
+    let region0 = vm.ram[21]; // saved region 0 count
+    let region1 = vm.regs[0]; // region 1 count (in r0)
+    assert!(region0 > 0, "Region 0 should have non-zero count");
+    assert!(region1 > 0, "Region 1 should have non-zero count");
+    // Region 1 should have more steps (7 NOPs vs 3 NOPs)
+    assert!(region1 > region0, "Region 1 (7 NOPs) should have more steps than region 0 (3 NOPs): {} vs {}", region1, region0);
+}
+
+#[test]
+fn test_profile_assembles() {
+    // Verify PROFILE assembles correctly
+    let source = "LDI r1, 0\nLDI r2, 0\nPROFILE r1, r2\nHALT\n";
+    let result = crate::assembler::assemble(source, 0);
+    assert!(result.is_ok(), "PROFILE should assemble: {:?}", result.err());
+    let asm = result.unwrap();
+    // LDI r1, 0 = [0x10, 1, 0] (3 words)
+    // LDI r2, 0 = [0x10, 2, 0] (3 words)
+    // PROFILE r1, r2 = [0xC6, 1, 2] (3 words)
+    // HALT = [0x00] (1 word)
+    assert_eq!(asm.pixels[9], 0xC6, "PROFILE opcode should be 0xC6");
+    assert_eq!(asm.pixels[10], 1, "First arg should be register 1");
+    assert_eq!(asm.pixels[11], 2, "Second arg should be register 2");
+}
+
+#[test]
+fn test_profile_disassembles() {
+    // Verify PROFILE disassembles correctly
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xC6; vm.ram[1] = 3; vm.ram[2] = 5;
+    let (mnemonic, len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "PROFILE r3, r5");
+    assert_eq!(len, 3);
+}
+
+#[test]
+fn test_profile_nested_mark_regions() {
+    // Starting region 0, then region 1, stopping region 1, then region 0
+    let mut vm = Vm::new();
+    // Start region 0
+    vm.ram[0] = 0x10; vm.ram[1] = 1; vm.ram[2] = 0;
+    vm.ram[3] = 0x10; vm.ram[4] = 2; vm.ram[5] = 0;
+    vm.ram[6] = 0xC6; vm.ram[7] = 1; vm.ram[8] = 2;
+    // NOP x2
+    vm.ram[9] = 0x01; vm.ram[10] = 0x01;
+    // Start region 1
+    vm.ram[11] = 0x10; vm.ram[12] = 2; vm.ram[13] = 1;
+    vm.ram[14] = 0xC6; vm.ram[15] = 1; vm.ram[16] = 2;
+    // NOP x3
+    vm.ram[17] = 0x01; vm.ram[18] = 0x01; vm.ram[19] = 0x01;
+    // Stop region 1
+    vm.ram[20] = 0xC6; vm.ram[21] = 1; vm.ram[22] = 2;
+    // NOP x2
+    vm.ram[23] = 0x01; vm.ram[24] = 0x01;
+    // Stop region 0
+    vm.ram[25] = 0xC6; vm.ram[26] = 1; vm.ram[27] = 2;
+    // HALT
+    vm.ram[28] = 0x00;
+    vm.pc = 0;
+    for _ in 0..1000 { if !vm.step() { break; } }
+    // Region 0 should include ALL steps from its start to stop
+    // Region 1 should include fewer steps (only between its start and stop)
+    assert!(vm.profile_regions[0] > vm.profile_regions[1],
+        "Region 0 (outer) should have more steps than region 1 (inner): {} vs {}",
+        vm.profile_regions[0], vm.profile_regions[1]);
+}
+
+#[test]
+fn test_total_steps_counter() {
+    // Verify total_steps increments on every instruction
+    let mut vm = Vm::new();
+    // 5 NOPs then HALT
+    for i in 0..5 { vm.ram[i] = 0x01; }
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    // 5 NOPs + 1 HALT = 6 steps
+    assert_eq!(vm.total_steps, 6, "total_steps should be 6 (5 NOPs + HALT)");
+}
