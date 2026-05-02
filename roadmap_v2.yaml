@@ -3951,7 +3951,7 @@ phases:
   scope_lines_total: 330
 - id: phase-260
   title: GeOS VM -- Matrix Multiply Opcode (MATMUL)
-  status: in_progress
+  status: complete
   goal: Hardware-accelerated 2D matrix multiply for linear algebra and neural network
     inference
   description: MATVEC does vector-matrix multiply. A full MATMUL opcode for 2D matrix
@@ -3960,7 +3960,7 @@ phases:
     plus dimensions.
   deliverables:
   - name: MATMUL opcode implementation
-    status: planned
+    status: done
     tasks:
     - id: p260.d1.t1
       title: Implement MATMUL dst_addr, A_addr, B_addr, M_reg, N_reg, K_reg (0xDE)
@@ -3993,7 +3993,7 @@ phases:
   _claimed_at: 1777699143
 - id: phase-261
   title: GeOS Program -- Particle Physics Sandbox
-  status: in_progress
+  status: complete
   goal: Write a real-time particle simulation with gravity, collisions, and interactive
     spawning
   description: A physics sandbox where particles interact with gravity, bounce off
@@ -4002,7 +4002,7 @@ phases:
     physics at 60fps.
   deliverables:
   - name: Particle physics sandbox
-    status: planned
+    status: done
     tasks:
     - id: p261.d1.t1
       title: Implement particle data structure and physics engine
@@ -4066,7 +4066,7 @@ phases:
   _claimed_at: 1777705830
 - id: phase-263
   title: GeOS VM -- Bitfield Extract/Insert Opcodes (BFE, BFI)
-  status: in_progress
+  status: complete
   goal: Add bitfield manipulation opcodes for efficient packed data access
   description: Many VM programs manipulate packed data (color channels, tile flags,
     entity state). Currently this requires manual SHL/SHR/AND/OR sequences (4-6 instructions).
@@ -4074,7 +4074,7 @@ phases:
     and code density.
   deliverables:
   - name: BFE and BFI opcodes
-    status: planned
+    status: done
     tasks:
     - id: p263.d1.t1
       title: Implement BFE dst, src, pos_reg, width_reg (0xDF) and BFI dst, src, val,
