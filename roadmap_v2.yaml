@@ -1396,11 +1396,9 @@ phases:
   scope_lines: 60
   scope_lines_total: 85900
   test_target: 2
-  _claimed_by: worker-0
-  _claimed_at: 1777645710
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: in_progress
+  status: planned
   goal: Extend file browser to support directory traversal, file deletion, and file
     creation
   description: The file browser shows VFS files and displays content but cannot navigate
@@ -4105,11 +4103,9 @@ phases:
       scope_lines: 60
   test_target: 10
   scope_lines_total: 200
-  _claimed_by: worker-0
-  _claimed_at: 1777707133
 - id: phase-264
   title: GeOS Program -- L-System Fractal Generator
-  status: in_progress
+  status: planned
   goal: Write an interactive L-system fractal renderer with rule editing
   description: L-systems generate complex fractal patterns from simple rewrite rules.
     This program implements turtle graphics with push/pop state for branching, supporting
