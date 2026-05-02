@@ -253,7 +253,7 @@ phases:
     '
 - id: phase-C
   title: Pixel VM Convergence
-  status: planned
+  status: complete
   goal: Unify RISC-V framebuffer and GeOS pixel VM into a single canonical surface
   description: 'RISC-V guest framebuffer composites into vm.screen (the canonical
     256x256 surface) via alpha-keyed writes. render.rs is the sole display path --
@@ -1400,7 +1400,7 @@ phases:
   _claimed_at: 1777645710
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: in_progress
+  status: planned
   goal: Extend file browser to support directory traversal, file deletion, and file
     creation
   description: The file browser shows VFS files and displays content but cannot navigate
@@ -1428,8 +1428,6 @@ phases:
   scope_lines: 65
   scope_lines_total: 85965
   test_target: 2
-  _claimed_by: worker-0
-  _claimed_at: 1777673068
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
   status: done
