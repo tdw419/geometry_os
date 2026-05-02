@@ -3,11 +3,11 @@
 Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers toolchain hygiene, GUI bridge, pixel VM convergence, libgeos extraction, and legacy roadmap reconciliation. SPEC = thesis. roadmap_v2 = arc. OpenSpec = per-change diff.
 
 
-**Progress:** 8/26 phases complete, 1 in progress
+**Progress:** 8/85 phases complete, 1 in progress
 
-**Deliverables:** 48/49 complete
+**Deliverables:** 48/110 complete
 
-**Tasks:** 45/91 complete
+**Tasks:** 45/275 complete
 
 ## Scope Summary
 
@@ -39,6 +39,65 @@ Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers tool
 | phase-198 Desktop Terminal Integration -- Launch Hermes from GeOS | PLANNED | 1/1 | 86,180 | 3 |
 | phase-199 Code Evolution Program -- Fitness Function Improvements | PLANNED | 1/1 | - | - |
 | phase-200 Pixelpack Seamless Authoring Loop | PLANNED | 1/1 | - | 2 |
+| phase-201 RISC-V Guest Networking -- Socket Syscall Layer | PLANNED | 0/1 | 180 | 3 |
+| phase-202 GeOS Audio System -- PCM Streaming via BEEP | PLANNED | 0/1 | 170 | 3 |
+| phase-203 RISC-V Fuzzer Coverage Expansion | PLANNED | 0/1 | 200 | 3 |
+| phase-204 GeOS Clipboard -- Cross-Program Pixel Copy/Paste | PLANNED | 0/1 | 160 | 3 |
+| phase-205 GeOS Sprite Sheet Loader | PLANNED | 0/1 | 170 | 3 |
+| phase-206 RISC-V Virtio-Blk Filesystem | PLANNED | 0/1 | 230 | 3 |
+| phase-207 GeOS Collision Detection Library | PLANNED | 0/1 | 130 | 3 |
+| phase-208 MCP Server -- Programmatic Assembly and Execution | PLANNED | 0/1 | 130 | 2 |
+| phase-209 RISC-V Multi-Process -- Cooperative Context Switching | PLANNED | 0/1 | 220 | 3 |
+| phase-210 GeOS Text Rendering -- Variable-Width Font Support | PLANNED | 0/1 | 130 | 3 |
+| phase-211 GeOS Performance -- Instruction Cache for Hot Loops | PLANNED | 0/1 | 140 | 3 |
+| phase-212 GeOS Pixel Art Export -- PNG Screenshot to VFS | PLANNED | 0/1 | 130 | 3 |
+| phase-213 GeOS Tilemap Editor -- Visual Map Building Tool | PLANNED | 0/1 | 240 | 2 |
+| phase-214 RISC-V GPU Compute -- WGSL Shader Integration | PLANNED | 0/1 | 170 | 2 |
+| phase-215 RISC-V Guest -- Hex Editor | PLANNED | 0/1 | 410 | 2 |
+| phase-216 RISC-V Guest -- Filesystem Commands in Shell | PLANNED | 0/1 | 240 | 3 |
+| phase-217 GeOS VM -- Mouse Support Opcodes | PLANNED | 0/1 | 240 | 4 |
+| phase-218 GeOS VM -- Bitmap Font Renderer for RISC-V Guest | PLANNED | 0/1 | 240 | 3 |
+| phase-219 GeOS VM -- Memory-Mapped Screen Buffer Readback | PLANNED | 0/1 | 100 | 3 |
+| phase-220 RISC-V Guest -- Mandelbrot Fractal Renderer | PLANNED | 0/1 | 260 | 3 |
+| phase-221 GeOS VM -- Clipboard Protocol Enhancement | PLANNED | 0/1 | 200 | 3 |
+| phase-222 GeOS VM -- Timer and Alarm Opcodes | PLANNED | 0/1 | 120 | 3 |
+| phase-223 GeOS VM -- Program Library (lib/) Standardization | PLANNED | 0/1 | 300 | 3 |
+| phase-224 RISC-V Guest -- Conway's Life with Framebuffer Rendering | PLANNED | 0/1 | 220 | 3 |
+| phase-225 GeOS VM -- Network HTTP Client Opcode | PLANNED | 0/1 | 210 | 3 |
+| phase-226 RISC-V Guest -- Minimal Text Editor | PLANNED | 0/1 | 350 | 2 |
+| phase-227 GeOS VM -- Debugging Opcode BREAKPOINT | PLANNED | 0/1 | 100 | 3 |
+| phase-228 GeOS VM -- Sprite Animation System | PLANNED | 0/1 | 135 | 3 |
+| phase-229 RISC-V Guest -- Simple File Viewer | PLANNED | 0/1 | 270 | 2 |
+| phase-230 Error Resilience -- Replace pixel.rs unwrap() Calls | PLANNED | 0/1 | 130 | 3 |
+| phase-231 Error Resilience -- Replace mmu.rs unwrap() Calls | PLANNED | 0/1 | 160 | 3 |
+| phase-232 GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST) | PLANNED | 0/1 | 140 | 4 |
+| phase-233 GeOS VM -- Conditional Move Opcodes (CMOV, CSEL) | PLANNED | 0/1 | 145 | 3 |
+| phase-234 GeOS VM -- Pixel Alpha Blending Opcode (BLEND) | PLANNED | 0/1 | 155 | 3 |
+| phase-235 RISC-V Guest -- Shared Memory IPC | PLANNED | 0/1 | 270 | 2 |
+| phase-236 GeOS VM -- Scanline Flood Fill Opcode (FLOOD) | PLANNED | 0/1 | 220 | 3 |
+| phase-237 Error Resilience -- Replace vfs_surface.rs unwrap() Calls | PLANNED | 0/1 | 130 | 3 |
+| phase-238 GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY) | PLANNED | 0/1 | 160 | 3 |
+| phase-239 GeOS VM -- Block Memory Opcodes (MEMCPY, MEMSET) | PLANNED | 0/1 | 150 | 3 |
+| phase-240 RISC-V Guest -- Timer and Sleep Syscalls | PLANNED | 0/1 | 190 | 2 |
+| phase-241 GeOS VM -- Rotation and Scaling Opcodes (ROTATE, SCALE) | PLANNED | 0/1 | 210 | 3 |
+| phase-242 Error Resilience -- Replace scrollback.rs and geos_term.rs unwrap() Calls | PLANNED | 0/1 | 110 | 3 |
+| phase-243 GeOS VM -- Direct Screen Text Opcode (DRAWTEXT) | PLANNED | 0/1 | 140 | 3 |
+| phase-244 RISC-V Guest -- Basic Socket Networking via SBI Extension | PLANNED | 0/1 | 220 | 2 |
+| phase-245 Test Coverage -- ops_host_fs.rs and ops_pty.rs Unit Tests | PLANNED | 0/2 | 360 | 15 |
+| phase-246 Test Coverage -- ops_syscall.rs Unit Tests | PLANNED | 0/1 | 180 | 8 |
+| phase-247 Test Coverage -- MCP Server Integration Tests | PLANNED | 0/1 | 360 | 15 |
+| phase-248 GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST) | PLANNED | 0/1 | 250 | 10 |
+| phase-249 GeOS VM -- Block Memory Opcodes (MEMCPY, MEMSET) | PLANNED | 0/1 | 270 | 12 |
+| phase-250 GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY) | PLANNED | 0/1 | 250 | 10 |
+| phase-251 GeOS Program -- Mandelbrot Fractal Explorer | PLANNED | 0/1 | 280 | 2 |
+| phase-252 GeOS Program -- Raycasting 3D Engine (Wolfenstein-style) | PLANNED | 0/1 | 360 | 2 |
+| phase-253 GeOS VM -- Audio System Tests and Improvements | PLANNED | 0/2 | 280 | 6 |
+| phase-254 GeOS Program -- Procedural Dungeon Generator with Fog of War | PLANNED | 0/1 | 380 | 2 |
+| phase-255 GeOS VM -- Conditional Move and Select Opcodes (CMOV, CSEL) | PLANNED | 0/1 | 150 | 8 |
+| phase-256 RISC-V Guest -- Shared Memory IPC Between Processes | PLANNED | 0/1 | 280 | 3 |
+| phase-257 RISC-V Guest -- Timer and Sleep Syscalls | PLANNED | 0/1 | 150 | 2 |
+| phase-258 GeOS VM -- Scanline Flood Fill Opcode (FLOOD) | PLANNED | 0/1 | 300 | 8 |
+| phase-259 GeOS Program -- Cellular Automata Sandbox (Life, HighLife, Seeds) | PLANNED | 0/1 | 330 | 2 |
 
 ## Dependencies
 
@@ -692,6 +751,966 @@ GeOS is a place you go to, not a place you live in. The editing happens external
   - [ ] `p200.d1.t3` Split-view display: source PNG + live execution pixels
     > Show the encoded pixelpack PNG and the live execution state (registers as colored pixels) side by side in the GeOS window. Source stays in neovim.
 
+## [ ] phase-201: RISC-V Guest Networking -- Socket Syscall Layer (PLANNED)
+
+**Goal:** Enable bare-metal RISC-V C programs to open TCP connections and exchange data
+
+The GeOS VM has TCP opcodes (CONNECT, SOCKSEND, SOCKRECV) but the RISC-V guest has no networking path. The syscall layer (src/riscv/syscall.rs) already lists socket/syscall numbers but returns -ENOSYS. Wire these to real host sockets via a simple proxy: guest writes a socket request to a shared MMIO buffer, host picks it up and performs the real connect/send/recv. This gives paint.c and sh.c the ability to fetch data from the network.
+
+### Deliverables
+
+- [ ] **Socket syscall implementation for RISC-V guest** -- 
+  - [ ] `p201.d1.t1` Implement socket() syscall returning guest fd
+    > Map socket() syscall to a guest file descriptor table. Allocate a host-side TCP stream on connect().
+  - [ ] `p201.d1.t2` Implement send/recv syscalls via host TCP proxy
+    > Guest send() writes to a ring buffer, host thread reads and sends via real TCP. Guest recv() polls the ring buffer. Non-blocking with timeout.
+  - [ ] `p201.d1.t3` Test: guest fetches HTTP from host via sockets
+    > A C program calls socket+connect+send("GET / HTTP/1.0\r\n\r\n")+recv, writes first 200 bytes of response to framebuffer. Verified via riscv_fb_dump.
+
+## [ ] phase-202: GeOS Audio System -- PCM Streaming via BEEP (PLANNED)
+
+**Goal:** Extend the single-tone BEEP opcode into a sample-streaming audio pipeline for sound effects and music
+
+The current BEEP opcode plays one sine-wave tone at a time via aplay. For games and demos, we need PCM sample streaming: pre-load a waveform into RAM, then play it back at a given sample rate. Add AUDIO_PLAY and AUDIO_STOP opcodes that stream from a RAM buffer through aplay in a background thread. This enables sound effects in snake.asm, background music in breakout.asm, and ambient audio in screensaver.asm.
+
+### Deliverables
+
+- [ ] **PCM sample streaming opcodes** -- 
+  - [ ] `p202.d1.t1` Add AUDIO_PLAY opcode (addr_reg, len_reg, rate_reg)
+    > Stream raw PCM samples from RAM through aplay in a background thread. Non-blocking: VM continues while audio plays. Use existing aplay pipe pattern.
+  - [ ] `p202.d1.t2` Add AUDIO_STOP opcode and audio state query
+    > AUDIO_STOP halts playback. AUDIO_STATUS (register) returns 1 if playing, 0 if done. Allow one concurrent stream (stop previous before starting new).
+  - [ ] `p202.d1.t3` Demo: tetris with sound effects via PCM streaming
+    > Pre-generate click/line-clear/game-over waveforms at boot, play them on events. Uses AUDIO_PLAY instead of BEEP for multi-sample effects.
+
+## [ ] phase-203: RISC-V Fuzzer Coverage Expansion (PLANNED)
+
+**Goal:** Extend the oracle-based RISC-V fuzzer to cover compressed instructions, CSR operations, and memory management
+
+The current fuzzer (src/riscv_fuzzer.rs, 747 lines) generates random RV32IM programs and checks against a reference oracle. It covers basic ALU, load/store, and branches but misses compressed instructions (C extension), CSR reads/writes, and atomic operations. Expanding coverage catches emulator bugs before they manifest in real guest programs. The fuzzer has caught real bugs before -- this is high-value defensive work.
+
+### Deliverables
+
+- [ ] **Compressed instruction fuzzer coverage** -- 
+  - [ ] `p203.d1.t1` Add C-extension instruction generation to fuzzer
+    > Generate random C.ADDI, C.LI, C.LUI, C.MV, C.J, C.BEQZ, C.BNEZ, C.LW, C.SW, C.LWSP, C.SWSP instructions with proper encoding. Mix with 32-bit instructions at configurable ratio.
+  - [ ] `p203.d1.t2` Add CSR read/write fuzzer paths
+    > Generate CSRRS/CSRRC/CSRRW for common CSRs (mstatus, mepc, mtvec, sstatus, sepc, stvec). Verify oracle matches emulator state.
+  - [ ] `p203.d1.t3` Run extended fuzzer for 1M iterations, fix any divergences
+    > Execute the expanded fuzzer with seed variation. Log and categorize any oracle mismatches. Fix emulator bugs found.
+
+## [ ] phase-204: GeOS Clipboard -- Cross-Program Pixel Copy/Paste (PLANNED)
+
+**Goal:** Allow programs to share pixel data via a clipboard buffer accessible through new CLIP_COPY and CLIP_PASTE opcodes
+
+Programs currently operate in isolation -- snake.asm draws its own pixels and tetris.asm draws its own. A clipboard buffer lets programs export/import rectangular pixel regions. Use case: a paint program exports a sprite, a game loads it. Implementation: 256x256 pixel buffer (same size as screen), CLIP_COPY reads from screen into buffer, CLIP_PASTE writes from buffer to screen. The buffer persists across program runs within the same VM session.
+
+### Deliverables
+
+- [ ] **Clipboard opcodes and buffer** -- 
+  - [ ] `p204.d1.t1` Add CLIP_COPY opcode (x, y, w, h registers)
+    > Copy a rectangular region from vm.screen into clipboard buffer. Parameters: x, y, width, height in registers. Clip to screen bounds.
+  - [ ] `p204.d1.t2` Add CLIP_PASTE opcode (x, y registers)
+    > Paste clipboard buffer contents at (x, y) on screen. Supports partial paste at screen edges.
+  - [ ] `p204.d1.t3` Demo: paint program with copy/paste functionality
+    > Extend painter.asm or write a new sprite editor that uses CLIP_COPY/CLIP_PASTE to duplicate regions and build sprite sheets.
+
+## [ ] phase-205: GeOS Sprite Sheet Loader (PLANNED)
+
+**Goal:** Load sprite sheets from VFS files and render them with SPRITE opcode in programs
+
+The SPRITE opcode already exists (0x4A) and blits NxM pixels from RAM to screen. But there is no standard way to load sprite data from VFS into RAM at a known address. Add a SPRITE_LOAD opcode that reads a VFS file into RAM at a given address, formatted as a width x height pixel array. Programs can then use SPRITE to render individual frames from the loaded sheet. This enables animated sprites in games without manually encoding pixel data in assembly.
+
+### Deliverables
+
+- [ ] **SPRITE_LOAD opcode for VFS-to-RAM sprite loading** -- 
+  - [ ] `p205.d1.t1` Add SPRITE_LOAD opcode (filename_addr, dest_addr, width, height regs)
+    > Open a VFS file by name (null-terminated string at filename_addr), read pixel data into RAM starting at dest_addr. Each pixel is a u32 color value. Return 0 on success, error code on failure.
+  - [ ] `p205.d1.t2` Add SPRITE_FRAME opcode for sheet animation
+    > Given a loaded sheet base address, frame dimensions, and frame index, compute the pixel offset for that frame. Write result to a register. Thin wrapper around address arithmetic.
+  - [ ] `p205.d1.t3` Demo: animated character with sprite sheet
+    > Create a sprite sheet (4-8 frames of a walking character), load via SPRITE_LOAD, animate via SPRITE_FRAME + SPRITE in a game loop.
+
+## [ ] phase-206: RISC-V Virtio-Blk Filesystem (PLANNED)
+
+**Goal:** Complete the virtio-blk driver so bare-metal C programs can read/write persistent files
+
+VirtioBlk exists in src/riscv/virtio_blk.rs and is wired into the bus, but the driver is a stub -- it returns zeros on read and accepts writes silently. A real virtio-blk driver backed by a host file would give guest programs persistent storage beyond the in-memory VFS surface. This is the next step toward a real bare-metal OS: programs that save data across VM restarts.
+
+### Deliverables
+
+- [ ] **Functional virtio-blk backed by host file** -- 
+  - [ ] `p206.d1.t1` Implement virtio-blk read/write against a host backing file
+    > On VM creation, open or create a backing file (e.g., 1MB). Virtio-blk read returns file contents, write persists to file. Handle virtio descriptor chains properly.
+  - [ ] `p206.d1.t2` Add GEOS_BLK_READ/WRITE helpers to libgeos
+    > Add C functions that wrap virtio-blk MMIO reads/writes: geos_blk_read(sector, buf, n), geos_blk_write(sector, buf, n). Add to libgeos.a.
+  - [ ] `p206.d1.t3` Test: guest writes data, restarts VM, reads data back
+    > C program writes a known pattern to block 0, triggers shutdown, runner restarts VM, program reads block 0 and verifies pattern. Proves persistence.
+
+## [ ] phase-207: GeOS Collision Detection Library (PLANNED)
+
+**Goal:** Build reusable collision detection primitives as assembly subroutines in the standard library
+
+Multiple game programs (snake, ball, breakout) implement their own collision detection with PEEK and manual bounds checking. This is duplicated, error-prone and wasteful. Create a collision detection library in lib/ with subroutines for AABB rectangle overlap, point-in-rect, circle-rect intersection, and pixel-perfect collision. Programs CALL these instead of inlining the logic.
+
+### Deliverables
+
+- [ ] **Collision detection subroutine library** -- 
+  - [ ] `p207.d1.t1` Implement AABB rectangle overlap subroutine
+    > rect_overlap(x1,y1,w1,h1, x2,y2,w2,h2) -> r0=1 if overlap, 0 if not. All args in registers. Use CMP+BLT pattern. No RAM usage.
+  - [ ] `p207.d1.t2` Implement circle-rect and point-in-circle subroutines
+    > circle_rect_intersect(cx,cy,cr, rx,ry,rw,rh) and point_in_circle(px,py,cx,cy,cr). Use squared distance to avoid SQRT (which doesn't exist).
+  - [ ] `p207.d1.t3` Refactor snake.asm to use collision library
+    > Replace inline collision checks in snake.asm with CALL to library subroutines. Verify behavior unchanged. Measure instruction savings.
+
+## [ ] phase-208: MCP Server -- Programmatic Assembly and Execution (PLANNED)
+
+**Goal:** Add MCP tools for loading, assembling, and running .asm programs from external agents
+
+The MCP server (src/mcp_server.rs) exposes status/screenshot/registers tools but cannot load and execute programs. An agent must type into the canvas via vm_type, which is slow and fragile. Add asm_load, asm_assemble, asm_run, and asm_step MCP tools so Hermes can programmatically test and develop GeOS programs. This unblocks the hermes/build agent loop from inside MCP.
+
+### Deliverables
+
+- [ ] **Assembly and execution MCP tools** -- 
+  - [ ] `p208.d1.t1` Add asm_load tool -- load .asm file into canvas buffer
+    > Takes file path, reads .asm source, writes to canvas buffer via load_source_to_canvas. Returns line count and any parse warnings.
+  - [ ] `p208.d1.t2` Add asm_assemble and asm_run tools
+    > asm_assemble triggers F8 (assemble canvas to bytecode). asm_run starts execution from 0x1000 with optional step limit. Returns register state and screen checksum after execution.
+  - [ ] `p208.d1.t3` Test: Hermes loads, assembles, runs hello.asm via MCP
+    > Integration test that calls the MCP tools in sequence and verifies the output matches expected screen content.
+
+## [ ] phase-209: RISC-V Multi-Process -- Cooperative Context Switching (PLANNED)
+
+**Goal:** Run multiple bare-metal C programs concurrently in the RISC-V interpreter with cooperative yielding
+
+The GeOS VM has SPAWN/KILL for multi-process but the RISC-V guest runs a single ELF. Add a lightweight context switcher: the guest calls a yield SBI extension, the host saves all registers and switches to a second guest context (separate register file, separate PC, shared MMIO). This proves multi-programming on the RISC-V layer without a full kernel -- just register save/restore and PC swap.
+
+### Deliverables
+
+- [ ] **Cooperative multi-process for RISC-V guests** -- 
+  - [ ] `p209.d1.t1` Add SBI_YIELD extension to sbi.rs
+    > New SBI extension (0x4759 = "GY"). Guest calls ecall with a7=0x4759, a0=context_id. Host saves current context, switches to target context. Return to caller on next yield.
+  - [ ] `p209.d1.t2` Add context management (create, switch, destroy)
+    > RiscvVm holds a Vec of GuestContext (registers, PC, privilege). SBI_YIELD with new context_id creates it. SBI_YIELD with existing ID switches. SBI_KILL terminates a context.
+  - [ ] `p209.d1.t3` Demo: two C programs alternating on framebuffer
+    > Program A draws a bouncing ball, yields every frame. Program B draws a rotating pattern, yields every frame. Both share the framebuffer, producing a composite display.
+
+## [ ] phase-210: GeOS Text Rendering -- Variable-Width Font Support (PLANNED)
+
+**Goal:** Support variable-width fonts in the TEXT opcode for more readable text display
+
+The TEXT opcode uses a fixed 8x8 pixel font (font.rs). For programs that display paragraphs of text (notepad.asm, chatbot.asm, help.asm), variable-width characters (like a real terminal font) look dramatically better. Add a FONT_SELECT opcode that switches the active font, and implement a proportional 5x7 font (mini_font.in already exists). The existing 8x8 font remains the default.
+
+### Deliverables
+
+- [ ] **Variable-width font rendering** -- 
+  - [ ] `p210.d1.t1` Implement proportional font rendering in TEXT opcode
+    > Add font selection state to Vm. When proportional font is active, TEXT uses character-width table from mini_font.in. Advance cursor by character width instead of fixed 8 pixels.
+  - [ ] `p210.d1.t2` Add FONT_SELECT opcode (font_id register)
+    > FONT_SELECT r -- 0 = 8x8 fixed, 1 = 5x7 proportional, 2 = 6x10 medium. Persists until changed. Validated range check.
+  - [ ] `p210.d1.t3` Demo: notepad with proportional font
+    > Modify notepad.asm to use proportional font for the text area while keeping the fixed font for the UI border. Shows visual improvement.
+
+## [ ] phase-211: GeOS Performance -- Instruction Cache for Hot Loops (PLANNED)
+
+**Goal:** Add a decoded instruction cache to speed up tight loops by 3-5x
+
+The VM currently decodes every instruction on every step() call, even in tight loops that execute the same instructions millions of times. At 88 MIPS, this decode overhead is the bottleneck. Add a small direct-mapped cache (256 entries) that maps PC to decoded instruction. On cache hit, skip decode and execute directly. Cache is invalidated on self-modifying code (STORE to code region). Expected speedup: 3-5x on loop-heavy programs like plasma, infinite_map, and the fuzzer.
+
+### Deliverables
+
+- [ ] **Decoded instruction cache** -- 
+  - [ ] `p211.d1.t1` Implement PC-indexed instruction cache in Vm
+    > Add HashMap<u32, CachedInstruction> to Vm. On step(), check cache before decoding. On cache miss, decode and insert. Invalidate on writes to code pages.
+  - [ ] `p211.d1.t2` Add cache invalidation on self-modifying code
+    > When STORE writes to the code region (0x1000-0x1FFF), invalidate the cache entry for that address. When ASM/ASMSELF writes bytecode, invalidate entire cache.
+  - [ ] `p211.d1.t3` Benchmark: measure speedup on plasma and infinite_map
+    > Run plasma and infinite_map with and without cache. Measure instructions/second. Target: 3x speedup on plasma (heavy loop), no regression on branchy code.
+
+## [ ] phase-212: GeOS Pixel Art Export -- PNG Screenshot to VFS (PLANNED)
+
+**Goal:** Save the current screen as a PNG file in the VFS, accessible from programs and the host
+
+The screenshot opcode exists (F9 key) but saves to a host file path. Programs cannot programmatically save their visual output. Add a SCREENSHOT opcode that encodes the current 256x256 screen as PNG and writes it to the VFS. This lets paint.asm save artwork, maze_gen.asm export mazes, and code_evolution.asm archive interesting generations -- all from within the program.
+
+### Deliverables
+
+- [ ] **SCREENSHOT opcode for in-program PNG export** -- 
+  - [ ] `p212.d1.t1` Add SCREENSHOT opcode (filename_addr register)
+    > Encode vm.screen as PNG (using existing encode_png from vision.rs logic) and write to VFS at the given filename. Return 0 on success.
+  - [ ] `p212.d1.t2` Add SCREEN_LOAD opcode to load PNG into screen
+    > Read a VFS file, decode as PNG, write pixels to vm.screen. Inverse of SCREENSHOT. Uses existing PNG decode logic.
+  - [ ] `p212.d1.t3` Demo: paint program with save/load functionality
+    > Painter saves current canvas as "painting1.png" via SCREENSHOT. On next run, loads it back via SCREEN_LOAD. Proves the round-trip.
+
+## [ ] phase-213: GeOS Tilemap Editor -- Visual Map Building Tool (PLANNED)
+
+**Goal:** Build an interactive tilemap editor that lets users paint tile-based levels for games
+
+The TILEMAP opcode (0x4C) blits tile grids from RAM to screen, but there is no tool to visually design tilemaps. Create a tilemap editor program with a tile palette on the left (selectable tiles), a grid canvas on the right (click to place tiles), and export to RAM format. This enables level design for roguelike.asm, maze.asm, and future tile-based games.
+
+### Deliverables
+
+- [ ] **Interactive tilemap editor program** -- 
+  - [ ] `p213.d1.t1` Tile palette display and selection UI
+    > Left panel shows 8x8 pixel tiles (8 across, scrollable). Arrow keys move selection cursor. Selected tile highlights. Uses SPRITE or PSET for rendering.
+  - [ ] `p213.d1.t2` Grid canvas with tile placement
+    > Right panel is a 16x16 grid (each cell = 16x16 pixels = 4x4 tile). Arrow keys + space to place selected tile. WASD to scroll. IKEY for input.
+  - [ ] `p213.d1.t3` Export tilemap to RAM for use with TILEMAP opcode
+    > Press S to save the tilemap as a flat index array in RAM at 0x7000. Another program can then use TILEMAP to render the level. Include a demo game that loads the saved map.
+
+## [ ] phase-214: RISC-V GPU Compute -- WGSL Shader Integration (PLANNED)
+
+**Goal:** Enable the RISC-V guest to offload compute work to the host GPU via the existing WGSL shader pipeline
+
+src/riscv/gpu.rs already has a WGSL compute shader (riscv_executor.wgsl) behind a feature flag. The GPU executor can run multiple RISC-V tiles in parallel on the GPU. This phase wires the GPU executor into the normal boot path so compute-heavy guest programs (life.c, mandelbrot) can use GPU acceleration transparently. The interpreter remains the fallback for non-GPU environments.
+
+### Deliverables
+
+- [ ] **GPU-accelerated RISC-V execution** -- 
+  - [ ] `p214.d1.t1` Wire GPU executor into RiscvVm::step loop
+    > When gpu feature is enabled and a GPU adapter is available, dispatch tile execution to the GPU shader instead of the CPU interpreter. Fall back to CPU on GPU errors.
+  - [ ] `p214.d1.t2` Add GPU memory transfer (guest RAM <-> GPU buffer)
+    > Upload guest RAM to GPU buffer before compute, download results after. Handle dirty-page tracking to minimize transfers.
+  - [ ] `p214.d1.t3` Benchmark: life.c with and without GPU
+    > Run Conway's life at 256x256 with CPU-only vs GPU-accelerated. Measure frames per second. Target: 5x+ speedup on GPU.
+
+## [ ] phase-215: RISC-V Guest -- Hex Editor (PLANNED)
+
+**Goal:** Add a bare-metal hex editor C program for inspecting and modifying guest memory
+
+sh.c has peek/poke for single words and hexdump for read-only display, but there is no interactive hex editor that lets you navigate, inspect, and modify memory byte-by-byte. A hex editor is the most essential bare-metal debugging tool — it lets you inspect framebuffer pixels, VFS data, stack contents, and ELF headers without rebuilding the program. This proves the Layer 3 tooling thesis: useful programs on bare-metal SBI, no kernel needed.
+
+### Deliverables
+
+- [ ] **Interactive hex editor for RISC-V guest** -- 
+  - [ ] `p215.d1.t1` Implement hex navigation and display
+    > Display 16 bytes per line in hex+ASCII format. Arrow keys navigate, PageUp/PageDown scroll by 256 bytes. Show address on left. Render to framebuffer using libgeos pixel primitives (geos_fb_pixel, geos_puts).
+  - [ ] `p215.d1.t2` Add byte editing and save
+    > Enter key toggles edit mode. Type hex digits to modify bytes. Write changes to RAM immediately. Add search (S key) for hex byte patterns.
+  - [ ] `p215.d1.t3` Add build.sh entry and runner example
+    > Wire into build.sh. Add hexedit_run.rs example that boots hexedit.elf with stdin passthrough. Test by navigating to framebuffer address and modifying a pixel.
+
+## [ ] phase-216: RISC-V Guest -- Filesystem Commands in Shell (PLANNED)
+
+**Goal:** Extend sh.c with VFS file operations: ls, cat, touch, rm, and stat
+
+The mini-shell (sh.c) can peek/poke memory and run commands, but has no filesystem awareness. The VFS Pixel Surface at 0x7000_0000 stores files as pixel rows, but sh.c cannot list, read, create, or delete them. Adding filesystem commands to the shell makes the guest self-sufficient — users can manage files without the host. The VFS directory index is in row 0 (filename pixels), file content in subsequent rows.
+
+### Deliverables
+
+- [ ] **VFS filesystem commands in sh.c** -- 
+  - [ ] `p216.d1.t1` Implement ls command (list VFS files)
+    > Read VFS row 0 directory index. Parse filename pixels (null-terminated strings). Display filename and file size (row count). Handle empty directory.
+  - [ ] `p216.d1.t2` Implement cat command (display file content)
+    > Read file content rows from VFS surface. Display as ASCII text via sbi_console_putchar. Handle binary files with hex dump fallback.
+  - [ ] `p216.d1.t3` Implement touch and rm commands
+    > touch creates a new empty file (write filename to row 0, allocate one row). rm removes a file by shifting directory entries and clearing content rows. Both modify VFS surface via MMIO writes.
+
+## [ ] phase-217: GeOS VM -- Mouse Support Opcodes (PLANNED)
+
+**Goal:** Add mouse position and button state opcodes for GUI programs
+
+Current input is keyboard-only via IKEY. GUI programs (window manager, desktop, file browser) need mouse support. Add MOUSEX (read mouse X to register), MOUSEY (read mouse Y), MOUSEB (read button bitmask: bit 0=left, bit 1=right, bit 2=middle), and MOUSECLICK (blocking wait for click, returns x/y/buttons). The host already tracks mouse state via minifb — just expose it to the VM.
+
+### Deliverables
+
+- [ ] **Mouse input opcodes** -- 
+  - [ ] `p217.d1.t1` Add MOUSEX, MOUSEY, MOUSEB opcodes
+    > Three new opcodes that read current mouse state into registers. MOUSEX writes x (0-255), MOUSEY writes y (0-255), MOUSEB writes button bitmask. Non-blocking, returns current state. Opcode numbers: 0xC2, 0xC3, 0xC4.
+  - [ ] `p217.d1.t2` Add MOUSECLICK blocking opcode
+    > MOUSECLICK blocks until a mouse click event occurs, then writes x, y, buttons to three consecutive registers. Returns immediately if click already pending. Uses a click event queue (max 16). Opcode 0xC5.
+  - [ ] `p217.d1.t3` Wire minifb mouse events to VM
+    > In main.rs event loop, capture minifb MouseMove/MouseDown/MouseUp events and store in vm.mouse_x, vm.mouse_y, vm.mouse_buttons. Push click events to click queue on MouseDown.
+  - [ ] `p217.d1.t4` Demo: clickable button program
+    > Draw 3 colored buttons, detect which was clicked using MOUSECLICK, change color on press. Verify with test that checks screen color changes after simulated clicks.
+
+## [ ] phase-218: GeOS VM -- Bitmap Font Renderer for RISC-V Guest (PLANNED)
+
+**Goal:** Add a framebuffer text rendering primitive to libgeos so guest C programs can draw text
+
+The RISC-V guest has pixel primitives (geos_fb_pixel, geos_rgb) but no text rendering. paint.c and sh.c use the SBI console (character-by-character to UART), which goes to the host terminal, not the framebuffer. To build graphical tools (hex editor, file browser, status bars) that render in the guest framebuffer, we need a geos_draw_char() and geos_draw_string() that blits bitmap glyphs to the framebuffer via MMIO writes.
+
+### Deliverables
+
+- [ ] **Bitmap font rendering in libgeos** -- 
+  - [ ] `p218.d1.t1` Add 8x8 bitmap font data to libgeos
+    > Embed a minimal 8x8 font (96 printable ASCII characters, ~768 bytes) as a const array in libgeos.c. Use the same CP437/VGA glyphs from GeOS font.rs for visual consistency.
+  - [ ] `p218.d1.t2` Implement geos_draw_char and geos_draw_string
+    > geos_draw_char(x, y, ch, fg, bg) blits one glyph. geos_draw_string(x, y, str, fg, bg) iterates characters. Both use geos_fb_pixel() for each set bit. Add geos_measure_string() returning pixel width.
+  - [ ] `p218.d1.t3` Update paint.c status bar to use framebuffer text
+    > Replace the palette bar legend with geos_draw_string() calls. This proves the font renderer works in a real program and matches the visual quality of the GeOS pixel font.
+
+## [ ] phase-219: GeOS VM -- Memory-Mapped Screen Buffer Readback (PLANNED)
+
+**Goal:** Let VM programs read the screen buffer via LOAD from 0x10000-0x1FFFF
+
+The screen buffer at 0x10000-0x1FFFF (256x256 pixels, mapped to vm.screen) already supports writes for SETPIXEL-style rendering, but LOAD from this region does not return actual screen pixels — it reads from vm.ram which is stale. Wire LOAD in this range to read vm.screen[y*256+x] so programs can implement screenshot save, collision detection against rendered output, and pixel pick operations. The existing PEEK opcode (0x4F) reads screen pixels but only one at a time; LOAD+STORE lets programs bulk-copy screen regions.
+
+### Deliverables
+
+- [ ] **Screen buffer LOAD readback** -- 
+  - [ ] `p219.d1.t1` Wire LOAD from 0x10000 to read vm.screen
+    > In the LOAD opcode handler, when addr is in 0x10000-0x1FFFF range, read from vm.screen[addr - 0x10000] instead of vm.ram[addr]. Screen buffer is 256*256 = 65536 entries.
+  - [ ] `p219.d1.t2` Add test for screen readback consistency
+    > Draw pixels with PSET, then LOAD from screen buffer address, verify values match. Also test that STORE to screen buffer still works (write path already exists).
+  - [ ] `p219.d1.t3` Demo: screen capture to RAM program
+    > Copy the entire screen buffer to RAM at 0x2000 using a LOAD/STORE loop. Verify first 10 pixels match expected values. This enables future screenshot-to-VFS functionality.
+
+## [ ] phase-220: RISC-V Guest -- Mandelbrot Fractal Renderer (PLANNED)
+
+**Goal:** Add a Mandelbrot set renderer that proves the RISC-V interpreter handles compute-intensive floating-point work
+
+The RISC-V interpreter supports M-extension multiplication and division but has no FPU (floating-point opcodes are NOPs). However, fixed-point arithmetic can produce visually impressive fractals. A Mandelbrot renderer using 16.16 fixed-point math proves: (1) the interpreter is fast enough for real computation, (2) fixed-point math is viable for guest programs, (3) the framebuffer can display complex imagery. This is a capstone visual demo alongside paint.c and life.c.
+
+### Deliverables
+
+- [ ] **Fixed-point Mandelbrot renderer** -- 
+  - [ ] `p220.d1.t1` Implement 16.16 fixed-point Mandelbrot core
+    > Iterate z = z^2 + c using integer multiplication with implicit 16-bit fraction. Max 64 iterations per pixel. Color map: iteration count to RGB via table lookup.
+  - [ ] `p220.d1.t2` Add zoom and pan controls
+    > Arrow keys pan, +/- zoom in/out. Store center coordinates and scale as fixed-point. Re-render on input. Display coordinates in top-left corner using geos_draw_string.
+  - [ ] `p220.d1.t3` Add build.sh entry and visual verification
+    > Wire into build.sh. Add mandelbrot_run.rs example. Visual verification via riscv_fb_dump: assert non-zero pixel count > 1000, assert color diversity > 50 unique colors.
+
+## [ ] phase-221: GeOS VM -- Clipboard Protocol Enhancement (PLANNED)
+
+**Goal:** Extend the system clipboard (0xF010-0xF01F) with multi-format copy/paste and clipboard history
+
+The clipboard protocol at 0xF010-0xF01F supports basic pixel-region copy/paste (CLIPCOPY/CLIPPASTE opcodes), but has no text clipboard, no clipboard history, and no cross-process sharing. Extend with: (1) TEXTCOPY opcode for copying null-terminated strings from RAM to clipboard, (2) TEXTPASTE opcode for reading clipboard text to RAM, (3) CLIPCOUNT for clipboard history size, (4) CLIPSELECT to choose from history entries.
+
+### Deliverables
+
+- [ ] **Text clipboard and history** -- 
+  - [ ] `p221.d1.t1` Add TEXTCOPY and TEXTPASTE opcodes
+    > TEXTCOPY addr_reg, len_reg: copy string from RAM to clipboard. TEXTPASTE addr_reg, max_len_reg: read clipboard text to RAM, return actual length. Store text in vm.clipboard_text field.
+  - [ ] `p221.d1.t2` Add clipboard history ring buffer
+    > Store last 8 clipboard entries (text or pixel region) in a ring buffer. CLIPCOUNT returns count. CLIPSELECT idx_reg selects entry for paste. New copy pushes to history, oldest evicted.
+  - [ ] `p221.d1.t3` Add tests for clipboard operations
+    > Test TEXTCOPY/TEXTPASTE round-trip. Test history overflow (9 copies evicts oldest). Test CLIPSELECT retrieves correct entry. Test empty clipboard returns zero-length.
+
+## [ ] phase-222: GeOS VM -- Timer and Alarm Opcodes (PLANNED)
+
+**Goal:** Add wall-clock timer opcodes so programs can schedule actions by real time, not just frame count
+
+Programs currently use the TICKS register (RAM[0xFFE], incremented by FRAME) for timing, but TICKS are instruction-count-based, not wall-clock. For games (countdown timers), UI (auto-save reminders), and networking (timeouts), programs need real time. Add TIMER_GET (milliseconds since VM start to register), TIMER_SET_ALARM (register = milliseconds from now), and TIMER_CHECK (returns 1 if alarm fired, 0 if not). Uses std::time::Instant on the host.
+
+### Deliverables
+
+- [ ] **Wall-clock timer opcodes** -- 
+  - [ ] `p222.d1.t1` Add TIMER_GET opcode
+    > Reads host Instant::now() - vm.start_time, writes milliseconds to register. 32-bit value wraps at ~49 days. Opcode 0xC6.
+  - [ ] `p222.d1.t2` Add TIMER_SET_ALARM and TIMER_CHECK opcodes
+    > TIMER_SET_ALARM stores target_time = now + delay_ms. TIMER_CHECK returns 1 if now >= target_time, 0 if not. One alarm at a time (new alarm replaces old). Opcodes 0xC7, 0xC8.
+  - [ ] `p222.d1.t3` Demo: countdown timer program
+    > 10-second countdown displayed on screen. Uses TIMER_SET_ALARM + TIMER_CHECK each frame. Shows remaining seconds in large text. Beeps on completion. Proves wall-clock timing works.
+
+## [ ] phase-223: GeOS VM -- Program Library (lib/) Standardization (PLANNED)
+
+**Goal:** Audit and standardize the programs/lib/ assembly library with proper documentation and test coverage
+
+The programs/lib/ directory contains stdlib.asm, math.asm, stdio.asm, and time.asm, but these are inconsistently documented, some have .include path issues, and many are unused by current programs. This phase audits the library, fixes .include paths, adds missing utility routines (string compare, memory copy, integer-to-hex), and adds integration tests that .include each library file and verify the routines work.
+
+### Deliverables
+
+- [ ] **Standardized and tested program library** -- 
+  - [ ] `p223.d1.t1` Audit and fix .include paths in all lib files
+    > Verify each .include directive resolves correctly from programs/ directory. Fix relative paths. Document each exported subroutine with calling convention (args in which registers, return value, clobbered registers).
+  - [ ] `p223.d1.t2` Add missing utility routines
+    > Add mem_copy(src, dst, len), mem_set(addr, val, len), strcmp(s1, s2) returning 0/1/-1, itoa(num, buf) for integer-to-ASCII. Follow existing calling conventions (args in r10-r15, return in r10, PUSH/POP r31 for nested calls).
+  - [ ] `p223.d1.t3` Add integration tests for each library file
+    > For each lib/*.asm file, write a test program that .includes it, calls each subroutine, and verifies results via RAM assertions. Run via compile_run pattern.
+
+## [ ] phase-224: RISC-V Guest -- Conway's Life with Framebuffer Rendering (PLANNED)
+
+**Goal:** Port Conway's Game of Life to use the framebuffer instead of SBI console output
+
+life.c exists but outputs cell state to the SBI console (UART). A framebuffer version renders the grid as pixels, which is the canonical Geometry OS output method. Each living cell is a colored pixel (green on black). The framebuffer version also enables zoom, pan, and speed controls via keyboard input, which the console version cannot support.
+
+### Deliverables
+
+- [ ] **Framebuffer Game of Life** -- 
+  - [ ] `p224.d1.t1` Implement framebuffer rendering for life grid
+    > Map the 256x256 framebuffer to the life grid (1 pixel per cell for full resolution, or 4x4 pixels per cell for visibility). Use geos_fb_pixel for rendering. Color living cells green, dead cells black.
+  - [ ] `p224.d1.t2` Add keyboard controls for zoom, pan, speed
+    > Zoom in/out with +/- keys. Arrow keys pan. S toggles speed. R randomizes. C clears. Q quits. Uses geos_getchar for input.
+  - [ ] `p224.d1.t3` Add visual verification test
+    > Seed with a known pattern (glider). Run 100 generations. Dump framebuffer. Assert glider moved to expected position. Assert cell count matches expected.
+
+## [ ] phase-225: GeOS VM -- Network HTTP Client Opcode (PLANNED)
+
+**Goal:** Add a simple HTTP GET opcode that fetches a URL and stores the response in RAM
+
+The VM has TCP opcodes (CONNECT, SOCKSEND, SOCKRECV) but no HTTP-level abstraction. Programs that want to fetch data from the web must manually construct HTTP requests, parse responses, and handle chunked encoding. An HTTPGET opcode encapsulates the common case: HTTPGET url_addr_reg, buf_reg, max_len_reg, actual_len_reg sends a GET request to the URL at url_addr, writes the response body to buf, and returns the actual length. Uses the existing TCP networking in src/vm/net.rs.
+
+### Deliverables
+
+- [ ] **HTTP GET opcode** -- 
+  - [ ] `p225.d1.t1` Implement HTTPGET opcode (0xC9)
+    > Read null-terminated URL from RAM. Parse host:port. Connect via TCP. Send "GET /path HTTP/1.0\r\nHost: host\r\n\r\n". Read response until connection closes or max_len reached. Strip HTTP headers. Write body to buf. Return body length. Error codes in r0 on failure.
+  - [ ] `p225.d1.t2` Add assembler and disassembler entries
+    > HTTPGET in assembler (system_ops.rs) with 4 register args. Disassembler entry in disasm.rs. Preprocessor OPCODES entry.
+  - [ ] `p225.d1.t3` Add test with mock TCP server
+    > Spawn a local HTTP server (127.0.0.1:TEST_PORT) in test, serve a known response. Execute HTTPGET opcode. Verify body content matches. Test error handling (connection refused, too large response).
+
+## [ ] phase-226: RISC-V Guest -- Minimal Text Editor (PLANNED)
+
+**Goal:** Add a bare-metal text editor C program for editing VFS files
+
+The guest has sh.c for commands, paint.c for pixel art, and hexedit.c (planned) for binary editing, but no text editor. A minimal text editor (like nano) that can open VFS files, edit text, and save back to the VFS is essential for the guest to be self-sufficient. Uses framebuffer text rendering (from phase-218 libgeos font) and keyboard input via geos_getchar.
+
+### Deliverables
+
+- [ ] **Bare-metal text editor** -- 
+  - [ ] `p226.d1.t1` Implement basic text display and cursor movement
+    > Display file content in the framebuffer (80x32 character grid at 3x8 pixel cells). Arrow keys move cursor. PageUp/PageDown scroll. Status bar at bottom shows filename and line/col.
+  - [ ] `p226.d1.t2` Add text editing and file save/load
+    > Type to insert characters. Backspace deletes. Enter inserts newline. Ctrl+O saves to VFS. Ctrl+X exits. Ctrl+R opens file from VFS (file browser mode). Uses VFS pixel surface MMIO for file I/O.
+
+## [ ] phase-227: GeOS VM -- Debugging Opcode BREAKPOINT (PLANNED)
+
+**Goal:** Add a hardware breakpoint opcode that triggers the VM debugger
+
+The VM has software breakpoints (set via the bp command in terminal), but programs cannot set their own breakpoints. A BREAKPOINT opcode (0xCA) that halts execution and enters the debugger when hit would let programs implement conditional breakpoints (CMP + JNZ + BREAKPOINT), assert macros, and interactive debugging from within the running program. The debugger already has single-step and register display — BREAKPOINT just needs to set a flag that the step loop checks.
+
+### Deliverables
+
+- [ ] **BREAKPOINT opcode** -- 
+  - [ ] `p227.d1.t1` Implement BREAKPOINT opcode (0xCA)
+    > Sets vm.breakpoint_hit = true and returns false from step(). The main loop detects this and enters the debugger (same as F6 single-step behavior). Zero words (no arguments).
+  - [ ] `p227.d1.t2` Wire breakpoint_hit into execution loops
+    > Both GUI (main.rs animation loop) and CLI (cli_main run loop) check vm.breakpoint_hit after each step batch. If true, print "BREAKPOINT hit at PC=0x..." and enter interactive debug mode.
+  - [ ] `p227.d1.t3` Add conditional breakpoint test
+    > Program sets r10 = 5, loops incrementing r10, BREAKPOINT when r10 == 8. Verify debugger triggers at correct PC. Verify r10 == 8.
+
+## [ ] phase-228: GeOS VM -- Sprite Animation System (PLANNED)
+
+**Goal:** Add frame-based sprite animation support for games and demos
+
+The SPRITE opcode blits a single NxM pixel region from RAM. For animated sprites (walk cycles, explosions, rotating objects), programs currently manually track frame indices and swap source addresses. Add SPRITEANIM opcode that takes a sprite sheet address, frame width, frame count, current frame register, and destination coordinates. Increment frame on each call (with wrap-around). This reduces boilerplate in game programs.
+
+### Deliverables
+
+- [ ] **SPRITEANIM opcode** -- 
+  - [ ] `p228.d1.t1` Implement SPRITEANIM opcode (0xCB)
+    > SPRITEANIM sheet_reg, fw_reg, fh_reg, frames_reg, cur_reg, x_reg, y_reg. Blits frame[cur_reg] from sheet. Increments cur_reg (mod frames_reg). 7 register arguments. Reuses existing SPRITE blit logic with offset calculation.
+  - [ ] `p228.d1.t2` Add disassembler and preprocessor entries
+    > Disassemble as "SPRITEANIM sheet, fw, fh, frames, cur, x, y". Add to OPCODES array in preprocessor.rs.
+  - [ ] `p228.d1.t3` Demo: animated sprite walk cycle
+    > 4-frame walk cycle (8x8 per frame) stored in RAM. SPRITEANIM in a loop moves character across screen. Test verifies character position advances each frame and sprite cycles through all 4 frames.
+
+## [ ] phase-229: RISC-V Guest -- Simple File Viewer (PLANNED)
+
+**Goal:** Add a bare-metal file viewer that displays VFS files with line numbers and scrolling
+
+The guest shell has cat for printing files, but no interactive viewer with scrolling, line numbers, or search. A file viewer is the third essential tool (alongside editor and hex editor) for a self-sufficient guest OS. It reads from the VFS pixel surface, renders to the framebuffer using libgeos text primitives, and supports arrow-key scrolling and / search.
+
+### Deliverables
+
+- [ ] **Interactive file viewer** -- 
+  - [ ] `p229.d1.t1` Implement file display with line numbers
+    > Read VFS file content from pixel surface. Display with 4-digit line numbers. 40-column display (3x8 pixel font cells in 256-wide framebuffer). Arrow keys scroll, Home/End jump to start/end.
+  - [ ] `p229.d1.t2` Add search (/) and file switching (n/p)
+    > Search with / key, type pattern, Enter searches forward. n for next match, p for previous. Tab switches between open files.
+  - [ ] `p229.d1.t3` Add build.sh entry and runner
+    > Wire into build.sh. Accept filename as command-line argument (passed via a0 in crt0.S). If no argument, show VFS file list.
+
+## [ ] phase-230: Error Resilience -- Replace pixel.rs unwrap() Calls (PLANNED)
+
+**Goal:** Eliminate all 17 unwrap() calls in pixel.rs with proper error propagation
+
+pixel.rs handles PNG decode/encode for pixelpack and .rts.png formats. It has 17 unwrap() calls that can panic on corrupt images, missing files, or malformed PNG data. Since pixel.rs is called during boot (pixelpack-encoded programs), a panic here crashes the entire OS. Replace with Result-based error handling and graceful fallbacks.
+
+### Deliverables
+
+- [ ] **unwrap()-free pixel.rs** -- 
+  - [ ] `p230.d1.t1` Replace File::open and Decoder unwrap() with error propagation
+    > Convert decode_rts_png and decode_pixelpack_png to return Result. Propagate errors to callers. Add ? operator chain.
+  - [ ] `p230.d1.t2` Replace PNG read_info and read_image unwrap() calls
+    > Handle PNG decode errors (corrupt headers, truncated data) by returning Result instead of panicking.
+  - [ ] `p230.d1.t3` Add pixel boot fallback for corrupt pixelpack images
+    > When a pixelpack boot image fails to decode, fall back to a default program or show an error screen instead of panicking.
+
+## [ ] phase-231: Error Resilience -- Replace mmu.rs unwrap() Calls (PLANNED)
+
+**Goal:** Eliminate all 14 unwrap() calls in riscv/mmu.rs with proper error paths
+
+riscv/mmu.rs is the memory management unit for the RISC-V interpreter. It has 14 unwrap() calls that panic on page table walk failures, allocation errors, and invalid address translations. Since this runs during Linux boot, a panic loses the entire boot state. Replace with proper error types that propagate to the step loop for graceful fault handling.
+
+### Deliverables
+
+- [ ] **unwrap()-free mmu.rs** -- 
+  - [ ] `p231.d1.t1` Convert translate() to return Result with TranslateError
+    > Replace unwrap() calls in page table walking with error propagation. Define TranslateError enum with PageFault, InvalidPTE, AllocFailed variants.
+  - [ ] `p231.d1.t2` Convert alloc_pages and COW handlers to Result-based
+    > Page allocation and copy-on-write resolution should return errors instead of panicking on out-of-memory or ref count corruption.
+  - [ ] `p231.d1.t3` Wire translate errors into bus fault handling
+    > CPU step loop catches TranslateError and delivers proper page fault exceptions instead of panicking.
+
+## [ ] phase-232: GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST) (PLANNED)
+
+**Goal:** Add bitwise manipulation opcodes for efficient flag and bitfield operations
+
+Current bitwise ops (AND, OR, XOR, SHL, SHR, SAR) cover basic needs but programs doing bitfield manipulation (device registers, packed colors, sprite flags) need extra instructions for single-bit operations. Add BNOT (bitwise NOT), BSET (set bit N), BCLR (clear bit N), and BTST (test bit N). These eliminate the SHL+OR+AND sequences currently used.
+
+### Deliverables
+
+- [ ] **Bit manipulation opcodes** -- 
+  - [ ] `p232.d1.t1` Implement BNOT rd (0xC1), BSET rd bit_reg (0xC2), BCLR rd bit_reg (0xC3)
+    > BNOT inverts all bits. BSET sets bit N. BCLR clears bit N. Two-word encoding for BNOT, three-word for BSET/BCLR.
+  - [ ] `p232.d1.t2` Implement BTST rd bit_reg (0xC4) with r0 result
+    > Test bit N and store result in r0. Combined with JZ/JNZ for conditional bit branches. Three-word encoding.
+  - [ ] `p232.d1.t3` Add disassembler entries and tests
+    > Disassemble all four new opcodes. Add 4 unit tests verifying bit manipulation behavior with edge cases (bit 0, bit 31, overflow).
+
+## [ ] phase-233: GeOS VM -- Conditional Move Opcodes (CMOV, CSEL) (PLANNED)
+
+**Goal:** Add branchless conditional move and select to eliminate branch-heavy patterns
+
+Many programs use CMP+BLT+LDI+MOV+JMP patterns for min/max/clamp. CMOV rd, rs, cond_reg moves rs into rd only when cond_reg is nonzero. CSEL rd, rs1, rs2, cond_reg selects rs1 or rs2 based on cond_reg. These are branchless alternatives that reduce step count in tight loops.
+
+### Deliverables
+
+- [ ] **Conditional move opcodes** -- 
+  - [ ] `p233.d1.t1` Implement CMOV rd, rs, cond_reg (0xC5) and CSEL rd, rs1, rs2, cond_reg (0xC6)
+    > CMOV conditionally moves rs into rd. CSEL selects between rs1 and rs2. Both register-only.
+  - [ ] `p233.d1.t2` Add disassembler and preprocessor entries
+    > Disassemble CMOV and CSEL. Add to preprocessor OPCODES array.
+  - [ ] `p233.d1.t3` Write benchmark program comparing branch vs CMOV for color clamp
+    > Program clamping colors to 0-255 range using both approaches, measuring step count difference.
+
+## [ ] phase-234: GeOS VM -- Pixel Alpha Blending Opcode (BLEND) (PLANNED)
+
+**Goal:** Add hardware-accelerated alpha blending for sprite compositing and transparency
+
+The SPRITE opcode treats color 0 as transparent but has no partial transparency. Programs needing glass effects, fog, or smooth sprite edges must blend manually at 15 instructions per pixel. A BLEND opcode does per-channel alpha blending in one instruction, accelerating transparency 15x.
+
+### Deliverables
+
+- [ ] **BLEND opcode** -- 
+  - [ ] `p234.d1.t1` Implement BLEND dest_reg, src_reg, alpha_reg (0xC7)
+    > Blend: dest = src * alpha/255 + dest * (255 - alpha)/255. Per-channel RGB. Alpha in low byte (0-255). 4-word encoding.
+  - [ ] `p234.d1.t2` Add disassembler entry and unit tests
+    > Test blend white+black at 50% alpha = gray. Alpha 0 = unchanged. Alpha 255 = pure src.
+  - [ ] `p234.d1.t3` Write transparency demo program
+    > Two overlapping rectangles with adjustable alpha via keyboard.
+
+## [ ] phase-235: RISC-V Guest -- Shared Memory IPC (PLANNED)
+
+**Goal:** Enable bare-metal RISC-V programs to share memory regions for communication
+
+The Layer 2 kernel supports multi-program time-slicing but programs cannot communicate. Add shared memory: geos_shm_alloc(size), geos_shm_attach(id), geos_shm_release(id) with up to 8 regions (64KB each). Reference-counted. Enables producer-consumer patterns between guest programs.
+
+### Deliverables
+
+- [ ] **Shared memory IPC for RISC-V guests** -- 
+  - [ ] `p235.d1.t1` Implement shm_alloc, shm_attach, shm_release in geos_kern.c
+    > Kernel manages shared regions with reference counting. Alloc returns region ID. Attach maps into caller address space.
+  - [ ] `p235.d1.t2` Add shm_write and shm_read libgeos wrappers
+    > Copy data to/from shared regions with bounds checking.
+  - [ ] `p235.d1.t3` Write producer-consumer demo
+    > Program A writes counter to shared memory. Program B reads and displays it. Both run under geos_kern.
+
+## [ ] phase-236: GeOS VM -- Scanline Flood Fill Opcode (FLOOD) (PLANNED)
+
+**Goal:** Add a FLOOD opcode for efficient area filling from a seed point
+
+Current fills cover rectangles only. Programs needing irregular fills (paint bucket, territory marking) must implement flood fill manually at high step cost. FLOOD performs scanline flood fill from a seed pixel, enabling paint programs and game territory marking at near-native speed.
+
+### Deliverables
+
+- [ ] **FLOOD opcode** -- 
+  - [ ] `p236.d1.t1` Implement FLOOD x_reg, y_reg, fill_reg, tolerance_reg (0xC8)
+    > Scanline flood fill starting at (x,y). Replaces connected pixels within tolerance of seed color with fill color. Stack-based scanline algorithm. 5-word encoding.
+  - [ ] `p236.d1.t2` Add disassembler entry and tests
+    > Test fill enclosed rectangle. Test no leak past boundaries. Test tolerance=0 exact match.
+  - [ ] `p236.d1.t3` Write paint bucket demo
+    > Draw shapes on screen, flood-fill regions with new colors via keyboard cursor and space bar.
+
+## [ ] phase-237: Error Resilience -- Replace vfs_surface.rs unwrap() Calls (PLANNED)
+
+**Goal:** Eliminate all 10 unwrap() calls in riscv/vfs_surface.rs
+
+vfs_surface.rs bridges the RISC-V guest filesystem to the host VFS. It has 10 unwrap() calls that panic on corrupt surfaces or missing files. Replace with Result-based error handling that returns VFS errors to the guest.
+
+### Deliverables
+
+- [ ] **unwrap()-free vfs_surface.rs** -- 
+  - [ ] `p237.d1.t1` Convert surface read/write to Result-based
+    > Replace unwrap() in read_surface, write_surface, list_surfaces with proper error returns. Define VfsError enum.
+  - [ ] `p237.d1.t2` Propagate VFS errors to guest syscall layer
+    > Guest syscalls return negative error codes instead of panicking.
+  - [ ] `p237.d1.t3` Add integration test for corrupt surface handling
+    > Test corrupt surface file, missing file, truncated data. Verify errors returned instead of panics.
+
+## [ ] phase-238: GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY) (PLANNED)
+
+**Goal:** Add string manipulation opcodes for efficient text processing
+
+VM programs doing string work (shell, editor, file browser) use manual loops costing 5-10 instructions per character. Native STRLEN, STRCMP, and STRCPY opcodes accelerate text-heavy programs 5-10x.
+
+### Deliverables
+
+- [ ] **String opcodes** -- 
+  - [ ] `p238.d1.t1` Implement STRLEN addr_reg len_reg (0xC9), STRCMP a_reg b_reg (0xCA), STRCPY dst_reg src_reg (0xCB)
+    > STRLEN scans for null terminator. STRCMP sets r0 to -1, 0, or 1. STRCPY copies including null. All operate on RAM addresses.
+  - [ ] `p238.d1.t2` Add disassembler, preprocessor entries, and tests
+    > Test STRLEN on hello string = 5. Test STRCMP equal, less, greater. Test STRCPY destination. Test empty string edge cases.
+  - [ ] `p238.d1.t3` Benchmark string ops in shell.asm
+    > Measure step reduction when shell.asm uses native STRCMP instead of manual byte-by-byte comparison.
+
+## [ ] phase-239: GeOS VM -- Block Memory Opcodes (MEMCPY, MEMSET) (PLANNED)
+
+**Goal:** Add block memory operations to eliminate manual word-by-word copy loops
+
+Many programs copy or fill RAM blocks at 3-5 instructions per word. MEMCPY and MEMSET handle these internally, reducing bytecode size and step count by 3-5x for bulk operations.
+
+### Deliverables
+
+- [ ] **Memory block opcodes** -- 
+  - [ ] `p239.d1.t1` Implement MEMCPY dst_reg src_reg len_reg (0xCC), MEMSET dst_reg val_reg len_reg (0xCD)
+    > MEMCPY copies len words (handles overlap). MEMSET fills len words with val. Both bounds-checked.
+  - [ ] `p239.d1.t2` Add disassembler, preprocessor entries, and tests
+    > Test MEMCPY forward, backward, overlapping. Test MEMSET pattern. Test bounds clamping.
+  - [ ] `p239.d1.t3` Refactor existing programs to use MEMCPY/MEMSET
+    > Convert game_of_life, starfield, or plasma from manual loops to MEMCPY/MEMSET. Measure step reduction.
+
+## [ ] phase-240: RISC-V Guest -- Timer and Sleep Syscalls (PLANNED)
+
+**Goal:** Add timer syscalls to the Layer 2 kernel for time-based guest behavior
+
+Guest programs have no concept of time. Add geos_msleep(ms), geos_uptime() (ms since boot), and geos_alarm(ms, callback) syscalls. Enables animation, periodic polling, timeout I/O, and frame rate control.
+
+### Deliverables
+
+- [ ] **Timer syscalls for RISC-V guests** -- 
+  - [ ] `p240.d1.t1` Implement geos_msleep and geos_uptime in geos_kern.c
+    > geos_msleep spins on mtime with yield. geos_uptime reads mtime in milliseconds.
+  - [ ] `p240.d1.t2` Add geos_alarm with callback registration
+    > Register function pointer and interval. Kernel checks on yield. Max 4 concurrent alarms.
+  - [ ] `p240.d1.t3` Write animated clock demo
+    > Digital clock on framebuffer, updating every second via geos_msleep.
+
+## [ ] phase-241: GeOS VM -- Rotation and Scaling Opcodes (ROTATE, SCALE) (PLANNED)
+
+**Goal:** Add pixel rotation and scaling for sprite-based games
+
+Current sprite rendering is axis-aligned only. Programs needing rotation (asteroids) or scaling (zoom) do per-pixel transforms manually. ROTATE rotates a screen region 90/180/270 degrees. SCALE scales source rect to dest rect with nearest-neighbor sampling.
+
+### Deliverables
+
+- [ ] **Rotation and scaling opcodes** -- 
+  - [ ] `p241.d1.t1` Implement ROTATE x y w h angle_reg (0xCE)
+    > Rotate screen region by angle_reg (0=90 CW, 1=180, 2=270 CW). Uses temp buffer. 6-word encoding.
+  - [ ] `p241.d1.t2` Implement SCALE with register args (0xCF)
+    > Scale source rect to dest rect, nearest-neighbor sampling. All register args. 10-word encoding.
+  - [ ] `p241.d1.t3` Write rotation demo and add tests
+    > Sprite rotating on keyboard input. Tests for each angle and scale factor.
+
+## [ ] phase-242: Error Resilience -- Replace scrollback.rs and geos_term.rs unwrap() Calls (PLANNED)
+
+**Goal:** Eliminate unwrap() calls in terminal infrastructure
+
+scrollback.rs (4 unwrap) and geos_term.rs (6 unwrap) handle terminal history and the standalone binary. Panics crash the terminal UX. Replace with graceful degradation.
+
+### Deliverables
+
+- [ ] **unwrap()-free terminal infrastructure** -- 
+  - [ ] `p242.d1.t1` Replace scrollback.rs unwrap() with graceful degradation
+    > Line push/search return Option/Result instead of panicking.
+  - [ ] `p242.d1.t2` Replace geos_term.rs unwrap() with error screens
+    > Loading failures show error on minifb window. Config errors show help text.
+  - [ ] `p242.d1.t3` Add integration tests for error paths
+    > Test nonexistent program, corrupt ASM, oversized history. Verify no panics.
+
+## [ ] phase-243: GeOS VM -- Direct Screen Text Opcode (DRAWTEXT) (PLANNED)
+
+**Goal:** Add a text rendering opcode that reads strings directly from RAM
+
+The TEXT opcode renders from RAM but requires pre-staging strings. DRAWTEXT renders a null-terminated string from a RAM address to screen coordinates in one opcode, simplifying labels, menus, and HUD elements.
+
+### Deliverables
+
+- [ ] **DRAWTEXT opcode** -- 
+  - [ ] `p243.d1.t1` Implement DRAWTEXT x_reg y_reg color_reg addr_reg (0xD0)
+    > Read null-terminated string from addr_reg, render at (x, y) advancing x by 8 per character. 5-word encoding.
+  - [ ] `p243.d1.t2` Add disassembler entry and tests
+    > Test Hello at various positions. Test empty string. Test boundary. Verify pixel output.
+  - [ ] `p243.d1.t3` Refactor programs to use DRAWTEXT for labels
+    > Convert calculator.asm and clock.asm label rendering from STORE+TEXT sequences to DRAWTEXT.
+
+## [ ] phase-244: RISC-V Guest -- Basic Socket Networking via SBI Extension (PLANNED)
+
+**Goal:** Enable bare-metal RISC-V programs to make TCP connections via SBI
+
+The VM has TCP networking opcodes but RISC-V guests cannot access the network. Add an SBI extension (0x4E4554) proxying TCP operations to the host stack via geos_kern. Enables guest HTTP clients and telemetry.
+
+### Deliverables
+
+- [ ] **RISC-V guest TCP networking** -- 
+  - [ ] `p244.d1.t1` Add SBI NET extension with connect/send/recv/disconnect
+    > Four functions via ECALL dispatch in geos_kern: connect, send, recv, disconnect.
+  - [ ] `p244.d1.t2` Add libgeos network wrappers
+    > geos_net_connect, geos_net_send, geos_net_recv, geos_net_disconnect in libgeos.a.
+  - [ ] `p244.d1.t3` Write HTTP GET demo guest program
+    > Connect to local server, send GET, display response on framebuffer.
+
+## [ ] phase-245: Test Coverage -- ops_host_fs.rs and ops_pty.rs Unit Tests (PLANNED)
+
+**Goal:** Add comprehensive unit tests for the two largest untested VM opcode modules
+
+ops_host_fs.rs (352 lines, 0 tests) handles HOST_READ, HOST_WRITE, HOST_LIST, HOST_DELETE opcodes that give VM programs access to the host filesystem. ops_pty.rs (1419 lines, 0 tests) handles PTY_CREATE, PTY_WRITE, PTY_READ, PTY_CLOSE opcodes for pseudo-terminal management. Both are critical infrastructure with zero test coverage.
+
+### Deliverables
+
+- [ ] **ops_host_fs unit tests** -- 
+  - [ ] `p245.d1.t1` Add tests for HOST_READ opcode
+    > Test reading text files, binary files, nonexistent files, files past RAM end, permission errors. Verify RAM contents match file data.
+  - [ ] `p245.d1.t2` Add tests for HOST_WRITE and HOST_DELETE opcodes
+    > Test writing to new files, overwriting existing files, creating directories, deleting files, deleting nonexistent files.
+  - [ ] `p245.d1.t3` Add tests for HOST_LIST opcode
+    > Test listing directories, empty directories, nested directories, nonexistent directories.
+- [ ] **ops_pty unit tests** -- 
+  - [ ] `p245.d2.t1` Add tests for PTY_CREATE and PTY_CLOSE
+    > Test creating PTYs (verify fd allocation), closing valid/invalid PTYs, max PTY limit.
+  - [ ] `p245.d2.t2` Add tests for PTY_WRITE and PTY_READ
+    > Test writing to PTY and reading back, reading empty PTY, partial reads, closing PTY mid-stream.
+
+## [ ] phase-246: Test Coverage -- ops_syscall.rs Unit Tests (PLANNED)
+
+**Goal:** Add unit tests for the VM syscall dispatch module
+
+ops_syscall.rs (469 lines, 0 tests) handles the SYSCALL opcode dispatch table, mapping syscall numbers to handler functions. Zero test coverage means regressions in syscall routing go undetected. The module bridges opcode space to filesystem, process, and device operations.
+
+### Deliverables
+
+- [ ] **ops_syscall unit tests** -- 
+  - [ ] `p246.d1.t1` Add tests for valid syscall dispatch
+    > Test that SYSCALL correctly routes to OPEN, READ, WRITE, CLOSE, SEEK, LS, IOCTL, and other syscall numbers. Verify correct handler invocation via side effects.
+  - [ ] `p246.d1.t2` Add tests for invalid syscall numbers
+    > Test that unknown syscall numbers are handled gracefully (set error in r0 or NOP, don't panic).
+  - [ ] `p246.d1.t3` Add tests for syscall argument passing
+    > Verify that register arguments are correctly passed to syscall handlers (fd in correct register, buffer address, count).
+
+## [ ] phase-247: Test Coverage -- MCP Server Integration Tests (PLANNED)
+
+**Goal:** Expand MCP server test coverage from 3 tests to 20+
+
+The MCP server (mcp_server.rs, 1588 lines) is the primary bridge between Hermes and the VM. It handles socket communication, tool dispatch (load_source, assemble, run_program, screenshot, etc.), and status reporting. Only 3 tests exist (tool list, status parsing, register parsing). Most tool handlers are untested.
+
+### Deliverables
+
+- [ ] **MCP server tool handler tests** -- 
+  - [ ] `p247.d1.t1` Add tests for assembly tool handler
+    > Test load_source + assemble via MCP protocol. Verify bytecode in RAM. Test invalid ASM returns error. Test empty source.
+  - [ ] `p247.d1.t2` Add tests for run_program tool handler
+    > Test running assembled programs, reading back screen state, detecting halt vs frame_ready. Test step execution.
+  - [ ] `p247.d1.t3` Add tests for screenshot and screen dump tools
+    > Test PNG screenshot generation, ASCII screen dump, checksum computation. Verify consistent output.
+  - [ ] `p247.d1.t4` Add tests for register and memory inspection tools
+    > Test reading registers, peek/poke RAM, reading canvas. Verify values match VM state.
+
+## [ ] phase-248: GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST) (PLANNED)
+
+**Goal:** Add single-bit manipulation opcodes for embedded-style register bitfield control
+
+Many VM programs need to set, clear, test, and toggle individual bits in registers (flag registers, color masks, hardware port registers). Currently requires SHL + OR/AND + AND + CMP sequences (5-8 instructions). These opcodes reduce bit manipulation to 1 instruction each. BNOT inverts all bits (already available via XOR with 0xFFFFFFFF but a dedicated opcode is clearer).
+
+### Deliverables
+
+- [ ] **Bit manipulation opcodes** -- 
+  - [ ] `p248.d1.t1` Implement BNOT rd (0xD1), BSET rd, bit_reg (0xD2), BCLR rd, bit_reg (0xD3), BTST rd, bit_reg -> r0 (0xD4)
+    > BNOT = rd = !rd. BSET = rd |= (1 << bit_reg[4:0]). BCLR = rd &= !(1 << bit_reg[4:0]). BTST = r0 = (rd >> bit_reg[4:0]) & 1.
+  - [ ] `p248.d1.t2` Add disassembler entries
+    > Wire all four opcodes into the disassembler with correct mnemonic and arg formatting.
+  - [ ] `p248.d1.t3` Add comprehensive tests
+    > Test each opcode with known bit patterns. Test boundary (bit 0, bit 31). Test BNOT of 0 and 0xFFFFFFFF. Test BTST result in r0.
+  - [ ] `p248.d1.t4` Write bit_manipulation_demo.asm
+    > Program that uses BSET/BCLR/BTST to implement a simple flag register with visual display of set/clear/test operations.
+
+## [ ] phase-249: GeOS VM -- Block Memory Opcodes (MEMCPY, MEMSET) (PLANNED)
+
+**Goal:** Add efficient block memory operations to reduce loop overhead
+
+Programs that copy or fill memory regions currently use byte-by-byte loops (LOAD + STORE + ADD + CMP + BLT = 5+ instructions per word). MEMCPY copies N words from src to dst, MEMSET fills N words with a value. Both run in the VM's native execution, much faster than instruction loops. Essential for buffer management, string operations, and VFS data transfer.
+
+### Deliverables
+
+- [ ] **Block memory opcodes** -- 
+  - [ ] `p249.d1.t1` Implement MEMCPY dst_reg, src_reg, count_reg (0xD5) and MEMSET dst_reg, val_reg, count_reg (0xD6)
+    > MEMCPY copies count words from src to dst (handles overlap by direction check). MEMSET fills count words with val. Bounds-check against RAM size. 4-word encoding.
+  - [ ] `p249.d1.t2` Add disassembler entries and assembler support
+    > Wire both opcodes into disassembler and assembler. Test assembly of both forms.
+  - [ ] `p249.d1.t3` Add comprehensive tests
+    > Test MEMCPY forward, backward, overlapping, boundary. Test MEMSET with various values and counts. Test zero count (NOP). Test out-of-bounds.
+  - [ ] `p249.d1.t4` Write memcpy_demo.asm showing performance improvement
+    > Program that fills a large buffer using MEMSET vs manual loop, displaying timing via TICKS.
+
+## [ ] phase-250: GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY) (PLANNED)
+
+**Goal:** Add string primitives that operate on null-terminated RAM strings
+
+VM programs that manipulate strings (shell, file browser, text editor) currently implement strlen/strcmp/strcpy as subroutine loops (10-30 instructions each). Dedicated opcodes make string operations atomic and fast. STRLEN returns length of null-terminated string, STRCMP compares two strings (returns -1/0/1 in r0), STRCPY copies one string to another. These mirror C stdlib functions the RISC-V guest already has.
+
+### Deliverables
+
+- [ ] **String operation opcodes** -- 
+  - [ ] `p250.d1.t1` Implement STRLEN addr_reg -> count_reg (0xD7), STRCMP addr1_reg, addr2_reg -> r0 (0xD8), STRCPY dst_reg, src_reg (0xD9)
+    > All operate on null-terminated u32-per-char strings in RAM. STRLEN returns count not including null. STRCMP returns -1/0/1. STRCPY copies including null terminator.
+  - [ ] `p250.d1.t2` Add disassembler and assembler entries
+    > Wire all three opcodes. 3-word encoding for STRLEN/STRCMP, 3-word for STRCPY.
+  - [ ] `p250.d1.t3` Add comprehensive tests
+    > Test empty strings, single char, long strings, matching/non-matching strcmp, copy to self, copy overlapping.
+  - [ ] `p250.d1.t4` Write string_ops_demo.asm
+    > Program that demonstrates string search, comparison, and copy operations with visual output.
+
+## [ ] phase-251: GeOS Program -- Mandelbrot Fractal Explorer (PLANNED)
+
+**Goal:** Write a zoomable Mandelbrot set renderer in assembly
+
+The VM has MUL, SUB, CMP, BLT, PSET, TEXT, IKEY, and FRAME -- everything needed for an interactive Mandelbrot renderer. This is a classic compute-heavy visual program that stress-tests the VM arithmetic pipeline and demonstrates the system capability for real mathematical computation. The fixed-point arithmetic avoids floating point requirements.
+
+### Deliverables
+
+- [ ] **Mandelbrot fractal program** -- 
+  - [ ] `p251.d1.t1` Implement fixed-point Mandelbrot core loop
+    > Use 32-bit registers with 12-bit fractional part (20.12 fixed point). Iterate z = z^2 + c, max 64 iterations. Color based on escape iteration using palette table.
+  - [ ] `p251.d1.t2` Add zoom and pan with keyboard input
+    > Arrow keys pan, +/- zoom in/out. Use IKEY in animation loop. Re-render on zoom change.
+  - [ ] `p251.d1.t3` Add HUD with coordinates and zoom level
+    > Display current center (real, imag) and zoom factor using TEXT opcode. Use DRAWTEXT or STRO for formatting.
+
+## [ ] phase-252: GeOS Program -- Raycasting 3D Engine (Wolfenstein-style) (PLANNED)
+
+**Goal:** Write a first-person raycasting renderer in assembly
+
+A raycasting engine renders a pseudo-3D view from a 2D map using only arithmetic (MUL, DIV, SHL, SHR, SIN table lookups) and PSET/RECTF. This is the most visually impressive program type achievable with the VM current ISA. The starfield program already demonstrates perspective projection; raycasting extends it to wall rendering with distance-based shading.
+
+### Deliverables
+
+- [ ] **Raycasting engine program** -- 
+  - [ ] `p252.d1.t1` Implement raycasting core with DDA algorithm
+    > Cast one ray per screen column. Use DDA (digital differential analyzer) for efficient grid traversal. Compute wall distance per column. Render vertical wall strip with RECTF. Distance-based color darkening.
+  - [ ] `p252.d1.t2` Add player movement and collision
+    > WASD movement with wall collision detection using MAP array. Rotate view with left/right keys. Step-based movement (not per-pixel).
+  - [ ] `p252.d1.t3` Add textured floor/ceiling
+    > Simple color gradient floor (green to dark green) and ceiling (blue to dark blue) based on distance from horizon.
+
+## [ ] phase-253: GeOS VM -- Audio System Tests and Improvements (PLANNED)
+
+**Goal:** Add tests to audio.rs and implement PCM sample streaming
+
+audio.rs (124 lines, 0 tests) handles the BEEP opcode and WAV generation. The current implementation spawns aplay subprocess for each beep, which causes process stacking with rapid beeps. Adding tests and a streaming audio buffer would improve reliability and enable more complex sound effects.
+
+### Deliverables
+
+- [ ] **Audio system tests** -- 
+  - [ ] `p253.d1.t1` Add unit tests for WAV generation
+    > Test generate_wav() produces valid RIFF/WAV header bytes. Test various frequencies and durations. Test edge cases (freq=0, dur=0).
+  - [ ] `p253.d1.t2` Add test for audio parameter extraction
+    > Test that BEEP correctly extracts freq and duration from registers and sets vm.beep.
+- [ ] **Audio streaming buffer** -- 
+  - [ ] `p253.d2.t1` Implement audio sample buffer with mixing
+    > Add a ring buffer (256 samples) that accumulates BEEP samples instead of spawning processes. Mix concurrent beeps (additive). Drain to aplay on FRAME or when buffer half-full.
+  - [ ] `p253.d2.t2` Write sfx_mixer.asm with layered sound effects
+    > Program that plays multiple overlapping beeps to demonstrate mixing (walking sound plus ambient tone).
+
+## [ ] phase-254: GeOS Program -- Procedural Dungeon Generator with Fog of War (PLANNED)
+
+**Goal:** Write a dungeon crawler with BSP room generation and line-of-sight fog
+
+Extends the existing infinite_map terrain concepts into a dungeon setting. BSP (Binary Space Partition) generates rooms connected by corridors. Raycasting-based line-of-sight reveals tiles within the player view cone. Previously explored tiles remain dimly visible. Uses RECTF for tile rendering, PSET for walls, and a sine table for lighting falloff.
+
+### Deliverables
+
+- [ ] **Dungeon generator program** -- 
+  - [ ] `p254.d1.t1` Implement BSP room generation
+    > Recursively split a grid region, place rooms in leaf nodes, connect with L-shaped corridors. Store room/tile data in RAM arrays. Seed-based RNG for reproducibility.
+  - [ ] `p254.d1.t2` Add player movement and collision
+    > WASD movement with wall collision. Camera follows player. Reveal tiles within radius using Bresenham line-of-sight.
+  - [ ] `p254.d1.t3` Add fog of war rendering
+    > Three states per tile: unseen (black), seen (dim), visible (full brightness). Track seen tiles in a bitfield array in RAM.
+
+## [ ] phase-255: GeOS VM -- Conditional Move and Select Opcodes (CMOV, CSEL) (PLANNED)
+
+**Goal:** Add branchless conditional move opcodes for performance-critical inner loops
+
+Conditional moves eliminate branch misprediction stalls in hot loops (pixel rendering, collision detection). CMOV rd, rs moves rs to rd if r0 != 0 (after CMP). CSEL rd, rs1, rs2 selects rs1 if r0 != 0 else rs2. These are common in GPU architectures and enable branchless min/max, clamping, and multiplexing patterns.
+
+### Deliverables
+
+- [ ] **Conditional move opcodes** -- 
+  - [ ] `p255.d1.t1` Implement CMOV rd, rs (0xDA) and CSEL rd, rs_true, rs_false (0xDB)
+    > CMOV: if r0 != 0 then rd = rs. CSEL: if r0 != 0 then rd = rs_true else rd = rs_false. Both read CMP result from r0.
+  - [ ] `p255.d1.t2` Add disassembler and assembler entries
+    > Wire both opcodes. CMOV is 3-word, CSEL is 4-word.
+  - [ ] `p255.d1.t3` Add tests and branchless patterns
+    > Test CMOV with r0=0 and r0=1. Test CSEL select true/false. Write test showing branchless min/max using CSEL.
+
+## [ ] phase-256: RISC-V Guest -- Shared Memory IPC Between Processes (PLANNED)
+
+**Goal:** Enable RISC-V guest processes to communicate via shared memory regions
+
+The Geometry OS VM has MSGSND/MSGRCV/PIPE for IPC, but RISC-V guest programs running under the interpreter have no IPC mechanism. Add shared memory pages that multiple guest processes can map into their address spaces. This enables producer-consumer patterns, data sharing between a GUI process and a compute process, and shared framebuffers.
+
+### Deliverables
+
+- [ ] **Shared memory SBI extension** -- 
+  - [ ] `p256.d1.t1` Add SBI SHM extension (shm_alloc, shm_map, shm_free)
+    > SBI extension 0x53484D for shared memory. shm_alloc(size) returns handle. shm_map(handle, va) maps into caller address space. shm_free(handle).
+  - [ ] `p256.d1.t2` Add libgeos shared memory wrappers
+    > geos_shm_alloc, geos_shm_map, geos_shm_free in libgeos.a with header.
+  - [ ] `p256.d1.t3` Write producer-consumer demo
+    > Two guest programs: producer writes counters to shared memory, consumer reads and displays on framebuffer.
+
+## [ ] phase-257: RISC-V Guest -- Timer and Sleep Syscalls (PLANNED)
+
+**Goal:** Add timer and sleep syscalls for RISC-V guest programs
+
+Guest programs currently have no way to delay execution or measure time. The CLINT hardware provides timer interrupts, but guest C programs need simple sleep() and gettimeofday() syscalls. These are fundamental for animation timing, polling loops, and timeout handling.
+
+### Deliverables
+
+- [ ] **Timer syscalls** -- 
+  - [ ] `p257.d1.t1` Add SBI TIME extension (sleep_ms, get_time_ms)
+    > sleep_ms blocks for N milliseconds by busy-waiting CLINT mtime. get_time_ms returns elapsed time since boot in milliseconds.
+  - [ ] `p257.d1.t2` Add libgeos time wrappers and header
+    > geos_sleep_ms and geos_get_time_ms in libgeos.a.
+  - [ ] `p257.d1.t3` Write timer demo with blinking cursor
+    > C program that blinks a cursor on the framebuffer at 1Hz using sleep_ms, and displays elapsed time.
+
+## [ ] phase-258: GeOS VM -- Scanline Flood Fill Opcode (FLOOD) (PLANNED)
+
+**Goal:** Add a hardware-accelerated flood fill for paint programs
+
+The VM has PSET for single pixels and FILL for solid colors, but no flood fill. Implementing flood fill in assembly requires a stack-based algorithm (PUSH/POP per pixel) which is slow and uses valuable stack space. A native FLOOD opcode uses an internal scanline span buffer to fill regions 10-100x faster than assembly implementation.
+
+### Deliverables
+
+- [ ] **FLOOD opcode** -- 
+  - [ ] `p258.d1.t1` Implement FLOOD x_reg, y_reg, color_reg (0xDC) with scanline span algorithm
+    > Read target color at (x,y). If same as fill color, NOP. Otherwise, fill using scanline span expansion (push left/right spans to internal buffer). Stack-free algorithm.
+  - [ ] `p258.d1.t2` Add disassembler entry and tests
+    > Test filling small and large regions. Test filling entire screen. Test filling on boundary. Test no-op when target = fill color.
+  - [ ] `p258.d1.t3` Write paint_app.asm with flood fill
+    > Paint program with color palette, brush (PSET), and flood fill (FLOOD). WASD to move cursor, space to paint, F to flood fill.
+
+## [ ] phase-259: GeOS Program -- Cellular Automata Sandbox (Life, HighLife, Seeds) (PLANNED)
+
+**Goal:** Write a multi-rule cellular automata playground with rule switching
+
+Conway Game of Life already exists as code_evolution.asm, but a unified sandbox that supports multiple rules (Life, HighLife, Day and Night, Langton Ant, Brian Brain) with live rule switching would be more educational and showcase the VM versatility. Each rule uses the same grid rendering but different neighbor-counting logic.
+
+### Deliverables
+
+- [ ] **Cellular automata sandbox** -- 
+  - [ ] `p259.d1.t1` Implement grid data structure and rendering
+    > Store grid in RAM (256x256 bits = 8192 u32 words). Render using PSET. Color cells by age (newborn=white, old=blue). Wrap-around boundaries.
+  - [ ] `p259.d1.t2` Implement multiple CA rules with switching
+    > Rules: Life (B3/S23), HighLife (B36/S23), Day and Night (B3678/S34678), Seeds (B2/S). Press 1-4 to switch. Use table-based rule lookup in RAM.
+  - [ ] `p259.d1.t3` Add interactive editing and speed control
+    > Click to toggle cells, +/- to change speed, R to randomize, C to clear. Use IKEY for input.
+
 ## Global Risks
 
 - Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs
@@ -705,17 +1724,3 @@ GeOS is a place you go to, not a place you live in. The editing happens external
 - Power-of-two constants: use bit masks (x & 0xFF) not modulo (x % 256)
 - Present callback must be channel-based, never synchronous in bus write
 - SPEC = thesis. roadmap_v2 = arc. OpenSpec = per-change diff. Three docs, three jobs.
-- {'id': 'phase-201', 'title': 'RISC-V Guest Networking -- Socket Syscall Layer', 'status': 'todo', 'goal': 'Enable bare-metal RISC-V C programs to open TCP connections and exchange data', 'description': 'The GeOS VM has TCP opcodes (CONNECT, SOCKSEND, SOCKRECV) but the RISC-V guest has no networking path. The syscall layer (src/riscv/syscall.rs) already lists socket/syscall numbers but returns -ENOSYS. Wire these to real host sockets via a simple proxy: guest writes a socket request to a shared MMIO buffer, host picks it up and performs the real connect/send/recv. This gives paint.c and sh.c the ability to fetch data from the network.', 'deliverables': [{'name': 'Socket syscall implementation for RISC-V guest', 'status': 'todo', 'tasks': [{'id': 'p201.d1.t1', 'title': 'Implement socket() syscall returning guest fd', 'description': 'Map socket() syscall to a guest file descriptor table. Allocate a host-side TCP stream on connect().', 'scope_files': ['src/riscv/syscall.rs'], 'scope_lines': 60}, {'id': 'p201.d1.t2', 'title': 'Implement send/recv syscalls via host TCP proxy', 'description': 'Guest send() writes to a ring buffer, host thread reads and sends via real TCP. Guest recv() polls the ring buffer. Non-blocking with timeout.', 'scope_files': ['src/riscv/syscall.rs', 'src/riscv/bus.rs'], 'scope_lines': 80}, {'id': 'p201.d1.t3', 'title': 'Test: guest fetches HTTP from host via sockets', 'description': 'A C program calls socket+connect+send("GET / HTTP/1.0\\r\\n\\r\\n")+recv, writes first 200 bytes of response to framebuffer. Verified via riscv_fb_dump.', 'scope_files': ['examples/riscv-hello/net_test.c'], 'scope_lines': 40}]}], 'test_target': 3, 'scope_lines_total': 180}
-- {'id': 'phase-202', 'title': 'GeOS Audio System -- PCM Streaming via BEEP', 'status': 'todo', 'goal': 'Extend the single-tone BEEP opcode into a sample-streaming audio pipeline for sound effects and music', 'description': 'The current BEEP opcode plays one sine-wave tone at a time via aplay. For games and demos, we need PCM sample streaming: pre-load a waveform into RAM, then play it back at a given sample rate. Add AUDIO_PLAY and AUDIO_STOP opcodes that stream from a RAM buffer through aplay in a background thread. This enables sound effects in snake.asm, background music in breakout.asm, and ambient audio in screensaver.asm.', 'deliverables': [{'name': 'PCM sample streaming opcodes', 'status': 'todo', 'tasks': [{'id': 'p202.d1.t1', 'title': 'Add AUDIO_PLAY opcode (addr_reg, len_reg, rate_reg)', 'description': 'Stream raw PCM samples from RAM through aplay in a background thread. Non-blocking: VM continues while audio plays. Use existing aplay pipe pattern.', 'scope_files': ['src/vm/mod.rs', 'src/audio.rs'], 'scope_lines': 80}, {'id': 'p202.d1.t2', 'title': 'Add AUDIO_STOP opcode and audio state query', 'description': 'AUDIO_STOP halts playback. AUDIO_STATUS (register) returns 1 if playing, 0 if done. Allow one concurrent stream (stop previous before starting new).', 'scope_files': ['src/vm/mod.rs', 'src/audio.rs'], 'scope_lines': 40}, {'id': 'p202.d1.t3', 'title': 'Demo: tetris with sound effects via PCM streaming', 'description': 'Pre-generate click/line-clear/game-over waveforms at boot, play them on events. Uses AUDIO_PLAY instead of BEEP for multi-sample effects.', 'scope_files': ['programs/tetris_clean.asm'], 'scope_lines': 50}]}], 'test_target': 3, 'scope_lines_total': 170}
-- {'id': 'phase-203', 'title': 'RISC-V Fuzzer Coverage Expansion', 'status': 'todo', 'goal': 'Extend the oracle-based RISC-V fuzzer to cover compressed instructions, CSR operations, and memory management', 'description': 'The current fuzzer (src/riscv_fuzzer.rs, 747 lines) generates random RV32IM programs and checks against a reference oracle. It covers basic ALU, load/store, and branches but misses compressed instructions (C extension), CSR reads/writes, and atomic operations. Expanding coverage catches emulator bugs before they manifest in real guest programs. The fuzzer has caught real bugs before -- this is high-value defensive work.', 'deliverables': [{'name': 'Compressed instruction fuzzer coverage', 'status': 'todo', 'tasks': [{'id': 'p203.d1.t1', 'title': 'Add C-extension instruction generation to fuzzer', 'description': 'Generate random C.ADDI, C.LI, C.LUI, C.MV, C.J, C.BEQZ, C.BNEZ, C.LW, C.SW, C.LWSP, C.SWSP instructions with proper encoding. Mix with 32-bit instructions at configurable ratio.', 'scope_files': ['src/riscv_fuzzer.rs'], 'scope_lines': 100}, {'id': 'p203.d1.t2', 'title': 'Add CSR read/write fuzzer paths', 'description': 'Generate CSRRS/CSRRC/CSRRW for common CSRs (mstatus, mepc, mtvec, sstatus, sepc, stvec). Verify oracle matches emulator state.', 'scope_files': ['src/riscv_fuzzer.rs'], 'scope_lines': 60}, {'id': 'p203.d1.t3', 'title': 'Run extended fuzzer for 1M iterations, fix any divergences', 'description': 'Execute the expanded fuzzer with seed variation. Log and categorize any oracle mismatches. Fix emulator bugs found.', 'scope_files': ['src/riscv_fuzzer.rs', 'src/riscv/cpu/'], 'scope_lines': 40}]}], 'test_target': 3, 'scope_lines_total': 200}
-- {'id': 'phase-204', 'title': 'GeOS Clipboard -- Cross-Program Pixel Copy/Paste', 'status': 'todo', 'goal': 'Allow programs to share pixel data via a clipboard buffer accessible through new CLIP_COPY and CLIP_PASTE opcodes', 'description': 'Programs currently operate in isolation -- snake.asm draws its own pixels and tetris.asm draws its own. A clipboard buffer lets programs export/import rectangular pixel regions. Use case: a paint program exports a sprite, a game loads it. Implementation: 256x256 pixel buffer (same size as screen), CLIP_COPY reads from screen into buffer, CLIP_PASTE writes from buffer to screen. The buffer persists across program runs within the same VM session.', 'deliverables': [{'name': 'Clipboard opcodes and buffer', 'status': 'todo', 'tasks': [{'id': 'p204.d1.t1', 'title': 'Add CLIP_COPY opcode (x, y, w, h registers)', 'description': 'Copy a rectangular region from vm.screen into clipboard buffer. Parameters: x, y, width, height in registers. Clip to screen bounds.', 'scope_files': ['src/vm/mod.rs'], 'scope_lines': 40}, {'id': 'p204.d1.t2', 'title': 'Add CLIP_PASTE opcode (x, y registers)', 'description': 'Paste clipboard buffer contents at (x, y) on screen. Supports partial paste at screen edges.', 'scope_files': ['src/vm/mod.rs'], 'scope_lines': 40}, {'id': 'p204.d1.t3', 'title': 'Demo: paint program with copy/paste functionality', 'description': 'Extend painter.asm or write a new sprite editor that uses CLIP_COPY/CLIP_PASTE to duplicate regions and build sprite sheets.', 'scope_files': ['programs/clipboard_demo.asm'], 'scope_lines': 80}]}], 'test_target': 3, 'scope_lines_total': 160}
-- {'id': 'phase-205', 'title': 'GeOS Sprite Sheet Loader', 'status': 'todo', 'goal': 'Load sprite sheets from VFS files and render them with SPRITE opcode in programs', 'description': 'The SPRITE opcode already exists (0x4A) and blits NxM pixels from RAM to screen. But there is no standard way to load sprite data from VFS into RAM at a known address. Add a SPRITE_LOAD opcode that reads a VFS file into RAM at a given address, formatted as a width x height pixel array. Programs can then use SPRITE to render individual frames from the loaded sheet. This enables animated sprites in games without manually encoding pixel data in assembly.', 'deliverables': [{'name': 'SPRITE_LOAD opcode for VFS-to-RAM sprite loading', 'status': 'todo', 'tasks': [{'id': 'p205.d1.t1', 'title': 'Add SPRITE_LOAD opcode (filename_addr, dest_addr, width, height regs)', 'description': 'Open a VFS file by name (null-terminated string at filename_addr), read pixel data into RAM starting at dest_addr. Each pixel is a u32 color value. Return 0 on success, error code on failure.', 'scope_files': ['src/vm/mod.rs', 'src/vm/ops_syscall.rs'], 'scope_lines': 60}, {'id': 'p205.d1.t2', 'title': 'Add SPRITE_FRAME opcode for sheet animation', 'description': 'Given a loaded sheet base address, frame dimensions, and frame index, compute the pixel offset for that frame. Write result to a register. Thin wrapper around address arithmetic.', 'scope_files': ['src/vm/mod.rs'], 'scope_lines': 30}, {'id': 'p205.d1.t3', 'title': 'Demo: animated character with sprite sheet', 'description': 'Create a sprite sheet (4-8 frames of a walking character), load via SPRITE_LOAD, animate via SPRITE_FRAME + SPRITE in a game loop.', 'scope_files': ['programs/sprite_anim.asm'], 'scope_lines': 80}]}], 'test_target': 3, 'scope_lines_total': 170}
-- {'id': 'phase-206', 'title': 'RISC-V Virtio-Blk Filesystem', 'status': 'todo', 'goal': 'Complete the virtio-blk driver so bare-metal C programs can read/write persistent files', 'description': 'VirtioBlk exists in src/riscv/virtio_blk.rs and is wired into the bus, but the driver is a stub -- it returns zeros on read and accepts writes silently. A real virtio-blk driver backed by a host file would give guest programs persistent storage beyond the in-memory VFS surface. This is the next step toward a real bare-metal OS: programs that save data across VM restarts.', 'deliverables': [{'name': 'Functional virtio-blk backed by host file', 'status': 'todo', 'tasks': [{'id': 'p206.d1.t1', 'title': 'Implement virtio-blk read/write against a host backing file', 'description': 'On VM creation, open or create a backing file (e.g., 1MB). Virtio-blk read returns file contents, write persists to file. Handle virtio descriptor chains properly.', 'scope_files': ['src/riscv/virtio_blk.rs', 'src/riscv/bus.rs'], 'scope_lines': 120}, {'id': 'p206.d1.t2', 'title': 'Add GEOS_BLK_READ/WRITE helpers to libgeos', 'description': 'Add C functions that wrap virtio-blk MMIO reads/writes: geos_blk_read(sector, buf, n), geos_blk_write(sector, buf, n). Add to libgeos.a.', 'scope_files': ['examples/riscv-hello/libgeos.c', 'examples/riscv-hello/libgeos.h'], 'scope_lines': 60}, {'id': 'p206.d1.t3', 'title': 'Test: guest writes data, restarts VM, reads data back', 'description': 'C program writes a known pattern to block 0, triggers shutdown, runner restarts VM, program reads block 0 and verifies pattern. Proves persistence.', 'scope_files': ['examples/riscv-hello/blk_test.c', 'examples/blk_persist_test.rs'], 'scope_lines': 50}]}], 'test_target': 3, 'scope_lines_total': 230}
-- {'id': 'phase-207', 'title': 'GeOS Collision Detection Library', 'status': 'todo', 'goal': 'Build reusable collision detection primitives as assembly subroutines in the standard library', 'description': 'Multiple game programs (snake, ball, breakout) implement their own collision detection with PEEK and manual bounds checking. This is duplicated, error-prone and wasteful. Create a collision detection library in lib/ with subroutines for AABB rectangle overlap, point-in-rect, circle-rect intersection, and pixel-perfect collision. Programs CALL these instead of inlining the logic.', 'deliverables': [{'name': 'Collision detection subroutine library', 'status': 'todo', 'tasks': [{'id': 'p207.d1.t1', 'title': 'Implement AABB rectangle overlap subroutine', 'description': 'rect_overlap(x1,y1,w1,h1, x2,y2,w2,h2) -> r0=1 if overlap, 0 if not. All args in registers. Use CMP+BLT pattern. No RAM usage.', 'scope_files': ['programs/lib/collision.asm'], 'scope_lines': 40}, {'id': 'p207.d1.t2', 'title': 'Implement circle-rect and point-in-circle subroutines', 'description': "circle_rect_intersect(cx,cy,cr, rx,ry,rw,rh) and point_in_circle(px,py,cx,cy,cr). Use squared distance to avoid SQRT (which doesn't exist).", 'scope_files': ['programs/lib/collision.asm'], 'scope_lines': 50}, {'id': 'p207.d1.t3', 'title': 'Refactor snake.asm to use collision library', 'description': 'Replace inline collision checks in snake.asm with CALL to library subroutines. Verify behavior unchanged. Measure instruction savings.', 'scope_files': ['programs/snake.asm'], 'scope_lines': 40}]}], 'test_target': 3, 'scope_lines_total': 130}
-- {'id': 'phase-208', 'title': 'MCP Server -- Programmatic Assembly and Execution', 'status': 'todo', 'goal': 'Add MCP tools for loading, assembling, and running .asm programs from external agents', 'description': 'The MCP server (src/mcp_server.rs) exposes status/screenshot/registers tools but cannot load and execute programs. An agent must type into the canvas via vm_type, which is slow and fragile. Add asm_load, asm_assemble, asm_run, and asm_step MCP tools so Hermes can programmatically test and develop GeOS programs. This unblocks the hermes/build agent loop from inside MCP.', 'deliverables': [{'name': 'Assembly and execution MCP tools', 'status': 'todo', 'tasks': [{'id': 'p208.d1.t1', 'title': 'Add asm_load tool -- load .asm file into canvas buffer', 'description': 'Takes file path, reads .asm source, writes to canvas buffer via load_source_to_canvas. Returns line count and any parse warnings.', 'scope_files': ['src/mcp_server.rs'], 'scope_lines': 40}, {'id': 'p208.d1.t2', 'title': 'Add asm_assemble and asm_run tools', 'description': 'asm_assemble triggers F8 (assemble canvas to bytecode). asm_run starts execution from 0x1000 with optional step limit. Returns register state and screen checksum after execution.', 'scope_files': ['src/mcp_server.rs'], 'scope_lines': 60}, {'id': 'p208.d1.t3', 'title': 'Test: Hermes loads, assembles, runs hello.asm via MCP', 'description': 'Integration test that calls the MCP tools in sequence and verifies the output matches expected screen content.', 'scope_files': ['src/mcp_server.rs'], 'scope_lines': 30}]}], 'test_target': 2, 'scope_lines_total': 130}
-- {'id': 'phase-209', 'title': 'RISC-V Multi-Process -- Cooperative Context Switching', 'status': 'todo', 'goal': 'Run multiple bare-metal C programs concurrently in the RISC-V interpreter with cooperative yielding', 'description': 'The GeOS VM has SPAWN/KILL for multi-process but the RISC-V guest runs a single ELF. Add a lightweight context switcher: the guest calls a yield SBI extension, the host saves all registers and switches to a second guest context (separate register file, separate PC, shared MMIO). This proves multi-programming on the RISC-V layer without a full kernel -- just register save/restore and PC swap.', 'deliverables': [{'name': 'Cooperative multi-process for RISC-V guests', 'status': 'todo', 'tasks': [{'id': 'p209.d1.t1', 'title': 'Add SBI_YIELD extension to sbi.rs', 'description': 'New SBI extension (0x4759 = "GY"). Guest calls ecall with a7=0x4759, a0=context_id. Host saves current context, switches to target context. Return to caller on next yield.', 'scope_files': ['src/riscv/sbi.rs', 'src/riscv/mod.rs'], 'scope_lines': 80}, {'id': 'p209.d1.t2', 'title': 'Add context management (create, switch, destroy)', 'description': 'RiscvVm holds a Vec of GuestContext (registers, PC, privilege). SBI_YIELD with new context_id creates it. SBI_YIELD with existing ID switches. SBI_KILL terminates a context.', 'scope_files': ['src/riscv/mod.rs'], 'scope_lines': 60}, {'id': 'p209.d1.t3', 'title': 'Demo: two C programs alternating on framebuffer', 'description': 'Program A draws a bouncing ball, yields every frame. Program B draws a rotating pattern, yields every frame. Both share the framebuffer, producing a composite display.', 'scope_files': ['examples/riscv-hello/multiproc_a.c', 'examples/riscv-hello/multiproc_b.c', 'examples/multiproc_run.rs'], 'scope_lines': 80}]}], 'test_target': 3, 'scope_lines_total': 220}
-- {'id': 'phase-210', 'title': 'GeOS Text Rendering -- Variable-Width Font Support', 'status': 'todo', 'goal': 'Support variable-width fonts in the TEXT opcode for more readable text display', 'description': 'The TEXT opcode uses a fixed 8x8 pixel font (font.rs). For programs that display paragraphs of text (notepad.asm, chatbot.asm, help.asm), variable-width characters (like a real terminal font) look dramatically better. Add a FONT_SELECT opcode that switches the active font, and implement a proportional 5x7 font (mini_font.in already exists). The existing 8x8 font remains the default.', 'deliverables': [{'name': 'Variable-width font rendering', 'status': 'todo', 'tasks': [{'id': 'p210.d1.t1', 'title': 'Implement proportional font rendering in TEXT opcode', 'description': 'Add font selection state to Vm. When proportional font is active, TEXT uses character-width table from mini_font.in. Advance cursor by character width instead of fixed 8 pixels.', 'scope_files': ['src/vm/mod.rs', 'src/font.rs'], 'scope_lines': 60}, {'id': 'p210.d1.t2', 'title': 'Add FONT_SELECT opcode (font_id register)', 'description': 'FONT_SELECT r -- 0 = 8x8 fixed, 1 = 5x7 proportional, 2 = 6x10 medium. Persists until changed. Validated range check.', 'scope_files': ['src/vm/mod.rs', 'src/vm/ops_graphics.rs', 'src/assembler/'], 'scope_lines': 40}, {'id': 'p210.d1.t3', 'title': 'Demo: notepad with proportional font', 'description': 'Modify notepad.asm to use proportional font for the text area while keeping the fixed font for the UI border. Shows visual improvement.', 'scope_files': ['programs/notepad.asm'], 'scope_lines': 30}]}], 'test_target': 3, 'scope_lines_total': 130}
-- {'id': 'phase-211', 'title': 'GeOS Performance -- Instruction Cache for Hot Loops', 'status': 'todo', 'goal': 'Add a decoded instruction cache to speed up tight loops by 3-5x', 'description': 'The VM currently decodes every instruction on every step() call, even in tight loops that execute the same instructions millions of times. At 88 MIPS, this decode overhead is the bottleneck. Add a small direct-mapped cache (256 entries) that maps PC to decoded instruction. On cache hit, skip decode and execute directly. Cache is invalidated on self-modifying code (STORE to code region). Expected speedup: 3-5x on loop-heavy programs like plasma, infinite_map, and the fuzzer.', 'deliverables': [{'name': 'Decoded instruction cache', 'status': 'todo', 'tasks': [{'id': 'p211.d1.t1', 'title': 'Implement PC-indexed instruction cache in Vm', 'description': 'Add HashMap<u32, CachedInstruction> to Vm. On step(), check cache before decoding. On cache miss, decode and insert. Invalidate on writes to code pages.', 'scope_files': ['src/vm/mod.rs'], 'scope_lines': 80}, {'id': 'p211.d1.t2', 'title': 'Add cache invalidation on self-modifying code', 'description': 'When STORE writes to the code region (0x1000-0x1FFF), invalidate the cache entry for that address. When ASM/ASMSELF writes bytecode, invalidate entire cache.', 'scope_files': ['src/vm/mod.rs'], 'scope_lines': 30}, {'id': 'p211.d1.t3', 'title': 'Benchmark: measure speedup on plasma and infinite_map', 'description': 'Run plasma and infinite_map with and without cache. Measure instructions/second. Target: 3x speedup on plasma (heavy loop), no regression on branchy code.', 'scope_files': ['src/vm/tests.rs'], 'scope_lines': 30}]}], 'test_target': 3, 'scope_lines_total': 140}
-- {'id': 'phase-212', 'title': 'GeOS Pixel Art Export -- PNG Screenshot to VFS', 'status': 'todo', 'goal': 'Save the current screen as a PNG file in the VFS, accessible from programs and the host', 'description': 'The screenshot opcode exists (F9 key) but saves to a host file path. Programs cannot programmatically save their visual output. Add a SCREENSHOT opcode that encodes the current 256x256 screen as PNG and writes it to the VFS. This lets paint.asm save artwork, maze_gen.asm export mazes, and code_evolution.asm archive interesting generations -- all from within the program.', 'deliverables': [{'name': 'SCREENSHOT opcode for in-program PNG export', 'status': 'todo', 'tasks': [{'id': 'p212.d1.t1', 'title': 'Add SCREENSHOT opcode (filename_addr register)', 'description': 'Encode vm.screen as PNG (using existing encode_png from vision.rs logic) and write to VFS at the given filename. Return 0 on success.', 'scope_files': ['src/vm/mod.rs', 'src/vision.rs'], 'scope_lines': 60}, {'id': 'p212.d1.t2', 'title': 'Add SCREEN_LOAD opcode to load PNG into screen', 'description': 'Read a VFS file, decode as PNG, write pixels to vm.screen. Inverse of SCREENSHOT. Uses existing PNG decode logic.', 'scope_files': ['src/vm/mod.rs'], 'scope_lines': 40}, {'id': 'p212.d1.t3', 'title': 'Demo: paint program with save/load functionality', 'description': 'Painter saves current canvas as "painting1.png" via SCREENSHOT. On next run, loads it back via SCREEN_LOAD. Proves the round-trip.', 'scope_files': ['programs/painter.asm'], 'scope_lines': 30}]}], 'test_target': 3, 'scope_lines_total': 130}
-- {'id': 'phase-213', 'title': 'GeOS Tilemap Editor -- Visual Map Building Tool', 'status': 'todo', 'goal': 'Build an interactive tilemap editor that lets users paint tile-based levels for games', 'description': 'The TILEMAP opcode (0x4C) blits tile grids from RAM to screen, but there is no tool to visually design tilemaps. Create a tilemap editor program with a tile palette on the left (selectable tiles), a grid canvas on the right (click to place tiles), and export to RAM format. This enables level design for roguelike.asm, maze.asm, and future tile-based games.', 'deliverables': [{'name': 'Interactive tilemap editor program', 'status': 'todo', 'tasks': [{'id': 'p213.d1.t1', 'title': 'Tile palette display and selection UI', 'description': 'Left panel shows 8x8 pixel tiles (8 across, scrollable). Arrow keys move selection cursor. Selected tile highlights. Uses SPRITE or PSET for rendering.', 'scope_files': ['programs/tilemap_editor.asm'], 'scope_lines': 100}, {'id': 'p213.d1.t2', 'title': 'Grid canvas with tile placement', 'description': 'Right panel is a 16x16 grid (each cell = 16x16 pixels = 4x4 tile). Arrow keys + space to place selected tile. WASD to scroll. IKEY for input.', 'scope_files': ['programs/tilemap_editor.asm'], 'scope_lines': 80}, {'id': 'p213.d1.t3', 'title': 'Export tilemap to RAM for use with TILEMAP opcode', 'description': 'Press S to save the tilemap as a flat index array in RAM at 0x7000. Another program can then use TILEMAP to render the level. Include a demo game that loads the saved map.', 'scope_files': ['programs/tilemap_editor.asm', 'programs/tilemap_demo.asm'], 'scope_lines': 60}]}], 'test_target': 2, 'scope_lines_total': 240}
-- {'id': 'phase-214', 'title': 'RISC-V GPU Compute -- WGSL Shader Integration', 'status': 'todo', 'goal': 'Enable the RISC-V guest to offload compute work to the host GPU via the existing WGSL shader pipeline', 'description': 'src/riscv/gpu.rs already has a WGSL compute shader (riscv_executor.wgsl) behind a feature flag. The GPU executor can run multiple RISC-V tiles in parallel on the GPU. This phase wires the GPU executor into the normal boot path so compute-heavy guest programs (life.c, mandelbrot) can use GPU acceleration transparently. The interpreter remains the fallback for non-GPU environments.', 'deliverables': [{'name': 'GPU-accelerated RISC-V execution', 'status': 'todo', 'tasks': [{'id': 'p214.d1.t1', 'title': 'Wire GPU executor into RiscvVm::step loop', 'description': 'When gpu feature is enabled and a GPU adapter is available, dispatch tile execution to the GPU shader instead of the CPU interpreter. Fall back to CPU on GPU errors.', 'scope_files': ['src/riscv/mod.rs', 'src/riscv/gpu.rs'], 'scope_lines': 80}, {'id': 'p214.d1.t2', 'title': 'Add GPU memory transfer (guest RAM <-> GPU buffer)', 'description': 'Upload guest RAM to GPU buffer before compute, download results after. Handle dirty-page tracking to minimize transfers.', 'scope_files': ['src/riscv/gpu.rs'], 'scope_lines': 60}, {'id': 'p214.d1.t3', 'title': 'Benchmark: life.c with and without GPU', 'description': "Run Conway's life at 256x256 with CPU-only vs GPU-accelerated. Measure frames per second. Target: 5x+ speedup on GPU.", 'scope_files': ['examples/riscv-hello/life.c'], 'scope_lines': 30}]}], 'test_target': 2, 'scope_lines_total': 170}
