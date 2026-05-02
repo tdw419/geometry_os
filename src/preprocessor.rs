@@ -190,6 +190,11 @@ pub const OPCODES: &[&str] = &[
     "PROCINFO",
     "SETCAPS",
     "VSTAT",
+    // Phase 263: Bitfield extract/insert
+    "BFE",
+    "BFI",
+    // Phase 260: Matrix multiply (2D)
+    "MATMUL",
     // Preprocessor macros (not real opcodes, but recognized as Opcode tokens)
     "VAR",
     "SET",

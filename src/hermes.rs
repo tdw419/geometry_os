@@ -988,10 +988,15 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         0xBF => "PROCINFO",
         0xC0 => "SETCAPS",
         0xC1 => "VSTAT",
+        // Phase 263: Bitfield extract/insert
+        0xC2 => "BFE",
+        0xC3 => "BFI",
         // Phase 94: Tiny font text rendering
         0xD0 => "SMALLTEXT",
         // Phase 95: Medium font text rendering
         0xD1 => "MEDTEXT",
+        // Phase 260: Matrix multiply (2D)
+        0xDE => "MATMUL",
         _ => "???",
     }
 }

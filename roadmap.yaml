@@ -10186,3 +10186,22 @@ phases:
     scope_lines: 20
   scope_lines_total: 45
   test_target: 1
+
+- id: phase-213
+  title: "Fix -- test_linux_kernel_early_boot causes full suite timeout"
+  status: planned
+  goal: "Annotate the 1-billion-instruction Linux boot test with #[ignore] so cargo test --lib completes in reasonable time"
+  description: "riscv::tests::test_linux_kernel_early_boot runs 1,000,000,000 RISC-V instructions via RiscvVm::boot_linux(). This single test takes 60+ seconds and causes the full test suite to exceed typical timeouts (90-120s). The preflight QA reports 1819 tests passing, but running the full suite hits a timeout on this test. The test should be #[ignore]d with a comment explaining it can be run explicitly via cargo test --lib -- --ignored test_linux_kernel_early_boot."
+  deliverables:
+  - name: "Add #[ignore] attribute to test_linux_kernel_early_boot"
+    description: "Add #[ignore] above #[test] on line 346 of src/riscv/tests.rs. Add a doc comment explaining the test runs 1B instructions and should be invoked explicitly."
+    status: todo
+    tasks:
+    - id: p213.d1.t1
+      title: "Annotate test_linux_kernel_early_boot with #[ignore]"
+      status: todo
+      description: "In src/riscv/tests.rs line 346, change #[test] to #[test] #[ignore]. Add a comment: // Runs 1B RISC-V instructions (~60s). Run explicitly: cargo test --lib -- --ignored test_linux_kernel_early_boot"
+      scope_lines: 3
+    scope_lines: 3
+  scope_lines_total: 3
+  test_target: 0

@@ -940,6 +940,30 @@ impl Vm {
             0xC0 => (format!("SETCAPS {}", reg(ram(a + 1))), 2),
             0xC1 => (format!("VSTAT {}", reg(ram(a + 1))), 2),
 
+            // BFE rd, rs, width, lsb (0xC2) -- Bit field extract
+            0xC2 => (
+                format!(
+                    "BFE {}, {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4))
+                ),
+                5,
+            ),
+
+            // BFI rd, rs, width, lsb (0xC3) -- Bit field insert
+            0xC3 => (
+                format!(
+                    "BFI {}, {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4))
+                ),
+                5,
+            ),
+
             // SMALLTEXT x, y, addr, fg, bg (0xD0) -- tiny 3x5 font, 85 cols in 256px
             0xD0 => (
                 format!(
@@ -964,6 +988,20 @@ impl Vm {
                     reg(ram(a + 5))
                 ),
                 6,
+            ),
+
+            // MATMUL r_dst, r_a, r_b, r_m, r_n, r_k (0xDE)
+            0xDE => (
+                format!(
+                    "MATMUL {}, {}, {}, {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4)),
+                    reg(ram(a + 5)),
+                    reg(ram(a + 6))
+                ),
+                7,
             ),
 
             _ => (format!("??? (0x{:02X})", op), 1),

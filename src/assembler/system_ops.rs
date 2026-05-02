@@ -1049,6 +1049,51 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        // Matrix multiply: MATMUL r_dst, r_a, r_b, r_m, r_n, r_k (0xDE)
+        // Multiplies MxK matrix A by KxN matrix B, stores MxN result at dst.
+        // All values in fixed-point 16.16 format (same as MATVEC).
+        "MATMUL" => {
+            if tokens.len() < 7 {
+                return Err("MATMUL requires 6 arguments: MATMUL r_dst, r_a, r_b, r_m, r_n, r_k".to_string());
+            }
+            bytecode.push(0xDE);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            bytecode.push(parse_reg(tokens[5])? as u32);
+            bytecode.push(parse_reg(tokens[6])? as u32);
+            Ok(Some(()))
+        }
+
+        // Bit field extract: BFE rd, rs, width_reg, lsb_reg (0xC2)
+        // Extracts `width` bits starting at bit `lsb` from rs, zero-extends into rd.
+        "BFE" => {
+            if tokens.len() < 5 {
+                return Err("BFE requires 4 arguments: BFE rd, rs, width_reg, lsb_reg".to_string());
+            }
+            bytecode.push(0xC2);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            Ok(Some(()))
+        }
+
+        // Bit field insert: BFI rd, rs, width_reg, lsb_reg (0xC3)
+        // Inserts `width` low bits of rs into rd starting at bit `lsb`.
+        "BFI" => {
+            if tokens.len() < 5 {
+                return Err("BFI requires 4 arguments: BFI rd, rs, width_reg, lsb_reg".to_string());
+            }
+            bytecode.push(0xC3);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            Ok(Some(()))
+        }
+
         _ => Ok(None),
     }
 }

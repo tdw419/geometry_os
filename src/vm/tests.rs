@@ -8421,6 +8421,338 @@ fn test_matvec_relu_pipeline() {
     assert_eq!(vm.ram[o_base + 1], 7 << 16, "RELU should leave 7 unchanged");
 }
 
+// ── MATMUL opcode (Phase 260) ──────────────────────────────
+
+#[test]
+fn test_matmul_basic_2x2() {
+    // 2x2 matrix A * 2x2 matrix B
+    // A = [[1, 2], [3, 4]], B = [[5, 6], [7, 8]]
+    // C = A*B = [[1*5+2*7, 1*6+2*8], [3*5+4*7, 3*6+4*8]]
+    //         = [[19, 22], [43, 50]]
+    let mut vm = Vm::new();
+
+    let a_base: usize = 5000;
+    vm.ram[a_base + 0] = 1 << 16; // A[0][0] = 1.0
+    vm.ram[a_base + 1] = 2 << 16; // A[0][1] = 2.0
+    vm.ram[a_base + 2] = 3 << 16; // A[1][0] = 3.0
+    vm.ram[a_base + 3] = 4 << 16; // A[1][1] = 4.0
+
+    let b_base: usize = 5100;
+    vm.ram[b_base + 0] = 5 << 16; // B[0][0] = 5.0
+    vm.ram[b_base + 1] = 6 << 16; // B[0][1] = 6.0
+    vm.ram[b_base + 2] = 7 << 16; // B[1][0] = 7.0
+    vm.ram[b_base + 3] = 8 << 16; // B[1][1] = 8.0
+
+    let dst_base: usize = 5200;
+
+    // Registers: r1=dst, r2=a, r3=b, r4=M, r5=N, r6=K
+    vm.regs[1] = dst_base as u32;
+    vm.regs[2] = a_base as u32;
+    vm.regs[3] = b_base as u32;
+    vm.regs[4] = 2; // M
+    vm.regs[5] = 2; // N
+    vm.regs[6] = 2; // K
+
+    // MATMUL r1, r2, r3, r4, r5, r6
+    vm.ram[0] = 0xDE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.ram[6] = 6;
+    vm.ram[7] = 0x00; // HALT
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step(); // MATMUL
+    vm.step(); // HALT
+
+    assert_eq!(
+        vm.ram[dst_base + 0],
+        19 << 16,
+        "MATMUL C[0][0] should be 19.0"
+    );
+    assert_eq!(
+        vm.ram[dst_base + 1],
+        22 << 16,
+        "MATMUL C[0][1] should be 22.0"
+    );
+    assert_eq!(
+        vm.ram[dst_base + 2],
+        43 << 16,
+        "MATMUL C[1][0] should be 43.0"
+    );
+    assert_eq!(
+        vm.ram[dst_base + 3],
+        50 << 16,
+        "MATMUL C[1][1] should be 50.0"
+    );
+}
+
+#[test]
+fn test_matmul_identity_3x3() {
+    // 3x3 identity * 3x3 matrix = same matrix
+    // A = I3, B = [[2, 0, 1], [0, 3, 0], [1, 0, 4]]
+    // C = B
+    let mut vm = Vm::new();
+
+    let a_base: usize = 5300;
+    for i in 0..3 {
+        for j in 0..3 {
+            vm.ram[a_base + i * 3 + j] = if i == j { 1 << 16 } else { 0 };
+        }
+    }
+
+    let b_base: usize = 5400;
+    vm.ram[b_base + 0] = 2 << 16; // B[0][0]
+    vm.ram[b_base + 1] = 0;       // B[0][1]
+    vm.ram[b_base + 2] = 1 << 16; // B[0][2]
+    vm.ram[b_base + 3] = 0;       // B[1][0]
+    vm.ram[b_base + 4] = 3 << 16; // B[1][1]
+    vm.ram[b_base + 5] = 0;       // B[1][2]
+    vm.ram[b_base + 6] = 1 << 16; // B[2][0]
+    vm.ram[b_base + 7] = 0;       // B[2][1]
+    vm.ram[b_base + 8] = 4 << 16; // B[2][2]
+
+    let dst_base: usize = 5500;
+
+    vm.regs[1] = dst_base as u32;
+    vm.regs[2] = a_base as u32;
+    vm.regs[3] = b_base as u32;
+    vm.regs[4] = 3; // M
+    vm.regs[5] = 3; // N
+    vm.regs[6] = 3; // K
+
+    vm.ram[0] = 0xDE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.ram[6] = 6;
+    vm.ram[7] = 0x00;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    vm.step();
+
+    assert_eq!(vm.ram[dst_base + 0], 2 << 16, "I*B[0][0]");
+    assert_eq!(vm.ram[dst_base + 1], 0, "I*B[0][1]");
+    assert_eq!(vm.ram[dst_base + 2], 1 << 16, "I*B[0][2]");
+    assert_eq!(vm.ram[dst_base + 4], 3 << 16, "I*B[1][1]");
+    assert_eq!(vm.ram[dst_base + 8], 4 << 16, "I*B[2][2]");
+}
+
+#[test]
+fn test_matmul_non_square() {
+    // 2x3 * 3x2 = 2x2
+    // A = [[1, 2, 3], [4, 5, 6]], B = [[7, 8], [9, 10], [11, 12]]
+    // C = [[1*7+2*9+3*11, 1*8+2*10+3*12], [4*7+5*9+6*11, 4*8+5*10+6*12]]
+    //   = [[58, 64], [139, 154]]
+    let mut vm = Vm::new();
+
+    let a_base: usize = 5600;
+    // A (2x3): row-major
+    vm.ram[a_base + 0] = 1 << 16;
+    vm.ram[a_base + 1] = 2 << 16;
+    vm.ram[a_base + 2] = 3 << 16;
+    vm.ram[a_base + 3] = 4 << 16;
+    vm.ram[a_base + 4] = 5 << 16;
+    vm.ram[a_base + 5] = 6 << 16;
+
+    let b_base: usize = 5700;
+    // B (3x2): row-major
+    vm.ram[b_base + 0] = 7 << 16;
+    vm.ram[b_base + 1] = 8 << 16;
+    vm.ram[b_base + 2] = 9 << 16;
+    vm.ram[b_base + 3] = 10 << 16;
+    vm.ram[b_base + 4] = 11 << 16;
+    vm.ram[b_base + 5] = 12 << 16;
+
+    let dst_base: usize = 5800;
+
+    vm.regs[1] = dst_base as u32;
+    vm.regs[2] = a_base as u32;
+    vm.regs[3] = b_base as u32;
+    vm.regs[4] = 2; // M
+    vm.regs[5] = 2; // N
+    vm.regs[6] = 3; // K
+
+    vm.ram[0] = 0xDE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.ram[6] = 6;
+    vm.ram[7] = 0x00;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    vm.step();
+
+    assert_eq!(vm.ram[dst_base + 0], 58 << 16, "C[0][0]");
+    assert_eq!(vm.ram[dst_base + 1], 64 << 16, "C[0][1]");
+    assert_eq!(vm.ram[dst_base + 2], 139 << 16, "C[1][0]");
+    assert_eq!(vm.ram[dst_base + 3], 154 << 16, "C[1][1]");
+}
+
+#[test]
+fn test_matmul_1x1_scalar() {
+    // 1x1 * 1x1 = 1x1 (scalar multiply)
+    // A = [[6]], B = [[7]], C = [[42]]
+    let mut vm = Vm::new();
+
+    vm.ram[5900] = 6 << 16;
+    vm.ram[5910] = 7 << 16;
+
+    vm.regs[1] = 5920; // dst
+    vm.regs[2] = 5900; // A
+    vm.regs[3] = 5910; // B
+    vm.regs[4] = 1; // M
+    vm.regs[5] = 1; // N
+    vm.regs[6] = 1; // K
+
+    vm.ram[0] = 0xDE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.ram[6] = 6;
+    vm.ram[7] = 0x00;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    vm.step();
+
+    assert_eq!(vm.ram[5920], 42 << 16, "1x1 MATMUL = 42");
+}
+
+#[test]
+fn test_matmul_reduces_to_matvec() {
+    // 2x3 * 3x1 = 2x1 (matrix-vector multiply, same as MATVEC result)
+    // A = [[1, 2, 3], [4, 5, 6]], B = [[7], [8], [9]]
+    // C = [[1*7+2*8+3*9], [4*7+5*8+6*9]] = [[50], [122]]
+    let mut vm = Vm::new();
+
+    let a_base: usize = 5930;
+    vm.ram[a_base + 0] = 1 << 16;
+    vm.ram[a_base + 1] = 2 << 16;
+    vm.ram[a_base + 2] = 3 << 16;
+    vm.ram[a_base + 3] = 4 << 16;
+    vm.ram[a_base + 4] = 5 << 16;
+    vm.ram[a_base + 5] = 6 << 16;
+
+    let b_base: usize = 5940;
+    vm.ram[b_base + 0] = 7 << 16;
+    vm.ram[b_base + 1] = 8 << 16;
+    vm.ram[b_base + 2] = 9 << 16;
+
+    let dst_base: usize = 5950;
+
+    vm.regs[1] = dst_base as u32;
+    vm.regs[2] = a_base as u32;
+    vm.regs[3] = b_base as u32;
+    vm.regs[4] = 2; // M
+    vm.regs[5] = 1; // N
+    vm.regs[6] = 3; // K
+
+    vm.ram[0] = 0xDE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.ram[6] = 6;
+    vm.ram[7] = 0x00;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    vm.step();
+
+    assert_eq!(vm.ram[dst_base], 50 << 16, "matvec via MATMUL: [0]");
+    assert_eq!(vm.ram[dst_base + 1], 122 << 16, "matvec via MATMUL: [1]");
+}
+
+#[test]
+fn test_matmul_assemble() {
+    let src = "MATMUL r1, r2, r3, r4, r5, r6\nHALT\n";
+    let result = crate::assembler::assemble(src, 0);
+    assert!(result.is_ok(), "MATMUL should assemble: {:?}", result.err());
+    let asm = result.unwrap();
+    assert_eq!(asm.pixels[0], 0xDE, "MATMUL opcode");
+    assert_eq!(asm.pixels[1], 1);
+    assert_eq!(asm.pixels[2], 2);
+    assert_eq!(asm.pixels[3], 3);
+    assert_eq!(asm.pixels[4], 4);
+    assert_eq!(asm.pixels[5], 5);
+    assert_eq!(asm.pixels[6], 6);
+}
+
+#[test]
+fn test_matmul_disasm() {
+    let (text, len) = disasm(&[0xDE, 1, 2, 3, 4, 5, 6]);
+    assert_eq!(text, "MATMUL r1, r2, r3, r4, r5, r6");
+    assert_eq!(len, 7);
+}
+
+#[test]
+fn test_matmul_4x4() {
+    // 4x4 matrix multiply with identity
+    let mut vm = Vm::new();
+
+    let a_base: usize = 6000;
+    for i in 0..4 {
+        for j in 0..4 {
+            vm.ram[a_base + i * 4 + j] = if i == j { 1 << 16 } else { 0 };
+        }
+    }
+
+    let b_base: usize = 6200;
+    let vals: [u32; 16] = [
+        1 << 16, 2 << 16, 3 << 16, 4 << 16,
+        5 << 16, 6 << 16, 7 << 16, 8 << 16,
+        9 << 16, 10 << 16, 11 << 16, 12 << 16,
+        13 << 16, 14 << 16, 15 << 16, 16 << 16,
+    ];
+    for (i, &v) in vals.iter().enumerate() {
+        vm.ram[b_base + i] = v;
+    }
+
+    let dst_base: usize = 6400;
+
+    vm.regs[1] = dst_base as u32;
+    vm.regs[2] = a_base as u32;
+    vm.regs[3] = b_base as u32;
+    vm.regs[4] = 4; // M
+    vm.regs[5] = 4; // N
+    vm.regs[6] = 4; // K
+
+    vm.ram[0] = 0xDE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.ram[5] = 5;
+    vm.ram[6] = 6;
+    vm.ram[7] = 0x00;
+    vm.pc = 0;
+    vm.halted = false;
+    vm.step();
+    vm.step();
+
+    // Identity * B = B
+    for (i, &v) in vals.iter().enumerate() {
+        assert_eq!(
+            vm.ram[dst_base + i],
+            v,
+            "4x4 I*B mismatch at index {}",
+            i
+        );
+    }
+}
+
 // ── nn_demo.asm (Phase 79) ───────────────────────────────
 
 #[test]
@@ -8483,6 +8815,63 @@ fn test_nn_demo_runs_correctly() {
         red_count, 0,
         "nn_demo should have NO red (wrong) pixels, found {}",
         red_count
+    );
+}
+
+// ── neural_network.asm (Phase 260) ──────────────────────────
+
+#[test]
+fn test_neural_network_assembles() {
+    let source = include_str!("../../programs/neural_network.asm");
+    let result = crate::assembler::assemble(source, 0);
+    assert!(
+        result.is_ok(),
+        "neural_network should assemble: {:?}",
+        result.err()
+    );
+}
+
+#[test]
+fn test_neural_network_runs_correctly() {
+    let source = include_str!("../../programs/neural_network.asm");
+    let asm = crate::assembler::assemble(source, 0).expect("should assemble");
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    // Run until frame or halt (MATMUL + bias/relu loops + display)
+    let mut frames = 0;
+    for _ in 0..2_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames += 1;
+            if frames >= 1 {
+                break;
+            }
+        }
+    }
+    // Should have drawn 4 boxes (green or red) in the result area (y=80..150)
+    let mut box_pixels = 0;
+    for y in 80..150 {
+        for x in 16..260 {
+            let pixel = vm.screen[y * 256 + x];
+            // Green (correct) or red (wrong) boxes
+            if pixel == 0x0022CC22 || pixel == 0x00CC2222 {
+                box_pixels += 1;
+            }
+        }
+    }
+    assert!(
+        box_pixels > 0,
+        "neural_network should draw result boxes, found {} box pixels",
+        box_pixels
     );
 }
 
@@ -23929,4 +24318,245 @@ fn test_hermes_launch_via_pty() {
         "Hermes launched via PTY should produce output containing 'Hermes Agent'. Got: {}",
         &text[..std::cmp::min(text.len(), 500)]
     );
+}
+
+// ── BFE / BFI (Phase 263: Bitfield Extract/Insert) ───────────────────
+
+#[test]
+fn test_bfe_extract_low_byte() {
+    // BFE r1, r2, r3, r4 -- extract 8 bits at offset 0 from r2 into r1
+    let mut vm = Vm::new();
+    vm.regs[2] = 0x12345678; // source value
+    vm.regs[3] = 8;          // width = 8
+    vm.regs[4] = 0;          // lsb = 0
+    // BFE r1, r2, r3, r4 = [0xC2, 1, 2, 3, 4, HALT]
+    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0x78); // low byte of 0x12345678
+}
+
+#[test]
+fn test_bfe_extract_mid_nibble() {
+    // Extract 4 bits at offset 8 from 0xABCD -> bits 8-11 = 0xB
+    let mut vm = Vm::new();
+    vm.regs[2] = 0x0000ABCD;
+    vm.regs[3] = 4;          // width = 4
+    vm.regs[4] = 8;          // lsb = 8
+    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0xB); // nibble at bits 8-11
+}
+
+#[test]
+fn test_bfe_extract_high_byte() {
+    // Extract 8 bits at offset 24 from 0xAABBCCDD -> 0xAA
+    let mut vm = Vm::new();
+    vm.regs[2] = 0xAABBCCDD;
+    vm.regs[3] = 8;          // width = 8
+    vm.regs[4] = 24;         // lsb = 24
+    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0xAA);
+}
+
+#[test]
+fn test_bfe_zero_width() {
+    // Width 0 should extract 0 bits -> result is 0
+    let mut vm = Vm::new();
+    vm.regs[2] = 0xFFFFFFFF;
+    vm.regs[3] = 0;          // width = 0
+    vm.regs[4] = 0;          // lsb = 0
+    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0);
+}
+
+#[test]
+fn test_bfe_lsb_out_of_range() {
+    // lsb >= 32 should return 0
+    let mut vm = Vm::new();
+    vm.regs[2] = 0xFFFFFFFF;
+    vm.regs[3] = 8;          // width = 8
+    vm.regs[4] = 32;         // lsb = 32 (out of range)
+    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0);
+}
+
+#[test]
+fn test_bfe_full_width() {
+    // Width 32 should extract all bits
+    let mut vm = Vm::new();
+    vm.regs[2] = 0xDEADBEEF;
+    vm.regs[3] = 32;         // width = 32 (clamped to 31, mask = 0xFFFFFFFF)
+    vm.regs[4] = 0;          // lsb = 0
+    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0xDEADBEEF);
+}
+
+#[test]
+fn test_bfi_insert_low_byte() {
+    // BFI r1, r2, r3, r4 -- insert 8 bits from r2 into r1 at offset 0
+    let mut vm = Vm::new();
+    vm.regs[1] = 0xFFFF0000; // destination
+    vm.regs[2] = 0x000000AB; // source (low byte = 0xAB)
+    vm.regs[3] = 8;          // width = 8
+    vm.regs[4] = 0;          // lsb = 0
+    vm.ram[0] = 0xC3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0xFFFF00AB);
+}
+
+#[test]
+fn test_bfi_insert_mid_nibble() {
+    // Insert 4 bits at offset 8
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x0000FF00; // destination
+    vm.regs[2] = 0x0000000C; // source (low nibble = 0xC)
+    vm.regs[3] = 4;          // width = 4
+    vm.regs[4] = 8;          // lsb = 8
+    vm.ram[0] = 0xC3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0x0000FC00);
+}
+
+#[test]
+fn test_bfi_insert_high_byte() {
+    // Insert 8 bits at offset 24
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x00FFFFFF; // destination
+    vm.regs[2] = 0x000000EE; // source
+    vm.regs[3] = 8;          // width = 8
+    vm.regs[4] = 24;         // lsb = 24
+    vm.ram[0] = 0xC3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0xEEFFFFFF);
+}
+
+#[test]
+fn test_bfi_zero_width_noop() {
+    // Width 0 should be a no-op
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x12345678;
+    vm.regs[2] = 0xFFFFFFFF;
+    vm.regs[3] = 0;          // width = 0
+    vm.regs[4] = 0;          // lsb = 0
+    vm.ram[0] = 0xC3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0x12345678); // unchanged
+}
+
+#[test]
+fn test_bfi_lsb_out_of_range_noop() {
+    // lsb >= 32 should be a no-op
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x12345678;
+    vm.regs[2] = 0xFF;
+    vm.regs[3] = 8;          // width = 8
+    vm.regs[4] = 32;         // lsb = 32 (out of range)
+    vm.ram[0] = 0xC3; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0x12345678); // unchanged
+}
+
+#[test]
+fn test_bfe_bfi_roundtrip() {
+    // Extract a byte, then insert it into a different position
+    // 1. BFE r1, r2, r3, r4 -- extract byte from r2 (0xAABBCCDD) at lsb=16 -> r1 = 0xBB
+    // 2. BFI r5, r6, r3, r7 -- insert r1 (0xBB) into r5 (0x00000000) at lsb=0 -> r5 = 0x000000BB
+    let mut vm = Vm::new();
+    vm.regs[2] = 0xAABBCCDD; // source
+    vm.regs[3] = 8;          // width = 8
+    vm.regs[4] = 16;         // lsb = 16 for extract
+    vm.regs[5] = 0x00000000; // destination for insert
+    vm.regs[6] = 0;          // will be set to r1's value before BFI
+    vm.regs[7] = 0;          // lsb = 0 for insert
+
+    // BFE r1, r2, r3, r4
+    vm.ram[0] = 0xC2; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    // MOV r6, r1
+    vm.ram[5] = 0x51; vm.ram[6] = 6; vm.ram[7] = 1;
+    // BFI r5, r6, r3, r7
+    vm.ram[8] = 0xC3; vm.ram[9] = 5; vm.ram[10] = 6; vm.ram[11] = 3; vm.ram[12] = 7;
+    vm.ram[13] = 0x00; // HALT
+
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert_eq!(vm.regs[1], 0xBB);     // extracted byte
+    assert_eq!(vm.regs[5], 0x000000BB); // inserted byte
+}
+
+#[test]
+fn test_bfe_assembler_disasm() {
+    // Test that BFE assembles and disassembles correctly
+    let source = "BFE r1, r2, r3, r4";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xC2);
+    assert_eq!(asm.pixels[1], 1);
+    assert_eq!(asm.pixels[2], 2);
+    assert_eq!(asm.pixels[3], 3);
+    assert_eq!(asm.pixels[4], 4);
+
+    // Disassemble
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() {
+        vm.ram[i] = w;
+    }
+    let (mnemonic, len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "BFE r1, r2, r3, r4");
+    assert_eq!(len, 5);
+}
+
+#[test]
+fn test_bfi_assembler_disasm() {
+    // Test that BFI assembles and disassembles correctly
+    let source = "BFI r5, r6, r7, r8";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xC3);
+    assert_eq!(asm.pixels[1], 5);
+    assert_eq!(asm.pixels[2], 6);
+    assert_eq!(asm.pixels[3], 7);
+    assert_eq!(asm.pixels[4], 8);
+
+    // Disassemble
+    let mut vm = Vm::new();
+    for (i, &w) in asm.pixels.iter().enumerate() {
+        vm.ram[i] = w;
+    }
+    let (mnemonic, len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "BFI r5, r6, r7, r8");
+    assert_eq!(len, 5);
+}
+
+#[test]
+fn test_bitfield_demo_assembles() {
+    // Verify the demo program assembles without errors
+    let source = include_str!("../../programs/bitfield_demo.asm");
+    let result = crate::assembler::assemble(source, 0);
+    assert!(result.is_ok(), "bitfield_demo.asm should assemble: {:?}", result.err());
+    let asm = result.unwrap();
+    assert!(asm.pixels.len() > 50, "demo should produce substantial bytecode");
 }

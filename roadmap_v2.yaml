@@ -4066,7 +4066,7 @@ phases:
   _claimed_at: 1777705830
 - id: phase-263
   title: GeOS VM -- Bitfield Extract/Insert Opcodes (BFE, BFI)
-  status: planned
+  status: in_progress
   goal: Add bitfield manipulation opcodes for efficient packed data access
   description: Many VM programs manipulate packed data (color channels, tile flags,
     entity state). Currently this requires manual SHL/SHR/AND/OR sequences (4-6 instructions).
@@ -4105,9 +4105,11 @@ phases:
       scope_lines: 60
   test_target: 10
   scope_lines_total: 200
+  _claimed_by: worker-0
+  _claimed_at: 1777707133
 - id: phase-264
   title: GeOS Program -- L-System Fractal Generator
-  status: planned
+  status: in_progress
   goal: Write an interactive L-system fractal renderer with rule editing
   description: L-systems generate complex fractal patterns from simple rewrite rules.
     This program implements turtle graphics with push/pop state for branching, supporting
@@ -4135,6 +4137,8 @@ phases:
       scope_lines: 150
   test_target: 2
   scope_lines_total: 270
+  _claimed_by: worker-0
+  _claimed_at: 1777713408
 - id: phase-265
   title: GeOS VM -- Canvas Clip Region Opcodes (CLIPSET, CLIPCLR)
   status: planned

@@ -1180,3 +1180,44 @@ fn test_wirecube_initializes() {
         on_screen
     );
 }
+
+#[test]
+fn test_particle_sandbox() {
+    let vm = compile_run_interactive("programs/particle_sandbox.asm", 10_000_000);
+
+    // Particles should have been spawned (count > 0)
+    let count = vm.ram[0x7802];
+    assert!(count > 0, "expected particles spawned, got count={}", count);
+
+    // Gravity should be initialized: gx=0, gy=1 (downward)
+    assert_eq!(vm.ram[0x7800], 0, "gravity_x should be 0");
+    assert_eq!(vm.ram[0x7801], 1, "gravity_y should be 1 (down)");
+
+    // Color table: first entry = blue (slow), last = red-pink (fast)
+    assert_eq!(
+        vm.ram[0x7600], 0x0000FF,
+        "speed color table[0] should be blue"
+    );
+    assert_eq!(
+        vm.ram[0x760F], 0xFF0044,
+        "speed color table[15] should be red-pink"
+    );
+
+    // Frame counter should have advanced
+    let ticks = vm.ram[0x7803];
+    assert!(ticks > 0, "frame counter should advance, got {}", ticks);
+
+    // Screen should have colored pixels (particles are 2x2 dots)
+    let mut colored_pixels = 0;
+    for y in 0..256 {
+        for x in 0..256 {
+            if vm.screen[y * 256 + x] != 0 {
+                colored_pixels += 1;
+            }
+        }
+    }
+    assert!(
+        colored_pixels > 0,
+        "particle_sandbox should draw pixels on screen"
+    );
+}

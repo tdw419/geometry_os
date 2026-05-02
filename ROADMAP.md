@@ -7,7 +7,7 @@ Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers tool
 
 **Deliverables:** 48/49 complete
 
-**Tasks:** 45/91 complete
+**Tasks:** 74/121 complete
 
 ## Scope Summary
 

@@ -1371,6 +1371,52 @@ impl Vm {
                 }
             }
 
+            // MATMUL r_dst, r_a, r_b, r_m, r_n, r_k (0xDE)
+            // 2D matrix multiply using fixed-point 16.16 arithmetic.
+            // Multiplies MxK matrix A (at regs[r_a]) by KxN matrix B (at regs[r_b]),
+            // stores MxN result at dst (at regs[r_dst]).
+            // dst[i*n + j] = sum(a[i*k + l] * b[l*n + j]) >> 16, for l in 0..k
+            0xDE => {
+                let r_dst = self.fetch() as usize;
+                let r_a = self.fetch() as usize;
+                let r_b = self.fetch() as usize;
+                let r_m = self.fetch() as usize;
+                let r_n = self.fetch() as usize;
+                let r_k = self.fetch() as usize;
+                if r_dst < NUM_REGS
+                    && r_a < NUM_REGS
+                    && r_b < NUM_REGS
+                    && r_m < NUM_REGS
+                    && r_n < NUM_REGS
+                    && r_k < NUM_REGS
+                {
+                    let dst_base = self.regs[r_dst] as usize;
+                    let a_base = self.regs[r_a] as usize;
+                    let b_base = self.regs[r_b] as usize;
+                    let m = self.regs[r_m] as usize;
+                    let n = self.regs[r_n] as usize;
+                    let k = self.regs[r_k] as usize;
+                    for i in 0..m {
+                        for j in 0..n {
+                            let mut sum: i64 = 0;
+                            for l in 0..k {
+                                let a_addr = a_base + i * k + l;
+                                let b_addr = b_base + l * n + j;
+                                if a_addr < self.ram.len() && b_addr < self.ram.len() {
+                                    let a_val = self.ram[a_addr] as i32;
+                                    let b_val = self.ram[b_addr] as i32;
+                                    sum += (a_val as i64 * b_val as i64) >> 16;
+                                }
+                            }
+                            let dst_addr = dst_base + i * n + j;
+                            if dst_addr < self.ram.len() {
+                                self.ram[dst_addr] = sum as u32;
+                            }
+                        }
+                    }
+                }
+            }
+
             // BITSET rd, bit_reg  (0x8D) -- rd |= 1 << bit_reg
             0x8D => {
                 let rd = self.fetch() as usize;
@@ -3512,6 +3558,54 @@ impl Vm {
                     self.regs[0] = self.vfs.fstat(&self.ram, name_addr);
                 } else {
                     self.regs[0] = 0xFFFFFFFF;
+                }
+            }
+
+            // BFE rd, rs, width_reg, lsb_reg  (0xC2) -- Bit field extract
+            // Extracts `width` bits starting at bit `lsb` from rs, zero-extends into rd.
+            // Encoding: 5 words [0xC2, rd, rs, width_reg, lsb_reg]
+            0xC2 => {
+                let rd = self.fetch() as usize;
+                let rs = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let lr = self.fetch() as usize;
+                if rd < NUM_REGS && rs < NUM_REGS && wr < NUM_REGS && lr < NUM_REGS {
+                    let val = self.regs[rs];
+                    let raw_width = self.regs[wr];
+                    let raw_lsb = self.regs[lr];
+                    let width = raw_width.min(32);
+                    let lsb = raw_lsb;
+                    if lsb >= 32 || width == 0 {
+                        self.regs[rd] = 0;
+                    } else {
+                        let mask = if width >= 32 { 0xFFFFFFFF } else { (1u32 << width) - 1 };
+                        self.regs[rd] = (val >> lsb) & mask;
+                    }
+                }
+            }
+
+            // BFI rd, rs, width_reg, lsb_reg  (0xC3) -- Bit field insert
+            // Inserts `width` low bits of rs into rd starting at bit `lsb`.
+            // Encoding: 5 words [0xC3, rd, rs, width_reg, lsb_reg]
+            0xC3 => {
+                let rd = self.fetch() as usize;
+                let rs = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let lr = self.fetch() as usize;
+                if rd < NUM_REGS && rs < NUM_REGS && wr < NUM_REGS && lr < NUM_REGS {
+                    let dst = self.regs[rd];
+                    let src = self.regs[rs];
+                    let raw_width = self.regs[wr];
+                    let raw_lsb = self.regs[lr];
+                    let width = raw_width.min(32);
+                    let lsb = raw_lsb;
+                    if width == 0 || lsb >= 32 {
+                        // No-op: inserting 0 bits or out-of-range
+                    } else {
+                        let field_mask = if width >= 32 { 0xFFFFFFFF } else { (1u32 << width) - 1 };
+                        let mask = field_mask << lsb;
+                        self.regs[rd] = (dst & !mask) | ((src << lsb) & mask);
+                    }
                 }
             }
 
