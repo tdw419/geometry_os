@@ -193,6 +193,9 @@ pub const OPCODES: &[&str] = &[
     // Phase 263: Bitfield extract/insert
     "BFE",
     "BFI",
+    // Phase 265: Canvas clip region
+    "CLIPSET",
+    "CLIPCLR",
     // Phase 260: Matrix multiply (2D)
     "MATMUL",
     // Preprocessor macros (not real opcodes, but recognized as Opcode tokens)

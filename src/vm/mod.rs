@@ -214,6 +214,10 @@ pub struct Vm {
 
     // ── Phase 137: Host Filesystem Bridge ─────────────────────────
     /// Active host file handles. Up to MAX_HOST_FILES (16) simultaneous.
+    /// Clip rectangle for constraining drawing operations (CLIPSET/CLIPCLR).
+    /// When Some((x, y, w, h)), all pixel writes are clamped to this region.
+    /// When None, no clipping is applied (full 256x256 screen).
+    pub clip_rect: Option<(u32, u32, u32, u32)>,
     /// Indices 0..N are used. host_file_handles[i] = Some((File, mode)) when open.
     pub host_file_handles: Vec<Option<(std::fs::File, u8)>>,
 }
@@ -331,6 +335,7 @@ impl Vm {
             host_file_handles: (0..crate::vm::types::MAX_HOST_FILES)
                 .map(|_| None)
                 .collect(),
+            clip_rect: None,
         }
     }
 
@@ -346,6 +351,24 @@ impl Vm {
         // Write to key_port field (separate from RAM to avoid bytecode overlap)
         self.key_port = key;
         true
+    }
+
+    /// Set a pixel on the screen, respecting the current clip rectangle.
+    /// If clip_rect is set, pixels outside the rectangle are silently discarded.
+    pub fn set_pixel_clipped(&mut self, x: usize, y: usize, color: u32) {
+        if x >= 256 || y >= 256 {
+            return;
+        }
+        if let Some((cx, cy, cw, ch)) = self.clip_rect {
+            let cx = cx as usize;
+            let cy = cy as usize;
+            let cw = cw as usize;
+            let ch = ch as usize;
+            if x < cx || x >= cx + cw || y < cy || y >= cy + ch {
+                return;
+            }
+        }
+        self.screen[y * 256 + x] = color;
     }
 
     /// Update mouse/touch cursor position. Called by host on mouse events.
@@ -486,6 +509,7 @@ impl Vm {
             .map(|_| None)
             .collect();
         self.focused_pid = 0;
+        self.clip_rect = None;
     }
 
     /// Internal helper to log a memory access with a safety cap.
@@ -3607,6 +3631,34 @@ impl Vm {
                         self.regs[rd] = (dst & !mask) | ((src << lsb) & mask);
                     }
                 }
+            }
+
+            // CLIPSET x_reg, y_reg, w_reg, h_reg  (0xC4) -- Set clip rectangle
+            // Constrains all drawing operations (PSET, PSETI, RECTF, LINE, CIRCLE,
+            // FILL, TEXT, SPRITE, TILEMAP) to the given rectangle.
+            // Encoding: 5 words [0xC4, x_reg, y_reg, w_reg, h_reg]
+            0xC4 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let hr = self.fetch() as usize;
+                if xr < NUM_REGS && yr < NUM_REGS && wr < NUM_REGS && hr < NUM_REGS {
+                    let x = self.regs[xr];
+                    let y = self.regs[yr];
+                    let w = self.regs[wr];
+                    let h = self.regs[hr];
+                    // Clamp width/height to 0..=255 to avoid overflow
+                    let w = w.min(256);
+                    let h = h.min(256);
+                    self.clip_rect = Some((x, y, w, h));
+                }
+            }
+
+            // CLIPCLR  (0xC5) -- Clear clip rectangle
+            // Restores full 256x256 drawing area.
+            // Encoding: 1 word [0xC5]
+            0xC5 => {
+                self.clip_rect = None;
             }
 
             _ => {

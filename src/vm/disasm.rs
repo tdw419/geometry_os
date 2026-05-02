@@ -964,6 +964,21 @@ impl Vm {
                 5,
             ),
 
+            // CLIPSET x, y, w, h (0xC4) -- Set clip rectangle
+            0xC4 => (
+                format!(
+                    "CLIPSET {}, {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4))
+                ),
+                5,
+            ),
+
+            // CLIPCLR (0xC5) -- Clear clip rectangle
+            0xC5 => ("CLIPCLR".to_string(), 1),
+
             // SMALLTEXT x, y, addr, fg, bg (0xD0) -- tiny 3x5 font, 85 cols in 256px
             0xD0 => (
                 format!(

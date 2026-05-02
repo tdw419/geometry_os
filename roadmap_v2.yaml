@@ -4141,7 +4141,7 @@ phases:
   _claimed_at: 1777713408
 - id: phase-265
   title: GeOS VM -- Canvas Clip Region Opcodes (CLIPSET, CLIPCLR)
-  status: planned
+  status: complete
   goal: Add clipping region support to constrain all drawing operations to a rectangular
     area
   description: Windowed environments need clipping so child windows don't draw outside
@@ -4150,7 +4150,7 @@ phases:
     SPRITE all respect.
   deliverables:
   - name: Canvas clipping opcodes
-    status: planned
+    status: done
     tasks:
     - id: p265.d1.t1
       title: Add clip_rect field to Vm, implement CLIPSET x, y, w, h and CLIPCLR

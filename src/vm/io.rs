@@ -461,6 +461,7 @@ impl Vm {
             ],
             host_file_handles: (0..super::types::MAX_HOST_FILES).map(|_| None).collect(),
             focused_pid: 0,
+            clip_rect: None,
         })
     }
 }

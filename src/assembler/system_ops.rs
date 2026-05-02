@@ -1094,6 +1094,27 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        // Set clip rectangle: CLIPSET x_reg, y_reg, w_reg, h_reg (0xC4)
+        // Constrains all drawing ops to the given rectangle. Use CLIPCLR to remove.
+        "CLIPSET" => {
+            if tokens.len() < 5 {
+                return Err("CLIPSET requires 4 arguments: CLIPSET x_reg, y_reg, w_reg, h_reg".to_string());
+            }
+            bytecode.push(0xC4);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            Ok(Some(()))
+        }
+
+        // Clear clip rectangle: CLIPCLR (0xC5)
+        // Restores full 256x256 drawing area.
+        "CLIPCLR" => {
+            bytecode.push(0xC5);
+            Ok(Some(()))
+        }
+
         _ => Ok(None),
     }
 }

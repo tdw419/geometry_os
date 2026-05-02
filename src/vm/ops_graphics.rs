@@ -7,7 +7,7 @@ impl Vm {
     #[allow(unreachable_patterns)]
     pub(super) fn step_graphics(&mut self, opcode: u32) -> bool {
         match opcode {
-            // PSET x_reg, y_reg, color_reg  -- set pixel on screen
+            // PSET x_reg, y_reg, color_reg  -- set pixel on screen (respects clip rect)
             0x40 => {
                 let xr = self.fetch() as usize;
                 let yr = self.fetch() as usize;
@@ -16,9 +16,9 @@ impl Vm {
                     let x = self.regs[xr] as usize;
                     let y = self.regs[yr] as usize;
                     let color = self.regs[cr];
-                    if x < 256 && y < 256 {
-                        self.screen[y * 256 + x] = color;
-                        if self.trace_recording {
+                    self.set_pixel_clipped(x, y, color);
+                    if self.trace_recording {
+                        if x < 256 && y < 256 {
                             self.pixel_write_log.push(
                                 x as u16,
                                 y as u16,
@@ -31,14 +31,14 @@ impl Vm {
                 }
             }
 
-            // PSETI x, y, color  -- set pixel with immediate values
+            // PSETI x, y, color  -- set pixel with immediate values (respects clip rect)
             0x41 => {
                 let x = self.fetch() as usize;
                 let y = self.fetch() as usize;
                 let color = self.fetch();
-                if x < 256 && y < 256 {
-                    self.screen[y * 256 + x] = color;
-                    if self.trace_recording {
+                self.set_pixel_clipped(x, y, color);
+                if self.trace_recording {
+                    if x < 256 && y < 256 {
                         self.pixel_write_log.push(
                             x as u16,
                             y as u16,
@@ -50,18 +50,31 @@ impl Vm {
                 }
             }
 
-            // FILL color_reg  -- fill entire screen
+            // FILL color_reg  -- fill entire screen (respects clip rect)
             0x42 => {
                 let cr = self.fetch() as usize;
                 if cr < NUM_REGS {
                     let color = self.regs[cr];
-                    for pixel in self.screen.iter_mut() {
-                        *pixel = color;
+                    if let Some((cx, cy, cw, ch)) = self.clip_rect {
+                        // Fill only the clip rectangle
+                        let cx = cx as usize;
+                        let cy = cy as usize;
+                        let cw = cw.min(256) as usize;
+                        let ch = ch.min(256) as usize;
+                        for dy in cy..(cy + ch).min(256) {
+                            for dx in cx..(cx + cw).min(256) {
+                                self.screen[dy * 256 + dx] = color;
+                            }
+                        }
+                    } else {
+                        for pixel in self.screen.iter_mut() {
+                            *pixel = color;
+                        }
                     }
                 }
             }
 
-            // RECTF x_reg, y_reg, w_reg, h_reg, color_reg  -- filled rectangle
+            // RECTF x_reg, y_reg, w_reg, h_reg, color_reg  -- filled rectangle (respects clip rect)
             0x43 => {
                 let xr = self.fetch() as usize;
                 let yr = self.fetch() as usize;
@@ -79,9 +92,7 @@ impl Vm {
                         for dx in 0..w {
                             let px = x0 + dx;
                             let py = y0 + dy;
-                            if px < 256 && py < 256 {
-                                self.screen[py * 256 + px] = color;
-                            }
+                            self.set_pixel_clipped(px, py, color);
                         }
                     }
                 }
@@ -174,9 +185,7 @@ impl Vm {
                             } // transparent
                             let px = sx + dx;
                             let py = sy + dy;
-                            if px < 256 && py < 256 {
-                                self.screen[py * 256 + px] = color;
-                            }
+                            self.set_pixel_clipped(px, py, color);
                         }
                     }
                 }
@@ -242,9 +251,7 @@ impl Vm {
                     let sy: i32 = if y0 < y1 { 1 } else { -1 };
                     let mut err = dx + dy;
                     loop {
-                        if (0..256).contains(&x0) && (0..256).contains(&y0) {
-                            self.screen[y0 as usize * 256 + x0 as usize] = color;
-                        }
+                        self.set_pixel_clipped(x0 as usize, y0 as usize, color);
                         if x0 == x1 && y0 == y1 {
                             break;
                         }
@@ -287,9 +294,7 @@ impl Vm {
                             (cx - y, cy - x),
                         ];
                         for (px, py) in pts {
-                            if (0..256).contains(&px) && (0..256).contains(&py) {
-                                self.screen[py as usize * 256 + px as usize] = color;
-                            }
+                            self.set_pixel_clipped(px as usize, py as usize, color);
                         }
                         y += 1;
                         if err < 0 {
@@ -419,10 +424,7 @@ impl Vm {
                                         let px = x0 + (col * tw) as i32 + tx as i32;
                                         let py = y0 + (row * th) as i32 + ty as i32;
 
-                                        if (0..256).contains(&px) && (0..256).contains(&py) {
-                                            self.screen[(py as usize) * 256 + (px as usize)] =
-                                                color;
-                                        }
+                                        self.set_pixel_clipped(px as usize, py as usize, color);
                                     }
                                 }
                             }

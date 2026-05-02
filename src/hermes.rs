@@ -991,6 +991,9 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         // Phase 263: Bitfield extract/insert
         0xC2 => "BFE",
         0xC3 => "BFI",
+        // Phase 265: Canvas clip region
+        0xC4 => "CLIPSET",
+        0xC5 => "CLIPCLR",
         // Phase 94: Tiny font text rendering
         0xD0 => "SMALLTEXT",
         // Phase 95: Medium font text rendering
