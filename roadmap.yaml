@@ -12,7 +12,7 @@ conventions:
 - Error reporting via RAM[0xFFD] (existing ASM result port)
 description: Pixel-art virtual machine with built-in assembler, debugger, and live
   GUI. Write assembly in the built-in text editor, press F5, watch it run. 177 opcodes,
-  1797 tests, 161 programs, 91303 LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor.
+  1827 tests, 161 programs, 89959 LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor.
   Infinite map desktop.
 global_risks:
 - 'Opcode space: 154 of ~256 slots used, plenty of room'
@@ -34,20 +34,20 @@ global_risks:
 meta:
   gui: minifb
   hypervisor: true
-  integration_tests: 1797
+  integration_tests: 1827
   language: Rust
-  lib_tests: 1797
-  loc: 91303
+  lib_tests: 1827
+  loc: 89959
   opcodes: 177
   programs: 161
   ram: 65536 words
   registers: 32
-  total_tests: 1797
+  total_tests: 1827
   riscv_examples: 13
   riscv_guest: true
   screen: 256x256 pixels
-  source_files: 92
-  tests: 3656
+  source_files: 100
+  tests: 1827
   vfs_surface: 0x7000_0000 (256x256)
 project_url: https://github.com/tdw419/geometry-os
 title: Geometry OS Roadmap
