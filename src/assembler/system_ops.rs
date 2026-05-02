@@ -1156,6 +1156,67 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        // Copy screen region to clipboard: CLIP_COPY x_reg, y_reg, w_reg, h_reg (0xD7)
+        // Stores [width, height, pixels...] in clipboard buffer.
+        "CLIP_COPY" => {
+            if tokens.len() < 5 {
+                return Err("CLIP_COPY requires 4 arguments: CLIP_COPY x_reg, y_reg, w_reg, h_reg".to_string());
+            }
+            bytecode.push(0xD7);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            Ok(Some(()))
+        }
+
+        // Paste clipboard buffer to screen: CLIP_PASTE x_reg, y_reg (0xD8)
+        "CLIP_PASTE" => {
+            if tokens.len() < 3 {
+                return Err("CLIP_PASTE requires 2 arguments: CLIP_PASTE x_reg, y_reg".to_string());
+            }
+            bytecode.push(0xD8);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        // Phase 269: Hash Table Opcodes
+        // HASHINIT table_id, buckets_reg (0xE2, 3 words)
+        "HASHINIT" => {
+            if tokens.len() < 3 {
+                return Err("HASHINIT requires 2 arguments: HASHINIT table_id, buckets_reg".to_string());
+            }
+            bytecode.push(0xE2);
+            bytecode.push(parse_imm(tokens[1], constants)?);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        // HASHSET table_id, key_reg, val_reg (0xE3, 4 words)
+        "HASHSET" => {
+            if tokens.len() < 4 {
+                return Err("HASHSET requires 3 arguments: HASHSET table_id, key_reg, val_reg".to_string());
+            }
+            bytecode.push(0xE3);
+            bytecode.push(parse_imm(tokens[1], constants)?);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
+        // HASHGET table_id, key_reg, dst_reg (0xE4, 4 words)
+        "HASHGET" => {
+            if tokens.len() < 4 {
+                return Err("HASHGET requires 3 arguments: HASHGET table_id, key_reg, dst_reg".to_string());
+            }
+            bytecode.push(0xE4);
+            bytecode.push(parse_imm(tokens[1], constants)?);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
         _ => Ok(None),
     }
 }

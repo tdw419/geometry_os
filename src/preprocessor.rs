@@ -196,9 +196,16 @@ pub const OPCODES: &[&str] = &[
     // Phase 265: Canvas clip region
     "CLIPSET",
     "CLIPCLR",
+    // Phase 204: Clipboard
+    "CLIP_COPY",
+    "CLIP_PASTE",
     "PROFILE",
     // Phase 260: Matrix multiply (2D)
     "MATMUL",
+    // Phase 269: Hash table opcodes
+    "HASHINIT",
+    "HASHSET",
+    "HASHGET",
     // PCM audio streaming
     "AUDIO_PLAY",
     "AUDIO_STOP",

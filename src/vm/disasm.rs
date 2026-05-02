@@ -1040,6 +1040,42 @@ impl Vm {
             // AUDIO_STATUS reg (0xD6, 2 words)
             0xD6 => (format!("AUDIO_STATUS {}", reg(ram(a + 1))), 2),
 
+            // CLIP_COPY x, y, w, h (0xD7, 5 words) -- Copy screen region to clipboard
+            0xD7 => (
+                format!(
+                    "CLIP_COPY {}, {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4))
+                ),
+                5,
+            ),
+
+            // CLIP_PASTE x, y (0xD8, 3 words) -- Paste clipboard buffer to screen
+            0xD8 => (
+                format!("CLIP_PASTE {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
+
+            // HASHINIT table_id, buckets_reg (0xE2, 3 words)
+            0xE2 => (
+                format!("HASHINIT {}, {}", ram(a + 1), reg(ram(a + 2))),
+                3,
+            ),
+
+            // HASHSET table_id, key_reg, val_reg (0xE3, 4 words)
+            0xE3 => (
+                format!("HASHSET {}, {}, {}", ram(a + 1), reg(ram(a + 2)), reg(ram(a + 3))),
+                4,
+            ),
+
+            // HASHGET table_id, key_reg, dst_reg (0xE4, 4 words)
+            0xE4 => (
+                format!("HASHGET {}, {}, {}", ram(a + 1), reg(ram(a + 2)), reg(ram(a + 3))),
+                4,
+            ),
+
             _ => (format!("??? (0x{:02X})", op), 1),
         }
     }

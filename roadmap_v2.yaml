@@ -4308,7 +4308,7 @@ phases:
   _claimed_at: 1777757073
 - id: phase-269
   title: GeOS VM -- Hash Table Opcodes (HASHINIT, HASHSET, HASHGET)
-  status: planned
+  status: in_progress
   goal: Add VM-level hash table for efficient key-value lookups from assembly
   description: Assembly programs currently implement hash tables manually (hash function
     + collision chains) which costs 50+ instructions per lookup. Native hash table
@@ -4348,6 +4348,8 @@ phases:
       scope_lines: 100
   test_target: 10
   scope_lines_total: 220
+  _claimed_by: worker-0
+  _claimed_at: 1777758784
 - id: phase-270
   title: GeOS Program -- Asteroids Arcade Game
   status: planned

@@ -250,6 +250,9 @@ pub fn load_state(path: &str) -> std::io::Result<(vm::Vm, Vec<u32>, bool)> {
         host_file_handles: (0..vm::types::MAX_HOST_FILES).map(|_| None).collect(),
         focused_pid: 0,
         clip_rect: None,
+        clipboard: Vec::new(),
+        hash_tables: std::array::from_fn(|_| std::collections::HashMap::new()),
+        hash_tables_active: 0,
     };
 
     // Parse canvas trailer

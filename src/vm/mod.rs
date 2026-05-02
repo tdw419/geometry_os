@@ -235,6 +235,21 @@ pub struct Vm {
     /// When Some((x, y, w, h)), all pixel writes are clamped to this region.
     /// When None, no clipping is applied (full 256x256 screen).
     pub clip_rect: Option<(u32, u32, u32, u32)>,
+    /// Clipboard buffer for CLIP_COPY/CLIP_PASTE (Phase 204).
+    /// Stores a rectangular pixel region copied from the screen.
+    /// Layout: [width, height, pixel_data...]. Pixel count = width * height.
+    /// Width and height are u32 stored at indices 0 and 1.
+    /// Empty (len <= 2) means clipboard is empty.
+    pub clipboard: Vec<u32>,
+
+    // ── Phase 269: Hash Table Opcodes ────────────────────────────
+    /// Up to 8 hash tables for HASHINIT/HASHSET/HASHGET opcodes.
+    /// Each table is a HashMap<u32, u32> mapping key -> value.
+    /// Tables persist across frames but reset on VM reset.
+    pub hash_tables: [std::collections::HashMap<u32, u32>; 8],
+    /// Bitmask of which hash table slots are allocated (bit N = table N in use).
+    pub hash_tables_active: u8,
+
     /// Indices 0..N are used. host_file_handles[i] = Some((File, mode)) when open.
     pub host_file_handles: Vec<Option<(std::fs::File, u8)>>,
 }
@@ -360,6 +375,9 @@ impl Vm {
                 .map(|_| None)
                 .collect(),
             clip_rect: None,
+            clipboard: Vec::new(),
+            hash_tables: Default::default(),
+            hash_tables_active: 0,
         }
     }
 
@@ -541,6 +559,10 @@ impl Vm {
             .collect();
         self.focused_pid = 0;
         self.clip_rect = None;
+        for table in self.hash_tables.iter_mut() {
+            table.clear();
+        }
+        self.hash_tables_active = 0;
     }
 
     /// Internal helper to log a memory access with a safety cap.
@@ -1465,6 +1487,64 @@ impl Vm {
                 }
             }
 
+            // CLIP_COPY x_reg, y_reg, w_reg, h_reg  (0xD7) -- Copy screen region to clipboard
+            // Copies a rectangular region from the screen into the clipboard buffer.
+            // The clipboard stores [width, height, pixel0, pixel1, ...].
+            // Encoding: 5 words [0xD7, x_reg, y_reg, w_reg, h_reg]
+            0xD7 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let hr = self.fetch() as usize;
+                if xr < NUM_REGS && yr < NUM_REGS && wr < NUM_REGS && hr < NUM_REGS {
+                    let x = self.regs[xr] as usize;
+                    let y = self.regs[yr] as usize;
+                    let w = self.regs[wr].min(256) as usize;
+                    let h = self.regs[hr].min(256) as usize;
+                    let mut buf = Vec::with_capacity(2 + w * h);
+                    buf.push(w as u32);
+                    buf.push(h as u32);
+                    for row in 0..h {
+                        for col in 0..w {
+                            let sx = x + col;
+                            let sy = y + row;
+                            let pixel = if sx < 256 && sy < 256 {
+                                self.screen[sy * 256 + sx]
+                            } else {
+                                0
+                            };
+                            buf.push(pixel);
+                        }
+                    }
+                    self.clipboard = buf;
+                }
+            }
+
+            // CLIP_PASTE x_reg, y_reg  (0xD8) -- Paste clipboard buffer to screen
+            // Pastes the clipboard contents at (x, y) on the screen.
+            // Respects the current clip rectangle. Out-of-bounds pixels are skipped.
+            // Encoding: 3 words [0xD8, x_reg, y_reg]
+            0xD8 => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                if xr < NUM_REGS && yr < NUM_REGS && self.clipboard.len() > 2 {
+                    let x = self.regs[xr] as usize;
+                    let y = self.regs[yr] as usize;
+                    let w = self.clipboard[0] as usize;
+                    let h = self.clipboard[1] as usize;
+                    for row in 0..h {
+                        for col in 0..w {
+                            let sx = x + col;
+                            let sy = y + row;
+                            if sx < 256 && sy < 256 {
+                                let pixel = self.clipboard[2 + row * w + col];
+                                self.screen[sy * 256 + sx] = pixel;
+                            }
+                        }
+                    }
+                }
+            }
+
             // MATMUL r_dst, r_a, r_b, r_m, r_n, r_k (0xDE)
             // 2D matrix multiply using fixed-point 16.16 arithmetic.
             // Multiplies MxK matrix A (at regs[r_a]) by KxN matrix B (at regs[r_b]),
@@ -1507,6 +1587,77 @@ impl Vm {
                                 self.ram[dst_addr] = sum as u32;
                             }
                         }
+                    }
+                }
+            }
+
+            // HASHINIT table_id, buckets_reg  (0xE2)
+            // Initialize a hash table. table_id = 0-7, buckets_reg = register with bucket count.
+            // Clears any existing data in the table. Max 8 tables.
+            // Sets r0 = 1 on success, 0 on failure (invalid id or already at max).
+            // Encoding: 3 words [0xE2, table_id, buckets_reg]
+            0xE2 => {
+                let table_id = self.fetch();
+                let br = self.fetch() as usize;
+                if br < NUM_REGS {
+                    let tid = table_id as usize;
+                    if tid < 8 {
+                        self.hash_tables[tid].clear();
+                        self.hash_tables_active |= 1 << tid;
+                        self.regs[0] = 1; // success
+                    } else {
+                        self.regs[0] = 0; // invalid table id
+                    }
+                }
+            }
+
+            // HASHSET table_id, key_reg, val_reg  (0xE3)
+            // Insert or update key->value in hash table. Uses Rust HashMap internally.
+            // Sets r0 = 1 on success, 0 on failure (invalid table id).
+            // Encoding: 4 words [0xE3, table_id, key_reg, val_reg]
+            0xE3 => {
+                let table_id = self.fetch();
+                let kr = self.fetch() as usize;
+                let vr = self.fetch() as usize;
+                if kr < NUM_REGS && vr < NUM_REGS {
+                    let tid = table_id as usize;
+                    if tid < 8 && (self.hash_tables_active & (1 << tid)) != 0 {
+                        let key = self.regs[kr];
+                        let val = self.regs[vr];
+                        self.hash_tables[tid].insert(key, val);
+                        self.regs[0] = 1; // success
+                    } else {
+                        self.regs[0] = 0; // invalid table id or not initialized
+                    }
+                }
+            }
+
+            // HASHGET table_id, key_reg, dst_reg  (0xE4)
+            // Look up key in hash table, store value in dst_reg.
+            // If key not found, sets dst to 0xFFFFFFFF (sentinel).
+            // Sets r0 = 1 on found, 0 on not found.
+            // Encoding: 4 words [0xE4, table_id, key_reg, dst_reg]
+            0xE4 => {
+                let table_id = self.fetch();
+                let kr = self.fetch() as usize;
+                let dr = self.fetch() as usize;
+                if kr < NUM_REGS && dr < NUM_REGS {
+                    let tid = table_id as usize;
+                    if tid < 8 && (self.hash_tables_active & (1 << tid)) != 0 {
+                        let key = self.regs[kr];
+                        match self.hash_tables[tid].get(&key) {
+                            Some(&val) => {
+                                self.regs[dr] = val;
+                                self.regs[0] = 1; // found
+                            }
+                            None => {
+                                self.regs[dr] = 0xFFFFFFFF; // sentinel
+                                self.regs[0] = 0; // not found
+                            }
+                        }
+                    } else {
+                        self.regs[dr] = 0xFFFFFFFF;
+                        self.regs[0] = 0;
                     }
                 }
             }

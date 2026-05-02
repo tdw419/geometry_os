@@ -1003,8 +1003,15 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         0xD4 => "AUDIO_PLAY",
         0xD5 => "AUDIO_STOP",
         0xD6 => "AUDIO_STATUS",
+        // Phase 204: Clipboard
+        0xD7 => "CLIP_COPY",
+        0xD8 => "CLIP_PASTE",
         // Phase 260: Matrix multiply (2D)
         0xDE => "MATMUL",
+        // Phase 269: Hash Table opcodes
+        0xE2 => "HASHINIT",
+        0xE3 => "HASHSET",
+        0xE4 => "HASHGET",
         _ => "???",
     }
 }
@@ -3029,6 +3036,8 @@ mod tests {
             (0xD4, "AUDIO_PLAY"),
             (0xD5, "AUDIO_STOP"),
             (0xD6, "AUDIO_STATUS"),
+            (0xD7, "CLIP_COPY"),
+            (0xD8, "CLIP_PASTE"),
         ];
         for &(op, _expected) in canaries {
             let name = opcode_name(op);
