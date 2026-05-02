@@ -1642,7 +1642,7 @@ phases:
   scope_lines_total: 180
 - id: phase-202
   title: GeOS Audio System -- PCM Streaming via BEEP
-  status: todo
+  status: done
   goal: Extend the single-tone BEEP opcode into a sample-streaming audio pipeline
     for sound effects and music
   description: 'The current BEEP opcode plays one sine-wave tone at a time via aplay.
@@ -1653,7 +1653,7 @@ phases:
     in screensaver.asm.'
   deliverables:
   - name: PCM sample streaming opcodes
-    status: todo
+    status: done
     tasks:
     - id: p202.d1.t1
       title: Add AUDIO_PLAY opcode (addr_reg, len_reg, rate_reg)
@@ -4268,7 +4268,7 @@ phases:
   _claimed_at: 1777751704
 - id: phase-268
   title: GeOS Program -- Tower Defense Game
-  status: planned
+  status: done
   goal: Write a tower defense game with multiple tower types, wave-based enemies,
     and upgrade paths
   description: Tower defense is a classic game genre that exercises pathfinding, projectile
@@ -4276,7 +4276,7 @@ phases:
     places towers that auto-attack, earning gold for kills to build more towers.
   deliverables:
   - name: Tower defense game
-    status: planned
+    status: done
     tasks:
     - id: p268.d1.t1
       title: Implement game state, map, and enemy pathfinding
@@ -4304,6 +4304,8 @@ phases:
       scope_lines: 150
   test_target: 2
   scope_lines_total: 500
+  _claimed_by: worker-0
+  _claimed_at: 1777757073
 - id: phase-269
   title: GeOS VM -- Hash Table Opcodes (HASHINIT, HASHSET, HASHGET)
   status: planned
