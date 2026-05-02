@@ -3951,7 +3951,7 @@ phases:
   scope_lines_total: 330
 - id: phase-260
   title: GeOS VM -- Matrix Multiply Opcode (MATMUL)
-  status: planned
+  status: in_progress
   goal: Hardware-accelerated 2D matrix multiply for linear algebra and neural network
     inference
   description: MATVEC does vector-matrix multiply. A full MATMUL opcode for 2D matrix
@@ -3989,9 +3989,11 @@ phases:
       scope_lines: 120
   test_target: 6
   scope_lines_total: 260
+  _claimed_by: worker-0
+  _claimed_at: 1777699143
 - id: phase-261
   title: GeOS Program -- Particle Physics Sandbox
-  status: planned
+  status: in_progress
   goal: Write a real-time particle simulation with gravity, collisions, and interactive
     spawning
   description: A physics sandbox where particles interact with gravity, bounce off
@@ -4020,9 +4022,11 @@ phases:
       scope_lines: 100
   test_target: 2
   scope_lines_total: 250
+  _claimed_by: worker-0
+  _claimed_at: 1777704231
 - id: phase-262
   title: RISC-V Guest -- Basic Shell with Pipes and Redirection
-  status: planned
+  status: done
   goal: Port the GeOS shell concept to RISC-V guest with pipe and I/O redirection
     support
   description: The RISC-V guest has sh.c but it lacks pipes and redirection. A proper
@@ -4030,7 +4034,7 @@ phases:
     cmd2), output redirection (cmd > file), and input redirection (cmd < file).
   deliverables:
   - name: Guest shell with pipes
-    status: planned
+    status: done
     tasks:
     - id: p262.d1.t1
       title: Implement command parsing with pipe and redirection tokens
@@ -4058,6 +4062,8 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 300
+  _claimed_by: worker-0
+  _claimed_at: 1777705830
 - id: phase-263
   title: GeOS VM -- Bitfield Extract/Insert Opcodes (BFE, BFI)
   status: planned
