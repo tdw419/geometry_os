@@ -3,11 +3,11 @@
 Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers toolchain hygiene, GUI bridge, pixel VM convergence, libgeos extraction, and legacy roadmap reconciliation. SPEC = thesis. roadmap_v2 = arc. OpenSpec = per-change diff.
 
 
-**Progress:** 8/85 phases complete, 1 in progress
+**Progress:** 8/100 phases complete, 1 in progress
 
-**Deliverables:** 48/110 complete
+**Deliverables:** 48/125 complete
 
-**Tasks:** 45/275 complete
+**Tasks:** 45/318 complete
 
 ## Scope Summary
 
@@ -98,6 +98,21 @@ Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers tool
 | phase-257 RISC-V Guest -- Timer and Sleep Syscalls | PLANNED | 0/1 | 150 | 2 |
 | phase-258 GeOS VM -- Scanline Flood Fill Opcode (FLOOD) | PLANNED | 0/1 | 300 | 8 |
 | phase-259 GeOS Program -- Cellular Automata Sandbox (Life, HighLife, Seeds) | PLANNED | 0/1 | 330 | 2 |
+| phase-260 GeOS VM -- Matrix Multiply Opcode (MATMUL) | PLANNED | 0/1 | 260 | 6 |
+| phase-261 GeOS Program -- Particle Physics Sandbox | PLANNED | 0/1 | 250 | 2 |
+| phase-262 RISC-V Guest -- Basic Shell with Pipes and Redirection | PLANNED | 0/1 | 300 | 2 |
+| phase-263 GeOS VM -- Bitfield Extract/Insert Opcodes (BFE, BFI) | PLANNED | 0/1 | 200 | 10 |
+| phase-264 GeOS Program -- L-System Fractal Generator | PLANNED | 0/1 | 270 | 2 |
+| phase-265 GeOS VM -- Canvas Clip Region Opcodes (CLIPSET, CLIPCLR) | PLANNED | 0/1 | 340 | 12 |
+| phase-266 RISC-V Guest -- Framebuffer Graphics Library (libfb) | PLANNED | 0/1 | 330 | 2 |
+| phase-267 GeOS VM -- Performance Profiling Opcode (PROFILE) | PLANNED | 0/1 | 210 | 6 |
+| phase-268 GeOS Program -- Tower Defense Game | PLANNED | 0/1 | 500 | 2 |
+| phase-269 GeOS VM -- Hash Table Opcodes (HASHINIT, HASHSET, HASHGET) | PLANNED | 0/1 | 220 | 10 |
+| phase-270 GeOS Program -- Asteroids Arcade Game | PLANNED | 0/1 | 350 | 2 |
+| phase-271 RISC-V Guest -- vi-like Text Editor | PLANNED | 0/1 | 370 | 2 |
+| phase-272 GeOS VM -- Sprite Sheet and Animation Frame Opcodes (SPRLOAD, SPRFRAME) | PLANNED | 0/1 | 250 | 8 |
+| phase-273 GeOS VM -- Interrupt-Driven Input Queue Enhancement | PLANNED | 0/1 | 200 | 6 |
+| phase-274 GeOS Program -- Solar System Simulator | PLANNED | 0/1 | 270 | 2 |
 
 ## Dependencies
 
@@ -1710,6 +1725,242 @@ Conway Game of Life already exists as code_evolution.asm, but a unified sandbox 
     > Rules: Life (B3/S23), HighLife (B36/S23), Day and Night (B3678/S34678), Seeds (B2/S). Press 1-4 to switch. Use table-based rule lookup in RAM.
   - [ ] `p259.d1.t3` Add interactive editing and speed control
     > Click to toggle cells, +/- to change speed, R to randomize, C to clear. Use IKEY for input.
+
+## [ ] phase-260: GeOS VM -- Matrix Multiply Opcode (MATMUL) (PLANNED)
+
+**Goal:** Hardware-accelerated 2D matrix multiply for linear algebra and neural network inference
+
+MATVEC does vector-matrix multiply. A full MATMUL opcode for 2D matrix multiply would enable larger neural networks and linear algebra operations without manual indexing. The opcode takes base addresses of two matrices and the destination, plus dimensions.
+
+### Deliverables
+
+- [ ] **MATMUL opcode implementation** -- 
+  - [ ] `p260.d1.t1` Implement MATMUL dst_addr, A_addr, B_addr, M_reg, N_reg, K_reg (0xDE)
+    > Multiply MxK matrix A by KxN matrix B, store MxN result at dst_addr. Use row-major addressing with LOAD/STORE. Bounds-check dimensions against available RAM.
+  - [ ] `p260.d1.t2` Add disassembler entry and unit tests
+    > Test 2x2, 3x3, and 4x4 matrix multiply. Test non-square matrices. Test edge case M=1 (vector-matrix). Verify against known results.
+  - [ ] `p260.d1.t3` Write neural_network.asm with MATMUL-based inference
+    > Simple 2-layer neural network (input->hidden->output) using MATMUL for weight multiplication and RELU for activation. Classify handwritten-digit-like patterns.
+
+## [ ] phase-261: GeOS Program -- Particle Physics Sandbox (PLANNED)
+
+**Goal:** Write a real-time particle simulation with gravity, collisions, and interactive spawning
+
+A physics sandbox where particles interact with gravity, bounce off walls, and collide with each other. The player spawns particles with mouse/cursor and adjusts gravity and damping. Demonstrates the VM's ability to run real-time physics at 60fps.
+
+### Deliverables
+
+- [ ] **Particle physics sandbox** -- 
+  - [ ] `p261.d1.t1` Implement particle data structure and physics engine
+    > Store particles in RAM (x, y, vx, vy per particle, max 128). Apply gravity each frame. Bounce off screen edges with damping. Use subroutines for update and render.
+  - [ ] `p261.d1.t2` Add interactive controls and visual effects
+    > Arrow keys adjust gravity direction. Space spawns burst of particles. R to reset. Color particles by velocity. Trail effect via SCROLL with partial transparency.
+
+## [ ] phase-262: RISC-V Guest -- Basic Shell with Pipes and Redirection (PLANNED)
+
+**Goal:** Port the GeOS shell concept to RISC-V guest with pipe and I/O redirection support
+
+The RISC-V guest has sh.c but it lacks pipes and redirection. A proper shell is essential for the guest OS experience. Implement pipe parsing (cmd1 | cmd2), output redirection (cmd > file), and input redirection (cmd < file).
+
+### Deliverables
+
+- [ ] **Guest shell with pipes** -- 
+  - [ ] `p262.d1.t1` Implement command parsing with pipe and redirection tokens
+    > Parse input line into command segments separated by |. Detect > and < for redirection. Handle quoting and escaping. Support up to 4 pipe stages.
+  - [ ] `p262.d1.t2` Implement pipe() and fork() based pipeline execution
+    > Use SBI pipe syscall to connect command stdout to next command stdin. Fork child processes for each pipeline stage. Parent waits for all children.
+  - [ ] `p262.d1.t3` Add file redirection and built-in commands
+    > Implement > (write) and >> (append) redirection using SBI file syscalls. Add built-ins: cd, pwd, echo, export. Handle error cases (file not found, pipe broken).
+
+## [ ] phase-263: GeOS VM -- Bitfield Extract/Insert Opcodes (BFE, BFI) (PLANNED)
+
+**Goal:** Add bitfield manipulation opcodes for efficient packed data access
+
+Many VM programs manipulate packed data (color channels, tile flags, entity state). Currently this requires manual SHL/SHR/AND/OR sequences (4-6 instructions). BFE and BFI opcodes compress these to single instructions, improving both performance and code density.
+
+### Deliverables
+
+- [ ] **BFE and BFI opcodes** -- 
+  - [ ] `p263.d1.t1` Implement BFE dst, src, pos_reg, width_reg (0xDF) and BFI dst, src, val, pos_reg, width_reg (0xE0)
+    > BFE extracts bits [pos:pos+width-1] from src into dst (zero-extended). BFI inserts bits from val into dst at [pos:pos+width-1]. Validate pos+width <= 32.
+  - [ ] `p263.d1.t2` Add disassembler entries and comprehensive tests
+    > Test extracting R/G/B channels from packed colors. Test inserting values at various positions. Test edge cases (width=1, width=32, pos=0, pos=31). Test that BFI preserves surrounding bits.
+  - [ ] `p263.d1.t3` Optimize infinite_map.asm color handling with BFE/BFI
+    > Replace manual color channel extraction/insertion in infinite_map_pxpk.asm with BFE/BFI. Measure bytecode size reduction and per-tile instruction count improvement.
+
+## [ ] phase-264: GeOS Program -- L-System Fractal Generator (PLANNED)
+
+**Goal:** Write an interactive L-system fractal renderer with rule editing
+
+L-systems generate complex fractal patterns from simple rewrite rules. This program implements turtle graphics with push/pop state for branching, supporting Koch curves, Sierpinski triangles, dragon curves, and plant-like structures. Users can modify rules and iterations interactively.
+
+### Deliverables
+
+- [ ] **L-system fractal generator** -- 
+  - [ ] `p264.d1.t1` Implement L-system string expansion engine
+    > Store axiom and rules in RAM. Expand string iteratively (max 8 iterations). Characters: F=forward, +=turn left, -=turn right, [=push state, ]=pop state. Limit expanded string to 4096 chars.
+  - [ ] `p264.d1.t2` Implement turtle graphics renderer and preset fractals
+    > Render expanded string using LINE opcode with turtle state (x, y, angle, color). Include 5 presets: Koch snowflake, Sierpinski triangle, dragon curve, fern, tree. Keys 1-5 switch presets, +/- adjust iterations.
+
+## [ ] phase-265: GeOS VM -- Canvas Clip Region Opcodes (CLIPSET, CLIPCLR) (PLANNED)
+
+**Goal:** Add clipping region support to constrain all drawing operations to a rectangular area
+
+Windowed environments need clipping so child windows don't draw outside their bounds. Currently only the tilemap has implicit clipping. CLIPSET/CLIPCLR opcodes set a global clip rectangle that PSET, LINE, RECTF, CIRCLE, TEXT, and SPRITE all respect.
+
+### Deliverables
+
+- [ ] **Canvas clipping opcodes** -- 
+  - [ ] `p265.d1.t1` Add clip_rect field to Vm, implement CLIPSET x, y, w, h and CLIPCLR
+    > CLIPSET sets the clip rectangle (all drawing ops clip to this region). CLIPCLR disables clipping. Store clip_rect as (x, y, x+w, y+h) in Vm struct. Initialize in all construction sites.
+  - [ ] `p265.d1.t2` Apply clipping to all drawing opcodes
+    > Modify PSET, LINE, RECTF, CIRCLE, TEXT, SPRITE, TILEMAP handlers to check bounds against clip_rect before writing pixels. Use min/max clamping for partial intersections.
+  - [ ] `p265.d1.t3` Add assembler entries, disassembler, and tests
+    > Test clipping with PSET outside bounds (should not draw). Test LINE partially clipped. Test RECTF fully clipped. Test CLIPCLR restores full-screen drawing. Test nested clipping (CLIPSET within clip).
+  - [ ] `p265.d1.t4` Update window_manager.asm to use CLIPSET for child windows
+    > Replace manual boundary checking in window_manager.asm with CLIPSET/CLIPCLR. Measure code size reduction.
+
+## [ ] phase-266: RISC-V Guest -- Framebuffer Graphics Library (libfb) (PLANNED)
+
+**Goal:** Create a C graphics library for RISC-V guest programs with drawing primitives
+
+Guest programs currently draw directly to the framebuffer address (0x60000000) with manual pixel calculations. A libfb.a with fb_fill(), fb_rect(), fb_line(), fb_circle(), fb_text() would make guest graphics programs much easier to write and more portable.
+
+### Deliverables
+
+- [ ] **Guest framebuffer graphics library** -- 
+  - [ ] `p266.d1.t1` Implement core drawing primitives in libfb.c
+    > Functions: fb_init(), fb_fill(color), fb_pixel(x,y,color), fb_rect(x,y,w,h,color), fb_line(x0,y0,x1,y1,color) using Bresenham's, fb_circle(x,y,r,color) using midpoint. All write to 0x60000000 with 256x256 stride.
+  - [ ] `p266.d1.t2` Implement text rendering and blitting functions
+    > fb_text(x, y, color, str) renders string using embedded 5x7 font. fb_blit(src_x, src_y, dst_x, dst_y, w, h) copies rectangular region. fb_scroll(pixels) scrolls screen up.
+  - [ ] `p266.d1.t3` Write graphics_demo.c showcasing all primitives
+    > Demo program that draws filled rectangles, gradient, bouncing circle, text overlay, and line patterns. Update build.sh to link libfb.a.
+
+## [ ] phase-267: GeOS VM -- Performance Profiling Opcode (PROFILE) (PLANNED)
+
+**Goal:** Add a profiling opcode to measure instruction counts per code region
+
+Optimizing VM programs is hard without profiling data. PROFILE start/stop records the instruction count between two points and stores it in a profile buffer. Programs can profile multiple regions and read back the results to identify hot loops.
+
+### Deliverables
+
+- [ ] **PROFILE opcode** -- 
+  - [ ] `p267.d1.t1` Implement PROFILE mode_reg (0xE1) with start/stop/query modes
+    > mode=0: start counting from current step_count. mode=1: stop, record delta to profile_buffer[region_id]. mode=2: query profile_buffer[region_id] into register. Profile buffer at fixed RAM address, 32 entries.
+  - [ ] `p267.d1.t2` Add disassembler entry and tests
+    > Test single region profiling. Test multiple regions. Test that query returns 0 before start. Test that query returns delta after stop. Test profile buffer addressing.
+  - [ ] `p267.d1.t3` Write profile_demo.asm that profiles render vs physics
+    > Bouncing ball demo that profiles the physics update loop and the rendering loop separately, then displays the ratio as a bar chart.
+
+## [ ] phase-268: GeOS Program -- Tower Defense Game (PLANNED)
+
+**Goal:** Write a tower defense game with multiple tower types, wave-based enemies, and upgrade paths
+
+Tower defense is a classic game genre that exercises pathfinding, projectile physics, resource management, and UI layout. Enemies follow a fixed path, player places towers that auto-attack, earning gold for kills to build more towers.
+
+### Deliverables
+
+- [ ] **Tower defense game** -- 
+  - [ ] `p268.d1.t1` Implement game state, map, and enemy pathfinding
+    > Fixed path defined as waypoint list in RAM. Enemies follow path with interpolation. Each enemy has HP, speed, position. Max 32 enemies. Waypoint path rendered as dotted line.
+  - [ ] `p268.d1.t2` Implement tower placement, targeting, and projectiles
+    > Player cursor to place towers on valid cells. Towers find nearest enemy in range, fire projectiles (LINE animation). Three tower types: arrow (fast, low dmg), cannon (slow, AOE), ice (slows). Each stored in RAM array.
+  - [ ] `p268.d1.t3` Add wave system, gold economy, and UI overlay
+    > Wave-based spawning with increasing difficulty. Kill enemies for gold. Spend gold on towers. Display: wave number, gold, lives, tower info panel at bottom. Game over when lives reach 0.
+
+## [ ] phase-269: GeOS VM -- Hash Table Opcodes (HASHINIT, HASHSET, HASHGET) (PLANNED)
+
+**Goal:** Add VM-level hash table for efficient key-value lookups from assembly
+
+Assembly programs currently implement hash tables manually (hash function + collision chains) which costs 50+ instructions per lookup. Native hash table opcodes enable O(1) average lookups, useful for symbol tables, entity lookup, and caching.
+
+### Deliverables
+
+- [ ] **Hash table opcodes** -- 
+  - [ ] `p269.d1.t1` Implement HASHINIT table_id, buckets_reg and HASHSET table_id, key_reg, val_reg (0xE2, 0xE3)
+    > HASHINIT allocates a hash table with N buckets (max 8 tables). HASHSET inserts or updates key->value pair using FNV-1a hashing. Store tables in Vm struct with HashMap<u32, u32> per bucket.
+  - [ ] `p269.d1.t2` Implement HASHGET table_id, key_reg, dst_reg (0xE4) with not-found indicator
+    > HASHGET looks up key and stores value in dst. If not found, sets dst to 0xFFFFFFFF (sentinel). Tables persist across frames but reset on VM reset.
+  - [ ] `p269.d1.t3` Add disassembler entries and comprehensive tests
+    > Test init with various bucket counts. Test set/get roundtrip. Test update existing key. Test get missing key returns sentinel. Test collision handling (insert keys that hash to same bucket). Test 8-table limit.
+
+## [ ] phase-270: GeOS Program -- Asteroids Arcade Game (PLANNED)
+
+**Goal:** Write a classic Asteroids-style game with vector graphics, wrapping, and progressive difficulty
+
+Asteroids is the quintessential vector graphics game -- perfect for Geometry OS. The player ship rotates and thrusts, shooting asteroids that split into smaller pieces. Features: wrapping screen edges, inertia-based physics, particle explosions, UFO enemies.
+
+### Deliverables
+
+- [ ] **Asteroids arcade game** -- 
+  - [ ] `p270.d1.t1` Implement ship physics, rotation, and screen wrapping
+    > Ship stored as (x, y, angle, vx, vy). Thrust adds velocity in facing direction. Rotation changes angle. Screen wrapping: objects crossing edges appear on opposite side. Friction gradually slows ship.
+  - [ ] `p270.d1.t2` Implement asteroids, bullets, and collision detection
+    > Asteroids as circles with random velocity. Large asteroids split into 2 medium, medium into 2 small. Bullets have limited lifetime. Collision via distance check (no PEEK needed for circles). Particle burst on destruction.
+  - [ ] `p270.d1.t3` Add scoring, lives, waves, and sound effects
+    > Score: small=100, medium=50, large=25. 3 lives, extra life at 10000. Wave system with increasing asteroid count. BEEP for shooting, explosion, and extra life. High score tracking in RAM.
+
+## [ ] phase-271: RISC-V Guest -- vi-like Text Editor (PLANNED)
+
+**Goal:** Write a minimal vi-mode text editor for the RISC-V guest
+
+The guest has no text editor beyond the GeOS canvas. A vi-like editor with normal/insert modes, line editing, search, and save/load would make the guest OS self-sufficient for editing files on the VFS.
+
+### Deliverables
+
+- [ ] **Guest vi editor** -- 
+  - [ ] `p271.d1.t1` Implement screen rendering and cursor management
+    > Render file contents to framebuffer using libfb text functions. Scroll viewport when cursor moves past screen. Status line at bottom showing mode and file info. Support 256x256 viewport with 8x12 font.
+  - [ ] `p271.d1.t2` Implement normal mode commands
+    > h/j/k/l movement, dd (delete line), yy (yank), p (paste), x (delete char), i/a/o (enter insert mode), :w (save), :q (quit), :wq (save+quit), / (search forward), n (next match), G (go to end), 1G (go to top).
+  - [ ] `p271.d1.t3` Implement insert mode and file I/O
+    > Insert mode: typed chars insert at cursor, backspace deletes, Escape returns to normal. Line editing with Enter for newline. Load file on startup (argv[1]). Save writes to same path via SBI file syscall.
+
+## [ ] phase-272: GeOS VM -- Sprite Sheet and Animation Frame Opcodes (SPRLOAD, SPRFRAME) (PLANNED)
+
+**Goal:** Add sprite sheet support for multi-frame animated sprites
+
+The existing SPRITE opcode blits a single NxM region. For animated sprites (walking characters, explosions), programs must manually compute frame offsets. SPRLOAD defines a sprite sheet with frame dimensions, and SPRFRAME selects the current frame, making SPRITE automatically use the correct offset.
+
+### Deliverables
+
+- [ ] **Sprite animation opcodes** -- 
+  - [ ] `p272.d1.t1` Implement SPRLOAD sheet_id, addr_reg, frame_w_reg, frame_h_reg, frames_reg (0xE5)
+    > Register a sprite sheet: base address in RAM, frame dimensions, total frame count. Max 16 sheets. Store in Vm struct. SPRFRAME sheet_id, frame_reg selects active frame.
+  - [ ] `p272.d1.t2` Extend SPRITE to accept sheet_id instead of raw address
+    > When SPRITE addr_reg points to a registered sheet_id (special encoding), auto-compute source address from sheet base + frame * frame_w * frame_h. Backward compatible with raw address mode.
+  - [ ] `p272.d1.t3` Add tests and write animated_sprites.asm demo
+    > Test sheet registration, frame selection, sprite blitting with frame offset. Demo: animated walking character (4 frames) and explosion effect (8 frames).
+
+## [ ] phase-273: GeOS VM -- Interrupt-Driven Input Queue Enhancement (PLANNED)
+
+**Goal:** Expand the key buffer from 16 to 256 entries and add mouse event queuing
+
+The current key_buffer ring buffer holds only 16 entries, causing dropped keys during rapid typing. Mouse events (click, drag, scroll) have no queue at all. Expanding the buffer and adding a unified input event queue improves interactive program reliability.
+
+### Deliverables
+
+- [ ] **Enhanced input queue** -- 
+  - [ ] `p273.d1.t1` Expand key_buffer to 256 entries and add mouse event queue
+    > Change key_buffer from 16 to 256 entries. Add mouse_queue (64 entries) storing (event_type, x, y, button) tuples. Event types: click, release, drag, scroll_up, scroll_down. Add IKEYM opcode to read mouse events.
+  - [ ] `p273.d1.t2` Add IKEYM mouse event opcode and wire into host input
+    > IKEYM event_type_reg, x_reg, y_reg, button_reg reads next mouse event. Returns event_type=0 if no event. Host main loop pushes mouse events alongside keyboard events.
+  - [ ] `p273.d1.t3` Add tests and update programs to use expanded buffer
+    > Test key buffer overflow behavior (256 keys). Test mouse event queue. Test IKEYM returns 0 when empty. Update snake.asm and painter.asm to benefit from larger buffer.
+
+## [ ] phase-274: GeOS Program -- Solar System Simulator (PLANNED)
+
+**Goal:** Write an accurate solar system simulator with orbital mechanics and zoom controls
+
+A visually impressive program that simulates planetary orbits using Kepler's laws. Planets orbit the sun at correct relative distances and speeds. Zoom in/out to see inner vs outer planets. Toggle orbit trails. Shows how the VM handles floating-point math via fixed-point arithmetic.
+
+### Deliverables
+
+- [ ] **Solar system simulator** -- 
+  - [ ] `p274.d1.t1` Implement orbital mechanics with fixed-point arithmetic
+    > Store planet data in RAM: orbital radius, speed, current angle, color, size (8 planets). Update angles each frame using MUL for angular velocity. Use 16.16 fixed-point for smooth orbits. Zoom factor controls scale.
+  - [ ] `p274.d1.t2` Implement rendering, zoom, and interactive controls
+    > Render sun at center, planets as CIRCLE with correct colors. Draw orbit paths as faint circles. Zoom in/out with +/- keys. Pan with arrow keys. Toggle labels (1-8 for planet names). Speed control with </> keys.
 
 ## Global Risks
 
