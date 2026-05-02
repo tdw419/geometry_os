@@ -1,191 +1,148 @@
-// examples/sh_run.rs -- Interactive RISC-V shell runner for Geometry OS.
+// Example: Run the GeOS mini-shell (sh.elf) in the RISC-V hypervisor
+// with piped input to demonstrate shell features.
 //
-// Boots a bare-metal ELF (sh.elf), pipes host terminal stdin to UART RX,
-// drains UART TX to host stdout. Uses off-thread VM with channel-based
-// present callback so PNG dumps never block the interpreter.
-//
-// Live rendering: when the guest calls fb_present (writes to 0x6040_0000),
-// the framebuffer is dumped to framebuf_live_NNNN.png in real-time.
-// The VM runs on its own thread; the main thread recv()s frames asynchronously.
-//
-// Usage: cargo run --release --example sh_run
-//     or: cargo run --release --example sh_run -- /path/to/custom.elf
+// Build:  cd examples/riscv-hello && ./build.sh sh.c sh.elf
+// Run:    cargo run --release --example sh_run
 
-use geometry_os::riscv::framebuf::{FB_HEIGHT, FB_WIDTH};
-use geometry_os::riscv::live::{spawn_vm_thread, VmStatus, VmThreadConfig};
-use std::fs;
-use std::io::{self, Read, Write};
+use geometry_os::riscv::RiscvVm;
+use geometry_os::riscv::bridge::UartBridge;
 
-fn save_frame_png(pixels: &[u32], path: &str) -> bool {
-    let file = match std::fs::File::create(path) {
-        Ok(f) => f,
-        Err(e) => {
-            eprintln!("failed to create {}: {}", path, e);
-            return false;
+/// Boot a fresh shell, feed input bytes, run for N steps, collect output.
+fn run_shell_with_input(elf_data: &[u8], input: &[u8], max_steps: u64) -> String {
+    let mut vm = RiscvVm::new(1024 * 1024);
+    let mut bridge = UartBridge::new();
+
+    // Boot the guest
+    let _ = vm.boot_guest(elf_data, 1, 500_000).expect("boot failed");
+
+    // Drain initial banner
+    bridge.drain_uart_to_canvas(&mut vm.bus, &mut vec![0u32; 256 * 256]);
+
+    // Feed all input via UART (SBI getchar reads from uart.rx_buf)
+    bridge.forward_keys(&mut vm.bus, input);
+
+    // Run the VM step by step
+    let mut count: u64 = 0;
+    use geometry_os::riscv::cpu::StepResult;
+    while count < max_steps {
+        match vm.step() {
+            StepResult::Ok
+            | StepResult::FetchFault
+            | StepResult::LoadFault
+            | StepResult::StoreFault
+            | StepResult::Ecall => {}
+            StepResult::Ebreak | StepResult::Shutdown => break,
         }
-    };
-    let mut encoder = png::Encoder::new(file, FB_WIDTH as u32, FB_HEIGHT as u32);
-    encoder.set_color(png::ColorType::Rgba);
-    encoder.set_depth(png::BitDepth::Eight);
-    let mut writer = match encoder.write_header() {
-        Ok(w) => w,
-        Err(e) => {
-            eprintln!("png header error for {}: {}", path, e);
-            return false;
-        }
-    };
-    let mut rgba = vec![0u8; FB_WIDTH * FB_HEIGHT * 4];
-    for (i, &pixel) in pixels.iter().enumerate() {
-        let bytes = pixel.to_be_bytes();
-        rgba[i * 4 + 0] = bytes[0]; // R
-        rgba[i * 4 + 1] = bytes[1]; // G
-        rgba[i * 4 + 2] = bytes[2]; // B
-        rgba[i * 4 + 3] = bytes[3]; // A
+        count += 1;
     }
-    match writer.write_image_data(&rgba) {
-        Ok(()) => true,
-        Err(e) => {
-            eprintln!("png write error for {}: {}", path, e);
-            false
+
+    // Collect output
+    let mut canvas = vec![0u32; 256 * 256];
+    bridge.drain_uart_to_canvas(&mut vm.bus, &mut canvas);
+
+    let mut output = String::new();
+    if !vm.bus.sbi.console_output.is_empty() {
+        output.push_str(&String::from_utf8_lossy(&vm.bus.sbi.console_output));
+    }
+    output
+}
+
+fn print_output(label: &str, out: &str) {
+    eprintln!("\n=== {} ===", label);
+    for line in out.lines() {
+        if !line.is_empty() {
+            eprintln!("  {}", line);
         }
     }
 }
 
 fn main() {
-    // Pick ELF file: first non-dash arg, or default sh.elf
-    let elf_path = std::env::args()
-        .skip(1)
-        .find(|a| !a.starts_with('-'))
-        .unwrap_or_else(|| "examples/riscv-hello/sh.elf".into());
-
-    eprintln!("Loading {}...", elf_path);
-    let elf_data = fs::read(&elf_path).unwrap_or_else(|e| {
-        eprintln!("Failed to read {}: {}", elf_path, e);
-        eprintln!("Build it first: cd examples/riscv-hello && ./build.sh sh.c");
-        std::process::exit(1);
-    });
-
-    let config = VmThreadConfig {
-        elf_data,
-        ram_size: 1024 * 1024,
-        ..Default::default()
-    };
-
-    let mut vm_handle = spawn_vm_thread(config).unwrap_or_else(|e| {
-        eprintln!("Failed to spawn VM thread: {}", e);
-        std::process::exit(1);
-    });
-
-    eprintln!("VM running on background thread. Type commands (Ctrl+C to exit).\n");
-
-    // Set up non-blocking stdin
-    let stdin = io::stdin();
-    let mut stdin_handle = stdin.lock();
-    #[cfg(unix)]
-    {
-        use std::os::unix::io::AsRawFd;
-        let fd = stdin_handle.as_raw_fd();
-        unsafe {
-            let mut termios: libc::termios = std::mem::zeroed();
-            libc::tcgetattr(fd, &mut termios);
-            termios.c_lflag &= !(libc::ICANON | libc::ECHO);
-            termios.c_cc[libc::VMIN] = 0;
-            termios.c_cc[libc::VTIME] = 0;
-            libc::tcsetattr(fd, libc::TCSANOW, &termios);
+    let elf_path = "examples/riscv-hello/sh.elf";
+    let elf_data = match std::fs::read(elf_path) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Error: {} not found: {}", elf_path, e);
+            eprintln!("Build with: cd examples/riscv-hello && ./build.sh sh.c sh.elf");
+            std::process::exit(1);
         }
+    };
+    eprintln!("Shell ELF: {} bytes", elf_data.len());
+
+    let mut passed = 0;
+    let mut failed = 0;
+
+    // Test 1: help command
+    let out = run_shell_with_input(&elf_data, b"help\rshutdown\r", 5_000_000);
+    print_output("Test 1: help", &out);
+    if out.contains("Commands:") || out.contains("help") {
+        passed += 1;
+    } else {
+        eprintln!("  FAIL: help output missing");
+        failed += 1;
     }
 
-    let stdout = io::stdout();
-    let mut stdout_handle = stdout.lock();
-    let mut input_buf = [0u8; 64];
-    let mut frame_count = 0u32;
+    // Test 2: echo
+    let out = run_shell_with_input(&elf_data, b"echo hello world\rshutdown\r", 5_000_000);
+    print_output("Test 2: echo hello world", &out);
+    if out.contains("hello world") {
+        passed += 1;
+    } else {
+        eprintln!("  FAIL: echo output missing");
+        failed += 1;
+    }
 
-    loop {
-        // 1. Check for host stdin input
-        #[cfg(unix)]
-        {
-            match stdin_handle.read(&mut input_buf) {
-                Ok(n) => {
-                    for &b in &input_buf[..n] {
-                        if b == 0x03 {
-                            eprintln!("\nCaught Ctrl+C, shutting down...");
-                            vm_handle.shutdown();
-                            // Restore terminal and exit
-                            let _ = stdout_handle.flush();
-                            return;
-                        }
-                        // TODO: forward to VM UART via a channel when live.rs supports UART input
-                    }
-                }
-                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {}
-                Err(e) => {
-                    eprintln!("Stdin error: {}", e);
-                    break;
-                }
-            }
-        }
+    // Test 3: ver
+    let out = run_shell_with_input(&elf_data, b"ver\rshutdown\r", 5_000_000);
+    print_output("Test 3: ver", &out);
 
-        // 2. Receive frames from the VM thread (non-blocking)
-        loop {
-            match vm_handle.try_recv_frame() {
-                Ok(frame) => {
-                    frame_count += 1;
-                    let any = frame.pixels.iter().any(|&p| p != 0);
-                    if any {
-                        let out_path = format!("framebuf_live_{:04}.png", frame_count);
-                        if save_frame_png(&frame.pixels, &out_path) {
-                            eprintln!(
-                                "frame {}: saved {} ({} instructions)",
-                                frame_count, out_path, frame.instructions
-                            );
-                        }
-                    }
-                }
-                Err(std::sync::mpsc::TryRecvError::Empty) => break,
-                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                    eprintln!("VM thread disconnected");
-                    break;
-                }
-            }
-        }
+    // Test 4: peek
+    let out = run_shell_with_input(&elf_data, b"peek 0x80000000\rshutdown\r", 5_000_000);
+    print_output("Test 4: peek 0x80000000", &out);
 
-        // 3. Check VM status
-        loop {
-            match vm_handle.try_recv_status() {
-                Ok(VmStatus::Halted {
-                    pc,
-                    instructions,
-                    reason,
-                }) => {
-                    eprintln!(
-                        "\n[VM halted: {} (PC=0x{:08X}, {} instructions)]",
-                        reason, pc, instructions
-                    );
-                    vm_handle.shutdown();
-                    // Final framebuffer dump
-                    // Note: final frame may have already been received above
-                    eprintln!("Total frames captured: {}", frame_count);
-                    let _ = stdout_handle.flush();
-                    return;
-                }
-                Ok(VmStatus::ResetDone) => {
-                    eprintln!("[VM reset complete]");
-                }
-                Ok(VmStatus::Paused) => {
-                    eprintln!("[VM paused]");
-                }
-                Ok(VmStatus::Resumed) => {
-                    eprintln!("[VM resumed]");
-                }
-                Err(std::sync::mpsc::TryRecvError::Empty) => break,
-                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                    eprintln!("VM thread disconnected");
-                    break;
-                }
-            }
-        }
+    // Test 5: ls
+    let out = run_shell_with_input(&elf_data, b"ls\rshutdown\r", 5_000_000);
+    print_output("Test 5: ls", &out);
 
-        // 4. Small sleep to avoid busy-waiting
-        std::thread::sleep(std::time::Duration::from_millis(1));
+    // Test 6: regs
+    let out = run_shell_with_input(&elf_data, b"regs\rshutdown\r", 5_000_000);
+    print_output("Test 6: regs", &out);
+
+    // Test 7: unknown command
+    let out = run_shell_with_input(&elf_data, b"foobar\rshutdown\r", 5_000_000);
+    print_output("Test 7: unknown command", &out);
+    if out.contains("unknown") {
+        passed += 1;
+    } else {
+        eprintln!("  FAIL: unknown command error missing");
+        failed += 1;
+    }
+
+    // Test 8: pipe (echo | cat)
+    let out = run_shell_with_input(&elf_data, b"echo hello | cat\rshutdown\r", 5_000_000);
+    print_output("Test 8: echo hello | cat (pipe)", &out);
+
+    // Test 9: echo -n (no newline)
+    let out = run_shell_with_input(&elf_data, b"echo -n test\rshutdown\r", 5_000_000);
+    print_output("Test 9: echo -n test", &out);
+
+    // Test 10: history
+    let out = run_shell_with_input(
+        &elf_data,
+        b"echo first\recho second\rhistory\rshutdown\r",
+        10_000_000,
+    );
+    print_output("Test 10: history", &out);
+
+    // Test 11: env
+    let out = run_shell_with_input(&elf_data, b"env\rshutdown\r", 5_000_000);
+    print_output("Test 11: env", &out);
+
+    // Test 12: pwd
+    let out = run_shell_with_input(&elf_data, b"pwd\rshutdown\r", 5_000_000);
+    print_output("Test 12: pwd", &out);
+
+    eprintln!("\n=== Results: {} passed, {} failed ===", passed, failed);
+    if failed > 0 {
+        std::process::exit(1);
     }
 }
