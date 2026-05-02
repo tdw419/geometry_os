@@ -4227,7 +4227,7 @@ phases:
   scope_lines_total: 330
 - id: phase-267
   title: GeOS VM -- Performance Profiling Opcode (PROFILE)
-  status: planned
+  status: done
   goal: Add a profiling opcode to measure instruction counts per code region
   description: Optimizing VM programs is hard without profiling data. PROFILE start/stop
     records the instruction count between two points and stores it in a profile buffer.
@@ -4235,7 +4235,7 @@ phases:
     loops.
   deliverables:
   - name: PROFILE opcode
-    status: planned
+    status: done
     tasks:
     - id: p267.d1.t1
       title: Implement PROFILE mode_reg (0xE1) with start/stop/query modes
@@ -4264,6 +4264,8 @@ phases:
       scope_lines: 100
   test_target: 6
   scope_lines_total: 210
+  _claimed_by: worker-0
+  _claimed_at: 1777759924
 - id: phase-268
   title: GeOS Program -- Tower Defense Game
   status: done
