@@ -4191,7 +4191,7 @@ phases:
   scope_lines_total: 340
 - id: phase-266
   title: RISC-V Guest -- Framebuffer Graphics Library (libfb)
-  status: planned
+  status: done
   goal: Create a C graphics library for RISC-V guest programs with drawing primitives
   description: Guest programs currently draw directly to the framebuffer address (0x60000000)
     with manual pixel calculations. A libfb.a with fb_fill(), fb_rect(), fb_line(),
@@ -4199,13 +4199,14 @@ phases:
     and more portable.
   deliverables:
   - name: Guest framebuffer graphics library
-    status: planned
+    status: done
     tasks:
     - id: p266.d1.t1
       title: Implement core drawing primitives in libfb.c
       description: 'Functions: fb_init(), fb_fill(color), fb_pixel(x,y,color), fb_rect(x,y,w,h,color),
         fb_line(x0,y0,x1,y1,color) using Bresenham''s, fb_circle(x,y,r,color) using
         midpoint. All write to 0x60000000 with 256x256 stride.'
+      status: done
       scope_files:
       - examples/riscv-hello/libfb.c
       - examples/riscv-hello/libfb.h
@@ -4215,6 +4216,7 @@ phases:
       description: fb_text(x, y, color, str) renders string using embedded 5x7 font.
         fb_blit(src_x, src_y, dst_x, dst_y, w, h) copies rectangular region. fb_scroll(pixels)
         scrolls screen up.
+      status: done
       scope_files:
       - examples/riscv-hello/libfb.c
       - examples/riscv-hello/libfb.h
@@ -4223,6 +4225,7 @@ phases:
       title: Write graphics_demo.c showcasing all primitives
       description: Demo program that draws filled rectangles, gradient, bouncing circle,
         text overlay, and line patterns. Update build.sh to link libfb.a.
+      status: done
       scope_files:
       - examples/riscv-hello/graphics_demo.c
       - examples/riscv-hello/build.sh
