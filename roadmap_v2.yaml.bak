@@ -1398,7 +1398,7 @@ phases:
   test_target: 2
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: in_progress
+  status: planned
   goal: Extend file browser to support directory traversal, file deletion, and file
     creation
   description: The file browser shows VFS files and displays content but cannot navigate
@@ -1427,7 +1427,7 @@ phases:
   scope_lines_total: 85965
   test_target: 2
   _claimed_by: worker-0
-  _claimed_at: 1777722830
+  _claimed_at: 1777691386
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
   status: done

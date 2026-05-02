@@ -5489,6 +5489,24 @@ fn test_paint_app_runs_100_frames() {
 // ── File Browser Tests ──
 
 fn boot_file_browser(target_frames: u32) -> Vm {
+    // Seed the VFS directory with deterministic test files.
+    // Without this, tests depend on whatever files exist on disk from prior runs,
+    // making them flaky (garbage filenames from previous test sessions).
+    let fs_dir = std::path::Path::new(".geometry_os/fs");
+    let _ = std::fs::create_dir_all(fs_dir);
+    // Clean existing files to avoid garbage from prior test runs interfering
+    if let Ok(entries) = std::fs::read_dir(fs_dir) {
+        for entry in entries.flatten() {
+            if entry.path().is_file() {
+                let _ = std::fs::remove_file(entry.path());
+            }
+        }
+    }
+    // Write known test files sorted alphabetically -- the browser lists them in order
+    std::fs::write(fs_dir.join("readme.txt"), "Hello from Geometry OS!\n").unwrap();
+    std::fs::write(fs_dir.join("notes.txt"), "Line 1\nLine 2\nLine 3\n").unwrap();
+    std::fs::write(fs_dir.join("data.bin"), "\x01\x02\x03\x04\x05").unwrap();
+
     let source = include_str!("../../programs/file_browser.asm");
     let asm = crate::assembler::assemble(source, 0).expect("file_browser.asm should assemble");
     let mut vm = Vm::new();

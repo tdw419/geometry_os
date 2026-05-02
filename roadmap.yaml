@@ -10205,3 +10205,66 @@ phases:
     scope_lines: 3
   scope_lines_total: 3
   test_target: 0
+
+- id: phase-214
+  title: "Regression -- shell.asm and nano_editor.asm fail to assemble (25 integration tests broken)"
+  status: planned
+  goal: "Fix two assembly regressions that break 25 of 491 integration tests (466 still pass)"
+  description: "cargo test --lib passes all 1819 tests, but cargo test --test program_tests shows 25 failures. Root cause: two .asm programs have assembly errors introduced since they were last verified. (1) shell.asm line 2886: '.org 0x1A80 is behind current position 0x1AE6' -- kill_msg data at .org 0x1AD0 is 21 bytes ('kill: usage: kill <pid>\\0'), ending at 0x1AE5, but the next .org directive tries to go backwards to 0x1A80 for export_msg. Fix: change .org 0x1A80 to .org 0x1AF0 (or compute the correct address after kill_msg). (2) nano_editor.asm line 745: 'undefined label: hp_do_goto' -- the label hp_do_goto is referenced in a JNZ instruction at the mode-4 (replace) check but never defined. The code that should carry this label exists at line 778 ('; Execute goto / CALL do_goto / JMP hp_cancel'). Fix: add 'hp_do_goto:' label before the 'CALL do_goto' comment at line 778. After fixing both, all 25 tests should pass: 16 nano_editor tests, 4 shell/hypervisor tests, and 5 multiprocess/window_manager tests (the window_manager tests depend on shell.asm at runtime)."
+  deliverables:
+  - name: "Fix shell.asm .org address collision"
+    description: "At programs/shell.asm line 2886, change '.org 0x1A80' to '.org 0x1AF0'. The kill_msg string at .org 0x1AD0 is 21 bytes, ending at 0x1AE5. The export_msg that follows needs to start after 0x1AE5. Using 0x1AF0 gives 11 bytes of padding which is safe. Verify no other .org directives between 0x1AD0 and 0x1AF0 are affected."
+    status: todo
+    tasks:
+    - id: p214.d1.t1
+      title: "Change .org 0x1A80 to .org 0x1AF0 in shell.asm line 2886"
+      status: todo
+      description: "Edit programs/shell.asm line 2886. Change '.org 0x1A80' to '.org 0x1AF0'. Run cargo test --test program_tests -- shell:: to verify."
+      scope_lines: 1
+    scope_lines: 1
+  - name: "Fix nano_editor.asm undefined label hp_do_goto"
+    description: "At programs/nano_editor.asm line 778, add 'hp_do_goto:' label before the '; Execute goto' comment. The JNZ at line 745 jumps here when prompt mode is not 4 (i.e., mode 2 = goto). The CALL do_goto and JMP hp_cancel that follow are the correct handler code."
+    status: todo
+    tasks:
+    - id: p214.d2.t1
+      title: "Add hp_do_goto: label before line 778 in nano_editor.asm"
+      status: todo
+      description: "Edit programs/nano_editor.asm. Before line 778 ('; Execute goto'), insert 'hp_do_goto:' as a new line. Run cargo test --test program_tests -- nano_editor:: to verify all 16 tests pass."
+      scope_lines: 2
+    scope_lines: 2
+  - name: "Verify all 25 integration tests pass after fixes"
+    description: "Run full integration test suite: cargo test --test program_tests. Expect 491 passed, 0 failed, 3 ignored. Also verify cargo test --lib still passes 1819 tests."
+    status: todo
+    tasks:
+    - id: p214.d3.t1
+      title: "Run full test suite and confirm zero failures"
+      status: todo
+      description: "Run cargo test --test program_tests and cargo test --lib. Both should show 0 failures."
+      scope_lines: 0
+    scope_lines: 0
+  scope_lines_total: 3
+  test_target: 25
+
+- id: phase-215
+  title: "Regression -- window_manager.asm runtime failures (spawns_child, draws_border, ball_inside_window)"
+  status: planned
+  goal: "Fix 3 window_manager integration tests that assemble but fail at runtime"
+  description: "Three multiprocess integration tests fail even though window_manager.asm assembles cleanly: (1) test_window_manager_spawns_child -- 'primary should have spawned a child process' -- after 3 frames, vm.processes is empty. The SPAWN opcode in window_manager.asm may not be executing within the frame budget, or the process table isn't being populated. (2) test_window_manager_draws_border -- 'window border (green pixels) should be visible' -- after running, no green pixels found in the framebuffer. The primary process draws a window border but it's not appearing. (3) test_window_manager_ball_inside_window -- likely same root cause as above. These were passing when phase-21 was marked done, suggesting a regression in the VM's SPAWN opcode, process scheduling, or BLIT implementation. NOTE: if phase-214 fixes shell.asm and these tests still fail, they may have a separate root cause in the VM multiprocess logic."
+  deliverables:
+  - name: "Diagnose why SPAWN opcode doesn't create child processes in window_manager tests"
+    description: "In test_window_manager_spawns_child, compile_run_multiproc runs window_manager.asm for 3 frames. The primary should SPAWN a child but vm.processes stays empty. Add debug logging to the SPAWN opcode handler to check if it's being reached and what prevents process creation. Check if the frame budget (3 frames) is too small for the primary to reach its SPAWN instruction."
+    status: todo
+    tasks:
+    - id: p215.d1.t1
+      title: "Add debug logging to SPAWN opcode and increase frame count"
+      status: todo
+      description: "In the VM's SPAWN handler, add eprintln when SPAWN is executed showing the child PID. In the test, increase frame count from 3 to 100 and see if the child appears. If it does, the original 3-frame budget was too tight."
+      scope_lines: 15
+    - id: p215.d1.t2
+      title: "Check if SPAWN requires specific VM state or initialization"
+      status: todo
+      description: "Compare how compile_run_multiproc initializes the VM vs how phase-21 tests expected it. Maybe a recent change to VM initialization broke process spawning (e.g., process table not allocated, SPAWN opcode number changed, or spawn syscall not wired up)."
+      scope_lines: 20
+    scope_lines: 35
+  scope_lines_total: 35
+  test_target: 3
