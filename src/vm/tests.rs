@@ -24807,3 +24807,212 @@ fn test_total_steps_counter() {
     // 5 NOPs + 1 HALT = 6 steps
     assert_eq!(vm.total_steps, 6, "total_steps should be 6 (5 NOPs + HALT)");
 }
+
+#[test]
+fn test_clip_copy_basic() {
+    // CLIP_COPY copies a screen region into the clipboard buffer
+    let mut vm = Vm::new();
+    // Draw a red pixel at (10, 20)
+    vm.screen[20 * 256 + 10] = 0xFF0000;
+    // CLIP_COPY r1, r2, r3, r4  (x=10, y=20, w=1, h=1)
+    vm.regs[1] = 10;
+    vm.regs[2] = 20;
+    vm.regs[3] = 1;
+    vm.regs[4] = 1;
+    vm.ram[0] = 0xD7; // CLIP_COPY
+    vm.ram[1] = 1;    // x_reg
+    vm.ram[2] = 2;    // y_reg
+    vm.ram[3] = 3;    // w_reg
+    vm.ram[4] = 4;    // h_reg
+    vm.ram[5] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert!(vm.halted);
+    // Clipboard should have [width=1, height=1, pixel=0xFF0000]
+    assert_eq!(vm.clipboard.len(), 3);
+    assert_eq!(vm.clipboard[0], 1); // width
+    assert_eq!(vm.clipboard[1], 1); // height
+    assert_eq!(vm.clipboard[2], 0xFF0000); // red pixel
+}
+
+#[test]
+fn test_clip_paste_basic() {
+    // CLIP_PASTE pastes clipboard contents to screen
+    let mut vm = Vm::new();
+    // Pre-populate clipboard with a 2x2 red region
+    vm.clipboard = vec![2, 2, 0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00];
+    // CLIP_PASTE r1, r2  (x=5, y=10)
+    vm.regs[1] = 5;
+    vm.regs[2] = 10;
+    vm.ram[0] = 0xD8; // CLIP_PASTE
+    vm.ram[1] = 1;    // x_reg
+    vm.ram[2] = 2;    // y_reg
+    vm.ram[3] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert!(vm.halted);
+    // Verify pixels were pasted at (5,10), (6,10), (5,11), (6,11)
+    assert_eq!(vm.screen[10 * 256 + 5], 0xFF0000); // red
+    assert_eq!(vm.screen[10 * 256 + 6], 0x00FF00); // green
+    assert_eq!(vm.screen[11 * 256 + 5], 0x0000FF); // blue
+    assert_eq!(vm.screen[11 * 256 + 6], 0xFFFF00); // yellow
+}
+
+#[test]
+fn test_clip_copy_paste_roundtrip() {
+    // Copy a region from one location and paste it elsewhere
+    let mut vm = Vm::new();
+    // Draw a gradient in top-left 3x2 region
+    let colors = [0xFF0000, 0x00FF00, 0x0000FF,  // row 0
+                  0xFFFF00, 0xFF00FF, 0x00FFFF]; // row 1
+    for y in 0..2 {
+        for x in 0..3 {
+            vm.screen[y * 256 + x] = colors[y * 3 + x];
+        }
+    }
+    // CLIP_COPY r1, r2, r3, r4  (x=0, y=0, w=3, h=2)
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 3;
+    vm.regs[4] = 2;
+    vm.ram[0] = 0xD7; // CLIP_COPY
+    vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    // CLIP_PASTE r5, r6  (x=100, y=100)
+    vm.regs[5] = 100;
+    vm.regs[6] = 100;
+    vm.ram[5] = 0xD8; // CLIP_PASTE
+    vm.ram[6] = 5; vm.ram[7] = 6;
+    vm.ram[8] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..1000 { if !vm.step() { break; } }
+    assert!(vm.halted);
+    // Verify pasted region matches original
+    for y in 0..2 {
+        for x in 0..3 {
+            let src = vm.screen[y * 256 + x];
+            let dst = vm.screen[(100 + y) * 256 + (100 + x)];
+            assert_eq!(dst, src, "mismatch at ({}, {}): got {:08X}, expected {:08X}", x, y, dst, src);
+        }
+    }
+}
+
+#[test]
+fn test_clip_paste_empty_clipboard() {
+    // Pasting with empty clipboard should be a no-op
+    let mut vm = Vm::new();
+    vm.clipboard = Vec::new(); // empty
+    vm.regs[1] = 10;
+    vm.regs[2] = 20;
+    vm.ram[0] = 0xD8; // CLIP_PASTE
+    vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.ram[3] = 0x00; // HALT
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert!(vm.halted);
+    // Screen should still be all zeros
+    assert!(vm.screen.iter().all(|&p| p == 0));
+}
+
+#[test]
+fn test_clip_copy_out_of_bounds() {
+    // Copying a region that extends past screen edge should clip gracefully
+    let mut vm = Vm::new();
+    // Fill entire screen with green
+    for p in vm.screen.iter_mut() { *p = 0x00FF00; }
+    // CLIP_COPY x=255, y=255, w=2, h=2 -- extends past screen edge
+    vm.regs[1] = 255;
+    vm.regs[2] = 255;
+    vm.regs[3] = 2;
+    vm.regs[4] = 2;
+    vm.ram[0] = 0xD7;
+    vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3; vm.ram[4] = 4;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    for _ in 0..100 { if !vm.step() { break; } }
+    assert!(vm.halted);
+    // Clipboard should have 4 pixels: (255,255), and 3 out-of-bounds = 0
+    assert_eq!(vm.clipboard[0], 2); // width
+    assert_eq!(vm.clipboard[1], 2); // height
+    assert_eq!(vm.clipboard.len(), 6); // 2 + 4 pixels
+    assert_eq!(vm.clipboard[2], 0x00FF00); // in-bounds pixel
+    assert_eq!(vm.clipboard[3], 0); // out-of-bounds
+    assert_eq!(vm.clipboard[4], 0); // out-of-bounds
+    assert_eq!(vm.clipboard[5], 0); // out-of-bounds
+}
+
+#[test]
+fn test_clip_copy_assembles() {
+    let source = "CLIP_COPY r1, r2, r3, r4";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xD7);
+    assert_eq!(asm.pixels[1], 1);
+    assert_eq!(asm.pixels[2], 2);
+    assert_eq!(asm.pixels[3], 3);
+    assert_eq!(asm.pixels[4], 4);
+}
+
+#[test]
+fn test_clip_paste_assembles() {
+    let source = "CLIP_PASTE r5, r6";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xD8);
+    assert_eq!(asm.pixels[1], 5);
+    assert_eq!(asm.pixels[2], 6);
+}
+
+#[test]
+fn test_tower_defense_assembles_and_runs() {
+    use crate::assembler::assemble;
+
+    let source = include_str!("../../programs/tower_defense.asm");
+    let asm = assemble(source, 0).expect("tower_defense.asm should assemble");
+    assert!(!asm.pixels.is_empty(), "should produce bytecode");
+    eprintln!("Assembled {} words from tower_defense.asm", asm.pixels.len());
+
+    let mut vm = Vm::new();
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+
+    // Run until first FRAME
+    vm.frame_ready = false;
+    let mut steps = 0u32;
+    for _ in 0..2_000_000 {
+        if vm.frame_ready {
+            break;
+        }
+        let keep_going = vm.step();
+        steps += 1;
+        if !keep_going {
+            break;
+        }
+    }
+
+    assert!(
+        vm.frame_ready,
+        "should reach FRAME within 2M steps (took {})",
+        steps
+    );
+    eprintln!("First frame rendered in {} steps", steps);
+
+    // Screen should not be all black (game renders path, background, UI)
+    let non_black = vm.screen.iter().filter(|&&p| p != 0).count();
+    eprintln!("Non-black pixels: {}/{}", non_black, 256 * 256);
+    assert!(non_black > 100, "screen should have rendered game elements (got {})", non_black);
+
+    // Verify game state initialized: gold at 0x2400, lives at 0x2401, wave at 0x2402
+    let gold = vm.ram[0x2400];
+    let lives = vm.ram[0x2401];
+    let wave = vm.ram[0x2402];
+    eprintln!("Game state: lives={}, gold={}, wave={}", lives, gold, wave);
+    assert!(lives > 0, "game should start with lives");
+    assert!(gold > 0, "game should start with gold");
+
+    // Verify path color exists on screen (0x8B6914 = brown path)
+    let path_pixels = vm.screen.iter().filter(|&&p| p == 0x8B6914).count();
+    eprintln!("Path pixels: {}", path_pixels);
+    assert!(path_pixels > 0, "screen should show path (brown pixels)");
+}
+
