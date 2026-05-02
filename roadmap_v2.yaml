@@ -2786,3 +2786,6 @@ meta:
   canonical_surface: vm.screen (256x256 Vec<u32>)
   sbi_extension_id: '0x47454F00'
   dtb_isa: rv32imac
+  phases_total: 70
+  phases_done: 16
+  phases_remaining: 45
