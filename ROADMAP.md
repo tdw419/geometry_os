@@ -3,7 +3,7 @@
 Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers toolchain hygiene, GUI bridge, pixel VM convergence, libgeos extraction, and legacy roadmap reconciliation. SPEC = thesis. roadmap_v2 = arc. OpenSpec = per-change diff.
 
 
-**Progress:** 8/26 phases complete, 1 in progress
+**Progress:** 24/26 phases complete, 1 in progress
 
 **Deliverables:** 48/49 complete
 
@@ -22,23 +22,23 @@ Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers tool
 | phase-G In-session Canvas Checkpoint — Save/Load | COMPLETE | 2/2 | - | - |
 | phase-H Cross-session Persistence — VfsSurface Raw-Region Flush | COMPLETE | 1/1 | - | - |
 | phase-I Layer 2 Foundation — Cooperative Multi-Program Kernel | COMPLETE | 3/3 | - | - |
-| phase-141 Terminal Polish -- Scrollback and Visual Refinements | PLANNED | 2/2 | 75,500 | 10 |
-| phase-185 ANSI Parser -- Scroll Region (CSI r) and Origin Mode | PLANNED | 2/2 | - | 6 |
-| phase-186 ANSI Parser -- Tab Stops and Horizontal Scrolling | PLANNED | 2/2 | 84,945 | 5 |
-| phase-187 Replace save.rs unwrap() with Proper Error Handling | PLANNED | 2/2 | 85,065 | 4 |
-| phase-188 Replace glyph_backend.rs unwrap() with Error Propagation | PLANNED | 1/1 | - | 2 |
-| phase-189 VFS Capability Enforcement on Process Creation | PLANNED | 2/2 | 85,295 | 4 |
-| phase-190 Sync qemu/ansi.rs Feature Parity with host_term.asm | PLANNED | 2/2 | 85,425 | 8 |
-| phase-191 Roguelike Game Polish -- Save/Load and Win Condition | PLANNED | 2/2 | 85,560 | 3 |
-| phase-192 Shell.asm Built-in Commands Expansion | PLANNED | 3/3 | 85,710 | 5 |
-| phase-193 Nano Editor -- Search and Replace | PLANNED | 2/2 | 85,840 | 3 |
-| phase-194 Host Terminal Performance -- Dirty Rectangle Rendering | PLANNED | 1/1 | 85,900 | 2 |
+| phase-141 Terminal Polish -- Scrollback and Visual Refinements | COMPLETE | 2/2 | 75,500 | 10 |
+| phase-185 ANSI Parser -- Scroll Region (CSI r) and Origin Mode | COMPLETE | 2/2 | - | 6 |
+| phase-186 ANSI Parser -- Tab Stops and Horizontal Scrolling | COMPLETE | 2/2 | 84,945 | 5 |
+| phase-187 Replace save.rs unwrap() with Proper Error Handling | COMPLETE | 2/2 | 85,065 | 4 |
+| phase-188 Replace glyph_backend.rs unwrap() with Error Propagation | COMPLETE | 1/1 | - | 2 |
+| phase-189 VFS Capability Enforcement on Process Creation | COMPLETE | 2/2 | 85,295 | 4 |
+| phase-190 Sync qemu/ansi.rs Feature Parity with host_term.asm | COMPLETE | 2/2 | 85,425 | 8 |
+| phase-191 Roguelike Game Polish -- Save/Load and Win Condition | COMPLETE | 2/2 | 85,560 | 3 |
+| phase-192 Shell.asm Built-in Commands Expansion | COMPLETE | 3/3 | 85,710 | 5 |
+| phase-193 Nano Editor -- Search and Replace | COMPLETE | 2/2 | 85,840 | 3 |
+| phase-194 Host Terminal Performance -- Dirty Rectangle Rendering | COMPLETE | 1/1 | 85,900 | 2 |
 | phase-195 File Browser -- Directory Navigation and File Operations | IN PROGRESS | 0/1 | 85,965 | 2 |
-| phase-196 AI Terminal -- Session History and Context Window | PLANNED | 2/2 | 86,025 | 2 |
-| phase-197 Replace mmu.rs unwrap() Calls with Proper Error Paths | PLANNED | 1/1 | 86,110 | 2 |
-| phase-198 Desktop Terminal Integration -- Launch Hermes from GeOS | PLANNED | 1/1 | 86,180 | 3 |
-| phase-199 Code Evolution Program -- Fitness Function Improvements | PLANNED | 1/1 | - | - |
-| phase-200 Pixelpack Seamless Authoring Loop | PLANNED | 1/1 | - | 2 |
+| phase-196 AI Terminal -- Session History and Context Window | COMPLETE | 2/2 | 86,025 | 2 |
+| phase-197 Replace mmu.rs unwrap() Calls with Proper Error Paths | COMPLETE | 1/1 | 86,110 | 2 |
+| phase-198 Desktop Terminal Integration -- Launch Hermes from GeOS | COMPLETE | 1/1 | 86,180 | 3 |
+| phase-199 Code Evolution Program -- Fitness Function Improvements | COMPLETE | 1/1 | - | - |
+| phase-200 Pixelpack Seamless Authoring Loop | COMPLETE | 1/1 | - | 2 |
 
 ## Dependencies
 
@@ -404,7 +404,7 @@ The principle from SPEC.md governs every decision in this phase: only build what
 - Region clipping at fb_present granularity may flicker if programs present at different rates. Mitigation: kernel composites both regions into a single vm.screen update per host-render tick.
 - Scope creep into "real OS" territory. Mitigation: every kernel feature must answer "could a libgeos helper do this?" -- if yes, it stays in libgeos.
 
-## [ ] phase-141: Terminal Polish -- Scrollback and Visual Refinements (PLANNED)
+## [x] phase-141: Terminal Polish -- Scrollback and Visual Refinements (COMPLETE)
 
 **Goal:** Make the terminal feel like a real terminal emulator, not a demo
 
@@ -427,7 +427,7 @@ Scrollback buffer (PageUp/PageDown), better color rendering, cursor improvements
     > CursorStyle enum (Block/Underline/Bar), F12 to cycle
   _~200 LOC_
 
-## [ ] phase-185: ANSI Parser -- Scroll Region (CSI r) and Origin Mode (PLANNED)
+## [x] phase-185: ANSI Parser -- Scroll Region (CSI r) and Origin Mode (COMPLETE)
 
 **Goal:** Add scroll region support so full-screen apps (htop, nano, vim) can lock scrolling to a subset of rows
 
@@ -449,7 +449,7 @@ CSI r (DECSTBM) sets the scroll region top and bottom margins. Within this regio
     > Drive ESC[5;10r through host_term_run_ansi, verify cursor at (0,0). Write past bottom, verify only rows 5-9 scroll.
   _~150 LOC_
 
-## [ ] phase-186: ANSI Parser -- Tab Stops and Horizontal Scrolling (PLANNED)
+## [x] phase-186: ANSI Parser -- Tab Stops and Horizontal Scrolling (COMPLETE)
 
 **Goal:** Add proper tab stop handling so formatted output (ls, tables, code) aligns correctly
 
@@ -468,7 +468,7 @@ Currently TAB advances to next 8-column boundary but there are no configurable t
   - [ ] `p186.d2.t1` Test default tab stops, custom tab stops, and clear
     > Verify TAB at col 0 goes to col 8. Set tab at col 5, TAB from col 3 goes to col 5. Clear all tabs, TAB goes nowhere.
 
-## [ ] phase-187: Replace save.rs unwrap() with Proper Error Handling (PLANNED)
+## [x] phase-187: Replace save.rs unwrap() with Proper Error Handling (COMPLETE)
 
 **Goal:** Eliminate 27 unwrap() calls in save.rs that can panic on corrupt save files
 
@@ -487,7 +487,7 @@ save.rs handles PNG save/load for screenshots and VM state persistence. Currentl
   - [ ] `p187.d2.t2` Test loading corrupt PNG returns None
     > Write random bytes to a temp file, attempt to load as PNG, verify no panic.
 
-## [ ] phase-188: Replace glyph_backend.rs unwrap() with Error Propagation (PLANNED)
+## [x] phase-188: Replace glyph_backend.rs unwrap() with Error Propagation (COMPLETE)
 
 **Goal:** Eliminate 36 unwrap() calls in glyph_backend.rs for robustness
 
@@ -501,7 +501,7 @@ glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap() calls o
   - [ ] `p188.d1.t2` Verify all 3656 tests still pass after changes
     > Run cargo test, confirm no regressions.
 
-## [ ] phase-189: VFS Capability Enforcement on Process Creation (PLANNED)
+## [x] phase-189: VFS Capability Enforcement on Process Creation (COMPLETE)
 
 **Goal:** Wire up the existing Capability struct to Process so spawned programs get restricted VFS access
 
@@ -520,7 +520,7 @@ src/vm/types.rs already has Capability, check_path_capability, and check_opcode_
   - [ ] `p189.d2.t1` Test that restricted process cannot open disallowed paths
     > Added 37 comprehensive tests in types.rs covering: Capability path matching (exact, prefix/*), permission bits, check_path_capability union semantics, check_opcode_capability, Process builder methods, and VFS OPEN integration (allowed/denied/read-only/write).
 
-## [ ] phase-190: Sync qemu/ansi.rs Feature Parity with host_term.asm (PLANNED)
+## [x] phase-190: Sync qemu/ansi.rs Feature Parity with host_term.asm (COMPLETE)
 
 **Goal:** Ensure both ANSI parsers handle the same set of sequences, preventing behavioral drift
 
@@ -537,7 +537,7 @@ There are two ANSI parsers: the Rust qemu/ansi.rs (1403 lines, 71 tests) used by
   - [ ] `p190.d2.t2` Add parity tests
     > For each newly implemented sequence, add a test that drives the same input through both parsers (via host_term_run_ansi and qemu/ansi::AnsiState) and asserts identical screen output.
 
-## [ ] phase-191: Roguelike Game Polish -- Save/Load and Win Condition (PLANNED)
+## [x] phase-191: Roguelike Game Polish -- Save/Load and Win Condition (COMPLETE)
 
 **Goal:** Add game state persistence and a proper win/lose loop to the roguelike
 
@@ -556,7 +556,7 @@ The roguelike (2549 lines) is one of the largest programs but has no save/load a
   - [ ] `p191.d2.t2` Death screen with score and restart option
     > When HP reaches 0, STATE=2 triggers death_screen: red screen with "GAME OVER", "KILLS: N", "LEVEL: N", "PRESS R TO RETRY". Waits for any key, then restarts. 3 tests pass: assembles, initializes, wall collision.
 
-## [ ] phase-192: Shell.asm Built-in Commands Expansion (PLANNED)
+## [x] phase-192: Shell.asm Built-in Commands Expansion (COMPLETE)
 
 **Goal:** Add more useful built-in commands to the shell (grep, head, tail, wc, date)
 
@@ -574,7 +574,7 @@ The shell (2039 lines) handles basic command parsing and execution via EXEC. But
   - [ ] `p192.d3.t1` Add wc (word/line/char count) and date commands
     > wc reads VFS file and prints line/word/char counts. date reads the clock port and prints formatted time.
 
-## [ ] phase-193: Nano Editor -- Search and Replace (PLANNED)
+## [x] phase-193: Nano Editor -- Search and Replace (COMPLETE)
 
 **Goal:** Add search (Ctrl+S) and replace (Ctrl+R) to the nano editor
 
@@ -591,7 +591,7 @@ The nano editor (2208 lines) supports basic editing but has no search/replace. T
   - [ ] `p193.d2.t1` Add replace prompt and execution
     > Ctrl+R prompts for search and replacement text. Replace all or confirm each. Updates buffer and marks dirty.
 
-## [ ] phase-194: Host Terminal Performance -- Dirty Rectangle Rendering (PLANNED)
+## [x] phase-194: Host Terminal Performance -- Dirty Rectangle Rendering (COMPLETE)
 
 **Goal:** Only re-render changed rows instead of the full 30-row screen every frame
 
@@ -619,7 +619,7 @@ The file browser shows VFS files and displays content but cannot navigate direct
   - [ ] `p195.d1.t2` Add file size display in file list
     > After filename, show file size in bytes using STRO and integer-to-string conversion.
 
-## [ ] phase-196: AI Terminal -- Session History and Context Window (PLANNED)
+## [x] phase-196: AI Terminal -- Session History and Context Window (COMPLETE)
 
 **Goal:** Add command history and conversation context tracking to ai_terminal.asm
 
@@ -634,7 +634,7 @@ The AI terminal (2181 lines) sends prompts to the LLM opcode but has no command 
   - [x] `p196.d2.t1` Show token count and conversation turns in status bar
     > Track prompt + response lengths. Display 'Turns: N | Chars: M' in the status area.
 
-## [ ] phase-197: Replace mmu.rs unwrap() Calls with Proper Error Paths (PLANNED)
+## [x] phase-197: Replace mmu.rs unwrap() Calls with Proper Error Paths (COMPLETE)
 
 **Goal:** Eliminate 14 unwrap() calls in the RISC-V MMU that can panic on page fault edge cases
 
@@ -648,7 +648,7 @@ The MMU (src/riscv/mmu.rs) handles address translation for the RISC-V interprete
   - [ ] `p197.d1.t2` Verify all RISC-V tests still pass
     > Run cargo test --test riscv_tests, confirm 147 tests pass.
 
-## [ ] phase-198: Desktop Terminal Integration -- Launch Hermes from GeOS (PLANNED)
+## [x] phase-198: Desktop Terminal Integration -- Launch Hermes from GeOS (COMPLETE)
 
 **Goal:** The GeOS terminal should be able to launch Hermes Agent as a subprocess and display its output
 
@@ -662,7 +662,7 @@ The terminal runs bash, which means you can type 'hermes chat' and get Hermes ru
   - [ ] `p198.d1.t2` Fix any rendering issues found during Hermes session
     > If Hermes emits sequences not yet handled (erase, cursor style, etc.), add handlers or silently ignore them.
 
-## [ ] phase-199: Code Evolution Program -- Fitness Function Improvements (PLANNED)
+## [x] phase-199: Code Evolution Program -- Fitness Function Improvements (COMPLETE)
 
 **Goal:** Improve the self-modifying code evolution program to produce more interesting and stable results
 
@@ -676,7 +676,7 @@ code_evolution.asm (5705 lines, the largest program) implements genetic programm
   - [ ] `p199.d1.t2` Add diversity pressure to prevent convergence
     > Track opcode distribution across population. Penalize individuals too similar to current best. Encourage exploring different opcode combinations.
 
-## [ ] phase-200: Pixelpack Seamless Authoring Loop (PLANNED)
+## [x] phase-200: Pixelpack Seamless Authoring Loop (COMPLETE)
 
 **Goal:** Make the edit-run-visualize cycle for pixel programs seamless. Edit in neovim, save, watch GeOS assemble and execute the program as colored pixels on the grid.
 

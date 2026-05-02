@@ -1031,6 +1031,7 @@ pb_ret:
 ; mark_row_dirty -- mark row in r0 as dirty
 ; Sets bit (31 - row) in DIRTY_ROWS bitmap
 mark_row_dirty:
+    PUSH r1
     LDI r1, 31
     SUB r1, r0          ; r1 = 31 - row
     LDI r2, 1
@@ -1039,6 +1040,7 @@ mark_row_dirty:
     LOAD r4, r3         ; r4 = current bitmap
     OR r4, r2           ; set the bit
     STORE r3, r4
+    POP r1
     RET
 
 ; mark_all_dirty -- mark all 30 rows as dirty
