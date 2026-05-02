@@ -8958,7 +8958,7 @@ phases:
   test_target: 8
 - id: phase-185
   title: ANSI Parser -- Scroll Region (CSI r) and Origin Mode
-  status: planned
+  status: done
   goal: Add scroll region support so full-screen apps (htop, nano, vim) can lock scrolling
     to a subset of rows
   description: CSI r (DECSTBM) sets the scroll region top and bottom margins. Within
@@ -8969,7 +8969,7 @@ phases:
     scroll up/down by N lines.
   deliverables:
   - name: CSI r -- set scroll region (DECSTBM)
-    status: todo
+    status: done
     tasks:
     - id: p185.d1.t1
       title: Add SCROLL_TOP and SCROLL_BOTTOM memory locations
@@ -9003,7 +9003,7 @@ phases:
       - programs/host_term.asm
       scope_lines: 20
   - name: Tests for scroll region
-    status: todo
+    status: done
     tasks:
     - id: p185.d2.t1
       title: Test CSI r sets scroll region and cursor goes home
@@ -9017,7 +9017,7 @@ phases:
   test_target: 6
 - id: phase-186
   title: ANSI Parser -- Tab Stops and Horizontal Scrolling
-  status: planned
+  status: done
   goal: Add proper tab stop handling so formatted output (ls, tables, code) aligns
     correctly
   description: Currently TAB advances to next 8-column boundary but there are no configurable
@@ -9027,7 +9027,7 @@ phases:
     and many CLI tools rely on 8-column tab alignment.
   deliverables:
   - name: Tab stop array and HTS (ESC H) support
-    status: todo
+    status: done
     tasks:
     - id: p186.d1.t1
       title: Add tab stop bitmap at known RAM address
@@ -9050,7 +9050,7 @@ phases:
       - programs/host_term.asm
       scope_lines: 15
   - name: Tests for tab stops
-    status: todo
+    status: done
     tasks:
     - id: p186.d2.t1
       title: Test default tab stops, custom tab stops, and clear
@@ -9064,7 +9064,7 @@ phases:
   test_target: 5
 - id: phase-187
   title: Replace save.rs unwrap() with Proper Error Handling
-  status: planned
+  status: done
   goal: Eliminate 27 unwrap() calls in save.rs that can panic on corrupt save files
   description: save.rs handles PNG save/load for screenshots and VM state persistence.
     Currently has 27 unwrap() calls on file I/O, PNG decoding, and path conversion.
@@ -9073,7 +9073,7 @@ phases:
     state).
   deliverables:
   - name: Replace file I/O unwraps in save.rs
-    status: todo
+    status: done
     tasks:
     - id: p187.d1.t1
       title: Replace File::open, File::create, to_str unwraps
@@ -9090,7 +9090,7 @@ phases:
       - src/save.rs
       scope_lines: 30
   - name: Tests for save error handling
-    status: todo
+    status: done
     tasks:
     - id: p187.d2.t1
       title: Test loading nonexistent save returns None
@@ -9111,14 +9111,14 @@ phases:
   test_target: 4
 - id: phase-188
   title: Replace glyph_backend.rs unwrap() with Error Propagation
-  status: planned
+  status: done
   goal: Eliminate 36 unwrap() calls in glyph_backend.rs for robustness
   description: glyph_backend.rs handles the spatial code analysis pipeline. 36 unwrap()
     calls on font loading, pattern matching, and data extraction. Failures here crash
     the glyph system.
   deliverables:
   - name: Audit and replace unwrap() calls in glyph_backend.rs
-    status: todo
+    status: done
     tasks:
     - id: p188.d1.t1
       title: Replace all 36 unwrap() with proper error handling
@@ -9138,7 +9138,7 @@ phases:
   test_target: 2
 - id: phase-189
   title: VFS Capability Enforcement on Process Creation
-  status: planned
+  status: done
   goal: Wire up the existing Capability struct to Process so spawned programs get
     restricted VFS access
   description: src/vm/types.rs already has Capability, check_path_capability, and
@@ -9148,7 +9148,7 @@ phases:
     lists. This is the foundation for sandboxing.
   deliverables:
   - name: Add caps field to Process struct
-    status: todo
+    status: done
     tasks:
     - id: p189.d1.t1
       title: 'Add caps: Option<Vec<Capability>> to Process'
@@ -9174,7 +9174,7 @@ phases:
       - src/vm/ops_extended.rs
       scope_lines: 40
   - name: Tests for capability enforcement
-    status: todo
+    status: done
     tasks:
     - id: p189.d2.t1
       title: Test that restricted process cannot open disallowed paths
@@ -9188,7 +9188,7 @@ phases:
   test_target: 4
 - id: phase-190
   title: Sync qemu/ansi.rs Feature Parity with host_term.asm
-  status: planned
+  status: done
   goal: Ensure both ANSI parsers handle the same set of sequences, preventing behavioral
     drift
   description: 'There are two ANSI parsers: the Rust qemu/ansi.rs (1403 lines, 71
@@ -9199,7 +9199,7 @@ phases:
     in the ASM parser.'
   deliverables:
   - name: Feature matrix document
-    status: todo
+    status: done
     tasks:
     - id: p190.d1.t1
       title: Audit both parsers and document differences
@@ -9211,7 +9211,7 @@ phases:
       - src/qemu/ansi.rs
       scope_lines: 30
   - name: Port missing qemu/ansi.rs features to host_term.asm
-    status: todo
+    status: done
     tasks:
     - id: p190.d2.t1
       title: Implement any remaining CSI sequences not in phases 183-185
@@ -9234,7 +9234,7 @@ phases:
   test_target: 8
 - id: phase-191
   title: Roguelike Game Polish -- Save/Load and Win Condition
-  status: planned
+  status: done
   goal: Add game state persistence and a proper win/lose loop to the roguelike
   description: The roguelike (2549 lines) is one of the largest programs but has no
     save/load and no win condition. When you find the stairs, there is no victory
@@ -9242,7 +9242,7 @@ phases:
     proves the VFS works for real app state. Adding level progression makes it a game.
   deliverables:
   - name: Save/load game state to VFS
-    status: todo
+    status: done
     tasks:
     - id: p191.d1.t1
       title: Add save command that writes player state to VFS file
@@ -9259,7 +9259,7 @@ phases:
       - programs/roguelike.asm
       scope_lines: 40
   - name: Win condition and level progression
-    status: todo
+    status: done
     tasks:
     - id: p191.d2.t1
       title: Add victory message when reaching stairs
@@ -9280,7 +9280,7 @@ phases:
   test_target: 3
 - id: phase-192
   title: Shell.asm Built-in Commands Expansion
-  status: planned
+  status: done
   goal: Add more useful built-in commands to the shell (grep, head, tail, wc, date)
   description: The shell (2039 lines) handles basic command parsing and execution
     via EXEC. But common commands like grep, head, tail are missing as built-ins.
@@ -9288,7 +9288,7 @@ phases:
     as shell built-in command handlers.
   deliverables:
   - name: grep built-in command
-    status: todo
+    status: done
     tasks:
     - id: p192.d1.t1
       title: Add grep command that searches VFS file contents
@@ -9298,7 +9298,7 @@ phases:
       - programs/shell.asm
       scope_lines: 60
   - name: head and tail built-in commands
-    status: todo
+    status: done
     tasks:
     - id: p192.d2.t1
       title: Add head and tail commands
@@ -9308,7 +9308,7 @@ phases:
       - programs/shell.asm
       scope_lines: 50
   - name: wc and date built-in commands
-    status: todo
+    status: done
     tasks:
     - id: p192.d3.t1
       title: Add wc (word/line/char count) and date commands
@@ -9322,7 +9322,7 @@ phases:
   test_target: 5
 - id: phase-193
   title: Nano Editor -- Search and Replace
-  status: planned
+  status: done
   goal: Add search (Ctrl+S) and replace (Ctrl+R) to the nano editor
   description: The nano editor (2208 lines) supports basic editing but has no search/replace.
     These are essential for real editing work. Implement incremental search (highlight
@@ -9330,7 +9330,7 @@ phases:
     ops, HITSET for UI).
   deliverables:
   - name: Incremental search (Ctrl+S)
-    status: todo
+    status: done
     tasks:
     - id: p193.d1.t1
       title: Add search prompt and matching logic
@@ -9348,7 +9348,7 @@ phases:
       - programs/nano_editor.asm
       scope_lines: 30
   - name: Replace (Ctrl+R)
-    status: todo
+    status: done
     tasks:
     - id: p193.d2.t1
       title: Add replace prompt and execution
@@ -9362,7 +9362,7 @@ phases:
   test_target: 3
 - id: phase-194
   title: Host Terminal Performance -- Dirty Rectangle Rendering
-  status: planned
+  status: done
   goal: Only re-render changed rows instead of the full 30-row screen every frame
   description: Currently host_term.asm renders all 30 rows every frame via SMALLTEXT,
     even when only one line changed (like typing a character). This is wasteful. Track
@@ -9370,7 +9370,7 @@ phases:
     status bar and scrollback already optimized, this is the last rendering bottleneck.
   deliverables:
   - name: Row dirty bitmap
-    status: todo
+    status: done
     tasks:
     - id: p194.d1.t1
       title: Add 32-bit dirty row bitmap (1 bit per row)
@@ -9422,7 +9422,7 @@ phases:
   test_target: 2
 - id: phase-196
   title: AI Terminal -- Session History and Context Window
-  status: planned
+  status: done
   goal: Add command history and conversation context tracking to ai_terminal.asm
   description: The AI terminal (2181 lines) sends prompts to the LLM opcode but has
     no command history (up/down arrows to recall previous prompts) and no context
@@ -9430,7 +9430,7 @@ phases:
     use.
   deliverables:
   - name: Command history with up/down arrow recall
-    status: todo
+    status: done
     tasks:
     - id: p196.d1.t1
       title: Add circular history buffer (16 entries)
@@ -9440,7 +9440,7 @@ phases:
       - programs/ai_terminal.asm
       scope_lines: 40
   - name: Context window display
-    status: todo
+    status: done
     tasks:
     - id: p196.d2.t1
       title: Show token count and conversation turns in status bar
@@ -9454,7 +9454,7 @@ phases:
   test_target: 2
 - id: phase-197
   title: Replace mmu.rs unwrap() Calls with Proper Error Paths
-  status: planned
+  status: done
   goal: Eliminate 14 unwrap() calls in the RISC-V MMU that can panic on page fault
     edge cases
   description: The MMU (src/riscv/mmu.rs) handles address translation for the RISC-V
@@ -9463,7 +9463,7 @@ phases:
     PageFault with fault address) so the interpreter can handle them gracefully.
   deliverables:
   - name: Replace MMU unwrap() calls
-    status: todo
+    status: done
     tasks:
     - id: p197.d1.t1
       title: Replace all 14 unwrap() in mmu.rs
@@ -9483,7 +9483,7 @@ phases:
   test_target: 2
 - id: phase-198
   title: Desktop Terminal Integration -- Launch Hermes from GeOS
-  status: planned
+  status: done
   goal: The GeOS terminal should be able to launch Hermes Agent as a subprocess and
     display its output
   description: 'The terminal runs bash, which means you can type ''hermes chat'' and
@@ -9493,7 +9493,7 @@ phases:
     chain works and fixes any issues found.'
   deliverables:
   - name: Verify Hermes launches and renders in GeOS terminal
-    status: todo
+    status: done
     tasks:
     - id: p198.d1.t1
       title: Test hermes chat in PTY and verify 256-color output
@@ -9515,7 +9515,7 @@ phases:
   test_target: 3
 - id: phase-199
   title: Code Evolution Program -- Fitness Function Improvements
-  status: planned
+  status: done
   goal: Improve the self-modifying code evolution program to produce more interesting
     and stable results
   description: code_evolution.asm (5705 lines, the largest program) implements genetic
@@ -9524,7 +9524,7 @@ phases:
     (drawing patterns, solving math, producing output) rather than just not crashing.
   deliverables:
   - name: Enhanced fitness function
-    status: todo
+    status: done
     tasks:
     - id: p199.d1.t1
       title: Add pattern-matching fitness evaluation
@@ -9546,7 +9546,7 @@ phases:
   test_target: 2
 - id: phase-200
   title: Vision Benchmark v2 -- Executable Scenarios
-  status: planned
+  status: done
   goal: Rebuild vision_bench with scenarios that run real programs, giving both text
     and vision modalities actual screen content to evaluate
   description: 'The initial vision_bench (Role 2) showed vision works (1.7s latency,
@@ -9558,7 +9558,7 @@ phases:
     rather than register defaults.'
   deliverables:
   - name: Executable scenario runner
-    status: todo
+    status: done
     tasks:
     - id: p200.d1.t1
       title: Refactor vision_bench to assemble+run programs before snapshot
@@ -9937,8 +9937,8 @@ phases:
 - id: phase-209
   title: Host Terminal -- Test Failure Fixes (8 issues)
   status: planned
-  goal: Fix 8 non-blocking test failures from terminal QA
-  description: Automated terminal QA found functional issues.
+  goal: Fix remaining terminal QA failures (line_wrap only; echo_round_trip, ctrl_c now pass)
+  description: "2026-05-01 dogfood: echo_round_trip and ctrl_c now PASS. Only line_wrap fails. Tests pwd_command, tab_completion, backspace, two_commands, clear_screen do not exist in geos_term.rs. Phase-210 tracks line_wrap specifically. This phase is largely obsolete -- worker should mark done and close."
   deliverables:
   - name: Fix 8 test failures
     description: 'Test failed: echo_round_trip; Test failed: line_wrap; Test failed:
@@ -9997,6 +9997,29 @@ phases:
       description: Investigate test output for specific failure
     scope_lines: 30
   scope_lines_total: 86827
+  test_target: 0
+- id: phase-211
+  title: "PTYREAD Busy-Spin -- CPU 100% During Interactive Use"
+  status: planned
+  goal: "Eliminate PTYREAD busy-spin that consumes 100% CPU when geos-term runs interactively"
+  description: "When geos-term launches, the VM enters a tight PTYREAD polling loop that never yields. Observed: hundreds of PTYREAD dispatches per second at PC=407 and PC=568, reading escape sequences (bracketed paste mode [?2004h/[?2004l) in a continuous spin. This makes geos-term unusable as a daily driver because it hogs CPU. The VM should either block on PTYREAD when no data is available, or insert a FRAME/yield between PTYREAD polls to throttle to the display refresh rate."
+  deliverables:
+  - name: "Add PTYREAD throttling to VM main loop"
+    description: "After a PTYREAD returns 0 bytes (no data available), the VM should yield (FRAME) or sleep before retrying. This prevents the tight spin loop. The host_term.asm program polls PTYREAD every frame already, so the VM just needs to not execute additional PTYREADs within the same frame."
+    status: todo
+    tasks:
+    - id: p211.d1.t1
+      title: "Add cooldown or yield after empty PTYREAD"
+      status: todo
+      description: "In ops_pty.rs PTYREAD handler, if 0 bytes read, set a flag that prevents re-dispatch until next FRAME. Or in the VM step loop, count consecutive PTYREAD-zero-return and force FRAME after N consecutive empties."
+      scope_lines: 30
+    - id: p211.d1.t2
+      title: "Verify CPU usage drops to idle when terminal is open but idle"
+      status: todo
+      description: "Launch geos-term, wait for bash prompt, then stop typing. Monitor CPU with top/htop. Should be <5% not 100%."
+      scope_lines: 10
+    scope_lines: 40
+  scope_lines_total: 86867
   test_target: 0
 
 - title: Clippy Warning Cleanup -- Range::contains and Cast Cleanup
