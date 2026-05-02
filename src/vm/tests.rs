@@ -24742,13 +24742,13 @@ fn test_profile_assembles() {
     let result = crate::assembler::assemble(source, 0);
     assert!(result.is_ok(), "PROFILE should assemble: {:?}", result.err());
     let asm = result.unwrap();
-    // LDI r1, 0 = [0x10, 1, 0] (3 words)
-    // LDI r2, 0 = [0x10, 2, 0] (3 words)
-    // PROFILE r1, r2 = [0xC6, 1, 2] (3 words)
-    // HALT = [0x00] (1 word)
-    assert_eq!(asm.pixels[9], 0xC6, "PROFILE opcode should be 0xC6");
-    assert_eq!(asm.pixels[10], 1, "First arg should be register 1");
-    assert_eq!(asm.pixels[11], 2, "Second arg should be register 2");
+    // LDI r1, 0 = [0x10, 1, 0] (3 words, indices 0-2)
+    // LDI r2, 0 = [0x10, 2, 0] (3 words, indices 3-5)
+    // PROFILE r1, r2 = [0xC6, 1, 2] (3 words, indices 6-8)
+    // HALT = [0x00] (1 word, index 9)
+    assert_eq!(asm.pixels[6], 0xC6, "PROFILE opcode should be 0xC6");
+    assert_eq!(asm.pixels[7], 1, "First arg should be register 1");
+    assert_eq!(asm.pixels[8], 2, "Second arg should be register 2");
 }
 
 #[test]
@@ -24780,10 +24780,12 @@ fn test_profile_nested_mark_regions() {
     vm.ram[20] = 0xC6; vm.ram[21] = 1; vm.ram[22] = 2;
     // NOP x2
     vm.ram[23] = 0x01; vm.ram[24] = 0x01;
+    // Set r2=0 to stop region 0
+    vm.ram[25] = 0x10; vm.ram[26] = 2; vm.ram[27] = 0;
     // Stop region 0
-    vm.ram[25] = 0xC6; vm.ram[26] = 1; vm.ram[27] = 2;
+    vm.ram[28] = 0xC6; vm.ram[29] = 1; vm.ram[30] = 2;
     // HALT
-    vm.ram[28] = 0x00;
+    vm.ram[31] = 0x00;
     vm.pc = 0;
     for _ in 0..1000 { if !vm.step() { break; } }
     // Region 0 should include ALL steps from its start to stop
