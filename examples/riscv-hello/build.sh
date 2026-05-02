@@ -34,6 +34,16 @@ build_lib() {
     fi
 }
 
+# Build libfb.a if missing or stale
+build_libfb() {
+    if [ ! -f libfb.a ] || [ libfb.c -nt libfb.a ] || [ libfb.h -nt libfb.a ]; then
+        echo "Building libfb.a..."
+        $CC $CFLAGS -c libfb.c -o libfb.o
+        $AR rcs libfb.a libfb.o
+        rm -f libfb.o
+    fi
+}
+
 # Build a single program
 build_one() {
     local SRC="$1"
@@ -42,8 +52,15 @@ build_one() {
     case "$SRC" in
         *.c)
             build_lib
-            echo "Building $SRC -> $OUT (crt0.S + libgeos.a)"
-            $CC $CFLAGS $LDFLAGS -o "$OUT" crt0.S "$SRC" -L. -lgeos
+            # Check if source includes libfb.h and link it if so
+            if grep -q '#include.*libfb\.h' "$SRC" 2>/dev/null; then
+                build_libfb
+                echo "Building $SRC -> $OUT (crt0.S + libgeos.a + libfb.a)"
+                $CC $CFLAGS $LDFLAGS -o "$OUT" crt0.S "$SRC" -L. -lgeos -lfb
+            else
+                echo "Building $SRC -> $OUT (crt0.S + libgeos.a)"
+                $CC $CFLAGS $LDFLAGS -o "$OUT" crt0.S "$SRC" -L. -lgeos
+            fi
             ;;
         *.S)
             echo "Building $SRC -> $OUT (assembly, no libgeos)"
@@ -64,6 +81,8 @@ build_all() {
     for src in *.c; do
         # Skip libgeos.c itself
         [ "$src" = "libgeos.c" ] && continue
+        # Skip libfb.c itself
+        [ "$src" = "libfb.c" ] && continue
         # Derive output name: foo.c -> foo.elf
         local base="${src%.c}"
         build_one "$src" "${base}.elf"
