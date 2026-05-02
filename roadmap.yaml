@@ -11,8 +11,8 @@ conventions:
 - ASMSELF and RUNNEXT take no operands (1-byte instructions)
 - Error reporting via RAM[0xFFD] (existing ASM result port)
 description: Pixel-art virtual machine with built-in assembler, debugger, and live
-  GUI. Write assembly in the built-in text editor, press F5, watch it run. 187 opcodes,
-  3656 tests, 156 programs, 83836 LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor.
+  GUI. Write assembly in the built-in text editor, press F5, watch it run. 177 opcodes,
+  1797 tests, 161 programs, 91303 LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor.
   Infinite map desktop.
 global_risks:
 - 'Opcode space: 154 of ~256 slots used, plenty of room'
@@ -34,15 +34,15 @@ global_risks:
 meta:
   gui: minifb
   hypervisor: true
-  integration_tests: 1619
+  integration_tests: 1797
   language: Rust
-  lib_tests: 788
-  loc: 83836
-  opcodes: 187
-  programs: 156
+  lib_tests: 1797
+  loc: 91303
+  opcodes: 177
+  programs: 161
   ram: 65536 words
   registers: 32
-  total_tests: 2407
+  total_tests: 1797
   riscv_examples: 13
   riscv_guest: true
   screen: 256x256 pixels
@@ -9998,3 +9998,129 @@ phases:
     scope_lines: 30
   scope_lines_total: 86827
   test_target: 0
+
+- title: Clippy Warning Cleanup -- Range::contains and Cast Cleanup
+  deliverables:
+  - name: Fix all manual Range::contains implementations
+    description: 'Replace manual `x >= a && x <= b` patterns with `(a..=b).contains(&x)`. Clippy reports 15+ instances.'
+    status: todo
+  - name: Remove unnecessary same-type casts
+    description: 'Remove `as u32` casts where the value is already u32. Clippy reports 12+ instances.'
+    status: todo
+  test_target: 0
+  scope_lines_total: 100
+
+- title: Clippy Warning Cleanup -- div_ceil and Dead Code Removal
+  deliverables:
+  - name: Replace manual div_ceil implementations
+    description: 'Replace manual `(n + d - 1) / d` patterns with `n.div_ceil(d)`. Clippy reports 11 instances.'
+    status: todo
+  - name: Remove deprecated and unused code
+    description: 'Remove deprecated GeoVfsReadReq, unused LexedInstruction, cpu_opcode_width, cpu_variable_width, cpu_lex, cpu_lex_all, PatchMode, Patch struct.'
+    status: todo
+  test_target: 2
+  scope_lines_total: 200
+
+- title: Error Resilience -- pixel.rs unwrap() Elimination
+  deliverables:
+  - name: Replace all 17 unwrap() calls in pixel.rs
+    description: 'pixel.rs has the most production unwrap() calls. Replace with Result propagation or expect() with context messages.'
+    status: todo
+  test_target: 5
+  scope_lines_total: 150
+
+- title: Error Resilience -- mmu.rs unwrap() Elimination
+  deliverables:
+  - name: Replace all 14 unwrap() calls in riscv/mmu.rs
+    description: 'MMU unwrap() calls can panic during page table walks. Replace with fault-generating error paths that deliver proper page fault exceptions.'
+    status: todo
+  test_target: 8
+  scope_lines_total: 200
+
+- title: Error Resilience -- vfs_surface.rs unwrap() Elimination
+  deliverables:
+  - name: Replace all 10 unwrap() calls in riscv/vfs_surface.rs
+    description: 'VFS surface operations should not panic the host. Replace with graceful error returns.'
+    status: todo
+  test_target: 5
+  scope_lines_total: 120
+
+- title: New Opcode -- SWAP (Exchange Two Registers)
+  deliverables:
+  - name: Implement SWAP opcode (0xB1)
+    description: 'SWAP rd, rs exchanges register values. 3-word encoding. Write swap_demo.asm.'
+    status: todo
+  test_target: 3
+  scope_lines_total: 150
+
+- title: New Opcode -- CLZ/CTZ (Count Leading/Trailing Zeros)
+  deliverables:
+  - name: Implement CLZ opcode (0xB2) and CTZ opcode (0xB3)
+    description: 'CLZ rd counts leading zero bits. CTZ rd counts trailing zero bits. Essential for bit manipulation algorithms.'
+    status: todo
+  test_target: 4
+  scope_lines_total: 180
+
+- title: New Opcode -- MIN/MAX (Conditional Select)
+  deliverables:
+  - name: Implement MIN opcode (0xB4) and MAX opcode (0xB5)
+    description: 'MIN rd, rs and MAX rd, rs for clamping coordinates, colors, physics. Write clamping_demo.asm.'
+    status: todo
+  test_target: 4
+  scope_lines_total: 200
+
+- title: Program -- Maze Generator with DFS
+  deliverables:
+  - name: Write maze_generator.asm
+    description: 'Random maze using DFS with backtracking. Animate generation with FRAME. WASD player navigation.'
+    status: todo
+  test_target: 2
+  scope_lines_total: 400
+
+- title: Program -- Particle System Demo
+  deliverables:
+  - name: Write particles.asm
+    description: 'Particle system with gravity, emission, fade-out, color transitions. TICKS throttle. IKEY interactive emission.'
+    status: todo
+  test_target: 2
+  scope_lines_total: 500
+
+- title: RISC-V Guest -- Basic Shell with Command History
+  deliverables:
+  - name: Write guest shell program in C
+    description: 'Minimal shell for RISC-V guest: command parsing, basic I/O via SBI, command history with up/down arrows.'
+    status: todo
+  test_target: 2
+  scope_lines_total: 400
+
+- title: VM Performance -- Step Budget Optimization
+  deliverables:
+  - name: Profile and optimize hot instruction paths
+    description: 'Profile step() dispatch loop. Optimize top 5 hottest instruction handlers. Target 10%+ MIPS improvement.'
+    status: todo
+  test_target: 3
+  scope_lines_total: 300
+
+- title: Scrollback Buffer Improvements
+  deliverables:
+  - name: Implement Default trait and fix unwrap() calls
+    description: 'Add Default impl for ScrollbackBuffer. Replace 4 unwrap() calls. Add configurable max scrollback lines.'
+    status: todo
+  test_target: 4
+  scope_lines_total: 200
+
+- title: Documentation and Meta Stats Update
+  deliverables:
+  - name: Update README.md and roadmap.yaml meta
+    description: 'Update stale counts: 177 opcodes, 161 programs, 91K LOC, 1797 tests.'
+    status: todo
+  test_target: 0
+  scope_lines_total: 50
+
+- title: RISC-V Interpreter -- TLB Flush Correctness
+  deliverables:
+  - name: Verify SATP write triggers TLB flush
+    description: 'Write test that sets up TLB entry, changes SATP, verifies stale translations invalidated. Fix SFENCE.VMA if needed.'
+    status: todo
+  test_target: 5
+  scope_lines_total: 200
