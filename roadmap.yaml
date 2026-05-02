@@ -9392,7 +9392,7 @@ phases:
   test_target: 2
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: planned
+  status: in_progress
   goal: Extend file browser to support directory traversal, file deletion, and file
     creation
   description: The file browser shows VFS files and displays content but cannot navigate
@@ -9982,21 +9982,21 @@ phases:
   scope_lines_total: 86797
   test_target: 0
 - id: phase-210
-  title: Host Terminal -- Test Failure Fixes (1 issues)
-  status: planned
-  goal: Fix 1 non-blocking test failures from terminal QA
-  description: Automated terminal QA found functional issues.
+  title: Host Terminal -- Fix mark_row_dirty r1 Clobber (FIXED)
+  status: done
+  goal: Fix garbled terminal output when processing multi-byte PTYREAD data
+  description: "mark_row_dirty computed (31 - row) into r1 without PUSH/POP. Since append_loop does 'ADD r9, r1' after process_byte, the corrupted r1 caused the byte-processing loop to skip (31-CUR_ROW) bytes per printable character. This garbled ALL terminal output when multiple bytes arrived in a single PTYREAD. Fix: PUSH r1/POP r1 in mark_row_dirty. All 3 terminal QA tests now pass."
   deliverables:
-  - name: Fix 1 test failures
-    description: 'Test failed: line_wrap'
-    status: todo
+  - name: Add PUSH r1 / POP r1 to mark_row_dirty in host_term.asm
+    description: "Preserve r1 across mark_row_dirty call. Fixes byte-skipping in append_loop and sd_append loops. Commit ac16362a."
+    status: done
     tasks:
     - id: p210.d1.t1
-      title: 'Fix: line_wrap (logic) -- Test failed: line_wrap'
-      status: todo
-      description: Investigate test output for specific failure
-    scope_lines: 30
-  scope_lines_total: 86827
+      title: 'Fix: mark_row_dirty r1 clobber causing garbled terminal output'
+      status: done
+      description: 'Root cause: mark_row_dirty sets r1=31-row without saving. append_loop uses r1 as increment. Fix: PUSH r1/POP r1 in mark_row_dirty. Verified: line_wrap test passes (27 rows with numbers), echo_round_trip and ctrl_c still pass.'
+    scope_lines: 4
+  scope_lines_total: 86831
   test_target: 0
 - id: phase-211
   title: "PTYREAD Busy-Spin -- CPU 100% During Interactive Use"
@@ -10147,3 +10147,42 @@ phases:
     status: todo
   test_target: 5
   scope_lines_total: 200
+
+- id: phase-212
+  title: "Fix -- test_file_browser_shows_content Timeout and Failure"
+  status: planned
+  goal: "Fix the file_browser_shows_content test that times out at 120s and fails assertion content_start != 0"
+  description: "vm::tests::test_file_browser_shows_content times out during execution (never completes within 120s). The test boots file_browser.asm with 500k steps, clicks on a file, then runs another 500k steps expecting content at RAM 0xC00. The file_browser.asm refresh_list subroutine may have an infinite rl_skip loop if VFS buffer lacks null terminators, or the program may enter a tight loop without FRAME that exhausts the step budget before rendering. Additionally, the assertion content_start != 0 may fail if OPEN/READ syscalls in file_browser.asm don't populate the content buffer correctly after a mouse click on row 1."
+  deliverables:
+  - name: "Diagnose and fix file_browser.asm infinite loop or missing FRAME"
+    description: "Check refresh_list rl_skip loop for infinite scan when buffer lacks null terminator. Ensure main_loop in file_browser.asm calls FRAME every iteration to prevent step budget exhaustion. The boot helper already limits to 500k steps but if the program spins without advancing frame_count, target_frames is never reached."
+    status: todo
+    tasks:
+    - id: p212.d1.t1
+      title: "Add FRAME call to file_browser.asm main loop if missing"
+      status: todo
+      description: "Check file_browser.asm main_loop. If it lacks FRAME, the VM frame_count never increments and the boot helper's target_frames check never triggers, causing the 500k step budget to exhaust. Add FRAME to every iteration of main_loop."
+      scope_lines: 10
+    - id: p212.d1.t2
+      title: "Fix rl_skip null-scan loop to prevent infinite loop"
+      status: todo
+      description: "In refresh_list, rl_skip scans for null byte in filename buffer. If VFS LS output doesn't null-terminate filenames or the buffer is uninitialized, this loop runs forever. Add a max-scan guard (e.g., compare r20 against a buffer end address like 0xAFF) to prevent infinite scan."
+      scope_lines: 15
+    scope_lines: 25
+  - name: "Fix content buffer population after file open"
+    description: "After clicking a file row, file_browser.asm should call OPEN then READ into CONTENT_BUF at 0xC00. Verify the click handler correctly identifies the file, calls OPEN with the filename from FNAME_TABLE, calls READ into 0xC00, and stores the fd in TEMP_FD at 0x648. The test checks ram[0xC00] != 0 after clicking row 1 at (80,38)."
+    status: todo
+    tasks:
+    - id: p212.d2.t1
+      title: "Trace file_browser.asm click handler for row 1 open path"
+      status: todo
+      description: "Add eprintln debug or step through the click handler to verify HITQ returns id=1 for (80,38), that the handler reads FNAME_TABLE[0], calls OPEN, then READ into 0xC00. Check if MODE is set to 1 (content view) after open."
+      scope_lines: 10
+    - id: p212.d2.t2
+      title: "Verify VFS test fixtures have files with non-empty content"
+      status: todo
+      description: "Check what files the default VFS contains in test mode. If LS returns files but they have 0-byte content, READ will return 0 bytes and content buffer stays zeroed. May need to ensure test VFS has at least one file with content."
+      scope_lines: 10
+    scope_lines: 20
+  scope_lines_total: 45
+  test_target: 1
