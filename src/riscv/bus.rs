@@ -8,6 +8,7 @@ use super::framebuf::Framebuffer;
 use super::memory::{GuestMemory, MemoryError};
 use super::plic::Plic;
 use super::sbi::Sbi;
+use super::socket::GuestSockets;
 use super::uart::Uart;
 use super::vfs_surface::VfsSurface;
 use super::virtio_blk::VirtioBlk;
@@ -36,6 +37,8 @@ pub struct Bus {
     /// SBI (Supervisor Binary Interface) handler.
     /// Intercepts SBI ECALLs from the kernel before they reach the trap vector.
     pub sbi: Sbi,
+    /// Guest TCP socket manager for bare-metal socket syscalls.
+    pub guest_sockets: GuestSockets,
     /// Syscall trace log: records User-mode ECALLs (Linux syscalls).
     /// Populated by the CPU when it detects a U-mode ECALL.
     pub syscall_log: Vec<super::syscall::SyscallEvent>,
@@ -102,6 +105,7 @@ impl Bus {
             vfs_surface,
             framebuf: Framebuffer::new(),
             sbi: Sbi::new(),
+            guest_sockets: GuestSockets::new(),
             syscall_log: Vec::new(),
             mmu_log: Vec::new(),
             sched_log: Vec::new(),
@@ -676,6 +680,95 @@ impl Bus {
             self.known_pt_pages.len(),
             pg_dir_phys
         );
+    }
+
+    // Phase 201: Socket syscall intercept helpers.
+    // These avoid borrow-checker issues when guest_sockets and read_word/write_word
+    // both need &mut self. We read guest memory inline here.
+
+    /// Intercept connect(fd, addr_ptr, addr_len) -- reads sockaddr from guest RAM.
+    pub fn intercept_connect(&mut self, fd: i32, addr_ptr: u32, _addr_len: u32) -> i32 {
+        // Read sockaddr_in from guest memory: family(2) + port(2) + addr(4) = 8 bytes
+        // Stored as two u32 words (little-endian)
+        let w0 = self.mem.read_word(addr_ptr as u64).unwrap_or(0);
+        let w1 = self.mem.read_word((addr_ptr + 4) as u64).unwrap_or(0);
+        // sockaddr_in: sin_family = w0[15:0], sin_port = w0[31:16], sin_addr = w1[31:0]
+        let port = ((w0 >> 16) & 0xFFFF) as u16;
+        let addr = w1;
+        let addr_str = format!(
+            "{}.{}.{}.{}",
+            (addr >> 24) & 0xFF,
+            (addr >> 16) & 0xFF,
+            (addr >> 8) & 0xFF,
+            addr & 0xFF
+        );
+        let ret = self.guest_sockets.connect_guest(fd, &addr_str, port);
+        eprintln!(
+            "[socket] connect(fd={}, addr={}:{}, ret={})",
+            fd, addr_str, port, ret
+        );
+        ret
+    }
+
+    /// Intercept sendto(fd, buf_ptr, len, flags, addr_ptr, addr_len) -- reads buf from guest RAM.
+    pub fn intercept_sendto(
+        &mut self,
+        fd: i32,
+        buf_ptr: u32,
+        len: u32,
+        _flags: u32,
+        addr_ptr: u32,
+        _addr_len: u32,
+    ) -> i32 {
+        let mut data = Vec::with_capacity(len as usize);
+        for i in 0..len {
+            let w = self.mem.read_word((buf_ptr + i) as u64).unwrap_or(0);
+            data.push(w as u8);
+        }
+        // Read dest address
+        let w0 = self.mem.read_word(addr_ptr as u64).unwrap_or(0);
+        let w1 = self.mem.read_word((addr_ptr + 4) as u64).unwrap_or(0);
+        let port = ((w0 >> 16) & 0xFFFF) as u16;
+        let addr = w1;
+        let addr_str = format!(
+            "{}.{}.{}.{}",
+            (addr >> 24) & 0xFF,
+            (addr >> 16) & 0xFF,
+            (addr >> 8) & 0xFF,
+            addr & 0xFF
+        );
+
+        // Use guest_sockets which holds the TCP stream
+        let ret = self.guest_sockets.sendto_guest(fd, &data, &addr_str, port);
+        eprintln!(
+            "[socket] sendto(fd={}, len={}, addr={}:{}, ret={})",
+            fd, len, addr_str, port, ret
+        );
+        ret
+    }
+
+    /// Intercept recvfrom(fd, buf_ptr, len, flags, addr_ptr, addr_len_ptr) -- writes buf to guest RAM.
+    pub fn intercept_recvfrom(
+        &mut self,
+        fd: i32,
+        buf_ptr: u32,
+        len: u32,
+        _flags: u32,
+    ) -> i32 {
+        let mut buf = vec![0u8; len as usize];
+        let ret = self.guest_sockets.recvfrom_guest(fd, &mut buf);
+
+        if ret > 0 {
+            // Write received bytes back to guest RAM
+            for i in 0..(ret as u32) {
+                let _ = self.mem.write_word((buf_ptr + i) as u64, buf[i as usize] as u32);
+            }
+        }
+        eprintln!(
+            "[socket] recvfrom(fd={}, len={}, ret={})",
+            fd, len, ret
+        );
+        ret
     }
 }
 

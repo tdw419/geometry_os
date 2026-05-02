@@ -43,6 +43,68 @@ impl RiscvCpu {
                     let idx = bus.syscall_log.len();
                     bus.syscall_log.push(event);
                     bus.pending_syscall_idx = Some(idx);
+
+                    // Phase 201: Intercept socket syscalls for bare-metal guests.
+                    // Linux syscall numbers: 196=socket, 201=connect, 204=sendto,
+                    // 205=recvfrom, 208=shutdown, 57=close.
+                    // Handle simple syscalls (no bus access needed in closure) inline.
+                    // Complex syscalls (connect/sendto with read_word closure) are
+                    // handled via separate methods that take &mut Bus.
+                    let sa0 = self.x[10];
+                    let sa1 = self.x[11];
+                    let sa2 = self.x[12];
+                    let sa3 = self.x[13];
+                    let sa4 = self.x[14];
+                    let sa5 = self.x[15];
+
+                    let handled = match nr {
+                        196 => {
+                            // socket(domain, type, protocol) -> fd
+                            let ret = bus.guest_sockets.sys_socket(sa0, sa1, sa2);
+                            self.x[10] = ret as u32;
+                            true
+                        }
+                        201 => {
+                            // connect(fd, addr_ptr, addr_len) -> 0 or -errno
+                            let ret = bus.intercept_connect(sa0 as i32, sa1, sa2);
+                            self.x[10] = ret as u32;
+                            true
+                        }
+                        204 => {
+                            // sendto(fd, buf_ptr, len, flags, addr_ptr, addr_len)
+                            let ret = bus.intercept_sendto(sa0 as i32, sa1, sa2, sa3, sa4, sa5);
+                            self.x[10] = ret as u32;
+                            true
+                        }
+                        205 => {
+                            // recvfrom(fd, buf_ptr, len, flags, addr_ptr, addr_len_ptr)
+                            let ret = bus.intercept_recvfrom(sa0 as i32, sa1, sa2, sa3);
+                            self.x[10] = ret as u32;
+                            true
+                        }
+                        208 => {
+                            // shutdown(fd, how) -> 0 or -errno
+                            let ret = bus.guest_sockets.sys_shutdown(sa0 as i32, sa1);
+                            self.x[10] = ret as u32;
+                            true
+                        }
+                        57 => {
+                            // close(fd) -- only intercept if fd is a socket
+                            let ret = bus.guest_sockets.sys_close(sa0 as i32);
+                            if ret == 0 {
+                                self.x[10] = 0;
+                                true
+                            } else {
+                                false // not a socket fd, let caller handle
+                            }
+                        }
+                        _ => false,
+                    };
+
+                    if handled {
+                        self.pc = next_pc;
+                        return StepResult::Ok;
+                    }
                 }
 
                 // SBI interception: when an ECALL from S-mode or M-mode would

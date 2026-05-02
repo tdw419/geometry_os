@@ -11,8 +11,8 @@ conventions:
 - ASMSELF and RUNNEXT take no operands (1-byte instructions)
 - Error reporting via RAM[0xFFD] (existing ASM result port)
 description: Pixel-art virtual machine with built-in assembler, debugger, and live
-  GUI. Write assembly in the built-in text editor, press F5, watch it run. 177 opcodes,
-  1827 tests, 161 programs, 89959 LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor.
+  GUI. Write assembly in the built-in text editor, press F5, watch it run.  178 opcodes,
+  1835 tests, 170 programs, 93057 LOC. Bidirectional VFS Pixel Surface. RISC-V hypervisor.
   Infinite map desktop.
 global_risks:
 - 'Opcode space: 154 of ~256 slots used, plenty of room'
@@ -10268,3 +10268,51 @@ phases:
     scope_lines: 35
   scope_lines_total: 35
   test_target: 3
+
+- id: phase-216
+  title: "Regression -- riscv::tests::test_guest_vfs_write_readback timeout"
+  status: planned
+  goal: "Fix RISC-V guest VFS write/readback test that times out at 120s"
+  description: "riscv::tests::test_guest_vfs_write_readback compiles guest_vfs_write.c to RISC-V ELF and boots it with 5M instruction budget, but the test never completes within the 120s timeout. This test was previously passing. Possible causes: (1) build_riscv_elf compilation of guest_vfs_write.c is hanging or producing a broken ELF, (2) the RISC-V guest enters an infinite loop due to a VFS syscall change, (3) the 5M instruction budget is insufficient after recent VFS changes. Check if guest_vfs_write.c exists and compiles, and whether the VFS_CONTROL_ADDR MMIO interface has changed since this test last passed."
+  deliverables:
+  - name: "Diagnose test_guest_vfs_write_readback timeout"
+    description: "Determine whether the timeout is in compilation (build_riscv_elf) or execution (boot_guest with 5M steps). Add eprintln before and after the boot_guest call to isolate the hang. Check if guest_vfs_write.c exists in the RISC-V test fixtures directory."
+    status: todo
+    tasks:
+    - id: p216.d1.t1
+      title: "Isolate timeout to compilation vs execution"
+      status: todo
+      description: "Add timing prints around build_riscv_elf() and boot_guest() calls in test_guest_vfs_write_readback. Run with RUST_BACKTRACE=1 and a shorter timeout to see which call hangs."
+      scope_lines: 10
+    - id: p216.d1.t2
+      title: "Check guest_vfs_write.c fixture and VFS MMIO interface"
+      status: todo
+      description: "Verify guest_vfs_write.c exists and uses the current VFS_CONTROL_ADDR (0x7004_0000). If VFS control interface changed, the guest may be writing to wrong addresses and spinning forever."
+      scope_lines: 20
+    scope_lines: 30
+  scope_lines_total: 30
+  test_target: 1
+
+- id: phase-217
+  title: "Regression -- vm::tests::test_winsys_vfs_sync timeout"
+  status: planned
+  goal: "Fix WINSYS VFS_SYNC test that times out at 120s"
+  description: "vm::tests::test_winsys_vfs_sync tests WINSYS op=9 (VFS_SYNC) which writes window pixels back to host VFS files. This test was a validation test for phase-119 (VFS_BLIT/VFS_SYNC) and was passing. Now it times out. The test creates a window (op=0), blits VFS into it (op=8), modifies a pixel, then syncs back (op=9). The hang is likely in one of the WINSYS opcode handlers (0, 8, or 9). Since this is a unit test using Vm::new() directly (not booting assembly), the issue is in the Rust WINSYS implementation, not guest code."
+  deliverables:
+  - name: "Diagnose test_winsys_vfs_sync timeout"
+    description: "The test creates a Vm, sets up registers manually, and calls vm.step() for each WINSYS operation. Add eprintln before each step() call to identify which WINSYS opcode hangs. Check if the WINSYS handler for op=0 (CREATE), op=8 (VFS_BLIT), or op=9 (VFS_SYNC) has an infinite loop or unbounded filesystem operation."
+    status: todo
+    tasks:
+    - id: p217.d1.t1
+      title: "Add step-level debug logging to isolate which WINSYS op hangs"
+      status: todo
+      description: "In test_winsys_vfs_sync, add eprintln before and after each of the three vm.step() calls (CREATE, VFS_BLIT, VFS_SYNC) to identify which one never returns. Then inspect the corresponding opcode handler in the VM for infinite loops."
+      scope_lines: 10
+    - id: p217.d1.t2
+      title: "Check WINSYS op=8/9 handlers for unbounded loops"
+      status: todo
+      description: "In the VM's WINSYS handler (match on reg[6]), inspect op=8 (VFS_BLIT) and op=9 (VFS_SYNC) implementations. VFS_BLIT reads all files from .geometry_os/fs/ -- if the directory has grown or a file is very large, this could take too long. VFS_SYNC iterates over modified pixels and writes to disk -- check for infinite iteration bounds."
+      scope_lines: 30
+    scope_lines: 40
+  scope_lines_total: 40
+  test_target: 1
