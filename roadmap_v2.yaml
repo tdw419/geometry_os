@@ -2767,6 +2767,503 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 220
+- id: phase-245
+  title: "Test Coverage -- ops_host_fs.rs and ops_pty.rs Unit Tests"
+  status: todo
+  goal: Add comprehensive unit tests for the two largest untested VM opcode modules
+  description: 'ops_host_fs.rs (352 lines, 0 tests) handles HOST_READ, HOST_WRITE, HOST_LIST, HOST_DELETE opcodes that give VM programs access to the host filesystem. ops_pty.rs (1419 lines, 0 tests) handles PTY_CREATE, PTY_WRITE, PTY_READ, PTY_CLOSE opcodes for pseudo-terminal management. Both are critical infrastructure with zero test coverage.'
+  deliverables:
+  - name: ops_host_fs unit tests
+    status: todo
+    tasks:
+    - id: p245.d1.t1
+      title: Add tests for HOST_READ opcode
+      description: Test reading text files, binary files, nonexistent files, files past RAM end, permission errors. Verify RAM contents match file data.
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 80
+    - id: p245.d1.t2
+      title: Add tests for HOST_WRITE and HOST_DELETE opcodes
+      description: Test writing to new files, overwriting existing files, creating directories, deleting files, deleting nonexistent files.
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 80
+    - id: p245.d1.t3
+      title: Add tests for HOST_LIST opcode
+      description: Test listing directories, empty directories, nested directories, nonexistent directories.
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 60
+  - name: ops_pty unit tests
+    status: todo
+    tasks:
+    - id: p245.d2.t1
+      title: Add tests for PTY_CREATE and PTY_CLOSE
+      description: Test creating PTYs (verify fd allocation), closing valid/invalid PTYs, max PTY limit.
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 60
+    - id: p245.d2.t2
+      title: Add tests for PTY_WRITE and PTY_READ
+      description: Test writing to PTY and reading back, reading empty PTY, partial reads, closing PTY mid-stream.
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 80
+  test_target: 15
+  scope_lines_total: 360
+- id: phase-246
+  title: "Test Coverage -- ops_syscall.rs Unit Tests"
+  status: todo
+  goal: Add unit tests for the VM syscall dispatch module
+  description: ops_syscall.rs (469 lines, 0 tests) handles the SYSCALL opcode dispatch table, mapping syscall numbers to handler functions. Zero test coverage means regressions in syscall routing go undetected. The module bridges opcode space to filesystem, process, and device operations.
+  deliverables:
+  - name: ops_syscall unit tests
+    status: todo
+    tasks:
+    - id: p246.d1.t1
+      title: Add tests for valid syscall dispatch
+      description: Test that SYSCALL correctly routes to OPEN, READ, WRITE, CLOSE, SEEK, LS, IOCTL, and other syscall numbers. Verify correct handler invocation via side effects.
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 80
+    - id: p246.d1.t2
+      title: Add tests for invalid syscall numbers
+      description: Test that unknown syscall numbers are handled gracefully (set error in r0 or NOP, don't panic).
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 40
+    - id: p246.d1.t3
+      title: Add tests for syscall argument passing
+      description: Verify that register arguments are correctly passed to syscall handlers (fd in correct register, buffer address, count).
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 60
+  test_target: 8
+  scope_lines_total: 180
+- id: phase-247
+  title: "Test Coverage -- MCP Server Integration Tests"
+  status: todo
+  goal: Expand MCP server test coverage from 3 tests to 20+
+  description: The MCP server (mcp_server.rs, 1588 lines) is the primary bridge between Hermes and the VM. It handles socket communication, tool dispatch (load_source, assemble, run_program, screenshot, etc.), and status reporting. Only 3 tests exist (tool list, status parsing, register parsing). Most tool handlers are untested.
+  deliverables:
+  - name: MCP server tool handler tests
+    status: todo
+    tasks:
+    - id: p247.d1.t1
+      title: Add tests for assembly tool handler
+      description: Test load_source + assemble via MCP protocol. Verify bytecode in RAM. Test invalid ASM returns error. Test empty source.
+      scope_files:
+      - src/mcp_server.rs
+      scope_lines: 100
+    - id: p247.d1.t2
+      title: Add tests for run_program tool handler
+      description: Test running assembled programs, reading back screen state, detecting halt vs frame_ready. Test step execution.
+      scope_files:
+      - src/mcp_server.rs
+      scope_lines: 100
+    - id: p247.d1.t3
+      title: Add tests for screenshot and screen dump tools
+      description: Test PNG screenshot generation, ASCII screen dump, checksum computation. Verify consistent output.
+      scope_files:
+      - src/mcp_server.rs
+      scope_lines: 80
+    - id: p247.d1.t4
+      title: Add tests for register and memory inspection tools
+      description: Test reading registers, peek/poke RAM, reading canvas. Verify values match VM state.
+      scope_files:
+      - src/mcp_server.rs
+      scope_lines: 80
+  test_target: 15
+  scope_lines_total: 360
+- id: phase-248
+  title: "GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST)"
+  status: todo
+  goal: Add single-bit manipulation opcodes for embedded-style register bitfield control
+  description: Many VM programs need to set, clear, test, and toggle individual bits in registers (flag registers, color masks, hardware port registers). Currently requires SHL + OR/AND + AND + CMP sequences (5-8 instructions). These opcodes reduce bit manipulation to 1 instruction each. BNOT inverts all bits (already available via XOR with 0xFFFFFFFF but a dedicated opcode is clearer).
+  deliverables:
+  - name: Bit manipulation opcodes
+    status: todo
+    tasks:
+    - id: p248.d1.t1
+      title: Implement BNOT rd (0xD1), BSET rd, bit_reg (0xD2), BCLR rd, bit_reg (0xD3), BTST rd, bit_reg -> r0 (0xD4)
+      description: "BNOT = rd = !rd. BSET = rd |= (1 << bit_reg[4:0]). BCLR = rd &= !(1 << bit_reg[4:0]). BTST = r0 = (rd >> bit_reg[4:0]) & 1."
+      scope_files:
+      - src/vm/mod.rs
+      - src/assembler/ops_extended.rs
+      scope_lines: 80
+    - id: p248.d1.t2
+      title: Add disassembler entries
+      description: Wire all four opcodes into the disassembler with correct mnemonic and arg formatting.
+      scope_files:
+      - src/vm/disasm.rs
+      scope_lines: 30
+    - id: p248.d1.t3
+      title: Add comprehensive tests
+      description: Test each opcode with known bit patterns. Test boundary (bit 0, bit 31). Test BNOT of 0 and 0xFFFFFFFF. Test BTST result in r0.
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 80
+    - id: p248.d1.t4
+      title: Write bit_manipulation_demo.asm
+      description: Program that uses BSET/BCLR/BTST to implement a simple flag register with visual display of set/clear/test operations.
+      scope_files:
+      - programs/bit_manipulation_demo.asm
+      scope_lines: 60
+  test_target: 10
+  scope_lines_total: 250
+- id: phase-249
+  title: "GeOS VM -- Block Memory Opcodes (MEMCPY, MEMSET)"
+  status: todo
+  goal: Add efficient block memory operations to reduce loop overhead
+  description: Programs that copy or fill memory regions currently use byte-by-byte loops (LOAD + STORE + ADD + CMP + BLT = 5+ instructions per word). MEMCPY copies N words from src to dst, MEMSET fills N words with a value. Both run in the VM's native execution, much faster than instruction loops. Essential for buffer management, string operations, and VFS data transfer.
+  deliverables:
+  - name: Block memory opcodes
+    status: todo
+    tasks:
+    - id: p249.d1.t1
+      title: Implement MEMCPY dst_reg, src_reg, count_reg (0xD5) and MEMSET dst_reg, val_reg, count_reg (0xD6)
+      description: MEMCPY copies count words from src to dst (handles overlap by direction check). MEMSET fills count words with val. Bounds-check against RAM size. 4-word encoding.
+      scope_files:
+      - src/vm/mod.rs
+      - src/assembler/ops_memory.rs
+      scope_lines: 100
+    - id: p249.d1.t2
+      title: Add disassembler entries and assembler support
+      description: Wire both opcodes into disassembler and assembler. Test assembly of both forms.
+      scope_files:
+      - src/vm/disasm.rs
+      - src/assembler/ops_memory.rs
+      scope_lines: 40
+    - id: p249.d1.t3
+      title: Add comprehensive tests
+      description: Test MEMCPY forward, backward, overlapping, boundary. Test MEMSET with various values and counts. Test zero count (NOP). Test out-of-bounds.
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 80
+    - id: p249.d1.t4
+      title: Write memcpy_demo.asm showing performance improvement
+      description: Program that fills a large buffer using MEMSET vs manual loop, displaying timing via TICKS.
+      scope_files:
+      - programs/memcpy_demo.asm
+      scope_lines: 50
+  test_target: 12
+  scope_lines_total: 270
+- id: phase-250
+  title: "GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY)"
+  status: todo
+  goal: Add string primitives that operate on null-terminated RAM strings
+  description: VM programs that manipulate strings (shell, file browser, text editor) currently implement strlen/strcmp/strcpy as subroutine loops (10-30 instructions each). Dedicated opcodes make string operations atomic and fast. STRLEN returns length of null-terminated string, STRCMP compares two strings (returns -1/0/1 in r0), STRCPY copies one string to another. These mirror C stdlib functions the RISC-V guest already has.
+  deliverables:
+  - name: String operation opcodes
+    status: todo
+    tasks:
+    - id: p250.d1.t1
+      title: Implement STRLEN addr_reg -> count_reg (0xD7), STRCMP addr1_reg, addr2_reg -> r0 (0xD8), STRCPY dst_reg, src_reg (0xD9)
+      description: All operate on null-terminated u32-per-char strings in RAM. STRLEN returns count not including null. STRCMP returns -1/0/1. STRCPY copies including null terminator.
+      scope_files:
+      - src/vm/mod.rs
+      - src/assembler/ops_extended.rs
+      scope_lines: 80
+    - id: p250.d1.t2
+      title: Add disassembler and assembler entries
+      description: Wire all three opcodes. 3-word encoding for STRLEN/STRCMP, 3-word for STRCPY.
+      scope_files:
+      - src/vm/disasm.rs
+      - src/assembler/ops_extended.rs
+      scope_lines: 30
+    - id: p250.d1.t3
+      title: Add comprehensive tests
+      description: Test empty strings, single char, long strings, matching/non-matching strcmp, copy to self, copy overlapping.
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 80
+    - id: p250.d1.t4
+      title: Write string_ops_demo.asm
+      description: Program that demonstrates string search, comparison, and copy operations with visual output.
+      scope_files:
+      - programs/string_ops_demo.asm
+      scope_lines: 60
+  test_target: 10
+  scope_lines_total: 250
+- id: phase-251
+  title: "GeOS Program -- Mandelbrot Fractal Explorer"
+  status: todo
+  goal: Write a zoomable Mandelbrot set renderer in assembly
+  description: The VM has MUL, SUB, CMP, BLT, PSET, TEXT, IKEY, and FRAME -- everything needed for an interactive Mandelbrot renderer. This is a classic compute-heavy visual program that stress-tests the VM arithmetic pipeline and demonstrates the system capability for real mathematical computation. The fixed-point arithmetic avoids floating point requirements.
+  deliverables:
+  - name: Mandelbrot fractal program
+    status: todo
+    tasks:
+    - id: p251.d1.t1
+      title: Implement fixed-point Mandelbrot core loop
+      description: Use 32-bit registers with 12-bit fractional part (20.12 fixed point). Iterate z = z^2 + c, max 64 iterations. Color based on escape iteration using palette table.
+      scope_files:
+      - programs/mandelbrot.asm
+      scope_lines: 150
+    - id: p251.d1.t2
+      title: Add zoom and pan with keyboard input
+      description: Arrow keys pan, +/- zoom in/out. Use IKEY in animation loop. Re-render on zoom change.
+      scope_files:
+      - programs/mandelbrot.asm
+      scope_lines: 80
+    - id: p251.d1.t3
+      title: Add HUD with coordinates and zoom level
+      description: Display current center (real, imag) and zoom factor using TEXT opcode. Use DRAWTEXT or STRO for formatting.
+      scope_files:
+      - programs/mandelbrot.asm
+      scope_lines: 50
+  test_target: 2
+  scope_lines_total: 280
+- id: phase-252
+  title: "GeOS Program -- Raycasting 3D Engine (Wolfenstein-style)"
+  status: todo
+  goal: Write a first-person raycasting renderer in assembly
+  description: A raycasting engine renders a pseudo-3D view from a 2D map using only arithmetic (MUL, DIV, SHL, SHR, SIN table lookups) and PSET/RECTF. This is the most visually impressive program type achievable with the VM current ISA. The starfield program already demonstrates perspective projection; raycasting extends it to wall rendering with distance-based shading.
+  deliverables:
+  - name: Raycasting engine program
+    status: todo
+    tasks:
+    - id: p252.d1.t1
+      title: Implement raycasting core with DDA algorithm
+      description: Cast one ray per screen column. Use DDA (digital differential analyzer) for efficient grid traversal. Compute wall distance per column. Render vertical wall strip with RECTF. Distance-based color darkening.
+      scope_files:
+      - programs/raycaster.asm
+      scope_lines: 200
+    - id: p252.d1.t2
+      title: Add player movement and collision
+      description: WASD movement with wall collision detection using MAP array. Rotate view with left/right keys. Step-based movement (not per-pixel).
+      scope_files:
+      - programs/raycaster.asm
+      scope_lines: 100
+    - id: p252.d1.t3
+      title: Add textured floor/ceiling
+      description: Simple color gradient floor (green to dark green) and ceiling (blue to dark blue) based on distance from horizon.
+      scope_files:
+      - programs/raycaster.asm
+      scope_lines: 60
+  test_target: 2
+  scope_lines_total: 360
+- id: phase-253
+  title: "GeOS VM -- Audio System Tests and Improvements"
+  status: todo
+  goal: Add tests to audio.rs and implement PCM sample streaming
+  description: audio.rs (124 lines, 0 tests) handles the BEEP opcode and WAV generation. The current implementation spawns aplay subprocess for each beep, which causes process stacking with rapid beeps. Adding tests and a streaming audio buffer would improve reliability and enable more complex sound effects.
+  deliverables:
+  - name: Audio system tests
+    status: todo
+    tasks:
+    - id: p253.d1.t1
+      title: Add unit tests for WAV generation
+      description: Test generate_wav() produces valid RIFF/WAV header bytes. Test various frequencies and durations. Test edge cases (freq=0, dur=0).
+      scope_files:
+      - src/audio.rs
+      scope_lines: 80
+    - id: p253.d1.t2
+      title: Add test for audio parameter extraction
+      description: Test that BEEP correctly extracts freq and duration from registers and sets vm.beep.
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 40
+  - name: Audio streaming buffer
+    status: todo
+    tasks:
+    - id: p253.d2.t1
+      title: Implement audio sample buffer with mixing
+      description: Add a ring buffer (256 samples) that accumulates BEEP samples instead of spawning processes. Mix concurrent beeps (additive). Drain to aplay on FRAME or when buffer half-full.
+      scope_files:
+      - src/audio.rs
+      scope_lines: 100
+    - id: p253.d2.t2
+      title: Write sfx_mixer.asm with layered sound effects
+      description: Program that plays multiple overlapping beeps to demonstrate mixing (walking sound plus ambient tone).
+      scope_files:
+      - programs/sfx_mixer.asm
+      scope_lines: 60
+  test_target: 6
+  scope_lines_total: 280
+- id: phase-254
+  title: "GeOS Program -- Procedural Dungeon Generator with Fog of War"
+  status: todo
+  goal: Write a dungeon crawler with BSP room generation and line-of-sight fog
+  description: Extends the existing infinite_map terrain concepts into a dungeon setting. BSP (Binary Space Partition) generates rooms connected by corridors. Raycasting-based line-of-sight reveals tiles within the player view cone. Previously explored tiles remain dimly visible. Uses RECTF for tile rendering, PSET for walls, and a sine table for lighting falloff.
+  deliverables:
+  - name: Dungeon generator program
+    status: todo
+    tasks:
+    - id: p254.d1.t1
+      title: Implement BSP room generation
+      description: Recursively split a grid region, place rooms in leaf nodes, connect with L-shaped corridors. Store room/tile data in RAM arrays. Seed-based RNG for reproducibility.
+      scope_files:
+      - programs/dungeon.asm
+      scope_lines: 200
+    - id: p254.d1.t2
+      title: Add player movement and collision
+      description: WASD movement with wall collision. Camera follows player. Reveal tiles within radius using Bresenham line-of-sight.
+      scope_files:
+      - programs/dungeon.asm
+      scope_lines: 100
+    - id: p254.d1.t3
+      title: Add fog of war rendering
+      description: "Three states per tile: unseen (black), seen (dim), visible (full brightness). Track seen tiles in a bitfield array in RAM."
+      scope_files:
+      - programs/dungeon.asm
+      scope_lines: 80
+  test_target: 2
+  scope_lines_total: 380
+- id: phase-255
+  title: "GeOS VM -- Conditional Move and Select Opcodes (CMOV, CSEL)"
+  status: todo
+  goal: Add branchless conditional move opcodes for performance-critical inner loops
+  description: Conditional moves eliminate branch misprediction stalls in hot loops (pixel rendering, collision detection). CMOV rd, rs moves rs to rd if r0 != 0 (after CMP). CSEL rd, rs1, rs2 selects rs1 if r0 != 0 else rs2. These are common in GPU architectures and enable branchless min/max, clamping, and multiplexing patterns.
+  deliverables:
+  - name: Conditional move opcodes
+    status: todo
+    tasks:
+    - id: p255.d1.t1
+      title: Implement CMOV rd, rs (0xDA) and CSEL rd, rs_true, rs_false (0xDB)
+      description: "CMOV: if r0 != 0 then rd = rs. CSEL: if r0 != 0 then rd = rs_true else rd = rs_false. Both read CMP result from r0."
+      scope_files:
+      - src/vm/mod.rs
+      - src/assembler/ops_extended.rs
+      scope_lines: 60
+    - id: p255.d1.t2
+      title: Add disassembler and assembler entries
+      description: Wire both opcodes. CMOV is 3-word, CSEL is 4-word.
+      scope_files:
+      - src/vm/disasm.rs
+      - src/assembler/ops_extended.rs
+      scope_lines: 30
+    - id: p255.d1.t3
+      title: Add tests and branchless patterns
+      description: Test CMOV with r0=0 and r0=1. Test CSEL select true/false. Write test showing branchless min/max using CSEL.
+      scope_files:
+      - src/vm/tests.rs
+      scope_lines: 60
+  test_target: 8
+  scope_lines_total: 150
+- id: phase-256
+  title: "RISC-V Guest -- Shared Memory IPC Between Processes"
+  status: todo
+  goal: Enable RISC-V guest processes to communicate via shared memory regions
+  description: The Geometry OS VM has MSGSND/MSGRCV/PIPE for IPC, but RISC-V guest programs running under the interpreter have no IPC mechanism. Add shared memory pages that multiple guest processes can map into their address spaces. This enables producer-consumer patterns, data sharing between a GUI process and a compute process, and shared framebuffers.
+  deliverables:
+  - name: Shared memory SBI extension
+    status: todo
+    tasks:
+    - id: p256.d1.t1
+      title: Add SBI SHM extension (shm_alloc, shm_map, shm_free)
+      description: SBI extension 0x53484D for shared memory. shm_alloc(size) returns handle. shm_map(handle, va) maps into caller address space. shm_free(handle).
+      scope_files:
+      - src/riscv/sbi.rs
+      - src/riscv/bus.rs
+      scope_lines: 120
+    - id: p256.d1.t2
+      title: Add libgeos shared memory wrappers
+      description: geos_shm_alloc, geos_shm_map, geos_shm_free in libgeos.a with header.
+      scope_files:
+      - examples/riscv-hello/libgeos.c
+      - examples/riscv-hello/libgeos.h
+      scope_lines: 60
+    - id: p256.d1.t3
+      title: Write producer-consumer demo
+      description: "Two guest programs: producer writes counters to shared memory, consumer reads and displays on framebuffer."
+      scope_files:
+      - examples/riscv-hello/shm_producer.c
+      - examples/riscv-hello/shm_consumer.c
+      scope_lines: 100
+  test_target: 3
+  scope_lines_total: 280
+- id: phase-257
+  title: "RISC-V Guest -- Timer and Sleep Syscalls"
+  status: todo
+  goal: Add timer and sleep syscalls for RISC-V guest programs
+  description: Guest programs currently have no way to delay execution or measure time. The CLINT hardware provides timer interrupts, but guest C programs need simple sleep() and gettimeofday() syscalls. These are fundamental for animation timing, polling loops, and timeout handling.
+  deliverables:
+  - name: Timer syscalls
+    status: todo
+    tasks:
+    - id: p257.d1.t1
+      title: Add SBI TIME extension (sleep_ms, get_time_ms)
+      description: sleep_ms blocks for N milliseconds by busy-waiting CLINT mtime. get_time_ms returns elapsed time since boot in milliseconds.
+      scope_files:
+      - src/riscv/sbi.rs
+      - src/riscv/clint.rs
+      scope_lines: 60
+    - id: p257.d1.t2
+      title: Add libgeos time wrappers and header
+      description: geos_sleep_ms and geos_get_time_ms in libgeos.a.
+      scope_files:
+      - examples/riscv-hello/libgeos.c
+      - examples/riscv-hello/libgeos.h
+      scope_lines: 40
+    - id: p257.d1.t3
+      title: Write timer demo with blinking cursor
+      description: C program that blinks a cursor on the framebuffer at 1Hz using sleep_ms, and displays elapsed time.
+      scope_files:
+      - examples/riscv-hello/timer_demo.c
+      scope_lines: 50
+  test_target: 2
+  scope_lines_total: 150
+- id: phase-258
+  title: "GeOS VM -- Scanline Flood Fill Opcode (FLOOD)"
+  status: todo
+  goal: Add a hardware-accelerated flood fill for paint programs
+  description: The VM has PSET for single pixels and FILL for solid colors, but no flood fill. Implementing flood fill in assembly requires a stack-based algorithm (PUSH/POP per pixel) which is slow and uses valuable stack space. A native FLOOD opcode uses an internal scanline span buffer to fill regions 10-100x faster than assembly implementation.
+  deliverables:
+  - name: FLOOD opcode
+    status: todo
+    tasks:
+    - id: p258.d1.t1
+      title: Implement FLOOD x_reg, y_reg, color_reg (0xDC) with scanline span algorithm
+      description: Read target color at (x,y). If same as fill color, NOP. Otherwise, fill using scanline span expansion (push left/right spans to internal buffer). Stack-free algorithm.
+      scope_files:
+      - src/vm/mod.rs
+      - src/assembler/ops_graphics.rs
+      scope_lines: 120
+    - id: p258.d1.t2
+      title: Add disassembler entry and tests
+      description: Test filling small and large regions. Test filling entire screen. Test filling on boundary. Test no-op when target = fill color.
+      scope_files:
+      - src/vm/disasm.rs
+      - src/vm/tests.rs
+      scope_lines: 80
+    - id: p258.d1.t3
+      title: Write paint_app.asm with flood fill
+      description: Paint program with color palette, brush (PSET), and flood fill (FLOOD). WASD to move cursor, space to paint, F to flood fill.
+      scope_files:
+      - programs/paint_app.asm
+      scope_lines: 100
+  test_target: 8
+  scope_lines_total: 300
+- id: phase-259
+  title: "GeOS Program -- Cellular Automata Sandbox (Life, HighLife, Seeds)"
+  status: todo
+  goal: Write a multi-rule cellular automata playground with rule switching
+  description: Conway Game of Life already exists as code_evolution.asm, but a unified sandbox that supports multiple rules (Life, HighLife, Day and Night, Langton Ant, Brian Brain) with live rule switching would be more educational and showcase the VM versatility. Each rule uses the same grid rendering but different neighbor-counting logic.
+  deliverables:
+  - name: Cellular automata sandbox
+    status: todo
+    tasks:
+    - id: p259.d1.t1
+      title: Implement grid data structure and rendering
+      description: Store grid in RAM (256x256 bits = 8192 u32 words). Render using PSET. Color cells by age (newborn=white, old=blue). Wrap-around boundaries.
+      scope_files:
+      - programs/cellular_sandbox.asm
+      scope_lines: 150
+    - id: p259.d1.t2
+      title: Implement multiple CA rules with switching
+      description: "Rules: Life (B3/S23), HighLife (B36/S23), Day and Night (B3678/S34678), Seeds (B2/S). Press 1-4 to switch. Use table-based rule lookup in RAM."
+      scope_files:
+      - programs/cellular_sandbox.asm
+      scope_lines: 100
+    - id: p259.d1.t3
+      title: Add interactive editing and speed control
+      description: Click to toggle cells, +/- to change speed, R to randomize, C to clear. Use IKEY for input.
+      scope_files:
+      - programs/cellular_sandbox.asm
+      scope_lines: 80
+  test_target: 2
+  scope_lines_total: 330
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'
@@ -2786,6 +3283,10 @@ meta:
   canonical_surface: vm.screen (256x256 Vec<u32>)
   sbi_extension_id: '0x47454F00'
   dtb_isa: rv32imac
-  phases_total: 70
+  phases_total: 85
   phases_done: 16
-  phases_remaining: 45
+  phases_remaining: 60
+  opcodes: 192
+  programs: 161
+  loc: 68000
+  tests: 1797
