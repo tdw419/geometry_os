@@ -4512,7 +4512,7 @@ phases:
   scope_lines_total: 200
 - id: phase-274
   title: GeOS Program -- Solar System Simulator
-  status: in_progress
+  status: done
   goal: Write an accurate solar system simulator with orbital mechanics and zoom controls
   description: A visually impressive program that simulates planetary orbits using
     Kepler's laws. Planets orbit the sun at correct relative distances and speeds.
@@ -4520,7 +4520,7 @@ phases:
     VM handles floating-point math via fixed-point arithmetic.
   deliverables:
   - name: Solar system simulator
-    status: planned
+    status: done
     tasks:
     - id: p274.d1.t1
       title: Implement orbital mechanics with fixed-point arithmetic
