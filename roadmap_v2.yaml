@@ -1726,7 +1726,7 @@ phases:
   _claimed_at: 1777808518
 - id: phase-204
   title: GeOS Clipboard -- Cross-Program Pixel Copy/Paste
-  status: planned
+  status: done
   goal: Allow programs to share pixel data via a clipboard buffer accessible through
     new CLIP_COPY and CLIP_PASTE opcodes
   description: 'Programs currently operate in isolation -- snake.asm draws its own
@@ -1737,7 +1737,7 @@ phases:
     persists across program runs within the same VM session.'
   deliverables:
   - name: Clipboard opcodes and buffer
-    status: todo
+    status: done
     tasks:
     - id: p204.d1.t1
       title: Add CLIP_COPY opcode (x, y, w, h registers)
@@ -1762,6 +1762,8 @@ phases:
       scope_lines: 80
   test_target: 3
   scope_lines_total: 160
+  _claimed_by: worker-0
+  _claimed_at: 1777810831
 - id: phase-205
   title: GeOS Sprite Sheet Loader
   status: planned
