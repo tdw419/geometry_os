@@ -5494,10 +5494,13 @@ fn boot_file_browser(target_frames: u32) -> Vm {
     // making them flaky (garbage filenames from previous test sessions).
     let fs_dir = std::path::Path::new(".geometry_os/fs");
     let _ = std::fs::create_dir_all(fs_dir);
-    // Clean existing files to avoid garbage from prior test runs interfering
+    // Clean ALL existing files and subdirectories to avoid garbage from prior
+    // test runs interfering (e.g. linux/ kernel images that slow down LS/encode)
     if let Ok(entries) = std::fs::read_dir(fs_dir) {
         for entry in entries.flatten() {
-            if entry.path().is_file() {
+            if entry.path().is_dir() {
+                let _ = std::fs::remove_dir_all(entry.path());
+            } else {
                 let _ = std::fs::remove_file(entry.path());
             }
         }
@@ -20286,11 +20289,14 @@ fn test_winsys_vfs_sync() {
     // WINSYS op=9 (VFS_SYNC): Write window pixels back to VFS files.
     let mut vm = Vm::new();
 
-    // Ensure test_sync.txt exists in VFS
-    let fs_dir = std::path::Path::new(".geometry_os/fs");
-    let _ = std::fs::create_dir_all(fs_dir);
-    let test_file = fs_dir.join("test_sync.txt");
+    // Use a temp dir to avoid interference from large files in .geometry_os/fs/
+    // (e.g. linux/ kernel images that would make encode_pixel_surface very slow)
+    let dir = std::env::temp_dir().join("geo_test_vfs_sync");
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::create_dir_all(&dir);
+    let test_file = dir.join("test_sync.txt");
     std::fs::write(&test_file, b"Original Content").unwrap();
+    vm.vfs.base_dir = dir.clone();
 
     // Create a window and load VFS (op=8)
     vm.regs[1] = 0;

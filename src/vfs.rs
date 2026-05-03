@@ -7,9 +7,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::io::{Read, Seek, SeekFrom, Write};
-#[cfg(test)]
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Maximum open file descriptors per process
 pub const MAX_FDS: usize = 16;
@@ -68,6 +66,10 @@ pub fn read_file_by_name(name: &str) -> Option<Vec<u8>> {
 ///
 /// The files are visible as colored pixels. The storage IS the display.
 pub fn encode_pixel_surface(width: usize, height: usize) -> Vec<u32> {
+    encode_pixel_surface_dir(width, height, &PathBuf::from(FS_DIR))
+}
+
+pub fn encode_pixel_surface_dir(width: usize, height: usize, fs_dir: &Path) -> Vec<u32> {
     let mut surface = vec![0u32; width * height];
     if width == 0 || height == 0 {
         return surface;
@@ -75,8 +77,6 @@ pub fn encode_pixel_surface(width: usize, height: usize) -> Vec<u32> {
 
     // Magic
     surface[0] = 0x50584653; // "PXFS"
-
-    let fs_dir = PathBuf::from(FS_DIR);
     let entries = match fs::read_dir(&fs_dir) {
         Ok(rd) => rd,
         Err(_) => {
@@ -158,6 +158,10 @@ pub fn encode_pixel_surface(width: usize, height: usize) -> Vec<u32> {
 /// Decode a pixel surface back into the host filesystem.
 /// Inverse of `encode_pixel_surface`.
 pub fn decode_pixel_surface(width: usize, height: usize, pixels: &[u32]) {
+    decode_pixel_surface_dir(width, height, pixels, &PathBuf::from(FS_DIR))
+}
+
+pub fn decode_pixel_surface_dir(width: usize, height: usize, pixels: &[u32], fs_dir: &Path) {
     if width == 0 || height == 0 || pixels.is_empty() {
         return;
     }
@@ -168,7 +172,7 @@ pub fn decode_pixel_surface(width: usize, height: usize, pixels: &[u32]) {
     }
 
     let file_count = pixels[1] as usize;
-    let fs_dir = PathBuf::from(FS_DIR);
+    let fs_dir = fs_dir.to_path_buf();
 
     // We need to know filenames. Since the surface only has hashes,
     // we must cross-reference with the actual files in .geometry_os/fs/.
