@@ -995,6 +995,7 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         0xC4 => "CLIPSET",
         0xC5 => "CLIPCLR",
         0xC6 => "PROFILE",
+        0xC7 => "IMOUSE",
         // Phase 94: Tiny font text rendering
         0xD0 => "SMALLTEXT",
         // Phase 95: Medium font text rendering

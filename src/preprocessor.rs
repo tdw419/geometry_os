@@ -210,6 +210,8 @@ pub const OPCODES: &[&str] = &[
     "SPRLOAD",
     "SPRFRAME",
     "SPRANIM",
+    // Phase 273: Interrupt-driven input queue
+    "IMOUSE",
     // PCM audio streaming
     "AUDIO_PLAY",
     "AUDIO_STOP",

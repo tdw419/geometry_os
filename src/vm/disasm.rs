@@ -983,6 +983,12 @@ impl Vm {
                 format!("PROFILE {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
                 3,
             ),
+            // IMOUSE rd (0xC7) -- Read next mouse event from queue
+            // Returns packed event→rd, full x→rd+1, full y→rd+2
+            0xC7 => (
+                format!("IMOUSE {}", reg(ram(a + 1))),
+                2,
+            ),
             // SMALLTEXT x, y, addr, fg, bg (0xD0) -- tiny 3x5 font, 85 cols in 256px
             0xD0 => (
                 format!(

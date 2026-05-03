@@ -123,7 +123,7 @@ pub struct Vm {
     /// Profile region start step: the total_steps value when each region was last MARK-started.
     pub profile_start: [u64; 16],
     /// Key ring buffer: host pushes keystrokes, IKEY reads them in order.
-    /// Supports up to 16 queued keys so rapid typing doesn't drop inputs.
+    /// Supports up to 256 queued keys so rapid typing doesn't drop inputs.
     pub key_buffer: Vec<u32>,
     /// Key buffer head (next read position)
     pub key_buffer_head: usize,
@@ -171,6 +171,20 @@ pub struct Vm {
     /// Mouse button state: 0=none, 1=left down, 2=left click (consumed on read).
     /// Set by host via push_mouse_button(). Queried by MOUSEQ into reg+2.
     pub mouse_button: u32,
+    /// Mouse event ring buffer (Phase 273: Interrupt-Driven Input Queue).
+    /// Each event is a packed u32: bits[7:0]=event_type (0=move, 1=down, 2=up),
+    /// bits[15:8]=button (0=none, 1=left, 2=right, 3=middle),
+    /// bits[23:16]=x_low8, bits[31:24]=y_low8. Full coords in separate queues.
+    /// IMOUSE reads events in FIFO order. Supports up to 64 queued events.
+    pub mouse_event_buffer: Vec<u32>,
+    /// Mouse event X coordinate ring buffer (full 16-bit coords).
+    pub mouse_event_x: Vec<u32>,
+    /// Mouse event Y coordinate ring buffer (full 16-bit coords).
+    pub mouse_event_y: Vec<u32>,
+    /// Mouse event buffer head (next read position).
+    pub mouse_event_head: usize,
+    /// Mouse event buffer tail (next write position).
+    pub mouse_event_tail: usize,
     pub pixel_write_log: PixelWriteLog,
     /// Active TCP connections (Phase 41: Networking).
     /// Up to 8 simultaneous connections, indexed by fd.
@@ -342,7 +356,7 @@ impl Vm {
             profile_regions: [0; 16],
             profile_active: [false; 16],
             profile_start: [0; 16],
-            key_buffer: vec![0; 16],
+            key_buffer: vec![0; 256],
             key_buffer_head: 0,
             key_buffer_tail: 0,
             key_port: 0,
@@ -358,6 +372,11 @@ impl Vm {
             mouse_x: 0,
             mouse_y: 0,
             mouse_button: 0,
+            mouse_event_buffer: vec![0; 64],
+            mouse_event_x: vec![0; 64],
+            mouse_event_y: vec![0; 64],
+            mouse_event_head: 0,
+            mouse_event_tail: 0,
             tcp_connections: (0..MAX_TCP_CONNECTIONS).map(|_| None).collect(),
             pty_slots: (0..ops_pty::MAX_PTY_SLOTS).map(|_| None).collect(),
             net_inbox: Vec::new(),
@@ -422,6 +441,7 @@ impl Vm {
 
     /// Update mouse/touch cursor position. Called by host on mouse events.
     /// The cursor is read by HITQ to determine which region was clicked.
+    /// Also queues a move event for IMOUSE (Phase 273).
     pub fn push_mouse(&mut self, x: u32, y: u32) {
         self.mouse_x = x;
         self.mouse_y = y;
@@ -432,12 +452,38 @@ impl Vm {
         if (0xFFA) < self.ram.len() {
             self.ram[0xFFA] = y;
         }
+        // Queue mouse move event (type=0, button=0)
+        self.queue_mouse_event(0, 0, x, y);
     }
 
     /// Update mouse button state. Called by host on mouse button events.
     /// button: 0=none/release, 1=left down, 2=left click.
+    /// Also queues a button event for IMOUSE (Phase 273).
     pub fn push_mouse_button(&mut self, button: u32) {
         self.mouse_button = button;
+        // Determine event type: 0=release, 1=down, 2=click
+        let event_type = if button == 0 { 2 } else if button == 2 { 1 } else { button };
+        let btn = if button >= 1 { 1 } else { 0 }; // left button
+        self.queue_mouse_event(event_type, btn, self.mouse_x, self.mouse_y);
+    }
+
+    /// Queue a mouse event into the ring buffer. Called by push_mouse/push_mouse_button.
+    /// Returns false if the buffer is full (event dropped).
+    /// Event packing: bits[7:0]=event_type, bits[15:8]=button,
+    /// bits[23:16]=x_low8, bits[31:24]=y_low8.
+    pub fn queue_mouse_event(&mut self, event_type: u32, button: u32, x: u32, y: u32) {
+        let next_tail = (self.mouse_event_tail + 1) % self.mouse_event_buffer.len();
+        if next_tail == self.mouse_event_head {
+            return; // buffer full, drop event
+        }
+        let packed = (event_type & 0xFF)
+            | ((button & 0xFF) << 8)
+            | ((x & 0xFF) << 16)
+            | ((y & 0xFF) << 24);
+        self.mouse_event_buffer[self.mouse_event_tail] = packed;
+        self.mouse_event_x[self.mouse_event_tail] = x;
+        self.mouse_event_y[self.mouse_event_tail] = y;
+        self.mouse_event_tail = next_tail;
     }
 
     /// Translate global mouse coordinates to window-relative for the current process.
@@ -543,6 +589,11 @@ impl Vm {
         self.windows.clear();
         self.next_window_id = 1;
         self.mouse_button = 0;
+        self.mouse_event_buffer.fill(0);
+        self.mouse_event_x.fill(0);
+        self.mouse_event_y.fill(0);
+        self.mouse_event_head = 0;
+        self.mouse_event_tail = 0;
         self.net_inbox.clear();
         self.llm_mock_response = None;
         self.hit_regions.clear();
@@ -4062,6 +4113,31 @@ impl Vm {
                             self.regs[0] = count;
                         }
                         _ => {}
+                    }
+                }
+            }
+
+            // IMOUSE rd  (0xC7) -- Read next mouse event from queue.
+            // Returns packed event in rd: bits[7:0]=event_type (0=move, 1=down, 2=up),
+            // bits[15:8]=button (0=none, 1=left, 2=right, 3=middle).
+            // Also writes full X to rd+1 and full Y to rd+2.
+            // Returns 0 in rd if no event is pending.
+            0xC7 => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS && rd + 2 < NUM_REGS {
+                    if self.mouse_event_head != self.mouse_event_tail {
+                        self.regs[rd] = self.mouse_event_buffer[self.mouse_event_head];
+                        self.regs[rd + 1] = self.mouse_event_x[self.mouse_event_head];
+                        self.regs[rd + 2] = self.mouse_event_y[self.mouse_event_head];
+                        self.mouse_event_buffer[self.mouse_event_head] = 0;
+                        self.mouse_event_x[self.mouse_event_head] = 0;
+                        self.mouse_event_y[self.mouse_event_head] = 0;
+                        self.mouse_event_head =
+                            (self.mouse_event_head + 1) % self.mouse_event_buffer.len();
+                    } else {
+                        self.regs[rd] = 0;
+                        self.regs[rd + 1] = 0;
+                        self.regs[rd + 2] = 0;
                     }
                 }
             }

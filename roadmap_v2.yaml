@@ -4472,7 +4472,7 @@ phases:
   scope_lines_total: 250
 - id: phase-273
   title: GeOS VM -- Interrupt-Driven Input Queue Enhancement
-  status: planned
+  status: in_progress
   goal: Expand the key buffer from 16 to 256 entries and add mouse event queuing
   description: The current key_buffer ring buffer holds only 16 entries, causing dropped
     keys during rapid typing. Mouse events (click, drag, scroll) have no queue at
@@ -4510,6 +4510,8 @@ phases:
       scope_lines: 60
   test_target: 6
   scope_lines_total: 200
+  _claimed_by: worker-0
+  _claimed_at: 1777797950
 - id: phase-274
   title: GeOS Program -- Solar System Simulator
   status: planned

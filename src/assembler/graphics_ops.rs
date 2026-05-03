@@ -243,6 +243,17 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        "IMOUSE" => {
+            if tokens.len() < 2 {
+                return Err(
+                    "IMOUSE requires 1 argument: IMOUSE rd (event→rd, x→rd+1, y→rd+2)".to_string(),
+                );
+            }
+            bytecode.push(0xC7);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
         "RECT" => {
             if tokens.len() < 6 {
                 return Err(

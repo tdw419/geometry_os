@@ -9496,6 +9496,159 @@ fn test_mouseq_no_button() {
     assert_eq!(vm.regs[7], 0, "no button");
 }
 
+// Phase 273: Expanded key buffer (256 entries)
+#[test]
+fn test_key_buffer_expanded_to_256() {
+    let mut vm = Vm::new();
+    assert_eq!(vm.key_buffer.len(), 256, "key buffer should be 256 entries");
+}
+
+#[test]
+fn test_key_buffer_can_hold_200_keys() {
+    let mut vm = Vm::new();
+    // Push 200 keys into the buffer (old limit was 16)
+    for i in 0..200u32 {
+        vm.push_key(b'A' + (i % 26));
+    }
+    // Read them all back via IKEY
+    let mut count = 0u32;
+    for _ in 0..200 {
+        vm.ram[0] = 0x48; // IKEY
+        vm.ram[1] = 1;    // dest=r1
+        vm.step();
+        if vm.regs[1] != 0 {
+            count += 1;
+        }
+    }
+    assert_eq!(count, 200, "should read all 200 queued keys");
+}
+
+#[test]
+fn test_key_buffer_overflow_drops_gracefully() {
+    let mut vm = Vm::new();
+    // Push 260 keys (buffer is 256, so 4 should be dropped)
+    for _ in 0..260 {
+        vm.push_key(b'X');
+    }
+    // Read back -- should get at most 255 (256 entries - 1 slot always empty in ring buffer)
+    let mut count = 0u32;
+    for _ in 0..260 {
+        vm.ram[0] = 0x48; // IKEY
+        vm.ram[1] = 1;
+        vm.step();
+        if vm.regs[1] != 0 {
+            count += 1;
+        }
+    }
+    assert_eq!(count, 255, "ring buffer of 256 can hold 255 entries max");
+}
+
+// Phase 273: IMOUSE opcode tests
+#[test]
+fn test_imouse_no_event_returns_zero() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xC7; // IMOUSE
+    vm.ram[1] = 1;    // rd=r1
+    vm.step();
+    assert_eq!(vm.regs[1], 0, "no event => rd=0");
+    assert_eq!(vm.regs[2], 0, "no event => rd+1=0");
+    assert_eq!(vm.regs[3], 0, "no event => rd+2=0");
+}
+
+#[test]
+fn test_imouse_reads_move_event() {
+    let mut vm = Vm::new();
+    vm.push_mouse(100, 200);
+    vm.ram[0] = 0xC7; // IMOUSE
+    vm.ram[1] = 1;    // rd=r1
+    vm.step();
+    // Move event: type=0, button=0, packed = 0x00000000
+    // But full x=100, y=200 in rd+1, rd+2
+    assert_eq!(vm.regs[1] & 0xFF, 0, "event type = move (0)");
+    assert_eq!(vm.regs[1] >> 8 & 0xFF, 0, "button = 0");
+    assert_eq!(vm.regs[2], 100, "x coordinate");
+    assert_eq!(vm.regs[3], 200, "y coordinate");
+}
+
+#[test]
+fn test_imouse_reads_button_event() {
+    let mut vm = Vm::new();
+    vm.push_mouse(50, 75);
+    vm.push_mouse_button(2); // left click
+    vm.ram[0] = 0xC7; // IMOUSE
+    vm.ram[1] = 1;    // rd=r1
+    // First event is the move (type=0)
+    vm.step();
+    assert_eq!(vm.regs[1] & 0xFF, 0, "first event is move");
+    assert_eq!(vm.regs[2], 50, "move x");
+    assert_eq!(vm.regs[3], 75, "move y");
+    // Second event is the click (type=1)
+    vm.step();
+    assert_eq!(vm.regs[1] & 0xFF, 1, "second event is click (type=1)");
+    assert_eq!(vm.regs[1] >> 8 & 0xFF, 1, "button = left (1)");
+    assert_eq!(vm.regs[2], 50, "click x");
+    assert_eq!(vm.regs[3], 75, "click y");
+}
+
+#[test]
+fn test_imouse_fifo_ordering() {
+    let mut vm = Vm::new();
+    // Push 3 move events
+    vm.push_mouse(10, 20);
+    vm.push_mouse(30, 40);
+    vm.push_mouse(50, 60);
+    // Read in FIFO order
+    vm.ram[0] = 0xC7;
+    vm.ram[1] = 1;
+    vm.step();
+    assert_eq!(vm.regs[2], 10, "first event x=10");
+    vm.step();
+    assert_eq!(vm.regs[2], 30, "second event x=30");
+    vm.step();
+    assert_eq!(vm.regs[2], 50, "third event x=50");
+    // No more events
+    vm.step();
+    assert_eq!(vm.regs[1], 0, "no more events");
+}
+
+#[test]
+fn test_imouse_buffer_overflow() {
+    let mut vm = Vm::new();
+    // Fill the 64-entry mouse event buffer
+    for i in 0..70u32 {
+        vm.push_mouse(i, i * 2);
+    }
+    // Should have 63 events (ring buffer of 64 holds 63 max)
+    let mut count = 0u32;
+    for _ in 0..70 {
+        vm.ram[0] = 0xC7;
+        vm.ram[1] = 1;
+        vm.step();
+        if vm.regs[1] != 0 {
+            count += 1;
+        }
+    }
+    assert_eq!(count, 63, "ring buffer of 64 holds 63 entries max");
+}
+
+#[test]
+fn test_imouse_assembler() {
+    let source = "IMOUSE r1\nHALT";
+    let asm = geometry_os::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xC7, "opcode");
+    assert_eq!(asm.pixels[1], 1, "register r1");
+}
+
+#[test]
+fn test_imouse_disassembler() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xC7;
+    vm.ram[1] = 5;
+    let (mnemonic, len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "IMOUSE r5");
+    assert_eq!(len, 2);
+}
+
 #[test]
 fn test_winsys_hittest_body() {
     // WINSYS op=4: HITTEST finds window under mouse, returns body hit
