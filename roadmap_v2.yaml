@@ -4391,14 +4391,14 @@ phases:
   _claimed_at: 1777776676
 - id: phase-271
   title: RISC-V Guest -- vi-like Text Editor
-  status: planned
+  status: done
   goal: Write a minimal vi-mode text editor for the RISC-V guest
   description: The guest has no text editor beyond the GeOS canvas. A vi-like editor
     with normal/insert modes, line editing, search, and save/load would make the guest
     OS self-sufficient for editing files on the VFS.
   deliverables:
   - name: Guest vi editor
-    status: planned
+    status: done
     tasks:
     - id: p271.d1.t1
       title: Implement screen rendering and cursor management
@@ -4426,6 +4426,8 @@ phases:
       scope_lines: 100
   test_target: 2
   scope_lines_total: 370
+  _claimed_by: worker-0
+  _claimed_at: 1777780226
 - id: phase-272
   title: GeOS VM -- Sprite Sheet and Animation Frame Opcodes (SPRLOAD, SPRFRAME)
   status: planned
