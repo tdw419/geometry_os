@@ -1012,6 +1012,9 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         0xE2 => "HASHINIT",
         0xE3 => "HASHSET",
         0xE4 => "HASHGET",
+        0xE5 => "SPRLOAD",
+        0xE6 => "SPRFRAME",
+        0xE7 => "SPRANIM",
         _ => "???",
     }
 }

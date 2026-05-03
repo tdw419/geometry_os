@@ -472,6 +472,7 @@ impl Vm {
             clipboard: Vec::new(),
             hash_tables: Default::default(),
             hash_tables_active: 0,
+            sprite_sheets: Default::default(),
         })
     }
 }

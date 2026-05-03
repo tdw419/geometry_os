@@ -250,6 +250,12 @@ pub struct Vm {
     /// Bitmask of which hash table slots are allocated (bit N = table N in use).
     pub hash_tables_active: u8,
 
+    // ── Phase 272: Sprite Sheet and Animation Frame Opcodes ──────
+    /// Registered sprite sheets for SPRLOAD/SPRFRAME/SPRANIM opcodes.
+    /// Up to MAX_SPRITE_SHEETS (16) sheets. Each tracks base addr, frame dims,
+    /// total frames, and current frame selection.
+    pub sprite_sheets: [crate::vm::types::SpriteSheet; MAX_SPRITE_SHEETS],
+
     /// Indices 0..N are used. host_file_handles[i] = Some((File, mode)) when open.
     pub host_file_handles: Vec<Option<(std::fs::File, u8)>>,
 }
@@ -378,6 +384,7 @@ impl Vm {
             clipboard: Vec::new(),
             hash_tables: Default::default(),
             hash_tables_active: 0,
+            sprite_sheets: Default::default(),
         }
     }
 
@@ -563,6 +570,7 @@ impl Vm {
             table.clear();
         }
         self.hash_tables_active = 0;
+        self.sprite_sheets = Default::default();
     }
 
     /// Internal helper to log a memory access with a safety cap.
@@ -1659,6 +1667,104 @@ impl Vm {
                         self.regs[dr] = 0xFFFFFFFF;
                         self.regs[0] = 0;
                     }
+                }
+            }
+
+            // SPRLOAD sheet_id, addr_reg, frame_w_reg, frame_h_reg, frames_reg  (0xE5)
+            // Register a sprite sheet: base address in RAM, frame dimensions, total frame count.
+            // Max MAX_SPRITE_SHEETS (16) sheets. sheet_id is an immediate (0-15).
+            // Encoding: 6 words [0xE5, sheet_id, addr_reg, w_reg, h_reg, frames_reg]
+            // Returns: r0 = 0 on success, 0xFFFFFFFF on error (invalid sheet_id or regs).
+            0xE5 => {
+                let sheet_id = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                let wr = self.fetch() as usize;
+                let hr = self.fetch() as usize;
+                let fr = self.fetch() as usize;
+                if sheet_id < MAX_SPRITE_SHEETS
+                    && ar < NUM_REGS
+                    && wr < NUM_REGS
+                    && hr < NUM_REGS
+                    && fr < NUM_REGS
+                {
+                    let sheet = &mut self.sprite_sheets[sheet_id];
+                    sheet.base_addr = self.regs[ar];
+                    sheet.frame_w = self.regs[wr];
+                    sheet.frame_h = self.regs[hr];
+                    sheet.total_frames = self.regs[fr];
+                    sheet.current_frame = 0;
+                    sheet.active = true;
+                    self.regs[0] = 0; // success
+                } else {
+                    self.regs[0] = 0xFFFFFFFF; // error
+                }
+            }
+
+            // SPRFRAME sheet_id, frame_reg  (0xE6)
+            // Select the current frame for a registered sprite sheet.
+            // sheet_id is an immediate (0-15). frame_reg contains the frame index.
+            // Encoding: 3 words [0xE6, sheet_id, frame_reg]
+            // Returns: r0 = 0 on success, 0xFFFFFFFF on error.
+            0xE6 => {
+                let sheet_id = self.fetch() as usize;
+                let fr = self.fetch() as usize;
+                if sheet_id < MAX_SPRITE_SHEETS
+                    && fr < NUM_REGS
+                    && self.sprite_sheets[sheet_id].active
+                {
+                    let frame = self.regs[fr];
+                    if frame < self.sprite_sheets[sheet_id].total_frames {
+                        self.sprite_sheets[sheet_id].current_frame = frame;
+                        self.regs[0] = 0; // success
+                    } else {
+                        self.regs[0] = 0xFFFFFFFF; // frame out of range
+                    }
+                } else {
+                    self.regs[0] = 0xFFFFFFFF; // invalid sheet or reg
+                }
+            }
+
+            // SPRANIM sheet_id, x_reg, y_reg  (0xE7)
+            // Blit the current frame of a registered sprite sheet to the screen.
+            // Auto-computes source address from sheet base + current_frame * frame_w * frame_h.
+            // sheet_id is an immediate (0-15). Uses the frame_w/frame_h from SPRLOAD.
+            // Pixels with value 0 are transparent (skipped).
+            // Encoding: 4 words [0xE7, sheet_id, x_reg, y_reg]
+            // Returns: r0 = 0 on success, 0xFFFFFFFF on error.
+            0xE7 => {
+                let sheet_id = self.fetch() as usize;
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                if sheet_id < MAX_SPRITE_SHEETS
+                    && xr < NUM_REGS
+                    && yr < NUM_REGS
+                    && self.sprite_sheets[sheet_id].active
+                {
+                    let sheet = self.sprite_sheets[sheet_id];
+                    let sx = self.regs[xr] as usize;
+                    let sy = self.regs[yr] as usize;
+                    let fw = sheet.frame_w as usize;
+                    let fh = sheet.frame_h as usize;
+                    let frame_offset = sheet.current_frame as usize * fw * fh;
+                    let mut addr = sheet.base_addr as usize + frame_offset;
+                    for dy in 0..fh {
+                        for dx in 0..fw {
+                            if addr >= self.ram.len() {
+                                break;
+                            }
+                            let color = self.ram[addr];
+                            addr += 1;
+                            if color == 0 {
+                                continue; // transparent
+                            }
+                            let px = sx + dx;
+                            let py = sy + dy;
+                            self.set_pixel_clipped(px, py, color);
+                        }
+                    }
+                    self.regs[0] = 0; // success
+                } else {
+                    self.regs[0] = 0xFFFFFFFF; // error
                 }
             }
 

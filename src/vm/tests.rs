@@ -25016,3 +25016,430 @@ fn test_tower_defense_assembles_and_runs() {
     assert!(path_pixels > 0, "screen should show path (brown pixels)");
 }
 
+// ── Phase 272: Sprite Sheet and Animation Frame Opcodes ─────────
+
+#[test]
+fn test_sprload_registers_sheet() {
+    let mut vm = Vm::new();
+    // Set up registers: r1=0x3000 (base addr), r2=4 (frame_w), r3=4 (frame_h), r4=2 (total_frames)
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 4;
+    vm.regs[3] = 4;
+    vm.regs[4] = 2;
+
+    // SPRLOAD 0, r1, r2, r3, r4
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 0;    // sheet_id
+    vm.ram[2] = 1;    // addr_reg
+    vm.ram[3] = 2;    // frame_w_reg
+    vm.ram[4] = 3;    // frame_h_reg
+    vm.ram[5] = 4;    // frames_reg
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], 0, "SPRLOAD should return 0 (success)");
+    let sheet = vm.sprite_sheets[0];
+    assert!(sheet.active);
+    assert_eq!(sheet.base_addr, 0x3000);
+    assert_eq!(sheet.frame_w, 4);
+    assert_eq!(sheet.frame_h, 4);
+    assert_eq!(sheet.total_frames, 2);
+    assert_eq!(sheet.current_frame, 0, "initial frame should be 0");
+}
+
+#[test]
+fn test_sprload_invalid_sheet_id() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 4;
+    vm.regs[3] = 4;
+    vm.regs[4] = 2;
+
+    // SPRLOAD 16 (out of range), r1, r2, r3, r4
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 16;   // invalid sheet_id
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.ram[5] = 4;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return error for invalid sheet_id");
+}
+
+#[test]
+fn test_sprframe_selects_frame() {
+    let mut vm = Vm::new();
+
+    // First register a sheet
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 4;
+    vm.regs[3] = 4;
+    vm.regs[4] = 4;
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.pc = 0;
+    vm.step();
+
+    // SPRFRAME 0, r10 (select frame 1)
+    vm.regs[10] = 1;
+    vm.ram[6] = 0xE6;
+    vm.ram[7] = 0;    // sheet_id
+    vm.ram[8] = 10;   // frame_reg
+    vm.pc = 6;
+    vm.step();
+
+    assert_eq!(vm.regs[0], 0, "SPRFRAME should return 0 (success)");
+    assert_eq!(vm.sprite_sheets[0].current_frame, 1);
+}
+
+#[test]
+fn test_sprframe_out_of_range() {
+    let mut vm = Vm::new();
+
+    // Register sheet with 2 frames
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 4;
+    vm.regs[3] = 4;
+    vm.regs[4] = 2;
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.pc = 0;
+    vm.step();
+
+    // Try to select frame 5 (out of range)
+    vm.regs[10] = 5;
+    vm.ram[6] = 0xE6;
+    vm.ram[7] = 0;
+    vm.ram[8] = 10;
+    vm.pc = 6;
+    vm.step();
+
+    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return error for out-of-range frame");
+    assert_eq!(vm.sprite_sheets[0].current_frame, 0, "frame should remain unchanged");
+}
+
+#[test]
+fn test_sprframe_invalid_sheet() {
+    let mut vm = Vm::new();
+    // Try to select frame on unregistered sheet
+    vm.regs[10] = 0;
+    vm.ram[0] = 0xE6;
+    vm.ram[1] = 5;    // unregistered sheet
+    vm.ram[2] = 10;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return error for unregistered sheet");
+}
+
+#[test]
+fn test_spranim_blits_frame_0() {
+    let mut vm = Vm::new();
+
+    // Set up sprite data at 0x3000: 2 frames of 2x2 pixels
+    // Frame 0: red (0xFF0000), green (0x00FF00), blue (0x0000FF), white (0xFFFFFF)
+    vm.ram[0x3000] = 0xFF0000;
+    vm.ram[0x3001] = 0x00FF00;
+    vm.ram[0x3002] = 0x0000FF;
+    vm.ram[0x3003] = 0xFFFFFF;
+    // Frame 1: yellow, cyan, magenta, gray
+    vm.ram[0x3004] = 0xFFFF00;
+    vm.ram[0x3005] = 0x00FFFF;
+    vm.ram[0x3006] = 0xFF00FF;
+    vm.ram[0x3007] = 0x808080;
+
+    // Register sheet
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 2; // frame_w
+    vm.regs[3] = 2; // frame_h
+    vm.regs[4] = 2; // total_frames
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.pc = 0;
+    vm.step();
+
+    // Frame 0 is default, blit at (10, 20)
+    vm.regs[5] = 10; // x
+    vm.regs[6] = 20; // y
+    vm.ram[6] = 0xE7;
+    vm.ram[7] = 0;    // sheet_id
+    vm.ram[8] = 5;    // x_reg
+    vm.ram[9] = 6;    // y_reg
+    vm.pc = 6;
+    vm.step();
+
+    assert_eq!(vm.regs[0], 0, "SPRANIM should return 0 (success)");
+    assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000, "pixel (10,20) = red");
+    assert_eq!(vm.screen[20 * 256 + 11], 0x00FF00, "pixel (11,20) = green");
+    assert_eq!(vm.screen[21 * 256 + 10], 0x0000FF, "pixel (10,21) = blue");
+    assert_eq!(vm.screen[21 * 256 + 11], 0xFFFFFF, "pixel (11,21) = white");
+}
+
+#[test]
+fn test_spranim_blits_frame_1() {
+    let mut vm = Vm::new();
+
+    // Set up sprite data at 0x3000: 2 frames of 2x2 pixels
+    vm.ram[0x3000] = 0xFF0000;
+    vm.ram[0x3001] = 0x00FF00;
+    vm.ram[0x3002] = 0x0000FF;
+    vm.ram[0x3003] = 0xFFFFFF;
+    vm.ram[0x3004] = 0xFFFF00;
+    vm.ram[0x3005] = 0x00FFFF;
+    vm.ram[0x3006] = 0xFF00FF;
+    vm.ram[0x3007] = 0x808080;
+
+    // Register sheet
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 2; vm.regs[3] = 2; vm.regs[4] = 2;
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.pc = 0;
+    vm.step();
+
+    // Select frame 1
+    vm.regs[10] = 1;
+    vm.ram[6] = 0xE6;
+    vm.ram[7] = 0; vm.ram[8] = 10;
+    vm.pc = 6;
+    vm.step();
+
+    // Blit at (10, 20)
+    vm.regs[5] = 10; vm.regs[6] = 20;
+    vm.ram[9] = 0xE7;
+    vm.ram[10] = 0; vm.ram[11] = 5; vm.ram[12] = 6;
+    vm.pc = 9;
+    vm.step();
+
+    assert_eq!(vm.screen[20 * 256 + 10], 0xFFFF00, "pixel (10,20) = yellow (frame 1)");
+    assert_eq!(vm.screen[20 * 256 + 11], 0x00FFFF, "pixel (11,20) = cyan (frame 1)");
+    assert_eq!(vm.screen[21 * 256 + 10], 0xFF00FF, "pixel (10,21) = magenta (frame 1)");
+    assert_eq!(vm.screen[21 * 256 + 11], 0x808080, "pixel (11,21) = gray (frame 1)");
+}
+
+#[test]
+fn test_spranim_transparency() {
+    let mut vm = Vm::new();
+
+    // 2x2 sprite with one transparent pixel (0)
+    vm.ram[0x3000] = 0xFF0000;
+    vm.ram[0x3001] = 0;        // transparent
+    vm.ram[0x3002] = 0;        // transparent
+    vm.ram[0x3003] = 0x00FF00;
+
+    // Register sheet
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 2; vm.regs[3] = 2; vm.regs[4] = 1;
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.pc = 0;
+    vm.step();
+
+    // Pre-fill screen with a known color
+    vm.screen[20 * 256 + 10] = 0x111111;
+    vm.screen[20 * 256 + 11] = 0x222222;
+    vm.screen[21 * 256 + 10] = 0x333333;
+    vm.screen[21 * 256 + 11] = 0x444444;
+
+    // Blit at (10, 20)
+    vm.regs[5] = 10; vm.regs[6] = 20;
+    vm.ram[6] = 0xE7;
+    vm.ram[7] = 0; vm.ram[8] = 5; vm.ram[9] = 6;
+    vm.pc = 6;
+    vm.step();
+
+    assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000, "non-transparent pixel drawn");
+    assert_eq!(vm.screen[20 * 256 + 11], 0x222222, "transparent pixel preserves background");
+    assert_eq!(vm.screen[21 * 256 + 10], 0x333333, "transparent pixel preserves background");
+    assert_eq!(vm.screen[21 * 256 + 11], 0x00FF00, "non-transparent pixel drawn");
+}
+
+#[test]
+fn test_spranim_screen_clipping() {
+    let mut vm = Vm::new();
+
+    // 4x4 sprite
+    for i in 0..16 {
+        vm.ram[0x3000 + i] = 0xFF0000;
+    }
+
+    // Register sheet
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 4; vm.regs[3] = 4; vm.regs[4] = 1;
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.pc = 0;
+    vm.step();
+
+    // Blit at (254, 254) -- partially off-screen
+    vm.regs[5] = 254; vm.regs[6] = 254;
+    vm.ram[6] = 0xE7;
+    vm.ram[7] = 0; vm.ram[8] = 5; vm.ram[9] = 6;
+    vm.pc = 6;
+    vm.step();
+
+    // Only (254,254) and (255,254) and (254,255) and (255,255) should be drawn
+    assert_eq!(vm.screen[254 * 256 + 254], 0xFF0000);
+    assert_eq!(vm.screen[254 * 256 + 255], 0xFF0000);
+    assert_eq!(vm.screen[255 * 256 + 254], 0xFF0000);
+    assert_eq!(vm.screen[255 * 256 + 255], 0xFF0000);
+}
+
+#[test]
+fn test_spranim_invalid_sheet() {
+    let mut vm = Vm::new();
+    vm.regs[5] = 10; vm.regs[6] = 20;
+    vm.ram[0] = 0xE7;
+    vm.ram[1] = 5;    // unregistered sheet
+    vm.ram[2] = 5;
+    vm.ram[3] = 6;
+    vm.pc = 0;
+    vm.step();
+
+    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return error for unregistered sheet");
+}
+
+#[test]
+fn test_sprload_assembler() {
+    let source = "SPRLOAD 0, r1, r2, r3, r4";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xE5);
+    assert_eq!(asm.pixels[1], 0); // sheet_id
+    assert_eq!(asm.pixels[2], 1); // r1
+    assert_eq!(asm.pixels[3], 2); // r2
+    assert_eq!(asm.pixels[4], 3); // r3
+    assert_eq!(asm.pixels[5], 4); // r4
+}
+
+#[test]
+fn test_sprframe_assembler() {
+    let source = "SPRFRAME 0, r10";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xE6);
+    assert_eq!(asm.pixels[1], 0);  // sheet_id
+    assert_eq!(asm.pixels[2], 10); // r10
+}
+
+#[test]
+fn test_spranim_assembler() {
+    let source = "SPRANIM 0, r5, r6";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xE7);
+    assert_eq!(asm.pixels[1], 0);  // sheet_id
+    assert_eq!(asm.pixels[2], 5);  // r5
+    assert_eq!(asm.pixels[3], 6);  // r6
+}
+
+#[test]
+fn test_sprload_disasm() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xE5;
+    vm.ram[1] = 0;
+    vm.ram[2] = 1;
+    vm.ram[3] = 2;
+    vm.ram[4] = 3;
+    vm.ram[5] = 4;
+    let s = vm.disassemble_at(0);
+    assert_eq!(s.0, "SPRLOAD 0, r1, r2, r3, r4");
+    assert_eq!(s.1, 6);
+}
+
+#[test]
+fn test_sprframe_disasm() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xE6;
+    vm.ram[1] = 3;
+    vm.ram[2] = 10;
+    let s = vm.disassemble_at(0);
+    assert_eq!(s.0, "SPRFRAME 3, r10");
+    assert_eq!(s.1, 3);
+}
+
+#[test]
+fn test_spranim_disasm() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xE7;
+    vm.ram[1] = 0;
+    vm.ram[2] = 5;
+    vm.ram[3] = 6;
+    let s = vm.disassemble_at(0);
+    assert_eq!(s.0, "SPRANIM 0, r5, r6");
+    assert_eq!(s.1, 4);
+}
+
+#[test]
+fn test_multiple_sheets_independent() {
+    let mut vm = Vm::new();
+
+    // Register sheet 0 at 0x3000, 2x2, 2 frames
+    vm.regs[1] = 0x3000; vm.regs[2] = 2; vm.regs[3] = 2; vm.regs[4] = 2;
+    vm.ram[0] = 0xE5; vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.pc = 0; vm.step();
+
+    // Register sheet 1 at 0x4000, 3x3, 1 frame
+    vm.regs[1] = 0x4000; vm.regs[2] = 3; vm.regs[3] = 3; vm.regs[4] = 1;
+    vm.ram[6] = 0xE5; vm.ram[7] = 1; vm.ram[8] = 1; vm.ram[9] = 2; vm.ram[10] = 3; vm.ram[11] = 4;
+    vm.pc = 6; vm.step();
+
+    assert_eq!(vm.sprite_sheets[0].base_addr, 0x3000);
+    assert_eq!(vm.sprite_sheets[0].frame_w, 2);
+    assert_eq!(vm.sprite_sheets[1].base_addr, 0x4000);
+    assert_eq!(vm.sprite_sheets[1].frame_w, 3);
+
+    // Select frame 1 on sheet 0
+    vm.regs[10] = 1;
+    vm.ram[12] = 0xE6; vm.ram[13] = 0; vm.ram[14] = 10;
+    vm.pc = 12; vm.step();
+    assert_eq!(vm.sprite_sheets[0].current_frame, 1);
+    assert_eq!(vm.sprite_sheets[1].current_frame, 0, "sheet 1 should be unaffected");
+}
+
+#[test]
+fn test_spranim_via_run_program() {
+    let source = r#"
+; Register sprite sheet 0 at 0x3000, 2x2, 2 frames
+LDI r1, 0x3000
+LDI r2, 2
+LDI r3, 2
+LDI r4, 2
+SPRLOAD 0, r1, r2, r3, r4
+; Select frame 1
+LDI r10, 1
+SPRFRAME 0, r10
+; Blit at (10, 20)
+LDI r5, 10
+LDI r6, 20
+SPRANIM 0, r5, r6
+HALT
+"#;
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    let mut vm = Vm::new();
+    // Write sprite data
+    vm.ram[0x3000] = 0xFF0000;
+    vm.ram[0x3001] = 0x00FF00;
+    vm.ram[0x3002] = 0x0000FF;
+    vm.ram[0x3003] = 0xFFFFFF;
+    vm.ram[0x3004] = 0xFFFF00;
+    vm.ram[0x3005] = 0x00FFFF;
+    vm.ram[0x3006] = 0xFF00FF;
+    vm.ram[0x3007] = 0x808080;
+
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..100_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert!(vm.halted);
+    // Frame 1: yellow at (10,20)
+    assert_eq!(vm.screen[20 * 256 + 10], 0xFFFF00);
+}
+

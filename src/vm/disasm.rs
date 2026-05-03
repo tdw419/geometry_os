@@ -1076,6 +1076,31 @@ impl Vm {
                 4,
             ),
 
+            // SPRLOAD sheet_id, addr_reg, frame_w_reg, frame_h_reg, frames_reg (0xE5, 6 words)
+            0xE5 => (
+                format!(
+                    "SPRLOAD {}, {}, {}, {}, {}",
+                    ram(a + 1),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4)),
+                    reg(ram(a + 5))
+                ),
+                6,
+            ),
+
+            // SPRFRAME sheet_id, frame_reg (0xE6, 3 words)
+            0xE6 => (
+                format!("SPRFRAME {}, {}", ram(a + 1), reg(ram(a + 2))),
+                3,
+            ),
+
+            // SPRANIM sheet_id, x_reg, y_reg (0xE7, 4 words)
+            0xE7 => (
+                format!("SPRANIM {}, {}, {}", ram(a + 1), reg(ram(a + 2)), reg(ram(a + 3))),
+                4,
+            ),
+
             _ => (format!("??? (0x{:02X})", op), 1),
         }
     }

@@ -206,6 +206,10 @@ pub const OPCODES: &[&str] = &[
     "HASHINIT",
     "HASHSET",
     "HASHGET",
+    // Sprite sheet and animation frame opcodes (Phase 272)
+    "SPRLOAD",
+    "SPRFRAME",
+    "SPRANIM",
     // PCM audio streaming
     "AUDIO_PLAY",
     "AUDIO_STOP",

@@ -4430,7 +4430,7 @@ phases:
   _claimed_at: 1777780226
 - id: phase-272
   title: GeOS VM -- Sprite Sheet and Animation Frame Opcodes (SPRLOAD, SPRFRAME)
-  status: planned
+  status: complete
   goal: Add sprite sheet support for multi-frame animated sprites
   description: The existing SPRITE opcode blits a single NxM region. For animated
     sprites (walking characters, explosions), programs must manually compute frame
@@ -4438,7 +4438,7 @@ phases:
     the current frame, making SPRITE automatically use the correct offset.
   deliverables:
   - name: Sprite animation opcodes
-    status: planned
+    status: done
     tasks:
     - id: p272.d1.t1
       title: Implement SPRLOAD sheet_id, addr_reg, frame_w_reg, frame_h_reg, frames_reg

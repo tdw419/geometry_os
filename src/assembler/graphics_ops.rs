@@ -274,6 +274,64 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        "SPRLOAD" => {
+            // SPRLOAD sheet_id, addr_reg, frame_w_reg, frame_h_reg, frames_reg
+            // sheet_id is an immediate (0-15), rest are registers
+            if tokens.len() < 6 {
+                return Err(
+                    "SPRLOAD requires 5 arguments: SPRLOAD sheet_id, addr_reg, frame_w_reg, frame_h_reg, frames_reg"
+                        .to_string(),
+                );
+            }
+            let sheet_id: u32 = tokens[1]
+                .parse()
+                .map_err(|_| format!("invalid sheet_id: {}", tokens[1]))?;
+            bytecode.push(0xE5);
+            bytecode.push(sheet_id);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            bytecode.push(parse_reg(tokens[5])? as u32);
+            Ok(Some(()))
+        }
+
+        "SPRFRAME" => {
+            // SPRFRAME sheet_id, frame_reg
+            // sheet_id is an immediate (0-15), frame_reg is a register
+            if tokens.len() < 3 {
+                return Err(
+                    "SPRFRAME requires 2 arguments: SPRFRAME sheet_id, frame_reg"
+                        .to_string(),
+                );
+            }
+            let sheet_id: u32 = tokens[1]
+                .parse()
+                .map_err(|_| format!("invalid sheet_id: {}", tokens[1]))?;
+            bytecode.push(0xE6);
+            bytecode.push(sheet_id);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
+        "SPRANIM" => {
+            // SPRANIM sheet_id, x_reg, y_reg
+            // sheet_id is an immediate (0-15), x_reg and y_reg are registers
+            if tokens.len() < 4 {
+                return Err(
+                    "SPRANIM requires 3 arguments: SPRANIM sheet_id, x_reg, y_reg"
+                        .to_string(),
+                );
+            }
+            let sheet_id: u32 = tokens[1]
+                .parse()
+                .map_err(|_| format!("invalid sheet_id: {}", tokens[1]))?;
+            bytecode.push(0xE7);
+            bytecode.push(sheet_id);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
         _ => Ok(None),
     }
 }

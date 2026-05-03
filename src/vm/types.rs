@@ -163,6 +163,44 @@ pub const DEVICE_COUNT: usize = 4;
 /// Max 256 tiles (supports 16x16 tile grid at 16px tiles).
 pub const MAILBOX_SIZE: usize = 256;
 pub const MAX_HOST_FILES: usize = 16;
+
+/// Sprite sheet constants (Phase 272: Sprite Sheet and Animation Frame Opcodes).
+/// Up to 16 sprite sheets can be registered at once.
+/// Each sheet has a base address, frame dimensions, total frame count, and current frame.
+pub const MAX_SPRITE_SHEETS: usize = 16;
+
+/// A registered sprite sheet for animated sprite blitting.
+/// Programs register a sheet with SPRLOAD, select a frame with SPRFRAME,
+/// then blit with SPRANIM which auto-computes the source address.
+#[derive(Debug, Clone, Copy)]
+pub struct SpriteSheet {
+    /// Base RAM address of the sprite sheet data.
+    pub base_addr: u32,
+    /// Width of each frame in pixels.
+    pub frame_w: u32,
+    /// Height of each frame in pixels.
+    pub frame_h: u32,
+    /// Total number of frames in the sheet.
+    pub total_frames: u32,
+    /// Currently selected frame index (0-based).
+    pub current_frame: u32,
+    /// Whether this sheet slot is in use.
+    pub active: bool,
+}
+
+impl Default for SpriteSheet {
+    fn default() -> Self {
+        Self {
+            base_addr: 0,
+            frame_w: 0,
+            frame_h: 0,
+            total_frames: 0,
+            current_frame: 0,
+            active: false,
+        }
+    }
+}
+
 /// MMIO base address for mailbox region (documented convention).
 pub const MAILBOX_RAM_BASE: usize = 0x5000;
 /// A single mailbox message entry.

@@ -253,6 +253,7 @@ pub fn load_state(path: &str) -> std::io::Result<(vm::Vm, Vec<u32>, bool)> {
         clipboard: Vec::new(),
         hash_tables: std::array::from_fn(|_| std::collections::HashMap::new()),
         hash_tables_active: 0,
+        sprite_sheets: Default::default(),
     };
 
     // Parse canvas trailer
