@@ -4512,7 +4512,7 @@ phases:
   scope_lines_total: 200
 - id: phase-274
   title: GeOS Program -- Solar System Simulator
-  status: planned
+  status: in_progress
   goal: Write an accurate solar system simulator with orbital mechanics and zoom controls
   description: A visually impressive program that simulates planetary orbits using
     Kepler's laws. Planets orbit the sun at correct relative distances and speeds.
@@ -4540,6 +4540,8 @@ phases:
       scope_lines: 120
   test_target: 2
   scope_lines_total: 270
+  _claimed_by: worker-0
+  _claimed_at: 1777799086
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'
