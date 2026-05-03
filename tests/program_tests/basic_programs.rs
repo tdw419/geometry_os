@@ -1221,3 +1221,60 @@ fn test_particle_sandbox() {
         "particle_sandbox should draw pixels on screen"
     );
 }
+
+#[test]
+fn test_asteroids_assembles() {
+    let source = std::fs::read_to_string("programs/asteroids.asm")
+        .expect("failed to read programs/asteroids.asm");
+    let asm = assemble(&source, 0).expect("asteroids.asm should assemble");
+    assert!(asm.pixels.len() > 1000, "asteroids should be substantial ({})", asm.pixels.len());
+}
+
+#[test]
+fn test_asteroids_produces_frame() {
+    let source = std::fs::read_to_string("programs/asteroids.asm")
+        .expect("failed to read programs/asteroids.asm");
+    let asm = assemble(&source, 0).expect("asteroids.asm should assemble");
+    let mut vm = Vm::new();
+    for (i, &pixel) in asm.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = pixel;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    let mut frames = 0u32;
+    let mut stuck = 0u32;
+    let mut last_pc = 0u32;
+    for _ in 0..50_000_000 {
+        if !vm.step() {
+            break;
+        }
+        if vm.frame_ready {
+            vm.frame_ready = false;
+            frames += 1;
+            if frames >= 1 {
+                break;
+            }
+        }
+        let cur_pc = vm.pc as u32;
+        if cur_pc == last_pc {
+            stuck += 1;
+            if stuck > 500 {
+                break;
+            }
+        } else {
+            stuck = 0;
+        }
+        last_pc = cur_pc;
+    }
+    assert!(frames >= 1, "asteroids should produce at least 1 frame in 50M steps");
+    // Check that something was drawn on screen (not all black)
+    let mut nonzero = 0u32;
+    for &p in &vm.screen {
+        if p != 0 {
+            nonzero += 1;
+        }
+    }
+    assert!(nonzero > 10, "asteroids frame should have non-black pixels (got {})", nonzero);
+}
