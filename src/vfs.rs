@@ -706,6 +706,62 @@ impl Vfs {
             Some(chars.into_iter().collect())
         }
     }
+
+    /// Load a sprite file from the VFS into RAM as packed u32 pixel values.
+    ///
+    /// The file contains raw RGBA pixel data (4 bytes per pixel).
+    /// Each group of 4 bytes is packed into a u32: (R << 24) | (G << 16) | (B << 8) | A.
+    /// Pixels are written sequentially into RAM starting at `dest_addr`.
+    ///
+    /// Returns the number of pixels loaded on success, or FD_ERROR on failure.
+    pub fn load_sprite(
+        &self,
+        ram: &mut [u32],
+        name_addr: usize,
+        dest_addr: usize,
+        max_pixels: usize,
+    ) -> u32 {
+        // Read null-terminated filename from RAM
+        let filename = match Self::read_string(ram, name_addr) {
+            Some(s) => s,
+            None => return FD_ERROR,
+        };
+
+        // Sanitize filename
+        if filename.is_empty()
+            || filename.contains('/')
+            || filename.contains('\\')
+            || filename.contains("..")
+            || filename.len() > 64
+        {
+            return FD_ERROR;
+        }
+
+        let filepath = self.base_dir.join(&filename);
+
+        // Read raw file bytes
+        let file_data = match fs::read(&filepath) {
+            Ok(data) => data,
+            Err(_) => return FD_ERROR,
+        };
+
+        // Pack 4 bytes per pixel into u32 words
+        let pixel_count = std::cmp::min(file_data.len() / 4, max_pixels);
+        for i in 0..pixel_count {
+            let offset = i * 4;
+            let r = file_data[offset] as u32;
+            let g = file_data[offset + 1] as u32;
+            let b = file_data[offset + 2] as u32;
+            let a = file_data[offset + 3] as u32;
+            let packed = (r << 24) | (g << 16) | (b << 8) | a;
+            let addr = dest_addr + i;
+            if addr < ram.len() {
+                ram[addr] = packed;
+            }
+        }
+
+        pixel_count as u32
+    }
 }
 
 #[cfg(test)]

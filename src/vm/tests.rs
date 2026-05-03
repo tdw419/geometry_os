@@ -25610,3 +25610,219 @@ HALT
     assert_eq!(vm.screen[20 * 256 + 10], 0xFFFF00);
 }
 
+#[test]
+fn test_sprite_load_reads_vfs_file() {
+    // SPRITE_LOAD reads a raw RGBA file from VFS and packs into RAM as u32 pixels
+    let mut vm = Vm::new();
+
+    // Create a test sprite file in VFS (6 pixels = 24 bytes RGBA)
+    let fs_dir = std::path::Path::new(".geometry_os/fs");
+    let _ = std::fs::create_dir_all(fs_dir);
+    let sprite_file = fs_dir.join("test_sprite.raw");
+    // 3x2 sprite: rows of RGBA pixels
+    // Row 0: red, green, blue
+    // Row 1: yellow, cyan, magenta
+    let sprite_data: Vec<u8> = vec![
+        0xFF, 0x00, 0x00, 0xFF,  // red
+        0x00, 0xFF, 0x00, 0xFF,  // green
+        0x00, 0x00, 0xFF, 0xFF,  // blue
+        0xFF, 0xFF, 0x00, 0xFF,  // yellow
+        0x00, 0xFF, 0xFF, 0xFF,  // cyan
+        0xFF, 0x00, 0xFF, 0xFF,  // magenta
+    ];
+    std::fs::write(&sprite_file, &sprite_data).unwrap();
+
+    // Write filename to RAM
+    write_string_to_ram(&mut vm, 0x2000, "test_sprite.raw");
+
+    // SPRITE_LOAD r1, r2, r3  (fn_addr=r1, dest=r2, max=r3)
+    vm.regs[1] = 0x2000;  // filename address
+    vm.regs[2] = 0x3000;  // destination address
+    vm.regs[3] = 100;     // max pixels
+
+    // Encode SPRITE_LOAD: opcode 0xD9, fn_reg=1, dst_reg=2, max_reg=3
+    vm.ram[0] = 0xD9;
+    vm.ram[1] = 0x01;
+    vm.ram[2] = 0x02;
+    vm.ram[3] = 0x03;
+    vm.ram[4] = 0x00; // HALT
+
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+
+    // Should return 6 pixels loaded
+    assert_eq!(vm.regs[0], 6, "should load 6 pixels");
+
+    // Verify packed pixel data (R<<24 | G<<16 | B<<8 | A)
+    assert_eq!(vm.ram[0x3000], 0xFF0000FF, "pixel 0: red");
+    assert_eq!(vm.ram[0x3001], 0x00FF00FF, "pixel 1: green");
+    assert_eq!(vm.ram[0x3002], 0x0000FFFF, "pixel 2: blue");
+    assert_eq!(vm.ram[0x3003], 0xFFFF00FF, "pixel 3: yellow");
+    assert_eq!(vm.ram[0x3004], 0x00FFFFFF, "pixel 4: cyan");
+    assert_eq!(vm.ram[0x3005], 0xFF00FFFF, "pixel 5: magenta");
+}
+
+#[test]
+fn test_sprite_load_respects_max_pixels() {
+    // SPRITE_LOAD should not load more than max_pixels even if file is larger
+    let mut vm = Vm::new();
+
+    let fs_dir = std::path::Path::new(".geometry_os/fs");
+    let _ = std::fs::create_dir_all(fs_dir);
+    let sprite_file = fs_dir.join("big_sprite.raw");
+    // 10 pixels of data
+    let sprite_data: Vec<u8> = (0..40).map(|i| (i * 6) as u8).collect();
+    std::fs::write(&sprite_file, &sprite_data).unwrap();
+
+    write_string_to_ram(&mut vm, 0x2000, "big_sprite.raw");
+
+    vm.regs[1] = 0x2000;
+    vm.regs[2] = 0x3000;
+    vm.regs[3] = 3; // max 3 pixels
+
+    vm.ram[0] = 0xD9;
+    vm.ram[1] = 0x01;
+    vm.ram[2] = 0x02;
+    vm.ram[3] = 0x03;
+    vm.ram[4] = 0x00;
+
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+
+    assert_eq!(vm.regs[0], 3, "should load only 3 pixels");
+}
+
+#[test]
+fn test_sprite_load_missing_file_returns_error() {
+    // SPRITE_LOAD with nonexistent file should return 0xFFFFFFFF
+    let mut vm = Vm::new();
+
+    write_string_to_ram(&mut vm, 0x2000, "nonexistent.raw");
+
+    vm.regs[1] = 0x2000;
+    vm.regs[2] = 0x3000;
+    vm.regs[3] = 100;
+
+    vm.ram[0] = 0xD9;
+    vm.ram[1] = 0x01;
+    vm.ram[2] = 0x02;
+    vm.ram[3] = 0x03;
+    vm.ram[4] = 0x00;
+
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+
+    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return error for missing file");
+}
+
+#[test]
+fn test_sprite_load_rejects_path_traversal() {
+    // SPRITE_LOAD should reject filenames with /, \\, ..
+    let mut vm = Vm::new();
+
+    // Test with path traversal
+    write_string_to_ram(&mut vm, 0x2000, "../etc/passwd");
+
+    vm.regs[1] = 0x2000;
+    vm.regs[2] = 0x3000;
+    vm.regs[3] = 100;
+
+    vm.ram[0] = 0xD9;
+    vm.ram[1] = 0x01;
+    vm.ram[2] = 0x02;
+    vm.ram[3] = 0x03;
+    vm.ram[4] = 0x00;
+
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..100 {
+        if !vm.step() { break; }
+    }
+
+    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should reject path traversal");
+}
+
+#[test]
+fn test_sprite_load_assembles() {
+    let source = r#"
+LDI r1, 0x2000
+LDI r2, 0x3000
+LDI r3, 100
+SPRITE_LOAD r1, r2, r3
+HALT
+"#;
+    let result = crate::assembler::assemble(source, 0).unwrap();
+    assert!(result.pixels.len() >= 4);
+    assert_eq!(result.pixels[9], 0xD9, "should contain SPRITE_LOAD opcode (0xD9)");
+    assert_eq!(result.pixels[10], 1, "fn_addr_reg should be r1");
+    assert_eq!(result.pixels[11], 2, "dest_reg should be r2");
+    assert_eq!(result.pixels[12], 3, "max_reg should be r3");
+}
+
+#[test]
+fn test_sprite_load_then_blit() {
+    // End-to-end: load sprite from VFS, then render with SPRITE opcode
+    let mut vm = Vm::new();
+
+    // Create a 2x2 sprite file
+    let fs_dir = std::path::Path::new(".geometry_os/fs");
+    let _ = std::fs::create_dir_all(fs_dir);
+    let sprite_file = fs_dir.join("tile.raw");
+    let sprite_data: Vec<u8> = vec![
+        0xFF, 0x00, 0x00, 0xFF,  // red
+        0x00, 0xFF, 0x00, 0xFF,  // green
+        0x00, 0x00, 0xFF, 0xFF,  // blue
+        0xFF, 0xFF, 0x00, 0xFF,  // yellow
+    ];
+    std::fs::write(&sprite_file, &sprite_data).unwrap();
+
+    write_string_to_ram(&mut vm, 0x2000, "tile.raw");
+
+    // SPRITE_LOAD r1, r2, r3
+    vm.regs[1] = 0x2000;  // filename
+    vm.regs[2] = 0x3000;  // dest
+    vm.regs[3] = 100;     // max
+
+    vm.ram[0] = 0xD9;     // SPRITE_LOAD
+    vm.ram[1] = 0x01;
+    vm.ram[2] = 0x02;
+    vm.ram[3] = 0x03;
+
+    // SPRITE xr, yr, addr_r, wr, hr (0x4A)
+    vm.ram[4] = 0x4A;     // SPRITE
+    vm.ram[5] = 0x04;     // x_reg (r4)
+    vm.ram[6] = 0x05;     // y_reg (r5)
+    vm.ram[7] = 0x02;     // addr_reg (r2 = 0x3000)
+    vm.ram[8] = 0x06;     // w_reg (r6)
+    vm.ram[9] = 0x07;     // h_reg (r7)
+    vm.ram[10] = 0x00;    // HALT
+
+    vm.regs[4] = 10;      // x
+    vm.regs[5] = 20;      // y
+    // r2 already = 0x3000
+    vm.regs[6] = 2;       // width
+    vm.regs[7] = 2;       // height
+
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..1000 {
+        if !vm.step() { break; }
+    }
+
+    assert!(vm.halted, "program should halt");
+
+    // Verify pixels on screen
+    assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000FF, "top-left: red");
+    assert_eq!(vm.screen[20 * 256 + 11], 0x00FF00FF, "top-right: green");
+    assert_eq!(vm.screen[21 * 256 + 10], 0x0000FFFF, "bottom-left: blue");
+    assert_eq!(vm.screen[21 * 256 + 11], 0xFFFF00FF, "bottom-right: yellow");
+}

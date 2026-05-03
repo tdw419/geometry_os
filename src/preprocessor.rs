@@ -199,6 +199,9 @@ pub const OPCODES: &[&str] = &[
     // Phase 204: Clipboard
     "CLIP_COPY",
     "CLIP_PASTE",
+    // Phase 205: Sprite Sheet Loader
+    "SPRITE_LOAD",
+    "SPRITE_FRAME",
     "PROFILE",
     // Phase 260: Matrix multiply (2D)
     "MATMUL",

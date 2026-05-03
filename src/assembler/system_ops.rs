@@ -1181,6 +1181,38 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        // Load sprite data from VFS file: SPRITE_LOAD fn_addr_reg, dest_reg, max_reg (0xD9)
+        "SPRITE_LOAD" => {
+            if tokens.len() < 4 {
+                return Err(
+                    "SPRITE_LOAD requires 3 arguments: SPRITE_LOAD fn_addr_reg, dest_addr_reg, max_pixels_reg"
+                        .to_string(),
+                );
+            }
+            bytecode.push(0xD9);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
+        // Compute sprite frame address: SPRITE_FRAME base_reg, fw_reg, fh_reg, idx_reg, dest_reg (0xDA)
+        "SPRITE_FRAME" => {
+            if tokens.len() < 6 {
+                return Err(
+                    "SPRITE_FRAME requires 5 arguments: SPRITE_FRAME base_reg, fw_reg, fh_reg, idx_reg, dest_reg"
+                        .to_string(),
+                );
+            }
+            bytecode.push(0xDA);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            bytecode.push(parse_reg(tokens[5])? as u32);
+            Ok(Some(()))
+        }
+
         // Phase 269: Hash Table Opcodes
         // HASHINIT table_id, buckets_reg (0xE2, 3 words)
         "HASHINIT" => {

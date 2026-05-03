@@ -1007,6 +1007,9 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         // Phase 204: Clipboard
         0xD7 => "CLIP_COPY",
         0xD8 => "CLIP_PASTE",
+        // Phase 205: Sprite Sheet Loader
+        0xD9 => "SPRITE_LOAD",
+        0xDA => "SPRITE_FRAME",
         // Phase 260: Matrix multiply (2D)
         0xDE => "MATMUL",
         // Phase 269: Hash Table opcodes
@@ -3042,6 +3045,8 @@ mod tests {
             (0xD6, "AUDIO_STATUS"),
             (0xD7, "CLIP_COPY"),
             (0xD8, "CLIP_PASTE"),
+            (0xD9, "SPRITE_LOAD"),
+            (0xDA, "SPRITE_FRAME"),
         ];
         for &(op, _expected) in canaries {
             let name = opcode_name(op);

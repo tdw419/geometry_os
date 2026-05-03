@@ -1064,6 +1064,30 @@ impl Vm {
                 3,
             ),
 
+            // SPRITE_LOAD filename_addr_reg, dest_addr_reg, max_pixels_reg (0xD9, 4 words)
+            0xD9 => (
+                format!(
+                    "SPRITE_LOAD {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3))
+                ),
+                4,
+            ),
+
+            // SPRITE_FRAME base_reg, fw_reg, fh_reg, idx_reg, dest_reg (0xDA, 6 words)
+            0xDA => (
+                format!(
+                    "SPRITE_FRAME {}, {}, {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4)),
+                    reg(ram(a + 5))
+                ),
+                6,
+            ),
+
             // HASHINIT table_id, buckets_reg (0xE2, 3 words)
             0xE2 => (
                 format!("HASHINIT {}, {}", ram(a + 1), reg(ram(a + 2))),

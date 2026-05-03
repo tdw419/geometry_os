@@ -1766,7 +1766,7 @@ phases:
   _claimed_at: 1777810831
 - id: phase-205
   title: GeOS Sprite Sheet Loader
-  status: planned
+  status: in_progress
   goal: Load sprite sheets from VFS files and render them with SPRITE opcode in programs
   description: The SPRITE opcode already exists (0x4A) and blits NxM pixels from RAM
     to screen. But there is no standard way to load sprite data from VFS into RAM
@@ -1804,6 +1804,8 @@ phases:
       scope_lines: 80
   test_target: 3
   scope_lines_total: 170
+  _claimed_by: worker-0
+  _claimed_at: 1777839760
 - id: phase-206
   title: RISC-V Virtio-Blk Filesystem
   status: planned

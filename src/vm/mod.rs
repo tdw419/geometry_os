@@ -1604,6 +1604,50 @@ impl Vm {
                 }
             }
 
+            // SPRITE_LOAD filename_addr_reg, dest_addr_reg, max_pixels_reg (0xD9)
+            // Load sprite data from a VFS file into RAM as packed u32 pixels.
+            // File format: raw RGBA (4 bytes per pixel), packed as (R<<24|G<<16|B<<8|A).
+            // Returns number of pixels loaded in r0, or 0xFFFFFFFF on error.
+            0xD9 => {
+                let fn_reg = self.fetch() as usize;
+                let dst_reg = self.fetch() as usize;
+                let max_reg = self.fetch() as usize;
+                if fn_reg < NUM_REGS && dst_reg < NUM_REGS && max_reg < NUM_REGS {
+                    let fn_addr = self.regs[fn_reg] as usize;
+                    let dst_addr = self.regs[dst_reg] as usize;
+                    let max_pixels = self.regs[max_reg] as usize;
+                    let count = self.vfs.load_sprite(&mut self.ram, fn_addr, dst_addr, max_pixels);
+                    self.regs[0] = count;
+                } else {
+                    self.regs[0] = 0xFFFFFFFF;
+                }
+            }
+
+            // SPRITE_FRAME base_reg, fw_reg, fh_reg, idx_reg, dest_reg (0xDA)
+            // Compute the RAM address of a specific frame in a sprite sheet.
+            // offset = base + (frame_index * frame_width * frame_height)
+            // Stores the computed address in dest_reg.
+            0xDA => {
+                let base_r = self.fetch() as usize;
+                let fw_r = self.fetch() as usize;
+                let fh_r = self.fetch() as usize;
+                let idx_r = self.fetch() as usize;
+                let dest_r = self.fetch() as usize;
+                if base_r < NUM_REGS
+                    && fw_r < NUM_REGS
+                    && fh_r < NUM_REGS
+                    && idx_r < NUM_REGS
+                    && dest_r < NUM_REGS
+                {
+                    let base = self.regs[base_r] as u64;
+                    let fw = self.regs[fw_r] as u64;
+                    let fh = self.regs[fh_r] as u64;
+                    let idx = self.regs[idx_r] as u64;
+                    let offset = base + idx * fw * fh;
+                    self.regs[dest_r] = offset as u32;
+                }
+            }
+
             // MATMUL r_dst, r_a, r_b, r_m, r_n, r_k (0xDE)
             // 2D matrix multiply using fixed-point 16.16 arithmetic.
             // Multiplies MxK matrix A (at regs[r_a]) by KxN matrix B (at regs[r_b]),

@@ -10438,3 +10438,51 @@ phases:
     scope_lines: 30
   scope_lines_total: 40
   test_target: 0
+
+- id: phase-221
+  title: "Fix test_mandelbrot_renders: update test for interactive mandelbrot.asm"
+  status: planned
+  goal: "test_mandelbrot_renders passes -- test updated to match interactive mandelbrot.asm behavior"
+  description: "mandelbrot.asm was rewritten in phase-251 (commit 6deedf56, May 3) as an interactive fractal explorer with WASD panning, +/- zoom, and Q to quit. The old test expects the VM to halt within 200M cycles, but the new program runs an infinite main_loop that only exits on key press 'Q'. In test context with no key input, it loops forever. The test has never passed since the rewrite. Fix: update the test to inject a 'Q' key press after the first render frame, then verify the VM halts. Alternatively, test that the first render produces non-black pixels (proving the fractal renders) without requiring halt."
+  deliverables:
+  - name: "Update test_mandelbrot_renders to work with interactive mandelbrot.asm"
+    description: "The test at tests/program_tests/basic_programs.rs should either: (a) inject key 'Q' (ASCII 81) via vm.key_buffer or IKEY mechanism after a few frames so the program exits, OR (b) remove the halt assertion and instead verify that the framebuffer has non-black pixels after running N frames, proving the fractal rendered correctly."
+    status: todo
+    tasks:
+    - id: p221.d1.t1
+      title: "Choose test strategy: halt-after-inject or pixel-check"
+      status: todo
+      description: "Determine the correct way to inject a key press in the test harness. Check if there's a vm.key_buffer or similar mechanism. If injection is complex, use the pixel-check approach instead."
+      scope_lines: 10
+    - id: p221.d1.t2
+      title: "Implement the updated test"
+      status: todo
+      description: "Rewrite test_mandelbrot_renders to either inject Q and verify halt, or run N frames and verify non-zero framebuffer pixels. Remove the 'VM should halt within 200M cycles' assertion."
+      scope_lines: 20
+    scope_lines: 30
+  scope_lines_total: 30
+  test_target: 0
+
+- id: phase-222
+  title: "Fix test_lsystem_bootstrap: debug why expansion writes nothing to 0x2000"
+  status: planned
+  goal: "test_lsystem_bootstrap passes -- L-system expansion engine correctly populates source buffer"
+  description: "test_lsystem_bootstrap has never passed (broken since commit 9957f7c5, May 2). After 5M steps, axiom is correctly set at 0x5000 (F--F--F), rule data at 0x5100, params preset=1 iter=3, but the expansion buffer at 0x2000 is completely empty. The program calls init_koch then do_expand. do_expand should copy axiom from 0x5000 to 0x2000, then expand iteratively. The copy_axiom_lp loop appears correct (load from 0x5000, store to 0x2000, advance pointers until null). Possible causes: (1) CALL/RET stack corruption -- do_expand uses PUSH r31 and CALL copy_rule which nests return addresses, (2) the copy_axiom loop hits an issue with the address computation (LDI r12, 0 + ADD r12, r10 pattern), (3) a preprocessor or assembler issue transforms the instructions differently than expected. Need to add debug output or single-step the first ~50 instructions to find where execution diverges."
+  deliverables:
+  - name: "Debug and fix lsystem.asm expansion engine or test harness"
+    description: "Single-step the VM for the first ~100 instructions after PC=0 to verify CALL build_trig_tables, CALL init_koch, CALL do_expand all execute correctly. Check that axiom copy writes to 0x2000. If the program has a bug, fix it. If the test harness is wrong, fix the test."
+    status: todo
+    tasks:
+    - id: p222.d1.t1
+      title: "Add step-by-step debug tracing to identify failure point"
+      status: todo
+      description: "Create a minimal reproduction: load lsystem.asm, step ~200 instructions, print PC and key RAM addresses (0x5000, 0x2000, r10, r11, r30) after each CALL/RET to verify the call stack and buffer writes."
+      scope_lines: 30
+    - id: p222.d1.t2
+      title: "Fix the root cause in lsystem.asm or test"
+      status: todo
+      description: "Based on debug findings, fix either the assembly program (e.g., address computation bug, stack corruption) or the test expectations (e.g., the expansion works but writes to a different address)."
+      scope_lines: 30
+    scope_lines: 60
+  scope_lines_total: 60
+  test_target: 0
