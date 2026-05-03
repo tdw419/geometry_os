@@ -10486,3 +10486,47 @@ phases:
     scope_lines: 60
   scope_lines_total: 60
   test_target: 0
+
+- id: phase-252
+  title: "Fix riscv_fuzzer compilation: sync OracleOp enum with usage sites"
+  status: planned
+  goal: "riscv_fuzzer compiles successfully, unblocking 507 integration tests in program_tests"
+  description: "The riscv_fuzzer binary has 9 compilation errors due to OracleOp enum/usage mismatch. Commit a5c84ccf expanded fuzzer coverage (C-ext encoders + CSR expansion), adding CsrrwZero/CsrrsiZero variants and BranchZ.taken field, but a subsequent refactor removed those enum variants/fields without updating all usage sites. This blocks `cargo test --test program_tests` (507 tests) because Cargo builds all binaries by default. Errors: (1) BranchZ used with `taken` field at lines 736, 1255, 1266 but enum only has `rs1`, (2) Jump used as unit variant at lines 737, 1243, 1363 but enum has `Jump { target_idx: usize }`, (3) CsrrwZero/CsrrsiZero referenced at line 1347 but variants were removed from enum."
+  deliverables:
+  - name: "Fix OracleOp::BranchZ usage to match enum definition"
+    description: "Remove `taken` field from BranchZ construction at lines 1255 and 1266 (push `OracleOp::BranchZ { rs1 }` instead of `OracleOp::BranchZ { rs1, taken }`). Update destructuring at line 736 to `OracleOp::BranchZ { rs1: _ }` (remove `taken: _`)."
+    status: todo
+    tasks:
+    - id: p252.d1.t1
+      title: "Fix BranchZ construction in gen_program (lines 1255, 1266)"
+      status: todo
+      description: "Change `ops.push(OracleOp::BranchZ { rs1, taken })` to `ops.push(OracleOp::BranchZ { rs1 })` at both BEQZ and BNEZ generation sites."
+      scope_lines: 4
+    - id: p252.d1.t2
+      title: "Fix BranchZ destructuring in Oracle::apply (line 736)"
+      status: todo
+      description: "Change `OracleOp::BranchZ { rs1: _, taken: _ }` to `OracleOp::BranchZ { rs1: _ }` in the match arm."
+      scope_lines: 2
+    scope_lines: 6
+  - name: "Fix OracleOp::Jump usage to match struct variant"
+    description: "Jump is defined as `Jump { target_idx: usize }` but used as unit variant at lines 737, 1243, 1363. Either add `target_idx` to all construction sites or change the enum to a unit variant if target_idx is never actually used."
+    status: todo
+    tasks:
+    - id: p252.d2.t1
+      title: "Fix Jump construction and destructuring at all 3 sites"
+      status: todo
+      description: "At line 1243: pass target_idx when pushing Jump. At line 737 and 1363: destructure as `OracleOp::Jump { target_idx: _ }`. Alternatively, if target_idx is never read in the oracle, simplify to a unit variant."
+      scope_lines: 10
+    scope_lines: 10
+  - name: "Remove references to deleted CsrrwZero/CsrrsiZero variants"
+    description: "Line 1347 references `OracleOp::CsrrwZero { .. }` and `OracleOp::CsrrsiZero { .. }` in a match arm for byte offset calculation. These variants no longer exist. Remove them from the match."
+    status: todo
+    tasks:
+    - id: p252.d3.t1
+      title: "Remove CsrrwZero/CsrrsiZero from match arm at line 1347"
+      status: todo
+      description: "Delete `| OracleOp::CsrrwZero { .. } | OracleOp::CsrrsiZero { .. }` from the 4-byte instruction match arm."
+      scope_lines: 3
+    scope_lines: 3
+  scope_lines_total: 19
+  test_target: 0
