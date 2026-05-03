@@ -219,4 +219,9 @@ int geos_save_canvas(void);
    Returns 0 on success, -1 if no saved canvas found. */
 int geos_load_canvas(void);
 
+/* ---- Minimal string functions (no libc) ---- */
+
+int geos_strlen(const char *s);
+void *geos_memset(void *dst, int val, unsigned int n);
+
 #endif /* LIBGEOS_H */

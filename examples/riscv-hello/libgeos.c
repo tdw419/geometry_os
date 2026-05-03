@@ -109,3 +109,17 @@ int geos_load_canvas(void) {
     geos_fb_present();
     return 0;
 }
+
+/* ---- Minimal string functions (no libc) ---- */
+
+int geos_strlen(const char *s) {
+    int len = 0;
+    while (s[len]) len++;
+    return len;
+}
+
+void *geos_memset(void *dst, int val, unsigned int n) {
+    unsigned char *d = (unsigned char *)dst;
+    while (n--) *d++ = (unsigned char)val;
+    return dst;
+}
