@@ -9533,6 +9533,7 @@ fn test_key_buffer_overflow_drops_gracefully() {
     // Read back -- should get at most 255 (256 entries - 1 slot always empty in ring buffer)
     let mut count = 0u32;
     for _ in 0..260 {
+        vm.pc = 0;
         vm.ram[0] = 0x48; // IKEY
         vm.ram[1] = 1;
         vm.step();
@@ -9578,11 +9579,13 @@ fn test_imouse_reads_button_event() {
     vm.ram[0] = 0xC7; // IMOUSE
     vm.ram[1] = 1;    // rd=r1
     // First event is the move (type=0)
+    vm.pc = 0;
     vm.step();
     assert_eq!(vm.regs[1] & 0xFF, 0, "first event is move");
     assert_eq!(vm.regs[2], 50, "move x");
     assert_eq!(vm.regs[3], 75, "move y");
     // Second event is the click (type=1)
+    vm.pc = 0;
     vm.step();
     assert_eq!(vm.regs[1] & 0xFF, 1, "second event is click (type=1)");
     assert_eq!(vm.regs[1] >> 8 & 0xFF, 1, "button = left (1)");
@@ -9600,13 +9603,17 @@ fn test_imouse_fifo_ordering() {
     // Read in FIFO order
     vm.ram[0] = 0xC7;
     vm.ram[1] = 1;
+    vm.pc = 0;
     vm.step();
     assert_eq!(vm.regs[2], 10, "first event x=10");
+    vm.pc = 0;
     vm.step();
     assert_eq!(vm.regs[2], 30, "second event x=30");
+    vm.pc = 0;
     vm.step();
     assert_eq!(vm.regs[2], 50, "third event x=50");
     // No more events
+    vm.pc = 0;
     vm.step();
     assert_eq!(vm.regs[1], 0, "no more events");
 }
@@ -9615,12 +9622,13 @@ fn test_imouse_fifo_ordering() {
 fn test_imouse_buffer_overflow() {
     let mut vm = Vm::new();
     // Fill the 64-entry mouse event buffer
-    for i in 0..70u32 {
+    for i in 1..71u32 {
         vm.push_mouse(i, i * 2);
     }
     // Should have 63 events (ring buffer of 64 holds 63 max)
     let mut count = 0u32;
     for _ in 0..70 {
+        vm.pc = 0;
         vm.ram[0] = 0xC7;
         vm.ram[1] = 1;
         vm.step();
@@ -14276,8 +14284,8 @@ fn test_ai_inject_key() {
 #[test]
 fn test_ai_inject_key_buffer_full() {
     let mut vm = crate::vm::Vm::new();
-    // Fill the key buffer (capacity 15 -- 16 slots, 1 wasted for full detection)
-    for i in 0..15 {
+    // Fill the key buffer (capacity 255 -- 256 slots, 1 wasted for full detection)
+    for i in 0..255 {
         assert!(vm.push_key(65 + i as u32), "push {} should succeed", i);
     }
     // Now try AI_INJECT -- should fail (buffer full)
@@ -14376,8 +14384,8 @@ fn test_ai_inject_text_string() {
 fn test_ai_inject_text_partial() {
     let mut vm = crate::vm::Vm::new();
     // Fill key buffer to leave only 3 slots
-    for i in 0..13 {
-        vm.push_key(48 + i as u32);
+    for i in 0..253 {
+        vm.push_key(48 + (i % 10) as u32);
     }
     // Write 5-char string
     vm.ram[0x2000] = 72; // 'H'
@@ -14391,8 +14399,8 @@ fn test_ai_inject_text_partial() {
     vm.regs[5] = 3;
     vm.regs[6] = 0x2000;
     vm.step();
-    // Ring buffer of 16 uses 1 slot for full detection, so 15 usable.
-    // 13 already pushed, so 2 more can fit (15 - 13 = 2).
+    // Ring buffer of 256 uses 1 slot for full detection, so 255 usable.
+    // 253 already pushed, so 2 more can fit (255 - 253 = 2).
     assert_eq!(
         vm.regs[0], 2,
         "should inject only 2 chars before buffer full"
