@@ -22,10 +22,30 @@ const BASE_REG: u8 = 9;
 // Data region slot counts
 const WORD_SLOTS: u32 = 64; // word-aligned slots  (offsets 0,4,8,...,252)
 const HALF_SLOTS: u32 = 128; // half-aligned slots  (offsets 0,2,4,...,254)
+// Byte slots for halfword/byte loads/stores
 const BYTE_SLOTS: u32 = 256; // byte slots          (offsets 0..255)
+// SP-relative slots (top of data region, avoid overlap with x9-based slots)
+const SP_SLOTS: u32 = 16; // word slots at end of data region (offsets 0..60)
 
-// CSR addresses safe for fuzzing (no side effects on read/write)
-const FUZZ_CSRS: &[u16] = &[0x340, 0x140]; // MSCRATCH, SSCRATCH
+// CSR addresses safe for fuzzing (pure read/write, no side effects or traps)
+// Excludes: SATP (MMU flush), MTVEC/STVEC (trap vector changes), MISA (read-only),
+//           SIE/SIP (masked views of MIE/MIP -- redundant), TIME/TIMEH (read-only)
+const FUZZ_CSRS: &[u16] = &[
+    0x300, // MSTATUS  - machine status register
+    0x340, // MSCRATCH - machine scratch register
+    0x341, // MEPC     - machine exception program counter
+    0x342, // MCAUSE   - machine trap cause
+    0x343, // MTVAL    - machine trap value
+    0x302, // MEDELEG  - machine exception delegation
+    0x303, // MIDELEG  - machine interrupt delegation
+    0x304, // MIE      - machine interrupt enable
+    0x344, // MIP      - machine interrupt pending
+    0x100, // SSTATUS  - supervisor status (masked view of MSTATUS)
+    0x140, // SSCRATCH - supervisor scratch register
+    0x141, // SEPC     - supervisor exception program counter
+    0x142, // SCAUSE   - supervisor trap cause
+    0x143, // STVAL    - supervisor trap value
+];
 
 // ─── LCG RNG ───────────────────────────────────────────────────────────────
 
@@ -103,6 +123,9 @@ fn enc_csrrc(rd: u8, rs1: u8, csr: u16) -> u32 {
 }
 fn enc_csrrci(rd: u8, uimm: u8, csr: u16) -> u32 {
     ((csr as u32) << 20) | ((uimm as u32) << 15) | (0b111 << 12) | ((rd as u32) << 7) | 0x73
+}
+fn enc_csrrsi(rd: u8, uimm: u8, csr: u16) -> u32 {
+    ((csr as u32) << 20) | ((uimm as u32) << 15) | (0b110 << 12) | ((rd as u32) << 7) | 0x73
 }
 
 // ─── Compressed instruction encoders (16-bit) ─────────────────────────────
@@ -291,12 +314,48 @@ impl Oracle {
         self.mem[off]
     }
 
-    // CSR helpers
+    // SSTATUS visible bits (must match cpu/csr/constants.rs SSTATUS_MASK)
+    const SSTATUS_MASK: u32 = (1 << 1) | (1 << 5) | (1 << 8) | (1 << 18) | (1 << 19);
+    const MSTATUS_ADDR: u32 = 0x300;
+    const SSTATUS_ADDR: u32 = 0x100;
+
+    // CSR helpers -- mirror the CPU's read/write masking behavior
     fn csr_read(&self, addr: u32) -> u32 {
-        *self.csrs.get(&addr).unwrap_or(&0)
+        match addr {
+            Self::SSTATUS_ADDR => {
+                // SSTATUS is a masked view of MSTATUS
+                self.csrs.get(&Self::MSTATUS_ADDR).unwrap_or(&0) & Self::SSTATUS_MASK
+            }
+            0x301 => {
+                // MISA: read-only, returns RV32I value
+                0x4000_0100
+            }
+            _ => *self.csrs.get(&addr).unwrap_or(&0),
+        }
     }
     fn csr_write(&mut self, addr: u32, val: u32) {
-        self.csrs.insert(addr, val);
+        match addr {
+            Self::MSTATUS_ADDR => {
+                // MSTATUS write: store full value (may affect SSTATUS view)
+                self.csrs.insert(addr, val);
+            }
+            Self::SSTATUS_ADDR => {
+                // SSTATUS write: only modify SSTATUS_MASK bits in MSTATUS
+                let old = self.csrs.get(&Self::MSTATUS_ADDR).unwrap_or(&0);
+                let new = (*old & !Self::SSTATUS_MASK) | (val & Self::SSTATUS_MASK);
+                self.csrs.insert(Self::MSTATUS_ADDR, new);
+            }
+            0x341 | 0x141 => {
+                // MEPC/SEPC: clear low bit (instruction alignment)
+                self.csrs.insert(addr, val & !1);
+            }
+            0x301 => {
+                // MISA: read-only, ignore writes
+            }
+            _ => {
+                self.csrs.insert(addr, val);
+            }
+        }
     }
 
     fn apply(&mut self, op: &OracleOp) {
@@ -503,6 +562,14 @@ impl Oracle {
                 }
                 self.set(rd, old);
             }
+            OracleOp::Csrrsi { rd, uimm, csr } => {
+                let old = self.csr_read(csr);
+                let mask = uimm as u32;
+                if mask != 0 {
+                    self.csr_write(csr, old | mask);
+                }
+                self.set(rd, old);
+            }
         }
     }
 }
@@ -555,6 +622,7 @@ enum OracleOp {
     Csrrs { rd: u8, rs1: u8, csr: u32 },
     Csrrc { rd: u8, rs1: u8, csr: u32 },
     Csrrci { rd: u8, uimm: u8, csr: u32 },
+    Csrrsi { rd: u8, uimm: u8, csr: u32 },
 }
 
 // ─── Program generator ────────────────────────────────────────────────────
@@ -585,12 +653,18 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
         value: data_base,
     });
 
-    const N_ALU: usize = 18;  // R-type ALU
-    const N_IMM: usize = 10;  // I-type immediate ALU
-    const N_MEM: usize = 8;   // Load/store
-    const N_COMP: usize = 14; // C-extension ops
-    const N_CSR: usize = 4;   // CSR ops
-    const N_TOTAL: usize = N_ALU + N_IMM + N_MEM + N_COMP + N_CSR; // = 54
+    // x2=SP: points to end of data region for SP-relative loads/stores (C.LWSP/C.SWSP)
+    // SP = RAM_BASE + DATA_OFF + DATA_SIZE - SP_SLOTS*4 (top of data region)
+    let sp_base = (RAM_BASE + DATA_OFF + DATA_SIZE as u64 - (SP_SLOTS as u64) * 4) as u32;
+    load_const(2, sp_base, &mut halfwords);
+    ops.push(OracleOp::LoadConst { rd: 2, value: sp_base });
+
+    const N_ALU: usize = 18; // R-type ALU
+    const N_IMM: usize = 10; // I-type immediate ALU
+    const N_MEM: usize = 8; // Load/store
+    const N_COMP: usize = 17; // C-extension ops (0-12: ALU, 13: C.LW, 14: C.SW, 15: C.LWSP, 16: C.SWSP)
+    const N_CSR: usize = 5; // CSR ops (CSRRW, CSRRS, CSRRC, CSRRCI, CSRRSI)
+    const N_TOTAL: usize = N_ALU + N_IMM + N_MEM + N_COMP + N_CSR; // = 58
 
     for _ in 0..n_ops {
         let op_idx = rng.range(N_TOTAL as u64) as usize;
@@ -922,6 +996,33 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                     push16(&mut halfwords, enc_c_lw(rd_p, rs1_p, offset));
                     ops.push(OracleOp::Lw { rd, off: offset as usize });
                 }
+                // C.SW: register primes, base=x9 (prime 1)
+                14 => {
+                    let rs2_p = (rng.range(8)) as u8;
+                    let rs2 = 8 + rs2_p;
+                    let rs1_p = 1; // x9 = data base
+                    let slot = rng.range(WORD_SLOTS as u64) as u32;
+                    let offset = (slot * 4) as u32;
+                    push16(&mut halfwords, enc_c_sw(rs2_p, rs1_p, offset));
+                    ops.push(OracleOp::Sw { rs2, off: offset as usize });
+                }
+                // C.LWSP: full registers x1-x8, SP-relative
+                15 => {
+                    let rd = (rng.range(8) + 1) as u8;
+                    // x2=SP points into data region (see SP init below)
+                    let slot = rng.range(SP_SLOTS as u64) as u32;
+                    let offset = (slot * 4) as u32;
+                    push16(&mut halfwords, enc_c_lwsp(rd, offset));
+                    ops.push(OracleOp::Lw { rd, off: (DATA_SIZE - (SP_SLOTS as usize) * 4 + offset as usize) });
+                }
+                // C.SWSP: full registers x1-x8, SP-relative
+                16 => {
+                    let rs2 = (rng.range(8) + 1) as u8;
+                    let slot = rng.range(SP_SLOTS as u64) as u32;
+                    let offset = (slot * 4) as u32;
+                    push16(&mut halfwords, enc_c_swsp(rs2, offset));
+                    ops.push(OracleOp::Sw { rs2, off: (DATA_SIZE - (SP_SLOTS as usize) * 4 + offset as usize) });
+                }
                 _ => unreachable!(),
             }
         } else {
@@ -957,6 +1058,13 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                     let uimm = (rng.range(32)) as u8;
                     push32(&mut halfwords, enc_csrrci(rd, uimm, csr as u16));
                     ops.push(OracleOp::Csrrci { rd, uimm, csr });
+                    tracked_csrs.push(csr as u32);
+                }
+                // CSRRSI: read and set bits (immediate)
+                4 => {
+                    let uimm = (rng.range(32)) as u8;
+                    push32(&mut halfwords, enc_csrrsi(rd, uimm, csr as u16));
+                    ops.push(OracleOp::Csrrsi { rd, uimm, csr });
                     tracked_csrs.push(csr as u32);
                 }
                 _ => unreachable!(),

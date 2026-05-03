@@ -1684,7 +1684,7 @@ phases:
   scope_lines_total: 170
 - id: phase-203
   title: RISC-V Fuzzer Coverage Expansion
-  status: todo
+  status: planned
   goal: Extend the oracle-based RISC-V fuzzer to cover compressed instructions, CSR
     operations, and memory management
   description: The current fuzzer (src/riscv_fuzzer.rs, 747 lines) generates random
@@ -1724,7 +1724,7 @@ phases:
   scope_lines_total: 200
 - id: phase-204
   title: GeOS Clipboard -- Cross-Program Pixel Copy/Paste
-  status: todo
+  status: planned
   goal: Allow programs to share pixel data via a clipboard buffer accessible through
     new CLIP_COPY and CLIP_PASTE opcodes
   description: 'Programs currently operate in isolation -- snake.asm draws its own
@@ -1762,7 +1762,7 @@ phases:
   scope_lines_total: 160
 - id: phase-205
   title: GeOS Sprite Sheet Loader
-  status: todo
+  status: planned
   goal: Load sprite sheets from VFS files and render them with SPRITE opcode in programs
   description: The SPRITE opcode already exists (0x4A) and blits NxM pixels from RAM
     to screen. But there is no standard way to load sprite data from VFS into RAM
@@ -1802,7 +1802,7 @@ phases:
   scope_lines_total: 170
 - id: phase-206
   title: RISC-V Virtio-Blk Filesystem
-  status: todo
+  status: planned
   goal: Complete the virtio-blk driver so bare-metal C programs can read/write persistent
     files
   description: 'VirtioBlk exists in src/riscv/virtio_blk.rs and is wired into the
@@ -1843,7 +1843,7 @@ phases:
   scope_lines_total: 230
 - id: phase-207
   title: GeOS Collision Detection Library
-  status: todo
+  status: planned
   goal: Build reusable collision detection primitives as assembly subroutines in the
     standard library
   description: Multiple game programs (snake, ball, breakout) implement their own
@@ -1880,7 +1880,7 @@ phases:
   scope_lines_total: 130
 - id: phase-208
   title: MCP Server -- Programmatic Assembly and Execution
-  status: todo
+  status: planned
   goal: Add MCP tools for loading, assembling, and running .asm programs from external
     agents
   description: The MCP server (src/mcp_server.rs) exposes status/screenshot/registers
@@ -1918,7 +1918,7 @@ phases:
   scope_lines_total: 130
 - id: phase-209
   title: RISC-V Multi-Process -- Cooperative Context Switching
-  status: todo
+  status: planned
   goal: Run multiple bare-metal C programs concurrently in the RISC-V interpreter
     with cooperative yielding
   description: 'The GeOS VM has SPAWN/KILL for multi-process but the RISC-V guest
@@ -1962,7 +1962,7 @@ phases:
   scope_lines_total: 220
 - id: phase-210
   title: GeOS Text Rendering -- Variable-Width Font Support
-  status: todo
+  status: planned
   goal: Support variable-width fonts in the TEXT opcode for more readable text display
   description: The TEXT opcode uses a fixed 8x8 pixel font (font.rs). For programs
     that display paragraphs of text (notepad.asm, chatbot.asm, help.asm), variable-width
@@ -2002,7 +2002,7 @@ phases:
   scope_lines_total: 130
 - id: phase-211
   title: GeOS Performance -- Instruction Cache for Hot Loops
-  status: todo
+  status: planned
   goal: Add a decoded instruction cache to speed up tight loops by 3-5x
   description: 'The VM currently decodes every instruction on every step() call, even
     in tight loops that execute the same instructions millions of times. At 88 MIPS,
@@ -2041,7 +2041,7 @@ phases:
   scope_lines_total: 140
 - id: phase-212
   title: GeOS Pixel Art Export -- PNG Screenshot to VFS
-  status: todo
+  status: planned
   goal: Save the current screen as a PNG file in the VFS, accessible from programs
     and the host
   description: The screenshot opcode exists (F9 key) but saves to a host file path.
@@ -2079,7 +2079,7 @@ phases:
   scope_lines_total: 130
 - id: phase-213
   title: GeOS Tilemap Editor -- Visual Map Building Tool
-  status: todo
+  status: planned
   goal: Build an interactive tilemap editor that lets users paint tile-based levels
     for games
   description: The TILEMAP opcode (0x4C) blits tile grids from RAM to screen, but
@@ -2119,7 +2119,7 @@ phases:
   scope_lines_total: 240
 - id: phase-214
   title: RISC-V GPU Compute -- WGSL Shader Integration
-  status: todo
+  status: planned
   goal: Enable the RISC-V guest to offload compute work to the host GPU via the existing
     WGSL shader pipeline
   description: src/riscv/gpu.rs already has a WGSL compute shader (riscv_executor.wgsl)
@@ -2158,7 +2158,7 @@ phases:
   scope_lines_total: 170
 - id: phase-215
   title: RISC-V Guest -- Hex Editor
-  status: todo
+  status: planned
   goal: Add a bare-metal hex editor C program for inspecting and modifying guest memory
   description: 'sh.c has peek/poke for single words and hexdump for read-only display,
     but there is no interactive hex editor that lets you navigate, inspect, and modify
@@ -2198,7 +2198,7 @@ phases:
   scope_lines_total: 410
 - id: phase-216
   title: RISC-V Guest -- Filesystem Commands in Shell
-  status: todo
+  status: planned
   goal: 'Extend sh.c with VFS file operations: ls, cat, touch, rm, and stat'
   description: The mini-shell (sh.c) can peek/poke memory and run commands, but has
     no filesystem awareness. The VFS Pixel Surface at 0x7000_0000 stores files as
@@ -2237,7 +2237,7 @@ phases:
   scope_lines_total: 240
 - id: phase-217
   title: GeOS VM -- Mouse Support Opcodes
-  status: todo
+  status: planned
   goal: Add mouse position and button state opcodes for GUI programs
   description: 'Current input is keyboard-only via IKEY. GUI programs (window manager,
     desktop, file browser) need mouse support. Add MOUSEX (read mouse X to register),
@@ -4512,7 +4512,7 @@ phases:
   scope_lines_total: 200
 - id: phase-274
   title: GeOS Program -- Solar System Simulator
-  status: planned
+  status: done
   goal: Write an accurate solar system simulator with orbital mechanics and zoom controls
   description: A visually impressive program that simulates planetary orbits using
     Kepler's laws. Planets orbit the sun at correct relative distances and speeds.
@@ -4520,7 +4520,7 @@ phases:
     VM handles floating-point math via fixed-point arithmetic.
   deliverables:
   - name: Solar system simulator
-    status: planned
+    status: done
     tasks:
     - id: p274.d1.t1
       title: Implement orbital mechanics with fixed-point arithmetic
@@ -4540,6 +4540,8 @@ phases:
       scope_lines: 120
   test_target: 2
   scope_lines_total: 270
+  _claimed_by: worker-0
+  _claimed_at: 1777799086
 global_risks:
 - 'Interpreter performance ceiling: 52 MIPS may not scale to complex guest programs'
 - 'Premature abstraction: libgeos.c should only be extracted when truly needed'
