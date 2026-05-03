@@ -4227,7 +4227,7 @@ phases:
   scope_lines_total: 330
 - id: phase-267
   title: GeOS VM -- Performance Profiling Opcode (PROFILE)
-  status: in_progress
+  status: planned
   goal: Add a profiling opcode to measure instruction counts per code region
   description: Optimizing VM programs is hard without profiling data. PROFILE start/stop
     records the instruction count between two points and stores it in a profile buffer.
@@ -4264,8 +4264,6 @@ phases:
       scope_lines: 100
   test_target: 6
   scope_lines_total: 210
-  _claimed_by: worker-0
-  _claimed_at: 1777751704
 - id: phase-268
   title: GeOS Program -- Tower Defense Game
   status: done
@@ -4308,7 +4306,7 @@ phases:
   _claimed_at: 1777757073
 - id: phase-269
   title: GeOS VM -- Hash Table Opcodes (HASHINIT, HASHSET, HASHGET)
-  status: planned
+  status: complete
   goal: Add VM-level hash table for efficient key-value lookups from assembly
   description: Assembly programs currently implement hash tables manually (hash function
     + collision chains) which costs 50+ instructions per lookup. Native hash table
@@ -4316,7 +4314,7 @@ phases:
     and caching.
   deliverables:
   - name: Hash table opcodes
-    status: planned
+    status: done
     tasks:
     - id: p269.d1.t1
       title: Implement HASHINIT table_id, buckets_reg and HASHSET table_id, key_reg,

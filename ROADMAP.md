@@ -3,7 +3,7 @@
 Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers toolchain hygiene, GUI bridge, pixel VM convergence, libgeos extraction, and legacy roadmap reconciliation. SPEC = thesis. roadmap_v2 = arc. OpenSpec = per-change diff.
 
 
-**Progress:** 24/26 phases complete, 1 in progress
+**Progress:** 25/26 phases complete, 1 in progress
 
 **Deliverables:** 48/49 complete
 
@@ -15,7 +15,7 @@ Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers tool
 |-------|--------|-------------|-----------|-------|
 | phase-A Toolchain Hygiene | COMPLETE | 4/4 | - | - |
 | phase-B GUI Bridge — Live Pixel Display | COMPLETE | 3/3 | - | - |
-| phase-C Pixel VM Convergence | PLANNED | 1/1 | - | - |
+| phase-C Pixel VM Convergence | COMPLETE | 1/1 | - | - |
 | phase-D Layer 2 — libgeos and Primitives | COMPLETE | 3/3 | - | - |
 | phase-E Legacy Roadmap Reconciliation | COMPLETE | 1/1 | - | - |
 | phase-F Visual Verification Infrastructure | COMPLETE | 3/3 | - | - |
@@ -164,7 +164,7 @@ The present callback architecture from commit 355ae7f is the right shape. The bu
 - Main app render loop may not have an easy injection point for external surfaces
 - WINSYS window approach adds complexity vs direct surface blit
 
-## [ ] phase-C: Pixel VM Convergence (PLANNED)
+## [x] phase-C: Pixel VM Convergence (COMPLETE)
 
 **Goal:** Unify RISC-V framebuffer and GeOS pixel VM into a single canonical surface
 
