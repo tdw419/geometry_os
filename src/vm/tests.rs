@@ -9508,7 +9508,7 @@ fn test_key_buffer_can_hold_200_keys() {
     let mut vm = Vm::new();
     // Push 200 keys into the buffer (old limit was 16)
     for i in 0..200u32 {
-        vm.push_key(b'A' + (i % 26));
+        vm.push_key(b'A' as u32 + i % 26);
     }
     // Read them all back via IKEY
     let mut count = 0u32;
@@ -9528,7 +9528,7 @@ fn test_key_buffer_overflow_drops_gracefully() {
     let mut vm = Vm::new();
     // Push 260 keys (buffer is 256, so 4 should be dropped)
     for _ in 0..260 {
-        vm.push_key(b'X');
+        vm.push_key(b'X' as u32);
     }
     // Read back -- should get at most 255 (256 entries - 1 slot always empty in ring buffer)
     let mut count = 0u32;
@@ -9634,7 +9634,7 @@ fn test_imouse_buffer_overflow() {
 #[test]
 fn test_imouse_assembler() {
     let source = "IMOUSE r1\nHALT";
-    let asm = geometry_os::assembler::assemble(source, 0).unwrap();
+    let asm = crate::assembler::assemble(source, 0).unwrap();
     assert_eq!(asm.pixels[0], 0xC7, "opcode");
     assert_eq!(asm.pixels[1], 1, "register r1");
 }
@@ -20498,7 +20498,7 @@ fn test_winsys_vfs_sync() {
     // Re-read file from host and verify modification
     // Note: since our search was a bit generic, we check all files for "ABCD"
     let mut found = false;
-    for entry in std::fs::read_dir(fs_dir).unwrap() {
+    for entry in std::fs::read_dir(dir).unwrap() {
         let path = entry.unwrap().path();
         let content = std::fs::read(&path).unwrap();
         if content.starts_with(b"ABCD") {
