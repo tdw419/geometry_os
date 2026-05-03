@@ -10,8 +10,8 @@
 //   0x0000..0x7FFF  CODE region  (max 8192 instructions)
 //   0x8000..0xFFFF  DATA region  (x9 = RAM_BASE + 0x8000, shadow oracle)
 
-use std::collections::HashMap;
 use geometry_os::riscv::{self, cpu};
+use std::collections::HashMap;
 
 const RAM_BASE: u64 = 0x8000_0000;
 const RAM_SIZE: usize = 65536;
@@ -22,9 +22,9 @@ const BASE_REG: u8 = 9;
 // Data region slot counts
 const WORD_SLOTS: u32 = 64; // word-aligned slots  (offsets 0,4,8,...,252)
 const HALF_SLOTS: u32 = 128; // half-aligned slots  (offsets 0,2,4,...,254)
-// Byte slots for halfword/byte loads/stores
+                             // Byte slots for halfword/byte loads/stores
 const BYTE_SLOTS: u32 = 256; // byte slots          (offsets 0..255)
-// SP-relative slots (top of data region, avoid overlap with x9-based slots)
+                             // SP-relative slots (top of data region, avoid overlap with x9-based slots)
 const SP_SLOTS: u32 = 16; // word slots at end of data region (offsets 0..60)
 
 // CSR addresses safe for fuzzing (pure read/write, no side effects or traps)
@@ -166,74 +166,143 @@ fn enc_c_add(rd: u8, rs2: u8) -> u16 {
 
 /// C.SRLI: rd' = rd' >> shamt (bits01=01, funct3=100, func=00, rd' = bits[9:7])
 fn enc_c_srli(rd_p: u8, shamt: u32) -> u16 {
-    ((0b100u16) << 13) | (((shamt as u16 >> 5) & 1) << 12) | (((shamt as u16) & 0x1F) << 2) | ((rd_p as u16) << 7) | 0b01
+    ((0b100u16) << 13)
+        | (((shamt as u16 >> 5) & 1) << 12)
+        | (((shamt as u16) & 0x1F) << 2)
+        | ((rd_p as u16) << 7)
+        | 0b01
 }
 
 /// C.SRAI: rd' = rd' >> shamt (arithmetic, bits01=01, funct3=100, func=01)
 fn enc_c_srai(rd_p: u8, shamt: u32) -> u16 {
-    ((0b100u16) << 13) | (((shamt as u16 >> 5) & 1) << 12) | (((shamt as u16) & 0x1F) << 2) | ((rd_p as u16) << 7) | 0b01
+    ((0b100u16) << 13)
+        | (0b01u16 << 10)
+        | (((shamt as u16 >> 5) & 1) << 12)
+        | (((shamt as u16) & 0x1F) << 2)
+        | ((rd_p as u16) << 7)
+        | 0b01
 }
 
 /// C.ANDI: rd' = rd' & imm (bits01=01, funct3=100, func=10)
 fn enc_c_andi(rd_p: u8, imm: i32) -> u16 {
     let imm6 = (imm as u16) & 0x3F;
-    (0b100 << 13) | (((imm6 >> 5) & 1) << 12) | ((imm6 & 0x1F) << 2) | ((rd_p as u16) << 7) | 0b01
+    (0b100u16 << 13)
+        | (0b10u16 << 10)
+        | (((imm6 >> 5) & 1) << 12)
+        | ((imm6 & 0x1F) << 2)
+        | ((rd_p as u16) << 7)
+        | 0b01
 }
 
 /// C.SUB: rd' = rd' - rs2' (bits01=01, funct3=100, func=11, bit12=0, sub_op=00)
 fn enc_c_sub(rd_p: u8, rs2_p: u8) -> u16 {
-    (0b100 << 13) | (0 << 12) | (0b00 << 5) | ((rs2_p as u16) << 2) | ((rd_p as u16) << 7) | 0b01
+    (0b100u16 << 13)
+        | (0b11u16 << 10)
+        | (0 << 12)
+        | (0b00u16 << 5)
+        | ((rs2_p as u16) << 2)
+        | ((rd_p as u16) << 7)
+        | 0b01
 }
 
 /// C.XOR: rd' = rd' ^ rs2' (func=11, bit12=0, sub_op=01)
 fn enc_c_xor(rd_p: u8, rs2_p: u8) -> u16 {
-    (0b01 << 14) | (0b100 << 10) | (0b11 << 10) | (0 << 12) | (0b01 << 5) | ((rs2_p as u16) << 2) | ((rd_p as u16) << 7) | 0b01
+    (0b100u16 << 13)
+        | (0b11u16 << 10)
+        | (0 << 12)
+        | (0b01u16 << 5)
+        | ((rs2_p as u16) << 2)
+        | ((rd_p as u16) << 7)
+        | 0b01
 }
 
 /// C.OR: rd' = rd' | rs2' (func=11, bit12=0, sub_op=10)
 fn enc_c_or(rd_p: u8, rs2_p: u8) -> u16 {
-    (0b01 << 14) | (0b100 << 10) | (0b11 << 10) | (0 << 12) | (0b10 << 5) | ((rs2_p as u16) << 2) | ((rd_p as u16) << 7) | 0b01
+    (0b100u16 << 13)
+        | (0b11u16 << 10)
+        | (0 << 12)
+        | (0b10u16 << 5)
+        | ((rs2_p as u16) << 2)
+        | ((rd_p as u16) << 7)
+        | 0b01
 }
 
 /// C.AND: rd' = rd' & rs2' (func=11, bit12=0, sub_op=11)
 fn enc_c_and(rd_p: u8, rs2_p: u8) -> u16 {
-    (0b01 << 14) | (0b100 << 10) | (0b11 << 10) | (0 << 12) | (0b11 << 5) | ((rs2_p as u16) << 2) | ((rd_p as u16) << 7) | 0b01
+    (0b100u16 << 13)
+        | (0b11u16 << 10)
+        | (0 << 12)
+        | (0b11u16 << 5)
+        | ((rs2_p as u16) << 2)
+        | ((rd_p as u16) << 7)
+        | 0b01
 }
 
 /// C.SLLI: rd = rd << shamt (bits01=10, funct3=000)
 fn enc_c_slli(rd: u8, shamt: u32) -> u16 {
-    ((0b000u16) << 13) | (((shamt as u16 >> 5) & 1) << 12) | (((shamt as u16) & 0x1F) << 2) | ((rd as u16) << 7) | 0b10
+    ((0b000u16) << 13)
+        | (((shamt as u16 >> 5) & 1) << 12)
+        | (((shamt as u16) & 0x1F) << 2)
+        | ((rd as u16) << 7)
+        | 0b10
 }
 
 /// C.LW: load word from rs1' + offset (bits01=00, funct3=010)
 fn enc_c_lw(rd_p: u8, rs1_p: u8, offset: u32) -> u16 {
     // offset must be word-aligned (multiple of 4), range 0-124
     // bits[5]=off[6], bits[12]=off[5], bits[11:10]=off[4:3], bits[6]=off[2]
-    ((0b00u16) << 14) | ((0b010u16) << 13) | (((offset as u16 >> 5) & 1) << 12) | (((offset as u16 >> 3) & 0x3) << 10) | ((rs1_p as u16) << 7) | (((offset as u16 >> 6) & 1) << 5) | (((offset as u16 >> 2) & 1) << 6) | ((rd_p as u16) << 2) | 0b00
+    ((0b00u16) << 14)
+        | ((0b010u16) << 13)
+        | (((offset as u16 >> 5) & 1) << 12)
+        | (((offset as u16 >> 3) & 0x3) << 10)
+        | ((rs1_p as u16) << 7)
+        | (((offset as u16 >> 6) & 1) << 5)
+        | (((offset as u16 >> 2) & 1) << 6)
+        | ((rd_p as u16) << 2)
+        | 0b00
 }
 
 /// C.SW: store word to rs1' + offset (bits01=00, funct3=110)
 fn enc_c_sw(rs2_p: u8, rs1_p: u8, offset: u32) -> u16 {
     // Same offset encoding as C.LW
-    ((0b00u16) << 14) | ((0b110u16) << 13) | (((offset as u16 >> 5) & 1) << 12) | (((offset as u16 >> 3) & 0x3) << 10) | ((rs1_p as u16) << 7) | (((offset as u16 >> 6) & 1) << 5) | (((offset as u16 >> 2) & 1) << 6) | ((rs2_p as u16) << 2) | 0b00
+    ((0b00u16) << 14)
+        | ((0b110u16) << 13)
+        | (((offset as u16 >> 5) & 1) << 12)
+        | (((offset as u16 >> 3) & 0x3) << 10)
+        | ((rs1_p as u16) << 7)
+        | (((offset as u16 >> 6) & 1) << 5)
+        | (((offset as u16 >> 2) & 1) << 6)
+        | ((rs2_p as u16) << 2)
+        | 0b00
 }
 
 /// C.LWSP: load word from SP + offset (bits01=10, funct3=010)
 fn enc_c_lwsp(rd: u8, offset: u32) -> u16 {
     // offset word-aligned, range 0-252
     // bits[3]=off[7], bits[2]=off[6], bits[12]=off[5], bits[6:4]=off[4:2]
-    ((0b010u16) << 13) | (((offset as u16 >> 5) & 1) << 12) | ((rd as u16) << 7) | (((offset as u16 >> 4) & 0x7) << 4) | (((offset as u16 >> 6) & 1) << 2) | (((offset as u16 >> 7) & 1) << 6) | 0b10
+    ((0b010u16) << 13)
+        | (((offset as u16 >> 5) & 1) << 12)
+        | ((rd as u16) << 7)
+        | (((offset as u16 >> 4) & 0x7) << 4)
+        | (((offset as u16 >> 6) & 1) << 2)
+        | (((offset as u16 >> 7) & 1) << 6)
+        | 0b10
 }
 
 /// C.SWSP: store word to SP + offset (bits01=10, funct3=110)
 fn enc_c_swsp(rs2: u8, offset: u32) -> u16 {
     // bits[8:7]=off[7:6], bits[12]=off[5], bits[11:9]=off[4:2]
-    ((0b110u16) << 13) | (((offset as u16 >> 5) & 1) << 12) | (((offset as u16 >> 2) & 0x7) << 9) | (((offset as u16 >> 6) & 0x3) << 7) | ((rs2 as u16) << 2) | 0b10
+    ((0b110u16) << 13)
+        | (((offset as u16 >> 5) & 1) << 12)
+        | (((offset as u16 >> 2) & 0x7) << 9)
+        | (((offset as u16 >> 6) & 0x3) << 7)
+        | ((rs2 as u16) << 2)
+        | 0b10
 }
 
 // Load 32-bit constant into rd using LUI + ADDI, handling sign-extension.
 fn load_const(rd: u8, value: u32, out: &mut Vec<u16>) {
-    let lo12 = ((value as i32) << 20) >> 20; // sign-extend lower 12 bits
+    let lo12 = (((value & 0xFFF) as i32) << 20) >> 20; // sign-extend lower 12 bits
     let hi20 = value.wrapping_sub(lo12 as u32) & 0xFFFF_F000;
     if hi20 != 0 {
         let w = enc_lui(rd, hi20);
@@ -267,7 +336,7 @@ fn push16(out: &mut Vec<u16>, half: u16) {
 
 struct Oracle {
     x: [u32; 32],
-    mem: [u8; DATA_SIZE], // shadow of data region
+    mem: [u8; DATA_SIZE],    // shadow of data region
     csrs: HashMap<u32, u32>, // shadow of scratch CSR values
 }
 
@@ -657,7 +726,10 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
     // SP = RAM_BASE + DATA_OFF + DATA_SIZE - SP_SLOTS*4 (top of data region)
     let sp_base = (RAM_BASE + DATA_OFF + DATA_SIZE as u64 - (SP_SLOTS as u64) * 4) as u32;
     load_const(2, sp_base, &mut halfwords);
-    ops.push(OracleOp::LoadConst { rd: 2, value: sp_base });
+    ops.push(OracleOp::LoadConst {
+        rd: 2,
+        value: sp_base,
+    });
 
     const N_ALU: usize = 18; // R-type ALU
     const N_IMM: usize = 10; // I-type immediate ALU
@@ -890,7 +962,9 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                 2 => {
                     let rd = loop {
                         let r = (rng.range(8) + 1) as u8;
-                        if r != 2 { break r; }
+                        if r != 2 {
+                            break r;
+                        }
                     };
                     // Generate a non-zero nzimm: pick random upper bits, ensure bit 17 area is set
                     let raw = rng.u32() & 0x3F; // 6-bit value
@@ -994,7 +1068,10 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                     let slot = rng.range(WORD_SLOTS as u64) as u32;
                     let offset = (slot * 4) as u32;
                     push16(&mut halfwords, enc_c_lw(rd_p, rs1_p, offset));
-                    ops.push(OracleOp::Lw { rd, off: offset as usize });
+                    ops.push(OracleOp::Lw {
+                        rd,
+                        off: offset as usize,
+                    });
                 }
                 // C.SW: register primes, base=x9 (prime 1)
                 14 => {
@@ -1004,7 +1081,10 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                     let slot = rng.range(WORD_SLOTS as u64) as u32;
                     let offset = (slot * 4) as u32;
                     push16(&mut halfwords, enc_c_sw(rs2_p, rs1_p, offset));
-                    ops.push(OracleOp::Sw { rs2, off: offset as usize });
+                    ops.push(OracleOp::Sw {
+                        rs2,
+                        off: offset as usize,
+                    });
                 }
                 // C.LWSP: full registers x1-x8, SP-relative
                 15 => {
@@ -1013,7 +1093,10 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                     let slot = rng.range(SP_SLOTS as u64) as u32;
                     let offset = (slot * 4) as u32;
                     push16(&mut halfwords, enc_c_lwsp(rd, offset));
-                    ops.push(OracleOp::Lw { rd, off: (DATA_SIZE - (SP_SLOTS as usize) * 4 + offset as usize) });
+                    ops.push(OracleOp::Lw {
+                        rd,
+                        off: (DATA_SIZE - (SP_SLOTS as usize) * 4 + offset as usize),
+                    });
                 }
                 // C.SWSP: full registers x1-x8, SP-relative
                 16 => {
@@ -1021,7 +1104,10 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                     let slot = rng.range(SP_SLOTS as u64) as u32;
                     let offset = (slot * 4) as u32;
                     push16(&mut halfwords, enc_c_swsp(rs2, offset));
-                    ops.push(OracleOp::Sw { rs2, off: (DATA_SIZE - (SP_SLOTS as usize) * 4 + offset as usize) });
+                    ops.push(OracleOp::Sw {
+                        rs2,
+                        off: (DATA_SIZE - (SP_SLOTS as usize) * 4 + offset as usize),
+                    });
                 }
                 _ => unreachable!(),
             }
