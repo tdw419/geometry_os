@@ -547,12 +547,11 @@ orbit_lp:
   SAR r19, r31
   JNZ r19, orb_skip
   ; Skip if >= 256 (use unsigned check via shift)
-  LDI r28, 8
   MOV r30, r18
-  SHRI r30, r28
+  SHRI r30, 8
   JNZ r30, orb_skip
   MOV r30, r19
-  SHRI r30, r28
+  SHRI r30, 8
   JNZ r30, orb_skip
 
   LDI r12, 0x111122
