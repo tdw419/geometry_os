@@ -136,14 +136,14 @@ fn enc_csrrsi(rd: u8, uimm: u8, csr: u16) -> u32 {
 fn enc_c_addi(rd: u8, imm: i32) -> u16 {
     // bits[1:0]=01, funct3=000, rd=bits[11:7], imm=bits[12|5:2] sign-extended 6-bit
     let imm6 = (imm as u16) & 0x3F; // low 6 bits
-    (0b01 << 14) | (0b000 << 13) | (((imm6 >> 5) & 1) << 12) | ((rd as u16) << 7) | ((imm6 & 0x1F) << 2) | 0b01
+    (0b000 << 13) | (((imm6 >> 5) & 1) << 12) | ((rd as u16) << 7) | ((imm6 & 0x1F) << 2) | 0b01
 }
 
 /// C.LI: rd = imm (rd can be any register)
 fn enc_c_li(rd: u8, imm: i32) -> u16 {
     // bits[1:0]=01, funct3=010, rd=bits[11:7], imm=bits[12|5:2] sign-extended 6-bit
     let imm6 = (imm as u16) & 0x3F;
-    (0b01 << 14) | (0b010 << 13) | (((imm6 >> 5) & 1) << 12) | ((rd as u16) << 7) | ((imm6 & 0x1F) << 2) | 0b01
+    (0b010 << 13) | (((imm6 >> 5) & 1) << 12) | ((rd as u16) << 7) | ((imm6 & 0x1F) << 2) | 0b01
 }
 
 /// C.LUI: rd = nzimm (nzimm must be non-zero, sign-extended from bit 17)
@@ -151,38 +151,38 @@ fn enc_c_lui(rd: u8, nzimm: u32) -> u16 {
     // bits[1:0]=01, funct3=011, rd=bits[11:7], nzimm=bits[17|16:12]
     let lo5 = ((nzimm >> 12) & 0x1F) as u16;
     let hi1 = ((nzimm >> 17) & 1) as u16;
-    (0b01 << 14) | (0b011 << 13) | (hi1 << 12) | ((rd as u16) << 7) | (lo5 << 2) | 0b01
+    (0b011 << 13) | (hi1 << 12) | ((rd as u16) << 7) | (lo5 << 2) | 0b01
 }
 
 /// C.MV: rd = rs2 (bits01=10, funct3=100, bit12=0, rs2!=0)
 fn enc_c_mv(rd: u8, rs2: u8) -> u16 {
-    (0b10 << 14) | (0b100 << 10) | (0 << 12) | ((rd as u16) << 7) | ((rs2 as u16) << 2) | 0b10
+    (0b100 << 13) | (0 << 12) | ((rd as u16) << 7) | ((rs2 as u16) << 2) | 0b10
 }
 
 /// C.ADD: rd = rd + rs2 (bits01=10, funct3=100, bit12=1, rd!=0, rs2!=0)
 fn enc_c_add(rd: u8, rs2: u8) -> u16 {
-    (0b10 << 14) | (0b100 << 10) | (1 << 12) | ((rd as u16) << 7) | ((rs2 as u16) << 2) | 0b10
+    (0b100 << 13) | (1 << 12) | ((rd as u16) << 7) | ((rs2 as u16) << 2) | 0b10
 }
 
 /// C.SRLI: rd' = rd' >> shamt (bits01=01, funct3=100, func=00, rd' = bits[9:7])
 fn enc_c_srli(rd_p: u8, shamt: u32) -> u16 {
-    ((0b01u16) << 14) | ((0b100u16) << 10) | ((0b00u16) << 10) | (((shamt as u16 >> 5) & 1) << 12) | (((shamt as u16) & 0x1F) << 2) | ((rd_p as u16) << 7) | 0b01
+    ((0b100u16) << 13) | (((shamt as u16 >> 5) & 1) << 12) | (((shamt as u16) & 0x1F) << 2) | ((rd_p as u16) << 7) | 0b01
 }
 
 /// C.SRAI: rd' = rd' >> shamt (arithmetic, bits01=01, funct3=100, func=01)
 fn enc_c_srai(rd_p: u8, shamt: u32) -> u16 {
-    ((0b01u16) << 14) | ((0b100u16) << 10) | ((0b01u16) << 10) | (((shamt as u16 >> 5) & 1) << 12) | (((shamt as u16) & 0x1F) << 2) | ((rd_p as u16) << 7) | 0b01
+    ((0b100u16) << 13) | (((shamt as u16 >> 5) & 1) << 12) | (((shamt as u16) & 0x1F) << 2) | ((rd_p as u16) << 7) | 0b01
 }
 
 /// C.ANDI: rd' = rd' & imm (bits01=01, funct3=100, func=10)
 fn enc_c_andi(rd_p: u8, imm: i32) -> u16 {
     let imm6 = (imm as u16) & 0x3F;
-    (0b01 << 14) | (0b100 << 10) | (0b10 << 10) | (((imm6 >> 5) & 1) << 12) | ((imm6 & 0x1F) << 2) | ((rd_p as u16) << 7) | 0b01
+    (0b100 << 13) | (((imm6 >> 5) & 1) << 12) | ((imm6 & 0x1F) << 2) | ((rd_p as u16) << 7) | 0b01
 }
 
 /// C.SUB: rd' = rd' - rs2' (bits01=01, funct3=100, func=11, bit12=0, sub_op=00)
 fn enc_c_sub(rd_p: u8, rs2_p: u8) -> u16 {
-    (0b01 << 14) | (0b100 << 10) | (0b11 << 10) | (0 << 12) | (0b00 << 5) | ((rs2_p as u16) << 2) | ((rd_p as u16) << 7) | 0b01
+    (0b100 << 13) | (0 << 12) | (0b00 << 5) | ((rs2_p as u16) << 2) | ((rd_p as u16) << 7) | 0b01
 }
 
 /// C.XOR: rd' = rd' ^ rs2' (func=11, bit12=0, sub_op=01)
@@ -202,7 +202,7 @@ fn enc_c_and(rd_p: u8, rs2_p: u8) -> u16 {
 
 /// C.SLLI: rd = rd << shamt (bits01=10, funct3=000)
 fn enc_c_slli(rd: u8, shamt: u32) -> u16 {
-    ((0b10u16) << 14) | ((0b000u16) << 10) | (((shamt as u16 >> 5) & 1) << 12) | (((shamt as u16) & 0x1F) << 2) | ((rd as u16) << 7) | 0b10
+    ((0b000u16) << 13) | (((shamt as u16 >> 5) & 1) << 12) | (((shamt as u16) & 0x1F) << 2) | ((rd as u16) << 7) | 0b10
 }
 
 /// C.LW: load word from rs1' + offset (bits01=00, funct3=010)
@@ -222,13 +222,13 @@ fn enc_c_sw(rs2_p: u8, rs1_p: u8, offset: u32) -> u16 {
 fn enc_c_lwsp(rd: u8, offset: u32) -> u16 {
     // offset word-aligned, range 0-252
     // bits[3]=off[7], bits[2]=off[6], bits[12]=off[5], bits[6:4]=off[4:2]
-    ((0b10u16) << 14) | ((0b010u16) << 10) | (((offset as u16 >> 5) & 1) << 12) | ((rd as u16) << 7) | (((offset as u16 >> 4) & 0x7) << 4) | (((offset as u16 >> 6) & 1) << 2) | (((offset as u16 >> 7) & 1) << 6) | 0b10
+    ((0b010u16) << 13) | (((offset as u16 >> 5) & 1) << 12) | ((rd as u16) << 7) | (((offset as u16 >> 4) & 0x7) << 4) | (((offset as u16 >> 6) & 1) << 2) | (((offset as u16 >> 7) & 1) << 6) | 0b10
 }
 
 /// C.SWSP: store word to SP + offset (bits01=10, funct3=110)
 fn enc_c_swsp(rs2: u8, offset: u32) -> u16 {
     // bits[8:7]=off[7:6], bits[12]=off[5], bits[11:9]=off[4:2]
-    ((0b10u16) << 14) | ((0b110u16) << 10) | (((offset as u16 >> 5) & 1) << 12) | (((offset as u16 >> 2) & 0x7) << 9) | (((offset as u16 >> 6) & 0x3) << 7) | ((rs2 as u16) << 2) | 0b10
+    ((0b110u16) << 13) | (((offset as u16 >> 5) & 1) << 12) | (((offset as u16 >> 2) & 0x7) << 9) | (((offset as u16 >> 6) & 0x3) << 7) | ((rs2 as u16) << 2) | 0b10
 }
 
 // Load 32-bit constant into rd using LUI + ADDI, handling sign-extension.
