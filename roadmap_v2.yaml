@@ -1774,7 +1774,7 @@ phases:
     sprites in games without manually encoding pixel data in assembly.
   deliverables:
   - name: SPRITE_LOAD opcode for VFS-to-RAM sprite loading
-    status: todo
+    status: done
     tasks:
     - id: p205.d1.t1
       title: Add SPRITE_LOAD opcode (filename_addr, dest_addr, width, height regs)
