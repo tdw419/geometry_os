@@ -1,153 +1,285 @@
-; mandelbrot.asm -- Mandelbrot set fractal renderer
-;
-; Renders the classic Mandelbrot set to the full 256x256 screen using
-; fixed-point arithmetic (8.8 format, scale factor = 256).
-;
-; Coordinate mapping (centered on the classic Mandelbrot view):
-;   cx = px * 3 - 640  (real part, range: -2.50 to 0.49)
-;   cy = py * 3 - 384  (imaginary part, range: -1.50 to 1.49)
-;
-; Iteration: z = z^2 + c, escape when |z|^2 > 4
-; Max iterations: 64 (points inside set render as black)
-;
-; Color scheme: psychedelic palette based on iteration count
-;   R = (iter * 37) & 0xFF
-;   G = (iter * 67 + 100) & 0xFF
-;   B = (iter * 97 + 200) & 0xFF
-;
-; Register allocation:
-;   r1  = px (x pixel counter, 0-255)
-;   r2  = py (y pixel counter, 0-255)
-;   r3  = iter (iteration counter)
-;   r4  = c_r (real part of c, fixed-point)
-;   r5  = c_i (imaginary part of c, fixed-point)
-;   r6  = z_r (real part of z, fixed-point)
-;   r7  = z_i (imaginary part of z, fixed-point)
-;   r8  = z_r^2 (scratch, scale S^2)
-;   r9  = z_i^2 (scratch, scale S^2)
-;   r10-r12 = scratch / color
+; mandelbrot.asm - Mandelbrot Fractal Explorer
+; Fixed-point 4.12 format (scale = 4096)
+; 2x2 pixel blocks (128x128 = 16384 blocks)
+; Controls: +/- zoom, WASD pan, R reset, Q quit
 
 ; === CONSTANTS ===
-LDI r13, 64       ; max_iter = 64
-LDI r14, 0x40000  ; escape_radius_sq = 4 * 256^2 = 262144
-LDI r2, 0         ; py = 0
+LDI r15, 1
+LDI r16, 128
+LDI r17, 2
+LDI r18, 12
+LDI r19, 11
+LDI r20, 7
+LDI r21, 0x04000000
 
-; === MAIN Y LOOP ===
+; === PALETTE at 0x5000 (16 escape colors) ===
+LDI r14, 0x5000
+LDI r8, 0x000066
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0x0000CC
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0x0044FF
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0x00AAFF
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0x00FFCC
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0x00FF44
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0x44FF00
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0xAAFF00
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0xFFEE00
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0xFFAA00
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0xFF4400
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0xFF0000
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0xDD0044
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0xAA00AA
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0x550077
+STORE r14, r8
+ADD r14, r15
+LDI r8, 0x220044
+STORE r14, r8
+ADD r14, r15
+
+; === VIEW PARAMS at 0x5100 ===
+; center_re = -0.5 (fixed: -2048)
+LDI r14, 0x5100
+LDI r8, 2048
+NEG r8
+STORE r14, r8
+ADD r14, r15
+; center_im = 0.0
+LDI r8, 0
+STORE r14, r8
+ADD r14, r15
+; scale = 1.5 (fixed: 6144, view width = 3.0)
+LDI r8, 6144
+STORE r14, r8
+ADD r14, r15
+; max_iter = 24
+LDI r8, 24
+STORE r14, r8
+
+; === STACK POINTER ===
+LDI r30, 0xFF00
+
+; === MAIN LOOP ===
+main_loop:
+  CALL render
+  FRAME
+  IKEY r10
+  LDI r9, 43
+  CMP r10, r9
+  JZ r0, zoom_in
+  LDI r9, 45
+  CMP r10, r9
+  JZ r0, zoom_out
+  LDI r9, 87
+  CMP r10, r9
+  JZ r0, pan_up
+  LDI r9, 83
+  CMP r10, r9
+  JZ r0, pan_down
+  LDI r9, 65
+  CMP r10, r9
+  JZ r0, pan_left
+  LDI r9, 68
+  CMP r10, r9
+  JZ r0, pan_right
+  LDI r9, 82
+  CMP r10, r9
+  JZ r0, reset_view
+  LDI r9, 81
+  CMP r10, r9
+  JZ r0, do_quit
+  JMP main_loop
+
+; === INPUT HANDLERS ===
+zoom_in:
+  LDI r14, 0x5102
+  LOAD r9, r14
+  SAR r9, r17
+  STORE r14, r9
+  JMP main_loop
+
+zoom_out:
+  LDI r14, 0x5102
+  LOAD r9, r14
+  SHL r9, r17
+  LDI r10, 24576
+  CMP r9, r10
+  BGE r0, main_loop
+  STORE r14, r9
+  JMP main_loop
+
+pan_up:
+  LDI r14, 0x5101
+  LOAD r9, r14
+  LDI r10, 0x5102
+  LOAD r11, r10
+  SAR r11, r17
+  SAR r11, r17
+  SAR r11, r17
+  SUB r9, r11
+  STORE r14, r9
+  JMP main_loop
+
+pan_down:
+  LDI r14, 0x5101
+  LOAD r9, r14
+  LDI r10, 0x5102
+  LOAD r11, r10
+  SAR r11, r17
+  SAR r11, r17
+  SAR r11, r17
+  ADD r9, r11
+  STORE r14, r9
+  JMP main_loop
+
+pan_left:
+  LDI r14, 0x5100
+  LOAD r9, r14
+  LDI r10, 0x5102
+  LOAD r11, r10
+  SAR r11, r17
+  SAR r11, r17
+  SAR r11, r17
+  SUB r9, r11
+  STORE r14, r9
+  JMP main_loop
+
+pan_right:
+  LDI r14, 0x5100
+  LOAD r9, r14
+  LDI r10, 0x5102
+  LOAD r11, r10
+  SAR r11, r17
+  SAR r11, r17
+  SAR r11, r17
+  ADD r9, r11
+  STORE r14, r9
+  JMP main_loop
+
+reset_view:
+  LDI r14, 0x5100
+  LDI r8, 2048
+  NEG r8
+  STORE r14, r8
+  ADD r14, r15
+  LDI r8, 0
+  STORE r14, r8
+  ADD r14, r15
+  LDI r8, 6144
+  STORE r14, r8
+  ADD r14, r15
+  LDI r8, 24
+  STORE r14, r8
+  JMP main_loop
+
+do_quit:
+  HALT
+
+; === RENDER FUNCTION ===
+; Renders 128x128 blocks of 2x2 pixels each
+render:
+  PUSH r31
+  LDI r8, 0
+  FILL r8
+  LDI r14, 0x5100
+  LOAD r28, r14
+  ADD r14, r15
+  LOAD r29, r14
+  ADD r14, r15
+  LOAD r12, r14
+  ADD r14, r15
+  LOAD r13, r14
+  LDI r2, 0
 y_loop:
-  LDI r1, 0       ; px = 0
-
-  ; === MAIN X LOOP ===
-  x_loop:
-    ; Compute c_r = px * 3 - 640
-    MOV r4, r1
-    LDI r10, 3
-    MUL r4, r10
-    SUBI r4, 640
-
-    ; Compute c_i = py * 3 - 384
-    MOV r5, r2
-    LDI r10, 3
-    MUL r5, r10
-    SUBI r5, 384
-
-    ; z = 0, iter = 0
-    LDI r6, 0
-    LDI r7, 0
-    LDI r3, 0
-
-  ; === ITERATION LOOP ===
-  iter_loop:
-    ; z_r^2
-    MOV r8, r6
-    MUL r8, r6
-
-    ; z_i^2
-    MOV r9, r7
-    MUL r9, r7
-
-    ; Escape check: z_r^2 + z_i^2 > escape_radius_sq
-    ADD r8, r9
-    CMP r8, r14
-    BLT r0, not_escaped
-    JZ r0, not_escaped
-    JMP escaped
-
-  not_escaped:
-    ; Max iterations check
-    CMP r3, r13
-    BLT r0, do_iter
-    JMP inside_set
-
-  do_iter:
-    ; z_i_new = 2 * z_r * z_i / S + c_i = (z_r * z_i) >> 7 + c_i
-    MOV r10, r6
-    MUL r10, r7
-    SARI r10, 7
-    ADD r10, r5
-    MOV r7, r10
-
-    ; z_r_new = (z_r^2 - z_i^2) / S + c_r
-    SUB r8, r9
-    SARI r8, 8
-    ADD r8, r4
-    MOV r6, r8
-
-    ; iter++
-    ADDI r3, 1
-    JMP iter_loop
-
-  ; === COLOR: inside set (black) ===
-  inside_set:
-    LDI r12, 0
-    JMP draw_pixel
-
-  ; === COLOR: escaped (palette based on iter) ===
-  escaped:
-    ; R = (iter * 37) & 0xFF
-    MOV r12, r3
-    LDI r10, 37
-    MUL r12, r10
-    LDI r10, 0xFF
-    AND r12, r10
-
-    ; G = (iter * 67 + 100) & 0xFF, shifted left 8
-    MOV r10, r3
-    LDI r11, 67
-    MUL r10, r11
-    ADDI r10, 100
-    LDI r11, 0xFF
-    AND r10, r11
-    SHLI r10, 8
-    OR r12, r10
-
-    ; B = (iter * 97 + 200) & 0xFF, shifted left 16
-    MOV r10, r3
-    LDI r11, 97
-    MUL r10, r11
-    ADDI r10, 200
-    LDI r11, 0xFF
-    AND r10, r11
-    SHLI r10, 8
-    SHLI r10, 8
-    OR r12, r10
-
-  draw_pixel:
-    PSET r1, r2, r12
-
-    ; px++
-    ADDI r1, 1
-    LDI r10, 256
-    CMP r1, r10
-    JZ r0, end_row
-    JMP x_loop
-
-  end_row:
-    ; py++
-    ADDI r2, 1
-    LDI r10, 256
-    CMP r2, r10
-    JZ r0, done
-    JMP y_loop
-
-done:
-    HALT
+  LDI r1, 0
+  MOV r8, r2
+  SHL r8, r17
+  ADD r8, r15
+  SUB r8, r16
+  MUL r8, r12
+  SAR r8, r20
+  ADD r8, r29
+  MOV r6, r8
+x_loop:
+  MOV r8, r1
+  SHL r8, r17
+  ADD r8, r15
+  SUB r8, r16
+  MUL r8, r12
+  SAR r8, r20
+  ADD r8, r28
+  MOV r5, r8
+  LDI r3, 0
+  LDI r4, 0
+  LDI r7, 0
+iter:
+  MOV r8, r3
+  MUL r8, r8
+  MOV r10, r8
+  MOV r9, r4
+  MUL r9, r9
+  ADD r10, r9
+  CMP r10, r21
+  BGE r0, escaped
+  CMP r7, r13
+  BGE r0, in_set
+  SAR r8, r18
+  SAR r9, r18
+  SUB r8, r9
+  ADD r8, r5
+  MUL r3, r4
+  SAR r3, r19
+  ADD r3, r6
+  MOV r4, r3
+  MOV r3, r8
+  ADD r7, r15
+  JMP iter
+escaped:
+  LDI r9, 15
+  AND r7, r9
+  LDI r10, 0x5000
+  ADD r7, r10
+  LOAD r14, r7
+  JMP draw
+in_set:
+  LDI r14, 0
+draw:
+  MOV r8, r1
+  SHL r8, r17
+  MOV r9, r2
+  SHL r9, r17
+  RECTF r8, r9, r17, r17, r14
+  ADD r1, r15
+  CMP r1, r16
+  BLT r0, x_loop
+  ADD r2, r15
+  CMP r2, r16
+  BLT r0, y_loop
+  POP r31
+  RET

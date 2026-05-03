@@ -10331,3 +10331,42 @@ phases:
     scope_lines: 40
   scope_lines_total: 40
   test_target: 1
+
+- id: phase-218
+  title: "Regression -- 4 test compilation errors from phases 273-274"
+  status: done
+  goal: "Fix test compilation failures introduced by recent phase work"
+  description: "cargo check --tests reported 6 compilation errors (4 distinct issues) in src/vm/tests.rs. These were introduced by phases 273 (interrupt-driven input queue) and 274 (solar system simulator). All errors were in test code only, not production code. Fixed and committed."
+  deliverables:
+  - name: "Fix push_key type mismatches in key buffer tests"
+    description: "test_key_buffer_can_hold_200_keys: b'A' + (i % 26) failed because push_key takes u32 but b'A' is u8 and i%26 is u32. Fixed to b'A' as u32 + i % 26. test_key_buffer_overflow_drops_gracefully: push_key(b'X') -> push_key(b'X' as u32)."
+    status: done
+    tasks:
+    - id: p218.d1.t1
+      title: "Cast key byte literals to u32 for push_key calls"
+      status: done
+      description: "push_key signature is fn push_key(&mut self, key: u32) -> bool. Rust byte literals are u8. Cast with as u32."
+      scope_lines: 2
+    scope_lines: 2
+  - name: "Fix unresolved crate path in test_imouse_assembler"
+    description: "test_imouse_assembler used geometry_os::assembler::assemble which doesn't resolve in test context. Changed to crate::assembler::assemble."
+    status: done
+    tasks:
+    - id: p218.d2.t1
+      title: "Use crate:: path instead of geometry_os:: in test"
+      status: done
+      description: "Within the same crate's test module, use crate:: not the crate name."
+      scope_lines: 1
+    scope_lines: 1
+  - name: "Fix fs_dir variable not in scope in test_winsys_vfs_sync"
+    description: "test_winsys_vfs_sync was refactored to use a temp dir (variable 'dir') but the post-sync verification loop still referenced 'fs_dir'. Changed to 'dir'."
+    status: done
+    tasks:
+    - id: p218.d3.t1
+      title: "Update stale variable reference in test_winsys_vfs_sync"
+      status: done
+      description: "The test uses a local temp dir now, not the global .geometry_os/fs path. Fix the read_dir call."
+      scope_lines: 1
+    scope_lines: 1
+  scope_lines_total: 4
+  test_target: 4
