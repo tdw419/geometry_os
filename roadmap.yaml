@@ -10370,3 +10370,37 @@ phases:
     scope_lines: 1
   scope_lines_total: 4
   test_target: 4
+
+- id: phase-219
+  title: "Fix preflight false-positive GeOS detection and incomplete stale process cleanup"
+  status: planned
+  goal: "geo_dogfood_qa.py correctly identifies GeOS desktop vs test runners, and kills all stale test processes before running"
+  description: "The preflight script has two related bugs causing the cron timeout: (1) check_geos_running() only filters processes with '--test-threads' in cmdline, but the actual test binary (target/debug/deps/geometry_os-HASH) and geos-term --test processes don't contain that flag, so they get falsely reported as 'GeOS running'. (2) kill_stale_test_processes() has the same filter gap, so stale test binaries from previous runs survive and cause cargo lock contention, making the next cargo test invocation hang until the 120s cron timeout kills everything. This was the direct cause of the May 3 06:33 timeout."
+  deliverables:
+  - name: "Fix check_geos_running to exclude all test processes"
+    description: "In check_geos_running(), also exclude processes whose cmdline contains '/deps/geometry_os-' (test binary), 'geos-term --test', or '/target/debug/deps/' or '/target/release/deps/'. Only count the main geometry_os binary from target/release/geometry_os (without --test-threads and without /deps/ path) as a running GeOS instance."
+    status: todo
+    tasks:
+    - id: p219.d1.t1
+      title: "Expand check_geos_running exclusion filters"
+      status: todo
+      description: "Add checks for '/deps/geometry_os-', 'geos-term --test', '/target/' in the cmdline filter. Only return True if a process matches the release binary path without test indicators."
+      scope_lines: 15
+    scope_lines: 15
+  - name: "Fix kill_stale_test_processes to catch all test binaries"
+    description: "Expand the pgrep pattern in kill_stale_test_processes() to also match 'target/debug/deps/geometry_os', 'target/release/deps/geometry_os', and 'geos-term --test'. Use multiple pgrep patterns or a broader regex."
+    status: todo
+    tasks:
+    - id: p219.d2.t1
+      title: "Broaden stale process kill patterns"
+      status: todo
+      description: "Replace the single pgrep -f 'geometry_os.*--test-threads' with multiple patterns or a broader regex that also catches the test binary directly. Kill any process matching '/deps/geometry_os-' or 'geos-term --test'."
+      scope_lines: 20
+    - id: p219.d2.t2
+      title: "Add cargo lock cleanup as fallback"
+      status: todo
+      description: "If stale processes resist killing (zombie state), also remove stale Cargo.lock temporary files in target/.lock to prevent cargo from blocking on the next invocation."
+      scope_lines: 10
+    scope_lines: 30
+  scope_lines_total: 45
+  test_target: 0
