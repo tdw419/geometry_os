@@ -4350,7 +4350,7 @@ phases:
   scope_lines_total: 220
 - id: phase-270
   title: GeOS Program -- Asteroids Arcade Game
-  status: planned
+  status: done
   goal: Write a classic Asteroids-style game with vector graphics, wrapping, and progressive
     difficulty
   description: 'Asteroids is the quintessential vector graphics game -- perfect for
@@ -4359,7 +4359,7 @@ phases:
     explosions, UFO enemies.'
   deliverables:
   - name: Asteroids arcade game
-    status: planned
+    status: done
     tasks:
     - id: p270.d1.t1
       title: Implement ship physics, rotation, and screen wrapping
@@ -4387,6 +4387,8 @@ phases:
       scope_lines: 80
   test_target: 2
   scope_lines_total: 350
+  _claimed_by: worker-0
+  _claimed_at: 1777776676
 - id: phase-271
   title: RISC-V Guest -- vi-like Text Editor
   status: planned
