@@ -10404,3 +10404,37 @@ phases:
     scope_lines: 30
   scope_lines_total: 45
   test_target: 0
+
+- id: phase-220
+  title: "Fix flaky test_ensure_fonts_on_boot: use absolute font paths and propagate errors"
+  status: planned
+  goal: "test_ensure_fonts_on_boot passes reliably in all test orderings, not just in isolation"
+  description: "test_ensure_fonts_on_boot failed in the preflight run at 09:43 on May 3 but passes when run alone. Root cause: ensure_fonts() uses a relative path Path::new(\"fonts\") which depends on CWD, and silently swallows all errors with let _ = on create_dir_all, fs::read, and fs::write. If another test changes CWD or the fonts dir is in a bad state, the test fails silently. This will keep causing intermittent preflight failures and false build_broken reports."
+  deliverables:
+  - name: "Make ensure_fonts use absolute path for font source directory"
+    description: "In ensure_fonts(), resolve the fonts/ source directory relative to the crate root using CARGO_MANIFEST_DIR env var or env!(\"CARGO_MANIFEST_DIR\") at compile time, instead of relying on CWD being the project root. This eliminates the CWD dependency."
+    status: todo
+    tasks:
+    - id: p220.d1.t1
+      title: "Resolve font source dir from CARGO_MANIFEST_DIR"
+      status: todo
+      description: "Replace Path::new(\"fonts\") with PathBuf::from(env!(\"CARGO_MANIFEST_DIR\")).join(\"fonts\") so the source path is always correct regardless of test runner CWD."
+      scope_lines: 10
+    scope_lines: 10
+  - name: "Propagate errors in ensure_fonts instead of silently swallowing them"
+    description: "Change ensure_fonts() to return Result<(), io::Error> and propagate errors from create_dir_all, fs::read, and fs::write. Update the caller in boot() to log the error but continue booting. This makes failures visible in test output instead of mysterious assertion failures."
+    status: todo
+    tasks:
+    - id: p220.d2.t1
+      title: "Change ensure_fonts to return Result"
+      status: todo
+      description: "Replace let _ = with ? operator. Return io::Result from ensure_fonts. Handle the error at the call site in boot() with eprintln or similar."
+      scope_lines: 20
+    - id: p220.d2.t2
+      title: "Update test to check error path"
+      status: todo
+      description: "Update test_ensure_fonts_on_boot to call ensure_fonts().expect(\"ensure_fonts should succeed\") so test failures show the actual I/O error rather than a generic assertion about file existence."
+      scope_lines: 10
+    scope_lines: 30
+  scope_lines_total: 40
+  test_target: 0
