@@ -300,6 +300,97 @@ fn enc_c_swsp(rs2: u8, offset: u32) -> u16 {
         | 0b10
 }
 
+/// C.J: unconditional jump (bits01=01, funct3=101)
+/// imm[11|4|9:8|10|6|7|3:1|5], sign-extended 12-bit
+fn enc_c_j(imm: i32) -> u16 {
+    let imm = imm as u16;
+    let bit_11 = (imm >> 11) & 1;
+    let bit_4 = (imm >> 4) & 1;
+    let bits_9_8 = (imm >> 8) & 0x3;
+    let bit_10 = (imm >> 10) & 1;
+    let bit_6 = (imm >> 6) & 1;
+    let bit_7 = (imm >> 7) & 1;
+    let bits_3_1 = (imm >> 1) & 0x7;
+    let bit_5 = (imm >> 5) & 1;
+    (0b101u16 << 13)
+        | (bit_11 << 12)
+        | (bit_4 << 11)
+        | (bits_9_8 << 9)
+        | (bit_10 << 8)
+        | (bit_6 << 7)
+        | (bit_7 << 6)
+        | (bits_3_1 << 3)
+        | (bit_5 << 2)
+        | 0b01
+}
+
+/// C.BEQZ: branch if rs1' == 0 (bits01=01, funct3=110)
+/// imm[8|4:3|12|2:6|5|1:0|11], sign-extended 9-bit
+fn enc_c_beqz(rs1_p: u8, imm: i32) -> u16 {
+    let imm = imm as u16;
+    let bit_8 = (imm >> 8) & 1;
+    let bits_4_3 = (imm >> 3) & 0x3;
+    let bit_5 = (imm >> 5) & 1;
+    let bits_7_6 = (imm >> 6) & 0x3;
+    let bits_2_1 = (imm >> 1) & 0x3;
+    (0b110u16 << 13)
+        | (bit_8 << 12)
+        | (bits_4_3 << 10)
+        | ((rs1_p as u16) << 7)
+        | (bit_5 << 5)
+        | (bits_7_6 << 3)
+        | (bits_2_1 << 1)
+        | 0b01
+}
+
+/// C.BNEZ: branch if rs1' != 0 (bits01=01, funct3=111)
+/// Same encoding as C.BEQZ but funct3=111
+fn enc_c_bnez(rs1_p: u8, imm: i32) -> u16 {
+    // Same encoding as C.BEQZ but with funct3=111 instead of 110
+    let mut w = enc_c_beqz(rs1_p, imm);
+    // Clear funct3 bits (13:15) and set to 111
+    w = (w & !(0b111 << 13)) | (0b111 << 13);
+    w
+}
+
+/// Decode C.J immediate from encoded halfword
+/// imm[11|4|9:8|10|6|7|3:1|5], sign-extended 12-bit
+fn decode_c_j_imm(w: u16) -> i32 {
+    let bit_11 = ((w >> 12) & 1) as i32;
+    let bit_4 = ((w >> 11) & 1) as i32;
+    let bits_9_8 = ((w >> 9) & 0x3) as i32;
+    let bit_10 = ((w >> 8) & 1) as i32;
+    let bit_6 = ((w >> 7) & 1) as i32;
+    let bit_7 = ((w >> 6) & 1) as i32;
+    let bits_3_1 = ((w >> 3) & 0x7) as i32;
+    let bit_5 = ((w >> 2) & 1) as i32;
+    let raw = (bit_11 << 11) | (bit_4 << 4) | (bits_9_8 << 8) | (bit_10 << 10)
+        | (bit_6 << 6) | (bit_7 << 7) | (bits_3_1 << 1) | (bit_5 << 5);
+    // Sign-extend from bit 11
+    if raw & (1 << 11) != 0 {
+        raw | !0xFFF
+    } else {
+        raw
+    }
+}
+
+/// Decode C.BEQZ/C.BNEZ immediate from encoded halfword
+/// imm[8|4:3|12|2:6|5|1:0|11], sign-extended 9-bit
+fn decode_c_b_imm(w: u16) -> i32 {
+    let bit_8 = ((w >> 12) & 1) as i32;
+    let bits_4_3 = ((w >> 10) & 0x3) as i32;
+    let bit_5 = ((w >> 5) & 1) as i32;
+    let bits_7_6 = ((w >> 3) & 0x3) as i32;
+    let bits_2_1 = ((w >> 1) & 0x3) as i32;
+    let raw = (bit_8 << 8) | (bits_4_3 << 3) | (bits_7_6 << 6) | (bits_2_1 << 1) | (bit_5 << 5);
+    // Sign-extend from bit 8
+    if raw & (1 << 8) != 0 {
+        raw | !0x1FF
+    } else {
+        raw
+    }
+}
+
 // Load 32-bit constant into rd using LUI + ADDI, handling sign-extension.
 fn load_const(rd: u8, value: u32, out: &mut Vec<u16>) {
     let lo12 = (((value & 0xFFF) as i32) << 20) >> 20; // sign-extend lower 12 bits
@@ -639,6 +730,11 @@ impl Oracle {
                 }
                 self.set(rd, old);
             }
+            // Branches (C-extension): oracle mirrors the branch decision.
+            // Both BranchZ and Jump are no-ops for register/memory/CSR state.
+            // The VM executes them; we only verify that the VM doesn't corrupt state.
+            OracleOp::BranchZ { rs1: _, taken: _ } => {}
+            OracleOp::Jump => {}
         }
     }
 }
@@ -692,6 +788,9 @@ enum OracleOp {
     Csrrc { rd: u8, rs1: u8, csr: u32 },
     Csrrci { rd: u8, uimm: u8, csr: u32 },
     Csrrsi { rd: u8, uimm: u8, csr: u32 },
+    // Branches (C-extension)
+    BranchZ { rs1: u8 }, // C.BEQZ/C.BNEZ: oracle computes taken/untaken from its own register state
+    Jump { target_idx: usize }, // C.J: oracle knows the target instruction index
 }
 
 // ─── Program generator ────────────────────────────────────────────────────
@@ -700,6 +799,7 @@ struct Program {
     words: Vec<u32>,
     ops: Vec<OracleOp>,
     tracked_csrs: Vec<u32>, // which CSRs this program uses
+    n_instructions: usize,  // actual instruction count (compressed=1, 32-bit=1 each)
 }
 
 fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
@@ -734,12 +834,22 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
     const N_ALU: usize = 18; // R-type ALU
     const N_IMM: usize = 10; // I-type immediate ALU
     const N_MEM: usize = 8; // Load/store
-    const N_COMP: usize = 17; // C-extension ops (0-12: ALU, 13: C.LW, 14: C.SW, 15: C.LWSP, 16: C.SWSP)
+    const N_COMP: usize = 20; // C-extension ops (0-12: ALU, 13: C.LW, 14: C.SW, 15: C.LWSP, 16: C.SWSP, 17: C.J, 18: C.BEQZ, 19: C.BNEZ)
     const N_CSR: usize = 5; // CSR ops (CSRRW, CSRRS, CSRRC, CSRRCI, CSRRSI)
-    const N_TOTAL: usize = N_ALU + N_IMM + N_MEM + N_COMP + N_CSR; // = 58
+    const N_TOTAL: usize = N_ALU + N_IMM + N_MEM + N_COMP + N_CSR; // = 61
+
+    // Track register state during generation for branch condition evaluation.
+    // This oracle mirrors the VM's register state so we can predict branch outcomes.
+    let mut gen_oracle = Oracle::new();
+    // Initialize from the setup ops we already pushed (register init + data base + SP)
+    for op in &ops {
+        gen_oracle.apply(op);
+    }
 
     for _ in 0..n_ops {
         let op_idx = rng.range(N_TOTAL as u64) as usize;
+        // Snapshot current register state before this op (for branch decisions)
+        let regs_snapshot = gen_oracle.x;
 
         if op_idx < N_ALU {
             // R-type ALU op on x1-x8
@@ -966,14 +1076,23 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                             break r;
                         }
                     };
-                    // Generate a non-zero nzimm: pick random upper bits, ensure bit 17 area is set
-                    let raw = rng.u32() & 0x3F; // 6-bit value
-                    let nzimm = (raw << 12) as u32; // place in bits 17:12
-                    if nzimm != 0 {
-                        push16(&mut halfwords, enc_c_lui(rd, nzimm));
+                    // Generate nzimm with proper sign-extension from bit 17.
+                    // Bits [17:12] form the immediate; bit 17 is the sign bit.
+                    // Use raw 6-bit value where bit 5 = sign bit (bit 17 of nzimm).
+                    let raw = rng.u32() & 0x3F; // 6-bit: [5]=sign, [4:0]=bits[16:12]
+                    let nzimm_raw = raw << 12;  // place in bits [17:12]
+                    // Sign-extend from bit 17 (RISC-V spec requirement)
+                    let nzimm = if nzimm_raw & (1 << 17) != 0 {
+                        nzimm_raw | 0xFFFC_0000_u32
+                    } else {
+                        nzimm_raw
+                    };
+                    if raw != 0 {
+                        // nzimm=0 is HINT/NOP for C.LUI, only emit if non-zero
+                        push16(&mut halfwords, enc_c_lui(rd, nzimm_raw));
                         ops.push(OracleOp::LoadConst { rd, value: nzimm });
                     } else {
-                        // Skip: nzimm=0 is Invalid for C.LUI, generate a C.ADDI instead
+                        // Skip: nzimm=0 is NOP for C.LUI, generate a C.ADDI instead
                         let imm = (rng.u32() as i32) << 20 >> 20;
                         push16(&mut halfwords, enc_c_addi(rd, imm));
                         ops.push(OracleOp::Addi { rd, rs1: rd, imm });
@@ -1109,6 +1228,49 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                         off: (DATA_SIZE - (SP_SLOTS as usize) * 4 + offset as usize),
                     });
                 }
+                // C.J: unconditional jump (always taken)
+                // Uses a small random offset that will land within the program.
+                // The oracle is a no-op (Jump); we only verify the VM doesn't corrupt state.
+                // We place C.J instructions that jump forward 0-10 halfwords (0-20 bytes).
+                // The VM will execute whatever is at the jump target — since we only verify
+                // register/memory/CSR state (not PC), this is safe: the VM runs a random
+                // subset of the program and hits EBREAK eventually.
+                17 => {
+                    // Forward jump: 1-10 halfwords ahead (even number of bytes for alignment)
+                    let offset_halfwords = (rng.range(10) as i32) + 1;
+                    let imm = offset_halfwords * 2; // byte offset (must be even)
+                    push16(&mut halfwords, enc_c_j(imm));
+                    ops.push(OracleOp::Jump);
+                }
+                // C.BEQZ: branch if rs1' == 0 (register primes x8-x15)
+                18 => {
+                    let rs1_p = rng.range(8) as u8;
+                    let rs1 = 8 + rs1_p;
+                    let val = regs_snapshot[rs1 as usize]; // snapshot taken at generation time
+                    let taken = val == 0;
+                    // Small forward offset when taken, 0 when not
+                    let imm = if taken {
+                        ((rng.range(8) as i32) + 1) * 2 // 2-16 bytes forward
+                    } else {
+                        0 // not taken
+                    };
+                    push16(&mut halfwords, enc_c_beqz(rs1_p, imm));
+                    ops.push(OracleOp::BranchZ { rs1, taken });
+                }
+                // C.BNEZ: branch if rs1' != 0 (register primes x8-x15)
+                19 => {
+                    let rs1_p = rng.range(8) as u8;
+                    let rs1 = 8 + rs1_p;
+                    let val = regs_snapshot[rs1 as usize];
+                    let taken = val != 0;
+                    let imm = if taken {
+                        ((rng.range(8) as i32) + 1) * 2
+                    } else {
+                        0
+                    };
+                    push16(&mut halfwords, enc_c_bnez(rs1_p, imm));
+                    ops.push(OracleOp::BranchZ { rs1, taken });
+                }
                 _ => unreachable!(),
             }
         } else {
@@ -1156,10 +1318,109 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                 _ => unreachable!(),
             }
         }
+        // Update generation oracle state for next iteration's branch decisions
+        if let Some(last_op) = ops.last() {
+            gen_oracle.apply(last_op);
+        }
     }
+
+    // ── Post-generation: build oracle state by simulating the VM's execution path ──
+    // The generation loop above generates instructions sequentially, but jumps/branches
+    // mean the VM doesn't execute them all. We need to replay only the ops the VM
+    // actually executes to get the correct final oracle state.
+    //
+    // Each OracleOp corresponds to one instruction. For compressed ops, the instruction
+    // size is 2 bytes (1 halfword). For 32-bit ops (ALU, CSR), it's 4 bytes (2 halfwords).
+    // We track instruction byte positions to resolve jump/branch targets.
+
+    // Build a map: instruction index -> byte offset within the program
+    let mut inst_byte_offsets: Vec<usize> = Vec::with_capacity(ops.len());
+    let mut byte_pos = 0usize;
+    for op in &ops {
+        inst_byte_offsets.push(byte_pos);
+        byte_pos += match op {
+            // 32-bit instructions (ALU R-type, CSR)
+            OracleOp::Add { .. } | OracleOp::Sub { .. } | OracleOp::And { .. }
+            | OracleOp::Or { .. } | OracleOp::Xor { .. } | OracleOp::Sll { .. }
+            | OracleOp::Srl { .. } | OracleOp::Csrrw { .. } | OracleOp::Csrrs { .. }
+            | OracleOp::Csrrc { .. } | OracleOp::Csrrci { .. } | OracleOp::Csrrsi { .. }
+            | OracleOp::CsrrwZero { .. } | OracleOp::CsrrsiZero { .. } => 4,
+            // Everything else is compressed (2 bytes)
+            _ => 2,
+        };
+    }
+
+    // Simulate execution: walk through ops, following jumps/branches
+    let mut sim_oracle = Oracle::new();
+    let mut pc_idx = 0usize; // current instruction index
+    let sim_limit = ops.len() * 3 + 100; // safety limit
+    for _ in 0..sim_limit {
+        if pc_idx >= ops.len() {
+            break;
+        }
+        let op = &ops[pc_idx];
+        match op {
+            OracleOp::Jump => {
+                // C.J: compute jump target from byte offset
+                // The jump target was encoded in the halfword; we need to figure out
+                // how many instructions to skip. Since we only have the oracle op,
+                // we reconstruct the skip from the byte offset of the next instruction.
+                let current_byte = inst_byte_offsets[pc_idx];
+                // C.J jumps to current_byte + imm. We need to find which instruction
+                // index corresponds to that target byte address.
+                // But we don't store the imm in the OracleOp... Let me look at what
+                // we DO have. The halfwords array has the actual encoding.
+                // Simplest approach: use the halfwords to decode the jump target.
+                let hw_idx = current_byte / 2;
+                if hw_idx < halfwords.len() {
+                    let hw = halfwords[hw_idx];
+                    let target_byte = (current_byte as i32 + decode_c_j_imm(hw)) as usize;
+                    // Find the instruction index at this byte offset
+                    let target_idx = inst_byte_offsets
+                        .iter()
+                        .position(|&b| b == target_byte)
+                        .unwrap_or(ops.len()); // if not found, go to end (EBREAK)
+                    pc_idx = target_idx;
+                } else {
+                    pc_idx += 1;
+                }
+            }
+            OracleOp::BranchZ { taken, .. } => {
+                if *taken {
+                    // Same approach: decode the branch target from halfwords
+                    let current_byte = inst_byte_offsets[pc_idx];
+                    let hw_idx = current_byte / 2;
+                    if hw_idx < halfwords.len() {
+                        let hw = halfwords[hw_idx];
+                        let target_byte = (current_byte as i32 + decode_c_b_imm(hw)) as usize;
+                        let target_idx = inst_byte_offsets
+                            .iter()
+                            .position(|&b| b == target_byte)
+                            .unwrap_or(ops.len());
+                        pc_idx = target_idx;
+                    } else {
+                        pc_idx += 1;
+                    }
+                } else {
+                    // Not taken: apply op and advance
+                    sim_oracle.apply(op);
+                    pc_idx += 1;
+                }
+            }
+            _ => {
+                sim_oracle.apply(op);
+                pc_idx += 1;
+            }
+        }
+    }
+    // Replace gen_oracle with the simulation-based oracle
+    let oracle = sim_oracle;
 
     // EBREAK as 32-bit instruction
     push32(&mut halfwords, enc_ebreak());
+
+    // Count actual instructions: each oracle op = 1 instruction, plus EBREAK
+    let n_instructions = ops.len() + 1;
 
     // Pack halfwords into 32-bit words (little-endian)
     let mut words: Vec<u32> = Vec::new();
@@ -1186,6 +1447,7 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
         words,
         ops,
         tracked_csrs,
+        n_instructions,
     }
 }
 
@@ -1214,7 +1476,7 @@ fn run_program(prog: &Program) -> Result<([u32; 32], Box<[u8]>, Vec<(u32, u32)>)
             .map_err(|e| format!("write at {:08x}: {:?}", addr, e))?;
     }
 
-    let max_steps = prog.words.len() * 4 + 100; // more steps since compressed = more instructions per word
+    let max_steps = prog.n_instructions * 3 + 200; // generous margin for branch skipping
     for _ in 0..max_steps {
         match vm.step() {
             cpu::StepResult::Ok => {}
@@ -1272,8 +1534,9 @@ fn check_program(
         }
     }
 
-    // Check x1-x9 (x9 is data base, should be unchanged)
-    for reg in 1u8..=9 {
+    // Check x1-x15 (x1-x8: data registers, x9: data base, x10-x15: register primes)
+    // Note: x8-x15 are used by compressed ALU ops (C.SUB, C.XOR, etc.) and branch ops
+    for reg in 1u8..=15 {
         let expected = oracle.x[reg as usize];
         let got = vm_regs[reg as usize];
         if expected != got {
