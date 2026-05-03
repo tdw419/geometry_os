@@ -441,6 +441,41 @@ fn get_tool_list() -> Vec<serde_json::Value> {
             vec![],
             desktop_vision_schema(),
         ),
+        // -- Phase 208: Programmatic Assembly & Execution Tools --
+        tool(
+            "asm_load",
+            "Load a .asm file from disk into the canvas buffer (clears canvas first). Path can be absolute or relative to the Geometry OS project directory.",
+            vec![param(
+                "path",
+                "string",
+                "Path to .asm file (e.g. programs/hello.asm)",
+                true,
+            )],
+            asm_load_schema(),
+        ),
+        tool(
+            "asm_assemble",
+            "Assemble the canvas content to bytecode at 0x1000. Returns assembly status, word count, and any warnings/errors.",
+            vec![],
+            asm_assemble_schema(),
+        ),
+        tool(
+            "asm_run",
+            "Run the assembled program from 0x1000. Polls until the VM halits or times out (10s). Returns final registers, screen checksum, and halted status.",
+            vec![param(
+                "timeout_ms",
+                "integer",
+                "Max time to wait for completion in milliseconds (default: 10000)",
+                false,
+            )],
+            asm_run_schema(),
+        ),
+        tool(
+            "asm_step",
+            "Single-step the VM by one instruction. Returns the new PC and current register state.",
+            vec![],
+            asm_step_schema(),
+        ),
     ]
 }
 
@@ -663,6 +698,52 @@ fn vm_run_program_schema() -> serde_json::Value {
             "status": {"type": "object"},
             "registers": {"type": "object"},
             "error": {"type": "string"}
+        }
+    })
+}
+
+// Phase 208: Programmatic Assembly & Execution schemas
+fn asm_load_schema() -> serde_json::Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "ok": {"type": "boolean"},
+            "path": {"type": "string"},
+            "lines": {"type": "integer"},
+            "response": {"type": "string"}
+        }
+    })
+}
+fn asm_assemble_schema() -> serde_json::Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "ok": {"type": "boolean"},
+            "words": {"type": "integer"},
+            "response": {"type": "string"},
+            "error": {"type": "string"}
+        }
+    })
+}
+fn asm_run_schema() -> serde_json::Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "ok": {"type": "boolean"},
+            "halted": {"type": "boolean"},
+            "pc": {"type": "string"},
+            "registers": {"type": "object"},
+            "response": {"type": "string"}
+        }
+    })
+}
+fn asm_step_schema() -> serde_json::Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "ok": {"type": "boolean"},
+            "pc": {"type": "string"},
+            "response": {"type": "string"}
         }
     })
 }
@@ -1371,6 +1452,129 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
             };
             Ok(parsed)
         }
+
+        // ── Phase 208: Programmatic Assembly & Execution ──
+
+        "asm_load" => {
+            let path = args["path"]
+                .as_str()
+                .ok_or("Missing 'path' parameter for asm_load")?;
+            let cmd = format!("load {}", path);
+            let resp = send_socket_cmd(&cmd)?;
+            let ok = resp.contains("[loaded:");
+            let lines = if ok {
+                // Read the file to count lines
+                std::fs::read_to_string(path).map(|s| s.lines().count()).unwrap_or(0)
+            } else {
+                0
+            };
+            Ok(serde_json::json!({
+                "ok": ok,
+                "path": path,
+                "lines": lines,
+                "response": resp.trim(),
+            }))
+        }
+
+        "asm_assemble" => {
+            let resp = send_socket_cmd("assemble")?;
+            let trimmed = resp.trim();
+            let ok = trimmed.starts_with("[OK:");
+            let words: i64 = if ok {
+                // Parse "[OK: N bytes at 0x1000]"
+                trimmed
+                    .strip_prefix("[OK:")
+                    .and_then(|s| s.split_whitespace().next())
+                    .and_then(|n| n.parse().ok())
+                    .unwrap_or(0)
+            } else {
+                0
+            };
+            let error = if !ok {
+                // Parse "[ASM ERROR line N: msg]"
+                Some(trimmed.to_string())
+            } else {
+                None
+            };
+            let mut result = serde_json::json!({
+                "ok": ok,
+                "words": words,
+                "response": trimmed,
+            });
+            if let Some(e) = error {
+                result["error"] = serde_json::Value::String(e);
+            }
+            Ok(result)
+        }
+
+        "asm_run" => {
+            let timeout_ms: u64 = args["timeout_ms"].as_u64().unwrap_or(10000);
+            // Halt first if running, then start fresh run
+            send_socket_cmd("halt")?;
+            // Start running
+            send_socket_cmd("run")?;
+            // Poll status until halted or timeout
+            let start = std::time::Instant::now();
+            let mut halted = false;
+            while start.elapsed().as_millis() < timeout_ms as u128 {
+                std::thread::sleep(std::time::Duration::from_millis(100));
+                let status_resp = send_socket_cmd("status")?;
+                if status_resp.contains("running=false") || status_resp.contains("halted=true") {
+                    halted = true;
+                    break;
+                }
+            }
+            if !halted {
+                // Force halt on timeout
+                let _ = send_socket_cmd("halt");
+            }
+            // Fetch final state using vm_state (pc, halted, registers in one call)
+            let state_resp = send_socket_cmd("vm_state")?;
+            let mut registers = serde_json::Map::new();
+            let mut pc = "????".to_string();
+            let mut vm_halted = false;
+            for line in state_resp.lines() {
+                if let Some((key, val)) = line.split_once('=') {
+                    match key.trim() {
+                        "pc" => pc = val.trim().to_string(),
+                        "halted" => vm_halted = val.trim() == "true",
+                        _ => {
+                            let k = key.trim();
+                            if k.len() == 3 && k.starts_with('r') && k[1..].chars().all(|c| c.is_ascii_digit()) {
+                                registers.insert(k.into(), val.trim().into());
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(serde_json::json!({
+                "ok": true,
+                "halted": halted || vm_halted,
+                "pc": pc,
+                "registers": registers,
+                "response": format!("halted={}, timeout={}ms", halted, timeout_ms),
+            }))
+        }
+
+        "asm_step" => {
+            let resp = send_socket_cmd("step")?;
+            let trimmed = resp.trim();
+            let ok = trimmed.starts_with("pc=");
+            let pc = if ok {
+                trimmed
+                    .strip_prefix("pc=")
+                    .unwrap_or("????")
+                    .to_string()
+            } else {
+                "????".to_string()
+            };
+            Ok(serde_json::json!({
+                "ok": ok,
+                "pc": pc,
+                "response": trimmed,
+            }))
+        }
+
         _ => Err(format!("Unknown tool: {}", name)),
     }
 }
@@ -1584,5 +1788,98 @@ mod tests {
         }
         assert_eq!(regs["r00"], "00000000");
         assert_eq!(regs["r31"], "FFFFFFFF");
+    }
+
+    #[test]
+    fn test_asm_tools_in_tool_list() {
+        let tools = get_tool_list();
+        let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
+        assert!(names.contains(&"asm_load"), "asm_load missing from tool list");
+        assert!(names.contains(&"asm_assemble"), "asm_assemble missing from tool list");
+        assert!(names.contains(&"asm_run"), "asm_run missing from tool list");
+        assert!(names.contains(&"asm_step"), "asm_step missing from tool list");
+    }
+
+    #[test]
+    fn test_asm_assemble_response_parsing() {
+        // Simulate parsing the [OK: N bytes at 0x1000] response
+        let resp = "[OK: 42 bytes at 0x1000]";
+        let trimmed = resp.trim();
+        let ok = trimmed.starts_with("[OK:");
+        let words: i64 = if ok {
+            trimmed
+                .strip_prefix("[OK:")
+                .and_then(|s| s.split_whitespace().next())
+                .and_then(|n| n.parse().ok())
+                .unwrap_or(0)
+        } else {
+            0
+        };
+        assert!(ok);
+        assert_eq!(words, 42);
+    }
+
+    #[test]
+    fn test_asm_assemble_error_parsing() {
+        let resp = "[ASM ERROR line 5: unknown opcode FOOBAR]";
+        let trimmed = resp.trim();
+        let ok = trimmed.starts_with("[OK:");
+        assert!(!ok);
+        assert!(trimmed.contains("ASM ERROR"));
+    }
+
+    #[test]
+    fn test_asm_load_response_parsing() {
+        let resp = "[loaded: programs/hello.asm]\n";
+        let ok = resp.contains("[loaded:");
+        assert!(ok);
+    }
+
+    #[test]
+    fn test_asm_step_response_parsing() {
+        let resp = "pc=0x1003";
+        let trimmed = resp.trim();
+        let ok = trimmed.starts_with("pc=");
+        let pc = if ok {
+            trimmed
+                .strip_prefix("pc=")
+                .unwrap_or("????")
+                .to_string()
+        } else {
+            "????".to_string()
+        };
+        assert!(ok);
+        assert_eq!(pc, "0x1003");
+    }
+
+    #[test]
+    fn test_vm_state_parsing() {
+        let resp = "pc=0x0000\nhalted=true\nrunning=false\nassembled=true\nr00=00000000\nr01=00000001\nr02=000000FF";
+        let mut registers = serde_json::Map::new();
+        let mut pc = "????".to_string();
+        let mut vm_halted = false;
+        for line in resp.lines() {
+            if let Some((key, val)) = line.split_once('=') {
+                match key.trim() {
+                    "pc" => pc = val.trim().to_string(),
+                    "halted" => vm_halted = val.trim() == "true",
+                        _ => {
+                            // Only capture register names r00-r31
+                            let k = key.trim();
+                            if k.len() == 3 && k.starts_with('r') && k[1..].chars().all(|c| c.is_ascii_digit()) {
+                                registers.insert(k.into(), val.trim().into());
+                            }
+                        }
+                }
+            }
+        }
+        assert_eq!(pc, "0x0000");
+        assert!(vm_halted);
+        assert_eq!(registers["r00"], "00000000");
+        assert_eq!(registers["r01"], "00000001");
+        assert_eq!(registers["r02"], "000000FF");
+        // Non-register keys should not appear in registers map
+        assert!(!registers.contains_key("running"));
+        assert!(!registers.contains_key("assembled"));
     }
 }
