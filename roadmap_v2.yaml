@@ -1684,7 +1684,7 @@ phases:
   scope_lines_total: 170
 - id: phase-203
   title: RISC-V Fuzzer Coverage Expansion
-  status: in_progress
+  status: planned
   goal: Extend the oracle-based RISC-V fuzzer to cover compressed instructions, CSR
     operations, and memory management
   description: The current fuzzer (src/riscv_fuzzer.rs, 747 lines) generates random
@@ -1722,8 +1722,6 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 200
-  _claimed_by: worker-0
-  _claimed_at: 1777808518
 - id: phase-204
   title: GeOS Clipboard -- Cross-Program Pixel Copy/Paste
   status: done

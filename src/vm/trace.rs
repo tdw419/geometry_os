@@ -22,7 +22,7 @@ pub const DEFAULT_TRACE_CAPACITY: usize = 10_000;
 pub const DEFAULT_FRAME_CHECK_CAPACITY: usize = 60;
 
 /// A single recorded execution step.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TraceEntry {
     /// Monotonically increasing step counter at time of recording.
     pub step_number: u64,
@@ -53,14 +53,12 @@ impl TraceBuffer {
     pub fn new(capacity: usize) -> Self {
         let capacity = capacity.max(1);
         TraceBuffer {
-            entries: (0..capacity)
-                .map(|_| TraceEntry {
-                    step_number: 0,
-                    pc: 0,
-                    regs: [0; 16],
-                    opcode: 0,
-                })
-                .collect(),
+            entries: vec![TraceEntry {
+                step_number: 0,
+                pc: 0,
+                regs: [0; 16],
+                opcode: 0,
+            }; capacity],
             capacity,
             head: 0,
             len: 0,
@@ -410,7 +408,7 @@ pub const MAX_SNAPSHOTS: usize = 16;
 pub const DEFAULT_PIXEL_WRITE_CAPACITY: usize = 262_144;
 
 /// A single recorded pixel write event.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PixelWriteEntry {
     /// X coordinate of the pixel written (0-255).
     pub x: u16,
@@ -454,16 +452,14 @@ impl PixelWriteLog {
     pub fn new(capacity: usize) -> Self {
         let capacity = capacity.max(1);
         PixelWriteLog {
-            entries: (0..capacity)
-                .map(|_| PixelWriteEntry {
-                    x: 0,
-                    y: 0,
-                    step_lo: 0,
-                    step_hi: 0,
-                    opcode: 0,
-                    color: 0,
-                })
-                .collect(),
+            entries: vec![PixelWriteEntry {
+                x: 0,
+                y: 0,
+                step_lo: 0,
+                step_hi: 0,
+                opcode: 0,
+                color: 0,
+            }; capacity],
             capacity,
             head: 0,
             len: 0,
