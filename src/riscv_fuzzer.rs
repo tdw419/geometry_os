@@ -1170,6 +1170,22 @@ fn check_program(
 
     let mut ok = true;
 
+    // Debug: trace all ops
+    if std::env::args().any(|a| a == "debug") {
+        eprintln!("=== Program ops ({} ops) ===", prog.ops.len());
+        for (i, op) in prog.ops.iter().enumerate() {
+            eprintln!("  [{}] {:?}", i, op);
+        }
+        eprintln!("=== Oracle final state ===");
+        for reg in 0u8..=15 {
+            eprintln!("  x{} = {:#010x}", reg, oracle.x[reg as usize]);
+        }
+        eprintln!("=== VM final state ===");
+        for reg in 0u8..=15 {
+            eprintln!("  x{} = {:#010x}", reg, vm_regs[reg as usize]);
+        }
+    }
+
     // Check x1-x9 (x9 is data base, should be unchanged)
     for reg in 1u8..=9 {
         let expected = oracle.x[reg as usize];
@@ -1219,6 +1235,10 @@ fn main() {
         .nth(3)
         .and_then(|s| s.parse().ok())
         .unwrap_or(42);
+    let debug: bool = std::env::args()
+        .nth(4)
+        .map(|s| s == "debug" || s == "1")
+        .unwrap_or(false);
 
     let mut rng = Rng::new(seed);
     let mut failures = 0u64;
