@@ -43,6 +43,11 @@ fn main() {
             setup_blank as fn(&mut vm::Vm),
             "Is this system healthy? Reply YES or NO and one short reason.",
         ),
+        (
+            "scheduler-starvation",
+            setup_starvation as fn(&mut vm::Vm),
+            "Look at the bottom 16 rows (y=240..255). Three bands: cyan=kernel, green=Guest A, blue=Guest B. Healthy scheduling shows both green and blue. Is one guest starved? Reply YES (fair) or NO (starved) and name the starved guest.",
+        ),
     ];
 
     for (name, setup_fn, prompt) in scenarios {
@@ -151,5 +156,27 @@ fn setup_stuck_pixel(vm: &mut vm::Vm) {
 
 fn setup_blank(vm: &mut vm::Vm) {
     // Truly blank
+    vm.halted = true;
+}
+
+fn setup_starvation(vm: &mut vm::Vm) {
+    // Synthetic histogram: Guest B completely starved.
+    // VM screen format: 0x00RRGGBB (see src/vision.rs:54-57).
+    for x in 0..256usize {
+        // Kernel band y=240..244: cyan
+        for y in 240..245 {
+            vm.screen[y * 256 + x] = 0x00FFFF;
+        }
+        // Guest A band y=245..249: green (ran every tick)
+        for y in 245..250 {
+            vm.screen[y * 256 + x] = 0x00FF00;
+        }
+        // Guest B band y=250..254: black (starved -- never ran)
+        for y in 250..255 {
+            vm.screen[y * 256 + x] = 0x000000;
+        }
+        // Separator y=255: dim gray
+        vm.screen[255 * 256 + x] = 0x333333;
+    }
     vm.halted = true;
 }

@@ -66,11 +66,60 @@ volatile uint32_t focused_id = 0;
 /* Tab key ASCII code -- cycles input focus */
 #define KEY_TAB  9
 
-/* Program metadata */
+/* Program metadata.
+ * Guest height is 240 -- bottom 16 rows reserved for scheduler histogram. */
+#define GUEST_HEIGHT  240u
 static const struct program_slot slots[2] = {
-    { SLOT_A, (0u << 24) | (0u << 16) | (0u << 8) | 128u },   /* left half */
-    { SLOT_B, (0u << 24) | (128u << 16) | (0u << 8) | 128u },  /* right half */
+    { SLOT_A, (0u << 24) | (0u << 16) | (GUEST_HEIGHT << 8) | 128u },   /* left half */
+    { SLOT_B, (0u << 24) | (128u << 16) | (GUEST_HEIGHT << 8) | 128u },  /* right half */
 };
+
+/* ---- Scheduler temporal histogram ----
+ *
+ * Rolling 1-px-wide columns in bottom 16 rows (y=240..255).
+ * Each timer tick paints one column for the program about to run.
+ * Three bands plus separator make the pattern legible to vision models:
+ *
+ *   y=240..244  kernel band   -- cyan,  always lit (timer fired)
+ *   y=245..249  Guest A band  -- green when A runs, else black
+ *   y=250..254  Guest B band  -- blue  when B runs, else black
+ *   y=255       separator     -- dim gray
+ *
+ * Healthy scheduling: alternating green/blue. Starvation: one band all black.
+ * Pixel format: 0xRRGGBBAA (matches geos_rgb() in libgeos.h).
+ */
+#define HIST_CYAN   0x00FFFFFFu   /* R=0 G=255 B=255 A=255 */
+#define HIST_GREEN  0x00FF00FFu   /* R=0 G=255 B=0   A=255 */
+#define HIST_BLUE   0x0000FFFFu   /* R=0 G=0   B=255 A=255 */
+#define HIST_GRAY   0x333333FFu
+#define HIST_BLACK  0x000000FFu
+
+static volatile uint32_t hist_col = 0;
+
+static void kern_histogram_tick(uint32_t prog_id) {
+    uint32_t x = hist_col % GEOS_FB_WIDTH;
+    volatile uint32_t *fb = (volatile uint32_t *)GEOS_FB_BASE;
+    uint32_t y;
+
+    /* Kernel band: always lit (timer = kernel activity) */
+    for (y = 240u; y < 245u; y++)
+        fb[y * GEOS_FB_WIDTH + x] = HIST_CYAN;
+    /* Guest A band */
+    for (y = 245u; y < 250u; y++)
+        fb[y * GEOS_FB_WIDTH + x] = (prog_id == 0) ? HIST_GREEN : HIST_BLACK;
+    /* Guest B band */
+    for (y = 250u; y < 255u; y++)
+        fb[y * GEOS_FB_WIDTH + x] = (prog_id == 1) ? HIST_BLUE : HIST_BLACK;
+    /* Separator */
+    fb[255u * GEOS_FB_WIDTH + x] = HIST_GRAY;
+
+    /* Clear next column as cursor */
+    uint32_t nx = (x + 1u) % GEOS_FB_WIDTH;
+    for (y = 240u; y < 256u; y++)
+        fb[y * GEOS_FB_WIDTH + nx] = HIST_BLACK;
+
+    hist_col = nx;
+}
 
 /* Extern symbols from guest_images.S */
 extern const char _guest_a_start[];
@@ -118,7 +167,11 @@ void kern_apply_clip(uint32_t prog_id) {
     for (y = fy; y < fy + fh && y < GEOS_FB_HEIGHT; y++)
         *(volatile uint32_t *)(GEOS_FB_BASE + y * GEOS_FB_WIDTH * 4 + rx * 4) = border_color;
 
-    /* Present the border, then set clip for the current program */
+    /* Paint one histogram column while clip is still disabled.
+     * prog_id is the NEW program (about to run). */
+    kern_histogram_tick(prog_id);
+
+    /* Present border + histogram, then set clip for the current program */
     *(volatile uint32_t *)GEOS_FB_CONTROL = 1;
     uint32_t clip = slots[prog_id].clip_rect;
     *(volatile uint32_t *)GEOS_FB_CLIP = clip;
