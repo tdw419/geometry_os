@@ -201,7 +201,10 @@ impl Bus {
                 Err(MemoryError { addr, size: 4 })
             }
         } else if super::virtio_blk::VirtioBlk::contains(addr) {
-            self.virtio_blk.write(addr, val);
+            // VirtioBlk::write() returns Some(queue_idx) on QUEUE_NOTIFY
+            if let Some(queue_idx) = self.virtio_blk.write(addr, val) {
+                self.process_virtio_blk_queue(queue_idx);
+            }
             Ok(())
         } else if super::vfs_surface::VfsSurface::contains(addr) {
             self.vfs_surface.write(addr, val);
@@ -217,6 +220,59 @@ impl Bus {
             // page table page, fix virtual PPNs before storing.
             let fixed_val = self.intercept_pte_write(addr, val);
             self.mem.write_word(addr, fixed_val)
+        }
+    }
+
+    /// Process pending requests on the virtio-blk virtqueue.
+    ///
+    /// Called when the guest writes to QUEUE_NOTIFY. Reads descriptor chains
+    /// from guest memory, performs read/write operations on the disk image,
+    /// and writes results back to guest memory.
+    fn process_virtio_blk_queue(&mut self, queue_idx: u32) {
+        let bus = self as *mut Bus;
+        // SAFETY: We need to split the mutable borrow of self so that
+        // virtio_blk can be passed to process_queue while we also provide
+        // closures that read/write self.mem. This is safe because:
+        // 1. process_queue only accesses disk (no MMIO routing)
+        // 2. The closures only access self.mem (no device state)
+        // 3. There's no aliasing conflict between these two parts
+        unsafe {
+            let virtio_blk = &mut (*bus).virtio_blk;
+
+            let mut read_word = |addr: u64| -> u32 {
+                (*bus).mem.read_word(addr).unwrap_or(0)
+            };
+            let mut write_word = |addr: u64, val: u32| {
+                let _ = (*bus).mem.write_word(addr, val);
+            };
+            let mut read_bytes = |addr: u64, len: usize| -> Vec<u8> {
+                let mut data = vec![0u8; len];
+                for i in 0..len {
+                    match (*bus).mem.read_byte(addr + i as u64) {
+                        Ok(b) => data[i] = b,
+                        Err(_) => break,
+                    }
+                }
+                data
+            };
+            let mut write_bytes = |addr: u64, data: &[u8]| {
+                for (i, &b) in data.iter().enumerate() {
+                    let _ = (*bus).mem.write_byte(addr + i as u64, b);
+                }
+            };
+
+            let processed = virtio_blk.process_queue(
+                queue_idx,
+                &mut read_word,
+                &mut write_word,
+                &mut read_bytes,
+                &mut write_bytes,
+            );
+
+            if processed > 0 {
+                // Signal PLIC interrupt for virtio device
+                (*bus).plic.signal(super::plic::IRQ_VIRTIO);
+            }
         }
     }
 

@@ -1845,7 +1845,7 @@ phases:
   scope_lines_total: 230
 - id: phase-207
   title: GeOS Collision Detection Library
-  status: planned
+  status: done
   goal: Build reusable collision detection primitives as assembly subroutines in the
     standard library
   description: Multiple game programs (snake, ball, breakout) implement their own
@@ -1855,7 +1855,7 @@ phases:
     collision. Programs CALL these instead of inlining the logic.
   deliverables:
   - name: Collision detection subroutine library
-    status: todo
+    status: done
     tasks:
     - id: p207.d1.t1
       title: Implement AABB rectangle overlap subroutine
@@ -1880,6 +1880,8 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 130
+  _claimed_by: worker-0
+  _claimed_at: 1777925762
 - id: phase-208
   title: MCP Server -- Programmatic Assembly and Execution
   status: complete
@@ -1920,7 +1922,7 @@ phases:
   scope_lines_total: 130
 - id: phase-209
   title: RISC-V Multi-Process -- Cooperative Context Switching
-  status: in_progress
+  status: complete
   goal: Run multiple bare-metal C programs concurrently in the RISC-V interpreter
     with cooperative yielding
   description: 'The GeOS VM has SPAWN/KILL for multi-process but the RISC-V guest
@@ -1931,7 +1933,7 @@ phases:
     swap.'
   deliverables:
   - name: Cooperative multi-process for RISC-V guests
-    status: in_progress
+    status: done
     tasks:
     - id: p209.d1.t1
       title: Add SBI_YIELD extension to sbi.rs
