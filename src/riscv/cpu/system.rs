@@ -164,6 +164,10 @@ impl RiscvCpu {
                         if bus.sbi.shutdown_requested {
                             return StepResult::Shutdown;
                         }
+                        if bus.sbi.yield_requested {
+                            bus.sbi.yield_requested = false;
+                            return StepResult::Yielded;
+                        }
                         return StepResult::Ok;
                     }
                 }

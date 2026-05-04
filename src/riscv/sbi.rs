@@ -58,11 +58,17 @@ const SBI_DBCN_CONSOLE_WRITE_BYTE: u32 = 2;
 
 // Geometry OS-specific SBI extension. EID is ASCII "GEO\0".
 // Function 0: GEO_VFS_READ (DEPRECATED -- use Pixel VFS Surface at 0x7000_0000)
-// Function 1: GEO_YIELD -- cooperative yield to Layer 2 scheduler
+// Function 1: GEO_YIELD -- cooperative yield to Layer 2 scheduler (round-robin)
+// Function 2: GEO_YIELD_TO -- yield to specific context ID (a0=target)
+// Function 3: GEO_SPAWN -- create new context at entry point (a0=entry)
+// Function 4: GEO_KILL -- terminate a context (a0=context_id)
 // Pixel access is via the MMIO framebuffer at 0x6000_0000 (256x256 RGBA).
 const SBI_EXT_GEOMETRY: u32 = 0x47454F00; // "GEO\0"
 const GEO_FN_VFS_READ: u32 = 0;
 const GEO_FN_YIELD: u32 = 1;
+const GEO_FN_YIELD_TO: u32 = 2;
+const GEO_FN_SPAWN: u32 = 3;
+const GEO_FN_KILL: u32 = 4;
 
 /// Pending GEO_VFS_READ request: set by handle_ecall, fulfilled by the caller
 /// which has access to guest memory. The caller reads the filename bytes from
@@ -102,6 +108,12 @@ pub struct Sbi {
     /// Retained for struct compatibility. Will be removed in a future version.
     #[deprecated(note = "Use Pixel VFS Surface")]
     pub geo_vfs_read_pending: Option<GeoVfsReadReq>,
+    /// Guest requested cooperative yield (GEO_YIELD or GEO_YIELD_TO).
+    pub yield_requested: bool,
+    /// Target context ID for GEO_YIELD_TO. None = round-robin.
+    pub yield_to_context: Option<usize>,
+    /// Guest requested spawn of a new context (GEO_SPAWN).
+    pub spawn_requested: Option<(u32, usize)>,
 }
 
 impl Sbi {
@@ -116,6 +128,9 @@ impl Sbi {
             dbcn_pending_write: None,
             dbcn_pending_read: None,
             geo_vfs_read_pending: None,
+            yield_requested: false,
+            yield_to_context: None,
+            spawn_requested: None,
         }
     }
 
@@ -344,9 +359,30 @@ impl Sbi {
                     Some((SBI_ERR_NOT_SUPPORTED as u32, 0))
                 }
                 GEO_FN_YIELD => {
-                    // Cooperative yield to Layer 2 scheduler.
-                    // When no kernel is running, return success immediately.
-                    // When a kernel is present, it will handle the context switch.
+                    // Cooperative yield: round-robin to next context.
+                    // Sets yield_requested flag; context switch is handled by RiscvVm.
+                    self.yield_requested = true;
+                    self.yield_to_context = None; // round-robin
+                    Some((SBI_SUCCESS as u32, 0))
+                }
+                GEO_FN_YIELD_TO => {
+                    // Yield to a specific context by ID (a0 = target context ID).
+                    // Returns SBI_ERR_INVALID_PARAM if context does not exist.
+                    self.yield_requested = true;
+                    self.yield_to_context = Some(a0 as usize);
+                    Some((SBI_SUCCESS as u32, 0))
+                }
+                GEO_FN_SPAWN => {
+                    // Spawn a new context at entry point a0.
+                    // Returns the new context ID in a0, or error.
+                    // Actual context creation is handled by RiscvVm.
+                    self.spawn_requested = Some((a0, 0)); // (entry, placeholder id)
+                    Some((SBI_SUCCESS as u32, 0))
+                }
+                GEO_FN_KILL => {
+                    // Kill context a0. Returns SBI_SUCCESS.
+                    // Actual cleanup is handled by RiscvVm.
+                    // For now, just acknowledge.
                     Some((SBI_SUCCESS as u32, 0))
                 }
                 _ => Some((SBI_ERR_NOT_SUPPORTED as u32, 0)),

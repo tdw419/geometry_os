@@ -240,6 +240,7 @@ fn result_name(r: &StepResult) -> &'static str {
         StepResult::LoadFault => "LOAD_FAULT",
         StepResult::StoreFault => "STORE_FAULT",
         StepResult::Shutdown => "SHUTDOWN",
+        StepResult::Yielded => "YIELDED",
     }
 }
 

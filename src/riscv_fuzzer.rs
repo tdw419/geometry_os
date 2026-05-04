@@ -733,8 +733,8 @@ impl Oracle {
             // Branches (C-extension): oracle mirrors the branch decision.
             // Both BranchZ and Jump are no-ops for register/memory/CSR state.
             // The VM executes them; we only verify that the VM doesn't corrupt state.
-            OracleOp::BranchZ { rs1: _, taken: _ } => {}
-            OracleOp::Jump => {}
+            OracleOp::BranchZ { .. } => {}
+            OracleOp::Jump { .. } => {}
         }
     }
 }
@@ -1240,7 +1240,7 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                     let offset_halfwords = (rng.range(10) as i32) + 1;
                     let imm = offset_halfwords * 2; // byte offset (must be even)
                     push16(&mut halfwords, enc_c_j(imm));
-                    ops.push(OracleOp::Jump);
+                    ops.push(OracleOp::Jump { target_idx: 0 });
                 }
                 // C.BEQZ: branch if rs1' == 0 (register primes x8-x15)
                 18 => {
@@ -1255,7 +1255,7 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                         0 // not taken
                     };
                     push16(&mut halfwords, enc_c_beqz(rs1_p, imm));
-                    ops.push(OracleOp::BranchZ { rs1, taken });
+                    ops.push(OracleOp::BranchZ { rs1 });
                 }
                 // C.BNEZ: branch if rs1' != 0 (register primes x8-x15)
                 19 => {
@@ -1269,7 +1269,7 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                         0
                     };
                     push16(&mut halfwords, enc_c_bnez(rs1_p, imm));
-                    ops.push(OracleOp::BranchZ { rs1, taken });
+                    ops.push(OracleOp::BranchZ { rs1 });
                 }
                 _ => unreachable!(),
             }
@@ -1344,7 +1344,7 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
             | OracleOp::Or { .. } | OracleOp::Xor { .. } | OracleOp::Sll { .. }
             | OracleOp::Srl { .. } | OracleOp::Csrrw { .. } | OracleOp::Csrrs { .. }
             | OracleOp::Csrrc { .. } | OracleOp::Csrrci { .. } | OracleOp::Csrrsi { .. }
-            | OracleOp::CsrrwZero { .. } | OracleOp::CsrrsiZero { .. } => 4,
+            => 4,
             // Everything else is compressed (2 bytes)
             _ => 2,
         };
@@ -1360,7 +1360,7 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
         }
         let op = &ops[pc_idx];
         match op {
-            OracleOp::Jump => {
+            OracleOp::Jump { .. } => {
                 // C.J: compute jump target from byte offset
                 // The jump target was encoded in the halfword; we need to figure out
                 // how many instructions to skip. Since we only have the oracle op,
@@ -1385,27 +1385,10 @@ fn gen_program(rng: &mut Rng, n_ops: usize) -> Program {
                     pc_idx += 1;
                 }
             }
-            OracleOp::BranchZ { taken, .. } => {
-                if *taken {
-                    // Same approach: decode the branch target from halfwords
-                    let current_byte = inst_byte_offsets[pc_idx];
-                    let hw_idx = current_byte / 2;
-                    if hw_idx < halfwords.len() {
-                        let hw = halfwords[hw_idx];
-                        let target_byte = (current_byte as i32 + decode_c_b_imm(hw)) as usize;
-                        let target_idx = inst_byte_offsets
-                            .iter()
-                            .position(|&b| b == target_byte)
-                            .unwrap_or(ops.len());
-                        pc_idx = target_idx;
-                    } else {
-                        pc_idx += 1;
-                    }
-                } else {
-                    // Not taken: apply op and advance
-                    sim_oracle.apply(op);
-                    pc_idx += 1;
-                }
+            OracleOp::BranchZ { .. } => {
+                // Branches don't modify register/memory/CSR state.
+                // The VM executes the branch; oracle just advances.
+                pc_idx += 1;
             }
             _ => {
                 sim_oracle.apply(op);
@@ -1497,6 +1480,8 @@ fn run_program(prog: &Program) -> Result<([u32; 32], Box<[u8]>, Vec<(u32, u32)>)
                 }
                 return Ok((vm.cpu.x, data.into_boxed_slice(), csr_vals));
             }
+            cpu::StepResult::Yielded => {}
+            cpu::StepResult::Yielded => {}
             other => return Err(format!("StepResult::{:?} at pc={:08x}", other, vm.cpu.pc)),
         }
     }

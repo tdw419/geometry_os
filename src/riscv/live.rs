@@ -382,6 +382,10 @@ fn vm_thread_main(
                     halt_reason = Some(format!("FAULT at PC=0x{:08X}", vm.cpu.pc));
                     break;
                 }
+                StepResult::Yielded => {
+                    // Context switch handled by RiscvVm::step() internally.
+                    // Continue running the new context.
+                }
             }
             *instruction_count.borrow_mut() += 1;
 

@@ -1303,3 +1303,181 @@ fn test_framebuf_control_register() {
     vm.bus.write_word(ctrl_addr, 1).unwrap();
     assert!(vm.bus.framebuf.present_flag, "present flag set");
 }
+
+
+// ── Phase 209: Cooperative Multi-Process Tests ──────────────────────────────
+
+#[test]
+fn test_guest_context_save_restore() {
+            use super::cpu::Privilege;
+
+    let mut vm = super::RiscvVm::new(4096);
+
+    // Set some state in the primary context
+    vm.cpu.x[5] = 0xAAAA;
+    vm.cpu.x[10] = 0xBBBB;
+    vm.cpu.pc = 0x80001000;
+
+    // Save
+    vm.save_context();
+
+    // Modify state
+    vm.cpu.x[5] = 0;
+    vm.cpu.x[10] = 0;
+    vm.cpu.pc = 0;
+
+    // Restore
+    vm.restore_context();
+
+    // Should be back to original
+    assert_eq!(vm.cpu.x[5], 0xAAAA, "register x5 restored");
+    assert_eq!(vm.cpu.x[10], 0xBBBB, "register x10 restored");
+    assert_eq!(vm.cpu.pc, 0x80001000, "PC restored");
+}
+
+#[test]
+fn test_spawn_creates_new_context() {
+    
+    let mut vm = super::RiscvVm::new(4096);
+    assert_eq!(vm.contexts.len(), 1, "starts with primary context");
+    assert_eq!(vm.current_context, 0);
+
+    // Simulate a spawn request
+    vm.bus.sbi.spawn_requested = Some((0x80100000, 0));
+
+    // Step to process the spawn
+    let result = vm.step();
+    // We expect Ok or similar since there is no real instruction to execute
+    // The spawn is processed at the beginning of step()
+    assert_eq!(vm.contexts.len(), 2, "new context created");
+    assert_eq!(vm.contexts[1].pc, 0x80100000, "new context has correct entry");
+    assert_eq!(vm.contexts[1].id, 1, "new context has correct id");
+    assert_eq!(vm.next_context_id, 2, "next id incremented");
+}
+
+#[test]
+fn test_yield_round_robin() {
+        
+    let mut vm = super::RiscvVm::new(4096);
+
+    // Write an ECALL instruction at the current PC (0x80000000)
+    // ECALL = 0x00000073
+    let pa = vm.bus.mem.ram_base;
+    vm.bus.write_word(pa, 0x00000073).unwrap();
+
+    // Set up registers for GEO_YIELD: a7=SBI_EXT_GEOMETRY, a6=GEO_FN_YIELD(1)
+    vm.cpu.x[17] = 0x47454F00; // SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 1;          // GEO_FN_YIELD
+    vm.cpu.privilege = super::cpu::Privilege::Machine;
+
+    // Create a second context
+    let mut ctx2 = GuestContext::new(1);
+    ctx2.pc = 0x80000100;
+    vm.contexts.push(ctx2);
+
+    // Step -- should yield and switch to context 1
+    let result = vm.step();
+    assert_eq!(result, StepResult::Yielded, "yield returned");
+    assert_eq!(vm.current_context, 1, "switched to context 1");
+}
+
+#[test]
+fn test_yield_returns_to_original_context() {
+    
+    let mut vm = super::RiscvVm::new(4096);
+    let pa = vm.bus.mem.ram_base;
+
+    // Write ECALL at PC of both contexts
+    vm.bus.write_word(pa, 0x00000073).unwrap();
+
+    // Set up GEO_YIELD registers for context 0
+    vm.cpu.x[17] = 0x47454F00; // SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 1;          // GEO_FN_YIELD
+    vm.cpu.privilege = super::cpu::Privilege::Machine;
+
+    // Create context 1
+    let mut ctx2 = GuestContext::new(1);
+    ctx2.pc = 0x80000000; // same PC -- will also yield
+    vm.contexts.push(ctx2);
+
+    // First yield: 0 -> 1
+    let r1 = vm.step();
+    assert_eq!(r1, StepResult::Yielded);
+    assert_eq!(vm.current_context, 1);
+
+    // Set up GEO_YIELD for context 1
+    vm.cpu.x[17] = 0x47454F00;
+    vm.cpu.x[16] = 1;
+    vm.cpu.privilege = super::cpu::Privilege::Machine;
+
+    // Second yield: 1 -> 0 (round-robin)
+    let r2 = vm.step();
+    assert_eq!(r2, StepResult::Yielded);
+    assert_eq!(vm.current_context, 0, "round-robin back to context 0");
+}
+
+#[test]
+fn test_contexts_have_independent_registers() {
+        
+    let mut vm = super::RiscvVm::new(4096);
+
+    // Context 0 sets x5 = 42
+    vm.cpu.x[5] = 42;
+    vm.save_context();
+
+    // Create context 1 with x5 = 99
+    let mut ctx2 = GuestContext::new(1);
+    ctx2.x[5] = 99;
+    vm.contexts.push(ctx2);
+
+    // Switch to context 1
+    vm.current_context = 1;
+    vm.restore_context();
+    assert_eq!(vm.cpu.x[5], 99, "context 1 has x5=99");
+
+    // Switch back to context 0
+    vm.current_context = 0;
+    vm.restore_context();
+    assert_eq!(vm.cpu.x[5], 42, "context 0 still has x5=42");
+}
+
+#[test]
+fn test_kill_context() {
+    let mut vm = super::RiscvVm::new(4096);
+
+    // Create context 1
+    vm.contexts.push(GuestContext::new(1));
+    assert_eq!(vm.alive_context_count(), 2);
+
+    // Kill context 1
+    assert!(vm.kill_context(1));
+    assert_eq!(vm.alive_context_count(), 1);
+    assert!(!vm.contexts[1].alive);
+
+    // Kill again returns false
+    assert!(!vm.kill_context(1));
+}
+
+#[test]
+fn test_yield_to_specific_context() {
+    
+    let mut vm = super::RiscvVm::new(4096);
+    let pa = vm.bus.mem.ram_base;
+
+    // Write ECALL at PC
+    vm.bus.write_word(pa, 0x00000073).unwrap();
+
+    // Create contexts 1 and 2
+    vm.contexts.push(GuestContext::new(1));
+    vm.contexts.push(GuestContext::new(2));
+
+    // Set up GEO_YIELD_TO to context 2: a6=2 (GEO_FN_YIELD_TO), a0=2
+    vm.cpu.x[17] = 0x47454F00; // SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 2;          // GEO_FN_YIELD_TO
+    vm.cpu.x[10] = 2;          // target context id
+    vm.cpu.privilege = super::cpu::Privilege::Machine;
+
+    let result = vm.step();
+    assert_eq!(result, StepResult::Yielded);
+    assert_eq!(vm.current_context, 2, "yielded to context 2");
+}

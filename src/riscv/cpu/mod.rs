@@ -46,6 +46,8 @@ pub enum StepResult {
     StoreFault,
     /// Guest requested shutdown via SBI (sbi_shutdown or sbi_system_reset).
     Shutdown,
+    /// Guest requested cooperative context switch via GEO_YIELD.
+    Yielded,
 }
 
 /// Information about the last executed instruction (Phase 41: tracing).

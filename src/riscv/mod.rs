@@ -41,11 +41,59 @@ mod tests;
 
 use cpu::StepResult;
 
+/// Saved guest context for cooperative multi-processing (Phase 209).
+/// Contains all per-process state needed to switch between contexts.
+#[derive(Debug, Clone)]
+pub struct GuestContext {
+    /// General-purpose registers x0-x31.
+    pub x: [u32; 32],
+    /// Program counter.
+    pub pc: u32,
+    /// Current privilege level.
+    pub privilege: cpu::Privilege,
+    /// Control and Status Registers.
+    pub csr: csr::CsrBank,
+    /// Translation Lookaside Buffer.
+    pub tlb: mmu::Tlb,
+    /// Delayed TLB flush flag.
+    pub satp_flush_pending: bool,
+    /// LR/SC reservation address.
+    pub reservation: Option<u64>,
+    /// Context ID assigned at spawn time.
+    pub id: usize,
+    /// Whether this context is still alive.
+    pub alive: bool,
+}
+
+impl GuestContext {
+    /// Create a new context with default state.
+    pub fn new(id: usize) -> Self {
+        Self {
+            x: [0u32; 32],
+            pc: 0x8000_0000,
+            privilege: cpu::Privilege::Machine,
+            csr: csr::CsrBank::new(),
+            tlb: mmu::Tlb::new(),
+            satp_flush_pending: false,
+            reservation: None,
+            id,
+            alive: true,
+        }
+    }
+}
+
 /// Top-level RISC-V virtual machine.
-/// Owns the CPU and the bus (memory + devices).
+/// Owns the CPU, the bus (memory + devices), and guest contexts for multi-process.
 pub struct RiscvVm {
     pub cpu: cpu::RiscvCpu,
     pub bus: bus::Bus,
+    /// Saved guest contexts for cooperative multi-processing.
+    /// Index 0 is the primary context (created at boot).
+    pub contexts: Vec<GuestContext>,
+    /// Index of the currently active context.
+    pub current_context: usize,
+    /// Next context ID to assign.
+    pub next_context_id: usize,
 }
 
 impl std::fmt::Debug for RiscvVm {
@@ -53,6 +101,8 @@ impl std::fmt::Debug for RiscvVm {
         f.debug_struct("RiscvVm")
             .field("cpu.pc", &self.cpu.pc)
             .field("bus.ram_base", &self.bus.mem.ram_base)
+            .field("contexts", &self.contexts.len())
+            .field("current_context", &self.current_context)
             .finish()
     }
 }
@@ -75,7 +125,14 @@ impl RiscvVm {
     pub fn new(ram_size: usize) -> Self {
         let bus = bus::Bus::new(0x8000_0000, ram_size);
         let cpu = cpu::RiscvCpu::new();
-        Self { cpu, bus }
+        let primary = GuestContext::new(0);
+        Self {
+            cpu,
+            bus,
+            contexts: vec![primary],
+            current_context: 0,
+            next_context_id: 1,
+        }
     }
 
     /// Create a new VM with a custom RAM base address.
@@ -83,10 +140,18 @@ impl RiscvVm {
     pub fn new_with_base(ram_base: u64, ram_size: usize) -> Self {
         let bus = bus::Bus::new(ram_base, ram_size);
         let cpu = cpu::RiscvCpu::new();
-        Self { cpu, bus }
+        let primary = GuestContext::new(0);
+        Self {
+            cpu,
+            bus,
+            contexts: vec![primary],
+            current_context: 0,
+            next_context_id: 1,
+        }
     }
 
     /// Execute one step: tick CLINT, sync MIP, run instruction.
+    /// Handles cooperative context switching when a guest yields.
     pub fn step(&mut self) -> StepResult {
         // 1. Advance CLINT timer
         self.bus.tick_clint();
@@ -94,7 +159,94 @@ impl RiscvVm {
         // 2. Sync CLINT hardware state into MIP
         self.bus.sync_mip(&mut self.cpu.csr.mip);
 
-        // 3. Execute one CPU instruction via the bus
-        self.cpu.step(&mut self.bus)
+        // 3. Handle pending spawn request
+        if let Some((entry, _)) = self.bus.sbi.spawn_requested.take() {
+            let ctx_id = self.next_context_id;
+            self.next_context_id += 1;
+            let mut ctx = GuestContext::new(ctx_id);
+            ctx.pc = entry;
+            self.contexts.push(ctx);
+            // Return the context ID to the caller (in a0)
+            self.cpu.x[10] = ctx_id as u32;
+        }
+
+        // 4. Execute one CPU instruction via the bus
+        let result = self.cpu.step(&mut self.bus);
+
+        // 5. Handle cooperative yield -- save current, switch to next
+        if result == StepResult::Yielded {
+            self.save_context();
+            let target = if let Some(id) = self.bus.sbi.yield_to_context.take() {
+                // Yield to specific context
+                id
+            } else {
+                // Round-robin: find next alive context
+                self.next_alive_context()
+            };
+            if target != self.current_context {
+                self.current_context = target;
+                self.restore_context();
+            }
+        }
+
+        result
+    }
+
+    /// Save current CPU state into the active context.
+    pub fn save_context(&mut self) {
+        if let Some(ctx) = self.contexts.get_mut(self.current_context) {
+            ctx.x.copy_from_slice(&self.cpu.x);
+            ctx.pc = self.cpu.pc;
+            ctx.privilege = self.cpu.privilege;
+            ctx.csr = self.cpu.csr.clone();
+            ctx.tlb = self.cpu.tlb.clone();
+            ctx.satp_flush_pending = self.cpu.satp_flush_pending;
+            ctx.reservation = self.cpu.reservation;
+        }
+    }
+
+    /// Restore CPU state from the active context.
+    pub fn restore_context(&mut self) {
+        if let Some(ctx) = self.contexts.get(self.current_context) {
+            self.cpu.x.copy_from_slice(&ctx.x);
+            self.cpu.pc = ctx.pc;
+            self.cpu.privilege = ctx.privilege;
+            self.cpu.csr = ctx.csr.clone();
+            self.cpu.tlb = ctx.tlb.clone();
+            self.cpu.satp_flush_pending = ctx.satp_flush_pending;
+            self.cpu.reservation = ctx.reservation;
+        }
+    }
+
+    /// Find the next alive context in round-robin order.
+    fn next_alive_context(&self) -> usize {
+        let n = self.contexts.len();
+        if n <= 1 {
+            return self.current_context;
+        }
+        for i in 1..n {
+            let idx = (self.current_context + i) % n;
+            if self.contexts[idx].alive {
+                return idx;
+            }
+        }
+        // All dead except current -- stay put
+        self.current_context
+    }
+
+    /// Get the number of alive contexts.
+    pub fn alive_context_count(&self) -> usize {
+        self.contexts.iter().filter(|c| c.alive).count()
+    }
+
+    /// Kill a context by ID. Returns true if the context was found and killed.
+    pub fn kill_context(&mut self, id: usize) -> bool {
+        if let Some(ctx) = self.contexts.get_mut(id) {
+            if ctx.alive {
+                ctx.alive = false;
+                return true;
+            }
+        }
+        false
     }
 }
