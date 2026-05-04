@@ -114,18 +114,6 @@ static inline void geos_release_region(void) {
 }
 
 /*
- * Cooperative yield. SBI ecall into the GEOMETRY extension (function 0).
- * Returns control to the Layer 2 kernel scheduler.
- * When the kernel resumes this program, geos_yield() returns 0.
- */
-static inline long geos_yield(void) {
-    register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
-    register long a0 __asm__("a0") = 0;           /* GEO_FN_YIELD */
-    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7) : "memory", "a1");
-    return a0;
-}
-
-/*
  * Check if this program has input focus.
  * SBI ecall into the GEOMETRY extension (function 1).
  * Returns 1 if this program has focus, 0 if not.
@@ -135,6 +123,59 @@ static inline long geos_has_focus(void) {
     register long a0 __asm__("a0") = 2;           /* GEO_FN_GET_FOCUS */
     __asm__ volatile("ecall" : "+r"(a0) : "r"(a7) : "memory", "a1");
     return a0;
+}
+
+/* ---- Phase 209: Multi-Process SBI Extensions ---- */
+
+/*
+ * Cooperative yield (round-robin). Switches to the next alive context.
+ * SBI ecall: a7=SBI_EXT_GEOMETRY, a6=1 (GEO_FN_YIELD).
+ * Returns 0 on success.
+ */
+static inline long geos_yield(void) {
+    register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
+    register long a6 __asm__("a6") = 1;           /* GEO_FN_YIELD */
+    __asm__ volatile("ecall" : "+r"(a7) : "r"(a6) : "memory", "a0", "a1");
+    return a7;
+}
+
+/*
+ * Yield to a specific context by ID.
+ * SBI ecall: a7=SBI_EXT_GEOMETRY, a6=2 (GEO_FN_YIELD_TO), a0=target_id.
+ * Returns 0 on success.
+ */
+static inline long geos_yield_to(long target_id) {
+    register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
+    register long a6 __asm__("a6") = 2;           /* GEO_FN_YIELD_TO */
+    register long a0 __asm__("a0") = target_id;
+    __asm__ volatile("ecall" : "+r"(a7) : "r"(a6), "r"(a0) : "memory", "a1");
+    return a7;
+}
+
+/*
+ * Spawn a new context at the given entry point.
+ * SBI ecall: a7=SBI_EXT_GEOMETRY, a6=3 (GEO_FN_SPAWN), a0=entry_point.
+ * Returns the new context ID on success.
+ */
+static inline long geos_spawn(long entry_point) {
+    register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
+    register long a6 __asm__("a6") = 3;           /* GEO_FN_SPAWN */
+    register long a0 __asm__("a0") = entry_point;
+    __asm__ volatile("ecall" : "+r"(a0) : "r"(a7), "r"(a6) : "memory", "a1");
+    return a0;
+}
+
+/*
+ * Kill a context by ID.
+ * SBI ecall: a7=SBI_EXT_GEOMETRY, a6=4 (GEO_FN_KILL), a0=context_id.
+ * Returns 0 on success.
+ */
+static inline long geos_kill(long context_id) {
+    register long a7 __asm__("a7") = 0x47454F00u; /* SBI_EXT_GEOMETRY */
+    register long a6 __asm__("a6") = 4;           /* GEO_FN_KILL */
+    register long a0 __asm__("a0") = context_id;
+    __asm__ volatile("ecall" : "+r"(a7) : "r"(a6), "r"(a0) : "memory", "a1");
+    return a7;
 }
 
 /* ---- Timing helpers ---- */
