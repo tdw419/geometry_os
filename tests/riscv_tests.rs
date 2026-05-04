@@ -56,7 +56,8 @@ pub fn run(vm: &mut RiscvVm, max_steps: usize) {
             StepResult::Ok
             | StepResult::LoadFault
             | StepResult::StoreFault
-            | StepResult::Shutdown => {}
+            | StepResult::Shutdown
+            | StepResult::Yielded => {}
         }
     }
 }

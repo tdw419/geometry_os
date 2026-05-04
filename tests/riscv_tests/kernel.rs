@@ -64,6 +64,9 @@ fn boot_kernel(ram_size: usize) -> (RiscvVm, u64) {
                 );
                 break;
             }
+            StepResult::Yielded => {
+                // Cooperative yield — continue stepping
+            }
         }
         instructions += 1;
 

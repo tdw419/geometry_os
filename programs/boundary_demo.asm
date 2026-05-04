@@ -1,47 +1,41 @@
 ; ==========================================================
-; BOUNDARY DEMO: Semantic Labeling vs. Chromatic Arithmetic
+; BOUNDARY DEMO: Spatial Encoding vs. Chromatic Encoding
 ; ==========================================================
-; This program renders a counter in two ways:
-; 1. SPATIAL/STATE (The Good): A 1D bar where each pixel is a 
-;    discrete state. Adjacency = Value proximity.
-; 2. ARITHMETIC (The Bad): A single pixel where the value is 
-;    encoded directly into the RGB components.
+; Renders a counter two ways on row y=200 (below terminal text):
+;  1. SPATIAL BAR (good): 100 green pixels, x=10..109.
+;     A vision model can count pixel length to verify state.
+;  2. CHROMATIC DOT (bad): one pixel at (120,200) whose blue
+;     channel = counter value (red base 0xFF0000 | counter).
+;     Always visible as a red dot, but blue=99 vs blue=100
+;     is imperceptible — vision model cannot verify exact state.
 ; ==========================================================
 
-.org 0x1000
-:main
-    LDI r1, 0           ; r1 = The Counter (0-255)
-    LDI r2, 10          ; r2 = X offset for Spatial Bar
-    LDI r3, 50          ; r3 = X offset for Arithmetic Pixel
-    LDI r4, 32          ; r4 = Y position
+LDI r1, 0x000000      ; color: black
+FILL r1               ; wipe screen
+LDI r1, 0             ; counter (0-99)
+LDI r5, 10            ; bar X start
+LDI r3, 120           ; chromatic dot X (offset right of bar)
+LDI r4, 200           ; Y row (safe from terminal text)
+LDI r10, 0x00FF00     ; bar color: green
+LDI r6, 0xFF0000      ; chromatic base: red (always visible)
 
-:loop
-    ; --- 1. SPATIAL/STATE RENDERING ---
-    ; We draw a bar. Each tick, we add a pixel of a DISCRETE color.
-    ; The Vision Model can count these pixels or see the "fill level".
-    LDI r10, 0x00FF00   ; Color: Green (State: Healthy/Active)
-    ADD r11, r2, r1     ; X = Offset + Counter
-    PSET r11, r4, r10   ; Draw the "State Bar"
+loop:
+    ; -- Spatial bar: green pixel, one per counter tick --
+    PSET r5, r4, r10
 
-    ; --- 2. CHROMATIC ARITHMETIC (The Failure Point) ---
-    ; We encode the raw value into the Blue channel.
-    ; A Vision Model cannot reliably distinguish 0x000040 from 0x000041.
-    MOV r12, r1         ; r12 = Blue value (0-255)
-    PSET r3, r4, r12    ; Draw the "Mixed Pixel"
+    ; -- Chromatic dot: red | counter (counter in blue channel) --
+    MOV r7, r6          ; r7 = 0xFF0000 (red base)
+    OR r7, r1           ; r7 = 0xFF0000 | counter
+    PSET r3, r4, r7     ; always visible, blue varies 0-99
 
-    ; --- 3. HILBERT MAPPING (The Geometry OS Way) ---
-    ; [Placeholder for future: Actual Hilbert LUT lookup]
-    ; For now, we simulate spatial locality by moving a 2x2 block
-    ; based on the counter bits.
-    ; [Logic omitted for brevity in demo]
+    ADDI r5, 1          ; advance bar X
+    ADDI r1, 1          ; increment counter
 
-    ; --- LOOP CONTROL ---
-    ADDI r1, r1, 1      ; Increment counter
-    CMPI r1, 100        ; Stop at 100
-    JZ r0, :done
-    
-    FRAME               ; Yield to GPU
-    JMP :loop
+    CMPI r1, 100        ; compare counter with 100
+    JZ r0, done         ; r0=0 when equal -> exit loop
 
-:done
+    FRAME               ; yield to host for rendering
+    JMP loop
+
+done:
     HALT
