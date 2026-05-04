@@ -166,12 +166,14 @@ fn enc_c_add(rd: u8, rs2: u8) -> u16 {
 
 /// C.SRLI: rd' = rd' >> shamt (bits01=01, funct3=100, func=00, rd' = bits[9:7])
 fn enc_c_srli(rd_p: u8, shamt: u32) -> u16 {
+    // bits[11:10] = 00 for SRLI, bit[12] = shamt[5], bits[6:2] = shamt[4:0]
     ((0b100u16) << 13) | (((shamt as u16 >> 5) & 1) << 12) | (((shamt as u16) & 0x1F) << 2) | ((rd_p as u16) << 7) | 0b01
 }
 
 /// C.SRAI: rd' = rd' >> shamt (arithmetic, bits01=01, funct3=100, func=01)
 fn enc_c_srai(rd_p: u8, shamt: u32) -> u16 {
-    ((0b100u16) << 13) | (((shamt as u16 >> 5) & 1) << 12) | (((shamt as u16) & 0x1F) << 2) | ((rd_p as u16) << 7) | 0b01
+    // bits[11:10] = 01 for SRAI (distinguished from SRLI by bit[10]=1)
+    ((0b100u16) << 13) | (((shamt as u16 >> 5) & 1) << 12) | (0b01u16 << 10) | (((shamt as u16) & 0x1F) << 2) | ((rd_p as u16) << 7) | 0b01
 }
 
 /// C.ANDI: rd' = rd' & imm (bits01=01, funct3=100, func=10)
