@@ -1,6 +1,9 @@
 /target
 *.sav
 *.png
+# Exception: committed test fixtures
+!programs/fixtures/
+!programs/fixtures/*.png
 Cargo.lock
 
 # Downloaded RISC-V Linux kernel + rootfs (large binaries)
