@@ -890,7 +890,7 @@ mod tests {
         dev.write(VIRTIO_BASE + QUEUE_USED_LOW, 0x1200);
 
         // Simulated guest memory: 16KB at 0x0
-        let mut mem = vec![0u32; 4096]; // 16KB of u32 words
+        let mut mem = vec![0u32; 8192]; // 32KB — must cover desc(0x1000), avail(0x1100), used(0x1200), header(0x2000), data(0x3000), status(0x4000)
         let mem_ptr = mem.as_mut_ptr();
         let mem_len = mem.len();
 
@@ -994,7 +994,7 @@ mod tests {
         dev.write(VIRTIO_BASE + QUEUE_AVAIL_LOW, 0x1100);
         dev.write(VIRTIO_BASE + QUEUE_USED_LOW, 0x1200);
 
-        let mut mem = vec![0u32; 4096];
+        let mut mem = vec![0u32; 8192]; // 32KB — must cover all descriptor addresses up to 0x4000+
         let mem_ptr = mem.as_mut_ptr();
         let mem_len = mem.len();
 
@@ -1094,7 +1094,7 @@ mod tests {
         dev.write(VIRTIO_BASE + QUEUE_AVAIL_LOW, 0x1100);
         dev.write(VIRTIO_BASE + QUEUE_USED_LOW, 0x1200);
 
-        let mut mem = vec![0u32; 4096];
+        let mut mem = vec![0u32; 8192]; // 32KB — must cover all descriptor addresses up to 0x4000+
         let mem_ptr = mem.as_mut_ptr();
         let mem_len = mem.len();
 
@@ -1212,7 +1212,7 @@ mod tests {
         dev.write(VIRTIO_BASE + QUEUE_SEL, 0);
         // Don't set QUEUE_READY
 
-        let mut mem = vec![0u32; 4096];
+        let mut mem = vec![0u32; 8192]; // 32KB — must cover all descriptor addresses up to 0x4000+
         let mut read_word = |addr: u64| -> u32 {
             let idx = (addr / 4) as usize;
             if idx < mem.len() {
