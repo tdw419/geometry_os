@@ -8,6 +8,13 @@ Cargo.lock
 .geometry_os/fs/linux/initrd.gz
 .geometry_os/fs/linux/rootfs/
 .geometry_os/fs/linux/rootfs.cpio.gz
+
+# Runtime VFS artifacts (fonts and boot.cfg are intentionally shipped)
+.geometry_os/fs/*
+!.geometry_os/fs/lib/
+!.geometry_os/fs/lib/**
+!.geometry_os/fs/boot.cfg
+
 .geometry_os/build/
 .geometry_os/build-linux/
 # GPT-2 weight files (too large for GitHub)
