@@ -1847,7 +1847,7 @@ phases:
   _claimed_at: 1777922514
 - id: phase-207
   title: GeOS Collision Detection Library
-  status: planned
+  status: done
   goal: Build reusable collision detection primitives as assembly subroutines in the
     standard library
   description: Multiple game programs (snake, ball, breakout) implement their own
@@ -1857,7 +1857,7 @@ phases:
     collision. Programs CALL these instead of inlining the logic.
   deliverables:
   - name: Collision detection subroutine library
-    status: todo
+    status: done
     tasks:
     - id: p207.d1.t1
       title: Implement AABB rectangle overlap subroutine
@@ -1882,6 +1882,8 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 130
+  _claimed_by: worker-0
+  _claimed_at: 1777925762
 - id: phase-208
   title: MCP Server -- Programmatic Assembly and Execution
   status: complete

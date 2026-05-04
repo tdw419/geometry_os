@@ -25826,3 +25826,328 @@ fn test_sprite_load_then_blit() {
     assert_eq!(vm.screen[21 * 256 + 10], 0x0000FFFF, "bottom-left: blue");
     assert_eq!(vm.screen[21 * 256 + 11], 0xFFFF00FF, "bottom-right: yellow");
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Collision detection library tests (lib/collision.asm)
+// ═══════════════════════════════════════════════════════════════
+
+/// Helper: load collision.asm library at base_addr, return (vm, base_addr, labels)
+fn load_collision_lib() -> (Vm, usize, std::collections::HashMap<String, usize>) {
+    let source =
+        std::fs::read_to_string("lib/collision.asm").expect("lib/collision.asm should exist");
+    let base = 0x5000usize;
+    let asm = crate::assembler::assemble(&source, 0).expect("collision.asm should assemble");
+    let labels = asm.labels;
+    let code = assemble_at(&source, base);
+    let mut vm = Vm::new();
+    for (i, &word) in code.iter().enumerate() {
+        if base + i < vm.ram.len() {
+            vm.ram[base + i] = word;
+        }
+    }
+    (vm, base, labels)
+}
+
+/// Helper: get absolute address of a label in collision.asm
+fn collision_addr(
+    base: usize,
+    labels: &std::collections::HashMap<String, usize>,
+    label: &str,
+) -> usize {
+    base + labels
+        .get(label)
+        .unwrap_or_else(|| panic!("label '{}' not found in collision.asm", label))
+}
+
+/// Helper: call a subroutine at addr with pre-set registers, run until RET (halt)
+fn call_subroutine(vm: &mut Vm, addr: usize, max_steps: usize) {
+    vm.pc = addr as u32;
+    vm.halted = false;
+    for _ in 0..max_steps {
+        if !vm.step() {
+            break;
+        }
+    }
+}
+
+#[test]
+fn test_collision_lib_assembles() {
+    let source =
+        std::fs::read_to_string("lib/collision.asm").expect("lib/collision.asm should exist");
+    let result = crate::assembler::assemble(&source, 0);
+    assert!(result.is_ok(), "collision.asm should assemble: {:?}", result.err());
+}
+
+// --- rect_overlap tests ---
+
+#[test]
+fn test_rect_overlap_true() {
+    let (mut vm, base, _labels) = load_collision_lib();
+    vm.regs[1] = 10; // x1
+    vm.regs[2] = 10; // y1
+    vm.regs[3] = 20; // w1
+    vm.regs[4] = 20; // h1
+    vm.regs[5] = 20; // x2
+    vm.regs[6] = 20; // y2
+    vm.regs[7] = 20; // w2
+    vm.regs[8] = 20; // h2
+    call_subroutine(&mut vm, base, 200);
+    assert_eq!(vm.regs[0], 1, "overlapping rects should return 1");
+    assert!(vm.halted, "should have halted (RET)");
+}
+
+#[test]
+fn test_rect_overlap_no_overlap_separated() {
+    let (mut vm, base, _labels) = load_collision_lib();
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 10;
+    vm.regs[4] = 10;
+    vm.regs[5] = 20;
+    vm.regs[6] = 20;
+    vm.regs[7] = 10;
+    vm.regs[8] = 10;
+    call_subroutine(&mut vm, base, 200);
+    assert_eq!(vm.regs[0], 0, "separated rects should return 0");
+}
+
+#[test]
+fn test_rect_overlap_touching_edges() {
+    let (mut vm, base, _labels) = load_collision_lib();
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 10;
+    vm.regs[4] = 10;
+    vm.regs[5] = 10;
+    vm.regs[6] = 0;
+    vm.regs[7] = 10;
+    vm.regs[8] = 10;
+    call_subroutine(&mut vm, base, 200);
+    assert_eq!(vm.regs[0], 0, "edge-touching rects should return 0");
+}
+
+#[test]
+fn test_rect_overlap_contained() {
+    let (mut vm, base, _labels) = load_collision_lib();
+    vm.regs[1] = 5;
+    vm.regs[2] = 5;
+    vm.regs[3] = 10;
+    vm.regs[4] = 10;
+    vm.regs[5] = 0;
+    vm.regs[6] = 0;
+    vm.regs[7] = 30;
+    vm.regs[8] = 30;
+    call_subroutine(&mut vm, base, 200);
+    assert_eq!(vm.regs[0], 1, "contained rect should return 1");
+}
+
+#[test]
+fn test_rect_overlap_identical() {
+    let (mut vm, base, _labels) = load_collision_lib();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 20;
+    vm.regs[4] = 20;
+    vm.regs[5] = 10;
+    vm.regs[6] = 10;
+    vm.regs[7] = 20;
+    vm.regs[8] = 20;
+    call_subroutine(&mut vm, base, 200);
+    assert_eq!(vm.regs[0], 1, "identical rects should return 1");
+}
+
+// --- point_in_rect tests ---
+
+#[test]
+fn test_point_in_rect_inside() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 15; // px
+    vm.regs[2] = 15; // py
+    vm.regs[3] = 10; // rx
+    vm.regs[4] = 10; // ry
+    vm.regs[5] = 20; // rw
+    vm.regs[6] = 20; // rh
+    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_rect"), 200);
+    assert_eq!(vm.regs[0], 1, "point inside rect should return 1");
+}
+
+#[test]
+fn test_point_in_rect_outside() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 50;
+    vm.regs[2] = 50;
+    vm.regs[3] = 10;
+    vm.regs[4] = 10;
+    vm.regs[5] = 20;
+    vm.regs[6] = 20;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_rect"), 200);
+    assert_eq!(vm.regs[0], 0, "point outside rect should return 0");
+}
+
+#[test]
+fn test_point_in_rect_on_edge() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 10;
+    vm.regs[2] = 15;
+    vm.regs[3] = 10;
+    vm.regs[4] = 10;
+    vm.regs[5] = 20;
+    vm.regs[6] = 20;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_rect"), 200);
+    assert_eq!(vm.regs[0], 1, "point on edge should be inside (return 1)");
+}
+
+// --- point_in_circle tests ---
+
+#[test]
+fn test_point_in_circle_inside() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 3;
+    vm.regs[2] = 4;
+    vm.regs[3] = 0;
+    vm.regs[4] = 0;
+    vm.regs[5] = 5;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_circle"), 200);
+    assert_eq!(vm.regs[0], 1, "point on circle boundary should return 1");
+}
+
+#[test]
+fn test_point_in_circle_outside() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 0;
+    vm.regs[4] = 0;
+    vm.regs[5] = 5;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_circle"), 200);
+    assert_eq!(vm.regs[0], 0, "point far outside circle should return 0");
+}
+
+#[test]
+fn test_point_in_circle_at_center() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 100;
+    vm.regs[2] = 200;
+    vm.regs[3] = 100;
+    vm.regs[4] = 200;
+    vm.regs[5] = 50;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_circle"), 200);
+    assert_eq!(vm.regs[0], 1, "point at center should return 1");
+}
+
+// --- circle_rect_intersect tests ---
+
+#[test]
+fn test_circle_rect_intersect_inside() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 15;
+    vm.regs[2] = 15;
+    vm.regs[3] = 5;
+    vm.regs[4] = 10;
+    vm.regs[5] = 10;
+    vm.regs[6] = 20;
+    vm.regs[7] = 20;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "circle_rect_intersect"), 500);
+    assert_eq!(vm.regs[0], 1, "circle inside rect should intersect");
+}
+
+#[test]
+fn test_circle_rect_intersect_far_away() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 100;
+    vm.regs[2] = 100;
+    vm.regs[3] = 5;
+    vm.regs[4] = 0;
+    vm.regs[5] = 0;
+    vm.regs[6] = 10;
+    vm.regs[7] = 10;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "circle_rect_intersect"), 500);
+    assert_eq!(vm.regs[0], 0, "circle far from rect should not intersect");
+}
+
+#[test]
+fn test_circle_rect_intersect_circle_center_at_corner() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 10;
+    vm.regs[2] = 10;
+    vm.regs[3] = 5;
+    vm.regs[4] = 10;
+    vm.regs[5] = 10;
+    vm.regs[6] = 20;
+    vm.regs[7] = 20;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "circle_rect_intersect"), 500);
+    assert_eq!(vm.regs[0], 1, "circle center at rect corner should intersect");
+}
+
+// --- circles_overlap tests ---
+
+#[test]
+fn test_circles_overlap_true() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 10;
+    vm.regs[4] = 15;
+    vm.regs[5] = 0;
+    vm.regs[6] = 10;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "circles_overlap"), 200);
+    assert_eq!(vm.regs[0], 1, "overlapping circles should return 1");
+}
+
+#[test]
+fn test_circles_overlap_far_apart() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 5;
+    vm.regs[4] = 100;
+    vm.regs[5] = 100;
+    vm.regs[6] = 5;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "circles_overlap"), 200);
+    assert_eq!(vm.regs[0], 0, "far apart circles should return 0");
+}
+
+#[test]
+fn test_circles_overlap_touching() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.regs[3] = 5;
+    vm.regs[4] = 10;
+    vm.regs[5] = 0;
+    vm.regs[6] = 5;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "circles_overlap"), 200);
+    assert_eq!(vm.regs[0], 1, "touching circles should return 1");
+}
+
+// --- point_in_triangle tests ---
+
+#[test]
+fn test_point_in_triangle_inside() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 5;
+    vm.regs[2] = 3;
+    vm.regs[3] = 0;
+    vm.regs[4] = 0;
+    vm.regs[5] = 10;
+    vm.regs[6] = 0;
+    vm.regs[7] = 5;
+    vm.regs[8] = 10;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_triangle"), 500);
+    assert_eq!(vm.regs[0], 1, "point inside triangle should return 1");
+}
+
+#[test]
+fn test_point_in_triangle_outside() {
+    let (mut vm, base, labels) = load_collision_lib();
+    vm.regs[1] = 20;
+    vm.regs[2] = 20;
+    vm.regs[3] = 0;
+    vm.regs[4] = 0;
+    vm.regs[5] = 10;
+    vm.regs[6] = 0;
+    vm.regs[7] = 5;
+    vm.regs[8] = 10;
+    call_subroutine(&mut vm, collision_addr(base, &labels, "point_in_triangle"), 500);
+    assert_eq!(vm.regs[0], 0, "point outside triangle should return 0");
+}
