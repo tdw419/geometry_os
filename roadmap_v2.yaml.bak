@@ -1684,7 +1684,7 @@ phases:
   scope_lines_total: 170
 - id: phase-203
   title: RISC-V Fuzzer Coverage Expansion
-  status: planned
+  status: complete
   goal: Extend the oracle-based RISC-V fuzzer to cover compressed instructions, CSR
     operations, and memory management
   description: The current fuzzer (src/riscv_fuzzer.rs, 747 lines) generates random
@@ -1695,7 +1695,7 @@ phases:
     defensive work.
   deliverables:
   - name: Compressed instruction fuzzer coverage
-    status: todo
+    status: done
     tasks:
     - id: p203.d1.t1
       title: Add C-extension instruction generation to fuzzer
@@ -1764,7 +1764,7 @@ phases:
   _claimed_at: 1777810831
 - id: phase-205
   title: GeOS Sprite Sheet Loader
-  status: planned
+  status: complete
   goal: Load sprite sheets from VFS files and render them with SPRITE opcode in programs
   description: The SPRITE opcode already exists (0x4A) and blits NxM pixels from RAM
     to screen. But there is no standard way to load sprite data from VFS into RAM
@@ -1882,7 +1882,7 @@ phases:
   scope_lines_total: 130
 - id: phase-208
   title: MCP Server -- Programmatic Assembly and Execution
-  status: planned
+  status: complete
   goal: Add MCP tools for loading, assembling, and running .asm programs from external
     agents
   description: The MCP server (src/mcp_server.rs) exposes status/screenshot/registers
@@ -1892,7 +1892,7 @@ phases:
     This unblocks the hermes/build agent loop from inside MCP.
   deliverables:
   - name: Assembly and execution MCP tools
-    status: todo
+    status: done
     tasks:
     - id: p208.d1.t1
       title: Add asm_load tool -- load .asm file into canvas buffer
@@ -1920,7 +1920,7 @@ phases:
   scope_lines_total: 130
 - id: phase-209
   title: RISC-V Multi-Process -- Cooperative Context Switching
-  status: planned
+  status: in_progress
   goal: Run multiple bare-metal C programs concurrently in the RISC-V interpreter
     with cooperative yielding
   description: 'The GeOS VM has SPAWN/KILL for multi-process but the RISC-V guest
@@ -1931,7 +1931,7 @@ phases:
     swap.'
   deliverables:
   - name: Cooperative multi-process for RISC-V guests
-    status: todo
+    status: in_progress
     tasks:
     - id: p209.d1.t1
       title: Add SBI_YIELD extension to sbi.rs
