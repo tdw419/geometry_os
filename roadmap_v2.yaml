@@ -1804,7 +1804,7 @@ phases:
   scope_lines_total: 170
 - id: phase-206
   title: RISC-V Virtio-Blk Filesystem
-  status: in_progress
+  status: planned
   goal: Complete the virtio-blk driver so bare-metal C programs can read/write persistent
     files
   description: 'VirtioBlk exists in src/riscv/virtio_blk.rs and is wired into the
@@ -1843,8 +1843,6 @@ phases:
       scope_lines: 50
   test_target: 3
   scope_lines_total: 230
-  _claimed_by: worker-0
-  _claimed_at: 1777931006
 - id: phase-207
   title: GeOS Collision Detection Library
   status: done
