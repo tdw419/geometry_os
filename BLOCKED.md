@@ -1,17 +1,10 @@
-# Auto-generated: blocked until L2 kernel phases are complete
-# Refreshed: 2026-05-04 08:49 CDT by geo-watchdog
-# Reason: These phases are Layer 4 apps or RISC-V guest work.
-# Layer 2 (cooperative multi-program kernel) must ship first.
+# Auto-generated: blocked phases requiring manual intervention
+# Refreshed: 2026-05-04 17:35 CDT by geo-watchdog
 # NOTE: BLOCKED_MAX_AGE is 1h -- this file needs periodic refresh.
 #
-phase-203 | not Layer 2 kernel work (RISC-V Fuzzer Coverage Expansion) | 1777902971 | 1
-phase-205 | not Layer 2 kernel work (GeOS Sprite Sheet Loader) | 1777902971 | 1
-phase-206 | not Layer 2 kernel work (RISC-V Virtio-Blk Filesystem) | 1777902971 | 1
-phase-207 | not Layer 2 kernel work (GeOS Collision Detection Library) | 1777902971 | 1
-phase-210 | not Layer 2 kernel work (GeOS Text Rendering -- Variable-Width Font Support) | 1777902971 | 1
-phase-211 | not Layer 2 kernel work (GeOS Performance -- Instruction Cache for Hot Loops) | 1777902971 | 1
-phase-212 | not Layer 2 kernel work (GeOS Pixel Art Export -- PNG Screenshot to VFS) | 1777902971 | 1
-phase-213 | not Layer 2 kernel work (GeOS Tilemap Editor -- Visual Map Building Tool) | 1777902971 | 1
-phase-214 | not Layer 2 kernel work (RISC-V GPU Compute -- WGSL Shader Integration) | 1777902971 | 1
-phase-215 | not Layer 2 kernel work (RISC-V Guest -- Hex Editor) | 1777902971 | 1
-phase-216 | not Layer 2 kernel work (RISC-V Guest -- Filesystem Commands in Shell) | 1777902971 | 1
+# phase-206: Drafter failed 4x on unaligned virtio structure reads.
+# The read_word_fn API reads u32-aligned words but virtio mixes u16/u32
+# fields. Needs API design decision (add read_half_word_fn or pack test data
+# as u32-aligned). Drafter cannot resolve this autonomously.
+#
+phase-206 | drafter failed 4x, unaligned virtio reads need manual API fix | 1777905350 | 1
