@@ -1684,7 +1684,7 @@ phases:
   scope_lines_total: 170
 - id: phase-203
   title: RISC-V Fuzzer Coverage Expansion
-  status: planned
+  status: complete
   goal: Extend the oracle-based RISC-V fuzzer to cover compressed instructions, CSR
     operations, and memory management
   description: The current fuzzer (src/riscv_fuzzer.rs, 747 lines) generates random
@@ -1695,7 +1695,7 @@ phases:
     defensive work.
   deliverables:
   - name: Compressed instruction fuzzer coverage
-    status: todo
+    status: done
     tasks:
     - id: p203.d1.t1
       title: Add C-extension instruction generation to fuzzer
