@@ -9937,8 +9937,12 @@ phases:
 - id: phase-209
   title: Host Terminal -- Test Failure Fixes (8 issues)
   status: planned
-  goal: Fix remaining terminal QA failures (line_wrap only; echo_round_trip, ctrl_c now pass)
-  description: "2026-05-01 dogfood: echo_round_trip and ctrl_c now PASS. Only line_wrap fails. Tests pwd_command, tab_completion, backspace, two_commands, clear_screen do not exist in geos_term.rs. Phase-210 tracks line_wrap specifically. This phase is largely obsolete -- worker should mark done and close."
+  goal: Fix remaining terminal QA failures (line_wrap only; echo_round_trip, ctrl_c
+    now pass)
+  description: '2026-05-01 dogfood: echo_round_trip and ctrl_c now PASS. Only line_wrap
+    fails. Tests pwd_command, tab_completion, backspace, two_commands, clear_screen
+    do not exist in geos_term.rs. Phase-210 tracks line_wrap specifically. This phase
+    is largely obsolete -- worker should mark done and close.'
   deliverables:
   - name: Fix 8 test failures
     description: 'Test failed: echo_round_trip; Test failed: line_wrap; Test failed:
@@ -9985,166 +9989,185 @@ phases:
   title: Host Terminal -- Fix mark_row_dirty r1 Clobber (FIXED)
   status: done
   goal: Fix garbled terminal output when processing multi-byte PTYREAD data
-  description: "mark_row_dirty computed (31 - row) into r1 without PUSH/POP. Since append_loop does 'ADD r9, r1' after process_byte, the corrupted r1 caused the byte-processing loop to skip (31-CUR_ROW) bytes per printable character. This garbled ALL terminal output when multiple bytes arrived in a single PTYREAD. Fix: PUSH r1/POP r1 in mark_row_dirty. All 3 terminal QA tests now pass."
+  description: 'mark_row_dirty computed (31 - row) into r1 without PUSH/POP. Since
+    append_loop does ''ADD r9, r1'' after process_byte, the corrupted r1 caused the
+    byte-processing loop to skip (31-CUR_ROW) bytes per printable character. This
+    garbled ALL terminal output when multiple bytes arrived in a single PTYREAD. Fix:
+    PUSH r1/POP r1 in mark_row_dirty. All 3 terminal QA tests now pass.'
   deliverables:
   - name: Add PUSH r1 / POP r1 to mark_row_dirty in host_term.asm
-    description: "Preserve r1 across mark_row_dirty call. Fixes byte-skipping in append_loop and sd_append loops. Commit ac16362a."
+    description: Preserve r1 across mark_row_dirty call. Fixes byte-skipping in append_loop
+      and sd_append loops. Commit ac16362a.
     status: done
     tasks:
     - id: p210.d1.t1
       title: 'Fix: mark_row_dirty r1 clobber causing garbled terminal output'
       status: done
-      description: 'Root cause: mark_row_dirty sets r1=31-row without saving. append_loop uses r1 as increment. Fix: PUSH r1/POP r1 in mark_row_dirty. Verified: line_wrap test passes (27 rows with numbers), echo_round_trip and ctrl_c still pass.'
+      description: 'Root cause: mark_row_dirty sets r1=31-row without saving. append_loop
+        uses r1 as increment. Fix: PUSH r1/POP r1 in mark_row_dirty. Verified: line_wrap
+        test passes (27 rows with numbers), echo_round_trip and ctrl_c still pass.'
     scope_lines: 4
   scope_lines_total: 86831
   test_target: 0
 - id: phase-211
-  title: "PTYREAD Busy-Spin -- CPU 100% During Interactive Use"
+  title: PTYREAD Busy-Spin -- CPU 100% During Interactive Use
   status: planned
-  goal: "Eliminate PTYREAD busy-spin that consumes 100% CPU when geos-term runs interactively"
-  description: "When geos-term launches, the VM enters a tight PTYREAD polling loop that never yields. Observed: hundreds of PTYREAD dispatches per second at PC=407 and PC=568, reading escape sequences (bracketed paste mode [?2004h/[?2004l) in a continuous spin. This makes geos-term unusable as a daily driver because it hogs CPU. The VM should either block on PTYREAD when no data is available, or insert a FRAME/yield between PTYREAD polls to throttle to the display refresh rate."
+  goal: Eliminate PTYREAD busy-spin that consumes 100% CPU when geos-term runs interactively
+  description: 'When geos-term launches, the VM enters a tight PTYREAD polling loop
+    that never yields. Observed: hundreds of PTYREAD dispatches per second at PC=407
+    and PC=568, reading escape sequences (bracketed paste mode [?2004h/[?2004l) in
+    a continuous spin. This makes geos-term unusable as a daily driver because it
+    hogs CPU. The VM should either block on PTYREAD when no data is available, or
+    insert a FRAME/yield between PTYREAD polls to throttle to the display refresh
+    rate.'
   deliverables:
-  - name: "Add PTYREAD throttling to VM main loop"
-    description: "After a PTYREAD returns 0 bytes (no data available), the VM should yield (FRAME) or sleep before retrying. This prevents the tight spin loop. The host_term.asm program polls PTYREAD every frame already, so the VM just needs to not execute additional PTYREADs within the same frame."
+  - name: Add PTYREAD throttling to VM main loop
+    description: After a PTYREAD returns 0 bytes (no data available), the VM should
+      yield (FRAME) or sleep before retrying. This prevents the tight spin loop. The
+      host_term.asm program polls PTYREAD every frame already, so the VM just needs
+      to not execute additional PTYREADs within the same frame.
     status: todo
     tasks:
     - id: p211.d1.t1
-      title: "Add cooldown or yield after empty PTYREAD"
+      title: Add cooldown or yield after empty PTYREAD
       status: todo
-      description: "In ops_pty.rs PTYREAD handler, if 0 bytes read, set a flag that prevents re-dispatch until next FRAME. Or in the VM step loop, count consecutive PTYREAD-zero-return and force FRAME after N consecutive empties."
+      description: In ops_pty.rs PTYREAD handler, if 0 bytes read, set a flag that
+        prevents re-dispatch until next FRAME. Or in the VM step loop, count consecutive
+        PTYREAD-zero-return and force FRAME after N consecutive empties.
       scope_lines: 30
     - id: p211.d1.t2
-      title: "Verify CPU usage drops to idle when terminal is open but idle"
+      title: Verify CPU usage drops to idle when terminal is open but idle
       status: todo
-      description: "Launch geos-term, wait for bash prompt, then stop typing. Monitor CPU with top/htop. Should be <5% not 100%."
+      description: Launch geos-term, wait for bash prompt, then stop typing. Monitor
+        CPU with top/htop. Should be <5% not 100%.
       scope_lines: 10
     scope_lines: 40
   scope_lines_total: 86867
   test_target: 0
-
 - title: Clippy Warning Cleanup -- Range::contains and Cast Cleanup
   status: todo
   deliverables:
   - name: Fix all manual Range::contains implementations
-    description: 'Replace manual `x >= a && x <= b` patterns with `(a..=b).contains(&x)`. Clippy reports 15+ instances.'
+    description: Replace manual `x >= a && x <= b` patterns with `(a..=b).contains(&x)`.
+      Clippy reports 15+ instances.
     status: todo
   - name: Remove unnecessary same-type casts
-    description: 'Remove `as u32` casts where the value is already u32. Clippy reports 12+ instances.'
+    description: Remove `as u32` casts where the value is already u32. Clippy reports
+      12+ instances.
     status: todo
   test_target: 0
   scope_lines_total: 100
-
 - title: Clippy Warning Cleanup -- div_ceil and Dead Code Removal
   status: todo
   deliverables:
   - name: Replace manual div_ceil implementations
-    description: 'Replace manual `(n + d - 1) / d` patterns with `n.div_ceil(d)`. Clippy reports 11 instances.'
+    description: Replace manual `(n + d - 1) / d` patterns with `n.div_ceil(d)`. Clippy
+      reports 11 instances.
     status: todo
   - name: Remove deprecated and unused code
-    description: 'Remove deprecated GeoVfsReadReq, unused LexedInstruction, cpu_opcode_width, cpu_variable_width, cpu_lex, cpu_lex_all, PatchMode, Patch struct.'
+    description: Remove deprecated GeoVfsReadReq, unused LexedInstruction, cpu_opcode_width,
+      cpu_variable_width, cpu_lex, cpu_lex_all, PatchMode, Patch struct.
     status: todo
   test_target: 2
   scope_lines_total: 200
-
 - title: Error Resilience -- pixel.rs unwrap() Elimination
   status: todo
   deliverables:
   - name: Replace all 17 unwrap() calls in pixel.rs
-    description: 'pixel.rs has the most production unwrap() calls. Replace with Result propagation or expect() with context messages.'
+    description: pixel.rs has the most production unwrap() calls. Replace with Result
+      propagation or expect() with context messages.
     status: todo
   test_target: 5
   scope_lines_total: 150
-
 - title: Error Resilience -- mmu.rs unwrap() Elimination
-  status: todo
+  status: done
   deliverables:
   - name: Replace all 14 unwrap() calls in riscv/mmu.rs
-    description: 'MMU unwrap() calls can panic during page table walks. Replace with fault-generating error paths that deliver proper page fault exceptions.'
-    status: todo
+    description: MMU unwrap() calls can panic during page table walks. Replace with
+      fault-generating error paths that deliver proper page fault exceptions.
+    status: done
   test_target: 8
   scope_lines_total: 200
-
 - title: Error Resilience -- vfs_surface.rs unwrap() Elimination
   status: todo
   deliverables:
   - name: Replace all 10 unwrap() calls in riscv/vfs_surface.rs
-    description: 'VFS surface operations should not panic the host. Replace with graceful error returns.'
+    description: VFS surface operations should not panic the host. Replace with graceful
+      error returns.
     status: todo
   test_target: 5
   scope_lines_total: 120
-
 - title: New Opcode -- SWAP (Exchange Two Registers)
   status: todo
   deliverables:
   - name: Implement SWAP opcode (0xB1)
-    description: 'SWAP rd, rs exchanges register values. 3-word encoding. Write swap_demo.asm.'
+    description: SWAP rd, rs exchanges register values. 3-word encoding. Write swap_demo.asm.
     status: todo
   test_target: 3
   scope_lines_total: 150
-
 - title: New Opcode -- CLZ/CTZ (Count Leading/Trailing Zeros)
   status: todo
   deliverables:
   - name: Implement CLZ opcode (0xB2) and CTZ opcode (0xB3)
-    description: 'CLZ rd counts leading zero bits. CTZ rd counts trailing zero bits. Essential for bit manipulation algorithms.'
+    description: CLZ rd counts leading zero bits. CTZ rd counts trailing zero bits.
+      Essential for bit manipulation algorithms.
     status: todo
   test_target: 4
   scope_lines_total: 180
-
 - title: New Opcode -- MIN/MAX (Conditional Select)
   status: todo
   deliverables:
   - name: Implement MIN opcode (0xB4) and MAX opcode (0xB5)
-    description: 'MIN rd, rs and MAX rd, rs for clamping coordinates, colors, physics. Write clamping_demo.asm.'
+    description: MIN rd, rs and MAX rd, rs for clamping coordinates, colors, physics.
+      Write clamping_demo.asm.
     status: todo
   test_target: 4
   scope_lines_total: 200
-
 - title: Program -- Maze Generator with DFS
   status: todo
   deliverables:
   - name: Write maze_generator.asm
-    description: 'Random maze using DFS with backtracking. Animate generation with FRAME. WASD player navigation.'
+    description: Random maze using DFS with backtracking. Animate generation with
+      FRAME. WASD player navigation.
     status: todo
   test_target: 2
   scope_lines_total: 400
-
 - title: Program -- Particle System Demo
   status: todo
   deliverables:
   - name: Write particles.asm
-    description: 'Particle system with gravity, emission, fade-out, color transitions. TICKS throttle. IKEY interactive emission.'
+    description: Particle system with gravity, emission, fade-out, color transitions.
+      TICKS throttle. IKEY interactive emission.
     status: todo
   test_target: 2
   scope_lines_total: 500
-
 - title: RISC-V Guest -- Basic Shell with Command History
   status: todo
   deliverables:
   - name: Write guest shell program in C
-    description: 'Minimal shell for RISC-V guest: command parsing, basic I/O via SBI, command history with up/down arrows.'
+    description: 'Minimal shell for RISC-V guest: command parsing, basic I/O via SBI,
+      command history with up/down arrows.'
     status: todo
   test_target: 2
   scope_lines_total: 400
-
 - title: VM Performance -- Step Budget Optimization
   status: todo
   deliverables:
   - name: Profile and optimize hot instruction paths
-    description: 'Profile step() dispatch loop. Optimize top 5 hottest instruction handlers. Target 10%+ MIPS improvement.'
+    description: Profile step() dispatch loop. Optimize top 5 hottest instruction
+      handlers. Target 10%+ MIPS improvement.
     status: todo
   test_target: 3
   scope_lines_total: 300
-
 - title: Scrollback Buffer Improvements
   status: todo
   deliverables:
   - name: Implement Default trait and fix unwrap() calls
-    description: 'Add Default impl for ScrollbackBuffer. Replace 4 unwrap() calls. Add configurable max scrollback lines.'
+    description: Add Default impl for ScrollbackBuffer. Replace 4 unwrap() calls.
+      Add configurable max scrollback lines.
     status: todo
   test_target: 4
   scope_lines_total: 200
-
 - title: Documentation and Meta Stats Update
   status: todo
   deliverables:
@@ -10153,539 +10176,870 @@ phases:
     status: todo
   test_target: 0
   scope_lines_total: 50
-
 - title: RISC-V Interpreter -- TLB Flush Correctness
   status: todo
   deliverables:
   - name: Verify SATP write triggers TLB flush
-    description: 'Write test that sets up TLB entry, changes SATP, verifies stale translations invalidated. Fix SFENCE.VMA if needed.'
+    description: Write test that sets up TLB entry, changes SATP, verifies stale translations
+      invalidated. Fix SFENCE.VMA if needed.
     status: todo
   test_target: 5
   scope_lines_total: 200
-
 - id: phase-212
-  title: "Fix -- test_file_browser_shows_content Timeout and Failure"
+  title: Fix -- test_file_browser_shows_content Timeout and Failure
   status: planned
-  goal: "Fix the file_browser_shows_content test that times out at 120s and fails assertion content_start != 0"
-  description: "vm::tests::test_file_browser_shows_content times out during execution (never completes within 120s). The test boots file_browser.asm with 500k steps, clicks on a file, then runs another 500k steps expecting content at RAM 0xC00. The file_browser.asm refresh_list subroutine may have an infinite rl_skip loop if VFS buffer lacks null terminators, or the program may enter a tight loop without FRAME that exhausts the step budget before rendering. Additionally, the assertion content_start != 0 may fail if OPEN/READ syscalls in file_browser.asm don't populate the content buffer correctly after a mouse click on row 1."
+  goal: Fix the file_browser_shows_content test that times out at 120s and fails assertion
+    content_start != 0
+  description: vm::tests::test_file_browser_shows_content times out during execution
+    (never completes within 120s). The test boots file_browser.asm with 500k steps,
+    clicks on a file, then runs another 500k steps expecting content at RAM 0xC00.
+    The file_browser.asm refresh_list subroutine may have an infinite rl_skip loop
+    if VFS buffer lacks null terminators, or the program may enter a tight loop without
+    FRAME that exhausts the step budget before rendering. Additionally, the assertion
+    content_start != 0 may fail if OPEN/READ syscalls in file_browser.asm don't populate
+    the content buffer correctly after a mouse click on row 1.
   deliverables:
-  - name: "Diagnose and fix file_browser.asm infinite loop or missing FRAME"
-    description: "Check refresh_list rl_skip loop for infinite scan when buffer lacks null terminator. Ensure main_loop in file_browser.asm calls FRAME every iteration to prevent step budget exhaustion. The boot helper already limits to 500k steps but if the program spins without advancing frame_count, target_frames is never reached."
+  - name: Diagnose and fix file_browser.asm infinite loop or missing FRAME
+    description: Check refresh_list rl_skip loop for infinite scan when buffer lacks
+      null terminator. Ensure main_loop in file_browser.asm calls FRAME every iteration
+      to prevent step budget exhaustion. The boot helper already limits to 500k steps
+      but if the program spins without advancing frame_count, target_frames is never
+      reached.
     status: todo
     tasks:
     - id: p212.d1.t1
-      title: "Add FRAME call to file_browser.asm main loop if missing"
+      title: Add FRAME call to file_browser.asm main loop if missing
       status: todo
-      description: "Check file_browser.asm main_loop. If it lacks FRAME, the VM frame_count never increments and the boot helper's target_frames check never triggers, causing the 500k step budget to exhaust. Add FRAME to every iteration of main_loop."
+      description: Check file_browser.asm main_loop. If it lacks FRAME, the VM frame_count
+        never increments and the boot helper's target_frames check never triggers,
+        causing the 500k step budget to exhaust. Add FRAME to every iteration of main_loop.
       scope_lines: 10
     - id: p212.d1.t2
-      title: "Fix rl_skip null-scan loop to prevent infinite loop"
+      title: Fix rl_skip null-scan loop to prevent infinite loop
       status: todo
-      description: "In refresh_list, rl_skip scans for null byte in filename buffer. If VFS LS output doesn't null-terminate filenames or the buffer is uninitialized, this loop runs forever. Add a max-scan guard (e.g., compare r20 against a buffer end address like 0xAFF) to prevent infinite scan."
+      description: In refresh_list, rl_skip scans for null byte in filename buffer.
+        If VFS LS output doesn't null-terminate filenames or the buffer is uninitialized,
+        this loop runs forever. Add a max-scan guard (e.g., compare r20 against a
+        buffer end address like 0xAFF) to prevent infinite scan.
       scope_lines: 15
     scope_lines: 25
-  - name: "Fix content buffer population after file open"
-    description: "After clicking a file row, file_browser.asm should call OPEN then READ into CONTENT_BUF at 0xC00. Verify the click handler correctly identifies the file, calls OPEN with the filename from FNAME_TABLE, calls READ into 0xC00, and stores the fd in TEMP_FD at 0x648. The test checks ram[0xC00] != 0 after clicking row 1 at (80,38)."
+  - name: Fix content buffer population after file open
+    description: After clicking a file row, file_browser.asm should call OPEN then
+      READ into CONTENT_BUF at 0xC00. Verify the click handler correctly identifies
+      the file, calls OPEN with the filename from FNAME_TABLE, calls READ into 0xC00,
+      and stores the fd in TEMP_FD at 0x648. The test checks ram[0xC00] != 0 after
+      clicking row 1 at (80,38).
     status: todo
     tasks:
     - id: p212.d2.t1
-      title: "Trace file_browser.asm click handler for row 1 open path"
+      title: Trace file_browser.asm click handler for row 1 open path
       status: todo
-      description: "Add eprintln debug or step through the click handler to verify HITQ returns id=1 for (80,38), that the handler reads FNAME_TABLE[0], calls OPEN, then READ into 0xC00. Check if MODE is set to 1 (content view) after open."
+      description: Add eprintln debug or step through the click handler to verify
+        HITQ returns id=1 for (80,38), that the handler reads FNAME_TABLE[0], calls
+        OPEN, then READ into 0xC00. Check if MODE is set to 1 (content view) after
+        open.
       scope_lines: 10
     - id: p212.d2.t2
-      title: "Verify VFS test fixtures have files with non-empty content"
+      title: Verify VFS test fixtures have files with non-empty content
       status: todo
-      description: "Check what files the default VFS contains in test mode. If LS returns files but they have 0-byte content, READ will return 0 bytes and content buffer stays zeroed. May need to ensure test VFS has at least one file with content."
+      description: Check what files the default VFS contains in test mode. If LS returns
+        files but they have 0-byte content, READ will return 0 bytes and content buffer
+        stays zeroed. May need to ensure test VFS has at least one file with content.
       scope_lines: 10
     scope_lines: 20
   scope_lines_total: 45
   test_target: 1
-
 - id: phase-213
-  title: "Fix -- test_linux_kernel_early_boot causes full suite timeout"
+  title: Fix -- test_linux_kernel_early_boot causes full suite timeout
   status: planned
-  goal: "Annotate the 1-billion-instruction Linux boot test with #[ignore] so cargo test --lib completes in reasonable time"
-  description: "riscv::tests::test_linux_kernel_early_boot runs 1,000,000,000 RISC-V instructions via RiscvVm::boot_linux(). This single test takes 60+ seconds and causes the full test suite to exceed typical timeouts (90-120s). The preflight QA reports 1819 tests passing, but running the full suite hits a timeout on this test. The test should be #[ignore]d with a comment explaining it can be run explicitly via cargo test --lib -- --ignored test_linux_kernel_early_boot."
+  goal: 'Annotate the 1-billion-instruction Linux boot test with #[ignore] so cargo
+    test --lib completes in reasonable time'
+  description: 'riscv::tests::test_linux_kernel_early_boot runs 1,000,000,000 RISC-V
+    instructions via RiscvVm::boot_linux(). This single test takes 60+ seconds and
+    causes the full test suite to exceed typical timeouts (90-120s). The preflight
+    QA reports 1819 tests passing, but running the full suite hits a timeout on this
+    test. The test should be #[ignore]d with a comment explaining it can be run explicitly
+    via cargo test --lib -- --ignored test_linux_kernel_early_boot.'
   deliverables:
-  - name: "Add #[ignore] attribute to test_linux_kernel_early_boot"
-    description: "Add #[ignore] above #[test] on line 346 of src/riscv/tests.rs. Add a doc comment explaining the test runs 1B instructions and should be invoked explicitly."
+  - name: 'Add #[ignore] attribute to test_linux_kernel_early_boot'
+    description: 'Add #[ignore] above #[test] on line 346 of src/riscv/tests.rs. Add
+      a doc comment explaining the test runs 1B instructions and should be invoked
+      explicitly.'
     status: todo
     tasks:
     - id: p213.d1.t1
-      title: "Annotate test_linux_kernel_early_boot with #[ignore]"
+      title: 'Annotate test_linux_kernel_early_boot with #[ignore]'
       status: todo
-      description: "In src/riscv/tests.rs line 346, change #[test] to #[test] #[ignore]. Add a comment: // Runs 1B RISC-V instructions (~60s). Run explicitly: cargo test --lib -- --ignored test_linux_kernel_early_boot"
+      description: 'In src/riscv/tests.rs line 346, change #[test] to #[test] #[ignore].
+        Add a comment: // Runs 1B RISC-V instructions (~60s). Run explicitly: cargo
+        test --lib -- --ignored test_linux_kernel_early_boot'
       scope_lines: 3
     scope_lines: 3
   scope_lines_total: 3
   test_target: 0
-
 - id: phase-214
-  title: "Regression -- shell.asm and nano_editor.asm fail to assemble (25 integration tests broken)"
+  title: Regression -- shell.asm and nano_editor.asm fail to assemble (25 integration
+    tests broken)
   status: planned
-  goal: "Fix two assembly regressions that break 25 of 491 integration tests (466 still pass)"
-  description: "cargo test --lib passes all 1819 tests, but cargo test --test program_tests shows 25 failures. Root cause: two .asm programs have assembly errors introduced since they were last verified. (1) shell.asm line 2886: '.org 0x1A80 is behind current position 0x1AE6' -- kill_msg data at .org 0x1AD0 is 21 bytes ('kill: usage: kill <pid>\\0'), ending at 0x1AE5, but the next .org directive tries to go backwards to 0x1A80 for export_msg. Fix: change .org 0x1A80 to .org 0x1AF0 (or compute the correct address after kill_msg). (2) nano_editor.asm line 745: 'undefined label: hp_do_goto' -- the label hp_do_goto is referenced in a JNZ instruction at the mode-4 (replace) check but never defined. The code that should carry this label exists at line 778 ('; Execute goto / CALL do_goto / JMP hp_cancel'). Fix: add 'hp_do_goto:' label before the 'CALL do_goto' comment at line 778. After fixing both, all 25 tests should pass: 16 nano_editor tests, 4 shell/hypervisor tests, and 5 multiprocess/window_manager tests (the window_manager tests depend on shell.asm at runtime)."
+  goal: Fix two assembly regressions that break 25 of 491 integration tests (466 still
+    pass)
+  description: 'cargo test --lib passes all 1819 tests, but cargo test --test program_tests
+    shows 25 failures. Root cause: two .asm programs have assembly errors introduced
+    since they were last verified. (1) shell.asm line 2886: ''.org 0x1A80 is behind
+    current position 0x1AE6'' -- kill_msg data at .org 0x1AD0 is 21 bytes (''kill:
+    usage: kill <pid>\0''), ending at 0x1AE5, but the next .org directive tries to
+    go backwards to 0x1A80 for export_msg. Fix: change .org 0x1A80 to .org 0x1AF0
+    (or compute the correct address after kill_msg). (2) nano_editor.asm line 745:
+    ''undefined label: hp_do_goto'' -- the label hp_do_goto is referenced in a JNZ
+    instruction at the mode-4 (replace) check but never defined. The code that should
+    carry this label exists at line 778 (''; Execute goto / CALL do_goto / JMP hp_cancel'').
+    Fix: add ''hp_do_goto:'' label before the ''CALL do_goto'' comment at line 778.
+    After fixing both, all 25 tests should pass: 16 nano_editor tests, 4 shell/hypervisor
+    tests, and 5 multiprocess/window_manager tests (the window_manager tests depend
+    on shell.asm at runtime).'
   deliverables:
-  - name: "Fix shell.asm .org address collision"
-    description: "At programs/shell.asm line 2886, change '.org 0x1A80' to '.org 0x1AF0'. The kill_msg string at .org 0x1AD0 is 21 bytes, ending at 0x1AE5. The export_msg that follows needs to start after 0x1AE5. Using 0x1AF0 gives 11 bytes of padding which is safe. Verify no other .org directives between 0x1AD0 and 0x1AF0 are affected."
+  - name: Fix shell.asm .org address collision
+    description: At programs/shell.asm line 2886, change '.org 0x1A80' to '.org 0x1AF0'.
+      The kill_msg string at .org 0x1AD0 is 21 bytes, ending at 0x1AE5. The export_msg
+      that follows needs to start after 0x1AE5. Using 0x1AF0 gives 11 bytes of padding
+      which is safe. Verify no other .org directives between 0x1AD0 and 0x1AF0 are
+      affected.
     status: todo
     tasks:
     - id: p214.d1.t1
-      title: "Change .org 0x1A80 to .org 0x1AF0 in shell.asm line 2886"
+      title: Change .org 0x1A80 to .org 0x1AF0 in shell.asm line 2886
       status: todo
-      description: "Edit programs/shell.asm line 2886. Change '.org 0x1A80' to '.org 0x1AF0'. Run cargo test --test program_tests -- shell:: to verify."
+      description: 'Edit programs/shell.asm line 2886. Change ''.org 0x1A80'' to ''.org
+        0x1AF0''. Run cargo test --test program_tests -- shell:: to verify.'
       scope_lines: 1
     scope_lines: 1
-  - name: "Fix nano_editor.asm undefined label hp_do_goto"
-    description: "At programs/nano_editor.asm line 778, add 'hp_do_goto:' label before the '; Execute goto' comment. The JNZ at line 745 jumps here when prompt mode is not 4 (i.e., mode 2 = goto). The CALL do_goto and JMP hp_cancel that follow are the correct handler code."
+  - name: Fix nano_editor.asm undefined label hp_do_goto
+    description: At programs/nano_editor.asm line 778, add 'hp_do_goto:' label before
+      the '; Execute goto' comment. The JNZ at line 745 jumps here when prompt mode
+      is not 4 (i.e., mode 2 = goto). The CALL do_goto and JMP hp_cancel that follow
+      are the correct handler code.
     status: todo
     tasks:
     - id: p214.d2.t1
-      title: "Add hp_do_goto: label before line 778 in nano_editor.asm"
+      title: 'Add hp_do_goto: label before line 778 in nano_editor.asm'
       status: todo
-      description: "Edit programs/nano_editor.asm. Before line 778 ('; Execute goto'), insert 'hp_do_goto:' as a new line. Run cargo test --test program_tests -- nano_editor:: to verify all 16 tests pass."
+      description: 'Edit programs/nano_editor.asm. Before line 778 (''; Execute goto''),
+        insert ''hp_do_goto:'' as a new line. Run cargo test --test program_tests
+        -- nano_editor:: to verify all 16 tests pass.'
       scope_lines: 2
     scope_lines: 2
-  - name: "Verify all 25 integration tests pass after fixes"
-    description: "Run full integration test suite: cargo test --test program_tests. Expect 491 passed, 0 failed, 3 ignored. Also verify cargo test --lib still passes 1819 tests."
+  - name: Verify all 25 integration tests pass after fixes
+    description: 'Run full integration test suite: cargo test --test program_tests.
+      Expect 491 passed, 0 failed, 3 ignored. Also verify cargo test --lib still passes
+      1819 tests.'
     status: todo
     tasks:
     - id: p214.d3.t1
-      title: "Run full test suite and confirm zero failures"
+      title: Run full test suite and confirm zero failures
       status: todo
-      description: "Run cargo test --test program_tests and cargo test --lib. Both should show 0 failures."
+      description: Run cargo test --test program_tests and cargo test --lib. Both
+        should show 0 failures.
       scope_lines: 0
     scope_lines: 0
   scope_lines_total: 3
   test_target: 25
-
 - id: phase-215
-  title: "Regression -- window_manager.asm runtime failures (spawns_child, draws_border, ball_inside_window)"
+  title: Regression -- window_manager.asm runtime failures (spawns_child, draws_border,
+    ball_inside_window)
   status: planned
-  goal: "Fix 3 window_manager integration tests that assemble but fail at runtime"
-  description: "Three multiprocess integration tests fail even though window_manager.asm assembles cleanly: (1) test_window_manager_spawns_child -- 'primary should have spawned a child process' -- after 3 frames, vm.processes is empty. The SPAWN opcode in window_manager.asm may not be executing within the frame budget, or the process table isn't being populated. (2) test_window_manager_draws_border -- 'window border (green pixels) should be visible' -- after running, no green pixels found in the framebuffer. The primary process draws a window border but it's not appearing. (3) test_window_manager_ball_inside_window -- likely same root cause as above. These were passing when phase-21 was marked done, suggesting a regression in the VM's SPAWN opcode, process scheduling, or BLIT implementation. NOTE: if phase-214 fixes shell.asm and these tests still fail, they may have a separate root cause in the VM multiprocess logic."
+  goal: Fix 3 window_manager integration tests that assemble but fail at runtime
+  description: 'Three multiprocess integration tests fail even though window_manager.asm
+    assembles cleanly: (1) test_window_manager_spawns_child -- ''primary should have
+    spawned a child process'' -- after 3 frames, vm.processes is empty. The SPAWN
+    opcode in window_manager.asm may not be executing within the frame budget, or
+    the process table isn''t being populated. (2) test_window_manager_draws_border
+    -- ''window border (green pixels) should be visible'' -- after running, no green
+    pixels found in the framebuffer. The primary process draws a window border but
+    it''s not appearing. (3) test_window_manager_ball_inside_window -- likely same
+    root cause as above. These were passing when phase-21 was marked done, suggesting
+    a regression in the VM''s SPAWN opcode, process scheduling, or BLIT implementation.
+    NOTE: if phase-214 fixes shell.asm and these tests still fail, they may have a
+    separate root cause in the VM multiprocess logic.'
   deliverables:
-  - name: "Diagnose why SPAWN opcode doesn't create child processes in window_manager tests"
-    description: "In test_window_manager_spawns_child, compile_run_multiproc runs window_manager.asm for 3 frames. The primary should SPAWN a child but vm.processes stays empty. Add debug logging to the SPAWN opcode handler to check if it's being reached and what prevents process creation. Check if the frame budget (3 frames) is too small for the primary to reach its SPAWN instruction."
+  - name: Diagnose why SPAWN opcode doesn't create child processes in window_manager
+      tests
+    description: In test_window_manager_spawns_child, compile_run_multiproc runs window_manager.asm
+      for 3 frames. The primary should SPAWN a child but vm.processes stays empty.
+      Add debug logging to the SPAWN opcode handler to check if it's being reached
+      and what prevents process creation. Check if the frame budget (3 frames) is
+      too small for the primary to reach its SPAWN instruction.
     status: todo
     tasks:
     - id: p215.d1.t1
-      title: "Add debug logging to SPAWN opcode and increase frame count"
+      title: Add debug logging to SPAWN opcode and increase frame count
       status: todo
-      description: "In the VM's SPAWN handler, add eprintln when SPAWN is executed showing the child PID. In the test, increase frame count from 3 to 100 and see if the child appears. If it does, the original 3-frame budget was too tight."
+      description: In the VM's SPAWN handler, add eprintln when SPAWN is executed
+        showing the child PID. In the test, increase frame count from 3 to 100 and
+        see if the child appears. If it does, the original 3-frame budget was too
+        tight.
       scope_lines: 15
     - id: p215.d1.t2
-      title: "Check if SPAWN requires specific VM state or initialization"
+      title: Check if SPAWN requires specific VM state or initialization
       status: todo
-      description: "Compare how compile_run_multiproc initializes the VM vs how phase-21 tests expected it. Maybe a recent change to VM initialization broke process spawning (e.g., process table not allocated, SPAWN opcode number changed, or spawn syscall not wired up)."
+      description: Compare how compile_run_multiproc initializes the VM vs how phase-21
+        tests expected it. Maybe a recent change to VM initialization broke process
+        spawning (e.g., process table not allocated, SPAWN opcode number changed,
+        or spawn syscall not wired up).
       scope_lines: 20
     scope_lines: 35
   scope_lines_total: 35
   test_target: 3
-
 - id: phase-216
-  title: "Regression -- riscv::tests::test_guest_vfs_write_readback timeout"
+  title: Regression -- riscv::tests::test_guest_vfs_write_readback timeout
   status: done
-  goal: "Fix RISC-V guest VFS write/readback test that times out at 120s"
-  description: "riscv::tests::test_guest_vfs_write_readback compiles guest_vfs_write.c to RISC-V ELF and boots it with 5M instruction budget, but the test never completes within the 120s timeout. This test was previously passing. Possible causes: (1) build_riscv_elf compilation of guest_vfs_write.c is hanging or producing a broken ELF, (2) the RISC-V guest enters an infinite loop due to a VFS syscall change, (3) the 5M instruction budget is insufficient after recent VFS changes. Check if guest_vfs_write.c exists and compiles, and whether the VFS_CONTROL_ADDR MMIO interface has changed since this test last passed."
+  goal: Fix RISC-V guest VFS write/readback test that times out at 120s
+  description: 'riscv::tests::test_guest_vfs_write_readback compiles guest_vfs_write.c
+    to RISC-V ELF and boots it with 5M instruction budget, but the test never completes
+    within the 120s timeout. This test was previously passing. Possible causes: (1)
+    build_riscv_elf compilation of guest_vfs_write.c is hanging or producing a broken
+    ELF, (2) the RISC-V guest enters an infinite loop due to a VFS syscall change,
+    (3) the 5M instruction budget is insufficient after recent VFS changes. Check
+    if guest_vfs_write.c exists and compiles, and whether the VFS_CONTROL_ADDR MMIO
+    interface has changed since this test last passed.'
   deliverables:
-  - name: "Diagnose test_guest_vfs_write_readback timeout"
-    description: "Determine whether the timeout is in compilation (build_riscv_elf) or execution (boot_guest with 5M steps). Add eprintln before and after the boot_guest call to isolate the hang. Check if guest_vfs_write.c exists in the RISC-V test fixtures directory."
+  - name: Diagnose test_guest_vfs_write_readback timeout
+    description: Determine whether the timeout is in compilation (build_riscv_elf)
+      or execution (boot_guest with 5M steps). Add eprintln before and after the boot_guest
+      call to isolate the hang. Check if guest_vfs_write.c exists in the RISC-V test
+      fixtures directory.
     status: todo
     tasks:
     - id: p216.d1.t1
-      title: "Isolate timeout to compilation vs execution"
+      title: Isolate timeout to compilation vs execution
       status: todo
-      description: "Add timing prints around build_riscv_elf() and boot_guest() calls in test_guest_vfs_write_readback. Run with RUST_BACKTRACE=1 and a shorter timeout to see which call hangs."
+      description: Add timing prints around build_riscv_elf() and boot_guest() calls
+        in test_guest_vfs_write_readback. Run with RUST_BACKTRACE=1 and a shorter
+        timeout to see which call hangs.
       scope_lines: 10
     - id: p216.d1.t2
-      title: "Check guest_vfs_write.c fixture and VFS MMIO interface"
+      title: Check guest_vfs_write.c fixture and VFS MMIO interface
       status: todo
-      description: "Verify guest_vfs_write.c exists and uses the current VFS_CONTROL_ADDR (0x7004_0000). If VFS control interface changed, the guest may be writing to wrong addresses and spinning forever."
+      description: Verify guest_vfs_write.c exists and uses the current VFS_CONTROL_ADDR
+        (0x7004_0000). If VFS control interface changed, the guest may be writing
+        to wrong addresses and spinning forever.
       scope_lines: 20
     scope_lines: 30
   scope_lines_total: 30
   test_target: 1
-
 - id: phase-217
-  title: "Regression -- vm::tests::test_winsys_vfs_sync timeout"
+  title: Regression -- vm::tests::test_winsys_vfs_sync timeout
   status: done
-  goal: "Fix WINSYS VFS_SYNC test that times out at 120s"
-  description: "vm::tests::test_winsys_vfs_sync tests WINSYS op=9 (VFS_SYNC) which writes window pixels back to host VFS files. This test was a validation test for phase-119 (VFS_BLIT/VFS_SYNC) and was passing. Now it times out. The test creates a window (op=0), blits VFS into it (op=8), modifies a pixel, then syncs back (op=9). The hang is likely in one of the WINSYS opcode handlers (0, 8, or 9). Since this is a unit test using Vm::new() directly (not booting assembly), the issue is in the Rust WINSYS implementation, not guest code."
+  goal: Fix WINSYS VFS_SYNC test that times out at 120s
+  description: vm::tests::test_winsys_vfs_sync tests WINSYS op=9 (VFS_SYNC) which
+    writes window pixels back to host VFS files. This test was a validation test for
+    phase-119 (VFS_BLIT/VFS_SYNC) and was passing. Now it times out. The test creates
+    a window (op=0), blits VFS into it (op=8), modifies a pixel, then syncs back (op=9).
+    The hang is likely in one of the WINSYS opcode handlers (0, 8, or 9). Since this
+    is a unit test using Vm::new() directly (not booting assembly), the issue is in
+    the Rust WINSYS implementation, not guest code.
   deliverables:
-  - name: "Diagnose test_winsys_vfs_sync timeout"
-    description: "The test creates a Vm, sets up registers manually, and calls vm.step() for each WINSYS operation. Add eprintln before each step() call to identify which WINSYS opcode hangs. Check if the WINSYS handler for op=0 (CREATE), op=8 (VFS_BLIT), or op=9 (VFS_SYNC) has an infinite loop or unbounded filesystem operation."
+  - name: Diagnose test_winsys_vfs_sync timeout
+    description: The test creates a Vm, sets up registers manually, and calls vm.step()
+      for each WINSYS operation. Add eprintln before each step() call to identify
+      which WINSYS opcode hangs. Check if the WINSYS handler for op=0 (CREATE), op=8
+      (VFS_BLIT), or op=9 (VFS_SYNC) has an infinite loop or unbounded filesystem
+      operation.
     status: todo
     tasks:
     - id: p217.d1.t1
-      title: "Add step-level debug logging to isolate which WINSYS op hangs"
+      title: Add step-level debug logging to isolate which WINSYS op hangs
       status: todo
-      description: "In test_winsys_vfs_sync, add eprintln before and after each of the three vm.step() calls (CREATE, VFS_BLIT, VFS_SYNC) to identify which one never returns. Then inspect the corresponding opcode handler in the VM for infinite loops."
+      description: In test_winsys_vfs_sync, add eprintln before and after each of
+        the three vm.step() calls (CREATE, VFS_BLIT, VFS_SYNC) to identify which one
+        never returns. Then inspect the corresponding opcode handler in the VM for
+        infinite loops.
       scope_lines: 10
     - id: p217.d1.t2
-      title: "Check WINSYS op=8/9 handlers for unbounded loops"
+      title: Check WINSYS op=8/9 handlers for unbounded loops
       status: todo
-      description: "In the VM's WINSYS handler (match on reg[6]), inspect op=8 (VFS_BLIT) and op=9 (VFS_SYNC) implementations. VFS_BLIT reads all files from .geometry_os/fs/ -- if the directory has grown or a file is very large, this could take too long. VFS_SYNC iterates over modified pixels and writes to disk -- check for infinite iteration bounds."
+      description: In the VM's WINSYS handler (match on reg[6]), inspect op=8 (VFS_BLIT)
+        and op=9 (VFS_SYNC) implementations. VFS_BLIT reads all files from .geometry_os/fs/
+        -- if the directory has grown or a file is very large, this could take too
+        long. VFS_SYNC iterates over modified pixels and writes to disk -- check for
+        infinite iteration bounds.
       scope_lines: 30
     scope_lines: 40
   scope_lines_total: 40
   test_target: 1
-
 - id: phase-218
-  title: "Regression -- 4 test compilation errors from phases 273-274"
+  title: Regression -- 4 test compilation errors from phases 273-274
   status: done
-  goal: "Fix test compilation failures introduced by recent phase work"
-  description: "cargo check --tests reported 6 compilation errors (4 distinct issues) in src/vm/tests.rs. These were introduced by phases 273 (interrupt-driven input queue) and 274 (solar system simulator). All errors were in test code only, not production code. Fixed and committed."
+  goal: Fix test compilation failures introduced by recent phase work
+  description: cargo check --tests reported 6 compilation errors (4 distinct issues)
+    in src/vm/tests.rs. These were introduced by phases 273 (interrupt-driven input
+    queue) and 274 (solar system simulator). All errors were in test code only, not
+    production code. Fixed and committed.
   deliverables:
-  - name: "Fix push_key type mismatches in key buffer tests"
-    description: "test_key_buffer_can_hold_200_keys: b'A' + (i % 26) failed because push_key takes u32 but b'A' is u8 and i%26 is u32. Fixed to b'A' as u32 + i % 26. test_key_buffer_overflow_drops_gracefully: push_key(b'X') -> push_key(b'X' as u32)."
+  - name: Fix push_key type mismatches in key buffer tests
+    description: 'test_key_buffer_can_hold_200_keys: b''A'' + (i % 26) failed because
+      push_key takes u32 but b''A'' is u8 and i%26 is u32. Fixed to b''A'' as u32
+      + i % 26. test_key_buffer_overflow_drops_gracefully: push_key(b''X'') -> push_key(b''X''
+      as u32).'
     status: done
     tasks:
     - id: p218.d1.t1
-      title: "Cast key byte literals to u32 for push_key calls"
+      title: Cast key byte literals to u32 for push_key calls
       status: done
-      description: "push_key signature is fn push_key(&mut self, key: u32) -> bool. Rust byte literals are u8. Cast with as u32."
+      description: 'push_key signature is fn push_key(&mut self, key: u32) -> bool.
+        Rust byte literals are u8. Cast with as u32.'
       scope_lines: 2
     scope_lines: 2
-  - name: "Fix unresolved crate path in test_imouse_assembler"
-    description: "test_imouse_assembler used geometry_os::assembler::assemble which doesn't resolve in test context. Changed to crate::assembler::assemble."
+  - name: Fix unresolved crate path in test_imouse_assembler
+    description: test_imouse_assembler used geometry_os::assembler::assemble which
+      doesn't resolve in test context. Changed to crate::assembler::assemble.
     status: done
     tasks:
     - id: p218.d2.t1
-      title: "Use crate:: path instead of geometry_os:: in test"
+      title: 'Use crate:: path instead of geometry_os:: in test'
       status: done
-      description: "Within the same crate's test module, use crate:: not the crate name."
+      description: 'Within the same crate''s test module, use crate:: not the crate
+        name.'
       scope_lines: 1
     scope_lines: 1
-  - name: "Fix fs_dir variable not in scope in test_winsys_vfs_sync"
-    description: "test_winsys_vfs_sync was refactored to use a temp dir (variable 'dir') but the post-sync verification loop still referenced 'fs_dir'. Changed to 'dir'."
+  - name: Fix fs_dir variable not in scope in test_winsys_vfs_sync
+    description: test_winsys_vfs_sync was refactored to use a temp dir (variable 'dir')
+      but the post-sync verification loop still referenced 'fs_dir'. Changed to 'dir'.
     status: done
     tasks:
     - id: p218.d3.t1
-      title: "Update stale variable reference in test_winsys_vfs_sync"
+      title: Update stale variable reference in test_winsys_vfs_sync
       status: done
-      description: "The test uses a local temp dir now, not the global .geometry_os/fs path. Fix the read_dir call."
+      description: The test uses a local temp dir now, not the global .geometry_os/fs
+        path. Fix the read_dir call.
       scope_lines: 1
     scope_lines: 1
   scope_lines_total: 4
   test_target: 4
-
 - id: phase-219
-  title: "Fix preflight false-positive GeOS detection and incomplete stale process cleanup"
+  title: Fix preflight false-positive GeOS detection and incomplete stale process
+    cleanup
   status: planned
-  goal: "geo_dogfood_qa.py correctly identifies GeOS desktop vs test runners, and kills all stale test processes before running"
-  description: "The preflight script has two related bugs causing the cron timeout: (1) check_geos_running() only filters processes with '--test-threads' in cmdline, but the actual test binary (target/debug/deps/geometry_os-HASH) and geos-term --test processes don't contain that flag, so they get falsely reported as 'GeOS running'. (2) kill_stale_test_processes() has the same filter gap, so stale test binaries from previous runs survive and cause cargo lock contention, making the next cargo test invocation hang until the 120s cron timeout kills everything. This was the direct cause of the May 3 06:33 timeout."
+  goal: geo_dogfood_qa.py correctly identifies GeOS desktop vs test runners, and kills
+    all stale test processes before running
+  description: 'The preflight script has two related bugs causing the cron timeout:
+    (1) check_geos_running() only filters processes with ''--test-threads'' in cmdline,
+    but the actual test binary (target/debug/deps/geometry_os-HASH) and geos-term
+    --test processes don''t contain that flag, so they get falsely reported as ''GeOS
+    running''. (2) kill_stale_test_processes() has the same filter gap, so stale test
+    binaries from previous runs survive and cause cargo lock contention, making the
+    next cargo test invocation hang until the 120s cron timeout kills everything.
+    This was the direct cause of the May 3 06:33 timeout.'
   deliverables:
-  - name: "Fix check_geos_running to exclude all test processes"
-    description: "In check_geos_running(), also exclude processes whose cmdline contains '/deps/geometry_os-' (test binary), 'geos-term --test', or '/target/debug/deps/' or '/target/release/deps/'. Only count the main geometry_os binary from target/release/geometry_os (without --test-threads and without /deps/ path) as a running GeOS instance."
+  - name: Fix check_geos_running to exclude all test processes
+    description: In check_geos_running(), also exclude processes whose cmdline contains
+      '/deps/geometry_os-' (test binary), 'geos-term --test', or '/target/debug/deps/'
+      or '/target/release/deps/'. Only count the main geometry_os binary from target/release/geometry_os
+      (without --test-threads and without /deps/ path) as a running GeOS instance.
     status: todo
     tasks:
     - id: p219.d1.t1
-      title: "Expand check_geos_running exclusion filters"
+      title: Expand check_geos_running exclusion filters
       status: todo
-      description: "Add checks for '/deps/geometry_os-', 'geos-term --test', '/target/' in the cmdline filter. Only return True if a process matches the release binary path without test indicators."
+      description: Add checks for '/deps/geometry_os-', 'geos-term --test', '/target/'
+        in the cmdline filter. Only return True if a process matches the release binary
+        path without test indicators.
       scope_lines: 15
     scope_lines: 15
-  - name: "Fix kill_stale_test_processes to catch all test binaries"
-    description: "Expand the pgrep pattern in kill_stale_test_processes() to also match 'target/debug/deps/geometry_os', 'target/release/deps/geometry_os', and 'geos-term --test'. Use multiple pgrep patterns or a broader regex."
+  - name: Fix kill_stale_test_processes to catch all test binaries
+    description: Expand the pgrep pattern in kill_stale_test_processes() to also match
+      'target/debug/deps/geometry_os', 'target/release/deps/geometry_os', and 'geos-term
+      --test'. Use multiple pgrep patterns or a broader regex.
     status: todo
     tasks:
     - id: p219.d2.t1
-      title: "Broaden stale process kill patterns"
+      title: Broaden stale process kill patterns
       status: todo
-      description: "Replace the single pgrep -f 'geometry_os.*--test-threads' with multiple patterns or a broader regex that also catches the test binary directly. Kill any process matching '/deps/geometry_os-' or 'geos-term --test'."
+      description: Replace the single pgrep -f 'geometry_os.*--test-threads' with
+        multiple patterns or a broader regex that also catches the test binary directly.
+        Kill any process matching '/deps/geometry_os-' or 'geos-term --test'.
       scope_lines: 20
     - id: p219.d2.t2
-      title: "Add cargo lock cleanup as fallback"
+      title: Add cargo lock cleanup as fallback
       status: todo
-      description: "If stale processes resist killing (zombie state), also remove stale Cargo.lock temporary files in target/.lock to prevent cargo from blocking on the next invocation."
+      description: If stale processes resist killing (zombie state), also remove stale
+        Cargo.lock temporary files in target/.lock to prevent cargo from blocking
+        on the next invocation.
       scope_lines: 10
     scope_lines: 30
   scope_lines_total: 45
   test_target: 0
-
 - id: phase-220
-  title: "Fix flaky test_ensure_fonts_on_boot: use absolute font paths and propagate errors"
+  title: 'Fix flaky test_ensure_fonts_on_boot: use absolute font paths and propagate
+    errors'
   status: done
-  goal: "test_ensure_fonts_on_boot passes reliably in all test orderings, not just in isolation"
-  description: "test_ensure_fonts_on_boot failed in the preflight run at 09:43 on May 3 but passes when run alone. Root cause: ensure_fonts() uses a relative path Path::new(\"fonts\") which depends on CWD, and silently swallows all errors with let _ = on create_dir_all, fs::read, and fs::write. If another test changes CWD or the fonts dir is in a bad state, the test fails silently. This will keep causing intermittent preflight failures and false build_broken reports."
+  goal: test_ensure_fonts_on_boot passes reliably in all test orderings, not just
+    in isolation
+  description: 'test_ensure_fonts_on_boot failed in the preflight run at 09:43 on
+    May 3 but passes when run alone. Root cause: ensure_fonts() uses a relative path
+    Path::new("fonts") which depends on CWD, and silently swallows all errors with
+    let _ = on create_dir_all, fs::read, and fs::write. If another test changes CWD
+    or the fonts dir is in a bad state, the test fails silently. This will keep causing
+    intermittent preflight failures and false build_broken reports.'
   deliverables:
-  - name: "Make ensure_fonts use absolute path for font source directory"
-    description: "In ensure_fonts(), resolve the fonts/ source directory relative to the crate root using CARGO_MANIFEST_DIR env var or env!(\"CARGO_MANIFEST_DIR\") at compile time, instead of relying on CWD being the project root. This eliminates the CWD dependency."
+  - name: Make ensure_fonts use absolute path for font source directory
+    description: In ensure_fonts(), resolve the fonts/ source directory relative to
+      the crate root using CARGO_MANIFEST_DIR env var or env!("CARGO_MANIFEST_DIR")
+      at compile time, instead of relying on CWD being the project root. This eliminates
+      the CWD dependency.
     status: todo
     tasks:
     - id: p220.d1.t1
-      title: "Resolve font source dir from CARGO_MANIFEST_DIR"
+      title: Resolve font source dir from CARGO_MANIFEST_DIR
       status: todo
-      description: "Replace Path::new(\"fonts\") with PathBuf::from(env!(\"CARGO_MANIFEST_DIR\")).join(\"fonts\") so the source path is always correct regardless of test runner CWD."
+      description: Replace Path::new("fonts") with PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fonts")
+        so the source path is always correct regardless of test runner CWD.
       scope_lines: 10
     scope_lines: 10
-  - name: "Propagate errors in ensure_fonts instead of silently swallowing them"
-    description: "Change ensure_fonts() to return Result<(), io::Error> and propagate errors from create_dir_all, fs::read, and fs::write. Update the caller in boot() to log the error but continue booting. This makes failures visible in test output instead of mysterious assertion failures."
+  - name: Propagate errors in ensure_fonts instead of silently swallowing them
+    description: Change ensure_fonts() to return Result<(), io::Error> and propagate
+      errors from create_dir_all, fs::read, and fs::write. Update the caller in boot()
+      to log the error but continue booting. This makes failures visible in test output
+      instead of mysterious assertion failures.
     status: todo
     tasks:
     - id: p220.d2.t1
-      title: "Change ensure_fonts to return Result"
+      title: Change ensure_fonts to return Result
       status: todo
-      description: "Replace let _ = with ? operator. Return io::Result from ensure_fonts. Handle the error at the call site in boot() with eprintln or similar."
+      description: Replace let _ = with ? operator. Return io::Result from ensure_fonts.
+        Handle the error at the call site in boot() with eprintln or similar.
       scope_lines: 20
     - id: p220.d2.t2
-      title: "Update test to check error path"
+      title: Update test to check error path
       status: todo
-      description: "Update test_ensure_fonts_on_boot to call ensure_fonts().expect(\"ensure_fonts should succeed\") so test failures show the actual I/O error rather than a generic assertion about file existence."
+      description: Update test_ensure_fonts_on_boot to call ensure_fonts().expect("ensure_fonts
+        should succeed") so test failures show the actual I/O error rather than a
+        generic assertion about file existence.
       scope_lines: 10
     scope_lines: 30
   scope_lines_total: 40
   test_target: 0
-
 - id: phase-221
-  title: "Fix test_mandelbrot_renders: update test for interactive mandelbrot.asm"
+  title: 'Fix test_mandelbrot_renders: update test for interactive mandelbrot.asm'
   status: planned
-  goal: "test_mandelbrot_renders passes -- test updated to match interactive mandelbrot.asm behavior"
-  description: "mandelbrot.asm was rewritten in phase-251 (commit 6deedf56, May 3) as an interactive fractal explorer with WASD panning, +/- zoom, and Q to quit. The old test expects the VM to halt within 200M cycles, but the new program runs an infinite main_loop that only exits on key press 'Q'. In test context with no key input, it loops forever. The test has never passed since the rewrite. Fix: update the test to inject a 'Q' key press after the first render frame, then verify the VM halts. Alternatively, test that the first render produces non-black pixels (proving the fractal renders) without requiring halt."
+  goal: test_mandelbrot_renders passes -- test updated to match interactive mandelbrot.asm
+    behavior
+  description: 'mandelbrot.asm was rewritten in phase-251 (commit 6deedf56, May 3)
+    as an interactive fractal explorer with WASD panning, +/- zoom, and Q to quit.
+    The old test expects the VM to halt within 200M cycles, but the new program runs
+    an infinite main_loop that only exits on key press ''Q''. In test context with
+    no key input, it loops forever. The test has never passed since the rewrite. Fix:
+    update the test to inject a ''Q'' key press after the first render frame, then
+    verify the VM halts. Alternatively, test that the first render produces non-black
+    pixels (proving the fractal renders) without requiring halt.'
   deliverables:
-  - name: "Update test_mandelbrot_renders to work with interactive mandelbrot.asm"
-    description: "The test at tests/program_tests/basic_programs.rs should either: (a) inject key 'Q' (ASCII 81) via vm.key_buffer or IKEY mechanism after a few frames so the program exits, OR (b) remove the halt assertion and instead verify that the framebuffer has non-black pixels after running N frames, proving the fractal rendered correctly."
+  - name: Update test_mandelbrot_renders to work with interactive mandelbrot.asm
+    description: 'The test at tests/program_tests/basic_programs.rs should either:
+      (a) inject key ''Q'' (ASCII 81) via vm.key_buffer or IKEY mechanism after a
+      few frames so the program exits, OR (b) remove the halt assertion and instead
+      verify that the framebuffer has non-black pixels after running N frames, proving
+      the fractal rendered correctly.'
     status: todo
     tasks:
     - id: p221.d1.t1
-      title: "Choose test strategy: halt-after-inject or pixel-check"
+      title: 'Choose test strategy: halt-after-inject or pixel-check'
       status: todo
-      description: "Determine the correct way to inject a key press in the test harness. Check if there's a vm.key_buffer or similar mechanism. If injection is complex, use the pixel-check approach instead."
+      description: Determine the correct way to inject a key press in the test harness.
+        Check if there's a vm.key_buffer or similar mechanism. If injection is complex,
+        use the pixel-check approach instead.
       scope_lines: 10
     - id: p221.d1.t2
-      title: "Implement the updated test"
+      title: Implement the updated test
       status: todo
-      description: "Rewrite test_mandelbrot_renders to either inject Q and verify halt, or run N frames and verify non-zero framebuffer pixels. Remove the 'VM should halt within 200M cycles' assertion."
+      description: Rewrite test_mandelbrot_renders to either inject Q and verify halt,
+        or run N frames and verify non-zero framebuffer pixels. Remove the 'VM should
+        halt within 200M cycles' assertion.
       scope_lines: 20
     scope_lines: 30
   scope_lines_total: 30
   test_target: 0
-
 - id: phase-222
-  title: "Fix test_lsystem_bootstrap: debug why expansion writes nothing to 0x2000"
+  title: 'Fix test_lsystem_bootstrap: debug why expansion writes nothing to 0x2000'
   status: planned
-  goal: "test_lsystem_bootstrap passes -- L-system expansion engine correctly populates source buffer"
-  description: "test_lsystem_bootstrap has never passed (broken since commit 9957f7c5, May 2). After 5M steps, axiom is correctly set at 0x5000 (F--F--F), rule data at 0x5100, params preset=1 iter=3, but the expansion buffer at 0x2000 is completely empty. The program calls init_koch then do_expand. do_expand should copy axiom from 0x5000 to 0x2000, then expand iteratively. The copy_axiom_lp loop appears correct (load from 0x5000, store to 0x2000, advance pointers until null). Possible causes: (1) CALL/RET stack corruption -- do_expand uses PUSH r31 and CALL copy_rule which nests return addresses, (2) the copy_axiom loop hits an issue with the address computation (LDI r12, 0 + ADD r12, r10 pattern), (3) a preprocessor or assembler issue transforms the instructions differently than expected. Need to add debug output or single-step the first ~50 instructions to find where execution diverges."
+  goal: test_lsystem_bootstrap passes -- L-system expansion engine correctly populates
+    source buffer
+  description: 'test_lsystem_bootstrap has never passed (broken since commit 9957f7c5,
+    May 2). After 5M steps, axiom is correctly set at 0x5000 (F--F--F), rule data
+    at 0x5100, params preset=1 iter=3, but the expansion buffer at 0x2000 is completely
+    empty. The program calls init_koch then do_expand. do_expand should copy axiom
+    from 0x5000 to 0x2000, then expand iteratively. The copy_axiom_lp loop appears
+    correct (load from 0x5000, store to 0x2000, advance pointers until null). Possible
+    causes: (1) CALL/RET stack corruption -- do_expand uses PUSH r31 and CALL copy_rule
+    which nests return addresses, (2) the copy_axiom loop hits an issue with the address
+    computation (LDI r12, 0 + ADD r12, r10 pattern), (3) a preprocessor or assembler
+    issue transforms the instructions differently than expected. Need to add debug
+    output or single-step the first ~50 instructions to find where execution diverges.'
   deliverables:
-  - name: "Debug and fix lsystem.asm expansion engine or test harness"
-    description: "Single-step the VM for the first ~100 instructions after PC=0 to verify CALL build_trig_tables, CALL init_koch, CALL do_expand all execute correctly. Check that axiom copy writes to 0x2000. If the program has a bug, fix it. If the test harness is wrong, fix the test."
+  - name: Debug and fix lsystem.asm expansion engine or test harness
+    description: Single-step the VM for the first ~100 instructions after PC=0 to
+      verify CALL build_trig_tables, CALL init_koch, CALL do_expand all execute correctly.
+      Check that axiom copy writes to 0x2000. If the program has a bug, fix it. If
+      the test harness is wrong, fix the test.
     status: todo
     tasks:
     - id: p222.d1.t1
-      title: "Add step-by-step debug tracing to identify failure point"
+      title: Add step-by-step debug tracing to identify failure point
       status: todo
-      description: "Create a minimal reproduction: load lsystem.asm, step ~200 instructions, print PC and key RAM addresses (0x5000, 0x2000, r10, r11, r30) after each CALL/RET to verify the call stack and buffer writes."
+      description: 'Create a minimal reproduction: load lsystem.asm, step ~200 instructions,
+        print PC and key RAM addresses (0x5000, 0x2000, r10, r11, r30) after each
+        CALL/RET to verify the call stack and buffer writes.'
       scope_lines: 30
     - id: p222.d1.t2
-      title: "Fix the root cause in lsystem.asm or test"
+      title: Fix the root cause in lsystem.asm or test
       status: todo
-      description: "Based on debug findings, fix either the assembly program (e.g., address computation bug, stack corruption) or the test expectations (e.g., the expansion works but writes to a different address)."
+      description: Based on debug findings, fix either the assembly program (e.g.,
+        address computation bug, stack corruption) or the test expectations (e.g.,
+        the expansion works but writes to a different address).
       scope_lines: 30
     scope_lines: 60
   scope_lines_total: 60
   test_target: 0
-
 - id: phase-252
-  title: "Fix riscv_fuzzer compilation: sync OracleOp enum with usage sites"
+  title: 'Fix riscv_fuzzer compilation: sync OracleOp enum with usage sites'
   status: done
-  goal: "riscv_fuzzer compiles successfully, unblocking 507 integration tests in program_tests"
-  description: "The riscv_fuzzer binary has 9 compilation errors due to OracleOp enum/usage mismatch. Commit a5c84ccf expanded fuzzer coverage (C-ext encoders + CSR expansion), adding CsrrwZero/CsrrsiZero variants and BranchZ.taken field, but a subsequent refactor removed those enum variants/fields without updating all usage sites. This blocks `cargo test --test program_tests` (507 tests) because Cargo builds all binaries by default. Errors: (1) BranchZ used with `taken` field at lines 736, 1255, 1266 but enum only has `rs1`, (2) Jump used as unit variant at lines 737, 1243, 1363 but enum has `Jump { target_idx: usize }`, (3) CsrrwZero/CsrrsiZero referenced at line 1347 but variants were removed from enum."
+  goal: riscv_fuzzer compiles successfully, unblocking 507 integration tests in program_tests
+  description: 'The riscv_fuzzer binary has 9 compilation errors due to OracleOp enum/usage
+    mismatch. Commit a5c84ccf expanded fuzzer coverage (C-ext encoders + CSR expansion),
+    adding CsrrwZero/CsrrsiZero variants and BranchZ.taken field, but a subsequent
+    refactor removed those enum variants/fields without updating all usage sites.
+    This blocks `cargo test --test program_tests` (507 tests) because Cargo builds
+    all binaries by default. Errors: (1) BranchZ used with `taken` field at lines
+    736, 1255, 1266 but enum only has `rs1`, (2) Jump used as unit variant at lines
+    737, 1243, 1363 but enum has `Jump { target_idx: usize }`, (3) CsrrwZero/CsrrsiZero
+    referenced at line 1347 but variants were removed from enum.'
   deliverables:
-  - name: "Fix OracleOp::BranchZ usage to match enum definition"
-    description: "Remove `taken` field from BranchZ construction at lines 1255 and 1266 (push `OracleOp::BranchZ { rs1 }` instead of `OracleOp::BranchZ { rs1, taken }`). Update destructuring at line 736 to `OracleOp::BranchZ { rs1: _ }` (remove `taken: _`)."
+  - name: Fix OracleOp::BranchZ usage to match enum definition
+    description: 'Remove `taken` field from BranchZ construction at lines 1255 and
+      1266 (push `OracleOp::BranchZ { rs1 }` instead of `OracleOp::BranchZ { rs1,
+      taken }`). Update destructuring at line 736 to `OracleOp::BranchZ { rs1: _ }`
+      (remove `taken: _`).'
     status: todo
     tasks:
     - id: p252.d1.t1
-      title: "Fix BranchZ construction in gen_program (lines 1255, 1266)"
+      title: Fix BranchZ construction in gen_program (lines 1255, 1266)
       status: todo
-      description: "Change `ops.push(OracleOp::BranchZ { rs1, taken })` to `ops.push(OracleOp::BranchZ { rs1 })` at both BEQZ and BNEZ generation sites."
+      description: Change `ops.push(OracleOp::BranchZ { rs1, taken })` to `ops.push(OracleOp::BranchZ
+        { rs1 })` at both BEQZ and BNEZ generation sites.
       scope_lines: 4
     - id: p252.d1.t2
-      title: "Fix BranchZ destructuring in Oracle::apply (line 736)"
+      title: Fix BranchZ destructuring in Oracle::apply (line 736)
       status: todo
-      description: "Change `OracleOp::BranchZ { rs1: _, taken: _ }` to `OracleOp::BranchZ { rs1: _ }` in the match arm."
+      description: 'Change `OracleOp::BranchZ { rs1: _, taken: _ }` to `OracleOp::BranchZ
+        { rs1: _ }` in the match arm.'
       scope_lines: 2
     scope_lines: 6
-  - name: "Fix OracleOp::Jump usage to match struct variant"
-    description: "Jump is defined as `Jump { target_idx: usize }` but used as unit variant at lines 737, 1243, 1363. Either add `target_idx` to all construction sites or change the enum to a unit variant if target_idx is never actually used."
+  - name: Fix OracleOp::Jump usage to match struct variant
+    description: 'Jump is defined as `Jump { target_idx: usize }` but used as unit
+      variant at lines 737, 1243, 1363. Either add `target_idx` to all construction
+      sites or change the enum to a unit variant if target_idx is never actually used.'
     status: todo
     tasks:
     - id: p252.d2.t1
-      title: "Fix Jump construction and destructuring at all 3 sites"
+      title: Fix Jump construction and destructuring at all 3 sites
       status: todo
-      description: "At line 1243: pass target_idx when pushing Jump. At line 737 and 1363: destructure as `OracleOp::Jump { target_idx: _ }`. Alternatively, if target_idx is never read in the oracle, simplify to a unit variant."
+      description: 'At line 1243: pass target_idx when pushing Jump. At line 737 and
+        1363: destructure as `OracleOp::Jump { target_idx: _ }`. Alternatively, if
+        target_idx is never read in the oracle, simplify to a unit variant.'
       scope_lines: 10
     scope_lines: 10
-  - name: "Remove references to deleted CsrrwZero/CsrrsiZero variants"
-    description: "Line 1347 references `OracleOp::CsrrwZero { .. }` and `OracleOp::CsrrsiZero { .. }` in a match arm for byte offset calculation. These variants no longer exist. Remove them from the match."
+  - name: Remove references to deleted CsrrwZero/CsrrsiZero variants
+    description: Line 1347 references `OracleOp::CsrrwZero { .. }` and `OracleOp::CsrrsiZero
+      { .. }` in a match arm for byte offset calculation. These variants no longer
+      exist. Remove them from the match.
     status: todo
     tasks:
     - id: p252.d3.t1
-      title: "Remove CsrrwZero/CsrrsiZero from match arm at line 1347"
+      title: Remove CsrrwZero/CsrrsiZero from match arm at line 1347
       status: todo
-      description: "Delete `| OracleOp::CsrrwZero { .. } | OracleOp::CsrrsiZero { .. }` from the 4-byte instruction match arm."
+      description: Delete `| OracleOp::CsrrwZero { .. } | OracleOp::CsrrsiZero { ..
+        }` from the 4-byte instruction match arm.
       scope_lines: 3
     scope_lines: 3
   scope_lines_total: 19
   test_target: 0
-
 - id: phase-253
-  title: "Fix icache CMP signed/unsigned mismatch causing infinite loops"
+  title: Fix icache CMP signed/unsigned mismatch causing infinite loops
   status: planned
-  goal: "icache_execute CMP uses signed comparison matching the normal path, fixing rings.asm and any other program relying on signed CMP"
-  description: "The icache fast path in icache_execute (src/vm/icache.rs line 256) uses u32::cmp for the CMP opcode (0x50), which is unsigned comparison. The normal path in ops_graphics.rs line 138 uses i32 cast for signed comparison. After the icache warms up (ICACHE_HOT_THRESHOLD=4 visits to same PC), CMP silently switches from signed to unsigned. This breaks rings.asm which uses CMP/BLT to compute absolute values via x-128 negation: for x<128, x-128 wraps to a large unsigned value, unsigned CMP says it's > 0, BLT doesn't fire, the absolute value is wrong, and the div_loop runs forever because the distance is huge. Fix: cast both operands to i32 in icache_execute CMP, matching ops_graphics.rs. Test: test_rings_program should pass after the fix."
+  goal: icache_execute CMP uses signed comparison matching the normal path, fixing
+    rings.asm and any other program relying on signed CMP
+  description: 'The icache fast path in icache_execute (src/vm/icache.rs line 256)
+    uses u32::cmp for the CMP opcode (0x50), which is unsigned comparison. The normal
+    path in ops_graphics.rs line 138 uses i32 cast for signed comparison. After the
+    icache warms up (ICACHE_HOT_THRESHOLD=4 visits to same PC), CMP silently switches
+    from signed to unsigned. This breaks rings.asm which uses CMP/BLT to compute absolute
+    values via x-128 negation: for x<128, x-128 wraps to a large unsigned value, unsigned
+    CMP says it''s > 0, BLT doesn''t fire, the absolute value is wrong, and the div_loop
+    runs forever because the distance is huge. Fix: cast both operands to i32 in icache_execute
+    CMP, matching ops_graphics.rs. Test: test_rings_program should pass after the
+    fix.'
   deliverables:
-  - name: "Fix icache CMP to use signed comparison"
-    description: "In src/vm/icache.rs, change the CMP (0x50) match arm from `self.regs[rd].cmp(&self.regs[rs])` to `(self.regs[rd] as i32).cmp(&(self.regs[rs] as i32))`. This matches the signed comparison in ops_graphics.rs line 146."
+  - name: Fix icache CMP to use signed comparison
+    description: In src/vm/icache.rs, change the CMP (0x50) match arm from `self.regs[rd].cmp(&self.regs[rs])`
+      to `(self.regs[rd] as i32).cmp(&(self.regs[rs] as i32))`. This matches the signed
+      comparison in ops_graphics.rs line 146.
     status: todo
     tasks:
     - id: p253.d1.t1
-      title: "Cast CMP operands to i32 in icache_execute"
+      title: Cast CMP operands to i32 in icache_execute
       status: todo
-      description: "In src/vm/icache.rs, in the icache_execute function, find the 0x50 (CMP) match arm. Change `self.regs[rd].cmp(&self.regs[rs])` to `(self.regs[rd] as i32).cmp(&(self.regs[rs] as i32))`. This ensures signed comparison consistent with the normal path."
+      description: In src/vm/icache.rs, in the icache_execute function, find the 0x50
+        (CMP) match arm. Change `self.regs[rd].cmp(&self.regs[rs])` to `(self.regs[rd]
+        as i32).cmp(&(self.regs[rs] as i32))`. This ensures signed comparison consistent
+        with the normal path.
       scope_lines: 5
     scope_lines: 5
-  - name: "Verify test_rings_program passes"
-    description: "Run cargo test --test program_tests basic_programs::test_rings_program. Should pass (halt within 10M cycles, center pixel is red 0xFF0000)."
+  - name: Verify test_rings_program passes
+    description: Run cargo test --test program_tests basic_programs::test_rings_program.
+      Should pass (halt within 10M cycles, center pixel is red 0xFF0000).
     status: todo
     tasks:
     - id: p253.d2.t1
-      title: "Run test_rings_program and confirm pass"
+      title: Run test_rings_program and confirm pass
       status: todo
-      description: "cargo test --test program_tests basic_programs::test_rings_program. Expect pass."
+      description: cargo test --test program_tests basic_programs::test_rings_program.
+        Expect pass.
       scope_lines: 0
     scope_lines: 0
   scope_lines_total: 5
   test_target: 1
-
 - id: phase-254
-  title: "Fix vw_font_demo.asm: convert inline string syntax to .byte directives"
+  title: 'Fix vw_font_demo.asm: convert inline string syntax to .byte directives'
   status: planned
-  goal: "vw_font_demo.asm assembles cleanly, reducing test_all_programs_assemble failures from 3 to 2"
-  description: "vw_font_demo.asm was committed in 7ce1a413 as part of phase-210 (variable-width font). It uses VWTXT (0xDB) which is fully implemented in the VM, but its string data uses 'label: \"string\"' syntax (lines 36-39) which the GeoASM assembler doesn't support. The assembler treats the string contents as an opcode, producing: AsmError { line: 36, message: \"unknown opcode: \\\"VARIABLE WIDTH!\\\"\" }. All other .asm programs use .byte directives for string data (see shell.asm lines 2763+). Fix: convert the four msg labels to .byte sequences, or add vw_font_demo.asm to the skip list in test_all_programs_assemble. Converting to .byte is preferred since the demo should be functional."
+  goal: vw_font_demo.asm assembles cleanly, reducing test_all_programs_assemble failures
+    from 3 to 2
+  description: 'vw_font_demo.asm was committed in 7ce1a413 as part of phase-210 (variable-width
+    font). It uses VWTXT (0xDB) which is fully implemented in the VM, but its string
+    data uses ''label: "string"'' syntax (lines 36-39) which the GeoASM assembler
+    doesn''t support. The assembler treats the string contents as an opcode, producing:
+    AsmError { line: 36, message: "unknown opcode: \"VARIABLE WIDTH!\"" }. All other
+    .asm programs use .byte directives for string data (see shell.asm lines 2763+).
+    Fix: convert the four msg labels to .byte sequences, or add vw_font_demo.asm to
+    the skip list in test_all_programs_assemble. Converting to .byte is preferred
+    since the demo should be functional.'
   deliverables:
-  - name: "Convert vw_font_demo.asm string data to .byte directives"
-    description: "Replace msg1-msg4 inline string definitions with .byte directives. For example, msg1: \"Variable Width!\" becomes msg1: .byte 86, 97, 114, 105, 97, 98, 108, 101, 32, 87, 105, 100, 116, 104, 33, 0. Keep the msg labels as address references for the VWTXT instructions."
+  - name: Convert vw_font_demo.asm string data to .byte directives
+    description: 'Replace msg1-msg4 inline string definitions with .byte directives.
+      For example, msg1: "Variable Width!" becomes msg1: .byte 86, 97, 114, 105, 97,
+      98, 108, 101, 32, 87, 105, 100, 116, 104, 33, 0. Keep the msg labels as address
+      references for the VWTXT instructions.'
     status: todo
     tasks:
     - id: p254.d1.t1
-      title: "Convert four msg string definitions to .byte directives"
+      title: Convert four msg string definitions to .byte directives
       status: todo
-      description: "In programs/vw_font_demo.asm, replace lines 36-39 (msg1-msg4 inline strings) with .byte sequences including null terminators. Verify VWTXT r12 loads msg addresses correctly after the change."
+      description: In programs/vw_font_demo.asm, replace lines 36-39 (msg1-msg4 inline
+        strings) with .byte sequences including null terminators. Verify VWTXT r12
+        loads msg addresses correctly after the change.
       scope_lines: 10
     - id: p254.d1.t2
-      title: "Verify vw_font_demo.asm assembles and test_all_programs_assemble drops to 2 failures"
+      title: Verify vw_font_demo.asm assembles and test_all_programs_assemble drops
+        to 2 failures
       status: todo
-      description: "Run cargo test --test program_tests basic_programs::test_all_programs_assemble. Expect 2 failures (shell.asm, nano_editor.asm) instead of 3."
+      description: Run cargo test --test program_tests basic_programs::test_all_programs_assemble.
+        Expect 2 failures (shell.asm, nano_editor.asm) instead of 3.
       scope_lines: 0
     scope_lines: 10
   scope_lines_total: 10
   test_target: 1
-
 - id: phase-255
-  title: "Fix tilemap_editor.asm: RECTF uses raw immediates instead of registers"
+  title: 'Fix tilemap_editor.asm: RECTF uses raw immediates instead of registers'
   status: planned
-  goal: "tilemap_editor.asm assembles cleanly, reducing test_all_programs_assemble failures from 3 to 2"
-  description: "tilemap_editor.asm fails to assemble with 'invalid register: 176' at line 596. The RECTF opcode expects register operands, but 6 call sites use raw decimal immediates (176 and 218) as the first argument (x position). The pattern is consistent: lines 596, 598, 605, 607, 614, 616 all use 'RECTF 176, r3, r4, r5, r6' or 'RECTF 218, r3, r4, r5, r6' where 176 and 218 should be loaded into a register first. Fix: before each RECTF with an immediate, add 'LDI r0, <imm>' (or use an available register) and change the RECTF operand to that register. r0 appears unused in this section based on context. After fixing, test_all_programs_assemble should show 2 failures (shell.asm, nano_editor.asm) instead of 3."
+  goal: tilemap_editor.asm assembles cleanly, reducing test_all_programs_assemble
+    failures from 3 to 2
+  description: 'tilemap_editor.asm fails to assemble with ''invalid register: 176''
+    at line 596. The RECTF opcode expects register operands, but 6 call sites use
+    raw decimal immediates (176 and 218) as the first argument (x position). The pattern
+    is consistent: lines 596, 598, 605, 607, 614, 616 all use ''RECTF 176, r3, r4,
+    r5, r6'' or ''RECTF 218, r3, r4, r5, r6'' where 176 and 218 should be loaded into
+    a register first. Fix: before each RECTF with an immediate, add ''LDI r0, <imm>''
+    (or use an available register) and change the RECTF operand to that register.
+    r0 appears unused in this section based on context. After fixing, test_all_programs_assemble
+    should show 2 failures (shell.asm, nano_editor.asm) instead of 3.'
   deliverables:
-  - name: "Replace RECTF immediate operands with register loads in tilemap_editor.asm"
-    description: "At lines 596, 598, 605, 607, 614, 616 in programs/tilemap_editor.asm, add LDI r0, <imm> before each RECTF call and change the first operand from the raw number to r0. For example, 'RECTF 176, r3, r4, r5, r6' becomes 'LDI r0, 176' then 'RECTF r0, r3, r4, r5, r6'. Verify r0 is safe to clobber in this context (it is — the tile drawing loop uses r1-r6)."
+  - name: Replace RECTF immediate operands with register loads in tilemap_editor.asm
+    description: At lines 596, 598, 605, 607, 614, 616 in programs/tilemap_editor.asm,
+      add LDI r0, <imm> before each RECTF call and change the first operand from the
+      raw number to r0. For example, 'RECTF 176, r3, r4, r5, r6' becomes 'LDI r0,
+      176' then 'RECTF r0, r3, r4, r5, r6'. Verify r0 is safe to clobber in this context
+      (it is — the tile drawing loop uses r1-r6).
     status: todo
     tasks:
     - id: p255.d1.t1
-      title: "Add LDI r0, <imm> before 6 RECTF calls with immediate first operands"
+      title: Add LDI r0, <imm> before 6 RECTF calls with immediate first operands
       status: todo
-      description: "In programs/tilemap_editor.asm, at lines 596, 598, 605, 607, 614, 616: insert 'LDI r0, 176' (or 218) on the line before, and change 'RECTF 176,' to 'RECTF r0,' (or 218 to r0)."
+      description: 'In programs/tilemap_editor.asm, at lines 596, 598, 605, 607, 614,
+        616: insert ''LDI r0, 176'' (or 218) on the line before, and change ''RECTF
+        176,'' to ''RECTF r0,'' (or 218 to r0).'
       scope_lines: 12
     - id: p255.d1.t2
-      title: "Verify tilemap_editor.asm assembles and test_all_programs_assemble drops to 2 failures"
+      title: Verify tilemap_editor.asm assembles and test_all_programs_assemble drops
+        to 2 failures
       status: todo
-      description: "Run cargo test --test program_tests basic_programs::test_all_programs_assemble. Expect 2 failures (shell.asm, nano_editor.asm) instead of 3."
+      description: Run cargo test --test program_tests basic_programs::test_all_programs_assemble.
+        Expect 2 failures (shell.asm, nano_editor.asm) instead of 3.
       scope_lines: 0
     scope_lines: 12
   scope_lines_total: 12
   test_target: 1
-
 - id: phase-256
-  title: "Fix click_test.asm and mouse_demo.asm: unsupported syntax from WIP drafter commits"
+  title: 'Fix click_test.asm and mouse_demo.asm: unsupported syntax from WIP drafter
+    commits'
   status: planned
-  goal: "click_test.asm and mouse_demo.asm assemble cleanly, reducing test_all_programs_assemble failures by 2"
-  description: "Two programs added by WIP drafter self-commits (a24f7903 and 8cdb1444) fail to assemble: (1) click_test.asm uses '.section code' directive at line 5 which the GeoASM assembler does not support. The assembler supports .org, .byte, .db, .dw, .define, but not .section. Fix: remove the '.section code' line (the assembler treats all code as a single section by default). (2) mouse_demo.asm fails with 'invalid number or undefined constant: r2' at line 23. The line is 'PSETI r2, r10, r6' which looks correct syntactically. This may be caused by a preceding line (SHL r6, r1 at line 22) producing an assembler state issue, or a subtle parsing bug triggered by the comment style or whitespace. Needs investigation -- may be a two-register SHL variant issue. Both programs are from phase-217 (mouse support) drafter work that was self-committed without review."
+  goal: click_test.asm and mouse_demo.asm assemble cleanly, reducing test_all_programs_assemble
+    failures by 2
+  description: 'Two programs added by WIP drafter self-commits (a24f7903 and 8cdb1444)
+    fail to assemble: (1) click_test.asm uses ''.section code'' directive at line
+    5 which the GeoASM assembler does not support. The assembler supports .org, .byte,
+    .db, .dw, .define, but not .section. Fix: remove the ''.section code'' line (the
+    assembler treats all code as a single section by default). (2) mouse_demo.asm
+    fails with ''invalid number or undefined constant: r2'' at line 23. The line is
+    ''PSETI r2, r10, r6'' which looks correct syntactically. This may be caused by
+    a preceding line (SHL r6, r1 at line 22) producing an assembler state issue, or
+    a subtle parsing bug triggered by the comment style or whitespace. Needs investigation
+    -- may be a two-register SHL variant issue. Both programs are from phase-217 (mouse
+    support) drafter work that was self-committed without review.'
   deliverables:
-  - name: "Fix click_test.asm: remove unsupported .section directive"
-    description: "Remove '.section code' from line 5 of programs/click_test.asm. The GeoASM assembler doesn't support .section directives -- all code is in a single flat section. Also check for any other unsupported directives in the file."
+  - name: 'Fix click_test.asm: remove unsupported .section directive'
+    description: Remove '.section code' from line 5 of programs/click_test.asm. The
+      GeoASM assembler doesn't support .section directives -- all code is in a single
+      flat section. Also check for any other unsupported directives in the file.
     status: todo
     tasks:
     - id: p256.d1.t1
-      title: "Remove .section code from click_test.asm line 5"
+      title: Remove .section code from click_test.asm line 5
       status: todo
-      description: "Edit programs/click_test.asm. Delete line 5 ('.section code'). Verify no other .section directives exist in the file. Run cargo test --test program_tests -- basic_programs::test_all_programs_assemble to verify one fewer failure."
+      description: Edit programs/click_test.asm. Delete line 5 ('.section code').
+        Verify no other .section directives exist in the file. Run cargo test --test
+        program_tests -- basic_programs::test_all_programs_assemble to verify one
+        fewer failure.
       scope_lines: 2
     scope_lines: 2
-  - name: "Fix mouse_demo.asm: investigate 'invalid number or undefined constant: r2' at line 23"
-    description: "mouse_demo.asm line 23 is 'PSETI r2, r10, r6' which should be valid. The error may originate from line 22 (SHL r6, r1) or earlier. Need to isolate which instruction triggers the error by binary-search commenting out lines. If SHL with two register args is the issue, check if the assembler expects a different operand format for SHL."
+  - name: 'Fix mouse_demo.asm: investigate ''invalid number or undefined constant:
+      r2'' at line 23'
+    description: mouse_demo.asm line 23 is 'PSETI r2, r10, r6' which should be valid.
+      The error may originate from line 22 (SHL r6, r1) or earlier. Need to isolate
+      which instruction triggers the error by binary-search commenting out lines.
+      If SHL with two register args is the issue, check if the assembler expects a
+      different operand format for SHL.
     status: todo
     tasks:
     - id: p256.d2.t1
-      title: "Isolate which line in mouse_demo.asm triggers the assembler error"
+      title: Isolate which line in mouse_demo.asm triggers the assembler error
       status: todo
-      description: "Comment out lines around line 22-23 to find the exact trigger. Try assembling just the first 20 lines vs first 25 lines to narrow down. Check if SHL r6, r1 is valid (two register operands for shift)."
+      description: Comment out lines around line 22-23 to find the exact trigger.
+        Try assembling just the first 20 lines vs first 25 lines to narrow down. Check
+        if SHL r6, r1 is valid (two register operands for shift).
       scope_lines: 30
     - id: p256.d2.t2
-      title: "Fix the root cause and verify mouse_demo.asm assembles"
+      title: Fix the root cause and verify mouse_demo.asm assembles
       status: todo
-      description: "Based on isolation findings, fix the syntax issue in mouse_demo.asm. Run cargo test --test program_tests -- basic_programs::test_all_programs_assemble to verify."
+      description: Based on isolation findings, fix the syntax issue in mouse_demo.asm.
+        Run cargo test --test program_tests -- basic_programs::test_all_programs_assemble
+        to verify.
       scope_lines: 10
     scope_lines: 40
   scope_lines_total: 42
   test_target: 2
-
 - id: phase-257
-  title: "Fix clipboard_demo.asm: replace unknown opcode JLT with BLT r0"
+  title: 'Fix clipboard_demo.asm: replace unknown opcode JLT with BLT r0'
   status: planned
-  goal: "clipboard_demo.asm assembles and runs, fixing 2 test failures"
-  description: "clipboard_demo.asm line 190 uses 'JLT fill_loop' but the GeoASM assembler has no JLT opcode. The CMP instruction stores its comparison result in r0, and the conditional branch opcode for less-than is BLT (0x35), which takes the form 'BLT reg, addr'. The correct replacement is 'BLT r0, fill_loop'. This is the only occurrence of JLT in the entire programs/ directory. Fixing this will resolve both test_clipboard_demo_program_assembles and test_clipboard_demo_runs_and_writes_data failures."
+  goal: clipboard_demo.asm assembles and runs, fixing 2 test failures
+  description: clipboard_demo.asm line 190 uses 'JLT fill_loop' but the GeoASM assembler
+    has no JLT opcode. The CMP instruction stores its comparison result in r0, and
+    the conditional branch opcode for less-than is BLT (0x35), which takes the form
+    'BLT reg, addr'. The correct replacement is 'BLT r0, fill_loop'. This is the only
+    occurrence of JLT in the entire programs/ directory. Fixing this will resolve
+    both test_clipboard_demo_program_assembles and test_clipboard_demo_runs_and_writes_data
+    failures.
   deliverables:
-  - name: "Replace JLT with BLT r0 in clipboard_demo.asm"
-    description: "Change line 190 from 'JLT fill_loop' to 'BLT r0, fill_loop'. The preceding CMP r15, r14 sets r0 to the comparison result, and BLT r0 branches when less-than."
+  - name: Replace JLT with BLT r0 in clipboard_demo.asm
+    description: Change line 190 from 'JLT fill_loop' to 'BLT r0, fill_loop'. The
+      preceding CMP r15, r14 sets r0 to the comparison result, and BLT r0 branches
+      when less-than.
     status: todo
     tasks:
     - id: p257.d1.t1
-      title: "Replace JLT fill_loop with BLT r0, fill_loop at line 190"
+      title: Replace JLT fill_loop with BLT r0, fill_loop at line 190
       status: todo
-      description: "Edit programs/clipboard_demo.asm line 190: change 'JLT fill_loop' to 'BLT r0, fill_loop'. This is the only change needed."
+      description: 'Edit programs/clipboard_demo.asm line 190: change ''JLT fill_loop''
+        to ''BLT r0, fill_loop''. This is the only change needed.'
       scope_lines: 1
     - id: p257.d1.t2
-      title: "Verify both clipboard_demo tests pass"
+      title: Verify both clipboard_demo tests pass
       status: todo
-      description: "Run cargo test --lib vm::tests::test_clipboard_demo_program_assembles vm::tests::test_clipboard_demo_runs_and_writes_data and confirm both pass."
+      description: Run cargo test --lib vm::tests::test_clipboard_demo_program_assembles
+        vm::tests::test_clipboard_demo_runs_and_writes_data and confirm both pass.
       scope_lines: 0
     scope_lines: 1
   scope_lines_total: 1
   test_target: 2
-
 - id: phase-258
-  title: "Fix loadasm command crashes VM when issued in terminal mode"
+  title: Fix loadasm command crashes VM when issued in terminal mode
   status: planned
-  goal: "loadasm does not crash the headless VM when the terminal is active"
-  description: "The 'loadasm <path>' command in src/main.rs:2616 writes assembled bytecode directly to VM RAM starting at CANVAS_BYTECODE_ADDR (0x1000). It also clears RAM from 0x1000 to 0x3000 and sets vm.pc=0x1000, vm.halted=false. However, in terminal mode, the terminal program itself is loaded at 0x1000 (the terminal's PC is typically around 0x116D). When loadasm overwrites this region, the terminal code is destroyed. After the command handler returns, the VM main loop tries to continue execution with corrupted/overwritten code, causing a panic and socket disconnect. Reproduction: start headless GeOS, send 'loadasm programs/hello.asm' — the VM crashes immediately after printing '[loaded 140 words at 0x1000]'. The fix should either: (a) refuse loadasm in terminal mode with a helpful error message suggesting 'load_source' + 'assemble' + 'run' instead, or (b) save and restore the terminal code around the loadasm operation, or (c) load the assembled program at a different address that doesn't conflict with the terminal."
+  goal: loadasm does not crash the headless VM when the terminal is active
+  description: 'The ''loadasm <path>'' command in src/main.rs:2616 writes assembled
+    bytecode directly to VM RAM starting at CANVAS_BYTECODE_ADDR (0x1000). It also
+    clears RAM from 0x1000 to 0x3000 and sets vm.pc=0x1000, vm.halted=false. However,
+    in terminal mode, the terminal program itself is loaded at 0x1000 (the terminal''s
+    PC is typically around 0x116D). When loadasm overwrites this region, the terminal
+    code is destroyed. After the command handler returns, the VM main loop tries to
+    continue execution with corrupted/overwritten code, causing a panic and socket
+    disconnect. Reproduction: start headless GeOS, send ''loadasm programs/hello.asm''
+    — the VM crashes immediately after printing ''[loaded 140 words at 0x1000]''.
+    The fix should either: (a) refuse loadasm in terminal mode with a helpful error
+    message suggesting ''load_source'' + ''assemble'' + ''run'' instead, or (b) save
+    and restore the terminal code around the loadasm operation, or (c) load the assembled
+    program at a different address that doesn''t conflict with the terminal.'
   deliverables:
-  - name: "Prevent loadasm from crashing in terminal mode"
-    description: "In the loadasm handler in src/main.rs:2616, check if the VM is in terminal mode. If so, either refuse with an error message or use an alternate load address. The simplest fix is to print '[error: loadasm overwrites terminal code in terminal mode. Use load_source + assemble + run instead.]' and skip the load. Alternative: load at a higher address like 0x4000 if in terminal mode."
+  - name: Prevent loadasm from crashing in terminal mode
+    description: 'In the loadasm handler in src/main.rs:2616, check if the VM is in
+      terminal mode. If so, either refuse with an error message or use an alternate
+      load address. The simplest fix is to print ''[error: loadasm overwrites terminal
+      code in terminal mode. Use load_source + assemble + run instead.]'' and skip
+      the load. Alternative: load at a higher address like 0x4000 if in terminal mode.'
     status: todo
     tasks:
     - id: p258.d1.t1
-      title: "Add terminal-mode guard to loadasm handler"
+      title: Add terminal-mode guard to loadasm handler
       status: todo
-      description: "In src/main.rs around line 2616, before the loadasm logic, check if mode is terminal mode. If so, respond with an error message and return early. Test by starting headless GeOS and sending 'loadasm programs/hello.asm' — it should print the error and the VM should remain alive."
+      description: In src/main.rs around line 2616, before the loadasm logic, check
+        if mode is terminal mode. If so, respond with an error message and return
+        early. Test by starting headless GeOS and sending 'loadasm programs/hello.asm'
+        — it should print the error and the VM should remain alive.
       scope_lines: 5
     - id: p258.d1.t2
-      title: "Verify VM stays alive after loadasm rejection in terminal mode"
+      title: Verify VM stays alive after loadasm rejection in terminal mode
       status: todo
-      description: "After the fix, start headless GeOS, send 'loadasm programs/hello.asm', verify error message, then send 'status' to confirm VM is still running."
+      description: After the fix, start headless GeOS, send 'loadasm programs/hello.asm',
+        verify error message, then send 'status' to confirm VM is still running.
       scope_lines: 0
     scope_lines: 5
   scope_lines_total: 5
   test_target: 0
+- id: phase-259
+  title: "Add font_test.asm to test_all_programs_assemble skip list (RISC-V program in GeoASM directory)"
+  status: planned
+  goal: "test_all_programs_assemble skips font_test.asm, reducing failures from 5 to 4"
+  description: "font_test.asm was committed in 2e4e47ec as part of phase-218 (bitmap font renderer for RISC-V guest). It uses RISC-V assembly syntax (LOAD R0 0x000033, FONT_SELECT, TEXT with register args) which is not valid GeoASM. The GeoASM assembler reports 'invalid register: 0x000033' at line 14. The file should be added to the skip list in tests/program_tests/basic_programs.rs alongside other RISC-V programs like test_vfs_pixel.asm. Alternative: move the file to a programs/riscv/ subdirectory, but adding to skip list is simpler and consistent with the existing pattern."
+  deliverables:
+  - name: Add font_test.asm to skip list
+    description: "In tests/program_tests/basic_programs.rs, add \"font_test.asm\" to the skip array with comment '// RISC-V assembly (LOAD/FONT_SELECT/TEXT), not GeoASM'. This matches the pattern used for test_vfs_pixel.asm."
+    status: todo
+    tasks:
+    - id: p259.d1.t1
+      title: Add font_test.asm to skip list in basic_programs.rs
+      status: todo
+      description: "In tests/program_tests/basic_programs.rs, in the skip array (around line 317), add \"font_test.asm\" with a comment explaining it's RISC-V assembly. Place it near test_vfs_pixel.asm for logical grouping."
+      scope_lines: 2
+    - id: p259.d1.t2
+      title: Verify test_all_programs_assemble drops to 4 failures
+      status: todo
+      description: "Run cargo test --test program_tests basic_programs::test_all_programs_assemble. Expect 4 of 176 programs to fail (click_test.asm, shell.asm, mouse_demo.asm, nano_editor.asm), with font_test.asm now in the skipped count."
+      scope_lines: 0
+    scope_lines: 2
+  scope_lines_total: 2
+  test_target: 1
