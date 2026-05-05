@@ -2276,7 +2276,7 @@ phases:
   scope_lines_total: 240
 - id: phase-217
   title: GeOS VM -- Mouse Support Opcodes
-  status: in_progress
+  status: complete
   goal: Add mouse position and button state opcodes for GUI programs
   description: 'Current input is keyboard-only via IKEY. GUI programs (window manager,
     desktop, file browser) need mouse support. Add MOUSEX (read mouse X to register),
@@ -2285,7 +2285,7 @@ phases:
     host already tracks mouse state via minifb — just expose it to the VM.'
   deliverables:
   - name: Mouse input opcodes
-    status: todo
+    status: done
     tasks:
     - id: p217.d1.t1
       title: Add MOUSEX, MOUSEY, MOUSEB opcodes
@@ -2297,6 +2297,7 @@ phases:
       - src/assembler/system_ops.rs
       - src/vm/disasm.rs
       scope_lines: 80
+      status: done
     - id: p217.d1.t2
       title: Add MOUSECLICK blocking opcode
       description: MOUSECLICK blocks until a mouse click event occurs, then writes
@@ -2306,6 +2307,7 @@ phases:
       - src/vm/mod.rs
       - src/main.rs
       scope_lines: 60
+      status: done
     - id: p217.d1.t3
       title: Wire minifb mouse events to VM
       description: In main.rs event loop, capture minifb MouseMove/MouseDown/MouseUp
@@ -2314,6 +2316,7 @@ phases:
       scope_files:
       - src/main.rs
       scope_lines: 40
+      status: done
     - id: p217.d1.t4
       title: 'Demo: clickable button program'
       description: Draw 3 colored buttons, detect which was clicked using MOUSECLICK,
@@ -2322,13 +2325,19 @@ phases:
       scope_files:
       - programs/click_test.asm
       scope_lines: 60
+      status: done
+    _completed_at: 1778005975
   test_target: 4
   scope_lines_total: 240
   _claimed_by: worker-0
   _claimed_at: 1778003125
+  _completed_at: 1778005975
+  _completed_by: geo-watchdog
+  _completion_note: Mouse opcodes (MOUSEQ, push_mouse, button state) implemented with
+    15 passing tests + demo programs. Deliverables were done but roadmap not updated.
 - id: phase-218
   title: GeOS VM -- Bitmap Font Renderer for RISC-V Guest
-  status: todo
+  status: planned
   goal: Add a framebuffer text rendering primitive to libgeos so guest C programs
     can draw text
   description: The RISC-V guest has pixel primitives (geos_fb_pixel, geos_rgb) but
@@ -2371,7 +2380,7 @@ phases:
   scope_lines_total: 240
 - id: phase-219
   title: GeOS VM -- Memory-Mapped Screen Buffer Readback
-  status: todo
+  status: planned
   goal: Let VM programs read the screen buffer via LOAD from 0x10000-0x1FFFF
   description: The screen buffer at 0x10000-0x1FFFF (256x256 pixels, mapped to vm.screen)
     already supports writes for SETPIXEL-style rendering, but LOAD from this region
@@ -2412,7 +2421,7 @@ phases:
   scope_lines_total: 100
 - id: phase-220
   title: RISC-V Guest -- Mandelbrot Fractal Renderer
-  status: todo
+  status: planned
   goal: Add a Mandelbrot set renderer that proves the RISC-V interpreter handles compute-intensive
     floating-point work
   description: 'The RISC-V interpreter supports M-extension multiplication and division
@@ -2454,7 +2463,7 @@ phases:
   scope_lines_total: 260
 - id: phase-221
   title: GeOS VM -- Clipboard Protocol Enhancement
-  status: todo
+  status: planned
   goal: Extend the system clipboard (0xF010-0xF01F) with multi-format copy/paste and
     clipboard history
   description: 'The clipboard protocol at 0xF010-0xF01F supports basic pixel-region
@@ -2498,7 +2507,7 @@ phases:
   scope_lines_total: 200
 - id: phase-222
   title: GeOS VM -- Timer and Alarm Opcodes
-  status: todo
+  status: planned
   goal: Add wall-clock timer opcodes so programs can schedule actions by real time,
     not just frame count
   description: Programs currently use the TICKS register (RAM[0xFFE], incremented
@@ -2540,7 +2549,7 @@ phases:
   scope_lines_total: 120
 - id: phase-223
   title: GeOS VM -- Program Library (lib/) Standardization
-  status: todo
+  status: planned
   goal: Audit and standardize the programs/lib/ assembly library with proper documentation
     and test coverage
   description: The programs/lib/ directory contains stdlib.asm, math.asm, stdio.asm,
@@ -2585,7 +2594,7 @@ phases:
   scope_lines_total: 300
 - id: phase-224
   title: RISC-V Guest -- Conway's Life with Framebuffer Rendering
-  status: todo
+  status: planned
   goal: Port Conway's Game of Life to use the framebuffer instead of SBI console output
   description: life.c exists but outputs cell state to the SBI console (UART). A framebuffer
     version renders the grid as pixels, which is the canonical Geometry OS output
@@ -2622,7 +2631,7 @@ phases:
   scope_lines_total: 220
 - id: phase-225
   title: GeOS VM -- Network HTTP Client Opcode
-  status: todo
+  status: planned
   goal: Add a simple HTTP GET opcode that fetches a URL and stores the response in
     RAM
   description: 'The VM has TCP opcodes (CONNECT, SOCKSEND, SOCKRECV) but no HTTP-level
@@ -2666,7 +2675,7 @@ phases:
   scope_lines_total: 210
 - id: phase-226
   title: RISC-V Guest -- Minimal Text Editor
-  status: todo
+  status: planned
   goal: Add a bare-metal text editor C program for editing VFS files
   description: The guest has sh.c for commands, paint.c for pixel art, and hexedit.c
     (planned) for binary editing, but no text editor. A minimal text editor (like
@@ -2698,7 +2707,7 @@ phases:
   scope_lines_total: 350
 - id: phase-227
   title: GeOS VM -- Debugging Opcode BREAKPOINT
-  status: todo
+  status: planned
   goal: Add a hardware breakpoint opcode that triggers the VM debugger
   description: The VM has software breakpoints (set via the bp command in terminal),
     but programs cannot set their own breakpoints. A BREAKPOINT opcode (0xCA) that

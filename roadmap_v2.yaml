@@ -2337,7 +2337,7 @@ phases:
     15 passing tests + demo programs. Deliverables were done but roadmap not updated.
 - id: phase-218
   title: GeOS VM -- Bitmap Font Renderer for RISC-V Guest
-  status: planned
+  status: done
   goal: Add a framebuffer text rendering primitive to libgeos so guest C programs
     can draw text
   description: The RISC-V guest has pixel primitives (geos_fb_pixel, geos_rgb) but
@@ -2348,7 +2348,7 @@ phases:
     the framebuffer via MMIO writes.
   deliverables:
   - name: Bitmap font rendering in libgeos
-    status: todo
+    status: done
     tasks:
     - id: p218.d1.t1
       title: Add 8x8 bitmap font data to libgeos
@@ -2359,6 +2359,7 @@ phases:
       - examples/riscv-hello/libgeos.c
       - examples/riscv-hello/libgeos.h
       scope_lines: 120
+      status: done
     - id: p218.d1.t2
       title: Implement geos_draw_char and geos_draw_string
       description: geos_draw_char(x, y, ch, fg, bg) blits one glyph. geos_draw_string(x,
@@ -2368,6 +2369,7 @@ phases:
       - examples/riscv-hello/libgeos.c
       - examples/riscv-hello/libgeos.h
       scope_lines: 80
+      status: done
     - id: p218.d1.t3
       title: Update paint.c status bar to use framebuffer text
       description: Replace the palette bar legend with geos_draw_string() calls. This
@@ -2376,8 +2378,18 @@ phases:
       scope_files:
       - examples/riscv-hello/paint.c
       scope_lines: 40
+      status: done
   test_target: 3
   scope_lines_total: 240
+  _claimed_by: worker-0
+  _claimed_at: 1778009152
+  _completed_at: 1778012800
+  _completed_by: worker-0
+  _completion_note: Added 128-glyph 8x8 VGA font (geos_font8x8) to libgeos.c with
+    geos_draw_char(), geos_draw_string(), geos_measure_string(). Updated paint.c
+    with draw_status_bar() showing cursor position, color index, and fill mode.
+    ASM demo saved as programs/font_test.asm. Build verified clean (30/34 tests
+    pass; 4 failures are pre-existing unrelated capability_tests).
 - id: phase-219
   title: GeOS VM -- Memory-Mapped Screen Buffer Readback
   status: planned

@@ -72,6 +72,42 @@ static void draw_palette_bar(int selected) {
     }
 }
 
+static void draw_status_bar(int color_idx, int fill_mode, uint32_t cx, uint32_t cy) {
+    /* Draw a 1-row status bar just above the palette bar.
+     * Uses the 8x8 bitmap font from libgeos (Phase 218).
+     * Shows: cursor position, selected color, fill mode. */
+    uint32_t bar_y = GEOS_FB_HEIGHT - 24;
+    char buf[32];
+    int pos = 0;
+
+    /* Build status string: "X:032 Y:128 C:3 [FILL]" */
+    buf[pos++] = 'X'; buf[pos++] = ':';
+    if (cx < 10) buf[pos++] = '0';
+    else if (cx < 100) { buf[pos++] = '0' + (cx / 10) % 10; }
+    buf[pos++] = '0' + (cx % 10);
+    buf[pos++] = ' ';
+    buf[pos++] = 'Y'; buf[pos++] = ':';
+    if (cy < 10) buf[pos++] = '0';
+    else if (cy < 100) { buf[pos++] = '0' + (cy / 10) % 10; }
+    buf[pos++] = '0' + (cy % 10);
+    buf[pos++] = ' ';
+    buf[pos++] = 'C'; buf[pos++] = ':';
+    buf[pos++] = '0' + color_idx;
+    if (fill_mode) {
+        buf[pos++] = ' ';
+        buf[pos++] = '[';
+        buf[pos++] = 'F';
+        buf[pos++] = 'I';
+        buf[pos++] = 'L';
+        buf[pos++] = 'L';
+        buf[pos++] = ']';
+    }
+    buf[pos] = '\0';
+
+    /* Draw with white text on dark background */
+    geos_draw_string(4, bar_y, buf, 0xFFFFFFFF, BG_COLOR);
+}
+
 static void clear_canvas(void) {
     volatile uint32_t *fb = (volatile uint32_t *)GEOS_FB_BASE;
     for (int i = 0; i < GEOS_FB_WIDTH * GEOS_FB_HEIGHT; i++) {
@@ -98,6 +134,7 @@ void c_start(void) {
 
     /* Draw initial state */
     draw_palette_bar(color_idx);
+    draw_status_bar(color_idx, fill_mode, cx, cy);
     /* Draw cursor: XOR with bright color to make it visible regardless of bg */
     saved_pixel = geos_fb_read(cx, cy);
     geos_fb_pixel(cx, cy, 0xFFFF00FF);  /* yellow cursor pixel */
@@ -143,6 +180,7 @@ void c_start(void) {
             /* Draw cursor at new position */
             geos_fb_pixel(cx, cy, 0xFFFF00FF);  /* yellow */
             draw_palette_bar(color_idx);
+            draw_status_bar(color_idx, fill_mode, cx, cy);
             geos_fb_present();
         }
         /* Paint: space bar paints at current position */
@@ -152,6 +190,7 @@ void c_start(void) {
             /* Redraw cursor on top of paint so user sees it */
             geos_fb_pixel(cx, cy, 0xFFFF00FF);
             draw_palette_bar(color_idx);
+            draw_status_bar(color_idx, fill_mode, cx, cy);
             geos_fb_present();
             painted = 1;
         }
@@ -159,6 +198,7 @@ void c_start(void) {
         else if (ch >= '0' && ch <= '9') {
             color_idx = ch - '0';
             draw_palette_bar(color_idx);
+            draw_status_bar(color_idx, fill_mode, cx, cy);
             geos_fb_present();
             geos_puts("paint: color ");
             geos_put_dec((uint32_t)color_idx);
@@ -167,6 +207,8 @@ void c_start(void) {
         /* Toggle fill mode */
         else if (ch == 'f' || ch == 'F') {
             fill_mode = !fill_mode;
+            draw_status_bar(color_idx, fill_mode, cx, cy);
+            geos_fb_present();
             geos_puts(fill_mode ? "paint: fill ON\n" : "paint: fill OFF\n");
         }
         /* Clear */
@@ -175,6 +217,7 @@ void c_start(void) {
             saved_pixel = BG_COLOR;
             geos_fb_pixel(cx, cy, 0xFFFF00FF);  /* redraw cursor */
             draw_palette_bar(color_idx);
+            draw_status_bar(color_idx, fill_mode, cx, cy);
             geos_fb_present();
             geos_puts("paint: canvas cleared\n");
         }

@@ -315,4 +315,20 @@ int geos_blk_write(uint32_t sector, const void *buf, uint32_t n);
 int geos_strlen(const char *s);
 void *geos_memset(void *dst, int val, unsigned int n);
 
+/* ---- Bitmap font rendering (Phase 218) ---- */
+
+/* Draw a single 8x8 character onto the framebuffer.
+   (x, y): top-left corner. fg/bg: colors (0xRRGGBBAA).
+   Pass bg=0 for transparent background (only set bits drawn).
+   Returns 8 (character width in pixels). */
+int geos_draw_char(int x, int y, char ch, uint32_t fg, uint32_t bg);
+
+/* Draw a null-terminated string using the 8x8 font.
+   Returns the total pixel width consumed. */
+int geos_draw_string(int x, int y, const char *str, uint32_t fg, uint32_t bg);
+
+/* Measure the pixel width of a string without drawing.
+   Returns the width in pixels (len * 8). */
+int geos_measure_string(const char *str);
+
 #endif /* LIBGEOS_H */
