@@ -2111,7 +2111,7 @@ phases:
     scope_lines_total: 130
 - id: phase-213
   title: GeOS Tilemap Editor -- Visual Map Building Tool
-  status: planned
+  status: done
   goal: Build an interactive tilemap editor that lets users paint tile-based levels
     for games
   description: The TILEMAP opcode (0x4C) blits tile grids from RAM to screen, but
@@ -2121,7 +2121,7 @@ phases:
     roguelike.asm, maze.asm, and future tile-based games.
   deliverables:
   - name: Interactive tilemap editor program
-    status: todo
+    status: done
     tasks:
     - id: p213.d1.t1
       title: Tile palette display and selection UI
@@ -2149,6 +2149,9 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 240
+  _claimed_by: worker-0
+  _claimed_at: 1777991177
+  _completed_at: 1777991777
 - id: phase-214
   title: RISC-V GPU Compute -- WGSL Shader Integration
   status: done
