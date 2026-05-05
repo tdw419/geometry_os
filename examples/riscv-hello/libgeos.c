@@ -156,9 +156,9 @@ int geos_load_canvas(void) {
  * Used ring:      2(flags) + 2(idx) + 4×8(entries) = 36 bytes. Offset at 76.
  * Total: 112 bytes minimum. We place them at known offsets within desc_buf.
  */
-#define DESC_OFF    0       /* Descriptor table at offset 0 */
-#define AVAIL_OFF   64      /* Available ring at offset 64 */
-#define USED_OFF    80      /* Used ring at offset 80 */
+#define DESC_OFF    0       /* Descriptor table at offset 0 (16 descs × 16B = 256 bytes) */
+#define AVAIL_OFF   288     /* Available ring: after desc table (256) + header (16) + status (1) + pad (15) */
+#define USED_OFF    304     /* Used ring: after avail ring (288 + 16 = 304) */
 
 /* Track the physical address of the descriptor buffer for queue setup. */
 static void *blk_desc_buf = (void *)0;

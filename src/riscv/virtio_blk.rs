@@ -431,12 +431,10 @@ impl VirtioBlk {
         let mut last_avail_idx = q.last_avail_idx;
         let mut used_idx = q.used_idx;
 
-        eprintln!("[PQ] ready={} size={} desc_addr={:#x} avail_addr={:#x} used_addr={:#x} last_avail={} used_idx={}", q.ready, q.size, q.desc_addr, q.avail_addr, q.used_addr, q.last_avail_idx, q.used_idx);
         // Read the available ring index (u16 at avail_addr + 2).
         // read_word_fn reads u32 at avail_addr, which contains flags(u16) | idx(u16).
         // idx is at the upper 16 bits: read_word_fn(avail_addr) >> 16.
         let avail_idx = (read_word_fn(q.avail_addr) >> 16) as u16;
-        eprintln!("[PQ] avail_idx={} last_avail_idx={}", avail_idx, last_avail_idx);
 
         // Process all new available entries
         while last_avail_idx != avail_idx {
@@ -468,7 +466,6 @@ impl VirtioBlk {
             used_idx = used_idx.wrapping_add(1);
 
             processed += 1;
-            eprintln!("[PQ] processed={} last_avail_idx={} used_idx={}", processed, last_avail_idx, used_idx);
             last_avail_idx = last_avail_idx.wrapping_add(1);
         }
 
@@ -486,7 +483,6 @@ impl VirtioBlk {
             );
         }
 
-        eprintln!("[PQ] returning processed={}", processed);
         processed
     }
 
