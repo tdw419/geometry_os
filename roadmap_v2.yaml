@@ -2153,7 +2153,7 @@ phases:
   _claimed_at: 1777983299
 - id: phase-214
   title: RISC-V GPU Compute -- WGSL Shader Integration
-  status: in_progress
+  status: done
   goal: Enable the RISC-V guest to offload compute work to the host GPU via the existing
     WGSL shader pipeline
   description: src/riscv/gpu.rs already has a WGSL compute shader (riscv_executor.wgsl)
@@ -2163,7 +2163,7 @@ phases:
     interpreter remains the fallback for non-GPU environments.
   deliverables:
   - name: GPU-accelerated RISC-V execution
-    status: todo
+    status: done
     tasks:
     - id: p214.d1.t1
       title: Wire GPU executor into RiscvVm::step loop
