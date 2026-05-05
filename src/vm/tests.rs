@@ -5488,7 +5488,33 @@ fn test_paint_app_runs_100_frames() {
 
 // ── File Browser Tests ──
 
-fn boot_file_browser(target_frames: u32) -> Vm {
+/// RAII wrapper that cleans up the temp directory when the test finishes.
+/// Implements Deref/DerefMut so tests can use it like a plain Vm.
+struct FileBrowserVm {
+    vm: Vm,
+    _cleanup_dir: std::path::PathBuf,
+}
+
+impl std::ops::Deref for FileBrowserVm {
+    type Target = Vm;
+    fn deref(&self) -> &Self::Target {
+        &self.vm
+    }
+}
+
+impl std::ops::DerefMut for FileBrowserVm {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.vm
+    }
+}
+
+impl Drop for FileBrowserVm {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self._cleanup_dir);
+    }
+}
+
+fn boot_file_browser(target_frames: u32) -> FileBrowserVm {
     // Use an isolated temp directory per invocation so parallel tests
     // don't race on the shared .geometry_os/fs directory.
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -5527,9 +5553,12 @@ fn boot_file_browser(target_frames: u32) -> Vm {
             break;
         }
     }
-    // Clean up the isolated test directory
-    let _ = std::fs::remove_dir_all(&fs_dir);
-    vm
+    // Directory cleanup is deferred to Drop -- the VM needs the files alive
+    // for subsequent OPEN/READ operations in tests that click on files.
+    FileBrowserVm {
+        vm,
+        _cleanup_dir: fs_dir,
+    }
 }
 
 #[test]
