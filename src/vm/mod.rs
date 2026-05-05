@@ -4303,6 +4303,68 @@ impl Vm {
                 }
             }
 
+            // ── Phase 212: SAVEPNG opcode (0xAF) ──
+            // SAVEPNG path_addr_reg (0xAF) -- Screenshot: save screen as PNG to VFS file
+            // Reads null-terminated path from RAM at address in register.
+            // Encodes the 256x256 screen as a PNG file (RGB, 8-bit per channel).
+            // Uses pure-Rust zero-dependency PNG encoder (vision::encode_png).
+            // Returns total bytes written in r0, or 0xFFFFFFFF on error.
+            0xAF => {
+                let pr = self.fetch() as usize;
+                if pr < NUM_REGS {
+                    let path_addr = self.regs[pr] as usize;
+                    let pid = self.current_pid;
+
+                    // Encode screen as PNG (pure Rust, no external deps)
+                    let png_bytes = crate::vision::encode_png(&self.screen);
+
+                    // Open VFS file for writing
+                    let fd = self.vfs.fopen(&self.ram, path_addr as u32, 1, pid); // FOPEN_WRITE
+                    if fd != 0xFFFFFFFF {
+                        // Stage PNG bytes in RAM and write in chunks.
+                        // VFS fwrite reads low 8 bits of each u32 word, so we store
+                        // one byte per RAM word.
+                        let stage_base = 0x9000u32;
+                        let chunk_size = 512u32;
+                        let mut written: u32 = 0;
+                        let total_bytes = png_bytes.len() as u32;
+                        let mut offset = 0u32;
+                        while offset < total_bytes {
+                            let end = std::cmp::min(offset + chunk_size, total_bytes);
+                            let n = end - offset;
+                            // Stage bytes: one byte per u32 word (low byte)
+                            for i in 0..n {
+                                let ram_addr = (stage_base + i) as usize;
+                                if ram_addr < self.ram.len() {
+                                    self.ram[ram_addr] = png_bytes[(offset + i) as usize] as u32;
+                                }
+                            }
+                            let bytes_written = self.vfs.fwrite(
+                                &self.ram,
+                                fd,
+                                stage_base,
+                                n, // one word per byte
+                                pid,
+                            );
+                            if bytes_written == 0xFFFFFFFF {
+                                let _ = self.vfs.fclose(fd, pid);
+                                self.regs[0] = 0xFFFFFFFF;
+                                written = 0;
+                                break;
+                            }
+                            written += bytes_written;
+                            offset = end;
+                        }
+                        self.vfs.fclose(fd, pid);
+                        self.regs[0] = written; // total bytes written
+                    } else {
+                        self.regs[0] = 0xFFFFFFFF; // error: could not open file
+                    }
+                } else {
+                    self.regs[0] = 0xFFFFFFFF; // error: invalid register
+                }
+            }
+
             _ => {
                 self.halted = true;
                 return false;

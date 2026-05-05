@@ -1144,6 +1144,9 @@ impl Vm {
                 4,
             ),
 
+            // SAVEPNG path_addr_reg (0xAF) -- save screen as PNG to VFS file
+            0xAF => (format!("SAVEPNG {}", reg(ram(a + 1))), 2),
+
             _ => (format!("??? (0x{:02X})", op), 1),
         }
     }

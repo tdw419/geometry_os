@@ -11117,6 +11117,173 @@ fn test_scrshot_assembles() {
     assert_eq!(bytecode.pixels[5], 0x00);
 }
 
+// ── SAVEPNG Opcode (Phase 212) ───────────────────────────────
+
+#[test]
+fn test_savepng_saves_png_to_vfs() {
+    let mut vm = Vm::new();
+    // Draw a red pixel at (10, 20)
+    vm.screen[20 * 256 + 10] = 0xFF0000;
+    // Draw a green pixel at (50, 60)
+    vm.screen[60 * 256 + 50] = 0x00FF00;
+
+    // Write filename "test_save.png" to RAM at address 0x2000
+    let filename = b"test_save.png";
+    for (i, &ch) in filename.iter().enumerate() {
+        vm.ram[0x2000 + i] = ch as u32;
+    }
+    vm.ram[0x2000 + filename.len()] = 0; // null terminator
+
+    // LDI r1, 0x2000; SAVEPNG r1; HALT
+    vm.ram[0] = 0x10; // LDI
+    vm.ram[1] = 1;    // r1
+    vm.ram[2] = 0x2000; // addr
+    vm.ram[3] = 0xAF; // SAVEPNG
+    vm.ram[4] = 1;    // r1
+    vm.ram[5] = 0x00; // HALT
+    vm.pc = 0;
+    vm.halted = false;
+
+    for _ in 0..100_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    assert!(vm.halted, "SAVEPNG program should halt");
+    // r0 should have total bytes written (not error)
+    assert_ne!(
+        vm.regs[0], 0xFFFFFFFF,
+        "SAVEPNG should succeed, got r0={:#x}",
+        vm.regs[0]
+    );
+    // PNG file should be non-trivially sized (> 100 bytes for 256x256 PNG)
+    assert!(
+        vm.regs[0] > 100,
+        "SAVEPNG should write a reasonable PNG size, got {} bytes",
+        vm.regs[0]
+    );
+
+    // Verify the file was created in VFS
+    let file_path = std::path::PathBuf::from(".geometry_os/fs/test_save.png");
+    assert!(file_path.exists(), "SAVEPNG file should exist in VFS");
+    let data = std::fs::read(&file_path).unwrap();
+    // Verify PNG signature
+    assert_eq!(&data[0..8], &[137, 80, 78, 71, 13, 10, 26, 10], "File should start with PNG signature");
+    assert_eq!(data.len(), vm.regs[0] as usize, "File size should match bytes written");
+
+    // Clean up
+    let _ = std::fs::remove_file(&file_path);
+}
+
+#[test]
+fn test_savepng_error_on_bad_path() {
+    let mut vm = Vm::new();
+    // Point to empty string (null at 0x2000)
+    vm.ram[0x2000] = 0;
+
+    // LDI r1, 0x2000; SAVEPNG r1; HALT
+    vm.ram[0] = 0x10;
+    vm.ram[1] = 1;
+    vm.ram[2] = 0x2000;
+    vm.ram[3] = 0xAF;
+    vm.ram[4] = 1;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    vm.halted = false;
+
+    for _ in 0..100_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    assert_eq!(
+        vm.regs[0], 0xFFFFFFFF,
+        "SAVEPNG should fail with empty filename"
+    );
+}
+
+#[test]
+fn test_savepng_disasm() {
+    let (m, l) = disasm(&[0xAF, 1]);
+    assert_eq!(m, "SAVEPNG r1");
+    assert_eq!(l, 2);
+}
+
+#[test]
+fn test_savepng_assembles() {
+    let src = "LDI r1, 0x2000\nSAVEPNG r1\nHALT\n";
+    let result = crate::assembler::assemble(src, 0);
+    assert!(
+        result.is_ok(),
+        "SAVEPNG should assemble: {:?}",
+        result.err()
+    );
+    let bytecode = result.unwrap();
+    // LDI r1, 0x2000 = [0x10, 1, 0x2000]
+    // SAVEPNG r1 = [0xAF, 1]
+    // HALT = [0x00]
+    assert_eq!(bytecode.pixels[0], 0x10);
+    assert_eq!(bytecode.pixels[1], 1);
+    assert_eq!(bytecode.pixels[2], 0x2000);
+    assert_eq!(bytecode.pixels[3], 0xAF);
+    assert_eq!(bytecode.pixels[4], 1);
+    assert_eq!(bytecode.pixels[5], 0x00);
+}
+
+#[test]
+fn test_savepng_pixel_data_correct() {
+    let mut vm = Vm::new();
+    // Fill screen with a known color: 0x00RRGGBB -> pure red
+    for pixel in vm.screen.iter_mut() {
+        *pixel = 0x00FF0000;
+    }
+
+    // Write filename "png_pixel_test.png" to RAM at 0x2000
+    let filename = b"png_pixel_test.png";
+    for (i, &ch) in filename.iter().enumerate() {
+        vm.ram[0x2000 + i] = ch as u32;
+    }
+    vm.ram[0x2000 + filename.len()] = 0;
+
+    // LDI r1, 0x2000; SAVEPNG r1; HALT
+    vm.ram[0] = 0x10;
+    vm.ram[1] = 1;
+    vm.ram[2] = 0x2000;
+    vm.ram[3] = 0xAF;
+    vm.ram[4] = 1;
+    vm.ram[5] = 0x00;
+    vm.pc = 0;
+    vm.halted = false;
+
+    for _ in 0..100_000 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    // Read back the file and verify it's a valid PNG with correct dimensions
+    let file_path = std::path::PathBuf::from(".geometry_os/fs/png_pixel_test.png");
+    let data = std::fs::read(&file_path).unwrap();
+
+    // Verify PNG signature
+    assert_eq!(&data[0..8], &[137, 80, 78, 71, 13, 10, 26, 10]);
+
+    // Verify IHDR chunk: width=256, height=256, bit_depth=8, color_type=2 (RGB)
+    // IHDR starts at offset 8 (after signature)
+    // Length should be 13 (IHDR data length)
+    assert_eq!(u32::from_be_bytes([data[8], data[9], data[10], data[11]]), 13);
+    // Type should be "IHDR"
+    assert_eq!(&data[12..16], b"IHDR");
+    // Width = 256
+    assert_eq!(u32::from_be_bytes([data[16], data[17], data[18], data[19]]), 256);
+    // Height = 256
+    assert_eq!(u32::from_be_bytes([data[20], data[21], data[22], data[23]]), 256);
+
+    let _ = std::fs::remove_file(&file_path);
+}
+
 #[test]
 fn test_scrshot_roundtrip_with_read() {
     let mut vm = Vm::new();

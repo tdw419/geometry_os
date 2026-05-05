@@ -561,6 +561,15 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        "SAVEPNG" => {
+            if tokens.len() < 2 {
+                return Err("SAVEPNG requires 1 argument: SAVEPNG path_addr_reg".to_string());
+            }
+            bytecode.push(0xAF);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
         "LLM" => {
             if tokens.len() != 4 {
                 return Err(

@@ -2068,7 +2068,7 @@ phases:
   _claimed_at: 1777965326
 - id: phase-212
   title: GeOS Pixel Art Export -- PNG Screenshot to VFS
-  status: planned
+  status: in_progress
   goal: Save the current screen as a PNG file in the VFS, accessible from programs
     and the host
   description: The screenshot opcode exists (F9 key) but saves to a host file path.
@@ -2104,6 +2104,8 @@ phases:
       scope_lines: 30
   test_target: 3
   scope_lines_total: 130
+  _claimed_by: worker-0
+  _claimed_at: 1777967452
 - id: phase-213
   title: GeOS Tilemap Editor -- Visual Map Building Tool
   status: planned

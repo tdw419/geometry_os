@@ -97,6 +97,7 @@ fn opcode_width(op: u32) -> u32 {
         case 0xA5u: { return 2u; } // VM_LIST
         case 0xA6u: { return 2u; } // AI_INJECT
         case 0xACu: { return 2u; } // PTYCLOSE
+        case 0xAFu: { return 2u; } // SAVEPNG
         case 0xB0u: { return 2u; } // AI_AGENT
         case 0xB2u: { return 2u; } // LOADSRCIMG
         case 0xB3u: { return 2u; } // ASM_RAM
