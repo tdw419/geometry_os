@@ -2021,8 +2021,10 @@ phases:
       scope_files:
       - programs/notepad.asm
       scope_lines: 30
-  test_target: 3
+  test_target: 26
   scope_lines_total: 130
+  status: done
+  completed_at: 1777981221
   _claimed_by: worker-0
   _claimed_at: 1777981221
 - id: phase-211
