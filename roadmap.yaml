@@ -10607,3 +10607,37 @@ phases:
     scope_lines: 12
   scope_lines_total: 12
   test_target: 1
+
+- id: phase-256
+  title: "Fix click_test.asm and mouse_demo.asm: unsupported syntax from WIP drafter commits"
+  status: planned
+  goal: "click_test.asm and mouse_demo.asm assemble cleanly, reducing test_all_programs_assemble failures by 2"
+  description: "Two programs added by WIP drafter self-commits (a24f7903 and 8cdb1444) fail to assemble: (1) click_test.asm uses '.section code' directive at line 5 which the GeoASM assembler does not support. The assembler supports .org, .byte, .db, .dw, .define, but not .section. Fix: remove the '.section code' line (the assembler treats all code as a single section by default). (2) mouse_demo.asm fails with 'invalid number or undefined constant: r2' at line 23. The line is 'PSETI r2, r10, r6' which looks correct syntactically. This may be caused by a preceding line (SHL r6, r1 at line 22) producing an assembler state issue, or a subtle parsing bug triggered by the comment style or whitespace. Needs investigation -- may be a two-register SHL variant issue. Both programs are from phase-217 (mouse support) drafter work that was self-committed without review."
+  deliverables:
+  - name: "Fix click_test.asm: remove unsupported .section directive"
+    description: "Remove '.section code' from line 5 of programs/click_test.asm. The GeoASM assembler doesn't support .section directives -- all code is in a single flat section. Also check for any other unsupported directives in the file."
+    status: todo
+    tasks:
+    - id: p256.d1.t1
+      title: "Remove .section code from click_test.asm line 5"
+      status: todo
+      description: "Edit programs/click_test.asm. Delete line 5 ('.section code'). Verify no other .section directives exist in the file. Run cargo test --test program_tests -- basic_programs::test_all_programs_assemble to verify one fewer failure."
+      scope_lines: 2
+    scope_lines: 2
+  - name: "Fix mouse_demo.asm: investigate 'invalid number or undefined constant: r2' at line 23"
+    description: "mouse_demo.asm line 23 is 'PSETI r2, r10, r6' which should be valid. The error may originate from line 22 (SHL r6, r1) or earlier. Need to isolate which instruction triggers the error by binary-search commenting out lines. If SHL with two register args is the issue, check if the assembler expects a different operand format for SHL."
+    status: todo
+    tasks:
+    - id: p256.d2.t1
+      title: "Isolate which line in mouse_demo.asm triggers the assembler error"
+      status: todo
+      description: "Comment out lines around line 22-23 to find the exact trigger. Try assembling just the first 20 lines vs first 25 lines to narrow down. Check if SHL r6, r1 is valid (two register operands for shift)."
+      scope_lines: 30
+    - id: p256.d2.t2
+      title: "Fix the root cause and verify mouse_demo.asm assembles"
+      status: todo
+      description: "Based on isolation findings, fix the syntax issue in mouse_demo.asm. Run cargo test --test program_tests -- basic_programs::test_all_programs_assemble to verify."
+      scope_lines: 10
+    scope_lines: 40
+  scope_lines_total: 42
+  test_target: 2
