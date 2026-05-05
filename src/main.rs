@@ -411,8 +411,6 @@ fn main() {
     let mut camera_handle: Option<camera::CameraHandle> = None;
     #[cfg(feature = "native")]
     let mut camera_latest_frame: Option<camera::CameraFrame> = None;
-    #[cfg(feature = "native")]
-    let mut camera_mode_initialized = false;
     let mut canvas_assembled = false;
     let mut breakpoints: HashSet<u32> = HashSet::new();
     let mut hit_breakpoint = false;
@@ -482,7 +480,7 @@ fn main() {
 
     // ── Camera init (deferred: needs status_msg) ────────────────
     #[cfg(feature = "native")]
-    if camera_mode && !camera_mode_initialized {
+    if camera_mode {
         match camera::open_camera(&camera_device) {
             Ok(handle) => {
                 camera_handle = Some(handle);
@@ -493,7 +491,6 @@ fn main() {
                 status_msg = format!("[camera: {}]", e);
             }
         }
-        camera_mode_initialized = true;
     }
 
     // Last loaded file (for Ctrl+F8 reload)
