@@ -279,6 +279,45 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        "MOUSEX" => {
+            if tokens.len() < 2 {
+                return Err("MOUSEX requires 1 argument: MOUSEX dest_reg".to_string());
+            }
+            bytecode.push(0xC8);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
+        "MOUSEY" => {
+            if tokens.len() < 2 {
+                return Err("MOUSEY requires 1 argument: MOUSEY dest_reg".to_string());
+            }
+            bytecode.push(0xC9);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
+        "MOUSEB" => {
+            if tokens.len() < 2 {
+                return Err("MOUSEB requires 1 argument: MOUSEB dest_reg".to_string());
+            }
+            bytecode.push(0xCA);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
+        "MOUSECLICK" => {
+            if tokens.len() < 2 {
+                return Err(
+                    "MOUSECLICK requires 1 argument: MOUSECLICK rd (type→rd, x→rd+1, y→rd+2)"
+                        .to_string(),
+                );
+            }
+            bytecode.push(0xCB);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
         "RECT" => {
             if tokens.len() < 6 {
                 return Err(

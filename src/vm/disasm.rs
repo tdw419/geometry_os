@@ -989,6 +989,27 @@ impl Vm {
                 format!("IMOUSE {}", reg(ram(a + 1))),
                 2,
             ),
+            // MOUSEX rd (0xC8) -- Read mouse X into register
+            0xC8 => (
+                format!("MOUSEX {}", reg(ram(a + 1))),
+                2,
+            ),
+            // MOUSEY rd (0xC9) -- Read mouse Y into register
+            0xC9 => (
+                format!("MOUSEY {}", reg(ram(a + 1))),
+                2,
+            ),
+            // MOUSEB rd (0xCA) -- Read mouse button bitmask
+            0xCA => (
+                format!("MOUSEB {}", reg(ram(a + 1))),
+                2,
+            ),
+            // MOUSECLICK rd (0xCB) -- Peek for click event
+            // type→rd, x→rd+1, y→rd+2
+            0xCB => (
+                format!("MOUSECLICK {}", reg(ram(a + 1))),
+                2,
+            ),
             // SMALLTEXT x, y, addr, fg, bg (0xD0) -- tiny 3x5 font, 85 cols in 256px
             0xD0 => (
                 format!(

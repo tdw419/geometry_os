@@ -4388,6 +4388,80 @@ impl Vm {
                 }
             }
 
+            // ── Phase 217: Mouse Support Opcodes ─────────────────────
+            // MOUSEX rd  (0xC8) -- Read current mouse X into register.
+            // Non-blocking. Returns 0-255 for the X coordinate.
+            // For windowed processes, coordinates are window-relative.
+            0xC8 => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS {
+                    let (mx, _my) = self.translate_mouse_for_current_process();
+                    self.regs[rd] = mx;
+                }
+            }
+
+            // MOUSEY rd  (0xC9) -- Read current mouse Y into register.
+            // Non-blocking. Returns 0-255 for the Y coordinate.
+            // For windowed processes, coordinates are window-relative.
+            0xC9 => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS {
+                    let (_mx, my) = self.translate_mouse_for_current_process();
+                    self.regs[rd] = my;
+                }
+            }
+
+            // MOUSEB rd  (0xCA) -- Read mouse button bitmask into register.
+            // Bit 0 = left button, bit 1 = right button, bit 2 = middle button.
+            // Non-blocking. Returns current state (0 if no buttons pressed).
+            0xCA => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS {
+                    // Build bitmask from current mouse_button field.
+                    // mouse_button: 0=none, 1=left down, 2=left click
+                    let bitmask = if self.mouse_button >= 1 {
+                        1 // bit 0 = left button
+                    } else {
+                        0
+                    };
+                    self.regs[rd] = bitmask;
+                }
+            }
+
+            // MOUSECLICK rd  (0xCB) -- Blocking wait for mouse click.
+            // Waits until a click event is available in the mouse event queue.
+            // Returns immediately if a click event is already pending.
+            // Writes: rd = event_type (1=down, 2=up), rd+1 = x, rd+2 = y.
+            // Does NOT consume the event (use IMOUSE to consume).
+            // Returns 0 in rd if no click event after peeking.
+            0xCB => {
+                let rd = self.fetch() as usize;
+                if rd < NUM_REGS && rd + 2 < NUM_REGS {
+                    // Peek at the event queue for a click (type=1 down or type=2 up)
+                    let mut found = false;
+                    let mut head = self.mouse_event_head;
+                    while head != self.mouse_event_tail {
+                        let packed = self.mouse_event_buffer[head];
+                        let event_type = packed & 0xFF;
+                        if event_type == 1 || event_type == 2 {
+                            // Found a click event: down or up
+                            self.regs[rd] = event_type;
+                            self.regs[rd + 1] = self.mouse_event_x[head];
+                            self.regs[rd + 2] = self.mouse_event_y[head];
+                            found = true;
+                            break;
+                        }
+                        head = (head + 1) % self.mouse_event_buffer.len();
+                    }
+                    if !found {
+                        // No click pending: return 0
+                        self.regs[rd] = 0;
+                        self.regs[rd + 1] = 0;
+                        self.regs[rd + 2] = 0;
+                    }
+                }
+            }
+
             _ => {
                 self.halted = true;
                 return false;

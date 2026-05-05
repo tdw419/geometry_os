@@ -10341,6 +10341,168 @@ fn test_imouse_disassembler() {
     assert_eq!(len, 2);
 }
 
+// ── Phase 217: MOUSEX / MOUSEY / MOUSEB / MOUSECLICK ──────────
+
+#[test]
+fn test_mousex_reads_current_x() {
+    let mut vm = Vm::new();
+    vm.push_mouse(42, 99);
+    vm.ram[0] = 0xC8; // MOUSEX
+    vm.ram[1] = 1;    // r1
+    vm.step();
+    assert_eq!(vm.regs[1], 42, "MOUSEX should read current mouse X");
+}
+
+#[test]
+fn test_mousey_reads_current_y() {
+    let mut vm = Vm::new();
+    vm.push_mouse(42, 99);
+    vm.ram[0] = 0xC9; // MOUSEY
+    vm.ram[1] = 2;    // r2
+    vm.step();
+    assert_eq!(vm.regs[2], 99, "MOUSEY should read current mouse Y");
+}
+
+#[test]
+fn test_mouseb_no_button() {
+    let mut vm = Vm::new();
+    vm.push_mouse(50, 50);
+    vm.ram[0] = 0xCA; // MOUSEB
+    vm.ram[1] = 3;    // r3
+    vm.step();
+    assert_eq!(vm.regs[3], 0, "MOUSEB should be 0 when no button pressed");
+}
+
+#[test]
+fn test_mouseb_left_down() {
+    let mut vm = Vm::new();
+    vm.push_mouse(50, 50);
+    vm.push_mouse_button(1); // left down
+    vm.ram[0] = 0xCA; // MOUSEB
+    vm.ram[1] = 3;    // r3
+    vm.step();
+    assert_eq!(vm.regs[3], 1, "MOUSEB bit 0 should be set for left button");
+}
+
+#[test]
+fn test_mouseb_left_click() {
+    let mut vm = Vm::new();
+    vm.push_mouse(50, 50);
+    vm.push_mouse_button(2); // left click
+    vm.ram[0] = 0xCA; // MOUSEB
+    vm.ram[1] = 3;    // r3
+    vm.step();
+    assert_eq!(vm.regs[3], 1, "MOUSEB bit 0 should be set for left click");
+}
+
+#[test]
+fn test_mouseclick_no_event_pending() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xCB; // MOUSECLICK
+    vm.ram[1] = 1;    // r1
+    vm.step();
+    assert_eq!(vm.regs[1], 0, "MOUSECLICK should return 0 when no event");
+    assert_eq!(vm.regs[2], 0, "x should be 0");
+    assert_eq!(vm.regs[3], 0, "y should be 0");
+}
+
+#[test]
+fn test_mouseclick_with_click_event() {
+    let mut vm = Vm::new();
+    // Push a click event via push_mouse_button (queues a down event)
+    vm.push_mouse(30, 40);
+    vm.push_mouse_button(1); // left down -> queues event_type=1
+    vm.ram[0] = 0xCB; // MOUSECLICK
+    vm.ram[1] = 1;    // r1
+    vm.step();
+    assert_eq!(vm.regs[1], 1, "MOUSECLICK should return event_type=1 (down)");
+    assert_eq!(vm.regs[2], 30, "x should be 30");
+    assert_eq!(vm.regs[3], 40, "y should be 40");
+}
+
+#[test]
+fn test_mouseclick_ignores_move_events() {
+    let mut vm = Vm::new();
+    // push_mouse queues a move event (type=0), which MOUSECLICK should skip
+    vm.push_mouse(10, 20);
+    vm.ram[0] = 0xCB; // MOUSECLICK
+    vm.ram[1] = 1;    // r1
+    vm.step();
+    assert_eq!(vm.regs[1], 0, "MOUSECLICK should ignore move events");
+}
+
+#[test]
+fn test_mousex_assembler() {
+    let source = "MOUSEX r1\nHALT";
+    let asm = crate::assembler::assemble(source, 0x1000).unwrap();
+    assert_eq!(asm.pixels[0], 0xC8, "opcode");
+    assert_eq!(asm.pixels[1], 1, "register r1");
+}
+
+#[test]
+fn test_mousey_assembler() {
+    let source = "MOUSEY r2\nHALT";
+    let asm = crate::assembler::assemble(source, 0x1000).unwrap();
+    assert_eq!(asm.pixels[0], 0xC9, "opcode");
+    assert_eq!(asm.pixels[1], 2, "register r2");
+}
+
+#[test]
+fn test_mouseb_assembler() {
+    let source = "MOUSEB r3\nHALT";
+    let asm = crate::assembler::assemble(source, 0x1000).unwrap();
+    assert_eq!(asm.pixels[0], 0xCA, "opcode");
+    assert_eq!(asm.pixels[1], 3, "register r3");
+}
+
+#[test]
+fn test_mouseclick_assembler() {
+    let source = "MOUSECLICK r4\nHALT";
+    let asm = crate::assembler::assemble(source, 0x1000).unwrap();
+    assert_eq!(asm.pixels[0], 0xCB, "opcode");
+    assert_eq!(asm.pixels[1], 4, "register r4");
+}
+
+#[test]
+fn test_mousex_disassembler() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xC8;
+    vm.ram[1] = 5;
+    let (mnemonic, len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "MOUSEX r5");
+    assert_eq!(len, 2);
+}
+
+#[test]
+fn test_mousey_disassembler() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xC9;
+    vm.ram[1] = 7;
+    let (mnemonic, len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "MOUSEY r7");
+    assert_eq!(len, 2);
+}
+
+#[test]
+fn test_mouseb_disassembler() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xCA;
+    vm.ram[1] = 3;
+    let (mnemonic, len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "MOUSEB r3");
+    assert_eq!(len, 2);
+}
+
+#[test]
+fn test_mouseclick_disassembler() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xCB;
+    vm.ram[1] = 10;
+    let (mnemonic, len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "MOUSECLICK r10");
+    assert_eq!(len, 2);
+}
+
 #[test]
 fn test_winsys_hittest_body() {
     // WINSYS op=4: HITTEST finds window under mouse, returns body hit

@@ -2276,7 +2276,7 @@ phases:
   scope_lines_total: 240
 - id: phase-217
   title: GeOS VM -- Mouse Support Opcodes
-  status: planned
+  status: in_progress
   goal: Add mouse position and button state opcodes for GUI programs
   description: 'Current input is keyboard-only via IKEY. GUI programs (window manager,
     desktop, file browser) need mouse support. Add MOUSEX (read mouse X to register),
@@ -2324,6 +2324,8 @@ phases:
       scope_lines: 60
   test_target: 4
   scope_lines_total: 240
+  _claimed_by: worker-0
+  _claimed_at: 1777998571
 - id: phase-218
   title: GeOS VM -- Bitmap Font Renderer for RISC-V Guest
   status: todo
