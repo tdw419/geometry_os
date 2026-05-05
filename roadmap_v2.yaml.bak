@@ -2392,7 +2392,7 @@ phases:
     are pre-existing unrelated capability_tests).
 - id: phase-219
   title: GeOS VM -- Memory-Mapped Screen Buffer Readback
-  status: in_progress
+  status: planned
   goal: Let VM programs read the screen buffer via LOAD from 0x10000-0x1FFFF
   description: The screen buffer at 0x10000-0x1FFFF (256x256 pixels, mapped to vm.screen)
     already supports writes for SETPIXEL-style rendering, but LOAD from this region
@@ -2431,11 +2431,9 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 100
-  _claimed_by: worker-0
-  _claimed_at: 1778010928
 - id: phase-220
   title: RISC-V Guest -- Mandelbrot Fractal Renderer
-  status: in_progress
+  status: planned
   goal: Add a Mandelbrot set renderer that proves the RISC-V interpreter handles compute-intensive
     floating-point work
   description: 'The RISC-V interpreter supports M-extension multiplication and division
@@ -2475,11 +2473,9 @@ phases:
       scope_lines: 60
   test_target: 3
   scope_lines_total: 260
-  _claimed_by: worker-0
-  _claimed_at: 1778012000
 - id: phase-221
   title: GeOS VM -- Clipboard Protocol Enhancement
-  status: in_progress
+  status: planned
   goal: Extend the system clipboard (0xF010-0xF01F) with multi-format copy/paste and
     clipboard history
   description: 'The clipboard protocol at 0xF010-0xF01F supports basic pixel-region
@@ -2521,11 +2517,9 @@ phases:
       scope_lines: 60
   test_target: 3
   scope_lines_total: 200
-  _claimed_by: worker-0
-  _claimed_at: 1778015934
 - id: phase-222
   title: GeOS VM -- Timer and Alarm Opcodes
-  status: in_progress
+  status: planned
   goal: Add wall-clock timer opcodes so programs can schedule actions by real time,
     not just frame count
   description: Programs currently use the TICKS register (RAM[0xFFE], incremented
@@ -2565,8 +2559,6 @@ phases:
       scope_lines: 50
   test_target: 3
   scope_lines_total: 120
-  _claimed_by: worker-0
-  _claimed_at: 1778016815
 - id: phase-223
   title: GeOS VM -- Program Library (lib/) Standardization
   status: planned

@@ -1638,6 +1638,82 @@ fn test_screen_ram_assembles_and_runs() {
     assert_eq!(vm.ram[0x7000], 0xFF0000);
 }
 
+// ── Phase 219: Screen Capture to RAM (LOAD readback bulk copy) ──
+
+#[test]
+fn test_screen_capture_to_ram() {
+    use crate::assembler::assemble;
+    // Draw 3 known pixels on screen, bulk-copy to RAM via LOAD/STORE loop, verify
+    let src = "\
+LDI r1, 0x10000\n\
+LDI r2, 0xFF0000\n\
+STORE r1, r2\n\
+LDI r1, 0x10001\n\
+LDI r2, 0x00FF00\n\
+STORE r1, r2\n\
+LDI r1, 0x10002\n\
+LDI r2, 0x0000FF\n\
+STORE r1, r2\n\
+LDI r4, 0x10000\n\
+LDI r5, 0x2000\n\
+LDI r6, 3\n\
+COPY_LOOP:\n\
+LOAD r3, r4\n\
+STORE r5, r3\n\
+ADDI r4, 1\n\
+ADDI r5, 1\n\
+SUBI r6, 1\n\
+CMPI r6, 0\n\
+JNZ r0, COPY_LOOP\n\
+HALT";
+    let asm = assemble(src, 0).expect("assembly should succeed");
+    let vm = run_program(&asm.pixels, 500);
+    assert!(vm.halted, "program should halt");
+    // Verify screen pixels were drawn
+    assert_eq!(vm.screen[0], 0xFF0000, "screen[0] should be red");
+    assert_eq!(vm.screen[1], 0x00FF00, "screen[1] should be green");
+    assert_eq!(vm.screen[2], 0x0000FF, "screen[2] should be blue");
+    // Verify RAM copy matches screen
+    assert_eq!(vm.ram[0x2000], 0xFF0000, "ram[0x2000] should be red");
+    assert_eq!(vm.ram[0x2001], 0x00FF00, "ram[0x2001] should be green");
+    assert_eq!(vm.ram[0x2002], 0x0000FF, "ram[0x2002] should be blue");
+}
+
+#[test]
+fn test_screen_capture_pset_then_load() {
+    use crate::assembler::assemble;
+    // Use PSET to draw (which writes to screen), then LOAD to read back
+    // screen addr for (10, 20) = 0x10000 + 20*256 + 10 = 0x1420A
+    let screen_addr = 0x10000 + 20 * 256 + 10;
+    let src = format!(
+        "\
+LDI r1, 10\n\
+LDI r2, 20\n\
+LDI r3, 0xABCDEF\n\
+PSET r1, r2, r3\n\
+LDI r4, 0x{:X}\n\
+LOAD r5, r4\n\
+LDI r6, 0x5000\n\
+STORE r6, r5\n\
+HALT",
+        screen_addr
+    );
+    let asm = assemble(&src, 0).expect("assembly should succeed");
+    let vm = run_program(&asm.pixels, 500);
+    assert!(vm.halted, "program should halt");
+    // screen[20*256 + 10] should have the PSET color
+    assert_eq!(
+        vm.screen[20 * 256 + 10],
+        0xABCDEF,
+        "screen pixel should match PSET"
+    );
+    // RAM copy should match
+    assert_eq!(
+        vm.ram[0x5000], 0xABCDEF,
+        "ram copy should match screen pixel"
+    );
+}
+
 // ── ASMSELF tests (Phase 47: Pixel Driving Pixels) ──────────
 
 /// Helper: write an ASCII string into the VM's canvas buffer at a given offset.
