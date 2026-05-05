@@ -344,6 +344,7 @@ fn boot_guest_empty_image_runs_nop_loop() {
     assert_eq!(result.entry, 0x8000_0000);
 }
 
+#[ignore] // Runs 1B RISC-V instructions (~60s). Run explicitly: cargo test --lib -- --ignored test_linux_kernel_early_boot
 #[test]
 fn test_linux_kernel_early_boot() {
     use std::fs;
