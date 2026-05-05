@@ -522,6 +522,11 @@ mod tests {
             }
         }
         vm.pc = addr as u32;
+        vm.halted = false; // Reset halted so step() will execute
+        // Clear stale icache entries for the loaded range
+        for i in addr..(addr + words.len()).min(vm.icache.len()) {
+            vm.icache[i] = None;
+        }
     }
 
     /// Run up to max_steps, return (steps_taken, halted).
@@ -545,7 +550,7 @@ mod tests {
         assert!(halted);
         assert_eq!(vm.regs[1], 30);
         assert_eq!(vm.regs[2], 20);
-        assert_eq!(steps, 4);
+        assert_eq!(steps, 3); // LDI, LDI, ADD (HALT breaks before count)
     }
 
     #[test]
@@ -603,14 +608,17 @@ mod tests {
     fn test_cmp_and_branches() {
         // CMP r1, r2 sets r0 = -1 (less), 0 (equal), 1 (greater)
         let mut vm = Vm::new();
+        // CMP is 3 words, BGE/BLT are 3 words each
+        // @0: LDI,1,5 | @3: LDI,2,10 | @6: CMP,1,2 | @9: BGE,0,18 | @12: BLT,0,19
+        // @15: LDI,3,999 | @18: HALT | @19: LDI,3,1 | @22: HALT
         load_program(&mut vm, 0, &[
             LDI, 1, 5, LDI, 2, 10,
             CMP, 1, 2,     // r0 = 0xFFFFFFFF (5 < 10)
-            BGE, 0, 12,    // r0 != 0xFFFFFFFF? No. Don't jump.
-            BLT, 0, 15,    // r0 == 0xFFFFFFFF? Yes. Jump to addr 15.
+            BGE, 0, 18,    // r0 == 0xFFFFFFFF → don't jump (BGE: r0 != -1 means jump)
+            BLT, 0, 19,    // r0 == 0xFFFFFFFF → jump to addr 19
             LDI, 3, 999,   // should be skipped
             HALT,
-            LDI, 3, 1,     // addr 15: landed here
+            LDI, 3, 1,     // addr 19: landed here
             HALT,
         ]);
         run_steps(&mut vm, 100);
@@ -623,12 +631,12 @@ mod tests {
         let mut vm = Vm::new();
         load_program(&mut vm, 0, &[
             LDI, 1, 0,      // r1 = 0
-            JZ, 1, 9,       // jump to addr 9 (r1 == 0)
+            JZ, 1, 10,      // jump to addr 10 (r1 == 0)
             LDI, 3, 999,    // skip
             HALT,
             LDI, 3, 1,      // addr 9
             LDI, 1, 42,     // r1 = 42 (non-zero)
-            JNZ, 1, 18,     // jump to addr 18 (r1 != 0)
+            JNZ, 1, 23,     // jump to addr 18 (r1 != 0)
             LDI, 3, 999,    // skip
             HALT,
             LDI, 3, 2,      // addr 18
@@ -662,8 +670,8 @@ mod tests {
         let (steps, halted) = run_steps(&mut vm, 10_000);
         assert!(halted);
         assert_eq!(vm.regs[1], 100);
-        // 3 setup + 100 * 4 (ADD, CMP, BGE, JMP) + 1 BGE + 1 HALT = 405
-        assert_eq!(steps, 3 + 100 * 4 + 1 + 1);
+        // 3 setup + 99 * 4 (ADD,CMP,BGE_no_jmp,JMP) + 3 final (ADD,CMP,BGE_to_halt) = 402
+        assert_eq!(steps, 3 + 99 * 4 + 3);
     }
 
     #[test]
@@ -676,7 +684,7 @@ mod tests {
         // 12: LDI r3, 100
         // 15: ADD r2, r4      ; r2++
         // 18: CMP r2, r3
-        // 21: BGE 0, 30       ; exit inner
+        // 21: BGE 0, 27       ; exit inner (jump to outer increment)
         // 24: JMP 15          ; continue inner
         // 27: ADD r1, r4      ; r1++ (outer)
         // 30: CMP r1, r5
@@ -690,7 +698,7 @@ mod tests {
             LDI, 2, 0, LDI, 3, 100,
             ADD, 2, 4,
             CMP, 2, 3,
-            BGE, 0, 30,
+            BGE, 0, 26,
             JMP, 15,
             ADD, 1, 4,
             CMP, 1, 5,
@@ -761,7 +769,7 @@ mod tests {
         load_program(&mut vm, 0, &[
             LDI, 1, 0,        // HALT opcode value
             LDI, 2, 12,       // target addr
-            STORE, 1, 2,      // RAM[12] = HALT
+            STORE, 2, 1,      // addr_reg=r2(12), reg=r1(0=HALT)
             LDI, 3, 42,       // r3 = 42
             JMP, 9,           // addr 12: will be HALT now
             HALT,
@@ -883,12 +891,11 @@ mod tests {
             LDI, 30, 600,      // SP
             LDI, 1, 0,         // HALT value
             LDI, 2, 9,         // target address
-            STORE, 1, 2,       // RAM[9] = HALT (invalidates cache)
+            STORE, 2, 1,       // addr_reg=r2(9), reg=r1(0=HALT)
             HALT,
         ]);
         run_steps(&mut vm, 100);
-
-        assert_eq!(vm.icache_generation, gen_before.wrapping_add(1),
+assert_eq!(vm.icache_generation, gen_before.wrapping_add(1),
             "Generation should have bumped after STORE to code memory");
     }
 
@@ -912,7 +919,7 @@ mod tests {
 
         assert!(halted, "VM should halt");
         assert_eq!(vm.regs[1], iterations);
-        assert_eq!(steps, 3 + iterations as u64 * 4 + 2);
+        assert_eq!(steps, 3 + (iterations - 1) as u64 * 4 + 3);
 
         let total = vm.icache_hits + vm.icache_misses;
         let hit_rate = if total > 0 { vm.icache_hits as f64 / total as f64 } else { 0.0 };
