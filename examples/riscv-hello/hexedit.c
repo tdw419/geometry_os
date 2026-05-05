@@ -494,11 +494,13 @@ static void handle_key(char ch) {
 void c_start(void) {
     fb_init();
 
-    /* Place a test pattern at the default view address so the display
-       isn't just zeros on first load. This also serves as a visual
-       verification target -- editing these bytes changes the display. */
+    /* Place a test pattern at a safe address (well past code/data/BSS)
+       so the display isn't just zeros on first load.
+       Code occupies 0x80000000..0x80001D14, stack grows down from 0x80100000.
+       We put test data at 0x80002000 to avoid colliding with either. */
+    #define TEST_DATA_BASE  0x80002000u
     {
-        volatile uint8_t *p = mem_ptr(0x80000000u);
+        volatile uint8_t *p = mem_ptr(TEST_DATA_BASE);
         /* Write "GeOS HEX" as ASCII */
         const char *msg = "GeOS Hex Editor v1.0 -- Bare Metal RISC-V";
         for (int i = 0; msg[i]; i++) {
@@ -510,7 +512,7 @@ void c_start(void) {
         }
     }
 
-    cursor_addr = 0x80000000u;
+    cursor_addr = TEST_DATA_BASE;
     view_base = cursor_addr;
     cursor_col = 0;
 
