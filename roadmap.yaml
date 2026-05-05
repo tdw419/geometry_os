@@ -10583,3 +10583,27 @@ phases:
     scope_lines: 10
   scope_lines_total: 10
   test_target: 1
+
+- id: phase-255
+  title: "Fix tilemap_editor.asm: RECTF uses raw immediates instead of registers"
+  status: planned
+  goal: "tilemap_editor.asm assembles cleanly, reducing test_all_programs_assemble failures from 3 to 2"
+  description: "tilemap_editor.asm fails to assemble with 'invalid register: 176' at line 596. The RECTF opcode expects register operands, but 6 call sites use raw decimal immediates (176 and 218) as the first argument (x position). The pattern is consistent: lines 596, 598, 605, 607, 614, 616 all use 'RECTF 176, r3, r4, r5, r6' or 'RECTF 218, r3, r4, r5, r6' where 176 and 218 should be loaded into a register first. Fix: before each RECTF with an immediate, add 'LDI r0, <imm>' (or use an available register) and change the RECTF operand to that register. r0 appears unused in this section based on context. After fixing, test_all_programs_assemble should show 2 failures (shell.asm, nano_editor.asm) instead of 3."
+  deliverables:
+  - name: "Replace RECTF immediate operands with register loads in tilemap_editor.asm"
+    description: "At lines 596, 598, 605, 607, 614, 616 in programs/tilemap_editor.asm, add LDI r0, <imm> before each RECTF call and change the first operand from the raw number to r0. For example, 'RECTF 176, r3, r4, r5, r6' becomes 'LDI r0, 176' then 'RECTF r0, r3, r4, r5, r6'. Verify r0 is safe to clobber in this context (it is — the tile drawing loop uses r1-r6)."
+    status: todo
+    tasks:
+    - id: p255.d1.t1
+      title: "Add LDI r0, <imm> before 6 RECTF calls with immediate first operands"
+      status: todo
+      description: "In programs/tilemap_editor.asm, at lines 596, 598, 605, 607, 614, 616: insert 'LDI r0, 176' (or 218) on the line before, and change 'RECTF 176,' to 'RECTF r0,' (or 218 to r0)."
+      scope_lines: 12
+    - id: p255.d1.t2
+      title: "Verify tilemap_editor.asm assembles and test_all_programs_assemble drops to 2 failures"
+      status: todo
+      description: "Run cargo test --test program_tests basic_programs::test_all_programs_assemble. Expect 2 failures (shell.asm, nano_editor.asm) instead of 3."
+      scope_lines: 0
+    scope_lines: 12
+  scope_lines_total: 12
+  test_target: 1
