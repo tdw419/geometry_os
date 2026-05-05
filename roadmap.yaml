@@ -10665,3 +10665,27 @@ phases:
     scope_lines: 1
   scope_lines_total: 1
   test_target: 2
+
+- id: phase-258
+  title: "Fix loadasm command crashes VM when issued in terminal mode"
+  status: planned
+  goal: "loadasm does not crash the headless VM when the terminal is active"
+  description: "The 'loadasm <path>' command in src/main.rs:2616 writes assembled bytecode directly to VM RAM starting at CANVAS_BYTECODE_ADDR (0x1000). It also clears RAM from 0x1000 to 0x3000 and sets vm.pc=0x1000, vm.halted=false. However, in terminal mode, the terminal program itself is loaded at 0x1000 (the terminal's PC is typically around 0x116D). When loadasm overwrites this region, the terminal code is destroyed. After the command handler returns, the VM main loop tries to continue execution with corrupted/overwritten code, causing a panic and socket disconnect. Reproduction: start headless GeOS, send 'loadasm programs/hello.asm' — the VM crashes immediately after printing '[loaded 140 words at 0x1000]'. The fix should either: (a) refuse loadasm in terminal mode with a helpful error message suggesting 'load_source' + 'assemble' + 'run' instead, or (b) save and restore the terminal code around the loadasm operation, or (c) load the assembled program at a different address that doesn't conflict with the terminal."
+  deliverables:
+  - name: "Prevent loadasm from crashing in terminal mode"
+    description: "In the loadasm handler in src/main.rs:2616, check if the VM is in terminal mode. If so, either refuse with an error message or use an alternate load address. The simplest fix is to print '[error: loadasm overwrites terminal code in terminal mode. Use load_source + assemble + run instead.]' and skip the load. Alternative: load at a higher address like 0x4000 if in terminal mode."
+    status: todo
+    tasks:
+    - id: p258.d1.t1
+      title: "Add terminal-mode guard to loadasm handler"
+      status: todo
+      description: "In src/main.rs around line 2616, before the loadasm logic, check if mode is terminal mode. If so, respond with an error message and return early. Test by starting headless GeOS and sending 'loadasm programs/hello.asm' — it should print the error and the VM should remain alive."
+      scope_lines: 5
+    - id: p258.d1.t2
+      title: "Verify VM stays alive after loadasm rejection in terminal mode"
+      status: todo
+      description: "After the fix, start headless GeOS, send 'loadasm programs/hello.asm', verify error message, then send 'status' to confirm VM is still running."
+      scope_lines: 0
+    scope_lines: 5
+  scope_lines_total: 5
+  test_target: 0
