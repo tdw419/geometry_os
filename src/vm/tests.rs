@@ -8095,11 +8095,9 @@ fn test_text_medium_font_mode() {
 
 #[test]
 fn test_font_select_assembles() {
-    let mut asm = crate::assembler::Assembler::new();
-    asm.source = "FONT_SELECT r1".to_string();
-    let result = asm.assemble();
+    let result = crate::assembler::assemble("FONT_SELECT r1", 0);
     assert!(result.is_ok(), "FONT_SELECT should assemble: {:?}", result.err());
-    let bytecode = result.unwrap();
+    let bytecode = result.unwrap().pixels;
     assert_eq!(bytecode[0], 0xDC); // FONT_SELECT opcode
     assert_eq!(bytecode[1], 1);    // r1
 }

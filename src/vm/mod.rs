@@ -88,8 +88,8 @@ pub struct Vm {
     pub env_vars: std::collections::HashMap<String, String>,
     /// Boot state: true when VM has been booted (init process started)
     pub booted: bool,
-    /// Shutdown requested by SHUTDOWN opcode (Phase 30). Host checks this.
-    pub shutdown_requested: bool,
+    pub kernel_font_mode: u8,
+    /// Font mode for bare VM instances (before boot/init process).
     /// Per-step transient: exit code from EXIT opcode.
     pub step_exit_code: Option<u32>,
     /// Per-step transient: zombie flag from EXIT opcode.
@@ -360,6 +360,7 @@ impl Vm {
             msg_recv_requested: false,
             env_vars: std::collections::HashMap::new(),
             booted: false,
+            kernel_font_mode: 0,
             shutdown_requested: false,
             step_exit_code: None,
             step_zombie: false,
@@ -589,6 +590,7 @@ impl Vm {
         self.msg_recv_requested = false;
         self.env_vars.clear();
         self.booted = false;
+        self.kernel_font_mode = 0;
         self.shutdown_requested = false;
         self.hypervisor_active = false;
         self.hypervisor_config.clear();
