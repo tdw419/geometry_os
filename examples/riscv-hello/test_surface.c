@@ -33,8 +33,8 @@ void c_start(void) {
     vfs_puts("\n");
 
     /* Now test via vfs_list */
-    struct vfs_entry entries[16];
-    int n = vfs_list(entries, 16);
+    struct vfs_entry entries[VFS_MAX_FILES];
+    int n = vfs_list(entries, VFS_MAX_FILES);
     vfs_puts("test: vfs_list returned ");
     vfs_put_dec((uint32_t)n);
     vfs_puts("\n");
