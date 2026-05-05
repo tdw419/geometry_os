@@ -2111,7 +2111,7 @@ phases:
     scope_lines_total: 130
 - id: phase-213
   title: GeOS Tilemap Editor -- Visual Map Building Tool
-  status: in_progress
+  status: planned
   goal: Build an interactive tilemap editor that lets users paint tile-based levels
     for games
   description: The TILEMAP opcode (0x4C) blits tile grids from RAM to screen, but
@@ -2149,11 +2149,9 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 240
-  _claimed_by: worker-0
-  _claimed_at: 1777983299
 - id: phase-214
   title: RISC-V GPU Compute -- WGSL Shader Integration
-  status: planned
+  status: done
   goal: Enable the RISC-V guest to offload compute work to the host GPU via the existing
     WGSL shader pipeline
   description: src/riscv/gpu.rs already has a WGSL compute shader (riscv_executor.wgsl)
@@ -2163,7 +2161,7 @@ phases:
     interpreter remains the fallback for non-GPU environments.
   deliverables:
   - name: GPU-accelerated RISC-V execution
-    status: todo
+    status: done
     tasks:
     - id: p214.d1.t1
       title: Wire GPU executor into RiscvVm::step loop
@@ -2190,9 +2188,11 @@ phases:
       scope_lines: 30
   test_target: 2
   scope_lines_total: 170
+  _claimed_by: worker-0
+  _claimed_at: 1777984932
 - id: phase-215
   title: RISC-V Guest -- Hex Editor
-  status: in_progress
+  status: planned
   goal: Add a bare-metal hex editor C program for inspecting and modifying guest memory
   description: 'sh.c has peek/poke for single words and hexdump for read-only display,
     but there is no interactive hex editor that lets you navigate, inspect, and modify
@@ -2230,8 +2230,6 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 410
-  _claimed_by: worker-0
-  _claimed_at: 1777977787
 - id: phase-216
   title: RISC-V Guest -- Filesystem Commands in Shell
   status: planned
