@@ -1,6 +1,16 @@
 use super::types::*;
 use super::Vm;
 
+/// Log a render op when render_logging is enabled.
+macro_rules! rlog {
+    ($self:expr, $opcode:expr, $name:expr, $($arg:expr),* $(,)?) => {
+        if $self.render_logging {
+            $self.log_render_op($opcode, $name, &[$($arg),*]);
+        }
+    };
+}
+
+
 impl Vm {
     /// Handle graphics and pixel opcodes (0x40-0x51).
     /// Returns false if halted (user-mode IKEY), true otherwise.
@@ -16,6 +26,7 @@ impl Vm {
                     let x = self.regs[xr] as usize;
                     let y = self.regs[yr] as usize;
                     let color = self.regs[cr];
+                    rlog!(self, 0x40, "PSET", x as u32, y as u32, color);
                     self.set_pixel_clipped(x, y, color);
                     if self.trace_recording {
                         if x < 256 && y < 256 {
@@ -36,6 +47,7 @@ impl Vm {
                 let x = self.fetch() as usize;
                 let y = self.fetch() as usize;
                 let color = self.fetch();
+                rlog!(self, 0x41, "PSETI", x as u32, y as u32, color);
                 self.set_pixel_clipped(x, y, color);
                 if self.trace_recording {
                     if x < 256 && y < 256 {
@@ -55,6 +67,7 @@ impl Vm {
                 let cr = self.fetch() as usize;
                 if cr < NUM_REGS {
                     let color = self.regs[cr];
+                    rlog!(self, 0x42, "FILL", color);
                     if let Some((cx, cy, cw, ch)) = self.clip_rect {
                         // Fill only the clip rectangle
                         let cx = cx as usize;
@@ -88,6 +101,7 @@ impl Vm {
                     let w = self.regs[wr] as usize;
                     let h = self.regs[hr] as usize;
                     let color = self.regs[cr];
+                    rlog!(self, 0x43, "RECTF", x0 as u32, y0 as u32, w as u32, h as u32, color);
                     for dy in 0..h {
                         for dx in 0..w {
                             let px = x0 + dx;
@@ -109,6 +123,7 @@ impl Vm {
                     let mut sx = self.regs[xr] as usize;
                     let mut sy = self.regs[yr] as usize;
                     let mut addr = self.regs[ar] as usize;
+                    rlog!(self, 0x44, "TEXT", sx as u32, sy as u32, addr as u32);
                     let fg = 0xFFFFFF; // white text
                     let font_mode = self.get_font_mode();
                     loop {
@@ -200,6 +215,7 @@ impl Vm {
                     let mut addr = self.regs[ar] as usize;
                     let w = self.regs[wr] as usize;
                     let h = self.regs[hr] as usize;
+                    rlog!(self, 0x4A, "SPRITE", sx as u32, sy as u32, w as u32, h as u32, addr as u32);
                     for dy in 0..h {
                         for dx in 0..w {
                             if addr >= self.ram.len() {
@@ -272,7 +288,8 @@ impl Vm {
                     let mut y0 = self.regs[y0r] as i32;
                     let x1 = self.regs[x1r] as i32;
                     let y1 = self.regs[y1r] as i32;
-                    let dx = (x1 - x0).abs();
+                    rlog!(self, 0x45, "LINE", x0 as u32, y0 as u32, x1 as u32, y1 as u32, color);
+        let dx = (x1 - x0).abs();
                     let dy = -(y1 - y0).abs();
                     let sx: i32 = if x0 < x1 { 1 } else { -1 };
                     let sy: i32 = if y0 < y1 { 1 } else { -1 };
@@ -306,7 +323,8 @@ impl Vm {
                     let cy = self.regs[yr] as i32;
                     let radius = self.regs[rr] as i32;
                     let color = self.regs[cr];
-                    let mut x = radius;
+                    rlog!(self, 0x46, "CIRCLE", cx as u32, cy as u32, radius as u32, color);
+        let mut x = radius;
                     let mut y = 0i32;
                     let mut err = 1 - radius;
                     while x >= y {
@@ -339,6 +357,7 @@ impl Vm {
                 let nr = self.fetch() as usize;
                 if nr < NUM_REGS {
                     let n = (self.regs[nr] as usize).min(256);
+                    rlog!(self, 0x47, "SCROLL", n as u32);
                     if n > 0 {
                         self.screen.copy_within(n * 256.., 0);
                         for v in self.screen[(256 - n) * 256..].iter_mut() {
@@ -629,7 +648,8 @@ impl Vm {
                     let mut addr = self.regs[ar] as usize;
                     let fg = self.regs[fgr];
                     let bg_val = self.regs[bgr];
-                    let bg = if bg_val == 0 { None } else { Some(bg_val) };
+                    rlog!(self, 0xDB, "VWTXT", sx as u32, sy as u32, fg, bg_val, addr as u32);
+        let bg = if bg_val == 0 { None } else { Some(bg_val) };
                     loop {
                         if addr >= self.ram.len() {
                             break;

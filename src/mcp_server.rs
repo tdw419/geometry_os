@@ -309,6 +309,33 @@ fn get_tool_list() -> Vec<serde_json::Value> {
             )],
             vision_describe_schema(),
         ),
+
+        tool(
+            "vision_peek_pixel",
+            "Read the exact RGB color of one pixel on the 256x256 framebuffer. Use for pixel-level assertions without a vision model.",
+            vec![
+                param("x", "integer", "X coordinate (0-255)", true),
+                param("y", "integer", "Y coordinate (0-255)", true),
+            ],
+            vision_peek_pixel_schema(),
+        ),
+        tool(
+            "vision_region_checksum",
+            "FNV-1a hash of a sub-rectangle of the framebuffer. Use for sprite/region regression tests without a vision model.",
+            vec![
+                param("x", "integer", "Top-left X (0-255)", true),
+                param("y", "integer", "Top-left Y (0-255)", true),
+                param("w", "integer", "Width (>0, x+w <= 256)", true),
+                param("h", "integer", "Height (>0, y+h <= 256)", true),
+            ],
+            vision_region_checksum_schema(),
+        ),
+        tool(
+            "vision_render_log",
+            "Get history of high-level graphics operations (RECTF, FILL, LINE, etc.). Actions: 'dump' (default), 'on', 'off', 'clear'.",
+            vec![param("action", "string", "Action: dump/on/off/clear", false)],
+            vision_render_log_schema(),
+        ),
         // -- Phase 89: AI Input Injection Tools --
         tool(
             "input_key",
@@ -644,6 +671,54 @@ fn vision_describe_schema() -> serde_json::Value {
         "properties": {
             "description": {"type": "string", "description": "Vision model's description of the current screen"},
             "model": {"type": "string", "description": "Vision model used"}
+        }
+    })
+}
+
+
+fn vision_peek_pixel_schema() -> serde_json::Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "x": {"type": "integer"},
+            "y": {"type": "integer"},
+            "rgb_hex": {"type": "string", "description": "RRGGBB hex"},
+            "r": {"type": "integer"},
+            "g": {"type": "integer"},
+            "b": {"type": "integer"}
+        }
+    })
+}
+
+fn vision_region_checksum_schema() -> serde_json::Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "x": {"type": "integer"},
+            "y": {"type": "integer"},
+            "w": {"type": "integer"},
+            "h": {"type": "integer"},
+            "checksum": {"type": "string", "description": "FNV-1a hash (hex)"}
+        }
+    })
+}
+
+fn vision_render_log_schema() -> serde_json::Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "entries": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "frame": {"type": "integer"},
+                        "opcode": {"type": "string"},
+                        "name": {"type": "string"},
+                        "args": {"type": "array", "items": {"type": "integer"}}
+                    }
+                }
+            }
         }
     })
 }
@@ -1174,6 +1249,65 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
                     "description": resp,
                     "model": "llama3.2-vision:11b (local Ollama)",
                 }))
+            }
+        }
+
+
+        "vision_peek_pixel" => {
+            let x = args["x"].as_i64().unwrap_or(-1);
+            let y = args["y"].as_i64().unwrap_or(-1);
+            let resp = send_socket_cmd(&format!("peek_pixel {} {}", x, y))?;
+            let trimmed = resp.trim();
+            if trimmed.starts_with('[') { return Err(trimmed.to_string()); }
+            let mut hex = String::new();
+            let mut r = 0i64; let mut g = 0i64; let mut b = 0i64;
+            for (i, tok) in trimmed.split_whitespace().enumerate() {
+                match i {
+                    0 => hex = tok.to_string(),
+                    _ => {
+                        if let Some(rest) = tok.strip_prefix("r=") { r = rest.parse().unwrap_or(0); }
+                        else if let Some(rest) = tok.strip_prefix("g=") { g = rest.parse().unwrap_or(0); }
+                        else if let Some(rest) = tok.strip_prefix("b=") { b = rest.parse().unwrap_or(0); }
+                    }
+                }
+            }
+            Ok(serde_json::json!({"x": x, "y": y, "rgb_hex": hex, "r": r, "g": g, "b": b}))
+        }
+
+        "vision_region_checksum" => {
+            let x = args["x"].as_i64().unwrap_or(-1);
+            let y = args["y"].as_i64().unwrap_or(-1);
+            let w = args["w"].as_i64().unwrap_or(-1);
+            let h = args["h"].as_i64().unwrap_or(-1);
+            let resp = send_socket_cmd(&format!("region_checksum {} {} {} {}", x, y, w, h))?;
+            let trimmed = resp.trim();
+            if trimmed.starts_with('[') { return Err(trimmed.to_string()); }
+            Ok(serde_json::json!({"x": x, "y": y, "w": w, "h": h, "checksum": trimmed}))
+        }
+
+        "vision_render_log" => {
+            let action = args["action"].as_str().unwrap_or("dump");
+            let resp = send_socket_cmd(&format!("render_log {}", action))?;
+            if action == "dump" {
+                let mut entries = Vec::new();
+                for line in resp.lines() {
+                    if let Some((frame_part, rest)) = line.split_once(' ') {
+                        let frame = frame_part.strip_prefix("frame=").and_then(|s| s.parse::<i64>().ok()).unwrap_or(0);
+                        if let Some((op_part, args_part)) = rest.split_once(" args=[") {
+                            if let Some((opcode_hex, name)) = op_part.split_once(':') {
+                                let mut arg_list = Vec::new();
+                                let inner = args_part.trim_end_matches(']');
+                                for a in inner.split(',') {
+                                    if let Ok(val) = a.trim().parse::<i64>() { arg_list.push(val); }
+                                }
+                                entries.push(serde_json::json!({"frame": frame, "opcode": opcode_hex, "name": name, "args": arg_list}));
+                            }
+                        }
+                    }
+                }
+                Ok(serde_json::json!({"entries": entries}))
+            } else {
+                Ok(serde_json::json!({"status": resp.trim()}))
             }
         }
 

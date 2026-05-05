@@ -996,6 +996,11 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         0xC5 => "CLIPCLR",
         0xC6 => "PROFILE",
         0xC7 => "IMOUSE",
+        // Phase 217: Mouse support opcodes
+        0xC8 => "MOUSEX",
+        0xC9 => "MOUSEY",
+        0xCA => "MOUSEB",
+        0xCB => "MOUSECLICK",
         // Phase 94: Tiny font text rendering
         0xD0 => "SMALLTEXT",
         // Phase 95: Medium font text rendering

@@ -2263,6 +2263,85 @@ fn main() {
                                     response.push_str(&(row.trim_end().to_string() + "\n"));
                                 }
                             }
+                            "peek_pixel" => {
+                                let x = parts.get(1).and_then(|s| s.parse::<usize>().ok());
+                                let y = parts.get(2).and_then(|s| s.parse::<usize>().ok());
+                                match (x, y) {
+                                    (Some(x), Some(y)) if x < 256 && y < 256 => {
+                                        let c = vm.screen[y * 256 + x];
+                                        let r = (c >> 16) & 0xFF;
+                                        let g = (c >> 8) & 0xFF;
+                                        let b = c & 0xFF;
+                                        response.push_str(&format!("{:06X} r={} g={} b={}\n", c & 0xFFFFFF, r, g, b));
+                                    }
+                                    (Some(_), Some(_)) => {
+                                        response.push_str("[error: out of range, screen is 256x256]\n");
+                                    }
+                                    _ => {
+                                        response.push_str("[usage: peek_pixel <x> <y>]\n");
+                                    }
+                                }
+                            }
+                            "region_checksum" => {
+                                let x = parts.get(1).and_then(|s| s.parse::<usize>().ok());
+                                let y = parts.get(2).and_then(|s| s.parse::<usize>().ok());
+                                let w = parts.get(3).and_then(|s| s.parse::<usize>().ok());
+                                let h = parts.get(4).and_then(|s| s.parse::<usize>().ok());
+                                match (x, y, w, h) {
+                                    (Some(x), Some(y), Some(w), Some(h))
+                                        if w > 0 && h > 0
+                                            && x.saturating_add(w) <= 256
+                                            && y.saturating_add(h) <= 256 =>
+                                    {
+                                        let mut hash: u32 = 0x811C9DC5;
+                                        for ry in y..y + h {
+                                            for rx in x..x + w {
+                                                hash ^= vm.screen[ry * 256 + rx];
+                                                hash = hash.wrapping_mul(0x01000193);
+                                            }
+                                        }
+                                        response.push_str(&format!("{:08X}\n", hash));
+                                    }
+                                    (Some(_), Some(_), Some(_), Some(_)) => {
+                                        response.push_str("[error: region must fit in 256x256, w/h > 0]\n");
+                                    }
+                                    _ => {
+                                        response.push_str("[usage: region_checksum <x> <y> <w> <h>]\n");
+                                    }
+                                }
+                            }
+                            "render_log" | "rlog" => {
+                                match parts.get(1).copied() {
+                                    Some("on") => {
+                                        vm.render_logging = true;
+                                        response.push_str("[render_log enabled]\n");
+                                    }
+                                    Some("off") => {
+                                        vm.render_logging = false;
+                                        response.push_str("[render_log disabled]\n");
+                                    }
+                                    Some("clear") => {
+                                        vm.render_log.clear();
+                                        response.push_str("[render_log cleared]\n");
+                                    }
+                                    Some("dump") | None => {
+                                        if vm.render_log.is_empty() {
+                                            response.push_str("[render_log empty]\n");
+                                        } else {
+                                            for entry in vm.render_log.iter() {
+                                                response.push_str(&format!("frame={} {:02X}:{} args=[", entry.frame, entry.opcode, entry.name));
+                                                for i in 0..entry.argc as usize {
+                                                    response.push_str(&format!("{}{}", if i > 0 { ", " } else { "" }, entry.args[i]));
+                                                }
+                                                response.push_str("]\n");
+                                            }
+                                        }
+                                    }
+                                    _ => {
+                                        response.push_str("[usage: render_log on|off|dump|clear]\n");
+                                    }
+                                }
+                            }
                             "ram" => {
                                 let base = parts
                                     .get(1)
@@ -2507,7 +2586,7 @@ fn main() {
                                 }
                             }
                             "help" => {
-                                response.push_str("Commands: status, canvas, assemble, run, type <text>, clear, save, save_asm <name>, load_source <asm>, screenshot [path], screenshot_b64, screenshot_annotated_b64, canvas_checksum, canvas_diff <hex>, screen, registers, disasm, vmscreen, ram [base] [rows], vm_state, dashboard, load <path>, loadasm <path>, loadbin <path>, step, halt, scrollback [offset] [count], buildings [radius], desktop_json, launch <app> [--window], player_pos, hypervisor_boot <config>, hypervisor_kill, riscv_run <elf_path>, riscv_kill, inject_key <keycode>, inject_mouse <move|click> <x> <y> [button], inject_text <text>, window_list, window_move <id> <x> <y>, window_close <id>, window_focus <id>, window_resize <id> <w> <h>, process_kill <pid>, launcher [cmd|close|status], clipboard [get|set <text>], watch <path>, unwatch, font [small|normal|medium], cursorstyle [block|underline|bar], help\n");
+                                response.push_str("Commands: status, canvas, assemble, run, type <text>, clear, save, save_asm <name>, load_source <asm>, screenshot [path], screenshot_b64, screenshot_annotated_b64, canvas_checksum, canvas_diff <hex>, screen, registers, disasm, vmscreen, peek_pixel <x> <y>, region_checksum <x> <y> <w> <h>, render_log [on|off|dump|clear], ram [base] [rows], vm_state, dashboard, load <path>, loadasm <path>, loadbin <path>, step, halt, scrollback [offset] [count], buildings [radius], desktop_json, launch <app> [--window], player_pos, hypervisor_boot <config>, hypervisor_kill, riscv_run <elf_path>, riscv_kill, inject_key <keycode>, inject_mouse <move|click> <x> <y> [button], inject_text <text>, window_list, window_move <id> <x> <y>, window_close <id>, window_focus <id>, window_resize <id> <w> <h>, process_kill <pid>, launcher [cmd|close|status], clipboard [get|set <text>], watch <path>, unwatch, font [small|normal|medium], cursorstyle [block|underline|bar], help\n");
                                 response.push_str("In 'type' command, use \\n for newlines.\n");
                             }
                             "scrollback" => {

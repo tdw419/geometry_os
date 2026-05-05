@@ -266,6 +266,8 @@ pub fn load_state(path: &str) -> std::io::Result<(vm::Vm, Vec<u32>, bool)> {
         icache_generation: 0,
         icache_hits: 0,
         icache_misses: 0,
+        render_logging: false,
+        render_log: vm::RenderLog::new(vm::DEFAULT_RENDER_LOG_CAPACITY),
     };
 
     // Parse canvas trailer

@@ -17,6 +17,9 @@
 /// Default ring buffer capacity (entries).
 pub const DEFAULT_TRACE_CAPACITY: usize = 10_000;
 
+/// Default render log capacity (entries). Ring buffer of graphics ops.
+pub const DEFAULT_RENDER_LOG_CAPACITY: usize = 4096;
+
 /// Default frame checkpoint capacity (frames).
 /// At 256x256 screen (65536 u32s per frame), 60 frames ≈ 15MB.
 pub const DEFAULT_FRAME_CHECK_CAPACITY: usize = 60;
@@ -32,6 +35,88 @@ pub struct TraceEntry {
     pub regs: [u32; 16],
     /// The opcode that was executed.
     pub opcode: u32,
+}
+
+
+// --- Render Log: High-Level Graphics Operation History ---
+
+/// A single high-level graphics operation recorded by the render log.
+#[derive(Debug, Clone)]
+pub struct RenderLogEntry {
+    pub frame: u32,
+    pub opcode: u8,
+    pub name: &'static str,
+    pub args: [u32; 6],
+    pub argc: u8,
+}
+
+/// Fixed-size ring buffer of render log entries.
+#[derive(Debug)]
+pub struct RenderLog {
+    entries: Vec<RenderLogEntry>,
+    capacity: usize,
+    head: usize,
+    len: usize,
+}
+
+impl RenderLog {
+    pub fn new(capacity: usize) -> Self {
+        let capacity = capacity.max(1);
+        RenderLog {
+            entries: vec![
+                RenderLogEntry { frame: 0, opcode: 0, name: "", args: [0; 6], argc: 0 };
+                capacity
+            ],
+            capacity,
+            head: 0,
+            len: 0,
+        }
+    }
+
+    #[inline]
+    pub fn push(&mut self, frame: u32, opcode: u8, name: &'static str, args: &[u32]) {
+        let entry = &mut self.entries[self.head];
+        entry.frame = frame;
+        entry.opcode = opcode;
+        entry.name = name;
+        entry.argc = args.len().min(6) as u8;
+        for (i, &v) in args.iter().take(6).enumerate() {
+            entry.args[i] = v;
+        }
+        self.head = (self.head + 1) % self.capacity;
+        if self.len < self.capacity {
+            self.len += 1;
+        }
+    }
+
+    pub fn len(&self) -> usize { self.len }
+    pub fn is_empty(&self) -> bool { self.len == 0 }
+
+    pub fn clear(&mut self) {
+        self.head = 0;
+        self.len = 0;
+    }
+
+    pub fn iter(&self) -> RenderLogIter<'_> {
+        let start = if self.len < self.capacity { 0 } else { self.head };
+        RenderLogIter { log: self, pos: 0, start }
+    }
+}
+
+pub struct RenderLogIter<'a> {
+    log: &'a RenderLog,
+    pos: usize,
+    start: usize,
+}
+
+impl<'a> Iterator for RenderLogIter<'a> {
+    type Item = &'a RenderLogEntry;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.pos >= self.log.len { return None; }
+        let idx = (self.start + self.pos) % self.log.capacity;
+        self.pos += 1;
+        Some(&self.log.entries[idx])
+    }
 }
 
 /// Fixed-size circular buffer of TraceEntry.

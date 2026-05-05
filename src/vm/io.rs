@@ -501,6 +501,8 @@ impl Vm {
             frame_checkpoints: FrameCheckBuffer::new(DEFAULT_FRAME_CHECK_CAPACITY),
             snapshots: Vec::new(),
             pixel_write_log: PixelWriteLog::new(DEFAULT_PIXEL_WRITE_CAPACITY),
+            render_logging: false,
+            render_log: crate::vm::trace::RenderLog::new(crate::vm::trace::DEFAULT_RENDER_LOG_CAPACITY),
             tcp_connections: (0..super::MAX_TCP_CONNECTIONS).map(|_| None).collect(),
             pty_slots: (0..super::ops_pty::MAX_PTY_SLOTS).map(|_| None).collect(),
             net_inbox: Vec::new(),

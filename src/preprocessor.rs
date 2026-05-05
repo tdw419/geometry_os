@@ -219,6 +219,11 @@ pub const OPCODES: &[&str] = &[
     "SPRLOAD",
     "SPRFRAME",
     "SPRANIM",
+    // Phase 217: Mouse support opcodes
+    "MOUSEX",
+    "MOUSEY",
+    "MOUSEB",
+    "MOUSECLICK",
     // Phase 273: Interrupt-driven input queue
     "IMOUSE",
     // PCM audio streaming

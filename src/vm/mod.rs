@@ -188,6 +188,9 @@ pub struct Vm {
     /// Mouse event buffer tail (next write position).
     pub mouse_event_tail: usize,
     pub pixel_write_log: PixelWriteLog,
+    /// Render operation log (high-level draw calls).
+    pub render_logging: bool,
+    pub render_log: RenderLog,
     /// Active TCP connections (Phase 41: Networking).
     /// Up to 8 simultaneous connections, indexed by fd.
     pub tcp_connections: Vec<Option<std::net::TcpStream>>,
@@ -389,6 +392,8 @@ impl Vm {
             frame_checkpoints: FrameCheckBuffer::new(DEFAULT_FRAME_CHECK_CAPACITY),
             snapshots: Vec::new(),
             pixel_write_log: PixelWriteLog::new(DEFAULT_PIXEL_WRITE_CAPACITY),
+            render_logging: false,
+            render_log: RenderLog::new(DEFAULT_RENDER_LOG_CAPACITY),
             hit_regions: Vec::with_capacity(MAX_HIT_REGIONS),
             mouse_x: 0,
             mouse_y: 0,
@@ -613,6 +618,8 @@ impl Vm {
         self.frame_checkpoints.clear();
         self.snapshots.clear();
         self.pixel_write_log.clear();
+        self.render_logging = false;
+        self.render_log.clear();
         self.windows.clear();
         self.next_window_id = 1;
         self.mouse_button = 0;
@@ -649,6 +656,14 @@ impl Vm {
         }
         self.hash_tables_active = 0;
         self.sprite_sheets = Default::default();
+    }
+
+    /// Log a high-level graphics operation to the render log.
+    #[inline]
+    pub fn log_render_op(&mut self, opcode: u8, name: &'static str, args: &[u32]) {
+        if self.render_logging {
+            self.render_log.push(self.frame_count, opcode, name, args);
+        }
     }
 
     /// Internal helper to log a memory access with a safety cap.
@@ -1335,6 +1350,7 @@ impl Vm {
                     let w = self.regs[wr] as usize;
                     let h = self.regs[hr] as usize;
                     let color = self.regs[cr];
+                    self.log_render_op(0x88, "RECT", &[x0 as u32, y0 as u32, w as u32, h as u32, color]);
                     if w > 0 && h > 0 {
                         // Top edge
                         for dx in 0..w {
@@ -1424,6 +1440,7 @@ impl Vm {
                     let mut addr = self.regs[ar] as usize;
                     let fg = self.regs[fgr];
                     let bg_val = self.regs[bgr];
+                    self.log_render_op(0x8C, "DRAWTEXT", &[sx as u32, sy as u32, fg, bg_val, addr as u32]);
                     let bg = if bg_val == 0 { None } else { Some(bg_val) };
                     loop {
                         if addr >= self.ram.len() {
@@ -1481,6 +1498,7 @@ impl Vm {
                     let mut addr = self.regs[ar] as usize;
                     let fg = self.regs[fgr];
                     let bg_val = self.regs[bgr];
+                    self.log_render_op(0xD0, "SMALLTEXT", &[sx as u32, sy as u32, fg, bg_val, addr as u32]);
                     let bg = if bg_val == 0 { None } else { Some(bg_val) };
                     loop {
                         if addr >= self.ram.len() {
@@ -1527,6 +1545,7 @@ impl Vm {
                     let mut addr = self.regs[ar] as usize;
                     let fg = self.regs[fgr];
                     let bg_val = self.regs[bgr];
+                    self.log_render_op(0xD1, "MEDTEXT", &[sx as u32, sy as u32, fg, bg_val, addr as u32]);
                     let bg = if bg_val == 0 { None } else { Some(bg_val) };
                     loop {
                         if addr >= self.ram.len() {
@@ -1715,6 +1734,7 @@ impl Vm {
                         }
                     }
                     self.clipboard = buf;
+                    self.log_render_op(0xD7, "CLIP_COPY", &[x as u32, y as u32, w as u32, h as u32]);
                 }
             }
 
@@ -1730,6 +1750,7 @@ impl Vm {
                     let y = self.regs[yr] as usize;
                     let w = self.clipboard[0] as usize;
                     let h = self.clipboard[1] as usize;
+                    self.log_render_op(0xD8, "CLIP_PASTE", &[x as u32, y as u32, w as u32, h as u32]);
                     for row in 0..h {
                         for col in 0..w {
                             let sx = x + col;
@@ -2042,6 +2063,7 @@ impl Vm {
 
             // INV  (0x91) -- invert all screen pixels (XOR 0xFFFFFF)
             0x91 => {
+                self.log_render_op(0x91, "INV", &[]);
                 for pixel in self.screen.iter_mut() {
                     *pixel ^= 0x00FFFFFF;
                 }
