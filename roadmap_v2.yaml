@@ -1804,7 +1804,7 @@ phases:
   scope_lines_total: 170
 - id: phase-206
   title: RISC-V Virtio-Blk Filesystem
-  status: planned
+  status: done
   goal: Complete the virtio-blk driver so bare-metal C programs can read/write persistent
     files
   description: 'VirtioBlk exists in src/riscv/virtio_blk.rs and is wired into the
@@ -1814,7 +1814,20 @@ phases:
     bare-metal OS: programs that save data across VM restarts.'
   deliverables:
   - name: Functional virtio-blk backed by host file
-    status: todo
+    status: done
+    acceptance_criteria:
+    - description: Virtio-blk device loads/saves disk.img on host
+      validation: 'VirtioBlk::new() loads from disk.img; save_disk() persists. blk_persist_roundtrip
+        test: session 1 writes, session 2 reads back.'
+      met: true
+    - description: Guest C driver (geos_blk_init/read/write) works end-to-end
+      validation: 'blk_test.elf boots, writes "GeometryOS_blk_v1" to sector 0, reads
+        back, console shows PASS.'
+      met: true
+    - description: Data persists across VM restarts
+      validation: 'blk_persist_roundtrip: VM1 writes + saves, VM2 boots fresh + reads
+        + verifies. disk.img contains pattern.'
+      met: true
     tasks:
     - id: p206.d1.t1
       title: Implement virtio-blk read/write against a host backing file
@@ -1825,6 +1838,7 @@ phases:
       - src/riscv/virtio_blk.rs
       - src/riscv/bus.rs
       scope_lines: 120
+      status: done
     - id: p206.d1.t2
       title: Add GEOS_BLK_READ/WRITE helpers to libgeos
       description: 'Add C functions that wrap virtio-blk MMIO reads/writes: geos_blk_read(sector,
@@ -1833,6 +1847,7 @@ phases:
       - examples/riscv-hello/libgeos.c
       - examples/riscv-hello/libgeos.h
       scope_lines: 60
+      status: done
     - id: p206.d1.t3
       title: 'Test: guest writes data, restarts VM, reads data back'
       description: C program writes a known pattern to block 0, triggers shutdown,
@@ -1841,8 +1856,12 @@ phases:
       - examples/riscv-hello/blk_test.c
       - examples/blk_persist_test.rs
       scope_lines: 50
+      status: done
   test_target: 3
   scope_lines_total: 230
+  _claimed_by: worker-0
+  _claimed_at: 1777961733
+  _completed_at: 1746424960
 - id: phase-207
   title: GeOS Collision Detection Library
   status: done

@@ -1843,8 +1843,6 @@ phases:
       scope_lines: 50
   test_target: 3
   scope_lines_total: 230
-  _claimed_by: worker-0
-  _claimed_at: 1777941226
 - id: phase-207
   title: GeOS Collision Detection Library
   status: done
