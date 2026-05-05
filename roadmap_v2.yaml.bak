@@ -2386,13 +2386,13 @@ phases:
   _completed_at: 1778012800
   _completed_by: worker-0
   _completion_note: Added 128-glyph 8x8 VGA font (geos_font8x8) to libgeos.c with
-    geos_draw_char(), geos_draw_string(), geos_measure_string(). Updated paint.c
-    with draw_status_bar() showing cursor position, color index, and fill mode.
-    ASM demo saved as programs/font_test.asm. Build verified clean (30/34 tests
-    pass; 4 failures are pre-existing unrelated capability_tests).
+    geos_draw_char(), geos_draw_string(), geos_measure_string(). Updated paint.c with
+    draw_status_bar() showing cursor position, color index, and fill mode. ASM demo
+    saved as programs/font_test.asm. Build verified clean (30/34 tests pass; 4 failures
+    are pre-existing unrelated capability_tests).
 - id: phase-219
   title: GeOS VM -- Memory-Mapped Screen Buffer Readback
-  status: planned
+  status: in_progress
   goal: Let VM programs read the screen buffer via LOAD from 0x10000-0x1FFFF
   description: The screen buffer at 0x10000-0x1FFFF (256x256 pixels, mapped to vm.screen)
     already supports writes for SETPIXEL-style rendering, but LOAD from this region
@@ -2431,6 +2431,8 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 100
+  _claimed_by: worker-0
+  _claimed_at: 1778010928
 - id: phase-220
   title: RISC-V Guest -- Mandelbrot Fractal Renderer
   status: planned

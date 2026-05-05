@@ -2435,7 +2435,7 @@ phases:
   _claimed_at: 1778010928
 - id: phase-220
   title: RISC-V Guest -- Mandelbrot Fractal Renderer
-  status: planned
+  status: in_progress
   goal: Add a Mandelbrot set renderer that proves the RISC-V interpreter handles compute-intensive
     floating-point work
   description: 'The RISC-V interpreter supports M-extension multiplication and division
@@ -2475,6 +2475,8 @@ phases:
       scope_lines: 60
   test_target: 3
   scope_lines_total: 260
+  _claimed_by: worker-0
+  _claimed_at: 1778012000
 - id: phase-221
   title: GeOS VM -- Clipboard Protocol Enhancement
   status: planned
