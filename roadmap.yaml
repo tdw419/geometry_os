@@ -36,13 +36,13 @@ meta:
   hypervisor: true
   integration_tests: 1827
   language: Rust
-  lib_tests: 1827
-  loc: 89959
+  lib_tests: 1918
+  loc: 98239
   opcodes: 177
   programs: 161
   ram: 65536 words
   registers: 32
-  total_tests: 1827
+  total_tests: 1918
   riscv_examples: 13
   riscv_guest: true
   screen: 256x256 pixels
