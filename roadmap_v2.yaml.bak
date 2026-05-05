@@ -2525,7 +2525,7 @@ phases:
   _claimed_at: 1778015934
 - id: phase-222
   title: GeOS VM -- Timer and Alarm Opcodes
-  status: planned
+  status: in_progress
   goal: Add wall-clock timer opcodes so programs can schedule actions by real time,
     not just frame count
   description: Programs currently use the TICKS register (RAM[0xFFE], incremented
@@ -2565,6 +2565,8 @@ phases:
       scope_lines: 50
   test_target: 3
   scope_lines_total: 120
+  _claimed_by: worker-0
+  _claimed_at: 1778016815
 - id: phase-223
   title: GeOS VM -- Program Library (lib/) Standardization
   status: planned
