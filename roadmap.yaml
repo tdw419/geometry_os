@@ -10286,7 +10286,7 @@ phases:
 
 - id: phase-216
   title: "Regression -- riscv::tests::test_guest_vfs_write_readback timeout"
-  status: planned
+  status: done
   goal: "Fix RISC-V guest VFS write/readback test that times out at 120s"
   description: "riscv::tests::test_guest_vfs_write_readback compiles guest_vfs_write.c to RISC-V ELF and boots it with 5M instruction budget, but the test never completes within the 120s timeout. This test was previously passing. Possible causes: (1) build_riscv_elf compilation of guest_vfs_write.c is hanging or producing a broken ELF, (2) the RISC-V guest enters an infinite loop due to a VFS syscall change, (3) the 5M instruction budget is insufficient after recent VFS changes. Check if guest_vfs_write.c exists and compiles, and whether the VFS_CONTROL_ADDR MMIO interface has changed since this test last passed."
   deliverables:
@@ -10310,7 +10310,7 @@ phases:
 
 - id: phase-217
   title: "Regression -- vm::tests::test_winsys_vfs_sync timeout"
-  status: planned
+  status: done
   goal: "Fix WINSYS VFS_SYNC test that times out at 120s"
   description: "vm::tests::test_winsys_vfs_sync tests WINSYS op=9 (VFS_SYNC) which writes window pixels back to host VFS files. This test was a validation test for phase-119 (VFS_BLIT/VFS_SYNC) and was passing. Now it times out. The test creates a window (op=0), blits VFS into it (op=8), modifies a pixel, then syncs back (op=9). The hang is likely in one of the WINSYS opcode handlers (0, 8, or 9). Since this is a unit test using Vm::new() directly (not booting assembly), the issue is in the Rust WINSYS implementation, not guest code."
   deliverables:
@@ -10407,7 +10407,7 @@ phases:
 
 - id: phase-220
   title: "Fix flaky test_ensure_fonts_on_boot: use absolute font paths and propagate errors"
-  status: planned
+  status: done
   goal: "test_ensure_fonts_on_boot passes reliably in all test orderings, not just in isolation"
   description: "test_ensure_fonts_on_boot failed in the preflight run at 09:43 on May 3 but passes when run alone. Root cause: ensure_fonts() uses a relative path Path::new(\"fonts\") which depends on CWD, and silently swallows all errors with let _ = on create_dir_all, fs::read, and fs::write. If another test changes CWD or the fonts dir is in a bad state, the test fails silently. This will keep causing intermittent preflight failures and false build_broken reports."
   deliverables:
@@ -10489,7 +10489,7 @@ phases:
 
 - id: phase-252
   title: "Fix riscv_fuzzer compilation: sync OracleOp enum with usage sites"
-  status: planned
+  status: done
   goal: "riscv_fuzzer compiles successfully, unblocking 507 integration tests in program_tests"
   description: "The riscv_fuzzer binary has 9 compilation errors due to OracleOp enum/usage mismatch. Commit a5c84ccf expanded fuzzer coverage (C-ext encoders + CSR expansion), adding CsrrwZero/CsrrsiZero variants and BranchZ.taken field, but a subsequent refactor removed those enum variants/fields without updating all usage sites. This blocks `cargo test --test program_tests` (507 tests) because Cargo builds all binaries by default. Errors: (1) BranchZ used with `taken` field at lines 736, 1255, 1266 but enum only has `rs1`, (2) Jump used as unit variant at lines 737, 1243, 1363 but enum has `Jump { target_idx: usize }`, (3) CsrrwZero/CsrrsiZero referenced at line 1347 but variants were removed from enum."
   deliverables:
