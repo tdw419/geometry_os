@@ -10530,3 +10530,32 @@ phases:
     scope_lines: 3
   scope_lines_total: 19
   test_target: 0
+
+- id: phase-253
+  title: "Fix icache CMP signed/unsigned mismatch causing infinite loops"
+  status: planned
+  goal: "icache_execute CMP uses signed comparison matching the normal path, fixing rings.asm and any other program relying on signed CMP"
+  description: "The icache fast path in icache_execute (src/vm/icache.rs line 256) uses u32::cmp for the CMP opcode (0x50), which is unsigned comparison. The normal path in ops_graphics.rs line 138 uses i32 cast for signed comparison. After the icache warms up (ICACHE_HOT_THRESHOLD=4 visits to same PC), CMP silently switches from signed to unsigned. This breaks rings.asm which uses CMP/BLT to compute absolute values via x-128 negation: for x<128, x-128 wraps to a large unsigned value, unsigned CMP says it's > 0, BLT doesn't fire, the absolute value is wrong, and the div_loop runs forever because the distance is huge. Fix: cast both operands to i32 in icache_execute CMP, matching ops_graphics.rs. Test: test_rings_program should pass after the fix."
+  deliverables:
+  - name: "Fix icache CMP to use signed comparison"
+    description: "In src/vm/icache.rs, change the CMP (0x50) match arm from `self.regs[rd].cmp(&self.regs[rs])` to `(self.regs[rd] as i32).cmp(&(self.regs[rs] as i32))`. This matches the signed comparison in ops_graphics.rs line 146."
+    status: todo
+    tasks:
+    - id: p253.d1.t1
+      title: "Cast CMP operands to i32 in icache_execute"
+      status: todo
+      description: "In src/vm/icache.rs, in the icache_execute function, find the 0x50 (CMP) match arm. Change `self.regs[rd].cmp(&self.regs[rs])` to `(self.regs[rd] as i32).cmp(&(self.regs[rs] as i32))`. This ensures signed comparison consistent with the normal path."
+      scope_lines: 5
+    scope_lines: 5
+  - name: "Verify test_rings_program passes"
+    description: "Run cargo test --test program_tests basic_programs::test_rings_program. Should pass (halt within 10M cycles, center pixel is red 0xFF0000)."
+    status: todo
+    tasks:
+    - id: p253.d2.t1
+      title: "Run test_rings_program and confirm pass"
+      status: todo
+      description: "cargo test --test program_tests basic_programs::test_rings_program. Expect pass."
+      scope_lines: 0
+    scope_lines: 0
+  scope_lines_total: 5
+  test_target: 1
