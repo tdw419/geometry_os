@@ -235,6 +235,25 @@ Compare current screen to a reference checksum.
 - **Output:** `{ changed: bool, changed_pixels: int, change_ratio: float }`
 - **Requires:** Socket cmd `canvas_diff <checksum>`
 
+### `vision_peek_pixel`
+Read one framebuffer pixel as exact RGB. For pixel-level program assertions without a vision model.
+- **Input:** `{ x: int, y: int }` (0..255)
+- **Output:** `{ x, y, rgb_hex: "RRGGBB", r, g, b }`
+- **Requires:** Socket cmd `peek_pixel <x> <y>`
+
+### `vision_region_checksum`
+FNV-1a hash of a sub-rectangle. For sprite/region regression tests without a vision model.
+- **Input:** `{ x, y, w, h }` (all ints, w/h > 0, x+w <= 256, y+h <= 256)
+- **Output:** `{ x, y, w, h, checksum: "RRRRRRRR" }`
+- **Requires:** Socket cmd `region_checksum <x> <y> <w> <h>`
+
+### `vision_render_log`
+Get/set/clear the high-level graphics operation log. Records one entry per draw call (RECTF, FILL, LINE, CIRCLE, TEXT, SPRITE, etc.) with frame number and arguments. Zero overhead when disabled.
+- **Input:** `{ action: "dump"|"on"|"off"|"clear" }` (default: "dump")
+- **Output (dump):** `{ entries: [{ frame, opcode, name, args }] }`
+- **Output (on/off/clear):** `{ status: "render_log enabled|disabled|cleared" }`
+- **Requires:** Socket cmd `render_log <action>`
+
 ---
 
 ## Tools for Phase 89: AI Agent Input
