@@ -6,6 +6,8 @@ pub struct Vm {
     pub pc: u32,
     pub screen: Vec<u32>,
     pub halted: bool,
+    /// Set by SHUTDOWN opcode (kernel mode); host checks after step() returns false
+    pub shutdown_requested: bool,
     /// Set by FRAME opcode; cleared by the host after rendering
     pub frame_ready: bool,
     /// LCG state for RAND opcode
@@ -296,6 +298,7 @@ impl std::fmt::Debug for Vm {
         f.debug_struct("Vm")
             .field("pc", &self.pc)
             .field("halted", &self.halted)
+            .field("shutdown_requested", &self.shutdown_requested)
             .field("frame_count", &self.frame_count)
             .field("current_pid", &self.current_pid)
             .field("mode", &self.mode)
@@ -318,6 +321,7 @@ impl Vm {
             pc: 0,
             screen: vec![0; SCREEN_SIZE],
             halted: false,
+            shutdown_requested: false,
             frame_ready: false,
             rand_state: 0xDEADBEEF,
             frame_count: 0,
@@ -558,6 +562,7 @@ impl Vm {
         self.regs = [0; NUM_REGS];
         self.pc = 0;
         self.halted = false;
+        self.shutdown_requested = false;
         self.frame_ready = false;
         self.rand_state = 0xDEADBEEF;
         self.frame_count = 0;
@@ -665,6 +670,7 @@ impl Vm {
             mode: self.mode,
             halted: self.halted,
             frame_count: self.frame_count,
+            shutdown_requested: self.shutdown_requested,
             rand_state: self.rand_state,
             current_pid: self.current_pid,
             step_number: self.trace_buffer.step_counter(),

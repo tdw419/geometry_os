@@ -159,6 +159,7 @@ pub fn load_state(path: &str) -> std::io::Result<(vm::Vm, Vec<u32>, bool)> {
         pc,
         screen,
         halted,
+        shutdown_requested: false,
         frame_ready: false,
         rand_state,
         frame_count,

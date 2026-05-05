@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn test_gpu_bridge_new() {
-        let bridge = GpuBridge::new();
+        let mut bridge = GpuBridge::new();
         assert!(!bridge.init_attempted);
         assert_eq!(bridge.stats(), (0, 0));
     }
@@ -335,13 +335,13 @@ mod tests {
             result_addr: 0x80002000,
         };
         let debug_str = format!("{:?}", req);
-        assert!(debug_str.contains("80001000"));
-        assert!(debug_str.contains("80002000"));
+        assert!(debug_str.contains("2147487744"));
+        assert!(debug_str.contains("2147491840"));
     }
 
     #[test]
     fn test_gpu_bridge_not_available_without_feature() {
-        let bridge = GpuBridge::new();
+        let mut bridge = GpuBridge::new();
         assert!(!bridge.is_available());
         // Execute should return UNAVAILABLE for valid params
         let req = GpuComputeRequest {

@@ -434,6 +434,7 @@ impl Vm {
             pc,
             screen,
             halted,
+            shutdown_requested: false,
             frame_ready: false,
             rand_state,
             frame_count,

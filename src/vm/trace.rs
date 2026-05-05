@@ -631,6 +631,8 @@ pub struct VmSnapshot {
     pub mode: super::types::CpuMode,
     /// Whether the VM was halted.
     pub halted: bool,
+    /// Whether SHUTDOWN opcode was triggered (kernel mode).
+    pub shutdown_requested: bool,
     /// Frame counter value.
     pub frame_count: u32,
     /// LCG random state.

@@ -2193,7 +2193,7 @@ phases:
   _claimed_at: 1777976207
 - id: phase-215
   title: RISC-V Guest -- Hex Editor
-  status: planned
+  status: in_progress
   goal: Add a bare-metal hex editor C program for inspecting and modifying guest memory
   description: 'sh.c has peek/poke for single words and hexdump for read-only display,
     but there is no interactive hex editor that lets you navigate, inspect, and modify
@@ -2231,6 +2231,8 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 410
+  _claimed_by: worker-0
+  _claimed_at: 1777977787
 - id: phase-216
   title: RISC-V Guest -- Filesystem Commands in Shell
   status: planned
