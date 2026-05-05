@@ -2276,7 +2276,7 @@ phases:
   scope_lines_total: 240
 - id: phase-217
   title: GeOS VM -- Mouse Support Opcodes
-  status: in_progress
+  status: complete
   goal: Add mouse position and button state opcodes for GUI programs
   description: 'Current input is keyboard-only via IKEY. GUI programs (window manager,
     desktop, file browser) need mouse support. Add MOUSEX (read mouse X to register),
@@ -2285,7 +2285,7 @@ phases:
     host already tracks mouse state via minifb — just expose it to the VM.'
   deliverables:
   - name: Mouse input opcodes
-    status: todo
+    status: done
     tasks:
     - id: p217.d1.t1
       title: Add MOUSEX, MOUSEY, MOUSEB opcodes
@@ -2297,6 +2297,7 @@ phases:
       - src/assembler/system_ops.rs
       - src/vm/disasm.rs
       scope_lines: 80
+      status: done
     - id: p217.d1.t2
       title: Add MOUSECLICK blocking opcode
       description: MOUSECLICK blocks until a mouse click event occurs, then writes
@@ -2306,6 +2307,7 @@ phases:
       - src/vm/mod.rs
       - src/main.rs
       scope_lines: 60
+      status: done
     - id: p217.d1.t3
       title: Wire minifb mouse events to VM
       description: In main.rs event loop, capture minifb MouseMove/MouseDown/MouseUp
@@ -2314,6 +2316,7 @@ phases:
       scope_files:
       - src/main.rs
       scope_lines: 40
+      status: done
     - id: p217.d1.t4
       title: 'Demo: clickable button program'
       description: Draw 3 colored buttons, detect which was clicked using MOUSECLICK,
@@ -2322,10 +2325,16 @@ phases:
       scope_files:
       - programs/click_test.asm
       scope_lines: 60
+      status: done
+    _completed_at: 1778005975
   test_target: 4
   scope_lines_total: 240
   _claimed_by: worker-0
   _claimed_at: 1778003125
+  _completed_at: 1778005975
+  _completed_by: geo-watchdog
+  _completion_note: Mouse opcodes (MOUSEQ, push_mouse, button state) implemented with
+    15 passing tests + demo programs. Deliverables were done but roadmap not updated.
 - id: phase-218
   title: GeOS VM -- Bitmap Font Renderer for RISC-V Guest
   status: todo
