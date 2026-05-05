@@ -130,6 +130,15 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        "FONT_SELECT" => {
+            if tokens.len() < 2 {
+                return Err("FONT_SELECT requires 1 argument: FONT_SELECT mode_reg".to_string());
+            }
+            bytecode.push(0xDC);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
         "LINE" => {
             if tokens.len() < 6 {
                 return Err("LINE requires 5 arguments: LINE x0r, y0r, x1r, y1r, cr".to_string());

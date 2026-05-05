@@ -259,6 +259,7 @@ impl Vm {
                                                     vmas: Process::default_vmas_for_process(),
                                                     brk_pos: PAGE_SIZE as u32,
                                                     custom_font: None,
+                                                    font_mode: 0,
                                                     capabilities: None,
                                                     data_base: 0,
                                                 });
@@ -493,6 +494,7 @@ impl Vm {
                                                     vmas: Process::default_vmas_for_process(),
                                                     brk_pos: PAGE_SIZE as u32,
                                                     custom_font: None,
+                                                    font_mode: 0,
                                                     capabilities: None,
                                                     data_base: 0,
                                                 });

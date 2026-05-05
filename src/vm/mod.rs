@@ -1613,6 +1613,22 @@ impl Vm {
                 }
             }
 
+            // FONT_SELECT mode_reg  (0xDC)
+            // Select font mode for TEXT opcode (Phase 210).
+            // r[mode_reg]: 0 = fixed 5x7 (default), 1 = variable-width 8x8,
+            //   2 = tiny 3x5, 3 = medium 5x7.
+            // Persists per-process until changed. Invalid values are clamped to 0-3.
+            // r0 = previous font mode (for save/restore).
+            0xDC => {
+                let mr = self.fetch() as usize;
+                if mr < NUM_REGS {
+                    let old_mode = self.get_font_mode();
+                    let new_mode = (self.regs[mr] & 0x3) as u8;
+                    self.set_font_mode(new_mode);
+                    self.regs[0] = old_mode as u32;
+                }
+            }
+
             // PATCHW addr, val  (0xD3, 3 words)
             // Full word overwrite patch: ram[addr] = val
             0xD3 => {
@@ -3283,6 +3299,7 @@ impl Vm {
                             vmas: crate::vm::types::Process::default_vmas_for_process(),
                             brk_pos: PAGE_SIZE as u32,
                             custom_font: None,
+                            font_mode: 0,
                             capabilities: if capabilities.is_empty() {
                                 None
                             } else {

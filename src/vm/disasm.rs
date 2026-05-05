@@ -1028,6 +1028,12 @@ impl Vm {
                 6,
             ),
 
+            // FONT_SELECT mode_reg (0xDC) -- select font for TEXT opcode
+            0xDC => (
+                format!("FONT_SELECT {}", reg(ram(a + 1))),
+                2,
+            ),
+
             // MATMUL r_dst, r_a, r_b, r_m, r_n, r_k (0xDE)
             0xDE => (
                 format!(

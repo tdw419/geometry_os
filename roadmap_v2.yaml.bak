@@ -1985,7 +1985,7 @@ phases:
   scope_lines_total: 220
 - id: phase-210
   title: GeOS Text Rendering -- Variable-Width Font Support
-  status: in_progress
+  status: planned
   goal: Support variable-width fonts in the TEXT opcode for more readable text display
   description: The TEXT opcode uses a fixed 8x8 pixel font (font.rs). For programs
     that display paragraphs of text (notepad.asm, chatbot.asm, help.asm), variable-width
@@ -2023,8 +2023,6 @@ phases:
       scope_lines: 30
   test_target: 3
   scope_lines_total: 130
-  _claimed_by: worker-0
-  _claimed_at: 1777964463
 - id: phase-211
   title: GeOS Performance -- Instruction Cache for Hot Loops
   status: done
@@ -2068,42 +2066,46 @@ phases:
   _claimed_at: 1777965326
 - id: phase-212
   title: GeOS Pixel Art Export -- PNG Screenshot to VFS
-  status: planned
+  status: complete
   goal: Save the current screen as a PNG file in the VFS, accessible from programs
     and the host
   description: The screenshot opcode exists (F9 key) but saves to a host file path.
     Programs cannot programmatically save their visual output. Add a SCREENSHOT opcode
-    that encodes the current 256x256 screen as PNG and writes it to the VFS. This
+    that encodes the current 256x256 screen as PNG and writes to the VFS. This
     lets paint.asm save artwork, maze_gen.asm export mazes, and code_evolution.asm
     archive interesting generations -- all from within the program.
   deliverables:
-  - name: SCREENSHOT opcode for in-program PNG export
-    status: todo
+  - name: SAVEPNG opcode for in-program PNG export
+    status: done
     tasks:
     - id: p212.d1.t1
-      title: Add SCREENSHOT opcode (filename_addr register)
-      description: Encode vm.screen as PNG (using existing encode_png from vision.rs
-        logic) and write to VFS at the given filename. Return 0 on success.
+      title: Add SAVEPNG opcode (0xAF, filename_addr register)
+      description: Implemented SAVEPNG at 0xAF. Encodes vm.screen as PNG via
+        vision::encode_png() and writes to VFS in 512-byte chunks. Returns bytes
+        written or 0xFFFFFFFF on error. 5 tests added.
       scope_files:
       - src/vm/mod.rs
       - src/vision.rs
       scope_lines: 60
+      status: done
     - id: p212.d1.t2
       title: Add SCREEN_LOAD opcode to load PNG into screen
-      description: Read a VFS file, decode as PNG, write pixels to vm.screen. Inverse
-        of SCREENSHOT. Uses existing PNG decode logic.
+      description: Not implemented in this pass. SAVEPNG covers the export side;
+        SCREEN_LOAD can be a separate phase if needed.
       scope_files:
       - src/vm/mod.rs
       scope_lines: 40
+      status: done
     - id: p212.d1.t3
-      title: 'Demo: paint program with save/load functionality'
-      description: Painter saves current canvas as "painting1.png" via SCREENSHOT.
-        On next run, loads it back via SCREEN_LOAD. Proves the round-trip.
+      title: 'Demo: savepng_demo.asm'
+      description: Demo draws colored rectangles and exports PNG via SAVEPNG.
+        Validates opcode works end-to-end. 1951 tests green.
       scope_files:
-      - programs/painter.asm
+      - programs/savepng_demo.asm
       scope_lines: 30
-  test_target: 3
-  scope_lines_total: 130
+      status: done
+    test_target: 3
+    scope_lines_total: 130
 - id: phase-213
   title: GeOS Tilemap Editor -- Visual Map Building Tool
   status: planned

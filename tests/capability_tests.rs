@@ -180,6 +180,7 @@ fn test_spawnc_creates_process_with_capabilities() {
         vmas: Vec::new(),
         brk_pos: 0,
         custom_font: None,
+    font_mode: 0,
         capabilities: caps.clone(),
         data_base: 0,
     });
@@ -218,6 +219,7 @@ fn test_spawnc_no_capabilities_is_none() {
         signal_handlers: [0; 4],
         vmas: Vec::new(),
         brk_pos: 0,
+    font_mode: 0,
         custom_font: None,
         capabilities: None,
         data_base: 0,

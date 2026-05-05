@@ -1010,6 +1010,9 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         // Phase 205: Sprite Sheet Loader
         0xD9 => "SPRITE_LOAD",
         0xDA => "SPRITE_FRAME",
+        // Phase 210: Variable-width font support
+        0xDB => "VWTXT",
+        0xDC => "FONT_SELECT",
         // Phase 260: Matrix multiply (2D)
         0xDE => "MATMUL",
         // Phase 269: Hash Table opcodes

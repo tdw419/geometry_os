@@ -99,6 +99,8 @@ impl Vm {
             }
 
             // TEXT x_reg, y_reg, addr_reg  -- render text from RAM to screen
+            // When font_mode != 0 (set by FONT_SELECT 0xDC), uses the selected font.
+            // Default: fixed 5x7 font, 6px advance.
             0x44 => {
                 let xr = self.fetch() as usize;
                 let yr = self.fetch() as usize;
@@ -108,6 +110,7 @@ impl Vm {
                     let mut sy = self.regs[yr] as usize;
                     let mut addr = self.regs[ar] as usize;
                     let fg = 0xFFFFFF; // white text
+                    let font_mode = self.get_font_mode();
                     loop {
                         if addr >= self.ram.len() {
                             break;
@@ -118,13 +121,37 @@ impl Vm {
                         }
                         if ch == b'\n' {
                             sx = self.regs[xr] as usize;
-                            sy += 10;
+                            let line_h = match font_mode {
+                                1 => 10, // VW: 8px glyph + 2px spacing
+                                2 => 6,  // tiny: 5px + 1px
+                                _ => 10, // fixed/medium: 8px + 2px
+                            };
+                            sy += line_h;
                             addr += 1;
                             continue;
                         }
-                        // Render 5x7 glyph at (sx, sy) -- inline for now
-                        self.draw_char(ch, sx, sy, fg);
-                        sx += 6; // 5 wide + 1 gap
+                        match font_mode {
+                            1 => {
+                                // Variable-width 8x8 font
+                                let advance = self.draw_char_vw(ch, sx, sy, fg, None);
+                                sx += advance as usize;
+                            }
+                            2 => {
+                                // Tiny 3x5 font
+                                self.draw_char_tiny(ch, sx, sy, fg, None);
+                                sx += 3;
+                            }
+                            3 => {
+                                // Medium 5x7 font
+                                self.draw_char_medium(ch, sx, sy, fg, None);
+                                sx += 6;
+                            }
+                            _ => {
+                                // Default: fixed 5x7 font
+                                self.draw_char(ch, sx, sy, fg);
+                                sx += 6;
+                            }
+                        }
                         if sx > 250 {
                             sx = self.regs[xr] as usize;
                             sy += 8;
@@ -533,6 +560,7 @@ impl Vm {
                             vmas: Process::default_vmas_for_process(),
                             brk_pos: PAGE_SIZE as u32,
                             custom_font: None,
+                            font_mode: 0,
                             capabilities: None,
                             data_base: 0,
                         });
@@ -625,6 +653,22 @@ impl Vm {
                         }
                         addr += 1;
                     }
+                }
+            }
+
+            // FONT_SELECT mode_reg  (0xDC)
+            // Select font mode for TEXT opcode (Phase 210).
+            // r[mode_reg]: 0 = fixed 5x7 (default), 1 = variable-width 8x8,
+            //   2 = tiny 3x5, 3 = medium 5x7.
+            // Persists per-process until changed. Invalid values are clamped to 0-3.
+            // r0 = previous font mode (for save/restore).
+            0xDC => {
+                let mr = self.fetch() as usize;
+                if mr < NUM_REGS {
+                    let old_mode = self.get_font_mode();
+                    let new_mode = (self.regs[mr] & 0x3) as u8;
+                    self.set_font_mode(new_mode);
+                    self.regs[0] = old_mode as u32;
                 }
             }
             _ => {}

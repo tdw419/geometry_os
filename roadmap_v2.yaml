@@ -1985,7 +1985,7 @@ phases:
   scope_lines_total: 220
 - id: phase-210
   title: GeOS Text Rendering -- Variable-Width Font Support
-  status: planned
+  status: in_progress
   goal: Support variable-width fonts in the TEXT opcode for more readable text display
   description: The TEXT opcode uses a fixed 8x8 pixel font (font.rs). For programs
     that display paragraphs of text (notepad.asm, chatbot.asm, help.asm), variable-width
@@ -2023,6 +2023,8 @@ phases:
       scope_lines: 30
   test_target: 3
   scope_lines_total: 130
+  _claimed_by: worker-0
+  _claimed_at: 1777972539
 - id: phase-211
   title: GeOS Performance -- Instruction Cache for Hot Loops
   status: done
@@ -2071,18 +2073,18 @@ phases:
     and the host
   description: The screenshot opcode exists (F9 key) but saves to a host file path.
     Programs cannot programmatically save their visual output. Add a SCREENSHOT opcode
-    that encodes the current 256x256 screen as PNG and writes to the VFS. This
-    lets paint.asm save artwork, maze_gen.asm export mazes, and code_evolution.asm
-    archive interesting generations -- all from within the program.
+    that encodes the current 256x256 screen as PNG and writes to the VFS. This lets
+    paint.asm save artwork, maze_gen.asm export mazes, and code_evolution.asm archive
+    interesting generations -- all from within the program.
   deliverables:
   - name: SAVEPNG opcode for in-program PNG export
     status: done
     tasks:
     - id: p212.d1.t1
       title: Add SAVEPNG opcode (0xAF, filename_addr register)
-      description: Implemented SAVEPNG at 0xAF. Encodes vm.screen as PNG via
-        vision::encode_png() and writes to VFS in 512-byte chunks. Returns bytes
-        written or 0xFFFFFFFF on error. 5 tests added.
+      description: Implemented SAVEPNG at 0xAF. Encodes vm.screen as PNG via vision::encode_png()
+        and writes to VFS in 512-byte chunks. Returns bytes written or 0xFFFFFFFF
+        on error. 5 tests added.
       scope_files:
       - src/vm/mod.rs
       - src/vision.rs
@@ -2090,16 +2092,16 @@ phases:
       status: done
     - id: p212.d1.t2
       title: Add SCREEN_LOAD opcode to load PNG into screen
-      description: Not implemented in this pass. SAVEPNG covers the export side;
-        SCREEN_LOAD can be a separate phase if needed.
+      description: Not implemented in this pass. SAVEPNG covers the export side; SCREEN_LOAD
+        can be a separate phase if needed.
       scope_files:
       - src/vm/mod.rs
       scope_lines: 40
       status: done
     - id: p212.d1.t3
       title: 'Demo: savepng_demo.asm'
-      description: Demo draws colored rectangles and exports PNG via SAVEPNG.
-        Validates opcode works end-to-end. 1951 tests green.
+      description: Demo draws colored rectangles and exports PNG via SAVEPNG. Validates
+        opcode works end-to-end. 1951 tests green.
       scope_files:
       - programs/savepng_demo.asm
       scope_lines: 30

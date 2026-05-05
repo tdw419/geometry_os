@@ -9,6 +9,7 @@ fn vm_with_child(child_pc: u32) -> Vm {
     let mut vm = Vm::new();
     vm.processes.push(geometry_os::vm::SpawnedProcess {
         custom_font: None,
+    font_mode: 0,
         capabilities: None,
         data_base: 0,
         pc: child_pc,

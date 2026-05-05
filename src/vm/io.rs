@@ -72,6 +72,36 @@ impl Vm {
         self.draw_char_with_bg(ch, x, y, color, None);
     }
 
+    /// Get the current process's font mode (0-3).
+    /// 0 = fixed 5x7 (default), 1 = variable-width 8x8, 2 = tiny 3x5, 3 = medium 5x7.
+    pub fn get_font_mode(&self) -> u8 {
+        if self.current_pid == 0 {
+            self.processes.first().map(|p| p.font_mode).unwrap_or(0)
+        } else {
+            self.processes
+                .iter()
+                .find(|p| p.pid == self.current_pid)
+                .map(|p| p.font_mode)
+                .unwrap_or(0)
+        }
+    }
+
+    /// Set the current process's font mode (clamped to 0-3).
+    pub fn set_font_mode(&mut self, mode: u8) {
+        let mode = mode & 0x3;
+        if self.current_pid == 0 {
+            if let Some(p) = self.processes.first_mut() {
+                p.font_mode = mode;
+            }
+        } else if let Some(p) = self
+            .processes
+            .iter_mut()
+            .find(|p| p.pid == self.current_pid)
+        {
+            p.font_mode = mode;
+        }
+    }
+
     /// Draw a character with optional background color
     pub(super) fn draw_char_with_bg(
         &mut self,

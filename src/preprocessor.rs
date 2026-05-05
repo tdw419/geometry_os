@@ -137,6 +137,7 @@ pub const OPCODES: &[&str] = &[
     "SMALLTEXT",
     "MEDTEXT",
     "VWTXT",
+    "FONT_SELECT",
     "BITSET",
     "BITCLR",
     "BITTEST",
@@ -183,6 +184,8 @@ pub const OPCODES: &[&str] = &[
     "MEDTEXT",
     // Phase 210: Variable-width font text rendering (proportional, 8x8 glyphs)
     "VWTXT",
+    // Phase 210: Font selection for TEXT opcode
+    "FONT_SELECT",
     // Phase 137: Host Filesystem Bridge
     "FSOPEN",
     "FSCLOSE",

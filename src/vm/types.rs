@@ -625,6 +625,11 @@ pub struct Process {
     /// None = use built-in GLYPHS array. Set via /dev/screen IOCTL cmd 2.
     pub custom_font: Option<Vec<[u8; 8]>>,
 
+    /// Font mode for TEXT opcode (Phase 210: Variable-Width Font Support).
+    /// 0 = fixed 5x7 (default), 1 = variable-width 8x8, 2 = tiny 3x5, 3 = medium 5x7.
+    /// Set via FONT_SELECT opcode (0xDC).
+    pub font_mode: u8,
+
     // ── Capabilities (Phase 102: Permissions and Capability System) ─
     /// Per-process capability list. None = full access (backward compatible).
     /// Each capability grants access to a VFS path pattern with specific permissions.
@@ -663,6 +668,7 @@ impl Process {
             exit_code: 0,
             segfaulted: false,
             custom_font: None,
+            font_mode: 0,
             capabilities: None,
             data_base: 0,
         }

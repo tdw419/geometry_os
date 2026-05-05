@@ -7951,6 +7951,159 @@ fn test_vwtxt_disassembles() {
     assert_eq!(mnemonic, "VWTXT r5, r6, r7, r8, r9");
 }
 
+// ── Phase 210: FONT_SELECT opcode tests ──
+
+#[test]
+fn test_font_select_sets_mode() {
+    let mut vm = Vm::new();
+    // Default font_mode should be 0
+    assert_eq!(vm.get_font_mode(), 0);
+    // FONT_SELECT r1 where r1=1 (variable-width)
+    vm.regs[1] = 1;
+    vm.ram[0] = 0xDC; // FONT_SELECT
+    vm.ram[1] = 1;    // r1
+    vm.ram[2] = 0x00; // HALT
+    vm.step();
+    assert_eq!(vm.get_font_mode(), 1);
+    // r0 should hold previous mode (0)
+    assert_eq!(vm.regs[0], 0);
+}
+
+#[test]
+fn test_font_select_clamps_invalid_values() {
+    let mut vm = Vm::new();
+    // Set mode to 5 (invalid, should clamp to 5 & 0x3 = 1)
+    vm.regs[1] = 5;
+    vm.ram[0] = 0xDC; // FONT_SELECT
+    vm.ram[1] = 1;    // r1
+    vm.ram[2] = 0x00; // HALT
+    vm.step();
+    assert_eq!(vm.get_font_mode(), 1);
+}
+
+#[test]
+fn test_font_select_returns_previous_mode() {
+    let mut vm = Vm::new();
+    // Set to mode 2 first
+    vm.regs[1] = 2;
+    vm.ram[0] = 0xDC;
+    vm.ram[1] = 1;
+    vm.ram[2] = 0xDC; // second FONT_SELECT
+    vm.ram[3] = 1;
+    vm.ram[4] = 0x00; // HALT
+    vm.step(); // sets mode to 2, r0 = 0 (previous)
+    assert_eq!(vm.regs[0], 0);
+    vm.step(); // sets mode to 2 again (r1 still 2), r0 = 2 (previous)
+    assert_eq!(vm.regs[0], 2);
+}
+
+#[test]
+fn test_font_select_disassembles() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xDC; // FONT_SELECT
+    vm.ram[1] = 5;    // r5
+    let (mnemonic, _len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "FONT_SELECT r5");
+}
+
+#[test]
+fn test_text_uses_variable_width_font() {
+    let mut vm = Vm::new();
+    // Enable variable-width font mode
+    vm.set_font_mode(1);
+    // Store "Mi" at RAM[100]
+    vm.ram[100] = 'M' as u32;
+    vm.ram[101] = 'i' as u32;
+    vm.ram[102] = 0; // null terminator
+    vm.regs[10] = 0;  // x=0
+    vm.regs[11] = 0;  // y=0
+    vm.regs[12] = 100; // addr
+    // TEXT opcode (0x44)
+    vm.ram[0] = 0x44;
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 0x00; // HALT
+    vm.step();
+    // M has advance 7, i has advance 3. "Mi" should end by column ~10
+    // With fixed font, "Mi" would be 12px (2*6). VW should be shorter.
+    // Check that pixels exist in first 10 columns but not far beyond
+    let mut rightmost_pixel = 0;
+    for y in 0..8 {
+        for x in 0..30 {
+            if vm.screen[y * 256 + x] == 0xFFFFFF {
+                rightmost_pixel = rightmost_pixel.max(x);
+            }
+        }
+    }
+    assert!(rightmost_pixel > 0, "Should have rendered pixels");
+    // With VW font, "Mi" should fit within ~12px (M=7 + i=3 = 10)
+    assert!(rightmost_pixel <= 15, "VW 'Mi' should be compact, rightmost at {}", rightmost_pixel);
+}
+
+#[test]
+fn test_text_tiny_font_mode() {
+    let mut vm = Vm::new();
+    vm.set_font_mode(2); // tiny 3x5
+    vm.ram[100] = 'A' as u32;
+    vm.ram[101] = 0;
+    vm.regs[10] = 0;
+    vm.regs[11] = 0;
+    vm.regs[12] = 100;
+    vm.ram[0] = 0x44;
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 0x00; // HALT
+    vm.step();
+    let mut pixel_count = 0;
+    for y in 0..5 {
+        for x in 0..3 {
+            if vm.screen[y * 256 + x] == 0xFFFFFF {
+                pixel_count += 1;
+            }
+        }
+    }
+    assert!(pixel_count > 0, "Tiny font should render pixels");
+}
+
+#[test]
+fn test_text_medium_font_mode() {
+    let mut vm = Vm::new();
+    vm.set_font_mode(3); // medium 5x7
+    vm.ram[100] = 'B' as u32;
+    vm.ram[101] = 0;
+    vm.regs[10] = 0;
+    vm.regs[11] = 0;
+    vm.regs[12] = 100;
+    vm.ram[0] = 0x44;
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 0x00; // HALT
+    vm.step();
+    let mut pixel_count = 0;
+    for y in 0..8 {
+        for x in 0..6 {
+            if vm.screen[y * 256 + x] == 0xFFFFFF {
+                pixel_count += 1;
+            }
+        }
+    }
+    assert!(pixel_count > 0, "Medium font should render pixels");
+}
+
+#[test]
+fn test_font_select_assembles() {
+    let mut asm = crate::assembler::Assembler::new();
+    asm.source = "FONT_SELECT r1".to_string();
+    let result = asm.assemble();
+    assert!(result.is_ok(), "FONT_SELECT should assemble: {:?}", result.err());
+    let bytecode = result.unwrap();
+    assert_eq!(bytecode[0], 0xDC); // FONT_SELECT opcode
+    assert_eq!(bytecode[1], 1);    // r1
+}
+
 #[test]
 fn test_drawtext_newline() {
     let mut vm = Vm::new();
