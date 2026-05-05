@@ -142,6 +142,54 @@ fn main() {
     let out = run_shell_with_input(&elf_data, b"pwd\rshutdown\r", 5_000_000);
     print_output("Test 12: pwd", &out);
 
+    // Test 13: VFS -- vls (lists host files from .geometry_os/fs/)
+    let out = run_shell_with_input(&elf_data, b"vls\rshutdown\r", 5_000_000);
+    print_output("Test 13: vls", &out);
+    if out.contains("bytes, row") && out.contains("host_") {
+        passed += 1;
+    } else {
+        eprintln!("  FAIL: vls should list VFS entries");
+        failed += 1;
+    }
+
+    // Test 14: VFS -- vtouch + vls shows guest file + vstat + vrm
+    let out = run_shell_with_input(
+        &elf_data,
+        b"vtouch hello.txt\rvls\rvstat hello.txt\rvrm hello.txt\rshutdown\r",
+        20_000_000,
+    );
+    print_output("Test 14: vtouch+vls+vstat+vrm", &out);
+    if out.contains("Created hello.txt")
+        && out.contains("hello.txt  (0 bytes, row")
+        && out.contains("File:     hello.txt")
+        && out.contains("Removed hello.txt")
+    {
+        passed += 1;
+    } else {
+        eprintln!("  FAIL: VFS create/list/stat/delete cycle");
+        failed += 1;
+    }
+
+    // Test 15: VFS -- vcat on non-existent file
+    let out = run_shell_with_input(&elf_data, b"vcat nonexistent\rshutdown\r", 5_000_000);
+    print_output("Test 15: vcat nonexistent", &out);
+    if out.contains("not found") {
+        passed += 1;
+    } else {
+        eprintln!("  FAIL: vcat should report not found");
+        failed += 1;
+    }
+
+    // Test 16: VFS -- vtouch duplicate
+    let out = run_shell_with_input(&elf_data, b"vtouch test\rvtouch test\rshutdown\r", 10_000_000);
+    print_output("Test 16: vtouch duplicate", &out);
+    if out.contains("already exists") {
+        passed += 1;
+    } else {
+        eprintln!("  FAIL: vtouch should reject duplicate");
+        failed += 1;
+    }
+
     eprintln!("\n=== Results: {} passed, {} failed ===", passed, failed);
     if failed > 0 {
         std::process::exit(1);

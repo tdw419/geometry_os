@@ -4,6 +4,7 @@
  * Features:
  *   - Built-ins: help, echo, clear, peek, poke, mem, hexdump, regs, ver, shutdown
  *   - New built-ins: cat, pwd, cd, export, env, history
+ *   - VFS commands: vls, vcat, vtouch, vrm, vstat (pixel surface at 0x70000000)
  *   - Pipe support: cmd1 | cmd2  (up to 4 pipe stages)
  *   - Output redirection: cmd > file, cmd >> file
  *   - Input redirection: cmd < file
@@ -544,6 +545,13 @@ static void cmd_help(void) {
         "  history         - show command history\r\n"
         "  shutdown        - halt the VM\r\n"
         "\r\n"
+        "VFS (pixel surface at 0x70000000):\r\n"
+        "  vls             - list VFS files\r\n"
+        "  vcat <file>     - display VFS file content\r\n"
+        "  vtouch <file>   - create empty file in VFS\r\n"
+        "  vrm <file>      - delete VFS file\r\n"
+        "  vstat <file>    - show VFS file metadata\r\n"
+        "\r\n"
         "Pipeline:  cmd1 | cmd2 | cmd3\r\n"
         "Redirect: cmd > file, cmd >> file, cmd < file\r\n"
     );
@@ -704,9 +712,9 @@ static void cmd_regs(void) {
 }
 
 static void cmd_ver(void) {
-    xputs("GeOS Mini-Shell v0.2 (bare-metal RV32IMAC)\r\n");
+    xputs("GeOS Mini-Shell v0.3 (bare-metal RV32IMAC)\r\n");
     xputs("Geometry OS RISC-V Hypervisor\r\n");
-    xputs("Pipe + Redirection support\r\n");
+    xputs("Pipe + Redirection + VFS support\r\n");
 }
 
 /* New: cat - display file contents */
@@ -843,6 +851,419 @@ static void cmd_rm(const char *arg) {
     xputs("\r\n");
 }
 
+/* ---- VFS Pixel Surface Commands ----
+ *
+ * The VFS Pixel Surface at 0x70000000 encodes files as RGBA pixels.
+ * Row 0 = directory index:
+ *   pixel[0] = PXFS magic (0x50584653)
+ *   pixel[1] = file_count
+ *   pixel[2+i] = [start_row(16) | name_hash(16)]
+ * File data rows (start_row..):
+ *   pixel[0] = header: [byte_count(16) | name_hash_8(8) | flags(8)]
+ *     flags bit 0 = valid, bit 1 = guest-created (name in pixels 1-63)
+ *   pixel[1..63] = filename bytes (guest-created only, LSB of each pixel)
+ *   pixel[dc..] = file data encoded as little-endian bytes in 4 bytes/pixel
+ *
+ * Host-loaded files have dc=1, guest-created have dc=64.
+ */
+
+#define VFS_BASE     0x70000000u
+#define VFS_WIDTH    256
+#define PXFS_MAGIC   0x50584653u
+
+/* Read a 32-bit pixel from the VFS surface */
+static unsigned int vfs_read(int row, int col) {
+    volatile unsigned int *vfs = (volatile unsigned int *)VFS_BASE;
+    return vfs[row * VFS_WIDTH + col];
+}
+
+/* Write a 32-bit pixel to the VFS surface */
+static void vfs_write(int row, int col, unsigned int val) {
+    volatile unsigned int *vfs = (volatile unsigned int *)VFS_BASE;
+    vfs[row * VFS_WIDTH + col] = val;
+}
+
+/* FNV-1a 32-bit hash (matches Rust implementation) */
+static unsigned int vfs_fnv1a(const char *s) {
+    unsigned int hash = 0x811c9dc5u;
+    while (*s) {
+        hash ^= (unsigned char)*s++;
+        hash *= 0x01000193u;
+    }
+    return hash;
+}
+
+/* Find a VFS file entry by name. Returns start_row or 0 if not found.
+ * Also fills in header, data_col, and name (for guest files). */
+static int vfs_find(const char *name, unsigned int *out_header,
+                    int *out_dc, unsigned int *out_idx_pixel) {
+    unsigned int magic = vfs_read(0, 0);
+    if (magic != PXFS_MAGIC) return 0;
+
+    unsigned int fc = vfs_read(0, 1);
+    unsigned int hash = vfs_fnv1a(name);
+
+    for (unsigned int i = 0; i < fc && i < 254; i++) {
+        unsigned int idx = vfs_read(0, 2 + i);
+        unsigned int sr = idx >> 16;
+        unsigned int ih = idx & 0xFFFF;
+        if (sr == 0 || sr >= 256) continue;
+        if (ih != (hash & 0xFFFF)) continue;
+
+        unsigned int hdr = vfs_read(sr, 0);
+        unsigned int flags = hdr & 0xFF;
+        if (!(flags & 0x01)) continue;  /* not valid */
+
+        /* For guest files, verify name matches */
+        if (flags & 0x02) {
+            int match = 1;
+            for (int c = 1; c < 64; c++) {
+                unsigned int px = vfs_read(sr, c);
+                unsigned char ch = px & 0xFF;
+                if (ch != (unsigned char)name[c - 1]) { match = 0; break; }
+                if (ch == 0 && name[c - 1] == 0) break;
+                if (ch == 0 || name[c - 1] == 0) { match = 0; break; }
+            }
+            if (!match) continue;
+        }
+
+        if (out_header) *out_header = hdr;
+        if (out_dc) *out_dc = (flags & 0x02) ? 64 : 1;
+        if (out_idx_pixel) *out_idx_pixel = idx;
+        return (int)sr;
+    }
+    return 0;
+}
+
+/* Find next free row in VFS (after all allocated files) */
+static int vfs_next_free_row(void) {
+    unsigned int fc = vfs_read(0, 1);
+    int free_row = 1;
+    for (unsigned int i = 0; i < fc && i < 254; i++) {
+        unsigned int idx = vfs_read(0, 2 + i);
+        unsigned int sr = idx >> 16;
+        if (sr == 0) continue;
+        unsigned int hdr = vfs_read(sr, 0);
+        unsigned int flags = hdr & 0xFF;
+        if (!(flags & 0x01)) continue;
+        unsigned int bc = (hdr >> 16) & 0xFFFF;
+        unsigned int pc = (bc + 3) / 4;
+        int dc = (flags & 0x02) ? 64 : 1;
+        int end = sr + (dc + pc + 255) / 256;
+        if (end > free_row) free_row = end;
+    }
+    return free_row;
+}
+
+/* vls -- list VFS files */
+static void cmd_vls(void) {
+    unsigned int magic = vfs_read(0, 0);
+    if (magic != PXFS_MAGIC) {
+        xputs("vls: VFS not initialized (no PXFS magic)\r\n");
+        return;
+    }
+    unsigned int fc = vfs_read(0, 1);
+    if (fc == 0) {
+        xputs("(no VFS files)\r\n");
+        return;
+    }
+
+    for (unsigned int i = 0; i < fc && i < 254; i++) {
+        unsigned int idx = vfs_read(0, 2 + i);
+        unsigned int sr = idx >> 16;
+        if (sr == 0 || sr >= 256) continue;
+        unsigned int hdr = vfs_read(sr, 0);
+        unsigned int flags = hdr & 0xFF;
+        if (!(flags & 0x01)) continue;
+        unsigned int bc = (hdr >> 16) & 0xFFFF;
+
+        xputs("  ");
+        if (flags & 0x02) {
+            /* Guest file: read name from pixels 1-63 */
+            for (int c = 1; c < 64; c++) {
+                unsigned char ch = vfs_read(sr, c) & 0xFF;
+                if (ch == 0) break;
+                xputchar(ch);
+            }
+        } else {
+            /* Host file: show hash-based name */
+            xputs("host_");
+            print_hex(idx & 0xFFFF);
+        }
+        xputs("  (");
+        print_uint_full(bc);
+        xputs(" bytes, row ");
+        print_uint_full(sr);
+        xputs(")\r\n");
+    }
+}
+
+/* vcat -- display VFS file content */
+static void cmd_vcat(const char *arg) {
+    arg = skip_spaces(arg);
+    if (!*arg) {
+        xputs("Usage: vcat <file>\r\n");
+        return;
+    }
+    char name[64];
+    strlcpy(name, arg, 63);
+    int nlen = 0;
+    while (name[nlen] && name[nlen] != ' ' && name[nlen] != '\r' && name[nlen] != '\n')
+        nlen++;
+    name[nlen] = 0;
+
+    unsigned int hdr;
+    int dc;
+    int sr = vfs_find(name, &hdr, &dc, (void *)0);
+    if (sr == 0) {
+        xputs("vcat: ");
+        xputs(name);
+        xputs(": not found in VFS\r\n");
+        return;
+    }
+
+    unsigned int bc = (hdr >> 16) & 0xFFFF;
+    unsigned int pc = (bc + 3) / 4;
+
+    /* Check if content is printable text */
+    int printable = 1;
+    int check_count = pc < 16 ? (int)pc : 16;
+    for (int p = 0; p < check_count; p++) {
+        unsigned int px = vfs_read(sr, dc + p);
+        for (int b = 0; b < 4 && (p * 4 + b) < (int)bc; b++) {
+            unsigned char ch = (px >> (b * 8)) & 0xFF;
+            if (ch != 0 && ch != '\r' && ch != '\n' && ch != '\t'
+                && (ch < 32 || ch > 126)) {
+                printable = 0;
+                break;
+            }
+        }
+        if (!printable) break;
+    }
+
+    if (printable) {
+        /* Print as text */
+        for (unsigned int p = 0; p < pc; p++) {
+            unsigned int px = vfs_read(sr, dc + p);
+            for (int b = 0; b < 4 && (p * 4 + b) < (int)bc; b++) {
+                unsigned char ch = (px >> (b * 8)) & 0xFF;
+                if (ch == 0) break;
+                xputchar(ch);
+            }
+        }
+    } else {
+        /* Hex dump for binary files */
+        xputs("(binary, ");
+        print_uint_full(bc);
+        xputs(" bytes)\r\n");
+        for (unsigned int row = 0; row < bc; row += 16) {
+            print_hex(row);
+            xputs(": ");
+            for (unsigned int col = 0; col < 16; col++) {
+                if (row + col < bc) {
+                    unsigned int pi = dc + (row + col) / 4;
+                    int shift = ((row + col) % 4) * 8;
+                    unsigned char byte = (vfs_read(sr, pi) >> shift) & 0xFF;
+                    const char hx[] = "0123456789abcdef";
+                    xputchar(hx[(byte >> 4) & 0xF]);
+                    xputchar(hx[byte & 0xF]);
+                } else {
+                    xputchar(' ');
+                    xputchar(' ');
+                }
+                xputchar(' ');
+            }
+            xputs(" |");
+            for (unsigned int col = 0; col < 16 && row + col < bc; col++) {
+                unsigned int pi = dc + (row + col) / 4;
+                int shift = ((row + col) % 4) * 8;
+                unsigned char byte = (vfs_read(sr, pi) >> shift) & 0xFF;
+                xputchar((byte >= 32 && byte < 127) ? byte : '.');
+            }
+            xputs("|\r\n");
+        }
+    }
+}
+
+/* vtouch -- create an empty guest file in VFS */
+static void cmd_vtouch(const char *arg) {
+    arg = skip_spaces(arg);
+    if (!*arg) {
+        xputs("Usage: vtouch <file>\r\n");
+        return;
+    }
+    char name[64];
+    strlcpy(name, arg, 63);
+    int nlen = 0;
+    while (name[nlen] && name[nlen] != ' ' && name[nlen] != '\r' && name[nlen] != '\n')
+        nlen++;
+    name[nlen] = 0;
+
+    if (nlen == 0 || nlen >= 64) {
+        xputs("vtouch: invalid filename (1-63 chars)\r\n");
+        return;
+    }
+
+    /* Check if file already exists */
+    if (vfs_find(name, (void *)0, (void *)0, (void *)0)) {
+        xputs("vtouch: ");
+        xputs(name);
+        xputs(": already exists\r\n");
+        return;
+    }
+
+    unsigned int magic = vfs_read(0, 0);
+    if (magic != PXFS_MAGIC) {
+        xputs("vtouch: VFS not initialized\r\n");
+        return;
+    }
+    unsigned int fc = vfs_read(0, 1);
+    if (fc >= 254) {
+        xputs("vtouch: VFS full (max 254 files)\r\n");
+        return;
+    }
+
+    int sr = vfs_next_free_row();
+    if (sr == 0 || sr >= 255) {
+        xputs("vtouch: no space in VFS\r\n");
+        return;
+    }
+
+    unsigned int hash = vfs_fnv1a(name);
+
+    /* Write directory index entry */
+    vfs_write(0, 2 + fc, ((unsigned int)sr << 16) | (hash & 0xFFFF));
+
+    /* Write file header: byte_count=0, flags=0x03 (valid + guest) */
+    vfs_write(sr, 0, (0u << 16) | ((hash & 0xFF) << 8) | 0x03);
+
+    /* Write filename in pixels 1..63 (LSB of each pixel) */
+    for (int c = 0; c < 63; c++) {
+        unsigned char ch = (c < nlen) ? (unsigned char)name[c] : 0;
+        vfs_write(sr, 1 + c, (unsigned int)ch);
+    }
+
+    /* Increment file count */
+    vfs_write(0, 1, fc + 1);
+
+    xputs("Created ");
+    xputs(name);
+    xputs(" at row ");
+    print_uint_full(sr);
+    xputs("\r\n");
+}
+
+/* vrm -- delete a VFS file */
+static void cmd_vrm(const char *arg) {
+    arg = skip_spaces(arg);
+    if (!*arg) {
+        xputs("Usage: vrm <file>\r\n");
+        return;
+    }
+    char name[64];
+    strlcpy(name, arg, 63);
+    int nlen = 0;
+    while (name[nlen] && name[nlen] != ' ' && name[nlen] != '\r' && name[nlen] != '\n')
+        nlen++;
+    name[nlen] = 0;
+
+    unsigned int idx_pixel;
+    int sr = vfs_find(name, (void *)0, (void *)0, &idx_pixel);
+    if (sr == 0) {
+        xputs("vrm: ");
+        xputs(name);
+        xputs(": not found in VFS\r\n");
+        return;
+    }
+
+    /* Clear valid flag in header */
+    unsigned int hdr = vfs_read(sr, 0);
+    vfs_write(sr, 0, hdr & ~0x01u);
+
+    /* Shift directory entries to fill gap */
+    unsigned int fc = vfs_read(0, 1);
+    /* Find which index this was */
+    int fi = -1;
+    for (unsigned int i = 0; i < fc && i < 254; i++) {
+        if (vfs_read(0, 2 + i) == idx_pixel) {
+            fi = (int)i;
+            break;
+        }
+    }
+    if (fi >= 0) {
+        for (unsigned int j = (unsigned int)fi; j < fc - 1; j++) {
+            vfs_write(0, 2 + j, vfs_read(0, 3 + j));
+        }
+        vfs_write(0, 2 + fc - 1, 0);
+        vfs_write(0, 1, fc - 1);
+    }
+
+    xputs("Removed ");
+    xputs(name);
+    xputs(" (was at row ");
+    print_uint_full(sr);
+    xputs(")\r\n");
+}
+
+/* vstat -- show VFS file metadata */
+static void cmd_vstat(const char *arg) {
+    arg = skip_spaces(arg);
+    if (!*arg) {
+        xputs("Usage: vstat <file>\r\n");
+        return;
+    }
+    char name[64];
+    strlcpy(name, arg, 63);
+    int nlen = 0;
+    while (name[nlen] && name[nlen] != ' ' && name[nlen] != '\r' && name[nlen] != '\n')
+        nlen++;
+    name[nlen] = 0;
+
+    unsigned int hdr;
+    int dc;
+    unsigned int idx_pixel;
+    int sr = vfs_find(name, &hdr, &dc, &idx_pixel);
+    if (sr == 0) {
+        xputs("vstat: ");
+        xputs(name);
+        xputs(": not found in VFS\r\n");
+        return;
+    }
+
+    unsigned int bc = (hdr >> 16) & 0xFFFF;
+    unsigned int flags = hdr & 0xFF;
+    unsigned int nh = (hdr >> 8) & 0xFF;
+    unsigned int pc = (bc + 3) / 4;
+    int rows_used = (dc + pc + 255) / 256;
+
+    xputs("File:     ");
+    xputs(name);
+    xputs("\r\n");
+    xputs("Size:     ");
+    print_uint_full(bc);
+    xputs(" bytes\r\n");
+    xputs("Row:      ");
+    print_uint_full(sr);
+    xputs("\r\n");
+    xputs("Rows:     ");
+    print_uint_full(rows_used);
+    xputs("\r\n");
+    xputs("Hash:     0x");
+    {
+        const char hx[] = "0123456789abcdef";
+        for (int i = 28; i >= 0; i -= 4)
+            xputchar(hx[(vfs_fnv1a(name) >> i) & 0xF]);
+    }
+    xputs("\r\n");
+    xputs("Flags:    ");
+    xputchar((flags & 0x01) ? 'V' : '-');  /* valid */
+    xputchar((flags & 0x02) ? 'G' : 'H');  /* guest/host */
+    xputs(" (V=valid, G=guest, H=host)\r\n");
+    xputs("DataCol:  ");
+    print_uint_full(dc);
+    xputs("\r\n");
+}
+
 /* New: pwd */
 static void cmd_pwd(void) {
     xputs("/\r\n");
@@ -918,6 +1339,8 @@ static void execute_single(const char *cmdline) {
         cmd_env();
     } else if (streq(cmd, "history")) {
         cmd_history();
+    } else if (streq(cmd, "vls")) {
+        cmd_vls();
     } else {
         /* Commands with arguments */
         const char *arg = cmd;
@@ -949,6 +1372,14 @@ static void execute_single(const char *cmdline) {
             cmd_cd(arg);
         else if (streq(name, "export"))
             cmd_export(arg);
+        else if (streq(name, "vcat"))
+            cmd_vcat(arg);
+        else if (streq(name, "vtouch"))
+            cmd_vtouch(arg);
+        else if (streq(name, "vrm"))
+            cmd_vrm(arg);
+        else if (streq(name, "vstat"))
+            cmd_vstat(arg);
         else {
             xputs("unknown: ");
             xputs(cmd);
@@ -1109,8 +1540,8 @@ void c_start(void) {
     for (int i = 0; i < MAX_FILES; i++)
         files[i].used = 0;
 
-    puts("\r\n=== GeOS Mini-Shell v0.2 ===\r\n");
-    puts("Pipe + Redirection support enabled.\r\n");
+    puts("\r\n=== GeOS Mini-Shell v0.3 ===\r\n");
+    puts("Pipe + Redirect + VFS support enabled.\r\n");
     puts("Type 'help' for commands.\r\n\r\n");
 
     for (;;) {
