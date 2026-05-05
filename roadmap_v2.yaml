@@ -1804,7 +1804,7 @@ phases:
   scope_lines_total: 170
 - id: phase-206
   title: RISC-V Virtio-Blk Filesystem
-  status: in_progress
+  status: planned
   goal: Complete the virtio-blk driver so bare-metal C programs can read/write persistent
     files
   description: 'VirtioBlk exists in src/riscv/virtio_blk.rs and is wired into the
@@ -1968,7 +1968,7 @@ phases:
   scope_lines_total: 220
 - id: phase-210
   title: GeOS Text Rendering -- Variable-Width Font Support
-  status: in_progress
+  status: planned
   goal: Support variable-width fonts in the TEXT opcode for more readable text display
   description: The TEXT opcode uses a fixed 8x8 pixel font (font.rs). For programs
     that display paragraphs of text (notepad.asm, chatbot.asm, help.asm), variable-width
@@ -2010,7 +2010,7 @@ phases:
   _claimed_at: 1777942985
 - id: phase-211
   title: GeOS Performance -- Instruction Cache for Hot Loops
-  status: in_progress
+  status: planned
   goal: Add a decoded instruction cache to speed up tight loops by 3-5x
   description: 'The VM currently decodes every instruction on every step() call, even
     in tight loops that execute the same instructions millions of times. At 88 MIPS,
