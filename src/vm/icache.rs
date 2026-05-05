@@ -189,6 +189,11 @@ impl Vm {
                                 }
                             } else if addr == 0xFFE {
                                 self.regs[reg] = self.frame_count;
+                            } else if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
+                                .contains(&addr)
+                            {
+                                self.regs[reg] = self.screen[addr - SCREEN_RAM_BASE];
+                                self.log_access(addr, MemAccessKind::Read);
                             } else if addr >= CANVAS_RAM_BASE
                                 && addr < CANVAS_RAM_BASE + CANVAS_RAM_SIZE
                             {
@@ -218,7 +223,12 @@ impl Vm {
                     let vaddr = self.regs[addr_reg];
                     match self.translate_va_or_fault(vaddr) {
                         Some(addr) => {
-                            if addr >= CANVAS_RAM_BASE
+                            if (SCREEN_RAM_BASE..SCREEN_RAM_BASE + SCREEN_SIZE)
+                                .contains(&addr)
+                            {
+                                self.screen[addr - SCREEN_RAM_BASE] = val;
+                                self.log_access(addr, MemAccessKind::Write);
+                            } else if addr >= CANVAS_RAM_BASE
                                 && addr < CANVAS_RAM_BASE + CANVAS_RAM_SIZE
                             {
                                 self.canvas_buffer[addr - CANVAS_RAM_BASE] = val;
