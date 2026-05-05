@@ -21,6 +21,7 @@ import os
 import socket
 import base64
 import argparse
+import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread, Event
 from urllib.parse import unquote
@@ -86,6 +87,86 @@ def write_program(name, content):
         f.write(content)
 
 
+# ─── Git ops ───
+def git_run(*args, timeout=10):
+    """Run a git command in the project dir, return (returncode, stdout, stderr)."""
+    try:
+        r = subprocess.run(
+            ["git"] + list(args),
+            capture_output=True, text=True, timeout=timeout,
+            cwd=GEOS_PROJECT,
+        )
+        return r.returncode, r.stdout.strip(), r.stderr.strip()
+    except subprocess.TimeoutExpired:
+        return -1, "", "timeout"
+    except Exception as e:
+        return -1, "", str(e)
+
+
+def git_status():
+    rc, out, _ = git_run("status", "--porcelain=v2", "--branch")
+    if rc != 0:
+        return {"branch": "?", "clean": False, "files": []}
+    branch = "detached"
+    files = []
+    for line in out.split("\n"):
+        if not line:
+            continue
+        if line.startswith("# branch.head "):
+            branch = line.split(" ", 2)[-1]
+        elif line.startswith("# branch.ab "):
+            parts = line.split(" ", 3)
+            if len(parts) >= 3:
+                branch += f" {parts[2]}"
+        elif line[0:1] in "1 2":
+            # ordinary / rename
+            xy = line[1:3] if line[0] != " " else line[1:3]
+            parts = line.split(" ", 5)
+            path = parts[-1] if parts else line
+            files.append({"status": xy, "path": path})
+    return {"branch": branch, "clean": len(files) == 0, "files": files[:200]}
+
+
+def git_log(count=30):
+    rc, out, _ = git_run("log", f"--max-count={count}", "--format=%H|%an|%ae|%at|%s")
+    if rc != 0:
+        return []
+    commits = []
+    for line in out.split("\n"):
+        if not line:
+            continue
+        parts = line.split("|", 4)
+        if len(parts) == 5:
+            commits.append({
+                "hash": parts[0][:12],
+                "hash_full": parts[0],
+                "author": parts[1],
+                "email": parts[2],
+                "timestamp": int(parts[3]),
+                "message": parts[4],
+            })
+    return commits
+
+
+def git_diff(ref="HEAD"):
+    rc, out, _ = git_run("diff", "--stat", ref)
+    return out if rc == 0 else ""
+
+
+def git_diff_files(ref="HEAD"):
+    rc, out, _ = git_run("diff", "--name-status", ref)
+    if rc != 0:
+        return []
+    files = []
+    for line in out.split("\n"):
+        if not line:
+            continue
+        parts = line.split("\t", 1)
+        if len(parts) == 2:
+            files.append({"status": parts[0], "path": parts[1]})
+    return files
+
+
 # ─── HTTP Handler (threaded) ───
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
@@ -99,8 +180,32 @@ class Handler(BaseHTTPRequestHandler):
                 self._ok("text/html; charset=utf-8", body)
             except FileNotFoundError:
                 self.send_error(404, "geos_ide.html not found")
+        elif self.path == "/git":
+            git_html = os.path.join(SCRIPT_DIR, "geos_git.html")
+            try:
+                with open(git_html, "r") as f:
+                    body = f.read()
+                self._ok("text/html; charset=utf-8", body)
+            except FileNotFoundError:
+                self.send_error(404, "geos_git.html not found")
         elif self.path == "/api/files":
             self._json(list_programs())
+        elif self.path == "/api/git/status":
+            self._json(git_status())
+        elif self.path == "/api/git/log":
+            self._json(git_log())
+        elif self.path.startswith("/api/git/log/"):
+            count = self.path.split("/")[-1]
+            try:
+                count = int(count)
+            except ValueError:
+                count = 30
+            self._json(git_log(count))
+        elif self.path.startswith("/api/git/diff/"):
+            ref = unquote(self.path[len("/api/git/diff/"):])
+            self._json({"stat": git_diff(ref), "files": git_diff_files(ref)})
+        elif self.path == "/api/git/diff":
+            self._json({"stat": git_diff(), "files": git_diff_files()})
         elif self.path.startswith("/api/file/"):
             name = unquote(self.path[len("/api/file/"):])
             try:
