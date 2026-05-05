@@ -260,6 +260,56 @@ int geos_save_canvas(void);
    Returns 0 on success, -1 if no saved canvas found. */
 int geos_load_canvas(void);
 
+/* ---- Virtio Block Device ---- */
+
+/* Virtio MMIO base address (block device at 0x1000_1000, matching QEMU virt). */
+#define GEOS_VIRTIO_BASE    0x10001000u
+
+/* Sector size (512 bytes). */
+#define GEOS_BLK_SECTOR     512u
+
+/*
+ * Initialize the virtio-blk device.
+ *
+ * Performs the full virtio MMIO handshake:
+ *   1. Check magic value ("virt")
+ *   2. Read device ID (must be 2 = block)
+ *   3. Set status to ACKNOWLEDGE | DRIVER | DRIVER_OK
+ *   4. Select queue 0, set size, mark ready
+ *   5. Set descriptor/available/used ring addresses
+ *
+ * `desc_buf` must be a pointer to a buffer with space for:
+ *   - 16 descriptors × 16 bytes = 256 bytes (descriptor table)
+ *   - Available ring: 6 + 16×2 = 38 bytes
+ *   - Used ring: 6 + 16×8 = 134 bytes
+ *   Total: ~428 bytes, caller should provide at least 512 bytes.
+ *
+ * Returns 0 on success, -1 on failure.
+ */
+int geos_blk_init(void *desc_buf);
+
+/*
+ * Read one or more 512-byte sectors from the virtio-blk device.
+ *
+ * `sector`: starting sector number (0-based).
+ * `buf`:    destination buffer (must be at least n * 512 bytes).
+ * `n`:      number of sectors to read.
+ *
+ * Returns 0 on success, -1 on I/O error.
+ */
+int geos_blk_read(uint32_t sector, void *buf, uint32_t n);
+
+/*
+ * Write one or more 512-byte sectors to the virtio-blk device.
+ *
+ * `sector`: starting sector number (0-based).
+ * `buf`:    source buffer (must be at least n * 512 bytes).
+ * `n`:      number of sectors to write.
+ *
+ * Returns 0 on success, -1 on I/O error.
+ */
+int geos_blk_write(uint32_t sector, const void *buf, uint32_t n);
+
 /* ---- Minimal string functions (no libc) ---- */
 
 int geos_strlen(const char *s);

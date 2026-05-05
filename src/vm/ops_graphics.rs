@@ -578,6 +578,55 @@ impl Vm {
                     self.regs[rd] = 0;
                 }
             }
+
+            // VWTXT x_reg, y_reg, addr_reg, fg_reg, bg_reg  (0xDB)
+            // Variable-width text rendering using per-glyph advance widths.
+            // Each character advances by its own width (narrow 'i'=3px, wide 'M'=8px).
+            // This produces more readable, proportional text than fixed-width fonts.
+            // Line height: 10px (8px glyph + 2px spacing).
+            0xDB => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                let fgr = self.fetch() as usize;
+                let bgr = self.fetch() as usize;
+                if xr < NUM_REGS
+                    && yr < NUM_REGS
+                    && ar < NUM_REGS
+                    && fgr < NUM_REGS
+                    && bgr < NUM_REGS
+                {
+                    let mut sx = self.regs[xr] as usize;
+                    let mut sy = self.regs[yr] as usize;
+                    let mut addr = self.regs[ar] as usize;
+                    let fg = self.regs[fgr];
+                    let bg_val = self.regs[bgr];
+                    let bg = if bg_val == 0 { None } else { Some(bg_val) };
+                    loop {
+                        if addr >= self.ram.len() {
+                            break;
+                        }
+                        let ch = (self.ram[addr] & 0xFF) as u8;
+                        if ch == 0 {
+                            break;
+                        }
+                        if ch == b'\n' {
+                            sx = self.regs[xr] as usize;
+                            sy += 10;
+                            addr += 1;
+                            continue;
+                        }
+                        let advance = self.draw_char_vw(ch, sx, sy, fg, bg);
+                        sx += advance as usize;
+                        // Word wrap: if we're past column 248, go to next line
+                        if sx > 248 {
+                            sx = self.regs[xr] as usize;
+                            sy += 10;
+                        }
+                        addr += 1;
+                    }
+                }
+            }
             _ => {}
         }
         true

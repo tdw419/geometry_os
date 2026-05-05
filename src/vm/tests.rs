@@ -7707,6 +7707,250 @@ fn test_drawtext_transparent_bg() {
     );
 }
 
+// ── VWTXT: variable-width text opcode (0xDB) ─────────────────────
+
+#[test]
+fn test_vwtxt_renders_text() {
+    let mut vm = Vm::new();
+    // Store "Hi" at RAM[100]
+    vm.ram[100] = 'H' as u32;
+    vm.ram[101] = 'i' as u32;
+    vm.ram[102] = 0; // null terminator
+    // VWTXT r10, r11, r12, r13, r14
+    vm.regs[10] = 10; // x
+    vm.regs[11] = 10; // y
+    vm.regs[12] = 100; // addr
+    vm.regs[13] = 0x00FF00; // fg = green
+    vm.regs[14] = 0; // bg = transparent
+    vm.ram[0] = 0xDB; // VWTXT
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 13;
+    vm.ram[5] = 14;
+    vm.ram[6] = 0x00; // HALT
+    vm.step();
+    // Check that some pixels are green (foreground) in the glyph area
+    let mut green_count = 0;
+    for y in 10..18 {
+        for x in 10..30 {
+            if vm.screen[y * 256 + x] == 0x00FF00 {
+                green_count += 1;
+            }
+        }
+    }
+    assert!(
+        green_count > 0,
+        "VWTXT should render green fg pixels, found {}",
+        green_count
+    );
+}
+
+#[test]
+fn test_vwtxt_variable_spacing() {
+    let mut vm = Vm::new();
+    // Store "iii" at RAM[100] - narrow chars, should be compact
+    vm.ram[100] = 'i' as u32;
+    vm.ram[101] = 'i' as u32;
+    vm.ram[102] = 'i' as u32;
+    vm.ram[103] = 0;
+    // VWTXT r10, r11, r12, r13, r14
+    vm.regs[10] = 0; // x=0
+    vm.regs[11] = 0; // y=0
+    vm.regs[12] = 100; // addr
+    vm.regs[13] = 0xFFFFFF; // fg = white
+    vm.regs[14] = 0; // bg = transparent
+    vm.ram[0] = 0xDB; // VWTXT
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 13;
+    vm.ram[5] = 14;
+    vm.ram[6] = 0x00; // HALT
+    vm.step();
+    // 'i' has advance=3, so "iii" should span at most 3*3=9 pixels wide
+    // Check that no pixels are set beyond column 12 (leaving margin)
+    let mut pixels_beyond_15 = 0;
+    for y in 0..8 {
+        for x in 15..30 {
+            if vm.screen[y * 256 + x] != 0 {
+                pixels_beyond_15 += 1;
+            }
+        }
+    }
+    assert_eq!(
+        pixels_beyond_15, 0,
+        "VWTXT 'iii' should not render beyond column 14, found {} pixels beyond",
+        pixels_beyond_15
+    );
+
+    // Now test "MMM" - wide chars, should span much more
+    let mut vm2 = Vm::new();
+    vm2.ram[100] = 'M' as u32;
+    vm2.ram[101] = 'M' as u32;
+    vm2.ram[102] = 'M' as u32;
+    vm2.ram[103] = 0;
+    vm2.regs[10] = 0;
+    vm2.regs[11] = 0;
+    vm2.regs[12] = 100;
+    vm2.regs[13] = 0xFFFFFF;
+    vm2.regs[14] = 0;
+    vm2.ram[0] = 0xDB;
+    vm2.ram[1] = 10;
+    vm2.ram[2] = 11;
+    vm2.ram[3] = 12;
+    vm2.ram[4] = 13;
+    vm2.ram[5] = 14;
+    vm2.ram[6] = 0x00;
+    vm2.step();
+    // 'M' has advance=8, so "MMM" should span 3*8=24 pixels
+    // There should be pixels set beyond column 15 (where "iii" stopped)
+    let mut pixels_beyond_15_wide = 0;
+    for y in 0..8 {
+        for x in 15..25 {
+            if vm2.screen[y * 256 + x] != 0 {
+                pixels_beyond_15_wide += 1;
+            }
+        }
+    }
+    assert!(
+        pixels_beyond_15_wide > 0,
+        "VWTXT 'MMM' should render beyond column 14, found {} pixels",
+        pixels_beyond_15_wide
+    );
+}
+
+#[test]
+fn test_vwtxt_background_color() {
+    let mut vm = Vm::new();
+    vm.ram[100] = 'A' as u32;
+    vm.ram[101] = 0;
+    vm.regs[10] = 20;
+    vm.regs[11] = 20;
+    vm.regs[12] = 100;
+    vm.regs[13] = 0xFFFFFF; // fg = white
+    vm.regs[14] = 0x0000FF; // bg = blue
+    vm.ram[0] = 0xDB;
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 13;
+    vm.ram[5] = 14;
+    vm.ram[6] = 0x00;
+    vm.step();
+    // Should have blue (bg) pixels in the 8x8 glyph area
+    let mut blue_count = 0;
+    for y in 20..28 {
+        for x in 20..28 {
+            if vm.screen[y * 256 + x] == 0x0000FF {
+                blue_count += 1;
+            }
+        }
+    }
+    assert!(
+        blue_count > 0,
+        "VWTXT with bg should fill bg pixels, found {} blue",
+        blue_count
+    );
+}
+
+#[test]
+fn test_vwtxt_newline() {
+    let mut vm = Vm::new();
+    // Store "A\nB" at RAM[100]
+    vm.ram[100] = 'A' as u32;
+    vm.ram[101] = '\n' as u32;
+    vm.ram[102] = 'B' as u32;
+    vm.ram[103] = 0;
+    vm.regs[10] = 10; // x=10
+    vm.regs[11] = 10; // y=10
+    vm.regs[12] = 100;
+    vm.regs[13] = 0xFFFFFF;
+    vm.regs[14] = 0;
+    vm.ram[0] = 0xDB;
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 13;
+    vm.ram[5] = 14;
+    vm.ram[6] = 0x00;
+    vm.step();
+    // B should appear 10 pixels below A (line height = 10)
+    let mut pixels_row2 = 0;
+    for x in 10..20 {
+        if vm.screen[20 * 256 + x] != 0 {
+            pixels_row2 += 1;
+        }
+    }
+    assert!(
+        pixels_row2 > 0,
+        "VWTXT newline should place B on next line (y=20), found {} pixels",
+        pixels_row2
+    );
+}
+
+#[test]
+fn test_vwtxt_word_wrap() {
+    let mut vm = Vm::new();
+    // Store a long string that should wrap
+    let text = "ABCDEFGHIJKLMNOP"; // 16 chars, wide enough to exceed 248px
+    for (i, &ch) in text.as_bytes().iter().enumerate() {
+        vm.ram[100 + i] = ch as u32;
+    }
+    vm.ram[100 + text.len()] = 0;
+    vm.regs[10] = 200; // start near right edge
+    vm.regs[11] = 10;
+    vm.regs[12] = 100;
+    vm.regs[13] = 0xFFFFFF;
+    vm.regs[14] = 0;
+    vm.ram[0] = 0xDB;
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 13;
+    vm.ram[5] = 14;
+    vm.ram[6] = 0x00;
+    vm.step();
+    // Some pixels should appear on row 20 (y=10+10=20) due to wrap
+    let mut pixels_wrapped = 0;
+    for x in 200..256 {
+        if vm.screen[20 * 256 + x] != 0 {
+            pixels_wrapped += 1;
+        }
+    }
+    assert!(
+        pixels_wrapped > 0,
+        "VWTXT should word-wrap to next line, found {} pixels on wrapped line",
+        pixels_wrapped
+    );
+}
+
+#[test]
+fn test_vwtxt_assembles() {
+    let src = "LDI r0, 10\nLDI r1, 20\nLDI r2, msg\nLDI r3, 0xFF0000\nLDI r4, 0x0000FF\nVWTXT r0, r1, r2, r3, r4\nHALT\nmsg:\n";
+    let asm_result = crate::assembler::assemble(src, 0);
+    match asm_result {
+        Ok(asm) => {
+            // 5 LDIs (3 bytes each) = 15, then VWTXT (6 bytes) = 21
+            assert_eq!(asm.pixels[15], 0xDB, "VWTXT should assemble to 0xDB");
+        }
+        Err(e) => panic!("VWTXT should assemble: {:?}", e),
+    }
+}
+
+#[test]
+fn test_vwtxt_disassembles() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xDB; // VWTXT
+    vm.ram[1] = 5; // r5
+    vm.ram[2] = 6; // r6
+    vm.ram[3] = 7; // r7
+    vm.ram[4] = 8; // r8
+    vm.ram[5] = 9; // r9
+    let (mnemonic, _len) = vm.disassemble_at(0);
+    assert_eq!(mnemonic, "VWTXT r5, r6, r7, r8, r9");
+}
+
 #[test]
 fn test_drawtext_newline() {
     let mut vm = Vm::new();

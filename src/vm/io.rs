@@ -190,6 +190,35 @@ impl Vm {
         }
     }
 
+    /// Draw a character using the variable-width font (for VWTXT opcode).
+    /// Each glyph has an 8x8 bitmap and a per-character advance width (1-8px).
+    /// Returns the advance width for cursor positioning.
+    /// Supports ASCII 32-127.
+    pub(super) fn draw_char_vw(&mut self, ch: u8, x: usize, y: usize, fg: u32, bg: Option<u32>) -> u32 {
+        const VW_FONT: [[u8; 9]; 96] = include!("../vw_font.in");
+        let idx = ch as usize;
+        if !(32..=127).contains(&idx) {
+            return 3; // default advance for unknown chars
+        }
+        let entry = &VW_FONT[idx - 32];
+        let advance = entry[8] as u32;
+        for (row, &glyph_row) in entry[..8].iter().enumerate() {
+            for col in 0..8usize {
+                let px = x + col;
+                let py = y + row;
+                if px < 256 && py < 256 {
+                    let on = glyph_row & (1 << (7 - col)) != 0;
+                    if on {
+                        self.screen[py * 256 + px] = fg;
+                    } else if let Some(bg_color) = bg {
+                        self.screen[py * 256 + px] = bg_color;
+                    }
+                }
+            }
+        }
+        advance
+    }
+
     /// Draw a character using the tiny 3x5 font (for SMALLTEXT opcode).
     /// Advance is 3 pixels (no spacing), giving 85 columns in 256px.
     /// Supports ASCII 32-127 plus extended box-drawing chars 128-157.

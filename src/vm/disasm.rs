@@ -1015,6 +1015,19 @@ impl Vm {
                 6,
             ),
 
+            // VWTXT x, y, addr, fg, bg (0xDB) -- variable-width proportional font
+            0xDB => (
+                format!(
+                    "VWTXT {}, {}, {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4)),
+                    reg(ram(a + 5))
+                ),
+                6,
+            ),
+
             // MATMUL r_dst, r_a, r_b, r_m, r_n, r_k (0xDE)
             0xDE => (
                 format!(
