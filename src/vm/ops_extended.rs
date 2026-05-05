@@ -646,7 +646,6 @@ impl Vm {
                     }
                     // Clear all pipes
                     self.pipes.clear();
-                    self.shutdown_requested = true;
                     self.halted = true;
                     return false;
                 }

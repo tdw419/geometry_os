@@ -1844,7 +1844,7 @@ fn main() {
         }
 
         // ── Shutdown check ────────────────────────────────────────
-        if vm.shutdown_requested {
+        if vm.halted {
             status_msg = "[SHUTDOWN] System halted cleanly.".into();
             is_running = false;
             let _ = status_msg; // suppress unused warning (break follows)

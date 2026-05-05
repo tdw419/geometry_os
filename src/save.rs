@@ -200,7 +200,7 @@ pub fn load_state(path: &str) -> std::io::Result<(vm::Vm, Vec<u32>, bool)> {
         msg_recv_requested: false,
         env_vars: std::collections::HashMap::new(),
         booted: false,
-        shutdown_requested: false,
+        kernel_font_mode: 0,
         step_exit_code: None,
         step_zombie: false,
         hypervisor_active: false,

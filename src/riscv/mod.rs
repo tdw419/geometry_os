@@ -21,6 +21,7 @@ pub mod decode;
 pub mod dtb;
 pub mod framebuf;
 pub mod gpu;
+pub mod gpu_bridge;
 pub mod gpu_loader;
 pub mod gpu_reference;
 pub mod live;

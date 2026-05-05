@@ -361,7 +361,6 @@ impl Vm {
             env_vars: std::collections::HashMap::new(),
             booted: false,
             kernel_font_mode: 0,
-            shutdown_requested: false,
             step_exit_code: None,
             step_zombie: false,
             hypervisor_active: false,
@@ -591,7 +590,6 @@ impl Vm {
         self.env_vars.clear();
         self.booted = false;
         self.kernel_font_mode = 0;
-        self.shutdown_requested = false;
         self.hypervisor_active = false;
         self.hypervisor_config.clear();
         self.hypervisor_mode = HypervisorMode::default();
