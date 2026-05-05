@@ -2237,7 +2237,7 @@ phases:
   _claimed_at: 1777995812
 - id: phase-216
   title: RISC-V Guest -- Filesystem Commands in Shell
-  status: planned
+  status: complete
   goal: 'Extend sh.c with VFS file operations: ls, cat, touch, rm, and stat'
   description: The mini-shell (sh.c) can peek/poke memory and run commands, but has
     no filesystem awareness. The VFS Pixel Surface at 0x7000_0000 stores files as
@@ -2247,7 +2247,7 @@ phases:
     content in subsequent rows.
   deliverables:
   - name: VFS filesystem commands in sh.c
-    status: todo
+    status: done
     tasks:
     - id: p216.d1.t1
       title: Implement ls command (list VFS files)
