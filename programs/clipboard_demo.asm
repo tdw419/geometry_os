@@ -187,7 +187,7 @@ fill_loop:
     ADDI r15, 1
     LDI r14, 10
     CMP r15, r14
-    JLT fill_loop
+    BLT r0, fill_loop
 
     ; Draw label for step 4
     LDI r10, 2
@@ -242,16 +242,16 @@ fill_loop:
 draw_bar:
     LDI r13, 40           ; width
 bar_loop:
-    PIXEL r8, r9, r7
+    PSET r8, r9, r7
     ADDI r8, 1
     SUBI r13, 1
-    JNZ bar_loop
+    JNZ r13, bar_loop
     RET
 
 ; ── Data ──
-title:       .byte "Phase 221: Clipboard Demo" .byte 0
-step1_label: .byte "1) Text: " .byte 0
-step2_label: .byte "2) Push + World: " .byte 0
-step3_label: .byte "3) Restore Hello: " .byte 0
-step4_label: .byte "4) Ring(10->8), oldest: " .byte 0
-step5_label: .byte "5) History cleared" .byte 0
+title:       .asciz "Phase 221: Clipboard Demo"
+step1_label: .asciz "1) Text: "
+step2_label: .asciz "2) Push + World: "
+step3_label: .asciz "3) Restore Hello: "
+step4_label: .asciz "4) Ring(10->8), oldest: "
+step5_label: .asciz "5) History cleared"

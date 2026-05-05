@@ -26,7 +26,8 @@ fn compile_run(path: &str) -> Vm {
             vm.ram[i] = pixel;
         }
     }
-    vm.pc = 0;
+    // Set PC to first non-zero word (handles .org directives)
+    vm.pc = asm.pixels.iter().position(|&p| p != 0).unwrap_or(0) as u32;
     vm.halted = false;
     for _ in 0..10_000_000 {
         if !vm.step() {
@@ -50,7 +51,8 @@ fn compile_run_steps(path: &str, steps: usize) -> Vm {
             vm.ram[i] = pixel;
         }
     }
-    vm.pc = 0;
+    // Set PC to first non-zero word (handles .org directives)
+    vm.pc = asm.pixels.iter().position(|&p| p != 0).unwrap_or(0) as u32;
     vm.halted = false;
     for _ in 0..steps {
         if !vm.step() {
