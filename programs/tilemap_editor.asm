@@ -48,6 +48,9 @@
 #define CURSOR_TY    0x2108
 #define TILES_BASE   0x2200
 #define STR_BUF      0x2600
+#define EXPORT_BASE  0x7000
+; Export flag: 0=not saved, 1=saved
+#define EXPORT_FLAG  0x210C
 
 ; Tile colors for rect-based rendering and palette
 #define C_EMPTY  0x222222
@@ -308,6 +311,32 @@ ice_store:
 ; ===== MAIN LOOP =====
 main_loop:
     LDI r1, 1
+
+    ; Read keyboard: check for 'S' to export map to 0x7000
+    IKEY r16
+    CMPI r16, 83
+    JZ r0, no_export
+
+    ; Export map from MAP_BASE (0x2000) to EXPORT_BASE (0x7000)
+    ; Copies 256 tile indices as a flat array
+    LDI r20, MAP_BASE
+    LDI r21, EXPORT_BASE
+    LDI r22, 256
+export_loop:
+    LOAD r23, r20
+    STORE r21, r23
+    ADD r20, r1
+    ADD r21, r1
+    SUB r22, r1
+    CMPI r22, 0
+    JNZ r0, export_loop
+
+    ; Set export flag so status bar can show "SAVED!"
+    LDI r20, EXPORT_FLAG
+    LDI r23, 1
+    STORE r20, r23
+
+no_export:
 
     ; Read mouse: MOUSEQ r10 -> r10=X, r11=Y, r12=button
     MOUSEQ r10
@@ -592,28 +621,36 @@ no_cursor:
     LDI r5, 26
     LDI r6, C_GRASS
     RECTF r2, r3, r4, r5, r6
+    LDI r2, 176
     LDI r6, C_WATER
-    RECTF 176, r3, r4, r5, r6
+    RECTF r2, r3, r4, r5, r6
+    LDI r2, 218
     LDI r6, C_STONE
-    RECTF 218, r3, r4, r5, r6
+    RECTF r2, r3, r4, r5, r6
 
     ; Row 1: Sand, Dirt, Wood
+    LDI r2, 134
     LDI r3, 50
     LDI r6, C_SAND
     RECTF r2, r3, r4, r5, r6
+    LDI r2, 176
     LDI r6, C_DIRT
-    RECTF 176, r3, r4, r5, r6
+    RECTF r2, r3, r4, r5, r6
+    LDI r2, 218
     LDI r6, C_WOOD
-    RECTF 218, r3, r4, r5, r6
+    RECTF r2, r3, r4, r5, r6
 
     ; Row 2: Lava, Brick, Ice
+    LDI r2, 134
     LDI r3, 82
     LDI r6, C_LAVA
     RECTF r2, r3, r4, r5, r6
+    LDI r2, 176
     LDI r6, C_BRICK
-    RECTF 176, r3, r4, r5, r6
+    RECTF r2, r3, r4, r5, r6
+    LDI r2, 218
     LDI r6, C_ICE
-    RECTF 218, r3, r4, r5, r6
+    RECTF r2, r3, r4, r5, r6
 
     ; Palette labels
     LDI r20, STR_BUF
@@ -955,11 +992,25 @@ sn_ice:
 sn_done:
 
     LDI r20, STR_BUF
-    STRO r20, "LClick=Paint RClick=Erase"
+    STRO r20, "LClick=Paint R=Erase S=Save"
     LDI r2, 80
     LDI r3, 249
     LDI r4, STR_BUF
     TEXT r2, r3, r4
+
+    ; Show "SAVED!" if export flag is set
+    LDI r20, EXPORT_FLAG
+    LOAD r21, r20
+    CMPI r21, 0
+    JZ r0, no_saved
+
+    LDI r20, STR_BUF
+    STRO r20, "SAVED!"
+    LDI r2, 218
+    LDI r3, 249
+    LDI r4, STR_BUF
+    TEXT r2, r3, r4
+no_saved:
 
     ; ===== Frame =====
     FRAME
