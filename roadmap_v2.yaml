@@ -2027,7 +2027,7 @@ phases:
   _claimed_at: 1777964463
 - id: phase-211
   title: GeOS Performance -- Instruction Cache for Hot Loops
-  status: planned
+  status: done
   goal: Add a decoded instruction cache to speed up tight loops by 3-5x
   description: 'The VM currently decodes every instruction on every step() call, even
     in tight loops that execute the same instructions millions of times. At 88 MIPS,
@@ -2037,7 +2037,7 @@ phases:
     3-5x on loop-heavy programs like plasma, infinite_map, and the fuzzer.'
   deliverables:
   - name: Decoded instruction cache
-    status: todo
+    status: done
     tasks:
     - id: p211.d1.t1
       title: Implement PC-indexed instruction cache in Vm
@@ -2065,7 +2065,7 @@ phases:
   test_target: 3
   scope_lines_total: 140
   _claimed_by: worker-0
-  _claimed_at: 1777945138
+  _claimed_at: 1777965326
 - id: phase-212
   title: GeOS Pixel Art Export -- PNG Screenshot to VFS
   status: planned

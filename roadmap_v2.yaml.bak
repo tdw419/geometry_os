@@ -1821,8 +1821,8 @@ phases:
         test: session 1 writes, session 2 reads back.'
       met: true
     - description: Guest C driver (geos_blk_init/read/write) works end-to-end
-      validation: 'blk_test.elf boots, writes "GeometryOS_blk_v1" to sector 0, reads
-        back, console shows PASS.'
+      validation: blk_test.elf boots, writes "GeometryOS_blk_v1" to sector 0, reads
+        back, console shows PASS.
       met: true
     - description: Data persists across VM restarts
       validation: 'blk_persist_roundtrip: VM1 writes + saves, VM2 boots fresh + reads
@@ -1985,7 +1985,7 @@ phases:
   scope_lines_total: 220
 - id: phase-210
   title: GeOS Text Rendering -- Variable-Width Font Support
-  status: planned
+  status: in_progress
   goal: Support variable-width fonts in the TEXT opcode for more readable text display
   description: The TEXT opcode uses a fixed 8x8 pixel font (font.rs). For programs
     that display paragraphs of text (notepad.asm, chatbot.asm, help.asm), variable-width
@@ -2024,7 +2024,7 @@ phases:
   test_target: 3
   scope_lines_total: 130
   _claimed_by: worker-0
-  _claimed_at: 1777942985
+  _claimed_at: 1777964463
 - id: phase-211
   title: GeOS Performance -- Instruction Cache for Hot Loops
   status: planned

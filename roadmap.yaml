@@ -10559,3 +10559,27 @@ phases:
     scope_lines: 0
   scope_lines_total: 5
   test_target: 1
+
+- id: phase-254
+  title: "Fix vw_font_demo.asm: convert inline string syntax to .byte directives"
+  status: planned
+  goal: "vw_font_demo.asm assembles cleanly, reducing test_all_programs_assemble failures from 3 to 2"
+  description: "vw_font_demo.asm was committed in 7ce1a413 as part of phase-210 (variable-width font). It uses VWTXT (0xDB) which is fully implemented in the VM, but its string data uses 'label: \"string\"' syntax (lines 36-39) which the GeoASM assembler doesn't support. The assembler treats the string contents as an opcode, producing: AsmError { line: 36, message: \"unknown opcode: \\\"VARIABLE WIDTH!\\\"\" }. All other .asm programs use .byte directives for string data (see shell.asm lines 2763+). Fix: convert the four msg labels to .byte sequences, or add vw_font_demo.asm to the skip list in test_all_programs_assemble. Converting to .byte is preferred since the demo should be functional."
+  deliverables:
+  - name: "Convert vw_font_demo.asm string data to .byte directives"
+    description: "Replace msg1-msg4 inline string definitions with .byte directives. For example, msg1: \"Variable Width!\" becomes msg1: .byte 86, 97, 114, 105, 97, 98, 108, 101, 32, 87, 105, 100, 116, 104, 33, 0. Keep the msg labels as address references for the VWTXT instructions."
+    status: todo
+    tasks:
+    - id: p254.d1.t1
+      title: "Convert four msg string definitions to .byte directives"
+      status: todo
+      description: "In programs/vw_font_demo.asm, replace lines 36-39 (msg1-msg4 inline strings) with .byte sequences including null terminators. Verify VWTXT r12 loads msg addresses correctly after the change."
+      scope_lines: 10
+    - id: p254.d1.t2
+      title: "Verify vw_font_demo.asm assembles and test_all_programs_assemble drops to 2 failures"
+      status: todo
+      description: "Run cargo test --test program_tests basic_programs::test_all_programs_assemble. Expect 2 failures (shell.asm, nano_editor.asm) instead of 3."
+      scope_lines: 0
+    scope_lines: 10
+  scope_lines_total: 10
+  test_target: 1
