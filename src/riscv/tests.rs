@@ -1482,3 +1482,88 @@ fn test_yield_to_specific_context() {
     assert_eq!(result, StepResult::Yielded);
     assert_eq!(vm.current_context, 2, "yielded to context 2");
 }
+
+#[test]
+fn test_gpu_compute_sbi_sets_pending_and_bridge_unavailable() {
+    use crate::riscv::gpu_bridge::{GpuComputeRequest, GPU_ERR_UNAVAILABLE};
+
+    let mut vm = super::RiscvVm::new(4096);
+    let pa = vm.bus.mem.ram_base;
+
+    // Write ECALL at PC (so the CPU can execute an ecall)
+    vm.bus.write_word(pa, 0x00000073).unwrap();
+    vm.cpu.privilege = super::cpu::Privilege::Machine;
+
+    // Set up GEO_FN_GPU_COMPUTE SBI call:
+    // a7 = SBI_EXT_GEOMETRY (0x47454F00)
+    // a6 = 5 (GEO_FN_GPU_COMPUTE)
+    // a0 = code_addr = pa + 256 (arbitrary, no code there yet)
+    // a1 = num_words = 3
+    // a2 = max_steps = 100
+    // a3 = num_tiles = 1
+    // a4 = result_addr low = pa + 512
+    // a5 = result_addr high = 0
+    vm.cpu.x[17] = 0x47454F00; // a7 = SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 5;          // a6 = GEO_FN_GPU_COMPUTE
+    vm.cpu.x[10] = (pa + 256) as u32; // a0 = code_addr
+    vm.cpu.x[11] = 3;          // a1 = num_words
+    vm.cpu.x[12] = 100;        // a2 = max_steps
+    vm.cpu.x[13] = 1;          // a3 = num_tiles
+    vm.cpu.x[14] = (pa + 512) as u32; // a4 = result_addr low
+    vm.cpu.x[15] = 0;          // a5 = result_addr high
+
+    // Step once: CPU executes ECALL, SBI handler sets gpu_compute_requested
+    let result = vm.step();
+    // ECALL from M-mode gets handled as SBI, returns StepResult::Ok (continues)
+    assert_eq!(result, StepResult::Ok);
+
+    // After step(), the GPU compute request should have been fulfilled
+    // (bridge.execute was called, returning GPU_ERR_UNAVAILABLE since gpu feature
+    // is off in non-gpu builds)
+    // a0 should contain the result code
+    assert_eq!(
+        vm.cpu.x[10], GPU_ERR_UNAVAILABLE,
+        "GPU bridge should return UNAVAILABLE without gpu feature"
+    );
+
+    // The pending request should be consumed (taken)
+    assert!(
+        vm.bus.sbi.gpu_compute_requested.is_none(),
+        "GPU compute request should have been consumed"
+    );
+
+    // GPU bridge stats should show no dispatches
+    let (dispatches, tiles) = vm.gpu_bridge.stats();
+    assert_eq!(dispatches, 0);
+    assert_eq!(tiles, 0);
+}
+
+#[test]
+fn test_gpu_compute_sbi_invalid_params_returns_error() {
+    use crate::riscv::gpu_bridge::GPU_ERR_INVALID_PARAMS;
+
+    let mut vm = super::RiscvVm::new(4096);
+    let pa = vm.bus.mem.ram_base;
+
+    vm.bus.write_word(pa, 0x00000073).unwrap();
+    vm.cpu.privilege = super::cpu::Privilege::Machine;
+
+    // Test: num_words = 0 -> INVALID_PARAMS
+    vm.cpu.x[17] = 0x47454F00; // a7 = SBI_EXT_GEOMETRY
+    vm.cpu.x[16] = 5;          // a6 = GEO_FN_GPU_COMPUTE
+    vm.cpu.x[10] = pa as u32;  // a0 = code_addr
+    vm.cpu.x[11] = 0;          // a1 = num_words = 0 (INVALID)
+    vm.cpu.x[12] = 100;        // a2 = max_steps
+    vm.cpu.x[13] = 1;          // a3 = num_tiles
+    vm.cpu.x[14] = (pa + 512) as u32; // a4
+    vm.cpu.x[15] = 0;          // a5
+
+    vm.step();
+    assert_eq!(vm.cpu.x[10], GPU_ERR_INVALID_PARAMS);
+
+    // Test: num_tiles = 0 -> INVALID_PARAMS
+    vm.cpu.x[11] = 4;          // a1 = num_words = 4 (valid)
+    vm.cpu.x[13] = 0;          // a3 = num_tiles = 0 (INVALID)
+    vm.step();
+    assert_eq!(vm.cpu.x[10], GPU_ERR_INVALID_PARAMS);
+}

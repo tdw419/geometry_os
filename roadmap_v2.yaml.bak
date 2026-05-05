@@ -1985,7 +1985,7 @@ phases:
   scope_lines_total: 220
 - id: phase-210
   title: GeOS Text Rendering -- Variable-Width Font Support
-  status: in_progress
+  status: done
   goal: Support variable-width fonts in the TEXT opcode for more readable text display
   description: The TEXT opcode uses a fixed 8x8 pixel font (font.rs). For programs
     that display paragraphs of text (notepad.asm, chatbot.asm, help.asm), variable-width
@@ -2023,7 +2023,6 @@ phases:
       scope_lines: 30
   test_target: 26
   scope_lines_total: 130
-  status: done
   completed_at: 1777981221
   _claimed_by: worker-0
   _claimed_at: 1777981221
@@ -2112,7 +2111,7 @@ phases:
     scope_lines_total: 130
 - id: phase-213
   title: GeOS Tilemap Editor -- Visual Map Building Tool
-  status: planned
+  status: in_progress
   goal: Build an interactive tilemap editor that lets users paint tile-based levels
     for games
   description: The TILEMAP opcode (0x4C) blits tile grids from RAM to screen, but
@@ -2150,6 +2149,8 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 240
+  _claimed_by: worker-0
+  _claimed_at: 1777983299
 - id: phase-214
   title: RISC-V GPU Compute -- WGSL Shader Integration
   status: planned

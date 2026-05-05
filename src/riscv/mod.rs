@@ -95,6 +95,9 @@ pub struct RiscvVm {
     pub current_context: usize,
     /// Next context ID to assign.
     pub next_context_id: usize,
+    /// GPU compute bridge for offloading RISC-V execution to the host GPU.
+    /// Lazily initialized on first GPU compute SBI call.
+    pub gpu_bridge: gpu_bridge::GpuBridge,
 }
 
 impl std::fmt::Debug for RiscvVm {
@@ -133,6 +136,7 @@ impl RiscvVm {
             contexts: vec![primary],
             current_context: 0,
             next_context_id: 1,
+            gpu_bridge: gpu_bridge::GpuBridge::new(),
         }
     }
 
@@ -148,6 +152,7 @@ impl RiscvVm {
             contexts: vec![primary],
             current_context: 0,
             next_context_id: 1,
+            gpu_bridge: gpu_bridge::GpuBridge::new(),
         }
     }
 
@@ -173,6 +178,35 @@ impl RiscvVm {
 
         // 4. Execute one CPU instruction via the bus
         let result = self.cpu.step(&mut self.bus);
+
+        // 4b. Handle pending GPU compute request (set by ECALL in step 4)
+        if let Some((code_addr, num_words, max_steps, num_tiles, result_addr)) =
+            self.bus.sbi.gpu_compute_requested.take()
+        {
+            let req = gpu_bridge::GpuComputeRequest {
+                code_addr,
+                num_words,
+                max_steps,
+                num_tiles,
+                result_addr,
+            };
+            let bus_ptr = &mut self.bus as *mut bus::Bus;
+            // SAFETY: We need split borrows -- gpu_bridge.execute calls read_fn/write_fn
+            // which access bus.mem, while gpu_bridge is a separate field.
+            let result_code = unsafe {
+                let gpu_bridge =
+                    &mut *(&mut self.gpu_bridge as *mut gpu_bridge::GpuBridge);
+                gpu_bridge.execute(
+                    &req,
+                    |addr| (*bus_ptr).mem.read_word(addr).unwrap_or(0),
+                    |addr, val| {
+                        let _ = (*bus_ptr).mem.write_word(addr, val);
+                    },
+                )
+            };
+            // Write result code to a0 for the guest (overwrites SBI_SUCCESS)
+            self.cpu.x[10] = result_code;
+        }
 
         // 5. Handle cooperative yield -- save current, switch to next
         if result == StepResult::Yielded {

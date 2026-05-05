@@ -69,6 +69,7 @@ const GEO_FN_YIELD: u32 = 1;
 const GEO_FN_YIELD_TO: u32 = 2;
 const GEO_FN_SPAWN: u32 = 3;
 const GEO_FN_KILL: u32 = 4;
+const GEO_FN_GPU_COMPUTE: u32 = 5;
 
 /// Pending GEO_VFS_READ request: set by handle_ecall, fulfilled by the caller
 /// which has access to guest memory. The caller reads the filename bytes from
@@ -114,6 +115,9 @@ pub struct Sbi {
     pub yield_to_context: Option<usize>,
     /// Guest requested spawn of a new context (GEO_SPAWN).
     pub spawn_requested: Option<(u32, usize)>,
+    /// Guest requested GPU compute offload (GEO_FN_GPU_COMPUTE).
+    /// Stores (code_addr, num_words, max_steps, num_tiles, result_addr).
+    pub gpu_compute_requested: Option<(u64, u32, u32, u32, u64)>,
 }
 
 impl Sbi {
@@ -131,6 +135,7 @@ impl Sbi {
             yield_requested: false,
             yield_to_context: None,
             spawn_requested: None,
+            gpu_compute_requested: None,
         }
     }
 
@@ -383,6 +388,25 @@ impl Sbi {
                     // Kill context a0. Returns SBI_SUCCESS.
                     // Actual cleanup is handled by RiscvVm.
                     // For now, just acknowledge.
+                    Some((SBI_SUCCESS as u32, 0))
+                }
+                GEO_FN_GPU_COMPUTE => {
+                    // GPU compute offload:
+                    //   a0 = guest_phys_addr  (base address of code to offload)
+                    //   a1 = num_words        (number of u32 words of code)
+                    //   a2 = max_steps        (instruction step limit per tile)
+                    //   a3 = num_tiles        (number of parallel GPU tiles)
+                    //   a4 = result_addr      (guest physical address for results)
+                    // The bridge is fulfilled by RiscvVm::step() which has
+                    // access to guest memory for the actual data transfer.
+                    let code_addr = a0 as u64;
+                    let num_words = _a1;
+                    let max_steps = _a2;
+                    let num_tiles = _a3;
+                    let result_addr = (_a4 as u64) | ((_a5 as u64) << 32);
+                    self.gpu_compute_requested = Some((
+                        code_addr, num_words, max_steps, num_tiles, result_addr,
+                    ));
                     Some((SBI_SUCCESS as u32, 0))
                 }
                 _ => Some((SBI_ERR_NOT_SUPPORTED as u32, 0)),
@@ -680,5 +704,54 @@ mod tests {
             &mut clint,
         );
         assert_eq!(r, Some((SBI_ERR_FAILURE as u32, 0)));
+    }
+
+    #[test]
+    fn test_sbi_geo_gpu_compute_sets_pending() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+
+        // GEO_FN_GPU_COMPUTE = 5, a0=code_addr, a1=num_words, a2=max_steps,
+        // a3=num_tiles, a4=low(result_addr), a5=high(result_addr)
+        let r = sbi.handle_ecall(
+            SBI_EXT_GEOMETRY,
+            5, // GEO_FN_GPU_COMPUTE
+            0x8000_1000u32, // code_addr (low 32 bits)
+            16,  // num_words
+            1000, // max_steps
+            4,    // num_tiles
+            0x2000u32, // result_addr low
+            0x8000u32, // result_addr high
+            &mut uart,
+            &mut clint,
+        );
+        assert_eq!(r, Some((SBI_SUCCESS as u32, 0)));
+
+        // Check that gpu_compute_requested was set
+        let req = sbi.gpu_compute_requested.expect("GPU compute should be pending");
+        assert_eq!(req.0, 0x8000_1000u64); // code_addr
+        assert_eq!(req.1, 16); // num_words
+        assert_eq!(req.2, 1000); // max_steps
+        assert_eq!(req.3, 4); // num_tiles
+        assert_eq!(req.4, 0x0000_8000_0000_2000u64); // result_addr
+    }
+
+    #[test]
+    fn test_sbi_geo_gpu_compute_probe_reports_available() {
+        let mut sbi = Sbi::new();
+        let mut uart = Uart::new();
+        let mut clint = Clint::new();
+
+        // SBI_EXT_GEOMETRY should be reported as available in PROBE_EXTENSION
+        let r = sbi.handle_ecall(
+            SBI_EXT_BASE,
+            3, // PROBE_EXTENSION
+            SBI_EXT_GEOMETRY,
+            0, 0, 0, 0, 0,
+            &mut uart,
+            &mut clint,
+        );
+        assert_eq!(r, Some((0, 1))); // available
     }
 }

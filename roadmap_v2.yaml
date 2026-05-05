@@ -2153,7 +2153,7 @@ phases:
   _claimed_at: 1777983299
 - id: phase-214
   title: RISC-V GPU Compute -- WGSL Shader Integration
-  status: planned
+  status: in_progress
   goal: Enable the RISC-V guest to offload compute work to the host GPU via the existing
     WGSL shader pipeline
   description: src/riscv/gpu.rs already has a WGSL compute shader (riscv_executor.wgsl)
@@ -2190,6 +2190,8 @@ phases:
       scope_lines: 30
   test_target: 2
   scope_lines_total: 170
+  _claimed_by: worker-0
+  _claimed_at: 1777984932
 - id: phase-215
   title: RISC-V Guest -- Hex Editor
   status: in_progress
