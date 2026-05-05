@@ -1190,6 +1190,31 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        // Text clipboard operations: CLIP_TEXT mode_reg, addr_reg, len_reg (0xDD)
+        // Mode 0: store text from RAM to clipboard; Mode 1: paste text to RAM; Mode 2: get length
+        "CLIP_TEXT" => {
+            if tokens.len() < 4 {
+                return Err("CLIP_TEXT requires 3 arguments: CLIP_TEXT mode_reg, addr_reg, len_reg".to_string());
+            }
+            bytecode.push(0xDD);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
+        // Clipboard history management: CLIP_HISTORY mode_reg, slot_reg (0xDF)
+        // Mode 0: push current; Mode 1: get count; Mode 2: restore slot; Mode 3: clear
+        "CLIP_HISTORY" => {
+            if tokens.len() < 3 {
+                return Err("CLIP_HISTORY requires 2 arguments: CLIP_HISTORY mode_reg, slot_reg".to_string());
+            }
+            bytecode.push(0xDF);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
         // Load sprite data from VFS file: SPRITE_LOAD fn_addr_reg, dest_reg, max_reg (0xD9)
         "SPRITE_LOAD" => {
             if tokens.len() < 4 {
@@ -1255,6 +1280,48 @@ pub(super) fn try_parse(
             bytecode.push(parse_imm(tokens[1], constants)?);
             bytecode.push(parse_reg(tokens[2])? as u32);
             bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
+        // TMR_GET dest_reg (0xE8, 2 words)
+        "TMR_GET" => {
+            if tokens.len() < 2 {
+                return Err("TMR_GET requires 1 argument: TMR_GET dest_reg".to_string());
+            }
+            bytecode.push(0xE8);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
+        // TMR_WAIT ms_reg (0xE9, 2 words)
+        "TMR_WAIT" => {
+            if tokens.len() < 2 {
+                return Err("TMR_WAIT requires 1 argument: TMR_WAIT ms_reg".to_string());
+            }
+            bytecode.push(0xE9);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
+        // ALARM_SET ms_reg, addr_reg, value_reg (0xEA, 4 words)
+        "ALARM_SET" => {
+            if tokens.len() < 4 {
+                return Err("ALARM_SET requires 3 arguments: ALARM_SET ms_reg, addr_reg, value_reg".to_string());
+            }
+            bytecode.push(0xEA);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
+        // ALARM_CLR slot_reg (0xEB, 2 words)
+        "ALARM_CLR" => {
+            if tokens.len() < 2 {
+                return Err("ALARM_CLR requires 1 argument: ALARM_CLR slot_reg".to_string());
+            }
+            bytecode.push(0xEB);
+            bytecode.push(parse_reg(tokens[1])? as u32);
             Ok(Some(()))
         }
 

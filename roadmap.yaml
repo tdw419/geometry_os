@@ -10641,3 +10641,27 @@ phases:
     scope_lines: 40
   scope_lines_total: 42
   test_target: 2
+
+- id: phase-257
+  title: "Fix clipboard_demo.asm: replace unknown opcode JLT with BLT r0"
+  status: planned
+  goal: "clipboard_demo.asm assembles and runs, fixing 2 test failures"
+  description: "clipboard_demo.asm line 190 uses 'JLT fill_loop' but the GeoASM assembler has no JLT opcode. The CMP instruction stores its comparison result in r0, and the conditional branch opcode for less-than is BLT (0x35), which takes the form 'BLT reg, addr'. The correct replacement is 'BLT r0, fill_loop'. This is the only occurrence of JLT in the entire programs/ directory. Fixing this will resolve both test_clipboard_demo_program_assembles and test_clipboard_demo_runs_and_writes_data failures."
+  deliverables:
+  - name: "Replace JLT with BLT r0 in clipboard_demo.asm"
+    description: "Change line 190 from 'JLT fill_loop' to 'BLT r0, fill_loop'. The preceding CMP r15, r14 sets r0 to the comparison result, and BLT r0 branches when less-than."
+    status: todo
+    tasks:
+    - id: p257.d1.t1
+      title: "Replace JLT fill_loop with BLT r0, fill_loop at line 190"
+      status: todo
+      description: "Edit programs/clipboard_demo.asm line 190: change 'JLT fill_loop' to 'BLT r0, fill_loop'. This is the only change needed."
+      scope_lines: 1
+    - id: p257.d1.t2
+      title: "Verify both clipboard_demo tests pass"
+      status: todo
+      description: "Run cargo test --lib vm::tests::test_clipboard_demo_program_assembles vm::tests::test_clipboard_demo_runs_and_writes_data and confirm both pass."
+      scope_lines: 0
+    scope_lines: 1
+  scope_lines_total: 1
+  test_target: 2

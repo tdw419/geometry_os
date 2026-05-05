@@ -541,6 +541,10 @@ impl Vm {
             focused_pid: 0,
             clip_rect: None,
             clipboard: Vec::new(),
+            clipboard_text: Vec::new(),
+            clipboard_history: Vec::new(),
+            clipboard_history_head: 0,
+            clipboard_history_count: 0,
             hash_tables: Default::default(),
             hash_tables_active: 0,
             sprite_sheets: Default::default(),
@@ -549,6 +553,16 @@ impl Vm {
             icache_generation: 0,
             icache_hits: 0,
             icache_misses: 0,
+            // Phase 222: wall-clock timer (new epoch on deserialize)
+            epoch: std::time::Instant::now(),
+            alarms: (0..super::types::MAX_ALARMS)
+                .map(|_| super::types::WallAlarm {
+                    target_ms: 0,
+                    addr: 0,
+                    value: 0,
+                    active: false,
+                })
+                .collect(),
         })
     }
 }

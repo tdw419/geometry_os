@@ -205,6 +205,9 @@ pub const OPCODES: &[&str] = &[
     // Phase 204: Clipboard
     "CLIP_COPY",
     "CLIP_PASTE",
+    // Phase 221: Multi-format clipboard + history
+    "CLIP_TEXT",
+    "CLIP_HISTORY",
     // Phase 205: Sprite Sheet Loader
     "SPRITE_LOAD",
     "SPRITE_FRAME",
@@ -219,6 +222,11 @@ pub const OPCODES: &[&str] = &[
     "SPRLOAD",
     "SPRFRAME",
     "SPRANIM",
+    // Phase 222: Wall-clock timer and alarm opcodes
+    "TMR_GET",
+    "TMR_WAIT",
+    "ALARM_SET",
+    "ALARM_CLR",
     // Phase 217: Mouse support opcodes
     "MOUSEX",
     "MOUSEY",

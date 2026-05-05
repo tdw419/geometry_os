@@ -258,6 +258,10 @@ pub fn load_state(path: &str) -> std::io::Result<(vm::Vm, Vec<u32>, bool)> {
         focused_pid: 0,
         clip_rect: None,
         clipboard: Vec::new(),
+        clipboard_text: Vec::new(),
+        clipboard_history: Vec::new(),
+        clipboard_history_head: 0,
+        clipboard_history_count: 0,
         hash_tables: std::array::from_fn(|_| std::collections::HashMap::new()),
         hash_tables_active: 0,
         sprite_sheets: Default::default(),
@@ -268,6 +272,16 @@ pub fn load_state(path: &str) -> std::io::Result<(vm::Vm, Vec<u32>, bool)> {
         icache_misses: 0,
         render_logging: false,
         render_log: vm::RenderLog::new(vm::DEFAULT_RENDER_LOG_CAPACITY),
+        // Phase 222: wall-clock timer (new epoch on load)
+        epoch: std::time::Instant::now(),
+        alarms: (0..vm::types::MAX_ALARMS)
+            .map(|_| vm::types::WallAlarm {
+                target_ms: 0,
+                addr: 0,
+                value: 0,
+                active: false,
+            })
+            .collect(),
     };
 
     // Parse canvas trailer

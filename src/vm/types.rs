@@ -189,10 +189,33 @@ pub const DEVICE_COUNT: usize = 4;
 pub const MAILBOX_SIZE: usize = 256;
 pub const MAX_HOST_FILES: usize = 16;
 
+/// Clipboard history constants (Phase 221).
+/// Ring buffer of up to 8 clipboard snapshots (pixel + text).
+pub const CLIP_HISTORY_MAX: usize = 8;
+
 /// Sprite sheet constants (Phase 272: Sprite Sheet and Animation Frame Opcodes).
 /// Up to 16 sprite sheets can be registered at once.
 /// Each sheet has a base address, frame dimensions, total frame count, and current frame.
 pub const MAX_SPRITE_SHEETS: usize = 16;
+
+/// Wall-clock alarm constants (Phase 222: Timer and Alarm Opcodes).
+/// Maximum number of concurrent wall-clock alarms.
+pub const MAX_ALARMS: usize = 8;
+
+/// A wall-clock alarm set by ALARM_SET.
+/// When the alarm fires (real time >= target), it writes `value` to RAM[`addr`]
+/// and clears itself. Checked every FRAME opcode.
+#[derive(Debug, Clone)]
+pub struct WallAlarm {
+    /// Wall-clock target time in milliseconds since VM start.
+    pub target_ms: u64,
+    /// RAM address to write the alarm value to when it fires.
+    pub addr: u32,
+    /// Value to write to RAM[addr] when the alarm fires.
+    pub value: u32,
+    /// Whether this slot is active.
+    pub active: bool,
+}
 
 /// A registered sprite sheet for animated sprite blitting.
 /// Programs register a sheet with SPRLOAD, select a frame with SPRFRAME,

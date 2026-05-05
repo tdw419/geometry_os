@@ -1104,6 +1104,23 @@ impl Vm {
                 3,
             ),
 
+            // CLIP_TEXT mode_reg, addr_reg, len_reg (0xDD, 4 words) -- Text clipboard operations
+            0xDD => (
+                format!(
+                    "CLIP_TEXT {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3))
+                ),
+                4,
+            ),
+
+            // CLIP_HISTORY mode_reg, slot_reg (0xDF, 3 words) -- Clipboard history management
+            0xDF => (
+                format!("CLIP_HISTORY {}, {}", reg(ram(a + 1)), reg(ram(a + 2))),
+                3,
+            ),
+
             // SPRITE_LOAD filename_addr_reg, dest_addr_reg, max_pixels_reg (0xD9, 4 words)
             0xD9 => (
                 format!(
@@ -1170,6 +1187,21 @@ impl Vm {
                 format!("SPRANIM {}, {}, {}", ram(a + 1), reg(ram(a + 2)), reg(ram(a + 3))),
                 4,
             ),
+
+            // TMR_GET dest_reg (0xE8, 2 words)
+            0xE8 => (format!("TMR_GET {}", reg(ram(a + 1))), 2),
+
+            // TMR_WAIT ms_reg (0xE9, 2 words)
+            0xE9 => (format!("TMR_WAIT {}", reg(ram(a + 1))), 2),
+
+            // ALARM_SET ms_reg, addr_reg, value_reg (0xEA, 4 words)
+            0xEA => (
+                format!("ALARM_SET {}, {}, {}", reg(ram(a + 1)), reg(ram(a + 2)), reg(ram(a + 3))),
+                4,
+            ),
+
+            // ALARM_CLR slot_reg (0xEB, 2 words)
+            0xEB => (format!("ALARM_CLR {}", reg(ram(a + 1))), 2),
 
             // SAVEPNG path_addr_reg (0xAF) -- save screen as PNG to VFS file
             0xAF => (format!("SAVEPNG {}", reg(ram(a + 1))), 2),

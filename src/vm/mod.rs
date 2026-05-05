@@ -261,6 +261,19 @@ pub struct Vm {
     /// Empty (len <= 2) means clipboard is empty.
     pub clipboard: Vec<u32>,
 
+    // ── Phase 221: Multi-Format Clipboard & History ──────────────
+    /// Text clipboard buffer. Stores UTF-8 encoded text as u32 words (4 bytes each).
+    /// Layout: [char_count, byte0-3, byte4-7, ...]. char_count is total chars.
+    /// Empty (len <= 1) means no text in clipboard.
+    pub clipboard_text: Vec<u32>,
+    /// Clipboard history ring buffer. Each entry is (pixel_clipboard, text_clipboard).
+    /// Up to CLIP_HISTORY_MAX (8) entries. Newest at history_head.
+    pub clipboard_history: Vec<(Vec<u32>, Vec<u32>)>,
+    /// Index of the most recent entry in the history ring buffer.
+    pub clipboard_history_head: usize,
+    /// Current number of entries in the history ring buffer.
+    pub clipboard_history_count: usize,
+
     // ── Phase 269: Hash Table Opcodes ────────────────────────────
     /// Up to 8 hash tables for HASHINIT/HASHSET/HASHGET opcodes.
     /// Each table is a HashMap<u32, u32> mapping key -> value.
@@ -294,6 +307,13 @@ pub struct Vm {
 
     /// Indices 0..N are used. host_file_handles[i] = Some((File, mode)) when open.
     pub host_file_handles: Vec<Option<(std::fs::File, u8)>>,
+
+    // ── Phase 222: Wall-Clock Timer & Alarm Opcodes ─────────────────
+    /// Instant when the VM was created. Used as the epoch for TMR_GET.
+    pub epoch: std::time::Instant,
+    /// Pending wall-clock alarms. Checked each FRAME opcode.
+    /// When real time >= alarm.target_ms, writes value to RAM[addr].
+    pub alarms: Vec<types::WallAlarm>,
 }
 
 impl std::fmt::Debug for Vm {
@@ -427,6 +447,10 @@ impl Vm {
                 .collect(),
             clip_rect: None,
             clipboard: Vec::new(),
+            clipboard_text: Vec::new(),
+            clipboard_history: Vec::new(),
+            clipboard_history_head: 0,
+            clipboard_history_count: 0,
             hash_tables: Default::default(),
             hash_tables_active: 0,
             sprite_sheets: Default::default(),
@@ -435,6 +459,16 @@ impl Vm {
             icache_generation: 0,
             icache_hits: 0,
             icache_misses: 0,
+            // Phase 222: Wall-clock timer epoch and alarm table
+            epoch: std::time::Instant::now(),
+            alarms: (0..MAX_ALARMS)
+                .map(|_| types::WallAlarm {
+                    target_ms: 0,
+                    addr: 0,
+                    value: 0,
+                    active: false,
+                })
+                .collect(),
         }
     }
 
@@ -838,6 +872,17 @@ impl Vm {
                     entry.valid = false;
                     entry.sender_id = 0;
                     entry.data = 0;
+                }
+                // Phase 222: check wall-clock alarms
+                let now_ms = self.epoch.elapsed().as_millis() as u64;
+                for alarm in self.alarms.iter_mut() {
+                    if alarm.active && now_ms >= alarm.target_ms {
+                        let addr = alarm.addr as usize;
+                        if addr < self.ram.len() {
+                            self.ram[addr] = alarm.value;
+                        }
+                        alarm.active = false;
+                    }
                 }
                 return true; // keep running (host checks frame_ready to pace rendering)
             }
@@ -1764,6 +1809,190 @@ impl Vm {
                 }
             }
 
+            // CLIP_TEXT mode_reg, addr_reg, len_reg  (0xDD) -- Text clipboard operations
+            // Mode 0: Store text to clipboard. Reads len bytes from RAM[addr..addr+len], packs into u32 words.
+            //   Layout in clipboard_text: [char_count, packed_bytes...]
+            //   Returns char_count in r0.
+            // Mode 1: Paste text from clipboard to RAM. Writes clipboard_text to RAM starting at addr.
+            //   Returns bytes written in r0. If addr+len exceeds RAM, truncates.
+            // Mode 2: Get text length. Returns byte count in r0 (excluding the header word).
+            // Encoding: 4 words [0xDD, mode_reg, addr_reg, len_reg]
+            0xDD => {
+                let mode_r = self.fetch() as usize;
+                let addr_r = self.fetch() as usize;
+                let len_r = self.fetch() as usize;
+                if mode_r < NUM_REGS && addr_r < NUM_REGS && len_r < NUM_REGS {
+                    let mode = self.regs[mode_r];
+                    let addr = self.regs[addr_r] as usize;
+                    let len = self.regs[len_r] as usize;
+                    match mode {
+                        0 => {
+                            // Store text to clipboard
+                            let mut packed = Vec::new();
+                            let mut byte_count = 0;
+                            let mut i = 0;
+                            while i + 3 < len && addr + i + 3 < RAM_SIZE {
+                                let b0 = (self.ram[addr + i] & 0xFF) as u8;
+                                let b1 = (self.ram[addr + i + 1] & 0xFF) as u8;
+                                let b2 = (self.ram[addr + i + 2] & 0xFF) as u8;
+                                let b3 = (self.ram[addr + i + 3] & 0xFF) as u8;
+                                packed.push((b0 as u32) | ((b1 as u32) << 8) | ((b2 as u32) << 16) | ((b3 as u32) << 24));
+                                byte_count += 4;
+                                i += 4;
+                            }
+                            // Handle remaining bytes
+                            while i < len && addr + i < RAM_SIZE {
+                                let b = (self.ram[addr + i] & 0xFF) as u8;
+                                let shift = (byte_count % 4) * 8;
+                                if byte_count % 4 == 0 {
+                                    packed.push(0);
+                                }
+                                let last = packed.last_mut().unwrap();
+                                *last |= (b as u32) << shift;
+                                byte_count += 1;
+                                i += 1;
+                            }
+                            // Count actual chars (UTF-8: ASCII chars = bytes for simple text)
+                            let char_count = if len > 0 && addr < RAM_SIZE {
+                                // Count non-zero bytes as char estimate
+                                (0..len.min(RAM_SIZE.saturating_sub(addr)))
+                                    .filter(|&j| self.ram[addr + j] != 0)
+                                    .count() as u32
+                            } else {
+                                0
+                            };
+                            let mut result = Vec::with_capacity(1 + packed.len());
+                            result.push(char_count);
+                            result.extend_from_slice(&packed);
+                            self.clipboard_text = result;
+                            if 0 < NUM_REGS {
+                                self.regs[0] = char_count;
+                            }
+                            self.log_render_op(0xDD, "CLIP_TEXT_STORE", &[mode, addr as u32, len as u32, char_count]);
+                        }
+                        1 => {
+                            // Paste text from clipboard to RAM
+                            if self.clipboard_text.len() > 1 {
+                                let data = &self.clipboard_text[1..];
+                                let mut bytes_written = 0u32;
+                                for (idx, &word) in data.iter().enumerate() {
+                                    for byte_pos in 0..4u32 {
+                                        let ram_addr = addr + bytes_written as usize;
+                                        if ram_addr >= RAM_SIZE || bytes_written >= len as u32 {
+                                            break;
+                                        }
+                                        self.ram[ram_addr] = (word >> (byte_pos * 8)) & 0xFF;
+                                        bytes_written += 1;
+                                    }
+                                }
+                                if 0 < NUM_REGS {
+                                    self.regs[0] = bytes_written;
+                                }
+                                self.log_render_op(0xDD, "CLIP_TEXT_PASTE", &[mode, addr as u32, len as u32, bytes_written]);
+                            } else {
+                                if 0 < NUM_REGS {
+                                    self.regs[0] = 0;
+                                }
+                            }
+                        }
+                        2 => {
+                            // Get text byte count
+                            let byte_count = if self.clipboard_text.len() > 1 {
+                                (self.clipboard_text.len() - 1) * 4
+                            } else {
+                                0
+                            };
+                            if 0 < NUM_REGS {
+                                self.regs[0] = byte_count as u32;
+                            }
+                            self.log_render_op(0xDD, "CLIP_TEXT_LEN", &[mode, byte_count as u32]);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            // CLIP_HISTORY mode_reg, slot_reg  (0xDF) -- Clipboard history management
+            // Mode 0: Push current clipboard (pixel + text) to history ring buffer.
+            //   Returns history count in r0.
+            // Mode 1: Get history count → r0.
+            // Mode 2: Restore clipboard from history slot (0=newest, 1=previous, ...).
+            //   Overwrites current clipboard + clipboard_text with the snapshot.
+            //   Returns 1 in r0 on success, 0 if slot invalid.
+            // Mode 3: Clear all history. Returns 0 in r0.
+            // Encoding: 3 words [0xDF, mode_reg, slot_reg]
+            0xDF => {
+                let mode_r = self.fetch() as usize;
+                let slot_r = self.fetch() as usize;
+                if mode_r < NUM_REGS && slot_r < NUM_REGS {
+                    let mode = self.regs[mode_r];
+                    let slot = self.regs[slot_r] as usize;
+                    match mode {
+                        0 => {
+                            // Push current to history
+                            let pixel_snap = self.clipboard.clone();
+                            let text_snap = self.clipboard_text.clone();
+                            if self.clipboard_history.len() < CLIP_HISTORY_MAX {
+                                self.clipboard_history.push((pixel_snap, text_snap));
+                                self.clipboard_history_head = self.clipboard_history.len() - 1;
+                            } else {
+                                // Ring buffer: overwrite oldest
+                                self.clipboard_history_head = (self.clipboard_history_head + 1) % CLIP_HISTORY_MAX;
+                                self.clipboard_history[self.clipboard_history_head] = (pixel_snap, text_snap);
+                            }
+                            self.clipboard_history_count = self.clipboard_history.len().min(CLIP_HISTORY_MAX);
+                            if 0 < NUM_REGS {
+                                self.regs[0] = self.clipboard_history_count as u32;
+                            }
+                            self.log_render_op(0xDF, "CLIP_HIST_PUSH", &[self.clipboard_history_count as u32]);
+                        }
+                        1 => {
+                            // Get count
+                            if 0 < NUM_REGS {
+                                self.regs[0] = self.clipboard_history_count as u32;
+                            }
+                            self.log_render_op(0xDF, "CLIP_HIST_COUNT", &[self.clipboard_history_count as u32]);
+                        }
+                        2 => {
+                            // Restore from slot
+                            if slot < self.clipboard_history_count {
+                                // slot 0 = newest (at head), slot 1 = previous, etc.
+                                let hist_idx = if self.clipboard_history_count < CLIP_HISTORY_MAX {
+                                    self.clipboard_history_count - 1 - slot
+                                } else {
+                                    (self.clipboard_history_head + CLIP_HISTORY_MAX - slot) % CLIP_HISTORY_MAX
+                                };
+                                if let Some((pixel_snap, text_snap)) =
+                                    self.clipboard_history.get(hist_idx)
+                                {
+                                    self.clipboard = pixel_snap.clone();
+                                    self.clipboard_text = text_snap.clone();
+                                    if 0 < NUM_REGS {
+                                        self.regs[0] = 1;
+                                    }
+                                    self.log_render_op(0xDF, "CLIP_HIST_RESTORE", &[slot as u32]);
+                                } else if 0 < NUM_REGS {
+                                    self.regs[0] = 0;
+                                }
+                            } else if 0 < NUM_REGS {
+                                self.regs[0] = 0;
+                            }
+                        }
+                        3 => {
+                            // Clear history
+                            self.clipboard_history.clear();
+                            self.clipboard_history_head = 0;
+                            self.clipboard_history_count = 0;
+                            if 0 < NUM_REGS {
+                                self.regs[0] = 0;
+                            }
+                            self.log_render_op(0xDF, "CLIP_HIST_CLEAR", &[]);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
             // SPRITE_LOAD filename_addr_reg, dest_addr_reg, max_pixels_reg (0xD9)
             // Load sprite data from a VFS file into RAM as packed u32 pixels.
             // File format: raw RGBA (4 bytes per pixel), packed as (R<<24|G<<16|B<<8|A).
@@ -2020,6 +2249,104 @@ impl Vm {
                     self.regs[0] = 0; // success
                 } else {
                     self.regs[0] = 0xFFFFFFFF; // error
+                }
+            }
+
+            // TMR_GET dest_reg  (0xE8) -- Wall-clock milliseconds since VM start.
+            // Writes the number of real-world milliseconds elapsed since the VM was
+            // created into dest_reg. Low 32 bits (wraps at ~49.7 days).
+            // Encoding: 2 words [0xE8, dest_reg]
+            // Returns: dest_reg = elapsed ms (low 32 bits)
+            0xE8 => {
+                let dr = self.fetch() as usize;
+                if dr < NUM_REGS {
+                    let elapsed_ms = self.epoch.elapsed().as_millis() as u32;
+                    self.regs[dr] = elapsed_ms;
+                }
+            }
+
+            // TMR_WAIT ms_reg  (0xE9) -- Spin-wait for wall-clock milliseconds.
+            // Records the target wake time, then yields each frame until real time
+            // reaches the target. The VM remains responsive (processes other tasks
+            // via the scheduler) while waiting.
+            // Encoding: 2 words [0xE9, ms_reg]
+            // ms_reg: number of milliseconds to wait from now
+            // Returns: r0 = 0 on success
+            0xE9 => {
+                let mr = self.fetch() as usize;
+                if mr < NUM_REGS {
+                    let wait_ms = self.regs[mr];
+                    let target_ms = self.epoch.elapsed().as_millis() as u64 + wait_ms as u64;
+                    // Yield to scheduler until the wall-clock time is reached.
+                    // We use FRAME to yield and re-check.
+                    // Store the target in a register pair (r30/r31) as temp storage
+                    // and emit FRAME + check loop inline by setting sleep_frames = 1
+                    // per frame until elapsed.
+                    let now_ms = self.epoch.elapsed().as_millis() as u64;
+                    if now_ms >= target_ms {
+                        // Already elapsed (wait_ms was 0 or very small)
+                        self.regs[0] = 0;
+                    } else {
+                        // Sleep for 1 scheduler tick to yield, then re-check.
+                        // The program should loop: TMR_WAIT loops internally
+                        // by setting sleep_frames so the scheduler handles it.
+                        self.sleep_frames = 1;
+                        // The caller is expected to loop with a TMR_WAIT check,
+                        // but for single-call convenience we do a busy yield here.
+                        // Re-check next step by not advancing PC -- we back up.
+                        self.pc -= 2; // re-execute this TMR_WAIT next step
+                    }
+                }
+            }
+
+            // ALARM_SET ms_reg, addr_reg, value_reg  (0xEA) -- Set a wall-clock alarm.
+            // Schedules an alarm to fire `ms_reg` milliseconds from now.
+            // When the alarm fires (checked each FRAME), writes `value_reg` to
+            // RAM[`addr_reg`]. Up to MAX_ALARMS (8) concurrent alarms.
+            // Encoding: 4 words [0xEA, ms_reg, addr_reg, value_reg]
+            // Returns: r0 = alarm slot index (0-7) on success, 0xFFFFFFFF if no slots
+            0xEA => {
+                let mr = self.fetch() as usize;
+                let ar = self.fetch() as usize;
+                let vr = self.fetch() as usize;
+                if mr < NUM_REGS && ar < NUM_REGS && vr < NUM_REGS {
+                    let delay_ms = self.regs[mr] as u64;
+                    let addr = self.regs[ar];
+                    let value = self.regs[vr];
+                    let now_ms = self.epoch.elapsed().as_millis() as u64;
+                    // Find a free alarm slot
+                    let mut found = false;
+                    for (i, alarm) in self.alarms.iter_mut().enumerate() {
+                        if !alarm.active {
+                            alarm.target_ms = now_ms + delay_ms;
+                            alarm.addr = addr;
+                            alarm.value = value;
+                            alarm.active = true;
+                            self.regs[0] = i as u32;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        self.regs[0] = 0xFFFFFFFF; // no free slots
+                    }
+                }
+            }
+
+            // ALARM_CLR slot_reg  (0xEB) -- Cancel a pending wall-clock alarm.
+            // Deactivates the alarm at the given slot index (0-7).
+            // Encoding: 2 words [0xEB, slot_reg]
+            // Returns: r0 = 0 on success, 0xFFFFFFFF if slot invalid or not active
+            0xEB => {
+                let sr = self.fetch() as usize;
+                if sr < NUM_REGS {
+                    let slot = self.regs[sr] as usize;
+                    if slot < self.alarms.len() && self.alarms[slot].active {
+                        self.alarms[slot].active = false;
+                        self.regs[0] = 0;
+                    } else {
+                        self.regs[0] = 0xFFFFFFFF;
+                    }
                 }
             }
 

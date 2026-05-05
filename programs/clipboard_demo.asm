@@ -1,115 +1,257 @@
-; clipboard_demo.asm -- Clipboard Protocol Demo
-; Demonstrates the clipboard RAM convention:
-;   0xF10 = ownership flag (0=free, 1=writing)
-;   0xF11 = data length (0-14 u32 words)
-;   0xF12-0xF1F = data (up to 14 u32 words)
+; ── clipboard_demo.asm ─────────────────────────────────────────────
+; Phase 221: Multi-Format Clipboard & History Demo
 ;
-; Protocol: claim -> write data -> write length -> release
-; This program writes 5 colors to clipboard then halts.
+; Demonstrates:
+;   1. Text clipboard: store/paste strings via CLIP_TEXT (0xDD)
+;   2. History: push snapshots, restore from history via CLIP_HISTORY (0xDF)
+;   3. Ring buffer overflow behavior (8-slot cap)
+;
+; Visual verification: colored bars show clipboard state at each step
+; ──────────────────────────────────────────────────────────────────
 
-    ; Draw source pixels on screen to visualize what's being copied
-    LDI r10, 10
-    LDI r11, 10
-    LDI r12, 0xFF0000
-    PSET r10, r11, r12        ; red dot at (10,10)
+.org 0x1000
 
-    LDI r10, 12
-    LDI r12, 0x00FF00
-    PSET r10, r11, r12        ; green dot at (12,10)
+start:
+    ; ── Clear screen ──
+    LDI r0, 0
+    FILL r0
 
-    LDI r10, 14
-    LDI r12, 0x0000FF
-    PSET r10, r11, r12        ; blue dot at (14,10)
+    ; ── Title bar ──
+    LDI r10, 2
+    LDI r11, 0
+    LDI r12, title
+    TEXT r10, r11, r12
 
-    LDI r10, 16
-    LDI r12, 0xFFFF00
-    PSET r10, r11, r12        ; yellow dot at (16,10)
+    ; ═══════════════════════════════════════════
+    ; STEP 1: Text clipboard — store "Hello"
+    ; ═══════════════════════════════════════════
+    ; Write "Hello" to RAM at 0x3000
+    LDI r9, 0x3000
+    LDI r1, 72            ; 'H'
+    STORE r9, r1
+    LDI r9, 0x3001
+    LDI r1, 101           ; 'e'
+    STORE r9, r1
+    LDI r9, 0x3002
+    LDI r1, 108           ; 'l'
+    STORE r9, r1
+    LDI r9, 0x3003
+    LDI r1, 108           ; 'l'
+    STORE r9, r1
+    LDI r9, 0x3004
+    LDI r1, 111           ; 'o'
+    STORE r9, r1
+    LDI r9, 0x3005
+    LDI r1, 0             ; null terminator
+    STORE r9, r1
 
-    LDI r10, 18
-    LDI r12, 0xFF00FF
-    PSET r10, r11, r12        ; magenta dot at (18,10)
+    ; CLIP_TEXT mode=0 (store), addr=0x3000, len=5
+    LDI r1, 0             ; mode: store
+    LDI r2, 0x3000        ; source addr
+    LDI r3, 5             ; length
+    CLIP_TEXT r1, r2, r3
 
-    ; --- Clipboard Write Protocol ---
-    ; Step 1: Claim clipboard (set ownership flag)
-    LDI r4, 0xF10
-    LDI r5, 1
-    STORE r4, r5              ; ram[0xF10] = 1 (claimed)
+    ; Draw label for step 1
+    LDI r10, 2
+    LDI r11, 16
+    LDI r12, step1_label
+    TEXT r10, r11, r12
 
-    ; Step 2: Write data words to 0xF12-0xF16
-    LDI r4, 0xF12
-    LDI r5, 0xFF0000
-    STORE r4, r5              ; data[0] = red
+    ; Paste "Hello" from text clipboard to 0x3100, then draw
+    LDI r1, 1             ; mode: paste
+    LDI r2, 0x3100        ; dest addr
+    LDI r3, 20            ; max len
+    CLIP_TEXT r1, r2, r3
+    LDI r10, 2
+    LDI r11, 24
+    LDI r12, 0x3100
+    TEXT r10, r11, r12
 
-    LDI r4, 0xF13
-    LDI r5, 0x00FF00
-    STORE r4, r5              ; data[1] = green
+    ; Visual indicator bar (green = text stored)
+    LDI r7, 0x00FF00
+    LDI r8, 2
+    LDI r9, 32
+    CALL draw_bar
 
-    LDI r4, 0xF14
-    LDI r5, 0x0000FF
-    STORE r4, r5              ; data[2] = blue
+    ; ═══════════════════════════════════════════
+    ; STEP 2: Push to history, store "World"
+    ; ═══════════════════════════════════════════
+    ; Push current clipboard state to history
+    LDI r1, 0             ; mode: push
+    LDI r2, 0             ; slot (unused for push)
+    CLIP_HISTORY r1, r2
 
-    LDI r4, 0xF15
-    LDI r5, 0xFFFF00
-    STORE r4, r5              ; data[3] = yellow
+    ; Write "World" to RAM at 0x3000
+    LDI r9, 0x3000
+    LDI r1, 87            ; 'W'
+    STORE r9, r1
+    LDI r9, 0x3001
+    LDI r1, 111           ; 'o'
+    STORE r9, r1
+    LDI r9, 0x3002
+    LDI r1, 114           ; 'r'
+    STORE r9, r1
+    LDI r9, 0x3003
+    LDI r1, 108           ; 'l'
+    STORE r9, r1
+    LDI r9, 0x3004
+    LDI r1, 100           ; 'd'
+    STORE r9, r1
+    LDI r9, 0x3005
+    LDI r1, 0
+    STORE r9, r1
 
-    LDI r4, 0xF16
-    LDI r5, 0xFF00FF
-    STORE r4, r5              ; data[4] = magenta
+    ; Store "World" in text clipboard
+    LDI r1, 0
+    LDI r2, 0x3000
+    LDI r3, 5
+    CLIP_TEXT r1, r2, r3
 
-    ; Step 3: Write data length
-    LDI r4, 0xF11
-    LDI r5, 5
-    STORE r4, r5              ; ram[0xF11] = 5 (length)
+    ; Draw label for step 2
+    LDI r10, 2
+    LDI r11, 48
+    LDI r12, step2_label
+    TEXT r10, r11, r12
 
-    ; Step 4: Release clipboard
-    LDI r4, 0xF10
-    LDI r5, 0
-    STORE r4, r5              ; ram[0xF10] = 0 (free)
+    ; Paste "World"
+    LDI r1, 1
+    LDI r2, 0x3100
+    LDI r3, 20
+    CLIP_TEXT r1, r2, r3
+    LDI r10, 2
+    LDI r11, 56
+    LDI r12, 0x3100
+    TEXT r10, r11, r12
 
-    ; --- Clipboard Read Protocol ---
-    ; Verify we can read back what we wrote
-    ; (In a real multi-process scenario, a different process would do this)
-    LDI r4, 0xF10
-    LDI r5, 0
-    LOAD r6, r4               ; r6 = ownership flag
-    LDI r7, 0
-    CMP r6, r7
-    BLT r0, skip_read         ; skip if not free (shouldn't happen)
+    ; Visual indicator bar (yellow = history + new text)
+    LDI r7, 0xFFFF00
+    LDI r8, 2
+    LDI r9, 64
+    CALL draw_bar
 
-    ; Read length
-    LDI r4, 0xF11
-    LOAD r8, r4               ; r8 = length (should be 5)
+    ; ═══════════════════════════════════════════
+    ; STEP 3: Restore "Hello" from history
+    ; ═══════════════════════════════════════════
+    LDI r1, 2             ; mode: restore
+    LDI r2, 0             ; slot 0 = newest = "Hello"
+    CLIP_HISTORY r1, r2
 
-    ; Read first data word and paste it on screen at (10, 20)
-    LDI r4, 0xF12
-    LOAD r9, r4               ; r9 = data[0] (red)
-    LDI r10, 10
-    LDI r11, 20
-    PSET r10, r11, r9         ; paste red dot
+    ; Draw label for step 3
+    LDI r10, 2
+    LDI r11, 80
+    LDI r12, step3_label
+    TEXT r10, r11, r12
 
-    ; Read second data word
-    LDI r4, 0xF13
-    LOAD r9, r4               ; r9 = data[1] (green)
-    LDI r10, 12
-    PSET r10, r11, r9         ; paste green dot
+    ; Paste restored text
+    LDI r1, 1
+    LDI r2, 0x3100
+    LDI r3, 20
+    CLIP_TEXT r1, r2, r3
+    LDI r10, 2
+    LDI r11, 88
+    LDI r12, 0x3100
+    TEXT r10, r11, r12
 
-    ; Read third data word
-    LDI r4, 0xF14
-    LOAD r9, r4               ; r9 = data[2] (blue)
-    LDI r10, 14
-    PSET r10, r11, r9         ; paste blue dot
+    ; Visual indicator bar (cyan = restored)
+    LDI r7, 0x00FFFF
+    LDI r8, 2
+    LDI r9, 96
+    CALL draw_bar
 
-    ; Read fourth data word
-    LDI r4, 0xF15
-    LOAD r9, r4               ; r9 = data[3] (yellow)
-    LDI r10, 16
-    PSET r10, r11, r9         ; paste yellow dot
+    ; ═══════════════════════════════════════════
+    ; STEP 4: Fill history ring buffer (10 pushes)
+    ; ═══════════════════════════════════════════
+    LDI r15, 0            ; loop counter
 
-    ; Read fifth data word
-    LDI r4, 0xF16
-    LOAD r9, r4               ; r9 = data[4] (magenta)
-    LDI r10, 18
-    PSET r10, r11, r9         ; paste magenta dot
+fill_loop:
+    ; Store counter as text digit "0"-"9"
+    LDI r9, 0x3000
+    LDI r1, 48            ; '0'
+    ADD r1, r15
+    STORE r9, r1
+    LDI r9, 0x3001
+    LDI r1, 0
+    STORE r9, r1
 
-skip_read:
+    ; Store in text clipboard
+    LDI r1, 0
+    LDI r2, 0x3000
+    LDI r3, 1
+    CLIP_TEXT r1, r2, r3
+
+    ; Push to history
+    LDI r1, 0
+    LDI r2, 0
+    CLIP_HISTORY r1, r2
+
+    ADDI r15, 1
+    LDI r14, 10
+    CMP r15, r14
+    JLT fill_loop
+
+    ; Draw label for step 4
+    LDI r10, 2
+    LDI r11, 112
+    LDI r12, step4_label
+    TEXT r10, r11, r12
+
+    ; Restore oldest surviving entry (should be "2")
+    LDI r1, 2             ; restore
+    LDI r2, 7             ; oldest slot
+    CLIP_HISTORY r1, r2
+
+    LDI r1, 1
+    LDI r2, 0x3100
+    LDI r3, 20
+    CLIP_TEXT r1, r2, r3
+    LDI r10, 2
+    LDI r11, 120
+    LDI r12, 0x3100
+    TEXT r10, r11, r12
+
+    ; Visual indicator bar (magenta = ring buffer)
+    LDI r7, 0xFF00FF
+    LDI r8, 2
+    LDI r9, 128
+    CALL draw_bar
+
+    ; ═══════════════════════════════════════════
+    ; STEP 5: Clear history
+    ; ═══════════════════════════════════════════
+    LDI r1, 3             ; mode: clear
+    LDI r2, 0
+    CLIP_HISTORY r1, r2
+
+    ; Draw label for step 5
+    LDI r10, 2
+    LDI r11, 144
+    LDI r12, step5_label
+    TEXT r10, r11, r12
+
+    ; Visual indicator bar (white = cleared)
+    LDI r7, 0xFFFFFF
+    LDI r8, 2
+    LDI r9, 160
+    CALL draw_bar
+
+    ; ── Done ──
     HALT
+
+; ── Draw a 40-pixel wide indicator bar ──
+; r7 = color, r8 = x, r9 = y
+draw_bar:
+    LDI r13, 40           ; width
+bar_loop:
+    PIXEL r8, r9, r7
+    ADDI r8, 1
+    SUBI r13, 1
+    JNZ bar_loop
+    RET
+
+; ── Data ──
+title:       .byte "Phase 221: Clipboard Demo" .byte 0
+step1_label: .byte "1) Text: " .byte 0
+step2_label: .byte "2) Push + World: " .byte 0
+step3_label: .byte "3) Restore Hello: " .byte 0
+step4_label: .byte "4) Ring(10->8), oldest: " .byte 0
+step5_label: .byte "5) History cleared" .byte 0

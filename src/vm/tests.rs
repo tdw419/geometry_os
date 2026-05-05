@@ -26140,6 +26140,325 @@ fn test_clip_paste_assembles() {
     assert_eq!(asm.pixels[2], 6);
 }
 
+// ── Phase 221: Multi-Format Clipboard & History ─────────────────
+
+#[test]
+fn test_clip_text_store_and_paste() {
+    let mut vm = Vm::new();
+    // Write "Hi" (0x48, 0x69) to RAM at address 0x500
+    vm.ram[0x500] = 0x48; // 'H'
+    vm.ram[0x501] = 0x69; // 'i'
+
+    // CLIP_TEXT mode=0, addr=r1, len=r2
+    vm.regs[1] = 0;  // mode: store
+    vm.regs[2] = 0x500; // addr
+    vm.regs[3] = 2;  // len (2 bytes)
+    vm.pc = 0;
+    vm.ram[0] = 0xDD; // CLIP_TEXT
+    vm.ram[1] = 1;    // mode_reg
+    vm.ram[2] = 2;    // addr_reg
+    vm.ram[3] = 3;    // len_reg
+    vm.step();
+    assert_eq!(vm.regs[0], 2, "should store 2 chars");
+    assert!(vm.clipboard_text.len() > 1, "clipboard_text should have data");
+
+    // Now paste back to a different address
+    vm.regs[1] = 1;  // mode: paste
+    vm.regs[2] = 0x600; // dest addr
+    vm.regs[3] = 10; // max len
+    vm.pc = 0;
+    vm.step();
+    assert!(vm.regs[0] > 0, "should paste bytes");
+    assert_eq!(vm.ram[0x600], 0x48, "first byte should be 'H'");
+    assert_eq!(vm.ram[0x601], 0x69, "second byte should be 'i'");
+}
+
+#[test]
+fn test_clip_text_get_length() {
+    let mut vm = Vm::new();
+    vm.clipboard_text = vec![5, 0x4869_6C6C, 0x6F000000]; // "Hello" packed
+
+    vm.regs[1] = 2; // mode: get length
+    vm.regs[2] = 0; // unused
+    vm.regs[3] = 0; // unused
+    vm.pc = 0;
+    vm.ram[0] = 0xDD;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.step();
+    // 2 packed words = 8 bytes
+    assert_eq!(vm.regs[0], 8, "byte count should be 8");
+}
+
+#[test]
+fn test_clip_text_empty_clipboard_paste() {
+    let mut vm = Vm::new();
+    // clipboard_text is empty (default)
+    vm.regs[1] = 1; // mode: paste
+    vm.regs[2] = 0x700;
+    vm.regs[3] = 10;
+    vm.pc = 0;
+    vm.ram[0] = 0xDD;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.step();
+    assert_eq!(vm.regs[0], 0, "pasting empty clipboard should return 0");
+}
+
+#[test]
+fn test_clip_history_push_and_count() {
+    let mut vm = Vm::new();
+    // Put some data in clipboard
+    vm.clipboard = vec![2, 2, 0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00];
+
+    // Push to history
+    vm.regs[1] = 0; // mode: push
+    vm.regs[2] = 0; // slot (unused for push)
+    vm.pc = 0;
+    vm.ram[0] = 0xDF; // CLIP_HISTORY
+    vm.ram[1] = 1;    // mode_reg
+    vm.ram[2] = 2;    // slot_reg
+    vm.step();
+    assert_eq!(vm.regs[0], 1, "history count should be 1");
+
+    // Get count
+    vm.regs[1] = 1; // mode: count
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[0], 1, "history count should be 1");
+
+    // Push again
+    vm.clipboard = vec![1, 1, 0x123456];
+    vm.regs[1] = 0; // mode: push
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[0], 2, "history count should be 2");
+
+    // Get count
+    vm.regs[1] = 1; // mode: count
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[0], 2, "history count should be 2");
+}
+
+#[test]
+fn test_clip_history_restore_newest() {
+    let mut vm = Vm::new();
+
+    // First snapshot: red pixel
+    vm.clipboard = vec![1, 1, 0xFF0000];
+    vm.regs[1] = 0; // push
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+
+    // Second snapshot: green pixel
+    vm.clipboard = vec![1, 1, 0x00FF00];
+    vm.regs[1] = 0; // push
+    vm.pc = 0;
+    vm.step();
+
+    // Clear current clipboard
+    vm.clipboard = Vec::new();
+
+    // Restore newest (slot 0)
+    vm.regs[1] = 2; // restore
+    vm.regs[2] = 0; // slot 0 = newest
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[0], 1, "restore should succeed");
+    assert_eq!(vm.clipboard.len(), 3, "restored clipboard should have 3 words");
+    assert_eq!(vm.clipboard[2], 0x00FF00, "should restore green pixel (newest)");
+}
+
+#[test]
+fn test_clip_history_restore_previous() {
+    let mut vm = Vm::new();
+
+    // First snapshot
+    vm.clipboard = vec![1, 1, 0xFF0000];
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+
+    // Second snapshot
+    vm.clipboard = vec![1, 1, 0x00FF00];
+    vm.regs[1] = 0;
+    vm.pc = 0;
+    vm.step();
+
+    // Restore previous (slot 1)
+    vm.regs[1] = 2;
+    vm.regs[2] = 1;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[0], 1, "restore should succeed");
+    assert_eq!(vm.clipboard[2], 0xFF0000, "should restore red pixel (previous)");
+}
+
+#[test]
+fn test_clip_history_restore_invalid_slot() {
+    let mut vm = Vm::new();
+    vm.regs[1] = 2; // restore
+    vm.regs[2] = 99; // invalid slot
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 0, "invalid slot should return 0");
+}
+
+#[test]
+fn test_clip_history_clear() {
+    let mut vm = Vm::new();
+    vm.clipboard = vec![1, 1, 0xFF0000];
+
+    // Push
+    vm.regs[1] = 0;
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.clipboard_history_count, 1);
+
+    // Clear
+    vm.regs[1] = 3; // clear
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[0], 0, "clear returns 0");
+    assert_eq!(vm.clipboard_history_count, 0, "history should be empty");
+    assert_eq!(vm.clipboard_history.len(), 0, "history vec should be empty");
+}
+
+#[test]
+fn test_clip_history_ring_buffer_overflow() {
+    let mut vm = Vm::new();
+
+    // Push 10 entries (max is 8, should wrap around)
+    for i in 0..10u32 {
+        vm.clipboard = vec![1, 1, i];
+        vm.regs[1] = 0; // push
+        vm.regs[2] = 0;
+        vm.pc = 0;
+        vm.ram[0] = 0xDF;
+        vm.ram[1] = 1;
+        vm.ram[2] = 2;
+        vm.step();
+    }
+
+    // Count should be capped at 8
+    vm.regs[1] = 1; // count
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[0], 8, "history count should be capped at 8");
+
+    // Newest entry should be 9
+    vm.regs[1] = 2; // restore
+    vm.regs[2] = 0; // newest
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[0], 1, "restore newest should succeed");
+    assert_eq!(vm.clipboard[2], 9, "newest entry should be 9");
+
+    // Oldest surviving entry should be 2 (0 and 1 were evicted)
+    vm.regs[1] = 2; // restore
+    vm.regs[2] = 7; // oldest
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.clipboard[2], 2, "oldest surviving entry should be 2");
+}
+
+#[test]
+fn test_clip_text_assembles() {
+    let source = "CLIP_TEXT r1, r2, r3";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xDD);
+    assert_eq!(asm.pixels[1], 1);
+    assert_eq!(asm.pixels[2], 2);
+    assert_eq!(asm.pixels[3], 3);
+}
+
+#[test]
+fn test_clip_history_assembles() {
+    let source = "CLIP_HISTORY r4, r5";
+    let asm = crate::assembler::assemble(source, 0).unwrap();
+    assert_eq!(asm.pixels[0], 0xDF);
+    assert_eq!(asm.pixels[1], 4);
+    assert_eq!(asm.pixels[2], 5);
+}
+
+#[test]
+fn test_clip_history_preserves_text_clipboard() {
+    let mut vm = Vm::new();
+
+    // Store text in clipboard
+    vm.clipboard_text = vec![3, 0x6142_4141, 0x0000_0043]; // "AAAB C"
+
+    // Push to history
+    vm.regs[1] = 0; // push
+    vm.regs[2] = 0;
+    vm.pc = 0;
+    vm.ram[0] = 0xDF;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+
+    // Clear text clipboard
+    vm.clipboard_text = Vec::new();
+
+    // Restore from history
+    vm.regs[1] = 2; // restore
+    vm.regs[2] = 0; // newest
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.regs[0], 1, "restore should succeed");
+    assert!(vm.clipboard_text.len() > 1, "text clipboard should be restored");
+}
+
+#[test]
+fn test_clip_text_four_bytes_packing() {
+    let mut vm = Vm::new();
+    // Write "ABCD" (4 bytes) to RAM
+    vm.ram[0x500] = 0x41; // 'A'
+    vm.ram[0x501] = 0x42; // 'B'
+    vm.ram[0x502] = 0x43; // 'C'
+    vm.ram[0x503] = 0x44; // 'D'
+
+    vm.regs[1] = 0; // mode: store
+    vm.regs[2] = 0x500;
+    vm.regs[3] = 4;
+    vm.pc = 0;
+    vm.ram[0] = 0xDD;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.step();
+    assert_eq!(vm.regs[0], 4, "should store 4 chars");
+
+    // Paste back
+    vm.regs[1] = 1; // mode: paste
+    vm.regs[2] = 0x600;
+    vm.regs[3] = 10;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.ram[0x600], 0x41, "should be 'A'");
+    assert_eq!(vm.ram[0x601], 0x42, "should be 'B'");
+    assert_eq!(vm.ram[0x602], 0x43, "should be 'C'");
+    assert_eq!(vm.ram[0x603], 0x44, "should be 'D'");
+}
+
 #[test]
 fn test_tower_defense_assembles_and_runs() {
     use crate::assembler::assemble;

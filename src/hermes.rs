@@ -1012,6 +1012,9 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         // Phase 204: Clipboard
         0xD7 => "CLIP_COPY",
         0xD8 => "CLIP_PASTE",
+        // Phase 221: Multi-format clipboard + history
+        0xDD => "CLIP_TEXT",
+        0xDF => "CLIP_HISTORY",
         // Phase 205: Sprite Sheet Loader
         0xD9 => "SPRITE_LOAD",
         0xDA => "SPRITE_FRAME",
@@ -1027,6 +1030,10 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         0xE5 => "SPRLOAD",
         0xE6 => "SPRFRAME",
         0xE7 => "SPRANIM",
+        0xE8 => "TMR_GET",
+        0xE9 => "TMR_WAIT",
+        0xEA => "ALARM_SET",
+        0xEB => "ALARM_CLR",
         _ => "???",
     }
 }
@@ -3053,6 +3060,8 @@ mod tests {
             (0xD6, "AUDIO_STATUS"),
             (0xD7, "CLIP_COPY"),
             (0xD8, "CLIP_PASTE"),
+            (0xDD, "CLIP_TEXT"),
+            (0xDF, "CLIP_HISTORY"),
             (0xD9, "SPRITE_LOAD"),
             (0xDA, "SPRITE_FRAME"),
         ];
