@@ -3,6 +3,7 @@
 use crate::inode_fs;
 use crate::vfs;
 use crate::vm;
+use crate::vm::RAM_SIZE;
 use std::path::Path;
 
 /// Read a little-endian u32 from a byte slice at the given offset.
@@ -259,6 +260,11 @@ pub fn load_state(path: &str) -> std::io::Result<(vm::Vm, Vec<u32>, bool)> {
         hash_tables: std::array::from_fn(|_| std::collections::HashMap::new()),
         hash_tables_active: 0,
         sprite_sheets: Default::default(),
+        icache: vec![None; RAM_SIZE],
+        icache_freq: vec![0; RAM_SIZE],
+        icache_generation: 0,
+        icache_hits: 0,
+        icache_misses: 0,
     };
 
     // Parse canvas trailer

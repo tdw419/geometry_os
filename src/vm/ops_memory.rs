@@ -109,6 +109,10 @@ impl Vm {
                                     // Phase 50: Trigger formula recalculation
                                     self.formula_recalc(cidx);
                                 } else {
+                                    // Invalidate instruction cache if writing to code memory
+                                    if addr < self.icache.len() && self.ram[addr] != self.regs[reg] {
+                                        self.icache_invalidate_range(addr, addr + 1);
+                                    }
                                     self.ram[addr] = self.regs[reg];
                                 }
                                 self.log_access(addr, MemAccessKind::Write);

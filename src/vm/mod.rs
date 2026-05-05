@@ -270,6 +270,23 @@ pub struct Vm {
     /// total frames, and current frame selection.
     pub sprite_sheets: [crate::vm::types::SpriteSheet; MAX_SPRITE_SHEETS],
 
+    // ── Instruction Cache (Phase N: Hot Loop Performance) ──────────
+    /// Direct-mapped decoded instruction cache, indexed by PC address.
+    /// None means not yet decoded or invalidated. Populated on first
+    /// execution after ICACHE_HOT_THRESHOLD visits to the same PC.
+    pub icache: Vec<Option<DecodedInstruction>>,
+    /// Visit frequency counter per PC address. Incremented each step().
+    /// When a PC reaches ICACHE_HOT_THRESHOLD, the instruction is decoded
+    /// and cached. u8 is sufficient -- saturates at 255.
+    pub icache_freq: Vec<u8>,
+    /// Cache generation counter. Incremented when any STORE writes to code
+    /// memory, invalidating all cached entries whose generation doesn't match.
+    pub icache_generation: u32,
+    /// Number of cache hits (for PROFILE/diagnostics).
+    pub icache_hits: u64,
+    /// Number of cache misses (for PROFILE/diagnostics).
+    pub icache_misses: u64,
+
     /// Indices 0..N are used. host_file_handles[i] = Some((File, mode)) when open.
     pub host_file_handles: Vec<Option<(std::fs::File, u8)>>,
 }
@@ -404,6 +421,11 @@ impl Vm {
             hash_tables: Default::default(),
             hash_tables_active: 0,
             sprite_sheets: Default::default(),
+            icache: vec![None; RAM_SIZE],
+            icache_freq: vec![0; RAM_SIZE],
+            icache_generation: 0,
+            icache_hits: 0,
+            icache_misses: 0,
         }
     }
 
@@ -681,6 +703,7 @@ pub mod ops_pty;
 mod ops_syscall;
 
 mod formula;
+mod icache;
 mod io;
 mod memory;
 
@@ -701,6 +724,34 @@ impl Vm {
 
         self.log_access(pc_addr, MemAccessKind::Read);
 
+        // ── Instruction Cache Fast Path ──────────────────────────────
+        // Check for a cached decoded instruction at this PC.
+        // On hit: skip fetch() calls and match dispatch, execute directly.
+        if let Some(decoded) = self.icache_lookup(pc_addr) {
+            self.icache_hits += 1;
+            // Advance PC past the full instruction (opcode + operands)
+            self.pc = pc_addr as u32 + 1 + decoded.num_ops as u32;
+
+            // Track opcode execution for diagnostic context
+            if (decoded.opcode as usize) < self.opcode_histogram.len() {
+                self.opcode_histogram[decoded.opcode as usize] += 1;
+            }
+            self.total_steps += 1;
+
+            // Execution trace
+            if self.trace_recording {
+                self.trace_buffer.push(pc_addr as u32, &self.regs, decoded.opcode);
+            }
+
+            // Execute the cached instruction
+            if let Some(result) = self.icache_execute(&decoded) {
+                return result;
+            }
+            // icache_execute returned None -- should not happen for cached ops,
+            // but fall through safely to normal path
+            return true;
+        }
+
         let opcode = self.fetch();
 
         // Track opcode execution for diagnostic context
@@ -715,6 +766,23 @@ impl Vm {
         // Zero overhead when off (single bool check).
         if self.trace_recording {
             self.trace_buffer.push(pc_addr as u32, &self.regs, opcode);
+        }
+
+        // ── Cache Population (post-fetch, pre-execute) ───────────────
+        // For cacheable opcodes, track visit frequency and populate cache
+        // when threshold is reached. The instruction is already fetched
+        // so we can read operands from RAM directly.
+        if Self::is_icacheable(opcode) && pc_addr < self.icache_freq.len() {
+            let freq = self.icache_freq[pc_addr] as usize;
+            if freq < 255 {
+                self.icache_freq[pc_addr] = freq as u8 + 1;
+            }
+            if freq + 1 >= ICACHE_HOT_THRESHOLD {
+                // Decode and cache this instruction
+                let decoded = self.icache_decode(pc_addr);
+                self.icache_store(pc_addr, decoded);
+            }
+            self.icache_misses += 1;
         }
 
         match opcode {

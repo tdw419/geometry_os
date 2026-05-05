@@ -66,6 +66,31 @@ pub enum FormulaOp {
     /// result = first dep >> second dep
     Shr,
 }
+/// Instruction cache: decoded instruction with pre-fetched operands.
+/// Caches the opcode and all operand words so hot loops skip repeated fetch() calls.
+/// Stored in a direct-mapped Vec indexed by PC address.
+#[derive(Debug, Clone, Copy)]
+pub struct DecodedInstruction {
+    /// The opcode byte (0x00-0xFF).
+    pub opcode: u32,
+    /// Pre-fetched operand words (register indices, immediate values, addresses).
+    /// Up to 4 operands cover all current instruction formats.
+    /// For instructions with fewer operands, unused slots are 0.
+    pub ops: [u32; 4],
+    /// Number of operand words (instruction total size = 1 + num_ops).
+    pub num_ops: u8,
+    /// Generation counter for invalidation. If this doesn't match the cache's
+    /// current generation, the entry is stale (code was modified by STORE).
+    pub generation: u32,
+}
+
+/// Whether an opcode is cacheable (simple enough to benefit from pre-decode).
+/// Cacheable opcodes have fixed operand counts and no side effects during fetch.
+/// Complex opcodes (FRAME, syscalls, graphics, etc.) are not cacheable because
+/// their execution logic varies and the fetch overhead is negligible compared
+/// to the work they do.
+pub const ICACHE_HOT_THRESHOLD: usize = 4; // Cache after N visits to same PC
+
 /// Maximum number of concurrently spawned child processes
 pub const MAX_PROCESSES: usize = 8;
 /// Syscall dispatch table base address in RAM.

@@ -507,6 +507,11 @@ impl Vm {
             hash_tables: Default::default(),
             hash_tables_active: 0,
             sprite_sheets: Default::default(),
+            icache: vec![None; RAM_SIZE],
+            icache_freq: vec![0; RAM_SIZE],
+            icache_generation: 0,
+            icache_hits: 0,
+            icache_misses: 0,
         })
     }
 }
