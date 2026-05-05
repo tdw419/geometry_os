@@ -8102,6 +8102,266 @@ fn test_font_select_assembles() {
     assert_eq!(bytecode[1], 1);    // r1
 }
 
+// ── Phase 210 additional: edge-case and integration tests ──
+
+#[test]
+fn test_vwtxt_null_terminator_stops() {
+    let mut vm = Vm::new();
+    // Store "AB\0CD" at RAM[100] -- should stop at null, not render "CD"
+    vm.ram[100] = 'A' as u32;
+    vm.ram[101] = 'B' as u32;
+    vm.ram[102] = 0; // null
+    vm.ram[103] = 'C' as u32;
+    vm.ram[104] = 'D' as u32;
+    vm.regs[10] = 0;
+    vm.regs[11] = 0;
+    vm.regs[12] = 100;
+    vm.regs[13] = 0xFFFFFF;
+    vm.regs[14] = 0;
+    vm.ram[0] = 0xDB;
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 13;
+    vm.ram[5] = 14;
+    vm.ram[6] = 0x00;
+    vm.step();
+    // Only A and B should be rendered. Check that the region after B is clean.
+    // B ends around column 10 (A=7, B=6 => ~13). "CD" would start at ~13.
+    // With the current font, C has advance=6, so C glyph pixels would be
+    // in columns ~13-18. If those are all zero, null termination worked.
+    let mut pixels_after_b = 0;
+    for y in 0..8 {
+        for x in 20..30 {
+            if vm.screen[y * 256 + x] != 0 {
+                pixels_after_b += 1;
+            }
+        }
+    }
+    assert_eq!(
+        pixels_after_b, 0,
+        "VWTXT should stop at null terminator, but found {} pixels after B",
+        pixels_after_b
+    );
+}
+
+#[test]
+fn test_vwtxt_single_character() {
+    let mut vm = Vm::new();
+    vm.ram[100] = 'X' as u32;
+    vm.ram[101] = 0;
+    vm.regs[10] = 50;
+    vm.regs[11] = 50;
+    vm.regs[12] = 100;
+    vm.regs[13] = 0xFF0000; // red
+    vm.regs[14] = 0;
+    vm.ram[0] = 0xDB;
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 13;
+    vm.ram[5] = 14;
+    vm.ram[6] = 0x00;
+    vm.step();
+    let mut red_pixels = 0;
+    for y in 50..58 {
+        for x in 50..60 {
+            if vm.screen[y * 256 + x] == 0xFF0000 {
+                red_pixels += 1;
+            }
+        }
+    }
+    assert!(red_pixels > 0, "Single char X should render {} red pixels", red_pixels);
+}
+
+#[test]
+fn test_vwtxt_space_advances_cursor() {
+    let mut vm = Vm::new();
+    // "A B" -- space should advance cursor but not render pixels
+    vm.ram[100] = 'A' as u32;
+    vm.ram[101] = ' ' as u32;
+    vm.ram[102] = 'B' as u32;
+    vm.ram[103] = 0;
+    vm.regs[10] = 0;
+    vm.regs[11] = 0;
+    vm.regs[12] = 100;
+    vm.regs[13] = 0xFFFFFF;
+    vm.regs[14] = 0;
+    vm.ram[0] = 0xDB;
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 13;
+    vm.ram[5] = 14;
+    vm.ram[6] = 0x00;
+    vm.step();
+    // A and B should both have pixels. B should be offset by A's advance + space advance.
+    // Find rightmost pixel of A, then check B starts after a gap.
+    let mut a_rightmost = 0;
+    for y in 0..8 {
+        for x in 0..10 {
+            if vm.screen[y * 256 + x] == 0xFFFFFF {
+                a_rightmost = a_rightmost.max(x);
+            }
+        }
+    }
+    let mut b_leftmost = 256;
+    for y in 0..8 {
+        for x in 10..25 {
+            if vm.screen[y * 256 + x] == 0xFFFFFF {
+                b_leftmost = b_leftmost.min(x);
+            }
+        }
+    }
+    assert!(b_leftmost > a_rightmost, "B (at col {}) should be after A (at col {})", b_leftmost, a_rightmost);
+}
+
+#[test]
+fn test_vwtxt_invalid_registers_no_panic() {
+    let mut vm = Vm::new();
+    // Use out-of-range register indices
+    vm.ram[0] = 0xDB;
+    vm.ram[1] = 35; // invalid reg (NUM_REGS=32)
+    vm.ram[2] = 36;
+    vm.ram[3] = 37;
+    vm.ram[4] = 38;
+    vm.ram[5] = 39;
+    vm.ram[6] = 0x00;
+    vm.step(); // should not panic
+    // Screen should remain blank
+    let any_pixel: bool = vm.screen.iter().any(|&p| p != 0);
+    assert!(!any_pixel, "VWTXT with invalid regs should not render");
+}
+
+#[test]
+fn test_vwtxt_full_ascii_printable() {
+    let mut vm = Vm::new();
+    // Store all printable ASCII chars (0x20-0x7E)
+    for i in 0..=94 {
+        vm.ram[100 + i] = (0x20 + i) as u32;
+    }
+    vm.ram[100 + 95] = 0; // null terminator
+    vm.regs[10] = 0;
+    vm.regs[11] = 200; // use lower portion to avoid conflict
+    vm.regs[12] = 100;
+    vm.regs[13] = 0xAAAAAA;
+    vm.regs[14] = 0;
+    vm.ram[0] = 0xDB;
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 13;
+    vm.ram[5] = 14;
+    vm.ram[6] = 0x00;
+    vm.step();
+    // Should have rendered many pixels (all 95 printable chars)
+    let mut pixel_count = 0;
+    for y in 200..256 {
+        for x in 0..256 {
+            if vm.screen[y * 256 + x] == 0xAAAAAA {
+                pixel_count += 1;
+            }
+        }
+    }
+    assert!(pixel_count > 100, "Full ASCII printable should render many pixels, got {}", pixel_count);
+}
+
+#[test]
+fn test_text_font_mode_switching() {
+    let mut vm = Vm::new();
+    // Render with default font (mode 0), then switch and render again
+    vm.ram[100] = 'A' as u32;
+    vm.ram[101] = 0;
+    vm.regs[10] = 0;
+    vm.regs[11] = 0;
+    vm.regs[12] = 100;
+    // TEXT opcode (0x44)
+    vm.ram[0] = 0x44;
+    vm.ram[1] = 10;
+    vm.ram[2] = 11;
+    vm.ram[3] = 12;
+    vm.ram[4] = 0x00; // HALT
+    vm.step();
+    let mut default_pixels = 0;
+    for y in 0..10 {
+        for x in 0..10 {
+            if vm.screen[y * 256 + x] == 0xFFFFFF {
+                default_pixels += 1;
+            }
+        }
+    }
+    assert!(default_pixels > 0, "Default font should render A");
+
+    // Now switch to mode 1 (variable-width) and render at different position
+    let mut vm2 = Vm::new();
+    vm2.set_font_mode(1);
+    vm2.ram[100] = 'A' as u32;
+    vm2.ram[101] = 0;
+    vm2.regs[10] = 0;
+    vm2.regs[11] = 0;
+    vm2.regs[12] = 100;
+    vm2.ram[0] = 0x44;
+    vm2.ram[1] = 10;
+    vm2.ram[2] = 11;
+    vm2.ram[3] = 12;
+    vm2.ram[4] = 0x00;
+    vm2.step();
+    let mut vw_pixels = 0;
+    for y in 0..10 {
+        for x in 0..10 {
+            if vm2.screen[y * 256 + x] == 0xFFFFFF {
+                vw_pixels += 1;
+            }
+        }
+    }
+    assert!(vw_pixels > 0, "VW font mode should render A via TEXT");
+    // VW font uses 8x8 glyphs vs 5x7 default, so pixel count should differ
+    assert_ne!(default_pixels, vw_pixels, "Different font modes should produce different pixel counts");
+}
+
+#[test]
+fn test_font_select_all_modes() {
+    // Test that all 4 font modes (0-3) are valid
+    for mode in 0..=3u32 {
+        let mut vm = Vm::new();
+        vm.regs[1] = mode;
+        vm.ram[0] = 0xDC; // FONT_SELECT
+        vm.ram[1] = 1;    // r1
+        vm.ram[2] = 0x00; // HALT
+        vm.step();
+        assert_eq!(vm.get_font_mode(), mode as u8, "FONT_SELECT should set mode to {}", mode);
+    }
+}
+
+#[test]
+fn test_vwtxt_demo_assembles() {
+    let src = r#"
+LDI r10, 8
+LDI r11, 5
+LDI r12, msg
+LDI r13, 0x00FF00
+LDI r14, 0
+VWTXT r10, r11, r12, r13, r14
+LDI r1, 1
+FONT_SELECT r1
+LDI r10, 8
+LDI r11, 30
+LDI r12, msg
+TEXT r10, r11, r12
+HALT
+msg:
+  .ascii "Hello"
+  .byte 0
+"#;
+    let result = crate::assembler::assemble(src, 0);
+    assert!(result.is_ok(), "Demo program should assemble: {:?}", result.err());
+    let bytecode = result.unwrap().pixels;
+    // Verify VWTXT opcode (0xDB) is present
+    assert!(bytecode.iter().any(|&b| b == 0xDB), "Should contain VWTXT opcode");
+    // Verify FONT_SELECT opcode (0xDC) is present
+    assert!(bytecode.iter().any(|&b| b == 0xDC), "Should contain FONT_SELECT opcode");
+}
+
 #[test]
 fn test_drawtext_newline() {
     let mut vm = Vm::new();

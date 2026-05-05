@@ -1,39 +1,106 @@
-; vw_font_demo.asm -- Variable-width font rendering demo
-; Demonstrates VWTXT (0xDB) opcode with proportional text
+; vw_font_demo.asm -- Phase 210: Variable-width font demo
+; Demonstrates VWTXT (0xDB) and FONT_SELECT (0xDC) opcodes
 ;
-; Visual verification:
-; - Line 1: White on dark blue background "Variable Width!"
-; - Line 2: Green transparent bg "iiiMMMiiiMMMiii" (narrow vs wide)
-; - Line 3: Orange transparent bg "Hello World 0123"
-; - Line 4: Cyan with bg "The quick brown fox"
+; VWTXT renders proportional text: narrow chars like 'i' take 3px,
+; wide chars like 'M' take 8px. This produces much more readable
+; text compared to fixed-width fonts.
+;
+; FONT_SELECT switches the TEXT opcode between font modes:
+;   0 = fixed 5x7 (default)
+;   1 = variable-width 8x8
+;   2 = tiny 3x5
+;   3 = medium 5x7
 
-    LDI r10, 5          ; x = 5
-    LDI r11, 5          ; y = 5
-    LDI r12, msg1       ; addr = msg1
-    LDI r13, 0xFFFFFF   ; fg = white
-    LDI r14, 0x000033   ; bg = dark blue
-    VWTXT r10, r11, r12, r13, r14
+; === Section 1: VWTXT title ===
+LDI r10, 8           ; x = 8
+LDI r11, 5           ; y = 5
+LDI r12, title       ; addr
+LDI r13, 0x00FF00    ; fg = green
+LDI r14, 0           ; bg = transparent
+VWTXT r10, r11, r12, r13, r14
 
-    LDI r11, 25         ; y = 25 (line 2)
-    LDI r12, msg2
-    LDI r13, 0x00FF00   ; fg = green
-    LDI r14, 0          ; bg = transparent
-    VWTXT r10, r11, r12, r13, r14
+; === Section 2: Compare fixed vs variable ===
+; Render "MMMMMMMMMM" with VWTXT (proportional)
+LDI r10, 8
+LDI r11, 25
+LDI r12, wide_text
+LDI r13, 0xFF8800    ; fg = orange
+LDI r14, 0x222244    ; bg = dark blue
+VWTXT r10, r11, r12, r13, r14
 
-    LDI r11, 45         ; y = 45 (line 3)
-    LDI r12, msg3
-    LDI r13, 0xFFAA00   ; fg = orange
-    VWTXT r10, r11, r12, r13, r14
+; Render "iiiiiiiiii" with VWTXT (proportional, narrow)
+LDI r10, 8
+LDI r11, 40
+LDI r12, narrow_text
+LDI r13, 0x00CCFF    ; fg = cyan
+LDI r14, 0x222244    ; bg = dark blue
+VWTXT r10, r11, r12, r13, r14
 
-    LDI r11, 65         ; y = 65 (line 4)
-    LDI r12, msg4
-    LDI r13, 0x00FFFF   ; fg = cyan
-    LDI r14, 0x001122   ; bg = dark teal
-    VWTXT r10, r11, r12, r13, r14
+; === Section 3: FONT_SELECT switches TEXT opcode ===
+LDI r1, 1
+FONT_SELECT r1       ; switch to variable-width for TEXT
 
-    HALT
+LDI r10, 8
+LDI r11, 60
+LDI r12, font_select_test
+LDI r13, 0xFFFF00    ; fg = yellow
+TEXT r10, r11, r12
 
-msg1: "Variable Width!"
-msg2: "iiiMMMiiiMMMiii"
-msg3: "Hello World 0123"
-msg4: "The quick brown fox"
+; Reset to default
+LDI r1, 0
+FONT_SELECT r1
+
+; === Section 4: Background fill demo ===
+LDI r10, 8
+LDI r11, 85
+LDI r12, bg_demo
+LDI r13, 0xFFFFFF    ; fg = white
+LDI r14, 0x004400    ; bg = dark green
+VWTXT r10, r11, r12, r13, r14
+
+; === Section 5: Mixed content paragraph ===
+LDI r10, 8
+LDI r11, 110
+LDI r12, paragraph
+LDI r13, 0xCCCCCC    ; fg = light gray
+LDI r14, 0
+VWTXT r10, r11, r12, r13, r14
+
+; === Section 6: Word wrap demonstration ===
+LDI r10, 8
+LDI r11, 150
+LDI r12, wrap_text
+LDI r13, 0xFF66FF    ; fg = magenta
+LDI r14, 0
+VWTXT r10, r11, r12, r13, r14
+
+HALT
+
+; === String data ===
+title:
+  .ascii "VWTXT Variable-Width Font Demo"
+  .byte 0
+
+wide_text:
+  .ascii "MMMMMMMMMM"
+  .byte 0
+
+narrow_text:
+  .ascii "iiiiiiiiii"
+  .byte 0
+
+font_select_test:
+  .ascii "TEXT opcode with FONT_SELECT mode 1"
+  .byte 0
+
+bg_demo:
+  .ascii "Green background fill"
+  .byte 0
+
+paragraph:
+  .ascii "Proportional fonts look better for reading."
+  .byte 0
+
+wrap_text:
+  .ascii "This long line should automatically wrap when it reaches the right edge of the 256-pixel screen buffer"
+  .byte 0

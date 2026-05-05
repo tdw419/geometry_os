@@ -1985,7 +1985,7 @@ phases:
   scope_lines_total: 220
 - id: phase-210
   title: GeOS Text Rendering -- Variable-Width Font Support
-  status: in_progress
+  status: planned
   goal: Support variable-width fonts in the TEXT opcode for more readable text display
   description: The TEXT opcode uses a fixed 8x8 pixel font (font.rs). For programs
     that display paragraphs of text (notepad.asm, chatbot.asm, help.asm), variable-width
@@ -2023,8 +2023,6 @@ phases:
       scope_lines: 30
   test_target: 3
   scope_lines_total: 130
-  _claimed_by: worker-0
-  _claimed_at: 1777972539
 - id: phase-211
   title: GeOS Performance -- Instruction Cache for Hot Loops
   status: done
@@ -2110,7 +2108,7 @@ phases:
     scope_lines_total: 130
 - id: phase-213
   title: GeOS Tilemap Editor -- Visual Map Building Tool
-  status: in_progress
+  status: planned
   goal: Build an interactive tilemap editor that lets users paint tile-based levels
     for games
   description: The TILEMAP opcode (0x4C) blits tile grids from RAM to screen, but
@@ -2148,8 +2146,6 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 240
-  _claimed_by: worker-0
-  _claimed_at: 1777974196
 - id: phase-214
   title: RISC-V GPU Compute -- WGSL Shader Integration
   status: planned
@@ -2191,7 +2187,7 @@ phases:
   scope_lines_total: 170
 - id: phase-215
   title: RISC-V Guest -- Hex Editor
-  status: planned
+  status: in_progress
   goal: Add a bare-metal hex editor C program for inspecting and modifying guest memory
   description: 'sh.c has peek/poke for single words and hexdump for read-only display,
     but there is no interactive hex editor that lets you navigate, inspect, and modify
@@ -2229,6 +2225,8 @@ phases:
       scope_lines: 60
   test_target: 2
   scope_lines_total: 410
+  _claimed_by: worker-0
+  _claimed_at: 1777977787
 - id: phase-216
   title: RISC-V Guest -- Filesystem Commands in Shell
   status: planned
