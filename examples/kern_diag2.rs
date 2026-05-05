@@ -30,7 +30,8 @@ fn main() {
             StepResult::Ok
             | StepResult::FetchFault
             | StepResult::LoadFault
-            | StepResult::StoreFault => {}
+            | StepResult::StoreFault
+            | StepResult::Yielded => {}
             StepResult::Ebreak => {
                 eprintln!("[{}] EBREAK at 0x{:08X}", count, prev_pc);
                 break;

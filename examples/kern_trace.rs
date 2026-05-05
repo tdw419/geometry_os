@@ -42,6 +42,7 @@ fn main() {
             StepResult::Ebreak => "EBREAK",
             StepResult::Shutdown => "SHUTDOWN",
             StepResult::Ecall => "ECALL",
+            StepResult::Yielded => "YIELDED",
         };
 
         // Print all instructions after BSS clear (after insn 312) and any interesting events

@@ -30,7 +30,8 @@ fn run_vi_with_input(elf_data: &[u8], input: &[u8], max_steps: u64) -> String {
             | StepResult::FetchFault
             | StepResult::LoadFault
             | StepResult::StoreFault
-            | StepResult::Ecall => {}
+            | StepResult::Ecall
+            | StepResult::Yielded => {}
             StepResult::Ebreak | StepResult::Shutdown => break,
         }
         count += 1;
