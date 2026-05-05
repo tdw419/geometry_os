@@ -8,6 +8,8 @@
 
 use geometry_os::assembler;
 use geometry_os::audio;
+#[cfg(feature = "native")]
+use geometry_os::camera;
 use geometry_os::canvas;
 use geometry_os::cli;
 use geometry_os::font;
@@ -310,6 +312,8 @@ fn main() {
     let mut fullscreen_mode = false;
     let mut terminal_mode = false;
     let mut desktop_mode = false;
+    let mut camera_mode = false;
+    let mut camera_device = "/dev/video0".to_string();
     let mut input_file: Option<String> = None;
     let mut i = 1;
     while i < args.len() {
@@ -331,6 +335,13 @@ fn main() {
         } else if args[i] == "--desktop" {
             desktop_mode = true;
             i += 1;
+        } else if args[i] == "--camera" {
+            camera_mode = true;
+            i += 1;
+        } else if args[i] == "--camera-device" && i + 1 < args.len() {
+            camera_device = args[i + 1].clone();
+            camera_mode = true;
+            i += 2;
         } else if !args[i].starts_with("--") {
             input_file = Some(args[i].clone());
             i += 1;
@@ -392,6 +403,16 @@ fn main() {
     // ── RISC-V live VM state (Phase B) ───────────────────────────
     let mut riscv_handle: Option<RiscvVmHandle> = None;
     let mut riscv_latest_frame: Option<Frame> = None;
+
+    // ── Camera feed: host-side webcam → bottom compositor layer ──
+    // The camera is the robot's "eyes" -- pixels injected before WINSYS
+    // windows (the robot's "thoughts"). Pixel real estate = attention budget.
+    #[cfg(feature = "native")]
+    let mut camera_handle: Option<camera::CameraHandle> = None;
+    #[cfg(feature = "native")]
+    let mut camera_latest_frame: Option<camera::CameraFrame> = None;
+    #[cfg(feature = "native")]
+    let mut camera_mode_initialized = false;
     let mut canvas_assembled = false;
     let mut breakpoints: HashSet<u32> = HashSet::new();
     let mut hit_breakpoint = false;
@@ -458,6 +479,22 @@ fn main() {
 
     // Status bar message
     let mut status_msg = String::from("[TERM: type commands, Enter=run]");
+
+    // ── Camera init (deferred: needs status_msg) ────────────────
+    #[cfg(feature = "native")]
+    if camera_mode && !camera_mode_initialized {
+        match camera::open_camera(&camera_device) {
+            Ok(handle) => {
+                camera_handle = Some(handle);
+                status_msg = format!("[camera: {} active]", camera_device);
+            }
+            Err(e) => {
+                eprintln!("[camera] {}", e);
+                status_msg = format!("[camera: {}]", e);
+            }
+        }
+        camera_mode_initialized = true;
+    }
 
     // Last loaded file (for Ctrl+F8 reload)
     let mut loaded_file: Option<PathBuf> = None;
@@ -4350,6 +4387,30 @@ fn main() {
         if cursor_blink_timer.elapsed().as_millis() >= 500 {
             cursor_blink_on = !cursor_blink_on;
             cursor_blink_timer = std::time::Instant::now();
+        }
+
+        // ── Camera → bottom compositor layer ─────────────────────
+        // The camera is the robot's "eyes". We composite camera frames into
+        // vm.screen BEFORE WINSYS/RISC-V composites, so windows float on top.
+        // Pixel real estate = attention budget: every window pixel is a choice
+        // to allocate attention away from seeing the world.
+        #[cfg(feature = "native")]
+        if let Some(ref mut handle) = camera_handle {
+            // Drain all available frames, keep only the latest
+            loop {
+                match handle.try_recv_frame() {
+                    Some(frame) => camera_latest_frame = Some(frame),
+                    None => break,
+                }
+            }
+        }
+        #[cfg(feature = "native")]
+        if let Some(ref frame) = camera_latest_frame {
+            // Write camera pixels directly into vm.screen as the base layer.
+            // WINSYS windows and RISC-V guests will paint on top.
+            for i in 0..256 * 256 {
+                vm.screen[i] = frame.pixels[i];
+            }
         }
 
         // ── RISC-V → canonical framebuffer composite (Phase C, U2) ────

@@ -5489,22 +5489,18 @@ fn test_paint_app_runs_100_frames() {
 // ── File Browser Tests ──
 
 fn boot_file_browser(target_frames: u32) -> Vm {
-    // Seed the VFS directory with deterministic test files.
-    // Without this, tests depend on whatever files exist on disk from prior runs,
-    // making them flaky (garbage filenames from previous test sessions).
-    let fs_dir = std::path::Path::new(".geometry_os/fs");
-    let _ = std::fs::create_dir_all(fs_dir);
-    // Clean ALL existing files and subdirectories to avoid garbage from prior
-    // test runs interfering (e.g. linux/ kernel images that slow down LS/encode)
-    if let Ok(entries) = std::fs::read_dir(fs_dir) {
-        for entry in entries.flatten() {
-            if entry.path().is_dir() {
-                let _ = std::fs::remove_dir_all(entry.path());
-            } else {
-                let _ = std::fs::remove_file(entry.path());
-            }
-        }
-    }
+    // Use an isolated temp directory per invocation so parallel tests
+    // don't race on the shared .geometry_os/fs directory.
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let tid = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let fs_dir = std::env::current_dir()
+        .unwrap_or_default()
+        .join(format!(
+            ".geometry_os/fs_test_{:x}",
+            tid.wrapping_mul(0x9e3779b97f4a7c15)
+        ));
+    let _ = std::fs::create_dir_all(&fs_dir);
     // Write known test files sorted alphabetically -- the browser lists them in order
     std::fs::write(fs_dir.join("readme.txt"), "Hello from Geometry OS!\n").unwrap();
     std::fs::write(fs_dir.join("notes.txt"), "Line 1\nLine 2\nLine 3\n").unwrap();
@@ -5513,6 +5509,8 @@ fn boot_file_browser(target_frames: u32) -> Vm {
     let source = include_str!("../../programs/file_browser.asm");
     let asm = crate::assembler::assemble(source, 0).expect("file_browser.asm should assemble");
     let mut vm = Vm::new();
+    // Point the VFS at the isolated directory instead of the shared one
+    vm.vfs.base_dir = fs_dir.clone();
     for (i, &word) in asm.pixels.iter().enumerate() {
         if i < vm.ram.len() {
             vm.ram[i] = word;
@@ -5529,6 +5527,8 @@ fn boot_file_browser(target_frames: u32) -> Vm {
             break;
         }
     }
+    // Clean up the isolated test directory
+    let _ = std::fs::remove_dir_all(&fs_dir);
     vm
 }
 

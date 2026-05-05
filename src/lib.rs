@@ -3,6 +3,8 @@
 
 pub mod assembler;
 pub mod audio;
+#[cfg(feature = "native")]
+pub mod camera;
 pub mod canvas;
 pub mod cli;
 pub mod episode_log;
