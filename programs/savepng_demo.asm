@@ -5,40 +5,57 @@
 ; Returns bytes written in r0, or 0xFFFFFFFF on error
 
 ; Store filename "demo_savepng.png" at 0x2000
-LDI r1, 'd'
-STOR [0x2000], r1
-LDI r1, 'e'
-STOR [0x2001], r1
-LDI r1, 'm'
-STOR [0x2002], r1
-LDI r1, 'o'
-STOR [0x2003], r1
-LDI r1, '_'
-STOR [0x2004], r1
-LDI r1, 's'
-STOR [0x2005], r1
-LDI r1, 'a'
-STOR [0x2006], r1
-LDI r1, 'v'
-STOR [0x2007], r1
-LDI r1, 'e'
-STOR [0x2008], r1
-LDI r1, 'p'
-STOR [0x2009], r1
-LDI r1, 'n'
-STOR [0x200A], r1
-LDI r1, 'g'
-STOR [0x200B], r1
-LDI r1, '.'
-STOR [0x200C], r1
-LDI r1, 'p'
-STOR [0x200D], r1
-LDI r1, 'n'
-STOR [0x200E], r1
-LDI r1, 'g'
-STOR [0x200F], r1
+LDI r1, 100
+LDI r9, 0x2000
+STORE r9, r1
+LDI r1, 101
+LDI r9, 0x2001
+STORE r9, r1
+LDI r1, 109
+LDI r9, 0x2002
+STORE r9, r1
+LDI r1, 111
+LDI r9, 0x2003
+STORE r9, r1
+LDI r1, 95
+LDI r9, 0x2004
+STORE r9, r1
+LDI r1, 115
+LDI r9, 0x2005
+STORE r9, r1
+LDI r1, 97
+LDI r9, 0x2006
+STORE r9, r1
+LDI r1, 118
+LDI r9, 0x2007
+STORE r9, r1
+LDI r1, 101
+LDI r9, 0x2008
+STORE r9, r1
+LDI r1, 112
+LDI r9, 0x2009
+STORE r9, r1
+LDI r1, 110
+LDI r9, 0x200A
+STORE r9, r1
+LDI r1, 103
+LDI r9, 0x200B
+STORE r9, r1
+LDI r1, 46
+LDI r9, 0x200C
+STORE r9, r1
+LDI r1, 112
+LDI r9, 0x200D
+STORE r9, r1
+LDI r1, 110
+LDI r9, 0x200E
+STORE r9, r1
+LDI r1, 103
+LDI r9, 0x200F
+STORE r9, r1
 LDI r1, 0
-STOR [0x2010], r1    ; null terminator
+LDI r9, 0x2010
+STORE r9, r1    ; null terminator
 
 ; Draw colored rectangles
 LDI r1, 0x00FF0000   ; red
