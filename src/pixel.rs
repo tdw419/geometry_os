@@ -400,7 +400,7 @@ pub fn decode_pixelpack_file(path: &str) -> Result<Vec<u8>, String> {
 /// Encode raw bytes into a pixelpack PNG.
 /// Uses strategy A (raw3) for each 3-byte chunk, with remainder handling.
 /// Each pixel encodes exactly 3 bytes of input (24 bits payload in 28-bit params).
-pub fn encode_pixelpack_png(bytes: &[u8]) -> Vec<u8> {
+pub fn encode_pixelpack_png(bytes: &[u8]) -> Result<Vec<u8>, String> {
     let mut seeds = Vec::new();
     let mut i = 0;
 
@@ -458,17 +458,21 @@ pub fn encode_pixelpack_png(bytes: &[u8]) -> Vec<u8> {
         encoder.set_depth(png::BitDepth::Eight);
         encoder
             .add_text_chunk("seedcnt".to_string(), n.to_string())
-            .unwrap();
+            .map_err(|e| format!("Failed to add PNG text chunk (seedcnt): {:?}", e))?;
         encoder
             .add_text_chunk("bytecnt".to_string(), bytes.len().to_string())
-            .unwrap();
+            .map_err(|e| format!("Failed to add PNG text chunk (bytecnt): {:?}", e))?;
         encoder
             .add_text_chunk("geo_boot".to_string(), "bytecode".to_string())
-            .unwrap();
-        let mut writer = encoder.write_header().unwrap();
-        writer.write_image_data(&pixels).unwrap();
+            .map_err(|e| format!("Failed to add PNG text chunk (geo_boot): {:?}", e))?;
+        let mut writer = encoder
+            .write_header()
+            .map_err(|e| format!("Failed to write PNG header: {:?}", e))?;
+        writer
+            .write_image_data(&pixels)
+            .map_err(|e| format!("Failed to write PNG image data: {:?}", e))?;
     }
-    buf
+    Ok(buf)
 }
 
 /// Load pixelpack-decoded bytecode into VM RAM at the specified address.
@@ -521,7 +525,7 @@ pub fn decode_pixelpack_source_file(path: &str) -> Result<String, String> {
 /// Encode source text (assembly) into a pixelpack PNG with geo_boot=source metadata.
 /// Uses strategy A (raw3) for each 3-byte chunk, same as bytecode encoding.
 /// The PNG metadata `geo_boot=source` distinguishes it from bytecode PNGs.
-pub fn encode_source_pixelpack_png(source: &str) -> Vec<u8> {
+pub fn encode_source_pixelpack_png(source: &str) -> Result<Vec<u8>, String> {
     let bytes = source.as_bytes();
     let mut seeds = Vec::new();
     let mut i = 0;
@@ -580,18 +584,22 @@ pub fn encode_source_pixelpack_png(source: &str) -> Vec<u8> {
         encoder.set_depth(png::BitDepth::Eight);
         encoder
             .add_text_chunk("seedcnt".to_string(), n.to_string())
-            .unwrap();
+            .map_err(|e| format!("Failed to add PNG text chunk (seedcnt): {:?}", e))?;
         encoder
             .add_text_chunk("bytecnt".to_string(), bytes.len().to_string())
-            .unwrap();
+            .map_err(|e| format!("Failed to add PNG text chunk (bytecnt): {:?}", e))?;
         // Key distinction: geo_boot=source (not "bytecode")
         encoder
             .add_text_chunk("geo_boot".to_string(), "source".to_string())
-            .unwrap();
-        let mut writer = encoder.write_header().unwrap();
-        writer.write_image_data(&pixels).unwrap();
+            .map_err(|e| format!("Failed to add PNG text chunk (geo_boot): {:?}", e))?;
+        let mut writer = encoder
+            .write_header()
+            .map_err(|e| format!("Failed to write PNG header: {:?}", e))?;
+        writer
+            .write_image_data(&pixels)
+            .map_err(|e| format!("Failed to write PNG image data: {:?}", e))?;
     }
-    buf
+    Ok(buf)
 }
 
 /// Write decoded source text bytes onto the canvas buffer (128 rows x 32 cols).
@@ -942,7 +950,7 @@ mod tests {
     fn test_pixelpack_roundtrip_encode_decode() {
         // Encode some bytes, decode them back
         let original = vec![0x10, 0x01, 0x42, 0x00, 0x00, 0x00]; // LDI r1, 66 (3 u32 words)
-        let png_data = encode_pixelpack_png(&original);
+        let png_data = encode_pixelpack_png(&original).unwrap();
         let decoded = decode_pixelpack_png(&png_data).unwrap();
         assert_eq!(decoded, original);
     }
@@ -950,7 +958,7 @@ mod tests {
     #[test]
     fn test_pixelpack_roundtrip_empty() {
         let original: Vec<u8> = vec![];
-        let png_data = encode_pixelpack_png(&original);
+        let png_data = encode_pixelpack_png(&original).unwrap();
         let decoded = decode_pixelpack_png(&png_data).unwrap();
         assert_eq!(decoded, original);
     }
@@ -958,7 +966,7 @@ mod tests {
     #[test]
     fn test_pixelpack_roundtrip_single_byte() {
         let original = vec![0x42];
-        let png_data = encode_pixelpack_png(&original);
+        let png_data = encode_pixelpack_png(&original).unwrap();
         let decoded = decode_pixelpack_png(&png_data).unwrap();
         assert_eq!(decoded, original);
     }
@@ -967,7 +975,7 @@ mod tests {
     fn test_pixelpack_roundtrip_large() {
         // 100 bytes of varying data
         let original: Vec<u8> = (0..100).map(|i| (i * 7 + 13) as u8).collect();
-        let png_data = encode_pixelpack_png(&original);
+        let png_data = encode_pixelpack_png(&original).unwrap();
         let decoded = decode_pixelpack_png(&png_data).unwrap();
         assert_eq!(decoded, original);
     }
@@ -1011,7 +1019,7 @@ mod tests {
         }
 
         // Encode to pixelpack PNG
-        let png_data = encode_pixelpack_png(&bytecode_bytes);
+        let png_data = encode_pixelpack_png(&bytecode_bytes).unwrap();
 
         // Decode back
         let decoded = decode_pixelpack_png(&png_data).unwrap();
@@ -1040,7 +1048,7 @@ mod tests {
     fn test_pixel_boot_uses_strategy_a() {
         // Verify encode_pixelpack_png uses strategy A (raw3)
         let bytes = vec![0x10, 0x01, 0x42];
-        let png_data = encode_pixelpack_png(&bytes);
+        let png_data = encode_pixelpack_png(&bytes).unwrap();
         let decoded = decode_pixelpack_png(&png_data).unwrap();
         assert_eq!(decoded, bytes);
 

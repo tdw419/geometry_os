@@ -15660,7 +15660,7 @@ fn test_loadpng_opcode_basic() {
     }
 
     // Encode to pixelpack PNG
-    let png_data = crate::pixel::encode_pixelpack_png(&bytecode_bytes);
+    let png_data = crate::pixel::encode_pixelpack_png(&bytecode_bytes).unwrap();
     let png_path = "/tmp/geo_test_loadpng_basic.png";
     std::fs::write(png_path, &png_data).unwrap();
 
@@ -15816,7 +15816,7 @@ fn test_loadsrcimg_opcode_basic() {
     let source = "LDI r1, 42\nHALT\n";
 
     // Encode as source pixelpack PNG
-    let png_data = crate::pixel::encode_source_pixelpack_png(source);
+    let png_data = crate::pixel::encode_source_pixelpack_png(source).unwrap();
     let png_path = "/tmp/geo_test_loadsrcimg_basic.png";
     std::fs::write(png_path, &png_data).unwrap();
 
@@ -15954,7 +15954,7 @@ fn test_source_png_round_trip() {
     let source = "LDI r1, 100\nLDI r2, 200\nADD r1, r2\nHALT\n";
 
     // Encode
-    let png_data = crate::pixel::encode_source_pixelpack_png(source);
+    let png_data = crate::pixel::encode_source_pixelpack_png(source).unwrap();
 
     // Verify it is detected as a source PNG
     assert!(
@@ -15984,7 +15984,7 @@ fn test_source_png_assembles_correctly() {
     // Test that a source PNG containing a program assembles correctly
     let source = "LDI r1, 42\nHALT\n";
 
-    let png_data = crate::pixel::encode_source_pixelpack_png(source);
+    let png_data = crate::pixel::encode_source_pixelpack_png(source).unwrap();
     let png_path = "/tmp/geo_test_source_asm.png";
     std::fs::write(png_path, &png_data).unwrap();
 
@@ -16011,12 +16011,12 @@ fn test_source_png_distinguishes_from_bytecode() {
     // A source PNG should have geo_boot=source metadata
     // A bytecode PNG should NOT have this metadata
     let source = "HALT\n";
-    let source_png = crate::pixel::encode_source_pixelpack_png(source);
+    let source_png = crate::pixel::encode_source_pixelpack_png(source).unwrap();
     assert!(crate::pixel::is_source_png(&source_png));
 
     // Bytecode PNG should NOT be detected as source
     let bytecode_bytes = vec![0x00]; // HALT
-    let bytecode_png = crate::pixel::encode_pixelpack_png(&bytecode_bytes);
+    let bytecode_png = crate::pixel::encode_pixelpack_png(&bytecode_bytes).unwrap();
     assert!(
         !crate::pixel::is_source_png(&bytecode_png),
         "bytecode PNG should not be source PNG"
@@ -16027,7 +16027,7 @@ fn test_source_png_distinguishes_from_bytecode() {
 fn test_loadsrcimg_canvas_buffer_populated() {
     // Test that LOADSRCIMG writes source to canvas_buffer
     let source = "LDI r1, 99\nHALT\n";
-    let png_data = crate::pixel::encode_source_pixelpack_png(source);
+    let png_data = crate::pixel::encode_source_pixelpack_png(source).unwrap();
     let png_path = "/tmp/geo_test_loadsrcimg_canvas.png";
     std::fs::write(png_path, &png_data).unwrap();
 
@@ -16108,7 +16108,7 @@ fn test_universal_pixel_boot_bytecode() {
     let source = "LDI r1, 99\nHALT\n";
     let asm = crate::assembler::assemble(source, 0).unwrap();
     let bytecode_bytes: Vec<u8> = asm.pixels.iter().flat_map(|w| w.to_le_bytes()).collect();
-    let png_data = crate::pixel::encode_pixelpack_png(&bytecode_bytes);
+    let png_data = crate::pixel::encode_pixelpack_png(&bytecode_bytes).unwrap();
     let png_path = "/tmp/geo_test_universal_bytecode.png";
     std::fs::write(png_path, &png_data).unwrap();
 
@@ -16171,7 +16171,7 @@ fn test_universal_pixel_boot_bytecode() {
 fn test_universal_pixel_boot_source() {
     // Create a source PNG (Level 2) and verify auto-detection
     let source = "LDI r2, 77\nHALT\n";
-    let png_data = crate::pixel::encode_source_pixelpack_png(source);
+    let png_data = crate::pixel::encode_source_pixelpack_png(source).unwrap();
     let png_path = "/tmp/geo_test_universal_source.png";
     std::fs::write(png_path, &png_data).unwrap();
 
@@ -16229,7 +16229,7 @@ fn test_pixel_chain_program_a_loads_b() {
     // Program A: loads program B from a source PNG, then runs it
     // Program B source: LDI r3, 55\nHALT\n
     let source_b = "LDI r3, 55\nHALT\n";
-    let png_data = crate::pixel::encode_source_pixelpack_png(source_b);
+    let png_data = crate::pixel::encode_source_pixelpack_png(source_b).unwrap();
     let png_path = "/tmp/geo_test_chain_program_b.png";
     std::fs::write(png_path, &png_data).unwrap();
 
@@ -24620,7 +24620,7 @@ msg: .ascii "HELLO PIXELS"
 "#;
 
     // Step 1: encode the source as a pixelpack PNG.
-    let png_bytes = crate::pixel::encode_source_pixelpack_png(original_src);
+    let png_bytes = crate::pixel::encode_source_pixelpack_png(original_src).unwrap();
     assert!(!png_bytes.is_empty(), "PNG encoding produced empty output");
 
     // Step 2: decode the PNG back to source text. The encoder pads with

@@ -2817,9 +2817,8 @@ phases:
       title: Implement SPRITEANIM opcode (0xEC)
       description: SPRITEANIM sheet_id, x_reg, y_reg. Uses registered sprite sheet
         from SPRLOAD (0xE5). Blits current frame then auto-advances frame counter
-        with wrap-around. Opcode 0xEC (0xCB was already taken by MOUSECLICK). 3
-        arguments (sheet_id immediate + 2 register args). Reuses existing SPRANIM
-        blit logic.
+        with wrap-around. Opcode 0xEC (0xCB was already taken by MOUSECLICK). 3 arguments
+        (sheet_id immediate + 2 register args). Reuses existing SPRANIM blit logic.
       scope_files:
       - src/vm/mod.rs
       - src/assembler/graphics_ops.rs
@@ -2888,7 +2887,7 @@ phases:
   scope_lines_total: 270
 - id: phase-230
   title: Error Resilience -- Replace pixel.rs unwrap() Calls
-  status: planned
+  status: in_progress
   goal: Eliminate all 17 unwrap() calls in pixel.rs with proper error propagation
   description: pixel.rs handles PNG decode/encode for pixelpack and .rts.png formats.
     It has 17 unwrap() calls that can panic on corrupt images, missing files, or malformed
@@ -2923,6 +2922,8 @@ phases:
       scope_lines: 30
   test_target: 3
   scope_lines_total: 130
+  _claimed_by: worker-0
+  _claimed_at: 1778084532
 - id: phase-231
   title: Error Resilience -- Replace mmu.rs unwrap() Calls
   status: todo

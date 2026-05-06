@@ -467,9 +467,10 @@ fn main() {
             } else if let Ok(source) = std::fs::read_to_string(&asm_path) {
                 // Generate icon from assembly source on the fly
                 let bytes = source.as_bytes();
-                let pxpk_data = crate::pixel::encode_pixelpack_png(bytes);
-                if !pxpk_data.is_empty() {
-                    let _ = icon_cache.load_icon_from_data(app_name, &pxpk_data, 24, 32);
+                if let Ok(pxpk_data) = crate::pixel::encode_pixelpack_png(bytes) {
+                    if !pxpk_data.is_empty() {
+                        let _ = icon_cache.load_icon_from_data(app_name, &pxpk_data, 24, 32);
+                    }
                 }
             }
         }
