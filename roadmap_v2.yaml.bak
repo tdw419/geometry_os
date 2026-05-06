@@ -2392,7 +2392,7 @@ phases:
     are pre-existing unrelated capability_tests).
 - id: phase-219
   title: GeOS VM -- Memory-Mapped Screen Buffer Readback
-  status: planned
+  status: in_progress
   goal: Let VM programs read the screen buffer via LOAD from 0x10000-0x1FFFF
   description: The screen buffer at 0x10000-0x1FFFF (256x256 pixels, mapped to vm.screen)
     already supports writes for SETPIXEL-style rendering, but LOAD from this region
@@ -2431,9 +2431,11 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 100
+  _claimed_by: worker-0
+  _claimed_at: 1778024171
 - id: phase-220
   title: RISC-V Guest -- Mandelbrot Fractal Renderer
-  status: planned
+  status: in_progress
   goal: Add a Mandelbrot set renderer that proves the RISC-V interpreter handles compute-intensive
     floating-point work
   description: 'The RISC-V interpreter supports M-extension multiplication and division
@@ -2473,6 +2475,8 @@ phases:
       scope_lines: 60
   test_target: 3
   scope_lines_total: 260
+  _claimed_by: worker-0
+  _claimed_at: 1778029609
 - id: phase-221
   title: GeOS VM -- Clipboard Protocol Enhancement
   status: planned

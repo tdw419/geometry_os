@@ -9,8 +9,6 @@
 ; Visual verification: colored bars show clipboard state at each step
 ; ──────────────────────────────────────────────────────────────────
 
-.org 0x1000
-
 start:
     ; ── Clear screen ──
     LDI r0, 0

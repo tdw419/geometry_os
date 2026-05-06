@@ -1028,8 +1028,8 @@ fn test_mandelbrot_assembles() {
 
 #[test]
 fn test_mandelbrot_renders() {
-    // Mandelbrot is compute-heavy: 256*256 pixels * up to 64 iterations.
-    // Use 200M cycles to ensure completion.
+    // Mandelbrot is compute-heavy: 128x128 blocks * up to 24 iterations each.
+    // The program renders then loops on IKEY. We inject 'Q' (81) to make it halt.
     let source =
         std::fs::read_to_string("programs/mandelbrot.asm").expect("mandelbrot.asm should exist");
     let asm = assemble(&source, 0).expect("assembly should succeed");
@@ -1041,12 +1041,25 @@ fn test_mandelbrot_renders() {
     }
     vm.pc = 0;
     vm.halted = false;
-    for _ in 0..200_000_000 {
+
+    // Run until first FRAME completes (the render), then inject Q to quit.
+    // The render itself takes many millions of cycles for 128x128 blocks.
+    // We check every 500K cycles whether to inject Q.
+    let mut q_injected = false;
+    let max_cycles = 200_000_000u64;
+    let mut cycle = 0u64;
+    while cycle < max_cycles {
         if !vm.step() {
             break;
         }
+        cycle += 1;
+        // After the first render completes (frame_count > 0), inject Q to halt
+        if !q_injected && vm.frame_count > 0 {
+            vm.push_key(81); // 'Q' key
+            q_injected = true;
+        }
     }
-    assert!(vm.halted, "VM should halt within 200M cycles");
+    assert!(vm.halted, "VM should halt within {} cycles (ran {})", max_cycles, cycle);
 
     // Count distinct colors on screen
     let mut colors = std::collections::HashSet::new();
@@ -1054,7 +1067,7 @@ fn test_mandelbrot_renders() {
         colors.insert(pixel);
     }
 
-    // Should have many distinct colors (palette cycling + black interior)
+    // Should have many distinct colors (16-entry palette cycling + black interior)
     assert!(
         colors.len() > 10,
         "Mandelbrot should produce many colors, got {} distinct",
@@ -1067,29 +1080,31 @@ fn test_mandelbrot_renders() {
         "Mandelbrot should have black pixels (set interior)"
     );
 
-    // Known point: center of main cardioid at (-0.5, 0) is inside the set
-    // Mapping: cx = px*3 - 640, cy = py*3 - 384
-    // cx = -0.5 (fixed: -128): px*3 = 512, px = 170
-    // cy = 0 (fixed: 0): py*3 = 384, py = 128
-    let center_pixel = vm.screen[128 * 256 + 170];
+    // The ASM program uses 4.12 fixed-point, 128x128 blocks of 2x2 pixels.
+    // center_re = -0.5 (fixed -2048), center_im = 0, scale = 1.5 (fixed 6144).
+    // Complex coord for block (bx,by): cr = (bx*2-127)*48 - 2048, ci = (by*2-127)*48 - 0
+    // For bx=64: cr = (128-127)*48 - 2048 = 48 - 2048 = -2000 → -0.488 (inside cardioid)
+    // For by=64: ci = 0
+    // Pixel position of block (64,64) is (128, 128).
+    let center_pixel = vm.screen[128 * 256 + 128];
     assert_eq!(
         center_pixel, 0,
-        "Center of main cardioid (170, 128) should be black, got 0x{:08X}",
+        "Center of main cardioid (128, 128) should be black, got 0x{:08X}",
         center_pixel
     );
 
-    // Known outside point: far from the set
-    // cx = 0.3 (fixed: 77): px = (640+77)/3 = 239, cy = 0: py = 128
-    let outside_pixel = vm.screen[128 * 256 + 239];
+    // Known outside point: bx=0, by=64 → cr = (0-127)*48-2048 = -8144 → -1.99 (far outside)
+    // Pixel position: (0, 128)
+    let outside_pixel = vm.screen[128 * 256 + 0];
     assert_ne!(
         outside_pixel, 0,
-        "Point (239, 128) should be outside the set (colored), got black"
+        "Point (0, 128) should be outside the set (colored), got black"
     );
 
-    // Interior of the set should be uniformly black in a small region
+    // Interior of the set should be uniformly black in a small region around center
     let mut interior_uniform = true;
-    for y in 125..131 {
-        for x in 167..173 {
+    for y in 124..132 {
+        for x in 124..132 {
             if vm.screen[y * 256 + x] != 0 {
                 interior_uniform = false;
                 break;

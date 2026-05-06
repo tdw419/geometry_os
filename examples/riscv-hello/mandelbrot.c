@@ -39,10 +39,18 @@ static inline int32_t fp_mul(int32_t a, int32_t b) {
 }
 
 /*
+ * Multiply a Q16.16 number by a plain integer, returning Q16.16.
+ * No shift needed since the integer has no fractional part.
+ */
+static inline int32_t fp_mul_int(int32_t fp_val, int32_t n) {
+    return (int32_t)(((int64_t)fp_val * (int64_t)n));
+}
+
+/*
  * Divide a Q16.16 number by a plain integer, returning Q16.16.
  */
 static int32_t fp_div_by_int(int32_t fp_val, int32_t denom) {
-    return (int32_t)(((int64_t)fp_val << 16) / ((int64_t)denom << 16));
+    return (int32_t)(((int64_t)fp_val) / ((int64_t)denom));
 }
 
 /* ---- Mandelbrot parameters ---- */
@@ -114,17 +122,17 @@ static void render_mandelbrot(void) {
     int32_t y_scale = fp_div_by_int(VIEW_H, FB_HEIGHT);
 
     /* Top-left corner in complex plane */
-    int32_t x0_start = VIEW_CX - fp_mul(x_scale, FB_WIDTH >> 1);
-    int32_t y0_start = VIEW_CY - fp_mul(y_scale, FB_HEIGHT >> 1);
+    int32_t x0_start = VIEW_CX - fp_mul_int(x_scale, FB_WIDTH >> 1);
+    int32_t y0_start = VIEW_CY - fp_mul_int(y_scale, FB_HEIGHT >> 1);
 
     int py, px;
 
     for (py = 0; py < FB_HEIGHT; py++) {
-        int32_t ci = y0_start + fp_mul(y_scale, py);
+        int32_t ci = y0_start + fp_mul_int(y_scale, py);
         int32_t y_offset = py * FB_WIDTH;
 
         for (px = 0; px < FB_WIDTH; px++) {
-            int32_t cr = x0_start + fp_mul(x_scale, px);
+            int32_t cr = x0_start + fp_mul_int(x_scale, px);
 
             /* z = 0 */
             int32_t zr = 0;

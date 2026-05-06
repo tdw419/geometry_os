@@ -16439,7 +16439,7 @@ fn test_clipboard_demo_runs_and_writes_data() {
             vm.ram[i] = word;
         }
     }
-    vm.pc = 0x1000;
+    vm.pc = 0;
     vm.halted = false;
     for _ in 0..10_000_000 {
         if !vm.step() {
