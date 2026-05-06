@@ -28541,6 +28541,30 @@ fn trace_itoa_region() {
 }
 
 #[test]
+fn dump_rng_bytecode() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
+    
+    // Dump around the rng area (0x0E00-0x0F00)
+    eprintln!("--- Bytecode 0x0E00-0x0F50 ---");
+    for i in 0x0E00..std::cmp::min(0x0F50, result.pixels.len()) {
+        eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
+    }
+    
+    // Also dump around T48 test area (0x1500-0x1600)
+    eprintln!("\n--- Bytecode 0x1500-0x1600 ---");
+    for i in 0x1500..std::cmp::min(0x1600, result.pixels.len()) {
+        eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
+    }
+    
+    // Also check what's at 0xFC0 (PRNG_SEED location)
+    eprintln!("\n--- Bytecode 0x0FB0-0x0FD0 ---");
+    for i in 0x0FB0..std::cmp::min(0x0FD0, result.pixels.len()) {
+        eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
+    }
+}
+
+#[test]
 fn trace_rng_calls() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
