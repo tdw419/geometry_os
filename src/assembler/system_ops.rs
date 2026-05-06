@@ -451,7 +451,6 @@ pub(super) fn try_parse(
         // BITTEST/BTST (0x8F), NOT/BNOT (0x90).
         // Short aliases (BSET, BCLR, BTST, BNOT) are equivalent to their
         // longer forms and produce identical bytecode.
-
         "BITSET" | "BSET" => {
             if tokens.len() < 3 {
                 return Err("BITSET requires 2 arguments: BITSET rd, bit_reg".to_string());

@@ -8877,8 +8877,10 @@ fn test_bset_alias_assembles() {
     let src_short = "LDI r1, 0\nLDI r2, 5\nBSET r1, r2\nHALT\n";
     let result_long = crate::assembler::assemble(src_long, 0).unwrap();
     let result_short = crate::assembler::assemble(src_short, 0).unwrap();
-    assert_eq!(result_long.pixels, result_short.pixels,
-        "BSET alias should produce same bytecode as BITSET");
+    assert_eq!(
+        result_long.pixels, result_short.pixels,
+        "BSET alias should produce same bytecode as BITSET"
+    );
 }
 
 #[test]
@@ -8887,8 +8889,10 @@ fn test_bclr_alias_assembles() {
     let src_short = "LDI r1, 0xFF\nLDI r2, 3\nBCLR r1, r2\nHALT\n";
     let result_long = crate::assembler::assemble(src_long, 0).unwrap();
     let result_short = crate::assembler::assemble(src_short, 0).unwrap();
-    assert_eq!(result_long.pixels, result_short.pixels,
-        "BCLR alias should produce same bytecode as BITCLR");
+    assert_eq!(
+        result_long.pixels, result_short.pixels,
+        "BCLR alias should produce same bytecode as BITCLR"
+    );
 }
 
 #[test]
@@ -8897,8 +8901,10 @@ fn test_btst_alias_assembles() {
     let src_short = "LDI r1, 0x80\nLDI r2, 7\nBTST r1, r2\nHALT\n";
     let result_long = crate::assembler::assemble(src_long, 0).unwrap();
     let result_short = crate::assembler::assemble(src_short, 0).unwrap();
-    assert_eq!(result_long.pixels, result_short.pixels,
-        "BTST alias should produce same bytecode as BITTEST");
+    assert_eq!(
+        result_long.pixels, result_short.pixels,
+        "BTST alias should produce same bytecode as BITTEST"
+    );
 }
 
 #[test]
@@ -8907,8 +8913,10 @@ fn test_bnot_alias_assembles() {
     let src_short = "LDI r1, 0xFF\nBNOT r1\nHALT\n";
     let result_long = crate::assembler::assemble(src_long, 0).unwrap();
     let result_short = crate::assembler::assemble(src_short, 0).unwrap();
-    assert_eq!(result_long.pixels, result_short.pixels,
-        "BNOT alias should produce same bytecode as NOT");
+    assert_eq!(
+        result_long.pixels, result_short.pixels,
+        "BNOT alias should produce same bytecode as NOT"
+    );
 }
 
 #[test]
@@ -30049,4 +30057,318 @@ fn trace_t9_execution() {
     eprintln!("T8 (0x1F87) = {}", vm.ram[0x1F87]);
     eprintln!("T9 (0x1F88) = {}", vm.ram[0x1F88]);
     eprintln!("T10 (0x1F89) = {}", vm.ram[0x1F89]);
+}
+
+// ── FLOOD opcode tests (Phase 236) ──
+
+#[test]
+fn test_flood_fills_enclosed_rectangle() {
+    let mut vm = Vm::new();
+
+    // Draw a 20x10 blue rectangle on a black screen, bordered by white
+    // Border: white rectangle from (8,8) to (31,21) (24x14)
+    // Interior: blue fill from (10,10) to (29,19) (20x10)
+    // We'll do this manually to avoid FILL/RECTF interaction
+
+    // White border - horizontal lines
+    for x in 8..32 {
+        vm.screen[8 * 256 + x] = 0xFFFFFF;
+        vm.screen[21 * 256 + x] = 0xFFFFFF;
+    }
+    // White border - vertical lines
+    for y in 8..22 {
+        vm.screen[y * 256 + 8] = 0xFFFFFF;
+        vm.screen[y * 256 + 31] = 0xFFFFFF;
+    }
+    // Blue interior
+    for y in 10..20 {
+        for x in 10..30 {
+            vm.screen[y * 256 + x] = 0x0000FF;
+        }
+    }
+
+    // FLOOD from center of blue region (20, 15) with red color, tolerance=0
+    vm.regs[1] = 20; // x
+    vm.regs[2] = 15; // y
+    vm.regs[3] = 0xFF0000; // fill color (red)
+    vm.regs[4] = 0; // tolerance (exact match)
+
+    vm.ram[0] = 0xCE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    // Should have filled 20*10 = 200 blue pixels with red
+    assert_eq!(vm.regs[0], 200, "should fill 200 pixels");
+
+    // Center should now be red
+    assert_eq!(vm.screen[15 * 256 + 20], 0xFF0000, "center should be red");
+
+    // Corner of interior should be red
+    assert_eq!(
+        vm.screen[10 * 256 + 10],
+        0xFF0000,
+        "top-left interior should be red"
+    );
+    assert_eq!(
+        vm.screen[19 * 256 + 29],
+        0xFF0000,
+        "bottom-right interior should be red"
+    );
+
+    // Border should still be white
+    assert_eq!(
+        vm.screen[8 * 256 + 20],
+        0xFFFFFF,
+        "top border should be white"
+    );
+    assert_eq!(
+        vm.screen[21 * 256 + 20],
+        0xFFFFFF,
+        "bottom border should be white"
+    );
+    assert_eq!(
+        vm.screen[15 * 256 + 8],
+        0xFFFFFF,
+        "left border should be white"
+    );
+    assert_eq!(
+        vm.screen[15 * 256 + 31],
+        0xFFFFFF,
+        "right border should be white"
+    );
+}
+
+#[test]
+fn test_flood_no_leak_past_boundaries() {
+    let mut vm = Vm::new();
+
+    // Draw two adjacent rectangles with different colors
+    // Left rect (0-9, 0-9) = blue, Right rect (10-19, 0-9) = green
+    for y in 0..10 {
+        for x in 0..10 {
+            vm.screen[y * 256 + x] = 0x0000FF; // blue
+        }
+        for x in 10..20 {
+            vm.screen[y * 256 + x] = 0x00FF00; // green
+        }
+    }
+
+    // FLOOD from blue region (5, 5) with red, tolerance=0
+    vm.regs[1] = 5;
+    vm.regs[2] = 5;
+    vm.regs[3] = 0xFF0000; // red
+    vm.regs[4] = 0; // exact match
+
+    vm.ram[0] = 0xCE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    // Should fill exactly 100 blue pixels
+    assert_eq!(vm.regs[0], 100, "should fill exactly 100 blue pixels");
+
+    // Blue region should now be red
+    assert_eq!(vm.screen[5 * 256 + 5], 0xFF0000);
+    assert_eq!(vm.screen[0 * 256 + 0], 0xFF0000);
+    assert_eq!(vm.screen[9 * 256 + 9], 0xFF0000);
+
+    // Green region should be untouched
+    assert_eq!(
+        vm.screen[5 * 256 + 15],
+        0x00FF00,
+        "green region should be untouched"
+    );
+
+    // Rest of screen should be black
+    assert_eq!(vm.screen[5 * 256 + 25], 0, "far right should be black");
+    assert_eq!(vm.screen[15 * 256 + 5], 0, "below should be black");
+}
+
+#[test]
+fn test_flood_tolerance_zero_exact_match() {
+    let mut vm = Vm::new();
+
+    // Set a single pixel to a specific blue
+    vm.screen[5 * 256 + 5] = 0x0000FF;
+
+    // FLOOD with tolerance=0 should match only exact color
+    vm.regs[1] = 5;
+    vm.regs[2] = 5;
+    vm.regs[3] = 0xFF0000; // red fill
+    vm.regs[4] = 0; // exact match
+
+    vm.ram[0] = 0xCE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    // Should fill exactly 1 pixel
+    assert_eq!(vm.regs[0], 1, "should fill exactly 1 pixel");
+    assert_eq!(
+        vm.screen[5 * 256 + 5],
+        0xFF0000,
+        "the pixel should now be red"
+    );
+}
+
+#[test]
+fn test_flood_tolerance_nonzero() {
+    let mut vm = Vm::new();
+
+    // Create a bordered region (white border) with varying interior
+    // Use colors where R=0x80 (fixed), G=0x80 (fixed), B varies from 0x40 to 0x52
+    // Seed at (5,5) has B=0x48, tolerance=20 means B range 0x34-0x5C
+    // All interior B values (0x40-0x52) fall within range
+    // White border (0xFF vs 0x80) has diff 127 > 20 → no leak
+    for y in 0..12 {
+        for x in 0..12 {
+            if x == 0 || x == 11 || y == 0 || y == 11 {
+                vm.screen[y * 256 + x] = 0xFFFFFF; // white border
+            } else {
+                let variation = ((x - 1) + (y - 1)) as u32;
+                let b = 0x40 + variation; // B channel: 0x40 to 0x52
+                vm.screen[y * 256 + x] = 0x808000 | b; // R=0x80, G=0x80, B varies
+            }
+        }
+    }
+
+    // FLOOD from (5,5) with red, tolerance=20
+    // Seed color: 0x808048 (R=0x80, G=0x80, B=0x48)
+    vm.regs[1] = 5;
+    vm.regs[2] = 5;
+    vm.regs[3] = 0xFF0000;
+    vm.regs[4] = 20;
+
+    vm.ram[0] = 0xCE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    // Should fill the 10x10 interior (100 pixels)
+    assert_eq!(
+        vm.regs[0], 100,
+        "should fill all 100 pixels with tolerance=20"
+    );
+    assert_eq!(vm.screen[5 * 256 + 5], 0xFF0000);
+    // Border should be untouched
+    assert_eq!(vm.screen[0 * 256 + 0], 0xFFFFFF);
+}
+
+#[test]
+fn test_flood_seed_already_fill_color() {
+    let mut vm = Vm::new();
+
+    // Set a region to red
+    for y in 0..5 {
+        for x in 0..5 {
+            vm.screen[y * 256 + x] = 0xFF0000;
+        }
+    }
+
+    // FLOOD with red fill color (same as seed) should do nothing
+    vm.regs[1] = 2;
+    vm.regs[2] = 2;
+    vm.regs[3] = 0xFF0000;
+    vm.regs[4] = 0;
+
+    vm.ram[0] = 0xCE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    assert_eq!(
+        vm.regs[0], 0,
+        "should fill 0 pixels when seed == fill color"
+    );
+}
+
+#[test]
+fn test_flood_out_of_bounds_seed() {
+    let mut vm = Vm::new();
+
+    vm.regs[1] = 300; // out of bounds x
+    vm.regs[2] = 5;
+    vm.regs[3] = 0xFF0000;
+    vm.regs[4] = 0;
+
+    vm.ram[0] = 0xCE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    vm.pc = 0;
+
+    for _ in 0..100 {
+        if !vm.step() {
+            break;
+        }
+    }
+
+    assert_eq!(vm.regs[0], 0, "out-of-bounds seed should fill 0 pixels");
+}
+
+#[test]
+fn test_flood_disasm() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xCE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.ram[4] = 4;
+    let (text, len) = vm.disassemble_at(0);
+    assert_eq!(text, "FLOOD r1,r2,r3,r4");
+    assert_eq!(len, 5);
+}
+
+#[test]
+fn test_paint_bucket_asm_assembles() {
+    use crate::assembler::assemble;
+    let src = include_str!("../../programs/paint_bucket.asm");
+    let result = assemble(src, 0);
+    assert!(
+        result.is_ok(),
+        "paint_bucket.asm should assemble: {:?}",
+        result.err()
+    );
 }

@@ -1229,6 +1229,18 @@ impl Vm {
             // BREAKPOINT (0xCD) -- hardware breakpoint, triggers debugger
             0xCD => ("BREAKPOINT".to_string(), 1),
 
+            // FLOOD x_reg, y_reg, fill_reg, tolerance_reg (0xCE)
+            0xCE => (
+                format!(
+                    "FLOOD {},{},{},{}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4))
+                ),
+                5,
+            ),
+
             _ => (format!("??? (0x{:02X})", op), 1),
         }
     }

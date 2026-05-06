@@ -5031,6 +5031,154 @@ impl Vm {
                 return false;
             }
 
+            // FLOOD x_reg, y_reg, fill_reg, tolerance_reg  (0xCE)
+            // Scanline flood fill starting at (x, y). Replaces connected pixels
+            // whose color is within tolerance of the seed color with fill color.
+            // Uses an iterative scanline span algorithm (no recursion).
+            // Encoding: 5 words [0xCE, x_reg, y_reg, fill_reg, tolerance_reg]
+            // tolerance: max per-channel absolute difference (0 = exact match).
+            // r0 = number of pixels filled.
+            0xCE => {
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                let fr = self.fetch() as usize;
+                let tr = self.fetch() as usize;
+                if xr < NUM_REGS && yr < NUM_REGS && fr < NUM_REGS && tr < NUM_REGS {
+                    let seed_x = self.regs[xr] as usize;
+                    let seed_y = self.regs[yr] as usize;
+                    let fill_color = self.regs[fr];
+                    let tolerance = self.regs[tr] as i32;
+                    if self.render_logging {
+                        self.log_render_op(
+                            0xCE,
+                            "FLOOD",
+                            &[seed_x as u32, seed_y as u32, fill_color, self.regs[tr]],
+                        );
+                    }
+
+                    let mut count = 0u32;
+
+                    // Only fill if seed is on-screen
+                    if seed_x < 256 && seed_y < 256 {
+                        let seed_color = self.screen[seed_y * 256 + seed_x];
+
+                        // Don't fill if seed already equals fill color
+                        if seed_color != fill_color {
+                            // Extract RGB components for tolerance comparison
+                            let sr = ((seed_color >> 16) & 0xFF) as i32;
+                            let sg = ((seed_color >> 8) & 0xFF) as i32;
+                            let sb = (seed_color & 0xFF) as i32;
+                            let fr_r = ((fill_color >> 16) & 0xFF) as i32;
+                            let fr_g = ((fill_color >> 8) & 0xFF) as i32;
+                            let fr_b = (fill_color & 0xFF) as i32;
+
+                            fn color_match(
+                                pixel: u32,
+                                sr: i32,
+                                sg: i32,
+                                sb: i32,
+                                tol: i32,
+                            ) -> bool {
+                                let pr = ((pixel >> 16) & 0xFF) as i32;
+                                let pg = ((pixel >> 8) & 0xFF) as i32;
+                                let pb = (pixel & 0xFF) as i32;
+                                (pr - sr).abs() <= tol
+                                    && (pg - sg).abs() <= tol
+                                    && (pb - sb).abs() <= tol
+                            }
+
+                            fn is_fill(pixel: u32, fr_r: i32, fr_g: i32, fr_b: i32) -> bool {
+                                let pr = ((pixel >> 16) & 0xFF) as i32;
+                                let pg = ((pixel >> 8) & 0xFF) as i32;
+                                let pb = (pixel & 0xFF) as i32;
+                                pr == fr_r && pg == fr_g && pb == fr_b
+                            }
+
+                            // Iterative scanline flood fill
+                            let mut stack: Vec<(usize, usize)> = Vec::new();
+                            stack.push((seed_y, seed_x));
+
+                            let max_pixels = 256 * 256; // safety limit
+
+                            while let Some((y, start_x)) = stack.pop() {
+                                if count >= max_pixels {
+                                    break;
+                                }
+
+                                // Scan left to find leftmost matching pixel on this scanline
+                                let mut left = start_x;
+                                while left > 0
+                                    && color_match(
+                                        self.screen[y * 256 + left - 1],
+                                        sr,
+                                        sg,
+                                        sb,
+                                        tolerance,
+                                    )
+                                    && !is_fill(self.screen[y * 256 + left - 1], fr_r, fr_g, fr_b)
+                                {
+                                    left -= 1;
+                                }
+
+                                // Scan right, filling as we go
+                                let mut right = left;
+                                let mut span_above = false;
+                                let mut span_below = false;
+
+                                while right < 256 {
+                                    let idx = y * 256 + right;
+                                    let pixel = self.screen[idx];
+
+                                    if is_fill(pixel, fr_r, fr_g, fr_b)
+                                        || !color_match(pixel, sr, sg, sb, tolerance)
+                                    {
+                                        break;
+                                    }
+
+                                    // Fill this pixel
+                                    self.screen[idx] = fill_color;
+                                    count += 1;
+
+                                    // Check above
+                                    if y > 0 {
+                                        let above = self.screen[(y - 1) * 256 + right];
+                                        if color_match(above, sr, sg, sb, tolerance)
+                                            && !is_fill(above, fr_r, fr_g, fr_b)
+                                        {
+                                            if !span_above {
+                                                stack.push((y - 1, right));
+                                                span_above = true;
+                                            }
+                                        } else {
+                                            span_above = false;
+                                        }
+                                    }
+
+                                    // Check below
+                                    if y < 255 {
+                                        let below = self.screen[(y + 1) * 256 + right];
+                                        if color_match(below, sr, sg, sb, tolerance)
+                                            && !is_fill(below, fr_r, fr_g, fr_b)
+                                        {
+                                            if !span_below {
+                                                stack.push((y + 1, right));
+                                                span_below = true;
+                                            }
+                                        } else {
+                                            span_below = false;
+                                        }
+                                    }
+
+                                    right += 1;
+                                }
+                            }
+                        }
+                    }
+
+                    self.regs[0] = count;
+                }
+            }
+
             _ => {
                 self.halted = true;
                 return false;

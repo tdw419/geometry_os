@@ -61,6 +61,21 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        "FLOOD" => {
+            if tokens.len() < 5 {
+                return Err(
+                    "FLOOD requires 4 arguments: FLOOD x_reg, y_reg, fill_reg, tolerance_reg"
+                        .to_string(),
+                );
+            }
+            bytecode.push(0xCE);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            Ok(Some(()))
+        }
+
         "TEXT" => {
             if tokens.len() < 4 {
                 return Err("TEXT requires 3 arguments: TEXT x_reg, y_reg, addr_reg".to_string());

@@ -3118,7 +3118,7 @@ phases:
   scope_lines_total: 270
 - id: phase-236
   title: GeOS VM -- Scanline Flood Fill Opcode (FLOOD)
-  status: planned
+  status: in_progress
   goal: Add a FLOOD opcode for efficient area filling from a seed point
   description: Current fills cover rectangles only. Programs needing irregular fills
     (paint bucket, territory marking) must implement flood fill manually at high step
@@ -3154,6 +3154,8 @@ phases:
       scope_lines: 90
   test_target: 3
   scope_lines_total: 220
+  _claimed_by: worker-0
+  _claimed_at: 1778092248
 - id: phase-237
   title: Error Resilience -- Replace vfs_surface.rs unwrap() Calls
   status: todo

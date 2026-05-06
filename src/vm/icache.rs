@@ -62,11 +62,11 @@ impl Vm {
         match opcode {
             0x00 | 0x01 | 0x34 => 0,               // HALT, NOP, RET
             0x2A | 0x30 | 0x33 | 0x60 | 0x61 => 1, // NEG, JMP, CALL, PUSH, POP
-            0x90 => 1,                               // NOT
+            0x90 => 1,                             // NOT
             0x10 | 0x11 | 0x12 | 0x50 | 0x51 => 2, // LDI, LOAD, STORE, CMP, MOV
             0x20..=0x29 | 0x2B => 2,               // ADD..MOD, SAR
             0x31 | 0x32 | 0x35 | 0x36 => 2,        // JZ, JNZ, BLT, BGE
-            0x8D | 0x8E | 0x8F => 2,                // BITSET, BITCLR, BITTEST
+            0x8D | 0x8E | 0x8F => 2,               // BITSET, BITCLR, BITTEST
             _ => 0,                                // unreachable for cacheable opcodes
         }
     }
