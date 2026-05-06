@@ -554,7 +554,6 @@ copy_line:
     ; ── Status bar ──
     CALL draw_status
 
-    POP r31
     RET
 
 ; =========================================
@@ -615,7 +614,6 @@ cursor_done:
 ; =========================================
 draw_status:
     ; Expects r1 = 1
-    PUSH r31
     ; Status bar at bottom of screen
     LDI r1, 0
     LDI r2, 248
@@ -668,7 +666,6 @@ draw_status:
     LDI r3, SCRATCH
     TEXT r1, r2, r3
 
-    POP r31
     RET
 
 ; =========================================

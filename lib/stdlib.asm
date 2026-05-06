@@ -263,11 +263,11 @@ itoa_loop:
     ADD r12, r3
     JMP itoa_loop
 itoa_reverse:
-    ; Reverse digits in-place: r11=start, r12=past-end
+    ; Reverse digits in-place: r11=start, r12=past-end (preserved for null term)
     MOV r1, r11            ; dst = start
+    MOV r14, r12           ; src = past-end
     LDI r3, 1
-    SUB r12, r3            ; r12 = last digit pos
-    MOV r14, r12           ; src = last digit pos
+    SUB r14, r3            ; r14 = last digit pos
 itoa_rev_loop:
     ; Check if src <= dst: reversal complete (avoids overwrite)
     ; First check src == dst (middle element)
@@ -286,7 +286,7 @@ itoa_rev_loop:
     JMP itoa_rev_loop
 itoa_done:
     LDI r0, 0
-    STORE r1, r0           ; null terminate
+    STORE r12, r0           ; null terminate at past-end (r12 preserved)
     MOV r0, r11
     POP r14
     POP r13
