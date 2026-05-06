@@ -2584,7 +2584,7 @@ phases:
   _claimed_at: 1778060054
 - id: phase-223
   title: GeOS VM -- Program Library (lib/) Standardization
-  status: in_progress
+  status: complete
   goal: Audit and standardize the programs/lib/ assembly library with proper documentation
     and test coverage
   description: The programs/lib/ directory contains stdlib.asm, math.asm, stdio.asm,
@@ -2595,7 +2595,7 @@ phases:
     verify the routines work.
   deliverables:
   - name: Standardized and tested program library
-    status: todo
+    status: done
     tasks:
     - id: p223.d1.t1
       title: Audit and fix .include paths in all lib files
@@ -2608,6 +2608,7 @@ phases:
       - programs/lib/stdio.asm
       - programs/lib/time.asm
       scope_lines: 80
+      status: done
     - id: p223.d1.t2
       title: Add missing utility routines
       description: Add mem_copy(src, dst, len), mem_set(addr, val, len), strcmp(s1,
@@ -2617,6 +2618,7 @@ phases:
       scope_files:
       - programs/lib/stdlib.asm
       scope_lines: 100
+      status: done
     - id: p223.d1.t3
       title: Add integration tests for each library file
       description: For each lib/*.asm file, write a test program that .includes it,
@@ -2625,10 +2627,9 @@ phases:
       scope_files:
       - tests/program_tests.rs
       scope_lines: 120
+      status: done
   test_target: 3
   scope_lines_total: 300
-  _claimed_by: worker-0
-  _claimed_at: 1778066412
 - id: phase-224
   title: RISC-V Guest -- Conway's Life with Framebuffer Rendering
   status: complete
