@@ -2392,7 +2392,7 @@ phases:
     are pre-existing unrelated capability_tests).
 - id: phase-219
   title: GeOS VM -- Memory-Mapped Screen Buffer Readback
-  status: planned
+  status: done
   goal: Let VM programs read the screen buffer via LOAD from 0x10000-0x1FFFF
   description: The screen buffer at 0x10000-0x1FFFF (256x256 pixels, mapped to vm.screen)
     already supports writes for SETPIXEL-style rendering, but LOAD from this region
@@ -2403,7 +2403,7 @@ phases:
     lets programs bulk-copy screen regions.
   deliverables:
   - name: Screen buffer LOAD readback
-    status: todo
+    status: done
     tasks:
     - id: p219.d1.t1
       title: Wire LOAD from 0x10000 to read vm.screen
@@ -2432,7 +2432,7 @@ phases:
   test_target: 3
   scope_lines_total: 100
   _claimed_by: worker-0
-  _claimed_at: 1778024171
+  _claimed_at: 1778046723
 - id: phase-220
   title: RISC-V Guest -- Mandelbrot Fractal Renderer
   status: planned
@@ -2741,7 +2741,7 @@ phases:
   _claimed_at: 1778043907
 - id: phase-227
   title: GeOS VM -- Debugging Opcode BREAKPOINT
-  status: in_progress
+  status: done
   goal: Add a hardware breakpoint opcode that triggers the VM debugger
   description: The VM has software breakpoints (set via the bp command in terminal),
     but programs cannot set their own breakpoints. A BREAKPOINT opcode (0xCA) that
