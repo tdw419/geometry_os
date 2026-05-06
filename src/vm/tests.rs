@@ -28274,3 +28274,426 @@ fn debug_trace_lib_test_v4() {
         vm.step();
     }
 }
+
+#[test]
+fn trace_itoa_region() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
+    
+    // Find itoa: PUSH r10 (0xE0 0x0A) followed by PUSH r11 (0xE0 0x0B) etc
+    for i in 0x500..0x800 {
+        if result.pixels[i] == 0x0A && i > 0 && result.pixels[i-1] == 0xE0 {
+            if i+8 < result.pixels.len() 
+                && result.pixels[i+1] == 0x0B && result.pixels[i+2] == 0xE0
+                && result.pixels[i+3] == 0x0C && result.pixels[i+4] == 0xE0
+                && result.pixels[i+5] == 0x0D && result.pixels[i+6] == 0xE0
+                && result.pixels[i+7] == 0x0E {
+                eprintln!("itoa at 0x{:04X}", i-1);
+                for j in (i-1)..std::cmp::min(i+80, result.pixels.len()) {
+                    eprintln!("  [0x{:04X}] = 0x{:08X}", j, result.pixels[j]);
+                }
+            }
+        }
+    }
+    
+    // Print what's at final PC 0x0E88
+    eprintln!("\n--- At 0x0E80-0x0EA0 ---");
+    for i in 0x0E80..std::cmp::min(0x0EA0, result.pixels.len()) {
+        eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
+    }
+    
+    // Run and track PC hotspots
+    let mut vm = crate::vm::Vm::new();
+    vm.regs[30] = 0xFF00;
+    for (i, &word) in result.pixels.iter().enumerate() {
+        vm.ram[i] = word;
+    }
+    
+    let mut pc_counts = std::collections::HashMap::new();
+    for _ in 0..500_000 {
+        if vm.halted { break; }
+        let pc = vm.pc;
+        *pc_counts.entry(pc).or_insert(0u64) += 1;
+        vm.step();
+    }
+    
+    eprintln!("\nTop 10 hot PCs:");
+    let mut sorted: Vec<_> = pc_counts.into_iter().collect();
+    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    for (pc, count) in sorted.iter().take(10) {
+        let opcode = vm.ram[*pc as usize];
+        eprintln!("  PC=0x{:04X}: {} visits, opcode=0x{:02X}", pc, count, opcode);
+    }
+    
+    eprintln!("\nFinal: PC=0x{:04X} halted={}", vm.pc, vm.halted);
+    for i in 0..56 {
+        let addr = 0x1F80 + i;
+        let val = vm.ram[addr];
+        if val != 1 {
+            eprintln!("  T{} (0x{:04X}): FAIL val={}", i+1, addr, val);
+        }
+    }
+}
+
+#[test]
+fn trace_rng_calls() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
+    
+    let mut vm = crate::vm::Vm::new();
+    vm.regs[30] = 0xFF00;
+    for (i, &word) in result.pixels.iter().enumerate() {
+        vm.ram[i] = word;
+    }
+    
+    // Find _rng_ensure_init: LDI r9, PRNG_INIT (0x10 0x09 0xFC4)
+    let mut ensure_init_addr = 0u32;
+    for i in 0x500..0xF00 {
+        if i + 2 < result.pixels.len()
+            && result.pixels[i] == 0x10
+            && result.pixels[i+1] == 0x09
+            && result.pixels[i+2] == 0xFC4
+        {
+            ensure_init_addr = i as u32;
+            break;
+        }
+    }
+    
+    // Find rng_next: CALL to _rng_ensure_init (0x33 <addr>)
+    let mut rng_next_addr = 0u32;
+    for i in 0x500..0xF00 {
+        if i + 1 < result.pixels.len()
+            && result.pixels[i] == 0x33
+            && result.pixels[i+1] == ensure_init_addr
+        {
+            rng_next_addr = i as u32;
+            break;
+        }
+    }
+    
+    eprintln!("_rng_ensure_init=0x{:04X}, rng_next=0x{:04X}", ensure_init_addr, rng_next_addr);
+    
+    let mut call_count = 0u64;
+    let mut callers = std::collections::HashMap::new();
+    
+    for _ in 0..500_000 {
+        if vm.halted { break; }
+        let pc = vm.pc;
+        if pc == rng_next_addr {
+            call_count += 1;
+            let sp = vm.regs[30];
+            let return_addr = vm.ram[sp as usize];
+            *callers.entry(return_addr).or_insert(0u64) += 1;
+            if call_count <= 5 || call_count % 5000 == 0 {
+                eprintln!("rng_next #{} from return=0x{:04X} SP=0x{:04X}", call_count, return_addr, sp);
+            }
+        }
+        vm.step();
+    }
+    
+    eprintln!("\nTotal rng_next calls: {}", call_count);
+    let mut sorted: Vec<_> = callers.into_iter().collect();
+    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    for (addr, count) in &sorted {
+        eprintln!("  from 0x{:04X}: {} calls", addr, count);
+    }
+}
+
+#[test]
+fn trace_rng_entry() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
+    
+    let mut vm = crate::vm::Vm::new();
+    vm.regs[30] = 0xFF00;
+    for (i, &word) in result.pixels.iter().enumerate() {
+        vm.ram[i] = word;
+    }
+    
+    // The rng_next body starts at 0x0E58 (LDI r9, PRNG_SEED)
+    // Track what PC comes BEFORE 0x0E58
+    let body_entry = 0x0E58u32;
+    let mut entry_count = 0u64;
+    let mut prev_pcs = std::collections::HashMap::new();
+    let mut prev_pc = 0u32;
+    
+    for step in 0..500_000 {
+        if vm.halted { break; }
+        let pc = vm.pc;
+        if pc == body_entry && step > 0 {
+            entry_count += 1;
+            *prev_pcs.entry(prev_pc).or_insert(0u64) += 1;
+            if entry_count <= 5 || entry_count % 5000 == 0 {
+                eprintln!("entry #{} at step {}, prev_pc=0x{:04X}, r0={}, r9={}", 
+                    entry_count, step, prev_pc, vm.regs[0], vm.regs[9]);
+            }
+        }
+        prev_pc = pc;
+        vm.step();
+    }
+    
+    eprintln!("\nTotal entries to rng body: {}", entry_count);
+    let mut sorted: Vec<_> = prev_pcs.into_iter().collect();
+    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    for (addr, count) in &sorted {
+        eprintln!("  prev_pc=0x{:04X}: {} times", addr, count);
+    }
+}
+
+#[test]
+fn dump_rng_area() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
+    
+    eprintln!("--- rng_next area (0x0E50-0x0E90) ---");
+    for i in 0x0E50..0x0E90 {
+        eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
+    }
+    
+    // Also check what addresses the test code uses for CALL rng_next
+    // T47: LDI r1, 42 / CALL rng_init / CALL rng_next
+    // Find rng_init: LDI r9, PRNG_INIT
+    let mut rng_init_addr = 0u32;
+    for i in 0x500..0xF00 {
+        if i + 2 < result.pixels.len()
+            && result.pixels[i] == 0x10
+            && result.pixels[i+1] == 0x09
+            && result.pixels[i+2] == 0xFC4
+        {
+            rng_init_addr = i as u32;
+            eprintln!("rng_init at 0x{:04X}", rng_init_addr);
+            break;
+        }
+    }
+    
+    // Find all CALL instructions that target rng_next (0x0E53) or rng_init
+    eprintln!("\n--- CALL targets ---");
+    for i in 0x1100..0x1200 {
+        if result.pixels[i] == 0x33 {
+            let target = result.pixels[i+1];
+            if target == 0x0E53 || target == rng_init_addr {
+                eprintln!("  CALL at 0x{:04X} -> 0x{:04X}", i, target);
+            }
+        }
+    }
+    
+    // Check how many registers the VM has
+    eprintln!("\nNUM_REGS = {}", crate::vm::NUM_REGS);
+}
+
+#[test]
+fn dump_ensure_init() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
+    
+    eprintln!("--- _rng_ensure_init (0x0E10-0x0E57) ---");
+    for i in 0x0E10..0x0E57 {
+        eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
+    }
+}
+
+#[test]
+fn trace_test_progression() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
+    
+    let mut vm = crate::vm::Vm::new();
+    vm.regs[30] = 0xFF00;
+    for (i, &word) in result.pixels.iter().enumerate() {
+        vm.ram[i] = word;
+    }
+    
+    // Track when each test slot gets written
+    let mut test_write_steps = [0u64; 56];
+    let mut prev_vals = [0u32; 56];
+    
+    // Track when we first enter 0x0E47+ area (random lib)
+    let mut first_random_entry = None;
+    
+    for step in 0..500_000u64 {
+        if vm.halted { break; }
+        let pc = vm.pc;
+        
+        // Detect entry to random library
+        if pc >= 0x0E47 && pc <= 0x0E90 && first_random_entry.is_none() && step > 100 {
+            first_random_entry = Some(step);
+            eprintln!("First random lib entry at step {}, PC=0x{:04X}", step, pc);
+            eprintln!("  r31=0x{:04X} SP=0x{:04X} r0={} r1={}", vm.regs[31], vm.regs[30], vm.regs[0], vm.regs[1]);
+            // Print last few test writes
+            for i in 0..56 {
+                if test_write_steps[i] > 0 {
+                    eprintln!("  T{} written at step {} val={}", i+1, test_write_steps[i], vm.ram[0x1F80+i]);
+                }
+            }
+        }
+        
+        vm.step();
+        
+        // Check test slots
+        for i in 0..56 {
+            let val = vm.ram[0x1F80 + i];
+            if val != prev_vals[i] {
+                test_write_steps[i] = step;
+                prev_vals[i] = val;
+            }
+        }
+    }
+    
+    eprintln!("\nTest write steps:");
+    for i in 0..56 {
+        let val = vm.ram[0x1F80 + i];
+        if test_write_steps[i] > 0 {
+            eprintln!("  T{}: step {} val={}", i+1, test_write_steps[i], val);
+        } else {
+            eprintln!("  T{}: NEVER WRITTEN val={}", i+1, val);
+        }
+    }
+    
+    if let Some(s) = first_random_entry {
+        eprintln!("\nRandom lib first entered at step {}", s);
+    }
+}
+
+#[test]
+fn dump_itoa_area() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
+    
+    // Find itoa: PUSH r10 (0xE0 0x0A) followed by PUSH r11 (0xE0 0x0B) etc
+    for i in 0x500..0x800 {
+        if i + 8 < result.pixels.len()
+            && result.pixels[i] == 0x0A && i > 0 && result.pixels[i-1] == 0xE0
+            && result.pixels[i+1] == 0x0B && result.pixels[i+2] == 0xE0
+            && result.pixels[i+3] == 0x0C && result.pixels[i+4] == 0xE0
+            && result.pixels[i+5] == 0x0D && result.pixels[i+6] == 0xE0
+            && result.pixels[i+7] == 0x0E
+        {
+            eprintln!("itoa at 0x{:04X}", i-1);
+            // Print itoa function (about 80 instructions)
+            for j in (i-1)..std::cmp::min(i+80, result.pixels.len()) {
+                let b = result.pixels[j];
+                let desc = match b {
+                    0x10 => "LDI",
+                    0x11 => "LOAD",
+                    0x12 => "STORE",
+                    0x20 => "ADD",
+                    0x21 => "SUB",
+                    0x26 => "XOR",
+                    0x27 => "SHL",
+                    0x28 => "SHR",
+                    0x29 => "MOD",
+                    0x2A => "DIV",
+                    0x30 => "JMP",
+                    0x31 => "JZ",
+                    0x32 => "JNZ",
+                    0x33 => "CALL",
+                    0x34 => "RET",
+                    0x35 => "BLT",
+                    0x36 => "BGE",
+                    0x50 => "CMP",
+                    0x51 => "MOV",
+                    0xE0 => "PUSH",
+                    0xE1 => "POP",
+                    _ => "???",
+                };
+                eprintln!("  [0x{:04X}] = 0x{:08X}  {}", j, b, desc);
+            }
+            break;
+        }
+    }
+    
+    // Also dump test code around T9 (after T8 at ~0x1150)
+    eprintln!("\n--- Test code around T9 (0x1140-0x1180) ---");
+    for i in 0x1140..0x1180 {
+        eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
+    }
+}
+
+#[test]
+fn dump_test_harness_start() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
+    
+    // Dump first 64 words to see test harness start
+    eprintln!("--- Test harness start (0x0000-0x0040) ---");
+    for i in 0..0x40 {
+        eprintln!("  [0x{:04X}] = 0x{:08X}", i, result.pixels[i]);
+    }
+    
+    // Find _pass and _fail by looking for the write-to-slot pattern
+    // _pass writes 1 to address in r9, _fail writes 0
+    // Pattern: LDI r0, 1 / STORE r9, 0 / RET
+    for i in 0..0x100 {
+        if result.pixels[i] == 0x10  // LDI
+            && result.pixels[i+1] == 0  // r0
+            && result.pixels[i+2] == 1  // value 1
+            && result.pixels[i+3] == 0x12  // STORE
+            && result.pixels[i+4] == 9  // r9
+            && result.pixels[i+5] == 0  // offset 0
+            && result.pixels[i+6] == 0x34  // RET
+        {
+            eprintln!("_pass found at 0x{:04X}", i);
+        }
+        if result.pixels[i] == 0x10  // LDI
+            && result.pixels[i+1] == 0  // r0
+            && result.pixels[i+2] == 0  // value 0
+            && result.pixels[i+3] == 0x12  // STORE
+            && result.pixels[i+4] == 9  // r9
+            && result.pixels[i+5] == 0  // offset 0
+            && result.pixels[i+6] == 0x34  // RET
+        {
+            eprintln!("_fail found at 0x{:04X}", i);
+        }
+    }
+}
+
+#[test]
+fn trace_t9_execution() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
+    
+    let mut vm = crate::vm::Vm::new();
+    vm.load_program(&result.pixels);
+    vm.pc = 0;
+    vm.regs[30] = 0xFF00; // SP
+    vm.regs[31] = 0; // LR
+    
+    // Watch for when r9 gets set to 0x1F87 (T8 slot) and then 0x1F88 (T9 slot)
+    let mut last_r9 = 0xFFFFFFFFu32;
+    let mut t8_found = false;
+    let mut step = 0u64;
+    let max_steps = 2000u64;
+    
+    while step < max_steps && !vm.halted {
+        let pc = vm.pc;
+        let prev_r9 = vm.regs[9];
+        
+        vm.step();
+        step += 1;
+        
+        // Detect when r9 changes
+        if vm.regs[9] != prev_r9 {
+            if vm.regs[9] == 0x1F87 {
+                eprintln!("Step {}: r9 set to 0x1F87 (T8 slot), PC was {}", step, pc);
+                t8_found = true;
+            }
+            if vm.regs[9] == 0x1F88 {
+                eprintln!("Step {}: r9 set to 0x1F88 (T9 slot), PC was {}", step, pc);
+            }
+        }
+        
+        // After T8 found, trace execution
+        if t8_found && step < 800 {
+            let opcode_word = result.pixels[pc as usize];
+            eprintln!("Step {}: PC=0x{:04X} opcode=0x{:02X} r0={} r1={} r31=0x{:04X}", 
+                step, pc, opcode_word, vm.regs[0], vm.regs[1], vm.regs[31]);
+        }
+    }
+    
+    eprintln!("VM halted={}, steps={}", vm.halted, step);
+    
+    // Check T9 slot
+    eprintln!("T8 (0x1F87) = {}", vm.ram[0x1F87]);
+    eprintln!("T9 (0x1F88) = {}", vm.ram[0x1F88]);
+    eprintln!("T10 (0x1F89) = {}", vm.ram[0x1F89]);
+}
