@@ -2459,9 +2459,9 @@ phases:
       status: done
     - id: p220.d1.t2
       title: Add zoom and pan controls
-      description: 'WASD pan, +/- zoom in/out. Store center coordinates and scale
-        as fixed-point. Re-render on input. Display coordinates in bottom HUD
-        using geos_draw_string. R to reset view, Q to quit.'
+      description: WASD pan, +/- zoom in/out. Store center coordinates and scale as
+        fixed-point. Re-render on input. Display coordinates in bottom HUD using geos_draw_string.
+        R to reset view, Q to quit.
       scope_files:
       - examples/riscv-hello/mandelbrot.c
       scope_lines: 80
@@ -2469,9 +2469,10 @@ phases:
     - id: p220.d1.t3
       title: Add build.sh entry and visual verification
       description: 'Build.sh already handles any .c file via --all. Updated mandelbrot_run.rs
-        with proper RGB-based black detection (pixel format 0xRRGGBBAA). All 5 checks pass:
-        non-black pixels > 1000, color diversity > 50, center is black, corner is colored,
-        vertical symmetry. ASCII preview shows clear Mandelbrot cardioid shape.'
+        with proper RGB-based black detection (pixel format 0xRRGGBBAA). All 5 checks
+        pass: non-black pixels > 1000, color diversity > 50, center is black, corner
+        is colored, vertical symmetry. ASCII preview shows clear Mandelbrot cardioid
+        shape.'
       scope_files:
       - examples/riscv-hello/build.sh
       - examples/mandelbrot_run.rs
@@ -2484,7 +2485,7 @@ phases:
   _completed_at: 1778048500
 - id: phase-221
   title: GeOS VM -- Clipboard Protocol Enhancement
-  status: planned
+  status: in_progress
   goal: Extend the system clipboard (0xF010-0xF01F) with multi-format copy/paste and
     clipboard history
   description: 'The clipboard protocol at 0xF010-0xF01F supports basic pixel-region
@@ -2527,7 +2528,7 @@ phases:
   test_target: 3
   scope_lines_total: 200
   _claimed_by: worker-0
-  _claimed_at: 1778030729
+  _claimed_at: 1778049551
 - id: phase-222
   title: GeOS VM -- Timer and Alarm Opcodes
   status: planned
