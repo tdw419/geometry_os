@@ -408,18 +408,48 @@ impl Vm {
                 }
             }
 
-            // CALL addr
+            // CALL addr -- push old r31 onto stack, set r31 = return addr, jump
             0x33 => {
                 if NUM_REGS > 0 {
+                    let sp = self.regs[30];
+                    if sp > 0 {
+                        let new_sp = sp - 1;
+                        match self.translate_va_or_fault(new_sp) {
+                            Some(pa) if pa < self.ram.len() => {
+                                self.ram[pa] = self.regs[31];
+                                self.regs[30] = new_sp;
+                            }
+                            None => {
+                                self.trigger_segfault();
+                                return Some(false);
+                            }
+                            _ => {}
+                        }
+                    }
                     self.regs[31] = self.pc;
                 }
                 self.pc = ops[0];
                 return Some(true);
             }
 
-            // RET
+            // RET -- jump to r31, then pop saved r31 from stack
             0x34 => {
-                self.pc = self.regs[31];
+                let ret_addr = self.regs[31];
+                if NUM_REGS > 0 {
+                    let sp = self.regs[30];
+                    match self.translate_va_or_fault(sp) {
+                        Some(pa) if pa < self.ram.len() => {
+                            self.regs[31] = self.ram[pa];
+                            self.regs[30] = sp + 1;
+                        }
+                        None => {
+                            self.trigger_segfault();
+                            return Some(false);
+                        }
+                        _ => {}
+                    }
+                }
+                self.pc = ret_addr;
                 return Some(true);
             }
 

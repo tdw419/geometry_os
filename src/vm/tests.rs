@@ -28276,6 +28276,58 @@ fn debug_trace_lib_test_v4() {
 }
 
 #[test]
+fn dump_hotloop_area() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
+    
+    // Run VM for 500K steps tracking writes to 0x1F80-0x1FB7
+    let mut vm = crate::vm::Vm::new();
+    vm.regs[30] = 0xFF00;
+    for (i, &word) in result.pixels.iter().enumerate() {
+        vm.ram[i] = word;
+    }
+    
+    let mut write_log: std::collections::HashMap<u32, (u64, u32, u32)> = std::collections::HashMap::new(); // addr -> (step, value, pc)
+    let mut write_count: u64 = 0;
+    
+    for step in 0..500_000 {
+        if vm.halted { break; }
+        let pc = vm.pc;
+        // Check if current instruction is STORE and target addr is in result area
+        let opcode = vm.ram[pc as usize];
+        if opcode == 0x12 { // STORE
+            let addr_reg = vm.ram[(pc + 1) as usize];
+            if addr_reg < 32 {
+                let target_addr = vm.regs[addr_reg as usize];
+                if target_addr >= 0x1F80 && target_addr <= 0x1FB7 {
+                    let val_reg = vm.ram[(pc + 2) as usize];
+                    let val = if val_reg < 32 { vm.regs[val_reg as usize] } else { 0 };
+                    write_log.insert(target_addr, (step, val, pc));
+                    write_count += 1;
+                }
+            }
+        }
+        vm.step();
+    }
+    
+    eprintln!("Total writes to result area: {}", write_count);
+    eprintln!("VM halted: {}", vm.halted);
+    eprintln!("Final PC: 0x{:04X}", vm.pc);
+    
+    // Print all test results
+    for i in 0..56 {
+        let addr = 0x1F80 + i;
+        let val = vm.ram[addr];
+        if let Some(&(step, wval, wpc)) = write_log.get(&(addr as u32)) {
+            eprintln!("  T{} (0x{:04X}): final={} written at step={} val={} from PC=0x{:04X}", 
+                i+1, addr, val, step, wval, wpc);
+        } else {
+            eprintln!("  T{} (0x{:04X}): final={} (never written)", i+1, addr, val);
+        }
+    }
+}
+
+#[test]
 fn trace_itoa_region() {
     let source = std::fs::read_to_string("programs/lib_test_v4.asm").unwrap();
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
