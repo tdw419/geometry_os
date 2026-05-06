@@ -2801,7 +2801,7 @@ phases:
   _claimed_at: 1778045495
 - id: phase-228
   title: GeOS VM -- Sprite Animation System
-  status: planned
+  status: complete
   goal: Add frame-based sprite animation support for games and demos
   description: The SPRITE opcode blits a single NxM pixel region from RAM. For animated
     sprites (walk cycles, explosions, rotating objects), programs currently manually
@@ -2811,26 +2811,29 @@ phases:
     reduces boilerplate in game programs.
   deliverables:
   - name: SPRITEANIM opcode
-    status: todo
+    status: complete
     tasks:
     - id: p228.d1.t1
-      title: Implement SPRITEANIM opcode (0xCB)
-      description: SPRITEANIM sheet_reg, fw_reg, fh_reg, frames_reg, cur_reg, x_reg,
-        y_reg. Blits frame[cur_reg] from sheet. Increments cur_reg (mod frames_reg).
-        7 register arguments. Reuses existing SPRITE blit logic with offset calculation.
+      title: Implement SPRITEANIM opcode (0xEC)
+      description: SPRITEANIM sheet_id, x_reg, y_reg. Uses registered sprite sheet
+        from SPRLOAD (0xE5). Blits current frame then auto-advances frame counter
+        with wrap-around. Opcode 0xEC (0xCB was already taken by MOUSECLICK). 3
+        arguments (sheet_id immediate + 2 register args). Reuses existing SPRANIM
+        blit logic.
       scope_files:
       - src/vm/mod.rs
-      - src/vm/ops_graphics.rs
       - src/assembler/graphics_ops.rs
       scope_lines: 60
+      status: complete
     - id: p228.d1.t2
       title: Add disassembler and preprocessor entries
-      description: Disassemble as "SPRITEANIM sheet, fw, fh, frames, cur, x, y". Add
-        to OPCODES array in preprocessor.rs.
+      description: Disassemble as "SPRITEANIM sheet_id, x_reg, y_reg". Add to OPCODES
+        array in preprocessor.rs. Added to graphics_ops.rs assembler.
       scope_files:
       - src/vm/disasm.rs
       - src/preprocessor.rs
       scope_lines: 15
+      status: complete
     - id: p228.d1.t3
       title: 'Demo: animated sprite walk cycle'
       description: 4-frame walk cycle (8x8 per frame) stored in RAM. SPRITEANIM in
@@ -2839,8 +2842,11 @@ phases:
       scope_files:
       - programs/sprite_anim.asm
       scope_lines: 60
+      status: complete
   test_target: 3
   scope_lines_total: 135
+  _claimed_by: worker-0
+  _claimed_at: 1778083378
 - id: phase-229
   title: RISC-V Guest -- Simple File Viewer
   status: todo

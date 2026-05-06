@@ -27510,6 +27510,159 @@ fn test_sprite_load_then_blit() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// SPRITEANIM opcode tests (0xEC) -- auto-advancing sprite animation
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_spriteanim_blits_and_advances() {
+    // SPRITEANIM should blit the current frame and auto-advance the frame counter
+    let mut vm = Vm::new();
+
+    // Register sheet 0 at 0x3000, 2x2 frames, 4 total frames
+    // Frame 0: red, Frame 1: green, Frame 2: blue, Frame 3: yellow
+    vm.regs[1] = 0x3000; vm.regs[2] = 2; vm.regs[3] = 2; vm.regs[4] = 4;
+    vm.ram[0] = 0xE5; vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.pc = 0; vm.step();
+
+    // Fill frame data: 4 frames of 2x2 = 4 pixels each = 16 pixels total
+    let colors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00];
+    for frame in 0..4 {
+        for pixel in 0..4 {
+            vm.ram[0x3000 + frame * 4 + pixel] = colors[frame];
+        }
+    }
+
+    // SPRITEANIM sheet_id=0, x=r5=10, y=r6=20
+    vm.regs[5] = 10;
+    vm.regs[6] = 20;
+    vm.ram[10] = 0xEC; vm.ram[11] = 0; vm.ram[12] = 5; vm.ram[13] = 6;
+    vm.pc = 10; vm.step();
+
+    // Should blit frame 0 (red) at (10, 20)
+    assert_eq!(vm.screen[20 * 256 + 10], 0xFF0000, "frame 0 should be red");
+    assert_eq!(vm.screen[21 * 256 + 11], 0xFF0000, "frame 0 corner should be red");
+    // Frame counter should have advanced to 1
+    assert_eq!(vm.sprite_sheets[0].current_frame, 1, "frame should advance to 1");
+
+    // Second call: blits frame 1 (green)
+    vm.pc = 10; vm.step();
+    assert_eq!(vm.screen[20 * 256 + 10], 0x00FF00, "frame 1 should be green");
+    assert_eq!(vm.sprite_sheets[0].current_frame, 2, "frame should advance to 2");
+
+    // Third call: blits frame 2 (blue)
+    vm.pc = 10; vm.step();
+    assert_eq!(vm.screen[20 * 256 + 10], 0x0000FF, "frame 2 should be blue");
+    assert_eq!(vm.sprite_sheets[0].current_frame, 3, "frame should advance to 3");
+
+    // Fourth call: blits frame 3 (yellow)
+    vm.pc = 10; vm.step();
+    assert_eq!(vm.screen[20 * 256 + 10], 0xFFFF00, "frame 3 should be yellow");
+    assert_eq!(vm.sprite_sheets[0].current_frame, 0, "frame should wrap to 0");
+}
+
+#[test]
+fn test_spriteanim_transparency() {
+    // Transparent pixels (0) should be skipped
+    let mut vm = Vm::new();
+
+    // Register sheet at 0x3000, 2x2, 2 frames
+    vm.regs[1] = 0x3000; vm.regs[2] = 2; vm.regs[3] = 2; vm.regs[4] = 2;
+    vm.ram[0] = 0xE5; vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.pc = 0; vm.step();
+
+    // Frame 0: checkerboard (red, transparent, transparent, red)
+    vm.ram[0x3000] = 0xFF0000; vm.ram[0x3001] = 0; vm.ram[0x3002] = 0; vm.ram[0x3003] = 0xFF0000;
+    // Frame 1: all green
+    vm.ram[0x3004] = 0x00FF00; vm.ram[0x3005] = 0x00FF00; vm.ram[0x3006] = 0x00FF00; vm.ram[0x3007] = 0x00FF00;
+
+    // Pre-fill screen with white at blit position
+    vm.screen[10 * 256 + 10] = 0xFFFFFF;
+    vm.screen[10 * 256 + 11] = 0xFFFFFF;
+    vm.screen[11 * 256 + 10] = 0xFFFFFF;
+    vm.screen[11 * 256 + 11] = 0xFFFFFF;
+
+    // SPRITEANIM at (10, 10)
+    vm.regs[5] = 10; vm.regs[6] = 10;
+    vm.ram[10] = 0xEC; vm.ram[11] = 0; vm.ram[12] = 5; vm.ram[13] = 6;
+    vm.pc = 10; vm.step();
+
+    // Red pixels should overwrite, transparent should preserve background
+    assert_eq!(vm.screen[10 * 256 + 10], 0xFF0000, "red pixel");
+    assert_eq!(vm.screen[10 * 256 + 11], 0xFFFFFF, "transparent preserves white");
+    assert_eq!(vm.screen[11 * 256 + 10], 0xFFFFFF, "transparent preserves white");
+    assert_eq!(vm.screen[11 * 256 + 11], 0xFF0000, "red pixel");
+}
+
+#[test]
+fn test_spriteanim_invalid_sheet() {
+    let mut vm = Vm::new();
+    vm.regs[5] = 10; vm.regs[6] = 20;
+    vm.ram[0] = 0xEC; vm.ram[1] = 0; vm.ram[2] = 5; vm.ram[3] = 6;
+    vm.pc = 0; vm.step();
+    assert_eq!(vm.regs[0], 0xFFFFFFFF, "should return error for inactive sheet");
+}
+
+#[test]
+fn test_spriteanim_disasm() {
+    let mut vm = Vm::new();
+    vm.ram[0] = 0xEC;
+    vm.ram[1] = 2;
+    vm.ram[2] = 7;
+    vm.ram[3] = 8;
+    let s = vm.disassemble_at(0);
+    assert_eq!(s.0, "SPRITEANIM 2, r7, r8");
+    assert_eq!(s.1, 4);
+}
+
+#[test]
+fn test_spriteanim_assembler() {
+    let source = r#"
+LDI r5, 10
+LDI r6, 20
+SPRITEANIM 3, r5, r6
+HALT
+"#;
+    let asm = crate::assembler::assemble(source, 0).expect("should assemble");
+    // Find SPRITEANIM bytecode: 0xEC, 3, 5, 6
+    let code = &asm.pixels;
+    let found = code.windows(4).any(|w| w[0] == 0xEC && w[1] == 3 && w[2] == 5 && w[3] == 6);
+    assert!(found, "SPRITEANIM bytecode should be present");
+}
+
+#[test]
+fn test_spriteanim_vs_spranim_difference() {
+    // SPRANIM (0xE7) does NOT advance the frame counter
+    // SPRITEANIM (0xEC) DOES advance it
+    let mut vm = Vm::new();
+
+    // Register sheet at 0x3000, 2x2, 3 frames
+    vm.regs[1] = 0x3000; vm.regs[2] = 2; vm.regs[3] = 2; vm.regs[4] = 3;
+    vm.ram[0] = 0xE5; vm.ram[1] = 0; vm.ram[2] = 1; vm.ram[3] = 2; vm.ram[4] = 3; vm.ram[5] = 4;
+    vm.pc = 0; vm.step();
+
+    for i in 0..12 {
+        vm.ram[0x3000 + i] = 0xFF0000;
+    }
+
+    // Call SPRANIM twice -- frame counter should NOT advance
+    vm.regs[5] = 10; vm.regs[6] = 20;
+    vm.ram[10] = 0xE7; vm.ram[11] = 0; vm.ram[12] = 5; vm.ram[13] = 6;
+    vm.pc = 10; vm.step();
+    assert_eq!(vm.sprite_sheets[0].current_frame, 0, "SPRANIM should not advance frame");
+    vm.pc = 10; vm.step();
+    assert_eq!(vm.sprite_sheets[0].current_frame, 0, "SPRANIM still should not advance");
+
+    // Now call SPRITEANIM -- frame counter SHOULD advance
+    vm.ram[20] = 0xEC; vm.ram[21] = 0; vm.ram[22] = 5; vm.ram[23] = 6;
+    vm.pc = 20; vm.step();
+    assert_eq!(vm.sprite_sheets[0].current_frame, 1, "SPRITEANIM should advance to 1");
+    vm.pc = 20; vm.step();
+    assert_eq!(vm.sprite_sheets[0].current_frame, 2, "SPRITEANIM should advance to 2");
+    vm.pc = 20; vm.step();
+    assert_eq!(vm.sprite_sheets[0].current_frame, 0, "SPRITEANIM should wrap to 0");
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Collision detection library tests (lib/collision.asm)
 // ═══════════════════════════════════════════════════════════════
 

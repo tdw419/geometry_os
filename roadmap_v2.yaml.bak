@@ -2584,7 +2584,7 @@ phases:
   _claimed_at: 1778060054
 - id: phase-223
   title: GeOS VM -- Program Library (lib/) Standardization
-  status: in_progress
+  status: complete
   goal: Audit and standardize the programs/lib/ assembly library with proper documentation
     and test coverage
   description: The programs/lib/ directory contains stdlib.asm, math.asm, stdio.asm,
@@ -2595,7 +2595,7 @@ phases:
     verify the routines work.
   deliverables:
   - name: Standardized and tested program library
-    status: todo
+    status: done
     tasks:
     - id: p223.d1.t1
       title: Audit and fix .include paths in all lib files
@@ -2608,6 +2608,7 @@ phases:
       - programs/lib/stdio.asm
       - programs/lib/time.asm
       scope_lines: 80
+      status: done
     - id: p223.d1.t2
       title: Add missing utility routines
       description: Add mem_copy(src, dst, len), mem_set(addr, val, len), strcmp(s1,
@@ -2617,6 +2618,7 @@ phases:
       scope_files:
       - programs/lib/stdlib.asm
       scope_lines: 100
+      status: done
     - id: p223.d1.t3
       title: Add integration tests for each library file
       description: For each lib/*.asm file, write a test program that .includes it,
@@ -2625,10 +2627,9 @@ phases:
       scope_files:
       - tests/program_tests.rs
       scope_lines: 120
+      status: done
   test_target: 3
   scope_lines_total: 300
-  _claimed_by: worker-0
-  _claimed_at: 1778062950
 - id: phase-224
   title: RISC-V Guest -- Conway's Life with Framebuffer Rendering
   status: complete
@@ -2800,7 +2801,7 @@ phases:
   _claimed_at: 1778045495
 - id: phase-228
   title: GeOS VM -- Sprite Animation System
-  status: todo
+  status: planned
   goal: Add frame-based sprite animation support for games and demos
   description: The SPRITE opcode blits a single NxM pixel region from RAM. For animated
     sprites (walk cycles, explosions, rotating objects), programs currently manually
@@ -2881,7 +2882,7 @@ phases:
   scope_lines_total: 270
 - id: phase-230
   title: Error Resilience -- Replace pixel.rs unwrap() Calls
-  status: todo
+  status: planned
   goal: Eliminate all 17 unwrap() calls in pixel.rs with proper error propagation
   description: pixel.rs handles PNG decode/encode for pixelpack and .rts.png formats.
     It has 17 unwrap() calls that can panic on corrupt images, missing files, or malformed
@@ -2955,7 +2956,7 @@ phases:
   scope_lines_total: 160
 - id: phase-232
   title: GeOS VM -- Bit Manipulation Opcodes (BNOT, BSET, BCLR, BTST)
-  status: todo
+  status: planned
   goal: Add bitwise manipulation opcodes for efficient flag and bitfield operations
   description: Current bitwise ops (AND, OR, XOR, SHL, SHR, SAR) cover basic needs
     but programs doing bitfield manipulation (device registers, packed colors, sprite
@@ -3106,7 +3107,7 @@ phases:
   scope_lines_total: 270
 - id: phase-236
   title: GeOS VM -- Scanline Flood Fill Opcode (FLOOD)
-  status: todo
+  status: planned
   goal: Add a FLOOD opcode for efficient area filling from a seed point
   description: Current fills cover rectangles only. Programs needing irregular fills
     (paint bucket, territory marking) must implement flood fill manually at high step
@@ -3178,7 +3179,7 @@ phases:
   scope_lines_total: 130
 - id: phase-238
   title: GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY)
-  status: todo
+  status: planned
   goal: Add string manipulation opcodes for efficient text processing
   description: VM programs doing string work (shell, editor, file browser) use manual
     loops costing 5-10 instructions per character. Native STRLEN, STRCMP, and STRCPY
@@ -3216,7 +3217,7 @@ phases:
   scope_lines_total: 160
 - id: phase-239
   title: GeOS VM -- Block Memory Opcodes (MEMCPY, MEMSET)
-  status: todo
+  status: planned
   goal: Add block memory operations to eliminate manual word-by-word copy loops
   description: Many programs copy or fill RAM blocks at 3-5 instructions per word.
     MEMCPY and MEMSET handle these internally, reducing bytecode size and step count
@@ -3435,7 +3436,7 @@ phases:
   scope_lines_total: 220
 - id: phase-245
   title: Test Coverage -- ops_host_fs.rs and ops_pty.rs Unit Tests
-  status: todo
+  status: planned
   goal: Add comprehensive unit tests for the two largest untested VM opcode modules
   description: ops_host_fs.rs (352 lines, 0 tests) handles HOST_READ, HOST_WRITE,
     HOST_LIST, HOST_DELETE opcodes that give VM programs access to the host filesystem.
@@ -3488,7 +3489,7 @@ phases:
   scope_lines_total: 360
 - id: phase-246
   title: Test Coverage -- ops_syscall.rs Unit Tests
-  status: todo
+  status: planned
   goal: Add unit tests for the VM syscall dispatch module
   description: ops_syscall.rs (469 lines, 0 tests) handles the SYSCALL opcode dispatch
     table, mapping syscall numbers to handler functions. Zero test coverage means

@@ -222,6 +222,7 @@ pub const OPCODES: &[&str] = &[
     "SPRLOAD",
     "SPRFRAME",
     "SPRANIM",
+    "SPRITEANIM",
     // Phase 222: Wall-clock timer and alarm opcodes
     "TMR_GET",
     "TMR_WAIT",

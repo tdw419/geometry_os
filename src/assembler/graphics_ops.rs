@@ -407,6 +407,26 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        "SPRITEANIM" => {
+            // SPRITEANIM sheet_id, x_reg, y_reg
+            // sheet_id is an immediate (0-15), x_reg and y_reg are registers
+            // Blits current frame then auto-advances frame counter with wrap-around
+            if tokens.len() < 4 {
+                return Err(
+                    "SPRITEANIM requires 3 arguments: SPRITEANIM sheet_id, x_reg, y_reg"
+                        .to_string(),
+                );
+            }
+            let sheet_id: u32 = tokens[1]
+                .parse()
+                .map_err(|_| format!("invalid sheet_id: {}", tokens[1]))?;
+            bytecode.push(0xEC);
+            bytecode.push(sheet_id);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            Ok(Some(()))
+        }
+
         _ => Ok(None),
     }
 }

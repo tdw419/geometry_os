@@ -2408,9 +2408,9 @@ impl Vm {
             }
 
             // ALARM_CLR slot_reg  (0xEB) -- Cancel a pending wall-clock alarm.
-            // Deactivates the alarm at the given slot index (0-7).
+            // ALARM_CLR slot_reg  (0xEB) -- Cancel a pending wall-clock alarm.
             // Encoding: 2 words [0xEB, slot_reg]
-            // Returns: r0 = 0 on success, 0xFFFFFFFF if slot invalid or not active
+            // Returns: r0 = 0 on success, 0xFFFFFFFF on error (invalid register or inactive slot).
             0xEB => {
                 let sr = self.fetch() as usize;
                 if sr < NUM_REGS {
@@ -2424,7 +2424,61 @@ impl Vm {
                 }
             }
 
-            // BITSET rd, bit_reg  (0x8D) -- rd |= 1 << bit_reg
+            // SPRITEANIM sheet_id, x_reg, y_reg  (0xEC)
+            // Blit the current frame of a registered sprite sheet to the screen,
+            // then auto-advance the frame counter with wrap-around.
+            // Unlike SPRANIM (0xE7) which only blits the current frame,
+            // SPRITEANIM increments current_frame after each blit (mod total_frames).
+            // This eliminates boilerplate in game loops: one instruction per frame instead
+            // of SPRFRAME + SPRANIM + ADD + MOD sequence.
+            // sheet_id is an immediate (0-15). Uses the frame_w/frame_h from SPRLOAD.
+            // Pixels with value 0 are transparent (skipped).
+            // Encoding: 4 words [0xEC, sheet_id, x_reg, y_reg]
+            // Returns: r0 = 0 on success, 0xFFFFFFFF on error.
+            0xEC => {
+                let sheet_id = self.fetch() as usize;
+                let xr = self.fetch() as usize;
+                let yr = self.fetch() as usize;
+                if sheet_id < MAX_SPRITE_SHEETS
+                    && xr < NUM_REGS
+                    && yr < NUM_REGS
+                    && self.sprite_sheets[sheet_id].active
+                {
+                    // Copy sheet metadata out to avoid borrow conflict with set_pixel_clipped
+                    let sheet = self.sprite_sheets[sheet_id];
+                    let sx = self.regs[xr] as usize;
+                    let sy = self.regs[yr] as usize;
+                    let fw = sheet.frame_w as usize;
+                    let fh = sheet.frame_h as usize;
+                    let current_frame = sheet.current_frame as usize;
+                    let total_frames = sheet.total_frames;
+                    let frame_offset = current_frame * fw * fh;
+                    let mut addr = sheet.base_addr as usize + frame_offset;
+                    for dy in 0..fh {
+                        for dx in 0..fw {
+                            if addr >= self.ram.len() {
+                                break;
+                            }
+                            let color = self.ram[addr];
+                            addr += 1;
+                            if color == 0 {
+                                continue; // transparent
+                            }
+                            let px = sx + dx;
+                            let py = sy + dy;
+                            self.set_pixel_clipped(px, py, color);
+                        }
+                    }
+                    // Auto-advance frame counter with wrap-around
+                    self.sprite_sheets[sheet_id].current_frame =
+                        (current_frame as u32 + 1) % total_frames;
+                    self.regs[0] = 0; // success
+                } else {
+                    self.regs[0] = 0xFFFFFFFF; // error
+                }
+            }
+
+            // BITSET rd, bit_reg  (0x8D)
             0x8D => {
                 let rd = self.fetch() as usize;
                 let br = self.fetch() as usize;

@@ -1201,6 +1201,17 @@ impl Vm {
                 4,
             ),
 
+            // SPRITEANIM sheet_id, x_reg, y_reg (0xEC, 4 words)
+            0xEC => (
+                format!(
+                    "SPRITEANIM {}, {}, {}",
+                    ram(a + 1),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3))
+                ),
+                4,
+            ),
+
             // TMR_GET dest_reg (0xE8, 2 words)
             0xE8 => (format!("TMR_GET {}", reg(ram(a + 1))), 2),
 
