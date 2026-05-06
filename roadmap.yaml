@@ -11066,3 +11066,41 @@ phases:
     scope_lines: 1
   scope_lines_total: 1
   test_target: 1
+- id: phase-261
+  title: "Web IDE backend liveness detection and stale socket cleanup"
+  status: planned
+  goal: "geos_web_ide.py detects when the VM backend dies, reports it to the browser, and cleans up stale /tmp/geo_cmd.sock"
+  description: "Discovered during dogfood QA: the GeOS web IDE frontend (geos_web_ide.py on port 3841) stays running even when the geometry_os VM backend dies. The stale /tmp/geo_cmd.sock file remains on disk with no listener, making every WebSocket command silently fail. The preflight QA script reports 'GeOS running' because it only checks for the web IDE process, not the actual VM backend. This creates a misleading state where the IDE appears functional but cannot load, run, or screenshot anything. The fix has two parts: (1) geos_web_ide.py should periodically check socket liveness (e.g., try a non-blocking connect to /tmp/geo_cmd.sock every 10s) and push a 'backend-down' status event to all connected WebSocket clients; (2) the preflight QA script (or its wrapper) should verify the VM backend process is actually listening on the socket, not just that the web IDE process exists."
+  deliverables:
+  - name: "Add socket liveness probe to geos_web_ide.py"
+    description: "In tools/geos_web_ide.py, add a background asyncio task that attempts a non-blocking connect to the Unix socket every 10 seconds. If the connect fails (ConnectionRefused or ENOENT), set a shared state variable backend_alive=False and broadcast a JSON message {'type': 'status', 'backend': 'down'} to all connected WebSocket clients. When the backend comes back, broadcast {'type': 'status', 'backend': 'up'}. The HTML frontend should display this status in the header bar (red indicator when down, green when up)."
+    status: todo
+    tasks:
+    - id: p261.d1.t1
+      title: "Add asyncio liveness probe task to geos_web_ide.py"
+      status: todo
+      description: "Add a periodic task using asyncio.create_task() that calls socket.socket + connect_ex to /tmp/geo_cmd.sock every 10 seconds. Store result in a global or passed-around variable. On transition from alive->dead or dead->alive, log it."
+      scope_lines: 25
+    - id: p261.d1.t2
+      title: "Broadcast backend status to WebSocket clients"
+      status: todo
+      description: "Maintain a set of connected websocket references. When backend status changes, iterate and send {'type': 'status', 'backend': 'up'/'down'} to each. Handle Disconnected errors gracefully."
+      scope_lines: 20
+    - id: p261.d1.t3
+      title: "Show backend status indicator in geos_ide.html header"
+      status: todo
+      description: "In the HTML frontend, add a small colored dot in the header bar next to the status display. Green when backend is up, red when down. Listen for the 'status' WebSocket message type to update it."
+      scope_lines: 15
+    scope_lines: 60
+  - name: "Fix preflight QA to verify VM backend liveness"
+    description: "The dogfood QA preflight (or its cron wrapper) should not just check if geos_web_ide.py PID exists — it should also verify that /tmp/geo_cmd.sock has an active listener. This can be done with a non-blocking connect attempt or by checking if any process has the socket open (lsof/ss). Report GEOS_RUNNING=false if the socket is stale."
+    status: todo
+    tasks:
+    - id: p261.d2.t1
+      title: "Add socket liveness check to QA preflight"
+      status: todo
+      description: "In the QA preflight script, after finding GeOS PIDs, attempt a non-blocking connect to /tmp/geo_cmd.sock. If it fails, set geos_running=false. This prevents false 'all green' reports when only the web IDE is running."
+      scope_lines: 10
+    scope_lines: 10
+  scope_lines_total: 70
+  test_target: 0
