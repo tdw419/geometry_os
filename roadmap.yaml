@@ -11043,3 +11043,26 @@ phases:
     scope_lines: 2
   scope_lines_total: 2
   test_target: 1
+- id: phase-260
+  title: "Fix p219_screen_capture.asm: JNZ requires 2 arguments"
+  status: planned
+  goal: "p219_screen_capture.asm assembles cleanly, reducing test_all_programs_assemble failures from 6 to 5"
+  description: "p219_screen_capture.asm was committed in e0168216 (phase-219, screen buffer LOAD readback verification). It fails to assemble with 'JNZ requires 2 arguments: JNZ reg, addr' at line 73. The instruction is written as 'JNZ COPY_LOOP' (one argument) but the GeoASM assembler requires the form 'JNZ r12, COPY_LOOP' (register + label). This is a simple syntax fix — add the register argument r12 (the loop counter being compared to zero via the preceding CMPI r12, 0)."
+  deliverables:
+  - name: Fix JNZ instruction in p219_screen_capture.asm
+    description: "At programs/p219_screen_capture.asm line 73, change 'JNZ COPY_LOOP' to 'JNZ r12, COPY_LOOP'. The register r12 is the loop counter decremented by SUBI r12, 1 and compared with CMPI r12, 0 on the preceding lines, so it is the correct register for the conditional jump."
+    status: todo
+    tasks:
+    - id: p260.d1.t1
+      title: Fix JNZ syntax in p219_screen_capture.asm line 73
+      status: todo
+      description: "Edit programs/p219_screen_capture.asm line 73. Change 'JNZ COPY_LOOP' to 'JNZ r12, COPY_LOOP'. This matches the JNZ two-argument form documented in the assembler (JNZ reg, addr)."
+      scope_lines: 1
+    - id: p260.d1.t2
+      title: Verify p219_screen_capture.asm assembles and runs correctly
+      status: todo
+      description: "Run cargo test --test program_tests basic_programs::test_all_programs_assemble. Expect p219_screen_capture.asm to now pass, reducing failures from 6 to 5 (remaining: click_test.asm, shell.asm, mouse_demo.asm, font_test.asm, nano_editor.asm). Also run the program in the VM to verify the screen capture logic works: draws 10 pixels, copies to RAM, verifies first pixel is red, shows green pass bar."
+      scope_lines: 0
+    scope_lines: 1
+  scope_lines_total: 1
+  test_target: 1
