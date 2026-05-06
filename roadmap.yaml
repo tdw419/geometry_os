@@ -9392,7 +9392,7 @@ phases:
   test_target: 2
 - id: phase-195
   title: File Browser -- Directory Navigation and File Operations
-  status: in_progress
+  status: done
   goal: Extend file browser to support directory traversal, file deletion, and file
     creation
   description: The file browser shows VFS files and displays content but cannot navigate
@@ -9401,7 +9401,7 @@ phases:
     size display and modification time if available from VFS metadata.
   deliverables:
   - name: File operations from file browser
-    status: todo
+    status: done
     tasks:
     - id: p195.d1.t1
       title: Add delete confirmation dialog

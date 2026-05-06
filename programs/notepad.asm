@@ -138,7 +138,6 @@ main_loop:
 ; INSERT CHARACTER
 ; =========================================
 insert_char:
-    PUSH r31
     LDI r1, 1
 
     ; Compute buffer address: BUF + cur_row * COLS + cur_col
@@ -175,19 +174,16 @@ no_wrap_row_limit:
     STORE r20, r6
     ; Update lines count if needed
     CALL update_lines
-    POP r31
     RET
 no_wrap:
     LDI r20, CUR_COL
     STORE r20, r8
-    POP r31
     RET
 
 ; =========================================
 ; DO BACKSPACE
 ; =========================================
 do_backspace:
-    PUSH r31
     LDI r1, 1
 
     ; Load cursor position
@@ -207,8 +203,7 @@ do_backspace:
 
     ; Clear character at new position
     CALL clear_cursor_pos
-    POP r31
-    RET
+    JMP main_loop
 
 bs_at_line_start:
     ; At start of line -- if row > 0, join with previous line
@@ -245,14 +240,12 @@ found_end:
     LDI r20, CUR_COL
     STORE r20, r8
 bs_done:
-    POP r31
-    RET
+    JMP main_loop
 
 ; =========================================
 ; DO ENTER
 ; =========================================
 do_enter:
-    PUSH r31
     LDI r1, 1
 
     ; Load cursor position
@@ -296,14 +289,12 @@ clear_new_line:
     ; Update lines count
     CALL update_lines
 enter_done:
-    POP r31
-    RET
+    JMP main_loop
 
 ; =========================================
 ; DO LEFT
 ; =========================================
 do_left:
-    PUSH r31
     LDI r1, 1
     LDI r20, CUR_COL
     LOAD r6, r20
@@ -312,14 +303,12 @@ do_left:
     SUB r6, r1
     STORE r20, r6
 left_done:
-    POP r31
-    RET
+    JMP main_loop
 
 ; =========================================
 ; DO RIGHT
 ; =========================================
 do_right:
-    PUSH r31
     LDI r1, 1
     LDI r20, CUR_COL
     LOAD r6, r20
@@ -330,14 +319,12 @@ do_right:
     ADD r6, r1
     STORE r20, r6
 right_done:
-    POP r31
-    RET
+    JMP main_loop
 
 ; =========================================
 ; DO UP
 ; =========================================
 do_up:
-    PUSH r31
     LDI r1, 1
     LDI r20, CUR_ROW
     LOAD r6, r20
@@ -346,14 +333,12 @@ do_up:
     SUB r6, r1
     STORE r20, r6
 up_done:
-    POP r31
-    RET
+    JMP main_loop
 
 ; =========================================
 ; DO DOWN
 ; =========================================
 do_down:
-    PUSH r31
     LDI r1, 1
     LDI r20, CUR_ROW
     LOAD r6, r20
@@ -364,8 +349,7 @@ do_down:
     ADD r6, r1
     STORE r20, r6
 down_done:
-    POP r31
-    RET
+    JMP main_loop
 
 ; =========================================
 ; CLEAR CHARACTER AT CURSOR POSITION
@@ -442,7 +426,6 @@ has_lines:
 ; RENDER
 ; =========================================
 render:
-    PUSH r31
     LDI r1, 1
 
     ; ── Title bar ──
