@@ -907,23 +907,37 @@ impl Vm {
                 }
             }
 
-            // MEMCPY dst_reg, src_reg, len_reg -- copy len words from [src] to [dst]
+            // MEMCPY dst_reg, src_reg, len_reg -- overlap-safe block copy
+            // Copies len words from [src] to [dst]. If regions overlap,
+            // copies backward to prevent clobbering (like memmove).
+            // Architectural decision: visual integrity over raw speed.
             0x04 => {
                 let dr = self.fetch() as usize;
                 let sr = self.fetch() as usize;
                 let lr = self.fetch() as usize;
                 if dr < NUM_REGS && sr < NUM_REGS && lr < NUM_REGS {
-                    let mut dst = self.regs[dr] as usize;
-                    let mut src = self.regs[sr] as usize;
+                    let dst = self.regs[dr] as usize;
+                    let src = self.regs[sr] as usize;
                     let len = self.regs[lr] as usize;
-                    // Clamp to RAM bounds to prevent runaway copies
                     let max_copy = self.ram.len().min(len);
-                    for _ in 0..max_copy {
-                        if dst < self.ram.len() && src < self.ram.len() {
-                            self.ram[dst] = self.ram[src];
+                    // Detect overlap: if dst > src and regions intersect,
+                    // copy backward to avoid clobbering source data
+                    if dst > src && dst < src + max_copy {
+                        for i in (0..max_copy).rev() {
+                            let d = dst + i;
+                            let s = src + i;
+                            if d < self.ram.len() && s < self.ram.len() {
+                                self.ram[d] = self.ram[s];
+                            }
                         }
-                        dst += 1;
-                        src += 1;
+                    } else {
+                        for i in 0..max_copy {
+                            let d = dst + i;
+                            let s = src + i;
+                            if d < self.ram.len() && s < self.ram.len() {
+                                self.ram[d] = self.ram[s];
+                            }
+                        }
                     }
                 }
             }

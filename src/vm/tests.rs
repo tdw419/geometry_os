@@ -30622,3 +30622,69 @@ fn test_paint_bucket_asm_assembles() {
         result.err()
     );
 }
+
+// ── MEMCPY overlap-safe tests (architectural decision: visual integrity) ──
+
+#[test]
+fn test_memcpy_forward_no_overlap() {
+    let mut vm = Vm::new();
+    // Set up: copy 3 words from addr 100 to addr 200 (no overlap)
+    // MEMCPY dst_reg, src_reg, len_reg = opcode 0x04
+    vm.regs[1] = 200; // dst
+    vm.regs[2] = 100; // src
+    vm.regs[3] = 3;   // len
+    vm.ram[100] = 0xAA;
+    vm.ram[101] = 0xBB;
+    vm.ram[102] = 0xCC;
+    // Encode: 0x04, dst=1, src=2, len=3
+    vm.ram[0] = 0x04;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.ram[200], 0xAA);
+    assert_eq!(vm.ram[201], 0xBB);
+    assert_eq!(vm.ram[202], 0xCC);
+}
+
+#[test]
+fn test_memcpy_overlap_forward_shift() {
+    let mut vm = Vm::new();
+    // The critical test: shift data right by 2 (overlap case).
+    // If copied forward, src[2] would already be overwritten by the time we read it.
+    vm.regs[1] = 102; // dst (2 ahead of src)
+    vm.regs[2] = 100; // src
+    vm.regs[3] = 3;   // len
+    vm.ram[100] = 0x11;
+    vm.ram[101] = 0x22;
+    vm.ram[102] = 0xFF; // will be overwritten
+    vm.ram[103] = 0xFF;
+    vm.ram[104] = 0xFF;
+    vm.ram[0] = 0x04; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
+    // With backward copy: ram[104]=0x22, ram[103]=0x11, ram[102]=0x11
+    // All original data preserved despite overlap
+    assert_eq!(vm.ram[102], 0x11, "overlap: first element shifted correctly");
+    assert_eq!(vm.ram[103], 0x22, "overlap: second element shifted correctly");
+    assert_eq!(vm.ram[104], 0xFF, "overlap: old data at tail not clobbered");
+}
+
+#[test]
+fn test_memcpy_backward_overlap() {
+    let mut vm = Vm::new();
+    // Shift data left by 2 (backward overlap). Forward copy is safe here.
+    vm.regs[1] = 100; // dst
+    vm.regs[2] = 102; // src (2 ahead)
+    vm.regs[3] = 3;   // len
+    vm.ram[102] = 0x44;
+    vm.ram[103] = 0x55;
+    vm.ram[104] = 0x66;
+    vm.ram[0] = 0x04; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.pc = 0;
+    vm.step();
+    assert_eq!(vm.ram[100], 0x44);
+    assert_eq!(vm.ram[101], 0x55);
+    assert_eq!(vm.ram[102], 0x66);
+}
