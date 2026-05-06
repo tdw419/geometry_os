@@ -1,41 +1,31 @@
 ; ==========================================================
-; BOUNDARY DEMO: Spatial Encoding vs. Chromatic Encoding
+; BOUNDARY DEMO: Semantic Labeling vs. Chromatic Arithmetic
 ; ==========================================================
 ; Renders a counter two ways on row y=200 (below terminal text):
-;  1. SPATIAL BAR (good): 100 green pixels, x=10..109.
-;     A vision model can count pixel length to verify state.
-;  2. CHROMATIC DOT (bad): one pixel at (120,200) whose blue
-;     channel = counter value (red base 0xFF0000 | counter).
-;     Always visible as a red dot, but blue=99 vs blue=100
-;     is imperceptible — vision model cannot verify exact state.
+;  1. SPATIAL BAR (good): 100 green pixels, x=10..109. The
+;     vision model can count length / see fill level.
+;  2. CHROMATIC PIXEL (bad): one pixel at (50,200) whose blue
+;     channel = counter value. The vision model cannot
+;     decompose blue=99 vs blue=100 by eye.
 ; ==========================================================
 
-LDI r1, 0x000000      ; color: black
+LDI r1, 0x000000      ; clear color
 FILL r1               ; wipe screen
-LDI r1, 0             ; counter (0-99)
-LDI r5, 10            ; bar X start
-LDI r3, 120           ; chromatic dot X (offset right of bar)
-LDI r4, 200           ; Y row (safe from terminal text)
+LDI r1, 0             ; counter
+LDI r2, 10            ; bar X-offset
+LDI r3, 50            ; chromatic pixel X
+LDI r4, 200           ; Y row (below terminal text band)
 LDI r10, 0x00FF00     ; bar color: green
-LDI r6, 0xFF0000      ; chromatic base: red (always visible)
 
 loop:
-    ; -- Spatial bar: green pixel, one per counter tick --
-    PSET r5, r4, r10
-
-    ; -- Chromatic dot: red | counter (counter in blue channel) --
-    MOV r7, r6          ; r7 = 0xFF0000 (red base)
-    OR r7, r1           ; r7 = 0xFF0000 | counter
-    PSET r3, r4, r7     ; always visible, blue varies 0-99
-
-    ADDI r5, 1          ; advance bar X
-    ADDI r1, 1          ; increment counter
-
-    CMPI r1, 100        ; compare counter with 100
-    JZ r0, done         ; r0=0 when equal -> exit loop
-
-    FRAME               ; yield to host for rendering
-    JMP loop
+    ADD  r11, r2, r1   ; bar_x = 10 + counter
+    PSET r11, r4, r10  ; spatial bar pixel
+    PSET r3,  r4, r1   ; chromatic pixel (blue=counter)
+    ADDI r1, 1
+    CMPI r1, 100
+    JZ   r0, done
+    FRAME
+    JMP  loop
 
 done:
     HALT
