@@ -26529,6 +26529,286 @@ fn test_clip_text_four_bytes_packing() {
     assert_eq!(vm.ram[0x603], 0x44, "should be 'D'");
 }
 
+// ── Phase 221: CLIP_TEXT mode 3 (clear) ──────────────────────────────
+
+#[test]
+fn test_clip_text_clear() {
+    let mut vm = Vm::new();
+    // Store some text
+    vm.ram[0x500] = 0x41; // 'A'
+    vm.ram[0x501] = 0x42; // 'B'
+    vm.regs[1] = 0; // mode: store
+    vm.regs[2] = 0x500;
+    vm.regs[3] = 2;
+    vm.pc = 0;
+    vm.ram[0] = 0xDD;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.ram[3] = 3;
+    vm.step();
+    assert!(vm.clipboard_text.len() > 1, "text should be stored");
+
+    // Clear text clipboard (mode 3)
+    vm.regs[1] = 3;
+    vm.pc = 0;
+    vm.ram[0] = 0xDD;
+    vm.step();
+    assert!(vm.clipboard_text.is_empty(), "text clipboard should be cleared");
+    assert_eq!(vm.regs[0], 0, "r0 should be 0 after clear");
+}
+
+#[test]
+fn test_clip_text_clear_then_paste_returns_zero() {
+    let mut vm = Vm::new();
+    // Store text
+    vm.ram[0x500] = 0x48; // 'H'
+    vm.regs[1] = 0; vm.regs[2] = 0x500; vm.regs[3] = 1;
+    vm.pc = 0; vm.ram[0] = 0xDD; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.step();
+
+    // Clear
+    vm.regs[1] = 3; vm.pc = 0; vm.ram[0] = 0xDD; vm.step();
+
+    // Paste from empty clipboard should return 0
+    vm.regs[1] = 1; vm.regs[2] = 0x600; vm.regs[3] = 10;
+    vm.pc = 0; vm.ram[0] = 0xDD; vm.ram[1] = 1; vm.ram[2] = 2; vm.ram[3] = 3;
+    vm.step();
+    assert_eq!(vm.regs[0], 0, "pasting from cleared clipboard should return 0");
+}
+
+// ── Phase 221: CLIP_PASTE respects clip_rect ─────────────────────────
+
+#[test]
+fn test_clip_paste_respects_clip_rect() {
+    let mut vm = Vm::new();
+    // Pre-populate clipboard with a 4x1 region: red, green, blue, yellow
+    vm.clipboard = vec![4, 1, 0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00];
+
+    // Set a clip rectangle that only covers columns 1-2 (2px wide)
+    vm.clip_rect = Some((1, 0, 2, 256));
+
+    // Paste at x=0, y=0
+    vm.regs[1] = 0; // x
+    vm.regs[2] = 0; // y
+    vm.pc = 0;
+    vm.ram[0] = 0xD8;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+
+    // Column 0 should NOT be written (outside clip rect)
+    assert_eq!(vm.screen[0], 0, "col 0 should remain black (outside clip)");
+    // Column 1 gets clipboard[3] = green (second pixel)
+    assert_eq!(vm.screen[1], 0x00FF00, "col 1 should be green (2nd pixel)");
+    // Column 2 gets clipboard[4] = blue (third pixel)
+    assert_eq!(vm.screen[2], 0x0000FF, "col 2 should be blue (3rd pixel)");
+    // Column 3 should NOT be written (outside clip)
+    assert_eq!(vm.screen[3], 0, "col 3 should remain black (outside clip)");
+}
+
+#[test]
+fn test_clip_paste_no_clip_rect_writes_all() {
+    let mut vm = Vm::new();
+    // Pre-populate clipboard with a 3x1 region
+    vm.clipboard = vec![3, 1, 0xFF0000, 0x00FF00, 0x0000FF];
+    vm.clip_rect = None; // no clip rect
+
+    vm.regs[1] = 0; vm.regs[2] = 0;
+    vm.pc = 0; vm.ram[0] = 0xD8; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+
+    assert_eq!(vm.screen[0], 0xFF0000, "pixel 0 should be red");
+    assert_eq!(vm.screen[1], 0x00FF00, "pixel 1 should be green");
+    assert_eq!(vm.screen[2], 0x0000FF, "pixel 2 should be blue");
+}
+
+// ── Phase 221: CLIP_HISTORY mode 4 (info) ────────────────────────────
+
+#[test]
+fn test_clip_history_info_pixel_only() {
+    let mut vm = Vm::new();
+    // Put pixel data in clipboard, no text
+    vm.clipboard = vec![2, 2, 0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00];
+    vm.clipboard_text = Vec::new();
+
+    // Push to history
+    vm.regs[1] = 0; vm.regs[2] = 0;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+
+    // Query info for slot 0 (newest)
+    vm.regs[1] = 4; vm.regs[2] = 0;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 1, "should report bit 0 (pixel) only");
+}
+
+#[test]
+fn test_clip_history_info_text_only() {
+    let mut vm = Vm::new();
+    // No pixel data, only text
+    vm.clipboard = Vec::new();
+    vm.clipboard_text = vec![3, 0x6162_6364]; // "abcd"
+
+    // Push to history
+    vm.regs[1] = 0; vm.regs[2] = 0;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+
+    // Query info
+    vm.regs[1] = 4; vm.regs[2] = 0;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 2, "should report bit 1 (text) only");
+}
+
+#[test]
+fn test_clip_history_info_both_formats() {
+    let mut vm = Vm::new();
+    vm.clipboard = vec![1, 1, 0xFF0000];
+    vm.clipboard_text = vec![1, 0x41];
+
+    vm.regs[1] = 0; vm.regs[2] = 0;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+
+    vm.regs[1] = 4; vm.regs[2] = 0;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 3, "should report bit 0 + bit 1 (both formats)");
+}
+
+#[test]
+fn test_clip_history_info_invalid_slot() {
+    let mut vm = Vm::new();
+    // Query info with no history
+    vm.regs[1] = 4; vm.regs[2] = 0;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 0, "invalid slot should return 0");
+}
+
+#[test]
+fn test_clip_history_info_across_slots() {
+    let mut vm = Vm::new();
+
+    // Push 3 entries with different formats
+    // Entry 0: pixel only
+    vm.clipboard = vec![1, 1, 0x11];
+    vm.clipboard_text = Vec::new();
+    vm.regs[1] = 0; vm.regs[2] = 0;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+
+    // Entry 1: text only
+    vm.clipboard = Vec::new();
+    vm.clipboard_text = vec![1, 0x42];
+    vm.regs[1] = 0; vm.regs[2] = 0;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+
+    // Entry 2: both
+    vm.clipboard = vec![1, 1, 0x33];
+    vm.clipboard_text = vec![1, 0x43];
+    vm.regs[1] = 0; vm.regs[2] = 0;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+
+    // Slot 0 (newest) = both = 3
+    vm.regs[1] = 4; vm.regs[2] = 0;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 3, "slot 0 should be both formats");
+
+    // Slot 1 = text only = 2
+    vm.regs[1] = 4; vm.regs[2] = 1;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 2, "slot 1 should be text only");
+
+    // Slot 2 (oldest) = pixel only = 1
+    vm.regs[1] = 4; vm.regs[2] = 2;
+    vm.pc = 0; vm.ram[0] = 0xDF; vm.ram[1] = 1; vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 1, "slot 2 should be pixel only");
+}
+
+// ── Phase 221: clipboard_v2_test.asm integration ──────────────────
+
+#[test]
+fn test_clipboard_v2_test_assembles() {
+    use crate::assembler::assemble;
+    let source = std::fs::read_to_string("programs/clipboard_v2_test.asm")
+        .expect("clipboard_v2_test.asm should exist");
+    let asm = assemble(&source, 0).expect("clipboard_v2_test.asm should assemble");
+    assert!(!asm.pixels.is_empty(), "should produce bytecode");
+}
+
+#[test]
+fn test_clipboard_v2_test_runs() {
+    use crate::assembler::assemble;
+    let source = std::fs::read_to_string("programs/clipboard_v2_test.asm")
+        .expect("clipboard_v2_test.asm should exist");
+    let asm = assemble(&source, 0).expect("clipboard_v2_test.asm should assemble");
+
+    let mut vm = Vm::new();
+    // Load bytecode at 0x1000
+    for (i, &word) in asm.pixels.iter().enumerate() {
+        vm.ram[0x1000 + i] = word;
+    }
+    vm.pc = 0x1000;
+
+    // Run until HALT
+    for _ in 0..500_000 {
+        let pc = vm.pc as usize;
+        if pc >= vm.ram.len() { break; }
+        let op = vm.ram[pc];
+        if op == 0x00 { break; } // HALT
+        vm.step();
+    }
+
+    // Verify program halted
+    assert_eq!(vm.ram[vm.pc as usize], 0x00, "program should have halted");
+
+    // Verify step 1: text clipboard was cleared (no text at row 16 label area)
+    // The green bar at y=16 should exist
+    let mut green_count = 0;
+    for x in 2..42 {
+        if vm.screen[16 * 256 + x] == 0x00FF00 { green_count += 1; }
+    }
+    assert!(green_count > 30, "step 1 green bar should have >30 green pixels, got {}", green_count);
+
+    // Verify step 2: clip rect paste — red pixels at y=32, only cols 2-5
+    // After FILL r0, only cols 2-5 at y=32 should be red from the CLIPSET clip
+    let col0_val = vm.screen[32 * 256 + 0];
+    let col1_val = vm.screen[32 * 256 + 1];
+    let col2_val = vm.screen[32 * 256 + 2];
+    assert_eq!(col0_val, 0, "col 0 at y=32 should be 0 (outside clip rect)");
+    assert_eq!(col1_val, 0, "col 1 at y=32 should be 0 (outside clip rect)");
+    assert_eq!(col2_val, 0xFF0000, "col 2 at y=32 should be red (inside clip rect)");
+
+    // Verify step 3: cyan bar at y=48
+    let mut cyan_count = 0;
+    for x in 2..42 {
+        if vm.screen[48 * 256 + x] == 0x00FFFF { cyan_count += 1; }
+    }
+    assert!(cyan_count > 30, "step 3 cyan bar should have >30 cyan pixels, got {}", cyan_count);
+
+    // Verify step 4: magenta bar at y=72
+    let mut magenta_count = 0;
+    for x in 2..42 {
+        if vm.screen[72 * 256 + x] == 0xFF00FF { magenta_count += 1; }
+    }
+    assert!(magenta_count > 30, "step 4 magenta bar should have >30 magenta pixels, got {}", magenta_count);
+
+    // Verify step 5: white bar at y=88
+    let mut white_count = 0;
+    for x in 2..42 {
+        if vm.screen[88 * 256 + x] == 0xFFFFFF { white_count += 1; }
+    }
+    assert!(white_count > 30, "step 5 white bar should have >30 white pixels, got {}", white_count);
+}
+
 #[test]
 fn test_tower_defense_assembles_and_runs() {
     use crate::assembler::assemble;

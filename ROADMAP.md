@@ -3,7 +3,7 @@
 Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers toolchain hygiene, GUI bridge, pixel VM convergence, libgeos extraction, and legacy roadmap reconciliation. SPEC = thesis. roadmap_v2 = arc. OpenSpec = per-change diff.
 
 
-**Progress:** 52/91 phases complete, 6 in progress, 33 planned
+**Progress:** 25/40 phases complete, 1 in progress, 14 planned
 
 **Deliverables:** 48/49 complete
 

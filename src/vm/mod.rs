@@ -1789,7 +1789,7 @@ impl Vm {
 
             // CLIP_PASTE x_reg, y_reg  (0xD8) -- Paste clipboard buffer to screen
             // Pastes the clipboard contents at (x, y) on the screen.
-            // Respects the current clip rectangle. Out-of-bounds pixels are skipped.
+            // Respects the current clip rectangle via set_pixel_clipped. Out-of-bounds pixels are skipped.
             // Encoding: 3 words [0xD8, x_reg, y_reg]
             0xD8 => {
                 let xr = self.fetch() as usize;
@@ -1806,7 +1806,7 @@ impl Vm {
                             let sy = y + row;
                             if sx < 256 && sy < 256 {
                                 let pixel = self.clipboard[2 + row * w + col];
-                                self.screen[sy * 256 + sx] = pixel;
+                                self.set_pixel_clipped(sx, sy, pixel);
                             }
                         }
                     }
@@ -1911,6 +1911,14 @@ impl Vm {
                             }
                             self.log_render_op(0xDD, "CLIP_TEXT_LEN", &[mode, byte_count as u32]);
                         }
+                        3 => {
+                            // Clear text clipboard
+                            self.clipboard_text.clear();
+                            if 0 < NUM_REGS {
+                                self.regs[0] = 0;
+                            }
+                            self.log_render_op(0xDD, "CLIP_TEXT_CLEAR", &[]);
+                        }
                         _ => {}
                     }
                 }
@@ -1991,6 +1999,37 @@ impl Vm {
                                 self.regs[0] = 0;
                             }
                             self.log_render_op(0xDF, "CLIP_HIST_CLEAR", &[]);
+                        }
+                        4 => {
+                            // Get history entry info: returns format bitmap in r0
+                            // bit 0 = has pixel data, bit 1 = has text data
+                            // slot 0 = newest, etc.
+                            if slot < self.clipboard_history_count {
+                                let hist_idx = if self.clipboard_history_count < CLIP_HISTORY_MAX {
+                                    self.clipboard_history_count - 1 - slot
+                                } else {
+                                    (self.clipboard_history_head + CLIP_HISTORY_MAX - slot) % CLIP_HISTORY_MAX
+                                };
+                                if let Some((pixel_snap, text_snap)) =
+                                    self.clipboard_history.get(hist_idx)
+                                {
+                                    let mut info = 0u32;
+                                    if pixel_snap.len() > 2 {
+                                        info |= 1; // has pixel data
+                                    }
+                                    if text_snap.len() > 1 {
+                                        info |= 2; // has text data
+                                    }
+                                    if 0 < NUM_REGS {
+                                        self.regs[0] = info;
+                                    }
+                                    self.log_render_op(0xDF, "CLIP_HIST_INFO", &[slot as u32, info]);
+                                } else if 0 < NUM_REGS {
+                                    self.regs[0] = 0;
+                                }
+                            } else if 0 < NUM_REGS {
+                                self.regs[0] = 0;
+                            }
                         }
                         _ => {}
                     }

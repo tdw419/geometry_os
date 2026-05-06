@@ -11104,3 +11104,22 @@ phases:
     scope_lines: 10
   scope_lines_total: 70
   test_target: 0
+
+- id: phase-262
+  title: "Fix duplicate Yielded match arm in riscv_fuzzer.rs"
+  status: planned
+  goal: "Eliminate 'unreachable pattern' compiler warning in riscv_fuzzer.rs"
+  description: "src/riscv_fuzzer.rs line 1482-1483 has a duplicate 'cpu::StepResult::Yielded => {}' match arm. The second arm is unreachable since the first already matches. This was found during dogfood QA exploratory testing. While harmless at runtime, it indicates a copy-paste error and generates a compiler warning that adds noise to build output."
+  deliverables:
+  - name: "Remove duplicate Yielded match arm"
+    description: "At src/riscv_fuzzer.rs line 1483, delete the duplicate 'cpu::StepResult::Yielded => {}' line. Verify with cargo build that the 'unreachable pattern' warning for riscv_fuzzer.rs is gone."
+    status: todo
+    tasks:
+    - id: p262.d1.t1
+      title: "Delete duplicate Yielded arm at line 1483"
+      status: todo
+      description: "Edit src/riscv_fuzzer.rs. Remove line 1483 which is an exact duplicate of line 1482. Run cargo build --bin riscv_fuzzer and confirm no 'unreachable pattern' warning for this file."
+      scope_lines: 1
+    scope_lines: 1
+  scope_lines_total: 1
+  test_target: 0
