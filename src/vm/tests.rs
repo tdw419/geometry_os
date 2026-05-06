@@ -28144,12 +28144,12 @@ fn test_lib_test_v4_runs_all_pass() {
         }
         vm.step();
     }
-    // Check all 56 test slots (0xF80-0xFB7)
+    // Check all 56 test slots (0x1F80-0x1FB7)
     let mut pass_count = 0;
     let mut fail_count = 0;
     let mut failures = Vec::new();
     for i in 0..56 {
-        let addr = 0xF80 + i;
+        let addr = 0x1F80 + i;
         let val = vm.ram[addr];
         if val == 1 {
             pass_count += 1;

@@ -123,7 +123,8 @@ draw_bar_draw:
     ; y_top = y_bottom - height
     MOV r7, r2
     SUB r7, r6             ; y_top
-    RECTF r1, r7, 1, r6, r5
+    LDI r8, 1
+    RECTF r1, r7, r8, r6, r5
     MOV r0, r6
     RET
 draw_bar_zero:
@@ -147,7 +148,8 @@ draw_barh_clamp:
     MOV r6, r3
 draw_barh_draw:
     JZ r6, draw_barh_zero
-    RECTF r1, r2, r6, 1, r5
+    LDI r8, 1
+    RECTF r1, r2, r6, r8, r5
     MOV r0, r6
     RET
 draw_barh_zero:
@@ -170,7 +172,7 @@ draw_grid_vloop:
     PSET r0, r2, r7        ; draw a point (minimal; caller can use LINE for full)
     ; For full grid lines, we'd use LINE but that's many opcodes
     ; Instead draw point markers at grid intersections
-    LDI r0, r3
+    MOV r0, r3
     ADD r9, r0             ; x += cell_w
     LDI r0, 1
     SUB r8, r0
@@ -183,7 +185,7 @@ draw_grid_hloop:
     JZ r8, draw_grid_done
     MOV r0, r1
     PSET r0, r9, r7        ; point at (x, current_y)
-    LDI r0, r4
+    MOV r0, r4
     ADD r9, r0             ; y += cell_h
     LDI r0, 1
     SUB r8, r0
