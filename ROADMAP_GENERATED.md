@@ -57,7 +57,7 @@ Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers tool
 | phase-216 RISC-V Guest -- Filesystem Commands in Shell | PLANNED | 0/1 | 240 | 3 |
 | phase-217 GeOS VM -- Mouse Support Opcodes | PLANNED | 0/1 | 240 | 4 |
 | phase-218 GeOS VM -- Bitmap Font Renderer for RISC-V Guest | PLANNED | 0/1 | 240 | 3 |
-| phase-219 GeOS VM -- Memory-Mapped Screen Buffer Readback | PLANNED | 0/1 | 100 | 3 |
+| phase-219 GeOS VM -- Memory-Mapped Screen Buffer Readback | DONE | 3/3 | 100 | 3 |
 | phase-220 RISC-V Guest -- Mandelbrot Fractal Renderer | PLANNED | 0/1 | 260 | 3 |
 | phase-221 GeOS VM -- Clipboard Protocol Enhancement | PLANNED | 0/1 | 200 | 3 |
 | phase-222 GeOS VM -- Timer and Alarm Opcodes | PLANNED | 0/1 | 120 | 3 |
@@ -1056,7 +1056,7 @@ The RISC-V guest has pixel primitives (geos_fb_pixel, geos_rgb) but no text rend
   - [ ] `p218.d1.t3` Update paint.c status bar to use framebuffer text
     > Replace the palette bar legend with geos_draw_string() calls. This proves the font renderer works in a real program and matches the visual quality of the GeOS pixel font.
 
-## [ ] phase-219: GeOS VM -- Memory-Mapped Screen Buffer Readback (PLANNED)
+## [x] phase-219: GeOS VM -- Memory-Mapped Screen Buffer Readback (DONE)
 
 **Goal:** Let VM programs read the screen buffer via LOAD from 0x10000-0x1FFFF
 
@@ -1064,12 +1064,12 @@ The screen buffer at 0x10000-0x1FFFF (256x256 pixels, mapped to vm.screen) alrea
 
 ### Deliverables
 
-- [ ] **Screen buffer LOAD readback** -- 
-  - [ ] `p219.d1.t1` Wire LOAD from 0x10000 to read vm.screen
+- [x] **Screen buffer LOAD readback** -- ✅ verified; implementation pre-existed in icache.rs:192-195 & ops_memory.rs:43-47
+  - [x] `p219.d1.t1` Wire LOAD from 0x10000 to read vm.screen
     > In the LOAD opcode handler, when addr is in 0x10000-0x1FFFF range, read from vm.screen[addr - 0x10000] instead of vm.ram[addr]. Screen buffer is 256*256 = 65536 entries.
-  - [ ] `p219.d1.t2` Add test for screen readback consistency
+  - [x] `p219.d1.t2` Add test for screen readback consistency
     > Draw pixels with PSET, then LOAD from screen buffer address, verify values match. Also test that STORE to screen buffer still works (write path already exists).
-  - [ ] `p219.d1.t3` Demo: screen capture to RAM program
+  - [x] `p219.d1.t3` Demo: screen capture to RAM program
     > Copy the entire screen buffer to RAM at 0x2000 using a LOAD/STORE loop. Verify first 10 pixels match expected values. This enables future screenshot-to-VFS functionality.
 
 ## [ ] phase-220: RISC-V Guest -- Mandelbrot Fractal Renderer (PLANNED)
