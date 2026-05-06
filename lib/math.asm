@@ -145,17 +145,22 @@ sqrt_loop:
     ADD r1, r0             ; r1 = (value/guess) + guess
     LDI r2, 1
     SHR r1, r2             ; r1 = ((value/guess) + guess) / 2
-    MOV r0, r1             ; guess = new value
+    MOV r0, r1             ; guess = new value (r0 = new guess)
     ; Check convergence: if guess == prev, done
-    CMP r0, r13
-    JZ r0, sqrt_done       ; CMP == 0 means equal
+    ; CMP clobbers r0, so use SUB to check equality without clobbering r0
+    MOV r1, r0             ; r1 = new guess
+    SUB r1, r13            ; r1 = new guess - prev guess
+    JZ r1, sqrt_done       ; if diff == 0, converged (r0 still has guess)
     ; Also check iteration limit
     LDI r2, 1
     ADD r11, r2
-    CMP r11, r12
-    LDI r2, 1
-    CMP r0, r2             ; if counter >= max_iter
-    JNZ r0, sqrt_loop
+    ; Check if counter >= max_iter using SUB (avoids clobbering r0)
+    MOV r1, r11
+    SUB r1, r12            ; r1 = counter - max_iter
+    ; If counter >= max_iter, r1 >= 0 (unsigned). But we need to handle wrap.
+    ; Use a simpler approach: if counter == max_iter, stop.
+    JZ r1, sqrt_done       ; counter == max_iter, done
+    JMP sqrt_loop
 sqrt_done:
     POP r13
     POP r12

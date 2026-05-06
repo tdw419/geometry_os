@@ -209,6 +209,7 @@ memchr_notfound:
     LDI r0, 0
     RET
 memchr_found:
+    MOV r0, r1             ; return the address (r1), not the CMP result (r0)
     RET
 
 ; ═══════════════════════════════════════════════════════════════
@@ -304,18 +305,23 @@ atoi_loop:
     ; Check if digit (0x30-0x39)
     LDI r3, 48
     SUB r2, r3             ; r2 = char - '0'
+    ; Save accumulator before CMP (which clobbers r0)
+    PUSH r0
     LDI r3, 9
-    CMP r2, r3
+    CMP r2, r3             ; r0 = CMP(digit, 9)
     LDI r3, 1
-    CMP r0, r3             ; if char-'0' > 9, not a digit
-    JZ r0, atoi_done
+    CMP r0, r3             ; r0 = CMP(CMP_result, 1)
+    JZ r0, atoi_pop_done   ; if digit > 9, stop
+    POP r0                 ; restore accumulator
     ; accumulator = accumulator * 10 + digit
     LDI r3, 10
-    MUL r0, r3             ; r0 *= 10
+    MUL r0, r3             ; r0 = acc * 10
     ADD r0, r2             ; r0 += digit
     LDI r3, 1
     ADD r1, r3             ; advance pointer
     JMP atoi_loop
+atoi_pop_done:
+    POP r0                 ; restore accumulator (last good value)
 atoi_done:
     RET
 

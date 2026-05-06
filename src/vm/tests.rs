@@ -28159,6 +28159,18 @@ fn test_lib_test_v4_runs_all_pass() {
         }
     }
     if !failures.is_empty() {
+        // Debug: print actual values for failing tests
+        for &i in &failures {
+            let addr = 0x1F80 + i;
+            eprintln!("  test[{}] (T{}, addr 0x{:04X}): got {}", i, i+1, addr, vm.ram[addr]);
+        }
+        // Also print some key memory locations
+        eprintln!("  RAM[0xC000] (heap ptr) = 0x{:08X}", vm.ram[0xC000]);
+        eprintln!("  RAM[0xFC0] (prng seed) = 0x{:08X}", vm.ram[0xFC0]);
+        eprintln!("  RAM[0xFC4] (prng init) = 0x{:08X}", vm.ram[0xFC4]);
+        eprintln!("  halted = {}", vm.halted);
+        eprintln!("  PC = 0x{:08X}", vm.pc);
+        eprintln!("  steps = 500000 (max)");
         panic!(
             "lib_test_v4: {}/56 passed, {} FAILED (tests: {:?})",
             pass_count, fail_count, failures

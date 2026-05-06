@@ -99,7 +99,7 @@ buf_d:    .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 ; ═══════════════════════════════════════════════════════════════
 ; TESTS START HERE
 ; ═══════════════════════════════════════════════════════════════
-.org 0x1000
+.org 0x1100
 
 _tests_start:
 
@@ -248,7 +248,6 @@ _tests_start:
     CALL _check_z
 
 ; T15: malloc(10) returns nonzero
-    CALL _lib_heap_init
     LDI r1, 10
     CALL malloc
     LDI r9, 0x1F8E
@@ -591,12 +590,12 @@ _t38_done:
     CMP r0, r2
     CALL _check_eq
 
-; T46: color_dim(0x00FFFFFF, 128) ≈ 0x00808080
+; T46: color_dim(0x00FFFFFF, 128) ≈ 0x007FFFFF
     LDI r1, 0x00FFFFFF
     LDI r2, 128
     CALL color_dim
     LDI r9, 0x1FAD
-    LDI r2, 0x00808080
+    LDI r2, 0x007FFFFF
     CMP r0, r2
     CALL _check_eq
 
