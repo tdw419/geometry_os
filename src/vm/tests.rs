@@ -6232,6 +6232,256 @@ fn test_strcmp_case_sensitive() {
     );
 }
 
+// ── STRLEN: string length opcode (0xED) ─────────────────────
+
+#[test]
+fn test_strlen_basic() {
+    let mut vm = Vm::new();
+    // Place "hello" at address 0x3000
+    let s = b"hello\0";
+    for (i, &b) in s.iter().enumerate() {
+        vm.ram[0x3000 + i] = b as u32;
+    }
+    vm.regs[1] = 0x3000;
+    vm.ram[0] = 0xED; // STRLEN r1
+    vm.ram[1] = 1;
+    vm.step();
+    assert_eq!(vm.regs[0], 5, "STRLEN of 'hello' should be 5");
+}
+
+#[test]
+fn test_strlen_empty() {
+    let mut vm = Vm::new();
+    vm.ram[0x3000] = 0; // null terminator at start
+    vm.regs[1] = 0x3000;
+    vm.ram[0] = 0xED;
+    vm.ram[1] = 1;
+    vm.step();
+    assert_eq!(vm.regs[0], 0, "STRLEN of empty string should be 0");
+}
+
+#[test]
+fn test_strlen_single_char() {
+    let mut vm = Vm::new();
+    vm.ram[0x3000] = 'A' as u32;
+    vm.ram[0x3001] = 0;
+    vm.regs[1] = 0x3000;
+    vm.ram[0] = 0xED;
+    vm.ram[1] = 1;
+    vm.step();
+    assert_eq!(vm.regs[0], 1, "STRLEN of 'A' should be 1");
+}
+
+#[test]
+fn test_strlen_does_not_count_null() {
+    let mut vm = Vm::new();
+    let s = b"abc\0xyz\0";
+    for (i, &b) in s.iter().enumerate() {
+        vm.ram[0x3000 + i] = b as u32;
+    }
+    vm.regs[1] = 0x3000;
+    vm.ram[0] = 0xED;
+    vm.ram[1] = 1;
+    vm.step();
+    assert_eq!(vm.regs[0], 3, "STRLEN should stop at first null");
+}
+
+#[test]
+fn test_strlen_at_ram_boundary() {
+    let mut vm = Vm::new();
+    // Point to last byte of RAM (which should be 0 by default)
+    let last_addr = (vm.ram.len() - 1) as u32;
+    vm.ram[last_addr as usize] = 0; // ensure null
+    vm.regs[1] = last_addr;
+    vm.ram[0] = 0xED;
+    vm.ram[1] = 1;
+    vm.step();
+    assert_eq!(vm.regs[0], 0, "STRLEN at RAM boundary should return 0");
+}
+
+#[test]
+fn test_strlen_assembled() {
+    let mut vm = Vm::new();
+    let src = "\
+LDI r1, 0x3000
+STRLEN r1
+HALT";
+    let bc = crate::assembler::assemble(src, 0).unwrap();
+    // Place "GeOS" at 0x3000
+    vm.ram[0x3000] = 'G' as u32;
+    vm.ram[0x3001] = 'e' as u32;
+    vm.ram[0x3002] = 'O' as u32;
+    vm.ram[0x3003] = 'S' as u32;
+    vm.ram[0x3004] = 0;
+    for (i, &word) in bc.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..1000 {
+        if !vm.step() { break; }
+    }
+    assert_eq!(vm.regs[0], 4, "assembled STRLEN: 'GeOS' length = 4");
+}
+
+// ── STRCPY: string copy opcode (0xEE) ──────────────────────
+
+#[test]
+fn test_strcpy_basic() {
+    let mut vm = Vm::new();
+    // Place "hello" at 0x3000
+    let s = b"hello\0";
+    for (i, &b) in s.iter().enumerate() {
+        vm.ram[0x3000 + i] = b as u32;
+    }
+    vm.regs[1] = 0x3000; // src
+    vm.regs[2] = 0x4000; // dst
+    vm.ram[0] = 0xEE; // STRCPY r1, r2
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 6, "STRCPY should return 6 (including null)");
+    // Verify copy
+    let expected = b"hello\0";
+    for (i, &b) in expected.iter().enumerate() {
+        assert_eq!(
+            vm.ram[0x4000 + i], b as u32,
+            "STRCPY: dst[{}] mismatch", i
+        );
+    }
+}
+
+#[test]
+fn test_strcpy_empty() {
+    let mut vm = Vm::new();
+    vm.ram[0x3000] = 0; // empty string
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 0x4000;
+    vm.ram[0] = 0xEE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 1, "STRCPY of empty string should copy 1 byte (null)");
+    assert_eq!(vm.ram[0x4000], 0, "STRCPY: dst should have null");
+}
+
+#[test]
+fn test_strcpy_does_not_clobber_past_null() {
+    let mut vm = Vm::new();
+    // Source: "ab\0cd"
+    vm.ram[0x3000] = 'a' as u32;
+    vm.ram[0x3001] = 'b' as u32;
+    vm.ram[0x3002] = 0;
+    vm.ram[0x3003] = 'c' as u32;
+    vm.ram[0x3004] = 'd' as u32;
+    // Destination: pre-fill with 0xFF to detect overwrites
+    vm.ram[0x4000] = 0xFF;
+    vm.ram[0x4001] = 0xFF;
+    vm.ram[0x4002] = 0xFF;
+    vm.ram[0x4003] = 0xFF;
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 0x4000;
+    vm.ram[0] = 0xEE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 3, "STRCPY: should copy 'ab\\0' = 3 bytes");
+    assert_eq!(vm.ram[0x4000], 'a' as u32);
+    assert_eq!(vm.ram[0x4001], 'b' as u32);
+    assert_eq!(vm.ram[0x4002], 0);
+    assert_eq!(vm.ram[0x4003], 0xFF, "STRCPY: should not write past null");
+}
+
+#[test]
+fn test_strcpy_overwrite() {
+    let mut vm = Vm::new();
+    // Source: "new"
+    vm.ram[0x3000] = 'n' as u32;
+    vm.ram[0x3001] = 'e' as u32;
+    vm.ram[0x3002] = 'w' as u32;
+    vm.ram[0x3003] = 0;
+    // Destination: "old" (longer)
+    vm.ram[0x4000] = 'o' as u32;
+    vm.ram[0x4001] = 'l' as u32;
+    vm.ram[0x4002] = 'd' as u32;
+    vm.ram[0x4003] = 0;
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 0x4000;
+    vm.ram[0] = 0xEE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 4);
+    assert_eq!(vm.ram[0x4000], 'n' as u32);
+    assert_eq!(vm.ram[0x4001], 'e' as u32);
+    assert_eq!(vm.ram[0x4002], 'w' as u32);
+    assert_eq!(vm.ram[0x4003], 0);
+}
+
+#[test]
+fn test_strcpy_assembled() {
+    let mut vm = Vm::new();
+    let src = "\
+LDI r1, 0x3000
+LDI r2, 0x4000
+STRCPY r1, r2
+HALT";
+    let bc = crate::assembler::assemble(src, 0).unwrap();
+    // Place "test" at 0x3000
+    let s = b"test\0";
+    for (i, &b) in s.iter().enumerate() {
+        vm.ram[0x3000 + i] = b as u32;
+    }
+    for (i, &word) in bc.pixels.iter().enumerate() {
+        if i < vm.ram.len() {
+            vm.ram[i] = word;
+        }
+    }
+    vm.pc = 0;
+    vm.halted = false;
+    for _ in 0..1000 {
+        if !vm.step() {
+            break;
+        }
+    }
+    assert_eq!(vm.regs[0], 5, "assembled STRCPY: 'test\\0' = 5 bytes");
+    for (i, &b) in s.iter().enumerate() {
+        assert_eq!(
+            vm.ram[0x4000 + i],
+            b as u32,
+            "assembled STRCPY: dst[{}] mismatch",
+            i
+        );
+    }
+}
+
+#[test]
+fn test_strlen_strcpy_combined() {
+    let mut vm = Vm::new();
+    // Place "world" at 0x3000
+    let s = b"world\0";
+    for (i, &b) in s.iter().enumerate() {
+        vm.ram[0x3000 + i] = b as u32;
+    }
+    vm.regs[1] = 0x3000;
+    vm.regs[2] = 0x4000;
+    // STRCPY r1, r2
+    vm.ram[0] = 0xEE;
+    vm.ram[1] = 1;
+    vm.ram[2] = 2;
+    vm.step();
+    assert_eq!(vm.regs[0], 6, "STRCPY returned 6");
+
+    // STRLEN r2 (now pointing to the copy)
+    vm.ram[3] = 0xED;
+    vm.ram[4] = 2;
+    vm.pc = 3;
+    vm.step();
+    assert_eq!(vm.regs[0], 5, "STRLEN of copied string should be 5");
+}
+
 // ── ABS: absolute value opcode (0x87) ─────────────────────
 
 #[test]

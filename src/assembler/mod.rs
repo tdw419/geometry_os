@@ -427,9 +427,11 @@ fn assemble_inner(source: &str, base_addr: usize) -> Result<AsmResult, AsmError>
     })
 }
 
-/// Parse register: "r0" -> 0, "r31" -> 31, "R5" -> 5
+/// Parse register: "r0" -> 0, "r31" -> 31, "R5" -> 5, "[r30]" -> 30
 pub(crate) fn parse_reg(s: &str) -> Result<usize, String> {
     let s = s.trim();
+    // Strip brackets: [r30] -> r30
+    let s = s.trim_start_matches('[').trim_end_matches(']');
     let lower = s.to_lowercase();
     if let Some(rest) = lower.strip_prefix('r') {
         if let Ok(n) = rest.parse::<usize>() {

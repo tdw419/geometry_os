@@ -3118,7 +3118,7 @@ phases:
   scope_lines_total: 270
 - id: phase-236
   title: GeOS VM -- Scanline Flood Fill Opcode (FLOOD)
-  status: planned
+  status: complete
   goal: Add a FLOOD opcode for efficient area filling from a seed point
   description: Current fills cover rectangles only. Programs needing irregular fills
     (paint bucket, territory marking) must implement flood fill manually at high step
@@ -3126,17 +3126,18 @@ phases:
     and game territory marking at near-native speed.
   deliverables:
   - name: FLOOD opcode
-    status: todo
+    status: done
     tasks:
     - id: p236.d1.t1
-      title: Implement FLOOD x_reg, y_reg, fill_reg, tolerance_reg (0xC8)
+      title: Implement FLOOD x_reg, y_reg, fill_reg, tolerance_reg (0xCE)
       description: Scanline flood fill starting at (x,y). Replaces connected pixels
         within tolerance of seed color with fill color. Stack-based scanline algorithm.
         5-word encoding.
       scope_files:
       - src/vm/mod.rs
-      - src/assembler/ops_graphics.rs
+      - src/assembler/graphics_ops.rs
       scope_lines: 80
+      status: done
     - id: p236.d1.t2
       title: Add disassembler entry and tests
       description: Test fill enclosed rectangle. Test no leak past boundaries. Test
@@ -3145,6 +3146,7 @@ phases:
       - src/vm/disasm.rs
       - src/vm/tests.rs
       scope_lines: 50
+      status: done
     - id: p236.d1.t3
       title: Write paint bucket demo
       description: Draw shapes on screen, flood-fill regions with new colors via keyboard
@@ -3152,6 +3154,7 @@ phases:
       scope_files:
       - programs/paint_bucket.asm
       scope_lines: 90
+      status: done
   test_target: 3
   scope_lines_total: 220
 - id: phase-237

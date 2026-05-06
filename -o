@@ -1,0 +1,173 @@
+word_0:
+; : HELLO 
+  ; dotquote:  Hello from Forth!
+  LDI r2, 32
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 72
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 101
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 108
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 108
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 111
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 32
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 102
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 114
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 111
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 109
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 32
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 70
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 111
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 114
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 116
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 104
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 33
+  STORE [0xFFB], r2    ; emit char
+  LDI r2, 10
+  STORE [0xFFB], r2    ; newline
+RET
+word_1:
+; : SQUARE 
+  LDI r2, 1
+  LOAD r2, [r30]       ; DUP: peek TOS
+  PUSH r2
+  LDI r2, 1
+  ADD r30, r2          ; SP++
+  LOAD r3, [r30]       ; NOS
+  LOAD r4, [r30]       ; TOS
+  MUL r4, r3           ; TOS * NOS
+  STORE [r30], r4
+RET
+word_2:
+; : COUNTDOWN 
+  begin_3:
+  LDI r2, 1
+  LOAD r2, [r30]       ; DUP: peek TOS
+  PUSH r2
+  LOAD r2, [r30]       ; pop number
+  LDI r3, 1
+  ADD r30, r3
+  STORE [0xFFB], r2    ; write to debug port
+  LDI r2, 10
+  STORE [0xFFB], r2    ; newline
+  LDI r2, 1
+  LOAD r3, [r30]
+  SUB r3, r2
+  STORE [r30], r3
+  LDI r2, 1
+  LOAD r2, [r30]       ; DUP: peek TOS
+  PUSH r2
+  LOAD r2, [r30]
+  CMPI r2, 0
+  JZ r0, zerogt_4_false
+  LDI r2, 1
+  JMP zerogt_4_done
+  zerogt_4_false:
+  LDI r2, 0
+  zerogt_4_done:
+  STORE [r30], r2
+  LOAD r2, [r30]       ; pop condition
+  LDI r3, 1
+  ADD r30, r3
+  CMPI r2, 0
+  JZ r0, begin_3
+  LDI r0, 1
+  ADD r30, r0          ; DROP: pop TOS
+RET
+CALL word_0
+; (call HELLO)
+; dotquote:  5 squared = 
+LDI r2, 32
+STORE [0xFFB], r2    ; emit char
+LDI r2, 53
+STORE [0xFFB], r2    ; emit char
+LDI r2, 32
+STORE [0xFFB], r2    ; emit char
+LDI r2, 115
+STORE [0xFFB], r2    ; emit char
+LDI r2, 113
+STORE [0xFFB], r2    ; emit char
+LDI r2, 117
+STORE [0xFFB], r2    ; emit char
+LDI r2, 97
+STORE [0xFFB], r2    ; emit char
+LDI r2, 114
+STORE [0xFFB], r2    ; emit char
+LDI r2, 101
+STORE [0xFFB], r2    ; emit char
+LDI r2, 100
+STORE [0xFFB], r2    ; emit char
+LDI r2, 32
+STORE [0xFFB], r2    ; emit char
+LDI r2, 61
+STORE [0xFFB], r2    ; emit char
+LDI r2, 32
+STORE [0xFFB], r2    ; emit char
+LDI r2, 5
+PUSH r2
+CALL word_1
+; (call SQUARE)
+LOAD r2, [r30]       ; pop number
+LDI r3, 1
+ADD r30, r3
+STORE [0xFFB], r2    ; write to debug port
+LDI r2, 10
+STORE [0xFFB], r2    ; newline
+; dotquote:  Countdown from 5:
+LDI r2, 32
+STORE [0xFFB], r2    ; emit char
+LDI r2, 67
+STORE [0xFFB], r2    ; emit char
+LDI r2, 111
+STORE [0xFFB], r2    ; emit char
+LDI r2, 117
+STORE [0xFFB], r2    ; emit char
+LDI r2, 110
+STORE [0xFFB], r2    ; emit char
+LDI r2, 116
+STORE [0xFFB], r2    ; emit char
+LDI r2, 100
+STORE [0xFFB], r2    ; emit char
+LDI r2, 111
+STORE [0xFFB], r2    ; emit char
+LDI r2, 119
+STORE [0xFFB], r2    ; emit char
+LDI r2, 110
+STORE [0xFFB], r2    ; emit char
+LDI r2, 32
+STORE [0xFFB], r2    ; emit char
+LDI r2, 102
+STORE [0xFFB], r2    ; emit char
+LDI r2, 114
+STORE [0xFFB], r2    ; emit char
+LDI r2, 111
+STORE [0xFFB], r2    ; emit char
+LDI r2, 109
+STORE [0xFFB], r2    ; emit char
+LDI r2, 32
+STORE [0xFFB], r2    ; emit char
+LDI r2, 53
+STORE [0xFFB], r2    ; emit char
+LDI r2, 58
+STORE [0xFFB], r2    ; emit char
+LDI r2, 10
+STORE [0xFFB], r2    ; newline
+LDI r2, 5
+PUSH r2
+CALL word_2
+; (call COUNTDOWN)
+HALT

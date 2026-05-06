@@ -1,0 +1,4 @@
+LDI r1, 0x3000
+STRO r1, "hello"
+STRLEN r1
+HALT

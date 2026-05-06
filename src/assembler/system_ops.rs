@@ -407,6 +407,25 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        "STRLEN" => {
+            if tokens.len() < 2 {
+                return Err("STRLEN requires 1 argument: STRLEN addr_reg".to_string());
+            }
+            bytecode.push(0xED);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            Ok(Some(()))
+        }
+
+        "STRCPY" => {
+            if tokens.len() < 3 {
+                return Err("STRCPY requires 2 arguments: STRCPY src_reg, dst_reg".to_string());
+            }
+            bytecode.push(0xEE);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            Ok(Some(()))
+        }
+
         "ABS" => {
             if tokens.len() < 2 {
                 return Err("ABS requires 1 argument: ABS rd".to_string());

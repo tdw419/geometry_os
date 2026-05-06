@@ -1034,6 +1034,8 @@ pub(crate) fn opcode_name(op: u8) -> &'static str {
         0xE9 => "TMR_WAIT",
         0xEA => "ALARM_SET",
         0xEB => "ALARM_CLR",
+        0xED => "STRLEN",
+        0xEE => "STRCPY",
         _ => "???",
     }
 }

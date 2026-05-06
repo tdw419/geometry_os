@@ -1373,14 +1373,14 @@ impl Vm {
             }
 
             // STRCMP addr1_reg, addr2_reg -- compare two null-terminated strings
-            // Sets r0: 0 if equal, 1 if s1 > s2, 0xFFFFFFFF (-1) if s1 < s2
+            // Sets r0: 0 if equal, 1 if not equal
             0x86 => {
                 let a1 = self.fetch() as usize;
                 let a2 = self.fetch() as usize;
                 if a1 < NUM_REGS && a2 < NUM_REGS {
                     let mut addr1 = self.regs[a1] as usize;
                     let mut addr2 = self.regs[a2] as usize;
-                    let result: i32;
+                    let mut equal = true;
                     loop {
                         let c1 = if addr1 < self.ram.len() {
                             (self.ram[addr1] & 0xFF) as u8
@@ -1392,22 +1392,17 @@ impl Vm {
                         } else {
                             0
                         };
-                        if c1 == 0 && c2 == 0 {
-                            result = 0; // equal (both null)
+                        if c1 != c2 {
+                            equal = false;
                             break;
                         }
-                        if c1 < c2 {
-                            result = -1;
-                            break;
-                        }
-                        if c1 > c2 {
-                            result = 1;
+                        if c1 == 0 {
                             break;
                         }
                         addr1 += 1;
                         addr2 += 1;
                     }
-                    self.regs[0] = result as u32;
+                    self.regs[0] = if equal { 0 } else { 1 };
                 }
             }
 
@@ -2536,6 +2531,59 @@ impl Vm {
                     self.regs[0] = 0; // success
                 } else {
                     self.regs[0] = 0xFFFFFFFF; // error
+                }
+            }
+
+            // STRLEN addr_reg  (0xED) -- length of null-terminated string
+            // Scans RAM starting at the address in addr_reg, counting bytes
+            // until a null terminator (0x00) is found. The null byte is not
+            // included in the count. Sets r0 = length (excluding null).
+            // Encoding: 2 words [0xED, addr_reg]
+            // Safety: stops at RAM boundary to prevent runaway scan.
+            0xED => {
+                let ar = self.fetch() as usize;
+                if ar < NUM_REGS {
+                    let mut addr = self.regs[ar] as usize;
+                    let mut len: u32 = 0;
+                    while addr < self.ram.len() {
+                        let byte = self.ram[addr] & 0xFF;
+                        if byte == 0 {
+                            break;
+                        }
+                        len += 1;
+                        addr += 1;
+                    }
+                    self.regs[0] = len;
+                }
+            }
+
+            // STRCPY src_reg, dst_reg  (0xEE) -- copy null-terminated string
+            // Copies bytes from the address in src_reg to the address in dst_reg
+            // until a null terminator is found (and copied). Sets r0 = number
+            // of bytes copied (including the null terminator).
+            // Encoding: 3 words [0xEE, src_reg, dst_reg]
+            // Safety: stops at RAM boundary for both src and dst.
+            0xEE => {
+                let sr = self.fetch() as usize;
+                let dr = self.fetch() as usize;
+                if sr < NUM_REGS && dr < NUM_REGS {
+                    let mut src = self.regs[sr] as usize;
+                    let mut dst = self.regs[dr] as usize;
+                    let mut copied: u32 = 0;
+                    loop {
+                        if src >= self.ram.len() || dst >= self.ram.len() {
+                            break;
+                        }
+                        let byte = self.ram[src] & 0xFF;
+                        self.ram[dst] = byte;
+                        copied += 1;
+                        if byte == 0 {
+                            break;
+                        }
+                        src += 1;
+                        dst += 1;
+                    }
+                    self.regs[0] = copied;
                 }
             }
 

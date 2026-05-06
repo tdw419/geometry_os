@@ -3193,7 +3193,7 @@ phases:
   scope_lines_total: 130
 - id: phase-238
   title: GeOS VM -- String Operation Opcodes (STRLEN, STRCMP, STRCPY)
-  status: planned
+  status: in_progress
   goal: Add string manipulation opcodes for efficient text processing
   description: VM programs doing string work (shell, editor, file browser) use manual
     loops costing 5-10 instructions per character. Native STRLEN, STRCMP, and STRCPY
@@ -3229,6 +3229,8 @@ phases:
       scope_lines: 40
   test_target: 3
   scope_lines_total: 160
+  _claimed_by: worker-0
+  _claimed_at: 1778095884
 - id: phase-239
   title: GeOS VM -- Block Memory Opcodes (MEMCPY, MEMSET)
   status: planned

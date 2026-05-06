@@ -8,6 +8,7 @@ pub mod camera;
 pub mod canvas;
 pub mod cli;
 pub mod episode_log;
+pub mod forth;
 pub mod font;
 pub mod glyph_backend;
 pub mod hermes;

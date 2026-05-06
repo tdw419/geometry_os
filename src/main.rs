@@ -1950,6 +1950,77 @@ fn main() {
                                 );
                                 response.push_str(&format!("{}\n", status_msg));
                             }
+                            "load_asm" => {
+                                // Direct-from-disk assembly — bypasses canvas 128-line limit.
+                                // Usage: load_asm <path> [base_addr]
+                                // Reads .asm from disk, assembles, loads into VM RAM.
+                                if parts.len() >= 2 {
+                                    let path = parts[1];
+                                    let base_addr = if parts.len() >= 3 {
+                                        usize::from_str_radix(
+                                            parts[2].trim_start_matches("0x"),
+                                            16,
+                                        )
+                                        .unwrap_or(render::CANVAS_BYTECODE_ADDR)
+                                    } else {
+                                        render::CANVAS_BYTECODE_ADDR
+                                    };
+                                    match std::fs::read_to_string(path) {
+                                        Ok(source) => {
+                                            let mut pp = preprocessor::Preprocessor::new();
+                                            let preprocessed = pp.preprocess(&source);
+                                            match assembler::assemble(&preprocessed, base_addr) {
+                                                Ok(asm_result) => {
+                                                    // Clear and load bytecode into RAM
+                                                    let clear_end = (base_addr + 4096).min(vm.ram.len());
+                                                    for v in vm.ram[base_addr..clear_end].iter_mut() {
+                                                        *v = 0;
+                                                    }
+                                                    for (i, &pixel) in asm_result.pixels.iter().enumerate() {
+                                                        let addr = base_addr + i;
+                                                        if addr < vm.ram.len() {
+                                                            vm.ram[addr] = pixel;
+                                                        }
+                                                    }
+                                                    vm.pc = base_addr as u32;
+                                                    vm.halted = false;
+                                                    is_running = false;
+                                                    // Also load into canvas for visibility
+                                                    canvas_buffer.fill(0);
+                                                    canvas::load_source_to_canvas(
+                                                        &mut canvas_buffer,
+                                                        &source,
+                                                        &mut cursor_row,
+                                                        &mut cursor_col,
+                                                    );
+                                                    let line_count = source.lines().count();
+                                                    status_msg = format!(
+                                                        "[load_asm: {} ({} lines, {} words at 0x{:04X})]",
+                                                        path,
+                                                        line_count,
+                                                        asm_result.pixels.len(),
+                                                        base_addr
+                                                    );
+                                                    response.push_str(&format!("{}\n", status_msg));
+                                                }
+                                                Err(e) => {
+                                                    status_msg = format!(
+                                                        "[ASM ERROR line {}: {}]",
+                                                        e.line, e.message
+                                                    );
+                                                    response.push_str(&format!("{}\n", status_msg));
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            status_msg = format!("[load_asm error: {}]", e);
+                                            response.push_str(&format!("{}\n", status_msg));
+                                        }
+                                    }
+                                } else {
+                                    response.push_str("[usage: load_asm <path> [base_addr]]\n");
+                                }
+                            }
                             "run" => {
                                 if vm.halted {
                                     vm.pc = if canvas_assembled {

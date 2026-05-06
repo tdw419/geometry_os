@@ -145,6 +145,8 @@ pub const OPCODES: &[&str] = &[
     "MAX",
     "CLAMP",
     "STRCMP",
+    "STRLEN",
+    "STRCPY",
     "SCREENP",
     "SCRSHOT",
     "NET_SEND",

@@ -165,6 +165,15 @@ fn get_tool_list() -> Vec<serde_json::Value> {
             vec![param("source", "string", "Full ASM source text", true)],
             vm_load_source_schema(),
         ),
+        tool(
+            "vm_load_asm",
+            "Load .asm file from disk, assemble directly into VM (bypasses canvas 128-line limit). Returns status with line/word counts.",
+            vec![
+                param("path", "string", "Path to .asm file (e.g. programs/hello.asm)", true),
+                param("base_addr", "string", "Base address in hex (default: 0x1000)", false),
+            ],
+            vm_load_asm_schema(),
+        ),
         // -- Phase 84: Building & Desktop Tools --
         tool(
             "building_list",
@@ -585,6 +594,9 @@ fn vm_save_asm_schema() -> serde_json::Value {
 }
 fn vm_load_source_schema() -> serde_json::Value {
     serde_json::json!({"type": "object", "properties": {"ok": {"type": "boolean"}, "cursor": {"type": "string"}}})
+}
+fn vm_load_asm_schema() -> serde_json::Value {
+    serde_json::json!({"type": "object", "properties": {"ok": {"type": "boolean"}, "path": {"type": "string"}, "lines": {"type": "integer"}, "words": {"type": "integer"}, "base_addr": {"type": "integer"}, "error": {"type": "string"}}})
 }
 fn building_list_schema() -> serde_json::Value {
     serde_json::json!({"type": "object", "properties": {"buildings": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "integer"}, "world_x": {"type": "integer"}, "world_y": {"type": "integer"}, "type_color": {"type": "string"}, "name": {"type": "string"}}}}}})
@@ -1018,6 +1030,21 @@ fn handle_tool_call(name: &str, args: &serde_json::Value) -> Result<serde_json::
             let escaped = source.replace('\n', "\\n");
             let resp = send_socket_cmd(&format!("load_source {}", escaped))?;
             let ok = resp.contains("[loaded:");
+            Ok(serde_json::json!({ "ok": ok, "response": resp }))
+        }
+
+        "vm_load_asm" => {
+            let path = args["path"].as_str().ok_or("Missing 'path' parameter")?;
+            let base_addr = args["base_addr"]
+                .as_str()
+                .unwrap_or("0x1000");
+            let cmd = if base_addr.is_empty() {
+                format!("load_asm {}", path)
+            } else {
+                format!("load_asm {} {}", path, base_addr)
+            };
+            let resp = send_socket_cmd(&cmd)?;
+            let ok = resp.contains("[load_asm:");
             Ok(serde_json::json!({ "ok": ok, "response": resp }))
         }
 

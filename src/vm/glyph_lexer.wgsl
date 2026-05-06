@@ -226,6 +226,8 @@ fn opcode_width(op: u32) -> u32 {
         case 0xBDu: { return 4u; } // FSLS
         case 0xBFu: { return 3u; } // PROCINFO
         case 0xC7u: { return 2u; } // IMOUSE
+        case 0xEDu: { return 2u; } // STRLEN
+        case 0xEEu: { return 3u; } // STRCPY
 
         default:   { return 0u; }  // Unknown opcode
     }
