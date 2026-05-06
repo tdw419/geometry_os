@@ -155,9 +155,17 @@ itoa:
     LDI r0, 0
     STORE r11, r0          ; null terminator
     JNZ r10, itoa_nonzero
+    ; Special case: value is 0, output "0\0"
     LDI r0, 48             ; '0'
-    STORE r11, r0
+    STORE r11, r0          ; buf[0] = '0'
+    LDI r0, 1
+    ADD r11, r0             ; r11 = buf + 1
+    LDI r0, 0
+    STORE r11, r0          ; buf[1] = '\0'
+    ; Return buffer address: buf = r11 - 1
     MOV r0, r11
+    LDI r1, 1
+    SUB r0, r1             ; r0 = buf
     RET
 itoa_nonzero:
     MOV r12, r11           ; r12 = write pos (for digits in reverse)
