@@ -2575,7 +2575,7 @@ phases:
   _claimed_at: 1778050654
 - id: phase-223
   title: GeOS VM -- Program Library (lib/) Standardization
-  status: planned
+  status: in_progress
   goal: Audit and standardize the programs/lib/ assembly library with proper documentation
     and test coverage
   description: The programs/lib/ directory contains stdlib.asm, math.asm, stdio.asm,
@@ -2619,7 +2619,7 @@ phases:
   test_target: 3
   scope_lines_total: 300
   _claimed_by: worker-0
-  _claimed_at: 1778036431
+  _claimed_at: 1778053885
 - id: phase-224
   title: RISC-V Guest -- Conway's Life with Framebuffer Rendering
   status: complete

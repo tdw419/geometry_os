@@ -16,6 +16,11 @@
 .org 0x000
 
 ; ═══════════════════════════════════════════════════════════════
+; Initialization (must be first -- execution starts at PC=0)
+; ═══════════════════════════════════════════════════════════════
+    LDI r30, 0xFF00         ; stack pointer
+
+; ═══════════════════════════════════════════════════════════════
 ; Helpers: test result storage
 ;   _check_result: r0==0 → store 1 (pass), else store 0 (fail)
 ;     Use after CMP to check equality, or directly for "expected==0"
@@ -42,11 +47,6 @@ _cne_fail:
     LDI r0, 0
     STORE r9, r0
     RET
-
-; ═══════════════════════════════════════════════════════════════
-; Initialization
-; ═══════════════════════════════════════════════════════════════
-    LDI r30, 0xFF00         ; stack pointer
 
 ; ═══════════════════════════════════════════════════════════════
 ; T1: strlen("Hello") == 5

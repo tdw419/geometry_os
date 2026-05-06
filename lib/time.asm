@@ -1,5 +1,9 @@
 ; lib/time.asm -- Standard Library: time and delay utilities
 ;
+; Version: 1.1.0
+; Dependencies: none (base library)
+; Clobbers: varies per function (see individual docs)
+;
 ; Calling convention:
 ;   Arguments: r1-r5 (r0 = return value)
 ;   Caller-saved: r1-r9
@@ -10,6 +14,7 @@
 ; ═══════════════════════════════════════════════════════════════
 ; get_ticks -- read current tick counter
 ;   returns r0 = current tick count
+;   clobbers: r9
 ; ═══════════════════════════════════════════════════════════════
 get_ticks:
     LDI r9, 0xFFE
@@ -19,6 +24,7 @@ get_ticks:
 ; ═══════════════════════════════════════════════════════════════
 ; delay_ticks -- busy-wait for N ticks
 ;   r1 = number of ticks to wait
+;   clobbers: r9, r10
 ; ═══════════════════════════════════════════════════════════════
 delay_ticks:
     LDI r9, 0xFFE
@@ -40,6 +46,7 @@ delay_loop:
 ; ═══════════════════════════════════════════════════════════════
 ; delay_frames -- busy-wait for N frames (using SLEEP)
 ;   r1 = number of frames to wait
+;   clobbers: none
 ; ═══════════════════════════════════════════════════════════════
 delay_frames:
     SLEEP r1

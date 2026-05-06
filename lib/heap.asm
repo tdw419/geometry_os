@@ -1,5 +1,9 @@
 ; lib/heap.asm -- Standard Library: advanced heap allocator with header tracking
 ;
+; Version: 1.1.0
+; Dependencies: none (base library)
+; Clobbers: varies per function (see individual docs)
+;
 ; Calling convention:
 ;   Arguments: r1-r5 (r0 = return value)
 ;   Caller-saved: r1-r9
@@ -31,7 +35,7 @@ _lib_heap_init:
 ; _lib_heap_alloc -- allocate N words from the heap
 ;   r1 = number of u32 words to allocate (must be > 0)
 ;   returns r0 = pointer to data area, or 0 on failure (out of memory)
-;   clobbers: r2, r4, r5
+;   clobbers: r1, r2, r4, r5
 ; ═══════════════════════════════════════════════════════════════
 _lib_heap_alloc:
     MOV r0, r1             ; r0 = requested size
@@ -97,6 +101,7 @@ _lib_ha_fail:
 ; ═══════════════════════════════════════════════════════════════
 ; _lib_heap_free -- free allocated memory (no-op for bump allocator)
 ;   r1 = address to free (ignored)
+;   clobbers: none
 ; ═══════════════════════════════════════════════════════════════
 _lib_heap_free:
     RET

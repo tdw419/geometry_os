@@ -1,5 +1,9 @@
 ; lib/collision.asm -- Standard Library: collision detection primitives
 ;
+; Version: 1.1.0
+; Dependencies: none (base library)
+; Clobbers: varies per function (see individual docs)
+;
 ; Calling convention:
 ;   Arguments: r1-r8 (extended for multi-arg functions)
 ;   Return value: r0 (0 = false, 1 = true)
@@ -16,6 +20,7 @@
 ;   r1 = x1, r2 = y1, r3 = w1, r4 = h1
 ;   r5 = x2, r6 = y2, r7 = w2, r8 = h2
 ;   returns r0 = 1 if rectangles overlap, 0 if not
+;   clobbers: r9
 ;
 ;   Overlap condition (all must be true):
 ;     x1 < x2 + w2  AND  x1 + w1 > x2
@@ -59,6 +64,7 @@ ro_no_overlap:
 ;   r1 = px, r2 = py
 ;   r3 = rx, r4 = ry, r5 = rw, r6 = rh
 ;   returns r0 = 1 if point is inside rect, 0 if not
+;   clobbers: r7
 ;
 ;   Inside condition:
 ;     px >= rx  AND  px < rx + rw
@@ -97,6 +103,7 @@ pir_outside:
 ; point_in_circle -- test if a point is inside a circle
 ;   r1 = px, r2 = py, r3 = cx, r4 = cy, r5 = cr
 ;   returns r0 = 1 if point is inside circle, 0 if not
+;   clobbers: r9, r10
 ;
 ;   Uses squared distance: (px-cx)^2 + (py-cy)^2 <= cr^2
 ; ═══════════════════════════════════════════════════════════════
@@ -136,6 +143,7 @@ pic_outside:
 ;   r1 = cx, r2 = cy, r3 = cr
 ;   r4 = rx, r5 = ry, r6 = rw, r7 = rh
 ;   returns r0 = 1 if intersect, 0 if not
+;   clobbers: r8, r9, r10
 ;
 ;   Algorithm: find closest point on rect to circle center,
 ;   then check if distance to that point <= cr.
@@ -240,6 +248,7 @@ cri_no_intersect:
 ;   r1 = cx1, r2 = cy1, r3 = r1 (radius 1)
 ;   r4 = cx2, r5 = cy2, r6 = r2 (radius 2)
 ;   returns r0 = 1 if overlap or touch, 0 if not
+;   clobbers: r9, r10
 ;
 ;   Uses squared distance: dist_sq <= (r1+r2)^2
 ; ═══════════════════════════════════════════════════════════════
@@ -280,6 +289,7 @@ co_no_overlap:
 ;   r1 = px, r2 = py
 ;   r3 = x1, r4 = y1, r5 = x2, r6 = y2, r7 = x3, r8 = y3
 ;   returns r0 = 1 if inside, 0 if not
+;   clobbers: r9-r15
 ;
 ;   Uses barycentric coordinate method (all integer math):
 ;   Compute cross products of edge vectors with point vectors.

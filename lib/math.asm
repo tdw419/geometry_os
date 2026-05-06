@@ -1,5 +1,9 @@
 ; lib/math.asm -- Standard Library: math operations
 ;
+; Version: 1.1.0
+; Dependencies: none (base library)
+; Clobbers: varies per function (see individual docs)
+;
 ; Calling convention:
 ;   Arguments: r1-r5 (r0 = return value)
 ;   Caller-saved: r1-r9
@@ -9,6 +13,7 @@
 ; abs -- absolute value
 ;   r1 = value
 ;   returns r0 = |value|
+;   clobbers: r2
 ; ═══════════════════════════════════════════════════════════════
 abs:
     MOV r0, r1
@@ -27,6 +32,7 @@ abs_done:
 ; min -- minimum of two values
 ;   r1 = a, r2 = b
 ;   returns r0 = (a < b) ? a : b
+;   clobbers: r3
 ; ═══════════════════════════════════════════════════════════════
 min:
     CMP r1, r2
@@ -43,6 +49,7 @@ min_a:
 ; max -- maximum of two values
 ;   r1 = a, r2 = b
 ;   returns r0 = (a > b) ? a : b
+;   clobbers: r3
 ; ═══════════════════════════════════════════════════════════════
 max:
     CMP r1, r2
@@ -59,6 +66,7 @@ max_a:
 ; clamp -- clamp value to range [lo, hi]
 ;   r1 = value, r2 = lo, r3 = hi
 ;   returns r0 = clamped value
+;   clobbers: r4
 ; ═══════════════════════════════════════════════════════════════
 clamp:
     ; if value < lo, return lo
@@ -81,9 +89,30 @@ clamp_hi:
     RET
 
 ; ═══════════════════════════════════════════════════════════════
+; lerp -- linear interpolation
+;   r1 = a (start), r2 = b (end), r3 = t (0..N fixed-point, t/N = fraction)
+;   r4 = scale (N, e.g. 100 for 0.01 steps, 256 for 8-bit fraction)
+;   returns r0 = a + (b - a) * t / scale
+;   clobbers: r5
+; ═══════════════════════════════════════════════════════════════
+lerp:
+    ; r5 = b - a
+    MOV r5, r2
+    SUB r5, r1
+    ; r5 = (b - a) * t
+    MUL r5, r3
+    ; r5 = (b - a) * t / scale
+    DIV r5, r4
+    ; r0 = a + r5
+    MOV r0, r1
+    ADD r0, r5
+    RET
+
+; ═══════════════════════════════════════════════════════════════
 ; sqrt_approx -- integer square root via Newton's method
 ;   r1 = value (unsigned)
 ;   returns r0 = floor(sqrt(value))
+;   clobbers: r10-r13
 ; ═══════════════════════════════════════════════════════════════
 sqrt_approx:
     ; Handle 0
@@ -107,11 +136,6 @@ sqrt_loop:
     JZ r0, sqrt_done       ; avoid div by zero
     MOV r1, r10            ; r1 = value
     MOV r2, r0             ; r2 = guess
-    DIV r1, r2             ; r0 = value / guess  -- WAIT, DIV uses r10,r2 -> r10 = r10/r2
-    ; Actually DIV opcode: DIV rd, rs means rd = rd / rs
-    ; So we need: DIV value_reg, guess_reg
-    MOV r1, r10            ; r1 = value
-    MOV r2, r0             ; r2 = guess  
     DIV r1, r2             ; r1 = value / guess
     ADD r1, r0             ; r1 = (value/guess) + guess
     LDI r2, 1
@@ -134,6 +158,7 @@ sqrt_done:
 ; dist2 -- squared distance between two points
 ;   r1 = x1, r2 = y1, r3 = x2, r4 = y2
 ;   returns r0 = (x2-x1)^2 + (y2-y1)^2
+;   clobbers: r5, r6
 ; ═══════════════════════════════════════════════════════════════
 dist2:
     ; dx = x2 - x1

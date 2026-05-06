@@ -1,5 +1,9 @@
 ; lib/stdlib.asm -- Standard Library: string operations, memory operations, heap allocator
 ;
+; Version: 1.1.0
+; Dependencies: none (base library)
+; Clobbers: varies per function (see individual docs)
+;
 ; Calling convention:
 ;   Arguments: r1-r5 (r0 = return value)
 ;   Caller-saved: r1-r9
@@ -18,6 +22,7 @@
 ; strlen -- compute length of null-terminated string
 ;   r1 = string address
 ;   returns r0 = length (number of chars before null)
+;   clobbers: r2
 ; ═══════════════════════════════════════════════════════════════
 strlen:
     LDI r0, 0
@@ -36,6 +41,7 @@ strlen_done:
 ; strcmp -- compare two null-terminated strings
 ;   r1 = string A address, r2 = string B address
 ;   returns r0 = 0 if equal, 1 if A>B, 0xFFFFFFFF if A<B
+;   clobbers: r3, r4, r5
 ; ═══════════════════════════════════════════════════════════════
 strcmp:
 strcmp_loop:
@@ -68,6 +74,7 @@ strcmp_equal:
 ; strcpy -- copy null-terminated string from src to dst
 ;   r1 = destination address, r2 = source address
 ;   returns r0 = destination address (unchanged)
+;   clobbers: r3
 ; ═══════════════════════════════════════════════════════════════
 strcpy:
     MOV r0, r1
@@ -83,9 +90,44 @@ strcpy_done:
     RET
 
 ; ═══════════════════════════════════════════════════════════════
+; strncpy -- copy at most N characters from src to dst, null-pad
+;   r1 = destination address, r2 = source address, r3 = max chars
+;   returns r0 = destination address
+;   clobbers: r4, r5
+;   note: always writes exactly N words to dst (null-pads short strings)
+; ═══════════════════════════════════════════════════════════════
+strncpy:
+    MOV r0, r1             ; save dst for return
+    JZ r3, strncpy_done    ; count == 0: nothing to do
+strncpy_loop:
+    JZ r3, strncpy_pad     ; source exhausted, pad remainder
+    LOAD r4, r2
+    STORE r1, r4
+    JZ r4, strncpy_pad     ; hit null terminator
+    LDI r5, 1
+    ADD r1, r5
+    ADD r2, r5
+    LDI r5, 1
+    SUB r3, r5
+    JMP strncpy_loop
+strncpy_pad:
+    ; Null-pad remaining
+    JZ r3, strncpy_done
+    LDI r4, 0
+    STORE r1, r4
+    LDI r5, 1
+    ADD r1, r5
+    LDI r5, 1
+    SUB r3, r5
+    JMP strncpy_pad
+strncpy_done:
+    RET
+
+; ═══════════════════════════════════════════════════════════════
 ; strcat -- concatenate null-terminated string src onto dst
 ;   r1 = destination address, r2 = source address
 ;   returns r0 = destination address
+;   clobbers: r3
 ; ═══════════════════════════════════════════════════════════════
 strcat:
     MOV r0, r1
@@ -110,6 +152,7 @@ strcat_done:
 ; memset -- fill memory region with a value
 ;   r1 = address, r2 = count (words), r3 = value
 ;   returns r0 = address
+;   clobbers: r4
 ; ═══════════════════════════════════════════════════════════════
 memset:
     MOV r0, r1
@@ -128,6 +171,7 @@ memset_done:
 ; memcpy -- copy memory region
 ;   r1 = destination, r2 = source, r3 = count (words)
 ;   returns r0 = destination
+;   clobbers: r4
 ; ═══════════════════════════════════════════════════════════════
 memcpy:
     MOV r0, r1
@@ -145,9 +189,33 @@ memcpy_done:
     RET
 
 ; ═══════════════════════════════════════════════════════════════
+; memchr -- find first occurrence of a value in a memory region
+;   r1 = address, r2 = count (words), r3 = value to find
+;   returns r0 = address of match, or 0 if not found
+;   clobbers: r4
+; ═══════════════════════════════════════════════════════════════
+memchr:
+    JZ r2, memchr_notfound
+memchr_loop:
+    LOAD r4, r1
+    CMP r4, r3
+    JZ r0, memchr_found    ; CMP == 0 means match
+    LDI r4, 1
+    ADD r1, r4
+    LDI r4, 1
+    SUB r2, r4
+    JNZ r2, memchr_loop
+memchr_notfound:
+    LDI r0, 0
+    RET
+memchr_found:
+    RET
+
+; ═══════════════════════════════════════════════════════════════
 ; itoa -- convert unsigned integer to decimal string
 ;   r1 = value, r2 = output buffer address
 ;   returns r0 = buffer address
+;   clobbers: r10-r14
 ; ═══════════════════════════════════════════════════════════════
 itoa:
     MOV r10, r1            ; save value
@@ -207,9 +275,39 @@ itoa_done:
     RET
 
 ; ═══════════════════════════════════════════════════════════════
+; atoi -- convert decimal string to unsigned integer
+;   r1 = string address (null-terminated)
+;   returns r0 = integer value
+;   clobbers: r2, r3
+; ═══════════════════════════════════════════════════════════════
+atoi:
+    LDI r0, 0              ; accumulator = 0
+atoi_loop:
+    LOAD r2, r1
+    JZ r2, atoi_done       ; null terminator
+    ; Check if digit (0x30-0x39)
+    LDI r3, 48
+    SUB r2, r3             ; r2 = char - '0'
+    LDI r3, 9
+    CMP r2, r3
+    LDI r3, 1
+    CMP r0, r3             ; if char-'0' > 9, not a digit
+    JZ r0, atoi_done
+    ; accumulator = accumulator * 10 + digit
+    LDI r3, 10
+    MUL r0, r3             ; r0 *= 10
+    ADD r0, r2             ; r0 += digit
+    LDI r3, 1
+    ADD r1, r3             ; advance pointer
+    JMP atoi_loop
+atoi_done:
+    RET
+
+; ═══════════════════════════════════════════════════════════════
 ; malloc -- allocate N words from heap (bump allocator)
 ;   r1 = number of words to allocate
 ;   returns r0 = address of allocated block (0 if out of memory)
+;   clobbers: r2-r6
 ; ═══════════════════════════════════════════════════════════════
 #define HEAP_START 0xC000
 #define HEAP_SIZE 0x3000
@@ -240,6 +338,7 @@ malloc_fail:
 ; ═══════════════════════════════════════════════════════════════
 ; free -- free allocated memory (no-op for bump allocator)
 ;   r1 = address to free (ignored)
+;   clobbers: none
 ; ═══════════════════════════════════════════════════════════════
 free:
     RET

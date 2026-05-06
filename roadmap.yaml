@@ -11123,3 +11123,54 @@ phases:
     scope_lines: 1
   scope_lines_total: 1
   test_target: 0
+- id: phase-263
+  title: "Fix suspicious_open_options in ops_host_fs.rs mode 3"
+  status: planned
+  goal: "Explicitly define behavior for read+write file open mode"
+  description: "src/vm/ops_host_fs.rs line 128 opens files in mode 3 (read+write) with .create(true) but no explicit clearing. Rust default preserves existing content so new writes append beyond old data. This differs from mode 1 (File::create) which always starts fresh. Found via clippy suspicious_open_options. Also fix ineffective_open_options in mode 2 (.write(true) is redundant with .append(true))."
+  deliverables:
+  - name: "Fix mode 3 open options to clear file on create"
+    description: "In src/vm/ops_host_fs.rs, after opening mode 3 file, call set_len(0) to clear it, matching mode 1 behavior. Also remove redundant .write(true) from mode 2."
+    status: todo
+    tasks:
+    - id: p263.d1.t1
+      title: "Add file clearing to mode 3 open in ops_host_fs.rs"
+      status: todo
+      description: "Edit src/vm/ops_host_fs.rs. After mode 3 OpenOptions open succeeds, call file.set_len(0) to ensure existing content is cleared. Verify with cargo clippy."
+      scope_lines: 8
+    scope_lines: 8
+  scope_lines_total: 8
+  test_target: 0
+- id: phase-264
+  title: "Fix clippy errors in test code (erasing_op, almost_swapped)"
+  status: planned
+  goal: "Allow cargo clippy --all-targets to pass without errors"
+  description: "Running cargo clippy --all-targets produces 21 errors across tests/program_tests/basic_programs.rs, examples/test_boot_mmu.rs, and src/vm/tests.rs. 16 are erasing_op (0 * 256 in array indexing) and 7 are almost_swapped (save/restore of win_id with no mutation in between). These prevent clippy from being used as a CI gate."
+  deliverables:
+  - name: "Fix erasing_op clippy errors in test and example code"
+    description: "Simplify expressions like 0 * 256 + n to just n in basic_programs.rs and test_boot_mmu.rs."
+    status: todo
+    tasks:
+    - id: p264.d1.t1
+      title: "Simplify zero-multiplication expressions in basic_programs.rs"
+      status: todo
+      description: "In tests/program_tests/basic_programs.rs, replace all 0 * 256 + n with n, 0 * CANVAS_COLS + n with n, and similar patterns."
+      scope_lines: 40
+    - id: p264.d1.t2
+      title: "Simplify zero-multiplication in test_boot_mmu.rs"
+      status: todo
+      description: "In examples/test_boot_mmu.rs line 36, change boot_pt_addr + 0 * 4 to boot_pt_addr."
+      scope_lines: 2
+    scope_lines: 42
+  - name: "Fix almost_swapped clippy errors in vm/tests.rs"
+    description: "7 instances of save-restore pattern for win_id with no intermediate mutation at lines 10705, 10757, 10800, 19512, 19747."
+    status: todo
+    tasks:
+    - id: p264.d2.t1
+      title: "Audit and fix almost_swapped patterns in vm/tests.rs"
+      status: todo
+      description: "For each of the 7 instances, check if save/restore is needed. If not modified between, remove both lines. Otherwise add allow annotation with comment."
+      scope_lines: 50
+    scope_lines: 50
+  scope_lines_total: 92
+  test_target: 0

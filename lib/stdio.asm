@@ -1,5 +1,9 @@
 ; lib/stdio.asm -- Standard Library: formatted I/O
 ;
+; Version: 1.1.0
+; Dependencies: lib/stdlib.asm (for strlen, itoa) -- must be included BEFORE this file
+; Clobbers: varies per function (see individual docs)
+;
 ; Calling convention:
 ;   Arguments: r1-r5 (r0 = return value)
 ;   Caller-saved: r1-r9
@@ -20,6 +24,7 @@
 
 ; ═══════════════════════════════════════════════════════════════
 ; stdio_init -- initialize cursor position and color
+;   clobbers: r0, r9
 ; ═══════════════════════════════════════════════════════════════
 stdio_init:
     LDI r9, CURSOR_X
@@ -37,6 +42,7 @@ stdio_init:
 ; print_str -- print null-terminated string to screen at cursor
 ;   r1 = string address
 ;   Advances cursor position
+;   clobbers: r2, r3, r9, r10, r11, r12, r13
 ; ═══════════════════════════════════════════════════════════════
 print_str:
     LDI r9, CURSOR_X
@@ -115,6 +121,7 @@ print_str_done:
 ; print_int -- print unsigned integer as decimal
 ;   r1 = value
 ;   Uses internal buffer at 0xFB4 (8 words)
+;   clobbers: r2
 ; ═══════════════════════════════════════════════════════════════
 print_int:
     LDI r2, 0xFB4          ; buffer for digits
@@ -125,6 +132,7 @@ print_int:
 
 ; ═══════════════════════════════════════════════════════════════
 ; print_newline -- advance cursor to next line
+;   clobbers: r0, r3, r9
 ; ═══════════════════════════════════════════════════════════════
 print_newline:
     LDI r9, CURSOR_X
