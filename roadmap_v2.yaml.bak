@@ -2479,7 +2479,7 @@ phases:
   _claimed_at: 1778029609
 - id: phase-221
   title: GeOS VM -- Clipboard Protocol Enhancement
-  status: planned
+  status: in_progress
   goal: Extend the system clipboard (0xF010-0xF01F) with multi-format copy/paste and
     clipboard history
   description: 'The clipboard protocol at 0xF010-0xF01F supports basic pixel-region
@@ -2521,6 +2521,8 @@ phases:
       scope_lines: 60
   test_target: 3
   scope_lines_total: 200
+  _claimed_by: worker-0
+  _claimed_at: 1778030729
 - id: phase-222
   title: GeOS VM -- Timer and Alarm Opcodes
   status: planned
