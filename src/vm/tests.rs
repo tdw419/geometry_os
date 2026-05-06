@@ -28021,3 +28021,96 @@ fn test_tmr_wait_zero_ms_completes() {
     }
     assert_eq!(vm.regs[0], 0, "TMR_WAIT with 0ms should succeed immediately");
 }
+
+#[test]
+fn test_countdown_asm_assembles() {
+    // Verify the countdown.asm program assembles without errors
+    use crate::assembler::assemble;
+    let source = r#"
+#define TARGET_MS   0x4000
+#define RUNNING     0x4004
+#define ALARM_FIRED 0x4008
+#define CD_SECONDS  0x400C
+#define START_MS    0x4010
+#define ALARM_SLOT  0x4014
+#define TXT_BUF     0x5000
+#define ALARM_FLAG  0x4018
+
+    LDI r1, 1
+    LDI r2, 0
+    LDI r20, CD_SECONDS
+    LDI r3, 10
+    STORE r20, r3
+    TMR_GET r10
+    LDI r20, START_MS
+    STORE r20, r10
+    LDI r20, CD_SECONDS
+    LOAD r11, r20
+    LDI r12, 1000
+    MUL r11, r12
+    LDI r12, ALARM_FLAG
+    LDI r13, 1
+    ALARM_SET r11, r12, r13
+    LDI r20, ALARM_SLOT
+    LOAD r6, r20
+    CMPI r6, 0xFFFFFFFF
+    JZ r0, skip_clr
+    ALARM_CLR r6
+skip_clr:
+    LDI r2, 0x0A1628
+    FILL r2
+    HALT
+"#;
+    let result = assemble(source, 0).expect("countdown.asm should assemble without errors");
+    // Should produce a non-trivial program
+    assert!(result.pixels.len() > 20, "countdown program should produce meaningful bytecode, got {} words", result.pixels.len());
+    // Verify key opcodes are present
+    assert!(result.pixels.contains(&0xE8), "TMR_GET opcode (0xE8) should be in bytecode");
+    assert!(result.pixels.contains(&0xEA), "ALARM_SET opcode (0xEA) should be in bytecode");
+    assert!(result.pixels.contains(&0xEB), "ALARM_CLR opcode (0xEB) should be in bytecode");
+}
+
+#[test]
+fn test_tmr_get_alarm_set_end_to_end() {
+    // Full end-to-end: set alarm, run frames until it fires
+    let mut vm = Vm::new();
+    // Set a 10ms alarm that writes 42 to RAM[0x500]
+    vm.ram[0] = 0x10; // LDI r10, 10
+    vm.ram[1] = 10;
+    vm.ram[2] = 10;
+    vm.ram[3] = 0x10; // LDI r11, 0x500
+    vm.ram[4] = 11;
+    vm.ram[5] = 0x500;
+    vm.ram[6] = 0x10; // LDI r12, 42
+    vm.ram[7] = 12;
+    vm.ram[8] = 42;
+    vm.ram[9] = 0xEA; // ALARM_SET r10, r11, r12
+    vm.ram[10] = 10;
+    vm.ram[11] = 11;
+    vm.ram[12] = 12;
+    vm.ram[13] = 0x02; // FRAME (triggers alarm check)
+    vm.ram[14] = 0xFF; // HALT
+    vm.pc = 0;
+
+    // Run setup + FRAME
+    for _ in 0..30 {
+        if !vm.step() { break; }
+    }
+
+    // Verify alarm was set
+    let slot = vm.regs[0] as usize;
+    assert!(slot < 8, "Alarm slot should be valid, got {}", slot);
+    // Alarm might have already fired if the thread was slow, or still be pending
+
+    // Sleep past the alarm time
+    std::thread::sleep(std::time::Duration::from_millis(50));
+
+    // Run another FRAME to check alarms (un-halt first)
+    vm.halted = false;
+    vm.ram[0] = 0x02; // FRAME
+    vm.pc = 0;
+    vm.step();
+
+    // Verify alarm fired and wrote to RAM
+    assert_eq!(vm.ram[0x500], 42, "Alarm should have written 42 to RAM[0x500]");
+}

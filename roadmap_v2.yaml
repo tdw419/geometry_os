@@ -2531,46 +2531,57 @@ phases:
   _claimed_at: 1778058739
 - id: phase-222
   title: GeOS VM -- Timer and Alarm Opcodes
-  status: planned
+  status: complete
   goal: Add wall-clock timer opcodes so programs can schedule actions by real time,
     not just frame count
   description: Programs currently use the TICKS register (RAM[0xFFE], incremented
     by FRAME) for timing, but TICKS are instruction-count-based, not wall-clock. For
     games (countdown timers), UI (auto-save reminders), and networking (timeouts),
-    programs need real time. Add TIMER_GET (milliseconds since VM start to register),
-    TIMER_SET_ALARM (register = milliseconds from now), and TIMER_CHECK (returns 1
-    if alarm fired, 0 if not). Uses std::time::Instant on the host.
+    programs need real time. Implemented TMR_GET (0xE8), TMR_WAIT (0xE9), ALARM_SET
+    (0xEA), ALARM_CLR (0xEB) using std::time::Instant on the host. Up to 8 concurrent
+    alarms, checked each FRAME. Demo program countdown.asm proves wall-clock timing.
   deliverables:
   - name: Wall-clock timer opcodes
-    status: todo
+    status: complete
     tasks:
     - id: p222.d1.t1
       title: Add TIMER_GET opcode
       description: Reads host Instant::now() - vm.start_time, writes milliseconds
-        to register. 32-bit value wraps at ~49 days. Opcode 0xC6.
+        to register. 32-bit value wraps at ~49 days. Implemented as TMR_GET (0xE8).
+        Note: roadmap originally said 0xC6 but that was already taken by PROFILE;
+        used 0xE8 instead.
       scope_files:
       - src/vm/mod.rs
       - src/assembler/system_ops.rs
       scope_lines: 30
+      status: complete
     - id: p222.d1.t2
       title: Add TIMER_SET_ALARM and TIMER_CHECK opcodes
-      description: TIMER_SET_ALARM stores target_time = now + delay_ms. TIMER_CHECK
-        returns 1 if now >= target_time, 0 if not. One alarm at a time (new alarm
-        replaces old). Opcodes 0xC7, 0xC8.
+      description: Implemented as ALARM_SET (0xEA) and ALARM_CLR (0xEB). Also added
+        TMR_WAIT (0xE9) for spin-wait convenience. ALARM_SET stores target_time =
+        now + delay_ms, fires by writing value to RAM[addr] on FRAME. Up to 8
+        concurrent alarms. Note: original spec said 0xC7/0xC8 but those were taken
+        by CRECTF/CRECT; used 0xE9-0xEB instead.
       scope_files:
       - src/vm/mod.rs
       - src/assembler/system_ops.rs
       scope_lines: 40
+      status: complete
     - id: p222.d1.t3
       title: 'Demo: countdown timer program'
-      description: 10-second countdown displayed on screen. Uses TIMER_SET_ALARM +
-        TIMER_CHECK each frame. Shows remaining seconds in large text. Beeps on completion.
-        Proves wall-clock timing works.
+      description: 10-second countdown displayed on screen. Uses TMR_GET to compute
+        remaining time and ALARM_SET to detect completion. Shows remaining seconds,
+        live TMR_GET hex readout, state indicator. Beeps on completion. Programs
+        at programs/countdown.asm (9466 bytes).
       scope_files:
       - programs/countdown.asm
       scope_lines: 50
+      status: complete
   test_target: 3
   scope_lines_total: 120
+  tests: 12
+  _claimed_by: worker-0
+  _claimed_at: 1778060054
 - id: phase-223
   title: GeOS VM -- Program Library (lib/) Standardization
   status: planned
