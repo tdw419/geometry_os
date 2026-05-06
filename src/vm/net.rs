@@ -891,7 +891,7 @@ mod tests {
     #[test]
     fn test_find_body_start() {
         let resp = b"HTTP/1.0 200 OK\r\n\r\nHello World";
-        assert_eq!(find_body_start(resp), 21);
+        assert_eq!(find_body_start(resp), 19);
     }
 
     #[test]
@@ -903,7 +903,7 @@ mod tests {
     #[test]
     fn test_find_body_start_with_headers() {
         let resp = b"HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 5\r\n\r\nHello";
-        assert_eq!(find_body_start(resp), 72);
+        assert_eq!(find_body_start(resp), 64);
     }
 
     /// Helper: create a mock HTTP server that returns a fixed response.
