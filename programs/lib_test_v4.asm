@@ -21,6 +21,7 @@
 ; Helpers
 ; ═══════════════════════════════════════════════════════════════
     LDI r30, 0xFF00         ; stack pointer
+    JMP _tests_start        ; skip over helper functions
 
 ; _pass: store 1 at address in r9
 _pass:
