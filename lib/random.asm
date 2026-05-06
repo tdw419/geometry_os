@@ -110,10 +110,11 @@ rng_next:
 ;   For small max values this has acceptable uniformity.
 ; ═══════════════════════════════════════════════════════════════
 rng_range:
+    MOV r10, r1             ; save max in callee-saved register (rng_next clobbers r1)
     CALL rng_next            ; r0 = random u32
     MOV r2, r0              ; save random value
-    JZ r1, rng_range_zero   ; max == 0 -> return 0
-    MOD r2, r1              ; r2 = random % max
+    JZ r10, rng_range_zero  ; max == 0 -> return 0
+    MOD r2, r10             ; r2 = random % max (use saved max)
     MOV r0, r2
     RET
 rng_range_zero:
@@ -129,6 +130,7 @@ rng_range_zero:
 ;   result = min + rng_next() % (max - min + 1)
 ; ═══════════════════════════════════════════════════════════════
 rng_range_bounded:
+    MOV r10, r1             ; save min in callee-saved register (rng_next clobbers r1)
     ; range = max - min + 1
     MOV r3, r2
     SUB r3, r1             ; r3 = max - min
@@ -136,10 +138,10 @@ rng_range_bounded:
     ADD r3, r4             ; r3 = max - min + 1
     JZ r3, rng_rb_exact    ; range == 0 -> min == max
     ; result = min + rng_next() % range
-    MOV r4, r3             ; save range
+    MOV r4, r3             ; save range (r4 not clobbered by rng_next)
     CALL rng_next
     MOD r0, r4             ; r0 = rng % range
-    ADD r0, r1             ; r0 = min + result
+    ADD r0, r10            ; r0 = min + result (use saved min)
     RET
 rng_rb_exact:
     MOV r0, r1             ; return min (== max)
