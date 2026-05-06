@@ -4811,6 +4811,14 @@ impl Vm {
                 }
             }
 
+            // HTTPGET url_reg, buf_reg, max_len_reg, status_reg, len_reg  (0xCC)
+            // Blocking HTTP/1.0 GET. Reads URL from RAM[url_reg], stores
+            // response body in RAM[buf_reg] (up to max_len bytes).
+            // Returns: status_reg = HTTP code, len_reg = body length, r0 = error code.
+            0xCC => {
+                self.op_httpget();
+            }
+
             _ => {
                 self.halted = true;
                 return false;

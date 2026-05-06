@@ -271,6 +271,212 @@ impl super::Vm {
     pub fn tcp_connection_count(&self) -> usize {
         self.tcp_connections.iter().filter(|c| c.is_some()).count()
     }
+
+    // ═══════════════════════════════════════════════════════
+    // HTTPGET opcode (0xCC) -- Blocking HTTP GET
+    // ═══════════════════════════════════════════════════════
+
+    /// HTTPGET url_reg, buf_reg, max_len_reg, status_reg, len_reg  (0xCC)
+    ///
+    /// Performs a blocking HTTP/1.0 GET request. Reads a null-terminated URL
+    /// string from RAM[url_reg], sends the request, and stores the response
+    /// body in RAM[buf_reg] (up to max_len bytes).
+    ///
+    /// URL format: "host[:port][/path]" (no scheme required).
+    ///   Examples: "example.com", "example.com:8080/api", "127.0.0.1:3000/"
+    ///
+    /// Returns:
+    ///   status_reg = HTTP status code (200, 404, etc.), 0 on connection error
+    ///   len_reg    = body length in bytes stored in RAM
+    ///   r0         = HTTP_OK (0) on success, error code on failure
+    pub fn op_httpget(&mut self) {
+        let url_reg = self.fetch() as usize;
+        let buf_reg = self.fetch() as usize;
+        let max_len_reg = self.fetch() as usize;
+        let status_reg = self.fetch() as usize;
+        let len_reg = self.fetch() as usize;
+
+        if url_reg >= super::NUM_REGS
+            || buf_reg >= super::NUM_REGS
+            || max_len_reg >= super::NUM_REGS
+            || status_reg >= super::NUM_REGS
+            || len_reg >= super::NUM_REGS
+        {
+            self.regs[0] = HTTP_ERR_BAD_URL;
+            return;
+        }
+
+        let url = read_string_from_ram(&self.ram, self.regs[url_reg]);
+        if url.is_empty() {
+            self.regs[0] = HTTP_ERR_BAD_URL;
+            return;
+        }
+
+        // Parse URL: host[:port][/path]
+        let (host, port, path) = match parse_url(&url) {
+            Some(p) => p,
+            None => {
+                self.regs[0] = HTTP_ERR_BAD_URL;
+                return;
+            }
+        };
+
+        let addr = format!("{}:{}", host, port);
+
+        // Connect
+        let mut stream = match TcpStream::connect(&*addr) {
+            Ok(s) => s,
+            Err(_) => {
+                self.regs[0] = HTTP_ERR_CONNECT;
+                self.regs[status_reg] = 0;
+                self.regs[len_reg] = 0;
+                return;
+            }
+        };
+
+        // Set a 5-second read timeout
+        let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(5)));
+
+        // Build and send HTTP/1.0 request
+        let request = format!(
+            "GET {} HTTP/1.0\r\nHost: {}\r\nUser-Agent: GeOS/1.0\r\nConnection: close\r\n\r\n",
+            path, host
+        );
+
+        if stream.write_all(request.as_bytes()).is_err() {
+            self.regs[0] = HTTP_ERR_SEND;
+            self.regs[status_reg] = 0;
+            self.regs[len_reg] = 0;
+            return;
+        }
+
+        // Read entire response
+        let mut response_buf = Vec::new();
+        let mut tmp = [0u8; 4096];
+        loop {
+            match stream.read(&mut tmp) {
+                Ok(0) => break, // connection closed (HTTP/1.0 + Connection: close)
+                Ok(n) => response_buf.extend_from_slice(&tmp[..n]),
+                Err(_) => break, // timeout or other error
+            }
+        }
+
+        // Parse response: find status line and header/body boundary
+        let response_str = String::from_utf8_lossy(&response_buf);
+        let status_code = parse_status_code(&response_str);
+
+        // Find body (after \r\n\r\n)
+        let body_start = find_body_start(&response_buf);
+        let body = &response_buf[body_start..];
+        let max_len = self.regs[max_len_reg] as usize;
+
+        if body.len() > max_len {
+            // Store what fits, signal truncation
+            let to_store = body.len().min(max_len);
+            let buf_addr = self.regs[buf_reg] as usize;
+            for (i, &byte) in body[..to_store].iter().enumerate() {
+                let idx = buf_addr + i;
+                if idx < self.ram.len() {
+                    self.ram[idx] = byte as u32;
+                }
+            }
+            self.regs[status_reg] = status_code;
+            self.regs[len_reg] = to_store as u32;
+            self.regs[0] = HTTP_ERR_TOO_LARGE;
+            return;
+        }
+
+        // Store full body in RAM
+        let buf_addr = self.regs[buf_reg] as usize;
+        for (i, &byte) in body.iter().enumerate() {
+            let idx = buf_addr + i;
+            if idx < self.ram.len() {
+                self.ram[idx] = byte as u32;
+            }
+        }
+
+        self.regs[status_reg] = status_code;
+        self.regs[len_reg] = body.len() as u32;
+        self.regs[0] = HTTP_OK;
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// HTTPGET error codes (module-level constants)
+// ═══════════════════════════════════════════════════════
+
+/// HTTPGET error codes (written to r0 on error).
+pub const HTTP_OK: u32 = 0;
+pub const HTTP_ERR_BAD_URL: u32 = 1;
+pub const HTTP_ERR_CONNECT: u32 = 2;
+pub const HTTP_ERR_SEND: u32 = 3;
+pub const HTTP_ERR_RECV: u32 = 4;
+pub const HTTP_ERR_TOO_LARGE: u32 = 5;
+pub const HTTP_ERR_PARSE: u32 = 6;
+
+/// Parse a URL string into (host, port, path).
+/// Format: "host[:port][/path]"
+/// Examples:
+///   "example.com" -> ("example.com", 80, "/")
+///   "example.com:8080/api" -> ("example.com", 8080, "/api")
+///   "127.0.0.1:3000/" -> ("127.0.0.1", 3000, "/")
+fn parse_url(url: &str) -> Option<(String, u16, String)> {
+    // Strip optional "http://" prefix
+    let url = url
+        .strip_prefix("http://")
+        .or_else(|| url.strip_prefix("https://"))
+        .unwrap_or(url);
+
+    // Find path start
+    let (host_port, path) = match url.find('/') {
+        Some(i) => (&url[..i], &url[i..]),
+        None => (url, "/"),
+    };
+
+    // Split host:port
+    if let Some(colon) = host_port.rfind(':') {
+        let host = &host_port[..colon];
+        let port_str = &host_port[colon + 1..];
+        let port: u16 = port_str.parse().ok()?;
+        if host.is_empty() {
+            return None;
+        }
+        Some((host.to_string(), port, path.to_string()))
+    } else {
+        if host_port.is_empty() {
+            return None;
+        }
+        Some((host_port.to_string(), 80, path.to_string()))
+    }
+}
+
+/// Parse HTTP status code from response string.
+/// Returns 0 if the status line is malformed.
+fn parse_status_code(response: &str) -> u32 {
+    // First line: "HTTP/1.x NNN ..."
+    let first_line = response.lines().next().unwrap_or("");
+    let parts: Vec<&str> = first_line.splitn(3, ' ').collect();
+    if parts.len() >= 2 {
+        parts[1].parse().unwrap_or(0)
+    } else {
+        0
+    }
+}
+
+/// Find the start of the HTTP body (after \r\n\r\n).
+/// Returns the index into the buffer where the body begins.
+fn find_body_start(buf: &[u8]) -> usize {
+    for i in 0..buf.len().saturating_sub(3) {
+        if buf[i] == b'\r'
+            && buf[i + 1] == b'\n'
+            && buf[i + 2] == b'\r'
+            && buf[i + 3] == b'\n'
+        {
+            return i + 4;
+        }
+    }
+    // No header/body boundary found; return 0 (entire response is "body")
+    0
 }
 
 #[cfg(test)]
@@ -621,5 +827,239 @@ mod tests {
         // No null terminator -- reads until end of RAM
         let s = read_string_from_ram(&vm.ram, 0x7000);
         assert!(s.starts_with("A"));
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // HTTPGET tests (Phase 225)
+    // ═══════════════════════════════════════════════════════
+
+    #[test]
+    fn test_parse_url_host_only() {
+        let (host, port, path) = parse_url("example.com").unwrap();
+        assert_eq!(host, "example.com");
+        assert_eq!(port, 80);
+        assert_eq!(path, "/");
+    }
+
+    #[test]
+    fn test_parse_url_host_port_path() {
+        let (host, port, path) = parse_url("example.com:8080/api").unwrap();
+        assert_eq!(host, "example.com");
+        assert_eq!(port, 8080);
+        assert_eq!(path, "/api");
+    }
+
+    #[test]
+    fn test_parse_url_ip_port() {
+        let (host, port, path) = parse_url("127.0.0.1:3000/").unwrap();
+        assert_eq!(host, "127.0.0.1");
+        assert_eq!(port, 3000);
+        assert_eq!(path, "/");
+    }
+
+    #[test]
+    fn test_parse_url_with_http_prefix() {
+        let (host, port, path) = parse_url("http://example.com/test").unwrap();
+        assert_eq!(host, "example.com");
+        assert_eq!(port, 80);
+        assert_eq!(path, "/test");
+    }
+
+    #[test]
+    fn test_parse_url_empty() {
+        assert!(parse_url("").is_none());
+    }
+
+    #[test]
+    fn test_parse_status_code_200() {
+        let resp = "HTTP/1.0 200 OK\r\n\r\nbody";
+        assert_eq!(parse_status_code(resp), 200);
+    }
+
+    #[test]
+    fn test_parse_status_code_404() {
+        let resp = "HTTP/1.1 404 Not Found\r\n\r\n";
+        assert_eq!(parse_status_code(resp), 404);
+    }
+
+    #[test]
+    fn test_parse_status_code_malformed() {
+        let resp = "NOT HTTP\r\n\r\n";
+        assert_eq!(parse_status_code(resp), 0);
+    }
+
+    #[test]
+    fn test_find_body_start() {
+        let resp = b"HTTP/1.0 200 OK\r\n\r\nHello World";
+        assert_eq!(find_body_start(resp), 21);
+    }
+
+    #[test]
+    fn test_find_body_start_no_boundary() {
+        let resp = b"just body text";
+        assert_eq!(find_body_start(resp), 0);
+    }
+
+    #[test]
+    fn test_find_body_start_with_headers() {
+        let resp = b"HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 5\r\n\r\nHello";
+        assert_eq!(find_body_start(resp), 72);
+    }
+
+    /// Helper: create a mock HTTP server that returns a fixed response.
+    fn setup_http_server(body: &str, status: u16) -> u16 {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let port = listener.local_addr().unwrap().port();
+        let response = format!(
+            "HTTP/1.0 {} OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",
+            status, body.len(), body
+        );
+        let response_bytes = response.into_bytes();
+        thread::spawn(move || {
+            if let Ok((mut stream, _)) = listener.accept() {
+                stream.set_read_timeout(Some(Duration::from_secs(5))).ok();
+                let _ = stream.read(&mut [0u8; 4096]); // read request
+                let _ = stream.write_all(&response_bytes);
+            }
+        });
+        thread::sleep(Duration::from_millis(100));
+        port
+    }
+
+    #[test]
+    fn test_httpget_success() {
+        let port = setup_http_server("Hello from server", 200);
+        let mut vm = super::super::Vm::new();
+
+        // Write URL to RAM at 0x7000
+        let url = format!("127.0.0.1:{}/", port);
+        for (i, b) in url.bytes().enumerate() {
+            vm.ram[0x7000 + i] = b as u32;
+        }
+        vm.ram[0x7000 + url.len()] = 0;
+
+        // HTTPGET r1, r2, r3, r4, r5
+        vm.regs[1] = 0x7000; // url address
+        vm.regs[2] = 0x8000; // buf address
+        vm.regs[3] = 4096;   // max_len
+        vm.pc = 100;
+        vm.ram[100] = 0xCC;
+        vm.ram[101] = 1; // url_reg
+        vm.ram[102] = 2; // buf_reg
+        vm.ram[103] = 3; // max_len_reg
+        vm.ram[104] = 4; // status_reg
+        vm.ram[105] = 5; // len_reg
+        vm.step();
+
+        assert_eq!(vm.regs[0], HTTP_OK, "r0 should be OK");
+        assert_eq!(vm.regs[4], 200, "status should be 200");
+        assert_eq!(vm.regs[5], 17, "body length should be 17");
+
+        // Verify body in RAM
+        let body: String = (0..17)
+            .map(|i| (vm.ram[0x8000 + i] & 0xFF) as u8 as char)
+            .collect();
+        assert_eq!(body, "Hello from server");
+    }
+
+    #[test]
+    fn test_httpget_404() {
+        let port = setup_http_server("Not Found", 404);
+        let mut vm = super::super::Vm::new();
+
+        let url = format!("127.0.0.1:{}/missing", port);
+        for (i, b) in url.bytes().enumerate() {
+            vm.ram[0x7000 + i] = b as u32;
+        }
+        vm.ram[0x7000 + url.len()] = 0;
+
+        vm.regs[1] = 0x7000;
+        vm.regs[2] = 0x8000;
+        vm.regs[3] = 4096;
+        vm.pc = 100;
+        vm.ram[100] = 0xCC;
+        vm.ram[101] = 1;
+        vm.ram[102] = 2;
+        vm.ram[103] = 3;
+        vm.ram[104] = 4;
+        vm.ram[105] = 5;
+        vm.step();
+
+        assert_eq!(vm.regs[0], HTTP_OK);
+        assert_eq!(vm.regs[4], 404);
+    }
+
+    #[test]
+    fn test_httpget_connection_refused() {
+        let mut vm = super::super::Vm::new();
+
+        // URL pointing to nothing
+        let url = "127.0.0.1:19999/";
+        for (i, b) in url.bytes().enumerate() {
+            vm.ram[0x7000 + i] = b as u32;
+        }
+        vm.ram[0x7000 + url.len()] = 0;
+
+        vm.regs[1] = 0x7000;
+        vm.regs[2] = 0x8000;
+        vm.regs[3] = 4096;
+        vm.pc = 100;
+        vm.ram[100] = 0xCC;
+        vm.ram[101] = 1;
+        vm.ram[102] = 2;
+        vm.ram[103] = 3;
+        vm.ram[104] = 4;
+        vm.ram[105] = 5;
+        vm.step();
+
+        assert_eq!(vm.regs[0], HTTP_ERR_CONNECT);
+    }
+
+    #[test]
+    fn test_httpget_empty_url() {
+        let mut vm = super::super::Vm::new();
+        vm.ram[0x7000] = 0; // empty string
+
+        vm.regs[1] = 0x7000;
+        vm.regs[2] = 0x8000;
+        vm.regs[3] = 4096;
+        vm.pc = 100;
+        vm.ram[100] = 0xCC;
+        vm.ram[101] = 1;
+        vm.ram[102] = 2;
+        vm.ram[103] = 3;
+        vm.ram[104] = 4;
+        vm.ram[105] = 5;
+        vm.step();
+
+        assert_eq!(vm.regs[0], HTTP_ERR_BAD_URL);
+    }
+
+    #[test]
+    fn test_httpget_truncation() {
+        let port = setup_http_server("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 200);
+        let mut vm = super::super::Vm::new();
+
+        let url = format!("127.0.0.1:{}/", port);
+        for (i, b) in url.bytes().enumerate() {
+            vm.ram[0x7000 + i] = b as u32;
+        }
+        vm.ram[0x7000 + url.len()] = 0;
+
+        vm.regs[1] = 0x7000;
+        vm.regs[2] = 0x8000;
+        vm.regs[3] = 10; // max_len = 10, body is 26 bytes
+        vm.pc = 100;
+        vm.ram[100] = 0xCC;
+        vm.ram[101] = 1;
+        vm.ram[102] = 2;
+        vm.ram[103] = 3;
+        vm.ram[104] = 4;
+        vm.ram[105] = 5;
+        vm.step();
+
+        assert_eq!(vm.regs[0], HTTP_ERR_TOO_LARGE);
+        assert_eq!(vm.regs[4], 200);
+        assert_eq!(vm.regs[5], 10); // truncated to 10
     }
 }

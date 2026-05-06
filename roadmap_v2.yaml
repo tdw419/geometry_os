@@ -2658,7 +2658,7 @@ phases:
     _claimed_at: 1778040167
 - id: phase-225
   title: GeOS VM -- Network HTTP Client Opcode
-  status: planned
+  status: in_progress
   goal: Add a simple HTTP GET opcode that fetches a URL and stores the response in
     RAM
   description: 'The VM has TCP opcodes (CONNECT, SOCKSEND, SOCKRECV) but no HTTP-level
@@ -2700,6 +2700,8 @@ phases:
       scope_lines: 60
   test_target: 3
   scope_lines_total: 210
+  _claimed_by: worker-0
+  _claimed_at: 1778042137
 - id: phase-226
   title: RISC-V Guest -- Minimal Text Editor
   status: planned

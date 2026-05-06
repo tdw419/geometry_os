@@ -349,6 +349,22 @@ pub(super) fn try_parse(
             Ok(Some(()))
         }
 
+        "HTTPGET" => {
+            if tokens.len() < 6 {
+                return Err(
+                    "HTTPGET requires 5 arguments: HTTPGET url_reg, buf_reg, max_len_reg, status_reg, len_reg"
+                        .to_string(),
+                );
+            }
+            bytecode.push(0xCC);
+            bytecode.push(parse_reg(tokens[1])? as u32);
+            bytecode.push(parse_reg(tokens[2])? as u32);
+            bytecode.push(parse_reg(tokens[3])? as u32);
+            bytecode.push(parse_reg(tokens[4])? as u32);
+            bytecode.push(parse_reg(tokens[5])? as u32);
+            Ok(Some(()))
+        }
+
         _ => Ok(None),
     }
 }

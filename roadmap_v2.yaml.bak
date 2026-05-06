@@ -2569,7 +2569,7 @@ phases:
   _claimed_at: 1778035104
 - id: phase-223
   title: GeOS VM -- Program Library (lib/) Standardization
-  status: planned
+  status: in_progress
   goal: Audit and standardize the programs/lib/ assembly library with proper documentation
     and test coverage
   description: The programs/lib/ directory contains stdlib.asm, math.asm, stdio.asm,
@@ -2612,9 +2612,11 @@ phases:
       scope_lines: 120
   test_target: 3
   scope_lines_total: 300
+  _claimed_by: worker-0
+  _claimed_at: 1778036431
 - id: phase-224
   title: RISC-V Guest -- Conway's Life with Framebuffer Rendering
-  status: planned
+  status: complete
   goal: Port Conway's Game of Life to use the framebuffer instead of SBI console output
   description: life.c exists but outputs cell state to the SBI console (UART). A framebuffer
     version renders the grid as pixels, which is the canonical Geometry OS output
@@ -2623,7 +2625,7 @@ phases:
     console version cannot support.
   deliverables:
   - name: Framebuffer Game of Life
-    status: todo
+    status: complete
     tasks:
     - id: p224.d1.t1
       title: Implement framebuffer rendering for life grid
@@ -2633,6 +2635,7 @@ phases:
       scope_files:
       - examples/riscv-hello/life_fb.c
       scope_lines: 100
+      status: complete
     - id: p224.d1.t2
       title: Add keyboard controls for zoom, pan, speed
       description: Zoom in/out with +/- keys. Arrow keys pan. S toggles speed. R randomizes.
@@ -2640,6 +2643,7 @@ phases:
       scope_files:
       - examples/riscv-hello/life_fb.c
       scope_lines: 80
+      status: complete
     - id: p224.d1.t3
       title: Add visual verification test
       description: Seed with a known pattern (glider). Run 100 generations. Dump framebuffer.
@@ -2647,8 +2651,11 @@ phases:
       scope_files:
       - examples/life_fb_run.rs
       scope_lines: 40
-  test_target: 3
-  scope_lines_total: 220
+      status: complete
+    test_target: 3
+    scope_lines_total: 220
+    _claimed_by: worker-0
+    _claimed_at: 1778040167
 - id: phase-225
   title: GeOS VM -- Network HTTP Client Opcode
   status: planned

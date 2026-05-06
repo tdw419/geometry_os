@@ -1010,6 +1010,19 @@ impl Vm {
                 format!("MOUSECLICK {}", reg(ram(a + 1))),
                 2,
             ),
+            // HTTPGET url_reg, buf_reg, max_len_reg, status_reg, len_reg (0xCC)
+            // Blocking HTTP/1.0 GET request
+            0xCC => (
+                format!(
+                    "HTTPGET {}, {}, {}, {}, {}",
+                    reg(ram(a + 1)),
+                    reg(ram(a + 2)),
+                    reg(ram(a + 3)),
+                    reg(ram(a + 4)),
+                    reg(ram(a + 5))
+                ),
+                6,
+            ),
             // SMALLTEXT x, y, addr, fg, bg (0xD0) -- tiny 3x5 font, 85 cols in 256px
             0xD0 => (
                 format!(
@@ -2032,6 +2045,15 @@ mod tests {
         let (s, len) = vm.disassemble_at(0);
         assert_eq!(s, "DISCONNECT r0");
         assert_eq!(len, 2);
+    }
+
+    // -- HTTP ops (0xCC) --
+    #[test]
+    fn test_httpget_disasm() {
+        let vm = load_instruction(&[0xCC, 1, 2, 3, 4, 5], 0);
+        let (s, len) = vm.disassemble_at(0);
+        assert_eq!(s, "HTTPGET r1, r2, r3, r4, r5");
+        assert_eq!(len, 6);
     }
 
     // -- Provenance ops (0x83-0x84) --
