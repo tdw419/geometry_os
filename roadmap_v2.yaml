@@ -2887,7 +2887,7 @@ phases:
   scope_lines_total: 270
 - id: phase-230
   title: Error Resilience -- Replace pixel.rs unwrap() Calls
-  status: in_progress
+  status: complete
   goal: Eliminate all 17 unwrap() calls in pixel.rs with proper error propagation
   description: pixel.rs handles PNG decode/encode for pixelpack and .rts.png formats.
     It has 17 unwrap() calls that can panic on corrupt images, missing files, or malformed
@@ -2896,7 +2896,7 @@ phases:
     graceful fallbacks.
   deliverables:
   - name: unwrap()-free pixel.rs
-    status: todo
+    status: done
     tasks:
     - id: p230.d1.t1
       title: Replace File::open and Decoder unwrap() with error propagation
@@ -2905,6 +2905,7 @@ phases:
       scope_files:
       - src/pixel.rs
       scope_lines: 60
+      status: done
     - id: p230.d1.t2
       title: Replace PNG read_info and read_image unwrap() calls
       description: Handle PNG decode errors (corrupt headers, truncated data) by returning
@@ -2912,6 +2913,7 @@ phases:
       scope_files:
       - src/pixel.rs
       scope_lines: 40
+      status: done
     - id: p230.d1.t3
       title: Add pixel boot fallback for corrupt pixelpack images
       description: When a pixelpack boot image fails to decode, fall back to a default
@@ -2920,10 +2922,9 @@ phases:
       - src/pixel.rs
       - src/main.rs
       scope_lines: 30
+      status: done
   test_target: 3
   scope_lines_total: 130
-  _claimed_by: worker-0
-  _claimed_at: 1778088180
 - id: phase-231
   title: Error Resilience -- Replace mmu.rs unwrap() Calls
   status: todo
