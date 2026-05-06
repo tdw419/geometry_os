@@ -2857,31 +2857,8 @@ help_text:
     .byte 101 ; e
     .byte 0
 
-.org 0x1AD0
-
-kill_msg:
-    .byte 107 ; k
-    .byte 105 ; i
-    .byte 108 ; l
-    .byte 108 ; l
-    .byte 58  ; :
-    .byte 32  ; space
-    .byte 117 ; u
-    .byte 115 ; s
-    .byte 97  ; a
-    .byte 103 ; g
-    .byte 101 ; e
-    .byte 32  ; space
-    .byte 107 ; k
-    .byte 105 ; i
-    .byte 108 ; l
-    .byte 32  ; space
-    .byte 60  ; <
-    .byte 112 ; p
-    .byte 105 ; i
-    .byte 100 ; d
-    .byte 62  ; >
-    .byte 0
+; Data blocks reordered for monotonically increasing .org addresses
+; (original kill_msg was at 0x1AD0, moved to 0x1AF0 to fix backward .org)
 
 .org 0x1A80
 
@@ -2971,6 +2948,32 @@ hypervisor_usage_msg:
 
 .org 0x1AF0
 
+kill_msg:
+    .byte 107 ; k
+    .byte 105 ; i
+    .byte 108 ; l
+    .byte 108 ; l
+    .byte 58  ; :
+    .byte 32  ; space
+    .byte 117 ; u
+    .byte 115 ; s
+    .byte 97  ; a
+    .byte 103 ; e
+    .byte 32  ; space
+    .byte 107 ; k
+    .byte 105 ; i
+    .byte 108 ; l
+    .byte 32  ; space
+    .byte 60  ; <
+    .byte 112 ; p
+    .byte 105 ; i
+    .byte 100 ; d
+    .byte 62  ; >
+    .byte 0
+
+.org 0x1B10
+
+hypervisor_err_msg:
 hypervisor_err_msg:
     .byte 104 ; h
     .byte 121 ; y
@@ -2992,12 +2995,65 @@ hypervisor_err_msg:
     .byte 100 ; d
     .byte 0
 
-.org 0x1B10
-
-; Config buffer for hypervisor arguments (256 bytes: 0x1B10 - 0x1C0F)
-; Written by do_hypervisor, read by HYPERVISOR opcode
-
 .org 0x1C00
+
+; Config buffer for hypervisor arguments is at 0x1B00 (hardcoded in do_hypervisor).
+
+grep_err_msg:
+    .byte 103 ; g
+    .byte 114 ; r
+    .byte 101 ; e
+    .byte 112 ; p
+    .byte 58  ; :
+    .byte 32  ; space
+    .byte 110 ; n
+    .byte 111 ; o
+    .byte 32  ; space
+    .byte 109 ; m
+    .byte 97  ; a
+    .byte 116 ; c
+    .byte 104 ; h
+    .byte 0
+
+head_usage_msg:
+    .byte 104 ; h
+    .byte 101 ; e
+    .byte 97  ; a
+    .byte 100 ; d
+    .byte 58  ; :
+    .byte 32  ; space
+    .byte 117 ; u
+    .byte 115 ; s
+    .byte 97  ; a
+    .byte 103 ; g
+    .byte 101 ; e
+    .byte 0
+
+tail_usage_msg:
+    .byte 116 ; t
+    .byte 97  ; a
+    .byte 105 ; i
+    .byte 108 ; l
+    .byte 58  ; :
+    .byte 32  ; space
+    .byte 117 ; u
+    .byte 115 ; s
+    .byte 97  ; a
+    .byte 103 ; g
+    .byte 101 ; e
+    .byte 0
+
+wc_usage_msg:
+    .byte 119 ; w
+    .byte 99  ; c
+    .byte 58  ; :
+    .byte 32  ; space
+    .byte 117 ; u
+    .byte 115 ; s
+    .byte 97  ; a
+    .byte 103 ; g
+    .byte 101 ; e
+    .byte 0
 
 hypervisor_ok_msg:
     .byte 104 ; h
