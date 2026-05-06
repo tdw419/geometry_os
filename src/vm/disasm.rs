@@ -1219,6 +1219,9 @@ impl Vm {
             // SAVEPNG path_addr_reg (0xAF) -- save screen as PNG to VFS file
             0xAF => (format!("SAVEPNG {}", reg(ram(a + 1))), 2),
 
+            // BREAKPOINT (0xCD) -- hardware breakpoint, triggers debugger
+            0xCD => ("BREAKPOINT".to_string(), 1),
+
             _ => (format!("??? (0x{:02X})", op), 1),
         }
     }

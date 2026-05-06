@@ -25,6 +25,10 @@ pub(super) fn try_parse(
             bytecode.push(0x01);
             Ok(Some(()))
         }
+        "BREAKPOINT" => {
+            bytecode.push(0xCD);
+            Ok(Some(()))
+        }
         "FRAME" => {
             bytecode.push(0x02);
             Ok(Some(()))

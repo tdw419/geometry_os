@@ -2741,7 +2741,7 @@ phases:
   _claimed_at: 1778043907
 - id: phase-227
   title: GeOS VM -- Debugging Opcode BREAKPOINT
-  status: planned
+  status: in_progress
   goal: Add a hardware breakpoint opcode that triggers the VM debugger
   description: The VM has software breakpoints (set via the bp command in terminal),
     but programs cannot set their own breakpoints. A BREAKPOINT opcode (0xCA) that
@@ -2781,6 +2781,8 @@ phases:
       scope_lines: 30
   test_target: 3
   scope_lines_total: 100
+  _claimed_by: worker-0
+  _claimed_at: 1778045495
 - id: phase-228
   title: GeOS VM -- Sprite Animation System
   status: todo

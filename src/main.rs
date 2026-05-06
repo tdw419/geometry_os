@@ -1536,12 +1536,14 @@ fn main() {
                         vm.halted = false;
                     }
                     hit_breakpoint = false;
+                    vm.breakpoint_hit = false;
                     is_running = !is_running;
                 }
                 Key::F6 => {
                     // Single-step: execute one instruction when paused
                     if !is_running && !vm.halted && canvas_assembled {
                         hit_breakpoint = false;
+                        vm.breakpoint_hit = false;
                         vm.step();
                         if breakpoints.contains(&vm.pc) {
                             hit_breakpoint = true;
@@ -1801,6 +1803,12 @@ fn main() {
                 vm.step_all_processes();
                 if vm.frame_ready {
                     // FRAME opcode hit: stop here, let the host render this tick
+                    break;
+                }
+                if vm.breakpoint_hit {
+                    is_running = false;
+                    hit_breakpoint = true;
+                    status_msg = format!("[BREAKPOINT] PC=0x{:04X}", vm.pc);
                     break;
                 }
                 if breakpoints.contains(&vm.pc) {

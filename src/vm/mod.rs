@@ -8,6 +8,9 @@ pub struct Vm {
     pub halted: bool,
     /// Set by SHUTDOWN opcode (kernel mode); host checks after step() returns false
     pub shutdown_requested: bool,
+    /// Set by BREAKPOINT opcode; host checks after step() returns false.
+    /// Unlike halted, execution can be resumed by clearing this flag.
+    pub breakpoint_hit: bool,
     /// Set by FRAME opcode; cleared by the host after rendering
     pub frame_ready: bool,
     /// LCG state for RAND opcode
@@ -345,6 +348,7 @@ impl Vm {
             screen: vec![0; SCREEN_SIZE],
             halted: false,
             shutdown_requested: false,
+            breakpoint_hit: false,
             frame_ready: false,
             rand_state: 0xDEADBEEF,
             frame_count: 0,
@@ -4817,6 +4821,15 @@ impl Vm {
             // Returns: status_reg = HTTP code, len_reg = body length, r0 = error code.
             0xCC => {
                 self.op_httpget();
+            }
+
+            // BREAKPOINT (0xCD) -- Hardware breakpoint: triggers debugger
+            // Sets breakpoint_hit flag and returns false (like HALT).
+            // Host checks breakpoint_hit after step() and enters interactive debug mode.
+            // Zero words (no arguments).
+            0xCD => {
+                self.breakpoint_hit = true;
+                return false;
             }
 
             _ => {

@@ -2704,7 +2704,7 @@ phases:
   _claimed_at: 1778042137
 - id: phase-226
   title: RISC-V Guest -- Minimal Text Editor
-  status: planned
+  status: complete
   goal: Add a bare-metal text editor C program for editing VFS files
   description: The guest has sh.c for commands, paint.c for pixel art, and hexedit.c
     (planned) for binary editing, but no text editor. A minimal text editor (like
@@ -2713,27 +2713,32 @@ phases:
     libgeos font) and keyboard input via geos_getchar.
   deliverables:
   - name: Bare-metal text editor
-    status: todo
+    status: done
     tasks:
     - id: p226.d1.t1
       title: Implement basic text display and cursor movement
-      description: Display file content in the framebuffer (80x32 character grid at
-        3x8 pixel cells). Arrow keys move cursor. PageUp/PageDown scroll. Status bar
-        at bottom shows filename and line/col.
+      description: Display file content in the framebuffer (32x30 character grid at
+        8x8 pixel cells using geos_draw_char). Arrow keys move cursor. PageUp/PageDown
+        scroll. Status bar at bottom shows filename and line/col. Block cursor rendering.
       scope_files:
       - examples/riscv-hello/editor.c
       scope_lines: 200
+      status: done
     - id: p226.d1.t2
       title: Add text editing and file save/load
       description: Type to insert characters. Backspace deletes. Enter inserts newline.
-        Ctrl+O saves to VFS. Ctrl+X exits. Ctrl+R opens file from VFS (file browser
-        mode). Uses VFS pixel surface MMIO for file I/O.
+        Ctrl+O saves to VFS (prompts for filename). Ctrl+X exits (prompts if dirty).
+        Ctrl+R opens file browser showing VFS files. Ctrl+K cuts line, Ctrl+U pastes.
+        Uses VFS pixel surface MMIO for file I/O via vfs_pixel.h.
       scope_files:
       - examples/riscv-hello/editor.c
       - examples/riscv-hello/libgeos.c
       scope_lines: 150
+      status: done
   test_target: 2
   scope_lines_total: 350
+  _claimed_by: worker-0
+  _claimed_at: 1778043907
 - id: phase-227
   title: GeOS VM -- Debugging Opcode BREAKPOINT
   status: planned

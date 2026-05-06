@@ -429,6 +429,10 @@ pub fn cli_main(extra_args: &[String]) {
                             if !vm.step() {
                                 break;
                             }
+                            if vm.breakpoint_hit {
+                                hit_bp = true;
+                                break;
+                            }
                             if cli_breakpoints.contains(&vm.pc) {
                                 hit_bp = true;
                                 break;

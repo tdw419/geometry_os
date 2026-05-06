@@ -51,6 +51,7 @@ fn opcode_width(op: u32) -> u32 {
         case 0xB5u: { return 1u; } // VM_LIVE_STEP
         case 0xB6u: { return 1u; } // VM_LIVE_KILL
         case 0xBEu: { return 1u; } // NPROC
+        case 0xCDu: { return 1u; } // BREAKPOINT
 
         // ── 2-word instructions ──
         case 0x2Au: { return 2u; } // NEG

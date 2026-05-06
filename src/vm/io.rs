@@ -435,6 +435,7 @@ impl Vm {
             screen,
             halted,
             shutdown_requested: false,
+            breakpoint_hit: false,
             frame_ready: false,
             rand_state,
             frame_count,

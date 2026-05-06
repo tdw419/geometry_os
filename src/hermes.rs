@@ -1895,11 +1895,20 @@ pub fn execute_cli_command(
                         if !vm.step() {
                             break;
                         }
+                        if vm.breakpoint_hit {
+                            let msg = format!("[BREAKPOINT] PC=0x{:04X}", vm.pc);
+                            println!("{}", msg);
+                            output.push_str(&msg);
+                            output.push('\n');
+                            break;
+                        }
                     }
 
                     // Stop recording (but keep data for queries)
                     vm.trace_recording = false;
-                    let msg = if vm.halted {
+                    let msg = if vm.breakpoint_hit {
+                        format!("Breakpoint hit at PC=0x{:04X}", vm.pc)
+                    } else if vm.halted {
                         format!("Halted at PC=0x{:04X}", vm.pc)
                     } else {
                         format!("Running... PC=0x{:04X}", vm.pc)
