@@ -3,11 +3,11 @@
 Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers toolchain hygiene, GUI bridge, pixel VM convergence, libgeos extraction, and legacy roadmap reconciliation. SPEC = thesis. roadmap_v2 = arc. OpenSpec = per-change diff.
 
 
-**Progress:** 25/26 phases complete, 1 in progress, 0 planned
+**Progress:** 26/26 phases complete, 0 in progress, 0 planned
 
-**Deliverables:** 48/49 complete
+**Deliverables:** 49/49 complete
 
-**Tasks:** 74/121 complete
+**Tasks:** 76/121 complete
 
 ## Scope Summary
 
@@ -33,7 +33,7 @@ Roadmap for the pixel-native RISC-V hypervisor layer in Geometry OS. Covers tool
 | phase-192 Shell.asm Built-in Commands Expansion | COMPLETE | 3/3 | 85,710 | 5 |
 | phase-193 Nano Editor -- Search and Replace | COMPLETE | 2/2 | 85,840 | 3 |
 | phase-194 Host Terminal Performance -- Dirty Rectangle Rendering | COMPLETE | 1/1 | 85,900 | 2 |
-| phase-195 File Browser -- Directory Navigation and File Operations | IN PROGRESS | 0/1 | 85,965 | 2 |
+| phase-195 File Browser -- Directory Navigation and File Operations | COMPLETE | 1/1 | 86,000 | 4 |
 | phase-196 AI Terminal -- Session History and Context Window | COMPLETE | 2/2 | 86,025 | 2 |
 | phase-197 Replace mmu.rs unwrap() Calls with Proper Error Paths | COMPLETE | 1/1 | 86,110 | 2 |
 | phase-198 Desktop Terminal Integration -- Launch Hermes from GeOS | COMPLETE | 1/1 | 86,180 | 3 |
@@ -605,7 +605,7 @@ Currently host_term.asm renders all 30 rows every frame via SMALLTEXT, even when
   - [ ] `p194.d1.t2` Benchmark frame time before and after
     > Add a frame counter that measures cycles between renders. Log or display in status bar when debug mode is on.
 
-## [~] phase-195: File Browser -- Directory Navigation and File Operations (IN PROGRESS)
+## [x] phase-195: File Browser -- Directory Navigation and File Operations (COMPLETE)
 
 **Goal:** Extend file browser to support directory traversal, file deletion, and file creation
 
@@ -613,11 +613,13 @@ The file browser shows VFS files and displays content but cannot navigate direct
 
 ### Deliverables
 
-- [ ] **File operations from file browser** -- 
-  - [ ] `p195.d1.t1` Add delete confirmation dialog
-    > Select a file, press D to delete. Show confirmation dialog (Y/N). On confirm, call VFS UNLINK. Refresh file list.
-  - [ ] `p195.d1.t2` Add file size display in file list
-    > After filename, show file size in bytes using STRO and integer-to-string conversion.
+- [x] **File operations from file browser** -- 
+  - [x] `p195.d1.t1` Add delete confirmation dialog
+    > Select a file, press D to enter delete-select mode (DEL_TARGET=255). Click a file row to enter mode 2 (delete confirm). Shows dialog box with filename, green [Y] and red [N] buttons. Y/y key confirms and calls UNLINK. N/n/Escape cancels. List refreshes after delete or cancel via refresh_list. Keyboard-only confirmation (no hit regions on Y/N buttons) keeps it simple.
+    _Files: programs/file_browser.asm_
+  - [x] `p195.d1.t2` Add file size display in file list
+    > VSTAT opcode (0xC1) returns file size by name. refresh_list calls VSTAT for each file and stores sizes in SIZE_TABLE (0x620). draw_rows renders size as decimal string at SIZE_X (195px) with "B" suffix. int_to_str subroutine converts u32 to decimal. Skips display for size=0 or 0xFFFFFFFF (error/empty). 4 unit tests cover VSTAT happy path, nonexistent file, disassembly, and assembly.
+    _Files: programs/file_browser.asm, src/vm/mod.rs, src/vm/tests.rs_
 
 ## [x] phase-196: AI Terminal -- Session History and Context Window (COMPLETE)
 

@@ -28653,7 +28653,9 @@ fn trace_t9_execution() {
     let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib")).unwrap();
     
     let mut vm = crate::vm::Vm::new();
-    vm.load_program(&result.pixels);
+    for (i, &word) in result.pixels.iter().enumerate() {
+        vm.ram[i] = word;
+    }
     vm.pc = 0;
     vm.regs[30] = 0xFF00; // SP
     vm.regs[31] = 0; // LR
