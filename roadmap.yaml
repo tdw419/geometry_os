@@ -11174,3 +11174,31 @@ phases:
     scope_lines: 50
   scope_lines_total: 92
   test_target: 0
+- id: phase-265
+  title: "Fix socket 'halt' killing GeOS process in terminal_direct_mode"
+  status: planned
+  goal: "Allow socket halt/run cycle without process exit"
+  description: "The socket 'halt' command (src/main.rs line 2551) sets both is_running=false AND vm.halted=true. When terminal_direct_mode is true (set during terminal.asm boot), the main loop at line 4218 checks 'terminal_direct_mode && vm.halted' and sets should_quit=true, killing the entire GeOS process. This makes it impossible to pause/resume the VM via socket commands. Additionally, loadasm (line 2624) doesn't reset terminal_direct_mode, so ANY loaded program that halts will kill the process. Found during dogfood QA exploratory testing."
+  deliverables:
+  - name: "Fix socket halt to not set vm.halted"
+    description: "In src/main.rs line 2549-2553, the 'halt' match arm should only set is_running=false, NOT vm.halted=true. The vm.halted flag should only be set by the actual HALT opcode execution, not by the pause command. This allows halt/run toggling without triggering should_quit."
+    status: todo
+    tasks:
+    - id: p265.d1.t1
+      title: "Remove vm.halted = true from socket halt command"
+      status: todo
+      description: "Edit src/main.rs line 2551. Remove 'vm.halted = true;' so the halt command only pauses execution. Verify: start GeOS, run via socket, halt via socket, confirm process still alive, run again, confirm VM resumes."
+      scope_lines: 3
+    scope_lines: 3
+  - name: "Reset terminal_direct_mode in loadasm command"
+    description: "In src/main.rs around line 2656, after successfully loading and assembling a program via loadasm, set terminal_direct_mode = false. The loaded program is not the terminal, so the auto-quit-on-halt behavior should not apply."
+    status: todo
+    tasks:
+    - id: p265.d2.t1
+      title: "Add terminal_direct_mode = false after loadasm success"
+      status: todo
+      description: "After the 'loadasm OK' status_msg assignment (around line 2656), add 'terminal_direct_mode = false;'. Verify: loadasm hello.asm, run, wait for HALT, confirm process still alive."
+      scope_lines: 2
+    scope_lines: 2
+  scope_lines_total: 5
+  test_target: 0

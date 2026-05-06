@@ -2548,7 +2548,7 @@ phases:
       title: Add TIMER_GET opcode
       description: Reads host Instant::now() - vm.start_time, writes milliseconds
         to register. 32-bit value wraps at ~49 days. Implemented as TMR_GET (0xE8).
-        Note: roadmap originally said 0xC6 but that was already taken by PROFILE;
+        Note - roadmap originally said 0xC6 but that was already taken by PROFILE;
         used 0xE8 instead.
       scope_files:
       - src/vm/mod.rs
@@ -2560,7 +2560,7 @@ phases:
       description: Implemented as ALARM_SET (0xEA) and ALARM_CLR (0xEB). Also added
         TMR_WAIT (0xE9) for spin-wait convenience. ALARM_SET stores target_time =
         now + delay_ms, fires by writing value to RAM[addr] on FRAME. Up to 8
-        concurrent alarms. Note: original spec said 0xC7/0xC8 but those were taken
+        concurrent alarms. Note - original spec said 0xC7/0xC8 but those were taken
         by CRECTF/CRECT; used 0xE9-0xEB instead.
       scope_files:
       - src/vm/mod.rs
