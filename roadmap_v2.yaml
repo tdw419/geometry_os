@@ -2628,7 +2628,7 @@ phases:
   test_target: 3
   scope_lines_total: 300
   _claimed_by: worker-0
-  _claimed_at: 1778062950
+  _claimed_at: 1778066412
 - id: phase-224
   title: RISC-V Guest -- Conway's Life with Framebuffer Rendering
   status: complete

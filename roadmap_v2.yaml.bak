@@ -2559,9 +2559,9 @@ phases:
       title: Add TIMER_SET_ALARM and TIMER_CHECK opcodes
       description: Implemented as ALARM_SET (0xEA) and ALARM_CLR (0xEB). Also added
         TMR_WAIT (0xE9) for spin-wait convenience. ALARM_SET stores target_time =
-        now + delay_ms, fires by writing value to RAM[addr] on FRAME. Up to 8
-        concurrent alarms. Note - original spec said 0xC7/0xC8 but those were taken
-        by CRECTF/CRECT; used 0xE9-0xEB instead.
+        now + delay_ms, fires by writing value to RAM[addr] on FRAME. Up to 8 concurrent
+        alarms. Note - original spec said 0xC7/0xC8 but those were taken by CRECTF/CRECT;
+        used 0xE9-0xEB instead.
       scope_files:
       - src/vm/mod.rs
       - src/assembler/system_ops.rs
@@ -2571,8 +2571,8 @@ phases:
       title: 'Demo: countdown timer program'
       description: 10-second countdown displayed on screen. Uses TMR_GET to compute
         remaining time and ALARM_SET to detect completion. Shows remaining seconds,
-        live TMR_GET hex readout, state indicator. Beeps on completion. Programs
-        at programs/countdown.asm (9466 bytes).
+        live TMR_GET hex readout, state indicator. Beeps on completion. Programs at
+        programs/countdown.asm (9466 bytes).
       scope_files:
       - programs/countdown.asm
       scope_lines: 50
@@ -2584,7 +2584,7 @@ phases:
   _claimed_at: 1778060054
 - id: phase-223
   title: GeOS VM -- Program Library (lib/) Standardization
-  status: planned
+  status: in_progress
   goal: Audit and standardize the programs/lib/ assembly library with proper documentation
     and test coverage
   description: The programs/lib/ directory contains stdlib.asm, math.asm, stdio.asm,
@@ -2627,6 +2627,8 @@ phases:
       scope_lines: 120
   test_target: 3
   scope_lines_total: 300
+  _claimed_by: worker-0
+  _claimed_at: 1778062950
 - id: phase-224
   title: RISC-V Guest -- Conway's Life with Framebuffer Rendering
   status: complete

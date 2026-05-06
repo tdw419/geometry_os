@@ -28114,3 +28114,89 @@ fn test_tmr_get_alarm_set_end_to_end() {
     // Verify alarm fired and wrote to RAM
     assert_eq!(vm.ram[0x500], 42, "Alarm should have written 42 to RAM[0x500]");
 }
+
+// ── lib_test_v4.asm: comprehensive library test suite ──────
+
+#[test]
+fn test_lib_test_v4_assembles() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm")
+        .expect("programs/lib_test_v4.asm should exist");
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib"));
+    assert!(result.is_ok(), "lib_test_v4.asm should assemble: {:?}", result.err());
+}
+
+#[test]
+fn test_lib_test_v4_runs_all_pass() {
+    let source = std::fs::read_to_string("programs/lib_test_v4.asm")
+        .expect("programs/lib_test_v4.asm should exist");
+    let result = crate::assembler::assemble_with_lib(&source, 0, Some("lib"))
+        .expect("lib_test_v4.asm should assemble");
+    let mut vm = crate::vm::Vm::new();
+    vm.regs[30] = 0xFF00; // SP
+    // Load bytecode
+    for (i, &word) in result.pixels.iter().enumerate() {
+        vm.ram[i] = word;
+    }
+    // Run for up to 500k steps
+    for _ in 0..500_000 {
+        if vm.halted {
+            break;
+        }
+        vm.step();
+    }
+    // Check all 56 test slots (0xF80-0xFB7)
+    let mut pass_count = 0;
+    let mut fail_count = 0;
+    let mut failures = Vec::new();
+    for i in 0..56 {
+        let addr = 0xF80 + i;
+        let val = vm.ram[addr];
+        if val == 1 {
+            pass_count += 1;
+        } else {
+            fail_count += 1;
+            failures.push(i);
+        }
+    }
+    if !failures.is_empty() {
+        panic!(
+            "lib_test_v4: {}/56 passed, {} FAILED (tests: {:?})",
+            pass_count, fail_count, failures
+        );
+    }
+    assert_eq!(pass_count, 56, "all 56 tests should pass");
+}
+
+// ── New library module assembly tests ──────────────────────
+
+#[test]
+fn test_draw_lib_assembles() {
+    let source = std::fs::read_to_string("lib/draw.asm")
+        .expect("lib/draw.asm should exist");
+    let result = crate::assembler::assemble(&source, 0);
+    assert!(result.is_ok(), "draw.asm should assemble: {:?}", result.err());
+}
+
+#[test]
+fn test_input_lib_assembles() {
+    let source = std::fs::read_to_string("lib/input.asm")
+        .expect("lib/input.asm should exist");
+    let result = crate::assembler::assemble(&source, 0);
+    assert!(result.is_ok(), "input.asm should assemble: {:?}", result.err());
+}
+
+#[test]
+fn test_random_lib_assembles() {
+    let source = std::fs::read_to_string("lib/random.asm")
+        .expect("lib/random.asm should exist");
+    let result = crate::assembler::assemble(&source, 0);
+    assert!(result.is_ok(), "random.asm should assemble: {:?}", result.err());
+}
+
+#[test]
+fn test_gfx_lib_assembles() {
+    let source = std::fs::read_to_string("lib/gfx.asm")
+        .expect("lib/gfx.asm should exist");
+    let result = crate::assembler::assemble(&source, 0);
+    assert!(result.is_ok(), "gfx.asm should assemble: {:?}", result.err());
+}
