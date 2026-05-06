@@ -1,6 +1,6 @@
 ; lib/collision.asm -- Standard Library: collision detection primitives
 ;
-; Version: 1.1.0
+; Version: 1.2.0
 ; Dependencies: none (base library)
 ; Clobbers: varies per function (see individual docs)
 ;
@@ -8,7 +8,7 @@
 ;   Arguments: r1-r8 (extended for multi-arg functions)
 ;   Return value: r0 (0 = false, 1 = true)
 ;   Caller-saved: r1-r9
-;   Callee-saved: r10-r25
+;   Callee-saved: r10-r25 (ALL functions preserve these)
 ;   r0 is CMP result register -- always save/restore when needed
 ;   r30 = SP, r31 = return PC
 ;
@@ -103,32 +103,33 @@ pir_outside:
 ; point_in_circle -- test if a point is inside a circle
 ;   r1 = px, r2 = py, r3 = cx, r4 = cy, r5 = cr
 ;   returns r0 = 1 if point is inside circle, 0 if not
-;   clobbers: r9, r10
+;   clobbers: r8, r9
 ;
 ;   Uses squared distance: (px-cx)^2 + (py-cy)^2 <= cr^2
+;   v1.2.0: Restructured to use only caller-saved registers
 ; ═══════════════════════════════════════════════════════════════
 point_in_circle:
     ; dx = px - cx
-    MOV r9, r1
-    SUB r9, r3             ; r9 = dx
-    MUL r9, r9             ; r9 = dx^2
+    MOV r8, r1
+    SUB r8, r3             ; r8 = dx
+    MUL r8, r8             ; r8 = dx^2
 
     ; dy = py - cy
-    MOV r10, r2
-    SUB r10, r4            ; r10 = dy
-    MUL r10, r10           ; r10 = dy^2
+    MOV r9, r2
+    SUB r9, r4             ; r9 = dy
+    MUL r9, r9             ; r9 = dy^2
 
     ; dist_sq = dx^2 + dy^2
-    ADD r9, r10            ; r9 = dist_sq
+    ADD r8, r9             ; r8 = dist_sq
 
     ; cr_sq = cr * cr
-    MOV r10, r5
-    MUL r10, r10           ; r10 = cr_sq
+    MOV r9, r5
+    MUL r9, r9             ; r9 = cr_sq
 
     ; Check: dist_sq <= cr_sq
-    CMP r9, r10
-    LDI r10, 1
-    CMP r0, r10            ; if CMP >= 1 (dist_sq > cr_sq), outside
+    CMP r8, r9
+    LDI r9, 1
+    CMP r0, r9             ; if CMP >= 1 (dist_sq > cr_sq), outside
     JZ r0, pic_outside
 
     LDI r0, 1
@@ -143,7 +144,7 @@ pic_outside:
 ;   r1 = cx, r2 = cy, r3 = cr
 ;   r4 = rx, r5 = ry, r6 = rw, r7 = rh
 ;   returns r0 = 1 if intersect, 0 if not
-;   clobbers: r8, r9, r10
+;   clobbers: r4, r5, r6, r7, r8, r9
 ;
 ;   Algorithm: find closest point on rect to circle center,
 ;   then check if distance to that point <= cr.
@@ -153,87 +154,81 @@ pic_outside:
 ;   closest_y = clamp(cy, ry, ry+rh)
 ;   dist_sq = (cx - closest_x)^2 + (cy - closest_y)^2
 ;   return dist_sq <= cr^2
+;
+;   v1.2.0: Restructured to use only caller-saved registers
 ; ═══════════════════════════════════════════════════════════════
 circle_rect_intersect:
-    ; Compute closest_x = clamp(cx, rx, rx+rw)
+    ; Precompute rect edges (clobber r8, r9 -- these are caller-saved)
     MOV r8, r4
     ADD r8, r6             ; r8 = rx + rw (right edge)
+    MOV r9, r5
+    ADD r9, r7             ; r9 = ry + rh (bottom edge)
 
-    ; clamp cx to [rx, rx+rw]
-    ; if cx < rx: closest_x = rx
-    CMP r1, r4
-    LDI r9, 0xFFFFFFFF
-    CMP r0, r9             ; if cx < rx
-    JZ r0, cri_cx_clamped_lo
-    ; if cx > rx+rw: closest_x = rx+rw
-    CMP r1, r8
-    LDI r9, 1
-    CMP r0, r9             ; if cx > rx+rw
-    JZ r0, cri_cx_clamped_hi
-    ; else: closest_x = cx
-    MOV r9, r1
-    JMP cri_cx_done
+    ; --- Clamp cx to [rx, rx+rw] -> store in r4 ---
+    CMP r1, r4             ; CMP(cx, rx)
+    LDI r7, 0xFFFFFFFF     ; temp for CMP check (clobbering rh, no longer needed)
+    CMP r0, r7
+    JZ r0, cri_cx_lo       ; cx < rx
+    CMP r1, r8             ; CMP(cx, rx+rw)
+    LDI r7, 1
+    CMP r0, r7
+    JZ r0, cri_cx_hi       ; cx > rx+rw
+    ; cx in range: closest_x = cx
+    MOV r4, r1
+    JMP cri_cy_clamp
 
-cri_cx_clamped_lo:
-    MOV r9, r4             ; closest_x = rx
-    JMP cri_cx_done
+cri_cx_lo:
+    ; closest_x = rx (r4 already = rx)
+    JMP cri_cy_clamp
 
-cri_cx_clamped_hi:
-    MOV r9, r8             ; closest_x = rx + rw
+cri_cx_hi:
+    ; closest_x = rx + rw
+    MOV r4, r8
 
-cri_cx_done:
-    ; r9 = closest_x
+cri_cy_clamp:
+    ; r4 = closest_x, r8 = rx+rw, r9 = ry+rh
+    ; --- Clamp cy to [ry, ry+rh] -> store in r5 ---
+    ; r5 = ry (still intact from original input)
+    CMP r2, r5             ; CMP(cy, ry)
+    LDI r7, 0xFFFFFFFF
+    CMP r0, r7
+    JZ r0, cri_cy_lo       ; cy < ry
+    CMP r2, r9             ; CMP(cy, ry+rh)
+    LDI r7, 1
+    CMP r0, r7
+    JZ r0, cri_cy_hi       ; cy > ry+rh
+    ; cy in range: closest_y = cy
+    MOV r5, r2
+    JMP cri_dist
 
-    ; Compute closest_y = clamp(cy, ry, ry+rh)
-    MOV r8, r5
-    ADD r8, r7             ; r8 = ry + rh (bottom edge)
+cri_cy_lo:
+    ; closest_y = ry (r5 already = ry)
+    JMP cri_dist
 
-    ; clamp cy to [ry, ry+rh]
-    ; if cy < ry: closest_y = ry
-    CMP r2, r5
-    LDI r10, 0xFFFFFFFF
-    CMP r0, r10            ; if cy < ry
-    JZ r0, cri_cy_clamped_lo
-    ; if cy > ry+rh: closest_y = ry+rh
-    CMP r2, r8
-    LDI r10, 1
-    CMP r0, r10            ; if cy > ry+rh
-    JZ r0, cri_cy_clamped_hi
-    ; else: closest_y = cy
-    MOV r10, r2
-    JMP cri_cy_done
+cri_cy_hi:
+    ; closest_y = ry + rh
+    MOV r5, r9
 
-cri_cy_clamped_lo:
-    MOV r10, r5            ; closest_y = ry
-    JMP cri_cy_done
-
-cri_cy_clamped_hi:
-    MOV r10, r8            ; closest_y = ry + rh
-
-cri_cy_done:
-    ; r9 = closest_x, r10 = closest_y
-
+cri_dist:
+    ; r4 = closest_x, r5 = closest_y
+    ; r1 = cx, r2 = cy, r3 = cr (all intact)
     ; dx = cx - closest_x
-    MOV r8, r1
-    SUB r8, r9             ; r8 = dx
-    MUL r8, r8             ; r8 = dx^2
-
+    MOV r6, r1
+    SUB r6, r4             ; r6 = dx
+    MUL r6, r6             ; r6 = dx^2
     ; dy = cy - closest_y
-    MOV r9, r2
-    SUB r9, r10            ; r9 = dy
-    MUL r9, r9             ; r9 = dy^2
-
+    MOV r7, r2
+    SUB r7, r5             ; r7 = dy
+    MUL r7, r7             ; r7 = dy^2
     ; dist_sq = dx^2 + dy^2
-    ADD r8, r9             ; r8 = dist_sq
-
+    ADD r6, r7             ; r6 = dist_sq
     ; cr_sq = cr * cr
-    MOV r9, r3
-    MUL r9, r9             ; r9 = cr_sq
-
+    MOV r7, r3
+    MUL r7, r7             ; r7 = cr^2
     ; Check: dist_sq <= cr_sq
-    CMP r8, r9
-    LDI r9, 1
-    CMP r0, r9             ; if CMP >= 1 (dist_sq > cr_sq), no intersect
+    CMP r6, r7
+    LDI r7, 1
+    CMP r0, r7             ; if CMP >= 1 (dist_sq > cr_sq), no intersect
     JZ r0, cri_no_intersect
 
     LDI r0, 1
@@ -248,33 +243,34 @@ cri_no_intersect:
 ;   r1 = cx1, r2 = cy1, r3 = r1 (radius 1)
 ;   r4 = cx2, r5 = cy2, r6 = r2 (radius 2)
 ;   returns r0 = 1 if overlap or touch, 0 if not
-;   clobbers: r9, r10
+;   clobbers: r8, r9
 ;
 ;   Uses squared distance: dist_sq <= (r1+r2)^2
+;   v1.2.0: Restructured to use only caller-saved registers
 ; ═══════════════════════════════════════════════════════════════
 circles_overlap:
     ; dx = cx2 - cx1
-    MOV r9, r4
-    SUB r9, r1             ; r9 = dx
-    MUL r9, r9             ; r9 = dx^2
+    MOV r8, r4
+    SUB r8, r1             ; r8 = dx
+    MUL r8, r8             ; r8 = dx^2
 
     ; dy = cy2 - cy1
-    MOV r10, r5
-    SUB r10, r2            ; r10 = dy
-    MUL r10, r10           ; r10 = dy^2
+    MOV r9, r5
+    SUB r9, r2             ; r9 = dy
+    MUL r9, r9             ; r9 = dy^2
 
     ; dist_sq = dx^2 + dy^2
-    ADD r9, r10            ; r9 = dist_sq
+    ADD r8, r9             ; r8 = dist_sq
 
-    ; sum_r = r1 + r2
-    MOV r10, r3
-    ADD r10, r6            ; r10 = r1 + r2
-    MUL r10, r10           ; r10 = (r1 + r2)^2
+    ; sum_r = r1 + r2, then square
+    MOV r9, r3
+    ADD r9, r6             ; r9 = r1 + r2
+    MUL r9, r9             ; r9 = (r1 + r2)^2
 
     ; Check: dist_sq <= (r1+r2)^2
-    CMP r9, r10
-    LDI r10, 1
-    CMP r0, r10            ; if CMP >= 1 (dist_sq > sum_r_sq), no overlap
+    CMP r8, r9
+    LDI r9, 1
+    CMP r0, r9             ; if CMP >= 1 (dist_sq > sum_r_sq), no overlap
     JZ r0, co_no_overlap
 
     LDI r0, 1
@@ -289,7 +285,7 @@ co_no_overlap:
 ;   r1 = px, r2 = py
 ;   r3 = x1, r4 = y1, r5 = x2, r6 = y2, r7 = x3, r8 = y3
 ;   returns r0 = 1 if inside, 0 if not
-;   clobbers: r9-r15
+;   clobbers: r1-r9 (uses PUSH/POP to preserve r10-r15)
 ;
 ;   Uses barycentric coordinate method (all integer math):
 ;   Compute cross products of edge vectors with point vectors.
@@ -301,8 +297,17 @@ co_no_overlap:
 ;   has_neg = (d1 < 0) or (d2 < 0) or (d3 < 0)
 ;   has_pos = (d1 > 0) or (d2 > 0) or (d3 > 0)
 ;   inside = NOT (has_neg AND has_pos)
+;
+;   v1.2.0: Uses PUSH/POP to properly preserve callee-saved r10-r15
 ; ═══════════════════════════════════════════════════════════════
 point_in_triangle:
+    PUSH r10
+    PUSH r11
+    PUSH r12
+    PUSH r13
+    PUSH r14
+    PUSH r15
+
     ; --- Compute d1 ---
     ; edge_x = x2 - x1
     MOV r9, r5
@@ -432,9 +437,21 @@ pit_sign_done:
     JZ r13, pit_inside     ; no negatives -> all non-negative
     JZ r14, pit_inside     ; no positives -> all non-positive
     ; Both has_neg and has_pos -> mixed signs -> outside
+    POP r15
+    POP r14
+    POP r13
+    POP r12
+    POP r11
+    POP r10
     LDI r0, 0
     RET
 
 pit_inside:
+    POP r15
+    POP r14
+    POP r13
+    POP r12
+    POP r11
+    POP r10
     LDI r0, 1
     RET

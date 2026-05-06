@@ -1,6 +1,6 @@
 ; lib/math.asm -- Standard Library: math operations
 ;
-; Version: 1.1.0
+; Version: 1.2.0
 ; Dependencies: none (base library)
 ; Clobbers: varies per function (see individual docs)
 ;
@@ -112,7 +112,8 @@ lerp:
 ; sqrt_approx -- integer square root via Newton's method
 ;   r1 = value (unsigned)
 ;   returns r0 = floor(sqrt(value))
-;   clobbers: r10-r13
+;   clobbers: r1-r9 (uses PUSH/POP to preserve r10-r13)
+;   v1.2.0: Fixed callee-saved register violation
 ; ═══════════════════════════════════════════════════════════════
 sqrt_approx:
     ; Handle 0
@@ -120,6 +121,10 @@ sqrt_approx:
     LDI r0, 0
     RET
 sqrt_nonzero:
+    PUSH r10
+    PUSH r11
+    PUSH r12
+    PUSH r13
     ; Initial guess: value / 2 (or value >> 1)
     MOV r0, r1
     LDI r2, 1
@@ -152,6 +157,10 @@ sqrt_loop:
     CMP r0, r2             ; if counter >= max_iter
     JNZ r0, sqrt_loop
 sqrt_done:
+    POP r13
+    POP r12
+    POP r11
+    POP r10
     RET
 
 ; ═══════════════════════════════════════════════════════════════

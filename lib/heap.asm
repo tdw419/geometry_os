@@ -1,6 +1,6 @@
 ; lib/heap.asm -- Standard Library: advanced heap allocator with header tracking
 ;
-; Version: 1.1.0
+; Version: 1.2.0
 ; Dependencies: none (base library)
 ; Clobbers: varies per function (see individual docs)
 ;

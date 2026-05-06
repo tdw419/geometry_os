@@ -1,6 +1,6 @@
 ; lib/stdio.asm -- Standard Library: formatted I/O
 ;
-; Version: 1.1.0
+; Version: 1.2.0
 ; Dependencies: lib/stdlib.asm (for strlen, itoa) -- must be included BEFORE this file
 ; Clobbers: varies per function (see individual docs)
 ;
@@ -42,9 +42,14 @@ stdio_init:
 ; print_str -- print null-terminated string to screen at cursor
 ;   r1 = string address
 ;   Advances cursor position
-;   clobbers: r2, r3, r9, r10, r11, r12, r13
+;   clobbers: r2, r3, r4, r5, r8, r9 (uses PUSH/POP to preserve r10-r13)
+;   v1.2.0: Fixed callee-saved register violation (was clobbering r10-r13)
 ; ═══════════════════════════════════════════════════════════════
 print_str:
+    PUSH r10
+    PUSH r11
+    PUSH r12
+    PUSH r13
     LDI r9, CURSOR_X
     LOAD r10, r9           ; r10 = cursor x
     LDI r9, CURSOR_Y
@@ -115,6 +120,10 @@ print_str_done:
     STORE r9, r10
     LDI r9, CURSOR_Y
     STORE r9, r11
+    POP r13
+    POP r12
+    POP r11
+    POP r10
     RET
 
 ; ═══════════════════════════════════════════════════════════════

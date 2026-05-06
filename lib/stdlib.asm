@@ -1,6 +1,6 @@
 ; lib/stdlib.asm -- Standard Library: string operations, memory operations, heap allocator
 ;
-; Version: 1.1.0
+; Version: 1.2.0
 ; Dependencies: none (base library)
 ; Clobbers: varies per function (see individual docs)
 ;
@@ -215,9 +215,15 @@ memchr_found:
 ; itoa -- convert unsigned integer to decimal string
 ;   r1 = value, r2 = output buffer address
 ;   returns r0 = buffer address
-;   clobbers: r10-r14
+;   clobbers: r1-r9 (uses PUSH/POP to preserve r10-r14)
+;   v1.2.0: Fixed callee-saved register violation
 ; ═══════════════════════════════════════════════════════════════
 itoa:
+    PUSH r10
+    PUSH r11
+    PUSH r12
+    PUSH r13
+    PUSH r14
     MOV r10, r1            ; save value
     MOV r11, r2            ; save buffer
     LDI r0, 0
@@ -234,6 +240,11 @@ itoa:
     MOV r0, r11
     LDI r1, 1
     SUB r0, r1             ; r0 = buf
+    POP r14
+    POP r13
+    POP r12
+    POP r11
+    POP r10
     RET
 itoa_nonzero:
     MOV r12, r11           ; r12 = write pos (for digits in reverse)
@@ -272,6 +283,11 @@ itoa_done:
     LDI r0, 0
     STORE r1, r0           ; null terminate
     MOV r0, r11
+    POP r14
+    POP r13
+    POP r12
+    POP r11
+    POP r10
     RET
 
 ; ═══════════════════════════════════════════════════════════════
